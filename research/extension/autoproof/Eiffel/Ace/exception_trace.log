@@ -1,0 +1,1123 @@
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Child thread           0x788 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000002199883FAF8>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000002199883FAF8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000002199883FAF8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+STD_FILES           put_string @2                                       
+<000002199883FAD8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_PROCESS_CONTROLLER
+                    print @6               
+<000002199883C5E8>  (From ANY)             Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_PROCESS_CONTROLLER
+                    terminate_directly @1  
+<000002199883C5E8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_PROCESS_CONTROLLER
+                    execute @7             
+<000002199883C5E8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_PROCESS_CONTROLLER
+                    thr_main @3            
+<000002199883C5E8>  (From THREAD)          Routine failure.              Rescue
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<000002199D3CEFA8>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_tnwl           FILE: unable to write CHARACTER value.:
+<0000016B7CDFD108>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_tnwl                                        
+<0000016B7CDFD108>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_new_line @2                                     
+<0000016B7CDFD108>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TERM_WINDOW         put_new_line @1                                     
+<0000016B7CDEB498>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TERM_WINDOW         process_new_line @1                                 
+<0000016B7CDEB498>  (From OUTPUT_WINDOW)   Routine failure.              Fail
+-------------------------------------------------------------------------------
+TERM_WINDOW         add_new_line @1                                     
+<0000016B7CDEB498>  (From TEXT_FORMATTER)  Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEFAULT_ERROR_DISPLAYER
+                    trace_warnings @12     
+<0000016B7C3D6838>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+ERROR_HANDLER       trace_warnings @3                                   
+<0000016B7CDEB458>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+WORKBENCH_I         recompile @35                                       
+<0000016B7CCB4E58>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           melt @8                                             
+<0000016B7CCB4618>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           quick_melt @4                                       
+<0000016B7CCB4618>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      perform_compilation @1                              
+<0000016B7C3ED718>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      compile @4                                          
+<0000016B7C3ED718>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      execute @7                                          
+<0000016B7C3ED718>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @45                                         
+<0000016B7C4DE3E8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<0000016B7CDFD108>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<0000016B7CDFD108>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<0000016B7CDFD108>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<0000016B7CDFD108>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<0000016B7CDFD108>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            localized_print_error @4
+<0000016B7C4DE3E8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+ES_BATCH            execute @69                                         
+<0000016B7C4DE3E8>  (From ES)              Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<0000016B7C4DE3E8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<0000016B7C377FA8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<0000016B7C377FA8>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<00000193C0B20518>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<00000193C0B20518>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<00000193C0B20518>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+STD_FILES           put_string @2                                       
+<00000193C0104D98>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    print @6               
+<00000193BB429998>  (From ANY)             Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    cleanup_socket @2      
+<00000193BB429998>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    stop @19               
+<00000193BB429998>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<00000193C0B20518>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<00000193C0B20518>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<00000193C0B20518>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+STD_FILES           put_string @2                                       
+<00000193C0104D98>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    print @6               
+<00000193BB429998>  (From ANY)             Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    cleanup_socket @2      
+<00000193BB429998>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    stop @22               
+<00000193BB429998>                         Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_STRATEGY step @7                                             
+<00000193BB429928>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @5                
+<00000193BB4298C8>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @29               
+<00000193BB4298C8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @5                
+<00000193C1FD16A8>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @4                
+<00000193C1FD16A8>  (From TEST_GENERATOR)  Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @4                                     
+<00000193C22B7388>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @8                                     
+<00000193C22B7388>  (From ROTA)            Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_current_task @8
+<00000193C22B7388>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_all_tasks @4                                
+<00000193C22B7388>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            loop_to_end @7                                      
+<00000193C22B7388>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            run_task @7                                         
+<00000193C22B7388>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_SUITE          launch_session @18                                  
+<00000193C15B3698>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute_with_test_suite @124
+<00000193C09D40A8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute @4                                          
+<00000193C09D40A8>  (From EWB_TEST_CMD)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @49                                         
+<00000193C01FF3E8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<00000193C0B30108>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<00000193C0B30108>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<00000193C0B30108>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<00000193C0B30108>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<00000193C0B30108>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            localized_print_error @4
+<00000193C01FF3E8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+ES_BATCH            execute @69                                         
+<00000193C01FF3E8>  (From ES)              Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<00000193C01FF3E8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<00000193C0098FA8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<00000193C0098FA8>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001EBFE964228>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001EBFE964228>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001EBFE964228>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<000001EBFE964228>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<000001EBFE964228>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+EC_ENCODING_CONVERTER
+                    localized_print_error @4
+<000001EBFE6ECD88>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_message @2                                      
+<000001EBFE9523F8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_start_degree @10                                
+<000001EBFE9523F8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            init_recompilation @1                               
+<000001EBFE651898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            do_recompilation @8                                 
+<000001EBFE651898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            recompile @8                                        
+<000001EBFE651898>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+WORKBENCH_I         recompile @23                                       
+<000001EBFE91B598>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           melt @8                                             
+<000001EBFE91AD58>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           quick_melt @4                                       
+<000001EBFE91AD58>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      perform_compilation @1                              
+<000001EBFE01ACA8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      compile @4                                          
+<000001EBFE01ACA8>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      execute @7                                          
+<000001EBFE01ACA8>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @45                                         
+<000001EBFE03BCD8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001EBFE964228>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001EBFE964228>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001EBFE964228>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<000001EBFE964228>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<000001EBFE964228>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            localized_print_error @4
+<000001EBFE03BCD8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+ES_BATCH            execute @69                                         
+<000001EBFE03BCD8>  (From ES)              Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<000001EBFE03BCD8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<000001EBFDED7B08>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<000001EBFDED7B08>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<0000018FD7A6AB38>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<0000018FD7A6AB38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<0000018FD7A6AB38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<0000018FD7A6AB38>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<0000018FD7A6AB38>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+EC_ENCODING_CONVERTER
+                    localized_print_error @4
+<0000018FD7A14BA8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_message @2                                      
+<0000018FD7A0ECB8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_start_degree @10                                
+<0000018FD7A0ECB8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            init_recompilation @1                               
+<0000018FDCBEC898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            do_recompilation @8                                 
+<0000018FDCBEC898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            recompile @8                                        
+<0000018FDCBEC898>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+WORKBENCH_I         recompile @23                                       
+<0000018FD7824B78>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           melt @8                                             
+<0000018FD7823FC8>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           quick_melt @4                                       
+<0000018FD7823FC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      perform_compilation @1                              
+<0000018FD7823838>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      compile @4                                          
+<0000018FD7823838>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      execute @7                                          
+<0000018FD7823838>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @45                                         
+<0000018FDC5D3CD8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<0000018FD7A6AB38>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<0000018FD7A6AB38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<0000018FD7A6AB38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<0000018FD7A6AB38>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<0000018FD7A6AB38>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            localized_print_error @4
+<0000018FDC5D3CD8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+ES_BATCH            execute @69                                         
+<0000018FDC5D3CD8>  (From ES)              Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<0000018FDC5D3CD8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<0000018FDC46FB08>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<0000018FDC46FB08>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001F461438BC8>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001F461438BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001F461438BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<000001F461438BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<000001F461438BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+EC_ENCODING_CONVERTER
+                    localized_print_error @4
+<000001F4611B2398>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_message @2                                      
+<000001F461426ED8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_start_degree @10                                
+<000001F461426ED8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            init_recompilation @1                               
+<000001F46111F898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            do_recompilation @8                                 
+<000001F46111F898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            recompile @8                                        
+<000001F46111F898>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+WORKBENCH_I         recompile @23                                       
+<000001F4613F7378>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           melt @8                                             
+<000001F4613F6B38>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           quick_melt @4                                       
+<000001F4613F6B38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      perform_compilation @1                              
+<000001F460A70508>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      compile @4                                          
+<000001F460A70508>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      execute @7                                          
+<000001F460A70508>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @45                                         
+<000001F460AFFCD8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001F461438BC8>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001F461438BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001F461438BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<000001F461438BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<000001F461438BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            localized_print_error @4
+<000001F460AFFCD8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+ES_BATCH            execute @69                                         
+<000001F460AFFCD8>  (From ES)              Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<000001F460AFFCD8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<000001F46099BB08>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<000001F46099BB08>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001AFCE9A6BC8>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001AFCE9A6BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001AFCE9A6BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<000001AFCE9A6BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<000001AFCE9A6BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+EC_ENCODING_CONVERTER
+                    localized_print_error @4
+<000001AFCE720398>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_message @2                                      
+<000001AFCE994ED8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+DEGREE_OUTPUT       put_start_degree @10                                
+<000001AFCE994ED8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            init_recompilation @1                               
+<000001AFCE68D898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            do_recompilation @8                                 
+<000001AFCE68D898>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SYSTEM_I            recompile @8                                        
+<000001AFCE68D898>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+WORKBENCH_I         recompile @23                                       
+<000001AFCE965378>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           melt @8                                             
+<000001AFCE964B38>                         Routine failure.              Rescue
+-------------------------------------------------------------------------------
+E_PROJECT           quick_melt @4                                       
+<000001AFCE964B38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      perform_compilation @1                              
+<000001AFCDFE9508>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      compile @4                                          
+<000001AFCDFE9508>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_QUICK_MELT      execute @7                                          
+<000001AFCDFE9508>  (From EWB_COMP)        Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @45                                         
+<000001AFCE078CD8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ entering level 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001AFCE9A6BC8>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001AFCE9A6BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001AFCE9A6BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_general @19                              
+<000001AFCE9A6BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string_32 @1                                    
+<000001AFCE9A6BC8>  (From PLAIN_TEXT_FILE) Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            localized_print_error @4
+<000001AFCE078CD8>  (From LOCALIZED_PRINTER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ back to level 0 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------------------
+ES_BATCH            execute @69                                         
+<000001AFCE078CD8>  (From ES)              Exception in rescue clause.   Fail
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<000001AFCE078CD8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<000001AFCDF14B08>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<000001AFCDF14B08>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+STRING_8            plus @2                count:                       
+<000002039CEC1828>                         Feature call on void target.  Fail
+-------------------------------------------------------------------------------
+STRING_8            plus @2                                             
+<000002039CEC1828>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_RESPONSE
+                    text @2                
+<000002039CEC1568>  (From AUT_RESPONSE)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_FEATURE_REQUEST
+                    set_response @2        
+<000002039CE98098>  (From AUT_REQUEST)     Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    process_object_state_request @8
+<000002039CE97498>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_FEATURE_REQUEST
+                    process @2             
+<000002039CE98098>  (From AUT_OBJECT_STATE_REQUEST)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    process_request @3     
+<000002039CE97498>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    report_response @4     
+<000002039CE97498>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_RESPONSE
+                    publish @1             
+<000002039CEC1568>  (From AUT_RESPONSE)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    report_event @4        
+<000002039CE97278>  (From AUT_PROXY_EVENT_PRODUCER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    parse_object_state_response @3
+<000002039CE97278>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    record_operand_states @6
+<000002039CE97278>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    create_object @19      
+<000002039CE97278>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_OBJECT_CREATOR
+                    step @19               
+<000002039CE9EC08>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_INPUT_CREATOR
+                    step @5                
+<000002039CE9EBB8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_FEATURE_CALLER
+                    step @9                
+<000002039CE9EB38>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_STRATEGY step @5                                             
+<000002039CE97208>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @5                
+<000002039CE971A8>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @29               
+<000002039CE971A8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @5                
+<00000203A5176A28>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @4                
+<00000203A5176A28>  (From TEST_GENERATOR)  Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @4                                     
+<00000203A74B9808>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @8                                     
+<00000203A74B9808>  (From ROTA)            Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_current_task @8
+<00000203A74B9808>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_all_tasks @4                                
+<00000203A74B9808>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            loop_to_end @7                                      
+<00000203A74B9808>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            run_task @7                                         
+<00000203A74B9808>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_SUITE          launch_session @18                                  
+<00000203A35130B8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute_with_test_suite @124
+<00000203A2E92BC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute @4                                          
+<00000203A2E92BC8>  (From EWB_TEST_CMD)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @49                                         
+<00000203A27DA5D8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<00000203A27DA5D8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<00000203A2674198>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<00000203A2674198>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+STRING_8            plus @2                count:                       
+<000001605AAE9678>                         Feature call on void target.  Fail
+-------------------------------------------------------------------------------
+STRING_8            plus @2                                             
+<000001605AAE9678>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_RESPONSE
+                    text @2                
+<000001605AAE93B8>  (From AUT_RESPONSE)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_FEATURE_REQUEST
+                    set_response @2        
+<000001605AA55BB8>  (From AUT_REQUEST)     Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    process_object_state_request @8
+<000001605AA0F288>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_FEATURE_REQUEST
+                    process @2             
+<000001605AA55BB8>  (From AUT_OBJECT_STATE_REQUEST)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    process_request @3     
+<000001605AA0F288>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    report_response @4     
+<000001605AA0F288>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_RESPONSE
+                    publish @1             
+<000001605AAE93B8>  (From AUT_RESPONSE)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    report_event @4        
+<000001605AA11448>  (From AUT_PROXY_EVENT_PRODUCER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    parse_object_state_response @3
+<000001605AA11448>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    record_operand_states @6
+<000001605AA11448>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    create_object @19      
+<000001605AA11448>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_OBJECT_CREATOR
+                    step @19               
+<000001605AA51868>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_INPUT_CREATOR
+                    step @5                
+<000001605AA507D8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_FEATURE_CALLER
+                    step @9                
+<000001605AA4F938>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_STRATEGY step @5                                             
+<000001605AA1F268>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @5                
+<000001605AA0EF28>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @29               
+<000001605AA0EF28>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @5                
+<0000016064027248>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @4                
+<0000016064027248>  (From TEST_GENERATOR)  Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @4                                     
+<0000016064AE6798>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @8                                     
+<0000016064AE6798>  (From ROTA)            Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_current_task @8
+<0000016064AE6798>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_all_tasks @4                                
+<0000016064AE6798>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            loop_to_end @7                                      
+<0000016064AE6798>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            run_task @7                                         
+<0000016064AE6798>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_SUITE          launch_session @18                                  
+<0000016064AE6918>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute_with_test_suite @124
+<000001606047FBC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute @4                                          
+<000001606047FBC8>  (From EWB_TEST_CMD)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @49                                         
+<000001605FDB35D8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<000001605FDB35D8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<000001605FC4D198>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<000001605FC4D198>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+STRING_8            plus @2                count:                       
+<000002213E7E3278>                         Feature call on void target.  Fail
+-------------------------------------------------------------------------------
+STRING_8            plus @2                                             
+<000002213E7E3278>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_RESPONSE
+                    text @2                
+<000002213E7E2FB8>  (From AUT_RESPONSE)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_FEATURE_REQUEST
+                    set_response @2        
+<000002213E7A03A8>  (From AUT_REQUEST)     Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    process_object_state_request @8
+<000002213E79F7A8>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_FEATURE_REQUEST
+                    process @2             
+<000002213E7A03A8>  (From AUT_OBJECT_STATE_REQUEST)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    process_request @3     
+<000002213E79F7A8>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RESULT_REPOSITORY_BUILDER
+                    report_response @4     
+<000002213E79F7A8>  (From AUT_PROXY_EVENT_RECORDER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_OBJECT_STATE_RESPONSE
+                    publish @1             
+<000002213E7E2FB8>  (From AUT_RESPONSE)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    report_event @4        
+<000002213E79F588>  (From AUT_PROXY_EVENT_PRODUCER)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    parse_object_state_response @3
+<000002213E79F588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    record_operand_states @6
+<000002213E79F588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_INTERPRETER_PROXY
+                    create_object @19      
+<000002213E79F588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_OBJECT_CREATOR
+                    step @19               
+<000002213E7A6F98>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_INPUT_CREATOR
+                    step @5                
+<000002213E7A6F48>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_FEATURE_CALLER
+                    step @9                
+<000002213E7A6EC8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+AUT_RANDOM_STRATEGY step @5                                             
+<000002213E79F518>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @5                
+<000002213E79F4B8>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+ETEST_GENERATION_TESTING
+                    step @29               
+<000002213E79F4B8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @5                
+<0000022144FE2EA8>  (From ROTA_SERIAL_TASK_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_GENERATOR_WRAPPER
+                    step @4                
+<0000022144FE2EA8>  (From TEST_GENERATOR)  Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @4                                     
+<0000022144FE2428>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            perform_step @8                                     
+<0000022144FE2428>  (From ROTA)            Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_current_task @8
+<0000022144FE2428>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            proceed_all_tasks @4                                
+<0000022144FE2428>  (From ROTA_TASK_COLLECTION_I)
+                                           Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            loop_to_end @7                                      
+<0000022144FE2428>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TTY_ROTA            run_task @7                                         
+<0000022144FE2428>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_SUITE          launch_session @18                                  
+<0000022144FE25A8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute_with_test_suite @124
+<0000022144A327D8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EWB_AUTO_TEST       execute @4                                          
+<0000022144A327D8>  (From EWB_TEST_CMD)    Routine failure.              Fail
+-------------------------------------------------------------------------------
+ES_BATCH            execute @49                                         
+<0000022144192BA8>  (From ES)              Routine failure.              Rescue
+-------------------------------------------------------------------------------
+ES_BATCH            make @13                                            
+<0000022144192BA8>  (From ES)              Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           make @5                                             
+<000002214402ECF8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EB_KERNEL           root's creation                                     
+<000002214402ECF8>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [ETEST_MANUAL_CREATION] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]
+Catcall detected in {ES_CONTEXT_MENU_EXTENSION}.extend_feature for arg#2: expected PROCEDURE [TUPLE [READABLE_STRING_32, STRING_8, BOOLEAN, PROCEDURE [TUPLE]]] but got PROCEDURE [TUPLE [READABLE_STRING_32, READABLE_STRING_8, BOOLEAN, PROCEDURE [TUPLE]]]

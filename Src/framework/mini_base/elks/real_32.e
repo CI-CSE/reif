@@ -1,0 +1,37 @@
+note
+	description: "Real values, single precision"
+	external_name: "System.Single"
+	assembly: "mscorlib"
+	library: "Free implementation of ELKS library"
+	status: "See notice at end of class."
+	legal: "See notice at end of class."
+	date: "$Date: 2014-02-12 14:46:50 +0800 (周三, 12 2月 2014) $"
+	revision: "$Revision: 94269 $"
+
+frozen expanded class REAL_32 
+
+feature -- Access
+
+	item: like Current
+
+feature -- Settings
+
+	set_item (i: like Current)
+			-- Make `i' the item value.
+		do
+			item := i
+		ensure
+			item_set: item = i
+		end
+
+note
+	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
+end

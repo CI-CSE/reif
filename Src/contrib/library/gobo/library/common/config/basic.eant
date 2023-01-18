@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+
+<project name="basic">
+
+	<description>
+		description: "Basic build targets"
+		copyright: "Copyright (c) 2019, Eric Bezault and others"
+		license: "MIT License"
+		date: "$Date: 2020-01-08 18:24:11 +0800 (周三, 08 1月 2020) $"
+		revision: "$Revision: 103831 $"
+	</description>
+
+	<target name="help">
+		<echo message="usage:"/>
+		<echo message="   geant install"/>
+		<geant target="other_help"/>
+		<echo message="   geant clean"/>
+		<echo message="   geant clobber"/>
+	</target>
+
+	<target name="install" depend="init">
+		<description>
+			Create/update files.
+		</description>
+	</target>
+	
+	<target name="clean" depend="init">
+		<description>
+			Remove intermediary generated files.
+		</description>
+	</target>
+
+	<target name="clobber" depend="init">
+		<description>
+			Remove all generated files.
+		</description>
+	</target>
+
+<!-- Implementation -->
+
+	<target name="init" export="NONE">
+		<!-- do nothing -->
+	</target>
+
+	<target name="other_help" export="NONE">
+		<!-- do nothing -->
+	</target>
+
+</project>

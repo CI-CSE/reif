@@ -1,0 +1,83 @@
+note
+	description: "Summary description for {ES_ADB_FIX}."
+	author: ""
+	date: "$Date: 2014-06-27 20:57:49 +0800 (Fri, 27 Jun 2014) $"
+	revision: "$Revision: 95332 $"
+
+deferred class
+	ES_ADB_FIX_AUTOMATIC
+
+inherit
+	ES_ADB_FIX
+
+feature{NONE} -- Initialization
+
+	make_automatic (a_fault: ES_ADB_FAULT; a_id_string: STRING)
+			-- Initialization.
+		do
+			set_fault (a_fault)
+			set_id_string (a_id_string)
+		end
+
+feature -- Access
+
+	fix_id_string: STRING
+			-- <Precursor>
+
+	fix_text: STRING
+			-- Content of the fix in text.
+
+	has_been_applied: BOOLEAN
+			-- <Precursor>
+
+feature{ES_ADB_INFO_CENTER, ES_ADB_PROCESS_OUTPUT_PARSER} -- Setter
+
+	set_has_been_applied
+			-- Set `has_been_applied'.
+		do
+			has_been_applied := True
+			if fault /= Void then
+				fault.set_status (fault.Status_candidate_fix_accepted)
+			end
+		end
+
+	set_id_string (a_str: STRING)
+			-- Set `fix_id_string' with `a_str'.
+		require
+			a_str /= Void and then not a_str.is_empty
+		do
+			fix_id_string := a_str.twin
+		end
+
+;note
+	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
+	copying: "[
+			This file is part of Eiffel Software's Eiffel Development Environment.
+			
+			Eiffel Software's Eiffel Development Environment is free
+			software; you can redistribute it and/or modify it under
+			the terms of the GNU General Public License as published
+			by the Free Software Foundation, version 2 of the License
+			(available at the URL listed under "license" above).
+			
+			Eiffel Software's Eiffel Development Environment is
+			distributed in the hope that it will be useful, but
+			WITHOUT ANY WARRANTY; without even the implied warranty
+			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+			See the GNU General Public License for more details.
+			
+			You should have received a copy of the GNU General Public
+			License along with Eiffel Software's Eiffel Development
+			Environment; if not, write to the Free Software Foundation,
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+		]"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
+end

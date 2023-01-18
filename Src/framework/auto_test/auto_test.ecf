@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="auto_test_library" uuid="197D2624-6547-4BAB-904B-131A4FA4EA32" readonly="false" library_target="auto_test">
+	<target name="auto_test">
+		<root all_classes="true"/>
+		<file_rule>
+			<exclude>/.git$</exclude>
+			<exclude>/.svn$</exclude>
+			<exclude>/EIFGENs$</exclude>
+		</file_rule>
+		<option warning="warning" full_class_checking="false" is_obsolete_iteration="true">
+			<assertions/>
+		</option>
+		<setting name="total_order_on_reals" value="false"/>
+		<setting name="dead_code_removal" value="feature"/>
+		<capability>
+			<concurrency support="thread"/>
+			<void_safety support="none"/>
+		</capability>
+		<external_include location="$(EIFFEL_SRC)\framework\auto_test\spec\include">
+			<condition>
+				<platform value="windows"/>
+			</condition>
+		</external_include>
+		<external_include location="$(EIFFEL_SRC)/framework/auto_test/spec/include">
+			<condition>
+				<platform excluded_value="windows"/>
+			</condition>
+		</external_include>
+		<external_object location="$(EIFFEL_SRC)\framework\auto_test\spec\$(ISE_C_COMPILER)\$(ISE_PLATFORM)\lib\liblpsolve55.lib">
+			<condition>
+				<platform value="windows"/>
+			</condition>
+		</external_object>
+		<external_object location="$(EIFFEL_SRC)/framework/auto_test/spec/$(ISE_PLATFORM)/lib/liblpsolve55.a">
+			<condition>
+				<platform excluded_value="windows"/>
+			</condition>
+		</external_object>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="base_extension" location="$ISE_LIBRARY\library\base_extension\base_extension.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="configuration_parser" location="$EIFFEL_SRC\framework\configuration\configuration_parser.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="ecosystem" location="$EIFFEL_SRC\Eiffel\ecosystem\ecosystem.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="environment" location="$EIFFEL_SRC\framework\environment\environment.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="file_utilities" location="$EIFFEL_SRC\framework\file_utilities\file_utilities.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="framework_patterns" location="$ISE_LIBRARY\library\patterns\patterns.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_argument" location="$ISE_LIBRARY\library\gobo\gobo_argument.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_extension" location="$ISE_LIBRARY\library\gobo_extension\gobo_extension.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_kernel" location="$ISE_LIBRARY\library\gobo\gobo_kernel.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_regexp" location="$ISE_LIBRARY\library\gobo\gobo_regexp.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_structure" location="$ISE_LIBRARY\library\gobo\gobo_structure.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_time" location="$ISE_LIBRARY\library\gobo\gobo_time.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo_utility" location="$ISE_LIBRARY\library\gobo\gobo_utility.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="net" location="$ISE_LIBRARY\library\net\net.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="parser" location="$EIFFEL_SRC\framework\parser\parser.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="process" location="$ISE_LIBRARY\library\process\process.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf"/>
+		<library name="semantic_search" location="$EIFFEL_SRC\framework\semantic_search\semantic_search.ecf"/>
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="testing_engine" location="$EIFFEL_SRC\framework\testing\testing.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="time" location="$ISE_LIBRARY\library\time\time.ecf">
+			<option warning="none">
+			</option>
+		</library>
+		<library name="gobo" location="$ISE_LIBRARY\library\gobo\gobo_all.ecf"/>		
+		<library name="uuid" location="$ISE_LIBRARY\library\uuid\uuid.ecf"/>
+		<library name="gobo" location="$EIFFEL_SRC\contrib\library\gobo\library\tools\library.ecf"/>		
+		<library name="wel" location="$ISE_LIBRARY\library\wel\wel.ecf">
+			<condition>
+				<platform value="windows"/>
+			</condition>
+			<option warning="none">
+			</option>
+		</library>
+		<library name="logging" location="$ISE_LIBRARY\library\logging\logging.ecf" readonly="false"/>
+		<library name="mysql" location="$ISE_LIBRARY\library\mysql\mysql.ecf"/>
+		<cluster name="auto_test_library" location=".\" recursive="true">
+			<option warning="none" is_obsolete_iteration="true">
+			</option>
+			<file_rule>
+				<exclude>/windows$</exclude>
+				<condition>
+					<platform excluded_value="windows"/>
+				</condition>
+			</file_rule>
+			<file_rule>
+				<exclude>/unix$</exclude>
+				<condition>
+					<platform value="windows"/>
+				</condition>
+			</file_rule>
+			<file_rule>
+				<exclude>^strategy/random/artoo$</exclude>
+			</file_rule>
+		</cluster>
+	</target>
+</system>

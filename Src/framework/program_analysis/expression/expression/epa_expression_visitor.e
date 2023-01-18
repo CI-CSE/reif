@@ -1,0 +1,32 @@
+﻿note
+	description: "Visitor for {EPA_EXPRESSION}"
+	author: ""
+	date: "$Date: 2010-11-16 20:41:28 +0800 (Tue, 16 Nov 2010) $"
+	revision: "$Revision: 84926 $"
+
+deferred class
+	EPA_EXPRESSION_VISITOR
+
+feature -- Process
+
+	process_ast_expression (a_expr: EPA_AST_EXPRESSION)
+			-- Process `a_expr'.
+		deferred
+		end
+
+	process_universal_quantified_expression (a_expr: EPA_UNIVERSAL_QUANTIFIED_EXPRESSION)
+			-- Process `a_expr'.
+		deferred
+		end
+
+	process_existential_quantified_expression (a_expr: EPA_EXISTENTIAL_QUANTIFIED_EXPRESSION)
+			-- Process `a_expr'.
+		deferred
+		end
+
+	process_quantified_expression (a_expr: EPA_QUANTIFIED_EXPRESSION)
+			-- Process `a_expr'.
+		deferred
+		end
+
+end

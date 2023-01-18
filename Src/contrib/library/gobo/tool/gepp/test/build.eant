@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<project name="gepp_test" default="help">
+
+	<description>
+		description: "Gobo Eiffel Preprocessor Tester"
+		copyright: "Copyright (c) 2016, Eric Bezault and others"
+		license: "MIT License"
+		date: "$Date: 2020-01-08 20:44:13 +0800 (周三, 08 1月 2020) $"
+		revision: "$Revision: 103832 $"
+	</description>
+
+	<inherit>
+		<parent location="${GOBO}/library/common/config/tests.eant"/>
+	</inherit>
+	
+</project>

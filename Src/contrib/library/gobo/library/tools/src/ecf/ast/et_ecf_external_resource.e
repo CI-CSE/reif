@@ -1,0 +1,34 @@
+note
+
+	description:
+
+		"ECF external resources"
+
+	library: "Gobo Eiffel Tools Library"
+	copyright: "Copyright (c) 2017, Eric Bezault and others"
+	license: "MIT License"
+	date: "$Date: 2019-02-08 06:54:15 +0800 (周五, 08 2月 2019) $"
+	revision: "$Revision: 102807 $"
+
+class ET_ECF_EXTERNAL_RESOURCE
+
+inherit
+
+	ET_ECF_EXTERNAL_PATHNAME
+		rename
+			fill_external_values as fill_external_resources
+		end
+
+create
+
+	make
+
+feature {NONE} -- Implementation
+
+	add_external_value (a_value: STRING; a_universe: ET_ECF_INTERNAL_UNIVERSE)
+			-- Add `a_value' to `a_universe.current_system'.
+		do
+			a_universe.current_system.external_resource_pathnames.force_last (a_value)
+		end
+
+end
