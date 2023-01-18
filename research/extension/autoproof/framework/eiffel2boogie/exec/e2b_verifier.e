@@ -18,20 +18,32 @@ class
 inherit
 
 	E2B_SHARED_CONTEXT
+	SHARED_WORKBENCH
 
 create
-	make
+	make, make_with_prefix
 
 feature {NONE} -- Initialization
 
 	make
 			-- Initialize Boogie verifier.
 		do
-			create {E2B_PLATFORM_EXECUTABLE_IMPL} executable
+			index := unique_number
+			create {E2B_PLATFORM_EXECUTABLE_IMPL} executable.make (index)
+			create input.make
+		end
+
+	make_with_prefix (file_prefix: STRING)
+			-- Initialize Boogie verifier with specified Boogie file name and model file name.
+		do
+			create {E2B_PLATFORM_EXECUTABLE_IMPL} executable.make_with_prefix (file_prefix)
 			create input.make
 		end
 
 feature -- Access
+
+	index: INTEGER
+			-- Index of verification run
 
 	input: E2B_VERIFIER_INPUT
 			-- Input for verifier.
@@ -51,6 +63,12 @@ feature -- Access
 			Result := executable.last_output
 		end
 
+	last_models: detachable STRING
+			-- Countereamples (if any) of last run of Boogie.
+		do
+			Result := executable.last_models
+		end
+
 feature -- Status report
 
 	is_running: BOOLEAN
@@ -60,6 +78,17 @@ feature -- Status report
 		end
 
 feature -- Element change
+
+	unique_number: INTEGER
+		do
+			Result := global_counter.item
+			global_counter.put (Result + 1)
+		end
+
+	global_counter: CELL [INTEGER]
+		once
+			create Result.put (0)
+		end
 
 	set_input (a_input: like input)
 			-- Set `input' to `a_input'.
@@ -89,6 +118,14 @@ feature -- Basic operations
 			executable.run_asynchronous
 		end
 
+	verify_with_random_seed (a_random_seed: INTEGER)
+			-- Launch Boogie verifier on input, without waiting for Boogie to finish.
+		do
+			internal_last_result := Void
+			executable.set_input (input)
+			executable.run_with_random_seed (a_random_seed)
+		end
+
 	cancel
 			-- Cancel execution of Boogie.
 		do
@@ -103,8 +140,9 @@ feature -- Basic operations
 			l_boogie_parser: E2B_BOOGIE_OUTPUT_PARSER
 		do
 			create l_boogie_parser.make
-			l_boogie_parser.parse (last_output)
+			l_boogie_parser.parse (last_output, last_models)
 			internal_last_result := l_boogie_parser.last_result
+
 		ensure
 			last_result_set: attached last_result
 		end
@@ -116,5 +154,24 @@ feature {NONE} -- Implementation
 
 	internal_last_result: detachable E2B_BOOGIE_RESULT
 			-- Cached last result.
+
+;
+
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

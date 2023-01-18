@@ -9,28 +9,32 @@ class
 inherit
 
 	E2B_PLATFORM_EXECUTABLE
-		redefine
-			default_create
-		end
 
 	SHARED_WORKBENCH
 		export
 			{NONE} all
-		redefine
-			default_create
 		end
+
+create
+	make, make_with_prefix
 
 feature {NONE} -- Implementation
 
-	default_create
-			-- Initialize Windows executable.
-		local
-		    index: INTEGER
+	make (index: INTEGER)
 		do
-            index := unique_number
 			boogie_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended ("autoproof" + index.out + ".bpl")
 			boogie_output_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended ("output" + index.out + ".txt")
 			model_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended ("ce" + index.out + ".model")
+
+			create input.make
+		end
+
+	make_with_prefix (file_prefix: STRING_32)
+			-- Initialization with prefix of file name.
+		do
+			boogie_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (file_prefix + ".bpl")
+			boogie_output_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (file_prefix + ".txt")
+			model_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (file_prefix + ".model")
 
 			create input.make
 		end
@@ -61,8 +65,6 @@ feature {NONE} -- Implementation
 				end
 			end
 		end
-
-
 
 	global_counter: CELL [INTEGER]
 		once

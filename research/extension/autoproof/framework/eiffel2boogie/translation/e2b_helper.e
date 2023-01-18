@@ -41,9 +41,9 @@ feature -- Cache control
 			ghost_attribute_cache.wipe_out
 			internal_counter.put (0)
 				-- Reset invariant checks
-			;(create {E2B_TYPE_TRANSLATOR}).invariant_check_cache.wipe_out
+			; (create {E2B_TYPE_TRANSLATOR}).invariant_check_cache.wipe_out
 				-- Reset type varibale counter
-			;(create {IV_VAR_TYPE}.reset).do_nothing
+			; (create {IV_VAR_TYPE}.reset).do_nothing
 			create context_stack.make (1)
 		end
 
@@ -163,7 +163,7 @@ feature -- Class status helpers
 		do
 			l_values := class_note_values (a_class, "status")
 			if not l_values.is_empty then
-				Result := across l_values as i some i.same_string (a_value)  end
+				Result := across l_values as i some i.same_string (a_value) end
 			end
 		end
 
@@ -188,7 +188,7 @@ feature -- Feature status helpers
 		do
 			l_values := feature_note_values (a_feature, "status")
 			if not l_values.is_empty then
-				Result := across l_values as i some i.same_string (a_value)  end
+				Result := across l_values as i some i.same_string (a_value) end
 			end
 		end
 
@@ -500,7 +500,7 @@ feature -- Ownership helpers
 			l_type: CL_TYPE_A
 		do
 			if translation_mapping.ghost_access.has (a_feature.feature_name) then
-				-- Handle built-in ANY attributes separately, since they are not really attributes.
+					-- Handle built-in ANY attributes separately, since they are not really attributes.
 				create Result.make (a_feature.feature_name, types.field (translation_mapping.ghost_access_type (a_feature.feature_name)))
 			else
 				check a_feature.is_attribute end
@@ -607,7 +607,7 @@ feature -- Model helpers
 	is_model_query (a_class: CLASS_C; a_feature: FEATURE_I): BOOLEAN
 			-- Is `a_feature' an immediate or inherited model query of `a_class'?
 		do
-			Result := across flat_model_queries (a_class) as f some is_same_feature (f, a_feature)  end
+			Result := across flat_model_queries (a_class) as f some is_same_feature (f, a_feature) end
 		end
 
 	replaced_model_queries (a_feature: FEATURE_I; a_descendant: CLASS_C): ARRAYED_LIST [FEATURE_I]
@@ -777,6 +777,17 @@ feature -- Eiffel helpers
 		do
 			Result := a_class.has_creator_of_name_id (a_feature.feature_name_id) or
 				(a_class.creation_feature /= Void and then a_class.creation_feature.feature_id = a_feature.feature_id)
+
+			if a_class.creation_feature /= Void then
+				-- default create
+			elseif a_class.has_creator_of_name_id (a_feature.feature_name_id) then
+
+				-- push it into a HASHTABLE[ARRAY[FEATURE_I], a_class]
+
+				-- use the first creation procedure by default?
+				-- user defined creation procedure?
+				-- how to store this information?
+			end
 		end
 
 	feature_for_call_access (a_node: CALL_ACCESS_B; a_target_type: TYPE_A): FEATURE_I
@@ -800,10 +811,10 @@ feature -- Eiffel helpers
 			else
 					-- `evaluated_type_in_descendant' switches to the correct feature in case of LIKE_FEATURE types
 					-- `deep_actual_type' gets rid of like types
-					-- `instantiated_in (a_current_type)' instantiates the generics				
+					-- `instantiated_in (a_current_type)' instantiates the generics
 				t := a_type.evaluated_type_in_descendant
-					(an_ancestor_class, a_current_type.base_class, a_feature).deep_actual_type.instantiated_in
-					(a_current_type)
+						(an_ancestor_class, a_current_type.base_class, a_feature).deep_actual_type.instantiated_in
+						(a_current_type)
 				if attached {CL_TYPE_A} t as c then
 					Result := c
 				elseif
@@ -832,7 +843,7 @@ feature -- Eiffel helpers
 			i: INTEGER
 		do
 			create Result.make
-				-- Add the written version of the feature			
+				-- Add the written version of the feature
 			l_written_feature := a_feature.written_class.feature_of_body_index (a_feature.body_index)
 			Result.extend (l_written_feature)
 			if a_feature.assert_id_set /= Void then
@@ -965,8 +976,8 @@ feature -- Other
 				is_inline_in_caller (a_routine)
 			if not Result and options.is_automatic_inlining_enabled then
 				Result := not
-					(a_routine.has_postcondition or else
-					attached a_routine.assert_id_set as a and then a.has_postcondition)
+						(a_routine.has_postcondition or else
+							attached a_routine.assert_id_set as a and then a.has_postcondition)
 			end
 			if not Result then
 				Result := options.routines_to_inline.has (a_routine.body_index)

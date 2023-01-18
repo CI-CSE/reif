@@ -119,13 +119,14 @@ feature -- Helper functions: contracts
 
 			helper.set_up_byte_context (a_feature, a_type)
 			if attached Context.byte_code as l_byte_code then
-					-- Process pre/post-conditions
+					-- Process pre- / post-conditions
 				l_class := a_feature.written_class
 				if l_byte_code.precondition /= Void then
 					across l_byte_code.precondition as p loop
 						l_pre.extend (create {E2B_ASSERT_ORIGIN}.make (p, l_class))
 					end
 				end
+
 				if l_byte_code.postcondition /= Void then
 					across l_byte_code.postcondition as p loop
 						l_post.extend (create {E2B_ASSERT_ORIGIN}.make (p, l_class))
@@ -248,7 +249,7 @@ feature -- Helper functions: contracts
 				frame_full_objects_of (a_clauses, "reads", a_translator),
 				frame_partial_objects_of (a_clauses, "reads_field", a_translator, False),
 				frame_partial_objects_of (a_clauses, "reads_model", a_translator, True)
-			]
+				]
 		end
 
 	frame_full_objects_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_function: STRING; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR): LIST [IV_EXPRESSION]
@@ -315,10 +316,10 @@ feature -- Helper functions: contracts
 							end
 
 							l_origin := helper.class_type_in_context (
-								l_objects_type.type,
-								i.origin,
-								current_feature,
-								helper.class_type_from_class (i.origin, current_type)).base_class
+									l_objects_type.type,
+									i.origin,
+									current_feature,
+									helper.class_type_from_class (i.origin, current_type)).base_class
 							across l_fieldnames as f loop
 								if a_check_model then
 									l_attr := l_origin.feature_named (f)
@@ -401,10 +402,10 @@ feature -- Helper functions: contracts
 					-- The type of the objects as seen in the `current_type'
 				l_type := helper.class_type_in_context (r.type, r.origin, current_feature, current_type)
 					-- Either `l_f' is not a model query in `l_type'
-				l_f_conjunct := factory.not_ (factory.function_call ("IsModelField", << l_f, factory.type_value (l_type) >>, types.bool))
+				l_f_conjunct := factory.not_ (factory.function_call ("IsModelField", <<l_f, factory.type_value (l_type)>>, types.bool))
 					-- Or it is one of `r.fields'
 				across r.fields as f loop
-					l_f_conjunct := factory.or_ (l_f_conjunct,factory.equal (l_f, f))
+					l_f_conjunct := factory.or_ (l_f_conjunct, factory.equal (l_f, f))
 				end
 				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, r.objects), l_f_conjunct))
 			end
@@ -415,8 +416,8 @@ feature -- Helper functions: contracts
 				l_f_conjunct := factory.and_clean (l_f_conjunct, factory.not_equal (l_f, f))
 			end
 			l_expr := factory.or_clean (l_expr,
-				factory.and_clean (is_object_in_frame (l_o, a_mods.full_objects), l_f_conjunct))
-				-- Finally create the quantifier				
+					factory.and_clean (is_object_in_frame (l_o, a_mods.full_objects), l_f_conjunct))
+				-- Finally create the quantifier
 			create Result.make (factory.equiv (l_access, l_expr))
 			Result.add_type_variable (l_type_var.name)
 			Result.add_bound_variable (l_o)

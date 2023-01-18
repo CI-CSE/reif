@@ -345,6 +345,8 @@ feature {BYTE_NODE} -- Visitors
 			-- Process `a_node'.
 		do
 			safe_process (a_node.condition)
+			-- add a byte_node of type "check false end"
+			-- a_node.compound.force ("assert false")
 			safe_process (a_node.compound)
 			safe_process (a_node.elsif_list)
 			safe_process (a_node.else_part)
@@ -679,4 +681,20 @@ feature {BYTE_NODE} -- Visitors
 			-- Empty implementation to make current compile during EVE merge. 12.11.2010 Julian
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

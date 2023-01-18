@@ -7,7 +7,7 @@ note
 	false_guards: true
 
 deferred class
-	V_MAP_ITERATOR [K -> ANY, V]
+	V_MAP_ITERATOR [K, V]
 
 inherit
 	V_ITERATOR [V]

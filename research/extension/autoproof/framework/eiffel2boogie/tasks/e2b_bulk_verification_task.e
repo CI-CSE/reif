@@ -29,13 +29,35 @@ feature {NONE} -- Implementation
 			create result_generator.make
 
 			create remaining_tasks.make
-			remaining_tasks.extend (create {E2B_TRANSLATE_CHUNK_TASK}.make (a_translator_input, boogie_universe))
-			remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (boogie_universe, verifier))
-			remaining_tasks.extend (create {E2B_EXECUTE_BOOGIE_TASK}.make (verifier))
-			remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (verifier, result_generator))
-			if options.is_two_step_verification_enabled then
-				remaining_tasks.extend (create {E2B_VERIFY_WITH_INLINING_TASK}.make (result_generator, remaining_tasks))
+
+			if options.is_generate_minimal_counterexample_enabled then
+
+				remaining_tasks.extend (create {E2B_VERIFY_WITH_OPTIMIZATION_TASK}.make (options.last_result, options.target_feature, options.target_class, remaining_tasks))
+
+			elseif options.is_generate_new_counterexample_enabled then
+
+				remaining_tasks.extend (create {E2B_VERIFY_FOR_NEW_COUNTEREXAMPLE_TASK}.make (result_generator, remaining_tasks))
+
+			elseif options.is_generate_fix_enabled then
+
+				remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_TASK}.make (result_generator, remaining_tasks))
+
+			elseif options.is_full_coverage_test_generation_enabled then
+
+				remaining_tasks.extend (create {E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK}.make (a_translator_input, result_generator, remaining_tasks))
+			else
+
+				remaining_tasks.extend (create {E2B_TRANSLATE_CHUNK_TASK}.make (a_translator_input, boogie_universe))
+				remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (boogie_universe, verifier))
+				remaining_tasks.extend (create {E2B_EXECUTE_BOOGIE_TASK}.make (verifier))
+				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (verifier, result_generator))
+
+				if options.is_two_step_verification_enabled then
+					remaining_tasks.extend (create {E2B_VERIFY_WITH_INLINING_TASK}.make (result_generator, remaining_tasks))
+				end
+
 			end
+
 		end
 
 feature -- Access
@@ -110,5 +132,23 @@ feature {NONE} -- Implementation
 
 	result_generator: E2B_RESULT_GENERATOR
 			-- Result generator.
+;
+
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

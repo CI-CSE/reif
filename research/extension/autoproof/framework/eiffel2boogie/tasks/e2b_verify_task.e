@@ -31,6 +31,7 @@ feature -- Element change
 			result_handlers.wipe_out
 			autoproof_errors.wipe_out
 			options.routines_to_inline.wipe_out
+			options.routines_to_optimize.wipe_out
 		end
 
 	reset_local_state

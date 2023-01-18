@@ -23,6 +23,19 @@ feature -- Access
 			end
 		end
 
+	last_models: detachable STRING
+			-- <Precursor>
+		do
+			if attached internal_last_model then
+				Result := internal_last_model
+			else
+				if attached process as l_process and then not l_process.is_running then
+					read_models
+					Result := internal_last_model
+				end
+			end
+		end
+
 feature -- Status report
 
 	is_running: BOOLEAN
@@ -45,7 +58,6 @@ feature -- Basic operations
 			internal_last_output := Void
 			generate_boogie_file
 			launch_boogie (True)
-			read_output
 			process := Void
 		end
 
@@ -55,6 +67,14 @@ feature -- Basic operations
 			internal_last_output := Void
 			generate_boogie_file
 			launch_boogie (False)
+		end
+
+	run_with_random_seed (a_random_seed: INTEGER)
+			-- <Precursor>
+		do
+			internal_last_output := Void
+			generate_boogie_file
+			launch_boogie_with_random_seeds (False, a_random_seed)
 		end
 
 	cancel
@@ -80,13 +100,23 @@ feature {NONE} -- Implementation
 	internal_last_output: detachable STRING
 			-- Last generated output.
 
+<<<<<<< HEAD
+=======
+	internal_last_model: detachable STRING
+			-- Last generated counterexample model.
+
+>>>>>>> 17fbf6cae3e (initial commit)
 	boogie_file_name: PATH
 			-- File name used to generate Boogie file.
 		deferred
 		end
 
 	boogie_output_file_name: PATH
+<<<<<<< HEAD
 			-- File name used to generate Boogie file.
+=======
+			-- File name used to generate output file.
+>>>>>>> 17fbf6cae3e (initial commit)
 		deferred
 		end
 
@@ -154,6 +184,55 @@ feature {NONE} -- Implementation
 			end
 --			l_arguments.extend ({STRING_32} "/errorLimit:1")
 			l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
+				-- l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand)
+			l_arguments.extend (boogie_file_name.name)
+
+				-- Launch Boogie
+			create l_ee
+			create l_process_factory
+			if {PLATFORM}.is_windows then
+				process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
+				process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+			elseif {PLATFORM}.is_unix then
+				process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
+				process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+			else
+				check False end
+			end
+
+			process.enable_launch_in_new_process_group
+			create l_plain_text_file.make_with_path (boogie_output_file_name)
+			l_plain_text_file.open_write
+			l_plain_text_file.close
+			process.redirect_output_to_file (boogie_output_file_name.name)
+			process.redirect_error_to_same_as_output
+			process.set_on_terminate_handler (agent handle_terminated)
+			process.set_on_exit_handler (agent handle_terminated)
+
+			process.launch
+			if a_wait_for_exit then
+				process.wait_for_exit
+			end
+		end
+
+	launch_boogie_with_random_seeds (a_wait_for_exit: BOOLEAN; rand_seed: INTEGER)
+			-- Launch Boogie on generated file.
+		local
+			l_ee: EXECUTION_ENVIRONMENT
+			l_arguments: LINKED_LIST [READABLE_STRING_32]
+			l_process_factory: BASE_PROCESS_FACTORY
+			l_context: E2B_SHARED_CONTEXT
+			l_plain_text_file: PLAIN_TEXT_FILE
+		do
+			create l_context
+				-- Prepare command line arguments
+			create l_arguments.make
+			l_arguments.extend ({STRING_32} "/trace")
+			if l_context.options.is_enforcing_timeout then
+				l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
+			end
+			l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
+			l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand_seed.out)
 			l_arguments.extend (boogie_file_name.name)
 
 				-- Launch Boogie
@@ -282,7 +361,6 @@ feature {NONE} -- Implementation
 			end
 		end
 
-
 feature {NONE} -- Output capture
 
 	read_output
@@ -292,6 +370,7 @@ feature {NONE} -- Output capture
 		do
 			create internal_last_output.make (1024)
 			create l_file.make_with_path (boogie_output_file_name)
+			print("boogie_output_file_name: " +  boogie_output_file_name.out + "%N")
 			l_file.open_read
 			from
 				l_file.start
@@ -303,6 +382,24 @@ feature {NONE} -- Output capture
 				internal_last_output.append_character ('%N')
 			end
 			l_file.close
+		end
+
+	read_models
+			-- Read counterexamples.
+		local
+			l_file: PLAIN_TEXT_FILE
+		do
+			create l_file.make_with_path (model_file_name)
+			if l_file.access_exists then -- read model file
+				l_file.open_read
+				l_file.read_stream (1000000)
+				if attached internal_last_model then
+					internal_last_model.copy (l_file.last_string)
+				else
+					create internal_last_model.make_empty
+					internal_last_model.copy (l_file.last_string)
+				end
+			end
 		end
 
 note

@@ -43,6 +43,17 @@ feature -- Status report
 			Result := statements.is_empty
 		end
 
+	is_conditional_leaf: BOOLEAN
+	    	-- Is this block a conditional leaf block
+	    do
+	    	Result := True
+	    	across statements as s loop
+	    		if attached s.origin_information as oi and then oi.text_of_line.has_substring ("if ") then
+					Result := False
+	    		end
+	    	end
+	    end
+
 feature -- Access
 
 	name: READABLE_STRING_8
@@ -113,4 +124,20 @@ invariant
 	name_attached: attached name
 	name_valid: is_valid_name (name) or name.is_empty
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

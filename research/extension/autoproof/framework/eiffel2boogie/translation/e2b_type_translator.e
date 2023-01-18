@@ -84,7 +84,6 @@ feature -- Basic operations
 				create l_constant.make (l_boogie_type_name, types.type)
 				l_constant.set_unique
 				boogie_universe.add_declaration (l_constant)
-
 				if l_class.is_tuple then
 						-- Translate fields
 					create l_attr_translator
@@ -727,7 +726,6 @@ feature -- Invariant admissibility
 						a_result_generator.process_individual_error (i, l_failure)
 					end
 				end
-
 				a_result_generator.last_result.add_result (l_failure)
 			end
 		end

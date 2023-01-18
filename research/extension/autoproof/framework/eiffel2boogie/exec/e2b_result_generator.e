@@ -51,13 +51,13 @@ feature -- Basic operations
 				-- Add AutoProof errors
 			last_result.verification_results.append (local_autoproof_errors)
 
-				-- Add Boogie errors (if there were no validity errors)			
+				-- Add Boogie errors (if there were no validity errors)
 			if across local_autoproof_errors as i all i.is_warning end then
 				across a_boogie_result.boogie_errors as i loop
 					create l_ap_error
 					l_ap_error.set_type ("Boogie")
 					l_ap_error.set_message ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (i))
-					last_result.verification_results.extend (l_ap_error)
+						-- last_result.verification_results.extend (l_ap_error)
 				end
 			end
 				-- Call result handler for each Boogie procedure
@@ -70,11 +70,29 @@ feature -- Basic operations
 			-- Handle individual Boogie procedure error.
 		local
 			l_error: E2B_DEFAULT_VERIFICATION_ERROR
+			l_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 		do
 			create l_error.make (a_failure)
+
+				-- Get input values in counterexample
+			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
+
+			helper.options.init_states_of_counterexamples.extend (l_init_state)
+
 			a_failure.errors.extend (l_error)
 			l_error.set_boogie_error (a_error)
-			l_error.set_message (message_for_error (a_error))
+
+			l_error.set_message (message_for_error (a_error, l_init_state))
+			l_error.set_ce_message (counterexample_message (l_init_state))
+
+            if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
+                helper.options.set_new_ce_message(l_error.ce_message)
+            end
+
+            if helper.options.is_generate_fix_enabled then
+            	 helper.options.ce_states.extend (l_init_state)
+            end
+
 			l_error.set_line_number (line_for_error (a_error))
 		end
 
@@ -96,7 +114,7 @@ feature -- Basic operations
 				Result := not l_error.is_warning and
 					helper.is_same_class (l_error.context_class, a_class) and then
 					((l_error.context_feature = Void) or else -- The whole class has an error
-					(a_feature /= Void and then l_error.context_feature.rout_id_set.first = a_feature.rout_id_set.first)) -- or we are asking about a feature and that feature has an error
+						(a_feature /= Void and then l_error.context_feature.rout_id_set.first = a_feature.rout_id_set.first)) -- or we are asking about a feature and that feature has an error
 				l_errors.forth
 			end
 		end
@@ -113,7 +131,7 @@ feature {NONE} -- Implementation
 				local_result_handlers := result_handlers
 			end
 			if local_result_handlers.has_key (a_item.name) then
-				l_agent := local_result_handlers[a_item.name]
+				l_agent := local_result_handlers [a_item.name]
 				l_agent.call ([a_item, Current])
 			else
 				process_default_result (a_item)
@@ -165,6 +183,7 @@ feature {NONE} -- Implementation
 				l_failure.set_feature (l_feature)
 				l_failure.set_verification_context (l_context)
 				l_failure.set_time (a_item.time)
+
 				across a_item.errors as i loop
 					process_individual_error (i, l_failure)
 				end
@@ -172,20 +191,21 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	message_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR): STRING_32
+	message_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR; a_init_state: E2B_INITIAL_STATE_OF_ROUTINE): STRING_32
 			-- Select message for `a_error'.
 		local
 			l_type, l_tag: STRING
 			l_has_tag: BOOLEAN
+
 		do
 			if a_error.has_related_location then
 					-- It's a pre- or postcondition violation
-				l_type := a_error.related_attributes["type"]
-				l_tag := a_error.related_attributes["tag"]
+				l_type := a_error.related_attributes ["type"]
+				l_tag := a_error.related_attributes ["tag"]
 				l_has_tag := a_error.related_attributes.has_key ("tag")
 			else
-				l_type := a_error.attributes["type"]
-				l_tag := a_error.attributes["tag"]
+				l_type := a_error.attributes ["type"]
+				l_tag := a_error.attributes ["tag"]
 				l_has_tag := a_error.attributes.has_key ("tag")
 			end
 
@@ -328,6 +348,86 @@ feature {NONE} -- Implementation
 					Result := Result + " " + messages.ownership_explicit_note
 				end
 			end
+
+		end
+
+	safe_var (a_var: STRING_32): STRING_32
+			-- Remove "Current" in `a_var' if any
+		do
+			if a_var.has_substring ("Current.") then
+				Result := a_var.split ('.').last
+			else
+				Result := a_var
+			end
+		end
+
+	valuation (a_var: STRING_32; a_value: STRING_32): STRING_32
+			-- String of a valuation
+		local
+			value: STRING_32
+		do
+			value := a_value
+			if value.head (1).same_string ("(") then
+				value.remove_head (1)
+			end
+			if value.tail (1).same_string (")") then
+				value.remove_tail (1)
+			end
+			Result := safe_var (a_var) + " = " + value
+		end
+
+	counterexample_message (a_initial_state: E2B_INITIAL_STATE_OF_ROUTINE): STRING_32
+			-- Message for displaying all tuples of values and variables in the counterexample
+		local
+			i, j: INTEGER
+			var, value, seq_name, item_value, aliased_object: STRING_32
+		do
+			Result := ""
+			aliased_object := ""
+
+			from
+				i := 1
+			until
+				i > a_initial_state.initial_values.count
+			loop
+				var := a_initial_state.initial_values.current_keys [i]
+				value := a_initial_state.initial_values [var]
+
+					-- sequence
+				if not value.has_substring ("T@U") and not var.split ('.').first.same_string (aliased_object) and not value.is_empty then -- valuations
+					Result := Result + " " + valuation (var, value) + ","
+
+				elseif a_initial_state.is_aliased_with_existed_object (var) then -- alias relation
+					Result := Result + " " + valuation (var, a_initial_state.alias_groups [value] [1]) + ","
+					aliased_object := var
+						-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
+				elseif var.split ('.').last.same_string ("sequence") then
+					seq_name := var.split ('.').first
+					if a_initial_state.ce.seq_lengths.has (value) then
+						Result := Result + " " + valuation (seq_name + ".count", a_initial_state.ce.seq_lengths [value]) + ","
+
+						if not a_initial_state.ce.seq_item.is_empty then
+							from
+								j := 1
+							until
+								j > a_initial_state.ce.seq_lengths [value].to_integer_32
+							loop
+								if a_initial_state.ce.seq_item.has (value + ", " + j.out) then
+									item_value := a_initial_state.ce.seq_item [value + ", " + j.out]
+									Result := Result + " " + valuation (seq_name + " [" + j.out + "]", item_value.to_string_8) + ","
+								end
+								j := j + 1
+							end
+						else
+							Result := Result + " -- No sequence for array " + seq_name + "found in the model. %N"
+						end
+					end
+				end
+				i := i + 1
+			end
+
+			Result.remove_tail (1) -- remove the last comma
+			Result.append (".")
 		end
 
 	line_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR): INTEGER
@@ -335,11 +435,11 @@ feature {NONE} -- Implementation
 		do
 			if a_error.is_postcondition_violation then
 				if a_error.related_attributes.has_key ("line") then
-					Result := a_error.related_attributes["line"].to_integer
+					Result := a_error.related_attributes ["line"].to_integer
 				end
 			else
 				if a_error.attributes.has_key ("line") then
-					Result := a_error.attributes["line"].to_integer
+					Result := a_error.attributes ["line"].to_integer
 				end
 			end
 		end

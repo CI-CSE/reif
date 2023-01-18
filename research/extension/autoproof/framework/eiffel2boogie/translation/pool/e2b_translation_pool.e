@@ -109,8 +109,8 @@ feature -- Adding independent units
 		require
 			no_formals: not a_context_type.has_formal_generic
 		do
-			-- The enclosing type has to be tranlated before the feature,
-			-- becuase some ownership defaults depend on analysing the invariant
+				-- The enclosing type has to be tranlated before the feature,
+				-- becuase some ownership defaults depend on analysing the invariant
 			add_type (a_context_type)
 			internal_add_feature (a_feature, a_context_type, False)
 		end
@@ -205,28 +205,30 @@ feature {NONE} -- Implementation
 			-- Add signature and implementation of feature `a_feature' of `a_context_type'.
 			-- If `a_referenced' is true, then only the signature will be created.
 		do
-			if a_feature.is_attribute or helper.is_built_in_attribute (a_feature) then
-				add_attribute (a_feature, a_context_type)
-			elseif a_feature.is_routine then
-				if helper.is_feature_logical (a_feature) then
-					add_logical (a_feature, a_context_type)
+			if attached a_feature then
+				if a_feature.is_attribute or helper.is_built_in_attribute (a_feature) then
+					add_attribute (a_feature, a_context_type)
+				elseif a_feature.is_routine then
+					if helper.is_feature_logical (a_feature) then
+						add_logical (a_feature, a_context_type)
+					else
+						if helper.is_creator_of_class (a_feature, a_context_type.base_class) then
+								-- This is a creation routine
+							add_creator (a_feature, a_context_type, a_is_referenced)
+						end
+						if not helper.is_creator (a_feature) then
+								-- Unless the feature is marked as creator, it can be used as a normal routine;
+								-- Note that a non-creation procedure can be marked as creator
+								-- (e.g. if it's supposed to be used as a creation procedure in descendants),
+								-- in this case it will not be verified at all in the current context type.
+							add_routine (a_feature, a_context_type, a_is_referenced)
+						end
+					end
+				elseif a_feature.is_constant then
+						-- Ignore constants / nothing to verify
 				else
-					if helper.is_creator_of_class (a_feature, a_context_type.base_class) then
-							-- This is a creation routine
-						add_creator (a_feature, a_context_type, a_is_referenced)
-					end
-					if not helper.is_creator (a_feature) then
-							-- Unless the feature is marked as creator, it can be used as a normal routine;
-							-- Note that a non-creation procedure can be marked as creator
-							-- (e.g. if it's supposed to be used as a creation procedure in descendants),
-							-- in this case it will not be verified at all in the current context type.
-						add_routine (a_feature, a_context_type, a_is_referenced)
-					end
+					check internal_error: False end
 				end
-			elseif a_feature.is_constant then
-					-- Ignore constants / nothing to verify
-			else
-				check internal_error: False end
 			end
 		end
 
@@ -259,7 +261,7 @@ feature {NONE} -- Implementation
 					add_translation_unit (l_variants)
 				end
 
-					-- Add implementation				
+					-- Add implementation
 				create l_implementation.make (a_feature, a_context_type)
 				add_translation_unit (l_implementation)
 			end
@@ -283,8 +285,8 @@ feature {NONE} -- Implementation
 			create l_creator.make (a_feature, a_context_type)
 			add_translation_unit (l_creator)
 			if a_is_referenced or helper.is_skipped (a_feature) or (helper.is_explicit (a_feature, "contracts") and not helper.is_creator (a_feature)) then
-				-- Skip if: only referenced, should be skipped or
-				-- contracts are explicit (unless creator), becuase in that case the non-creator version has a stronger spec and the same implementation
+					-- Skip if: only referenced, should be skipped or
+					-- contracts are explicit (unless creator), becuase in that case the non-creator version has a stronger spec and the same implementation
 			else
 				create l_creator_impl.make (a_feature, a_context_type)
 				add_translation_unit (l_creator_impl)
@@ -299,5 +301,22 @@ feature {NONE} -- Implementation
 			create l_logical.make (a_feature, a_context_type)
 			add_translation_unit (l_logical)
 		end
+
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

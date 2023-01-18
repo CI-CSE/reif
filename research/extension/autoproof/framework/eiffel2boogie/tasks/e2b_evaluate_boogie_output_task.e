@@ -40,6 +40,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				verifier.parse_verification_output
 				result_generator.process_boogie_result (verifier.last_result)
 			end
+			verifier.helper.options.set_last_result (result_generator.last_result)
 			has_next_step := False
 		end
 
@@ -57,4 +58,20 @@ feature {NONE} -- Implementation
 	result_generator: attached E2B_RESULT_GENERATOR
 			-- Result generator.
 
+;note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

@@ -5,7 +5,7 @@
 class
 	E2B_SHARED_CONTEXT
 
-feature {NONE} -- Access: stateful
+feature {E2B_TRANSLATE_OPTIMIZE_TASK} -- Access: stateful
 
 	translation_pool: E2B_TRANSLATION_POOL
 			-- Shared translation pool.
@@ -16,7 +16,7 @@ feature {NONE} -- Access: stateful
 	boogie_universe: IV_UNIVERSE
 			-- Shared boogie universe.
 		do
-			Result := boogie_universe_cell.item
+		 	Result := boogie_universe_cell.item
 		end
 
 	autoproof_errors: LINKED_LIST [E2B_AUTOPROOF_ERROR]
@@ -125,4 +125,20 @@ feature {NONE} -- Implementation
 			Result := timer.system_clock.time_now.time_duration (l_time).millisecond_count
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

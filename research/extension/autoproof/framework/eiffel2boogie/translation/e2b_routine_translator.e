@@ -35,7 +35,7 @@ feature -- Translation: Signature
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
 			translate_signature (a_feature, a_type, True)
-			-- TODO: create special signature
+				-- TODO: create special signature
 		end
 
 	translate_logical_signature (a_feature: FEATURE_I; a_type: CL_TYPE_A)
@@ -116,6 +116,28 @@ feature -- Translation: Signature
 			across l_contracts.pre as j loop
 				process_precondition (j.clause, j.origin)
 			end
+
+				-- *Li: Add preconditions for optmization
+			if helper.options.routines_to_optimize.has (a_feature.body_index) then
+				if options.opt_preconditions.has (a_feature) then
+					across options.opt_preconditions [a_feature] as p loop
+						current_boogie_procedure.add_opt_precondition (p)
+					end
+				end
+			end
+
+				-- *Li: Add trial fix to precondition
+			if attached options.target_feature as f then
+			    if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
+				    current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
+	 				options.set_last_candidate_fix (options.current_candidate_fix)
+	 				options.set_current_candidate_fix(options.fix_preconditions.first)
+				    options.fix_preconditions.remove_i_th (1)
+			    end
+			end
+
+			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
+			
 			create l_fields.make
 			across l_contracts.post as j loop
 				process_postcondition (j.clause, j.origin, l_fields)
@@ -187,21 +209,21 @@ feature -- Translation: Signature
 			add_field_initialization
 
 				-- wrapped
-			create l_post.make (factory.function_call ("is_wrapped", << factory.global_heap, factory.std_current >>, types.bool))
+			create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
 			current_boogie_procedure.add_contract (l_post)
 
 				-- global
-			create l_post.make (factory.function_call ("global", << factory.global_heap >>, types.bool))
+			create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
 			current_boogie_procedure.add_contract (l_post)
 
 				-- frame
 			create l_post.make (factory.function_call (
-				"same_outside", <<
-					factory.old_ (factory.global_heap),
-					factory.global_heap,
-					factory.function_call ("Frame#Singleton", << factory.std_current >>, types.frame)
-				>>,
-				types.bool))
+					"same_outside", <<
+						factory.old_ (factory.global_heap),
+						factory.global_heap,
+						factory.function_call ("Frame#Singleton", <<factory.std_current>>, types.frame)
+					>>,
+					types.bool))
 			current_boogie_procedure.add_contract (l_post)
 
 				-- HeapSucc
@@ -222,11 +244,11 @@ feature -- Translation: Signature
 			create l_t.make_fresh
 			create l_f.make ("$f", types.field (l_t))
 			create l_forall.make (factory.implies_ (
-				factory.not_equal (l_f, factory.entity ("allocated", types.field (types.bool))),
-				factory.equal (
-					factory.heap_current_access (l_mapping, l_f.name, l_t),
-					factory.function_call ("Default", << l_f >>, l_t))
-				))
+						factory.not_equal (l_f, factory.entity ("allocated", types.field (types.bool))),
+						factory.equal (
+							factory.heap_current_access (l_mapping, l_f.name, l_t),
+							factory.function_call ("Default", <<l_f>>, l_t))
+					))
 			l_forall.add_type_variable (l_t.name)
 			l_forall.add_bound_variable (l_f)
 			create l_pre.make (l_forall)
@@ -267,10 +289,10 @@ feature -- Translation: Signature
 			end
 
 			create l_forall.make (factory.implies_ (l_cond,
-				factory.equal (
-					factory.heap_current_access (l_mapping, l_f.name, l_t),
-					factory.function_call ("Default", << l_f >>, l_t))
-				))
+						factory.equal (
+							factory.heap_current_access (l_mapping, l_f.name, l_t),
+							factory.function_call ("Default", <<l_f>>, l_t))
+					))
 			l_forall.add_type_variable (l_t.name)
 			l_forall.add_bound_variable (l_f)
 			create l_post.make (l_forall)
@@ -285,20 +307,20 @@ feature -- Translation: Signature
 			l_mapping: E2B_ENTITY_MAPPING
 		do
 				-- Preserves global invariant
-			create l_pre.make (factory.function_call ("global", << factory.global_heap >>, types.bool))
+			create l_pre.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
 			l_pre.set_free
 			current_boogie_procedure.add_contract (l_pre)
 
 				-- Unless class or feature are marked with "manual_inv", bring in the invariants of all wrapped objects
 			if not helper.is_manual_inv (current_feature) and not helper.is_manual_inv_class (current_type.base_class) then
-				create l_pre.make (factory.function_call ("global_permissive", << >>, types.bool))
+				create l_pre.make (factory.function_call ("global_permissive", <<>>, types.bool))
 				l_pre.set_free
 				current_boogie_procedure.add_contract (l_pre)
 			end
 
 				-- Only add postconditions and frame properties if the procedure modifies heap
 			if a_modifies_heap then
-				create l_post.make (factory.function_call ("global", << factory.global_heap >>, types.bool))
+				create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
 				l_post.set_free
 				current_boogie_procedure.add_contract (l_post)
 
@@ -337,7 +359,7 @@ feature -- Translation: Signature
 			across current_boogie_procedure.arguments as i loop
 				l_fcall.add_argument (i.entity)
 			end
-			create l_pre.make (factory.function_call ("Frame#Subset", << l_fcall, factory.global_writable>>, types.bool))
+			create l_pre.make (factory.function_call ("Frame#Subset", <<l_fcall, factory.global_writable>>, types.bool))
 			l_pre.node_info.set_type ("pre")
 			l_pre.node_info.set_tag ("frame_writable")
 			Result.extend (l_pre)
@@ -376,7 +398,7 @@ feature -- Translation: Signature
 			across current_boogie_procedure.arguments as i loop
 				l_fcall.add_argument (i.entity)
 			end
-			create l_pre.make (factory.function_call ("Frame#Subset", << l_fcall, factory.global_readable>>, types.bool))
+			create l_pre.make (factory.function_call ("Frame#Subset", <<l_fcall, factory.global_readable>>, types.bool))
 			l_pre.set_free
 			Result.extend (l_pre)
 
@@ -394,10 +416,10 @@ feature -- Translation: Signature
 
 				-- Features marked with "explicit: contracts" do not get any defaults
 			if not helper.is_explicit (current_feature, "contracts") then
-				if helper.has_functional_representation (current_feature) then -- Pure functions						
+				if helper.has_functional_representation (current_feature) then -- Pure functions
 					if helper.is_public (current_feature) and not helper.is_functional (current_feature) then
 							-- Public features with functional representation (unless they are functional)
-						create l_pre.make (factory.function_call ("is_closed", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+						create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 						l_pre.node_info.set_type ("pre")
 						l_pre.node_info.set_tag ("default_is_closed")
 						l_pre.node_info.set_attribute ("default", "contracts")
@@ -406,7 +428,7 @@ feature -- Translation: Signature
 						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
 						across arguments_of_current_feature as i loop
 							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
-								create l_pre.make (factory.function_call ("is_closed", << a_mapping.heap, factory.entity (i.name, i.boogie_type) >>, types.bool))
+								create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
 								l_pre.node_info.set_type ("pre")
 								l_pre.node_info.set_tag ("arg_" + i.name + "_is_closed")
 								l_pre.node_info.set_attribute ("default", "contracts")
@@ -417,30 +439,30 @@ feature -- Translation: Signature
 				else -- Procedures and impure function
 					if a_mapping.current_expression.type ~ types.ref then
 						if a_for_creator then
-							create l_post.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 							l_post.node_info.set_type ("post")
 							l_post.node_info.set_tag ("default_is_wrapped")
 							l_post.node_info.set_attribute ("default", "contracts")
 							Result.extend (l_post)
 						elseif helper.is_public (current_feature) then
-							create l_pre.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+							create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 							l_pre.node_info.set_type ("pre")
 							l_pre.node_info.set_tag ("default_is_wrapped")
 							l_pre.node_info.set_attribute ("default", "contracts")
 							Result.extend (l_pre)
-							create l_post.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 							l_post.node_info.set_type ("post")
 							l_post.node_info.set_tag ("default_is_wrapped")
 							l_post.node_info.set_attribute ("default", "contracts")
 							Result.extend (l_post)
 						elseif helper.is_private (current_feature) then
-							create l_pre.make (factory.function_call ("is_open", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+							create l_pre.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 							l_pre.node_info.set_type ("pre")
 							l_pre.node_info.set_tag ("default_is_open")
 							l_pre.node_info.set_attribute ("default", "contracts")
 							Result.extend (l_pre)
 
-							create l_post.make (factory.function_call ("is_open", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+							create l_post.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 							l_post.node_info.set_type ("post")
 							l_post.node_info.set_tag ("default_is_open")
 							l_post.node_info.set_attribute ("default", "contracts")
@@ -451,12 +473,12 @@ feature -- Translation: Signature
 						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
 						across arguments_of_current_feature as i loop
 							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
-								create l_pre.make (factory.function_call ("is_wrapped", << a_mapping.heap, factory.entity (i.name, i.boogie_type) >>, types.bool))
+								create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
 								l_pre.node_info.set_type ("pre")
 								l_pre.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
 								l_pre.node_info.set_attribute ("default", "contracts")
 								Result.extend (l_pre)
-								create l_post.make (factory.function_call ("is_wrapped", << a_mapping.heap, factory.entity (i.name, i.boogie_type) >>, types.bool))
+								create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
 								l_post.node_info.set_type ("post")
 								l_post.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
 								l_post.node_info.set_attribute ("default", "contracts")
@@ -516,7 +538,7 @@ feature -- Translation: Signature
 			if current_feature.has_return_value then
 				l_type := types.for_class_type (helper.class_type_in_context (current_feature.type, current_feature.written_class, current_feature, current_type))
 				l_result := factory.entity ("Result", l_type)
-				l_fcall := factory.function_call ("global_once_value", << factory.int_value (current_feature.rout_id_set.first) >>, l_type)
+				l_fcall := factory.function_call ("global_once_value", <<factory.int_value (current_feature.rout_id_set.first)>>, l_type)
 				create l_post.make (factory.equal (l_result, l_fcall))
 				l_post.set_free
 				current_boogie_procedure.add_contract (l_post)
@@ -565,6 +587,7 @@ feature -- Translation: Implementation
 				end
 
 			l_procedure := boogie_universe.procedure_named (l_proc_name)
+
 			check l_procedure /= Void end
 			current_boogie_procedure := l_procedure
 
@@ -600,7 +623,7 @@ feature -- Translation: Implementation
 					l_implementation.body.statements.append (l_expr_translator.side_effect)
 					l_expr_translator.side_effect.wipe_out
 
-					l_call := factory.procedure_call ("unwrap", << factory.std_current >>)
+					l_call := factory.procedure_call ("unwrap", <<factory.std_current>>)
 					l_call.node_info.set_attribute ("default", "wrapping")
 					l_call.node_info.set_attribute ("cid", system.any_id.out)
 					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
@@ -657,7 +680,7 @@ feature -- Translation: Implementation
 						l_implementation.body.statements.append (l_expr_translator.side_effect)
 						l_expr_translator.side_effect.wipe_out
 
-						l_call := factory.procedure_call ("wrap", << factory.std_current >>)
+						l_call := factory.procedure_call ("wrap", <<factory.std_current>>)
 						l_call.node_info.set_attribute ("default", "wrapping")
 						l_call.node_info.set_attribute ("cid", system.any_id.out)
 						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
@@ -696,8 +719,10 @@ feature -- Translation: Functions
 			create l_function.make (name_translator.boogie_function_for_feature (current_feature, current_type, False), types.for_class_type (l_type))
 			create l_function0.make (name_translator.boogie_function_for_feature (current_feature, current_type, True), types.for_class_type (l_type))
 			boogie_universe.add_declaration (l_function)
+
 			if helper.is_functional (current_feature) then
 				boogie_universe.add_declaration (l_function0)
+
 			end
 			create l_fcall.make (l_function.name, l_function.type)
 
@@ -788,7 +813,7 @@ feature -- Translation: Functions
 				l_mapping.set_current (l_entity)
 				if not l_is_logical then
 					l_free_body := factory.and_clean (l_free_body, types.type_property (current_type, l_mapping.heap, l_entity,
-						helper.is_type_exact (create {LIKE_CURRENT}.make (current_type), current_type, current_feature), True))
+								helper.is_type_exact (create {LIKE_CURRENT}.make (current_type), current_type, current_feature), True))
 				end
 			end
 			across arguments_of_current_feature as i loop
@@ -799,19 +824,19 @@ feature -- Translation: Functions
 				l_mapping.set_argument (@ i.target_index, l_entity)
 				if not l_is_logical then
 					l_free_body := factory.and_clean (
-						l_free_body,
-						types.type_property (i.type, l_mapping.heap, l_entity,
-							helper.is_type_exact (i.orig_type, i.type, current_feature),
-							i.orig_type.is_attached))
+							l_free_body,
+							types.type_property (i.type, l_mapping.heap, l_entity,
+								helper.is_type_exact (i.orig_type, i.type, current_feature),
+								i.orig_type.is_attached))
 				end
 			end
 
 				-- Set a dummy result in `l_mapping': we are not using postconditions anyway
 			if a_feature.has_return_value then
 				l_mapping.set_result (factory.entity ("result",
-					types.for_class_type (helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type))))
+						types.for_class_type (helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type))))
 			end
-				-- Body			
+				-- Body
 			l_body := pre_post_expressions_of (a_feature, a_type, l_mapping).pre
 			if not l_is_logical then
 				across ownership_default (False, l_mapping) as defs loop
@@ -821,10 +846,12 @@ feature -- Translation: Functions
 			l_pre_function.set_body (l_body)
 --			l_free_pre_function.set_body (l_free_body)
 			boogie_universe.add_declaration (l_pre_function)
+
 --			if not l_is_logical then
 --				boogie_universe.add_declaration (l_free_pre_function)
 --			end
 			boogie_universe.add_declaration (l_trigger_function)
+
 		end
 
 	translate_frame_function (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_read: BOOLEAN)
@@ -870,7 +897,7 @@ feature -- Translation: Functions
 
 					-- Defaults and validity
 				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty and l_exprs.model_objects.is_empty then
-					-- Missing read clause: apply defaults
+						-- Missing read clause: apply defaults
 					l_exprs.full_objects.extend (factory.universe)
 				end
 			else
@@ -878,12 +905,12 @@ feature -- Translation: Functions
 
 					-- Defaults and validity
 				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty and l_exprs.model_objects.is_empty then
-					-- Missing modify clause: apply defaults
+						-- Missing modify clause: apply defaults
 					if not a_feature.has_return_value then
 						l_exprs.full_objects.extend (create {IV_ENTITY}.make ("current", types.ref))
 					end
 				elseif a_feature.has_return_value and not helper.is_impure (a_feature) and not is_pure (l_exprs) then
-					-- Only impure functions are allowed to have modify clauses
+						-- Only impure functions are allowed to have modify clauses
 					helper.add_semantic_error (a_feature, messages.pure_function_has_mods, -1)
 				end
 			end
@@ -896,17 +923,18 @@ feature -- Translation: Functions
 			end
 			if a_read and not helper.is_invariant_unfriendly (a_feature) then
 				create l_forall.make (factory.implies_ (
-					factory.is_heap (l_translator.entity_mapping.heap),
-					frame_definition (l_exprs, l_fcall, << factory.entity ("closed", types.field (types.bool)), factory.entity ("owner", types.field (types.ref)) >>)))
+						factory.is_heap (l_translator.entity_mapping.heap),
+						frame_definition (l_exprs, l_fcall, <<factory.entity ("closed", types.field (types.bool)), factory.entity ("owner", types.field (types.ref))>>)))
 			else
 				create l_forall.make (factory.implies_ (
-					factory.is_heap (l_translator.entity_mapping.heap),
-					frame_definition (l_exprs, l_fcall, <<>>)))
+						factory.is_heap (l_translator.entity_mapping.heap),
+						frame_definition (l_exprs, l_fcall, <<>>)))
 			end
 			across l_function.arguments as a loop
 				l_forall.add_bound_variable (a.entity)
 			end
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+
 		end
 
 	translate_variant_functions (a_feature: FEATURE_I; a_type: CL_TYPE_A)
@@ -928,7 +956,7 @@ feature -- Translation: Functions
 			l_translator.set_context (current_feature, current_type)
 			l_decreases_list := decreases_expressions_of (contracts_of (current_feature, current_type).decreases, l_translator)
 			if l_decreases_list.is_empty then
-				-- No decreases clause: apply default
+					-- No decreases clause: apply default
 				if l_current.type.has_rank and l_current.type /~ types.ref then
 					l_decreases_list.extend (l_current)
 				end
@@ -943,7 +971,7 @@ feature -- Translation: Functions
 					l_decreases_list.extend (factory.int_value (0))
 				end
 			elseif l_decreases_list.first = Void then
-				-- Decreases empty set (*): do not check termination
+					-- Decreases empty set (*): do not check termination
 				l_decreases_list.wipe_out
 			end
 
@@ -1003,9 +1031,9 @@ feature {NONE} -- Translation: Functions
 				-- Add type property
 			l_type := helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type)
 			l_post := factory.and_clean (l_post,
-				types.type_property (l_type, l_expr_translator.entity_mapping.heap, l_fcall,
-					helper.is_type_exact (current_feature.type, l_type, current_feature),
-					current_feature.type.is_attached))
+					types.type_property (l_type, l_expr_translator.entity_mapping.heap, l_fcall,
+						helper.is_type_exact (current_feature.type, l_type, current_feature),
+						current_feature.type.is_attached))
 			if not l_post.is_true then
 				if current_feature.is_once then
 					create l_forall.make (l_post)
@@ -1021,7 +1049,6 @@ feature {NONE} -- Translation: Functions
 				create l_axiom.make (l_forall)
 				boogie_universe.add_declaration (l_axiom)
 			end
-
 
 				-- If functional, generate another axiom from body
 			if helper.is_functional (current_feature) then
@@ -1059,11 +1086,11 @@ feature {NONE} -- Translation: Functions
 			-- The expression of a functional feature with body `a_body',
 			-- if it has the right shape, otherwise Void.
 		do
-			if attached a_body and then 													-- body exists
-				not a_body.is_empty and then												-- body has instructions
-				attached {ASSIGN_B} a_body.last as l_assign_b and then						-- last instruction is an assignment...
-				attached {RESULT_B} l_assign_b.target and then								-- ... to Result
-				across a_body as c all not @ c.is_last implies attached {CHECK_B} c end	-- All instructions but last are checks
+			if attached a_body and then -- body exists
+				not a_body.is_empty and then -- body has instructions
+				attached {ASSIGN_B} a_body.last as l_assign_b and then -- last instruction is an assignment...
+				attached {RESULT_B} l_assign_b.target and then -- ... to Result
+				across a_body as c all not @ c.is_last implies attached {CHECK_B} c end -- All instructions but last are checks
 			then
 				Result := l_assign_b.source
 			end
@@ -1131,15 +1158,15 @@ feature {NONE} -- Translation: Functions
 					l_forall.add_bound_variable (l_arg)
 				end
 			end
-			l_forall.add_compound_trigger (<< factory.function_call ("HeapSucc", <<l_old_heap, l_new_heap>>, types.bool),
-				l_old_call, l_new_call >>)
+			l_forall.add_compound_trigger (<<factory.function_call ("HeapSucc", <<l_old_heap, l_new_heap>>, types.bool),
+					l_old_call, l_new_call>>)
 
 			create l_axiom.make (l_forall)
 
 			boogie_universe.add_declaration (l_axiom)
 		end
 
-feature -- Translation: agents		
+feature -- Translation: agents
 
 	translate_postcondition_predicate (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate postconditino predicate of feature `a_feature' of type `a_type'.
@@ -1348,7 +1375,7 @@ feature {NONE} -- Implementation
 			end
 			if current_feature.has_return_value then
 				l_call.add_argument (create {IV_ENTITY}.make ("Result", types.for_class_type (
-					helper.class_type_in_context (current_feature.type, current_feature.written_class, current_feature, current_type))))
+							helper.class_type_in_context (current_feature.type, current_feature.written_class, current_feature, current_type))))
 			end
 			create l_post.make (l_call)
 			l_post.set_free

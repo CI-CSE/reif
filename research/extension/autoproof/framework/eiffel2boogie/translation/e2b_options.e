@@ -49,6 +49,9 @@ feature {NONE} -- Initialization
 			max_parallel_boogies := 3
 
 			is_print_time := True
+
+			create model_files.make
+			create init_states_of_counterexamples.make
 		end
 
 feature -- Inlining verification step
@@ -62,6 +65,199 @@ feature -- Inlining verification step
 			is_two_step_verification_enabled := a_value
 		end
 
+feature -- Generation of full-coverage tests
+
+	is_full_coverage_test_generation_enabled: BOOLEAN
+			-- Is generating tests for full coverage enabled?
+
+	set_full_coverage_test_generation_enabled (a_value: BOOLEAN)
+			-- Set `is_full_coverage_test_generation_enabled' to `a_value'.
+		do
+			is_full_coverage_test_generation_enabled := a_value
+		end
+
+feature -- Generate fixes from counterexamples
+
+	is_generate_fix_enabled: BOOLEAN
+			-- Is generating fix enabled?
+
+	set_generate_fix_enabled (a_value: BOOLEAN)
+			-- Set `is_generate_fix_enabled' to `a_value'.
+		do
+			is_generate_fix_enabled := a_value
+		end
+
+	fix_elements: LINKED_LIST [E2B_FIX_ELEMENT]
+			-- Collection of fix elements
+		once
+			create Result.make
+		end
+
+	fix_message: STRING_32
+			-- Message for possible fix
+
+	set_fix_message (a_fix_message: STRING_32)
+			-- Set `fix_message' to `a_fix_message'
+		do
+			fix_message := a_fix_message
+			print(fix_message + "%N")
+		end
+
+	ce_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+			-- Counterexample states collected for generation of fixes
+		once
+			create Result.make
+		end
+
+	fix_preconditions: LINKED_LIST [STRING_32]
+			-- Collection of precondition for program fixes
+		once
+			create Result.make
+		end
+
+	last_candidate_fix: STRING_32
+	       -- Last candidate fix
+
+    set_last_candidate_fix (a_fix: STRING_32)
+           -- Set `last_candidate_fix' to `a_fix'
+    do
+    	last_candidate_fix := a_fix
+    end
+
+	current_candidate_fix: STRING_32
+	       -- Last candidate fix
+
+    set_current_candidate_fix (a_fix: STRING_32)
+           -- Set `current_candidate_fix' to `a_fix'
+    do
+    	current_candidate_fix := a_fix
+    end
+
+feature -- Generate tests from proof failures
+
+		-- last_verified_stone: detachable CLASSI_STONE
+		-- The stone that is verified in the last run of verification
+
+	last_result: detachable E2B_RESULT
+			-- Last generated result.
+
+	set_last_result (a_last_result: E2B_RESULT)
+			-- Set `last_result' to `a_last_result'.
+		do
+			last_result := a_last_result
+		end
+
+		-- last_input: detachable E2B_TRANSLATOR_INPUT
+		-- Input for translator in the last verification run.
+
+	is_generate_new_counterexample_enabled: BOOLEAN
+			-- Is generating new counterexample enabled?
+
+	set_generate_new_counterexample_enabled (a_value: BOOLEAN)
+			-- Set `is_generate_new_counterexample_enabled' to `a_value'.
+		do
+			is_generate_new_counterexample_enabled := a_value
+		end
+
+	is_generate_minimal_counterexample_enabled: BOOLEAN
+			-- Is generating minimal counterexample enabled?
+
+	set_generate_minimal_counterexample_enabled (a_value: BOOLEAN)
+			-- Set `is_generate_minimal_counterexample_enabled' to `a_value'.
+		do
+			is_generate_minimal_counterexample_enabled := a_value
+		end
+
+	is_minimization_finished: BOOLEAN
+			-- Is minimization finished?
+
+	set_is_minimization_finished (a_value: BOOLEAN)
+			-- Set `is_minimization_finished' to `a_value'
+		do
+			is_minimization_finished := a_value
+		end
+
+	minimization_tolerance: INTEGER
+			-- Tolerance used in minimization algorithm
+
+	minimization_iteration_bound: INTEGER
+			-- Maximum number of iterations allowed in minimization algorithm
+
+	target_feature: detachable FEATURE_I
+			-- Target feature for minimization
+
+	target_class: detachable CLASS_C
+			-- Target class for minimization
+
+	target_error_index: INTEGER
+			-- Index of error in the failed verification
+
+	is_same_result: BOOLEAN
+			-- Is the verification result the same as the previous run?
+
+	set_is_same_result (a_is_same_result: BOOLEAN)
+			-- Set `is_same_result' to `a_is_same_result'
+		do
+			is_same_result := a_is_same_result
+		end
+
+	new_ce_message: STRING_32
+			-- New message for counterexample
+
+	set_new_ce_message (a_ce_message: STRING_32)
+			-- Set `new_ce_message' to `a_ce_message'
+		do
+			new_ce_message := a_ce_message
+		end
+
+	set_target_feature (a_feature: like target_feature)
+			-- Set `target_feature' to `a_feature'
+		do
+			target_feature := a_feature
+		end
+
+	set_target_class (a_class: like target_class)
+			-- Set `target_class' to `a_class'
+		do
+			target_class := a_class
+		end
+
+	set_target_error_index (a_error_index: INTEGER)
+			-- Set `minimization_class' to `a_error_index'
+		do
+			target_error_index := a_error_index
+		end
+
+	set_minimization_tolerance (a_value: INTEGER)
+			-- Set `minimization_tolerance' to `a_value'
+		do
+			minimization_tolerance := a_value
+		end
+
+	set_minimization_iteration_bound (a_value: INTEGER)
+			-- Set `minimization_iteration_bound' to `a_value'
+		do
+			minimization_iteration_bound := a_value
+		end
+
+	number_of_iterations: INTEGER
+			-- Number of iterations during minimization
+
+	increase_number_of_iterations
+			-- Increase the number of iterations by 1
+		do
+			number_of_iterations := number_of_iterations + 1
+		end
+
+	reset
+			-- Reset parameters
+		do
+			print ("total number_of_iterations: " + number_of_iterations.out + " opt_time: " + opt_time.out + "%N")
+			number_of_iterations := 0
+			opt_time := 0
+				-- init_states_of_counterexamples.wipe_out
+			fix_elements.wipe_out
+		end
 
 feature --Postcondition mutation step
 
@@ -74,7 +270,7 @@ feature --Postcondition mutation step
 			is_postcondition_mutation_enabled := a_value
 		end
 
-	is_coupled_mutations_enabled : BOOLEAN
+	is_coupled_mutations_enabled: BOOLEAN
 			-- Execute postcondition mutation with coupled mutations?
 			-- This is usually the minimum, but can be turned off if uncoupled is used instead.
 
@@ -87,13 +283,13 @@ feature --Postcondition mutation step
 	is_uncoupled_mutations_enabled: BOOLEAN
 			-- Execute postcondition mutation with uncoupled mutations?
 
-	set_uncoupled_mutations_enabled(a_value: BOOLEAN)
+	set_uncoupled_mutations_enabled (a_value: BOOLEAN)
 			-- Set `is_uncoupled_mutations_enabled' to `a_value'.
 		do
 			is_uncoupled_mutations_enabled := a_value
 		end
 
-	is_aging_enabled : BOOLEAN
+	is_aging_enabled: BOOLEAN
 			-- Execute postcondition mutation with variable aging?
 
 	set_aging_enabled (a_value: BOOLEAN)
@@ -300,6 +496,76 @@ feature -- Output
 			is_print_time := a_value
 		end
 
+feature -- Counterexample optimization
+
+	routines_to_optimize: LINKED_LIST [INTEGER]
+			-- Routines to optimize.
+		once
+			create Result.make
+		end
+
+	features_to_optimize: LINKED_LIST [E2B_PROOF_TO_TEST_TARGET_FEATURE]
+			-- Routines to optimize
+		once
+			create Result.make
+		end
+
+	container_to_optimize: HASH_TABLE [TYPE_A, IMMUTABLE_STRING_32]
+			-- Containers to be optimized
+		once
+			create Result.make (0)
+		end
+
+	model_files: LINKED_LIST [IMMUTABLE_STRING_32]
+			-- Model files
+
+	init_states_of_counterexamples: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+			-- Initial states generated from counterexamples
+
+	opt_preconditions: HASH_TABLE [HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32], FEATURE_I]
+			-- Mapping from a routine to preconditions for optimization
+			-- Mapping: target feature -> list of `target variable -> precondition'
+		once
+			create Result.make (0)
+		end
+
+	last_opt_value: INTEGER
+			-- Value used in the last optimization run
+
+	set_last_opt_value (a_value: INTEGER)
+			-- Set the value of last_opt_value to `a_value'
+		do
+			last_opt_value := a_value
+		end
+
+	opt_time: REAL
+			-- Time used for optimization (time accumulation of all reverification)
+
+	opt_lower: INTEGER
+			-- Lower bound used in the binary search algorithm
+
+	opt_upper: INTEGER
+			-- Upper bound used in the binary search algorithm
+
+	accumulate_opt_time (a_value: REAL)
+			-- Increase the value of `opt_time' by `a_value'
+		do
+			opt_time := opt_time + a_value
+				-- print("current opt_time: " + opt_time.out + "%N")
+		end
+
+	set_opt_lower (a_value: INTEGER)
+			-- Set the value of last_opt_value to `a_value'
+		do
+			opt_lower := a_value
+		end
+
+	set_opt_upper (a_value: INTEGER)
+			-- Set the value of last_opt_value to `a_value'
+		do
+			opt_upper := a_value
+		end
+
 feature -- Other
 
 	is_generating_trivial_loop_variants: BOOLEAN
@@ -322,5 +588,22 @@ feature -- Other
 		do
 			max_parallel_boogies := a_value
 		end
+
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

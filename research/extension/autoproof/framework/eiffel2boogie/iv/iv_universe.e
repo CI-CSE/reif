@@ -74,6 +74,7 @@ feature -- Element change
 		require
 			a_delcaration_attached: attached a_declaration
 		do
+			-- print("IV_UNIVERSE.add_declaration: " + declarations.count.out + "%N")
 			declarations.extend (a_declaration)
 		ensure
 			a_declaration_added: declarations.last = a_declaration
@@ -96,6 +97,8 @@ feature -- Visitor
 	process (a_visitor: IV_UNIVERSE_VISITOR)
 			-- Process universe with `a_visitor'.
 		do
+			-- declarations is empty in the second translation
+			-- print("declarations count: " + declarations.count.out + "%N")
 			across declarations as i loop
 				i.process (a_visitor)
 			end

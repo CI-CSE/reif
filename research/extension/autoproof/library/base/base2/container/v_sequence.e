@@ -204,7 +204,7 @@ feature -- Specification
 			status: ghost
 			replaces: bag
 		attribute
-			check is_executable: False then end
+			-- check is_executable: False then end
 		end
 
 	lower_: INTEGER

@@ -40,6 +40,9 @@ feature -- Access
 	related_attributes: STRING_TABLE [STRING]
 			-- Attributes of related line.
 
+	counterexample: detachable E2B_BOOGIE_COUNTEREXAMPLE
+			-- Counterexample of the error.
+
 feature -- Status report
 
 	is_assert_error: BOOLEAN
@@ -102,6 +105,13 @@ feature -- Element change
 			related_line_text_set: related_line_text ~ a_line_text
 		end
 
+	set_counterexample (a_counterexample: E2B_BOOGIE_COUNTEREXAMPLE)
+			-- Set `counterexample' to `a_counterexample'
+		do
+			print("E2B_BOOGIE_PROCEDURE_ERROR.set_counterexample%N")
+			counterexample := a_counterexample
+		end
+
 feature {NONE} -- Implementation
 
 	parsed_attributes (a_line: STRING): STRING_TABLE [STRING]
@@ -127,7 +137,7 @@ feature {NONE} -- Implementation
 						else
 							value := l_part.substring (l_index + 1, l_part.count)
 								-- Replace no-break spaces with ordinary ones.
-							value.replace_substring_all ("%/194/%/160/", " ")
+							value.replace_substring_all ("Â ", " ")
 							Result.force (value, l_part.substring (1, l_index - 1))
 						end
 					end

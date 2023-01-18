@@ -311,6 +311,7 @@ feature -- Processing
 					check
 						attached {ASSERT_B} l as l_assert
 					then
+						-- l_assert.set_expr(l_assert.expr)
 						process_single_check (l_assert)
 					end
 				end
@@ -462,6 +463,9 @@ feature -- Processing
 				-- else block
 			if attached a_node.else_part as e then
 				process_compound (e)
+				-- a_node.else_part.mark_last_instruction
+				-- a_node.else_part.search (v: [like item] T)
+				-- a_node.else_part.
 			end
 
 				-- restore context

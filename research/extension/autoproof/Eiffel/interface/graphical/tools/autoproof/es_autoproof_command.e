@@ -193,7 +193,33 @@ feature {NONE} -- Basic operations
 			end
 			show_proof_tool
 			enable_tool_button
-			window_manager.display_message ("AutoProof finished")
+
+			-- TODO: add test generation and display message
+			if options.is_full_coverage_test_generation_enabled then
+				window_manager.display_message ("Test generation started")
+				start_timer
+				proof2test.generate_tests (options.init_states_of_counterexamples)
+				print("test generation timeee: " + current_timer.out + "%N")
+				stop_timer
+				eiffel_project.discover_melt
+			    window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
+
+			else
+				window_manager.display_message ("AutoProof finished")
+			end
+
+
+				-- Enable Proof2Test
+			-- if a_result.has_verification_errors then
+				-- if attached proof_tool as t and then t.is_tool_instantiated then
+				--	t.panel.proof2test_button.enable_sensitive
+				--end
+			-- else
+			--	if attached proof_tool as t and then t.is_tool_instantiated then
+			--		t.panel.proof2test_button.disable_sensitive
+			--	end
+			--end
+
 		end
 
 	process_partial_result (a_result: E2B_RESULT)
@@ -323,6 +349,12 @@ feature {NONE} -- Implementation
 
 	autoproof: E2B_AUTOPROOF
 			-- AutoProof instance.
+
+	proof2test: E2B_PROOF_TO_TEST
+			-- Proof2Test instance
+		once
+			create Result.make
+		end
 
 	pixmap: EV_PIXMAP
 			-- Pixmap representing the command.

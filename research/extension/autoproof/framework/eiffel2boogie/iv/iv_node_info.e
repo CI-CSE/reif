@@ -30,7 +30,7 @@ feature -- Access
 	type: detachable READABLE_STRING_8
 			-- Type associated with this node.
 		do
-			if attributes.has_key ("type") then
+			if attached attributes and attributes.has_key ("type") then
 				Result := attributes["type"]
 			end
 		end
@@ -46,7 +46,7 @@ feature -- Access
 	line: detachable READABLE_STRING_8
 			-- Line associated with this node.
 		do
-			if attributes.has_key ("line") then
+			if attached attributes and attributes.has_key ("line") then
 				Result := attributes["line"]
 			end
 		end
@@ -102,4 +102,20 @@ feature -- Element change
 			attributes := a_other.attributes
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

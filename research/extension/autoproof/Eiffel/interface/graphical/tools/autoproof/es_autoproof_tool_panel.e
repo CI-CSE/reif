@@ -67,8 +67,10 @@ feature {NONE} -- Initialization
 			-- <Precursor>
 		local
 			ap_command: ES_AUTOPROOF_COMMAND
+			-- pt_command: ES_PROOF2TEST_COMMAND
 		do
 			create ap_command.make
+				-- create pt_command.make
 
 				-- Proof button
 			proof_button := ap_command.new_sd_toolbar_item (True)
@@ -79,6 +81,17 @@ feature {NONE} -- Initialization
 			stop_button.set_pixel_buffer (stock_pixmaps.debug_stop_icon_buffer)
 			stop_button.select_actions.extend (agent ap_command.stop_verification)
 			stop_button.disable_sensitive
+
+				-- Proof2Test button
+				-- proof2test_button := pt_command.new_sd_toolbar_item (True)
+				-- proof2test_button.disable_sensitive
+
+				-- Proof2Test stop button
+				-- create proof2test_stop_button.make
+				-- proof2test_stop_button.set_pixmap (stock_pixmaps.debug_stop_icon)
+				-- proof2test_stop_button.set_pixel_buffer (stock_pixmaps.debug_stop_icon_buffer)
+				-- proof2test_stop_button.select_actions.extend (agent pt_command.stop_verification)
+				-- proof2test_stop_button.disable_sensitive
 
 				-- "toggle successful" button
 			create successful_button.make
@@ -106,6 +119,8 @@ feature {NONE} -- Initialization
 			create Result.make (5)
 			Result.extend (proof_button)
 			Result.extend (stop_button)
+				-- Result.extend (proof2test_button)
+				-- Result.extend (proof2test_stop_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 			Result.extend (successful_button)
 			Result.extend (failed_button)
@@ -161,10 +176,19 @@ feature {NONE} -- Initialization
 		do
 			create Result
 
+			create l_item.make_with_text_and_action ("Full-coverage test generation",
+				agent do
+						options.set_full_coverage_test_generation_enabled (not options.is_full_coverage_test_generation_enabled)
+					end)
+			if options.is_full_coverage_test_generation_enabled then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
 			create l_item.make_with_text_and_action ("Two-step verification",
 				agent do
-					options.set_two_step_verification_enabled (not options.is_two_step_verification_enabled)
-				end)
+						options.set_two_step_verification_enabled (not options.is_two_step_verification_enabled)
+					end)
 			if options.is_two_step_verification_enabled then
 				l_item.toggle
 			end
@@ -376,7 +400,20 @@ feature {NONE} -- Initialization
 					a_widget.column (feature_column),
 					a_widget.column (time_column)
 				>>)
+
+			result_grid := a_widget
+				-- a_widget.set_configurable_target_menu_handler (agent context_menu_handler)
+				-- a_widget.selected_rows.first.
+
+				-- a_widget.set_configurable_target_menu_handler (a_handler: PROCEDURE [EV_MENU, ARRAYED_LIST [EV_PND_TARGET_DATA], EV_PICK_AND_DROPABLE, ANY])
+				-- esgrid.set_configurable_target_menu_handler   (a_handler: PROCEDURE [EV_MENU, ARRAYED_LIST [EV_PND_TARGET_DATA], EV_PICK_AND_DROPABLE, ANY])
 		end
+
+		-- context_menu_handler (a_menu: EV_MENU; a_target_list: ARRAYED_LIST [EV_PND_TARGET_DATA]; a_source: EV_PICK_AND_DROPABLE; a_pebble: ANY)
+		-- Context menu handler
+		-- do
+		--	develop_window.menus.context_menu_factory.proof_tool_menu (a_menu, a_target_list, a_source, a_pebble, Current, result_grid)
+		-- end
 
 feature -- Access
 
@@ -386,6 +423,12 @@ feature -- Access
 	stop_button: SD_TOOL_BAR_BUTTON
 			-- Button to stop AutoProof.
 
+		-- proof2test_button: EB_SD_COMMAND_TOOL_BAR_BUTTON
+		-- Button to generate and display counterexamples
+
+		-- proof2test_stop_button: SD_TOOL_BAR_BUTTON
+		-- Button to stop Proof2Test.
+
 	successful_count: INTEGER
 			-- Number of successful events
 
@@ -394,6 +437,8 @@ feature -- Access
 
 	error_count: INTEGER
 			-- Number of error events
+
+	result_grid: ES_GRID
 
 feature -- Status report
 
@@ -614,116 +659,128 @@ feature {NONE} -- Basic operations
 			l_label: EV_GRID_LABEL_ITEM
 			l_format: FORMAT_DOUBLE
 		do
-			a_row.set_data (a_event_item)
 
-			if attached {E2B_VERIFICATION_EVENT} a_event_item as l_result then
+				-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
+			if not options.is_full_coverage_test_generation_enabled then
 
-					-- Class location
-				if l_result.context_class /= Void then
-					create l_gen.make
-					l_result.context_class.append_name (l_gen)
-					l_editor_item := create_clickable_grid_item (l_gen.last_line, True)
-					a_row.set_item (class_column, l_editor_item)
-				end
+				a_row.set_data (a_event_item)
 
-					-- Feature location
-				if l_result.context_feature /= Void then
-					create l_gen.make
-					l_gen.add_feature_name (l_result.context_feature.feature_name_32, l_result.context_class)
-					if l_result.data.verification_context /= Void then
-						l_gen.add (" (" + l_result.data.verification_context + ")")
+				if attached {E2B_VERIFICATION_EVENT} a_event_item as l_result then
+
+						-- Class location
+					if l_result.context_class /= Void then
+						create l_gen.make
+						l_result.context_class.append_name (l_gen)
+						l_editor_item := create_clickable_grid_item (l_gen.last_line, True)
+						a_row.set_item (class_column, l_editor_item)
 					end
-					l_editor_item := create_clickable_grid_item (l_gen.last_line, True)
-					a_row.set_item (feature_column, l_editor_item)
-				elseif l_result.data.verification_context /= Void then
-					a_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM}.make_with_text (l_result.data.verification_context))
-				end
 
-					-- Time information
-				if l_result.data.time > 0 then
-					create l_format.make (4, 2)
-					create l_label.make_with_text (l_format.formatted (l_result.data.time))
-					a_row.set_item (time_column, l_label)
-				end
-
-					-- Info
-				create l_message_gen.make
-				l_result.single_line_message (l_message_gen)
-				l_editor_item := create_clickable_grid_item (l_message_gen.last_line, True)
-				a_row.set_height (l_editor_item.required_height_for_text_and_component)
-				a_row.set_item (info_column, l_editor_item)
-
-					 -- Position
-				if l_result.line_number > 0 then
-					a_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (l_result.line_number.out))
-				end
-
-					-- Type specific stuff
-				if is_successful_event (a_event_item) then
-
-						-- Icon
-					create l_label
-					l_label.set_pixmap (stock_pixmaps.general_tick_icon)
-					l_label.set_data ("successful")
-					l_label.disable_full_select
-					a_row.set_item (icon_column, l_label)
-
-						-- Display
-					a_row.set_background_color (successful_color)
-
-						-- Subrows
-					if attached {E2B_SUCCESSFUL_VERIFICATION} a_event_item.data as l_success then
-						if attached l_success.suggestion and then not l_success.suggestion.is_empty then
-							insert_subrow_for_suggestion (a_row, l_success.suggestion)
+						-- Feature location
+					if l_result.context_feature /= Void then
+						create l_gen.make
+						l_gen.add_feature_name (l_result.context_feature.feature_name_32, l_result.context_class)
+						if l_result.data.verification_context /= Void then
+							l_gen.add (" (" + l_result.data.verification_context + ")")
 						end
-						if attached l_success.original_errors then
-							across l_success.original_errors as l_errors loop
-								insert_subrow_for_error (a_row, l_errors)
+						l_editor_item := create_clickable_grid_item (l_gen.last_line, True)
+						a_row.set_item (feature_column, l_editor_item)
+					elseif l_result.data.verification_context /= Void then
+						a_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM}.make_with_text (l_result.data.verification_context))
+					end
+
+						-- Time information
+					if l_result.data.time > 0 then
+						create l_format.make (4, 2)
+						create l_label.make_with_text (l_format.formatted (l_result.data.time))
+						a_row.set_item (time_column, l_label)
+					end
+
+						-- Info
+					create l_message_gen.make
+					l_result.single_line_message (l_message_gen)
+					l_editor_item := create_clickable_grid_item (l_message_gen.last_line, True)
+					a_row.set_height (l_editor_item.required_height_for_text_and_component)
+					a_row.set_item (info_column, l_editor_item)
+
+						-- Position
+					if l_result.line_number > 0 then
+						a_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (l_result.line_number.out))
+					end
+
+						-- Type specific stuff
+					if is_successful_event (a_event_item) then
+
+							-- Icon
+						create l_label
+						l_label.set_pixmap (stock_pixmaps.general_tick_icon)
+						l_label.set_data ("successful")
+						l_label.disable_full_select
+						a_row.set_item (icon_column, l_label)
+
+							-- Display
+						a_row.set_background_color (successful_color)
+
+							-- Subrows
+						if attached {E2B_SUCCESSFUL_VERIFICATION} a_event_item.data as l_success then
+							if attached l_success.suggestion and then not l_success.suggestion.is_empty then
+								insert_subrow_for_suggestion (a_row, l_success.suggestion)
 							end
-							a_row.set_background_color (partial_color)
+							if attached l_success.original_errors then
+								across l_success.original_errors as l_errors loop
+									insert_subrow_for_error (a_row, l_errors)
+								end
+								a_row.set_background_color (partial_color)
+
+							end
 						end
-					end
 
-				elseif is_failed_event (a_event_item) then
+					elseif is_failed_event (a_event_item) then
 
-						-- Icon
-					create l_label
-					l_label.set_pixmap (stock_pixmaps.general_error_icon)
-					l_label.set_data ("failed")
-					l_label.disable_full_select
-					a_row.set_item (icon_column, l_label)
+							-- Icon
+						create l_label
+						l_label.set_pixmap (stock_pixmaps.general_error_icon)
+						l_label.set_data ("failed")
+						l_label.disable_full_select
+						a_row.set_item (icon_column, l_label)
 
-						-- Display
-					a_row.set_background_color (failed_color)
+							-- Display
+						a_row.set_background_color (failed_color)
 
-						-- Subrows
-					if attached {E2B_FAILED_VERIFICATION} a_event_item.data as l_failure then
-						across
-							l_failure.errors as l_errors
-						loop
-							insert_subrow_for_error (a_row, l_errors)
+							-- Subrows
+						if attached {E2B_FAILED_VERIFICATION} a_event_item.data as l_failure then
+							across
+								l_failure.errors as l_error
+							loop
+								insert_subrow_for_error (a_row, l_error)
+								if attached l_error.ce_message then
+									insert_subrow_for_counterexample (a_row, l_error, l_failure)
+								end
+							end
 						end
+
+					elseif is_error_event (a_event_item) then
+
+							-- Icon
+						create l_label
+						l_label.set_pixmap (stock_pixmaps.general_warning_icon)
+						l_label.set_data ("failed")
+						l_label.disable_full_select
+						a_row.set_item (icon_column, l_label)
+
+							-- Display
+						a_row.set_background_color (error_color)
 					end
+				else
+					check False end
+				end
 
-				elseif is_error_event (a_event_item) then
-
-						-- Icon
-					create l_label
-					l_label.set_pixmap (stock_pixmaps.general_warning_icon)
-					l_label.set_data ("failed")
-					l_label.disable_full_select
-					a_row.set_item (icon_column, l_label)
-
-						-- Display
-					a_row.set_background_color (error_color)
+				if not is_item_visible (a_row) then
+					a_row.hide
 				end
 			else
-				check False end
+				grid_events.remove_and_clear_all_rows
 			end
 
-			if not is_item_visible (a_row) then
-				a_row.hide
-			end
 		end
 
 	insert_subrow_for_error (a_parent: EV_GRID_ROW; a_error: E2B_VERIFICATION_ERROR)
@@ -734,6 +791,7 @@ feature {NONE} -- Basic operations
 			l_text_gen: EB_EDITOR_TOKEN_GENERATOR
 			l_editor_item: EB_GRID_EDITOR_TOKEN_ITEM
 		do
+				-- print ("insert_subrow_for_error%N")
 			l_index := a_parent.subrow_count + 1
 
 			a_parent.insert_subrow (l_index)
@@ -784,6 +842,39 @@ feature {NONE} -- Basic operations
 			l_row.set_background_color (partial_color)
 
 		end
+
+	insert_subrow_for_counterexample (a_parent: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
+			-- Insert a new subrow into `a_parent' for `a_error'.
+		local
+			l_index: INTEGER
+			l_row: EV_GRID_ROW
+			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
+
+		do
+			l_index := a_parent.subrow_count + 1
+
+			a_parent.insert_subrow (l_index)
+			l_row := a_parent.subrow (l_index)
+			l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
+
+			create l_lab
+			l_lab.set_text ("Counterexample: " + an_error.ce_message)
+			l_lab.set_pixmaps_on_right_count (1)
+			l_lab.put_pixmap_on_right (stock_pixmaps.preference_list_icon, 1)
+				-- l_lab.pixmaps_on_right.item (1).pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
+
+			l_row.set_item (info_column, l_lab)
+			create pt_command.make (an_error, a_failure, l_row)
+
+			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action end)
+			l_row.set_item (info_column, l_lab)
+			l_row.set_background_color (partial_color)
+		end
+
+	pt_command: ES_PROOF2TEST_COMMAND
+			-- An instance of Proof2Test command
 
 	update_button_titles
 			-- Update button titles with number of events.
@@ -848,19 +939,19 @@ feature {NONE} -- Constants
 		end
 
 	failed_color: EV_COLOR
-			-- Background color for successful rows
+			-- Background color for failed rows
 		once
 			create Result.make_with_rgb (1.0, 0.7, 0.7)
 		end
 
 	even_failed_sub_color: EV_COLOR
-			-- Background color for successful rows
+			-- Background color for failed even rows
 		once
 			create Result.make_with_rgb (1.0, 0.9, 0.9)
 		end
 
 	odd_failed_sub_color: EV_COLOR
-			-- Background color for successful rows
+			-- Background color for failed odd rows
 		once
 			create Result.make_with_rgb (1.0, 0.8, 0.8)
 		end
@@ -872,7 +963,7 @@ feature {NONE} -- Constants
 		end
 
 	error_color: EV_COLOR
-			-- Background color for successful rows
+			-- Background color for error rows
 		once
 			create Result.make_with_rgb (1.0, 1.0, 0.4)
 		end

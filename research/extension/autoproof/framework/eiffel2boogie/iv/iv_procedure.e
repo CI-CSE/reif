@@ -22,6 +22,7 @@ feature {NONE} -- Initialization
 			create results.make
 			create contracts.make
 			create implementations.make
+			create opt_preconditions.make
 			contracts.compare_objects
 		ensure
 			name_set: name ~ a_name
@@ -43,6 +44,11 @@ feature -- Access
 
 	implementations: LINKED_LIST [IV_IMPLEMENTATION]
 			-- Implementations of procedure (can be empty).
+
+	opt_preconditions: LINKED_LIST [STRING_32]
+			-- List of preconditions for counterexample optimization
+
+	is_full_coverage_tests_enabled: BOOLEAN
 
 feature -- Element change
 
@@ -122,6 +128,20 @@ feature -- Element change
 		ensure
 			implementation_added: implementations.last = a_implementation
 		end
+
+	add_opt_precondition (a_precondition: STRING_32)
+			-- Add `a_precondition' to opt_preconditions.
+		require
+			opt_preconditions_attached: attached opt_preconditions
+		do
+            opt_preconditions.extend (a_precondition)
+		end
+
+    set_is_full_coverage_tests_enabled (a_is_full_coverage_tests_enabled: BOOLEAN)
+    		-- Set `is_full_coverage_tests_enabled' to `a_is_full_coverage_tests_enabled'.
+    	do
+    		is_full_coverage_tests_enabled := a_is_full_coverage_tests_enabled
+    	end
 
 feature -- Visitor
 

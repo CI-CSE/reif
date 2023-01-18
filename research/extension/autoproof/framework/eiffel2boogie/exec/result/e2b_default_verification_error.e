@@ -77,6 +77,7 @@ feature {NONE} -- Implementation
 				if l_next - 1 >= l_current then
 					components.extend (message.substring (l_current, l_next - 1))
 				end
+
 				from
 					i := l_next + 1
 				until

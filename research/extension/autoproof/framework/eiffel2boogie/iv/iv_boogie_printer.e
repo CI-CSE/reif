@@ -117,6 +117,7 @@ feature -- Universe Visitor
 	process_procedure (a_procedure: IV_PROCEDURE)
 			-- <Precursor>
 		do
+			is_full_coverage_tests_enable := a_procedure.is_full_coverage_tests_enabled
 			output.put ("procedure ")
 			output.put (a_procedure.name)
 			output.put ("(")
@@ -143,6 +144,18 @@ feature -- Universe Visitor
 			across a_procedure.contracts as i loop
 				i.process (Current)
 			end
+
+				-- *Li: Add the text for optimization
+
+			across a_procedure.opt_preconditions as p loop
+				print("add precondition: " + p.to_string_8 +"%N")
+				if not p.same_string ("") then
+					output.put ("  free ")
+					output.put ("requires " + p.to_string_8)
+					output.put (";%N")
+				end
+			end
+
 			output.unindent
 			output.put_new_line
 			across a_procedure.implementations as i loop
@@ -194,7 +207,7 @@ feature -- Universe Visitor
 				output.put_new_line
 				output.put_line ("init_locals:")
 				across a_implementation.locals as i loop
-					-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
+						-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
 					if i.type.default_value /= Void then
 						output.put_indentation
 						output.put (i.name)
@@ -333,20 +346,33 @@ feature -- Statement Visitor
 			output.put_indentation
 			output.put ("if (")
 			if a_conditional.condition = Void then
-				output.put ("*")
+				output.put ("*) {")
 			else
 				a_conditional.condition.process (Current)
+				output.put (") {")
+				if is_full_coverage_tests_enable and a_conditional.then_block.is_conditional_leaf then
+					output.put_line ("assert false;")
+					output.put_new_line
+				end
 			end
-			output.put (") {")
 			output.put_new_line
 			output.indent
 			a_conditional.then_block.process (Current)
 			output.unindent
 			if not a_conditional.else_block.is_empty then
 				output.put_line ("} else {")
+				-- insert "assert false" into the else_block of the leaf if/elseif conditional
 				output.indent
+				if is_full_coverage_tests_enable and a_conditional.else_block.is_conditional_leaf then
+					output.put_line ("assert false;")
+					output.put_new_line
+				end
 				a_conditional.else_block.process (Current)
 				output.unindent
+			elseif is_full_coverage_tests_enable and a_conditional.condition /= Void then
+				 -- implicit else branch
+				output.put_line ("} else {")
+				output.put_line ("assert false;")
 			end
 			output.put_line ("}")
 		end
@@ -748,9 +774,12 @@ feature -- Other
 
 feature {NONE} -- Implementation
 
-	is_in_type: BOOLEAN;
-			-- Is the printer processing a complex type (i.e. a context where other complex types have to be parenthesized)?
+	is_in_type: BOOLEAN
+		-- Is the printer processing a complex type (i.e. a context where other complex types have to be parenthesized)?
 
+	is_full_coverage_tests_enable: BOOLEAN
+		-- Is full-coverage test generation enabled?
+;
 note
 	ca_ignore: "CA033", "CA033: too long class"
 	date: "$Date$"

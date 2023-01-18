@@ -44,6 +44,12 @@
 				<exclude>/tests$</exclude>
 				<exclude>remote</exclude>
 			</file_rule>
+			<file_rule>
+				<exclude>^tasks/proof2test$</exclude>
+			</file_rule>
+			<file_rule>
+				<exclude>^tasks/proof2test$</exclude>
+			</file_rule>
 		</cluster>
 	</target>
 </system>

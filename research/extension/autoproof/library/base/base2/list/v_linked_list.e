@@ -21,11 +21,18 @@ inherit
 			last,
 			new_cursor,
 			is_equal_,
-			reverse
+			reverse,
+			default_create
 		end
 
 feature -- Initialization
 
+    default_create
+         -- From precursor
+    do
+    	create sequence.default_create
+    end
+    
 	copy_ (other: V_LIST [G])
 			-- Initialize by copying all the items of `other'.
 		note

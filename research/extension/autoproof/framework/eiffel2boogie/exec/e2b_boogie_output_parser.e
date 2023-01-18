@@ -18,7 +18,7 @@ feature -- Access
 
 feature -- Basic operations
 
-	parse (a_boogie_output: STRING)
+	parse (a_boogie_output: STRING; a_boogie_models: STRING)
 			-- Parse Boogie output and create result.
 		local
 			l_line: STRING
@@ -29,6 +29,10 @@ feature -- Basic operations
 			current_procedure_result := Void
 			current_procedure_error := Void
 
+				-- Get a list of models
+			if attached a_boogie_models and then not a_boogie_models.is_empty then
+			    models := split_models (a_boogie_models)
+			end
 				-- Parse output
 			across a_boogie_output.split ('%N') as l loop
 				l_line := l
@@ -46,11 +50,17 @@ feature {NONE} -- Implementation
 	input_lines: LIST [STRING]
 			-- Input to Boogie verifier as list of lines.
 
+	models: ARRAY [IMMUTABLE_STRING]
+			-- A list of models.
+
 	current_procedure_result: E2B_BOOGIE_PROCEDURE_RESULT
 			-- Info of currently processed procedure result.
 
 	current_procedure_error: E2B_BOOGIE_PROCEDURE_ERROR
 			-- Info of currenlty processed procedure error.
+
+	current_model_index: INTEGER
+			-- Index of currently processed model.
 
 	parse_line (a_line: STRING)
 			-- Parse individual line.
@@ -58,31 +68,31 @@ feature {NONE} -- Implementation
 			l_line: INTEGER
 		do
 			if version_regexp.matches (a_line) then
-				-- version: version_regexp.captured_substring (1)
+					-- version: version_regexp.captured_substring (1)
 				last_result.set_boogie_version (version_regexp.captured_substring (1))
 
 			elseif parsing_regexp.matches (a_line) then
-				-- boogie file name: parsing_regexp.captured_substring (1)
+					-- boogie file name: parsing_regexp.captured_substring (1)
 				fill_boogie_input_lines (create {PATH}.make_from_string (parsing_regexp.captured_substring (1)))
 				last_result.set_input_text (input_lines)
 
 			elseif finished_regexp.matches (a_line) then
-				-- nr verified: finished_regexp.captured_substring (1).to_integer
-				-- nr failed: finished_regexp.captured_substring (2).to_integer
-				-- inconclusive text (optional): finished_regexp.captured_substring (3)
-				-- nr inconclusive (optional): finished_regexp.captured_substring (4).to_integer
+					-- nr verified: finished_regexp.captured_substring (1).to_integer
+					-- nr failed: finished_regexp.captured_substring (2).to_integer
+					-- inconclusive text (optional): finished_regexp.captured_substring (3)
+					-- nr inconclusive (optional): finished_regexp.captured_substring (4).to_integer
 				check current_procedure_error = Void end
 				check current_procedure_result = Void or else current_procedure_result.is_error end
 
 			elseif verifying_regexp.matches (a_line) then
-				-- name of procedure: verifying_regexp.captured_substring (1)
+					-- name of procedure: verifying_regexp.captured_substring (1)
 				check current_procedure_error = Void end
 				check current_procedure_result = Void or else current_procedure_result.is_error end
 				create current_procedure_result.make (verifying_regexp.captured_substring (1), last_result)
 
 			elseif verified_regexp.matches (a_line) then
-				-- time in seconds: verified_regexp.captured_substring (1).to_real
-				-- result (inconclusive/error/verified): verified_regexp.captured_substring (2)
+					-- time in seconds: verified_regexp.captured_substring (1).to_real
+					-- result (inconclusive/error/verified): verified_regexp.captured_substring (2)
 				check current_procedure_error = Void end
 				check current_procedure_result /= Void end
 				if verified_regexp.captured_substring (3) ~ "verified" then
@@ -107,30 +117,33 @@ feature {NONE} -- Implementation
 				end
 
 			elseif boogie_error_regexp.matches (a_line) then
-				-- file: boogie_error_regexp.captured_substring (1)
-				-- line: boogie_error_regexp.captured_substring (2).to_integer
-				-- column: boogie_error_regexp.captured_substring (3).to_integer
-				-- error message: boogie_error_regexp.captured_substring (4)
+					-- file: boogie_error_regexp.captured_substring (1)
+					-- line: boogie_error_regexp.captured_substring (2).to_integer
+					-- column: boogie_error_regexp.captured_substring (3).to_integer
+					-- error message: boogie_error_regexp.captured_substring (4)
 				check current_procedure_error = Void end
 				check attached current_procedure_result implies current_procedure_result.is_error end
 				l_line := boogie_error_regexp.captured_substring (2).to_integer
 				create current_procedure_error.make (boogie_error_regexp.captured_substring (4))
 				current_procedure_error.set_line (l_line, input_lines.i_th (l_line))
 				if attached current_procedure_result then
+					current_model_index := current_model_index + 1
+					if attached models and current_model_index <= models.count then -- counterexample of current error
+						current_procedure_error.set_counterexample (create {E2B_BOOGIE_COUNTEREXAMPLE}.make (models [current_model_index]))
+					end
 					current_procedure_result.errors.extend (current_procedure_error)
-				else
-					last_result.boogie_errors.extend (current_procedure_error.error_message)
 				end
+				last_result.boogie_errors.extend (current_procedure_error.error_message)
 				if not current_procedure_error.has_related_location then
 					current_procedure_error := Void
 				end
 
 			elseif error_regexp.matches (a_line) then
-				-- file: error_regexp.captured_substring (1)
-				-- line: error_regexp.captured_substring (2).to_integer
-				-- column: error_regexp.captured_substring (3).to_integer
-				-- error code: error_regexp.captured_substring (4)
-				-- error message: error_regexp.captured_substring (5)				
+					-- file: error_regexp.captured_substring (1)
+					-- line: error_regexp.captured_substring (2).to_integer
+					-- column: error_regexp.captured_substring (3).to_integer
+					-- error code: error_regexp.captured_substring (4)
+					-- error message: error_regexp.captured_substring (5)
 				check current_procedure_error = Void end
 				check current_procedure_result /= Void end
 				l_line := error_regexp.captured_substring (2).to_integer
@@ -142,10 +155,10 @@ feature {NONE} -- Implementation
 				end
 
 			elseif related_regexp.matches (a_line) then
-				-- file: related_regexp.captured_substring (1)
-				-- line: related_regexp.captured_substring (2).to_integer
-				-- column: related_regexp.captured_substring (3).to_integer
-				-- message: related_regexp.captured_substring (4)
+					-- file: related_regexp.captured_substring (1)
+					-- line: related_regexp.captured_substring (2).to_integer
+					-- column: related_regexp.captured_substring (3).to_integer
+					-- message: related_regexp.captured_substring (4)
 				check current_procedure_error /= Void end
 				check current_procedure_result /= Void end
 				l_line := related_regexp.captured_substring (2).to_integer
@@ -197,9 +210,38 @@ feature {NONE} -- Implementation
 			until
 				j >= l_sorted_procs.count
 			loop
+				print("timeeee: " + l_sorted_procs [j].time.out + " " + l_sorted_procs [j + 1].time.out + "%N")
 				l_sorted_procs [j].set_time (l_sorted_procs [j].time - l_sorted_procs [j + 1].time)
+
 				j := j + 1
 			end
+		end
+
+	split_models (model_file_content: STRING): ARRAY [IMMUTABLE_STRING]
+			-- Split the content of the input .model file into a list of models
+		require
+		 	model_not_empty: not model_file_content.is_empty
+		local
+			i, end_of_model: INTEGER
+			model: STRING
+		do
+			create models.make_empty
+			from
+				i := 1; model := ""
+			until
+				i = model_file_content.count
+			loop
+				end_of_model := model_file_content.substring_index ("END_MODEL", i)
+				if end_of_model /= 0 then
+					model.copy (model_file_content.substring (i, end_of_model))
+					models.force (model, models.count + 1)
+					i := end_of_model + 1
+				else
+					i := model_file_content.count
+				end
+			end
+
+			Result := models
 		end
 
 feature {NONE} -- Regular expressions

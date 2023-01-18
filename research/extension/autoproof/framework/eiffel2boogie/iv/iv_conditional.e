@@ -32,7 +32,6 @@ feature {NONE} -- Initialization
 			condition_set: condition = a_condition
 		end
 
-
 	make_if_then (a_condition: IV_EXPRESSION; a_then: IV_BLOCK)
 			-- Initialize conditional with condition `a_condition',
 			-- then block `a_then', and empty else block;
@@ -92,4 +91,20 @@ invariant
 	then_block_attached: attached then_block
 	else_block_attached: attached else_block
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end
