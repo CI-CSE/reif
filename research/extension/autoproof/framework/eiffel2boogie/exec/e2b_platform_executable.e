@@ -370,7 +370,7 @@ feature {NONE} -- Output capture
 		do
 			create internal_last_output.make (1024)
 			create l_file.make_with_path (boogie_output_file_name)
-			print("boogie_output_file_name: " +  boogie_output_file_name.out + "%N")
+			-- 	print("boogie_output_file_name: " +  boogie_output_file_name.out + "%N")
 			l_file.open_read
 			from
 				l_file.start

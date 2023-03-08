@@ -24,8 +24,11 @@ inherit
 	ERL_G_TYPE_ROUTINES
 
 	SHARED_SERVER
-		undefine
-			universe, system
+	    undefine
+	        universe, system
+		-- rename
+			-- universe as system_universe,
+		-- 	system as system_system
 		end
 
 	AUT_BYTE_NODE_FACTORY
@@ -39,7 +42,8 @@ inherit
 
 	AUT_SHARED_PREDICATE_CONTEXT
 		undefine
-			system
+			system-- ,
+			-- universe
 		end
 
 create
@@ -83,6 +87,8 @@ feature -- Access
 			-- `flag' indicates the type of current request, possible
 			-- values are defined in `ITP_SHARED_CONSTANTS'.			
 
+    -- universe: UNIVERSE_I
+            -- <Precursor>
 	interpreter: AUT_INTERPRETER_PROXY
 			-- Proxy
 
@@ -130,7 +136,7 @@ feature {AUT_REQUEST} -- Processing
 				-- 1: target which willl be created.
 				-- 2~`l_argument_count'+1: arguments
 
-			l_locals.extend (a_request.target_type.deep_actual_type)
+			l_locals.extend (a_request.target_type)
 			if a_request.has_argument then
 				l_arguments := feature_argument_types (l_feature, a_request.target_type)
 				l_locals.append (l_arguments)
@@ -151,7 +157,7 @@ feature {AUT_REQUEST} -- Processing
 				-- Create nodes to store created object into object pool.
 			l_compound.extend (new_store_variable_byte_code (1, a_request.target.index))
 
-				-- Print request into `output_stream'.		
+				-- Print request into `output_stream'.
 			print_execute_request (l_compound, execute_request_flag, extra_data_for_execute_request (a_request), a_request.class_of_target_type.name_in_upper + "." + a_request.creation_procedure.feature_name)
 		end
 
@@ -201,7 +207,8 @@ feature {AUT_REQUEST} -- Processing
 				-- 2~`l_argument_count'+1: arguments
 				-- `l_argument_count' + 2: receiver (if `l_feature' is a query)
 			l_target_type ?= expression_type_visitor.type (a_request.target)
-			l_target_type := l_target_type.deep_actual_type
+			-- l_target_type := l_target_type.deep_actual_type
+
 			l_locals.extend (l_target_type)
 
 			if a_request.has_argument then
@@ -209,11 +216,13 @@ feature {AUT_REQUEST} -- Processing
 				l_locals.append (l_arguments)
 			end
 
---			l_receiver_type := l_feature.type.actual_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id).deep_actual_type
+ 			-- l_receiver_type := l_feature.type.actual_type.instantiation_in (l_target_type, l_feature.written_in)
 			l_receiver_type := l_feature.type.actual_type
+
 			if not l_receiver_type.is_void then
-				l_receiver_type := actual_type_from_formal_type (l_receiver_type, l_context_class)
+				-- l_receiver_type := actual_type_from_formal_type (l_receiver_type, l_context_class)
 				l_receiver_type := l_receiver_type.instantiation_in (l_context_type, l_context_class.class_id)
+			end
 
 			end
 			if a_request.is_feature_query then
@@ -274,7 +283,6 @@ feature {AUT_REQUEST} -- Processing
 		end
 
 	process_batch_assignment_request (a_request: AUT_BATCH_ASSIGNMENT_REQUEST)
-		local
 		do
 			last_request := [execute_batch_assignment_flag, [a_request.receivers, a_request.serialized_objects]]
 		end
@@ -634,7 +642,7 @@ feature{NONE} -- Precondition satisfaction
 				end
 
 				a_data.put (
-					[a_request.target_type.associated_class.name,
+					[a_request.target_type.base_class.name,
 					a_request.feature_to_call.feature_name,
 					a_request.test_case_index,
 					interpreter.duration_until_now.millisecond_count,
@@ -696,7 +704,7 @@ invariant
 	expression_b_visitor_attached: expression_b_visitor /= Void
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

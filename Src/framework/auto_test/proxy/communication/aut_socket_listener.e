@@ -12,6 +12,9 @@ frozen class
 inherit
 	EXECUTION_ENVIRONMENT
 
+	DT_SHARED_SYSTEM_CLOCK
+		export {NONE} all end
+
 create
 	make
 
@@ -78,6 +81,7 @@ feature -- Basic functionality
 			l_socket: like open_listener
 			l_thread: WORKER_THREAD
 		do
+			print ("AUT_SOCKET_LISTENER.open_new_socket%N")
 			connection := Void
 			l_socket := open_listener
 			if l_socket /= Void then
@@ -88,23 +92,40 @@ feature -- Basic functionality
 			end
 		end
 
+	log_time_stamp
+			-- Log tag `a_tag' with timing information.
+		local
+			time_now: DT_DATE_TIME
+			duration: DT_DATE_TIME_DURATION
+		do
+			time_now := system_clock.date_time_now
+			duration := time_now.duration (connect_start_time)
+			duration.set_time_canonical
+			print ("time stamp:" + duration.millisecond_count.out + "%N")
+		end
+
 	wait_for_connection (a_timeout: NATURAL): like connection
 			-- Stop listening and close open port
-			--
 			-- `a_timeout': Number of milliseconds spent waiting for socket. If zero, it will wait
 			--              without timeout for socket to become attached.
 		require
 			listening: is_listening
 		local
 			l_res: BOOLEAN
+			duration: DT_DATE_TIME
 		do
+			connect_start_time := system_clock.date_time_now
 			mutex.lock
 			if connection = Void then
+				print ("AUT_SOCKET_LISTENER.wait_for_connection#1%N")
+				log_time_stamp
 				if a_timeout = 0 then
 					condition.wait (mutex)
 				else
 					l_res := condition.wait_with_timeout (mutex, a_timeout.as_integer_32)
 					if connection = Void then
+						print ("AUT_SOCKET_LISTENER.wait_for_connection#2%N")
+						log_time_stamp
 						close_listener
 					end
 				end
@@ -127,14 +148,13 @@ feature {NONE} -- Implementation
 				l_attempts := 1
 			until
 				(Result /= Void and then Result.is_open_read) or
-					l_attempts > max_attempts
+				l_attempts > max_attempts
 			loop
 				port_cell.put (port_cell.item + 1)
 				if port_cell.item < min_port or port_cell.item > max_port then
 					port_cell.put (min_port)
 				end
 				current_port := port_cell.item
-
 				create Result.make_loopback_server_by_port (current_port)
 
 				l_attempts := l_attempts + 1
@@ -179,7 +199,9 @@ feature {NONE} -- Implementation
 			l_connection: like connection
 		do
 			if not l_rescued then
+				print ("current_port#1 " + current_port.out + "%N")
 				a_socket.accept
+				print ("current_port#2 " + current_port.out + "%N")
 				mutex.lock
 				if is_listening then
 					l_connection := a_socket.accepted
@@ -200,6 +222,11 @@ feature {NONE} -- Constants
 	min_port: INTEGER = 49157
 	max_port: INTEGER = 65535
 	max_attempts: NATURAL = 100
+
+feature -- Time
+
+	connect_start_time: DT_DATE_TIME
+			-- Time when connection started
 
 invariant
 	current_port_not_negative: current_port >= 0
@@ -235,4 +262,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

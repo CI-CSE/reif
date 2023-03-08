@@ -5,6 +5,7 @@
 class
 	E2B_SHARED_CONTEXT
 
+
 feature {E2B_TRANSLATE_OPTIMIZE_TASK} -- Access: stateful
 
 	translation_pool: E2B_TRANSLATION_POOL

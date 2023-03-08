@@ -1273,7 +1273,7 @@ feature {NONE} -- Implementation: preparation
 			end
 		end
 
-feature{NONE} -- Test result analyizing
+feature {NONE} -- Test result analyizing
 
 	print_new_class (a_file: KL_TEXT_OUTPUT_FILE_32; a_class_name: READABLE_STRING_32)
 			-- <Precursor>
@@ -1473,7 +1473,6 @@ feature -- Log processor
 			l_time: DATE_TIME
 			l_duration: DATE_TIME_DURATION
 		do
-
 			create l_time_file.make_from_string (workbench.project_location.testing_results_path.out)
 			l_time_file.extend ("start_time.txt")
 			create l_file.make_open_append (l_time_file.out)
@@ -1676,7 +1675,7 @@ feature -- Option caches
 
 ;note
 	copyright: "Copyright (c) 1984-2023, Eiffel Software"
-	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

@@ -399,7 +399,7 @@ feature{NONE} -- Implementation
 			l_target_type: TYPE_A
 			l_target_var, l_result_var: ITP_VARIABLE
 		do
-			print("%N%NTesting " + class_.name_in_upper + "." + feature_.feature_name + "%N")
+			-- print("%N%NTesting " + class_.name_in_upper + "." + feature_.feature_name + "%N")
 
 				-- Argument variable list.
 			l_argument_count := feature_.argument_count

@@ -210,7 +210,7 @@ feature {NONE} -- Implementation
 			until
 				j >= l_sorted_procs.count
 			loop
-				print("timeeee: " + l_sorted_procs [j].time.out + " " + l_sorted_procs [j + 1].time.out + "%N")
+				-- print("timee: " + l_sorted_procs [j].time.out + " " + l_sorted_procs [j + 1].time.out + "%N")
 				l_sorted_procs [j].set_time (l_sorted_procs [j].time - l_sorted_procs [j + 1].time)
 
 				j := j + 1

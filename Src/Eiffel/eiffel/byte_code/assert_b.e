@@ -72,7 +72,7 @@ feature -- Access
 	expr: EXPR_B
 			-- Assertion expression which returns a boolean
 
-	line_number : INTEGER
+	line_number: INTEGER
 			-- Source code line number.
 
 feature -- Status report
@@ -311,7 +311,7 @@ feature -- Inlining
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -66,9 +66,7 @@ feature {NONE} -- Initialization
 
 			l_itp := new_interpreter
 			if l_itp /= Void then
-				if a_generation.is_html_statistics_format_enabled or a_generation.is_minimization_enabled then
-					l_itp.add_observer (result_repository_builder)
-				end
+				l_itp.add_observer (result_repository_builder)
 				l_itp.set_is_logging_enabled (True)
 
 				create l_task.make (l_itp, generation.system, generation.error_handler)
@@ -87,7 +85,6 @@ feature {NONE} -- Initialization
 		require
 			a_generation_attached: a_generation /= Void
 		do
-
 				-- TODO: initialize replay
 
 			make (a_generation)
@@ -181,7 +178,7 @@ feature --{NONE} -- Access
 
 feature {NONE} -- Access: witness minimization
 
-	used_witnesses: DS_ARRAYED_LIST [AUT_ABS_WITNESS]
+	used_witnesses: DS_ARRAYED_LIST [AUT_WITNESS]
 			-- Witness which have been minimized and for which a test was created
 
 	last_minimized_witness: INTEGER
@@ -237,7 +234,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Status setting
 				l_progress := {REAL} 1.0
 				if l_total > 0 then
 					l_remaining := l_error_handler.remaining_time.second_count
-					l_progress := (l_remaining/l_total).truncated_to_real
+					l_progress := (l_remaining / l_total).truncated_to_real
 					if l_remaining <= 0 then
 						l_cancel := True
 					end
@@ -245,7 +242,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Status setting
 				l_totalc := l_generation.test_count
 				if l_totalc > 0 then
 					l_remainingc := l_error_handler.counter
-					l_progress := l_progress.min ((l_remainingc/l_totalc).truncated_to_real)
+					l_progress := l_progress.min ((l_remainingc / l_totalc).truncated_to_real)
 					if l_remainingc = 0 then
 						l_cancel := True
 					end
@@ -367,7 +364,7 @@ feature {NONE} -- Implementation
 				--interpreter.log_line (time_passed_mark + duration.second_count.out)
 				times_duration_logged := times_duration_logged + 1
 			end
-			
+
 			time_left := l_time_out - duration
 			time_left.set_time_canonical
 			if time_left.second_count < 0 then
@@ -551,7 +548,7 @@ invariant
 	minimizing_implies_test_task_has_next_step: minimize_task_cache = sub_task implies test_task.has_next_step
 
 note
-	copyright: "Copyright (c) 1984-2019, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

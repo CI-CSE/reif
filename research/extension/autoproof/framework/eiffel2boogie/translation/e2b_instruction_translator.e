@@ -423,10 +423,17 @@ feature -- Processing
 			l_if: IV_CONDITIONAL
 			l_nested_if: IV_CONDITIONAL
 			l_temp_block: IV_BLOCK
+			l_then_orgin_info, l_else_origin_info: IV_STATEMENT_ORIGIN
+			l_nested_then_orgin_info, l_nested_else_origin_info: IV_STATEMENT_ORIGIN
+			l_line_number: INTEGER
 		do
 			set_current_origin_information (a_node)
 
 			l_temp_block := current_block
+			create l_then_orgin_info
+			create l_else_origin_info
+			create l_nested_then_orgin_info
+			create l_nested_else_origin_info
 
 				-- if condition
 			process_expression (a_node.condition)
@@ -437,8 +444,17 @@ feature -- Processing
 			current_block := l_if.then_block
 			process_compound (a_node.compound)
 
+			-- get the first line of the compound as the line number of the then_block
+			-- set information for the then block
+			l_then_orgin_info.set_file (current_feature.written_class.file_name)
+			l_line_number := a_node.compound.line_number
+			print ("then block line: " + l_line_number.out + "%N")
+			l_then_orgin_info.set_line (l_line_number)
+			l_if.then_block.set_origin_information (l_then_orgin_info)
+
 				-- elseif blocks
 			current_block := l_if.else_block
+
 			if attached a_node.elsif_list as ls then
 				across
 					ls as l
@@ -446,16 +462,30 @@ feature -- Processing
 					check
 						attached {ELSIF_B} l as l_elseif
 					then
+
 						set_current_origin_information (l_elseif)
 							-- elseif condition
+						l_line_number := l_elseif.compound.line_number
+						print ("elseif line: " + l_line_number.out + "%N")
+
+						l_else_origin_info.set_file (current_feature.written_class.file_name)
+						l_else_origin_info.set_line (l_line_number)
+						l_if.else_block.set_origin_information (l_else_origin_info)
+
 						process_expression (l_elseif.expr)
 						create l_nested_if.make (last_expression)
 						add_statement (l_nested_if)
 							-- elseif block
 						current_block := l_nested_if.then_block
 						process_compound (l_elseif.compound)
+						l_nested_then_orgin_info.set_file (current_feature.written_class.file_name)
+						l_nested_then_orgin_info.set_line (l_elseif.compound.line_number)
+						l_nested_if.then_block.set_origin_information (l_nested_then_orgin_info)
 							-- else block
 						current_block := l_nested_if.else_block
+						-- l_nested_else_orgin_info.set_file (current_feature.written_class.file_name)
+						-- l_nested_else_orgin_info.set_line (l_elseif.)
+						-- l_nested_if.else_block.set_origin_information (l_nested_then_orgin_info)
 					end
 				end
 			end
@@ -463,9 +493,13 @@ feature -- Processing
 				-- else block
 			if attached a_node.else_part as e then
 				process_compound (e)
-				-- a_node.else_part.mark_last_instruction
-				-- a_node.else_part.search (v: [like item] T)
-				-- a_node.else_part.
+				-- a_node.else_part.mark_last_instruction.
+				set_current_origin_information (a_node.else_part)
+				l_line_number := a_node.else_part.line_number
+				print ("else line: " + l_line_number.out + "%N")
+				l_else_origin_info.set_file (current_feature.written_class.file_name)
+				l_else_origin_info.set_line (l_line_number)
+				l_if.else_block.set_origin_information (l_else_origin_info)
 			end
 
 				-- restore context

@@ -99,6 +99,8 @@ inherit
 			{NONE} all
 		end
 
+	SHARED_EIFFEL_PROJECT
+
 	FORMATTED_MESSAGE
 		export
 			{NONE} all
@@ -1037,6 +1039,30 @@ feature {NONE} -- Roundtrip
 					reset_types
 				end
 			end
+		end
+
+	process_create_creation_as (l_as: CREATE_CREATION_AS)
+			-- Process `l_as'.
+		do
+			process_creation_as (l_as)
+		end
+
+	process_bang_creation_as (l_as: BANG_CREATION_AS)
+			-- Process `l_as'.
+		do
+			process_creation_as (l_as)
+		end
+
+	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
+			-- Process `l_as'.
+		do
+			process_creation_expr_as (l_as)
+		end
+
+	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
+			-- Process `l_as'.
+		do
+			process_creation_expr_as (l_as)
 		end
 
 	process_creation_as (l_as: CREATION_AS)
@@ -3821,6 +3847,90 @@ feature {NONE} -- Visitor
 						end
 					end
 				end
+			end
+		end
+
+	process_nested_as (l_as: NESTED_AS)
+		local
+			l_target_access: ACCESS_B
+			l_call: CALL_B
+			l_nested: NESTED_B
+			l_intermediate_nested: NESTED_B
+			old_assigner_source: like assigner_source
+			l_is_qualified_call: BOOLEAN
+			l_error_level: NATURAL_32
+		do
+			if attached last_type as c then
+					-- Mask out assigner call flag for target of the call.
+				old_assigner_source := assigner_source
+				assigner_source := Void
+					-- Type check the target
+				l_as.target.process (Current)
+				if attached last_type as t then
+						-- Restore assigner source for nested call.
+					assigner_source := old_assigner_source
+					l_is_qualified_call := is_qualified_call
+					is_qualified_call := True
+					if is_byte_node_enabled then
+						if attached {ACCESS_B} last_byte_node as a then
+							l_target_access := a
+						else
+								-- Target generated an additional nested byte node.
+								-- The byte node tree has to be normalized.
+							check attached {NESTED_B} last_byte_node as n then
+								l_intermediate_nested := n
+								l_target_access := n.target
+							end
+						end
+					end
+					l_error_level := error_level
+						-- Check the target of a separate feature call.
+					if t.is_separate then
+						validate_separate_target (Void, l_as.target)
+					end
+						-- Type check the message
+					l_as.message.process (Current)
+					if error_level /= l_error_level then
+						reset_types
+					else
+						if is_byte_node_enabled then
+								-- Create byte node.
+							l_call ?= last_byte_node
+							check
+								l_call_not_void: l_call /= Void
+							end
+
+							create l_nested
+							l_nested.set_target (l_target_access)
+							l_target_access.set_parent (l_nested)
+
+							if attached l_intermediate_nested then
+									-- Change intermediate nested to take intermediate message as a target to which message is applied.
+								check attached {ACCESS_B} l_intermediate_nested.message as m then
+									l_intermediate_nested.set_target (m)
+									m.set_parent (l_intermediate_nested)
+									l_intermediate_nested.set_message (l_call)
+									l_call.set_parent (l_intermediate_nested)
+								end
+									-- Use intermediate nested as a message.
+								l_call := l_intermediate_nested
+							end
+
+							l_nested.set_message (l_call)
+							l_call.set_parent (l_nested)
+
+							last_byte_node := l_nested
+						end
+					end
+					is_qualified_call := l_is_qualified_call
+				end
+			else
+					-- We should not get there, but just in case we generate an internal
+					-- error message.
+				reset_types
+				error_handler.insert_error (create {INTERNAL_ERROR}.make (
+					"In {AST_FEATURE_CHECKER_GENERATOR}.process_nested_as we could%N%
+					%not find `last_type'."))
 			end
 		end
 
@@ -7051,6 +7161,71 @@ feature {NONE} -- Visitor
 			end
 		end
 
+	check_false_clause (a_line_number: INTEGER): CHECK_B
+	local
+		l_check_list: BYTE_LIST [BYTE_NODE]
+	do
+		create l_check_list.make (1)
+		l_check_list.extend (create {ASSERT_B}.make ("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + a_line_number.out, create {BOOL_CONST_B}.make (False), a_line_number))
+		create Result
+		Result.set_check_list (l_check_list)
+	end
+
+	set_file_call (a_line_number: INTEGER): ANY_FEATURE_B
+			-- Set the output log file
+	do
+		io.set_file_default (create {PLAIN_TEXT_FILE}.make_open_append ("my_output.log"))
+		-- check False assertion approach??
+	end
+
+    record_branch_call (a_line_number: INTEGER): ANY_FEATURE_B
+    		-- Print instruction to record the reached branches
+    local
+    	print_call: ANY_FEATURE_B
+		l_parameters: BYTE_LIST [PARAMETER_B]
+		l_str_parameter: PARAMETER_B
+		l_type: CL_TYPE_A
+    do
+	   	create l_type.make(Eiffel_universe.compiled_classes_with_name ("PLAIN_TEXT_FILE").first.compiled_class.class_id)
+		create l_str_parameter
+		l_str_parameter.set_attachment_type (System.string_8_class.compiled_class.actual_type)
+		-- create Result.make (Eiffel_universe.compiled_classes_with_name ("ANY").first.compiled_class.feature_named ("io"), create {VOID_A}, create {CL_TYPE_A}.make(System.any_id), True)
+		create Result.make (Eiffel_universe.compiled_classes_with_name ("ANY").first.compiled_class.feature_named ("print"), create {VOID_A}, create {CL_TYPE_A}.make(System.any_id), True)
+		-- create Result.make (Eiffel_universe.compiled_classes_with_name ("PLAIN_TEXT_FILE").first.compiled_class.feature_named ("put_string"), create {VOID_A}, l_type, False)
+		-- how to set the target object of this call?
+		-- ask Emmanuel -- Jason he seems very logical and rationalyiju nihao huangli jiu shule quanshijie
+		create l_parameters.make_filled (1)
+		branch_number := branch_number + 1
+		l_str_parameter.set_expression(create {STRING_B}.make ("read branch #" + branch_number.out + " at line " + a_line_number.out + "%N", False, False))
+		l_parameters.put_i_th (l_str_parameter, 1)
+		Result.set_parameters (l_parameters)
+    end
+
+	create_branch_record_file (a_line_number: INTEGER): CREATION_EXPR_B
+			-- Create a file to store branch information
+	local
+    	create_call: ANY_FEATURE_B
+		l_parameters: BYTE_LIST [PARAMETER_B]
+		l_str_parameter: PARAMETER_B
+		l_type: CL_TYPE_A
+	do
+		create Result
+   		-- add creation of a file
+   		create l_type.make(Eiffel_universe.compiled_classes_with_name ("PLAIN_TEXT_FILE").first.compiled_class.class_id)
+   		create l_str_parameter
+		l_str_parameter.set_attachment_type (System.string_8_class.compiled_class.actual_type)
+		l_str_parameter.set_expression(create {STRING_B}.make ("C:\Users\HP\Desktop\New.txt", True, True))
+   		-- TODO: create test_file.make_create_read_write (test_file_name)
+   		create create_call.make (Eiffel_universe.compiled_classes_with_name ("PLAIN_TEXT_FILE").first.compiled_class.feature_named ("make_create_read_write"), create {VOID_A}, l_type, False)
+		create l_parameters.make_filled (1)
+		l_parameters.put_i_th (l_str_parameter, 1)
+		Result.set_parameters (l_parameters)
+		Result.set_call (create_call)
+		Result.set_info (create {CREATE_TYPE}.make (l_type))
+		Result.set_line_number (a_line_number)
+		Result.set_type (l_type)
+	end
+
 	process_if_as (l_as: IF_AS)
 		local
 			l_vwbe1: VWBE1
@@ -7060,6 +7235,10 @@ feature {NONE} -- Visitor
 			l_list: BYTE_LIST [BYTE_NODE]
 			s: like {AST_CONTEXT}.scope
 			scope_matcher: AST_SCOPE_MATCHER
+			print_call: ANY_FEATURE_B
+			l_parameters: BYTE_LIST [PARAMETER_B]
+			l_str_parameter: PARAMETER_B
+			l_str: STRING
 		do
 			l_needs_byte_node := is_byte_node_enabled
 			break_point_slot_count := break_point_slot_count + 1
@@ -7095,10 +7274,18 @@ feature {NONE} -- Visitor
 			create {AST_SCOPE_CONJUNCTIVE_CONDITION} scope_matcher.make (context)
 			s := context.scope
 			scope_matcher.add_scopes (l_as.condition)
+			-- branch_info_file.put_string ("ppp")
 			if l_as.compound /= Void then
 				process_compound (l_as.compound)
 				if l_needs_byte_node then
 					l_list ?= last_byte_node
+					-- branch_info_file.put_string ("uuu")
+					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
+						branch_number := branch_number + 1
+						branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
+						l_list.extend (check_false_clause (l_list.line_number))
+						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
+					end
 					l_if.set_compound (l_list)
 				end
 			end
@@ -7123,6 +7310,13 @@ feature {NONE} -- Visitor
 				process_compound (l_as.else_part)
 				if l_needs_byte_node then
 					l_list ?= last_byte_node
+					-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
+					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
+						branch_number := branch_number + 1
+						branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
+						l_list.extend (check_false_clause (l_list.line_number))
+						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
+					end
 					l_if.set_else_part (l_list)
 				end
 			end
@@ -8522,6 +8716,13 @@ feature {NONE} -- Visitor
 				process_compound (l_as.compound)
 				if not l_has_error and l_needs_byte_node then
 					l_list ?= last_byte_node
+					-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
+					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
+						branch_number := branch_number + 1
+						branch_info_file.put_string ("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N")
+						l_list.extend (check_false_clause (l_list.line_number))
+						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
+					end
 					l_elsif.set_compound (l_list)
 				end
 			end
@@ -12352,6 +12553,17 @@ feature {NONE} -- Byte node factory
 			create Result
 		end
 
+feature {NONE}
+
+	branch_number: INTEGER
+		-- Number of branches
+
+	branch_info_file: PLAIN_TEXT_FILE
+		-- Text file to store branch information
+		once
+			create Result.make_create_read_write (system.eiffel_project.project_directory.path.extended ("branch_info.txt").out)
+		end
+;
 note
 	ca_ignore:
 		"CA011", "CA011 — too many arguments",

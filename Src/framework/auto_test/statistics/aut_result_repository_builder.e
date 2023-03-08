@@ -40,7 +40,7 @@ feature -- Access
 	result_repository: AUT_TEST_CASE_RESULT_REPOSITORY
 			-- Last result repository built by `build'
 
-	comment_processors: LINKED_LIST [PROCEDURE [ANY, TUPLE [STRING]]]
+	comment_processors: LINKED_LIST [PROCEDURE [TUPLE [STRING]]]
 			-- list of processors for comment lines
 		do
 			if comment_processors_internal = Void then
@@ -62,7 +62,7 @@ feature -- Report
 			a_request.set_start_time (last_test_case_start_time)
 		end
 
-feature{NONE} -- Processing
+feature {NONE} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
@@ -75,22 +75,14 @@ feature{NONE} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
---			if last_test_case_request /= Void then
---				last_test_case_request.set_end_time (last_test_case_end_time)
---			end
---			a_request.set_start_time (last_test_case_start_time)
-			a_request.set_end_time (last_test_case_end_time)
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
---			if last_test_case_request /= Void then
---				last_test_case_request.set_end_time (last_test_case_end_time)
---			end
---			a_request.set_start_time (last_test_case_start_time)
-			a_request.set_end_time (last_test_case_end_time)
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
@@ -117,7 +109,7 @@ feature {NONE} -- Implementation
 			-- Index of the last "start" request in `request_history'
 
 	update_result_repository
-			-- Update result repository based on last request in result-history.			
+			-- Update result repository based on last request in result-history.
 		require
 			last_start_index_large_enough: last_start_index > 0 -- To be removed when added back to invariant
 			last_start_index_small_enough: last_start_index <= request_history.count -- To be removed when added back to invariant
@@ -128,8 +120,6 @@ feature {NONE} -- Implementation
 		do
 			create witness.make (request_history, last_start_index, request_history.count)
 			result_repository.add_witness (witness)
---			last_test_case_request := witness.item (witness.count)
---			last_test_case_request.set_test_case_index (last_test_case_index)
 		end
 
 feature -- Time measurement
@@ -244,8 +234,10 @@ feature -- Time measurement
 	comment_processors_internal: like comment_processors
 			-- Implementation of `comment_processors'
 
-;note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	;
+
+note
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

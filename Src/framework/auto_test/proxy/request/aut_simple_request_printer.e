@@ -60,7 +60,7 @@ feature {NONE} -- Access
 feature {AUT_REQUEST} -- Visitors
 
 	process_start_request (a_request: AUT_START_REQUEST)
-			-- <Precursor>		
+			-- <Precursor>
 		do
 			if attached {TEST_GENERATOR} configuration as l_config implies l_config.is_console_output_enabled then
 				wipe_out_string

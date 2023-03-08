@@ -35,6 +35,23 @@
 				<assertions precondition="true" postcondition="true" check="true" supplier_precondition="true"/>
 			</option>
 		</library>
+		<library name="compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
+		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
+			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
+		</cluster>
+	</target>
+	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf">
+		<capability>
+			<concurrency support="thread"/>
+		</capability>
+		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf">
+			<option>
+				<assertions precondition="true" postcondition="true" check="true" supplier_precondition="true"/>
+			</option>
+		</library>
+		<library name="a_compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_testing" location="E:\es_ap\trunk\Src\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
+
 		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
 			<visible class="ES_AUTOPROOF_TOOL" feature="default_create"/>
 			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>

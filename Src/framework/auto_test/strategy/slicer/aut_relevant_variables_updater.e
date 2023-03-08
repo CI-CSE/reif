@@ -61,7 +61,7 @@ feature {AUT_REQUEST} -- Processing
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
 			variables.remove (a_request.target)
-			if a_request.argument_list /= Void then
+			if attached a_request.argument_list then
 				process_argument_list (a_request.argument_list)
 			end
 		end
@@ -72,7 +72,7 @@ feature {AUT_REQUEST} -- Processing
 				variables.remove (a_request.receiver)
 			end
 			variables.force (a_request.target)
-			if a_request.argument_list /= Void then
+			if attached a_request.argument_list then
 				process_argument_list (a_request.argument_list)
 			end
 		end
@@ -83,7 +83,7 @@ feature {AUT_REQUEST} -- Processing
 		do
 			variables.remove (a_request.receiver)
 			variable ?= a_request.expression
-			if variable /= Void then
+			if attached variable then
 				variables.force (variable)
 			end
 		end
@@ -146,7 +146,7 @@ invariant
 	no_variable_void: not variables.has (Void)
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

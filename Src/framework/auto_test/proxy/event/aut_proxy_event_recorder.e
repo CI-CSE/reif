@@ -130,7 +130,8 @@ feature {NONE} -- Implementation
 	process_start_request (a_request: AUT_START_REQUEST)
 			-- <Precursor>
 		do
---			check last_response = Void end
+			-- print("AUT_PROXY_EVENT_RECORDER.process_start_request%N")
+			check last_response = Void end
 			a_request.set_response (create {AUT_NORMAL_RESPONSE}.make (""))
 			variable_table.wipe_out
 		end
@@ -251,7 +252,7 @@ invariant
 	no_void_request_in_history: not request_history.has (Void)
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

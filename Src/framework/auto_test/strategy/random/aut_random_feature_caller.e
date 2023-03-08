@@ -123,6 +123,9 @@ feature -- Access
 			good_result: Result = interpreter.configuration
 		end
 
+    universe: UNIVERSE_I
+            -- <Precursor>
+
 feature -- Change
 
 	set_feature_and_type (a_feature: like feature_to_call; a_type: like type)
@@ -444,25 +447,14 @@ feature {NONE} -- Implementation
 		local
 			l_target_type: TYPE_A
 		do
-			if target /= Void then
-				l_target_type := interpreter.variable_table.variable_type (target)
-				fixme ("Rmove some of the Void tests and debug why there are some call on Void target. For the moment, I just cannot reproduce them. Jasonw 2009.7.27")
-				if l_target_type = Void or else l_target_type.is_none or else l_target_type.is_basic or else not l_target_type.has_associated_class or else not l_target_type.conform_to (interpreter.interpreter_root_class, type) then
+			-- print("AUT_RANDOM_FEATURE_CALLER.recheck_type_and_feature%N")
+			if not target_creator.receivers.is_empty and then attached {ITP_VARIABLE} target_creator.receivers.first as l_target then
+				l_target_type := interpreter.variable_table.variable_type (l_target)
+				if l_target_type.is_none then
 					cancel
 				else
-					if attached {ROUT_ID_SET} feature_to_call.rout_id_set as l_rout_id_set then
-						if attached {E_FEATURE} l_target_type.base_class.feature_with_rout_id (l_rout_id_set.first) as l_e_feature then
-							if l_e_feature.is_exported_to (any_class) then
-								set_feature_and_type (l_e_feature.associated_feature_i, l_target_type)
-							else
-								cancel
-							end
-						else
-							cancel
-						end
-					else
-						cancel
-					end
+					target := l_target
+					set_feature_and_type (l_target_type.base_class.feature_with_rout_id (feature_to_call.rout_id_set.first).associated_feature_i, l_target_type)
 				end
 			else
 				cancel
@@ -566,7 +558,7 @@ invariant
 	error_handler_not_void: error_handler /= Void
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -82,6 +82,7 @@
 			</file_rule>
 			<file_rule>
 				<exclude>/Clib$</exclude>
+				<exclude>^strategy/random/artoo$</exclude>
 			</file_rule>
 		</cluster>
 	</target>

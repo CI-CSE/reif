@@ -123,7 +123,7 @@ feature -- Access
 				until
 					l_args.after
 				loop
-					l_type := l_args.item_for_iteration.actual_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
+					l_type := l_args.item_for_iteration.actual_type.instantiation_in (l_target_type, l_target_type.base_class.class_id)
 					l_type := actual_type_from_formal_type (l_type, interpreter_root_class)
 					Result.put (l_type, i)
 					l_args.forth
@@ -154,10 +154,26 @@ feature -- Access
 			end
 		end
 
-feature -- Status report
+    universe: UNIVERSE_I
+            -- <Precursor>
 
-	is_creation: BOOLEAN = True
-			-- Is Current a creation procedure request?
+	actual_type_from_formal_type (a_type: TYPE_A; a_context: CLASS_C): TYPE_A
+			-- If `a_type' is formal, return its actual type in context of `a_context'
+			-- otherwise return `a_type' itself.
+		do
+			if a_type.is_formal then
+				if attached {FORMAL_A} a_type as l_formal then
+					Result := l_formal.constrained_type (a_context)
+				end
+			else
+				Result := a_type
+			end
+			if Result.is_loose and then Result.has_generics then
+				Result := Result.base_class.constraint_actual_type
+			end
+		ensure
+			result_attached: Result /= Void
+		end
 
 feature -- Processing
 
@@ -178,7 +194,7 @@ invariant
 --	is_default_creatable: default_creation implies is_default_creatable (type.base_class, system)
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

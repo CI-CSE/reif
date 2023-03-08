@@ -66,6 +66,11 @@ feature -- Access
 	output_stream: KI_TEXT_OUTPUT_STREAM
 			-- Stream that printer writes to
 
+    variable_name_prefix: STRING = "v_"
+
+    universe: UNIVERSE_I
+            -- <Precursor>
+
 feature {NONE} -- Access
 
 	used_vars: detachable HASH_TABLE [TUPLE [type: detachable TYPE_A; name: detachable STRING; check_dyn_type: BOOLEAN; use_void: BOOLEAN], ITP_VARIABLE]
@@ -479,13 +484,13 @@ feature {AUT_REQUEST} -- Processing
 			output_stream.put_new_line
 		end
 
-	process_batch_assignment_request (a_request: AUT_BATCH_ASSIGNMENT_REQUEST)
-			-- Process `a_request'.
+	process_type_request (a_request: AUT_TYPE_REQUEST)
 		do
 			-- Do nothing.
 		end
 
-	process_type_request (a_request: AUT_TYPE_REQUEST)
+	process_batch_assignment_request (a_request: AUT_BATCH_ASSIGNMENT_REQUEST)
+			-- Process `a_request'.
 		do
 			-- Do nothing.
 		end
@@ -643,7 +648,7 @@ invariant
 	valid_expression_printer_output_stream: expression_printer.output_stream = output_stream
 
 note
-	copyright: "Copyright (c) 1984-2020, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

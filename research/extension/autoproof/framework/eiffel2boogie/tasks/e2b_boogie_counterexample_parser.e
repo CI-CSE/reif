@@ -85,7 +85,6 @@ feature
 
 	counterexamples: HASH_TABLE [ARRAY [E2B_BOOGIE_COUNTEREXAMPLE], IMMUTABLE_STRING_32]
 			-- Mapping from a target routine to a list of counterexamples
-
 	;
 
 note

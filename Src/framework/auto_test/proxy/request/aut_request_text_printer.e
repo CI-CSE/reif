@@ -61,6 +61,8 @@ feature -- Access
 	configuration: TEST_GENERATOR
 			-- Configuration
 
+    variable_name_prefix: STRING = "v_"
+
 feature -- Setting
 
 	set_output_stream (an_output_stream: like output_stream)
@@ -263,7 +265,7 @@ invariant
 	output_stream_is_writable: output_stream.is_open_write
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

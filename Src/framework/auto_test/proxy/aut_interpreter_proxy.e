@@ -121,6 +121,13 @@ feature {NONE} -- Initialization
 				-- Setup socket data printer.
 			create socket_data_printer.make (system, variable_table, Current)
 
+				-- We have two printers here because one printer will print byte-code into an IPC socket,
+				-- but we also want the test cases to be readable, so we use a text printer to print those
+				-- test cases into plain text.
+			create request_printer.make
+			request_printer.extend (create {AUT_REQUEST_TEXT_PRINTER}.make (system, log_stream, a_config))
+			request_printer.extend (socket_data_printer)
+
 			executable_file_name := an_executable_file_name
 			create melt_path.make_from_string (an_executable_file_name)
 			melt_path := melt_path.parent
@@ -136,6 +143,13 @@ feature {NONE} -- Initialization
 				l_file_printer.set_with_config_string (configuration.proxy_log_options)
 				proxy_log_printers.extend (l_file_printer)
 			end
+
+			create response_printer.make_with_prefix (proxy_log_file, interpreter_log_prefix)
+
+			log_line ("-- A new proxy has been created.")
+			proxy_start_time := system_clock.date_time_now
+			error_handler := a_error_handler
+			timeout := default_timeout
 
 			disable_catcall_warnings
 			set_is_logging_enabled (True)
@@ -543,6 +557,8 @@ log_time_stamp ("* EXTRA *")
 			l_is_passing: BOOLEAN
 			l_test_duration: INTEGER
 		do
+			-- -- print ("AUT_INTERPRETER_PROXY.create_object%N")
+			log_time_stamp ("exec")
 			l_arg_list := an_argument_list
 			if l_arg_list = Void then
 				create {DS_LINKED_LIST [ITP_EXPRESSION]} l_arg_list.make
@@ -626,6 +642,8 @@ log_time_stamp ("* EXTRA *")
 			l_normal_response: AUT_NORMAL_RESPONSE
 			l_test_duration: INTEGER
 		do
+			-- -- print ("AUT_INTERPRETER_PROXY.invoke_feature%N")
+			log_time_stamp ("exec")
 			is_last_test_case_executed := False
 			l_target_type := variable_table.variable_type (a_target)
 			l_feature := l_target_type.base_class.feature_of_rout_id (a_feature.rout_id_set.first)
@@ -765,7 +783,8 @@ log_time_stamp ("* EXTRA *")
 			a_receiver_not_void: a_receiver /= Void
 			a_constant_not_void: an_expression /= Void
 		do
-log_time_stamp ("* TEST START *")
+			-- -- print ("AUT_INTERPRETER_PROXY.assign_expression%N")
+			log_time_stamp ("* TEST START *")
 			create {AUT_ASSIGN_EXPRESSION_REQUEST} last_request.make (system, a_receiver, an_expression)
 
 			last_request.process (socket_data_printer)
@@ -814,7 +833,8 @@ log_time_stamp ("* EXTRA *")
 			l_starting_index, l_ending_index: INTEGER
 			l_argument_variables: DS_ARRAYED_LIST [ITP_VARIABLE]
 		do
-log_time_stamp ("* TEST START *")
+			-- -- print ("AUT_INTERPRETER_PROXY.batch_assign_variables%N")
+			log_time_stamp ("* TEST START *")
 			create {AUT_BATCH_ASSIGNMENT_REQUEST} last_request.make (system, a_object_types, a_serialized_objects)
 
 			last_request.process (socket_data_printer)
@@ -856,7 +876,8 @@ log_time_stamp ("* EXTRA *")
 			l_value_str: STRING
 			l_type: TYPE_A
 		do
-log_time_stamp ("* TEST START *")
+			-- -- print ("AUT_INTERPRETER_PROXY.retrieve_type_of_variable%N")
+			log_time_stamp ("* TEST START *")
 			create {AUT_TYPE_REQUEST} last_request.make (system, a_variable)
 			last_request.process (socket_data_printer)
 log_time_stamp ("* REQUEST SET *")
@@ -1212,7 +1233,10 @@ feature -- Socket IPC
 				l_socket.read_natural_32
 				l_response_flag := l_socket.last_natural_32
 				process.set_timeout (0)
-				if attached {TUPLE [output: STRING; error: STRING]} retrieved_from_medium (l_socket) as l_data  then
+					-- if attached {TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; serialization: detachable TUPLE [serialization: detachable STRING]; output: STRING; error: STRING]}
+					-- retrieved_from_medium (l_socket) as l_data then
+				if attached {TUPLE [output: STRING; error: STRING]} retrieved_from_medium (l_socket) as l_data then
+					-- print ("aaaaa" + l_data.output + "%N")
 					create last_raw_response.make (create {STRING}.make_from_string (l_data.output), create {STRING}.make_from_string (l_data.error), l_response_flag)
 						-- Fixme: This is a walk around for the issue that we cannot launch a process
 						-- only with standard input redirected. Remove the following line when fixed,
@@ -2457,8 +2481,8 @@ invariant
 
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
-	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

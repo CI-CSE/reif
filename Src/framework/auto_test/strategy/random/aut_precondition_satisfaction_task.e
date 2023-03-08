@@ -446,7 +446,7 @@ feature{NONE} -- Implementation
 			a_operands_attached: a_operands /= Void
 		local
 			l_satisfied: BOOLEAN
-			l_veto_function: detachable PREDICATE [ANY, TUPLE [AUT_PREDICATE]]
+			l_veto_function: detachable PREDICATE [TUPLE [AUT_PREDICATE]]
 		do
 			last_evaluated_operands := a_operands.twin
 
@@ -639,7 +639,7 @@ invariant
 	last_precondition_satisfaction_level_valid: is_valid_precondition_satisfaction_level (last_precondition_satisfaction_level)
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

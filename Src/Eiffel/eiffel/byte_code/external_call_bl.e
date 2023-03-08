@@ -57,6 +57,7 @@ feature {NONE} -- Creation
 			l_encapsulated: BOOLEAN
 			l_is_built_in: BOOLEAN
 		do
+			print ("EXTERNAL_CALL_BL.make%N")
 			if attached other.static_class_type as s then
 				static_class_type := s
 				call_kind := call_kind_unqualified

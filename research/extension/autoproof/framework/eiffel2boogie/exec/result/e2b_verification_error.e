@@ -45,7 +45,7 @@ feature -- Display
 			-- Set `message' to `a_message'.
 		do
 			ce_message := a_ce_message
-			print("ce_message: " + ce_message.to_string_8 + "%N")
+			-- print("ce_message: " + ce_message.to_string_8 + "%N")
 		end
 
 	single_line_message (a_formatter: TEXT_FORMATTER)

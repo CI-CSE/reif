@@ -98,7 +98,7 @@ feature -- Generation
 				l_serialization_file := file_system.pathname (a_log_dirname.as_string_8, "serialization.txt")
 			end
 
-			--compute_interpreter_root_class
+			-- compute_interpreter_root_class
 			if u.file_path_exists (executable_filename) and interpreter_root_class /= Void then
 				create l_new.make (
 					executable_filename.name,
@@ -115,7 +115,7 @@ feature -- Generation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
