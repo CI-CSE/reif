@@ -21,9 +21,9 @@
 		</file_rule>
 		<option warning="true"/>
 		<variable name="GOBO_LIBRARY" value="../../../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="true"/>
-		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="false"/>
+		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="false"/>
 		<cluster name="do_nothing" location="./"/>
 	</target>
 	<target name="do_nothing" extends="all_classes">

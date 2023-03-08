@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 			a_variables_not_void: a_variables /= Void
 			no_variable_void: not a_variables.has (Void)
 		do
-			print("AUT_RELEVANT_VARIABLES_UPDATER.make%N")
+			-- print("AUT_RELEVANT_VARIABLES_UPDATER.make%N")
 			variables := a_variables
 		ensure
 			variables_set: variables = a_variables
@@ -46,7 +46,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
-			print("AUT_RELEVANT_VARIABLES_UPDATER.process_start_request%N")
+			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_start_request%N")
 			variables.wipe_out
 		end
 
@@ -62,7 +62,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			print("AUT_RELEVANT_VARIABLES_UPDATER.process_create_object_request%N")
+			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_create_object_request%N")
 			variables.remove (a_request.target)
 			if attached a_request.argument_list then
 				process_argument_list (a_request.argument_list)
@@ -71,7 +71,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			print("AUT_RELEVANT_VARIABLES_UPDATER.process_invoke_feature_request%N")
+			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_invoke_feature_request%N")
 			if a_request.is_feature_query then
 				variables.remove (a_request.receiver)
 			end
@@ -85,7 +85,7 @@ feature {AUT_REQUEST} -- Processing
 		local
 			variable: ITP_VARIABLE
 		do
-			print("AUT_RELEVANT_VARIABLES_UPDATER.process_assign_expression_request%N")
+			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_assign_expression_request%N")
 			variables.remove (a_request.receiver)
 			variable ?= a_request.expression
 			if attached variable then
@@ -113,7 +113,7 @@ feature {AUT_REQUEST} -- Processing
 			cs: DS_LINEAR_CURSOR [ITP_EXPRESSION]
 			variable: ITP_VARIABLE
 		do
-			print("AUT_RELEVANT_VARIABLES_UPDATER.process_argument_list%N")
+			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_argument_list%N")
 			from
 				cs := an_argument_list.new_cursor
 				cs.start

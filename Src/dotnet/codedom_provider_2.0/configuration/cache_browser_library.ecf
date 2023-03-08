@@ -12,11 +12,11 @@
 			<concurrency support="none"/>
 			<void_safety support="none"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true">
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false">
 			<option namespace="EiffelSoftware.CodeDom.Base">
 			</option>
 		</library>
-		<library name="consumer" location="$EIFFEL_SRC\dotnet\consumer\consumer.ecf" readonly="true">
+		<library name="consumer" location="$EIFFEL_SRC\dotnet\consumer\consumer.ecf" readonly="false">
 			<option namespace="EiffelSoftware.CodeDom.Support">
 			</option>
 		</library>

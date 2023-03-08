@@ -39,7 +39,7 @@ feature {NONE} -- Initialization
 	make (a_interpreter: like interpreter; a_system: like system; an_error_handler: like error_handler)
 			-- Create new strategy.
 		do
-			print("AUT_RANDOM_STRATEGY.make%N")
+			-- print("AUT_RANDOM_STRATEGY.make%N")
 			Precursor (a_interpreter, a_system, an_error_handler)
 			create queue.make (system)
 			create types_under_test.make_default
@@ -88,7 +88,7 @@ feature -- Element change
 			l_class_name_set: SEARCH_TABLE [STRING]
 			l_name: STRING
 		do
-			print("AUT_RANDOM_STRATEGY.add_class_names%N")
+			-- print("AUT_RANDOM_STRATEGY.add_class_names%N")
 			if a_list /= Void and then not a_list.is_empty then
 				create l_class_name_set.make (a_list.count)
 				a_list.do_all (agent l_class_name_set.put)
@@ -152,7 +152,7 @@ feature -- Execution
 	start
 			-- <Precursor>
 		do
-			print("AUT_RANDOM_STRATEGY.start%N")
+			-- print("AUT_RANDOM_STRATEGY.start%N")
 			Precursor
 			interpreter.set_is_in_replay_mode (False)
 			assign_void
@@ -163,14 +163,14 @@ feature -- Execution
 
 	cancel
 		do
-			print("AUT_RANDOM_STRATEGY.cancel%N")
+			-- print("AUT_RANDOM_STRATEGY.cancel%N")
 			sub_task := Void
 			interpreter.stop
 		end
 
 	step
 		do
-			print("AUT_RANDOM_STRATEGY.step%N")
+			-- print("AUT_RANDOM_STRATEGY.step%N")
 			if interpreter.is_running and interpreter.is_ready then
 				sub_task.step
 			end
@@ -205,13 +205,13 @@ feature {NONE} -- Implementation
 			l_selected_type: TYPE_A
 			l_selected_feature: FEATURE_I
 		do
-			print("AUT_RANDOM_STRATEGY.select_new_sub_task%N")
+			-- print("AUT_RANDOM_STRATEGY.select_new_sub_task%N")
 			queue.select_next
 
 			selected_feature := queue.last_feature
 			l_selected_feature := selected_feature.feature_
 			l_selected_type := selected_feature.type
-            print("selected_feature: " + selected_feature.feature_.feature_name + "%N")
+            -- print("selected_feature: " + selected_feature.feature_.feature_name + "%N")
 			if selected_feature.is_creator then
 				create creator.make_with_queue (system, interpreter, l_selected_type, feature_table, queue)
 				creator.set_creation_procedure (l_selected_feature)
@@ -247,7 +247,7 @@ feature {NONE} -- Implementation
 			-- Table to store features in a class (Used for cache)
 			-- [List of a feature in a class, class]
 		do
-			print("AUT_RANDOM_STRATEGY.feature_table%N")
+			-- print("AUT_RANDOM_STRATEGY.feature_table%N")
 			if feature_table_internal = Void then
 				create feature_table_internal.make (10)
 			end
@@ -264,7 +264,7 @@ feature {NONE} -- Implementation
 		local
 			void_constant: ITP_CONSTANT
 		do
-			print("AUT_RANDOM_STRATEGY.assign_void%N")
+			--print("AUT_RANDOM_STRATEGY.assign_void%N")
 			if interpreter.is_running and interpreter.is_ready then
 				create void_constant.make (Void)
 				interpreter.assign_expression (interpreter.variable_table.new_variable, void_constant)

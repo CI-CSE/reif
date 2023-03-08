@@ -24,13 +24,13 @@
 			<concurrency support="none"/>
 			<void_safety support="none"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
-		<library name="cache_browser" location="$EIFFEL_SRC\dotnet\codedom_provider_2.0\configuration\cache_browser_library.ecf" readonly="true"/>
-		<library name="gobo_regexp" location="$ISE_LIBRARY\library\gobo\gobo_regexp.ecf" readonly="true"/>
-		<library name="parser" location="$EIFFEL_SRC\framework\parser\parser.ecf" readonly="true"/>
-		<library name="vision2" location="$ISE_LIBRARY\library\vision2\vision2.ecf" readonly="true"/>
-		<library name="vision2_extension" location="$ISE_LIBRARY\library\vision2_extension\vision2_extension.ecf" readonly="true"/>
-		<library name="wel" location="$ISE_LIBRARY\library\wel\wel.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
+		<library name="cache_browser" location="$EIFFEL_SRC\dotnet\codedom_provider_2.0\configuration\cache_browser_library.ecf" readonly="false"/>
+		<library name="gobo_regexp" location="$ISE_LIBRARY\library\gobo\gobo_regexp.ecf" readonly="false"/>
+		<library name="parser" location="$EIFFEL_SRC\framework\parser\parser.ecf" readonly="false"/>
+		<library name="vision2" location="$ISE_LIBRARY\library\vision2\vision2.ecf" readonly="false"/>
+		<library name="vision2_extension" location="$ISE_LIBRARY\library\vision2_extension\vision2_extension.ecf" readonly="false"/>
+		<library name="wel" location="$ISE_LIBRARY\library\wel\wel.ecf" readonly="false"/>
 	</target>
 	<target name="esplit_console_debug" extends="esplit_common">
 		<root class="CODE_ES_APPLICATION" feature="make"/>

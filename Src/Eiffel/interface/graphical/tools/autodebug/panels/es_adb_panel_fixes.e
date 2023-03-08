@@ -22,7 +22,7 @@ feature{NONE} -- Initialization
 		require
 			a_tool /= Void
 		do
-			print("ES_ADB_PANEL_FIXES.make%N")
+			-- print("ES_ADB_PANEL_FIXES.make%N")
 			set_tool_panel (a_tool)
 			default_create
 			create difference_background_color.make_with_8_bit_rgb (255, 255, 0)

@@ -132,7 +132,7 @@ feature{NONE} -- Implementation
 				if l_file.is_open_write then
 					create last_test_case_path.make_from_string (l_dir_name)
 					l_file.put_string (a_data.test_case_text)
-					print("@tt: " + a_data.test_case_text)
+					-- print("@tt: " + a_data.test_case_text)
 					l_file.close
 				else
 					Io.put_string ("Error writing to file " + l_dir_name)

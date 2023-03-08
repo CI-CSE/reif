@@ -40,7 +40,7 @@ feature {NONE} -- Initialization
 --			a_procedure_is_not_infix_or_prefix: not a_procedure.name.is_prefix and not a_procedure.name.is_infix
 			no_argument_void: not an_argument_list.has (Void)
 		do
-			print("AUT_CREATE_OBJECT_REQUEST.make%N")
+			-- print("AUT_CREATE_OBJECT_REQUEST.make%N")
 			make_request (a_system)
 			target := a_receiver
 			target_type := a_type
@@ -178,7 +178,7 @@ feature -- Processing
 	process (a_processor: AUT_REQUEST_PROCESSOR)
 			-- Process current request.
 		do
-			print("AUT_CREATE_OBJECT_REQUEST.process%N")
+			-- print("AUT_CREATE_OBJECT_REQUEST.process%N")
 			a_processor.process_create_object_request (Current)
 		end
 

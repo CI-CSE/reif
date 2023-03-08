@@ -4,7 +4,7 @@
 		<root all_classes="true"/>
 		<option warning="true">
 		</option>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
 		<cluster name="eclop" location=".\" recursive="true"/>
 	</target>
 </system>

@@ -24,10 +24,10 @@
 			<concurrency support="none"/>
 		</capability>
 		<variable name="GOBO_LIBRARY" value="../../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="true"/>
-		<library name="test_skl" location="${GOBO_LIBRARY}/library/test/library_skl.ecf" readonly="true"/>
-		<library name="thread" location="${GOBO_LIBRARY}/library/thread/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="false"/>
+		<library name="test_skl" location="${GOBO_LIBRARY}/library/test/library_skl.ecf" readonly="false"/>
+		<library name="thread" location="${GOBO_LIBRARY}/library/thread/library.ecf" readonly="false"/>
 		<cluster name="th_tester" location="./"/>
 	</target>
 	<target name="xthread" extends="all_classes">
@@ -36,7 +36,7 @@
 		<capability>
 			<concurrency use="thread"/>
 		</capability>
-		<library name="regexp" location="${GOBO_LIBRARY}/library/regexp/library.ecf" readonly="true"/>
+		<library name="regexp" location="${GOBO_LIBRARY}/library/regexp/library.ecf" readonly="false"/>
 		<cluster name="th_testgen" location="${GOBO_TESTGEN}"/>
 	</target>
 </system>

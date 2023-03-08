@@ -52,7 +52,7 @@ feature -- Setting
 			-- Set `is_freezing_needed' with `b'.
 		do
 			is_freezing_needed := b
-			print("is_freezing_needed: " + is_freezing_needed.out + "%N")
+			-- print("is_freezing_needed: " + is_freezing_needed.out + "%N")
 		ensure
 			is_freezing_needed_set: is_freezing_needed = b
 		end
@@ -137,7 +137,6 @@ feature {NONE} -- Implementation
 		local
 			l_helper: TEST_PROJECT_HELPER_I
 		do
-		    print("meltttttt%N")
 			l_helper := test_suite.project_helper
 			if l_helper.can_compile then
 				force_recompilation := False
@@ -150,7 +149,6 @@ feature {NONE} -- Implementation
 						end)
 				l_helper.compile
 				if is_freezing_needed then
-				    print("freezeeeeeee%N")
 					l_helper.freeze
 					project.call_finish_freezing_and_wait (True)
 				end

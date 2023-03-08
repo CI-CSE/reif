@@ -49,7 +49,7 @@ feature -- Status setting
 	set_current_result (a_result: like current_result)
 			-- Set `current_result' to `a_result'.
 		do
-			print ("TEST_GENERATED_TEST_WRITER.set_current_result for feature" + a_result.feature_.feature_name + "%N")
+			-- print ("TEST_GENERATED_TEST_WRITER.set_current_result for feature" + a_result.feature_.feature_name + "%N")
 			current_result := a_result
 		ensure
 			current_result_set: current_result = a_result
@@ -111,7 +111,7 @@ feature {NONE} -- Printing
 		end
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

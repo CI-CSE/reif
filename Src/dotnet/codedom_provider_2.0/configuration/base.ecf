@@ -22,6 +22,6 @@
 			<concurrency support="none"/>
 			<void_safety support="none"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
 	</target>
 </system>

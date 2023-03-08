@@ -47,7 +47,7 @@ feature -- Status report
 	    	-- Is this block a conditional leaf block
 	    do
 	    	Result := True
-	    	across statements as s loop
+	    	across statements as s loop -- check if the block contains nested conditional
 	    		if attached s.origin_information as oi and then oi.text_of_line.has_substring ("if ") then
 					Result := False
 	    		end

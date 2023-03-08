@@ -23,7 +23,7 @@ feature{NONE} -- Initialization
 			a_cmd_line /= Void
 			a_timeout > 0
 		do
-			print("ES_ADB_PROCESS.make_process%N")
+			-- print("ES_ADB_PROCESS.make_process%N")
 			command_line := a_cmd_line.twin
 			working_directory := a_working_directory
 			timeout := a_timeout

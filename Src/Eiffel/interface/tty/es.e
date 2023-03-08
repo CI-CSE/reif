@@ -1399,7 +1399,6 @@ feature {NONE} -- Update
 			elseif option.same_string_general ("-auto_test") then
 					-- FIXME: This only works if `-auto_test' is the last argument, as otherwise it will
 					-- override the compilation option that was previously set.
-				print("auto_testttt: ")
 				create l_list.make
                 across arguments_in_range (current_option + 1, argument_count) as c loop
                      print(c.item + " ")

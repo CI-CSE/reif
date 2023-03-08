@@ -12,7 +12,7 @@
 		<capability>
 			<concurrency support="none"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
 		<assembly name="mscorlib" location="${ISE_DOTNET_FRAMEWORK}\mscorlib.dll"/>
 		<assembly name="system" location="${ISE_DOTNET_FRAMEWORK}\system.dll" prefix="SYSTEM_DLL_"/>
 		<cluster name="assembly_resolver" location=".\" recursive="true">

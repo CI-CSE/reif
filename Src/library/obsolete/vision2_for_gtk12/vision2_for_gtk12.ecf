@@ -55,8 +55,8 @@
 				<concurrency value="none"/>
 			</condition>
 		</external_linker_flag>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
-		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
+		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf" readonly="false"/>
 		<cluster name="contrib_gtk" location="$ISE_LIBRARY\library\vision2\contrib\" recursive="true">
 			<condition>
 				<platform excluded_value="windows"/>

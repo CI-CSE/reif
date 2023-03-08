@@ -52,6 +52,7 @@ feature {NONE} -- Initialization
 
 			create model_files.make
 			create init_states_of_counterexamples.make
+			create uncovered_branch.make (0)
 		end
 
 feature -- Inlining verification step
@@ -75,6 +76,9 @@ feature -- Generation of full-coverage tests
 		do
 			is_full_coverage_test_generation_enabled := a_value
 		end
+
+	uncovered_branch: HASH_TABLE [TUPLE[class_name: IMMUTABLE_STRING_32; line_number: INTEGER], INTEGER]
+			-- Uncovered branches in the latest test generation run
 
 feature -- Generate fixes from counterexamples
 

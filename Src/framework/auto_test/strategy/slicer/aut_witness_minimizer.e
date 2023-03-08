@@ -50,7 +50,7 @@ feature {NONE} -- Initialization
 	make (a_interpreter: like interpreter; a_system: like system; an_error_handler: like error_handler)
 			-- <Precursor>
 		do
-			print("AUT_WITNESS_MINIMIZER.make%N")
+			-- print("AUT_WITNESS_MINIMIZER.make%N")
 			Precursor (a_interpreter, a_system, an_error_handler)
 
 			create player.make (interpreter, system, error_handler)
@@ -129,7 +129,7 @@ feature -- Status setting
 			--
 			-- `a_witness': New witness to be minimized.
 		do
-			print("AUT_WITNESS_MINIMIZER.set_witness%N")
+			-- print("AUT_WITNESS_MINIMIZER.set_witness%N")
 			witness := a_witness
 			minimized_witness := Void
 		ensure
@@ -140,7 +140,7 @@ feature -- Status setting
 	start
 			-- <Precursor>
 		do
-			print("AUT_WITNESS_MINIMIZER.start%N")
+			-- print("AUT_WITNESS_MINIMIZER.start%N")
 			if attached witness as l_witness then
 				if is_ddmin_enabled then
 						-- TODO: make `ddmin_witness' use class attributes instead of arguments
@@ -160,7 +160,7 @@ feature -- Status setting
 			l_task: like slice_task
 			l_itp: like interpreter
 		do
-			print("AUT_WITNESS_MINIMIZER.step%N")
+			-- print("AUT_WITNESS_MINIMIZER.step%N")
 			l_task := slice_task
 			check l_task /= Void end
 			if l_task.has_next_step then
@@ -180,7 +180,7 @@ feature -- Status setting
 		local
 			l_task: like slice_task
 		do
-			print("AUT_WITNESS_MINIMIZER.cancel%N")
+			-- print("AUT_WITNESS_MINIMIZER.cancel%N")
 			Precursor
 			l_task := slice_task
 			check l_task /= Void end
@@ -199,7 +199,7 @@ feature {NONE} -- Implementation
 		local
 			l_witness: like witness
 		do
-			print("AUT_WITNESS_MINIMIZER.prepare_slice_task%N")
+			-- print("AUT_WITNESS_MINIMIZER.prepare_slice_task%N")
 			l_witness := witness
 			check l_witness /= Void end
 			error_handler.report_minimization_task
@@ -227,7 +227,7 @@ feature {NONE} -- Implementation
 			l_sliced_witness: AUT_WITNESS
 			response_printer: AUT_RESPONSE_LOG_PRINTER
 		do
-			print("AUT_WITNESS_MINIMIZER.finish_slice%N")
+			-- print("AUT_WITNESS_MINIMIZER.finish_slice%N")
 			l_witness := witness
 			check l_witness /= Void end
 			timer_execution.calculate_duration
@@ -286,7 +286,7 @@ feature {NONE} -- Implementation
 --			l_minimized_witness: AUT_WITNESS
 --			response_printer: AUT_RESPONSE_LOG_PRINTER
 		do
-			print("AUT_WITNESS_MINIMIZER.ddmin_witness%N")
+			-- print("AUT_WITNESS_MINIMIZER.ddmin_witness%N")
 --			error_handler.report_minimization_task
 --			a_step_name_generator.output_string.wipe_out
 --			a_step_name_generator.generate_new_name

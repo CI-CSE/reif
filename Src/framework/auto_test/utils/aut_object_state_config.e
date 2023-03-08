@@ -28,7 +28,7 @@ feature{NONE} -- Initialization
 			l_pairs: LIST [STRING]
 			l_str: STRING
 		do
-			print("AUT_OBJECT_STATE_CONFIG.make_with_string with parameter: " + a_config + "%N")
+			-- print("AUT_OBJECT_STATE_CONFIG.make_with_string with parameter: " + a_config + "%N")
 			l_pairs := a_config.split (',')
 			if not l_pairs.is_empty then
 				from

@@ -16,20 +16,20 @@
 		<capability>
 			<void_safety support="transitional"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
 		<library name="encoding" location="$ISE_LIBRARY\library\encoding\encoding.ecf"/>
-		<library name="lex" location="$ISE_LIBRARY\library\lex\lex.ecf" readonly="true"/>
-		<library name="preferences_reg" location="$ISE_LIBRARY\library\preferences\preferences_reg.ecf" readonly="true">
+		<library name="lex" location="$ISE_LIBRARY\library\lex\lex.ecf" readonly="false"/>
+		<library name="preferences_reg" location="$ISE_LIBRARY\library\preferences\preferences_reg.ecf" readonly="false">
 			<condition>
 				<platform value="windows"/>
 			</condition>
 		</library>
-		<library name="preferences_xml" location="$ISE_LIBRARY\library\preferences\preferences_xml.ecf" readonly="true">
+		<library name="preferences_xml" location="$ISE_LIBRARY\library\preferences\preferences_xml.ecf" readonly="false">
 			<condition>
 				<platform excluded_value="windows"/>
 			</condition>
 		</library>
-		<library name="vision2" location="$ISE_LIBRARY\library\vision2\vision2.ecf" readonly="true"/>
+		<library name="vision2" location="$ISE_LIBRARY\library\vision2\vision2.ecf" readonly="false"/>
 		<cluster name="document" location="document\" recursive="true">
 			<option namespace="Editor.Document">
 			</option>

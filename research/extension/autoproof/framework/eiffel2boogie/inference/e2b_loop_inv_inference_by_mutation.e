@@ -87,14 +87,14 @@ feature -- Basic operations
 					mutations := mutate(post, loops)
 
 					if is_debugging_enabled then --print out all mutations to console.
-						print("%Nmutations: ")
-						print(mutations.count)
-						print("%N")
+						-- print("%Nmutations: ")
+						-- print(mutations.count)
+						-- print("%N")
 						across mutations as ms loop
 							tester.reset
 							ms.process (tester)
-							print(tester.output)
-							print("%N")
+							-- print(tester.output)
+							-- print("%N")
 						end
 					end
 

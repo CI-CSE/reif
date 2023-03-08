@@ -134,7 +134,7 @@ feature {NONE} -- Execution
 			t: DATE_TIME
 			d: DATE_TIME_DURATION
 		do
-			print("E_AUTOPROOF.execute%N")
+			-- print("E_AUTOPROOF.execute%N")
 				-- Clean up the state.
 			has_failed := False
 			autoproof.reset

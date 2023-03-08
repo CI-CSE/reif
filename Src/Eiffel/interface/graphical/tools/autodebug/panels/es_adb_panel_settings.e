@@ -27,7 +27,7 @@ feature{NONE} -- Initialization
 		require
 			a_tool /= Void
 		do
-			print("ES_ADB_PANEL_SETTINGS.make%N")
+			-- print("ES_ADB_PANEL_SETTINGS.make%N")
 			set_tool_panel (a_tool)
 			default_create
 
@@ -45,7 +45,7 @@ feature{NONE} -- Update UI
 	clear_information_display_widget
 			-- Clear the contents of config widgets.
 		do
-			print("ES_ADB_PANEL_SETTINGS.clear_information_display_widget%N")
+			-- print("ES_ADB_PANEL_SETTINGS.clear_information_display_widget%N")
 			evtext_group_to_add.set_text ("")
 			evlist_groups_to_debug.wipe_out
 			evtext_working_directory.set_text ("")
@@ -60,7 +60,7 @@ feature{NONE} -- Update UI
 	enable_information_display_widget (a_flag: BOOLEAN)
 			-- Enable/Disable config widgets.
 		do
-			print("ES_ADB_PANEL_SETTINGS.enable_information_display_widget%N")
+			-- print("ES_ADB_PANEL_SETTINGS.enable_information_display_widget%N")
 			if a_flag then
 				evtext_group_to_add.enable_sensitive
 				on_group_to_add_changed
@@ -107,7 +107,7 @@ feature{NONE} -- Update UI
 	enable_command_invocation_widget (a_flag: BOOLEAN)
 			-- Enable/Disable all command widgets on the panel.
 		do
-			print("ES_ADB_PANEL_SETTINGS.enable_command_invocation_widget%N")
+			-- print("ES_ADB_PANEL_SETTINGS.enable_command_invocation_widget%N")
 			if a_flag then
 				evbutton_load_config.enable_sensitive
 				evbutton_save_config.enable_sensitive
@@ -122,7 +122,7 @@ feature{NONE} -- Update UI
 	update_evbutton_start (a_flag: BOOLEAN)
 			-- Enable/Disable `evbutton_start'.
 		do
-			print("ES_ADB_PANEL_SETTINGS.update_evbutton_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.update_evbutton_start%N")
 			if a_flag then
 				evbutton_start.enable_sensitive
 			else
@@ -135,7 +135,7 @@ feature -- ADB Action
 	on_project_loaded
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_project_loaded%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_project_loaded%N")
 			propogate_values_from_config_to_ui
 
 			enable_information_display_widget (True)
@@ -145,7 +145,7 @@ feature -- ADB Action
 	on_project_unloaded
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_project_unloaded%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_project_unloaded%N")
 			propogate_values_from_ui_to_config
 			config.save
 			config.unload
@@ -168,7 +168,7 @@ feature -- ADB Action
 	on_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_debugging_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_debugging_start%N")
 			tool_panel.set_external_process_running (True)
 			on_save_settings
 			enable_information_display_widget (False)
@@ -180,7 +180,7 @@ feature -- ADB Action
 	on_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_debugging_stop%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_debugging_stop%N")
 			evbutton_start.set_text (button_text_start)
 			enable_information_display_widget (True)
 			enable_command_invocation_widget (True)
@@ -216,7 +216,7 @@ feature -- ADB Action
 	on_continuation_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_start%N")
 			on_save_settings
 			enable_information_display_widget (False)
 			enable_command_invocation_widget (False)
@@ -225,7 +225,7 @@ feature -- ADB Action
 	on_continuation_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_stop%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_stop%N")
 			enable_information_display_widget (True)
 			enable_command_invocation_widget (True)
 		end
@@ -251,7 +251,7 @@ feature -- UI Actions
 			-- Register handlers to UI events.
 		local
 		do
-			print("ES_ADB_PANEL_SETTINGS.register_event_handlers%N")
+			-- print("ES_ADB_PANEL_SETTINGS.register_event_handlers%N")
 			evtext_group_to_add.change_actions.extend (agent on_group_to_add_changed)
 			evtext_group_to_add.key_press_actions.extend (agent on_group_to_add_enter)
 			evlist_groups_to_debug.select_actions.extend (agent on_select_group)
@@ -272,7 +272,7 @@ feature -- UI Actions
 		local
 			l_text: STRING
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_group_to_add_changed%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_group_to_add_changed%N")
 			l_text := evtext_group_to_add.text
 			if not l_text.is_empty then
 				evbutton_add.enable_sensitive
@@ -284,7 +284,7 @@ feature -- UI Actions
 	on_group_to_add_enter (a_key: EV_KEY)
 			-- Action to perform when `a_key' is pressed in `evtext_group_to_add'.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_group_to_add_enter%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_group_to_add_enter%N")
 			if a_key.code = {EV_KEY_CONSTANTS}.key_enter then
 				on_add
 			end
@@ -293,7 +293,7 @@ feature -- UI Actions
 	on_list_content_changed
 			-- Action to perform when the content of `evlist_groups_to_debug' is changed.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_list_content_changed%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_list_content_changed%N")
 			if evlist_groups_to_debug.is_empty then
 				evbutton_remove_all.disable_sensitive
 				evbutton_start.disable_sensitive
@@ -309,7 +309,7 @@ feature -- UI Actions
 			l_text: STRING
 			l_group_item: EV_LIST_ITEM
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_add%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_add%N")
 			l_text := evtext_group_to_add.text.twin
 			l_text.prune_all (' ')
 			l_text.prune_all ('%T')
@@ -328,7 +328,7 @@ feature -- UI Actions
 	on_select_group
 			-- Action to perform when a group in `evlist_groups_to_debug' is selected.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_select_group%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_select_group%N")
 			if attached evlist_groups_to_debug.selected_item as lt_list_item then
 				evbutton_remove.enable_sensitive
 				display_group_detail (lt_list_item.text, True)
@@ -338,7 +338,7 @@ feature -- UI Actions
 	on_deselect_group
 			-- Action to perform when a group in `evlist_groups_to_debug' is deselected.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_deselect_group%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_deselect_group%N")
 			evbutton_remove.disable_sensitive
 			display_group_detail (Void, False)
 		end
@@ -348,7 +348,7 @@ feature -- UI Actions
 		local
 			l_text: STRING
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_remove%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_remove%N")
 			if attached evlist_groups_to_debug.selected_item as lt_selected_item then
 				l_text := lt_selected_item.text
 				evlist_groups_to_debug.go_i_th (evlist_groups_to_debug.index_of (lt_selected_item, 1))
@@ -362,7 +362,7 @@ feature -- UI Actions
 	on_remove_all
 			-- Action to perform when "Remove all" button is clicked.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_remove_all%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_remove_all%N")
 			evlist_groups_to_debug.wipe_out
 			config.remove_all_class_groups
 
@@ -379,7 +379,7 @@ feature -- UI Actions
 			l_new_path_str: STRING
 		do
 				-- Get current working directory, or the default one when the current does not exist.
-			print("ES_ADB_PANEL_SETTINGS.on_browse%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_browse%N")
 			if evtext_working_directory /= Void then
 				l_str := evtext_working_directory.text
 				create l_dir.make (l_str)
@@ -413,7 +413,7 @@ feature -- UI Actions
 	on_use_fixed_seed_change
 			-- Action to perform when `evcheckbutton_testing_use_fixed_seed' is selected/deselected.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_use_fixed_seed_change%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_use_fixed_seed_change%N")
 			if evcheckbutton_testing_use_fixed_seed.is_selected then
 				evtext_testing_seed.enable_sensitive
 			else
@@ -424,14 +424,14 @@ feature -- UI Actions
 	on_load_settings
 			-- Action to perform when `evbutton_load_settings' is clicked.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_load_settings%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_load_settings%N")
 			tool_panel.load_settings
 		end
 
 	on_save_settings
 			-- Action to perform when `evbutton_save_settings' is clicked.
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_save_settings%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_save_settings%N")
 			tool_panel.save_settings
 		end
 
@@ -443,7 +443,7 @@ feature -- UI Actions
 			l_should_continue: BOOLEAN
 			l_debugging_task: ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_start%N")
 			l_text := evbutton_start.text
 			if l_text ~ button_text_start then
 				if info_center.fault_repository.is_empty and then info_center.test_cases.is_empty then
@@ -492,7 +492,7 @@ feature{NONE} -- Action implementation
 			l_detail: STRING
 			l_detail_item: EV_LIST_ITEM
 		do
-			print("ES_ADB_PANEL_SETTINGS.display_group_detail%N")
+			-- print("ES_ADB_PANEL_SETTINGS.display_group_detail%N")
 			if a_show then
 
 				if last_selected_group = Void or else a_group /~ last_selected_group then
@@ -557,7 +557,7 @@ feature{NONE} -- UI/Config sync
 			l_class_cursor: DS_ARRAYED_LIST_CURSOR [STRING]
 			l_list_item: EV_LIST_ITEM
 		do
-			print("ES_ADB_PANEL_SETTINGS.propogate_values_from_config_to_ui%N")
+			-- print("ES_ADB_PANEL_SETTINGS.propogate_values_from_config_to_ui%N")
 			l_config := config
 
 			evlist_groups_to_debug.wipe_out
@@ -625,7 +625,7 @@ feature{NONE} -- UI/Config sync
 			l_testing_session_type_str: STRING
 			l_start_fixing_type_str: STRING
 		do
-			print("ES_ADB_PANEL_SETTINGS.propogate_values_from_ui_to_config%N")
+			-- print("ES_ADB_PANEL_SETTINGS.propogate_values_from_ui_to_config%N")
 			l_config := config
 
 			propogate_class_groups_from_ui_to_config
@@ -667,7 +667,7 @@ feature{NONE} -- UI/Config sync
 			l_cursor: DS_ARRAYED_LIST_CURSOR [STRING]
 			l_class: STRING
 		do
-			print("ES_ADB_PANEL_SETTINGS.propogate_class_groups_from_ui_to_config%N")
+			-- print("ES_ADB_PANEL_SETTINGS.propogate_class_groups_from_ui_to_config%N")
 			l_config := config
 			l_config.remove_all_class_groups
 

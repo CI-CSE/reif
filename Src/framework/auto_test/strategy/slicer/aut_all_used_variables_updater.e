@@ -26,7 +26,7 @@ feature {NONE} -- Initialization
 		require
 			a_system_attached: a_system /= Void
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.make%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.make%N")
 			system := a_system
 			create variables.make_with_key_tester (10, create {AUT_VARIABLE_EQUALITY_TESTER}.make)
 		end
@@ -48,7 +48,7 @@ feature{AUT_REQUEST} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.process_start_request%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_start_request%N")
 			variables.wipe_out
 		end
 
@@ -67,7 +67,7 @@ feature{AUT_REQUEST} -- Processing
 			l_type: TYPE_A
 			l_name: STRING
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.process_create_object_request%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_create_object_request%N")
 			if not variables.has (a_request.target) then
 				l_type := a_request.target_type
 				l_name := type_name_with_context (l_type, interpreter_root_class, Void)
@@ -83,7 +83,7 @@ feature{AUT_REQUEST} -- Processing
 			l_type: TYPE_A
 			l_name: STRING
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.process_invoke_feature_request%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_invoke_feature_request%N")
 			if a_request.receiver /= Void and then not variables.has (a_request.receiver) then
 				l_type := a_request.feature_to_call.type.actual_type.instantiation_in (a_request.target_type, a_request.feature_to_call.written_in)
 				l_name := type_name_with_context (l_type, interpreter_root_class, Void)
@@ -101,7 +101,7 @@ feature{AUT_REQUEST} -- Processing
 			l_void_type: detachable TYPE_A
 			l_void_name: detachable STRING
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.process_assign_expression_request%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_assign_expression_request%N")
 			if not variables.has (a_request.receiver) then
 				l_rec := [l_void_type, l_void_name, True, False]
 				variables.force (l_rec, a_request.receiver.deep_twin)
@@ -127,7 +127,7 @@ feature{AUT_REQUEST} -- Processing
 			l_void_type: detachable TYPE_A
 			l_rec: TUPLE [type: detachable TYPE_A; name: detachable STRING; a_check: BOOLEAN]
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.process_type_request%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_type_request%N")
 			-- Do nothing.
 			if variables.has (a_request.variable) then
 				l_rec := variables.item (a_request.variable)
@@ -158,7 +158,7 @@ feature{AUT_REQUEST} -- Processing
 			l_void_type: detachable TYPE_A
 			l_void_name: detachable STRING
 		do
-			print("AUT_ALL_USED_VARIABLES_UPDATER.process_argument_list%N")
+			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_argument_list%N")
 			from
 				cs := an_argument_list.new_cursor
 				cs.start

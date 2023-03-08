@@ -23,6 +23,7 @@ feature {NONE} -- Initialization
 			create contracts.make
 			create implementations.make
 			create opt_preconditions.make
+			create uncovered_branch_lines.make_empty
 			contracts.compare_objects
 		ensure
 			name_set: name ~ a_name
@@ -47,8 +48,6 @@ feature -- Access
 
 	opt_preconditions: LINKED_LIST [STRING_32]
 			-- List of preconditions for counterexample optimization
-
-	is_full_coverage_tests_enabled: BOOLEAN
 
 feature -- Element change
 
@@ -137,11 +136,19 @@ feature -- Element change
             opt_preconditions.extend (a_precondition)
 		end
 
+feature -- Test generation
+
     set_is_full_coverage_tests_enabled (a_is_full_coverage_tests_enabled: BOOLEAN)
     		-- Set `is_full_coverage_tests_enabled' to `a_is_full_coverage_tests_enabled'.
     	do
     		is_full_coverage_tests_enabled := a_is_full_coverage_tests_enabled
     	end
+
+	is_full_coverage_tests_enabled: BOOLEAN
+			-- Is full-coverage tests generation enabled?
+
+	uncovered_branch_lines: ARRAY [INTEGER]
+			-- Uncovered branches' line numbers in the latest test generation run
 
 feature -- Visitor
 

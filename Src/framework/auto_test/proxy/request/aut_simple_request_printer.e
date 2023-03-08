@@ -24,7 +24,7 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize `Current'.
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.make%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.make%N")
 			create string.make (100)
 			create expression_printer.make_string (string)
 		end
@@ -45,7 +45,7 @@ feature -- Setting
 	set_configuration (a_configuration: like configuration)
 			-- Set `configuration' to `a_configuration'.
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.set_configuration%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.set_configuration%N")
 			configuration := a_configuration
 		ensure
 			configuration_set: configuration = a_configuration
@@ -64,7 +64,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_start_request (a_request: AUT_START_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.process_start_request%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_start_request%N")
 			wipe_out_string
 			string.append ("start")
 		end
@@ -72,7 +72,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_stop_request (a_request: AUT_STOP_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.process_stop_request%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_stop_request%N")
 			wipe_out_string
 			string.append ("stop")
 		end
@@ -80,7 +80,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.process_create_object_request%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_create_object_request%N")
 			wipe_out_string
 			string.append_string ("create {")
 			string.append_string (type_name (a_request.target_type, a_request.creation_procedure))
@@ -106,7 +106,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.process_invoke_feature_request%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_invoke_feature_request%N")
 			wipe_out_string
 			a_request.target.process (expression_printer)
 			string.append_string (".")
@@ -117,7 +117,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_assign_expression_request (a_request: AUT_ASSIGN_EXPRESSION_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.process_assign_expression_request%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_assign_expression_request%N")
 			wipe_out_string
 			a_request.receiver.process (expression_printer)
 			string.append_string (" := ")
@@ -127,7 +127,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_type_request (a_request: AUT_TYPE_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.process_type_request%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_type_request%N")
 			wipe_out_string
 			string.append_string ("type of ")
 			a_request.variable.process (expression_printer)
@@ -168,7 +168,7 @@ feature {NONE} -- Implementation
 		local
 			l_arguments: detachable DS_LINEAR [ITP_EXPRESSION]
 		do
-			print("AUT_SIMPLE_REQUEST_PRINTER.append_arguments%N")
+			-- print("AUT_SIMPLE_REQUEST_PRINTER.append_arguments%N")
 			l_arguments := a_request.argument_list
 			if l_arguments /= Void and then l_arguments.count > 0 then
 				string.append_string (" (")

@@ -91,7 +91,7 @@ feature -- Test generation
 
 				if target_class.creators /= Void and then target_class.creators.count > 0 then -- the first creation procedure
 					creators_keys.copy (target_class.creators.current_keys)
-						-- creation_procedure := target_class.feature_of_name_id(target_class.creators[1].key)
+						-- creation_procedure := target_class.feature_of_name_id (target_class.creators[1].key)
 					creation_procedure := target_class.feature_of_name_id (creators_keys [1])
 				end
 

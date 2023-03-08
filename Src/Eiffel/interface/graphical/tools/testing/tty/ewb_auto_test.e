@@ -26,7 +26,7 @@ feature {NONE} -- Initialization
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
-			print("EWB_AUTO_TEST.make_with_arguments: "+ a_arguments.count.out + "%N")
+			-- print("EWB_AUTO_TEST.make_with_arguments: "+ a_arguments.count.out + "%N")
 			create {DS_LINKED_LIST [STRING_32]} auto_test_arguments.make
 			across a_arguments as ac loop auto_test_arguments.force_last (ac.item) end
 		ensure
@@ -86,7 +86,7 @@ feature -- Execution
 			l_feature_contract_remover: AUT_FEATURE_CONTRACT_REMOVER
 			l_names: LIST [STRING_8]
 		do
-		    print("EWB_AUTO_TEST.execute_with_test_suite: " + auto_test_arguments.count.out + "%N")
+		    -- print("EWB_AUTO_TEST.execute_with_test_suite: " + auto_test_arguments.count.out + "%N")
 			l_args := auto_test_arguments
 			if l_args /= Void then
 				l_project := etest_suite.project_access.project
@@ -323,7 +323,7 @@ feature -- Execution
 			i: INTEGER
 			l_args: DS_LINKED_LIST [STRING_32]
 		do
-			print("EWB_AUTO_TEST.check_arguments_and_execute%N")
+			-- print("EWB_AUTO_TEST.check_arguments_and_execute%N")
 				-- Retrieve all arguments for AutoTest.
 			create l_args.make
 			from

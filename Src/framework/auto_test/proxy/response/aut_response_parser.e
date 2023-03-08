@@ -29,7 +29,7 @@ feature {NONE} -- Initialization
 		require
 			a_system_not_void: a_system /= Void
 		do
-			print("AUT_RESPONSE_PARSER.make%N")
+			-- print("AUT_RESPONSE_PARSER.make%N")
 			system := a_system
 		ensure
 			system_set: system = a_system
@@ -113,7 +113,7 @@ feature -- Parsing
 	parse_response
 			-- Parse response from interpreter, store it in `last_response'.
 		do
-			print("AUT_RESPONSE_PARSER.parse_response%N")
+			-- print("AUT_RESPONSE_PARSER.parse_response%N")
 			retrieve_response
 			raw_response_analyzer.set_raw_response (last_raw_response)
 			last_response := raw_response_analyzer.response

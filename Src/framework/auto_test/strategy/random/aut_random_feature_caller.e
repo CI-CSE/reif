@@ -37,7 +37,7 @@ feature {NONE} -- Initialization
 			a_queue_not_void: a_queue /= Void
 			a_error_handler_not_void: a_error_handler /= Void
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.make%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.make%N")
 			system := a_system
 			interpreter := an_interpreter
 			queue := a_queue
@@ -111,7 +111,7 @@ feature -- Change
 			a_type_not_void: a_type /= Void
 			class_has_feature: has_feature (a_type.base_class, a_feature)
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.set_feature_and_type%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.set_feature_and_type%N")
 			feature_to_call := a_feature
 			type := a_type
 		ensure
@@ -123,7 +123,7 @@ feature -- Execution
 
 	start
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.start%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.start%N")
 			steps_completed := False
 			target_creator := Void
 			feature_caller := Void
@@ -140,7 +140,7 @@ feature -- Execution
 
 	step
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.step%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.step%N")
 			if type = Void then
 				-- 1st step in diversify mode
 				create_input_creator_diversify
@@ -175,7 +175,7 @@ feature -- Execution
 
 	cancel
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.cancel%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.cancel%N")
 			steps_completed := True
 		end
 
@@ -192,7 +192,7 @@ feature {NONE} -- Steps
 	create_input_creator_diversify
 			-- Create `target_creator' for use in diversify mode.
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.create_input_creator_diversify%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.create_input_creator_diversify%N")
 			fixme ("Does not work for the moment. Jason 25.02.2009")
 			target := interpreter.variable_table.random_variable
 			if target /= Void  then
@@ -222,7 +222,7 @@ feature {NONE} -- Steps
 			type_not_void: type /= Void
 			feature_not_void: feature_to_call /= Void
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.create_target_creator%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.create_target_creator%N")
 			create target_creator.make (system,interpreter, feature_table)
 			target_creator.add_type (type)
 			target_creator.start
@@ -233,7 +233,7 @@ feature {NONE} -- Steps
 		require
 			feature_need_argument: feature_to_call /= Void and then feature_to_call.argument_count > 0
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.create_argument_creator%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.create_argument_creator%N")
 			create argument_creator.make (system, interpreter, feature_table)
 			add_feature_argument_type_in_input_creator (feature_to_call, type, argument_creator)
 			argument_creator.start
@@ -254,7 +254,7 @@ feature {NONE} -- Steps
 			list: DS_LIST [ITP_EXPRESSION]
 			normal_response: AUT_NORMAL_RESPONSE
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.invoke%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.invoke%N")
 			if argument_creator /= Void and then not argument_creator.receivers.is_empty then
 				list := argument_creator.receivers
 			else
@@ -301,7 +301,7 @@ feature {NONE} -- Implementation
 			i: INTEGER
 			l_feature_table: like feature_table
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.choose_feature%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.choose_feature%N")
 			class_ := type.base_class
 			random.forth
 			l_feature_table := feature_table
@@ -333,7 +333,7 @@ feature {NONE} -- Implementation
 			i: INTEGER
 			l_any_class: CLASS_C
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.update_feature_table%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.update_feature_table%N")
 			if not a_table.has (a_class) then
 				create l_feats.make (1, a_class.feature_table.count)
 				l_any_class := system.any_class.compiled_class
@@ -375,7 +375,7 @@ feature {NONE} -- Implementation
 		local
 			l_target_type: TYPE_A
 		do
-			print("AUT_RANDOM_FEATURE_CALLER.recheck_type_and_feature%N")
+			-- print("AUT_RANDOM_FEATURE_CALLER.recheck_type_and_feature%N")
 			if not target_creator.receivers.is_empty and then attached {ITP_VARIABLE} target_creator.receivers.first as l_target then
 				l_target_type := interpreter.variable_table.variable_type (l_target)
 				if l_target_type.is_none then

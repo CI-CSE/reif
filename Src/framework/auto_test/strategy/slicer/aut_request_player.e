@@ -35,7 +35,7 @@ feature {NONE} -- Initialization
 	make (a_interpreter: like interpreter; a_system: like system; a_error_handler: like error_handler)
 			-- Create new strategy.
 		do
-			print("AUT_REQUEST_PLAYER.make%N")
+			-- print("AUT_REQUEST_PLAYER.make%N")
 			Precursor (a_interpreter, a_system, a_error_handler)
 			create {DS_ARRAYED_LIST [AUT_REQUEST]} request_list.make (0)
 			request_list_cursor := request_list.new_cursor
@@ -73,7 +73,7 @@ feature -- Setting
 			a_request_list_not_void: a_request_list /= Void
 			no_request_void: not a_request_list.has (Void)
 		do
-			print("AUT_REQUEST_PLAYER.set_request_list%N")
+			-- print("AUT_REQUEST_PLAYER.set_request_list%N")
 			request_list := a_request_list
 			request_list_cursor := a_request_list.new_cursor
 		ensure
@@ -83,7 +83,7 @@ feature -- Setting
 	set_is_interpreter_started_by_default (b: BOOLEAN)
 			-- Set `is_interpreter_started_by_default' with `b'.
 		do
-			print("AUT_REQUEST_PLAYER.set_is_interpreter_started_by_default%N")
+			-- print("AUT_REQUEST_PLAYER.set_is_interpreter_started_by_default%N")
 			is_interpreter_started_by_default := b
 		ensure
 			is_interpreter_started_by_default_set: is_interpreter_started_by_default = b
@@ -96,7 +96,7 @@ feature -- Execution
 		local
 			l_itp: like interpreter
 		do
-			print("AUT_REQUEST_PLAYER.start%N")
+			-- print("AUT_REQUEST_PLAYER.start%N")
 			l_itp := interpreter
 			l_itp.set_is_in_replay_mode (True)
 			l_itp.set_is_logging_enabled (False)
@@ -119,7 +119,7 @@ feature -- Execution
 --				interpreter.start
 --				assign_void
 --			end
-			print("AUT_REQUEST_PLAYER.step%N")
+			-- print("AUT_REQUEST_PLAYER.step%N")
 
 			has_error := interpreter.is_launched and then not interpreter.is_ready
 			if not has_error then
@@ -132,14 +132,14 @@ feature {AUT_REQUEST} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
-			print("AUT_REQUEST_PLAYER.process_start_request%N")
+			-- print("AUT_REQUEST_PLAYER.process_start_request%N")
 			interpreter.start
 			a_request.set_response (interpreter.last_request.response)
 		end
 
 	process_stop_request (a_request: AUT_STOP_REQUEST)
 		do
-			print("AUT_REQUEST_PLAYER.process_stop_request%N")
+			-- print("AUT_REQUEST_PLAYER.process_stop_request%N")
 			interpreter.stop
 			a_request.set_response (interpreter.last_request.response)
 		end
@@ -151,7 +151,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			print("AUT_REQUEST_PLAYER.process_create_object_request%N")
+			-- print("AUT_REQUEST_PLAYER.process_create_object_request%N")
 			if a_request.argument_list /= Void and then interpreter.variable_table.are_expressions_valid (a_request.argument_list) then
 				interpreter.create_object (a_request.target, a_request.target_type, a_request.creation_procedure, a_request.argument_list)
 				a_request.set_response (interpreter.last_request.response)
@@ -164,7 +164,7 @@ feature {AUT_REQUEST} -- Processing
 		local
 			l_variable_table: AUT_VARIABLE_TABLE
 		do
-			print("AUT_REQUEST_PLAYER.process_invoke_feature_request%N")
+			-- print("AUT_REQUEST_PLAYER.process_invoke_feature_request%N")
 			l_variable_table := interpreter.variable_table
 			a_request.set_target_type (l_variable_table.variable_type (a_request.target))
 			if
@@ -189,7 +189,7 @@ feature {AUT_REQUEST} -- Processing
 		local
 			variable: ITP_VARIABLE
 		do
-			print("AUT_REQUEST_PLAYER.process_assign_expression_request%N")
+			-- print("AUT_REQUEST_PLAYER.process_assign_expression_request%N")
 			variable ?= a_request.expression
 			if variable /= Void and then not interpreter.variable_table.is_variable_defined (variable) then
 				has_error := True
@@ -201,7 +201,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_type_request (a_request: AUT_TYPE_REQUEST)
 		do
-			print("AUT_REQUEST_PLAYER.process_type_request%N")
+			-- print("AUT_REQUEST_PLAYER.process_type_request%N")
 			interpreter.retrieve_type_of_variable (a_request.variable)
 			a_request.set_response (interpreter.last_request.response)
 		end

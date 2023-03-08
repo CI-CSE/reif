@@ -24,7 +24,7 @@ feature {NONE} -- Initialization
 	make (a_test_suite: like test_suite; a_is_gui: BOOLEAN)
 			-- <Precursor>
 		do
-		    print("TEST_CREATION.make%N")
+		    -- print("TEST_CREATION.make%N")
 			Precursor (a_test_suite, a_is_gui)
 			create test_created_event
 		end
@@ -36,7 +36,7 @@ feature -- Access
 		local
 			l_cache: like creation_connection_cache
 		do
-		    print("TEST_CREATION.creation_connection%N")
+		  -- print("TEST_CREATION.creation_connection%N")
 			l_cache := creation_connection_cache
 			if l_cache = Void then
 				l_cache := create {EVENT_CHAINED_CONNECTION [TEST_CREATION_OBSERVER, TEST_CREATION_I, TEST_SESSION_OBSERVER, TEST_SESSION_I]}.make
@@ -71,7 +71,7 @@ feature {NONE} -- Basic operations
 		local
 			l_record: like record
 		do
-		    print("TEST_CREATION.publish_test_creation%N")
+		    -- print("TEST_CREATION.publish_test_creation%N")
 			l_record := record
 			l_record.add_test (a_name)
 			test_created_event.publish ([Current, a_name])

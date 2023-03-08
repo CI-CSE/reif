@@ -68,7 +68,7 @@ feature {NONE} -- Factory
 	new_tool: ES_ADB_TOOL_PANEL
 			-- <Precursor>
 		do
-			print("ES_ADB_TOOL.new_tool%N")
+			-- print("ES_ADB_TOOL.new_tool%N")
 			create Result.make (window, Current)
 		end
 

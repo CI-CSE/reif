@@ -5,7 +5,7 @@ note
 		]"
 	author: "Andreas Leitner"
 	revised_by: "Alexander Kogtenkov"
-	date: "$Date: 2020-05-19 22:46:56 +0800 (å%/145/¨äº%/140/, 19 5æ%/156/%/136/ 2020) $"
+	date: "$Date: 2020-05-19 22:46:56 +0800 (ï¿½%/145/ï¿½ï¿½%/140/, 19 5ï¿½%/156/%/136/ 2020) $"
 	revision: "$Revision: 104271 $"
 
 class ITP_INTERPRETER
@@ -81,7 +81,7 @@ feature {NONE} -- Initialization
 			create argument_arrays.make_empty
             create socket.make_empty
             start_time := System_clock.date_time_now
-            
+
 			l_server_url := argument (1)
 			l_port := argument (2).to_integer
 			byte_code_feature_body_id := argument (3).to_integer
@@ -686,6 +686,10 @@ feature {ITP_TEST_CASE_SERIALIZER} -- Logging
 			log_message ("<call_result type='exception'>%N")
 			log_message ({STRING_32} "%T<meaning value='" + l_meaning + "'/>%N")
 			log_message ({STRING_32} "%T<tag value='" + l_tag + "'/>%N")
+			-- write l_tag into a file
+			print("tag" + l_tag + "%N")
+			tests_branch_info_file.put_string (l_tag + "%N")
+
 			log_message ("%T<recipient value='" + l_recipient + "'/>%N")
 			log_message ("%T<class value='" + l_recipient_class_name + "'>%N")
 			log_message ({STRING} "%T<invariant violation on entry='" + is_last_invariant_violated.out + "'>%N")
@@ -1865,6 +1869,15 @@ feature -- Semantic search
 			special_type_mapping_not_void: Result /= Void
 		end
 
+
+feature {NONE}
+
+	tests_branch_info_file: PLAIN_TEXT_FILE
+		-- Text file to store branch information
+		once
+			create Result.make_create_read_write (interpreter_log_directory + "\tests_branch_info.txt")
+		end
+
 invariant
 	log_file_open_write: log_file.is_open_write
 	store_not_void: object_store /= Void
@@ -1873,7 +1886,7 @@ invariant
 	socket_attached: socket /= Void
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -10,6 +10,11 @@ inherit
 
 	E2B_SHARED_CONTEXT
 
+	SHARED_WORKBENCH
+		export
+			{NONE} all
+		end
+
 create
 	make
 
@@ -50,10 +55,11 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			result_handlers.wipe_out
 
 			create new_verifier.make -- .make_with_prefix (options.target_class.name.to_string_8 + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
-				-- TODO
 			create result_generator.make
 			remaining_tasks.start
 			remaining_tasks.forth -- Skip current taks in queue
+				-- TODO: compute branch difference based on branch_info and branch_log
+			compute_uncovered_branch
 			remaining_tasks.put_left (create {E2B_TRANSLATE_CHUNK_TASK}.make (l_translator_input, l_boogie_universe))
 			remaining_tasks.put_left (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
 			remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))
@@ -66,6 +72,85 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			-- <Precursor>
 		do
 			has_next_step := False
+		end
+
+	compute_uncovered_branch
+			-- Compute uncovered branches based on branch_log and branch_info
+		local
+			branch_log_file, branch_info_file: PLAIN_TEXT_FILE
+			branch_set: HASH_TABLE [TUPLE [class_name: IMMUTABLE_STRING_32; line_number: INTEGER], INTEGER]
+				-- A collection of all branches; mappings from branch id to class name and line number
+			covered_branch: HASH_TABLE [TUPLE [class_name: IMMUTABLE_STRING_32; line_number: INTEGER], INTEGER]
+				-- A collection of branches covered in the test suite; mappings from branch id to class name and line number
+			l_branch_id, l_class_name, l_line_number: IMMUTABLE_STRING_32
+			words: LIST [STRING]
+		do
+			l_branch_id := ""; l_class_name := ""; l_line_number := ""
+
+				-- 1) read branch_info file, retrive the information and store in branch_set
+			create branch_info_file.make_open_read (system.eiffel_project.project_directory.path.extended ("branch_info.txt").out)
+			create branch_set.make (0)
+			from
+				branch_info_file.start
+			until
+				branch_info_file.end_of_file
+			loop
+				branch_info_file.read_line
+				print ("read branch_info at line: " + branch_info_file.last_string + "%N")
+				if not branch_info_file.last_string.is_empty then
+					words := branch_info_file.last_string.split (' ') -- Branch 27 Class ICSE24_CLOCK Line 90
+					l_branch_id.copy (words [2])
+					l_class_name.copy (words [4])
+					l_line_number.copy (words [6])
+					-- branch_set [l_branch_id.to_integer].class_name := ""
+					-- branch_set [l_branch_id.to_integer].class_name.copy (l_class_name)
+					-- branch_set [l_branch_id.to_integer].line_number := l_line_number.to_integer
+					-- branch_set [l_branch_id.to_integer].
+					branch_set.extend ([create {IMMUTABLE_STRING_32}.make_from_string (l_class_name), l_line_number.to_integer], l_branch_id.to_integer)
+				end
+			end
+
+			print (" ========== all branches ========== %N")
+			across branch_set.current_keys as k loop
+				print (k.out + "->" + branch_set [k].class_name + ", " + branch_set [k].line_number.out + "%N")
+			end
+				-- model_lines := model.split ('%N')
+				-- 2) read branch_log file, retrieve the information and store in covered_branch
+			create branch_log_file.make_open_read (system.eiffel_project.project_directory.testing_results_path.extended ("\auto_test\log\branch_log.txt").out)
+			create covered_branch.make (0)
+			from
+				branch_log_file.start
+			until
+				branch_log_file.end_of_file
+			loop
+				branch_log_file.read_line
+				if not branch_log_file.last_string.is_empty then
+					words := branch_log_file.last_string.split (' ') -- Branch 27 Class ICSE24_CLOCK Line 90
+					l_branch_id.copy (words [2])
+					l_class_name.copy (words [4])
+					l_line_number.copy (words [6])
+					if not covered_branch.has (l_branch_id.to_integer) then
+						covered_branch.extend ([create {IMMUTABLE_STRING_32}.make_from_string (l_class_name), l_line_number.to_integer], l_branch_id.to_integer)
+					end
+				end
+			end
+			print (" ========== covered branches ========= %N")
+			across covered_branch.current_keys as k loop
+				print (k.out + "->" + covered_branch [k].class_name + ", " + covered_branch [k].line_number.out + "%N")
+			end
+
+				-- 3) compute the difference between branch_set and covered_branch
+				-- create options.uncovered_branch.make (0)
+			across branch_set.current_keys as k loop
+				if not covered_branch.has (k) then
+					options.uncovered_branch.extend (branch_set.at (k), k)
+				end
+			end
+				-- handle the branches in IV_BOOGIE_PRINTER
+			print ("========== uncovered branches ========== %N")
+			across options.uncovered_branch.current_keys as k loop
+				print (k.out + "->" + options.uncovered_branch [k].class_name + ", " + options.uncovered_branch [k].line_number.out + "%N")
+			end
 		end
 
 feature {NONE} -- Implementation

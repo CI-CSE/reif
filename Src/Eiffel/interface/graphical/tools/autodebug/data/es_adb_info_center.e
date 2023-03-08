@@ -32,7 +32,7 @@ feature{NONE} -- Initialization
 	make
 			-- Initialization.
 		do
-			print("ES_ADB_INFO_CENTER.make%N")
+			-- print("ES_ADB_INFO_CENTER.make%N")
 			create progress_logger
 			extend (progress_logger)
 			create output_logger
@@ -67,7 +67,7 @@ feature -- ADB Actions
 	on_project_loaded
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_project_loaded%N")
+			-- print("ES_ADB_INFO_CENTER.on_project_loaded%N")
 			reset_internal_state
 
 			project_load_actions.call (Void)
@@ -78,7 +78,7 @@ feature -- ADB Actions
 	on_project_unloaded
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_project_unloaded%N")
+			-- print("ES_ADB_INFO_CENTER.on_project_unloaded%N")
 			project_unload_actions.call (Void)
 
 			reset_internal_state
@@ -87,21 +87,21 @@ feature -- ADB Actions
 	on_compile_start
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_compile_start%N")
+			-- print("ES_ADB_INFO_CENTER.on_compile_start%N")
 			compile_start_actions.call (Void)
 		end
 
 	on_compile_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_compile_stop%N")
+			-- print("ES_ADB_INFO_CENTER.on_compile_stop%N")
 			compile_stop_actions.call (Void)
 		end
 
 	on_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_debugging_start%N")
+			-- print("ES_ADB_INFO_CENTER.on_debugging_start%N")
 			reset_internal_state
 
 			debugging_start_actions.call (Void)
@@ -110,21 +110,21 @@ feature -- ADB Actions
 	on_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_debugging_stop%N")
+			-- print("ES_ADB_INFO_CENTER.on_debugging_stop%N")
 			debugging_stop_actions.call (Void)
 		end
 
 	on_testing_start
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_testing_start%N")
+			-- print("ES_ADB_INFO_CENTER.on_testing_start%N")
 			testing_start_actions.call (Void)
 		end
 
 	on_test_case_generated (a_test: ES_ADB_TEST)
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_test_case_generated%N")
+			-- print("ES_ADB_INFO_CENTER.on_test_case_generated%N")
 			register_test_case (a_test)
 
 			test_case_generated_actions.call (a_test)
@@ -133,14 +133,14 @@ feature -- ADB Actions
 	on_testing_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_testing_stop%N")
+			-- print("ES_ADB_INFO_CENTER.on_testing_stop%N")
 			testing_stop_actions.call (Void)
 		end
 
 	on_fixing_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_fixing_start%N")
+			-- print("ES_ADB_INFO_CENTER.on_fixing_start%N")
 			a_fault.discard_all_fixes
 			a_fault.set_status (a_fault.status_candidate_fix_unavailable)
 			fixing_start_actions.call (a_fault)
@@ -151,35 +151,35 @@ feature -- ADB Actions
 		local
 			l_fault: ES_ADB_FAULT
 		do
-			print("ES_ADB_INFO_CENTER.on_valid_fix_found%N")
+			-- print("ES_ADB_INFO_CENTER.on_valid_fix_found%N")
 			valid_fix_found_actions.call (a_fix)
 		end
 
 	on_fix_applied (a_fix: ES_ADB_FIX)
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_fix_applied%N")
+			-- print("ES_ADB_INFO_CENTER.on_fix_applied%N")
 			fix_applied_actions.call (a_fix)
 		end
 
 	on_fixing_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_fixing_stop%N")
+			-- print("ES_ADB_INFO_CENTER.on_fixing_stop%N")
 			fixing_stop_actions.call (Void)
 		end
 
 	on_continuation_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_continuation_debugging_start%N")
+			-- print("ES_ADB_INFO_CENTER.on_continuation_debugging_start%N")
 			continuation_debugging_start_actions.call (Void)
 		end
 
 	on_continuation_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_continuation_debugging_stop%N")
+			-- print("ES_ADB_INFO_CENTER.on_continuation_debugging_stop%N")
 			continuation_debugging_stop_actions.call (Void)
 		end
 
@@ -187,7 +187,7 @@ feature -- ADB Actions
 			-- <Precursor>
 
 		do
-			print("ES_ADB_INFO_CENTER.on_output%N")
+			-- print("ES_ADB_INFO_CENTER.on_output%N")
 			output_actions.call (a_line)
 		end
 

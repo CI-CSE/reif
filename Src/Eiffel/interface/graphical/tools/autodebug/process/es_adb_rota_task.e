@@ -34,7 +34,7 @@ feature -- Operation
 	start
 			-- Start the task.
 		do
-			print("ES_ADB_ROTA_TASK.start%N")
+			-- print("ES_ADB_ROTA_TASK.start%N")
 			if on_start_actions /= Void then
 				on_start_actions.call (Void)
 			end
@@ -44,7 +44,7 @@ feature -- Operation
 	wrap_up
 			-- Wrap up when the task terminates.
 		do
-			print("ES_ADB_ROTA_TASK.wrap_up%N")
+			-- print("ES_ADB_ROTA_TASK.wrap_up%N")
 			if on_terminate_actions /= Void then
 				on_terminate_actions.call (Void)
 			end
@@ -57,7 +57,7 @@ feature -- Service
 		local
 			l_service_consumer: SERVICE_CONSUMER [ROTA_S]
 		do
-			print("ES_ADB_ROTA_TASK.rota%N")
+			-- print("ES_ADB_ROTA_TASK.rota%N")
 			create l_service_consumer
 			if l_service_consumer.is_service_available and then l_service_consumer.service.is_interface_usable then
 				Result := l_service_consumer.service

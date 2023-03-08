@@ -21,12 +21,12 @@
 		</file_rule>
 		<option warning="true"/>
 		<variable name="GOBO_LIBRARY" value="../../../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="true"/>
-		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="true"/>
-		<library name="test_skl" location="${GOBO_LIBRARY}/library/test/library_skl.ecf" readonly="true"/>
-		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="true"/>
-		<library name="xml" location="${GOBO_LIBRARY}/library/xml/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="false"/>
+		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="false"/>
+		<library name="test_skl" location="${GOBO_LIBRARY}/library/test/library_skl.ecf" readonly="false"/>
+		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="false"/>
+		<library name="xml" location="${GOBO_LIBRARY}/library/xml/library.ecf" readonly="false"/>
 		<cluster name="xexpat_tester" location="./"/>
 	</target>
 	<target name="xexpat" extends="all_classes">
@@ -36,7 +36,7 @@
 			<concurrency use="none"/>
 		</capability>
 		<variable name="GOBO_XML_EXPAT" value="true"/>
-		<library name="regexp" location="${GOBO_LIBRARY}/library/regexp/library.ecf" readonly="true"/>
+		<library name="regexp" location="${GOBO_LIBRARY}/library/regexp/library.ecf" readonly="false"/>
 		<cluster name="xexpat_testgen" location="${GOBO_TESTGEN}"/>
 	</target>
 </system>

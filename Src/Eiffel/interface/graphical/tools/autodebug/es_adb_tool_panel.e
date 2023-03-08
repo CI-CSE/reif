@@ -69,7 +69,7 @@ feature {NONE} -- Initialization
 	build_interface
 			-- <Precursor>
 		do
-			print("ES_ADB_TOOL_PANEL.build_interface%N")
+			-- print("ES_ADB_TOOL_PANEL.build_interface%N")
 			create widget
 			create autodebug_notebook
 
@@ -108,7 +108,7 @@ feature -- Actions
 	on_select
 			-- AutoDebug tool has been selected, synchronize.
 		do
-			print("ES_ADB_TOOL_PANEL.on_select%N")
+			-- print("ES_ADB_TOOL_PANEL.on_select%N")
 			if content.is_visible then
 				if workbench.eiffel_project /= Void and then workbench.eiffel_project.successful and then not config.is_project_loaded  then
 					on_project_loaded
@@ -127,7 +127,7 @@ feature -- Actions
 	show
 			-- <Precursor>
 		do
-			print("ES_ADB_TOOL_PANEL.show%N")
+			-- print("ES_ADB_TOOL_PANEL.show%N")
 			Precursor {EB_TOOL}
 			on_select
 		end
@@ -135,7 +135,7 @@ feature -- Actions
 	close
 			-- <Precursor>
 		do
-			print("ES_ADB_TOOL_PANEL.close%N")
+			-- print("ES_ADB_TOOL_PANEL.close%N")
 			Precursor {EB_TOOL}
 --			on_deselect
 		end
@@ -148,7 +148,7 @@ feature -- Actions
 			i: INTEGER
 			l_notebook_count: INTEGER
 		do
-			print("ES_ADB_TOOL_PANEL.load_settings%N")
+			-- print("ES_ADB_TOOL_PANEL.load_settings%N")
 			check workbench.eiffel_project /= Void then
 				config.load (workbench.eiffel_project)
 				from
@@ -174,7 +174,7 @@ feature -- Actions
 			i: INTEGER
 			l_notebook_count: INTEGER
 		do
-			print("ES_ADB_TOOL_PANEL.save_settings%N")
+			-- print("ES_ADB_TOOL_PANEL.save_settings%N")
 			check workbench.eiffel_project /= Void then
 				from
 					l_notebook := autodebug_notebook
@@ -241,14 +241,14 @@ feature{NONE} -- Actions
 	on_compile_start
 			-- Action to be performed when Eiffel compilation starts
 		do
-			print("ES_ADB_TOOL_PANEL.on_compile_start%N")
+			-- print("ES_ADB_TOOL_PANEL.on_compile_start%N")
 			compile_start_actions.call (Void)
 		end
 
 	on_compile_stop
 			-- Action to be performed when Eiffel compilation stops
 		do
-			print("ES_ADB_TOOL_PANEL.on_compile_stop%N")
+			-- print("ES_ADB_TOOL_PANEL.on_compile_stop%N")
 			compile_stop_actions.call (Void)
 		end
 

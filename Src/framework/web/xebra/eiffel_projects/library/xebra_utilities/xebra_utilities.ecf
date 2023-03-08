@@ -16,7 +16,7 @@
 		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf"/>
 		<library name="time" location="$ISE_LIBRARY\library\time\time.ecf"/>
 		<library name="uuid" location="$ISE_LIBRARY\library\uuid\uuid.ecf"/>
-		<library name="xebra_error" location="$XEBRA_LIBRARY\xebra_error\xebra_error.ecf" readonly="true"/>
+		<library name="xebra_error" location="$XEBRA_LIBRARY\xebra_error\xebra_error.ecf" readonly="false"/>
 		<cluster name="xebra_utilities" location=".\" recursive="true">
 			<file_rule>
 				<exclude>/.svn$</exclude>

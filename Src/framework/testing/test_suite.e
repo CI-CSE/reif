@@ -27,7 +27,7 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize `Current'.
 		do
-		    print("TEST_SUITE.make%N")
+		    -- print("TEST_SUITE.make%N")
 			create test_map.make (10)
 			test_map.compare_objects
 
@@ -57,14 +57,14 @@ feature -- Access
 	tests: SEQUENCE [TEST_I]
 			-- <Precursor>
 		do
-		    print("TEST_SUITE.tests%N")
+		    -- print("TEST_SUITE.tests%N")
 			Result := test_map.linear_representation
 		end
 
 	test (an_identifier: READABLE_STRING_GENERAL): TEST_I
 			-- <Precursor>
 		do
-		    print("TEST_SUITE.test%N")
+		   --  print("TEST_SUITE.test%N")
 			Result := test_map.item (an_identifier)
 		end
 
@@ -85,7 +85,7 @@ feature -- Access: output
 			-- Note: the session does not have to care about clearing the output when launching, since this
 			--       is done by `Current'.
 		do
-   		    print("TEST_SUITE.output%N")
+   		    -- print("TEST_SUITE.output%N")
 			if a_session = current_output_session then
 				Result := internal_output
 			end
@@ -98,7 +98,7 @@ feature -- Access: sessions
 		local
 			l_sessions: like internal_running_sessions
 		do
-   		    print("TEST_SUITE.running_sessions%N")
+   		    -- print("TEST_SUITE.running_sessions%N")
 			l_sessions := internal_running_sessions
 			create Result.make (l_sessions.count)
 			from
@@ -210,7 +210,7 @@ feature -- Status setting: tests
 	add_test (a_test: like test)
 			-- <Precursor>
 		do
-   		    print("TEST_SUITE.add_test%N")
+   		    -- print("TEST_SUITE.add_test%N")
 			test_map.force (a_test, a_test.name)
 			test_added_event.publish ([Current, a_test])
 		end
@@ -218,7 +218,7 @@ feature -- Status setting: tests
 	remove_test (a_test: like test)
 			-- <Precursor>
 		do
-   		    print("TEST_SUITE.remove_test%N")
+   		    -- print("TEST_SUITE.remove_test%N")
 			test_map.remove (a_test.name)
 			if tag_tree.has_item (a_test) then
 				tag_tree.remove_all_tags (a_test)
@@ -233,7 +233,7 @@ feature -- Status setting: sessions
 		local
 			l_record: TEST_SESSION_RECORD
 		do
-   		    print("TEST_SUITE.launch_session%N")
+   		    -- print("TEST_SUITE.launch_session%N")
 			if current_output_session = Void then
 				current_output_session := a_session
 				if attached internal_output as l_output then
@@ -260,7 +260,7 @@ feature -- Element change
 	register_factory (a_factory: TEST_SESSION_FACTORY [TEST_SESSION_I])
 			-- <Precursor>
 		do
-   		    print("TEST_SUITE.register_factory%N")
+   		    -- print("TEST_SUITE.register_factory%N")
 			factories.force (a_factory)
 		end
 
@@ -308,7 +308,7 @@ feature {ROTA_S} -- Events: rota
 			l_running: like internal_running_sessions
 			l_session: TEST_SESSION_I
 		do
-   		    print("TEST_SUITE.on_task_finished%N")
+   		    -- print("TEST_SUITE.on_task_finished%N")
 			from
 				l_running := internal_running_sessions
 				l_running.start
@@ -334,7 +334,7 @@ feature {NONE} -- Clean up
 	safe_dispose (a_explicit: BOOLEAN)
 			-- <Precursor>
 		do
-   		    print("TEST_SUITE.safe_dispose%N")
+   		    -- print("TEST_SUITE.safe_dispose%N")
 			if a_explicit then
 				if attached rota.service as l_rota and then l_rota.is_interface_usable then
 					l_rota.connection.disconnect_events (Current)

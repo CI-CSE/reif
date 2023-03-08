@@ -98,7 +98,7 @@ feature -- Change
 		require
 			a_response_not_void: a_response /= Void
 		do
-			print("AUT_REQUEST.set_response: " + a_response.text + "%N")
+			-- print("AUT_REQUEST.set_response: " + a_response.text + "%N")
 			response := a_response
 		ensure
 			response_set: response = a_response

@@ -72,7 +72,7 @@ feature {NONE} -- Basic operations
 		local
 			l_error: detachable STRING
 		do
-			print("SHARED_TEST_SERVICE.perform_with_test_suite%N")
+			-- print("SHARED_TEST_SERVICE.perform_with_test_suite%N")
 			if attached test_suite.service as l_service then
 				if l_service.is_interface_usable then
 					a_procedure.call ([l_service])
@@ -97,7 +97,7 @@ feature {NONE} -- Basic operations
 		require
 			a_type_attached: a_type /= Void
 		do
-			print("SHARED_TEST_SERVICE.launch_session_type%N")
+			-- print("SHARED_TEST_SERVICE.launch_session_type%N")
 			perform_with_test_suite (agent (a_ts: TEST_SUITE_S; a_t: TYPE [TEST_SESSION_I]; a_p: detachable PROCEDURE [TEST_SESSION_I])
 				do
 					if attached a_ts.new_session (a_t, is_gui) as l_session then
@@ -116,7 +116,7 @@ feature {NONE} -- Basic operations
 			-- `a_list': List of tests to be executed, Void if all tests should be ran.
 			-- `a_debug': True if `debug_button' was pressed, False otherwise.
 		do
-			print("SHARED_TEST_SERVICE.launch_executor%N")
+			-- print("SHARED_TEST_SERVICE.launch_executor%N")
 			if a_list = Void or else not a_list.is_empty then
 				launch_session_type ({TEST_SESSION_I},
 					agent (a_session: TEST_SESSION_I; a_dbg: BOOLEAN; a_tests: detachable SEQUENCE [TEST_I])
@@ -144,7 +144,7 @@ feature {NONE} -- Basic operations
 		local
 			l_session, l_global_session: SESSION_I
 		do
-			print("SHARED_TEST_SERVICE.launch_test_generation%N")
+			-- print("SHARED_TEST_SERVICE.launch_test_generation%N")
 			l_session := a_manager.retrieve (True)
 			l_global_session := a_manager.retrieve (False)
 			enumerate_types (
@@ -232,7 +232,7 @@ feature {NONE} -- Basic operations
 			l_cse: CALL_STACK_ELEMENT
 			l_list: SEARCH_TABLE [INTEGER]
 		do
-			print("SHARED_TEST_SERVICE.launch_default_test_extraction%N")
+			-- print("SHARED_TEST_SERVICE.launch_default_test_extraction%N")
 			l_session := a_manager.retrieve (False)
 			if
 				attached {NATURAL} l_session.value_or_default ({TEST_SESSION_CONSTANTS}.stack_frames,
@@ -273,7 +273,7 @@ feature {NONE} -- Basic operations
 		local
 			l_stack_frame: INTEGER
 		do
-			print("SHARED_TEST_SERVICE.launch_test_extraction%N")
+			-- print("SHARED_TEST_SERVICE.launch_test_extraction%N")
 			from
 				a_stack_frame_list.start
 			until
@@ -297,7 +297,7 @@ feature {NONE} -- Basic operations
 		local
 			l_session: SESSION_I
 		do
-		    print("SHARED_TEST_SERVICE.launch_manual_test_creation%N")
+		    -- print("SHARED_TEST_SERVICE.launch_manual_test_creation%N")
 			l_session := a_manager.retrieve (True)
 
 			if
@@ -335,7 +335,7 @@ feature {NONE} -- Basic operations
 			l_list: LIST [STRING]
 			l_tag: STRING
 		do
-			print("SHARED_TEST_SERVICE.launch_test_creation%N")
+			-- print("SHARED_TEST_SERVICE.launch_test_creation%N")
 			l_session := a_manager.retrieve (True)
 
 			if
@@ -397,7 +397,7 @@ feature {NONE} -- Helpers
 			j: INTEGER
 			n: INTEGER
 		do
-			print("SHARED_TEST_SERVICE.enumerate_types%N")
+			-- print("SHARED_TEST_SERVICE.enumerate_types%N")
 				-- Retrieve type list depending on whether temporary variant is used or not.
 			if temporary then
 				v := session.value_or_default ({TEST_SESSION_CONSTANTS}.temporary_types, {TEST_SESSION_CONSTANTS}.temporary_types_default)

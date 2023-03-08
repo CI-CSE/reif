@@ -86,7 +86,7 @@ feature -- Execution
 			l_autoproof: E2B_AUTOPROOF
 			l_error: E2B_AUTOPROOF_ERROR
 		do
-			print ("ES_AUTOPROOF_COMMAND.stop_verification%N")
+			-- print ("ES_AUTOPROOF_COMMAND.stop_verification%N")
 			l_autoproof := (create {ES_AUTOPROOF_BENCH_HELPER}).autoproof
 			if autoproof.is_running then
 				autoproof.cancel
@@ -338,7 +338,7 @@ feature {NONE} -- Basic operations
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 			-- pixmaps: ES_ICONS
 		do
-			print ("new ce: " + options.fix_message + "%N")
+			-- print ("new ce: " + options.fix_message + "%N")
 				-- target_row.set_item (5, create {EV_GRID_LABEL_ITEM}.make_with_text (options.new_ce_message))
 			index := target_row.parent_row.subrow_count + 1
 			target_row.parent_row.insert_subrow (index)
@@ -573,7 +573,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 				-- generate_execution_trace_item.disable_select
 				-- disable_tool_button
 
-			print ("execute_generate_test_item%N")
+			-- print ("execute_generate_test_item%N")
 
 			window_manager.display_message ("Test generation started")
 

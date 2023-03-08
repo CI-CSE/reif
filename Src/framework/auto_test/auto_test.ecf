@@ -44,7 +44,7 @@
 			<option warning="none">
 			</option>
 		</library>
-		<library name="compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf">
+		<library name="compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false">
 			<option warning="none">
 			</option>
 		</library>

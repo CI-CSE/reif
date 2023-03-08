@@ -34,14 +34,14 @@
 			<debug name="XSLT memo function" enabled="false"/>
 		</option>
 		<variable name="GOBO_LIBRARY" value="../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="true"/>
-		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="true"/>
-		<library name="string" location="${GOBO_LIBRARY}/library/string/library.ecf" readonly="true"/>
-		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="true"/>
-		<library name="xml" location="${GOBO_LIBRARY}/library/xml/library.ecf" readonly="true"/>
-		<library name="xpath" location="${GOBO_LIBRARY}/library/xpath/library.ecf" readonly="true"/>
-		<library name="xslt" location="${GOBO_LIBRARY}/library/xslt/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="false"/>
+		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="false"/>
+		<library name="string" location="${GOBO_LIBRARY}/library/string/library.ecf" readonly="false"/>
+		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="false"/>
+		<library name="xml" location="${GOBO_LIBRARY}/library/xml/library.ecf" readonly="false"/>
+		<library name="xpath" location="${GOBO_LIBRARY}/library/xpath/library.ecf" readonly="false"/>
+		<library name="xslt" location="${GOBO_LIBRARY}/library/xslt/library.ecf" readonly="false"/>
 		<cluster name="gexslt" location="./"/>
 	</target>
 	<target name="gexslt" extends="all_classes">

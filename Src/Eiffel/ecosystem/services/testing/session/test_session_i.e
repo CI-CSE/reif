@@ -38,7 +38,7 @@ feature -- Access
 		local
 			l_cache: like record_cache
 		do
-		    print("TEST_SESSION_I.record%N")
+		    -- print("TEST_SESSION_I.record%N")
 			l_cache := record_cache
 			if l_cache = Void then
 				l_cache := new_record
@@ -143,7 +143,7 @@ feature {NONE} -- Factory
 			usable: is_interface_usable
 			running: has_next_step
 		do
-		    print("TEST_SESSION_I.new_record%N")
+		    -- print("TEST_SESSION_I.new_record%N")
 			create Result.make (Current)
 		ensure
 			result_attached: Result /= Void

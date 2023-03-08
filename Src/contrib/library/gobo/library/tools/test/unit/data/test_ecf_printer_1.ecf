@@ -25,27 +25,27 @@
 			<concurrency support="thread" use="thread"/>
 			<void_safety support="all" use="all"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY/library/base/base.ecf" readonly="true">
+		<library name="base" location="$ISE_LIBRARY/library/base/base.ecf" readonly="false">
 			<condition>
 				<custom name="GOBO_EIFFEL" excluded_value="ge"/>
 			</condition>
 		</library>
-		<library name="free_elks" location="$GOBO/library/free_elks/library.ecf" readonly="true">
+		<library name="free_elks" location="$GOBO/library/free_elks/library.ecf" readonly="false">
 			<condition>
 				<custom name="GOBO_EIFFEL" value="ge"/>
 			</condition>
 		</library>
-		<library name="kernel" location="$GOBO/library/kernel/library.ecf" readonly="true"/>
-		<library name="lexical" location="$GOBO/library/lexical/library.ecf" readonly="true"/>
-		<library name="lexical_skl" location="$GOBO/library/lexical/library_skl.ecf" readonly="true"/>
-		<library name="parse_skl" location="$GOBO/library/parse/library_skl.ecf" readonly="true"/>
-		<library name="regexp" location="$GOBO/library/regexp/library.ecf" readonly="true"/>
-		<library name="structure" location="$GOBO/library/structure/library.ecf" readonly="true"/>
-		<library name="string" location="$GOBO/library/string/library.ecf" readonly="true"/>
-		<library name="thread" location="$GOBO/library/thread/library.ecf" readonly="true"/>
-		<library name="time" location="$GOBO/library/time/library.ecf" readonly="true"/>
-		<library name="utility" location="$GOBO/library/utility/library.ecf" readonly="true"/>
-		<library name="xml" location="$GOBO/library/xml/library.ecf" readonly="true"/>
+		<library name="kernel" location="$GOBO/library/kernel/library.ecf" readonly="false"/>
+		<library name="lexical" location="$GOBO/library/lexical/library.ecf" readonly="false"/>
+		<library name="lexical_skl" location="$GOBO/library/lexical/library_skl.ecf" readonly="false"/>
+		<library name="parse_skl" location="$GOBO/library/parse/library_skl.ecf" readonly="false"/>
+		<library name="regexp" location="$GOBO/library/regexp/library.ecf" readonly="false"/>
+		<library name="structure" location="$GOBO/library/structure/library.ecf" readonly="false"/>
+		<library name="string" location="$GOBO/library/string/library.ecf" readonly="false"/>
+		<library name="thread" location="$GOBO/library/thread/library.ecf" readonly="false"/>
+		<library name="time" location="$GOBO/library/time/library.ecf" readonly="false"/>
+		<library name="utility" location="$GOBO/library/utility/library.ecf" readonly="false"/>
+		<library name="xml" location="$GOBO/library/xml/library.ecf" readonly="false"/>
 		<cluster name="tools" location="./src/" recursive="true"/>
 	</target>
 </system>

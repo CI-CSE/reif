@@ -61,7 +61,7 @@ feature -- Query
 		local
 			l_sig: EPA_TEST_CASE_SIGNATURE
 		do
-			print("ES_ADB_FAULT_REPOSITORY.fault_with_signature_id%N")
+			-- print("ES_ADB_FAULT_REPOSITORY.fault_with_signature_id%N")
 			print(a_id + "%N")
 			l_sig := fault_signature_from_id (a_id)
 			Result := fault_with_signature (l_sig, False)
@@ -75,7 +75,7 @@ feature -- Query
 			l_feature_with_context_str: STRING
 			l_cursor: DS_HASH_TABLE_CURSOR [ES_ADB_FAULT, EPA_TEST_CASE_SIGNATURE]
 		do
-			print("ES_ADB_FAULT_REPOSITORY.number_of_faults_for_feature%N")
+			-- print("ES_ADB_FAULT_REPOSITORY.number_of_faults_for_feature%N")
 			l_feature_with_context_str := a_feature.qualified_feature_name
 			from
 				l_cursor := fault_repository.new_cursor

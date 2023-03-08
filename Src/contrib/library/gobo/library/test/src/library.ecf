@@ -22,15 +22,15 @@
 		</file_rule>
 		<option warning="true"/>
 		<variable name="GOBO_LIBRARY" value="../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="true"/>
-		<library name="lexical" location="${GOBO_LIBRARY}/library/lexical/library.ecf" readonly="true"/>
-		<library name="lexical_skl" location="${GOBO_LIBRARY}/library/lexical/library_skl.ecf" readonly="true"/>
-		<library name="parse_skl" location="${GOBO_LIBRARY}/library/parse/library_skl.ecf" readonly="true"/>
-		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="true"/>
-		<library name="test_skl" location="${GOBO_LIBRARY}/library/test/library_skl.ecf" readonly="true"/>
-		<library name="tools" location="${GOBO_LIBRARY}/library/tools/library.ecf" readonly="true"/>
-		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="false"/>
+		<library name="lexical" location="${GOBO_LIBRARY}/library/lexical/library.ecf" readonly="false"/>
+		<library name="lexical_skl" location="${GOBO_LIBRARY}/library/lexical/library_skl.ecf" readonly="false"/>
+		<library name="parse_skl" location="${GOBO_LIBRARY}/library/parse/library_skl.ecf" readonly="false"/>
+		<library name="structure" location="${GOBO_LIBRARY}/library/structure/library.ecf" readonly="false"/>
+		<library name="test_skl" location="${GOBO_LIBRARY}/library/test/library_skl.ecf" readonly="false"/>
+		<library name="tools" location="${GOBO_LIBRARY}/library/tools/library.ecf" readonly="false"/>
+		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="false"/>
 		<cluster name="test" location="./" recursive="true">
 			<file_rule>
 				<exclude>/harness$</exclude>

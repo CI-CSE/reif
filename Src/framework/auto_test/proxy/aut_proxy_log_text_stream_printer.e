@@ -32,7 +32,7 @@ feature{NONE} -- Initialization
 	make (a_system: like system; a_config: like configuration; a_variable_table: like variable_table; a_output_stream: like output_stream)
 			-- Initialize Current.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.make%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.make%N")
 			system := a_system
 			configuration := a_config
 			output_stream := a_output_stream
@@ -278,7 +278,7 @@ feature -- Basic operations
 			-- `a_producer' Producer that triggered `a_request'.
 			-- `a_request': Last request sent to interpreter.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_request%N")
 			a_request.process (Current)
 		end
 
@@ -288,14 +288,14 @@ feature -- Basic operations
 			-- `a_producer' Producer that triggered `a_response'.
 			-- `a_response': Last response reveiced from interpreter.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_response%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_response%N")
 			a_response.process (response_printer)
 		end
 
 	report_comment_line (a_producer: AUT_PROXY_EVENT_PRODUCER; a_line: STRING)
 			-- Report comment line `a_line'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_comment_line%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_comment_line%N")
 			output_stream.put_string (a_line)
 			output_stream.flush
 		end
@@ -305,7 +305,7 @@ feature -- Basic operations
 		local
 			l_should_report: BOOLEAN
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_message%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_message%N")
 			if a_type ~ once "precondition_satisfaction" then
 				l_should_report := is_precondition_satisfaction_logged
 			elseif a_type ~ once "pool_statistics" then
@@ -336,7 +336,7 @@ feature -- Basic operations
 			l_type_name: STRING
 			l_type: TYPE_A
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_test_case_operands%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.report_test_case_operands%N")
 			l_operand_index := a_request.operand_indexes
 			l_operand_type := a_request.operand_type_names
 			check l_operand_index.count = l_operand_type.count end
@@ -386,7 +386,7 @@ feature{AUT_REQUEST} -- Processing requests
 	safe_process_request (a_request: AUT_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.safe_process_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.safe_process_request%N")
 			a_request.process (request_printer)
 			if is_operand_type_logged and then attached {AUT_CALL_BASED_REQUEST} a_request as l_call_request then
 				report_test_case_operands (l_call_request)
@@ -407,7 +407,7 @@ feature{AUT_REQUEST} -- Processing requests
 			c: INTEGER
 			l_type_str: STRING
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_call_based_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_call_based_request%N")
 			l_should_log := True
 			if attached {AUT_NORMAL_RESPONSE} a_request.response as l_response then
 				if attached {AUT_EXCEPTION} l_response.exception as l_exception then
@@ -438,7 +438,7 @@ feature{AUT_REQUEST} -- Processing requests
 	process_start_request (a_request: AUT_START_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_start_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_start_request%N")
 			log_time_stamp (start_request_tag, start_time)
 			safe_process_request (a_request)
 		end
@@ -446,28 +446,28 @@ feature{AUT_REQUEST} -- Processing requests
 	process_stop_request (a_request: AUT_STOP_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_stop_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_stop_request%N")
 			safe_process_request (a_request)
 		end
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_create_object_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_create_object_request%N")
 			process_call_based_request (a_request)
 		end
 
 	process_create_agent_request (a_request: AUT_CREATE_AGENT_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_create_agent_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_create_agent_request%N")
 			process_call_based_request (a_request)
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_invoke_feature_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_invoke_feature_request%N")
 			process_call_based_request (a_request)
 		end
 
@@ -480,7 +480,7 @@ feature{AUT_REQUEST} -- Processing requests
 			l_count: INTEGER
 			l_string: STRING
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_batch_assignment_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_batch_assignment_request%N")
 			if is_batch_assign_logged then
 				safe_process_request (a_request)
 			end
@@ -489,7 +489,7 @@ feature{AUT_REQUEST} -- Processing requests
 	process_assign_expression_request (a_request: AUT_ASSIGN_EXPRESSION_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_assign_expression_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_assign_expression_request%N")
 			if is_assign_expression_logged then
 				safe_process_request (a_request)
 			end
@@ -498,7 +498,7 @@ feature{AUT_REQUEST} -- Processing requests
 	process_type_request (a_request: AUT_TYPE_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_type_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_type_request%N")
 			if is_type_request_logged then
 				safe_process_request (a_request)
 			end
@@ -507,7 +507,7 @@ feature{AUT_REQUEST} -- Processing requests
 	process_object_state_request (a_request: AUT_OBJECT_STATE_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_object_state_request%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.process_object_state_request%N")
 			if is_object_state_logged then
 				safe_process_request (a_request)
 			end
@@ -552,7 +552,7 @@ feature{NONE} -- Implementation
 	log_line (a_text: STRING)
 			-- Log `a_text' in its own line.
 		do
-			print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.log_line: " + a_text + "%N")
+			-- print("AUT_PROXY_LOG_TEXT_STREAM_PRINTER.log_line: " + a_text + "%N")
 			report_comment_line (Void, a_text)
 			report_comment_line (Void, "%N")
 		end

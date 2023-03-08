@@ -69,7 +69,7 @@ feature
 	start
 			-- <Precursor>
 		do
-			print("ES_ADB_OUTPUT_RETRIEVER.start%N")
+			-- print("ES_ADB_OUTPUT_RETRIEVER.start%N")
 			Precursor
 			task.on_terminate_actions.extend (agent on_terminate_actions.call (Void))
 			task.start

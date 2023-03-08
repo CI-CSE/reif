@@ -13,7 +13,7 @@
 		<capability>
 			<concurrency use="none"/>
 		</capability>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
 		<library name="sqlite" location="..\..\sqlite.ecf" readonly="false"/>
 		<cluster name="example" location=".\">
 			<file_rule>

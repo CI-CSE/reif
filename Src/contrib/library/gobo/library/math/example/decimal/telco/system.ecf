@@ -26,10 +26,10 @@
 		</file_rule>
 		<option warning="true"/>
 		<variable name="GOBO_LIBRARY" value="../../../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="true"/>
-		<library name="math" location="${GOBO_LIBRARY}/library/math/library.ecf" readonly="true"/>
-		<library name="time" location="${GOBO_LIBRARY}/library/time/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="false"/>
+		<library name="math" location="${GOBO_LIBRARY}/library/math/library.ecf" readonly="false"/>
+		<library name="time" location="${GOBO_LIBRARY}/library/time/library.ecf" readonly="false"/>
 		<cluster name="telco" location="./"/>
 	</target>
 	<target name="telco" extends="all_classes">

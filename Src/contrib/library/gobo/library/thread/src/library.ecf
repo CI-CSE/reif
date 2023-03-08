@@ -25,7 +25,7 @@
 			<concurrency support="none"/>
 		</capability>
 		<variable name="GOBO_LIBRARY" value="../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
 		<cluster name="thread" location="./" recursive="true"/>
 	</target>
 </system>

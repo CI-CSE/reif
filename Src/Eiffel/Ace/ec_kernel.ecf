@@ -142,7 +142,7 @@
 				<platform value="windows"/>
 			</condition>
 		</library>
-		<cluster name="compiler" location="$EIFFEL_SRC\Eiffel\eiffel\" recursive="true">
+		<cluster name="compiler" location="$EIFFEL_SRC\Eiffel\eiffel\" recursive="true" readonly = "false">
 			<file_rule>
 				<exclude>/com_il_generation$</exclude>
 				<exclude>/docs$</exclude>

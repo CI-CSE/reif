@@ -5,7 +5,7 @@ note
 
 	copyright: "Copyright (c) 2006, Andreas Leitner and others"
 	license: "Eiffel Forum License v2 (see forum.txt)"
-	date: "$Date: 2009-06-10 17:11:07 +0800 (å%/145/¨ä¸%/137/, 10 6æ%/156/%/136/ 2009) $"
+	date: "$Date: 2009-06-10 17:11:07 +0800 (ï¿½%/145/ï¿½ï¿½%/137/, 10 6ï¿½%/156/%/136/ 2009) $"
 	revision: "$Revision: 79171 $"
 
 class AUT_RESULT_REPOSITORY_BUILDER
@@ -30,7 +30,7 @@ feature {NONE} -- Initialization
 	make (a_system: like system)
 			-- <Precursor>
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.make%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.make%N")
 			Precursor {AUT_PROXY_EVENT_RECORDER} (a_system)
 			create result_repository.make
 		end
@@ -57,7 +57,7 @@ feature -- Report
 	report_request (a_producer: AUT_PROXY_EVENT_PRODUCER; a_request: AUT_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.report_request%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.report_request%N")
 			Precursor (a_producer, a_request)
 			a_request.set_test_case_index (last_test_case_index)
 			a_request.set_start_time (last_test_case_start_time)
@@ -67,7 +67,7 @@ feature {NONE} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.process_start_request%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_start_request%N")
 			check
 				a_request_in_history: request_history.has (a_request)
 			end
@@ -77,14 +77,14 @@ feature {NONE} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
@@ -104,7 +104,7 @@ feature {NONE} -- Implementation
 		local
 			witness: AUT_WITNESS
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.update_result_repository%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.update_result_repository%N")
 			create witness.make (request_history, last_start_index, request_history.count)
 			result_repository.add_witness (witness)
 		end
@@ -122,7 +122,7 @@ feature -- Time measurement
 		local
 			l_line: STRING
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.test_case_time_comment_processor%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.test_case_time_comment_processor%N")
 			if a_line.substring (1, time_stamp_header.count).is_equal (time_stamp_header) then
 				l_line := a_line.substring (time_stamp_header.count + 1, a_line.count)
 				analyze_time_stamp (l_line)
@@ -135,7 +135,7 @@ feature -- Time measurement
 			l_parts: LIST [STRING]
 			l_time: INTEGER
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.analyze_time_stamp%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.analyze_time_stamp%N")
 			l_parts := a_line.split (';')
 			check l_parts.count = 3 end
 			l_time := l_parts.last.to_integer
@@ -152,7 +152,7 @@ feature -- Time measurement
 		local
 			l_line: STRING
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.test_case_index_comment_processor%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.test_case_index_comment_processor%N")
 			if a_line.substring (1, test_case_index_header.count).is_equal (test_case_index_header) then
 				l_line := a_line.substring (test_case_index_header.count + 1, a_line.count)
 				last_test_case_index := l_line.to_integer
@@ -173,7 +173,7 @@ feature -- Time measurement
 			l_existing_var_type: TYPE_A
 			l_type: TYPE_A
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.test_case_operand_type_comment_processor%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.test_case_operand_type_comment_processor%N")
 			l_header_count := interpreter_type_message_prefix.count
 			if a_line.substring (1, l_header_count) ~ interpreter_type_message_prefix then
 				variable_table.wipe_out
@@ -210,7 +210,7 @@ feature -- Time measurement
 	exception_thrown_comment_processor (a_line: STRING)
 			-- Process `a_line' if it is an exception thrown line.
 		do
-			print("AUT_RESULT_REPOSITORY_BUILDER.exception_thrown_comment_processor%N")
+			-- print("AUT_RESULT_REPOSITORY_BUILDER.exception_thrown_comment_processor%N")
 				-- Ilinca, "number of faults law" experiment
 			if a_line.has_substring ({AUT_SHARED_CONSTANTS}.exception_thrown_message) then
 --				last_response_text.append_string (a_line)

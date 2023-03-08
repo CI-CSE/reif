@@ -13,8 +13,8 @@
 			<warning name="obsolete_feature" value="all"/>
 		</option>
 		<setting name="dotnet_naming_convention" value="true"/>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
-		<library name="lex" location="$ISE_LIBRARY\library\lex\lex.ecf" readonly="true"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
+		<library name="lex" location="$ISE_LIBRARY\library\lex\lex.ecf" readonly="false"/>
 		<cluster name="parse" location=".\" recursive="true">
 			<option namespace="Parse">
 			</option>

@@ -54,7 +54,7 @@ feature {NONE} -- Initialization
 		local
 			u: FILE_UTILITIES
 		do
-			print ("TEST_GENERATOR.make%N")
+			-- print ("TEST_GENERATOR.make%N")
 			Precursor (a_test_suite, a_etest_suite, a_is_gui)
 			create output_stream.make_empty
 
@@ -79,7 +79,7 @@ feature -- Access
 	progress: REAL_32
 			-- <Precursor>
 		do
-			print ("TEST_GENERATOR.progress%N")
+			-- print ("TEST_GENERATOR.progress%N")
 			if attached {ETEST_MELT_TASK} sub_task then
 				Result := {REAL_32} 0.1
 			elseif attached {ETEST_GENERATION_TESTING} sub_task as l_task then
@@ -647,7 +647,7 @@ feature -- Status setting
 			a_dirname_attached: a_dirname /= Void
 			not_running: not has_next_step
 		do
-			print ("TEST_GENERATOR.set_output_dirname%N")
+			-- print ("TEST_GENERATOR.set_output_dirname%N")
 			create output_dirname.make_from_string (a_dirname)
 		ensure
 			output_dirname_set: output_dirname.same_string (a_dirname)
@@ -662,7 +662,7 @@ feature -- Status setting
 			not_running: not has_next_step
 		do
 			class_names.force_last (a_class_name.as_string_8)
-			print("TEST_GENERATOR.add_class_name: " + a_class_name.as_string_8 + "%N")
+			-- print("TEST_GENERATOR.add_class_name: " + a_class_name.as_string_8 + "%N")
 		ensure
 			added: class_names.there_exists (agent {STRING_8}.same_string (a_class_name))
 		end
@@ -688,7 +688,7 @@ feature -- Status setting
 			not_running: not has_next_step
 		do
 			test_count := a_test_count
-			print("test_count: " + a_test_count.out + "%N")
+			-- print("test_count: " + a_test_count.out + "%N")
 		ensure
 			test_count_set: test_count = a_test_count
 		end
@@ -698,7 +698,7 @@ feature -- Status setting
 		require
 			not_running: not has_next_step
 		do
-			print ("TEST_GENERATOR.enable_slicing%N")
+			-- print ("TEST_GENERATOR.enable_slicing%N")
 			is_slicing_enabled := True
 		end
 
@@ -725,7 +725,7 @@ feature -- Status setting
 		require
 			not_running: not has_next_step
 		do
-			print ("TEST_GENERATOR.set_text_statistics%N")
+			-- print ("TEST_GENERATOR.set_text_statistics%N")
 			is_text_statistics_format_enabled := a_text_statistics
 		ensure
 			set: is_text_statistics_format_enabled = a_text_statistics
@@ -1185,7 +1185,7 @@ feature -- Basic operations
 	step
 			-- <Precursor>
 		do
-			print("TEST_GENERATOR.step%N")
+			-- print("TEST_GENERATOR.step%N")
 			Precursor
 			flush_output
 			proceeded_event.publish ([Current])
@@ -1196,7 +1196,7 @@ feature {NONE} -- Basic operations
 	start_creation
 			-- <Precursor>
 		do
-			print("TEST_GENERATOR.start_creation%N")
+			-- print("TEST_GENERATOR.start_creation%N")
 			random.start
 			set_is_random_testing_enabled (True)
 			prepare
@@ -1208,7 +1208,7 @@ feature {NONE} -- Basic operations
 		local
 			l_stat_task: ETEST_GENERATION_STATISTICS
 		do
-			print("TEST_GENERATOR.remove_task%N")
+			-- print("TEST_GENERATOR.remove_task%N")
 			if not a_cancel and attached {ETEST_GENERATION_TESTING} sub_task as l_task then
 				create l_stat_task.make (Current)
 				l_stat_task.start (l_task.result_repository, l_task.classes_under_test)
@@ -1222,7 +1222,7 @@ feature {NONE} -- Basic operations
 	clean
 			-- Clean up any resources used during testing.
 		do
-			print("TEST_GENERATOR.clean%N")
+			-- print("TEST_GENERATOR.clean%N")
 			sub_task := Void
 			flush_output
 			if attached output_file as l_file then
@@ -1243,7 +1243,7 @@ feature {NONE} -- Implementation: preparation
 			l_file: KL_TEXT_OUTPUT_FILE_32
 			l_error_handler: AUT_ERROR_HANDLER
 		do
-			print("TEST_GENERATOR.prepare%N")
+			--- print("TEST_GENERATOR.prepare%N")
 			eiffel_layout.check_environment_variable
 			eiffel_layout.set_precompile (False)
 
@@ -1253,7 +1253,7 @@ feature {NONE} -- Implementation: preparation
 			l_file_name.extend ("log")
 			l_file_name.set_file_name ("error")
 			l_file_name.add_extension ("log")
-			print("l_file_name: " + l_file_name.out + "%N")
+			-- print("l_file_name: " + l_file_name.out + "%N")
 			create l_file.make (l_file_name)
 			l_file.recursive_open_write
 			if l_file.is_open_write then
@@ -1278,7 +1278,7 @@ feature {NONE} -- Implementation: preparation
 		local
 			l_test_task: ETEST_GENERATION_TESTING
 		do
-			print("TEST_GENERATOR.initiate_testing_task%N")
+			-- print("TEST_GENERATOR.initiate_testing_task%N")
 			compute_interpreter_root_class
 			if attached interpreter_root_class then
 				create l_test_task.make_random (Current, class_names)
@@ -1296,7 +1296,7 @@ feature {NONE} -- Test result analyizing
 			l_count: NATURAL
 			l_test_name: IMMUTABLE_STRING_8
 		do
-			print("TEST_GENERATOR.print_new_class%N")
+			-- print("TEST_GENERATOR.print_new_class%N")
 			l_system := system
 			check l_system /= Void end
 			source_writer.prepare (a_file, a_class_name, l_system)
@@ -1309,7 +1309,7 @@ feature {NONE} -- Test result analyizing
 				current_results.remove_last
 				create l_test_name.make_from_string (a_class_name + "." + source_writer.last_test_routine_name)
 				publish_test_creation (l_test_name)
-				print("test name: " + l_test_name + "%N")
+				-- print("test name: " + l_test_name + "%N")
 			end
 			source_writer.finish
 		ensure then
@@ -1328,8 +1328,8 @@ feature -- Basic operations
 			l_project_helper: TEST_PROJECT_HELPER_I
 			l_last_class: EIFFEL_CLASS_I
 		do
-			print("TEST_GENERATOR.print_test_set%N")
-			print("number of test cases" + a_list.count.out + "%N")
+			-- print("TEST_GENERATOR.print_test_set%N")
+			-- print("number of test cases" + a_list.count.out + "%N")
 
 			current_results := a_list
 			l_project_helper := etest_suite.project_helper
@@ -1353,7 +1353,7 @@ feature -- Basic operations
 		local
 			l_string: STRING
 		do
-			print("TEST_GENERATOR.flush_output%N")
+			--- print("TEST_GENERATOR.flush_output%N")
 			l_string := output_stream.string
 			if not l_string.is_empty then
 				if attached output_file as l_file then
@@ -1370,7 +1370,7 @@ feature {NONE} -- Implementation
 	safe_dispose (a_explicit: BOOLEAN)
 			-- <Precursor>
 		do
-			print("TEST_GENERATOR.safe_dispose%N")
+			-- print("TEST_GENERATOR.safe_dispose%N")
 			if a_explicit and has_next_step then
 				cancel
 			end
@@ -1386,9 +1386,9 @@ feature -- Precondition satisfaction
 	find_types_under_test
 			-- Find types under test and add them into `configuration'.`types_under_test'.
 		do
-			print("TEST_GENERATOR.find_types_under_test%N")
+			-- print("TEST_GENERATOR.find_types_under_test%N")
 			across class_names as c loop
-			    print("class_name: " + c.item.out + "%N")
+			    -- print("class_name: " + c.item.out + "%N")
 			end
 
 			set_types_under_test (types_under_test_from_names (class_names, system.root_type.base_class))
@@ -1476,7 +1476,7 @@ feature -- Precondition satisfaction
 		local
 			l_initializer: AUT_PRECONDITION_SATISFACTION_INITIALIZER
 		do
-			print ("TEST_GENERATOR.setup_for_precondition_evaluation%N")
+			-- print ("TEST_GENERATOR.setup_for_precondition_evaluation%N")
 			create l_initializer
 			l_initializer.initialize (Current)
 		end
@@ -1488,7 +1488,7 @@ feature -- Log processor
 		local
 			l_log_loader: AUT_LOG_LOADER
 		do
-			print ("TEST_GENERATOR.load_log%N")
+			-- print ("TEST_GENERATOR.load_log%N")
 			create l_log_loader.make (Current)
 			l_log_loader.load
 		end
@@ -1501,7 +1501,7 @@ feature -- Log processor
 			l_time: DATE_TIME
 			l_duration: DATE_TIME_DURATION
 		do
-			print ("TEST_GENERATOR.log_start_time%N")
+			-- print ("TEST_GENERATOR.log_start_time%N")
 			create l_time_file.make_from_string (workbench.project_location.testing_results_path.out)
 			l_time_file.extend ("start_time.txt")
 			create l_file.make_open_append (l_time_file.out)
@@ -1519,7 +1519,7 @@ feature -- Deserialization
 		local
 			l_processor: AUT_DESERIALIZATION_PROCESSOR
 		do
-			print ("TEST_GENERATOR.process_deserialization%N")
+			-- print ("TEST_GENERATOR.process_deserialization%N")
 			create l_processor.make (system, Current)
 			l_processor.on_deserialization_start_actions.extend (agent io.put_string)
 			l_processor.on_deserialization_end_actions.extend (agent io.put_string)
@@ -1536,7 +1536,7 @@ feature -- Collect interface related classes
 			l_directory: DIRECTORY
 			l_file_name: FILE_NAME
 		do
-			print ("TEST_GENERATOR.collect_interface_related_classes%N")
+			-- print ("TEST_GENERATOR.collect_interface_related_classes%N")
 			create l_related_class_collector
 			l_related_class_collector.collect_from_classes (class_names)
 
@@ -1702,7 +1702,7 @@ feature -- Option caches
 
 
 ;note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

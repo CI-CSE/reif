@@ -21,10 +21,10 @@
 		</file_rule>
 		<option warning="true"/>
 		<variable name="GOBO_LIBRARY" value="../../../.."/>
-		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="true"/>
-		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="true"/>
-		<library name="tools" location="${GOBO_LIBRARY}/library/tools/library.ecf" readonly="true"/>
-		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="true"/>
+		<library name="free_elks" location="${GOBO_LIBRARY}/library/free_elks/library_${GOBO_EIFFEL}.ecf" readonly="false"/>
+		<library name="kernel" location="${GOBO_LIBRARY}/library/kernel/library.ecf" readonly="false"/>
+		<library name="tools" location="${GOBO_LIBRARY}/library/tools/library.ecf" readonly="false"/>
+		<library name="utility" location="${GOBO_LIBRARY}/library/utility/library.ecf" readonly="false"/>
 		<cluster name="bang2create" location="./"/>
 	</target>
 	<target name="bang2create" extends="all_classes">

@@ -11,7 +11,7 @@
 		</capability>
 		<external_cflag value="-w"/>
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
-		<library name="espec" location="..\..\library\espec.ecf" readonly="true"/>
+		<library name="espec" location="..\..\library\espec.ecf" readonly="false"/>
 		<cluster name="root_cluster" location=".\" recursive="true">
 			<file_rule>
 				<exclude>.svn</exclude>

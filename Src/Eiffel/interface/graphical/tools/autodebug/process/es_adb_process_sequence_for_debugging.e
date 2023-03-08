@@ -57,7 +57,7 @@ feature -- Operation
 			l_classes: DS_HASH_SET [CLASS_C]
 			l_relaxed_testing_and_fixing_tasks: DS_ARRAYED_LIST [ES_ADB_PROCESS]
 		do
-			print("ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING.remove_task%N")
+			-- print("ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING.remove_task%N")
 			if a_cancel then
 				sub_task := Void
 				tasks.wipe_out
@@ -110,7 +110,7 @@ feature -- Operation
 			l_relaxed_testing_process: ES_ADB_RELAXED_TESTING_PROCESS
 
 		do
-			print("ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING.relaxed_testing_and_fixing_tasks_for_faults_in_classes%N")
+			-- print("ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING.relaxed_testing_and_fixing_tasks_for_faults_in_classes%N")
 			l_faults := info_center.filtered_faults (agent is_new_fault_in_classes (?, a_classes))
 			Result := relaxed_testing_and_fixing_tasks_for_faults (l_faults, True)
 		end

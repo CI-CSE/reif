@@ -40,7 +40,7 @@ feature {NONE} -- Initialization
 			creation_procedure_exists: not exported_creators (a_type.base_class, a_system).is_empty
 			a_feature_table_attached: a_feature_table /= Void
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.make%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.make%N")
 			system := a_system
 			interpreter := an_interpreter
 			type := a_type
@@ -63,7 +63,7 @@ feature {NONE} -- Initialization
 			creation_procedure_exists: not exported_creators (a_type.base_class, a_system).is_empty
 			a_feature_table_attached: a_feature_table /= Void
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.make_with_queue%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.make_with_queue%N")
 			make (a_system, an_interpreter, a_type, a_feature_table)
 			queue := a_queue
 		ensure
@@ -117,7 +117,7 @@ feature -- Change
 		require
 			a_creation_procedure_not_void: a_creation_procedure /= Void
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.set_creation_procedure:" + a_creation_procedure.feature_name + "%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.set_creation_procedure:" + a_creation_procedure.feature_name + "%N")
 			creation_procedure := a_creation_procedure
 		ensure
 			creation_procedure_set: creation_procedure = a_creation_procedure
@@ -127,7 +127,7 @@ feature -- Execution
 
 	start
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.start%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.start%N")
 			steps_completed := False
 			input_creator := Void
 			receiver := Void
@@ -138,7 +138,7 @@ feature -- Execution
 
 	step
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.step%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.step%N")
 			if type.is_expanded then
 				choose_expanded_receiver
 				if not interpreter.variable_table.is_variable_defined (receiver) then
@@ -154,7 +154,7 @@ feature -- Execution
 			elseif input_creator.has_error then
 				cancel
 			else
-				print("AUT_RANDOM_OBJECT_CREATOR.step.else%N")
+				-- print("AUT_RANDOM_OBJECT_CREATOR.step.else%N")
 				receiver := interpreter.variable_table.new_variable
 				interpreter.create_object (receiver, type, creation_procedure, input_creator.receivers)
 
@@ -174,7 +174,7 @@ feature -- Execution
 
 	cancel
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.cancel%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.cancel%N")
 			steps_completed := True
 		end
 
@@ -190,7 +190,7 @@ feature {NONE} -- Steps
 		require
 			has_creation_procedure: creation_procedure /= Void
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.create_input_creator%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.create_input_creator%N")
 			create input_creator.make (system, interpreter, feature_table)
 			if creation_procedure.arguments /= Void then
 				add_feature_argument_type_in_input_creator (creation_procedure, type, input_creator)
@@ -213,7 +213,7 @@ feature {NONE} -- Steps
 			class_: CLASS_C
 			l_exported_creators: LINKED_LIST [STRING]
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_creation_procedure%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_creation_procedure%N")
 			class_ := type.base_class
 			l_exported_creators := exported_creators (class_, system)
 			count := l_exported_creators.count
@@ -233,7 +233,7 @@ feature {NONE} -- Steps
 		local
 			class_: CLASS_C
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_expanded_receiver%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_expanded_receiver%N")
 			class_ := type.base_class
 			if string_equality_tester.test (class_.name_in_upper, "BOOLEAN") then
 				choose_boolean_constant
@@ -281,7 +281,7 @@ feature {NONE} -- Steps
 			-- Choose boolean constant and set it to
 			-- `last_constant'.
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_boolean_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_boolean_constant%N")
 			random.forth
 			if random.item \\ 2 = 0 then
 				create {ITP_CONSTANT} last_constant.make (False)
@@ -296,7 +296,7 @@ feature {NONE} -- Steps
 			-- Choose CHARACTER_8 constant and set it to
 			-- `last_constant'.
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_character_8_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_character_8_constant%N")
 			random.forth
 			create last_constant.make ((random.item \\ 255).to_character_8)
 		ensure
@@ -307,7 +307,7 @@ feature {NONE} -- Steps
 			-- Choose CHARACTER_32 constant and set it to
 			-- `last_constant'.
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_character_32_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_character_32_constant%N")
 			random.forth
 			create last_constant.make ((random.item \\ 600).to_character_32)
 		ensure
@@ -318,7 +318,7 @@ feature {NONE} -- Steps
 			-- Choose double constant and set it to
 			-- `last_constant'.
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_double_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_double_constant%N")
 			random.forth
 			inspect random.item \\ 10
 			when 0 then
@@ -367,7 +367,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_8_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_8_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -417,7 +417,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_16_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_16_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -467,7 +467,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_constant%N")
 			random.forth
 			i := random.item \\ 17
 			if i = 0 then
@@ -535,7 +535,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_64_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_integer_64_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -585,7 +585,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_8_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_8_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -635,7 +635,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_16_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_16_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -686,7 +686,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_32_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_32_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -736,7 +736,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_64_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_natural_64_constant%N")
 			random.forth
 			i := random.item \\ 18
 			if i = 0 then
@@ -784,7 +784,7 @@ feature {NONE} -- Steps
 			-- Choose boolean constant and set it to
 			-- `last_constant'.
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_pointer_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_pointer_constant%N")
 			create last_constant.make (default_pointer)
 		ensure
 			last_constant_not_void: last_constant /= Void
@@ -796,7 +796,7 @@ feature {NONE} -- Steps
 		local
 			i: INTEGER
 		do
-			print("AUT_RANDOM_OBJECT_CREATOR.choose_real_constant%N")
+			-- print("AUT_RANDOM_OBJECT_CREATOR.choose_real_constant%N")
 			random.forth
 			i := random.item \\ 10
 			inspect i

@@ -62,7 +62,7 @@ feature {NONE} -- Initialization
 	make (a_interpreter: like interpreter; a_system: like system; an_error_handler: like error_handler)
 			-- Create new strategy.	
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.make%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.make%N")
 			Precursor (a_interpreter, a_system, an_error_handler)
 			create prestate_predicates.make
 
@@ -113,7 +113,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Status setting
 	start
 			-- Perform a start step.
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.start%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.start%N")
 			Precursor
 			interpreter.set_is_in_replay_mode (False)
 			assign_void
@@ -121,7 +121,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Status setting
 
 	cancel
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.cancel%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.cancel%N")
 			prestate_predicates.wipe_out
 			if sub_task /= Void and then sub_task.has_next_step then
 				sub_task.cancel
@@ -139,7 +139,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Status setting
 			l_object_selector_reductor: AUT_OBJECT_SELECTION_PRECONDITION_REDUCTOR
 			l_state_changing_reductor: AUT_STATE_CHANGING_PRECONDITION_REDUCTOR
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.step%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.step%N")
 				-- Get, and remove, one invariant to process each step.
 			select_current_predicate
 			online_statistics.set_last_fault_meta (current_predicate.structure + ";" + current_predicate.expression.text)
@@ -210,7 +210,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Status setting
 	select_current_predicate
 			-- Select next predicate from `prestae_predicates' as `current_predicate'
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.select_current_predicate%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.select_current_predicate%N")
 			current_predicate := prestate_predicates.first
 			prestate_predicates.start
 			prestate_predicates.remove
@@ -220,7 +220,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Status setting
 			-- Reductor which only selects existing objects from semantic database, which
 			-- satisfy `current_predicate'
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.object_selection_reductor%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.object_selection_reductor%N")
 			create Result.make (system, interpreter, error_handler, current_predicate, connection)
 			Result.set_progress_log_manager (progress_log_manager)
 			Result.set_query_log_manager (query_log_manager)
@@ -230,7 +230,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Status setting
 			-- Reductor which can call features to change object states to
 			-- satisfy `current_predicate'
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.state_changing_reductor%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.state_changing_reductor%N")
 			create Result.make (system, interpreter, error_handler, current_predicate, connection)
 			Result.set_progress_log_manager (progress_log_manager)
 			Result.set_query_log_manager (query_log_manager)
@@ -241,7 +241,7 @@ feature{NONE} -- Implementation
 	execute_task (a_task: AUT_TASK)
 			-- Execute `a_task' until it is finished.
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.execute_task%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.execute_task%N")
 			from
 				a_task.start
 			until
@@ -315,7 +315,7 @@ feature{NONE} -- Implementation/precondition reduction
 		local
 			void_constant: ITP_CONSTANT
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.assign_void%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.assign_void%N")
 			if interpreter.is_running and interpreter.is_ready then
 				create void_constant.make (Void)
 				interpreter.assign_expression (interpreter.variable_table.new_variable, void_constant)
@@ -327,7 +327,7 @@ feature{NONE} -- Implementation/precondition reduction
 		local
 			l_loader: AUT_PRESTATE_INVARIANT_LOADER
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.load_prestate_predicates%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.load_prestate_predicates%N")
 			create l_loader
 			l_loader.load (configuration.prestate_invariant_path)
 			prestate_predicates.append (l_loader.last_invariants)
@@ -344,7 +344,7 @@ feature{NONE} -- Implementation/precondition reduction
 		local
 			l_feat_id: STRING
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.tautology_predicates%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.tautology_predicates%N")
 			l_feat_id := class_name_dot_feature_name (a_class, a_feature)
 			tautologies_by_feature.search (l_feat_id)
 			if tautologies_by_feature.found then
@@ -370,7 +370,7 @@ feature{NONE} -- Implementation/precondition reduction
 			l_expr: EPA_EXPRESSION
 			l_cursor: DS_HASH_SET_CURSOR [EPA_EXPRESSION]
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.invalid_predicates%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.invalid_predicates%N")
 			l_feat_id := class_name_dot_feature_name (a_class, a_feature)
 			invalid_predicates_by_feature.search (l_feat_id)
 			if invalid_predicates_by_feature.found then
@@ -416,7 +416,7 @@ feature{NONE} -- Implementation/precondition reduction
 		local
 			l_cursor: DS_HASH_SET_CURSOR [AUT_STATE_INVARIANT]
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.predicates_as_expressions%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.predicates_as_expressions%N")
 			create Result.make (a_predicates.count)
 			Result.set_equality_tester (expression_equality_tester)
 			from
@@ -442,7 +442,7 @@ feature{NONE} -- Invariant-violating invariants checking
 			l_set: DS_HASH_SET [AUT_STATE_INVARIANT]
 			l_inv_by_feat: like prestate_predicates_by_feature
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.put_predicates_in_prestate_predicates_by_feature%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.put_predicates_in_prestate_predicates_by_feature%N")
 			l_inv_by_feat := prestate_predicates_by_feature
 			across a_predicates as l_invs loop
 				l_feat_id := l_invs.item.feature_id
@@ -501,7 +501,7 @@ feature{NONE} -- Invariant-violating invariants checking
 			l_gen: AUT_OBJECT_STATE_RETRIEVAL_FEATURE_GENERATOR
 			l_inv: AUT_STATE_INVARIANT
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.check_invariant_violating_objects%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.check_invariant_violating_objects%N")
 			create l_log_file_name.make_from_string (configuration.output_dirname)
 			l_log_file_name.set_file_name ("queries.txt")
 			create l_log_manager.make_with_logger_array (<<create {ELOG_FILE_LOGGER}.make_with_path (l_log_file_name)>>)
@@ -570,7 +570,7 @@ feature{NONE} -- Invariant-violating invariants checking
 			l_cursor: DS_HASH_SET_CURSOR [AUT_STATE_INVARIANT]
 			l_feature: STRING
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.predicates_by_feature%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.predicates_by_feature%N")
 			create Result.make
 			l_feature := class_name_dot_feature_name (a_class, a_feature)
 			if prestate_predicates_by_feature.has (l_feature) then
@@ -600,7 +600,7 @@ feature{NONE} -- Logging
 		local
 			l_log_file_name: FILE_NAME
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.setup_query_log_manager%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.setup_query_log_manager%N")
 			create l_log_file_name.make_from_string (configuration.log_dirname)
 			l_log_file_name.set_file_name ("precondition_reduction_queries.txt")
 			create query_log_manager.make_with_logger_array (<<create {ELOG_FILE_LOGGER}.make_with_path (l_log_file_name)>>)
@@ -613,7 +613,7 @@ feature{NONE} -- Logging
 		local
 			l_log_file_name: FILE_NAME
 		do
-			print("AUT_PRECONDITION_REDUCTION_STRATEGY.setup_progress_log_manager%N")
+			-- print("AUT_PRECONDITION_REDUCTION_STRATEGY.setup_progress_log_manager%N")
 			create l_log_file_name.make_from_string (configuration.log_dirname)
 			l_log_file_name.set_file_name ("precondition_reduction_progress.txt")
 			create progress_log_manager.make_with_logger_array (<<create {ELOG_FILE_LOGGER}.make_with_path (l_log_file_name), create {ELOG_CONSOLE_LOGGER}>>)

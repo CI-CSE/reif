@@ -37,7 +37,7 @@ feature{NONE} -- Initialization
 		local
 			i: INTEGER
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.make%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.make%N")
 			feature_ := a_feature
 			interpreter := a_interpreter
 			steps_completed := True
@@ -146,7 +146,7 @@ feature -- Status report
 		require
 			a_level_valid: is_valid_precondition_satisfaction_level (a_level)
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.set_last_precondition_satisfaction_level: " + a_level.out + "%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.set_last_precondition_satisfaction_level: " + a_level.out + "%N")
 			last_precondition_satisfaction_level := a_level
 		ensure
 			last_precondition_satisfaction_level_set: last_precondition_satisfaction_level = a_level
@@ -278,7 +278,7 @@ feature -- Execution
 	start
 			-- <Precursor>
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.start%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.start%N")
 			set_start_time (interpreter.duration_until_now.millisecond_count)
 
 			if
@@ -337,7 +337,7 @@ feature -- Execution
 			l_candidate_index: INTEGER
 			l_solved_arguments: detachable DS_HASH_TABLE [INTEGER, INTEGER]
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.step%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.step%N")
 			if untried_candidate_count = 0 then
 				steps_completed := True
 			else
@@ -387,7 +387,7 @@ feature -- Execution
 	cancel
 			-- Cancel task.
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.cancel%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.cancel%N")
 			steps_completed := True
 			set_end_time (interpreter.duration_until_now.millisecond_count)
 		ensure then
@@ -417,7 +417,7 @@ feature{NONE} -- Implementation
 			l_list: DS_LINKED_LIST [TUPLE [operands: ARRAY [ITP_VARIABLE]; constraints: detachable DS_HASH_TABLE [INTEGER, INTEGER]]]
 			l_should_use_constraint_solver: BOOLEAN
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.load_candidates%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.load_candidates%N")
 				-- Every candidate in `operand_candidates' should contain all operands needed to call `feature_',
 				-- except for linearly constrained operands.
 			if should_use_constraint_solver then
@@ -454,7 +454,7 @@ feature{NONE} -- Implementation
 			l_satisfied: BOOLEAN
 			l_veto_function: detachable PREDICATE [TUPLE [AUT_PREDICATE]]
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.evaluate_precondition%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.evaluate_precondition%N")
 			last_evaluated_operands := a_operands.twin
 
 				-- Evaluate normal preconditions using predicate pool
@@ -485,7 +485,7 @@ feature{NONE} -- Implementation
 			l_predicate_pattern: AUT_PREDICATE_ACCESS_PATTERN
 			l_constraint_solving_enabled: BOOLEAN
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.setup_precondition_predicates%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.setup_precondition_predicates%N")
 			create normal_preconditions.make
 			create linear_solvable_preconditions.make
 			create full_preconditions.make
@@ -525,7 +525,7 @@ feature{NONE} -- Implementation
 			l_initial_operands: like initial_operands
 			l_last_operands: like last_evaluated_operands
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.update_last_evaluated_operands_with_initial_operands%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.update_last_evaluated_operands_with_initial_operands%N")
 			l_initial_operands := initial_operands
 			l_last_operands := last_evaluated_operands
 			from
@@ -558,7 +558,7 @@ feature{NONE} -- Linear constraint solving
 			l_constant_pool: like constant_pool
 			l_cursor: DS_HASH_TABLE_CURSOR [INTEGER, INTEGER]
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.insert_integers_in_pool%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.insert_integers_in_pool%N")
 			l_constant_pool := constant_pool
 			from
 				l_cursor := a_integers.new_cursor
@@ -599,7 +599,7 @@ feature{NONE} -- Linear constraint solving
 			l_multi_value_set: AUT_MULTI_INTEGER_VALUE_SET
 			l_values: ARRAY [INTEGER]
 		do
-			print("AUT_PRECONDITION_SATISFACTION_TASK.store_used_values%N")
+			-- print("AUT_PRECONDITION_SATISFACTION_TASK.store_used_values%N")
 			if a_integers.count = 1 then
 				if not used_integer_values.has (feature_) then
 					create l_single_value_set.make

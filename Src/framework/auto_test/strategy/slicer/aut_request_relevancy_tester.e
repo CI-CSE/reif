@@ -29,7 +29,7 @@ feature {NONE} -- Initialization
 			a_variables_not_void: a_variables /= Void
 			no_variable_void: not a_variables.has (Void)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.make%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.make%N")
 			variables := a_variables
 		ensure
 			variables_set: variables = a_variables
@@ -47,13 +47,13 @@ feature {AUT_REQUEST} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_start_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_start_request%N")
 			is_relevant := False
 		end
 
 	process_stop_request (a_request: AUT_STOP_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_stop_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_stop_request%N")
 			is_relevant := False
 		end
 
@@ -64,33 +64,33 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_create_object_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_create_object_request%N")
 			is_relevant := variables.has (a_request.target)
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_invoke_feature_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_invoke_feature_request%N")
 			is_relevant := variables.has (a_request.target) or
 							(a_request.receiver /= Void and then variables.has (a_request.receiver))
 		end
 
 	process_assign_expression_request (a_request: AUT_ASSIGN_EXPRESSION_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_assign_expression_request%N")
+			--print("AUT_REQUEST_RELEVANCY_TESTER.process_assign_expression_request%N")
 			is_relevant := variables.has (a_request.receiver)
 		end
 
 	process_type_request (a_request: AUT_TYPE_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_type_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_type_request%N")
 			is_relevant := variables.has (a_request.variable)
 		end
 
 	process_object_state_request (a_request: AUT_OBJECT_STATE_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_object_state_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_object_state_request%N")
 			is_relevant := False
 		end
 
@@ -103,14 +103,14 @@ feature {AUT_REQUEST} -- Processing
 	process_precodition_evaluation_request (a_request: AUT_PRECONDITION_EVALUATION_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_precodition_evaluation_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_precodition_evaluation_request%N")
 			is_relevant := False
 		end
 
 	process_predicate_evaluation_request (a_request: AUT_PREDICATE_EVALUATION_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_predicate_evaluation_request%N")
+			-- print("AUT_REQUEST_RELEVANCY_TESTER.process_predicate_evaluation_request%N")
 			is_relevant := False
 		end
 invariant

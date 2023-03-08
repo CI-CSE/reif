@@ -147,7 +147,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 					-- l_context.options.set_is_same_result (True)
 				--	print ("same verification result : " + equal_count.out + "%N")
 				--end
-				-- print("failuresssss: " + target_failed_verifications.count.out + "%N")
+				-- print("failures: " + target_failed_verifications.count.out + "%N")
 			end
 
 			if target_failed_verifications.count = 0  then

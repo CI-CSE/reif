@@ -42,7 +42,7 @@ feature {NONE} -- Initialization
 			an_output_stream_not_void: an_output_stream /= Void
 			an_output_stream_is_writable: an_output_stream.is_open_write
 		do
-			print("AUT_TEST_CASE_PRINTER.make%N")
+			-- print("AUT_TEST_CASE_PRINTER.make%N")
 			system := a_system
 			output_stream  := an_output_stream
 			create expression_printer.make (output_stream)
@@ -54,7 +54,7 @@ feature {NONE} -- Initialization
 	make_null (a_system: like system)
 			-- Create a new AST printer, initialized with a null output stream.
 		do
-			print("AUT_TEST_CASE_PRINTER.make_null%N")
+			-- print("AUT_TEST_CASE_PRINTER.make_null%N")
 			make (a_system, null_output_stream)
 		ensure then
 			output_stream_set: output_stream = null_output_stream
@@ -118,7 +118,7 @@ feature -- Status setting
 		require
 			an_output_stream_not_void: an_output_stream /= Void
 		do
-			print("AUT_TEST_CASE_PRINTER.set_output_stream%N")
+			-- print("AUT_TEST_CASE_PRINTER.set_output_stream%N")
 			output_stream := an_output_stream
 			expression_printer.set_output_stream (output_stream)
 		ensure

@@ -38,7 +38,7 @@ feature {NONE} -- Initialization
 			a_interpreter_not_void: an_interpreter /= Void
 			a_feature_table_attached: a_feature_table /= Void
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.make%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.make%N")
 			system := a_system
 			interpreter := an_interpreter
 			feature_table := a_feature_table
@@ -87,7 +87,7 @@ feature -- Change
 		require
 			a_type_not_void: a_type /= Void
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.add_type%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.add_type%N")
 			types.force_last (a_type)
 		ensure
 			added: types.last = a_type
@@ -97,7 +97,7 @@ feature -- Execution
 
 	start
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.start%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.start%N")
 			has_next_step := True
 			receivers.wipe_out
 			object_creator := Void
@@ -112,7 +112,7 @@ feature -- Execution
 			i: INTEGER
 			receiver: ITP_VARIABLE
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.step%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.step%N")
 			if object_creator /= Void then
 				object_creator.step
 				if not object_creator.has_next_step then
@@ -143,7 +143,7 @@ feature -- Execution
 
 	cancel
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.cancel%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.cancel%N")
 			has_next_step := False
 			has_error := True
 		end
@@ -158,7 +158,7 @@ feature {NONE} -- Steps
 			type: TYPE_A
 			receiver: ITP_VARIABLE
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.create_object_creator%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.create_object_creator%N")
 			type := types.item (receivers.count + 1)
 			if not type.is_expanded then
 				if creation_procedure_count (type, system) = 0 then
@@ -187,7 +187,7 @@ feature {NONE} -- Steps
 		local
 			l_recursive_descendants: DS_HASH_SET [CLASS_C]
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.descendants%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.descendants%N")
 			create l_recursive_descendants.make (20)
 			compute_recursive_descendants (a_class, l_recursive_descendants)
 			Result := l_recursive_descendants
@@ -202,7 +202,7 @@ feature {NONE} -- Steps
 		local
 			l_classes: LIST [CLASS_C]
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.compute_recursive_descendants%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.compute_recursive_descendants%N")
 			a_descendants.force_last (a_class)
 			from
 				l_classes := a_class.direct_descendants
@@ -227,7 +227,7 @@ feature {NONE} -- Steps
 			t: TYPE_A
 			l_interp_classes: like interpreter_related_classes
 		do
-			print("AUT_RANDOM_INPUT_CREATOR.random_creatable_descendant%N")
+			-- print("AUT_RANDOM_INPUT_CREATOR.random_creatable_descendant%N")
 			from
 				l_interp_classes := interpreter_related_classes
 				class_ := a_type.base_class

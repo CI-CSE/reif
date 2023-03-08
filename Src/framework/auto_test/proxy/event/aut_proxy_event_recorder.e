@@ -27,7 +27,7 @@ feature {NONE} -- Initialization
 	make (a_system: like system)
 			-- Initialize `Current'.
 		do
-			print("AUT_PROXY_EVENT_RECORDER.make%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.make%N")
 			system := a_system
 			create request_history.make (5000)
 			create variable_table.make (system)
@@ -62,7 +62,7 @@ feature -- Basic operations
 	report_request (a_producer: AUT_PROXY_EVENT_PRODUCER; a_request: AUT_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_PROXY_EVENT_RECORDER.report_request%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.report_request%N")
 			if attached last_request as l_request then
 				process_request (l_request)
 			end
@@ -72,7 +72,7 @@ feature -- Basic operations
 	report_response (a_producer: AUT_PROXY_EVENT_PRODUCER; a_response: AUT_RESPONSE)
 			-- <Precursor>
 		do
-			print("AUT_PROXY_EVENT_RECORDER.report_response%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.report_response%N")
 			last_response := a_response
 			if attached last_request as l_request then
 				process_request (l_request)
@@ -102,7 +102,7 @@ feature {NONE} -- Basic operations
 	process_request (a_request: AUT_REQUEST)
 			-- Add response to given request and append it to `request_history'.
 		do
-			print("AUT_PROXY_EVENT_RECORDER.process_request%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.process_request%N")
 			request_history.force_last (a_request)
 			a_request.process (Current)
 		end
@@ -114,7 +114,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
-			print("AUT_PROXY_EVENT_RECORDER.process_create_object_request%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.process_create_object_request%N")
 			if a_request.response = Void then
 				if attached last_response as l_response then
 					l_last_response := l_response
@@ -137,7 +137,7 @@ feature {NONE} -- Implementation
 	process_start_request (a_request: AUT_START_REQUEST)
 			-- <Precursor>
 		do
-			print("AUT_PROXY_EVENT_RECORDER.process_start_request%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.process_start_request%N")
 			check last_response = Void end
 			a_request.set_response (create {AUT_NORMAL_RESPONSE}.make (""))
 			variable_table.wipe_out
@@ -148,7 +148,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
-			print("AUT_PROXY_EVENT_RECORDER.process_stop_request%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.process_stop_request%N")
 			if a_request.response = Void then
 				if attached last_response as l_response then
 					l_last_response := l_response
@@ -164,7 +164,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
-			print("AUT_PROXY_EVENT_RECORDER.process_invoke_feature_request%N")
+			-- print("AUT_PROXY_EVENT_RECORDER.process_invoke_feature_request%N")
 			if a_request.target_type = Void then
 				if variable_table.is_variable_defined (a_request.target) then
 					a_request.set_target_type (variable_table.variable_type (a_request.target))

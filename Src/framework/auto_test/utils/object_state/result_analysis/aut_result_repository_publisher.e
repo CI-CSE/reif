@@ -25,7 +25,7 @@ feature{NONE} -- Initialization
 	make (a_system: like system; a_config: like configuration)
 			-- <Precursor>
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.make%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.make%N")
 			old_make (a_system)
 			configuration := a_config
 		end
@@ -38,7 +38,7 @@ feature -- Access
 	witness_observers: LIST [AUT_WITNESS_OBSERVER]
 			-- List of observers for witness.
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.witness_observers%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.witness_observers%N")
 			if witness_observers_internal = Void then
 				create {LINKED_LIST [AUT_WITNESS_OBSERVER]} witness_observers_internal.make
 			end
@@ -56,7 +56,7 @@ feature -- Setting
 	set_witness_veto_function (a_function: like witness_veto_function)
 			-- Set `witness_veto_function' with `a_function'.
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.set_witness_veto_function%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.set_witness_veto_function%N")
 			witness_veto_function := a_function
 		ensure
 			witness_veto_function_set: witness_veto_function = a_function
@@ -65,7 +65,7 @@ feature -- Setting
 	register_witness_observer (a_observer: AUT_WITNESS_OBSERVER)
 			-- Register `a_observer' into `witness_observers'.
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.register_witness_observer%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.register_witness_observer%N")
 			witness_observers.extend (a_observer)
 			comment_processors.extend (agent a_observer.process_comment_line)
 		end
@@ -78,7 +78,7 @@ feature -- Basic operation
 		local
 			l_log_parser: AUT_LOG_PARSER
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.build%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.build%N")
 			create l_log_parser.make (system, configuration.error_handler)
 			l_log_parser.add_observer (Current)
 			l_log_parser.parse_stream (a_input_stream)
@@ -107,7 +107,7 @@ feature{NONE} -- Implementation
 		local
 			witness: AUT_WITNESS
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.update_result_repository%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.update_result_repository%N")
 			notify_observers
 
 --			create witness.make (request_history, last_start_index, request_history.count)
@@ -130,7 +130,7 @@ feature{NONE} -- Implementation
 			l_observers: like witness_observers
 			l_unprocessed: like unprocessed_witnesses
 		do
-			print("AUT_RESULT_REPOSITORY_PUBLISHER.notify_observers%N")
+			-- print("AUT_RESULT_REPOSITORY_PUBLISHER.notify_observers%N")
 			from
 				l_unprocessed := unprocessed_witnesses
 			until

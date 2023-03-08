@@ -137,7 +137,14 @@ feature -- Translation: Signature
 			end
 
 			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
-			
+
+			across options.uncovered_branch.current_keys as k loop
+				if options.uncovered_branch [k].class_name.same_string (current_type.base_class.name) then
+					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [k].line_number, current_boogie_procedure.uncovered_branch_lines.count)
+				end
+			end
+
+
 			create l_fields.make
 			across l_contracts.post as j loop
 				process_postcondition (j.clause, j.origin, l_fields)

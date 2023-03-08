@@ -24,7 +24,7 @@ feature {NONE} -- Initialization
 			a_etest_suite_attached: a_etest_suite /= Void
 			a_test_suite_usable: a_test_suite.is_interface_usable
 		do
-		    print("ETEST_CREATION.make%N")
+		    -- print("ETEST_CREATION.make%N")
 			make_creation (a_test_suite, a_is_gui)
 			etest_suite := a_etest_suite
 			create path.make_empty
@@ -42,7 +42,7 @@ feature -- Access
 			--
 			-- Note: we do not store the cluster object directly since that might change after compiling.
 		do
-		    print("ETEST_CREATION.cluster%N")
+		    -- print("ETEST_CREATION.cluster%N")
 			Result := etest_suite.project_access.project.universe.cluster_of_name (cluster_name)
 		end
 
@@ -59,7 +59,7 @@ feature -- Access
 	tags: ARRAYED_LIST [READABLE_STRING_32]
 			-- Tags with which new test routine(s) are tagged.
 		do
-		    print("ETEST_CREATION.tags%N")
+		    -- print("ETEST_CREATION.tags%N")
 			Result := internal_tags.linear_representation
 		end
 
@@ -89,7 +89,7 @@ feature {TEST_SUITE_S} -- Status setting
 	frozen start
 			-- <Precursor>
 		do
-		    print("ETEST_CREATION.start%N")
+		    -- print("ETEST_CREATION.start%N")
 			class_name_counter := 1
 			start_creation
 		end
@@ -104,7 +104,7 @@ feature -- Status setting
 			a_name_attached: a_name /= Void
 			not_running: not has_next_step
 		do
-		    print("ETEST_CREATION.set_cluster_name%N")
+		    -- print("ETEST_CREATION.set_cluster_name%N")
 			create cluster_name.make_from_string (a_name)
 		ensure
 			cluster_name_set: attached cluster_name as l_name and then l_name.same_string (a_name)
@@ -118,7 +118,7 @@ feature -- Status setting
 			a_name_attached: a_name /= Void
 			not_running: not has_next_step
 		do
-		    print("ETEST_CREATION.set_path_name%N")
+		    -- print("ETEST_CREATION.set_path_name%N")
 			create path.make_from_string (a_name)
 		end
 
@@ -131,7 +131,7 @@ feature -- Status setting
 			a_name_not_empty: not a_name.is_empty
 			not_running: not has_next_step
 		do
-		    print("ETEST_CREATION.set_class_name%N")
+		    -- print("ETEST_CREATION.set_class_name%N")
 			create class_name.make_from_string (a_name)
 		ensure
 			class_name_set: class_name.same_string (a_name)
@@ -144,7 +144,7 @@ feature -- Status setting
 			a_tag_not_empty: not a_tag.is_empty
 			not_running: not has_next_step
 		do
-		    print("ETEST_CREATION.add_tag%N")
+		    -- print("ETEST_CREATION.add_tag%N")
 			internal_tags.force (a_tag.twin)
 		ensure
 			added: tags.there_exists (agent {READABLE_STRING_32}.same_string (a_tag))
@@ -176,7 +176,7 @@ feature {NONE} -- Basic operations
 			l_class_name: STRING_32
 			l_retry: BOOLEAN
 		do
-		    print("ETEST_CREATION.create_new_class%N")
+		    -- print("ETEST_CREATION.create_new_class%N")
 			l_cluster := cluster
 			if l_cluster = Void then
 				error_event.publish ([Current, locale.translation ("No cluster was specified to create the class into.")])
