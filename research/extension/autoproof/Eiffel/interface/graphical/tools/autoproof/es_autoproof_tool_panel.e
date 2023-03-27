@@ -661,7 +661,7 @@ feature {NONE} -- Basic operations
 		do
 
 				-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
-			if not options.is_full_coverage_test_generation_enabled then
+			if not options.is_full_coverage_test_generation_enabled then  -- do not change the panel when full-coverage test generation is enabled
 
 				a_row.set_data (a_event_item)
 
@@ -723,7 +723,7 @@ feature {NONE} -- Basic operations
 							-- Subrows
 						if attached {E2B_SUCCESSFUL_VERIFICATION} a_event_item.data as l_success then
 							if attached l_success.suggestion and then not l_success.suggestion.is_empty then
-								insert_subrow_for_suggestion (a_row, l_success.suggestion)
+								insert_subrow_for_suggestion (a_row, l_success.suggestion) -- what is a suggestion in successful verification?
 							end
 							if attached l_success.original_errors then
 								across l_success.original_errors as l_errors loop
@@ -843,7 +843,7 @@ feature {NONE} -- Basic operations
 
 		end
 
-	insert_subrow_for_counterexample (a_parent: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
+	insert_subrow_for_counterexample (a_parent: EV_GRID_ROW; a_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
 			-- Insert a new subrow into `a_parent' for `a_error'.
 		local
 			l_index: INTEGER
@@ -851,6 +851,8 @@ feature {NONE} -- Basic operations
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 
 		do
+			ce_index := ce_index + 1
+			ce_init_state := a_error.ce_init_state
 			l_index := a_parent.subrow_count + 1
 
 			a_parent.insert_subrow (l_index)
@@ -860,21 +862,18 @@ feature {NONE} -- Basic operations
 			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
 
 			create l_lab
-			l_lab.set_text ("Counterexample: " + an_error.ce_message)
+			l_lab.set_text ("Counterexample: " + a_error.ce_message)
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right (stock_pixmaps.preference_list_icon, 1)
 				-- l_lab.pixmaps_on_right.item (1).pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
 
 			l_row.set_item (info_column, l_lab)
-			create pt_command.make (an_error, a_failure, l_row)
+			create pt_command.make (a_error, a_failure, l_row)
 
-			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action end)
+			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action (ce_init_state) end)
 			l_row.set_item (info_column, l_lab)
 			l_row.set_background_color (partial_color)
 		end
-
-	pt_command: ES_PROOF2TEST_COMMAND
-			-- An instance of Proof2Test command
 
 	update_button_titles
 			-- Update button titles with number of events.
@@ -907,6 +906,17 @@ feature {NONE} -- Basic operations
 				end
 			end
 		end
+
+
+	pt_command: ES_PROOF2TEST_COMMAND
+			-- An instance of Proof2Test command
+
+	ce_index: INTEGER
+			-- Indexes of counterexamples in the panel
+
+	ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+			-- Initial state of the currently targeted error
+
 
 feature {NONE} -- Clean up
 

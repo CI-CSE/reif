@@ -207,8 +207,6 @@ feature {NONE} -- Basic operations
 			else
 				window_manager.display_message ("AutoProof finished")
 			end
-
-
 				-- Enable Proof2Test
 			-- if a_result.has_verification_errors then
 				-- if attached proof_tool as t and then t.is_tool_instantiated then

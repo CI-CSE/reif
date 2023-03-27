@@ -7190,10 +7190,9 @@ feature {NONE} -- Visitor
 		create l_str_parameter
 		l_str_parameter.set_attachment_type (System.string_8_class.compiled_class.actual_type)
 		-- create Result.make (Eiffel_universe.compiled_classes_with_name ("ANY").first.compiled_class.feature_named ("io"), create {VOID_A}, create {CL_TYPE_A}.make(System.any_id), True)
-		create Result.make (Eiffel_universe.compiled_classes_with_name ("ANY").first.compiled_class.feature_named ("print"), create {VOID_A}, create {CL_TYPE_A}.make(System.any_id), True)
-		-- create Result.make (Eiffel_universe.compiled_classes_with_name ("PLAIN_TEXT_FILE").first.compiled_class.feature_named ("put_string"), create {VOID_A}, l_type, False)
-		-- how to set the target object of this call?
-		-- ask Emmanuel -- Jason he seems very logical and rationalyiju nihao huangli jiu shule quanshijie
+		-- create Result.make (Eiffel_universe.compiled_classes_with_name ("ANY").first.compiled_class.feature_named ("print"), create {VOID_A}, create {CL_TYPE_A}.make(System.any_id), True)
+		create Result.make (Eiffel_universe.classes_with_name ("LI_TRACER").first.compiled_class.feature_named ("log"), create {VOID_A}, create {CL_TYPE_A}.make(System.any_id), False)
+
 		create l_parameters.make_filled (1)
 		branch_number := branch_number + 1
 		l_str_parameter.set_expression(create {STRING_B}.make ("read branch #" + branch_number.out + " at line " + a_line_number.out + "%N", False, False))
@@ -7283,7 +7282,7 @@ feature {NONE} -- Visitor
 					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
 						branch_number := branch_number + 1
 						branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
-						l_list.extend (check_false_clause (l_list.line_number))
+						-- l_list.extend (check_false_clause (l_list.line_number))
 						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
 					end
 					l_if.set_compound (l_list)
@@ -7314,7 +7313,7 @@ feature {NONE} -- Visitor
 					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
 						branch_number := branch_number + 1
 						branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
-						l_list.extend (check_false_clause (l_list.line_number))
+						-- l_list.extend (check_false_clause (l_list.line_number))
 						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
 					end
 					l_if.set_else_part (l_list)
@@ -8720,7 +8719,7 @@ feature {NONE} -- Visitor
 					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
 						branch_number := branch_number + 1
 						branch_info_file.put_string ("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N")
-						l_list.extend (check_false_clause (l_list.line_number))
+						-- l_list.extend (check_false_clause (l_list.line_number))
 						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
 					end
 					l_elsif.set_compound (l_list)

@@ -84,6 +84,9 @@ feature -- Basic operations
 
 			l_error.set_message (message_for_error (a_error, l_init_state))
 			l_error.set_ce_message (counterexample_message (l_init_state))
+			l_error.set_ce_init_state (l_init_state)
+			
+		    helper.options.set_current_init_state (l_init_state)
 
             if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
                 helper.options.set_new_ce_message(l_error.ce_message)

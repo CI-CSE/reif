@@ -36,10 +36,20 @@ feature -- Access
 	context_line_number: INTEGER
 			-- Related Eiffel line number (if any).
 
+	ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+			-- Initial state extracted from the corresponding counterexample
+
 	ce_message: STRING_32
 			-- Message for displaying counterexample.
 
 feature -- Display
+
+	set_ce_init_state (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+			-- Set `ce_init_state' to `a_init_state'.
+		do
+			ce_init_state := a_ce_init_state
+			-- print("ce_message: " + ce_message.to_string_8 + "%N")
+		end
 
 	set_ce_message (a_ce_message: STRING_32)
 			-- Set `message' to `a_message'.
