@@ -77,7 +77,7 @@ feature -- Generation of full-coverage tests
 			is_full_coverage_test_generation_enabled := a_value
 		end
 
-	uncovered_branch: HASH_TABLE [TUPLE[class_name: IMMUTABLE_STRING_32; line_number: INTEGER], INTEGER]
+	uncovered_branch: HASH_TABLE [TUPLE [class_name: IMMUTABLE_STRING_32; line_number: INTEGER], INTEGER]
 			-- Uncovered branches in the latest test generation run
 
 feature -- Generate fixes from counterexamples
@@ -104,7 +104,7 @@ feature -- Generate fixes from counterexamples
 			-- Set `fix_message' to `a_fix_message'
 		do
 			fix_message := a_fix_message
-			print(fix_message + "%N")
+			print (fix_message + "%N")
 		end
 
 	ce_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
@@ -113,6 +113,9 @@ feature -- Generate fixes from counterexamples
 			create Result.make
 		end
 
+	current_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+			-- Initial state of currently targeted counterexample (new or minimal counterexample)
+
 	fix_preconditions: LINKED_LIST [STRING_32]
 			-- Collection of precondition for program fixes
 		once
@@ -120,22 +123,22 @@ feature -- Generate fixes from counterexamples
 		end
 
 	last_candidate_fix: STRING_32
-	       -- Last candidate fix
+			-- Last candidate fix
 
-    set_last_candidate_fix (a_fix: STRING_32)
-           -- Set `last_candidate_fix' to `a_fix'
-    do
-    	last_candidate_fix := a_fix
-    end
+	set_last_candidate_fix (a_fix: STRING_32)
+			-- Set `last_candidate_fix' to `a_fix'
+		do
+			last_candidate_fix := a_fix
+		end
 
 	current_candidate_fix: STRING_32
-	       -- Last candidate fix
+			-- Last candidate fix
 
-    set_current_candidate_fix (a_fix: STRING_32)
-           -- Set `current_candidate_fix' to `a_fix'
-    do
-    	current_candidate_fix := a_fix
-    end
+	set_current_candidate_fix (a_fix: STRING_32)
+			-- Set `current_candidate_fix' to `a_fix'
+		do
+			current_candidate_fix := a_fix
+		end
 
 feature -- Generate tests from proof failures
 
@@ -149,6 +152,12 @@ feature -- Generate tests from proof failures
 			-- Set `last_result' to `a_last_result'.
 		do
 			last_result := a_last_result
+		end
+
+	set_current_init_state (a_current_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+			-- Set `current_ce_init_state' to `a_current_ce_init_state'.
+		do
+			current_ce_init_state := a_current_ce_init_state
 		end
 
 		-- last_input: detachable E2B_TRANSLATOR_INPUT
@@ -259,7 +268,7 @@ feature -- Generate tests from proof failures
 			print ("total number_of_iterations: " + number_of_iterations.out + " opt_time: " + opt_time.out + "%N")
 			number_of_iterations := 0
 			opt_time := 0
-				-- init_states_of_counterexamples.wipe_out
+				-- _out
 			fix_elements.wipe_out
 		end
 

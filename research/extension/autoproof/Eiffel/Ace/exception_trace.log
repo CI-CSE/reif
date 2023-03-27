@@ -1127,3 +1127,69 @@ Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] 
 Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
 Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
 Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     log_message @2         put_string_general:          
+<00000180ABBB5588>                         Feature call on void target.  Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     log_message @2                                      
+<00000180ABBB5588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     execute @1                                          
+<00000180ABBB5588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     root's creation                                     
+<00000180ABBB5588>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     log_message @2         put_string_general:          
+<000001DFFB220588>                         Feature call on void target.  Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     log_message @2                                      
+<000001DFFB220588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     execute @1                                          
+<000001DFFB220588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     root's creation                                     
+<000001DFFB220588>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+ec: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     log_message @2         put_string_general:          
+<000002A9AFCFD588>                         Feature call on void target.  Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     log_message @2                                      
+<000002A9AFCFD588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     execute @1                                          
+<000002A9AFCFD588>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+ITP_INTERPRETER     root's creation                                     
+<000002A9AFCFD588>                         Routine failure.              Exit
+-------------------------------------------------------------------------------

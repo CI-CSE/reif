@@ -30,15 +30,28 @@ feature -- Tests generation
 			l_test_generator: E2B_GENERATE_TEST_SCRIPT
 					-- Generated test cases
 		do
-		   test_file_name := system.eiffel_project.project_directory.path.extended ("proof2test_test_set.e").out
+		   test_file_name := system.eiffel_project.project_directory.path.extended ("failed_tests.e").out
 			create l_test_generator.make (test_file_name, a_init_states)
 		end
 
+	generate_test_for_ce (a_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+			-- Generate a test from a single counterexample model
+		local
+			l_test_generator: E2B_GENERATE_TEST_SCRIPT
+			-- l_init_state: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+		do
+			file_index := file_index + 1
+			test_file_name := system.eiffel_project.project_directory.path.extended (a_init_state.target_class.name + "_failed_test_" + file_index.out + ".e").out
+			create l_test_generator.make (test_file_name, create {LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]}.make_from_iterable (<<a_init_state>>))
+		end
 
 feature -- Files and data
 
 	test_file_name: STRING_32
 			-- Name of the output test file
+
+	file_index: INTEGER
+			-- Number of test files
 
 ;
 

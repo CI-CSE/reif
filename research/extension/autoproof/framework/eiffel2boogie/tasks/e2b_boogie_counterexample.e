@@ -7,6 +7,9 @@ note
 class
 	E2B_BOOGIE_COUNTEREXAMPLE
 
+inherit
+	E2B_SHARED_CONTEXT
+
 create
 	make
 
@@ -15,6 +18,7 @@ feature {NONE} -- Initialization
 	make (model: STRING_32)
 			-- Initialization
 		do
+			start_timer
 			create constants_values.make (0)
 			create heap_function.make (0)
 			create seq_item.make (0)
@@ -36,6 +40,8 @@ feature {NONE} -- Initialization
 			end
 
 			get_routine_and_class_name
+			print("parsing model time: " + current_timer.out + "%N")
+			stop_timer
 		end
 
 feature -- Colleted data

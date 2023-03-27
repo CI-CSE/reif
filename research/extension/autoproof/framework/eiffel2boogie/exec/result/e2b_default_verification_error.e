@@ -30,7 +30,6 @@ feature -- Element change
 			build_components
 		end
 
-
 	set_boogie_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR)
 			-- Set `boogie_error' to `a_error'.
 		do

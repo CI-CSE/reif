@@ -7,6 +7,9 @@ note
 class
 	E2B_INITIAL_STATE_OF_ROUTINE
 
+inherit
+	E2B_SHARED_CONTEXT
+
 create
 	make
 
@@ -14,6 +17,8 @@ feature -- Initialize
 
 	make (a_target_feature: detachable FEATURE_I; a_target_class: detachable CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE)
 		do
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.make%N")
+			start_timer
 			target_feature := a_target_feature
 			target_class := a_target_class
 			ce := a_ce
@@ -23,6 +28,8 @@ feature -- Initialize
 			create missing_values.make_empty
 
 			get_initial_state
+			print("extract initial state time: " + current_timer.out + "%N")
+			stop_timer
 		end
 
 feature -- Data
@@ -54,6 +61,8 @@ feature -- Get initial state
 			arg_type: TYPE_A
 			i: INTEGER
 		do
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_initial_state%N")
+
 			arg_name := "";
 
 				-- get initial state of the current object
@@ -81,6 +90,7 @@ feature -- Get initial state
 		local
 			name, value: STRING_32
 		do
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.compute_alias%N")
 			alias_groups.make (0)
 
 			across initial_values.current_keys as k loop
@@ -191,6 +201,7 @@ feature -- Get initial values
 		require
 			is_included: ce.constants_values.has (object_name)
 		do
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_value%N")
 			-- Current.balance
 			Result := ce.constants_values [object_name]
 		end
@@ -203,6 +214,7 @@ feature -- Get initial values
 			field_type: TYPE_A
 
 		do
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields%N")
 			field_name := ""; field_value := ""
 
 			if object_type.has_associated_class then
@@ -235,6 +247,7 @@ feature -- Get initial values
 	get_object_initial_state (object_name: STRING_32; object_type: TYPE_A)
 			-- Obtain the initial state of an object
 		do
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_initial_state%N")
 			initial_values [object_name] := ""
 			initial_values [object_name].copy (get_object_value (object_name))
 

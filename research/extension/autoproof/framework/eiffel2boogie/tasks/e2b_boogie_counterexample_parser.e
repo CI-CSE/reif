@@ -7,6 +7,8 @@ note
 class
 	E2B_BOOGIE_COUNTEREXAMPLE_PARSER
 
+
+
 create
 	make
 
@@ -19,6 +21,8 @@ feature
 			models: ARRAY [IMMUTABLE_STRING_32]
 
 		do
+			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.make%N")
+			
 			model_file_content := ""
 			create models.make_empty
 
@@ -31,6 +35,7 @@ feature
 
 			create counterexamples.make (0)
 			parse_models (models)
+
 
 		end
 
@@ -45,6 +50,7 @@ feature
 			model: STRING_32
 			models: ARRAY [IMMUTABLE_STRING_32]
 		do
+			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.split_models%N")
 			create models.make_empty
 			from
 				i := 1
@@ -71,6 +77,7 @@ feature
 		local
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
 		do
+			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.parse_models%N")
 			across models as m loop
 				create ce.make (m)
 				if counterexamples.has (ce.class_name + "." + ce.routine_name) then

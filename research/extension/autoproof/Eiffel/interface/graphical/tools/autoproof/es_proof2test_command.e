@@ -51,7 +51,7 @@ feature -- Execution
 	execute
 			-- Execute menu command.
 		do
-			execute_generate_test_item
+			-- execute_generate_test_item
 		end
 
 	execute_with_stone (a_stone: STONE)
@@ -267,6 +267,8 @@ feature {NONE} -- Basic operations
 				-- enable_tool_button
 				-- add_init_states
 				-- target_row.set_item (5, create {EV_GRID_LABEL_ITEM}.make_with_text (options.new_ce_message))
+			-- a_result.autoproof_errors
+
 			index := target_row.subrow_count + 1
 			target_row.insert_subrow (target_row.subrow_count + 1)
 			l_row := target_row.subrow (index)
@@ -278,7 +280,8 @@ feature {NONE} -- Basic operations
 			l_lab.set_text ("Minimal: " + options.new_ce_message)
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right ({EB_SHARED_PIXMAPS}.icon_pixmaps.preference_list_icon, 1)
-			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_minimal_counterexample_select_action end)
+			l_lab.pointer_button_press_actions.extend
+			(agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_minimal_counterexample_select_action (options.current_ce_init_state) end)
 
 			l_row.set_item (5, l_lab)
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
@@ -320,7 +323,7 @@ feature {NONE} -- Basic operations
 
 			target_row := l_row
 
-			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
+			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action (options.current_ce_init_state) end)
 
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
 
@@ -358,7 +361,8 @@ feature {NONE} -- Basic operations
 
 			target_row := l_row
 
-			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
+			-- l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
+			-- TODO: show the generated fixes
 
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
 
@@ -370,7 +374,7 @@ feature {NONE} -- Basic operations
 
 feature {ES_AUTOPROOF_TOOL_PANEL}
 
-	on_minimal_counterexample_select_action -- (a_row: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
+	on_minimal_counterexample_select_action (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)-- (a_row: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
@@ -379,12 +383,12 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			generate_test: EV_CHECK_MENU_ITEM
 		do
 			create counterexample_menu.make_with_text ("Counterexample")
-			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item)
+			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (a_ce_init_state))
 			counterexample_menu.extend (generate_test)
 			counterexample_menu.show
 		end
 
-	on_counterexample_select_action -- (a_row: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
+	on_counterexample_select_action (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
@@ -395,7 +399,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 
 			create generate_minimal.make_with_text_and_action ("Minimal", agent execute_generate_minimal_counterexample_item)
 			create generate_other.make_with_text_and_action ("New", agent execute_generate_new_counterexample_item)
-			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item)
+			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (a_ce_init_state))
 			create generate_fix.make_with_text_and_action ("Fix", agent execute_generate_fix_item)
 
 			counterexample_menu.extend (generate_other)
@@ -547,7 +551,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			create Result.make
 		end
 
-
 	pixmap: EV_PIXMAP
 			-- Pixmap representing the command.
 		do
@@ -560,7 +563,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			Result := pixmaps.icon_pixmaps.verifier_to_testing_tool_icon_buffer
 		end
 
-	execute_generate_test_item
+	execute_generate_test_item (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
 			-- Generate tests from proof failures
 			-- local
 			--	l_window: EB_DEVELOPMENT_WINDOW
@@ -573,11 +576,13 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 				-- generate_execution_trace_item.disable_select
 				-- disable_tool_button
 
-			-- print ("execute_generate_test_item%N")
+			print ("ES_PROOF2TEST_COMMAND.execute_generate_test_item%N")
 
 			window_manager.display_message ("Test generation started")
+			print("number of test cases: " + options.init_states_of_counterexamples.count.out + "%N")
 
-			proof2test.generate_tests (options.init_states_of_counterexamples)
+			-- proof2test.generate_tests (options.init_states_of_counterexamples) -- generate a test for a single counterexample each time
+			proof2test.generate_test_for_ce (a_ce_init_state)
 				-- create l_dialog.make_standard ("Proof2Test finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
 				-- l_dialog.show_on_active_window
 			eiffel_project.discover_melt

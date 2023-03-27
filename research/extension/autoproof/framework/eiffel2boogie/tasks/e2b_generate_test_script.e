@@ -10,6 +10,8 @@ class
 inherit
 	INTERNAL_COMPILER_STRING_EXPORTER
 
+	E2B_SHARED_CONTEXT
+
 create
 	make
 
@@ -19,18 +21,26 @@ feature -- Initialize
 			-- Initialize data for test generation
 		local
 			class_name: STRING_32
+			l_file_name: STRING_32
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.make%N")
+			start_timer
 			class_name := ""
 			create alias_groups.make (0)
 			create missing_values.make_empty
 			create sequence_items.make (0)
 			create sequence_lengths.make (0)
 
-			script_class_name := "PROOF2TEST_TEST_SET"
+			l_file_name := test_file_name.split ('\').last
+			script_class_name := l_file_name.substring (1 , l_file_name.count - 2) -- "PROOF2TEST_TEST_SET"
+			script_class_name.to_upper
 
 			initial_states := a_init_states
 			create test_file.make_create_read_write (test_file_name)
 			generate_test_file
+
+			print("writing test script time: " + current_timer.out + "%N")
+			stop_timer
 		end
 
 feature -- Files and data
@@ -77,11 +87,13 @@ feature -- Test generation
 			i: INTEGER
 			creators_keys: ARRAY [INTEGER]
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.generate_test_file%N")
 			t := ""; last_target_feature := ""
 			create creators_keys.make_empty
 			test_file.put_string (header.to_string_8)
 
 			across initial_states as s loop
+				print ("iniiii%N")
 				initial_state := s
 				target_feature := s.target_feature
 				target_class := s.target_class
@@ -112,6 +124,7 @@ feature -- Test generation
 	header: STRING_32
 			-- Header of the test file
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.header%N")
 			Result := "class " + script_class_name.to_string_8 + "%N%Ninherit%N%TEQA_TEST_SET%N%N" + "feature -- Tests from failed proofs %N%N"
 		end
 
@@ -121,6 +134,7 @@ feature -- Test generation
 			i: INTEGER
 			name, value: STRING_32
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.compute_alias%N")
 			alias_groups.make (0)
 
 			from
@@ -154,6 +168,7 @@ feature -- Test generation
 			j: INTEGER
 			argument_type, result_type: TYPE_A
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.generate_test%N")
 			argument_name := ""; Result := ""
 			class_name := target_class.actual_type.name
 			routine_name := target_feature.feature_name_32
@@ -207,6 +222,7 @@ feature -- Test generation
 	declare_object (object_name: STRING_32; object_type: TYPE_A): STRING_32
 			-- Declaration of all object references
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.declare_object%N")
 			Result := "%T%T%T" + safe_object_name (object_name).to_string_8 + ": " + safe_type (object_type).to_string_8 + "%N"
 		end
 
@@ -216,6 +232,7 @@ feature -- Test generation
 			t, arg_type: STRING_32
 			i: INTEGER
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.creation_routine_call%N")
 			t := ""; Result := ""
 
 			if creation_procedure /= Void then
@@ -253,6 +270,7 @@ feature -- Test generation
 	create_object (object_name: STRING_32; object_type: TYPE_A): STRING_32
 			-- Creation of all object references
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.create_object%N")
 			Result := ""
 
 			if not is_basic_type (object_type) and not is_aliased_with_existed_object (object_name) then
@@ -273,6 +291,7 @@ feature -- Test generation
 		local
 			t, class_name_: STRING_32
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.instantiate_object%N")
 			t := ""; Result := ""; class_name_ := ""
 			class_name_.copy (safe_type (object_type))
 
@@ -291,6 +310,7 @@ feature -- Test generation
 	assignment (object_name: STRING_32; object_value: STRING_32): STRING_32
 			-- Assignment clause for assigning the given value
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.assignment%N")
 			Result := "%T%T%T" + safe_object_name (object_name).to_string_8 + " := " + object_value.to_string_8 + "%N"
 		end
 
@@ -301,6 +321,8 @@ feature -- Test generation
 			i: INTEGER
 			field_type: TYPE_A
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.instantiate_object_reference%N")
+
 			t := ""; field_name := ""; field_value := ""; Result := ""
 
 			if is_aliased_with_existed_object (object_name) then
@@ -336,6 +358,7 @@ feature -- Test generation
 		local
 			name, value: STRING_32
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.instantiate_basic_field%N")
 			name := object_name + "." + field_name
 			value := ""
 			if initial_state.initial_values.has (name) then
@@ -406,6 +429,7 @@ feature -- Test generation
 	force_item (object_name: STRING_32; item_value: STRING_32; i: INTEGER): STRING_32
 			-- Use force procedure to add elements to the container
 		do
+			-- print ("E2B_GENERATE_TEST_SCRIPT.force_item%N")
 			Result := "%T%T%T" + object_name.to_string_8 + ".force(" + item_value.to_string_8 + ", " + i.out + ")%N"
 		end
 
@@ -416,6 +440,7 @@ feature -- Test generation
 			i: INTEGER
 			type: STRING_32
 		do
+			print ("E2B_GENERATE_TEST_SCRIPT.instantiate_container_object%N")
 			t := ""; Result := ""; item_value := "0"
 			type := object_type.actual_type.name
 
@@ -425,7 +450,7 @@ feature -- Test generation
 					-- TODO: add support for other container type
 
 				if sequence_lengths.has (value) and sequence_items.count > 0 then
-
+					print ("container size: " + sequence_lengths [value] + "%N")
 					from
 						i := 1
 					until
@@ -451,10 +476,12 @@ feature -- Test generation
 	safe_object_name (object_name: STRING_32): STRING_32
 			-- Convert the name of object
 		do
-			if object_name.same_string ("Current") then
+			Result := ""
+			Result.copy (object_name)
+			if Result.same_string ("Current") then
 				Result := "current_object"
-			else
-				Result := object_name
+			elseif Result.has_substring ("Current.") then
+				Result.replace_substring_all ("Current.", "current_object.")
 			end
 		end
 
