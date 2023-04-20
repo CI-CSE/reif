@@ -15,12 +15,12 @@ feature -- Access
 	input: attached E2B_VERIFIER_INPUT
 			-- Input for Boogie.
 
-	last_output: detachable STRING
+	last_output: detachable STRING_32
 			-- Output of last run of Boogie.
 		deferred
 		end
 
-	last_models: detachable STRING
+	last_models: detachable STRING_32
 			-- Counterexamples of last run of Boogie.
 		deferred
 		end

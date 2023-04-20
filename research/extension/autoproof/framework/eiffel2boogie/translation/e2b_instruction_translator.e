@@ -64,6 +64,7 @@ feature {NONE} -- Initialization
 			if a_feature.has_return_value then
 				entity_mapping.set_default_result (helper.class_type_in_context (a_feature.type, a_feature.written_class, a_feature, a_type))
 			end
+
 		end
 
 feature -- Access
@@ -94,7 +95,7 @@ feature -- Access
 		end
 
 	context_readable: IV_EXPRESSION
-		-- Readable  frame of the enclosing context if defined, otherwise Void.
+			-- Readable  frame of the enclosing context if defined, otherwise Void.
 
 feature -- Element change
 
@@ -132,7 +133,6 @@ feature -- Basic operations
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 			l_call: IV_PROCEDURE_CALL
 		do
-
 			create l_ownership_handler
 			create l_expr_translator.make
 			l_expr_translator.set_context (a_feature, a_type)
@@ -150,7 +150,7 @@ feature -- Basic operations
 					current_block.statements.append (l_expr_translator.side_effect)
 					l_expr_translator.side_effect.wipe_out
 
-					l_call := factory.procedure_call ("unwrap", << entity_mapping.current_expression >>)
+					l_call := factory.procedure_call ("unwrap", <<entity_mapping.current_expression>>)
 					l_call.node_info.set_attribute ("default", "wrapping")
 					l_call.node_info.set_attribute ("cid", system.any_id.out)
 					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
@@ -162,7 +162,6 @@ feature -- Basic operations
 					l_expr_translator.side_effect.wipe_out
 				end
 			end
-
 
 			helper.set_up_byte_context (a_feature, a_type)
 			if attached Context.byte_code as l_byte_code then
@@ -190,7 +189,7 @@ feature -- Basic operations
 						current_block.statements.append (l_expr_translator.side_effect)
 						l_expr_translator.side_effect.wipe_out
 
-						l_call := factory.procedure_call ("wrap", << entity_mapping.current_expression >>)
+						l_call := factory.procedure_call ("wrap", <<entity_mapping.current_expression>>)
 						l_call.node_info.set_attribute ("default", "wrapping")
 						l_call.node_info.set_attribute ("cid", system.any_id.out)
 						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
@@ -243,10 +242,10 @@ feature -- Processing
 				l_type := helper.class_type_in_context (l_feature.type, current_feature.written_class, current_feature, current_type)
 				translation_pool.add_referenced_feature (l_feature, current_type)
 				l_target := factory.heap_access (
-					entity_mapping.heap,
-					entity_mapping.current_expression,
-					name_translator.boogie_procedure_for_feature (l_feature, current_type),
-					types.for_class_type (l_type))
+						entity_mapping.heap,
+						entity_mapping.current_expression,
+						name_translator.boogie_procedure_for_feature (l_feature, current_type),
+						types.for_class_type (l_type))
 			else
 				check should_never_happen: False end
 			end
@@ -267,15 +266,15 @@ feature -- Processing
 				-- Check for possible boxing of basic types
 			if a_node.target.type.is_reference then
 				if a_node.source.type.is_boolean then
-					l_source := factory.function_call ("boxed_bool", << l_source >>, types.ref)
+					l_source := factory.function_call ("boxed_bool", <<l_source>>, types.ref)
 				elseif a_node.source.type.is_integer or a_node.source.type.is_natural then
-					l_source := factory.function_call ("boxed_int", << l_source >>, types.ref)
+					l_source := factory.function_call ("boxed_int", <<l_source>>, types.ref)
 				end
 			end
 
 				-- Create assignment node
 			if a_node.target.is_attribute and options.is_ownership_enabled then
-					-- OWNERSHIP: call update heap instead of direct heap assignment				
+					-- OWNERSHIP: call update heap instead of direct heap assignment
 				create l_field.make (name_translator.boogie_procedure_for_feature (l_feature, current_type), types.field (types.for_class_type (l_type)))
 				create l_call.make ("update_heap")
 				l_call.add_argument (entity_mapping.current_expression)
@@ -311,7 +310,7 @@ feature -- Processing
 					check
 						attached {ASSERT_B} l as l_assert
 					then
-						-- l_assert.set_expr(l_assert.expr)
+							-- l_assert.set_expr(l_assert.expr)
 						process_single_check (l_assert)
 					end
 				end
@@ -351,7 +350,7 @@ feature -- Processing
 					create l_statement.make_assume (last_expression)
 				else
 						-- This is an assert: tranlsate as
-						--	assert checks; assume free_checks; assert last_expression												
+						--	assert checks; assume free_checks; assert last_expression
 					across last_safety_checks as i loop
 						add_statement (i)
 					end
@@ -376,8 +375,8 @@ feature -- Processing
 			l_array := last_expression
 				-- Check array size
 			create l_assert.make (factory.equal (
-				factory.function_call ("fun.ARRAY.count", << entity_mapping.heap, l_array >>, types.int),
-				factory.int_value (a_array.expressions.count)))
+					factory.function_call ("fun.ARRAY.count", <<entity_mapping.heap, l_array>>, types.int),
+					factory.int_value (a_array.expressions.count)))
 			l_assert.node_info.set_type ("check")
 			l_assert.node_info.set_tag ("array_size_equal")
 			l_assert.node_info.set_line (a_assert.line_number)
@@ -387,8 +386,8 @@ feature -- Processing
 				process_contract_expression (i, False)
 				l_content_type := types.for_class_type (helper.class_type_in_context (a_array.type.generics.first, current_feature.written_class, current_feature, current_type))
 				create l_assert.make (factory.equal (
-					factory.function_call ("fun.ARRAY.item", << entity_mapping.heap, l_array, factory.int_value (@ i.cursor_index) >>, l_content_type),
-					last_expression))
+						factory.function_call ("fun.ARRAY.item", <<entity_mapping.heap, l_array, factory.int_value (@ i.cursor_index)>>, l_content_type),
+						last_expression))
 				l_assert.node_info.set_type ("check")
 				l_assert.node_info.set_tag ("array_item_" + @ i.cursor_index.out)
 				l_assert.node_info.set_line (a_assert.line_number)
@@ -404,7 +403,7 @@ feature -- Processing
 				process_compound (a_node.compound)
 			else
 					-- This debug clause is not activated
-				-- TODO: what to do?
+					-- TODO: what to do?
 			end
 		end
 
@@ -426,7 +425,10 @@ feature -- Processing
 			l_then_orgin_info, l_else_origin_info: IV_STATEMENT_ORIGIN
 			l_nested_then_orgin_info, l_nested_else_origin_info: IV_STATEMENT_ORIGIN
 			l_line_number: INTEGER
+			status_values: ARRAYED_LIST [READABLE_STRING_8]
 		do
+			print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
+			status_values := helper.feature_note_values (a_node.context.current_feature, "status")
 			set_current_origin_information (a_node)
 
 			l_temp_block := current_block
@@ -439,18 +441,27 @@ feature -- Processing
 			process_expression (a_node.condition)
 			create l_if.make (last_expression)
 			add_statement (l_if)
+				-- l_if.node_info.set_attribute (a_node.a_node.context, a_value: READABLE_STRING_8)
+				-- l_if.node_info.load (a_node.)
 
 				-- then block
 			current_block := l_if.then_block
 			process_compound (a_node.compound)
 
-			-- get the first line of the compound as the line number of the then_block
-			-- set information for the then block
+				-- get the first line of the compound as the line number of the then_block
+				-- set information for the then block
 			l_then_orgin_info.set_file (current_feature.written_class.file_name)
 			l_line_number := a_node.compound.line_number
-			print ("then block line: " + l_line_number.out + "%N")
+				-- print ("then block line: " + l_line_number.out + "%N")
 			l_then_orgin_info.set_line (l_line_number)
 			l_if.then_block.set_origin_information (l_then_orgin_info)
+			if status_values.has ("ghost") then
+				print ( "ghost%N")
+				l_if.node_info.set_attribute ("status", "ghost")
+			elseif status_values.has ("lemma") then
+				l_if.node_info.set_attribute ("status", "lemma")
+				print ( "lemma%N")
+			end
 
 				-- elseif blocks
 			current_block := l_if.else_block
@@ -466,7 +477,7 @@ feature -- Processing
 						set_current_origin_information (l_elseif)
 							-- elseif condition
 						l_line_number := l_elseif.compound.line_number
-						print ("elseif line: " + l_line_number.out + "%N")
+							-- print ("elseif line: " + l_line_number.out + "%N")
 
 						l_else_origin_info.set_file (current_feature.written_class.file_name)
 						l_else_origin_info.set_line (l_line_number)
@@ -475,6 +486,14 @@ feature -- Processing
 						process_expression (l_elseif.expr)
 						create l_nested_if.make (last_expression)
 						add_statement (l_nested_if)
+
+						if status_values.has ("ghost") then
+							l_nested_if.node_info.set_attribute ("status", "ghost")
+							print ( "ghost%N")
+						elseif status_values.has ("lemma") then
+							l_nested_if.node_info.set_attribute ("status", "lemma")
+							print ( "lemma%N")
+						end
 							-- elseif block
 						current_block := l_nested_if.then_block
 						process_compound (l_elseif.compound)
@@ -483,9 +502,9 @@ feature -- Processing
 						l_nested_if.then_block.set_origin_information (l_nested_then_orgin_info)
 							-- else block
 						current_block := l_nested_if.else_block
-						-- l_nested_else_orgin_info.set_file (current_feature.written_class.file_name)
-						-- l_nested_else_orgin_info.set_line (l_elseif.)
-						-- l_nested_if.else_block.set_origin_information (l_nested_then_orgin_info)
+							-- l_nested_else_orgin_info.set_file (current_feature.written_class.file_name)
+							-- l_nested_else_orgin_info.set_line (l_elseif.)
+							-- l_nested_if.else_block.set_origin_information (l_nested_then_orgin_info)
 					end
 				end
 			end
@@ -493,10 +512,10 @@ feature -- Processing
 				-- else block
 			if attached a_node.else_part as e then
 				process_compound (e)
-				-- a_node.else_part.mark_last_instruction.
+					-- a_node.else_part.mark_last_instruction.
 				set_current_origin_information (a_node.else_part)
 				l_line_number := a_node.else_part.line_number
-				print ("else line: " + l_line_number.out + "%N")
+					-- print ("else line: " + l_line_number.out + "%N")
 				l_else_origin_info.set_file (current_feature.written_class.file_name)
 				l_else_origin_info.set_line (l_line_number)
 				l_if.else_block.set_origin_information (l_else_origin_info)
@@ -561,8 +580,8 @@ feature -- Processing
 									-- TODO: check side effect
 
 								l_binary := factory.and_ (
-									factory.less_equal (l_lower, l_entity),
-									factory.less_equal (l_entity, l_upper))
+										factory.less_equal (l_lower, l_entity),
+										factory.less_equal (l_entity, l_upper))
 
 								if l_condition = Void then
 									l_condition := l_binary
@@ -671,9 +690,9 @@ feature -- Processing
 			set_current_origin_information (a_node)
 
 			l_temp_block := current_block
-			create l_head_block.make_name (helper.unique_identifier("loop_head"))
-			create l_body_block.make_name (helper.unique_identifier("loop_body"))
-			create l_end_block.make_name (helper.unique_identifier("loop_end"))
+			create l_head_block.make_name (helper.unique_identifier ("loop_head"))
+			create l_body_block.make_name (helper.unique_identifier ("loop_body"))
+			create l_end_block.make_name (helper.unique_identifier ("loop_end"))
 
 				-- From part
 			if a_node.from_part /= Void then
@@ -815,9 +834,9 @@ feature -- Processing
 --			end
 
 			l_temp_block := current_block
-			create l_head_block.make_name (helper.unique_identifier("loop_head"))
-			create l_body_block.make_name (helper.unique_identifier("loop_body"))
-			create l_end_block.make_name (helper.unique_identifier("loop_end"))
+			create l_head_block.make_name (helper.unique_identifier ("loop_head"))
+			create l_body_block.make_name (helper.unique_identifier ("loop_body"))
+			create l_end_block.make_name (helper.unique_identifier ("loop_end"))
 
 				-- From part
 			if a_node.iteration_initialization /= Void then
@@ -926,7 +945,7 @@ feature -- Processing
 
 				-- Init end block
 			l_temp_block := current_block
-			create l_end_block.make_name (helper.unique_identifier("loop_end"))
+			create l_end_block.make_name (helper.unique_identifier ("loop_end"))
 
 				-- From part
 			set_current_origin_information (a_node)
@@ -940,8 +959,8 @@ feature -- Processing
 			until
 				l_unroll_counter > options.loop_unrolling_depth
 			loop
-				create l_head_block.make_name (helper.unique_identifier("loop_head"+l_unroll_counter.out))
-				create l_body_block.make_name (helper.unique_identifier("loop_body"+l_unroll_counter.out))
+				create l_head_block.make_name (helper.unique_identifier ("loop_head" + l_unroll_counter.out))
+				create l_body_block.make_name (helper.unique_identifier ("loop_body" + l_unroll_counter.out))
 
 					-- goto head
 				create l_goto.make (l_head_block)
@@ -1012,7 +1031,7 @@ feature -- Processing
 				create l_goto.make (l_head_block)
 				add_statement (l_goto)
 			else
-				create l_force_end_block.make_name (helper.unique_identifier("force_end"))
+				create l_force_end_block.make_name (helper.unique_identifier ("force_end"))
 				create l_goto.make (l_force_end_block)
 				add_statement (l_goto)
 
@@ -1148,7 +1167,7 @@ feature {NONE} -- Loop processing
 					if
 						attached {ASSERT_B} node as l_invariant and then
 						not helper.is_clause_modify (l_invariant) and then not
-						helper.is_clause_decreases (l_invariant)
+							helper.is_clause_decreases (l_invariant)
 					then
 						set_current_origin_information (l_invariant)
 						process_contract_expression (l_invariant.expr, False)
@@ -1162,7 +1181,7 @@ feature {NONE} -- Loop processing
 							create l_inv.make (last_expression)
 						else
 								-- Regular invariant: translate as
-								--	assert checks; assume free_checks; assert last_expression							
+								--	assert checks; assume free_checks; assert last_expression
 							across last_safety_checks as i loop
 								add_statement (i)
 							end
@@ -1175,7 +1194,7 @@ feature {NONE} -- Loop processing
 					end
 				end
 			end
-				-- Default invariants (free)			
+				-- Default invariants (free)
 			create l_inv.make_assume (factory.function_call ("HeapSucc", <<a_pre_heap, factory.global_heap>>, types.bool))
 			add_statement (l_inv)
 			if options.is_ownership_enabled then
@@ -1189,7 +1208,7 @@ feature {NONE} -- Loop processing
 					create l_inv.make_assume (factory.function_call ("same_outside", <<a_pre_heap, factory.global_heap, a_loop_frame>>, types.bool))
 				end
 				add_statement (l_inv)
-				create l_inv.make_assume (factory.function_call ("global", << factory.global_heap>>, types.bool))
+				create l_inv.make_assume (factory.function_call ("global", <<factory.global_heap>>, types.bool))
 				add_statement (l_inv)
 			end
 		end
@@ -1214,18 +1233,18 @@ feature {NONE} -- Loop processing
 					-- No decreases clause: apply default
 				if attached {IV_BINARY_OPERATION} a_exit_condition as binop and then binop.left.type.is_integer then
 					if binop.operator ~ ">" or binop.operator ~ ">=" then
-						-- for A > B and A >= B, use the decreases B - A
+							-- for A > B and A >= B, use the decreases B - A
 						a_variant_exprs.extend (factory.minus (binop.right, binop.left))
 					elseif binop.operator ~ "<" or binop.operator ~ "<=" then
-						-- for A < B and A <= B, use the decreases A - B
+							-- for A < B and A <= B, use the decreases A - B
 						a_variant_exprs.extend (factory.minus (binop.left, binop.right))
 					elseif binop.operator ~ "==" then
-						-- for A = B, use the absolute value of A - B
+							-- for A = B, use the absolute value of A - B
 						a_variant_exprs.extend (factory.conditional (factory.less_equal (binop.right, binop.left),
-							factory.minus (binop.left, binop.right),
-							factory.minus (binop.right, binop.left)))
+								factory.minus (binop.left, binop.right),
+								factory.minus (binop.right, binop.left)))
 					end
-					-- ToDo: come up with a way to create default variants for other types
+						-- ToDo: come up with a way to create default variants for other types
 				end
 
 					-- If still empty, add a trivially wrong variant
@@ -1233,7 +1252,7 @@ feature {NONE} -- Loop processing
 					a_variant_exprs.extend (factory.int_value (0))
 				end
 			elseif a_variant_exprs.first = Void then
-				-- Decreases empty set (*): do not check termination
+					-- Decreases empty set (*): do not check termination
 				a_variant_exprs.wipe_out
 			end
 
@@ -1435,7 +1454,7 @@ feature {NONE} -- Implementation
 			-- Mapping for object test locals.
 
 	local_writable: detachable IV_EXPRESSION
-			-- Writable frame of the current loop.			
+			-- Writable frame of the current loop.
 
 ;note
 	date: "$Date$"
@@ -1449,16 +1468,16 @@ feature {NONE} -- Implementation
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

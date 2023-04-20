@@ -35,7 +35,7 @@ feature {NONE} -- Initialization
 	make_if_then (a_condition: IV_EXPRESSION; a_then: IV_BLOCK)
 			-- Initialize conditional with condition `a_condition',
 			-- then block `a_then', and empty else block;
-			-- (if `a_condition' is Void use *).			
+			-- (if `a_condition' is Void use *).
 		require
 			a_condition_valid: attached a_condition implies a_condition.type.is_boolean
 			a_then_attached: attached a_then
@@ -52,7 +52,7 @@ feature {NONE} -- Initialization
 	make_if_then_else (a_condition: IV_EXPRESSION; a_then: IV_BLOCK; a_else: IV_BLOCK)
 			-- Initialize conditional with condition `a_condition',
 			-- then block `a_then', and else block `a_else'.
-			-- (if `a_condition' is Void use *).			
+			-- (if `a_condition' is Void use *).
 		require
 			a_condition_valid: attached a_condition implies a_condition.type.is_boolean
 			a_then_attached: attached a_then
@@ -86,6 +86,14 @@ feature -- Visitor
 			a_visitor.process_conditional (Current)
 		end
 
+feature -- Status
+
+	is_current_feature_ghost: BOOLEAN
+			-- Is the current feature a ghost feature?
+		do
+			Result := attached node_info.attributes and then (node_info.attributes.has_item ("ghost") or node_info.attributes.has_item ("lemma"))
+		end
+
 invariant
 	condition_valid: attached condition implies condition.type.is_boolean
 	then_block_attached: attached then_block
@@ -96,15 +104,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
 end

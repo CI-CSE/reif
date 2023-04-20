@@ -36,7 +36,7 @@ feature -- Access
 feature -- Basic operations
 
 	reset
-			-- Reset universe visitor. 
+			-- Reset universe visitor.
 		do
 			create output
 		end
@@ -122,7 +122,7 @@ feature -- Universe Visitor
 			is_full_coverage_tests_enable := a_procedure.is_full_coverage_tests_enabled
 			uncovered_branch_lines.copy (a_procedure.uncovered_branch_lines)
 			across uncovered_branch_lines as l loop
-				print ("ulineeeee: " + l.out + "%N")
+				-- print ("ulineeeee: " + l.out + "%N")
 			end
 
 			output.put ("procedure ")
@@ -155,7 +155,7 @@ feature -- Universe Visitor
 				-- *Li: Add the text for optimization
 
 			across a_procedure.opt_preconditions as p loop
-				print("add precondition: " + p.to_string_8 +"%N")
+				-- print("add precondition: " + p.to_string_8 +"%N")
 				if not p.same_string ("") then
 					output.put ("  free ")
 					output.put ("requires " + p.to_string_8)
@@ -357,8 +357,8 @@ feature -- Statement Visitor
 			else
 				a_conditional.condition.process (Current)
 				output.put (") {")
-				if is_full_coverage_tests_enable and then a_conditional.then_block.is_conditional_leaf and then uncovered_branch_lines.has (a_conditional.then_block.origin_information.line) then
-					print("if branch at line " + a_conditional.then_block.origin_information.line.out + "%N")
+				if is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.then_block.is_conditional_leaf then -- and then uncovered_branch_lines.has (a_conditional.then_block.origin_information.line) then
+					-- print("if branch at line " + a_conditional.then_block.origin_information.line.out + "%N")
 					output.put_line ("assert false;")
 					output.put_new_line
 				end
@@ -371,14 +371,14 @@ feature -- Statement Visitor
 				output.put_line ("} else {")
 				-- insert "assert false" into the else_block of the leaf if/elseif conditional
 				output.indent
-				if is_full_coverage_tests_enable and then a_conditional.else_block.is_conditional_leaf and then uncovered_branch_lines.has (a_conditional.else_block.origin_information.line) then
-					print("else branch at line " + a_conditional.else_block.origin_information.line.out +"%N")
+				if is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.else_block.is_conditional_leaf then -- and then uncovered_branch_lines.has (a_conditional.else_block.origin_information.line) then
+					-- print("else branch at line " + a_conditional.else_block.origin_information.line.out +"%N")
 					output.put_line ("assert false;")
 					output.put_new_line
 				end
 				a_conditional.else_block.process (Current)
 				output.unindent
-			elseif is_full_coverage_tests_enable and then a_conditional.condition /= Void then
+			elseif is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.condition /= Void then
 				 -- implicit else branch
 				output.put_line ("} else {")
 				output.put_line ("assert false;")

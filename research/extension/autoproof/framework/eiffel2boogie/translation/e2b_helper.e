@@ -91,6 +91,7 @@ feature -- General note helpers
 						i.index_list as v
 					loop
 						Result.extend (if attached {STRING_AS} v as s then s.value else v.string_value end)
+						-- print ("note value: " + Result.last + "%N")
 					end
 				end
 			end
@@ -187,6 +188,7 @@ feature -- Feature status helpers
 			l_values: like feature_note_values
 		do
 			l_values := feature_note_values (a_feature, "status")
+
 			if not l_values.is_empty then
 				Result := across l_values as i some i.same_string (a_value) end
 			end

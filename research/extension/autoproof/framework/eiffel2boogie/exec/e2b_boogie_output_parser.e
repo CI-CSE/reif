@@ -18,7 +18,7 @@ feature -- Access
 
 feature -- Basic operations
 
-	parse (a_boogie_output: STRING; a_boogie_models: STRING)
+	parse (a_boogie_output: STRING_32; a_boogie_models: STRING_32)
 			-- Parse Boogie output and create result.
 		local
 			l_line: STRING
@@ -35,7 +35,7 @@ feature -- Basic operations
 			end
 				-- Parse output
 			across a_boogie_output.split ('%N') as l loop
-				l_line := l
+				l_line := l.to_string_8
 				l_line.right_adjust
 				if not (l_line.is_empty or l_line.starts_with ("//")) then
 					parse_line (l_line)
@@ -50,7 +50,7 @@ feature {NONE} -- Implementation
 	input_lines: LIST [STRING]
 			-- Input to Boogie verifier as list of lines.
 
-	models: ARRAY [IMMUTABLE_STRING]
+	models: ARRAY [IMMUTABLE_STRING_32]
 			-- A list of models.
 
 	current_procedure_result: E2B_BOOGIE_PROCEDURE_RESULT
@@ -217,13 +217,13 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	split_models (model_file_content: STRING): ARRAY [IMMUTABLE_STRING]
+	split_models (model_file_content: STRING_32): ARRAY [IMMUTABLE_STRING_32]
 			-- Split the content of the input .model file into a list of models
 		require
 		 	model_not_empty: not model_file_content.is_empty
 		local
 			i, end_of_model: INTEGER
-			model: STRING
+			model: STRING_32
 		do
 			create models.make_empty
 			from
@@ -240,7 +240,6 @@ feature {NONE} -- Implementation
 					i := model_file_content.count
 				end
 			end
-
 			Result := models
 		end
 

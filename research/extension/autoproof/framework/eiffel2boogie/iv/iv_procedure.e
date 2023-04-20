@@ -150,6 +150,9 @@ feature -- Test generation
 	uncovered_branch_lines: ARRAY [INTEGER]
 			-- Uncovered branches' line numbers in the latest test generation run
 
+	is_ghost_feature: BOOLEAN
+			-- Is the current feature a ghost feature?
+
 feature -- Visitor
 
 	process (a_visitor: IV_UNIVERSE_VISITOR)
