@@ -10,7 +10,7 @@ inherit
 
 feature -- Access
 
-	last_output: detachable STRING
+	last_output: detachable STRING_32
 			-- <Precursor>
 		do
 			if attached internal_last_output then
@@ -23,7 +23,7 @@ feature -- Access
 			end
 		end
 
-	last_models: detachable STRING
+	last_models: detachable STRING_32
 			-- <Precursor>
 		do
 			if attached internal_last_model then
@@ -97,10 +97,10 @@ feature {NONE} -- Implementation
 	is_disposed: BOOLEAN
 			-- Is object already disposed?
 
-	internal_last_output: detachable STRING
+	internal_last_output: detachable STRING_32
 			-- Last generated output.
 
-	internal_last_model: detachable STRING
+	internal_last_model: detachable STRING_32
 			-- Last generated counterexample model.
 
 	boogie_file_name: PATH
@@ -385,7 +385,7 @@ feature {NONE} -- Output capture
 			create l_file.make_with_path (model_file_name)
 			if l_file.access_exists then -- read model file
 				l_file.open_read
-				l_file.read_stream (1000000)
+				l_file.read_stream (100000000)
 				if attached internal_last_model then
 					internal_last_model.copy (l_file.last_string)
 				else

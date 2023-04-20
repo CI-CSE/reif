@@ -438,7 +438,6 @@ feature -- Translation
 				inlined_routines.force (1, a_feature.body_index)
 			end
 
-
 			process_parameters (a_parameters)
 
 				-- Set up entity mapping

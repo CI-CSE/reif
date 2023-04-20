@@ -44,6 +44,7 @@ feature {NONE} -- Initialization
 			error := an_error
 			failure := a_failure
 			target_row := a_row
+			print("Proof2Test command for " + error.context_feature.feature_name_32.to_string_8 + "%N")
 		end
 
 feature -- Execution
@@ -323,7 +324,7 @@ feature {NONE} -- Basic operations
 
 			target_row := l_row
 
-			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action (options.current_ce_init_state) end)
+			-- l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action (options.current_ce_init_state) end)
 
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
 
@@ -393,13 +394,16 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 		local
 			counterexample_menu: EV_MENU
 			generate_minimal, generate_other, generate_test, generate_fix: EV_CHECK_MENU_ITEM
-
+			-- l_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 		do
+			print("on_counterexample_select_action%N")
+			-- create l_ce_init_state.make (a_target_feature: FEATURE_I, a_target_class: CLASS_C, a_ce: E2B_BOOGIE_COUNTEREXAMPLE) a_ce_init_state
 			create counterexample_menu.make_with_text ("Counterexample")
 
 			create generate_minimal.make_with_text_and_action ("Minimal", agent execute_generate_minimal_counterexample_item)
 			create generate_other.make_with_text_and_action ("New", agent execute_generate_new_counterexample_item)
-			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (a_ce_init_state))
+			print("hhh: " + error.context_feature.feature_name_32.to_string_8 + " " + error.context_class.name+ "%N")
+			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (error.ce_init_state))
 			create generate_fix.make_with_text_and_action ("Fix", agent execute_generate_fix_item)
 
 			counterexample_menu.extend (generate_other)
@@ -581,8 +585,8 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			window_manager.display_message ("Test generation started")
 			print("number of test cases: " + options.init_states_of_counterexamples.count.out + "%N")
 
-			-- proof2test.generate_tests (options.init_states_of_counterexamples) -- generate a test for a single counterexample each time
-			proof2test.generate_test_for_ce (a_ce_init_state)
+			proof2test.generate_tests (options.init_states_of_counterexamples) -- generate a test for a single counterexample each time
+			-- proof2test.generate_test_for_ce (a_ce_init_state) -- TODO: generate tests for single ce
 				-- create l_dialog.make_standard ("Proof2Test finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
 				-- l_dialog.show_on_active_window
 			eiffel_project.discover_melt

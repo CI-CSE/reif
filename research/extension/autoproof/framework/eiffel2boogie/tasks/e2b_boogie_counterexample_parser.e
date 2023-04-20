@@ -22,13 +22,13 @@ feature
 
 		do
 			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.make%N")
-			
+
 			model_file_content := ""
 			create models.make_empty
 
 			create model_file.make_open_read (model_file_name)
 			print ("model file: " + model_file_name.to_string_8 + "%N")
-			model_file.read_stream (1000000)
+			model_file.read_stream ({INTEGER_32}.max_value)
 			model_file_content.copy (model_file.last_string)
 
 			models := split_models (model_file_content)
@@ -78,6 +78,7 @@ feature
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
 		do
 			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.parse_models%N")
+			print ("number of modelssss: " + models.count.out + "%N")
 			across models as m loop
 				create ce.make (m)
 				if counterexamples.has (ce.class_name + "." + ce.routine_name) then

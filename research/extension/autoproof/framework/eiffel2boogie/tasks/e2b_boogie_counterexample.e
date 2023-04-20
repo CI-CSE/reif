@@ -40,7 +40,7 @@ feature {NONE} -- Initialization
 			end
 
 			get_routine_and_class_name
-			print("parsing model time: " + current_timer.out + "%N")
+			-- print("parsing model time: " + current_timer.out + "%N")
 			stop_timer
 		end
 
@@ -319,6 +319,8 @@ feature -- Parse model
 				end
 				read_next_line
 			end
+			print("class name: " + class_name + " " + "routine name: " + routine_name + "%N")
+
 		end
 
 note

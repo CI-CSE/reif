@@ -59,7 +59,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			remaining_tasks.start
 			remaining_tasks.forth -- Skip current taks in queue
 				-- TODO: compute branch difference based on branch_info and branch_log
-			compute_uncovered_branch
+			-- compute_uncovered_branch
 			remaining_tasks.put_left (create {E2B_TRANSLATE_CHUNK_TASK}.make (l_translator_input, l_boogie_universe))
 			remaining_tasks.put_left (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
 			remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))

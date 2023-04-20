@@ -382,6 +382,7 @@ feature -- Basic operations
 
 				create l_if.make_if_then (factory.frame_access (l_fcall, a_translator.current_target, l_field),
 					factory.singleton_block (l_pcall))
+				l_if.node_info.set_attribute ("status", "ghost")
 				a_translator.side_effect.extend (l_if)
 			end
 		end

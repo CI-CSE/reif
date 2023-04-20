@@ -39,7 +39,7 @@ feature -- Initialize
 			create test_file.make_create_read_write (test_file_name)
 			generate_test_file
 
-			print("writing test script time: " + current_timer.out + "%N")
+			print ("writing test script time: " + current_timer.out + "%N")
 			stop_timer
 		end
 
@@ -93,7 +93,6 @@ feature -- Test generation
 			test_file.put_string (header.to_string_8)
 
 			across initial_states as s loop
-				print ("iniiii%N")
 				initial_state := s
 				target_feature := s.target_feature
 				target_class := s.target_class
@@ -276,13 +275,14 @@ feature -- Test generation
 			if not is_basic_type (object_type) and not is_aliased_with_existed_object (object_name) then
 				if object_type.name.has_substring ("SIMPLE_ARRAY") then
 					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + ".make_empty%N"
-				elseif object_type.name.has_substring ("V_ARRAY") then
+				elseif object_type.name.same_string ("V_ARRAY") or object_type.name.same_string ("V_ARRAY_INTEGER") then
 					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + ".make(1, 0)%N"
 						-- TODO: create clause for other container types
+				elseif object_type.name.same_string ("V_ARRAYED_LIST_INTEGER") then
+					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + ".default_create%N"
 				else
 					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + creation_routine_call (object_type).to_string_8 + "%N"
 				end
-
 			end
 		end
 
@@ -426,11 +426,18 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	force_item (object_name: STRING_32; item_value: STRING_32; i: INTEGER): STRING_32
+	force_item (object_name: STRING_32; object_type: STRING_32; item_value: STRING_32; i: INTEGER): STRING_32
 			-- Use force procedure to add elements to the container
+		local
+			force_routine_name: STRING
 		do
 			-- print ("E2B_GENERATE_TEST_SCRIPT.force_item%N")
-			Result := "%T%T%T" + object_name.to_string_8 + ".force(" + item_value.to_string_8 + ", " + i.out + ")%N"
+			if object_type.has_substring ("V_ARRAY2") then
+				force_routine_name := "flat_put"
+			else
+				force_routine_name := "force"
+			end
+			Result := "%T%T%T" + safe_object_name(object_name).to_string_8 + "." + force_routine_name + "(" + item_value.to_string_8 + ", " + i.out + ")%N"
 		end
 
 	instantiate_container_object (object_name: STRING_32; object_type: TYPE_A): STRING_32
@@ -448,9 +455,7 @@ feature -- Test generation
 
 			if type.has_substring ("V_ARRAY") or type.has_substring ("SIMPLE_ARRAY") then
 					-- TODO: add support for other container type
-
 				if sequence_lengths.has (value) and sequence_items.count > 0 then
-					print ("container size: " + sequence_lengths [value] + "%N")
 					from
 						i := 1
 					until
@@ -459,15 +464,18 @@ feature -- Test generation
 						if sequence_items.has (value + ", " + i.out) then
 							item_value := sequence_items [value + ", " + i.out]
 						end
-
-						t := t + force_item (object_name, item_value, i)
+						t := t + force_item (object_name, type, item_value, i)
 						i := i + 1
 					end
 				else
-					t := t + " -- No sequence for array " + object_name + "found in the model. %N"
+					t := t + " -- No sequence for array " + object_name + " found in the model. %N"
 				end
-
 				t := t + "%N"
+
+			elseif type.has_substring ("V_ARRAYED_LIST_INTEGER") then
+					-- TODO
+			elseif type.has_substring ("V_ARRAYED_LIST_INTEGER") then
+					-- TODO
 			end
 
 			Result.copy (t)
@@ -523,6 +531,10 @@ feature -- Test generation
 				end
 			else
 				t := type
+			end
+
+			if t.has_substring ("[like") then
+				t := t.split (' ').last
 			end
 			Result.copy (t)
 		end

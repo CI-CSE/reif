@@ -57,13 +57,13 @@ feature -- Access
 			Result := internal_last_result
 		end
 
-	last_output: detachable STRING
+	last_output: detachable STRING_32
 			-- Output of last run of Boogie.
 		do
 			Result := executable.last_output
 		end
 
-	last_models: detachable STRING
+	last_models: detachable STRING_32
 			-- Countereamples (if any) of last run of Boogie.
 		do
 			Result := executable.last_models
