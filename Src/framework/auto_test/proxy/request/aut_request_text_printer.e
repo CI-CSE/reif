@@ -89,6 +89,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
+			print_test_case_index (a_request)
 			output_stream.put_string (execute_request_header)
 			output_stream.put_string ("create {")
 			output_stream.put_string (type_name (a_request.target_type, a_request.creation_procedure))
@@ -112,6 +113,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
+			print_test_case_index (a_request)
 			output_stream.put_string (execute_request_header)
 			if a_request.is_feature_query then
 				output_stream.put_string (a_request.receiver.name (variable_name_prefix))
@@ -265,7 +267,7 @@ invariant
 	output_stream_is_writable: output_stream.is_open_write
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

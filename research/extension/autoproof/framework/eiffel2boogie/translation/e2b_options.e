@@ -272,6 +272,7 @@ feature -- Generate tests from proof failures
 			fix_elements.wipe_out
 		end
 
+
 feature --Postcondition mutation step
 
 	is_postcondition_mutation_enabled: BOOLEAN

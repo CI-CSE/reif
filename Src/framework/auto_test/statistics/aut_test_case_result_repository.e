@@ -116,7 +116,7 @@ feature -- Element change
 		do
 			witnesses.force_last (a_witness)
 			check
-				classifications_ok: a_witness.classifications.count <= 1
+				classifications_ok: a_witness.classifications.count <= 1 -- why <= 1?
 			end
 			from
 				cs := a_witness.classifications.new_cursor

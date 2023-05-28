@@ -45,6 +45,7 @@ feature {NONE} -- Initialization
 			a_feature_attached: attached a_feature
 			a_implementation_attached: attached a_implementation
 		do
+			print ("E2B_INSTRUCTION_TRANSLATOR.make " + a_feature.feature_name + "%N")
 			create entity_mapping.make
 			create locals_map.make (5)
 			local_writable := Void
@@ -53,6 +54,9 @@ feature {NONE} -- Initialization
 			current_feature := a_feature
 			current_type := a_type
 			current_block := current_implementation.body
+			print ("noteeee size: " + helper.feature_note_values (a_feature, "status").count.out + "%N")
+			current_implementation.procedure.set_status_values (helper.feature_note_values (a_feature, "status"))
+
 			if attached types.for_class_type (a_type) as t then
 				entity_mapping.set_current (create {IV_ENTITY}.make
 						(if attached {IV_ENTITY} entity_mapping.current_expression as e then
@@ -133,6 +137,8 @@ feature -- Basic operations
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 			l_call: IV_PROCEDURE_CALL
 		do
+			print ("process_feature_of_type: " + a_feature.feature_name + "%N")
+
 			create l_ownership_handler
 			create l_expr_translator.make
 			l_expr_translator.set_context (a_feature, a_type)
@@ -428,6 +434,11 @@ feature -- Processing
 			status_values: ARRAYED_LIST [READABLE_STRING_8]
 		do
 			print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
+			-- helper.options.set_conditional (True)
+			-- mapping: feature -> has_conditional
+			current_implementation.set_has_conditional (True)
+			current_implementation.procedure.set_has_conditional (True)
+			
 			status_values := helper.feature_note_values (a_node.context.current_feature, "status")
 			set_current_origin_information (a_node)
 
@@ -489,10 +500,8 @@ feature -- Processing
 
 						if status_values.has ("ghost") then
 							l_nested_if.node_info.set_attribute ("status", "ghost")
-							print ( "ghost%N")
 						elseif status_values.has ("lemma") then
 							l_nested_if.node_info.set_attribute ("status", "lemma")
-							print ( "lemma%N")
 						end
 							-- elseif block
 						current_block := l_nested_if.then_block
@@ -903,6 +912,7 @@ feature -- Processing
 				l_assert.node_info.set_type ("loop_var_decr")
 				add_statement (l_assert)
 			end
+
 			create l_goto.make (l_head_block)
 			add_statement (l_goto)
 			current_block := l_temp_block

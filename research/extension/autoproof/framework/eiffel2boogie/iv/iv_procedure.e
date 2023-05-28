@@ -24,6 +24,8 @@ feature {NONE} -- Initialization
 			create implementations.make
 			create opt_preconditions.make
 			create uncovered_branch_lines.make_empty
+			create status_values.make (0)
+
 			contracts.compare_objects
 		ensure
 			name_set: name ~ a_name
@@ -48,6 +50,9 @@ feature -- Access
 
 	opt_preconditions: LINKED_LIST [STRING_32]
 			-- List of preconditions for counterexample optimization
+
+	status_values: ARRAYED_LIST [READABLE_STRING_8]
+			-- List of values from the note tags.
 
 feature -- Element change
 
@@ -133,16 +138,16 @@ feature -- Element change
 		require
 			opt_preconditions_attached: attached opt_preconditions
 		do
-            opt_preconditions.extend (a_precondition)
+			opt_preconditions.extend (a_precondition)
 		end
 
 feature -- Test generation
 
-    set_is_full_coverage_tests_enabled (a_is_full_coverage_tests_enabled: BOOLEAN)
-    		-- Set `is_full_coverage_tests_enabled' to `a_is_full_coverage_tests_enabled'.
-    	do
-    		is_full_coverage_tests_enabled := a_is_full_coverage_tests_enabled
-    	end
+	set_is_full_coverage_tests_enabled (a_is_full_coverage_tests_enabled: BOOLEAN)
+			-- Set `is_full_coverage_tests_enabled' to `a_is_full_coverage_tests_enabled'.
+		do
+			is_full_coverage_tests_enabled := a_is_full_coverage_tests_enabled
+		end
 
 	is_full_coverage_tests_enabled: BOOLEAN
 			-- Is full-coverage tests generation enabled?
@@ -150,8 +155,33 @@ feature -- Test generation
 	uncovered_branch_lines: ARRAY [INTEGER]
 			-- Uncovered branches' line numbers in the latest test generation run
 
-	is_ghost_feature: BOOLEAN
+	is_ghost_or_lemma_feature: BOOLEAN
 			-- Is the current feature a ghost feature?
+		do
+			print ("is_ghost_or_lemma_feature" + "%N")
+			across status_values as v loop
+				print (v + " ")
+			end
+
+			Result := status_values.has ("ghost") or status_values.has ("lemma")
+		end
+
+	set_status_values (a_status_values: ARRAYED_LIST [READABLE_STRING_8])
+			-- Set `status_values' to `a_status_values'.
+		do
+
+			status_values := a_status_values.twin
+		end
+
+	has_conditional: BOOLEAN
+			-- Does current procedure contain any conditional?
+
+	set_has_conditional (a_value: BOOLEAN)
+		-- Set the `has_conditional' to `a_value'
+		do
+			has_conditional := a_value
+		end
+
 
 feature -- Visitor
 

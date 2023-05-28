@@ -75,14 +75,14 @@ feature {NONE} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
@@ -237,7 +237,7 @@ feature -- Time measurement
 	;
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

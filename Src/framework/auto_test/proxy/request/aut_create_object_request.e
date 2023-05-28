@@ -134,7 +134,7 @@ feature -- Access
 		end
 
 	operand_type_table: HASH_TABLE [TYPE_A, INTEGER]
-			-- A table for opernad indexes and their associated types
+			-- A table for operand indexes and their associated types
 			-- Key is 0-based operand index, value is type of that operand.
 		local
 			l_opd_types: like operand_types
@@ -194,7 +194,7 @@ invariant
 --	is_default_creatable: default_creation implies is_default_creatable (type.base_class, system)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

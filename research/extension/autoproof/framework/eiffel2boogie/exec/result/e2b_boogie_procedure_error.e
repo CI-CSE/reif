@@ -108,7 +108,7 @@ feature -- Element change
 	set_counterexample (a_counterexample: E2B_BOOGIE_COUNTEREXAMPLE)
 			-- Set `counterexample' to `a_counterexample'
 		do
-			print("E2B_BOOGIE_PROCEDURE_ERROR.set_counterexample%N")
+			-- print("E2B_BOOGIE_PROCEDURE_ERROR.set_counterexample%N")
 			counterexample := a_counterexample
 		end
 

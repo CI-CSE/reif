@@ -209,6 +209,7 @@ feature -- Basic operations
 			l_type: detachable TYPE_A
 			l_root: SYSTEM_ROOT
 		do
+			print("AUT_TEST_CASE_PRINTER.print_test_case%N")
 			if not system.root_creators.is_empty then
 				l_root := system.root_creators.first
 				if attached l_root.root_class.compiled_class as l_class then
@@ -292,6 +293,7 @@ feature {AUT_REQUEST} -- Processing
 			l_type: STRING
 			i: INTEGER
 		do
+			print ("AUT_TEST_CASE_PRINTER.process_create_object_request%N")
 			l_args := a_request.argument_list
 			l_type := type_name (a_request.target_type, a_request.creation_procedure)
 			print_indentation
@@ -369,6 +371,7 @@ feature {AUT_REQUEST} -- Processing
 			l_rec_type: TYPE_A
 			l_use_ot: BOOLEAN
 		do
+			print ("AUT_TEST_CASE_PRINTER.process_invoke_feature_request%N")
 			print_indentation
 			output_stream.put_string ("execute_safe (agent ")
 			output_stream.put_string (variable_name (a_request.target))
@@ -438,6 +441,7 @@ feature {AUT_REQUEST} -- Processing
 			l_use_ot: BOOLEAN
 			l_rtype, l_etype: detachable TYPE_A
 		do
+			print ("AUT_TEST_CASE_PRINTER.process_assign_expression_request%N")
 			l_rtype := variable_type (a_request.receiver)
 			if l_rtype /= Void then
 				if attached {ITP_VARIABLE} a_request.expression as l_var then
@@ -648,7 +652,7 @@ invariant
 	valid_expression_printer_output_stream: expression_printer.output_stream = output_stream
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

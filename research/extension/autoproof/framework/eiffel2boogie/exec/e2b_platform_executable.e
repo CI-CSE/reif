@@ -175,7 +175,7 @@ feature {NONE} -- Implementation
 			if l_context.options.is_enforcing_timeout then
 				l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
 			end
---			l_arguments.extend ({STRING_32} "/errorLimit:1")
+			l_arguments.extend ({STRING_32} "/errorLimit:0")
 			l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
 				-- l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand)
 			l_arguments.extend (boogie_file_name.name)

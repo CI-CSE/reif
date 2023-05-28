@@ -29,10 +29,9 @@ feature -- Initialize
 			create missing_values.make_empty
 
 			get_initial_state
-			-- print ("etract initial state time: " + current_timer.out + "%N")
+			print ("etract initial state time: " + current_timer.out + "%N")
 			stop_timer
 		end
-
 
 feature -- Data
 
@@ -63,9 +62,13 @@ feature -- Get initial state
 			arg_type: TYPE_A
 			i: INTEGER
 		do
-			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_initial_state%N")
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_initial_state%N")
 
 			arg_name := "";
+
+			-- get Void value
+			initial_values ["Void"] := ""
+			initial_values ["Void"].copy (ce.constants_values ["Void"])
 
 				-- get initial state of the current object
 			get_object_initial_state ("Current", target_class.actual_type)
@@ -79,8 +82,8 @@ feature -- Get initial state
 				loop -- Minimize each argument of the target feature
 					arg_name := target_feature.arguments.item_name_32 (i)
 					arg_type := target_feature.arguments.array_item (i - 1)
-					i := i + 1
 					get_object_initial_state (arg_name, arg_type)
+					i := i + 1
 				end
 			end
 
@@ -93,7 +96,7 @@ feature -- Get initial state
 			name, value: STRING_32
 		do
 			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.compute_alias%N")
-			alias_groups.make (0)
+			alias_groups.wipe_out
 
 			across initial_values.current_keys as k loop
 				name := k
@@ -185,6 +188,7 @@ feature -- Get initial values
 				-- end
 
 			Result := ce.seq_lengths [initial_values [a_var + ".sequence"]]
+			print ("seq lengthhhh: " + Result.out + "%N")
 
 		end
 
@@ -193,8 +197,6 @@ feature -- Get initial values
 		require
 			is_included: initial_values.has (a_var) and then ce.seq_lengths.has (initial_values [a_var + ".sequence"])
 		do
-			-- print (a_var + " at " + i.out + "%N")
-
 			Result := ce.seq_item [initial_values [a_var + ".sequence"] + ", " + i]
 		end
 
@@ -203,8 +205,8 @@ feature -- Get initial values
 		require
 			is_included: ce.constants_values.has (object_name)
 		do
-			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_value%N")
-			-- Current.balance
+				-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_value%N")
+				-- Current.balance
 			Result := ce.constants_values [object_name]
 		end
 
@@ -216,9 +218,8 @@ feature -- Get initial values
 			field_type: TYPE_A
 
 		do
-			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields%N")
+			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields for: " + object_name.to_string_8 + "%N")
 			field_name := ""; field_value := ""
-
 			if object_type.has_associated_class then
 				from
 					i := 1
@@ -227,21 +228,26 @@ feature -- Get initial values
 				loop
 					field_name := object_type.base_class.skeleton [i].attribute_name -- object.field
 					field_type := object_type.base_class.skeleton [i].type_i
+
+					if not is_ignored_field (field_name, field_type) then
+
+						if ce.class_field_relations.has (object_type.name + "." + field_name.to_string_8)
+							and ce.heap_function.has (initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name.to_string_8]) then
+
+							field_value.copy (ce.heap_function [initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name.to_string_8]])
+						else
+							field_value := ""
+						end
+
+						initial_values [object_name + "." + field_name] := ""
+						initial_values [object_name + "." + field_name].copy (field_value)
+
+						if is_reference_type (field_type) then
+							get_object_fields (object_name + "." + field_name, field_type)
+						end
+
+					end
 					i := i + 1
-
-					if ce.class_field_relations.has (object_type.name + "." + field_name.to_string_8)
-						and ce.heap_function.has (initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name.to_string_8]) then
-
-						field_value.copy (ce.heap_function [initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name.to_string_8]])
-
-					end
-
-					initial_values [object_name + "." + field_name] := ""
-					initial_values [object_name + "." + field_name].copy (field_value)
-
-					if is_reference_type (field_type) then
-						get_object_fields (object_name + "." + field_name, field_type)
-					end
 				end
 			end
 		end
@@ -312,7 +318,8 @@ feature -- Properties checking
 			if type.has_associated_class then
 				type_name := type.base_class.name
 				if type_name.same_string ("INTEGER") or type_name.same_string ("INTEGER_32") or
-					type_name.same_string ("NATURAL") or type_name.same_string ("BOOLEAN") or
+					type_name.same_string ("NATURAL")  or type_name.same_string ("NATURAL_32") or type_name.same_string ("NATURAL_64") or
+					type_name.same_string ("BOOLEAN") or
 					type_name.same_string ("CHARACTER") or type_name.same_string ("REAL") then
 					Result := True
 				end
@@ -324,6 +331,20 @@ feature -- Properties checking
 			-- Is the given type a reference type?
 		do
 			Result := not is_basic_type (type)
+		end
+
+	is_ignored_field (name: STRING_32; type: TYPE_A): BOOLEAN
+		do
+			Result := (type.name.same_string ("V_LINKABLE_INTEGER") and (name.same_string ("right"))) or -- `right' in V_LINKABLE_INTEGER
+				(type.name.same_string ("V_DOUBLY_LINKABLE_INTEGER") and (name.same_string ("left") or name.same_string ("right"))) or
+				name.last_index_of ('_', name.count) = name.count or -- ghost attributes
+				-- type.name.has_substring ("MML_SEQUENCE") or
+				type.name.has_substring ("MML_SET") or
+				type.name.has_substring ("MML_BAG") or
+				type.name.has_substring ("MML_INTERVAL") or
+				type.name.has_substring ("MML_MAP") or
+				type.name.has_substring ("MML_PAIR") or
+				type.name.has_substring ("MML_RELATION")
 		end
 
 note

@@ -871,6 +871,7 @@ feature {NONE} -- Basic operations
 			create pt_command.make (a_error, a_failure, l_row)
 			-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
 			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action (ce_init_state) end)
+
 			l_row.set_item (info_column, l_lab)
 			l_row.set_background_color (partial_color)
 		end

@@ -43,15 +43,42 @@ feature -- Status report
 			Result := statements.is_empty
 		end
 
-	is_conditional_leaf: BOOLEAN
+	is_conditional_leaf (a_is_then_block: BOOLEAN; a_condition: IV_STATEMENT_ORIGIN): BOOLEAN
 	    	-- Is this block a conditional leaf block
+	    local
+	    	i: INTEGER
+	    	--TODO: use an array of string to store the actual lines
+	    	-- when deciding whether it's a conditional leaf, check if the if-statement is the last line
+	    	stm_lines: ARRAY [STRING_32]
+	    	cond_line: STRING
 	    do
-	    	Result := True
-	    	across statements as s loop -- check if the block contains nested conditional
-	    		if attached s.origin_information as oi and then oi.text_of_line.has_substring ("if ") then
-					Result := False
-	    		end
+	    		if attached a_condition then
+					cond_line := a_condition.text_of_line
+				else
+					cond_line := ""
+				end
+	    	create stm_lines.make_empty
+	    	across statements as s loop
+	 			if attached s.origin_information as oi then
+	 				-- print ("block line: " + oi.text_of_line + "%N")
+					stm_lines.force (oi.text_of_line, stm_lines.count)
+	 			end
 	    	end
+
+			print ("countttt: " + stm_lines.count.out + "%N")
+	    	Result := True
+			from
+				i := 0
+			until
+				i = stm_lines.count -- or Result = False
+			loop
+				print ("i: " + i.out +  " " + stm_lines [i].to_string_8 + "%N")
+				-- TODO: to make sure this works for the LAMP example
+				if stm_lines [i].has_substring ("if ") and ((not a_is_then_block) or (a_is_then_block and not stm_lines [i].same_string (cond_line)))then
+						Result := False
+				end
+				i := i + 1
+			end
 	    end
 
 feature -- Access

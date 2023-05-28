@@ -46,6 +46,7 @@ feature {NONE} -- Initialization
 	make (an_output_dirname: like output_dirname; a_system: like system; a_classes_under_test: like classes_under_test)
 			-- Create new html generator.
 		do
+			print ("AUT_HTML_STATISTICS_GENERATOR.make%N")
 			Precursor (an_output_dirname, a_system, a_classes_under_test)
 			create test_case_printer.make_null (system)
 		end
@@ -99,6 +100,7 @@ feature -- Status setting
 			l_repo: like repository
 			l_cursor: like cursor
 		do
+			print ("AUT_HTML_STATISTICS_GENERATOR.start%N")
 			l_repo := repository
 			if l_repo /= Void then
 				current_id := 0
