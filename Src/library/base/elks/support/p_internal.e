@@ -72,4 +72,44 @@ feature
 			instance_free: class
 		end
 
+	set_reference_field_ (name: STRING_32; object: ANY; object_value: ANY)
+			-- Set value of an object field of reference type
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+			loop
+				i := i + 1
+			end
+
+			if i <= field_count (object) then
+				set_reference_field (i, object, object_value)
+			end
+		ensure
+			instance_free: class
+		end
+
+	set_natural_64_field_ (name: STRING_32; object: ANY; value: NATURAL_64)
+			-- Set value of an object field of natural_64 type
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+			loop
+				i := i + 1
+			end
+			if i <= field_count (object) then
+				set_natural_64_field (i, object, value)
+			end
+
+		ensure
+			instance_free: class
+		end
+
 end

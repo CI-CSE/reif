@@ -125,7 +125,7 @@ feature {AUT_REQUEST} -- Processing
 			l_compound_count: INTEGER
 			l_local_count: INTEGER
 		do
-			-- print("AUT_REQUEST_PRINTER.process_create_object_request%N")
+			print("AUT_REQUEST_PRINTER.process_create_object_request%N")
 			l_feature := a_request.creation_procedure
 			l_argument_count := a_request.argument_count
 			l_local_count := l_argument_count + 1
@@ -183,7 +183,7 @@ feature {AUT_REQUEST} -- Processing
 			l_context_class: CLASS_C
 			l_context_type: TYPE_A
 		do
-			-- print("AUT_REQUEST_PRINTER.process_invoke_feature_request%N")
+			print("AUT_REQUEST_PRINTER.process_invoke_feature_request%N")
 			l_context_class := a_request.class_of_target_type
 			l_context_type := l_context_class.constraint_actual_type
 				-- If the to be called feature is a query, we need one more instruction
@@ -272,7 +272,7 @@ feature {AUT_REQUEST} -- Processing
 			l_byte_node: STD_BYTE_CODE
 			l_locals: ARRAYED_LIST [TYPE_A]
 		do
-			-- print("AUT_REQUEST_PRINTER.process_assign_expression_request%N")
+			print("AUT_REQUEST_PRINTER.process_assign_expression_request%N")
 			create l_byte_node
 			create l_compound.make (2)
 			create l_locals.make (1)
@@ -288,7 +288,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_batch_assignment_request (a_request: AUT_BATCH_ASSIGNMENT_REQUEST)
 		do
-			-- print("AUT_REQUEST_PRINTER.process_batch_assignment_request%N")
+			print("AUT_REQUEST_PRINTER.process_batch_assignment_request%N")
 			last_request := [execute_batch_assignment_flag, [a_request.receivers, a_request.serialized_objects]]
 		end
 
@@ -297,14 +297,14 @@ feature {AUT_REQUEST} -- Processing
 				-- Format of type request:
 				-- [type_request_flag: NATURAL_8; variable_index: STRING]
 				-- `variable_index' is the index of the object whose type is asked.
-			-- print("AUT_REQUEST_PRINTER.process_type_request%N")
+			print("AUT_REQUEST_PRINTER.process_type_request%N")
 			last_request := [type_request_flag, a_request.variable.index.out]
 		end
 
 	process_object_state_request (a_request: AUT_OBJECT_STATE_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PRINTER.process_object_state_request%N")
+			print("AUT_REQUEST_PRINTER.process_object_state_request%N")
 			print_execute_request_with_string_byte_code (a_request.byte_codes, object_state_request_flag)
 		end
 
@@ -317,7 +317,7 @@ feature {AUT_REQUEST} -- Processing
 	process_predicate_evaluation_request (a_request: AUT_PREDICATE_EVALUATION_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PRINTER.process_predicate_evaluation_request%N")
+			print("AUT_REQUEST_PRINTER.process_predicate_evaluation_request%N")
 			last_request := [predicate_evaluation_request_flag, a_request.predicates]
 		end
 
@@ -336,7 +336,7 @@ feature {NONE} -- Byte code generation
 			l_local: LOCAL_B
 			l_integer_expr: INTEGER_CONSTANT
 		do
-			-- print("AUT_REQUEST_PRINTER.new_check_invariant_feature_call%N")
+			print("AUT_REQUEST_PRINTER.new_check_invariant_feature_call%N")
 			create l_parameters.make (2)
 				-- Setup argument for object index.
 			create l_object_pool_index_param
@@ -374,7 +374,7 @@ feature {NONE} -- Byte code generation
 			l_parameters: BYTE_LIST [PARAMETER_B]
 			l_local: LOCAL_B
 		do
-			-- print("AUT_REQUEST_PRINTER.new_record_query_feature_call%N")
+			print("AUT_REQUEST_PRINTER.new_record_query_feature_call%N")
 			create l_parameters.make (1)
 
 			create l_param
@@ -492,7 +492,7 @@ feature {NONE} -- Byte code generation
 			l_feature: like feature_for_byte_code_injection
 			l_local_count: INTEGER
 		do
-			-- print("AUT_REQUEST_PRINTER.setup_byte_code_in_context%N")
+			print("AUT_REQUEST_PRINTER.setup_byte_code_in_context%N")
 			l_feature := feature_for_byte_code_injection
 
 				-- Setup new byte code.
@@ -538,7 +538,7 @@ feature {NONE} -- Byte code generation
 			l_byte_code_data: STRING
 			l_extra: detachable ANY
 		do
-			-- print("AUT_REQUEST_PRINTER.print_execute_request%N")
+			print("AUT_REQUEST_PRINTER.print_execute_request%N")
 			l_feature := feature_for_byte_code_injection
 
 				-- Setup new byte node.
@@ -641,7 +641,7 @@ feature{NONE} -- Precondition satisfaction
 			l_is_creation: BOOLEAN
 			l_is_query: BOOLEAN
 		do
-			-- print("AUT_REQUEST_PRINTER.setup_extra_data_for_test_case_serialization%N")
+			print("AUT_REQUEST_PRINTER.setup_extra_data_for_test_case_serialization%N")
 			if
 				a_data /= Void and then
 				interpreter.configuration.is_test_case_serialization_enabled
@@ -679,7 +679,7 @@ feature{NONE} -- Precondition satisfaction
 			l_variable: ITP_VARIABLE
 			l_operands: SPECIAL [INTEGER]
 		do
-			-- print("AUT_REQUEST_PRINTER.setup_extra_data_for_precondition_satisfaction%N")
+			print("AUT_REQUEST_PRINTER.setup_extra_data_for_precondition_satisfaction%N")
 			if
 				a_data /= Void and then
 				interpreter.configuration.is_precondition_checking_enabled and then
@@ -718,7 +718,7 @@ invariant
 	expression_b_visitor_attached: expression_b_visitor /= Void
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

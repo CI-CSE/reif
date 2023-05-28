@@ -40,7 +40,7 @@ feature {NONE} -- Initialization
 --			a_procedure_is_not_infix_or_prefix: not a_procedure.name.is_prefix and not a_procedure.name.is_infix
 			no_argument_void: not an_argument_list.has (Void)
 		do
-			-- print("AUT_CREATE_OBJECT_REQUEST.make%N")
+			print("AUT_CREATE_OBJECT_REQUEST.make%N")
 			make_request (a_system)
 			target := a_receiver
 			target_type := a_type
@@ -132,7 +132,7 @@ feature -- Access
 		end
 
 	operand_type_table: HASH_TABLE [TYPE_A, INTEGER]
-			-- A table for opernad indexes and their associated types
+			-- A table for operand indexes and their associated types
 			-- Key is 0-based operand index, value is type of that operand.
 		local
 			l_opd_types: like operand_types
@@ -178,7 +178,7 @@ feature -- Processing
 	process (a_processor: AUT_REQUEST_PROCESSOR)
 			-- Process current request.
 		do
-			-- print("AUT_CREATE_OBJECT_REQUEST.process%N")
+			print("AUT_CREATE_OBJECT_REQUEST.process%N")
 			a_processor.process_create_object_request (Current)
 		end
 
@@ -193,7 +193,7 @@ invariant
 --	is_default_creatable: default_creation implies is_default_creatable (type.base_class, system)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

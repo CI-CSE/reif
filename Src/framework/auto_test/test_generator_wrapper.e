@@ -52,7 +52,7 @@ feature {NONE} -- Status setting
 			l_names: LIST[STRING]
 			l_test_task: ETEST_GENERATION_TESTING
 		do
-			-- print("TEST_GENERATOR_WRAPPER.remove_task%N")
+			print("TEST_GENERATOR_WRAPPER.remove_task%N")
 			if not a_cancel then
 				if
 					attached {like new_melt_task} sub_task as l_task and then
@@ -221,7 +221,7 @@ feature{NONE} -- Implementation
 	file_name_of_new_root_class: FILE_NAME
 
 ;note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

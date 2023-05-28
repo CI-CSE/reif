@@ -116,7 +116,7 @@ feature -- Element change
 		do
 			witnesses.force_last (a_witness)
 			check
-				classifications_ok: a_witness.classifications.count <= 1
+				classifications_ok: a_witness.classifications.count <= 1 -- why <= 1?
 			end
 			from
 				cs := a_witness.classifications.new_cursor
@@ -165,7 +165,7 @@ invariant
 	no_witness_void: not witnesses.has (Void)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

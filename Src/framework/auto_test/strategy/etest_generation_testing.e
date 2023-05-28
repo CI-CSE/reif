@@ -40,7 +40,7 @@ feature {NONE} -- Initialization
 		require
 			a_generation_attached: a_generation /= Void
 		do
-			-- -- print ("ETEST_GENERATION_TESTING.make%N")
+			print ("ETEST_GENERATION_TESTING.make%N")
 			generation := a_generation
 			create interpreter_generator.make (generation)
 			create used_witnesses.make_default
@@ -58,7 +58,7 @@ feature {NONE} -- Initialization
 			l_itp: like new_interpreter
 			l_task: AUT_RANDOM_STRATEGY
 		do
-			-- -- print ("ETEST_GENERATION_TESTING.make_random%N")
+			print ("ETEST_GENERATION_TESTING.make_random%N")
 			make (a_generation)
 
 			l_itp := new_interpreter
@@ -197,7 +197,7 @@ feature -- Status setting
 		local
 			l_generation: like generation
 		do
-			-- print ("ETEST_GENERATION_TESTING.start%N")
+			print ("ETEST_GENERATION_TESTING.start%N")
 			l_generation := generation
 			l_generation.error_handler.report_random_testing
 			l_generation.error_handler.set_start_time (system_clock.date_time_now)
@@ -205,7 +205,7 @@ feature -- Status setting
 				update_remaining_time
 			end
 			l_generation.error_handler.reset_counters (l_generation.test_count)
-			if attached sub_task as l_sub_task then -- !! sub_task is Void?
+			if attached sub_task as l_sub_task then
 				sub_task.start
 			end
 		end
@@ -222,7 +222,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Status setting
 			l_generation: like generation
 			l_error_handler: AUT_ERROR_HANDLER
 		do
-			-- print ("ETEST_GENERATION_TESTING.step%N")
+			print ("ETEST_GENERATION_TESTING.step%N")
 			l_generation := generation
 			if sub_task = test_task then
 				l_total := l_generation.time_out.second_count
@@ -275,7 +275,7 @@ feature {NONE} -- Status setting
 		local
 			l_witness: detachable AUT_WITNESS
 		do
-			-- print ("ETEST_GENERATION_TESTING.remove_task%N")
+			print ("ETEST_GENERATION_TESTING.remove_task%N")
 			if not a_cancel then
 					-- We access the cache so if it wasn't initialized yet it won't be.
 				if sub_task = minimize_task_cache then
@@ -307,7 +307,7 @@ feature {NONE} -- Status setting
 			l_witness: AUT_WITNESS
 			l_task: like minimize_task
 		do
-			-- print ("ETEST_GENERATION_TESTING.start_minimization%N")
+			print ("ETEST_GENERATION_TESTING.start_minimization%N")
 			l_witnesses := result_repository_builder.result_repository.witnesses
 			if l_witnesses.count > last_minimized_witness then
 				last_minimized_witness := last_minimized_witness + 1

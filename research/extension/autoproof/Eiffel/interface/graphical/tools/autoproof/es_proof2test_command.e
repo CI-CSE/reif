@@ -586,6 +586,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			print("number of test cases: " + options.init_states_of_counterexamples.count.out + "%N")
 
 			proof2test.generate_tests (options.init_states_of_counterexamples) -- generate a test for a single counterexample each time
+			options.init_states_of_counterexamples.wipe_out
 			-- proof2test.generate_test_for_ce (a_ce_init_state) -- TODO: generate tests for single ce
 				-- create l_dialog.make_standard ("Proof2Test finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
 				-- l_dialog.show_on_active_window

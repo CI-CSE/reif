@@ -30,7 +30,7 @@ feature {NONE} -- Initialization
 	make (a_system: like system)
 			-- <Precursor>
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.make%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.make%N")
 			Precursor {AUT_PROXY_EVENT_RECORDER} (a_system)
 			create result_repository.make
 		end
@@ -57,7 +57,7 @@ feature -- Report
 	report_request (a_producer: AUT_PROXY_EVENT_PRODUCER; a_request: AUT_REQUEST)
 			-- <Precursor>
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.report_request%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.report_request%N")
 			Precursor (a_producer, a_request)
 			a_request.set_test_case_index (last_test_case_index)
 			a_request.set_start_time (last_test_case_start_time)
@@ -67,7 +67,7 @@ feature {NONE} -- Processing
 
 	process_start_request (a_request: AUT_START_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_start_request%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.process_start_request%N")
 			check
 				a_request_in_history: request_history.has (a_request)
 			end
@@ -77,14 +77,14 @@ feature {NONE} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
@@ -104,7 +104,7 @@ feature {NONE} -- Implementation
 		local
 			witness: AUT_WITNESS
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.update_result_repository%N")
+			print("AUT_RESULT_REPOSITORY_BUILDER.update_result_repository%N")
 			create witness.make (request_history, last_start_index, request_history.count)
 			result_repository.add_witness (witness)
 		end
@@ -229,7 +229,7 @@ feature -- Time measurement
 	;
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -42,7 +42,7 @@ feature {NONE} -- Initialization
 			an_output_stream_not_void: an_output_stream /= Void
 			an_output_stream_is_writable: an_output_stream.is_open_write
 		do
-			-- print("AUT_TEST_CASE_PRINTER.make%N")
+			print("AUT_TEST_CASE_PRINTER.make%N")
 			system := a_system
 			output_stream  := an_output_stream
 			create expression_printer.make (output_stream)
@@ -54,7 +54,7 @@ feature {NONE} -- Initialization
 	make_null (a_system: like system)
 			-- Create a new AST printer, initialized with a null output stream.
 		do
-			-- print("AUT_TEST_CASE_PRINTER.make_null%N")
+			print("AUT_TEST_CASE_PRINTER.make_null%N")
 			make (a_system, null_output_stream)
 		ensure then
 			output_stream_set: output_stream = null_output_stream
@@ -118,7 +118,7 @@ feature -- Status setting
 		require
 			an_output_stream_not_void: an_output_stream /= Void
 		do
-			-- print("AUT_TEST_CASE_PRINTER.set_output_stream%N")
+			print("AUT_TEST_CASE_PRINTER.set_output_stream%N")
 			output_stream := an_output_stream
 			expression_printer.set_output_stream (output_stream)
 		ensure
@@ -212,6 +212,7 @@ feature -- Basic operations
 			l_type: detachable TYPE_A
 			l_root: SYSTEM_ROOT
 		do
+			print("AUT_TEST_CASE_PRINTER.print_test_case%N")
 			if not system.root_creators.is_empty then
 				l_root := system.root_creators.first
 				if attached l_root.root_class.compiled_class as l_class then
@@ -295,6 +296,7 @@ feature {AUT_REQUEST} -- Processing
 			l_type: STRING
 			i: INTEGER
 		do
+			print ("AUT_TEST_CASE_PRINTER.process_create_object_request%N")
 			l_args := a_request.argument_list
 			l_type := type_name (a_request.target_type, a_request.creation_procedure)
 			print_indentation
@@ -372,6 +374,7 @@ feature {AUT_REQUEST} -- Processing
 			l_rec_type: TYPE_A
 			l_use_ot: BOOLEAN
 		do
+			print ("AUT_TEST_CASE_PRINTER.process_invoke_feature_request%N")
 			print_indentation
 			output_stream.put_string ("execute_safe (agent ")
 			output_stream.put_string (variable_name (a_request.target))
@@ -441,6 +444,7 @@ feature {AUT_REQUEST} -- Processing
 			l_use_ot: BOOLEAN
 			l_rtype, l_etype: detachable TYPE_A
 		do
+			print ("AUT_TEST_CASE_PRINTER.process_assign_expression_request%N")
 			l_rtype := variable_type (a_request.receiver)
 			if l_rtype /= Void then
 				if attached {ITP_VARIABLE} a_request.expression as l_var then
@@ -651,7 +655,7 @@ invariant
 	valid_expression_printer_output_stream: expression_printer.output_stream = output_stream
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

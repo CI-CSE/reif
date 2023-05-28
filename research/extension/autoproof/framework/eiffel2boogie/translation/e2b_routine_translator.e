@@ -583,6 +583,7 @@ feature -- Translation: Implementation
 			l_builtin_collector: E2B_BUILTIN_CALLS_COLLECTOR
 			l_loc: IV_ENTITY
 		do
+			-- print ("E2B_ROUTINE_TRANSLATOR.translate_implementation: "+ a_feature.feature_name + "%N")
 			set_context (a_feature, a_type)
 			set_inlining_options_for_feature (a_feature)
 
@@ -700,6 +701,7 @@ feature -- Translation: Implementation
 					end
 				end
 			end
+			-- print ("E2B_ROUTINE_TRANSLATOR.translate_implementation: "+ a_feature.feature_name + " end%N")
 		end
 
 feature -- Translation: Functions

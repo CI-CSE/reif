@@ -32,7 +32,12 @@ feature {NONE} -- Initialization
 			model_lines := model.split ('%N')
 
 			get_constants_values
-			get_heap_function
+			from
+			until
+				end_of_model_file or not heap_function.is_empty
+			loop
+				get_heap_function
+			end
 
 			if model.has_substring ("sequence") then
 				get_sequence_elements
@@ -118,16 +123,21 @@ feature -- Parse model
 
 	safe_name (name: STRING_32): STRING_32
 			-- Get a valid name
+		local
+			words: LIST [STRING_32]
 		do
-			if name.has_substring ("@@") then
-				Result := name.split ('@').first
+			if name.has_substring ("@@") then -- this is usually the form of arguments; get rid of the prefix and suffix to get the actual argument name
+				words := name.split ('@')
+				Result := words.at (words.count - 2)
 					-- elseif name.same_string ("Current") then
 					--	Result := "current_object"
+
 			elseif name.has ('.') then
 				Result := safe_type(name.split ('.').first).to_string_8 + "." + name.split ('.').last.to_string_8
 			else
 				Result := name
 			end
+
 		end
 
 	get_constants_values
@@ -164,7 +174,6 @@ feature -- Parse model
 						constants_values [name].copy (value)
 					end
 					-- print ("constant value: " + name.to_string_8 + " -> " + value.to_string_8 + "%N")
-
 				end
 				read_next_line
 			end
@@ -176,13 +185,13 @@ feature -- Parse model
 			line, value: STRING_32
 			words: LIST [STRING_32]
 		do
+			-- print ("E2B_BOOGIE_COUNTEREXAMPLE.get_heap_function%N")
 			line := ""; value := ""
 			from
 			until
-				end_of_model_file or model_lines [line_index].has_substring ("MapType0Select")
+				end_of_model_file or (model_lines [line_index].has_substring ("MapType") and model_lines [line_index].has_substring("Select"))
 			loop
 				read_next_line
-
 			end
 
 			from
@@ -190,6 +199,7 @@ feature -- Parse model
 			until
 				end_of_model_file or else model_lines [line_index].has_substring ("}")
 			loop
+				-- print ("lll: " +  line.to_string_8 + "heap value" + constants_values ["Heap"] + "%N")
 				if model_lines [line_index].has_substring (constants_values ["Heap"]) then
 					line.copy (model_lines [line_index])
 					words := line.split (' ')
@@ -204,7 +214,6 @@ feature -- Parse model
 				end
 				read_next_line
 			end
-
 		end
 
 	get_sequence_elements
@@ -268,6 +277,7 @@ feature -- Parse model
 			words: LIST [STRING_32]
 		do
 			line := ""; value := ""; key := ""
+			seq_lengths.wipe_out
 
 			from
 			until
@@ -284,7 +294,12 @@ feature -- Parse model
 				line.copy (model_lines [line_index])
 				if not line.has_substring ("else") then
 					words := line.split (' ')
-					seq_lengths.extend (words [5], words [3])
+					if not seq_lengths.has (words [3]) then
+						seq_lengths.extend (words [5], words [3])
+					else
+						seq_lengths [words [3]] := words [5].twin
+					end
+
 				end
 				read_next_line
 			end
@@ -319,7 +334,7 @@ feature -- Parse model
 				end
 				read_next_line
 			end
-			print("class name: " + class_name + " " + "routine name: " + routine_name + "%N")
+			-- print("class name: " + class_name + " " + "routine name: " + routine_name + "%N")
 
 		end
 

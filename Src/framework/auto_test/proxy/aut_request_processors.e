@@ -45,14 +45,14 @@ feature {AUT_REQUEST} -- Processing
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_create_object_request%N")
+			print("AUT_REQUEST_PROCESSORS.process_create_object_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_invoke_feature_request%N")
+			print("AUT_REQUEST_PROCESSORS.process_invoke_feature_request%N")
 			do_all (agent a_request.process (?))
 		end
 
@@ -98,7 +98,7 @@ feature {AUT_REQUEST} -- Processing
 			do_all (agent a_request.process (?))
 		end
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

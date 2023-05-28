@@ -114,7 +114,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
-			-- print("AUT_PROXY_EVENT_RECORDER.process_create_object_request%N")
+			print("AUT_PROXY_EVENT_RECORDER.process_create_object_request%N")
 			if a_request.response = Void then
 				if attached last_response as l_response then
 					l_last_response := l_response
@@ -137,7 +137,7 @@ feature {NONE} -- Implementation
 	process_start_request (a_request: AUT_START_REQUEST)
 			-- <Precursor>
 		do
-			-- print("AUT_PROXY_EVENT_RECORDER.process_start_request%N")
+			print("AUT_PROXY_EVENT_RECORDER.process_start_request%N")
 			check last_response = Void end
 			a_request.set_response (create {AUT_NORMAL_RESPONSE}.make (""))
 			variable_table.wipe_out
@@ -148,7 +148,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
-			-- print("AUT_PROXY_EVENT_RECORDER.process_stop_request%N")
+			print("AUT_PROXY_EVENT_RECORDER.process_stop_request%N")
 			if a_request.response = Void then
 				if attached last_response as l_response then
 					l_last_response := l_response
@@ -164,7 +164,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
-			-- print("AUT_PROXY_EVENT_RECORDER.process_invoke_feature_request%N")
+			print("AUT_PROXY_EVENT_RECORDER.process_invoke_feature_request%N")
 			if a_request.target_type = Void then
 				if variable_table.is_variable_defined (a_request.target) then
 					a_request.set_target_type (variable_table.variable_type (a_request.target))
@@ -191,6 +191,7 @@ feature {NONE} -- Implementation
 		local
 			l_last_response: AUT_RESPONSE
 		do
+			print("AUT_PROXY_EVENT_RECORDER.process_assign_expression_request%N")
 			if a_request.response = Void then
 				if attached last_response as l_response then
 					l_last_response := l_response
@@ -207,6 +208,7 @@ feature {NONE} -- Implementation
 			l_last_response: AUT_RESPONSE
 			l_text: STRING
 		do
+			print("AUT_PROXY_EVENT_RECORDER.process_type_request%N")
 			if a_request.response = Void then
 				if attached last_response as l_response then
 					l_last_response := l_response
@@ -230,6 +232,7 @@ feature {NONE} -- Implementation
 		local
 			l_state_response: AUT_OBJECT_STATE_RESPONSE
 		do
+			print("AUT_PROXY_EVENT_RECORDER.process_object_state_request%N")
 			if attached {AUT_NORMAL_RESPONSE} last_response as l_normal_response then
 				if attached {AUT_OBJECT_STATE_RESPONSE} l_normal_response as l_sresponse then
 					l_state_response := l_sresponse
@@ -260,7 +263,7 @@ invariant
 	no_void_request_in_history: not request_history.has (Void)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

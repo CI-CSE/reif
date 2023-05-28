@@ -50,7 +50,7 @@ feature {NONE} -- Initialization
 	make (a_interpreter: like interpreter; a_system: like system; an_error_handler: like error_handler)
 			-- <Precursor>
 		do
-			-- print("AUT_WITNESS_MINIMIZER.make%N")
+			print("AUT_WITNESS_MINIMIZER.make%N")
 			Precursor (a_interpreter, a_system, an_error_handler)
 
 			create player.make (interpreter, system, error_handler)
@@ -389,7 +389,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -151,7 +151,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			-- print("AUT_REQUEST_PLAYER.process_create_object_request%N")
+			print("AUT_REQUEST_PLAYER.process_create_object_request%N")
 			if a_request.argument_list /= Void and then interpreter.variable_table.are_expressions_valid (a_request.argument_list) then
 				interpreter.create_object (a_request.target, a_request.target_type, a_request.creation_procedure, a_request.argument_list)
 				a_request.set_response (interpreter.last_request.response)
@@ -164,7 +164,7 @@ feature {AUT_REQUEST} -- Processing
 		local
 			l_variable_table: AUT_VARIABLE_TABLE
 		do
-			-- print("AUT_REQUEST_PLAYER.process_invoke_feature_request%N")
+			print("AUT_REQUEST_PLAYER.process_invoke_feature_request%N")
 			l_variable_table := interpreter.variable_table
 			a_request.set_target_type (l_variable_table.variable_type (a_request.target))
 			if
@@ -243,7 +243,7 @@ invariant
 	request_list_cursor_valid: request_list_cursor.container = request_list
 	interpreter_in_replay_mode: interpreter.is_replaying
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

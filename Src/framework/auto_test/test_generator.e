@@ -662,7 +662,7 @@ feature -- Status setting
 			not_running: not has_next_step
 		do
 			class_names.force_last (a_class_name.as_string_8)
-			-- print("TEST_GENERATOR.add_class_name: " + a_class_name.as_string_8 + "%N")
+			print("TEST_GENERATOR.add_class_name: " + a_class_name.as_string_8 + "%N")
 		ensure
 			added: class_names.there_exists (agent {STRING_8}.same_string (a_class_name))
 		end
@@ -1185,7 +1185,7 @@ feature -- Basic operations
 	step
 			-- <Precursor>
 		do
-			-- print("TEST_GENERATOR.step%N")
+			print("TEST_GENERATOR.step%N")
 			Precursor
 			flush_output
 			proceeded_event.publish ([Current])
@@ -1196,7 +1196,7 @@ feature {NONE} -- Basic operations
 	start_creation
 			-- <Precursor>
 		do
-			-- print("TEST_GENERATOR.start_creation%N")
+			print("TEST_GENERATOR.start_creation%N")
 			random.start
 			set_is_random_testing_enabled (True)
 			prepare
@@ -1208,7 +1208,7 @@ feature {NONE} -- Basic operations
 		local
 			l_stat_task: ETEST_GENERATION_STATISTICS
 		do
-			-- print("TEST_GENERATOR.remove_task%N")
+			print("TEST_GENERATOR.remove_task%N")
 			if not a_cancel and attached {ETEST_GENERATION_TESTING} sub_task as l_task then
 				create l_stat_task.make (Current)
 				l_stat_task.start (l_task.result_repository, l_task.classes_under_test)
@@ -1222,7 +1222,7 @@ feature {NONE} -- Basic operations
 	clean
 			-- Clean up any resources used during testing.
 		do
-			-- print("TEST_GENERATOR.clean%N")
+			print("TEST_GENERATOR.clean%N")
 			sub_task := Void
 			flush_output
 			if attached output_file as l_file then
@@ -1243,7 +1243,7 @@ feature {NONE} -- Implementation: preparation
 			l_file: KL_TEXT_OUTPUT_FILE_32
 			l_error_handler: AUT_ERROR_HANDLER
 		do
-			--- print("TEST_GENERATOR.prepare%N")
+			print("TEST_GENERATOR.prepare%N")
 			eiffel_layout.check_environment_variable
 			eiffel_layout.set_precompile (False)
 
@@ -1278,7 +1278,7 @@ feature {NONE} -- Implementation: preparation
 		local
 			l_test_task: ETEST_GENERATION_TESTING
 		do
-			-- print("TEST_GENERATOR.initiate_testing_task%N")
+			print("TEST_GENERATOR.initiate_testing_task%N")
 			compute_interpreter_root_class
 			if attached interpreter_root_class then
 				create l_test_task.make_random (Current, class_names)
@@ -1296,7 +1296,7 @@ feature {NONE} -- Test result analyizing
 			l_count: NATURAL
 			l_test_name: IMMUTABLE_STRING_8
 		do
-			-- print("TEST_GENERATOR.print_new_class%N")
+			print("TEST_GENERATOR.print_new_class%N")
 			l_system := system
 			check l_system /= Void end
 			source_writer.prepare (a_file, a_class_name, l_system)
@@ -1328,8 +1328,8 @@ feature -- Basic operations
 			l_project_helper: TEST_PROJECT_HELPER_I
 			l_last_class: EIFFEL_CLASS_I
 		do
-			-- print("TEST_GENERATOR.print_test_set%N")
-			-- print("number of test cases" + a_list.count.out + "%N")
+			print("TEST_GENERATOR.print_test_set%N")
+			print("number of test cases: " + a_list.count.out + "%N")
 
 			current_results := a_list
 			l_project_helper := etest_suite.project_helper
@@ -1353,7 +1353,7 @@ feature -- Basic operations
 		local
 			l_string: STRING
 		do
-			--- print("TEST_GENERATOR.flush_output%N")
+			-- print("TEST_GENERATOR.flush_output%N")
 			l_string := output_stream.string
 			if not l_string.is_empty then
 				if attached output_file as l_file then

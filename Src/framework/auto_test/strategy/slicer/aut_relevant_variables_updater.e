@@ -62,7 +62,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_create_object_request%N")
+			print("AUT_RELEVANT_VARIABLES_UPDATER.process_create_object_request%N")
 			variables.remove (a_request.target)
 			if attached a_request.argument_list then
 				process_argument_list (a_request.argument_list)
@@ -71,7 +71,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			-- print("AUT_RELEVANT_VARIABLES_UPDATER.process_invoke_feature_request%N")
+			print("AUT_RELEVANT_VARIABLES_UPDATER.process_invoke_feature_request%N")
 			if a_request.is_feature_query then
 				variables.remove (a_request.receiver)
 			end
@@ -152,7 +152,7 @@ invariant
 	no_variable_void: not variables.has (Void)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

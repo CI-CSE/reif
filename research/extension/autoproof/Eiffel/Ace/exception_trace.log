@@ -1193,3 +1193,10 @@ ITP_INTERPRETER     execute @1
 ITP_INTERPRETER     root's creation                                     
 <000002A9AFCFD588>                         Routine failure.              Exit
 -------------------------------------------------------------------------------
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]
+Catcall detected in {PROCEDURE}.call for arg#1: expected TUPLE [TEST_GENERATOR] but got TUPLE [TEST_SESSION_I]

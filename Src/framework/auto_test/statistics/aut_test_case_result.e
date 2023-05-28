@@ -27,6 +27,7 @@ feature {NONE} -- Initialization
 			witness := a_witness
 			class_ := a_class
 			feature_ := a_feature
+			print ("AUT_TEST_CASE_RESULT.make: " + class_.name + " " + feature_.feature_name_32 + "%N")
 		ensure
 			witness_set: witness = a_witness
 			class_set: class_ = a_class
@@ -79,7 +80,7 @@ invariant
 	feature_not_void: feature_ /= Void
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

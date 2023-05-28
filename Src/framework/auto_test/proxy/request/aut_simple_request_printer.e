@@ -80,7 +80,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 			-- <Precursor>
 		do
-			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_create_object_request%N")
+			print("AUT_SIMPLE_REQUEST_PRINTER.process_create_object_request%N")
 			wipe_out_string
 			string.append_string ("create {")
 			string.append_string (type_name (a_request.target_type, a_request.creation_procedure))
@@ -106,7 +106,7 @@ feature {AUT_REQUEST} -- Visitors
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 			-- <Precursor>
 		do
-			-- print("AUT_SIMPLE_REQUEST_PRINTER.process_invoke_feature_request%N")
+			print("AUT_SIMPLE_REQUEST_PRINTER.process_invoke_feature_request%N")
 			wipe_out_string
 			a_request.target.process (expression_printer)
 			string.append_string (".")
@@ -188,7 +188,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

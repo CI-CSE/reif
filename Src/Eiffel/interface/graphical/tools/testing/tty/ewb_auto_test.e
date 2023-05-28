@@ -86,7 +86,7 @@ feature -- Execution
 			l_feature_contract_remover: AUT_FEATURE_CONTRACT_REMOVER
 			l_names: LIST [STRING_8]
 		do
-		    -- print("EWB_AUTO_TEST.execute_with_test_suite: " + auto_test_arguments.count.out + "%N")
+		    print("EWB_AUTO_TEST.execute_with_test_suite: " + auto_test_arguments.count.out + "%N")
 			l_args := auto_test_arguments
 			if l_args /= Void then
 				l_project := etest_suite.project_access.project

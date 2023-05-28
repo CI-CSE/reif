@@ -35,8 +35,6 @@ feature
 
 			create counterexamples.make (0)
 			parse_models (models)
-
-
 		end
 
 feature

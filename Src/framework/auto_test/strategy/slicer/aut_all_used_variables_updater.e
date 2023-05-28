@@ -67,7 +67,7 @@ feature{AUT_REQUEST} -- Processing
 			l_type: TYPE_A
 			l_name: STRING
 		do
-			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_create_object_request%N")
+			print("AUT_ALL_USED_VARIABLES_UPDATER.process_create_object_request%N")
 			if not variables.has (a_request.target) then
 				l_type := a_request.target_type
 				l_name := type_name_with_context (l_type, interpreter_root_class, Void)
@@ -83,7 +83,7 @@ feature{AUT_REQUEST} -- Processing
 			l_type: TYPE_A
 			l_name: STRING
 		do
-			-- print("AUT_ALL_USED_VARIABLES_UPDATER.process_invoke_feature_request%N")
+			print("AUT_ALL_USED_VARIABLES_UPDATER.process_invoke_feature_request%N")
 			if a_request.receiver /= Void and then not variables.has (a_request.receiver) then
 				l_type := a_request.feature_to_call.type.actual_type.instantiation_in (a_request.target_type, a_request.feature_to_call.written_in)
 				l_name := type_name_with_context (l_type, interpreter_root_class, Void)
@@ -203,7 +203,7 @@ invariant
 	no_variable_void: not variables.has (Void)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
