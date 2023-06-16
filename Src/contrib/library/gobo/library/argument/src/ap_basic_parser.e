@@ -39,6 +39,7 @@ feature {NONE} -- Initialization
 	make
 			-- Create a parser without predefined options.
 		do
+			print ("AP_BASIC_PARSER.make%N")
 			create {DS_ARRAYED_LIST [AP_OPTION]} options.make (0)
 			create {DS_ARRAYED_LIST [AP_ALTERNATIVE_OPTIONS_LIST]} alternative_options_lists.make (0)
 			create {DS_ARRAYED_LIST [STRING]} parameters.make (0)
@@ -205,6 +206,7 @@ feature -- Parser
 			args: DS_ARRAYED_LIST [STRING]
 			i, nb: INTEGER
 		do
+			-- print ("AP_BASIC_PARSER.parse_arguments%N")
 			nb := Arguments.argument_count
 			create args.make (nb)
 			from
@@ -227,6 +229,7 @@ feature -- Parser
 		local
 			args: DS_ARRAYED_LIST [STRING]
 		do
+			print ("AP_BASIC_PARSER.an_array%N")
 			create args.make_from_array (an_array)
 			parse_list (args)
 		end
@@ -238,6 +241,7 @@ feature -- Parser
 			no_void_argument: not a_list.has_void
 			valid_options: valid_options
 		do
+			-- print ("AP_BASIC_PARSER.parse_list%N")
 			reset_parser
 			from
 				a_list.start
@@ -640,6 +644,11 @@ feature {NONE} -- Implementation
 			length: INTEGER
 			l_parameters: like parameters
 		do
+			-- print ("AP_BASIC_PARSER.parse_argument%N")
+			-- across  a_argument_list as arg loop
+				--print ("arg: " + arg.item + "%N")
+			--end
+
 			l_parameters := parameters
 			l_argument := a_argument_list.item_for_iteration
 			length := l_argument.count

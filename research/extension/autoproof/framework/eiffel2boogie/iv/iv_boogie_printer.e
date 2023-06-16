@@ -131,7 +131,7 @@ feature -- Universe Visitor
 				end
 				process_entity_declaration (i)
 			end
-			if a_procedure.has_conditional then
+			if a_procedure.has_conditional and is_full_coverage_tests_enable then
 				output.put (", bn: int")
 				branch_number := 0
 			end
@@ -187,7 +187,7 @@ feature -- Universe Visitor
 				output.put (": ")
 				i.type.process (Current)
 			end
-			if a_implementation.has_conditional then
+			if a_implementation.has_conditional and is_full_coverage_tests_enable then
 				output.put (", bn: int")
 				branch_number := 0
 			end

@@ -26,6 +26,7 @@ feature{NONE} -- Initialization
 		require
 			a_tool /= Void
 		do
+			print ("ES_ADB_PANEL_FAULTS.make%N")
 			set_tool_panel (a_tool)
 			default_create
 
@@ -63,6 +64,7 @@ feature{NONE} -- Update GUI
 	enable_command_invocation_widget (a_flag: BOOLEAN)
 			-- Enable/Disable the widgets related to command invocation.
 		do
+			print ("ES_ADB_PANEL_FAULTS.enable_command_invocation_widget%N")
 			if a_flag then
 				if has_to_be_attempted then
 					evbutton_fix_all_to_be_attempted.enable_sensitive
@@ -158,6 +160,7 @@ feature -- ADB Actions
 			l_left_par_index, l_right_par_index: INTEGER
 			l_is_new_feature_row, l_is_new_fault_row: BOOLEAN
 		do
+			print ("ES_ADB_PANEL_FAULTS.on_test_case_generated%N")
 			l_signature := a_test.test_case_signature
 			l_feature_under_test_str := l_signature.class_and_feature_under_test
 
@@ -167,12 +170,14 @@ feature -- ADB Actions
 			end
 
 			if l_signature.is_passing and then l_row_for_feature /= Void then
+				print ("adb is passing%N")
 					-- Update number of passing tests for the feature
 				check attached {EV_GRID_LABEL_ITEM} l_row_for_feature.item (column_passing) as lt_label_item then
 					lt_label_item.set_text ((lt_label_item.text.to_integer + 1).out)
 				end
 
 			elseif l_signature.is_failing then
+				print ("adb is failing%N")
 				l_fault := info_center.fault_with_signature (l_signature, True)
 
 				if l_row_for_feature = Void then

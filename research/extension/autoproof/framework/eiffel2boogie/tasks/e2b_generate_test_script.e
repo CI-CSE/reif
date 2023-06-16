@@ -565,7 +565,6 @@ feature -- Name conversion
 		do
 			Result := ""
 			Result.copy (a_value)
-			print ("hhhh: " + Result.to_string_8 + "%N")
 
 			if Result.has_substring ("T@U") or Result.same_string ("") then
 				if a_type.has_substring ("INTEGER") then

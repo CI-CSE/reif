@@ -4,8 +4,7 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
-	EPA_DEBUGGER_UTILITY
+class EPA_DEBUGGER_UTILITY
 
 inherit
 	SHARED_EIFFEL_PROJECT
@@ -60,6 +59,7 @@ feature -- Basic operations
 			param: DEBUGGER_EXECUTION_RESOLVED_PROFILE
 			prof: DEBUGGER_EXECUTION_PROFILE
 		do
+			print ("EPA_DEBUGGER_UTILITY.start_debugger START%N")
 			remove_debugger_session
 			if wdir = Void or else wdir.is_empty then
 				wdir := Eiffel_project.lace.directory_name
@@ -75,6 +75,7 @@ feature -- Basic operations
 			a_dm.set_catcall_detection_in_debugger (False)
 			create param.make_from_profile (prof)
 			ctlr.debug_application (param, a_exec_mode)
+			print ("EPA_DEBUGGER_UTILITY.start_debugger END%N")
 		end
 
 	remove_debugger_session
@@ -85,6 +86,7 @@ feature -- Basic operations
 			l_file_name: FILE_NAME
 			l_file: RAW_FILE
 		do
+			print ("EPA_DEBUGGER_UTILITY.remove_debugger_session%N")
 			l_target_name := workbench.lace.target.name
 			if attached (create {USER_OPTIONS_FACTORY}).mapped_uuid (workbench.lace.file_name) as l_uuid then
 				l_ver := l_uuid.out
@@ -103,6 +105,7 @@ feature -- Basic operations
 	remove_breakpoint (a_dm: DEBUGGER_MANAGER; a_class: CLASS_C)
 			-- Remove user break points in `a_class' through debugger manager `a_dm'.
 		do
+			print ("EPA_DEBUGGER_UTILITY.remove_breakpoint%N")
 			a_dm.breakpoints_manager.remove_user_breakpoints_in_class (a_class)
 			a_dm.breakpoints_manager.notify_breakpoints_changes
 		end
@@ -110,6 +113,7 @@ feature -- Basic operations
 	kill_debuggee (a_dm: DEBUGGER_MANAGER)
 			-- Kill the debuggee.
 		do
+			print ("EPA_DEBUGGER_UTILITY.kill_debuggee%N")
 			if a_dm.application_is_executing then
 				a_dm.application.kill
 			end

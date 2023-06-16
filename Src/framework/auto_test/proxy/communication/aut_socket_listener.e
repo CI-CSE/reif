@@ -85,9 +85,11 @@ feature -- Basic functionality
 			connection := Void
 			l_socket := open_listener
 			if l_socket /= Void then
+				print("socket not voidddd%N")
 				create l_thread.make (agent start_listening (l_socket))
 				l_thread.launch
 			else
+				print("socket voidddd%N")
 				current_port := 0
 			end
 		end

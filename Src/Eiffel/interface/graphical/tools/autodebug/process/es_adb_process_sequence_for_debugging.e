@@ -28,6 +28,7 @@ feature -- Access
 			l_group: DS_HASH_SET [CLASS_C]
 			l_process: ES_ADB_REGULAR_TESTING_PROCESS
 		do
+			print ("ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING.make%N")
 			make_sequence
 
 			l_class_groups := config.classes_to_test_in_sessions
@@ -66,14 +67,17 @@ feature -- Operation
 				if attached {ES_ADB_REGULAR_TESTING_PROCESS} l_process as lt_regular_testing_process then
 					if info_center.config.is_starting_fixing_after_each_testing_session then
 							-- Fix the faults found during `sub_task'.
+						print ("is_starting_fixing_after_each_testing_session%N")
 						l_relaxed_testing_and_fixing_tasks := relaxed_testing_and_fixing_tasks_for_faults_in_classes (lt_regular_testing_process.classes)
 						tasks.append_first (l_relaxed_testing_and_fixing_tasks)
 					elseif info_center.config.is_starting_fixing_after_all_testing_sessions and then tasks.is_empty then
 							-- Fix the faults found during ALL testing sessions.
+						print ("is_starting_fixing_after_all_testing_sessions%N")
 						l_relaxed_testing_and_fixing_tasks := relaxed_testing_and_fixing_tasks_for_faults_in_classes (info_center.config.all_classes)
 						tasks.append_first (l_relaxed_testing_and_fixing_tasks)
 					elseif info_center.config.is_starting_fixing_manually then
 							-- Do nothing.
+						print ("is_starting_fixing_manually%N")
 					end
 				end
 
@@ -93,7 +97,9 @@ feature -- Operation
 			a_fault /= Void
 			a_classes /= Void and then not a_classes.is_empty
 		do
+			print ("fault class: " + a_fault.signature.class_under_test_.name + "%N")
 			Result := a_classes.has (a_fault.signature.class_under_test_) and then a_fault.is_approachable_per_config (config) and then a_fault.status = {ES_ADB_FAULT}.status_not_yet_attempted
+			print ("fault is_new_fault_in_classes: " + Result.out + "%N")
 		end
 
 	relaxed_testing_and_fixing_tasks_for_faults_in_classes (a_classes: DS_HASH_SET [CLASS_C]): DS_ARRAYED_LIST [ES_ADB_PROCESS]

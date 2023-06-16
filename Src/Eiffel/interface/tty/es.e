@@ -653,7 +653,6 @@ feature {NONE} -- Output
 				io.put_string ("GC full cycle average time = " + l_full_gc_info.cpu_time_average.out + "%N")
 				io.put_new_line
 
-
 				io.put_string ("GC incremental cycle iterations   = " + l_part_gc_info.cycle_count.out + "%N")
 				io.put_string ("GC incremental cycle average time = " + l_part_gc_info.cpu_time_average.out + "%N")
 				io.put_string ("CPU time " + l_part_gc_info.cpu_total_time.out + "%N")
@@ -722,6 +721,7 @@ feature {NONE} -- Update
 			filter_name := ""
 			option := argument (current_option)
 
+			print("ES.option: " + option.to_string_8 + "%N")
 			if option.same_string_general ("-help") then
 				help_only := True
 			elseif option.same_string_general ("-loop") then

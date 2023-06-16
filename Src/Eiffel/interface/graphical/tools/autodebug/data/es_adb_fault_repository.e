@@ -22,6 +22,7 @@ feature -- Query
 		local
 			l_cursor: DS_HASH_TABLE_CURSOR [ES_ADB_FAULT, EPA_TEST_CASE_SIGNATURE]
 		do
+			print ("ES_ADB_FAULT_REPOSITORY.filtered_faults%N")
 			create Result.make_equal (fault_repository.count)
 			from
 				l_cursor := fault_repository.new_cursor
@@ -29,7 +30,9 @@ feature -- Query
 			until
 				l_cursor.after
 			loop
+				print ("f11111%N")
 				if a_filter.item ([l_cursor.item]) then
+					print ("f2222%N")
 					Result.force_last (l_cursor.item)
 				end
 				l_cursor.forth

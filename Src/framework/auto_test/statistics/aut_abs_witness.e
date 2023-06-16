@@ -151,7 +151,7 @@ feature {NONE} -- Implementation
 			feature_: FEATURE_I
 			class_: CLASS_C
 		do
-			print ("AUT_ABS_WITNESS.judge%N")
+			-- print ("AUT_ABS_WITNESS.judge%N")
 			create {DS_ARRAYED_LIST [AUT_TEST_CASE_RESULT]} classifications.make (1)
 			last_request := request
 			create_request ?= last_request

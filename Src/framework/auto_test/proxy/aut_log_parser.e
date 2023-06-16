@@ -140,6 +140,7 @@ feature {NONE} -- Reporting
 			l_response_stream: KL_STRING_INPUT_STREAM
 			l_last_response: detachable AUT_RESPONSE
 		do
+			print ("AUT_LOG_PARSER.report_request_line: " + a_line + "%N")
 				-- Report previously received response if any
 			if (attached last_response_text as l_response_text and then not l_response_text.is_empty) then
 				create l_response_stream.make (l_response_text)
@@ -350,7 +351,7 @@ invariant
 --	last_start_index_small_enough: last_start_index <= request_history.count -- TODO: reenable and fix bug! (inv does not hold before processing and after start request)
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

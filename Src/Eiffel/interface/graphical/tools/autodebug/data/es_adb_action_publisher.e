@@ -192,7 +192,7 @@ feature -- Access
 
 	test_case_generated_actions: ACTION_SEQUENCE [TUPLE[ES_ADB_TEST]]
 		do
-			if test_case_generated_actions_internal = VOid then
+			if test_case_generated_actions_internal = Void then
 				create test_case_generated_actions_internal
 			end
 			Result := test_case_generated_actions_internal
@@ -291,9 +291,9 @@ invariant
 	testing_start_actions /= Void
 	test_case_generated_actions /= Void
 	testing_stop_actions /= Void
-	fixing_start_actions /= VOid
+	fixing_start_actions /= Void
 	fixing_stop_actions /= Void
-	continuation_debugging_start_actions /= VOid
+	continuation_debugging_start_actions /= Void
 	continuation_debugging_stop_actions /= Void
 	valid_fix_found_actions /= Void
 	fix_applied_actions /= Void

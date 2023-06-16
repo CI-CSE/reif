@@ -63,11 +63,13 @@ feature  -- Parsing
 			l_index, num_seconds: INTEGER
 			l_time: DT_DATE_TIME_DURATION
 		do
+			print ("AUT_STREAM_RESPONSE_PARSER.parse_invoke_response%N")
 			create last_response_text.make (default_response_length)
 			try_parse_multi_line_value
 			if last_string = Void then
 				parse_error
 				if last_string = Void then
+					print ("badddd0%N")
 					create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 				else
 					create {AUT_ERROR_RESPONSE} last_response.make (last_string.twin)
@@ -76,6 +78,7 @@ feature  -- Parsing
 				output := last_string.twin
 				parse_status
 				if last_string = Void then
+					print ("badddd1%N")
 					create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 				else
 					if is_status_success_message (last_string) then
@@ -83,6 +86,7 @@ feature  -- Parsing
 					else
 						parse_exception
 						if last_exception = Void then
+							print ("badddd2%N")
 							create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 						else
 							create {AUT_NORMAL_RESPONSE} last_response.make_exception (output, last_exception)
@@ -90,6 +94,7 @@ feature  -- Parsing
 								-- Ilinca, "number of faults law" experiment
 							parse_done
 							if last_string = Void then
+								print ("badddd3%N")
 								create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 							else
 								try_read_line
@@ -190,11 +195,13 @@ feature  -- Parsing
 		local
 			output: STRING
 		do
+			print ("AUT_STREAM_RESPONSE_PARSER.parse_object_state_response%N")
 			create last_response_text.make (default_response_length)
 			try_parse_multi_line_value
 			if last_string = Void then
 				parse_error
 				if last_string = Void then
+					print ("badddd!0%N")
 					create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 				else
 					create {AUT_ERROR_RESPONSE} last_response.make (last_string.twin)
@@ -203,6 +210,7 @@ feature  -- Parsing
 				output := last_string.twin
 				parse_object_state_status
 				if last_string = Void or else not is_status_success_message (last_string) then
+					print ("badddd!1%N")
 					create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 				else
 					if is_status_success_message (last_string) then
@@ -210,6 +218,7 @@ feature  -- Parsing
 					else
 						parse_exception
 						if last_exception = Void then
+							print ("badddd!2%N")
 							create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 						else
 							create {AUT_NORMAL_RESPONSE} last_response.make_exception (output, last_exception)
@@ -219,6 +228,7 @@ feature  -- Parsing
 				if not last_response.is_bad then
 					parse_done
 					if last_string = Void then
+						print ("badddd!3%N")
 						create {AUT_BAD_RESPONSE} last_response.make (last_response_text)
 					end
 				end
@@ -233,6 +243,7 @@ feature  -- Parsing
 			-- Retrieve response from the interpreter,
 			-- store it in `last_raw_response'.
 		do
+			print ("AUT_STREAM_RESPONSE_PARSER.retrieve_response%N")
 		end
 
 feature {NONE} -- Implementation
@@ -521,7 +532,7 @@ invariant
 	input_stream_open_read: input_stream.is_open_read
 
 note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

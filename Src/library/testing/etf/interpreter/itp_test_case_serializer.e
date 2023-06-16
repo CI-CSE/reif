@@ -262,6 +262,7 @@ feature -- Basic operations
 			-- Set `is_test_case_setup' to True if `a_test_case' contain valid information of a test case,
 			-- otherwise, set `is_test_case_setup' to False'.
 		do
+			interpreter.log_message ("ITP_TEST_CASE_SERIALIZER.setup_test_case%N")
 				-- Check if `a_test_case' contains correct information.
 			if attached{detachable TUPLE [class_name: STRING; feature_name: STRING; test_case_index: INTEGER; time: INTEGER; operands: SPECIAL [INTEGER]; types: SPECIAL [STRING]; argument_count: INTEGER; is_creation: BOOLEAN; is_query: BOOLEAN]} a_test_case as l_tc then
 				class_name := l_tc.class_name
@@ -275,6 +276,10 @@ feature -- Basic operations
 				is_query := l_tc.is_query
 			end
 
+			interpreter.log_message ("class_name: " + class_name + "%N")
+			interpreter.log_message ("feature_name: " + feature_name + "%N")
+			interpreter.log_message ("test_case_index: " + test_case_index.out + "%N")
+
 				-- Check if `a_test_case' contains information of a valid test case.
 			if
 				(class_name /= Void and then not class_name.is_empty) and then
@@ -284,9 +289,11 @@ feature -- Basic operations
 				argument_count < operands.count and then
 				(not (is_creation and is_query))
 			then
+				interpreter.log_message ("setup trueeee%N")
 				set_is_test_case_valid (True)
 
 			else
+				interpreter.log_message ("setup falseeee%N")
 				set_is_test_case_valid (False)
 			end
 		end
@@ -959,7 +966,7 @@ invariant
 	interpreter_attached: interpreter /= Void
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

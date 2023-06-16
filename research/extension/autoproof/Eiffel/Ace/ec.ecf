@@ -51,8 +51,8 @@
 		</library>
 		<library name="a_compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_testing" location="E:\es_ap\trunk\Src\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
-
-		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
+		<library name="program_analysis" location="E:\es_ap\trunk\Src\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
+		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">		
 			<visible class="ES_AUTOPROOF_TOOL" feature="default_create"/>
 			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
 			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>

@@ -193,7 +193,7 @@ feature -- Execution
 					--| stopped state operations   |--
 					--|----------------------------|--
 
-				process_paused_state (stopping_reason, l_app)
+				-- process_paused_state (stopping_reason, l_app)
 
 			else -- retry_clause
 				if l_app.is_running then
@@ -277,7 +277,6 @@ feature -- Execution
 
 					-- Inspect the application's current state.
 				a_app.on_application_just_stopped
-
 				debug ("DEBUGGER_TRACE")
 					io.error.put_string ("STOPPED_HDLR: Finished calling after_cmd%N")
 				end

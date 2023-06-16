@@ -103,6 +103,8 @@ feature {NONE} -- Initialization
 			configuration := a_config
 
 			make_event_producer
+
+			l_itp_class := interpreter_class
 			create variable_table.make (a_system)
 			create raw_response_analyzer
 			make_response_parser (a_system)
@@ -114,8 +116,8 @@ feature {NONE} -- Initialization
 				injected_feature_pattern_id := l_feature.real_pattern_id (l_itp_class.types.first)
 			end
 
-				-- Setup request printers.
-			create socket_data_printer.make (system, variable_table)
+			-- Setup socket data printer
+			create socket_data_printer.make (system, variable_table, Current)
 			create log_stream.make_empty
 
 				-- Setup socket data printer.
@@ -124,6 +126,7 @@ feature {NONE} -- Initialization
 				-- We have two printers here because one printer will print byte-code into an IPC socket,
 				-- but we also want the test cases to be readable, so we use a text printer to print those
 				-- test cases into plain text.
+			-- Setup request printers.	
 			create request_printer.make
 			request_printer.extend (create {AUT_REQUEST_TEXT_PRINTER}.make (system, log_stream, a_config))
 			request_printer.extend (socket_data_printer)
@@ -134,6 +137,7 @@ feature {NONE} -- Initialization
 			interpreter_log_filename := an_interpreter_log_filename
 			test_case_serialization_filename := a_serialization_file_name.twin
 			create proxy_log_file.make (a_proxy_log_filename)
+
 				-- Create proxy log printers.
 			create proxy_log_printers.make
 			proxy_log_file.open_write
@@ -145,11 +149,6 @@ feature {NONE} -- Initialization
 			end
 
 			create response_printer.make_with_prefix (proxy_log_file, interpreter_log_prefix)
-
-			log_line ("-- A new proxy has been created.")
-			proxy_start_time := system_clock.date_time_now
-			error_handler := a_error_handler
-			timeout := default_timeout
 
 			disable_catcall_warnings
 			set_is_logging_enabled (True)
@@ -400,7 +399,9 @@ feature -- Execution
 						if attached {like socket} l_listener.wait_for_connection (5000) as l_socket then
 							socket := l_socket
 							process.set_timeout (timeout)
+							log_stream.string.wipe_out
 							last_request.process (socket_data_printer)
+							last_request.process (request_printer)
 							flush_process
 							log_line (proxy_has_started_and_connected_message)
 							log_line (itp_start_time_message + error_handler.duration_to_now.second_count.out)
@@ -448,6 +449,7 @@ feature -- Execution
 
 					create {AUT_STOP_REQUEST} last_request.make (system)
 					last_request.process (socket_data_printer)
+					last_request.process (request_printer)
 					flush_process
 					parse_stop_response
 					last_request.set_response (last_response)
@@ -557,7 +559,6 @@ log_time_stamp ("* EXTRA *")
 			l_is_passing: BOOLEAN
 			l_test_duration: INTEGER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.create_object%N")
 			log_time_stamp ("exec")
 			l_arg_list := an_argument_list
 			if l_arg_list = Void then
@@ -580,7 +581,9 @@ log_time_stamp ("* TEST START *")
 			end
 
 			last_request := l_request
+			log_test_case_index (last_request)
 			last_request.process (socket_data_printer)
+			last_request.process (request_printer)
 			proxy_log_printers.set_start_time (test_duration)
 log_time_stamp ("* REQUEST SET *")
 
@@ -642,7 +645,6 @@ log_time_stamp ("* EXTRA *")
 			l_normal_response: AUT_NORMAL_RESPONSE
 			l_test_duration: INTEGER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.invoke_feature%N")
 			log_time_stamp ("exec")
 			is_last_test_case_executed := False
 			l_target_type := variable_table.variable_type (a_target)
@@ -666,7 +668,9 @@ log_time_stamp ("* TEST START *")
 			end
 
 			last_request := l_invoke_request
+			log_test_case_index (last_request)
 			last_request.process (socket_data_printer)
+			last_request.process (request_printer)
 			l_test_duration := test_duration
 			proxy_log_printers.set_start_time (l_test_duration)
 log_time_stamp ("* REQUEST SET *")
@@ -732,7 +736,9 @@ log_time_stamp ("* TEST START *")
 			end
 
 			last_request := l_invoke_request
+			log_test_case_index (last_request)
 			last_request.process (socket_data_printer)
+			last_request.process (request_printer)
 			proxy_log_printers.set_start_time (test_duration)
 log_time_stamp ("* REQUEST SET *")
 
@@ -783,12 +789,12 @@ log_time_stamp ("* EXTRA *")
 			a_receiver_not_void: a_receiver /= Void
 			a_constant_not_void: an_expression /= Void
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.assign_expression%N")
 			log_time_stamp ("* TEST START *")
 			create {AUT_ASSIGN_EXPRESSION_REQUEST} last_request.make (system, a_receiver, an_expression)
 
 			last_request.process (socket_data_printer)
-log_time_stamp ("* REQUEST SET *")
+			last_request.process (request_printer)
+			log_time_stamp ("* REQUEST SET *")
 
 			flush_process
 			parse_invoke_response
@@ -833,7 +839,6 @@ log_time_stamp ("* EXTRA *")
 			l_starting_index, l_ending_index: INTEGER
 			l_argument_variables: DS_ARRAYED_LIST [ITP_VARIABLE]
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.batch_assign_variables%N")
 			log_time_stamp ("* TEST START *")
 			create {AUT_BATCH_ASSIGNMENT_REQUEST} last_request.make (system, a_object_types, a_serialized_objects)
 
@@ -876,7 +881,6 @@ log_time_stamp ("* EXTRA *")
 			l_value_str: STRING
 			l_type: TYPE_A
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.retrieve_type_of_variable%N")
 			log_time_stamp ("* TEST START *")
 			create {AUT_TYPE_REQUEST} last_request.make (system, a_variable)
 			last_request.process (socket_data_printer)
@@ -973,15 +977,16 @@ feature -- Response parsing
 			Precursor
 
 			l_response := last_response
+			-- print ("last responseeee: " + last_response.text + "%N")
 			check l_response /= Void end
 			report_event (l_response)
 
 				-- Print `last_response' into log file when `is_logging_enabled'.
 				--
 				-- Note: this will be removed once logging is implemented as an observer
---			if is_logging_enabled then
---				last_response.process (response_printer)
---			end
+			-- if is_logging_enabled then
+			-- 	last_response.process (response_printer)
+			-- end
 		end
 
 	parse_start_response
@@ -1220,10 +1225,13 @@ feature -- Socket IPC
 			end
 		end
 
+
 	retrieve_response
 			-- Retrieve response from the interpreter,
 			-- store it in `last_raw_response'.
 		local
+			l_raw_data: attached ANY
+			l_data: TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; serialization: detachable TUPLE [serialization: detachable STRING]; output: STRING; error: STRING]
 			l_retried: BOOLEAN
 			l_socket: like socket
 			l_response_flag: NATURAL_32
@@ -1232,11 +1240,10 @@ feature -- Socket IPC
 				l_socket := socket
 				l_socket.read_natural_32
 				l_response_flag := l_socket.last_natural_32
+				l_raw_data ?= retrieved_from_medium (l_socket)
+				l_data ?= l_raw_data
 				process.set_timeout (0)
-					-- if attached {TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; serialization: detachable TUPLE [serialization: detachable STRING]; output: STRING; error: STRING]}
-					-- retrieved_from_medium (l_socket) as l_data then
-				if attached {TUPLE [output: STRING; error: STRING]} retrieved_from_medium (l_socket) as l_data then
-					-- print ("aaaaa" + l_data.output + "%N")
+				if l_data /= Void then
 					create last_raw_response.make (create {STRING}.make_from_string (l_data.output), create {STRING}.make_from_string (l_data.error), l_response_flag)
 						-- Fixme: This is a walk around for the issue that we cannot launch a process
 						-- only with standard input redirected. Remove the following line when fixed,
@@ -2185,7 +2192,7 @@ feature -- Object state retrieval
 		local
 			l_request: AUT_OBJECT_STATE_FEATURE_REQUEST
 		do
-				-- Send state acquiring request and parse response.			
+				-- Send state acquiring request and parse response.
 			create l_request.make_with_request (a_request, a_before_execution, configuration.object_state_config)
 			last_request := l_request
 			last_request.process (socket_data_printer)

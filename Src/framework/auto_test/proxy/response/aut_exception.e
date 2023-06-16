@@ -45,13 +45,15 @@ feature {NONE} -- Initialization
 			an_exception_tag_name_not_void: an_exception_tag_name /= Void
 			an_exception_trace_not_void: an_exception_trace /= Void
 		do
+
 			code := an_exception_code
 			recipient_name := an_exception_recipient_name.twin
 			class_name := an_exception_class_name.twin
 			tag_name := an_exception_tag_name.twin
 			trace := an_exception_trace.twin
 			set_is_invariant_violation_on_feature_entry (an_inv_violation_on_entry_flag)
-			parse_trace (trace, {TEST_SYSTEM_I}.eqa_interpreter_name, {AUT_SHARED_INTERPRETER_INFO}.feature_name_for_byte_code_injection)
+			-- parse_trace (trace, {TEST_SYSTEM_I}.eqa_interpreter_name, {AUT_SHARED_INTERPRETER_INFO}.feature_name_for_byte_code_injection)
+			parse_trace (trace, "ITP_INTERPRETER_ROOT", {AUT_SHARED_INTERPRETER_INFO}.feature_name_for_byte_code_injection)
 			is_test_invalid := is_test_invalid or else is_invariant_violation_on_feature_entry
 
 			create signature.make (64)
@@ -166,7 +168,7 @@ feature -- Setting
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

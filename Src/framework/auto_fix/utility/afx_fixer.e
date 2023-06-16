@@ -57,6 +57,7 @@ feature -- Basic operation
 			l_features_to_relax, l_features_to_monitor: DS_ARRAYED_LIST [AFX_FEATURE_TO_MONITOR]
 			l_exception_code: INTEGER
 		do
+			print ("AFX_FIXER.execute%N")
 			disable_catcall_warnings
 			create fixes.make_equal (30)
 
@@ -69,7 +70,6 @@ feature -- Basic operation
 			event_actions.notify_on_session_started
 
 			reproduce_failure
-
 				-- Replace recipient feature with 'session.exception_from_execution.recipient_feature_with_context',
 				-- because the latter have extra expressions to monitor during trace collection.
 			from
@@ -127,11 +127,12 @@ feature -- Basic operation
 						l_valid_code_fixes.forth
 					end
 				end
-
 				fixes.append_last (l_valid_code_fixes)
 			end
 
-			l_exception_code := session.exception_from_execution.exception_code
+			if attached session.exception_from_execution then
+				l_exception_code := session.exception_from_execution.exception_code
+			end
 			if config.is_fixing_contract and then (l_exception_code = 3 or l_exception_code = 4) then
 				create l_feature_to_relax.make_from_feature_with_context_class (session.exception_from_execution.exception_feature_with_context)
 				l_feature_to_relax.set_monitor_contracts (True)
@@ -153,7 +154,7 @@ feature -- Basic operation
 				sort_contract_fixes (l_contract_fixes)
 				fixes.append_last (l_contract_fixes)
 			end
-
+			
 			rank_fixes
 			event_actions.notify_on_session_terminated
 			session.clean_up
@@ -167,6 +168,7 @@ feature{NONE} -- Implementation
 		local
 			l_reproducer: AFX_FAILURE_REPRODUCER
 		do
+			print ("AFX_FIXER.reproduce_failure%N")
 			create l_reproducer
 			l_reproducer.reproduce (False)
 			features_to_monitor := l_reproducer.features_to_monitor
@@ -177,6 +179,7 @@ feature{NONE} -- Implementation
 		local
 			l_collector: AFX_TRACE_COLLECTOR
 		do
+			print ("AFX_FIXER.collect_behavior_of_regular_tests%N")
 			event_actions.notify_on_test_case_analysis_started (session.number_of_test_cases_for_fixing)
 
 			create l_collector
@@ -201,6 +204,7 @@ feature{NONE} -- Implementation
 			l_ranker: AFX_PROGRAM_STATE_RANKER
 			l_invariant_detecter: AFX_PROGRAM_EXECUTION_INVARIANT_DETECTER
 		do
+			print ("AFX_FIXER.localize_faulty_targets%N")
 			if session.should_continue then
 				progression_monitor.set_progression (progression_monitor.progression_fault_localization_start)
 				event_actions.notify_on_implementation_fix_generation_started
@@ -247,6 +251,7 @@ feature{NONE} -- Implementation
 			l_fix: AFX_CODE_FIX_TO_FAULT
 			l_text: STRING
 		do
+			print ("AFX_FIXER.generate_implementation_fixes%N")
 			create Result.make_equal (1)
 			if session.should_continue then
 				progression_monitor.set_progression (progression_monitor.progression_fix_generation_start)
@@ -290,6 +295,7 @@ feature{NONE} -- Implementation
 			l_feature_contract_remover: EPA_FEATURE_CONTRACT_REMOVER
 			l_collector: AFX_TRACE_COLLECTOR
 		do
+			print ("AFX_FIXER.collect_behavior_of_relaxed_tests%N")
 			event_actions.notify_on_weakest_contract_inference_started (a_feature_to_relax)
 
 				-- Relax feature contracts
@@ -331,6 +337,7 @@ feature{NONE} -- Implementation
 			l_fix: AFX_CONTRACT_FIX_ACROSS_FEATURES
 			l_new_fix: AFX_CONTRACT_FIX_TO_FAULT
 		do
+			print ("AFX_FIXER.generate_contract_fixes%N")
 			create Result.make_equal (64)
 			if session.should_continue then
 				event_actions.notify_on_contract_fix_generation_started
@@ -372,6 +379,7 @@ feature{NONE} -- Implementation
 			l_feature_contract_remover: EPA_FEATURE_CONTRACT_REMOVER
 			l_index: INTEGER
 		do
+			print ("AFX_FIXER.validate_contract_fixes%N")
 			if session.should_continue then
 				event_actions.notify_on_contract_fix_validation_started (a_contract_fixes)
 
@@ -425,6 +433,7 @@ feature{NONE} -- Implementation
 		local
 			l_sorter: DS_QUICK_SORTER [AFX_CONTRACT_FIX_TO_FAULT]
 		do
+			print ("AFX_FIXER.sort_contract_fixes%N")
 			create l_sorter.make (create {AGENT_BASED_EQUALITY_TESTER [AFX_CONTRACT_FIX_TO_FAULT]}.make (
 					agent (f1, f2: AFX_CONTRACT_FIX_TO_FAULT): BOOLEAN
 						do
@@ -437,6 +446,7 @@ feature{NONE} -- Implementation
 			--
 		local
 		do
+			print ("AFX_FIXER.rank_fixes%N")
 			event_actions.notify_on_fix_ranking_started (fixes)
 
 

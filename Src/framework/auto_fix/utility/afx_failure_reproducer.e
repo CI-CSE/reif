@@ -16,7 +16,9 @@ feature{NONE} -- Implementation
 	start_debugger
 			-- Start debugging with proper arguments.
 		do
+			print ("AFX_FAILURE_REPRODUCER.start_debugger1%N")
 			start_debugger_general (debugger_manager, " --reproduce-failure " + session.interpreter_log_path.utf_8_name + " false -eif_root " + afx_project_root_class + "." + afx_project_root_feature, session.working_directory.utf_8_name, {EXEC_MODES}.Run, False)
+			print ("AFX_FAILURE_REPRODUCER.start_debugger2%N")
 		end
 
 	register_program_state_monitoring
@@ -27,6 +29,7 @@ feature{NONE} -- Implementation
 	on_application_exception (a_dm: DEBUGGER_MANAGER)
 			-- Action on application exception.
 		do
+				print ("AFX_FAILURE_REPRODUCER.on_application_exception%N")
 				analyze_exception (a_dm)
 				initialize_features_to_monitor (a_dm)
 		end
@@ -49,6 +52,7 @@ feature{NONE} -- Exception analysis
 			l_current_breakpoint_nested, l_previous_breakpoint_nested: INTEGER
 			l_exception_signature: AFX_EXCEPTION_SIGNATURE
 		do
+			print ("AFX_FAILURE_REPRODUCER.analyze_exception%N")
 			l_exception_code := a_dm.application_status.exception.code
 			l_exception_tag := a_dm.application_status.exception.message.twin
 
@@ -103,9 +107,10 @@ feature{NONE} -- Exception analysis
 			l_observed_features: EPA_HASH_SET [STRING]
 			l_observed_feature_name: STRING
 		do
+			print ("AFX_FAILURE_REPRODUCER.initialize_features_to_monitor%N")
 			create l_features.make_equal (10)
 			l_recipient := session.exception_from_execution.recipient_feature_with_context
-
+			print ("context class: " + l_recipient.context_class.name + "%N")
 			l_stack := a_dm.application_status.current_call_stack
 			from
 				i := 1
@@ -126,7 +131,6 @@ feature{NONE} -- Exception analysis
 						if l_feature /= Void then
 							l_last_class := l_class
 							l_last_feature := l_feature
-
 							if config.is_fixing_contract then
 								l_observed_feature_name := l_class.name_in_upper + "." + l_feature.feature_name_32
 								if not l_observed_features.has (l_observed_feature_name) then
@@ -142,13 +146,11 @@ feature{NONE} -- Exception analysis
 				end
 				i := i + 1
 			end
-
 			if l_features.is_empty then
 					-- Fixing implementation only.
 				l_recipient.set_monitor_body (True)
 				l_features.force_last (l_recipient)
 			end
-
 			set_features_to_monitor (l_features)
 		end
 

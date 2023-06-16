@@ -27,7 +27,6 @@ feature {NONE} -- Initialization
 			witness := a_witness
 			class_ := a_class
 			feature_ := a_feature
-			print ("AUT_TEST_CASE_RESULT.make: " + class_.name + " " + feature_.feature_name_32 + "%N")
 		ensure
 			witness_set: witness = a_witness
 			class_set: class_ = a_class

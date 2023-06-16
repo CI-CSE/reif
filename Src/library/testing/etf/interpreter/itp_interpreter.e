@@ -59,14 +59,17 @@ feature {NONE} -- Initialization
 			l_port: INTEGER
 			l_tc_serialization_file_name: STRING
 			l_state_file_name: FILE_NAME
+			i: INTEGER
 		do
-			if argument_count < 6 then
-				check Wrong_number_of_arguments: False end
-			end
+				-- if argument_count <= 5 then
+				-- check Wrong_number_of_arguments: False end
+				-- end
 				-- Read command line argument
 				-- Note that `l_server_ulr' is still read even though not used
 				-- because we use the loopback of the current machine to communicate
 				-- and thus avoid firewall issues.
+
+
 			create query_values.make (20)
 			create query_value_hash_list.make
 			create last_test_case_serialization
@@ -87,8 +90,27 @@ feature {NONE} -- Initialization
 			interpreter_log_directory := l_log_filename.substring (1, l_log_filename.count - 19).as_string_8
 			should_generate_log := argument (6).to_boolean
 
+			-- Create log file.
+			create log_file.make_with_name (l_log_filename)
+			log_file.open_append
+			if not log_file.is_open_write then
+				report_error ("could not open log file '" + {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_log_filename) + "'.")
+				die (1)
+			end
+
 				-- Setup file to store serialized test case.
+			log_message("argument_count: " + argument_count.out + "%N")
+			from
+				i := 1
+			until
+				i > argument_count
+			loop
+				log_message (i.out + " " + argument (i).to_string_8 + " ")
+				i := i + 1
+			end
+
 			if argument_count = 12 then
+				log_message ("set up serializationnnn%N")
 				is_passing_test_case_serialized := argument (7).to_boolean
 				is_failing_test_case_serialized := argument (8).to_boolean
 				l_tc_serialization_file_name := argument (9).as_string_8
@@ -120,15 +142,9 @@ feature {NONE} -- Initialization
 			primitive_types.put (1, "INTEGER_32")
 			primitive_types.put (2, "BOOLEAN")
 
-				-- Create log file.
-			create log_file.make_with_name (l_log_filename)
-			log_file.open_append
-			if not log_file.is_open_write then
-				report_error ("could not open log file '" + {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_log_filename) + "'.")
-				die (1)
-			end
 
 				-- Create file for serialized test cases.
+			log_message ("l_tc_serialization_file_name: " + l_tc_serialization_file_name.to_string_8 + "%N")
 			if not l_tc_serialization_file_name.is_empty then
 				create test_case_serialization_file.make_open_append (l_tc_serialization_file_name)
 				if not test_case_serialization_file.is_open_write then
@@ -452,8 +468,11 @@ end
 		do
 			is_failing_test_case := False
 			last_test_case_serialization := Void
-			if attached {TUPLE [l_byte_code: STRING; l_feat_name: detachable STRING; l_data: detachable ANY]} last_request as l_last_request then
+			if attached {TUPLE [l_byte_code: detachable STRING; l_feat_name: detachable STRING; l_data: detachable ANY]} last_request as l_last_request then
+			-- if attached {TUPLE [l_byte_code: detachable STRING; l_data: detachable ANY]} last_request as l_last_request then
 				l_bcode := l_last_request.l_byte_code
+
+				-- log_message ()
 				if l_bcode = Void then
 					report_error (byte_code_not_found_error)
 				elseif l_bcode.count = 0 then
@@ -464,7 +483,6 @@ end
 					else
 						log_message (once "report_execute_request start%N")
 					end
-
 
 						-- Inject received byte-code into byte-code array of Current process.
 					create l_cstring.make (l_bcode)
@@ -685,7 +703,7 @@ feature {ITP_TEST_CASE_SERIALIZER} -- Logging
 			log_message ({STRING_32} "%T<meaning value='" + l_meaning + "'/>%N")
 			log_message ({STRING_32} "%T<tag value='" + l_tag + "'/>%N")
 			-- write l_tag into a file
-			print("tag" + l_tag + "%N")
+			log_message ("tag" + l_tag + "%N")
 			tests_branch_info_file.put_string (l_tag + "%N")
 
 			log_message ("%T<recipient value='" + l_recipient + "'/>%N")
@@ -768,6 +786,7 @@ feature {NONE} -- Socket IPC
 				last_request_type := socket.last_natural_32
 
 				if attached {like last_request} retrieved_from_medium (socket) as l_request then
+					log_message ("retrieve_requestttt%N")
 					last_request := l_request
 				end
 			end
@@ -792,6 +811,8 @@ log_message_with_timestamp ("* EXTRA *")
 
 				socket.put_natural_32 (last_response_flag)
 				if attached last_response as l_last_response then
+					log_message ("kkkhhh%N")
+					log_message ("l_last_response: " + l_last_response.out + "%N")
 					store_in_medium (l_last_response, socket)
 				end
 			end
@@ -1750,6 +1771,7 @@ feature -- Test case serialization
 			l_serializer.set_is_test_case_valid (False)
 
 			if attached {detachable ARRAY [detachable ANY]} a_data as l_extra_data then
+				log_message ("prestateeee%N")
 				l_serializer.setup_test_case (l_extra_data.item (extra_data_index_test_case_serialization))
 
 				if l_serializer.is_test_case_setup then
@@ -1772,19 +1794,27 @@ feature -- Test case serialization
 			l_data: TUPLE [serialization:STRING; states: STRING]
 		do
 			last_test_case_serialization := Void
+			log_message ("test_case_serializer.is_test_case_setup: " + test_case_serializer.is_test_case_setup.out +  "%N")
+			log_message ("test_case_serializer.is_invalid_test_case: " + is_invalid_test_case.out +  "%N")
+			log_message ("test_case_serializer.is_last_invariant_violated: " + is_last_invariant_violated.out +  "%N")
+
 			if test_case_serializer.is_test_case_setup and then not is_invalid_test_case and then not is_last_invariant_violated then
 				if
 					(is_passing_test_case_serialized and (not is_failing_test_case)) or
 					(is_failing_test_case_serialized and is_failing_test_case)
 				then
+					log_message ("seeeee0%N")
 					l_data := test_case_serializer.string_representation
 					if not l_data.serialization.is_empty then
+						log_message ("seeeee1%N")
 						test_case_serialization_file.put_string (l_data.serialization)
 					end
 					if not l_data.states.is_empty then
+						log_message ("seeeee2%N")
 						test_state_file.put_string (l_data.states)
 					end
 					if is_last_test_case_serialization_passed_to_proxy then
+						log_message ("seeeee3%N")
 						last_test_case_serialization := [l_data.serialization]
 					end
 				end

@@ -770,6 +770,7 @@ feature {NONE} -- Callback actions
 	stop_on_cb (cb_id: INTEGER): BOOLEAN
 			-- Stop the system (on step complete or breakpoint for instance)
 		do
+			print ("EIFNET_DEBUGGER.stop_on_cb%N")
 				--| Refresh CallStack info
 			if managed_callback_is_exit_process (cb_id) then
 				reset_current_callstack

@@ -25,6 +25,7 @@ feature -- Initialization
 			config_attached: a_config /= Void
 			a_system /= Void
 		do
+			print ("AFX_SESSION.make%N")
 			config := a_config
 			eiffel_system := a_system
 
@@ -209,6 +210,7 @@ feature{NONE} -- Directory structure (implementation)
 		local
 			l_dir: KL_DIRECTORY
 		do
+			print ("AFX_SESSION.prepare_directory%N")
 			create l_dir.make (a_dir.out)
 			if not l_dir.exists then
 				l_dir.recursive_create_directory
@@ -312,6 +314,7 @@ feature -- Operations
 	start
 			-- Start session.
 		do
+		 	print ("AFX_SESSION.start%N")
 			is_canceled := False
 			starting_time := time_now
 		ensure
@@ -321,6 +324,7 @@ feature -- Operations
 	cancel
 			-- Cancel the session.
 		do
+			print ("AFX_SESSION.cancel%N")
 			is_canceled := True
 		end
 
@@ -335,12 +339,14 @@ feature -- Status set
 	set_config (a_config: like config)
 			-- Set `config'.
 		do
+			print ("AFX_SESSION.set_config%N")
 			config := a_config
 		end
 
 	set_failure_from_trace (a_failure: EPA_EXCEPTION_TRACE_SUMMARY)
 			--
-		do
+		do	
+			print ("AFX_SESSION.set_failure_from_trace%N")
 			failure_from_trace := a_failure
 		end
 
@@ -349,6 +355,7 @@ feature -- Status set
 		require
 			signature_attached: a_signature /= Void
 		do
+			print ("AFX_SESSION.set_exception_from_execution%N")
 			exception_from_execution := a_signature
 		end
 
@@ -372,6 +379,7 @@ feature -- Logging
 			l_file: PLAIN_TEXT_FILE
 			l_logging_level: INTEGER
 		do
+			print ("AFX_SESSION.initialize_logging%N")
 			create progression_monitor.make
 			event_actions.subscribe_action_listener (progression_monitor)
 
