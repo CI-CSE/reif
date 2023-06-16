@@ -222,7 +222,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Status setting
 			l_generation: like generation
 			l_error_handler: AUT_ERROR_HANDLER
 		do
-			print ("ETEST_GENERATION_TESTING.step%N")
+			-- print ("ETEST_GENERATION_TESTING.step%N")
 			l_generation := generation
 			if sub_task = test_task then
 				l_total := l_generation.time_out.second_count
@@ -275,7 +275,7 @@ feature {NONE} -- Status setting
 		local
 			l_witness: detachable AUT_WITNESS
 		do
-			print ("ETEST_GENERATION_TESTING.remove_task%N")
+			-- print ("ETEST_GENERATION_TESTING.remove_task%N")
 			if not a_cancel then
 					-- We access the cache so if it wasn't initialized yet it won't be.
 				if sub_task = minimize_task_cache then
@@ -307,7 +307,7 @@ feature {NONE} -- Status setting
 			l_witness: AUT_WITNESS
 			l_task: like minimize_task
 		do
-			print ("ETEST_GENERATION_TESTING.start_minimization%N")
+			-- print ("ETEST_GENERATION_TESTING.start_minimization%N")
 			l_witnesses := result_repository_builder.result_repository.witnesses
 			if l_witnesses.count > last_minimized_witness then
 				last_minimized_witness := last_minimized_witness + 1

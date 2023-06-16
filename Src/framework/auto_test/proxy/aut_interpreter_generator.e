@@ -78,7 +78,6 @@ feature -- Generation
 	create_interpreter (a_log_dirname: READABLE_STRING_GENERAL; a_config: TEST_GENERATOR)
 			-- Create interpreter proxy based on executable found in `a_pathname'
 			-- and make it available via `last_interpreter'.
-			--
 			-- TODO: use log dirname information from `session'
 		require
 			a_log_dirname_not_void: a_log_dirname /= Void
@@ -89,11 +88,12 @@ feature -- Generation
 			l_serialization_file: STRING
 			u: GOBO_FILE_UTILITIES
 		do
-			-- print("AUT_INTERPRETER_GENERATOR.create_interpreter%N")
+			print("AUT_INTERPRETER_GENERATOR.create_interpreter%N")
 
 			u.create_directory (a_log_dirname)
+			print("a_log_dirnameeee: " + a_log_dirname.to_string_8 + "%N")
 			executable_filename := system.eiffel_system.application_name (True)
-			-- print("executable_filename: " + executable_filename.out + "%N")
+			print("executable_filenameeeee: " + executable_filename.out + "%N")
 
 			if session.test_case_serialization_file /= Void and then not session.test_case_serialization_file.is_empty then
 				l_serialization_file := session.test_case_serialization_file
@@ -103,6 +103,7 @@ feature -- Generation
 
 			-- compute_interpreter_root_class
 			if u.file_path_exists (executable_filename) and interpreter_root_class /= Void then
+				print ("create interpreterrrrr%N")
 				create l_new.make (
 					executable_filename.name,
 					system,
@@ -118,7 +119,7 @@ feature -- Generation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

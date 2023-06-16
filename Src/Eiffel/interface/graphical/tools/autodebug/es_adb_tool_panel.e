@@ -69,7 +69,7 @@ feature {NONE} -- Initialization
 	build_interface
 			-- <Precursor>
 		do
-			-- print("ES_ADB_TOOL_PANEL.build_interface%N")
+			print("ES_ADB_TOOL_PANEL.build_interface%N")
 			create widget
 			create autodebug_notebook
 
@@ -108,7 +108,7 @@ feature -- Actions
 	on_select
 			-- AutoDebug tool has been selected, synchronize.
 		do
-			-- print("ES_ADB_TOOL_PANEL.on_select%N")
+			print("ES_ADB_TOOL_PANEL.on_select%N")
 			if content.is_visible then
 				if workbench.eiffel_project /= Void and then workbench.eiffel_project.successful and then not config.is_project_loaded  then
 					on_project_loaded

@@ -64,7 +64,7 @@ feature -- Access
 	test (an_identifier: READABLE_STRING_GENERAL): TEST_I
 			-- <Precursor>
 		do
-		   --  print("TEST_SUITE.test%N")
+		   -- print("TEST_SUITE.test%N")
 			Result := test_map.item (an_identifier)
 		end
 
@@ -98,7 +98,7 @@ feature -- Access: sessions
 		local
 			l_sessions: like internal_running_sessions
 		do
-   		    -- print("TEST_SUITE.running_sessions%N")
+   		    print("TEST_SUITE.running_sessions%N")
 			l_sessions := internal_running_sessions
 			create Result.make (l_sessions.count)
 			from
@@ -118,6 +118,7 @@ feature -- Access: connection point
 		local
 			l_result: like internal_test_suite_connection
 		do
+			-- print("TEST_SUITE.test_suite_connection%N")
 			l_result := internal_test_suite_connection
 			if l_result = Void then
 				create {EVENT_CONNECTION [TEST_SUITE_OBSERVER, TEST_SUITE_S]} l_result.make (
@@ -233,7 +234,7 @@ feature -- Status setting: sessions
 		local
 			l_record: TEST_SESSION_RECORD
 		do
-   		    -- print("TEST_SUITE.launch_session%N")
+   		    print("TEST_SUITE.launch_session%N")
 			if current_output_session = Void then
 				current_output_session := a_session
 				if attached internal_output as l_output then
@@ -272,6 +273,7 @@ feature -- Basic operations
 			l_list: like factories
 			l_factory: TEST_SESSION_FACTORY [TEST_SESSION_I]
 		do
+			-- print("TEST_SUITE.new_session%N")
 			from
 				l_list := factories
 				l_list.start

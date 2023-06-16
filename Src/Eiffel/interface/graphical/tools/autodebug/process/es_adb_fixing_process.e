@@ -27,6 +27,7 @@ feature{NONE} -- Initialization
 			l_command_line: STRING
 			l_max_length: INTEGER
 		do
+			print ("ES_ADB_FIXING_PROCESS.make%N")
 			fault := a_fault
 			l_command_line := command_line_for_fixing (a_fault)
 			l_max_length := config.max_session_length_for_fixing + config.Max_session_overhead_length
@@ -54,6 +55,7 @@ feature -- Operation
 	launch
 			-- <Precursor>
 		do
+			print ("ES_ADB_FIXING_PROCESS.launch%N")
 			Precursor
 			if working_process.launched then
 				fault.set_status ({ES_ADB_FAULT}.status_candidate_fix_unavailable)

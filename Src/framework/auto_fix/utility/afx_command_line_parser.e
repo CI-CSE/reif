@@ -18,6 +18,10 @@ feature{NONE} -- Initialization
 	make_with_arguments (a_args: LINKED_LIST [STRING])
 			-- Initialize Current with arguments `a_args'.
 		do
+			print ("AFX_COMMAND_LINE_PARSER.make_with_arguments" + a_args.count.out + "%N")
+			across a_args as arg loop
+				print ("arg:" + arg.item + "%N")
+			end
 			create config
 			arguments := a_args
 		ensure
@@ -76,6 +80,7 @@ feature -- Basic operations
 				-- Enabling experimental features
 			l_enable_experimental: AP_FLAG
 		do
+		    print ("AFX_COMMAND_LINE_PARSER.parse%N")
 			create l_args.make
 			arguments.do_all (agent l_args.force_last)
 
@@ -179,9 +184,15 @@ feature -- Basic operations
 
 				-----------------------------------  Parse `arguments'.  -------------------------------------------
 
+			print ("l_parser.parse_list%N")
+
 			l_parser.parse_list (l_args)
 
 				-- Type of task.
+			print ("l_fixing_implementation_option.was_found: " + l_fixing_implementation_option.was_found.out + "%N")
+			print ("l_fixing_contract_option.was_found: " + l_fixing_contract_option.was_found.out + "%N")
+			print ("l_not_fixing_option.was_found: " + l_not_fixing_option.was_found.out + "%N")
+
 			config.set_fixing_implementation (l_fixing_implementation_option.was_found)
 			config.set_fixing_contract (l_fixing_contract_option.was_found)
 			config.set_not_fixing (l_not_fixing_option.was_found)

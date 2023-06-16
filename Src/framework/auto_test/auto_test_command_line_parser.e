@@ -1,5 +1,4 @@
 note
-
 	description:
 
 		"AutoTest command line parser"
@@ -1512,7 +1511,7 @@ invariant
 	minimization_is_either_slicing_or_ddmin: is_minimization_enabled implies (is_slicing_enabled xor is_ddmin_enabled)
 
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

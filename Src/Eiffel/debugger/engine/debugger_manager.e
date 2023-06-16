@@ -557,6 +557,7 @@ feature -- Breakpoints management
 			in_keyword: BOOLEAN
 			retried: BOOLEAN
 		do
+			
 			if not retried then
 				m := a_msg
 				from

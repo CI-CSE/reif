@@ -99,12 +99,11 @@ feature {NONE} -- Initialization
 			l_dir: DIRECTORY_NAME
 			u: GOBO_FILE_UTILITIES
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.make%N")
 			configuration := a_config
 
 			make_event_producer
 
-				-- l_itp_class := interpreter_class
+			l_itp_class := interpreter_class
 			create variable_table.make (a_system)
 			create raw_response_analyzer
 			make_response_parser (a_system)
@@ -116,13 +115,14 @@ feature {NONE} -- Initialization
 				injected_feature_pattern_id := l_feature.real_pattern_id (l_itp_class.types.first)
 			end
 
-				-- Setup request printers.
+			-- Setup socket data printer
 			create socket_data_printer.make (system, variable_table, Current)
 			create log_stream.make_empty
 
 				-- We have two printers here because one printer will print byte-code into an IPC socket,
 				-- but we also want the test cases to be readable, so we use a text printer to print those
 				-- test cases into plain text.
+			-- Setup request printers.	
 			create request_printer.make
 			request_printer.extend (create {AUT_REQUEST_TEXT_PRINTER}.make (system, log_stream, a_config))
 			request_printer.extend (socket_data_printer)
@@ -133,6 +133,7 @@ feature {NONE} -- Initialization
 			interpreter_log_filename := an_interpreter_log_filename
 			test_case_serialization_filename := a_serialization_file_name.twin
 			create proxy_log_file.make (a_proxy_log_filename)
+
 				-- Create proxy log printers.
 			create proxy_log_printers.make
 			proxy_log_file.open_write
@@ -145,11 +146,6 @@ feature {NONE} -- Initialization
 
 			create response_printer.make_with_prefix (proxy_log_file, interpreter_log_prefix)
 
-			log_line ("-- A new proxy has been created.")
-			proxy_start_time := system_clock.date_time_now
-			error_handler := a_error_handler
-			timeout := default_timeout
-
 			disable_catcall_warnings
 
 			set_is_logging_enabled (True)
@@ -157,6 +153,11 @@ feature {NONE} -- Initialization
 			set_is_test_case_index_logging_enabled (True)
 
 			log_types_under_test
+
+			log_line ("-- A new proxy has been created.")
+			proxy_start_time := system_clock.date_time_now
+			error_handler := a_error_handler
+			timeout := default_timeout
 
 			if configuration.is_object_state_exploration_enabled then
 				create object_state_table.make
@@ -342,7 +343,6 @@ feature -- Settings
 	analyze_last_test_case_status (a_last_request: like last_request)
 			-- Analyze the status of last test case
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.analyze_last_test_case_status%N")
 			set_is_last_test_case_executed (is_last_test_case_executed_internal (a_last_request))
 			set_is_last_test_case_passing (is_last_test_case_passing_internal (a_last_request))
 		end
@@ -358,7 +358,6 @@ feature -- Execution
 			l_tried_times: INTEGER
 			l_max_tring_times: INTEGER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.start%N")
 			from
 				l_max_tring_times := 5
 			until
@@ -403,7 +402,7 @@ feature -- Execution
 							socket := l_socket
 							process.set_timeout (timeout)
 							log_stream.string.wipe_out
-								-- last_request.process (socket_data_printer)
+							last_request.process (socket_data_printer)
 							last_request.process (request_printer)
 							flush_process
 							log_line (proxy_has_started_and_connected_message)
@@ -446,11 +445,10 @@ feature -- Execution
 		local
 			l_retried: BOOLEAN
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.stop%N")
 			if not l_retried then
 				if process.is_running then
 					create {AUT_STOP_REQUEST} last_request.make (system)
-						-- last_request.process (socket_data_printer)
+					last_request.process (socket_data_printer)
 					last_request.process (request_printer)
 					flush_process
 					parse_stop_response
@@ -503,7 +501,6 @@ feature -- Execution
 			l_is_passing: BOOLEAN
 			l_test_duration: INTEGER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.create_object%N")
 			log_time_stamp ("exec")
 			l_arg_list := an_argument_list
 			if l_arg_list = Void then
@@ -522,7 +519,7 @@ feature -- Execution
 
 			last_request := l_request
 			log_test_case_index (last_request)
-				-- last_request.process (socket_data_printer)
+			last_request.process (socket_data_printer)
 			last_request.process (request_printer)
 			proxy_log_printers.set_start_time (test_duration)
 			log_time_stamp ("* REQUEST SET *")
@@ -586,7 +583,6 @@ feature -- Execution
 			l_normal_response: AUT_NORMAL_RESPONSE
 			l_test_duration: INTEGER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.invoke_feature%N")
 			log_time_stamp ("exec")
 			is_last_test_case_executed := False
 			l_target_type := variable_table.variable_type (a_target)
@@ -608,7 +604,7 @@ feature -- Execution
 
 			last_request := l_invoke_request
 			log_test_case_index (last_request)
-				-- last_request.process (socket_data_printer)
+			last_request.process (socket_data_printer)
 			last_request.process (request_printer)
 			l_test_duration := test_duration
 			proxy_log_printers.set_start_time (l_test_duration)
@@ -660,7 +656,6 @@ feature -- Execution
 			l_invoke_request: AUT_INVOKE_FEATURE_REQUEST
 			l_test_duration: INTEGER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.invoke_and_assign_feature%N")
 			is_last_test_case_executed := False
 			log_time_stamp ("* TEST START *")
 			log_time_stamp ("exec")
@@ -676,7 +671,7 @@ feature -- Execution
 
 			last_request := l_invoke_request
 			log_test_case_index (last_request)
-				-- last_request.process (socket_data_printer)
+			last_request.process (socket_data_printer)
 			last_request.process (request_printer)
 			proxy_log_printers.set_start_time (test_duration)
 			log_time_stamp ("* REQUEST SET *")
@@ -728,11 +723,10 @@ feature -- Execution
 			a_receiver_not_void: a_receiver /= Void
 			a_constant_not_void: an_expression /= Void
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.assign_expression%N")
 			log_time_stamp ("* TEST START *")
 			create {AUT_ASSIGN_EXPRESSION_REQUEST} last_request.make (system, a_receiver, an_expression)
 
-				-- last_request.process (socket_data_printer)
+			last_request.process (socket_data_printer)
 			last_request.process (request_printer)
 			log_time_stamp ("* REQUEST SET *")
 
@@ -779,7 +773,6 @@ feature -- Execution
 			l_starting_index, l_ending_index: INTEGER
 			l_argument_variables: DS_ARRAYED_LIST [ITP_VARIABLE]
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.batch_assign_variables%N")
 			log_time_stamp ("* TEST START *")
 			create {AUT_BATCH_ASSIGNMENT_REQUEST} last_request.make (system, a_object_types, a_serialized_objects)
 
@@ -822,7 +815,6 @@ feature -- Execution
 			l_value_str: STRING
 			l_type: TYPE_A
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.retrieve_type_of_variable%N")
 			log_time_stamp ("* TEST START *")
 			create {AUT_TYPE_REQUEST} last_request.make (system, a_variable)
 			last_request.process (request_printer)
@@ -874,7 +866,6 @@ feature -- Execution
 			l_response: AUT_OBJECT_STATE_RESPONSE
 			l_any: detachable ANY
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.retrieve_object_state_response%N")
 			if not l_retried then
 				l_socket := socket
 				l_socket.read_natural_32
@@ -918,26 +909,25 @@ feature -- Response parsing
 		local
 			l_response: like last_response
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_response%N")
 			Precursor
 
 			l_response := last_response
+			-- print ("last responseeee: " + last_response.text + "%N")
 			check l_response /= Void end
 			report_event (l_response)
 
 				-- Print `last_response' into log file when `is_logging_enabled'.
 				--
 				-- Note: this will be removed once logging is implemented as an observer
-			if is_logging_enabled then
-				last_response.process (response_printer)
-			end
+			-- if is_logging_enabled then
+			-- 	last_response.process (response_printer)
+			-- end
 		end
 
 	parse_start_response
 			-- Parse the response issued by the interpreter after it has been
 			-- started.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_start_response%N")
 			parse_empty_response
 		ensure then
 			last_response_not_void: last_response /= Void
@@ -946,7 +936,6 @@ feature -- Response parsing
 	parse_stop_response
 			-- Parse the response issued by the interpreter after it received a stop request.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_stop_response%N")
 			parse_empty_response
 		ensure then
 			last_response_not_void: last_response /= Void
@@ -957,7 +946,6 @@ feature -- Response parsing
 			-- create-object/create-object-default/invoke-feature/invoke-and-assign-feature
 			-- request has been sent.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_invoke_response%N")
 			parse_response
 		ensure then
 			last_response_not_void: last_response /= Void
@@ -967,7 +955,6 @@ feature -- Response parsing
 			-- Parse response issued by interpreter after receiving an
 			-- assign-expresion request.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_assign_expression_response%N")
 			parse_response
 		ensure then
 			last_response_not_void: last_response /= Void
@@ -977,7 +964,6 @@ feature -- Response parsing
 			-- Parse response issued by interpreter after receiving a
 			-- retrieve-type-of-variable request.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_type_of_variable_response%N")
 			parse_response
 		ensure then
 			last_response_not_void: last_response /= Void
@@ -986,7 +972,6 @@ feature -- Response parsing
 	parse_empty_response
 			-- Parse a response consisting of no characters.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_empty_response%N")
 			raw_response_analyzer.set_raw_response (create {AUT_RAW_RESPONSE}.make ("", "", {ITP_SHARED_CONSTANTS}.normal_response_flag))
 			last_response := raw_response_analyzer.response
 		end
@@ -1019,7 +1004,6 @@ feature {NONE} -- Process scheduling
 			l_workdir: STRING_32
 		do
 				-- $MELT_PATH needs to be set here in only to allow debugging.
-			-- -- print ("AUT_INTERPRETER_PROXY.launch_process%N")
 			put (melt_path.name, "MELT_PATH")
 			create stdout_reader.make
 
@@ -1067,7 +1051,6 @@ feature {NONE} -- Process scheduling
 			l_last_bc_request: TUPLE [flag: NATURAL_8; data: detachable ANY]
 			l_socket_writer: SED_MEDIUM_READER_WRITER
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.flush_process%N")
 			if not failed then
 					-- Log request
 				l_last_request := last_request
@@ -1106,7 +1089,7 @@ feature {NONE} -- Process scheduling
 		local
 			normal_response: AUT_NORMAL_RESPONSE
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.stop_process_on_problems%N")
+			-- print ("AUT_INTERPRETER_PROXY.stop_process_on_problems%N")
 			if is_running then
 				if a_response.is_bad then
 					if not process.force_terminated then
@@ -1163,7 +1146,7 @@ feature -- Socket IPC
 	cleanup
 			-- Clean up Current proxy.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.cleanup%N")
+				-- -- print ("AUT_INTERPRETER_PROXY.cleanup%N")
 			observers.wipe_out
 			if socket /= Void then
 				cleanup_socket
@@ -1175,50 +1158,53 @@ feature -- Socket IPC
 		require
 			socket_attached: socket /= Void
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.cleanup_socket%N")
+				-- -- print ("AUT_INTERPRETER_PROXY.cleanup_socket%N")
 			if socket.exists and then not socket.is_closed then
 				socket.close
 			end
 		end
 
+
 	retrieve_response
 			-- Retrieve response from the interpreter,
 			-- store it in `last_raw_response'.
 		local
+			l_raw_data: attached ANY
+			l_data: TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; serialization: detachable TUPLE [serialization: detachable STRING]; output: STRING; error: STRING]
 			l_retried: BOOLEAN
 			l_socket: like socket
 			l_response_flag: NATURAL_32
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.retrieve_response%N")
 			if not l_retried then
 				l_socket := socket
 				l_socket.read_natural_32
 				l_response_flag := l_socket.last_natural_32
+				l_raw_data ?= retrieved_from_medium (l_socket)
+				l_data ?= l_raw_data
 				process.set_timeout (0)
-					-- if attached {TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; serialization: detachable TUPLE [serialization: detachable STRING]; output: STRING; error: STRING]}
-					-- retrieved_from_medium (l_socket) as l_data then
-				if attached {TUPLE [output: STRING; error: STRING]} retrieved_from_medium (l_socket) as l_data then
-					-- print ("aaaaa" + l_data.output + "%N")
+				if l_data /= Void then
 					create last_raw_response.make (create {STRING}.make_from_string (l_data.output), create {STRING}.make_from_string (l_data.error), l_response_flag)
 						-- Fixme: This is a walk around for the issue that we cannot launch a process
 						-- only with standard input redirected. Remove the following line when fixed,
 						-- because everything that the interpreter output should come from `l_data.output'.
 						-- Jason 2008.10.22
 					replace_output_from_socket_by_pipe_data
+
 						-- Mark object as invariant violating.
-						-- if
-						-- 	l_response_flag = {AUT_SHARED_CONSTANTS}.invariant_violation_on_entry_response_flag and then
-						-- 	l_data.invariant_violating_object_index > 0
-						-- then
+					if
+						l_response_flag = {AUT_SHARED_CONSTANTS}.invariant_violation_on_entry_response_flag and then
+						l_data.invariant_violating_object_index > 0
+					then
 --						variable_table.mark_invalid_object (l_data.invariant_violating_object_index)
-						-- 	mark_invalid_object (l_data.invariant_violating_object_index)
-						-- end
+						mark_invalid_object (l_data.invariant_violating_object_index)
+					end
+
 						-- Update predicate evaluations in predicate pool.
-						-- update_predicates_in_pool (l_data.predicate_evaluation)
-						-- if l_data.serialization /= Void then
-						-- 	on_test_case_serialization_actions.call (l_data.serialization)
-						-- end
-					io.output.flush
+					update_predicates_in_pool (l_data.predicate_evaluation)
+
+					if l_data.serialization /= Void then
+						on_test_case_serialization_actions.call (l_data.serialization)
+					end
 				else
 					last_raw_response := Void
 				end
@@ -1236,7 +1222,6 @@ feature -- Socket IPC
 			-- Fixme: This is a walk around for the issue that we cannot launch a process
 			-- only with standard input redirected. Jason 2008.10.22
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.replace_output_from_socket_by_pipe_data%N")
 			fixme ("Remove this feature when the bug described in header comment is fixed.")
 			check last_raw_response_attached: last_raw_response /= Void end
 			if not is_waiting_for_type then
@@ -1333,7 +1318,6 @@ feature {NONE} -- Logging
 		require
 			a_request_attached: a_request /= Void
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.set_test_case_index%N")
 			if is_test_case_index_logging_enabled then
 				test_case_count := test_case_count + 1
 				a_request.set_test_case_index (test_case_count)
@@ -1507,7 +1491,6 @@ feature -- Precondition satisfaction
 		local
 			l_pool: AUT_TYPED_OBJECT_POOL
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.generate_typed_object_pool%N")
 			create l_pool.make (system, configuration.types_under_test, interpreter_class)
 			variable_table.set_defining_variable_action (agent l_pool.put_variable)
 			variable_table.wipe_out_actions.extend (agent l_pool.wipe_out)
@@ -1618,7 +1601,6 @@ feature -- Predicate evaluation
 		local
 			l_request: AUT_PREDICATE_EVALUATION_REQUEST
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.evaluate_predicates%N")
 			create l_request.make (system, a_predicates)
 			last_request := l_request
 			last_request.process (request_printer)
@@ -1634,7 +1616,6 @@ feature -- Predicate evaluation
 	parse_predicate_evaluation_response
 			-- Parse the response of the last predicate evaluation request.
 		do
-			-- -- print ("AUT_INTERPRETER_PROXY.parse_predicate_evaluation_response%N")
 			if attached {AUT_PREDICATE_EVALUATION_REQUEST} last_request as l_request then
 				retrieve_predicate_evaluation_response
 			end
@@ -1650,7 +1631,6 @@ feature -- Predicate evaluation
 			l_response: AUT_PREDICATE_EVALUATION_RESPONSE
 			l_any: detachable ANY
 		do
-			-- print ("AUT_INTERPRETER_PROXY.retrieve_predicate_evaluation_response%N")
 			if not l_retried then
 				l_socket := socket
 				l_socket.read_natural_32
@@ -1684,7 +1664,6 @@ feature -- Predicate evaluation
 			l_ptn_cursor: DS_HASH_TABLE_CURSOR [INTEGER, INTEGER]
 			l_failed_predicate: AUT_PREDICATE
 		do
-			-- print ("AUT_INTERPRETER_PROXY.update_predicate_pool_on_precondition_violation%N")
 			if configuration.is_precondition_checking_enabled then
 					-- When there is a precondition violation, we first update the predicate pool.
 
@@ -1738,7 +1717,6 @@ feature -- Predicate evaluation
 		local
 			l_message: STRING
 		do
-			-- print ("AUT_INTERPRETER_PROXY.log_failed_precondition_satisfaction_proposal%N")
 			if
 				configuration.is_precondition_satisfaction_logged and then
 				attached {AUT_PRECONDITION_SATISFACTION_TASK} precondition_evaluator as l_evaluator and then
@@ -1771,7 +1749,6 @@ feature -- Predicate evaluation
 			l_features: DS_HASH_SET [AUT_FEATURE_OF_TYPE]
 			l_predicates: LINKED_LIST [AUT_PREDICATE]
 		do
-			-- print ("AUT_INTERPRETER_PROXY.calculate_feature_invalid_test_case_rate%N")
 			l_failure_rate := feature_invalid_test_case_rate
 			if not l_failure_rate.has (a_feature) then
 				l_rate := [0, 0, 0]
@@ -1796,7 +1773,6 @@ feature -- Predicate evaluation
 		local
 			l_related_objects: ARRAY [ITP_VARIABLE]
 		do
-			-- print ("AUT_INTERPRETER_PROXY.evaluate_predicates_after_test_case%N")
 			l_related_objects := relevant_objects (a_target, a_arguments, a_result)
 			calculate_feature_invalid_test_case_rate (a_feature, l_related_objects)
 		end
@@ -1808,7 +1784,6 @@ feature -- Predicate evaluation
 			l_variable: ITP_VARIABLE
 			i: INTEGER
 		do
-			-- print ("AUT_INTERPRETER_PROXY.relevant_objects%N")
 			if a_result /= 0 then
 				create Result.make (0, a_arguments.count + 1)
 			else
@@ -1848,7 +1823,6 @@ feature -- Predicate evaluation
 		local
 			l_arguments: ARRAY [ITP_VARIABLE]
 		do
-			-- print ("AUT_INTERPRETER_PROXY.update_predicate%N")
 			l_arguments := variables_from_indexes (a_arguments)
 			predicate_pool.update_predicate_valuation (a_predicate, l_arguments, a_result)
 
@@ -1861,7 +1835,6 @@ feature -- Predicate evaluation
 		local
 			i: INTEGER
 		do
-			-- print ("AUT_INTERPRETER_PROXY.variables_from_indexes%N")
 			create Result.make (1, a_indexes.count)
 			from
 				i := 1
@@ -1908,7 +1881,6 @@ feature -- Predicate evaluation
 		local
 			l_evaluator: like precondition_evaluator
 		do
-			-- print ("AUT_INTERPRETER_PROXY.increase_failed_precondition_count%N")
 			l_evaluator := precondition_evaluator
 			if l_evaluator /= Void and then l_evaluator.is_precondition_satisfaction_performed then
 				if l_evaluator.last_precondition_satisfaction_level = {AUT_PRECONDITION_SATISFACTION_TASK}.precondition_satisfaction_satisfied then
@@ -2054,7 +2026,6 @@ feature -- Predicate evaluation
 		local
 			l_class: CLASS_C
 		do
-			-- print ("AUT_INTERPRETER_PROXY.mark_invalid_object%N")
 			l_class := interpreter_root_class
 			typed_object_pool.mark_invalid_object (a_index, l_class)
 			if configuration.is_precondition_checking_enabled then
@@ -2065,7 +2036,6 @@ feature -- Predicate evaluation
 	mark_invalid_objects
 			-- Mark objects from `last_request' as invalid because there is a class invariant violation.
 		do
-			-- print ("AUT_INTERPRETER_PROXY.mark_invalid_objects%N")
 			if attached {AUT_CALL_BASED_REQUEST} last_request as l_request then
 				mark_invalid_object (l_request.target.index)
 				if l_request.argument_list /= Void then
@@ -2086,7 +2056,7 @@ feature -- Predicate evaluation
 	set_precondition_evaluator (a_evaluator: like precondition_evaluator)
 			-- Set `precondition_evaluator' with `a_evaluator'.
 		do
-			-- print ("AUT_INTERPRETER_PROXY.set_precondition_evaluator%N")
+				-- print ("AUT_INTERPRETER_PROXY.set_precondition_evaluator%N")
 			precondition_evaluator := a_evaluator
 		ensure
 			precondition_evaluator_set: precondition_evaluator = a_evaluator
@@ -2106,7 +2076,6 @@ feature -- Predicate evaluation
 			l_operand_indexes: SPECIAL [INTEGER]
 			l_last_operands: like last_operands
 		do
-			-- print ("AUT_INTERPRETER_PROXY.update_predicates_in_pool%N")
 			if
 				a_results /= Void and then
 				a_results.results /= Void and then
@@ -2177,7 +2146,6 @@ feature -- Object state retrieval
 		local
 			l_request: AUT_OBJECT_STATE_FEATURE_REQUEST
 		do
-			-- print ("AUT_INTERPRETER_PROXY.record_operand_states%N")
 				-- Send state acquiring request and parse response.
 			create l_request.make_with_request (a_request, a_before_execution, configuration.object_state_config)
 			last_request := l_request
@@ -2211,7 +2179,6 @@ feature -- Object state retrieval
 			l_variable: ITP_VARIABLE
 			l_state_table: like object_state_table
 		do
-			-- print ("AUT_INTERPRETER_PROXY.populate_object_state_table%N")
 			l_values := a_object_state_response.query_results
 			if not l_values.is_empty then
 				create l_values_by_target.make (3)
@@ -2271,7 +2238,6 @@ feature -- Object state retrieval
 			l_expr: STRING
 			l_index: INTEGER
 		do
-			-- print ("AUT_INTERPRETER_PROXY.object_state%N")
 			create l_objects.make (1)
 			l_objects.put (variable_table.variable_type (a_variable), a_variable.index)
 			create l_request.make_with_objects (l_objects, configuration.object_state_config)
@@ -2309,7 +2275,7 @@ feature -- Object state retrieval
 
 	parse_object_state_response
 		do
-			-- print ("AUT_INTERPRETER_PROXY.parse_object_state_response%N")
+				-- print ("AUT_INTERPRETER_PROXY.parse_object_state_response%N")
 			retrieve_object_state_response
 			report_event (last_response)
 		end
@@ -2326,7 +2292,6 @@ feature -- Object state retrieval
 		local
 			l_request: AUT_EXPRESSION_EVALUATION_REQUEST
 		do
-			-- print ("AUT_INTERPRETER_PROXY.evaluate_expressions%N")
 			create l_request.make (a_class, a_feature, a_expressions, a_operand_map)
 			last_request := l_request
 			last_request.process (request_printer)
@@ -2347,7 +2312,7 @@ feature -- Object state retrieval
 		local
 			l_exception: AUT_EXCEPTION
 		do
-			-- print ("AUT_INTERPRETER_PROXY.is_last_test_case_executed_internal%N")
+				-- print ("AUT_INTERPRETER_PROXY.is_last_test_case_executed_internal%N")
 			if attached {AUT_CALL_BASED_REQUEST} a_request as l_request then
 				if l_request.response.is_normal then
 					if l_request.response.is_exception then
@@ -2373,7 +2338,7 @@ feature -- Object state retrieval
 		local
 			l_exception: AUT_EXCEPTION
 		do
-			-- print ("AUT_INTERPRETER_PROXY.is_last_test_case_passing_internal%N")
+				-- print ("AUT_INTERPRETER_PROXY.is_last_test_case_passing_internal%N")
 			if attached {AUT_CALL_BASED_REQUEST} a_request as l_request then
 				if l_request.response.is_normal then
 					if l_request.response.is_exception then
@@ -2388,7 +2353,6 @@ feature -- Object state retrieval
 	set_is_last_test_case_passing (b: BOOLEAN)
 			-- Set `is_test_case_passing' with `b'.
 		do
-			-- print ("AUT_INTERPRETER_PROXY.set_is_last_test_case_passing%N")
 			is_last_test_case_passing := b
 		ensure
 			is_last_test_case_passing_set: is_last_test_case_passing = b
@@ -2412,7 +2376,6 @@ feature -- Object state retrieval
 		local
 			l_file: FILE_NAME
 		do
-			-- print ("AUT_INTERPRETER_PROXY.setup_online_statistics%N")
 			create l_file.make_from_string (configuration.output_dirname)
 			l_file.extend ("log")
 			l_file.set_file_name ("online_statistics.txt")
@@ -2430,7 +2393,6 @@ feature -- Object state retrieval
 		local
 			l_dir: DIRECTORY
 		do
-			-- print ("AUT_INTERPRETER_PROXY.setup_online_test_case_directory%N")
 			create l_dir.make (online_test_case_directory)
 			if l_dir.exists then
 				if configuration.should_clear_online_test_case_dir then
@@ -2448,7 +2410,6 @@ feature -- Object state retrieval
 		local
 			l_test_deserializer: AUT_DESERIALIZATION_STRING_PROCESSOR
 		do
-			-- print ("AUT_INTERPRETER_PROXY.output_test_case: " + a_serialization + "%N")
 			create l_test_deserializer.make
 			l_test_deserializer.test_case_deserialized_event.subscribe (
 				agent (a_test: AUT_DESERIALIZED_TEST_CASE)

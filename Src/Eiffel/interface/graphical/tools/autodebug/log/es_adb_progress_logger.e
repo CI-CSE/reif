@@ -39,6 +39,7 @@ feature -- Action
 	on_test_case_generated (a_test: ES_ADB_TEST)
 			-- <Precursor>
 		do
+			print ("ES_ADB_PROGRESS_LOGGER.on_test_case_generated%N")
 			log ({AUT_INTERPRETER_PROXY}.Msg_tc_generated)
 			log_line (a_test.location.out)
 		end
@@ -94,6 +95,7 @@ feature -- Operatoin
 			l_line: STRING
 			l_root_dir: PATH
 		do
+			print ("ES_ADB_PROGRESS_LOGGER.load_log%N")
 			if not l_retried then
 				is_loading := True
 				l_root_dir := info_center.config.working_directory.root_dir

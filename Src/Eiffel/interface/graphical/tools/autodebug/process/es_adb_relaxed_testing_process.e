@@ -60,6 +60,7 @@ feature{NONE} -- Implementation
 					-- + "-auto_test -i -f --agents none --integer-bounds -512,512 --state argumentless --serialization passing,failing --retrieve-serialization-online "
 					+ "-auto_test -i -f --agents none --integer-bounds -512,512 --state argumentless --serialization passing,failing --retrieve-serialization-online "
 					+ "-t " + config.Max_session_length_for_relaxed_testing.out + " "
+					--  "-t 1 "
 					+ l_seed + " "
 					+ "--disable-feature-contracts " + a_feature.qualified_feature_name + " "
 					+ "--5times " + a_feature.qualified_feature_name + " "

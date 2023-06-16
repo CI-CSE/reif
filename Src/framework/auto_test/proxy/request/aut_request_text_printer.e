@@ -39,7 +39,7 @@ feature {NONE} -- Initialization
 			an_output_stream_is_writable: an_output_stream.is_open_write
 			a_config_attached: a_config /= Void
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.make%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.make%N")
 			system := a_system
 			set_output_stream (an_output_stream)
 			configuration := a_config
@@ -71,7 +71,7 @@ feature -- Setting
 		require
 			an_output_stream_not_void: an_output_stream /= Void
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.set_output_stream :" + an_output_stream.name + "%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.set_output_stream :" + an_output_stream.name + "%N")
 			output_stream := an_output_stream
 		ensure
 			output_stream_set: output_stream = an_output_stream
@@ -86,13 +86,13 @@ feature {AUT_REQUEST} -- Processing
 
 	process_stop_request (a_request: AUT_STOP_REQUEST)
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_stop_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_stop_request%N")
 			output_stream.put_line (":quit")
 		end
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_create_object_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_create_object_request%N")
 			print_test_case_index (a_request)
 			output_stream.put_string (execute_request_header)
 			output_stream.put_string ("create {")
@@ -111,14 +111,14 @@ feature {AUT_REQUEST} -- Processing
 		local
 			l_text: STRING
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_create_agent_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_create_agent_request%N")
 			output_stream.put_string (execute_request_header)
 			output_stream.put_string (a_request.agent_assignment_code (once ""))
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_invoke_feature_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_invoke_feature_request%N")
 			print_test_case_index (a_request)
 			output_stream.put_string (execute_request_header)
 			if a_request.is_feature_query then
@@ -137,7 +137,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_assign_expression_request (a_request: AUT_ASSIGN_EXPRESSION_REQUEST)
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_assign_expression_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_assign_expression_request%N")
 			output_stream.put_string (execute_request_header)
 			output_stream.put_string (a_request.receiver.name (variable_name_prefix))
 			output_stream.put_character (' ')
@@ -150,7 +150,7 @@ feature {AUT_REQUEST} -- Processing
 
 	process_type_request (a_request: AUT_TYPE_REQUEST)
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_type_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_type_request%N")
 			output_stream.put_string (":type ")
 			output_stream.put_line (a_request.variable.name (variable_name_prefix))
 		end
@@ -162,7 +162,7 @@ feature {AUT_REQUEST} -- Processing
 			l_cursor: CURSOR
 			l_stream: like output_stream
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_object_state_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_object_state_request%N")
 			l_stream := output_stream
 			l_stream.put_string (once ":state ")
 			l_variables := a_request.variables
@@ -198,7 +198,7 @@ feature {AUT_REQUEST} -- Processing
 			l_count: INTEGER
 			l_string: STRING
 		do
-			print("AUT_REQUEST_TEXT_PRINTER.process_batch_assignment_request%N")
+			-- print("AUT_REQUEST_TEXT_PRINTER.process_batch_assignment_request%N")
 			l_stream := output_stream
 
 			l_receivers := a_request.receivers

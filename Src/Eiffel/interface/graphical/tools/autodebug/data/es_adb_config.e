@@ -883,7 +883,7 @@ feature -- Constant
 	default_should_show_candidate_fix_accepted: BOOLEAN = True
 	default_should_show_manually_fixed: BOOLEAN = True
 
-	Max_session_length_for_relaxed_testing: INTEGER = 7
+	Max_session_length_for_relaxed_testing: INTEGER = 1
 	Max_session_overhead_length: INTEGER = 5
 
 

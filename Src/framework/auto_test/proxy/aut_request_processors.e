@@ -24,77 +24,66 @@ feature {AUT_REQUEST} -- Processing
 	process_start_request (a_request: AUT_START_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_start_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_stop_request (a_request: AUT_STOP_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_stop_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_create_agent_request (a_request: AUT_CREATE_AGENT_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_create_agent_request%N")
 			fixme("Not implemented")
 		end
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_REQUEST_PROCESSORS.process_create_object_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 			-- Process `a_request'.
 		do
-			print("AUT_REQUEST_PROCESSORS.process_invoke_feature_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_assign_expression_request (a_request: AUT_ASSIGN_EXPRESSION_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_assign_expression_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_batch_assignment_request (a_request: AUT_BATCH_ASSIGNMENT_REQUEST)
 			-- <Precursor>
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_batch_assignment_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_type_request (a_request: AUT_TYPE_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_type_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_object_state_request (a_request: AUT_OBJECT_STATE_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_object_state_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_precodition_evaluation_request (a_request: AUT_PRECONDITION_EVALUATION_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_precodition_evaluation_request%N")
 			do_all (agent a_request.process (?))
 		end
 
 	process_predicate_evaluation_request (a_request: AUT_PREDICATE_EVALUATION_REQUEST)
 			-- Process `a_request'.
 		do
-			-- print("AUT_REQUEST_PROCESSORS.process_predicate_evaluation_request%N")
 			do_all (agent a_request.process (?))
 		end
 note

@@ -135,7 +135,6 @@ feature -- Access
 	compile_start_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions to be performed when Eiffel compilation starts
 		do
-			print("ES_ADB_ACTION_PUBLISHER.compile_start_actions%N")
 			if compile_start_actions_internal = Void then
 				create compile_start_actions_internal
 			end
@@ -147,7 +146,6 @@ feature -- Access
 	compile_stop_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions to be performed when Eiffel compilation stops
 		do
-			print("ES_ADB_ACTION_PUBLISHER.compile_stop_actions%N")
 			if compile_stop_actions_internal = Void then
 				create compile_stop_actions_internal
 			end
@@ -159,7 +157,6 @@ feature -- Access
 	project_load_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions to be performed when project loaded
 		do
-			print("ES_ADB_ACTION_PUBLISHER.project_load_actions%N")
 			if project_load_actions_internal = Void then
 				create project_load_actions_internal
 			end
@@ -171,7 +168,6 @@ feature -- Access
 	project_unload_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions to be performed when project unloaded
 		do
-			print("ES_ADB_ACTION_PUBLISHER.project_unload_actions%N")
 			if project_unload_actions_internal = Void then
 				create project_unload_actions_internal
 			end
@@ -183,7 +179,6 @@ feature -- Access
 	debugging_start_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions to be performed when debugging starts.
 		do
-			print("ES_ADB_ACTION_PUBLISHER.debugging_start_actions%N")
 			if debugging_start_actions_internal = Void then
 				create debugging_start_actions_internal
 			end
@@ -195,7 +190,6 @@ feature -- Access
 	debugging_stop_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions to be performed when debugging stops.
 		do
-			print("ES_ADB_ACTION_PUBLISHER.debugging_stop_actions%N")
 			if debugging_stop_actions_internal = Void then
 				create debugging_stop_actions_internal
 			end
@@ -206,8 +200,6 @@ feature -- Access
 
 	testing_start_actions: ACTION_SEQUENCE [TUPLE]
 		do
-			print("ES_ADB_ACTION_PUBLISHER.testing_start_actions%N")
-
 			if testing_start_actions_internal = Void then
 				create testing_start_actions_internal
 			end
@@ -216,8 +208,7 @@ feature -- Access
 
 	test_case_generated_actions: ACTION_SEQUENCE [TUPLE[ES_ADB_TEST]]
 		do
-			print("ES_ADB_ACTION_PUBLISHER.test_case_generated_actions%N")
-			if test_case_generated_actions_internal = VOid then
+			if test_case_generated_actions_internal = Void then
 				create test_case_generated_actions_internal
 			end
 			Result := test_case_generated_actions_internal
@@ -225,7 +216,6 @@ feature -- Access
 
 	testing_stop_actions: ACTION_SEQUENCE [TUPLE]
 		do
-			print("ES_ADB_ACTION_PUBLISHER.testing_stop_actions%N")
 			if testing_stop_actions_internal = Void then
 				create testing_stop_actions_internal
 			end
@@ -234,7 +224,6 @@ feature -- Access
 
 	fixing_start_actions: ACTION_SEQUENCE [TUPLE [ES_ADB_FAULT]]
 		do
-			print("ES_ADB_ACTION_PUBLISHER.fixing_start_actions%N")
 			if fixing_start_actions_internal = Void then
 				create fixing_start_actions_internal
 			end
@@ -243,7 +232,6 @@ feature -- Access
 
 	fixing_stop_actions: ACTION_SEQUENCE [TUPLE]
 		do
-			print("ES_ADB_ACTION_PUBLISHER.fixing_stop_actions%N")
 			if fixing_stop_actions_internal = Void then
 				create fixing_stop_actions_internal
 			end
@@ -319,9 +307,9 @@ invariant
 	testing_start_actions /= Void
 	test_case_generated_actions /= Void
 	testing_stop_actions /= Void
-	fixing_start_actions /= VOid
+	fixing_start_actions /= Void
 	fixing_stop_actions /= Void
-	continuation_debugging_start_actions /= VOid
+	continuation_debugging_start_actions /= Void
 	continuation_debugging_stop_actions /= Void
 	valid_fix_found_actions /= Void
 	fix_applied_actions /= Void

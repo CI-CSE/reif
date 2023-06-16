@@ -26,7 +26,7 @@ feature {NONE} -- Initialization
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
-			-- print("EWB_AUTO_TEST.make_with_arguments: "+ a_arguments.count.out + "%N")
+			print("EWB_AUTO_TEST.make_with_arguments: "+ a_arguments.count.out + "%N")
 			create {DS_LINKED_LIST [STRING_32]} auto_test_arguments.make
 			across a_arguments as ac loop auto_test_arguments.force_last (ac.item) end
 		ensure

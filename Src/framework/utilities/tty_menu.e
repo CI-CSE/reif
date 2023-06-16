@@ -120,6 +120,7 @@ feature -- Access
 			empty_reply_count: INTEGER
 			e: like entry
 		do
+			print ("TTY_MENU.execute START%N")
 			menu_asked := a_display_entry
 
 			if not retried then
@@ -130,24 +131,34 @@ feature -- Access
 			until
 				leave
 			loop
+				print ("TTY_MENU.execute JASON1%N")
 				if menu_shown_requested or empty_reply_count >= show_menu_after_n_empty_reply then
 					menu_shown := False
 					menu_shown_requested := False
 				end
+				print ("TTY_MENU.execute JASON1.1%N")
 				if menu_asked then
+					print ("TTY_MENU.execute JASON1.10%N")
 					if menu_shown = False then
 						empty_reply_count := 0
 						display_menu
 						menu_shown := True
 					end
+					print ("TTY_MENU.execute JASON1.11%N")
 					console.put_string (line_prefix + "-> ")
 				end
+				print ("TTY_MENU.execute JASON1.111%N")
 				e := get_entry
+				print ("TTY_MENU.execute JASON1.2%N")
 				if e /= Void then
+					print ("TTY_MENU.execute JASON1.22%N")
 					if attached e.action as l_action then
 						if entry_enabled (e) then
+						print ("TTY_MENU.execute JASON1.3%N")
 							l_action.call (Void)
+							print ("TTY_MENU.execute JASON1.4%N")
 						else
+						print ("TTY_MENU.execute JASON1.5%N")
 							console_print_entry_disabled
 						end
 					end
@@ -156,10 +167,12 @@ feature -- Access
 					menu_asked := True
 				end
 			end
+			print ("TTY_MENU.execute JASON2%N")
 			quit_actions.call (Void)
 		rescue
 			retried := True
 			retry
+		print ("TTY_MENU.execute END%N")
 		end
 
 	quit

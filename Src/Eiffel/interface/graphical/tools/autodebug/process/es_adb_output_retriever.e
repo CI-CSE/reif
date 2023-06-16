@@ -23,7 +23,7 @@ feature{NONE} -- Initialization
 		require
 			a_task /= Void
 		do
-			-- print("ES_ADB_OUTPUT_RETRIEVER.make%N")
+			print("ES_ADB_OUTPUT_RETRIEVER.make%N")
 			task := a_task
 			output_buffer := task.output_buffer
 			output_buffer.set_active (True)
@@ -69,7 +69,7 @@ feature
 	start
 			-- <Precursor>
 		do
-			-- print("ES_ADB_OUTPUT_RETRIEVER.start%N")
+			print("ES_ADB_OUTPUT_RETRIEVER.start%N")
 			Precursor
 			task.on_terminate_actions.extend (agent on_terminate_actions.call (Void))
 			task.start
@@ -81,6 +81,7 @@ feature
 			l_lines: DS_LIST [STRING]
 			l_cursor: DS_LIST_CURSOR [STRING]
 		do
+			-- print("ES_ADB_OUTPUT_RETRIEVER.step%N")
 			l_lines := output_buffer.retrieve_and_clear
 			from
 				l_cursor := l_lines.new_cursor
