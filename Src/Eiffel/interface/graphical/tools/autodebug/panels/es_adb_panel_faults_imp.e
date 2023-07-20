@@ -19,6 +19,11 @@ inherit
 
 feature{NONE} -- Initialization
 
+	scaler: EVS_DPI_SCALER
+		once
+			create Result.make
+		end
+
 	initialize
 			-- <Precursor>
 		local
@@ -47,22 +52,22 @@ feature{NONE} -- Initialization
 			l_col.set_width (0)
 			l_col := l_grid.column (column_class_and_feature_under_test)
 			l_col.set_title (grid_column_text_class_and_feature_under_test)
-			l_col.set_width (300)
+			l_col.set_width (scaler.scaled_size (300))
 			l_col := l_grid.column (column_fault)
 			l_col.set_title (grid_column_text_fault)
-			l_col.set_width (400)
+			l_col.set_width (scaler.scaled_size (400))
 			l_col := l_grid.column (column_passing)
 			l_col.set_title (grid_column_text_passing_tests)
-			l_col.set_width (100)
+			l_col.set_width (scaler.scaled_size (100))
 			l_col := l_grid.column (column_failing)
 			l_col.set_title (grid_column_text_failing_tests)
-			l_col.set_width (100)
+			l_col.set_width (scaler.scaled_size (100))
 			l_col := l_grid.column (column_status)
 			l_col.set_title (grid_column_text_status)
-			l_col.set_width (100)
+			l_col.set_width (scaler.scaled_size (100))
 			l_col := l_grid.column (column_info)
 			l_col.set_title (grid_column_text_info)
-			l_col.set_width (300)
+			l_col.set_width (scaler.scaled_size (300))
 			l_grid.enable_tree
 			l_grid.enable_row_height_fixed
 			l_h_box.extend (l_grid)
@@ -95,10 +100,10 @@ feature{NONE} -- Initialization
 			evmenu_fixes.extend (evmenucheck_manually_fixed)
 
 			create evbutton_filter_by_approachability.make_with_text (Button_text_filter_by_approachability)
-			evbutton_filter_by_approachability.set_minimum_width (120)
+			evbutton_filter_by_approachability.set_minimum_width (scaler.scaled_size (120))
 			evbutton_filter_by_approachability.select_actions.extend (agent evmenu_approchability.show_at (evbutton_filter_by_approachability, evbutton_filter_by_approachability.width, 0))
 			create evbutton_filter_by_fixes.make_with_text (Button_text_filter_by_fixes)
-			evbutton_filter_by_fixes.set_minimum_width (120)
+			evbutton_filter_by_fixes.set_minimum_width (scaler.scaled_size (120))
 			evbutton_filter_by_fixes.select_actions.extend (agent evmenu_fixes.show_at (evbutton_filter_by_fixes, evbutton_filter_by_fixes.width, 0))
 			l_h_box.extend (evbutton_filter_by_approachability)
 			l_h_box.disable_item_expand (evbutton_filter_by_approachability)

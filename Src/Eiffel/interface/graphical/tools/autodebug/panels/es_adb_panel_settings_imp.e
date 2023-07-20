@@ -19,6 +19,11 @@ inherit
 
 feature {NONE} -- Initialization
 
+	scaler: EVS_DPI_SCALER
+		once
+			create Result.make
+		end
+
 	initialize
 			-- <Precursor>
 		local
@@ -42,7 +47,7 @@ feature {NONE} -- Initialization
 			create evtext_group_to_add
 			l_internal_h_box.extend (evtext_group_to_add)
 			create evbutton_add.make_with_text (Button_text_add)
-			evbutton_add.set_minimum_width (40)
+			evbutton_add.set_minimum_width (scaler.scaled_size (40))
 			l_internal_h_box.extend (evbutton_add)
 			l_internal_h_box.disable_item_expand (evbutton_add)
 			l_v_box.extend (l_internal_h_box)
@@ -52,7 +57,7 @@ feature {NONE} -- Initialization
 			l_v_box.extend (evlist_groups_to_debug)
 
 			create evlist_classes_in_group
-			evlist_classes_in_group.set_minimum_height (100)
+			evlist_classes_in_group.set_minimum_height (scaler.scaled_size (100))
 			l_v_box.extend (evlist_classes_in_group)
 			l_v_box.disable_item_expand (evlist_classes_in_group)
 
@@ -61,11 +66,11 @@ feature {NONE} -- Initialization
 			create l_label.make_with_text ("")
 			l_internal_h_box.extend (l_label)
 			create evbutton_remove.make_with_text (Button_text_remove)
-			evbutton_remove.set_minimum_width (80)
+			evbutton_remove.set_minimum_width (scaler.scaled_size (80))
 			l_internal_h_box.extend (evbutton_remove)
 			l_internal_h_box.disable_item_expand (evbutton_remove)
 			create evbutton_remove_all.make_with_text (Button_text_remove_all)
-			evbutton_remove_all.set_minimum_width (80)
+			evbutton_remove_all.set_minimum_width (scaler.scaled_size (80))
 			l_internal_h_box.extend (evbutton_remove_all)
 			l_internal_h_box.disable_item_expand (evbutton_remove_all)
 			l_v_box.extend (l_internal_h_box)
@@ -94,7 +99,7 @@ feature {NONE} -- Initialization
 			create evtext_working_directory
 			l_internal_h_box.extend (evtext_working_directory)
 			create evbutton_browse.make_with_text ("...")
-			evbutton_browse.set_minimum_width (40)
+			evbutton_browse.set_minimum_width (scaler.scaled_size (40))
 			l_internal_h_box.extend (evbutton_browse)
 			l_internal_h_box.disable_item_expand (evbutton_browse)
 			l_internal_v_box.extend (l_internal_h_box)
@@ -117,7 +122,7 @@ feature {NONE} -- Initialization
 			l_label.align_text_left
 			l_internal_h_box.extend (l_label)
 			create evtext_testing_cutoff_time
-			evtext_testing_cutoff_time.set_minimum_width (40)
+			evtext_testing_cutoff_time.set_minimum_width (scaler.scaled_size (40))
 			l_internal_h_box.extend (evtext_testing_cutoff_time)
 			l_internal_h_box.disable_item_expand (evtext_testing_cutoff_time)
 
@@ -131,7 +136,7 @@ feature {NONE} -- Initialization
 			l_internal_h_box.extend (l_label)
 			create evcombo_testing_session_type.make_with_strings (<<combobox_text_test_session_type_one_class, combobox_text_test_session_type_one_group, combobox_text_test_session_type_all_classes>>)
 			evcombo_testing_session_type.disable_edit
-			evcombo_testing_session_type.set_minimum_width (200)
+			evcombo_testing_session_type.set_minimum_width (scaler.scaled_size (200))
 			l_internal_h_box.extend (evcombo_testing_session_type)
 			l_internal_h_box.disable_item_expand (evcombo_testing_session_type)
 			l_internal_v_box.extend (l_internal_h_box)
@@ -142,7 +147,7 @@ feature {NONE} -- Initialization
 			create evcheckbutton_testing_use_fixed_seed.make_with_text (Checkbutton_text_testing_use_fixed_seed)
 			l_internal_h_box.extend (evcheckbutton_testing_use_fixed_seed)
 			create evtext_testing_seed
-			evtext_testing_seed.set_minimum_width (40)
+			evtext_testing_seed.set_minimum_width (scaler.scaled_size (40))
 			l_internal_h_box.extend (evtext_testing_seed)
 			l_internal_h_box.disable_item_expand (evtext_testing_seed)
 			l_internal_v_box.extend (l_internal_h_box)
@@ -166,7 +171,7 @@ feature {NONE} -- Initialization
 			l_internal_h_box.extend (l_label)
 			create evcombo_start_fixing_type.make_with_strings (<<Combobox_text_start_fixing_type_after_each_testing_session, Combobox_text_start_fixing_type_after_all_testing_sessions, Combobox_text_start_fixing_type_manually>>)
 			evcombo_start_fixing_type.disable_edit
-			evcombo_start_fixing_type.set_minimum_width (200)
+			evcombo_start_fixing_type.set_minimum_width (scaler.scaled_size (200))
 			l_internal_h_box.extend (evcombo_start_fixing_type)
 			l_internal_h_box.disable_item_expand (evcombo_start_fixing_type)
 			l_internal_v_box.extend (l_internal_h_box)
@@ -178,7 +183,7 @@ feature {NONE} -- Initialization
 			l_label.align_text_left
 			l_internal_h_box.extend (l_label)
 			create evtext_fixing_cutoff_time
-			evtext_fixing_cutoff_time.set_minimum_width (40)
+			evtext_fixing_cutoff_time.set_minimum_width (scaler.scaled_size (40))
 			l_internal_h_box.extend (evtext_fixing_cutoff_time)
 			l_internal_h_box.disable_item_expand (evtext_fixing_cutoff_time)
 			l_internal_v_box.extend (l_internal_h_box)
@@ -190,7 +195,7 @@ feature {NONE} -- Initialization
 			l_label.align_text_left
 			l_internal_h_box.extend (l_label)
 			create evtext_fixing_number_of_fixes
-			evtext_fixing_number_of_fixes.set_minimum_width (40)
+			evtext_fixing_number_of_fixes.set_minimum_width (scaler.scaled_size (40))
 			l_internal_h_box.extend (evtext_fixing_number_of_fixes)
 			l_internal_h_box.disable_item_expand (evtext_fixing_number_of_fixes)
 			l_internal_v_box.extend (l_internal_h_box)
@@ -236,7 +241,7 @@ feature {NONE} -- Initialization
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			create evtext_fixing_passing_tests
-			evtext_fixing_passing_tests.set_minimum_width (40)
+			evtext_fixing_passing_tests.set_minimum_width (scaler.scaled_size (40))
 			l_h_box.extend (evtext_fixing_passing_tests)
 			l_h_box.disable_item_expand (evtext_fixing_passing_tests)
 			l_internal_h_box.extend (l_h_box)
@@ -247,7 +252,7 @@ feature {NONE} -- Initialization
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			create evtext_fixing_failing_tests
-			evtext_fixing_failing_tests.set_minimum_width (40)
+			evtext_fixing_failing_tests.set_minimum_width (scaler.scaled_size (40))
 			l_h_box.extend (evtext_fixing_failing_tests)
 			l_h_box.disable_item_expand (evtext_fixing_failing_tests)
 			l_internal_h_box.extend (l_h_box)
@@ -263,21 +268,21 @@ feature {NONE} -- Initialization
 
 				-- Right
 			create l_v_box
-			l_v_box.set_minimum_width (150)
+			l_v_box.set_minimum_width (scaler.scaled_size (150))
 			l_v_box.set_padding ({ES_UI_CONSTANTS}.vertical_padding)
 			l_v_box.set_border_width ({ES_UI_CONSTANTS}.frame_border)
 
 			create l_h_box
 			create l_label.make_with_text ("")
-			l_label.set_minimum_width (10)
+			l_label.set_minimum_width (scaler.scaled_size (10))
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			create evbutton_load_config.make_with_text (Button_text_load_config)
-			evbutton_load_config.set_minimum_width (130)
+			evbutton_load_config.set_minimum_width (scaler.scaled_size (130))
 			l_h_box.extend (evbutton_load_config)
 			l_h_box.disable_item_expand (evbutton_load_config)
 			create l_label.make_with_text ("")
-			l_label.set_minimum_width (10)
+			l_label.set_minimum_width (scaler.scaled_size (10))
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			l_v_box.extend (l_h_box)
@@ -285,15 +290,15 @@ feature {NONE} -- Initialization
 
 			create l_h_box
 			create l_label.make_with_text ("")
-			l_label.set_minimum_width (10)
+			l_label.set_minimum_width (scaler.scaled_size (10))
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			create evbutton_save_config.make_with_text (Button_text_save_config)
-			evbutton_save_config.set_minimum_width (130)
+			evbutton_save_config.set_minimum_width (scaler.scaled_size (130))
 			l_h_box.extend (evbutton_save_config)
 			l_h_box.disable_item_expand (evbutton_save_config)
 			create l_label.make_with_text ("")
-			l_label.set_minimum_width (10)
+			l_label.set_minimum_width (scaler.scaled_size (10))
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			l_v_box.extend (l_h_box)
@@ -304,11 +309,11 @@ feature {NONE} -- Initialization
 
 			create l_h_box
 			create l_label.make_with_text ("")
-			l_label.set_minimum_width (10)
+			l_label.set_minimum_width (scaler.scaled_size (10))
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			create evbutton_start.make_with_text (Button_text_start)
-			evbutton_start.set_minimum_width (130)
+			evbutton_start.set_minimum_width (scaler.scaled_size (150))
 			l_font := evbutton_start.font
 			create l_font_larger.make_with_values (l_font.family, l_font.weight, l_font.shape, l_font.height)
 			l_font_larger.set_weight ({EV_FONT_CONSTANTS}.Weight_bold)
@@ -317,7 +322,7 @@ feature {NONE} -- Initialization
 			l_h_box.extend (evbutton_start)
 			l_h_box.disable_item_expand (evbutton_start)
 			create l_label.make_with_text ("")
-			l_label.set_minimum_width (10)
+			l_label.set_minimum_width (scaler.scaled_size (10))
 			l_h_box.extend (l_label)
 			l_h_box.disable_item_expand (l_label)
 			l_v_box.extend (l_h_box)
