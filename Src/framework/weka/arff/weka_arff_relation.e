@@ -46,6 +46,9 @@ inherit
 create
 	make
 
+create {ARRAYED_LIST}
+	old_make
+
 feature{NONE} -- Initialization
 
 	make (a_attributes: like attributes)
