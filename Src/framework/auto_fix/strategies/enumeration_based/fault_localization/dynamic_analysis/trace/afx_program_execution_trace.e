@@ -17,6 +17,9 @@ inherit
 create
 	make
 
+create {LINKED_LIST}
+	make_list
+
 feature -- Initialization
 
 	make (a_tc: EPA_TEST_CASE_INFO)
