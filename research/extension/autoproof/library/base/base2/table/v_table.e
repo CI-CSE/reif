@@ -10,7 +10,7 @@ note
 	false_guards: true
 
 deferred class
-	V_TABLE [K, V]
+	V_TABLE [K -> ANY, V]
 
 inherit
 	V_MAP [K, V]

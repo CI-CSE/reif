@@ -20,14 +20,14 @@ feature -- Solve
 	maximize (a_function: EPA_EXPRESSION; a_constraints: LINKED_LIST [EPA_EXPRESSION]; a_arguments: LINKED_LIST [EPA_EXPRESSION])
 			-- Maximize the value of `a_function' under constraints `a_constraints', with respect to `a_arguments'.
 			-- Store results in `last_solutions'.
-			-- If there is no solution, make `lasT_solutions' empty.
+			-- If there is no solution, make `last_solutions' empty.
 		deferred
 		end
 
 	minimize (a_function: EPA_EXPRESSION; a_constraints: LINKED_LIST [EPA_EXPRESSION]; a_arguments: LINKED_LIST [EPA_EXPRESSION])
 			-- Minimize the value of `a_function' under constraints `a_constraints', with respect to `a_arguments'.
 			-- Store results in `last_solutions'.
-			-- If there is no solution, make `lasT_solutions' empty.
+			-- If there is no solution, make `last_solutions' empty.
 		deferred
 		end
 

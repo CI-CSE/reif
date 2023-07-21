@@ -87,7 +87,11 @@ feature -- Basic operation
 			l_traces_before_fixing := collect_behavior_of_regular_tests
 			l_traces_before_fixing_twin := l_traces_before_fixing.twin
 
-			if not config.is_fixing_implementation then
+			-- if not config.is_fixing_implementation then
+			print ("config.is_fixing_implementation: " + config.is_fixing_implementation.out + "%N")
+			print ("config.is_fixing_contract: " + config.is_fixing_contract.out + "%N")
+			
+			if config.is_fixing_implementation then
 				l_fixing_targets := localize_faulty_targets (l_traces_before_fixing)
 				if config.should_log_for_debugging then
 						-- Log at most the first 100 fixing targets.
@@ -154,7 +158,7 @@ feature -- Basic operation
 				sort_contract_fixes (l_contract_fixes)
 				fixes.append_last (l_contract_fixes)
 			end
-			
+			print ("number of fixes: " + fixes.count.out + "%N")
 			rank_fixes
 			event_actions.notify_on_session_terminated
 			session.clean_up
@@ -185,6 +189,7 @@ feature{NONE} -- Implementation
 			create l_collector
 			l_collector.set_monitor_mode (l_collector.mode_analyze_tc)
 			l_collector.set_features_to_monitor (features_to_monitor)
+			print ("features_to_monitor: " + features_to_monitor.count.out + "%N")
 			l_collector.collect (config.is_fixing_contract)
 			Result := l_collector.trace_repository.derived_compound_repository (features_to_monitor, True)
 
@@ -205,7 +210,11 @@ feature{NONE} -- Implementation
 			l_invariant_detecter: AFX_PROGRAM_EXECUTION_INVARIANT_DETECTER
 		do
 			print ("AFX_FIXER.localize_faulty_targets%N")
+			print ("number of passing tests"  +  a_trace_repository.number_of_passing_traces.out + "%N")
+			print ("number of failing tests"  +  a_trace_repository.number_of_failing_traces.out + "%N")
+			
 			if session.should_continue then
+				print ("hhhhhshould_continue%N")
 				progression_monitor.set_progression (progression_monitor.progression_fault_localization_start)
 				event_actions.notify_on_implementation_fix_generation_started
 
@@ -217,6 +226,8 @@ feature{NONE} -- Implementation
 				until
 					l_feature_cursor.after
 				loop
+					print ("l_feature: " + l_feature.qualified_feature_name + "%N")
+					print ("l_recipient: " + l_recipient.qualified_feature_name + "%N")
 					l_feature := l_feature_cursor.item
 
 					if l_recipient.is_about_same_feature (l_feature) then
@@ -251,7 +262,7 @@ feature{NONE} -- Implementation
 			l_fix: AFX_CODE_FIX_TO_FAULT
 			l_text: STRING
 		do
-			print ("AFX_FIXER.generate_implementation_fixes%N")
+			print ("AFX_FIXER.generate_implementation_fixes %N")
 			create Result.make_equal (1)
 			if session.should_continue then
 				progression_monitor.set_progression (progression_monitor.progression_fix_generation_start)

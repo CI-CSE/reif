@@ -29,7 +29,6 @@ feature {NONE} -- Initialization
 			status: creator
 		do
 			create array.make (0, default_capacity - 1)
-		    create sequence.default_create
 		ensure then
 			sequence_effect: sequence.is_empty
 			observers_empty: observers.is_empty

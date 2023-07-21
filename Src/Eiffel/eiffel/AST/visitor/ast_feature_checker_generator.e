@@ -7273,12 +7273,11 @@ feature {NONE} -- Visitor
 			create {AST_SCOPE_CONJUNCTIVE_CONDITION} scope_matcher.make (context)
 			s := context.scope
 			scope_matcher.add_scopes (l_as.condition)
-			-- branch_info_file.put_string ("ppp")
+
 			if l_as.compound /= Void then
 				process_compound (l_as.compound)
 				if l_needs_byte_node then
 					l_list ?= last_byte_node
-					-- branch_info_file.put_string ("uuu")
 --					if context.current_class.name.has_substring ("ICTSS_") or context.current_class.name.has_substring ("V_") then
 --						branch_number := branch_number + 1
 --						branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
@@ -7310,12 +7309,12 @@ feature {NONE} -- Visitor
 				if l_needs_byte_node then
 					l_list ?= last_byte_node
 					-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
-					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
-						branch_number := branch_number + 1
-						branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
+					-- if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
+					--	branch_number := branch_number + 1
+						-- branch_info_file.put_string (("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N"))
 						-- l_list.extend (check_false_clause (l_list.line_number))
 						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
-					end
+					-- end
 					l_if.set_else_part (l_list)
 				end
 			end
@@ -8716,12 +8715,12 @@ feature {NONE} -- Visitor
 				if not l_has_error and l_needs_byte_node then
 					l_list ?= last_byte_node
 					-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
-					if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
-						branch_number := branch_number + 1
-						branch_info_file.put_string ("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N")
+					-- if context.current_class.name.has_substring ("ICSE24_") or context.current_class.name.has_substring ("V_") then
+						-- branch_number := branch_number + 1
+						-- branch_info_file.put_string ("Branch " + branch_number.out + " Class " + context.current_class.name + " Line " + l_list.line_number.out + "%N")
 						-- l_list.extend (check_false_clause (l_list.line_number))
 						-- l_list.extend (create {INSTR_CALL_B}.make (record_branch_call (l_list.line_number), l_list.line_number - 1))
-					end
+					-- end
 					l_elsif.set_compound (l_list)
 				end
 			end

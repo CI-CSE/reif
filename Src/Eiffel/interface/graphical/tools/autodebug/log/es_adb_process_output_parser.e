@@ -56,13 +56,11 @@ feature -- Operation
 
 				if not is_inside_valid_fix then
 					if l_eol_index + 3 <= a_line.count and then a_line.item (l_eol_index + 1) ~ '<' and then a_line.item (l_eol_index + 2) ~ '[' and then a_line.item (l_eol_index + 3) ~ '-' then
-						print ("hhhhh1%N")
 						l_left_bracket_index := l_eol_index + 1
 						l_right_bracket_index := a_line.index_of ('>', l_left_bracket_index)
 						l_tag := a_line.substring (l_left_bracket_index, l_right_bracket_index)
 
 						if l_tag ~ {AUT_INTERPRETER_PROXY}.Msg_tc_generated then
-							print ("hhhhh2%N")
 							l_right_bracket_index := l_left_bracket_index + {AUT_INTERPRETER_PROXY}.Msg_tc_generated.count - 1
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
 							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)
@@ -71,13 +69,11 @@ feature -- Operation
 							l_file_name := l_tc_path.entry.out
 							l_class_under_test_str := l_file_name.substring (5, l_file_name.substring_index ("__", 5) - 1)
 							if info_center.config.all_class_names.has (l_class_under_test_str) then
-								print ("hhhhhh3" + l_class_under_test_str.to_string_8 + "%N")
 								create l_test.make (l_tc_path)
 								info_center.on_test_case_generated (l_test)
 							end
 
 						elseif l_tag ~ {ES_ADB_PROGRESS_LOGGER}.Msg_fixing_started then
-							print ("hhhhh4%N")
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
 							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)
 							l_value.prune_all ('%R')
@@ -86,7 +82,6 @@ feature -- Operation
 							end
 
 						elseif l_tag ~ {ES_ADB_PROGRESS_LOGGER}.msg_fix_applied then
-							print ("hhhhh5%N")
 							l_column_index := a_line.index_of (':', l_right_bracket_index)
 							l_semicolumn_index := a_line.index_of (';', l_column_index)
 							l_fault_id := a_line.substring (l_column_index + 1, l_semicolumn_index - 1)
@@ -97,7 +92,6 @@ feature -- Operation
 
 							l_fault := info_center.fault_with_signature_id (l_fault_id)
 							if l_fault /= Void and then attached l_fault.fix_with_id_string (l_fix_id) as lt_fix then
-								print ("hhhhh6%N")
 								if attached {ES_ADB_FIX_AUTOMATIC} lt_fix as lt_auto_fix then
 									lt_auto_fix.set_has_been_applied
 								end
@@ -105,7 +99,6 @@ feature -- Operation
 							end
 
 						elseif l_tag ~ {AFX_PROXY_LOGGER}.Msg_valid_fix_start then
-							print ("hhhhh7%N")
 							is_inside_valid_fix := True
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
 						end
@@ -113,7 +106,6 @@ feature -- Operation
 						l_eol_index := a_line.index_of (l_eol_character, l_eol_index + 1)
 					end
 				else
-					print ("hhhhh8%N")
 					if l_eol_index = a_line.count then
 						l_eol_index := 0
 					else

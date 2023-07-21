@@ -50,6 +50,7 @@ feature -- Basic operations
 			l_fixes: like fixes
 			l_fix_text: STRING
 		do
+			print ("AFX_RANDOM_BASED_FIX_GENERATOR.generate%N")
 				--Initialize.
 			create fixes.make_equal (100)
 
@@ -92,6 +93,8 @@ feature{NONE} -- Implementation
 			l_requirement: AFX_STATE_CHANGE_REQUIREMENT
 			l_instructions: LINKED_LIST [EPA_AST_STRUCTURE_NODE]
 		do
+			print ("AFX_RANDOM_BASED_FIX_GENERATOR.generate_fixes_for_target: " + a_target.context_class.name +  "%N")
+
 			l_guard_conditions := guard_conditions_for_target (a_target)
 			l_relevant_asts := relevant_asts_for_a_target (a_target)
 			l_requirements := change_requirements_for_target (a_target)

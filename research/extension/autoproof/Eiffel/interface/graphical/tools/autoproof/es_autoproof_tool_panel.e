@@ -660,7 +660,7 @@ feature {NONE} -- Basic operations
 			l_format: FORMAT_DOUBLE
 		do
 
-				-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
+			print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
 			if not options.is_full_coverage_test_generation_enabled then  -- do not change the panel when full-coverage test generation is enabled
 
 				a_row.set_data (a_event_item)
@@ -723,7 +723,7 @@ feature {NONE} -- Basic operations
 							-- Subrows
 						if attached {E2B_SUCCESSFUL_VERIFICATION} a_event_item.data as l_success then
 							if attached l_success.suggestion and then not l_success.suggestion.is_empty then
-								insert_subrow_for_suggestion (a_row, l_success.suggestion) -- what is a suggestion in successful verification?
+								insert_subrow_for_suggestion (a_row, l_success.suggestion)
 							end
 							if attached l_success.original_errors then
 								across l_success.original_errors as l_errors loop
@@ -752,9 +752,9 @@ feature {NONE} -- Basic operations
 								l_failure.errors as l_error
 							loop
 								insert_subrow_for_error (a_row, l_error)
-								if attached l_error.ce_message then
-									insert_subrow_for_counterexample (a_row, l_error, l_failure)
-								end
+								-- if attached l_error.ce_message then
+								--	insert_subrow_for_counterexample (a_row, l_error, l_failure)
+								-- end
 							end
 						end
 
@@ -851,6 +851,7 @@ feature {NONE} -- Basic operations
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.insert_subrow_for_counterexample%N")
 			ce_index := ce_index + 1
 			ce_init_state := a_error.ce_init_state
 			l_index := a_parent.subrow_count + 1

@@ -26,7 +26,7 @@ feature {NONE} -- Initialization
 		do
 			create {LINKED_LIST [STRING]} autofix_arguments.make
 			a_arguments.do_all (agent autofix_arguments.extend)
-			print ("EWB_AUTO_FIX.make_with_arguments" + autofix_arguments.count.out + "%N")
+			print ("EWB_AUTO_FIX.make_with_arguments: " + autofix_arguments.count.out + "%N")
 		ensure
 			arguments_set: autofix_arguments /= Void and then autofix_arguments.count = a_arguments.count
 		end

@@ -42,6 +42,7 @@ feature {NONE} -- Initialization
 			sequence_domain_effect: sequence.count = n
 			sequence_effect: ∀ i: 1 |..| sequence.count ¦ sequence [i] = v
 			capacity_effect: capacity = n
+			is_wrapped
 		end
 
 feature -- Access
