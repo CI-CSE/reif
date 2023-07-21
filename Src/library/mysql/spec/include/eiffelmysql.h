@@ -48,4 +48,3 @@ EIF_REFERENCE c_stmt_string_at     (EIF_POINTER resdata, EIF_INTEGER pos);
 EIF_INTEGER   c_stmt_string_at_new (EIF_POINTER resdata, EIF_INTEGER pos, EIF_POINTER str);
 void          c_stmt_free          (EIF_POINTER stmt, EIF_POINTER bind,       EIF_POINTER data, EIF_POINTER resbind, EIF_POINTER resdata);
 
-
