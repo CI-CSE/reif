@@ -161,7 +161,7 @@ feature -- Basic operations
 					l_call.node_info.set_attribute ("cid", system.any_id.out)
 					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
 					l_call.node_info.set_line (a_feature.body.start_location.line)
-					current_block.add_statement (l_call)
+					-- current_block.add_statement (l_call)
 
 					l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
 					current_block.statements.append (l_expr_translator.side_effect)
@@ -200,7 +200,7 @@ feature -- Basic operations
 						l_call.node_info.set_attribute ("cid", system.any_id.out)
 						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
 						l_call.node_info.set_line (a_feature.body.end_location.line)
-						current_block.add_statement (l_call)
+						-- current_block.add_statement (l_call)
 
 						l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
 						current_block.statements.append (l_expr_translator.side_effect)
@@ -438,7 +438,7 @@ feature -- Processing
 			-- mapping: feature -> has_conditional
 			current_implementation.set_has_conditional (True)
 			current_implementation.procedure.set_has_conditional (True)
-			
+
 			status_values := helper.feature_note_values (a_node.context.current_feature, "status")
 			set_current_origin_information (a_node)
 

@@ -18,6 +18,7 @@ feature{NONE} -- Initialization
 	make (a_class: like class_; a_feature: like feature_)
 			-- Initialize Current.
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.make%N")
 			class_ := a_class
 			feature_ := a_feature
 			create expressions.make (initial_capacity)
@@ -55,6 +56,7 @@ feature -- Basic operations
 			l_slot_count: INTEGER
 			i: INTEGER
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.set_all_breakpoints_with_expression_and_actions%N")
 			l_slot_count := feature_.number_of_breakpoint_slots
 			from
 				i := 1
@@ -73,6 +75,7 @@ feature -- Basic operations
 		local
 			l_slot_count: INTEGER
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.set_selected_breakpoint_with_expression_and_action%N")
 			l_slot_count := feature_.number_of_breakpoint_slots
 			across a_selected_bpts as l_bpt loop
 				if 1 <= l_bpt.item and then l_bpt.item <= l_slot_count then
@@ -93,6 +96,7 @@ feature -- Basic operations
 			l_act_list: LINKED_LIST [EPA_BREAKPOINT_WHEN_HITS_ACTION_EXPR_EVALUATION]
 			l_action:EPA_BREAKPOINT_WHEN_HITS_ACTION_EXPR_EVALUATION
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.set_breakpoint_with_expression_and_action%N")
 			create l_act_list.make
 			create l_action.make (a_expressions, class_, feature_)
 			l_action.on_hit_actions.extend (a_action)
@@ -113,6 +117,7 @@ feature -- Basic operations
 			l_action:EPA_BREAKPOINT_WHEN_HITS_ACTION_AGENT_EVALUATION
 			l_exprs: DS_HASH_SET [EPA_EXPRESSION]
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.set_breakpoint_with_agent_and_action%N")
 			create l_act_list.make
 			create l_action.make (a_expression_retriever, class_, feature_)
 			l_action.on_hit_actions.extend (a_action)
@@ -131,6 +136,7 @@ feature -- Basic operations
 			l_slot_count: INTEGER
 			i: INTEGER
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.set_all_breakpoints_with_agent_and_actions%N")
 			l_slot_count := feature_.number_of_breakpoint_slots
 			from
 				i := 1
@@ -145,6 +151,7 @@ feature -- Basic operations
 	wipe_out
 			-- Clear `expressions' and `hit_actions'.
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.wipe_out%N")
 			toggle_breakpoints (False)
 			expressions.wipe_out
 			hit_actions.wipe_out
@@ -162,8 +169,10 @@ feature -- Basic operations
 			l_breakpoint: BREAKPOINT
 			l_bp2: BREAKPOINT
 		do
+			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.toggle_breakpoints%N")
 			l_bp_manager := debugger_manager.breakpoints_manager
 			l_bps := expressions
+			print ("number of expressions: " + l_bps.count.out + "%N")
 			from
 				l_bps.start
 			until
@@ -180,6 +189,7 @@ feature -- Basic operations
 						if l_actions /= Void then
 							l_actions.do_all (agent l_breakpoint.add_when_hits_action)
 						end
+						print ("loc: " + l_bp.breakable_line_number.out + "%N")
 						l_bp_manager.add_breakpoint (l_breakpoint)
 					else
 						if l_actions /= Void then

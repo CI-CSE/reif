@@ -345,7 +345,7 @@ feature {NONE} -- Implementation
 					create l_clause.make (factory.function_call ("admissibility2", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
 					l_clause.node_info.set_type ("inv")
 					l_clause.node_info.set_tag (translation_mapping.default_tags [4])
-					last_clauses.extend (l_clause)
+					-- last_clauses.extend (l_clause)
 				end
 			end
 		end
@@ -373,7 +373,7 @@ feature {NONE} -- Implementation
 					create l_clause.make (empty_set_property (a_name, a_mapping))
 					l_clause.node_info.set_type ("inv")
 					l_clause.node_info.set_tag (a_tag)
-					last_clauses.extend (l_clause)
+					-- last_clauses.extend (l_clause)
 				end
 			elseif a_included /= Void and then a_included.has (a_tag) then
 				helper.add_semantic_error (type.base_class, messages.invalid_tag ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_tag), type.base_class.name_in_upper), -1)
@@ -469,7 +469,7 @@ feature {NONE} -- Implementation
 						l_clause.node_info.set_tag (l_assert.tag)
 						l_clause.node_info.set_line (l_assert.line_number)
 						l_clause.node_info.set_attribute ("cid", a_class.class_id.out)
-						last_clauses.extend (l_clause)
+						-- last_clauses.extend (l_clause)
 							-- If ownership is enabled and we are processing the full invariant,
 							-- check if the invariant clause defines one of the ghost attribtues
 							-- and generate correspoding functions

@@ -29,7 +29,6 @@ feature {NONE} -- Initialization
 			status: creator
 		do
 			create array.make (0, default_capacity - 1)
-		    create sequence.default_create
 		ensure then
 			sequence_effect: sequence.is_empty
 			observers_empty: observers.is_empty
@@ -477,7 +476,7 @@ invariant
 
 note
 	explicit: observers
-	date: "$Date: 2021-07-15 20:57:26 +0800 (周四, 15 7月 2021) $"
+	date: "$Date: 2021-07-15 20:57:26 +0800 (Thu, 15 Jul 2021) $"
 	revision: "$Revision: 105637 $"
 	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"

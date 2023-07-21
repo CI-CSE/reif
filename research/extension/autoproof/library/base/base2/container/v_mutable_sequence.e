@@ -7,7 +7,7 @@
 	false_guards: true
 
 deferred class
-	V_MUTABLE_SEQUENCE [G] 
+	V_MUTABLE_SEQUENCE [G]
 
 inherit
 	V_SEQUENCE [G]
