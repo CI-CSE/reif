@@ -50,7 +50,7 @@
 			</option>
 		</library>
 		<library name="a_compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
-		<library name="a_testing" location="E:\es_ap\trunk\Src\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_testing" location="$EIFFEL_SRC\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_auto_fix" location="$EIFFEL_SRC\framework\auto_fix\auto_fix.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
