@@ -54,7 +54,6 @@ feature {NONE} -- Initialization
 			current_feature := a_feature
 			current_type := a_type
 			current_block := current_implementation.body
-			print ("noteeee size: " + helper.feature_note_values (a_feature, "status").count.out + "%N")
 			current_implementation.procedure.set_status_values (helper.feature_note_values (a_feature, "status"))
 
 			if attached types.for_class_type (a_type) as t then
@@ -161,7 +160,7 @@ feature -- Basic operations
 					l_call.node_info.set_attribute ("cid", system.any_id.out)
 					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
 					l_call.node_info.set_line (a_feature.body.start_location.line)
-					-- current_block.add_statement (l_call)
+					current_block.add_statement (l_call)
 
 					l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
 					current_block.statements.append (l_expr_translator.side_effect)
@@ -200,7 +199,7 @@ feature -- Basic operations
 						l_call.node_info.set_attribute ("cid", system.any_id.out)
 						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
 						l_call.node_info.set_line (a_feature.body.end_location.line)
-						-- current_block.add_statement (l_call)
+						current_block.add_statement (l_call)
 
 						l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
 						current_block.statements.append (l_expr_translator.side_effect)

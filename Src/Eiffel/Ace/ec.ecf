@@ -319,6 +319,10 @@
 			<option>
 			</option>
 		</library>
+		<library name="a_eiffel2boogie" location="$AP\framework\eiffel2boogie\eiffel2boogie.ecf" readonly="false" use_application_options="true">
+			<option>
+			</option>
+		</library>
 		<library name="com_light" location="$EIFFEL_SRC\framework\com_light\com_light.ecf" readonly="false" use_application_options="true">
 			<option>
 			</option>

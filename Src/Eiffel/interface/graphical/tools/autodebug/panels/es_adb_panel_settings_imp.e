@@ -105,7 +105,59 @@ feature {NONE} -- Initialization
 			l_internal_v_box.extend (l_internal_h_box)
 			l_internal_v_box.disable_item_expand (l_internal_h_box)
 
+			create l_internal_h_box
+			l_internal_h_box.set_padding ({ES_UI_CONSTANTS}.horizontal_padding)
+			create l_label.make_with_text (Label_text_program_fixing_based_on)
+			l_label.align_text_left
+			l_internal_h_box.extend (l_label)
+			create evcombo_based_approach.make_with_strings (<<"AutoTest", "AutoProof">>)
+			evcombo_based_approach.disable_edit
+			evcombo_based_approach.set_minimum_width (scaler.scaled_size (200))
+			l_internal_h_box.extend (evcombo_based_approach)
+			l_internal_h_box.disable_item_expand (evcombo_based_approach)
+			l_internal_v_box.extend (l_internal_h_box)
+			l_internal_v_box.disable_item_expand (l_internal_h_box)
+
 			create l_frame.make_with_text (Frame_text_general)
+			l_frame.set_border_width ({ES_UI_CONSTANTS}.frame_border)
+			l_frame.extend (l_internal_v_box)
+			l_v_box.extend (l_frame)
+			l_v_box.disable_item_expand (l_frame)
+			create l_v_space
+			l_v_box.extend (l_v_space)
+
+					-- Proof
+			create l_internal_v_box
+			l_internal_v_box.set_padding ({ES_UI_CONSTANTS}.vertical_padding)
+			create l_internal_h_box
+			l_internal_h_box.set_padding ({ES_UI_CONSTANTS}.horizontal_padding)
+			create l_label.make_with_text (label_text_maximum_session_length_for_proof)
+			l_label.align_text_left
+			l_internal_h_box.extend (l_label)
+			create evtext_proof_cutoff_time
+			evtext_proof_cutoff_time.set_minimum_width (scaler.scaled_size (40))
+			l_internal_h_box.extend (evtext_proof_cutoff_time)
+			l_internal_h_box.disable_item_expand (evtext_proof_cutoff_time)
+
+			l_internal_v_box.extend (l_internal_h_box)
+			l_internal_v_box.disable_item_expand (l_internal_h_box)
+
+			-- create l_internal_v_box
+			-- l_internal_v_box.set_padding ({ES_UI_CONSTANTS}.vertical_padding)
+			create l_internal_h_box
+			l_internal_h_box.set_padding ({ES_UI_CONSTANTS}.horizontal_padding)
+			create l_label.make_with_text (label_text_number_of_counterexamples_for_each_failure)
+			l_label.align_text_left
+			l_internal_h_box.extend (l_label)
+			create evtext_number_of_counterexamples
+			evtext_number_of_counterexamples.set_minimum_width (scaler.scaled_size (40))
+			l_internal_h_box.extend (evtext_number_of_counterexamples)
+			l_internal_h_box.disable_item_expand (evtext_number_of_counterexamples)
+
+			l_internal_v_box.extend (l_internal_h_box)
+			l_internal_v_box.disable_item_expand (l_internal_h_box)
+
+			create l_frame.make_with_text (Frame_text_proof)
 			l_frame.set_border_width ({ES_UI_CONSTANTS}.frame_border)
 			l_frame.extend (l_internal_v_box)
 			l_v_box.extend (l_frame)
@@ -349,6 +401,12 @@ feature -- GUI elements
 	evtext_working_directory: EV_TEXT_FIELD
 
 	evbutton_browse: EV_BUTTON
+
+	evcombo_based_approach: EV_COMBO_BOX
+
+	evtext_number_of_counterexamples: EV_TEXT_FIELD
+
+	evtext_proof_cutoff_time: EV_TEXT_FIELD
 
 	evtext_testing_cutoff_time: EV_TEXT_FIELD
 

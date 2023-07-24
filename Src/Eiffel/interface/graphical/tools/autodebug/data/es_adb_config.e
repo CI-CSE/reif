@@ -22,6 +22,16 @@ feature -- Status report
 			Result := project /= Void
 		end
 
+	is_based_approach_test: BOOLEAN
+		do
+			Result := based_approach = Fixing_based_on_test
+		end
+
+	is_based_approach_proof: BOOLEAN
+		do
+			Result := based_approach = Fixing_based_on_proof
+		end
+
 	is_each_session_testing_one_class: BOOLEAN
 		do
 			Result := testing_session_type = testing_session_type_one_class
@@ -74,7 +84,13 @@ feature -- Primitive config values
 			Result := working_directory_internal
 		end
 
+	based_approach: INTEGER
+
 	testing_session_type: INTEGER
+
+	number_of_counterexamples: INTEGER
+
+	max_session_length_for_proof: INTEGER
 
 	max_session_length_for_testing: INTEGER
 
@@ -119,6 +135,11 @@ feature -- Config value validity
 			Result := a_val > 0
 		end
 
+	is_valid_nbr_counterexamples (a_val: INTEGER): BOOLEAN
+		do
+			Result := a_val > 1
+		end
+
 	is_valid_max_nbr_fix_candidates (a_val: INTEGER): BOOLEAN
 		do
 			Result := a_val > 0
@@ -127,6 +148,11 @@ feature -- Config value validity
 	is_valid_max_nbr_tests (a_val: INTEGER): BOOLEAN
 		do
 			Result := a_val >= 0
+		end
+
+	is_valid_based_approach (a_val: INTEGER): BOOLEAN
+		do
+			Result := a_val = Fixing_based_on_test or a_val = Fixing_based_on_proof
 		end
 
 	is_valid_testing_session_type (a_val: INTEGER): BOOLEAN
@@ -327,11 +353,33 @@ feature -- Set others
 			working_directory_internal := a_dir.twin
 		end
 
+	set_based_approach (a_type: INTEGER)
+		require
+			is_valid_based_approach (a_type)
+		do
+			print("ES_ADB_CONFIG.set_based_approach: " + a_type.out + "%N")
+			based_approach := a_type
+		end
+
 	set_testing_session_type (a_type: INTEGER)
 		require
 			is_valid_testing_session_type (a_type)
 		do
 			testing_session_type := a_type
+		end
+
+	set_number_of_counterexamples (a_val: INTEGER)
+		require
+			is_valid_max_session_length (a_val)
+		do
+			number_of_counterexamples := a_val
+		end
+
+	set_max_session_length_for_proof (a_val: INTEGER)
+		require
+			is_valid_max_session_length (a_val)
+		do
+			max_session_length_for_proof := a_val
 		end
 
 	set_max_session_length_for_testing (a_val: INTEGER)
@@ -849,6 +897,9 @@ feature -- Constant
 	str_should_show_candidate_fix_unavailable: STRING = "should.show.candidate.fix.unavailable"
 	str_should_show_candidate_fix_accepted: STRING = "should.show.candidate.fix.accepted"
 	str_should_show_manually_fixed: STRING = "should.show.manually.fixed"
+
+	Fixing_based_on_test: INTEGER = 1
+	Fixing_based_on_proof: INTEGER = 2
 
 	Testing_session_type_one_class: INTEGER = 1
 	Testing_session_type_one_group: INTEGER = 2

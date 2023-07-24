@@ -18,7 +18,7 @@ feature {NONE} -- Initialization
 	make (a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			-- print ("E2B_VERIFY_FOR_FIX_TASK.make%N")
+			print ("E2B_VERIFY_FOR_FIX_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -44,7 +44,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			l_boogie_universe: IV_UNIVERSE
 			-- l_context: E2B_SHARED_CONTEXT
 		do
-			-- print ("E2B_VERIFY_FOR_FIX_TASK.step%N")
+			print ("E2B_VERIFY_FOR_FIX_TASK.step%N")
 			if attached options.target_feature then
 				create l_translator_input.make
 				l_translator_input.add_feature (options.target_feature)
@@ -66,7 +66,8 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_WITH_RANDOM_SEED_TASK}.make (new_verifier))
 				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator))
 
-				if l_context.options.number_of_iterations < 20 then
+				print ("number_of_iterations: " + l_context.options.number_of_iterations.out + " vs " + l_context.options.number_of_iteration_for_fixing.out + "%N")
+				if l_context.options.number_of_iterations < l_context.options.number_of_iteration_for_fixing then
 					remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_TASK}.make (result_generator, remaining_tasks))
                 else
                     remaining_tasks.extend (create {E2B_COMPUTE_FIX_ELEMENT_TASK}.make (result_generator, remaining_tasks))

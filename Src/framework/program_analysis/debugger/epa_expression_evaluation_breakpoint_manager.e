@@ -85,7 +85,7 @@ feature -- Basic operations
 		end
 
 	set_breakpoint_with_expression_and_action (a_bpslot: INTEGER; a_expressions: DS_HASH_SET [EPA_EXPRESSION]; a_action: PROCEDURE [ANY, TUPLE [a_bp: BREAKPOINT; a_state: EPA_STATE]])
-			-- Set `a_action' to `a_bpslot'-th break point in `a_feature'.
+			-- Set `a_action' to `a_bpslot'-th breakpoint in `a_feature'.
 			-- Every time when the breakpoint is hit, all expressions in `a_expressions' are evaluated and
 			-- their values are passed to `a_action' through the argument `a_state'.
 		require
@@ -172,7 +172,17 @@ feature -- Basic operations
 			print ("EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER.toggle_breakpoints%N")
 			l_bp_manager := debugger_manager.breakpoints_manager
 			l_bps := expressions
+			print ("feature: " + class_.name + "." + feature_.feature_name_32.to_string_8 + "%N")
 			print ("number of expressions: " + l_bps.count.out + "%N")
+
+			across l_bps.current_keys as k loop
+				print ("bp location: " + k.item.to_string + "%N")
+				across l_bps [k.item] as exp loop
+					print ("classsss: " + exp.item.context_class.name + "%N")
+				end
+			end
+
+
 			from
 				l_bps.start
 			until
@@ -190,7 +200,7 @@ feature -- Basic operations
 							l_actions.do_all (agent l_breakpoint.add_when_hits_action)
 						end
 						print ("loc: " + l_bp.breakable_line_number.out + "%N")
-						l_bp_manager.add_breakpoint (l_breakpoint)
+						l_bp_manager.add_breakpoint (l_breakpoint)   -- iterate over expressions?
 					else
 						if l_actions /= Void then
 							l_bp2 := l_bp_manager.breakpoint_at (l_bp, False)

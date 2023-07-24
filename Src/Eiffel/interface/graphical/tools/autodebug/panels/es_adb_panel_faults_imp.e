@@ -51,7 +51,7 @@ feature{NONE} -- Initialization
 			l_col := l_grid.column (1)
 			l_col.set_width (0)
 			l_col := l_grid.column (column_class_and_feature_under_test)
-			l_col.set_title (grid_column_text_class_and_feature_under_test)
+			l_col.set_title (grid_column_text_class_and_feature_under_fix)
 			l_col.set_width (scaler.scaled_size (300))
 			l_col := l_grid.column (column_fault)
 			l_col.set_title (grid_column_text_fault)

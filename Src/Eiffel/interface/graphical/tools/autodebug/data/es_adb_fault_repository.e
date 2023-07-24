@@ -30,9 +30,7 @@ feature -- Query
 			until
 				l_cursor.after
 			loop
-				print ("f11111%N")
 				if a_filter.item ([l_cursor.item]) then
-					print ("f2222%N")
 					Result.force_last (l_cursor.item)
 				end
 				l_cursor.forth

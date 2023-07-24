@@ -39,8 +39,13 @@ feature -- Access
 				l_group_cursor.after
 			loop
 				l_group := l_group_cursor.item
-				create l_process.make (l_group, Void, output_buffer)
-				tasks.force_last (l_process)
+				if config.is_based_approach_proof then
+					tasks.force_last(create {ES_ADB_PROOF_PROCESS}.make (l_group, Void, output_buffer))
+				else
+					tasks.force_last(create {ES_ADB_REGULAR_TESTING_PROCESS}.make (l_group, Void, output_buffer))
+					-- create l_process.make (l_group, Void, output_buffer)
+				end
+				-- tasks.force_last (l_process)
 
 				l_group_cursor.forth
 			end
