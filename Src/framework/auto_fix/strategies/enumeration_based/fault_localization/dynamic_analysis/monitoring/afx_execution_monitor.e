@@ -189,7 +189,7 @@ feature{NONE} -- Initialization
 			l_expr_set.force_last (l_expr)
 			create l_expr.make_with_text (l_class, l_feature, {EQA_SERIALIZED_TEST_SET}.Txt_tci_exception_trace, l_class)
 			l_expr_set.force_last (l_expr)
-
+			print ("l_expr_set size: " + l_expr_set.count.out + "%N")
 			test_case_info_skeleton := l_expr_set
 		ensure
 			test_case_info_skeleton_initialized: test_case_info_skeleton /= Void and then test_case_info_skeleton.count = 14
@@ -206,6 +206,7 @@ feature{NONE} -- Initialization
 		do
 			print ("AFX_EXECUTION_MONITOR.init_test_case_boundary_breakpoint_managers%N")
 			create entry_breakpoint_manager.make (Test_case_super_class, Test_case_setup_feature)
+			print ("test_case_info_skeleton size: " + test_case_info_skeleton.count.out + "%N")
 			entry_breakpoint_manager.set_breakpoint_with_expression_and_action (1, test_case_info_skeleton, agent on_test_case_entry)
 			entry_breakpoint_manager.toggle_breakpoints (True)
 

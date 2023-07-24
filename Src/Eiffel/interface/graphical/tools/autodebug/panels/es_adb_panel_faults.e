@@ -170,14 +170,12 @@ feature -- ADB Actions
 			end
 
 			if l_signature.is_passing and then l_row_for_feature /= Void then
-				print ("adb is passing%N")
 					-- Update number of passing tests for the feature
 				check attached {EV_GRID_LABEL_ITEM} l_row_for_feature.item (column_passing) as lt_label_item then
 					lt_label_item.set_text ((lt_label_item.text.to_integer + 1).out)
 				end
 
 			elseif l_signature.is_failing then
-				print ("adb is failing%N")
 				l_fault := info_center.fault_with_signature (l_signature, True)
 
 				if l_row_for_feature = Void then

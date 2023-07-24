@@ -47,6 +47,8 @@ feature{NONE} -- Update UI
 			evtext_group_to_add.set_text ("")
 			evlist_groups_to_debug.wipe_out
 			evtext_working_directory.set_text ("")
+			evtext_number_of_counterexamples.set_text ("")
+			evtext_proof_cutoff_time.set_text ("")
 			evtext_testing_cutoff_time.set_text ("")
 			evtext_testing_seed.set_text ("")
 			evtext_fixing_cutoff_time.set_text ("")
@@ -556,6 +558,9 @@ feature{NONE} -- UI/Config sync
 				evcombo_testing_session_type.set_text (combobox_text_test_session_type_all_classes)
 			end
 
+			evtext_proof_cutoff_time.set_text (l_config.max_session_length_for_proof.out)
+			evtext_number_of_counterexamples.set_text (l_config.number_of_counterexamples.out)
+
 			evtext_testing_cutoff_time.set_text (l_config.max_session_length_for_testing.out)
 			evtext_testing_seed.set_text (l_config.fixed_seed.out)
 			if l_config.should_use_fixed_seed_in_testing then
@@ -596,6 +601,7 @@ feature{NONE} -- UI/Config sync
 			l_config: like config
 			l_working_dir: ES_ADB_WORKING_DIRECTORY
 			l_testing_session_type_str: STRING
+			l_based_approach_str: STRING
 			l_start_fixing_type_str: STRING
 		do
 			l_config := config
@@ -611,6 +617,14 @@ feature{NONE} -- UI/Config sync
 			elseif l_testing_session_type_str ~ combobox_text_test_session_type_all_classes then
 				config.set_testing_session_type ({ES_ADB_CONFIG}.Testing_session_type_all_classes)
 			end
+			l_based_approach_str := evcombo_based_approach.text
+			if l_based_approach_str ~ combobox_text_based_approach_autotest then
+				config.set_based_approach ({ES_ADB_CONFIG}.Fixing_based_on_test)
+			elseif l_based_approach_str ~ combobox_text_based_approach_autoproof then
+				config.set_based_approach ({ES_ADB_CONFIG}.Fixing_based_on_proof)
+			end
+			l_config.set_max_session_length_for_proof (evtext_proof_cutoff_time.text.to_integer)
+			l_config.set_number_of_counterexamples (evtext_number_of_counterexamples.text.to_integer)
 			l_config.set_max_session_length_for_testing (evtext_testing_cutoff_time.text.to_integer)
 			l_config.set_use_fixed_seed_in_testing (evcheckbutton_testing_use_fixed_seed.is_selected)
 			l_config.set_fixed_seed (evtext_testing_seed.text.to_integer)

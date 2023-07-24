@@ -27,7 +27,15 @@ feature
 
 	Frame_text_general: STRING = "General"
 	Label_text_working_directory: STRING = "Working directory"
+	Label_text_program_fixing_based_on: STRING = "Program fixing based on"
+	Combobox_text_based_approach_autotest: STRING = "AutoTest"
+	Combobox_text_based_approach_autoproof: STRING = "AutoProof"
+
 	checkbutton_text_test_classes_in_groups: STRING = "Test classes in groups"
+
+	Frame_text_proof: STRING = "Proof"
+	label_text_number_of_counterexamples_for_each_failure: STRING = "Number of counterexamples for each failure"
+	label_text_maximum_session_length_for_proof: STRING = "Maximum session length for proof (in minutes)"
 
 	Frame_text_testing: STRING = "Testing"
 	Label_text_each_session_tests: STRING = "Each session tests"
@@ -80,7 +88,7 @@ feature
 --	Toggle_text_show_candidate_fix_accepted: STRING = "Candidate fix accepted"
 --	Toggle_text_show_manual_fixed: STRING = "Manually fixed"
 
-	Grid_column_text_class_and_feature_under_test: STRING = "Class and feature under test"
+	Grid_column_text_class_and_feature_under_fix: STRING = "Class and feature under fix"
 	Grid_column_text_fault: STRING = "Fault"
 	Grid_column_text_passing_tests: STRING = "Passing tests"
 	Grid_column_text_failing_tests: STRING = "Failing tests"

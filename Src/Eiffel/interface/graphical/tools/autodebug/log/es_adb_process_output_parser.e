@@ -60,6 +60,8 @@ feature -- Operation
 						l_right_bracket_index := a_line.index_of ('>', l_left_bracket_index)
 						l_tag := a_line.substring (l_left_bracket_index, l_right_bracket_index)
 
+						-- if -- l_tag ~ {AP_COUNTEREXAMPLE}.Msg_ce_generated then
+						--	info_center.on_counterexample_generated (COUNTEREXAMPLE)
 						if l_tag ~ {AUT_INTERPRETER_PROXY}.Msg_tc_generated then
 							l_right_bracket_index := l_left_bracket_index + {AUT_INTERPRETER_PROXY}.Msg_tc_generated.count - 1
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)

@@ -133,7 +133,7 @@ feature {NONE} -- Basic operations
 		end
 
 	verify_for_new_counterexample
-			-- Perform the reverification for minimization.
+			-- Perform the reverification for generating new counterexample.
 		local
 			l_context: E2B_SHARED_CONTEXT
 		do
@@ -402,7 +402,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 
 			create generate_minimal.make_with_text_and_action ("Minimal", agent execute_generate_minimal_counterexample_item)
 			create generate_other.make_with_text_and_action ("New", agent execute_generate_new_counterexample_item)
-			print("hhh: " + error.context_feature.feature_name_32.to_string_8 + " " + error.context_class.name+ "%N")
 			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (error.ce_init_state))
 			create generate_fix.make_with_text_and_action ("Fix", agent execute_generate_fix_item)
 
@@ -608,7 +607,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			window_manager.display_message ("Generation of new counterexample started")
 
 			options.set_generate_fix_enabled (True)
-
+			options.set_number_of_iteration_for_fixing(20)
 			verify_for_new_counterexample
 			options.set_generate_new_counterexample_enabled (False)
 		end

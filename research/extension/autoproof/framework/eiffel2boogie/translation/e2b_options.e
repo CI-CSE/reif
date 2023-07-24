@@ -35,6 +35,7 @@ feature {NONE} -- Initialization
 
 			loop_unrolling_depth := 7
 			max_recursive_inlining_depth := 4
+			number_of_iteration_for_fixing := 20
 
 			is_postcondition_mutation_enabled := False
 			is_coupled_mutations_enabled := True
@@ -253,6 +254,15 @@ feature -- Generate tests from proof failures
 			minimization_iteration_bound := a_value
 		end
 
+	set_number_of_iteration_for_fixing (a_value: INTEGER)
+			-- Set `number_of_iteration_for_fixing' to `a_value'
+		do
+			number_of_iteration_for_fixing := a_value
+		end
+
+	number_of_iteration_for_fixing: INTEGER
+			-- Number of iterations for generating fixes
+
 	number_of_iterations: INTEGER
 			-- Number of iterations during minimization
 
@@ -268,7 +278,6 @@ feature -- Generate tests from proof failures
 			print ("total number_of_iterations: " + number_of_iterations.out + " opt_time: " + opt_time.out + "%N")
 			number_of_iterations := 0
 			opt_time := 0
-				-- _out
 			fix_elements.wipe_out
 		end
 

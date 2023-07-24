@@ -1407,6 +1407,15 @@ feature {NONE} -- Update
 					(arguments_in_range_32 (current_option + 1, argument_count))
 				current_option := argument_count + 1
 				command_option := option
+			elseif option.is_equal ("-boogie") or option.is_equal ("-autoproof") then
+				create l_list.make
+				-- l_list := arguments_in_range (current_option + 1, argument_count)
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_BOOGIE_VERIFICATION} command.make_with_arguments (l_list)
 			elseif option.is_equal ("-auto_fix") then
 				create l_at_args.make
 				l_at_args := arguments_in_range (current_option + 1, argument_count)

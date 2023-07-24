@@ -191,6 +191,14 @@ feature -- Execution
 			end
 
 			l_start := current_time_millis
+			if user_options.has ("-fix") then
+				-- options.set_target_feature (failure.context_feature)
+				-- options.set_target_class (failure.context_class)
+				-- TODO: how to get the failure? and then target class and target feature?
+				options.set_generate_fix_enabled (True)
+				options.set_number_of_iteration_for_fixing (option_argument ("-fix", 20))
+			end
+
 			if options.is_bulk_verification_enabled then
 				autoproof.verify
 			else

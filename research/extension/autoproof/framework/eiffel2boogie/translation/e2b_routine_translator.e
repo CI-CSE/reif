@@ -216,8 +216,8 @@ feature -- Translation: Signature
 			add_field_initialization
 
 				-- wrapped
-			-- create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
-			-- current_boogie_procedure.add_contract (l_post)
+			 create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
+			 current_boogie_procedure.add_contract (l_post)
 
 				-- global
 			create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
@@ -416,7 +416,7 @@ feature -- Translation: Signature
 			-- Default ownership contracts.
 		local
 			l_pre: IV_PRECONDITION
-			-- l_post: IV_POSTCONDITION
+			l_post: IV_POSTCONDITION
 			l_written_feature: FEATURE_I
 		do
 			create Result.make
@@ -430,7 +430,7 @@ feature -- Translation: Signature
 						l_pre.node_info.set_type ("pre")
 						l_pre.node_info.set_tag ("default_is_closed")
 						l_pre.node_info.set_attribute ("default", "contracts")
-						-- Result.extend (l_pre)
+						Result.extend (l_pre)
 
 						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
 						across arguments_of_current_feature as i loop
@@ -439,59 +439,59 @@ feature -- Translation: Signature
 								l_pre.node_info.set_type ("pre")
 								l_pre.node_info.set_tag ("arg_" + i.name + "_is_closed")
 								l_pre.node_info.set_attribute ("default", "contracts")
-								-- Result.extend (l_pre)
+								Result.extend (l_pre)
 							end
 						end
 					end
 				else -- Procedures and impure function
 					if a_mapping.current_expression.type ~ types.ref then
---						if a_for_creator then
---							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
---							l_post.node_info.set_type ("post")
---							l_post.node_info.set_tag ("default_is_wrapped")
---							l_post.node_info.set_attribute ("default", "contracts")
---							Result.extend (l_post)
---						elseif helper.is_public (current_feature) then
---							create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
---							l_pre.node_info.set_type ("pre")
---							l_pre.node_info.set_tag ("default_is_wrapped")
---							l_pre.node_info.set_attribute ("default", "contracts")
---							Result.extend (l_pre)
---							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
---							l_post.node_info.set_type ("post")
---							l_post.node_info.set_tag ("default_is_wrapped")
---							l_post.node_info.set_attribute ("default", "contracts")
---							Result.extend (l_post)
---						elseif helper.is_private (current_feature) then
---							create l_pre.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
---							l_pre.node_info.set_type ("pre")
---							l_pre.node_info.set_tag ("default_is_open")
---							l_pre.node_info.set_attribute ("default", "contracts")
---							Result.extend (l_pre)
+						if a_for_creator then
+							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
+							l_post.node_info.set_type ("post")
+							l_post.node_info.set_tag ("default_is_wrapped")
+							l_post.node_info.set_attribute ("default", "contracts")
+							Result.extend (l_post)
+						elseif helper.is_public (current_feature) then
+							create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
+							l_pre.node_info.set_type ("pre")
+							l_pre.node_info.set_tag ("default_is_wrapped")
+							l_pre.node_info.set_attribute ("default", "contracts")
+							Result.extend (l_pre)
+							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
+							l_post.node_info.set_type ("post")
+							l_post.node_info.set_tag ("default_is_wrapped")
+							l_post.node_info.set_attribute ("default", "contracts")
+							Result.extend (l_post)
+						elseif helper.is_private (current_feature) then
+							create l_pre.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
+							l_pre.node_info.set_type ("pre")
+							l_pre.node_info.set_tag ("default_is_open")
+							l_pre.node_info.set_attribute ("default", "contracts")
+							Result.extend (l_pre)
 
---							create l_post.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
---							l_post.node_info.set_type ("post")
---							l_post.node_info.set_tag ("default_is_open")
---							l_post.node_info.set_attribute ("default", "contracts")
---							Result.extend (l_post)
---						end
+							create l_post.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
+							l_post.node_info.set_type ("post")
+							l_post.node_info.set_tag ("default_is_open")
+							l_post.node_info.set_attribute ("default", "contracts")
+							Result.extend (l_post)
+						end
 					end
 					if a_for_creator or helper.is_public (current_feature) then
 						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
---						across arguments_of_current_feature as i loop
---							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
---								create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
---								l_pre.node_info.set_type ("pre")
---								l_pre.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
---								l_pre.node_info.set_attribute ("default", "contracts")
---								Result.extend (l_pre)
---								create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
---								l_post.node_info.set_type ("post")
---								l_post.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
---								l_post.node_info.set_attribute ("default", "contracts")
---								Result.extend (l_post)
---							end
---						end
+						across arguments_of_current_feature as i loop
+							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
+								create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
+								l_pre.node_info.set_type ("pre")
+								l_pre.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
+								l_pre.node_info.set_attribute ("default", "contracts")
+								Result.extend (l_pre)
+								create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
+								l_post.node_info.set_type ("post")
+								l_post.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
+								l_post.node_info.set_attribute ("default", "contracts")
+								Result.extend (l_post)
+							end
+						end
 					end
 				end
 			end
@@ -636,7 +636,7 @@ feature -- Translation: Implementation
 					l_call.node_info.set_attribute ("cid", system.any_id.out)
 					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
 					l_call.node_info.set_line (a_feature.body.start_location.line)
-					-- l_implementation.body.add_statement (l_call)
+					l_implementation.body.add_statement (l_call)
 
 					l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
 					l_implementation.body.statements.append (l_expr_translator.side_effect)
@@ -693,7 +693,7 @@ feature -- Translation: Implementation
 						l_call.node_info.set_attribute ("cid", system.any_id.out)
 						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
 						l_call.node_info.set_line (a_feature.body.end_location.line)
-						-- l_implementation.body.add_statement (l_call)
+						l_implementation.body.add_statement (l_call)
 
 						l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
 						l_implementation.body.statements.append (l_expr_translator.side_effect)

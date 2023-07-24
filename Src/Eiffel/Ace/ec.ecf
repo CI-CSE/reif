@@ -282,6 +282,19 @@
 			</option>
 		</library>
 		<library name="contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false">
+		<library name="auto_test" location="$EIFFEL_SRC\framework\auto_test\auto_test.ecf" readonly="false" use_application_options="true">
+			<option>
+			</option>
+		</library>
+		<library name="a_eiffel2boogie" location="$AP\framework\eiffel2boogie\eiffel2boogie.ecf" readonly="false" use_application_options="true">
+			<option>
+			</option>
+		</library>
+		<library name="com_light" location="$EIFFEL_SRC\framework\com_light\com_light.ecf" readonly="false" use_application_options="true">
+			<option>
+			</option>
+		</library>
+		<library name="command_tunnel" location="$EIFFEL_SRC\framework\command_tunnel\command_tunnel.ecf" readonly="false" use_application_options="true">
 			<option>
 				<assertions precondition="true" postcondition="true" check="true"/>
 			</option>
