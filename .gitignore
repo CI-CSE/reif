@@ -1,4 +1,24 @@
 /.git
+Src/framework/auto_test/Clib/lp_solve/lpsolve55/cgcc.bat
+Src/library/cURL/spec/linux-x86-64
+Src/library/mysql/spec/linux-x86-64
+Src/library/net/spec/linux-x86-64
+Src/library/net/config.sh
+Src/library/vision2/spec/linux-x86-64
+Src/library/vision2/implementation/gtk/Clib/Makefile
+Src/library/vision2/implementation/gtk/Clib/config.sh
+Src/C/mkdep
+Src/C/mkdep.old
+Src/C/logs.txt
+Src/C/ipc/daemon/ecdbgd
+Src/C/eif_config.h
+Src/C/**/*.o
+Src/C/**/*.a
+Src/C/**/*.so
+Src/C/**/config.sh
+Src/config.sh
+Src/C/**/Makefile
+Src/C/**/Makefile.bak
 Src/C/CONFIGS/*.exe
 Src/C/CONFIGS/*.ilk
 Src/C/CONFIGS/*.lib
@@ -39,7 +59,6 @@ Src/C/desc/config.sh
 Src/C/desc/ise_desc.dll
 Src/C/desc/ise_desc.exp
 Src/C/desc/make.bat
-Src/C/eif_config.h
 Src/C/hints/*.exe
 Src/C/hints/*.ilk
 Src/C/hints/*.lib
@@ -72,7 +91,6 @@ Src/C/ipc/daemon/*.pdb
 Src/C/ipc/daemon/Makefile
 Src/C/ipc/daemon/Makefile.bak
 Src/C/ipc/daemon/config.sh
-Src/C/ipc/daemon/ecdbgd
 Src/C/ipc/daemon/ecdbgd.RES
 Src/C/ipc/daemon/ecdbgd.exe
 Src/C/ipc/daemon/ecdbgd.lmk
@@ -100,7 +118,6 @@ Src/C/ipc/shared/Makefile.bak
 Src/C/ipc/shared/config.sh
 Src/C/ipc/shared/make.bat
 Src/C/make.bat
-Src/C/mkdep
 Src/C/platform/*.a
 Src/C/platform/*.lib
 Src/C/platform/*.obj
@@ -536,7 +553,6 @@ Src/framework/web/xebra/www/xmlrpc_demo/EIFGENs
 Src/framework/xml/gobo/removed
 Src/library/base/EIFGENs
 Src/library/cURL/spec/linux-x86
-Src/library/cURL/spec/linux-x86-64
 Src/library/cURL/spec/macosx-x86-64
 Src/library/cURL/spec/mingw
 Src/library/cURL/spec/msc
@@ -569,7 +585,6 @@ Src/library/runtime/logging/spec
 Src/library/store/spec
 Src/library/testing/.git
 Src/library/vision2/spec/bcb
-Src/library/vision2/spec/linux-x86-64
 Src/library/vision2/spec/macosx-x86
 Src/library/vision2/spec/macosx-x86-64
 Src/library/vision2/spec/mingw
