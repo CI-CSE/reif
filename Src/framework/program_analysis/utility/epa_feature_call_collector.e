@@ -145,13 +145,13 @@ feature {NONE} -- Implementation
 	nested_expr_target: EXPR_AS
 			-- The target of a nested call of type NESTED_EXPR_AS
 
-	nesting_stacks: LINKED_STACK[LINKED_STACK[ACCESS_AS]]
+	nesting_stacks: LINKED_STACK[LINKED_STACK[ACCESS_FEAT_AS]]
 			-- Stacks for processing nested calls.
 
-	current_stack: LINKED_STACK[ACCESS_AS]
+	current_stack: LINKED_STACK[ACCESS_FEAT_AS]
 			-- The current stack where nested calls are kept.
 		local
-			l_stack: LINKED_STACK[ACCESS_AS]
+			l_stack: LINKED_STACK[ACCESS_FEAT_AS]
 		do
 			if nesting_stacks.is_empty then
 				create l_stack.make
@@ -185,11 +185,11 @@ feature {NONE} -- Implementation
 	add_current_nested_calls
 			--
 		local
-			l_list: ARRAYED_LIST [ACCESS_AS]
+			l_list: ARRAYED_LIST [ACCESS_FEAT_AS]
 			l_target_call: ACCESS_AS
 			l_nested_call: NESTED_AS
 			l_nested_expr_call: NESTED_EXPR_AS
-			l_message_list: LINKED_LIST [CALL_AS]
+			l_message_list: LINKED_LIST [ACCESS_FEAT_AS]
 		do
 			l_list := current_stack.linear_representation
 			if not l_list.is_empty then
@@ -229,7 +229,7 @@ feature {NONE} -- Implementation
 				loop
 					if is_nested_expression then
 							-- NESTED_EXPR_AS: the target is stored in variable 'nested_expr_target'
-						create l_nested_expr_call.initialize (nested_expr_target, l_message_list.item, Void, Void, Void)
+						create l_nested_expr_call.initialize (nested_expr_target, l_message_list.item, Void)
 						l_nested_expr_call.set_breakpoint_slot (current_breakpoint_slot)
 						add_call (l_nested_expr_call, current_breakpoint_slot)
 					else
@@ -247,7 +247,7 @@ feature {NONE} -- Implementation
 	put_nesting_stack
 			-- Put a new stack on nesting_stacks
 		local
-			l_stack: LINKED_STACK [ACCESS_AS]
+			l_stack: LINKED_STACK [ACCESS_FEAT_AS]
 		do
 			create l_stack.make
 			nesting_stacks.put (l_stack)

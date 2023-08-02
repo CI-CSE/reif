@@ -770,7 +770,7 @@ feature{NONE} -- Implementation
 	root_class: CLASS_C
 			-- Root class in `system'.
 		do
-			Result := system.root_type.associated_class
+			Result := system.root_type.base_class
 		end
 
 	test_case_count: INTEGER

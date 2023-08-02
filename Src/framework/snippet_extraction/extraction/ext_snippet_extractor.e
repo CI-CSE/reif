@@ -75,7 +75,7 @@ feature -- Basic operations
 			if l_retried then
 					log.put_string ("> Dropping feature; exception raised during extraction: " + a_context_class.name_in_upper + "." + a_feature.feature_name + " target_type: " + a_type.name + "%N")
 			else
-				if a_type.has_associated_class and then a_context_class.name_in_upper /~ a_type.associated_class.name_in_upper then
+				if a_type.has_associated_class and then a_context_class.name_in_upper /~ a_type.base_class.name_in_upper then
 					log_feature_processing_header (a_context_class.name_in_upper, a_feature.feature_name, a_type.name)
 
 					relevant_target_type := a_type
@@ -183,11 +183,11 @@ feature {NONE} -- Implementation
 			l_context_type := context_class.constraint_actual_type
 			across l_candidates as l_variables loop
 				if attached l_variables.item and then attached l_variables.item.actual_type then
-					l_type := l_variables.item.actual_type.instantiation_in (l_context_type, l_context_type.associated_class.class_id)
+					l_type := l_variables.item.actual_type.instantiation_in (l_context_type, l_context_type.base_class.class_id)
 					if l_type.conform_to (context_class, relevant_target_type) then
 						l_type := explicit_type_in_context (l_type, l_context_type)
 						if l_type.has_associated_class and then relevant_target_type.has_associated_class then
-							if l_type.associated_class.name_in_upper ~ relevant_target_type.associated_class.name_in_upper then
+							if l_type.base_class.name_in_upper ~ relevant_target_type.base_class.name_in_upper then
 								relevant_variables.force_last (l_type, l_variables.key)
 							end
 						end

@@ -66,7 +66,7 @@ feature -- Access
 	root_class: CLASS_C
 			-- Root class in `system'.
 		do
-			Result := eiffel_system.root_type.associated_class
+			Result := eiffel_system.root_type.base_class
 		end
 
 	data_directory: STRING

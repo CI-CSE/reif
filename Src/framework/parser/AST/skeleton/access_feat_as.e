@@ -23,6 +23,7 @@ inherit
 			last_token,
 			process
 		end
+	CALL_AS
 
 create
 	initialize

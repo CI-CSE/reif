@@ -54,6 +54,7 @@
 		<library name="a_auto_fix" location="$EIFFEL_SRC\framework\auto_fix\auto_fix.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false"/>
 		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">		
 			<visible class="ES_AUTOPROOF_TOOL" feature="default_create"/>
 			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>

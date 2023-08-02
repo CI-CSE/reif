@@ -45,8 +45,9 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 		do
 				-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.step%N")
 			options.set_generate_fix_enabled (False)
-			compute_range
-			compute_fix
+			-- compute_range
+			-- compute_fix
+			print (Msg_ce_generated + " " + l_context.options.target_class.name + "." + l_context.options.target_feature.feature_name_32.to_string_8 + "%N")
 			if not options.fix_preconditions.is_empty then
 				options.set_current_candidate_fix(options.fix_preconditions.first)
 			end
@@ -232,7 +233,7 @@ feature {NONE} -- Implementation
 			end
 			Result.copy (t)
 		end
-
+	Msg_ce_generated: STRING = "<[- CE generated ]>"
 ;
 
 note

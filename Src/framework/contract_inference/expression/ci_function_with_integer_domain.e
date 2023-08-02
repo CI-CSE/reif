@@ -124,7 +124,7 @@ feature -- Status report
 			l_class: CLASS_C
 			l_feature: FEATURE_I
 		do
-			l_class := a_context.variable_type (a_target_variable_name).associated_class
+			l_class := a_context.variable_type (a_target_variable_name).base_class
 			l_feature := l_class.feature_named (a_function_name)
 			Result := l_feature.argument_count = 1 and then l_feature.arguments.first.is_integer
 		end

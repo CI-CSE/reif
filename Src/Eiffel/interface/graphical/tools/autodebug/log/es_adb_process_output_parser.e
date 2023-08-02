@@ -60,9 +60,15 @@ feature -- Operation
 						l_right_bracket_index := a_line.index_of ('>', l_left_bracket_index)
 						l_tag := a_line.substring (l_left_bracket_index, l_right_bracket_index)
 
-						-- if -- l_tag ~ {AP_COUNTEREXAMPLE}.Msg_ce_generated then
+						if l_tag ~ {EWB_BOOGIE_VERIFICATION}.Msg_ce_generated then
+						-- <[- CE generated ]>E:\APR_projects\account_fix2\EIFGENs\account_fix2\Data\AutoFix\proof\ACCOUNT\set_credit_limit\ce.model
 						--	info_center.on_counterexample_generated (COUNTEREXAMPLE)
-						if l_tag ~ {AUT_INTERPRETER_PROXY}.Msg_tc_generated then
+							-- how to pass counterexample?
+							-- how to pass verification failure info?	
+							l_eol_index := 0
+							-- info_center.on_counterexample_generated (l_ce)
+
+						elseif l_tag ~ {AUT_INTERPRETER_PROXY}.Msg_tc_generated then
 							l_right_bracket_index := l_left_bracket_index + {AUT_INTERPRETER_PROXY}.Msg_tc_generated.count - 1
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
 							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)

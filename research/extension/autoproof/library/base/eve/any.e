@@ -667,6 +667,15 @@ feature -- Verification: ownership fields
 			check is_executable: False then end
 		end
 
+	passed_blocks: MML_SEQUENCE [BOOLEAN]
+			-- Blocks of an execution
+		note
+			status: ghost
+			guard: True
+		do
+			check is_executable: False then end
+		end
+
 	frozen set_owns (a: MML_SET [ANY])
 			-- Set owns set of this object.
 		do

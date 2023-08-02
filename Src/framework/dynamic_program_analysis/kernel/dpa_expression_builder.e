@@ -164,7 +164,7 @@ feature -- Basic operations
 					then
 						-- Select attributes and queries without arguments which are not
 						-- inherited from ANY from the class associated with `l_expression_type'.
-						l_feature_selector.select_from_class (l_expression_type.associated_class)
+						l_feature_selector.select_from_class (l_expression_type.base_class)
 
 						-- Build expressions whose target is `l_variable' and whose messages are
 						-- all attributes and queries found by the feature selector.

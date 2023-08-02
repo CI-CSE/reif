@@ -141,6 +141,18 @@ feature -- Element change
 			opt_preconditions.extend (a_precondition)
 		end
 
+feature -- Proof for fixing
+
+	is_generate_fix_enabled: BOOLEAN
+			-- Is generating fix enabled?
+
+	set_is_generate_fix_enabled (a_value: BOOLEAN)
+			-- Set `is_generate_fix_enabled' to `a_value'.
+		do
+			is_generate_fix_enabled := a_value
+		end
+
+
 feature -- Test generation
 
 	set_is_full_coverage_tests_enabled (a_is_full_coverage_tests_enabled: BOOLEAN)

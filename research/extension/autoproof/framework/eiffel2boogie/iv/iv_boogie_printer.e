@@ -120,7 +120,10 @@ feature -- Universe Visitor
 		do
 			-- *Li test generation for uncovered branches
 			is_full_coverage_tests_enable := a_procedure.is_full_coverage_tests_enabled
+			is_generate_fix_enabled := a_procedure.is_generate_fix_enabled
+
 			uncovered_branch_lines.copy (a_procedure.uncovered_branch_lines)
+			block_index := 0
 
 			output.put ("procedure ")
 			output.put (a_procedure.name)
@@ -208,6 +211,15 @@ feature -- Universe Visitor
 			output.put ("{")
 			output.put_new_line
 			output.indent
+
+			-- Use a boolean sequence to track the passed blocks in the counterexample execution
+			if is_generate_fix_enabled then
+				output.put_indentation
+				output.put ("var ")
+				output.put ("passed_blocks: Seq bool;")
+				output.put_new_line
+			end
+
 			if not a_implementation.locals.is_empty or not a_implementation.procedure.results.is_empty then
 				across a_implementation.locals as i loop
 					output.put_indentation
@@ -216,8 +228,11 @@ feature -- Universe Visitor
 					output.put (";")
 					output.put_new_line
 				end
+
 				output.put_new_line
 				output.put_line ("init_locals:")
+
+
 				across a_implementation.locals as i loop
 						-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
 					if i.type.default_value /= Void then
@@ -229,6 +244,7 @@ feature -- Universe Visitor
 						output.put_new_line
 					end
 				end
+
 				across a_implementation.procedure.results as i loop
 					output.put_indentation
 					output.put (i.name)
@@ -347,6 +363,13 @@ feature -- Statement Visitor
 	process_block (a_block: IV_BLOCK)
 			-- <Precursor>
 		do
+			block_index := block_index + 1
+			if is_generate_fix_enabled then
+				output.put_indentation
+				output.put ("passed_blocks := Seq#Update(passed_blocks, "+ block_index.out + ", true);")
+				-- block := Seq#Update(block, i, true);
+			end
+
 			if not a_block.name.is_empty then
 				output.put_indentation
 				output.put (a_block.name)
@@ -808,11 +831,17 @@ feature {NONE} -- Implementation
 	is_full_coverage_tests_enable: BOOLEAN
 		-- Is full-coverage test generation enabled?
 
+	is_generate_fix_enabled: BOOLEAN
+			-- Is generating fix enabled?
+
 	uncovered_branch_lines: ARRAY [INTEGER]
 			-- Uncovered branches lines in the latest test generation run
 
 	branch_number: INTEGER
 			-- Number of branches in the current procedure
+
+	block_index: INTEGER
+			-- Index of the current block
 ;
 note
 	ca_ignore: "CA033", "CA033: too long class"

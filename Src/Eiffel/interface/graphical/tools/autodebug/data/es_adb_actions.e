@@ -33,6 +33,12 @@ feature {NONE} -- Actions
 		deferred
 		end
 
+	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+			-- Action to be performed when a new test case is generated
+		deferred
+		end
+
+
 	on_testing_start
 			-- Action to be performed when testing starts
 		deferred

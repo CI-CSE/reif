@@ -138,6 +138,8 @@ feature -- Translation: Signature
 
 			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
 
+			current_boogie_procedure.set_is_generate_fix_enabled (options.is_generate_fix_enabled)
+
 			across options.uncovered_branch.current_keys as k loop
 				if options.uncovered_branch [k].class_name.same_string (current_type.base_class.name) then
 					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [k].line_number, current_boogie_procedure.uncovered_branch_lines.count)

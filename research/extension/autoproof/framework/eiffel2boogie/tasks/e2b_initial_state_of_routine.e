@@ -1,5 +1,5 @@
 note
-	description: "This class generates tests and writes them in the output file."
+	description: "This class extracts heap states from counterexamples."
 	author: "Li Huang"
 	date: "$2022-03-22$"
 	revision: "$1.0$"
@@ -18,7 +18,7 @@ feature -- Initialize
 	make (a_target_feature: detachable FEATURE_I; a_target_class: detachable CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE)
 		do
 			print ("E2B_INITIAL_STATE_OF_ROUTINE.make%N")
-			print ("extract initial state for: " + a_target_feature.feature_name_32.to_string_8 + " " + a_target_class.name + "%N")
+			-- print ("extract initial state for: " + a_target_feature.feature_name_32.to_string_8 + " " + a_target_class.name + "%N")
 			start_timer
 			target_feature := a_target_feature
 			target_class := a_target_class
@@ -188,7 +188,7 @@ feature -- Get initial values
 				-- end
 
 			Result := ce.seq_lengths [initial_values [a_var + ".sequence"]]
-			print ("seq lengthhhh: " + Result.out + "%N")
+			print ("seq length: " + Result.out + "%N")
 
 		end
 

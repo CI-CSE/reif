@@ -10,7 +10,7 @@ inherit
 	AST_ITERATOR
 		redefine
 			process_access_id_as,
-			process_current_as,
+--			process_current_as,
 --			process_id_as,
 			process_nested_as,
 			process_result_as
@@ -120,16 +120,16 @@ feature {NONE} -- Access Recording
 			Precursor (l_as)
 		end
 
-	process_current_as (l_as: CURRENT_AS)
-			-- Recording access to `Current' identifier.
-			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_as'.
-		do
-				-- Invoke callback agent if configured.
-			if attached on_access_identifier then
-				on_access_identifier.call ([l_as])
-			end
-			Precursor (l_as)
-		end
+--	process_current_as (l_as: CURRENT_AS)
+--			-- Recording access to `Current' identifier.
+--			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_as'.
+--		do
+--				-- Invoke callback agent if configured.
+--			if attached on_access_identifier then
+--				on_access_identifier.call ([l_as])
+--			end
+--			Precursor (l_as)
+--		end
 
 --	process_id_as (l_as: ID_AS)
 --			-- Recording access to `{ID_AS}' identifier.

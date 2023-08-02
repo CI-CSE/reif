@@ -384,16 +384,16 @@ feature{NONE} -- Implementation
 			l_dot_index := a_function.body.index_of ('.', 1)
 			l_lparan_index := a_function.body.index_of ('(', l_dot_index + 1)
 			l_feature_name := a_function.body.substring (l_dot_index + 1, l_lparan_index - 1)
-			l_feature := l_target_type.associated_class.feature_named (l_feature_name)
+			l_feature := l_target_type.base_class.feature_named (l_feature_name)
 			if l_feature /= Void then
 				l_arg_type := l_feature.arguments.i_th (1).actual_type
-				l_arg_type := actual_type_from_formal_type (l_arg_type, l_target_type.associated_class)
-				l_arg_type := l_arg_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
+				l_arg_type := actual_type_from_formal_type (l_arg_type, l_target_type.base_class)
+				l_arg_type := l_arg_type.instantiation_in (l_target_type, l_target_type.base_class.class_id)
 
 
 				l_result_type := l_feature.type.actual_type
-				l_result_type := actual_type_from_formal_type (l_result_type, l_target_type.associated_class)
-				l_result_type := l_result_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
+				l_result_type := actual_type_from_formal_type (l_result_type, l_target_type.base_class)
+				l_result_type := l_result_type.instantiation_in (l_target_type, l_target_type.base_class.class_id)
 				create Result.make (l_arg_type, l_result_type)
 			else
 				Result := Void

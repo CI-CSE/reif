@@ -119,6 +119,11 @@ feature -- ADB Actions
 			enable_command_invocation_widget (True)
 		end
 
+	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+			-- Action to be performed when a new counterexample is generated
+		do
+		end
+		
 	on_testing_start
 			-- <Precursor>
 		do

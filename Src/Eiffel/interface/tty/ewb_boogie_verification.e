@@ -191,15 +191,9 @@ feature -- Execution
 			end
 
 			l_start := current_time_millis
-			if user_options.has ("-fix") then
-				-- options.set_target_feature (failure.context_feature)
-				-- options.set_target_class (failure.context_class)
-				-- TODO: how to get the failure? and then target class and target feature?
-				options.set_generate_fix_enabled (True)
-				options.set_number_of_iteration_for_fixing (option_argument ("-fix", 20))
-			end
 
 			if options.is_bulk_verification_enabled then
+				print ("hhh")
 				autoproof.verify
 			else
 				autoproof.verify_forked
@@ -238,12 +232,25 @@ feature {NONE} -- Printing console
 	print_result (a_result: E2B_RESULT)
 			-- Print results to output.
 		do
+			print ("print_resultttt%N")
 			across a_result.verification_results as i loop
 				output_window.add ("======================================%N")
 				if attached {E2B_SUCCESSFUL_VERIFICATION} i.item as l_success then
 					print_successful_verification (l_success)
 				elseif attached {E2B_FAILED_VERIFICATION} i.item as l_failure then
 					print_failed_verification (l_failure)
+					-- TODO: display the failure in the "Faults" tab
+					if user_options.has ("-fix") then
+						options.set_target_feature (l_failure.context_feature)
+						options.set_target_class (l_failure.context_class)
+--						-- TODO: how to get the failure? and then target class and target feature?
+						options.set_generate_fix_enabled (True)
+						options.set_number_of_iteration_for_fixing (option_argument ("-fix", 20))
+						autoproof.clear_notifications
+						-- autoproof.add_notification (agent print_ce_generated_msg (l_failure.context_class.name + " " + l_failure.context_feature.feature_name))
+						autoproof.verify
+
+					end
 				elseif attached {E2B_AUTOPROOF_ERROR} i.item as l_error then
 					print_error (l_error)
 				else
@@ -251,6 +258,11 @@ feature {NONE} -- Printing console
 				end
 			end
 		end
+
+	print_ce_generated_msg (a_target_feature_string: STRING)
+	do
+		print (Msg_ce_generated + " " + a_target_feature_string +  "%N")
+	end
 
 	print_successful_verification (a_success: E2B_SUCCESSFUL_VERIFICATION)
 			-- Print successful verification information.
@@ -471,6 +483,10 @@ feature {NONE} -- Implementation
 				return (unsigned long long int)time(NULL) * 1000 + t.millitm;
 			]"
 		end
+
+feature
+
+	Msg_ce_generated: STRING = "<[- CE generated ]>"
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software"

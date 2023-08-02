@@ -262,7 +262,7 @@ feature{NONE} -- Implementation
 					l_has_argument := l_argument_variable /= Void
 
 						-- Get the feature based on the dynamic type of the target variable.
-					l_dyna_feat := context.variables.item (l_target_variable).associated_class.feature_named (l_feature_name.as_lower)
+					l_dyna_feat := context.variables.item (l_target_variable).base_class.feature_named (l_feature_name.as_lower)
 					if l_dyna_feat = Void then
 						l_has_argument := False
 					else
@@ -284,12 +284,12 @@ feature{NONE} -- Implementation
 							l_operands.after
 						loop
 							l_target_type := l_operand_types.item (l_operands.item_for_iteration).actual_type
-							l_target_type := actual_type_from_formal_type (l_target_type, context_type.associated_class)
-							l_target_type := l_target_type.instantiation_in (context_type, context_type.associated_class.class_id)
+							l_target_type := actual_type_from_formal_type (l_target_type, context_type.base_class)
+							l_target_type := l_target_type.instantiation_in (context_type, context_type.base_class.class_id)
 							if l_dyna_feat /= Void then
-								l_feat := l_target_type.associated_class.feature_of_rout_id_set (l_dyna_feat.rout_id_set)
+								l_feat := l_target_type.base_class.feature_of_rout_id_set (l_dyna_feat.rout_id_set)
 								if l_feat /= Void then
-									l_result_type := l_feat.type.actual_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
+									l_result_type := l_feat.type.actual_type.instantiation_in (l_target_type, l_target_type.base_class.class_id)
 									if l_feat.argument_count > 0 then
 										l_argument_type := l_feat.arguments.first
 				--						l_argument_type := l_argument_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
@@ -306,11 +306,11 @@ feature{NONE} -- Implementation
 						l_target_type := context.variables.item (l_target_variable)
 						if l_has_argument then
 							l_argument_type := l_dyna_feat.arguments.first
-							l_argument_type := l_argument_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
+							l_argument_type := l_argument_type.instantiation_in (l_target_type, l_target_type.base_class.class_id)
 						else
 							l_argument_type := Void
 						end
-						l_result_type := l_feat.type.actual_type.instantiation_in (l_target_type, l_target_type.associated_class.class_id)
+						l_result_type := l_feat.type.actual_type.instantiation_in (l_target_type, l_target_type.base_class.class_id)
 						l_function_types.extend ([l_target_type, l_argument_type, l_feature_name, l_result_type])
 					end
 

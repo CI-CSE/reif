@@ -92,6 +92,12 @@ feature -- Generate fixes from counterexamples
 			is_generate_fix_enabled := a_value
 		end
 
+	ce_traces: HASH_TABLE [LINKED_LIST[E2B_CE_TRACE_OF_ROUTINE], FEATURE_I]
+			-- Collection of fix elements
+		once
+			create Result.make (0)
+		end
+
 	fix_elements: LINKED_LIST [E2B_FIX_ELEMENT]
 			-- Collection of fix elements
 		once

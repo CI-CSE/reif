@@ -74,7 +74,6 @@ feature -- Element change
 		require
 			a_delcaration_attached: attached a_declaration
 		do
-			-- print("IV_UNIVERSE.add_declaration: " + declarations.count.out + "%N")
 			declarations.extend (a_declaration)
 		ensure
 			a_declaration_added: declarations.last = a_declaration

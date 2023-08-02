@@ -79,9 +79,9 @@ feature -- Access
 	root_class: CLASS_C
 			-- Root class in `eiffel_system'.
 		do
-			Result := eiffel_system.root_type.associated_class
+			Result := eiffel_system.root_type.base_class
 		ensure
-			Result_set: Result = eiffel_system.root_type.associated_class
+			Result_set: Result = eiffel_system.root_type.base_class
 		end
 
 feature -- Status report

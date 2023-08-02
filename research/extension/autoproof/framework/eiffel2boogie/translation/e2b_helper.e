@@ -872,6 +872,18 @@ feature -- Eiffel helpers
 			end
 		end
 
+	sequence_any_type: detachable CL_TYPE_A
+			-- Type MML_SET [ANY] (supplier of ANY).
+		do
+			if attached system.any_type.base_class.feature_named ("passed_blocks") as f then
+				Result := {CL_TYPE_A} / f.type
+			else
+				add_unsupported_error (Void, {STRING_32} "Feature `passed_blocks` is not found in class `ANY`.", 0)
+			end
+		end
+
+
+
 feature -- Contract helpers
 
 	has_flat_precondition (a_feature: FEATURE_I): BOOLEAN

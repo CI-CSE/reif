@@ -77,8 +77,8 @@ feature -- Access
 			l_feature: FEATURE_I
 		do
 				-- If current is a feature access on an operand.
-			l_feature := target_operand_type.associated_class.feature_named (feature_name)
-			l_feature := a_dynamic_type.associated_class.feature_of_rout_id_set (l_feature.rout_id_set)
+			l_feature := target_operand_type.base_class.feature_named (feature_name)
+			l_feature := a_dynamic_type.base_class.feature_of_rout_id_set (l_feature.rout_id_set)
 			create Result.make (32)
 			Result.append (l_feature.feature_name.as_lower)
 		end

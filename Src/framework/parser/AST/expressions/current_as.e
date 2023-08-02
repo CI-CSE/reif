@@ -16,6 +16,7 @@ inherit
 			is_equivalent,
 			process
 		end
+	CALL_AS
 
 create
 	make_with_location

@@ -71,11 +71,21 @@ feature -- Basic operations
 		local
 			l_error: E2B_DEFAULT_VERIFICATION_ERROR
 			l_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+			l_trace: E2B_CE_TRACE_OF_ROUTINE
 		do
 			create l_error.make (a_failure)
 
 				-- Get input values in counterexample
 			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
+
+			if helper.options.is_generate_fix_enabled then
+				create l_trace.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
+				if not helper.options.ce_traces.has (a_failure.context_feature) then
+					helper.options.ce_traces.extend (<<l_trace>>, a_failure.context_feature)
+				else
+					helper.options.ce_traces [a_failure.context_feature].extend (l_trace)
+				end
+			end
 
 			helper.options.init_states_of_counterexamples.extend (l_init_state)
 
@@ -85,11 +95,11 @@ feature -- Basic operations
 			l_error.set_message (message_for_error (a_error, l_init_state))
 			l_error.set_ce_message (counterexample_message (l_init_state))
 			l_error.set_ce_init_state (l_init_state)
-			
+
 		    helper.options.set_current_init_state (l_init_state)
 
             if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
-                helper.options.set_new_ce_message(l_error.ce_message)
+                helper.options.set_new_ce_message (l_error.ce_message)
             end
 
             if helper.options.is_generate_fix_enabled then

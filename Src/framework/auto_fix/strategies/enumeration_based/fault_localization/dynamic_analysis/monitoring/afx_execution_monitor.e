@@ -51,9 +51,7 @@ feature -- Scope of monitoring
 		require
 			a_features /= Void
 		do
-			print ("AFX_EXECUTION_MONITOR.set_features_to_monitor1%N")
 			features_to_monitor_cache := a_features.twin
-			print ("AFX_EXECUTION_MONITOR.set_features_to_monitor2%N")
 		end
 
 feature{NONE} -- Scope of monitoring (implementation)
@@ -311,7 +309,7 @@ feature{NONE} -- Test case events
 			l_expression_set: DS_HASH_SET [AFX_PROGRAM_STATE_EXPRESSION]
 			l_repository: like trace_repository
 		do
-			print ("AFX_EXECUTION_MONITOR.on_test_case_entry%N")
+			-- print ("AFX_EXECUTION_MONITOR.on_test_case_entry%N")
 			l_table := a_test_case_info.to_hash_table
 
 			l_class_under_test := first_class_starts_with_name (l_table.item ({EQA_SERIALIZED_TEST_SET}.Txt_tci_class_under_test).out)

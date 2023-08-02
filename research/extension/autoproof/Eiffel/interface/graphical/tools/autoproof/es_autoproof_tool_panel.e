@@ -752,9 +752,9 @@ feature {NONE} -- Basic operations
 								l_failure.errors as l_error
 							loop
 								insert_subrow_for_error (a_row, l_error)
-								-- if attached l_error.ce_message then
-								--	insert_subrow_for_counterexample (a_row, l_error, l_failure)
-								-- end
+								if attached l_error.ce_message then
+									insert_subrow_for_counterexample (a_row, l_error, l_failure)
+								end
 							end
 						end
 
