@@ -311,6 +311,10 @@
 			</condition>
 		</external_object>
 		<variable name="batch_framework" value="false"/>
+		<library name="annotation" location="$EIFFEL_SRC\framework\annotation\annotation.ecf" readonly="false">
+			<option warning="none">
+			</option>
+		</library>
 		<library name="auto_fix" location="$EIFFEL_SRC\framework\auto_fix\auto_fix.ecf" readonly="false" use_application_options="true">
 			<option>
 			</option>
@@ -359,12 +363,21 @@
 			<option>
 			</option>
 		</library>
+		<library name="contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false">
+			<option warning="none">
+				<assertions precondition="true" postcondition="true" check="true"/>
+			</option>
+		</library>
 		<library name="crypto" location="$ISE_LIBRARY\unstable\library\text\encryption\crypto\crypto.ecf" readonly="false">
 			<option>
 			</option>
 		</library>
 		<library name="curl" location="$ISE_LIBRARY\library\cURL\cURL.ecf" readonly="false">
 			<option>
+			</option>
+		</library>
+		<library name="daikon" location="$EIFFEL_SRC\framework\daikon\daikon.ecf" readonly="false">
+			<option warning="none">
 			</option>
 		</library>
 		<library name="debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true">
@@ -381,6 +394,10 @@
 		</library>
 		<library name="dotnet_assembly_information" location="$EIFFEL_SRC\dotnet\assembly_info\dotnet_assembly_information.ecf" readonly="false" use_application_options="true">
 			<option>
+			</option>
+		</library>
+		<library name="dynamic_program_analysis" location="$EIFFEL_SRC\framework\dynamic_program_analysis\dynamic_program_analysis.ecf" readonly="false">
+			<option warning="none">
 			</option>
 		</library>
 		<library name="editor" location="$ISE_LIBRARY\library\editor\editor.ecf" readonly="false">
@@ -495,6 +512,10 @@
 		</library>
 		<library name="semantic_search" location="$EIFFEL_SRC\framework\semantic_search\semantic_search.ecf" readonly="false" use_application_options="true">
 			<option>
+			</option>
+		</library>
+		<library name="snippet_extraction" location="$EIFFEL_SRC\framework\snippet_extraction\snippet_extraction.ecf" readonly="false">
+			<option warning="none">
 			</option>
 		</library>
 		<library name="tagging" location="$EIFFEL_SRC\framework\tagging\tagging.ecf" readonly="false" use_application_options="true">

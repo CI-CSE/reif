@@ -1427,6 +1427,48 @@ feature {NONE} -- Update
                 end
             	current_option := argument_count + 1
 				create {EWB_AUTO_FIX} command.make_with_arguments (l_list)
+			elseif option.is_equal ("-contract_inference") then
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_CONTRACT_INFERENCE} command.make_with_arguments (l_list)
+			elseif option.is_equal ("-semantic_search") then
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_SEMANTIC_SEARCH} command.make_with_arguments (l_list)
+			elseif option.is_equal ("-snippet_extraction") then
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_SNIPPET_EXTRACTION} command.make_with_arguments (l_list)
+			elseif option.is_equal ("-to_xml") then
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_XML_TRANSFORMATION} command.make_with_arguments (l_list)
+			elseif option.is_equal ("-annotation") then
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_ANNOTATION} command.make_with_arguments (l_list)
+			elseif option.is_equal ("-dynamic_program_analysis") then
+				across arguments_in_range (current_option + 1, argument_count) as c loop
+                     l_list.put_right (c.item)
+                     l_list.forth
+                end
+				current_option := argument_count + 1
+				create {EWB_DYNAMIC_PROGRAM_ANALYSIS} command.make_with_arguments (l_list)
 			elseif option.same_string_general ("-code-analysis") then
 					-- FIXME: This only works if `-code-analysis' is the last argument.
 				add_option_warning (messages.w_obsolete_command_line_option (option))

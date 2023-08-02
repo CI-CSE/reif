@@ -52,7 +52,7 @@ feature{NONE} -- Initialization
 			elseif a_conf.is_test_case_deserialization_enabled then
 				create {AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST}test_case_extractor.make (configuration, configuration.data_output)
 			end
-			if test_case_extractor /= VOid then
+			if test_case_extractor /= Void then
 				deserialization_started_event.subscribe (agent test_case_extractor.on_deserialization_started)
 				test_case_deserialized_event.subscribe (agent test_case_extractor.on_test_case_deserialized)
 				deserialization_finished_event.subscribe (agent test_case_extractor.on_deserialization_finished)
@@ -622,7 +622,7 @@ feature{NONE} -- Constants
 
 
 ;note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -14,6 +14,7 @@ inherit
 		redefine
 			process, index, first_token, last_token
 		end
+	CALL_AS
 
 create
 	make_with_symbol

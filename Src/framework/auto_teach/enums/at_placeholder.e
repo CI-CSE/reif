@@ -1,0 +1,42 @@
+note
+	description: "Enum value for code placeholderds."
+	author: "Paolo Antonucci"
+	date: "$Date: 2014-09-23 04:51:59 +0800 (Tue, 23 Sep 2014) $"
+	revision: "$Revision: 95788 $"
+
+expanded class
+	AT_PLACEHOLDER
+
+inherit
+
+	AT_ENUM_VALUE
+		--redefine
+		--	enum_type
+		--end
+
+create
+	default_create, make_with_numerical_value, make_with_value_name
+
+feature -- Enum type
+
+	enum_type: AT_ENUM_PLACEHOLDER
+			-- <Precursor>
+		once ("PROCESS")
+			create Result
+		end
+
+feature -- Placeholder properties
+
+	text: STRING
+			-- Placeholder text
+		do
+			Result := enum_type.placeholder_text (Current)
+		end
+
+	is_inline: BOOLEAN
+			-- Is this an inline placeholder?
+		do
+			Result := enum_type.is_inline (Current)
+		end
+
+end

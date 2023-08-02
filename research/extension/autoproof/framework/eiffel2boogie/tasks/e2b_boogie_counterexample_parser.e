@@ -7,8 +7,6 @@ note
 class
 	E2B_BOOGIE_COUNTEREXAMPLE_PARSER
 
-
-
 create
 	make
 
@@ -76,7 +74,7 @@ feature
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
 		do
 			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.parse_models%N")
-			print ("number of modelssss: " + models.count.out + "%N")
+			print ("number of models: " + models.count.out + "%N")
 			across models as m loop
 				create ce.make (m)
 				if counterexamples.has (ce.class_name + "." + ce.routine_name) then

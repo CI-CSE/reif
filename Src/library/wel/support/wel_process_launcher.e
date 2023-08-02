@@ -256,7 +256,6 @@ feature {NONE} -- Implementation
 					l_envs_ptr, l_directory,
 					startup_info.item, l_process_info.item)
 			last_launch_successful := b
-			print("last_launch_successfullll" + last_launch_successful.out + "%N")
 			if b then
 				create process_handle.make (l_process_info.process_handle)
 				create thread_handle.make (l_process_info.thread_handle)

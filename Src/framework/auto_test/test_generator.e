@@ -1103,7 +1103,7 @@ feature -- Status setting
 			should_freeze_before_testing_set: should_freeze_before_testing = b
 		end
 
-set_is_precondition_reduction_enabled (b: BOOLEAN)
+	set_is_precondition_reduction_enabled (b: BOOLEAN)
 			-- Set `is_precondition_reduction_enabled' with `b'.
 		do
 			is_precondition_reduction_enabled := b

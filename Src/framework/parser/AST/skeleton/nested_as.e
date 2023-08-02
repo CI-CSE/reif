@@ -14,6 +14,16 @@ inherit
 		-- redefine
 		--	is_equivalent
 		-- end
+	ACCESS_FEAT_AS
+		rename
+			initialize as a_initialize
+		redefine
+			process,
+			index,
+			first_token,
+			last_token,
+			is_equivalent
+		end
 
 create
 	initialize

@@ -102,7 +102,7 @@ feature -- Execution
 					--| Read feature name.
 				read_string
 				feature_name := last_string
-
+				print ("feature_name: " + feature_name + "%N")
 					--| Read object address and convert it to hector address.
 				read_string
 				address := keep_object_as_hector_address (create {DBG_ADDRESS}.make_from_string (last_string))
@@ -140,7 +140,7 @@ feature -- Execution
 					--| Read exception.
 				read_integer
 				exception_occurred := last_integer = 1
-
+				print ("exception_occurred: " + exception_occurred.out + "%N")
 					--|----------------------------|--
 					--| Data retrieved             |--
 					--| Now process stopped state  |--
@@ -160,6 +160,7 @@ feature -- Execution
 							--| thus we can hack this with '1' as thread id.
 						thr_id := thr_id + 1
 					end
+					print ("l_statussss%N")
 					l_status.set_is_stopped (True)
 					if not l_status.has_thread_id (thr_id) then
 						l_status.add_thread_id (thr_id)
@@ -170,6 +171,7 @@ feature -- Execution
 					l_status.set (feature_name, address, scp_pid, origine_type_id, dynamic_type_id, offset, nested, stopping_reason)
 					l_status.set_exception_occurred (exception_occurred)
 					if exception_occurred then
+						print ("exception_occurred%N")
 						if attached l_app.remote_current_exception_value as e then
 							e.update_data
 							l_status.set_exception (e)

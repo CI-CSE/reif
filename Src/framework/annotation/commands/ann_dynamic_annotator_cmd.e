@@ -113,7 +113,7 @@ feature -- Basic operations
 				-- Set up the expressions to evaluate.
 				across l_variables as l_var loop
 					create l_expr.make_with_text (l_class, l_feature, l_var.item, l_class)
-					l_feature_selector.select_from_class (l_expr.type.associated_class)
+					l_feature_selector.select_from_class (l_expr.type.base_class)
 
 					across l_feature_selector.last_features as l_queries loop
 						create l_expr.make_with_text (l_class, l_feature, l_var.item + "." + l_queries.item.feature_name, l_class)

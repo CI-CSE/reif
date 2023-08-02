@@ -44,7 +44,7 @@ feature {NONE} -- Initialization
 			error := an_error
 			failure := a_failure
 			target_row := a_row
-			print("Proof2Test command for " + error.context_feature.feature_name_32.to_string_8 + "%N")
+			-- print("Proof2Test command for " + error.context_feature.feature_name_32.to_string_8 + "%N")
 		end
 
 feature -- Execution
@@ -396,7 +396,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			generate_minimal, generate_other, generate_test, generate_fix: EV_CHECK_MENU_ITEM
 			-- l_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 		do
-			print("on_counterexample_select_action%N")
 			-- create l_ce_init_state.make (a_target_feature: FEATURE_I, a_target_class: CLASS_C, a_ce: E2B_BOOGIE_COUNTEREXAMPLE) a_ce_init_state
 			create counterexample_menu.make_with_text ("Counterexample")
 
@@ -579,10 +578,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 				-- generate_execution_trace_item.disable_select
 				-- disable_tool_button
 
-			print ("ES_PROOF2TEST_COMMAND.execute_generate_test_item%N")
-
 			window_manager.display_message ("Test generation started")
-			print("number of test cases: " + options.init_states_of_counterexamples.count.out + "%N")
 
 			proof2test.generate_tests (options.init_states_of_counterexamples) -- generate a test for a single counterexample each time
 			options.init_states_of_counterexamples.wipe_out

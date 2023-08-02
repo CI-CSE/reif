@@ -48,6 +48,7 @@ feature -- Basic operations
 			l_path: PATH
 			l_attr_translator: E2B_ATTRIBUTE_TRANSLATOR
 			l_routine_translator: E2B_ROUTINE_TRANSLATOR
+
 		do
 			type := a_type
 			l_class := a_type.base_class
@@ -60,7 +61,7 @@ feature -- Basic operations
 				create l_path.make_from_string (deps)
 				boogie_universe.add_dependency
 					(if l_path.is_absolute then
-						create {PATH}.make_from_string (deps)
+						l_path
 					else
 						l_path.absolute_path_in (l_class.lace_class.file_name.parent).canonical_path
 					end)

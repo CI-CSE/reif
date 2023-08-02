@@ -19,6 +19,7 @@ inherit
 			index,
 			first_token, last_token
 		end
+	CALL_AS
 
 -- create
 -- 	make

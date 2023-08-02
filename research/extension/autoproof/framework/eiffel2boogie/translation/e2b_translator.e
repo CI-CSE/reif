@@ -25,6 +25,10 @@ feature {NONE} -- Initialization
 			if attached helper.set_any_type as t then
 				translation_pool.add_type (t)
 			end
+			
+			if helper.options.is_generate_fix_enabled and attached helper.sequence_any_type as t then
+				translation_pool.add_type (t)
+			end
 		end
 
 feature -- Status report

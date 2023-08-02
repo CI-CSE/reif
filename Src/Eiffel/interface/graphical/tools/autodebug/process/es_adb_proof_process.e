@@ -65,8 +65,9 @@ feature{NONE} -- Implementation
 					+ "-config %"" + ecf_path_in_working_directory.out + "%" "
 					+ "-target " + target_of_project + " "
 					--+ "-auto_test -i -f --agents none --integer-bounds -512,512 --state argumentless --serialization passing,failing --retrieve-serialization-online "
-					+ "-autoproof -timeout " + config.max_session_length_for_proof.out + " -fix " + config.number_of_counterexamples.out -- -i -f --agents none --integer-bounds -512,512 --state argumentless --serialization passing,failing --retrieve-serialization-online "
+					+ "-autoproof" + " -fix " + config.number_of_counterexamples.out + " -contract_inference"-- -i -f --agents none --integer-bounds -512,512 --state argumentless --serialization passing,failing --retrieve-serialization-online "
 					-- + "-t " + config.max_session_length_for_testing.out + " "
+					-- -timeout " + config.max_session_length_for_proof.out + "
 					-- + l_seed + " "
 					-- + "--output-test-case-online %"" + config.working_directory.testing_result_dir.out + "%" ";
 

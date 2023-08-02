@@ -1,0 +1,34 @@
+note
+	description: "Shared messages"
+	author: ""
+	date: "$Date: 2013-10-17 17:50:40 +0800 (Thu, 17 Oct 2013) $"
+	revision: "$Revision: 93134 $"
+
+class
+	CI_MESSAGES
+
+feature -- Access
+
+	msg_contract_inference_started: STRING = "Contract inference started."
+
+	msg_contract_inference_from_passings_started: STRING = "Contract inference from passings started."
+
+	msg_contract_inference_from_failings_started: STRING = "Contract inference from failings started."
+
+	msg_contract_inference_ended: STRING = "Contract inference ended."
+
+	msg_contract_inference_from_passings_ended: STRING = "Contract inference from passings ended."
+
+	msg_contract_inference_from_failings_ended: STRING = "Contract inference from failings ended."
+
+	msg_test_case_execution_started: STRING = "Test case execution started."
+
+	msg_test_class_name: STRING = "Test case: "
+
+	msg_found_test_case: STRING = "Found test case: "
+
+	msg_feature_under_test: STRING = "Feauture under test: "
+
+	msg_separator: STRING = "----------------------------------------------------------------------------"
+
+end

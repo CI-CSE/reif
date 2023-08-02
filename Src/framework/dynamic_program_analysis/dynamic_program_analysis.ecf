@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-9-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-9-0 http://www.eiffel.com/developers/xml/configuration-1-9-0.xsd" name="dynamic_program_analysis" uuid="D7A57616-9EA5-495C-80C3-C8EE73AAB1A8" library_target="dynamic_program_analysis">
+	<target name="dynamic_program_analysis">
+		<root all_classes="true"/>
+		<option warning="false" is_attached_by_default="false" void_safety="none" syntax="provisional">
+			<assertions precondition="true" check="true"/>
+		</option>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf"/>
+		<library name="debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
+		<library name="eiffel_transform" location="$EIFFEL_SRC\framework\eiffel_transform\eiffel_transform.ecf" readonly="false"/>
+		<library name="gobo_argument" location="$ISE_LIBRARY\library\gobo\gobo_argument.ecf"/>
+		<library name="gobo_structure" location="$ISE_LIBRARY\library\gobo\gobo_structure.ecf"/>
+		<library name="json" location="$EIFFEL_SRC\contrib\library\text\parser\json\library\json.ecf"/>
+		<library name="json_gobo_extension" location="$EIFFEL_SRC\contrib\library\text\parser\json\library\json_gobo_extension.ecf"/>
+		<library name="gobo_kernel" location="$ISE_LIBRARY\library\gobo\gobo_kernel.ecf"/>
+		<library name="graphx" location="$EIFFEL_SRC\framework\graphx\graphx.ecf" readonly="false"/>
+		<library name="mysql" location="$ISE_LIBRARY\library\mysql\mysql.ecf" readonly="false"/>
+		<library name="parser" location="$EIFFEL_SRC\framework\parser\parser.ecf"/>
+		<library name="program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf"/>
+		<cluster name="dynamic_program_analysis" location=".\" recursive="true">
+			<file_rule>
+				<exclude>/.svn$</exclude>
+			</file_rule>
+		</cluster>
+	</target>
+</system>

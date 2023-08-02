@@ -20,6 +20,7 @@ feature {NONE} -- Initialization
 		do
 			start_timer
 			create constants_values.make (0)
+			create heap_values.make (0)
 			create heap_function.make (0)
 			create seq_item.make (0)
 			create seq_lengths.make (0)
@@ -45,7 +46,7 @@ feature {NONE} -- Initialization
 			end
 
 			get_routine_and_class_name
-			-- print("parsing model time: " + current_timer.out + "%N")
+				-- print("parsing model time: " + current_timer.out + "%N")
 			stop_timer
 		end
 
@@ -71,6 +72,9 @@ feature -- Colleted data
 
 	heap_function: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
 			-- Interpretation of a function that represents the heap behavior: [heap state, object, field] -> value
+
+	heap_values: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
+			-- Mapping from heap state names to values
 
 	seq_item: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
 			-- Sequences' elements
@@ -133,7 +137,7 @@ feature -- Parse model
 					--	Result := "current_object"
 
 			elseif name.has ('.') then
-				Result := safe_type(name.split ('.').first).to_string_8 + "." + name.split ('.').last.to_string_8
+				Result := safe_type (name.split ('.').first).to_string_8 + "." + name.split ('.').last.to_string_8
 			else
 				Result := name
 			end
@@ -165,15 +169,18 @@ feature -- Parse model
 						value.append (words [4])
 					end
 
-					if name.has_substring (".") then
-						name.copy (safe_name(name))
+					if name.has_substring (".") then -- in the form of class_name.field_name
+						name.copy (safe_name (name))
 						class_field_relations [name] := ""
 						class_field_relations [name].copy (value)
+					elseif name.same_string ("Heap") or name.has_substring ("Heap@") then
+						heap_values [name] := ""
+						heap_values [name].copy (value)
 					else
 						constants_values [name] := ""
 						constants_values [name].copy (value)
 					end
-					-- print ("constant value: " + name.to_string_8 + " -> " + value.to_string_8 + "%N")
+						-- print ("constant value: " + name.to_string_8 + " -> " + value.to_string_8 + "%N")
 				end
 				read_next_line
 			end
@@ -185,11 +192,12 @@ feature -- Parse model
 			line, value: STRING_32
 			words: LIST [STRING_32]
 		do
-			-- print ("E2B_BOOGIE_COUNTEREXAMPLE.get_heap_function%N")
+				-- print ("E2B_BOOGIE_COUNTEREXAMPLE.get_heap_function%N")
 			line := ""; value := ""
+				-- Go to the head of the heap function
 			from
 			until
-				end_of_model_file or (model_lines [line_index].has_substring ("MapType") and model_lines [line_index].has_substring("Select"))
+				end_of_model_file or (model_lines [line_index].has_substring ("MapType") and model_lines [line_index].has_substring ("Select"))
 			loop
 				read_next_line
 			end
@@ -200,19 +208,34 @@ feature -- Parse model
 				end_of_model_file or else model_lines [line_index].has_substring ("}")
 			loop
 				-- print ("lll: " +  line.to_string_8 + "heap value" + constants_values ["Heap"] + "%N")
-				if model_lines [line_index].has_substring (constants_values ["Heap"]) then
+				if is_heap_state_line (model_lines [line_index]) then
+					-- print ("heap state line: " + line.to_string_8 + "%N")
 					line.copy (model_lines [line_index])
 					words := line.split (' ')
-					heap_function [words [4] + ", " + words [5]] := ""
+					heap_function [words[3] + ", " + words [4] + ", " + words [5]] := ""
 					value.copy (words [7])
 
 					if words [7].has ('(') then
 						value.append (words [8])
 					end
-					heap_function [words [4] + ", " + words [5]].copy (value)
-
+					heap_function [words[3] + ", " + words [4] + ", " + words [5]].copy (value)
+					-- TODO: make use of other info in the "Select" function
 				end
 				read_next_line
+			end
+--			across heap_function.current_keys as k loop
+--				print (k + "->" + heap_function [k] + "%N")
+--			end
+		end
+
+	is_heap_state_line (a_line: STRING_32): BOOLEAN
+		-- Does `a_line' contain the value of any heap state?
+		do
+			Result := False
+			across heap_values.current_keys as k loop
+				if a_line.has_substring (heap_values [k]) then
+					Result := True
+				end
 			end
 		end
 
@@ -334,7 +357,7 @@ feature -- Parse model
 				end
 				read_next_line
 			end
-			-- print("class name: " + class_name + " " + "routine name: " + routine_name + "%N")
+				-- print("class name: " + class_name + " " + "routine name: " + routine_name + "%N")
 
 		end
 

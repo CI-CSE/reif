@@ -14,8 +14,8 @@ create
 	make_from_string
 
 feature
-	make_from_string (daikon_output :STRING; a_feature_with_context: EPA_FEATURE_WITH_CONTEXT_CLASS) is
-			--Create a Daikon result from a Daikon output and a test case information
+	make_from_string (daikon_output: STRING; a_feature_with_context: EPA_FEATURE_WITH_CONTEXT_CLASS)
+			-- Create a Daikon result from a Daikon output and a test case information
 		do
 			create daikon_table.make (1000)
 			context_feature := a_feature_with_context
@@ -34,7 +34,7 @@ feature -- Access
 
 feature {NONE} -- Implementation
 
-     build_table (daikon_output : STRING) is
+     build_table (daikon_output: STRING)
 			--Parses the result of a Daikon File.
 		local
 			list_tokens :LIST[STRING]
@@ -79,7 +79,7 @@ feature {NONE} -- Implementation
 		end
 
 
-     build_equation ( str :STRING ) :EPA_EQUATION is
+     build_equation (str: STRING) :EPA_EQUATION
      		--Takes a line output from Daikon and builds an AFX_Equation
 		local
 			l_index: INTEGER
@@ -103,17 +103,17 @@ feature {NONE} -- Implementation
 			if expression.type /= Void then
 				if expression.type.is_integer then
 	     			create expression_integer_value.make (l_value_str.to_integer)
-	     			create equation.make (expression,expression_integer_value)
+	     			create equation.make (expression, expression_integer_value)
 				elseif expression.type.is_boolean then
 	     			create expression_boolean_value.make (l_value_str.to_boolean)
-	     			create equation.make (expression,expression_boolean_value)
+	     			create equation.make (expression, expression_boolean_value)
 				end
 			end
 			result := equation
      	end
 
 
-     	state_name ( str :STRING ) :INTEGER is
+     	state_name (str: STRING): INTEGER
 	     		-- Filter the state name ENTER and EXIT1
 	     		-- are considered special states.
 			local

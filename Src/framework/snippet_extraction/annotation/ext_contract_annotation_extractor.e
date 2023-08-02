@@ -116,7 +116,7 @@ feature{NONE} -- Implementation
 				fixme ("We only handle variable targets, not targets as complex feature calls. Jasonw 20-07-2011.")
 				l_target_type := type_a_from_string_in_application_context (l_vars.item (l_target_name))
 				if l_target_type /= Void and then l_target_type.has_associated_class then
-					l_class := l_target_type.associated_class
+					l_class := l_target_type.base_class
 					l_feature_name := a_signature.feature_name
 					l_feature := l_class.feature_named (l_feature_name)
 					if l_feature /= Void then

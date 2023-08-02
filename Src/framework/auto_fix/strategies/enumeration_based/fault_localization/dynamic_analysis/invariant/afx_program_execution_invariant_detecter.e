@@ -23,8 +23,8 @@ feature -- Basic operation
 	reset_detector
 			-- Reset the internal state of the object.
 		do
---			invariants_from_passing_cell.put (Void)
---			invariants_from_failing_cell.put (Void)
+			-- invariants_from_passing_cell.put (Void)
+			-- invariants_from_failing_cell.put (Void)
 		end
 
 	detect
@@ -32,10 +32,8 @@ feature -- Basic operation
 			-- Make the invariants available in `invariants_from_passing' and `invariants_from_failing'.
 		do
 			reset_detector
-
-
---			invariants_from_passing_cell.put (invariants_from_traces (trace_repository.passing_traces))
---			invariants_from_failing_cell.put (invariants_from_traces (trace_repository.failing_traces))
+			-- invariants_from_passing_cell.put (invariants_from_traces (trace_repository.passing_traces))
+			-- invariants_from_failing_cell.put (invariants_from_traces (trace_repository.failing_traces))
 		end
 
 feature{NONE} -- Implementation
@@ -220,7 +218,7 @@ feature{NONE} -- Implementation
 		do
 			create Result.make (256)
 			if {PLATFORM}.is_windows then
-				Result.append ("java daikon.Daikon ")
+				Result.append ("java -cp %%DAIKONDIR%%\daikon.jar daikon.Daikon ")
 			else
 				Result.append ("/usr/bin/java daikon.Daikon ")
 			end
