@@ -1,6 +1,7 @@
 /.git
 Src/framework/auto_test/Clib/lp_solve/lpsolve55/cgcc.bat
 Src/library/cURL/spec/linux-x86-64
+Src/library/cURL/config.sh
 Src/library/mysql/spec/linux-x86-64
 Src/library/net/spec/linux-x86-64
 Src/library/net/config.sh

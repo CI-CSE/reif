@@ -135,8 +135,8 @@ i_varargs='undef'
 
 #Shell
 eunicefix=':'
-rm='/bin/rm'
-sed='/bin/sed'
+rm='rm'
+sed='sed'
 spitshell='cat'
 
 #Compiler/Preprocessor
@@ -205,7 +205,7 @@ ar='ar'
 boehmgclib='gc'
 command_makefile='make -f'
 concurrent_prefix='c'
-cp='/bin/cp'
+cp='cp'
 eiflib='finalized'
 if [ -n "$LD" ]; then
 	ld=$LD
@@ -218,7 +218,7 @@ ldsharedflags="$ldflags -shared -o"
 
 libs='-lm'
 
-ln='/bin/ln'
+ln='ln'
 if [ -n "$MAKE" ]; then
 	make=$MAKE
 else
@@ -231,7 +231,7 @@ mtldsharedflags="$ldsharedflags"
 mtlibs="$libs -lpthread"
 
 mt_prefix='mt'
-mv='/bin/mv'
+mv='mv'
 prefix='lib'
 ranlib=':'
 shared_prefix='lib'
