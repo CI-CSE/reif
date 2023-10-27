@@ -118,7 +118,6 @@ feature -- Status setting
 		require
 			an_output_stream_not_void: an_output_stream /= Void
 		do
-			print("AUT_TEST_CASE_PRINTER.set_output_stream%N")
 			output_stream := an_output_stream
 			expression_printer.set_output_stream (output_stream)
 		ensure
@@ -212,7 +211,6 @@ feature -- Basic operations
 			l_type: detachable TYPE_A
 			l_root: SYSTEM_ROOT
 		do
-			print("AUT_TEST_CASE_PRINTER.print_test_case%N")
 			if not system.root_creators.is_empty then
 				l_root := system.root_creators.first
 				if attached l_root.root_class.compiled_class as l_class then

@@ -28,6 +28,15 @@ feature -- Access
 
 feature -- Query
 
+	proof_result_dir: PATH
+			-- Path to the directory for testing results.
+		do
+			if proof_result_dir_internal = Void then
+				initialize
+			end
+			Result := proof_result_dir_internal
+		end
+
 	testing_result_dir: PATH
 			-- Path to the directory for testing results.
 		do
@@ -40,9 +49,17 @@ feature -- Query
 	testing_result_dir_for_fault (a_fault: ES_ADB_FAULT): PATH
 			-- Path to the directory for testing results related with `a_fault'.
 		require
-			a_fault /= VOid
+			a_fault /= Void
 		do
 			Result := testing_result_dir.extended (a_fault.signature.class_under_test).extended (a_fault.signature.feature_under_test)
+		end
+
+	proof_result_dir_for_failure (a_failure: ES_ADB_PROOF_FAILURE): PATH
+			-- Path to the directory for testing results related with `a_failure'.
+		require
+			a_failure /= Void
+		do
+			Result := testing_result_dir.extended (a_failure.target_class_name).extended (a_failure.target_routine_name)
 		end
 
 	tested_class_timestamps_path: PATH
@@ -114,6 +131,7 @@ feature -- Operation
 			l_dir: DIRECTORY
 		do
 			testing_result_dir_internal := root_dir.extended ("testing")
+			proof_result_dir_internal := root_dir.extended ("proof")
 			tested_class_timestamps_path_internal := testing_result_dir.extended ("timestamps.log")
 			relaxed_testing_result_dir_internal := root_dir.extended ("relaxed_testing")
 			fixing_result_dir_internal := root_dir.extended ("fixing")
@@ -167,6 +185,7 @@ feature -- Operation
 feature{NONE} -- Cache
 
 	testing_result_dir_internal: like testing_result_dir
+	proof_result_dir_internal: like proof_result_dir
 	tested_class_timestamps_path_internal: like tested_class_timestamps_path
 	relaxed_testing_result_dir_internal: like relaxed_testing_result_dir
 	fixing_result_dir_internal: like fixing_result_dir

@@ -23,8 +23,6 @@ feature -- Operation
 			l_command_line: STRING
 			l_max_length: INTEGER
 		do
-			print("ES_ADB_REGULAR_TESTING_PROCESS.make%N")
-
 			classes := a_classes.twin
 			l_command_line := command_line_for_testing_classes (a_classes)
 			l_max_length := config.max_session_length_for_testing + config.Max_session_overhead_length

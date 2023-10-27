@@ -47,7 +47,7 @@ feature -- Tests generation
 
 feature -- Files and data
 
-	test_file_name: STRING_32
+	test_file_name: STRING
 			-- Name of the output test file
 
 	file_index: INTEGER

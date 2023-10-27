@@ -3,7 +3,7 @@ note
 			Objects waiting for an incoming connection in a non blocking matter.
 		]"
 	author: ""
-	date: "$Date: 2010-12-09 01:58:19 +0800 (å%/145/¨å%/155/%/155/, 09 12æ%/156/%/136/ 2010) $"
+	date: "$Date: 2010-12-09 01:58:19 +0800 (ï¿½%/145/ï¿½ï¿½%/155/%/155/, 09 12ï¿½%/156/%/136/ 2010) $"
 	revision: "$Revision: 85095 $"
 
 frozen class
@@ -75,11 +75,9 @@ feature -- Basic functionality
 			connection := Void
 			l_socket := open_listener
 			if l_socket /= Void then
-				print("socket not voidddd%N")
 				create l_thread.make (agent start_listening (l_socket))
 				l_thread.launch
 			else
-				print("socket voidddd%N")
 				current_port := 0
 			end
 		end

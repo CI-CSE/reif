@@ -33,11 +33,20 @@ feature {NONE} -- Actions
 		deferred
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new test case is generated
 		deferred
 		end
 
+--	on_proof_start
+--			-- Action to be performed when proof starts
+--		deferred
+--		end
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		deferred
+		end
 
 	on_testing_start
 			-- Action to be performed when testing starts
@@ -64,8 +73,13 @@ feature {NONE} -- Actions
 		deferred
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- Action to be performed when fixing `a_fault' starts
+		deferred
+		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
+			-- Action to be performed when fixing `a_failure' starts
 		deferred
 		end
 
@@ -80,6 +94,7 @@ feature {NONE} -- Actions
 			-- Action to be performed when fixing a fault stops
 		deferred
 		end
+
 
 	on_fix_applied (a_fix: ES_ADB_FIX)
 			-- Action to be performed when `a_fix' is applied.
@@ -178,7 +193,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 	on_fixing_start_agent: PROCEDURE [TUPLE[ES_ADB_FAULT]]
 		do
 			if on_fixing_start_agent_internal = Void then
-				on_fixing_start_agent_internal := agent on_fixing_start
+				on_fixing_start_agent_internal := agent on_fixing_fault_start
 			end
 			Result := on_fixing_start_agent_internal
 		end

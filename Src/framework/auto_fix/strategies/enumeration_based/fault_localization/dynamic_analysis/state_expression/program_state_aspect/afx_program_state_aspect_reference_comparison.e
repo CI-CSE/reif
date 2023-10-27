@@ -35,6 +35,7 @@ feature{NONE} -- Initialization
 			operand_expressions.force (right_operand)
 
 			l_exp_text := "(" + left_operand.text + ") " + operator_text (operator) + " (" + right_operand.text + ")"
+			-- print ("AFX_PROGRAM_STATE_ASPECT_REFERENCE_COMPARISON.make_comparison" + l_exp_text + "%N")
 			make_with_text (a_context_class, a_context_feature, l_exp_text, a_written_class)
 		end
 
@@ -64,6 +65,7 @@ feature -- Basic operation
 			end
 
 			last_value := evaluate_reference_comparison (l_left_value, l_right_value, operator)
+			-- print ("AFX_PROGRAM_STATE_ASPECT_REFERENCE_COMPARISON.evaluate " + l_left_value.out  + " vs " + l_right_value.out + "%N")
 		end
 
 	derived_change_requirements: DS_ARRAYED_LIST [AFX_STATE_CHANGE_REQUIREMENT]

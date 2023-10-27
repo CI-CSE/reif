@@ -24,7 +24,6 @@ feature {NONE} -- Initialization
 			a_etest_suite_attached: a_etest_suite /= Void
 			a_test_suite_usable: a_test_suite.is_interface_usable
 		do
-		    print("ETEST_CREATION.make%N")
 			make_creation (a_test_suite, a_is_gui)
 			etest_suite := a_etest_suite
 			create path.make_empty
@@ -89,7 +88,6 @@ feature {TEST_SUITE_S} -- Status setting
 	frozen start
 			-- <Precursor>
 		do
-		    print("ETEST_CREATION.start%N")
 			class_name_counter := 1
 			start_creation
 		end

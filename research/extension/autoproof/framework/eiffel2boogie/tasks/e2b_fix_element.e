@@ -10,7 +10,8 @@ class
 create make
 
 feature -- Initialize
-    make (a_var_name: STRING_32)
+
+    make (a_var_name: STRING)
         -- Initialize a fix element
     do
         var_name := a_var_name
@@ -30,7 +31,7 @@ feature -- Initialize
 
 feature
 
-    var_name: STRING_32
+    var_name: STRING
        -- Name of variable
 
     max: INTEGER

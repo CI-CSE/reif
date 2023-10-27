@@ -19,13 +19,11 @@ feature
 			models: ARRAY [IMMUTABLE_STRING_32]
 
 		do
-			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.make%N")
 
 			model_file_content := ""
 			create models.make_empty
 
 			create model_file.make_open_read (model_file_name)
-			print ("model file: " + model_file_name.to_string_8 + "%N")
 			model_file.read_stream ({INTEGER_32}.max_value)
 			model_file_content.copy (model_file.last_string)
 
@@ -46,7 +44,6 @@ feature
 			model: STRING_32
 			models: ARRAY [IMMUTABLE_STRING_32]
 		do
-			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.split_models%N")
 			create models.make_empty
 			from
 				i := 1
@@ -73,8 +70,6 @@ feature
 		local
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
 		do
-			print ("E2B_BOOGIE_COUNTEREXAMPLE_PARSER.parse_models%N")
-			print ("number of models: " + models.count.out + "%N")
 			across models as m loop
 				create ce.make (m)
 				if counterexamples.has (ce.class_name + "." + ce.routine_name) then

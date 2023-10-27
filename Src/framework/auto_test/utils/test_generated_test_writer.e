@@ -26,7 +26,6 @@ feature {NONE} -- Initialization
 	make (a_system: like system; an_output_stream: like output_stream)
 			-- <Precursor>
 		do
-			print ("TEST_GENERATED_TEST_WRITER.make%N")
 			Precursor (a_system, an_output_stream)
 			create last_test_routine_name.make_empty
 		end

@@ -34,7 +34,7 @@ feature
 	checkbutton_text_test_classes_in_groups: STRING = "Test classes in groups"
 
 	Frame_text_proof: STRING = "Proof"
-	label_text_number_of_counterexamples_for_each_failure: STRING = "Number of counterexamples for each failure"
+	label_text_number_of_counterexamples_for_each_failure: STRING = "Maximum counterexamples for each failure"
 	label_text_maximum_session_length_for_proof: STRING = "Maximum session length for proof (in minutes)"
 
 	Frame_text_testing: STRING = "Testing"

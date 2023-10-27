@@ -55,6 +55,7 @@ feature -- Basic operation
 			l_left_equation, l_right_equation: EPA_EQUATION
 			l_left_value, l_right_value: EPA_EXPRESSION_VALUE
 		do
+
 			l_text := left_operand.text
 			if l_text.is_integer then
 				create {EPA_INTEGER_VALUE} l_left_value.make (l_text.to_integer)
@@ -68,9 +69,9 @@ feature -- Basic operation
 			elseif attached a_state.item_with_expression_text (l_text) as lt_right_equation then
 				l_right_value := lt_right_equation.value
 			end
-
 			last_value := evaluate_integer_comparison (l_left_value, l_right_value, operator)
 		end
+
 
 	derived_change_requirements: DS_ARRAYED_LIST [AFX_STATE_CHANGE_REQUIREMENT]
 			-- <Precursor>

@@ -27,7 +27,6 @@ feature{NONE} -- Initialization
 		require
 			a_tool /= Void
 		do
-			print("ES_ADB_PANEL_SETTINGS.make%N")
 			set_tool_panel (a_tool)
 			default_create
 
@@ -45,7 +44,6 @@ feature{NONE} -- Update UI
 	clear_information_display_widget
 			-- Clear the contents of config widgets.
 		do
-			print("ES_ADB_PANEL_SETTINGS.clear_information_display_widget%N")
 			evtext_group_to_add.set_text ("")
 			evlist_groups_to_debug.wipe_out
 			evtext_working_directory.set_text ("")
@@ -62,7 +60,7 @@ feature{NONE} -- Update UI
 	enable_information_display_widget (a_flag: BOOLEAN)
 			-- Enable/Disable config widgets.
 		do
-			print("ES_ADB_PANEL_SETTINGS.enable_information_display_widget%N")
+			-- print("ES_ADB_PANEL_SETTINGS.enable_information_display_widget%N")
 			if a_flag then
 				evtext_group_to_add.enable_sensitive
 				on_group_to_add_changed
@@ -109,7 +107,7 @@ feature{NONE} -- Update UI
 	enable_command_invocation_widget (a_flag: BOOLEAN)
 			-- Enable/Disable all command widgets on the panel.
 		do
-			print("ES_ADB_PANEL_SETTINGS.enable_command_invocation_widget%N")
+			-- print("ES_ADB_PANEL_SETTINGS.enable_command_invocation_widget%N")
 			if a_flag then
 				evbutton_load_config.enable_sensitive
 				evbutton_save_config.enable_sensitive
@@ -124,7 +122,7 @@ feature{NONE} -- Update UI
 	update_evbutton_start (a_flag: BOOLEAN)
 			-- Enable/Disable `evbutton_start'.
 		do
-			print("ES_ADB_PANEL_SETTINGS.update_evbutton_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.update_evbutton_start%N")
 			if a_flag then
 				evbutton_start.enable_sensitive
 			else
@@ -168,7 +166,7 @@ feature -- ADB Action
 	on_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_debugging_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_debugging_start%N")
 			tool_panel.set_external_process_running (True)
 			on_save_settings
 			enable_information_display_widget (False)
@@ -180,18 +178,23 @@ feature -- ADB Action
 	on_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_debugging_stop%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_debugging_stop%N")
 			evbutton_start.set_text (button_text_start)
 			enable_information_display_widget (True)
 			enable_command_invocation_widget (True)
 			tool_panel.set_external_process_running (False)
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new counterexample is generated
 		do
 		end
-		
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		do
+		end
+
 	on_testing_start
 			-- <Precursor>
 		do
@@ -207,7 +210,13 @@ feature -- ADB Action
 		do
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
+			-- <Precursor>
+		do
+
+		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
 			-- <Precursor>
 		do
 
@@ -221,7 +230,7 @@ feature -- ADB Action
 	on_continuation_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_start%N")
 			on_save_settings
 			enable_information_display_widget (False)
 			enable_command_invocation_widget (False)
@@ -230,7 +239,7 @@ feature -- ADB Action
 	on_continuation_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_stop%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_continuation_debugging_stop%N")
 			enable_information_display_widget (True)
 			enable_command_invocation_widget (True)
 		end
@@ -256,7 +265,7 @@ feature -- UI Actions
 			-- Register handlers to UI events.
 		local
 		do
-			print("ES_ADB_PANEL_SETTINGS.register_event_handlers%N")
+			-- print("ES_ADB_PANEL_SETTINGS.register_event_handlers%N")
 			evtext_group_to_add.change_actions.extend (agent on_group_to_add_changed)
 			evtext_group_to_add.key_press_actions.extend (agent on_group_to_add_enter)
 			evlist_groups_to_debug.select_actions.extend (agent on_select_group)
@@ -438,7 +447,7 @@ feature -- UI Actions
 			l_should_continue: BOOLEAN
 			l_debugging_task: ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING
 		do
-			print("ES_ADB_PANEL_SETTINGS.on_start%N")
+			-- print("ES_ADB_PANEL_SETTINGS.on_start%N")
 			l_text := evbutton_start.text
 			if l_text ~ button_text_start then
 				if info_center.fault_repository.is_empty and then info_center.test_cases.is_empty then
@@ -487,7 +496,7 @@ feature{NONE} -- Action implementation
 			l_detail: STRING
 			l_detail_item: EV_LIST_ITEM
 		do
-			print("ES_ADB_PANEL_SETTINGS.display_group_detail%N")
+			-- print("ES_ADB_PANEL_SETTINGS.display_group_detail%N")
 			if a_show then
 
 				if last_selected_group = Void or else a_group /~ last_selected_group then
@@ -552,7 +561,7 @@ feature{NONE} -- UI/Config sync
 			l_class_cursor: DS_ARRAYED_LIST_CURSOR [STRING]
 			l_list_item: EV_LIST_ITEM
 		do
-			print("ES_ADB_PANEL_SETTINGS.propogate_values_from_config_to_ui%N")
+			-- print("ES_ADB_PANEL_SETTINGS.propogate_values_from_config_to_ui%N")
 			l_config := config
 
 			evlist_groups_to_debug.wipe_out
@@ -624,7 +633,7 @@ feature{NONE} -- UI/Config sync
 			l_based_approach_str: STRING
 			l_start_fixing_type_str: STRING
 		do
-			print("ES_ADB_PANEL_SETTINGS.propogate_values_from_ui_to_config%N")
+			-- print("ES_ADB_PANEL_SETTINGS.propogate_values_from_ui_to_config%N")
 			l_config := config
 
 			propogate_class_groups_from_ui_to_config
@@ -674,7 +683,7 @@ feature{NONE} -- UI/Config sync
 			l_cursor: DS_ARRAYED_LIST_CURSOR [STRING]
 			l_class: STRING
 		do
-			print("ES_ADB_PANEL_SETTINGS.propogate_class_groups_from_ui_to_config%N")
+			-- print("ES_ADB_PANEL_SETTINGS.propogate_class_groups_from_ui_to_config%N")
 			l_config := config
 			l_config.remove_all_class_groups
 

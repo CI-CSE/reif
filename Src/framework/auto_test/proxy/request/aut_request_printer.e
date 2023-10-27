@@ -374,7 +374,6 @@ feature {NONE} -- Byte code generation
 			l_parameters: BYTE_LIST [PARAMETER_B]
 			l_local: LOCAL_B
 		do
-			print("AUT_REQUEST_PRINTER.new_record_query_feature_call%N")
 			create l_parameters.make (1)
 
 			create l_param

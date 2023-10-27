@@ -205,7 +205,7 @@ feature {NONE} -- Basic operations
 				-- print("test generation time: " + current_timer.out + "%N")
 				stop_timer
 				eiffel_project.discover_melt
-			    window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
+			    window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name)
 
 			else
 				window_manager.display_message ("AutoProof finished")

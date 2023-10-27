@@ -42,6 +42,7 @@ feature -- Basic operations
 		local
 			l_ap_error: E2B_AUTOPROOF_ERROR
 		do
+			-- print("E2B_RESULT_GENERATOR.process_boogie_result%N")
 			create last_result.make
 				-- Use global list if local one is empty
 			if local_autoproof_errors = Void then
@@ -73,18 +74,19 @@ feature -- Basic operations
 			l_error: E2B_DEFAULT_VERIFICATION_ERROR
 			l_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 			l_trace: E2B_CE_TRACE_OF_ROUTINE
+			l_sig: STRING
 		do
 			create l_error.make (a_failure)
-
-				-- Get input values in counterexample
+			l_sig := ""
+			-- Get input values in counterexample
 			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
-
 			if helper.options.is_generate_fix_enabled then
 				create l_trace.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
-				if not helper.options.ce_traces.has (a_failure.context_feature) then
-					helper.options.ce_traces.extend (<<l_trace>>, a_failure.context_feature)
+				l_sig := a_failure.context_class.name + "." + a_failure.context_feature.feature_name_32.to_string_8 + "." + line_for_error (a_error).out
+				if not helper.options.ce_traces.has (l_sig) then
+					helper.options.ce_traces.extend (<<l_trace>>, l_sig)
 				else
-					helper.options.ce_traces [a_failure.context_feature].extend (l_trace)
+					helper.options.ce_traces [l_sig].extend (l_trace)
 				end
 			end
 
@@ -161,7 +163,6 @@ feature {NONE} -- Implementation
 			l_success: E2B_SUCCESSFUL_VERIFICATION
 			l_inconclusive: E2B_INCONCLUSIVE_RESULT
 			l_failure: E2B_FAILED_VERIFICATION
-
 		do
 			l_temp := name_translator.feature_for_boogie_name (a_item.name)
 			l_feature := l_temp.feature_
@@ -366,7 +367,7 @@ feature {NONE} -- Implementation
 
 		end
 
-	safe_var (a_var: STRING_32): STRING_32
+	safe_var (a_var: STRING): STRING
 			-- Remove "Current" in `a_var' if any
 		do
 			if a_var.has_substring ("Current.") then
@@ -376,10 +377,10 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	valuation (a_var: STRING_32; a_value: STRING_32): STRING_32
+	valuation (a_var: STRING; a_value: STRING): STRING
 			-- String of a valuation
 		local
-			value: STRING_32
+			value: STRING
 		do
 			value := a_value
 			if value.head (1).same_string ("(") then
@@ -391,11 +392,11 @@ feature {NONE} -- Implementation
 			Result := safe_var (a_var) + " = " + value
 		end
 
-	counterexample_message (a_initial_state: E2B_INITIAL_STATE_OF_ROUTINE): STRING_32
+	counterexample_message (a_initial_state: E2B_INITIAL_STATE_OF_ROUTINE): STRING
 			-- Message for displaying all tuples of values and variables in the counterexample
 		local
 			i, j: INTEGER
-			var, value, seq_name, item_value, aliased_object: STRING_32
+			var, value, seq_name, item_value, aliased_object: STRING
 		do
 			Result := ""
 			aliased_object := ""
@@ -407,7 +408,7 @@ feature {NONE} -- Implementation
 			loop
 				var := a_initial_state.initial_values.current_keys [i]
 				value := a_initial_state.initial_values [var]
-
+				-- print (var + "->" + value + "%N")
 					-- sequence
 				if not value.has_substring ("T@U") and not var.split ('.').first.same_string (aliased_object) and not value.is_empty then -- valuations
 					Result := Result + " " + valuation (var, value) + ","
@@ -415,7 +416,7 @@ feature {NONE} -- Implementation
 				elseif a_initial_state.is_aliased_with_existed_object (var) then -- alias relation
 					Result := Result + " " + valuation (var, a_initial_state.alias_groups [value] [1]) + ","
 					aliased_object := var
-						-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
+					-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
 				elseif var.split ('.').last.same_string ("sequence") then
 					seq_name := var.split ('.').first
 					if a_initial_state.ce.seq_lengths.has (value) then
@@ -425,16 +426,16 @@ feature {NONE} -- Implementation
 							from
 								j := 1
 							until
-								j > a_initial_state.ce.seq_lengths [value].to_integer_32
+								j > a_initial_state.ce.seq_lengths [value].to_integer_32 or j > 10 -- TODO Li: this is a hack to prevent large sequence
 							loop
 								if a_initial_state.ce.seq_item.has (value + ", " + j.out) then
 									item_value := a_initial_state.ce.seq_item [value + ", " + j.out]
-									Result := Result + " " + valuation (seq_name + " [" + j.out + "]", item_value.to_string_8) + ","
+									Result := Result + " " + valuation (seq_name + " [" + j.out + "]", item_value) + ","
 								end
 								j := j + 1
 							end
 						else
-							Result := Result + " -- No sequence for array " + seq_name + "found in the model. %N"
+							Result := Result + " (No sequence for array " + seq_name + " found in the counterexample.) %N"
 						end
 					end
 				end

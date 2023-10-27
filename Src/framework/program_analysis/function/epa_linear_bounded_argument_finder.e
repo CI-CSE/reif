@@ -153,7 +153,7 @@ feature{NONE} -- Implementation
 			l_relevant_assertions := l_set1.union (l_set2)
 --				contract_extractor.precondition_expression_set (a_context_class, a_feature).union (contract_extractor.invariant_expression_set (a_context_class, True))
 
-				-- Find assertions relevant to `a_constraint'.
+			-- Find assertions relevant to `a_constraint'.
 			create l_finder
 			l_finder.calculate (a_constraint, l_relevant_assertions)
 			l_relevant_constraints := l_finder.relevant_constraints

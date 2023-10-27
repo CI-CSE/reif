@@ -662,7 +662,6 @@ feature -- Status setting
 			not_running: not has_next_step
 		do
 			class_names.force_last (a_class_name.as_string_8)
-			print("TEST_GENERATOR.add_class_name: " + a_class_name.as_string_8 + "%N")
 		ensure
 			added: class_names.there_exists (agent {STRING_8}.same_string (a_class_name))
 		end
@@ -1196,7 +1195,6 @@ feature {NONE} -- Basic operations
 	start_creation
 			-- <Precursor>
 		do
-			print("TEST_GENERATOR.start_creation%N")
 			random.start
 			set_is_random_testing_enabled (True)
 			prepare
@@ -1328,9 +1326,6 @@ feature -- Basic operations
 			l_project_helper: TEST_PROJECT_HELPER_I
 			l_last_class: EIFFEL_CLASS_I
 		do
-			print("TEST_GENERATOR.print_test_set%N")
-			print("number of test cases: " + a_list.count.out + "%N")
-
 			current_results := a_list
 			l_project_helper := etest_suite.project_helper
 			if l_project_helper.is_class_added then

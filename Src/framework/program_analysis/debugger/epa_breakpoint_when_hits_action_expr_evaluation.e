@@ -25,7 +25,6 @@ feature{NONE} -- Initialization
 		require
 			a_expressions_attached: a_expressions /= Void
 		do
-			print ("EPA_BREAKPOINT_WHEN_HITS_ACTION_EXPR_EVALUATION.make%N")
 			class_ := a_class
 			feature_ := a_feature
 			expressions := a_expressions

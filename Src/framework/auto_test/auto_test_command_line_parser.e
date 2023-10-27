@@ -5,7 +5,7 @@ note
 
 	copyright: "Copyright (c) 2004-2005, Andreas Leitner and others"
 	license: "Eiffel Forum License v2 (see forum.txt)"
-	date: "$Date: 2019-02-08 07:00:53 +0800 (å%/145/¨äº%/148/, 08 2æ%/156/%/136/ 2019) $"
+	date: "$Date: 2019-02-08 07:00:53 +0800 (ï¿½%/145/ï¿½ï¿½%/148/, 08 2ï¿½%/156/%/136/ 2019) $"
 	revision: "$Revision: 102808 $"
 
 class AUTO_TEST_COMMAND_LINE_PARSER
@@ -126,8 +126,6 @@ feature {NONE} -- Initialization
 			l_file: RAW_FILE
 			l_is_ok: BOOLEAN
 		do
-			print ("AUTO_TEST_COMMAND_LINE_PARSER.make_with_arguments" + a_arguments.count.out + "%N")
-
 			create parser.make
 			parser.set_application_description ("auto_test is a contract-based automated testing tool for Eiffel systems.")
 			parser.set_parameters_description ("class-name+")
@@ -458,7 +456,6 @@ feature {NONE} -- Initialization
 				a_arguments.after
 			loop
 				l_args.put_last (create {UC_STRING}.make_from_string_general (a_arguments.item_for_iteration))
-				print ("arg: " + l_args.last + "%N")
 				a_arguments.forth
 			end
 			parser.parse_list (l_args)

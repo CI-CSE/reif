@@ -40,7 +40,6 @@ feature {NONE} -- Initialization
 		require
 			a_generation_attached: a_generation /= Void
 		do
-			print ("ETEST_GENERATION_TESTING.make%N")
 			generation := a_generation
 			create interpreter_generator.make (generation)
 			create used_witnesses.make_default
@@ -58,7 +57,6 @@ feature {NONE} -- Initialization
 			l_itp: like new_interpreter
 			l_task: AUT_RANDOM_STRATEGY
 		do
-			print ("ETEST_GENERATION_TESTING.make_random%N")
 			make (a_generation)
 
 			l_itp := new_interpreter
@@ -197,7 +195,6 @@ feature -- Status setting
 		local
 			l_generation: like generation
 		do
-			print ("ETEST_GENERATION_TESTING.start%N")
 			l_generation := generation
 			l_generation.error_handler.report_random_testing
 			l_generation.error_handler.set_start_time (system_clock.date_time_now)

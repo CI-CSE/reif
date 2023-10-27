@@ -21,7 +21,7 @@ feature {NONE} -- Initialization
 			verifier := a_verifier
 			result_generator := a_result_generator
 			has_next_step := True
-			verifier.helper.options.init_states_of_counterexamples.wipe_out
+			-- verifier.helper.options.init_states_of_counterexamples.wipe_out
 		end
 
 feature -- Status report
@@ -37,7 +37,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 	step
 			-- <Precursor>
 		do
-
 			if attached verifier.last_output then
 				verifier.parse_verification_output
 				result_generator.process_boogie_result (verifier.last_result)

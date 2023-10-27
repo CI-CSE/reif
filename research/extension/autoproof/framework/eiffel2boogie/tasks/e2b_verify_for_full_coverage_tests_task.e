@@ -23,7 +23,7 @@ feature {NONE} -- Initialization
 	make (a_translator_input: E2B_TRANSLATOR_INPUT; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.make%N")
+			-- print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -47,14 +47,12 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			l_boogie_universe: IV_UNIVERSE
 			-- l_context: E2B_SHARED_CONTEXT
 		do
-			print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.step%N")
-
 			create l_boogie_universe.make
 			boogie_universe_cell.put (l_boogie_universe)
 			helper.reset
 			result_handlers.wipe_out
 
-			create new_verifier.make -- .make_with_prefix (options.target_class.name.to_string_8 + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
+			create new_verifier.make -- .make_with_prefix (options.target_class.name + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
 			create result_generator.make
 			remaining_tasks.start
 			remaining_tasks.forth -- Skip current taks in queue
@@ -96,7 +94,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				branch_info_file.end_of_file
 			loop
 				branch_info_file.read_line
-				print ("read branch_info at line: " + branch_info_file.last_string + "%N")
+				-- print ("read branch_info at line: " + branch_info_file.last_string + "%N")
 				if not branch_info_file.last_string.is_empty then
 					words := branch_info_file.last_string.split (' ') -- Branch 27 Class ICSE24_CLOCK Line 90
 					l_branch_id.copy (words [2])

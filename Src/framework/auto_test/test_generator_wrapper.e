@@ -31,7 +31,6 @@ feature {NONE} -- Status setting
 	start_creation
 			-- <Precursor>
 		do
-			print("TEST_GENERATOR_WRAPPER.start_creation%N")
 			interpreter_root_class_name_cell.put ("ITP_INTERPRETER_ROOT")
 			random.start
 			prepare
@@ -41,7 +40,6 @@ feature {NONE} -- Status setting
 	initiate_testing_task
 			-- Launch a {ETEST_GENERATION_TESTING} task in `sub_task'
 		do
-		    print("TEST_GENERATOR_WRAPPER.initiate_testing_task%N")
 			compute_interpreter_root_class
 		end
 
@@ -52,7 +50,6 @@ feature {NONE} -- Status setting
 			l_names: LIST[STRING]
 			l_test_task: ETEST_GENERATION_TESTING
 		do
-			print("TEST_GENERATOR_WRAPPER.remove_task%N")
 			if not a_cancel then
 				if
 					attached {like new_melt_task} sub_task as l_task and then
@@ -92,7 +89,6 @@ feature {NONE} -- Status setting
 		local
 			l_file: PLAIN_TEXT_FILE
 		do
-			print("TEST_GENERATOR_WRAPPER.clean%N")
 			Precursor
 			interpreter_root_class_cell.put (Void)
 
@@ -112,17 +108,14 @@ feature {NONE} -- Status setting
 		local
 			l_uni: UNIVERSE_I
 		do
-			print("TEST_GENERATOR_WRAPPER.compute_interpreter_root_class%N")
 			l_uni := system.universe
 			if
 				attached l_uni.cluster_of_name (cluster_name_of_new_root) as l_cluster and then
 				attached l_uni.class_named (interpreter_root_class_name, l_cluster) as l_class and then
 				attached {EIFFEL_CLASS_C} l_class.compiled_class as l_eclass
 			then
-				print("compute_interpreter_root_class: " + l_eclass.name + "%N")
 				interpreter_root_class_cell.put (l_eclass)
 			else
-				print("compute_interpreter_root_class: Void %N")
 				interpreter_root_class_cell.put (Void)
 			end
 		end
@@ -144,7 +137,6 @@ feature {NONE} -- Basic operations
 			l_classes: DS_HASH_SET [STRING]
 			l_root_cluster_path: PATH
 		do
-			print("TEST_GENERATOR_WRAPPER.compile_project%N")
 			l_system := system
 			check l_system /= Void end
 
@@ -197,7 +189,6 @@ feature {NONE} -- Basic operations
 	launch_additional_process
 			-- Launch additional process according to the configuration.
 		do
-			print("TEST_GENERATOR_WRAPPER.launch_additional_process%N")
 			if is_load_log_enabled then
 				load_log
 			elseif is_test_case_deserialization_enabled or current.is_building_behavioral_models then

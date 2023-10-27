@@ -12,6 +12,7 @@ inherit
 
 	SHARED_PLATFORM_CONSTANTS
 
+
 create
 	make
 
@@ -21,6 +22,7 @@ feature {NONE} -- Initialization
 			-- Initialization.
 		do
 			reset_fix_buffer
+			reset_failure_repository
 			is_inside_valid_fix := False
 		end
 
@@ -38,14 +40,15 @@ feature -- Operation
 			l_tag: STRING
 			l_tag_end_index: INTEGER
 			l_value: STRING
-			l_tc_path: PATH
+			l_ce_path, l_tc_path: PATH
 			l_test: ES_ADB_TEST
 			l_file_name, l_class_under_test_str: STRING
 			l_column_index, l_semicolumn_index: INTEGER
 			l_fault_id, l_fix_id: STRING
 			l_fault: ES_ADB_FAULT
+			l_ce_trace: AFX_CE_TRACES_OF_ROUTINE
+			l_temp_trace: AFX_PROGRAM_EXECUTION_TRACE
 		do
-			print ("ES_ADB_PROCESS_OUTPUT_PARSER.parse line: " + a_line + "%N")
 			from
 				l_started := False
 				l_eol_character := eol_character
@@ -61,14 +64,35 @@ feature -- Operation
 						l_right_bracket_index := a_line.index_of ('>', l_left_bracket_index)
 						l_tag := a_line.substring (l_left_bracket_index, l_right_bracket_index)
 
-						if l_tag ~ {EWB_BOOGIE_VERIFICATION}.Msg_ce_generated then
-						-- <[- CE generated ]>E:\APR_projects\account_fix2\EIFGENs\account_fix2\Data\AutoFix\proof\ACCOUNT\set_credit_limit\ce.model
-						--	info_center.on_counterexample_generated (COUNTEREXAMPLE)
-							-- how to pass counterexample?
-							-- how to pass verification failure info?	
-							l_eol_index := 0
-							-- info_center.on_counterexample_generated (l_ce)
+						if l_tag ~ {EWB_BOOGIE_VERIFICATION}.Msg_proof_failed then
+							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
+							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)
+							l_value.prune_all ('%R')
+							-- create l_ce_path.make_from_string (l_value)
+							-- l_file_name := l_ce_path.entry.out
+							-- create l_ce_trace.make(l_value) -- traces for a particular error/feature
+							info_center.on_proof_failed (l_value)
 
+						elseif l_tag ~ {EWB_BOOGIE_VERIFICATION}.Msg_ce_generated then
+						-- <[- CE generated ]> E:\APR_projects\account_fix2\EIFGENs\account_fix2\Data\AutoFix\proof\ACCOUNT\set_credit_limit\ce.model
+						--	info_center.on_counterexample_generated (COUNTEREXAMPLE)
+							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
+							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)
+							l_value.prune_all ('%R')
+							-- create l_ce_path.make_from_string (l_value)
+							-- l_file_name := l_ce_path.entry.out
+							-- create l_ce_trace.make(l_value) -- traces for a particular error/feature
+							-- info_center.on_proof_stop (l_value)
+							info_center.on_counterexample_generated (l_value)
+							-- info_center.on_counterexample_generated (l_ce) -- call and pass ce_traces here
+							-- store the ce_traces into a .txt file?
+							-- parse the txt file to get states/traces and generate Daikon input
+						elseif l_tag ~ {EWB_BOOGIE_VERIFICATION}.Msg_potential_proof_fix then
+							-- Get the id of the feature
+							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
+							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)
+							l_value.prune_all ('%R')
+							-- info_center.on_potential_fixes_generated (l_value)
 						elseif l_tag ~ {AUT_INTERPRETER_PROXY}.Msg_tc_generated then
 							l_right_bracket_index := l_left_bracket_index + {AUT_INTERPRETER_PROXY}.Msg_tc_generated.count - 1
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)
@@ -87,7 +111,7 @@ feature -- Operation
 							l_value := a_line.substring (l_right_bracket_index + 1, l_eol_index - 1)
 							l_value.prune_all ('%R')
 							if attached info_center.fault_with_signature_id (l_value) as lt_fault then
-								info_center.on_fixing_start (lt_fault)
+								info_center.on_fixing_fault_start (lt_fault)
 							end
 
 						elseif l_tag ~ {ES_ADB_PROGRESS_LOGGER}.msg_fix_applied then
@@ -219,6 +243,12 @@ feature {NONE} -- Implementation
 			-- Reset the internal state of current.
 		do
 			fix_buffer := ""
+		end
+
+	reset_failure_repository
+			-- Reset the collection of proof failures
+		do
+			info_center.failure_repository.wipe_out
 		end
 
 ;

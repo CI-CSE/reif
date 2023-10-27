@@ -143,7 +143,6 @@ feature {NONE} -- Reporting
 			l_response_stream: KL_STRING_INPUT_STREAM
 			l_last_response: detachable AUT_RESPONSE
 		do
-			print ("AUT_LOG_PARSER.report_request_line: " + a_line + "%N")
 				-- Report previously received response if any
 			if (attached last_response_text as l_response_text and then not l_response_text.is_empty) then
 				create l_response_stream.make (l_response_text)

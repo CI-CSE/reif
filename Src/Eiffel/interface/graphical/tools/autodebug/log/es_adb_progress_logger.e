@@ -12,7 +12,8 @@ inherit
 		redefine
 			is_logging,
 			on_test_case_generated,
-			on_fixing_start,
+			on_fixing_fault_start,
+			on_fixing_failure_start,
 			on_valid_fix_found,
 			on_fixing_stop,
 			on_fix_applied
@@ -39,16 +40,22 @@ feature -- Action
 	on_test_case_generated (a_test: ES_ADB_TEST)
 			-- <Precursor>
 		do
-			print ("ES_ADB_PROGRESS_LOGGER.on_test_case_generated%N")
 			log ({AUT_INTERPRETER_PROXY}.Msg_tc_generated)
 			log_line (a_test.location.out)
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		do
 			log (Msg_fixing_started)
 			log_line (a_fault.signature.id)
+		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
+			-- <Precursor>
+		do
+			log (Msg_fixing_started)
+			log_line (a_failure.id)
 		end
 
 	on_valid_fix_found (a_fix: ES_ADB_FIX)
@@ -95,7 +102,6 @@ feature -- Operatoin
 			l_line: STRING
 			l_root_dir: PATH
 		do
-			print ("ES_ADB_PROGRESS_LOGGER.load_log%N")
 			if not l_retried then
 				is_loading := True
 				l_root_dir := info_center.config.working_directory.root_dir

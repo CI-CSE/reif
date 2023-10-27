@@ -23,7 +23,6 @@ feature{NONE} -- Initialization
 			a_cmd_line /= Void
 			a_timeout > 0
 		do
-			print("ES_ADB_PROCESS.make_process with command:" + a_cmd_line + "%N")
 			command_line := a_cmd_line.twin
 			working_directory := a_working_directory
 			timeout := a_timeout
@@ -161,7 +160,6 @@ feature{NONE} -- Implementation
 		local
 			l_prc_factory: PROCESS_FACTORY
 		do
-			print ("ES_ADB_PROCESS.launch%N")
 			create l_prc_factory
 			working_process := l_prc_factory.process_launcher_with_command_line (command_line, working_directory)
 			working_process.enable_launch_in_new_process_group

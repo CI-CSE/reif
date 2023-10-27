@@ -27,7 +27,6 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize `Current'.
 		do
-		    -- print("TEST_SUITE.make%N")
 			create test_map.make (10)
 			test_map.compare_objects
 
@@ -98,7 +97,7 @@ feature -- Access: sessions
 		local
 			l_sessions: like internal_running_sessions
 		do
-   		    print("TEST_SUITE.running_sessions%N")
+   		    -- print("TEST_SUITE.running_sessions%N")
 			l_sessions := internal_running_sessions
 			create Result.make (l_sessions.count)
 			from
@@ -234,7 +233,6 @@ feature -- Status setting: sessions
 		local
 			l_record: TEST_SESSION_RECORD
 		do
-   		    print("TEST_SUITE.launch_session%N")
 			if current_output_session = Void then
 				current_output_session := a_session
 				if attached internal_output as l_output then

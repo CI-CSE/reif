@@ -134,10 +134,16 @@ feature -- Access
 			create Result
 		end
 
+--	native_array_type: NATIVE_ARRAY_TYPE_A
+--			-- A native array type
+--		once
+--			create Result
+--		end
+
 note
 	date: "$Date: 2017-05-10 23:18:44 +0800 (周三, 10 5月 2017) $"
 	revision: "$Revision: 100347 $"
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

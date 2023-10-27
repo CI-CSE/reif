@@ -77,7 +77,6 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize `Current'.
 		do
-			print ("EB_DEBUGGER_MANAGER.make%N")
 			Precursor
 			create_events_handler
 
@@ -108,7 +107,6 @@ feature {NONE} -- Initialization
 			pbool: BOOLEAN_PREFERENCE
 			prefs: EB_DEBUGGER_DATA
 		do
-			print ("EB_DEBUGGER_MANAGER.initialize%N")
 			Precursor
 			prefs := debugger_data
 			if prefs /= Void then
@@ -123,7 +121,6 @@ feature {NONE} -- Initialization
 		local
 			l_cmd: EB_STANDARD_CMD
 		do
-			print ("EB_DEBUGGER_MANAGER.init_commands%N")
 			create show_tool_commands.make (6)
 
 				-- Show call stack command.
@@ -593,7 +590,6 @@ feature -- tools management
 			-- Refresh objects grids
 			-- most likely due to display parameters changes
 		do
-			print ("EB_DEBUGGER_MANAGER.refresh_objects_grids%N")
 			objects_tool.refresh
 			watch_tool_list.do_all (agent {ES_WATCH_TOOL}.refresh)
 		end
@@ -601,7 +597,6 @@ feature -- tools management
 	record_objects_grids_layout
 			-- Record objects grids layout
 		do
-			print ("EB_DEBUGGER_MANAGER.record_objects_grids_layout%N")
 			objects_tool.record_grids_layout
 			watch_tool_list.do_all (agent {ES_WATCH_TOOL}.record_grid_layout)
 		end
@@ -849,7 +844,6 @@ feature -- tools management
 			l_show_cmd: ES_SHOW_TOOL_COMMAND
 			l_wt_lst: like watch_tool_list
 		do
-			print ("EB_DEBUGGER_MANAGER.update_debugging_tools_menu_from%N")
 			m := w.menus.debugging_tools_menu
 
 				-- Recycle existing menu items.
@@ -966,7 +960,6 @@ feature -- tools management
 	update_all_debugging_tools_menu
 			-- Update all debugging_tools_menu in all development windows
 		do
-			print ("EB_DEBUGGER_MANAGER.update_all_debugging_tools_menu%N")
 			if update_all_debugging_tools_menu_delayed_action = Void then
 				create update_all_debugging_tools_menu_delayed_action.make (agent
 						do
@@ -1327,7 +1320,6 @@ feature -- Change
 			l_cmds: like show_tool_commands
 			w: EB_VISION_WINDOW
 		do
-			print ("EB_DEBUGGER_MANAGER.refresh_commands%N")
 			w := a_window.window
 			bkpt_info_cmd.update (w)
 			set_critical_stack_depth_cmd.update (w)
@@ -1369,7 +1361,6 @@ feature -- Status setting
 	force_execution_mode (a_save_tools_layout: BOOLEAN)
 			-- Force debug mode
 		do
-			print ("EB_DEBUGGER_MANAGER.force_execution_mode%N")
 			debug_mode_forced := True
 			if not raised then
 				raise_saving_layout (a_save_tools_layout)
@@ -1381,7 +1372,6 @@ feature -- Status setting
 		require
 			debug_mode_forced
 		do
-			print ("EB_DEBUGGER_MANAGER.unforce_execution_mode%N")
 			debug_mode_forced := False
 			if raised
 				and not application_launching_in_progress
@@ -1397,7 +1387,6 @@ feature -- Status setting
 			xr: BOOLEAN
 			lev, m: INTEGER
 		do
-			print ("EB_DEBUGGER_MANAGER.update_execution_replay%N")
 			if safe_application_is_stopped then
 				xr := application_status.replay_activated
 				if xr then
@@ -1451,7 +1440,6 @@ feature -- Status setting
 			levlim: INTEGER
 			status_changed: BOOLEAN
 		do
-			print ("EB_DEBUGGER_MANAGER.activate_execution_replay_mode%N")
 			if safe_application_is_stopped then
 				if application_status.replay_activated /= b then
 					status_changed := True
@@ -1496,7 +1484,6 @@ feature -- Status setting
 			ecs: EIFFEL_CALL_STACK
 			st: APPLICATION_STATUS
 		do
-			print ("EB_DEBUGGER_MANAGER.set_maximum_stack_depth%N")
 			Precursor (nb)
 			if application_is_executing then
 				st := application_status
@@ -1526,7 +1513,6 @@ feature -- Status setting
 	on_compile_start
 			-- A new compilation has started. Kill any debugged application and gray out all run* commands.
 		do
-			print ("EB_DEBUGGER_MANAGER.on_compile_start%N")
 			if application_is_executing then
 				application.kill
 			end
@@ -1545,7 +1531,6 @@ feature -- Status setting
 	on_compile_stop
 			-- A compilation is over. Make all run* commands sensitive.
 		do
-			print ("EB_DEBUGGER_MANAGER.on_compile_stop%N")
 			if is_msil_dll_system then
 				disable_debugging_commands (True)
 			else
@@ -1586,7 +1571,6 @@ feature -- Status setting
 			l_unlock: BOOLEAN
 			l_builder: EB_DEVELOPMENT_WINDOW_MENU_BUILDER
 		do
-			print ("EB_DEBUGGER_MANAGER.raise_saving_layout%N")
 			force_debug_mode_cmd.disable_sensitive
 			initialize_debugging_window
 			check
@@ -1694,7 +1678,6 @@ feature -- Status setting
 		local
 			l_unlock: BOOLEAN
 		do
-			print ("EB_DEBUGGER_MANAGER.unraise%N")
 			force_debug_mode_cmd.disable_sensitive
 
 				--| Switching popup
@@ -1729,7 +1712,6 @@ feature -- Status setting
 	reset_tools
 			-- Reset tools to free unused data
 		do
-			print ("EB_DEBUGGER_MANAGER.reset_tools%N")
 			threads_tool.reset
 			call_stack_tool.reset
 			objects_tool.reset
@@ -1839,7 +1821,6 @@ feature -- Debugging events
 		require
 			stopped: safe_application_is_stopped
 		do
-			print ("EB_DEBUGGER_MANAGER.resume_application%N")
 			application.continue
 			if application_is_executing and then not application_is_stopped then
 				application.on_application_resumed
@@ -1853,7 +1834,6 @@ feature -- Debugging events
 	launch_stone (st: STONE)
 			-- Set `st' in the debugging window as the new stone.
 		do
-			print ("EB_DEBUGGER_MANAGER.launch_stone%N")
 			record_objects_grids_layout
 			if debugging_window /= Void then
 				if attached application_status as appstatus then
@@ -1878,7 +1858,6 @@ feature -- Debugging events
 		local
 			retried: BOOLEAN
 		do
-			print ("EB_DEBUGGER_MANAGER.safe_launch_stone_on_tools%N")
 			if not retried then
 				if attached debugging_window as w then
 					w.tools.launch_stone (st)
@@ -1892,7 +1871,6 @@ feature -- Debugging events
 	on_application_before_launching
 			-- Application is about to be launched.
 		do
-			print ("EB_DEBUGGER_MANAGER.on_application_before_launching%N")
 			Precursor
 			assertion_checking_handler_cmd.reset
 			disable_debugging_commands (False)
@@ -1902,7 +1880,6 @@ feature -- Debugging events
 	on_application_launched
 			-- Application has just been launched.
 		do
-			print ("EB_DEBUGGER_MANAGER.on_application_launched%N")
 			update_all_debugging_tools_menu
 
 			Precursor
@@ -1954,7 +1931,6 @@ feature -- Debugging events
 		local
 			st: CALL_STACK_STONE
 		do
-			print ("EB_DEBUGGER_MANAGER.on_application_just_stopped%N")
 			Precursor
 			debug ("debugger_trace_synchro")
 				io.put_string (generator + ".on_application_just_stopped : start%N")
@@ -2036,7 +2012,6 @@ feature -- Debugging events
 	on_overflow_detected
 			-- OVERFLOW detected
 		do
-			print ("EB_DEBUGGER_MANAGER.on_overflow_detected%N")
 			--| Fixme: we might try to prevent debugging tools to refresh before poping up this dialog...				
 			ev_application.do_once_on_idle (agent
 					local
@@ -2053,7 +2028,6 @@ feature -- Debugging events
 
 	on_application_before_resuming
 		do
-			print ("EB_DEBUGGER_MANAGER.on_application_before_resuming%N")
 			Precursor
 			toggle_exec_replay_mode_cmd.reset
 			objects_tool.record_grids_layout
@@ -2063,7 +2037,6 @@ feature -- Debugging events
 	on_application_resumed
 			-- Application was resumed after a stop.
 		do
-			print ("EB_DEBUGGER_MANAGER.on_application_resumed%N")
 			Precursor
 
 			debug ("debugger_trace_synchro")
@@ -2117,7 +2090,6 @@ feature -- Debugging events
 			-- Application just quit.
 			-- This application means the debuggee.
 		do
-			print ("EB_DEBUGGER_MANAGER.on_debugging_terminated%N")
 				-- Modify the debugging window display.
 			window_manager.quick_refresh_all_margins
 			disable_debugging_commands (False)
@@ -2236,7 +2208,6 @@ feature -- Application change
 			was_enabled: BOOLEAN
 			error_occurred: BOOLEAN
 		do
-			print ("EB_DEBUGGER_MANAGER.activate_execution_replay_recording%N")
 			was_enabled := execution_replay_recording_enabled
 			Precursor (b)
 			error_occurred := b /= execution_replay_recording_enabled
@@ -2274,7 +2245,6 @@ feature -- Application change
 	disable_assertion_checking
 			-- Disable assertion checking
 		do
-			print ("EB_DEBUGGER_MANAGER.disable_assertion_checking%N")
 			Precursor
 			assertion_checking_handler_cmd.set_select (True)
 		end
@@ -2282,7 +2252,6 @@ feature -- Application change
 	restore_assertion_checking
 			-- Enable assertion checking	
 		do
-			print ("EB_DEBUGGER_MANAGER.restore_assertion_checking%N")
 			Precursor
 			assertion_checking_handler_cmd.set_select (False)
 		end
@@ -2297,7 +2266,6 @@ feature {NONE} -- Implementation
 	save_specific_debugger_settings
 			-- Save specific graphical debugger settings
 		do
-			print ("EB_DEBUGGER_MANAGER.save_specific_debugger_settings%N")
 			if
 				attached objects_tool as l_objects_tool and then
 				l_objects_tool.is_interface_usable and then
@@ -2346,7 +2314,6 @@ feature {NONE} -- Implementation
 	enable_commands_on_project_loaded
 			-- Enable commands when a new project has been created and compiled
 		do
-			print ("EB_DEBUGGER_MANAGER.enable_commands_on_project_loaded%N")
 			rt_extension_available := eiffel_system.system.rt_extension_class /= Void and then
 						Eiffel_system.system.rt_extension_class.is_compiled
 
@@ -2358,7 +2325,6 @@ feature {NONE} -- Implementation
 
 	enable_debugging_commands
 		do
-			print ("EB_DEBUGGER_MANAGER.enable_debugging_commands%N")
 			if is_msil_dll_system then
 				disable_debugging_commands (True)
 			else
@@ -2393,7 +2359,6 @@ feature {NONE} -- Implementation
 	disable_commands_on_project_unloaded
 			-- Disable commands when a project has been closed.
 		do
-			print ("EB_DEBUGGER_MANAGER.disable_commands_on_project_unloaded%N")
 			clear_bkpt.disable_sensitive
 			enable_bkpt.disable_sensitive
 			disable_bkpt.disable_sensitive
@@ -2417,7 +2382,6 @@ feature {NONE} -- Implementation
 			-- Disable commands related to debugging.
 			-- If `full' disable also commands for manipulating breakpoints.
 		do
-			print ("EB_DEBUGGER_MANAGER.disable_debugging_commands%N")
 			if full then
 				clear_bkpt.disable_sensitive
 				enable_bkpt.disable_sensitive
@@ -2452,7 +2416,6 @@ feature {NONE} -- Implementation
 			vb_top, vb: EV_VERTICAL_BOX
 			l_sep: EV_HORIZONTAL_SEPARATOR
 		do
-			print ("EB_DEBUGGER_MANAGER.change_critical_stack_depth%N")
 				-- Create widgets.
 			create dialog
 			create show_all_radio.make_with_text (Interface_names.l_Do_not_detect_stack_overflows)
@@ -2559,7 +2522,6 @@ feature {NONE} -- Implementation
 			nb: INTEGER
 			prefs: EB_DEBUGGER_DATA
 		do
-			print ("EB_DEBUGGER_MANAGER.accept_dialog%N")
 			if show_all_radio.is_selected then
 				nb := -1
 			else
@@ -2576,7 +2538,6 @@ feature {NONE} -- Implementation
 	initialize_debugging_window
 			-- Set `debugging_window' with window requesting a debug session.
 		do
-			print ("EB_DEBUGGER_MANAGER.initialize_debugging_window%N")
 			if debugging_window = Void then
 				debugging_window := last_focused_development_window (True)
 			end
@@ -2595,7 +2556,6 @@ feature {NONE} -- Implementation
 			l_confirm: ES_DISCARDABLE_WARNING_PROMPT
 			l_buttons: ES_DIALOG_BUTTONS
 		do
-			print ("EB_DEBUGGER_MANAGER.display_ignore_contract_violation_dialog%N")
 			create l_buttons
 			create l_confirm.make (ignore_contract_violation.description, l_buttons.yes_no_cancel_buttons,
 					l_buttons.yes_button, l_buttons.yes_button, l_buttons.yes_button,
@@ -2620,7 +2580,6 @@ feature {NONE} -- Implementation
 	enable_ignore_contract_violation_if_possible
 			-- Enable/disable ignore contract violation command base on debuggee statues
 		do
-			print ("EB_DEBUGGER_MANAGER.enable_ignore_contract_violation_if_possible%N")
 			if attached application_status as l_status and then l_status.exception_occurred then
 				if is_dotnet_project then
 					-- Have to update exception info with following two lines. Otherwise the value is void

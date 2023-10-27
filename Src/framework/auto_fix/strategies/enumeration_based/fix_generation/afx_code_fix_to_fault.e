@@ -40,9 +40,9 @@ feature{NONE} -- Initialization
 
 			set_context_feature (a_feature)
 			fixing_target := a_fixing_target
-			fixed_body_text := a_fixed_body_text
-			scheme_type := a_scheme_type
 
+			scheme_type := a_scheme_type
+			fixed_body_text := a_fixed_body_text
 			set_ranking (fixing_target.rank)
 		end
 
@@ -118,6 +118,8 @@ feature -- Redefinition
 		end
 
 feature -- Status report
+
+	is_fix_contract_for_failure: BOOLEAN
 
 	is_valid_scheme (a_scheme: INTEGER): BOOLEAN
 			--

@@ -17,19 +17,19 @@ feature -- Initialize
 
 	make (a_target_feature: detachable FEATURE_I; a_target_class: detachable CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE)
 		do
-			print ("E2B_INITIAL_STATE_OF_ROUTINE.make%N")
 			-- print ("extract initial state for: " + a_target_feature.feature_name_32.to_string_8 + " " + a_target_class.name + "%N")
 			start_timer
 			target_feature := a_target_feature
 			target_class := a_target_class
 			ce := a_ce
+			heap_value := ce.heap_values.at ("Heap")
 
 			create initial_values.make (0)
 			create alias_groups.make (0)
 			create missing_values.make_empty
 
 			get_initial_state
-			print ("etract initial state time: " + current_timer.out + "%N")
+			-- print ("etract initial state time: " + current_timer.out + "%N")
 			stop_timer
 		end
 
@@ -44,30 +44,32 @@ feature -- Data
 	target_class: CLASS_C
 			-- Class of the target feature
 
-	alias_groups: HASH_TABLE [ARRAY [IMMUTABLE_STRING_32], IMMUTABLE_STRING_32]
+	alias_groups: HASH_TABLE [ARRAY [STRING], STRING]
 			-- Mapping from an abstract value (object) to a list of references
 
-	initial_values: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
+	initial_values: HASH_TABLE [STRING, STRING]
 			-- Mapping from objects or object fields to the corresponding value
 
-	missing_values: ARRAY [IMMUTABLE_STRING_32]
+	missing_values: ARRAY [STRING]
 			-- A set of variables whose values are missing
+
+	heap_value: STRING
+			-- Symbolic value of the initial heap state
 
 feature -- Get initial state
 
 	get_initial_state
 			-- Obtain the object fields based on the heap function
 		local
-			arg_name: STRING_32
+			arg_name: STRING
 			arg_type: TYPE_A
 			i: INTEGER
 		do
-			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_initial_state%N")
-
 			arg_name := "";
 
 			-- get Void value
 			initial_values ["Void"] := ""
+
 			initial_values ["Void"].copy (ce.constants_values ["Void"])
 
 				-- get initial state of the current object
@@ -80,7 +82,7 @@ feature -- Get initial state
 				until
 					i > target_feature.arguments.count
 				loop -- Minimize each argument of the target feature
-					arg_name := target_feature.arguments.item_name_32 (i)
+					arg_name := target_feature.arguments.item_name_32 (i).to_string_8
 					arg_type := target_feature.arguments.array_item (i - 1)
 					get_object_initial_state (arg_name, arg_type)
 					i := i + 1
@@ -93,7 +95,7 @@ feature -- Get initial state
 	compute_alias
 			-- Store the aliases into the same group
 		local
-			name, value: STRING_32
+			name, value: STRING
 		do
 			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.compute_alias%N")
 			alias_groups.wipe_out
@@ -116,7 +118,7 @@ feature -- Get initial state
 
 		end
 
-	safe_field_type (field_type: STRING_32): STRING_32
+	safe_field_type (field_type: STRING): STRING
 			-- Return the safe type of a data field
 		do
 			field_type.to_lower
@@ -126,11 +128,11 @@ feature -- Get initial state
 			end
 		end
 
-	safe_type (type: STRING_32): STRING_32
+	safe_type (type: STRING): STRING
 			-- Convert the name of container type
 		local
-			t, item_type: STRING_32
-			tuple_field_types: LIST [STRING_32]
+			t, item_type: STRING
+			tuple_field_types: LIST [STRING]
 			i: INTEGER
 		do
 			t := ""; Result := ""; item_type := ""
@@ -168,7 +170,7 @@ feature -- Get initial state
 
 feature -- Get initial values
 
-	value_named (a_var: STRING_32): STRING_32
+	value_named (a_var: STRING): STRING
 			-- Initial value of `a_var'
 		require
 			is_included: initial_values.has (a_var)
@@ -176,23 +178,22 @@ feature -- Get initial values
 			Result := initial_values [a_var]
 		end
 
-	container_size_named (a_var: STRING_32): STRING_32
+	container_size_named (a_var: STRING): STRING
 			-- Size of the container named `a_var'
 			--require
 			--	is_included: initial_values.has (a_var + ".sequence") and then ce.seq_lengths.has (initial_values [a_var + ".sequence"])
 		do
 				-- get a's size
-				-- if ce.class_field_relations.has (object_type.name + "." + field_name.to_string_8)
-				--	and ce.heap_function.has (initial_values [object_name] + ", " + ce.class_field_relations [object_type.base_class.name + "." + field_name.to_string_8]) then
-				--	field_value.copy (ce.heap_function [initial_values [object_name] + ", " + ce.class_field_relations [object_type.base_class.name + "." + field_name.to_string_8]])
+				-- if ce.class_field_relations.has (object_type.name + "." + field_name)
+				--	and ce.heap_function.has (initial_values [object_name] + ", " + ce.class_field_relations [object_type.base_class.name + "." + field_name]) then
+				--	field_value.copy (ce.heap_function [initial_values [object_name] + ", " + ce.class_field_relations [object_type.base_class.name + "." + field_name]])
 				-- end
 
 			Result := ce.seq_lengths [initial_values [a_var + ".sequence"]]
-			print ("seq length: " + Result.out + "%N")
 
 		end
 
-	container_item_named (a_var: STRING_32; i: STRING_32): STRING_32
+	container_item_named (a_var: STRING; i: STRING): STRING
 			-- The ith element of the container named `a_var'
 		require
 			is_included: initial_values.has (a_var) and then ce.seq_lengths.has (initial_values [a_var + ".sequence"])
@@ -200,7 +201,7 @@ feature -- Get initial values
 			Result := ce.seq_item [initial_values [a_var + ".sequence"] + ", " + i]
 		end
 
-	get_object_value (object_name: STRING_32): STRING_32
+	get_object_value (object_name: STRING): STRING
 			-- Retrieve the value of an object in the counterexample model
 		require
 			is_included: ce.constants_values.has (object_name)
@@ -210,15 +211,14 @@ feature -- Get initial values
 			Result := ce.constants_values [object_name]
 		end
 
-	get_object_fields (object_name: STRING_32; object_type: TYPE_A)
+	get_object_fields (object_name: STRING; object_type: TYPE_A)
 			-- Obtain all fields of an object
 		local
 			i: INTEGER
-			field_name, field_value: STRING_32
+			field_name, field_value: STRING
 			field_type: TYPE_A
-
 		do
-			print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields for: " + object_name.to_string_8 + "%N")
+			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields%N")
 			field_name := ""; field_value := ""
 			if object_type.has_associated_class then
 				from
@@ -228,20 +228,18 @@ feature -- Get initial values
 				loop
 					field_name := object_type.base_class.skeleton [i].attribute_name -- object.field
 					field_type := object_type.base_class.skeleton [i].type_i
-
+					ce.heap_function.compare_objects
 					if not is_ignored_field (field_name, field_type) then
-
-						if ce.class_field_relations.has (object_type.name + "." + field_name.to_string_8)
-							and ce.heap_function.has (initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name.to_string_8]) then
-
-							field_value.copy (ce.heap_function [initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name.to_string_8]])
+						if ce.class_field_relations.has (object_type.name + "." + field_name)
+							and ce.heap_function.has (heap_value + ", " + initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name]) then
+							field_value.copy (ce.heap_function [heap_value + ", " + initial_values [object_name] + ", " + ce.class_field_relations [object_type.name + "." + field_name]])
 						else
 							field_value := ""
 						end
 
 						initial_values [object_name + "." + field_name] := ""
 						initial_values [object_name + "." + field_name].copy (field_value)
-
+						-- print ("field_value: " + field_value + "%N")
 						if is_reference_type (field_type) then
 							get_object_fields (object_name + "." + field_name, field_type)
 						end
@@ -252,10 +250,10 @@ feature -- Get initial values
 			end
 		end
 
-	get_object_initial_state (object_name: STRING_32; object_type: TYPE_A)
+	get_object_initial_state (object_name: STRING; object_type: TYPE_A)
 			-- Obtain the initial state of an object
 		do
-			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_initial_state%N")
+			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_initial_state: " + object_name + "%N")
 			initial_values [object_name] := ""
 			initial_values [object_name].copy (get_object_value (object_name))
 
@@ -266,7 +264,7 @@ feature -- Get initial values
 			end
 		end
 
-	get_container_sequence (object_name: STRING_32; object_type: TYPE_A)
+	get_container_sequence (object_name: STRING; object_type: TYPE_A)
 			-- Obtain the initial state of a container
 		do
 				-- value of object_name.sequence
@@ -276,20 +274,23 @@ feature -- Get initial values
 
 feature -- Properties checking
 
-	is_aliased_with_existed_object (object_name: STRING_32): BOOLEAN
+	is_aliased_with_existed_object (object_name: STRING): BOOLEAN
 			-- Is the given object an alias with one of the instantiated objects?
 		local
-			object_value: STRING_32
+			object_value: STRING
 		do
 			object_value := ""
-			object_value.copy (initial_values [object_name])
+			if initial_values.has (object_name) then
+				object_value.copy (initial_values [object_name])
+			end
+
 			Result := alias_groups.has (object_value) and not alias_groups [object_value] [1].same_string (object_name)
 		end
 
 	is_container_type (object_type: TYPE_A): BOOLEAN
 			-- Is the given type a container type?
 		local
-			type: STRING_32
+			type: STRING
 		do
 			type := object_type.name
 			Result := False
@@ -303,7 +304,7 @@ feature -- Properties checking
 			end
 		end
 
-	is_abstract_value (value: STRING_32): BOOLEAN
+	is_abstract_value (value: STRING): BOOLEAN
 			-- Is the `value' an abstract value?
 		do
 			Result := value.has_substring ("T@U")
@@ -312,7 +313,7 @@ feature -- Properties checking
 	is_basic_type (type: TYPE_A): BOOLEAN
 			-- Is the given type a basic type?
 		local
-			type_name: STRING_32
+			type_name: STRING
 		do
 			Result := False
 			if type.has_associated_class then
@@ -333,7 +334,7 @@ feature -- Properties checking
 			Result := not is_basic_type (type)
 		end
 
-	is_ignored_field (name: STRING_32; type: TYPE_A): BOOLEAN
+	is_ignored_field (name: STRING; type: TYPE_A): BOOLEAN
 		do
 			Result := (type.name.same_string ("V_LINKABLE_INTEGER") and (name.same_string ("right"))) or -- `right' in V_LINKABLE_INTEGER
 				(type.name.same_string ("V_DOUBLY_LINKABLE_INTEGER") and (name.same_string ("left") or name.same_string ("right"))) or

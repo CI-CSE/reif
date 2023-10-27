@@ -77,7 +77,6 @@ feature -- Access
 			-- Response as received in unparsed form
 		do
 			Result := raw_text
-			-- print("response: " + Result + "%N")
 		ensure
 			result_attached: Result /= Void
 		end

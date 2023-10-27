@@ -263,6 +263,7 @@ feature{NONE} -- Implementation
 				l_trace_cursor.forth
 			end
 		end
+		
 	true_expressions_from_state (a_state: EPA_STATE): EPA_HASH_SET [EPA_EXPRESSION]
 		local
 		do

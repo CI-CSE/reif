@@ -27,7 +27,6 @@ feature -- Access
 			l_group_cursor: DS_ARRAYED_LIST_CURSOR [DS_HASH_SET [CLASS_C]]
 			l_group: DS_HASH_SET [CLASS_C]
 		do
-			print("ES_ADB_PROCESS_SEQUENCE_FOR_FIXING.make%N")
 			make_sequence
 
 			tasks.append_last (relaxed_testing_and_fixing_tasks_for_faults (a_faults, a_should_reattempt))
@@ -83,10 +82,7 @@ feature -- Operation
 			l_relaxed_feature: EPA_FEATURE_WITH_CONTEXT_CLASS
 			l_relaxed_testing_process: ES_ADB_RELAXED_TESTING_PROCESS
 			l_fixing_process: ES_ADB_FIXING_PROCESS
-
 		do
-			print("ES_ADB_PROCESS_SEQUENCE_FOR_FIXING.relaxed_testing_and_fixing_tasks_for_faults%N")
-			print("fault count: " + a_faults.count.out + "%N")
 			create Result.make_equal (a_faults.count * 2 + 1)
 			if not a_faults.is_empty then
 				create l_relaxed_features.make_equal (a_faults.count)
@@ -106,7 +102,6 @@ feature -- Operation
 					then
 						if config.should_fix_contracts and then l_fault.is_exception_type_in_scope_of_contract_fixing then
 							l_relaxed_feature := l_fault.failing_feature_with_context
-                            print("fixing feature: " + l_relaxed_feature.feature_.feature_name_32 + "%N")
 							-- CHECK IF WE CAN SKIP THE RELAXED TESTING IN SOME CASES.
 							if (l_relaxed_feature.is_public or else l_relaxed_feature.is_creation_feature) and then not l_relaxed_features.has (l_relaxed_feature) then
 								create l_relaxed_testing_process.make (l_relaxed_feature, Void, output_buffer)
@@ -116,7 +111,7 @@ feature -- Operation
 							end
 						end
 
-						create l_fixing_process.make (l_fault, Void, output_buffer)
+						create l_fixing_process.make_from_fault (l_fault, Void, output_buffer)
 						Result.force_last (l_fixing_process)
 					end
 

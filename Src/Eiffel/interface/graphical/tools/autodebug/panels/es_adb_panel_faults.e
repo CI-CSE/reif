@@ -26,7 +26,6 @@ feature{NONE} -- Initialization
 		require
 			a_tool /= Void
 		do
-			print ("ES_ADB_PANEL_FAULTS.make%N")
 			set_tool_panel (a_tool)
 			default_create
 
@@ -64,7 +63,6 @@ feature{NONE} -- Update GUI
 	enable_command_invocation_widget (a_flag: BOOLEAN)
 			-- Enable/Disable the widgets related to command invocation.
 		do
-			print ("ES_ADB_PANEL_FAULTS.enable_command_invocation_widget%N")
 			if a_flag then
 				if has_to_be_attempted then
 					evbutton_fix_all_to_be_attempted.enable_sensitive
@@ -140,11 +138,16 @@ feature -- ADB Actions
 			update_has_to_be_attempted
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new counterexample is generated
 		do
 		end
-		
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		do
+		end
+
 	on_testing_start
 			-- <Precursor>
 		do
@@ -165,7 +168,6 @@ feature -- ADB Actions
 			l_left_par_index, l_right_par_index: INTEGER
 			l_is_new_feature_row, l_is_new_fault_row: BOOLEAN
 		do
-			print ("ES_ADB_PANEL_FAULTS.on_test_case_generated%N")
 			l_signature := a_test.test_case_signature
 			l_feature_under_test_str := l_signature.class_and_feature_under_test
 
@@ -283,10 +285,16 @@ feature -- ADB Actions
 		do
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		do
 			update_fault_status (a_fault)
+		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
+			-- <Precursor>
+		do
+			-- TODO: Li update_failure_status (a_failure)
 		end
 
 	on_fixing_stop

@@ -32,6 +32,10 @@ feature -- Basic operation
 			feature_with_context := a_feature_with_context
 			create last_derived_skeleton.make_basic (a_feature_with_context.context_class, a_feature_with_context.feature_, a_base_expressions.count + 1)
 
+			-- across a_base_expressions as exp loop
+				-- print ("base exp:" +  exp.item.text + "%N")
+			-- end
+
 			l_boolean_expressions := boolean_expressions (a_base_expressions)
 			l_boolean_count := l_boolean_expressions.count
 			l_integer_expressions := integer_expressions (a_base_expressions)
@@ -42,6 +46,7 @@ feature -- Basic operation
 			last_derived_skeleton.resize (l_boolean_count * 2 + 3 * l_integer_count * (l_integer_count + 1) + 1)
 			last_derived_skeleton.merge (skeleton_based_on_booleans (l_boolean_expressions))
 			last_derived_skeleton.merge (skeleton_based_on_integers (l_integer_expressions))
+			last_derived_skeleton.merge (skeleton_based_on_references (l_reference_expressions))
 		end
 
 	reset_builder
@@ -234,14 +239,14 @@ feature{NONE} -- Program state aspects
 						create l_neg_left.make_boolean_relation (context_class, context_feature, written_class, l_left, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_negation)
 						create l_neg_right.make_boolean_relation(context_class, context_feature, written_class, l_right,Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_negation)
 
---						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_left, l_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
---						a_skeleton.force (l_or)
---						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_left, l_neg_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
---						a_skeleton.force (l_or)
---						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_neg_left, l_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
---						a_skeleton.force (l_or)
---						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_neg_left, l_neg_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
---						a_skeleton.force (l_or)
+						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_left, l_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
+						a_skeleton.force (l_or)
+						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_left, l_neg_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
+						a_skeleton.force (l_or)
+						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_neg_left, l_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
+						a_skeleton.force (l_or)
+						create l_or.make_boolean_relation(context_class, context_feature, written_class, l_neg_left, l_neg_right, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_or_else)
+						a_skeleton.force (l_or)
 					end (?, Result)
 			)
 		end

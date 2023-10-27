@@ -25,7 +25,6 @@ feature -- Initialization
 			config_attached: a_config /= Void
 			a_system /= Void
 		do
-			print ("AFX_SESSION.make%N")
 			config := a_config
 			eiffel_system := a_system
 
@@ -45,6 +44,8 @@ feature -- Fixing related
 	number_of_test_cases_for_fixing: INTEGER
 
 	feature_under_test: AFX_FEATURE_TO_MONITOR
+
+	feature_under_proof: AFX_FEATURE_TO_MONITOR
 
 	failure_from_trace: EPA_EXCEPTION_TRACE_SUMMARY assign set_failure_from_trace
 			-- Target failure of the fixing session as shown in the trace.
@@ -75,6 +76,13 @@ feature -- Fixing related
 			feature_under_test := a_feature
 		end
 
+	set_feature_under_proof (a_feature: AFX_FEATURE_TO_MONITOR)
+			--
+		do
+			feature_under_proof := a_feature
+		end
+
+
 feature -- Status report
 
 	event_actions: AFX_EVENT_ACTIONS
@@ -92,6 +100,44 @@ feature -- Status report
 		end
 
 feature -- Directory structure
+
+feature -- Execution environment
+
+	eve_path: PATH
+			-- Path to the current running Eiffel compiler.
+		do
+			create Result.make_from_string (execution_environment.arguments.command_name)
+		end
+
+	project_path_in_working_directory: PATH
+			-- Path to the copy of working project (inside of working directory).
+		do
+			Result := workbench.eiffel_project.project_directory.path
+		end
+
+	ecf_path_in_working_directory: PATH
+			-- Path to the copy of ecf inside of working directory.
+		do
+			Result := project_path_in_working_directory.extended_path (project_ecf_path.entry)
+		end
+
+	project_path: PATH
+			-- Path to the working project.
+		do
+			Result := workbench.eiffel_project.project_directory.path
+		end
+
+	project_ecf_path: PATH
+			-- Path to the ecf of the working project.
+		do
+			Result := workbench.eiffel_ace.lace.conf_system.file_path
+		end
+
+	target_of_project: STRING
+			-- Target of the working project.
+		do
+			Result := workbench.eiffel_project.project_directory.target.as_string_8
+		end
 
 	working_directory: PATH
 			-- Working directory of the project
@@ -144,6 +190,22 @@ feature -- Directory structure
 			Result := eiffel_system.eiffel_project.project_directory.path.extended ("afx_tmp")
 		end
 
+	ce_traces_directory (a_failure: AFX_PROOF_FAILURE): PATH
+		local
+			l_file_name: STRING
+		do
+			l_file_name := a_failure.target_class_name + "." + a_failure.target_routine_name + "." + a_failure.line_number.out + ".txt"
+			Result := eiffel_system.eiffel_project.project_directory.path.extended (l_file_name)
+		end
+
+	proof_failure_directory: PATH
+		local
+			l_file_name: STRING
+		do
+			l_file_name := "proof_failures.txt"
+			Result := eiffel_system.eiffel_project.project_directory.path.extended (l_file_name)
+		end
+
 	regular_tests_directory: PATH
 			--
 		do
@@ -156,7 +218,7 @@ feature -- Directory structure
 			Result := afx_tmp_directory.extended ("relaxed_tests")
 		end
 
-	log_directory: PATH is
+	log_directory: PATH
 			-- Directory for AutoFix logs
 		local
 			l_path: PATH
@@ -164,7 +226,7 @@ feature -- Directory structure
 			Result := result_dir.extended ("log")
 		end
 
-	data_directory: PATH is
+	data_directory: PATH
 			-- Directory for AutoFix data
 		local
 			l_path: PATH
@@ -210,7 +272,6 @@ feature{NONE} -- Directory structure (implementation)
 		local
 			l_dir: KL_DIRECTORY
 		do
-			print ("AFX_SESSION.prepare_directory%N")
 			create l_dir.make (a_dir.out)
 			if not l_dir.exists then
 				l_dir.recursive_create_directory
@@ -314,7 +375,6 @@ feature -- Operations
 	start
 			-- Start session.
 		do
-		 	print ("AFX_SESSION.start%N")
 			is_canceled := False
 			starting_time := time_now
 		ensure
@@ -324,7 +384,6 @@ feature -- Operations
 	cancel
 			-- Cancel the session.
 		do
-			print ("AFX_SESSION.cancel%N")
 			is_canceled := True
 		end
 
@@ -339,14 +398,12 @@ feature -- Status set
 	set_config (a_config: like config)
 			-- Set `config'.
 		do
-			print ("AFX_SESSION.set_config%N")
 			config := a_config
 		end
 
 	set_failure_from_trace (a_failure: EPA_EXCEPTION_TRACE_SUMMARY)
 			--
-		do	
-			print ("AFX_SESSION.set_failure_from_trace%N")
+		do
 			failure_from_trace := a_failure
 		end
 
@@ -355,7 +412,6 @@ feature -- Status set
 		require
 			signature_attached: a_signature /= Void
 		do
-			print ("AFX_SESSION.set_exception_from_execution%N")
 			exception_from_execution := a_signature
 		end
 
@@ -379,7 +435,6 @@ feature -- Logging
 			l_file: PLAIN_TEXT_FILE
 			l_logging_level: INTEGER
 		do
-			print ("AFX_SESSION.initialize_logging%N")
 			create progression_monitor.make
 			event_actions.subscribe_action_listener (progression_monitor)
 

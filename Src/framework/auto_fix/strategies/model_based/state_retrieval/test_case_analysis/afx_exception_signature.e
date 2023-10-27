@@ -36,7 +36,6 @@ feature{AFX_EXCEPTION_SIGNATURE} -- Initialization
 				a_recipient_breakpoint: INTEGER; a_recipient_nested_breakpoint: INTEGER)
 			-- Initialization.
 		do
-			print ("AFX_EXCEPTION_SIGNATURE.make_common%N")
 			set_exception_class (a_exception_class)
 			set_exception_feature (a_exception_feature)
 			set_exception_breakpoint (a_exception_breakpoint)
@@ -268,7 +267,6 @@ feature{AFX_EXCEPTION_SIGNATURE} -- Implementation
 	initialize_id
 			-- Initialize `id'.
 		do
-			print ("AFX_EXCEPTION_SIGNATURE.initialize_id%N")
 			create id_cache.make_empty
 			id_cache.append_integer (exception_code)
 			id_cache.append_character ('.')

@@ -6,7 +6,7 @@ note
 			      through a {AUT_SESSION} instance.
 		]"
 	author: ""
-	date: "$Date: 2010-10-04 16:15:28 +0800 (å%/145/¨ä¸%/128/, 04 10æ%/156/%/136/ 2010) $"
+	date: "$Date: 2010-10-04 16:15:28 +0800 (ï¿½%/145/ï¿½ï¿½%/128/, 04 10ï¿½%/156/%/136/ 2010) $"
 	revision: "$Revision: 84481 $"
 
 deferred class
@@ -26,7 +26,6 @@ feature -- Access
 		local
 			l_class: detachable EIFFEL_CLASS_C
 		do
-			print ("AUT_SHARED_INTERPRETER_INFO.compute_interpreter_root_class: " + interpreter_root_class_name + "%N")
 			l_class := system.test_system.library_class_named (interpreter_root_class_name)
 			interpreter_root_class_cell.put (l_class)
 		end

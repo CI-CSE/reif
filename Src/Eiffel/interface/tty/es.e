@@ -715,7 +715,7 @@ feature {NONE} -- Update
 			filter_name := ""
 			option := argument (current_option)
 
-			print("ES.option: " + option.to_string_8 + "%N")
+			-- print("ES.option: " + option.to_string_8 + "%N")
 			if option.same_string_general ("-help") then
 				help_only := True
 			elseif option.same_string_general ("-loop") then
@@ -1401,7 +1401,6 @@ feature {NONE} -- Update
 					-- override the compilation option that was previously set.
 				create l_list.make
                 across arguments_in_range (current_option + 1, argument_count) as c loop
-                     print(c.item + " ")
                      l_list.put_right (c.item)
                      l_list.forth
                 end
@@ -1419,7 +1418,6 @@ feature {NONE} -- Update
 				create {EWB_BOOGIE_VERIFICATION} command.make_with_arguments (l_list)
 			elseif option.is_equal ("-auto_fix") then
 				-- option_arguments := arguments_in_range (current_option + 1, argument_count)
-				print ("argument_count: " + argument_count.out + "%N")
 				create l_list.make
                 across arguments_in_range (current_option + 1, argument_count) as c loop
                      l_list.put_right (c.item)

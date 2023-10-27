@@ -131,6 +131,18 @@ feature -- Access
 			modify_model ("observers", Current)
 		end
 
+	index_set: V_INTEGER_INTERVAL
+		-- Range of acceptable indexes
+		note
+			status: impure
+			explicit: wrapping
+		do
+			create Result.make (lower, upper)
+		ensure then
+			same_count: Result.count = count
+			same_bounds: Result.lower = lower and Result.upper = upper
+		end
+
 feature -- Measurement
 
 	lower: INTEGER
@@ -144,6 +156,8 @@ feature -- Measurement
 		do
 			check inv end
 			Result := upper - lower + 1
+		ensure then
+			Result = upper - lower + 1
 		end
 
 feature -- Iteration

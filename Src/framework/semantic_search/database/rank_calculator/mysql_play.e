@@ -19,7 +19,6 @@ feature
 		do
 			-- Initialization
 			create client.make ("127.0.0.1", "root", "root", "test")
-			print("is_connected: "+client.is_connected.out+"%N%N")
 
 			if client.is_connected then
 				-- Simple queries
@@ -32,10 +31,8 @@ feature
 			print ("last_affected_rows: "+client.last_affected_rows.out+"%N")
 
 			-- Error
-			print("err%N")
 			client.execute_query ("SELECT")
 			print ("last_error: "+client.last_error+" ("+client.last_errno.out+"%N%N")
-			print("err%N")
 
 			-- Simple result
 			-- It is imperative that the last_result be freed for queries that have a result set (or it will leak memory)

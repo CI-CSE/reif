@@ -69,7 +69,7 @@ feature {NONE} -- Initialization
 	build_interface
 			-- <Precursor>
 		do
-			print("ES_ADB_TOOL_PANEL.build_interface%N")
+			-- print("ES_ADB_TOOL_PANEL.build_interface%N")
 			create widget
 			create autodebug_notebook
 
@@ -108,7 +108,7 @@ feature -- Actions
 	on_select
 			-- AutoDebug tool has been selected, synchronize.
 		do
-			print("ES_ADB_TOOL_PANEL.on_select%N")
+			-- print("ES_ADB_TOOL_PANEL.on_select%N")
 			if content.is_visible then
 				if workbench.eiffel_project /= Void and then workbench.eiffel_project.successful and then not config.is_project_loaded  then
 					on_project_loaded
@@ -264,11 +264,16 @@ feature{NONE} -- Actions
 
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new counterexample is generated
 		do
 		end
-		
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		do
+		end
+
 	on_testing_start
 			-- Action to be performed when debugging starts
 		do
@@ -283,7 +288,12 @@ feature{NONE} -- Actions
 		do
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
+			-- <Precursor>
+		do
+		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
 			-- <Precursor>
 		do
 		end

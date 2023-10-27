@@ -32,7 +32,6 @@ feature -- Callbacks
 		local
 			l_current_program_location_context: EPA_FEATURE_WITH_CONTEXT_CLASS
 		do
-			print ("AFX_TEST_CASE_MONITOR_FOR_FIXING_CONTRACTS.on_application_exception%N")
 			create l_current_program_location_context.make (debugger_manager.application_status.e_feature.associated_feature_i,
 								debugger_manager.application_status.dynamic_class)
 			test_case_execution_event_listeners.do_all (agent {AFX_TEST_CASE_EXECUTION_EVENT_LISTENER}.on_breakpoint_hit (test_case_info, a_state, create {AFX_PROGRAM_LOCATION}.make (l_current_program_location_context, a_breakpoint.breakable_line_number)))
@@ -42,7 +41,6 @@ feature -- Callbacks
 	on_application_exception (a_dm: DEBUGGER_MANAGER)
 			-- Action on application exception.
 		do
-			print ("AFX_TEST_CASE_MONITOR_FOR_FIXING_CONTRACTS.on_application_exception%N")
 			if not is_in_mode_monitor then
 					-- Corresponds to the execution of the first test case, which is used to reproduce the fault.
 --?				analyze_exception (a_dm)
@@ -105,7 +103,6 @@ feature{NONE} -- Implementation
 			l_nbr_postconditions, l_total_breakpoints: INTEGER
 			l_bpt_precondition, l_bpt_postcondition: INTEGER
 		do
-			print ("AFX_TEST_CASE_MONITOR_FOR_FIXING_CONTRACTS.register_program_state_monitoring%N")
 			l_features_on_stack := features_on_stack
 			create l_contract_extractor
 			from
@@ -154,7 +151,6 @@ feature{NONE} -- Implementation
 			l_observed_features: EPA_HASH_SET [STRING]
 			l_observed_feature_name: STRING
 		do
-			print ("AFX_TEST_CASE_MONITOR_FOR_FIXING_CONTRACTS.initialize_features_on_stack%N")
 			create features_on_stack_cache.make_equal (50)
 			l_stack := debugger_manager.application_status.current_call_stack
 			from

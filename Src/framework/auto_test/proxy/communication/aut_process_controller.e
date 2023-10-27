@@ -58,12 +58,10 @@ feature {NONE} -- Initialization
 		local
 			l_factory: PROCESS_FACTORY
 		do
-			print("AUT_PROCESS_CONTROLLER.make%N")
 			thread_make
 			create mutex.make
 			create condition_variable.make
 			create l_factory
-			print ("process " + a_executable.to_string_8 + " in " + a_directory.to_string_8 + "%N")
 			process := l_factory.process_launcher (a_executable, a_args, a_directory)
 		end
 
@@ -167,7 +165,6 @@ feature -- Basic operations
 		require
 			not_launched: not is_launched
 		do
-			print("AUT_PROCESS_CONTROLLER.launch%N")
 			is_launched := True
 
 			process.enable_launch_in_new_process_group
@@ -197,7 +194,6 @@ feature {NONE} -- Basic operations
 		local
 			l_done, l_exp: BOOLEAN
 		do
-			print("AUT_PROCESS_CONTROLLER.execute%N")
 			from
 				mutex.lock
 			until
@@ -227,7 +223,6 @@ feature {NONE} -- Implementation
 			--
 			-- Note: not thread safe
 		do
-			print("AUT_PROCESS_CONTROLLER.terminate_directly%N")
 			if process.is_running then
 				if not process.force_terminated then
 					process.terminate_tree

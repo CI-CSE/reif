@@ -64,6 +64,8 @@ feature {NONE} -- Initialization
 					(upper = max_index))
 			empty_if_not_in_order:
 				(min_index > max_index) implies is_empty
+			empty_lower_upper:
+				(min_index > max_index) implies (lower = 1 and upper = 0)
 		end
 
 feature -- Initialization

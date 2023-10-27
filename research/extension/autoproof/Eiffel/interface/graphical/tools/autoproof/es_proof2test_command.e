@@ -580,13 +580,14 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 
 			window_manager.display_message ("Test generation started")
 
-			proof2test.generate_tests (options.init_states_of_counterexamples) -- generate a test for a single counterexample each time
+			proof2test.generate_tests (options.init_states_of_counterexamples)
+			-- generate a test for a single counterexample each time
 			options.init_states_of_counterexamples.wipe_out
 			-- proof2test.generate_test_for_ce (a_ce_init_state) -- TODO: generate tests for single ce
-				-- create l_dialog.make_standard ("Proof2Test finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
+				-- create l_dialog.make_standard ("Proof2Test finished. See the generated test cases at " + proof2test.test_file_name)
 				-- l_dialog.show_on_active_window
 			eiffel_project.discover_melt
-			window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name.to_string_8)
+			window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name)
 
 				-- enable_tool_button
 		end

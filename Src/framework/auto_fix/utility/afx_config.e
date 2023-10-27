@@ -23,54 +23,55 @@ feature -- Operation
 			l_directory: DIRECTORY
 		do
 			is_valid := True
-			if not (is_not_fixing or else is_fixing_contract or else is_fixing_implementation) then
-				print_message ("Error: Missing task type.")
-				is_valid := False
-			end
+--			if not (is_not_fixing or else is_fixing_contract or else is_fixing_implementation) then
+--				print_message ("Error: Missing task type.")
+--				is_valid := False
+--			end
 
-			if is_valid then
-				if is_not_fixing and then (is_fixing_contract or else is_fixing_implementation) then
-					print_message ("Error: Mixed task type.")
-					is_valid := False
-				end
-			end
+--			if is_valid then
+--				if is_not_fixing and then (is_fixing_contract or else is_fixing_implementation) then
+--					print_message ("Error: Mixed task type.")
+--					is_valid := False
+--				end
+--			end
 
-			if is_valid and then is_fixing then
-				if test_case_path = Void then
-					print_message ("Error: Missing test case path.")
-					is_valid := False
-				else
-					create l_directory.make_with_name (test_case_path)
-					if not l_directory.exists then
-						print_message ("Error: Non-existing test case path.")
-						is_valid := False
-					end
-				end
-			end
+--			if is_valid and then is_fixing then
+--				-- TODO: uncomment
+----				if test_case_path = Void then
+----					print_message ("Error: Missing test case path.")
+----					is_valid := False
+----				else
+----					create l_directory.make_with_name (test_case_path)
+----					if not l_directory.exists then
+----						print_message ("Error: Non-existing test case path.")
+----						is_valid := False
+----					end
+----				end
+--			end
 
-			if is_valid and then is_fixing then
-				if result_dir /= Void then
-					create l_directory.make_with_name (result_dir)
-					if not l_directory.exists then
-						print_message ("Warning: Non-existing result dir.")
-						print_message ("%TProducing results in the default directory.")
-						set_result_dir (Void)
-					end
-				end
-			end
+--			if is_valid and then is_fixing then
+--				if result_dir /= Void then
+--					create l_directory.make_with_name (result_dir)
+--					if not l_directory.exists then
+--						print_message ("Warning: Non-existing result dir.")
+--						print_message ("%TProducing results in the default directory.")
+--						set_result_dir (Void)
+--					end
+--				end
+--			end
 
-			if is_valid and then is_fixing_contract then
-				if relaxed_test_case_path = Void then
-					print_message ("Error: Missing relaxed test case path.")
-					is_valid := False
-				else
-					create l_directory.make_with_name (relaxed_test_case_path)
-					if not l_directory.exists then
-						print_message ("Error: Non-existing relaxed test case path.")
-						is_valid := False
-					end
-				end
-			end
+--			if is_valid and then is_fixing_contract then
+----				if relaxed_test_case_path = Void then
+----					print_message ("Error: Missing relaxed test case path.")
+----					is_valid := False
+----				else
+----					create l_directory.make_with_name (relaxed_test_case_path)
+----					if not l_directory.exists then
+----						print_message ("Error: Non-existing relaxed test case path.")
+----						is_valid := False
+----					end
+----				end
+--			end
 
 		end
 
@@ -86,6 +87,8 @@ feature -- Type of tasks: Access
 		do
 			Result := is_fixing_contract or else is_fixing_implementation
 		end
+
+	is_proof_based_fixing: BOOLEAN
 
 feature -- Type of tasks: Set
 
@@ -115,6 +118,13 @@ feature -- Type of tasks: Set
 		do
 			should_log_for_debugging := a_flag
 		end
+
+	set_is_proof_based_fixing (a_flag: BOOLEAN)
+		do
+			is_proof_based_fixing := a_flag
+		end
+
+
 
 feature -- Logging
 

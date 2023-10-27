@@ -765,7 +765,6 @@ feature {NONE} -- Implementation
 			if not a_argument_list.after then
 				a_argument_list.forth
 			end
-		    print ("parse_long: " + l_argument + " " + option.occurrences.out + "%N")
 		end
 
 	parse_short (a_argument_list: DS_LIST [STRING])
@@ -854,7 +853,6 @@ feature {NONE} -- Implementation
 			if not a_argument_list.after then
 				a_argument_list.forth
 			end
-			print ("parse_short: " + l_argument + " " + option.occurrences.out + "%N")
 
 		end
 

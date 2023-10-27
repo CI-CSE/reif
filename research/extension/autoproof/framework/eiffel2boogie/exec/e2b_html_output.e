@@ -46,7 +46,6 @@ feature
 	print_verification_result (r: E2B_RESULT)
 			-- Print `r' in HTML format.
 		do
-			print ("E2B_HTML_OUTPUT.print_verification_result%N")
 			across r.verification_results as i loop
 				if attached {E2B_SUCCESSFUL_VERIFICATION} i as l_success then
 					if l_success.original_errors /= Void and then not l_success.original_errors.is_empty then
@@ -74,7 +73,6 @@ feature
 	print_successful_verification (a_success: E2B_SUCCESSFUL_VERIFICATION)
 			-- Print successful verification information.
 		do
-			print ("E2B_HTML_OUTPUT.print_successful_verification%N")
 			print_feature_information (a_success)
 			open_style ("td", td_line_style)
 			close ("td")
@@ -109,7 +107,6 @@ feature
 	print_failed_verification (a_failure: E2B_FAILED_VERIFICATION)
 			-- Print failed verifcation information.
 		do
-			print ("E2B_HTML_OUTPUT.print_failed_verification%N")
 			if a_failure.errors.is_empty then
 				print_feature_information (a_failure)
 				open_style ("td", td_line_style)

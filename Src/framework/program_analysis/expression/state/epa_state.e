@@ -1,5 +1,5 @@
 note
-	description: "Summary description for {AFX_STATE}."
+	description: "Summary description for {EPA_STATE}."
 	author: ""
 	date: "$Date: 2013-10-18 04:39:01 +0800 (Fri, 18 Oct 2013) $"
 	revision: "$Revision: 93139 $"
@@ -60,6 +60,7 @@ inherit
 create
 	make,
 	make_chaos,
+	make_from_ce_state,
 	make_from_object_state,
 	make_from_expression_value_pairs,
 	make_from_state,
@@ -80,6 +81,26 @@ feature{NONE} -- Initialization
 			set_equality_tester (create {EPA_EQUATION_EQUALITY_TESTER})
 		end
 
+	make_from_ce_state (a_state: HASH_TABLE [STRING, STRING]; a_class: like class_; a_feature: like feature_)
+			-- Initialize Current with queries and values from `a_state' for `a_class' and `a_feature'.
+			-- Key of `a_state' is query name, value is the result of the query.
+		require
+			a_class_attached: a_class /= Void
+		do
+			make (a_state.count, a_class, a_feature)
+
+			from
+				a_state.start
+			until
+				a_state.after
+			loop
+				force_last (predicate_from_expression_and_value (a_state.key_for_iteration, a_state.item_for_iteration, a_class, a_feature))
+				a_state.forth
+			end
+
+			derived_extra_equality
+		end
+
 	make_from_object_state (a_state: HASH_TABLE [STRING, STRING]; a_class: like class_; a_feature: like feature_)
 			-- Initialize Current with queries and values from `a_state' for `a_class' and `a_feature'.
 			-- Key of `a_state' is query name, value is the result of the query.
@@ -87,6 +108,7 @@ feature{NONE} -- Initialization
 			a_class_attached: a_class /= Void
 		do
 			make (a_state.count, a_class, a_feature)
+
 			from
 				a_state.start
 			until
@@ -228,6 +250,7 @@ feature -- Access
 		local
 			l_cursor: DS_HASH_SET_CURSOR [EPA_EQUATION]
 		do
+			-- print ("item_with_expression_text: " + a_expr + "%N")
 			l_cursor := new_cursor
 			from
 				l_cursor.start
@@ -403,6 +426,9 @@ feature -- Status report
 			Result := state_report ("")
 		end
 
+	is_ce_state: BOOLEAN
+			-- Is the current state derived from counterexample?
+
 feature{NONE} -- Implementation
 
 	key_to_hash: DS_LINEAR[INTEGER]
@@ -434,7 +460,11 @@ feature{NONE} -- Implementation
 				l_written_class := a_class
 			end
 
-			create l_expr.make_with_text (a_class, a_feature, a_expression, l_written_class)
+			if a_expression.same_string ("(Current).passed_blocks") then
+				create l_expr.make_with_text_and_type (a_class, a_feature, safe_expr (a_expression), l_written_class, unknown_type)-- create {NATIVE_ARRAY_TYPE_A}.make (, create {ARRAYED_LIST [TYPE_A]}.make_from_array (<<create {INTEGER_A}.make (8)>>)))
+			else
+				create l_expr.make_with_text (a_class, a_feature, safe_expr (a_expression), l_written_class)
+			end
 
 			fixme ("Refactoring the following ugly if statement.")
 			if a_value = Void then
@@ -442,7 +472,7 @@ feature{NONE} -- Implementation
 			else
 				if a_value.is_boolean then
 					create {EPA_BOOLEAN_VALUE} l_value.make (a_value.to_boolean)
-				elseif a_value.is_integer then
+				elseif a_value.is_integer_64 then
 					create {EPA_INTEGER_VALUE} l_value.make (a_value.to_integer)
 				elseif a_value.is_equal (nonsensical) then
 					create {EPA_NONSENSICAL_VALUE} l_value
@@ -450,11 +480,64 @@ feature{NONE} -- Implementation
 					create {EPA_VOID_VALUE} l_value.make
 				elseif a_value.starts_with (once "0x") then
 					create {EPA_REFERENCE_VALUE} l_value.make (a_value.twin, l_expr.type)
+				elseif a_value.starts_with (once "T@U!val!") then
+					create {EPA_REFERENCE_VALUE} l_value.make (a_value.twin, l_expr.type)
+				elseif a_value.starts_with (once "[") then
+					create {EPA_ARRAY_VALUE} l_value.make (a_value.twin, l_expr.type)
 				else
 					check not_suported_not: False end
 				end
 			end
 			create Result.make (l_expr, l_value)
+			-- print ("epa_equation: " + l_expr.text + "-> " + l_value.out + "%N")
+		end
+
+
+	safe_expr (a_expr: STRING): STRING
+			-- Remove prefix of Current's attributes
+		do
+			if not (a_expr.has_substring ("passed_blocks") or a_expr.has_substring ("sequence")) and a_expr.has_substring ("Current") and a_expr.has_substring (".") then
+				Result := a_expr.split ('.').last
+			else
+				Result := a_expr
+			end
+		end
+
+	derived_extra_equality
+			-- When the source state is derived from a counterexample, derive new equalities realted to 'Void' and 'Current' based on the counterexample
+			-- a = Void, a /= Void, a = Current, a /= Current
+		local
+			l_void_value, l_current_value: STRING
+			l_expr: EPA_AST_EXPRESSION
+			l_value: EPA_EXPRESSION_VALUE
+		do
+			l_void_value := item_with_expression_text ("Void").value.text
+			l_current_value := item_with_expression_text ("Current").value.text
+
+			from
+				start
+			until
+				after
+			loop
+				if item_for_iteration.value.text.has_substring ("T@U") and item_for_iteration.text /~ "Current" and item_for_iteration.text /~ "Void" then
+					if item_for_iteration.value.text ~ l_void_value then
+						create {EPA_BOOLEAN_VALUE} l_value.make (true)
+					else
+						create {EPA_BOOLEAN_VALUE} l_value.make (false)
+					end
+					create l_expr.make_with_text (class_, feature_, item_for_iteration.expression.text + " = Void", class_)
+					force_last (create {EPA_EQUATION}.make (l_expr, l_value))
+
+					if item_for_iteration.value.text ~ l_current_value then
+						create {EPA_BOOLEAN_VALUE} l_value.make (true)
+					else
+						create {EPA_BOOLEAN_VALUE} l_value.make (true)
+					end
+					create l_expr.make_with_text (class_, feature_, item_for_iteration.expression.text + " = Current", class_)
+					force_last (create {EPA_EQUATION}.make (l_expr, l_value))
+				end
+				forth
+			end
 		end
 
 end

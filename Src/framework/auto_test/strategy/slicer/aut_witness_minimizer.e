@@ -50,7 +50,6 @@ feature {NONE} -- Initialization
 	make (a_interpreter: like interpreter; a_system: like system; an_error_handler: like error_handler)
 			-- <Precursor>
 		do
-			print("AUT_WITNESS_MINIMIZER.make%N")
 			Precursor (a_interpreter, a_system, an_error_handler)
 
 			create player.make (interpreter, system, error_handler)

@@ -76,12 +76,16 @@ feature -- Basic operation
 			end
 
 				-- Modify the feature under fix into a dispatcher.
-			l_body_compound_ast := l_feature_to_fix.body_compound_ast
-			l_body_compound_ast.replace_text (inspect_instruction_for_fix_selection, l_match_list)
+			if not config.is_proof_based_fixing then
+				l_body_compound_ast := l_feature_to_fix.body_compound_ast
+				l_body_compound_ast.replace_text (inspect_instruction_for_fix_selection, l_match_list)
+			end
+
 				-- Insert the new features after `feature_to_fix'.
 			l_feature_to_fix.feature_as_ast.last_token (l_match_list).append_text (l_new_features, l_match_list)
 				-- Modified class text.
 			l_new_class_text := l_written_class.ast.text_32 (l_match_list).twin
+
 			l_match_list.remove_modifications
 				-- Store the new class into 'override'.
 			store_override_class (l_written_class.name, l_new_class_text)
@@ -145,8 +149,15 @@ feature{NONE} -- Implementation
 			l_feature_name_for_fix := feature_name_with_fix_id (a_fix.id)
 			l_written_class := l_feature_to_fix.written_class
 			l_match_list := match_list_server.item (l_written_class.class_id)
-			l_feature_to_fix.feature_as_ast.feature_names.replace_text (l_feature_name_for_fix, l_match_list)
-			l_feature_to_fix.body_ast.replace_text (a_fix.fixed_body_text, l_match_list)
+
+			-- TODO Li: this is a hack to replace the feature code for fixing contracts based on ce
+			if a_fix.fixed_body_text.has_substring (a_fix.context_feature.feature_.feature_name + "_ID_") then
+				l_feature_to_fix.feature_as_ast.feature_names.replace_text (l_feature_name_for_fix, l_match_list)
+				l_feature_to_fix.feature_as_ast.replace_text (a_fix.fixed_body_text, l_match_list)
+			else
+				l_feature_to_fix.feature_as_ast.feature_names.replace_text (l_feature_name_for_fix, l_match_list)
+				l_feature_to_fix.body_ast.replace_text (a_fix.fixed_body_text, l_match_list)
+			end
 
 			Result := l_feature_to_fix.feature_as_ast.text_32 (l_match_list).twin
 			l_match_list.remove_modifications
@@ -223,10 +234,12 @@ feature{NONE} -- Implementation
 			l_path_to_overriding_class: PATH
 			l_file: PLAIN_TEXT_FILE
 		do
-			l_path_to_overriding_class := session.override_directory.extended (a_name.as_lower + ".e")
+			-- TODO Li: create a copy of the new class in the `overrides' folder
+			l_path_to_overriding_class := session.eiffel_system.eiffel_project.project_directory.path.extended (a_name.as_lower + ".e")
 			override_class_path := l_path_to_overriding_class.twin
 
-			create l_file.make_with_path (l_path_to_overriding_class)
+			-- create l_file.make_with_path (l_path_to_overriding_class)
+			create l_file.make_create_read_write (l_path_to_overriding_class.out)
 			l_file.open_write
 
 			if l_file.is_open_write then

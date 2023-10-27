@@ -50,7 +50,6 @@ feature -- Basic operations
 			l_fixes: like fixes
 			l_fix_text: STRING
 		do
-			print ("AFX_RANDOM_BASED_FIX_GENERATOR.generate%N")
 				--Initialize.
 			create fixes.make_equal (100)
 
@@ -64,9 +63,9 @@ feature -- Basic operations
 				l_count := 0
 			until
 				l_ranking_cursor.after
-					or else (l_max_target /= 0 and then l_count > l_max_target)
-					or else (l_max_fix /= 0 and then fixes.count > l_max_fix)
-					or else not session.should_continue
+				or else (l_max_target /= 0 and then l_count > l_max_target)
+				or else (l_max_fix /= 0 and then fixes.count > l_max_fix)
+				or else not session.should_continue
 			loop
 				l_target := l_ranking_cursor.item
 
@@ -79,7 +78,7 @@ feature -- Basic operations
 			prune_fixes
 		end
 
-feature{NONE} -- Implementation
+feature {NONE} -- Implementation
 
 	generate_fixes_for_target (a_target: AFX_FIXING_TARGET)
 			-- Generate fixes for `a_target'. Generated fixes are put into `fixes'.
@@ -92,9 +91,8 @@ feature{NONE} -- Implementation
 			l_condition: EPA_EXPRESSION
 			l_requirement: AFX_STATE_CHANGE_REQUIREMENT
 			l_instructions: LINKED_LIST [EPA_AST_STRUCTURE_NODE]
+			l_match_list: LEAF_AS_LIST
 		do
-			print ("AFX_RANDOM_BASED_FIX_GENERATOR.generate_fixes_for_target: " + a_target.context_class.name +  "%N")
-
 			l_guard_conditions := guard_conditions_for_target (a_target)
 			l_relevant_asts := relevant_asts_for_a_target (a_target)
 			l_requirements := change_requirements_for_target (a_target)
@@ -103,18 +101,18 @@ feature{NONE} -- Implementation
 			until l_guard_conditions.after
 			loop
 				l_condition := l_guard_conditions.item_for_iteration
-
 				from l_requirements.start
 				until l_requirements.after
 				loop
 					l_requirement := l_requirements.item_for_iteration
-
 					from l_relevant_asts.start
 					until l_relevant_asts.after
 					loop
 						l_instructions := l_relevant_asts.item_for_iteration.instructions
-
+						l_match_list := a_target.context_class.match_list_server.item (a_target.context_class.class_id)
+						-- extend the existing instructions in the current feature into the set of input instructions
 						generate_one_fix (a_target, l_condition, l_requirement, l_instructions)
+
 
 						l_relevant_asts.forth
 					end
@@ -145,7 +143,14 @@ feature{NONE} -- Implementation
 			l_fix_ranking: AFX_FIX_RANKING
 			l_exception_recipient_feature: AFX_FEATURE_TO_MONITOR
 		do
-			l_written_class := session.exception_from_execution.recipient_feature.written_class
+			if config.is_proof_based_fixing then
+				l_written_class := session.feature_under_proof.written_class
+				l_exception_recipient_feature := session.feature_under_proof
+			else
+				l_written_class := session.exception_from_execution.recipient_feature.written_class
+				l_exception_recipient_feature := session.exception_from_execution.recipient_feature_with_context
+			end
+
 			l_match_list := match_list_server.item (l_written_class.class_id)
 			l_first_as := a_instructions.first.ast.ast
 			l_last_as := a_instructions.last.ast.ast
@@ -158,7 +163,7 @@ feature{NONE} -- Implementation
 			l_if_instruction := "if not(" + a_condition.text + ") then%N"
 			l_first_as.prepend_text (l_if_instruction, l_match_list)
 			l_last_as.append_text ("%Nend%N", l_match_list)
-			l_exception_recipient_feature := session.exception_from_execution.recipient_feature_with_context
+
 			l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
 			l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
 			create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
@@ -297,7 +302,7 @@ feature{NONE} -- Implementation
 				l_class ?= a_fix.context_feature.written_class
 				l_feat := a_fix.context_feature.feature_
 				l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + a_fix.fixed_feature_text, False)
-				--l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + "move_item (v: G)%N do%N (create {DEVELOPER_EXCEPTION}).raise %N end%N", False)
+					--l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + "move_item (v: G)%N do%N (create {DEVELOPER_EXCEPTION}).raise %N end%N", False)
 				Result := not l_data.byte_code.is_empty
 			end
 		rescue
@@ -306,7 +311,7 @@ feature{NONE} -- Implementation
 			retry
 		end
 
-feature{NONE} -- Implementation operations
+feature {NONE} -- Implementation operations
 
 	remove_qualified_call_on_current (a_str: STRING)
 			-- Remove qualified calls of form 'Current.xxx' from `a_str'.
@@ -357,12 +362,24 @@ feature{NONE} -- Implementation operations
 		do
 			create Result.make
 
-			l_recipient := session.exception_from_execution.recipient_feature_with_context
+			if session.config.is_proof_based_fixing then
+				l_recipient := session.feature_under_proof
+				l_scope_level := 1
+				l_bp_index := a_target.bp_index
+
+				l_node_list := l_recipient.ast_structure.instructions_in_block (l_bp_index)
+				-- create l_node_list.make
+				-- l_node_list.force (l_node)
+				Result.force ([l_scope_level, l_node_list])
+			else
+				l_recipient := session.exception_from_execution.recipient_feature_with_context
+
+
 			l_scope_level := 1
 
 				-- Node list containing only the instruction right after the position of `a_target'.
 			l_bp_index := a_target.bp_index
-			l_scope_level := 1
+
 			from
 				l_node := l_recipient.ast_structure.surrounding_instruction (l_bp_index)
 			until
@@ -391,6 +408,7 @@ feature{NONE} -- Implementation operations
 
 				l_node := l_node.parent
 				l_scope_level := l_scope_level + 1
+				end
 			end
 		end
 

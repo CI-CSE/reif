@@ -10,67 +10,51 @@ feature -- Basic operation
 		do
 			if not compile_start_actions.has (a_action.on_compile_start_agent) then
 				compile_start_actions.extend (a_action.on_compile_start_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_compile_start_agent%N")
 			end
 			if not compile_stop_actions.has (a_action.on_compile_stop_agent) then
 				compile_stop_actions.extend (a_action.on_compile_stop_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_compile_stop_agent%N")
 			end
 			if not project_load_actions.has (a_action.on_project_loaded_agent) then
 				project_load_actions.extend (a_action.on_project_loaded_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_project_loaded_agent%N")
 			end
 			if not project_unload_actions.has (a_action.on_project_unloaded_agent) then
 				project_unload_actions.extend (a_action.on_project_unloaded_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_project_unloaded_agent%N")
 			end
 			if not debugging_start_actions.has (a_action.on_debugging_start_agent) then
 				debugging_start_actions.extend (a_action.on_debugging_start_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_debugging_start_agent%N")
 			end
 			if not debugging_stop_actions.has (a_action.on_debugging_stop_agent) then
 				debugging_stop_actions.extend (a_action.on_debugging_stop_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_debugging_stop_agent%N")
 			end
 			if not testing_start_actions.has (a_action.on_testing_start_agent) then
 				testing_start_actions.extend (a_action.on_testing_start_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_testing_start_agent%N")
 			end
 			if not testing_stop_actions.has (a_action.on_testing_stop_agent) then
 				testing_stop_actions.extend (a_action.on_testing_stop_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_testing_stop_agent%N")
 			end
 			if not test_case_generated_actions.has (a_action.on_test_case_generated_agent) then
 				test_case_generated_actions.extend (a_action.on_test_case_generated_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_test_case_generated_agent%N")
 			end
 			if not fixing_start_actions.has (a_action.on_fixing_start_agent) then
 				fixing_start_actions.extend (a_action.on_fixing_start_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_fixing_start_agent%N")
 			end
 			if not fixing_stop_actions.has (a_action.on_fixing_stop_agent) then
 				fixing_stop_actions.extend (a_action.on_fixing_stop_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_fixing_stop_agent%N")
 			end
 			if not continuation_debugging_start_actions.has (a_action.on_continuation_debugging_start_agent) then
 				continuation_debugging_start_actions.extend (a_action.on_continuation_debugging_start_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_continuation_debugging_start_agent%N")
 			end
 			if not continuation_debugging_stop_actions.has (a_action.on_continuation_debugging_stop_agent) then
 				continuation_debugging_stop_actions.extend (a_action.on_continuation_debugging_stop_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_continuation_debugging_stop_agent%N")
 			end
 			if not valid_fix_found_actions.has (a_action.on_valid_fix_found_agent) then
 				valid_fix_found_actions.extend (a_action.on_valid_fix_found_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_valid_fix_found_agent%N")
 			end
 			if not fix_applied_actions.has (a_action.on_fix_applied_agent) then
 				fix_applied_actions.extend (a_action.on_fix_applied_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_fix_applied_agent%N")
 			end
 			if not output_actions.has (a_action.on_output_agent) then
 				output_actions.extend (a_action.on_output_agent)
-				print("ES_ADB_ACTION_PUBLISHER.extend -- on_output_agent%N")
 			end
 		end
 

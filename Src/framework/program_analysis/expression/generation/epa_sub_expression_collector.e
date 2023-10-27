@@ -21,7 +21,7 @@ inherit
 			process_result_as,
 			process_access_inv_as,
 			process_eiffel_list,
-			-- process_nested_as,
+				-- process_nested_as,
 			process_nested_expr_as,
 			process_integer_as
 		end
@@ -72,6 +72,7 @@ feature -- Basic operation
 
 			collect_from_ast (a_feature_with_context, l_ast)
 			collect_local_entities
+			collect_global_constants
 		end
 
 	collect_from_expressions (a_feature_with_context: EPA_FEATURE_WITH_CONTEXT_CLASS; a_expressions: DS_LINEAR [EPA_EXPRESSION])
@@ -89,7 +90,7 @@ feature -- Basic operation
 				l_cursor.after
 			loop
 				collect_from_ast (a_feature_with_context, ast_from_expression_text (l_cursor.item.text))
---				collect_from_expression (a_feature_with_context, l_cursor.item)
+				collect_from_expression (a_feature_with_context, l_cursor.item)
 				l_cursor.forth
 			end
 		end
@@ -141,7 +142,7 @@ feature -- Status set
 			should_collect_result := a_flag
 		end
 
-feature{NONE} -- Implementation
+feature {NONE} -- Implementation
 
 	context_feature: EPA_FEATURE_WITH_CONTEXT_CLASS
 			-- Context feature where the collecting happens.
@@ -154,7 +155,7 @@ feature{NONE} -- Implementation
 			Result := context_feature.written_class
 		end
 
-feature{NONE} -- Auxiliary
+feature {NONE} -- Auxiliary
 
 	reset_collector
 			-- Reset the state of the collector.
@@ -173,7 +174,6 @@ feature{NONE} -- Auxiliary
 	collect_from_ast (a_feature_with_context: EPA_FEATURE_WITH_CONTEXT_CLASS; a_ast: AST_EIFFEL)
 			-- Collect all sub-expressions of `a_ast', in the context of `a_feature'.
 			-- `a_ast' should be valid in `a_feature_with_context', in terms of renaming.
-			--
 			-- Note: only CLASS_AS, FEATURE_AS, INSTRUCTION_AS, EIFFEL_LIST [INSTRUCTION_AS], EXPR_AS, TYPE_AS
 		require
 			ast_in_context: True
@@ -186,12 +186,45 @@ feature{NONE} -- Auxiliary
 			end
 		end
 
+	collect_global_constants
+			-- Collect costants in the context class
+		local
+			l_feature: FEATURE_I
+			l_class: CLASS_C
+			l_name: STRING
+			l_expr: EPA_AST_EXPRESSION
+			l_indx, l_count: INTEGER
+			l_integeral_arguments: DS_ARRAYED_LIST [EPA_EXPRESSION]
+			l_creator: EPA_AST_EXPRESSION_SAFE_CREATOR
+			l_constants: SORTED_TWO_WAY_LIST [E_CONSTANT]
+			l_next_constant: E_CONSTANT
+			l_constant_type: TYPE_A
+			l_constant_name, l_constant_value: STRING
+		do
+			l_class := context_feature.context_class
+
+			from
+				l_constants := l_class.constant_features
+				l_constants.start
+			until
+				l_constants.after
+			loop
+				l_next_constant := l_constants.item_for_iteration
+				l_constant_type := l_next_constant.type
+				l_constant_name := l_next_constant.name
+				l_constant_value := l_next_constant.value
+				add_expression_from_text (l_constant_name)
+				add_expression_from_text (l_constant_value)
+				l_constants.forth
+			end
+		end
+
 	collect_local_entities
 			-- Collect local entities, like variables, arguments, Current, and Result.
 		local
-		    l_feature: FEATURE_I
-		    l_class: CLASS_C
-		    l_name: STRING
+			l_feature: FEATURE_I
+			l_class: CLASS_C
+			l_name: STRING
 			l_expr: EPA_AST_EXPRESSION
 			l_indx, l_count: INTEGER
 			l_integeral_arguments: DS_ARRAYED_LIST [EPA_EXPRESSION]
@@ -201,18 +234,18 @@ feature{NONE} -- Auxiliary
 			l_feature_type: TYPE_A
 			l_feature_name: STRING
 		do
-		    l_feature := context_feature.feature_
-		    create l_integeral_arguments.make_equal (10)
+			l_feature := context_feature.feature_
+			create l_integeral_arguments.make_equal (10)
 
-		    	-- Arguments.
+				-- Arguments.
 			if should_collect_arguments then
-			    from
-			    	l_indx := 1
-			    	l_count := l_feature.argument_count
-			    until
-			    	l_indx > l_count
-			    loop
-			    	l_name := l_feature.arguments.item_name (l_indx)
+				from
+					l_indx := 1
+					l_count := l_feature.argument_count
+				until
+					l_indx > l_count
+				loop
+					l_name := l_feature.arguments.item_name (l_indx)
 
 					l_expr := l_creator.safe_create_with_text (context_feature.context_class, context_feature.feature_, l_name, context_feature.written_class)
 					if l_expr /= Void and then not l_expr.type.is_void then
@@ -222,8 +255,8 @@ feature{NONE} -- Auxiliary
 						end
 					end
 
-			    	l_indx := l_indx + 1
-			    end
+					l_indx := l_indx + 1
+				end
 			end
 
 				-- "Current".
@@ -243,8 +276,8 @@ feature{NONE} -- Auxiliary
 						l_feature_name := l_next_feature.feature_name
 
 						if (l_feature_type /= Void and then l_feature_type.is_boolean)
-								and then l_next_feature.is_exported_for (system.any_class.compiled_representation)
-								and then (l_next_feature.argument_count = 1 and then l_next_feature.arguments.first.is_integer)
+							and then l_next_feature.is_exported_for (system.any_class.compiled_representation)
+							and then (l_next_feature.argument_count = 1 and then l_next_feature.arguments.first.is_integer)
 						then
 							from
 								l_integeral_arguments.start
@@ -275,6 +308,7 @@ feature{NONE} -- Auxiliary
 			l_expr: EPA_AST_EXPRESSION
 			l_creator: EPA_AST_EXPRESSION_SAFE_CREATOR
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.add_expression_from_text: " + a_text + "%N")
 			l_expr := l_creator.safe_create_with_text (context_feature.context_class, context_feature.feature_, a_text, context_feature.written_class)
 			if l_expr /= Void and then not l_expr.type.is_void then
 				last_sub_expressions.force (l_expr)
@@ -296,7 +330,8 @@ feature --  Visitor routine
 		local
 			l_expr: EPA_AST_EXPRESSION
 		do
-			precursor(l_as)
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_binary_as%N")
+			precursor (l_as)
 
 			add_expression_from_ast (l_as)
 		end
@@ -306,7 +341,8 @@ feature --  Visitor routine
 		local
 			l_expr: EPA_AST_EXPRESSION
 		do
-			precursor(l_as)
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_unary_as%N")
+			precursor (l_as)
 
 			add_expression_from_ast (l_as)
 		end
@@ -314,14 +350,16 @@ feature --  Visitor routine
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- <Precursor>
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_nested_expr_as%N")
 			enter_nested
-			precursor(l_as)
+			precursor (l_as)
 			exit_nested
 		end
 
 	process_precursor_as (l_as: PRECURSOR_AS)
 			-- <Precursor>
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_precursor_as%N")
 			precursor (l_as)
 			process_access (l_as)
 		end
@@ -329,6 +367,7 @@ feature --  Visitor routine
 	process_current_as (l_as: CURRENT_AS)
 			-- <Precursor>
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_current_as%N")
 			precursor (l_as)
 			process_access (l_as)
 		end
@@ -336,6 +375,7 @@ feature --  Visitor routine
 	process_result_as (l_as: RESULT_AS)
 			-- <Precursor>
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_result_as%N")
 			precursor (l_as)
 			process_access (l_as)
 		end
@@ -343,34 +383,39 @@ feature --  Visitor routine
 	process_access_id_as (l_as: ACCESS_ID_AS)
 			-- <Precursor>
 		do
-			precursor(l_as)
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_access_id_as%N")
+			precursor (l_as)
 			process_feature_call_on_current (l_as)
 		end
 
 	process_integer_as (l_as: INTEGER_AS)
 			-- <Precursor>
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_integer_as%N")
 			process_access (l_as)
 		end
 
 	process_access_assert_as (l_as: ACCESS_ASSERT_AS)
 			-- <Precursor>
 		do
-			precursor(l_as)
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_access_assert_as%N")
+			precursor (l_as)
 			process_feature_call_on_current (l_as)
 		end
 
 	process_access_inv_as (l_as: ACCESS_INV_AS)
 			-- <Precursor>
 		do
-			precursor(l_as)
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_access_inv_as%N")
+			precursor (l_as)
 			process_feature_call_on_current (l_as)
 		end
 
 	process_access_feat_as (l_as: ACCESS_FEAT_AS)
 			-- <Precursor>
 		do
-			precursor(l_as)
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_access_feat_as%N")
+			precursor (l_as)
 			process_access (l_as)
 		end
 
@@ -379,6 +424,7 @@ feature --  Visitor routine
 		local
 			l_cursor: INTEGER
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_eiffel_list%N")
 			if attached {EIFFEL_LIST [EXPR_AS]} l_as as lt_list then
 				from
 					l_cursor := l_as.index
@@ -401,7 +447,7 @@ feature --  Visitor routine
 			end
 		end
 
-feature{NONE} -- Implementation
+feature {NONE} -- Implementation
 
 	process_access (l_as: AST_EIFFEL)
 			-- Process all "acess_*_as" nodes in a similar way.
@@ -409,6 +455,7 @@ feature{NONE} -- Implementation
 			l_text: STRING
 			l_expr: EPA_AST_EXPRESSION
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_access%N")
 			l_text := text_from_ast (l_as)
 			if is_within_nested then
 					-- Save prefix expression processed so far.
@@ -428,6 +475,7 @@ feature{NONE} -- Implementation
 			l_feature_names: EPA_STRING_HASH_SET
 			l_expr: EPA_AST_EXPRESSION
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_feature_call_on_current%N")
 			l_feature_name := l_as.feature_name.name.as_lower
 			l_feature_names := server_variables_in_scope.feature_names_from_class (written_class)
 			if l_feature_names.has (l_feature_name) then
@@ -438,10 +486,11 @@ feature{NONE} -- Implementation
 	save_current_nesting (a_bp_slot: INTEGER)
 			-- Save a expression recognized so far.
 		local
-			l_list: ARRAYED_LIST[STRING]
+			l_list: ARRAYED_LIST [STRING]
 			l_aggregate: STRING
 			l_expr: EPA_AST_EXPRESSION
 		do
+				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.save_current_nesting%N")
 			create l_aggregate.make_empty
 			l_list := current_nested_expression_stack.linear_representation
 			from
@@ -460,7 +509,7 @@ feature{NONE} -- Implementation
 			end
 		end
 
-feature{NONE} -- Process nested/sub expressions: access
+feature {NONE} -- Process nested/sub expressions: access
 
 	nested_level_stack: LINKED_STACK [INTEGER]
 			-- Stack for storing nested levels within expressions.
@@ -508,7 +557,7 @@ feature{NONE} -- Process nested/sub expressions: access
 			Result := current_nested_level > 0
 		end
 
-feature{NONE} -- Process nested/sub expressions: operation
+feature {NONE} -- Process nested/sub expressions: operation
 
 	enter_nested
 			-- Process enters another level of nested.
@@ -540,7 +589,7 @@ feature{NONE} -- Process nested/sub expressions: operation
 			nested_level_stack.put (l_current_level)
 
 			if l_current_level = 0 then
-				-- Clear `current_nested_expression_stack'
+					-- Clear `current_nested_expression_stack'
 				current_nested_expression_stack.wipe_out
 			end
 		ensure
@@ -569,7 +618,7 @@ feature{NONE} -- Process nested/sub expressions: operation
 			nested_level_stack.remove
 		end
 
-feature{NONE} -- Cache
+feature {NONE} -- Cache
 
 	last_sub_expressions_cache: like last_sub_expressions
 			-- Cache for `last_collection_in_written_class'.

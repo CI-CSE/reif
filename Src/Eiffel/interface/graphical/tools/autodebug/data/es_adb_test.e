@@ -23,7 +23,6 @@ feature{NONE} -- Initialization
 		require
 			a_path /= Void
 		do
-			-- print("ES_ADB_TEST.make%N")
 			location := a_path.twin
 			create test_case_signature.make_with_string (location.entry.out)
 		end

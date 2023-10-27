@@ -67,7 +67,6 @@ feature	-- Basic operation
 			l_time_left: INTEGER
 			l_retried: BOOLEAN
 		do
-			print ("AFX_EXECUTION_MONITOR.collect%N")
 			if not l_retried then
 				create trace_repository.make_default
 				if session.should_continue then
@@ -87,7 +86,6 @@ feature{NONE} -- Steps
 	set_up
 			-- Set up the collector.
 		do
-			print ("AFX_EXECUTION_MONITOR.set_up%N")
 				-- Reset result.
 			create trace_repository.make_default
 
@@ -126,7 +124,6 @@ feature{NONE} -- Steps
 	wrap_up (a_should_update_values_of_old_expressions: BOOLEAN)
 			-- Wrap up the collection process.
 		do
-			print ("AFX_EXECUTION_MONITOR.wrap_up%N")
 			debugger_manager.observer_provider.application_stopped_actions.prune_all (app_stop_agent)
 			debugger_manager.observer_provider.application_exited_actions.prune_all (app_exit_agent)
 
@@ -154,7 +151,6 @@ feature{NONE} -- Initialization
 			l_expr: EPA_AST_EXPRESSION
 			l_expr_set: like test_case_info_skeleton
 		do
-			print ("AFX_EXECUTION_MONITOR.init_test_case_info_skeleton%N")
 			l_class := test_case_super_class
 			l_feature := test_case_setup_feature
 
@@ -187,7 +183,6 @@ feature{NONE} -- Initialization
 			l_expr_set.force_last (l_expr)
 			create l_expr.make_with_text (l_class, l_feature, {EQA_SERIALIZED_TEST_SET}.Txt_tci_exception_trace, l_class)
 			l_expr_set.force_last (l_expr)
-			print ("l_expr_set size: " + l_expr_set.count.out + "%N")
 			test_case_info_skeleton := l_expr_set
 		ensure
 			test_case_info_skeleton_initialized: test_case_info_skeleton /= Void and then test_case_info_skeleton.count = 14
@@ -202,9 +197,7 @@ feature{NONE} -- Initialization
 			l_bp_location: BREAKPOINT_LOCATION
 			l_breakpoint: BREAKPOINT
 		do
-			print ("AFX_EXECUTION_MONITOR.init_test_case_boundary_breakpoint_managers%N")
 			create entry_breakpoint_manager.make (Test_case_super_class, Test_case_setup_feature)
-			print ("test_case_info_skeleton size: " + test_case_info_skeleton.count.out + "%N")
 			entry_breakpoint_manager.set_breakpoint_with_expression_and_action (1, test_case_info_skeleton, agent on_test_case_entry)
 			entry_breakpoint_manager.toggle_breakpoints (True)
 
@@ -229,7 +222,6 @@ feature{NONE} -- Debugger
 	on_application_exit (a_dm: DEBUGGER_MANAGER)
 			-- Action to be performed when application exited.
 		do
-			print ("AFX_EXECUTION_MONITOR.on_application_exit%N")
 			test_case_execution_event_listeners.do_all (agent {AFX_TEST_CASE_EXECUTION_EVENT_LISTENER}.on_application_exit)
 
 			entry_breakpoint_manager.toggle_breakpoints (False)
@@ -240,7 +232,6 @@ feature{NONE} -- Debugger
 	on_application_stopped (a_dm: DEBUGGER_MANAGER)
 			-- Action on application stopped.
 		do
-			print ("AFX_EXECUTION_MONITOR.on_application_stopped START%N")
 			if a_dm.application_is_executing and then a_dm.application_is_stopped then
 				if a_dm.application_status.reason_is_catcall then
 					a_dm.controller.resume_workbench_application
@@ -253,7 +244,6 @@ feature{NONE} -- Debugger
 					a_dm.controller.resume_workbench_application
 				end
 			end
-			print ("AFX_EXECUTION_MONITOR.on_application_stopped END%N")
 		end
 
 	on_application_exception (a_dm: DEBUGGER_MANAGER)
@@ -309,7 +299,6 @@ feature{NONE} -- Test case events
 			l_expression_set: DS_HASH_SET [AFX_PROGRAM_STATE_EXPRESSION]
 			l_repository: like trace_repository
 		do
-			-- print ("AFX_EXECUTION_MONITOR.on_test_case_entry%N")
 			l_table := a_test_case_info.to_hash_table
 
 			l_class_under_test := first_class_starts_with_name (l_table.item ({EQA_SERIALIZED_TEST_SET}.Txt_tci_class_under_test).out)
@@ -348,7 +337,6 @@ feature{NONE} -- Test case events
 		local
 			l_current_program_location_context: EPA_FEATURE_WITH_CONTEXT_CLASS
 		do
-			print ("AFX_EXECUTION_MONITOR.on_breakpoint_hit_in_test_case%N")
 			a_state.keep_if (
 				agent (a_equation: EPA_EQUATION): BOOLEAN
 					do
@@ -365,7 +353,6 @@ feature{NONE} -- Test case events
 	on_test_case_exit (a_bp: BREAKPOINT; a_dm: DEBUGGER_MANAGER)
 			-- Action on exiting test case.
 		do
-			print ("AFX_EXECUTION_MONITOR.on_test_case_exit%N")
 			enable_state_monitoring (False)
 			is_inside_test_case := False
 			update_timer (0)	-- Reset debugger timer
@@ -433,7 +420,6 @@ feature{NONE} -- Implementation
 			l_cursor: DS_HASH_TABLE_CURSOR [AFX_PROGRAM_EXECUTION_TRACE, EPA_TEST_CASE_INFO]
 			l_new_repository: AFX_PROGRAM_EXECUTION_TRACE_REPOSITORY
 		do
-			print ("AFX_EXECUTION_MONITOR.prune_empty_and_invalid_traces%N")
 			from
 				create l_new_repository.make_default
 				l_cursor := trace_repository.new_cursor

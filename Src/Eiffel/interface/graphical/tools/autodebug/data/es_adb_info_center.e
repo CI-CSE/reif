@@ -20,6 +20,8 @@ inherit
 	ES_ADB_TEST_CASE_REPOSITORY
 		rename reset as reset_test_case_repository end
 
+	ES_ADB_PROOF_FAILURE_REPOSITORY
+
 	EPA_UTILITY
 
 	SHARED_PLATFORM_CONSTANTS
@@ -32,7 +34,6 @@ feature{NONE} -- Initialization
 	make
 			-- Initialization.
 		do
-			print("ES_ADB_INFO_CENTER.make%N")
 			create progress_logger
 			extend (progress_logger)
 			create output_logger
@@ -94,43 +95,44 @@ feature -- ADB Actions
 	on_compile_stop
 			-- <Precursor>
 		do
-			-- print("ES_ADB_INFO_CENTER.on_compile_stop%N")
 			compile_stop_actions.call (Void)
 		end
 
 	on_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_debugging_start%N")
 			reset_internal_state
-
 			debugging_start_actions.call (Void)
 		end
 
 	on_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_debugging_stop%N")
 			debugging_stop_actions.call (Void)
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new test case is generated
 		do
-			
+			-- register_ce_trace (a_ce_traces)
+		end
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		do
+			register_proof_failure (a_msg, system.eiffel_project.project_directory.data_path.extended ("AutoFix").extended ("temp"))
+			-- Result := eiffel_system.eiffel_project.project_directory.path.extended (l_file_name)
 		end
 
 	on_testing_start
 			-- <Precursor>
 		do
-			-- print("ES_ADB_INFO_CENTER.on_testing_start%N")
 			testing_start_actions.call (Void)
 		end
 
 	on_test_case_generated (a_test: ES_ADB_TEST)
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_test_case_generated%N")
 			register_test_case (a_test)
 
 			test_case_generated_actions.call (a_test)
@@ -139,53 +141,57 @@ feature -- ADB Actions
 	on_testing_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_testing_stop%N")
 			testing_stop_actions.call (Void)
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_fixing_start%N")
 			a_fault.discard_all_fixes
 			a_fault.set_status (a_fault.status_candidate_fix_unavailable)
 			fixing_start_actions.call (a_fault)
 		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
+			-- <Precursor>
+		do
+			-- TODO Li
+--			print("ES_ADB_INFO_CENTER.on_fixing_start%N")
+--			a_fault.discard_all_fixes
+--			a_fault.set_status (a_fault.status_candidate_fix_unavailable)
+--			fixing_start_actions.call (a_fault)
+		end
+
 
 	on_valid_fix_found (a_fix: ES_ADB_FIX)
 			-- <Precursor>
 		local
 			l_fault: ES_ADB_FAULT
 		do
-			print("ES_ADB_INFO_CENTER.on_valid_fix_found%N")
 			valid_fix_found_actions.call (a_fix)
 		end
 
 	on_fix_applied (a_fix: ES_ADB_FIX)
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_fix_applied%N")
 			fix_applied_actions.call (a_fix)
 		end
 
 	on_fixing_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_fixing_stop%N")
 			fixing_stop_actions.call (Void)
 		end
 
 	on_continuation_debugging_start
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_continuation_debugging_start%N")
 			continuation_debugging_start_actions.call (Void)
 		end
 
 	on_continuation_debugging_stop
 			-- <Precursor>
 		do
-			print("ES_ADB_INFO_CENTER.on_continuation_debugging_stop%N")
 			continuation_debugging_stop_actions.call (Void)
 		end
 
@@ -193,7 +199,6 @@ feature -- ADB Actions
 			-- <Precursor>
 
 		do
-			-- print("ES_ADB_INFO_CENTER.on_output%N")
 			output_actions.call (a_line)
 		end
 

@@ -68,7 +68,7 @@ feature -- Access
 			-- Default is 10.
 
 	negative_relaxation_delta: INTEGER
-			-- The avlue for relaxed integer change calculation for negative case
+			-- The value for relaxed integer change calculation for negative case
 			-- This delta only has effect if `is_integer_change_relaxation_enabled' is True.
 			-- Default is 10.
 
@@ -317,6 +317,11 @@ feature{NONE} -- Process/Data
 			to_implement ("To implement. 8.3.2010 Jasonw")
 		end
 
+	process_array_value (a_value: EPA_ARRAY_VALUE)
+			-- Process `a_value'.
+		do
+		end
+		
 	process_ast_expression_value (a_value: EPA_AST_EXPRESSION_VALUE)
 			-- Process `a_value'.
 		do

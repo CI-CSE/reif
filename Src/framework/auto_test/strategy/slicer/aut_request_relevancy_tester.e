@@ -64,13 +64,11 @@ feature {AUT_REQUEST} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_create_object_request%N")
 			is_relevant := variables.has (a_request.target)
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			print("AUT_REQUEST_RELEVANCY_TESTER.process_invoke_feature_request%N")
 			is_relevant := variables.has (a_request.target) or
 							(a_request.receiver /= Void and then variables.has (a_request.receiver))
 		end

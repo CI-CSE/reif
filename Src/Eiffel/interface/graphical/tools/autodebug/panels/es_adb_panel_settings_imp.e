@@ -33,7 +33,6 @@ feature {NONE} -- Initialization
 			l_label: EV_LABEL
 			l_font, l_font_larger: EV_FONT
 		do
-			print ("ES_ADB_PANEL_SETTINGS_IMP.initialize%N")
 			Precursor {EV_HORIZONTAL_BOX}
 			set_padding({ES_UI_CONSTANTS}.horizontal_padding)
 
