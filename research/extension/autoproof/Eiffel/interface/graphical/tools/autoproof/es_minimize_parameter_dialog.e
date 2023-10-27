@@ -40,6 +40,7 @@ feature {NONE} -- Initlization
 			not_void: a_container /= Void
 		local
 			l_h_box: EV_HORIZONTAL_BOX
+			l_internal_h_box: EV_HORIZONTAL_BOX
 			l_tool_bar: SD_TOOL_BAR
 			l_spacer: EV_CELL
 		do
@@ -95,6 +96,19 @@ feature {NONE} -- Initlization
 			set_button_action_before_close ({ES_DIALOG_BUTTONS}.ok_button, agent on_ok)
 
 			show_actions.extend_kamikaze (agent text_for_tolerance.set_focus)
+
+			create l_internal_h_box
+			create minimize_strategy_label_name
+			minimize_strategy_label_name.set_text ("Minimize strategy%T")
+			l_internal_h_box.extend (minimize_strategy_label_name)
+			l_internal_h_box.disable_item_expand (minimize_strategy_label_name)
+
+			create evcombo_minimize_strategy.make_with_strings (<<"Minimize individual integer", "Minimize sum">>)
+			evcombo_minimize_strategy.disable_edit
+			l_internal_h_box.extend (evcombo_minimize_strategy)
+			a_container.extend (l_internal_h_box)
+			evcombo_minimize_strategy.set_minimum_width (20)
+
 		end
 
 feature {NONE} -- Implementation functions
@@ -126,6 +140,10 @@ feature {NONE} -- Implementation functions
 				options.set_minimization_iteration_bound (text_for_max_iteration.text.to_integer)
 			else
 				options.set_minimization_iteration_bound (20)
+			end
+
+			if evcombo_minimize_strategy.text.same_string ("Minimize sum") then
+				options.set_is_minimize_sum (True)
 			end
 
 		end
@@ -192,11 +210,17 @@ feature {NONE} -- Implementation
 	max_iteration_label_name: EV_LABEL
 			-- Label beside `maximum iteration text'
 
+	minimize_strategy_label_name: EV_LABEL
+			-- Label beside `minimize strategy combo'
+
 	text_for_tolerance: EV_TEXT_FIELD
 			-- Text for tolerance.
 
 	text_for_max_iteration: EV_TEXT_FIELD
 			-- Text for tolerance.
+
+	-- text_for_minimize_strategy: EV_TEXT_FIELD
+			-- Text for minimize strategy.
 
 feature -- Access
 
@@ -237,6 +261,10 @@ feature -- Access
 			Result := dialog_buttons.ok_button
 		end
 
+	evcombo_minimize_strategy: EV_COMBO_BOX
+			-- Strategies used for minimization
+
+;
 note
 	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"

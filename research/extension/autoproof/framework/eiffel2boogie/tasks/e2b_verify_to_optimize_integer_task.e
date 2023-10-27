@@ -79,7 +79,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (optimization_verifier, result_generator))
 
                 -- step into minimization
-                 options.set_is_minimize_sum (True)
 				remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK}.make (boogie_universe, target_class, target_feature, target_variables, failed_verifications, result_generator, remaining_tasks))
 			end
 
