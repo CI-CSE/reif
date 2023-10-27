@@ -70,7 +70,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			else
 				initial_value := get_value_from_counterexample (target_variable)
 			end
-				-- when the sum is converaged, end
 
 			if options.number_of_iterations > 1 then
 				-- perform a verification on the target feature at the 1st iteration
@@ -124,7 +123,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				if options.is_minimize_sum then
 					options.set_is_minimize_sum (False)
 					target_variables [target_feature].wipe_out	-- remove all the integer variables for the target feature	
-					
+
 				elseif is_container_size (target_variable) then
 					-- if the variable represents a container size, put all the items to the list of target variables
 					from
@@ -222,8 +221,6 @@ feature {NONE}
 			end
 
 			Result := max
-				-- last_value := Result
-				-- last models
 				-- print ("initial value from model: " + max.out + "%N")
 				--TODO:  if the counterexample model does not exist, then assign a randomly large value, a default value would be 100
 		end
