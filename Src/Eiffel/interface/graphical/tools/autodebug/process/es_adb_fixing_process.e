@@ -15,11 +15,31 @@ inherit
 		end
 
 create
-	make
+	make_from_fault,
+	make_from_failure
 
 feature{NONE} -- Initialization
 
-	make (a_fault: ES_ADB_FAULT; a_working_directory: STRING; a_output_buffer: ES_ADB_PROCESS_OUTPUT_BUFFER)
+	make_from_failure (a_failure: ES_ADB_PROOF_FAILURE; a_working_directory: STRING; a_output_buffer: ES_ADB_PROCESS_OUTPUT_BUFFER)
+			-- Initialization.
+		require
+			a_failure /= Void
+		local
+			l_command_line: STRING
+			l_max_length: INTEGER
+		do
+			failure := a_failure
+			l_command_line := command_line_for_fixing_failure (a_failure)
+			l_max_length := config.max_session_length_for_fixing + config.Max_session_overhead_length
+			set_should_output_be_parsed (True)
+			set_should_output_be_logged (True)
+
+			make_process (l_command_line, a_working_directory, l_max_length, a_output_buffer)
+			on_start_actions.extend (agent info_center.on_fixing_failure_start (a_failure))
+			on_terminate_actions.extend (agent info_center.on_fixing_stop)
+		end
+
+	make_from_fault (a_fault: ES_ADB_FAULT; a_working_directory: STRING; a_output_buffer: ES_ADB_PROCESS_OUTPUT_BUFFER)
 			-- Initialization.
 		require
 			a_fault /= Void
@@ -27,15 +47,14 @@ feature{NONE} -- Initialization
 			l_command_line: STRING
 			l_max_length: INTEGER
 		do
-			print ("ES_ADB_FIXING_PROCESS.make%N")
 			fault := a_fault
-			l_command_line := command_line_for_fixing (a_fault)
+			l_command_line := command_line_for_fixing_fault (a_fault)
 			l_max_length := config.max_session_length_for_fixing + config.Max_session_overhead_length
 			set_should_output_be_parsed (True)
 			set_should_output_be_logged (True)
 
 			make_process (l_command_line, a_working_directory, l_max_length, a_output_buffer)
-			on_start_actions.extend (agent info_center.on_fixing_start (a_fault))
+			on_start_actions.extend (agent info_center.on_fixing_fault_start (a_fault))
 			on_terminate_actions.extend (agent info_center.on_fixing_stop)
 		end
 
@@ -43,6 +62,9 @@ feature -- Access
 
 	fault: ES_ADB_FAULT
 			-- Fault to fix.
+
+	failure: ES_ADB_PROOF_FAILURE
+			-- Failure to fix
 
 feature -- Operation
 
@@ -55,22 +77,63 @@ feature -- Operation
 	launch
 			-- <Precursor>
 		do
-			print ("ES_ADB_FIXING_PROCESS.launch%N")
 			Precursor
-			if working_process.launched then
+			if attached fault and then working_process.launched then
 				fault.set_status ({ES_ADB_FAULT}.status_candidate_fix_unavailable)
+			elseif attached failure and then working_process.launched  then
+				-- TODO Li: change failure status
+				failure.set_status ({ES_ADB_PROOF_FAILURE}.status_candidate_fix_unavailable)
 			end
 		end
 
 feature{NONE} -- Implementation
 
-	command_line_for_fixing (a_fault: ES_ADB_FAULT): STRING
+	command_line_for_fixing_failure (a_failure: ES_ADB_PROOF_FAILURE): STRING
+			-- Command line string for fixing `a_fault'.
+		require
+			a_failure /= Void
+		local
+			l_fix_type_specific: STRING
+		do
+			create Result.make_empty
+			if config.should_fix_implementation and then a_failure.is_exception_type_in_scope_of_implementation_fixing then
+				l_fix_type_specific := "--fix-implementation "
+			else
+				l_fix_type_specific := ""
+			end
+			if config.should_fix_contracts and then a_failure.is_exception_type_in_scope_of_contract_fixing then
+				l_fix_type_specific.append ("--fix-contract ")
+				-- if a_fault.failing_feature_with_context.is_public or else a_fault.failing_feature_with_context.is_creation_feature then
+				 	l_fix_type_specific.append ("--relaxed-test-case-dir " + config.working_directory.relaxed_testing_result_dir.out + " ")
+				-- end
+			end
+			if config.is_based_approach_proof then
+				l_fix_type_specific.append ("--proof-based ")
+			end
+
+			Result := "%"" + eve_path.out + "%" "
+					+ "-project_path %"" + project_path_in_working_directory.out + "%" "
+					+ "-config %"" + ecf_path_in_working_directory.out + "%" "
+					+ "-target " + target_of_project + " "
+					+ "-auto_fix --max-fixing-target 15 "
+					+ "-t " + config.max_session_length_for_fixing.out + " "
+					+ "--test-case-dir %"" + config.working_directory.proof_result_dir_for_failure (a_failure).out + "%" "
+					+ "--report-file %"" + config.working_directory.fixing_result_dir.extended (a_failure.id + ".afr").out + "%" "
+					+ "--max-valid-fix " + config.max_nbr_fix_candidates.out + " "
+					+ "--result-dir " + project_path_in_working_directory.extended ("result").out + " "
+					+ "--fault-signature-id " + a_failure.id + " "
+					+ l_fix_type_specific
+		end
+
+	command_line_for_fixing_fault (a_fault: ES_ADB_FAULT): STRING
 			-- Command line string for fixing `a_fault'.
 		require
 			a_fault /= Void
 		local
 			l_fix_type_specific: STRING
 		do
+			-- TODO: distinguish between proof-based and tests-based
+			-- add extra command option for autofix for proof-based approach?
 			create Result.make_empty
 			if config.should_fix_implementation and then a_fault.is_exception_type_in_scope_of_implementation_fixing then
 				l_fix_type_specific := "--fix-implementation "
@@ -79,9 +142,9 @@ feature{NONE} -- Implementation
 			end
 			if config.should_fix_contracts and then a_fault.is_exception_type_in_scope_of_contract_fixing then
 				l_fix_type_specific.append ("--fix-contract ")
-				if a_fault.failing_feature_with_context.is_public or else a_fault.failing_feature_with_context.is_creation_feature then
-					l_fix_type_specific.append ("--relaxed-test-case-dir " + config.working_directory.relaxed_testing_result_dir.out + " ")
-				end
+				-- if a_fault.failing_feature_with_context.is_public or else a_fault.failing_feature_with_context.is_creation_feature then
+				 	l_fix_type_specific.append ("--relaxed-test-case-dir " + config.working_directory.relaxed_testing_result_dir.out + " ")
+				-- end
 			end
 
 			Result := "%"" + eve_path.out + "%" "

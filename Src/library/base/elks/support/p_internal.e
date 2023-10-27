@@ -12,7 +12,7 @@ inherit
 
 feature
 
-	set_integer_32_field_ (name: STRING_32; object: ANY; value: INTEGER_32)
+	set_integer_32_field_ (name: STRING; object: ANY; value: INTEGER_32)
 			-- Set integer value of an object field
 		local
 			i: INTEGER
@@ -20,7 +20,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+				field_name (i, object).same_string (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -32,7 +32,7 @@ feature
 			instance_free: class
 		end
 
-	set_integer_field_ (name: STRING_32; object: ANY; value: INTEGER)
+	set_integer_field_ (name: STRING; object: ANY; value: INTEGER)
 			-- Set integer value of an object field
 		local
 			i: INTEGER
@@ -40,7 +40,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+				field_name (i, object).same_string (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -60,7 +60,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+				field_name (i, object).same_string (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -80,7 +80,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+				field_name (i, object).same_string (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -100,7 +100,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name.to_string_8) or else i > field_count (object)
+				field_name (i, object).same_string (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end

@@ -54,6 +54,9 @@ feature {NONE} -- Initialization
 			create model_files.make
 			create init_states_of_counterexamples.make
 			create uncovered_branch.make (0)
+			create failures_for_fix.make (0)
+			create potential_fixes_names.make (0)
+			create valid_fixes.make (0)
 		end
 
 feature -- Inlining verification step
@@ -92,8 +95,8 @@ feature -- Generate fixes from counterexamples
 			is_generate_fix_enabled := a_value
 		end
 
-	ce_traces: HASH_TABLE [LINKED_LIST[E2B_CE_TRACE_OF_ROUTINE], FEATURE_I]
-			-- Collection of fix elements
+	ce_traces: HASH_TABLE [LINKED_LIST[E2B_CE_TRACE_OF_ROUTINE], STRING_32]
+			-- Collection of ce traces
 		once
 			create Result.make (0)
 		end
@@ -107,11 +110,20 @@ feature -- Generate fixes from counterexamples
 	fix_message: STRING_32
 			-- Message for possible fix
 
+	fix_start_time: DT_TIME
+
+
+	set_fix_start_time (a_fix_start_time: DT_TIME)
+			-- Set `fix_start_time' to `a_fix_start_time' -- TODO Li: remove this feature
+		do
+			fix_start_time := a_fix_start_time
+
+		end
+
 	set_fix_message (a_fix_message: STRING_32)
 			-- Set `fix_message' to `a_fix_message'
 		do
 			fix_message := a_fix_message
-			print (fix_message + "%N")
 		end
 
 	ce_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
@@ -123,25 +135,25 @@ feature -- Generate fixes from counterexamples
 	current_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 			-- Initial state of currently targeted counterexample (new or minimal counterexample)
 
-	fix_preconditions: LINKED_LIST [STRING_32]
+	fix_preconditions: LINKED_LIST [STRING]
 			-- Collection of precondition for program fixes
 		once
 			create Result.make
 		end
 
-	last_candidate_fix: STRING_32
+	last_candidate_fix: STRING
 			-- Last candidate fix
 
-	set_last_candidate_fix (a_fix: STRING_32)
+	set_last_candidate_fix (a_fix: STRING)
 			-- Set `last_candidate_fix' to `a_fix'
 		do
 			last_candidate_fix := a_fix
 		end
 
-	current_candidate_fix: STRING_32
+	current_candidate_fix: STRING
 			-- Last candidate fix
 
-	set_current_candidate_fix (a_fix: STRING_32)
+	set_current_candidate_fix (a_fix: STRING)
 			-- Set `current_candidate_fix' to `a_fix'
 		do
 			current_candidate_fix := a_fix
@@ -209,6 +221,15 @@ feature -- Generate tests from proof failures
 	target_class: detachable CLASS_C
 			-- Target class for minimization
 
+	failures_for_fix: ARRAYED_LIST [E2B_FAILED_VERIFICATION]
+			-- Target features for fixing
+
+	potential_fixes_names: ARRAYED_LIST [STRING]
+			-- Names of features of potential fixes
+
+	valid_fixes: ARRAYED_LIST [STRING]
+			-- Names of features of valid fixes
+
 	target_error_index: INTEGER
 			-- Index of error in the failed verification
 
@@ -221,10 +242,10 @@ feature -- Generate tests from proof failures
 			is_same_result := a_is_same_result
 		end
 
-	new_ce_message: STRING_32
+	new_ce_message: STRING
 			-- New message for counterexample
 
-	set_new_ce_message (a_ce_message: STRING_32)
+	set_new_ce_message (a_ce_message: STRING)
 			-- Set `new_ce_message' to `a_ce_message'
 		do
 			new_ce_message := a_ce_message
@@ -281,7 +302,6 @@ feature -- Generate tests from proof failures
 	reset
 			-- Reset parameters
 		do
-			print ("total number_of_iterations: " + number_of_iterations.out + " opt_time: " + opt_time.out + "%N")
 			number_of_iterations := 0
 			opt_time := 0
 			fix_elements.wipe_out
@@ -539,19 +559,19 @@ feature -- Counterexample optimization
 			create Result.make
 		end
 
-	container_to_optimize: HASH_TABLE [TYPE_A, IMMUTABLE_STRING_32]
+	container_to_optimize: HASH_TABLE [TYPE_A, STRING]
 			-- Containers to be optimized
 		once
 			create Result.make (0)
 		end
 
-	model_files: LINKED_LIST [IMMUTABLE_STRING_32]
+	model_files: LINKED_LIST [STRING]
 			-- Model files
 
 	init_states_of_counterexamples: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
 			-- Initial states generated from counterexamples
 
-	opt_preconditions: HASH_TABLE [HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32], FEATURE_I]
+	opt_preconditions: HASH_TABLE [HASH_TABLE [STRING, STRING], FEATURE_I]
 			-- Mapping from a routine to preconditions for optimization
 			-- Mapping: target feature -> list of `target variable -> precondition'
 		once
@@ -583,6 +603,7 @@ feature -- Counterexample optimization
 				-- print("current opt_time: " + opt_time.out + "%N")
 		end
 
+
 	set_opt_lower (a_value: INTEGER)
 			-- Set the value of last_opt_value to `a_value'
 		do
@@ -593,6 +614,15 @@ feature -- Counterexample optimization
 			-- Set the value of last_opt_value to `a_value'
 		do
 			opt_upper := a_value
+		end
+
+	is_minimize_sum: BOOLEAN
+			-- Is the minimization of variables' sum ended?
+
+	set_is_minimize_sum (a_value: BOOLEAN)
+			-- Set the value of is_minimize_sum_end to `a_value'
+		do
+			is_minimize_sum := a_value
 		end
 
 feature -- Other

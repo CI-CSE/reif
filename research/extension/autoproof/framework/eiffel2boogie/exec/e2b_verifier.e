@@ -142,7 +142,6 @@ feature -- Basic operations
 			create l_boogie_parser.make
 			l_boogie_parser.parse (last_output, last_models)
 			internal_last_result := l_boogie_parser.last_result
-
 		ensure
 			last_result_set: attached last_result
 		end

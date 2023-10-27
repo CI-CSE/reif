@@ -130,6 +130,7 @@ feature{NONE} -- Implementation
 				l_written_class := a_expression.written_class
 				l_context_feature := a_expression.feature_
 
+				-- add_expression_with_text (a_expression, a_expression.text)
 					-- Void-check and equality to 'Current'.
 				if not a_expression.text.is_case_insensitive_equal ("Current") then
 					add_expression_with_text (a_expression, a_expression.text + " = Void")

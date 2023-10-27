@@ -47,7 +47,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 		do
 			-- print ("E2B_VERIFY_FOR_FIX_EVALUATE_TASK.step%N")
 			if is_error_eliminated then
-			    options.set_fix_message ("Fix: adding precondition " + options.last_candidate_fix.to_string_8 + " for " + options.target_feature.feature_name_32.to_string_8)
+			    options.set_fix_message ("Fix: adding precondition " + options.last_candidate_fix + " for " + options.target_feature.feature_name_32.to_string_8)
 
 		   elseif attached options.target_feature then
 				create l_translator_input.make
@@ -58,7 +58,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				helper.reset
 				result_handlers.wipe_out
 
-				create new_verifier.make_with_prefix (options.target_class.name.to_string_8 + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
+				create new_verifier.make_with_prefix (options.target_class.name + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
 					-- TODO
 				create result_generator.make
 				remaining_tasks.start

@@ -23,6 +23,7 @@ feature -- Basic operations
 		local
 			l_line: STRING
 		do
+			-- print ("E2B_BOOGIE_OUTPUT_PARSER.parse%N")
 				-- Reset state
 			create last_result.make
 			input_lines := Void
@@ -67,6 +68,7 @@ feature {NONE} -- Implementation
 		local
 			l_line: INTEGER
 		do
+			-- print("proof result line: " + a_line + "%N")
 			if version_regexp.matches (a_line) then
 					-- version: version_regexp.captured_substring (1)
 				last_result.set_boogie_version (version_regexp.captured_substring (1))
@@ -111,6 +113,7 @@ feature {NONE} -- Implementation
 						current_procedure_result.set_time (t.to_real_32)
 					end
 				end
+
 				last_result.procedure_results.extend (current_procedure_result)
 				if not current_procedure_result.is_error then
 					current_procedure_result := Void

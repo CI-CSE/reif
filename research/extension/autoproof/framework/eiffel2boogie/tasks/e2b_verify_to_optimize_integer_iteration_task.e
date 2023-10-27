@@ -1,5 +1,5 @@
 note
-	description: "Task to re-verify with optimization."
+	description: "Task to optimize the value of an integer variable."
 
 class
 	E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK
@@ -17,33 +17,31 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_boogie_universe: IV_UNIVERSE; a_target_class: CLASS_C; a_target_feature: FEATURE_I; a_target_variables: HASH_TABLE [LINKED_LIST [STRING_32], FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
+	make (a_boogie_universe: IV_UNIVERSE; a_target_class: CLASS_C; a_target_feature: FEATURE_I; a_target_variables: HASH_TABLE [LINKED_LIST [STRING], FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-				-- print ("run E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK.make for " + "%N")
+				-- print ("E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK.make for " + "%N")
 			target_class := a_target_class
 			target_feature := a_target_feature
-
 			target_variables := a_target_variables
-
-			if a_target_variables [target_feature].count > 0 then
-				target_variable := a_target_variables [target_feature].first
-			else
-				target_variable := ""
-			end
-				-- print ("integer : " + target_variable.to_string_8 + "%N")
-
+			target_variable := ""
 			failed_verifications := a_failed_verifications
-
 			initial_result_generator := a_initial_result_generator
-
 			remaining_tasks := a_tasks
-
-			create l_translator_input.make
-			create l_context
-			has_next_step := True
 			l_boogie_universe := a_boogie_universe
 
+			if target_variables.has (target_feature) then
+				if options.is_minimize_sum then		-- minimize sum
+					target_variable := sum_expression
+					print ("minimize sum : " + target_variable + "%N")
+				else								-- minimize ineger variable
+					target_variable := target_variables [target_feature].first
+					print ("minimize integer : " + target_variable + "%N")
+				end
+			end
+
+			create translator_input.make
+			has_next_step := True
 			options.increase_number_of_iterations
 			options.accumulate_opt_time (a_failed_verifications.item (a_failed_verifications.upper).time)
 		end
@@ -61,62 +59,46 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 	step
 			-- <Precursor>
 		local
-			pre: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
 			i: INTEGER
 		do
-				-- print ("run E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK.step for integer " + target_variable.to_string_8 + "%N")
-			set_status ("Minimize the value of " + target_variable.to_string_8 + " in " + target_class.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8 + ", iteration " + options.number_of_iterations.out)
-
 			create result_generator.make
 			l_boogie_universe.declarations.wipe_out
+			set_status ("Minimize the value of " + target_variable + " in " + target_class.name + "." + target_feature.feature_name_32.to_string_8 + ", iteration " + options.number_of_iterations.out)
 
-			if target_variable.has_substring (".count") and then l_context.options.container_to_optimize.has (target_variable.split ('.').first) then -- target variable represents container size
-				is_container_size := True
-			elseif target_variable.has_substring (".item") and then l_context.options.container_to_optimize.has (target_variable.split ('.').first) then
-				is_container_item := True
+			if options.is_minimize_sum then
+				initial_value := get_sum_from_counterexample (target_feature)
+			else
+				initial_value := get_value_from_counterexample (target_variable)
 			end
+				-- when the sum is converaged, end
 
-			-- if is_same_result then
-				initial_value := get_value_from_counterexample
-			-- end
-
-			if l_context.options.number_of_iterations > 1 then
-				if is_same_result or l_context.options.number_of_iterations = 2 then
-					l_context.options.set_opt_upper (initial_value)
+			if options.number_of_iterations > 1 then
+				-- perform a verification on the target feature at the 1st iteration
+				-- start minimization following the binary search strategy from the 2nd iteration.
+				if is_same_result or options.number_of_iterations = 2 then
+					options.set_opt_upper (initial_value)
 				else
-					if l_context.options.last_opt_value < 0 then
-						l_context.options.set_opt_lower (l_context.options.last_opt_value - 1)
+					if options.last_opt_value < 0 then
+						options.set_opt_lower (options.last_opt_value - 1)
 					else
-						l_context.options.set_opt_lower (l_context.options.last_opt_value + 1)
+						options.set_opt_lower (options.last_opt_value + 1)
 					end
 				end
 			end
 
-				-- Heap[Current, ACCOUNT.balance]
-				-- print ("lower:  " + l_context.options.opt_lower.out + "%N")
-				-- print ("upper:  " + l_context.options.opt_upper.out + "%N")
-				-- print ("number of iterations:  " + l_context.options.number_of_iterations.out + "%N")
+			print ("lower:  " + options.opt_lower.out + "%N")
+			print ("upper:  " + options.opt_upper.out + "%N")
+			print ("number of iterations:  " + options.number_of_iterations.out + "%N")
 
-			if l_context.options.number_of_iterations = 1 or not is_converged then -- not converged
-				l_translator_input.feature_list.wipe_out
-				l_translator_input.add_feature (target_feature)
+			if options.number_of_iterations = 1 or not is_converged then
+				translator_input.feature_list.wipe_out
+				translator_input.add_feature (target_feature)
 
-				create optimization_verifier.make_with_prefix (target_class.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8) -- name of boogie file
+				create optimization_verifier.make_with_prefix (target_class.name + "." + target_feature.feature_name_32.to_string_8) -- name of boogie file
 
-				if l_context.options.opt_preconditions.has (target_feature) then -- add precondition
-					if l_context.options.opt_preconditions [target_feature].has (target_variable) then -- overwrite previous added precondition
-						l_context.options.opt_preconditions [target_feature] [target_variable].copy (pre_cond)
-					else
-						l_context.options.opt_preconditions [target_feature] [target_variable] := ""
-						l_context.options.opt_preconditions [target_feature] [target_variable].copy (pre_cond)
-					end
-				else
-					create pre.make (0)
-					pre.extend (pre_cond, target_variable)
-					l_context.options.opt_preconditions.extend (pre, target_feature)
-				end
+				add_opt_precond (pre_cond)
 
-				l_context.options.set_last_opt_value (medium_value)
+				options.set_last_opt_value (medium_value)
 
 				helper.reset
 				translation_pool.reset
@@ -125,7 +107,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.start
 				remaining_tasks.forth -- Skip current task in queue
 
-				remaining_tasks.extend (create {E2B_TRANSLATE_OPTIMIZE_TASK}.make (l_translator_input, l_boogie_universe))
+				remaining_tasks.extend (create {E2B_TRANSLATE_OPTIMIZE_TASK}.make (translator_input, l_boogie_universe))
 				remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, optimization_verifier))
 
 				remaining_tasks.extend (create {E2B_EXECUTE_BOOGIE_TASK}.make (optimization_verifier))
@@ -134,50 +116,38 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK}.make (boogie_universe, target_class, target_feature, target_variables, failed_verifications, result_generator, remaining_tasks))
 
 			else
-					-- form the final precondition
+					-- store the final precondition
+				add_opt_precond (final_pre_cond)
+				options.reset
+				target_variables [target_feature].remove_i_th (1) -- finish minization of the top integer variable, remove it from the list
 
-				if l_context.options.opt_preconditions.has (target_feature) then -- add precondition
-					if l_context.options.opt_preconditions [target_feature].has (target_variable) then -- overwrite
-						l_context.options.opt_preconditions [target_feature] [target_variable].copy (final_pre_cond)
-					else
-						l_context.options.opt_preconditions [target_feature] [target_variable] := ""
-						l_context.options.opt_preconditions [target_feature] [target_variable].copy (final_pre_cond)
-					end
-				else
-					create pre.make (0)
-					pre.extend (final_pre_cond, target_variable)
-					l_context.options.opt_preconditions.extend (pre, target_feature)
-				end
-
-				l_context.options.reset
-
-					-- l_context.options.opt_preconditions [target_feature] [target_variable].copy (final_pre_cond)
-					-- print ("replace with the last precondition")
-				target_variables [target_feature].remove_i_th (1) -- remove the first element
-					-- check if the variable represents a container size, if yes, put all the item name to the target variable list
-
-				if is_container_size then
+				if options.is_minimize_sum then
+					options.set_is_minimize_sum (False)
+					target_variables [target_feature].wipe_out	-- remove all the integer variables for the target feature	
+					
+				elseif is_container_size (target_variable) then
+					-- if the variable represents a container size, put all the items to the list of target variables
 					from
 						i := 1
 					until
-						i > final_value -- l_context.options.last_opt_value
+						i > final_value -- minimized container size
 					loop
-						target_variables [target_feature].extend (target_variable.split ('.').first + ".item." + i.out) -- sequence items to be optimized
+						target_variables [target_feature].extend (target_variable.split ('.').first + ".item." + i.out)
 						i := i + 1
 					end
 				end
 
 					-- reset lower and upper
-				l_context.options.set_opt_lower (0)
-				l_context.options.set_opt_upper (0)
-				l_context.options.set_last_opt_value (0)
+				options.set_opt_lower (0)
+				options.set_opt_upper (0)
+				options.set_last_opt_value (0)
 
 				if not target_variables [target_feature].is_empty then
 					remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_TASK}.make (l_boogie_universe, target_class, target_feature, target_variables, failed_verifications, remaining_tasks))
 				else
 					target_variables.remove (target_feature)
 					if not target_variables.is_empty then
-						l_context.options.opt_preconditions.wipe_out
+						options.opt_preconditions.wipe_out
 						remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_TASK}.make (l_boogie_universe, target_class, target_variables.current_keys [1], target_variables, failed_verifications, remaining_tasks))
 					end
 				end
@@ -194,20 +164,38 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 
 feature {NONE}
 
-	get_value_from_counterexample: INTEGER
+	add_opt_precond (a_precond: STRING)
+		local
+			l_pre: HASH_TABLE [STRING, STRING]
+		do
+			if options.opt_preconditions.has (target_feature) then -- add precondition
+
+				if options.opt_preconditions [target_feature].has (target_variable) then
+					options.opt_preconditions [target_feature] [target_variable].copy (pre_cond)
+				else
+					options.opt_preconditions [target_feature] [target_variable] := ""
+					options.opt_preconditions [target_feature] [target_variable].copy (pre_cond)
+				end
+			else
+				create l_pre.make (0)
+				l_pre.extend (pre_cond, target_variable)
+				options.opt_preconditions.extend (l_pre, target_feature)
+			end
+		end
+
+	get_value_from_counterexample (a_var: STRING): INTEGER
 			-- Get value of `a_var' in the counterexample
 		local
 			model_file: PLAIN_TEXT_FILE
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
 			max: INTEGER
 			models: ARRAY [IMMUTABLE_STRING_32]
-			model_file_content: STRING_32
+			model_file_content: STRING
 			initial_state: E2B_INITIAL_STATE_OF_ROUTINE
-			value: STRING_32
+			value: STRING
 		do
 			model_file_content := ""; value := ""
 				-- read the model of the target procedure
-			model_file_name := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (target_class.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8 + ".model").out
 			create model_file.make_open_read (model_file_name)
 			model_file.read_stream (1000000)
 			model_file_content.copy (model_file.last_string)
@@ -218,15 +206,15 @@ feature {NONE}
 				create ce.make (m)
 				create initial_state.make (target_feature, target_class, ce)
 
-				if is_container_size then
-					value.copy (initial_state.container_size_named (target_variable.split ('.').first))
-				elseif is_container_item then
-					value.copy (initial_state.container_item_named (target_variable.split ('.').first, target_variable.split ('.').last))
+				if is_container_size (a_var) then
+					value.copy (initial_state.container_size_named (a_var.split ('.').first))
+				elseif is_container_item (a_var) then
+					value.copy (initial_state.container_item_named (a_var.split ('.').first, a_var.split ('.').last))
 				else
-					value.copy (initial_state.value_named (target_variable))
+					value.copy (initial_state.value_named (a_var))
 				end
 
-				if value.to_integer > max then -- if there are multiple counterexample models, read all the values and get the maximum
+				if (not value.has ('-')) and value.to_integer > max then -- if there are multiple counterexample models, read all the values and get the maximum
 					max := value.to_integer
 				elseif value.has ('-') then -- negative value
 					max := value.split ('(').last.split (')').first.to_integer
@@ -234,9 +222,23 @@ feature {NONE}
 			end
 
 			Result := max
-            -- last_value := Result
-            -- last models
-			print ("initial value from model: " + max.out + "%N")
+				-- last_value := Result
+				-- last models
+				-- print ("initial value from model: " + max.out + "%N")
+				--TODO:  if the counterexample model does not exist, then assign a randomly large value, a default value would be 100
+		end
+
+	get_sum_from_counterexample (a_feature: FEATURE_I): INTEGER
+			-- Get the sum of all integer variables of `a_feature' in the counterexample
+		local
+			l_sum: INTEGER_32
+		do
+			across target_variables [a_feature] as v loop -- sum up absolute values of all integer variables
+				l_sum := l_sum + get_value_from_counterexample (v).to_integer.abs
+				print ("sum from model: " + l_sum.out + "%N")
+			end
+
+			Result := l_sum
 				--TODO:  if the counterexample model does not exist, then assign a randomly large value, a default value would be 100
 		end
 
@@ -270,11 +272,11 @@ feature {NONE}
 			Result := models
 		end
 
-	safe_file_name (a_file_name: STRING_32): STRING_32
+	safe_file_name (a_file_name: STRING): STRING
 			-- Safe version of `a_file_name' in case of space.
 		do
 			if a_file_name.has (' ') then
-				Result := "%"" + a_file_name.to_string_8 + "%""
+				Result := "%"" + a_file_name + "%""
 			else
 				Result := a_file_name
 			end
@@ -294,16 +296,13 @@ feature {NONE} -- Implementation
 	result_generator: attached E2B_RESULT_GENERATOR
 			-- Result generator.
 
-	l_translator_input: E2B_TRANSLATOR_INPUT
+	translator_input: E2B_TRANSLATOR_INPUT
 			-- Translator for Boogie code
 
-	l_context: E2B_SHARED_CONTEXT
-			-- Verification context
-
-	target_variable: STRING_32
+	target_variable: STRING
 			-- Variable under optimization
 
-	target_variables: HASH_TABLE [LINKED_LIST [STRING_32], FEATURE_I]
+	target_variables: HASH_TABLE [LINKED_LIST [STRING], FEATURE_I]
 			-- List of variables to be optimized
 
 	target_feature: detachable FEATURE_I
@@ -318,45 +317,56 @@ feature {NONE} -- Implementation
 	l_boogie_universe: IV_UNIVERSE
 			-- Universe for boogie code generation
 
-	model_file_name: STRING_32
+	model_file_name: STRING
 			-- Name of the .model file
+		do
+			Result := system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (target_class.name + "." + target_feature.feature_name_32.to_string_8 + ".model").out
+		end
 
 	is_negative: BOOLEAN
 			-- Is the initial value of the target variable negative?
 
-	is_container_size: BOOLEAN
+	is_container_size (a_var: STRING): BOOLEAN
 			-- Does the target variable represent the size of a container?
+		do
+			Result := a_var.has_substring (".count") and then options.container_to_optimize.has (a_var.split ('.').first)
+		end
 
-	is_container_item: BOOLEAN
+	is_container_item (a_var: STRING): BOOLEAN
 			-- Does the target variable represent an element of a container?
+		do
+			Result := a_var.has_substring (".item") and then options.container_to_optimize.has (a_var.split ('.').first)
+		end
 
 	initial_value: INTEGER
 			-- Initial value of the target variable
 
-	get_variable_name: STRING_32
+	get_variable_name (a_var: STRING): STRING
 			-- Variable name in the boogie code
 		local
-			object_name, object_type, field_name: STRING_32
+			object_name, object_type, field_name: STRING
 		do
-			if target_variable.has ('.') then
-				object_name := target_variable.split ('.').first
-				if is_container_size then
+
+			if a_var.has ('.') then
+				object_name := a_var.split ('.').first
+				if is_container_size (a_var) then
 						-- free requires (fun.SIMPLE_ARRAY^INTEGER_32^.count(Heap, a)) >= (0) && (fun.SIMPLE_ARRAY^INTEGER_32^.count(Heap, a)) <= 12955;
-					object_type := l_context.options.container_to_optimize [object_name].name
-					Result := "(fun." + safe_type (object_type).to_string_8 + ".count(Heap, " + object_name.to_string_8 + "))"
-				elseif is_container_item then
+					object_type := options.container_to_optimize [object_name].name
+					Result := "(fun." + safe_type (object_type) + ".count(Heap, " + object_name + "))"
+				elseif is_container_item (a_var) then
 						-- (Seq#Item(Heap[a, SIMPLE_ARRAY^INTEGER_32^.sequence], i_2)
-					object_type := l_context.options.container_to_optimize [object_name].name
-					Result := "(Seq#Item(Heap[" + object_name.to_string_8 + ", " + safe_type (object_type).to_string_8 + ".sequence], " + target_variable.split ('.').last.to_string_8 + "))"
+					object_type := options.container_to_optimize [object_name].name
+					Result := "(Seq#Item(Heap[" + object_name + ", " + safe_type (object_type) + ".sequence], " + a_var.split ('.').last + "))"
 
 				else
-					field_name := target_class.actual_type.name.to_string_8 + "." + target_variable.split ('.').last.to_string_8
-					Result := "Heap[" + object_name.to_string_8 + ", " + field_name.to_string_8 + "]"
+					field_name := target_class.actual_type.name + "." + a_var.split ('.').last
+					Result := "Heap[" + object_name + ", " + field_name + "]"
 				end
 
 			else
-				Result := target_variable
+				Result := a_var
 			end
+
 		end
 
 	gradient_descent_value: INTEGER
@@ -367,10 +377,10 @@ feature {NONE} -- Implementation
 	medium_value: INTEGER
 			-- Medium value in the binary search algorithm
 		do
-			Result := l_context.options.opt_lower + (l_context.options.opt_upper - l_context.options.opt_lower) // 2 -- integer division
+			Result := options.opt_lower + (options.opt_upper - options.opt_lower) // 2 -- integer division
 		end
 
-	pre_cond: STRING_32
+	pre_cond: STRING
 			-- Precondition to be added
 			--local
 			--	medium: INTEGER
@@ -379,40 +389,80 @@ feature {NONE} -- Implementation
 				-- print ("lower:  " + l_context.options.opt_lower.out + "%N")
 				-- print ("upper:  " + l_context.options.opt_upper.out + "%N")
 				-- medium := l_context.options.opt_lower + (l_context.options.opt_upper - l_context.options.opt_lower) // 2 -- integer division
+			if options.is_minimize_sum then
+				Result := minimize_sum_pre_cond
+			else
+				Result := minimize_var_pre_cond
+			end
+		end
 
+	sum_expression: STRING
+			-- Sum up all the integer variables of target feature
+		local
+			i: INTEGER
+		do
+			Result := ""
+			from
+				i := 1
+			until
+				i = target_variables [target_feature].count
+			loop
+				Result := Result + "abs(" + get_variable_name (target_variables [target_feature] [i]) + ") + "
+				i := i + 1
+			end
+
+			Result := Result + "abs(" + get_variable_name (target_variables [target_feature].last) + ") "
+
+		end
+
+	minimize_sum_pre_cond: STRING
+			-- Precondition for minimizing the sum of absolute values of all integer variables of target routine
+		do
+			Result := ""
+			if options.number_of_iterations > 1 then
+				Result := sum_expression + " <= " + medium_value.out
+			else
+				Result := sum_expression + " <= " + {INTEGER}.max_value.out -- find "sum <= max" at the first iteration
+			end
+
+		end
+
+	minimize_var_pre_cond: STRING
+			-- Precondition for minimizing an integer variable
+		do
 			if medium_value >= 0 then
-				Result := get_variable_name.to_string_8 + " >= 0 " + " && " + get_variable_name.to_string_8 + " <= " + medium_value.out
+				Result := get_variable_name (target_variable) + " >= 0 " + " && " + get_variable_name (target_variable) + " <= " + medium_value.out
 			elseif medium_value < 0 then
-				Result := get_variable_name.to_string_8 + " <= 0 " + " && " + get_variable_name.to_string_8 + " >= " + "(" + medium_value.out + ")"
+				Result := get_variable_name (target_variable) + " <= 0 " + " && " + get_variable_name (target_variable) + " >= " + "(" + medium_value.out + ")"
 			end
 		end
 
 	final_value: INTEGER
 		do
-			if l_context.options.number_of_iterations > 1 and abs (initial_value) = 1 then
+			if options.number_of_iterations > 1 and abs (initial_value) = 1 then
 				Result := initial_value
 			else
 				Result := medium_value
 			end
 		end
 
-	final_pre_cond: STRING_32
+	final_pre_cond: STRING
 			-- Precondition to be added
 		local
 			value: INTEGER
 		do
 				--	medium := l_context.options.opt_lower + (l_context.options.opt_upper - l_context.options.opt_lower) // 2 -- integer division
 				-- print ("l_context.options.number_of_iterations" + l_context.options.number_of_iterations.out + " initial_value:  " + initial_value.out + "%N")
-			if l_context.options.number_of_iterations > 1 and abs (initial_value) = 1 then
+			if options.number_of_iterations > 1 and abs (initial_value) = 1 then
 				value := initial_value
 			else
 				value := medium_value
 			end
 
 			if value >= 0 then
-				Result := get_variable_name.to_string_8 + " == " + value.out
+				Result := get_variable_name (target_variable) + " == " + value.out
 			else
-				Result := get_variable_name.to_string_8 + " == " + "(" + value.out + ")"
+				Result := get_variable_name (target_variable) + " == " + "(" + value.out + ")"
 			end
 		end
 
@@ -477,8 +527,8 @@ feature {NONE} -- Implementation
 
 				if equal_count = target_failed_verifications.count then -- verification result remains the same, continue minimization
 					Result := True
-					l_context.options.set_is_same_result (True)
-					print ("same verification result : " + equal_count.out + "%N")
+					options.set_is_same_result (True)
+						-- print ("same verification result : " + equal_count.out + "%N")
 				end
 			end
 		end
@@ -487,9 +537,9 @@ feature {NONE} -- Implementation
 			-- Stop criteria
 		do
 			Result := initial_value = 0
-				or (l_context.options.number_of_iterations > 2 and abs (l_context.options.opt_lower) + (l_context.options.minimization_tolerance) >= abs (l_context.options.opt_upper))
-				or (l_context.options.number_of_iterations >= l_context.options.minimization_iteration_bound)
-				or (l_context.options.number_of_iterations > 1 and abs (initial_value) = 1)
+				or (options.number_of_iterations > 2 and abs (options.opt_lower) + (options.minimization_tolerance) >= abs (options.opt_upper))
+				or (options.number_of_iterations >= options.minimization_iteration_bound)
+				or (options.number_of_iterations > 1 and abs (initial_value) = 1)
 				-- TODO: use tolerance and max iteration for limiting the times of iteration
 		end
 
@@ -503,11 +553,11 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	safe_type (type: STRING_32): STRING_32
+	safe_type (type: STRING): STRING
 			-- Convert the name of container type
 		local
-			t, item_type: STRING_32
-			tuple_field_types: LIST [STRING_32]
+			t, item_type: STRING
+			tuple_field_types: LIST [STRING]
 			i: INTEGER
 		do
 			t := ""; Result := ""; item_type := ""
@@ -544,7 +594,7 @@ feature {NONE} -- Implementation
 			Result.copy (t)
 		end
 
-	safe_name (name: STRING_32): STRING_32
+	safe_name (name: STRING): STRING
 			-- Get a valid name
 		do
 			if name.has_substring ("@@") then
@@ -552,7 +602,7 @@ feature {NONE} -- Implementation
 					-- elseif name.same_string ("Current") then
 					--	Result := "current_object"
 			elseif name.has ('.') then
-				Result := safe_type (name.split ('.').first).to_string_8 + "." + name.split ('.').last.to_string_8
+				Result := safe_type (name.split ('.').first) + "." + name.split ('.').last
 			else
 				Result := name
 			end

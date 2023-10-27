@@ -34,7 +34,6 @@ feature -- Test cases: Access
 			l_tests: DS_HASH_SET [ES_ADB_TEST]
 			l_class_name: STRING
 		do
-			print ("ES_ADB_TEST_CASE_REPOSITORY.register_test_case%N")
 			l_path := a_test.location
 			l_sig := a_test.test_case_signature
 			l_feature_with_context_str := l_sig.class_and_feature_under_test

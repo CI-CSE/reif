@@ -221,7 +221,10 @@ feature{NONE} -- Implementation
 				until
 					l_ast_cursor.after
 				loop
-					l_ast_cursor.item.replace_text ("True", l_match_list)
+
+					l_ast_cursor.item.replace_subtext (":", ": not", true, l_match_list)
+					-- l_ast_cursor.item.prepend_text ("not", l_match_list)
+					-- l_ast_cursor.item.replace_text ("True", l_match_list)
 					l_ast_cursor.forth
 				end
 				Result.force (l_class.ast.text (l_match_list).twin, l_class_file_name)
@@ -302,6 +305,8 @@ feature{NONE} -- Implementation
 				create l_class_file.make_with_path (l_class_file_path)
 				l_class_file.open_write
 				l_class_file.put_string (l_class_text)
+				print ("l_class_file_name: " + l_class_file_name + "%N%N")
+				print (l_class_text + "%N")
 				l_class_file.close
 
 				l_table_cursor.forth

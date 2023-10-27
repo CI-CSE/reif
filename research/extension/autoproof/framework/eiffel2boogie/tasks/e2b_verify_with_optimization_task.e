@@ -47,11 +47,10 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			-- <Precursor>
 		local
 			j, k: INTEGER
-			arg_name, file_prefix: STRING_32
+			arg_name, file_prefix: STRING
 			arg_type: TYPE_A
 			pt: E2B_PROOF_TO_TEST_TARGET_FEATURE
 		do
-			print ("number of verification failures: " + last_result.failed_verifications.upper.out + "%N")
 			create l_boogie_universe.make
 			boogie_universe_cell.put (l_boogie_universe)
 
@@ -65,7 +64,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				create pt.make (target_feature, target_class)
 				l_context.options.features_to_optimize.extend (pt)
 
-				file_prefix := target_class.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8
+				file_prefix := target_class.name + "." + target_feature.feature_name_32.to_string_8
 
 				if not l_context.options.model_files.has (file_prefix) then
 					l_context.options.model_files.extend (file_prefix)
@@ -79,7 +78,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 					until
 						j > target_feature.arguments.count
 					loop -- Minimize each argument of the target feature
-						arg_name := target_feature.arguments.item_name_32 (j)
+						arg_name := target_feature.arguments.item_name_32 (j).to_string_8
 						arg_type := target_feature.arguments.array_item (j - 1)
 						-- print (arg_name + ": " + arg_type.base_class.name + "%N")
 
@@ -125,7 +124,7 @@ feature {NONE} -- Implementation
 	target_class: detachable CLASS_C
 			-- Class of the target feature
 
-	target_variables: HASH_TABLE [LINKED_LIST [STRING_32], FEATURE_I]
+	target_variables: HASH_TABLE [LINKED_LIST [STRING], FEATURE_I]
 			-- List of integer variables to be optimized
 
 	failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]
@@ -138,16 +137,14 @@ feature
 
 feature -- features for extending functionality for optimization
 
-	minimize_var (a_var: STRING_32; a_type: TYPE_A)
+	minimize_var (a_var: STRING; a_type: TYPE_A)
 			-- Minimize a variable
 		local
 			i: INTEGER
-			type, attr_name: STRING_32
+			type, attr_name: STRING
 			attr_type: TYPE_A
 		do
 			minimized_vars.extend (a_var)
-
-			-- print ("minimize var " + a_var.to_string_8 + "%N")
 
 			type := a_type.base_class.name
 
@@ -198,42 +195,42 @@ feature -- features for extending functionality for optimization
 			end
 		end
 
-	is_container_type (a_type: STRING_32): BOOLEAN
+	is_container_type (a_type: STRING): BOOLEAN
 			-- Is `a_type' a container type?
 		do
 			Result := a_type.same_string ("SIMPLE_ARRAY") or a_type.same_string ("V_ARRAY")
 		end
 
-	is_integer_type (a_type: STRING_32): BOOLEAN
+	is_integer_type (a_type: STRING): BOOLEAN
 			-- Is `a_type' an integer type?
 		do
 			Result := a_type.same_string ("INTEGER") or a_type.same_string ("INTEGER_8") or a_type.same_string ("INTEGER_16") or a_type.same_string ("INTEGER_32")
 		end
 
-	is_reference_type (a_type: STRING_32): BOOLEAN
+	is_reference_type (a_type: STRING): BOOLEAN
 			-- Is 	`a_type' a reference type?
 		do
 			Result := not is_integer_type (a_type) and not a_type.same_string ("BOOLEAN") and not a_type.same_string ("REAL") and
 				not a_type.same_string ("CHARACTER")
 		end
 
-	add_target_variable (a_var: STRING_32)
+	add_target_variable (a_var: STRING)
 			-- Add `a_var' to the groups of target variables
 		do
 			if target_variables.has (target_feature) then
 				target_variables [target_feature].extend (a_var)
 			else
-				target_variables.extend (create {LINKED_LIST [STRING_32]}.make_from_iterable (<<a_var>>), target_feature)
+				target_variables.extend (create {LINKED_LIST [STRING]}.make_from_iterable (<<a_var>>), target_feature)
 			end
 		end
 
-	minimized_vars: LINKED_LIST [STRING_32]
+	minimized_vars: LINKED_LIST [STRING]
 			-- A list of minimized variables
 
-	add_opt_container (a_var: STRING_32; a_type: TYPE_A)
+	add_opt_container (a_var: STRING; a_type: TYPE_A)
 			-- Add `a_var' to the list of containers to be optimized
 		do
-			l_context.options.container_to_optimize.extend (a_type, a_var)
+			l_context.options.container_to_optimize.force (a_type.twin, a_var.twin)
 		end
 
 note

@@ -160,7 +160,6 @@ feature{NONE} -- Implementation
 		local
 			l_prc_factory: PROCESS_FACTORY
 		do
-			print ("ES_ADB_PROCESS.launch%N")
 			create l_prc_factory
 			working_process := l_prc_factory.process_launcher_with_command_line (command_line, working_directory)
 			working_process.enable_launch_in_new_process_group

@@ -1,5 +1,5 @@
 note
-	description: "Summary description for {AFX_EXCEPTION_RECIPIENT_FEATURE}."
+	description: "Summary description for {AFX_FEATURE_TO_MONITOR}."
 	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
@@ -98,7 +98,13 @@ feature -- Expressions to monitor at breakpoints
 				-- Expressions and skeletons we may need.
 			if should_monitor_body then
 				l_body_expressions := expressions_to_monitor_in_body
+				-- l_body_expressions.extend (constant_values)
+				-- l_body_expressions
+
 				l_body_skeleton := derived_state_skeleton_from_expressions (l_body_expressions)
+				-- across l_body_skeleton as exp loop
+					-- print ("body exp: " + exp.item.text + "%N")
+				-- end
 			end
 			if should_monitor_contracts then
 				l_expressions_to_monitor_at_entry_and_exit := expressions_to_monitor_at_entry_and_exit
@@ -146,6 +152,7 @@ feature -- Expressions to monitor at breakpoints
 					expressions_to_monitor_at_breakpoints_cache.force (l_body_expressions, lt_bpt.item)
 					skeletons_at_breakpoints_cache.force (l_body_skeleton, lt_bpt.item)
 				end
+
 			end
 		end
 
@@ -159,7 +166,7 @@ feature{NONE} -- Expressions to monitor at breakpoints (Cache)
 
 feature -- Contracts
 
-	contracts: TUPLE[pre, post: EPA_HASH_SET [EPA_EXPRESSION]]
+	contracts: TUPLE [pre, post: EPA_HASH_SET [EPA_EXPRESSION]]
 			-- Pre- and postcondition clauses of the feature.
 		local
 			l_clauses: LINKED_LIST [EPA_EXPRESSION]
@@ -200,7 +207,6 @@ feature -- Monitoring body execution
 			l_list_cursor: DS_ARRAYED_LIST_CURSOR [EPA_EXPRESSION]
 			l_base_expressions, l_expressions_to_monitor: EPA_HASH_SET [EPA_EXPRESSION]
 			l_constructor: AFX_BASIC_TYPE_EXPRESSION_CONSTRUCTOR
-			l_rank: AFX_EXPR_RANK
 		do
 			if expressions_to_monitor_in_body_cache = Void then
 				create expressions_to_monitor_in_body_cache.make_equal (30)
@@ -212,7 +218,11 @@ feature -- Monitoring body execution
 				sub_expression_collector_from_expression.collect_from_expressions (Current, extra_expressions)
 				l_base_expressions.merge (Sub_expression_collector_from_expression.last_sub_expressions)
 
---					-- Exception condition
+				-- across l_base_expressions as exp  loop
+				--	print (exp.item.text + "%N")
+				-- end
+					-- Exception condition
+				-- TODO Li: recover
 --				if session.exception_from_execution.is_precondition_violation
 --						and then Current.qualified_feature_name ~ session.exception_from_execution.recipient_feature_with_context.qualified_feature_name
 --						and then attached session.exception_from_execution.exception_condition_in_recipient as lt_failing_condition
@@ -226,6 +236,11 @@ feature -- Monitoring body execution
 				expressions_to_monitor_in_body_cache := l_constructor.last_constructed_expressions
 			end
 			Result := expressions_to_monitor_in_body_cache
+			-- across expressions_to_monitor_in_body_cache as exp loop
+			--		print ("result base expressions " + exp.item.text + "%N")
+			-- end
+
+
 		ensure
 			result_attached: Result /= Void
 		end
@@ -236,6 +251,9 @@ feature -- Monitoring body execution
 			l_expr_list: ARRAYED_LIST [EPA_EXPRESSION]
 			l_expressions_to_monitor: like expressions_to_monitor_in_body
 		do
+			across expressions_to_monitor_in_body as exp loop
+			end
+
 			if state_skeleton_in_body_cache = Void then
 				create l_expr_list.make (expressions_to_monitor_in_body.count + 1)
 				expressions_to_monitor_in_body.do_all (agent l_expr_list.force)
@@ -253,7 +271,7 @@ feature -- Monitoring body execution
 			Result := derived_state_skeleton_in_body_cache
 		end
 
-feature{NONE}
+feature {NONE}
 
 	expressions_to_monitor_in_body_cache: EPA_HASH_SET [EPA_EXPRESSION]
 			-- Cache for `expressions_to_monitor'.
@@ -382,6 +400,7 @@ feature{NONE} -- Implementation
 		local
 			l_builder: AFX_DERIVED_STATE_SKELETON_BUILDER
 		do
+			-- print ("AFX_FEATURE_TO_MONITOR.derived_state_skeleton_from_expressions%N")
 			create l_builder
 			l_builder.build_skeleton (Current, a_expressions)
 			Result := l_builder.last_derived_skeleton

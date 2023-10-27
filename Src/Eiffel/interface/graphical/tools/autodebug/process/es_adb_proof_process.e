@@ -23,8 +23,6 @@ feature -- Operation
 			l_command_line: STRING
 			l_max_length: INTEGER
 		do
-			print("ES_ADB_REGULAR_TESTING_PROCESS.make%N")
-
 			classes := a_classes.twin
 			l_command_line := command_line_for_proving_classes (a_classes)
 			l_max_length := config.max_session_length_for_testing + config.Max_session_overhead_length
@@ -41,7 +39,7 @@ feature -- Operation
 feature -- Access
 
 	classes: DS_HASH_SET [CLASS_C]
-			-- Classes tested.
+			-- Classes under verification.
 
 feature{NONE} -- Implementation
 
@@ -53,11 +51,6 @@ feature{NONE} -- Implementation
 			l_seed: STRING
 			l_cursor: DS_HASH_SET_CURSOR [CLASS_C]
 		do
-			if config.should_use_fixed_seed_in_testing then
-				l_seed := "-e " + config.fixed_seed.out
-			else
-				l_seed := ""
-			end
 
 			create Result.make_empty
 			Result := "%"" + eve_path.out + "%" "

@@ -977,7 +977,6 @@ feature -- Response parsing
 			Precursor
 
 			l_response := last_response
-			-- print ("last responseeee: " + last_response.text + "%N")
 			check l_response /= Void end
 			report_event (l_response)
 

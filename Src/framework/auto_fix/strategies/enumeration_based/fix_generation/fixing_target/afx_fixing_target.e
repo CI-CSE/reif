@@ -118,9 +118,7 @@ feature -- Status report
 	is_about_the_same_target (a_target: like Current): BOOLEAN
 			-- Is the current object and `a_target' about the same fixing target?
 		do
-			if bp_index = a_target.bp_index and then hash_code = a_target.hash_code and then expression ~ a_target.expression then
-				Result := True
-			end
+			Result := bp_index = a_target.bp_index and then hash_code = a_target.hash_code and then expression ~ a_target.expression
 		end
 
 	is_equal (a_target: like Current): BOOLEAN

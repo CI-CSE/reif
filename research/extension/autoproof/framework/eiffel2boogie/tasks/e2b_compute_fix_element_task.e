@@ -7,7 +7,10 @@ class
 inherit
 
 	E2B_VERIFY_TASK -- TODO: replace it with ROTA task?
+
 	E2B_SHARED_CONTEXT
+
+	SHARED_WORKBENCH
 
 create
 	make
@@ -17,11 +20,10 @@ feature {NONE} -- Initialization
 	make (a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-				-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.make%N")
+			-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
-
 			create l_context
 			options.increase_number_of_iterations
 		end
@@ -43,15 +45,19 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			-- 	l_boogie_universe: IV_UNIVERSE
 			-- l_context: E2B_SHARED_CONTEXT
 		do
-				-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.step%N")
+			-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.step%N")
 			options.set_generate_fix_enabled (False)
 			-- compute_range
 			-- compute_fix
-			print (Msg_ce_generated + " " + l_context.options.target_class.name + "." + l_context.options.target_feature.feature_name_32.to_string_8 + "%N")
+
+			store_ce_traces
+
+			print (Msg_ce_generated +  ce_trace_file_name + "%N")
+
 			if not options.fix_preconditions.is_empty then
 				options.set_current_candidate_fix(options.fix_preconditions.first)
 			end
-
+			options.ce_traces.wipe_out
 			has_next_step := False
 		end
 
@@ -90,7 +96,7 @@ feature
 			-- Compute possible ranges
 		local
 			e: E2B_FIX_ELEMENT
-			var: STRING_32
+			var: STRING
 			i: INTEGER
 			value, n, l_min, l_max: INTEGER
 		do
@@ -103,13 +109,11 @@ feature
 			loop -- loop over all counterexamples to get the minimal/maximum of each variable
 				var := options.ce_states.first.initial_values.current_keys [i]
 				create e.make (var)
-					-- print ("hhh: " + options.ce_states.first.initial_values [var].to_string_8 + "%N")
 				value := safe_value (options.ce_states.first.initial_values [var])
 				l_max := value
 				l_min := value
 
 				across options.ce_states as ce loop
-						-- print ("hhh2: " + ce.initial_values [var].to_string_8 + "%N")
 					value := safe_value (ce.initial_values [var])
 					if value > l_max then
 						l_max := value
@@ -122,16 +126,16 @@ feature
 
 				options.fix_elements.extend (e)
 
-				print (var.to_string_8 + " interval: [" + l_min.out + ", " + l_max.out + "]%N")
+				-- print (var.to_string_8 + " interval: [" + l_min.out + ", " + l_max.out + "]%N")
 				i := i + 1
 			end
 
 		end
 
-	safe_value (val: STRING_32): INTEGER
+	safe_value (val: STRING): INTEGER
 			-- Convert from string to a valid integer
 		local
-			s: STRING_32
+			s: STRING
 		do
 			s := val
 			if s.has ('(') then
@@ -141,31 +145,52 @@ feature
 			Result := s.to_integer
 		end
 
-	get_variable_name: STRING_32
+	get_variable_name: STRING
 			-- Variable name in the boogie code
 		local
-			object_name, object_type, field_name: STRING_32
+			object_name, object_type, field_name: STRING
 		do
 			if target_variable.has ('.') then
 				object_name := target_variable.split ('.').first
 				if is_container_size then
 						-- free requires (fun.SIMPLE_ARRAY^INTEGER_32^.count(Heap, a)) >= (0) && (fun.SIMPLE_ARRAY^INTEGER_32^.count(Heap, a)) <= 12955;
 					object_type := l_context.options.container_to_optimize [object_name].name
-					Result := "(fun." + safe_type (object_type).to_string_8 + ".count(Heap, " + object_name.to_string_8 + "))"
+					Result := "(fun." + safe_type (object_type) + ".count(Heap, " + object_name + "))"
 				elseif is_container_item then
 						-- (Seq#Item(Heap[a, SIMPLE_ARRAY^INTEGER_32^.sequence], i_2)
 					object_type := l_context.options.container_to_optimize [object_name].name
-					Result := "(Seq#Item(Heap[" + object_name.to_string_8 + ", " + safe_type (object_type).to_string_8 + ".sequence], " + target_variable.split ('.').last.to_string_8 + "))"
+					Result := "(Seq#Item(Heap[" + object_name + ", " + safe_type (object_type) + ".sequence], " + target_variable.split ('.').last.to_string_8 + "))"
 
 				else
-					field_name := options.target_class.actual_type.name.to_string_8 + "." + target_variable.split ('.').last.to_string_8
-					Result := "Heap[" + object_name.to_string_8 + ", " + field_name.to_string_8 + "]"
+					field_name := options.target_class.actual_type.name + "." + target_variable.split ('.').last
+					Result := "Heap[" + object_name + ", " + field_name + "]"
 				end
 
 			else
 				Result := target_variable
 			end
 		end
+
+
+	store_ce_traces
+			-- Generate a test from a single counterexample model
+		-- local
+			-- l_test_generator: E2B_GENERATE_TEST_SCRIPT
+			-- l_init_state: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+		do
+			-- create l_test_generator.make (ce_trace_file_name, create {LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]}.make_from_iterable (<<a_init_state>>))
+			across options.ce_traces.current_keys as k loop
+				ce_trace_file_name := system.eiffel_project.project_directory.path.extended (k.to_string_8 + ".txt").out
+				create ce_trace_file.make_create_read_write (ce_trace_file_name)
+				-- ce_trace_file.put_string (k.to_string_8 + "%N")
+				across options.ce_traces [k] as t loop
+					ce_trace_file.put_string (t.out)
+					ce_trace_file.flush
+				end
+				ce_trace_file.close
+			end
+		end
+
 
 feature {NONE} -- Implementation
 
@@ -178,8 +203,17 @@ feature {NONE} -- Implementation
 	l_context: E2B_SHARED_CONTEXT
 			-- Verification context
 
-	target_variable: STRING_32
+	target_variable: STRING
 			-- Name of the target variable
+
+	ce_trace_file_name: STRING
+			-- Path of the ce trace file
+
+	ce_trace_file: PLAIN_TEXT_FILE
+			-- Output .txt file that storeds all ce traces
+
+	file_index: INTEGER
+			-- File index of the ce trace file
 
 	is_container_size: BOOLEAN
 			-- Is the target variable the size of a container
@@ -193,11 +227,11 @@ feature {NONE} -- Implementation
 			Result := target_variable.has_substring (".item")
 		end
 
-	safe_type (type: STRING_32): STRING_32
+	safe_type (type: STRING): STRING
 			-- Convert the name of container type
 		local
-			t, item_type: STRING_32
-			tuple_field_types: LIST [STRING_32]
+			t, item_type: STRING
+			tuple_field_types: LIST [STRING]
 			i: INTEGER
 		do
 			t := ""; Result := ""; item_type := ""
@@ -233,6 +267,7 @@ feature {NONE} -- Implementation
 			end
 			Result.copy (t)
 		end
+
 	Msg_ce_generated: STRING = "<[- CE generated ]>"
 ;
 

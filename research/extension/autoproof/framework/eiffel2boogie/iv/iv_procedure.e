@@ -48,7 +48,7 @@ feature -- Access
 	implementations: LINKED_LIST [IV_IMPLEMENTATION]
 			-- Implementations of procedure (can be empty).
 
-	opt_preconditions: LINKED_LIST [STRING_32]
+	opt_preconditions: LINKED_LIST [STRING]
 			-- List of preconditions for counterexample optimization
 
 	status_values: ARRAYED_LIST [READABLE_STRING_8]
@@ -133,7 +133,7 @@ feature -- Element change
 			implementation_added: implementations.last = a_implementation
 		end
 
-	add_opt_precondition (a_precondition: STRING_32)
+	add_opt_precondition (a_precondition: STRING)
 			-- Add `a_precondition' to opt_preconditions.
 		require
 			opt_preconditions_attached: attached opt_preconditions
@@ -170,11 +170,6 @@ feature -- Test generation
 	is_ghost_or_lemma_feature: BOOLEAN
 			-- Is the current feature a ghost feature?
 		do
-			print ("is_ghost_or_lemma_feature" + "%N")
-			across status_values as v loop
-				print (v + " ")
-			end
-
 			Result := status_values.has ("ghost") or status_values.has ("lemma")
 		end
 

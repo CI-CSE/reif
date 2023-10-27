@@ -35,7 +35,7 @@ feature{NONE} -- Initialization
 			item.set_equality_tester (expression_value_equality_tester)
 		end
 
-feature -- Access
+feature -- Access 
 
 	item: EPA_HASH_SET [EPA_EXPRESSION_VALUE]
 			-- Item of current value

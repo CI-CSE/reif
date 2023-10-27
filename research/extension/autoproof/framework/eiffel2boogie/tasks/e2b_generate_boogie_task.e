@@ -36,6 +36,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 	step
 			-- <Precursor>
 		do
+			-- print ("E2B_GENERATE_BOOGIE_TASK.step%N")
 			boogie_generator.generate_verifier_input
 			if verifier.input.context /= Void then
 				boogie_generator.last_generated_verifier_input.set_context (verifier.input.context)

@@ -5,7 +5,7 @@ note
 	revision: "$Revision: 93135 $"
 
 class
-	AFX_COUNTEREXAMPLE_TRACE_TO_DAIKON_PRINTER
+	AFX_CE_TRACE_TO_DAIKON_PRINTER
 
 inherit
 	AFX_SHARED_SESSION
@@ -52,13 +52,13 @@ feature -- Access
 
 feature -- Basic operation
 
-	print_trace_repository (a_repository: DS_HASH_TABLE [AFX_PROGRAM_EXECUTION_TRACE, EPA_TEST_CASE_INFO])
+	print_ce_trace_repository (a_ce_traces: DS_ARRAYED_LIST [AFX_CE_TRACES_OF_FAILURE])
 			-- Print the program execution traces in `a_repository' to be used for Daikon.
 		require
-			repository_attached: a_repository /= Void
+			repository_attached: a_ce_traces /= Void
 		do
 			reset_printer
-			a_repository.do_all (agent print_trace)
+			a_ce_traces.do_all (agent print_ce_traces_of_failure)
 		end
 
 	set_state_skeleton (a_skeleton: EPA_STATE_SKELETON)
@@ -67,17 +67,33 @@ feature -- Basic operation
 			current_state_skeleton := a_skeleton
 		end
 
-feature{NONE} -- Implementation
+feature {NONE} -- Implementation
 
-	print_trace (a_trace: AFX_PROGRAM_EXECUTION_TRACE)
+--	print_ce_traces_of_routine (a_traces: AFX_CE_TRACES_OF_ROUTINE)
+--				-- Print `a_trace' to be used for Daikon.
+--		require
+--			trace_attached: a_traces /= Void
+--		do
+--			print ("AFX_CE_TRACE_TO_DAIKON_PRINTER.print_ce_traces_of_routine%N")
+--			a_traces.ce_traces.do_all (agent print_ce_traces_of_failure)
+--		end
+
+	print_ce_traces_of_failure (a_traces: AFX_CE_TRACES_OF_FAILURE)
+		require
+			trace_attached: a_traces /= Void
+		do
+			a_traces.ce_traces.do_all (agent print_ce_trace)
+		end
+
+	print_ce_trace (a_trace: AFX_CE_TRACE)
 			-- Print `a_trace' to be used for Daikon.
 		require
 			trace_attached: a_trace /= Void
 		do
-			a_trace.do_all (agent print_execution_state)
+			a_trace.ce_trace.do_all (agent print_ce_state)
 		end
 
-	print_execution_state (a_state: AFX_PROGRAM_EXECUTION_STATE)
+	print_ce_state (a_state: AFX_CE_STATE)
 			-- Print `a_state' to be used for Daikon.
 		require
 			state_attached: a_state /= Void
@@ -94,14 +110,14 @@ feature{NONE} -- Implementation
 			l_dkn_declaration: DKN_PROGRAM_POINT
 			l_dkn_trace_record: DKN_TRACE_RECORD
 		do
-			l_ppt := program_point_from_execution_state (a_state)
+			l_ppt := program_point_from_ce_state (a_state)
 			last_declarations.force_last (l_ppt)
 
-			l_trace_record := trace_record_from_execution_state (a_state, l_ppt)
+			l_trace_record := trace_record_from_ce_state (a_state, l_ppt)
 			last_trace.extend (l_trace_record)
 		end
 
-	trace_record_from_execution_state (a_state: AFX_PROGRAM_EXECUTION_STATE; a_ppt: DKN_PROGRAM_POINT): DKN_TRACE_RECORD
+	trace_record_from_ce_state (a_state: AFX_CE_STATE; a_ppt: DKN_PROGRAM_POINT): DKN_TRACE_RECORD
 			-- Trace record from `a_state'.
 		require
 			state_attached: a_state /= Void
@@ -148,11 +164,11 @@ feature{NONE} -- Implementation
 			end
 		end
 
-	program_point_from_execution_state (a_state: AFX_PROGRAM_EXECUTION_STATE): DKN_PROGRAM_POINT
+	program_point_from_ce_state (a_state: AFX_CE_STATE): DKN_PROGRAM_POINT
 			-- Program point declaration for `a_state'.
 		local
 			l_state: EPA_STATE
-			l_bp_index: INTEGER
+			l_index: INTEGER
 			l_context_class, l_written_class: CLASS_C
 			l_feature: FEATURE_I
 			l_ppt_name: STRING
@@ -163,18 +179,18 @@ feature{NONE} -- Implementation
 			l_var_type: TYPE_A
 		do
 			l_state := a_state.state
-			l_bp_index := a_state.location.breakpoint_index
-
+			l_index := a_state.index
+				-- print ("AFX_CE_TRACE_TO_DAIKON_PRINTER.program_point_from_ce_state: " +  l_index.out + "%N")
 			l_context_class := l_state.class_
 			l_written_class := l_state.feature_.written_class
 			l_feature := l_state.feature_
 
-			l_ppt_name := l_context_class.name.as_upper + "." + l_feature.feature_name_32.as_lower + {DKN_CONSTANTS}.ppt_tag_separator + l_bp_index.out
+			l_ppt_name := l_context_class.name.as_upper + "." + l_feature.feature_name_32.as_lower + {DKN_CONSTANTS}.ppt_tag_separator + l_index.out
 			create Result.make_with_type (l_ppt_name, Point_program_point)
-
-			-- Variables declared at this program point.
+				-- Result.bp_index
+				-- Variables declared at this program point.
 			l_skeleton := current_state_skeleton
---			l_skeleton := exception_recipient_feature.state_skeleton
+				-- 		l_skeleton := exception_recipient_feature.state_skeleton -- TODO Li recover, include the vars in the failed/dependent contracts
 			from l_skeleton.start
 			until l_skeleton.after
 			loop
@@ -184,6 +200,12 @@ feature{NONE} -- Implementation
 					Result.variables.force (variable_declaration (l_var_name, l_var_type))
 				end
 				l_skeleton.forth
+			end
+
+			across l_state as equ loop
+				if equ.item.value.is_integer or is_array_int (equ.item.expression.text, equ.item.expression.type) then
+					Result.variables.force (variable_declaration (equ.item.expression.text, equ.item.expression.type))
+				end
 			end
 		end
 
@@ -196,20 +218,29 @@ feature{NONE} -- Implementation
 			l_dec_type: STRING
 			l_comparability: INTEGER
 		do
-			if a_type.is_boolean then
-				l_rep_type := boolean_rep_type
-				l_comparability := a_var_name.hash_code
-			elseif a_type.is_integer then
-				l_rep_type := integer_rep_type
---				fixme ("This is a hack to avoid comparing irrelevant integer expressions. We ignore all feature calls with arguments. 23.6.2010 Jasonw")
-				if a_var_name.has ('(') then
+			if attached a_type then
+
+				if a_type.is_boolean then
+					l_rep_type := boolean_rep_type
 					l_comparability := a_var_name.hash_code
+				elseif a_type.is_integer then
+					l_rep_type := integer_rep_type
+--				fixme ("This is a hack to avoid comparing irrelevant integer expressions. We ignore all feature calls with arguments. 23.6.2010 Jasonw")
+					if a_var_name.has ('(') then
+						l_comparability := a_var_name.hash_code
+					else
+						l_comparability := integer_comparability
+					end
+				elseif a_type.is_real_32 or a_type.is_real_64 then
+					l_rep_type := double_rep_type
+					l_comparability := double_comparability
+				elseif is_array_int (a_var_name, a_type) then
+					l_rep_type := int_array_rep_type
+					l_comparability := int_array_comparability
 				else
-					l_comparability := integer_comparability
+					l_rep_type := hashcode_rep_type
+					l_comparability := hash_code_comparability
 				end
-			elseif a_type.is_real_32 or a_type.is_real_64 then
-				l_rep_type := double_rep_type
-				l_comparability := double_comparability
 			else
 				l_rep_type := hashcode_rep_type
 				l_comparability := hash_code_comparability
@@ -232,6 +263,8 @@ feature{NONE} -- Implementation
 				end
 			elseif attached {EPA_INTEGER_VALUE} a_value as l_int then
 				Result := l_int.item.out
+			elseif attached {EPA_ARRAY_VALUE} a_value as l_arr then
+				Result := l_arr.item
 			else
 				check should_not_happend: False end
 			end
@@ -251,5 +284,14 @@ feature -- Cache
 
 	last_trace_cache: like last_trace
 			-- Cache for `last_trace'.
+
+feature {NONE} -- Implementation
+
+	is_array_int (a_var_name: STRING; a_type: TYPE_A): BOOLEAN
+			-- Is `a_type' MML_SEQUENCE?
+		do
+			Result := a_var_name.same_string ("(Current).passed_blocks") or (a_type.name.has_substring ("MML_SEQUENCE")
+					and a_type.name.has_substring ("INTEGER"))
+		end
 
 end

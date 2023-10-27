@@ -357,7 +357,6 @@ feature -- Set others
 		require
 			is_valid_based_approach (a_type)
 		do
-			print("ES_ADB_CONFIG.set_based_approach: " + a_type.out + "%N")
 			based_approach := a_type
 		end
 

@@ -76,6 +76,7 @@ feature -- Variable rep-type
 
 	boolean_rep_type: STRING = "boolean"
 	integer_rep_type: STRING = "int"
+	int_array_rep_type: STRING = "int[]"
 	hashcode_rep_type: STRING = "hashcode"
 	double_rep_type: STRING = "double"
 	string_rep_type: STRING = "java.lang.String"
@@ -122,6 +123,7 @@ feature -- Comparability
 	integer_comparability: INTEGER = 2
 	double_comparability: INTEGER = 3
 	hash_code_comparability: INTEGER = 4
+	int_array_comparability: INTEGER = 5
 
 feature -- Misc
 

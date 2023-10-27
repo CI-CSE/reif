@@ -26,9 +26,7 @@ feature -- Access
 			l_class_groups: DS_ARRAYED_LIST [DS_HASH_SET [CLASS_C]]
 			l_group_cursor: DS_ARRAYED_LIST_CURSOR [DS_HASH_SET [CLASS_C]]
 			l_group: DS_HASH_SET [CLASS_C]
-			l_process: ES_ADB_REGULAR_TESTING_PROCESS
 		do
-			print ("ES_ADB_PROCESS_SEQUENCE_FOR_DEBUGGING.make%N")
 			make_sequence
 
 			l_class_groups := config.classes_to_test_in_sessions
@@ -40,12 +38,12 @@ feature -- Access
 			loop
 				l_group := l_group_cursor.item
 				if config.is_based_approach_proof then
-					tasks.force_last(create {ES_ADB_PROOF_PROCESS}.make (l_group, Void, output_buffer))
+					tasks.force_last (create {ES_ADB_PROOF_PROCESS}.make (l_group, Void, output_buffer))
 				else
-					tasks.force_last(create {ES_ADB_REGULAR_TESTING_PROCESS}.make (l_group, Void, output_buffer))
-					-- create l_process.make (l_group, Void, output_buffer)
+					tasks.force_last (create {ES_ADB_REGULAR_TESTING_PROCESS}.make (l_group, Void, output_buffer))
+						-- create l_process.make (l_group, Void, output_buffer)
 				end
-				-- tasks.force_last (l_process)
+					-- tasks.force_last (l_process)
 
 				l_group_cursor.forth
 			end
@@ -62,6 +60,7 @@ feature -- Operation
 			l_process: ES_ADB_PROCESS
 			l_classes: DS_HASH_SET [CLASS_C]
 			l_relaxed_testing_and_fixing_tasks: DS_ARRAYED_LIST [ES_ADB_PROCESS]
+			l_proof_fixing_task: ES_ADB_PROCESS
 		do
 			if a_cancel then
 				sub_task := Void
@@ -69,20 +68,23 @@ feature -- Operation
 				wrap_up
 			else
 				l_process := sub_task
-				if attached {ES_ADB_REGULAR_TESTING_PROCESS} l_process as lt_regular_testing_process then
-					if info_center.config.is_starting_fixing_after_each_testing_session then
-							-- Fix the faults found during `sub_task'.
-						print ("is_starting_fixing_after_each_testing_session%N")
-						l_relaxed_testing_and_fixing_tasks := relaxed_testing_and_fixing_tasks_for_faults_in_classes (lt_regular_testing_process.classes)
-						tasks.append_first (l_relaxed_testing_and_fixing_tasks)
-					elseif info_center.config.is_starting_fixing_after_all_testing_sessions and then tasks.is_empty then
-							-- Fix the faults found during ALL testing sessions.
-						print ("is_starting_fixing_after_all_testing_sessions%N")
-						l_relaxed_testing_and_fixing_tasks := relaxed_testing_and_fixing_tasks_for_faults_in_classes (info_center.config.all_classes)
-						tasks.append_first (l_relaxed_testing_and_fixing_tasks)
-					elseif info_center.config.is_starting_fixing_manually then
-							-- Do nothing.
-						print ("is_starting_fixing_manually%N")
+				if config.is_based_approach_proof then	-- fix faults detected by proof
+					if attached {ES_ADB_PROOF_PROCESS} l_process as lt_proof_process then
+						tasks.append_first (fixing_tasks_for_proof_failures (info_center.failure_repository)) -- TODO Li: handle multiple failures
+					end
+				else	-- fix faults detected by testing
+					if attached {ES_ADB_REGULAR_TESTING_PROCESS} l_process as lt_regular_testing_process then
+						if info_center.config.is_starting_fixing_after_each_testing_session then
+								-- Fix the faults found during `sub_task'.
+							l_relaxed_testing_and_fixing_tasks := relaxed_testing_and_fixing_tasks_for_faults_in_classes (lt_regular_testing_process.classes)
+							tasks.append_first (l_relaxed_testing_and_fixing_tasks)
+						elseif info_center.config.is_starting_fixing_after_all_testing_sessions and then tasks.is_empty then
+								-- Fix the faults found during ALL testing sessions.
+							l_relaxed_testing_and_fixing_tasks := relaxed_testing_and_fixing_tasks_for_faults_in_classes (info_center.config.all_classes)
+							tasks.append_first (l_relaxed_testing_and_fixing_tasks)
+						elseif info_center.config.is_starting_fixing_manually then
+								-- Do nothing.
+						end
 					end
 				end
 
@@ -102,9 +104,29 @@ feature -- Operation
 			a_fault /= Void
 			a_classes /= Void and then not a_classes.is_empty
 		do
-			print ("fault class: " + a_fault.signature.class_under_test_.name + "%N")
 			Result := a_classes.has (a_fault.signature.class_under_test_) and then a_fault.is_approachable_per_config (config) and then a_fault.status = {ES_ADB_FAULT}.status_not_yet_attempted
-			print ("fault is_new_fault_in_classes: " + Result.out + "%N")
+		end
+
+
+	fixing_tasks_for_proof_failures (a_proof_failures: DS_ARRAYED_LIST [ES_ADB_PROOF_FAILURE]): DS_ARRAYED_LIST [ES_ADB_PROCESS]
+			-- Fixing tasks for proof failures
+		-- require
+		-- 	a_ce_traces /= Void and then not a_ce_traces.is_empty
+		local
+			l_faults: DS_ARRAYED_LIST [ES_ADB_FAULT]
+			l_fault_cursor: DS_ARRAYED_LIST_CURSOR [ES_ADB_FAULT]
+			l_fault: ES_ADB_FAULT
+			l_features: DS_HASH_SET [EPA_FEATURE_WITH_CONTEXT_CLASS]
+			l_words: LIST [STRING_32]
+			l_fixing_process: ES_ADB_FIXING_PROCESS
+		do
+			-- l_faults := info_center.filtered_faults (agent is_new_fault_in_classes (?, a_classes))
+
+			create Result.make (0)
+			across a_proof_failures as k loop
+				create l_fixing_process.make_from_failure (k.item, Void, output_buffer)
+				Result.force_last (l_fixing_process)
+			end
 		end
 
 	relaxed_testing_and_fixing_tasks_for_faults_in_classes (a_classes: DS_HASH_SET [CLASS_C]): DS_ARRAYED_LIST [ES_ADB_PROCESS]
@@ -124,7 +146,9 @@ feature -- Operation
 			Result := relaxed_testing_and_fixing_tasks_for_faults (l_faults, True)
 		end
 
-;note
+;
+
+note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
@@ -155,4 +179,5 @@ feature -- Operation
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

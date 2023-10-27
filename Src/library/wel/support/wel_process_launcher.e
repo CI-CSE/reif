@@ -92,9 +92,6 @@ feature -- Basic Operations
 			l_input_pipe: like input_pipe
 			l_output_pipe: like output_pipe
 		do
-			print ("WEL_PROCESS_LAUNCHER.launch%N")
-			print ("a_command_lineeee:" + a_command_line.to_string_8 + "%N")
-
 			if hidden then
 				spawn_with_flags (a_command_line, a_working_directory, create_no_window)
 			else
@@ -240,7 +237,6 @@ feature {NONE} -- Implementation
 			l_directory: POINTER
 			b: BOOLEAN
 		do
-			print ("WEL_PROCESS_LAUNCHER.spawn_with_flags%N")
 			create l_ws_command_line.make (a_command_line)
 			create l_process_info.make
 			l_envs := environment_variables_as_wel_string

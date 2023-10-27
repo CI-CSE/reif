@@ -36,13 +36,18 @@ feature -- Access
 			l_node: detachable EPA_AST_STRUCTURE_NODE
 		do
 			l_node := node_at_break_point_internal (Current, a_bpslot)
-			if l_node /= Void then
+
+			if attached l_node then
+				Result := l_node.children.first.first -- TODO Li: recover Result := l_node
 				from until
 					l_node = Void or else l_node.is_instruction
 				loop
 					l_node := l_node.parent
 				end
-				Result := l_node
+
+				if attached l_node then
+					Result := l_node
+				end
 			end
 		ensure
 			good_result: Result /= Void implies Result.is_instruction
@@ -106,7 +111,7 @@ feature -- Access
 			l_children: LINKED_LIST [EPA_AST_STRUCTURE_NODE]
 			l_cur2: CURSOR
 		do
-			if a_parent.breakpoint_slot = a_bpslot then
+			if true then -- a_parent.breakpoint_slot = a_bpslot then
 				Result := a_parent
 			else
 					-- Recursively check if some child node has break point `a_bpslot'.

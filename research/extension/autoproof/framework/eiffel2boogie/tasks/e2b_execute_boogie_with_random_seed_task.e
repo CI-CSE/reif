@@ -89,7 +89,6 @@ feature {NONE} -- Implementation
 		do
 			Result := global_counter.item
 			global_counter.put (Result + 1)
-			print("random seed: " + Result.out  + "%N")
 		end
 
 

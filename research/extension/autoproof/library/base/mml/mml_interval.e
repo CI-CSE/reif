@@ -17,7 +17,23 @@ feature {NONE} -- Initialization
 
 	from_range (l, u: INTEGER)
 			-- Create interval [l, u].
+		local
+		    i: INTEGER
 		do
+			if l <= u then
+				create array.make (1, u - l + 1)
+				from
+					i := l
+				until
+					i > u
+				loop
+					array [i - l + 1] := i
+					i := i + 1
+				end
+			else
+				create array.make (1, 0)
+			end
 		end
 
 end
+

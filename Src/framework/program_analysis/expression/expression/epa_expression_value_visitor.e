@@ -59,6 +59,11 @@ feature -- Process
 		deferred
 		end
 
+	process_array_value (a_value: EPA_ARRAY_VALUE)
+			-- Process `a_value'.
+		deferred
+		end
+
 	process_ast_expression_value (a_value: EPA_AST_EXPRESSION_VALUE)
 			-- Process `a_value'.
 		deferred
@@ -78,5 +83,5 @@ feature -- Process
 			-- Process `a_value'.
 		deferred
 		end
-		
+
 end

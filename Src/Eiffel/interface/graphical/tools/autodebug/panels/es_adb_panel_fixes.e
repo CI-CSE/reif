@@ -119,11 +119,16 @@ feature -- ADB Actions
 			enable_command_invocation_widget (True)
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new counterexample is generated
 		do
 		end
-		
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		do
+		end
+
 	on_testing_start
 			-- <Precursor>
 		do
@@ -139,7 +144,7 @@ feature -- ADB Actions
 		do
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		local
 			l_row_for_fault, l_row_for_fix: EV_GRID_ROW
@@ -153,6 +158,23 @@ feature -- ADB Actions
 				update_fault_status (a_fault)
 			end
 		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
+			-- <Precursor>
+		local
+			l_row_for_fault, l_row_for_fix: EV_GRID_ROW
+			l_subrow_index, l_subrow_count: INTEGER
+		do
+			-- TODO: Li
+--			if fault_to_row_table.has (a_failure) then
+--				l_row_for_fault := fault_to_row_table.item (a_fault)
+--					-- Wipe out subrows for fixes.
+--				evgrid_fixes.remove_rows (l_row_for_fault.index + 1, l_row_for_fault.index + l_row_for_fault.subrow_count)
+--					-- Update fault status.
+--				update_failure_status (a_failure)
+--			end
+		end
+
 
 	on_fixing_stop
 			-- <Precursor>

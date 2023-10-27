@@ -39,7 +39,6 @@ feature{NONE} -- Initialization
 		require
 			a_sig /= Void
 		do
-			print ("ES_ADB_FAULT.make%N")
 			signature := a_sig.twin
 			create fixes.make_equal (20)
 			if is_approachable then

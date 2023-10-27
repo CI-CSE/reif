@@ -16,13 +16,14 @@ inherit
 
 feature -- Basic operation
 
-	evaluate_void_check (a_value: EPA_EXPRESSION_VALUE; a_operator: INTEGER): EPA_EXPRESSION_VALUE
+	evaluate_void_check (a_value: EPA_EXPRESSION_VALUE; a_operator: INTEGER; a_is_ce_state: BOOLEAN): EPA_EXPRESSION_VALUE
 			-- Evalute the result of comparing `a_value' with `Void', using `a_operator' as the equality test operator.
 		require
 			operator_valid: is_valid_void_check_operator (a_operator)
 		local
 			l_result: BOOLEAN
 		do
+
 			if attached {EPA_REFERENCE_VALUE} a_value then
 				l_result := not is_void_check_equal (a_operator)
 				create {EPA_BOOLEAN_VALUE} Result.make (l_result)

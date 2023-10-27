@@ -82,7 +82,6 @@ feature -- Operation
 			l_relaxed_feature: EPA_FEATURE_WITH_CONTEXT_CLASS
 			l_relaxed_testing_process: ES_ADB_RELAXED_TESTING_PROCESS
 			l_fixing_process: ES_ADB_FIXING_PROCESS
-
 		do
 			create Result.make_equal (a_faults.count * 2 + 1)
 			if not a_faults.is_empty then
@@ -112,7 +111,7 @@ feature -- Operation
 							end
 						end
 
-						create l_fixing_process.make (l_fault, Void, output_buffer)
+						create l_fixing_process.make_from_fault (l_fault, Void, output_buffer)
 						Result.force_last (l_fixing_process)
 					end
 

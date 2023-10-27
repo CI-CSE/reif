@@ -79,7 +79,6 @@ feature
 			l_lines: DS_LIST [STRING]
 			l_cursor: DS_LIST_CURSOR [STRING]
 		do
-			-- print("ES_ADB_OUTPUT_RETRIEVER.step%N")
 			l_lines := output_buffer.retrieve_and_clear
 			from
 				l_cursor := l_lines.new_cursor

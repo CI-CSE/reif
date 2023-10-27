@@ -17,7 +17,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_boogie_universe: IV_UNIVERSE; a_target_class: CLASS_C; a_target_feature: FEATURE_I; a_target_variables: HASH_TABLE[LINKED_LIST[STRING_32], FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_tasks: like remaining_tasks)
+	make (a_boogie_universe: IV_UNIVERSE; a_target_class: CLASS_C; a_target_feature: FEATURE_I; a_target_variables: HASH_TABLE[LINKED_LIST [STRING], FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
 			target_class := a_target_class
@@ -52,7 +52,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 	step
 		-- <Precursor>
 		local
-			file_prefix: STRING_32
+			file_prefix: STRING
 		do
             file_prefix := ""
 			create result_generator.make
@@ -63,7 +63,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				l_translator_input.feature_list.wipe_out
 				l_translator_input.add_feature (target_feature)
 
-				create optimization_verifier.make_with_prefix (target_class.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
+				create optimization_verifier.make_with_prefix (target_class.name + "." + target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
 
 				helper.reset
 				translation_pool.reset
@@ -79,6 +79,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (optimization_verifier, result_generator))
 
                 -- step into minimization
+                 options.set_is_minimize_sum (True)
 				remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK}.make (boogie_universe, target_class, target_feature, target_variables, failed_verifications, result_generator, remaining_tasks))
 			end
 
@@ -108,7 +109,7 @@ feature {NONE} -- Implementation
 	l_context: E2B_SHARED_CONTEXT
 			-- Verification context
 
-    target_variables: HASH_TABLE[LINKED_LIST[STRING_32], FEATURE_I]
+    target_variables: HASH_TABLE[LINKED_LIST [STRING], FEATURE_I]
             -- Variables to be optimized
 
 	target_feature: detachable FEATURE_I
@@ -123,7 +124,7 @@ feature {NONE} -- Implementation
 	l_boogie_universe: IV_UNIVERSE
              -- Universe for boogie code generation
 
-    model_file_name: STRING_32
+    model_file_name: STRING
    			-- Name of the .model file
 
     is_initial_verification: BOOLEAN
@@ -138,11 +139,10 @@ feature {NONE} -- Implementation
 	initial_value: INTEGER
 			-- Initial value of the target variable
 
-	pre_cond: STRING_32
+	pre_cond: STRING
 			-- Precondition to be added
 		do
-
-			-- Result := target_variable.to_string_8 + " < " + initial_value.out
+			-- Result := target_variable + " < " + initial_value.out
 		end
 
 

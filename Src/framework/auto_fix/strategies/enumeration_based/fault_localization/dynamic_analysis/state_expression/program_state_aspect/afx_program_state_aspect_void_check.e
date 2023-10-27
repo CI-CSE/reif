@@ -34,6 +34,7 @@ feature{NONE} -- Initialization
 
 			l_exp_text := "(" + a_reference.text + ")" + void_check_operator_text (a_equality_operator) + "Void"
 			make_with_text (a_context_class, a_context_feature, l_exp_text, a_written_class)
+			-- print ("AFX_PROGRAM_STATE_ASPECT_VOID_CHECK.make_void_check: " + l_exp_text + "%N")
 		end
 
 feature -- Basic operation
@@ -47,7 +48,8 @@ feature -- Basic operation
 				l_value := lt_equation.value
 			end
 
-			last_value := evaluate_void_check (l_value, operator)
+			last_value := evaluate_void_check (l_value, operator, a_state.is_ce_state)
+			-- print ("AFX_PROGRAM_STATE_ASPECT_VOID_CHECK.evaluate: " + operand.text + " -> " + last_value.out + "%N")
 		end
 
 	derived_change_requirements: DS_ARRAYED_LIST [AFX_STATE_CHANGE_REQUIREMENT]

@@ -721,7 +721,7 @@ feature {NONE} -- Update
 			filter_name := ""
 			option := argument (current_option)
 
-			print("ES.option: " + option.to_string_8 + "%N")
+			-- print("ES.option: " + option.to_string_8 + "%N")
 			if option.same_string_general ("-help") then
 				help_only := True
 			elseif option.same_string_general ("-loop") then

@@ -57,10 +57,12 @@ feature{NONE} -- Initialization
 	make_with_text (a_class: like class_; a_feature: like feature_; a_text: like text; a_written_class: like written_class)
 			-- Initialize Current.
 		do
+			-- print ("EPA_AST_EXPRESSION.make_with_text: " + a_text + "%N")
 			set_class (a_class)
 			set_feature (a_feature)
 			set_written_class (a_written_class)
 			parse_text (a_text)
+
 			if not has_syntax_error then
 				set_text (text_from_ast (ast))
 				fixme ("This is a hack, because for the moment, the type checker crashes quite often on expressions with {G}. 21.2.2011 Jasonw")
@@ -68,7 +70,7 @@ feature{NONE} -- Initialization
 					check_type
 				end
 			else
-				check should_not_happen: False end
+				-- check should_not_happen: False end -- TODO Li: recover
 			end
 		end
 

@@ -39,7 +39,7 @@ feature -- Access
 	ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 			-- Initial state extracted from the corresponding counterexample
 
-	ce_message: STRING_32
+	ce_message: STRING
 			-- Message for displaying counterexample.
 
 feature -- Display
@@ -48,14 +48,14 @@ feature -- Display
 			-- Set `ce_init_state' to `a_init_state'.
 		do
 			ce_init_state := a_ce_init_state
-			-- print("ce_message: " + ce_message.to_string_8 + "%N")
+			-- print("ce_message: " + ce_message + "%N")
 		end
 
-	set_ce_message (a_ce_message: STRING_32)
+	set_ce_message (a_ce_message: STRING)
 			-- Set `message' to `a_message'.
 		do
 			ce_message := a_ce_message
-			-- print("ce_message: " + ce_message.to_string_8 + "%N")
+			-- print("ce_message: " + ce_message + "%N")
 		end
 
 	single_line_message (a_formatter: TEXT_FORMATTER)

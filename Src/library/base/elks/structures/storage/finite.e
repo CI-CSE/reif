@@ -26,6 +26,8 @@ feature -- Status report
 			-- Is structure empty?
 		do
 			Result := count = 0
+		ensure then
+			Result = (count = 0)
 		end
 
 invariant

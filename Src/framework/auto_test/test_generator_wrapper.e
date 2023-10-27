@@ -116,7 +116,6 @@ feature {NONE} -- Status setting
 			then
 				interpreter_root_class_cell.put (l_eclass)
 			else
-				print("compute_interpreter_root_class: Void %N")
 				interpreter_root_class_cell.put (Void)
 			end
 		end

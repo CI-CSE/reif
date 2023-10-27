@@ -18,7 +18,7 @@ feature {NONE} -- Initialization
 	make (a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			print ("E2B_VERIFY_FOR_NEW_COUNTEREXAMPLE_TASK.make%N")
+			-- print ("E2B_VERIFY_FOR_NEW_COUNTEREXAMPLE_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -41,7 +41,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			l_boogie_universe: IV_UNIVERSE
 			-- l_context: E2B_SHARED_CONTEXT
 		do
-			print ("E2B_VERIFY_FOR_NEW_COUNTEREXAMPLE_TASK.step%N")
+			-- print ("E2B_VERIFY_FOR_NEW_COUNTEREXAMPLE_TASK.step%N")
 			if attached options.target_feature then
 				create l_translator_input.make
 				l_translator_input.add_feature (options.target_feature)
@@ -51,7 +51,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				helper.reset
 				result_handlers.wipe_out
 
-				create new_verifier.make_with_prefix (options.target_class.name.to_string_8 + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
+				create new_verifier.make_with_prefix (options.target_class.name + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
 					-- TODO
 				create result_generator.make
 				remaining_tasks.start

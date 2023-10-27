@@ -159,10 +159,10 @@ feature -- Universe Visitor
 				-- *Li: Add the text for optimization
 
 			across a_procedure.opt_preconditions as p loop
-				-- print("add precondition: " + p.to_string_8 +"%N")
+				-- print("add precondition: " + p +"%N")
 				if not p.same_string ("") then
 					output.put ("  free ")
-					output.put ("requires " + p.to_string_8)
+					output.put ("requires " + p)
 					output.put (";%N")
 				end
 			end

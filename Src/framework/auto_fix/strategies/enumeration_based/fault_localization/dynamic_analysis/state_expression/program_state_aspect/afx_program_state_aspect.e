@@ -61,5 +61,4 @@ feature{NONE} -- Implementation
 			Result.force_last (l_requirement)
 		end
 
-
 end

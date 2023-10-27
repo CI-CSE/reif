@@ -1,5 +1,5 @@
 note
-	description: "Task to re-verify with inlining."
+	description: "Task to re-verify for generate fixes."
 
 class
 	E2B_VERIFY_FOR_FIX_TASK
@@ -18,7 +18,6 @@ feature {NONE} -- Initialization
 	make (a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			print ("E2B_VERIFY_FOR_FIX_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -38,25 +37,29 @@ feature -- Status report
 feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 
 	step
-			-- <Precursor>120
+			-- <Precursor>
 		local
 			l_translator_input: E2B_TRANSLATOR_INPUT
 			l_boogie_universe: IV_UNIVERSE
 			-- l_context: E2B_SHARED_CONTEXT
+			l_failure: E2B_FAILED_VERIFICATION
 		do
-			print ("E2B_VERIFY_FOR_FIX_TASK.step%N")
-			if attached options.target_feature then
+			if not options.failures_for_fix.is_empty then
+				l_failure := options.failures_for_fix.first
+				-- across options.failures_for_fix as l_failure loop
+				options.set_target_class (l_failure.context_class)
+				options.set_target_feature (l_failure.context_feature)
+
+			-- if attached options.target_feature then
 				create l_translator_input.make
 				l_translator_input.add_feature (options.target_feature)
-
 				create l_boogie_universe.make
 				boogie_universe_cell.put (l_boogie_universe)
 				helper.reset
 				result_handlers.wipe_out
 
-				create new_verifier.make_with_prefix (options.target_class.name.to_string_8 + "." + options.target_feature.feature_name_32.to_string_8)
+				create new_verifier.make_with_prefix (options.target_class.name + "." + options.target_feature.feature_name_32.to_string_8)
 				    -- construct name of the boogie file
-					-- TODO
 				create result_generator.make
 				remaining_tasks.start
 				remaining_tasks.forth -- Skip current taks in queue
@@ -66,15 +69,19 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_WITH_RANDOM_SEED_TASK}.make (new_verifier))
 				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator))
 
-				print ("number_of_iterations: " + l_context.options.number_of_iterations.out + " vs " + l_context.options.number_of_iteration_for_fixing.out + "%N")
+				-- print ("number_of_iterations: " + l_context.options.number_of_iterations.out + " vs " + l_context.options.number_of_iteration_for_fixing.out + "%N")
+
 				if l_context.options.number_of_iterations < l_context.options.number_of_iteration_for_fixing then
+					remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_TASK}.make (result_generator, remaining_tasks))
+                elseif options.failures_for_fix.count > 1 then
+					options.failures_for_fix.remove_i_th (1)
+					options.reset
 					remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_TASK}.make (result_generator, remaining_tasks))
                 else
                     remaining_tasks.extend (create {E2B_COMPUTE_FIX_ELEMENT_TASK}.make (result_generator, remaining_tasks))
 				end
-
-				has_next_step := False
 			end
+			has_next_step := False
 		end
 
 	cancel

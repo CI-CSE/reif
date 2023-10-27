@@ -134,6 +134,12 @@ feature -- Access
 			create Result
 		end
 
+--	native_array_type: NATIVE_ARRAY_TYPE_A
+--			-- A native array type
+--		once
+--			create Result
+--		end
+
 note
 	date: "$Date$"
 	revision: "$Revision$"

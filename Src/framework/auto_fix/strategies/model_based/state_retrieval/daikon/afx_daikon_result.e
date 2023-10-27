@@ -80,7 +80,7 @@ feature {NONE} -- Implementation
 
 
      build_equation (str: STRING) :EPA_EQUATION
-     		--Takes a line output from Daikon and builds an AFX_Equation
+     		--Takes a line output from Daikon and builds an EPA_EQUATION
 		local
 			l_index: INTEGER
 			l_expression_str, l_value_str: STRING
@@ -100,8 +100,9 @@ feature {NONE} -- Implementation
      		l_value_str := str.substring (l_index + 2, str.count)
 			l_value_str.left_adjust
 			l_value_str.right_adjust
+
 			if expression.type /= Void then
-				if expression.type.is_integer then
+				if expression.type.is_integer or else l_value_str.is_integer then
 	     			create expression_integer_value.make (l_value_str.to_integer)
 	     			create equation.make (expression, expression_integer_value)
 				elseif expression.type.is_boolean then

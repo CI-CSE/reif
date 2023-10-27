@@ -37,7 +37,7 @@ feature -- Access
 
 feature -- Basic operation
 
-	compute_ranks (a_statistics_from_passing, a_statistics_from_failing: AFX_EXECUTION_TRACE_STATISTICS)
+	compute_suspiciousness_ranks (a_statistics_from_passing, a_statistics_from_failing: AFX_EXECUTION_TRACE_STATISTICS)
 			-- Compute ranks of program states according to statistics collected from traces.
 			-- Make the result available in `fixing_target_list', sorted.
 		do

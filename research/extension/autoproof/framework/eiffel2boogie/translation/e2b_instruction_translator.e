@@ -45,7 +45,7 @@ feature {NONE} -- Initialization
 			a_feature_attached: attached a_feature
 			a_implementation_attached: attached a_implementation
 		do
-			print ("E2B_INSTRUCTION_TRANSLATOR.make " + a_feature.feature_name + "%N")
+			-- print ("E2B_INSTRUCTION_TRANSLATOR.make " + a_feature.feature_name + "%N")
 			create entity_mapping.make
 			create locals_map.make (5)
 			local_writable := Void
@@ -136,8 +136,6 @@ feature -- Basic operations
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 			l_call: IV_PROCEDURE_CALL
 		do
-			print ("process_feature_of_type: " + a_feature.feature_name + "%N")
-
 			create l_ownership_handler
 			create l_expr_translator.make
 			l_expr_translator.set_context (a_feature, a_type)
@@ -432,7 +430,7 @@ feature -- Processing
 			l_line_number: INTEGER
 			status_values: ARRAYED_LIST [READABLE_STRING_8]
 		do
-			print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
+			-- print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
 			-- helper.options.set_conditional (True)
 			-- mapping: feature -> has_conditional
 			current_implementation.set_has_conditional (True)
@@ -466,11 +464,9 @@ feature -- Processing
 			l_then_orgin_info.set_line (l_line_number)
 			l_if.then_block.set_origin_information (l_then_orgin_info)
 			if status_values.has ("ghost") then
-				print ( "ghost%N")
 				l_if.node_info.set_attribute ("status", "ghost")
 			elseif status_values.has ("lemma") then
 				l_if.node_info.set_attribute ("status", "lemma")
-				print ( "lemma%N")
 			end
 
 				-- elseif blocks

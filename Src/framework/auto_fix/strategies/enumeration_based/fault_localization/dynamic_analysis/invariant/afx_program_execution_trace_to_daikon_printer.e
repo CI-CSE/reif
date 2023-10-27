@@ -52,6 +52,7 @@ feature -- Access
 
 feature -- Basic operation
 
+
 	print_trace_repository (a_repository: DS_HASH_TABLE [AFX_PROGRAM_EXECUTION_TRACE, EPA_TEST_CASE_INFO])
 			-- Print the program execution traces in `a_repository' to be used for Daikon.
 		require
@@ -68,6 +69,7 @@ feature -- Basic operation
 		end
 
 feature{NONE} -- Implementation
+
 
 	print_trace (a_trace: AFX_PROGRAM_EXECUTION_TRACE)
 			-- Print `a_trace' to be used for Daikon.

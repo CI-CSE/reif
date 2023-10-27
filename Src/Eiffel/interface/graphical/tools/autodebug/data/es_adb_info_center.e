@@ -20,6 +20,8 @@ inherit
 	ES_ADB_TEST_CASE_REPOSITORY
 		rename reset as reset_test_case_repository end
 
+	ES_ADB_PROOF_FAILURE_REPOSITORY
+
 	EPA_UTILITY
 
 	SHARED_PLATFORM_CONSTANTS
@@ -97,7 +99,6 @@ feature -- ADB Actions
 			-- <Precursor>
 		do
 			reset_internal_state
-
 			debugging_start_actions.call (Void)
 		end
 
@@ -107,10 +108,17 @@ feature -- ADB Actions
 			debugging_stop_actions.call (Void)
 		end
 
-	on_counterexample_generated (a_ce: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_generated (a_ce_traces_path: STRING)
 			-- Action to be performed when a new test case is generated
 		do
-			
+			-- register_ce_trace (a_ce_traces)
+		end
+
+	on_proof_failed (a_msg: STRING)
+			-- Action to be performed when proof fails
+		do
+			register_proof_failure (a_msg, system.eiffel_project.project_directory.data_path.extended ("AutoFix").extended ("temp"))
+			-- Result := eiffel_system.eiffel_project.project_directory.path.extended (l_file_name)
 		end
 
 	on_testing_start
@@ -133,13 +141,24 @@ feature -- ADB Actions
 			testing_stop_actions.call (Void)
 		end
 
-	on_fixing_start (a_fault: ES_ADB_FAULT)
+	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		do
 			a_fault.discard_all_fixes
 			a_fault.set_status (a_fault.status_candidate_fix_unavailable)
 			fixing_start_actions.call (a_fault)
 		end
+
+	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
+			-- <Precursor>
+		do
+			-- TODO Li
+--			print("ES_ADB_INFO_CENTER.on_fixing_start%N")
+--			a_fault.discard_all_fixes
+--			a_fault.set_status (a_fault.status_candidate_fix_unavailable)
+--			fixing_start_actions.call (a_fault)
+		end
+
 
 	on_valid_fix_found (a_fix: ES_ADB_FIX)
 			-- <Precursor>

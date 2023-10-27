@@ -22,6 +22,10 @@ inherit
 
 	E2B_SHARED_CONTEXT
 
+	SHARED_SERVER
+
+	EPA_COMPILATION_UTILITY
+
 create
 	make_with_arguments
 
@@ -193,7 +197,6 @@ feature -- Execution
 			l_start := current_time_millis
 
 			if options.is_bulk_verification_enabled then
-				print ("hhh")
 				autoproof.verify
 			else
 				autoproof.verify_forked
@@ -232,44 +235,108 @@ feature {NONE} -- Printing console
 	print_result (a_result: E2B_RESULT)
 			-- Print results to output.
 		do
-			print ("print_resultttt%N")
 			across a_result.verification_results as i loop
 				output_window.add ("======================================%N")
+
 				if attached {E2B_SUCCESSFUL_VERIFICATION} i.item as l_success then
 					print_successful_verification (l_success)
+
 				elseif attached {E2B_FAILED_VERIFICATION} i.item as l_failure then
 					print_failed_verification (l_failure)
-					-- TODO: display the failure in the "Faults" tab
-					if user_options.has ("-fix") then
-						options.set_target_feature (l_failure.context_feature)
-						options.set_target_class (l_failure.context_class)
---						-- TODO: how to get the failure? and then target class and target feature?
-						options.set_generate_fix_enabled (True)
-						options.set_number_of_iteration_for_fixing (option_argument ("-fix", 20))
-						autoproof.clear_notifications
-						-- autoproof.add_notification (agent print_ce_generated_msg (l_failure.context_class.name + " " + l_failure.context_feature.feature_name))
-						autoproof.verify
 
+					if user_options.has ("-fix") then
+						options.failures_for_fix.extend (l_failure)
 					end
+						-- TODO Li: display the failure in the "Faults" tab
 				elseif attached {E2B_AUTOPROOF_ERROR} i.item as l_error then
 					print_error (l_error)
 				else
 					check False end
 				end
 			end
+
+			if user_options.has ("-fix") then
+				options.set_fix_start_time (timer.system_clock.time_now)
+				generate_counterexamples_for_fix
+			elseif user_options.has ("-validate_fix") then
+				-- TODO
+				-- 	Parse the result to get the id of successful verification and store in a hash set S1
+				--  Instrument "check False end" assertion to the feature in S1, reverify the instrumented version
+						-- Instrument at the Eiffel level
+						-- Generate a new file or directly instrument at the boogie level?
+						-- Use SMT solver directly for simple property analysis?
+				--	Parse the result to get the id of the failed verification of check False and store in a hash set S2
+				-- 	Print out the result of S2 to the output panel, using Msg_valid_proof_fix
+				print_potential_fix
+				-- TODO Li: this is a hack to get the context class
+				reverify_with_check_false_instrumented (a_result.verification_results.last.context_class)
+			end
 		end
 
-	print_ce_generated_msg (a_target_feature_string: STRING)
-	do
-		print (Msg_ce_generated + " " + a_target_feature_string +  "%N")
-	end
+	get_valid_fixes_from_result (a_result: E2B_RESULT)
+			-- Print results to output.
+		do
+			across a_result.verification_results as i loop
+				if attached {E2B_FAILED_VERIFICATION} i.item as l_failure then
+					options.valid_fixes.extend (l_failure.context_feature.feature_name)
+				end
+			end
+
+			if not options.valid_fixes.is_empty then
+				print_valid_fixes (a_result.verification_results.last.context_class)
+			else
+				output_window.add ("No valid fixes found.%N")
+			end
+
+		end
+
+	print_valid_fixes (a_class: CLASS_C)
+		-- Print out the ids of valid fixes
+		local
+			l_feature: FEATURE_I
+			l_match_list: LEAF_AS_LIST
+		do
+			l_match_list := Match_list_server.item (a_class.class_id)
+
+			output_window.add (Msg_valid_proof_fix + "%N")
+
+			across options.valid_fixes as l_name loop
+				l_feature := a_class.feature_named (l_name.item)
+				output_window.add (l_feature.body.text(l_match_list))
+				output_window.add ("%N------------------------------------------------------------------------------------%N")
+			end
+			output_window.add ("%N")
+			output_window.add ("fixing end time: " + timer.system_clock.time_now.out + "%N")
+			-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
+		end
+
+	print_potential_fix
+		-- Print out the ids of potential fixes
+		local
+			l_id: STRING
+		do
+			output_window.add (Msg_potential_proof_fix + " ")
+			across options.potential_fixes_names as l_name loop
+				l_id := l_name.item.split ('_').last
+				if l_id.is_integer then
+					output_window.add (l_name.item.split ('_').last + " ")
+				end
+			end
+			output_window.add ("%N")
+		end
+
+--	print_ce_generated_msg (a_target_feature_string: STRING)
+--		do
+--			print (Msg_ce_generated + " " + a_target_feature_string + "%N")
+--		end
 
 	print_successful_verification (a_success: E2B_SUCCESSFUL_VERIFICATION)
 			-- Print successful verification information.
 		local
 			time_string: STRING
 		do
-			print_feature_information (a_success)
+			print_feature_information_for_success (a_success)
+
 			if options.is_print_time then
 				time_string := " (" + time_format.formatted (a_success.time) + "s)"
 			else
@@ -297,6 +364,7 @@ feature {NONE} -- Printing console
 			-- Print failed verifcation information.
 		local
 			time_string: STRING
+			out_str: STRING
 		do
 			print_feature_information (a_failure)
 			if options.is_print_time then
@@ -311,11 +379,23 @@ feature {NONE} -- Printing console
 				else
 					output_window.add ("--------------------------------------%N")
 				end
-				if i.item.context_line_number > 0 then
-					output_window.add ("Line: " + i.item.context_line_number.out + ". ")
+
+				if user_options.has ("-fix") then
+					out_str := i.item.context_class.name.twin; out_str.append_character (Msg_seperator)
+					out_str := out_str + i.item.context_feature.feature_name; out_str.append_character (Msg_seperator)
+					out_str := out_str + failure_code (i.item).out; out_str.append_character (Msg_seperator)
+					out_str := out_str + i.item.context_line_number.out; out_str.append_character (Msg_seperator)
+					output_window.add (Msg_proof_failed + out_str)
+					i.item.single_line_message (output_window)
+					output_window.add_new_line
+
+				else
+					if i.item.context_line_number > 0 then
+						output_window.add ("Line: " + i.item.context_line_number.out + ". ")
+					end
+					i.item.single_line_message (output_window)
+					output_window.add_new_line
 				end
-				i.item.single_line_message (output_window)
-				output_window.add_new_line
 			end
 		end
 
@@ -329,6 +409,29 @@ feature {NONE} -- Printing console
 			end
 			output_window.add (a_error.type + ": ")
 			a_error.single_line_message (output_window)
+			output_window.add_new_line
+		end
+
+	print_feature_information_for_success (a_proc: E2B_VERIFICATION_RESULT)
+			-- Print feature information.
+		do
+			if attached a_proc.context_class then
+				output_window.add_class (a_proc.context_class.original_class)
+			end
+			if attached a_proc.context_feature then
+				output_window.add (".")
+				output_window.add_feature (a_proc.context_feature.e_feature, a_proc.context_feature.feature_name_32)
+				if user_options.has ("-validate_fix") then
+					if a_proc.context_feature.feature_name.has_substring ("_id_") then
+						options.potential_fixes_names.extend (a_proc.context_feature.feature_name) -- the feature information is missing?
+					end
+				end
+			end
+			if attached a_proc.verification_context then
+				output_window.add (" (")
+				output_window.add (a_proc.verification_context)
+				output_window.add (")")
+			end
 			output_window.add_new_line
 		end
 
@@ -423,6 +526,51 @@ feature {NONE} -- Implementation
 			end
 		end
 
+	reverify_with_check_false_instrumented (a_class: CLASS_C)
+			-- Load `a_feature' for verification.
+		local
+			l_feature: FEATURE_I
+			l_match_list: LEAF_AS_LIST
+			l_class_file_name, l_class_text, l_old_class_text: STRING
+			l_class_file_path: PATH
+			l_class_file: PLAIN_TEXT_FILE
+		do
+				l_match_list := Match_list_server.item (a_class.class_id)
+				l_old_class_text := ""
+				l_old_class_text.copy (a_class.ast.text (l_match_list))
+
+				across options.potential_fixes_names as l_name loop
+					l_feature := a_class.feature_named (l_name.item)
+					if l_feature /= Void then
+						l_feature.e_feature.ast.body.as_routine.replace_subtext ("do", "do%Ncheck False end", True, l_match_list)
+					else
+						print ("Feature " + a_class.name + "." + l_name.item + " not found (skipped).%N")
+					end
+				end
+
+				l_class_text := a_class.ast.text (l_match_list)
+
+				l_class_file_name := a_class.name
+				l_class_file_path := system.eiffel_project.project_directory.path.extended (l_class_file_name + ".e")
+				create l_class_file.make_with_path (l_class_file_path)
+				l_class_file.open_write
+				l_class_file.put_string (l_class_text)
+				l_class_file.close
+
+				compile_project (eiffel_project, True)
+				l_match_list.remove_modifications
+
+				autoproof.reset
+				across options.potential_fixes_names as l_name loop
+					l_feature := a_class.feature_named (l_name.item)
+					if l_feature /= Void then
+						autoproof.add_feature (l_feature)
+					end
+				end
+				autoproof.add_notification (agent get_valid_fixes_from_result (?))
+				autoproof.verify
+		end
+
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
 		local
@@ -467,6 +615,33 @@ feature {NONE} -- Implementation
 			end
 		end
 
+	generate_counterexamples_for_fix
+			-- Generate a number of counterexamples for fixing
+		do
+			options.set_generate_fix_enabled (True)
+			options.set_number_of_iteration_for_fixing (option_argument ("-fix", 20))
+			autoproof.clear_notifications
+			autoproof.verify
+		end
+
+	failure_code (a_error: E2B_VERIFICATION_ERROR): INTEGER
+			-- Return the failure code based on the type of verification error
+		do
+			if attached {E2B_DEFAULT_VERIFICATION_ERROR} a_error as err then
+				if err.boogie_error.is_postcondition_violation then
+					Result := {EXCEP_CONST}.postcondition
+				elseif err.boogie_error.is_precondition_violation then
+					Result := {EXCEP_CONST}.precondition
+				elseif err.message.starts_with ("Invariant") then
+					Result := {EXCEP_CONST}.class_invariant
+				elseif err.message.starts_with ("Loop invariant") then
+					Result := {EXCEP_CONST}.loop_invariant
+				elseif err.message.has_substring ("Variant") or err.message.has_substring ("Integer variant") then
+					Result := {EXCEP_CONST}.loop_variant
+				end
+			end
+		end
+
 	time_format: FORMAT_DOUBLE
 			-- Format for verfication times.
 		once
@@ -487,6 +662,16 @@ feature {NONE} -- Implementation
 feature
 
 	Msg_ce_generated: STRING = "<[- CE generated ]>"
+
+	Msg_proof_failed: STRING = "<[- Proof failed ]>"
+
+	Msg_potential_proof_fix: STRING = "<[- Potential fix ]>"
+
+	Msg_fix_ended: STRING = "<[- Fixing process finished ]>"
+
+	Msg_valid_proof_fix: STRING = " ===================================  Valid Fix =================================="
+
+	Msg_seperator: CHARACTER = '|'
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software"
@@ -519,4 +704,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

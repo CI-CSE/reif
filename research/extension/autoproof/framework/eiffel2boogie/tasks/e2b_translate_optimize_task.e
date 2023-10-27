@@ -58,7 +58,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				-- Translate features for some milliseconds
 
 			if flag then
-			 translator.translation_pool.reset
+			 -- translator.translation_pool.reset
 			 translator.add_input (l_translator_input)
 			 -- l_boogie_universe.declarations.wipe_out
 		    end

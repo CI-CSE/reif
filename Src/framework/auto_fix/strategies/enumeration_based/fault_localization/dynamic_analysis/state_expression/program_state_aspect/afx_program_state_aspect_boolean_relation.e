@@ -31,7 +31,6 @@ feature{NONE} -- Initialization
 			left_operand := a_left_operand
 			right_operand := a_right_operand
 			operator := a_boolean_operator
-
 			create operand_expressions.make_equal (2)
 			operand_expressions.force (left_operand)
 
@@ -43,7 +42,6 @@ feature{NONE} -- Initialization
 				l_exp_text := "(" + a_left_operand.text + ") " + boolean_operator_text (a_boolean_operator) + " (" + a_right_operand.text + ")"
 				operand_expressions.force (right_operand)
 			end
-
 			make_with_text (a_context_class, a_context_feature, l_exp_text, a_written_class)
 		end
 
@@ -54,6 +52,7 @@ feature -- Basic operation
 		local
 			l_left_value, l_right_value: EPA_EXPRESSION_VALUE
 		do
+			-- print ("AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION.evaluate%N")
 			if left_operand /= Void then
 				if attached {AFX_PROGRAM_STATE_ASPECT} left_operand as lt_left_aspect then
 					lt_left_aspect.evaluate (a_state)
@@ -62,6 +61,7 @@ feature -- Basic operation
 					l_left_value := lt_left_equation.value
 				end
 			end
+			-- Right operand always void?
 			if right_operand /= Void then
 				if attached {AFX_PROGRAM_STATE_ASPECT} right_operand as lt_right_aspect then
 					lt_right_aspect.evaluate (a_state)
@@ -72,6 +72,7 @@ feature -- Basic operation
 			end
 
 			last_value := evaluate_boolean_relation (l_left_value, l_right_value, operator)
+			-- print ("AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION.evaluate: " + l_left_value.out + " " + l_right_value.out + "%N")
 		end
 
 	derived_change_requirements : DS_ARRAYED_LIST [AFX_STATE_CHANGE_REQUIREMENT]

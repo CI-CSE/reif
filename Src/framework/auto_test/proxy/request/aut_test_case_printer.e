@@ -209,7 +209,6 @@ feature -- Basic operations
 			l_type: detachable TYPE_A
 			l_root: SYSTEM_ROOT
 		do
-			print("AUT_TEST_CASE_PRINTER.print_test_case%N")
 			if not system.root_creators.is_empty then
 				l_root := system.root_creators.first
 				if attached l_root.root_class.compiled_class as l_class then

@@ -17,11 +17,11 @@ create
 
 feature -- Initialize
 
-	make (test_file_name: STRING_32; a_init_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE])
+	make (test_file_name: STRING; a_init_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE])
 			-- Initialize data for test generation
 		local
-			class_name: STRING_32
-			l_file_name: STRING_32
+			class_name: STRING
+			l_file_name: STRING
 		do
 			-- print ("E2B_GENERATE_TEST_SCRIPT.make%N")
 			start_timer
@@ -53,19 +53,19 @@ feature -- Files and data
 	initial_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
 			-- Mapping from class.routine to a set of counterexamples
 
-	alias_groups: HASH_TABLE [ARRAY [IMMUTABLE_STRING_32], IMMUTABLE_STRING_32]
+	alias_groups: HASH_TABLE [ARRAY [STRING], STRING]
 			-- Mapping from an abstract value (object) to a list of references
 
-	references_to_declare: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
+	references_to_declare: HASH_TABLE [STRING, STRING]
 			-- Reference objects that need to be declared as local variables
 
-	missing_values: ARRAY [IMMUTABLE_STRING_32]
+	missing_values: ARRAY [STRING]
 			-- A set of variables whose values are missing
 
-	sequence_items: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
+	sequence_items: HASH_TABLE [STRING, STRING]
 			-- Sequences' elements
 
-	sequence_lengths: HASH_TABLE [IMMUTABLE_STRING_32, IMMUTABLE_STRING_32]
+	sequence_lengths: HASH_TABLE [STRING, STRING]
 			-- Sequences's lengths
 
 	target_feature: FEATURE_I
@@ -80,24 +80,24 @@ feature -- Files and data
 	initial_state: E2B_INITIAL_STATE_OF_ROUTINE
 			-- Initial state from model
 
-	script_class_name: STRING_32
+	script_class_name: STRING
 			-- Class name of the test script
 
-	routine_names: ARRAY [STRING_32]
+	routine_names: ARRAY [STRING]
 
 feature -- Test generation
 
 	generate_test_file
 			-- Write the test cases to the output file
 		local
-			t, last_target_feature: STRING_32
+			t, last_target_feature: STRING
 			i: INTEGER
 			creators_keys: ARRAY [INTEGER]
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.generate_test_file%N")
 			t := ""; last_target_feature := ""
 			create creators_keys.make_empty
-			test_file.put_string (header.to_string_8)
+			test_file.put_string (header)
 
 			across initial_states as s loop
 				initial_state := s
@@ -112,20 +112,20 @@ feature -- Test generation
 					creation_procedure := target_class.feature_of_name_id (creators_keys [1])
 				end
 
-				if last_target_feature.same_string (target_class.actual_type.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8) then -- test case for the same feature
+				if last_target_feature.same_string (target_class.actual_type.name + "." + target_feature.feature_name_32.to_string_8) then -- test case for the same feature
 					i := i + 1
 				else
 					i := 1
-					last_target_feature.copy (target_class.actual_type.name.to_string_8 + "." + target_feature.feature_name_32.to_string_8)
+					last_target_feature.copy (target_class.actual_type.name + "." + target_feature.feature_name_32.to_string_8)
 				end
 
 				t := t + generate_test (i)
 			end
 
 			if attached target_class then
-				test_file.put_string_32 ("%Ttest_" + target_class.name.to_string_8 + "%N%T%Tdo%N")
+				test_file.put_string ("%Ttest_" + target_class.name + "%N%T%Tdo%N")
 				across routine_names as rn loop
-					test_file.put_string_32 ("%T%T%T" + rn.to_string_8 + "%N")
+					test_file.put_string_32 ("%T%T%T" + rn + "%N")
 				end
 				test_file.put_string_32 ("%T%Tend%N%N")
 			end
@@ -134,18 +134,18 @@ feature -- Test generation
 			test_file.put_string ("end%N")
 		end
 
-	header: STRING_32
+	header: STRING
 			-- Header of the test file
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.header%N")
-			Result := "class " + script_class_name.to_string_8 + "%N%Ninherit%N%TEQA_TEST_SET%N%N" + "feature -- Tests from failed proofs %N%N"
+			Result := "class " + script_class_name + "%N%Ninherit%N%TEQA_TEST_SET%N%N" + "feature -- Tests from failed proofs %N%N"
 		end
 
 	compute_alias
 			-- Store the aliases into the same group
 		local
 			i: INTEGER
-			name, value: STRING_32
+			name, value: STRING
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.compute_alias%N")
 			alias_groups.make (0)
@@ -172,12 +172,12 @@ feature -- Test generation
 			end
 		end
 
-	generate_test (i: INTEGER): STRING_32
+	generate_test (i: INTEGER): STRING
 			-- Generate the ith test case for the target routine based on the counterexample model m
 		local
-			t, td, tc, ti: STRING_32
-			argument_name: STRING_32
-			class_name, routine_name: STRING_32
+			t, td, tc, ti: STRING
+			argument_name: STRING
+			class_name, routine_name: STRING
 			j: INTEGER
 			current_type, argument_type, result_type: TYPE_A
 		do
@@ -185,15 +185,15 @@ feature -- Test generation
 			references_to_declare.wipe_out
 			argument_name := ""; Result := ""
 			class_name := target_class.actual_type.name
-			routine_name := target_feature.feature_name_32
+			routine_name := target_feature.feature_name_32.to_string_8
 			current_type := safe_type (target_class.actual_type.actual_type)
 
 			compute_alias
 			sequence_items := initial_state.ce.seq_item
 			sequence_lengths := initial_state.ce.seq_lengths
 
-			t := "%Ttest_" + class_name.to_string_8 + "_" + routine_name.to_string_8 + "_" + i.out + "%N"
-			routine_names.force ("%Ttest_" + class_name.to_string_8 + "_" + routine_name.to_string_8 + "_" + i.out, routine_names.count)
+			t := "%Ttest_" + class_name + "_" + routine_name + "_" + i.out + "%N"
+			routine_names.force ("%Ttest_" + class_name + "_" + routine_name + "_" + i.out, routine_names.count)
 				-- TODO: add header comements for each test routine
 			references_to_declare.extend (current_type.name, "Current")
 				-- td := declare_object ("Current", target_class.actual_type.actual_type)
@@ -206,12 +206,9 @@ feature -- Test generation
 				until
 					j > target_feature.arguments.count
 				loop
-					argument_name := target_feature.arguments.item_name_32 (j)
+					argument_name := target_feature.arguments.item_name_32 (j).to_string_8
 					argument_type := safe_type (target_feature.arguments.array_item (j - 1))
-					print ("typee: " + target_feature.arguments.array_item (j - 1).name + "%N")
-					print ("actualll: " + target_feature.arguments.array_item (j - 1).deep_actual_type.name + "%N")
 					j := j + 1
-					print (argument_name + ": " + argument_type.actual_type.name + "%N")
 					references_to_declare.extend (argument_type.name, argument_name)
 						-- td := td + declare_object (argument_name, argument_type)
 					tc := tc + create_object (argument_name, argument_type)
@@ -221,26 +218,20 @@ feature -- Test generation
 
 			result_type := target_feature.type
 
-				-- if is_container_type (result_type) then
-				--	result_type.copy (safe_type (result_type))
-				--end
 			td := ""
 			if not safe_type_name (result_type.name).same_string ("Void") then
 				references_to_declare.extend (result_type.name, routine_name + "_result")
 				across references_to_declare.current_keys as k loop
 					td := td + declare_object (k, references_to_declare [k])
-					print ("declare var: " + k + "%N")
 				end
 
-					-- print(td.to_string_8 + "%N")
 				t := t + "%T%Tlocal %N" + td + "%T%Tdo%N" + tc + ti
 				t := t + "%T%T%T" + routine_name + "_result := " + routine_call + "%N%T%Tend%N%N"
 			else
 				across references_to_declare.current_keys as k loop
 					td := td + declare_object (k, references_to_declare [k])
-						-- print ("declare var: " + k + "%N")
 				end
-					-- print(td.to_string_8 + "%N")
+
 				t := t + "%T%Tlocal %N" + td + "%T%Tdo%N" + tc + ti
 				t := t + "%T%T%T" + routine_call + "%N%T%Tend%N%N"
 			end
@@ -248,24 +239,23 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	declare_object (object_name: STRING_32; object_type: STRING_32): STRING_32
+	declare_object (object_name: STRING; object_type: STRING): STRING
 			-- Declaration of all object references
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.declare_object: " + object_name.to_string_8 + "%N")
-			Result := "%T%T%T" + safe_object_name (object_name).to_string_8 + ": " + safe_type_name (object_type).to_string_8 + "%N"
+			Result := "%T%T%T" + safe_object_name (object_name) + ": " + safe_type_name (object_type) + "%N"
 		end
 
-	creation_routine_call (object_type: TYPE_A): STRING_32
+	creation_routine_call (object_type: TYPE_A): STRING
 			-- The first creation procedure of `type'
 		local
-			t: STRING_32
+			t: STRING
 			arg_type: TYPE_A
 			i: INTEGER
 			creators_keys: ARRAY [INTEGER]
 			l_class: CLASS_C
 			l_creation_procedure: FEATURE_I
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.creation_routine_call:" + object_type.name + "%N")
+			-- print ("E2B_GENERATE_TEST_SCRIPT.creation_routine_call:" + object_type.name + "%N")
 			t := ""; Result := ""
 			l_class := object_type.base_class
 			create creators_keys.make_empty
@@ -312,31 +302,30 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	create_object (object_name: STRING_32; object_type: TYPE_A): STRING_32
+	create_object (object_name: STRING; object_type: TYPE_A): STRING
 			-- Creation of all object references
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.create_object%N")
 			Result := ""
-			print ("createeee: " + object_type.name + "%N")
 			if not is_basic_type (object_type.name) and not is_aliased_with_existed_object (object_name) then
 				if object_type.name.has_substring ("SIMPLE_ARRAY") then
-					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + ".make_empty%N"
+					Result := "%T%T%Tcreate " + safe_object_name (object_name) + ".make_empty%N"
 				elseif object_type.name.same_string ("V_ARRAY") or object_type.name.same_string ("V_ARRAY_INTEGER") then
-					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + ".make(1, 0)%N"
+					Result := "%T%T%Tcreate " + safe_object_name (object_name) + ".make(1, 0)%N"
 						-- TODO: create clause for other container types
 --				elseif object_type.name.same_string ("V_ARRAYED_LIST_INTEGER") then
---					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + ".default_create%N"
+--					Result := "%T%T%Tcreate " + safe_object_name (object_name) + ".default_create%N"
 				else
-					Result := "%T%T%Tcreate " + safe_object_name (object_name).to_string_8 + creation_routine_call (object_type).to_string_8 + "%N"
+					Result := "%T%T%Tcreate " + safe_object_name (object_name) + creation_routine_call (object_type) + "%N"
 						-- TODO: to be finished, to include the default reference arguments
 				end
 			end
 		end
 
-	instantiate_object (object_name: STRING_32; object_type: TYPE_A): STRING_32
+	instantiate_object (object_name: STRING; object_type: TYPE_A): STRING
 			-- Instantiate an object
 		local
-			t, class_name_: STRING_32
+			t, class_name_: STRING
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_object%N")
 			t := ""; Result := ""; class_name_ := ""
@@ -354,22 +343,19 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	assignment (object_name: STRING_32; object_value: STRING_32): STRING_32
+	assignment (object_name: STRING; object_value: STRING): STRING
 			-- Assignment clause for assigning the given value
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.assignment%N")
-			Result := "%T%T%T" + safe_object_name (object_name).to_string_8 + " := " + object_value.to_string_8 + "%N"
+			Result := "%T%T%T" + safe_object_name (object_name) + " := " + object_value + "%N"
 		end
 
-	instantiate_object_reference (object_name: STRING_32; object_type: TYPE_A): STRING_32
+	instantiate_object_reference (object_name: STRING; object_type: TYPE_A): STRING
 			-- Initialize an object reference 'object_name' based on the given counterexample `m'
 		local
-			t, field_name, field_value: STRING_32
+			t, field_name, field_value: STRING
 			i: INTEGER
 			field_type: TYPE_A
 		do
-			print ("E2B_GENERATE_TEST_SCRIPT.instantiate_object_reference:" + object_name.to_string_8 + "%N")
-
 			t := ""; field_name := ""; field_value := ""; Result := ""
 			if is_void (object_name) then
 				t := t + assignment (object_name, "Void")
@@ -378,7 +364,6 @@ feature -- Test generation
 			elseif is_container_type (object_type.actual_type.name) then
 				t := t + instantiate_container_object (object_name, object_type)
 			else
-				print ("object_type.base_class " + object_type.base_class.name + "%N")
 				from
 					i := 1
 				until
@@ -390,16 +375,13 @@ feature -- Test generation
 					field_type := safe_type (object_type.base_class.skeleton [i].type_i)
 					if not is_ignored_field (field_name, field_type) then
 						if is_basic_type (field_type.name) then
-								-- field_value.copy (initial_state.initial_values [object_name + "." + field_name])
 							t := t + instantiate_basic_field (object_name, field_name, field_type.actual_type.name, i)
 						else -- reference field
 							field_name := object_name + "." + field_name
-								-- print ("reference field: " + field_name.to_string_8 + "%N")
 							references_to_declare.extend (field_type.name, field_name)
 							t := t + create_object (field_name, field_type)
 							t := t + instantiate_object_reference (field_name, field_type)
 							t := t + instantiate_reference_field (object_name, field_name.split ('.').last)
-								-- P_INTERNAL.set_reference_field_ ...
 						end
 					end
 					i := i + 1
@@ -410,17 +392,16 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	instantiate_basic_field (object_name: STRING_32; field_name: STRING_32; field_type: STRING_32; i: INTEGER): STRING_32
+	instantiate_basic_field (object_name: STRING; field_name: STRING; field_type: STRING; i: INTEGER): STRING
 			-- Initialize an object field of basic type
 		local
-			name, value: STRING_32
+			name, value: STRING
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_basic_field%N")
+			-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_basic_field%N")
 			name := object_name + "." + field_name
 			value := ""
 			if initial_state.initial_values.has (object_name + "." + safe_field_name (field_name)) then
 				value := initial_state.initial_values [object_name + "." + safe_field_name (field_name)]
-				print (safe_field_type (field_type).to_string_8 + "--" + name.to_string_8 + ":" + value.to_string_8 + "%N")
 			else
 				missing_values.force (object_name + "." + field_name, missing_values.count)
 					-- TODO: the counterexample is partial
@@ -436,26 +417,25 @@ feature -- Test generation
 				end
 			end
 
-			Result := "%T%T%T{P_INTERNAL}.set_" + safe_field_type (field_type).to_string_8 + "_field_ (%"" + field_name.to_string_8 + "%", " + safe_object_name (object_name).to_string_8 + ", " + value.to_string_8 + ")%N"
-				-- + ("%T%T%T%T-- " + safe_object_name (object_name).to_string_8 + "." + field_name.to_string_8 + " = " + value.to_string_8 + "%N")
+			Result := "%T%T%T{P_INTERNAL}.set_" + safe_field_type (field_type) + "_field_ (%"" + field_name + "%", " + safe_object_name (object_name) + ", " + value + ")%N"
+				-- + ("%T%T%T%T-- " + safe_object_name (object_name) + "." + field_name + " = " + value + "%N")
 		end
 
-	instantiate_reference_field (object_name: STRING_32; field_name: STRING_32): STRING_32
+	instantiate_reference_field (object_name: STRING; field_name: STRING): STRING
 			-- Initialize an object field of reference type
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_reference_field%N")
-			Result := "%T%T%T{P_INTERNAL}.set_reference_field_ (%"" + field_name.to_string_8 + "%", " + safe_object_name (object_name).to_string_8 + ", " + safe_object_name (object_name).to_string_8 + "_" + field_name.to_string_8 + ")%N"
-				-- + ("%T%T%T%T-- " + safe_object_name (object_name).to_string_8 + "." + field_name.to_string_8 + " = " + value.to_string_8 + "%N")
+			Result := "%T%T%T{P_INTERNAL}.set_reference_field_ (%"" + field_name + "%", " + safe_object_name (object_name) + ", " + safe_object_name (object_name) + "_" + field_name + ")%N"
 		end
 
-	routine_call: STRING_32
+	routine_call: STRING
 			-- Invoke the call with initialized objects
 		local
-			argument_name, t: STRING_32
+			argument_name, t: STRING
 			i: INTEGER
 		do
 			t := ""; Result := ""
-			t := t + "current_object." + target_feature.feature_name_32
+			t := t + "current_object." + target_feature.feature_name_32.to_string_8
 
 			if attached target_feature.arguments then
 				if target_feature.arguments.count >= 1 then
@@ -466,7 +446,7 @@ feature -- Test generation
 					until
 						i > target_feature.arguments.count
 					loop -- Minimize each argument of the target feature
-						argument_name := target_feature.arguments.item_name_32 (i)
+						argument_name := target_feature.arguments.item_name_32 (i).to_string_8
 						t := t + argument_name
 						if i < target_feature.arguments.count then
 							t := t + ", "
@@ -480,7 +460,7 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	force_item (object_name: STRING_32; object_type: STRING_32; item_value: STRING_32; i: INTEGER): STRING_32
+	force_item (object_name: STRING; object_type: STRING; item_value: STRING; i: INTEGER): STRING
 			-- Use force procedure to add elements to the container
 		local
 			force_routine_name: STRING
@@ -493,28 +473,22 @@ feature -- Test generation
 			else
 				force_routine_name := "force"
 			end
-			Result := "%T%T%T" + safe_object_name (object_name).to_string_8 + "." + force_routine_name + " (" + safe_item_value (item_value, object_type).to_string_8 + ", " + i.out + ")%N"
+			Result := "%T%T%T" + safe_object_name (object_name) + "." + force_routine_name + " (" + safe_item_value (item_value, object_type) + ", " + i.out + ")%N"
 		end
 
-	instantiate_container_object (object_name: STRING_32; object_type: TYPE_A): STRING_32
+	instantiate_container_object (object_name: STRING; object_type: TYPE_A): STRING
 			-- Instantiate an object of container type based on the given counterexample model `m'
 		local
-			t, value, item_value: STRING_32
+			t, value, item_value: STRING
 			i: INTEGER
-			type: STRING_32
+			type: STRING
 		do
-			print ("E2B_GENERATE_TEST_SCRIPT.instantiate_container_object " + object_name.to_string_8 + " " + object_type.name + "%N")
 			t := ""; Result := ""; item_value := "0"
 			type := object_type.name
-
---			across initial_state.initial_values.current_keys as k loop
---				print ("vvv: " + k + " -> " + initial_state.initial_values [k] + "%N")
---			end
 
 			value := initial_state.initial_values [object_name + ".sequence"]
 
 			if type.has_substring ("V_ARRAY") or type.has_substring ("SIMPLE_ARRAY") then
-				print ("hahahaha%N")
 				if sequence_lengths.has (value) and sequence_items.count > 0 then
 					from
 						i := 1
@@ -528,7 +502,7 @@ feature -- Test generation
 						i := i + 1
 					end
 				else
-					t := t + "%T%T%T" + " -- No sequence for array " + object_name + " found in the model. %N"
+					t := t + "%T%T%T" + " -- No sequence for array " + object_name + " found in the counterexample. %N"
 				end
 				t := t + "%N"
 
@@ -541,7 +515,7 @@ feature -- Test generation
 
 feature -- Name conversion
 
-	safe_field_name (name: STRING_32): STRING_32
+	safe_field_name (name: STRING): STRING
 		do
 			if name.same_string ("index") then
 				Result := "index_"
@@ -550,7 +524,7 @@ feature -- Name conversion
 			end
 		end
 
-	safe_field_type (field_type: STRING_32): STRING_32
+	safe_field_type (field_type: STRING): STRING
 			-- Return the safe type of a data field
 		do
 			field_type.to_lower
@@ -560,7 +534,7 @@ feature -- Name conversion
 				-- end
 		end
 
-	safe_item_value (a_value: STRING_32; a_type: STRING_32): STRING_32
+	safe_item_value (a_value: STRING; a_type: STRING): STRING
 			-- Convert an abstract value into its default value
 		do
 			Result := ""
@@ -582,7 +556,7 @@ feature -- Name conversion
 			end
 		end
 
-	safe_object_name (object_name: STRING_32): STRING_32
+	safe_object_name (object_name: STRING): STRING
 			-- Convert the name of object
 		do
 			Result := ""
@@ -606,7 +580,6 @@ feature -- Name conversion
 		do
 			l_class := object_type.base_class
 			create des_classes.make (0)
-			print ("kkk: " + l_class.name + "%N")
 			if l_class.is_deferred then
 
 				if not target_class.is_deferred and then target_class.conform_to (l_class) then
@@ -616,7 +589,6 @@ feature -- Name conversion
 						-- Result := l_class.actual_type.actual_type
 						-- get the first non-deferred class
 						-- if target_class.conform_to (l_class) then -- use the target class as the descendant
-						-- 	print ("ooo :" + target_class.actual_type.name + "%N")
 						-- 	Result := target_class.actual_type
 						-- else
 						-- TODO: for a deferred class, choose the appropriate descendant class
@@ -634,10 +606,8 @@ feature -- Name conversion
 							until
 								attached Result or des_classes.is_empty
 							loop
-								print ("hhh: " + des_classes.first.name + "%N")
 								if attached des_classes.first.direct_descendants as dd and then not dd.is_empty then
 									across dd as dc loop
-										print ("ppp: " + dc.name + "%N")
 										if not dc.is_deferred then
 											Result := dc.actual_type.actual_type
 										else
@@ -656,19 +626,17 @@ feature -- Name conversion
 			if not attached Result then
 				Result := object_type
 			end
-			print ("Result typeee: " + Result.name + "%N")
 		end
 
-	safe_type_name (type: STRING_32): STRING_32
+	safe_type_name (type: STRING): STRING
 			-- Convert the name of container type
 		local
-			t, item_type: STRING_32
-			tuple_field_types: LIST [STRING_32]
+			t, item_type: STRING
+			tuple_field_types: LIST [STRING]
 			i: INTEGER
 		do
 			t := ""; Result := ""; item_type := ""
 				-- type := object_type.name
-			print ("safe type nameee: " + type.to_string_8 + "")
 			if type.has_substring ("[G") then
 				if type.has_substring ("V_ARRAY") then
 						-- item_type.copy (type.split ('^') [2])
@@ -707,7 +675,7 @@ feature -- Name conversion
 
 feature -- Properties checking
 
-	is_void (object_name: STRING_32): BOOLEAN
+	is_void (object_name: STRING): BOOLEAN
 			-- Is the value of the object void?
 		do
 			Result := False
@@ -716,17 +684,12 @@ feature -- Properties checking
 			end
 		end
 
-	is_aliased_with_existed_object (object_name: STRING_32): BOOLEAN
+	is_aliased_with_existed_object (object_name: STRING): BOOLEAN
 			-- Is the given object an alias with one of the instantiated objects?
 		local
-			object_value: STRING_32
+			object_value: STRING
 		do
 			object_value := ""
-				-- print ("check alias of: " + object_name.to_string_8 + "%N")
-
---			across initial_state.initial_values.current_keys as k loop
---				print (k + " -> " + initial_state.initial_values [k] + "%N")
---			end
 			if initial_state.initial_values.has (object_name) then
 				object_value.copy (initial_state.initial_values [object_name])
 			end
@@ -739,12 +702,11 @@ feature -- Properties checking
 
 		end
 
-	is_container_type (type: STRING_32): BOOLEAN
+	is_container_type (type: STRING): BOOLEAN
 			-- Is the given type a container type?
 		local
-			l_type: STRING_32
+			l_type: STRING
 		do
-			print ("typeee: " + type.to_string_8 + "%N")
 			if type.has_substring ("[like") then
 				l_type := type.split (' ').last
 			elseif type.has_substring ("[G") then -- Generic type
@@ -753,7 +715,6 @@ feature -- Properties checking
 				l_type := type
 			end
 
-			print ("typeee2: " + l_type.to_string_8 + "%N")
 			if l_type.same_string ("V_ARRAY") or l_type.same_string ("V_ARRAY_INTEGER") or l_type.same_string ("V_ARRAY2_INTEGER") or
 				l_type.same_string ("SIMPLE_ARRAY [BOOLEAN]") or l_type.same_string ("SIMPLE_ARRAY [INTEGER]") or l_type.same_string ("SIMPLE_ARRAY [INTEGER_32]") or l_type.same_string ("V_SEQUENCE") or
 				l_type.same_string ("V_ARRAYED_LIST_INTEGER") or
@@ -768,13 +729,13 @@ feature -- Properties checking
 			end
 		end
 
-	is_abstract_value (value: STRING_32): BOOLEAN
+	is_abstract_value (value: STRING): BOOLEAN
 			-- Is the `value' an abstract value?
 		do
 			Result := value.has_substring ("T@U")
 		end
 
-	is_basic_type (type: STRING_32): BOOLEAN
+	is_basic_type (type: STRING): BOOLEAN
 			-- Is `type' a basic type?
 		do
 			if type.same_string ("INTEGER") or type.same_string ("INTEGER_32") or
@@ -787,7 +748,7 @@ feature -- Properties checking
 			end
 		end
 
-	is_ignored_field (name: STRING_32; type: TYPE_A): BOOLEAN
+	is_ignored_field (name: STRING; type: TYPE_A): BOOLEAN
 		do
 			Result := (type.name.same_string ("V_LINKABLE_INTEGER") and (name.same_string ("right"))) or -- `right' in V_LINKABLE_INTEGER
 				(type.name.same_string ("V_DOUBLY_LINKABLE_INTEGER") and (name.same_string ("left") or name.same_string ("right"))) or
