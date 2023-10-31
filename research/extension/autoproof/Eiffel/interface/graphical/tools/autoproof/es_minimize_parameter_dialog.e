@@ -2,7 +2,7 @@ note
 	description: "Dialog to select docking layout names for saving.."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date: "$Date: 2018-10-04 04:29:07 +0800 (å%/145/¨å%/155/%/155/, 04 10æ%/156/%/136/ 2018) $"
+	date: "$Date: 2018-10-04 04:29:07 +0800 (ï¿½%/145/ï¿½ï¿½%/155/%/155/, 04 10ï¿½%/156/%/136/ 2018) $"
 	revision: "$Revision: 102278 $"
 
 class
@@ -82,7 +82,7 @@ feature {NONE} -- Initlization
 			l_h_box.disable_item_expand (max_iteration_label_name)
 
 			create text_for_max_iteration
-			text_for_max_iteration.set_text ("20")
+			text_for_max_iteration.set_text ("64")
 			text_for_max_iteration.change_actions.extend (agent on_text_change)
 			text_for_max_iteration.key_press_actions.extend (agent on_text_key_press)
 			l_h_box.extend (text_for_max_iteration)
@@ -103,7 +103,7 @@ feature {NONE} -- Initlization
 			l_internal_h_box.extend (minimize_strategy_label_name)
 			l_internal_h_box.disable_item_expand (minimize_strategy_label_name)
 
-			create evcombo_minimize_strategy.make_with_strings (<<"Minimize individual integer", "Minimize sum">>)
+			create evcombo_minimize_strategy.make_with_strings (<<"Minimize sum", "Minimize in turn">>)
 			evcombo_minimize_strategy.disable_edit
 			l_internal_h_box.extend (evcombo_minimize_strategy)
 			a_container.extend (l_internal_h_box)

@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 			l_boogie_universe := a_boogie_universe
 
 			if target_variables.has (target_feature) then
-				if options.is_minimize_sum then		-- minimize sum
+				if not is_container_size (target_variables [target_feature].first) and options.is_minimize_sum then		-- minimize sum
 					target_variable := sum_expression
 					print ("minimize sum : " + target_variable + "%N")
 				else								-- minimize ineger variable
@@ -120,9 +120,9 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				options.reset
 				target_variables [target_feature].remove_i_th (1) -- finish minization of the top integer variable, remove it from the list
 
-				if options.is_minimize_sum then
+				if not is_container_size (target_variable) and options.is_minimize_sum then
 					options.set_is_minimize_sum (False)
-					target_variables [target_feature].wipe_out	-- remove all the integer variables for the target feature	
+					target_variables [target_feature].wipe_out	-- finish minimization and remove all the integer variables for the target feature	
 
 				elseif is_container_size (target_variable) then
 					-- if the variable represents a container size, put all the items to the list of target variables
@@ -228,15 +228,18 @@ feature {NONE}
 	get_sum_from_counterexample (a_feature: FEATURE_I): INTEGER
 			-- Get the sum of all integer variables of `a_feature' in the counterexample
 		local
-			l_sum: INTEGER_32
+			l_sum: INTEGER
 		do
 			across target_variables [a_feature] as v loop -- sum up absolute values of all integer variables
 				l_sum := l_sum + get_value_from_counterexample (v).to_integer.abs
 				print ("sum from model: " + l_sum.out + "%N")
 			end
 
-			Result := l_sum
-				--TODO:  if the counterexample model does not exist, then assign a randomly large value, a default value would be 100
+			if l_sum < 0 then -- overflow
+				Result := {INTEGER}.max_value
+			else
+				Result := l_sum
+			end
 		end
 
 	split_models (model_file_content: STRING_32): ARRAY [IMMUTABLE_STRING_32]
