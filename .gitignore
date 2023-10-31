@@ -17,6 +17,7 @@ Src/C/run-time/x2c
 Src/framework/auto_test/spec/linux-x86-64
 Src/framework/auto_test/Clib/lp_solve/lpsolve55/cgcc.bat
 Src/library/cURL/spec/linux-x86-64
+Src/library/cURL/config.sh
 Src/library/mysql/spec/linux-x86-64
 Src/library/net/spec/linux-x86-64
 Src/library/net/config.sh
@@ -28,3 +29,4 @@ Src/C/mkdep.old
 Src/C/logs.txt
 Src/C/ipc/daemon/ecdbgd
 Src/C/eif_config.h
+
