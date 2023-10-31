@@ -15,7 +15,7 @@ feature {NONE} -- Initialization
 		do
 			subject := s
 			s.register (Current)
-			set_subjects ([s])
+			set_subjects (create {MML_SET [ANY]}.singleton (s))
 			notify
 		ensure
 			subject_set: subject = s

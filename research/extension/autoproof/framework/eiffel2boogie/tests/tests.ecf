@@ -9,7 +9,7 @@
 		<capability>
 			<void_safety support="none" use="none"/>
 		</capability>
-		<library name="base-eve" location="$ISE_LIBRARY\library\base\base-eve.ecf" readonly="false"/>
+    <library name="base" location="$AP\library\base\base-scoop-safe.ecf" />
 		<cluster name="autoproof_tests" location=".\">
 			<file_rule>
 				<exclude>/.svn$</exclude>

@@ -19,7 +19,7 @@ feature {NONE} -- Initialization
 		do
 			create buckets.constant ({MML_SEQUENCE [G]}.empty_sequence, 10)
 			lock := l
-			set_observers ([lock])
+			set_observers (create {MML_SET [ANY]}.singleton (lock))
 		ensure
 			set_empty: set.is_empty
 			lock_set: lock = l

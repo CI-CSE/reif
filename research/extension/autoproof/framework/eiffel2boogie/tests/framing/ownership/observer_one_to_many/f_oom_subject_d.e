@@ -18,7 +18,7 @@ feature {NONE} -- Initialization
 		do
 			value := v
 			create subscribers.make
-			set_owns ([subscribers])
+			set_owns (create {MML_SET[ANY]}.singleton(subscribers))
 			wrap
 		ensure
 			value_set: value = v
@@ -82,7 +82,7 @@ feature {F_OOM_OBSERVER_D} -- Internal communication
 		do
 			unwrap
 			subscribers.extend_back (o)
-			set_observers (observers + [o])
+			set_observers (observers & o)
 			wrap
 		ensure
 			observers_extended: observers = old observers & o

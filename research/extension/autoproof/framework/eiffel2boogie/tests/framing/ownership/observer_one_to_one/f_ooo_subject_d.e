@@ -71,7 +71,7 @@ feature {F_OOO_OBSERVER_D} -- Element change
 		do
 			unwrap
 			observer := o
-			set_observers ([o])
+			set_observers (create {MML_SET[ANY]}.singleton(o))
 			wrap
 		ensure
 			observer = o
