@@ -191,10 +191,10 @@
 			<file_rule>
 				<exclude>/Clib$</exclude>
 			</file_rule>
-			<cluster name="invariant" location="e:\es_ap\trunk\src\framework\auto_fix\strategies\enumeration_based\fault_localization\dynamic_analysis\invariant\invariant\">
-				<option warning="none" full_class_checking="false" is_attached_by_default="true" is_obsolete_iteration="true" is_obsolete_routine_type="true" syntax="transitional" manifest_array_type="mismatch_warning">
-				</option>
-			</cluster>
+			<!-- <cluster name="invariant" location="$EIFFEL_SRC\framework\auto_fix\strategies\enumeration_based\fault_localization\dynamic_analysis\invariant\"> -->
+			<!-- 	<option warning="none" full_class_checking="false" is_attached_by_default="true" is_obsolete_iteration="true" is_obsolete_routine_type="true" syntax="transitional" manifest_array_type="mismatch_warning"> -->
+			<!-- 	</option> -->
+			<!-- </cluster> -->
 		</cluster>
 	</target>
 </system>
