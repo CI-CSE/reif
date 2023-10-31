@@ -21,16 +21,16 @@ feature {NONE} -- Initialization
 		do
 			master := m
 			local_time := master.time
-			set_subjects ([m])
+			set_subjects (create {MML_SET [ANY]}.singleton (m))
 
 			m.unwrap
-			m.set_observers (m.observers + [Current])
+			m.set_observers (m.observers & Current)
 			m.wrap
 			wrap
 		ensure
 			master_set: master = m
 			time_synchronized: local_time = m.time
-			observing_master: m.observers = old m.observers + [Current]
+			observing_master: m.observers = old m.observers & Current
 			default_wrapped: is_wrapped
 			default_arg_wrapped: m.is_wrapped
 		end

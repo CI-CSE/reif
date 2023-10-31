@@ -18,7 +18,7 @@ feature {NONE} -- Initialization
 			modify (Current)
 		do
 			create elements.make (c)
-			set_owns ([elements])
+			set_owns (create {MML_SET [ANY]}.singleton (elements))
 			wrap
 		ensure
 			capacity_set: capacity = c
@@ -56,7 +56,7 @@ feature -- Element change
 		do
 			unwrap
 			unwrap_all (observers)
-			set_observers ([])
+			set_observers (create {MML_SET [ANY]})
 			count := count + 1
 			elements.put (v, count)
 			wrap
@@ -80,7 +80,7 @@ feature -- Element change
 		do
 			unwrap
 			unwrap_all (observers)
-			set_observers ([])
+			set_observers (create {MML_SET [ANY]})
 			count := count - 1
 			wrap
 		ensure

@@ -18,8 +18,8 @@ feature {NONE} -- Initialization
 		do
 			left := Current
 			right := Current
-			set_subjects ([left, right])
-			set_observers ([left, right])
+			set_subjects (create {MML_SET [ANY]} & left & right)
+			set_observers (create {MML_SET [ANY]} & left & right)
 			wrap
 		ensure
 			singleton: left = Current
@@ -57,7 +57,7 @@ feature -- Modification
 			r: F_DLL_NODE_D
 		do
 			r := right
-			unwrap_all ([Current, r, n])
+			unwrap_all (create {MML_SET [ANY]} & Current & r & n)
 
 			n.set_right (r)
 			n.set_left (Current)
@@ -65,13 +65,13 @@ feature -- Modification
 			r.set_left (n)
 			set_right (n)
 
-			n.set_subjects ([r, Current])
-			n.set_observers ([r, Current])
-			set_subjects ([left, n])
-			set_observers ([left, n])
-			r.set_subjects ([n, r.right])
-			r.set_observers ([n, r.right])
-			wrap_all ([Current, r, n])
+			n.set_subjects (create {MML_SET [ANY]} & r & Current)
+			n.set_observers (create {MML_SET [ANY]} & r & Current)
+			set_subjects (create {MML_SET [ANY]} & left & n)
+			set_observers (create {MML_SET [ANY]} & left & n)
+			r.set_subjects (create {MML_SET [ANY]} & n & r.right)
+			r.set_observers (create {MML_SET [ANY]} & n & r.right)
+			wrap_all (create {MML_SET [ANY]} & Current & r & n)
 		ensure
 			n_left_set: right = n
 			n_right_set: n.right = old right
@@ -82,7 +82,7 @@ feature -- Modification
 
 	remove
 			-- Remove the current node from the list.
-		require
+    require
 			default_wrapped: is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped  end
 			modify (Current, left, right)
@@ -91,7 +91,7 @@ feature -- Modification
 		do
 			l := left
 			r := right
-			unwrap_all ([Current, l, r])
+			unwrap_all (create {MML_SET [ANY]} & Current & l & r)
 
 			set_left (Current)
 			set_right (Current)
@@ -99,13 +99,13 @@ feature -- Modification
 			l.set_right (r)
 			r.set_left (l)
 
-			set_subjects ([Current])
-			set_observers ([Current])
-			l.set_subjects ([l.left, r])
-			l.set_observers ([l.left, r])
-			r.set_subjects ([l, r.right])
-			r.set_observers ([l, r.right])
-			wrap_all ([Current, l, r])
+			set_subjects (create {MML_SET [ANY]} & Current)
+			set_observers (create {MML_SET [ANY]} & Current)
+			l.set_subjects (create {MML_SET [ANY]} & l.left & r)
+			l.set_observers (create {MML_SET [ANY]} & l.left & r)
+			r.set_subjects (create {MML_SET [ANY]} & l & r.right)
+			r.set_observers (create {MML_SET [ANY]} & l & r.right)
+			wrap_all (create {MML_SET [ANY]} & Current & l & r)
 		ensure
 			singleton: right = Current
 			old_left_wrapped: (old left).is_wrapped

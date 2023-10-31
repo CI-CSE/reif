@@ -49,7 +49,7 @@ feature -- Element change
 			modify_field ("closed", observers)
 		do
 			unwrap_all (observers)
-			set_observers ([])
+			set_observers (create {MML_SET [ANY]})
 			count := count + 1
 			elements.put (v, count)
 		ensure
@@ -69,7 +69,7 @@ feature -- Element change
 			modify_field ("closed", observers)
 		do
 			unwrap_all (observers)
-			set_observers ([])
+			set_observers (create {MML_SET [ANY]})
 			count := count - 1
 		ensure
 			count_decreased: count = old count - 1

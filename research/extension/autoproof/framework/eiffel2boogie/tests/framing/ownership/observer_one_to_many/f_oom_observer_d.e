@@ -21,7 +21,7 @@ feature {NONE} -- Initialization
 			subject := s
 			s.register (Current)
 			cache := s.value
-			set_subjects ([subject])
+			set_subjects (create {MML_SET [ANY]}.singleton (subject))
 			wrap
 		ensure
 			subject_set: subject = s

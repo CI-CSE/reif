@@ -20,7 +20,7 @@ feature {NONE} -- Initialization
 			create children.make
 			init_value := v
 			value := v
-			set_owns ([children])
+			set_owns (create {MML_SET[ANY]}.singleton(children))
 			wrap
 		ensure
 			init_value_set: init_value = v

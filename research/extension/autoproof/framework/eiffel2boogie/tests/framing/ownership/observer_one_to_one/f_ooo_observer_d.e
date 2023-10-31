@@ -23,7 +23,7 @@ feature
 			check s.inv end
 			cache := s.value
 
-			set_subjects ([subject])
+			set_subjects (create {MML_SET [ANY]}.singleton(subject))
 			wrap -- default: public/creator
 		ensure
 			subject = s

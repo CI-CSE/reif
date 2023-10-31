@@ -15,7 +15,7 @@ feature {NONE} -- Initialization
 		do
 			value := v
 			create subscribers.make
-			set_owns ([subscribers])
+			set_owns (create {MML_SET [ANY]}.singleton(subscribers))
 		ensure
 			value_set: value = v
 			no_subscribers: subscribers.is_empty

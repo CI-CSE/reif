@@ -21,12 +21,12 @@ feature {NONE} -- Initialization
 			local_time := master.time
 
 			m.unwrap
-			m.set_observers (m.observers + [Current])
+			m.set_observers (m.observers & Current)
 			m.wrap
 		ensure
 			master_set: master = m
 			time_synchronized: local_time = m.time
-			observing_master: m.observers = old m.observers + [Current]
+			observing_master: m.observers = old m.observers & Current
 		end
 
 feature -- Access
