@@ -107,5 +107,5 @@ feature -- Recursion
 		end
 
 invariant
-	subjects = []
+	subjects = create {MML_SET [ANY]}
 end

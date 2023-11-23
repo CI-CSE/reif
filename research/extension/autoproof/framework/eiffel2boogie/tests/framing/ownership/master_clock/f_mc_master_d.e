@@ -13,11 +13,10 @@ feature {NONE} -- Initialization
 			-- Create a master clock.
 		note
 			status: creator
-		require
-			modify (Current)
 		do
 			wrap
 		ensure
+			modify (Current)
 			time_reset: time = 0
 			no_observers: observers.is_empty
 			default_wrapped: is_wrapped
@@ -39,13 +38,13 @@ feature -- Update
 		require
 			default_wrapped: is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped end
-			modify_field (["time", "closed"], Current)
 		do
 			unwrap
 			-- This update satisfies its guard and thus preserves the invariant of slave clocks:
 			time := time + 1
 			wrap
 		ensure
+			modify_field (["time", "closed"], Current)
 			time_increased: time > old time
 			default_wrapped: is_wrapped
 		end
@@ -55,7 +54,6 @@ feature -- Update
 		require
 			wrapped: is_wrapped
 			observers_open: across observers as o all o.is_open end
-			modify_field (["time", "closed"], Current)
 		do
 			unwrap
 			-- This update does not satisfy its guard,
@@ -63,6 +61,7 @@ feature -- Update
 			time := 0
 			wrap
 		ensure
+			modify_field (["time", "closed"], Current)
 			wrapped: is_wrapped
 			time_reset: time = 0
 		end
@@ -79,8 +78,8 @@ feature -- Specification
 
 invariant
 	time_non_negative: 0 <= time
-	default_owns: owns = []
-	default_subjects: subjects = []
+	default_owns: owns = create {MML_SET [ANY]}
+	default_subjects: subjects = create {MML_SET [ANY]}
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

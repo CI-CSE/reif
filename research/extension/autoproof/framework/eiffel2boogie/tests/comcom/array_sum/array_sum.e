@@ -23,8 +23,6 @@ feature
 			-- Calculate sum of elements in array `a'.
 		note
 			status: impure -- We do not intend to use this function in contracts
-		require
-			modify ([]) -- But it doesn't modify existing objects
 		local
 			i: INTEGER
 		do
@@ -41,6 +39,7 @@ feature
 				i := i + 1
 			end
 		ensure
+			modify ([]) -- But it doesn't modify existing objects
 			is_sum: Result = seq_sum (a.sequence)
 		end
 

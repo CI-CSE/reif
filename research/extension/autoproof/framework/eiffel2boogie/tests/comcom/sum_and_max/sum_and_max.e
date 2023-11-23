@@ -9,8 +9,6 @@ feature
 			-- Calculate sum and maximum of array `a'.
 		note
 			status: impure -- We do not intend to use this function in contracts
-		require
-			modify ([]) -- But it doesn't modify existing objects
 		local
 			i: INTEGER
 			sum, max: INTEGER
@@ -31,6 +29,7 @@ feature
 			end
 			Result := [sum, max]
 		ensure
+			modify ([]) -- But it doesn't modify existing objects
 			sum_in_range: Result.sum <= a.count * Result.max
 		end
 end

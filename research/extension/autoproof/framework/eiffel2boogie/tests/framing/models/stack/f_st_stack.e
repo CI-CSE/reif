@@ -91,7 +91,7 @@ feature -- Specification
 
 invariant
 	list_attached: list /= Void
-	owns_definition: owns = [list]
+	owns_definition: owns = create {MML_SET [ANY]}.singleton (list)
 	bag_definition: bag = sequence.to_bag
 	sequence_definition: sequence = list.sequence
 end

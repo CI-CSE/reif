@@ -13,7 +13,6 @@ feature
 		require
 			x_in_range: 1 <= x and x <= a.count
 			y_in_range: 1 <= y and y <= a.count
-			modify ([])
 		do
 			from
 				Result := 0
@@ -33,6 +32,7 @@ feature
 				a.count - Result + 1
 			end
 		ensure
+			modify ([])
 			length_non_negative: Result >= 0
 			end_in_range_1: x + Result <= a.count + 1
 			end_in_range_2: y + Result <= a.count + 1

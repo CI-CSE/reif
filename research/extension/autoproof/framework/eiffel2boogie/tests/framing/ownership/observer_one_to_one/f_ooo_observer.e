@@ -10,14 +10,14 @@ feature {NONE} -- Initialization
 			status: creator
 		require
 			s.observer = Void
-			modify (Current)
-			modify_field (["observer", "observers", "closed"], s)
 		do
 			subject := s
 			s.register (Current)
 			check s.inv end
 			cache := s.value
 		ensure
+			modify (Current)
+			modify_field (["observer", "observers", "closed"], s)
 			subject = s
 		end
 
@@ -36,16 +36,16 @@ feature {F_OOO_SUBJECT} -- Element change
 			open: is_open
 			almost_holds: inv_without ("cache_synchronized")
 
-			modify_field ("cache", Current)
 		do
 			cache := subject.value
 		ensure
+			modify_field ("cache", Current)
 			invariant_holds: inv
 		end
 
 invariant
 	subject_exists: attached subject
-	subjects_structure: subjects = [subject]
+	subjects_structure: subjects = create {MML_SET [ANY]}.singleton (subject)
 	subject_aware: subject.observer = Current
 	cache_synchronized: cache = subject.value
 
