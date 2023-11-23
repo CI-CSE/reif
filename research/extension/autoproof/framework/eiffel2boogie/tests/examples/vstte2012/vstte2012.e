@@ -9,8 +9,6 @@ feature -- VSTTE2012: two way sort
 			status: impure
 		require
 			a.count >= 0
-
-			modify (a)
 		local
 			i, j: INTEGER
 		do
@@ -41,6 +39,7 @@ feature -- VSTTE2012: two way sort
 			end
 			Result := i
 		ensure
+			modify(a)
 			false_first: across 1 |..| Result as ai all a.sequence[ai] = False end
 			true_last: across (Result+1) |..| a.count as ai all a.sequence[ai] = True end
 			is_permutation: a.sequence.to_bag ~ old a.sequence.to_bag

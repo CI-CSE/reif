@@ -11,11 +11,11 @@ Successfully verified.
 L_TUPLES.bad
 Verification failed.
 
-Line: 51. Check may be violated (untagged).
+Line: 51. Check a = 1 may be violated.
 --------------------------------------
-Line: 54. Check may be violated (untagged).
+Line: 54. Check c.x = 1 may be violated.
 --------------------------------------
-Line: 57. Check may be violated (untagged).
+Line: 57. Check not b may be violated.
 ======================================
 L_TUPLES.update_good
 Successfully verified.
@@ -23,6 +23,6 @@ Successfully verified.
 L_TUPLES.update_bad
 Verification failed.
 
-Line: 79. Check may be violated (untagged).
+Line: 79. Check t.r.x = 1 may be violated.
 --------------------------------------
-Line: 84. Check may be violated (untagged).
+Line: 84. Check t.n = 5 may be violated.

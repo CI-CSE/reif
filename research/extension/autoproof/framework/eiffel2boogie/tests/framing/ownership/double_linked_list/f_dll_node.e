@@ -44,7 +44,6 @@ feature -- Modification
 		require
 			n_singleton: n.left = n
 			right_wrapped: right.is_wrapped
-			modify (Current, right, n)
 		local
 			r: F_DLL_NODE
 		do
@@ -65,6 +64,7 @@ feature -- Modification
 			r.set_observers (create {MML_SET [ANY]} & n & r.right)
 			wrap_all (create {MML_SET [ANY]} & Current & r & n)
 		ensure
+			modify (Current, right, n)
 			n_left_set: right = n
 			n_right_set: n.right = old right
 		end
@@ -76,7 +76,6 @@ feature -- Modification
 		require
 			left_wrapped: left.is_wrapped
 			right_wrapped: right.is_wrapped
-			modify (Current, left, right)
 		local
 			l, r: F_DLL_NODE
 		do
@@ -98,6 +97,7 @@ feature -- Modification
 			r.set_observers (create {MML_SET [ANY]} & l & r.right)
 			wrap_all (create {MML_SET [ANY]} & Current & l & r)
 		ensure
+			modify (Current, left, right)
 			singleton: right = Current
 			old_left_wrapped: (old left).is_wrapped
 			old_right_wrapped: (old right).is_wrapped
@@ -111,10 +111,10 @@ feature {F_DLL_NODE} -- Implementation
 		require
 			open: is_open
 			left_open: left.is_open
-			modify_field ("left", Current)
 		do
 			left := n -- preserves `right'
 		ensure
+			modify_field ("left", Current)
 			left = n
 		end
 
@@ -123,10 +123,10 @@ feature {F_DLL_NODE} -- Implementation
 		require
 			open: is_open
 			right_open: right.is_open
-			modify_field ("right", Current)
 		do
 			right := n -- preserves `left'
 		ensure
+			modify_field ("right", Current)
 			right = n
 		end
 
@@ -151,8 +151,8 @@ feature -- Specification
 invariant
 	left_exists: left /= Void
 	right_exists: right /= Void
-	subjects_structure: subjects = [ left, right ]
-	observers_structure: observers = [ left, right ]
+	subjects_structure: subjects = create {MML_SET [ANY]} & left & right
+	observers_structure: observers = create {MML_SET [ANY]} & left & right
 	left_consistent: left.right = Current
 	right_consistent: right.left = Current
 

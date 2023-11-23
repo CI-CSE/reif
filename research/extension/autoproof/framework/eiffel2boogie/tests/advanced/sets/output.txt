@@ -22,7 +22,7 @@ Line: 52. Check bad_empty may be violated.
 --------------------------------------
 Line: 54. Check bad_has may be violated.
 --------------------------------------
-Line: 56. Check may be violated (untagged).
+Line: 56. Check s1.any_item = 2 may be violated.
 ======================================
 A_SETS.interval
 Successfully verified.

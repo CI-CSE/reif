@@ -5,9 +5,9 @@ feature
 	func
 		note
 			explicit: contracts, wrapping
-		require
-			modify ([])
 		do
+		ensure
+			modify ([])
 		end
 
 end

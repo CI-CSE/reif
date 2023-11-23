@@ -152,5 +152,5 @@ feature
 
 invariant
 	bad: nasty (field)
-	default_subjects: subjects = []
+	default_subjects: subjects = create {MML_SET [ANY]}
 end

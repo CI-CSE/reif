@@ -11,7 +11,7 @@ Successfully verified.
 A_OPAQUE.lemma_bad
 Verification failed.
 
-Line: 22. Postcondition may be violated (untagged).
+Line: 22. Postcondition all_positive (s.but_first) may be violated.
 ======================================
 A_OPAQUE.lemma_good
 Successfully verified.

@@ -51,7 +51,6 @@ feature -- Modification
 			v_locked: lock.owns [v]
 			lock_wrapped: lock.is_wrapped
 			set_registered: lock.sets [Current]
-			modify_model ("set", Current)
 		local
 			idx: INTEGER
 			b: MML_SEQUENCE [G]
@@ -66,6 +65,7 @@ feature -- Modification
 			end
 			check set_has (v) end
 		ensure
+			modify_model ("set", Current)
 			abstract_effect: set_has (v)
 			precise_effect_has: old set_has (v) implies set = old set
 			precise_effect_new: not old set_has (v) implies set = old set & v
@@ -80,7 +80,6 @@ feature -- Modification
 			lock_wrapped: lock.is_wrapped
 			set_registered: lock.sets [Current]
 			other_registered: lock.sets [other]
-			modify_model ("set", Current)
 		local
 			i, j: INTEGER
 			ss: MML_SEQUENCE [MML_SEQUENCE [G]]
@@ -125,6 +124,7 @@ feature -- Modification
 				check lock.inv_only ("valid_buckets") end
 			end
 		ensure
+			modify_model ("set", Current)
 			has_old: old set <= set
 			has_other: across old other.set as y all y /= Void and then set_has (y) end
 			no_extra: across set as x all set_has (x).old_ or other.set_has (x).old_ end
@@ -136,7 +136,6 @@ feature -- Modification
 			v_locked: lock.owns [v]
 			lock_wrapped: lock.is_wrapped
 			set_registered: lock.sets [Current]
-			modify_model ("set", Current)
 		local
 			b: MML_SEQUENCE [G]
 			idx, i: INTEGER
@@ -153,6 +152,7 @@ feature -- Modification
 				x.lemma_transitive (v, set)
 			end
 		ensure
+			modify_model ("set", Current)
 			abstract_effect: not set_has (v)
 			precise_effect_not_found: not old set_has (v) implies set = old set
 			precise_effect_found: old set_has (v) implies
@@ -164,11 +164,11 @@ feature -- Modification
 		require
 			lock_wrapped: lock.is_wrapped
 			set_registered: lock.sets [Current]
-			modify_model ("set", Current)
 		do
 			create set
 			create buckets.constant ({MML_SEQUENCE [G]}.empty_sequence, buckets.count)
 		ensure
+			modify_model ("set", Current)
 			set_empty: set.is_empty
 		end
 
@@ -261,7 +261,7 @@ feature -- Specification
 
 invariant
 	buckets_non_empty: not buckets.is_empty
-	observers_definition: observers = [lock]
+	observers_definition: observers = create {MML_SET [ANY]}.singleton (lock)
 	set_non_void: set.non_void
 	set_not_too_small: across 1 |..| buckets.count as i all
 		across 1 |..| buckets [i].count as j all set [(buckets [i])[j]] end end

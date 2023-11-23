@@ -39,13 +39,13 @@ feature -- Element change
 			other_not_void: other /= Void
 			amount_not_negative: amount >= 0
 			amount_not_too_large: amount <= balance				
-				-- Allowed to modify the state of `Current' and `other'
-				-- (by default a procedure can only modify `Current'):
-			modify (Current, other)
 		do
 			withdraw (amount)
 			other.deposit (amount)
 		ensure
+      -- Allowed to modify the state of `Current' and `other'
+      -- (by default a procedure can only modify `Current'):
+			modify (Current, other)
 			balance_decreased: balance = old balance - amount
 			other_balance_increased: other.balance = old other.balance + amount
 		end

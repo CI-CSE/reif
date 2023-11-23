@@ -84,7 +84,7 @@ feature -- Implementation
 
 invariant
 	data_not_void: data /= Void
-	owns_definition: owns = [data]
+	owns_definition: owns = create {MML_SET [ANY]}.singleton (data)
 	data_not_empty: data.sequence.count > 0
 	index_in_range: 1 <= data_index and data_index <= data.sequence.count
 

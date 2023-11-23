@@ -25,14 +25,14 @@ feature -- Basic operations
 			valid_lock: s.lock = Current
 			valid_observers: s.observers [Current]
 			empty_set: s.set.is_empty
-			modify_field (["sets", "subjects", "closed"], Current)
-			modify_field ("owner", owns)
 		do
 			unwrap
 			sets := sets & s
 			set_subjects (subjects & s)
 			wrap
 		ensure
+			modify_field (["sets", "subjects", "closed"], Current)
+			modify_field ("owner", owns)
 			sets_effect: sets = old sets & s
 			wrapped: is_wrapped
 		end
@@ -45,13 +45,13 @@ feature -- Basic operations
 			wrapped: is_wrapped
 			item_wrapped: item.is_wrapped
 			item_not_set: not subjects [item]
-			modify_field (["owns", "closed"], Current)
-			modify_field ("owner", [item, owns])
 		do
 			unwrap
 			set_owns (owns & item)
 			wrap
 		ensure
+			modify_field (["owns", "closed"], Current)
+			modify_field ("owner", [item, owns])
 			owns_effect: owns = old owns & item
 			wrapped: is_wrapped
 		end
@@ -64,13 +64,13 @@ feature -- Basic operations
 			wrapped: is_wrapped
 			item_locked: owns [item]
 			not_in_set: across sets as s all not s.set [item] end
-			modify_field (["owns", "closed"], Current)
-			modify_field ("owner", [item, owns])
 		do
 			unwrap
 			set_owns (owns / item)
 			wrap
 		ensure
+			modify_field (["owns", "closed"], Current)
+			modify_field ("owner", [item, owns])
 			owns_effect: owns = old owns / item
 			item_wrapped: item.is_wrapped
 			wrapped: is_wrapped

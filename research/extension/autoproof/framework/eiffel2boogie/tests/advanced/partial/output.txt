@@ -21,7 +21,7 @@ Successfully verified.
 A_PARTIAL.client4
 Verification failed.
 
-Line: 49. Precondition may be violated on call to {A_PARTIAL}.nasty1 (untagged).
+Line: 49. Precondition x >= 0 may be violated on call to {A_PARTIAL}.nasty1.
 ======================================
 A_PARTIAL.client5
 Successfully verified.
@@ -55,6 +55,6 @@ Line: 138. Precondition may be violated on invocation of {A_PARTIAL}.nasty2.
 A_PARTIAL.method
 Verification failed.
 
-Line: 146. Check may be violated (untagged).
+Line: 146. Check field \\ 5 = 0 may be violated.
 --------------------------------------
-Line: 147. Check may be violated (untagged).
+Line: 147. Check field >= 0 may be violated.

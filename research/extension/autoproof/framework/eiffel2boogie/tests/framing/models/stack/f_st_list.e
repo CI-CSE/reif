@@ -58,11 +58,10 @@ feature -- Element change
 
 	extend_back (v: G)
 			-- Insert `v' at the back.
-		require
-			modify_model ("sequence", Current)
 		do
 			sequence := sequence & v
 		ensure
+			modify_model ("sequence", Current)
 			sequence_effect: sequence = old (sequence & v)
 		end
 
@@ -70,10 +69,10 @@ feature -- Element change
 			-- Remove the last element.
 		require
 			not_empty: not is_empty
-			modify_model ("sequence", Current)
 		do
 			sequence := sequence.but_last
 		ensure
+			modify_model ("sequence", Current)
 			sequence_effect: sequence = old (sequence.but_last)
 		end
 

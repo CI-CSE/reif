@@ -8,7 +8,7 @@ Successfully verified.
 L_INTEGER.basic_operators
 Verification failed.
 
-Line: 10. Check may be violated (untagged).
+Line: 10. Check False may be violated.
 ======================================
 L_INTEGER.conversion
 Successfully verified.
@@ -16,4 +16,4 @@ Successfully verified.
 L_INTEGER.mixed_operations
 Verification failed.
 
-Line: 119. Check may be violated (untagged).
+Line: 119. Check False may be violated.

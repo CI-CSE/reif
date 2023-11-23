@@ -60,21 +60,21 @@ def _as_info(text, pre=''):
 
 def _as_warning(text, pre=''):
 	if _has_colorama:
-		print(pre + Back.YELLOW + Fore.YELLOW + Style.BRIGHT + text + Style.RESET_ALL)
+		print(pre + Fore.YELLOW + Style.BRIGHT + text + Style.RESET_ALL)
 	else:
 		print(pre + text)
 	_to_logfile(pre + text)
 
 def _as_error(text, pre=''):
 	if _has_colorama:
-		print(pre + Back.RED + Fore.RED + Style.BRIGHT + text + Style.RESET_ALL)
+		print(pre + Fore.RED + Style.BRIGHT + text + Style.RESET_ALL)
 	else:
 		print(pre + text)
 	_to_logfile(pre + text)
 
 def _as_success(text, pre=''):
 	if _has_colorama:
-		print(pre + Back.GREEN + Fore.GREEN + Style.BRIGHT + text + Style.RESET_ALL)
+		print(pre + Fore.GREEN + Style.BRIGHT + text + Style.RESET_ALL)
 	else:
 		print(pre + text)
 	_to_logfile(pre + text)
@@ -154,13 +154,14 @@ def find_test(test, directory=None):
 def run_tests(directory=None, args_prefix=[]):
 	'''Run tests
 
-	Returns dict 'passed', 'failed', 'error' to counts'''
+	Returns dict 'passed', 'failed', 'error', 'timeout' to counts'''
 	global base_path
 
 	result = {
 		'passed': 0,
 		'failed': 0,
-		'error': 0
+		'error': 0,
+		'timeout': 0
 	}
 
 	if directory is None:
@@ -176,9 +177,8 @@ def run_tests(directory=None, args_prefix=[]):
 				result[r] += 1
 			elif not path.endswith("EIFGENs"):
 				r = run_tests(path, args_prefix)
-				result['passed'] += r['passed']
-				result['failed'] += r['failed']
-				result['error'] += r['error']
+				for k in r:
+					result[k] += r[k]
 	return result
 
 def run_test(path, test_name, args_prefix=[]):
@@ -186,7 +186,8 @@ def run_test(path, test_name, args_prefix=[]):
 
 	return 'passed' if test passed,
 	'failed' if test failed,
-	'error' if there was error running test'''
+	'error' if there was error running test
+	'timeout' if running the test exceeded the timeout time'''
 	global store_output
 	if not path is None and os.path.isdir(path):
 		_as_info("Running test: " + test_name)
@@ -224,6 +225,10 @@ def run_test(path, test_name, args_prefix=[]):
 			_as_success(test_name + ": successful")
 			return 'passed'
 		else:
+			if output_content.endswith('Killed by test timeout'):
+				_as_error(test_name+ ": timeout")
+				return 'timeout'
+
 			_as_error(test_name + ": failed")
 			print('Full output:')
 			print(full_output)
@@ -271,7 +276,8 @@ else:
 	result  = {
 		'passed': 0,
 		'failed': 0,
-		'error': 0
+		'error': 0,
+		'timeout': 0
 	}
 	for t in arguments.tests:
 		outcome = run_test(find_test(t, base_path), t)
@@ -279,5 +285,5 @@ else:
 
 print(result)
 
-if result['failed'] != 0 or result['error'] != 0:
+if result['failed'] or result['error'] or result['timeout']:
 	exit(1)

@@ -16,8 +16,6 @@ feature {NONE} -- Initialization
 		require
 			m_exists: m /= Void
 			default_arg_wrapped: m.is_wrapped
-			modify (Current)
-			modify_field (["observers", "closed"], m)
 		do
 			master := m
 			local_time := master.time
@@ -28,6 +26,8 @@ feature {NONE} -- Initialization
 			m.wrap
 			wrap
 		ensure
+			modify (Current)
+			modify_field (["observers", "closed"], m)
 			master_set: master = m
 			time_synchronized: local_time = m.time
 			observing_master: m.observers = old m.observers & Current
@@ -51,7 +51,6 @@ feature -- Update
 			free: is_free
 			partially_holds: inv_without ("time_weakly_synchronized")
 			master_wrapped: master.is_wrapped
-			modify_field (["local_time", "closed"], Current)
 		do
 			if closed then
 				unwrap
@@ -59,17 +58,18 @@ feature -- Update
 			local_time := master.time
 			wrap
 		ensure
+			modify_field (["local_time", "closed"], Current)
 			time_synchronized: local_time = master.time
 			wrapped: is_wrapped
 		end
 
 invariant
 	master_exists: attached master
-	subjects_structure: subjects = [master]
+	subjects_structure: subjects = create {MML_SET [ANY]}.singleton (master)
 	time_non_negative: 0 <= local_time
 	time_weakly_synchronized: local_time <= master.time
 	master_aware: master.observers [Current]
-	default_owns: owns = []
-	default_observers: observers = []
+	default_owns: owns = create {MML_SET [ANY]}
+	default_observers: observers = create {MML_SET [ANY]}
 
 end

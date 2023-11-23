@@ -20,8 +20,6 @@ feature
 	non_void_call (a: ANY)
 		note
 			explicit: contracts, wrapping
-		require
-			modify ([])
 		do
 			if a /= Void then
 				a.do_nothing
@@ -29,6 +27,8 @@ feature
 			if attached a as l_a then
 				l_a.do_nothing
 			end
+		ensure
+			modify ([])
 		end
 
 	non_void_contract (a, b, c: ANY)

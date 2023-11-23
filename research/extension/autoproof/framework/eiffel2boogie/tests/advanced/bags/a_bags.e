@@ -87,7 +87,7 @@ feature
 		end
 
 invariant
-	subjects = []
+	subjects = create {MML_SET [ANY]}
 
 note
 	date: "$Date$"
