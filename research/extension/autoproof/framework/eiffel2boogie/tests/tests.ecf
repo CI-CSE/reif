@@ -34,6 +34,7 @@
 			<cluster name="advanced" location=".\advanced\" recursive="true"/>
 			<cluster name="comcom" location=".\comcom\" recursive="true"/>
 			<cluster name="eb2" location=".\eb2\" recursive="true"/>
+			<cluster name="void_safety" location=".\void_safety\" recursive="true"/>
 		</cluster>
 	</target>
 </system>
