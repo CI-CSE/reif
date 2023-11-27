@@ -272,6 +272,10 @@ feature -- Translation: Signature
 			l_forall.add_bound_variable (l_f)
 			create l_pre.make (l_forall)
 			current_boogie_procedure.add_contract (l_pre)
+		ensure
+			added_precondition: if attached {IV_PRECONDITION} current_boogie_procedure.contracts.last as pre then
+				current_boogie_procedure.contracts.count = old current_boogie_procedure.contracts.count + 1
+				else false end
 		end
 
 	add_default_create_postcondition
