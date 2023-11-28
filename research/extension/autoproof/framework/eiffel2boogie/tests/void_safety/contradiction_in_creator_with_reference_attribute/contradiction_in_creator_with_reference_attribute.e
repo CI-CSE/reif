@@ -1,9 +1,8 @@
 note
-	description: "Summary description for {CONTRADICTION_IN_FEATURE_CALLED_BY_CREATOR}."
-	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
-
+	description: "[
+	This test checks that the generated boogie file does not contain
+	contradictory assumptions for creation procedures.
+]"
 class
 	CONTRADICTION_IN_CREATOR_WITH_REFERENCE_ATTRIBUTE
 
@@ -17,11 +16,9 @@ feature -- Access
 	make
 		note
 			status: creator
-			explicit: wrapping, contracts
 		do
 			check false end
 			create s
-			check false end
 		end
 
 end

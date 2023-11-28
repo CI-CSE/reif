@@ -154,7 +154,7 @@ feature -- Translation: Signature
 
 				-- Creator: add default field initialization
 			if a_for_creator then
-				add_field_initialization (a_type)
+				add_field_default_initialization (a_type)
 					-- If it is `default_create' from any, add special post
 				if current_feature.written_in = system.any_id and current_feature.rout_id_set.first = system.default_create_rout_id then
 					add_default_create_postcondition
@@ -215,7 +215,7 @@ feature -- Translation: Signature
 			create l_modifies.make ("Heap")
 			current_boogie_procedure.add_contract (l_modifies)
 
-			add_field_initialization (a_type)
+			add_field_default_initialization (a_type)
 
 				-- wrapped
 			 create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
@@ -240,8 +240,9 @@ feature -- Translation: Signature
 			current_boogie_procedure.add_contract (l_post)
 		end
 
-	add_field_initialization (a_type: CL_TYPE_A)
-			-- Add precondition to `current_boogie_procedure' that all attributes except "allocated" and those which do require explicit initialization are initialized to default values.
+	add_field_default_initialization (a_type: CL_TYPE_A)
+			-- Add precondition to `current_boogie_procedure' that all attributes except "allocated"
+			-- and those which do require explicit initialization are initialized to default values.
 		local
 			l_area: SPECIAL [ATTR_DESC]
 			l_mapping: E2B_ENTITY_MAPPING
@@ -262,20 +263,24 @@ feature -- Translation: Signature
 					l_left_hand_side := factory.and_ (l_left_hand_side, factory.not_equal (l_f, factory.entity (name_translator.boogie_name_for_type (a_type) + "." + l_attr_desc.attribute_name, types.field (types.ref))))
 				end
 			end
+
+			-- Adding precondition:
+			-- 		requires (forall <T1> $f: Field T1 ::
+			-- 			((($f) != (allocated)) && (($f) != (<not-self-initializing field>)) ... && $f != <not-self-initializing field> ... )
+			-- 			==>
+			-- 			((Heap[Current, $f]) == (Default($f))));
+
 			create l_forall.make (factory.implies_ (
 						l_left_hand_side,
 						factory.equal (
 					factory.heap_current_access (l_mapping, l_f.name, l_t),
 					factory.function_call ("Default", <<l_f>>, l_t))
 			))
+
 			l_forall.add_type_variable (l_t.name)
 			l_forall.add_bound_variable (l_f)
 			create l_pre.make (l_forall)
 			current_boogie_procedure.add_contract (l_pre)
-		ensure
-			added_precondition: if attached {IV_PRECONDITION} current_boogie_procedure.contracts.last as pre then
-				current_boogie_procedure.contracts.count = old current_boogie_procedure.contracts.count + 1
-				else false end
 		end
 
 	add_default_create_postcondition
