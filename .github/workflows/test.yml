@@ -56,7 +56,21 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update || true
-          sudo apt-get install libgtk-3-dev z3
+          sudo apt-get install libgtk-3-dev
+
+      - name: Install z3
+        env:
+          Z3_URL: https://github.com/Z3Prover/z3/releases/download/z3-4.8.8/z3-4.8.8-x64-ubuntu-16.04.zip
+        run: |
+          wget --no-verbose -O z3.zip $Z3_URL
+          unzip z3.zip
+
+          realpath $(find ./z3* -name bin -type d) >> $GITHUB_PATH
+
+      - name: Show z3 version
+        run: |
+          which z3
+          z3 -version
 
       - name: Compile C code
         run: |
