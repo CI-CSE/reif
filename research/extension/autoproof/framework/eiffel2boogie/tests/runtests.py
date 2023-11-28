@@ -97,7 +97,7 @@ def delete_path(path):
 	return result
 
 def execute(program, output_file = None):
-	print("EXECUTE", program)
+	print("EXECUTE", ' '.join(program))
 	if isinstance(output_file, str):
 		pipe = open(output_file, 'a')
 	else:
