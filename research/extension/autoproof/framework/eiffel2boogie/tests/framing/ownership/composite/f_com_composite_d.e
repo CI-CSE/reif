@@ -14,8 +14,6 @@ feature {NONE} -- Initialization
 			-- Create a singleton node with initial value `v'		
 		note
 			status: creator
-		require
-			modify (Current)
 		do
 			create children.make
 			init_value := v
@@ -23,6 +21,7 @@ feature {NONE} -- Initialization
 			set_owns (create {MML_SET[ANY]}.singleton(children))
 			wrap
 		ensure
+			modify (Current)
 			init_value_set: init_value = v
 			value_set: value = v
 			no_parent: parent = Void
@@ -97,8 +96,6 @@ feature -- Update
 			default_wrapped: is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped end
 			default_arg_c_wrapped: c.is_wrapped
-			modify (Current, c)
-			modify_field (["value", "max_child", "closed"], ancestors)
 		do
 			lemma_ancestors_have_children (c)
 			check c.inv end
@@ -118,6 +115,8 @@ feature -- Update
 			c.wrap
 			update (c)
 		ensure
+			modify (Current, c)
+			modify_field (["value", "max_child", "closed"], ancestors)
 			child_added: children.has (c)
 			c_value_unchanged: c.value = old c.value
 			c_children_unchanged: c.children.sequence = old c.children.sequence
@@ -136,11 +135,11 @@ feature {F_COM_COMPOSITE_D} -- Implementation
 			open: is_open
 			p_exists: p /= Void
 			no_observers: observers.is_empty
-			modify_field (["parent", "ancestors"], Current)
 		do
 			parent := p
 			ancestors := p.ancestors & p
 		ensure
+			modify_field (["parent", "ancestors"], Current)
 			parent_set: parent = p
 			ancestors_set: ancestors = p.ancestors & p
 		end
@@ -157,8 +156,6 @@ feature {F_COM_COMPOSITE_D} -- Implementation
 			almost_max: if value >= c.value
 				then is_max (value, init_value, children_set, max_child)
 				else is_max (c.value, init_value, children_set, c) end
-			modify_field (["value", "max_child", "closed"], Current, ancestors)
-			modify_field (["owner"], children)
 			decreases (ancestors)
 		do
 			if value < c.value then
@@ -175,6 +172,8 @@ feature {F_COM_COMPOSITE_D} -- Implementation
 				wrap
 			end
 		ensure
+			modify_field (["value", "max_child", "closed"], Current, ancestors)
+			modify_field (["owner"], children)
 			wrapped: is_wrapped
 			ancestors_wrapped: across ancestors as p all p.is_wrapped end
 		end
@@ -202,7 +201,7 @@ feature {F_COM_COMPOSITE_D} -- Implementation
 
 invariant
 	children_exists: children /= Void
-	owns_structure: owns = [children]
+	owns_structure: owns = create {MML_SET [ANY]}.singleton (children)
 	subjects_structure: subjects = if parent = Void then children_set else children.sequence.range & parent end
 	tree: not ancestors [Current]
 	children_consistent: across children.sequence.domain as i all children.sequence [i] /= Void and then children.sequence [i].parent = Current end
