@@ -34,7 +34,6 @@ feature
 			explicit: wrapping
 		require
 			other_wrapped: other.is_wrapped
-			modify (Current, other)
 		do
 			break
 			check x > 0 end
@@ -46,6 +45,8 @@ feature
 			check new_property: other.x > 0 end -- Fail
 			other.set_prev
 			other.wrap -- Fail: dynamic type unknown
+		ensure
+			modify (Current, other)
 		end
 
 	get_x: INTEGER

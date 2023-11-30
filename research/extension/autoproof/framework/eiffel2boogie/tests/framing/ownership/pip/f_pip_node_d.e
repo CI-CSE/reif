@@ -14,13 +14,12 @@ feature {NONE} -- Initialization
 			-- Create a singleton node with initial value `v'		
 		note
 			status: creator
-		require
-			modify (Current)
 		do
 			init_value := v
 			value := v
 			wrap
 		ensure
+			modify (Current)
 			init_value_set: init_value = v
 			value_set: value = v
 			no_parent: parent = Void
@@ -79,10 +78,6 @@ feature -- Access
 			ancestors_wrapped: across ancestors as p all p.is_wrapped end
 			ancestors_has_current: ancestors [Current]
 			ancestors_closed: across ancestors as p all p.parent /= Void implies ancestors [p.parent] end
-
-			modify_field (["value", "max_child", "closed"], ancestors)
-			modify_field (["children", "subjects", "observers"], Current)
-			modify_field (["parent", "subjects", "observers", "closed"], n)
 		do
 			unwrap
 			n.unwrap
@@ -102,6 +97,10 @@ feature -- Access
 				wrap
 			end
 		ensure
+			modify_field (["value", "max_child", "closed"], ancestors)
+			modify_field (["children", "subjects", "observers"], Current)
+			modify_field (["parent", "subjects", "observers", "closed"], n)
+
 			default_wrapped: is_wrapped
 			default_arg_n_wrapped: n.is_wrapped
 			n_parent_set: n.parent = Current
@@ -120,10 +119,10 @@ feature {F_PIP_NODE_D} -- Implementation
 			no_parent: parent = Void
 			p_exists: p /= Void
 			observers = children.range
-			modify_field (["parent"], Current)
 		do
 			parent := p
 		ensure
+			modify_field (["parent"], Current)
 			parent_set: parent = p
 		end
 
@@ -142,8 +141,6 @@ feature {F_PIP_NODE_D} -- Implementation
 			ancestors_has_current: ancestors [Current]
 			ancestors_closed: across ancestors as p all p.parent /= Void implies ancestors [p.parent] end
 
-			modify_field (["closed"], ancestors)
-			modify_field (["value", "max_child"], (ancestors - visited) / d)
 			decreases (ancestors - visited)
 		do
 			if parent /= Void then
@@ -160,6 +157,8 @@ feature {F_PIP_NODE_D} -- Implementation
 				end
 			end
 		ensure
+			modify_field (["closed"], ancestors)
+			modify_field (["value", "max_child"], (ancestors - visited) / d)
 			value_set: value = d.value
 			max_child_set: max_child = child
 			d_value_unchnaged: d.value = old d.value
@@ -174,7 +173,7 @@ invariant
 	no_direct_cycles: parent /= Current
 	observers_structure: observers = subjects
 	subjects_aware: across subjects as s all s.observers [Current] end
-	default_owns: owns = []
+	default_owns: owns = create {MML_SET [ANY]}
 
 note
 	date: "$Date$"

@@ -36,9 +36,6 @@ feature -- Element change
 		require
 			is_wrapped	-- default: public
 			across observers as oc all oc.is_wrapped end -- default: public
-
-			modify_field (["cache", "closed"], observer)
-			modify_field (["value", "closed"], Current)
 		do
 			unwrap -- default: public
 			if attached observer then
@@ -51,6 +48,8 @@ feature -- Element change
 			end
 			wrap -- default: public
 		ensure
+			modify_field (["cache", "closed"], observer)
+			modify_field (["value", "closed"], Current)
 			value_set: value = new_val
 			is_wrapped	-- default: public
 			across observers as oc all oc.is_wrapped end -- default: public
@@ -66,23 +65,22 @@ feature {F_OOO_OBSERVER_D} -- Element change
 			observer = Void
 			is_wrapped
 			o.is_open
-
-			modify_field (["observer", "observers", "closed"], Current)
 		do
 			unwrap
 			observer := o
 			set_observers (create {MML_SET[ANY]}.singleton(o))
 			wrap
 		ensure
+			modify_field (["observer", "observers", "closed"], Current)
 			observer = o
 			is_wrapped
 		end
 
 invariant
-	observer = Void implies observers = []
-	observer /= Void implies observers = [observer]
-	owns = [] -- default
-	subjects = [] -- default
+	observer = Void implies observers = create {MML_SET [ANY]}
+	observer /= Void implies observers = create {MML_SET [ANY]}.singleton (observer)
+	owns = create {MML_SET [ANY]} -- default
+	subjects = create {MML_SET [ANY]} -- default
 
 note
 	date: "$Date$"

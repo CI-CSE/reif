@@ -85,11 +85,11 @@ feature {A_A}
 	set_prev
 		require
 			open: is_open
-			observers = []
-			modify_field ("prev", Current)
+			observers.is_empty
 		do
 			prev := Current
 		ensure
+			modify_field ("prev", Current)
 			prev /= Void
 		end
 
