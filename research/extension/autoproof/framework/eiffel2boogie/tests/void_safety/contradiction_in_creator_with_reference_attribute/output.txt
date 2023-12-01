@@ -5,4 +5,4 @@ Successfully verified.
 CONTRADICTION_IN_CREATOR_WITH_REFERENCE_ATTRIBUTE.make (creator)
 Verification failed.
 
-Line: 22. Check false may be violated.
+Line: 20. Check false may be violated.
