@@ -1,8 +1,8 @@
 ======================================
 CONTRADICTION_IN_CREATOR_WITH_REFERENCE_ATTRIBUTE (invariant admissibility)
-Successfully verified (0.15s).
+Successfully verified.
 ======================================
 CONTRADICTION_IN_CREATOR_WITH_REFERENCE_ATTRIBUTE.make (creator)
-Verification failed (0.06s).
+Verification failed.
 
 Line: 22. Check false may be violated.
