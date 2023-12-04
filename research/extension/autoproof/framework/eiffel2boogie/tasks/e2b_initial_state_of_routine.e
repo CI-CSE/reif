@@ -218,7 +218,6 @@ feature -- Get initial values
 			field_name, field_value: STRING
 			field_type: TYPE_A
 		do
-			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields" + object_name + " " + object_type.name +  "%N")
 			field_name := ""; field_value := ""
 			if object_type.has_associated_class then
 				from
@@ -239,8 +238,7 @@ feature -- Get initial values
 
 						initial_values [object_name + "." + field_name] := ""
 						initial_values [object_name + "." + field_name].copy (field_value)
-						-- print ("field_value: " + field_value + "%N")
-						if is_reference_type (field_type) then
+						if is_reference_type (field_type) and then not field_value.is_empty then
 							get_object_fields (object_name + "." + field_name, field_type)
 						end
 
