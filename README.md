@@ -4,7 +4,7 @@ This repository is based on EiffelStudio with AutoProof extensions.
 ## Dependencies
 AutoProof is known to work with:
 * **Boogie** v2.11.1
-* **Z3** 4.4.8
+* **Z3** 4.8.8
   * Z3 version should be compatible with Boogie.
     For now we recommend to use the version which is used in Boogie's test workflows
     https://github.com/boogie-org/boogie/blob/master/.github/workflows/test.yml#L14
