@@ -1,0 +1,229 @@
+======================================
+B_MESSAGES.not_functional1
+AutoProof error.
+Validity: Functional feature has to be a pure function.
+======================================
+B_MESSAGES.not_functional2
+AutoProof error.
+Validity: A functional feature has to consist of exactly one assignment to the Result (and optional check instructions before the assignment).
+======================================
+B_MESSAGES.partial_invariant_invalid
+AutoProof error.
+Line: 390. Validity: Filtered invariant of class 'B_MESSAGES' lists invalid tag: abc
+======================================
+B_MESSAGES.partial_invariant_invalid
+AutoProof error.
+Line: 391. Validity: Filtered invariant of class 'B_MESSAGES' lists invalid tag: abc
+======================================
+B_MESSAGES.modify_field_invalid
+AutoProof error.
+Line: 398. Validity: First argument has to be a manifest string or a tuple of manifest strings.
+======================================
+B_MESSAGES.modify_field_invalid
+AutoProof error.
+Line: 399. Validity: First argument has to be a manifest string or a tuple of manifest strings.
+======================================
+B_MESSAGES.modify_field_invalid
+AutoProof error.
+Line: 399. Validity: Feature 'abc' is not an attribute of class 'B_MESSAGES'.
+======================================
+B_MESSAGES (invariant admissibility)
+Successfully verified.
+======================================
+ANY.default_create (creator, inherited by B_MESSAGES)
+Successfully verified.
+======================================
+B_MESSAGES.verification_successful
+Successfully verified.
+======================================
+B_MESSAGES.check_fails
+Verification failed.
+
+Line: 20. Check a > 0 may be violated.
+======================================
+B_MESSAGES.tagged_check_fails
+Verification failed.
+
+Line: 25. Check tag1 may be violated.
+======================================
+B_MESSAGES.multi_check_fails
+Verification failed.
+
+Line: 31. Check tag1 may be violated.
+--------------------------------------
+Line: 32. Check b > 0 may be violated.
+--------------------------------------
+Line: 33. Check tag2 may be violated.
+======================================
+B_MESSAGES.postcondition_fails
+Verification failed.
+
+Line: 42. Postcondition Result > 0 may be violated.
+======================================
+B_MESSAGES.tagged_postcondition_fails
+Verification failed.
+
+Line: 48. Postcondition tag1 may be violated.
+======================================
+B_MESSAGES.multi_postcondition_fails
+Verification failed.
+
+Line: 55. Postcondition tag1 may be violated.
+--------------------------------------
+Line: 56. Postcondition Result < 0 may be violated.
+======================================
+B_MESSAGES.precondition_fails
+Verification failed.
+
+Line: 63. Precondition b > 0 may be violated on call to {B_MESSAGES}.verification_successful.
+======================================
+B_MESSAGES.tagged_precondition_fails
+Verification failed.
+
+Line: 68. Precondition tag1 may be violated on call to {B_MESSAGES}.verification_successful.
+======================================
+B_MESSAGES.multi_precondition_fails
+Verification failed.
+
+Line: 74. Precondition tag1 may be violated on call to {B_MESSAGES}.verification_successful.
+======================================
+B_MESSAGES.loop_invariant_fails_on_entry
+Verification failed.
+
+Line: 85. Loop invariant a < 0 may be violated on entry.
+======================================
+B_MESSAGES.tagged_loop_invariant_fails_on_entry
+Verification failed.
+
+Line: 99. Loop invariant tag1 may be violated on entry.
+======================================
+B_MESSAGES.multi_loop_invariant_fails_on_entry
+Verification failed.
+
+Line: 113. Loop invariant tag1 may be violated on entry.
+======================================
+B_MESSAGES.loop_invariant_not_maintained
+Verification failed.
+
+Line: 129. Loop invariant a <= 0 may not be maintained.
+======================================
+B_MESSAGES.tagged_loop_invariant_not_maintained
+Verification failed.
+
+Line: 143. Loop invariant tag1 may not be maintained.
+======================================
+B_MESSAGES.multi_loop_invariant_not_maintained
+Verification failed.
+
+Line: 157. Loop invariant tag1 may not be maintained.
+--------------------------------------
+Line: 158. Loop invariant b <= 0 may not be maintained.
+--------------------------------------
+Line: 159. Loop invariant tag2 may not be maintained.
+======================================
+B_MESSAGES.loop_variant_negative
+Verification failed.
+
+Line: 181. Integer variant component at position 1 may be negative.
+--------------------------------------
+Line: 181. Variant may not decrease at this recursive call / the end of this loop body.
+======================================
+B_MESSAGES.tagged_loop_variant_negative
+Verification failed.
+
+Line: 195. Integer variant component at position 1 may be negative.
+--------------------------------------
+Line: 195. Variant may not decrease at this recursive call / the end of this loop body.
+======================================
+B_MESSAGES.loop_variant_not_reduced
+Verification failed.
+
+Line: 208. Variant may not decrease at this recursive call / the end of this loop body.
+======================================
+B_MESSAGES.tagged_loop_variant_not_reduced
+Verification failed.
+
+Line: 221. Variant may not decrease at this recursive call / the end of this loop body.
+======================================
+B_MESSAGES.void_call_on_local
+Verification failed.
+
+Line: 231. Possible Void call.
+======================================
+B_MESSAGES.void_call_in_check
+Verification failed.
+
+Line: 238. Possible Void call.
+======================================
+B_MESSAGES.void_call_in_pre
+Verification failed.
+
+Line: 251. Possible Void call in precondition a.any_attribute = Void on call to {B_MESSAGES}.void_call_in_pre_helper.
+======================================
+B_MESSAGES.void_call_on_attribute
+Verification failed.
+
+Line: 258. Possible Void call.
+======================================
+B_MESSAGES.void_call_on_function
+Verification failed.
+
+Line: 263. Precondition default_is_closed may be violated on call to {B_MESSAGES}.void_call_on_local.
+======================================
+B_MESSAGES.overflow_in_body
+Verification failed.
+
+Line: 270. Possible arithmetic overflow.
+======================================
+B_MESSAGES.overflow_in_check
+Verification failed.
+
+Line: 277. Possible arithmetic overflow.
+======================================
+B_MESSAGES.overflow_in_post
+Verification failed.
+
+Line: 285. Possible arithmetic overflow in postcondition a + b > 0.
+======================================
+B_MESSAGES.overflow_in_pre
+Verification failed.
+
+Line: 301. Possible arithmetic overflow in precondition c + d > 0 on call to {B_MESSAGES}.overflow_in_pre_helper.
+======================================
+B_MESSAGES.overflow_in_pre_tagged
+Verification failed.
+
+Line: 308. Possible arithmetic overflow in precondition tag1 on call to {B_MESSAGES}.overflow_in_pre_helper.
+======================================
+B_MESSAGES.ownership_assignment_current_not_open
+Verification failed.
+
+Line: 319. Target of assignment may not be open.
+======================================
+B_MESSAGES.ownership_assignment_heap_not_writable
+Verification failed.
+
+Line: 331. Target attribute may not be writable.
+======================================
+B_MESSAGES.ownership_assignment_observers_open_or_preserved
+Verification failed.
+
+Line: 342. Observers of the assignment target may be invalidated.
+======================================
+B_MESSAGES.ownership_default_wrap_fails
+Verification failed.
+
+Line: 350. Precondition open may be violated on call to {ANY}.wrap. Disable this default by making wrapping explicit.
+======================================
+B_MESSAGES.ownership_default_is_wrapped_violated
+Verification failed.
+
+Postcondition default_is_wrapped may be violated. Disable this default by making contracts explicit.
+======================================
+B_MESSAGES.not_functional1
+Successfully verified.
+======================================
+B_MESSAGES.call_not_functional
+Verification failed.
+
+Line: 384. Precondition default_is_wrapped may be violated on call to {B_MESSAGES}.not_functional1.
