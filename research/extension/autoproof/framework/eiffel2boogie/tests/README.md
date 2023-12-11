@@ -32,11 +32,14 @@ of the output of AutoProof. However, it is easier to simply have one class in on
 to avoid dealing with this order at all.
 
 ### How to add a test
-1. Make directory for the test (can be a subdirectory of any depth)
-2. Put the `*.e` file in the directory
-3. Put the `output.txt` file in the directory
-4. Make sure that the class is in the system (add a cluster to `tests.ecf` if needed)
-5. To run just the added test, pass the name of the directory as the last parameter to the script
+
+1. Create a subdirectory of any depth in [tests](/research/extension/autoproof/framework/eiffel2boogie/tests).
+2. Move the file of the test class in the newly created directory.
+3. Run the command line version of AutoProof on the test class and save the text output after "System recompile." in a `output.txt` file.
+4. Move the `output.txt` file from step 3 in the directory created in step 1.
+5. Ensure that the test class is in the system (add a cluster in `tests.ecf` if needed)
+
+To run just the added test, pass the name of the newly created directory as the last parameter to the script.
 
 For example, we add a new test. The test class is located in `new_tests/test1/test_class.e`.
 Output file should be located at `new_tests/test1/output.txt`. This test can be ran with:
