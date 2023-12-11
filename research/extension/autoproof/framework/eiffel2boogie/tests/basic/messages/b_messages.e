@@ -1,5 +1,5 @@
 note
-	AutoProof: ownership, ownership_defaults, overflow
+	description: "Test various failure messages"
 
 class B_MESSAGES
 
@@ -110,7 +110,6 @@ feature -- Loop invariant violation
 		do
 			from
 			invariant
-					-- ONLY ONE ERROR REPORTED
 				tag1: a < 0
 				b < 0
 				tag2: c < 0
@@ -155,7 +154,6 @@ feature -- Loop invariant violation
 		do
 			from
 			invariant
-					-- ONLY ONE ERROR REPORTED
 				tag1: a <= 0
 				b <= 0
 				tag2: c <= 0
@@ -253,16 +251,6 @@ feature -- Void-call
 			void_call_in_pre_helper (Void)
 		end
 
-	void_call_in_loop_inv
-		do
-			-- TODO
-		end
-
-	void_call_in_loop_var
-		do
-			-- TODO
-		end
-
 	any_attribute: ANY
 
 	void_call_on_attribute: ANY
@@ -326,21 +314,23 @@ feature -- Ownership
 		note
 			explicit: "all"
 		require
-			observers = []
-			modify (Current)
+			observers.is_empty
 		do
 			any_attribute := Void
+		ensure
+			modify (Current)
 		end
 
 	ownership_assignment_heap_not_writable
 		note
 			explicit: "all"
 		require
-			observers = []
+			observers.is_empty
 			is_open
-			modify ([])
 		do
 			any_attribute := Void
+		ensure
+			modify ([])
 		end
 
 	ownership_assignment_observers_open_or_preserved
@@ -348,9 +338,10 @@ feature -- Ownership
 			explicit: "all"
 		require
 			is_open
-			modify (Current)
 		do
 			any_attribute := Void
+		ensure
+			modify (Current)
 		end
 
 	ownership_default_wrap_fails
@@ -402,10 +393,10 @@ feature -- Validity errors
 		end
 
 	modify_field_invalid
-		require
-			modify_field (1, Current)
-			modify_field (["abc", 1], Current)
 		do
+		ensure
+			modify_field (1, Current) -- INTEGER can't be the first arg
+			modify_field (["abc", 1], Current) -- First arg can't have INTEGER
 		end
 
 end

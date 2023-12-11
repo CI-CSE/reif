@@ -169,8 +169,9 @@ def run_tests(directory=None, args_prefix=[]):
 	for test_name in os.listdir(directory):
 		path = os.path.join(directory, test_name)
 		if path.endswith("args.txt"):
-			_as_info("  command line options: " + open(path).readline())
-			args_prefix.extend(open(path).readline().split(" "))
+			args = open(path).readline().strip().split(' ')
+			_as_info("  command line options: " + str(args))
+			args_prefix.extend(args)
 		elif os.path.isdir(path):
 			if is_test_path(path):
 				r = run_test(path, test_name, args_prefix)
@@ -198,8 +199,9 @@ def run_test(path, test_name, args_prefix=[]):
 				class_name = os.path.splitext(os.path.basename(filename))[0]
 				classes.append(class_name.upper())
 			elif filename.endswith("args.txt"):
-				_as_info("  command line options: " + open(os.path.join(path, filename)).readline())
-				args.extend(open(os.path.join(path, filename)).readline().split(" "))
+				args_txt = open(os.path.join(path, filename)).readline().strip().split(' ')
+				_as_info("  command line options: " + str(args_txt))
+				args.extend(args_txt)
 		args.extend(classes)
 
 		# clear output file
