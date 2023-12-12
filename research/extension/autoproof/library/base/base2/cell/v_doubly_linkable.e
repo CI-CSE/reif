@@ -62,23 +62,41 @@ feature -- Replacement
 			wrapped: is_wrapped
 			front_wrapped: front.is_wrapped
 			back_wrapped: back.is_wrapped
-			right_wrapped: right.is_wrapped
+			right_wrapped: attached right as r implies r.is_wrapped
 			segment_start: front.left = Void
 			segment_end: back.right = Void
 		do
-			unwrap_all (create {MML_SET [ANY]} & Current & right & front & back)
-			back.put_right (right)
-			right.put_left (back)
+			unwrap_all (
+				create {MML_SET [ANY]}
+					& Current
+						-- if right is Void, then we put Current again as a no-op
+						-- because we just added Current before
+					& if attached right as r then r else Current end
+					& front
+					& back
+			)
+			if attached right as r then
+				back.put_right (r)
+				r.put_left (back)
+			end
 			put_right (front)
 			front.put_left (Current)
-			wrap_all (create {MML_SET [ANY]} & Current & back.right & front & back)
+			wrap_all (
+				create {MML_SET [ANY]}
+					& Current
+						-- if back_right is Void, then we put Current again as a no-op
+						-- because we just added Current before
+					& if attached back.right as back_right then back_right else Current end
+					& front
+					& back
+			)
 		ensure
-			front_connected: right = front
+			front_connected_and_wrapped: right = front
 			back_connected: back.right = old right
 			wrapped: is_wrapped
 			front_wrapped: front.is_wrapped
 			back_wrapped: back.is_wrapped
-			right_wrapped: (old right).is_wrapped
+			right_wrapped: attached old right as old_right implies old_right.is_wrapped
 			modify_model (["right", "subjects", "observers"], [Current, back])
 			modify_model (["left", "subjects", "observers"], [right, front])
 		end
@@ -89,20 +107,28 @@ feature -- Replacement
 			explicit: contracts, wrapping
 		require
 			wrapped: is_wrapped
-			right_wrapped: right.is_wrapped
-			right_wrapped: attached right as x and then x.is_wrapped
-			next_wrapped: right.right.is_wrapped
+			right_wrapped: attached right as r and then r.is_wrapped
+			next_wrapped: attached right as r1 and then attached r1.right as rr implies rr.is_wrapped
 		do
-			unwrap_all (create {MML_SET [ANY]} & Current & right & right.right)
-			put_right (right.right)
-			right.put_left (Current)
-			wrap_all (create {MML_SET [ANY]} & Current & right)
+			if attached right as r then
+				unwrap_all (
+					create {MML_SET [ANY]}
+						& Current
+						& r
+						& if attached r.right as rr then rr else r end
+				)
+				put_right (r.right)
+				r.put_left (Current)
+				wrap_all (create {MML_SET [ANY]} & Current & r)
+			end
 		ensure
-			right_set: right = old right.right
+			right_set: old right = Void implies right = Void
+			right_set_old_right_right: attached old right as r implies right = r.right
 			wrapped: is_wrapped
-			right_wrapped: right.is_wrapped
+			right_wrapped: attached right as r implies r.is_wrapped
 			modify_model (["right", "subjects", "observers"], Current)
-			modify_model (["left", "subjects", "observers"], right.right)
+			attached right as r and then attached r.right as rr implies
+			  modify_model (["left", "subjects", "observers"], rr)
 			modify (right)
 		end
 
