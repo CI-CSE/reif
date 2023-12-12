@@ -12,7 +12,7 @@ inherit
 
 feature
 
-	set_integer_32_field_ (name: STRING; object: ANY; value: INTEGER_32)
+	set_integer_32_field_ (name: READABLE_STRING_GENERAL; object: ANY; value: INTEGER_32)
 			-- Set integer value of an object field
 		local
 			i: INTEGER
@@ -20,7 +20,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name) or else i > field_count (object)
+				field_name (i, object).same_string_general (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -32,7 +32,7 @@ feature
 			instance_free: class
 		end
 
-	set_integer_field_ (name: STRING; object: ANY; value: INTEGER)
+	set_integer_field_ (name: READABLE_STRING_GENERAL; object: ANY; value: INTEGER)
 			-- Set integer value of an object field
 		local
 			i: INTEGER
@@ -40,7 +40,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name) or else i > field_count (object)
+				field_name (i, object).same_string_general (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -52,7 +52,7 @@ feature
 			instance_free: class
 		end
 
-	set_boolean_field_ (name: STRING; object: ANY; value: BOOLEAN)
+	set_boolean_field_ (name: READABLE_STRING_GENERAL; object: ANY; value: BOOLEAN)
 			-- Set boolean value of an object field
 		local
 			i: INTEGER
@@ -60,7 +60,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name) or else i > field_count (object)
+				field_name (i, object).same_string_general (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -72,7 +72,7 @@ feature
 			instance_free: class
 		end
 
-	set_reference_field_ (name: STRING; object: ANY; object_value: ANY)
+	set_reference_field_ (name: READABLE_STRING_GENERAL; object: ANY; object_value: ANY)
 			-- Set value of an object field of reference type
 		local
 			i: INTEGER
@@ -80,7 +80,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name) or else i > field_count (object)
+				field_name (i, object).same_string_general (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
@@ -92,7 +92,7 @@ feature
 			instance_free: class
 		end
 
-	set_natural_64_field_ (name: STRING; object: ANY; value: NATURAL_64)
+	set_natural_64_field_ (name: READABLE_STRING_GENERAL; object: ANY; value: NATURAL_64)
 			-- Set value of an object field of natural_64 type
 		local
 			i: INTEGER
@@ -100,7 +100,7 @@ feature
 			from
 				i := 1
 			until
-				field_name (i, object).same_string (name) or else i > field_count (object)
+				field_name (i, object).same_string_general (name) or else i > field_count (object)
 			loop
 				i := i + 1
 			end
