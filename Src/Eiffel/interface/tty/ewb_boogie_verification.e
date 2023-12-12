@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Command line command for Boogie verification"
 	date: "$Date: 2014-11-18 00:30:08 +0800 (Tue, 18 Nov 2014) $"
 	revision: "$Revision: 96103 $"
@@ -33,6 +33,11 @@ feature {NONE} -- Initialization
 
 	make_with_arguments (a_arguments: LINKED_LIST [STRING])
 			-- Initialize with `a_arguments'.
+			--
+			-- Each arguments can be:
+			-- * `CLASS_NAME` - to verify whole class `CLASS_NAME`
+			-- * `CLASS_NAME.f_name` - to verify feature `f_name` in `CLASS_NAME`
+			-- * Path to class file - to verify class
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
@@ -67,7 +72,8 @@ feature -- Access
 			-- Option arguments to Boogie command line.
 
 	selection: LINKED_LIST [STRING]
-			-- Class and feature selection arguments to Boogie command line.
+			-- Class paths, class names and feature selection arguments
+			-- to Boogie command line.
 
 	name: STRING
 		do
@@ -477,11 +483,12 @@ feature {NONE} -- Implementation
 		end
 
 	load_selection
-			-- Load classes and features from selection.
+			-- Load verification targets
 		local
 			l_item: STRING
 			l_parts: LIST [STRING]
 			l_classes: LIST [CLASS_I]
+			file: RAW_FILE
 		do
 			from
 				selection.start
@@ -489,7 +496,12 @@ feature {NONE} -- Implementation
 				selection.after
 			loop
 				l_item := selection.item
-				if l_item.has ('.') then
+
+				-- Try to find class by path
+				create file.make_with_path (create {PATH}.make_from_string (selection.item))
+				if file.exists and then attached class_by_path (file.path) as c then
+					load_class (c)
+				elseif l_item.has ('.') then
 						-- It's an individual feature
 					l_parts := l_item.split ('.')
 					l_classes := universe.classes_with_name (l_parts.i_th (1))
@@ -508,6 +520,17 @@ feature {NONE} -- Implementation
 					end
 				end
 				selection.forth
+			end
+		end
+
+	class_by_path (path: PATH): detachable CLASS_I
+			-- Find class by it's path.
+			-- Void if class was not found
+		do
+			across universe.all_classes as c until Result /= Void loop
+				if c.item.file_name.absolute_path ~ path.absolute_path then
+					Result := c.item
+				end
 			end
 		end
 
