@@ -37,8 +37,8 @@ feature {NONE} -- Initialization
 		do
 			lock := l
 			set_subjects (create {MML_SET [ANY]}.singleton (l))
-			l.add_client (Current)
 			make_empty_buckets (default_capacity)
+			l.add_client (Current)
 		ensure then
 			map_empty: map.is_empty
 			lock_set: lock = l
