@@ -71,6 +71,7 @@ jobs:
         run: |
           which z3
           z3 -version
+          echo "Using z3 version: $(z3 -version)" >> $GITHUB_STEP_SUMMARY
 
       - name: Compile C code
         run: |
@@ -113,16 +114,141 @@ jobs:
 
       - name: Build AutoProof ec
         run: |
-          ecb -config $AP/Eiffel/Ace/ec.ecf -quick_melt -c_compile -batch
+          ecb -config $AP/Eiffel/Ace/ec.ecf -freeze -c_compile -batch
 
       - name: Replace ec
         run: |
           cp EIFGENs/bench/W_code/ec* $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin
 
+      - name: Verify AP base
+        run: |
+          total=0
+          succeeded=0
+          failed=0
+          error=0
+          timeout=0
+          base2dir="$AP/library/base"
+          base2cfg="$base2dir/base-scoop-safe.ecf"
+
+          mkdir base2test
+          cd base2test
+
+          echo "::group::Compile base"
+          ec -config $base2cfg
+          echo "::endgroup::"
+
+          echo "# Verify AP Base" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          OUTPUT_TABLE="_output_table_file_"
+
+          echo "<table><tr><th>Class</th><th>Verified?</th><th>Time (sec)</th><th>AP output</th><th>Boogie output</th></tr>" \
+            >> $OUTPUT_TABLE
+
+          shopt -s globstar
+
+          for f in $base2dir/**/*.e
+          do
+            total=$(( $total+1 ))
+
+            echo "<tr><td>$(basename $f)</td>" >> $OUTPUT_TABLE
+            echo "::group::$(basename $f)"
+
+            rm -f EIFGENs/base-scoop-safe/Proofs/*
+
+            timestart=$(date +%s)
+            timeout -sKILL 120 \
+              ec \
+              -config $base2cfg \
+              -autoproof $f |& tee ap.txt
+            timeout_code=${PIPESTATUS[0]}
+            echo "timeout_code=$timeout_code"
+
+            timeend=$(date +%s)
+
+            echo "::endgroup::"
+
+            # 137 if COMMAND (or timeout itself) is sent the KILL (9) signal (128+9)
+            if (( timeout_code == 137 )); then
+              echo "  Timeout"
+              echo "<td>:alarm_clock:</td>" >> $OUTPUT_TABLE
+              timeout=$(( $timeout+1 ))
+            else
+              if grep -q "Verification failed" ap.txt; then
+                echo "  Failed"
+                echo "<td>:x:</td>" >> $OUTPUT_TABLE
+                failed=$(( $failed+1 ))
+              else
+                if grep -q "Successfully verified" ap.txt; then
+                  echo "  Succeeded"
+                  echo "<td>:white_check_mark:</td>" >> $OUTPUT_TABLE
+                  succeeded=$(( $succeeded+1 ))
+                else
+                  echo "  Verification error"
+                  echo "<td>Error</td>" >> $OUTPUT_TABLE
+                  error=$(( $error+1 ))
+                fi
+              fi
+            fi
+
+            echo "ec finished in $((timeend-timestart))"
+            echo "<td>$((timeend-timestart))</td>" >> $OUTPUT_TABLE
+
+            echo "<td><details><summary>AP output</summary>" >> $OUTPUT_TABLE
+            echo "" >> $OUTPUT_TABLE
+            echo "\`\`\`" >> $OUTPUT_TABLE
+            cat ap.txt >> $OUTPUT_TABLE
+            echo "\`\`\`" >> $OUTPUT_TABLE
+            echo "" >> $OUTPUT_TABLE
+            echo "</details></td>" >> $OUTPUT_TABLE
+
+            echo "<td><details><summary>Boogie output</summary>" >> $OUTPUT_TABLE
+            echo "" >> $OUTPUT_TABLE
+            echo "\`\`\`" >> $OUTPUT_TABLE
+
+            cat EIFGENs/base-safe-scoop/Proofs/output0.txt >> $OUTPUT_TABLE
+            echo "\`\`\`" >> $OUTPUT_TABLE
+            echo "</details></td>" >> $OUTPUT_TABLE
+
+            echo "</tr>" >> $OUTPUT_TABLE
+            rm ap.txt
+          done
+
+          echo "</table>" >> $OUTPUT_TABLE
+
+          echo "Total: $total, succeeded: $succeeded, failed: $failed, error: $error, timeout: $timeout"
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total**: $total" >> $GITHUB_STEP_SUMMARY
+          echo "* :white_check_mark: verified $succeeded" >> $GITHUB_STEP_SUMMARY
+          echo "* :x: not verified $failed" >> $GITHUB_STEP_SUMMARY
+          echo "* :alarm_clock: timed out $timeout" >> $GITHUB_STEP_SUMMARY
+          echo "* Error $error" >> $GITHUB_STEP_SUMMARY
+
+          cat $OUTPUT_TABLE >> $GITHUB_STEP_SUMMARY
+
+          if (( error > 0 )) || (( error > 0 )); then
+            exit 1
+          fi
+
       - name: Run tests
+        if: ${{ !cancelled() }}
         run: |
           cd research/extension/autoproof/framework/eiffel2boogie/tests
           python3 runtests.py \
             --dir $(pwd) \
             --ec $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin/ec \
-            --test-timeout 120
+            --test-timeout 120 | tee tests.txt
+
+          # python is piped, so take its status from PIPESTATUS
+          res=${PIPESTATUS[0]}
+
+          echo "# E2B Tests" >> $GITHUB_STEP_SUMMARY
+          tail -n 1 tests.txt >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat tests.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          exit $res
