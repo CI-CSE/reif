@@ -75,9 +75,9 @@ feature -- Replacement
 					& front
 					& back
 			)
-			if attached right as r then
-				back.put_right (r)
-				r.put_left (back)
+			if attached right as attached_right then
+				back.put_right (attached_right)
+				attached_right.put_left (back)
 			end
 			put_right (front)
 			front.put_left (Current)
@@ -108,18 +108,21 @@ feature -- Replacement
 		require
 			wrapped: is_wrapped
 			right_wrapped: attached right as r and then r.is_wrapped
-			next_wrapped: attached right as r1 and then attached r1.right as rr implies rr.is_wrapped
+			next_wrapped: attached right as current_right and then
+				attached current_right.right as right_right implies right_right.is_wrapped
 		do
-			if attached right as r then
+			if attached right as attached_right then
 				unwrap_all (
 					create {MML_SET [ANY]}
 						& Current
-						& r
-						& if attached r.right as rr then rr else r end
+						& attached_right
+						& if attached attached_right.right as right_right
+								then right_right
+								else attached_right end
 				)
-				put_right (r.right)
-				r.put_left (Current)
-				wrap_all (create {MML_SET [ANY]} & Current & r)
+				put_right (attached_right.right)
+				attached_right.put_left (Current)
+				wrap_all (create {MML_SET [ANY]} & Current & attached_right)
 			end
 		ensure
 			right_set: old right = Void implies right = Void
