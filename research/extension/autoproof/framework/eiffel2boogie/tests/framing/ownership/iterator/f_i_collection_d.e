@@ -15,15 +15,15 @@ feature {NONE} -- Initialization
 			status: creator
 		require
 			capacity_non_negative: c >= 0
-			modify (Current)
 		do
 			create elements.make (c)
-			set_owns ([elements])
+			set_owns (create {MML_SET [ANY]}.singleton (elements))
 			wrap
 		ensure
+			modify (Current)
 			capacity_set: capacity = c
 			empty: count = 0
-			no_observers: observers = []
+			no_observers: observers = create {MML_SET [ANY]}
 			default: is_wrapped
 		end
 
@@ -51,18 +51,18 @@ feature -- Element change
 			wrapped: is_wrapped
 			observers_wrapped: across observers as o all o.is_wrapped end
 			not_full: count < capacity
-			modify (Current)
-			modify_field ("closed", observers)
 		do
 			unwrap
 			unwrap_all (observers)
-			set_observers ([])
+			set_observers (create {MML_SET [ANY]})
 			count := count + 1
 			elements.put (v, count)
 			wrap
 		ensure
+			modify (Current)
+			modify_field ("closed", observers)
 			count_increased: count = old count + 1
-			no_observers: observers = []
+			no_observers: observers = create {MML_SET [ANY]}
 			old_observers_open: across old observers as o all o.is_open end
 			elements_unchanged: elements = old elements
 			capacity_unchanged: capacity = old capacity
@@ -75,17 +75,17 @@ feature -- Element change
 			wrapped: is_wrapped
 			observers_wrapped: across observers as o all o.is_wrapped end
 			not_empty: count > 0
-			modify (Current)
-			modify_field ("closed", observers)
 		do
 			unwrap
 			unwrap_all (observers)
-			set_observers ([])
+			set_observers (create {MML_SET [ANY]})
 			count := count - 1
 			wrap
 		ensure
+			modify (Current)
+			modify_field ("closed", observers)
 			count_decreased: count = old count - 1
-			no_observers: observers = []
+			no_observers: observers = create {MML_SET [ANY]}
 			old_observers_open: across old observers as o all o.is_open end
 			elements_unchanged: elements = old elements
 			capacity_unchanged: capacity = old capacity
@@ -99,10 +99,10 @@ feature {F_I_ITERATOR_D} -- Implementation
 
 invariant
 	elements /= Void
-	owns = [elements]
+	owns = create {MML_SET [ANY]}.singleton (elements)
 	0 <= count and count <= elements.count
 	across observers as o all attached o and o /= Current end
-	default_subjects: subjects = []
+	default_subjects: subjects = create {MML_SET [ANY]}
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

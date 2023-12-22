@@ -1,0 +1,8 @@
+======================================
+CONTRADICTION_IN_CREATOR_WITH_REFERENCE_ATTRIBUTE (invariant admissibility)
+Successfully verified.
+======================================
+CONTRADICTION_IN_CREATOR_WITH_REFERENCE_ATTRIBUTE.make (creator)
+Verification failed.
+
+Line: 20. Check false may be violated.

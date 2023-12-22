@@ -16,14 +16,14 @@ feature {NONE} -- Initialization
 		require
 			s_exists: s /= Void
 			default_arg_wrapped: s.is_wrapped
-			modify (s, Current)
 		do
 			subject := s
 			s.register (Current)
 			cache := s.value
-			set_subjects ([subject])
+			set_subjects (create {MML_SET [ANY]}.singleton (subject))
 			wrap
 		ensure
+			modify (s, Current)
 			subject_set: subject = s
 			observeing_subject: s.observers = old s.observers & Current
 			default_wrapped: is_wrapped
@@ -45,18 +45,18 @@ feature {F_OOM_SUBJECT_D} -- Internal communication
 		require
 			open: is_open
 			partially_holds: inv_without ("cache_synchronized")
-			modify_field ("cache", Current)
 		do
 			cache := subject.value
 		ensure
+			modify_field ("cache", Current)
 			invariant_holds: inv
 		end
 
 invariant
 	subject_exists: subject /= Void
-	subjects_structure: subjects = [subject]
+	subjects_structure: subjects = create {MML_SET [ANY]}.singleton (subject)
 	subject_aware: subject.observers.has (Current)
 	cache_synchronized: cache = subject.value
-	default: owns = []
-	default: observers = []
+	default: owns = create {MML_SET [ANY]}
+	default: observers = create {MML_SET [ANY]}
 end

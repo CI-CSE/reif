@@ -13,14 +13,13 @@ feature {NONE} -- Initialization
 			-- Create a subject with state `v' and no subscribers.
 		note
 			status: creator
-		require
-			modify (Current)
 		do
 			value := v
 			create subscribers.make
-			set_owns ([subscribers])
+			set_owns (create {MML_SET[ANY]}.singleton(subscribers))
 			wrap
 		ensure
+			modify (Current)
 			value_set: value = v
 			no_subscribers: subscribers.is_empty
 			default_wrapped: is_wrapped
@@ -42,8 +41,6 @@ feature -- State update
 		require
 			default_wrapped: is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped end
-			modify_field (["value", "closed"], Current)
-			modify_field (["cache", "closed"], subscribers.sequence)
 		local
 			i: INTEGER
 		do
@@ -66,6 +63,8 @@ feature -- State update
 			wrap_all (observers)
 			wrap
 		ensure
+			modify_field (["value", "closed"], Current)
+			modify_field (["cache", "closed"], subscribers.sequence)
 			value_set: value = v
 			default_wrapped: is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped end
@@ -78,23 +77,23 @@ feature {F_OOM_OBSERVER_D} -- Internal communication
 		require
 			wrapped: is_wrapped
 			o_open: o.is_open
-			modify ([Current])
 		do
 			unwrap
 			subscribers.extend_back (o)
-			set_observers (observers + [o])
+			set_observers (observers & o)
 			wrap
 		ensure
+			modify ([Current])
 			observers_extended: observers = old observers & o
 			wrapped: is_wrapped
 		end
 
 invariant
 	subscribers_exists: subscribers /= Void
-	owns_structure: owns = [subscribers]
+	owns_structure: owns = create {MML_SET [ANY]}.singleton (subscribers)
 	all_subscribers_exist: across subscribers.sequence.domain as i all attached subscribers.sequence [i] end
 	observers_structure: observers = subscribers.sequence.range
-	subjects_structure: subjects = []
+	subjects_structure: subjects = create {MML_SET [ANY]}
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

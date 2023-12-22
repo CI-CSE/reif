@@ -74,10 +74,6 @@ feature -- Access
 			ancestors_wrapped: across ancestors as p all p.is_wrapped end
 			ancestors_has_current: ancestors [Current]
 			ancestors_closed: across ancestors as p all p.parent /= Void implies ancestors [p.parent] end
-
-			modify_field (["value", "max_child", "closed"], ancestors)
-			modify_field (["children", "subjects", "observers"], Current)
-			modify_field (["parent", "subjects", "observers", "closed"], n)
 		do
 			unwrap
 			n.unwrap
@@ -97,6 +93,10 @@ feature -- Access
 				wrap
 			end
 		ensure
+			modify_field (["value", "max_child", "closed"], ancestors)
+			modify_field (["children", "subjects", "observers"], Current)
+			modify_field (["parent", "subjects", "observers", "closed"], n)
+
 			n_parent_set: n.parent = Current
 			n_value_unchanged: n.value = old n.value
 			children_set: children = old children & n
@@ -113,10 +113,10 @@ feature {F_PIP_NODE} -- Implementation
 			no_parent: parent = Void
 			p_exists: p /= Void
 			observers = children.range
-			modify_field (["parent"], Current)
 		do
 			parent := p
 		ensure
+			modify_field (["parent"], Current)
 			parent_set: parent = p
 		end
 
@@ -135,8 +135,6 @@ feature {F_PIP_NODE} -- Implementation
 			ancestors_has_current: ancestors [Current]
 			ancestors_closed: across ancestors as p all p.parent /= Void implies ancestors [p.parent] end
 
-			modify_field ("closed", ancestors)
-			modify_field (["value", "max_child"], (ancestors - visited) / d)
 			decreases (ancestors - visited)
 		do
 			if parent /= Void then
@@ -153,6 +151,8 @@ feature {F_PIP_NODE} -- Implementation
 				end
 			end
 		ensure
+			modify_field ("closed", ancestors)
+			modify_field (["value", "max_child"], (ancestors - visited) / d)
 			value_set: value = d.value
 			max_child_set: max_child = child
 			d_value_unchnaged: d.value = old d.value

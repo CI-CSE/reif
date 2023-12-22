@@ -36,18 +36,18 @@ feature
 	-- bar_ok still verifies becuase foo added model a, which replaces x
 
 	bad1
-		require
-			modify_model (["z"], Current) -- Bad: z is not a model
 		do
+		ensure
+			modify_model (["z"], Current) -- Bad: z is not a model
 		end
 
 	new
 		note
 			explicit: wrapping
-		require
-			modify_model (["a", "yy"], Current)
 		do
 			foo
+		ensure
+			modify_model (["a", "yy"], Current)
 		end
 
 invariant

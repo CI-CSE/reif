@@ -30,8 +30,6 @@ feature -- Element change
 	update (new_val: INTEGER)
 		require
 			observer_wrapped: observer /= Void implies observer.is_wrapped
-			modify_field (["cache", "closed"], observer)
-			modify_field (["value", "closed"], Current)
 		do
 			if attached observer then
 				observer.unwrap
@@ -42,6 +40,8 @@ feature -- Element change
 				observer.wrap
 			end
 		ensure
+			modify_field (["cache", "closed"], observer)
+			modify_field (["value", "closed"], Current)
 			value_set: value = new_val
 			observer_wrapped: observer /= Void implies observer.is_wrapped
 		end
@@ -54,21 +54,21 @@ feature {F_OOO_OBSERVER} -- Element change
 			observer = Void
 			is_wrapped
 			o.is_open
-
-			modify_field (["observer", "observers", "closed"], Current)
 		do
 			unwrap
 			observer := o
-			set_observers ([o])
+			set_observers (create {MML_SET [ANY]}.singleton (o))
 			wrap
 		ensure
+			modify_field (["observer", "observers", "closed"], Current)
+
 			observer = o
 			is_wrapped
 		end
 
 invariant
-	observer = Void implies observers = []
-	observer /= Void implies observers = [observer]
+	observer = Void implies observers = create {MML_SET [ANY]}
+	observer /= Void implies observers = create {MML_SET [ANY]}.singleton (observer)
 	observer /= Current
 
 end

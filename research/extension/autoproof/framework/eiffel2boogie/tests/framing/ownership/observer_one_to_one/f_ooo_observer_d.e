@@ -14,18 +14,18 @@ feature
 		require
 			s.observer = Void
 			s.is_wrapped -- default: public
-
-			modify (s)
-			modify (Current) -- default: creator
 		do
 			subject := s
 			s.register (Current)
 			check s.inv end
 			cache := s.value
 
-			set_subjects ([subject])
+			set_subjects (create {MML_SET [ANY]}.singleton(subject))
 			wrap -- default: public/creator
 		ensure
+			modify (s)
+			modify (Current) -- default: creator
+
 			subject = s
 			is_wrapped -- default: public/creator
 			s.is_wrapped -- default: public
@@ -45,22 +45,21 @@ feature {F_OOO_SUBJECT_D} -- Element change
 		require
 			is_open
 			inv_without ("cache_synchronized")
-
-			modify_field ("cache", Current)
 		do
 			cache := subject.value
 		ensure
+			modify_field ("cache", Current)
 			inv
 		end
 
 invariant
 	attached subject
-	subjects = [subject]
+	subjects = create {MML_SET [ANY]}.singleton (subject)
 	subject.observer = Current
 	cache_synchronized: cache = subject.value
 	across subjects as sc all sc.observers.has (Current) end -- default
-	owns = [] -- default
-	observers = [] -- default
+	owns = create {MML_SET [ANY]} -- default
+	observers = create {MML_SET [ANY]} -- default
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

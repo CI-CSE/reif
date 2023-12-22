@@ -154,7 +154,7 @@ feature -- Translation: Signature
 
 				-- Creator: add default field initialization
 			if a_for_creator then
-				add_field_initialization
+				add_field_default_initialization (a_type)
 					-- If it is `default_create' from any, add special post
 				if current_feature.written_in = system.any_id and current_feature.rout_id_set.first = system.default_create_rout_id then
 					add_default_create_postcondition
@@ -215,7 +215,7 @@ feature -- Translation: Signature
 			create l_modifies.make ("Heap")
 			current_boogie_procedure.add_contract (l_modifies)
 
-			add_field_initialization
+			add_field_default_initialization (a_type)
 
 				-- wrapped
 			 create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
@@ -240,24 +240,43 @@ feature -- Translation: Signature
 			current_boogie_procedure.add_contract (l_post)
 		end
 
-	add_field_initialization
-			-- Add precondition to `current_boogie_procedure' that all attributes except "allocated" are initialized to default values.
+	add_field_default_initialization (a_type: CL_TYPE_A)
+			-- Add precondition to `current_boogie_procedure' that all attributes except "allocated"
+			-- and those which do require explicit initialization are initialized to default values.
 		local
+			l_area: SPECIAL [ATTR_DESC]
 			l_mapping: E2B_ENTITY_MAPPING
 			l_t: IV_VAR_TYPE
 			l_f: IV_ENTITY
 			l_forall: IV_FORALL
+			l_left_hand_side: IV_EXPRESSION
 			l_pre: IV_PRECONDITION
 		do
 			create l_mapping.make
 			create l_t.make_fresh
 			create l_f.make ("$f", types.field (l_t))
+
+			l_area := a_type.base_class.skeleton.area
+			l_left_hand_side := factory.not_equal (l_f, factory.entity ("allocated", types.field (types.bool)))
+			across l_area as l_attr_desc loop
+				if l_attr_desc.type_i.is_initialization_required then
+					l_left_hand_side := factory.and_ (l_left_hand_side, factory.not_equal (l_f, factory.entity (name_translator.boogie_name_for_type (a_type) + "." + l_attr_desc.attribute_name, types.field (types.ref))))
+				end
+			end
+
+			-- Adding precondition:
+			-- 		requires (forall <T1> $f: Field T1 ::
+			-- 			((($f) != (allocated)) && (($f) != (<not-self-initializing field>)) ... && $f != <not-self-initializing field> ... )
+			-- 			==>
+			-- 			((Heap[Current, $f]) == (Default($f))));
+
 			create l_forall.make (factory.implies_ (
-						factory.not_equal (l_f, factory.entity ("allocated", types.field (types.bool))),
+						l_left_hand_side,
 						factory.equal (
-							factory.heap_current_access (l_mapping, l_f.name, l_t),
-							factory.function_call ("Default", <<l_f>>, l_t))
-					))
+					factory.heap_current_access (l_mapping, l_f.name, l_t),
+					factory.function_call ("Default", <<l_f>>, l_t))
+			))
+
 			l_forall.add_type_variable (l_t.name)
 			l_forall.add_bound_variable (l_f)
 			create l_pre.make (l_forall)

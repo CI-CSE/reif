@@ -11,13 +11,13 @@ feature {NONE} -- Initialization
 			status: creator
 		require
 			s_exists: s /= Void
-			modify (s, Current)
 		do
 			subject := s
 			s.register (Current)
-			set_subjects ([s])
+			set_subjects (create {MML_SET [ANY]}.singleton (s))
 			notify
 		ensure
+			modify (s, Current)
 			subject_set: subject = s
 			observeing_subject: s.observers = old s.observers & Current
 		end
@@ -53,9 +53,9 @@ feature {F_OI_SUBJECT} -- Internal communication
 
 invariant
 	subject_exists: subject /= Void
-	subjects_structure: subjects = [subject]
+	subjects_structure: subjects = create {MML_SET [ANY]}.singleton (subject)
 	subject_aware: subject.observers.has (Current)
 	synchronized: is_synchronized (subject.value)
 	observers_structure: observers.is_empty
-	owns_empty: owns = []
+	owns_empty: owns = create {MML_SET [ANY]}
 end

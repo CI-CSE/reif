@@ -15,7 +15,7 @@ feature {NONE} -- Initialization
 		do
 			value := v
 			create subscribers.make
-			set_owns ([subscribers])
+			set_owns (create {MML_SET [ANY]}.singleton (subscribers))
 		ensure
 			value_set: value = v
 			no_subscribers: subscribers.is_empty
@@ -35,8 +35,6 @@ feature -- State update
 			-- Update state to `v'.
 		require
 			observers_wrapped: across observers as o all o.is_wrapped end
-			modify_field (["value", "closed"], Current)
-			modify (subscribers.sequence.range)
 		local
 			i: INTEGER
 		do
@@ -62,6 +60,8 @@ feature -- State update
 
 			wrap_all (observers)
 		ensure
+			modify_field (["value", "closed"], Current)
+			modify (subscribers.sequence.range)
 			value_set: value = v
 			observers_wrapped: across observers as o all o.is_wrapped end
 		end
@@ -83,7 +83,7 @@ feature {F_OI_OBSERVER} -- Internal communication
 		end
 
 invariant
-	owns_structure: owns = [subscribers]
+	owns_structure: owns = create {MML_SET [ANY]}.singleton(subscribers)
 	subscribers_exists: subscribers /= Void
 	all_subscribers_exist: across subscribers.sequence.domain as i all attached subscribers.sequence [i] end
 	observers_structure: observers = subscribers.sequence.range

@@ -1,0 +1,6 @@
+======================================
+SELF_INITIALIZING_ATTRIBUTE (invariant admissibility)
+Successfully verified.
+======================================
+SELF_INITIALIZING_ATTRIBUTE.make (creator)
+Successfully verified.

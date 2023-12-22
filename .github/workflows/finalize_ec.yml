@@ -1,0 +1,153 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install EiffelStudio
+        env:
+          DOWNLOAD_URL: https://www.eiffel.com/cdn/EiffelStudio/22.05/106302/Eiffel_22.05_rev_106302-linux-x86-64.tar.bz2
+          ESTUDIO_FOLDER: Eiffel_22.05 # Folder in the installation package (DOWNLOAD_URL)
+        run: |
+          # Download installation package
+          wget --no-verbose -O estudio.tar.bz2 $DOWNLOAD_URL
+
+          # Extract installation package
+          tar -xf estudio.tar.bz2
+
+          ls
+
+          # Set env vars
+          export ISE_EIFFEL=$(pwd)/$ESTUDIO_FOLDER
+          echo "ISE_EIFFEL=$ISE_EIFFEL" >> "$GITHUB_ENV"
+
+          export ISE_PLATFORM=linux-x86-64
+          echo "ISE_PLATFORM=$ISE_PLATFORM" >> "$GITHUB_ENV"
+
+          export EIFFEL_SRC=$(pwd)/Src
+          echo "EIFFEL_SRC=$EIFFEL_SRC" >> "$GITHUB_ENV"
+          echo "ISE_LIBRARY=$EIFFEL_SRC" >> "$GITHUB_ENV"
+
+          echo "AP=$(pwd)/research/extension/autoproof" >> "$GITHUB_ENV"
+          echo "GOBO=$EIFFEL_SRC/contrib/library/gobo" >> "$GITHUB_ENV"
+
+          echo "$ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin" >> "$GITHUB_PATH"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libgtk-3-dev
+
+      - name: Build libraries dependencies
+        run: |
+          echo ::group::quick_configure
+          cd Src/C
+          ./quick_configure
+          cd ../..
+          echo ::endgroup::
+
+          echo ::group::auto_test
+          cd Src/framework/auto_test/Clib
+          finish_freezing -library
+          cd ../../../..
+          echo ::endgroup::
+
+          echo ::group::net
+          cd Src/library/net/Clib
+          finish_freezing -library
+          cd ../../../..
+          echo ::endgroup::
+
+          echo ::group::mysql
+          cd Src/library/mysql/Clib
+          finish_freezing -library
+          cd ../../../..
+          echo ::endgroup::
+
+          echo ::group::cURL
+          cd Src/library/cURL/Clib
+          finish_freezing -library
+          cd ../../../..
+          echo ::endgroup::
+
+          echo ::group::vision2
+          cd Src/library/vision2/Clib
+          finish_freezing -library
+          cd ../../../..
+          echo ::endgroup::
+
+          echo ::group::vision2/gtk3
+          cd Src/library/vision2/implementation/gtk3/Clib
+          finish_freezing -library
+          cd ../../../../../..
+          echo ::endgroup::
+      - name: Build AutoProof
+        run: |
+          ec -config $AP/Eiffel/Ace/ec.ecf -finalize -keep -c_compile -batch
+          test -f EIFGENs/bench/F_code/ec
+
+      - name: Export ec as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ec-linux
+          path: EIFGENs/bench/F_code/ec
+
+  build-windows:
+    runs-on: windows-2019
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install EiffelStudio
+        env:
+          DOWNLOAD_URL: https://www.eiffel.com/cdn/EiffelStudio/22.05/106302/Eiffel_22.05_rev_106302-win64.7z
+          ESTUDIO_FOLDER: Eiffel_22.05 # Folder in the installation package (DOWNLOAD_URL)
+        run: |
+          # Download installation package
+          curl ${{ env.DOWNLOAD_URL }} --output estudio.7z -L
+
+          # Extract installation package
+          7z x estudio.7z
+
+          ls
+
+          # Set env vars
+          ISE_EIFFEL="$(pwd)/$ESTUDIO_FOLDER"
+          echo "ISE_EIFFEL=$ISE_EIFFEL" >> $GITHUB_ENV
+
+          ISE_PLATFORM="win64"
+          echo "ISE_PLATFORM=$ISE_PLATFORM" >> $GITHUB_ENV
+
+          EIFFEL_SRC="$(pwd)/Src"
+          echo "EIFFEL_SRC=$EIFFEL_SRC" >> $GITHUB_ENV
+          echo "ISE_LIBRARY=$EIFFEL_SRC" >> $GITHUB_ENV
+
+          echo "AP=$(pwd)/research/extension/autoproof" >> $GITHUB_ENV
+          echo "GOBO=$EIFFEL_SRC/contrib/library/gobo" >> $GITHUB_ENV
+
+          echo "$ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin" >> $GITHUB_PATH
+          echo "$ISE_EIFFEL/tools/spec/$ISE_PLATFORM/bin" >> $GITHUB_PATH
+          echo "$ISE_EIFFEL/library/gobo/spec/$ISE_PLATFORM/bin" >> $GITHUB_PATH
+
+      - name: Build AutoProof
+        env:
+          ISE_C_COMPILER: msc_vc140
+        run: |
+          ec -config $AP/Eiffel/Ace/ec.ecf -finalize -keep -c_compile -batch
+          test -f EIFGENs/bench/F_code/ec.exe
+
+      - name: Export ec as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ec-windows
+          path: EIFGENs/bench/F_code/ec.exe

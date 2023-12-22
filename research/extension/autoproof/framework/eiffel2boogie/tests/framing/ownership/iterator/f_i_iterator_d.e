@@ -16,16 +16,16 @@ feature {NONE} -- Initialization
 		require
 			target_exists: t /= Void
 			default_arg_wrapped: t.is_wrapped
-			modify (Current)
-			modify_field (["observers", "closed"], t)
 		do
 			target := t
 			before := True
 			t.unwrap
 			t.set_observers (t.observers & Current)
 			t.wrap
-			set_subjects ([t])
+			set_subjects (create {MML_SET [ANY]}.singleton (t))
 		ensure
+			modify (Current)
+			modify_field (["observers", "closed"], t)
 			target_set: target = t
 			before: before and not after
 			observing_target: t.observers = old t.observers & Current
@@ -50,10 +50,11 @@ feature -- Access
 		require
 			not_off: not (before or after)
 			target_closed: target.closed
-			modify ([])
 			reads (universe)
 		do
 			Result := target.elements [index]
+		ensure
+			modify ([])
 		end
 
 feature -- State change		
@@ -63,7 +64,6 @@ feature -- State change
 		require
 			not_after: not after
 			default_wrapped: is_wrapped
-			modify (Current)
 		do
 			index := index + 1
 			before := False
@@ -71,6 +71,7 @@ feature -- State change
 				after := True
 			end
 		ensure
+			modify (Current)
 			not_before: not before
 			target_unchanged: target = old target
 			default_wrapped: is_wrapped
@@ -83,11 +84,11 @@ feature {NONE} -- Implementation
 
 invariant
 	target_exists: target /= Void
-	subjects_structure: subjects = [target]
+	subjects_structure: subjects = create {MML_SET [ANY]}.singleton (target)
 	index_in_bounds: 0 <= index and index <= target.count + 1
 	before_definition: before = (index < 1)
 	after_definition: after = (index > target.count)
-	default_owns: owns = []
-	default_observers: observers = []
+	default_owns: owns = create {MML_SET [ANY]}
+	default_observers: observers = create {MML_SET [ANY]}
 
 end

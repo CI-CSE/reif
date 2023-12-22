@@ -5,7 +5,7 @@ Validity: Functional feature has to be a pure function.
 ======================================
 A_FUNCTIONAL.not_functional2
 AutoProof error.
-Validity: A functional feature has to consist of exactly one assignment to the Result.
+Validity: A functional feature has to consist of exactly one assignment to the Result (and optional check instructions before the assignment).
 ======================================
 A_FUNCTIONAL (invariant admissibility)
 Successfully verified.

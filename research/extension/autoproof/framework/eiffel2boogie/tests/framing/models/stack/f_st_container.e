@@ -25,10 +25,9 @@ feature -- Element change
 
 	wipe_out
 			-- Empty container.
-		require
-			modify_model ("bag", Current)
 		deferred
 		ensure
+			modify_model ("bag", Current)
 			bag_effect: bag.is_empty
 		end
 

@@ -12,18 +12,16 @@ feature
 	z: INTEGER
 
 	foo
-		require
-			modify_model (["x", "y"], Current)
 		do
 			x := 1
 			z := 1 -- OK: z is non-model
+		ensure
+			modify_model (["x", "y"], Current)
 		end
 
 	bar
 		note
 			explicit: wrapping
-		require
-			modify_model (["x"], Current)
 		do
 			if x > 0 then
 				foo		-- Bad
@@ -32,13 +30,13 @@ feature
 				y := 1 	-- Bad: y is model
 				wrap
 			end
+		ensure
+			modify_model (["x"], Current)
 		end
 
 	bar_ok
 		note
 			explicit: wrapping
-		require
-			modify_model (["x", "y"], Current)
 		do
 			if x > 0 then
 				foo
@@ -47,6 +45,8 @@ feature
 				y := 1
 				wrap
 			end
+		ensure
+			modify_model (["x", "y"], Current)
 		end
 
 end

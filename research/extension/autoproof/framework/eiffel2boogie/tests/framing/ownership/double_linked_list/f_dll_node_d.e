@@ -13,15 +13,14 @@ feature {NONE} -- Initialization
 			-- Create a singleton node.
 		note
 			status: creator
-		require
-			modify (Current)
 		do
 			left := Current
 			right := Current
-			set_subjects ([left, right])
-			set_observers ([left, right])
+			set_subjects (create {MML_SET [ANY]} & left & right)
+			set_observers (create {MML_SET [ANY]} & left & right)
 			wrap
 		ensure
+			modify (Current)
 			singleton: left = Current
 			default_wrapped: is_wrapped
 		end
@@ -52,12 +51,11 @@ feature -- Modification
 			default_wrapped: is_wrapped
 			default_arg_wrapped: n.is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped end
-			modify (Current, right, n)
 		local
 			r: F_DLL_NODE_D
 		do
 			r := right
-			unwrap_all ([Current, r, n])
+			unwrap_all (create {MML_SET [ANY]} & Current & r & n)
 
 			n.set_right (r)
 			n.set_left (Current)
@@ -65,14 +63,15 @@ feature -- Modification
 			r.set_left (n)
 			set_right (n)
 
-			n.set_subjects ([r, Current])
-			n.set_observers ([r, Current])
-			set_subjects ([left, n])
-			set_observers ([left, n])
-			r.set_subjects ([n, r.right])
-			r.set_observers ([n, r.right])
-			wrap_all ([Current, r, n])
+			n.set_subjects (create {MML_SET [ANY]} & r & Current)
+			n.set_observers (create {MML_SET [ANY]} & r & Current)
+			set_subjects (create {MML_SET [ANY]} & left & n)
+			set_observers (create {MML_SET [ANY]} & left & n)
+			r.set_subjects (create {MML_SET [ANY]} & n & r.right)
+			r.set_observers (create {MML_SET [ANY]} & n & r.right)
+			wrap_all (create {MML_SET [ANY]} & Current & r & n)
 		ensure
+			modify (Current, right, n)
 			n_left_set: right = n
 			n_right_set: n.right = old right
 			default_wrapped: is_wrapped
@@ -82,16 +81,15 @@ feature -- Modification
 
 	remove
 			-- Remove the current node from the list.
-		require
+    require
 			default_wrapped: is_wrapped
 			default_observers_wrapped: across observers as o all o.is_wrapped  end
-			modify (Current, left, right)
 		local
 			l, r: F_DLL_NODE_D
 		do
 			l := left
 			r := right
-			unwrap_all ([Current, l, r])
+			unwrap_all (create {MML_SET [ANY]} & Current & l & r)
 
 			set_left (Current)
 			set_right (Current)
@@ -99,14 +97,15 @@ feature -- Modification
 			l.set_right (r)
 			r.set_left (l)
 
-			set_subjects ([Current])
-			set_observers ([Current])
-			l.set_subjects ([l.left, r])
-			l.set_observers ([l.left, r])
-			r.set_subjects ([l, r.right])
-			r.set_observers ([l, r.right])
-			wrap_all ([Current, l, r])
+			set_subjects (create {MML_SET [ANY]} & Current)
+			set_observers (create {MML_SET [ANY]} & Current)
+			l.set_subjects (create {MML_SET [ANY]} & l.left & r)
+			l.set_observers (create {MML_SET [ANY]} & l.left & r)
+			r.set_subjects (create {MML_SET [ANY]} & l & r.right)
+			r.set_observers (create {MML_SET [ANY]} & l & r.right)
+			wrap_all (create {MML_SET [ANY]} & Current & l & r)
 		ensure
+			modify (Current, left, right)
 			singleton: right = Current
 			old_left_wrapped: (old left).is_wrapped
 			old_right_wrapped: (old right).is_wrapped
@@ -122,10 +121,10 @@ feature {F_DLL_NODE_D} -- Implementation
 		require
 			open: is_open
 			left_open: left.is_open
-			modify_field ("left", Current)
 		do
 			left := n -- preserves `right'
 		ensure
+			modify_field ("left", Current)
 			left = n
 		end
 
@@ -134,10 +133,10 @@ feature {F_DLL_NODE_D} -- Implementation
 		require
 			open: is_open
 			right_open: right.is_open
-			modify_field ("right", Current)
 		do
 			right := n -- preserves `left'
 		ensure
+			modify_field ("right", Current)
 			right = n
 		end
 
@@ -162,12 +161,12 @@ feature -- Specification
 invariant
 	left_exists: left /= Void
 	right_exists: right /= Void
-	subjects_structure: subjects = [ left, right ]
-	observers_structure: observers = [ left, right ]
+	subjects_structure: subjects = create {MML_SET [ANY]} & left & right
+	observers_structure: observers = create {MML_SET [ANY]} & left & right
 	left_consistent: left.right = Current
 	right_consistent: right.left = Current
 	subjects_aware: left.observers [Current] and right.observers [Current]
-	default_owns: owns = []
+	default_owns: owns = create {MML_SET [ANY]}
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"
