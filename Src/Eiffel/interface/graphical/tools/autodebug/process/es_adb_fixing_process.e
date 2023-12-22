@@ -18,7 +18,7 @@ create
 	make_from_fault,
 	make_from_failure
 
-feature{NONE} -- Initialization
+feature {NONE} -- Initialization
 
 	make_from_failure (a_failure: ES_ADB_PROOF_FAILURE; a_working_directory: STRING; a_output_buffer: ES_ADB_PROCESS_OUTPUT_BUFFER)
 			-- Initialization.
@@ -80,7 +80,7 @@ feature -- Operation
 			Precursor
 			if attached fault and then working_process.launched then
 				fault.set_status ({ES_ADB_FAULT}.status_candidate_fix_unavailable)
-			elseif attached failure and then working_process.launched  then
+			elseif attached failure and then working_process.launched then
 				-- TODO Li: change failure status
 				failure.set_status ({ES_ADB_PROOF_FAILURE}.status_candidate_fix_unavailable)
 			end

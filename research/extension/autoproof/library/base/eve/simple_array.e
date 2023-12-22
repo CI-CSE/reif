@@ -1,6 +1,7 @@
 ﻿note
 	description: "Array with specification usable in AutoProof."
 	status: skip
+	model: sequence
 
 frozen class
 	SIMPLE_ARRAY [G]
@@ -79,6 +80,8 @@ feature -- Access
 
 	item alias "[]" (i: INTEGER): G assign put
 			-- Item at position `i'.
+		note
+			explicit: wrapping
 		require
 			in_bounds: 1 <= i and i <= count
 			valid_index: valid_index (i)

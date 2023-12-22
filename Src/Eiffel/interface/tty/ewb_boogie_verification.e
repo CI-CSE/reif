@@ -256,7 +256,8 @@ feature {NONE} -- Printing console
 			end
 
 			if user_options.has ("-fix") then
-				options.set_fix_start_time (timer.system_clock.time_now)
+				-- options.set_fix_start_time (timer.system_clock.time_now)
+				output_window.add ("fixing start time: " + timer.system_clock.time_now.out + "%N")
 				generate_counterexamples_for_fix
 			elseif user_options.has ("-validate_fix") then
 				-- TODO
@@ -307,6 +308,7 @@ feature {NONE} -- Printing console
 			end
 			output_window.add ("%N")
 			output_window.add ("fixing end time: " + timer.system_clock.time_now.out + "%N")
+			-- output_window.add ("fixing start time: " + options.fix_start_time.out + "%N")
 			-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
 		end
 

@@ -1274,7 +1274,7 @@ feature {NONE} -- Implementation
 			create Result.make
 		end
 
-feature {READABLE_STRING_GENERAL} -- Implementation
+feature -- {READABLE_STRING_GENERAL} -- Implementation TODO Li: recover
 
 	internal_hash_code: INTEGER
 			-- Cache for `hash_code'.

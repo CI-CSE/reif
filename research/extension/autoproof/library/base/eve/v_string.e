@@ -271,7 +271,7 @@ feature -- Conversion
 			Result := internal_string
 		end
 
-feature {NONE} -- Implementation
+feature -- {NONE} -- Implementation -- TODO Li: recover
 
 	internal_string: STRING
 			-- Internal string.

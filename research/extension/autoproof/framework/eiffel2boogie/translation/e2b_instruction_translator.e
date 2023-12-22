@@ -45,7 +45,7 @@ feature {NONE} -- Initialization
 			a_feature_attached: attached a_feature
 			a_implementation_attached: attached a_implementation
 		do
-			-- print ("E2B_INSTRUCTION_TRANSLATOR.make " + a_feature.feature_name + "%N")
+				-- print ("E2B_INSTRUCTION_TRANSLATOR.make " + a_feature.feature_name + "%N")
 			create entity_mapping.make
 			create locals_map.make (5)
 			local_writable := Void
@@ -430,9 +430,9 @@ feature -- Processing
 			l_line_number: INTEGER
 			status_values: ARRAYED_LIST [READABLE_STRING_8]
 		do
-			-- print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
-			-- helper.options.set_conditional (True)
-			-- mapping: feature -> has_conditional
+				-- print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
+				-- helper.options.set_conditional (True)
+				-- mapping: feature -> has_conditional
 			current_implementation.set_has_conditional (True)
 			current_implementation.procedure.set_has_conditional (True)
 
@@ -912,6 +912,168 @@ feature -- Processing
 			add_statement (l_goto)
 			current_block := l_temp_block
 
+			add_statement (l_end_block)
+			current_block := l_end_block
+
+			create l_assume.make_assume (l_condition)
+			add_statement (l_assume)
+
+			current_block := l_temp_block
+		end
+
+	process_loop_unfold (a_node: LOOP_B)
+			-- Process loop with unrolling.
+		local
+			l_condition: IV_EXPRESSION
+			l_goto: IV_GOTO
+			l_temp_block, l_head_block, l_body_block, l_end_block, l_force_end_block: IV_BLOCK
+			l_assert: IV_ASSERT
+			l_assume: IV_ASSERT
+			l_not: IV_UNARY_OPERATION
+			l_op: IV_BINARY_OPERATION
+			l_variant: IV_ENTITY
+			l_assignment: IV_ASSIGNMENT
+			l_unroll_counter: INTEGER
+		do
+			l_temp_block := current_block
+
+				-- Init condition
+			set_current_origin_information (a_node.stop)
+			process_expression (a_node.stop)
+			l_condition := last_expression
+
+				-- Init variant
+			if a_node.variant_part /= Void then
+				create l_variant.make (helper.unique_identifier ("variant"), types.int)
+				current_implementation.add_local (l_variant.name, types.int)
+			end
+
+				-- Init end block
+			l_temp_block := current_block
+			create l_end_block.make_name (helper.unique_identifier ("loop_end"))
+
+				-- From part
+			set_current_origin_information (a_node)
+			if a_node.from_part /= Void then
+				a_node.from_part.process (Current)
+			end
+
+				-- Unrolled body
+			from
+				l_unroll_counter := 1
+			until
+				l_unroll_counter > options.loop_unrolling_depth
+			loop
+				create l_head_block.make_name (helper.unique_identifier ("loop_head" + l_unroll_counter.out))
+				create l_body_block.make_name (helper.unique_identifier ("loop_body" + l_unroll_counter.out))
+
+					-- goto head
+				create l_goto.make (l_head_block)
+				add_statement (l_goto)
+
+					-- head
+				current_block := l_temp_block
+				add_statement (l_head_block)
+				current_block := l_head_block
+
+					-- Invariants
+				if attached a_node.invariant_part as i then
+					across
+						i as node
+					loop
+						if attached {ASSERT_B} node as l_invariant then
+							set_current_origin_information (l_invariant)
+							process_contract_expression (l_invariant.expr, False)
+							create l_assert.make (last_expression)
+							l_assert.node_info.set_type ("loop_inv")
+							l_assert.node_info.set_tag (l_invariant.tag)
+							l_assert.node_info.set_line (l_invariant.line_number)
+							add_statement (l_assert)
+						end
+					end
+				end
+
+					-- Variant
+				if a_node.variant_part /= Void then
+					set_current_origin_information (a_node.variant_part)
+					process_expression (a_node.variant_part.expr)
+					create l_assignment.make (l_variant, last_expression)
+					add_statement (l_assignment)
+					create l_op.make (l_variant, ">=", create {IV_VALUE}.make ("0", types.int), types.bool)
+					create l_assert.make (l_op)
+					l_assert.node_info.set_type ("loop_var_ge_zero")
+					add_statement (l_assert)
+				end
+
+					-- goto end or body
+				create l_goto.make (l_body_block)
+				l_goto.add_target (l_end_block)
+				add_statement (l_goto)
+
+					-- body
+				current_block := l_temp_block
+				add_statement (l_body_block)
+				current_block := l_body_block
+
+				create l_not.make ("!", l_condition, types.bool)
+				create l_assume.make_assume (l_not)
+				add_statement (l_assume)
+				process_compound (a_node.compound)
+
+				if a_node.variant_part /= Void then
+					set_current_origin_information (a_node.variant_part)
+					process_expression (a_node.variant_part.expr)
+					create l_op.make (last_expression, "<", l_variant, types.bool)
+					create l_assert.make (l_op)
+					l_assert.node_info.set_type ("loop_var_decr")
+					add_statement (l_assert)
+				end
+
+				l_unroll_counter := l_unroll_counter + 1
+			end
+
+			if options.is_sound_loop_unrolling_enabled then
+				create l_goto.make (l_head_block)
+				add_statement (l_goto)
+			else
+				create l_force_end_block.make_name (helper.unique_identifier ("force_end"))
+				create l_goto.make (l_force_end_block)
+				add_statement (l_goto)
+
+					-- force end
+				current_block := l_temp_block
+				add_statement (l_force_end_block)
+				current_block := l_force_end_block
+
+					-- Invariants
+				if attached a_node.invariant_part as i then
+					across
+						i as node
+					loop
+						if attached {ASSERT_B} node as l_invariant then
+							set_current_origin_information (l_invariant)
+							process_contract_expression (l_invariant.expr, False)
+							create l_assert.make (last_expression)
+							add_statement (l_assert)
+						end
+					end
+				end
+
+					-- Variant
+				if a_node.variant_part /= Void then
+					set_current_origin_information (a_node.variant_part)
+					current_implementation.add_local (l_variant.name, types.int)
+					process_expression (a_node.variant_part.expr)
+					create l_assignment.make (l_variant, last_expression)
+					add_statement (l_assignment)
+					create l_op.make (l_variant, ">=", create {IV_VALUE}.make ("0", types.int), types.bool)
+					create l_assert.make (l_op)
+					add_statement (l_assert)
+				end
+			end
+
+				-- end
+			current_block := l_temp_block
 			add_statement (l_end_block)
 			current_block := l_end_block
 
@@ -1461,7 +1623,7 @@ feature {NONE} -- Implementation
 	local_writable: detachable IV_EXPRESSION
 			-- Writable frame of the current loop.
 
-;
+	;
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

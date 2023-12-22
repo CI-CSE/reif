@@ -52,7 +52,7 @@ feature -- Basic operation
 	integer_expressions (a_expressions: EPA_HASH_SET [EPA_EXPRESSION]): EPA_HASH_SET [EPA_EXPRESSION]
 			-- Expressions of type {INTEGER} from `a_expressions'.
 		require
-			expressions_attached: a_expressions /= VOid
+			expressions_attached: a_expressions /= Void
 		local
 			l_exp: EPA_EXPRESSION
 		do
@@ -208,7 +208,7 @@ feature -- Basic operation
 
 				create l_invariant_detecter
 				l_invariant_detecter.detect (session.config.is_proof_based_fixing, l_ce_traces_before_fixing.ce_traces)
-
+				print ("invariants size: " + l_invariant_detecter.invariants_from_ce_cell.item.count.out + "%N")
 				l_res_invariants := derived_boolean_expressions_from_invariants (l_invariant_detecter.invariants_from_ce_cell.item.first.first.expressions)
 				-- TODO Li: try other states
 
@@ -560,8 +560,8 @@ feature {NONE} -- Implementation
 
 					Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
 
-					l_feature_index := l_feature_index + 1
 					if a_proof_failure.exception_code = {EXCEP_CONST}.postcondition or a_proof_failure.exception_code = {EXCEP_CONST}.class_invariant then
+						l_feature_index := l_feature_index + 1
 						l_text := l_feature_contract_modifier.feature_text_with_weakened_postcondition (c.item, a_proof_failure.failure_message, l_feature_index)
 						Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
 					end

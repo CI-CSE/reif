@@ -125,6 +125,7 @@ feature {NONE} -- Implementation
 					-- line: boogie_error_regexp.captured_substring (2).to_integer
 					-- column: boogie_error_regexp.captured_substring (3).to_integer
 					-- error message: boogie_error_regexp.captured_substring (4)
+
 				check current_procedure_error = Void end
 				check attached current_procedure_result implies current_procedure_result.is_error end
 				l_line := boogie_error_regexp.captured_substring (2).to_integer
@@ -135,6 +136,7 @@ feature {NONE} -- Implementation
 					if attached models and current_model_index <= models.count then -- counterexample of current error
 						current_procedure_error.set_counterexample (create {E2B_BOOGIE_COUNTEREXAMPLE}.make (models [current_model_index]))
 					end
+
 					current_procedure_result.errors.extend (current_procedure_error)
 				end
 				last_result.boogie_errors.extend (current_procedure_error.error_message)

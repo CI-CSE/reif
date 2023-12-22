@@ -153,7 +153,7 @@ feature -- Operation
 			set_has_next_step (False)
 		end
 
-feature{NONE} -- Implementation
+feature {NONE} -- Implementation
 
 	launch
 			-- Launch process.

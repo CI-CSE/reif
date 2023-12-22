@@ -190,7 +190,7 @@ feature {NONE} -- Implementation
 				-- Result.bp_index
 				-- Variables declared at this program point.
 			l_skeleton := current_state_skeleton
-				-- 		l_skeleton := exception_recipient_feature.state_skeleton -- TODO Li recover, include the vars in the failed/dependent contracts
+				-- l_skeleton := exception_recipient_feature.state_skeleton -- TODO Li recover, include the vars in the failed/dependent contracts
 			from l_skeleton.start
 			until l_skeleton.after
 			loop
@@ -290,8 +290,8 @@ feature {NONE} -- Implementation
 	is_array_int (a_var_name: STRING; a_type: TYPE_A): BOOLEAN
 			-- Is `a_type' MML_SEQUENCE?
 		do
-			Result := a_var_name.same_string ("(Current).passed_blocks") or (a_type.name.has_substring ("MML_SEQUENCE")
-					and a_type.name.has_substring ("INTEGER"))
+			Result := a_var_name.same_string ("(Current).passed_blocks") or (attached a_type and then (a_type.name.has_substring ("MML_SEQUENCE")
+					and a_type.name.has_substring ("INTEGER")))
 		end
 
 end

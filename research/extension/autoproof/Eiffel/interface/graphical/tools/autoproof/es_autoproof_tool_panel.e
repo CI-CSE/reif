@@ -626,6 +626,14 @@ feature {NONE} -- Query
 				attached {E2B_AUTOPROOF_ERROR} l_event.data
 		end
 
+	is_sc_error (a_msg: STRING): BOOLEAN
+		-- Is `a_msg' an error message related to semantic collaboration?
+		do
+			Result := a_msg.has_substring ("is_wrapped") or a_msg.has_substring ("is_closed")
+						or a_msg.has_substring ("frame_writable")
+		end
+
+
 feature {NONE} -- Basic operations
 
 	do_default_action (a_row: EV_GRID_ROW)
@@ -660,8 +668,8 @@ feature {NONE} -- Basic operations
 			l_label: EV_GRID_LABEL_ITEM
 			l_format: FORMAT_DOUBLE
 		do
-			-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
-			if not options.is_full_coverage_test_generation_enabled then  -- do not change the panel when full-coverage test generation is enabled
+				-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
+			if not options.is_full_coverage_test_generation_enabled then -- do not change the panel when full-coverage test generation is enabled
 
 				a_row.set_data (a_event_item)
 
@@ -753,7 +761,7 @@ feature {NONE} -- Basic operations
 							loop
 								insert_subrow_for_error (a_row, l_error)
 								if attached l_error.ce_message then
-									insert_subrow_for_counterexample (a_row, l_error, l_failure)
+										insert_subrow_for_counterexample (a_row, l_error, l_failure)
 								end
 							end
 						end
@@ -791,34 +799,42 @@ feature {NONE} -- Basic operations
 			l_text_gen: EB_EDITOR_TOKEN_GENERATOR
 			l_editor_item: EB_GRID_EDITOR_TOKEN_ITEM
 		do
-				-- print ("insert_subrow_for_error%N")
-			l_index := a_parent.subrow_count + 1
-
-			a_parent.insert_subrow (l_index)
-			l_row := a_parent.subrow (l_index)
-			l_row.set_data (a_error)
-
-			l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
-			l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
-			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
-
 			create l_text_gen.make
 			l_text_gen.enable_multiline
 			a_error.multi_line_message (l_text_gen)
 			l_text_gen.add_new_line
 			l_editor_item := create_multiline_clickable_grid_item (l_text_gen.lines, True, False)
-			l_row.set_height (l_editor_item.required_height_for_text_and_component)
-			l_row.set_item (info_column, l_editor_item)
 
-			if a_error.context_line_number > 0 then
-				l_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (a_error.context_line_number.out))
-			end
 
-			if l_index \\ 2 = 1 then
-				l_row.set_background_color (odd_failed_sub_color)
-			else
-				l_row.set_background_color (even_failed_sub_color)
-			end
+
+				l_index := a_parent.subrow_count + 1
+
+				a_parent.insert_subrow (l_index)
+				l_row := a_parent.subrow (l_index)
+				l_row.set_data (a_error)
+
+				l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
+				l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
+				l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
+
+				l_row.set_height (l_editor_item.required_height_for_text_and_component)
+				l_row.set_item (info_column, l_editor_item)
+				if a_error.context_line_number > 0 then
+					l_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (a_error.context_line_number.out))
+				end
+
+				-- if not is_sc_error (l_editor_item.text) then
+
+				if l_index \\ 2 = 1 then
+					l_row.set_background_color (odd_failed_sub_color)
+				else
+					l_row.set_background_color (even_failed_sub_color)
+				end
+				-- else
+				-- 	l_row.set_background_color (sc_failed_color)
+				-- end
+
+			-- end
 
 		end
 
@@ -851,7 +867,7 @@ feature {NONE} -- Basic operations
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 
 		do
-			-- print ("ES_AUTOPROOF_TOOL_PANEL.insert_subrow_for_counterexample%N")
+				-- print ("ES_AUTOPROOF_TOOL_PANEL.insert_subrow_for_counterexample%N")
 			ce_index := ce_index + 1
 			ce_init_state := a_error.ce_init_state
 			l_index := a_parent.subrow_count + 1
@@ -870,7 +886,7 @@ feature {NONE} -- Basic operations
 
 			l_row.set_item (info_column, l_lab)
 			create pt_command.make (a_error, a_failure, l_row)
-			-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
+				-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
 			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action (ce_init_state) end)
 
 			l_row.set_item (info_column, l_lab)
@@ -909,7 +925,6 @@ feature {NONE} -- Basic operations
 			end
 		end
 
-
 	pt_command: ES_PROOF2TEST_COMMAND
 			-- An instance of Proof2Test command
 
@@ -918,7 +933,6 @@ feature {NONE} -- Basic operations
 
 	ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 			-- Initial state of the currently targeted error
-
 
 feature {NONE} -- Clean up
 
@@ -978,6 +992,12 @@ feature {NONE} -- Constants
 			-- Background color for error rows
 		once
 			create Result.make_with_rgb (1.0, 1.0, 0.4)
+		end
+
+	sc_failed_color: EV_COLOR
+			-- Background color for error rows related to
+		once
+			create Result.make_with_rgb (1.0, 1.0, 0.3)
 		end
 
 note
