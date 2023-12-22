@@ -117,7 +117,6 @@ feature -- Generate fixes from counterexamples
 			-- Set `fix_start_time' to `a_fix_start_time' -- TODO Li: remove this feature
 		do
 			fix_start_time := a_fix_start_time
-
 		end
 
 	set_fix_message (a_fix_message: STRING_32)

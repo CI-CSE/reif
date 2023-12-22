@@ -52,7 +52,7 @@ feature
 			instance_free: class
 		end
 
-	set_boolean_field_ (name: STRING_32; object: ANY; value: BOOLEAN)
+	set_boolean_field_ (name: STRING; object: ANY; value: BOOLEAN)
 			-- Set boolean value of an object field
 		local
 			i: INTEGER
@@ -72,7 +72,7 @@ feature
 			instance_free: class
 		end
 
-	set_reference_field_ (name: STRING_32; object: ANY; object_value: ANY)
+	set_reference_field_ (name: STRING; object: ANY; object_value: ANY)
 			-- Set value of an object field of reference type
 		local
 			i: INTEGER
@@ -92,7 +92,7 @@ feature
 			instance_free: class
 		end
 
-	set_natural_64_field_ (name: STRING_32; object: ANY; value: NATURAL_64)
+	set_natural_64_field_ (name: STRING; object: ANY; value: NATURAL_64)
 			-- Set value of an object field of natural_64 type
 		local
 			i: INTEGER

@@ -218,7 +218,7 @@ feature -- Get initial values
 			field_name, field_value: STRING
 			field_type: TYPE_A
 		do
-			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields%N")
+			-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_fields" + object_name + " " + object_type.name +  "%N")
 			field_name := ""; field_value := ""
 			if object_type.has_associated_class then
 				from
@@ -318,14 +318,13 @@ feature -- Properties checking
 			Result := False
 			if type.has_associated_class then
 				type_name := type.base_class.name
-				if type_name.same_string ("INTEGER") or type_name.same_string ("INTEGER_32") or
-					type_name.same_string ("NATURAL")  or type_name.same_string ("NATURAL_32") or type_name.same_string ("NATURAL_64") or
+				if type_name.same_string ("INTEGER") or type_name.same_string ("INTEGER_16") or type_name.same_string ("INTEGER_32") or type_name.same_string ("INTEGER_64") or
+					type_name.same_string ("NATURAL") or type_name.same_string ("NATURAL_16") or type_name.same_string ("NATURAL_32") or type_name.same_string ("NATURAL_64") or
 					type_name.same_string ("BOOLEAN") or
-					type_name.same_string ("CHARACTER") or type_name.same_string ("REAL") then
+			 		type_name.same_string ("CHARACTER") or type_name.same_string ("REAL") then
 					Result := True
 				end
 			end
-
 		end
 
 	is_reference_type (type: TYPE_A): BOOLEAN

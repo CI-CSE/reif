@@ -144,13 +144,18 @@ feature -- {EPA_FEATURE_CONTRACT_MODIFIER_FOR_FAILURE, AFX_FIXER} -- Implementat
 				l_text := target_class.ast.feature_of_name (target_feature_name, False).text (l_match_list) -- resulting feature text
 			else -- add a node of precondition TODO Li: this is a hack to add new precondition if there's no in the original feature
 				l_text := target_class.ast.feature_of_name (target_feature_name, False).text (l_match_list)
-				l_text.replace_substring_all ("do", "%Nrequire%N" + a_contract.text + "%Ndo%N")
+				if l_text.has_substring ("local") then
+					l_text.replace_substring_all ("local", "%Nrequire%N" + a_contract.text + "%Nlocal%N")
+				else
+					l_text.replace_substring_all ("do", "%Nrequire%N" + a_contract.text + "%Ndo%N")
+				end
+
 			end
 
 			l_text.replace_substring (target_feature_name + "_ID_" + a_feature_index.out, 1, target_feature_name.count)
 			Result.copy ("%N%N" + l_text)
 			l_match_list.remove_modifications
-		end
+ 		end
 
 	feature_text_with_weakened_postcondition (a_contract: EPA_EXPRESSION; a_failure_msg: STRING; a_feature_index: INTEGER): STRING
 			-- Add `a_contract' to the precondition of target feature
@@ -171,9 +176,8 @@ feature -- {EPA_FEATURE_CONTRACT_MODIFIER_FOR_FAILURE, AFX_FIXER} -- Implementat
 				-- target_class.ast.invariant_part.assertion_list
 				l_ast := invariant_of_tag_asts_from_class (target_class, l_tag)
 			end
-
 			last_expression := l_ast.text (l_match_list)
-
+			print (a_contract.text + "%N")
 			l_new_post := "%N" + l_tag + ":" + a_contract.text +  "implies " + "(" + last_expression.substring (l_tag.count + 2, last_expression.count) + ")"
 
 			l_ast.replace_subtext (last_expression, "%N" + l_new_post, True, l_match_list)

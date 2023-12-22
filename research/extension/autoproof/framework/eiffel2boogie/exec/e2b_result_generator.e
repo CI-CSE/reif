@@ -94,6 +94,7 @@ feature -- Basic operations
 			a_failure.errors.extend (l_error)
 			l_error.set_boogie_error (a_error)
 
+
 			l_error.set_message (message_for_error (a_error, l_init_state))
 			l_error.set_ce_message (counterexample_message (l_init_state))
 			l_error.set_ce_init_state (l_init_state)
