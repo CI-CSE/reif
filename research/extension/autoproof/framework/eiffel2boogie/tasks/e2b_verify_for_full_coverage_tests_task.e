@@ -2,7 +2,7 @@ note
 	description: "Task to re-verify with inlining."
 
 class
-	E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK
+	E2B_VERIFY_FOR_FULL_BRANCH_COVERAGE_TESTS_TASK
 
 inherit
 
@@ -23,7 +23,6 @@ feature {NONE} -- Initialization
 	make (a_translator_input: E2B_TRANSLATOR_INPUT; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			-- print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -41,7 +40,7 @@ feature -- Status report
 feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 
 	step
-			-- <Precursor>120
+			-- <Precursor>
 		local
 
 			l_boogie_universe: IV_UNIVERSE
@@ -60,8 +59,8 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			-- compute_uncovered_branch
 			remaining_tasks.put_left (create {E2B_TRANSLATE_CHUNK_TASK}.make (l_translator_input, l_boogie_universe))
 			remaining_tasks.put_left (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
-			remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))
-			remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, initial_result_generator))
+			remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_WITH_RANDOM_SEED_TASK}.make (new_verifier))
+			remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, initial_result_generator, remaining_tasks))
 
 			has_next_step := False
 		end
@@ -94,7 +93,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				branch_info_file.end_of_file
 			loop
 				branch_info_file.read_line
-				-- print ("read branch_info at line: " + branch_info_file.last_string + "%N")
 				if not branch_info_file.last_string.is_empty then
 					words := branch_info_file.last_string.split (' ') -- Branch 27 Class ICSE24_CLOCK Line 90
 					l_branch_id.copy (words [2])
@@ -108,12 +106,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				end
 			end
 
-			print (" ========== all branches ========== %N")
-			across branch_set.current_keys as k loop
-				print (k.out + "->" + branch_set [k].class_name + ", " + branch_set [k].line_number.out + "%N")
-			end
-				-- model_lines := model.split ('%N')
-				-- 2) read branch_log file, retrieve the information and store in covered_branch
 			create branch_log_file.make_open_read (system.eiffel_project.project_directory.testing_results_path.extended ("\auto_test\log\branch_log.txt").out)
 			create covered_branch.make (0)
 			from
@@ -132,22 +124,11 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 					end
 				end
 			end
-			print (" ========== covered branches ========= %N")
-			across covered_branch.current_keys as k loop
-				print (k.out + "->" + covered_branch [k].class_name + ", " + covered_branch [k].line_number.out + "%N")
-			end
 
-				-- 3) compute the difference between branch_set and covered_branch
-				-- create options.uncovered_branch.make (0)
 			across branch_set.current_keys as k loop
 				if not covered_branch.has (k) then
 					options.uncovered_branch.extend (branch_set.at (k), k)
 				end
-			end
-				-- handle the branches in IV_BOOGIE_PRINTER
-			print ("========== uncovered branches ========== %N")
-			across options.uncovered_branch.current_keys as k loop
-				print (k.out + "->" + options.uncovered_branch [k].class_name + ", " + options.uncovered_branch [k].line_number.out + "%N")
 			end
 		end
 
@@ -169,6 +150,7 @@ feature {NONE} -- Implementation
 
 	boogie_executable: E2B_PLATFORM_EXECUTABLE_IMPL
 
+	number_of_test_suites: INTEGER = 2
 	;
 
 note

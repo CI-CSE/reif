@@ -69,7 +69,7 @@ feature
 			-- Parse the model text and collect the counterexample information
 		local
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
-			qual_name: STRING
+			qual_name: STRING_32
 		do
 			across models as m loop
 				create ce.make (m)

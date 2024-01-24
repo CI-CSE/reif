@@ -14,11 +14,9 @@ create
 	make
 
 feature {NONE} -- Initialization
-	-- remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_EVALUATE_TASK}.make (options.last_result, options.target_feature, result_generator, remaining_tasks))
 	make (a_target_feature: E2B_FEATURE_I; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			-- print ("E2B_VERIFY_FOR_FIX_EVALUATE_TASK.make%N")
 			target_feature := a_target_feature
 
 			failed_verifications := a_failed_verifications
@@ -43,9 +41,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 		local
 			l_translator_input: E2B_TRANSLATOR_INPUT
 			l_boogie_universe: IV_UNIVERSE
-			-- l_context: E2B_SHARED_CONTEXT
 		do
-			-- print ("E2B_VERIFY_FOR_FIX_EVALUATE_TASK.step%N")
 			if is_error_eliminated then
 			    options.set_fix_message ("Fix: adding precondition " + options.last_candidate_fix + " for " + options.target_feature.feature_name_32.to_string_8)
 
@@ -59,7 +55,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				result_handlers.wipe_out
 
 				create new_verifier.make_with_prefix (options.target_class.name + "." + options.target_feature.feature_name_32.to_string_8) -- construct name of the boogie file
-					-- TODO
 				create result_generator.make
 				remaining_tasks.start
 				remaining_tasks.forth -- Skip current task in queue
@@ -67,7 +62,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
 
 				remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))
-				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator))
+				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator, remaining_tasks))
 
 				if not options.fix_preconditions.is_empty then
 			        remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_EVALUATE_TASK}.make (options.target_feature, options.last_result.failed_verifications, result_generator, remaining_tasks))
@@ -88,11 +83,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			i, j, error_count, equal_count: INTEGER
 			target_failed_verifications: LINKED_LIST [E2B_FAILED_VERIFICATION]
 		do
-				-- analyze the verification results to decide whether to have next verification
-				-- compare the verification failure of the target procedure from the information of result_generator?
-				-- initial_result_generator and result_generator
-				-- store the initial verification result in ?
-
 			Result := False
 			create target_failed_verifications.make
 
@@ -101,10 +91,8 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			until
 				i > failed_verifications.upper - failed_verifications.lower + 1
 			loop
-				-- print ("failed verification for: " + failed_verifications [i].context_feature.feature_name_32.to_string_8 + "%N")
 				if failed_verifications [i].context_feature.body_index = target_feature.body_index then
 					target_failed_verifications.extend (failed_verifications [i])
-					-- print("failed feature: " + failed_verifications [i].context_feature.body_index.out + "%N")
 				end
 				i := i + 1
 			end
@@ -115,16 +103,13 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				until
 					i > target_failed_verifications.count
 				loop -- compare the failure one by one
-						-- print ("target failed verification for: " + target_failed_verifications [i].context_feature.feature_name_32.to_string_8 + "%N")
-						-- print ("initial result failed verification for: " + initial_result_generator.last_result.failed_verifications [i].context_feature.feature_name_32.to_string_8 + "%N")
-					if target_failed_verifications [i].errors.count = initial_result_generator.last_result.failed_verifications [i].errors.count then
+						if target_failed_verifications [i].errors.count = initial_result_generator.last_result.failed_verifications [i].errors.count then
 							-- TODO: use the context line number to distinguish different verification failures
 						from
 							j := 1
 						until
 							j > target_failed_verifications [i].errors.count
 						loop
-								-- print ("context line number" + target_failed_verifications [i].errors [1].context_line_number.out + "%N")
 							if target_failed_verifications [i].errors [j].context_line_number = target_failed_verifications [i].errors [j].context_line_number then
 								error_count := error_count + 1
 							end
@@ -136,18 +121,10 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 						end
 
 						error_count := 0
-							-- target_failed_verifications[i].single_line_message (a_formatter: TEXT_FORMATTER)
 					end
 
 					i := i + 1
 				end
-
-				-- if equal_count < target_failed_verifications.count then -- verification result remains the same, continue minimization
-				--	Result := True
-					-- l_context.options.set_is_same_result (True)
-				--	print ("same verification result : " + equal_count.out + "%N")
-				--end
-				-- print("failures: " + target_failed_verifications.count.out + "%N")
 			end
 
 			if target_failed_verifications.count = 0  then

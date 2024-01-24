@@ -157,7 +157,11 @@ feature -- Translation
 						-- Add precondition check
 					add_function_precondition_check (a_feature, l_call)
 						-- Add termination check (for recursive functionals)
-					add_recursion_termination_check (a_feature)
+					if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
+												context_feature.feature_id = a_feature.feature_id then
+						l_call.set_is_recursive (True)
+						add_recursion_termination_check (a_feature)
+					end
 				end
 				last_expression := l_call
 			end

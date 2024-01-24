@@ -467,6 +467,10 @@ feature{NONE} -- Implementation
 			end
 
 			fixme ("Refactoring the following ugly if statement.")
+			if a_value.tail (1).same_string (")") and not a_value.has ('(') then
+				a_value.remove_tail (1)
+			end
+
 			if a_value = Void then
 				create {EPA_VOID_VALUE} l_value.make
 			else

@@ -112,6 +112,9 @@ feature -- Translation: Signature
 				current_boogie_procedure.add_contract (l_modifies)
 			end
 
+			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
+			current_boogie_procedure.set_is_mcdc_tests_enabled (options.is_full_mcdc_test_generation_enabled)
+
 				-- Pre- and postconditions
 			l_contracts := contracts_of (current_feature, current_type)
 			across l_contracts.pre as j loop
@@ -129,15 +132,16 @@ feature -- Translation: Signature
 
 				-- *Li: Add trial fix to precondition
 			if attached options.target_feature as f then
-			    if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
-				    current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
-	 				options.set_last_candidate_fix (options.current_candidate_fix)
-	 				options.set_current_candidate_fix(options.fix_preconditions.first)
-				    options.fix_preconditions.remove_i_th (1)
-			    end
+				if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
+					current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
+					options.set_last_candidate_fix (options.current_candidate_fix)
+					options.set_current_candidate_fix (options.fix_preconditions.first)
+					options.fix_preconditions.remove_i_th (1)
+				end
 			end
 
 			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
+			current_boogie_procedure.set_is_mcdc_tests_enabled (options.is_full_mcdc_test_generation_enabled)
 
 			current_boogie_procedure.set_is_generate_fix_enabled (options.is_generate_fix_enabled)
 
@@ -146,7 +150,6 @@ feature -- Translation: Signature
 					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [k].line_number, current_boogie_procedure.uncovered_branch_lines.count)
 				end
 			end
-
 
 			create l_fields.make
 			across l_contracts.post as j loop
@@ -208,8 +211,8 @@ feature -- Translation: Signature
 				add_argument_with_property (l_arg.name, params, l_type, l_arg.type)
 
 				create l_post.make (factory.equal (
-					factory.heap_access (factory.global_heap, factory.std_current, name_translator.boogie_field_for_tuple_field (a_type, @ params.target_index), l_arg.type),
-					l_arg))
+						factory.heap_access (factory.global_heap, factory.std_current, name_translator.boogie_field_for_tuple_field (a_type, @ params.target_index), l_arg.type),
+						l_arg))
 				current_boogie_procedure.add_contract (l_post)
 			end
 
@@ -219,8 +222,8 @@ feature -- Translation: Signature
 			add_field_default_initialization (a_type)
 
 				-- wrapped
-			 create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
-			 current_boogie_procedure.add_contract (l_post)
+			create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
+			current_boogie_procedure.add_contract (l_post)
 
 				-- global
 			create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
@@ -255,15 +258,15 @@ feature -- Translation: Signature
 			create l_t.make_fresh
 			create l_f.make ("$f", types.field (l_t))
 			create l_forall.make (factory.implies_ (
-				factory.function_call (
-					"IsInitializedWithDefault",
-					<< l_f, factory.type_value (a_type) >>,
-					types.bool
-				),
-				factory.equal (
-					factory.heap_current_access (l_mapping, l_f.name, l_t),
-					factory.function_call ("Default", <<l_f>>, l_t))
-			))
+						factory.function_call (
+								"IsInitializedWithDefault",
+								<<l_f, factory.type_value (a_type)>>,
+								types.bool
+							),
+						factory.equal (
+							factory.heap_current_access (l_mapping, l_f.name, l_t),
+							factory.function_call ("Default", <<l_f>>, l_t))
+					))
 
 			l_forall.add_type_variable (l_t.name)
 			l_forall.add_bound_variable (l_f)
@@ -354,8 +357,10 @@ feature -- Translation: Signature
 					-- TODO: should default precondtions be enabled for lemmas?
 				create l_mapping.make
 				l_mapping.set_current (current_boogie_procedure.arguments.first.entity)
-				across ownership_default (a_for_creator, l_mapping) as i loop
-					current_boogie_procedure.add_contract (i)
+				if not current_boogie_procedure.is_full_coverage_tests_enabled then
+					across ownership_default (a_for_creator, l_mapping) as i loop
+						current_boogie_procedure.add_contract (i)
+					end
 				end
 			end
 		end
@@ -614,7 +619,13 @@ feature -- Translation: Implementation
 			create l_implementation.make (l_procedure)
 			boogie_universe.add_declaration (l_implementation)
 
-			create l_translator.make (l_implementation, current_feature, current_type)
+			if current_boogie_procedure.is_full_coverage_tests_enabled then
+				create {E2B_INSTRUCTION_TRANSLATOR_FOR_TEST_GENERATION} l_translator.make (l_implementation, current_feature, current_type)
+			else
+				create l_translator.make (l_implementation, current_feature, current_type)
+			end
+
+
 			if a_feature.has_functional_representation then
 				l_translator.set_context_readable (factory.global_readable)
 				if not current_feature.is_invariant_unfriendly then
@@ -816,7 +827,6 @@ feature -- Translation: Functions
 			create l_trigger_function.make (name_translator.boogie_function_trigger (l_fname), types.bool)
 			create l_mapping.make
 			l_free_body := factory.true_
-
 				-- Arguments
 			if not l_is_logical then
 					-- Only non-logical features depend on the heap
@@ -854,7 +864,6 @@ feature -- Translation: Functions
 								i.orig_type.is_attached))
 				end
 			end
-
 				-- Set a dummy result in `l_mapping': we are not using postconditions anyway
 			if a_feature.has_return_value then
 				l_mapping.set_result (factory.entity ("result",
@@ -875,7 +884,6 @@ feature -- Translation: Functions
 --				boogie_universe.add_declaration (l_free_pre_function)
 --			end
 			boogie_universe.add_declaration (l_trigger_function)
-
 		end
 
 	translate_frame_function (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_read: BOOLEAN)
@@ -892,7 +900,6 @@ feature -- Translation: Functions
 		do
 			set_context (a_feature, a_type)
 			current_feature.set_up_byte_context (current_type)
-
 
 				-- Frame function
 			if a_read then
@@ -1360,6 +1367,9 @@ feature {NONE} -- Implementation
 			l_contract.node_info.set_type ("pre")
 			l_contract.node_info.set_tag (a_assert.tag)
 			l_contract.node_info.set_line (a_assert.line_number)
+			if current_boogie_procedure.is_full_coverage_tests_enabled then
+				l_contract.set_free
+			end
 			current_boogie_procedure.add_contract (l_contract)
 
 			if attached current_feature then
@@ -1389,7 +1399,6 @@ feature {NONE} -- Implementation
 					set_up_byte_context (l_type)
 				end
 			end
-
 
 			a_assert.process (l_translator)
 			a_fields.append (l_translator.field_accesses)
@@ -1464,16 +1473,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

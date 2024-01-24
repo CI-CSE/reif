@@ -44,13 +44,18 @@ feature {NONE} -- Implementation
 
 			elseif options.is_full_coverage_test_generation_enabled then
 
-				remaining_tasks.extend (create {E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK}.make (a_translator_input, result_generator, remaining_tasks))
+				remaining_tasks.extend (create {E2B_VERIFY_FOR_FULL_BRANCH_COVERAGE_TESTS_TASK}.make (a_translator_input, result_generator, remaining_tasks))
+
+			elseif options.is_full_mcdc_test_generation_enabled then
+
+				remaining_tasks.extend (create {E2B_VERIFY_FOR_FULL_MCDC_TESTS_TASK}.make (a_translator_input, result_generator, remaining_tasks))
+
 			else
 
 				remaining_tasks.extend (create {E2B_TRANSLATE_CHUNK_TASK}.make (a_translator_input, boogie_universe))
 				remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (boogie_universe, verifier))
 				remaining_tasks.extend (create {E2B_EXECUTE_BOOGIE_TASK}.make (verifier))
-				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (verifier, result_generator))
+				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (verifier, result_generator, remaining_tasks))
 
 				if options.is_two_step_verification_enabled then
 					remaining_tasks.extend (create {E2B_VERIFY_WITH_INLINING_TASK}.make (result_generator, remaining_tasks))

@@ -79,9 +79,6 @@ feature -- Operation
 							-- create l_ce_trace.make(l_value) -- traces for a particular error/feature
 							-- info_center.on_proof_stop (l_value)
 							info_center.on_counterexample_generated (l_value)
-							-- info_center.on_counterexample_generated (l_ce) -- call and pass ce_traces here
-							-- store the ce_traces into a .txt file?
-							-- parse the txt file to get states/traces and generate Daikon input
 						elseif l_tag ~ {EWB_BOOGIE_VERIFICATION}.Msg_potential_proof_fix then
 							-- Get the id of the feature
 							l_eol_index := a_line.index_of (l_eol_character, l_right_bracket_index)

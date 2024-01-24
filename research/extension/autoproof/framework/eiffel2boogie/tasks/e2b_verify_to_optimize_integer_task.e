@@ -76,7 +76,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, optimization_verifier))
 
 				remaining_tasks.extend (create {E2B_EXECUTE_BOOGIE_TASK}.make (optimization_verifier))
-				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (optimization_verifier, result_generator))
+				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (optimization_verifier, result_generator, remaining_tasks))
 
                 -- step into minimization
 				remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK}.make (boogie_universe, target_class, target_feature, target_variables, failed_verifications, result_generator, remaining_tasks))
@@ -121,7 +121,7 @@ feature {NONE} -- Implementation
             -- Verification failures
 
 	l_boogie_universe: IV_UNIVERSE
-             -- Universe for boogie code generation
+			-- Universe for boogie code generation
 
     model_file_name: STRING
    			-- Name of the .model file

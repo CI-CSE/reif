@@ -84,6 +84,12 @@ feature -- Access
 	user_options: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Option arguments to Boogie command line.
 
+	proof2test: E2B_PROOF_TO_TEST
+			-- Proof2Test instance
+		once
+			create Result.make
+		end
+
 	selection: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Class paths, class names and feature selection arguments
 			-- to Boogie command line.
@@ -115,7 +121,13 @@ feature -- Execution
 		do
 			create autoproof.make
 				-- Load options
-			if has_option ("-twostep") then
+			if user_options.has ("-branchtests") then
+				options.set_full_coverage_test_generation_enabled (True)
+			elseif user_options.has ("-mcdctests") then
+				options.set_full_mcdc_test_generation_enabled (True)
+			end
+
+			if user_options.has ("-twostep") then
 				options.set_two_step_verification_enabled (True)
 			elseif has_option ("-notwostep") then
 				options.set_two_step_verification_enabled (False)
@@ -160,16 +172,20 @@ feature -- Execution
 			elseif has_option ("-noautounroll") then
 				options.set_automatic_loop_unrolling_enabled (False)
 			end
-			if has_option ("-unrolldepth") then
-				options.set_loop_unrolling_depth (option_argument ("-unrolldepth", options.loop_unrolling_depth))
+			if user_options.has ("-unrolldepth") then
+				user_options.search ("-unrolldepth")
+				user_options.forth
+				options.set_loop_unrolling_depth (option_argument ("-unrolldepth", user_options.item.to_integer))
 			end
 			if has_option ("-autoinline") then
 				options.set_automatic_inlining_enabled (True)
 			elseif has_option ("-noautoinline") then
 				options.set_automatic_inlining_enabled (False)
 			end
-			if has_option ("-inlinedepth") then
-				options.set_max_recursive_inlining_depth (option_argument ("-inlinedepth", options.max_recursive_inlining_depth))
+			if user_options.has ("-inlinedepth") then
+				user_options.search ("-inlinedepth")
+				user_options.forth
+				options.set_max_recursive_inlining_depth (option_argument ("-inlinedepth", user_options.item.to_integer)) -- options.max_recursive_inlining_depth))
 			end
 			if has_option ("-ownership") then
 				options.set_ownership_enabled (True)
@@ -268,8 +284,19 @@ feature {NONE} -- Printing console
 	print_result (a_result: E2B_RESULT)
 			-- Print results to output.
 		do
-			across a_result.verification_results as i loop
-				output_window.add ("======================================%N")
+			if options.is_full_coverage_test_generation_enabled then
+				start_timer
+				proof2test.generate_tests (options.init_states_of_counterexamples)
+				options.init_states_of_counterexamples.wipe_out
+				stop_timer
+				output_window.add ("Test generation finished. The generated test cases are in the file: " + proof2test.test_file_name + "%N")
+				if options.test_generation_count < 19 then
+					autoproof.verify
+					options.increase_test_generation_count
+				end
+			else
+				across a_result.verification_results as i loop
+					output_window.add ("======================================%N")
 
 				if attached {E2B_SUCCESSFUL_VERIFICATION} i as l_success then
 					print_successful_verification (l_success)
@@ -277,7 +304,7 @@ feature {NONE} -- Printing console
 				elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
 					print_failed_verification (l_failure)
 
-					if has_option ("-fix") then
+					if user_options.has ("-fix") then
 						options.failures_for_fix.extend (l_failure)
 					end
 						-- TODO Li: display the failure in the "Faults" tab
@@ -286,25 +313,17 @@ feature {NONE} -- Printing console
 				else
 					check False end
 				end
-			end
 
-			if has_option ("-fix") then
-				-- options.set_fix_start_time (timer.system_clock.time_now)
-				output_window.add ("fixing start time: " + timer.system_clock.time_now.out + "%N")
-				generate_counterexamples_for_fix
-			elseif has_option ("-validate_fix") then
-				-- TODO
-				-- 	Parse the result to get the id of successful verification and store in a hash set S1
-				--  Instrument "check False end" assertion to the feature in S1, reverify the instrumented version
-						-- Instrument at the Eiffel level
-						-- Generate a new file or directly instrument at the boogie level?
-						-- Use SMT solver directly for simple property analysis?
-				--	Parse the result to get the id of the failed verification of check False and store in a hash set S2
-				-- 	Print out the result of S2 to the output panel, using Msg_valid_proof_fix
+				if user_options.has ("-fix") then
+					output_window.add ("fixing start time: " + timer.system_clock.time_now.out + "%N")
+					generate_counterexamples_for_fix
+				elseif user_options.has ("-validate_fix") then
 				print_potential_fix
 				-- TODO Li: this is a hack to get the context class
 				reverify_with_check_false_instrumented (a_result.verification_results.last.context_class)
+				end
 			end
+		end
 		end
 
 	get_valid_fixes_from_result (a_result: E2B_RESULT)
@@ -341,8 +360,6 @@ feature {NONE} -- Printing console
 			end
 			output_window.add ("%N")
 			output_window.add ("fixing end time: " + timer.system_clock.time_now.out + "%N")
-			-- output_window.add ("fixing start time: " + options.fix_start_time.out + "%N")
-			-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
 		end
 
 	print_potential_fix
@@ -359,11 +376,6 @@ feature {NONE} -- Printing console
 			end
 			output_window.add ("%N")
 		end
-
---	print_ce_generated_msg (a_target_feature_string: STRING)
---		do
---			print (Msg_ce_generated + " " + a_target_feature_string + "%N")
---		end
 
 	print_successful_verification (a_success: E2B_SUCCESSFUL_VERIFICATION)
 			-- Print successful verification information.

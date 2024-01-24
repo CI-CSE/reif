@@ -38,7 +38,6 @@ feature -- Initialize
 			create test_file.make_create_read_write (test_file_name)
 			generate_test_file
 
-			print ("writing test script time: " + current_timer.out + "%N")
 			stop_timer
 		end
 
@@ -50,7 +49,7 @@ feature -- Files and data
 	initial_states: LINKED_LIST [TUPLE [state: E2B_CE_STATE_OF_ROUTINE; target_class: E2B_CLASS_C; target_feature: E2B_FEATURE_I]]
 			-- Mapping from class.routine to a set of counterexamples
 
-	alias_groups: HASH_TABLE [ARRAY [STRING], STRING]
+	alias_groups: HASH_TABLE [ARRAY [STRING], READABLE_STRING_32]
 			-- Mapping from an abstract value (object) to a list of references
 
 	references_to_declare: HASH_TABLE [STRING, STRING]
@@ -81,11 +80,11 @@ feature -- Test generation
 	generate_test_file
 			-- Write the test cases to the output file
 		local
-			t, last_target_feature: STRING
+			t: STRING_32
+			last_target_feature: STRING_32
 			i: INTEGER
 			creators_keys: ARRAY [INTEGER]
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.generate_test_file%N")
 			t := ""; last_target_feature := ""
 			create creators_keys.make_empty
 			test_file.put_string (header)
@@ -128,7 +127,6 @@ feature -- Test generation
 	header: STRING
 			-- Header of the test file
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.header%N")
 			Result := "class " + script_class_name + "%N%Ninherit%N%TEQA_TEST_SET%N%N" + "feature -- Tests from failed proofs %N%N"
 		end
 
@@ -136,9 +134,10 @@ feature -- Test generation
 			-- Store the aliases into the same group
 		local
 			i: INTEGER
+			val32: READABLE_STRING_32
+			name_gen: READABLE_STRING_GENERAL
 			name, value: STRING
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.compute_alias%N")
 			alias_groups.make (0)
 
 			from
@@ -146,8 +145,14 @@ feature -- Test generation
 			until
 				i > initial_state.locals.count
 			loop
-				name := initial_state.locals.current_keys [i]
-				value := initial_state.locals [name]
+				name_gen := initial_state.locals.current_keys [i]
+				check name_gen.is_valid_as_string_8 then
+					name := name_gen.to_string_8
+				end
+				val32 := initial_state.locals [name]
+				check val32.is_valid_as_string_8 then
+					value := val32.to_string_8
+				end
 
 				if is_abstract_value (value) then
 					if alias_groups.has (value) then
@@ -172,7 +177,6 @@ feature -- Test generation
 			j: INTEGER
 			current_type, argument_type, result_type: E2B_TYPE_A
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.generate_test%N")
 			references_to_declare.wipe_out
 			argument_name := ""; Result := ""
 			class_name := target_class.actual_type.name
@@ -257,11 +261,7 @@ feature -- Test generation
 				-- creation_procedure := object_type.base_class.feature_of_name_id (creators_keys [1])
 
 			if l_creation_procedure /= Void then
-					-- print ("creation procedure: " + l_creation_procedure.feature_name_32.to_string_8 + "%N")
 				t := t + "." + l_creation_procedure.feature_name_32.to_string_8
-
-					-- a.make(0, 0)
-					-- a.make(100, 10000)
 				if l_creation_procedure.has_arguments then
 					t := t + " ("
 					from
@@ -293,7 +293,6 @@ feature -- Test generation
 	create_object (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Creation of all object references
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.create_object%N")
 			Result := ""
 			if not is_basic_type (object_type.name) and not is_aliased_with_existed_object (object_name) then
 				if object_type.name.has_substring ("SIMPLE_ARRAY") then
@@ -315,7 +314,6 @@ feature -- Test generation
 		local
 			t, class_name_: STRING
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_object%N")
 			t := ""; Result := ""; class_name_ := ""
 			class_name_.copy (safe_type_name (object_type.name))
 
@@ -331,10 +329,12 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	assignment (object_name: STRING; object_value: STRING): STRING
+	assignment (object_name: STRING; object_value: READABLE_STRING_GENERAL): STRING
 			-- Assignment clause for assigning the given value
 		do
-			Result := "%T%T%T" + safe_object_name (object_name) + " := " + object_value + "%N"
+			check object_value.is_valid_as_string_8 then
+				Result := "%T%T%T" + safe_object_name (object_name) + " := " + object_value.to_string_8 + "%N"
+			end
 		end
 
 	instantiate_object_reference (object_name: STRING; object_type: E2B_TYPE_A): STRING
@@ -383,6 +383,7 @@ feature -- Test generation
 	instantiate_basic_field (object_name: STRING; field_name: STRING; field_type: STRING; i: INTEGER): STRING
 			-- Initialize an object field of basic type
 		local
+			value32: READABLE_STRING_32
 			name, value: STRING
 		do
 			name := object_name + "." + field_name
@@ -390,7 +391,10 @@ feature -- Test generation
 			if initial_state.values.has (object_name)
 				and then attached {E2B_CE_VALUE_RECORD} initial_state.values [object_name] as o
 				and then o.values.has (safe_field_name (field_name)) then
-				value := o.values [safe_field_name (field_name)]
+				value32 := o.values [safe_field_name (field_name)]
+				check value32.is_valid_as_string_8 then
+					value := value32.to_string_8
+				end
 			else
 				missing_values.force (object_name + "." + field_name, missing_values.count)
 					-- TODO: the counterexample is partial
@@ -413,7 +417,6 @@ feature -- Test generation
 	instantiate_reference_field (object_name: STRING; field_name: STRING): STRING
 			-- Initialize an object field of reference type
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_reference_field%N")
 			Result := "%T%T%T{P_INTERNAL}.set_reference_field_ (%"" + field_name + "%", " + safe_object_name (object_name) + ", " + safe_object_name (object_name) + "_" + field_name + ")%N"
 		end
 
@@ -449,12 +452,11 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	force_item (object_name: STRING; object_type: STRING; item_value: STRING; i: INTEGER): STRING
+	force_item (object_name: STRING; object_type: STRING; item_value: READABLE_STRING_GENERAL; i: INTEGER): STRING
 			-- Use force procedure to add elements to the container
 		local
 			force_routine_name: STRING
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.force_item%N")
 			if object_type.same_string ("V_ARRAY2_INTEGER") then
 				force_routine_name := "flat_put"
 			elseif object_type.same_string ("V_ARRAYED_LIST_INTEGER") then
@@ -462,13 +464,16 @@ feature -- Test generation
 			else
 				force_routine_name := "force"
 			end
-			Result := "%T%T%T" + safe_object_name (object_name) + "." + force_routine_name + " (" + safe_item_value (item_value, object_type) + ", " + i.out + ")%N"
+			check item_value.is_valid_as_string_8 then
+				Result := "%T%T%T" + safe_object_name (object_name) + "." + force_routine_name + " (" + safe_item_value (item_value.to_string_8, object_type) + ", " + i.out + ")%N"
+			end
 		end
 
 	instantiate_container_object (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Instantiate an object of container type based on the given counterexample model `m'
 		local
-			t, value, item_value: STRING
+			t: STRING
+			item_value: READABLE_STRING_32
 			i: INTEGER
 			type: STRING
 			len_i: INTEGER
@@ -478,8 +483,6 @@ feature -- Test generation
 			type := object_type.name
 
 			full_name := object_name + ".sequence"
-
-			value := initial_state.locals [full_name]
 
 			if attached {E2B_CE_VALUE_SEQ} initial_state.values [full_name] as seq then
 				if seq.length >= 0 then
@@ -687,10 +690,13 @@ feature -- Properties checking
 			-- Is the given object an alias with one of the instantiated objects?
 		local
 			object_value: STRING
+			val32: READABLE_STRING_32
 		do
-			object_value := ""
 			if initial_state.locals.has (object_name) then
-				object_value.copy (initial_state.locals [object_name])
+				val32 := initial_state.locals [object_name]
+				check val32.is_valid_as_string_8 then
+					object_value := val32.to_string_8
+				end
 			end
 
 			if alias_groups.has (object_value) and not alias_groups [object_value] [1].same_string (object_name) then

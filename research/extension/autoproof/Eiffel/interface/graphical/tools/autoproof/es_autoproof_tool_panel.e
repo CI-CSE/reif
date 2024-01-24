@@ -176,11 +176,20 @@ feature {NONE} -- Initialization
 		do
 			create Result
 
-			create l_item.make_with_text_and_action ("Full-coverage test generation",
+			create l_item.make_with_text_and_action ("Full branch coverage test generation",
 				agent do
 						options.set_full_coverage_test_generation_enabled (not options.is_full_coverage_test_generation_enabled)
 					end)
 			if options.is_full_coverage_test_generation_enabled then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
+			create l_item.make_with_text_and_action ("Full MCDC test generation",
+				agent do
+						options.set_full_mcdc_test_generation_enabled (not options.is_full_mcdc_test_generation_enabled)
+					end)
+			if options.is_full_mcdc_test_generation_enabled then
 				l_item.toggle
 			end
 			Result.extend (l_item)
@@ -632,7 +641,6 @@ feature {NONE} -- Query
 						or a_msg.has_substring ("frame_writable")
 		end
 
-
 feature {NONE} -- Basic operations
 
 	do_default_action (a_row: EV_GRID_ROW)
@@ -757,7 +765,7 @@ feature {NONE} -- Basic operations
 								l_failure.errors as l_error
 							loop
 								insert_subrow_for_error (a_row, l_error)
-								if l_error.trace /= Void then
+								if attached l_error.counterexample_message_string then
 									insert_subrow_for_counterexample (a_row, l_error, l_failure)
 								end
 							end
@@ -802,8 +810,6 @@ feature {NONE} -- Basic operations
 			a_error.single_line_message (l_text_gen)
 			l_text_gen.add_new_line
 			l_editor_item := create_multiline_clickable_grid_item (l_text_gen.lines, True, False)
-
-
 
 				l_index := a_parent.subrow_count + 1
 
@@ -874,12 +880,17 @@ feature {NONE} -- Basic operations
 			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
 
 			create l_lab
-			l_lab.set_text ("Counterexample: " + a_error.counterexample_message_string)
+			if attached options.new_ce_message then
+				l_lab.set_text ("Counterexample: " + options.new_ce_message)
+			else
+				l_lab.set_text ("Counterexample: " + a_error.counterexample_message_string)
+			end
+
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right (stock_pixmaps.preference_list_icon, 1)
 
 			l_row.set_item (info_column, l_lab)
-			create pt_command.make (a_error, a_failure, l_row)
+			create pt_command.make_from_error (a_error, a_failure, l_row)
 				-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
 			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action end)
 

@@ -38,6 +38,9 @@ feature -- Access
 	target: detachable IV_EXPRESSION
 			-- Target that receives result of procedure call (if any).
 
+	is_recursive: BOOLEAN
+			-- Is the current call a recursive call?
+
 feature -- Element change
 
 	add_argument (a_argument: IV_EXPRESSION)
@@ -54,6 +57,14 @@ feature -- Element change
 			target := a_target
 		ensure
 			target_set: target = a_target
+		end
+
+	set_is_recursive (a_value: like is_recursive)
+			-- Set `is_recursive' to `a_value'.
+		do
+			is_recursive := a_value
+		ensure
+			target_set: is_recursive = a_value
 		end
 
 feature -- Visitor

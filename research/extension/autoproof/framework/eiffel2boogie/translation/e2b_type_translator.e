@@ -67,6 +67,11 @@ feature -- Basic operations
 					end)
 			end
 
+				-- Add declaration of bn if test generation is enabled
+			if helper.options.is_full_coverage_test_generation_enabled and boogie_universe.constant_named ("bn") = Void then
+				boogie_universe.add_declaration (create {IV_CONSTANT}.make ("bn", types.int))
+			end
+
 				-- Add actual generic parameters
 			if a_type.has_generics then
 				across a_type.generics as params loop
@@ -98,7 +103,7 @@ feature -- Basic operations
 				else
 					if a_type.base_class.is_frozen then
 						boogie_universe.add_declaration (create {IV_AXIOM}.make (
-							factory.function_call ("is_frozen", << factory.entity (l_boogie_type_name, types.type) >>, types.bool)))
+							factory.function_call ("is_frozen", <<factory.entity (l_boogie_type_name, types.type)>>, types.bool)))
 					end
 
 						-- Inheritance relations
@@ -394,7 +399,7 @@ feature {NONE} -- Implementation
 		do
 			Result := factory.function_call (
 				"Set#IsEmpty",
-				<< factory.heap_access (a_mapping.heap, a_mapping.current_expression, a_name, types.set (types.ref)) >>,
+				<<factory.heap_access (a_mapping.heap, a_mapping.current_expression, a_name, types.set (types.ref))>>,
 				types.bool)
 		end
 
@@ -437,7 +442,7 @@ feature {NONE} -- Implementation
 	is_tag_included (a_included, a_excluded: LIST [READABLE_STRING_8]; a_tag: READABLE_STRING_8): BOOLEAN
 			-- Should `a_tag' be included into the invariant function according `a_included' and `a_excluded'?
 		do
-			Result := (a_included = Void and a_excluded = Void) or else	-- Processing full invariant
+			Result := (a_included = Void and a_excluded = Void) or else    -- Processing full invariant
 				(a_included /= Void and then a_tag /= Void and then a_included.has (a_tag)) or else -- Or explicitly included
 				(a_excluded /= Void and then (a_tag = Void or else not a_excluded.has (a_tag))) -- Or not expliciltly excluded
 		end
@@ -587,13 +592,13 @@ feature {NONE} -- Implementation
 			create l_h.make ("h", types.heap)
 			create l_o.make ("o", types.ref)
 			l_fcall := factory.function_call (name_translator.boogie_function_for_filtered_invariant (type, a_included, a_excluded, a_ancestor),
-				<< l_h, l_o >>, types.bool)
+					<<l_h, l_o>>, types.bool)
 			create l_forall.make (factory.implies_ (
-				factory.and_ (factory.function_call ("IsHeap", << l_h >>, types.bool),
-					factory.and_ (
-						factory.function_call ("attached", << l_h, l_o, factory.type_value (type) >>, types.bool),
-						factory.heap_access (l_h, l_o, "closed", types.bool))),
-				l_fcall))
+					factory.and_ (factory.function_call ("IsHeap", <<l_h>>, types.bool),
+						factory.and_ (
+							factory.function_call ("attached", <<l_h, l_o, factory.type_value (type)>>, types.bool),
+							factory.heap_access (l_h, l_o, "closed", types.bool))),
+					l_fcall))
 			l_forall.add_bound_variable (l_h)
 			l_forall.add_bound_variable (l_o)
 			l_forall.add_trigger (l_fcall)
@@ -681,9 +686,9 @@ feature -- Invariant admissibility
 
 				-- Set up procedure with arguments and precondition
 			l_proc.add_argument (factory.std_current)
-			create l_pre.make (factory.function_call ("attached_exact", << factory.global_heap, factory.std_current, factory.type_value (a_class_type) >>, types.bool))
+			create l_pre.make (factory.function_call ("attached_exact", <<factory.global_heap, factory.std_current, factory.type_value (a_class_type)>>, types.bool))
 			l_proc.add_contract (l_pre)
-			create l_assume.make_assume (factory.function_call ("user_inv", << factory.global_heap, factory.std_current >>, types.bool))
+			create l_assume.make_assume (factory.function_call ("user_inv", <<factory.global_heap, factory.std_current>>, types.bool))
 
 			create l_goto.make_empty
 			l_impl.body.add_statement (l_goto)
@@ -792,16 +797,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+				This program is free software; you can redistribute it and/or modify it under the terms of
+				the GNU General Public License as published by the Free Software Foundation; either version 1,
+				or (at your option) any later version.
+			
+				This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+				without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+				See the GNU General Public License for more details.
+			
+				You should have received a copy of the GNU General Public License along with this program.
+				If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end
