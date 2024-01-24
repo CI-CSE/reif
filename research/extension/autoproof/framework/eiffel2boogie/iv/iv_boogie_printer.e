@@ -329,6 +329,13 @@ feature -- Statement Visitor
 	process_block (a_block: IV_BLOCK)
 			-- <Precursor>
 		do
+			block_index := block_index + 1
+			if is_generate_fix_enabled then
+				output.put_indentation
+				output.put ("passed_blocks := Seq#Update(passed_blocks, " + block_index.out + ", true);")
+				-- block := Seq#Update(block, i, true);
+			end
+
 			if not a_block.name.is_empty then
 				output.put_indentation
 				output.put (a_block.name)

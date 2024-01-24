@@ -11,6 +11,7 @@ create
 	make
 
 feature
+
 	make (a_target_class_name: STRING; a_target_routine_name: STRING; a_exception_code: INTEGER; a_line_number: INTEGER; a_failure_msg: STRING)
 			-- Initialization
 		do
@@ -18,7 +19,7 @@ feature
 			target_routine_name := a_target_routine_name
 			exception_code := a_exception_code
 			line_number := a_line_number
-			failure_message := a_failure_msg
+			assertion_tag := a_failure_msg
 		end
 
 feature	-- Access
@@ -35,7 +36,6 @@ feature	-- Access
 	line_number: INTEGER
 			-- Index of verification errors in case of multiple failures.
 
-	failure_message: STRING
+	assertion_tag: STRING
 			-- Tag of the failing assertion.
-
 end

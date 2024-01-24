@@ -157,7 +157,7 @@ feature {NONE} -- Implementation
 			l_src, l_dest: EPA_AST_EXPRESSION
 			l_requirement: AFX_STATE_CHANGE_REQUIREMENT
 		do
-				-- print ("AFX_CE_BASED_FIX_GENERATOR.generate_one_fix%N")
+			-- print ("AFX_CE_BASED_FIX_GENERATOR.generate_one_fix%N")
 			l_written_class := session.feature_under_proof.written_class
 			l_exception_recipient_feature := session.feature_under_proof
 
@@ -169,8 +169,73 @@ feature {NONE} -- Implementation
 			across a_instructions as inst loop
 					-- if attached {EPA_AST_STRUCTURE_NODE} inst as l_node then
 				if attached {LOOP_AS} inst.item.ast.ast as l_loop then
+					l_loop.stop.replace_text (a_target.expression.text, l_match_list)
+
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
+
+					l_loop.stop.replace_text ("not (" + a_target.expression.text + ")", l_match_list)
+					print (l_loop.stop.text (l_match_list) + "%N") -- exit condition, this works!!
+
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
+
+					l_loop.stop.replace_text (a_target.expression.text + " or (" + l_loop.stop.text (l_match_list) + ")", l_match_list)
+					print (l_loop.stop.text (l_match_list) + "%N") -- exit condition, this works!!
+
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
+
+					l_loop.stop.replace_text ("not (" + a_target.expression.text + ")" + " or (" + l_loop.stop.text (l_match_list) + ")", l_match_list)
+					print (l_loop.stop.text (l_match_list) + "%N") -- exit condition, this works!!
+
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
+
+					l_loop.stop.replace_text (a_target.expression.text + " and (" + l_loop.stop.text (l_match_list) + ")", l_match_list)
+					print (l_loop.stop.text (l_match_list) + "%N") -- exit condition, this works!!
+
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
+
+					l_loop.stop.replace_text ("not (" + a_target.expression.text + ")" + " and (" + l_loop.stop.text (l_match_list) + ")", l_match_list)
+					print (l_loop.stop.text (l_match_list) + "%N") -- exit condition, this works!!
+
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
+
 				elseif attached {IF_AS} inst.item.ast.ast as l_if then
 					l_if.condition.replace_text (a_target.expression.text, l_match_list)
+						-- l_if.can_append_text (a_list: LEAF_AS_LIST)
+						-- l_if.append_text ("%N Result := 0", l_match_list) -- at the same line after keyword "end"
+						-- l_if.prepend_text ("%N%TResult := 0", l_match_list) -- same line after the do keyword
+
+						-- l_if.end_keyword.prepend_text (a_text: STRING_8, a_list: LEAF_AS_LIST)
+						-- l_if.compound.first.append_text ("-- Result := 0", l_match_list)
 					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
 					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
 					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
@@ -194,6 +259,7 @@ feature {NONE} -- Implementation
 					fixes.force_last (l_fix)
 					l_match_list.remove_modifications
 
+						-- l_body_text_lines [l_body_text_lines.index].replace_substring ("if " + a_target.expression.text + " or ", 1, 5)
 					l_if.condition.replace_text ("not (" + a_target.expression.text + ")" + " or (" + l_if.condition.text (l_match_list) + ")", l_match_list)
 					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
 					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
@@ -210,6 +276,7 @@ feature {NONE} -- Implementation
 					fixes.force_last (l_fix)
 					l_match_list.remove_modifications
 
+						-- l_body_text_lines [l_body_text_lines.index].replace_substring ("if " + a_target.expression.text + " or ", 1, 5)
 					l_if.condition.replace_text ("not (" + a_target.expression.text + ")" + " and (" + l_if.condition.text (l_match_list) + ")", l_match_list)
 					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
 					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
@@ -258,53 +325,58 @@ feature {NONE} -- Implementation
 				end
 			end
 
+				-- Manipulate the instructions in the suspicious blocks
+				-- 1) Identify the suspicious block based on the "passed_block value"
+				--if a_target.expression.text.has_substring ("passed_block") then
 			l_suspicious_blocks := suspicious_blocks (a_target.expression.text)
 
 				-- build new assignments based on the counterexample inv ariants
+			l_assertion := assertion_of_tag (l_exception_recipient_feature, context_failure.assertion_tag)
+			create l_src.make_with_text (l_written_class, l_exception_recipient_feature.feature_, l_assertion, l_written_class)
+			create l_dest.make_with_text (l_written_class, l_exception_recipient_feature.feature_, "not (" + l_assertion + ")", l_written_class)
+			create l_requirement.make (l_src, l_dest)
 
-			l_assertion := assertion_of_tag (l_exception_recipient_feature, context_failure.failure_message) -- cannot catch the precondition text properly
-			if not l_assertion.is_empty then
-				create l_src.make_with_text (l_written_class, l_exception_recipient_feature.feature_, l_assertion, l_written_class)
-				create l_dest.make_with_text (l_written_class, l_exception_recipient_feature.feature_, "not (" + l_assertion + ")", l_written_class)
-				create l_requirement.make (l_src, l_dest)
+			create l_state_change_assigner
+			l_state_change_assigner.generate_assignment (l_requirement)
+			l_assignment_operations := l_state_change_assigner.last_operation_texts
 
-				create l_state_change_assigner
-				l_state_change_assigner.generate_assignment (l_requirement)
-				l_assignment_operations := l_state_change_assigner.last_operation_texts
+			across l_assignment_operations as op loop
+				-- a_instructions -- how to localize the suspicious block
 
-				across l_assignment_operations as op loop
-					across a_instructions as inst loop
-						inst.item.ast.ast.append_text ("%N%T" + op.item, l_match_list) -- same line after the do keyword
-						l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
-						l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
-						create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
-						l_fix.set_fixed_feature_text (l_feature_text_with_fix)
-						fixes.force_last (l_fix)
-						l_match_list.remove_modifications
+				across a_instructions as inst loop
+						-- l_block_id := l_block_id + 1
+						-- print ("node: " + l_block_id.out + inst.item.debug_output + " breakpoint: " + inst.item.breakpoint_slot.out + "%N")
+					inst.item.ast.ast.append_text ("%N%T" + op.item, l_match_list) -- same line after the do keyword
 
-						across inst.item.children as c loop -- this assumes that the code does not have nested structure
-							across c.item as d loop
-								d.item.ast.ast.replace_text ("%N%T" + op.item, l_match_list) -- replace the instruction
-								l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
-								l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
-								create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
-								l_fix.set_fixed_feature_text (l_feature_text_with_fix)
-								fixes.force_last (l_fix)
-								l_match_list.remove_modifications
+						-- l_if.end_keyword.prepend_text (a_text: STRING_8, a_list: LEAF_AS_LIST)
+						-- l_if.compound.first.append_text ("-- Result := 0", l_match_list)
+					l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+					l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+					create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+					l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+					fixes.force_last (l_fix)
+					l_match_list.remove_modifications
 
-								d.item.ast.ast.append_text ("%N%T" + op.item, l_match_list) -- add a new instruction
-								l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
-								l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
-								create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
-								l_fix.set_fixed_feature_text (l_feature_text_with_fix)
-								fixes.force_last (l_fix)
+					across inst.item.children as c loop -- this assumes that the code does not have nested structure
+						across c.item as d loop
+							d.item.ast.ast.replace_text ("%N%T" + op.item, l_match_list) -- replace the instruction
+							l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+							l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+							create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+							l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+							fixes.force_last (l_fix)
+							l_match_list.remove_modifications
 
-								l_match_list.remove_modifications
-							end
+							d.item.ast.ast.append_text ("%N%T" + op.item, l_match_list) -- add a new instruction
+							l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
+							l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
+							create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
+							l_fix.set_fixed_feature_text (l_feature_text_with_fix)
+							fixes.force_last (l_fix)
+							l_match_list.remove_modifications
 						end
 					end
 				end
-
 			end
 
 			across a_instructions as inst loop
@@ -322,10 +394,7 @@ feature {NONE} -- Implementation
 							l_fix.set_fixed_feature_text (l_feature_text_with_fix)
 							fixes.force_last (l_fix)
 							l_match_list.remove_modifications
-						end
-
-						l_instruction.copy (d.item.ast.ast.text (l_match_list))
-						if l_instruction.has_substring ("-") then
+						elseif d.item.ast.ast.text (l_match_list).has_substring ("-") then
 							l_instruction.replace_substring_all ("-", "+")
 							d.item.ast.ast.replace_text (l_instruction, l_match_list)
 							l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
@@ -350,8 +419,16 @@ feature {NONE} -- Implementation
 			loop
 				if l_body_text_lines.item.has_substring ("if ") or l_body_text_lines.item.has_substring ("else ") then
 					l_block_id := l_block_id + 1
+						-- 2) Form an instruction that changes the state of the variables relevant to the violated assertion
+						-- what should be the requirement of state changes if we want to generate instructions randomly?
+						-- the req should contain the variable
+						-- can we obtain the violated assertion -- and passed it to the state change requirement
+						-- l_assignment_operations
+						-- 3) Replace the values of the assignment with common values/constants
+						-- 4) Remove/add a routine call, mutate the plus into minus
 					if l_suspicious_blocks.has (l_block_id) then
 							-- extend the suspicious block by adding a new assignment at the end of the block
+
 					end
 				end
 				l_feature_body_with_fix := l_feature_body_with_fix + l_body_text_lines.item.out
@@ -362,6 +439,7 @@ feature {NONE} -- Implementation
 			l_state_change_assigner.generate_assignment (a_requirement)
 			l_assignment_operations := l_state_change_assigner.last_operation_texts
 
+				-- if not (failing_condition) then original_instr end
 			l_if_instruction := "if not(" + a_condition.text + ") then%N"
 			l_first_as.prepend_text (l_if_instruction, l_match_list)
 			l_last_as.append_text ("%Nend%N", l_match_list)
@@ -376,31 +454,7 @@ feature {NONE} -- Implementation
 			if a_instructions.count = 1 then
 				l_instr := a_instructions.first
 
-					l_instruction := ""
-					l_instruction.copy (l_instr.ast.ast.text (l_match_list))
-					if l_instruction.has_substring ("+") then
-						l_instruction.replace_substring_all ("+", "-")
-						l_instr.ast.ast.replace_text (l_instruction, l_match_list)
-						l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
-						l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
-						create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
-						l_fix.set_fixed_feature_text (l_feature_text_with_fix)
-						fixes.force_last (l_fix)
-						l_match_list.remove_modifications
-					end
-
-					l_instruction.copy (l_instr.ast.ast.text (l_match_list))
-					if l_instruction.has_substring ("-") then
-						l_instruction.replace_substring_all ("-", "+")
-						l_instr.ast.ast.replace_text (l_instruction, l_match_list)
-						l_feature_body_with_fix := l_exception_recipient_feature.body_ast.text (l_match_list).twin
-						l_feature_text_with_fix := l_exception_recipient_feature.feature_as_ast.text (l_match_list).twin
-						create l_fix.make (l_exception_recipient_feature, a_target, l_feature_body_with_fix, {AFX_CODE_FIX_TO_FAULT}.Scheme_conditional_execute)
-						l_fix.set_fixed_feature_text (l_feature_text_with_fix)
-						fixes.force_last (l_fix)
-						l_match_list.remove_modifications
-					end
-
+					-- if failing_condi then fix_op end
 				from l_assignment_operations.start
 				until l_assignment_operations.after
 				loop
@@ -418,6 +472,7 @@ feature {NONE} -- Implementation
 					l_assignment_operations.forth
 				end
 
+					-- if failing_condi then fix_by_substitution else original_instru end
 				create l_state_change_substitutor
 				l_state_change_substitutor.perform (a_requirement, l_instr)
 				l_substitution_operations := l_state_change_substitutor.last_operation_texts
@@ -440,6 +495,7 @@ feature {NONE} -- Implementation
 				end
 			end
 
+				-- if failing_condition then fixing_operation else original_instr end
 			from l_assignment_operations.start
 			until l_assignment_operations.after
 			loop
@@ -553,6 +609,7 @@ feature {NONE} -- Implementation
 				l_class ?= a_fix.context_feature.written_class
 				l_feat := a_fix.context_feature.feature_
 				l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + a_fix.fixed_feature_text, False)
+					--l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + "move_item (v: G)%N do%N (create {DEVELOPER_EXCEPTION}).raise %N end%N", False)
 				Result := not l_data.byte_code.is_empty
 			end
 		rescue

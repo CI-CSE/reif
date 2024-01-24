@@ -284,23 +284,13 @@ feature {NONE} -- Printing console
 	print_result (a_result: E2B_RESULT)
 			-- Print results to output.
 		do
-			if options.is_full_coverage_test_generation_enabled then
-				start_timer
-				proof2test.generate_tests (options.init_states_of_counterexamples)
-				options.init_states_of_counterexamples.wipe_out
-				stop_timer
-				output_window.add ("Test generation finished. The generated test cases are in the file: " + proof2test.test_file_name + "%N")
-				if options.test_generation_count < 19 then
-					autoproof.verify
-					options.increase_test_generation_count
-				end
-			else
-				across a_result.verification_results as i loop
-					output_window.add ("======================================%N")
+			across a_result.verification_results as i loop
+				-- output_window.add ("======================================%N")
 
 				if attached {E2B_SUCCESSFUL_VERIFICATION} i as l_success then
-					print_successful_verification (l_success)
-
+					if not user_options.has ("-fix") then
+						print_successful_verification (l_success)
+					end
 				elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
 					print_failed_verification (l_failure)
 
@@ -320,8 +310,9 @@ feature {NONE} -- Printing console
 				elseif has_option ("-validate_fix") then
 				print_potential_fix
 				-- TODO Li: this is a hack to get the context class
+				output_window.add ("start reverification: " + timer.system_clock.time_now.out + "%N")
 				reverify_with_check_false_instrumented (a_result.verification_results.last.context_class)
-				end
+				output_window.add ("end reverification: " + timer.system_clock.time_now.out + "%N")
 			end
 		end
 		end
@@ -348,18 +339,24 @@ feature {NONE} -- Printing console
 		local
 			l_feature: E2B_FEATURE_I
 			l_match_list: LEAF_AS_LIST
+			l_fixes: STRING
 		do
+			l_fixes := ""
 			l_match_list := Match_list_server.item (a_class.class_id)
 
 			output_window.add (Msg_valid_proof_fix + "%N")
-
 			across options.valid_fixes as l_name loop
 				l_feature := a_class.feature_named (l_name)
-				output_window.add (l_feature.body.text(l_match_list))
+				l_fixes.copy (l_feature.body.text(l_match_list))
+				l_fixes.replace_substring_all ("check False end", "")
+				output_window.add (l_fixes)
 				output_window.add ("%N------------------------------------------------------------------------------------%N")
 			end
 			output_window.add ("%N")
 			output_window.add ("fixing end time: " + timer.system_clock.time_now.out + "%N")
+			output_window.add ("number of valid fixes: " + options.valid_fixes.count.out + "%N")
+			-- output_window.add ("fixing start time: " + options.fix_start_time.out + "%N")
+			-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
 		end
 
 	print_potential_fix

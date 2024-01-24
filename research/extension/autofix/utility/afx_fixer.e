@@ -139,8 +139,12 @@ feature -- Basic operation
 			l_written_class := session.feature_under_proof.written_class
 
 			across a_invariants as expr loop
-				create l_bool_aspect.make_boolean_relation (l_context_class, l_context_feature, l_written_class, expr.item, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_null)
-				Result.force (l_bool_aspect)
+				-- print ("invariant expr" + expr.item.text + "%N")
+				if not expr.item.text.has_substring ("passed_blocks") then
+					create l_bool_aspect.make_boolean_relation (l_context_class, l_context_feature, l_written_class, expr.item, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_null)
+					-- print ("l_bool_aspect: " + l_bool_aspect.text + "%N")
+					Result.force (l_bool_aspect)
+				end
 					-- create l_aspect_neg.make_boolean_relation (l_context_class, l_context_feature, l_written_class, expr, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_negation)
 					-- Result.force (l_bool_aspect_neg)
 			end
@@ -169,8 +173,10 @@ feature -- Basic operation
 			l_context_feature := session.feature_under_proof.feature_
 			l_written_class := session.feature_under_proof.written_class
 			across a_invariants as expr loop
-				create l_bool_aspect.make_boolean_relation (l_context_class, l_context_feature, l_written_class, expr.item, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_negation)
-				Result.force (l_bool_aspect)
+				if not expr.item.text.has_substring ("passed_blocks") then
+					create l_bool_aspect.make_boolean_relation (l_context_class, l_context_feature, l_written_class, expr.item, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_negation)
+					Result.force (l_bool_aspect)
+				end
 					-- create l_aspect_neg.make_boolean_relation (l_context_class, l_context_feature, l_written_class, expr, Void, {AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION}.Operator_boolean_negation)
 					-- Result.force (l_bool_aspect_neg)
 			end
@@ -208,10 +214,10 @@ feature -- Basic operation
 
 				create l_invariant_detecter
 				l_invariant_detecter.detect (session.config.is_proof_based_fixing, l_ce_traces_before_fixing.ce_traces)
-				print ("invariants size: " + l_invariant_detecter.invariants_from_ce_cell.item.count.out + "%N")
+				-- print ("invariants size: " + l_invariant_detecter.invariants_from_ce_cell.item.count.out + "%N")
 				l_res_invariants := derived_boolean_expressions_from_invariants (l_invariant_detecter.invariants_from_ce_cell.item.first.first.expressions)
 				-- TODO Li: try other states
-
+				print ("number of ce invariants: " + l_res_invariants.count.out + "%N")
 				create l_fixing_targets.make (0)
 				create l_candidate_fixes.make (0)
 
@@ -221,7 +227,7 @@ feature -- Basic operation
 				end
 
 				if config.is_fixing_implementation then
-					l_code_fixes := generate_implementation_fixes (l_fixing_targets)
+					l_code_fixes := generate_implementation_fixes_with_ce_invariants (l_fixing_targets, l_proof_failure)
 					l_candidate_fixes.append_last (l_code_fixes)
 				end
 
@@ -251,7 +257,6 @@ feature -- Basic operation
 					-- 	l_c_fixes.force_last (l_c_fix)
 					--end
 
-
 					-- if not l_contracts_to_remove.is_empty then
 					--	create l_c_fix.make (session.feature_under_proof, Void, Void, l_contracts_to_add, l_contracts_to_remove) -- remove old postconditions and add new implication clauses
 					--	l_c_fixes.force_last (l_c_fix)
@@ -259,7 +264,6 @@ feature -- Basic operation
 
 					-- sort_contract_fixes (l_contract_fixes)
 					-- fixes.append_last (l_contract_fixes)
-
 		end
 
 		test_based_fixing
@@ -502,6 +506,38 @@ feature {NONE} -- Implementation
 			end
 		end
 
+	generate_implementation_fixes_with_ce_invariants (a_fixing_target_list: DS_ARRAYED_LIST [AFX_FIXING_TARGET]; a_proof_failure: AFX_PROOF_FAILURE): DS_ARRAYED_LIST [AFX_CODE_FIX_TO_FAULT]
+	local
+		-- l_generator: AFX_RANDOM_BASED_FIX_GENERATOR
+		l_generator: AFX_CE_BASED_FIX_GENERATOR
+		l_fix_texts: DS_HASH_SET [STRING]
+		l_fixes: DS_ARRAYED_LIST [AFX_CODE_FIX_TO_FAULT]
+		l_fix_cursor: DS_ARRAYED_LIST_CURSOR [AFX_CODE_FIX_TO_FAULT]
+		l_fix: AFX_CODE_FIX_TO_FAULT
+		l_text: STRING
+	do
+		-- print ("AFX_FIXER.generate_implementation_fixes %N")
+		create Result.make_equal (1)
+		if session.should_continue then
+			progression_monitor.set_progression (progression_monitor.progression_fix_generation_start)
+
+				-- Generation
+			create l_generator
+			l_generator.set_fixing_target_list (a_fixing_target_list)
+			l_generator.set_proof_failure (a_proof_failure)
+			l_generator.generate
+
+			Result := l_generator.fixes
+
+			across l_generator.fixes as f loop
+				-- print ("fix: " + f.item.fixed_feature_text + "%N")
+			end
+
+			event_actions.notify_on_implementation_fix_generation_finished (Result)
+			progression_monitor.set_progression (progression_monitor.progression_fix_generation_end)
+		end
+	end
+
 	generate_implementation_fixes (a_fixing_target_list: DS_ARRAYED_LIST [AFX_FIXING_TARGET]): DS_ARRAYED_LIST [AFX_CODE_FIX_TO_FAULT]
 			-- <Precursor>
 		local
@@ -560,11 +596,11 @@ feature {NONE} -- Implementation
 
 					Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
 
-					if a_proof_failure.exception_code = {EXCEP_CONST}.postcondition or a_proof_failure.exception_code = {EXCEP_CONST}.class_invariant then
-						l_feature_index := l_feature_index + 1
-						l_text := l_feature_contract_modifier.feature_text_with_weakened_postcondition (c.item, a_proof_failure.failure_message, l_feature_index)
-						Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
-					end
+--					if a_proof_failure.exception_code = {EXCEP_CONST}.postcondition or a_proof_failure.exception_code = {EXCEP_CONST}.class_invariant then
+--						l_feature_index := l_feature_index + 1
+--						l_text := l_feature_contract_modifier.feature_text_with_weakened_postcondition (c.item, a_proof_failure.failure_message, l_feature_index)
+--						Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
+--					end
 		 		-- l_feature_contract_modifier.modify_contracts_for_feature (session.feature_under_proof, a_contracts, a_proof_failure.failure_message)
 				-- make (a_feature: AFX_FEATURE_TO_MONITOR; a_fixing_target: like fixing_target; a_fixed_body_text: STRING; a_scheme_type: INTEGER)
 				end
@@ -579,6 +615,7 @@ feature {NONE} -- Implementation
 		local
 			l_validator: AFX_PROOF_BASED_FIX_VALIDATOR
 		do
+			print ("number of candidate fixes: " + l_fixes.count.out + "%N")
 			create Result.make_equal (1)
 			if session.should_continue then
 				create l_validator.make (a_trace_repository, l_fixes)

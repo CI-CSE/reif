@@ -59,6 +59,7 @@ feature -- Basic operation
 			l_body_ast: BODY_AS
 			l_feature_name_for_fix: STRING
 		do
+			-- print ("AFX_FIX_INSTRUMENTOR.instrument%N")
 			l_feature_to_fix := feature_to_fix
 			l_written_class := l_feature_to_fix.written_class
 			l_match_list := match_list_server.item (l_written_class.class_id)
@@ -89,6 +90,7 @@ feature -- Basic operation
 			l_match_list.remove_modifications
 				-- Store the new class into 'override'.
 			store_override_class (l_written_class.name, l_new_class_text)
+
 		end
 
 	uninstrument

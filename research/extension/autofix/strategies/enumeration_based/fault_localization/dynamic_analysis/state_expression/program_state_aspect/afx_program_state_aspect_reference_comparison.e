@@ -78,6 +78,7 @@ feature -- Basic operation
 			l_increase_list, l_decrease_list, l_equal_list: DS_ARRAYED_LIST [TUPLE[target, relative: EPA_EXPRESSION]]
 			l_target, l_relative: EPA_EXPRESSION
 		do
+			print ("AFX_PROGRAM_STATE_ASPECT_REFERENCE_COMPARISON.derived_change_requirements%N")
 			create Result.make (16)
 		end
 

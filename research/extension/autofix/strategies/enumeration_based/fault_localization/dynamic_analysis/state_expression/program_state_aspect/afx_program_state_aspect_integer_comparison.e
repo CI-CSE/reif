@@ -83,8 +83,11 @@ feature -- Basic operation
 			l_increase_list, l_decrease_list, l_equal_list: DS_ARRAYED_LIST [TUPLE[target, relative: EPA_EXPRESSION]]
 			l_target, l_relative: EPA_EXPRESSION
 		do
+			print ("AFX_PROGRAM_STATE_ASPECT_INTEGER_COMPARISON.derived_change_requirements%N")
 			l_left := left_operand
 			l_right := right_operand
+
+			print ("kkk" + l_left.text + " " + l_right.text + "%N")
 			create l_requirements.make
 			create Result.make (16)
 
@@ -128,6 +131,7 @@ feature -- Basic operation
 					Result.force_last (create {AFX_STATE_CHANGE_REQUIREMENT}.make(l_target, l_new_expr))
 					create l_new_expr.make_with_text (l_target.class_, l_target.feature_, l_relative.text + " + 1", l_target.written_class)
 					Result.force_last (create {AFX_STATE_CHANGE_REQUIREMENT}.make(l_target, l_new_expr))
+					print ("kkk0" + l_target.text + " " + l_new_expr.text + "%N")
 				end
 
 				l_increase_list.forth
@@ -144,6 +148,7 @@ feature -- Basic operation
 					Result.force_last (create {AFX_STATE_CHANGE_REQUIREMENT}.make(l_target, l_new_expr))
 					create l_new_expr.make_with_text (l_target.class_, l_target.feature_, l_relative.text + " - 1", l_target.written_class)
 					Result.force_last (create {AFX_STATE_CHANGE_REQUIREMENT}.make(l_target, l_new_expr))
+					print ("kkk1" + l_target.text + " " + l_new_expr.text + "%N")
 				end
 
 				l_decrease_list.forth
@@ -158,6 +163,7 @@ feature -- Basic operation
 				if not l_target.is_constant then
 					create l_new_expr.make_with_text (l_target.class_, l_target.feature_, l_relative.text, l_target.written_class)
 					Result.force_last (create {AFX_STATE_CHANGE_REQUIREMENT}.make(l_target, l_new_expr))
+					print ("kkk2" + l_target.text + " " + l_new_expr.text + "%N")
 				end
 
 				l_equal_list.forth
