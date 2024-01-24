@@ -55,6 +55,7 @@ feature -- Basic operation
 	derived_change_requirements: DS_ARRAYED_LIST [AFX_STATE_CHANGE_REQUIREMENT]
 			-- <Precursor>
 		do
+			print ("AFX_PROGRAM_STATE_ASPECT_VOID_CHECK.derived_change_requirements%N")
 			Result := change_requirements_for_one_boolean_expression (Current)
 		end
 

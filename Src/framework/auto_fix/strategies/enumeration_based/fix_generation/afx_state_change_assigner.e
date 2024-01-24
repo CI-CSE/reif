@@ -47,12 +47,15 @@ feature -- Basic operation
 			l_target: EPA_EXPRESSION
 			l_operations: EPA_HASH_SET [STRING]
 		do
+			-- print ("state change req: " + a_requirement.src_expr.text + " " + a_requirement.dest_expr.text + "%N")
 			l_src := a_requirement.src_expr
 			l_dest := a_requirement.dest_expr
 
 			target_object_detector.detect_target_objects_for_fixing (l_src)
 			fixme ("Cache the target objects for expressions")
+
 			l_immediate_target_objects := target_object_detector.immediate_target_objects
+
 			if l_immediate_target_objects.has (l_src) then
 					-- We can directly assign to the source expression.
 				last_operation_texts.force_last (l_src.text + " := " + l_dest.text)
@@ -72,6 +75,7 @@ feature -- Basic operation
 					elseif l_target.type.is_reference and then l_target.type.name.as_upper /~ "STRING_8" and then l_target.type.name.as_upper /~ "STRING_32" then
 						l_operations := generate_for_reference (l_target)
 					end
+					-- print ("l_operations: " + l_operations.count.out + "%N")
 					if l_operations /= Void then
 						last_operation_texts.append_last (l_operations)
 					end
@@ -87,12 +91,22 @@ feature -- Basic operation
 			l_op: AFX_FIXING_OPERATION_ON_INTEGER
 		do
 			l_text := a_integer_expr.text
-			create Result.make_equal (5)
+			create Result.make_equal (6)
+			Result.force_last (l_text + " := -" + l_text) -- mutate the signs of the variables in the integer expression
 			Result.force_last (l_text + " := " + l_text + " + 1")
 			Result.force_last (l_text + " := " + l_text + " - 1")
 			Result.force_last (l_text + " := " + "0")
 			Result.force_last (l_text + " := " + "1")
 			Result.force_last (l_text + " := " + "-1")
+
+--			l_rep := ""
+--			l_rep.copy (l_text)
+--			l_rep.replace_substring_all ("+", "-")
+--			Result.force_last (l_text + " := " + l_rep)
+
+--			l_rep.copy (l_text)
+--			l_rep.replace_substring_all ("-", "+")
+--			Result.force_last (l_text + " := " + l_rep)
 		end
 
 	generate_for_boolean (a_boolean_expr: EPA_EXPRESSION): EPA_HASH_SET [STRING]

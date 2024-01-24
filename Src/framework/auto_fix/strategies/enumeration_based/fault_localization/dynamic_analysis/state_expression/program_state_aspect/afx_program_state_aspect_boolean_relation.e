@@ -81,6 +81,7 @@ feature -- Basic operation
 			l_requirements: DS_LINKED_LIST[TUPLE[expr1: EPA_AST_EXPRESSION; expr2: EPA_AST_EXPRESSION]]
 			l_new_expr: EPA_AST_EXPRESSION
 		do
+			-- print ("AFX_PROGRAM_STATE_ASPECT_BOOLEAN_RELATION.derived_change_requirements%N")
 				-- For the moment, the boolean expression takes the form of either an expression, or the negation of an expression.
 			Result := change_requirements_for_one_boolean_expression (Current)
 		end

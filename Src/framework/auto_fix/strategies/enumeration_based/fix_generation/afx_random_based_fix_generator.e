@@ -57,6 +57,7 @@ feature -- Basic operations
 			l_fixing_targets := fixing_target_list
 			l_max_target := config.max_fixing_target.to_integer_32
 			l_max_fix := config.max_fix_candidate.to_integer_32
+
 			from
 				l_ranking_cursor := l_fixing_targets.new_cursor
 				l_ranking_cursor.start
@@ -68,7 +69,7 @@ feature -- Basic operations
 				or else not session.should_continue
 			loop
 				l_target := l_ranking_cursor.item
-
+				
 				generate_fixes_for_target (l_target)
 
 				l_count := l_count + 1
@@ -112,7 +113,6 @@ feature {NONE} -- Implementation
 						l_match_list := a_target.context_class.match_list_server.item (a_target.context_class.class_id)
 						-- extend the existing instructions in the current feature into the set of input instructions
 						generate_one_fix (a_target, l_condition, l_requirement, l_instructions)
-
 
 						l_relevant_asts.forth
 					end
@@ -158,6 +158,11 @@ feature {NONE} -- Implementation
 			create l_state_change_assigner
 			l_state_change_assigner.generate_assignment (a_requirement)
 			l_assignment_operations := l_state_change_assigner.last_operation_texts
+
+			print ("assignments: " + "%N")
+			across l_assignment_operations as op loop
+				print (op.item.out + "%N")
+			end
 
 				-- if not (failing_condition) then original_instr end
 			l_if_instruction := "if not(" + a_condition.text + ") then%N"
@@ -242,6 +247,7 @@ feature {NONE} -- Implementation
 			target_attached: a_target /= Void
 		do
 			if attached {AFX_PROGRAM_STATE_ASPECT} a_target.expression as lv_aspect then
+				print ("lv_aspect: " + lv_aspect.text + "%N")
 				Result := lv_aspect.derived_change_requirements
 			else
 				create Result.make_default

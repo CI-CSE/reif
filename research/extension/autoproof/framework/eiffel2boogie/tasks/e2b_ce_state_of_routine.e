@@ -123,9 +123,13 @@ feature -- Get initial state
 			if heap_value ~ ce.heap_values.iteration_item (ce.heap_values.count - 1) and not ce.passed_blocks_values.is_empty then
 				across ce.constants_values.current_keys as k loop
 					if k.same_string ("passed_blocks") then
-						-- TODO Li: recover state_values.extend (ce.constants_values [k], "(Current).passed_blocks")
+						state_values.extend (ce.constants_values [k], "(Current).passed_blocks")
 					end
 				end
+			end
+
+			across state_values.current_keys as k loop
+				-- print ("state value: " + k + " -> " + state_values [k] + "%N")
 			end
 
 		end
