@@ -577,6 +577,7 @@
 					<platform value="windows"/>
 				</condition>
 			</file_rule>
+			<visible class="ES_ADB_TOOL" feature="default_create"/>
 			<visible class="ES_BREAKPOINTS_TOOL" feature="default_create"/>
 			<visible class="ES_CLOUD_ACCOUNT_TOOL" feature="default_create"/>
 			<visible class="ES_CONSOLE_TOOL" feature="default_create"/>
