@@ -960,43 +960,43 @@ feature {NONE} -- Constants
 	successful_color: EV_COLOR
 			-- Background color for successful rows
 		once
-			create Result.make_with_rgb (0.8, 1.0, 0.8)
+			Result := preferences.error_list_tool_data.success_background
 		end
 
 	failed_color: EV_COLOR
 			-- Background color for failed rows
 		once
-			create Result.make_with_rgb (1.0, 0.7, 0.7)
+			Result := preferences.error_list_tool_data.error_background
 		end
 
 	even_failed_sub_color: EV_COLOR
 			-- Background color for failed even rows
 		once
-			create Result.make_with_rgb (1.0, 0.9, 0.9)
+			Result := preferences.error_list_tool_data.error_background
 		end
 
 	odd_failed_sub_color: EV_COLOR
 			-- Background color for failed odd rows
 		once
-			create Result.make_with_rgb (1.0, 0.8, 0.8)
+			Result := preferences.error_list_tool_data.error_background
 		end
 
 	partial_color: EV_COLOR
 			-- Background color for partial success
 		once
-			create Result.make_with_rgb (0.8, 0.9, 1.0)
+			Result := preferences.error_list_tool_data.hint_background
 		end
 
 	error_color: EV_COLOR
 			-- Background color for error rows
 		once
-			create Result.make_with_rgb (1.0, 1.0, 0.4)
+			Result := preferences.error_list_tool_data.warning_background
 		end
 
 	sc_failed_color: EV_COLOR
 			-- Background color for error rows related to
 		once
-			create Result.make_with_rgb (1.0, 1.0, 0.3)
+			Result := preferences.error_list_tool_data.warning_background
 		end
 
 note
