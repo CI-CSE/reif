@@ -27,63 +27,10 @@ Please follow these guidelines when submitting code.
 ## General rules:
 - 🚫 Don't push on main
 	1. 🌿 Create a branch
-	2. ↩️ Make a merge request
+	2. ↩️ Make a pull request
 - 📏Branches follow a naming convention
 - 📜Merging is done by a [protocol](#Merging)
 
-## Branches
-### Naming:
-$\{Category\}-\{Name\}$</br>
-where</br>
-$Category \in \{Fix, Exp, Feat, Ref\}$</br>
-$Name$ is free-text
-
-### Fix 🪲
-A branch trying to **fix** a problem in the code.
-- It does not change the behavior of the rest of the code.
-### Ref 🔀
-A branch **refactoring** parts of the code.
-- don't change the behavior of the code.
-	- Functional tests should behave the same before and after
-	- Clients of the libraries should not notice a change
-- reorganize some code
-- add comments
-- fuse or split {classes, functions, procedures, attributes}
-- improve performance
-### Feat ✨
-A branch introducing a new **feature**.
-- Functionality which was not present before is now present.
-### Exp 🧪
-A branch introducing a new **experimental** feature which is characterized by the follwoing:
-- Functionality which was not present before is now present.
-- You don't have time or are willing to comply to the code quality standards.
-- You don't put thought into how to integrate the features meaningfully in the code base.
-
-## Commits
-🚀 Commits can almost always be improved. </br>
-😇🪽 Try to reach the highest stage described in the following.</br>
-☝️ Stage 0 is mandatory.
-### Stage 0
-- Nice language (repos might get public at some point)
-	- 🚫 No cursing
-	- 🚫 No insults
-### Stage 1
-- Commit messages are meaningful: 
-  - 🚫 no: "fix", "debug", ".", "refactor"
-  - ✅ "split feature `do_everything` into `aggregate`, `transform`, `output`"
-  - ✅ "fix typo in contract in class `MML_SEQUENCE`"
-### Stage 2
-- Commit size is appropriate.
-	- 🚫 Don't put all 1000 LOC in one commit.
-### Stage 3
-There is no stage 3. Don't be fancy.
-## Code Quality
-In general: 
-> _Leave the code you touched nicer then you have seen it._
-
-The following are hard requirements from now on to get a branch merged into main. </br>
-⚠️ Therefore are mandatory for the branches of type Fix🪲, Feat✨, Ref🔀.</br>
-➡️ They are encouraged for branches of type Exp 🧪 if it should be merged in the future.
 
 ### Requirements
 1. No dead code🧟
@@ -113,20 +60,74 @@ These rules are heavily inspired from the [stackoverflow.blog](https://stackover
 8. Include links to external references where they will be most helpful.
 9. Add comments when doing workarounds.
 10. Use comments to mark incomplete implementations.
+
+## Pull Requests [PR]
+### Naming:
+$\{Category\}-\{Name\}$</br>
+where</br>
+$Category \in \{Fix, Exp, Feat, Ref\}$</br>
+$Name$ is free-text
+
+### Fix 🪲
+PR **fixing** a problem in the code.
+- It does not change the behavior of the rest of the code.
+### Ref 🔀
+PR **refactoring** parts of the code.
+- don't change the behavior of the code.
+	- Functional tests should behave the same before and after
+	- Clients of the libraries should not notice a change
+- reorganize some code
+- add comments
+- fuse or split {classes, functions, procedures, attributes}
+- improve performance
+### Feat ✨
+PR introducing a new **feature**.
+- Functionality which was not present before is now present.
+### Exp 🧪
+PR introducing a new **experimental** feature which is characterized by the follwoing:
+- Functionality which was not present before is now present.
+- You don't have time or are willing to comply to the code quality standards.
+- You don't put thought into how to integrate the features meaningfully in the code base.
+
+## Commits
+🚀 Commits can almost always be improved. </br>
+😇🪽 Try to reach the highest stage described in the following.</br>
+☝️ Stage 0 is mandatory.
+### Stage 0
+- Nice language (repos might get public at some point)
+	- 🚫 No cursing
+	- 🚫 No insults
+### Stage 1
+- Commit messages are meaningful: 
+  - 🚫 no: "fix", "debug", ".", "refactor"
+  - ✅ "split feature `do_everything` into `aggregate`, `transform`, `output`"
+  - ✅ "fix typo in contract in class `MML_SEQUENCE`"
+### Stage 2
+- Commit size is appropriate.
+	- 🚫 Don't put all 1000 LOC in one commit.
+### Stage 3
+There is no stage 3. Don't be fancy.
+## Code Quality
+In general: 
+> _Leave the code you touched nicer then you have seen it._
+
+The following are hard requirements from now on to get a branch merged into main. </br>
+⚠️ Therefore are mandatory for the PR of type Fix🪲, Feat✨, Ref🔀.</br>
+➡️ They are encouraged for branches of type Exp 🧪 if it should be merged in the future.
+
 ## Merging
 ### Merge Conflicts
 Merge conflicts are bound to happen.</br>
 They should be resolved on the merging branch and not the target. (rebase main into your branch to resolve merge conflicts)
 ### Merge Review
-MR := "Merge Request"
 
-| Type of MR | Number of approvals |
+| Type of PR | Number of approvals |
 | ---- | ---- |
 | Fix 🪲 | 1 |
 | Ref 🔀, Feat ✨ | 2 |
-| External MR, Exp 🧪 | 3 |
+| External PR, Exp 🧪 | 3 |
 
 #### Reviewer duties
 The reviewer ...</br>
 ... checks a MR for [code quality](#Requirements).</br>
-... does a smoke test of the branch
+... does a smoke test of the branch (Checks if the code runs and the features are callable)
