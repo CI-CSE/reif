@@ -330,13 +330,6 @@ feature -- Translation: Signature
 			l_pre.set_free
 			current_boogie_procedure.add_contract (l_pre)
 
-				-- Unless class or feature are marked with "manual_inv", bring in the invariants of all wrapped objects
-			if not current_feature.is_manual_inv and not current_type.base_class.is_manual_inv then
-				create l_pre.make (factory.function_call ("global_permissive", <<>>, types.bool))
-				l_pre.set_free
-				current_boogie_procedure.add_contract (l_pre)
-			end
-
 				-- Only add postconditions and frame properties if the procedure modifies heap
 			if a_modifies_heap then
 				create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
@@ -357,11 +350,6 @@ feature -- Translation: Signature
 					-- TODO: should default precondtions be enabled for lemmas?
 				create l_mapping.make
 				l_mapping.set_current (current_boogie_procedure.arguments.first.entity)
-				if not current_boogie_procedure.is_full_coverage_tests_enabled then
-					across ownership_default (a_for_creator, l_mapping) as i loop
-						current_boogie_procedure.add_contract (i)
-					end
-				end
 			end
 		end
 
@@ -384,13 +372,6 @@ feature -- Translation: Signature
 			l_pre.node_info.set_type ("pre")
 			l_pre.node_info.set_tag ("frame_writable")
 			Result.extend (l_pre)
-
-				-- Free precondition: Everything in the domains of writable objects is writable
-			if not current_feature.is_setter then
-				create l_pre.make (factory.function_call ("closed_under_domains", <<factory.global_writable, factory.global_heap>>, types.bool))
-				l_pre.set_free
-				Result.extend (l_pre)
-			end
 
 				-- Free postcondition: Only writes set has changed
 			create l_post.make (factory.writes_routine_frame (current_feature, current_type, current_boogie_procedure))
@@ -424,91 +405,6 @@ feature -- Translation: Signature
 			Result.extend (l_pre)
 
 			translation_pool.add_read_frame_function (current_feature, current_type)
-		end
-
-	ownership_default (a_for_creator: BOOLEAN; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_CONTRACT]
-			-- Default ownership contracts.
-		local
-			l_pre: IV_PRECONDITION
-			l_post: IV_POSTCONDITION
-			l_written_feature: E2B_FEATURE_I
-		do
-			create Result.make
-
-				-- Features marked with "explicit: contracts" do not get any defaults
-			if not current_feature.is_explicit ("contracts") then
-				if current_feature.has_functional_representation then -- Pure functions
-					if current_feature.is_public and not current_feature.is_functional then
-							-- Public features with functional representation (unless they are functional)
-						create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-						l_pre.node_info.set_type ("pre")
-						l_pre.node_info.set_tag ("default_is_closed")
-						l_pre.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_pre)
-
-						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
-						across arguments_of_current_feature as i loop
-							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
-								create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
-								l_pre.node_info.set_type ("pre")
-								l_pre.node_info.set_tag ("arg_" + i.name + "_is_closed")
-								l_pre.node_info.set_attribute ("default", "contracts")
-								Result.extend (l_pre)
-							end
-						end
-					end
-				else -- Procedures and impure function
-					if a_mapping.current_expression.type ~ types.ref then
-						if a_for_creator then
-							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_post.node_info.set_type ("post")
-							l_post.node_info.set_tag ("default_is_wrapped")
-							l_post.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_post)
-						elseif current_feature.is_public then
-							create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_pre.node_info.set_type ("pre")
-							l_pre.node_info.set_tag ("default_is_wrapped")
-							l_pre.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_pre)
-							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_post.node_info.set_type ("post")
-							l_post.node_info.set_tag ("default_is_wrapped")
-							l_post.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_post)
-						elseif current_feature.is_private then
-							create l_pre.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_pre.node_info.set_type ("pre")
-							l_pre.node_info.set_tag ("default_is_open")
-							l_pre.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_pre)
-
-							create l_post.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_post.node_info.set_type ("post")
-							l_post.node_info.set_tag ("default_is_open")
-							l_post.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_post)
-						end
-					end
-					if a_for_creator or current_feature.is_public then
-						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
-						across arguments_of_current_feature as i loop
-							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
-								create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
-								l_pre.node_info.set_type ("pre")
-								l_pre.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
-								l_pre.node_info.set_attribute ("default", "contracts")
-								Result.extend (l_pre)
-								create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
-								l_post.node_info.set_type ("post")
-								l_post.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
-								l_post.node_info.set_attribute ("default", "contracts")
-								Result.extend (l_post)
-							end
-						end
-					end
-				end
-			end
 		end
 
 	add_agent_modifies
@@ -594,9 +490,7 @@ feature -- Translation: Implementation
 			l_translator: E2B_INSTRUCTION_TRANSLATOR
 			l_type: E2B_CL_TYPE_A
 			l_proc_name: READABLE_STRING_8
-			l_call: IV_PROCEDURE_CALL
 			l_ownership_handler: E2B_CUSTOM_OWNERSHIP_HANDLER
-			l_feature: E2B_FEATURE_I
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 			l_builtin_collector: E2B_BUILTIN_CALLS_COLLECTOR
 			l_loc: IV_ENTITY
@@ -642,31 +536,6 @@ feature -- Translation: Implementation
 			l_expr_translator.set_context (a_feature, a_type)
 			l_expr_translator.set_context_implementation (l_implementation)
 
-				-- OWNERSHIP: start of routine body
-			if options.is_ownership_enabled then
-					-- Public procedures unwrap Current in the beginning, unless lemma or marked with explicit wrapping
-				if not a_for_creator and current_feature.is_public and not a_feature.has_return_value and
-					not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
-					create l_feature.make (system.any_type.base_class.feature_named ("unwrap"))
-					l_expr_translator.set_context_line_number (a_feature.body.start_location.line)
-
-					l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
-					l_implementation.body.statements.append (l_expr_translator.side_effect)
-					l_expr_translator.side_effect.wipe_out
-
-					l_call := factory.procedure_call ("unwrap", <<factory.std_current>>)
-					l_call.node_info.set_attribute ("default", "wrapping")
-					l_call.node_info.set_attribute ("cid", system.any_id.out)
-					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
-					l_call.node_info.set_line (a_feature.body.start_location.line)
-					l_implementation.body.add_statement (l_call)
-
-					l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
-					l_implementation.body.statements.append (l_expr_translator.side_effect)
-					l_expr_translator.side_effect.wipe_out
-				end
-			end
-
 				-- Process statements (byte node tree)
 			current_feature.set_up_byte_context (current_type)
 			if attached Context.byte_code as l_byte_code then
@@ -696,31 +565,6 @@ feature -- Translation: Implementation
 						if l_builtin_collector.is_inv_unfriendly then
 							e2b_error.add_semantic_error (a_feature, messages.invalid_call_in_friendly_function, -1)
 						end
-					end
-				end
-			end
-
-				-- OWNERSHIP: end of routine body
-			if options.is_ownership_enabled then
-				if not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
-					if a_for_creator or current_feature.is_public and not a_feature.has_return_value then
-						create l_feature.make (system.any_type.base_class.feature_named ("wrap"))
-						l_expr_translator.set_context_line_number (a_feature.body.end_location.line)
-
-						l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
-						l_implementation.body.statements.append (l_expr_translator.side_effect)
-						l_expr_translator.side_effect.wipe_out
-
-						l_call := factory.procedure_call ("wrap", <<factory.std_current>>)
-						l_call.node_info.set_attribute ("default", "wrapping")
-						l_call.node_info.set_attribute ("cid", system.any_id.out)
-						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
-						l_call.node_info.set_line (a_feature.body.end_location.line)
-						l_implementation.body.add_statement (l_call)
-
-						l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
-						l_implementation.body.statements.append (l_expr_translator.side_effect)
-						l_expr_translator.side_effect.wipe_out
 					end
 				end
 			end
@@ -871,11 +715,6 @@ feature -- Translation: Functions
 			end
 				-- Body
 			l_body := pre_post_expressions_of (a_feature, a_type, l_mapping).pre
-			if not l_is_logical then
-				across ownership_default (False, l_mapping) as defs loop
-					l_body := factory.and_clean (l_body, defs.expression)
-				end
-			end
 			l_pre_function.set_body (l_body)
 --			l_free_pre_function.set_body (l_free_body)
 			boogie_universe.add_declaration (l_pre_function)
@@ -1285,10 +1124,6 @@ feature -- Translation: agents
 			create l_binop1.make (l_typeof, "<:", l_type_value, types.bool)
 
 			l_post := l_contracts.post
-			across ownership_default (False, l_mapping) as defs loop
-				l_post := factory.and_clean (l_post, defs.expression)
-			end
-
 			create l_binop2.make (l_fcall, "==>", l_post, types.bool)
 			create l_binop3.make (l_binop1, "==>", l_binop2, types.bool)
 

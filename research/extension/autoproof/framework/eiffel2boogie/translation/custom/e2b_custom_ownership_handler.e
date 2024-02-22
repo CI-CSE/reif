@@ -270,71 +270,12 @@ feature -- Basic operations
 
 	pre_builtin_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I)
 			-- Insert code before calling a built-in procedure `a_feature_name'.
-		local
-			l_type_translator: E2B_TYPE_TRANSLATOR
-			l_check: IV_EXPRESSION
 		do
-				-- If processing a call to `wrap',
-				-- generate appropriate guarded assignments to implicit model queries and an invariant check
-			if a_feature.feature_name ~ "wrap" then
-				if use_static_invariant (a_translator) then
-						-- Check exact invariant definition.
-					create l_type_translator
-					l_type_translator.translate_inline_invariant_check (a_translator.current_target_type, a_translator.current_target)
-
-					across a_translator.current_target_type.base_class.ghost_attributes as a loop
-						set_implicit_ghost (a_translator, a)
-					end
-
-					across l_type_translator.last_clauses as c loop
-						c.node_info.set_line (a_translator.context_line_number)
-						c.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
-						c.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
-						if options.is_inv_check_independent then
-							a_translator.add_independent_check (c)
-						else
-							a_translator.side_effect.extend (c)
-						end
-					end
-				else
-						-- Use dynamically bound invariant function.
-					l_check := factory.function_call ("user_inv", << a_translator.entity_mapping.heap, a_translator.current_target >>, types.bool)
-					a_translator.add_safety_check (l_check, "inv", "unknown_invariant", a_translator.context_line_number)
-					a_translator.last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
-					a_translator.last_safety_check.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
-				end
-			end
 		end
 
 	post_builtin_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I)
 			-- Insert code after calling a built-in procedure `a_feature_name'.
-		local
-			l_assume: IV_ASSERT
 		do
-				-- If processing a call to `unwrap',
-				-- assume either generic `user_inv' or class-specific invariant function, depending if the target is `Current'.
-			if a_feature.feature_name ~ "unwrap" then
-				if use_static_invariant (a_translator) then
-						-- Use exact invariant definition.
-					create l_assume.make_assume (
-						factory.function_call (name_translator.boogie_function_for_invariant (a_translator.current_target_type),
-						<< a_translator.entity_mapping.heap, a_translator.current_target >>,
-						types.bool))
-					a_translator.side_effect.extend (l_assume)
-				else
-						-- Use dynamically bound invariant function.
-					create l_assume.make_assume (
-						factory.function_call ("user_inv",
-						<< a_translator.entity_mapping.heap, a_translator.current_target >>,
-						types.bool))
-					a_translator.side_effect.extend (l_assume)
-					if not a_translator.context_feature.is_manual_inv
-						and not a_translator.context_type.base_class.is_manual_inv then
-						create l_assume.make_assume (factory.function_call ("inv_frame_trigger", << a_translator.current_target >>, types.bool))
-						a_translator.side_effect.extend (l_assume)
-					end
-				end
-			end
 		end
 
 	use_static_invariant (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR): BOOLEAN

@@ -135,9 +135,6 @@ function {:inline true} global(h: HeapType): bool
   h[Void, allocated]
 }
 
-// Condition under which an update heap[current, f] := v is guaranteed to preserve the invariant of o.
-function guard<T>(heap: HeapType, current: ref, f: Field T, v: T, o: ref): bool;
-
 // ----------------------------------------------------------------------
 // Built-in operations
 

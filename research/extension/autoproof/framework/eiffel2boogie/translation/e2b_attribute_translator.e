@@ -222,35 +222,7 @@ feature {NONE} -- Implementation
 			-- Update guard definition encoded by `a_guard_string' coming from `a_origin_class'.
 		require
 			non_empty: not a_guard_string.is_empty
-		local
-			l_guard_feature: E2B_FEATURE_I
-			l_fname: READABLE_STRING_8
 		do
-			if a_guard_string.is_case_insensitive_equal ("true") then
-					-- The guard is trivially true
-				Result := factory.true_
-			elseif a_guard_string.is_case_insensitive_equal ("false") then
-					-- The guard is trivially false
-				Result := factory.false_
-			elseif a_guard_string.is_case_insensitive_equal ("inv") then
-					-- The guard is the preservation of the invariant of observers
-				Result := factory.implies_ (
-						factory.function_call ("user_inv", <<a_h, a_o>>, types.bool),
-						factory.function_call ("user_inv", <<factory.map_update (a_h, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<<a_cur, a_f>>), a_v), a_o>>, types.bool))
-			else
-				l_guard_feature := a_origin_class.feature_named (a_guard_string)
-				if is_valid_guard_feature (a_guard_string, l_guard_feature, a_attr_type, a_origin_class) then
-					translation_pool.add_referenced_feature (l_guard_feature, current_type)
-						-- Generate guard definition from `l_guard_feature'
-					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type, False)
-					if l_guard_feature.has_flat_precondition then
-						Result := factory.function_call (name_translator.boogie_function_precondition (l_fname), <<a_h, a_cur, a_v, a_o>>, types.bool)
-					else
-						Result := factory.true_
-					end
-					Result := factory.and_clean (Result, factory.function_call (l_fname, <<a_h, a_cur, a_v, a_o>>, types.bool))
-				end
-			end
 		end
 
 	is_valid_guard_feature (a_guard_name: READABLE_STRING_8; a_guard_feature: E2B_FEATURE_I; a_attr_type: E2B_CL_TYPE_A; guard_feature_class: E2B_CLASS_C): BOOLEAN

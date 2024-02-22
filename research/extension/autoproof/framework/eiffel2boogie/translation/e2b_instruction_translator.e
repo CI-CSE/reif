@@ -1314,8 +1314,6 @@ feature {NONE} -- Loop processing
 				add_statement (create {IV_HAVOC}.make (l_writable.name))
 				create l_assume.make_assume (factory.function_call ("Frame#Subset", <<l_frame, l_writable>>, types.bool))
 				add_statement (l_assume)
-				create l_assume.make_assume (factory.function_call ("closed_under_domains", <<l_writable, factory.global_heap>>, types.bool))
-				add_statement (l_assume)
 			end
 			Result := [l_frame, l_writable]
 		ensure
