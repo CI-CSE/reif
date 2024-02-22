@@ -131,3 +131,5 @@ They should be resolved on the merging branch and not the target. (rebase main i
 The reviewer ...</br>
 ... checks a MR for [code quality](#Requirements).</br>
 ... does a smoke test of the branch (Checks if the code runs and the features are callable)
+### External PR
+#### TODO: When external contribute we need to make them transfer copy right to us.
