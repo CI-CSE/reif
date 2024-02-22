@@ -25,7 +25,7 @@ of running tests.
 Please follow these guidelines when submitting code.
 
 ## General rules:
-- 🚫 Don't push on main/master
+- 🚫 Don't push on main
 	1. 🌿 Create a branch
 	2. ↩️ Make a merge request
 - 📏Branches follow a naming convention
@@ -81,7 +81,7 @@ There is no stage 3. Don't be fancy.
 In general: 
 > _Leave the code you touched nicer then you have seen it._
 
-The following are hard requirements from now on to get a branch merged into main/master. </br>
+The following are hard requirements from now on to get a branch merged into main. </br>
 ⚠️ Therefore are mandatory for the branches of type Fix🪲, Feat✨, Ref🔀.</br>
 ➡️ They are encouraged for branches of type Exp 🧪 if it should be merged in the future.
 
@@ -116,7 +116,7 @@ These rules are heavily inspired from the [stackoverflow.blog](https://stackover
 ## Merging
 ### Merge Conflicts
 Merge conflicts are bound to happen.</br>
-They should be resolved on the merging branch and not the target. (rebase or merge main/master into your branch to resolve merge conflicts)
+They should be resolved on the merging branch and not the target. (rebase main into your branch to resolve merge conflicts)
 ### Merge Review
 MR := "Merge Request"
 
