@@ -20,7 +20,7 @@ of running tests.
 
 
 # Code Guidlines
-🙌 **Thanks for contributing **
+🙌 **Thanks for contributing**
 
 Please follow these guidelines when submitting code.
 
@@ -68,9 +68,12 @@ A branch introducing a new **experimental** feature which is characterized by th
 	- 🚫 No cursing
 	- 🚫 No insults
 ### Stage 1
-- Commit messages are meaningful: (🚫 no: "fix", "debug", ".", "refactor")
+- Commit messages are meaningful: 
+  - 🚫 no: "fix", "debug", ".", "refactor"
+  - ✅ "split feature `do_everything` into `aggregate`, `transform`, `output`"
+  - ✅ "fix typo in contract in class `MML_SEQUENCE`"
 ### Stage 2
-- Commit size is appropriate
+- Commit size is appropriate.
 	- 🚫 Don't put all 1000 LOC in one commit.
 ### Stage 3
 There is no stage 3. Don't be fancy.
@@ -86,7 +89,7 @@ The following are hard requirements from now on to get a branch merged into main
 1. No dead code🧟
 	- No commented out code
 	- No code which was never used
-2. Non-obvious features have a descriptive [comments](#Comments) ✒️
+2. Non-obvious features have a descriptive [comment](#Comments) ✒️
 3. Variable names are descriptive 💇
 	- no `foo`, `bar` but `is_first_reachable`
 	- no `n1`, `n2` but `ancestor`, `child`
