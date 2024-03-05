@@ -123,10 +123,17 @@ feature -- Modification
 			is_override_collection_requested
 		end
 
-feature {NONE} -- Execution
+feature {AP_TEST_EXAMPLES} -- Execution
 
 	execute
 			-- <Precursor>
+		do
+			set_up
+			main_execute
+			tear_down
+		end
+
+	main_execute
 		local
 			cs: like {UNIVERSE_I}.compiled_classes_with_name
 			has_error: BOOLEAN
@@ -134,9 +141,6 @@ feature {NONE} -- Execution
 			t: DATE_TIME
 			d: DATE_TIME_DURATION
 		do
-				-- Clean up the state.
-			has_failed := False
-			autoproof.reset
 			if attached workbench.universe as u then
 					-- Add features if possible.
 				⟳ fc: features ¦
@@ -226,6 +230,16 @@ feature {NONE} -- Execution
 						if is_html then "s</p>" else "s%N" end)
 				end
 			end
+		end
+
+	set_up
+		do
+			has_failed := False
+			autoproof.reset
+		end
+
+	tear_down
+		do
 			features.wipe_out
 			classes.wipe_out
 			groups.wipe_out
@@ -361,7 +375,7 @@ feature {NONE} -- Output
 			create Result.make (4, 3)
 		end
 
-feature {NONE} -- Verification engine
+feature {AP_TEST_EXAMPLES} -- Verification engine
 
 	autoproof: E2B_AUTOPROOF
 			-- Shared autoproof instance.

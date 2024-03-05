@@ -1,0 +1,195 @@
+note
+	description: "[
+			Eiffel tests that can be executed by testing tool.
+		]"
+	testing: "type/manual"
+
+class
+	AP_TEST_EXAMPLES
+
+inherit
+	EQA_TEST_SET
+		undefine
+			assert
+		redefine
+			on_prepare
+		end
+
+	EQA_COMMONLY_USED_ASSERTIONS
+		undefine
+			default_create
+		end
+
+feature -- Testing
+
+	example_check_false
+			-- Verifying `check False end` should give a failed verification.
+		note
+			testing: "autoproof"
+			testing: "execution/isolated"
+		do
+			print_file ("demo.e", "[
+				class DEMO
+
+				create
+					make
+
+				feature
+
+					make
+						do
+						end
+
+					test
+						do
+							check check_false: False end
+						end
+				end
+				]"
+			)
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+
+			verify
+
+			assert ("Verification is failure", attached {E2B_FAILED_VERIFICATION} verification_result)
+			assert_strings_equal ("Failure in DEMO class", "DEMO", verification_result.context_class.name)
+			assert_strings_equal ("Failure in test feature", "test", verification_result.context_feature.feature_name_32)
+		end
+
+	example_check_true
+			-- Verifying `check True end` should give successful verification.
+		note
+			testing: "autoproof"
+			testing: "execution/isolated"
+		do
+			print_file ("demo.e", "[
+					class DEMO
+
+					create
+						make
+
+					feature
+						make
+							do
+							end
+
+						test
+							do
+								check check_true: True end
+							end
+					end
+				]"
+			)
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+
+			verify
+
+			assert ("Verification is success", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_strings_equal ("Success in DEMO class", "DEMO", verification_result.context_class.name)
+			assert_strings_equal ("Success in test feature", "test", verification_result.context_feature.feature_name_32)
+		end
+
+feature {NONE} -- Initialization
+
+	on_prepare
+		do
+			check attached environment.item ({EQA_TEST_SET}.target_path_key) as s then
+				create target_path.make_from_string (s)
+			end
+			code_path := target_path.extended ("code")
+			(create {DIRECTORY}.make_with_path (code_path)).recursive_create_dir
+
+			create command.make
+			create results.make
+		end
+
+	target_path: PATH
+			-- Path to the temporary directory of the current test
+
+	code_path: PATH
+			-- Path to the "code" temporary directory of the current test
+
+feature {NONE} -- Building test projects
+
+	print_file (file_name: STRING; contents: READABLE_STRING_GENERAL)
+			-- Add file named `file_name` with contents `contents`
+			-- under `code_path`.
+		local
+			file: PLAIN_TEXT_FILE
+		do
+			create file.make_with_path (code_path.extended (file_name))
+			file.open_write
+			file.put_string_general (contents)
+			file.close
+		end
+
+	print_ecf (root: detachable STRING)
+			-- Add the project ECF file with the root class `root`.
+			--
+			-- If `root` is not Void, it should be the root class name.
+			-- If `root` is Void, root is all_classes (like in a library).
+		local
+			root_string: STRING
+		do
+			if attached root then
+				root_string := "<root class=%"" + root + "%" feature=%"make%" />"
+			else
+				root_string := "<root all_classes=%"true%" />"
+			end
+
+			print_file ("Ace.ecf", "[
+						<?xml version="1.0" encoding="ISO-8859-1"?>
+							<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="autoproof-tests" uuid="B9FC6CC3-5F19-4CE1-9131-56A0455E9224">
+								<target name="tests">
+					]"
+					+ "%N" + root_string + "%N" + "[
+								<option warning="warning" full_class_checking="false" is_attached_by_default="false" is_obsolete_routine_type="true" syntax="transitional">
+									<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+								</option>
+								<setting name="console_application" value="true"/>
+								<capability>
+									<void_safety support="none" use="none"/>
+								</capability>
+						    	<library name="base" location="$AP\library\base\base-scoop-safe.ecf" />
+								<cluster name="autoproof_tests" location=".\">
+									<file_rule>
+										<exclude>/.svn$</exclude>
+										<exclude>/CVS$</exclude>
+										<exclude>/EIFGENs$</exclude>
+									</file_rule>
+								</cluster>
+							</target>
+						</system>
+					]"
+				)
+		end
+
+	verify
+			-- Run verification, fill `results`
+		local
+			es: AP_TEST_ES
+		do
+			create es.make (<<"-project_path", code_path.out, "-config", code_path.extended ("Ace.ecf").out>>)
+			es.execute (es.preference_access)
+
+			results.wipe_out
+			command.autoproof.add_notification (agent results.extend (?))
+			command.main_execute
+		end
+
+	command: E_AUTOPROOF
+			-- Configurable autoproof verification
+
+	results: LINKED_LIST [E2B_RESULT]
+			-- Results of executing `command`
+
+	verification_result: E2B_VERIFICATION_RESULT
+		do
+			assert_equal ("One E2B result", 1, results.count)
+			assert_equal ("One E2B_VERIFICATION_RESULT", 1, results [1].verification_results.count)
+			Result := results [1].verification_results [1]
+		end
+
+end
