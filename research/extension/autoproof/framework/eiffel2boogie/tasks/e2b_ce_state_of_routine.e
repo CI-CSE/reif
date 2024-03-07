@@ -17,7 +17,7 @@ create
 
 feature -- Initialize
 
-	make (a_target_feature: detachable FEATURE_I; a_target_class: detachable CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE; a_heap_value: STRING)
+	make (a_target_feature: detachable E2B_FEATURE_I; a_target_class: detachable E2B_CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE; a_heap_value: STRING)
 		do
 			-- print ("E2B_CE_STATE_OF_ROUTINE.make%N")
 			-- print ("extract state for: " + a_target_feature.feature_name_32.to_string_8 + " " + a_target_class.name + " " + a_heap_value +"%N")
@@ -47,10 +47,10 @@ feature -- Data
 	heap_value: STRING
 			-- Symbolic value of the heap state
 
-	target_feature: FEATURE_I
+	target_feature: E2B_FEATURE_I
 			-- Feature under verification
 
-	target_class: CLASS_C
+	target_class: E2B_CLASS_C
 			-- Class of the target feature
 
 	alias_groups: HASH_TABLE [ARRAY [STRING], STRING]
@@ -88,7 +88,7 @@ feature -- Get initial state
 			-- Obtain the object fields based on the heap function
 		local
 			arg_name: STRING
-			arg_type: TYPE_A
+			arg_type: E2B_TYPE_A
 			i: INTEGER
 		do
 			arg_name := "";
@@ -260,12 +260,12 @@ feature -- Get initial values
 			Result := ce.constants_values [object_name]
 		end
 
-	get_object_fields (object_name: STRING; object_type: TYPE_A)
+	get_object_fields (object_name: STRING; object_type: E2B_TYPE_A)
 			-- Obtain all fields of an object
 		local
 			i, j: INTEGER
 			field_name, field_value: STRING
-			field_type: TYPE_A
+			field_type: E2B_TYPE_A
 			l_seq, l_length: STRING
 		do
 			field_name := ""; field_value := ""
@@ -276,7 +276,7 @@ feature -- Get initial values
 					i > object_type.base_class.skeleton.count
 				loop
 					field_name := object_type.base_class.skeleton [i].attribute_name -- object.field
-					field_type := object_type.base_class.skeleton [i].type_i
+					field_type := create {E2B_TYPE_A}.make (object_type.base_class.skeleton [i].type_i)
 
 					if not is_ignored_field (field_name, field_type) then
 							-- TODO: check the fields of SIMPLE_ARRAY?
@@ -318,7 +318,7 @@ feature -- Get initial values
 											-- concatenate each sequence item
 										l_seq := l_seq + ce.seq_item [field_value + ", " + j.out] + ","
 									else
-										l_seq := l_seq + default_value (create {INTEGER_A}.make (8)).out + "," -- TODO Li: support integer type only
+										l_seq := l_seq + default_value (create {E2B_CL_TYPE_A}.make (create {INTEGER_A}.make (8))).out + "," -- TODO Li: support integer type only
 									end
 									j := j + 1
 								end
@@ -327,7 +327,7 @@ feature -- Get initial values
 										-- concatenate each sequence item
 									l_seq := l_seq + ce.seq_item [field_value + ", " + j.out]
 								else
-									l_seq := l_seq + default_value (create {INTEGER_A}.make (8)).out
+									l_seq := l_seq + default_value (create {E2B_CL_TYPE_A}.make (create {INTEGER_A}.make (8))).out
 								end
 							end
 							l_seq := l_seq + "]"
@@ -345,7 +345,7 @@ feature -- Get initial values
 			end
 		end
 
-	default_value (field_type: TYPE_A): STRING
+	default_value (field_type: E2B_TYPE_A): STRING
 			-- Default value of `field_type'
 		do
 			if field_type.is_integer then
@@ -357,7 +357,7 @@ feature -- Get initial values
 			end
 		end
 
-	get_object_initial_state (object_name: STRING; object_type: TYPE_A)
+	get_object_initial_state (object_name: STRING; object_type: E2B_TYPE_A)
 			-- Obtain the initial state of an object
 		do
 				-- print ("E2B_INITIAL_STATE_OF_ROUTINE.get_object_initial_state%N")
@@ -390,7 +390,7 @@ feature -- Properties checking
 			Result := alias_groups.has (object_value) and not alias_groups [object_value] [1].same_string (object_name)
 		end
 
-	is_container_type (object_type: TYPE_A): BOOLEAN
+	is_container_type (object_type: E2B_TYPE_A): BOOLEAN
 			-- Is the given type a container type?
 		local
 			type: STRING
@@ -413,7 +413,7 @@ feature -- Properties checking
 			Result := value.has_substring ("T@U")
 		end
 
-	is_basic_type (type: TYPE_A): BOOLEAN
+	is_basic_type (type: E2B_TYPE_A): BOOLEAN
 			-- Is the given type a basic type?
 		local
 			type_name: STRING
@@ -431,13 +431,13 @@ feature -- Properties checking
 
 		end
 
-	is_reference_type (type: TYPE_A): BOOLEAN
+	is_reference_type (type: E2B_TYPE_A): BOOLEAN
 			-- Is the given type a reference type?
 		do
 			Result := not is_basic_type (type)
 		end
 
-	is_ignored_field (name: STRING; type: TYPE_A): BOOLEAN
+	is_ignored_field (name: STRING; type: E2B_TYPE_A): BOOLEAN
 		do
 			Result := (type.name.same_string ("V_LINKABLE_INTEGER") and (name.same_string ("right"))) or -- `right' in V_LINKABLE_INTEGER
 				(type.name.same_string ("V_DOUBLY_LINKABLE_INTEGER") and (name.same_string ("left") or name.same_string ("right"))) or

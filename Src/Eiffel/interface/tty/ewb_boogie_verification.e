@@ -297,10 +297,10 @@ feature {NONE} -- Printing console
 
 		end
 
-	print_valid_fixes (a_class: CLASS_C)
+	print_valid_fixes (a_class: E2B_CLASS_C)
 		-- Print out the ids of valid fixes
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_match_list: LEAF_AS_LIST
 		do
 			l_match_list := Match_list_server.item (a_class.class_id)
@@ -537,10 +537,12 @@ feature {NONE} -- Implementation
 	load_feature (a_class: CLASS_I; a_feature_name: STRING)
 			-- Load `a_feature' for verification.
 		local
-			l_feature: FEATURE_I
+			l_class_c: E2B_CLASS_C
+			l_feature: E2B_FEATURE_I
 		do
 			if a_class.is_compiled then
-				l_feature := a_class.compiled_class.feature_named (a_feature_name)
+				create l_class_c.make (a_class.compiled_class)
+				l_feature := l_class_c.feature_named (a_feature_name)
 				if l_feature /= Void then
 					autoproof.add_feature (l_feature)
 				else
@@ -551,10 +553,10 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	reverify_with_check_false_instrumented (a_class: CLASS_C)
+	reverify_with_check_false_instrumented (a_class: E2B_CLASS_C)
 			-- Load `a_feature' for verification.
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_match_list: LEAF_AS_LIST
 			l_class_file_name, l_class_text, l_old_class_text: STRING
 			l_class_file_path: PATH
@@ -599,10 +601,10 @@ feature {NONE} -- Implementation
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
 		local
-			l_class_c: CLASS_C
+			l_class_c: E2B_CLASS_C
 		do
 			if a_class.is_compiled then
-				l_class_c := a_class.compiled_class
+				create l_class_c.make (a_class.compiled_class)
 				check l_class_c /= Void end
 				autoproof.add_class (l_class_c)
 			else

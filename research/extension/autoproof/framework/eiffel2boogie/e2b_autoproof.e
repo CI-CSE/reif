@@ -50,20 +50,20 @@ feature -- Element change
 			-- Add all compiled classes of group `g`to the set of classes to verify.
 		do
 			if attached workbench.universe as u and then attached g.classes as cs then
-				⟳ i: cs ¦ if attached u.class_named (i.name, g).compiled_class as c then add_class (c) end ⟲
+				⟳ i: cs ¦ if attached u.class_named (i.name, g).compiled_class as c then add_class (create {E2B_CLASS_C}.make (c)) end ⟲
 				if attached {CONF_CLUSTER} g as i and then attached i.children as s then
 					⟳ c: s ¦ add_group (c) ⟲
 				end
 			end
 		end
 
-	add_class (a_class: CLASS_C)
+	add_class (a_class: E2B_CLASS_C)
 			-- Add class `a_class' to be verified.
 		do
 			input.add_class (a_class)
 		end
 
-	add_feature (a_feature: FEATURE_I)
+	add_feature (a_feature: E2B_FEATURE_I)
 			-- Add feature `a_feature' to be verified.
 		do
 			input.add_feature (a_feature)

@@ -42,13 +42,13 @@ feature -- Access
 			Result := internal_description
 		end
 
-	context_class: CLASS_C
+	context_class: E2B_CLASS_C
 			-- Class corresponding to event
 		do
 			Result := data.context_class
 		end
 
-	context_feature: FEATURE_I
+	context_feature: E2B_FEATURE_I
 			-- Feature corresponding to event
 		do
 			Result := data.context_feature
@@ -136,4 +136,20 @@ feature {NONE} -- Implementation
 	internal_description: detachable STRING_32
 			-- Internal buffer for description.
 
+;note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

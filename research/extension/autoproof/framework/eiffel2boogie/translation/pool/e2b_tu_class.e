@@ -17,7 +17,7 @@ create
 
 feature {NONE} -- Implementation
 
-	make (a_class_type: CL_TYPE_A)
+	make (a_class_type: E2B_CL_TYPE_A)
 			-- Initialize translation unit for class `a_class'.
 		do
 			class_type := a_class_type
@@ -26,7 +26,7 @@ feature {NONE} -- Implementation
 
 feature -- Access
 
-	class_type: CL_TYPE_A
+	class_type: E2B_CL_TYPE_A
 			-- Type to be translated.
 
 	id: STRING

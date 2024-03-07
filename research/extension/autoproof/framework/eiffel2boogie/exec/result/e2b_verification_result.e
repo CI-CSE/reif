@@ -15,10 +15,10 @@ feature -- Access
 	time: REAL
 			-- Time used for verification in seconds.
 
-	context_feature: detachable FEATURE_I
+	context_feature: detachable E2B_FEATURE_I
 			-- Associated feature (if any).
 
-	context_class: detachable CLASS_C
+	context_class: detachable E2B_CLASS_C
 			-- Associated class (if any).
 
 	verification_context: detachable STRING
@@ -34,14 +34,14 @@ feature -- Element change
 			time_set: time = a_time
 		end
 
-	set_feature (a_feature: FEATURE_I)
+	set_feature (a_feature: E2B_FEATURE_I)
 			-- Set `context_feature' to `a_feature'.
 		do
 			context_feature := a_feature
 			context_class := a_feature.written_class
 		end
 
-	set_class (a_class: CLASS_C)
+	set_class (a_class: E2B_CLASS_C)
 			-- Set `context_class' to `a_class'.
 		do
 			context_class := a_class

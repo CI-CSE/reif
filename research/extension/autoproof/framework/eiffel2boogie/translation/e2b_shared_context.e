@@ -5,6 +5,10 @@
 class
 	E2B_SHARED_CONTEXT
 
+inherit
+	SHARED_BYTE_CONTEXT
+		export {NONE} all end
+
 
 feature {E2B_TRANSLATE_OPTIMIZE_TASK, E2B_VERIFY_FOR_FIX_TASK} -- Access: stateful
 
@@ -69,6 +73,13 @@ feature -- Access (public)
 			create Result
 		end
 
+	e2b_error: E2B_AUTOPROOF_ERROR
+			-- Error helper.
+		once
+			create Result
+		end
+
+
 feature -- Status notification.
 
 	status_notifier_agent_cell: CELL [PROCEDURE [READABLE_STRING_GENERAL]]
@@ -84,6 +95,42 @@ feature -- Status notification.
 				status_notifier_agent_cell.item.call ([a_message])
 			end
 		end
+
+feature -- Byte context
+
+	unswitch_byte_context
+			-- Restore byte context to the state before the call to `switch_byte_context`.
+		require
+			switch_count > 0
+		do
+			if attached context_stack.item.current_feature as f then
+				context.set_current_feature (f.c_feature)
+			else
+				context.clear_feature_data
+			end
+			if attached context_stack.item.byte_code as b then
+				context.set_byte_code (b)
+			end
+			context_stack.remove
+			context.restore_class_type_context
+		ensure
+			context_stack_count: switch_count = old switch_count - 1
+			context_stack_unchanged: across context_stack as i all (old context_stack) [@ i.target_index] = i end
+		end
+
+	switch_count: NATURAL_32
+			-- Number of times the byte context stack has switched.
+		do
+			Result := context_stack.count.as_natural_32
+		ensure
+			definition: Result = context_stack.count.as_natural_32
+		end
+
+feature {E2B_FEATURE_I, E2B_CLASS_C} -- Storage
+
+	context_stack: ARRAYED_STACK [TUPLE [current_feature: detachable E2B_FEATURE_I; byte_code: detachable BYTE_CODE]]
+			-- Stack of byte contexts saved by `switch_byte_context`.
+
 
 feature {NONE} -- Implementation
 

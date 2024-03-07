@@ -14,7 +14,7 @@ inherit
 
 feature {NONE} -- Initialization
 
-	make (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	make (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Initialize this translation unit with feature `a_feature' and context `a_context_type'.
 		do
 			feat := a_feature
@@ -32,10 +32,26 @@ feature -- Access
 	id: STRING
 			-- <Precursor>
 
-	feat: FEATURE_I
+	feat: E2B_FEATURE_I
 			-- Feature to be translated.
 
-	type: CL_TYPE_A
+	type: E2B_CL_TYPE_A
 			-- Context type of feature to be translated.
 
+;note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

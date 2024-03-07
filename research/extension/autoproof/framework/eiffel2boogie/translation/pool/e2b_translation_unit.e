@@ -30,13 +30,13 @@ feature -- Basic operations
 
 feature {NONE} -- Helper functions
 
-	type_id (a_type: CL_TYPE_A): STRING
+	type_id (a_type: E2B_CL_TYPE_A): STRING
 			-- Id for type `a_type'.
 		local
 			i: INTEGER
-			t: TYPE_A
+			t: E2B_TYPE_A
 		do
-			if attached {GEN_TYPE_A} a_type as l_gen_type then
+			if attached {GEN_TYPE_A} a_type.type_a as l_gen_type then
 				Result := l_gen_type.base_class.name_in_upper.twin
 				Result.append ("^")
 				from
@@ -44,10 +44,10 @@ feature {NONE} -- Helper functions
 				until
 					i > l_gen_type.generics.upper
 				loop
-					t := l_gen_type.generics [i]
-					if attached {CL_TYPE_A} t as c then
+					t := create {E2B_TYPE_A}.make (l_gen_type.generics [i])
+					if attached {E2B_CL_TYPE_A} t as c then
 						Result.append (type_id (c))
-					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as c then
+					elseif attached {E2B_CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as c then
 						Result.append (type_id (c))
 					else
 						check class_type_constraint: False then end
@@ -63,7 +63,7 @@ feature {NONE} -- Helper functions
 			end
 		end
 
-	feature_id (a_feature: FEATURE_I): STRING
+	feature_id (a_feature: E2B_FEATURE_I): STRING
 			-- Id for feature `a_feature'.
 		do
 			Result := a_feature.feature_name
@@ -76,4 +76,20 @@ invariant
 	id_attached: attached id
 	id_valid: not id.is_empty
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

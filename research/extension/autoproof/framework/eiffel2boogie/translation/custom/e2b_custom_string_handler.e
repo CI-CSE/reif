@@ -24,7 +24,7 @@ inherit
 
 feature -- Status report
 
-	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
+	is_handling_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): BOOLEAN
 			-- Is this handler handling the call?
 		do
 			Result := a_target_type.base_class.name_in_upper ~ "V_STRING" and a_feature.feature_name ~ "make_from_string"
@@ -32,7 +32,7 @@ feature -- Status report
 
 feature -- Basic operations
 
-	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- Handle routine call in body.
 		do
 			if attached {STRING_B} a_parameters.i_th (1).expression as l_string_b then
@@ -42,7 +42,7 @@ feature -- Basic operations
 			end
 		end
 
-	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- Handle routine call in contract.
 		do
 		end
@@ -53,7 +53,7 @@ feature -- Basic operations
 			l_entity: IV_ENTITY
 			l_proc_call: IV_PROCEDURE_CALL
 --			l_creator: FEATURE_I
-			l_cl_type: CL_TYPE_A
+			l_cl_type: E2B_CL_TYPE_A
 --			l_seq_type: IV_USER_TYPE
 --			l_expr: IV_EXPRESSION
 --			i: INTEGER
@@ -103,8 +103,8 @@ feature -- Basic operations
 	add_init_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_node: STRING_B; a_target: IV_EXPRESSION)
 			-- Add call to `V_STRING.init' on `a_target'.
 		local
-			l_cl_type: CL_TYPE_A
-			l_creator: FEATURE_I
+			l_cl_type: E2B_CL_TYPE_A
+			l_creator: E2B_FEATURE_I
 			l_proc_call: IV_PROCEDURE_CALL
 			l_seq_type: IV_USER_TYPE
 			l_expr: IV_EXPRESSION
@@ -139,16 +139,16 @@ feature -- Basic operations
 		end
 
 
-	v_string_class: CLASS_C
+	v_string_class: E2B_CLASS_C
 			-- Class for V_STRING.
 		do
 			if v_string_class_internal = Void then
-				v_string_class_internal := universe.classes_with_name ("V_STRING").first.compiled_class
+				create v_string_class_internal.make (universe.classes_with_name ("V_STRING").first.compiled_class)
 			end
 			Result := v_string_class_internal
 		end
 
-	v_string_class_internal: CLASS_C
+	v_string_class_internal: E2B_CLASS_C
 			-- Cached version of `v_string_class'.
 
 ;note

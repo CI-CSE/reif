@@ -10,10 +10,10 @@ inherit
 
 feature -- Status report
 
-	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
+	is_handling_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
-			Result := attached {CL_TYPE_A} a_target_type as c and then {E2B_HELPER}.is_agent_type (c)
+			Result := attached {E2B_CL_TYPE_A} a_target_type as c and then c.is_agent_type
 		end
 
 	is_handling_nested (a_nested: NESTED_B): BOOLEAN
@@ -26,7 +26,7 @@ feature -- Status report
 
 feature -- Basic operations
 
-	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
 			l_new_args: BYTE_LIST [PARAMETER_B]
@@ -52,7 +52,7 @@ feature -- Basic operations
 			end
 		end
 
-	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
 			l_new_args: BYTE_LIST [PARAMETER_B]
@@ -87,9 +87,9 @@ feature -- Basic operations
 		require
 			not_inline_agent: not a_node.is_inline_agent
 		local
-			l_agent_class: CLASS_C
-			l_agent_feature: FEATURE_I
-			l_agent_type: CL_TYPE_A
+			l_agent_class: E2B_CLASS_C
+			l_agent_feature: E2B_FEATURE_I
+			l_agent_type: E2B_CL_TYPE_A
 
 			i, j, k: INTEGER
 			l_open_argument_count, l_closed_argument_count: INTEGER
@@ -104,7 +104,7 @@ feature -- Basic operations
 		do
 			boogie_universe.add_dependency (agents_theory_filename)
 
-			l_agent_class := system.class_of_id (a_node.origin_class_id)
+			create l_agent_class.make (system.class_of_id (a_node.origin_class_id))
 			l_agent_feature := l_agent_class.feature_of_feature_id (a_node.feature_id)
 				-- TODO: take actual type of open/closed target of agent creation
 			l_agent_type := l_agent_feature.written_class.actual_type
@@ -112,7 +112,7 @@ feature -- Basic operations
 			translation_pool.add_function_precondition_predicate (l_agent_feature, l_agent_type) -- generates precondition function
 			translation_pool.add_postcondition_predicate (l_agent_feature, l_agent_type) -- generates postcondition function
 
-			a_translator.create_local (system.any_type)
+			a_translator.create_local (create {E2B_CL_TYPE_A}.make (system.any_type))
 			l_agent_local := a_translator.last_local
 
 				-- Set up functions and axioms
@@ -202,9 +202,9 @@ feature -- Basic operations
 				-- Allocate agent ref
 			create l_proc_call.make ("allocate")
 			if l_agent_feature.has_return_value then
-				l_proc_call.add_argument (factory.type_value (system.function_class.compiled_class.actual_type))
+				l_proc_call.add_argument (factory.type_value (create {E2B_CL_TYPE_A}.make (system.function_class.compiled_class.actual_type)))
 			else
-				l_proc_call.add_argument (factory.type_value (system.procedure_class.compiled_class.actual_type))
+				l_proc_call.add_argument (factory.type_value (create {E2B_CL_TYPE_A}.make (system.procedure_class.compiled_class.actual_type)))
 			end
 			l_proc_call.set_target (l_agent_local)
 			a_translator.side_effect.extend (a_translator.if_safety_expression (l_proc_call))
@@ -242,8 +242,8 @@ feature -- Basic operations
 			l_name: STRING
 			l_expr: EXPR_B
 			l_agent_class: CLASS_C
-			l_agent_feature: FEATURE_I
-			l_agent_type: CL_TYPE_A
+			l_agent_feature: E2B_FEATURE_I
+			l_agent_type: E2B_CL_TYPE_A
 			l_fcall: IV_FUNCTION_CALL
 		do
 			if attached {FEATURE_B} a_nested.message as l_call then
@@ -254,7 +254,7 @@ feature -- Basic operations
 					attached {ROUTINE_CREATION_B} l_access.expr as l_agent
 				then
 					l_agent_class := system.class_of_id (l_agent.origin_class_id)
-					l_agent_feature := l_agent_class.feature_of_feature_id (l_agent.feature_id)
+					create l_agent_feature.make (l_agent_class.feature_of_feature_id (l_agent.feature_id))
 						-- TODO: take actual type of open/closed target of agent creation
 					l_agent_type := l_agent_feature.written_class.actual_type
 
@@ -275,11 +275,11 @@ feature -- Basic operations
 
 feature -- Implementation
 
-	process_postcondition_call (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
+	process_postcondition_call (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
 			-- Process feature call.
 		local
 			l_target: IV_EXPRESSION
-			l_target_type: CL_TYPE_A
+			l_target_type: E2B_CL_TYPE_A
 			l_call: IV_FUNCTION_CALL
 		do
 			l_target := a_translator.current_target

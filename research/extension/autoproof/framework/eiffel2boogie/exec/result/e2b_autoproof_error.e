@@ -61,14 +61,37 @@ feature -- Element change
 			is_warning := a_flag
 		end
 
+feature -- Add error to shared context
+
+	add_unsupported_error (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER)
+			-- Add AutoProof error about unsupported construct concerning `a_class_or_feature' with message `a_message'.
+			-- Verification will not proceed.
+		do
+			put_error (a_class_or_feature, a_message, a_line_number, False, "Unsupported")
+		end
+
+	add_semantic_error (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER)
+			-- Add AutoProof validity error concerning `a_class_or_feature' with message `a_message'.
+			-- Verification will not proceed.
+		do
+			put_error (a_class_or_feature, a_message, a_line_number, False, "Validity")
+		end
+
+	add_semantic_warning (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER)
+			-- Add AutoProof validity warning concerning `a_class_or_feature' with message `a_message'.
+			-- Verification will proceed.
+		do
+			put_error (a_class_or_feature, a_message, a_line_number, True, "Validity")
+		end
+
 feature -- Comparison
 
 	is_equal (a_other: like Current): BOOLEAN
 			-- Does `a_other' represent the same error in the same context?
 		do
 			Result := type ~ a_other.type and
-				helper.is_same_class (context_class, a_other.context_class) and
-				helper.is_same_feature (context_feature, a_other.context_feature) and
+				context_class.is_same_class (a_other.context_class) and
+				context_feature.is_same_feature (a_other.context_feature) and
 				context_line_number = a_other.context_line_number and
 				internal_message ~ a_other.internal_message
 		end
@@ -77,6 +100,28 @@ feature {E2B_AUTOPROOF_ERROR} -- Implementation
 
 	internal_message: READABLE_STRING_32
 			-- Message for this error.
+
+	put_error (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER; a_is_warning: BOOLEAN; a_error_type: STRING_8)
+		require
+			class_or_feature_or_void: a_class_or_feature = Void or else (attached {E2B_CLASS_C} a_class_or_feature or attached {E2B_FEATURE_I} a_class_or_feature)
+			message_set: a_message /= Void and then not a_message.is_empty
+		local
+			l_error: E2B_AUTOPROOF_ERROR
+		do
+			create l_error
+			l_error.set_type (a_error_type)
+			l_error.set_message (a_message)
+			if attached {E2B_FEATURE_I} a_class_or_feature as x then
+				l_error.set_feature (x)
+			elseif attached {E2B_CLASS_C} a_class_or_feature as x then
+				l_error.set_class (x)
+			end
+			l_error.set_line_number (a_line_number)
+			l_error.set_warning (a_is_warning)
+			if not autoproof_errors.has (l_error) then
+				autoproof_errors.extend (l_error)
+			end
+		end
 
 ;note
 	license: "GNU General Public License"

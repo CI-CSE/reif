@@ -112,7 +112,7 @@ feature -- Basic operations
 			l_error.set_line_number (line_for_error (a_error))
 		end
 
-	has_validity_error (a_feature: FEATURE_I; a_class: CLASS_C): BOOLEAN
+	has_validity_error (a_feature: E2B_FEATURE_I; a_class: E2B_CLASS_C): BOOLEAN
 			-- Does `a_feature' in `a_class' have a validty error (or the whole class if `a_feature' is Void),
 		require
 			a_class_exists: attached a_class
@@ -128,7 +128,7 @@ feature -- Basic operations
 			loop
 				l_error := l_errors.item
 				Result := not l_error.is_warning and
-					helper.is_same_class (l_error.context_class, a_class) and then
+					l_error.context_class.is_same_class (a_class) and then
 					((l_error.context_feature = Void) or else -- The whole class has an error
 						(a_feature /= Void and then l_error.context_feature.rout_id_set.first = a_feature.rout_id_set.first)) -- or we are asking about a feature and that feature has an error
 				l_errors.forth
@@ -158,7 +158,7 @@ feature {NONE} -- Implementation
 			-- Default handler for Boogie procedure results.
 		local
 			l_temp: like name_translator.feature_for_boogie_name
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_context: STRING
 			l_success: E2B_SUCCESSFUL_VERIFICATION
 			l_inconclusive: E2B_INCONCLUSIVE_RESULT

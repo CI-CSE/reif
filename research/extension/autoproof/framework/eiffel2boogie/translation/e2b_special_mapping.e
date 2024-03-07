@@ -38,7 +38,7 @@ feature -- Access
 	call_handlers: LINKED_LIST [E2B_CUSTOM_CALL_HANDLER]
 			-- List of custom call handlers.
 
-	handler_for_call (a_target_type: TYPE_A; a_feature: FEATURE_I): detachable E2B_CUSTOM_CALL_HANDLER
+	handler_for_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): detachable E2B_CUSTOM_CALL_HANDLER
 			-- Custom handler for `a_feature' (if any).
 		do
 			from
@@ -80,7 +80,7 @@ feature -- Access
 				attached {NESTED_B} l_assign.source as l_nested and then
 				attached l_nested.target.type.base_class as l_class
 			then
-				if helper.is_class_logical (l_class) then
+				if (create {E2B_CLASS_C}.make (l_class)).is_logical then
 					create {E2B_SET_ACROSS_HANDLER} Result.make (a_translator, l_object_test_local, l_nested.target, a_across)
 				elseif l_class.name_in_upper.same_string ("INTEGER_INTERVAL") then
 					if
@@ -208,4 +208,20 @@ feature -- Access (built-ins)
 			Result.compare_objects
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

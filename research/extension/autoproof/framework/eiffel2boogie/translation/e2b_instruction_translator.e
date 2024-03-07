@@ -38,7 +38,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_implementation: IV_IMPLEMENTATION; a_feature: FEATURE_I; a_type: CL_TYPE_A)
+	make (a_implementation: IV_IMPLEMENTATION; a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Initialize instruction translator with the specified context.
 		require
 			a_type_attached: attached a_type
@@ -54,7 +54,7 @@ feature {NONE} -- Initialization
 			current_feature := a_feature
 			current_type := a_type
 			current_block := current_implementation.body
-			current_implementation.procedure.set_status_values (helper.feature_note_values (a_feature, "status"))
+			current_implementation.procedure.set_status_values (a_feature.note_values ("status"))
 
 			if attached types.for_class_type (a_type) as t then
 				entity_mapping.set_current (create {IV_ENTITY}.make
@@ -65,7 +65,7 @@ feature {NONE} -- Initialization
 						end, t))
 			end
 			if a_feature.has_return_value then
-				entity_mapping.set_default_result (helper.class_type_in_context (a_feature.type, a_feature.written_class, a_feature, a_type))
+				entity_mapping.set_default_result ((a_feature.written_class).class_type_in_context (a_feature.type, a_feature, a_type))
 			end
 
 		end
@@ -75,10 +75,10 @@ feature -- Access
 	current_implementation: IV_IMPLEMENTATION
 			-- Boogie procedure implementation currently being processed.
 
-	current_feature: FEATURE_I
+	current_feature: E2B_FEATURE_I
 			-- Feature that is currently being processed.
 
-	current_type: CL_TYPE_A
+	current_type: E2B_CL_TYPE_A
 			-- Type containing feature that is currently being processed.
 
 	current_block: IV_BLOCK
@@ -126,13 +126,13 @@ feature -- Element change
 
 feature -- Basic operations
 
-	process_feature_of_type (a_feature: FEATURE_I; a_type: CL_TYPE_A)
+	process_feature_of_type (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Process body of feature `a_feature' of type `a_type'.
 		local
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 			l_name: READABLE_STRING_8
 			l_ownership_handler: E2B_CUSTOM_OWNERSHIP_HANDLER
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 			l_call: IV_PROCEDURE_CALL
 		do
@@ -144,9 +144,9 @@ feature -- Basic operations
 				-- OWNERSHIP: start of routine body
 			if options.is_ownership_enabled then
 					-- Public procedures unwrap Current in the beginning, unless lemma or marked with explicit wrapping
-				if helper.is_public (a_feature) and not a_feature.has_return_value and
-					not helper.is_explicit (a_feature, "wrapping") and not helper.is_lemma (a_feature) and not helper.is_nonvariant (a_feature) then
-					l_feature := system.any_type.base_class.feature_named ("unwrap")
+				if a_feature.is_public and not a_feature.has_return_value and
+					not a_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
+					create l_feature.make (system.any_type.base_class.feature_named ("unwrap"))
 					l_expr_translator.set_context_line_number (a_feature.body.start_location.line)
 
 					l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
@@ -166,13 +166,13 @@ feature -- Basic operations
 				end
 			end
 
-			helper.set_up_byte_context (a_feature, a_type)
+			a_feature.set_up_byte_context (a_type)
 			if attached Context.byte_code as l_byte_code then
 				if l_byte_code.compound /= Void and then not l_byte_code.compound.is_empty then
 					if l_byte_code.locals /= Void then
 						across l_byte_code.locals as i loop
 							l_name := helper.unique_identifier ("local")
-							l_type := helper.class_type_in_context (i, a_feature.written_class, a_feature, current_type)
+							l_type := (a_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (i), a_feature, current_type)
 							entity_mapping.set_local (@ i.cursor_index, create {IV_ENTITY}.make (l_name, types.for_class_type (l_type)))
 							current_implementation.add_local (l_name, types.for_class_type (l_type))
 						end
@@ -183,9 +183,9 @@ feature -- Basic operations
 
 				-- OWNERSHIP: end of routine body
 			if options.is_ownership_enabled then
-				if not helper.is_explicit (a_feature, "wrapping") and not helper.is_lemma (a_feature) and not helper.is_nonvariant (a_feature) then
-					if helper.is_public (a_feature) and not a_feature.has_return_value then
-						l_feature := system.any_type.base_class.feature_named ("wrap")
+				if not a_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
+					if a_feature.is_public and not a_feature.has_return_value then
+						create l_feature.make (system.any_type.base_class.feature_named ("wrap"))
 						l_expr_translator.set_context_line_number (a_feature.body.end_location.line)
 
 						l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
@@ -219,8 +219,8 @@ feature -- Processing
 	process_assign_b (a_node: ASSIGN_B)
 			-- <Precursor>
 		local
-			l_feature: FEATURE_I
-			l_type: CL_TYPE_A
+			l_feature: E2B_FEATURE_I
+			l_type: E2B_CL_TYPE_A
 
 			l_target, l_source: IV_EXPRESSION
 			l_field: IV_ENTITY
@@ -242,7 +242,7 @@ feature -- Processing
 					valid_feature: l_feature /= Void
 					correct_feature: l_feature.rout_id_set.first = l_attribute.routine_id
 				end
-				l_type := helper.class_type_in_context (l_feature.type, current_feature.written_class, current_feature, current_type)
+				l_type := (current_feature.written_class).class_type_in_context (l_feature.type, current_feature, current_type)
 				translation_pool.add_referenced_feature (l_feature, current_type)
 				l_target := factory.heap_access (
 						entity_mapping.heap,
@@ -254,7 +254,7 @@ feature -- Processing
 			end
 
 				-- Create source node
-			if helper.is_functional (current_feature) then
+			if current_feature.is_functional then
 					-- Process as contract expression if it is the body of functional
 					-- (otherwise hard to deal with preconditions)
 				process_contract_expression (a_node.source, False)
@@ -387,7 +387,7 @@ feature -- Processing
 				-- Check array contents
 			across a_array.expressions as i loop
 				process_contract_expression (i, False)
-				l_content_type := types.for_class_type (helper.class_type_in_context (a_array.type.generics.first, current_feature.written_class, current_feature, current_type))
+				l_content_type := types.for_class_type ((current_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (a_array.type.generics.first), current_feature, current_type))
 				create l_assert.make (factory.equal (
 						factory.function_call ("fun.ARRAY.item", <<entity_mapping.heap, l_array, factory.int_value (@ i.cursor_index)>>, l_content_type),
 						last_expression))
@@ -436,7 +436,7 @@ feature -- Processing
 			current_implementation.set_has_conditional (True)
 			current_implementation.procedure.set_has_conditional (True)
 
-			status_values := helper.feature_note_values (a_node.context.current_feature, "status")
+			status_values := (create {E2B_FEATURE_I}.make (a_node.context.current_feature)).note_values ("status")
 			set_current_origin_information (a_node)
 
 			l_temp_block := current_block
@@ -1437,7 +1437,7 @@ feature {NONE} -- Loop processing
 					create l_assignment.make (l_variant, i)
 					add_statement (l_assignment)
 				else
-					helper.add_semantic_error (current_feature, messages.variant_bad_type (@ i.target_index), -1)
+					e2b_error.add_semantic_error (current_feature, messages.variant_bad_type (@ i.target_index), -1)
 				end
 			end
 		end

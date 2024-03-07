@@ -48,7 +48,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 		local
 			j, k: INTEGER
 			arg_name, file_prefix: STRING
-			arg_type: TYPE_A
+			arg_type: E2B_TYPE_A
 			pt: E2B_PROOF_TO_TEST_TARGET_FEATURE
 		do
 			create l_boogie_universe.make
@@ -118,13 +118,13 @@ feature {NONE} -- Implementation
 	l_context: E2B_SHARED_CONTEXT
 			-- Verification context
 
-	target_feature: detachable FEATURE_I
+	target_feature: detachable E2B_FEATURE_I
 			-- Feature under optimization
 
-	target_class: detachable CLASS_C
+	target_class: detachable E2B_CLASS_C
 			-- Class of the target feature
 
-	target_variables: HASH_TABLE [LINKED_LIST [STRING], FEATURE_I]
+	target_variables: HASH_TABLE [LINKED_LIST [STRING], E2B_FEATURE_I]
 			-- List of integer variables to be optimized
 
 	failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]
@@ -137,12 +137,12 @@ feature
 
 feature -- features for extending functionality for optimization
 
-	minimize_var (a_var: STRING; a_type: TYPE_A)
+	minimize_var (a_var: STRING; a_type: E2B_TYPE_A)
 			-- Minimize a variable
 		local
 			i: INTEGER
 			type, attr_name: STRING
-			attr_type: TYPE_A
+			attr_type: E2B_TYPE_A
 		do
 			minimized_vars.extend (a_var)
 
@@ -187,7 +187,7 @@ feature -- features for extending functionality for optimization
 						i > a_type.base_class.skeleton.count
 					loop
 						attr_name := a_type.base_class.skeleton [i].attribute_name
-						attr_type := a_type.base_class.skeleton [i].type_i
+						attr_type := create {E2B_TYPE_A}.make (a_type.base_class.skeleton [i].type_i)
 						minimize_var (a_var + "." + attr_name, attr_type)
 						i := i + 1
 					end
@@ -227,7 +227,7 @@ feature -- features for extending functionality for optimization
 	minimized_vars: LINKED_LIST [STRING]
 			-- A list of minimized variables
 
-	add_opt_container (a_var: STRING; a_type: TYPE_A)
+	add_opt_container (a_var: STRING; a_type: E2B_TYPE_A)
 			-- Add `a_var' to the list of containers to be optimized
 		do
 			l_context.options.container_to_optimize.force (a_type.twin, a_var.twin)

@@ -210,7 +210,7 @@ feature {NONE} -- Basic operations
 			autoproof.reset
 
 			if attached {FEATURE_STONE} a_stone as s then
-				autoproof.add_feature (s.e_feature.associated_feature_i)
+				autoproof.add_feature (create {E2B_FEATURE_I}.make (s.e_feature.associated_feature_i))
 			elseif attached {CLASSI_STONE} a_stone as s then
 				load_class (s.class_i)
 			elseif attached {CLUSTER_STONE} a_stone as s then
@@ -354,7 +354,7 @@ feature {NONE} -- Basic operations
 			l_row.set_item (4, create {EV_GRID_LABEL_ITEM})
 
 			create l_lab
-			l_lab.set_text ("Fix: " + options.fix_message)
+			l_lab.set_text ("Fix: " + options.fix_message.to_string_8)
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right ({EB_SHARED_PIXMAPS}.icon_pixmaps.preference_list_icon, 1)
 				-- l_lab.pixmaps_on_right.item (1).pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
@@ -379,8 +379,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
-			generate_minimal: EV_CHECK_MENU_ITEM
-			generate_other: EV_CHECK_MENU_ITEM
 			generate_test: EV_CHECK_MENU_ITEM
 		do
 			create counterexample_menu.make_with_text ("Counterexample")
@@ -477,10 +475,10 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
 		local
-			l_class_c: CLASS_C
+			l_class_c: E2B_CLASS_C
 		do
 			if a_class.is_compiled then
-				l_class_c := a_class.compiled_class
+				create l_class_c.make (a_class.compiled_class)
 				check l_class_c /= Void end
 				autoproof.add_class (l_class_c)
 			end
@@ -569,8 +567,8 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			-- Generate tests from proof failures
 			-- local
 			--	l_window: EB_DEVELOPMENT_WINDOW
-		local
-			l_dialog: ES_INFORMATION_PROMPT
+--		local
+--			l_dialog: ES_INFORMATION_PROMPT
 		do
 			last_execution := agent execute_generate_test_item
 				-- generate_test_item.enable_select

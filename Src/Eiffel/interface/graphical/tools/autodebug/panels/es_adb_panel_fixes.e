@@ -15,7 +15,7 @@ inherit
 create
 	make
 
-feature{NONE} -- Initialization
+feature {NONE} -- Initialization
 
 	make (a_tool: like tool_panel)
 			-- Initialization
@@ -35,7 +35,7 @@ feature{NONE} -- Initialization
 			Info_center.extend (Current)
 		end
 
-feature{NONE} -- Update GUI
+feature {NONE} -- Update GUI
 
 	clear_information_display_widget
 			-- <Precursor>
@@ -59,8 +59,8 @@ feature{NONE} -- Update GUI
 		do
 			if a_flag then
 				if attached evgrid_fixes.selected_rows as lt_rows and then not lt_rows.is_empty
-						and then attached {ES_ADB_FIX} lt_rows.first.data as lt_fix
-						and then not lt_fix.fault.is_fixed
+					and then attached {ES_ADB_FIX} lt_rows.first.data as lt_fix
+					and then not lt_fix.fault.is_fixed
 				then
 					evbutton_apply.enable_sensitive
 				else
@@ -147,8 +147,7 @@ feature -- ADB Actions
 	on_fixing_fault_start (a_fault: ES_ADB_FAULT)
 			-- <Precursor>
 		local
-			l_row_for_fault, l_row_for_fix: EV_GRID_ROW
-			l_subrow_index, l_subrow_count: INTEGER
+			l_row_for_fault: EV_GRID_ROW
 		do
 			if fault_to_row_table.has (a_fault) then
 				l_row_for_fault := fault_to_row_table.item (a_fault)
@@ -159,22 +158,12 @@ feature -- ADB Actions
 			end
 		end
 
+
 	on_fixing_failure_start (a_failure: ES_ADB_PROOF_FAILURE)
 			-- <Precursor>
-		local
-			l_row_for_fault, l_row_for_fix: EV_GRID_ROW
-			l_subrow_index, l_subrow_count: INTEGER
 		do
 			-- TODO: Li
---			if fault_to_row_table.has (a_failure) then
---				l_row_for_fault := fault_to_row_table.item (a_fault)
---					-- Wipe out subrows for fixes.
---				evgrid_fixes.remove_rows (l_row_for_fault.index + 1, l_row_for_fault.index + l_row_for_fault.subrow_count)
---					-- Update fault status.
---				update_failure_status (a_failure)
---			end
 		end
-
 
 	on_fixing_stop
 			-- <Precursor>
@@ -277,26 +266,7 @@ feature -- GUI actions
 			-- Action to perform when the 'Apply' button is clicked.
 		local
 			l_class_to_fix: CLASS_C
-			l_new_body_text, l_new_class_content: STRING
-			l_match_list: LEAF_AS_LIST
-			l_routine_body_as: ROUT_BODY_AS
-			l_copied_class_path, l_original_class_path: PATH
-			l_copied_class_path_str, l_original_class_path_str: STRING
-			l_original_class_date: INTEGER
-			l_file: PLAIN_TEXT_FILE
-
-
-			l_exception: ES_EVE_AUTOFIX_EXCEPTION
-			l_should_preceed, l_should_backup, l_retried: BOOLEAN
-			l_backup_dir_name: DIRECTORY_NAME
-			l_origin_file_name, l_backup_file_name: FILE_NAME
-			l_result_file_lines: DS_LINKED_LIST[STRING]
-			l_content, l_line: STRING
-			l_error_msg: STRING
-			l_dir: DIRECTORY
-			l_date_time: DATE_TIME
-			l_date: DATE
-			l_time_stamp: STRING
+			l_original_class_path: PATH
 		do
 			if not evgrid_fixes.selected_rows.is_empty and then attached evgrid_fixes.selected_rows.first as lt_row then
 				if attached {ES_ADB_FIX_IMPLEMENTATION} lt_row.data as lt_fix then
@@ -360,7 +330,7 @@ feature -- GUI actions
 			enable_command_invocation_widget (False)
 		end
 
-feature{ES_ADB_PANEL_FAULTS} -- GUI actions
+feature {ES_ADB_PANEL_FAULTS} -- GUI actions
 
 	has_row_for_fault (a_fault: ES_ADB_FAULT): BOOLEAN
 			-- Has current a row associated with `a_fault'?
@@ -380,7 +350,7 @@ feature{ES_ADB_PANEL_FAULTS} -- GUI actions
 			evgrid_fixes.set_focus
 		end
 
-feature{NONE} -- Access
+feature {NONE} -- Access
 
 	fault_to_row_table: DS_HASH_TABLE [EV_GRID_ROW, ES_ADB_FAULT]
 			-- Table mapping faults to rows in `evgrid_fixes'.
@@ -394,7 +364,7 @@ feature{NONE} -- Access
 	difference_background_color: EV_COLOR
 			-- Background color of the differences.
 
-feature{NONE} -- Implementation
+feature {NONE} -- Implementation
 
 	clear_internal_state
 			-- Clear panel internal state.
@@ -509,12 +479,13 @@ feature{NONE} -- Implementation
 			Result := [l_character_format, l_format_range]
 		end
 
-feature{NONE} -- Cache
+feature {NONE} -- Cache
 
 	fault_to_row_table_internal: like fault_to_row_table
 
+;
 
-;note
+note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
@@ -545,4 +516,5 @@ feature{NONE} -- Cache
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

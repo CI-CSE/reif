@@ -85,30 +85,30 @@ feature -- Element change
 
 feature -- Adding independent units
 
-	add_type (a_type: CL_TYPE_A)
+	add_type (a_type: E2B_CL_TYPE_A)
 			-- Add type `a_type'.
 		require
 			not_like_type: not a_type.is_like
 			no_formals: not a_type.has_formal_generic
 		do
 			-- print ("E2B_TRANSLATION_POOL.add_type: " + a_type.name + "%N")
-			if not a_type.is_basic and not helper.is_class_any (a_type.base_class) and not helper.is_agent_type (a_type) then
+			if not a_type.is_basic and not a_type.base_class.is_class_any and not a_type.is_agent_type then
 				add_translation_unit (create {E2B_TU_TYPE}.make (a_type))
 				add_translation_unit (create {E2B_TU_INVARIANT}.make (a_type))
 			end
 		end
 
-	add_parent_type (a_type: CL_TYPE_A)
+	add_parent_type (a_type: E2B_CL_TYPE_A)
 			-- Add type `a_type' that is only mentioned as a parent of a used type.
 		require
 			no_formals: not a_type.has_formal_generic
 		do
-			if not a_type.is_basic and not helper.is_class_any (a_type.base_class) then
+			if not a_type.is_basic and not a_type.base_class.is_class_any then
 				add_translation_unit (create {E2B_TU_TYPE}.make (a_type))
 			end
 		end
 
-	add_feature (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_feature (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add signature and implementation of feature `a_feature' of `a_context_type'.
 		require
 			no_formals: not a_context_type.has_formal_generic
@@ -119,7 +119,7 @@ feature -- Adding independent units
 			internal_add_feature (a_feature, a_context_type, False)
 		end
 
-	add_referenced_feature (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_referenced_feature (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add feature `a_feature' in of `a_context_type' as referenced feature.
 		require
 			no_formals: not a_context_type.has_formal_generic
@@ -127,7 +127,7 @@ feature -- Adding independent units
 			internal_add_feature (a_feature, a_context_type, True)
 		end
 
-	add_write_frame_function (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_write_frame_function (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add write frame function of feature `a_feature' of `a_context_type'.
 		require
 			no_formals: not a_context_type.has_formal_generic
@@ -135,7 +135,7 @@ feature -- Adding independent units
 			add_translation_unit (create {E2B_TU_WRITE_FRAME}.make (a_feature, a_context_type))
 		end
 
-	add_read_frame_function (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_read_frame_function (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add read frame function of feature `a_feature' of `a_context_type'.
 		require
 			no_formals: not a_context_type.has_formal_generic
@@ -143,7 +143,7 @@ feature -- Adding independent units
 			add_translation_unit (create {E2B_TU_READ_FRAME}.make (a_feature, a_context_type))
 		end
 
-	add_function_precondition_predicate (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_function_precondition_predicate (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add precondition predicate of feature `a_feature' of `a_context_type'.
 		require
 			no_formals: not a_context_type.has_formal_generic
@@ -154,7 +154,7 @@ feature -- Adding independent units
 			add_translation_unit (l_pre_predicate)
 		end
 
-	add_filtered_invariant_function (a_type: CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+	add_filtered_invariant_function (a_type: E2B_CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C)
 			-- Add invariant function of type `a_type'.
 		require
 			no_formals: not a_type.has_formal_generic
@@ -162,7 +162,7 @@ feature -- Adding independent units
 			add_translation_unit (create {E2B_TU_INVARIANT}.make_filtered (a_type, a_included, a_excluded, a_ancestor))
 		end
 
-	add_postcondition_predicate (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_postcondition_predicate (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add postcondition predicate of feature `a_feature' of `a_context_type'.
 		require
 			no_formals: not a_context_type.has_formal_generic
@@ -173,14 +173,14 @@ feature -- Adding independent units
 			add_translation_unit (l_post_predicate)
 		end
 
-	add_class_check (a_class_type: CL_TYPE_A)
+	add_class_check (a_class_type: E2B_CL_TYPE_A)
 			-- Add validity check for `a_class_type'.
 		require
 			no_formals: not a_class_type.has_formal_generic
 		local
 			l_class: E2B_TU_CLASS
 		do
-			if not helper.is_skipped_class (a_class_type.base_class) then
+			if not (a_class_type.base_class).is_skipped then
 				create l_class.make (a_class_type)
 				add_type (a_class_type)
 				add_translation_unit (l_class)
@@ -207,22 +207,22 @@ feature {NONE} -- Implementation
 			ids.has (a_unit.id)
 		end
 
-	internal_add_feature (a_feature: FEATURE_I; a_context_type: CL_TYPE_A; a_is_referenced: BOOLEAN)
+	internal_add_feature (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A; a_is_referenced: BOOLEAN)
 			-- Add signature and implementation of feature `a_feature' of `a_context_type'.
 			-- If `a_referenced' is true, then only the signature will be created.
 		do
 			if attached a_feature then
-				if a_feature.is_attribute or helper.is_built_in_attribute (a_feature) then
+				if a_feature.is_attribute or a_feature.is_built_in_attribute then
 					add_attribute (a_feature, a_context_type)
 				elseif a_feature.is_routine then
-					if helper.is_feature_logical (a_feature) then
+					if a_feature.is_logical then
 						add_logical (a_feature, a_context_type)
 					else
-						if helper.is_creator_of_class (a_feature, a_context_type.base_class) then
+						if a_feature.is_creator_of_class (a_context_type.base_class) then
 								-- This is a creation routine
 							add_creator (a_feature, a_context_type, a_is_referenced)
 						end
-						if not helper.is_creator (a_feature) then
+						if not a_feature.is_creator then
 								-- Unless the feature is marked as creator, it can be used as a normal routine;
 								-- Note that a non-creation procedure can be marked as creator
 								-- (e.g. if it's supposed to be used as a creation procedure in descendants),
@@ -238,7 +238,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	add_routine (a_feature: FEATURE_I; a_context_type: CL_TYPE_A; a_is_referenced: BOOLEAN)
+	add_routine (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A; a_is_referenced: BOOLEAN)
 			-- Add signature,
 			--     variant functions,
 			--     functional representation (if returns a value)
@@ -254,12 +254,12 @@ feature {NONE} -- Implementation
 			add_translation_unit (l_signature)
 
 				-- Add functional representation
-			if helper.has_functional_representation (a_feature) then
+			if a_feature.has_functional_representation then
 				create l_functional_representation.make (a_feature, a_context_type)
 				add_translation_unit (l_functional_representation)
 			end
 
-			if not a_is_referenced and not a_feature.is_deferred and not helper.is_skipped (a_feature) then
+			if not a_is_referenced and not a_feature.is_deferred and not a_feature.is_skipped then
 					-- Add variant functions
 					-- (has to be processed before the implementation)
 				if options.is_ownership_enabled then
@@ -273,7 +273,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	add_attribute (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_attribute (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add attribute `a_feature' of `a_context_type'.
 		local
 			l_attribute: E2B_TU_ATTRIBUTE
@@ -282,7 +282,7 @@ feature {NONE} -- Implementation
 			add_translation_unit (l_attribute)
 		end
 
-	add_creator (a_feature: FEATURE_I; a_context_type: CL_TYPE_A; a_is_referenced: BOOLEAN)
+	add_creator (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A; a_is_referenced: BOOLEAN)
 			-- Add signature and implementation of creator `a_feature' of `a_context_type'.
 		local
 			l_creator: E2B_TU_CREATOR_SIGNATURE
@@ -290,7 +290,7 @@ feature {NONE} -- Implementation
 		do
 			create l_creator.make (a_feature, a_context_type)
 			add_translation_unit (l_creator)
-			if a_is_referenced or helper.is_skipped (a_feature) or (helper.is_explicit (a_feature, "contracts") and not helper.is_creator (a_feature)) then
+			if a_is_referenced or a_feature.is_skipped or (a_feature.is_explicit ("contracts") and not a_feature.is_creator) then
 					-- Skip if: only referenced, should be skipped or
 					-- contracts are explicit (unless creator), becuase in that case the non-creator version has a stronger spec and the same implementation
 			else
@@ -299,7 +299,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	add_logical (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_logical (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add logical feature `a_feature' of `a_context_type'.
 		local
 			l_logical: E2B_TU_LOGICAL_SIGNATURE

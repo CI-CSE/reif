@@ -19,7 +19,7 @@ create
 
 feature {NONE} -- Initialize
 
-	make (a_target_feature: detachable FEATURE_I; a_target_class: detachable CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE)
+	make (a_target_feature: detachable E2B_FEATURE_I; a_target_class: detachable E2B_CLASS_C; a_ce: E2B_BOOGIE_COUNTEREXAMPLE)
 		local
 			state: E2B_CE_STATE_OF_ROUTINE
 		do

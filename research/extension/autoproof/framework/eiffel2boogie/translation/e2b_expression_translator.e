@@ -95,12 +95,12 @@ feature -- Access
 			-- Last generated expression.
 
 	side_effect: LINKED_LIST [IV_STATEMENT]
-			-- List of side effect statements.			
+			-- List of side effect statements.
 
-	context_feature: FEATURE_I
+	context_feature: E2B_FEATURE_I
 			-- Context of expression.
 
-	context_type: CL_TYPE_A
+	context_type: E2B_CL_TYPE_A
 			-- Context of expression.
 
 	context_line_number: INTEGER
@@ -112,7 +112,7 @@ feature -- Access
 	current_target: IV_EXPRESSION
 			-- Current target.
 
-	current_target_type: CL_TYPE_A
+	current_target_type: E2B_CL_TYPE_A
 			-- Type of current target.
 
 	locals_map: HASH_TABLE [IV_EXPRESSION, INTEGER]
@@ -142,36 +142,37 @@ feature -- Access
 
 feature -- Convenience
 
-	class_type_in_current_context (a_type: TYPE_A): CL_TYPE_A
+	class_type_in_current_context (a_type: TYPE_A): E2B_CL_TYPE_A
 			-- Class type that correspond to `a_type' in the context of `context_type' and possibly `context_feature'.
+			-- It is conciously TYPE_A and not E2B_TYPE_A
 		require
 			a_type_attached: attached a_type
 			context_type_attached: attached context_type
 			context_feature_attached: attached context_feature
 		do
-			Result := helper.class_type_in_context (a_type, context_feature.written_class, context_feature, context_type)
+			Result := (context_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (a_type), context_feature, context_type)
 		end
 
-	feature_class_type (a_feature: FEATURE_I): CL_TYPE_A
-			-- Type of `a_feature' in the context of `current_target_type'			
+	feature_class_type (a_feature: E2B_FEATURE_I): E2B_CL_TYPE_A
+			-- Type of `a_feature' in the context of `current_target_type'
 		require
 			a_feature_attached: attached a_feature
 			current_target_type_attached: attached current_target_type
 		do
-			Result := helper.class_type_in_context (a_feature.type, context_type.base_class, a_feature, context_type)
+			Result := (context_type.base_class).class_type_in_context (a_feature.type, a_feature, context_type)
 		end
 
-	expression_class_type (a_node: EXPR_B): CL_TYPE_A
+	expression_class_type (a_node: EXPR_B): E2B_CL_TYPE_A
 			-- Type of `a_expr' in current context (takes redefinition into account).
 		require
 			a_node_attched: attached a_node
 			current_target_type_attached: attached current_target_type
 		do
 			if attached {EXTERNAL_B} a_node as ext and then ext.is_static_call then
-				Result := feature_class_type (helper.feature_for_call_access (ext, ext.static_class_type))
-			elseif attached { CALL_ACCESS_B } a_node as ca then
+				Result := feature_class_type (helper.feature_for_call_access (ext, create {E2B_TYPE_A}.make (ext.static_class_type)))
+			elseif attached {CALL_ACCESS_B} a_node as ca then
 				Result := feature_class_type (helper.feature_for_call_access (ca, current_target_type))
-			elseif attached { RESULT_B } a_node as res then
+			elseif attached {RESULT_B} a_node as res then
 				check attached context_feature and then context_feature.has_return_value end
 				Result := feature_class_type (context_feature)
 			else
@@ -187,7 +188,7 @@ feature -- Element change
 			current_target := a_expression
 		end
 
-	set_current_target_type (a_type: CL_TYPE_A)
+	set_current_target_type (a_type: E2B_CL_TYPE_A)
 			-- Set `current_target_type' to `a_type'.
 		do
 			current_target_type := a_type
@@ -213,7 +214,7 @@ feature -- Element change
 
 feature -- Basic operations
 
-	set_context (a_feature: FEATURE_I; a_type: CL_TYPE_A)
+	set_context (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Set context of expression to `a_feature' in type `a_type'.
 		require
 			a_feature_attached: attached a_feature
@@ -304,14 +305,14 @@ feature -- Visitors
 	process_array_const_b (a_node: ARRAY_CONST_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest array in contract not supported.", context_line_number)
+			e2b_error.add_unsupported_error (context_feature, {STRING_32} "Manifest array in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
 	process_attribute_b (a_node: ATTRIBUTE_B)
 			-- <Precursor>
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
@@ -326,7 +327,7 @@ feature -- Visitors
 	process_binary (a_node: BINARY_B; a_operator: STRING)
 			-- Process binary node `a_node' with operator `a_operator'.
 		local
-			l_class: CLASS_C
+			l_class: E2B_CLASS_C
 			l_left, l_right: IV_EXPRESSION
 			l_boogie_type: IV_TYPE
 			l_fcall: IV_FUNCTION_CALL
@@ -340,16 +341,16 @@ feature -- Visitors
 			l_boogie_type := types.for_class_type (class_type_in_current_context (a_node.type))
 
 			l_class := class_type_in_current_context (a_node.left.type).base_class
-			if attached l_class and then helper.is_class_logical (l_class) then
+			if attached l_class and then l_class.is_logical then
 				check a_operator ~ "==" or a_operator ~ "!=" end
 				(create {E2B_CUSTOM_LOGICAL_HANDLER}).handle_binary (Current, l_class, l_left, l_right, a_operator)
 			elseif is_in_quantifier and options.is_triggering_on_arithmetic then
 				if a_operator ~ "+" then
-					last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
+					last_expression := factory.function_call ("add", <<l_left, l_right>>, types.int)
 				elseif a_operator ~ "-" then
-					last_expression := factory.function_call ("subtract", << l_left, l_right >>, types.int)
+					last_expression := factory.function_call ("subtract", <<l_left, l_right>>, types.int)
 				elseif a_operator ~ "*" then
-					last_expression := factory.function_call ("multiply", << l_left, l_right >>, types.int)
+					last_expression := factory.function_call ("multiply", <<l_left, l_right>>, types.int)
 				else
 					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 				end
@@ -613,15 +614,15 @@ feature -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, {STRING_32} "Creation expression in contract not supported.", context_line_number)
+			e2b_error.add_unsupported_error (context_feature, {STRING_32} "Creation expression in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
 	process_external_b (a_node: EXTERNAL_B)
 			-- <Precursor>
 		local
-			l_feature: FEATURE_I
-			l_current_type: CL_TYPE_A
+			l_feature: E2B_FEATURE_I
+			l_current_type: E2B_CL_TYPE_A
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_current_type := current_target_type
@@ -644,7 +645,7 @@ feature -- Visitors
 	process_feature_b (a_node: FEATURE_B)
 			-- <Precursor>
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
@@ -737,7 +738,7 @@ feature -- Visitors
 					across_handler_map.remove (l_object_test_local.position)
 				else
 					last_expression := dummy_node (a_node.type)
-					helper.add_semantic_error (context_feature, {STRING_32} "Across over type " + l_class.name_in_upper + " not supported", context_line_number)
+					e2b_error.add_semantic_error (context_feature, {STRING_32} "Across over type " + l_class.name_in_upper + " not supported", context_line_number)
 				end
 				is_in_quantifier := False
 			end
@@ -760,7 +761,7 @@ feature -- Visitors
 		local
 			l_temp_expression: IV_EXPRESSION
 			l_target: IV_EXPRESSION
-			l_target_type: CL_TYPE_A
+			l_target_type: E2B_CL_TYPE_A
 
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
@@ -770,11 +771,11 @@ feature -- Visitors
 				attached {OBJECT_TEST_LOCAL_B} a_node.target as l_object_test_local and then
 				attached across_handler_map.item (l_object_test_local.position) as l_across_handler and then
 				attached {FEATURE_B} if attached {NESTED_B} a_node.message as l_nested then
-						l_nested.target
-					else
-						a_node.message
-					end
-				as l_feature
+					l_nested.target
+				else
+					a_node.message
+				end
+ as l_feature
 			then
 					-- Special mapping of object test local in across loop
 				l_name := l_feature.feature_name.as_lower
@@ -815,7 +816,7 @@ feature -- Visitors
 			else
 				l_temp_expression := last_expression
 
-					-- Evaluate target				
+					-- Evaluate target
 				safe_process (a_node.target)
 
 					-- Use target as new `Current' reference
@@ -867,18 +868,18 @@ feature -- Visitors
 	process_object_test_b (a_node: OBJECT_TEST_B)
 			-- <Precursor>
 		local
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 			l_type_expr, l_expr: IV_EXPRESSION
 			object_test_local: like last_local
 		do
 			safe_process (a_node.expression)
 			l_expr := last_expression
 			l_type := class_type_in_current_context
-				(if a_node.is_void_check then
-					a_node.expression.type
-				else
-					a_node.target.type
-				end)
+					(if a_node.is_void_check then
+						a_node.expression.type
+					else
+						a_node.target.type
+					end)
 			if
 				attached a_node.target as t and then
 				attached context_implementation and then
@@ -907,9 +908,9 @@ feature -- Visitors
 					-- Check for possible unboxing of basic types
 				if a_node.expression.type.is_reference then
 					if a_node.target.type.is_boolean then
-						l_expr := factory.function_call ("unboxed_bool", << l_expr >>, types.bool)
+						l_expr := factory.function_call ("unboxed_bool", <<l_expr>>, types.bool)
 					elseif a_node.target.type.is_integer or a_node.target.type.is_natural then
-						l_expr := factory.function_call ("unboxed_int", << l_expr >>, types.int)
+						l_expr := factory.function_call ("unboxed_int", <<l_expr>>, types.int)
 					end
 				end
 				locals_map.force (l_expr, a_node.target.position)
@@ -931,7 +932,7 @@ feature -- Visitors
 			-- <Precursor>
 		local
 			l_target: IV_EXPRESSION
-			l_target_type: CL_TYPE_A
+			l_target_type: E2B_CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
 		do
 			check not parameters_stack.is_empty end
@@ -974,14 +975,14 @@ feature -- Visitors
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, {STRING_32} "Agents in contract not supported.", context_line_number)
+			e2b_error.add_unsupported_error (context_feature, {STRING_32} "Agents in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest string not supported.", context_line_number)
+			e2b_error.add_unsupported_error (context_feature, {STRING_32} "Manifest string not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -989,23 +990,23 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			last_expression := factory.heap_access (
-				entity_mapping.heap,
-				current_target,
-				name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
-				types.for_class_type (class_type_in_current_context (a_node.type)))
+					entity_mapping.heap,
+					current_target,
+					name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
+					types.for_class_type (class_type_in_current_context (a_node.type)))
 		end
 
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest tuple in contract not supported.", context_line_number)
+			e2b_error.add_unsupported_error (context_feature, {STRING_32} "Manifest tuple in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
 	process_type_expr_b (a_node: TYPE_EXPR_B)
 			-- <Precursor>
 		local
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 		do
 			l_type := class_type_in_current_context (a_node.type_type)
 			translation_pool.add_type (l_type)
@@ -1015,7 +1016,7 @@ feature -- Visitors
 	process_un_free_b (a_node: UN_FREE_B)
 			-- <Precursor>
 		do
-			-- TODO: implement
+				-- TODO: implement
 		end
 
 	process_un_minus_b (a_node: UN_MINUS_B)
@@ -1043,7 +1044,7 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			safe_process (a_node.expr)
-			-- Nothing to do, there is no unary plus in Boogie
+				-- Nothing to do, there is no unary plus in Boogie
 		end
 
 	process_void_b (a_node: VOID_B)
@@ -1054,7 +1055,7 @@ feature -- Visitors
 
 feature -- Translation
 
-	process_attribute_call (a_feature: FEATURE_I)
+	process_attribute_call (a_feature: E2B_FEATURE_I)
 			-- Process call to attribute `a_feature'.
 		require
 			is_attribute: a_feature.is_attribute
@@ -1077,14 +1078,14 @@ feature -- Translation
 			end
 		end
 
-	process_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
 			-- Process feature call.
 		require
 			not_attribute: a_feature.is_routine
 		deferred
 		end
 
-	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- Process feature call with custom handler.
 		deferred
 		end
@@ -1156,7 +1157,7 @@ feature -- Translation
 		end
 
 	restore_side_effect (a_side_effect: like side_effect)
-			-- Set `side_effect' to `a_side_effect'.			
+			-- Set `side_effect' to `a_side_effect'.
 		do
 			side_effect := a_side_effect
 		end
@@ -1177,7 +1178,7 @@ feature -- Translation
 			-- Process `a_expr' in the context of the routine.
 		local
 			l_target: IV_EXPRESSION
-			l_target_type: CL_TYPE_A
+			l_target_type: E2B_CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
 		do
 			l_target := current_target
@@ -1196,38 +1197,38 @@ feature -- Translation
 			current_target_type := l_target_type
 		end
 
-	last_set_content_type: CL_TYPE_A
+	last_set_content_type: E2B_CL_TYPE_A
 			-- Type of the set content for the last successful call to `process_as_set'.
 
 	process_as_set (a_expr: EXPR_B; a_content_type: IV_TYPE)
 			-- Process `a_expr' of a logical type and convert it to a set of `a_content_type';
 			-- if not possible issue a validity error.
 		local
-			l_expr_type: CL_TYPE_A
-			l_class: CLASS_C
-			l_feature: FEATURE_I
+			l_expr_type: E2B_CL_TYPE_A
+			l_class: E2B_CLASS_C
+			l_feature: E2B_FEATURE_I
 			l_conversion: READABLE_STRING_8
-			t: CL_TYPE_A
+			t: E2B_CL_TYPE_A
 		do
 			safe_process (a_expr)
 
 			l_expr_type := class_type_in_current_context (a_expr.type)
 			l_class := l_expr_type.base_class
 			l_feature := l_class.feature_named ("new_cursor")
-			l_conversion := helper.function_for_logical (l_feature)
+			l_conversion := l_feature.function_for_logical
 			if l_conversion = Void then
-				helper.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
+				e2b_error.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
 			else
-				t := helper.class_type_in_context (l_feature.type, l_feature.written_class, l_feature, l_expr_type)
-				if attached {CL_TYPE_A} t.generics.first as c then
+				t := l_feature.written_class.class_type_in_context (l_feature.type, l_feature, l_expr_type)
+				if attached {E2B_CL_TYPE_A} t.generics.first as c then
 					last_set_content_type := c
-				elseif attached {CL_TYPE_A} t.base_class.single_constraint (1) as c then
+				elseif attached {E2B_CL_TYPE_A} t.base_class.single_constraint (1) as c then
 					last_set_content_type := c
 				else
 					check class_type_constraint: False then end
 				end
 				if not l_conversion.is_empty then
-					last_expression := factory.function_call (l_conversion, << last_expression >>, types.set (a_content_type))
+					last_expression := factory.function_call (l_conversion, <<last_expression>>, types.set (a_content_type))
 				end
 			end
 		end
@@ -1247,13 +1248,13 @@ feature -- Translation
 			-- Add void check for the target of `a_node' if needed.
 		do
 			if not (current_target_type.is_expanded or
-					helper.is_class_logical (current_target_type.base_class) or
-					(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
+						current_target_type.base_class.is_logical or
+						(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
 				add_safety_check (factory.not_equal (current_target, factory.void_), "attached", context_tag, context_line_number)
 			end
 		end
 
-	add_function_precondition_check (a_feature: FEATURE_I; a_fcall: IV_FUNCTION_CALL)
+	add_function_precondition_check (a_feature: E2B_FEATURE_I; a_fcall: IV_FUNCTION_CALL)
 			-- Check the precondition of the function call `a_fcall' of `a_feature'.
 		local
 			l_fname: READABLE_STRING_8
@@ -1262,7 +1263,7 @@ feature -- Translation
 			l_fname := name_translator.boogie_function_for_feature (a_feature, current_target_type, False)
 				-- Add check
 				-- Note: here we assume that there is no default precondition!
-			if helper.has_flat_precondition (a_feature) then
+			if a_feature.has_flat_precondition then
 				create l_pre_call.make (name_translator.boogie_function_precondition (l_fname), types.bool)
 				across a_fcall.arguments as args loop
 					l_pre_call.add_argument (args)
@@ -1283,15 +1284,15 @@ feature -- Translation
 --			end
 		end
 
-	add_read_frame_check (a_feature: FEATURE_I)
+	add_read_frame_check (a_feature: E2B_FEATURE_I)
 			-- If there is a read frame, check that `a_feature's read frame is a subframe of it.
 		local
 			l_fcall: IV_FUNCTION_CALL
 		do
-			if context_readable /= Void and helper.has_functional_representation (a_feature) then
+			if context_readable /= Void and a_feature.has_functional_representation then
 				create l_fcall.make (name_translator.boogie_function_for_read_frame (a_feature, current_target_type), types.frame)
 				l_fcall.add_argument (entity_mapping.heap)
-				if not helper.is_static (a_feature) then
+				if not a_feature.is_static then
 					l_fcall.add_argument (current_target)
 				end
 				l_fcall.arguments.append (last_parameters)
@@ -1331,11 +1332,11 @@ feature -- Translation
 					factory.and_ (l_type.rank_leq (e1, e2), factory.not_ (l_type.rank_leq (e2, e1)))]
 				l_check_list.extend (l_eq_less)
 				if l_new_variants [i].type.is_integer then
-					-- Add bounds check, since integers are not already bounded from below;
-					-- more precisely, for variant k check:
-        					-- new[1] < old[1] || ... || new[k-1] < old[k-1] || new[k] == old[k] || 0 <= old[k]
+						-- Add bounds check, since integers are not already bounded from below;
+						-- more precisely, for variant k check:
+						-- new[1] < old[1] || ... || new[k-1] < old[k-1] || new[k] == old[k] || 0 <= old[k]
 					add_safety_check (factory.or_clean (l_bounds_check_guard,
-													factory.or_ (l_eq_less.eq, factory.less_equal (factory.int_value (0), l_old_variants [i]))),
+							factory.or_ (l_eq_less.eq, factory.less_equal (factory.int_value (0), l_old_variants [i]))),
 						"termination", "bounded", context_line_number)
 					last_safety_check.node_info.set_attribute ("varid", i.out)
 				end
@@ -1345,7 +1346,7 @@ feature -- Translation
 			end
 
 			if not l_check_list.is_empty then
-				-- Go backward through the list and generate "less1 || (eq1 && (less2 || ... eq<n-1> && less<n>))"
+					-- Go backward through the list and generate "less1 || (eq1 && (less2 || ... eq<n-1> && less<n>))"
 				l_check := l_check_list.last.less
 				from
 					i := l_check_list.count - 1
@@ -1358,12 +1359,11 @@ feature -- Translation
 				end
 				add_safety_check (l_check, "termination", "variant_decreases", context_line_number)
 			else
-				-- Explicitly marked as possibly non-terminating: do not generate any checks
+					-- Explicitly marked as possibly non-terminating: do not generate any checks
 			end
 		end
 
-
-	add_recursion_termination_check (a_feature: FEATURE_I)
+	add_recursion_termination_check (a_feature: E2B_FEATURE_I)
 			-- Add termination check for a call to routine `a_feature' with actual arguments `a_parameters' in the current context.
 		local
 			l_caller_variant, l_callee_variant: IV_FUNCTION_CALL
@@ -1371,9 +1371,9 @@ feature -- Translation
 			l_decreases_fun: IV_FUNCTION
 			i, j: INTEGER
 		do
-			-- If we are inside a routine and calling the same routine (recursive call)
+				-- If we are inside a routine and calling the same routine (recursive call)
 			if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
-												context_feature.feature_id = a_feature.feature_id then
+				context_feature.feature_id = a_feature.feature_id then
 				from
 					i := 1
 					create l_caller_variants.make (3)
@@ -1385,7 +1385,7 @@ feature -- Translation
 					check checked_when_creating: l_decreases_fun.type.has_rank end
 					create l_callee_variant.make (l_decreases_fun.name, l_decreases_fun.type)
 					l_callee_variant.add_argument (entity_mapping.heap)
-					if not helper.is_static (a_feature) then
+					if not a_feature.is_static then
 						l_callee_variant.add_argument (current_target)
 					end
 					l_callee_variant.arguments.append (last_parameters)
@@ -1393,7 +1393,7 @@ feature -- Translation
 
 					create l_caller_variant.make (l_decreases_fun.name, l_decreases_fun.type)
 					l_caller_variant.add_argument (factory.old_ (entity_mapping.heap))
-					if not helper.is_static (a_feature) then
+					if not a_feature.is_static then
 						l_caller_variant.add_argument (entity_mapping.current_expression)
 					end
 					from
@@ -1413,7 +1413,6 @@ feature -- Translation
 			end
 		end
 
-
 feature -- Implementation
 
 	parameters_stack: LINKED_STACK [LINKED_LIST [IV_EXPRESSION]]
@@ -1426,7 +1425,7 @@ feature -- Implementation
 			-- Last created local.
 
 	local_writable: detachable IV_EXPRESSION
-			-- Local writable frame of the enclosing context.			
+			-- Local writable frame of the enclosing context.
 
 	create_iterator (a_type: IV_TYPE)
 			-- Create new unbound iterator.
@@ -1439,8 +1438,9 @@ feature -- Implementation
 
 	dummy_node (a_type: TYPE_A): IV_EXPRESSION
 			-- Dummy node for type `a_type'.
+			-- This is on purpose still TYPE_A and not E2B_TYPE_A
 		do
-			Result := factory.function_call ("unsupported", << >>, types.for_class_type (class_type_in_current_context (a_type)))
+			Result := factory.function_call ("unsupported", <<>>, types.for_class_type (class_type_in_current_context (a_type)))
 		end
 
 	process_semistrict (a_condition: IV_EXPRESSION; a_expr: EXPR_B)
@@ -1458,7 +1458,7 @@ feature {E2B_CUSTOM_OWNERSHIP_HANDLER, E2B_CUSTOM_AGENT_CALL_HANDLER, E2B_CUSTOM
 
 feature {E2B_CUSTOM_OWNERSHIP_HANDLER, E2B_CUSTOM_AGENT_CALL_HANDLER, E2B_CUSTOM_STRING_HANDLER} -- Modification
 
-	create_local (t: CL_TYPE_A)
+	create_local (t: E2B_CL_TYPE_A)
 			-- Create a new local with type `t`.
 		require
 			attached context_implementation
@@ -1482,16 +1482,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

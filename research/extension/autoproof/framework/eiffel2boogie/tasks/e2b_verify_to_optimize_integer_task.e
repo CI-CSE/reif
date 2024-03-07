@@ -17,7 +17,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_boogie_universe: IV_UNIVERSE; a_target_class: CLASS_C; a_target_feature: FEATURE_I; a_target_variables: HASH_TABLE[LINKED_LIST [STRING], FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_tasks: like remaining_tasks)
+	make (a_boogie_universe: IV_UNIVERSE; a_target_class: E2B_CLASS_C; a_target_feature: E2B_FEATURE_I; a_target_variables: HASH_TABLE[LINKED_LIST [STRING], E2B_FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
 			target_class := a_target_class
@@ -108,13 +108,13 @@ feature {NONE} -- Implementation
 	l_context: E2B_SHARED_CONTEXT
 			-- Verification context
 
-    target_variables: HASH_TABLE[LINKED_LIST [STRING], FEATURE_I]
+    target_variables: HASH_TABLE[LINKED_LIST [STRING], E2B_FEATURE_I]
             -- Variables to be optimized
 
-	target_feature: detachable FEATURE_I
+	target_feature: detachable E2B_FEATURE_I
 			-- Feature under optimization
 
-	target_class: detachable CLASS_C
+	target_class: detachable E2B_CLASS_C
 			-- Class of the target feature
 
     failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]

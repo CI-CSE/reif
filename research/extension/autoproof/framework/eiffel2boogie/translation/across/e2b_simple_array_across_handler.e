@@ -46,8 +46,8 @@ feature {NONE} -- Implementation
 			-- <Precursor>
 		local
 			l_content_type: IV_TYPE
-			l_class: CLASS_C
-			l_seq_feature: FEATURE_I
+			l_class: E2B_CLASS_C
+			l_seq_feature: E2B_FEATURE_I
 			l_heap_access: IV_EXPRESSION
 		do
 			if
@@ -55,12 +55,16 @@ feature {NONE} -- Implementation
 				l_type.generics.count = 1 and then
 				attached {CL_TYPE_A} l_type.generics.first as l_gen_type
 			then
-				l_class := l_type.base_class
+				create l_class.make (l_type.base_class)
 				l_seq_feature := l_class.feature_named ("sequence")
-				l_content_type := types.for_class_type (l_gen_type)
+				l_content_type := types.for_class_type (create {E2B_CL_TYPE_A}.make (l_gen_type))
 
 				domain.process (expression_translator)
-				l_heap_access := factory.heap_access (expression_translator.entity_mapping.heap, expression_translator.last_expression, name_translator.boogie_procedure_for_feature (l_seq_feature, l_type), l_content_type)
+				l_heap_access := factory.heap_access (
+					expression_translator.entity_mapping.heap,
+					expression_translator.last_expression,
+					name_translator.boogie_procedure_for_feature (l_seq_feature, create {E2B_CL_TYPE_A}.make (l_type)),
+					l_content_type)
 				set := factory.function_call ("Seq#Range", << l_heap_access >>, types.set (l_content_type))
 			end
 		end
@@ -83,4 +87,20 @@ feature {NONE} -- Implementation
 			a_quantifier.add_trigger (guard (a_quantifier.bound_variables.first.entity))
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

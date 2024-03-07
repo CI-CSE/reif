@@ -11,7 +11,7 @@ inherit
 
 feature -- Status report
 
-	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
+	is_handling_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
 			Result := (translation_mapping.builtin_any_functions.has (a_feature.feature_name) or
@@ -22,7 +22,7 @@ feature -- Status report
 
 feature -- Basic operations
 
-	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
 			l_name: STRING
@@ -82,14 +82,14 @@ feature -- Basic operations
 			end
 		end
 
-	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
 			l_name: STRING
 			l_type: IV_TYPE
 			l_tag_filters: LIST [STRING]
-			l_attr: FEATURE_I
-			l_partial_inv_class: CLASS_C
+			l_attr: E2B_FEATURE_I
+			l_partial_inv_class: E2B_CLASS_C
 		do
 			l_name := a_feature.feature_name
 			if translation_mapping.builtin_any_functions.has (l_name) then
@@ -125,15 +125,15 @@ feature -- Basic operations
 				elseif l_name ~ "is_field_writable" then
 					if attached {STRING_B} a_parameters.first.expression as l_string then
 						-- ToDo: can origin class be different?
-						l_attr := helper.attribute_from_string (l_string.value, a_translator.current_target_type, a_translator.current_target_type.base_class, a_translator.context_feature, a_translator.context_line_number)
+						l_attr := a_translator.current_target_type.base_class.attribute_from_string (l_string.value, a_translator.current_target_type, a_translator.context_feature, a_translator.context_line_number)
 						if attached l_attr then
 							a_translator.set_last_expression (factory.frame_access (
 								a_translator.context_writable,
 								a_translator.current_target,
-								helper.field_from_attribute (l_attr, a_translator.current_target_type)))
+								l_attr.field_from_attribute (a_translator.current_target_type)))
 						end
 					else
-						helper.add_semantic_error (a_translator.context_feature, messages.first_argument_string, a_translator.context_line_number)
+						e2b_error.add_semantic_error (a_translator.context_feature, messages.first_argument_string, a_translator.context_line_number)
 					end
 				elseif l_name ~ "is_fully_writable" then
 					a_translator.set_last_expression (factory.function_call (
@@ -143,18 +143,18 @@ feature -- Basic operations
 				elseif l_name ~ "is_field_readable" then
 					if attached a_translator.context_readable then
 						if attached {STRING_B} a_parameters.first.expression as l_string then
-							l_attr := helper.attribute_from_string (l_string.value, a_translator.current_target_type, a_translator.current_target_type.base_class, a_translator.context_feature, a_translator.context_line_number)
+							l_attr := a_translator.current_target_type.base_class.attribute_from_string (l_string.value, a_translator.current_target_type, a_translator.context_feature, a_translator.context_line_number)
 							if attached l_attr then
 								a_translator.set_last_expression (factory.frame_access (
 									a_translator.context_readable,
 									a_translator.current_target,
-									helper.field_from_attribute (l_attr, a_translator.current_target_type)))
+									l_attr.field_from_attribute (a_translator.current_target_type)))
 							end
 						else
-							helper.add_semantic_error (a_translator.context_feature, messages.first_argument_string, a_translator.context_line_number)
+							e2b_error.add_semantic_error (a_translator.context_feature, messages.first_argument_string, a_translator.context_line_number)
 						end
 					else
-						helper.add_semantic_warning (a_translator.context_feature, messages.invalid_context_for_read_predicate, a_translator.context_line_number)
+						e2b_error.add_semantic_warning (a_translator.context_feature, messages.invalid_context_for_read_predicate, a_translator.context_line_number)
 						a_translator.set_last_expression (factory.true_)
 					end
 				elseif l_name ~ "is_fully_readable" then
@@ -164,7 +164,7 @@ feature -- Basic operations
 							<< a_translator.context_readable, a_translator.current_target>>,
 							types.bool))
 					else
-						helper.add_semantic_warning (a_translator.context_feature, messages.invalid_context_for_read_predicate, a_translator.context_line_number)
+						e2b_error.add_semantic_warning (a_translator.context_feature, messages.invalid_context_for_read_predicate, a_translator.context_line_number)
 						a_translator.set_last_expression (factory.true_)
 					end
 				elseif l_name ~ "transitive_owns" then
@@ -214,7 +214,7 @@ feature -- Basic operations
 			end
 		end
 
-	check_valid_class_inv_tags (a_class: CLASS_C; a_context_feature: FEATURE_I; a_line_number: INTEGER; a_tags: LIST [READABLE_STRING_8])
+	check_valid_class_inv_tags (a_class: E2B_CLASS_C; a_context_feature: E2B_FEATURE_I; a_line_number: INTEGER; a_tags: LIST [READABLE_STRING_8])
 			-- Check if `a_tags' only lists valid class invariant of `a_class'.
 			-- Otherwise report error in feature `a_context_feature'.
 		local
@@ -237,14 +237,14 @@ feature -- Basic operations
 					l_string.append ({STRING_32} ", ")
 				end
 				l_string.remove_tail (2)
-				helper.add_semantic_error (a_context_feature, messages.invalid_tag (l_string, a_class.name_in_upper), a_line_number)
+				e2b_error.add_semantic_error (a_context_feature, messages.invalid_tag (l_string, a_class.name_in_upper), a_line_number)
 			end
 		end
 
-	check_flat_inv_tags (a_class: CLASS_C; a_tags: LIST [READABLE_STRING_8])
+	check_flat_inv_tags (a_class: E2B_CLASS_C; a_tags: LIST [READABLE_STRING_8])
 			-- Remove from `a_tags' all class invariant tags present in `a_class' and its ancestors.
 		local
-			l_classes: FIXED_LIST [CLASS_C]
+			l_classes: FIXED_LIST [E2B_CLASS_C]
 		do
 			if inv_byte_server.has (a_class.class_id) then
 				across
@@ -268,7 +268,7 @@ feature -- Basic operations
 			end
 		end
 
-	pre_builtin_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I)
+	pre_builtin_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I)
 			-- Insert code before calling a built-in procedure `a_feature_name'.
 		local
 			l_type_translator: E2B_TYPE_TRANSLATOR
@@ -282,7 +282,7 @@ feature -- Basic operations
 					create l_type_translator
 					l_type_translator.translate_inline_invariant_check (a_translator.current_target_type, a_translator.current_target)
 
-					across helper.ghost_attributes (a_translator.current_target_type.base_class) as a loop
+					across a_translator.current_target_type.base_class.ghost_attributes as a loop
 						set_implicit_ghost (a_translator, a)
 					end
 
@@ -306,7 +306,7 @@ feature -- Basic operations
 			end
 		end
 
-	post_builtin_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I)
+	post_builtin_call (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I)
 			-- Insert code after calling a built-in procedure `a_feature_name'.
 		local
 			l_assume: IV_ASSERT
@@ -328,8 +328,8 @@ feature -- Basic operations
 						<< a_translator.entity_mapping.heap, a_translator.current_target >>,
 						types.bool))
 					a_translator.side_effect.extend (l_assume)
-					if not helper.is_manual_inv (a_translator.context_feature)
-						and not helper.is_manual_inv_class (a_translator.context_type.base_class) then
+					if not a_translator.context_feature.is_manual_inv
+						and not a_translator.context_type.base_class.is_manual_inv then
 						create l_assume.make_assume (factory.function_call ("inv_frame_trigger", << a_translator.current_target >>, types.bool))
 						a_translator.side_effect.extend (l_assume)
 					end
@@ -343,11 +343,11 @@ feature -- Basic operations
 				-- Yes if the current target is "Current" and the context feature is not marked as nonvariant,
 				-- or the type of the target is exact.
 			Result := (a_translator.current_target.same_expression (a_translator.entity_mapping.current_expression) and
-				not helper.is_nonvariant (a_translator.context_feature)) or
-				helper.is_type_exact (a_translator.current_target_type, a_translator.current_target_type, a_translator.context_feature)
+				not a_translator.context_feature.is_nonvariant ) or
+				a_translator.current_target_type.is_type_exact (a_translator.current_target_type, a_translator.context_feature)
 		end
 
-	set_implicit_ghost (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_attr: FEATURE_I)
+	set_implicit_ghost (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_attr: E2B_FEATURE_I)
 			-- If the definition of `a_attr' in `current_target_type' is statically known,
 			-- generate a guarded update and store it in the side effect of `a_translator'.
 		local
@@ -359,7 +359,7 @@ feature -- Basic operations
 		do
 				-- Get definition of `a_field_name' for `current_target_type';
 				-- if it exists, generate a guarded assignment.			
-			l_field := helper.field_from_attribute (a_attr, a_translator.current_target_type)
+			l_field := a_attr.field_from_attribute (a_translator.current_target_type)
 			l_function := boogie_universe.function_named (
 				name_translator.boogie_function_for_ghost_definition (a_translator.current_target_type, l_field.name))
 			if attached l_function then

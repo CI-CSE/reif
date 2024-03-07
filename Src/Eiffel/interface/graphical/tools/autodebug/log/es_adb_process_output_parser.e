@@ -40,14 +40,12 @@ feature -- Operation
 			l_tag: STRING
 			l_tag_end_index: INTEGER
 			l_value: STRING
-			l_ce_path, l_tc_path: PATH
+			l_tc_path: PATH
 			l_test: ES_ADB_TEST
 			l_file_name, l_class_under_test_str: STRING
 			l_column_index, l_semicolumn_index: INTEGER
 			l_fault_id, l_fix_id: STRING
 			l_fault: ES_ADB_FAULT
-			l_ce_trace: AFX_CE_TRACES_OF_ROUTINE
-			l_temp_trace: AFX_PROGRAM_EXECUTION_TRACE
 		do
 			from
 				l_started := False

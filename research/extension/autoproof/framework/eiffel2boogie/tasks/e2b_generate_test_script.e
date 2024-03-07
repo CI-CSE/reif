@@ -68,13 +68,13 @@ feature -- Files and data
 	sequence_lengths: HASH_TABLE [STRING, STRING]
 			-- Sequences's lengths
 
-	target_feature: FEATURE_I
+	target_feature: E2B_FEATURE_I
 			-- Feature to test
 
-	target_class: CLASS_C
+	target_class: E2B_CLASS_C
 			-- Class of the target feature
 
-	creation_procedure: FEATURE_I
+	creation_procedure: E2B_FEATURE_I
 			-- Creation procedure of the target class
 
 	initial_state: E2B_INITIAL_STATE_OF_ROUTINE
@@ -179,7 +179,7 @@ feature -- Test generation
 			argument_name: STRING
 			class_name, routine_name: STRING
 			j: INTEGER
-			current_type, argument_type, result_type: TYPE_A
+			current_type, argument_type, result_type: E2B_TYPE_A
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.generate_test%N")
 			references_to_declare.wipe_out
@@ -245,15 +245,15 @@ feature -- Test generation
 			Result := "%T%T%T" + safe_object_name (object_name) + ": " + safe_type_name (object_type) + "%N"
 		end
 
-	creation_routine_call (object_type: TYPE_A): STRING
+	creation_routine_call (object_type: E2B_TYPE_A): STRING
 			-- The first creation procedure of `type'
 		local
 			t: STRING
-			arg_type: TYPE_A
+			arg_type: E2B_TYPE_A
 			i: INTEGER
 			creators_keys: ARRAY [INTEGER]
-			l_class: CLASS_C
-			l_creation_procedure: FEATURE_I
+			l_class: E2B_CLASS_C
+			l_creation_procedure: E2B_FEATURE_I
 		do
 			-- print ("E2B_GENERATE_TEST_SCRIPT.creation_routine_call:" + object_type.name + "%N")
 			t := ""; Result := ""
@@ -302,7 +302,7 @@ feature -- Test generation
 			Result.copy (t)
 		end
 
-	create_object (object_name: STRING; object_type: TYPE_A): STRING
+	create_object (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Creation of all object references
 		do
 				-- print ("E2B_GENERATE_TEST_SCRIPT.create_object%N")
@@ -322,7 +322,7 @@ feature -- Test generation
 			end
 		end
 
-	instantiate_object (object_name: STRING; object_type: TYPE_A): STRING
+	instantiate_object (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Instantiate an object
 		local
 			t, class_name_: STRING
@@ -349,12 +349,12 @@ feature -- Test generation
 			Result := "%T%T%T" + safe_object_name (object_name) + " := " + object_value + "%N"
 		end
 
-	instantiate_object_reference (object_name: STRING; object_type: TYPE_A): STRING
+	instantiate_object_reference (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Initialize an object reference 'object_name' based on the given counterexample `m'
 		local
 			t, field_name, field_value: STRING
 			i: INTEGER
-			field_type: TYPE_A
+			field_type: E2B_TYPE_A
 		do
 			t := ""; field_name := ""; field_value := ""; Result := ""
 			if is_void (object_name) then
@@ -372,7 +372,7 @@ feature -- Test generation
 						-- object_type.base_class.skeleton [i]
 					field_name := object_type.base_class.skeleton [i].attribute_name -- object.field
 
-					field_type := safe_type (object_type.base_class.skeleton [i].type_i)
+					field_type := safe_type (create {E2B_TYPE_A}.make (object_type.base_class.skeleton [i].type_i))
 					if not is_ignored_field (field_name, field_type) then
 						if is_basic_type (field_type.name) then
 							t := t + instantiate_basic_field (object_name, field_name, field_type.actual_type.name, i)
@@ -476,7 +476,7 @@ feature -- Test generation
 			Result := "%T%T%T" + safe_object_name (object_name) + "." + force_routine_name + " (" + safe_item_value (item_value, object_type) + ", " + i.out + ")%N"
 		end
 
-	instantiate_container_object (object_name: STRING; object_type: TYPE_A): STRING
+	instantiate_container_object (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Instantiate an object of container type based on the given counterexample model `m'
 		local
 			t, value, item_value: STRING
@@ -572,11 +572,11 @@ feature -- Name conversion
 			end
 		end
 
-	safe_type (object_type: TYPE_A): TYPE_A
+	safe_type (object_type: E2B_TYPE_A): E2B_TYPE_A
 			-- Return a concrete type from a generic type
 		local
-			l_class: CLASS_C
-			des_classes: ARRAYED_LIST [CLASS_C]
+			l_class: E2B_CLASS_C
+			des_classes: ARRAYED_LIST [E2B_CLASS_C]
 		do
 			l_class := object_type.base_class
 			create des_classes.make (0)
@@ -748,7 +748,7 @@ feature -- Properties checking
 			end
 		end
 
-	is_ignored_field (name: STRING; type: TYPE_A): BOOLEAN
+	is_ignored_field (name: STRING; type: E2B_TYPE_A): BOOLEAN
 		do
 			Result := (type.name.same_string ("V_LINKABLE_INTEGER") and (name.same_string ("right"))) or -- `right' in V_LINKABLE_INTEGER
 				(type.name.same_string ("V_DOUBLY_LINKABLE_INTEGER") and (name.same_string ("left") or name.same_string ("right"))) or

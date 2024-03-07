@@ -15,7 +15,7 @@ create
 
 feature {NONE} -- Initialization
 	-- remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_EVALUATE_TASK}.make (options.last_result, options.target_feature, result_generator, remaining_tasks))
-	make (a_target_feature: FEATURE_I; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
+	make (a_target_feature: E2B_FEATURE_I; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
 			-- print ("E2B_VERIFY_FOR_FIX_EVALUATE_TASK.make%N")
@@ -170,7 +170,7 @@ feature {NONE} -- Implementation
 	result_generator: attached E2B_RESULT_GENERATOR
 			-- Result generator.
 
-	target_feature: detachable FEATURE_I
+	target_feature: detachable E2B_FEATURE_I
 			-- Feature under optimization
 
 	failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]

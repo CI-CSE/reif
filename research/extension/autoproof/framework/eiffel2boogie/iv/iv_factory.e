@@ -75,7 +75,7 @@ feature -- Values
 			create Result.make (l_temp, types.real)
 		end
 
-	type_value (a_value: CL_TYPE_A): IV_VALUE
+	type_value (a_value: E2B_CL_TYPE_A): IV_VALUE
 			-- Value for integer `a_value'.
 		do
 			create Result.make (name_translator.boogie_name_for_type (a_value), types.type)
@@ -383,7 +383,7 @@ feature -- Framing
 			create Result.make (a_frame, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<< a_obj, a_field >>))
 		end
 
-	writes_routine_frame (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_boogie_procedure: IV_PROCEDURE): IV_EXPRESSION
+	writes_routine_frame (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_boogie_procedure: IV_PROCEDURE): IV_EXPRESSION
 			-- Boolean expression stating that only the modifies set of `a_feature' in `a_type' (translated into `a_boogie_procedure')
 			-- has changed between the old heap and the current heap.
 		local
@@ -396,7 +396,7 @@ feature -- Framing
 			across a_boogie_procedure.arguments as i loop
 				l_fcall.add_argument (i.entity)
 			end
-			if helper.is_setter (a_feature) then
+			if a_feature.is_setter then
 				Result := function_call ("flat_same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
 			else
 				Result := function_call ("same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
@@ -409,7 +409,7 @@ feature -- Framing
 
 feature -- Axioms
 
-	add_dynamic_predicate_definition (a_call, a_body: IV_EXPRESSION; a_type: CL_TYPE_A; a_heap, a_current: IV_ENTITY; a_extra_vars: ARRAY [IV_ENTITY])
+	add_dynamic_predicate_definition (a_call, a_body: IV_EXPRESSION; a_type: E2B_CL_TYPE_A; a_heap, a_current: IV_ENTITY; a_extra_vars: ARRAY [IV_ENTITY])
 			-- Add axioms that define predicate `a_call' as `a_body' if the dynamic type of `a_current' is `a_type',
 			-- and state that this definition can only be strengthened in descendants.
 		local

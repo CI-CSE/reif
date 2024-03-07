@@ -136,7 +136,7 @@ feature {NONE} -- Basic operations
 			autoproof.reset
 
 			if attached {FEATURE_STONE} a_stone as s then
-				autoproof.add_feature (s.e_feature.associated_feature_i)
+				autoproof.add_feature (create {E2B_FEATURE_I}.make (s.e_feature.associated_feature_i))
 			elseif attached {CLASSI_STONE} a_stone as s then
 				load_class (s.class_i)
 			elseif attached {CLUSTER_STONE} a_stone as s then
@@ -278,10 +278,10 @@ feature {NONE} -- Basic operations
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
 		local
-			l_class_c: CLASS_C
+			l_class_c: E2B_CLASS_C
 		do
 			if a_class.is_compiled then
-				l_class_c := a_class.compiled_class
+				create l_class_c.make (a_class.compiled_class)
 				check l_class_c /= Void end
 				autoproof.add_class (l_class_c)
 			end

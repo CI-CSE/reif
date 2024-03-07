@@ -21,7 +21,7 @@ inherit
 
 feature -- Access
 
-	boogie_procedure_for_feature (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): READABLE_STRING_8
+	boogie_procedure_for_feature (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie procedure that encodes `a_feature'.
 		require
 			a_feature_attached: attached a_feature
@@ -38,7 +38,7 @@ feature -- Access
 			result_valid: is_valid_feature_name (Result)
 		end
 
-	boogie_procedure_for_creator (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): READABLE_STRING_8
+	boogie_procedure_for_creator (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie procedure that encodes `a_feature' used as a creation procedure.
 		require
 			a_feature_attached: attached a_feature
@@ -55,7 +55,7 @@ feature -- Access
 			result_valid: is_valid_feature_name (Result)
 		end
 
-	boogie_function_for_feature (a_feature: FEATURE_I; a_context_type: CL_TYPE_A; a_uninterpreted: BOOLEAN): READABLE_STRING_8
+	boogie_function_for_feature (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A; a_uninterpreted: BOOLEAN): READABLE_STRING_8
 			-- Name of the boogie function that encodes the result of `a_feature'.
 		require
 			a_feature_attached: attached a_feature
@@ -76,7 +76,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_function_for_write_frame (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): READABLE_STRING_8
+	boogie_function_for_write_frame (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie function that encodes the write frame of `a_feature'.
 		require
 			a_feature_attached: attached a_feature
@@ -92,7 +92,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_function_for_read_frame (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): READABLE_STRING_8
+	boogie_function_for_read_frame (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie function that encodes the read frame of the functional representation of `a_feature'.
 		require
 			a_feature_attached: attached a_feature
@@ -108,7 +108,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_procedure_for_contract_check (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): READABLE_STRING_8
+	boogie_procedure_for_contract_check (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie procedure that encodes the consistence check of `a_feature's contracts.
 		require
 			a_feature_attached: attached a_feature
@@ -154,7 +154,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_function_for_variant (a_index: INTEGER; a_feature: FEATURE_I; a_context_type: CL_TYPE_A): READABLE_STRING_8
+	boogie_function_for_variant (a_index: INTEGER; a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie function that encodes `a_index'-th variant of `a_feature'.
 		require
 			a_feature_attached: attached a_feature
@@ -170,7 +170,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_function_for_invariant (a_type: CL_TYPE_A): STRING
+	boogie_function_for_invariant (a_type: E2B_CL_TYPE_A): STRING
 			-- Name of the boogie function that encodes the class invariant of type `a_type'.
 		require
 			a_type: attached a_type
@@ -183,7 +183,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_function_for_filtered_invariant (a_type: CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C): STRING
+	boogie_function_for_filtered_invariant (a_type: E2B_CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C): STRING
 			-- Name of the boogie function that encodes the partial class invariant of type `a_type'
 			-- with `a_included' clauses included and `a_excluded' clauses excluded.
 		require
@@ -211,7 +211,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_function_for_ghost_definition (a_type: CL_TYPE_A; a_name: READABLE_STRING_8): STRING
+	boogie_function_for_ghost_definition (a_type: E2B_CL_TYPE_A; a_name: READABLE_STRING_8): STRING
 			-- Name of the boogie function that encodes the static definition of a ghost field `a_name' of type `a_type'.
 		require
 			a_type: attached a_type
@@ -225,7 +225,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_field_for_tuple_field (a_context_type: CL_TYPE_A; a_position: INTEGER): STRING
+	boogie_field_for_tuple_field (a_context_type: E2B_CL_TYPE_A; a_position: INTEGER): STRING
 			-- Name of the boogie constant that encodes tuple field at `a_position' in the tuple type `a_context_type'.
 		require
 			a_context_type_attached: attached a_context_type
@@ -242,7 +242,7 @@ feature -- Access
 			result_valid: is_valid_feature_name (Result)
 		end
 
-	boogie_procedure_for_tuple_creation (a_context_type: CL_TYPE_A): STRING
+	boogie_procedure_for_tuple_creation (a_context_type: E2B_CL_TYPE_A): STRING
 			-- Name of the boogie constant that encodes tuple field at `a_position' in the tuple type `a_context_type'.
 		require
 			a_context_type_attached: attached a_context_type
@@ -257,7 +257,7 @@ feature -- Access
 			result_valid: is_valid_feature_name (Result)
 		end
 
-	feature_for_boogie_name (a_name: READABLE_STRING_8): TUPLE [type: TYPE_A; feature_: FEATURE_I; is_creator: BOOLEAN]
+	feature_for_boogie_name (a_name: READABLE_STRING_8): TUPLE [type: E2B_TYPE_A; feature_: E2B_FEATURE_I; is_creator: BOOLEAN]
 			-- For a feature named `a_name' in Boogie code,
 			-- return its enclosing type (different from where it is defined if inherited), the eiffel feature and whether it is a creator.
 		require
@@ -267,7 +267,7 @@ feature -- Access
 			l_list: LIST [READABLE_STRING_8]
 			l_type_name: READABLE_STRING_8
 			l_feature_name: READABLE_STRING_8
-			l_type: TYPE_A
+			l_type: E2B_TYPE_A
 			l_is_creator: BOOLEAN
 		do
 			if a_name.starts_with ("create.") then
@@ -294,7 +294,7 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_name_for_type (a_type: CL_TYPE_A): STRING
+	boogie_name_for_type (a_type: E2B_CL_TYPE_A): STRING
 			-- Name for type `a_type'.
 		require
 			a_type_attached: attached a_type
@@ -302,12 +302,12 @@ feature -- Access
 			i: INTEGER
 			l_type_name: STRING
 			l_helper: E2B_HELPER
-			t: TYPE_A
+			t: E2B_TYPE_A
 		do
 			create l_helper
-			if l_helper.is_agent_type (a_type) then
+			if a_type.is_agent_type then
 				Result := a_type.base_class.name_in_upper
-			elseif attached {GEN_TYPE_A} a_type as l_gen_type then
+			elseif attached {GEN_TYPE_A} a_type.type_a as l_gen_type then
 				Result := l_gen_type.base_class.name_in_upper.twin
 				Result.append ("^")
 				from
@@ -315,11 +315,11 @@ feature -- Access
 				until
 					i > l_gen_type.generics.upper
 				loop
-					t := l_gen_type.generics [i]
+					t := (create {E2B_TYPE_A}.make (l_gen_type)).generics [i]
 					if attached {CL_TYPE_A} t as c then
-						l_type_name := boogie_name_for_type (c)
+						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (c))
 					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as c then
-						l_type_name := boogie_name_for_type (c)
+						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (c))
 					else
 						check class_type_constraint: False then end
 					end
@@ -338,7 +338,7 @@ feature -- Access
 			result_valid: is_valid_type_name (Result)
 		end
 
-	type_for_boogie_name (a_name: READABLE_STRING_8): TYPE_A
+	type_for_boogie_name (a_name: READABLE_STRING_8): E2B_TYPE_A
 			-- Type named `a_name' in Boogie code.
 		require
 			valid_type_name: is_valid_type_name (a_name)
@@ -357,13 +357,13 @@ feature -- Access
 			end
 			l_classes := universe.classes_with_name (l_class_name)
 			if not l_classes.is_empty then
-				Result := l_classes.first.compiled_class.actual_type
+				Result := (create {E2B_CLASS_C}.make (l_classes.first.compiled_class)).actual_type
 			end
 		ensure
 			result_attached: attached Result
 		end
 
-	postcondition_predicate_name (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): STRING
+	postcondition_predicate_name (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): STRING
 			-- Postcondition predicate name for feature `a_feature'.
 		require
 			a_feature_attached: attached a_feature
@@ -408,7 +408,7 @@ feature -- Status report
 
 feature -- Name adaptation
 
-	feature_name (f: FEATURE_I): READABLE_STRING_8
+	feature_name (f: E2B_FEATURE_I): READABLE_STRING_8
 			-- Name of `f` adpated to Boogie naming convention.
 		do
 			Result := f.feature_name

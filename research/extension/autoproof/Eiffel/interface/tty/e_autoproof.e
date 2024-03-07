@@ -140,22 +140,24 @@ feature {AP_TEST_EXAMPLES} -- Execution
 			html_writer: E2B_HTML_OUTPUT
 			t: DATE_TIME
 			d: DATE_TIME_DURATION
+			compiled_class: E2B_CLASS_C
 		do
 			if attached workbench.universe as u then
 					-- Add features if possible.
-				⟳ fc: features ¦
-					cs := u.compiled_classes_with_name ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (fc.class_name))
+				⟳ feature_and_class_name: features ¦
+					cs := u.compiled_classes_with_name ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (feature_and_class_name.class_name))
 					if cs.is_empty then
 						has_error := True
-						output_window.add (locale.formatted_string (locale.translation_in_context ("Class `$1` is not found or not compiled.", "command.autoproof"), fc.class_name))
+						output_window.add (locale.formatted_string (locale.translation_in_context ("Class `$1` is not found or not compiled.", "command.autoproof"), feature_and_class_name.class_name))
 						output_window.add_new_line
 					else
 						⟳ c: cs ¦
-							if attached c.compiled_class.feature_named_32 (fc.feature_name) as f then
+							compiled_class := create {E2B_CLASS_C}.make (c.compiled_class)
+							if attached compiled_class.feature_named_32 (feature_and_class_name.feature_name) as f then
 								autoproof.add_feature (f)
 							else
 								has_error := True
-								output_window.add (locale.formatted_string (locale.translation_in_context ("Feature `$1` is not found in class `$2`.", "command.autoproof"), fc.feature_name, fc.class_name))
+								output_window.add (locale.formatted_string (locale.translation_in_context ("Feature `$1` is not found in class `$2`.", "command.autoproof"), feature_and_class_name.feature_name, feature_and_class_name.class_name))
 								output_window.add_new_line
 							end
 						⟲
@@ -169,7 +171,7 @@ feature {AP_TEST_EXAMPLES} -- Execution
 						output_window.add (locale.formatted_string (locale.translation_in_context ("Class `$1` is not found or not compiled.", "command.autoproof"), n))
 						output_window.add_new_line
 					else
-						⟳ c: cs ¦ autoproof.add_class (c.compiled_class) ⟲
+						⟳ c: cs ¦ autoproof.add_class (create {E2B_CLASS_C}.make (c.compiled_class)) ⟲
 					end
 				⟲
 					-- Add groups if possible.

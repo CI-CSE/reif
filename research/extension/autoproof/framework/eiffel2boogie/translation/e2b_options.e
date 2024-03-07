@@ -214,10 +214,10 @@ feature -- Generate tests from proof failures
 	minimization_iteration_bound: INTEGER
 			-- Maximum number of iterations allowed in minimization algorithm
 
-	target_feature: detachable FEATURE_I
+	target_feature: detachable E2B_FEATURE_I
 			-- Target feature for minimization
 
-	target_class: detachable CLASS_C
+	target_class: detachable E2B_CLASS_C
 			-- Target class for minimization
 
 	failures_for_fix: ARRAYED_LIST [E2B_FAILED_VERIFICATION]
@@ -558,7 +558,7 @@ feature -- Counterexample optimization
 			create Result.make
 		end
 
-	container_to_optimize: HASH_TABLE [TYPE_A, STRING]
+	container_to_optimize: HASH_TABLE [E2B_TYPE_A, STRING]
 			-- Containers to be optimized
 		once
 			create Result.make (0)
@@ -570,7 +570,7 @@ feature -- Counterexample optimization
 	init_states_of_counterexamples: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
 			-- Initial states generated from counterexamples
 
-	opt_preconditions: HASH_TABLE [HASH_TABLE [STRING, STRING], FEATURE_I]
+	opt_preconditions: HASH_TABLE [HASH_TABLE [STRING, STRING], E2B_FEATURE_I]
 			-- Mapping from a routine to preconditions for optimization
 			-- Mapping: target feature -> list of `target variable -> precondition'
 		once

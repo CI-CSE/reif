@@ -58,9 +58,7 @@ feature -- Operation
 			-- <Precursor>
 		local
 			l_process: ES_ADB_PROCESS
-			l_classes: DS_HASH_SET [CLASS_C]
 			l_relaxed_testing_and_fixing_tasks: DS_ARRAYED_LIST [ES_ADB_PROCESS]
-			l_proof_fixing_task: ES_ADB_PROCESS
 		do
 			if a_cancel then
 				sub_task := Void
@@ -110,17 +108,9 @@ feature -- Operation
 
 	fixing_tasks_for_proof_failures (a_proof_failures: DS_ARRAYED_LIST [ES_ADB_PROOF_FAILURE]): DS_ARRAYED_LIST [ES_ADB_PROCESS]
 			-- Fixing tasks for proof failures
-		-- require
-		-- 	a_ce_traces /= Void and then not a_ce_traces.is_empty
 		local
-			l_faults: DS_ARRAYED_LIST [ES_ADB_FAULT]
-			l_fault_cursor: DS_ARRAYED_LIST_CURSOR [ES_ADB_FAULT]
-			l_fault: ES_ADB_FAULT
-			l_features: DS_HASH_SET [EPA_FEATURE_WITH_CONTEXT_CLASS]
-			l_words: LIST [STRING_32]
 			l_fixing_process: ES_ADB_FIXING_PROCESS
 		do
-			-- l_faults := info_center.filtered_faults (agent is_new_fault_in_classes (?, a_classes))
 
 			create Result.make (0)
 			across a_proof_failures as k loop
@@ -135,11 +125,6 @@ feature -- Operation
 			a_classes /= Void and then not a_classes.is_empty
 		local
 			l_faults: DS_ARRAYED_LIST [ES_ADB_FAULT]
-			l_fault_cursor: DS_ARRAYED_LIST_CURSOR [ES_ADB_FAULT]
-			l_fault: ES_ADB_FAULT
-			l_relaxed_features: DS_HASH_SET [EPA_FEATURE_WITH_CONTEXT_CLASS]
-			l_relaxed_feature: EPA_FEATURE_WITH_CONTEXT_CLASS
-			l_relaxed_testing_process: ES_ADB_RELAXED_TESTING_PROCESS
 
 		do
 			l_faults := info_center.filtered_faults (agent is_new_fault_in_classes (?, a_classes))

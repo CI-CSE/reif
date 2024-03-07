@@ -16,7 +16,7 @@ create
 
 feature {NONE} -- Implementation
 
-	make (a_type: CL_TYPE_A)
+	make (a_type: E2B_CL_TYPE_A)
 			-- Initialize translation unit for the invariant of `a_type'.
 		require
 			type_exists: a_type /= Void
@@ -25,7 +25,7 @@ feature {NONE} -- Implementation
 			id := "inv/" + type_id (a_type)
 		end
 
-	make_filtered (a_type: CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+	make_filtered (a_type: E2B_CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C)
 			-- Initialize translation unit for a partial invariant of `a_type'
 			-- that only includes clauses `a_included', or excludes clauses `a_excluded',
 			-- and only includes clauses inherited from `a_ancestor'.
@@ -57,13 +57,13 @@ feature {NONE} -- Implementation
 
 feature -- Access
 
-	type: CL_TYPE_A
+	type: E2B_CL_TYPE_A
 			-- Type to which the invariant belongs.
 
 	included, excluded: LIST [STRING]
 			-- List of invariant tags to be filtered.
 
-	ancestor: CLASS_C
+	ancestor: E2B_CLASS_C
 			-- Class to which the invariant clauses will be restricted.
 
 	id: STRING

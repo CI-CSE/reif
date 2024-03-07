@@ -1,5 +1,5 @@
 note
-	description: "Dialog to select docking layout names for saving.."
+	description: "Dialog to select docking layout names for saving."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date: 2018-10-04 04:29:07 +0800 (�%/145/��%/155/%/155/, 04 10�%/156/%/136/ 2018) $"
@@ -42,7 +42,6 @@ feature {NONE} -- Initlization
 			l_h_box: EV_HORIZONTAL_BOX
 			l_internal_h_box: EV_HORIZONTAL_BOX
 			l_tool_bar: SD_TOOL_BAR
-			l_spacer: EV_CELL
 		do
 
 			a_container.set_border_width (layout_constants.default_border_size)
@@ -115,10 +114,6 @@ feature {NONE} -- Implementation functions
 
 	on_text_change
 			-- On `text_for_name' texts changed
-		local
-			l_list: EV_LIST_ITEM
-			l_has: BOOLEAN
-			l_lists: LINEAR [EV_LIST_ITEM]
 		do
 			if text_for_tolerance.text /= Void and then not text_for_tolerance.text.is_equal ("") then
 				dialog_window_buttons.item ({ES_DIALOG_BUTTONS}.ok_button).enable_sensitive

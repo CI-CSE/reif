@@ -21,13 +21,13 @@ feature -- Access
 	verification_result: E2B_VERIFICATION_RESULT
 			-- Related verification result.
 
-	context_feature: detachable FEATURE_I
+	context_feature: detachable E2B_FEATURE_I
 			-- Related Eiffel feature (if any).
 		do
 			Result := verification_result.context_feature
 		end
 
-	context_class: detachable CLASS_C
+	context_class: detachable E2B_CLASS_C
 			-- Related Eiffel class (if any).
 		do
 			Result := verification_result.context_class

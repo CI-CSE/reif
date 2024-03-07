@@ -94,30 +94,30 @@ feature -- Access: default types
 
 feature -- Type translation
 
-	for_class_type (a_type: CL_TYPE_A): IV_TYPE
+	for_class_type (a_type: E2B_CL_TYPE_A): IV_TYPE
 			-- Boogie type for `a_type'.
 		require
 			a_type_attached: attached a_type
 		local
-			l_class: CLASS_C
+			l_class: E2B_CLASS_C
 			l_user_type: IV_USER_TYPE
 			l_constructor: READABLE_STRING_8
 			l_params: like {IV_USER_TYPE}.parameters
 			l_domain_types: like {IV_MAP_SYNONYM_TYPE}.domain_types
 			l_default_function, l_type_inv_function: READABLE_STRING_8
-			l_access_feature: FEATURE_I
+			l_access_feature: E2B_FEATURE_I
 		do
 			l_class := a_type.base_class
 
-			if a_type.is_integer or a_type.is_natural or a_type.is_character or a_type.is_character_32 then
+			if a_type.is_integer or a_type.type_a.is_natural or a_type.type_a.is_character or a_type.type_a.is_character_32 then
 				Result := int
 			elseif a_type.is_boolean then
 				Result := bool
-			elseif a_type.is_real_32 or else a_type.is_real_64 then
+			elseif a_type.is_real_32 or else a_type.type_a.is_real_64 then
 				Result := real
-			elseif helper.is_class_logical (l_class) then
+			elseif l_class.is_logical then
 					-- The class is mapped to a Boogie type
-				l_constructor := helper.type_for_logical (l_class)
+				l_constructor := l_class.type_if_logical
 				if a_type.generics = Void then
 					create l_params.make (0)
 				else
@@ -125,9 +125,9 @@ feature -- Type translation
 					across
 						a_type.generics as g
 					loop
-						if attached {CL_TYPE_A} g as t then
+						if attached {E2B_CL_TYPE_A} g as t then
 							l_params.extend (for_class_type (t))
-						elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ g.target_index) as t then
+						elseif attached {E2B_CL_TYPE_A} a_type.base_class.single_constraint (@ g.target_index) as t then
 							l_params.extend (for_class_type (t))
 						else
 							check class_type_constraint: False then end
@@ -136,7 +136,7 @@ feature -- Type translation
 				end
 
 					-- Check if the class corresponds to a map type
-				l_access_feature := helper.map_access_feature (l_class)
+				l_access_feature :=l_class.map_access_feature
 				if l_access_feature = Void then
 						-- No: just use the user-defined type
 					create l_user_type.make (l_constructor, l_params)
@@ -146,23 +146,23 @@ feature -- Type translation
 					across
 						l_access_feature.arguments as args
 					loop
-						l_domain_types.extend (for_class_type (helper.class_type_in_context (args, l_access_feature.written_class, l_access_feature, a_type)))
+						l_domain_types.extend (for_class_type (l_access_feature.written_class.class_type_in_context (args, l_access_feature, a_type)))
 					end
 					create {IV_MAP_SYNONYM_TYPE} l_user_type.make (<<>>,
 						l_domain_types,
-						for_class_type (helper.class_type_in_context (l_access_feature.type, l_access_feature.written_class, l_access_feature, a_type)),
+						for_class_type (l_access_feature.written_class.class_type_in_context (l_access_feature.type, l_access_feature, a_type)),
 						l_constructor,
 						l_params)
 				end
 
 					-- Check if the type has a default value
-				l_default_function := helper.function_for_logical (l_class.feature_named ("default_create"))
+				l_default_function := (l_class.feature_named ("default_create")).function_for_logical
 				if attached l_default_function then
 					l_user_type.set_default_value (factory.function_call (l_default_function, << >>, l_user_type))
 				end
 
 					-- Check if the type has an invariant
-				l_type_inv_function := helper.string_class_note_value (l_class, "where")
+				l_type_inv_function := l_class.string_class_note_value ("where")
 				if not l_type_inv_function.is_empty then
 					l_user_type.set_type_inv_function (l_type_inv_function)
 				end
@@ -171,9 +171,9 @@ feature -- Type translation
 					-- TODO: check whether the class is a descendant of "PART_COMPARABLE" and
 					-- use a redeclaration of the comparison function instead of the hard-coded function.
 				if
-					attached helper.function_for_logical (l_class.feature_table.item_alias_id
+					attached (create {E2B_FEATURE_I}.make (l_class.feature_table.item_alias_id
 						({OPERATOR_KIND}.alias_id ({PREDEFINED_NAMES}.less_equal_operator_name_id,
-						{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask))) as
+						{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask)))).function_for_logical as
 					l_leq_function
 				then
 					l_user_type.set_rank_function (l_leq_function)
@@ -184,16 +184,16 @@ feature -- Type translation
 			end
 		end
 
-	type_property (a_type: CL_TYPE_A; a_heap, a_expr: IV_EXPRESSION; a_is_exact, a_is_attached: BOOLEAN): IV_EXPRESSION
+	type_property (a_type: E2B_CL_TYPE_A; a_heap, a_expr: IV_EXPRESSION; a_is_exact, a_is_attached: BOOLEAN): IV_EXPRESSION
 			-- For an expression `a_expr' originally of Eiffel type `a_type', an expression that states its precise Eiffel type in `a_heap';
 			-- if `a_is_exact', then the dynamic type of the expression is known (for example, because it's Current).
 		local
 			l_boogie_type: IV_TYPE
-			l_content_type: CL_TYPE_A
+			l_content_type: E2B_CL_TYPE_A
 			l_fname: STRING
 			l_inv: IV_EXPRESSION
 			l_type_properties: ARRAYED_LIST [READABLE_STRING_8]
-			t: CL_TYPE_A
+			t: E2B_CL_TYPE_A
 		do
 			Result := factory.true_
 			l_boogie_type := for_class_type (a_type)
@@ -205,7 +205,7 @@ feature -- Type translation
 					else
 						l_fname := "detachable_exact"
 					end
-				elseif not helper.is_class_any (l_content_type.base_class) then
+				elseif not l_content_type.base_class.is_class_any then
 					if a_is_attached then
 						l_fname := "attached"
 					else
@@ -221,25 +221,25 @@ feature -- Type translation
 				if l_fname /= Void then
 					Result := factory.function_call (l_fname, << a_heap, a_expr, factory.type_value (l_content_type) >>, bool)
 				end
-				if helper.is_class_array (l_content_type.base_class) then
+				if l_content_type.base_class.is_array then
 					Result := factory.and_clean (Result, factory.function_call ("ARRAY.inv", << a_heap, a_expr >>, bool))
 				end
 			elseif l_boogie_type ~ int then
 					-- If we are not checking for overflows, no need to differentiate between kinds of ints
 				Result := numeric_property (a_type, a_expr)
-			elseif helper.is_class_logical (a_type.base_class) then
+			elseif a_type.base_class.is_logical then
 					-- Check if it is a logical type with some type properties
-				l_type_properties := helper.class_note_values (a_type.base_class, "type_properties")
+				l_type_properties := a_type.base_class.class_note_values ("type_properties")
 				if not l_type_properties.is_empty then
 					if l_type_properties.count /= a_type.generics.count then
-						helper.add_semantic_error (a_type.base_class, messages.logical_invalid_type_properties, -1)
+						e2b_error.add_semantic_error (a_type.base_class, messages.logical_invalid_type_properties, -1)
 					else
 						across
 							l_type_properties as prop
 						loop
-							if attached {CL_TYPE_A} a_type.generics [@ prop.target_index] as c then
+							if attached {E2B_CL_TYPE_A} a_type.generics [@ prop.target_index] as c then
 								t := c
-							elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ prop.target_index) as c then
+							elseif attached {E2B_CL_TYPE_A} a_type.base_class.single_constraint (@ prop.target_index) as c then
 								t := c
 							else
 								check class_type_constraint: False then end
@@ -258,7 +258,7 @@ feature -- Type translation
 			end
 		end
 
-	numeric_property (a_type: TYPE_A; a_expr: IV_EXPRESSION): IV_EXPRESSION
+	numeric_property (a_type: E2B_TYPE_A; a_expr: IV_EXPRESSION): IV_EXPRESSION
 			-- Property associated with argument `a_name' of type `a_type'.
 		require
 			numeric_property: a_type.is_numeric or a_type.is_character

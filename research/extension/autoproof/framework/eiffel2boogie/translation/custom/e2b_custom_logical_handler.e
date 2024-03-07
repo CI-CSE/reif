@@ -13,10 +13,10 @@ inherit
 
 feature -- Status report
 
-	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
+	is_handling_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
-			Result := helper.is_feature_logical (a_feature)
+			Result := a_feature.is_logical
 		end
 
 	is_handling_nested (a_nested: NESTED_B): BOOLEAN
@@ -34,7 +34,7 @@ feature -- Status report
 			end
 		end
 
-	has_arg_current (a_feature: FEATURE_I): BOOLEAN
+	has_arg_current (a_feature: E2B_FEATURE_I): BOOLEAN
 			-- Does the translation of `a_feature' take "current" as the first argument?
 		do
 			Result := a_feature.has_return_value and not a_feature.is_external
@@ -42,26 +42,26 @@ feature -- Status report
 
 feature -- Basic operations
 
-	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
 			handle_routine_call (a_translator, a_feature, a_parameters)
 		end
 
-	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
 			handle_routine_call (a_translator, a_feature, a_parameters)
 		end
 
-	handle_binary (a_translator: E2B_EXPRESSION_TRANSLATOR; a_class: CLASS_C; a_left, a_right: IV_EXPRESSION; a_operator: STRING)
+	handle_binary (a_translator: E2B_EXPRESSION_TRANSLATOR; a_class: E2B_CLASS_C; a_left, a_right: IV_EXPRESSION; a_operator: STRING)
 			-- Handle built-in (non alias) binary expression where `a_left' is of logical type.
 		require
 			eq_or_neq: a_operator.same_string ("==") or a_operator.same_string ("!=")
 		local
 			l_expr: IV_EXPRESSION
 		do
-			if attached helper.function_for_logical (a_class.feature_named ("is_equal")) as l_eq then
+			if attached a_class.feature_named ("is_equal").function_for_logical as l_eq then
 				l_expr := factory.function_call (l_eq, << a_left, a_right >>, types.bool)
 			else
 				l_expr := factory.equal (a_left, a_right)
@@ -86,19 +86,19 @@ feature -- Basic operations
 
 feature {NONE} -- Implementation
 
-	handle_routine_call (a_translator: E2B_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call (a_translator: E2B_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
 			l_fname: READABLE_STRING_8
 			l_fcall: IV_FUNCTION_CALL
 			l_args: like {IV_MAP_ACCESS}.indexes
 		do
-			check helper.is_feature_logical (a_feature) end
+			check a_feature.is_logical end
 			translation_pool.add_referenced_feature (a_feature, a_translator.current_target_type)
 
 			a_translator.process_parameters (a_parameters)
 
-			l_fname := helper.function_for_logical (a_feature)
+			l_fname := a_feature.function_for_logical
 			if attached l_fname and then l_fname.same_string ("[]") then
 					-- The feature maps to map access
 				create l_args.make (a_translator.last_parameters.count)

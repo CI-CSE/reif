@@ -149,8 +149,6 @@ feature -- ADB Action
 		end
 
 	on_output (a_line: STRING)
-		local
-			l_is_caret_at_end: BOOLEAN
 		do
 			evtext_output.append_text (a_line)
 			evtext_output.set_caret_position (evtext_output.text_length)

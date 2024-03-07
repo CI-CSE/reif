@@ -40,13 +40,15 @@ feature -- Visitors
 			-- <Precursor>
 		local
 			i, n: INTEGER
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 			l_target: IV_EXPRESSION
 			l_pcall: IV_PROCEDURE_CALL
 			l_assign: IV_ASSIGNMENT
 			l_content_type: IV_TYPE
 			l_block: IV_BLOCK
+			l_node_type: E2B_CL_TYPE_A
 		do
+			create l_node_type.make (a_node.type)
 			l_type := class_type_in_current_context (a_node.type)
 			translation_pool.add_type (l_type)
 
@@ -56,13 +58,13 @@ feature -- Visitors
 				n := 0
 			end
 
-			create_local (a_node.type)
+			create_local (l_node_type)
 			l_target := last_local
 			create l_block.make
 
 				-- Create array
 			create l_pcall.make ("allocate")
-			l_pcall.add_argument (factory.type_value (a_node.type))
+			l_pcall.add_argument (factory.type_value (l_node_type))
 			l_pcall.set_target (l_target)
 			l_block.add_statement (l_pcall)
 
@@ -73,7 +75,7 @@ feature -- Visitors
 			l_block.add_statement (l_pcall)
 
 				-- Put all elements into array
-			check attached {CL_TYPE_A} l_type.generics.first as t then
+			check attached {E2B_CL_TYPE_A} l_type.generics.first as t then
 				l_content_type := types.for_class_type (t)
 			end
 			from
@@ -96,10 +98,10 @@ feature -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- <Precursor>
 		local
-			l_type: CL_TYPE_A
-			l_feature: FEATURE_I
+			l_type: E2B_CL_TYPE_A
+			l_feature: E2B_FEATURE_I
 			l_target: IV_EXPRESSION
-			l_target_type: CL_TYPE_A
+			l_target_type: E2B_CL_TYPE_A
 
 			l_local: IV_ENTITY
 			l_proc_call: IV_PROCEDURE_CALL
@@ -142,7 +144,7 @@ feature -- Visitors
 				last_expression := l_local
 			else
 					-- Or something special?
-				check helper.is_class_logical (current_target_type.base_class) end
+				check (current_target_type.base_class).is_logical end
 
 				l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
 				check l_handler /= Void end
@@ -155,7 +157,7 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			if a_node.is_inline_agent then
-				helper.add_unsupported_error (context_feature, {STRING_32} "Inline agents are not supported", context_line_number)
+				e2b_error.add_unsupported_error (context_feature, {STRING_32} "Inline agents are not supported", context_line_number)
 				last_expression := dummy_node (a_node.type)
 			else
 				(create {E2B_CUSTOM_AGENT_CALL_HANDLER}).handle_agent_creation (Current, a_node)
@@ -191,7 +193,7 @@ feature -- Visitors
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		local
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 			l_local: IV_ENTITY
 			l_proc_call: IV_PROCEDURE_CALL
 			l_block: IV_BLOCK
@@ -225,7 +227,7 @@ feature -- Visitors
 
 feature -- Translation
 
-	process_attribute_call (a_feature: FEATURE_I)
+	process_attribute_call (a_feature: E2B_FEATURE_I)
 			-- Process call to attribute `a_feature'.
 		local
 			l_content_type: IV_TYPE
@@ -249,18 +251,18 @@ feature -- Translation
 			last_expression := factory.heap_access (entity_mapping.heap, current_target, l_field.name, l_content_type)
 		end
 
-	process_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
 			-- Process feature call.
 		local
 			l_inlining_depth: INTEGER
 		do
-			if options.inlining_depth > 0 and not helper.is_skipped (a_feature) then
+			if options.inlining_depth > 0 and not a_feature.is_skipped then
 				l_inlining_depth := options.inlining_depth
 				options.set_inlining_depth (options.inlining_depth - 1)
 				process_inlined_routine_call (a_feature, a_parameters)
 				options.set_inlining_depth (l_inlining_depth)
 			elseif
-				helper.is_inlining_routine (a_feature) and then
+				a_feature.is_inlining_routine and then
 				(inlined_routines.has (a_feature.body_index) implies inlined_routines.item (a_feature.body_index) < options.max_recursive_inlining_depth)
 			then
 				process_inlined_routine_call (a_feature, a_parameters)
@@ -269,18 +271,18 @@ feature -- Translation
 			end
 		end
 
-	process_normal_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_normal_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
 			-- Process feature call.
 		local
 			l_pcall: IV_PROCEDURE_CALL
 			l_fcall: IV_FUNCTION_CALL
 		do
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
-			if a_feature.has_return_value and helper.is_functional (a_feature) then
+			if a_feature.has_return_value and a_feature.is_functional then
 				check not a_for_creator end
 				create l_fcall.make (name_translator.boogie_function_for_feature (a_feature, current_target_type, False), types.for_class_type (feature_class_type (a_feature)))
 				l_fcall.add_argument (entity_mapping.heap)
-				if not helper.is_static (a_feature) then
+				if not a_feature.is_static then
 					l_fcall.add_argument (current_target)
 				end
 				process_parameters (a_parameters)
@@ -296,28 +298,28 @@ feature -- Translation
 				add_recursion_termination_check (a_feature)
 
 				last_expression := l_fcall
-			elseif helper.has_functional_representation (a_feature) and a_feature.is_once then
+			elseif a_feature.has_functional_representation and a_feature.is_once then
 					-- Once function: translate as a constant
 				create l_fcall.make (name_translator.boogie_function_for_feature (a_feature, current_target_type, False), types.for_class_type (feature_class_type (a_feature)))
 				last_expression := l_fcall
 			else
-				if helper.is_setter (context_feature) and
-					not a_feature.has_return_value  and not helper.is_setter (a_feature) then
+				if context_feature.is_setter and
+					not a_feature.has_return_value  and not a_feature.is_setter then
 						-- Setter calling a non-setter procedure: unsound framing
-					helper.add_semantic_error (context_feature, messages.nonsetter_call_from_setter (a_feature.feature_name_32), context_line_number)
+					e2b_error.add_semantic_error (context_feature, messages.nonsetter_call_from_setter (a_feature.feature_name_32), context_line_number)
 				end
 
 				if a_for_creator or
-						(name_translator.is_creator_name (context_implementation.procedure.name) and helper.is_creator_of_class (a_feature, current_target_type.base_class)) then
+						(name_translator.is_creator_name (context_implementation.procedure.name) and a_feature.is_creator_of_class (current_target_type.base_class)) then
 						-- Either we are translating a creation expression (`a_for_creator'),
 						-- or we are inside a creation procedure and calling another creation procedure,
 						-- so the creation semantics will be used
 					create l_pcall.make (name_translator.boogie_procedure_for_creator (a_feature, current_target_type))
 				else
 					create l_pcall.make (name_translator.boogie_procedure_for_feature (a_feature, current_target_type))
-					if helper.is_creator (a_feature) then
+					if a_feature.is_creator then
 						-- A feature specified to be creator-only, but called as a regular procedure
-						helper.add_semantic_error (context_feature, messages.creator_call_as_procedure (a_feature.feature_name_32), context_line_number)
+						e2b_error.add_semantic_error (context_feature, messages.creator_call_as_procedure (a_feature.feature_name_32), context_line_number)
 					end
 				end
 
@@ -326,7 +328,7 @@ feature -- Translation
 				l_pcall.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
 				check system.class_of_id (current_target_type.base_class.class_id).feature_of_rout_id (a_feature.rout_id_set.first).feature_name_id = a_feature.feature_name_id end
 
-				if not helper.is_static (a_feature) then
+				if not a_feature.is_static then
 					l_pcall.add_argument (current_target)
 				end
 				process_parameters (a_parameters)
@@ -352,13 +354,13 @@ feature -- Translation
 			end
 		end
 
-	process_builtin_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
+	process_builtin_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
 			-- Process feature call.
 		local
 			l_call: IV_PROCEDURE_CALL
 		do
 			create l_call.make (a_builtin_name)
-			if not helper.is_static (a_feature) then
+			if not a_feature.is_static then
 				l_call.add_argument (current_target)
 			end
 
@@ -380,7 +382,7 @@ feature -- Translation
 			side_effect.extend (if_safety_expression (l_call))
 		end
 
-	process_builtin_function_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
+	process_builtin_function_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
 			-- Process feature call.
 		require
 			a_feature.has_return_value
@@ -389,8 +391,8 @@ feature -- Translation
 		do
 			create l_call.make (a_builtin_name, types.for_class_type (feature_class_type (a_feature)))
 			l_call.add_argument (entity_mapping.heap)
-			if not helper.is_static (a_feature) then
-				l_call.add_argument (current_target)
+			if not a_feature.is_static then
+			l_call.add_argument (current_target)
 			end
 
 			process_parameters (a_parameters)
@@ -399,7 +401,7 @@ feature -- Translation
 			last_expression := l_call
 		end
 
-	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
 			a_handler.handle_routine_call_in_body (Current, a_feature, a_parameters)
@@ -411,7 +413,7 @@ feature -- Translation
 			create Result.make (5)
 		end
 
-	process_inlined_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	process_inlined_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- Process feature call.
 		local
 			l_translator: E2B_INSTRUCTION_TRANSLATOR
@@ -463,7 +465,7 @@ feature -- Translation
 			l_translator.set_entity_mapping (l_entity_mapping)
 
 			l_translator.process_feature_of_type (a_feature, current_target_type)
-			helper.set_up_byte_context (context_feature, context_type)
+			context_feature.set_up_byte_context (context_type)
 
 			side_effect.extend (if_safety_expression (l_block))
 
@@ -476,15 +478,15 @@ feature -- Translation
 			inlined_routines.force (inlined_routines.item (a_feature.body_index) - 1, a_feature.body_index)
 		end
 
-	add_loop_frame_check (a_feature: FEATURE_I)
+	add_loop_frame_check (a_feature: E2B_FEATURE_I)
 			-- If there is a local frame, check that `a_feature's frame is a subframe of it.
 		local
 			l_fcall: IV_FUNCTION_CALL
 		do
-			if local_writable /= Void and not helper.is_lemma (a_feature) then
+			if local_writable /= Void and not a_feature.is_lemma then
 				create l_fcall.make (name_translator.boogie_function_for_write_frame (a_feature, current_target_type), types.frame)
 				l_fcall.add_argument (entity_mapping.heap)
-				if not helper.is_static (a_feature) then
+				if not a_feature.is_static then
 					l_fcall.add_argument (current_target)
 				end
 				l_fcall.arguments.append (last_parameters)

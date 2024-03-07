@@ -13,13 +13,13 @@ inherit
 
 feature -- Basic operations
 
-	translate (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	translate (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Translate feature `a_feature' of type `a_context_type'.
 		require
-			is_attribute: a_feature.is_attribute or helper.is_built_in_attribute (a_feature)
+			is_attribute: a_feature.is_attribute or a_feature.is_built_in_attribute
 		local
 			l_attribute_name: READABLE_STRING_8
-			l_class_type: CL_TYPE_A
+			l_class_type: E2B_CL_TYPE_A
 			l_type_prop, l_context_type: IV_EXPRESSION
 			l_forall: IV_FORALL
 			l_heap, l_o, l_f: IV_ENTITY
@@ -28,9 +28,9 @@ feature -- Basic operations
 		do
 			translation_pool.add_type (a_context_type)
 			set_context (a_feature, a_context_type)
-			l_class_type := helper.class_type_in_context (current_feature.type, current_type.base_class, Void, current_type)
+			l_class_type := current_type.base_class.class_type_in_context (current_feature.type, Void, current_type)
 
-			if helper.is_built_in_attribute (current_feature) then
+			if current_feature.is_built_in_attribute then
 					-- It's a built-in redefinition: only generate the guard.
 					-- TODO: check that type is unchanged
 				l_attribute_name := current_feature.feature_name
@@ -66,7 +66,7 @@ feature -- Basic operations
 --				end
 
 					-- Add type properties
-				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, helper.is_type_exact (current_feature.type, l_class_type, Void),
+				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, current_feature.type.is_type_exact (l_class_type, Void),
 					current_feature.type.is_attached)
 				if not l_type_prop.is_true then
 					l_type_prop := factory.implies_ (factory.and_ (
@@ -91,7 +91,7 @@ feature -- Basic operations
 			end
 		end
 
-	generate_guard (a_type: CL_TYPE_A; a_boogie_name: READABLE_STRING_8; a_boogie_type: IV_TYPE)
+	generate_guard (a_type: E2B_CL_TYPE_A; a_boogie_name: READABLE_STRING_8; a_boogie_type: IV_TYPE)
 			-- Generate update guard for attribute `current_feature' of type `a_type' inside `current_type',
 			-- where the Boogie translation of the attribute has name `a_boogie_name' and type `a_boogie_type'.
 		local
@@ -106,21 +106,21 @@ feature -- Basic operations
 			create l_o.make ("o", types.ref)
 			l_fcall := factory.function_call ("guard", << l_h, l_cur, l_f, l_v, l_o >>, types.bool)
 			l_def := factory.true_
-			across helper.guards_for_attribute (current_feature) as g loop
+			across current_feature.guards_for_attribute as g loop
 				l_def := factory.and_clean (l_def, guard_from_string (g.str, g.origin, a_type, l_h, l_cur, l_f, l_v, l_o))
 			end
 
 			factory.add_dynamic_predicate_definition (l_fcall, l_def, current_type, l_h, l_cur, <<l_v, l_o>>)
 		end
 
-	translate_tuple_field (a_context_type: CL_TYPE_A; a_position: INTEGER)
+	translate_tuple_field (a_context_type: E2B_CL_TYPE_A; a_position: INTEGER)
 			-- Translate field at position `a_position' of tuple type `a_context_type'.
 		require
 			tuple_type: a_context_type.is_tuple
 		local
 			l_attribute_name: STRING
-			l_type: TYPE_A
-			l_class_type: CL_TYPE_A
+			l_type: E2B_TYPE_A
+			l_class_type: E2B_CL_TYPE_A
 			l_type_prop, l_context_type: IV_EXPRESSION
 			l_forall: IV_FORALL
 			l_heap, l_o, l_f: IV_ENTITY
@@ -129,7 +129,7 @@ feature -- Basic operations
 		do
 			set_context (Void, a_context_type)
 			l_type := a_context_type.generics [a_position]
-			l_class_type := helper.class_type_in_context (l_type, current_type.base_class, Void, current_type)
+			l_class_type := current_type.base_class.class_type_in_context (l_type, Void, current_type)
 			l_attribute_name := name_translator.boogie_field_for_tuple_field (current_type, a_position)
 			l_boogie_type := types.for_class_type (l_class_type)
 			l_context_type := factory.type_value (current_type)
@@ -147,7 +147,7 @@ feature -- Basic operations
 			l_heap := factory.heap_entity ("heap")
 			l_o := factory.ref_entity ("o")
 			l_heap_access := factory.heap_access (l_heap, l_o, l_attribute_name, l_boogie_type)
-			l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, helper.is_type_exact (l_type, l_class_type, Void), l_type.is_attached)
+			l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, l_type.is_type_exact (l_class_type, Void), l_type.is_attached)
 			if not l_type_prop.is_true then
 				l_type_prop := factory.implies_ (factory.and_ (
 						factory.is_heap (l_heap),
@@ -167,29 +167,29 @@ feature -- Basic operations
 
 feature {NONE} -- Implementation
 
-	generate_equivalences_for_class (a_class: CLASS_C)
+	generate_equivalences_for_class (a_class: E2B_CLASS_C)
 			-- Generate axioms that `current_feature' is equal to its versions from all ancestors of `a_class'.
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			l_attribute_name, l_old_name: READABLE_STRING_8
-			l_parent_type: CL_TYPE_A
+			l_parent_type: E2B_CL_TYPE_A
 			l_f: IV_ENTITY
 			l_boogie_type: IV_TYPE
 		do
-			l_boogie_type := types.for_class_type (helper.class_type_in_context (current_feature.type, current_type.base_class, Void, current_type))
+			l_boogie_type := types.for_class_type (current_type.base_class.class_type_in_context (current_feature.type, Void, current_type))
 			l_attribute_name := name_translator.boogie_procedure_for_feature (current_feature, current_type)
 			l_f := factory.entity (l_attribute_name, types.field (l_boogie_type))
 			across
-				a_class.parents_classes as c
+				a_class.parents_classes as l_parent_class
 			loop
-				l_feature := c.feature_of_rout_id_set (current_feature.rout_id_set)
+				l_feature := l_parent_class.feature_of_rout_id_set (current_feature.rout_id_set)
 				if attached l_feature and then l_feature.is_attribute then
 						-- Check that properties match
-					if helper.is_ghost (l_feature) /= helper.is_ghost (current_feature) then
-						helper.add_semantic_error (current_feature, messages.invalid_ghost_status (l_feature.feature_name_32, l_feature.written_class.name_in_upper), -1)
+					if l_feature.is_ghost /= current_feature.is_ghost then
+						e2b_error.add_semantic_error (current_feature, messages.invalid_ghost_status (l_feature.feature_name_32, l_feature.written_class.name_in_upper), -1)
 					end
 
-					l_parent_type := helper.class_type_from_class (c, current_type)
+					l_parent_type := l_parent_class.class_type (current_type)
 					l_old_name := name_translator.boogie_procedure_for_feature (l_feature, l_parent_type)
 					translation_pool.add_parent_type (l_parent_type)
 					if boogie_universe.constant_named (l_old_name) = Void then
@@ -197,7 +197,7 @@ feature {NONE} -- Implementation
 					end
 					boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (l_f, create {IV_ENTITY}.make (l_old_name, l_f.type))))
 
-					generate_equivalences_for_class (c)
+					generate_equivalences_for_class (l_parent_class)
 				end
 			end
 		end
@@ -216,12 +216,12 @@ feature {NONE} -- Implementation
 --			end
 --		end
 
-	guard_from_string (a_guard_string: READABLE_STRING_8; a_origin_class: CLASS_C; a_attr_type: CL_TYPE_A; a_h, a_cur, a_f, a_v, a_o: IV_EXPRESSION): IV_EXPRESSION
+	guard_from_string (a_guard_string: READABLE_STRING_8; a_origin_class: E2B_CLASS_C; a_attr_type: E2B_CL_TYPE_A; a_h, a_cur, a_f, a_v, a_o: IV_EXPRESSION): IV_EXPRESSION
 			-- Update guard definition encoded by `a_guard_string' coming from `a_origin_class'.
 		require
 			non_empty: not a_guard_string.is_empty
 		local
-			l_guard_feature: FEATURE_I
+			l_guard_feature: E2B_FEATURE_I
 			l_fname: READABLE_STRING_8
 		do
 			if a_guard_string.is_case_insensitive_equal ("true") then
@@ -241,7 +241,7 @@ feature {NONE} -- Implementation
 					translation_pool.add_referenced_feature (l_guard_feature, current_type)
 						-- Generate guard definition from `l_guard_feature'
 					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type, False)
-					if helper.has_flat_precondition (l_guard_feature) then
+					if l_guard_feature.has_flat_precondition then
 						Result := factory.function_call (name_translator.boogie_function_precondition (l_fname), << a_h, a_cur, a_v, a_o >>, types.bool)
 					else
 						Result := factory.true_
@@ -251,20 +251,20 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	is_valid_guard_feature (a_guard_name: READABLE_STRING_8; a_guard_feature: FEATURE_I; a_attr_type: CL_TYPE_A; guard_feature_class: CLASS_C): BOOLEAN
+	is_valid_guard_feature (a_guard_name: READABLE_STRING_8; a_guard_feature: E2B_FEATURE_I; a_attr_type: E2B_CL_TYPE_A; guard_feature_class: E2B_CLASS_C): BOOLEAN
 			-- Does `a_guard_feature' have a valid signature for an update guard for an attribute of type `a_attr_type'?
 		do
 			if a_guard_feature = Void then
-				helper.add_semantic_error (current_feature, messages.unknown_feature ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_guard_name), current_type.base_class.name_in_upper), -1)
+				e2b_error.add_semantic_error (current_feature, messages.unknown_feature ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_guard_name), current_type.base_class.name_in_upper), -1)
 			elseif not (a_guard_feature.has_return_value and then a_guard_feature.type.is_boolean) then
-				helper.add_semantic_error (a_guard_feature, messages.guard_feature_not_predicate, -1)
+				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_not_predicate, -1)
 			elseif a_guard_feature.argument_count /= 2 then
-				helper.add_semantic_error (a_guard_feature, messages.guard_feature_arg_count, -1)
-			elseif types.for_class_type (helper.class_type_in_context (a_guard_feature.arguments [1], guard_feature_class, a_guard_feature, current_type))
+				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_arg_count, -1)
+			elseif types.for_class_type (guard_feature_class.class_type_in_context (a_guard_feature.arguments [1], a_guard_feature, current_type))
 					/~ types.for_class_type (a_attr_type) then
-				helper.add_semantic_error (a_guard_feature, messages.guard_feature_arg1, -1)
-			elseif not a_guard_feature.arguments [2].same_as (system.any_type) then
-				helper.add_semantic_error (a_guard_feature, messages.guard_feature_arg2, -1)
+				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_arg1, -1)
+			elseif not a_guard_feature.arguments [2].same_as (create {E2B_TYPE_A}.make (system.any_type)) then
+				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_arg2, -1)
 			else
 				Result := True
 			end
@@ -274,25 +274,25 @@ feature {NONE} -- Implementation
 			-- For an immediate attribute with a "replaces" clause,
 			-- check that is didn't use to be a model query in any parent.
 		local
-			l_old_version, l_replaced: FEATURE_I
+			l_old_version, l_replaced: E2B_FEATURE_I
 			found: BOOLEAN
 		do
 			if current_feature.written_in = current_type.base_class.class_id then
-				across helper.feature_note_values (current_feature, "replaces") as f loop
+				across current_feature.note_values ("replaces") as f loop
 					l_replaced := current_type.base_class.feature_named (f)
 					if attached l_replaced then
-						across current_type.base_class.parents_classes as c until found loop
-							l_old_version := c.feature_of_rout_id_set (current_feature.rout_id_set)
+						across current_type.base_class.parents_classes as parent_class until found loop
+							l_old_version := parent_class.feature_of_rout_id_set (current_feature.rout_id_set)
 								-- If both `current_feature' and `l_replaced' are model queries of `c.item',
 								-- this will cause child's model frames to be bigger than parent's
 							if attached l_old_version and then
-									(helper.is_model_query (c, l_old_version) and helper.is_model_query (c, l_replaced)) then
-								helper.add_semantic_error (current_feature, messages.invalid_model_replacement (current_feature.feature_name_32, c.name_in_upper), -1)
+									(parent_class.is_model_query (l_old_version) and parent_class.is_model_query (l_replaced)) then
+								e2b_error.add_semantic_error (current_feature, messages.invalid_model_replacement (current_feature.feature_name_32, parent_class.name_in_upper), -1)
 								found := True
 							end
 						end
 					else
-						helper.add_semantic_error (current_feature, messages.unknown_model ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (f), current_type.base_class.name_in_upper), -1)
+						e2b_error.add_semantic_error (current_feature, messages.unknown_model ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (f), current_type.base_class.name_in_upper), -1)
 					end
 				end
 			end

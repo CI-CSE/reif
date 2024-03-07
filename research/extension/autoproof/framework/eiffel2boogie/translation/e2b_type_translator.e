@@ -23,7 +23,7 @@ inherit
 
 feature -- Access
 
-	type: CL_TYPE_A
+	type: E2B_CL_TYPE_A
 			-- Type under translation.
 
 	last_clauses: LINKED_LIST [IV_ASSERT]
@@ -37,12 +37,12 @@ feature -- Access
 
 feature -- Basic operations
 
-	translate_type (a_type: CL_TYPE_A)
+	translate_type (a_type: E2B_CL_TYPE_A)
 			-- Translate `a_type' to Boogie.
 		require
 			no_formals: not a_type.has_formal_generic
 		local
-			l_class: CLASS_C
+			l_class: E2B_CLASS_C
 			l_boogie_type_name: STRING
 			l_constant: IV_CONSTANT
 			l_path: PATH
@@ -56,7 +56,7 @@ feature -- Basic operations
 
 				-- Add dependencies
 			across
-				helper.class_note_values (l_class, "theory") as deps
+				l_class.class_note_values ("theory") as deps
 			loop
 				create l_path.make_from_string (deps)
 				boogie_universe.add_dependency
@@ -70,9 +70,9 @@ feature -- Basic operations
 				-- Add actual generic parameters
 			if a_type.has_generics then
 				across a_type.generics as params loop
-					if attached {CL_TYPE_A} params as t then
+					if attached {E2B_CL_TYPE_A} params as t then
 						translation_pool.add_parent_type (t)
-					elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ params.target_index) as t then
+					elseif attached {E2B_CL_TYPE_A} a_type.base_class.single_constraint (@ params.target_index) as t then
 						translation_pool.add_parent_type (t)
 					else
 						check class_type_constraint: False then end
@@ -80,7 +80,7 @@ feature -- Basic operations
 				end
 			end
 
-			if not helper.is_class_logical (l_class) then
+			if not l_class.is_logical then
 					-- Type definition
 				create l_constant.make (l_boogie_type_name, types.type)
 				l_constant.set_unique
@@ -108,47 +108,47 @@ feature -- Basic operations
 			end
 		end
 
-	translate_model (a_type: CL_TYPE_A)
+	translate_model (a_type: E2B_CL_TYPE_A)
 			-- Translate model of `a_type'.
 		require
 			a_type_exists: a_type /= Void
 		local
-			l_class: CLASS_C
+			l_class: E2B_CLASS_C
 		do
 			type := a_type
 			l_class := type.base_class
-			if not helper.is_class_logical (l_class) and not l_class.is_tuple then
+			if not l_class.is_logical and not l_class.is_tuple then
 					-- Check model clause
 				across
-					helper.model_queries (l_class) as m
+					l_class.model_queries as m
 				loop
 					if a_type.base_class.feature_named (m) = Void then
-						helper.add_semantic_error (l_class, messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (m), l_class.name_in_upper), -1)
+						e2b_error.add_semantic_error (l_class, messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (m), l_class.name_in_upper), -1)
 					end
 				end
 				generate_model_axiom
 			end
 		end
 
-	translate_invariant (a_type: CL_TYPE_A)
+	translate_invariant (a_type: E2B_CL_TYPE_A)
 			-- Translate invariant of `a_type'.
 		require
 			a_type_exists: a_type /= Void
 		local
-			l_class: CLASS_C
+			l_class: E2B_CLASS_C
 		do
 			type := a_type
 			l_class := type.base_class
 
-			if not helper.is_class_logical (l_class) and not helper.is_class_array (l_class) then
-				helper.set_up_byte_context (l_class.invariant_feature, a_type)
+			if not l_class.is_logical and not l_class.is_array then
+				l_class.invariant_feature.set_up_byte_context (a_type)
 				translate_invariant_function
 
 				-- Add guards for built-in attributes (ANY versions)
 				-- (required to know the lower bound on guards of unknown types)
-				translation_pool.add_referenced_feature (system.any_type.base_class.feature_named ("owns"), system.any_type)
-				translation_pool.add_referenced_feature (system.any_type.base_class.feature_named ("subjects"), system.any_type)
-				translation_pool.add_referenced_feature (system.any_type.base_class.feature_named ("observers"), system.any_type)
+				translation_pool.add_referenced_feature (create {E2B_FEATURE_I}.make (system.any_type.base_class.feature_named ("owns")), create {E2B_CL_TYPE_A}.make (system.any_type))
+				translation_pool.add_referenced_feature (create {E2B_FEATURE_I}.make (system.any_type.base_class.feature_named ("subjects")), create {E2B_CL_TYPE_A}.make (system.any_type))
+				translation_pool.add_referenced_feature (create {E2B_FEATURE_I}.make (system.any_type.base_class.feature_named ("observers")), create {E2B_CL_TYPE_A}.make (system.any_type))
 
 				-- Add guards for built-in attributes
 				translation_pool.add_referenced_feature (l_class.feature_named ("owns"), type)
@@ -157,7 +157,7 @@ feature -- Basic operations
 			end
 		end
 
-	translate_filtered_invariant_function (a_type: CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+	translate_filtered_invariant_function (a_type: E2B_CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C)
 			-- Translate filtered invariant of `a_type'.
 		require
 			a_type_exists: a_type /= Void
@@ -169,12 +169,12 @@ feature -- Basic operations
 			generate_filtered_invariant_axiom (a_included, a_excluded, a_ancestor)
 		end
 
-	translate_inline_invariant_check (a_type: CL_TYPE_A; a_target: IV_EXPRESSION)
+	translate_inline_invariant_check (a_type: E2B_CL_TYPE_A; a_target: IV_EXPRESSION)
 			-- Translate the invariant of `a_type' into assert statements and store them in `last_clauses'.
 		local
 			l_mapping: E2B_ENTITY_MAPPING
 		do
-			helper.switch_byte_context (a_type.base_class.invariant_feature, a_type, a_type)
+			a_type.base_class.invariant_feature.switch_byte_context (a_type, a_type)
 			type := a_type
 			if a_target.same_expression (factory.std_current) then
 					-- Standard target: use cache
@@ -216,8 +216,8 @@ feature {NONE} -- Implementation
 			-- "TYPE <: PARENT1", "TYPE <: PARENT2", ..., and
 			-- "forall t: Type :: {TYPE <: t} TYPE <: t <==> TYPE == t || PARENT1 <: t || PARENT2 <: t || ...".
 		local
-			l_parents: FIXED_LIST [CL_TYPE_A]
-			l_parent: CL_TYPE_A
+			l_parents: FIXED_LIST [E2B_CL_TYPE_A]
+			l_parent: E2B_CL_TYPE_A
 			l_type_value: IV_VALUE
 			l_parent_value: IV_VALUE
 			l_rhs: IV_EXPRESSION
@@ -258,13 +258,13 @@ feature {NONE} -- Implementation
 			create l_type_var.make_fresh
 			create l_f.make ("$f", types.field (l_type_var))
 			l_def := factory.false_
-			across helper.flat_model_queries (type.base_class) as m loop
+			across type.base_class.flat_model_queries as m loop
 				if m.written_in /= system.any_id then
 					translation_pool.add_referenced_feature (m, type)
 				end
 				create l_m.make (
-					helper.boogie_name_for_attribute (m, type),
-					types.field (types.for_class_type (helper.class_type_in_context (m.type, type.base_class, m, type))))
+					m.boogie_name_for_attribute (type),
+					types.field (types.for_class_type (type.base_class.class_type_in_context (m.type, m, type))))
 				l_def := factory.or_clean (l_def, factory.equal (l_f, l_m))
 			end
 			l_fcall := factory.function_call ("IsModelField", << l_f, factory.type_value (type) >>, types.bool)
@@ -275,7 +275,7 @@ feature {NONE} -- Implementation
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 		end
 
-	generate_invariant_function (a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+	generate_invariant_function (a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C)
 			-- Generate invariant function for `type';
 			-- if `a_included /= Void', include only those clauses;
 			-- if `a_excluded /= Void', exclude those clauses;
@@ -320,7 +320,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	generate_invariant_clauses (a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C; a_mapping: E2B_ENTITY_MAPPING)
+	generate_invariant_clauses (a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C; a_mapping: E2B_ENTITY_MAPPING)
 			-- Translate invariant clauses for `type' using `a_mapping', add default clauses;
 			-- store result in `last_clauses'.
 		require
@@ -341,7 +341,7 @@ feature {NONE} -- Implementation
 					add_default_clause ("subjects", translation_mapping.default_tags [2], a_included, a_excluded, a_mapping)
 					add_default_clause ("owns", translation_mapping.default_tags [3], a_included, a_excluded, a_mapping)
 				end
-				if not helper.is_class_explicit (type.base_class, "invariant") and
+				if not type.base_class.is_explicit ("invariant") and
 				 is_tag_included (a_included, a_excluded, translation_mapping.default_tags [4]) then
 					create l_clause.make (factory.function_call ("admissibility2", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
 					l_clause.node_info.set_type ("inv")
@@ -369,7 +369,7 @@ feature {NONE} -- Implementation
 		local
 			l_clause: IV_ASSERT
 		do
-			if not helper.is_class_explicit (type.base_class, a_name) and not builtin_collector.has_attribute (a_name) then
+			if not type.base_class.is_explicit (a_name) and not builtin_collector.has_attribute (a_name) then
 				if is_tag_included (a_included, a_excluded, a_tag) then
 					create l_clause.make (empty_set_property (a_name, a_mapping))
 					l_clause.node_info.set_type ("inv")
@@ -377,7 +377,7 @@ feature {NONE} -- Implementation
 					last_clauses.extend (l_clause)
 				end
 			elseif a_included /= Void and then a_included.has (a_tag) then
-				helper.add_semantic_error (type.base_class, messages.invalid_tag ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_tag), type.base_class.name_in_upper), -1)
+				e2b_error.add_semantic_error (type.base_class, messages.invalid_tag ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_tag), type.base_class.name_in_upper), -1)
 			end
 		end
 
@@ -392,7 +392,7 @@ feature {NONE} -- Implementation
 	processed_classes: ARRAYED_LIST [INTEGER]
 			-- List of classes already seen during the latest call to `process_invariants'.
 
-	process_invariants (a_class: CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	process_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
 			-- Process invariants of `a_class' and its ancestors, and store results in `last_clauses'.
 		require
 			a_class_exists: a_class /= Void
@@ -405,10 +405,10 @@ feature {NONE} -- Implementation
 			process_flat_invariants (a_class, a_included, a_excluded, a_mapping)
 		end
 
-	process_flat_invariants (a_class: CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	process_flat_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
 			-- Recursively process invariants of `a_class' and its ancestors.
 		local
-			l_classes: FIXED_LIST [CLASS_C]
+			l_classes: FIXED_LIST [E2B_CLASS_C]
 		do
 			from
 				l_classes := a_class.parents_classes
@@ -417,7 +417,7 @@ feature {NONE} -- Implementation
 				l_classes.after
 			loop
 				if not processed_classes.has (l_classes.item.class_id) then
-					process_flat_invariants (l_classes.item,a_included, a_excluded, a_mapping)
+					process_flat_invariants (l_classes.item, a_included, a_excluded, a_mapping)
 				end
 				l_classes.forth
 			end
@@ -433,7 +433,7 @@ feature {NONE} -- Implementation
 				(a_excluded /= Void and then (a_tag = Void or else not a_excluded.has (a_tag))) -- Or not expliciltly excluded
 		end
 
-	process_immediate_invariants (a_class: CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	process_immediate_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
 			-- Process invariants written in `a_class'.
 		require
 			a_class_not_void: a_class /= Void
@@ -442,11 +442,11 @@ feature {NONE} -- Implementation
 			l_clause: IV_ASSERT
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_found: BOOLEAN
-			t: CL_TYPE_A
+			t: E2B_CL_TYPE_A
 		do
 			if inv_byte_server.has (a_class.class_id) then
-				t := helper.class_type_in_context (a_class.actual_type, a_class, a_class.invariant_feature, type)
-				helper.switch_byte_context (a_class.invariant_feature, t, t)
+				t := a_class.class_type_in_context (a_class.actual_type, a_class.invariant_feature, type)
+				a_class.invariant_feature.switch_byte_context (t, t)
 				across
 					inv_byte_server.item (a_class.class_id).byte_list as b
 				loop
@@ -477,7 +477,7 @@ feature {NONE} -- Implementation
 						if options.is_ownership_enabled and a_included = Void and a_excluded = Void then
 							l_found := False
 							across
-								helper.ghost_attributes (type.base_class) as a
+								type.base_class.ghost_attributes as a
 							until
 								l_found
 							loop
@@ -510,7 +510,7 @@ feature {NONE} -- Implementation
 				type, l_heap, l_current, <<>>)
 		end
 
-	generate_ghost_definition (a_expr: IV_EXPRESSION; a_attr: FEATURE_I): BOOLEAN
+	generate_ghost_definition (a_expr: IV_EXPRESSION; a_attr: E2B_FEATURE_I): BOOLEAN
 			-- If `a_expr' has the form `a_name = def', create a Boogie function that defines `a_name' for `type' as `def'.
 			-- (Only accepting definitions of this form to avoid cycles).
 		local
@@ -523,8 +523,8 @@ feature {NONE} -- Implementation
 			create l_heap.make ("heap", types.heap)
 
 			l_def := definition_of (a_expr, l_heap, l_current, a_attr)
-			if attached l_def and not helper.is_class_explicit (type.base_class, a_attr.feature_name) then
-				l_field := helper.field_from_attribute (a_attr, type)
+			if attached l_def and not type.base_class.is_explicit (a_attr.feature_name) then
+				l_field := a_attr.field_from_attribute (type)
 				l_fname := name_translator.boogie_function_for_ghost_definition (type, l_field.name)
 				l_function := boogie_universe.function_named (l_fname)
 				if l_function = Void then
@@ -543,17 +543,17 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	definition_of (a_expr: IV_EXPRESSION; a_heap, a_current: IV_ENTITY; a_attr: FEATURE_I): detachable IV_EXPRESSION
+	definition_of (a_expr: IV_EXPRESSION; a_heap, a_current: IV_ENTITY; a_attr: E2B_FEATURE_I): detachable IV_EXPRESSION
 			-- If `a_expr' has the form `a_name = def' return `def', otherwise `Void'.
 		local
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 			l_field: IV_ENTITY
 			l_eq: READABLE_STRING_8
 		do
-			l_type := helper.class_type_in_context (a_attr.type, type.base_class, type.base_class.invariant_feature, type)
-			l_field := helper.field_from_attribute (a_attr, type)
-			if helper.is_class_logical (l_type.base_class) then
-				l_eq := helper.function_for_logical (l_type.base_class.feature_named ("is_equal"))
+			l_type := type.base_class.class_type_in_context (a_attr.type, type.base_class.invariant_feature, type)
+			l_field := a_attr.field_from_attribute (type)
+			if type.base_class.is_logical then
+				l_eq := (l_type.base_class.feature_named ("is_equal")).function_for_logical
 				if
 					attached {IV_FUNCTION_CALL} a_expr as fcall and then
 					fcall.name.same_string (l_eq) and then
@@ -570,7 +570,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	generate_filtered_invariant_axiom (a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+	generate_filtered_invariant_axiom (a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C)
 			-- Generate axiom (forall o: ref :: {partial_inv(h, o)} IsHeap(h) && h[o, allocated] && h[o, closed] ==> partial_inv(h, o))
 		local
 			l_h, l_o: IV_ENTITY
@@ -618,7 +618,7 @@ feature {NONE} -- Implementation
 
 feature -- Invariant admissibility
 
-	generate_invariant_admissability_check (a_class_type: CL_TYPE_A)
+	generate_invariant_admissability_check (a_class_type: E2B_CL_TYPE_A)
 			-- Generate invariant admissability check for class `a_class'.
 		local
 			l_proc: IV_PROCEDURE
@@ -662,7 +662,7 @@ feature -- Invariant admissibility
 				-- o.inv does not mention closed and owner (static check)
 
 			if builtin_collector.is_inv_unfriendly then
-				helper.add_semantic_error (a_class_type.base_class, messages.invalid_call_in_invariant, -1)
+				e2b_error.add_semantic_error (a_class_type.base_class, messages.invalid_call_in_invariant, -1)
 			end
 
 				-- A2: o.inv implies forall x: x in o.subjects implies o in x.observers
@@ -689,7 +689,7 @@ feature -- Invariant admissibility
 
 		end
 
-	handle_class_validity_result (a_class: CLASS_C; a_boogie_result: E2B_BOOGIE_PROCEDURE_RESULT; a_result_generator: E2B_RESULT_GENERATOR)
+	handle_class_validity_result (a_class: E2B_CLASS_C; a_boogie_result: E2B_BOOGIE_PROCEDURE_RESULT; a_result_generator: E2B_RESULT_GENERATOR)
 			-- Handle Boogie result `a_boogie_result'.
 		local
 			l_success: E2B_SUCCESSFUL_VERIFICATION
@@ -731,7 +731,7 @@ feature -- Invariant admissibility
 			end
 		end
 
-	invariant_check_cache: HASH_TABLE [LINKED_LIST [IV_ASSERT], CL_TYPE_A]
+	invariant_check_cache: HASH_TABLE [LINKED_LIST [IV_ASSERT], E2B_CL_TYPE_A]
 			-- Cache of inline invariant checks per type.
 		once
 			create Result.make (5)

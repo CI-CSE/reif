@@ -34,13 +34,13 @@ feature {NONE} -- Initialization
 			end
 		end
 
-	add_sub_tasks_for_class (a_class: CLASS_C)
+	add_sub_tasks_for_class (a_class: E2B_CLASS_C)
 			-- Add subtasks for class `a_class'.
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 		do
-			if not helper.is_class_logical (a_class) then
-				add_sub_task_for_class_check (helper.constraint_type (a_class))
+			if not a_class.is_logical then
+				add_sub_task_for_class_check (a_class.constraint_type)
 			end
 			if a_class.has_feature_table then
 				from
@@ -48,8 +48,8 @@ feature {NONE} -- Initialization
 				until
 					a_class.feature_table.after
 				loop
-					l_feature := a_class.feature_table.item_for_iteration
-					if helper.verify_feature_in_class (l_feature, a_class) then
+					l_feature := create {E2B_FEATURE_I}.make (a_class.feature_table.item_for_iteration)
+					if a_class.verify_feature (l_feature) then
 						add_sub_task_for_feature_of_type (l_feature, a_class.actual_type)
 					end
 					a_class.feature_table.forth
@@ -57,7 +57,7 @@ feature {NONE} -- Initialization
 			end
 		end
 
-	add_sub_task_for_feature (a_feature: FEATURE_I)
+	add_sub_task_for_feature (a_feature: E2B_FEATURE_I)
 			-- Add single subtask for feature `a_feature'.
 		local
 			l_input: E2B_TRANSLATOR_INPUT
@@ -67,17 +67,17 @@ feature {NONE} -- Initialization
 			remaining_inputs.extend (l_input)
 		end
 
-	add_sub_task_for_feature_of_type (a_feature: FEATURE_I; a_context_type: TYPE_A)
+	add_sub_task_for_feature_of_type (a_feature: E2B_FEATURE_I; a_context_type: E2B_TYPE_A)
 			-- Add single subtask for feature `a_feature'.
 		local
 			l_input: E2B_TRANSLATOR_INPUT
 		do
 			create l_input.make
-			l_input.add_feature_of_type (a_feature, helper.constraint_type (a_context_type.base_class))
+			l_input.add_feature_of_type (a_feature, a_context_type.base_class.constraint_type)
 			remaining_inputs.extend (l_input)
 		end
 
-	add_sub_task_for_class_check (a_class: CL_TYPE_A)
+	add_sub_task_for_class_check (a_class: E2B_CL_TYPE_A)
 			-- Add class check of `a_class'.
 		local
 			l_input: E2B_TRANSLATOR_INPUT

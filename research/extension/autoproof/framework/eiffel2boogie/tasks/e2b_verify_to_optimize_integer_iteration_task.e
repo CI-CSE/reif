@@ -17,7 +17,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_boogie_universe: IV_UNIVERSE; a_target_class: CLASS_C; a_target_feature: FEATURE_I; a_target_variables: HASH_TABLE [LINKED_LIST [STRING], FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
+	make (a_boogie_universe: IV_UNIVERSE; a_target_class: E2B_CLASS_C; a_target_feature: E2B_FEATURE_I; a_target_variables: HASH_TABLE [LINKED_LIST [STRING], E2B_FEATURE_I]; a_failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
 				-- print ("E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK.make for " + "%N")
@@ -225,7 +225,7 @@ feature {NONE}
 				--TODO:  if the counterexample model does not exist, then assign a randomly large value, a default value would be 100
 		end
 
-	get_sum_from_counterexample (a_feature: FEATURE_I): INTEGER
+	get_sum_from_counterexample (a_feature: E2B_FEATURE_I): INTEGER
 			-- Get the sum of all integer variables of `a_feature' in the counterexample
 		local
 			l_sum: INTEGER
@@ -302,13 +302,13 @@ feature {NONE} -- Implementation
 	target_variable: STRING
 			-- Variable under optimization
 
-	target_variables: HASH_TABLE [LINKED_LIST [STRING], FEATURE_I]
+	target_variables: HASH_TABLE [LINKED_LIST [STRING], E2B_FEATURE_I]
 			-- List of variables to be optimized
 
-	target_feature: detachable FEATURE_I
+	target_feature: detachable E2B_FEATURE_I
 			-- Feature under optimization
 
-	target_class: detachable CLASS_C
+	target_class: detachable E2B_CLASS_C
 			-- Class of the target feature
 
 	failed_verifications: READABLE_INDEXABLE [E2B_FAILED_VERIFICATION]

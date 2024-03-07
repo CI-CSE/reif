@@ -15,7 +15,7 @@ inherit
 
 feature -- Status report
 
-	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
+	is_handling_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
 			Result := a_feature.feature_name.same_string ("generating_type")
@@ -31,13 +31,13 @@ feature -- Status report
 
 feature -- Basic operations
 
-	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
 			handle_routine_call (a_translator, a_feature, a_parameters)
 		end
 
-	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
 			handle_routine_call (a_translator, a_feature, a_parameters)
@@ -57,7 +57,7 @@ feature -- Basic operations
 
 feature -- Implementation
 
-	handle_routine_call (a_translator: E2B_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	handle_routine_call (a_translator: E2B_EXPRESSION_TRANSLATOR; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
 			l_name: STRING
@@ -74,9 +74,9 @@ feature -- Implementation
 			-- Handle `a_nested'.
 		local
 			l_name: STRING
-			l_type: CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 			l_target: IV_EXPRESSION
-			l_target_type: CL_TYPE_A
+			l_target_type: E2B_CL_TYPE_A
 		do
 			if has_old (a_nested) then
 					-- Dealing with "old_"
@@ -156,4 +156,20 @@ feature -- Implementation
 				or (attached {NESTED_B} a_nested.message as n and then has_old (n))					-- or is it inside the message?
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

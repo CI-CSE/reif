@@ -59,14 +59,14 @@ feature -- Element change
 			end
 		end
 
-	add_class (a_class: CLASS_C)
+	add_class (a_class: E2B_CLASS_C)
 			-- Add `a_class' to be translated.
 		local
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 			c: CURSOR
 		do
-			if not helper.is_class_logical (a_class) then
-				translation_pool.add_class_check (helper.constraint_type (a_class))
+			if not a_class.is_logical then
+				translation_pool.add_class_check (a_class.constraint_type)
 			end
 			if a_class.has_feature_table then
 				from
@@ -74,8 +74,8 @@ feature -- Element change
 				until
 					a_class.feature_table.after
 				loop
-					l_feature := a_class.feature_table.item_for_iteration
-					if helper.verify_feature_in_class (l_feature, a_class) then
+					l_feature := create {E2B_FEATURE_I}.make (a_class.feature_table.item_for_iteration)
+					if a_class.verify_feature (l_feature) then
 							-- Record current position because it can change after adding the feature.
 						c := a_class.feature_table.cursor
 							-- Add the feature.
@@ -88,21 +88,21 @@ feature -- Element change
 			end
 		end
 
-	add_feature (a_feature: FEATURE_I)
+	add_feature (a_feature: E2B_FEATURE_I)
 			-- Add `a_feature' to be translated.
 		require
 			a_feature_attached: attached a_feature
 		do
-			add_feature_of_type (a_feature, system.class_of_id (a_feature.written_in).actual_type)
+			add_feature_of_type (a_feature, create {E2B_CL_TYPE_A}.make (system.class_of_id (a_feature.written_in).actual_type))
 		end
 
-	add_feature_of_type (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
+	add_feature_of_type (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
 			-- Add `a_feature' in context of type `a_context_type' to be translated.
 		require
 			a_feature_attached: attached a_feature
 			a_context_type_attached: attached a_context_type
 		do
-			translation_pool.add_feature (a_feature, helper.constraint_type (a_context_type.base_class))
+			translation_pool.add_feature (a_feature, (a_context_type.base_class).constraint_type )
 		end
 
 feature -- Basic operations

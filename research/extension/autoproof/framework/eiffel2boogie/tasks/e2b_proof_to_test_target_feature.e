@@ -11,7 +11,7 @@ create
     make
 
 feature {NONE} -- Initialize
-    make (a_target_feature: FEATURE_I; a_target_class: CLASS_C)
+    make (a_target_feature: E2B_FEATURE_I; a_target_class: E2B_CLASS_C)
        -- Initialize
     do
     	target_feature := a_target_feature
@@ -21,10 +21,10 @@ feature {NONE} -- Initialize
 
 feature -- Data
 
-    target_feature: FEATURE_I
+    target_feature: E2B_FEATURE_I
         -- Feature to under verification
 
-    target_class: CLASS_C
+    target_class: E2B_CLASS_C
         -- Class of the target feature
 
     creation_procedures: LINKED_LIST[FEATURE_I]

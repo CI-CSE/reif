@@ -39,62 +39,6 @@ feature -- Query
 			end
 		end
 
---	failure_with_signature (a_sig: EPA_TEST_CASE_SIGNATURE; a_instantiate_fault: BOOLEAN): ES_ADB_PROOF_FAILURE
---			-- Fault with `a_sig' from `fault_repository'.
---			--
---			-- If no such fault exists in the repo:
---			-- 	when `a_instantiate_fault', create it, add it to repo, and then return it.
---			--	otherwise, return Void.
---		require
---			a_sig /= Void
---		local
---		do
-		-- TODO Li: recover this feature?
---			if failure_repository.has (a_sig) then
---				Result := fault_repository.item (a_sig)
---			elseif a_instantiate_fault then
---				create Result.make (a_sig)
---				failure_repository.force (Result, a_sig)
---			end
---		end
-
---	failure_with_signature_id (a_id: STRING): ES_ADB_PROOF_FAILURE
---			-- Get the fault with signature id `a_id' from `fault_repository'.
---		require
---			failure_signature_from_id (a_id) /= Void
---		local
---			l_sig: EPA_TEST_CASE_SIGNATURE
---		do
---			-- print("ES_ADB_FAULT_REPOSITORY.fault_with_signature_id%N")
---			print(a_id + "%N")
---			l_sig := failure_signature_from_id (a_id)
---			Result := failure_with_signature (l_sig, False)
---		end
-
-	number_of_failures_for_feature (a_feature: EPA_FEATURE_WITH_CONTEXT_CLASS): INTEGER
-			-- Number of faults in `fault_repository' with their feature under test being `a_feature'.
-		require
-			a_feature /= Void
-		local
-			l_feature_with_context_str: STRING
-			l_cursor: DS_ARRAYED_LIST_CURSOR [ES_ADB_PROOF_FAILURE]
-		do
-				-- TODO Li
-				-- print("ES_ADB_FAULT_REPOSITORY.number_of_faults_for_feature%N")
---			l_feature_with_context_str := a_feature.qualified_feature_name
---			from
---				l_cursor := failure_repository.new_cursor
---				l_cursor.start
---			until
---				l_cursor.after
---			loop
---				if l_cursor.key.class_and_feature_under_test ~ l_feature_with_context_str then
---					Result := Result + 1
---				end
---				l_cursor.forth
---			end
-		end
-
 feature -- Operation
 
 	register_proof_failure (a_msg: STRING; a_directory: PATH)
@@ -126,15 +70,15 @@ feature -- Operation
 			failure_repository_storage.put (create {DS_ARRAYED_LIST [ES_ADB_PROOF_FAILURE]}.make_equal (100))
 		end
 
-feature -- Auxiliary
+--feature -- Auxiliary
 
-	failure_signature_from_id (a_id: STRING): EPA_TEST_CASE_SIGNATURE
-			-- Fault signature with the same id as `a_id'.
-		local
-			l_keys: DS_BILINEAR [EPA_TEST_CASE_SIGNATURE]
-			l_key_cursor: DS_BILINEAR_CURSOR [EPA_TEST_CASE_SIGNATURE]
-		do
-				-- TODO Li
+--	failure_signature_from_id (a_id: STRING): EPA_TEST_CASE_SIGNATURE
+--			-- Fault signature with the same id as `a_id'.
+--		local
+--			l_keys: DS_BILINEAR [EPA_TEST_CASE_SIGNATURE]
+--			l_key_cursor: DS_BILINEAR_CURSOR [EPA_TEST_CASE_SIGNATURE]
+--		do
+--				-- TODO Li
 --			l_keys := failure_repository
 --			from
 --				l_key_cursor := l_keys.new_cursor
@@ -147,7 +91,7 @@ feature -- Auxiliary
 --				end
 --				l_key_cursor.forth
 --			end
-		end
+--		end
 
 feature {NONE} -- Implementation
 

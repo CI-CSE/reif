@@ -71,12 +71,12 @@ feature -- Processing
 			-- <Precursor>
 		local
 			l_name: STRING
-			l_feature: FEATURE_I
+			l_feature: E2B_FEATURE_I
 		do
 			Precursor (a_node)
 			l_name := names_heap.item (a_node.feature_name_id)
 			if a_node.routine_id > 0 then
-				l_feature := system.class_of_id (a_node.written_in).feature_of_rout_id (a_node.routine_id)
+				l_feature := create {E2B_FEATURE_I}.make (system.class_of_id (a_node.written_in).feature_of_rout_id (a_node.routine_id))
 			end
 			if l_name.same_string ("observers") then
 				has_observers := True
@@ -90,7 +90,7 @@ feature -- Processing
 				l_name.same_string ("is_wrapped") or
 				l_name.same_string ("owner") or
 				l_name.same_string ("is_free") or
-				(attached l_feature and then helper.is_invariant_unfriendly (l_feature))
+				(attached l_feature and then l_feature.is_invariant_unfriendly)
 			then
 				is_inv_unfriendly := True
 			end
@@ -110,4 +110,20 @@ feature -- Processing
 			end
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end
