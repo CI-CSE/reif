@@ -108,7 +108,7 @@ feature -- Get initial state
 					i > target_feature.arguments.count
 				loop -- Minimize each argument of the target feature
 					arg_name := target_feature.arguments.item_name_32 (i).to_string_8
-					arg_type := target_feature.arguments.array_item (i - 1)
+					arg_type := create {E2B_TYPE_A}.make (target_feature.arguments.array_item (i - 1))
 					get_object_initial_state (arg_name, arg_type)
 					i := i + 1
 				end

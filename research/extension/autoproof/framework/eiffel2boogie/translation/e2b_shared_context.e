@@ -118,6 +118,42 @@ feature -- Byte context
 			context_stack_unchanged: across context_stack as i all (old context_stack) [@ i.target_index] = i end
 		end
 
+
+	set_up_byte_context (a_type: E2B_TYPE_A)
+			-- Set up byte context for `a_feature' of type `a_type'.
+		do
+				-- Clear byte context
+			Context.clear_class_type_data
+			Context.inherited_assertion.wipe_out
+
+				-- Set up class type
+			if not a_type.has_associated_class_type (Void) then
+				if attached {E2B_CL_TYPE_A} a_type as l_cl_type_a then
+					a_type.base_class.update_types (l_cl_type_a)
+				else
+					check False end
+				end
+			end
+			check a_type.has_associated_class_type (Void) end
+			Context.init (a_type.associated_class_type (Void))
+		end
+
+	switch_byte_context (a_target_type: E2B_CL_TYPE_A; a_written_type: E2B_CL_TYPE_A)
+			-- Update byte context to feature `f` written in `a_written_type` called on type `a_target_type`.
+			-- Use `unswitch_byte_context` to restore original state.
+		do
+			Context.change_class_type_context
+				(a_target_type.associated_class_type (Void),
+				a_target_type.type_a,
+				a_written_type.associated_class_type (Void),
+				a_written_type.type_a)
+			helper.context_stack.put ([create {E2B_FEATURE_I}.make (Context.current_feature), Context.byte_code])
+			context.clear_feature_data
+		ensure
+			context_stack_count: helper.switch_count = old helper.switch_count + 1
+			context_stack_unchanged: across old helper.context_stack as i all helper.context_stack [@ i.target_index] = i end
+		end
+
 	switch_count: NATURAL_32
 			-- Number of times the byte context stack has switched.
 		do
@@ -126,7 +162,7 @@ feature -- Byte context
 			definition: Result = context_stack.count.as_natural_32
 		end
 
-feature {E2B_FEATURE_I, E2B_CLASS_C} -- Storage
+feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_SHARED_CONTEXT} -- Storage
 
 	context_stack: ARRAYED_STACK [TUPLE [current_feature: detachable E2B_FEATURE_I; byte_code: detachable BYTE_CODE]]
 			-- Stack of byte contexts saved by `switch_byte_context`.

@@ -70,10 +70,10 @@ feature -- Basic operations
 				-- Add actual generic parameters
 			if a_type.has_generics then
 				across a_type.generics as params loop
-					if attached {E2B_CL_TYPE_A} params as t then
-						translation_pool.add_parent_type (t)
-					elseif attached {E2B_CL_TYPE_A} a_type.base_class.single_constraint (@ params.target_index) as t then
-						translation_pool.add_parent_type (t)
+					if attached {CL_TYPE_A} params.type_a as t then
+						translation_pool.add_parent_type (create {E2B_CL_TYPE_A}.make (t))
+					elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ params.target_index).type_a as t then
+						translation_pool.add_parent_type (create {E2B_CL_TYPE_A}.make (t))
 					else
 						check class_type_constraint: False then end
 					end
@@ -141,7 +141,11 @@ feature -- Basic operations
 			l_class := type.base_class
 
 			if not l_class.is_logical and not l_class.is_array then
-				l_class.invariant_feature.set_up_byte_context (a_type)
+				if l_class.invariant_feature /= Void then
+					l_class.invariant_feature.set_up_byte_context (a_type)
+				else
+					set_up_byte_context (a_type)
+				end
 				translate_invariant_function
 
 				-- Add guards for built-in attributes (ANY versions)
@@ -174,7 +178,11 @@ feature -- Basic operations
 		local
 			l_mapping: E2B_ENTITY_MAPPING
 		do
-			a_type.base_class.invariant_feature.switch_byte_context (a_type, a_type)
+			if a_type.base_class.invariant_feature /= Void then
+				a_type.base_class.invariant_feature.switch_byte_context (a_type, a_type)
+			else
+				switch_byte_context (a_type, a_type)
+			end
 			type := a_type
 			if a_target.same_expression (factory.std_current) then
 					-- Standard target: use cache

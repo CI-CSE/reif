@@ -207,7 +207,7 @@ feature -- Test generation
 					j > target_feature.arguments.count
 				loop
 					argument_name := target_feature.arguments.item_name_32 (j).to_string_8
-					argument_type := safe_type (target_feature.arguments.array_item (j - 1))
+					argument_type := safe_type (create {E2B_TYPE_A}.make (target_feature.arguments.array_item (j - 1)))
 					j := j + 1
 					references_to_declare.extend (argument_type.name, argument_name)
 						-- td := td + declare_object (argument_name, argument_type)
@@ -281,7 +281,7 @@ feature -- Test generation
 					until
 						i > l_creation_procedure.arguments.count
 					loop -- Minimize each argument of the target feature
-						arg_type := l_creation_procedure.arguments.array_item (i - 1)
+						arg_type := create {E2B_TYPE_A}.make (l_creation_procedure.arguments.array_item (i - 1))
 						if arg_type.name.same_string ("INTEGER") or arg_type.name.same_string ("INTEGER_8") or arg_type.name.same_string ("INTEGER_16") or arg_type.name.same_string ("INTEGER_32") then
 							t := t + "0"
 						elseif arg_type.name.same_string ("BOOLEAN") then

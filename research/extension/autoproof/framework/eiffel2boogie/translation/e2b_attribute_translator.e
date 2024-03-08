@@ -260,10 +260,10 @@ feature {NONE} -- Implementation
 				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_not_predicate, -1)
 			elseif a_guard_feature.argument_count /= 2 then
 				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_arg_count, -1)
-			elseif types.for_class_type (guard_feature_class.class_type_in_context (a_guard_feature.arguments [1], a_guard_feature, current_type))
+			elseif types.for_class_type (guard_feature_class.class_type_in_context (create {E2B_TYPE_A}.make (a_guard_feature.arguments [1]), a_guard_feature, current_type))
 					/~ types.for_class_type (a_attr_type) then
 				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_arg1, -1)
-			elseif not a_guard_feature.arguments [2].same_as (create {E2B_TYPE_A}.make (system.any_type)) then
+			elseif not a_guard_feature.arguments [2].same_as (system.any_type) then
 				e2b_error.add_semantic_error (a_guard_feature, messages.guard_feature_arg2, -1)
 			else
 				Result := True

@@ -65,19 +65,27 @@ feature -- Wrapped features
 		do Result := type_a.is_like_current end
 
 	evaluated_type_in_descendant (a_ancestor, a_descendant: E2B_CLASS_C; a_feature: E2B_FEATURE_I): E2B_TYPE_A
-		do create Result.make (type_a.evaluated_type_in_descendant (a_ancestor.c_class, a_descendant.c_class, a_feature.c_feature)) end
+		local
+			ancestor_class, descendant_class: CLASS_C
+			l_feature: FEATURE_I
+		do
+			ancestor_class := if a_ancestor = Void then Void else a_ancestor.c_class end
+			descendant_class := if a_descendant = Void then Void else a_descendant.c_class end
+			l_feature := if a_feature = Void then Void else a_feature.c_feature end
+			create Result.make (type_a.evaluated_type_in_descendant (ancestor_class, descendant_class, l_feature))
+		end
 
 	deep_actual_type: E2B_TYPE_A
 		do create Result.make (type_a.deep_actual_type) end
 
 	instantiated_in (class_type: E2B_TYPE_A): E2B_TYPE_A
-		do create Result.make (type_a.instantiated_in (class_type.type_a)) end
+		do create Result.make (type_a.instantiated_in (if class_type /= Void then class_type.type_a else Void end)) end
 
 	associated_class_type (a_context_type: E2B_TYPE_A): CLASS_TYPE
-		do Result := type_a.associated_class_type (a_context_type.type_a) end
+		do Result := type_a.associated_class_type (if a_context_type /= Void then a_context_type.type_a else Void end) end
 
 	has_associated_class_type (a_context_type: E2B_TYPE_A): BOOLEAN
-		do Result := type_a.has_associated_class_type (a_context_type.type_a) end
+		do Result := type_a.has_associated_class_type (if a_context_type /= Void then a_context_type.type_a else Void end) end
 
 	is_class_valid: like type_a.is_class_valid
 		do Result := type_a.is_class_valid end
@@ -89,7 +97,8 @@ feature -- Wrapped features
 		local
 			i: INTEGER
 		do
-			create Result.make (type_a.generics.count)
+			create Result.make_filled (type_a.generics.count)
+			check Result.count = type_a.generics.count end
 			from i := Result.lower
 			until i > Result.upper
 			loop

@@ -125,10 +125,10 @@ feature -- Type translation
 					across
 						a_type.generics as g
 					loop
-						if attached {E2B_CL_TYPE_A} g as t then
-							l_params.extend (for_class_type (t))
-						elseif attached {E2B_CL_TYPE_A} a_type.base_class.single_constraint (@ g.target_index) as t then
-							l_params.extend (for_class_type (t))
+						if attached {CL_TYPE_A} g.type_a as t then
+							l_params.extend (for_class_type (create {E2B_CL_TYPE_A}.make (t)))
+						elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ g.target_index).type_a as t then
+							l_params.extend (for_class_type (create {E2B_CL_TYPE_A}.make (t)))
 						else
 							check class_type_constraint: False then end
 						end
@@ -146,7 +146,7 @@ feature -- Type translation
 					across
 						l_access_feature.arguments as args
 					loop
-						l_domain_types.extend (for_class_type (l_access_feature.written_class.class_type_in_context (args, l_access_feature, a_type)))
+						l_domain_types.extend (for_class_type (l_access_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (args), l_access_feature, a_type)))
 					end
 					create {IV_MAP_SYNONYM_TYPE} l_user_type.make (<<>>,
 						l_domain_types,
@@ -237,10 +237,10 @@ feature -- Type translation
 						across
 							l_type_properties as prop
 						loop
-							if attached {E2B_CL_TYPE_A} a_type.generics [@ prop.target_index] as c then
-								t := c
-							elseif attached {E2B_CL_TYPE_A} a_type.base_class.single_constraint (@ prop.target_index) as c then
-								t := c
+							if attached {CL_TYPE_A} a_type.generics [@ prop.target_index].type_a as c then
+								create t.make (c)
+							elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ prop.target_index).type_a as c then
+								create t.make (c)
 							else
 								check class_type_constraint: False then end
 							end
@@ -265,11 +265,11 @@ feature -- Type translation
 		local
 			l_f_name: STRING
 		do
-			if attached {INTEGER_A} a_type as l_int_type then
+			if attached {INTEGER_A} a_type.type_a as l_int_type then
 				l_f_name := "is_integer_" + l_int_type.size.out
-			elseif attached {NATURAL_A} a_type as l_nat_type then
+			elseif attached {NATURAL_A} a_type.type_a as l_nat_type then
 				l_f_name := "is_natural_" + l_nat_type.size.out
-			elseif attached {CHARACTER_A} a_type as l_char_type then
+			elseif attached {CHARACTER_A} a_type.type_a as l_char_type then
 				if l_char_type.is_character_32 then
 					l_f_name := "is_natural_32"
 				else

@@ -46,10 +46,10 @@ feature -- Helper functions: arguments and result
 				across
 					arguments as a
 				loop
-					l_type := a_context.base_class.class_type_in_context (a, a_feature, a_context)
+					l_type := a_context.base_class.class_type_in_context (create {E2B_TYPE_A}.make (a), a_feature, a_context)
 					Result.extend
 						(arguments.item_name (@ a.target_index),
-						a,
+						create {E2B_TYPE_A}.make (a),
 						l_type,
 						types.for_class_type (l_type))
 				end
@@ -106,6 +106,8 @@ feature -- Helper functions: contracts
 	contracts_of (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A): TUPLE [pre, post, modifies, reads, decreases: LIST [E2B_ASSERT_ORIGIN]]
 			-- Contracts for feature `a_feature' of type `a_type' separated into preconditions, postconiditons, modify clauses, read clauses, and decreases clauses;
 			-- with their origin class.
+		require
+			feature_not_void: a_feature /= Void
 		local
 			l_pre, l_post, l_modifies, l_reads, l_decreases: LINKED_LIST [E2B_ASSERT_ORIGIN]
 			l_class: E2B_CLASS_C
@@ -200,6 +202,8 @@ feature -- Helper functions: contracts
 
 	pre_post_expressions_of (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_mapping: E2B_ENTITY_MAPPING): TUPLE [pre: IV_EXPRESSION; post: IV_EXPRESSION]
 			-- Contracts for feature `a_feature' of type `a_type' as expressions.
+		require
+			feature_not_void: a_feature /= Void
 		local
 			l_contracts: like contracts_of
 			l_pre: IV_EXPRESSION
@@ -215,14 +219,16 @@ feature -- Helper functions: contracts
 			l_pre := factory.true_
 			across l_contracts.pre as c loop
 				l_translator.set_origin_class (c.origin)
-				(c.origin.feature_of_rout_id (a_feature.rout_id_set.first)).set_up_byte_context (c.origin.class_type_in_context (c.origin.actual_type, Void, current_type))
+				check c.origin.feature_of_rout_id (a_feature.rout_id_set.first) /= Void end
+				c.origin.feature_of_rout_id (a_feature.rout_id_set.first).set_up_byte_context (c.origin.class_type_in_context (c.origin.actual_type, Void, current_type))
 				c.clause.process (l_translator)
 				l_pre := factory.and_clean (l_pre, l_translator.last_expression)
 			end
 			l_post := factory.true_
 			across l_contracts.post as c loop
 				l_translator.set_origin_class (c.origin)
-				(c.origin.feature_of_rout_id (a_feature.rout_id_set.first)).set_up_byte_context (c.origin.class_type_in_context (c.origin.actual_type, Void, current_type))
+				check c.origin.feature_of_rout_id (a_feature.rout_id_set.first) /= Void end
+				c.origin.feature_of_rout_id (a_feature.rout_id_set.first).set_up_byte_context (c.origin.class_type_in_context (c.origin.actual_type, Void, current_type))
 				c.clause.process (l_translator)
 				l_post := factory.and_clean (l_post, l_translator.last_expression)
 			end

@@ -328,7 +328,7 @@ feature -- Translation
 				l_pcall.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
 				check system.class_of_id (current_target_type.base_class.class_id).feature_of_rout_id (a_feature.rout_id_set.first).feature_name_id = a_feature.feature_name_id end
 
-				if not a_feature.is_static then
+				if not a_feature.is_static and not (current_target = Void) then
 					l_pcall.add_argument (current_target)
 				end
 				process_parameters (a_parameters)
@@ -465,6 +465,7 @@ feature -- Translation
 			l_translator.set_entity_mapping (l_entity_mapping)
 
 			l_translator.process_feature_of_type (a_feature, current_target_type)
+			check context_feature /= Void end
 			context_feature.set_up_byte_context (context_type)
 
 			side_effect.extend (if_safety_expression (l_block))

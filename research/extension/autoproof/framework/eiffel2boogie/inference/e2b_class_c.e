@@ -99,7 +99,13 @@ feature -- Wrapper
 		do Result := c_class.inherits_from (other.c_class) end
 
 	invariant_feature: E2B_INVARIANT_FEAT_I
-		do create Result.make (c_class.invariant_feature) end
+		do
+			if c_class.invariant_feature = Void then
+				Result := Void
+			else
+				create Result.make (c_class.invariant_feature)
+			end
+		end
 
 	is_class_any: like c_class.is_class_any
 		do Result := c_class.is_class_any end
@@ -531,13 +537,13 @@ feature -- Eiffel helpers
 				t := a_type.evaluated_type_in_descendant
 						(Current, a_current_type.base_class, a_feature).deep_actual_type.instantiated_in
 						(a_current_type)
-				if attached {E2B_CL_TYPE_A} t as c then
-					Result := c
+				if attached {CL_TYPE_A} t.type_a as c then
+					create Result.make (c)
 				elseif
 					attached {FORMAL_A} a_type.type_a as f and then
-					attached {E2B_CL_TYPE_A} a_current_type.base_class.single_constraint (f.position) as c
+					attached {CL_TYPE_A} a_current_type.base_class.single_constraint (f.position).type_a as c
 				then
-					Result := c
+					create Result.make (c)
 				else
 					check class_type_constraint: False then end
 				end

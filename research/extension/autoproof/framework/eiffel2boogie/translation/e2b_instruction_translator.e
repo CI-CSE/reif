@@ -165,7 +165,7 @@ feature -- Basic operations
 					l_expr_translator.side_effect.wipe_out
 				end
 			end
-
+			check a_feature /= Void end
 			a_feature.set_up_byte_context (a_type)
 			if attached Context.byte_code as l_byte_code then
 				if l_byte_code.compound /= Void and then not l_byte_code.compound.is_empty then

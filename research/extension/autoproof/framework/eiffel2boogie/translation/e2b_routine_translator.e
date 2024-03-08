@@ -64,6 +64,7 @@ feature -- Translation: Signature
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
 			routine: a_feature.is_routine
+			feature_not_void: a_feature /= Void
 		local
 			l_proc_name: READABLE_STRING_8
 			l_contracts: like contracts_of
@@ -520,6 +521,8 @@ feature -- Translation: Signature
 
 	add_agent_modifies
 			-- Add frame condition if `agent_modify' is used in precondition.
+		require
+			current_feature_is_not_none: current_feature /= Void
 		local
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_name: READABLE_STRING_8
@@ -591,6 +594,8 @@ feature -- Translation: Implementation
 
 	translate_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_for_creator: BOOLEAN)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
+		require
+			a_feature_not_void: a_feature /= Void
 		local
 			l_procedure: IV_PROCEDURE
 			l_implementation: IV_IMPLEMENTATION
@@ -666,6 +671,7 @@ feature -- Translation: Implementation
 			end
 
 				-- Process statements (byte node tree)
+			check current_feature /= Void end
 			current_feature.set_up_byte_context (current_type)
 			if attached Context.byte_code as l_byte_code then
 				if l_byte_code.compound /= Void and then not l_byte_code.compound.is_empty then
@@ -729,6 +735,8 @@ feature -- Translation: Functions
 
 	translate_functional_representation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Generate a Boogie function that encodes the result of Eiffel function `a_feature' and its definitional axiom.
+		require
+			not_void_feature: a_feature /= Void
 		local
 			l_function, l_function0: IV_FUNCTION
 			l_proc: IV_PROCEDURE
@@ -804,6 +812,8 @@ feature -- Translation: Functions
 
 	translate_function_precondition_predicate (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate precondition predicate of feature `a_feature' of type `a_type'.
+		require
+			a_feature_not_void: a_feature /= Void
 		local
 			l_fname: READABLE_STRING_8
 			l_pre_function, l_trigger_function: IV_FUNCTION
@@ -889,6 +899,7 @@ feature -- Translation: Functions
 			-- (translate the read frame for the functional representation if `a_read' and the write frame otherwise)
 		require
 			read_for_pure_functions: a_read implies a_feature.has_functional_representation
+			not_void_feature: a_feature /= Void
 		local
 			l_exprs: like modify_expressions_of
 			l_function: IV_FUNCTION
@@ -969,6 +980,8 @@ feature -- Translation: Functions
 
 	translate_variant_functions (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate the decreases of feature `a_feature' of type `a_type'.
+		require
+			a_feature /= Void
 		local
 			l_decreases_list: like decreases_expressions_of
 			l_entity, l_heap, l_current: IV_ENTITY
@@ -1200,6 +1213,8 @@ feature -- Translation: agents
 
 	translate_postcondition_predicate (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate postconditino predicate of feature `a_feature' of type `a_type'.
+		require
+			feature_not_void: a_feature /= Void
 		local
 			l_procedure: IV_PROCEDURE
 			l_function: IV_FUNCTION
@@ -1325,6 +1340,8 @@ feature {NONE} -- Implementation
 			--	require pre(expr);
 			--	free require free_pre(expr);
 			--	require expr; // Here should be free_pre(expr) ==> expr, but it doesn't seem to have an effect in practice
+		require
+			current_feature_not_void: current_feature /= Void
 		local
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_contract: IV_PRECONDITION
@@ -1357,6 +1374,8 @@ feature {NONE} -- Implementation
 
 	process_postcondition (a_assert: ASSERT_B; a_origin_class: E2B_CLASS_C; a_fields: LIST [TUPLE [IV_EXPRESSION, IV_ENTITY]])
 			-- Process `a_assert' as postcondition.
+		require
+			current_feature_not_void: current_feature /= Void
 		local
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_contract: IV_POSTCONDITION

@@ -19,7 +19,11 @@ inherit
 		export {NONE} all end
 
 	E2B_SHARED_CONTEXT
-		export {NONE} all end
+		export {NONE} all
+		redefine
+			set_up_byte_context,
+			switch_byte_context
+		end
 
 create
 	make
@@ -56,8 +60,14 @@ feature -- wrapped features
 	is_constant: like c_feature.is_constant
 		do Result := c_feature.is_constant end
 
-	arguments: E2B_FEAT_ARG
-		do create Result.make (c_feature.arguments) end
+	arguments: FEAT_ARG
+		do
+			if c_feature.arguments /= Void then
+				Result := c_feature.arguments
+			end
+		ensure
+			c_feature.arguments /= Void ⇒ Result.count = c_feature.arguments.count
+		end
 
 	rout_id_set: like c_feature.rout_id_set
 		do Result := c_feature.rout_id_set end
@@ -89,8 +99,8 @@ feature -- wrapped features
 	feature_id: like c_feature.feature_id
 		do Result := c_feature.feature_id end
 
-	instantiated (parent_type: E2B_TYPE_A): like c_feature.instantiated
-		do Result := c_feature.instantiated (parent_type.type_a) end
+	instantiated (parent_type: E2B_TYPE_A): E2B_FEATURE_I
+		do create Result.make (c_feature.instantiated (parent_type.type_a)) end
 
 	has_arguments: like c_feature.has_arguments
 		do Result := c_feature.has_arguments end
@@ -516,9 +526,6 @@ feature -- Byte context helper
 			if byte_server.has (c_feature.body_index) then
 				Context.set_byte_code (byte_server.item (c_feature.body_index))
 			end
-		ensure
-			context_stack_count: helper.switch_count = old helper.switch_count + 1
-			context_stack_unchanged: across old helper.context_stack as i all helper.context_stack [@ i.target_index] = i end
 		end
 
 feature -- Other

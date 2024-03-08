@@ -96,15 +96,10 @@ feature -- String helpers
 
 	feature_for_call_access (a_node: CALL_ACCESS_B; a_target_type: E2B_TYPE_A): E2B_FEATURE_I
 			-- Feature represented by `a_node'.
-		local
-			l_feature: E2B_FEATURE_I
-			child_class, parent_class: E2B_CLASS_C
 		do
-			child_class := a_target_type.base_class
-			create parent_class.make (system.class_of_id (a_node.written_in))
-			check child_class.is_conforming_or_non_conforming_parent_class (parent_class) end
-			l_feature := a_target_type.base_class.feature_of_rout_id (a_node.routine_id)
-			l_feature := create {E2B_FEATURE_I}.make (Result.instantiated (a_target_type))
+			check a_target_type.base_class.is_conforming_or_non_conforming_parent_class (create {E2B_CLASS_C}.make (system.class_of_id (a_node.written_in))) end
+			Result := a_target_type.base_class.feature_of_rout_id (a_node.routine_id)
+			Result := Result.instantiated (a_target_type)
 			check Result /= Void end
 		end
 

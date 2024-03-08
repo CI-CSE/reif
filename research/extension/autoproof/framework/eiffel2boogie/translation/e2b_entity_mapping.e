@@ -58,14 +58,12 @@ feature -- Access
 		local
 			l_name: READABLE_STRING_8
 			l_type: IV_TYPE
-			l_base_class: E2B_CLASS_C
 		do
 			if argument_mapping.has_key (a_position) then
 				Result := argument_mapping.item (a_position)
 			else
-				l_base_class := a_type.base_class
 				l_name := a_feature.arguments.item_name (a_position)
-				l_type := types.for_class_type (l_base_class.class_type_in_context (a_feature.arguments.i_th (a_position), a_feature, a_type))
+				l_type := types.for_class_type (a_type.base_class.class_type_in_context (create {E2B_TYPE_A}.make (a_feature.arguments.i_th (a_position)), a_feature, a_type))
 				create {IV_ENTITY} Result.make (l_name, l_type)
 			end
 		end
