@@ -302,7 +302,7 @@ feature -- Access
 			i: INTEGER
 			l_type_name: STRING
 			l_helper: E2B_HELPER
-			t: E2B_TYPE_A
+			t: TYPE_A
 		do
 			create l_helper
 			if a_type.is_agent_type then
@@ -315,7 +315,7 @@ feature -- Access
 				until
 					i > l_gen_type.generics.upper
 				loop
-					t := (create {E2B_TYPE_A}.make (l_gen_type)).generics [i]
+					t := l_gen_type.generics [i]
 					if attached {CL_TYPE_A} t as c then
 						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (c))
 					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as c then
