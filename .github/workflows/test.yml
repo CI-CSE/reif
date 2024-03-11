@@ -114,7 +114,21 @@ jobs:
 
       - name: Build AutoProof ec
         run: |
-          ecb -config $AP/Eiffel/Ace/ec.ecf -freeze -c_compile -batch
+          ec -config $AP/Eiffel/Ace/ec.ecf -freeze -c_compile -batch
+
+      - name: Run ec tests
+        if: ${{ !cancelled() }}
+        run: |
+          ec -config $AP/Eiffel/Ace/ec.ecf -tests |& tee test_out.txt
+          res=${PIPESTATUS[0]}
+
+          echo "# EC -tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat test_out.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          exit $res
 
       - name: Replace ec
         run: |
