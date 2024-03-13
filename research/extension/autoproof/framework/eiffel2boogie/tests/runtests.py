@@ -237,6 +237,7 @@ def run_test(path, test_name, args_prefix=[]):
 			print('diff:')
 			for line in difflib.unified_diff(output_content.split("\n"), expected_content.split("\n")):
 				_as_info(line)
+			print('end diff')
 			return 'failed'
 	else:
 		_as_error("test '" + test_name + "' does not exist")

@@ -51,8 +51,8 @@ feature -- Basic operations
 
 					-- Add field ID
 				boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-						factory.function_call ("FieldId", << l_f, l_context_type >>, types.int),
-						factory.int_value (current_feature.feature_id))))
+							factory.function_call ("FieldId", <<l_f, l_context_type>>, types.int),
+							factory.int_value (current_feature.feature_id))))
 
 					-- Add equivalences
 				generate_equivalences_for_class (current_type.base_class)
@@ -67,12 +67,12 @@ feature -- Basic operations
 
 					-- Add type properties
 				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, current_feature.type.is_type_exact (l_class_type, Void),
-					current_feature.type.is_attached)
+						current_feature.type.is_attached)
 				if not l_type_prop.is_true then
 					l_type_prop := factory.implies_ (factory.and_ (
-							factory.is_heap (l_heap),
-							factory.function_call ("attached", << l_heap, l_o, l_context_type >>, types.bool)),
-						l_type_prop)
+								factory.is_heap (l_heap),
+								factory.function_call ("attached", <<l_heap, l_o, l_context_type>>, types.bool)),
+							l_type_prop)
 					create l_forall.make (l_type_prop)
 					l_forall.add_bound_variable (l_heap)
 					l_forall.add_bound_variable (l_o)
@@ -104,7 +104,7 @@ feature -- Basic operations
 			create l_f.make (a_boogie_name, types.field (a_boogie_type))
 			create l_v.make ("v", a_boogie_type)
 			create l_o.make ("o", types.ref)
-			l_fcall := factory.function_call ("guard", << l_h, l_cur, l_f, l_v, l_o >>, types.bool)
+			l_fcall := factory.function_call ("guard", <<l_h, l_cur, l_f, l_v, l_o>>, types.bool)
 			l_def := factory.true_
 			across current_feature.guards_for_attribute as g loop
 				l_def := factory.and_clean (l_def, guard_from_string (g.str, g.origin, a_type, l_h, l_cur, l_f, l_v, l_o))
@@ -140,8 +140,8 @@ feature -- Basic operations
 
 				-- Add field ID
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-					factory.function_call ("FieldId", << l_f, l_context_type >>, types.int),
-					factory.int_value (a_position))))
+						factory.function_call ("FieldId", <<l_f, l_context_type>>, types.int),
+						factory.int_value (a_position))))
 
 				-- Add type properties
 			l_heap := factory.heap_entity ("heap")
@@ -150,9 +150,9 @@ feature -- Basic operations
 			l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, l_type.is_type_exact (l_class_type, Void), l_type.is_attached)
 			if not l_type_prop.is_true then
 				l_type_prop := factory.implies_ (factory.and_ (
-						factory.is_heap (l_heap),
-						factory.function_call ("attached", << l_heap, l_o, l_context_type >>, types.bool)),
-					l_type_prop)
+							factory.is_heap (l_heap),
+							factory.function_call ("attached", <<l_heap, l_o, l_context_type>>, types.bool)),
+						l_type_prop)
 				create l_forall.make (l_type_prop)
 				l_forall.add_bound_variable (l_heap)
 				l_forall.add_bound_variable (l_o)
@@ -163,7 +163,6 @@ feature -- Basic operations
 				-- Add translation references
 			translation_pool.add_type (l_class_type)
 		end
-
 
 feature {NONE} -- Implementation
 
@@ -206,7 +205,7 @@ feature {NONE} -- Implementation
 --			-- Versions of `current_feature' from ancestors of `current_type' if inherited or redefined.
 --		do
 --			if current_feature.written_in /= current_type.base_class.class_id then
---					-- Inherited attribute: return the class where it is written in				
+--					-- Inherited attribute: return the class where it is written in
 --				create Result.make
 --				Result.extend (current_feature.written_class.feature_of_body_index (current_feature.body_index))
 --			else
@@ -233,8 +232,8 @@ feature {NONE} -- Implementation
 			elseif a_guard_string.is_case_insensitive_equal ("inv") then
 					-- The guard is the preservation of the invariant of observers
 				Result := factory.implies_ (
-					factory.function_call ("user_inv", << a_h, a_o >>, types.bool),
-					factory.function_call ("user_inv", << factory.map_update (a_h, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<<a_cur, a_f>>), a_v), a_o >>, types.bool))
+						factory.function_call ("user_inv", <<a_h, a_o>>, types.bool),
+						factory.function_call ("user_inv", <<factory.map_update (a_h, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<<a_cur, a_f>>), a_v), a_o>>, types.bool))
 			else
 				l_guard_feature := a_origin_class.feature_named (a_guard_string)
 				if is_valid_guard_feature (a_guard_string, l_guard_feature, a_attr_type, a_origin_class) then
@@ -242,11 +241,13 @@ feature {NONE} -- Implementation
 						-- Generate guard definition from `l_guard_feature'
 					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type, False)
 					if l_guard_feature.has_flat_precondition then
-						Result := factory.function_call (name_translator.boogie_function_precondition (l_fname), << a_h, a_cur, a_v, a_o >>, types.bool)
+						Result := factory.function_call (name_translator.boogie_function_precondition (l_fname), <<a_h, a_cur, a_v, a_o>>, types.bool)
 					else
 						Result := factory.true_
 					end
-					Result := factory.and_clean (Result, factory.function_call (l_fname, << a_h, a_cur, a_v, a_o >>, types.bool))
+					Result := factory.and_clean (Result, factory.function_call (l_fname, <<a_h, a_cur, a_v, a_o>>, types.bool))
+				else
+					Result := factory.false_ -- TODO RETO Not sure if this is correct
 				end
 			end
 		end
@@ -286,7 +287,7 @@ feature {NONE} -- Implementation
 								-- If both `current_feature' and `l_replaced' are model queries of `c.item',
 								-- this will cause child's model frames to be bigger than parent's
 							if attached l_old_version and then
-									(parent_class.is_model_query (l_old_version) and parent_class.is_model_query (l_replaced)) then
+								(parent_class.is_model_query (l_old_version) and parent_class.is_model_query (l_replaced)) then
 								e2b_error.add_semantic_error (current_feature, messages.invalid_model_replacement (current_feature.feature_name_32, parent_class.name_in_upper), -1)
 								found := True
 							end
@@ -310,16 +311,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

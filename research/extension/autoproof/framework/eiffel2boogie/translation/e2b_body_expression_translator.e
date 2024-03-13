@@ -75,8 +75,8 @@ feature -- Visitors
 			l_block.add_statement (l_pcall)
 
 				-- Put all elements into array
-			check attached {E2B_CL_TYPE_A} l_type.generics.first as t then
-				l_content_type := types.for_class_type (t)
+			check attached {CL_TYPE_A} l_type.generics.first.type_a as t then
+				l_content_type := types.for_class_type (create {E2B_CL_TYPE_A}.make (t))
 			end
 			from
 				i := 1

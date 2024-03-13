@@ -171,12 +171,14 @@ feature -- Type translation
 					-- TODO: check whether the class is a descendant of "PART_COMPARABLE" and
 					-- use a redeclaration of the comparison function instead of the hard-coded function.
 				if
-					attached (create {E2B_FEATURE_I}.make (l_class.feature_table.item_alias_id
+					attached l_class.feature_table.item_alias_id
 						({OPERATOR_KIND}.alias_id ({PREDEFINED_NAMES}.less_equal_operator_name_id,
-						{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask)))).function_for_logical as
-					l_leq_function
+						{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask)) as
+					l_aliased_function
 				then
-					l_user_type.set_rank_function (l_leq_function)
+					if attached {READABLE_STRING_8} (create {E2B_FEATURE_I}.make (l_aliased_function)).function_for_logical as l_leq_function then
+						l_user_type.set_rank_function (l_leq_function)
+					end
 				end
 				Result := l_user_type
 			else

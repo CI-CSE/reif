@@ -89,7 +89,7 @@ feature -- Adding independent units
 			-- Add type `a_type'.
 		require
 			not_like_type: not a_type.is_like
-			no_formals: not a_type.has_formal_generic
+			no_formals: not a_type.has_formal_generic -- TODO RETO Why is this here?
 		do
 			-- print ("E2B_TRANSLATION_POOL.add_type: " + a_type.name + "%N")
 			if not a_type.is_basic and not a_type.base_class.is_class_any and not a_type.is_agent_type then
@@ -176,11 +176,11 @@ feature -- Adding independent units
 	add_class_check (a_class_type: E2B_CL_TYPE_A)
 			-- Add validity check for `a_class_type'.
 		require
-			no_formals: not a_class_type.has_formal_generic
+			no_formals: not a_class_type.has_formal_generic -- TODO RETO why is this require here?
 		local
 			l_class: E2B_TU_CLASS
 		do
-			if not (a_class_type.base_class).is_skipped then
+			if not a_class_type.base_class.is_skipped then
 				create l_class.make (a_class_type)
 				add_type (a_class_type)
 				add_translation_unit (l_class)

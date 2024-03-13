@@ -1220,10 +1220,10 @@ feature -- Translation
 				e2b_error.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
 			else
 				t := l_feature.written_class.class_type_in_context (l_feature.type, l_feature, l_expr_type)
-				if attached {E2B_CL_TYPE_A} t.generics.first as c then
-					last_set_content_type := c
-				elseif attached {E2B_CL_TYPE_A} t.base_class.single_constraint (1) as c then
-					last_set_content_type := c
+				if attached {CL_TYPE_A} t.generics.first.type_a as c then
+					create last_set_content_type.make (c)
+				elseif attached {CL_TYPE_A} t.base_class.single_constraint (1).type_a as c then
+					create last_set_content_type.make (c)
 				else
 					check class_type_constraint: False then end
 				end

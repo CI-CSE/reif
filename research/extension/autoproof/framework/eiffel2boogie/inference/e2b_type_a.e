@@ -97,13 +97,15 @@ feature -- Wrapped features
 		local
 			i: INTEGER
 		do
-			create Result.make_filled (type_a.generics.count)
-			check Result.count = type_a.generics.count end
-			from i := Result.lower
-			until i > Result.upper
-			loop
-				Result [i] := create {E2B_TYPE_A}.make (type_a.generics [i])
-				i := i + 1
+			if attached {ARRAYED_LIST [TYPE_A]} type_a.generics then
+				create Result.make_filled (type_a.generics.count)
+				check Result.count = type_a.generics.count end
+				from i := Result.lower
+				until i > Result.upper
+				loop
+					Result [i] := create {E2B_TYPE_A}.make (type_a.generics [i])
+					i := i + 1
+				end
 			end
 		end
 

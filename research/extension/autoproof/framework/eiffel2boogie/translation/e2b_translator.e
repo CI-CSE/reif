@@ -55,7 +55,9 @@ feature -- Element change
 				add_feature_of_type (i.f, i.t)
 			end
 			across a_input.class_check_list as i loop
-				translation_pool.add_class_check (i)
+				if not i.has_generics then
+					translation_pool.add_class_check (i)
+				end
 			end
 		end
 
@@ -66,7 +68,9 @@ feature -- Element change
 			c: CURSOR
 		do
 			if not a_class.is_logical then
-				translation_pool.add_class_check (a_class.constraint_type)
+				if not a_class.constraint_type.has_generics then
+					translation_pool.add_class_check (a_class.constraint_type)
+				end
 			end
 			if a_class.has_feature_table then
 				from
@@ -102,7 +106,9 @@ feature -- Element change
 			a_feature_attached: attached a_feature
 			a_context_type_attached: attached a_context_type
 		do
-			translation_pool.add_feature (a_feature, (a_context_type.base_class).constraint_type )
+			if not a_context_type.base_class.constraint_type.has_generics then
+				translation_pool.add_feature (a_feature, a_context_type.base_class.constraint_type )
+			end
 		end
 
 feature -- Basic operations

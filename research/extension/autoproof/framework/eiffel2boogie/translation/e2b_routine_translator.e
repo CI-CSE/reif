@@ -1352,7 +1352,9 @@ feature {NONE} -- Implementation
 			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
-			(a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first)).set_up_byte_context (a_origin_class.class_type_in_context (a_origin_class.actual_type, Void, current_type))
+			if attached a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first) as l_routine then
+				l_routine.set_up_byte_context (a_origin_class.class_type_in_context (a_origin_class.actual_type, Void, current_type))
+			end
 			a_assert.process (l_translator)
 			l_free_pre := factory.true_
 			across l_translator.side_effect as i loop

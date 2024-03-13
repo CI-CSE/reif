@@ -66,7 +66,11 @@ feature -- Wrapper
 		do Result := c_class.name_in_upper end
 
 	feature_named (n: READABLE_STRING_8): E2B_FEATURE_I
-		do create Result.make (c_class.feature_named (n)) end
+		do
+			if attached c_class.feature_named (n) as l_named_feature then
+				create Result.make (l_named_feature)
+			end
+		end
 
 	feature_of_rout_id_set (rout_id_set: ROUT_ID_SET): E2B_FEATURE_I
 		do create Result.make (c_class.feature_of_rout_id_set (rout_id_set)) end
@@ -117,7 +121,11 @@ feature -- Wrapper
 		do Result := c_class.lace_class end
 
 	feature_of_rout_id (a_routine_id: INTEGER): E2B_FEATURE_I
-		do create Result.make (c_class.feature_of_rout_id (a_routine_id)) end
+		do
+			if attached c_class.feature_of_rout_id (a_routine_id) as l_routine then
+				create Result.make (l_routine)
+			end
+		end
 
 	ast: like c_class.ast
 		do Result := c_class.ast end
@@ -344,10 +352,10 @@ feature -- Ownership helpers
 		local
 			l_old_version: E2B_FEATURE_I
 		do
-			create l_old_version.make (c_class.feature_named (a_name))
-			if l_old_version = Void then
+			if c_class.feature_named (a_name) = Void then
 				e2b_error.add_semantic_error (a_context_feature, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_name), c_class.name_in_upper), a_context_line_number)
 			else
+				create l_old_version.make (c_class.feature_named (a_name))
 				Result := a_type.base_class.feature_of_rout_id_set (l_old_version.rout_id_set)
 				check attached Result end
 				if not l_old_version.is_attribute and not helper.translation_mapping.ghost_access.has (a_name) then
