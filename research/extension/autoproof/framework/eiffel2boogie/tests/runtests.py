@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import argparse
 import difflib
+from collections import namedtuple
 
 # ----------------------------------------------------------------------------
 # paths
@@ -151,6 +152,8 @@ def find_test(test, directory=None):
 				return temp2
 	return None
 
+Accumulation = namedtuple("Accumulation", ["number", "names"])
+
 def run_tests(directory=None, args_prefix=[]):
 	'''Run tests
 
@@ -158,10 +161,10 @@ def run_tests(directory=None, args_prefix=[]):
 	global base_path
 
 	result = {
-		'passed': 0,
-		'failed': 0,
-		'error': 0,
-		'timeout': 0
+		'passed': Accumulation(0, []),
+		'failed': Accumulation(0, []),
+		'error': Accumulation(0, []),
+		'timeout': Accumulation(0, []),
 	}
 
 	if directory is None:
@@ -174,14 +177,17 @@ def run_tests(directory=None, args_prefix=[]):
 			args_prefix.extend(args)
 		elif os.path.isdir(path):
 			if is_test_path(path):
-				r = run_test(path, test_name, args_prefix)
-				result[r] += 1
+				if test_name == "guards":
+					r = run_test(path, test_name, args_prefix)
+					old_acc = result[r.category]
+					result[r.category] = Accumulation(old_acc.number + 1, old_acc.names + [r.name])
 			elif not path.endswith("EIFGENs"):
 				r = run_tests(path, args_prefix)
 				for k in r:
-					result[k] += r[k]
+					result[k] = Accumulation(result[k].number + r[k].number, result[k].names + r[k].names)
 	return result
 
+Result = namedtuple("Result", ["category", "name"])
 def run_test(path, test_name, args_prefix=[]):
 	'''Run a single test case,
 
@@ -225,11 +231,11 @@ def run_test(path, test_name, args_prefix=[]):
 	
 		if output_content == expected_content:
 			_as_success(test_name + ": successful")
-			return 'passed'
+			return Result('passed', test_name)
 		else:
 			if output_content.endswith('Killed by test timeout'):
 				_as_error(test_name+ ": timeout")
-				return 'timeout'
+				return Result('timeout', test_name)
 
 			_as_error(test_name + ": failed")
 			print('Full output:')
@@ -238,10 +244,10 @@ def run_test(path, test_name, args_prefix=[]):
 			for line in difflib.unified_diff(output_content.split("\n"), expected_content.split("\n")):
 				_as_info(line)
 			print('end diff')
-			return 'failed'
+			return Result('failed', test_name)
 	else:
 		_as_error("test '" + test_name + "' does not exist")
-		return 'error'
+		return Result('error', test_name)
 
 
 
@@ -285,7 +291,10 @@ else:
 	for t in arguments.tests:
 		outcome = run_test(find_test(t, base_path), t)
 		result[outcome] += 1
-
+for k in result:
+	e = result[k]
+	print (f"{k}: {e.number}")
+	print (",".join (e.names))
 print(result)
 
 if result['failed'] or result['error'] or result['timeout']:
