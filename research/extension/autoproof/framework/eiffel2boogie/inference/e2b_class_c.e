@@ -111,7 +111,7 @@ feature -- Wrapper
 			end
 		end
 
-	is_class_any: like c_class.is_class_any
+	is_any: like c_class.is_class_any
 		do Result := c_class.is_class_any end
 
 	is_tuple: like c_class.is_tuple
@@ -298,7 +298,7 @@ feature -- Logical helpers
 					Result /= Void or c_class.feature_table.after
 				loop
 					l_feature := create {E2B_FEATURE_I}.make (c_class.feature_table.item_for_iteration)
-					if attached l_feature.function_for_logical as n and then n.same_string ("[]") then
+					if attached l_feature.function_name_if_logical as n and then n.same_string ("[]") then
 						Result := l_feature
 					end
 					c_class.feature_table.forth
@@ -534,7 +534,7 @@ feature -- Eiffel helpers
 		require
 			no_formals: not a_current_type.has_formal_generic
 		local
-			t: E2B_TYPE_A
+			l_type: E2B_TYPE_A
 		do
 			if a_type.is_like_current then
 				Result := a_current_type
@@ -542,16 +542,16 @@ feature -- Eiffel helpers
 					-- `evaluated_type_in_descendant' switches to the correct feature in case of LIKE_FEATURE types
 					-- `deep_actual_type' gets rid of like types
 					-- `instantiated_in (a_current_type)' instantiates the generics
-				t := a_type.evaluated_type_in_descendant
+				l_type := a_type.evaluated_type_in_descendant
 						(Current, a_current_type.base_class, a_feature).deep_actual_type.instantiated_in
 						(a_current_type)
-				if attached {CL_TYPE_A} t.type_a as c then
-					create Result.make (c)
+				if attached {CL_TYPE_A} l_type.type_a as l_class_type then
+					create Result.make (l_class_type)
 				elseif
-					attached {FORMAL_A} a_type.type_a as f and then
-					attached {CL_TYPE_A} a_current_type.base_class.single_constraint (f.position).type_a as c
+					attached {FORMAL_A} a_type.type_a as l_formal_type and then
+					attached {CL_TYPE_A} a_current_type.base_class.single_constraint (l_formal_type.position).type_a as l_class_type
 				then
-					create Result.make (c)
+					create Result.make (l_class_type)
 				else
 					check class_type_constraint: False then end
 				end
@@ -571,6 +571,9 @@ feature -- other
 				(a_feature.written_in /= c_class.system.any_id or a_feature.rout_id_set.has (c_class.system.default_create_rout_id)) and -- is not inherited from ANY
 				not (a_feature.written_in /= c_class.class_id and a_feature.is_nonvariant) -- not an inherited nonvariant feature
 		end
+
+invariant
+	class_not_void: c_class /= Void
 
 note
 	license: "GNU General Public License"

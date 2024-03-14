@@ -150,7 +150,7 @@ feature -- Convenience
 			context_type_attached: attached context_type
 			context_feature_attached: attached context_feature
 		do
-			Result := (context_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (a_type), context_feature, context_type)
+			Result := context_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (a_type), context_feature, context_type)
 		end
 
 	feature_class_type (a_feature: E2B_FEATURE_I): E2B_CL_TYPE_A
@@ -159,7 +159,7 @@ feature -- Convenience
 			a_feature_attached: attached a_feature
 			current_target_type_attached: attached current_target_type
 		do
-			Result := (context_type.base_class).class_type_in_context (a_feature.type, a_feature, context_type)
+			Result := context_type.base_class.class_type_in_context (a_feature.type, a_feature, context_type)
 		end
 
 	expression_class_type (a_node: EXPR_B): E2B_CL_TYPE_A
@@ -170,9 +170,9 @@ feature -- Convenience
 		do
 			if attached {EXTERNAL_B} a_node as ext and then ext.is_static_call then
 				Result := feature_class_type (helper.feature_for_call_access (ext, create {E2B_TYPE_A}.make (ext.static_class_type)))
-			elseif attached {CALL_ACCESS_B} a_node as ca then
-				Result := feature_class_type (helper.feature_for_call_access (ca, current_target_type))
-			elseif attached {RESULT_B} a_node as res then
+			elseif attached {CALL_ACCESS_B} a_node as l_call_access then
+				Result := feature_class_type (helper.feature_for_call_access (l_call_access, current_target_type))
+			elseif attached {RESULT_B} a_node then
 				check attached context_feature and then context_feature.has_return_value end
 				Result := feature_class_type (context_feature)
 			else
@@ -1215,15 +1215,15 @@ feature -- Translation
 			l_expr_type := class_type_in_current_context (a_expr.type)
 			l_class := l_expr_type.base_class
 			l_feature := l_class.feature_named ("new_cursor")
-			l_conversion := l_feature.function_for_logical
+			l_conversion := l_feature.function_name_if_logical
 			if l_conversion = Void then
 				e2b_error.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
 			else
 				t := l_feature.written_class.class_type_in_context (l_feature.type, l_feature, l_expr_type)
-				if attached {CL_TYPE_A} t.generics.first.type_a as c then
-					create last_set_content_type.make (c)
-				elseif attached {CL_TYPE_A} t.base_class.single_constraint (1).type_a as c then
-					create last_set_content_type.make (c)
+				if attached {CL_TYPE_A} t.generics.first.type_a as l_generic_class_type then
+					create last_set_content_type.make (l_generic_class_type)
+				elseif attached {CL_TYPE_A} t.base_class.single_constraint (1).type_a as l_generic_class_type then
+					create last_set_content_type.make (l_generic_class_type)
 				else
 					check class_type_constraint: False then end
 				end

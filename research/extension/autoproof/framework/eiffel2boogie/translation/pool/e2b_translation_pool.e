@@ -92,7 +92,7 @@ feature -- Adding independent units
 			no_formals: not a_type.has_formal_generic -- TODO RETO Why is this here?
 		do
 			-- print ("E2B_TRANSLATION_POOL.add_type: " + a_type.name + "%N")
-			if not a_type.is_basic and not a_type.base_class.is_class_any and not a_type.is_agent_type then
+			if not a_type.is_basic and not a_type.base_class.is_any and not a_type.is_agent_type then
 				add_translation_unit (create {E2B_TU_TYPE}.make (a_type))
 				add_translation_unit (create {E2B_TU_INVARIANT}.make (a_type))
 			end
@@ -103,7 +103,7 @@ feature -- Adding independent units
 		require
 			no_formals: not a_type.has_formal_generic
 		do
-			if not a_type.is_basic and not a_type.base_class.is_class_any then
+			if not a_type.is_basic and not a_type.base_class.is_any then
 				add_translation_unit (create {E2B_TU_TYPE}.make (a_type))
 			end
 		end

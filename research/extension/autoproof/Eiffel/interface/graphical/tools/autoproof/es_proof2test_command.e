@@ -474,13 +474,10 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
-		local
-			l_class_c: E2B_CLASS_C
 		do
 			if a_class.is_compiled then
-				create l_class_c.make (a_class.compiled_class)
-				check l_class_c /= Void end
-				autoproof.add_class (l_class_c)
+				check a_class.compiled_class /= Void end
+				autoproof.add_class (create {E2B_CLASS_C}.make (a_class.compiled_class))
 			end
 		end
 
@@ -567,8 +564,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			-- Generate tests from proof failures
 			-- local
 			--	l_window: EB_DEVELOPMENT_WINDOW
---		local
---			l_dialog: ES_INFORMATION_PROMPT
 		do
 			last_execution := agent execute_generate_test_item
 				-- generate_test_item.enable_select

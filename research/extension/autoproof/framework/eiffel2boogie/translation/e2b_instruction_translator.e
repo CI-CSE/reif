@@ -65,7 +65,7 @@ feature {NONE} -- Initialization
 						end, t))
 			end
 			if a_feature.has_return_value then
-				entity_mapping.set_default_result ((a_feature.written_class).class_type_in_context (a_feature.type, a_feature, a_type))
+				entity_mapping.set_default_result (a_feature.written_class.class_type_in_context (a_feature.type, a_feature, a_type))
 			end
 
 		end
@@ -165,15 +165,19 @@ feature -- Basic operations
 					l_expr_translator.side_effect.wipe_out
 				end
 			end
-			check a_feature /= Void end
-			a_feature.set_up_byte_context (a_type)
+			if attached a_feature as att_feat then
+				att_feat.set_up_byte_context (a_type)
+			else
+				set_up_byte_context (a_type)
+			end
+
 			if attached Context.byte_code as l_byte_code then
 				if l_byte_code.compound /= Void and then not l_byte_code.compound.is_empty then
 					if l_byte_code.locals /= Void then
-						across l_byte_code.locals as i loop
+						across l_byte_code.locals as local_type loop
 							l_name := helper.unique_identifier ("local")
-							l_type := (a_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (i), a_feature, current_type)
-							entity_mapping.set_local (@ i.cursor_index, create {IV_ENTITY}.make (l_name, types.for_class_type (l_type)))
+							l_type := a_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (local_type), a_feature, current_type)
+							entity_mapping.set_local (@ local_type.cursor_index, create {IV_ENTITY}.make (l_name, types.for_class_type (l_type)))
 							current_implementation.add_local (l_name, types.for_class_type (l_type))
 						end
 					end
@@ -387,7 +391,7 @@ feature -- Processing
 				-- Check array contents
 			across a_array.expressions as i loop
 				process_contract_expression (i, False)
-				l_content_type := types.for_class_type ((current_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (a_array.type.generics.first), current_feature, current_type))
+				l_content_type := types.for_class_type (current_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (a_array.type.generics.first), current_feature, current_type))
 				create l_assert.make (factory.equal (
 						factory.function_call ("fun.ARRAY.item", <<entity_mapping.heap, l_array, factory.int_value (@ i.cursor_index)>>, l_content_type),
 						last_expression))

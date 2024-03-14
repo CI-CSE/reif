@@ -60,13 +60,7 @@ feature {NONE} -- Implementation
 				l_content_type := types.for_class_type (create {E2B_CL_TYPE_A}.make (l_gen_type))
 
 				domain.process (expression_translator)
-				l_heap_access := factory.heap_access (
-					expression_translator.entity_mapping.heap,
-					expression_translator.last_expression,
-					name_translator.boogie_procedure_for_feature (
-						l_seq_feature, create {E2B_CL_TYPE_A}.make (l_type)
-					),
-					l_content_type)
+				l_heap_access := factory.heap_access (expression_translator.entity_mapping.heap, expression_translator.last_expression, name_translator.boogie_procedure_for_feature (l_seq_feature, create {E2B_CL_TYPE_A}.make (l_type)), l_content_type)
 				set := factory.function_call ("Seq#Range", << l_heap_access >>, types.set (l_content_type))
 			end
 		end

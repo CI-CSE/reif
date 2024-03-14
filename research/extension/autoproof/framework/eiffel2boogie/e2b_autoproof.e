@@ -46,13 +46,13 @@ feature -- Element change
 			across a_input.feature_list as c loop add_feature (c) end
 		end
 
-	add_group (g: CONF_GROUP)
+	add_group (group: CONF_GROUP)
 			-- Add all compiled classes of group `g`to the set of classes to verify.
 		do
-			if attached workbench.universe as u and then attached g.classes as cs then
-				⟳ i: cs ¦ if attached u.class_named (i.name, g).compiled_class as c then add_class (create {E2B_CLASS_C}.make (c)) end ⟲
-				if attached {CONF_CLUSTER} g as i and then attached i.children as s then
-					⟳ c: s ¦ add_group (c) ⟲
+			if attached workbench.universe as u and then attached group.classes as l_class_types then
+				⟳ l_class_type: l_class_types ¦ if attached u.class_named (l_class_type.name, group).compiled_class as l_compiled_class then add_class (create {E2B_CLASS_C}.make (l_compiled_class)) end ⟲
+				if attached {CONF_CLUSTER} group as l_cluster and then attached l_cluster.children as l_child_groups then
+					⟳ l_group: l_child_groups ¦ add_group (l_group) ⟲
 				end
 			end
 		end

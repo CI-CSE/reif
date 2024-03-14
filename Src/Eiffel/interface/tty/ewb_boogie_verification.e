@@ -537,14 +537,12 @@ feature {NONE} -- Implementation
 	load_feature (a_class: CLASS_I; a_feature_name: STRING)
 			-- Load `a_feature' for verification.
 		local
-			l_class_c: E2B_CLASS_C
-			l_feature: E2B_FEATURE_I
+			l_feature: FEATURE_I
 		do
 			if a_class.is_compiled then
-				create l_class_c.make (a_class.compiled_class)
-				l_feature := l_class_c.feature_named (a_feature_name)
+				l_feature := a_class.compiled_class.feature_named (a_feature_name)
 				if l_feature /= Void then
-					autoproof.add_feature (l_feature)
+					autoproof.add_feature (create {E2B_FEATURE_I}.make (l_feature))
 				else
 					print ("Feature " + a_class.name + "." + a_feature_name + " not found (skipped).%N")
 				end
@@ -600,13 +598,10 @@ feature {NONE} -- Implementation
 
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
-		local
-			l_class_c: E2B_CLASS_C
 		do
 			if a_class.is_compiled then
-				create l_class_c.make (a_class.compiled_class)
-				check l_class_c /= Void end
-				autoproof.add_class (l_class_c)
+				check a_class.compiled_class /= void end
+				autoproof.add_class (create {E2B_CLASS_C}.make (a_class.compiled_class))
 			else
 				print ("Class " + a_class.name + " not compiled (skipped).%N")
 			end

@@ -61,7 +61,7 @@ feature -- Basic operations
 		local
 			l_expr: IV_EXPRESSION
 		do
-			if attached a_class.feature_named ("is_equal").function_for_logical as l_eq then
+			if attached a_class.feature_named ("is_equal") as l_feat ∧… attached l_feat.function_name_if_logical as l_eq then
 				l_expr := factory.function_call (l_eq, << a_left, a_right >>, types.bool)
 			else
 				l_expr := factory.equal (a_left, a_right)
@@ -98,7 +98,7 @@ feature {NONE} -- Implementation
 
 			a_translator.process_parameters (a_parameters)
 
-			l_fname := a_feature.function_for_logical
+			l_fname := a_feature.function_name_if_logical
 			if attached l_fname and then l_fname.same_string ("[]") then
 					-- The feature maps to map access
 				create l_args.make (a_translator.last_parameters.count)

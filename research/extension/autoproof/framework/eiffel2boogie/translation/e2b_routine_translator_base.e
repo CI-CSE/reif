@@ -40,16 +40,18 @@ feature -- Helper functions: arguments and result
 			a_context_attached: attached a_context
 		local
 			l_type: E2B_CL_TYPE_A
+			e2b_argument: E2B_TYPE_A
 		do
 			create Result.make (a_feature.argument_count)
 			if attached a_feature.arguments as arguments then
 				across
-					arguments as a
+					arguments as argument
 				loop
-					l_type := a_context.base_class.class_type_in_context (create {E2B_TYPE_A}.make (a), a_feature, a_context)
+					e2b_argument := create {E2B_TYPE_A}.make (argument)
+					l_type := a_context.base_class.class_type_in_context (e2b_argument, a_feature, a_context)
 					Result.extend
-						(arguments.item_name (@ a.target_index),
-						create {E2B_TYPE_A}.make (a),
+						(arguments.item_name (@ argument.target_index),
+						e2b_argument,
 						l_type,
 						types.for_class_type (l_type))
 				end
@@ -74,7 +76,7 @@ feature -- Helper functions: arguments and result
 		do
 			current_boogie_procedure.add_argument (create {IV_ENTITY}.make (a_name, a_boogie_type))
 			create l_pre.make (types.type_property (a_type, factory.global_heap, factory.entity (a_name, a_boogie_type),
-					a_orig_type.is_type_exact (a_type, current_feature),
+					a_orig_type.is_exact (a_type, current_feature),
 					a_orig_type.is_attached))
 			l_pre.set_free
 			l_pre.node_info.set_attribute ("info", "type property for argument " + a_name)
@@ -96,7 +98,7 @@ feature -- Helper functions: arguments and result
 					"Result",
 					l_iv_type,
 					types.type_property (l_type, factory.global_heap, factory.entity ("Result", l_iv_type),
-						(current_feature.type).is_type_exact (l_type, current_feature),
+						(current_feature.type).is_exact (l_type, current_feature),
 						current_feature.type.is_attached))
 			end
 		end
@@ -137,17 +139,17 @@ feature -- Helper functions: contracts
 				if a_feature.assert_id_set /= Void and not a_type.is_basic then
 						-- Feature has inherited assertions
 					l_byte_code.formulate_inherited_assertions (a_feature.assert_id_set)
-					across Context.inherited_assertion.precondition_list as i loop
-						l_class := create {E2B_CLASS_C}.make (Context.inherited_assertion.precondition_types [@ i.target_index].type.base_class)
-						across i as p loop
-							l_pre.extend (create {E2B_ASSERT_ORIGIN}.make (p, l_class))
+					across Context.inherited_assertion.precondition_list as precond loop
+						l_class := create {E2B_CLASS_C}.make (Context.inherited_assertion.precondition_types [@ precond.target_index].type.base_class)
+						across precond as l_assert loop
+							l_pre.extend (create {E2B_ASSERT_ORIGIN}.make (l_assert, l_class))
 						end
 					end
 
-					across Context.inherited_assertion.postcondition_list as i loop
-						l_class := create {E2B_CLASS_C}.make (Context.inherited_assertion.postcondition_types [@ i.target_index].type.base_class)
-						across i as p loop
-							l_post.extend (create {E2B_ASSERT_ORIGIN}.make (p, l_class))
+					across Context.inherited_assertion.postcondition_list as postcond loop
+						l_class := create {E2B_CLASS_C}.make (Context.inherited_assertion.postcondition_types [@ postcond.target_index].type.base_class)
+						across postcond as l_assert loop
+							l_post.extend (create {E2B_ASSERT_ORIGIN}.make (l_assert, l_class))
 						end
 					end
 				end
@@ -219,16 +221,31 @@ feature -- Helper functions: contracts
 			l_pre := factory.true_
 			across l_contracts.pre as c loop
 				l_translator.set_origin_class (c.origin)
-				check c.origin.feature_of_rout_id (a_feature.rout_id_set.first) /= Void end
-				c.origin.feature_of_rout_id (a_feature.rout_id_set.first).set_up_byte_context (c.origin.class_type_in_context (c.origin.actual_type, Void, current_type))
+
+				check attached c.origin.class_type_in_context (c.origin.actual_type, Void, current_type) as l_type then
+					if attached c.origin.feature_of_rout_id (a_feature.rout_id_set.first) as l_feat then
+						l_feat.set_up_byte_context (l_type)
+					else
+						set_up_byte_context (l_type)
+					end
+			    end
+
+
 				c.clause.process (l_translator)
 				l_pre := factory.and_clean (l_pre, l_translator.last_expression)
 			end
 			l_post := factory.true_
 			across l_contracts.post as c loop
 				l_translator.set_origin_class (c.origin)
-				check c.origin.feature_of_rout_id (a_feature.rout_id_set.first) /= Void end
-				c.origin.feature_of_rout_id (a_feature.rout_id_set.first).set_up_byte_context (c.origin.class_type_in_context (c.origin.actual_type, Void, current_type))
+
+				check attached c.origin.class_type_in_context (c.origin.actual_type, Void, current_type) as l_type then
+					if attached c.origin.feature_of_rout_id (a_feature.rout_id_set.first) as l_feat then
+						l_feat.set_up_byte_context (l_type)
+					else
+						set_up_byte_context (l_type)
+					end
+				end
+
 				c.clause.process (l_translator)
 				l_post := factory.and_clean (l_post, l_translator.last_expression)
 			end
@@ -293,68 +310,68 @@ feature -- Helper functions: contracts
 			create {LINKED_LIST [E2B_FRAME_ELEMENT]} Result.make
 
 			across
-				a_clauses as i
+				a_clauses as l_assert
 			loop
-				if attached {FEATURE_B} i.clause.expr as l_call then
+				if attached {FEATURE_B} l_assert.clause.expr as l_call then
 					l_name := names_heap.item (l_call.feature_name_id)
 					if l_name.same_string (a_function) then
-						a_translator.set_origin_class (i.origin)
+						a_translator.set_origin_class (l_assert.origin)
 						l_objects_type := translate_contained_expressions (l_call.parameters.i_th (2).expression, a_translator, True)
 						create l_fields.make
 
 						if l_objects_type.expressions.first /= Void then
-							l_type := i.origin.class_type_in_context (l_objects_type.type, current_feature, current_type)
+							l_type := l_assert.origin.class_type_in_context (l_objects_type.type, current_feature, current_type)
 							create l_fieldnames.make
 							if attached {STRING_B} l_call.parameters.i_th (1).expression as l_string then
 								l_fieldnames.extend (l_string.value)
 							elseif attached {TUPLE_CONST_B} l_call.parameters.i_th (1).expression as l_tuple then
-								across l_tuple.expressions as j loop
-									if attached {STRING_B} j as l_string then
+								across l_tuple.expressions as l_expr loop
+									if attached {STRING_B} l_expr as l_string then
 										l_fieldnames.extend (l_string.value)
 									else
-										e2b_error.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, i.clause.line_number)
+										e2b_error.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, l_assert.clause.line_number)
 									end
 								end
 							else
-								e2b_error.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, i.clause.line_number)
+								e2b_error.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, l_assert.clause.line_number)
 							end
 
-							l_origin := i.origin.class_type_in_context (l_objects_type.type,
+							l_origin := l_assert.origin.class_type_in_context (l_objects_type.type,
 																		current_feature,
-																		i.origin.class_type (current_type)).base_class
-							across l_fieldnames as f loop
+																		l_assert.origin.class_type (current_type)).base_class
+							across l_fieldnames as l_fieldname loop
 								if a_check_model then
-									l_attr := l_origin.feature_named (f)
+									l_attr := l_origin.feature_named (l_fieldname)
 									if attached l_attr and then l_origin.is_model_query (l_attr) then
 										l_new_version := l_type.base_class.feature_of_rout_id_set (l_attr.rout_id_set)
 										l_field := l_new_version.field_from_attribute (l_type)
 										l_fields.extend (l_field)
 											-- Add replacing model queries
-										across l_origin.replacing_model_queries (l_attr, l_type.base_class) as m loop
-											l_field := m.field_from_attribute (l_type)
+										across l_origin.replacing_model_queries (l_attr, l_type.base_class) as l_queries loop
+											l_field := l_queries.field_from_attribute (l_type)
 											if across l_fields as fi all not fi.same_expression (l_field) end then
 												l_fields.extend (l_field)
 											end
 												-- Add replaced model queries
-											across m.replaced_model_queries (l_type.base_class) as m1 loop
-												l_field := m1.field_from_attribute (l_type)
+											across l_queries.replaced_model_queries (l_type.base_class) as l_replaced_queries loop
+												l_field := l_replaced_queries.field_from_attribute (l_type)
 												if across l_fields as fi all not fi.same_expression (l_field) end then
 													l_fields.extend (l_field)
 												end
 											end
 										end
 									else
-										e2b_error.add_semantic_error (current_feature, messages.unknown_model ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (f), l_origin.name_in_upper), i.clause.line_number)
+										e2b_error.add_semantic_error (current_feature, messages.unknown_model ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (l_fieldname), l_origin.name_in_upper), l_assert.clause.line_number)
 									end
 								else
-									l_attr := l_origin.attribute_from_string (f, l_type, current_feature, i.clause.line_number)
+									l_attr := l_origin.attribute_from_string (l_fieldname, l_type, current_feature, l_assert.clause.line_number)
 									if attached l_attr then
 										l_fields.extend (l_attr.field_from_attribute (l_type))
 									end
 								end
 							end
 						end
-						Result.extend (create {E2B_FRAME_ELEMENT}.make (l_objects_type.expressions, l_fields, l_objects_type.type, i.origin))
+						Result.extend (create {E2B_FRAME_ELEMENT}.make (l_objects_type.expressions, l_fields, l_objects_type.type, l_assert.origin))
 					end
 				else
 					check internal_error: False end
@@ -379,7 +396,6 @@ feature -- Helper functions: contracts
 			l_o, l_f: IV_ENTITY
 			l_access: IV_MAP_ACCESS
 			l_written_type, l_type: E2B_CL_TYPE_A
-			r: E2B_FRAME_ELEMENT
 		do
 			create l_type_var.make_fresh
 			create l_o.make ("$o", types.ref)
@@ -398,18 +414,17 @@ feature -- Helper functions: contracts
 			end
 				-- Go over model-modifiable objects
 			across a_mods.model_objects as restriction loop
-				r := restriction
 					-- The type of the objects as seen where the frame clause was written
-				l_written_type := r.origin.class_type_in_context (r.type, current_feature, r.origin.class_type (current_type))
+				l_written_type := restriction.origin.class_type_in_context (restriction.type, current_feature, restriction.origin.class_type (current_type))
 					-- The type of the objects as seen in the `current_type'
-				l_type := r.origin.class_type_in_context (r.type, current_feature, current_type)
+				l_type := restriction.origin.class_type_in_context (restriction.type, current_feature, current_type)
 					-- Either `l_f' is not a model query in `l_type'
 				l_f_conjunct := factory.not_ (factory.function_call ("IsModelField", <<l_f, factory.type_value (l_type)>>, types.bool))
-					-- Or it is one of `r.fields'
-				across r.fields as f loop
+					-- Or it is one of `restrictionr.fields'
+				across restriction.fields as f loop
 					l_f_conjunct := factory.or_ (l_f_conjunct, factory.equal (l_f, f))
 				end
-				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, r.objects), l_f_conjunct))
+				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, restriction.objects), l_f_conjunct))
 			end
 				-- Go over fully modifiable objects
 				-- (and exclude `a_excluded_fields')
@@ -484,25 +499,25 @@ feature -- Helper functions: contracts
 				l_expr_list.extend (a_expr)
 			end
 			create l_expressions.make
-			across l_expr_list as k loop
-				if k = Void then
+			across l_expr_list as expr loop
+				if expr = Void then
 					l_expressions.extend (Void)
-				elseif convert_to_set and (a_translator.class_type_in_current_context (k.type).base_class).is_logical then
-					a_translator.process_as_set (k, types.ref)
+				elseif convert_to_set and a_translator.class_type_in_current_context (expr.type).base_class.is_logical then
+					a_translator.process_as_set (expr, types.ref)
 					l_expressions.extend (a_translator.last_expression)
 					l_type := a_translator.last_set_content_type
 				else
-					k.process (a_translator)
+					expr.process (a_translator)
 					l_expressions.extend (a_translator.last_expression)
-					if attached {CALL_ACCESS_B} k as a then
+					if attached {CALL_ACCESS_B} expr as call_access then
 --						l_feature := helper.feature_for_call_access (a, a_translator.current_target_type)
 --						l_type := l_feature.type
-						l_feature := helper.feature_for_call_access (a, a_translator.origin_class.actual_type)
+						l_feature := helper.feature_for_call_access (call_access, a_translator.origin_class.actual_type)
 						create l_like_type.make_with_param (l_feature, a_translator.current_target_type.base_class.class_id)
 						l_like_type.set_actual_type (l_feature.type.actual_type)
 						l_type := l_like_type
 					else
-						l_type := create {E2B_TYPE_A}.make (k.type)
+						l_type := create {E2B_TYPE_A}.make (expr.type)
 					end
 				end
 			end

@@ -16,14 +16,14 @@ inherit
 
 create
 	make,
-	make_with_param
+	make_from_type
 
 feature -- Creator
 
 	make (a_type: LIKE_CURRENT)
 		do type_a := a_type end
 
-	make_with_param (a_type: E2B_TYPE_A)
+	make_from_type (a_type: E2B_TYPE_A)
 		do type_a := create {LIKE_CURRENT}.make (a_type.type_a) end
 
 feature -- Redefined

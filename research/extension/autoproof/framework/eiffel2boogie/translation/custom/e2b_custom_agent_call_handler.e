@@ -13,7 +13,9 @@ feature -- Status report
 	is_handling_call (a_target_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
-			Result := attached {E2B_CL_TYPE_A} a_target_type as c and then c.is_agent_type
+			if attached {CL_TYPE_A} a_target_type.type_a as c then
+				Result := (create {E2B_CL_TYPE_A}.make (c)).is_agent_type
+			end
 		end
 
 	is_handling_nested (a_nested: NESTED_B): BOOLEAN
@@ -241,7 +243,7 @@ feature -- Basic operations
 		local
 			l_name: STRING
 			l_expr: EXPR_B
-			l_agent_class: CLASS_C
+			l_agent_class: E2B_CLASS_C
 			l_agent_feature: E2B_FEATURE_I
 			l_agent_type: E2B_CL_TYPE_A
 			l_fcall: IV_FUNCTION_CALL
@@ -253,8 +255,8 @@ feature -- Basic operations
 					attached {ACCESS_EXPR_B} a_nested.target as l_access and then
 					attached {ROUTINE_CREATION_B} l_access.expr as l_agent
 				then
-					l_agent_class := system.class_of_id (l_agent.origin_class_id)
-					create l_agent_feature.make (l_agent_class.feature_of_feature_id (l_agent.feature_id))
+					create l_agent_class.make (system.class_of_id (l_agent.origin_class_id))
+					 l_agent_feature := l_agent_class.feature_of_feature_id (l_agent.feature_id)
 						-- TODO: take actual type of open/closed target of agent creation
 					l_agent_type := l_agent_feature.written_class.actual_type
 

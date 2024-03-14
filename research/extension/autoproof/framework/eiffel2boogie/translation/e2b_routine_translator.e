@@ -51,7 +51,7 @@ feature -- Translation: Signature
 				translation_pool.add_type (i.type)
 			end
 			if current_feature.has_return_value then
-				translation_pool.add_type ((current_feature.written_class).class_type_in_context (current_feature.type, current_feature, current_type))
+				translation_pool.add_type (current_feature.written_class.class_type_in_context (current_feature.type, current_feature, current_type))
 			end
 
 				-- Add precondition
@@ -95,7 +95,7 @@ feature -- Translation: Signature
 
 				-- Arguments
 			if not a_feature.is_static then
-				add_argument_with_property ("Current", create {E2B_LIKE_CURRENT}.make_with_param (current_type), current_type, types.for_class_type (current_type))
+				add_argument_with_property ("Current", create {E2B_LIKE_CURRENT}.make_from_type (current_type), current_type, types.for_class_type (current_type))
 			end
 			across arguments_of_current_feature as i loop
 				add_argument_with_property (i.name, i.orig_type, i.type, i.boogie_type)
@@ -201,7 +201,7 @@ feature -- Translation: Signature
 			set_up_boogie_procedure (l_proc_name)
 
 				-- Arguments
-			add_argument_with_property ("Current", create {E2B_LIKE_CURRENT}.make_with_param (current_type), current_type, types.ref)
+			add_argument_with_property ("Current", create {E2B_LIKE_CURRENT}.make_from_type (current_type), current_type, types.ref)
 			across current_type.generics as params loop
 				l_type := current_type.base_class.class_type_in_context (params, Void, current_type)
 				create l_arg.make ("f_" + @ params.target_index.out, types.for_class_type (l_type))
@@ -288,42 +288,42 @@ feature -- Translation: Signature
 			-- Add postcondition to `current_boogie_procedure' that all attributes except "allocated" and "closed" are initialized to default values.
 		local
 			l_mapping: E2B_ENTITY_MAPPING
-			l_t: IV_VAR_TYPE
-			l_f, l_a: IV_ENTITY
+			l_var_type: IV_VAR_TYPE
+			l_entity, l_ghost_entity: IV_ENTITY
 			l_forall: IV_FORALL
 			l_post: IV_POSTCONDITION
 			l_cond: IV_EXPRESSION
 			l_excluded: ARRAYED_LIST [IV_ENTITY]
 		do
 			create l_mapping.make
-			create l_t.make_fresh
-			create l_f.make ("$f", types.field (l_t))
+			create l_var_type.make_fresh
+			create l_entity.make ("$f", types.field (l_var_type))
 
 				-- Excluded fields: allocated, closed, and model fields with static initializaers
 			create l_excluded.make (5)
 			l_excluded.extend (factory.entity ("allocated", types.field (types.bool)))
 			l_excluded.extend (factory.entity ("closed", types.field (types.bool)))
 			across
-				current_type.base_class.ghost_attributes as a
+				current_type.base_class.ghost_attributes as gh_attr
 			loop
-				l_a := a.field_from_attribute (current_type)
-				if attached boogie_universe.function_named (name_translator.boogie_function_for_ghost_definition (current_type, l_a.name)) then
-					l_excluded.extend (l_a)
+				l_ghost_entity := gh_attr.field_from_attribute (current_type)
+				if attached boogie_universe.function_named (name_translator.boogie_function_for_ghost_definition (current_type, l_ghost_entity.name)) then
+					l_excluded.extend (l_ghost_entity)
 				end
 			end
 
 			l_cond := factory.true_
 			across l_excluded as e loop
-				l_cond := factory.and_clean (l_cond, factory.not_equal (l_f, e))
+				l_cond := factory.and_clean (l_cond, factory.not_equal (l_entity, e))
 			end
 
 			create l_forall.make (factory.implies_ (l_cond,
 						factory.equal (
-							factory.heap_current_access (l_mapping, l_f.name, l_t),
-							factory.function_call ("Default", <<l_f>>, l_t))
+							factory.heap_current_access (l_mapping, l_entity.name, l_var_type),
+							factory.function_call ("Default", <<l_entity>>, l_var_type))
 					))
-			l_forall.add_type_variable (l_t.name)
-			l_forall.add_bound_variable (l_f)
+			l_forall.add_type_variable (l_var_type.name)
+			l_forall.add_bound_variable (l_entity)
 			create l_post.make (l_forall)
 			current_boogie_procedure.add_contract (l_post)
 		end
@@ -671,26 +671,25 @@ feature -- Translation: Implementation
 			end
 
 				-- Process statements (byte node tree)
-			check current_feature /= Void end
 			current_feature.set_up_byte_context (current_type)
 			if attached Context.byte_code as l_byte_code then
 				if l_byte_code.compound /= Void and then not l_byte_code.compound.is_empty then
 					if l_byte_code.locals /= Void then
-						across l_byte_code.locals as i loop
-							l_type := (current_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (i), current_feature, current_type)
-							create l_loc.make (name_translator.boogie_name_for_local (@ i.cursor_index), types.for_class_type (l_type))
-							l_translator.entity_mapping.set_local (@ i.cursor_index, l_loc)
+						across l_byte_code.locals as local_type loop
+							l_type := current_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (local_type), current_feature, current_type)
+							create l_loc.make (name_translator.boogie_name_for_local (@ local_type.cursor_index), types.for_class_type (l_type))
+							l_translator.entity_mapping.set_local (@ local_type.cursor_index, l_loc)
 						end
 					end
 					l_translator.process_compound (l_byte_code.compound)
 					if l_byte_code.locals /= Void then
-						across l_byte_code.locals as i loop
-							if l_translator.entity_mapping.is_local_used (@ i.cursor_index) then
-								l_type := (current_feature.written_class).class_type_in_context (create {E2B_TYPE_A}.make (i), current_feature, current_type)
+						across l_byte_code.locals as local_type loop
+							if l_translator.entity_mapping.is_local_used (@ local_type.cursor_index) then
+								l_type := current_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (local_type), current_feature, current_type)
 								translation_pool.add_type (l_type)
-								l_loc := l_translator.entity_mapping.local_ (@ i.cursor_index)
+								l_loc := l_translator.entity_mapping.local_ (@ local_type.cursor_index)
 								l_implementation.add_local_with_property (l_loc.name, l_loc.type,
-									types.type_property (l_type, factory.global_heap, l_loc, (create {E2B_TYPE_A}.make (i)).is_type_exact (l_type, current_feature), i.is_attached))
+									types.type_property (l_type, factory.global_heap, l_loc, (create {E2B_TYPE_A}.make (local_type)).is_exact (l_type, current_feature), local_type.is_attached))
 							end
 						end
 					end
@@ -853,7 +852,7 @@ feature -- Translation: Functions
 				l_mapping.set_current (l_entity)
 				if not l_is_logical then
 					l_free_body := factory.and_clean (l_free_body, types.type_property (current_type, l_mapping.heap, l_entity,
-								(create {E2B_LIKE_CURRENT}.make_with_param (current_type)).is_type_exact (current_type, current_feature), True))
+								(create {E2B_LIKE_CURRENT}.make_from_type (current_type)).is_exact (current_type, current_feature), True))
 				end
 			end
 			across arguments_of_current_feature as i loop
@@ -866,7 +865,7 @@ feature -- Translation: Functions
 					l_free_body := factory.and_clean (
 							l_free_body,
 							types.type_property (i.type, l_mapping.heap, l_entity,
-								i.orig_type.is_type_exact (i.type, current_feature),
+								i.orig_type.is_exact (i.type, current_feature),
 								i.orig_type.is_attached))
 				end
 			end
@@ -899,7 +898,6 @@ feature -- Translation: Functions
 			-- (translate the read frame for the functional representation if `a_read' and the write frame otherwise)
 		require
 			read_for_pure_functions: a_read implies a_feature.has_functional_representation
-			not_void_feature: a_feature /= Void
 		local
 			l_exprs: like modify_expressions_of
 			l_function: IV_FUNCTION
@@ -909,6 +907,7 @@ feature -- Translation: Functions
 		do
 			set_context (a_feature, a_type)
 			current_feature.set_up_byte_context (current_type)
+
 
 				-- Frame function
 			if a_read then
@@ -1075,7 +1074,7 @@ feature {NONE} -- Translation: Functions
 			l_type := current_type.base_class.class_type_in_context (current_feature.type, current_feature, current_type)
 			l_post := factory.and_clean (l_post,
 					types.type_property (l_type, l_expr_translator.entity_mapping.heap, l_fcall,
-						current_feature.type.is_type_exact (l_type, current_feature),
+						current_feature.type.is_exact (l_type, current_feature),
 						current_feature.type.is_attached))
 			if not l_post.is_true then
 				if current_feature.is_once then
@@ -1352,9 +1351,15 @@ feature {NONE} -- Implementation
 			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
-			if attached a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first) as l_routine then
-				l_routine.set_up_byte_context (a_origin_class.class_type_in_context (a_origin_class.actual_type, Void, current_type))
+
+			check attached a_origin_class.class_type_in_context (a_origin_class.actual_type, Void, current_type) as l_type then
+				if attached a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first) as l_feat then
+					l_feat.set_up_byte_context (l_type)
+				else
+					set_up_byte_context (l_type)
+				end
 			end
+
 			a_assert.process (l_translator)
 			l_free_pre := factory.true_
 			across l_translator.side_effect as i loop
@@ -1371,13 +1376,16 @@ feature {NONE} -- Implementation
 			l_contract.node_info.set_tag (a_assert.tag)
 			l_contract.node_info.set_line (a_assert.line_number)
 			current_boogie_procedure.add_contract (l_contract)
-			current_feature.set_up_byte_context (current_type)
+
+			if attached current_feature then
+				current_feature.set_up_byte_context (current_type)
+			else
+				set_up_byte_context (current_type)
+			end
 		end
 
 	process_postcondition (a_assert: ASSERT_B; a_origin_class: E2B_CLASS_C; a_fields: LIST [TUPLE [IV_EXPRESSION, IV_ENTITY]])
 			-- Process `a_assert' as postcondition.
-		require
-			current_feature_not_void: current_feature /= Void
 		local
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_contract: IV_POSTCONDITION
@@ -1388,7 +1396,16 @@ feature {NONE} -- Implementation
 			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
-			(a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first)).set_up_byte_context (a_origin_class.class_type_in_context (a_origin_class.actual_type, Void, current_type))
+
+			check attached a_origin_class.class_type_in_context (a_origin_class.actual_type, Void, current_type) as l_type then
+				if attached a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first) as l_feat then
+					l_feat.set_up_byte_context (l_type)
+				else
+					set_up_byte_context (l_type)
+				end
+			end
+
+
 			a_assert.process (l_translator)
 			a_fields.append (l_translator.field_accesses)
 			l_free_pre := factory.true_
@@ -1406,6 +1423,7 @@ feature {NONE} -- Implementation
 			l_contract.node_info.set_tag (a_assert.tag)
 			l_contract.node_info.set_line (a_assert.line_number)
 			current_boogie_procedure.add_contract (l_contract)
+
 			current_feature.set_up_byte_context (current_type)
 		end
 

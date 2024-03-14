@@ -70,29 +70,6 @@ feature -- Operation
 			failure_repository_storage.put (create {DS_ARRAYED_LIST [ES_ADB_PROOF_FAILURE]}.make_equal (100))
 		end
 
---feature -- Auxiliary
-
---	failure_signature_from_id (a_id: STRING): EPA_TEST_CASE_SIGNATURE
---			-- Fault signature with the same id as `a_id'.
---		local
---			l_keys: DS_BILINEAR [EPA_TEST_CASE_SIGNATURE]
---			l_key_cursor: DS_BILINEAR_CURSOR [EPA_TEST_CASE_SIGNATURE]
---		do
---				-- TODO Li
---			l_keys := failure_repository
---			from
---				l_key_cursor := l_keys.new_cursor
---				l_key_cursor.start
---			until
---				Result /= Void or else l_key_cursor.after
---			loop
---				if l_key_cursor.item.id ~ a_id then
---					Result := l_key_cursor.item
---				end
---				l_key_cursor.forth
---			end
---		end
-
 feature {NONE} -- Implementation
 
 	failure_repository_storage: CELL [DS_ARRAYED_LIST [ES_ADB_PROOF_FAILURE]]

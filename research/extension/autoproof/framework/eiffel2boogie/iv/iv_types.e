@@ -66,7 +66,7 @@ feature -- Access: default types
 			l_param: IV_VAR_TYPE
 		once
 			create l_param.make_fresh
-			create {IV_MAP_SYNONYM_TYPE} Result.make (<< l_param.name >>, create {ARRAYED_LIST [IV_TYPE]}.make_from_array (<<ref, field (l_param)>>), l_param, "HeapType", create {ARRAYED_LIST [IV_TYPE]}.make (0))
+			create {IV_MAP_SYNONYM_TYPE} Result.make (<<l_param.name>>, create {ARRAYED_LIST [IV_TYPE]}.make_from_array (<<ref, field (l_param)>>), l_param, "HeapType", create {ARRAYED_LIST [IV_TYPE]}.make (0))
 		end
 
 	frame: IV_TYPE
@@ -75,7 +75,7 @@ feature -- Access: default types
 			l_param: IV_VAR_TYPE
 		once
 			create l_param.make_fresh
-			create {IV_MAP_SYNONYM_TYPE} Result.make (<< l_param.name >>, create {ARRAYED_LIST [IV_TYPE]}.make_from_array (<<ref, field (l_param)>>), bool, "Frame", create {ARRAYED_LIST [IV_TYPE]}.make (0))
+			create {IV_MAP_SYNONYM_TYPE} Result.make (<<l_param.name>>, create {ARRAYED_LIST [IV_TYPE]}.make_from_array (<<ref, field (l_param)>>), bool, "Frame", create {ARRAYED_LIST [IV_TYPE]}.make (0))
 		end
 
 	type: IV_TYPE
@@ -109,11 +109,11 @@ feature -- Type translation
 		do
 			l_class := a_type.base_class
 
-			if a_type.is_integer or a_type.type_a.is_natural or a_type.type_a.is_character or a_type.type_a.is_character_32 then
+			if a_type.is_integer or a_type.is_natural or a_type.is_character or a_type.is_character_32 then
 				Result := int
 			elseif a_type.is_boolean then
 				Result := bool
-			elseif a_type.is_real_32 or else a_type.type_a.is_real_64 then
+			elseif a_type.is_real_32 or else a_type.is_real_64 then
 				Result := real
 			elseif l_class.is_logical then
 					-- The class is mapped to a Boogie type
@@ -123,11 +123,11 @@ feature -- Type translation
 				else
 					create l_params.make (a_type.generics.count)
 					across
-						a_type.generics as g
+						a_type.generics as l_generic
 					loop
-						if attached {CL_TYPE_A} g.type_a as t then
+						if attached {CL_TYPE_A} l_generic.type_a as t then
 							l_params.extend (for_class_type (create {E2B_CL_TYPE_A}.make (t)))
-						elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ g.target_index).type_a as t then
+						elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ l_generic.target_index).type_a as t then
 							l_params.extend (for_class_type (create {E2B_CL_TYPE_A}.make (t)))
 						else
 							check class_type_constraint: False then end
@@ -136,7 +136,7 @@ feature -- Type translation
 				end
 
 					-- Check if the class corresponds to a map type
-				l_access_feature :=l_class.map_access_feature
+				l_access_feature := l_class.map_access_feature
 				if l_access_feature = Void then
 						-- No: just use the user-defined type
 					create l_user_type.make (l_constructor, l_params)
@@ -156,9 +156,9 @@ feature -- Type translation
 				end
 
 					-- Check if the type has a default value
-				l_default_function := (l_class.feature_named ("default_create")).function_for_logical
+				l_default_function := l_class.feature_named ("default_create").function_name_if_logical
 				if attached l_default_function then
-					l_user_type.set_default_value (factory.function_call (l_default_function, << >>, l_user_type))
+					l_user_type.set_default_value (factory.function_call (l_default_function, <<>>, l_user_type))
 				end
 
 					-- Check if the type has an invariant
@@ -173,10 +173,10 @@ feature -- Type translation
 				if
 					attached l_class.feature_table.item_alias_id
 						({OPERATOR_KIND}.alias_id ({PREDEFINED_NAMES}.less_equal_operator_name_id,
-						{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask)) as
-					l_aliased_function
+							{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask)) as
+ l_aliased_function
 				then
-					if attached {READABLE_STRING_8} (create {E2B_FEATURE_I}.make (l_aliased_function)).function_for_logical as l_leq_function then
+					if attached {READABLE_STRING_8} (create {E2B_FEATURE_I}.make (l_aliased_function)).function_name_if_logical as l_leq_function then
 						l_user_type.set_rank_function (l_leq_function)
 					end
 				end
@@ -207,7 +207,7 @@ feature -- Type translation
 					else
 						l_fname := "detachable_exact"
 					end
-				elseif not l_content_type.base_class.is_class_any then
+				elseif not l_content_type.base_class.is_any then
 					if a_is_attached then
 						l_fname := "attached"
 					else
@@ -221,10 +221,10 @@ feature -- Type translation
 					end
 				end
 				if l_fname /= Void then
-					Result := factory.function_call (l_fname, << a_heap, a_expr, factory.type_value (l_content_type) >>, bool)
+					Result := factory.function_call (l_fname, <<a_heap, a_expr, factory.type_value (l_content_type)>>, bool)
 				end
 				if l_content_type.base_class.is_array then
-					Result := factory.and_clean (Result, factory.function_call ("ARRAY.inv", << a_heap, a_expr >>, bool))
+					Result := factory.and_clean (Result, factory.function_call ("ARRAY.inv", <<a_heap, a_expr>>, bool))
 				end
 			elseif l_boogie_type ~ int then
 					-- If we are not checking for overflows, no need to differentiate between kinds of ints
@@ -239,15 +239,15 @@ feature -- Type translation
 						across
 							l_type_properties as prop
 						loop
-							if attached {CL_TYPE_A} a_type.generics [@ prop.target_index].type_a as c then
-								create t.make (c)
-							elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ prop.target_index).type_a as c then
-								create t.make (c)
+							if attached {CL_TYPE_A} a_type.generics [@ prop.target_index].type_a as class_type then
+								create t.make (class_type)
+							elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ prop.target_index).type_a as class_type then
+								create t.make (class_type)
 							else
 								check class_type_constraint: False then end
 							end
-							if for_class_type (t) ~ ref  then
-								Result := factory.and_clean (Result, factory.function_call (prop, << a_heap, a_expr, factory.type_value (t) >>, bool))
+							if for_class_type (t) ~ ref then
+								Result := factory.and_clean (Result, factory.function_call (prop, <<a_heap, a_expr, factory.type_value (t)>>, bool))
 							end
 						end
 					end
@@ -280,7 +280,7 @@ feature -- Type translation
 			else
 				check False end
 			end
-			Result := factory.function_call (l_f_name, << a_expr >>, bool)
+			Result := factory.function_call (l_f_name, <<a_expr>>, bool)
 		end
 
 note
@@ -295,16 +295,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

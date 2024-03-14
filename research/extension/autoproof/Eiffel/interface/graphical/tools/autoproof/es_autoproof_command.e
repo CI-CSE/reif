@@ -277,13 +277,10 @@ feature {NONE} -- Basic operations
 
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
-		local
-			l_class_c: E2B_CLASS_C
 		do
 			if a_class.is_compiled then
-				create l_class_c.make (a_class.compiled_class)
-				check l_class_c /= Void end
-				autoproof.add_class (l_class_c)
+				check a_class.compiled_class /= Void end
+				autoproof.add_class (create {E2B_CLASS_C}.make (a_class.compiled_class))
 			end
 		end
 

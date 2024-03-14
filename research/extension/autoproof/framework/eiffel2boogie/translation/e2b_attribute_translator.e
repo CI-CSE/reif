@@ -66,7 +66,7 @@ feature -- Basic operations
 --				end
 
 					-- Add type properties
-				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, current_feature.type.is_type_exact (l_class_type, Void),
+				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, current_feature.type.is_exact (l_class_type, Void),
 						current_feature.type.is_attached)
 				if not l_type_prop.is_true then
 					l_type_prop := factory.implies_ (factory.and_ (
@@ -106,8 +106,8 @@ feature -- Basic operations
 			create l_o.make ("o", types.ref)
 			l_fcall := factory.function_call ("guard", <<l_h, l_cur, l_f, l_v, l_o>>, types.bool)
 			l_def := factory.true_
-			across current_feature.guards_for_attribute as g loop
-				l_def := factory.and_clean (l_def, guard_from_string (g.str, g.origin, a_type, l_h, l_cur, l_f, l_v, l_o))
+			across current_feature.guards_for_attribute as l_guard loop
+				l_def := factory.and_clean (l_def, guard_from_string (l_guard.str, l_guard.origin, a_type, l_h, l_cur, l_f, l_v, l_o))
 			end
 
 			factory.add_dynamic_predicate_definition (l_fcall, l_def, current_type, l_h, l_cur, <<l_v, l_o>>)
@@ -147,7 +147,7 @@ feature -- Basic operations
 			l_heap := factory.heap_entity ("heap")
 			l_o := factory.ref_entity ("o")
 			l_heap_access := factory.heap_access (l_heap, l_o, l_attribute_name, l_boogie_type)
-			l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, l_type.is_type_exact (l_class_type, Void), l_type.is_attached)
+			l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, l_type.is_exact (l_class_type, Void), l_type.is_attached)
 			if not l_type_prop.is_true then
 				l_type_prop := factory.implies_ (factory.and_ (
 							factory.is_heap (l_heap),
@@ -281,13 +281,13 @@ feature {NONE} -- Implementation
 			if current_feature.written_in = current_type.base_class.class_id then
 				across current_feature.note_values ("replaces") as f loop
 					l_replaced := current_type.base_class.feature_named (f)
-					if attached l_replaced then
+					if attached l_replaced.c_feature then
 						across current_type.base_class.parents_classes as parent_class until found loop
 							l_old_version := parent_class.feature_of_rout_id_set (current_feature.rout_id_set)
 								-- If both `current_feature' and `l_replaced' are model queries of `c.item',
 								-- this will cause child's model frames to be bigger than parent's
-							if attached l_old_version and then
-								(parent_class.is_model_query (l_old_version) and parent_class.is_model_query (l_replaced)) then
+							if attached l_old_version.c_feature and then
+								parent_class.is_model_query (l_old_version) and parent_class.is_model_query (l_replaced) then
 								e2b_error.add_semantic_error (current_feature, messages.invalid_model_replacement (current_feature.feature_name_32, parent_class.name_in_upper), -1)
 								found := True
 							end

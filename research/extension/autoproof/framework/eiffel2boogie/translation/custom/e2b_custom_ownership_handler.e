@@ -344,7 +344,7 @@ feature -- Basic operations
 				-- or the type of the target is exact.
 			Result := (a_translator.current_target.same_expression (a_translator.entity_mapping.current_expression) and
 				not a_translator.context_feature.is_nonvariant ) or
-				a_translator.current_target_type.is_type_exact (a_translator.current_target_type, a_translator.context_feature)
+				a_translator.current_target_type.is_exact (a_translator.current_target_type, a_translator.context_feature)
 		end
 
 	set_implicit_ghost (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_attr: E2B_FEATURE_I)

@@ -135,26 +135,25 @@ feature {AP_TEST_EXAMPLES} -- Execution
 
 	main_execute
 		local
-			cs: like {UNIVERSE_I}.compiled_classes_with_name
+			l_classes: like {UNIVERSE_I}.compiled_classes_with_name
 			has_error: BOOLEAN
 			html_writer: E2B_HTML_OUTPUT
-			t: DATE_TIME
-			d: DATE_TIME_DURATION
-			compiled_class: E2B_CLASS_C
+			time: DATE_TIME
+			duration: DATE_TIME_DURATION
 		do
-			if attached workbench.universe as u then
+			autoproof.reset
+			if attached workbench.universe as l_universe then
 					-- Add features if possible.
 				⟳ feature_and_class_name: features ¦
-					cs := u.compiled_classes_with_name ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (feature_and_class_name.class_name))
-					if cs.is_empty then
+					l_classes := l_universe.compiled_classes_with_name ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (feature_and_class_name.class_name))
+					if l_classes.is_empty then
 						has_error := True
 						output_window.add (locale.formatted_string (locale.translation_in_context ("Class `$1` is not found or not compiled.", "command.autoproof"), feature_and_class_name.class_name))
 						output_window.add_new_line
 					else
-						⟳ c: cs ¦
-							compiled_class := create {E2B_CLASS_C}.make (c.compiled_class)
-							if attached compiled_class.feature_named_32 (feature_and_class_name.feature_name) as f then
-								autoproof.add_feature (f)
+						⟳ l_class: l_classes ¦
+							if attached l_class.compiled_class.feature_named_32 (feature_and_class_name.feature_name) as l_feature then
+								autoproof.add_feature (create {E2B_FEATURE_I}.make (l_feature))
 							else
 								has_error := True
 								output_window.add (locale.formatted_string (locale.translation_in_context ("Feature `$1` is not found in class `$2`.", "command.autoproof"), feature_and_class_name.feature_name, feature_and_class_name.class_name))
@@ -164,32 +163,32 @@ feature {AP_TEST_EXAMPLES} -- Execution
 					end
 				⟲
 					-- Add classes if possible.
-				⟳ n: classes ¦
-					cs := u.compiled_classes_with_name ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (n))
-					if cs.is_empty then
+				⟳ l_single_class: classes ¦
+					l_classes := l_universe.compiled_classes_with_name ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_single_class))
+					if l_classes.is_empty then
 						has_error := True
-						output_window.add (locale.formatted_string (locale.translation_in_context ("Class `$1` is not found or not compiled.", "command.autoproof"), n))
+						output_window.add (locale.formatted_string (locale.translation_in_context ("Class `$1` is not found or not compiled.", "command.autoproof"), l_single_class))
 						output_window.add_new_line
 					else
-						⟳ c: cs ¦ autoproof.add_class (create {E2B_CLASS_C}.make (c.compiled_class)) ⟲
+						⟳ l_class: l_classes ¦ autoproof.add_class (create {E2B_CLASS_C}.make (l_class.compiled_class)) ⟲
 					end
 				⟲
 					-- Add groups if possible.
-				⟳ n: groups ¦
-					if attached u.cluster_of_name (n) as g then
-						autoproof.add_group (g)
+				⟳ l_group_name: groups ¦
+					if attached l_universe.cluster_of_name (l_group_name) as l_group then
+						autoproof.add_group (l_group)
 					else
 						has_error := True
-						output_window.add (locale.formatted_string (locale.translation_in_context ("Group `$1` is not in the system.", "command.autoproof"), n))
+						output_window.add (locale.formatted_string (locale.translation_in_context ("Group `$1` is not in the system.", "command.autoproof"), l_group_name))
 						output_window.add_new_line
 					end
 				⟲
-				if attached u.target as p then
+				if attached l_universe.target as l_target then
 					if is_cluster_collection_requested then
-						⟳ c: p.clusters ¦ autoproof.add_group (c) ⟲
+						⟳ l_cluster: l_target.clusters ¦ autoproof.add_group (l_cluster) ⟲
 					end
 					if is_override_collection_requested then
-						⟳ c: p.overrides ¦ autoproof.add_group (c) ⟲
+						⟳ l_override: l_target.overrides ¦ autoproof.add_group (l_override) ⟲
 					end
 				end
 			else
@@ -209,7 +208,7 @@ feature {AP_TEST_EXAMPLES} -- Execution
 				autoproof.add_notification (agent record_status)
 
 				if is_measured then
-					create t.make_now_utc
+					create time.make_now_utc
 				end
 					-- Verify selected classes.
 				if options.is_bulk_verification_enabled then
@@ -217,18 +216,19 @@ feature {AP_TEST_EXAMPLES} -- Execution
 				else
 					autoproof.verify_forked
 				end
-				if attached t then
-					d := (create {DATE_TIME}.make_now_utc).relative_duration (t)
+
+				if attached time then
+					duration := (create {DATE_TIME}.make_now_utc).relative_duration (time)
 				end
 
 				if attached html_writer then
 					html_writer.print_footer
 				end
 
-				if attached d then
+				if attached duration then
 					output_window.add
 						(if attached html_writer then "<p>Total time: " else "Total time: " end +
-						time_format.formatted (d.fine_seconds_count) +
+						time_format.formatted (duration.fine_seconds_count) +
 						if is_html then "s</p>" else "s%N" end)
 				end
 			end

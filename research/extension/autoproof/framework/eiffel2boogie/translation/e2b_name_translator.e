@@ -302,7 +302,7 @@ feature -- Access
 			i: INTEGER
 			l_type_name: STRING
 			l_helper: E2B_HELPER
-			t: TYPE_A
+			generic_type: TYPE_A
 		do
 			create l_helper
 			if a_type.is_agent_type then
@@ -315,11 +315,11 @@ feature -- Access
 				until
 					i > l_gen_type.generics.upper
 				loop
-					t := l_gen_type.generics [i]
-					if attached {CL_TYPE_A} t as c then
-						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (c))
-					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as c then
-						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (c))
+					generic_type := l_gen_type.generics [i]
+					if attached {CL_TYPE_A} generic_type as class_type then
+						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (class_type))
+					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as class_type then
+						l_type_name := boogie_name_for_type (create {E2B_CL_TYPE_A}.make (class_type))
 					else
 						check class_type_constraint: False then end
 					end
@@ -338,7 +338,7 @@ feature -- Access
 			result_valid: is_valid_type_name (Result)
 		end
 
-	type_for_boogie_name (a_name: READABLE_STRING_8): E2B_TYPE_A
+	type_for_boogie_name (a_name: READABLE_STRING_8): E2B_CL_TYPE_A
 			-- Type named `a_name' in Boogie code.
 		require
 			valid_type_name: is_valid_type_name (a_name)
@@ -356,9 +356,8 @@ feature -- Access
 				l_class_name := a_name
 			end
 			l_classes := universe.classes_with_name (l_class_name)
-			if not l_classes.is_empty then
-				Result := (create {E2B_CLASS_C}.make (l_classes.first.compiled_class)).actual_type
-			end
+			check not l_classes.is_empty end
+			create Result.make (l_classes.first.compiled_class.actual_type)
 		ensure
 			result_attached: attached Result
 		end

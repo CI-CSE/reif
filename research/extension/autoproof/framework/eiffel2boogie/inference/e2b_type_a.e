@@ -79,13 +79,13 @@ feature -- Wrapped features
 		do create Result.make (type_a.deep_actual_type) end
 
 	instantiated_in (class_type: E2B_TYPE_A): E2B_TYPE_A
-		do create Result.make (type_a.instantiated_in (if class_type /= Void then class_type.type_a else Void end)) end
+		do create Result.make (type_a.instantiated_in (if attached class_type as t then t.type_a else Void end)) end
 
 	associated_class_type (a_context_type: E2B_TYPE_A): CLASS_TYPE
-		do Result := type_a.associated_class_type (if a_context_type /= Void then a_context_type.type_a else Void end) end
+		do Result := type_a.associated_class_type (if attached a_context_type as t then t.type_a else Void end) end
 
 	has_associated_class_type (a_context_type: E2B_TYPE_A): BOOLEAN
-		do Result := type_a.has_associated_class_type (if a_context_type /= Void then a_context_type.type_a else Void end) end
+		do Result := type_a.has_associated_class_type (if attached a_context_type as t then t.type_a else Void end) end
 
 	is_class_valid: like type_a.is_class_valid
 		do Result := type_a.is_class_valid end
@@ -124,6 +124,9 @@ feature -- Wrapped features
 	is_character: like type_a.is_character
 		do Result := type_a.is_character end
 
+	is_character_32: like type_a.is_character_32
+		do Result := type_a.is_character_32 end
+
 	is_expanded: like type_a.is_expanded
 		do Result := type_a.is_expanded end
 
@@ -137,7 +140,7 @@ feature -- Wrapped features
 		do Result := type_a.is_formal end
 
 feature -- Ownership
-	is_type_exact (a_class_type: E2B_CL_TYPE_A; a_context_feature: E2B_FEATURE_I): BOOLEAN
+	is_exact (a_class_type: E2B_CL_TYPE_A; a_context_feature: E2B_FEATURE_I): BOOLEAN
 			-- Is `a_type' (which corresponds to `a_class_type')
 			-- in the context of `a_context_feature' represent a fixed dynamic type?
 		require
@@ -145,23 +148,29 @@ feature -- Ownership
 		do
 				-- Yes, if the base class is frozen, or the type is "like Current" (provided we are not inside a dynamic feature)
 			Result := a_class_type.base_class.is_frozen or
-				(type_a.is_like_current and not (attached a_context_feature and then a_context_feature.is_nonvariant))
+				(type_a.is_like_current and not (attached a_context_feature.c_feature and then a_context_feature.is_nonvariant))
 		end
 
-;note
+invariant
+	type_not_void: type_a /= Void
+
+;
+
+note
 	license: "GNU General Public License"
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
 end

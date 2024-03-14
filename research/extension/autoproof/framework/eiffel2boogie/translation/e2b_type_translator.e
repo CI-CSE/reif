@@ -141,8 +141,8 @@ feature -- Basic operations
 			l_class := type.base_class
 
 			if not l_class.is_logical and not l_class.is_array then
-				if l_class.invariant_feature /= Void then
-					l_class.invariant_feature.set_up_byte_context (a_type)
+				if attached l_class.invariant_feature as l_feat then
+					l_feat.set_up_byte_context (a_type)
 				else
 					set_up_byte_context (a_type)
 				end
@@ -178,8 +178,8 @@ feature -- Basic operations
 		local
 			l_mapping: E2B_ENTITY_MAPPING
 		do
-			if a_type.base_class.invariant_feature /= Void then
-				a_type.base_class.invariant_feature.switch_byte_context (a_type, a_type)
+			if attached a_type.base_class.invariant_feature as l_feat then
+				l_feat.switch_byte_context (a_type, a_type)
 			else
 				switch_byte_context (a_type, a_type)
 			end
@@ -266,13 +266,13 @@ feature {NONE} -- Implementation
 			create l_type_var.make_fresh
 			create l_f.make ("$f", types.field (l_type_var))
 			l_def := factory.false_
-			across type.base_class.flat_model_queries as m loop
-				if m.written_in /= system.any_id then
-					translation_pool.add_referenced_feature (m, type)
+			across type.base_class.flat_model_queries as l_query loop
+				if l_query.written_in /= system.any_id then
+					translation_pool.add_referenced_feature (l_query, type)
 				end
 				create l_m.make (
-					m.boogie_name_for_attribute (type),
-					types.field (types.for_class_type (type.base_class.class_type_in_context (m.type, m, type))))
+					l_query.boogie_name_for_attribute (type),
+					types.field (types.for_class_type (type.base_class.class_type_in_context (l_query.type, l_query, type))))
 				l_def := factory.or_clean (l_def, factory.equal (l_f, l_m))
 			end
 			l_fcall := factory.function_call ("IsModelField", << l_f, factory.type_value (type) >>, types.bool)
@@ -446,19 +446,17 @@ feature {NONE} -- Implementation
 		require
 			a_class_not_void: a_class /= Void
 		local
-			l_assert: ASSERT_B
 			l_clause: IV_ASSERT
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_found: BOOLEAN
-			t: E2B_CL_TYPE_A
+			l_type: E2B_CL_TYPE_A
 		do
 			if inv_byte_server.has (a_class.class_id) then
-				t := a_class.class_type_in_context (a_class.actual_type, a_class.invariant_feature, type)
-				a_class.invariant_feature.switch_byte_context (t, t)
+				l_type := a_class.class_type_in_context (a_class.actual_type, a_class.invariant_feature, type)
+				a_class.invariant_feature.switch_byte_context (l_type, l_type)
 				across
-					inv_byte_server.item (a_class.class_id).byte_list as b
+					inv_byte_server.item (a_class.class_id).byte_list as l_assert
 				loop
-					l_assert := b
 					if is_tag_included (a_included, a_excluded, l_assert.tag) then
 						create l_translator.make
 						l_translator.set_context (a_class.invariant_feature, type)
@@ -485,12 +483,12 @@ feature {NONE} -- Implementation
 						if options.is_ownership_enabled and a_included = Void and a_excluded = Void then
 							l_found := False
 							across
-								type.base_class.ghost_attributes as a
+								type.base_class.ghost_attributes as ghost_attr
 							until
 								l_found
 							loop
-								if not a.feature_name.same_string ("closed") and not a.feature_name.same_string ("owner") then
-									l_found := generate_ghost_definition (l_translator.last_expression, a)
+								if not ghost_attr.feature_name.same_string ("closed") and not ghost_attr.feature_name.same_string ("owner") then
+									l_found := generate_ghost_definition (l_translator.last_expression, ghost_attr)
 								end
 							end
 						end
@@ -560,8 +558,8 @@ feature {NONE} -- Implementation
 		do
 			l_type := type.base_class.class_type_in_context (a_attr.type, type.base_class.invariant_feature, type)
 			l_field := a_attr.field_from_attribute (type)
-			if type.base_class.is_logical then
-				l_eq := (l_type.base_class.feature_named ("is_equal")).function_for_logical
+			if l_type.base_class.is_logical then
+				l_eq := (l_type.base_class.feature_named ("is_equal")).function_name_if_logical
 				if
 					attached {IV_FUNCTION_CALL} a_expr as fcall and then
 					fcall.name.same_string (l_eq) and then

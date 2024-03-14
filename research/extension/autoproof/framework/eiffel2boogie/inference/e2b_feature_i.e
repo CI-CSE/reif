@@ -42,7 +42,7 @@ feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_TYPE_A, E2B_SHARED_CONTEXT, E2B_ROUTINE
 	c_feature: FEATURE_I
 
 feature -- wrapped features
-	written_in: like  c_feature.written_in
+	written_in: like c_feature.written_in
 		do Result := c_feature.written_in end
 
 	body: like c_feature.body
@@ -119,7 +119,6 @@ feature -- wrapped features
 
 	api_feature (a_class_id: INTEGER): like c_feature.api_feature
 		do Result := c_feature.api_feature (a_class_id) end
-
 
 feature {NONE}
 	hash_code: INTEGER
@@ -295,17 +294,17 @@ feature -- Logical helpers
 			Result := (create {E2B_CLASS_C}.make (c_feature.written_class)).is_logical and not is_lemma
 		end
 
-	function_for_logical: detachable READABLE_STRING_8
+	function_name_if_logical: detachable READABLE_STRING_8
 			-- Boogie function that `a_feature' maps to;
 			-- Void if `a_feature' is not from a logical class.
 		local
 			l_values: like note_values
 		do
-			if (create {E2B_CLASS_C}.make (c_feature.written_class)).is_logical then
+			if written_class.is_logical then
 				l_values := note_values ("maps_to")
 				if l_values.is_empty then
 						-- Use standard naming scheme
-					Result := (create {E2B_CLASS_C}.make (c_feature.written_class)).type_if_logical + "#" + helper.to_camel_case (c_feature.feature_name)
+					Result := written_class.type_if_logical + "#" + helper.to_camel_case (feature_name)
 				else
 					Result := l_values.first
 				end
@@ -544,6 +543,9 @@ feature -- Other
 				Result := helper.options.routines_to_inline.has (c_feature.body_index)
 			end
 		end
+
+invariant
+	feature_not_void: c_feature /= Void
 
 note
 	license: "GNU General Public License"

@@ -18,8 +18,12 @@ create
 
 feature -- Creator
 	make (a_feature: INVARIANT_FEAT_I)
+		require else
+			a_feature /= Void
 		do
 			c_feature := a_feature
+		ensure then
+			c_feature = a_feature
 		end
 note
 	license: "GNU General Public License"

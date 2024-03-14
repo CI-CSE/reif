@@ -52,7 +52,7 @@ feature -- Basic operations
 			-- Set context of expression to `a_feature' in type `a_type'.
 		do
 			Precursor (a_feature, a_type)
-			create origin_class.make (context.current_type.base_class)
+			origin_class := create {E2B_CLASS_C}.make (Context.current_type.base_class)
 		end
 
 	reset

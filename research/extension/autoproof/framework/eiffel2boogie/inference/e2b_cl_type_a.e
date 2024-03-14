@@ -18,6 +18,7 @@ inherit
 create
 	make
 
+
 feature -- Creator
 	make (a_type: CL_TYPE_A)
 		do

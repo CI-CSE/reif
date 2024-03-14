@@ -55,9 +55,7 @@ feature -- Element change
 				add_feature_of_type (i.f, i.t)
 			end
 			across a_input.class_check_list as i loop
-				if not i.has_generics then
-					translation_pool.add_class_check (i)
-				end
+				translation_pool.add_class_check (i)
 			end
 		end
 
@@ -65,7 +63,7 @@ feature -- Element change
 			-- Add `a_class' to be translated.
 		local
 			l_feature: E2B_FEATURE_I
-			c: CURSOR
+			cursor: CURSOR
 		do
 			if not a_class.is_logical then
 				if not a_class.constraint_type.has_generics then
@@ -81,11 +79,11 @@ feature -- Element change
 					l_feature := create {E2B_FEATURE_I}.make (a_class.feature_table.item_for_iteration)
 					if a_class.verify_feature (l_feature) then
 							-- Record current position because it can change after adding the feature.
-						c := a_class.feature_table.cursor
+						cursor := a_class.feature_table.cursor
 							-- Add the feature.
 						add_feature_of_type (l_feature, a_class.actual_type)
 							-- Restore the current position to continue iteration.
-						a_class.feature_table.go_to (c)
+						a_class.feature_table.go_to (cursor)
 					end
 					a_class.feature_table.forth
 				end
@@ -106,9 +104,7 @@ feature -- Element change
 			a_feature_attached: attached a_feature
 			a_context_type_attached: attached a_context_type
 		do
-			if not a_context_type.base_class.constraint_type.has_generics then
-				translation_pool.add_feature (a_feature, a_context_type.base_class.constraint_type )
-			end
+			translation_pool.add_feature (a_feature, a_context_type.base_class.constraint_type)
 		end
 
 feature -- Basic operations
