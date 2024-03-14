@@ -177,10 +177,9 @@ def run_tests(directory=None, args_prefix=[]):
 			args_prefix.extend(args)
 		elif os.path.isdir(path):
 			if is_test_path(path):
-				if test_name == "guards":
-					r = run_test(path, test_name, args_prefix)
-					old_acc = result[r.category]
-					result[r.category] = Accumulation(old_acc.number + 1, old_acc.names + [r.name])
+				r = run_test(path, test_name, args_prefix)
+				old_acc = result[r.category]
+				result[r.category] = Accumulation(old_acc.number + 1, old_acc.names + [r.name])
 			elif not path.endswith("EIFGENs"):
 				r = run_tests(path, args_prefix)
 				for k in r:
