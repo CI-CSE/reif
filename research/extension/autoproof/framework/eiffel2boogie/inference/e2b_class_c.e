@@ -44,13 +44,15 @@ feature -- Wrapper
 		local
 			i: INTEGER
 		do
-			create Result.make (c_class.direct_descendants.count)
+			create Result.make_filled (c_class.direct_descendants.count)
 			from i := Result.lower
 			until i > Result.upper
 			loop
 				Result [i] := create {E2B_CLASS_C}.make (c_class.direct_descendants [i])
 				i := i + 1
 			end
+		ensure
+			same_size: c_class.direct_descendants.count = Result.count
 		end
 
 	skeleton: like c_class.skeleton
@@ -65,15 +67,19 @@ feature -- Wrapper
 	name_in_upper: like c_class.name_in_upper
 		do Result := c_class.name_in_upper end
 
-	feature_named (n: READABLE_STRING_8): E2B_FEATURE_I
+	feature_named (n: READABLE_STRING_8): detachable E2B_FEATURE_I
 		do
 			if attached c_class.feature_named (n) as l_named_feature then
 				create Result.make (l_named_feature)
 			end
 		end
 
-	feature_of_rout_id_set (rout_id_set: ROUT_ID_SET): E2B_FEATURE_I
-		do create Result.make (c_class.feature_of_rout_id_set (rout_id_set)) end
+	feature_of_rout_id_set (rout_id_set: ROUT_ID_SET): detachable E2B_FEATURE_I
+		do
+			if attached c_class.feature_of_rout_id_set (rout_id_set) as l_feature then
+				create Result.make (l_feature)
+			end
+		end
 
 	file_name: like c_class.file_name
 		do Result := c_class.file_name end
@@ -102,12 +108,10 @@ feature -- Wrapper
 	inherits_from (other: E2B_CLASS_C): like c_class.inherits_from
 		do Result := c_class.inherits_from (other.c_class) end
 
-	invariant_feature: E2B_INVARIANT_FEAT_I
+	invariant_feature: detachable E2B_INVARIANT_FEAT_I
 		do
-			if c_class.invariant_feature = Void then
-				Result := Void
-			else
-				create Result.make (c_class.invariant_feature)
+			if attached c_class.invariant_feature as l_invariant then
+				create Result.make (l_invariant)
 			end
 		end
 
@@ -120,7 +124,7 @@ feature -- Wrapper
 	lace_class: like c_class.lace_class
 		do Result := c_class.lace_class end
 
-	feature_of_rout_id (a_routine_id: INTEGER): E2B_FEATURE_I
+	feature_of_rout_id (a_routine_id: INTEGER): detachable E2B_FEATURE_I
 		do
 			if attached c_class.feature_of_rout_id (a_routine_id) as l_routine then
 				create Result.make (l_routine)
@@ -134,13 +138,15 @@ feature -- Wrapper
 		local
 			i: INTEGER
 		do
-			create Result.make (c_class.parents_classes.count)
+			create Result.make_filled (c_class.parents_classes.count)
 			from i := Result.lower
 			until i > Result.upper
 			loop
 				Result [i] := create {E2B_CLASS_C}.make (c_class.parents_classes [i])
 				i := i + 1
 			end
+		ensure
+			same_size: c_class.parents_classes.count = Result.count
 		end
 
 	append_name (a_text_formatter: TEXT_FORMATTER)
@@ -162,18 +168,48 @@ feature -- Wrapper
 		local
 			i: INTEGER
 		do
-			create Result.make (c_class.parents.count)
+			create Result.make_filled (c_class.parents.count)
 			from i := Result.lower
 			until i > Result.upper
 			loop
 				Result [i] := create {E2B_CL_TYPE_A}.make (c_class.parents [i])
 				i := i + 1
 			end
+		ensure
+			same_size: c_class.parents.count = Result.count
 		end
 
 	feature_of_feature_id (a_feature_id: INTEGER): E2B_FEATURE_I
 		do
 			create Result.make (c_class.feature_of_feature_id (a_feature_id))
+		end
+
+	feature_of_body_index (a_body_index: INTEGER): detachable E2B_FEATURE_I
+		do
+			if attached c_class.feature_of_body_index (a_body_index) as l_feature then
+				create Result.make (l_feature)
+			end
+		end
+
+	system: like c_class.system
+		do Result := c_class.system end
+
+	non_conforming_parents_classes: detachable FIXED_LIST [E2B_CLASS_C]
+		local
+			i: INTEGER
+		do
+			if attached c_class.non_conforming_parents_classes as parent_classes then
+				create Result.make_filled (parent_classes.count)
+				from i := Result.lower
+				until i > Result.upper
+				loop
+					Result [i] := create {E2B_CLASS_C}.make (parent_classes [i])
+					i := i + 1
+				end
+			end
+		ensure
+			same_size: attached c_class.non_conforming_parents_classes as p implies p.count = Result.count
+			else_void: not attached c_class.non_conforming_parents_classes implies Result = Void
 		end
 
 feature -- General note helpers
@@ -183,7 +219,7 @@ feature -- General note helpers
 		do
 			create Result.make (5)
 			Result.compare_objects
-			if attached c_class.ast as l_ast then
+			if attached ast as l_ast then
 				if l_ast.top_indexes /= Void then
 					Result.append (helper.note_values (l_ast.top_indexes, a_tag))
 				end
@@ -250,15 +286,15 @@ feature -- Class status helpers
 		do
 			from
 				create Result.make
-				c_class.feature_table.start
+				feature_table.start
 			until
-				c_class.feature_table.after
+				feature_table.after
 			loop
-				l_feature := create {E2B_FEATURE_I}.make (c_class.feature_table.item_for_iteration)
+				l_feature := create {E2B_FEATURE_I}.make (feature_table.item_for_iteration)
 				if l_feature.note_values (a_tag).has (a_value) then
 					Result.extend (l_feature)
 				end
-				c_class.feature_table.forth
+				feature_table.forth
 			end
 		end
 
@@ -289,21 +325,21 @@ feature -- Logical helpers
 		local
 			l_feature: E2B_FEATURE_I
 		do
-			if helper.map_access_feature_cache.has_key (c_class.class_id) then
-				Result := helper.map_access_feature_cache.item (c_class.class_id)
+			if helper.map_access_feature_cache.has_key (class_id) then
+				Result := helper.map_access_feature_cache.item (class_id)
 			else
 				from
-					c_class.feature_table.start
+					feature_table.start
 				until
-					Result /= Void or c_class.feature_table.after
+					Result /= Void or feature_table.after
 				loop
-					l_feature := create {E2B_FEATURE_I}.make (c_class.feature_table.item_for_iteration)
+					l_feature := create {E2B_FEATURE_I}.make (feature_table.item_for_iteration)
 					if attached l_feature.function_name_if_logical as n and then n.same_string ("[]") then
 						Result := l_feature
 					end
-					c_class.feature_table.forth
+					feature_table.forth
 				end
-				helper.map_access_feature_cache.put (Result, c_class.class_id)
+				helper.map_access_feature_cache.put (Result, class_id)
 			end
 		end
 
@@ -320,17 +356,17 @@ feature -- Ownership helpers
 		local
 			l_feature: E2B_FEATURE_I
 		do
-			if helper.ghost_attribute_cache.has_key (c_class.class_id) then
-				Result := helper.ghost_attribute_cache [c_class.class_id]
+			if helper.ghost_attribute_cache.has_key (class_id) then
+				Result := helper.ghost_attribute_cache [class_id]
 			else
 				from
 					create Result.make (5)
 					Result.start
-					c_class.feature_table.start
+					feature_table.start
 				until
-					c_class.feature_table.after
+					feature_table.after
 				loop
-					l_feature := create {E2B_FEATURE_I}.make (c_class.feature_table.item_for_iteration)
+					l_feature := create {E2B_FEATURE_I}.make (feature_table.item_for_iteration)
 					if (l_feature.is_attribute and l_feature.is_ghost) or l_feature.is_built_in_attribute then
 						from
 							Result.start
@@ -341,9 +377,9 @@ feature -- Ownership helpers
 						end
 						Result.put_left (l_feature)
 					end
-					c_class.feature_table.forth
+					feature_table.forth
 				end
-				helper.ghost_attribute_cache.put (Result, c_class.class_id)
+				helper.ghost_attribute_cache.put (Result, class_id)
 			end
 		end
 
@@ -352,14 +388,14 @@ feature -- Ownership helpers
 		local
 			l_old_version: E2B_FEATURE_I
 		do
-			if c_class.feature_named (a_name) = Void then
-				e2b_error.add_semantic_error (a_context_feature, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_name), c_class.name_in_upper), a_context_line_number)
+			if feature_named (a_name) = Void then
+				e2b_error.add_semantic_error (a_context_feature, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_name), name_in_upper), a_context_line_number)
 			else
-				create l_old_version.make (c_class.feature_named (a_name))
+				l_old_version := feature_named (a_name)
 				Result := a_type.base_class.feature_of_rout_id_set (l_old_version.rout_id_set)
 				check attached Result end
 				if not l_old_version.is_attribute and not helper.translation_mapping.ghost_access.has (a_name) then
-					e2b_error.add_semantic_error (a_context_feature, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_name), c_class.name_in_upper), a_context_line_number)
+					e2b_error.add_semantic_error (a_context_feature, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_name), name_in_upper), a_context_line_number)
 				end
 			end
 		end
@@ -377,43 +413,43 @@ feature -- Model helpers
 		local
 			l_f, l_new_version: E2B_FEATURE_I
 		do
-			if helper.flat_model_cache.has_key (c_class.class_id) then
-				Result := helper.flat_model_cache [c_class.class_id]
+			if helper.flat_model_cache.has_key (class_id) then
+				Result := helper.flat_model_cache [class_id]
 			else
 				create Result.make (5)
-				if c_class.class_id = c_class.system.any_id then
+				if class_id = system.any_id then
 --					across translation_mapping.ghost_access as m loop
 --						Result.extend (a_class.feature_named_32 (m.item))
 --					end
-					if attached c_class.feature_named ("subjects") as f then
-						Result.extend (create {E2B_FEATURE_I}.make (f))
+					if attached feature_named ("subjects") as f then
+						Result.extend (f)
 					else
 						e2b_error.add_unsupported_error (Current, {STRING_32} "Feature `subjects` is not found in class `ANY`.", 0)
 					end
-					if attached c_class.feature_named ("observers") as f then
-						Result.extend (create {E2B_FEATURE_I}.make (f))
+					if attached feature_named ("observers") as f then
+						Result.extend (f)
 					else
 						e2b_error.add_unsupported_error (Current, {STRING_32} "Feature `observers` is not found in class `ANY`.", 0)
 					end
 				else
 					across model_queries as m loop
-						l_f := create {E2B_FEATURE_I}.make (c_class.feature_named (m))
+						l_f := feature_named (m)
 						if l_f /= Void then
 							Result.extend (l_f)
 						else
-							e2b_error.add_semantic_warning (Current, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (m), c_class.name_in_upper), -1)
+							e2b_error.add_semantic_warning (Current, helper.messages.unknown_attribute ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (m), name_in_upper), -1)
 						end
 					end
-					across c_class.parents_classes as c loop
-						across (create {E2B_CLASS_C}.make (c)).flat_model_queries as q loop
-							l_new_version := create {E2B_FEATURE_I}.make (c_class.feature_of_rout_id_set (q.rout_id_set))
+					across parents_classes as parent_class loop
+						across parent_class.flat_model_queries as query loop
+							l_new_version := feature_of_rout_id_set (query.rout_id_set)
 							if not Result.has (l_new_version) then
 								Result.extend (l_new_version)
 							end
 						end
 					end
 				end
-				helper.flat_model_cache.put (Result, c_class.class_id)
+				helper.flat_model_cache.put (Result, class_id)
 			end
 		end
 
@@ -462,47 +498,47 @@ feature -- Eiffel helpers
 			-- Type based on `a_class' without formal generic parameters.
 		local
 			new_generics: like {CL_TYPE_A}.generics
-			r: GEN_TYPE_A
+			result_type: GEN_TYPE_A
 		do
-			create Result.make (c_class.actual_type)
+			Result := actual_type
 			if
-				attached {GEN_TYPE_A} Result as t and then
-				attached t.generics as old_generics
+				attached {GEN_TYPE_A} Result.type_a as generic_type and then
+				attached generic_type.generics as old_generics
 			then
 				across
-					old_generics as g
+					old_generics as l_generic
 				loop
-					if g.is_formal then
+					if l_generic.is_formal then
 						if not attached new_generics then
 							new_generics := old_generics.twin
-							r := t.twin
-							r.set_generics (new_generics)
-							Result := create {E2B_CL_TYPE_A}.make (r)
+							result_type := generic_type.twin
+							result_type.set_generics (new_generics)
+							Result := create {E2B_CL_TYPE_A}.make (result_type)
 						end
-						new_generics [@ g.target_index] := t.base_class.single_constraint (@ g.target_index)
+						new_generics [@ l_generic.target_index] := generic_type.base_class.single_constraint (@ l_generic.target_index)
 					end
 				end
 			end
-			c_class.update_types (Result.type_a)
+			update_types (Result)
 		end
 
 	is_same_class (c2: E2B_CLASS_C): BOOLEAN
 			-- Ais_same_classre `c1' and `c2' the same class?
 		do
 			Result := c_class = c2.c_class or
-				((c_class /= Void and c2.c_class /= Void) and then c_class.class_id = c2.class_id)
+				(c2 /= Void and then class_id = c2.class_id)
 		end
 
 	is_array: BOOLEAN
 			-- Is `c' the ARRAY class?
 		do
-			Result := c_class /= Void and then c_class.class_id = c_class.system.array_id
+			Result := class_id = system.array_id
 		end
 
 	is_conforming_or_non_conforming_parent_class (a_parent: E2B_CLASS_C): BOOLEAN
 			-- Does `a_child' inherit conforminlgy or non-conformingly from `a_parent'?
 		do
-			Result := c_class.conform_to (a_parent.c_class) or else is_non_conforming_parent_class (a_parent)
+			Result := conform_to (a_parent) or else is_non_conforming_parent_class (a_parent)
 		end
 
 	is_non_conforming_parent_class (a_parent: E2B_CLASS_C): BOOLEAN
@@ -510,15 +546,15 @@ feature -- Eiffel helpers
 		local
 			l_item: E2B_CLASS_C
 		do
-			if c_class.non_conforming_parents_classes /= Void then
+			if non_conforming_parents_classes /= Void then
 				from
-					c_class.non_conforming_parents_classes.start
+					non_conforming_parents_classes.start
 				until
-					c_class.non_conforming_parents_classes.after or Result
+					non_conforming_parents_classes.after or Result
 				loop
-					l_item := create {E2B_CLASS_C}.make (c_class.non_conforming_parents_classes.item)
+					l_item := non_conforming_parents_classes.item
 					Result := l_item.class_id = a_parent.class_id or else l_item.is_conforming_or_non_conforming_parent_class (a_parent)
-					c_class.non_conforming_parents_classes.forth
+					non_conforming_parents_classes.forth
 				end
 			end
 		end
@@ -526,7 +562,7 @@ feature -- Eiffel helpers
 	class_type (a_context_type: E2B_CL_TYPE_A): E2B_CL_TYPE_A
 			-- Type of ancetor `a_class' in `a_context_type'.
 		do
-			Result := class_type_in_context (create {E2B_TYPE_A}.make (c_class.actual_type), Void, a_context_type)
+			Result := class_type_in_context (actual_type, Void, a_context_type)
 		end
 
 	class_type_in_context (a_type: E2B_TYPE_A; a_feature: E2B_FEATURE_I; a_current_type: E2B_CL_TYPE_A): E2B_CL_TYPE_A
@@ -568,8 +604,8 @@ feature -- other
 				not a_feature.is_logical and -- not logical
 				not a_feature.is_skipped and -- not feature skipped
 				not is_skipped and -- not class skipped
-				(a_feature.written_in /= c_class.system.any_id or a_feature.rout_id_set.has (c_class.system.default_create_rout_id)) and -- is not inherited from ANY
-				not (a_feature.written_in /= c_class.class_id and a_feature.is_nonvariant) -- not an inherited nonvariant feature
+				(a_feature.written_in /= system.any_id or a_feature.rout_id_set.has (system.default_create_rout_id)) and -- is not inherited from ANY
+				not (a_feature.written_in /= class_id and a_feature.is_nonvariant) -- not an inherited nonvariant feature
 		end
 
 invariant

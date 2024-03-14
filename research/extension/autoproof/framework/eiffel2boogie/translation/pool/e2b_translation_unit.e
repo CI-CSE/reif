@@ -34,7 +34,7 @@ feature {NONE} -- Helper functions
 			-- Id for type `a_type'.
 		local
 			i: INTEGER
-			t: TYPE_A
+			l_type: TYPE_A
 		do
 			if attached {GEN_TYPE_A} a_type.type_a as l_gen_type then
 				Result := l_gen_type.base_class.name_in_upper.twin
@@ -44,11 +44,11 @@ feature {NONE} -- Helper functions
 				until
 					i > l_gen_type.generics.upper
 				loop
-					t := l_gen_type.generics [i]
-					if attached {CL_TYPE_A} t as c then
-						Result.append (type_id (create {E2B_CL_TYPE_A}.make (c)))
-					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as c then
-						Result.append (type_id (create {E2B_CL_TYPE_A}.make (c)))
+					l_type := l_gen_type.generics [i]
+					if attached {CL_TYPE_A} l_type as l_class_type then
+						Result.append (type_id (create {E2B_CL_TYPE_A}.make (l_class_type)))
+					elseif attached {CL_TYPE_A} l_gen_type.base_class.single_constraint (i) as l_class_type then
+						Result.append (type_id (create {E2B_CL_TYPE_A}.make (l_class_type)))
 					else
 						check class_type_constraint: False then end
 					end

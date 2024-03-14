@@ -281,12 +281,12 @@ feature {NONE} -- Implementation
 			if current_feature.written_in = current_type.base_class.class_id then
 				across current_feature.note_values ("replaces") as f loop
 					l_replaced := current_type.base_class.feature_named (f)
-					if attached l_replaced.c_feature then
+					if attached l_replaced then
 						across current_type.base_class.parents_classes as parent_class until found loop
 							l_old_version := parent_class.feature_of_rout_id_set (current_feature.rout_id_set)
 								-- If both `current_feature' and `l_replaced' are model queries of `c.item',
 								-- this will cause child's model frames to be bigger than parent's
-							if attached l_old_version.c_feature and then
+							if attached l_old_version and then
 								parent_class.is_model_query (l_old_version) and parent_class.is_model_query (l_replaced) then
 								e2b_error.add_semantic_error (current_feature, messages.invalid_model_replacement (current_feature.feature_name_32, parent_class.name_in_upper), -1)
 								found := True

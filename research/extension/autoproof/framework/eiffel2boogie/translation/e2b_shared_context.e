@@ -128,8 +128,8 @@ feature -- Byte context
 
 				-- Set up class type
 			if not a_type.has_associated_class_type (Void) then
-				if attached {E2B_CL_TYPE_A} a_type as l_cl_type_a then
-					a_type.base_class.update_types (l_cl_type_a)
+				if attached {CL_TYPE_A} a_type.type_a as l_cl_type_a then
+					a_type.base_class.update_types (create {E2B_CL_TYPE_A}.make (l_cl_type_a))
 				else
 					check False end
 				end

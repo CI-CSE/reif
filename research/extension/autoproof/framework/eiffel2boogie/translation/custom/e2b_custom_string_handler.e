@@ -142,7 +142,7 @@ feature -- Basic operations
 	v_string_class: E2B_CLASS_C
 			-- Class for V_STRING.
 		do
-			if v_string_class_internal.c_class = Void then
+			if v_string_class_internal = Void then
 				create v_string_class_internal.make (universe.classes_with_name ("V_STRING").first.compiled_class)
 			end
 			Result := v_string_class_internal

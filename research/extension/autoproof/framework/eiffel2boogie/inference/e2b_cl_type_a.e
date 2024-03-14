@@ -36,14 +36,14 @@ feature -- Eiffel helpers
 	is_agent_type: BOOLEAN
 			-- Is `t' an agent type?
 		local
-			n: like {CLASS_C}.name
+			l_name: like {CLASS_C}.name
 		do
-			n := type_a.base_class.name
+			l_name := base_class.name
 			Result :=
-				n.is_case_insensitive_equal ("ROUTINE") or else
-				n.is_case_insensitive_equal ("PROCEDURE") or else
-				n.is_case_insensitive_equal ("FUNCTION") or else
-				n.is_case_insensitive_equal ("PREDICATE")
+				l_name.is_case_insensitive_equal ("ROUTINE") or else
+				l_name.is_case_insensitive_equal ("PROCEDURE") or else
+				l_name.is_case_insensitive_equal ("FUNCTION") or else
+				l_name.is_case_insensitive_equal ("PREDICATE")
 		end
 
 

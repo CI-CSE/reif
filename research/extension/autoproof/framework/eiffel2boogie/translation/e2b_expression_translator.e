@@ -828,7 +828,7 @@ feature -- Visitors
 				add_void_call_check (a_node)
 
 					-- Evaluate message with original expression
---				if attached {CL_TYPE_A} current_target_type as l_cl_type then
+--				if attached {CL_TYPE_A} current_target_type.type_a as l_cl_type then
 --					if not l_cl_type.has_associated_class_type (Void) then
 --						l_cl_type.associated_class.update_types (l_cl_type)
 --					end
@@ -846,7 +846,7 @@ feature -- Visitors
 				safe_process (a_node.message)
 
 					-- Restore `Current' reference
---				if attached {CL_TYPE_A} current_target_type as l_cl_type then
+--				if attached {CL_TYPE_A} current_target_type.type_a as l_cl_type then
 --					if context.is_class_type_changed then
 --						context.restore_class_type_context
 --					else

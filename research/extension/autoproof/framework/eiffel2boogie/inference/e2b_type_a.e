@@ -66,13 +66,12 @@ feature -- Wrapped features
 
 	evaluated_type_in_descendant (a_ancestor, a_descendant: E2B_CLASS_C; a_feature: E2B_FEATURE_I): E2B_TYPE_A
 		local
-			ancestor_class, descendant_class: CLASS_C
-			l_feature: FEATURE_I
+			l_feature: detachable FEATURE_I
 		do
-			ancestor_class := if a_ancestor = Void then Void else a_ancestor.c_class end
-			descendant_class := if a_descendant = Void then Void else a_descendant.c_class end
-			l_feature := if a_feature = Void then Void else a_feature.c_feature end
-			create Result.make (type_a.evaluated_type_in_descendant (ancestor_class, descendant_class, l_feature))
+			if attached a_feature then
+				l_feature := a_feature.c_feature
+			end
+			create Result.make (type_a.evaluated_type_in_descendant (a_ancestor.c_class, a_descendant.c_class, l_feature))
 		end
 
 	deep_actual_type: E2B_TYPE_A
@@ -107,6 +106,9 @@ feature -- Wrapped features
 					i := i + 1
 				end
 			end
+		ensure
+			same_size: attached type_a.generics as gen implies gen.count = Result.count
+			else_void: not attached type_a.generics implies Result = Void
 		end
 
 	is_tuple: like type_a.is_tuple
@@ -148,7 +150,7 @@ feature -- Ownership
 		do
 				-- Yes, if the base class is frozen, or the type is "like Current" (provided we are not inside a dynamic feature)
 			Result := a_class_type.base_class.is_frozen or
-				(type_a.is_like_current and not (attached a_context_feature.c_feature and then a_context_feature.is_nonvariant))
+				(is_like_current and not (attached a_context_feature and then a_context_feature.is_nonvariant))
 		end
 
 invariant

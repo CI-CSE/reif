@@ -645,9 +645,9 @@ feature {NONE} -- Basic operations
 					create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.context_class.c_class, l_error.context_line_number, False)
 				elseif l_event_item.line_number > 0 then
 					create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.context_class.c_class, l_event_item.line_number, False)
-				elseif l_event_item.context_feature.c_feature /= Void then
+				elseif l_event_item.context_feature /= Void then
 					create {FEATURE_STONE} l_stone.make (l_event_item.context_feature.api_feature (l_event_item.context_class.c_class.class_id))
-				elseif l_event_item.context_class.c_class /= Void then
+				elseif l_event_item.context_class /= Void then
 					create {CLASSC_STONE} l_stone.make (l_event_item.context_class.c_class)
 				end
 			end

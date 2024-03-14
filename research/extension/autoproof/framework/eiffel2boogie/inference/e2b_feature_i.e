@@ -60,11 +60,9 @@ feature -- wrapped features
 	is_constant: like c_feature.is_constant
 		do Result := c_feature.is_constant end
 
-	arguments: FEAT_ARG
+	arguments: detachable FEAT_ARG
 		do
-			if c_feature.arguments /= Void then
-				Result := c_feature.arguments
-			end
+			Result := c_feature.arguments
 		ensure
 			c_feature.arguments /= Void ⇒ Result.count = c_feature.arguments.count
 		end
@@ -119,6 +117,21 @@ feature -- wrapped features
 
 	api_feature (a_class_id: INTEGER): like c_feature.api_feature
 		do Result := c_feature.api_feature (a_class_id) end
+
+	has_postcondition: like c_feature.has_postcondition
+		do Result := c_feature.has_postcondition end
+
+	written_type (class_type: CLASS_TYPE): like c_feature.written_type
+		do Result := c_feature.written_type (class_type) end
+
+	has_precondition: like c_feature.has_precondition
+		do Result := c_feature.has_precondition end
+
+	is_exported_for (client: E2B_CLASS_C): like c_feature.is_exported_for
+		do Result := c_feature.is_exported_for (client.c_class) end
+
+	export_status: like c_feature.export_status
+		do Result := c_feature.export_status end
 
 feature {NONE}
 	hash_code: INTEGER
@@ -212,7 +225,7 @@ feature -- Feature status helpers
 	is_ghost: BOOLEAN
 			-- Is `a_feature' a ghost feature?
 		do
-			Result := is_status ("ghost") or (create {E2B_CLASS_C}.make (c_feature.written_class)).is_status ("ghost")
+			Result := is_status ("ghost") or written_class.is_status ("ghost")
 		end
 
 	is_impure: BOOLEAN
@@ -260,13 +273,13 @@ feature -- Feature status helpers
 	is_private: BOOLEAN
 			-- Is `a_feature' a public feature?
 		do
-			Result := c_feature.export_status.is_none
+			Result := export_status.is_none
 		end
 
 	is_public: BOOLEAN
 			-- Is `a_feature' a public feature?
 		do
-			Result := c_feature.is_exported_for (helper.system.any_class.compiled_class)
+			Result := is_exported_for (create {E2B_CLASS_C}.make (helper.system.any_class.compiled_class))
 		end
 
 	is_setter: BOOLEAN
@@ -284,14 +297,14 @@ feature -- Feature status helpers
 	has_functional_representation: BOOLEAN
 			-- Will a Boogie function be generated for `a_feature'?
 		do
-			Result := c_feature.has_return_value and not is_status ("impure")
+			Result := has_return_value and not is_status ("impure")
 		end
 
 feature -- Logical helpers
 	is_logical: BOOLEAN
 			-- Is `a_feature' directly mapped to a Boogie function?
 		do
-			Result := (create {E2B_CLASS_C}.make (c_feature.written_class)).is_logical and not is_lemma
+			Result := written_class.is_logical and not is_lemma
 		end
 
 	function_name_if_logical: detachable READABLE_STRING_8
@@ -328,13 +341,13 @@ feature -- Ownership helpers
 			Result :=
 				not options.is_ownership_defaults_enabled or else
 				is_feature_explicit (a_type) or else
-				(create {E2B_CLASS_C}.make (c_feature.written_class)).is_explicit (a_type)
+				written_class.is_explicit (a_type)
 		end
 
 	boogie_name_for_attribute (a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie tranlsation of `a_feature', taking special translation of built-ins into account.
 		do
-			Result := c_feature.feature_name
+			Result := feature_name
 			if not helper.translation_mapping.ghost_access.has (Result) then
 				Result := helper.name_translator.boogie_procedure_for_feature (Current, a_context_type)
 			end
@@ -343,29 +356,29 @@ feature -- Ownership helpers
 	guards_for_attribute: LINKED_LIST [TUPLE [str: READABLE_STRING_8; origin: E2B_CLASS_C]]
 			-- Update guard for attribute `a_feature'.
 		local
-			g: READABLE_STRING_8
-			c: E2B_CLASS_C
+			guard_note: READABLE_STRING_8
+			l_class: E2B_CLASS_C
 		do
 			create Result.make
 			Result.compare_objects
 			across all_versions as ver loop
-				g := string_note_value ("guard")
-				c := create {E2B_CLASS_C}.make (ver.c_feature.written_class)
-				if g.is_empty then
+				guard_note := string_note_value ("guard")
+				l_class := ver.written_class
+				if guard_note.is_empty then
 						-- No guard defined
-					if ver.c_feature.assert_id_set = Void then
+					if ver.assert_id_set = Void then
 							-- This is the original version: apply default
-						if c.boolean_class_note_value ("false_guards") then
-							Result.extend (["false", c])
+						if l_class.boolean_class_note_value ("false_guards") then
+							Result.extend (["false", l_class])
 						else
-							Result.extend (["inv", c])
+							Result.extend (["inv", l_class])
 						end
 					else
 							-- This is a redefinition: skip (equivalent to adding true)
 					end
 				else
 						-- Explicit guard: add to list
-					Result.extend (g, c)
+					Result.extend (guard_note, l_class)
 				end
 			end
 		ensure
@@ -378,11 +391,11 @@ feature -- Ownership helpers
 		local
 			l_type: E2B_CL_TYPE_A
 		do
-			if helper.translation_mapping.ghost_access.has (c_feature.feature_name) then
+			if helper.translation_mapping.ghost_access.has (feature_name) then
 					-- Handle built-in ANY attributes separately, since they are not really attributes.
-				create Result.make (c_feature.feature_name, types.field (helper.translation_mapping.ghost_access_type (c_feature.feature_name)))
+				create Result.make (feature_name, types.field (helper.translation_mapping.ghost_access_type (feature_name)))
 			else
-				check c_feature.is_attribute end
+				check is_attribute end
 				l_type := (a_context_type.base_class).class_type_in_context (type, Void, a_context_type)
 				create Result.make (helper.name_translator.boogie_procedure_for_feature (Current, a_context_type),
 					types.field (types.for_class_type (l_type)))
@@ -395,7 +408,7 @@ feature -- Ownership helpers
 			-- (Which means that it is not actually an attribute, but should be).
 		do
 				-- ToDo: take possible renaming into account?
-			Result := helper.translation_mapping.ghost_access.has (c_feature.feature_name)
+			Result := helper.translation_mapping.ghost_access.has (feature_name)
 		end
 feature -- Model helpers
 	replaced_model_queries (a_descendant: E2B_CLASS_C): ARRAYED_LIST [E2B_FEATURE_I]
@@ -409,9 +422,9 @@ feature -- Model helpers
 			across all_versions as vers loop
 				l_rep_clause := vers.note_values ("replaces")
 				across l_rep_clause as f loop
-					l_rep_feature := create {E2B_FEATURE_I}.make (vers.c_feature.written_class.feature_named (f))
+					l_rep_feature := vers.written_class.feature_named (f)
 					if attached l_rep_feature then
-						Result.extend (a_descendant.feature_of_rout_id_set (l_rep_feature.c_feature.rout_id_set))
+						Result.extend (a_descendant.feature_of_rout_id_set (l_rep_feature.rout_id_set))
 						across l_rep_feature.replaced_model_queries (a_descendant) as q loop
 							if not Result.has (q) then
 								Result.extend (q)
@@ -427,12 +440,12 @@ feature -- String helpers
 	is_creator_of_class (a_class: E2B_CLASS_C): BOOLEAN
 			-- Is `a_feature' a creator of `a_class'?
 		do
-			Result := a_class.has_creator_of_name_id (c_feature.feature_name_id) or
-				(a_class.creation_feature /= Void and then a_class.creation_feature.feature_id = c_feature.feature_id)
+			Result := a_class.has_creator_of_name_id (feature_name_id) or
+				(a_class.creation_feature /= Void and then a_class.creation_feature.feature_id = feature_id)
 
 			if a_class.creation_feature /= Void then
 					-- default create
-			elseif a_class.has_creator_of_name_id (c_feature.feature_name_id) then
+			elseif a_class.has_creator_of_name_id (feature_name_id) then
 
 					-- push it into a HASHTABLE[ARRAY[FEATURE_I], a_class]
 
@@ -448,7 +461,7 @@ feature -- Eiffel helpers
 			-- Are `f1' and `f2' the same feature?
 		do
 			Result := c_feature = f2.c_feature or
-				((c_feature /= Void ∧ f2.c_feature /= Void) ∧… (c_feature.written_in = f2.c_feature.written_in ∧ c_feature.rout_id_set.first = f2.c_feature.rout_id_set.first))
+				(written_in = f2.written_in ∧ rout_id_set.first = f2.rout_id_set.first)
 		end
 
 	all_versions: LINKED_LIST [E2B_FEATURE_I]
@@ -459,16 +472,16 @@ feature -- Eiffel helpers
 		do
 			create Result.make
 				-- Add the written version of the feature
-			create l_written_feature.make (c_feature.written_class.feature_of_body_index (c_feature.body_index))
+			l_written_feature := written_class.feature_of_body_index (body_index)
 			Result.extend (l_written_feature)
-			if c_feature.assert_id_set /= Void then
+			if assert_id_set /= Void then
 					-- Redefined feature: return original versions
 				from
 					i := 1
 				until
-					i > c_feature.assert_id_set.count
+					i > assert_id_set.count
 				loop
-					l_written_feature := create {E2B_FEATURE_I}.make (c_feature.assert_id_set [i].written_class.feature_of_body_index (c_feature.assert_id_set [i].body_index))
+					create l_written_feature.make (assert_id_set [i].written_class.feature_of_body_index (assert_id_set [i].body_index))
 					Result.extend (l_written_feature)
 					i := i + 1
 				end
@@ -480,7 +493,7 @@ feature -- Contract helpers
 	has_flat_precondition: BOOLEAN
 			-- Could `a_feature' have a precondition (immediate or inherited)?
 		do
-			Result := c_feature.has_precondition or c_feature.assert_id_set /= Void
+			Result := has_precondition or assert_id_set /= Void
 		end
 
 feature -- Byte context helper
@@ -494,8 +507,8 @@ feature -- Byte context helper
 
 				-- Set up class type
 			if not a_type.has_associated_class_type (Void) then
-				if attached {E2B_CL_TYPE_A} a_type as l_cl_type_a then
-					a_type.base_class.update_types (l_cl_type_a)
+				if attached {CL_TYPE_A} a_type.type_a as l_cl_type_a then
+					a_type.base_class.update_types (create {E2B_CL_TYPE_A}.make (l_cl_type_a))
 				else
 					check False end
 				end
@@ -504,26 +517,31 @@ feature -- Byte context helper
 			Context.init (a_type.associated_class_type (Void))
 
 				-- Set up feature data
-			Context.set_class_type (c_feature.written_type (a_type.associated_class_type (Void)))
+			Context.set_class_type (written_type (a_type.associated_class_type (Void)))
 			Context.set_current_feature (Current.c_feature)
-			if byte_server.has (c_feature.body_index) then
-				Context.set_byte_code (byte_server.item (c_feature.body_index))
+			if byte_server.has (body_index) then
+				Context.set_byte_code (byte_server.item (body_index))
 			end
 		end
 
 	switch_byte_context (a_target_type: E2B_CL_TYPE_A; a_written_type: E2B_CL_TYPE_A)
 			-- Update byte context to feature `f` written in `a_written_type` called on type `a_target_type`.
 			-- Use `unswitch_byte_context` to restore original state.
+		local
+			l_current_feature: detachable E2B_FEATURE_I
 		do
 			Context.change_class_type_context
 				(a_target_type.associated_class_type (Void),
 				a_target_type.type_a,
 				a_written_type.associated_class_type (Void),
 				a_written_type.type_a)
-			helper.context_stack.put ([create {E2B_FEATURE_I}.make (Context.current_feature), Context.byte_code])
+			if attached Context.current_feature as att_feature then
+				create l_current_feature.make (att_feature)
+			end
+			helper.context_stack.put ([l_current_feature, Context.byte_code])
 			Context.set_current_feature (Current.c_feature)
-			if byte_server.has (c_feature.body_index) then
-				Context.set_byte_code (byte_server.item (c_feature.body_index))
+			if byte_server.has (body_index) then
+				Context.set_byte_code (byte_server.item (body_index))
 			end
 		end
 
@@ -536,11 +554,11 @@ feature -- Other
 				is_inline_in_caller
 			if not Result and helper.options.is_automatic_inlining_enabled then
 				Result := not
-						(c_feature.has_postcondition or else
-							attached c_feature.assert_id_set as a and then a.has_postcondition)
+						(has_postcondition or else
+							attached assert_id_set as a and then a.has_postcondition)
 			end
 			if not Result then
-				Result := helper.options.routines_to_inline.has (c_feature.body_index)
+				Result := helper.options.routines_to_inline.has (body_index)
 			end
 		end
 

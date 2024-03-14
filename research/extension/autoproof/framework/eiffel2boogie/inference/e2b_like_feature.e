@@ -17,11 +17,11 @@ inherit
 
 create
 	make,
-	make_with_param
+	make_from_params
 
 feature -- Creator
 
-	make_with_param (f: E2B_FEATURE_I; a_context_class_id: INTEGER)
+	make_from_params (f: E2B_FEATURE_I; a_context_class_id: INTEGER)
 		do type_a := create {LIKE_FEATURE}.make (f.c_feature, a_context_class_id) end
 
 	make (a_type: LIKE_FEATURE)

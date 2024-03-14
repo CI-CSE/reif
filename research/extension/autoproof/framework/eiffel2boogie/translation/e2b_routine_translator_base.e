@@ -513,7 +513,7 @@ feature -- Helper functions: contracts
 --						l_feature := helper.feature_for_call_access (a, a_translator.current_target_type)
 --						l_type := l_feature.type
 						l_feature := helper.feature_for_call_access (call_access, a_translator.origin_class.actual_type)
-						create l_like_type.make_with_param (l_feature, a_translator.current_target_type.base_class.class_id)
+						create l_like_type.make_from_params (l_feature, a_translator.current_target_type.base_class.class_id)
 						l_like_type.set_actual_type (l_feature.type.actual_type)
 						l_type := l_like_type
 					else
