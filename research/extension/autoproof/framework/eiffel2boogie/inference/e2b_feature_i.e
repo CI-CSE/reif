@@ -38,7 +38,7 @@ feature -- Creator
 			c_feature = a_feature
 		end
 
-feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_TYPE_A, E2B_SHARED_CONTEXT, E2B_ROUTINE_TRANSLATOR_BASE} -- Wrapped object
+feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_TYPE_A, E2B_SHARED_CONTEXT} -- Wrapped object
 	c_feature: FEATURE_I
 
 feature -- wrapped features

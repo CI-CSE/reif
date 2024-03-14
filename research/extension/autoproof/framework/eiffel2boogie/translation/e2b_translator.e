@@ -59,16 +59,14 @@ feature -- Element change
 			end
 		end
 
-	add_class (a_class: E2B_CLASS_C)
+	add_class (a_class: attached E2B_CLASS_C)
 			-- Add `a_class' to be translated.
 		local
 			l_feature: E2B_FEATURE_I
 			cursor: CURSOR
 		do
 			if not a_class.is_logical then
-				if not a_class.constraint_type.has_generics then
-					translation_pool.add_class_check (a_class.constraint_type)
-				end
+				translation_pool.add_class_check (a_class.constraint_type)
 			end
 			if a_class.has_feature_table then
 				from
@@ -90,19 +88,14 @@ feature -- Element change
 			end
 		end
 
-	add_feature (a_feature: E2B_FEATURE_I)
+	add_feature (a_feature: attached E2B_FEATURE_I)
 			-- Add `a_feature' to be translated.
-		require
-			a_feature_attached: attached a_feature
 		do
 			add_feature_of_type (a_feature, create {E2B_CL_TYPE_A}.make (system.class_of_id (a_feature.written_in).actual_type))
 		end
 
-	add_feature_of_type (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A)
+	add_feature_of_type (a_feature: attached E2B_FEATURE_I; a_context_type: attached E2B_CL_TYPE_A)
 			-- Add `a_feature' in context of type `a_context_type' to be translated.
-		require
-			a_feature_attached: attached a_feature
-			a_context_type_attached: attached a_context_type
 		do
 			translation_pool.add_feature (a_feature, a_context_type.base_class.constraint_type)
 		end

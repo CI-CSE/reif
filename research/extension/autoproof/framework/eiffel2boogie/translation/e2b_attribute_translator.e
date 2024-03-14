@@ -246,8 +246,6 @@ feature {NONE} -- Implementation
 						Result := factory.true_
 					end
 					Result := factory.and_clean (Result, factory.function_call (l_fname, <<a_h, a_cur, a_v, a_o>>, types.bool))
-				else
-					Result := factory.false_ -- TODO RETO Not sure if this is correct
 				end
 			end
 		end
