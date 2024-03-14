@@ -29,7 +29,7 @@ feature -- Creator
 feature -- Redefined
 	type_a: LIKE_CURRENT
 
-note
+;note
 	license: "GNU General Public License"
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
