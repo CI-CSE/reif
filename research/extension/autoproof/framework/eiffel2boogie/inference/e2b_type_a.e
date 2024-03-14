@@ -31,37 +31,37 @@ feature -- Wrapped features
 	actual_type: E2B_TYPE_A
 		do create Result.make (type_a.actual_type) end
 
-	name: like type_a.name
+	name: like {TYPE_A}.name
 		do Result := type_a.name end
 
-	is_attached: like type_a.is_attached
+	is_attached: like {TYPE_A}.is_attached
 		do Result := type_a.is_attached end
 
-	has_associated_class: like type_a.has_associated_class
+	has_associated_class: like {TYPE_A}.has_associated_class
 		do Result := type_a.has_associated_class end
 
-	is_integer: like type_a.is_integer
+	is_integer: like {TYPE_A}.is_integer
 		do Result := type_a.is_integer end
 
-	is_boolean: like type_a.is_boolean
+	is_boolean: like {TYPE_A}.is_boolean
 		do Result := type_a.is_boolean end
 
-	is_basic: like type_a.is_basic
+	is_basic: like {TYPE_A}.is_basic
 		do Result := type_a.is_basic end
 
-	has_formal_generic: like type_a.has_formal_generic
+	has_formal_generic: like {TYPE_A}.has_formal_generic
 		do Result := type_a.has_formal_generic end
 
-	is_like: like type_a.is_like
+	is_like: like {TYPE_A}.is_like
 		do Result := type_a.is_like end
 
 	as_attached_type: like Current
 		do create Result.make (type_a.as_attached_type) end
 
-	same_as (other: E2B_TYPE_A): like type_a.same_as
+	same_as (other: E2B_TYPE_A): like {TYPE_A}.same_as
 		do Result := type_a.same_as (other.type_a) end
 
-	is_like_current: like type_a.is_like_current
+	is_like_current: like {TYPE_A}.is_like_current
 		do Result := type_a.is_like_current end
 
 	evaluated_type_in_descendant (a_ancestor, a_descendant: E2B_CLASS_C; a_feature: E2B_FEATURE_I): E2B_TYPE_A
@@ -86,10 +86,10 @@ feature -- Wrapped features
 	has_associated_class_type (a_context_type: E2B_TYPE_A): BOOLEAN
 		do Result := type_a.has_associated_class_type (if attached a_context_type as t then t.type_a else Void end) end
 
-	is_class_valid: like type_a.is_class_valid
+	is_class_valid: like {TYPE_A}.is_class_valid
 		do Result := type_a.is_class_valid end
 
-	has_generics: like type_a.has_generics
+	has_generics: like {TYPE_A}.has_generics
 		do Result := type_a.has_generics end
 
 	generics: ARRAYED_LIST [E2B_TYPE_A]
@@ -111,34 +111,34 @@ feature -- Wrapped features
 			else_void: not attached type_a.generics implies Result = Void
 		end
 
-	is_tuple: like type_a.is_tuple
+	is_tuple: like {TYPE_A}.is_tuple
 		do Result := type_a.is_tuple end
 
-	is_numeric: like type_a.is_numeric
+	is_numeric: like {TYPE_A}.is_numeric
 		do Result := type_a.is_numeric end
 
-	is_real_32: like type_a.is_real_32
+	is_real_32: like {TYPE_A}.is_real_32
 		do Result := type_a.is_real_32 end
 
-	is_real_64: like type_a.is_real_64
+	is_real_64: like {TYPE_A}.is_real_64
 		do Result := type_a.is_real_64 end
 
-	is_character: like type_a.is_character
+	is_character: like {TYPE_A}.is_character
 		do Result := type_a.is_character end
 
-	is_character_32: like type_a.is_character_32
+	is_character_32: like {TYPE_A}.is_character_32
 		do Result := type_a.is_character_32 end
 
-	is_expanded: like type_a.is_expanded
+	is_expanded: like {TYPE_A}.is_expanded
 		do Result := type_a.is_expanded end
 
-	is_natural: like type_a.is_natural
+	is_natural: like {TYPE_A}.is_natural
 		do Result := type_a.is_natural end
 
-	hash_code: like type_a.hash_code
+	hash_code: like {TYPE_A}.hash_code
 		do Result := type_a.hash_code end
 
-	is_formal: like type_a.is_formal
+	is_formal: like {TYPE_A}.is_formal
 		do Result := type_a.is_formal end
 
 feature -- Ownership

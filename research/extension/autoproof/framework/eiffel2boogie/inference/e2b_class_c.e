@@ -31,10 +31,10 @@ feature -- TODO RETO {E2B_CLASS_C, ES_AUTOPROOF_TOOL_PANEL} -- Wrapped object
 	c_class: CLASS_C
 
 feature -- Wrapper
-	is_deferred: like c_class.is_deferred
+	is_deferred: like {CLASS_C}.is_deferred
 		do Result := c_class.is_deferred end
 
-	conform_to (other: E2B_CLASS_C): like c_class.conform_to
+	conform_to (other: E2B_CLASS_C): like {CLASS_C}.conform_to
 		do Result := c_class.conform_to (other.c_class) end
 
 	actual_type: E2B_CL_TYPE_A
@@ -55,16 +55,16 @@ feature -- Wrapper
 			same_size: c_class.direct_descendants.count = Result.count
 		end
 
-	skeleton: like c_class.skeleton
+	skeleton: like {CLASS_C}.skeleton
 		do Result := c_class.skeleton end
 
-	creators: like c_class.creators
+	creators: like {CLASS_C}.creators
 		do Result := c_class.creators end
 
 	feature_of_name_id (a_name_id: INTEGER): E2B_FEATURE_I
 		do create Result.make (c_class.feature_of_name_id (a_name_id)) end
 
-	name_in_upper: like c_class.name_in_upper
+	name_in_upper: like {CLASS_C}.name_in_upper
 		do Result := c_class.name_in_upper end
 
 	feature_named (n: READABLE_STRING_8): detachable E2B_FEATURE_I
@@ -81,31 +81,35 @@ feature -- Wrapper
 			end
 		end
 
-	file_name: like c_class.file_name
+	file_name: like {CLASS_C}.file_name
 		do Result := c_class.file_name end
 
-	class_id: like c_class.class_id
+	class_id: like {CLASS_C}.class_id
 		do Result := c_class.class_id end
 
-	name: like c_class.name
+	name: like {CLASS_C}.name
 		do Result := c_class.name end
 
-	has_feature_table: like c_class.has_feature_table
+	has_feature_table: like {CLASS_C}.has_feature_table
 		do Result := c_class.has_feature_table end
 
-	feature_table: like c_class.feature_table
+	feature_table: like {CLASS_C}.feature_table
 		do Result := c_class.feature_table end
 
-	original_class: like c_class.original_class
+	original_class: like {CLASS_C}.original_class
 		do Result := c_class.original_class end
 
-	has_creator_of_name_id (a_id: INTEGER): like c_class.has_creator_of_name_id
+	has_creator_of_name_id (a_id: INTEGER): like {CLASS_C}.has_creator_of_name_id
 		do Result := c_class.has_creator_of_name_id (a_id) end
 
-	creation_feature: like c_class.creation_feature
-		do Result := c_class.creation_feature end
+	creation_feature: detachable E2B_FEATURE_I
+		do
+			if attached c_class.creation_feature as l_creation_feature then
+				create Result.make (l_creation_feature)
+			end
+		end
 
-	inherits_from (other: E2B_CLASS_C): like c_class.inherits_from
+	inherits_from (other: E2B_CLASS_C): like {CLASS_C}.inherits_from
 		do Result := c_class.inherits_from (other.c_class) end
 
 	invariant_feature: detachable E2B_INVARIANT_FEAT_I
@@ -115,13 +119,13 @@ feature -- Wrapper
 			end
 		end
 
-	is_any: like c_class.is_class_any
+	is_any: like {CLASS_C}.is_class_any
 		do Result := c_class.is_class_any end
 
-	is_tuple: like c_class.is_tuple
+	is_tuple: like {CLASS_C}.is_tuple
 		do Result := c_class.is_tuple end
 
-	lace_class: like c_class.lace_class
+	lace_class: like {CLASS_C}.lace_class
 		do Result := c_class.lace_class end
 
 	feature_of_rout_id (a_routine_id: INTEGER): detachable E2B_FEATURE_I
@@ -131,7 +135,7 @@ feature -- Wrapper
 			end
 		end
 
-	ast: like c_class.ast
+	ast: like {CLASS_C}.ast
 		do Result := c_class.ast end
 
 	parents_classes: FIXED_LIST [E2B_CLASS_C]
@@ -155,7 +159,7 @@ feature -- Wrapper
 	feature_named_32 (n: STRING_32): E2B_FEATURE_I
 		do create Result.make (c_class.feature_named_32 (n)) end
 
-	is_frozen: like c_class.is_frozen
+	is_frozen: like {CLASS_C}.is_frozen
 		do Result := c_class.is_frozen end
 
 	single_constraint (i: INTEGER): E2B_TYPE_A
@@ -191,7 +195,7 @@ feature -- Wrapper
 			end
 		end
 
-	system: like c_class.system
+	system: like {CLASS_C}.system
 		do Result := c_class.system end
 
 	non_conforming_parents_classes: detachable FIXED_LIST [E2B_CLASS_C]

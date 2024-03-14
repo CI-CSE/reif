@@ -42,22 +42,22 @@ feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_TYPE_A, E2B_SHARED_CONTEXT, E2B_ROUTINE
 	c_feature: FEATURE_I
 
 feature -- wrapped features
-	written_in: like c_feature.written_in
+	written_in: like {FEATURE_I}.written_in
 		do Result := c_feature.written_in end
 
-	body: like c_feature.body
+	body: like {FEATURE_I}.body
 		do Result := c_feature.body end
 
-	is_deferred: like c_feature.is_deferred
+	is_deferred: like {FEATURE_I}.is_deferred
 		do Result := c_feature.is_deferred end
 
-	is_attribute: like c_feature.is_attribute
+	is_attribute: like {FEATURE_I}.is_attribute
 		do Result := c_feature.is_attribute end
 
-	is_routine: like c_feature.is_routine
+	is_routine: like {FEATURE_I}.is_routine
 		do Result := c_feature.is_routine end
 
-	is_constant: like c_feature.is_constant
+	is_constant: like {FEATURE_I}.is_constant
 		do Result := c_feature.is_constant end
 
 	arguments: detachable FEAT_ARG
@@ -67,13 +67,13 @@ feature -- wrapped features
 			c_feature.arguments /= Void ⇒ Result.count = c_feature.arguments.count
 		end
 
-	rout_id_set: like c_feature.rout_id_set
+	rout_id_set: like {FEATURE_I}.rout_id_set
 		do Result := c_feature.rout_id_set end
 
-	feature_name_32: like c_feature.feature_name_32
+	feature_name_32: like {FEATURE_I}.feature_name_32
 		do Result := c_feature.feature_name_32 end
 
-	body_index: like c_feature.body_index
+	body_index: like {FEATURE_I}.body_index
 		do Result := c_feature.body_index end
 
 	written_class: E2B_CLASS_C
@@ -82,55 +82,55 @@ feature -- wrapped features
 	type: E2B_TYPE_A
 		do create Result.make (c_feature.type) end
 
-	e_feature: like c_feature.e_feature
+	e_feature: like {FEATURE_I}.e_feature
 		do Result := c_feature.e_feature end
 
-	feature_name: like c_feature.feature_name
+	feature_name: like {FEATURE_I}.feature_name
 		do Result := c_feature.feature_name end
 
-	has_return_value: like c_feature.has_return_value
+	has_return_value: like {FEATURE_I}.has_return_value
 		do Result := c_feature.has_return_value end
 
-	argument_count: like c_feature.argument_count
+	argument_count: like {FEATURE_I}.argument_count
 		do Result := c_feature.argument_count end
 
-	feature_id: like c_feature.feature_id
+	feature_id: like {FEATURE_I}.feature_id
 		do Result := c_feature.feature_id end
 
 	instantiated (parent_type: E2B_TYPE_A): E2B_FEATURE_I
 		do create Result.make (c_feature.instantiated (parent_type.type_a)) end
 
-	has_arguments: like c_feature.has_arguments
+	has_arguments: like {FEATURE_I}.has_arguments
 		do Result := c_feature.has_arguments end
 
-	assert_id_set: like c_feature.assert_id_set
+	assert_id_set: like {FEATURE_I}.assert_id_set
 		do Result := c_feature.assert_id_set end
 
-	is_once: like c_feature.is_once
+	is_once: like {FEATURE_I}.is_once
 		do Result := c_feature.is_once end
 
-	feature_name_id: like c_feature.feature_name_id
+	feature_name_id: like {FEATURE_I}.feature_name_id
 		do Result := c_feature.feature_name_id end
 
-	is_external: like c_feature.is_external
+	is_external: like {FEATURE_I}.is_external
 		do Result := c_feature.is_external end
 
-	api_feature (a_class_id: INTEGER): like c_feature.api_feature
+	api_feature (a_class_id: INTEGER): like {FEATURE_I}.api_feature
 		do Result := c_feature.api_feature (a_class_id) end
 
-	has_postcondition: like c_feature.has_postcondition
+	has_postcondition: like {FEATURE_I}.has_postcondition
 		do Result := c_feature.has_postcondition end
 
-	written_type (class_type: CLASS_TYPE): like c_feature.written_type
+	written_type (class_type: CLASS_TYPE): like {FEATURE_I}.written_type
 		do Result := c_feature.written_type (class_type) end
 
-	has_precondition: like c_feature.has_precondition
+	has_precondition: like {FEATURE_I}.has_precondition
 		do Result := c_feature.has_precondition end
 
-	is_exported_for (client: E2B_CLASS_C): like c_feature.is_exported_for
+	is_exported_for (client: E2B_CLASS_C): like {FEATURE_I}.is_exported_for
 		do Result := c_feature.is_exported_for (client.c_class) end
 
-	export_status: like c_feature.export_status
+	export_status: like {FEATURE_I}.export_status
 		do Result := c_feature.export_status end
 
 feature {NONE}
