@@ -24,7 +24,7 @@ feature -- Creation
 feature -- Wrapped object
 	type_a: TYPE_A
 
-feature -- Wrapped features
+feature -- Wrapped features (see originals for documentation)
 	base_class: E2B_CLASS_C
 		do create Result.make (type_a.base_class) end
 
@@ -143,7 +143,7 @@ feature -- Wrapped features
 
 feature -- Ownership
 	is_exact (a_class_type: E2B_CL_TYPE_A; a_context_feature: E2B_FEATURE_I): BOOLEAN
-			-- Is `a_type' (which corresponds to `a_class_type')
+			-- Is `Current' (which corresponds to `a_class_type')
 			-- in the context of `a_context_feature' represent a fixed dynamic type?
 		require
 			class_type_exists: attached a_class_type

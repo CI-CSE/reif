@@ -41,7 +41,7 @@ feature -- Creator
 feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_TYPE_A, E2B_SHARED_CONTEXT} -- Wrapped object
 	c_feature: FEATURE_I
 
-feature -- wrapped features
+feature -- wrapped features (see originals for documentation)
 	written_in: like {FEATURE_I}.written_in
 		do Result := c_feature.written_in end
 
@@ -193,7 +193,7 @@ feature -- General note helpers
 feature -- Feature status helpers
 
 	is_status (a_value: READABLE_STRING_8): BOOLEAN
-			-- Does `a_feature' has a feature note with a tag status that contains the value `a_value'?
+			-- Does `Current' has a feature note with a tag status that contains the value `a_value'?
 		local
 			l_values: like note_values
 		do
@@ -205,111 +205,111 @@ feature -- Feature status helpers
 		end
 
 	is_creator: BOOLEAN
-			-- Is `a_feature' a creator?
+			-- Is `Current' a creator?
 		do
 			Result := is_status ("creator")
 		end
 
 	is_nonvariant: BOOLEAN
-			-- Is `a_feature' nonvariant (i.e. does not know the dynmaic type of Current)?
+			-- Is `Current' nonvariant (i.e. does not know the dynmaic type of Current)?
 		do
 			Result := not helper.options.is_ignoring_nonvariant and then is_status ("nonvariant")
 		end
 
 	is_functional: BOOLEAN
-			-- Is `a_feature' a functional feature?
+			-- Is `Current' a functional feature?
 		do
 			Result := is_status ("functional")
 		end
 
 	is_ghost: BOOLEAN
-			-- Is `a_feature' a ghost feature?
+			-- Is `Current' a ghost feature?
 		do
 			Result := is_status ("ghost") or written_class.is_status ("ghost")
 		end
 
 	is_impure: BOOLEAN
-			-- Is `a_feature' impure?
+			-- Is `Current' impure?
 		do
 			Result := is_status ("impure")
 		end
 
 	is_inline_in_caller: BOOLEAN
-			-- Is `a_feature' inlined in caller?
+			-- Is `Current' inlined in caller?
 		do
 			Result := is_status ("inline_in_caller")
 		end
 
 	is_invariant_unfriendly: BOOLEAN
-			-- Is `a_feature' invariant unfriendly?
+			-- Is `Current' invariant unfriendly?
 		do
 			Result := is_status ("inv_unfriendly")
 		end
 
 	is_lemma: BOOLEAN
-			-- Is `a_feature' a ghost feature?
+			-- Is `Current' a ghost feature?
 		do
 			Result := is_status ("lemma")
 		end
 
 	is_manual_inv: BOOLEAN
-			-- Does `a_feature' have the manual inv trigger?
+			-- Does `Current' have the manual inv trigger?
 		do
 			Result := boolean_note_value ("manual_inv")
 		end
 
 	is_opaque: BOOLEAN
-			-- Is `a_feature' an opaque function (its definition is not automatically available)?
+			-- Is `Current' an opaque function (its definition is not automatically available)?
 		do
 			Result := is_status ("opaque")
 		end
 
 	is_static: BOOLEAN
-			-- Is `a_feature' a static feature (it does not take Current as argument)?
+			-- Is `Current' a static feature (it does not take Current as argument)?
 		do
 			Result := is_status ("static")
 		end
 
 	is_private: BOOLEAN
-			-- Is `a_feature' a public feature?
+			-- Is `Current' a public feature?
 		do
 			Result := export_status.is_none
 		end
 
 	is_public: BOOLEAN
-			-- Is `a_feature' a public feature?
+			-- Is `Current' a public feature?
 		do
 			Result := is_exported_for (create {E2B_CLASS_C}.make (helper.system.any_class.compiled_class))
 		end
 
 	is_setter: BOOLEAN
-			-- Is `a_feature' a setter?
+			-- Is `Current' a setter?
 		do
 			Result := is_status ("setter")
 		end
 
 	is_skipped: BOOLEAN
-			-- Is `a_feature' skipped for verification?
+			-- Is `Current' skipped for verification?
 		do
 			Result := is_status ("skip")
 		end
 
 	has_functional_representation: BOOLEAN
-			-- Will a Boogie function be generated for `a_feature'?
+			-- Will a Boogie function be generated for `Current'?
 		do
 			Result := has_return_value and not is_status ("impure")
 		end
 
 feature -- Logical helpers
 	is_logical: BOOLEAN
-			-- Is `a_feature' directly mapped to a Boogie function?
+			-- Is `Current' directly mapped to a Boogie function?
 		do
 			Result := written_class.is_logical and not is_lemma
 		end
 
 	function_name_if_logical: detachable READABLE_STRING_8
-			-- Boogie function that `a_feature' maps to;
-			-- Void if `a_feature' is not from a logical class.
+			-- Boogie function that `Current' maps to;
+			-- Void if `Current' is not from a logical class.
 		local
 			l_values: like note_values
 		do
@@ -333,10 +333,10 @@ feature -- Ownership helpers
 	is_explicit (a_type: STRING): BOOLEAN
 			-- Does either of the following hold?
 			-- 1. ownership defaults are disabled
-			-- 2. `a_feature' list `a_type' as explicit
-			-- 3. `a_feature' marks all as explicit
-			-- 4. the class of `a_feature' list `a_type' as explicit
-			-- 5. the class of `a_feature' marks all as explicit
+			-- 2. `Current' list `a_type' as explicit
+			-- 3. `Current' marks all as explicit
+			-- 4. the class of `Current' list `a_type' as explicit
+			-- 5. the class of `Current' marks all as explicit
 		do
 			Result :=
 				not options.is_ownership_defaults_enabled or else
@@ -345,7 +345,7 @@ feature -- Ownership helpers
 		end
 
 	boogie_name_for_attribute (a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
-			-- Name of the boogie tranlsation of `a_feature', taking special translation of built-ins into account.
+			-- Name of the boogie tranlsation of `Current', taking special translation of built-ins into account.
 		do
 			Result := feature_name
 			if not helper.translation_mapping.ghost_access.has (Result) then
@@ -354,7 +354,7 @@ feature -- Ownership helpers
 		end
 
 	guards_for_attribute: LINKED_LIST [TUPLE [str: READABLE_STRING_8; origin: E2B_CLASS_C]]
-			-- Update guard for attribute `a_feature'.
+			-- Update guard for attribute `Current'.
 		local
 			guard_note: READABLE_STRING_8
 			l_class: E2B_CLASS_C
@@ -387,7 +387,7 @@ feature -- Ownership helpers
 		end
 
 	field_from_attribute (a_context_type: E2B_CL_TYPE_A): IV_ENTITY
-			-- Boogie field entity that corresponds to attribute (or built-in ghost access) `a_feature' in `a_context_type'.
+			-- Boogie field entity that corresponds to attribute (or built-in ghost access) `Current' in `a_context_type'.
 		local
 			l_type: E2B_CL_TYPE_A
 		do
@@ -404,7 +404,7 @@ feature -- Ownership helpers
 		end
 
 	is_built_in_attribute: BOOLEAN
-			-- Does `a_feature' represent on the of the built-in attributes?
+			-- Does `Current' represent on the of the built-in attributes?
 			-- (Which means that it is not actually an attribute, but should be).
 		do
 				-- ToDo: take possible renaming into account?
@@ -412,7 +412,7 @@ feature -- Ownership helpers
 		end
 feature -- Model helpers
 	replaced_model_queries (a_descendant: E2B_CLASS_C): ARRAYED_LIST [E2B_FEATURE_I]
-			-- All features replaced by all version of `a_feature' in `a_type',
+			-- All features replaced by all version of `Current' in `a_type',
 			-- as seen from `a_descendant'.
 		local
 			l_rep_clause: ARRAYED_LIST [READABLE_STRING_8]
@@ -438,7 +438,7 @@ feature -- Model helpers
 feature -- String helpers
 
 	is_creator_of_class (a_class: E2B_CLASS_C): BOOLEAN
-			-- Is `a_feature' a creator of `a_class'?
+			-- Is `Current' a creator of `a_class'?
 		do
 			Result := a_class.has_creator_of_name_id (feature_name_id) or
 				(a_class.creation_feature /= Void and then a_class.creation_feature.feature_id = feature_id)
@@ -458,14 +458,14 @@ feature -- String helpers
 feature -- Eiffel helpers
 
 	is_same_feature (f2: E2B_FEATURE_I): BOOLEAN
-			-- Are `f1' and `f2' the same feature?
+			-- Are `Current' and `f2' the same feature?
 		do
 			Result := c_feature = f2.c_feature or
 				(written_in = f2.written_in ∧ rout_id_set.first = f2.rout_id_set.first)
 		end
 
 	all_versions: LINKED_LIST [E2B_FEATURE_I]
-			-- All written versions of `a_feature'.
+			-- All written versions of `Current'.
 		local
 			l_written_feature: E2B_FEATURE_I
 			i: INTEGER
@@ -491,14 +491,14 @@ feature -- Eiffel helpers
 feature -- Contract helpers
 
 	has_flat_precondition: BOOLEAN
-			-- Could `a_feature' have a precondition (immediate or inherited)?
+			-- Could `Current' have a precondition (immediate or inherited)?
 		do
 			Result := has_precondition or assert_id_set /= Void
 		end
 
 feature -- Byte context helper
 	set_up_byte_context (a_type: E2B_TYPE_A)
-			-- Set up byte context for `a_feature' of type `a_type'.
+			-- Set up byte context for `Current' of type `a_type'.
 		do
 				-- Clear byte context
 			Context.clear_feature_data
@@ -525,7 +525,7 @@ feature -- Byte context helper
 		end
 
 	switch_byte_context (a_target_type: E2B_CL_TYPE_A; a_written_type: E2B_CL_TYPE_A)
-			-- Update byte context to feature `f` written in `a_written_type` called on type `a_target_type`.
+			-- Update byte context to feature `Current` written in `a_written_type` called on type `a_target_type`.
 			-- Use `unswitch_byte_context` to restore original state.
 		local
 			l_current_feature: detachable E2B_FEATURE_I
@@ -548,7 +548,7 @@ feature -- Byte context helper
 feature -- Other
 
 	is_inlining_routine: BOOLEAN
-			-- Should routine `a_routine' be inlinied?
+			-- Should routine `Current' be inlinied?
 		do
 			Result := helper.options.is_inlining_enabled and then
 				is_inline_in_caller

@@ -1,36 +1,42 @@
 note
-	description: "Wrapper for LIKE_CURRENT to add convinience features."
+	description: "Wrapper for LIKE_FEATURE to add convinience features."
 	author: "Reto Weber"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	E2B_LIKE_CURRENT
+	E2B_LIKE_FEATURE
 
 inherit
 	E2B_TYPE_A
 		redefine
 			make,
+			as_attached_type,
 			type_a
 		end
 
 create
 	make,
-	make_from_type
+	make_from_params
 
 feature -- Creator
 
-	make (a_type: LIKE_CURRENT)
+	make_from_params (f: E2B_FEATURE_I; a_context_class_id: INTEGER)
+		do type_a := create {LIKE_FEATURE}.make (f.c_feature, a_context_class_id) end
+
+	make (a_type: LIKE_FEATURE)
 		do type_a := a_type end
 
-	make_from_type (a_type: E2B_TYPE_A)
-		do type_a := create {LIKE_CURRENT}.make (a_type.type_a) end
-
 feature -- Redefined
-	type_a: LIKE_CURRENT
+	type_a: LIKE_FEATURE
 
-feature -- Wrapped
+feature -- Wrapped (see originals for documentation)
 
+	as_attached_type: E2B_TYPE_A
+		do create Result.make (type_a.as_attached_type) end
+
+	set_actual_type (a: E2B_TYPE_A)
+		do type_a.set_actual_type (a.type_a) end
 
 
 note

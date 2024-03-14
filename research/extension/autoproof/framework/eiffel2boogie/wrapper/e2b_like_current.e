@@ -1,51 +1,33 @@
 note
-	description: "Wrapper for CL_TYPE_A to add convinience features."
+	description: "Wrapper for LIKE_CURRENT to add convinience features."
 	author: "Reto Weber"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	E2B_CL_TYPE_A
+	E2B_LIKE_CURRENT
 
 inherit
 	E2B_TYPE_A
 		redefine
 			make,
-			type_a,
-			instantiated_in
+			type_a
 		end
 
 create
-	make
-
+	make,
+	make_from_type
 
 feature -- Creator
-	make (a_type: CL_TYPE_A)
-		do
-			Precursor (a_type)
-		end
 
-feature {NONE} -- Wrapped object
-	type_a: CL_TYPE_A
+	make (a_type: LIKE_CURRENT)
+		do type_a := a_type end
 
-feature -- Wrapped features
-	instantiated_in (class_type: E2B_TYPE_A): E2B_CL_TYPE_A
-		do create Result.make (type_a.instantiated_in (class_type.type_a)) end
+	make_from_type (a_type: E2B_TYPE_A)
+		do type_a := create {LIKE_CURRENT}.make (a_type.type_a) end
 
-feature -- Eiffel helpers
-	is_agent_type: BOOLEAN
-			-- Is `t' an agent type?
-		local
-			l_name: like {CLASS_C}.name
-		do
-			l_name := base_class.name
-			Result :=
-				l_name.is_case_insensitive_equal ("ROUTINE") or else
-				l_name.is_case_insensitive_equal ("PROCEDURE") or else
-				l_name.is_case_insensitive_equal ("FUNCTION") or else
-				l_name.is_case_insensitive_equal ("PREDICATE")
-		end
-
+feature -- Redefined
+	type_a: LIKE_CURRENT
 
 note
 	license: "GNU General Public License"

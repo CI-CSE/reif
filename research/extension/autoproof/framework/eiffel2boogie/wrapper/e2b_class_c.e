@@ -30,7 +30,7 @@ feature -- Creator
 feature -- {E2B_CLASS_C, E2B_TYPE_A, E2B_FEATURE_I, ES_AUTOPROOF_TOOL_PANEL} -- Wrapped object
 	c_class: CLASS_C
 
-feature -- Wrapper
+feature -- Wrapper (see originals for documentation)
 	is_deferred: like {CLASS_C}.is_deferred
 		do Result := c_class.is_deferred end
 
@@ -261,7 +261,7 @@ feature -- General note helpers
 feature -- Class status helpers
 
 	is_status (a_value: READABLE_STRING_8): BOOLEAN
-			-- Does `a_class' has a note with a tag status that contains the value `a_value'?
+			-- Does `Current' has a note with a tag status that contains the value `a_value'?
 		local
 			l_values: like class_note_values
 		do
@@ -272,19 +272,19 @@ feature -- Class status helpers
 		end
 
 	is_skipped: BOOLEAN
-			-- Is `a_class' skipped?
+			-- Is `Current' skipped?
 		do
 			Result := is_status ("skip")
 		end
 
 	is_manual_inv: BOOLEAN
-			-- Does `a_class' have the manual inv trigger?
+			-- Does `Current' have the manual inv trigger?
 		do
 			Result := boolean_class_note_value ("manual_inv")
 		end
 
 	features_with_string_note_value (a_tag, a_value: READABLE_STRING_8): LINKED_LIST [E2B_FEATURE_I]
-			-- Feature of class `a_class', which has a note where `a_tag' contain `a_value'.
+			-- Feature of class `Current', which has a note where `a_tag' contain `a_value'.
 		local
 			l_feature: E2B_FEATURE_I
 		do
@@ -305,14 +305,14 @@ feature -- Class status helpers
 feature -- Logical helpers
 
 	is_logical: BOOLEAN
-			-- Is `a_class' mapped to a logical type in a Boogie theory?
+			-- Is `Current' mapped to a logical type in a Boogie theory?
 		do
 			Result := attached type_if_logical
 		end
 
 	type_if_logical: detachable READABLE_STRING_8
-			-- Boogie type that `a_class' maps to;
-			-- Void if `a_class' is not logical.
+			-- Boogie type that `Current' maps to;
+			-- Void if `Current' is not logical.
 		local
 			l_values: like class_note_values
 		do
@@ -323,7 +323,7 @@ feature -- Logical helpers
 		end
 
 	map_access_feature: E2B_FEATURE_I
-			-- The feature of the logical class `a_class' that maps to map access in Boogie (if any).
+			-- The feature of the logical class `Current' that maps to map access in Boogie (if any).
 		require
 			logical_class: is_logical
 		local
@@ -350,13 +350,13 @@ feature -- Logical helpers
 feature -- Ownership helpers
 
 	is_explicit (a_type: READABLE_STRING_8): BOOLEAN
-			-- Does `a_class' list `a_type' as explicit?
+			-- Does `Current' list `a_type' as explicit?
 		do
 			Result := across class_note_values ("explicit") as i some i.same_string (a_type) or i.same_string ("all") end
 		end
 
 	ghost_attributes: ARRAYED_LIST [E2B_FEATURE_I]
-			-- All ghost attributes of `a_class' (in the order from most immediate to most inherited).
+			-- All ghost attributes of `Current' (in the order from most immediate to most inherited).
 		local
 			l_feature: E2B_FEATURE_I
 		do
@@ -388,7 +388,7 @@ feature -- Ownership helpers
 		end
 
 	attribute_from_string (a_name: READABLE_STRING_8; a_type: E2B_CL_TYPE_A; a_context_feature: E2B_FEATURE_I; a_context_line_number: INTEGER): E2B_FEATURE_I
-			-- Attribute or built-in ghost access with name `a_name' defined in `a_origin_class' in type `a_type'.
+			-- Attribute or built-in ghost access with name `a_name' defined in `Current' in type `a_type'.
 		local
 			l_old_version: E2B_FEATURE_I
 		do
@@ -407,7 +407,7 @@ feature -- Ownership helpers
 feature -- Model helpers
 
 	model_queries: like class_note_values
-			-- Names of model queries declared in class `a_class'.
+			-- Names of model queries declared in class `Current'.
 		do
 			Result := class_note_values ("model")
 		end
@@ -458,8 +458,8 @@ feature -- Model helpers
 		end
 
 	replacing_model_queries (a_feature: E2B_FEATURE_I; a_descendant: E2B_CLASS_C): ARRAYED_LIST [E2B_FEATURE_I]
-			-- All model queries that represent `a_feature' from `a_class'
-			-- in `a_class' and its descendants down to `a_descendant',
+			-- All model queries that represent `a_feature' from `Current'
+			-- in `Current' and its descendants down to `a_descendant',
 			-- as seen in `a_descendant'.
 		require
 			feature_exists: attached a_feature
@@ -491,7 +491,7 @@ feature -- Model helpers
 		end
 
 	is_model_query (a_feature: E2B_FEATURE_I): BOOLEAN
-			-- Is `a_feature' an immediate or inherited model query of `a_class'?
+			-- Is `a_feature' an immediate or inherited model query of `Current'?
 		do
 			Result := across flat_model_queries as f some a_feature.is_same_feature (f) end
 		end
@@ -499,7 +499,7 @@ feature -- Model helpers
 feature -- Eiffel helpers
 
 	constraint_type: E2B_CL_TYPE_A
-			-- Type based on `a_class' without formal generic parameters.
+			-- Type based on `Current' without formal generic parameters.
 		local
 			new_generics: like {CL_TYPE_A}.generics
 			result_type: GEN_TYPE_A
@@ -527,26 +527,26 @@ feature -- Eiffel helpers
 		end
 
 	is_same_class (c2: E2B_CLASS_C): BOOLEAN
-			-- Ais_same_classre `c1' and `c2' the same class?
+			-- Ais_same_classre `Current' and `c2' the same class?
 		do
 			Result := c_class = c2.c_class or
 				(c2 /= Void and then class_id = c2.class_id)
 		end
 
 	is_array: BOOLEAN
-			-- Is `c' the ARRAY class?
+			-- Is `Current' the ARRAY class?
 		do
 			Result := class_id = system.array_id
 		end
 
 	is_conforming_or_non_conforming_parent_class (a_parent: E2B_CLASS_C): BOOLEAN
-			-- Does `a_child' inherit conforminlgy or non-conformingly from `a_parent'?
+			-- Does `Current' inherit conforminlgy or non-conformingly from `a_parent'?
 		do
 			Result := conform_to (a_parent) or else is_non_conforming_parent_class (a_parent)
 		end
 
 	is_non_conforming_parent_class (a_parent: E2B_CLASS_C): BOOLEAN
-			-- Does `a_child' inherit non-conformingly from `a_parent'?
+			-- Does `Current' inherit non-conformingly from `a_parent'?
 		local
 			l_item: E2B_CLASS_C
 		do
@@ -564,7 +564,7 @@ feature -- Eiffel helpers
 		end
 
 	class_type (a_context_type: E2B_CL_TYPE_A): E2B_CL_TYPE_A
-			-- Type of ancetor `a_class' in `a_context_type'.
+			-- Type of ancetor `Current' in `a_context_type'.
 		do
 			Result := class_type_in_context (actual_type, Void, a_context_type)
 		end

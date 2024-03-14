@@ -1,42 +1,50 @@
 note
-	description: "Wrapper for LIKE_FEATURE to add convinience features."
+	description: "Wrapper for CL_TYPE_A to add convinience features."
 	author: "Reto Weber"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	E2B_LIKE_FEATURE
+	E2B_CL_TYPE_A
 
 inherit
 	E2B_TYPE_A
 		redefine
 			make,
-			as_attached_type,
-			type_a
+			type_a,
+			instantiated_in
 		end
 
 create
-	make,
-	make_from_params
+	make
+
 
 feature -- Creator
+	make (a_type: CL_TYPE_A)
+		do
+			Precursor (a_type)
+		end
 
-	make_from_params (f: E2B_FEATURE_I; a_context_class_id: INTEGER)
-		do type_a := create {LIKE_FEATURE}.make (f.c_feature, a_context_class_id) end
+feature {NONE} -- Wrapped object(
+	type_a: CL_TYPE_A
 
-	make (a_type: LIKE_FEATURE)
-		do type_a := a_type end
+feature -- Wrapped features (see originals for documentation)
+	instantiated_in (class_type: E2B_TYPE_A): E2B_CL_TYPE_A
+		do create Result.make (type_a.instantiated_in (class_type.type_a)) end
 
-feature -- Redefined
-	type_a: LIKE_FEATURE
-
-feature -- Wrapped
-
-	as_attached_type: E2B_TYPE_A
-		do create Result.make (type_a.as_attached_type) end
-
-	set_actual_type (a: E2B_TYPE_A)
-		do type_a.set_actual_type (a.type_a) end
+feature -- Eiffel helpers
+	is_agent_type: BOOLEAN
+			-- Is `Current' an agent type?
+		local
+			l_name: like {CLASS_C}.name
+		do
+			l_name := base_class.name
+			Result :=
+				l_name.is_case_insensitive_equal ("ROUTINE") or else
+				l_name.is_case_insensitive_equal ("PROCEDURE") or else
+				l_name.is_case_insensitive_equal ("FUNCTION") or else
+				l_name.is_case_insensitive_equal ("PREDICATE")
+		end
 
 
 note
