@@ -28,9 +28,8 @@ Please follow these guidelines when submitting code.
 - 🚫 Don't push on main
 	1. 🌿 Create a branch
 	2. ↩️ Make a pull request
-- 📏Branches follow a naming convention
+- 📏Branches follow a [naming convention] (#pull-requests-pr)
 - 📜Merging is done by a [protocol](#Merging)
-
 
 ### Requirements
 1. No dead code🧟
