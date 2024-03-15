@@ -186,6 +186,11 @@ def run_tests(directory=None, args_prefix=[]):
 					result[k] = Accumulation(result[k].number + r[k].number, result[k].names + r[k].names)
 	return result
 
+
+def is_system_windows() -> bool:
+	return os.name == 'nt'
+
+
 Result = namedtuple("Result", ["category", "name"])
 def run_test(path, test_name, args_prefix=[]):
 	'''Run a single test case,
@@ -212,6 +217,8 @@ def run_test(path, test_name, args_prefix=[]):
 		# clear output file
 		open("autoproof_output.txt", 'w').close()
 		execute(args, "autoproof_output.txt")
+		ending = ".exe" if is_system_windows() else ""
+		_ = os.system(f"taskkill /f /im z3{ending}")
 		
 		output_file = open("autoproof_output.txt", 'r')
 		output_content = output_file.read()
@@ -247,7 +254,6 @@ def run_test(path, test_name, args_prefix=[]):
 	else:
 		_as_error("test '" + test_name + "' does not exist")
 		return Result('error', test_name)
-
 
 
 # ----------------------------------------------------------------------------
@@ -292,9 +298,10 @@ else:
 		result[outcome] += 1
 for k in result:
 	e = result[k]
+	print("-------------")
 	print (f"{k}: {e.number}")
 	print (",".join (e.names))
-print(result)
+	print("-------------")
 
 if result['failed'] or result['error'] or result['timeout']:
 	exit(1)

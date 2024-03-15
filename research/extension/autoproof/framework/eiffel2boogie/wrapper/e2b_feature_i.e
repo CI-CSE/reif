@@ -362,7 +362,7 @@ feature -- Ownership helpers
 			create Result.make
 			Result.compare_objects
 			across all_versions as ver loop
-				guard_note := string_note_value ("guard")
+				guard_note := ver.string_note_value ("guard")
 				l_class := ver.written_class
 				if guard_note.is_empty then
 						-- No guard defined

@@ -98,6 +98,7 @@ feature -- Basic operations
 			l_h, l_cur, l_f, l_v, l_o: IV_ENTITY
 			l_fcall: IV_FUNCTION_CALL
 			l_def: IV_EXPRESSION
+			l_guard: detachable IV_EXPRESSION
 		do
 			create l_h.make ("heap", types.heap)
 			create l_cur.make ("current", types.ref)
@@ -106,8 +107,11 @@ feature -- Basic operations
 			create l_o.make ("o", types.ref)
 			l_fcall := factory.function_call ("guard", <<l_h, l_cur, l_f, l_v, l_o>>, types.bool)
 			l_def := factory.true_
-			across current_feature.guards_for_attribute as l_guard loop
-				l_def := factory.and_clean (l_def, guard_from_string (l_guard.str, l_guard.origin, a_type, l_h, l_cur, l_f, l_v, l_o))
+			across current_feature.guards_for_attribute as guard_str_and_class loop
+				l_guard := guard_from_string (guard_str_and_class.str, guard_str_and_class.origin, a_type, l_h, l_cur, l_f, l_v, l_o)
+				check attached l_guard as att_guard then
+					l_def := factory.and_clean (l_def, att_guard)
+				end
 			end
 
 			factory.add_dynamic_predicate_definition (l_fcall, l_def, current_type, l_h, l_cur, <<l_v, l_o>>)
@@ -215,7 +219,7 @@ feature {NONE} -- Implementation
 --			end
 --		end
 
-	guard_from_string (a_guard_string: READABLE_STRING_8; a_origin_class: E2B_CLASS_C; a_attr_type: E2B_CL_TYPE_A; a_h, a_cur, a_f, a_v, a_o: IV_EXPRESSION): IV_EXPRESSION
+	guard_from_string (a_guard_string: READABLE_STRING_8; a_origin_class: E2B_CLASS_C; a_attr_type: E2B_CL_TYPE_A; a_h, a_cur, a_f, a_v, a_o: IV_EXPRESSION): detachable IV_EXPRESSION
 			-- Update guard definition encoded by `a_guard_string' coming from `a_origin_class'.
 		require
 			non_empty: not a_guard_string.is_empty
