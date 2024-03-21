@@ -217,8 +217,8 @@ def run_test(path, test_name, args_prefix=[]):
 		# clear output file
 		open("autoproof_output.txt", 'w').close()
 		execute(args, "autoproof_output.txt")
-		ending = ".exe" if is_system_windows() else ""
-		_ = os.system(f"taskkill /f /im z3{ending}")
+		if is_system_windows():
+			os.system(f"taskkill /f /im z3.exe")
 		
 		output_file = open("autoproof_output.txt", 'r')
 		output_content = output_file.read()
