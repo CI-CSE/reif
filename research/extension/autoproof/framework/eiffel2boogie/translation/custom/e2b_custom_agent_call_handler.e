@@ -256,7 +256,7 @@ feature -- Basic operations
 					attached {ROUTINE_CREATION_B} l_access.expr as l_agent
 				then
 					create l_agent_class.make (system.class_of_id (l_agent.origin_class_id))
-					 l_agent_feature := l_agent_class.feature_of_feature_id (l_agent.feature_id)
+					l_agent_feature := l_agent_class.feature_of_feature_id (l_agent.feature_id)
 						-- TODO: take actual type of open/closed target of agent creation
 					l_agent_type := l_agent_feature.written_class.actual_type
 

@@ -27,7 +27,7 @@ feature -- Creator
 			c_class = a_class
 		end
 
-feature -- {E2B_CLASS_C, E2B_TYPE_A, E2B_FEATURE_I, ES_AUTOPROOF_TOOL_PANEL} -- Wrapped object
+feature -- Wrapped object
 	c_class: CLASS_C
 
 feature -- Wrapper (see originals for documentation)

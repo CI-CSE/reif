@@ -1105,7 +1105,7 @@ invariant
 		class_declaration_mark = once_mark
 
 note
-	copyright:	"Copyright (c) 1984-2024, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
