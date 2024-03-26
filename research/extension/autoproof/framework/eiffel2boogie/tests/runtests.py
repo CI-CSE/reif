@@ -152,7 +152,6 @@ def find_test(test, directory=None):
 				return temp2
 	return None
 
-Accumulation = namedtuple("Accumulation", ["number", "names"])
 
 def run_tests(directory=None, args_prefix=[]):
 	'''Run tests
@@ -161,10 +160,10 @@ def run_tests(directory=None, args_prefix=[]):
 	global base_path
 
 	result = {
-		'passed': Accumulation(0, []),
-		'failed': Accumulation(0, []),
-		'error': Accumulation(0, []),
-		'timeout': Accumulation(0, []),
+		'passed': [],
+		'failed': [],
+		'error': [],
+		'timeout': [],
 	}
 
 	if directory is None:
@@ -179,11 +178,11 @@ def run_tests(directory=None, args_prefix=[]):
 			if is_test_path(path):
 				r = run_test(path, test_name, args_prefix)
 				old_acc = result[r.category]
-				result[r.category] = Accumulation(old_acc.number + 1, old_acc.names + [r.name])
+				result[r.category] = old_acc + [r.name]
 			elif not path.endswith("EIFGENs"):
 				r = run_tests(path, args_prefix)
 				for k in r:
-					result[k] = Accumulation(result[k].number + r[k].number, result[k].names + r[k].names)
+					result[k] =  result[k] + r[k]
 	return result
 
 
@@ -299,8 +298,8 @@ else:
 for k in result:
 	e = result[k]
 	print("-------------")
-	print (f"{k}: {e.number}")
-	print (",".join (e.names))
+	print (f"{k}: {len(e)}")
+	print (",".join (e))
 	print("-------------")
 
 if result['failed'] or result['error'] or result['timeout']:
