@@ -65,3 +65,4 @@ feature {NONE} -- Implementation
 		do
 			a_quantifier.add_trigger (guard (a_quantifier.bound_variables.first.entity))
 		end
+end
