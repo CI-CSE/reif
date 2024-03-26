@@ -23,7 +23,6 @@ feature -- Initialize
 			class_name: STRING
 			l_file_name: STRING
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.make%N")
 			start_timer
 			class_name := ""
 			create alias_groups.make (0)
@@ -255,7 +254,6 @@ feature -- Test generation
 			l_class: E2B_CLASS_C
 			l_creation_procedure: E2B_FEATURE_I
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.creation_routine_call:" + object_type.name + "%N")
 			t := ""; Result := ""
 			l_class := object_type.base_class
 			create creators_keys.make_empty
@@ -397,7 +395,6 @@ feature -- Test generation
 		local
 			name, value: STRING
 		do
-				-- print ("E2B_GENERATE_TEST_SCRIPT.instantiate_basic_field%N")
 			name := object_name + "." + field_name
 			value := ""
 			if initial_state.initial_values.has (object_name + "." + safe_field_name (field_name)) then
