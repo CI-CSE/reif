@@ -117,9 +117,12 @@ jobs:
           ec -config $AP/Eiffel/Ace/ec.ecf -freeze -c_compile -batch
 
       - name: Run ec tests
-        if: ${{ !cancelled() }}
         run: |
-          ec -config $AP/Eiffel/Ace/ec.ecf -tests |& tee test_out.txt
+          # Avoid directory creation race condition by creating the dir manually
+          # here (before running tests)
+          mkdir -p EIFGENs/bench/Testing/execution/ap_test_examples_executions
+
+          ec -config $AP/Eiffel/Ace/ec.ecf -batch -tests |& tee test_out.txt
           res=${PIPESTATUS[0]}
 
           echo "# EC -tests" >> $GITHUB_STEP_SUMMARY

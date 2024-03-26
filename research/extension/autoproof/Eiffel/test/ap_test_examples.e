@@ -94,19 +94,21 @@ feature -- Testing
 feature {NONE} -- Initialization
 
 	on_prepare
+		local
+			root_path: PATH
 		do
-			check attached environment.item ({EQA_TEST_SET}.target_path_key) as s then
-				create target_path.make_from_string (s)
+			check attached environment.item ({EQA_TEST_SET}.testing_directory_key) as test_dir
+				and then attached environment.item ({EQA_TEST_SET}.test_name_key) as test_name then
+				create root_path.make_from_string (test_dir)
+				root_path := root_path.extended ("ap_test_examples_executions").extended (test_name)
 			end
-			code_path := target_path.extended ("code")
+			code_path := root_path.extended ("code")
 			(create {DIRECTORY}.make_with_path (code_path)).recursive_create_dir
 
 			create command.make
 			create results.make
 		end
 
-	target_path: PATH
-			-- Path to the temporary directory of the current test
 
 	code_path: PATH
 			-- Path to the "code" temporary directory of the current test
