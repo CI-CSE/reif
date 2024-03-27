@@ -141,7 +141,6 @@ feature {AP_TEST_EXAMPLES} -- Execution
 			time: DATE_TIME
 			duration: DATE_TIME_DURATION
 		do
-			autoproof.reset
 			if attached workbench.universe as l_universe then
 					-- Add features if possible.
 				⟳ feature_and_class_name: features ¦
