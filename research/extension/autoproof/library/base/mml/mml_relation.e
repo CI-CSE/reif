@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Finite relations."
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -59,15 +59,7 @@ feature -- Properties
 		local
 			i: INTEGER
 		do
-			from
-				i := first_left_index (x)
-			until
-				Result or i = 0
-			loop
-				-- TODO Li*
-				-- Result := model_equals (rights [i], y)
-				-- i := lefts.index_satisfying_from (agent meq_left (x, ?), i + 1)
-			end
+			Result := to_set.has ( create {MML_PAIR [G, H]}.make (x, y))
 		end
 
 	is_empty: BOOLEAN
@@ -112,8 +104,18 @@ feature -- Sets
 
 	to_set: MML_SET [MML_PAIR [G, H]]
 			-- Relation as a set of pairs.
+		local
+			i: INTEGER
 		do
-			check is_executable: False then end
+			create Result
+			from
+				i := 1
+			until
+				i > lefts.count
+			loop
+				Result := Result & (create {MML_PAIR [G, H]}.make (lefts [i], rights [i]))
+				i := i + 1
+			end
 		end
 
 	image_of (x: G): MML_SET [H]
@@ -221,7 +223,35 @@ feature -- Modification
 			end
 		end
 
-	restricted alias "|" (subdomain: MML_SET [G]): MML_RELATION [G, H]
+	composition alias "○" (other: MML_RELATION [H, ANY]): MML_RELATION [G, ANY]
+			-- Current relation
+		local
+			ls: ARRAY [G]
+			rs: ARRAY [ANY]
+			res_index: INTEGER
+		do
+			create ls.make (1, other.lefts.count)
+			create rs.make (1, other.rights.count)
+			res_index := ls.lower
+			across Current as c_rel
+			loop
+				across other as o_rel
+				loop
+					if c_rel.right = o_rel.left then
+						ls [res_index] := c_rel.left
+						rs [res_index] := o_rel.right
+						res_index := res_index + 1
+					end
+				end
+			end
+			ls.resize (1, res_index - 1)
+			rs.resize (1, res_index - 1)
+			create Result.make_from_arrays (ls, rs)
+		ensure
+			other.range.same_type (Result.range)
+		end
+
+	restricted alias "|" alias "/" (subdomain: MML_SET [G]): MML_RELATION [G, H]
 			-- Relation that consists of all pairs in `Current' whose left component is in `subdomain'.
 		local
 			ls: ARRAY [G]
@@ -246,6 +276,14 @@ feature -- Modification
 			ls.resize (1, j - 1)
 			rs.resize (1, j - 1)
 			create Result.make_from_arrays (ls, rs)
+		ensure
+			Result.to_set ⊆ to_set
+		end
+
+	restircted_by_target alias "\" (subimage: MML_SET [H]): MML_RELATION [G, H]
+			-- Relation that consists of all pairs in `Current' whose right component is in `subimage'.
+		do
+			Result := (inverse / subimage).inverse
 		end
 
 	inverse: MML_RELATION [H, G]
@@ -254,7 +292,7 @@ feature -- Modification
 			create Result.make_from_arrays (rights, lefts)
 		end
 
-	union alias "+" (other: MML_RELATION [G, H]): MML_RELATION [G, H]
+	union alias "+" alias "∪" (other: MML_RELATION [G, H]): MML_RELATION [G, H]
 			-- Relation that consists of pairs contained in either `Current' or `other'.
 		do
 			Result := Current - other
@@ -264,7 +302,7 @@ feature -- Modification
 			Result.rights.subcopy (other.rights, 1, other.rights.count, Result.rights.count - other.count + 1)
 		end
 
-	intersection alias "*" (other: MML_RELATION [G, H]): MML_RELATION [G, H]
+	intersection alias "*" alias "∩" (other: MML_RELATION [G, H]): MML_RELATION [G, H]
 			-- Relation that consists of pairs contained in both `Current' and `other'.
 		local
 			ls: ARRAY [G]
@@ -324,6 +362,15 @@ feature -- Modification
 			Result := (Current + other) - (Current * other)
 		end
 
+--feature -- Attributes
+--	is_function: BOOLEAN
+--		do
+--			Result := domain.count = lefts.count
+--		ensure
+--			Result ⇒ ∀d: domain ¦ image_of(d).count = 1
+--			¬Result ⇒ ∃d: domain ¦ image_of(d).count > 1
+--		end
+
 feature -- Iterable implementation
 
 	lefts: ARRAY [G]
@@ -354,7 +401,7 @@ feature -- Iterable implementation
 		note
 			maps_to: "Rel#ToSet"
 		do
-			check is_executable: False then end
+			Result := to_set.new_cursor
 		end
 
 feature -- Convenience

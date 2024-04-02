@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Finite sets."
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -9,13 +9,12 @@ note
 class MML_SET [G]
 
 inherit
-    -- Li: a set must be iterable
+		-- Li: a set must be iterable
 	ITERABLE [G]
 		redefine
 			default_create,
 			is_equal
 		end
-
 
 create
 	default_create,
@@ -30,12 +29,14 @@ feature {NONE} -- Initialization
 			maps_to: "Set#Empty"
 		do
 			create array.make (1, 0)
+			array.compare_objects
 		end
 
 	singleton (x: G)
 			-- Create a set that contains only `x'.
 		do
 			create array.make_filled (x, 1, 1)
+			array.compare_objects
 		end
 
 feature -- Properties
@@ -48,12 +49,11 @@ feature -- Properties
 			Result := array.has (x)
 		end
 
-	is_empty: BOOLEAN
+	is_empty alias "∅=": BOOLEAN
 			-- Is the set empty?
 		do
 			Result := array.is_empty
 		end
-
 
 feature -- Elements
 
@@ -62,7 +62,7 @@ feature -- Elements
 		require
 			not_empty: not is_empty
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			Result := array [1]
 		ensure
 			element: has (Result)
@@ -101,31 +101,31 @@ feature -- Comparison
 		note
 			maps_to: "Set#Equal"
 		do
-			Result := attached {MML_SET[G]} a_other as set and then
+			Result := attached {MML_SET [G]} a_other as set and then
 				(count = set.count and Current <= set)
 		end
 
-	is_subset_of alias "<=" (a_other: MML_SET [G]): BOOLEAN
+	is_subset_of alias "<=" alias "⊆" (a_other: MML_SET [G]): BOOLEAN
 			-- Does `a_other' have all elements of `Current'?
 		note
 			maps_to: "Set#Subset"
 		local
 			i: INTEGER
 		do
-			if attached {MML_SET[G]} a_other as set and then count <= set.count then
-                from
-                	i := 1
-                	Result := True
-                until
-                    i > array.count or Result = False
-                loop
-                    Result := set.array.has (array[i])
-                    i := i + 1
-                end
+			if attached {MML_SET [G]} a_other as set and then count <= set.count then
+				from
+					i := 1
+					Result := True
+				until
+					i > array.count or Result = False
+				loop
+					Result := set.array.has (array [i])
+					i := i + 1
+				end
 			end
 		end
 
-	is_superset_of alias ">=" (a_other: MML_SET [G]): BOOLEAN
+	is_superset_of alias ">=" alias "⊇" (a_other: MML_SET [G]): BOOLEAN
 			-- Does `Current' have all elements of `a_other'?
 		note
 			maps_to: "Set#Superset"
@@ -160,11 +160,11 @@ feature -- Modification
 		local
 			a: ARRAY [G]
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			if not Current [x] then
 				create a.make (1, array.count + 1)
-				-- a.array_copy_range (array, 1, array.count, 1)
-				a.area.copy_data(array.area, 1 - array.lower, 1 - a.lower, array.count )
+					-- a.array_copy_range (array, 1, array.count, 1)
+				a.area.copy_data (array.area, 1 - array.lower, 1 - a.lower, array.count)
 				a [a.count] := x
 				create Result.make_from_array (a)
 			else
@@ -178,41 +178,41 @@ feature -- Modification
 			a: ARRAY [G]
 			i: INTEGER
 		do
-			-- check is_executable: False then end
-			i := array.area.index_of(x, 1)
+				-- check is_executable: False then end
+			i := array.area.index_of (x, 1)
 			if array.lower <= i and i <= array.upper then
 				create a.make (1, array.count - 1)
-				-- a.array_copy_range (array, 1, i - 1, a.lower)
-				a.area.copy_data(array.area, 1 - array.lower, 0, i - 1)
+					-- a.array_copy_range (array, 1, i - 1, a.lower)
+				a.area.copy_data (array.area, 1 - array.lower, 0, i - 1)
 
-				-- a.array_copy_range (array, i + 1, array.count, i)
-				a.area.copy_data(array.area, i + 1 - array.lower, i - a.lower, array.count - i)
+					-- a.array_copy_range (array, i + 1, array.count, i)
+				a.area.copy_data (array.area, i + 1 - array.lower, i - a.lower, array.count - i)
 				create Result.make_from_array (a)
 			else
 				Result := Current
 			end
 		end
 
-	union alias "+" (other: MML_SET [G]): MML_SET [G]
+	union alias "+" alias "∪" (other: MML_SET [G]): MML_SET [G]
 			-- Set of values contained in either `Current' or `other'.
 		do
-			-- check is_executable: False then end
-		    Result := Current - other
+				-- check is_executable: False then end
+			Result := Current - other
 			Result.array.resize (1, Result.array.count + other.array.count)
-			-- Result.array.array_copy_range (other.array, 1, other.array.count, Result.array.count - other.count + 1)
-            Result.array.area.copy_data(other.array.area, 1 - other.array.lower,  Result.array.count - other.count + 1 - Result.array.lower, other.array.count)
+				-- Result.array.array_copy_range (other.array, 1, other.array.count, Result.array.count - other.count + 1)
+			Result.array.area.copy_data (other.array.area, 1 - other.array.lower, Result.array.count - other.count + 1 - Result.array.lower, other.array.count)
 		ensure
 			contains_current: Current <= Result
 			contains_other: other <= Result
 		end
 
-	intersection alias "*" (other: MML_SET [G]): MML_SET [G]
+	intersection alias "*" alias "∩" (other: MML_SET [G]): MML_SET [G]
 			-- Set of values contained in both `Current' and `other'.
 		local
 			a: ARRAY [G]
 			i, j: INTEGER
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			create a.make (1, array.count)
 			from
 				i := 1
@@ -239,7 +239,7 @@ feature -- Modification
 			a: ARRAY [G]
 			i, j: INTEGER
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			create a.make (1, array.count)
 			from
 				i := 1
@@ -263,10 +263,10 @@ feature -- Modification
 	sym_difference alias "^" (other: MML_SET [G]): MML_SET [G]
 			-- Set of values contained in either `Current' or `other', but not in both.
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			Result := (Current + other) - (Current * other)
 		ensure
-			definition: Result.is_equal((Current + other) - (Current * other))
+			definition: Result.is_equal ((Current + other) - (Current * other))
 		end
 
 feature -- Iterable implementation
@@ -276,9 +276,9 @@ feature -- Iterable implementation
 		note
 			maps_to: ""
 		do
-			 check is_executable: False then end
-			-- Li: the target of creation call cannot be a deffered type
-			-- Result := create {ITERATION_CURSOR [ANY]}.default_create
+			Result := array.new_cursor
+				-- Li: the target of creation call cannot be a deffered type
+				-- Result := create {ITERATION_CURSOR [ANY]}.default_create
 		end
 
 feature -- Convenience
@@ -316,14 +316,15 @@ feature {MML_SET} -- Implementation
 		end
 
 feature
-   	make_from_array (a: ARRAY [G])
+	make_from_array (a: ARRAY [G])
 			-- Create with a predefined array.
 		require
 			starts_from_one: a.lower = 1
-			-- no_duplicates: a.bag.is_constant (1)
+				-- no_duplicates: a.bag.is_constant (1)
 			no_duplicates: across a as ai all a.occurrences (ai) = 1 end
 		do
 			array := a
+			array.compare_objects
 		end
 
 feature -- Lemmas
@@ -346,5 +347,6 @@ feature -- Lemmas
 		ensure
 			Current = other
 		end
-
+invariant
+	always_compare_objects_not_references: array.object_comparison
 end

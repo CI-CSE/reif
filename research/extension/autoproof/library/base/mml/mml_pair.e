@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Pairs."
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -22,21 +22,15 @@ feature {NONE} -- Initialization
 	make (x: G; y: H)
 			-- Create a pair (`x', `y').
 		do
+			left := x
+			right := y
 		end
 
 feature -- Access
 
-	left: G
-			-- Left component.
-		do
-			check is_executable: False then end
-		end
+	left: G -- Left component.
 
-	right: H
-			-- Right component.
-		do
-			check is_executable: False then end
-		end
+	right: H -- Right component.
 
 feature -- Comparison
 
@@ -45,6 +39,7 @@ feature -- Comparison
 		note
 			maps_to: "Pair#Equal"
 		do
+			Result := (left = a_other.left) ∧ (right = a_other.right)
 		end
 
 end

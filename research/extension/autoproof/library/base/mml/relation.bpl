@@ -118,6 +118,8 @@ axiom (forall<U, V> a: Rel U V, s: Set U, x: U, y: V :: { Rel#Restricted(a, s)[x
   Rel#Restricted(a, s)[x, y] <==> a[x, y] && s[x]);
 axiom (forall<U, V> a: Rel U V, s: Set U :: { Rel#Domain(Rel#Restricted(a, s)) }
   Rel#Domain(Rel#Restricted(a, s)) == Set#Intersection(Rel#Domain(a), s));
+axiom (forall<U, V> a: Rel U V, s: Set U, x: U, y: V ::
+  Set#Subset(Rel#ToSet(Rel#Restricted(a, s)), Rel#ToSet(a)));
 
 // Inverse  
 function Rel#Inverse<U, V>(Rel U V): Rel V U;
