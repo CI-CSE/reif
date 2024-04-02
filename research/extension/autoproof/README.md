@@ -25,8 +25,7 @@
 			- [TODO: When external contribute we need to make them transfer copy right to us.](#todo-when-external-contribute-we-need-to-make-them-transfer-copy-right-to-us)
 	- [Issue Template](#issue-template)
 		- [Motivation](#motivation)
-		- [](#)
-
+		- [Components](#components)
 
 # AutoProof
 This repository is based on EiffelStudio with AutoProof extensions.
@@ -171,7 +170,7 @@ The main ingredients are clarity, unity and precision.
 - Issues are described without unnecessary information. It helps contributers not getting distracted.
 - Issues are described completely described. Contributers are therefore able to work on the issue independant of the writer of the issue.
 
-###
+### Components
 To ensure quality you must comply to the following template for issue description.
 
 - $type \in \{'ref', 'feat', 'bug', 'exp'\}$ </br>
