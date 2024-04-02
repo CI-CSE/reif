@@ -1,3 +1,33 @@
+- [AutoProof](#autoproof)
+	- [Dependencies](#dependencies)
+	- [Tests](#tests)
+- [Code Guidlines](#code-guidlines)
+	- [General rules:](#general-rules)
+		- [Requirements](#requirements)
+		- [Comments](#comments)
+	- [Pull Requests \[PR\]](#pull-requests-pr)
+		- [Naming:](#naming)
+		- [Fix 🪲](#fix-)
+		- [Ref 🔀](#ref-)
+		- [Feat ✨](#feat-)
+		- [Exp 🧪](#exp-)
+	- [Commits](#commits)
+		- [Stage 0](#stage-0)
+		- [Stage 1](#stage-1)
+		- [Stage 2](#stage-2)
+		- [Stage 3](#stage-3)
+	- [Code Quality](#code-quality)
+	- [Merging](#merging)
+		- [Merge Conflicts](#merge-conflicts)
+		- [Merge Review](#merge-review)
+			- [Reviewer duties](#reviewer-duties)
+		- [External PR](#external-pr)
+			- [TODO: When external contribute we need to make them transfer copy right to us.](#todo-when-external-contribute-we-need-to-make-them-transfer-copy-right-to-us)
+	- [Issue Template](#issue-template)
+		- [Motivation](#motivation)
+		- [](#)
+
+
 # AutoProof
 This repository is based on EiffelStudio with AutoProof extensions.
 
@@ -132,3 +162,33 @@ The reviewer ...</br>
 ... does a smoke test of the branch (Checks if the code runs and the features are callable)
 ### External PR
 #### TODO: When external contribute we need to make them transfer copy right to us.
+
+## Issue Template
+### Motivation
+When an issue is described well it increases the probability to be fixed.
+The main ingredients are clarity, unity and precision.
+- Issues are described the same way (*unity*). This improves the ability to understand, compare and prioritize the issues.
+- Issues are described without unnecessary information. It helps contributers not getting distracted.
+- Issues are described completely described. Contributers are therefore able to work on the issue independant of the writer of the issue.
+
+###
+To ensure quality you must comply to the following template for issue description.
+
+- $type \in \{'ref', 'feat', 'bug', 'exp'\}$ </br>
+- $title := type + type\_title$ </br>
+- $is\_ behavior : STRING$ </br>
+- $should\_ behavior: STRING$ </br>
+- $work\_ rely\_ on \_ this: ARRAY [STRING]$ </br> 
+- $expected\_ complexity \in \{'S', 'M', 'L', '?'\}$
+
+where
+- $type$: Same as in PR-Type </br>
+- Description of behavior: Use expressive communication. I.e. screenshots, code extracts, traces to trigger the behavior.
+  - $is\_ behavior$: The current functionality </br>
+  - $should\_ behavior$: The new or expected functionality after implementation </br>
+- $work\_ rely\_ on \_ this$: A list of projects, papers, or features in the tool that would need this issue to be fixed. </br>
+- $expected\_ complexity$:
+  - $S := (0, 3]$ days
+  - $M := [4, 10]$ days
+  - $L := [11, \infty)$ days
+  - $? :=$ hard to or did not assess
