@@ -94,10 +94,10 @@ These rules are heavily inspired from the [stackoverflow.blog](https://stackover
 
 ## Pull Requests [PR]
 ### Naming:
-$\`\{Category\}-\{Name\}\`$</br>
+$\{Category\}-\{Name\}$</br>
 where</br>
-$\`Category \in \{Fix, Exp, Feat, Ref\}\`$</br>
-$\`Name\`$ is free-text
+$Category \in \{Fix, Exp, Feat, Ref\}$</br>
+$Name$ is free-text
 
 ### Fix 🪲
 PR **fixing** a problem in the code.
@@ -176,21 +176,21 @@ The main ingredients are unity, clarity and precision.
 ### Components
 To ensure quality you must comply to the following template for issue description.
 
-- $\`type \in \{'ref', 'feat', 'bug', 'exp'\}\`$ </br>
-- $\`title := type + type\_title\`$ </br>
-- $\`is\_behavior : STRING\`$ </br>
-- $\`should\_behavior: STRING\`$ </br>
-- $\`work\_rely\_on \_this: ARRAY [STRING]\`$ </br> 
-- $\`expected\_complexity \in \{'S', 'M', 'L', '?'\}\`$
+- $type \in \{'ref', 'feat', 'bug', 'exp'\}$ </br>
+- $title := type + type\_title$ </br>
+- $is\_behavior : STRING$ </br>
+- $should\_behavior: STRING$ </br>
+- $work\_rely\_on \_this: ARRAY [STRING]$ </br> 
+- $expected\_complexity \in \{'S', 'M', 'L', '?'\}$
 
 where
-- $\`type\`$: Same as in PR-Type </br>
+- $type$: Same as in PR-Type </br>
 - Description of behavior: Use expressive communication. I.e. screenshots, code extracts, traces to trigger the behavior.
-  - $\`is\_behavior\`$: The current functionality </br>
-  - $\`should\_behavior\`$: The new or expected functionality after implementation </br>
-- $\`work\_rely\_on\_this\`$: A list of projects, papers, or features in the tool that would need this issue to be fixed. </br>
-- $\`expected\_complexity\`$:
-  - $\`S := (0, 3]\`$ days
-  - $\`M := [4, 10]\`$ days
-  - $\`L := [11, \infty)\`$ days
-  - $\`? :=\`$ hard to or did not assess
+  - $is\_behavior$: The current functionality </br>
+  - $should\_behavior$: The new or expected functionality after implementation </br>
+- $work\_rely\_on\_this$: A list of projects, papers, or features in the tool that would need this issue to be fixed. </br>
+- $expected\_complexity$:
+  - $S := (0, 3]$ days
+  - $M := [4, 10]$ days
+  - $L := [11, \infty)$ days
+  - $? :=$ hard to or did not assess
