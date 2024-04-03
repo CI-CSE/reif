@@ -177,19 +177,19 @@ The main ingredients are unity, clarity and precision.
 To ensure quality you must comply to the following template for issue description.
 
 - $type \in \{'ref', 'feat', 'bug', 'exp'\}$ </br>
-- $title := type + type\_title$ </br>
-- $is\_behavior : STRING$ </br>
-- $should\_behavior: STRING$ </br>
-- $work\_rely\_on \_this: ARRAY [STRING]$ </br> 
-- $expected\_complexity \in \{'S', 'M', 'L', '?'\}$
+- $title := type + type$_$title$ </br>
+- $is$_$behavior : STRING$ </br>
+- $should$_$behavior: STRING$ </br>
+- $work$_$rely$_$on $_$this: ARRAY [STRING]$ </br> 
+- $expected$_$complexity \in \{'S', 'M', 'L', '?'\}$
 
 where
 - $type$: Same as in PR-Type </br>
 - Description of behavior: Use expressive communication. I.e. screenshots, code extracts, traces to trigger the behavior.
-  - $is\_behavior$: The current functionality </br>
-  - $should\_behavior$: The new or expected functionality after implementation </br>
-- $work\_rely\_on\_this$: A list of projects, papers, or features in the tool that would need this issue to be fixed. </br>
-- $expected\_complexity$:
+  - $is$_$behavior$: The current functionality </br>
+  - $should$_$behavior$: The new or expected functionality after implementation </br>
+- $work$_$rely$_$on$_$this$: A list of projects, papers, or features in the tool that would need this issue to be fixed. </br>
+- $expected$_$complexity$:
   - $S := (0, 3]$ days
   - $M := [4, 10]$ days
   - $L := [11, \infty)$ days
