@@ -165,10 +165,10 @@ The reviewer ...</br>
 ## Issue Template
 ### Motivation
 When an issue is described well it increases the probability to be fixed.
-The main ingredients are clarity, unity and precision.
-- Issues are described the same way (*unity*). This improves the ability to understand, compare and prioritize the issues.
-- Issues are described without unnecessary information. It helps contributers not getting distracted.
-- Issues are described completely described. Contributers are therefore able to work on the issue independant of the writer of the issue.
+The main ingredients are unity, clarity and precision.
+- *Unity*: The structure of all issues is the same.
+- *Clarity*: Issues are described without unnecessary information.
+- *Precision*: Issues are described in full detail.
 
 ### Components
 To ensure quality you must comply to the following template for issue description.
