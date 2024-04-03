@@ -177,7 +177,7 @@ The main ingredients are unity, clarity and precision.
 To ensure quality you must comply to the following template for issue description.
 
 - $type \in \{'ref', 'feat', 'bug', 'exp'\}$ </br>
-- $title := type + type\text$ _ $title$ </br>
+- $title := type + type$ _ $title$ </br>
 - $is\text{\_}behavior : STRING$ </br>
 - $should\text{\_}behavior: STRING$ </br>
 - $work\text{\_}rely\text{\_}on\text{\_}this: ARRAY [STRING]$ </br> 
