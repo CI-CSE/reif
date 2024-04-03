@@ -1,3 +1,5 @@
+# Table of content
+
 - [AutoProof](#autoproof)
 	- [Dependencies](#dependencies)
 	- [Tests](#tests)
