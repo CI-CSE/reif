@@ -13,13 +13,21 @@ inherit
 	ITERABLE [MML_PAIR [G, H]]
 		redefine
 			default_create,
-			is_equal
+			is_equal,
+			out
 		end
 
 create
 	default_create,
 	singleton,
-	make_from_arrays
+	make_from_arrays,
+	make_from_set
+
+feature -- io
+	out: STRING
+		do
+			Result := to_set.out
+		end
 
 feature {NONE} -- Initialization
 
@@ -50,6 +58,32 @@ feature {NONE} -- Initialization
 			rights := rs
 		end
 
+
+	make_from_set (set: MML_SET [MML_PAIR [G, H]])
+		local
+			l_lefts: ARRAY [G]
+			l_rights: ARRAY [H]
+			as_array: ARRAY [MML_PAIR [G, H]]
+			i: INTEGER
+		do
+			as_array := set.to_array
+
+			create l_lefts.make_empty
+			create l_rights.make_empty
+			l_lefts.grow (as_array.count)
+			l_rights.grow (as_array.count)
+
+			from i := 1
+			until i > as_array.count
+			loop
+				l_lefts [i] := as_array [i].left
+				l_rights [i] := as_array [i].right
+				i := i + 1
+			end
+			lefts := l_lefts
+			rights := l_rights
+		end
+
 feature -- Properties
 
 	has alias "[]" (x: G; y: H): BOOLEAN
@@ -59,7 +93,7 @@ feature -- Properties
 		local
 			i: INTEGER
 		do
-			Result := to_set.has ( create {MML_PAIR [G, H]}.make (x, y))
+			Result := to_set.has (create {MML_PAIR [G, H]}.make (x, y))
 		end
 
 	is_empty: BOOLEAN
@@ -121,14 +155,14 @@ feature -- Sets
 	image_of (x: G): MML_SET [H]
 			-- Set of values related to `x'.
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			Result := image (create {MML_SET [G]}.singleton (x))
 		end
 
 	image (subdomain: MML_SET [G]): MML_SET [H]
 			-- Set of values related to any value in `subdomain'.
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			Result := restricted (subdomain).range
 		end
 
@@ -185,22 +219,22 @@ feature -- Modification
 			end
 		end
 
-    first_left_index (k: G): INTEGER
-    local
-       i: INTEGER
-    do
-        from
-			i := 1  -- index starts from 1
-		until
-			lefts [i] ~ k or i > lefts.count
-		loop
-			i := i + 1
-		end
+	first_left_index (k: G): INTEGER
+		local
+			i: INTEGER
+		do
+			from
+				i := 1 -- index starts from 1
+			until
+				lefts [i] ~ k or i > lefts.count
+			loop
+				i := i + 1
+			end
 
-		if i <= lefts.count then
-		   Result := i
+			if i <= lefts.count then
+				Result := i
+			end
 		end
-    end
 
 	removed (x: G; y: H): MML_RELATION [G, H]
 			-- Current relation with pair (`x', `y') removed if present.
@@ -221,34 +255,6 @@ feature -- Modification
 			else
 				Result := Current
 			end
-		end
-
-	composition alias "○" (other: MML_RELATION [H, ANY]): MML_RELATION [G, ANY]
-			-- Current relation
-		local
-			ls: ARRAY [G]
-			rs: ARRAY [ANY]
-			res_index: INTEGER
-		do
-			create ls.make (1, other.lefts.count)
-			create rs.make (1, other.rights.count)
-			res_index := ls.lower
-			across Current as c_rel
-			loop
-				across other as o_rel
-				loop
-					if c_rel.right = o_rel.left then
-						ls [res_index] := c_rel.left
-						rs [res_index] := o_rel.right
-						res_index := res_index + 1
-					end
-				end
-			end
-			ls.resize (1, res_index - 1)
-			rs.resize (1, res_index - 1)
-			create Result.make_from_arrays (ls, rs)
-		ensure
-			other.range.same_type (Result.range)
 		end
 
 	restricted alias "|" alias "/" (subdomain: MML_SET [G]): MML_RELATION [G, H]
@@ -273,8 +279,8 @@ feature -- Modification
 				end
 				i := i + 1
 			end
-			ls.resize (1, j - 1)
-			rs.resize (1, j - 1)
+			ls.keep_head (j - 1)
+			rs.keep_head (j - 1)
 			create Result.make_from_arrays (ls, rs)
 		ensure
 			Result.to_set ⊆ to_set
@@ -324,8 +330,8 @@ feature -- Modification
 				end
 				i := i + 1
 			end
-			ls.resize (1, j - 1)
-			rs.resize (1, j - 1)
+			ls.keep_head (j - 1)
+			rs.keep_head (j - 1)
 			create Result.make_from_arrays (ls, rs)
 		end
 
@@ -351,8 +357,8 @@ feature -- Modification
 				end
 				i := i + 1
 			end
-			ls.resize (1, j - 1)
-			rs.resize (1, j - 1)
+			ls.keep_head (j - 1)
+			rs.keep_head (j - 1)
 			create Result.make_from_arrays (ls, rs)
 		end
 
@@ -362,14 +368,14 @@ feature -- Modification
 			Result := (Current + other) - (Current * other)
 		end
 
---feature -- Attributes
---	is_function: BOOLEAN
---		do
---			Result := domain.count = lefts.count
---		ensure
---			Result ⇒ ∀d: domain ¦ image_of(d).count = 1
---			¬Result ⇒ ∃d: domain ¦ image_of(d).count > 1
---		end
+feature -- Attributes
+	is_function: BOOLEAN
+		do
+			Result := domain.count = lefts.count
+		ensure
+			Result ⇒ ∀d: domain ¦ image_of(d).count = 1
+			¬Result ⇒ ∃d: domain ¦ image_of(d).count > 1
+		end
 
 feature -- Iterable implementation
 
@@ -378,7 +384,6 @@ feature -- Iterable implementation
 
 	rights: ARRAY [H]
 			-- Storage for the right components of pairs.
-
 
 	meq_left (v1, v2: ANY): BOOLEAN
 			-- Are `v1' and `v2' mathematically equal?
@@ -422,4 +427,5 @@ invariant
 	same_lower: lefts.lower = rights.lower
 	same_upper: lefts.upper = rights.upper
 	start_from_one: lefts.lower = 1
+
 end

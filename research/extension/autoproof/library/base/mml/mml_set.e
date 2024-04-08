@@ -13,7 +13,8 @@ inherit
 	ITERABLE [G]
 		redefine
 			default_create,
-			is_equal
+			is_equal,
+			out
 		end
 
 create
@@ -28,7 +29,7 @@ feature {NONE} -- Initialization
 		note
 			maps_to: "Set#Empty"
 		do
-			create array.make (1, 0)
+			create array.make_empty
 			array.compare_objects
 		end
 
@@ -37,6 +38,29 @@ feature {NONE} -- Initialization
 		do
 			create array.make_filled (x, 1, 1)
 			array.compare_objects
+		end
+
+feature -- io
+	out: STRING
+		local
+			i: INTEGER
+			separator: STRING
+		do
+			Result := "{"
+			from
+				i := 1
+			until
+				i > array.count
+			loop
+				separator := if i = array.count then "" else ", " end
+				if attached {ANY} array [i] as att_i then
+					Result := Result + att_i.out + separator
+				else
+					Result := Result + "NA" + separator
+				end
+				i := i + 1
+			end
+			Result := Result + "}"
 		end
 
 feature -- Properties
@@ -162,7 +186,8 @@ feature -- Modification
 		do
 				-- check is_executable: False then end
 			if not Current [x] then
-				create a.make (1, array.count + 1)
+				create a.make_empty
+				a.grow (array.count + 1)
 					-- a.array_copy_range (array, 1, array.count, 1)
 				a.area.copy_data (array.area, 1 - array.lower, 1 - a.lower, array.count)
 				a [a.count] := x
@@ -181,7 +206,8 @@ feature -- Modification
 				-- check is_executable: False then end
 			i := array.area.index_of (x, 1)
 			if array.lower <= i and i <= array.upper then
-				create a.make (1, array.count - 1)
+				create a.make_empty
+				a.grow (array.count - 1)
 					-- a.array_copy_range (array, 1, i - 1, a.lower)
 				a.area.copy_data (array.area, 1 - array.lower, 0, i - 1)
 
@@ -213,7 +239,8 @@ feature -- Modification
 			i, j: INTEGER
 		do
 				-- check is_executable: False then end
-			create a.make (1, array.count)
+			create a.make_empty
+			a.grow (array.count)
 			from
 				i := 1
 				j := 1
@@ -226,7 +253,7 @@ feature -- Modification
 				end
 				i := i + 1
 			end
-			a.resize (1, j - 1)
+			a.keep_head (j - 1)
 			create Result.make_from_array (a)
 		ensure
 			contained_in_current: Result <= Current
@@ -240,7 +267,8 @@ feature -- Modification
 			i, j: INTEGER
 		do
 				-- check is_executable: False then end
-			create a.make (1, array.count)
+			create a.make_empty
+			a.grow (array.count)
 			from
 				i := 1
 				j := 1
@@ -253,7 +281,7 @@ feature -- Modification
 				end
 				i := i + 1
 			end
-			a.resize (1, j - 1)
+			a.keep_head (j - 1)
 			create Result.make_from_array (a)
 		ensure
 			contained_in_current: Result <= Current
@@ -327,6 +355,12 @@ feature
 			array.compare_objects
 		end
 
+	to_array: ARRAY [G]
+		do
+			create Result.make_empty
+			Result.deep_copy (array)
+		end
+
 feature -- Lemmas
 
 	lemma_subset (other: like Current)
@@ -347,6 +381,8 @@ feature -- Lemmas
 		ensure
 			Current = other
 		end
+
 invariant
 	always_compare_objects_not_references: array.object_comparison
+
 end

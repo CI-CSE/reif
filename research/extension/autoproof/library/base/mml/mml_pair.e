@@ -11,7 +11,8 @@ class MML_PAIR [G, H]
 inherit
 	ANY
 		redefine
-			is_equal
+			is_equal,
+			out
 		end
 
 create
@@ -31,6 +32,15 @@ feature -- Access
 	left: G -- Left component.
 
 	right: H -- Right component.
+
+feature -- io
+	out: STRING
+		do
+			Result := "NA"
+			if attached {ANY} left as att_left ∧ attached {ANY} right as att_right then
+				Result := "[" + att_left.out + ", " + att_right.out  + "]"
+			end
+		end
 
 feature -- Comparison
 
