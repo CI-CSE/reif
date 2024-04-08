@@ -6,5 +6,8 @@ module.exports = {
     './_posts/*.md',
     './*.md',
     './*.html'
+  ],
+  plugins: [
+    require('@tailwindcss/typography'),
   ]
 }

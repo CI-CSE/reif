@@ -43,7 +43,10 @@ Run the Jekyll server:
 bundle exec jekyll serve --host 0.0.0.0 --livereload
 ```
 
-Now you can visit https://localhost:4000 in your browser. You should see the website.
+Now you can visit https://localhost:4000/trunk/ in your browser. You should see the website.
+
+> [!NOTE]
+> Note the `/trunk/` in the end of the local path. It mimics the path on GitHub pages.
 
 The website will reload automatically when files are changed, thanks to the `--livereload` parameter.
 
