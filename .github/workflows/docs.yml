@@ -1,0 +1,35 @@
+name: Build docs website
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  github-pages:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: "Build site"
+        run: |
+          cd docs
+          docker build .
+
+          mkdir -p _site
+
+          docker run \
+            --mount type=bind,source=$(pwd)/_site,destination=/app/_site \
+            -e JEKYLL_ENV=production \
+            $(docker build -q  .) \
+            bundle exec jekyll build
+
+      - name: "Publish site"
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_site

@@ -2,6 +2,7 @@ services:
   app:
     build:
       context: .
+      target: base
     volumes:
       - .:/app
     command: /bin/bash

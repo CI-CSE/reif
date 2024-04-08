@@ -5,3 +5,14 @@ RUN apt update && apt install yarnpkg build-essential -y
 RUN ln -s /usr/bin/yarnpkg /usr/bin/yarn
 
 WORKDIR /app
+
+FROM base AS builder
+
+COPY Gemfile Gemfile.lock ./
+
+RUN bundle install
+
+COPY package.json yarn.lock ./
+RUN yarn install
+
+COPY . ./
