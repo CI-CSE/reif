@@ -2,7 +2,17 @@ url: "" # the base hostname & protocol for your site, e.g. http://example.com
 baseurl: "" # the subpath of your site, e.g. /blog
 title: "" # the name of your site, e.g. ACME Corp.
 
+plugins:
+  - jekyll-postcss
+
+postcss:
+  cache: false
+
 exclude:
   - Dockerfile
   - docker-compose.yml
   - README.md
+  - postcss.config.js
+  - package.json
+  - yarn.lock
+  - tailwind.config.js

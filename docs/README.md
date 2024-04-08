@@ -2,11 +2,15 @@
 
 This is the root folder of the documentation website.
 
-The website is built using [Jekyll](https://jekyllrb.com/).
+The website is built using [Jekyll](https://jekyllrb.com/) and [Tailwind CSS](https://tailwindcss.com/).
 
 Jekyll is static site generator written in Ruby. It allows us to write Markdown files which will be converted to nice HTMLs.
 
-## Local development
+Tailwind is a CSS framework which allows us to build the design directly in the HTML files using special CSS classes.
+
+## Development
+
+### Running locally
 There is a Docker Compose file which includes the required dependencies.
 
 First, Install Docker and Docker Compose. On Windows/Mac it is included in Docker Desktop.
@@ -29,9 +33,25 @@ Install Ruby dependencies:
 bundle install
 ```
 
+Install JS dependencies:
+```bash
+yarn install
+```
+
 Run the Jekyll server:
 ```bash
-bundle exec jekyll serve --host 0.0.0.0
+bundle exec jekyll serve --host 0.0.0.0 --livereload
 ```
 
 Now you can visit https://localhost:4000 in your browser. You should see the website.
+
+The website will reload automatically when files are changed, thanks to the `--livereload` parameter.
+
+
+### Tailwind
+Tailwind is a popular framework so it should be easy to find info online. However,
+here are some important notes which might be easy to miss:
+
+Tailwind removes unused classes from the production CSS bundle. Only the files listed in `tailwind.config.js`
+are checked. So, if some styles are missing from the production build,
+check that the required patterns are in `tailwind.config.js`.

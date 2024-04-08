@@ -8,4 +8,5 @@ services:
     tty: true
     stdin_open: true
     ports:
-      - '4000:4000'
+      - '4000:4000' # jekyll serve port
+      - '35729:35729' # jekyll livereload port
