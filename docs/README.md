@@ -4,7 +4,7 @@ This is the root folder of the documentation website.
 
 The website is built using [Jekyll](https://jekyllrb.com/) and [Tailwind CSS](https://tailwindcss.com/).
 
-Jekyll is static site generator written in Ruby. It allows us to write Markdown files which will be converted to nice HTMLs.
+Jekyll is a static site generator written in Ruby. It allows us to write Markdown files which will be converted to nice HTMLs.
 
 Tailwind is a CSS framework which allows us to build the design directly in the HTML files using special CSS classes.
 
@@ -15,18 +15,18 @@ There is a Docker Compose file which includes the required dependencies.
 
 First, Install Docker and Docker Compose. On Windows/Mac it is included in Docker Desktop.
 
-To start development, run the compose file:
+First, execute the following command in the terminal to start docker compose:
 ```bash
 docker compose up
 ```
 Docker compose will be running in the terminal window.
 
-To log in to the compose shell run (in a diferent terminal window):
+Run the following command in a different terminal to log into the compose shell:
 ```bash
 docker compose exec app bash
 ```
 
-The further commands are to be executed from the inner shell.
+All commands from now on are to be executed from the inner shell.
 
 Install Ruby dependencies:
 ```bash
