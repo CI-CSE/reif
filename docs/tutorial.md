@@ -15,7 +15,7 @@ through hands-on exercises.
 ### Preparations
 TODO: Add installation instructions.
 
-Old online version is [available](http://comcom.csail.mit.edu/comcom/#AutoProof).
+The old online version is [available](http://comcom.csail.mit.edu/comcom/#AutoProof).
 
 ### Structure
 Each of the following sections describes in detail the use of AutoProof based
