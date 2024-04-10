@@ -6,17 +6,79 @@
     <title>{{ page.title }} - {{ site.title }}</title>
     <link rel="stylesheet" href="{{ "/assets/css/main.css" | relative_url }}">
   </head>
-  <body class="w-full md:w-[50rem] mx-auto">
-    <ul class="bg-red-700 text-white flex py-4">
-      <li class="pl-6">
-        <a href="{{ "/" | relative_url }}">Home</a>
-      </li>
-      <li class="pl-6">
-        <a href="{{ "tutorial" | relative_url }}">Tutorial</a>
-      </li>
-    </ul>
-    <main class="prose prose-headings:text-red-700 pt-4">
-      {{ content }}
-    </main>
+  <body class="flex">
+		<div class="flex-1 flex flex-row-reverse">
+			{% if page.collection %}
+				<nav class="w-[16rem]">
+					<div class="h-20 bg-gradient-to-tl from-red-50"></div>
+					<ul class="bg-gradient-to-bl from-red-50 pb-6">
+						{% for p in site[page.collection] %}
+							<li>
+								{% unless p == page %}
+									<a
+										href="{{ p.url | relative_url }}"
+										class="min-h-8 pl-4 block flex items-center hover:bg-red-100"
+									>
+										{{ p.title }}
+									</a>
+								{% else %}
+									<span class="min-h-8 pl-4 flex items-center bg-red-100 align-middle">{{ p.title }}</span>
+								{% endunless %}
+							</li>
+						{% endfor %}
+					</ul>
+				</nav>
+			{% endif %}
+		</div>
+		<div class="w-full md:w-[50rem]">
+			<header class="mx-auto w-full bg-red-700 text-white h-16">
+				<ul class="flex items-center h-full">
+					<li class="pl-6">
+						<a href="{{ "/" | relative_url }}">Home</a>
+					</li>
+					<li class="pl-6">
+						<a href="{{ "tutorial" | relative_url }}">Tutorial</a>
+					</li>
+				</ul>
+			</header>
+
+			<main class="prose prose-headings:text-red-700 pt-4 mx-auto">
+				{{ content }}
+			</main>
+
+			{% if page.previous or page.next %}
+				<div class="flex w-[40rem] mx-auto mt-10 mb-10">
+					{% if page.previous %}
+						<a
+							href="{{ page.previous.url | relative_url }}"
+							class="block flex-1 text-red-800 hover:text-red-600 mr-4"
+						>
+							← Previous page <br>
+							<span class="font-bold">{{ page.previous.title }}</span>
+						</a>
+					{% else %}
+						<div></div>
+					{% endif%}
+
+					{% if page.previous and page.next %}
+						<div class="w-[1px] self-center h-6 bg-red-800"></div>
+					{% endif %}
+
+					{% if page.next %}
+						<a
+							href="{{ page.next.url | relative_url }}"
+							class="block flex-1 text-red-800 hover:text-red-600 text-right ml-4"
+						>
+							Next page → <br>
+							<span class="font-bold">{{ page.next.title }}</span>
+						</a>
+					{% else %}
+						<div></div>
+					{% endif %}
+				</div>
+			{% endif %}
+		</div>
+
+		<div class="flex-1"></div>
   </body>
 </html>

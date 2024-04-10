@@ -2,11 +2,31 @@ url: "" # the base hostname & protocol for your site, e.g. http://example.com
 baseurl: "/trunk" # the subpath of your site, e.g. /blog
 title: "AutoProof" # the name of your site, e.g. ACME Corp.
 
+collections:
+  tutorial:
+    output: true
+    order:
+      - 'index.md'
+      - 'verification-of-basic-properties.md'
+      - 'input-language.md'
+      - 'basic-properties.md'
+      - 'models.md'
+      - 'framing.md'
+      - 'routine-annotations.md'
+      - 'debugging-verification.md'
+      - 'hands-on-clock.md'
+
 plugins:
   - jekyll-postcss
 
 postcss:
   cache: false
+
+defaults:
+  - scope:
+      path: ''
+    values:
+      layout: default
 
 exclude:
   - Dockerfile
