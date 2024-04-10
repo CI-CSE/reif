@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ site.lang | default: "en-US" }}">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>{{ page.title }} - {{ site.title }}</title>
-    <link rel="stylesheet" href="{{ "/assets/css/main.css" | relative_url }}">
-  </head>
-  <body class="flex">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta charset="utf-8">
+		<title>{{ page.title }} - {{ site.title }}</title>
+		<link rel="stylesheet" href="{{ "/assets/css/main.css" | relative_url }}">
+		<link rel="stylesheet" href="{{ "/assets/css/highlight.css" | relative_url }}">
+	</head>
+	<body class="flex">
 		<div class="flex-1 flex flex-row-reverse">
 			{% if page.collection %}
 				<nav class="w-[16rem]">
@@ -17,7 +18,7 @@
 								{% unless p == page %}
 									<a
 										href="{{ p.url | relative_url }}"
-										class="min-h-8 pl-4 block flex items-center hover:bg-red-100"
+													class="min-h-8 pl-4 block flex items-center hover:bg-red-100"
 									>
 										{{ p.title }}
 									</a>
@@ -51,7 +52,7 @@
 					{% if page.previous %}
 						<a
 							href="{{ page.previous.url | relative_url }}"
-							class="block flex-1 text-red-800 hover:text-red-600 mr-4"
+										class="block flex-1 text-red-800 hover:text-red-600 mr-4"
 						>
 							← Previous page <br>
 							<span class="font-bold">{{ page.previous.title }}</span>
@@ -67,7 +68,7 @@
 					{% if page.next %}
 						<a
 							href="{{ page.next.url | relative_url }}"
-							class="block flex-1 text-red-800 hover:text-red-600 text-right ml-4"
+										class="block flex-1 text-red-800 hover:text-red-600 text-right ml-4"
 						>
 							Next page → <br>
 							<span class="font-bold">{{ page.next.title }}</span>
