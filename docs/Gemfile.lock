@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/imustafin/rouge.git
+  revision: 363a936f1abd9db23b70618cf37c2f23a5c17485
+  branch: eiffel2
+  specs:
+    rouge (4.2.1)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -64,7 +71,6 @@ GEM
     rb-inotify (0.10.1)
       ffi (~> 1.0)
     rexml (3.2.6)
-    rouge (4.2.1)
     safe_yaml (1.0.5)
     sass-embedded (1.74.1)
       google-protobuf (>= 3.25, < 5.0)
@@ -145,6 +151,7 @@ PLATFORMS
 DEPENDENCIES
   jekyll (~> 4.3, >= 4.3.3)
   jekyll-postcss (~> 0.5.0)
+  rouge!
   webrick (~> 1.8, >= 1.8.1)
 
 BUNDLED WITH
