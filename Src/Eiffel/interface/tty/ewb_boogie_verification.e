@@ -242,12 +242,11 @@ feature {NONE} -- Printing console
 			-- Print results to output.
 		do
 			across a_result.verification_results as i loop
-				-- output_window.add ("======================================%N")
+				output_window.add ("======================================%N")
 
 				if attached {E2B_SUCCESSFUL_VERIFICATION} i.item as l_success then
-					if not user_options.has ("-fix") then
-						print_successful_verification (l_success)
-					end
+					print_successful_verification (l_success)
+
 				elseif attached {E2B_FAILED_VERIFICATION} i.item as l_failure then
 					print_failed_verification (l_failure)
 
@@ -277,9 +276,7 @@ feature {NONE} -- Printing console
 				-- 	Print out the result of S2 to the output panel, using Msg_valid_proof_fix
 				print_potential_fix
 				-- TODO Li: this is a hack to get the context class
-				output_window.add ("start reverification: " + timer.system_clock.time_now.out + "%N")
 				reverify_with_check_false_instrumented (a_result.verification_results.last.context_class)
-				output_window.add ("end reverification: " + timer.system_clock.time_now.out + "%N")
 			end
 		end
 
@@ -305,22 +302,18 @@ feature {NONE} -- Printing console
 		local
 			l_feature: FEATURE_I
 			l_match_list: LEAF_AS_LIST
-			l_fixes: STRING
 		do
-			l_fixes := ""
 			l_match_list := Match_list_server.item (a_class.class_id)
 
 			output_window.add (Msg_valid_proof_fix + "%N")
+
 			across options.valid_fixes as l_name loop
 				l_feature := a_class.feature_named (l_name.item)
-				l_fixes.copy (l_feature.body.text(l_match_list))
-				l_fixes.replace_substring_all ("check False end", "")
-				output_window.add (l_fixes)
+				output_window.add (l_feature.body.text(l_match_list))
 				output_window.add ("%N------------------------------------------------------------------------------------%N")
 			end
 			output_window.add ("%N")
 			output_window.add ("fixing end time: " + timer.system_clock.time_now.out + "%N")
-			output_window.add ("number of valid fixes: " + options.valid_fixes.count.out + "%N")
 			-- output_window.add ("fixing start time: " + options.fix_start_time.out + "%N")
 			-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
 		end

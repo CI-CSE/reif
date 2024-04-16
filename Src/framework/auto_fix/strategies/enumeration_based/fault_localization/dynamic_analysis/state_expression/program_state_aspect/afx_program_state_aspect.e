@@ -51,11 +51,11 @@ feature{NONE} -- Implementation
 			l_requirement: AFX_STATE_CHANGE_REQUIREMENT
 			l_target: AFX_FIXING_TARGET
 		do
-			-- print ("AFX_PROGRAM_STATE_ASPECT.change_requirements_for_one_boolean_expression%N")
 			create Result.make (2)
 			create l_new_expr.make_with_text (a_exp1.class_, a_exp1.feature_, "not (" + a_exp1.text + ")", a_exp1.written_class)
 			create l_requirement.make (a_exp1, l_new_expr)
 			Result.force_last (l_requirement)
+
 			create l_new_expr.make_with_text (a_exp1.class_, a_exp1.feature_, "False", a_exp1.written_class)
 			create l_requirement.make (a_exp1, l_new_expr)
 			Result.force_last (l_requirement)

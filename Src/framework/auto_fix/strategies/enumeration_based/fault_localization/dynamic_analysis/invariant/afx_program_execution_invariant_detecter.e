@@ -38,8 +38,6 @@ feature -- Basic operation
 					-- invariants_from_passing_cell.put (invariants_from_execution_traces (trace_repository.passing_traces))
 					-- invariants_from_failing_cell.put (invariants_from_execution_traces (trace_repository.failing_traces))
 			end
-
-
 		end
 
 feature {NONE} -- Implementation
@@ -81,7 +79,7 @@ feature {NONE} -- Implementation
 					-- print ("trace_file_name: " + trace_file_name.out + "%N")
 						-- Execute Daikon.
 					l_daikon_output := output_from_program_with_input_file_and_time_limit (daikon_command, Void, Void, l_time_left)
-					print ("daikon output: %N" + l_daikon_output + "%N")
+					-- print ("daikon output: " + l_daikon_output + "%N")
 					if not l_daikon_output.is_empty then
 							-- Retrieve Daikon result.
 						create l_parser
@@ -194,9 +192,7 @@ feature {NONE} -- Implementation
 				loop
 					if attached {DKN_EXPRESSION_INVARIANT} l_set_cursor.item as lvt_inv then
 						l_inv_text := lvt_inv.text
-						if not l_inv_text.has_substring ("== false") then -- TODO Li: handle invariants with false value
-							l_equation := equation_from_invariant_str (l_inv_text, l_class, l_feature)
-						end
+						l_equation := equation_from_invariant_str (l_inv_text, l_class, l_feature)
 						if l_equation /= Void then
 							l_state.force (l_equation)
 						end
@@ -216,7 +212,6 @@ feature {NONE} -- Implementation
 
 				l_table_cursor.forth
 			end
-
 		end
 
 	equation_from_invariant_str (a_str: STRING; a_class: CLASS_C; a_feature: FEATURE_I): EPA_EQUATION

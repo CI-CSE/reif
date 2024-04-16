@@ -44,7 +44,6 @@ feature -- Basic operation
 			l_context_feature: EPA_FEATURE_WITH_CONTEXT_CLASS
 			l_expr_set: EPA_HASH_SET [EPA_EXPRESSION]
 		do
-			-- print ("AFX_TARGET_OBJECT_DETECTOR.detect_target_objects_for_fixing: " + a_expr.text + "%N")
 			reset_detector
 
 			current_expression := a_expr
@@ -93,6 +92,7 @@ feature{NONE} -- Implementation
 				l_cursor_all_targets.after
 			loop
 				l_target_object := l_cursor_all_targets.item
+
 				from
 					l_cursor_imm_targets.start
 					l_is_immediate := True
@@ -100,7 +100,6 @@ feature{NONE} -- Implementation
 					l_cursor_imm_targets.after or else not l_is_immediate
 				loop
 					l_immediate_target := l_cursor_imm_targets.item
-					print ("l_immediate_target: " + l_immediate_target.text + "%N")
 					l_is_immediate := l_immediate_target.text.substring_index (l_target_object.text, 1) <= 0
 					l_cursor_imm_targets.forth
 				end
@@ -135,7 +134,6 @@ feature{NONE} -- Status report
 			l_expr_text := a_expression.text
 			if a_expression.type /= Void then
 				l_expr_type := explicit_type (a_expression.type, current_context_class, current_context_feature)
-				-- print ("l_expr_type: " + l_expr_text + " " + l_expr_type.name + "%N")
 				if l_expr_type.is_reference or a_expression.text.as_lower ~ "result" then
 					Result := True
 				elseif server_variables_in_scope.integer_or_boolean_locals_and_attributes_for_feature (current_context_class, current_context_feature).has (l_expr_text) then
