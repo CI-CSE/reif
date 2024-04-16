@@ -43,7 +43,11 @@ Run the Jekyll server:
 bundle exec jekyll serve --host 0.0.0.0 --livereload
 ```
 
-Now you can visit https://localhost:4000/trunk/ in your browser. You should see the website.
+Now you can visit http://localhost:4000/trunk/ (not `http`**s**) in your browser. You should see the website.
+
+It is possible to configure SSL with Jekyll for localhost.
+Check `jekyll serve --help` for `--ssl-{key,cert}` options and check
+<https://claytonerrington.com/blog/securing-jekyll-with-ssl-locally/>.
 
 > [!NOTE]
 > Note the `/trunk/` in the end of the local path. It mimics the path on GitHub pages.
