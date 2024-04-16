@@ -138,8 +138,6 @@ feature -- Data
 
 	locals: STRING_TABLE [READABLE_STRING_32]
 
-feature -- State access
-
 	is_aliased_with_existed_object (object_name: STRING): BOOLEAN
 			-- Is this objected aliased with other object?
 		do

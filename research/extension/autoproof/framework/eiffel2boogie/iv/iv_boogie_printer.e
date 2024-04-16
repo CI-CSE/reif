@@ -332,7 +332,7 @@ feature -- Statement Visitor
 			block_index := block_index + 1
 			if is_generate_fix_enabled then
 				output.put_indentation
-				output.put ("passed_blocks := Seq#Update(passed_blocks, " + block_index.out + ", true);")
+				output.put ("passed_blocks := Seq#Update(passed_blocks, "+ block_index.out + ", true);")
 				-- block := Seq#Update(block, i, true);
 			end
 

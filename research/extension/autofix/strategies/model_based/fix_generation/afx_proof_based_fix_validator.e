@@ -53,7 +53,6 @@ feature -- Basic operation
 		local
 			l_instrumentor: AFX_FIX_INSTRUMENTOR
 		do
-			-- print ("AFX_PROOF_BASED_FIX_VALIDATOR.validate%N")
 			if not fixes.is_empty then
 				create l_instrumentor.make (fixes)
 				l_instrumentor.instrument
