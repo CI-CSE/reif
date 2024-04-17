@@ -163,8 +163,13 @@ feature {NONE} -- Implementation
 			l_feature := l_temp.feature_
 			check l_feature /= Void end
 
-			if l_temp.is_creator then
-				l_context := "creator"
+			l_context := inspect l_temp.variant_
+			when {E2B_FEATURE_VARIANT}.creator then
+				"creator"
+			when {E2B_FEATURE_VARIANT}.qualified then
+				"qualified"
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				"unqualified"
 			end
 			if l_temp.type.base_class.class_id /= l_feature.written_in then
 				if l_context = Void then

@@ -1,12 +1,10 @@
 note
 	description: "[
-		Translation unit for the signature of an Eiffel routine.
+		Translation unit for the signature of an Eiffel routine called in an unqualified call.
 	]"
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
-	E2B_TU_ROUTINE_SIGNATURE
+	E2B_TU_UNQUALIFIED_ROUTINE_SIGNATURE
 
 inherit
 
@@ -17,7 +15,7 @@ create
 
 feature -- Access
 
-	base_id: STRING = "routine-signature"
+	base_id: STRING = "unqualified-routine-signature"
 			-- <Precursor>
 
 feature -- Basic operations
@@ -28,9 +26,8 @@ feature -- Basic operations
 			l_translator: E2B_ROUTINE_TRANSLATOR
 		do
 			create l_translator.make
-			l_translator.translate_routine_signature (feat, type)
+			l_translator.translate_routine_signature_unqualified (feat, type)
 		end
-
 note
 	license: "GNU General Public License"
 	license_name: "GPL"

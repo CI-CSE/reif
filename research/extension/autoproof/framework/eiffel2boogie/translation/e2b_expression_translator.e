@@ -738,10 +738,26 @@ feature -- Visitors
 			if l_handler /= Void then
 				process_special_feature_call (l_handler, l_feature, a_node.parameters)
 			else
-				process_routine_call (l_feature, a_node.parameters, False)
+				process_routine_call (l_feature, a_node.parameters, call_variant (a_node))
 			end
 
 			current_target_type := l_current_type
+		end
+
+	call_variant (node: ROUTINE_B): E2B_FEATURE_VARIANT
+			-- Variant of the routine call represented by `node`.
+		do
+			-- only FEATURE_B is supported now
+			check attached {FEATURE_B} node as feat then
+				if attached {NESTED_B} feat.parent as nest then
+					check attached nest.target as t then
+						create Result.qualified
+					end
+				else
+					-- No parent, it is just a call to feature, so unqualified
+					create Result.unqualified
+				end
+			end
 		end
 
 	process_feature_b (a_node: FEATURE_B)
@@ -766,7 +782,7 @@ feature -- Visitors
 						process_constant_call (l_constant)
 					end
 				elseif l_feature.is_routine then
-					process_routine_call (l_feature, a_node.parameters, False)
+					process_routine_call (l_feature, a_node.parameters, call_variant (a_node))
 				else
 						-- TODO: what else is there?
 					check False end
@@ -867,6 +883,8 @@ feature -- Visitors
 
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
+
+			type_translator: E2B_TYPE_TRANSLATOR
 		do
 			l_handler := translation_mapping.handler_for_nested (a_node)
 			if
@@ -931,6 +949,12 @@ feature -- Visitors
 					add_void_call_check (a_node)
 				end
 
+
+				-- Check Current's invariant if qualified call
+				create type_translator
+				across type_translator.translate_invariant (current_target_type) as i loop
+					add_safety_check (i.expression, "qual_inv", i.node_info.tag.to_string_8, context_line_number)
+				end
 
 					-- Evaluate message with original expression
 --				if attached {CL_TYPE_A} current_target_type.type_a as l_cl_type then
@@ -1183,7 +1207,7 @@ feature -- Translation
 			end
 		end
 
-	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_variant: E2B_FEATURE_VARIANT)
 			-- Process feature call.
 		require
 			not_attribute: a_feature.is_routine

@@ -29,23 +29,32 @@ feature -- Testing
 
 					make
 						do
-						end
-
-					test
-						do
 							check check_false: False end
 						end
 				end
 				]"
 			)
 			print_ecf ("DEMO")
-			command.add_feature ("test", "DEMO")
+			command.add_feature ("make", "DEMO")
 
 			verify
 
-			assert ("Verification is failure", attached {E2B_FAILED_VERIFICATION} verification_result)
-			assert_strings_equal ("Failure in DEMO class", "DEMO", verification_result.context_class.name)
-			assert_strings_equal ("Failure in test feature", "test", verification_result.context_feature.feature_name_32)
+			assert_equal ("Results of 3 variants", 3, verification_results.count)
+
+			assert (
+				"Creator is not verified",
+				attached {E2B_FAILED_VERIFICATION} result_of_feature ("make", "creator")
+			)
+
+			assert (
+				"Unqualified is not verified",
+				attached {E2B_FAILED_VERIFICATION} result_of_feature ("make", "unqualified")
+			)
+
+			assert (
+				"Qualified is not verified",
+				attached {E2B_FAILED_VERIFICATION} result_of_feature ("make", "qualified")
+			)
 		end
 
 	example_check_true
@@ -60,23 +69,32 @@ feature -- Testing
 					feature
 						make
 							do
-							end
-
-						test
-							do
 								check check_true: True end
 							end
 					end
 				]"
 			)
 			print_ecf ("DEMO")
-			command.add_feature ("test", "DEMO")
+			command.add_feature ("make", "DEMO")
 
 			verify
 
-			assert ("Verification is success", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
-			assert_strings_equal ("Success in DEMO class", "DEMO", verification_result.context_class.name)
-			assert_strings_equal ("Success in test feature", "test", verification_result.context_feature.feature_name_32)
+			assert_equal ("Results of 3 variants", 3, verification_results.count)
+
+			assert (
+				"Creator is verified",
+				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature ("make", "creator")
+			)
+
+			assert (
+				"Unqualified is verified",
+				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature ("make", "unqualified")
+			)
+
+			assert (
+				"Qualified is verified",
+				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature ("make", "qualified")
+			)
 		end
 
 feature {NONE} -- Initialization
@@ -207,16 +225,17 @@ feature {NONE} -- Building test projects
 	results: LINKED_LIST [E2B_RESULT]
 			-- Results of executing `command`
 
-	verification_result: E2B_VERIFICATION_RESULT
+	e2b_result: E2B_RESULT
+			-- AutoProof execution result. Available after `verify`.
 		do
 			assert_equal ("One E2B_VERIFICATION_RESULT", 1, verification_results.count)
 			Result := verification_results [1]
 		end
 
 	verification_results: LINKED_LIST [E2B_VERIFICATION_RESULT]
+		-- Verification results of features and other verification targets
 		do
-			assert_equal ("One E2B result", 1, results.count)
-			Result := results [1].verification_results
+			Result := e2b_result.verification_results
 		end
 
 	assert_verification_failure_with_tag (t: STRING)
@@ -272,4 +291,17 @@ feature {NONE} -- Building test projects
 			)
 		end
 
+	result_of_feature (feature_name, context: STRING): detachable E2B_VERIFICATION_RESULT
+		do
+			across
+				verification_results as i
+			until
+				attached Result
+			loop
+				if i.context_feature.feature_name ~ feature_name
+					and then i.verification_context ~ context then
+					Result := i
+				end
+			end
+		end
 end

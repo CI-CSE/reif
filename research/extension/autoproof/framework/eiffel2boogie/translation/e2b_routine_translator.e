@@ -17,24 +17,32 @@ feature {NONE} -- Initialization
 
 feature -- Translation: Signature
 
-	translate_routine_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+	translate_routine_signature_unqualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
 			not_attribute: not a_feature.is_attribute
 		do
-			translate_signature (a_feature, a_type, False)
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.unqualified)
+		end
+
+	translate_routine_signature_qualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+			-- Translate signature of feature `a_feature` of type `a_type` for qualified calls.
+		require
+			not_attribute: not a_feature.is_attribute
+		do
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.qualified)
 		end
 
 	translate_creator_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
-			translate_signature (a_feature, a_type, True)
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.creator)
 		end
 
 	translate_default_create_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
-			translate_signature (a_feature, a_type, True)
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.creator)
 				-- TODO: create special signature
 		end
 
@@ -60,16 +68,19 @@ feature -- Translation: Signature
 			end
 		end
 
-	translate_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_for_creator: BOOLEAN)
+	translate_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_variant: E2B_FEATURE_VARIANT)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
-			routine: a_feature.is_routine
 			feature_not_void: a_feature /= Void
+			routine: a_feature.is_routine
 		local
 			l_proc_name: READABLE_STRING_8
 			l_contracts: like contracts_of
 			l_fields: LINKED_LIST [TUPLE [o: IV_EXPRESSION; f: IV_ENTITY]]
 			l_modifies: IV_MODIFIES
+			type_translator: E2B_TYPE_TRANSLATOR
+			post: IV_POSTCONDITION
+			pre: IV_PRECONDITION
 		do
 			set_context (a_feature, a_type)
 			translation_pool.add_type (current_type)
@@ -83,12 +94,14 @@ feature -- Translation: Signature
 			end
 
 				-- Set up name
-			l_proc_name :=
-				if a_for_creator then
-					name_translator.boogie_procedure_for_creator (current_feature, current_type)
-				else
-					name_translator.boogie_procedure_for_feature (current_feature, current_type)
-				end
+			l_proc_name := inspect a_variant
+			when {E2B_FEATURE_VARIANT}.creator then
+				name_translator.boogie_procedure_for_creator (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				name_translator.boogie_procedure_for_unqualified (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.qualified then
+				name_translator.boogie_procedure_for_qualified (current_feature, current_type)
+			end
 
 				-- Initialize procedure
 			set_up_boogie_procedure (l_proc_name)
@@ -156,8 +169,26 @@ feature -- Translation: Signature
 				process_postcondition (j.clause, j.origin, l_fields)
 			end
 
+			if a_variant = {E2B_FEATURE_VARIANT}.qualified then
+				create type_translator
+				across type_translator.translate_invariant (current_type) as i loop
+					create post.make (i.expression)
+					post.node_info.set_type ("inv_post")
+					post.node_info.set_tag (i.node_info.tag)
+					post.node_info.set_line (i.node_info.line.to_integer_32)
+					current_boogie_procedure.add_contract (post)
+
+					create pre.make (i.expression)
+					pre.node_info.set_type ("inv_pre")
+					pre.node_info.set_tag (i.node_info.tag)
+					pre.node_info.set_line (i.node_info.line.to_integer_32)
+					pre.set_free
+					current_boogie_procedure.add_contract (pre)
+				end
+			end
+
 				-- Creator: add default field initialization
-			if a_for_creator then
+			if a_variant.is_creator then
 				add_field_default_initialization (a_type)
 					-- If it is `default_create' from any, add special post
 				if current_feature.written_in = system.any_id and current_feature.rout_id_set.first = system.default_create_rout_id then
@@ -167,14 +198,14 @@ feature -- Translation: Signature
 
 				-- Framing
 			if options.is_ownership_enabled then
-				add_ownership_contracts (a_for_creator, not current_feature.is_lemma)
+				add_ownership_contracts (a_variant.is_creator, not current_feature.is_lemma)
 				add_agent_modifies
 			else
 					-- No choice anymore!
 				check False end
 			end
 
-			if options.is_postcondition_predicate_enabled and not a_for_creator then
+			if options.is_postcondition_predicate_enabled and not a_variant.is_creator then
 				add_postcondition_predicate
 			end
 
@@ -466,21 +497,29 @@ feature -- Translation: Signature
 
 feature -- Translation: Implementation
 
-	translate_routine_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
-			-- Translate implementation of feature `a_feature' of type `a_type'.
+	translate_routine_implementation_qualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+			-- Translate implementation of feature `a_feature` of type `a_type` for qualified calls.
 		require
 			routine: a_feature.is_routine
 		do
-			translate_implementation (a_feature, a_type, False)
+			translate_implementation (a_feature, a_type, {E2B_FEATURE_VARIANT}.qualified)
+		end
+
+	translate_routine_implementation_unqualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+			-- Translate implementation of feature `a_feature' of type `a_type' for unqualified calls.
+		require
+			routine: a_feature.is_routine
+		do
+			translate_implementation (a_feature, a_type, {E2B_FEATURE_VARIANT}.unqualified)
 		end
 
 	translate_creator_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		do
-			translate_implementation (a_feature, a_type, True)
+			translate_implementation (a_feature, a_type, {E2B_FEATURE_VARIANT}.creator)
 		end
 
-	translate_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_for_creator: BOOLEAN)
+	translate_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_variant: E2B_FEATURE_VARIANT)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		require
 			a_feature_not_void: a_feature /= Void
@@ -498,12 +537,14 @@ feature -- Translation: Implementation
 			set_context (a_feature, a_type)
 			set_inlining_options_for_feature (a_feature)
 
-			l_proc_name :=
-				if a_for_creator then
-					name_translator.boogie_procedure_for_creator (current_feature, current_type)
-				else
-					name_translator.boogie_procedure_for_feature (current_feature, current_type)
-				end
+			l_proc_name := inspect a_variant
+			when {E2B_FEATURE_VARIANT}.creator then
+				name_translator.boogie_procedure_for_creator (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				name_translator.boogie_procedure_for_unqualified (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.qualified then
+				name_translator.boogie_procedure_for_qualified (current_feature, current_type)
+			end
 
 			l_procedure := boogie_universe.procedure_named (l_proc_name)
 

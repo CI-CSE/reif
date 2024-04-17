@@ -331,8 +331,28 @@ feature {NONE} -- Implementation
 	processed_classes: ARRAYED_LIST [INTEGER]
 			-- List of classes already seen during the latest call to `process_invariants'.
 
-	process_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
-			-- Process invariants of `a_class' and its ancestors, and store results in `last_clauses'.
+feature
+
+	translate_invariant (a_type: E2B_CL_TYPE_A): LINKED_LIST [IV_ASSERT]
+		require
+			a_type_exists: a_type /= Void
+		local
+			l_class: E2B_CLASS_C
+			mapping: E2B_ENTITY_MAPPING
+		do
+			type := a_type
+			l_class := type.base_class
+
+			create mapping.make
+			mapping.set_heap (factory.entity ("heap", types.heap))
+			mapping.set_current (factory.entity ("current", types.ref))
+			create builtin_collector
+			Result := collect_invariants (l_class, Void, Void, mapping)
+		end
+
+
+	collect_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
+			-- Process invariants of `a_class' and its ancestors, and return them.
 		require
 			a_class_exists: a_class /= Void
 			a_mapping_exists: a_mapping /= Void
@@ -340,15 +360,18 @@ feature {NONE} -- Implementation
 			create last_clauses.make
 			create last_safety_checks.make
 			create processed_classes.make (5)
+
 			processed_classes.extend (system.any_id)
-			process_flat_invariants (a_class, a_included, a_excluded, a_mapping)
+			Result := collect_flat_invariants (a_class, a_included, a_excluded, a_mapping)
 		end
 
-	process_flat_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+
+	collect_flat_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
 			-- Recursively process invariants of `a_class' and its ancestors.
 		local
 			l_classes: FIXED_LIST [E2B_CLASS_C]
 		do
+			create Result.make
 			from
 				l_classes := a_class.parents_classes
 				l_classes.start
@@ -356,11 +379,11 @@ feature {NONE} -- Implementation
 				l_classes.after
 			loop
 				if not processed_classes.has (l_classes.item.class_id) then
-					process_flat_invariants (l_classes.item, a_included, a_excluded, a_mapping)
+					Result.append (collect_flat_invariants (l_classes.item,a_included, a_excluded, a_mapping))
 				end
 				l_classes.forth
 			end
-			process_immediate_invariants (a_class, a_included, a_excluded, a_mapping)
+			Result.append (collect_immediate_invariants (a_class, a_included, a_excluded, a_mapping))
 			processed_classes.extend (a_class.class_id)
 		end
 
@@ -372,7 +395,7 @@ feature {NONE} -- Implementation
 				(a_excluded /= Void and then (a_tag = Void or else not a_excluded.has (a_tag))) -- Or not expliciltly excluded
 		end
 
-	process_immediate_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	collect_immediate_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
 			-- Process invariants written in `a_class'.
 		require
 			a_class_not_void: a_class /= Void
@@ -381,6 +404,8 @@ feature {NONE} -- Implementation
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_type: E2B_CL_TYPE_A
 		do
+			create Result.make
+
 			if inv_byte_server.has (a_class.class_id) then
 				l_type := a_class.class_type_in_context (a_class.actual_type, a_class.invariant_feature, type)
 				a_class.invariant_feature.switch_byte_context (l_type, l_type)
@@ -406,6 +431,7 @@ feature {NONE} -- Implementation
 						l_clause.node_info.set_tag (l_assert.tag)
 						l_clause.node_info.set_line (l_assert.line_number)
 						l_clause.node_info.set_attribute ("cid", a_class.class_id.out)
+						Result.extend (l_clause)
 					end
 					l_assert.process (builtin_collector)
 				end

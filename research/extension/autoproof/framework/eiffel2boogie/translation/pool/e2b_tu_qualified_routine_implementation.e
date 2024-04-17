@@ -1,12 +1,10 @@
 note
 	description: "[
-		Translation unit for the implementatino of an Eiffel routine.
+		Translation unit for the implementatino of an Eiffel routine for qualified calls.
 	]"
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
-	E2B_TU_ROUTINE_IMPLEMENTATION
+	E2B_TU_QUALIFIED_ROUTINE_IMPLEMENTATION
 
 inherit
 
@@ -17,7 +15,7 @@ create
 
 feature -- Access
 
-	base_id: STRING = "routine-impl"
+	base_id: STRING = "qualified-routine-impl"
 			-- <Precursor>
 
 feature -- Basic operations
@@ -28,7 +26,7 @@ feature -- Basic operations
 			l_translator: E2B_ROUTINE_TRANSLATOR
 		do
 			create l_translator.make
-			l_translator.translate_routine_implementation (feat, type)
+			l_translator.translate_routine_implementation_qualified (feat, type)
 		end
 
 end

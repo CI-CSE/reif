@@ -238,14 +238,13 @@ feature {NONE} -- Implementation
 			--     functional representation (if returns a value)
 			--     and implementation (unless just `a_is_referenced') of `a_feature' of `a_context_type'.
 		local
-			l_signature: E2B_TU_ROUTINE_SIGNATURE
 			l_variants: E2B_TU_VARIANTS
 			l_functional_representation: E2B_TU_ROUTINE_FUNCTIONAL
-			l_implementation: E2B_TU_ROUTINE_IMPLEMENTATION
 		do
-				-- Add signature
-			create l_signature.make (a_feature, a_context_type)
-			add_translation_unit (l_signature)
+			add_translation_unit (
+				create {E2B_TU_QUALIFIED_ROUTINE_SIGNATURE}.make (a_feature, a_context_type))
+			add_translation_unit (
+				create {E2B_TU_UNQUALIFIED_ROUTINE_SIGNATURE}.make (a_feature, a_context_type))
 
 				-- Add functional representation
 			if a_feature.has_functional_representation then
@@ -261,9 +260,11 @@ feature {NONE} -- Implementation
 					add_translation_unit (l_variants)
 				end
 
-					-- Add implementation
-				create l_implementation.make (a_feature, a_context_type)
-				add_translation_unit (l_implementation)
+					-- Add implementations
+				add_translation_unit (
+					create {E2B_TU_QUALIFIED_ROUTINE_IMPLEMENTATION}.make (a_feature, a_context_type))
+				add_translation_unit (
+					create {E2B_TU_UNQUALIFIED_ROUTINE_IMPLEMENTATION}.make (a_feature, a_context_type))
 			end
 		end
 

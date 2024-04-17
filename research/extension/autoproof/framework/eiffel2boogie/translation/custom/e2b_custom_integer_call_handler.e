@@ -118,7 +118,7 @@ feature -- Implementation
 				l_fcall.arguments.append (a_translator.last_parameters)
 				a_translator.set_last_expression (l_fcall)
 			else
-				a_translator.process_routine_call (a_feature, a_parameters, False)
+				a_translator.process_routine_call (a_feature, a_parameters, {E2B_FEATURE_VARIANT}.qualified)
 			end
 		end
 
