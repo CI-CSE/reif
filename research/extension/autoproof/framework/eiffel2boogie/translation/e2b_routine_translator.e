@@ -670,11 +670,14 @@ feature -- Translation: Functions
 			if not a_feature.is_functional then
 					-- Add a postcondition to the corresponding procedure connecting it to the function
 					-- (so that properties claimed about the function can be traced back to the procedure result).
-				l_proc := boogie_universe.procedure_named (name_translator.boogie_procedure_for_feature (current_feature, current_type))
-				check attached l_proc and then not l_proc.results.is_empty end
-				create l_post.make (factory.equal (l_proc.results.first.entity, l_fcall))
-				l_post.set_free
-				l_proc.add_contract (l_post)
+				across << {E2B_FEATURE_VARIANT}.qualified, {E2B_FEATURE_VARIANT}.unqualified >> as v loop
+					l_proc := boogie_universe.procedure_named (
+					name_translator.boogie_procedure_for_feature_variant (current_feature, current_type, v))
+					check attached l_proc and then not l_proc.results.is_empty end
+					create l_post.make (factory.equal (l_proc.results.first.entity, l_fcall))
+					l_post.set_free
+					l_proc.add_contract (l_post)
+				end
 			end
 
 				-- Generate frame axiom, unless function reads universe
