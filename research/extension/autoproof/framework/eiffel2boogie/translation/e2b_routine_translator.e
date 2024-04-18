@@ -833,15 +833,9 @@ feature -- Translation: Functions
 			across l_function.arguments as a loop
 				l_fcall.add_argument (a.entity)
 			end
-			if a_read and not a_feature.is_invariant_unfriendly then
-				create l_forall.make (factory.implies_ (
-						factory.is_heap (l_translator.entity_mapping.heap),
-						frame_definition (l_exprs, l_fcall, <<factory.entity ("closed", types.field (types.bool)), factory.entity ("owner", types.field (types.ref))>>)))
-			else
-				create l_forall.make (factory.implies_ (
-						factory.is_heap (l_translator.entity_mapping.heap),
-						frame_definition (l_exprs, l_fcall, <<>>)))
-			end
+			create l_forall.make (factory.implies_ (
+					factory.is_heap (l_translator.entity_mapping.heap),
+					frame_definition (l_exprs, l_fcall)))
 			across l_function.arguments as a loop
 				l_forall.add_bound_variable (a.entity)
 			end
