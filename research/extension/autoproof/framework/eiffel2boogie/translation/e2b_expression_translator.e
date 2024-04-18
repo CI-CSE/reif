@@ -744,19 +744,16 @@ feature -- Visitors
 			current_target_type := l_current_type
 		end
 
-	call_variant (node: ROUTINE_B): E2B_FEATURE_VARIANT
-			-- Variant of the routine call represented by `node`.
+	call_variant (routine: ROUTINE_B): E2B_FEATURE_VARIANT
+			-- Variant of the routine call represented by `routine`.
 		do
-			-- only FEATURE_B is supported now
-			check attached {FEATURE_B} node as feat then
-				if attached {NESTED_B} feat.parent as nest then
-					check attached nest.target as t then
-						create Result.qualified
-					end
-				else
-					-- No parent, it is just a call to feature, so unqualified
-					create Result.unqualified
+			if attached {NESTED_B} routine.parent as nested then
+				check attached nested.target as t then
+					create Result.qualified
 				end
+			else
+				-- No parent, it is just a call to feature, so unqualified
+				create Result.unqualified
 			end
 		end
 
@@ -885,6 +882,7 @@ feature -- Visitors
 			l_name: STRING
 
 			type_translator: E2B_TYPE_TRANSLATOR
+			inv_filter: E2B_INVARIANT_FILTER
 		do
 			l_handler := translation_mapping.handler_for_nested (a_node)
 			if
@@ -950,10 +948,23 @@ feature -- Visitors
 				end
 
 
-				-- Check Current's invariant if qualified call
+				-- Check client's invariant for the qualified call
 				create type_translator
-				across type_translator.translate_invariant (current_target_type) as i loop
-					add_safety_check (i.expression, "qual_inv", i.node_info.tag.to_string_8, context_line_number)
+				create inv_filter
+				check attached {CALL_ACCESS_B} a_node.message as f then
+					inv_filter.required_export_status := f.System
+						.class_of_id (f.written_in)
+						.feature_of_feature_id (f.feature_id)
+						.export_status
+
+					if not attached {E2B_INVARIANT_FEAT_I} context_feature then
+						-- HACK!!!! TODO: check if correct
+						-- Dont' check if in invariant already
+
+						across type_translator.translate_invariant (l_target_type, inv_filter, Void) as i loop
+							add_safety_check (i.expression, "qual_inv", i.node_info.tag.to_string_8, context_line_number)
+						end
+					end
 				end
 
 					-- Evaluate message with original expression

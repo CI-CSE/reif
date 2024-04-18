@@ -81,6 +81,8 @@ feature -- Translation: Signature
 			type_translator: E2B_TYPE_TRANSLATOR
 			post: IV_POSTCONDITION
 			pre: IV_PRECONDITION
+			ent: IV_ENTITY
+			inv_filter: E2B_INVARIANT_FILTER
 		do
 			set_context (a_feature, a_type)
 			translation_pool.add_type (current_type)
@@ -171,19 +173,53 @@ feature -- Translation: Signature
 
 			if a_variant = {E2B_FEATURE_VARIANT}.qualified then
 				create type_translator
-				across type_translator.translate_invariant (current_type) as i loop
-					create post.make (i.expression)
-					post.node_info.set_type ("inv_post")
-					post.node_info.set_tag (i.node_info.tag)
-					post.node_info.set_line (i.node_info.line.to_integer_32)
-					current_boogie_procedure.add_contract (post)
 
+				-- free require INV_LOC/r
+				create inv_filter
+				inv_filter.include_local := 1
+				inv_filter.required_export_status := a_feature.export_status
+				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
 					create pre.make (i.expression)
 					pre.node_info.set_type ("inv_pre")
 					pre.node_info.set_tag (i.node_info.tag)
 					pre.node_info.set_line (i.node_info.line.to_integer_32)
 					pre.set_free
 					current_boogie_procedure.add_contract (pre)
+				end
+
+				-- ensure INV/r
+				create inv_filter
+				inv_filter.required_export_status := a_feature.export_status
+				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
+					create post.make (i.expression)
+					post.node_info.set_type ("inv_post")
+					post.node_info.set_tag (i.node_info.tag)
+					post.node_info.set_line (i.node_info.line.to_integer_32)
+					current_boogie_procedure.add_contract (post)
+				end
+
+				across arguments_of_current_feature as arg loop
+					create ent.make (arg.name, arg.boogie_type)
+
+					-- require argument.INV/r
+					create inv_filter
+					inv_filter.required_export_status := a_feature.export_status
+					across type_translator.translate_invariant (arg.type, inv_filter, ent) as i loop
+						create pre.make (i.expression)
+						pre.node_info.set_type ("arg_inv_pre")
+						pre.node_info.set_tag (i.node_info.tag)
+						pre.node_info.set_line (i.node_info.line.to_integer_32)
+						current_boogie_procedure.add_contract (pre)
+					end
+
+					-- ensure full argument.INV
+					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
+						create post.make (i.expression)
+						post.node_info.set_type ("arg_inv_post")
+						post.node_info.set_tag (i.node_info.tag)
+						post.node_info.set_line (i.node_info.line.to_integer_32)
+						current_boogie_procedure.add_contract (post)
+					end
 				end
 			end
 

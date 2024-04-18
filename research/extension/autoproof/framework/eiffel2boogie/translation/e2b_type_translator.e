@@ -148,8 +148,12 @@ feature -- Basic operations
 			generate_filtered_invariant_axiom (a_included, a_excluded, a_ancestor)
 		end
 
-	translate_inline_invariant_check (a_type: E2B_CL_TYPE_A; a_target: IV_EXPRESSION)
-			-- Translate the invariant of `a_type' into assert statements and store them in `last_clauses'.
+	translate_invariant (a_type: E2B_CL_TYPE_A; a_filter: E2B_INVARIANT_FILTER; a_target: IV_EXPRESSION): LINKED_LIST [IV_ASSERT]
+			-- Translate the invariant of `a_type` with target `a_target` into assert statements.
+			-- If `a_target` is `Void`, then target is `Current`
+			--
+			-- If `a_filter` is not `Void`, only invariants matching `a_filter`
+			-- are processed and returned
 		local
 			l_mapping: E2B_ENTITY_MAPPING
 		do
@@ -159,19 +163,23 @@ feature -- Basic operations
 				switch_byte_context (a_type, a_type)
 			end
 			type := a_type
-			if a_target.same_expression (factory.std_current) then
+			if a_target = Void and a_filter = Void then
 					-- Standard target: use cache
 				if invariant_check_cache.has_key (type) then
-					last_clauses := invariant_check_cache [type]
+					Result := invariant_check_cache [type]
 				else
+					create builtin_collector
 					create l_mapping.make
-					generate_invariant_clauses (Void, Void, type.base_class, l_mapping)
-					invariant_check_cache.put (last_clauses, type)
+					Result := collect_invariants (type.base_class, Void, l_mapping)
+					invariant_check_cache.put (Result, type)
 				end
 			else
+				create builtin_collector
 				create l_mapping.make
-				l_mapping.set_current (a_target)
-				generate_invariant_clauses (Void, Void, type.base_class, l_mapping)
+				if a_target /= Void then
+					l_mapping.set_current (a_target)
+				end
+				Result := collect_invariants (type.base_class, a_filter, l_mapping)
 			end
 			helper.unswitch_byte_context
 		end
@@ -256,49 +264,6 @@ feature {NONE} -- Implementation
 			-- if `a_included /= Void', include only those clauses;
 			-- if `a_excluded /= Void', exclude those clauses;
 			-- restrict clauses to those inherited from `a_ancestor'.
-		require
-			type_exists: type /= Void
-			valid_type: type.is_class_valid
-			no_like_type: not type.is_like
-			a_ancestor_exists: a_ancestor /= Void
-			not_both: a_included = Void or a_excluded = Void
-		local
-			l_heap, l_current: IV_ENTITY
-			l_inv_function: IV_FUNCTION
-			l_mapping: E2B_ENTITY_MAPPING
-		do
-			l_heap := factory.entity ("heap", types.heap)
-			l_current := factory.entity ("current", types.ref)
-
-			if a_included = Void and a_excluded = Void and a_ancestor.class_id = type.base_class.class_id then
-				create l_inv_function.make (name_translator.boogie_function_for_invariant (type), types.bool)
-				l_inv_function.set_inline
-			else
-				create l_inv_function.make (name_translator.boogie_function_for_filtered_invariant (type, a_included, a_excluded, a_ancestor), types.bool)
-			end
-
-			if boogie_universe.function_named (l_inv_function.name) = Void then
-				l_inv_function.add_argument (l_heap.name, l_heap.type)
-				l_inv_function.add_argument (l_current.name, l_current.type)
-				boogie_universe.add_declaration (l_inv_function)
-
-				create l_mapping.make
-				l_mapping.set_heap (l_heap)
-				l_mapping.set_current (l_current)
-
-				if type.base_class.is_tuple then
-					generate_tuple_invariant_clauses (l_mapping)
-				else
-					generate_invariant_clauses (a_included, a_excluded, a_ancestor, l_mapping)
-				end
-
-				l_inv_function.set_body (factory.conjunction (last_clauses))
-			end
-		end
-
-	generate_invariant_clauses (a_included, a_excluded: LIST [STRING]; a_ancestor: E2B_CLASS_C; a_mapping: E2B_ENTITY_MAPPING)
-			-- Translate invariant clauses for `type' using `a_mapping', add default clauses;
-			-- store result in `last_clauses'.
 		do
 		end
 
@@ -331,28 +296,10 @@ feature {NONE} -- Implementation
 	processed_classes: ARRAYED_LIST [INTEGER]
 			-- List of classes already seen during the latest call to `process_invariants'.
 
-feature
+feature {NONE}
 
-	translate_invariant (a_type: E2B_CL_TYPE_A): LINKED_LIST [IV_ASSERT]
-		require
-			a_type_exists: a_type /= Void
-		local
-			l_class: E2B_CLASS_C
-			mapping: E2B_ENTITY_MAPPING
-		do
-			type := a_type
-			l_class := type.base_class
-
-			create mapping.make
-			mapping.set_heap (factory.entity ("heap", types.heap))
-			mapping.set_current (factory.entity ("current", types.ref))
-			create builtin_collector
-			Result := collect_invariants (l_class, Void, Void, mapping)
-		end
-
-
-	collect_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
-			-- Process invariants of `a_class' and its ancestors, and return them.
+	collect_invariants (a_class: E2B_CLASS_C; a_filter: E2B_INVARIANT_FILTER; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
+			-- Process invariants of `a_class' which match and its ancestors, and return them.
 		require
 			a_class_exists: a_class /= Void
 			a_mapping_exists: a_mapping /= Void
@@ -362,11 +309,11 @@ feature
 			create processed_classes.make (5)
 
 			processed_classes.extend (system.any_id)
-			Result := collect_flat_invariants (a_class, a_included, a_excluded, a_mapping)
+			Result := collect_flat_invariants (a_class, a_filter, a_mapping)
 		end
 
 
-	collect_flat_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
+	collect_flat_invariants (a_class: E2B_CLASS_C; a_filter: E2B_INVARIANT_FILTER; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
 			-- Recursively process invariants of `a_class' and its ancestors.
 		local
 			l_classes: FIXED_LIST [E2B_CLASS_C]
@@ -379,23 +326,15 @@ feature
 				l_classes.after
 			loop
 				if not processed_classes.has (l_classes.item.class_id) then
-					Result.append (collect_flat_invariants (l_classes.item,a_included, a_excluded, a_mapping))
+					Result.append (collect_flat_invariants (l_classes.item, a_filter, a_mapping))
 				end
 				l_classes.forth
 			end
-			Result.append (collect_immediate_invariants (a_class, a_included, a_excluded, a_mapping))
+			Result.append (collect_immediate_invariants (a_class, a_filter, a_mapping))
 			processed_classes.extend (a_class.class_id)
 		end
 
-	is_tag_included (a_included, a_excluded: LIST [READABLE_STRING_8]; a_tag: READABLE_STRING_8): BOOLEAN
-			-- Should `a_tag' be included into the invariant function according `a_included' and `a_excluded'?
-		do
-			Result := (a_included = Void and a_excluded = Void) or else    -- Processing full invariant
-				(a_included /= Void and then a_tag /= Void and then a_included.has (a_tag)) or else -- Or explicitly included
-				(a_excluded /= Void and then (a_tag = Void or else not a_excluded.has (a_tag))) -- Or not expliciltly excluded
-		end
-
-	collect_immediate_invariants (a_class: E2B_CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
+	collect_immediate_invariants (a_class: E2B_CLASS_C; a_filter: E2B_INVARIANT_FILTER; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_ASSERT]
 			-- Process invariants written in `a_class'.
 		require
 			a_class_not_void: a_class /= Void
@@ -412,7 +351,7 @@ feature
 				across
 					inv_byte_server.item (a_class.class_id).byte_list as l_assert
 				loop
-					if is_tag_included (a_included, a_excluded, l_assert.tag) then
+					if a_filter = Void or else a_filter.is_matching (l_assert) then
 						create l_translator.make
 						l_translator.set_context (a_class.invariant_feature, type)
 							-- Entity mapping should be copied after setting the context
