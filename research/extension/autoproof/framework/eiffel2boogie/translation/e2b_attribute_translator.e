@@ -31,10 +31,7 @@ feature -- Basic operations
 			l_class_type := current_type.base_class.class_type_in_context (current_feature.type, Void, current_type)
 
 			if current_feature.is_built_in_attribute then
-					-- It's a built-in redefinition: only generate the guard.
-					-- TODO: check that type is unchanged
-				l_attribute_name := current_feature.feature_name
-				generate_guard (l_class_type, l_attribute_name, translation_mapping.ghost_access_type (l_attribute_name))
+					-- It's a built-in redefinition: nothing to do
 			else
 				l_attribute_name := name_translator.boogie_procedure_for_feature (current_feature, current_type)
 				l_boogie_type := types.for_class_type (l_class_type)
@@ -82,38 +79,9 @@ feature -- Basic operations
 					-- Check if it replaces old models correctly
 				check_model_replacement
 
-					-- Add guard
-				generate_guard (l_class_type, l_attribute_name, l_boogie_type)
-
 					-- Add translation references
 				translation_pool.add_type (l_class_type)
 			end
-		end
-
-	generate_guard (a_type: E2B_CL_TYPE_A; a_boogie_name: READABLE_STRING_8; a_boogie_type: IV_TYPE)
-			-- Generate update guard for attribute `current_feature' of type `a_type' inside `current_type',
-			-- where the Boogie translation of the attribute has name `a_boogie_name' and type `a_boogie_type'.
-		local
-			l_h, l_cur, l_f, l_v, l_o: IV_ENTITY
-			l_fcall: IV_FUNCTION_CALL
-			l_def: IV_EXPRESSION
-			l_guard: detachable IV_EXPRESSION
-		do
-			create l_h.make ("heap", types.heap)
-			create l_cur.make ("current", types.ref)
-			create l_f.make (a_boogie_name, types.field (a_boogie_type))
-			create l_v.make ("v", a_boogie_type)
-			create l_o.make ("o", types.ref)
-			l_fcall := factory.function_call ("guard", <<l_h, l_cur, l_f, l_v, l_o>>, types.bool)
-			l_def := factory.true_
-			across current_feature.guards_for_attribute as guard_str_and_class loop
-				l_guard := guard_from_string (guard_str_and_class.str, guard_str_and_class.origin, a_type, l_h, l_cur, l_f, l_v, l_o)
-				check attached l_guard as att_guard then
-					l_def := factory.and_clean (l_def, att_guard)
-				end
-			end
-
-			factory.add_dynamic_predicate_definition (l_fcall, l_def, current_type, l_h, l_cur, <<l_v, l_o>>)
 		end
 
 	translate_tuple_field (a_context_type: E2B_CL_TYPE_A; a_position: INTEGER)
