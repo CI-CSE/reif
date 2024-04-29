@@ -310,6 +310,54 @@ feature -- Testing
 			)
 		end
 
+	creator_pre_post_conditions
+		local
+			tags: like inv_pre_post_contract_tags
+			proc: IV_PROCEDURE
+		do
+			print_file ("demo.e", "[
+			class
+				DEMO
+
+			create
+				make, make_arg
+			feature
+				make
+					do
+					end
+
+				make_arg (arg: A)
+					do
+					end
+
+			invariant
+				inv1: 1 = 1
+			end
+			]")
+			print_file ("a.e", "[
+				class
+					A
+				invariant
+					a_inv1: 2 = 2
+				end
+			]")
+			print_ecf ("DEMO")
+			command.add_feature ("make_arg", "DEMO")
+
+			verify
+
+
+			proc := procedure_by_name ("create.DEMO.make_arg")
+			assert ("No own inv in precondition",
+				not attached contract_by_tag_and_type ("inv1", "inv_pre", proc))
+			assert ("Own inv in postcondition",
+				attached contract_by_tag_and_type ("inv1", "inv_post", proc))
+			assert ("Argument inv in precondition",
+				attached contract_by_tag_and_type ("a_inv1", "arg_inv_pre", proc))
+			assert ("Argument inv in postcondition",
+				attached contract_by_tag_and_type ("a_inv1", "arg_inv_post", proc))
+		end
+
 	translate_arguments
 		local
 			qualified, unqualified: IV_PROCEDURE

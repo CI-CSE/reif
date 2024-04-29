@@ -221,14 +221,46 @@ feature -- Translation: Signature
 						current_boogie_procedure.add_contract (post)
 					end
 				end
-			end
-
+			elseif a_variant = {E2B_FEATURE_VARIANT}.creator then
 				-- Creator: add default field initialization
-			if a_variant.is_creator then
 				add_field_default_initialization (a_type)
 					-- If it is `default_create' from any, add special post
 				if current_feature.written_in = system.any_id and current_feature.rout_id_set.first = system.default_create_rout_id then
 					add_default_create_postcondition
+				end
+
+				create type_translator
+
+				-- ensure INV
+				across type_translator.translate_invariant (current_type, Void, Void) as i loop
+					create post.make (i.expression)
+					post.node_info.set_type ("inv_post")
+					post.node_info.set_tag (i.node_info.tag)
+					post.node_info.set_line (i.node_info.line.to_integer_32)
+					current_boogie_procedure.add_contract (post)
+				end
+
+
+				across arguments_of_current_feature as arg loop
+					create ent.make (arg.name, arg.boogie_type)
+
+					-- require full argument.INV
+					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
+						create pre.make (i.expression)
+						pre.node_info.set_type ("arg_inv_pre")
+						pre.node_info.set_tag (i.node_info.tag)
+						pre.node_info.set_line (i.node_info.line.to_integer_32)
+						current_boogie_procedure.add_contract (pre)
+					end
+
+					-- ensure full argument.INV
+					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
+						create post.make (i.expression)
+						post.node_info.set_type ("arg_inv_post")
+						post.node_info.set_tag (i.node_info.tag)
+						post.node_info.set_line (i.node_info.line.to_integer_32)
+						current_boogie_procedure.add_contract (post)
+					end
 				end
 			end
 
