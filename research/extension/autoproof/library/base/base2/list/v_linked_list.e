@@ -21,10 +21,21 @@ inherit
 			last,
 			new_cursor,
 			is_equal_,
-			reverse
+			reverse,
+			default_create
 		end
 
+create default_create
+
 feature -- Initialization
+
+	default_create
+		note
+			status: creator
+		do
+			create sequence.default_create
+			create cells.default_create
+		end
 
 	copy_ (other: V_LIST [G])
 			-- Initialize by copying all the items of `other'.
@@ -206,7 +217,7 @@ feature -- Replacement
 				not rest_cells.is_empty implies rest = rest_cells.first and rest_cells.last.right = Void
 				rest_cells.is_empty = (rest = Void)
 
-				cells.old_.tail (cells.count + 1) = rest_cells
+				cells.old_.tail_from (cells.count + 1) = rest_cells
 				∀ i: 1 |..| cells.count ¦ cells [i] = cells.old_ [cells.count - i + 1]
 				cells.range = cells.old_.front (cells.count).range
 
@@ -315,7 +326,7 @@ feature -- Extension
 					it.target = Current
 					observers = observers.old_ & it
 					∀ o: observers.old_ ¦ o.is_open
-					cells.old_ ~ cells.tail (it.index_ + 1)
+					cells.old_ ~ cells.tail_from (it.index_ + 1)
 				until
 					input.after
 				loop
@@ -330,7 +341,7 @@ feature -- Extension
 				forget_iterator (it)
 			end
 		ensure then
-			cells_preserved: old cells ~ cells.tail (input.sequence.count - old input.index_ + 2)
+			cells_preserved: old cells ~ cells.tail_from (input.sequence.count - old input.index_ + 2)
 		end
 
 	insert_at (input: V_ITERATOR [G]; i: INTEGER)
@@ -355,7 +366,7 @@ feature -- Extension
 					it.index_ <= it.sequence.count
 					it.index_ - i + 1 = input.index_ - input.index_.old_
 					s = input.sequence.interval (input.index_.old_, input.index_ - 1)
-					sequence ~ sequence.old_.front (i - 1) + s + sequence.old_.tail (i)
+					sequence ~ sequence.old_.front (i - 1) + s + sequence.old_.tail_from (i)
 					is_wrapped
 					input.is_wrapped
 					it.is_wrapped
@@ -623,16 +634,16 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 					c.put_right (other_first)
 				end
 				count_ := count_ + other_count
-				cells := cells.front (index_) + other.cells.old_ + cells.tail (index_ + 1)
-				sequence := sequence.front (index_) + other.sequence.old_ + sequence.tail (index_ + 1)
+				cells := cells.front (index_) + other.cells.old_ + cells.tail_from (index_ + 1)
+				sequence := sequence.front (index_) + other.sequence.old_ + sequence.tail_from (index_ + 1)
 				wrap
 			end
 		ensure
 			wrapped: is_wrapped
 			other_wrapped: other.is_wrapped
-			sequence_effect: sequence = old (sequence.front (index_) + other.sequence + sequence.tail (index_ + 1))
+			sequence_effect: sequence = old (sequence.front (index_) + other.sequence + sequence.tail_from (index_ + 1))
 			other_sequence_effect: other.sequence.is_empty
-			cells_effect: cells = old (cells.front (index_) + other.cells + cells.tail (index_ + 1))
+			cells_effect: cells = old (cells.front (index_) + other.cells + cells.tail_from (index_ + 1))
 			modify_model ("sequence", [Current, other])
 		end
 

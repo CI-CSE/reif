@@ -188,13 +188,13 @@ feature -- Comparison
 					inv
 					1 <= i and i <= lists.count + 1
 					Result implies ∀ j: 1 |..| (i - 1) ¦
-							∀ k: 1 |..| lists [j].sequence.count ¦
-								other.map.domain [lists [j].sequence [k].left] and then
-								other.map [lists [j].sequence [k].left] = lists [j].sequence [k].right
+						∀ k: 1 |..| lists [j].sequence.count ¦
+							other.map.domain [lists [j].sequence [k].left] and then
+							other.map [lists [j].sequence [k].left] = lists [j].sequence [k].right
 					not Result implies i > 1 and then not
-							(∀ k: 1 |..| lists [i - 1].sequence.count ¦
-									other.map.domain [lists [i - 1].sequence [k].left] and then
-									other.map [lists [i - 1].sequence [k].left] = lists [i - 1].sequence [k].right)
+						(∀ k: 1 |..| lists [i - 1].sequence.count ¦
+								other.map.domain [lists [i - 1].sequence [k].left] and then
+								other.map [lists [i - 1].sequence [k].left] = lists [i - 1].sequence [k].right)
 				until
 					i > buckets.count or not Result
 				loop
@@ -323,8 +323,8 @@ feature {V_CONTAINER, V_ITERATOR, V_LOCK} -- Implementation
 			lock_closed: lock.closed
 		do
 			check inv_only ("locked_definition", "owns_definition", "buckets_non_empty", "buckets_lower", "buckets_count",
-						"lists_definition", "lists_counts", "buckets_content", "domain_not_too_small", "map_implementation",
-						"items_locked", "no_duplicates", "valid_buckets") end
+					"lists_definition", "lists_counts", "buckets_content", "domain_not_too_small", "map_implementation",
+					"items_locked", "no_duplicates", "valid_buckets") end
 			check lock.inv_only ("owns_definition", "equivalence_definition", "hash_domain_definition", "hash_definition") end
 			Result := cell_equal (buckets [index (k)], k)
 			check ∀ j: 1 |..| buckets_ [index (k)].count ¦ buckets_ [index (k)] [j] = lists [index (k)].sequence [j].left end
@@ -422,12 +422,12 @@ feature {V_CONTAINER, V_ITERATOR, V_LOCK} -- Implementation
 				buckets.is_wrapped
 				buckets.sequence.count = n
 				∀ j: 1 |..| (i - 1) ¦
-						buckets.sequence [j].is_wrapped and
-						buckets.sequence [j].is_fresh and
-						buckets.sequence [j].sequence.is_empty and
-						buckets.sequence [j].observers.is_empty
+					buckets.sequence [j].is_wrapped and
+					buckets.sequence [j].is_fresh and
+					buckets.sequence [j].sequence.is_empty and
+					buckets.sequence [j].observers.is_empty
 				∀ k: 1 |..| (i - 1) ¦ ∀ l: 1 |..| (i - 1) ¦
-							k /= l implies buckets.sequence [k] /= buckets.sequence [l]
+						k /= l implies buckets.sequence [k] /= buckets.sequence [l]
 				modify_model ("sequence", buckets)
 			until
 				i > n
@@ -622,31 +622,35 @@ feature {V_CONTAINER, V_ITERATOR, V_LOCK} -- Implementation
 			unwrap
 			make_empty_buckets (c)
 			from
-				i := 1
+				i := b.lower
 			invariant
 				is_wrapped
 				∀ j: 1 |..| b.sequence.count ¦ b.sequence [j].is_wrapped
 				lists.count = c
 				inv_only ("locked_definition")
 				locked <= locked.old_
+				i /= b.lower ⇒ (b.lower <= i ∧ i <= b.upper + 1)
 				∀ x: locked ¦ map [x] = map.old_ [x]
 				∀ k: 1 |..| buckets_.old_.count ¦ ∀ l: 1 |..| buckets_.old_ [k].count ¦
-							map.domain [buckets_.old_ [k] [l]] = (k < i)
+						map.domain [buckets_.old_ [k] [l]] = (k < i) -- TODO not yet verifying
 				modify_model ("map", Current)
 				modify_field (["observers", "closed"], lists.old_.range)
 			until
-				i > b.count
+				i > b.upper
 			loop
+				check b.inv end
+				check b.has_index (i) end
 				from
 					it := b [i].new_cursor
 				invariant
+					b.lower <= i and i <= b.upper
 					is_wrapped
 					it.is_wrapped
 					inv_only ("locked_definition")
 					1 <= it.index_ and it.index_ <= b.sequence [i].count + 1
 					lists.count = c
 					∀ k: 1 |..| buckets_.old_.count ¦ ∀ l: 1 |..| buckets_.old_ [k].count ¦
-								map.domain [buckets_.old_ [k] [l]] = (k < i or (k = i and l < it.index_))
+							map.domain [buckets_.old_ [k] [l]] = (k < i or (k = i and l < it.index_))
 					locked <= locked.old_
 					∀ x: locked ¦ map [x] = map.old_ [x]
 					modify_model ("map", Current)
@@ -696,9 +700,9 @@ feature {V_CONTAINER, V_ITERATOR, V_LOCK} -- Implementation
 				i_ <= list.sequence.count implies c = list.cells [i_]
 				i_ = list.sequence.count + 1 implies c = Void
 				Result implies ∀ j: 1 |..| (i_ - 1) ¦
-						other.map.domain [list.sequence [j].left] and then other.map [list.sequence [j].left] = list.sequence [j].right
+					other.map.domain [list.sequence [j].left] and then other.map [list.sequence [j].left] = list.sequence [j].right
 				not Result implies i_ > 1 and then
-					(not other.map.domain [list.sequence [i_ - 1].left] or else other.map [list.sequence [i_ - 1].left] /= list.sequence [i_ - 1].right)
+				(not other.map.domain [list.sequence [i_ - 1].left] or else other.map [list.sequence [i_ - 1].left] /= list.sequence [i_ - 1].right)
 			until
 				c = Void or not Result
 			loop
@@ -775,9 +779,9 @@ feature -- Specification
 					1 <= j and j <= lists.count + 1
 					htit.list_iterator.is_open
 					∀ k: 1 |..| lists.count ¦ lists [k].is_wrapped and then
-							lists [k].observers = if k >= j and k /= i
-								then lists [k].observers.old_
-								else lists [k].observers.old_ / htit.list_iterator end
+						lists [k].observers = if k >= j and k /= i
+							then lists [k].observers.old_
+							else lists [k].observers.old_ / htit.list_iterator end
 					inv_only ("A2", "items_locked", "no_duplicates", "valid_buckets")
 					modify_field (["observers", "closed"], lists.range)
 				until

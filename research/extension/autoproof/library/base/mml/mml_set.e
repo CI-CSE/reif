@@ -6,7 +6,7 @@
 	maps_to: "Set"
 	type_properties: "Set#ItemsType"
 
-class MML_SET [G]
+class MML_SET [G -> detachable separate ANY]
 
 inherit
 		-- Li: a set must be iterable
@@ -42,23 +42,17 @@ feature {NONE} -- Initialization
 
 feature -- io
 	out: STRING
-		local
-			i: INTEGER
-			separator: STRING
 		do
 			Result := "{"
-			from
-				i := 1
-			until
-				i > array.count
-			loop
-				separator := if i = array.count then "" else ", " end
+			⟳ i: 1 |..| array.count ¦
 				if attached {ANY} array [i] as att_i then
-					Result := Result + att_i.out + separator
+					Result := Result + att_i.out + ", "
 				else
-					Result := Result + "NA" + separator
+					Result := Result + "NA, "
 				end
-				i := i + 1
+			⟲
+			if array.count > 0 then
+				Result.remove_tail (2)
 			end
 			Result := Result + "}"
 		end
@@ -224,9 +218,13 @@ feature -- Modification
 		do
 				-- check is_executable: False then end
 			Result := Current - other
-			Result.array.resize (1, Result.array.count + other.array.count)
+
+			if Result.array.count + other.array.count > 0 then
+				Result.array.resize (1, Result.array.count + other.array.count)
 				-- Result.array.array_copy_range (other.array, 1, other.array.count, Result.array.count - other.count + 1)
-			Result.array.area.copy_data (other.array.area, 1 - other.array.lower, Result.array.count - other.count + 1 - Result.array.lower, other.array.count)
+				Result.array.area.copy_data (other.array.area, 1 - other.array.lower, Result.array.count - other.count + 1 - Result.array.lower, other.array.count)
+			end
+
 		ensure
 			contains_current: Current <= Result
 			contains_other: other <= Result

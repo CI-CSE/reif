@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Cells that can be linked to two neighbour cells."
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -55,7 +55,7 @@ feature -- Replacement
 		end
 
 	insert_right (front, back: V_DOUBLY_LINKABLE [G])
-			-- Insert a list segment `front'-`back' to the right of current cell.
+			-- Insert a list segment `front' - `back' to the right of current cell.
 		note
 			explicit: contracts, wrapping
 		require
@@ -63,36 +63,43 @@ feature -- Replacement
 			front_wrapped: front.is_wrapped
 			back_wrapped: back.is_wrapped
 			right_wrapped: attached right as r implies r.is_wrapped
-			segment_start: front.left = Void
-			segment_end: back.right = Void
+			segment_start: not attached front.left
+			segment_end: not attached back.right
+			different_elements: Current /= back
+		local
+			right_was_void: BOOLEAN
 		do
+			right_was_void := not attached right
 			unwrap_all (
-				create {MML_SET [ANY]}
+					create {MML_SET [ANY]}
 					& Current
 						-- if right is Void, then we put Current again as a no-op
 						-- because we just added Current before
 					& if attached right as r then r else Current end
 					& front
 					& back
-			)
+				)
 			if attached right as attached_right then
 				back.put_right (attached_right)
 				attached_right.put_left (back)
 			end
+			check right_was_void ⇒ not attached back.right end
 			put_right (front)
+			check right_was_void ⇒ not attached back.right end
 			front.put_left (Current)
 			wrap_all (
-				create {MML_SET [ANY]}
+					create {MML_SET [ANY]}
 					& Current
 						-- if back_right is Void, then we put Current again as a no-op
 						-- because we just added Current before
 					& if attached back.right as back_right then back_right else Current end
 					& front
 					& back
-			)
+				)
 		ensure
 			front_connected_and_wrapped: right = front
-			back_connected: back.right = old right
+			back_connected: attached (old right) ⇒ back.right = old right
+			back_connected2: not attached (old right) ⇒ back.right = old back.right
 			wrapped: is_wrapped
 			front_wrapped: front.is_wrapped
 			back_wrapped: back.is_wrapped
@@ -107,31 +114,34 @@ feature -- Replacement
 			explicit: contracts, wrapping
 		require
 			wrapped: is_wrapped
-			right_wrapped: attached right as r and then r.is_wrapped
-			next_wrapped: attached right as current_right and then
-				attached current_right.right as right_right implies right_right.is_wrapped
+			right_wrapped: attached right as r ∧… r.is_wrapped
+			next_wrapped: attached right as current_right ∧…
+				attached current_right.right as right_right ⇒ right_right.is_wrapped
 		do
-			if attached right as attached_right then
+			check attached right as attached_right then
 				unwrap_all (
-					create {MML_SET [ANY]}
+						create {MML_SET [ANY]}
 						& Current
 						& attached_right
 						& if attached attached_right.right as right_right
-								then right_right
-								else attached_right end
-				)
+						then right_right
+						else attached_right end
+					)
 				put_right (attached_right.right)
+			end
+			if attached right as attached_right then
 				attached_right.put_left (Current)
 				wrap_all (create {MML_SET [ANY]} & Current & attached_right)
+			else
+				wrap_all (create {MML_SET [ANY]} & Current)
 			end
 		ensure
-			right_set: old right = Void implies right = Void
-			right_set_old_right_right: attached old right as r implies right = r.right
 			wrapped: is_wrapped
-			right_wrapped: attached right as r implies r.is_wrapped
+			right_set: not attached (old right) ⇒ not attached right
+			right_set_old_right_right: if attached (old right) as old_right then right = old_right.right else True end
+			right_wrapped: attached right as r ⇒ r.is_wrapped
 			modify_model (["right", "subjects", "observers"], Current)
-			attached right as r and then attached r.right as rr implies
-			  modify_model (["left", "subjects", "observers"], rr)
+			modify_model (["left", "subjects", "observers"], if attached right as r ∧… attached r.right as rr then create {MML_SET[like Current]}.singleton (rr) else create {MML_SET[like Current]} end)
 			modify (right)
 		end
 
@@ -193,8 +203,8 @@ feature -- Specification
 
 invariant
 	subjects_definition: subjects =
-		if attached left as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end +
-		if attached right as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end
+			if attached left as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end +
+			if attached right as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end
 	observers_definition: observers = subjects
 	left_consistent: attached left as l implies l.right = Current
 	right_consistent: attached right as r implies r.left = Current
@@ -210,4 +220,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

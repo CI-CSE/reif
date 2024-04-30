@@ -11,6 +11,7 @@ class MML_PAIR [G, H]
 inherit
 	ANY
 		redefine
+--			default_create,
 			is_equal,
 			out
 		end
@@ -23,15 +24,29 @@ feature {NONE} -- Initialization
 	make (x: G; y: H)
 			-- Create a pair (`x', `y').
 		do
-			left := x
-			right := y
+			priv_left := x
+			priv_right := y
 		end
+
+feature {NONE} -- Fields
+	priv_left: G
+	priv_right: H
 
 feature -- Access
 
 	left: G -- Left component.
+		note
+			maps_to: "Pair#Left"
+		do
+			Result := priv_left
+		end
 
 	right: H -- Right component.
+		note
+			maps_to: "Pair#Right"
+		do
+			Result := priv_right
+		end
 
 feature -- io
 	out: STRING

@@ -121,7 +121,7 @@ feature -- Extension
 				input.sequence.count - input.index_
 			end
 		ensure
-			sequence_effect: sequence ~ old (sequence + input.sequence.tail (input.index_))
+			sequence_effect: sequence ~ old (sequence + input.sequence.tail_from (input.index_))
 			input_index_effect: input.index_ = input.sequence.count + 1
 			modify_model ("sequence", Current)
 			modify_model ("index_", input)
@@ -137,7 +137,7 @@ feature -- Extension
 			observers_open: ∀ o: observers ¦ o.is_open
 		deferred
 		ensure
-			sequence_effect: sequence ~ old (input.sequence.tail (input.index_) + sequence)
+			sequence_effect: sequence ~ old (input.sequence.tail_from (input.index_) + sequence)
 			input_index_effect: input.index_ = input.sequence.count + 1
 			observers_preserved: observers ~ old observers
 			modify_model (["sequence", "observers"], Current)
@@ -155,7 +155,7 @@ feature -- Extension
 			observers_open: ∀ o: observers ¦ o.is_open
 		deferred
 		ensure
-			sequence_effect: sequence ~ old (sequence.front (i - 1) + input.sequence.tail (input.index_) + sequence.tail (i))
+			sequence_effect: sequence ~ old (sequence.front (i - 1) + input.sequence.tail_from (input.index_) + sequence.tail_from (i))
 			input_index_effect: input.index_ = input.sequence.count + 1
 			observers_preserved: observers ~ old observers
 			modify_model (["sequence", "observers"], Current)

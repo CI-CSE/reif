@@ -19,13 +19,17 @@ feature {NONE} -- Initialization
 			-- Create a special object for `n' entries.
 		note
 			status: creator
+			explicit: wrapping
 		require
 			non_negative_argument: n >= 0
 		do
+			create sequence.default_create
 			capacity := n
+			wrap
 		ensure
 			sequence_effect: sequence.is_empty
 			capacity_effect: capacity = n
+			is_wrapped
 		end
 
 	make_filled (v: T; n: INTEGER)
@@ -243,15 +247,14 @@ feature -- Element change
 			n_is_small_enough_for_destination: destination_index + n <= capacity
 --			same_type: other.conforms_to (Current)
 		do
-				-- ToDo
 			sequence := sequence.front (destination_index) +
 				other.sequence.interval (source_index + 1, source_index + n) +
-				sequence.tail (destination_index + n + 1)
+				sequence.tail_from (destination_index + n + 1)
 		ensure
 			sequence_effect: sequence ~ old (
 							sequence.front (destination_index) +
 							other.sequence.interval (source_index + 1, source_index + n) +
-							sequence.tail (destination_index + n + 1))
+							sequence.tail_from (destination_index + n + 1))
 			wrapped: is_wrapped
 			modify_model ("sequence", Current)
 		end
@@ -267,15 +270,12 @@ feature -- Element change
 			n_is_small_enough_for_source: source_index + n <= count
 			n_is_small_enough_for_destination: destination_index + n <= capacity
 		do
-				-- ToDo
 			sequence := sequence.front (destination_index) +
 				sequence.interval (source_index + 1, source_index + n) +
-				sequence.tail (destination_index + n + 1)
+				sequence.tail_from (destination_index + n + 1)
 		ensure
 			sequence_domain_effect: sequence.count = (old sequence.count).max (destination_index + n)
-			sequence_effect_data: ∀ i: (destination_index + 1) |..| (destination_index + n) ¦
-					∀ j: 1 |..| (old sequence.count) ¦
-						j = i - destination_index + source_index implies sequence [i] = (old sequence) [j]
+			sequence_effect_data: ∀ i: (destination_index + 1) |..| (destination_index + n) ¦ sequence [i] = (old sequence) [i - destination_index + source_index]
 			sequence_effect_old: ∀ i: 1 |..| (old sequence.count) ¦
 					i <= destination_index or destination_index + n < i implies sequence [i] = (old sequence) [i]
 			modify_model ("sequence", Current)
@@ -318,6 +318,7 @@ feature -- Resizing
 			current_or_fresh: Result = Current or Result.is_fresh
 			capacity_definition: Result.capacity = n
 			sequence_definition: Result.sequence ~ old sequence.front (n)
+			values_are_same: ∀ i: 1 |..| sequence.old_.count.min (n) ¦ Result.sequence [i] = sequence.old_ [i]
 			modify (Current)
 		end
 
@@ -332,7 +333,7 @@ feature -- Resizing
 			Result := aliased_resized_area (n)
 			check Result.inv end
 			check Result.sequence ~ sequence.old_.front (n) end
-			check ∀ i: 1 |..| (sequence.old_.count.min (n)) ¦ Result.sequence [i] = sequence.old_ [i] end
+			check ∀ i: 1 |..| sequence.old_.count.min (n) ¦ Result.sequence [i] = sequence.old_ [i] end
 
 			Result.fill_with (a_default_value, Result.count, n - 1)
 		ensure

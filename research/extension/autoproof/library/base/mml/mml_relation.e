@@ -53,11 +53,11 @@ feature {NONE} -- Initialization
 			same_lower: ls.lower = rs.lower
 			same_upper: ls.upper = rs.upper
 			start_from_one: ls.lower = 1
+			no_duplicates: ∀ i: 1 |..| ls.upper ¦ ∀ j: (i + 1) |..| ls.upper ¦ ls [i] /= ls [j] ∨ rs [i] /= rs [j]
 		do
 			lefts := ls
 			rights := rs
 		end
-
 
 	make_from_set (set: MML_SET [MML_PAIR [G, H]])
 		local
@@ -109,15 +109,7 @@ feature -- Sets
 		local
 			i: INTEGER
 		do
-			create Result
-			from
-				i := 1
-			until
-				i > lefts.count
-			loop
-				Result := Result & lefts [i]
-				i := i + 1
-			end
+			create Result.make_from_array (lefts)
 		end
 
 	range: MML_SET [H]
@@ -125,31 +117,30 @@ feature -- Sets
 		local
 			i: INTEGER
 		do
-			create Result
-			from
-				i := 1
-			until
-				i > rights.count
-			loop
-				Result := Result & rights [i]
-				i := i + 1
-			end
+			create Result.make_from_array (rights)
+		ensure
+			∀r: Result ¦ ∃l:lefts ¦ has (l, r)
 		end
 
 	to_set: MML_SET [MML_PAIR [G, H]]
 			-- Relation as a set of pairs.
 		local
-			i: INTEGER
+			agg: ARRAY [MML_PAIR [G, H]]
 		do
-			create Result
-			from
-				i := 1
-			until
-				i > lefts.count
-			loop
-				Result := Result & (create {MML_PAIR [G, H]}.make (lefts [i], rights [i]))
-				i := i + 1
+			if ({G}).has_default and ({H}).has_default then
+				create agg.make_empty
+				agg.grow (lefts.count) -- This is faster than force.
+				⟳ i: 1 |..| lefts.count ¦
+					agg [i] := create {MML_PAIR [G, H]}.make (lefts [i], rights [i])
+				⟲
+			else
+				create agg.make_empty
+				agg.grow (lefts.count)
+				⟳ i: 1 |..| lefts.count ¦
+					agg.force (create {MML_PAIR [G, H]}.make (lefts [i], rights [i]), i)
+				⟲
 			end
+			create Result.make_from_array (agg)
 		end
 
 	image_of (x: G): MML_SET [H]
@@ -163,7 +154,7 @@ feature -- Sets
 			-- Set of values related to any value in `subdomain'.
 		do
 				-- check is_executable: False then end
-			Result := restricted (subdomain).range
+			Result := restricted_domain (subdomain).range
 		end
 
 feature -- Measurement
@@ -185,7 +176,7 @@ feature -- Comparison
 		local
 			i: INTEGER
 		do
-			if attached {MML_RELATION [G, H]} a_other as rel and then count = rel.count then
+			if attached {MML_RELATION [G, H]} a_other as rel ∧… count = rel.count then
 				from
 					Result := True
 					i := 1
@@ -257,7 +248,7 @@ feature -- Modification
 			end
 		end
 
-	restricted alias "|" alias "/" (subdomain: MML_SET [G]): MML_RELATION [G, H]
+	restricted_domain alias "|" alias "/" (subdomain: MML_SET [G]): MML_RELATION [G, H]
 			-- Relation that consists of all pairs in `Current' whose left component is in `subdomain'.
 		local
 			ls: ARRAY [G]
@@ -286,7 +277,7 @@ feature -- Modification
 			Result.to_set ⊆ to_set
 		end
 
-	restircted_by_target alias "\" (subimage: MML_SET [H]): MML_RELATION [G, H]
+	restircted_image alias "\" (subimage: MML_SET [H]): MML_RELATION [G, H]
 			-- Relation that consists of all pairs in `Current' whose right component is in `subimage'.
 		do
 			Result := (inverse / subimage).inverse
@@ -300,12 +291,19 @@ feature -- Modification
 
 	union alias "+" alias "∪" (other: MML_RELATION [G, H]): MML_RELATION [G, H]
 			-- Relation that consists of pairs contained in either `Current' or `other'.
+		local
+			difference_relation: MML_RELATION [G, H]
+			l_lefts: ARRAY [G]
+			l_rights: ARRAY [H]
 		do
-			Result := Current - other
-			Result.lefts.resize (1, Result.lefts.count + other.lefts.count)
-			Result.rights.resize (1, Result.rights.count + other.rights.count)
-			Result.lefts.subcopy (other.lefts, 1, other.lefts.count, Result.lefts.count - other.count + 1)
-			Result.rights.subcopy (other.rights, 1, other.rights.count, Result.rights.count - other.count + 1)
+			difference_relation := Current - other
+			l_lefts := difference_relation.lefts.twin
+			l_rights := difference_relation.rights.twin
+			l_lefts.grow (difference_relation.count + other.count)
+			l_rights.grow (difference_relation.count + other.count)
+			l_lefts.subcopy (other.lefts, 1, other.lefts.count, l_lefts.count - other.count + 1)
+			l_rights.subcopy (other.rights, 1, other.rights.count, l_rights.count - other.count + 1)
+			create Result.make_from_arrays (l_lefts, l_rights)
 		end
 
 	intersection alias "*" alias "∩" (other: MML_RELATION [G, H]): MML_RELATION [G, H]
@@ -373,8 +371,8 @@ feature -- Attributes
 		do
 			Result := domain.count = lefts.count
 		ensure
-			Result ⇒ ∀d: domain ¦ image_of(d).count = 1
-			¬Result ⇒ ∃d: domain ¦ image_of(d).count > 1
+			Result ⇒ ∀ d: domain ¦ image_of (d).count = 1
+			¬ Result ⇒ ∃ d: domain ¦ image_of (d).count > 1
 		end
 
 feature -- Iterable implementation
@@ -427,5 +425,6 @@ invariant
 	same_lower: lefts.lower = rights.lower
 	same_upper: lefts.upper = rights.upper
 	start_from_one: lefts.lower = 1
+	no_duplicates: count = to_set.count
 
 end

@@ -77,7 +77,7 @@ feature -- Initialization
 				row_count := other.row_count
 				column_count := other.column_count
 				other.unwrap
-				create array.copy_ (other.array)
+				create array.create_from_array (other.array)
 				other.wrap
 				sequence := other.sequence
 			end

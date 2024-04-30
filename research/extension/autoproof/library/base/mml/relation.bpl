@@ -7,11 +7,15 @@ type Rel U V = [U, V]bool;
 function Rel#Domain<U, V>(Rel U V): Set U;
 axiom (forall<U, V> r: Rel U V, u: U :: { Rel#Domain(r)[u] }
   Rel#Domain(r)[u] <==> (exists v: V :: r[u, v]));
+axiom (forall<U, V> r: Rel U V, u: U :: { Rel#Domain(r)[u] }
+  Rel#Domain(r)[u] <==> (exists v: V :: { Pair#Make(u, v)} Rel#ToSet(r) [Pair#Make(u, v)]));
   
 // Range
 function Rel#Range<U, V>(Rel U V): Set V;
 axiom (forall<U, V> r: Rel U V, v: V :: { Rel#Range(r)[v] }
-  Rel#Range(r)[v] <==> (exists u: U :: r[u, v]));  
+  Rel#Range(r)[v] <==> (exists u: U :: r[u, v]));
+axiom (forall<U, V> r: Rel U V, v: V :: { Rel#Range(r)[v] }
+  Rel#Range(r)[v] <==> (exists u: U :: { Pair#Make(u, v)} Rel#ToSet(r) [Pair#Make(u, v)]));  
   
 // Conversion to set
 function Rel#ToSet<U, V>(Rel U V): Set (Pair U V);
@@ -41,11 +45,11 @@ axiom (forall<U, V> f: Field (Rel U V) :: { Default(f) } Default(f) == Rel#Empty
 function Rel#Singleton<U, V>(U, V): Rel U V;
 // axiom (forall<U, V> u: U, v: V :: { Rel#Singleton(u, v) } Rel#Singleton(u, v)[u, v]);
 axiom (forall<U, V> u: U, v: V, x: U, y: V :: { Rel#Singleton(u, v)[x, y] } Rel#Singleton(u, v)[x, y] <==> u == x && v == y);
-// axiom (forall<U, V> u: U, v: V :: { Rel#Card(Rel#Singleton(u, v)) } Rel#Card(Rel#Singleton(u, v)) == 1);
-// axiom (forall<U, V> u: U, v: V :: { Rel#Domain(Rel#Singleton(u, v)) } 
-  // Rel#Domain(Rel#Singleton(u, v)) == Set#Singleton(u));
-// axiom (forall<U, V> u: U, v: V :: { Rel#Range(Rel#Singleton(u, v)) } 
-  // Rel#Range(Rel#Singleton(u, v)) == Set#Singleton(v));
+axiom (forall<U, V> u: U, v: V :: { Rel#Card(Rel#Singleton(u, v)) } Rel#Card(Rel#Singleton(u, v)) == 1);
+axiom (forall<U, V> u: U, v: V :: { Rel#Domain(Rel#Singleton(u, v)) } 
+  Rel#Domain(Rel#Singleton(u, v)) == Set#Singleton(u));
+axiom (forall<U, V> u: U, v: V :: { Rel#Range(Rel#Singleton(u, v)) } 
+  Rel#Range(Rel#Singleton(u, v)) == Set#Singleton(v));
 axiom (forall<U, V> u: U, v: V :: { Rel#ToSet(Rel#Singleton(u, v)) } 
   Rel#ToSet(Rel#Singleton(u, v)) == Set#Singleton(Pair#Make(u, v)));  
   
@@ -81,18 +85,18 @@ axiom(forall<U, V> a: Rel U V, b: Rel U V :: { Rel#Equal(a, b) }  // extensional
 function Rel#Extended<U, V>(Rel U V, U, V): Rel U V;
 axiom (forall<U, V> a: Rel U V, u: U, v: V, x: U, y: V :: { Rel#Extended(a, u, v)[x, y] }
   Rel#Extended(a, u, v)[x, y] <==> (u == x && v == y) || a[x, y]);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Extended(a, u, v) }
-  // Rel#Extended(a, u, v)[u, v]);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V, x: U, y: V :: { Rel#Extended(a, u, v), a[x, y] }
-  // a[x, y] ==> Rel#Extended(a, u, v)[x, y]);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Card(Rel#Extended(a, u, v)) }
-  // a[u, v] ==> Rel#Card(Rel#Extended(a, u, v)) == Rel#Card(a));  
-// axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Card(Rel#Extended(a, u, v)) }
-  // !a[u, v] ==> Rel#Card(Rel#Extended(a, u, v)) == Rel#Card(a) + 1);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Domain(Rel#Extended(a, u, v)) }
-  // Rel#Domain(Rel#Extended(a, u, v)) == Set#Extended(Rel#Domain(a), u));  
-// axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Range(Rel#Extended(a, u, v)) }
-  // Rel#Range(Rel#Extended(a, u, v)) == Set#Extended(Rel#Range(a), v));  
+axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Extended(a, u, v) }
+  Rel#Extended(a, u, v)[u, v]);
+axiom (forall<U, V> a: Rel U V, u: U, v: V, x: U, y: V :: { Rel#Extended(a, u, v), a[x, y] }
+  a[x, y] ==> Rel#Extended(a, u, v)[x, y]);
+axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Card(Rel#Extended(a, u, v)) }
+  a[u, v] ==> Rel#Card(Rel#Extended(a, u, v)) == Rel#Card(a));  
+axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Card(Rel#Extended(a, u, v)) }
+  !a[u, v] ==> Rel#Card(Rel#Extended(a, u, v)) == Rel#Card(a) + 1);
+axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Domain(Rel#Extended(a, u, v)) }
+  Rel#Domain(Rel#Extended(a, u, v)) == Set#Extended(Rel#Domain(a), u));  
+axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#Range(Rel#Extended(a, u, v)) }
+  Rel#Range(Rel#Extended(a, u, v)) == Set#Extended(Rel#Range(a), v));  
 axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#ToSet(Rel#Extended(a, u, v)) }
   Rel#ToSet(Rel#Extended(a, u, v)) == Set#Extended(Rel#ToSet(a), Pair#Make(u, v)));  
   
@@ -101,25 +105,34 @@ axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#ToSet(Rel#Extended(a, u, v))
 function Rel#Removed<U, V>(Rel U V, U, V): Rel U V;
 axiom (forall<U, V> a: Rel U V, u: U, v: V, x: U, y: V :: { Rel#Removed(a, u, v)[x, y] }
   Rel#Removed(a, u, v)[x, y] <==> (u != x || v != y) && a[x, y]);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V  :: { Rel#Removed(a, u, v) }
-  // !Rel#Removed(a, u, v)[u, v]);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V, x: U, y: V :: { Rel#Removed(a, u, v), a[x, y] }
-  // Rel#Removed(a, u, v)[x, y] ==> a[x, y]);
-// axiom (forall<U, V> a: Rel U V, u: U, v: V  :: { Rel#Card(Rel#Removed(a, u, v)) }
-  // a[u, v] ==> Rel#Card(Rel#Removed(a, u, v)) == Rel#Card(a) - 1);  
-// axiom (forall<U, V> a: Rel U V, u: U, v: V  :: { Rel#Card(Rel#Removed(a, u, v)) }
-  // !a[u, v] ==> Rel#Card(Rel#Removed(a, u, v)) == Rel#Card(a));
+axiom (forall<U, V> a: Rel U V, u: U, v: V  :: { Rel#Removed(a, u, v) }
+  !Rel#Removed(a, u, v)[u, v]);
+axiom (forall<U, V> a: Rel U V, u: U, v: V, x: U, y: V :: { Rel#Removed(a, u, v), a[x, y] }
+  Rel#Removed(a, u, v)[x, y] ==> a[x, y]);
+axiom (forall<U, V> a: Rel U V, u: U, v: V  :: { Rel#Card(Rel#Removed(a, u, v)) }
+  a[u, v] ==> Rel#Card(Rel#Removed(a, u, v)) == Rel#Card(a) - 1);  
+axiom (forall<U, V> a: Rel U V, u: U, v: V  :: { Rel#Card(Rel#Removed(a, u, v)) }
+  !a[u, v] ==> Rel#Card(Rel#Removed(a, u, v)) == Rel#Card(a));
 axiom (forall<U, V> a: Rel U V, u: U, v: V :: { Rel#ToSet(Rel#Removed(a, u, v)) }
   Rel#ToSet(Rel#Removed(a, u, v)) == Set#Removed(Rel#ToSet(a), Pair#Make(u, v)));    
   
 // Restriction on a subdomain
-function Rel#Restricted<U, V>(Rel U V, Set U): Rel U V;  
-axiom (forall<U, V> a: Rel U V, s: Set U, x: U, y: V :: { Rel#Restricted(a, s)[x, y] }
-  Rel#Restricted(a, s)[x, y] <==> a[x, y] && s[x]);
-axiom (forall<U, V> a: Rel U V, s: Set U :: { Rel#Domain(Rel#Restricted(a, s)) }
-  Rel#Domain(Rel#Restricted(a, s)) == Set#Intersection(Rel#Domain(a), s));
+function Rel#RestrictedDomain<U, V>(Rel U V, Set U): Rel U V;  
+axiom (forall<U, V> a: Rel U V, s: Set U, x: U, y: V :: { Rel#RestrictedDomain(a, s)[x, y] }
+  Rel#RestrictedDomain(a, s)[x, y] <==> a[x, y] && s[x]);
+axiom (forall<U, V> a: Rel U V, s: Set U :: { Rel#Domain(Rel#RestrictedDomain(a, s)) }
+  Rel#Domain(Rel#RestrictedDomain(a, s)) == Set#Intersection(Rel#Domain(a), s));
 axiom (forall<U, V> a: Rel U V, s: Set U, x: U, y: V ::
-  Set#Subset(Rel#ToSet(Rel#Restricted(a, s)), Rel#ToSet(a)));
+  Set#Subset(Rel#ToSet(Rel#RestrictedDomain(a, s)), Rel#ToSet(a)));
+  
+// Restriction on a image
+function Rel#RestrictedImage<U, V>(Rel U V, Set V): Rel U V;  
+axiom (forall<U, V> a: Rel U V, s: Set V, x: U, y: V :: { Rel#RestrictedImage(a, s)[x, y] }
+  Rel#RestrictedImage(a, s)[x, y] <==> a[x, y] && s[y]);
+axiom (forall<U, V> a: Rel U V, s: Set V :: { Rel#Range(Rel#RestrictedImage(a, s)) }
+  Rel#Range(Rel#RestrictedImage(a, s)) == Set#Intersection(Rel#Range(a), s));
+axiom (forall<U, V> a: Rel U V, s: Set V, x: U, y: V ::
+  Set#Subset(Rel#ToSet(Rel#RestrictedImage(a, s)), Rel#ToSet(a)));
 
 // Inverse  
 function Rel#Inverse<U, V>(Rel U V): Rel V U;
@@ -130,7 +143,7 @@ axiom (forall<U, V> a: Rel U V :: { Rel#Card(Rel#Inverse(a)) }
 axiom (forall<U, V> a: Rel U V :: { Rel#Domain(Rel#Inverse(a)) }
   Rel#Domain(Rel#Inverse(a)) == Rel#Range(a));  
 axiom (forall<U, V> a: Rel U V :: { Rel#Range(Rel#Inverse(a)) }
-  Rel#Range(Rel#Inverse(a)) == Rel#Domain(a));  
+  Rel#Range(Rel#Inverse(a)) == Rel#Domain(a));
   
 // Union of two relations
 function Rel#Union<U, V>(Rel U V, Rel U V): Rel U V;

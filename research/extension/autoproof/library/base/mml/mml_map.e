@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Finite maps."
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -13,7 +13,8 @@ inherit
 	ITERABLE [K]
 		redefine
 			default_create,
-			is_equal
+			is_equal,
+			out
 		end
 
 create
@@ -56,8 +57,14 @@ feature -- Properties
 	has (x: V): BOOLEAN
 			-- Is value `x' contained?
 		do
-			-- Result := values.exists (agent meq_value (x, ?))
+				-- Result := values.exists (agent meq_value (x, ?))
 			Result := values.has (x)
+		end
+
+	has_key (x: K): BOOLEAN
+			-- Is the key `x' contained
+		do
+			Result := keys.has (x)
 		end
 
 	is_empty: BOOLEAN
@@ -72,6 +79,31 @@ feature -- Properties
 			Result := values.for_all (agent meq_value (c, ?))
 		end
 
+feature -- io
+	out: STRING
+		local
+			key_out, item_out: STRING
+		do
+			Result := "{"
+			⟳ key: keys ¦
+				if attached {ANY} item (key) as att_item then
+					item_out := att_item.out
+				else
+					item_out := "NA"
+				end
+				if attached {ANY} key as non_sep_key then
+					key_out := non_sep_key.out
+				else
+					key_out := "NA"
+				end
+				Result := Result + key_out + ":" + item_out + ","
+			⟲
+			if keys.count > 0 then
+				Result := Result.substring (Result.lower, Result.count - 1)
+			end
+			Result := Result + "}"
+		end
+
 feature -- Elements
 
 	item alias "[]" (k: K): V
@@ -82,7 +114,7 @@ feature -- Elements
 			i: INTEGER
 		do
 			i := first_key_index (k)
-			if i > 0  then
+			if i > 0 then
 				Result := values [i]
 			else
 				Result := ({V}).default
@@ -94,7 +126,7 @@ feature -- Conversion
 	domain: MML_SET [K]
 			-- Set of keys.
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			create Result.make_from_array (keys)
 		end
 
@@ -119,7 +151,7 @@ feature -- Conversion
 		require
 			in_domain: subdomain <= domain
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			Result := restricted (subdomain).range
 		end
 
@@ -159,7 +191,7 @@ feature -- Conversion
 				Result := Result & values [i]
 				i := i + 1
 			end
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 		end
 
 feature -- Measurement
@@ -188,7 +220,7 @@ feature -- Comparison
 				until
 					i > keys.count or not Result
 				loop
-					-- TODO: incompatible actual argument Li* -- Result := model_equals (values [i], map [keys [i]])
+						-- TODO: incompatible actual argument Li* -- Result := model_equals (values [i], map [keys [i]])
 					i := i + 1
 				end
 			end
@@ -199,7 +231,7 @@ feature -- Comparison
 		note
 			maps_to: "Map#Disjoint"
 		do
-			-- TODO
+				-- TODO
 		end
 
 feature -- Modification
@@ -220,32 +252,35 @@ feature -- Modification
 				vs [i] := x
 				create Result.make_from_arrays (keys, vs)
 			else
-				create ks.make (1, keys.count + 1)
+				create ks.make_empty
+				ks.grow (keys.count + 1)
 				ks.subcopy (keys, 1, keys.count, 1)
 				ks [ks.count] := k
-				create vs.make (1, values.count + 1)
+
+				create vs.make_empty
+				vs.grow (values.count + 1)
 				vs.subcopy (values, 1, values.count, 1)
 				vs [vs.count] := x
 				create Result.make_from_arrays (ks, vs)
 			end
 		end
 
-    first_key_index (k: K): INTEGER
-    local
-       i: INTEGER
-    do
-        from
-			i := 1  -- index starts from 1
-		until
-			keys [i] ~ k or i > keys.count
-		loop
-			i := i + 1
-		end
+	first_key_index (k: K): INTEGER
+		local
+			i: INTEGER
+		do
+			from
+				i := 1 -- index starts from 1
+			until
+				i > keys.count ∨… keys [i] ~ k
+			loop
+				i := i + 1
+			end
 
-		if i <= keys.count then
-		   Result := i
+			if i <= keys.count then
+				Result := i
+			end
 		end
-    end
 
 	removed (k: K): MML_MAP [K, V]
 			-- Current map without the key `k' and the corresponding value.
@@ -255,9 +290,9 @@ feature -- Modification
 			vs: ARRAY [V]
 			i: INTEGER
 		do
-			    -- i := keys.index_satisfying (agent meq_key (k, ?))
+				-- i := keys.index_satisfying (agent meq_key (k, ?))
 				-- get the index of the first occurrence of `k'
-				i := first_key_index (k)
+			i := first_key_index (k)
 			if i > 0 then
 				create ks.make (1, keys.count - 1)
 				create vs.make (1, values.count - 1)
@@ -330,7 +365,7 @@ feature -- Modification
 	inverse: MML_RELATION [V, K]
 			-- Relation consisting of inverted pairs from `Current'.
 		do
-			-- check is_executable: False then end
+				-- check is_executable: False then end
 			create Result.make_from_arrays (values, keys)
 		end
 
@@ -347,7 +382,7 @@ feature -- Iterable implementation
 			-- The same as `model_equals' but with generic arguments.
 			-- Workaround for agent typing problem.
 		do
-			-- TODO: incompatible actual argument Li * -- Result := model_equals (k1, k2)
+				-- TODO: incompatible actual argument Li * -- Result := model_equals (k1, k2)
 		end
 
 	meq_value (v1, v2: V): BOOLEAN
@@ -355,8 +390,8 @@ feature -- Iterable implementation
 			-- The same as `model_equals' but with generic arguments.
 			-- Workaround for agent typing problem.
 		do
-			-- TODO: incompatible actual argument Li *
-			-- Result := model_equals (v1, v2)
+				-- TODO: incompatible actual argument Li *
+				-- Result := model_equals (v1, v2)
 		end
 
 	new_cursor: ITERATION_CURSOR [K]

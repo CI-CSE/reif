@@ -289,7 +289,7 @@ feature -- Extension
 			check target.inv_only ("bag_definition") end
 		ensure then
 			cell_sequence_front_preserved: target.cells.old_.front (index_) ~ target.cells.front (index_)
-			cell_sequence_tail_preserved: target.cells.old_.tail (index_ + 1) ~ target.cells.tail (index_ + 2)
+			cell_sequence_tail_preserved: target.cells.old_.tail_from (index_ + 1) ~ target.cells.tail_from (index_ + 2)
 		end
 
 	insert_left (other: V_ITERATOR [G])
@@ -303,7 +303,7 @@ feature -- Extension
 				unwrap
 				target.prepend (other)
 				check target.inv_only ("bag_definition") end
-				index_ := index_ + other.sequence.tail (other.index_.old_).count
+				index_ := index_ + other.sequence.tail_from (other.index_.old_).count
 				target.lemma_cells_distinct
 				wrap
 			else
@@ -333,11 +333,10 @@ feature -- Extension
 				is_wrapped
 				other.is_wrapped
 				target.is_wrapped
-				target /= Current
 				∀ o: target.observers ¦ o /= Current implies o.is_open
 				s = other.sequence.old_.interval (other.index_.old_, other.index_ - 1)
 				target.sequence ~ (target.sequence.front (index_.old_).old_ +
-							s + target.sequence.tail (index_.old_ + 1).old_)
+							s + target.sequence.tail_from (index_.old_ + 1).old_)
 				target.observers ~ target.observers.old_
 				other.sequence ~ other.sequence.old_
 			until
@@ -366,12 +365,14 @@ feature -- Extension
 			observers_open: ∀ o: target.observers ¦ o /= Current implies o.is_open
 			other_observers_open: ∀ o: other.observers ¦ o.is_open
 		do
-			target.merge_after (other, active, index_)
-			check target.inv_only ("cells_domain", "bag_definition") end
-			target.lemma_cells_distinct
+			if active /= other.first_cell then -- TODO: This should be in the precondition
+				target.merge_after (other, active, index_)
+				check target.inv_only ("cells_domain", "bag_definition") end
+				target.lemma_cells_distinct
+			end
 		ensure
-			sequence_effect: sequence ~ old (sequence.front (index_) + other.sequence + sequence.tail (index_ + 1))
-			other_sequence_effect: other.sequence.is_empty
+			sequence_effect: active /= other.first_cell ⇒ sequence ~ old (sequence.front (index_) + other.sequence + sequence.tail_from (index_ + 1))
+			other_sequence_effect: active /= other.first_cell ⇒ other.sequence.is_empty
 			modify_model ("sequence", Current)
 			modify_model ("sequence", [target, other])
 		end

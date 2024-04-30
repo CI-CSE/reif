@@ -1,7 +1,7 @@
 note
 	description: "[
-		Containers where values are associated with integer indexes from a continuous interval.
-		Immutable interface.
+			Containers where values are associated with integer indexes from a continuous interval.
+			Immutable interface.
 		]"
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -109,7 +109,7 @@ feature -- Search
 
 	index_of (v: G): INTEGER
 			-- Index of the first occurrence of `v';
-			-- out of range, if `v' does not occur.			
+			-- out of range, if `v' does not occur.
 		note
 			status: impure, nonvariant
 		do
@@ -147,8 +147,8 @@ feature -- Search
 			end
 			forget_iterator (it)
 		ensure
-			definition_not_has: not sequence.tail (idx (i)).has (v) implies Result = upper_ + 1
-			definition_has: sequence.tail (idx (i)).has (v) implies i <= Result and Result <= upper_ and then sequence [idx (Result)] = v
+			definition_not_has: not sequence.tail_from (idx (i)).has (v) implies Result = upper_ + 1
+			definition_has: sequence.tail_from (idx (i)).has (v) implies i <= Result and Result <= upper_ and then sequence [idx (Result)] = v
 			constraint: not sequence.interval (idx (i), idx (Result - 1)).has (v)
 			observers_restored: observers ~ old observers
 			modify_model (["observers"], Current)
@@ -244,4 +244,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

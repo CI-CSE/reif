@@ -285,7 +285,7 @@ feature -- Cursor movement
 				lemma_single_out (target.buckets_, bucket_index)
 			end
 			index_ := sequence.count
-			lemma_empty (target.buckets_.tail (bucket_index + 1))
+			lemma_empty (target.buckets_.tail_from (bucket_index + 1))
 		end
 
 	forth
@@ -368,7 +368,7 @@ feature -- Removal
 
 			check target.inv end
 			lemma_single_out (target.buckets_, bucket_index)
-			check target.buckets_.tail (bucket_index + 1) = (target.buckets_.old_).tail (bucket_index + 1) end
+			check target.buckets_.tail_from (bucket_index + 1) = (target.buckets_.old_).tail_from (bucket_index + 1) end
 			lemma_content (target.buckets_, target.map)
 			sequence := concat (target.buckets_)
 			value_sequence := value_sequence_from (sequence, target.map)
@@ -591,10 +591,10 @@ feature {V_CONTAINER, V_ITERATOR} -- Specification
 		do
 			use_definition (concat (seqs.front (i)))
 			check seqs.front (i).but_last = seqs.front (i - 1) end
-			check seqs = seqs.front (i) + seqs.tail (i + 1) end
-			lemma_append (seqs.front (i), seqs.tail (i + 1))
+			check seqs = seqs.front (i) + seqs.tail_from (i + 1) end
+			lemma_append (seqs.front (i), seqs.tail_from (i + 1))
 		ensure
-			concat (seqs) = concat (seqs.front (i - 1)) + seqs [i] + concat (seqs.tail (i + 1))
+			concat (seqs) = concat (seqs.front (i - 1)) + seqs [i] + concat (seqs.tail_from (i + 1))
 		end
 
 	lemma_empty (seqs: like target.buckets_)

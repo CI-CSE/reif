@@ -65,8 +65,8 @@ feature -- Extension
 			different_target: target /= other.target
 		deferred
 		ensure
-			taregt_sequence_effect: target.sequence ~ old (target.sequence.front (index_ - 1) + other.sequence.tail (other.index_) + target.sequence.tail (index_))
-			index_effect: index_ = old (index_ + other.sequence.tail (other.index_).count)
+			taregt_sequence_effect: target.sequence ~ old (target.sequence.front (index_ - 1) + other.sequence.tail_from (other.index_) + target.sequence.tail_from (index_))
+			index_effect: index_ = old (index_ + other.sequence.tail_from (other.index_).count)
 			other_index_effect: other.index_ = other.sequence.count + 1
 			target_wrapped: target.is_wrapped
 			target_observers_preserved: target.observers ~ old target.observers
@@ -87,8 +87,8 @@ feature -- Extension
 			different_target: target /= other.target
 		deferred
 		ensure
-			target_sequence_effect: target.sequence ~ old (target.sequence.front (index_) + other.sequence.tail (other.index_) + target.sequence.tail (index_ + 1))
-			index_effect: index_ = old (index_ + other.sequence.tail (other.index_).count)
+			target_sequence_effect: target.sequence ~ old (target.sequence.front (index_) + other.sequence.tail_from (other.index_) + target.sequence.tail_from (index_ + 1))
+			index_effect: index_ = old (index_ + other.sequence.tail_from (other.index_).count)
 			other_index_effect: other.index_ = other.sequence.count + 1
 			target_wrapped: target.is_wrapped
 			target_observers_preserved: target.observers ~ old target.observers

@@ -237,8 +237,8 @@ feature -- Cursor movement
 				sequence.count - index_
 			end
 		ensure then
-			index_effect_not_found: not sequence.tail (old index_).has (v) implies index_ = sequence.count + 1
-			index_effect_found: sequence.tail (old index_).has (v) implies index_ >= old index_ and sequence [index_] = v
+			index_effect_not_found: not sequence.tail_from (old index_).has (v) implies index_ = sequence.count + 1
+			index_effect_found: sequence.tail_from (old index_).has (v) implies index_ >= old index_ and sequence [index_] = v
 			index_constraint: not sequence.interval (old index_, index_ - 1).has (v)
 		end
 

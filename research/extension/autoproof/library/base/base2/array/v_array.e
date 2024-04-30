@@ -10,6 +10,7 @@
 	manual_inv: true
 	false_guards: true
 
+
 frozen class
 	V_ARRAY [G]
 
@@ -26,7 +27,7 @@ inherit
 create
 	make,
 	make_filled,
-	copy_
+	create_from_array
 
 feature {NONE} -- Initialization
 
@@ -34,6 +35,7 @@ feature {NONE} -- Initialization
 			-- Create array with indexes in [`l', `u']; set all values to default.
 		note
 			status: creator
+			explicit: contracts
 		require
 			valid_indexes: l <= u + 1
 		do
@@ -76,23 +78,19 @@ feature {NONE} -- Initialization
 
 feature -- Initialization
 
-	copy_ (other: like Current)
-			-- Initialize by copying all the items of `other'.
-			-- Reallocate memory unless count stays the same.
+	create_from_array (other: like Current)
+		note
+			status: creator
 		require
 			observers_open: ∀ o: observers ¦ o.is_open
+			other_inv: other.inv
 		do
-			if other /= Current then
-				check other.inv end
-				if area = Void or other.count /= upper - lower + 1 then
-					create area.make_filled (({G}).default, other.count)
-				end
-				check area.inv end
-				area.copy_data (other.area, 0, 0, other.count)
-				lower := other.lower
-				upper := other.upper
-				check other.is_wrapped end
-			end
+			create area.make_filled (({G}).default, other.count)
+			check area.inv end
+			area.copy_data (other.area, 0, 0, other.count)
+			lower := other.lower
+			upper := other.upper
+			check other.is_wrapped end
 		ensure
 			observers_open: ∀ o: observers ¦ o.is_open
 			sequence_effect: sequence ~ old other.sequence
@@ -107,6 +105,23 @@ feature -- Access
 		do
 			check inv end
 			Result := area [i - lower]
+		end
+
+	concatenate alias "+" (other: V_ARRAY [G]): V_ARRAY [G]
+		local
+			deb: G
+		do
+			create Result.make (1, upper - lower + other.upper - other.lower)
+			⟳ i: lower |..| upper ¦
+				Result [i - lower + 1] := area [i - lower + 1]
+			⟲
+			⟳ i: 1 |..| other.sequence.count ¦
+				Result [sequence.count + i] := area [i]
+			⟲
+		ensure
+			size_matches: Result.sequence.count = sequence.count + other.sequence.count
+			∀ i: 1 |..| Current.sequence.count ¦ Result.sequence [i] = sequence [i]
+			∀ i: (Current.sequence.count + 1) |..| (Current.sequence.count + 1 + other.sequence.count) ¦ Result.sequence [i] = other.sequence [i - Current.sequence.count]
 		end
 
 	subarray (l, u: INTEGER): V_ARRAY [G]
@@ -132,7 +147,7 @@ feature -- Access
 		end
 
 	index_set: V_INTEGER_INTERVAL
-		-- Range of acceptable indexes
+			-- Range of acceptable indexes
 		note
 			status: impure
 			explicit: wrapping
@@ -140,7 +155,8 @@ feature -- Access
 			create Result.make (lower, upper)
 		ensure then
 			same_count: Result.count = count
-			same_bounds: Result.lower = lower and Result.upper = upper
+			same_bounds: count > 0 ⇒ Result.lower = lower ∧ Result.upper = upper
+			if_empty: count = 0 ⇒ Result.lower = 1 ∧ Result.upper = 0
 		end
 
 feature -- Measurement

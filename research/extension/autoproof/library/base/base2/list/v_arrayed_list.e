@@ -43,7 +43,7 @@ feature -- Initialization
 		do
 			if other /= Current then
 				other.unwrap
-				create array.copy_ (other.array)
+				create array.create_from_array (other.array)
 				other.wrap
 				first_index := other.first_index
 				count_ := other.count_
@@ -197,7 +197,7 @@ feature -- Extension
 				circular_copy (i, i + ic, count_ - i + 1)
 			end
 			new_capacity := array.sequence.count
-			sequence := sequence.front (i - 1) + input.sequence.tail (input.index) + sequence.tail (i)
+			sequence := sequence.front (i - 1) + input.sequence.tail_from (input.index) + sequence.tail_from (i)
 
 			from
 				j := 0

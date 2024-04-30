@@ -20,10 +20,22 @@ inherit
 			first,
 			last,
 			is_equal_,
-			reverse
+			reverse,
+			default_create
 		end
 
+create
+	default_create
+
 feature -- Initialization
+
+	default_create
+		note
+			status: creator
+		do
+			create sequence.default_create
+			create cells.default_create
+		end
 
 	copy_ (other: V_LIST [G])
 			-- Initialize by copying all the items of `other'.
@@ -131,8 +143,8 @@ feature -- Comparison
 						i_ <= sequence.count implies c1 = cells [i_] and c2 = other.cells [i_]
 						i_ = sequence.count + 1 implies c1 = Void and c2 = Void
 						if Result
-							then ∀ k: 1 |..| (i_ - 1) ¦ sequence [k] = other.sequence [k]
-							else sequence [i_ - 1] /= other.sequence [i_ - 1] end
+						then ∀ k: 1 |..| (i_ - 1) ¦ sequence [k] = other.sequence [k]
+						else sequence [i_ - 1] /= other.sequence [i_ - 1] end
 					until
 						c1 = Void or not Result
 					loop
@@ -201,7 +213,7 @@ feature -- Replacement
 				attached first_cell as f implies f.left = rest
 				rest /= Void implies rest.left = first_cell
 
-				cells.old_.tail (cells.count + 1) = rest_cells
+				cells.old_.tail_from (cells.count + 1) = rest_cells
 				∀ i: 1 |..| cells.count ¦ cells [i] = cells.old_ [cells.count - i + 1]
 				cells.range = cells.old_.front (cells.count).range
 
@@ -316,7 +328,7 @@ feature -- Extension
 					it.target = Current
 					observers = observers.old_ & it
 					∀ o: observers.old_ ¦ o.is_open
-					cells.old_ ~ cells.tail (it.index_ + 1)
+					cells.old_ ~ cells.tail_from (it.index_ + 1)
 				until
 					input.after
 				loop
@@ -331,7 +343,7 @@ feature -- Extension
 				forget_iterator (it)
 			end
 		ensure then
-			cells_preserved: old cells ~ cells.tail (input.sequence.count - old input.index_ + 2)
+			cells_preserved: old cells ~ cells.tail_from (input.sequence.count - old input.index_ + 2)
 		end
 
 	insert_at (input: V_ITERATOR [G]; i: INTEGER)
@@ -356,7 +368,7 @@ feature -- Extension
 					it.index_ <= it.sequence.count
 					it.index_ - i + 1 = input.index_ - input.index_.old_
 					s = input.sequence.interval (input.index_.old_, input.index_ - 1)
-					sequence ~ sequence.old_.front (i - 1) + s + sequence.old_.tail (i)
+					sequence ~ sequence.old_.front (i - 1) + s + sequence.old_.tail_from (i)
 					is_wrapped
 					input.is_wrapped
 					it.is_wrapped
@@ -567,12 +579,11 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			wrapped: is_wrapped
 			observers_open: ∀ o: observers ¦ o.is_open
 			new_is_wrapped: new.is_wrapped
-
-			new_not_current: new /= Current
 			index_in_domain: 1 <= index_ and index_ <= cells.count
 			c_in_list: cells [index_] = c
 			new_right_void: new.right = Void
 			new_left_void: new.left = Void
+			different_elements: new /= c
 		do
 			lemma_cells_distinct
 			unwrap
@@ -596,30 +607,41 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			modify (new)
 		end
 
-	remove_after (c: V_DOUBLY_LINKABLE [G]; index_: INTEGER)
+	remove_after (node: V_DOUBLY_LINKABLE [G]; index_: INTEGER)
 			-- Remove the cell to the right of `c'.
 		require
 			valid_index: 1 <= index_ and index_ <= sequence.count - 1
-			c_in_list: cells [index_] = c
+			c_in_list: cells [index_] = node
 			wrapped: is_wrapped
 			observers_open: ∀ o: observers ¦ o.is_open
 		do
+
+--			check attached node.right as one_right then
+--				check index_ + 1 < cells.count ⇒ one_right.right = cells [index_ + 2] end
+--				if  not attached one_right.right then
+--					node.remove_right
+--					last_cell := node
+--				else
+--					node.remove_right
+--				end
+--			end
+
 			lemma_cells_distinct
 			unwrap
-			check c.right = cells [index_ + 1] end
-			if attached c.right as r then
-				check index_ + 1 < cells.count implies r.right = cells [index_ + 2] end
-				if r.right = Void then
-					unwrap_all (create {MML_SET [ANY]}.singleton (c) & r)
-					c.put_right (Void)
-					c.wrap
-					last_cell := c
+			check node.right = cells [index_ + 1] end
+			check attached node.right as one_right then
+				check index_ + 1 < cells.count ⇒ one_right.right = cells [index_ + 2] end
+				if attached one_right.right then -- TODO Not yet verifying
+					node.remove_right
 				else
-					c.remove_right
+					unwrap_all (create {MML_SET [ANY]}.singleton (node) & one_right)
+					node.put_right (Void)
+					node.wrap
+					last_cell := node
+					check attached cells [index_].right as r ⇒ r = cells [index_ + 1] end
 				end
-			else
-				check from_precondition: False then end
 			end
+
 			count_ := count_ - 1
 			cells := cells.removed_at (index_ + 1)
 			sequence := sequence.removed_at (index_ + 1)
@@ -642,6 +664,7 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			other_wrapped: other.is_wrapped
 			observers_open: ∀ o: observers ¦ o.is_open
 			other_observers_open: ∀ o: other.observers ¦ o.is_open
+			different_elements: attached c ⇒ c /= other.first_cell
 		local
 			other_first, other_last: V_DOUBLY_LINKABLE [G]
 			other_count: INTEGER
@@ -680,16 +703,16 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 					end
 				end
 				count_ := count_ + other_count
-				cells := cells.front (index_) + other.cells.old_ + cells.tail (index_ + 1)
-				sequence := sequence.front (index_) + other.sequence.old_ + sequence.tail (index_ + 1)
+				cells := cells.front (index_) + other.cells.old_ + cells.tail_from (index_ + 1)
+				sequence := sequence.front (index_) + other.sequence.old_ + sequence.tail_from (index_ + 1)
 				wrap
 			end
 		ensure
 			wrapped: is_wrapped
 			other_wrapped: other.is_wrapped
-			sequence_effect: sequence = old (sequence.front (index_) + other.sequence + sequence.tail (index_ + 1))
+			sequence_effect: sequence = old (sequence.front (index_) + other.sequence + sequence.tail_from (index_ + 1))
 			other_sequence_effect: other.sequence.is_empty
-			cells_effect: cells = old (cells.front (index_) + other.cells + cells.tail (index_ + 1))
+			cells_effect: cells = old (cells.front (index_) + other.cells + cells.tail_from (index_ + 1))
 			modify_model ("sequence", [Current, other])
 		end
 
@@ -703,10 +726,10 @@ feature {NONE} -- Implementation
 		require
 			head /= rest
 			head /= Void implies
-				head.is_open and
-				head.inv_without ("left_consistent") and
-				head.left = rest and
-				head.right /= rest
+			head.is_open and
+			head.inv_without ("left_consistent") and
+			head.left = rest and
+			head.right /= rest
 			rest.is_open
 			rest.inv_without ("left_consistent")
 			rest.left = head
@@ -729,8 +752,8 @@ feature {NONE} -- Implementation
 			rest.left = next
 			next /= Void implies next.is_open and next.inv_without ("left_consistent")
 			modify_field ("closed",
-					if attached head as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end +
-					if attached next as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end)
+				if attached head as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end +
+				if attached next as c then create {MML_SET [ANY]}.singleton (c) else create {MML_SET [ANY]} end)
 			modify_model (["left", "right", "subjects", "observers"], rest)
 		end
 
@@ -789,9 +812,7 @@ feature {V_DOUBLY_LINKED_LIST, V_DOUBLY_LINKED_LIST_ITERATOR} -- Specificaton
 			cs.non_void
 			reads_field ("right", cs)
 		do
-			Result := ∀ i: 1 |..| cs.count ¦
-					∀ j: 1 |..| cs.count ¦
-						i + 1 = j implies cs [i].right = cs [j]
+			Result := ∀ i: 2 |..| cs.count ¦ cs [i - 1].right = cs [i]
 		end
 
 invariant

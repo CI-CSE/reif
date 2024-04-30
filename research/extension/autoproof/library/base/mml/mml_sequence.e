@@ -263,7 +263,13 @@ feature -- Decomposition
 		    Result := interval (1, upper)
 		end
 
-	tail (lower: INTEGER): MML_SEQUENCE [G]
+--	tail (last_n: INTEGER): MML_SEQUENCE [G] -- TODO: Check it the boogie formula is correct
+--			-- Suffix of the last n elements
+--		do
+--			Result := interval (count - last_n, count)
+--		end
+
+	tail_from (lower: INTEGER): MML_SEQUENCE [G]
 			-- Suffix from `lower'.
 		do
 			-- check is_executable: False then end

@@ -76,9 +76,9 @@ function Seq#IsConstant<T>(s: Seq T, x: T): bool
 // Element at a given index
 function Seq#Item<T>(Seq T, int): T;
 axiom (forall<T> t: T :: { Seq#Item(Seq#Singleton(t), 1) } Seq#Item(Seq#Singleton(t), 1) == t);
-// axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Item(Seq#Concat(s0,s1), n) }
-  // (n <= Seq#Length(s0) ==> Seq#Item(Seq#Concat(s0,s1), n) == Seq#Item(s0, n)) &&
-  // (Seq#Length(s0) < n ==> Seq#Item(Seq#Concat(s0,s1), n) == Seq#Item(s1, n - Seq#Length(s0))));
+axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Item(Seq#Concat(s0,s1), n) }
+  (n <= Seq#Length(s0) ==> Seq#Item(Seq#Concat(s0,s1), n) == Seq#Item(s0, n)) &&
+  (Seq#Length(s0) < n ==> Seq#Item(Seq#Concat(s0,s1), n) == Seq#Item(s1, n - Seq#Length(s0))));
 axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Item(Seq#Concat(s0,s1), n) }
   Seq#Item(Seq#Concat(s0,s1), n) == if n <= Seq#Length(s0) then Seq#Item(s0, n) else Seq#Item(s1, n - Seq#Length(s0)));  
   
@@ -142,12 +142,12 @@ axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
     (Seq#Length(s) < n ==> Seq#Length(Seq#Take(s,n)) == Seq#Length(s)));  
-axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Item(Seq#Take(s,n), j) } {:weight 25}
+axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Item(Seq#Take(s,n), j) } {:weight 0}  // This number influences the outcome of verification. 
   1 <= j && j <= n && j <= Seq#Length(s) ==>
     Seq#Item(Seq#Take(s,n), j) == Seq#Item(s, j));
-// axiom (forall<T> s: Seq T, n: int :: {Seq#Take(s,n)}
-  // (n < 0 ==> Seq#Take(s,n) == Seq#Empty() : Seq T) &&
-  // (n >= Seq#Length(s) ==> Seq#Take(s,n) == s));
+axiom (forall<T> s: Seq T, n: int :: {Seq#Take(s,n)}
+  (n < 0 ==> Seq#Take(s,n) == Seq#Empty() : Seq T) &&
+  (n >= Seq#Length(s) ==> Seq#Take(s,n) == s));
 
 // Sequence without its prefix of length howMany    
 function Seq#Drop<T>(s: Seq T, howMany: int): Seq T;
@@ -158,12 +158,12 @@ axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&
     (Seq#Length(s) < n ==> Seq#Length(Seq#Drop(s,n)) == 0));
-axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Item(Seq#Drop(s,n), j) } {:weight 25}
+axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Item(Seq#Drop(s,n), j) } {:weight 0}
   0 <= n && 1 <= j && j <= Seq#Length(s)-n ==> 
     Seq#Item(Seq#Drop(s,n), j) == Seq#Item(s, j+n));
-// axiom (forall<T> s: Seq T, n: int :: {Seq#Drop(s,n)}
-  // (n < 0 ==> Seq#Drop(s,n) == s) &&
-  // (n >= Seq#Length(s) ==> Seq#Drop(s,n) == Seq#Empty() : Seq T));  
+axiom (forall<T> s: Seq T, n: int :: {Seq#Drop(s,n)}
+  (n < 0 ==> Seq#Drop(s,n) == s) &&
+  (n >= Seq#Length(s) ==> Seq#Drop(s,n) == Seq#Empty() : Seq T));  
 
 // First element
 function {: inline } Seq#First<T>(q: Seq T): T
@@ -187,15 +187,19 @@ function Seq#Front<T>(q: Seq T, upper: int): Seq T
 { if 0 <= upper then Seq#Take(q, upper) else Seq#Empty() : Seq T } 
 axiom (forall<T> q: Seq T :: { Seq#Front(q, Seq#Length(q)) } Seq#Front(q, Seq#Length(q)) == q);
 
+// function Seq#Tail<T>(q: Seq T, from_n: int): Seq T
+// { if 1 <= from_n then Seq#Drop(q, Seq#Length(q) - from_n) else Seq#Empty() } 
+// axiom (forall<T> q: Seq T :: { Seq#Tail(q, 0) } Seq#Tail(q, 0) == Seq#Empty());
+
 // Suffix from lower
-function Seq#Tail<T>(q: Seq T, lower: int): Seq T
+function Seq#TailFrom<T>(q: Seq T, lower: int): Seq T
 // { Seq#Drop(q, lower - 1) }
 { if 1 <= lower then Seq#Drop(q, lower - 1) else q } 
-axiom (forall<T> q: Seq T :: { Seq#Tail(q, 1) } Seq#Tail(q, 1) == q);
+axiom (forall<T> q: Seq T :: { Seq#TailFrom(q, 1) } Seq#TailFrom(q, 1) == q);
 
 // Subsequence from lower to upper
 function Seq#Interval<T>(q: Seq T, lower: int, upper: int): Seq T
-{ Seq#Tail(Seq#Front(q, upper), lower) }
+{ Seq#TailFrom(Seq#Front(q, upper), lower) }
 
 // Sequence with element at position i removed
 // function {: inline } Seq#RemovedAt<T>(q: Seq T, i: int): Seq T
