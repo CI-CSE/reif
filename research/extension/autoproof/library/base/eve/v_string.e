@@ -277,7 +277,7 @@ feature -- {NONE} -- Implementation -- TODO Li: recover
 			-- Internal string.
 
 invariant
-	internal_string_not_void: internal_string /= Void
+	internal_string_not_void: attached internal_string
 
 note
 	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"

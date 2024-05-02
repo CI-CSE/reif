@@ -128,11 +128,11 @@ feature -- Cursor movement
 feature {ITERABLE, ITERATION_CURSOR} -- Access
 
 	target: HASH_TABLE [G, K];
-			-- <Precursor>
+	-- <Precursor>
 
 note
 	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

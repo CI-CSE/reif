@@ -1,8 +1,8 @@
 ﻿note
 	description: "[
-		Sequences of values, all of the same type or of a conforming one,
-		accessible through integer indices in a contiguous interval.
-	]"
+			Sequences of values, all of the same type or of a conforming one,
+			accessible through integer indices in a contiguous interval.
+		]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -15,7 +15,11 @@ inherit
 
 	RESIZABLE [G]
 		redefine
-			full, copy, is_equal, resizable
+			full,
+			copy,
+			is_equal,
+			resizable,
+			out
 		end
 
 	INDEXABLE [G, INTEGER]
@@ -24,14 +28,21 @@ inherit
 		redefine
 			copy,
 			is_equal,
-			new_cursor
+			new_cursor,
+			out
 		end
 
 	TO_SPECIAL [G]
 		export
 			{ARRAY} set_area
 		redefine
-			copy, is_equal, item, put, at, valid_index
+			copy,
+			is_equal,
+			item,
+			put,
+			at,
+			valid_index,
+			out
 		end
 
 create
@@ -46,10 +57,9 @@ convert
 	to_cil: {NATIVE_ARRAY [G]},
 	to_special: {SPECIAL [G]},
 	make_from_cil ({NATIVE_ARRAY [G]}),
- 	to_mml_set: {MML_SET [G]},
- 	to_mml_sequence: {MML_SEQUENCE [G]},
- 	to_simple_array: {SIMPLE_ARRAY [G]}
- 
+	to_mml_set: {MML_SET [G]},
+	to_mml_sequence: {MML_SEQUENCE [G]},
+	to_simple_array: {SIMPLE_ARRAY [G]}
 
 feature -- Initialization
 
@@ -148,6 +158,23 @@ feature -- Initialization
 			create area.make_from_native_array (na)
 			lower := 1
 			upper := area.count
+		end
+
+feature -- IO
+	out: STRING
+		do
+			Result := "<<"
+			⟳ i: lower |..| upper ¦
+				if attached {ANY} item (i) as att_i then
+					Result := Result + att_i.out + ", "
+				else
+					Result := Result + "NA, "
+				end
+			⟲
+			if count > 0 then
+				Result.remove_tail (2)
+			end
+			Result := Result + ">>"
 		end
 
 feature -- Access
@@ -319,10 +346,10 @@ feature -- Status report
 			end
 		ensure
 			definition: Result = (count = other.count and then
-				(count = 0 or else
-					(item (upper) = other.item (other.upper) and
-						subarray (lower, upper - 1).same_items
-							(other.subarray (other.lower, other.upper - 1)))))
+						(count = 0 or else
+							(item (upper) = other.item (other.upper) and
+								subarray (lower, upper - 1).same_items
+									(other.subarray (other.lower, other.upper - 1)))))
 		end
 
 	valid_index (i: INTEGER): BOOLEAN
@@ -348,7 +375,8 @@ feature -- Status report
 	resizable: BOOLEAN
 			-- Can array be resized automatically?
 		do
-			Result := ({G}).has_default
+			Result := True -- In void safe Eiffel this should be true
+--			Result := ({G}).has_default
 		end
 
 feature -- Element change
@@ -931,22 +959,22 @@ feature {NONE} -- Implementation
 		end
 
 feature -- Specification
- 
- 	to_mml_set: MML_SET [G]
- 		do
- 			check is_executable: False then end
- 		end
- 
- 	to_mml_sequence: MML_SEQUENCE [G]
- 		do
- 			check is_executable: False then end
- 		end
- 
- 	to_simple_array: SIMPLE_ARRAY [G]
- 		do
- 			check is_executable: False then end
- 		end
- 
+
+	to_mml_set: MML_SET [G]
+		do
+			check is_executable: False then end
+		end
+
+	to_mml_sequence: MML_SEQUENCE [G]
+		do
+			check is_executable: False then end
+		end
+
+	to_simple_array: SIMPLE_ARRAY [G]
+		do
+			check is_executable: False then end
+		end
+
 invariant
 
 	area_exists: area /= Void
