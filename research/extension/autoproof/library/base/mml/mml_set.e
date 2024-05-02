@@ -221,7 +221,7 @@ feature -- Modification
 
 			if Result.array.count + other.array.count > 0 then
 				Result.array.resize (1, Result.array.count + other.array.count)
-				-- Result.array.array_copy_range (other.array, 1, other.array.count, Result.array.count - other.count + 1)
+					-- Result.array.array_copy_range (other.array, 1, other.array.count, Result.array.count - other.count + 1)
 				Result.array.area.copy_data (other.array.area, 1 - other.array.lower, Result.array.count - other.count + 1 - Result.array.lower, other.array.count)
 			end
 
@@ -346,10 +346,29 @@ feature
 			-- Create with a predefined array.
 		require
 			starts_from_one: a.lower = 1
-				-- no_duplicates: a.bag.is_constant (1)
-			no_duplicates: across a as ai all a.occurrences (ai) = 1 end
+			-- no_duplicates: a.bag.is_constant (1)
+			-- no_duplicates: across a as ai all a.occurrences (ai) = 1 end
+		local
+			distinct, pointer: INTEGER
 		do
-			array := a
+			array := a.twin
+				-- inplace remove duplicates
+			if array.count > 1 then
+				from
+					distinct := 1 -- distinct values in array
+					pointer := array.lower + 1 -- pointer to search through array
+				until
+					pointer > array.upper
+				loop
+						-- if value at pointer is new → add it and increase the number of distinct values
+					if ¬ array.subarray (array.lower, array.lower + distinct - 1).has (array [pointer]) then
+						array [array.lower + distinct] := array [pointer]
+						distinct := distinct + 1
+					end
+					pointer := pointer + 1
+				end
+				array := array.subarray (array.lower, array.lower + distinct - 1) -- cut of tail of repeating values
+			end
 			array.compare_objects
 		end
 
