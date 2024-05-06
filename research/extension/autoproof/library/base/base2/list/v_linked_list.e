@@ -33,8 +33,8 @@ feature -- Initialization
 		note
 			status: creator
 		do
-			create sequence.default_create
-			create cells.default_create
+			create sequence
+			create cells
 		end
 
 	copy_ (other: V_LIST [G])

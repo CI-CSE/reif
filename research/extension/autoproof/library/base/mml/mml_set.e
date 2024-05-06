@@ -47,6 +47,8 @@ feature -- io
 			⟳ i: 1 |..| array.count ¦
 				if attached {ANY} array [i] as att_i then
 					Result := Result + att_i.out + ", "
+				elseif attached {separate ANY} array [i] then
+					Result := Result + "<SEPERATE ANY>, "
 				else
 					Result := Result + "NA, "
 				end
@@ -67,7 +69,7 @@ feature -- Properties
 			Result := array.has (x)
 		end
 
-	is_empty alias "∅=": BOOLEAN
+	is_empty: BOOLEAN
 			-- Is the set empty?
 		do
 			Result := array.is_empty
@@ -303,8 +305,6 @@ feature -- Iterable implementation
 			maps_to: ""
 		do
 			Result := array.new_cursor
-				-- Li: the target of creation call cannot be a deffered type
-				-- Result := create {ITERATION_CURSOR [ANY]}.default_create
 		end
 
 feature -- Convenience

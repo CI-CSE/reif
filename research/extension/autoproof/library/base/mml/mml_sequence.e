@@ -14,14 +14,14 @@ inherit
 	ITERABLE [G]
 		redefine
 			default_create,
-			is_equal
+			is_equal,
+			out
 		end
 
 create
 	default_create,
 	singleton,
 	constant,
-	-- Li
 	make_from_array
 
 convert
@@ -49,6 +49,12 @@ feature {NONE} -- Initialization
 			n_non_negative: n >= 0
 		do
 			create array.make_filled (x, 1, n)
+		end
+
+feature -- IO
+	out: STRING
+		do
+			Result := array.out
 		end
 
 feature -- Properties
@@ -263,19 +269,11 @@ feature -- Decomposition
 		    Result := interval (1, upper)
 		end
 
---	tail (last_n: INTEGER): MML_SEQUENCE [G] -- TODO: Check it the boogie formula is correct before using this
---			-- Suffix of the last n elements
---		do
---			Result := interval (count - last_n, count)
---		end
-
 	tail_from (lower: INTEGER): MML_SEQUENCE [G]
 			-- Suffix from `lower'.
 		do
 			-- check is_executable: False then end
 			Result := interval (lower, count)
---		ensure
---			Result = interval (lower, count)
 		end
 
 	interval (lower, upper: INTEGER): MML_SEQUENCE [G]

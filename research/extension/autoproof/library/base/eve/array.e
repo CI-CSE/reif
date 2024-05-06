@@ -167,8 +167,10 @@ feature -- IO
 			⟳ i: lower |..| upper ¦
 				if attached {ANY} item (i) as att_i then
 					Result := Result + att_i.out + ", "
+				elseif attached {separate ANY} item (i) then
+					Result := Result + "<SEPERATE ANY>, "
 				else
-					Result := Result + "NA, "
+					Result := Result + "Void, "
 				end
 			⟲
 			if count > 0 then

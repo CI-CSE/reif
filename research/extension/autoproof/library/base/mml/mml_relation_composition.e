@@ -10,11 +10,9 @@ class
 feature
 	compose (rel1: MML_RELATION [A, B]; rel2: MML_RELATION [B, C]): MML_RELATION [A, C]
 		local
---			ls: ARRAY [A]
---			rs: ARRAY [C]
 			pairs: MML_SET [MML_PAIR [A, C]]
 			current_pair: MML_PAIR [A, C]
-			res_count, res_index: INTEGER
+			res_count: INTEGER
 		do
 			-- count the resulting size of the relation
 			⟳ pair_1: rel1 ¦
@@ -27,9 +25,6 @@ feature
 
 			-- initialize the arrays used to build the relation
 			create pairs
---			create ls.make (1, res_count)
---			create rs.make (1, res_count)
---			res_index := ls.lower
 
 			-- collect values of the relation
 			⟳ pair_1: rel1 ¦
@@ -39,14 +34,10 @@ feature
 						if ¬pairs.has (current_pair) then
 							pairs := pairs.extended (current_pair)
 						end
---						ls [res_index] := pair_1.left
---						rs [res_index] := pair_2.right
---						res_index := res_index + 1
 					end
 				⟲
 			⟲
 			create Result.make_from_set (pairs)
---			create Result.make_from_arrays (ls, rs)
 		ensure
 			class
 		end

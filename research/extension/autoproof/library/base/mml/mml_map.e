@@ -88,13 +88,17 @@ feature -- io
 			⟳ key: keys ¦
 				if attached {ANY} item (key) as att_item then
 					item_out := att_item.out
+				elseif attached {separate ANY} item (key) then
+					item_out := "<SEPERATE ANY>"
 				else
-					item_out := "NA"
+					item_out := "Void"
 				end
 				if attached {ANY} key as non_sep_key then
 					key_out := non_sep_key.out
+				elseif attached {separate ANY} key then
+					key_out := "<SEPERATE ANY>"
 				else
-					key_out := "NA"
+					key_out := "Void"
 				end
 				Result := Result + key_out + ":" + item_out + ","
 			⟲

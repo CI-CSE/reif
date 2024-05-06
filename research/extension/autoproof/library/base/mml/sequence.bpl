@@ -187,10 +187,6 @@ function Seq#Front<T>(q: Seq T, upper: int): Seq T
 { if 0 <= upper then Seq#Take(q, upper) else Seq#Empty() : Seq T } 
 axiom (forall<T> q: Seq T :: { Seq#Front(q, Seq#Length(q)) } Seq#Front(q, Seq#Length(q)) == q);
 
-// function Seq#Tail<T>(q: Seq T, from_n: int): Seq T
-// { if 1 <= from_n then Seq#Drop(q, Seq#Length(q) - from_n) else Seq#Empty() } 
-// axiom (forall<T> q: Seq T :: { Seq#Tail(q, 0) } Seq#Tail(q, 0) == Seq#Empty());
-
 // Suffix from lower
 function Seq#TailFrom<T>(q: Seq T, lower: int): Seq T
 // { Seq#Drop(q, lower - 1) }

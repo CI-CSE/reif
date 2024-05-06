@@ -613,38 +613,18 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			valid_index: 1 <= index_ and index_ <= sequence.count - 1
 			c_in_list: cells [index_] = node
 			wrapped: is_wrapped
+			next_is_wrapped: attached node.right as r ⇒ r.is_fully_writable
 			observers_open: ∀ o: observers ¦ o.is_open
 		do
-
---			check attached node.right as one_right then
---				check index_ + 1 < cells.count ⇒ one_right.right = cells [index_ + 2] end
---				if  not attached one_right.right then
---					node.remove_right
---					last_cell := node
---				else
---					node.remove_right
---				end
---			end
-
 			lemma_cells_distinct
 			unwrap
 			check node.right = cells [index_ + 1] end
 			check attached node.right as one_right then
-				check index_ + 1 < cells.count ⇒ one_right.right = cells [index_ + 2] end
-				if attached one_right.right then -- TODO Not yet verifying
-					node.remove_right
-				else
-					unwrap_all (create {MML_SET [ANY]}.singleton (node) & one_right)
-					node.put_right (Void)
-					node.wrap
+				node.remove_right
+				if attached node.right then
 					last_cell := node
-					check attached cells [index_].right as r ⇒ r = cells [index_ + 1] end
 				end
 			end
-
-			count_ := count_ - 1
-			cells := cells.removed_at (index_ + 1)
-			sequence := sequence.removed_at (index_ + 1)
 			wrap
 		ensure
 			sequence ~ old sequence.removed_at (index_ + 1)
