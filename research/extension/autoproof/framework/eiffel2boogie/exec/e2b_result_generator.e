@@ -96,13 +96,12 @@ feature -- Basic operations
 
 
 			l_error.set_message (message_for_error (a_error, l_init_state))
-			l_error.set_ce_message (counterexample_message (l_init_state))
 			l_error.set_ce_init_state (l_init_state)
 
 		    helper.options.set_current_init_state (l_init_state)
 
             if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
-                helper.options.set_new_ce_message (l_error.ce_message)
+                helper.options.set_new_ce_message (l_error.counterexample_message_string)
             end
 
             if helper.options.is_generate_fix_enabled then
@@ -365,85 +364,6 @@ feature {NONE} -- Implementation
 				end
 			end
 
-		end
-
-	safe_var (a_var: STRING): STRING
-			-- Remove "Current" in `a_var' if any
-		do
-			if a_var.has_substring ("Current.") then
-				Result := a_var.split ('.').last
-			else
-				Result := a_var
-			end
-		end
-
-	valuation (a_var: STRING; a_value: STRING): STRING
-			-- String of a valuation
-		local
-			value: STRING
-		do
-			value := a_value
-			if value.head (1).same_string ("(") then
-				value.remove_head (1)
-			end
-			if value.tail (1).same_string (")") then
-				value.remove_tail (1)
-			end
-			Result := safe_var (a_var) + " = " + value
-		end
-
-	counterexample_message (a_initial_state: E2B_INITIAL_STATE_OF_ROUTINE): STRING
-			-- Message for displaying all tuples of values and variables in the counterexample
-		local
-			i, j: INTEGER
-			var, value, seq_name, item_value, aliased_object: STRING
-		do
-			Result := ""
-			aliased_object := ""
-
-			from
-				i := 1
-			until
-				i > a_initial_state.initial_values.count
-			loop
-				var := a_initial_state.initial_values.current_keys [i]
-				value := a_initial_state.initial_values [var]
-				-- print (var + "->" + value + "%N")
-					-- sequence
-				if not value.has_substring ("T@U") and not var.split ('.').first.same_string (aliased_object) and not value.is_empty then -- valuations
-					Result := Result + " " + valuation (var, value) + ","
-
-				elseif a_initial_state.is_aliased_with_existed_object (var) then -- alias relation
-					Result := Result + " " + valuation (var, a_initial_state.alias_groups [value] [1]) + ","
-					aliased_object := var
-					-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
-				elseif var.split ('.').last.same_string ("sequence") then
-					seq_name := var.split ('.').first
-					if a_initial_state.ce.seq_lengths.has (value) then
-						Result := Result + " " + valuation (seq_name + ".count", a_initial_state.ce.seq_lengths [value]) + ","
-
-						if not a_initial_state.ce.seq_item.is_empty then
-							from
-								j := 1
-							until
-								j > a_initial_state.ce.seq_lengths [value].to_integer_32 or j > 10 -- TODO Li: this is a hack to prevent large sequence
-							loop
-								if a_initial_state.ce.seq_item.has (value + ", " + j.out) then
-									item_value := a_initial_state.ce.seq_item [value + ", " + j.out]
-									Result := Result + " " + valuation (seq_name + " [" + j.out + "]", item_value) + ","
-								end
-								j := j + 1
-							end
-						else
-							Result := Result + " (No sequence for array " + seq_name + " found in the counterexample.) %N"
-						end
-					end
-				end
-				i := i + 1
-			end
-
-			Result.remove_tail (1) -- remove the last comma
-			Result.append (".")
 		end
 
 	line_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR): INTEGER

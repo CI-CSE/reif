@@ -129,7 +129,7 @@ feature
 					end
 					close ("td")
 					open_style ("td", td_info_style)
-					i.single_line_message (Current)
+					i.multi_line_message (Current)
 					close ("td")
 				end
 			end

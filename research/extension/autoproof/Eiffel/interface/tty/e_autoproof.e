@@ -334,7 +334,7 @@ feature {NONE} -- Output
 				if i.context_line_number > 0 then
 					output_window.add ("Line: " + i.context_line_number.out + ". ")
 				end
-				i.single_line_message (output_window)
+				i.multi_line_message (output_window)
 				output_window.add_new_line
 			end
 		end
