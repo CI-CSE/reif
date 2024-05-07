@@ -144,6 +144,47 @@ jobs:
           failed=0
           error=0
           timeout=0
+          legacy_failed=0
+          legacy_succeeded=()
+          legacy_names=(
+            v_array.e
+            v_array2.e
+            v_double_linkable.e
+            v_container.e
+            v_linked_queue_iterator.e
+            v_linked_stack_iterator.e
+            v_arrayed_list_iterator.e
+            v_double_linked_list_iterator.e
+            v_linked_list_iterator.e
+            v_hash_set_iterator.e
+            v_hash_table_iterator.e
+            v_iterator.e
+            v_arrayed_list.e
+            v_doubly_linked_list.e
+            v_linked_list.e
+            v_list.e
+            v_hash_table.e
+            v_hash_lock.e
+            v_lock.e
+            v_lock_string.e
+            v_locker_string.e
+            any.e
+            arguments.e
+            arguments_32.e
+            array.e
+            fibonacci.e
+            primes.e
+            simple_array.e
+            simple_list.e
+            std_files.e
+            v_special.e
+            v_string.e
+            mml_map.e
+            mml_pair.e
+            mml_relation.e
+            mml_sequence.e
+          )
+
           base2dir="$AP/library/base"
           base2cfg="$base2dir/base-scoop-safe.ecf"
 
@@ -159,8 +200,9 @@ jobs:
 
           OUTPUT_TABLE="_output_table_file_"
 
-          echo "<table><tr><th>Class</th><th>Verified?</th><th>Time (sec)</th><th>AP output</th><th>Boogie output</th></tr>" \
+          echo "<table><tr><th>Class</th><th>Verified?</th><th>Not ignored (not legacy)?</th><th>Time (sec)</th><th>AP output</th><th>Boogie output</th></tr>" \
             >> $OUTPUT_TABLE
+
 
           shopt -s globstar
 
@@ -185,27 +227,53 @@ jobs:
 
             echo "::endgroup::"
 
+            if [[ "${legacy_names[@]}" =~ $(basename $f) ]]; then
+              is_legacy=1
+            else
+              is_legacy=0
+            fi
+
             # 137 if COMMAND (or timeout itself) is sent the KILL (9) signal (128+9)
             if (( timeout_code == 137 )); then
               echo "  Timeout"
               echo "<td>:alarm_clock:</td>" >> $OUTPUT_TABLE
-              timeout=$(( $timeout+1 ))
+
+              if (( is_legacy == 0 )); then
+                timeout=$(( $timeout+1 ))
+              fi
             else
               if grep -q "Verification failed" ap.txt; then
                 echo "  Failed"
                 echo "<td>:x:</td>" >> $OUTPUT_TABLE
-                failed=$(( $failed+1 ))
+
+                if (( is_legacy == 0 )); then
+                  failed=$(( $failed+1 ))
+                fi
               else
                 if grep -q "Successfully verified" ap.txt; then
                   echo "  Succeeded"
                   echo "<td>:white_check_mark:</td>" >> $OUTPUT_TABLE
-                  succeeded=$(( $succeeded+1 ))
+
+                  if (( is_legacy == 0 )); then
+                    succeeded=$(( $succeeded+1 ))
+                  else
+                    legacy_succeeded+=($f)
+                  fi
                 else
                   echo "  Verification error"
                   echo "<td>Error</td>" >> $OUTPUT_TABLE
-                  error=$(( $error+1 ))
+
+                  if (( is_legacy == 0 )); then
+                    error=$(( $error+1 ))
+                  fi
                 fi
               fi
+            fi
+
+            if (( is_legacy == 0 )); then
+              echo "<td>:white_check_mark:</td>" >> $OUTPUT_TABLE
+            else
+              echo "<td></td>" >> $OUTPUT_TABLE
             fi
 
             echo "ec finished in $((timeend-timestart))"
@@ -247,20 +315,26 @@ jobs:
           if (( error > 0 )) || (( error > 0 )); then
             exit 1
           fi
+          if (( ${#legacy_succeeded[@]} )); then
+            echo "Legacy files verified. Remove them from legacy list!"
+            echo ${legacy_succeded[@]}
+            exit 1
+          fi
 
-      - name: Run tests
+      - name: Run python tests which should pass
         if: ${{ !cancelled() }}
         run: |
           cd research/extension/autoproof/framework/eiffel2boogie/tests
           python3 runtests.py \
-            --dir $(pwd) \
+            --dir $(pwd)/examples \
             --ec $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin/ec \
-            --test-timeout 120 | tee tests.txt
+            --test-timeout 120 \
+            --ecf $(pwd)/tests.ecf | tee tests.txt
 
           # python is piped, so take its status from PIPESTATUS
           res=${PIPESTATUS[0]}
 
-          echo "# E2B Tests" >> $GITHUB_STEP_SUMMARY
+          echo "# E2B Tests which should pass" >> $GITHUB_STEP_SUMMARY
           tail -n 1 tests.txt >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -269,3 +343,34 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
           exit $res
+
+      - name: Run ignored legacy python tests, none should pass
+        if: ${{ !cancelled() }}
+        run: |
+          cd research/extension/autoproof/framework/eiffel2boogie/tests
+          python3 runtests.py \
+            --dir $(pwd)/legacy \
+            --ec $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin/ec \
+            --test-timeout 120 \
+            --ecf $(pwd)/tests.ecf | tee tests.txt
+
+          # python is piped, so take its status from PIPESTATUS
+          res=${PIPESTATUS[0]}
+
+          echo "# E2B LEGACY Tests which should fail" >> $GITHUB_STEP_SUMMARY
+          tail -n 1 tests.txt >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat tests.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          if (( res == 0 )) || (( res == 2 )); then
+            echo "Move succeeded tests from `legacy` to `examples` folder!"
+            echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+            echo "> Move succeeded tests from `legacy` to `examples` folder!" >> \
+              $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            exit 1
+          fi

@@ -4,7 +4,7 @@ This directory contains automated tests for AutoProof.
 
 To execute tests run:
 ```shell
-python runtests.py
+python runtests.py --dir examples
 ```
 
 The script takes several command line options. To see which are supported run:
@@ -17,6 +17,21 @@ It shows the number of classes which had the expected/unexpected verification re
 ```python
 {'passed': 11, 'failed': 34, 'error': 0}
 ```
+
+## The `examples` and `legacy` folders
+Tests in `examples` must pass. This is the place for new tests.
+
+Tests in `legacy` must fail. This is place for old tests.
+**Don't add tests to `legacy`!**
+
+> [!CAUTION]
+> Don't add tests to `legacy` folder. Add new tests to `examples`.
+> Fixed tests from `legacy` must be moved to `examples`.
+
+> [!IMPORTANT]
+> The CI checks that all tests in `examples` pass (as usual)
+> and checks that no tests pass in `legacy` pass (if they pass,
+> they should move to `examples`
 
 ## Test structure
 Tests are Eiffel classes located in *test directories*. They should be included in the `tests.ecf` file i.e.

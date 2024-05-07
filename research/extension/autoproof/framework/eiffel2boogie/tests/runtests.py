@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import argparse
 import difflib
+import re
 from collections import namedtuple
 
 # ----------------------------------------------------------------------------
@@ -16,7 +17,9 @@ from collections import namedtuple
 # ----------------------------------------------------------------------------
 
 def tests_ecf_path():
-	return os.path.join(base_path, 'tests.ecf')
+    global arguments
+
+    return arguments.ecf or os.path.join(base_path, 'tests.ecf')
 
 store_output = False
 
@@ -189,15 +192,33 @@ def run_tests(directory=None, args_prefix=[]):
 def is_system_windows() -> bool:
 	return os.name == 'nt'
 
+def remove_counterexamples(text):
+	result = []
+	error_re = re.compile("(Line: \\d+. |Postcondition \w+ may be violated\. Disable)")
+	eqs_re = re.compile("^=+$")
+	lines = text.split('\n')
+	i = 0
+	while i < len(lines):
+		line = lines[i]
+		i += 1
+		result.append(line)
+		if i < len(lines) and error_re.match(line):
+			next_line = lines[i]
+			if not eqs_re.match(next_line):
+				# skip non-===== line
+				i += 1
+
+	return '\n'.join(result)
 
 Result = namedtuple("Result", ["category", "name"])
-def run_test(path, test_name, args_prefix=[]):
+def run_test(path, test_name, args_prefix=[]) -> Result:
 	'''Run a single test case,
 
-	return 'passed' if test passed,
-	'failed' if test failed,
-	'error' if there was error running test
-	'timeout' if running the test exceeded the timeout time'''
+	return Result with category:
+	* 'passed' if test passed,
+	* 'failed' if test failed,
+	* 'error' if there was error running test
+	* 'timeout' if running the test exceeded the timeout time'''
 	global store_output
 	if not path is None and os.path.isdir(path):
 		_as_info("Running test: " + test_name)
@@ -223,6 +244,7 @@ def run_test(path, test_name, args_prefix=[]):
 		output_content = output_file.read()
 		full_output = output_content
 		output_content = output_content.partition("System Recompiled.\n")[2].strip()
+		output_content = remove_counterexamples(output_content)
 		output_file.close()
 		
 		if store_output:
@@ -265,6 +287,7 @@ parser.add_argument('--store', '-s', action='store_true')
 parser.add_argument('--finalized', '-f', action='store_true')
 parser.add_argument('--dir', '-d', default=None)
 parser.add_argument('--ec', help='Path to the \'ec\' executable to use')
+parser.add_argument('--ecf', help="Path to the ecf file to use")
 parser.add_argument('--test-timeout', default=30, type=int)
 parser.add_argument('tests', nargs=argparse.REMAINDER)
 
@@ -286,15 +309,15 @@ if arguments.clean:
 if len(arguments.tests) == 0:
 	result = run_tests(base_path)
 else:
-	result  = {
-		'passed': 0,
-		'failed': 0,
-		'error': 0,
-		'timeout': 0
+	result = {
+		'passed': [],
+		'failed': [],
+		'error': [],
+		'timeout': [],
 	}
 	for t in arguments.tests:
 		outcome = run_test(find_test(t, base_path), t)
-		result[outcome] += 1
+		result[outcome.category].append(outcome.name)
 for k in result:
 	e = result[k]
 	print("-------------")
@@ -303,4 +326,6 @@ for k in result:
 	print("-------------")
 
 if result['failed'] or result['error'] or result['timeout']:
+	if result['passed']:
+		exit(2)
 	exit(1)
