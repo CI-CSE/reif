@@ -199,26 +199,29 @@ feature -- Translation: Signature
 				end
 
 				across arguments_of_current_feature as arg loop
-					create ent.make (arg.name, arg.boogie_type)
+					-- Don't translate invariants of basic types
+					if not attached {IV_BASIC_TYPE} arg.boogie_type then
+						create ent.make (arg.name, arg.boogie_type)
 
-					-- require argument.INV/r
-					create inv_filter
-					inv_filter.required_export_status := a_feature.export_status
-					across type_translator.translate_invariant (arg.type, inv_filter, ent) as i loop
-						create pre.make (i.expression)
-						pre.node_info.set_type ("arg_inv_pre")
-						pre.node_info.set_tag (i.node_info.tag)
-						pre.node_info.set_line (i.node_info.line.to_integer_32)
-						current_boogie_procedure.add_contract (pre)
-					end
+							-- require argument.INV/r
+						create inv_filter
+						inv_filter.required_export_status := a_feature.export_status
+						across type_translator.translate_invariant (arg.type, inv_filter, ent) as i loop
+							create pre.make (i.expression)
+							pre.node_info.set_type ("arg_inv_pre")
+							pre.node_info.set_tag (i.node_info.tag)
+							pre.node_info.set_line (i.node_info.line.to_integer_32)
+							current_boogie_procedure.add_contract (pre)
+						end
 
-					-- ensure full argument.INV
-					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
-						create post.make (i.expression)
-						post.node_info.set_type ("arg_inv_post")
-						post.node_info.set_tag (i.node_info.tag)
-						post.node_info.set_line (i.node_info.line.to_integer_32)
-						current_boogie_procedure.add_contract (post)
+							-- ensure full argument.INV
+						across type_translator.translate_invariant (arg.type, Void, ent) as i loop
+							create post.make (i.expression)
+							post.node_info.set_type ("arg_inv_post")
+							post.node_info.set_tag (i.node_info.tag)
+							post.node_info.set_line (i.node_info.line.to_integer_32)
+							current_boogie_procedure.add_contract (post)
+						end
 					end
 				end
 			elseif a_variant = {E2B_FEATURE_VARIANT}.creator then
@@ -388,10 +391,9 @@ feature -- Translation: Signature
 			create l_var_type.make_fresh
 			create l_entity.make ("$f", types.field (l_var_type))
 
-				-- Excluded fields: allocated, closed, and model fields with static initializaers
+				-- Excluded fields: allocated and model fields with static initializaers
 			create l_excluded.make (5)
 			l_excluded.extend (factory.entity ("allocated", types.field (types.bool)))
-			l_excluded.extend (factory.entity ("closed", types.field (types.bool)))
 			across
 				current_type.base_class.ghost_attributes as gh_attr
 			loop
