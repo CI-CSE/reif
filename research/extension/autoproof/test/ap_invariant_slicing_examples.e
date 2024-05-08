@@ -241,4 +241,63 @@ pre_fix2: r /= Current
 
 			verify
 		end
+
+	counterexample_1_test
+		do
+			print_file ("c.e", "[
+				class
+					C
+				create
+					make
+				feature
+					a: INTEGER
+					make
+						local
+							d: D
+						do
+							a := 1
+						end
+
+					test
+						do
+							check c1: a > 0 end
+						ensure
+							modify ([])
+						end
+				feature {D}
+					set_a (x: INTEGER)
+						do
+							a := x
+						ensure
+							a = x
+							modify_field ("a", Current)
+						end
+
+				invariant
+					inv1: a > 0
+				end
+			]")
+			print_file ("d.e", "[
+				class
+					D
+				feature
+					break (c: C)
+						require
+							c /= Void
+						do
+							c.set_a (-10)
+							c.test
+							c.set_a (100)
+						ensure
+							modify_field ("a", c)
+						end
+				end
+			]")
+			print_ecf ("C")
+
+			command.add_class ("C")
+			command.add_class ("D")
+
+			verify
+		end
 end
