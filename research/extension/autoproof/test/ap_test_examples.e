@@ -41,20 +41,7 @@ feature -- Testing
 
 			assert_equal ("Results of 3 variants", 3, verification_results.count)
 
-			assert (
-				"Creator is not verified",
-				attached {E2B_FAILED_VERIFICATION} result_of_feature ("make", "creator")
-			)
-
-			assert (
-				"Unqualified is not verified",
-				attached {E2B_FAILED_VERIFICATION} result_of_feature ("make", "unqualified")
-			)
-
-			assert (
-				"Qualified is not verified",
-				attached {E2B_FAILED_VERIFICATION} result_of_feature ("make", "qualified")
-			)
+			assert_feature_unverified ("make", << "qualified", "unqualified", "creator" >>)
 		end
 
 	example_check_true
@@ -81,20 +68,7 @@ feature -- Testing
 
 			assert_equal ("Results of 3 variants", 3, verification_results.count)
 
-			assert (
-				"Creator is verified",
-				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature ("make", "creator")
-			)
-
-			assert (
-				"Unqualified is verified",
-				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature ("make", "unqualified")
-			)
-
-			assert (
-				"Qualified is verified",
-				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature ("make", "qualified")
-			)
+			assert_feature_verified ("make", << "qualified", "unqualified", "creator" >>)
 		end
 
 feature {NONE} -- Initialization
@@ -228,8 +202,8 @@ feature {NONE} -- Building test projects
 	e2b_result: E2B_RESULT
 			-- AutoProof execution result. Available after `verify`.
 		do
-			assert_equal ("One E2B_VERIFICATION_RESULT", 1, verification_results.count)
-			Result := verification_results [1]
+			assert_equal ("One e2b_result", 1, results.count)
+			Result := results [1]
 		end
 
 	verification_results: LINKED_LIST [E2B_VERIFICATION_RESULT]
@@ -291,6 +265,13 @@ feature {NONE} -- Building test projects
 			)
 		end
 
+	verification_result: E2B_VERIFICATION_RESULT
+			-- If only one result is expected, get the result
+		do
+			assert_equal ("One E2B_VERIFICATION_RESULT", 1, verification_results.count)
+			Result := verification_results.first
+		end
+
 	result_of_feature (feature_name, context: STRING): detachable E2B_VERIFICATION_RESULT
 		do
 			across
@@ -298,10 +279,40 @@ feature {NONE} -- Building test projects
 			until
 				attached Result
 			loop
-				if i.context_feature.feature_name ~ feature_name
-					and then i.verification_context ~ context then
+				if
+					i.context_feature.feature_name ~ feature_name
+					and then i.verification_context.starts_with (context)
+				then
 					Result := i
 				end
+			end
+		end
+
+	assert_feature_verified_context (feature_name, context: STRING)
+		do
+			assert ("Feature " + feature_name + " (" + context + ") verified",
+				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature (
+					feature_name, context))
+		end
+
+	assert_feature_verified (feature_name: STRING; contexts: ARRAY [STRING])
+		do
+			across contexts as c loop
+				assert_feature_verified_context (feature_name, c)
+			end
+		end
+
+	assert_feature_unverified_context (feature_name, context: STRING)
+		do
+			assert ("Feature " + feature_name + " (" + context + ") unverified",
+				attached {E2B_FAILED_VERIFICATION} result_of_feature (
+					feature_name, context))
+		end
+
+	assert_feature_unverified (feature_name: STRING; contexts: ARRAY [STRING])
+		do
+			across contexts as c loop
+				assert_feature_unverified_context (feature_name, c)
 			end
 		end
 end
