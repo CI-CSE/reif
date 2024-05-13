@@ -8,16 +8,9 @@ class
 	AP_TEST_EXAMPLES
 
 inherit
-	EQA_TEST_SET
-		undefine
-			assert
+	AP_TEST
 		redefine
 			on_prepare
-		end
-
-	EQA_COMMONLY_USED_ASSERTIONS
-		undefine
-			default_create
 		end
 
 feature -- Testing
