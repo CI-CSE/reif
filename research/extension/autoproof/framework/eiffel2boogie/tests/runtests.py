@@ -195,7 +195,7 @@ def is_system_windows() -> bool:
 def remove_counterexamples(text):
 	result = []
 	error_re = re.compile("(Line: \\d+. |Postcondition \w+ may be violated\. Disable)")
-	eqs_re = re.compile("^=+$")
+	eqs_re = re.compile("^(=+|-+)$") # full line of '=' or full line of '-'
 	lines = text.split('\n')
 	i = 0
 	while i < len(lines):
@@ -203,9 +203,7 @@ def remove_counterexamples(text):
 		i += 1
 		result.append(line)
 		if i < len(lines) and error_re.match(line):
-			next_line = lines[i]
-			if not eqs_re.match(next_line):
-				# skip non-===== line
+			while i < len(lines) and not eqs_re.match(lines[i]):
 				i += 1
 
 	return '\n'.join(result)

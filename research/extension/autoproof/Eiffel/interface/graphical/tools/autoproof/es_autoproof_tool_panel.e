@@ -927,7 +927,7 @@ feature {NONE} -- Basic operations
 	ce_index: INTEGER
 			-- Indexes of counterexamples in the panel
 
-	ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+	ce_init_state: E2B_CE_STATE_OF_ROUTINE
 			-- Initial state of the currently targeted error
 
 feature {NONE} -- Clean up

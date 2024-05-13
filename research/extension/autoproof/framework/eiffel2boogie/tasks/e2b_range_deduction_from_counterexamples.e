@@ -97,7 +97,7 @@ feature {NONE} -- Implementation
 
 feature -- Ranges from counterexamples
 
-     counterexamples: LINKED_LIST[E2B_INITIAL_STATE_OF_ROUTINE]
+     counterexamples: LINKED_LIST[E2B_CE_STATE_OF_ROUTINE]
          --
 
 

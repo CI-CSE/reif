@@ -190,7 +190,7 @@ feature {NONE}
 			max: INTEGER
 			models: ARRAY [IMMUTABLE_STRING_32]
 			model_file_content: STRING
-			initial_state: E2B_INITIAL_STATE_OF_ROUTINE
+			initial_state: E2B_CE_STATE_OF_ROUTINE
 			value: STRING
 		do
 			model_file_content := ""; value := ""
@@ -203,7 +203,7 @@ feature {NONE}
 
 			across models as m loop
 				create ce.make (m)
-				create initial_state.make (target_feature, target_class, ce)
+				create initial_state.make (target_feature, target_class, ce, Void)
 
 				if is_container_size (a_var) then
 					value.copy (initial_state.container_size_named (a_var.split ('.').first))

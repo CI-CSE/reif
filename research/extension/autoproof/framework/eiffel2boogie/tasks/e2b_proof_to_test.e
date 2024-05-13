@@ -24,7 +24,7 @@ feature {NONE} -- Initialize
 
 feature -- Tests generation
 
-	generate_tests (a_init_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE])
+	generate_tests (a_init_states: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE])
 			-- Generate tests from counterexample models.
 		local
 			l_test_generator: E2B_GENERATE_TEST_SCRIPT
@@ -34,15 +34,14 @@ feature -- Tests generation
 			create l_test_generator.make (test_file_name, a_init_states)
 		end
 
-	generate_test_for_ce (a_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+	generate_test_for_ce (a_init_state: E2B_CE_STATE_OF_ROUTINE)
 			-- Generate a test from a single counterexample model
 		local
 			l_test_generator: E2B_GENERATE_TEST_SCRIPT
-			-- l_init_state: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
 		do
 			file_index := file_index + 1
 			test_file_name := system.eiffel_project.project_directory.path.extended (a_init_state.target_class.name + "_failed_test_" + file_index.out + ".e").out
-			create l_test_generator.make (test_file_name, create {LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]}.make_from_iterable (<<a_init_state>>))
+			create l_test_generator.make (test_file_name, create {LINKED_LIST [E2B_CE_STATE_OF_ROUTINE]}.make_from_iterable (<<a_init_state>>))
 		end
 
 feature -- Files and data

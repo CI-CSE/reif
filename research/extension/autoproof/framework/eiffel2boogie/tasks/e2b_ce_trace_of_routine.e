@@ -29,9 +29,11 @@ feature {NONE} -- Initialize
 			create states.make (0)
 
 			-- loop over heap values; generate a state for each heap value
-			across a_ce.heap_values as v loop
-				create state.make (a_target_feature, a_target_class, a_ce, v)
-				states.extend (state)
+			across a_ce.name_to_raw.current_keys as v loop
+				if v.starts_with("Heap") then
+					create state.make (a_target_feature, a_target_class, a_ce, v)
+					states.extend (state)
+				end
 			end
 			-- print ("etract trace time: " + current_timer.out + "%N")
 			stop_timer

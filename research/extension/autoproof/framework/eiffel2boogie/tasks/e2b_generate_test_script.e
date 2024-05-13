@@ -17,7 +17,7 @@ create
 
 feature -- Initialize
 
-	make (test_file_name: STRING; a_init_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE])
+	make (test_file_name: STRING; a_init_states: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE])
 			-- Initialize data for test generation
 		local
 			class_name: STRING
@@ -27,8 +27,6 @@ feature -- Initialize
 			class_name := ""
 			create alias_groups.make (0)
 			create missing_values.make_empty
-			create sequence_items.make (0)
-			create sequence_lengths.make (0)
 			create references_to_declare.make (0)
 			create routine_names.make_empty
 
@@ -49,7 +47,7 @@ feature -- Files and data
 	test_file: PLAIN_TEXT_FILE
 			-- Output .e file that storeds all test cases
 
-	initial_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+	initial_states: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE]
 			-- Mapping from class.routine to a set of counterexamples
 
 	alias_groups: HASH_TABLE [ARRAY [STRING], STRING]
@@ -61,12 +59,6 @@ feature -- Files and data
 	missing_values: ARRAY [STRING]
 			-- A set of variables whose values are missing
 
-	sequence_items: HASH_TABLE [STRING, STRING]
-			-- Sequences' elements
-
-	sequence_lengths: HASH_TABLE [STRING, STRING]
-			-- Sequences's lengths
-
 	target_feature: E2B_FEATURE_I
 			-- Feature to test
 
@@ -76,7 +68,7 @@ feature -- Files and data
 	creation_procedure: E2B_FEATURE_I
 			-- Creation procedure of the target class
 
-	initial_state: E2B_INITIAL_STATE_OF_ROUTINE
+	initial_state: E2B_CE_STATE_OF_ROUTINE
 			-- Initial state from model
 
 	script_class_name: STRING
@@ -188,8 +180,6 @@ feature -- Test generation
 			current_type := safe_type (target_class.actual_type.actual_type)
 
 			compute_alias
-			sequence_items := initial_state.ce.seq_item
-			sequence_lengths := initial_state.ce.seq_lengths
 
 			t := "%Ttest_" + class_name + "_" + routine_name + "_" + i.out + "%N"
 			routine_names.force ("%Ttest_" + class_name + "_" + routine_name + "_" + i.out, routine_names.count)
@@ -476,24 +466,33 @@ feature -- Test generation
 	instantiate_container_object (object_name: STRING; object_type: E2B_TYPE_A): STRING
 			-- Instantiate an object of container type based on the given counterexample model `m'
 		local
-			t, value, item_value: STRING
+			t, value, item_value, new_item_value: STRING
 			i: INTEGER
 			type: STRING
+			len_s: STRING
+			len_i: INTEGER
+			full_name: STRING
 		do
 			t := ""; Result := ""; item_value := "0"
 			type := object_type.name
 
-			value := initial_state.initial_values [object_name + ".sequence"]
+			full_name := object_name + ".sequence"
+
+			value := initial_state.initial_values [full_name]
+
+			len_s := initial_state.container_size_named (full_name)
 
 			if type.has_substring ("V_ARRAY") or type.has_substring ("SIMPLE_ARRAY") then
-				if sequence_lengths.has (value) and sequence_items.count > 0 then
+				if not len_s.is_empty and then len_s /~ "0" then
+					len_i := len_s.to_integer_32
 					from
 						i := 1
 					until
-						i > sequence_lengths [value].to_integer_32
+						i > len_i
 					loop
-						if sequence_items.has (value + ", " + i.out) then
-							item_value := sequence_items [value + ", " + i.out]
+						new_item_value := initial_state.container_item_named (full_name, i.out)
+						if not new_item_value.is_empty then
+							item_value := new_item_value
 						end
 						t := t + force_item (object_name, type, item_value, i)
 						i := i + 1

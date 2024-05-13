@@ -375,7 +375,7 @@ feature {NONE} -- Basic operations
 
 feature {ES_AUTOPROOF_TOOL_PANEL}
 
-	on_minimal_counterexample_select_action (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)-- (a_row: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
+	on_minimal_counterexample_select_action (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)-- (a_row: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
@@ -387,12 +387,11 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			counterexample_menu.show
 		end
 
-	on_counterexample_select_action (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+	on_counterexample_select_action (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
 			generate_minimal, generate_other, generate_test, generate_fix: EV_CHECK_MENU_ITEM
-			-- l_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
 		do
 			-- create l_ce_init_state.make (a_target_feature: FEATURE_I, a_target_class: CLASS_C, a_ce: E2B_BOOGIE_COUNTEREXAMPLE) a_ce_init_state
 			create counterexample_menu.make_with_text ("Counterexample")
@@ -413,7 +412,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			-- Insert initial states generated from counterexamples
 		local
 			l_model_parser: E2B_BOOGIE_COUNTEREXAMPLE_PARSER
-			l_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+			l_init_state: E2B_CE_STATE_OF_ROUTINE
 			i: INTEGER
 		do
 			options.init_states_of_counterexamples.wipe_out
@@ -422,7 +421,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			across options.model_files as m loop
 				create l_model_parser.make (system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (m + ".model").out)
 				across l_model_parser.counterexamples [m] as ce loop
-					create l_init_state.make (options.features_to_optimize [i].target_feature, options.features_to_optimize [i].target_class, ce)
+					create l_init_state.make (options.features_to_optimize [i].target_feature, options.features_to_optimize [i].target_class, ce, Void)
 					options.init_states_of_counterexamples.extend (l_init_state)
 				end
 				i := i + 1
@@ -560,7 +559,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			Result := pixmaps.icon_pixmaps.verifier_to_testing_tool_icon_buffer
 		end
 
-	execute_generate_test_item (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+	execute_generate_test_item (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
 			-- Generate tests from proof failures
 			-- local
 			--	l_window: EB_DEVELOPMENT_WINDOW

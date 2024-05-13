@@ -125,13 +125,13 @@ feature -- Generate fixes from counterexamples
 			fix_message := a_fix_message
 		end
 
-	ce_states: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+	ce_states: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE]
 			-- Counterexample states collected for generation of fixes
 		once
 			create Result.make
 		end
 
-	current_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+	current_ce_init_state: E2B_CE_STATE_OF_ROUTINE
 			-- Initial state of currently targeted counterexample (new or minimal counterexample)
 
 	fix_preconditions: LINKED_LIST [STRING]
@@ -172,7 +172,7 @@ feature -- Generate tests from proof failures
 			last_result := a_last_result
 		end
 
-	set_current_init_state (a_current_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+	set_current_init_state (a_current_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
 			-- Set `current_ce_init_state' to `a_current_ce_init_state'.
 		do
 			current_ce_init_state := a_current_ce_init_state
@@ -567,7 +567,7 @@ feature -- Counterexample optimization
 	model_files: LINKED_LIST [STRING]
 			-- Model files
 
-	init_states_of_counterexamples: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
+	init_states_of_counterexamples: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE]
 			-- Initial states generated from counterexamples
 
 	opt_preconditions: HASH_TABLE [HASH_TABLE [STRING, STRING], E2B_FEATURE_I]

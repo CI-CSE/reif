@@ -71,14 +71,14 @@ feature -- Basic operations
 			-- Handle individual Boogie procedure error.
 		local
 			l_error: E2B_DEFAULT_VERIFICATION_ERROR
-			l_init_state: E2B_INITIAL_STATE_OF_ROUTINE
+			l_init_state: E2B_CE_STATE_OF_ROUTINE
 			l_trace: E2B_CE_TRACE_OF_ROUTINE
 			l_sig: STRING
 		do
 			create l_error.make (a_failure)
 			l_sig := ""
 			-- Get input values in counterexample
-			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
+			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample, Void)
 			if helper.options.is_generate_fix_enabled then
 				create l_trace.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
 				l_sig := a_failure.context_class.name + "." + a_failure.context_feature.feature_name_32.to_string_8 + "." + line_for_error (a_error).out
@@ -206,7 +206,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	message_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR; a_init_state: E2B_INITIAL_STATE_OF_ROUTINE): STRING_32
+	message_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR; a_init_state: E2B_CE_STATE_OF_ROUTINE): STRING_32
 			-- Select message for `a_error'.
 		local
 			l_type, l_tag: STRING

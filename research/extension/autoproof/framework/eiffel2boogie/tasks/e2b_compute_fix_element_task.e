@@ -174,11 +174,7 @@ feature
 
 	store_ce_traces
 			-- Generate a test from a single counterexample model
-		-- local
-			-- l_test_generator: E2B_GENERATE_TEST_SCRIPT
-			-- l_init_state: LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]
 		do
-			-- create l_test_generator.make (ce_trace_file_name, create {LINKED_LIST [E2B_INITIAL_STATE_OF_ROUTINE]}.make_from_iterable (<<a_init_state>>))
 			across options.ce_traces.current_keys as k loop
 				ce_trace_file_name := system.eiffel_project.project_directory.path.extended (k.to_string_8 + ".txt").out
 				create ce_trace_file.make_create_read_write (ce_trace_file_name)

@@ -228,15 +228,18 @@ feature {NONE} -- Implementation
 		local
 			i, end_of_model: INTEGER
 			model: STRING_32
+			end_model: STRING_32
 		do
+			end_model := "END_MODEL"
 			create models.make_empty
 			from
 				i := 1; model := ""
 			until
 				i = model_file_content.count
 			loop
-				end_of_model := model_file_content.substring_index ("END_MODEL", i)
+				end_of_model := model_file_content.substring_index (end_model, i)
 				if end_of_model /= 0 then
+					end_of_model := end_of_model + end_model.count
 					model.copy (model_file_content.substring (i, end_of_model))
 					models.force (model, models.count + 1)
 					i := end_of_model + 1

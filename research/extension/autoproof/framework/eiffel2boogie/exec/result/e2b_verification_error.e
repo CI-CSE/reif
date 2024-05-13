@@ -36,12 +36,12 @@ feature -- Access
 	context_line_number: INTEGER
 			-- Related Eiffel line number (if any).
 
-	ce_init_state: detachable E2B_INITIAL_STATE_OF_ROUTINE
+	ce_init_state: detachable E2B_CE_STATE_OF_ROUTINE
 			-- Initial state extracted from the corresponding counterexample
 
 feature -- Display
 
-	set_ce_init_state (a_ce_init_state: E2B_INITIAL_STATE_OF_ROUTINE)
+	set_ce_init_state (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
 			-- Set `ce_init_state' to `a_init_state'.
 		do
 			ce_init_state := a_ce_init_state
@@ -72,68 +72,65 @@ feature -- Display
 
 feature {NONE} -- Counterexample text generation
 
-	ce_message_string (state: E2B_INITIAL_STATE_OF_ROUTINE): STRING
+	ce_message_string (state: E2B_CE_STATE_OF_ROUTINE): STRING
 			-- Message for displaying all tuples of values and variables in the counterexample
 		require
 			state /= Void
 		local
-			i, j: INTEGER
-			var, value, seq_name, item_value, aliased_object: STRING
-			values: LINKED_LIST [STRING]
+			s: STRING
+
+			aliases: STRING
+			values: STRING
+
 		do
-			aliased_object := ""
-			create values.make
+			Result := ""
 
-			from
-				i := 1
-			until
-				i > state.initial_values.count
-			loop
-				var := state.initial_values.current_keys [i]
-				value := state.initial_values [var]
-					-- sequence
-				if not value.has_substring ("T@U") and not var.split ('.').first.same_string (aliased_object) and not value.is_empty then -- valuations
-					values.extend (valuation (var, value))
-				elseif state.is_aliased_with_existed_object (var) then -- alias relation
-					values.extend (valuation (var, state.alias_groups [value] [1]))
-					aliased_object := var
-					-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
-				elseif var.split ('.').last.same_string ("sequence") then
-					seq_name := var.split ('.').first
-					if state.ce.seq_lengths.has (value) then
-						values.extend (valuation (seq_name + ".count", state.ce.seq_lengths [value]))
-
-						if not state.ce.seq_item.is_empty then
-							from
-								j := 1
-							until
-								j > state.ce.seq_lengths [value].to_integer_32 or j > 10 -- TODO Li: this is a hack to prevent large sequence
-							loop
-								if state.ce.seq_item.has (value + ", " + j.out) then
-									item_value := state.ce.seq_item [value + ", " + j.out]
-									values.extend (valuation (seq_name + " [" + j.out + "]", item_value))
-								end
-								j := j + 1
-							end
-						else
-							values.extend ("(No sequence for array " + seq_name + " found in the counterexample.)")
-						end
+			aliases := ""
+			across state.alias_groups as g loop
+				s := ""
+				across g as o loop
+					if not @ o.is_first then
+						s := s + " = "
 					end
+					s := s + o
 				end
-				i := i + 1
+
+				if not s.is_empty then
+					if not aliases.is_empty then
+						aliases := aliases + " ; "
+					end
+					aliases := aliases + s
+				end
+			end
+			if not aliases.is_empty then
+				Result := "Aliases: " + aliases
 			end
 
-			if values.is_empty then
-				Result := "<No values available>"
-			else
-				Result := ""
-				across values as val loop
-					if @val.cursor_index /= 1 then
-						Result := Result + ", "
+			values := ""
+			across state.initial_values_by_heap as h loop
+				s := ""
+				across h.values.current_keys as k loop
+					if not s.is_empty then
+						s := s + "%N%T"
 					end
-					Result := Result + val
+					s := s + k + " = " + h.values [k]
 				end
-				Result := Result + "."
+				if not s.is_empty then
+					if not values.is_empty then
+						values := values + "%N"
+					end
+					values := values + h.heap + " => %N%T" + s
+				end
+			end
+			if not values.is_empty then
+				if not Result.is_empty then
+					Result := Result + "%N"
+				end
+				Result := Result + values
+			end
+
+			if Result.is_empty then
+				Result := "<No counterexample details available>"
 			end
 		end
 
@@ -149,17 +146,7 @@ feature {NONE} -- Counterexample text generation
 			if value.tail (1).same_string (")") then
 				value.remove_tail (1)
 			end
-			Result := safe_var (a_var) + " = " + value
-		end
-
-	safe_var (a_var: STRING): STRING
-			-- Remove "Current" in `a_var' if any
-		do
-			if a_var.has_substring ("Current.") then
-				Result := a_var.split ('.').last
-			else
-				Result := a_var
-			end
+			Result := a_var + " = " + value
 		end
 
 note

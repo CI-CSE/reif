@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "This class parses the input .model file to collect information for test generation."
 	author: "Li Huang"
 	date: "$2022-03-22$"
@@ -13,60 +13,230 @@ inherit
 create
 	make
 
+feature
+
+	parse_names (text: STRING): TUPLE [
+			names: HASH_TABLE [STRING, STRING];
+			consumed: INTEGER]
+			-- Parses `x -> y` name values.
+			-- Stops on first line which does not have this format.
+			-- Returns:
+			--   `names` — hash table of Name to Id
+			--   `consumed` — how many characters were parsed
+		local
+			done: BOOLEAN
+			line_length: INTEGER
+			parts: LIST [STRING]
+		do
+			create Result
+			Result.names := create {HASH_TABLE [STRING, STRING]}.make (10)
+
+			across
+				text.split ('%N') as line
+			until
+				done
+			loop
+				line_length := line.count + 1 -- Add 1 for %N from the split
+				parts := explode_2 (line, " -> ")
+				if parts.count = 2 and parts.last /~ "{" then
+					Result.names.put (parts.last, parts.first)
+					Result.consumed := Result.consumed + line_length
+				else
+					done := True
+						-- don't increase Result.consumed because we did not consume this line
+				end
+			end
+		ensure
+			class
+		end
+
+	parse_functions (text: STRING): TUPLE [
+			functions: HASH_TABLE [
+			LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]],
+			STRING];
+			consumed: INTEGER]
+			-- Parse `x -> { y -> z }` lines of the .model file format
+			-- Stops when line does not match the format.
+			-- Result is a table from function name (`x`) to list of function cases.
+			-- Last case has `args = Void`, this is the `else` case
+			-- 	or (in case of `x -> y`) the constant value of the function.
+		local
+			name: STRING
+			parts: LIST [STRING]
+			in_cases: BOOLEAN
+			case: TUPLE [args: detachable LIST [STRING]; res: STRING]
+			cases: LINKED_LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]]
+			done: BOOLEAN
+			line_length: INTEGER
+		do
+			create Result
+			Result.functions := create {HASH_TABLE [
+					LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]],
+					STRING]}
+				.make (10)
+
+			across
+				text.split ('%N') as line
+			until
+				done
+			loop
+				line_length := line.count + 1 -- add 1 for %N from split
+				line.adjust
+
+				if not in_cases then
+						-- Split `x -> y`
+					parts := explode_2 (line, " -> ")
+					if parts.count < 2 then
+						done := True
+					else
+						name := parts [1]
+						check parts [2] ~ "{" then end
+						create cases.make
+						in_cases := True
+						Result.consumed := Result.consumed + line_length
+					end
+				else -- in_cases
+					if line ~ "}" then
+						in_cases := False
+						Result.functions.put (cases, name)
+						Result.consumed := Result.consumed + line_length
+					else
+							-- Split `x y z -> w`
+						parts := explode_2 (line, " -> ")
+						create case
+						if parts [1] ~ "else" then
+							case.args := Void
+							case.res := parts [2]
+						else
+							case.args := parts [1].split (' ')
+							case.res := parts [parts.count]
+						end
+
+						cases.extend (case)
+						Result.consumed := Result.consumed + line_length
+					end
+				end
+			end
+		ensure
+			class
+		end
+
+	explode_2 (s, by: STRING): LIST [STRING]
+			-- Explode string `s` once by `by`
+		local
+			x: INTEGER
+		do
+			create {LINKED_LIST [STRING]} Result.make
+
+			x := s.substring_index (by, 1)
+			if x < 1 then
+				Result.extend (s)
+			else
+				Result.extend (s.substring (1, x - 1))
+				Result.extend (s.substring (x + by.count, s.count))
+			end
+		ensure
+			class
+		end
+
+	skip_header (lines: STRING): INTEGER
+		local
+			line_length: INTEGER
+			s: STRING
+		do
+			s := lines.split ('%N').first
+			line_length := s.count + 1 -- 1 for %N from split
+			s.adjust
+			check s ~ "*** MODEL" then end
+			Result := line_length
+		ensure
+			class
+		end
+
 feature {NONE} -- Initialization
 
-	make (model: STRING_32)
+	make (model_32: STRING_32)
 			-- Initialization
+		local
+			index: INTEGER
+			names_res: like parse_names
+			functions_res: like parse_functions
+			model: STRING
+			header: STRING
 		do
 			start_timer
-			create constants_values.make (0)
-			create heap_values.make (0)
-			create heap_function.make (0)
-			create seq_item.make (0)
-			create seq_lengths.make (0)
-			create class_field_relations.make (0)
-			create heap_values.make (0)
-			create passed_blocks_values.make (0)
-			create function_values.make (0)
 
-			class_name := ""
-			routine_name := ""
+			check model_32.is_valid_as_string_8 then end
+			model := model_32.to_string_8
 
-			line_index := 1
-			model_lines := model.split ('%N')
+			index := skip_header (model)
+			header := "*** MODEL%N"
+			check model.starts_with (header) then end
+			index := header.count + 1
 
-			get_constants_values
-
-			get_function_values
-
-			from
-			until
-				end_of_model_file or not heap_function.is_empty
-			loop
-				get_heap_function
+			names_res := parse_names (model.substring (index, model.count))
+			index := index + names_res.consumed
+			name_to_raw := names_res.names
+			create raw_to_name.make (name_to_raw.count)
+			across name_to_raw.current_keys as k loop
+				if not raw_to_name.has_key (name_to_raw [k]) then
+					raw_to_name [name_to_raw [k]] := create {LINKED_LIST [STRING]}.make
+				end
+				raw_to_name [name_to_raw [k]].extend (k)
 			end
 
-			if model.has_substring("sequence") then -- TODO: replace this with a cheaper way to check the existence of sequence
-				get_sequence_elements
-				get_sequence_lengths
-			end
+			functions_res := parse_functions (model.substring (index, model.count))
+			index := index + functions_res.consumed
+			functions := functions_res.functions
 
-			if not passed_blocks_values.is_empty then
-				get_passed_blocks
-			end
+			get_routine_and_class_name (model.substring (index, model.count))
 
-			get_routine_and_class_name
-				-- print("parsing model time: " + current_timer.out + "%N")
 			stop_timer
 		end
 
 feature -- Colleted data
 
-	model_lines: LIST [STRING_32]
-			-- Model in lines
+	name_to_raw: HASH_TABLE [STRING, STRING]
+			-- Raw value by a name.
+			-- Inverse of `raw_to_name`.
+			-- See also `parse_names`.
 
-	line_index: INTEGER
-			-- The current line position
+	raw_to_name: HASH_TABLE [LIST [STRING], STRING]
+			-- Names of objects having the raw value.
+			-- Inverse of `name_to_raw`.
+			-- See also `parse_names`.
+
+	functions: HASH_TABLE [
+		LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]],
+		STRING]
+			-- All functions from the model file
+			-- see `parse_functions`
+
+	apply_function (name: STRING; args: detachable LIST [STRING]): STRING
+			-- Return raw result of function by raw `args`.
+			-- Void `args` is accepted.
+		local
+			cases: like functions.item
+		do
+			cases := functions [name]
+			across cases as c until Result /= Void loop
+				if args = Void then
+					if c.args = Void then
+						Result := c.res
+					end
+				else
+					if c.args.count = args.count
+						and then ∀ i: 1 |..| c.args.count ¦ c.args [i] ~ args [i] then
+						Result := c.res
+					end
+				end
+			end
+			if Result = Void then
+				-- Last case is "else"
+				check cases.last.args = Void then end
+				Result := cases.last.res
+			end
+		end
 
 	routine_name: STRING
 			-- Target routine
@@ -74,409 +244,18 @@ feature -- Colleted data
 	class_name: STRING
 			-- Target class
 
-	constants_values: HASH_TABLE [STRING, STRING]
-			-- Mapping from constants to values
-
-	function_values: HASH_TABLE [STRING, STRING]
-			-- Mapping from <Heap Current> to a function value -- TODO Li: support other types other than boolean and integer
-
-	class_field_relations: HASH_TABLE [STRING, STRING]
-			-- Mapping from class.field to an abstract value
-
-	heap_function: HASH_TABLE [STRING, STRING]
-			-- Interpretation of a function that represents the heap behavior: [heap state, object, field] -> value
-
-	heap_values: HASH_TABLE [STRING, STRING]
-			-- Mapping from heap state names to values
-
-	passed_blocks_values: ARRAYED_LIST [STRING]
-			-- List of symbolic values of passed blocks
-
-	seq_item: HASH_TABLE [STRING, STRING]
-			-- Sequences' elements
-
-	seq_lengths: HASH_TABLE [STRING, STRING]
-			-- Sequences's lengths
-
-
-feature -- Parse model
-
-	safe_type (type: STRING): STRING
-			-- Convert the name of container type
-		local
-			t, item_type: STRING
-			tuple_field_types: LIST [STRING]
-			i: INTEGER
-		do
-			t := ""; Result := ""; item_type := ""
-
-			if type.has_substring ("^") then
-				if type.has_substring ("V_ARRAY") then
-					item_type.copy (type.split ('^') [2])
-					t := t + "V_ARRAY" + " [" + item_type + "]"
-				elseif type.has_substring ("SIMPLE_ARRAY") then
-					item_type.copy (type.split ('^') [2])
-					t := t + "SIMPLE_ARRAY" + " [" + item_type + "]"
-				elseif type.has_substring ("LIST") then
-					item_type.copy (type.split ('^') [2])
-					t := t + "LIST" + " [" + item_type + "]"
-				elseif type.has_substring ("TUPLE") then
-					tuple_field_types := type.split ('#')
-					tuple_field_types [1].copy (tuple_field_types [1].split ('^').last)
-					t := t + "TUPLE" + " ["
-
-					from
-						i := 1
-					until
-						i = tuple_field_types.count
-					loop
-						t := t + tuple_field_types [i] + ","
-						i := i + 1
-					end
-
-					t := t + tuple_field_types [i].split ('^').first + "]"
-				end
-			else
-				t := type
-			end
-			Result.copy (t)
-		end
-
-	safe_name (name: STRING): STRING
-			-- Get a valid name
-		local
-			words: LIST [STRING]
-		do
-			if name.has_substring ("@@") then -- this is usually the form of arguments; get rid of the prefix and suffix to get the actual argument name
-				words := name.split ('@')
-				Result := words.at (words.count - 2)
-					-- elseif name.same_string ("Current") then
-					--	Result := "current_object"
-
-			elseif name.has ('.') then
-				Result := safe_type (name.split ('.').first) + "." + name.split ('.').last
-			else
-				Result := name
-			end
-
-		end
-
-	get_constants_values
-			-- Collect the values of constants in the model
-		local
-			name, value, line: STRING
-			words: LIST [STRING]
-		do
-			line := ""; name := ""; value := "";
-
-			from
-				line_index := 1
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("{")
-			loop
-				line.copy (model_lines [line_index].to_string_8)
-
-				if line.has_substring ("->") then
-					words := line.split (' ')
-					name.copy (safe_name (words [1]))
-
-					value.copy (words [3])
-
-					if words [3].has ('(') then
-						value.append (words [4])
-					end
-
-					if name.has_substring (".") then -- in the form of class_name.field_name
-						name.copy (safe_name (name))
-						class_field_relations [name.twin] := ""
-						class_field_relations [name.twin].copy (value.twin)
-					elseif name.same_string ("Heap") or name.has_substring ("Heap@") then
-						heap_values [name.twin] := ""
-						heap_values [name.twin].copy (value.twin)
-					elseif name.same_string ("passed_blocks") or name.has_substring ("passed_blocks@") then
-						passed_blocks_values.force (value.twin)
-					else
-						constants_values [name.twin] := ""
-						constants_values [name.twin].copy (value.twin)
-					end
-					-- print ("constant value: " + name + " -> " + value + "%N")
-				end
-				read_next_line
-			end
-		end
-
-
-	get_function_values
-			-- Collect the set of function mappings in the model
-		local
-			func_name, object_value, heap_value, line: STRING
-			l_key, l_value: STRING
-			words: LIST [STRING]
-		do
-			line := ""; func_name := ""; object_value := ""; heap_value := ""; l_key := ""; l_value := ""
-			-- TODO Li: support multiple functions; support functions of classes other than target class
-
-			from
-			until
-				end_of_model_file or (model_lines [line_index].has_substring ("fun.") and not model_lines [line_index].has_substring ("ANY"))
-			loop
-				read_next_line
-			end
-
-			-- function name, object, Heap state --> value	
-			-- Get the function
-
-			func_name := safe_name (model_lines[line_index].to_string_8.split (' ').first.split ('.').last)
-
-			from
-				read_next_line
-			until
-				end_of_model_file or else (model_lines [line_index].has_substring ("}")) or else (model_lines [line_index].has_substring ("else"))
-			loop
-				line.copy (model_lines [line_index].to_string_8)
-
-				if line.has_substring ("->") then
-					words := line.split (' ')
-					heap_value.copy (words [3])
-					object_value.copy (words[4])
-
-					l_key.copy (func_name + " " + heap_value + " " + object_value)
-					l_value.copy (words [6])
-
-					if not function_values.has (l_key) then
-						function_values.extend (l_value, l_key)
-					else
-						function_values [l_key] := l_value
-					end
-
---					name.copy (safe_name (words [1]))
-
---					value.copy (words [3])
-
---					if words [3].has ('(') then
---						value.append (words [4])
---					end
-
-				end
-				read_next_line
-			end
-		end
-
-	get_heap_function
-			-- Construct a hash table for ``Select'' function
-		local
-			line, value: STRING
-			words: LIST [STRING]
-		do
-				-- print ("E2B_BOOGIE_COUNTEREXAMPLE.get_heap_function%N")
-			line := ""; value := ""
-				-- Go to the head of the heap function
-			from
-			until
-				end_of_model_file or (model_lines [line_index].has_substring ("MapType") and model_lines [line_index].has_substring ("Select"))
-			loop
-				read_next_line
-			end
-
-			from
-				read_next_line
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("}")
-			loop
-				line.copy (model_lines [line_index].to_string_8)
-				if is_heap_state_line (line) then
-					words := line.split (' ')
-					heap_function [words[3] + ", " + words [4] + ", " + words [5]] := ""
-					value.copy (words [7])
-
-					if words [7].has ('(') then
-						value.append (words [8])
-					end
-					heap_function [words[3] + ", " + words [4] + ", " + words [5]].copy (value)
-					-- TODO: make use of other info in the "Select" function
-				end
-				read_next_line
-			end
-			across heap_function.current_keys as k loop
-				-- print (k + "->" + heap_function [k] + "%N")
-			end
-		end
-
-	is_heap_state_line (a_line: STRING): BOOLEAN
-		-- Does `a_line' contain the value of any heap state?
-		do
-			from
-				heap_values.start
-			until
-				heap_values.after or Result
-			loop
-				if a_line.has_substring (heap_values.item_for_iteration) then
-					Result := True
-				end
-				heap_values.forth
-			end
-		end
-
-	get_sequence_elements
-			-- Collect the elements of sequences
-		local
-			line, value, key: STRING
-			words: LIST [STRING]
-		do
-			line := ""; value := ""; key := ""
-
-			from
-			until
-				end_of_model_file or model_lines [line_index].has_substring ("Seq#Item")
-			loop
-				read_next_line
-			end
-
-			from
-				read_next_line
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("}")
-			loop
-				line.copy (model_lines [line_index].to_string_8)
-
-				words := line.split (' ')
-				if words [3].same_string ("else") then
-					key.copy ("else")
-					value.copy (words [5])
-					if value.has_substring ("(") then
-						value.append (words [6])
-					end
-
-				elseif words.count >= 5 then
-					key.copy (words [3] + ", " + words [4])
-					if words [4].has ('(') then
-						key.append (words [5])
-						value.copy (words [7])
-						if value.has_substring ("(") then
-							value.append (words [8])
-						end
-					else
-						value.copy (words [6])
-						if value.has_substring ("(") then
-							value.append (words [7])
-						end
-					end
-
-				end
-
-				if not key.has ('-') and not key.same_string ("0") then -- exclude pairs with non-positive indexes
-					seq_item.extend (value.twin, key.twin)
-				end
-				read_next_line
-			end
-		end
-
-	get_sequence_lengths
-			-- Collect the lengths of sequences
-		local
-			line, value, key: STRING
-			words: LIST [STRING]
-		do
-			line := ""; value := ""; key := ""
-			seq_lengths.wipe_out
-
-			from
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("Seq#Length")
-			loop
-				read_next_line
-			end
-
-			from
-				read_next_line
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("}")
-			loop
-				line.copy (model_lines [line_index].to_string_8)
-				if not line.has_substring ("else") then
-					words := line.split (' ')
-					if not seq_lengths.has (words [3]) then
-						seq_lengths.extend (words [5], words [3])
-					else
-						seq_lengths [words [3]] := words [5].twin
-					end
-
-				end
-				read_next_line
-			end
-
-		end
-
-	get_passed_blocks
-			-- Collect the ids of passed blocks from the function of Seq#Update
-		local
-			line, value: STRING
-			words: LIST [STRING]
-		do
-			line := ""; value := "["
-
-			passed_blocks_values.compare_objects
-
-			from
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("Seq#Update")
-			loop
-				read_next_line
-			end
-
-			from
-				read_next_line
-			until
-				end_of_model_file or else model_lines [line_index].has_substring ("}")
-			loop
-				line.copy (model_lines [line_index].to_string_8)
-				if not line.has_substring ("else") then
-					words := line.split (' ')
-					if passed_blocks_values.has (words [3]) then
-						value := value + words [4].out + ","
-					end
-
-				end
-				read_next_line
-			end
-
-			value.remove_tail (1) -- remove the last comma
-			value.extend (']')
-			constants_values ["passed_blocks"] := ""
-			constants_values ["passed_blocks"].copy (value)
-		end
-
-	read_next_line
-			-- Increase the line index by 1
-		do
-			line_index := line_index + 1
-		end
-
-	end_of_model_file: BOOLEAN
-			-- Is the end of the model file?
-		do
-			Result := (line_index >= model_lines.count)
-		end
-
-	get_routine_and_class_name
+	get_routine_and_class_name (line: STRING)
 			-- Collect the name of the target routine and target class
 		local
-			line: STRING
+			s: STRING
 		do
-			line := ""
-			from
-			until
-				end_of_model_file
-			loop
-				if model_lines [line_index].has_substring ("*** STATE") then
-					line.copy (model_lines [line_index].to_string_8)
-					class_name.copy (line.split (' ').last.split ('.').first)
-					routine_name.copy (line.split (' ').last.split ('.').last)
-				end
-				read_next_line
-			end
-				-- print("class name: " + class_name + " " + "routine name: " + routine_name + "%N")
+			check line.has_substring ("*** STATE") then end
+			s := explode_2 (line, "*** STATE").last
 
+			class_name := s.split ('.').first
+			class_name.adjust
+			routine_name := s.split ('.').last
+			routine_name.adjust
 		end
 
 note
