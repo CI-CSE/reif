@@ -82,7 +82,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 						arg_type := create {E2B_TYPE_A}.make (target_feature.arguments.array_item (j - 1))
 						-- print (arg_name + ": " + arg_type.base_class.name + "%N")
 
-						if not options.init_states_of_counterexamples [k].is_aliased_with_existed_object (arg_name) then
+						if not options.init_states_of_counterexamples [k].state.is_aliased_with_existed_object (arg_name) then
 							minimize_var (arg_name, arg_type)
 						end
 						j := j + 1

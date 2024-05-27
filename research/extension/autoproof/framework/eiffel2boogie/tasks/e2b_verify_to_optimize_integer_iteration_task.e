@@ -203,14 +203,14 @@ feature {NONE}
 
 			across models as m loop
 				create ce.make (m)
-				create initial_state.make (target_feature, target_class, ce, Void)
+				initial_state := (create {E2B_CE_TRACE_OF_ROUTINE}.make (ce)).initial_state
 
 				if is_container_size (a_var) then
 					value.copy (initial_state.container_size_named (a_var.split ('.').first))
 				elseif is_container_item (a_var) then
 					value.copy (initial_state.container_item_named (a_var.split ('.').first, a_var.split ('.').last))
 				else
-					value.copy (initial_state.value_named (a_var))
+					value.copy (initial_state.values [Void][a_var])
 				end
 
 				if (not value.has ('-')) and value.to_integer > max then -- if there are multiple counterexample models, read all the values and get the maximum

@@ -282,7 +282,7 @@ feature {NONE} -- Basic operations
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right ({EB_SHARED_PIXMAPS}.icon_pixmaps.preference_list_icon, 1)
 			l_lab.pointer_button_press_actions.extend
-			(agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_minimal_counterexample_select_action (options.current_ce_init_state) end)
+			(agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_minimal_counterexample_select_action end)
 
 			l_row.set_item (5, l_lab)
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
@@ -375,19 +375,19 @@ feature {NONE} -- Basic operations
 
 feature {ES_AUTOPROOF_TOOL_PANEL}
 
-	on_minimal_counterexample_select_action (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)-- (a_row: EV_GRID_ROW; an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION)
+	on_minimal_counterexample_select_action
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
 			generate_test: EV_CHECK_MENU_ITEM
 		do
 			create counterexample_menu.make_with_text ("Counterexample")
-			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (a_ce_init_state))
+			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item)
 			counterexample_menu.extend (generate_test)
 			counterexample_menu.show
 		end
 
-	on_counterexample_select_action (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
+	on_counterexample_select_action
 			-- Display a menu on selecting a counterexample message
 		local
 			counterexample_menu: EV_MENU
@@ -398,7 +398,7 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 
 			create generate_minimal.make_with_text_and_action ("Minimal", agent execute_generate_minimal_counterexample_item)
 			create generate_other.make_with_text_and_action ("New", agent execute_generate_new_counterexample_item)
-			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item (error.ce_init_state))
+			create generate_test.make_with_text_and_action ("Test", agent execute_generate_test_item)
 			create generate_fix.make_with_text_and_action ("Fix", agent execute_generate_fix_item)
 
 			counterexample_menu.extend (generate_other)
@@ -412,7 +412,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			-- Insert initial states generated from counterexamples
 		local
 			l_model_parser: E2B_BOOGIE_COUNTEREXAMPLE_PARSER
-			l_init_state: E2B_CE_STATE_OF_ROUTINE
 			i: INTEGER
 		do
 			options.init_states_of_counterexamples.wipe_out
@@ -421,8 +420,11 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			across options.model_files as m loop
 				create l_model_parser.make (system.eiffel_project.project_directory.target_path.extended ("Proofs").extended (m + ".model").out)
 				across l_model_parser.counterexamples [m] as ce loop
-					create l_init_state.make (options.features_to_optimize [i].target_feature, options.features_to_optimize [i].target_class, ce, Void)
-					options.init_states_of_counterexamples.extend (l_init_state)
+					options.init_states_of_counterexamples.extend ([
+						(create {E2B_CE_TRACE_OF_ROUTINE}.make (ce)).initial_state,
+						options.features_to_optimize [i].target_class,
+						options.features_to_optimize [i].target_feature
+					])
 				end
 				i := i + 1
 			end
@@ -559,10 +561,8 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			Result := pixmaps.icon_pixmaps.verifier_to_testing_tool_icon_buffer
 		end
 
-	execute_generate_test_item (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
+	execute_generate_test_item
 			-- Generate tests from proof failures
-			-- local
-			--	l_window: EB_DEVELOPMENT_WINDOW
 		do
 			last_execution := agent execute_generate_test_item
 				-- generate_test_item.enable_select
@@ -575,9 +575,9 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			proof2test.generate_tests (options.init_states_of_counterexamples)
 			-- generate a test for a single counterexample each time
 			options.init_states_of_counterexamples.wipe_out
-			-- proof2test.generate_test_for_ce (a_ce_init_state) -- TODO: generate tests for single ce
-				-- create l_dialog.make_standard ("Proof2Test finished. See the generated test cases at " + proof2test.test_file_name)
-				-- l_dialog.show_on_active_window
+
+			-- TODO: generate tests for single ce
+
 			eiffel_project.discover_melt
 			window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name)
 

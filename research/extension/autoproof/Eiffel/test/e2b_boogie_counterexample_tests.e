@@ -74,6 +74,7 @@ feature
 		local
 			res: like {E2B_BOOGIE_COUNTEREXAMPLE}.parse_states
 		do
+			-- Trailing space after b -> is important!
 			res := {E2B_BOOGIE_COUNTEREXAMPLE}.parse_states ("[
 				*** STATE <initial>
 				a -> 1
@@ -135,12 +136,7 @@ feature
 				*** END_MODEL
 			]")
 
-			assert_strings_equal ("Has name to raw", "1", ce.name_to_raw ["Void"])
-			assert_strings_equal ("Has raw to name", "Void", ce.raw_to_name ["1"].first)
-			assert_equal ("Has both aliases of 10", 2, ce.raw_to_name ["10"].count)
-			ce.raw_to_name ["10"].compare_objects
-			assert ("Has first alias name", ce.raw_to_name ["10"].has ("a"))
-			assert ("Has second alias name", ce.raw_to_name ["10"].has ("b"))
+			assert_strings_equal ("Has name to raw", "1", ce.initial_name_to_raw ["Void"])
 			assert_equal ("Has functions", 1, ce.functions.count)
 			assert_equal ("Has 2 states", 2, ce.states.count)
 		end

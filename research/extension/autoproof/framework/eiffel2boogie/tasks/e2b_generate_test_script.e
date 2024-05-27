@@ -17,7 +17,7 @@ create
 
 feature -- Initialize
 
-	make (test_file_name: STRING; a_init_states: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE])
+	make (test_file_name: STRING; a_init_states: like initial_states)
 			-- Initialize data for test generation
 		local
 			class_name: STRING
@@ -47,7 +47,7 @@ feature -- Files and data
 	test_file: PLAIN_TEXT_FILE
 			-- Output .e file that storeds all test cases
 
-	initial_states: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE]
+	initial_states: LINKED_LIST [TUPLE [state: E2B_CE_STATE_OF_ROUTINE; target_class: E2B_CLASS_C; target_feature: E2B_FEATURE_I]]
 			-- Mapping from class.routine to a set of counterexamples
 
 	alias_groups: HASH_TABLE [ARRAY [STRING], STRING]
@@ -91,7 +91,7 @@ feature -- Test generation
 			test_file.put_string (header)
 
 			across initial_states as s loop
-				initial_state := s
+				initial_state := s.state
 				target_feature := s.target_feature
 				target_class := s.target_class
 					-- if r.creation_procedures.count > 0 then
@@ -144,10 +144,10 @@ feature -- Test generation
 			from
 				i := 1
 			until
-				i > initial_state.initial_values.count
+				i > initial_state.values.count
 			loop
-				name := initial_state.initial_values.current_keys [i]
-				value := initial_state.initial_values [name]
+				name := initial_state.values.current_keys [i]
+				value := initial_state.values [Void][name]
 
 				if is_abstract_value (value) then
 					if alias_groups.has (value) then
@@ -319,9 +319,9 @@ feature -- Test generation
 			t := ""; Result := ""; class_name_ := ""
 			class_name_.copy (safe_type_name (object_type.name))
 
-			if initial_state.initial_values.has (object_name) then -- value obtained in the counterexample model
+			if initial_state.values.has (object_name) then -- value obtained in the counterexample model
 				if is_basic_type (object_type.name) then
-					t := t + assignment (object_name, initial_state.initial_values [object_name])
+					t := t + assignment (object_name, initial_state.values [Void][object_name])
 				else
 					t := t + instantiate_object_reference (object_name, safe_type (object_type))
 
@@ -348,7 +348,7 @@ feature -- Test generation
 			if is_void (object_name) then
 				t := t + assignment (object_name, "Void")
 			elseif is_aliased_with_existed_object (object_name) then
-				t := t + assignment (object_name, safe_object_name (alias_groups [initial_state.initial_values [object_name]] [1]))
+				t := t + assignment (object_name, safe_object_name (alias_groups [initial_state.values [Void][object_name]] [1]))
 			elseif is_container_type (object_type.actual_type.name) then
 				t := t + instantiate_container_object (object_name, object_type)
 			else
@@ -387,8 +387,8 @@ feature -- Test generation
 		do
 			name := object_name + "." + field_name
 			value := ""
-			if initial_state.initial_values.has (object_name + "." + safe_field_name (field_name)) then
-				value := initial_state.initial_values [object_name + "." + safe_field_name (field_name)]
+			if initial_state.values.has (object_name + "." + safe_field_name (field_name)) then
+				value := initial_state.values [object_name][safe_field_name (field_name)]
 			else
 				missing_values.force (object_name + "." + field_name, missing_values.count)
 					-- TODO: the counterexample is partial
@@ -478,7 +478,7 @@ feature -- Test generation
 
 			full_name := object_name + ".sequence"
 
-			value := initial_state.initial_values [full_name]
+			value := initial_state.values [Void][full_name]
 
 			len_s := initial_state.container_size_named (full_name)
 
@@ -675,8 +675,8 @@ feature -- Properties checking
 			-- Is the value of the object void?
 		do
 			Result := False
-			if initial_state.initial_values.has (object_name) then
-				Result := initial_state.initial_values [object_name].same_string (initial_state.initial_values ["Void"])
+			if initial_state.values.has (object_name) then
+				Result := initial_state.values [Void][object_name].same_string (initial_state.values [Void]["Void"])
 			end
 		end
 
@@ -686,8 +686,8 @@ feature -- Properties checking
 			object_value: STRING
 		do
 			object_value := ""
-			if initial_state.initial_values.has (object_name) then
-				object_value.copy (initial_state.initial_values [object_name])
+			if initial_state.values.has (object_name) then
+				object_value.copy (initial_state.values [Void][object_name])
 			end
 
 			if alias_groups.has (object_value) and not alias_groups [object_value] [1].same_string (object_name) then

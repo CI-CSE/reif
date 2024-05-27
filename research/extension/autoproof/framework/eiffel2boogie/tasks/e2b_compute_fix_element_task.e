@@ -101,20 +101,20 @@ feature
 			value, n, l_min, l_max: INTEGER
 		do
 				-- Get the number of variables
-			n := options.ce_states.first.initial_values.count
+			n := options.ce_states.first.values.count
 			from
 				i := 2
 			until
 				i > n
 			loop -- loop over all counterexamples to get the minimal/maximum of each variable
-				var := options.ce_states.first.initial_values.current_keys [i]
+				var := options.ce_states.first.values.current_keys [i]
 				create e.make (var)
-				value := safe_value (options.ce_states.first.initial_values [var])
+				value := safe_value (options.ce_states.first.values [Void][var])
 				l_max := value
 				l_min := value
 
 				across options.ce_states as ce loop
-					value := safe_value (ce.initial_values [var])
+					value := safe_value (ce.values [Void][var])
 					if value > l_max then
 						l_max := value
 					elseif value < l_min then

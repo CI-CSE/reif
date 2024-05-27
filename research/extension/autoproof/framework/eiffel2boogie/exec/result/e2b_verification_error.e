@@ -36,15 +36,15 @@ feature -- Access
 	context_line_number: INTEGER
 			-- Related Eiffel line number (if any).
 
-	ce_init_state: detachable E2B_CE_STATE_OF_ROUTINE
-			-- Initial state extracted from the corresponding counterexample
+	trace: detachable E2B_CE_TRACE_OF_ROUTINE
+			-- Counterexample trace
 
 feature -- Display
 
-	set_ce_init_state (a_ce_init_state: E2B_CE_STATE_OF_ROUTINE)
-			-- Set `ce_init_state' to `a_init_state'.
+	set_trace (a_trace: E2B_CE_TRACE_OF_ROUTINE)
+			-- Set `trace' to `a_trace'.
 		do
-			ce_init_state := a_ce_init_state
+			trace := a_trace
 		end
 
 	single_line_message (a_formatter: TEXT_FORMATTER)
@@ -56,7 +56,7 @@ feature -- Display
 			-- Multi line description of this error.
 		do
 			single_line_message (a_formatter)
-			if ce_init_state /= Void then
+			if trace /= Void then
 				a_formatter.add_new_line
 				a_formatter.process_basic_text (counterexample_message_string)
 			end
@@ -65,73 +65,86 @@ feature -- Display
 	counterexample_message_string: detachable STRING
 			-- Multi-line counterexample text
 		do
-			if attached ce_init_state as state then
-				Result := ce_message_string (state)
+			if attached trace as t then
+				Result := ce_message_string (t)
 			end
 		end
 
 feature {NONE} -- Counterexample text generation
 
-	ce_message_string (state: E2B_CE_STATE_OF_ROUTINE): STRING
+	ce_message_string (t: E2B_CE_TRACE_OF_ROUTINE): STRING
 			-- Message for displaying all tuples of values and variables in the counterexample
 		require
-			state /= Void
+			t /= Void
 		local
-			s: STRING
-
-			aliases: STRING
-			values: STRING
-
+			values, obj_values: STRING
 		do
 			Result := ""
 
-			aliases := ""
-			across state.alias_groups as g loop
-				s := ""
-				across g as o loop
-					if not @ o.is_first then
-						s := s + " = "
+			across t.states as state loop
+				if @ state.cursor_index > 1 then -- skip <initial> state
+					if not Result.is_empty then
+						Result := Result + "%N"
 					end
-					s := s + o
-				end
+					Result := Result + "State: " + state.name + " =>"
+					values := ""
+					across state.values [Void] as val loop
+						if not is_ignored_variable (@ val.key)
+							-- don't print "x = x"
+							and then @ val.key /~ trace.translate_raw (val)
+							then
+							values := values + "%N%T" + @ val.key
+								+ " = " + trace.translate_raw (val)
+						end
+					end
 
-				if not s.is_empty then
-					if not aliases.is_empty then
-						aliases := aliases + " ; "
+					across state.values.current_keys as obj loop
+						-- Don't show fields of Void
+						if obj /= Void
+							and then not is_ignored_object (trace.translate_raw (obj)) then
+							obj_values := ""
+							across state.values [obj] as val loop
+								if not is_ignored_object_field (trace.translate_raw (@ val.key)) then
+									obj_values := obj_values + "%N%T%T"
+										+ trace.translate_raw (@ val.key)
+										+ " = " + trace.translate_raw (val)
+								end
+							end
+							if not obj_values.is_empty then
+								values := values + "%N%T" + trace.translate_raw (obj)
+									+ " =>" + obj_values
+							end
+						end
 					end
-					aliases := aliases + s
-				end
-			end
-			if not aliases.is_empty then
-				Result := "Aliases: " + aliases
-			end
 
-			values := ""
-			across state.initial_values_by_heap as h loop
-				s := ""
-				across h.values.current_keys as k loop
-					if not s.is_empty then
-						s := s + "%N%T"
-					end
-					s := s + k + " = " + h.values [k]
-				end
-				if not s.is_empty then
 					if not values.is_empty then
-						values := values + "%N"
+						Result := Result + values
 					end
-					values := values + h.heap + " => %N%T" + s
 				end
-			end
-			if not values.is_empty then
-				if not Result.is_empty then
-					Result := Result + "%N"
-				end
-				Result := Result + values
 			end
 
 			if Result.is_empty then
 				Result := "<No counterexample details available>"
 			end
+		end
+
+	is_ignored_variable (s: STRING): BOOLEAN
+		do
+			Result := s ~ "Current" or s ~ "Heap" or s.starts_with ("temp_")
+		end
+
+	is_ignored_object (s: STRING): BOOLEAN
+		local
+			vals: ARRAY [STRING]
+		do
+			vals := << "Void", "boxed_true", "boxed_false" >>
+			vals.compare_objects
+			Result := vals.has (s)
+		end
+
+	is_ignored_object_field (f: STRING): BOOLEAN
+		do
+			Result := f ~ "allocated"
 		end
 
 	valuation (a_var: STRING; a_value: STRING): STRING

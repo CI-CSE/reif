@@ -223,14 +223,7 @@ feature {NONE} -- Initialization
 
 			names_res := parse_names (model.substring (index, model.count))
 			index := index + names_res.consumed
-			name_to_raw := names_res.names
-			create raw_to_name.make (name_to_raw.count)
-			across name_to_raw.current_keys as k loop
-				if not raw_to_name.has_key (name_to_raw [k]) then
-					raw_to_name [name_to_raw [k]] := create {LINKED_LIST [STRING]}.make
-				end
-				raw_to_name [name_to_raw [k]].extend (k)
-			end
+			initial_name_to_raw := names_res.names
 
 			functions_res := parse_functions (model.substring (index, model.count))
 			index := index + functions_res.consumed
@@ -243,14 +236,8 @@ feature {NONE} -- Initialization
 
 feature -- Colleted data
 
-	name_to_raw: HASH_TABLE [STRING, STRING]
+	initial_name_to_raw: HASH_TABLE [STRING, STRING]
 			-- Raw value by a name.
-			-- Inverse of `raw_to_name`.
-			-- See also `parse_names`.
-
-	raw_to_name: HASH_TABLE [LIST [STRING], STRING]
-			-- Names of objects having the raw value.
-			-- Inverse of `name_to_raw`.
 			-- See also `parse_names`.
 
 	functions: HASH_TABLE [

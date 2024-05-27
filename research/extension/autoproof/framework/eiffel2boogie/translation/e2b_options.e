@@ -567,7 +567,7 @@ feature -- Counterexample optimization
 	model_files: LINKED_LIST [STRING]
 			-- Model files
 
-	init_states_of_counterexamples: LINKED_LIST [E2B_CE_STATE_OF_ROUTINE]
+	init_states_of_counterexamples: LINKED_LIST [TUPLE [state: E2B_CE_STATE_OF_ROUTINE; target_class: E2B_CLASS_C; target_feature: E2B_FEATURE_I]]
 			-- Initial states generated from counterexamples
 
 	opt_preconditions: HASH_TABLE [HASH_TABLE [STRING, STRING], E2B_FEATURE_I]

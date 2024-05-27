@@ -758,7 +758,7 @@ feature {NONE} -- Basic operations
 								l_failure.errors as l_error
 							loop
 								insert_subrow_for_error (a_row, l_error)
-								if l_error.ce_init_state /= Void then
+								if l_error.trace /= Void then
 									insert_subrow_for_counterexample (a_row, l_error, l_failure)
 								end
 							end
@@ -866,7 +866,6 @@ feature {NONE} -- Basic operations
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 		do
 			ce_index := ce_index + 1
-			ce_init_state := a_error.ce_init_state
 			l_index := a_parent.subrow_count + 1
 
 			a_parent.insert_subrow (l_index)
@@ -883,7 +882,7 @@ feature {NONE} -- Basic operations
 			l_row.set_item (info_column, l_lab)
 			create pt_command.make (a_error, a_failure, l_row)
 				-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
-			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action (ce_init_state) end)
+			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action end)
 
 			l_row.set_item (info_column, l_lab)
 			l_row.set_background_color (partial_color)
@@ -926,9 +925,6 @@ feature {NONE} -- Basic operations
 
 	ce_index: INTEGER
 			-- Indexes of counterexamples in the panel
-
-	ce_init_state: E2B_CE_STATE_OF_ROUTINE
-			-- Initial state of the currently targeted error
 
 feature {NONE} -- Clean up
 

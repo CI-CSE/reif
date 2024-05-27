@@ -78,9 +78,9 @@ feature -- Basic operations
 			create l_error.make (a_failure)
 			l_sig := ""
 			-- Get input values in counterexample
-			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample, Void)
+			create l_trace.make (a_error.counterexample)
+			l_init_state := l_trace.initial_state
 			if helper.options.is_generate_fix_enabled then
-				create l_trace.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
 				l_sig := a_failure.context_class.name + "." + a_failure.context_feature.feature_name_32.to_string_8 + "." + line_for_error (a_error).out
 				if not helper.options.ce_traces.has (l_sig) then
 					helper.options.ce_traces.extend (<<l_trace>>, l_sig)
@@ -89,14 +89,14 @@ feature -- Basic operations
 				end
 			end
 
-			helper.options.init_states_of_counterexamples.extend (l_init_state)
+			helper.options.init_states_of_counterexamples.extend ([l_init_state, a_failure.context_class, a_failure.context_feature])
 
 			a_failure.errors.extend (l_error)
 			l_error.set_boogie_error (a_error)
 
 
 			l_error.set_message (message_for_error (a_error, l_init_state))
-			l_error.set_ce_init_state (l_init_state)
+			l_error.set_trace (l_trace)
 
 		    helper.options.set_current_init_state (l_init_state)
 
