@@ -42,7 +42,7 @@ feature {NONE} -- Initialization
 			is_aging_enabled := False
 			is_uncoupled_mutations_enabled := False
 
-			is_trace_enabled := False
+			is_trace_enabled := True
 
 			is_generating_trivial_loop_variants := True
 

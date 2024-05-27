@@ -121,6 +121,53 @@ feature
 			class
 		end
 
+	parse_states (text: STRING): LIST [
+		TUPLE [name: STRING; values: HASH_TABLE [STRING, STRING]]]
+		local
+			in_state: BOOLEAN
+			done: BOOLEAN
+			name: STRING
+			values: HASH_TABLE [STRING, STRING]
+			parts: LIST [STRING]
+			tup: TUPLE [name: STRING; values: HASH_TABLE [STRING, STRING]]
+		do
+			create {LINKED_LIST [TUPLE [STRING, HASH_TABLE [STRING, STRING]]]}
+				Result.make
+
+			across
+				text.split ('%N') as line
+			until
+				done
+			loop
+				line.adjust
+				if in_state then
+					if line ~ "*** END_STATE" then
+						create tup
+						tup.name := name
+						tup.values := values
+						Result.extend (tup)
+						in_state := False
+					else
+						parts := explode_2 (line, " -> ")
+						if parts.count > 1 and then not parts.last.is_empty then
+							values [parts.first] := parts.last
+						end
+					end
+				else
+					if line.starts_with ("*** STATE ") then
+						name := line.split (' ').last
+						create values.make (0)
+						in_state := True
+					else
+						check line ~ "*** END_MODEL" then end
+						done := True
+					end
+				end
+			end
+		ensure
+			class
+		end
+
 	explode_2 (s, by: STRING): LIST [STRING]
 			-- Explode string `s` once by `by`
 		local
@@ -189,7 +236,7 @@ feature {NONE} -- Initialization
 			index := index + functions_res.consumed
 			functions := functions_res.functions
 
-			get_routine_and_class_name (model.substring (index, model.count))
+			states := parse_states (model.substring (index, model.count))
 
 			stop_timer
 		end
@@ -211,6 +258,11 @@ feature -- Colleted data
 		STRING]
 			-- All functions from the model file
 			-- see `parse_functions`
+
+	states: LIST [TUPLE [name: STRING; values: HASH_TABLE [STRING, STRING]]]
+			-- State clauses (`*** STATE`) in the same order as in the input file.
+			-- Entries with empty values (`x -> `) are not present in `values`.
+			-- See also `parse_states`.
 
 	apply_function (name: STRING; args: detachable LIST [STRING]): STRING
 			-- Return raw result of function by raw `args`.
@@ -236,26 +288,6 @@ feature -- Colleted data
 				check cases.last.args = Void then end
 				Result := cases.last.res
 			end
-		end
-
-	routine_name: STRING
-			-- Target routine
-
-	class_name: STRING
-			-- Target class
-
-	get_routine_and_class_name (line: STRING)
-			-- Collect the name of the target routine and target class
-		local
-			s: STRING
-		do
-			check line.has_substring ("*** STATE") then end
-			s := explode_2 (line, "*** STATE").last
-
-			class_name := s.split ('.').first
-			class_name.adjust
-			routine_name := s.split ('.').last
-			routine_name.adjust
 		end
 
 note

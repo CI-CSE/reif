@@ -29,7 +29,7 @@ feature -- Initialize
 				heap_name := "Heap"
 			end
 
-			get_initial_state
+			fill_states
 		end
 
 feature -- Data
@@ -46,32 +46,56 @@ feature -- Data
 	initial_values: HASH_TABLE [STRING, STRING]
 			-- Mapping from objects or object fields to the corresponding value
 
+	final_values: detachable HASH_TABLE [STRING, STRING]
+			-- Same as `initial_values` but for the last available heap.
+			-- Void if only one heap is available
+			-- (which is available through `initial_values`)
+
 	heap_name: STRING
 			-- Name of the Heap state object to use.
 
 feature -- Get initial state
 
-	get_initial_state
-			-- Obtain the object fields based on the heap function
+	fill_states
+		local
+			heaps: like initial_values_by_heap
+			max_n: INTEGER
+			max_k: STRING
+			parts: LIST [STRING]
+			num: INTEGER
 		do
-			across initial_values_by_heap as h loop
-				across h.values.current_keys as k loop
-					initial_values [h.heap + "_" + k] := h.values [k]
+			heaps := initial_values_by_heap
+			initial_values := heaps ["Heap"]
+
+			final_values := Void
+			max_n := -1
+			if heaps.count > 1 then
+				across heaps.current_keys as k loop
+					parts := k.split ('@')
+					if parts.count > 1 then
+						num := parts.last.to_integer
+						if num > max_n then
+							max_n := num
+							max_k := k
+						end
+					end
+				end
+				if max_k /= Void then
+					final_values := heaps [max_k]
 				end
 			end
 		end
 
-	initial_values_by_heap: LIST [TUPLE [heap: STRING; values: HASH_TABLE [STRING, STRING]]]
-			-- Initial values grouped by heap
+	initial_values_by_heap: HASH_TABLE [HASH_TABLE [STRING, STRING], STRING]
+			-- Initial values grouped by heap.
+			-- Shape of result is Heap -> [Object -> Value].
 		local
 			map: like ce.functions.item
 			values: HASH_TABLE [STRING, STRING]
-			tup: TUPLE [heap: STRING; values: HASH_TABLE [STRING, STRING]]
 			heap, raw_new_heap, new_heap: STRING
 			obj_raw, obj, field_raw, field, value_raw, value: STRING
 		do
-			create {LINKED_LIST [TUPLE [heap: STRING; values: HASH_TABLE [STRING, STRING]]]}
-				Result.make
+			create Result.make (0)
 
 			map := ce.functions ["MapType0Select"]
 
@@ -86,10 +110,7 @@ feature -- Get initial state
 					end
 					if heap /~ new_heap then
 						if heap /= Void and then not values.is_empty then
-							create tup
-							tup.heap := heap
-							tup.values := values
-							Result.extend (tup)
+							Result [heap] := values
 						end
 
 						heap := new_heap
@@ -125,10 +146,7 @@ feature -- Get initial state
 				end
 			end
 			if heap /= Void and then not values.is_empty then
-				create tup
-				tup.heap := heap
-				tup.values := values
-				Result.extend (tup)
+				Result [heap] := values
 			end
 		end
 

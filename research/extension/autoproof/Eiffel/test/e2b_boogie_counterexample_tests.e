@@ -70,6 +70,32 @@ feature
 			)
 		end
 
+	test_parse_states
+		local
+			res: like {E2B_BOOGIE_COUNTEREXAMPLE}.parse_states
+		do
+			res := {E2B_BOOGIE_COUNTEREXAMPLE}.parse_states ("[
+				*** STATE <initial>
+				a -> 1
+				b -> 
+				*** END_STATE
+				*** STATE C.f
+				b -> 2
+				c -> 3
+				*** END_STATE
+				*** END_MODEL
+			]")
+			assert_equal ("Two states", 2, res.count)
+			assert_strings_equal ("First name is <initial>", "<initial>", res [1].name)
+			assert_equal ("First has only one value", 1, res [1].values.count)
+			assert_strings_equal ("First has value", "1", res [1].values ["a"])
+
+			assert_strings_equal ("Second name is C.f", "C.f", res [2].name)
+			assert_equal ("Second has two values", 2, res [2].values.count)
+			assert_strings_equal ("Second has b value", "2", res [2].values ["b"])
+			assert_strings_equal ("Second has c value", "3", res [2].values ["c"])
+		end
+
 	test_apply_function
 		local
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
@@ -101,7 +127,12 @@ feature
 				f -> {
 					else -> 0
 				}
+				*** STATE <initial>
+				*** END_STATE
 				*** STATE C.a
+				Current -> 1
+				*** END_STATE
+				*** END_MODEL
 			]")
 
 			assert_strings_equal ("Has name to raw", "1", ce.name_to_raw ["Void"])
@@ -111,8 +142,7 @@ feature
 			assert ("Has first alias name", ce.raw_to_name ["10"].has ("a"))
 			assert ("Has second alias name", ce.raw_to_name ["10"].has ("b"))
 			assert_equal ("Has functions", 1, ce.functions.count)
-			assert_strings_equal ("Has class_name", "C", ce.class_name)
-			assert_strings_equal ("Has routine_name", "a", ce.routine_name)
+			assert_equal ("Has 2 states", 2, ce.states.count)
 		end
 
 end

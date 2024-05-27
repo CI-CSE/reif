@@ -69,13 +69,15 @@ feature
 			-- Parse the model text and collect the counterexample information
 		local
 			ce: E2B_BOOGIE_COUNTEREXAMPLE
+			qual_name: STRING
 		do
 			across models as m loop
 				create ce.make (m)
-				if counterexamples.has (ce.class_name + "." + ce.routine_name) then
-					counterexamples [ce.class_name + "." + ce.routine_name].force (ce, counterexamples [ce.class_name + "." + ce.routine_name].count + 1)
+				qual_name := ce.states [2].name -- assume it is CLASS_NAME.ROUTINE_NAME
+				if counterexamples.has (qual_name) then
+					counterexamples [qual_name].force (ce, counterexamples [qual_name].count + 1)
 				else
-					counterexamples.extend (<<ce>>, ce.class_name + "." + ce.routine_name)
+					counterexamples.extend (<<ce>>, qual_name)
 				end
 			end
 		end
