@@ -248,8 +248,6 @@ feature -- Modification
 
 	restricted alias "|" (subdomain: MML_SET [G]): MML_BAG [G]
 			-- Bag that consists of all elements of `Current' that are in `subdomain'.
-		require
-			subdomain_exists: subdomain /= Void
 		local
 			i, j: INTEGER
 			ks: ARRAY [G]
@@ -297,8 +295,6 @@ feature -- Modification
 
 	union alias "+" (other: MML_BAG [G]): MML_BAG [G]
 			-- Bag that contains all elements from `other' and `Current'.
-		require
-			other_exists: other /= Void
 		local
 			i, j, k: INTEGER
 			ks: ARRAY [G]
@@ -337,8 +333,6 @@ feature -- Modification
 
 	difference alias "-" (other: MML_BAG [G]): MML_BAG [G]
 			-- Current bag with all occurrences of values from `other' removed.
-		require
-			other_exists: other /= Void
 		local
 			i, j, k, c: INTEGER
 			ks: ARRAY [G]
@@ -452,8 +446,6 @@ feature -- Lemmas
 		end
 
 invariant
-	keys_exists: keys /= Void
-	values_exists: values /= Void
 	same_lower: keys.lower = values.lower
 	same_upper: keys.upper = values.upper
 	start_at_one: keys.lower = 1
