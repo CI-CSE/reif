@@ -39,6 +39,6 @@ feature
 
 			verify
 
-			check not attached {E2B_AUTOPROOF_ERROR} verification_result then end
+			assert ("Verification is success", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
 		end
 end
