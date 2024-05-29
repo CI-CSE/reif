@@ -5,9 +5,6 @@ Successfully verified.
 ANY.default_create (creator, inherited by A_ACROSS)
 Successfully verified.
 ======================================
-A_ACROSS.set_across
-Successfully verified.
-======================================
 A_ACROSS.sequence_across
 Successfully verified.
 ======================================

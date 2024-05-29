@@ -12,9 +12,3 @@ B_REFERENCES.void_call
 Verification failed.
 
 Line: 17. Possible Void call.
-======================================
-B_REFERENCES.non_void_call
-Successfully verified.
-======================================
-B_REFERENCES.non_void_contract
-Successfully verified.

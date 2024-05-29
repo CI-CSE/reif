@@ -1,8 +1,9 @@
 note
-	description: "[
-			Eiffel tests that can be executed by testing tool.
-		]"
-	testing: "type/manual"
+	description: "End-to-end AutoProof tests"
+	testing: "autoproof", "type/manual", "execution/isolated"
+			-- fresh compiler instance is needed
+			-- because `verify` runs full Eiffel compilation,
+			-- which sets some `once` features in the compiler.
 
 class
 	AP_TEST_EXAMPLES
@@ -17,9 +18,6 @@ feature -- Testing
 
 	example_check_false
 			-- Verifying `check False end` should give a failed verification.
-		note
-			testing: "autoproof"
-			testing: "execution/isolated"
 		do
 			print_file ("demo.e", "[
 				class DEMO
@@ -52,9 +50,6 @@ feature -- Testing
 
 	example_check_true
 			-- Verifying `check True end` should give successful verification.
-		note
-			testing: "autoproof"
-			testing: "execution/isolated"
 		do
 			print_file ("demo.e", "[
 					class DEMO
@@ -203,9 +198,14 @@ feature {NONE} -- Building test projects
 
 	verification_result: E2B_VERIFICATION_RESULT
 		do
+			assert_equal ("One E2B_VERIFICATION_RESULT", 1, verification_results.count)
+			Result := verification_results [1]
+		end
+
+	verification_results: LINKED_LIST [E2B_VERIFICATION_RESULT]
+		do
 			assert_equal ("One E2B result", 1, results.count)
-			assert_equal ("One E2B_VERIFICATION_RESULT", 1, results [1].verification_results.count)
-			Result := results [1].verification_results [1]
+			Result := results [1].verification_results
 		end
 
 end

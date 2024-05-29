@@ -1,6 +1,6 @@
 ﻿note
 	description: "Tests for MML_BAG"
-	testing: "type/manual"
+	testing: "autoproof", "type/manual", "execution/isolated"
 
 class
 	MML_BAG_TESTS
@@ -11,9 +11,6 @@ inherit
 feature
 
 	absence_of_type_errors
-		note
-			testing: "autoproof"
-			testing: "execution/isolated"
 		local
 			formatter: STRING_TEXT_FORMATTER
 		do

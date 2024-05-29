@@ -373,16 +373,6 @@ feature -- Access
 			result_attached: attached Result
 		end
 
-	boogie_name_for_local (i: INTEGER): STRING
-			-- Name for local with index `i'.
-		require
-			i_valid: i > 0
-		do
-			Result := "local" + i.out
-		ensure
-			result_attached: attached Result
-		end
-
 feature -- Status report
 
 	is_valid_feature_name (a_name: READABLE_STRING_8): BOOLEAN

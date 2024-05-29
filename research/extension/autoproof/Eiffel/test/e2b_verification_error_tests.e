@@ -1,6 +1,6 @@
 ﻿note
 	description: "Tests for E2B_VERIFICATION_ERROR"
-	testing: "type/manual"
+	testing: "autoproof", "type/manual", "execution/isolated"
 
 class
 	E2B_VERIFICATION_ERROR_TESTS
@@ -11,9 +11,6 @@ inherit
 feature -- multi_line_message
 
 	multi_line_message_has_counterexample
-		note
-			testing: "autoproof"
-			testing: "execution/isolated"
 		local
 			formatter: STRING_TEXT_FORMATTER
 			nums: ARRAY [STRING]
@@ -87,6 +84,7 @@ feature -- multi_line_message
 	test_multiple_states
 		local
 			formatter: STRING_TEXT_FORMATTER
+			part: STRING
 		do
 			print_file ("demo.e", "[
 				class DEMO
@@ -125,6 +123,14 @@ feature -- multi_line_message
 
 				assert ("Does not have temp_ variables",
 					not formatter.buffer.has_substring ("temp_"))
+
+				-- State DEMO.test
+				part := formatter.buffer.substring (
+					formatter.buffer.substring_index ("DEMO.test =>", 1),
+					formatter.buffer.substring_index ("DEMO.test:12", 1)
+				)
+				assert ("Local a is Void", part.has_substring ("a = Void"))
+				assert ("Local b is Void", part.has_substring ("b = Void"))
 			end
 		end
 end

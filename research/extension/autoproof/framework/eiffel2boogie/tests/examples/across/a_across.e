@@ -2,21 +2,6 @@ class A_ACROSS
 
 feature
 
-	set_across
-		local
-			l_set1: MML_SET [INTEGER]
-			l_set2: MML_SET [BOOLEAN]
-		do
-			l_set1 := << 1, 2, 3, 4 >>
-			check across l_set1 as i all 0 < i and i < 5 end end
-			check across l_set1 as i all
-					across l_set1 as j all 2 <= i + j and i + j <= 8  end
-			end end
-
-			l_set2 := << True, True >>
-			check across l_set2 as i all i end end
-		end
-
 	sequence_across
 		local
 			l_seq1: MML_SEQUENCE [INTEGER]

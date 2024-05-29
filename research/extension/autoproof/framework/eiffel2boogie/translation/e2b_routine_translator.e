@@ -677,7 +677,7 @@ feature -- Translation: Implementation
 					if l_byte_code.locals /= Void then
 						across l_byte_code.locals as local_type loop
 							l_type := current_feature.written_class.class_type_in_context (create {E2B_TYPE_A}.make (local_type), current_feature, current_type)
-							create l_loc.make (name_translator.boogie_name_for_local (@ local_type.cursor_index), types.for_class_type (l_type))
+							create l_loc.make (current_feature.name_of_local (@ local_type.cursor_index), types.for_class_type (l_type))
 							l_translator.entity_mapping.set_local (@ local_type.cursor_index, l_loc)
 						end
 					end

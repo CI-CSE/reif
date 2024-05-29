@@ -1,6 +1,6 @@
 note
 	description: "Tests for E2B_BOOGIE_COUNTEREXAMPLE"
-	testing: "type/manual"
+	testing: "autoproof", "type/manual"
 
 class
 	E2B_BOOGIE_COUNTEREXAMPLE_TESTS

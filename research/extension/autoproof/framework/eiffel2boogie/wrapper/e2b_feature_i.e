@@ -41,7 +41,34 @@ feature -- Creator
 feature {E2B_FEATURE_I, E2B_CLASS_C, E2B_TYPE_A, E2B_SHARED_CONTEXT} -- Wrapped object
 	c_feature: FEATURE_I
 
+feature
+	name_of_local (pos: INTEGER): STRING
+			-- Name of local at position `pos`
+		local
+			i: INTEGER
+		do
+			if attached c_feature.real_body as b
+				and then attached b.as_routine as r
+				and then attached r.locals as locals
+				then
+				-- Walk the `local` AST node and get the `pos`th variable name
+				across locals as dec until i = pos loop
+					across dec.id_list as var_id until i = pos loop
+						i := i + 1
+
+						if i = pos then
+							Result := dec.item_name (@ var_id.cursor_index)
+						end
+					end
+				end
+			end
+			if Result = Void then
+				Result := "local_#" + pos.out
+			end
+		end
+
 feature -- wrapped features (see originals for documentation)
+
 	written_in: like {FEATURE_I}.written_in
 		do Result := c_feature.written_in end
 
