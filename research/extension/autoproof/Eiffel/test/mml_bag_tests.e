@@ -10,7 +10,7 @@ inherit
 
 feature
 
-	multi_line_message_has_counterexample
+	absence_of_type_errors
 		note
 			testing: "autoproof"
 			testing: "execution/isolated"
@@ -39,6 +39,6 @@ feature
 
 			verify
 
-			assert ("Verification is success", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert ("Verification is successful", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
 		end
 end
