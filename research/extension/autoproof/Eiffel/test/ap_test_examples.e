@@ -125,6 +125,8 @@ feature {NONE} -- Building test projects
 			--
 			-- If `root` is not Void, it should be the root class name.
 			-- If `root` is Void, root is all_classes (like in a library).
+			--
+			-- <library ../> contains the option readonly="false" to correctly register the changes to the system between test runs.
 		local
 			root_string: STRING
 		do
@@ -147,7 +149,7 @@ feature {NONE} -- Building test projects
 								<capability>
 									<void_safety support="none" use="none"/>
 								</capability>
-						    	<library name="base" location="$AP\library\base\base-scoop-safe.ecf" />
+						    	<library name="base" location="$AP\library\base\base-scoop-safe.ecf" readonly="false" />
 								<cluster name="autoproof_tests" location=".\">
 									<file_rule>
 										<exclude>/.svn$</exclude>
