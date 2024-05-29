@@ -1,14 +1,14 @@
 ﻿note
-	description: "Tests for E2B_VERIFICATION_ERROR"
+	description: "Tests for MML_BAG"
 	testing: "type/manual"
 
 class
-	MML_BAG_TYPE_ERROR_TESTS
+	MML_BAG_TESTS
 
 inherit
 	AP_TEST_EXAMPLES
 
-feature -- multi_line_message
+feature
 
 	multi_line_message_has_counterexample
 		note
