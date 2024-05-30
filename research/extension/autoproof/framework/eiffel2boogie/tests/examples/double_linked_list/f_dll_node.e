@@ -95,6 +95,9 @@ feature -- Modification
 			l.set_observers (create {MML_SET [ANY]} & l.left & r)
 			r.set_subjects (create {MML_SET [ANY]} & l & r.right)
 			r.set_observers (create {MML_SET [ANY]} & l & r.right)
+
+			check inv end -- Fix flaky verification result
+
 			wrap_all (create {MML_SET [ANY]} & Current & l & r)
 		ensure
 			modify (Current, left, right)
