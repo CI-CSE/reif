@@ -90,6 +90,8 @@ feature {NONE} -- Initialization
 		local
 			root_path: PATH
 		do
+			is_void_safe := True
+
 			check attached environment.item ({EQA_TEST_SET}.testing_directory_key) as test_dir
 				and then attached environment.item ({EQA_TEST_SET}.test_name_key) as test_name then
 				create root_path.make_from_string (test_dir)
@@ -120,15 +122,23 @@ feature {NONE} -- Building test projects
 			file.close
 		end
 
+	is_void_safe: BOOLEAN
+			-- Compile and verify as a Void-safe project?
+			-- Used by `print_ecf`.
+
 	print_ecf (root: detachable STRING)
 			-- Add the project ECF file with the root class `root`.
 			--
 			-- If `root` is not Void, it should be the root class name.
 			-- If `root` is Void, root is all_classes (like in a library).
 			--
+			-- Other options which are attributes in `Current`:
+			-- `is_void_safe`
+			--
 			-- <library ../> contains the option readonly="false" to correctly register the changes to the system between test runs.
 		local
 			root_string: STRING
+			void_safety_string: STRING
 		do
 			if attached root then
 				root_string := "<root class=%"" + root + "%" feature=%"make%" />"
@@ -136,18 +146,23 @@ feature {NONE} -- Building test projects
 				root_string := "<root all_classes=%"true%" />"
 			end
 
+			void_safety_string := if is_void_safe then
+				"<void_safety support=%"all%" />"
+			else
+				"<void_safety support=%"none%" />"
+			end
+
 			print_file ("Ace.ecf", "[
 						<?xml version="1.0" encoding="ISO-8859-1"?>
 							<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="autoproof-tests" uuid="B9FC6CC3-5F19-4CE1-9131-56A0455E9224">
 								<target name="tests">
-					]"
-					+ "%N" + root_string + "%N" + "[
-								<option warning="warning" full_class_checking="false" is_attached_by_default="false" is_obsolete_routine_type="true" syntax="transitional">
+									]" + "%N" + root_string + "%N" + "[
+								<option warning="warning" full_class_checking="false" is_obsolete_routine_type="true" syntax="transitional">
 									<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
 								</option>
 								<setting name="console_application" value="true"/>
 								<capability>
-									<void_safety support="none" use="none"/>
+									]" + "%N" + void_safety_string + "%N" + "[
 								</capability>
 						    	<library name="base" location="$AP\library\base\base-scoop-safe.ecf" readonly="false" />
 								<cluster name="autoproof_tests" location=".\">
@@ -168,7 +183,11 @@ feature {NONE} -- Building test projects
 		local
 			es: AP_TEST_ES
 		do
-			create es.make (<<"-project_path", code_path.out, "-config", code_path.extended ("Ace.ecf").out>>)
+			create es.make (<<
+				"-batch",
+				"-project_path", code_path.out,
+				"-config", code_path.extended ("Ace.ecf").out
+			>>)
 			es.execute (es.preference_access)
 
 			results.wipe_out
