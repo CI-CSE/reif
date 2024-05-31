@@ -107,15 +107,20 @@ def execute(program, output_file = None):
 	else:
 		pipe = output_file
 	proc = subprocess.Popen(program, stdin=pipe, stdout=pipe, stderr=pipe)
+	timeout = False
 	try:
 		proc.communicate(timeout=test_timeout)
 	except subprocess.TimeoutExpired:
 		proc.kill()
 		proc.communicate() # finish communication
 		pipe.write('Killed by test timeout\n')
+		timeout = True
 
 	if isinstance(output_file, str):
 		pipe.close()
+
+	if timeout:
+		return 'timeout'
 	return proc.returncode
 
 def compile_tests():
@@ -234,7 +239,7 @@ def run_test(path, test_name, args_prefix=[]) -> Result:
 
 		# clear output file
 		open("autoproof_output.txt", 'w').close()
-		execute(args, "autoproof_output.txt")
+		result = execute(args, "autoproof_output.txt")
 		if is_system_windows():
 			os.system(f"taskkill /f /im z3.exe")
 		
@@ -258,17 +263,19 @@ def run_test(path, test_name, args_prefix=[]) -> Result:
 			_as_success(test_name + ": successful")
 			return Result('passed', test_name)
 		else:
-			if output_content.endswith('Killed by test timeout'):
+			if result == 'timeout':
 				_as_error(test_name+ ": timeout")
-				return Result('timeout', test_name)
-
-			_as_error(test_name + ": failed")
+			else:
+				_as_error(test_name + ": failed")
 			print('Full output:')
 			print(full_output)
 			print('diff:')
 			for line in difflib.unified_diff(output_content.split("\n"), expected_content.split("\n")):
 				_as_info(line)
 			print('end diff')
+
+			if result == 'timeout':
+				return Result('timeout', test_name)
 			return Result('failed', test_name)
 	else:
 		_as_error("test '" + test_name + "' does not exist")
