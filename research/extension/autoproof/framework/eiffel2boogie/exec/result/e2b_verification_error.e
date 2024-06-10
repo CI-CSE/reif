@@ -88,7 +88,7 @@ feature {NONE} -- Counterexample text generation
 					end
 					Result := Result + "State: " + state.name + " =>"
 					values := ""
-					across state.values [Void] as val loop
+					across state.locals as val loop
 						if not is_ignored_variable (@ val.key)
 							-- don't print "x = x"
 							and then @ val.key /~ trace.translate_raw (val)
@@ -100,20 +100,26 @@ feature {NONE} -- Counterexample text generation
 
 					across state.values.current_keys as obj loop
 						-- Don't show fields of Void
-						if obj /= Void
-							and then not is_ignored_object (trace.translate_raw (obj)) then
+						if not is_ignored_object (trace.translate_raw (obj)) then
 							obj_values := ""
-							across state.values [obj] as val loop
-								if not is_ignored_object_field (trace.translate_raw (@ val.key)) then
-									obj_values := obj_values + "%N%T%T"
-										+ trace.translate_raw (@ val.key)
-										+ " = " + trace.translate_raw (val)
+							if attached {E2B_CE_VALUE_RECORD} state.values [obj] as o then
+								across o.values as val loop
+									if not is_ignored_object_field (
+										trace.translate_record_field_name (obj, @ val.key)) then
+										obj_values := obj_values + "%N%T%T"
+											+ trace.translate_record_field_name (obj, @ val.key)
+											+ " = " + trace.translate_raw (val)
+									end
+								end
+							elseif attached {E2B_CE_VALUE_SEQ} state.values [obj] as seq then
+								across seq.multi_line_message_lines (trace) as line loop
+									obj_values := obj_values + "%N%T%T" + line
 								end
 							end
 							if not obj_values.is_empty then
-								values := values + "%N%T" + trace.translate_raw (obj)
-									+ " =>" + obj_values
-							end
+									values := values + "%N%T" + trace.translate_raw (obj)
+										+ " =>" + obj_values
+								end
 						end
 					end
 

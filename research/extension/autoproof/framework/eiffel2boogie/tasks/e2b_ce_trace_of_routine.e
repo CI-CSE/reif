@@ -46,63 +46,48 @@ feature {NONE} -- Initialize
 
 	fill_translation_map
 		local
-			usages: HASH_TABLE [ARRAYED_SET [STRING], STRING]
+			name_val, val_name: HASH_TABLE [ARRAYED_SET [STRING], STRING]
 		do
+			create name_val.make (0)
+			create val_name.make (0)
+
+			across ce.initial_name_to_raw as raw_value loop
+				if not @raw_value.key.has_substring (".")
+					and then not @raw_value.key.has_substring ("@") then
+					extend_by_key (name_val, raw_value, @raw_value.key)
+					extend_by_key (val_name, @raw_value.key, raw_value)
+				end
+
+			end
+			across states as s loop
+				across s.locals as loc_value loop
+					extend_by_key (name_val, loc_value, @loc_value.key)
+					extend_by_key (val_name, @loc_value.key, loc_value)
+				end
+			end
+
 			create translation_map.make (0)
-			create usages.make (0)
-
-			across ce.initial_name_to_raw as raw loop
-				if not is_ignored_initial_name (@ raw.key) then
-					if not usages.has (@ raw.key) then
-						usages [@ raw.key] := create {ARRAYED_SET [STRING]}.make (1)
-						usages [@ raw.key].compare_objects
-					end
-					usages [@ raw.key].extend (raw)
+			across val_name as loc_names loop
+				if loc_names.count = 1 and then name_val [loc_names.first].count = 1 then
+					translation_map [@ loc_names.key] := loc_names.first
 				end
 			end
 
-			across states as state loop
-				across state.values [Void] as raw loop
-					if not usages.has (@ raw.key) then
-						usages [@ raw.key] := create {ARRAYED_SET [STRING]}.make (1)
-						usages [@ raw.key].compare_objects
-					end
-					-- Store all different values of name (@ val.key)
-					usages [@ raw.key].extend (raw)
-				end
+				-- raw value of Void is stored in the ce mapping
+			translation_map [ce.initial_name_to_raw ["Void"]] := "Void"
+			-- always translate Current as Current
+			if name_val ["Current"].count = 1 then
+				translation_map [name_val ["Current"].first] := "Current"
 			end
+		end
 
-			-- Find constant values
-			across usages as raws loop
-				if raws.count = 1 and then is_abstract_value (raws.first) then
-					-- @ vals.key had only one value in the whole trace
-					-- so we can use key as the name of the abstract value
-					translation_map [raws.first] := @ raws.key
-				end
+	extend_by_key (a: HASH_TABLE [ARRAYED_SET [STRING], STRING]; v, k: STRING)
+		do
+			if not a.has (k) then
+				a [k] := create {ARRAYED_SET [STRING]}.make (1)
+				a [k].compare_objects
 			end
-
-			-- Remove aliased translation keys
-			across translation_map.current_keys.twin as raw loop
-				across
-					usages as raws
-				until
-					not translation_map.has (raw) -- break if we removed the key
-				loop
-					-- skip the usage recorded in the translation_map
-					if @ raws.key /~ translation_map [raw] then
-						if raws.has (raw) then
-							translation_map.remove (raw)
-						end
-					end
-				end
-			end
-
-			-- Always show abstract value of Void as "Void" and Current as "Current"
-			across << "Void", "Current" >> as special loop
-				if usages.has (special) and then usages [special].count = 1 then
-					translation_map [usages [special].first] := special
-				end
-			end
+			a [k].extend (v)
 		end
 
 	is_ignored_initial_name (s: STRING): BOOLEAN
@@ -128,6 +113,26 @@ feature -- Status report
 				Result := "$" + raw.split ('!').last
 			else
 				Result := raw
+			end
+		end
+
+	translate_record_field_name (obj_id, record_field_id: STRING): STRING
+		local
+			cls, fid: STRING
+		do
+			cls := ce.apply_function ("type_of", create {ARRAYED_LIST [STRING]}.make_from_array (<<obj_id>>))
+			fid := ce.apply_function ("FieldId", create {ARRAYED_LIST [STRING]}.make_from_array (<<record_field_id, cls>>))
+			if fid /= Void and then fid.starts_with ("(- ") then
+				-- Negative field ids are builtin and unique,
+				-- so take first name which has this raw value
+				across ce.initial_name_to_raw as raw loop
+					if raw ~ record_field_id then
+						Result := @ raw.key
+					end
+				end
+			end
+			if Result = Void then
+				Result := obj_id + "_" + record_field_id
 			end
 		end
 

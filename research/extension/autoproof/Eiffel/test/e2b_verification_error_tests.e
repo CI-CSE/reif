@@ -133,4 +133,84 @@ feature -- multi_line_message
 				assert ("Local b is Void", part.has_substring ("b = Void"))
 			end
 		end
+
+	test_mml_sequence
+		local
+			r: E2B_FAILED_VERIFICATION
+			formatter: STRING_TEXT_FORMATTER
+		do
+			print_file ("demo.e", "[
+				class DEMO
+				create make
+				feature
+					make
+						do
+						end
+
+					test
+						local
+							seq: MML_SEQUENCE [INTEGER]
+						do
+							create seq
+							create seq.singleton (1)
+							create seq.constant (10, 2)
+							check False end
+						end
+
+					test_arg (a: MML_SEQUENCE [INTEGER])
+						require
+							a.count = 2
+						local
+							x: MML_SEQUENCE [INTEGER]
+						do
+							x := a.extended (1)
+							check False end
+						end
+
+					test_items (b: MML_SEQUENCE [INTEGER])
+						require
+							b.count = 1
+							b [1] = 10
+						do
+							check b [1] = 20 end
+						end
+				end
+			]")
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+			command.add_feature ("test_arg", "DEMO")
+			command.add_feature ("test_items", "DEMO")
+
+			verify
+
+			r := failure_of_feature ("test")
+			assert ("Has failure for test", r /= Void)
+			create formatter
+			r.errors [1].multi_line_message (formatter)
+			assert ("Has is constant", formatter.buffer.has_substring ("Constant(10, 2)"))
+			assert ("Has is singleton", formatter.buffer.has_substring ("Singleton(1)"))
+			assert ("Has length", formatter.buffer.has_substring ("Length = 0"))
+
+			r := failure_of_feature ("test_arg")
+			assert ("Has failure for test_arg", r /= Void)
+			create formatter
+			r.errors [1].multi_line_message (formatter)
+			assert ("Has a length", formatter.buffer.has_substring ("Length = 2"))
+
+			r := failure_of_feature ("test_items")
+			assert ("Has failure for test_items", r /= Void)
+			create formatter
+			r.errors [1].multi_line_message (formatter)
+			assert ("Has item", formatter.buffer.has_substring ("[1] = 10"))
+		end
+
+	failure_of_feature (name: STRING): detachable E2B_FAILED_VERIFICATION
+		do
+			across verification_results as r until Result /= Void loop
+				if attached {E2B_FAILED_VERIFICATION} r as e
+					and then e.context_feature.feature_name ~ name then
+					Result := e
+				end
+			end
+		end
 end

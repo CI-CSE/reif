@@ -253,7 +253,9 @@ feature -- Colleted data
 
 	apply_function (name: STRING; args: detachable LIST [STRING]): STRING
 			-- Return raw result of function by raw `args`.
-			-- Void `args` is accepted.
+			-- If `args` is not Void, then returns the matching case,
+			-- ignoring the `else` case.
+			-- If `args` is Void, returns the `else` case.
 		local
 			cases: like functions.item
 		do
@@ -264,16 +266,12 @@ feature -- Colleted data
 						Result := c.res
 					end
 				else
-					if c.args.count = args.count
+					if c.args /= Void
+						and then c.args.count = args.count
 						and then ∀ i: 1 |..| c.args.count ¦ c.args [i] ~ args [i] then
 						Result := c.res
 					end
 				end
-			end
-			if Result = Void then
-				-- Last case is "else"
-				check cases.last.args = Void then end
-				Result := cases.last.res
 			end
 		end
 

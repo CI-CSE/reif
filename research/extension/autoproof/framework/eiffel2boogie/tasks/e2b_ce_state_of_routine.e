@@ -13,7 +13,7 @@ inherit
 create
 	make
 
-feature -- Initialize
+feature {NONE} -- Initialize
 
 	make (a_ce: E2B_BOOGIE_COUNTEREXAMPLE; a_name: STRING;
 		a_state_values: HASH_TABLE [STRING, STRING];
@@ -25,46 +25,81 @@ feature -- Initialize
 			a_name /= Void
 			a_ce /= Void
 			a_state_values /= Void
-		local
-			heap: STRING
 		do
 			name := a_name
 			ce := a_ce
 
 			if a_prev_state /= Void then
 				create values.make (a_prev_state.values.count)
-				across a_prev_state.values.current_keys as obj loop
-					across a_prev_state.values [obj] as val loop
-						put_value (obj, @ val.key, val)
-					end
+				across a_prev_state.values as val loop
+					values [@ val.key] := val.copied
 				end
+
+				create locals.make (a_prev_state.locals.count)
+				locals.copy (a_prev_state.locals)
 			else
-				create values.make (1)
-				values ["Void"] := create {HASH_TABLE [STRING, STRING]}.make (0)
+				create values.make (0)
+				create locals.make (0)
 			end
 
-			across a_state_values as val loop
-				put_value (Void, @ val.key, val)
+			across a_state_values as loc loop
+				locals [@ loc.key] := loc
 			end
 
-			heap := a_state_values ["Heap"]
-			across a_ce.functions ["MapType0Select"] as case loop
-				if case.args /= Void and then case.args [1] ~ heap then
+			update_heap_records (a_state_values)
+			update_seqs
+		end
+
+	update_heap_records (a_state_values: HASH_TABLE [STRING, STRING])
+		local
+			heap_id: STRING
+			record: E2B_CE_VALUE_RECORD
+		do
+			heap_id := a_state_values ["Heap"]
+			across ce.functions ["MapType0Select"] as case loop
+				if case.args /= Void and then case.args [1] ~ heap_id then
 					if not values.has (case.args [2]) then
-						values [case.args [2]] := create {HASH_TABLE [STRING, STRING]}
-							.make (0)
+						create record.make_empty
+						values [case.args [2]] := record
+					else
+						check attached {E2B_CE_VALUE_RECORD} values [case.args [2]] as r then
+							record := r
+						end
 					end
-					put_value (case.args [2], case.args [3], case.res)
+					record.put (case.res, case.args [3])
 				end
 			end
 		end
 
-	put_value (obj: detachable STRING; key, val: STRING)
+	update_seqs
+		local
+			sequence: E2B_CE_VALUE_SEQ
+			seq_id: STRING
 		do
-			if not values.has (obj) then
-				values [obj] := create {HASH_TABLE [STRING, STRING]}.make (1)
+			if ce.functions.has ("SeqType") then
+				across ce.functions ["SeqType"] as seq_type loop
+					across ce.functions ["type"] as type_case loop
+						if type_case.res ~ seq_type.res then
+							seq_id := type_case.args.first
+							if not values.has (seq_id) then
+								create sequence.make
+								values [seq_id] := sequence
+							else
+								check attached {E2B_CE_VALUE_SEQ} values[seq_id] as ss then
+									sequence := ss
+								end
+							end
+							sequence.update (seq_id, ce)
+						end
+					end
+				end
 			end
-			values [obj][key] := val
+
+		end
+
+	is_abstract_value (s: STRING): BOOLEAN
+		do
+			Result := s.starts_with ("T@U!val!")
 		end
 
 feature -- Data
@@ -74,22 +109,12 @@ feature -- Data
 	name: STRING
 			-- Name of the state
 
-	values: HASH_TABLE [HASH_TABLE [STRING, STRING], detachable STRING]
-			-- Mapping from objects (or Void for local vars/args) to fields to values
+	values: HASH_TABLE [E2B_CE_VALUE, STRING]
+			-- Mapping from local name or abstract id to value
+
+	locals: HASH_TABLE [STRING, STRING]
 
 feature -- State access
-
-	container_size_named (a_var: STRING): STRING
-			-- Size of the container named `a_var'
-		do
-			Result := "" -- TODO: apply Seq#Length function
-		end
-
-	container_item_named (a_var: STRING; i: STRING): STRING
-			-- The ith element of the container named `a_var'
-		do
-			Result := "" -- TODO: apply Seq#Item function
-		end
 
 	is_aliased_with_existed_object (object_name: STRING): BOOLEAN
 			-- Is this objected aliased with other object?

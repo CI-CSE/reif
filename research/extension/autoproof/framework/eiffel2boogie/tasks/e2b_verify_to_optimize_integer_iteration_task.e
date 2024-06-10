@@ -205,12 +205,16 @@ feature {NONE}
 				create ce.make (m)
 				initial_state := (create {E2B_CE_TRACE_OF_ROUTINE}.make (ce)).initial_state
 
-				if is_container_size (a_var) then
-					value.copy (initial_state.container_size_named (a_var.split ('.').first))
-				elseif is_container_item (a_var) then
-					value.copy (initial_state.container_item_named (a_var.split ('.').first, a_var.split ('.').last))
+				if is_container_size (a_var) and then attached {E2B_CE_VALUE_SEQ} initial_state.values [a_var.split ('.').first] as seq then
+					if seq.length >= 0 then
+						value := seq.length.out
+					end
+				elseif is_container_item (a_var) and then attached {E2B_CE_VALUE_SEQ} initial_state.values [a_var.split ('.').first] as seq then
+					if seq.items.has (a_var.split ('.').last) then
+						value := seq.items [a_var.split('.').last]
+					end
 				else
-					value.copy (initial_state.values [Void][a_var])
+					value.copy (initial_state.locals [a_var])
 				end
 
 				if (not value.has ('-')) and value.to_integer > max then -- if there are multiple counterexample models, read all the values and get the maximum
