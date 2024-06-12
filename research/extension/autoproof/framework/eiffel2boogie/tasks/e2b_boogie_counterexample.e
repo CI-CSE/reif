@@ -52,19 +52,17 @@ feature
 
 	parse_functions (text: STRING): TUPLE [
 			functions: HASH_TABLE [
-			LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]],
+			LIST [TUPLE [args: LIST [STRING]; res: STRING]],
 			STRING];
 			consumed: INTEGER]
 			-- Parse `x -> { y -> z }` lines of the .model file format
 			-- Stops when line does not match the format.
 			-- Result is a table from function name (`x`) to list of function cases.
-			-- Last case has `args = Void`, this is the `else` case
-			-- 	or (in case of `x -> y`) the constant value of the function.
+			-- The `else ->` case is ignored
 		local
 			name: STRING
 			parts: LIST [STRING]
 			in_cases: BOOLEAN
-			case: TUPLE [args: detachable LIST [STRING]; res: STRING]
 			cases: LINKED_LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]]
 			done: BOOLEAN
 			line_length: INTEGER
@@ -103,16 +101,10 @@ feature
 					else
 							-- Split `x y z -> w`
 						parts := explode_2 (line, " -> ")
-						create case
-						if parts [1] ~ "else" then
-							case.args := Void
-							case.res := parts [2]
-						else
-							case.args := parts [1].split (' ')
-							case.res := parts [parts.count]
+						if parts [1] /~ "else" then
+							cases.extend ([parts [1].split(' '), parts [2]])
 						end
 
-						cases.extend (case)
 						Result.consumed := Result.consumed + line_length
 					end
 				end
@@ -241,7 +233,7 @@ feature -- Colleted data
 			-- See also `parse_names`.
 
 	functions: HASH_TABLE [
-		LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]],
+		LIST [TUPLE [args: LIST [STRING]; res: STRING]],
 		STRING]
 			-- All functions from the model file
 			-- see `parse_functions`
@@ -251,26 +243,16 @@ feature -- Colleted data
 			-- Entries with empty values (`x -> `) are not present in `values`.
 			-- See also `parse_states`.
 
-	apply_function (name: STRING; args: detachable LIST [STRING]): STRING
+	apply_function (name: STRING; args: LIST [STRING]): STRING
 			-- Return raw result of function by raw `args`.
-			-- If `args` is not Void, then returns the matching case,
-			-- ignoring the `else` case.
-			-- If `args` is Void, returns the `else` case.
 		local
 			cases: like functions.item
 		do
 			cases := functions [name]
 			across cases as c until Result /= Void loop
-				if args = Void then
-					if c.args = Void then
-						Result := c.res
-					end
-				else
-					if c.args /= Void
-						and then c.args.count = args.count
-						and then ∀ i: 1 |..| c.args.count ¦ c.args [i] ~ args [i] then
-						Result := c.res
-					end
+				if c.args.count = args.count
+					and then ∀ i: 1 |..| c.args.count ¦ c.args [i] ~ args [i] then
+					Result := c.res
 				end
 			end
 		end

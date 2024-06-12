@@ -50,23 +50,16 @@ feature
 				functions.current_keys)
 
 			item := functions ["abs_real"]
-			assert ("abs_real is one [Void -> 0.0] case",
-				item.count = 1
-					and then item.first.args = Void
-					and then item.first.res ~ "0.0")
+			assert_equal ("abs_real has no cases", 0, item.count)
 
 			item := functions ["attached"]
-			assert_equal ("attached is two cases", 2, item.count)
-			assert ("attached first case is with arguments",
+			assert_equal ("Has only 1 case", 1, item.count)
+			assert ("The 1 case has arguments and result",
 				item.first.args.count = 3
 					and then item.first.args [1] ~ "T@U!val!12"
 					and then item.first.args [2] ~ "T@U!val!13"
 					and then item.first.args [3] ~ "T@U!val!6"
 					and then item.first.res ~ "true"
-			)
-			assert ("attached second case is without arguments",
-				item.last.args = Void
-				and then item.last.res ~ "true"
 			)
 		end
 
