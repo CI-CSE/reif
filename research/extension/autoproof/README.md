@@ -34,6 +34,7 @@ This repository is based on EiffelStudio with AutoProof extensions.
 
 ## Dependencies
 AutoProof is known to work with:
+* **EiffelStudio** 24.05 (AutoProof compiled using this version)
 * **Boogie** v2.11.1
 * **Z3** 4.8.8
   * Z3 version should be compatible with Boogie.

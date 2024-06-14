@@ -11,8 +11,8 @@ jobs:
 
       - name: Install EiffelStudio
         env:
-          DOWNLOAD_URL: https://www.eiffel.com/cdn/EiffelStudio/22.05/106302/Eiffel_22.05_rev_106302-linux-x86-64.tar.bz2
-          ESTUDIO_FOLDER: Eiffel_22.05 # Folder in the installation package (DOWNLOAD_URL)
+          DOWNLOAD_URL: https://www.eiffel.com/cdn/EiffelStudio/24.05/107822/Eiffel_24.05_rev_107822-linux-x86-64.tar.bz2
+          ESTUDIO_FOLDER: Eiffel_24.05 # Folder in the installation package (DOWNLOAD_URL)
         run: |
           # Download installation package
           wget --no-verbose -O estudio.tar.bz2 $DOWNLOAD_URL
