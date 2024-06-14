@@ -113,6 +113,7 @@ jobs:
           cd ../../../../../..
 
       - name: Build AutoProof ec
+        id: build
         run: |
           ec -config $AP/Eiffel/Ace/ec.ecf -freeze -c_compile -batch
 
@@ -123,7 +124,10 @@ jobs:
           mkdir -p EIFGENs/bench/Testing/execution/ap_test_examples_executions
 
           ec -config $AP/Eiffel/Ace/ec.ecf -batch -tests |& tee test_out.txt
-          res=${PIPESTATUS[0]}
+
+          # check that actually nothing fails
+          grep -q "0 failing, 0 unresolved" test_out.txt
+          res=$?
 
           echo "# EC -tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -134,10 +138,12 @@ jobs:
           exit $res
 
       - name: Replace ec
+        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         run: |
           cp EIFGENs/bench/W_code/ec* $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin
 
       - name: Verify AP base
+        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         run: |
           total=0
           succeeded=0
@@ -322,7 +328,7 @@ jobs:
           fi
 
       - name: Run python tests which should pass
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         run: |
           cd research/extension/autoproof/framework/eiffel2boogie/tests
           python3 runtests.py \
@@ -345,7 +351,7 @@ jobs:
           exit $res
 
       - name: Run ignored legacy python tests, none should pass
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         run: |
           cd research/extension/autoproof/framework/eiffel2boogie/tests
           python3 runtests.py \
