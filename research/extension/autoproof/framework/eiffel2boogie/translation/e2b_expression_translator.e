@@ -354,6 +354,15 @@ feature -- Visitors
 				else
 					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 				end
+
+			-- Integer boxing
+			elseif requires_left_numerical_boxing (a_node) then
+				l_left := factory.function_call ("boxed_int", <<l_left>>, types.int)
+				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
+
+			elseif requires_right_numerical_boxing (a_node) then
+				l_right := factory.function_call ("boxed_int", <<l_right>>, types.int)
+				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
 			else
 				create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 			end
@@ -370,6 +379,57 @@ feature -- Visitors
 			end
 		end
 
+feature {NONE} -- Visitors' helpers
+
+	requires_left_numerical_boxing (node: BINARY_B): BOOLEAN
+		-- Helper for `process_binary`.
+		-- Does the binary expression require boxing of the left-hand side?
+		do
+			Result := contains_generic_instantiated_to_numerical (node) and is_void_check_with_void_right (node)
+		end
+
+	requires_right_numerical_boxing (node: BINARY_B): BOOLEAN
+		-- Helper for `process_binary`.
+		-- Does the binary expression require boxing of the left-hand side?
+		do
+			Result := contains_generic_instantiated_to_numerical (node) and is_void_check_with_void_left (node)
+		end
+
+	is_void_check_with_void_left (node: BINARY_B): BOOLEAN
+		-- Helper for `requires_right_numerical_boxing`.
+		-- Does the binary expression contain Void in the left hand-side?
+		note
+			status: functional
+		do
+			Result := attached node as n and then
+				attached n.left as left and then
+				(left.type.is_none)
+		end
+
+	is_void_check_with_void_right (node: BINARY_B): BOOLEAN
+		-- Helper for `requires_left_numerical_boxing`.
+		-- Does the binary expression contain Void in the right hand-side?
+		note
+			status: functional
+		do
+			Result := attached node as n and then
+				attached n.right as right and then
+				(right.type.is_none)
+		end
+
+	contains_generic_instantiated_to_numerical (node: BINARY_B): BOOLEAN
+		-- Helper for `requires_(left|right)_numerical_boxing`
+		-- Does the binary operator contain a formal type instantiated to a numeric value?
+		note
+			status: functional
+		do
+			Result := attached node as n and then
+				(attached n.left as left and attached n.right as right) and then
+				((left.type.is_formal and class_type_in_current_context(left.type).is_numeric) or
+				(right.type.is_formal and class_type_in_current_context(right.type).is_numeric))
+		end
+		
+feature -- Visitors
 	process_binary_semistrict (a_node: BINARY_B; a_operator: STRING; a_positive: BOOLEAN)
 			-- Process binary node `a_node' with operator `a_operator'.
 			-- If `a_positive' is set, then the left expression has to `true' to trigger
