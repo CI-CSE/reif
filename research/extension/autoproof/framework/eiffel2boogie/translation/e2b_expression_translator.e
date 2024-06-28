@@ -363,6 +363,16 @@ feature -- Visitors
 			elseif requires_right_numerical_boxing (a_node) then
 				l_right := factory.function_call ("boxed_int", <<l_right>>, types.int)
 				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
+
+			-- Boolean boxing
+			elseif requires_left_numerical_boxing (a_node) then
+				l_left := factory.function_call ("boxed_bool", <<l_left>>, types.int)
+				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
+
+			elseif requires_right_numerical_boxing (a_node) then
+				l_right := factory.function_call ("boxed_bool", <<l_right>>, types.int)
+				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
+
 			else
 				create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 			end
@@ -393,6 +403,20 @@ feature {NONE} -- Visitors' helpers
 		-- Does the binary expression require boxing of the left-hand side?
 		do
 			Result := contains_generic_instantiated_to_numerical (node) and is_void_check_with_void_left (node)
+		end
+
+	requires_left_boolean_boxing (node: BINARY_B): BOOLEAN
+		-- Helper for `process_binary`.
+		-- Does the binary expression require boxing of the left-hand side?
+		do
+			Result := contains_generic_instantiated_to_boolean (node) and is_void_check_with_void_right (node)
+		end
+
+	requires_right_boolean_boxing (node: BINARY_B): BOOLEAN
+		-- Helper for `process_binary`.
+		-- Does the binary expression require boxing of the left-hand side?
+		do
+			Result := contains_generic_instantiated_to_boolean (node) and is_void_check_with_void_left (node)
 		end
 
 	is_void_check_with_void_left (node: BINARY_B): BOOLEAN
@@ -429,6 +453,18 @@ feature {NONE} -- Visitors' helpers
 				(right.type.is_formal and class_type_in_current_context(right.type).is_numeric))
 		end
 		
+	contains_generic_instantiated_to_boolean (node: BINARY_B): BOOLEAN
+		-- Helper for `requires_(left|right)_boolean_boxing`
+		-- Does the binary operator contain a formal type instantiated to a boolean value?
+		note
+			status: functional
+		do
+			Result := attached node as n and then
+				(attached n.left as left and attached n.right as right) and then
+				((left.type.is_formal and class_type_in_current_context(left.type).is_boolean) or
+				(right.type.is_formal and class_type_in_current_context(right.type).is_boolean))
+		end
+
 feature -- Visitors
 	process_binary_semistrict (a_node: BINARY_B; a_operator: STRING; a_positive: BOOLEAN)
 			-- Process binary node `a_node' with operator `a_operator'.
