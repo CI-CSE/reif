@@ -143,8 +143,8 @@ end
 			assert ("Verification succeeds", ∀ res: results ¦ res.is_verification_successful)
 		end
 
-	boolean_boxing_fail
-		-- This test must fail
+	boolean_boxing_sound
+		-- Checks that a contradiction has not been added.
 			do
 				print_file ("demo_helper.e", "[
 	class
@@ -185,6 +185,6 @@ end
 
 				verify
 
-				assert ("Verification succeeds", ∃ res: results ¦ res.has_verification_errors)
+				assert ("Verification fails", ∃ res: results ¦ res.has_verification_errors)
 			end
 end
