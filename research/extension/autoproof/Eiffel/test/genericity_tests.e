@@ -52,6 +52,51 @@ end
 			assert ("Verification succeeds", ∀ res: results ¦ res.is_verification_successful)
 		end
 
+	integer_boxing_sound
+		-- Checks that a contradiction has not been added.
+			do
+				print_file ("demo_helper.e", "[
+	class
+		DEMO_HELPER [G]
+	create
+		make
+	feature 
+		
+		make
+			do
+			end
+
+		demo (v: G): G
+			require
+				v /= Void
+			do
+				Result := v
+			ensure
+				res: Result = v
+				fails: False
+			end
+
+	end
+				]")
+
+				print_file ("demo.e", "[
+	class
+		DEMO
+	inherit
+		DEMO_HELPER [INTEGER]
+	create
+		make
+	end
+
+				]")
+				print_ecf ("DEMO")
+				command.add_class ("DEMO")
+
+				verify
+
+				assert ("Verification fails", ∃ res: results ¦ res.has_verification_errors)
+			end
+
 	boolean_boxing
 		-- Boxing boolean types in boogie to allow `x /= Void` with `x` boolean.
 		-- This is necessary for transpiling the boolean realization from Eiffel
