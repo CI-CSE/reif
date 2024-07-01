@@ -357,20 +357,20 @@ feature -- Visitors
 
 			-- Integer boxing
 			elseif requires_left_numerical_boxing (a_node) then
-				l_left := factory.function_call ("boxed_int", <<l_left>>, types.int)
+				l_left := factory.function_call ("boxed_int", <<l_left>>, types.ref)
 				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
 
 			elseif requires_right_numerical_boxing (a_node) then
-				l_right := factory.function_call ("boxed_int", <<l_right>>, types.int)
+				l_right := factory.function_call ("boxed_int", <<l_right>>, types.ref)
 				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
 
 			-- Boolean boxing
-			elseif requires_left_numerical_boxing (a_node) then
-				l_left := factory.function_call ("boxed_bool", <<l_left>>, types.int)
+			elseif requires_left_boolean_boxing (a_node) then
+				l_left := factory.function_call ("boxed_bool", <<l_left>>, types.ref)
 				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
 
-			elseif requires_right_numerical_boxing (a_node) then
-				l_right := factory.function_call ("boxed_bool", <<l_right>>, types.int)
+			elseif requires_right_boolean_boxing (a_node) then
+				l_right := factory.function_call ("boxed_bool", <<l_right>>, types.ref)
 				create {IV_BINARY_OPERATION} last_expression.make (l_right, a_operator, l_left, l_boogie_type)
 
 			else
