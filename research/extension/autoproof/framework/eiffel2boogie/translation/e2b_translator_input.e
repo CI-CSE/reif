@@ -48,6 +48,11 @@ feature -- Element change
 			feature_list.extend (a_feature)
 		end
 
+	add_feature_of_class (a_feature: attached E2B_FEATURE_I; a_class: E2B_CLASS_C)
+		do
+			add_feature_of_type (a_feature, a_class.actual_type)
+		end
+
 	add_feature_of_type (a_feature: attached E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Add `a_feature' to be translated.
 		do

@@ -69,6 +69,12 @@ feature -- Element change
 			input.add_feature (a_feature)
 		end
 
+	add_feature_of_class (a_feature: E2B_FEATURE_I; a_class: E2B_CLASS_C)
+			-- Add feature `A_CLASS.a_feature` to be verified
+		do
+			input.add_feature_of_class (a_feature, a_class)
+		end
+
 	add_notification (a_agent: PROCEDURE [E2B_RESULT])
 			-- Add agent that gets notified when verification is finished.
 		require

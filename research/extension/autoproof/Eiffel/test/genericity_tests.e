@@ -187,4 +187,48 @@ end
 
 				assert ("Verification fails", ∃ res: results ¦ res.has_verification_errors)
 			end
+
+	boolean_boxing_verify_one_feature
+		-- Checks that the verification on a single feature works as expected
+			do
+				print_file ("demo_helper.e", "[
+	class
+		DEMO_HELPER [G]
+	create
+		make
+	feature 
+		
+		make
+			do
+			end
+
+		demo (v: G): G
+			require
+				v /= Void
+			do
+				Result := v
+			ensure
+				res: Result = v
+			end
+
+	end
+				]")
+
+				print_file ("demo.e", "[
+	class
+		DEMO
+	inherit
+		DEMO_HELPER [BOOLEAN]
+	create
+		make
+	end
+
+				]")
+				print_ecf ("DEMO")
+				command.add_feature ("demo", "DEMO")
+
+				verify
+
+				assert ("Verification succeeds", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			end
 end

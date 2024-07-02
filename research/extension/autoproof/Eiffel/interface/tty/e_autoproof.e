@@ -152,7 +152,7 @@ feature {AP_TEST_EXAMPLES} -- Execution
 					else
 						⟳ l_class: l_classes ¦
 							if attached l_class.compiled_class.feature_named_32 (feature_and_class_name.feature_name) as l_feature then
-								autoproof.add_feature (create {E2B_FEATURE_I}.make (l_feature))
+								autoproof.add_feature_of_class (create {E2B_FEATURE_I}.make (l_feature), create {E2B_CLASS_C}.make (l_class.compiled_class))
 							else
 								has_error := True
 								output_window.add (locale.formatted_string (locale.translation_in_context ("Feature `$1` is not found in class `$2`.", "command.autoproof"), feature_and_class_name.feature_name, feature_and_class_name.class_name))
