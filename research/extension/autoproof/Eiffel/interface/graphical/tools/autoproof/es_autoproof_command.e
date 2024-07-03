@@ -136,7 +136,7 @@ feature {NONE} -- Basic operations
 			autoproof.reset
 
 			if attached {FEATURE_STONE} a_stone as s then
-				autoproof.add_feature (create {E2B_FEATURE_I}.make (s.e_feature.associated_feature_i))
+				load_feature (s.e_feature.associated_feature_i)
 			elseif attached {CLASSI_STONE} a_stone as s then
 				load_class (s.class_i)
 			elseif attached {CLUSTER_STONE} a_stone as s then
@@ -272,6 +272,14 @@ feature {NONE} -- Basic operations
 				t.panel.proof_button.enable_sensitive
 				t.panel.stop_button.disable_sensitive
 			end
+		end
+
+feature {NONE}
+
+	load_feature (a_feature: FEATURE_I)
+			-- Load `a_feature' for verification.
+		do
+			autoproof.add_feature_of_class (create {E2B_FEATURE_I}.make (a_feature), create {E2B_CLASS_C}.make (a_feature.written_class))
 		end
 
 	load_class (a_class: CLASS_I)
