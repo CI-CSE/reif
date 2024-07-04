@@ -183,6 +183,18 @@ feature -- Convenience
 
 feature -- Element change
 
+	set_current_target (a_expression: IV_EXPRESSION)
+			-- Set `current_target' to `a_expression'.
+		do
+			current_target := a_expression
+		end
+
+	set_current_target_type (a_type: CL_TYPE_A)
+			-- Set `current_target_type' to `a_type'.
+		do
+			current_target_type := a_type
+		end
+
 	set_last_expression (a_expression: IV_EXPRESSION)
 			-- Set `last_expression' to `a_expression'.
 		do
@@ -268,7 +280,7 @@ feature -- Visitors
 	process_agent_call_b (a_node: AGENT_CALL_B)
 			-- <Precursor>
 		do
-			last_expression := dummy_node (a_node.type)
+			process_feature_b (a_node)
 		end
 
 	process_argument_b (a_node: ARGUMENT_B)
@@ -723,21 +735,9 @@ feature -- Visitors
 			check l_object_test_local /= Void end
 			l_nested ?= l_assign.source
 			check l_nested /= Void end
-
 			l_class := l_nested.target.type.associated_class
-			if l_class.name_in_upper ~ "ARRAY" then
-				create {E2B_ARRAY_ACROSS_HANDLER} l_across_handler.make (Current, l_object_test_local, l_nested.target, a_node)
-			elseif l_class.name_in_upper ~ "INTEGER_INTERVAL" then
-				l_access ?= l_nested.target
-				check l_access /= Void end
-				l_bin_free ?= l_access.expr
-				check l_bin_free /= Void end
-				create {E2B_INTERVAL_ACROSS_HANDLER} l_across_handler.make (Current, l_object_test_local, l_bin_free, a_node)
-			elseif helper.is_class_logical (l_class) then
-				create {E2B_SET_ACROSS_HANDLER} l_across_handler.make (Current, l_object_test_local, l_nested.target, a_node)
-			else
-				last_expression := dummy_node (a_node.type)
-			end
+
+			l_across_handler := translation_mapping.handler_for_across (a_node, Current)
 
 			is_in_quantifier := True
 
@@ -749,6 +749,9 @@ feature -- Visitors
 				across_handler_map.put (l_across_handler, l_object_test_local.position)
 				l_across_handler.handle_across_expression
 				across_handler_map.remove (l_object_test_local.position)
+			else
+				last_expression := dummy_node (a_node.type)
+				helper.add_semantic_error (context_feature, "Across over type " + l_class.name_in_upper + " not supported", context_line_number)
 			end
 
 			is_in_quantifier := False
@@ -977,6 +980,7 @@ feature -- Visitors
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
+			helper.add_unsupported_error (Void, context_feature, "Agents in contract not supported.")
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -1081,8 +1085,6 @@ feature -- Translation
 
 	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- Process feature call with custom handler.
-		require
-			not_attribute: a_feature.is_routine
 		deferred
 		end
 
