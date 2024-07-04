@@ -2713,6 +2713,11 @@ Src/framework/semantic_search/engine/java/src/SemanticDocument/SemanticDocumentL
 Src/framework/semantic_search/engine/java/src/SemanticDocument/SemanticIndexWriter.java -text
 Src/framework/semantic_search/engine/java/src/SemanticDocument/SemanticQueryTranslator.java -text
 Src/framework/semantic_search/engine/java/src/SemanticDocument/SemanticToLuceneDocumentTranslator.java -text
+Src/framework/semantic_search/engine/solr/config/schema.xml -text
+Src/framework/semantic_search/engine/sql/schema/schema.sql -text
+Src/framework/semantic_search/engine/sql/schema/schema_diagram.jpg -text
+Src/framework/semantic_search/engine/sql/schema/schema_readme.doc -text
+Src/framework/semantic_search/engine/sql/schema/schema_visio.vsd -text
 Src/framework/semantic_search/lucene_server/Lucene_server.iml -text
 Src/framework/semantic_search/lucene_server/lib/lucene-core-3.0.1.jar -text
 Src/framework/semantic_search/lucene_server/src/Main.java -text
@@ -3170,8 +3175,7 @@ Src/library/objc_base/Clib/objc_callback_marshal.m -text
 Src/library/objc_base/objc_base-safe.lic -text
 Src/library/objc_base/objc_base.lic -text
 Src/library/plane/soln.plan -text
-Src/library/preferences/preferences_reg-safe.lic -text
-Src/library/preferences/preferences_reg.lic -text
+Src/library/preferences/license.lic -text
 Src/library/process/classic/unix/process_thread_timer.e -text
 Src/library/process/classic/windows/wel_process_id_pair.e -text
 Src/library/process/classic/windows/wel_process_toolhelp_constants.e -text
