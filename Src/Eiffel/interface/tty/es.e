@@ -139,11 +139,6 @@ feature -- Initialization
 				create new_resources.initialize
 
 				if not new_resources.error_occurred then
-					if configure_resources.get_boolean ("compiler_need_flush", False) then
-							-- Flushing was requested. Needed for `eweasel' on Windows
-							-- so that there is no blocking.
-						enable_automatic_output_flushing
-					end
 					analyze_options
 					if option_error then
 						print_option_error
@@ -1355,6 +1350,10 @@ feature -- Update
 				l_at_args := arguments_in_range (current_option + 1, argument_count)
 				current_option := argument_count + 1
 				create {EWB_BOOGIE_VERIFICATION} command.make_with_arguments (l_at_args)
+			elseif option.is_equal ("-code-analysis") then
+				l_at_args := arguments_in_range (current_option + 1, argument_count)
+				current_option := argument_count + 1
+				create {EWB_CODE_ANALYSIS} command.make_with_arguments (l_at_args)
 			elseif option.is_equal ("-js_compile") then
 				create {EWB_JAVASCRIPT_COMPILATION} command
 			elseif option.is_equal ("-dead_plan") then
@@ -1414,17 +1413,6 @@ feature -- Update
 			else
 				option_error := True
 			end
-		end
-
-feature {NONE} -- Externals
-
-	 enable_automatic_output_flushing
-			-- Set `compiler_need_flush' to `1' so that all output are not
-			-- buffered.
-		external
-			"C inline use <eif_console.h>"
-		alias
-			"compiler_need_flush = 1;"
 		end
 
 feature {NONE} -- Onces

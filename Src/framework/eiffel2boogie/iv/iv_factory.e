@@ -54,6 +54,12 @@ feature -- Values
 			create Result.make (a_value.out, types.int)
 		end
 
+	nat64_value (a_value: NATURAL_64): IV_VALUE
+			-- Value for integer `a_value'.
+		do
+			create Result.make (a_value.out, types.int)
+		end
+
 	type_value (a_value: TYPE_A): IV_VALUE
 			-- Value for integer `a_value'.
 		do
@@ -72,6 +78,8 @@ feature -- Values
 				Result := int_value (0)
 			elseif l_type.is_boolean then
 				Result := false_
+			elseif l_type.is_real_32 or l_type.is_real_64 then
+				create {IV_VALUE} Result.make ("0.0", types.real)
 			elseif l_type.is_expanded then
 				create {IV_VALUE} Result.make ("Unknown", types.generic_type)
 			else

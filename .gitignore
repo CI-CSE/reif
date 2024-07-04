@@ -381,6 +381,10 @@ Src/framework/cli_writer/Clib/*.pdb
 Src/framework/cli_writer/spec
 Src/framework/configuration/*.wb
 Src/framework/configuration/EIFGENs
+Src/framework/eiffel2boogie/tests/EIFGENs
+Src/framework/eiffel2boogie/tests/autoproof_output.txt
+Src/framework/eiffel2boogie/tests/exception_trace.log
+Src/framework/eiffel2boogie/tests/log.txt
 Src/framework/parser/parser/output.txt
 Src/framework/settable_types/EIFGENs
 Src/framework/web/xebra/c_projects/.project
@@ -560,6 +564,7 @@ Src/tools/vms/ES5SH/*.wb
 Src/tools/vms/ES5SH/EIFGEN
 Src/tools/vms/ES5SH/EIFGENs
 Src/tools/vms/ES5SH/es5sh.rc
+Src/unstable/library/base2/EIFGENs
 Src/unstable/library/persistency/database/sqlite3/spec/mingw
 Src/unstable/library/persistency/database/sqlite3/spec/msc
 eweasel/compilation/EIFGENs

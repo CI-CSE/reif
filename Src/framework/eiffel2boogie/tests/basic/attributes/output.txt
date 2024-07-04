@@ -1,0 +1,12 @@
+======================================
+B_ATTRIBUTES.default_values_for_attribute
+Successfully verified.
+======================================
+B_ATTRIBUTES.attribute_initialization
+Successfully verified.
+======================================
+B_ATTRIBUTES.attribute_assignment
+Successfully verified.
+======================================
+B_ATTRIBUTES.argument_assignment
+Successfully verified.

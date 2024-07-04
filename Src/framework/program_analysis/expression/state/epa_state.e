@@ -11,6 +11,8 @@ inherit
 	EPA_HASH_SET [EPA_EQUATION]
 		rename
 			make as make_set
+		redefine
+			key_to_hash
 		end
 
 	HASHABLE
@@ -19,11 +21,11 @@ inherit
 		    is_equal
 		end
 
-	EPA_HASH_CALCULATOR
-		undefine
-		    is_equal,
-		    copy
-		end
+--	EPA_HASH_CALCULATOR
+--		undefine
+--		    is_equal,
+--		    copy
+--		end
 
 	REFACTORING_HELPER
 		undefine
@@ -255,6 +257,24 @@ feature -- Access
 			loop
 				if l_equality_tester.item ([l_cursor.item.expression, a_expr]) then
 					Result := l_cursor.item
+				end
+				l_cursor.forth
+			end
+		end
+
+	expressions_with_value (a_value: EPA_EXPRESSION_VALUE): EPA_HASH_SET [EPA_EXPRESSION]
+		local
+			l_cursor: DS_HASH_SET_CURSOR [EPA_EQUATION]
+		do
+			create Result.make_equal (count)
+			from
+				l_cursor := new_cursor
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				if attached l_cursor.item.value.as_boolean as lt_boolean and then lt_boolean ~ a_value then
+					Result.force (l_cursor.item.expression)
 				end
 				l_cursor.forth
 			end
