@@ -2790,7 +2790,6 @@ Src/contrib/library/gobo/misc/catalog.xsd -text svneol=unset#application/xml
 Src/contrib/library/gobo/misc/eiffel.eant svneol=native#text/xml
 Src/contrib/library/gobo/misc/ge2e.eant svneol=native#text/xml
 Src/contrib/library/gobo/misc/test.eant svneol=native#text/xml
-Src/contrib/library/gobo/package.iron -text
 Src/contrib/library/gobo/src/build.eant svneol=native#text/xml
 Src/contrib/library/gobo/src/geant/build.eant svneol=native#text/xml
 Src/contrib/library/gobo/src/geant/library.xace -text svneol=native#application/xml
@@ -2892,7 +2891,6 @@ Src/contrib/library/network/server/nino/package.iron -text
 Src/contrib/library/network/server/nino/readme.txt -text
 Src/contrib/library/print/ael_printf/AEL_Printf.pdf -text svneol=unset#unset
 Src/contrib/library/print/ael_printf/Amalasoft[!!-~]Printf.docx -text
-Src/contrib/library/print/ael_printf/package.iron -text
 Src/contrib/library/runtime/process/eclop/doc/eclop.pdf -text
 Src/contrib/library/runtime/process/eclop/package.iron -text
 Src/contrib/library/runtime/process/notification_email/package.iron -text
@@ -2909,7 +2907,6 @@ Src/contrib/library/text/encryption/eel/src/ec/ec_domain_parameters.e.orig -text
 Src/contrib/library/text/parser/json/library/json-safe.ecf -text svneol=native#application/xml
 Src/contrib/library/text/parser/json/library/json.ecf -text svneol=native#application/xml
 Src/contrib/library/text/parser/json/library/json_gobo_extension.ecf -text svneol=native#application/xml
-Src/contrib/library/text/parser/json/package.iron -text
 Src/contrib/library/text/parser/json/test/autotest/test_suite/test_suite-safe.ecf -text svneol=native#application/xml
 Src/contrib/library/text/parser/json/test/autotest/test_suite/test_suite.ecf -text svneol=native#application/xml
 Src/contrib/library/text/parser/microdata/README.md -text
@@ -3109,6 +3106,8 @@ Src/examples/ribbon/all_widgets_complex/res/PrintRelationshipsL.bmp -text
 Src/examples/ribbon/all_widgets_complex/res/PrintRelationshipsS.bmp -text
 Src/examples/ribbon/all_widgets_complex/ribbon_1.bml -text
 Src/examples/ribbon/all_widgets_complex/ribbon_project.er -text
+Src/examples/runtime/logging/rollingfilelog/rollingfilelog_example-safe.ecf svneol=native#text/xml
+Src/examples/runtime/logging/rollingfilelog/rollingfilelog_example.ecf svneol=native#text/xml
 Src/examples/scoop/performance_tests/Makefile -text
 Src/examples/scoop/performance_tests/condition/Makefile -text
 Src/examples/scoop/performance_tests/noshare/Makefile -text
@@ -3287,8 +3286,14 @@ Src/examples/wel/xcell/spades9.bmp -text
 Src/examples/wel/xcell/start.bmp -text
 Src/examples/wel/xcell/xcell.bmp -text
 Src/examples/wel/xcell/xcell_demo.ico -text
-Src/experimental/library/ActiveX_control_container/package.iron -text
-Src/experimental/library/Eiffel2Java/package.iron -text
+Src/examples/zeromq/hello_world/client/client.ecf svneol=native#text/xml
+Src/examples/zeromq/hello_world/server/server.ecf svneol=native#text/xml
+Src/examples/zeromq/parallel_task_ventilator/task_sink/task_sink.ecf svneol=native#text/xml
+Src/examples/zeromq/parallel_task_ventilator/task_ventilator/task_ventilator.ecf svneol=native#text/xml
+Src/examples/zeromq/parallel_task_ventilator/task_worker/task_worker.ecf svneol=native#text/xml
+Src/examples/zeromq/version/version.ecf svneol=native#text/xml
+Src/examples/zeromq/weather/client/client.ecf svneol=native#text/xml
+Src/examples/zeromq/weather/server/server.ecf svneol=native#text/xml
 Src/experimental/library/GIF/Clib/gd_lib/gd.lib svneol=native#unset
 Src/experimental/library/api_wrapper/implementation/unix/Clib/dl-config -text
 Src/experimental/library/api_wrapper/license.lic -text
@@ -3315,13 +3320,9 @@ Src/experimental/library/editor/bitmaps/cut_selection.png -text
 Src/experimental/library/editor/bitmaps/icon_close_color.png -text
 Src/experimental/library/editor/bitmaps/left_scroll_arrow.png -text
 Src/experimental/library/editor/bitmaps/right_scroll_arrow.png -text
-Src/experimental/library/editor/package.iron -text
 Src/experimental/library/edk/include/edk.lib -text
-Src/experimental/library/edk/package.iron -text
 Src/experimental/library/edk/spec/msc/windows/lib/edk.lib -text
 Src/experimental/library/encoding/implementation/unix/Clib/iconv-config -text
-Src/experimental/library/encoding/package.iron -text
-Src/experimental/library/event/package.iron -text
 Src/experimental/library/gobo/gobo_gelex-safe.ecf svneol=native#text/xml
 Src/experimental/library/gobo/gobo_geyacc-safe.ecf svneol=native#text/xml
 Src/experimental/library/gobo/gobo_math-safe.ecf svneol=native#text/xml
@@ -3568,8 +3569,6 @@ Src/experimental/library/i18n/tests/test_files/mo/ar.mo -text
 Src/experimental/library/i18n/tests/test_files/mo/zh_CN.mo -text
 Src/experimental/library/i18n/tests/test_results/result_Win7 -text
 Src/experimental/library/i18n/tests/zh_CN.mo -text
-Src/experimental/library/iphone/package.iron -text
-Src/experimental/library/lex/package.iron -text
 Src/experimental/library/libevent/Clib/libevent/ChangeLog -text
 Src/experimental/library/libevent/Clib/libevent/Doxyfile -text
 Src/experimental/library/libevent/Clib/libevent/Makefile.am -text
@@ -3605,7 +3604,6 @@ Src/experimental/library/libevent/Clib/libevent/test/Makefile.am -text
 Src/experimental/library/libevent/Clib/libevent/test/Makefile.in -text
 Src/experimental/library/libevent/Clib/libevent/test/Makefile.nmake -text
 Src/experimental/library/libevent/Clib/libevent/test/regress.rpc -text
-Src/experimental/library/libevent/package.iron -text
 Src/experimental/library/memory_analyzer/memory_analyzer_icon_matrix.png -text
 Src/experimental/library/memory_analyzer/package.iron -text
 Src/experimental/library/net/package.iron -text
@@ -3668,13 +3666,9 @@ Src/experimental/library/vision2/tests/graphics/16bpp.bmp -text
 Src/experimental/library/vision2/tests/graphics/24bpp.bmp -text
 Src/experimental/library/vision2/tests/graphics/32bpp.bmp -text
 Src/experimental/library/vision2/tests/graphics/Lenna.png -text
-Src/experimental/library/vision2_extension/package.iron -text
-Src/experimental/library/web/package.iron -text
-Src/experimental/library/web_browser/package.iron -text
 Src/experimental/library/wel/extra/h2e.ico svneol=native#unset
 Src/experimental/library/wel/extra/h2e1.ico svneol=native#unset
 Src/experimental/library/wel/extra/h2e2.ico svneol=native#unset
-Src/experimental/library/wel/package.iron -text
 Src/experimental/library/wel/tests/graphics/01bpp.bmp -text
 Src/experimental/library/wel/tests/graphics/04bpp.bmp -text
 Src/experimental/library/wel/tests/graphics/08bpp.bmp -text
@@ -3682,7 +3676,6 @@ Src/experimental/library/wel/tests/graphics/16bpp.bmp -text
 Src/experimental/library/wel/tests/graphics/24bpp.bmp -text
 Src/experimental/library/wel/tests/graphics/32bpp.bmp -text
 Src/experimental/library/wizard/help/Clib/htmlhelp.lib -text
-Src/experimental/library/zeromq/package.iron -text
 Src/framework/alias_calculus/alias_calculus.rc -text
 Src/framework/alias_calculus/application_with_printout.BK -text
 Src/framework/alias_calculus/results.txt -text
@@ -3841,7 +3834,6 @@ Src/framework/eiffel_transform/Tests/test_wrap.1.ref -text
 Src/framework/eiffel_transform/eiffel_transform.lic -text
 Src/framework/emitter_loader/emitter_loader.lic -text
 Src/framework/environment/environment.lic -text
-Src/framework/environment/package.iron -text
 Src/framework/file_formats/ini.lic -text
 Src/framework/file_formats/pe/pe.lic -text
 Src/framework/framework.lic -text
@@ -4155,8 +4147,6 @@ Src/help/wizards/estore2/pixmaps/eiffel_wizard_icon.png -text
 Src/help/wizards/eweb/pixmaps/Eiffel_wizard_new.bmp -text
 Src/help/wizards/eweb/pixmaps/database_small.bmp -text
 Src/help/wizards/wizard.ico -text
-Src/library/ActiveX_control_container/package.iron -text
-Src/library/Eiffel2Java/package.iron -text
 Src/library/GIF/Clib/gd_lib/gd.lib svneol=native#unset
 Src/library/api_wrapper/implementation/unix/Clib/dl-config -text
 Src/library/api_wrapper/license.lic -text
@@ -4168,7 +4158,6 @@ Src/library/base/mml/map.bpl -text
 Src/library/base/mml/relation.bpl -text
 Src/library/base/mml/sequence.bpl -text
 Src/library/base/mml/set.bpl -text
-Src/library/base/package.iron -text
 Src/library/base/test/license.lic -text
 Src/library/base/testing/license.lic -text
 Src/library/base_extension/package.iron -text
@@ -4330,8 +4319,6 @@ Src/library/defcon/test_suites/test_anchor.zip -text
 Src/library/defcon/test_suites/test_character_string_32.zip -text
 Src/library/defcon/test_suites/test_genericity_eiffel_net.zip -text
 Src/library/defcon/test_suites/test_multiple_inheritance.zip -text
-Src/library/diff/package.iron -text
-Src/library/docking/package.iron -text
 Src/library/ebbro/documentation/Docs_1.webarchive -text
 Src/library/ebbro/documentation/Docs_2.webarchive -text
 Src/library/ebbro/documentation/ebbro_integrated_demo.swf -text
@@ -4341,18 +4328,14 @@ Src/library/editor/bitmaps/cut_selection.png -text
 Src/library/editor/bitmaps/icon_close_color.png -text
 Src/library/editor/bitmaps/left_scroll_arrow.png -text
 Src/library/editor/bitmaps/right_scroll_arrow.png -text
-Src/library/editor/package.iron -text
 Src/library/edk/include/edk.lib -text
-Src/library/edk/package.iron -text
 Src/library/edk/spec/msc/windows/lib/edk.lib -text
 Src/library/encoding/implementation/unix/Clib/iconv-config -text
-Src/library/encoding/package.iron -text
 Src/library/escher/documentation/Schema_Evolution_Management.webarchive -text
 Src/library/escher/documentation/library_doc_1.webarchive -text
 Src/library/escher/documentation/library_doc_2.webarchive -text
 Src/library/escher/documentation/tutorial.webarchive -text
 Src/library/escher/readme.txt -text
-Src/library/event/package.iron -text
 Src/library/gobo/gobo_gelex-safe.ecf svneol=native#text/xml
 Src/library/gobo/gobo_geyacc-safe.ecf svneol=native#text/xml
 Src/library/gobo/gobo_math-safe.ecf svneol=native#text/xml
@@ -4395,7 +4378,6 @@ Src/library/i18n/example_application/po_files/ru_RU.po -text
 Src/library/i18n/example_application/po_files/xx_XX.po -text
 Src/library/i18n/example_application/po_files/zh_CN.po -text
 Src/library/i18n/forum.txt -text
-Src/library/i18n/package.iron -text
 Src/library/i18n/tests/test_files/locale/results/unix/POSIX -text
 Src/library/i18n/tests/test_files/locale/results/unix/en_AG -text
 Src/library/i18n/tests/test_files/locale/results/unix/en_IN -text
@@ -4599,8 +4581,6 @@ Src/library/i18n/tests/test_files/mo/ar.mo -text
 Src/library/i18n/tests/test_files/mo/zh_CN.mo -text
 Src/library/i18n/tests/test_results/result_Win7 -text
 Src/library/i18n/tests/zh_CN.mo -text
-Src/library/iphone/package.iron -text
-Src/library/lex/package.iron -text
 Src/library/libevent/Clib/libevent/ChangeLog -text
 Src/library/libevent/Clib/libevent/Doxyfile -text
 Src/library/libevent/Clib/libevent/Makefile.am -text
@@ -4636,9 +4616,7 @@ Src/library/libevent/Clib/libevent/test/Makefile.am -text
 Src/library/libevent/Clib/libevent/test/Makefile.in -text
 Src/library/libevent/Clib/libevent/test/Makefile.nmake -text
 Src/library/libevent/Clib/libevent/test/regress.rpc -text
-Src/library/libevent/package.iron -text
 Src/library/memory_analyzer/memory_analyzer_icon_matrix.png -text
-Src/library/memory_analyzer/package.iron -text
 Src/library/mews/eiffelwebex/Documentation/class_list.html -text
 Src/library/mews/eiffelwebex/Documentation/cluster_hierarchy.html -text
 Src/library/mews/eiffelwebex/Documentation/cluster_list.html -text
@@ -5037,7 +5015,6 @@ Src/library/vision2/implementation/carbon/widgets/dialogs/.DS_Store -text
 Src/library/vision2/implementation/carbon/wrapper/config.ewg -text
 Src/library/vision2/implementation/carbon/wrapper/generated_wrapper/eiffel/abstraction/.DS_Store -text
 Src/library/vision2/implementation/cocoa/Readme.txt -text
-Src/library/vision2/package.iron -text
 Src/library/vision2/tests/graphics/01bpp.bmp -text
 Src/library/vision2/tests/graphics/04bpp.bmp -text
 Src/library/vision2/tests/graphics/08bpp.bmp -text
@@ -5045,13 +5022,9 @@ Src/library/vision2/tests/graphics/16bpp.bmp -text
 Src/library/vision2/tests/graphics/24bpp.bmp -text
 Src/library/vision2/tests/graphics/32bpp.bmp -text
 Src/library/vision2/tests/graphics/Lenna.png -text
-Src/library/vision2_extension/package.iron -text
-Src/library/web/package.iron -text
-Src/library/web_browser/package.iron -text
 Src/library/wel/extra/h2e.ico svneol=native#unset
 Src/library/wel/extra/h2e1.ico svneol=native#unset
 Src/library/wel/extra/h2e2.ico svneol=native#unset
-Src/library/wel/package.iron -text
 Src/library/wel/tests/graphics/01bpp.bmp -text
 Src/library/wel/tests/graphics/04bpp.bmp -text
 Src/library/wel/tests/graphics/08bpp.bmp -text
@@ -5059,7 +5032,6 @@ Src/library/wel/tests/graphics/16bpp.bmp -text
 Src/library/wel/tests/graphics/24bpp.bmp -text
 Src/library/wel/tests/graphics/32bpp.bmp -text
 Src/library/wizard/help/Clib/htmlhelp.lib -text
-Src/library/zeromq/package.iron -text
 Src/scripts/check_trunk_head_compilation_validity -text
 Src/scripts/tools/_inc/_f_code_tpl_ -text
 Src/tools/ace2ecf/license.lic -text
@@ -5306,6 +5278,8 @@ Src/tools/iron/delivery/iron/spec/windows/bin/bzip2.exe -text
 Src/tools/iron/delivery/iron/spec/windows/bin/msys-1.0.dll -text
 Src/tools/iron/delivery/iron/spec/windows/bin/tar.exe -text
 Src/tools/iron/delivery/resources/node/doc/index.html -text
+Src/tools/iron/delivery/resources/node/doc/iron.css -text
+Src/tools/iron/delivery/resources/node/doc/iron.wiki -text
 Src/tools/iron/delivery/resources/node/html/bootstrap/css/bootstrap-theme.css -text
 Src/tools/iron/delivery/resources/node/html/bootstrap/css/bootstrap-theme.min.css -text
 Src/tools/iron/delivery/resources/node/html/bootstrap/css/bootstrap.css -text
@@ -5321,19 +5295,18 @@ Src/tools/iron/delivery/resources/node/html/style.css -text
 Src/tools/iron/delivery/resources/node/template/html/package-version-list-item.tpl -text
 Src/tools/iron/delivery/resources/node/template/html/package-version-view.tpl -text
 Src/tools/iron/delivery/resources/node/template/html/page.tpl -text
+Src/tools/iron/doc/footer.html.tpl -text
+Src/tools/iron/doc/header.html.tpl -text
+Src/tools/iron/doc/index.html svneol=native#text/xml
+Src/tools/iron/doc/iron.css -text
 Src/tools/iron/doc/iron.html -text
 Src/tools/iron/server/iron-template/html/iron.js -text
 Src/tools/iron/server/iron-template/html/style.css -text
 Src/tools/iron/server/license.lic -text
 Src/tools/iron/testing/cases/lib/dep/dep-safe.ecf-test -text
-Src/tools/iron/testing/cases/lib/dep/package.iron -text
 Src/tools/iron/testing/cases/lib/dummy/dummy-safe.ecf-test -text
-Src/tools/iron/testing/cases/lib/dummy/package.iron -text
 Src/tools/iron/testing/cases/lib/fake/fake-safe.ecf-test -text
-Src/tools/iron/testing/cases/lib/fake/package.iron -text
 Src/tools/iron/testing/cases/lib/sub/foo/foo-safe.ecf-test -text
-Src/tools/iron/testing/cases/lib/sub/package.iron -text
-Src/tools/iron/testing/cases/lib/unicode/sub/package.iron -text
 Src/tools/iron/testing/cases/test00.ecf-test -text
 Src/tools/iron/testing/cases/test01.ecf-test -text
 Src/tools/iron/testing/cases/test02.ecf-test -text
@@ -6343,7 +6316,6 @@ Src/unstable/README.txt -text
 Src/unstable/library/base2/package.iron -text
 Src/unstable/library/base_extension/package.iron -text
 Src/unstable/library/compression/bzip2/Readme.txt -text
-Src/unstable/library/compression/bzip2/package.iron -text
 Src/unstable/library/compression/zlib/Readme.txt -text
 Src/unstable/library/compression/zlib/example/basic_functions/file_to_compress.txt -text
 Src/unstable/library/compression/zlib/example/compress/index.html -text
@@ -6351,7 +6323,6 @@ Src/unstable/library/compression/zlib/example/compress/text_to_compress_2.txt -t
 Src/unstable/library/compression/zlib/example/compress/text_to_comrpess.txt -text
 Src/unstable/library/compression/zlib/example/gzutility/index.html -text
 Src/unstable/library/compression/zlib/example/gzutility/text_to_compress.txt -text
-Src/unstable/library/compression/zlib/package.iron -text
 Src/unstable/library/compression/zlib/spec/win64/lib/msc/zlibstat.lib -text
 Src/unstable/library/compression/zlib/spec/windows/lib/msc/zlibstat.lib -text
 Src/unstable/library/compression/zlib/testing/index.html -text
@@ -6365,11 +6336,9 @@ Src/unstable/library/net2/file/local_file_system.e svneol=native#text/plain
 Src/unstable/library/net2/net2.ecf svneol=native#text/plain
 Src/unstable/library/network/socket/netssl/README -text
 Src/unstable/library/network/socket/netssl/license.lic -text
-Src/unstable/library/network/socket/netssl/package.iron -text
 Src/unstable/library/nspr/nspr.ecf svneol=native#text/xml
 Src/unstable/library/pattern/criteria/README.txt -text
 Src/unstable/library/pattern/criteria/license.lic -text
-Src/unstable/library/pattern/criteria/package.iron -text
 Src/unstable/library/pattern/criteria/testing/criteria_tests.rc -text
 Src/unstable/library/persistency/abel/backend_couchdb/backend_couchdb.ecf svneol=native#text/xml
 Src/unstable/library/persistency/abel/connector_mysql/connector_mysql.ecf svneol=native#text/xml
@@ -6388,7 +6357,6 @@ Src/unstable/library/persistency/abel/documentation/tutorial/abel_tutorial.pdf -
 Src/unstable/library/persistency/abel/documentation/tutorial/abel_tutorial.tex -text
 Src/unstable/library/persistency/abel/documentation/tutorial/lstlang0.sty -text
 Src/unstable/library/persistency/abel/examples/tutorial_api/tutorial_api.ecf svneol=native#text/xml
-Src/unstable/library/persistency/abel/package.iron -text
 Src/unstable/library/persistency/abel/performance_test/framework/framework.ecf svneol=native#text/xml
 Src/unstable/library/persistency/abel/plugin_escher/plugin_escher.ecf svneol=native#text/xml
 Src/unstable/library/persistency/abel/test/eweasel/bin/eiffel_execute -text
@@ -6412,52 +6380,61 @@ Src/unstable/library/persistency/abel/test/eweasel/output/evol001/output/seriali
 Src/unstable/library/persistency/abel/test/eweasel/tests/evol001/Ace -text
 Src/unstable/library/persistency/abel/test/eweasel/tests/list001/Ace -text
 Src/unstable/library/persistency/abel/test/readme.txt -text
-Src/unstable/library/persistency/database/mysqli/package.iron -text
 Src/unstable/library/persistency/database/sqlite3/README -text
 Src/unstable/library/persistency/database/sqlite3/license.lic -text
-Src/unstable/library/persistency/database/sqlite3/package.iron -text
 Src/unstable/library/text/encryption/crypto/license.lic -text
-Src/unstable/library/text/encryption/crypto/package.iron -text
 Src/unstable/library/text/encryption/crypto/tests/license.lic -text
 Src/unstable/library/text/regexp/pcre/package.iron -text
 Src/unstable/library/text/regexp/pcre/pcre.rc -text
 Src/web/support/database/mssql/create_db.sql -text
-Src/web/support/database/mssql/data_countries.sql -text
-Src/web/support/database/mssql/data_problem_report_categories.sql -text
-Src/web/support/database/mssql/data_problem_report_categories_roles.sql -text
-Src/web/support/database/mssql/data_problem_report_category_groups.sql -text
-Src/web/support/database/mssql/data_problem_report_classes.sql -text
-Src/web/support/database/mssql/data_problem_report_form_fields.sql -text
-Src/web/support/database/mssql/data_problem_report_severities.sql -text
-Src/web/support/database/mssql/data_problem_report_status.sql -text
-Src/web/support/database/mssql/data_questions.sql -text
-Src/web/support/database/mssql/data_roles.sql -text
-Src/web/support/database/mssql/data_security_questions.sql -text
-Src/web/support/database/mssql/db_schemas.sql -text
-Src/web/support/database/mssql/db_store_procedures.sql -text
-Src/web/support/database/mssql/db_tables.sql -text
-Src/web/support/database/mssql/db_user.sql -text
-Src/web/support/database/mssql/db_user_defined_functions.sql -text
-Src/web/support/database/mssql/db_views.sql -text
+Src/web/support/database/mssql/create_db_sql2000.sql -text
+Src/web/support/database/mssql/data_countries.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_categories.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_categories_roles.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_category_groups.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_classes.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_form_fields.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_severities.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_problem_report_status.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_questions.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_roles.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/data_security_questions.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/db_problem_report_priorities.sql -text
+Src/web/support/database/mssql/db_schemas.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/db_store_procedure_sql2000.sql -text
+Src/web/support/database/mssql/db_store_procedures.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/db_tables.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/db_tables_sql2000.sql -text
+Src/web/support/database/mssql/db_user.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/db_user_defined_functions.sql -text svneol=unset#application/octet-stream
+Src/web/support/database/mssql/db_user_df_sql2000.sql -text
+Src/web/support/database/mssql/db_view_sql2000.sql -text
+Src/web/support/database/mssql/db_views.sql -text svneol=unset#application/octet-stream
+Src/web/support/esa_api/IIRF.ini -text
 Src/web/support/esa_api/ecf-target-any_connector -text
 Src/web/support/esa_api/ecf-target-connector -text
 Src/web/support/esa_api/esa.ini -text
-Src/web/support/esa_api/esa_folder/config/esa_database_configuration.json -text
+Src/web/support/esa_api/esa_folder/config/esa_application_configuration.json -text
 Src/web/support/esa_api/esa_folder/www/css/dashboard.css -text
 Src/web/support/esa_api/esa_folder/www/js/auth.js -text
 Src/web/support/esa_api/esa_folder/www/js/docs.js -text
 Src/web/support/esa_api/esa_folder/www/js/holder.js -text
 Src/web/support/esa_api/esa_folder/www/js/login.js -text
+Src/web/support/esa_api/esa_folder/www/profile/esa_api.xml svneol=native#text/xml
+Src/web/support/esa_api/esa_folder/www/profile/esa_html.html svneol=native#text/xml
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_activation.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_category.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_confirmation.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_form_report.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_interaction_confirm.tpl -text
+Src/web/support/esa_api/esa_folder/www/template/cj/cj_interaction_confirm_page.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_interaction_form.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_items.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_post_register.tpl -text
+Src/web/support/esa_api/esa_folder/www/template/cj/cj_post_reminder.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_priority.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_register.tpl -text
+Src/web/support/esa_api/esa_folder/www/template/cj/cj_reminder.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_report_confirm.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_reports.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/cj/cj_reports_detail.tpl -text
@@ -6486,7 +6463,9 @@ Src/web/support/esa_api/esa_folder/www/template/html/navbar.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/optional_enhancement_js.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/optional_styling_css.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/post_register_page.tpl -text
+Src/web/support/esa_api/esa_folder/www/template/html/post_reminder.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/register.tpl -text
+Src/web/support/esa_api/esa_folder/www/template/html/reminder.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/report_form.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/report_form_confirm.tpl -text
 Src/web/support/esa_api/esa_folder/www/template/html/reports.tpl -text
@@ -6625,6 +6604,8 @@ eweasel/source/gui/build_project.bpr -text
 eweasel/source/gui/readme.txt -text
 eweasel/source/gui/system_interface.xml -text
 eweasel/tests/agent010/Ace -text
+eweasel/tests/anchor077/Ace svneol=native#text/xml
+eweasel/tests/anchor078/Ace svneol=native#text/xml
 eweasel/tests/attach010/Ace2 -text
 eweasel/tests/attach011/Ace -text
 eweasel/tests/attach019/Ace -text
@@ -7635,6 +7616,9 @@ eweasel/tests/term137/notes -text
 eweasel/tests/term163/Ace -text
 eweasel/tests/term197/test.def -text
 eweasel/tests/term209/test -text svneol=unset#application/octet-stream
+eweasel/tests/term212/Ace svneol=native#text/xml
+eweasel/tests/term212/special.e-rev1 -text
+eweasel/tests/term213/Ace svneol=native#text/xml
 eweasel/tests/thread002/Ace -text
 eweasel/tests/thread010/Ace -text
 eweasel/tests/thread024/Ace -text svneol=native#application/xml
@@ -7791,6 +7775,7 @@ eweasel/tests/valid155/notes -text
 eweasel/tests/valid160/notes -text
 eweasel/tests/valid240/Ace_safe -text
 eweasel/tests/valid256/Ace -text
+eweasel/tests/valid280/Ace svneol=native#text/xml
 eweasel/tests/vd01001/file -text
 eweasel/tests/vd10001/weasel -text
 eweasel/tests/vd13001/weasel -text
