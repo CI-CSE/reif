@@ -24,17 +24,15 @@ create
 
 feature{NONE} -- Initialization
 
-	make (a_content: like content; a_operands: like operands; a_holes: like holes; a_source: STRING)
+	make (a_content: like content; a_variable_context: like variable_context; a_holes: like holes; a_source: STRING)
 			-- Initialize Current.
 		require
 			not_a_content_is_empty: not a_content.is_empty
 		local
 			l_bp_initializer: ETR_BP_SLOT_INITIALIZER
 		do
-			create operands.make (a_operands.count)
-			operands.set_key_equality_tester (string_equality_tester)
-			operands.set_equality_tester (string_equality_tester)
-			a_operands.do_all_with_key (agent operands.force_last)
+			variable_context := a_variable_context.deep_twin
+			holes := a_holes.deep_twin
 
 			content := a_content.twin
 			source := a_source.twin
@@ -52,14 +50,6 @@ feature{NONE} -- Initialization
 
 feature -- Configuration
 
-	set_variable_context (a_context: EXT_VARIABLE_CONTEXT)
-			-- Sets `variable_context' to `a_context'	
-		require
-			attached a_context
-		do
-			variable_context := a_context
-		end
-
 	set_content_original (a_content: STRING)
 			-- Sets `content_original' to `a_content'
 		require
@@ -70,17 +60,36 @@ feature -- Configuration
 
 feature -- Access
 
-	operands: DS_HASH_TABLE [STRING, STRING]
+	operands: HASH_TABLE [STRING, STRING]
 			-- Operands appearing in current snippet
 			-- Keys are variable names (in lower case), values are types of those
 			-- variables.
+		do
+			create Result.make (
+				variable_context.target_variables.count +
+				variable_context.interface_variables.count)
+			Result.compare_objects
 
-	holes: DS_HASH_TABLE [EXT_ANN_HOLE, STRING]
+			Result.merge (variable_context.target_variables)
+			Result.merge (variable_context.interface_variables)
+		end
+
+	operand_names: ARRAYED_SET [STRING]
+			-- Set of operand names from `operands'
+			-- Note: create a new set every time.
+		do
+			create Result.make (operands.count)
+			Result.compare_objects
+			across operands as l_opds loop
+				Result.extend (l_opds.key)
+			end
+		end
+
+	holes: HASH_TABLE [EXT_HOLE, STRING]
 			-- Set of holes in current snippet
 			-- Keys are names of holes, values are the holes.
 
 	variable_context: EXT_VARIABLE_CONTEXT
-		assign set_variable_context
 			-- Contextual information about relevant variables used
 			-- during the extraction process.	
 
@@ -88,7 +97,7 @@ feature -- Access
 			-- Textual representation of current snippet.
 			-- The content should be a parse-able string.
 
-	content_original: STRING
+	content_original: detachable STRING
 		assign set_content_original
 			-- Textual representation of originating AST.
 			-- The content should be a parse-able string.

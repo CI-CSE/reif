@@ -61,53 +61,61 @@ feature -- Basic operations
 		local
 			l_compound_as: EIFFEL_LIST [INSTRUCTION_AS]
 			l_path_initializer: ETR_AST_PATH_INITIALIZER
+			l_retried: BOOLEAN
 		do
-			log_feature_processing_header (a_context_class.name_in_upper, a_feature.feature_name, a_type.name)
-
-			relevant_target_type := a_type
-			feature_ := a_feature
-			context_class := a_context_class
-			if attached a_source then
-				origin := a_source
+			if l_retried then
+					log.put_string ("> Dropping feature; exception raised during extraction%N")
 			else
-				origin := "unknown@unknown@unknown"
-			end
+				log_feature_processing_header (a_context_class.name_in_upper, a_feature.feature_name, a_type.name)
 
-			create last_snippets.make
-
-				-- Collect relevant variables from `a_feature'.
-			collect_relevant_variables
-
-			if relevant_variables.is_empty then
-				log.put_string ("> Dropping feature; no relevant variables for snippet extraction found%N")
-			else
-					-- Process the feature body to extract snippets for each relevant variable.
-				l_compound_as := body_compound_ast_from_feature (a_feature)
-
-					-- If features contains body compound, copy AST by roundtripping: AST -> TEXT -> AST
-				if l_compound_as /= Void and then
-					attached {EIFFEL_LIST [INSTRUCTION_AS]} ast_from_compound_text (text_from_ast (l_compound_as)) as l_compound then
-
-					log_relevant_variables (relevant_variables)
-
-						-- Assign path IDs to nodes, print AST and continue processing.
-					create l_path_initializer
-					l_path_initializer.process_from_root (l_compound)
-
-					log.put_string ("%N")
-					log_ast_structure (l_compound)
-					log.put_string ("%N")
---					log_ast_text (l_compound)
---					log.put_string ("%N")
-
-					relevant_variables.do_all_with_key (agent process_feature_with_relevant_variable (l_compound, ?, ?))
+				relevant_target_type := a_type
+				feature_ := a_feature
+				context_class := a_context_class
+				if attached a_source then
+					origin := a_source
 				else
-					log.put_string ("> Dropping feature; empty AST body%N")
+					origin := "unknown@unknown@unknown"
 				end
-			end
 
-			log.put_string ("[Finished extraction]")
-			log.put_string ("%N%N%N")
+				create last_snippets.make
+
+					-- Collect relevant variables from `a_feature'.
+				collect_relevant_variables
+
+				if relevant_variables.is_empty then
+					log.put_string ("> Dropping feature; no relevant variables for snippet extraction found%N")
+				else
+						-- Process the feature body to extract snippets for each relevant variable.
+					l_compound_as := body_compound_ast_from_feature (a_feature)
+
+						-- If features contains body compound, copy AST by roundtripping: AST -> TEXT -> AST
+					if l_compound_as /= Void and then
+						attached {EIFFEL_LIST [INSTRUCTION_AS]} ast_from_compound_text (text_from_ast (l_compound_as)) as l_compound then
+
+						log_relevant_variables (relevant_variables)
+
+							-- Assign path IDs to nodes, print AST and continue processing.
+						create l_path_initializer
+						l_path_initializer.process_from_root (l_compound)
+
+						log.put_string ("%N")
+						log_ast_structure (l_compound)
+						log.put_string ("%N")
+	--					log_ast_text (l_compound)
+	--					log.put_string ("%N")
+
+						relevant_variables.do_all_with_key (agent process_feature_with_relevant_variable (l_compound, ?, ?))
+					else
+						log.put_string ("> Dropping feature; empty AST body%N")
+					end
+				end
+
+				log.put_string ("[Finished extraction]")
+				log.put_string ("%N%N%N")
+			end
+		rescue
+			l_retried := True
+			retry
 		end
 
 feature {NONE} -- Implementation
@@ -276,9 +284,9 @@ feature {NONE} -- Implementation
 			attached a_variable_name
 		local
 			l_snippet: EXT_SNIPPET
-			l_snippet_operands: DS_HASH_TABLE [STRING, STRING]
-			l_compound_as: EIFFEL_LIST [INSTRUCTION_AS]
-			l_hole_result: like perform_ast_hole_step
+			l_compound_as: like a_compound_as
+			l_hole_factory: EXT_HOLE_FACTORY
+			l_holes: HASH_TABLE [EXT_HOLE, STRING]
 		do
 			log.put_string ("%N")
 			log_ast_processing_header (a_variable_name, a_variable_type.name)
@@ -298,27 +306,24 @@ feature {NONE} -- Implementation
 			l_compound_as := perform_ast_prune_step (l_compound_as)
 			l_compound_as := perform_ast_rewrite_if_as (l_compound_as)
 			l_compound_as := perform_ast_rewrite_if_as (l_compound_as)
-			l_compound_as := perform_ast_rewrite_loop_as (l_compound_as)
 
-			l_hole_result := perform_ast_hole_step (l_compound_as)
-			l_compound_as := l_hole_result.compound_as
+			create l_hole_factory.make
+			create l_holes.make (10)
+			l_holes.compare_objects
+
+			l_compound_as := perform_ast_if_as_hole_step   (l_compound_as, l_holes, l_hole_factory)
+			l_compound_as := perform_ast_loop_as_hole_step (l_compound_as, l_holes, l_hole_factory)
+			l_compound_as := perform_ast_general_hole_step (l_compound_as, l_holes, l_hole_factory)
 
 			log.put_string ("%N")
 			log_ast_text (l_compound_as)
 
 			if not l_compound_as.is_empty then
-				fixme ("Clean-up snippet object creation.")
-				create l_snippet_operands.make (5)
-				across variable_context.target_variables    as c loop l_snippet_operands.force (c.item, c.key) end
-				across variable_context.interface_variables as c loop l_snippet_operands.force (c.item, c.key) end
-
 				create l_snippet.make (
 					text_from_ast (l_compound_as),
-					l_snippet_operands,
-					l_hole_result.annotations,
+					variable_context,
+					l_holes,
 					origin)
-
-				l_snippet.set_variable_context (variable_context)
 				l_snippet.set_content_original (text_from_ast (a_compound_as))
 
 				snippet_decider.decide_on_snippet (l_snippet)
@@ -363,55 +368,58 @@ feature {NONE} -- Implementation
 			attached Result
 		end
 
-	perform_ast_hole_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]): TUPLE [compound_as: EIFFEL_LIST [INSTRUCTION_AS]; annotations: DS_HASH_TABLE [EXT_ANN_HOLE, STRING]]
+	perform_ast_general_hole_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]; a_holes: HASH_TABLE [EXT_HOLE, STRING]; a_factory: EXT_HOLE_FACTORY): like a_compound_as
 		local
-			l_annotation_context: EXT_ANNOTATION_CONTEXT
-			l_shared_annotations: like {EXT_ANNOTATION_CONTEXT}.annotations
-			l_path_initializer: ETR_AST_PATH_INITIALIZER
-
-			l_ast_marker: EXT_AST_HOLE_MARKER
-			l_ast_rewriter: EXT_AST_HOLE_REWRITER
-
-			l_annotations: DS_HASH_TABLE [EXT_ANN_HOLE, STRING]
+			l_ast_hole_extractor: EXT_AST_GENERAL_HOLE_EXTRACTOR
+			l_ast_rewriter: EXT_AST_REWRITER [like a_compound_as]
 		do
-				-- Create shared annotation information passed from `{EXT_AST_HOLE_MARKER}' to `{EXT_AST_HOLE_REWRITER}'.
-			create l_shared_annotations.make (10)
-			l_shared_annotations.compare_objects
+				-- Associate statements with holes.
+			create l_ast_hole_extractor.make_with_factory (a_factory)
+			l_ast_hole_extractor.set_variable_context (variable_context)
+			l_ast_hole_extractor.extract (a_compound_as)
 
-			create l_annotation_context.make
-			l_annotation_context.set_annotations (l_shared_annotations)
+				-- Rewrite statements associated with holes.
+			create {EXT_AST_HOLE_REWRITER} l_ast_rewriter.make_with_arguments (ast_printer_output, l_ast_hole_extractor.last_holes_by_location)
+			l_ast_rewriter.rewrite (a_compound_as)
 
-				-- Apply `EXT_HOLE_PRUNE' tags.
-			create l_ast_marker.make
-			l_ast_marker.set_variable_context (variable_context)
-			l_ast_marker.set_annotation_context (l_annotation_context)
+				-- Add holes to collection and return rewritten AST.
+			a_holes.merge (l_ast_hole_extractor.last_holes)
+			Result := l_ast_rewriter.last_ast
+		end
 
-			a_compound_as.process (l_ast_marker)
+	perform_ast_if_as_hole_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]; a_holes: HASH_TABLE [EXT_HOLE, STRING]; a_factory: EXT_HOLE_FACTORY): like a_compound_as
+		local
+			l_ast_hole_extractor: EXT_AST_IF_AS_HOLE_EXTRACTOR
+			l_ast_rewriter: EXT_AST_REWRITER [like a_compound_as]
+		do
+				-- Associate statements with holes.
+			create l_ast_hole_extractor.make_with_factory (a_factory)
+			l_ast_hole_extractor.set_variable_context (variable_context)
+			l_ast_hole_extractor.extract (a_compound_as)
 
-				-- Remove statements with `EXT_ANN_HOLE' tags.
-			create l_ast_rewriter.make_with_output (ast_printer_output)
-			l_ast_rewriter.set_annotation_context (l_annotation_context)
+				-- Rewrite statements associated with holes.
+			create {EXT_AST_HOLE_REWRITER} l_ast_rewriter.make_with_arguments (ast_printer_output, l_ast_hole_extractor.last_holes_by_location)
+			l_ast_rewriter.rewrite (a_compound_as)
 
-			if attached {EIFFEL_LIST [INSTRUCTION_AS]} ast_from_compound_text (text_from_ast_with_printer (a_compound_as, l_ast_rewriter)) as l_rewritten_compound_as then
-					-- Assign path IDs to nodes, print AST and continue processing.
-				create l_path_initializer
-				l_path_initializer.process_from_root (l_rewritten_compound_as)
+				-- Add holes to collection and return rewritten AST.
+			a_holes.merge (l_ast_hole_extractor.last_holes)
+			Result := l_ast_rewriter.last_ast
+		end
 
-				create l_annotations.make_default
-				across
-					l_shared_annotations as l_cursor
-				loop
-					if attached {EXT_ANN_HOLE} l_cursor.item as l_annotation then
-						l_annotations.force (l_annotation, l_annotation.out)
-					end
-				end
+	perform_ast_loop_as_hole_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]; a_holes: HASH_TABLE [EXT_HOLE, STRING]; a_factory: EXT_HOLE_FACTORY): like a_compound_as
+		local
+			l_ast_processor: EXT_AST_LOOP_AS_HOLE_PROCESSOR
+		do
+			create l_ast_processor.make_with_arguments (ast_printer_output, a_factory)
+			l_ast_processor.set_variable_context (variable_context)
 
-				create Result
-				Result.compound_as := l_rewritten_compound_as
-				Result.annotations := l_annotations
-			else
-				check false end
-			end
+				-- Process AST.
+			l_ast_processor.extract (a_compound_as)
+			l_ast_processor.rewrite (a_compound_as)
+
+				-- Add holes to collection and return rewritten AST.
+			a_holes.merge (l_ast_processor.last_holes)
+			Result := l_ast_processor.last_ast
 		end
 
 	perform_ast_prune_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]): EIFFEL_LIST [INSTRUCTION_AS]
@@ -436,25 +444,6 @@ feature {NONE} -- Implementation
 	perform_ast_rewrite_if_as (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]): EIFFEL_LIST [INSTRUCTION_AS]
 		local
 			l_ast_rewriter: EXT_AST_IF_AS_REWRITER
-			l_path_initializer: ETR_AST_PATH_INITIALIZER
-		do
-			create l_ast_rewriter.make_with_output (ast_printer_output)
-			l_ast_rewriter.set_variable_context (variable_context)
-
-			if attached {EIFFEL_LIST [INSTRUCTION_AS]} ast_from_compound_text (text_from_ast_with_printer (a_compound_as, l_ast_rewriter)) as l_rewritten_compound_as then
-				Result := l_rewritten_compound_as
-
-					-- Assign path IDs to nodes, print AST and continue processing.
-				create l_path_initializer
-				l_path_initializer.process_from_root (Result)
-			else
-				check false end
-			end
-		end
-
-	perform_ast_rewrite_loop_as (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]): EIFFEL_LIST [INSTRUCTION_AS]
-		local
-			l_ast_rewriter: EXT_AST_LOOP_AS_REWRITER
 			l_path_initializer: ETR_AST_PATH_INITIALIZER
 		do
 			create l_ast_rewriter.make_with_output (ast_printer_output)
@@ -621,12 +610,5 @@ feature {NONE} -- Debug
 				log.put_string ("]%N")
 			end
 		end
-
-feature {NONE} -- Dummy
-
-	examples: EXT_EXAMPLES
-			-- Reference to `EXT_EXAMPLE' class that it will get compiled.
-			-- Contains simple benchmark examples for analysis.
-			-- To be removed!
 
 end
