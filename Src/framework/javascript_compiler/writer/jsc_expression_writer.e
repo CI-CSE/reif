@@ -115,7 +115,7 @@ feature -- Basic Operation
 			create {LINKED_LIST[attached JSC_WRITER_DATA]}invariant_checks.make
 		end
 
-	process_object_test (l_source: attached EXPR_B; l_target_type, l_source_type: attached TYPE_A): attached STRING
+	process_object_test (l_source: attached EXPR_B; l_target_type, l_source_type: attached TYPE_A; use_reverse: BOOLEAN): attached STRING
 		local
 			l_expression: JSC_WRITER_DATA
 			local_name: STRING
@@ -125,7 +125,12 @@ feature -- Basic Operation
 				l_expression := output.data
 			output.pop
 
-			local_name := jsc_context.add_object_test_local
+			if use_reverse then
+				local_name := jsc_context.add_reverse_local
+			else
+				local_name := jsc_context.add_object_test_local
+			end
+
 			output.put ("(")
 			output.put (local_name)
 			output.put ("=")
@@ -212,7 +217,7 @@ feature {BYTE_NODE} -- Visitors
 	process_attribute_b (a_node: ATTRIBUTE_B)
 			-- Process `a_node'.
 		do
-			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.line_number)
+			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.precursor_type /= Void)
 		end
 
 	process_bin_and_b (a_node: BIN_AND_B)
@@ -466,10 +471,13 @@ feature {BYTE_NODE} -- Visitors
 			l_class_name: STRING
 			l_feature: attached FEATURE_I
 			l_feature_external_name: STRING
-			l_type: CL_TYPE_A
+			l_type: TYPE_A
 			l_type_name: attached STRING
 		do
 			l_type ?= a_node.type
+			check l_type /= Void end
+
+			l_type := l_type.actual_type
 			check l_type /= Void end
 
 			l_call_access := a_node.call
@@ -479,8 +487,8 @@ feature {BYTE_NODE} -- Visitors
 			check l_class /= Void end
 
 			l_feature := get_feature (l_call_access)
-			l_feature := jsc_context.informer.redirect_feature (l_class, l_feature, a_node.line_number)
-			l_class := jsc_context.informer.redirect_class (l_class, a_node.line_number)
+			l_feature := jsc_context.informer.redirect_feature (l_class, l_feature)
+			l_class := jsc_context.informer.redirect_class (l_class)
 
 			l_class_name := l_class.name_in_upper
 			check l_class_name /= Void end
@@ -536,13 +544,13 @@ feature {BYTE_NODE} -- Visitors
 			-- Process `a_node'.
 		local
 		do
-			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.line_number)
+			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.precursor_type /= Void)
 		end
 
 	process_feature_b (a_node: FEATURE_B)
 			-- Process `a_node'.
 		do
-			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.line_number)
+			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.precursor_type /= Void)
 		end
 
 	process_int64_val_b (a_node: INT64_VAL_B)
@@ -609,7 +617,7 @@ feature {BYTE_NODE} -- Visitors
 				end
 				check l_class /= Void end
 
-				l_class := jsc_context.informer.redirect_class (l_class, 0)
+				l_class := jsc_context.informer.redirect_class (l_class)
 
 				if not jsc_context.informer.is_fictive_stub (l_class.class_id)
 					and l_class.assertion_level.is_invariant then
@@ -646,7 +654,7 @@ feature {BYTE_NODE} -- Visitors
 			l_source_type := l_context.real_type (l_node_expression.type)
 			check l_source_type /= Void end
 
-			local_name := process_object_test (l_node_expression, l_target_type, l_source_type)
+			local_name := process_object_test (l_node_expression, l_target_type, l_source_type, false)
 
 		end
 
@@ -997,14 +1005,13 @@ feature {NONE} -- Base classes feature redirection
 
 feature {NONE} -- Static dispatch
 
-	static_dispatch_feature_call (a_feature: attached FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_line_number: INTEGER)
+	static_dispatch_feature_call (a_feature: attached FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; is_precursor_call: BOOLEAN)
 			-- Process feature call of feature `a_feature' with parameters `a_parameters'.
 		local
 			l_class: CLASS_C
 			l_feature: FEATURE_I
 			l_external_name: STRING
 		do
-
 			if jsc_context.name_mapper.target_type.is_like_current then
 				l_class := jsc_context.current_class
 				check l_class /= Void end
@@ -1022,7 +1029,7 @@ feature {NONE} -- Static dispatch
 			end
 
 				-- Redirect feature if needed
-			l_feature := jsc_context.informer.redirect_feature (l_class, a_feature, a_line_number)
+			l_feature := jsc_context.informer.redirect_feature (l_class, a_feature)
 
 			if jsc_context.informer.is_ancestor_of_native_type (l_class.class_id) then
 					-- This class is a parent of a native type => must do special dispatching
@@ -1034,7 +1041,7 @@ feature {NONE} -- Static dispatch
 
 					process_external_procedure_call (false, l_external_name, l_feature.arguments, a_parameters)
 				else
-					process_normal_feature_call (l_feature, a_parameters)
+					process_normal_feature_call (l_feature, a_parameters, is_precursor_call)
 				end
 			end
 		end
@@ -1116,11 +1123,14 @@ feature {NONE} -- External calls
 
 feature {NONE} -- Normal calls
 
-	process_normal_feature_call (a_feature: attached FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	process_normal_feature_call (a_feature: attached FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; is_precursor_call: BOOLEAN)
 			-- Process feature call of feature `a_feature' with parameters `a_parameters'.
 		do
 			output.put_data (jsc_context.name_mapper.target_name)
 			output.put (".")
+			if is_precursor_call then
+				output.put ("$")
+			end
 			output.put (jsc_context.name_mapper.feature_name (a_feature, true))
 			output.put ("(")
 			output.put_data_list (process_parameters(a_parameters), ", ")
@@ -1185,6 +1195,10 @@ feature {NONE} -- Implementation
 				-- Still not sure why this happens
 				l_feature := written_class.feature_of_feature_id (a_node.feature_id)
 			end
+			if l_feature = Void then
+				-- Still not sure why this happens
+				l_feature := written_class.feature_of_name_id (a_node.feature_name_id)
+			end
 			check l_feature /= Void end
 
 			Result := l_feature
@@ -1247,9 +1261,13 @@ feature -- Processing helpers
 		local
 			l_class: CLASS_C
 			l_class_name: STRING
+			l_type: TYPE_A
 		do
+			l_type := a_type.actual_type
+			check l_type /= void end
+
 			output.push ("")
-				if attached{FORMAL_A}a_type as formal_type then
+				if attached{FORMAL_A}l_type as formal_type then
 					output.put (jsc_context.name_mapper.current_class_target)
 					output.put (".$generics[")
 					output.put ((formal_type.position-1).out)
@@ -1263,10 +1281,10 @@ feature -- Processing helpers
 					end
 					output.put (", name:%"")
 
-					l_class := a_type.associated_class
+					l_class := l_type.associated_class
 					check l_class /= Void end
 
-					l_class_name := jsc_context.informer.redirect_class (l_class, 0).name_in_upper
+					l_class_name := jsc_context.informer.redirect_class (l_class).name_in_upper
 					check l_class_name /= Void end
 
 					output.put (l_class_name)
@@ -1363,7 +1381,7 @@ feature -- Processing helpers
 
 				-- Make the actual call
 			jsc_context.name_mapper.push_target (l_left_type, l_target_name)
-				static_dispatch_feature_call (l_feature, l_parameters, a_node.line_number)
+				static_dispatch_feature_call (l_feature, l_parameters, false)
 			jsc_context.name_mapper.pop_target
 		end
 

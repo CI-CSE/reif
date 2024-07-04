@@ -28,6 +28,7 @@ feature {NONE} -- Initialization
 			create {LINKED_STACK[attached FEATURE_I]}current_features.make
 			create {LINKED_STACK[attached LIST[attached JSC_WRITER_DATA]]}old_locals.make
 			create {LINKED_STACK[INTEGER]}object_test_locals.make
+			create {LINKED_STACK[INTEGER]}reverse_locals.make
 			create {LINKED_STACK[INTEGER]}line_numbers.make
 
 			push_line_number(0)
@@ -106,22 +107,33 @@ feature -- Feature Context
 		end
 
 	push_feature (a_feature: attached FEATURE_I)
+		do
+			current_features.put (a_feature)
+			push_locals
+		end
+
+	push_locals
 		local
 			l_list: LINKED_LIST[attached JSC_WRITER_DATA]
 		do
-			current_features.put (a_feature)
-
 			create l_list.make
 			old_locals.put (l_list)
 
 			object_test_locals.put (0)
+			reverse_locals.put (0)
 		end
 
 	pop_feature
 		do
 			current_features.remove
+			pop_locals
+		end
+
+	pop_locals
+		do
 			old_locals.remove
 			object_test_locals.remove
+			reverse_locals.remove
 		end
 
 feature -- Line number context
@@ -170,6 +182,11 @@ feature -- Object Test Locals
 			Result := object_test_locals.item
 		end
 
+	current_reverse_locals: INTEGER
+		do
+			Result := reverse_locals.item
+		end
+
 	add_object_test_local: attached STRING
 		local
 			current_cnt: INTEGER
@@ -180,9 +197,24 @@ feature -- Object Test Locals
 			Result := object_test_local_name (current_cnt + 1)
 		end
 
+	add_reverse_local: attached STRING
+		local
+			current_cnt: INTEGER
+		do
+			current_cnt := current_reverse_locals
+			reverse_locals.remove
+			reverse_locals.extend (current_cnt + 1)
+			Result := reverse_local_name (current_cnt + 1)
+		end
+
 	object_test_local_name (a_index: INTEGER): attached STRING
 		do
 			Result := "$obj_test" + a_index.out
+		end
+
+	reverse_local_name (a_index: INTEGER): attached STRING
+		do
+			Result := "$reverse" + a_index.out
 		end
 
 feature -- Helpers
@@ -219,6 +251,9 @@ feature {NONE} -- Implementation
 		-- Stack of locals resulted from the usage of old()
 
 	object_test_locals : attached STACK[INTEGER]
+		-- Stack of locals resulted from object tests
+
+	reverse_locals : attached STACK[INTEGER]
 		-- Stack of locals resulted from object tests
 
 	unsafe_current_class: CLASS_C

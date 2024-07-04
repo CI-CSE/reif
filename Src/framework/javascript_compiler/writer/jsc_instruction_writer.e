@@ -109,7 +109,7 @@ feature -- Processing
 
 			l_call_access: CALL_ACCESS_B
 			l_class: CLASS_C
-			l_type: CL_TYPE_A
+			l_type: TYPE_A
 		do
 			create invariant_checks.make
 			jsc_context.push_line_number (a_node.line_number)
@@ -130,7 +130,10 @@ feature -- Processing
 
 			if attached {CREATION_EXPR_B} a_node.source as safe_src then
 
-				l_type ?= safe_src.type
+				l_type := safe_src.type
+				check l_type /= Void end
+
+				l_type := l_type.actual_type
 				check l_type /= Void end
 
 				l_call_access := safe_src.call
@@ -139,7 +142,7 @@ feature -- Processing
 				l_class := l_type.associated_class
 				check l_class /= Void end
 
-				l_class := jsc_context.informer.redirect_class (l_class, a_node.line_number)
+				l_class := jsc_context.informer.redirect_class (l_class)
 
 				if not jsc_context.informer.is_fictive_stub (l_class.class_id)
 					and l_class.assertion_level.is_invariant then
@@ -344,7 +347,7 @@ feature -- Processing
 
 				-- Invoke expression writer and get inheritance condition
 			expression_writer.reset (output.indentation)
-			local_name := expression_writer.process_object_test (l_source, l_target_type, l_source_type)
+			local_name := expression_writer.process_object_test (l_source, l_target_type, l_source_type, true)
 			l_test := expression_writer.output.data
 			dependencies1.fill (expression_writer.dependencies1)
 			dependencies2.fill (expression_writer.dependencies2)
