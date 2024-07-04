@@ -19,6 +19,8 @@ feature{NONE} -- Initialization
 
 	make (a_system: like eiffel_system)
 			-- Initialize `eiffel_system' with `a_system'.
+		local
+			l_relation: EPA_EXPRESSION_RELATION
 		do
 			eiffel_system := a_system
 		ensure
@@ -99,6 +101,17 @@ feature -- Access
 		do
 			create l_path.make_from_string (contract_output_directory)
 			l_path.extend ("semantic")
+			Result := l_path
+			safe_recursive_create_directory (l_path)
+		end
+
+	solr_directory: STRING
+			-- Directory for solr documents
+		local
+			l_path: FILE_NAME
+		do
+			create l_path.make_from_string (contract_output_directory)
+			l_path.extend ("solr")
 			Result := l_path
 			safe_recursive_create_directory (l_path)
 		end
@@ -265,11 +278,23 @@ feature -- Access
 			-- Should freeze the project before contract inference?
 			-- Default: False
 
-	is_semantic_search_enabled: BOOLEAN
-			-- Is semantic search support enabled?
-			-- If enabled, during test case execution, object serialization in
-			-- pre- and poststate as well as the object type information will be kept
+	should_use_mocking: BOOLEAN
+			-- Should use mocking information instead of re-run the test suite?
 			-- Default: False
+
+	should_generate_mocking: BOOLEAN
+			-- Should generate mocking information?
+			-- Default: False
+
+	should_generate_solr: BOOLEAN
+			-- Should generate solr files?
+			-- Default: False
+
+	should_enable_post_serialization_retrieval: BOOLEAN
+			-- Should post-state object serialization be enabled?
+		do
+			Result := should_generate_mocking or should_generate_solr
+		end
 
 feature -- Status report
 
@@ -535,12 +560,28 @@ feature -- Setting
 			should_freeze_set: should_freeze = b
 		end
 
-	set_is_semantic_search_enabled (b: BOOLEAN)
-			-- Set `is_semantic_search_enabled' with `b'.
+	set_should_generate_mocking (b: BOOLEAN)
+			-- Set `should_generate_mocking' with `b'.
 		do
-			is_semantic_search_enabled := b
+			should_generate_mocking := b
 		ensure
-			is_semantic_search_enabled_set: is_semantic_search_enabled = b
+			should_generate_mocking_set: should_generate_mocking = b
+		end
+
+	set_should_use_mocking (b: BOOLEAN)
+			-- Set `should_use_mocking' with `b'.
+		do
+			should_use_mocking := b
+		ensure
+			should_use_mocking_set: should_use_mocking = b
+		end
+
+	set_should_generate_solr (b: BOOLEAN)
+			-- Set `should_generate_solr' with `b'.
+		do
+			should_generate_solr := b
+		ensure
+			should_generate_solr_set: should_generate_solr = b
 		end
 
 feature{NONE} -- Implementation

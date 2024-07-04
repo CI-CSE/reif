@@ -10,6 +10,8 @@ class
 inherit
 	KL_SHARED_STRING_EQUALITY_TESTER
 
+	SEM_CONSTANTS
+
 feature -- Access
 
 	document_type_field: STRING = "document_type"
@@ -66,6 +68,30 @@ feature -- Access
 
 	property_field_prefix: STRING = "property::"
 
+	begin_field: STRING = "begin"
+
+	end_field: STRING = "end"
+
+	variable_position_field: STRING = "variable_position_table"
+
+	prestate_serialization_field: STRING = "prestate_serialization"
+
+	poststate_serialization_field: STRING = "poststate_serialization"
+
+	operand_variable_indexes_field: STRING = "operand_variable_indexes"
+
+	is_feature_under_test_creation_field: STRING = "is_feature_under_test_creation"
+
+	is_feature_under_test_query_field: STRING = "is_feature_under_test_query_field"
+
+	test_feature_field: STRING = "test_feature"
+
+	test_case_class_field: STRING = "test_case_class"
+
+	prestate_bounded_functions_field: STRING = "prestate_bounded_functions"
+
+	poststate_bounded_functions_field: STRING = "poststate_bounded_functions"
+
 feature -- Access
 
 	serialization_field_array_separator: CHARACTER = ','
@@ -76,19 +102,22 @@ feature -- Access
 	field_value_separator: STRING = ";;;"
 			-- Field value separator
 
+	default_variable_prefix: STRING = "v_"
+			-- Default prefix for variables
+
+	output_type_name (a_type: STRING): STRING
+			-- Formatted type name from `a_type'
+		do
+			create Result.make_from_string (a_type)
+			Result.replace_substring_all (once "?", once "")
+			Result.replace_substring_all (once "detachable ", once "")
+			Result.replace_substring_all (once "separate ", once "")
+		end
+
 feature -- Access
 
-	transition_field_value: STRING = "transition"
-	snippet_field_value: STRING = "snippet"
-	object_field_value: STRING = "object"
-
-feature -- Type names
-
-	string_field_type: STRING = "STRING"
-	boolean_field_type: STRING = "BOOLEAN"
-	integer_field_type: STRING = "INTEGER"
-
-	default_boost_value: DOUBLE = 1.0
+	begin_field_value: STRING = "begin"
+	end_field_value: STRING = "end"
 
 feature -- Access
 

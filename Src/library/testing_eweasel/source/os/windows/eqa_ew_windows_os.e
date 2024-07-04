@@ -1,29 +1,39 @@
 note
-	description: "Summary description for {AUT_CONTRACT_FROM_ANY_FILTER}."
-	author: ""
+	description: "[
+					Windows-specific operating system services
+																								]"
+	legal: "See notice at end of class."
+	status: "See notice at end of class."
+	keywords: "Eiffel test"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	AUT_FROM_ANY_CONTRACT_FILTER
+	EQA_EW_WINDOWS_OS
 
 inherit
-	AUT_CONTRACT_FILTER
+	EQA_EW_OPERATING_SYSTEM
 
-feature -- Status report
+feature -- Query
 
-	is_assertion_satisfied (a_assertion: AUT_ASSERTION; a_context_class: CLASS_C): BOOLEAN is
-			-- Is `a_assertion' valid tag in `a_context_class'?
-			-- An assertion is valid if is suitable to generate proof obligation from it.
-		do
-			Result := a_assertion.written_class = system.any_class.compiled_class
-		ensure then
-			good_result: result = a_assertion.written_class = system.any_class.compiled_class
+	current_time_in_seconds: INTEGER
+			-- <Precursor>
+		external
+			"C inline use <time.h>"
+		alias "[
+  				time_t current_time;
+
+  				current_time = time(&current_time);
+  				if (current_time == (time_t) -1) {
+    					eraise("time() call failed", EN_PROG);
+  				}
+  				return (EIF_INTEGER) current_time;
+			]"
 		end
 
-note
-	copyright: "Copyright (c) 1984-2009, Eiffel Software"
-	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+;note
+	copyright: "Copyright (c) 1984-2009, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

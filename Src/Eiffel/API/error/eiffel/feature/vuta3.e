@@ -1,41 +1,27 @@
 note
-	description: "Summary description for {AFX_CONCRETE_TRANSITION}."
-	author: ""
+	description: "Error in Object_call which separate target is uncontrolled."
+	legal: "See notice at end of class."
+	status: "See notice at end of class."
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
-	AFX_CONCRETE_TRANSITION
+class VUTA3
+
+inherit
+	VUTA
 
 create
 	make
 
-feature -- initialization
+feature -- Error properties
 
-    make (a_src, a_dest: like src; a_call: like feature_call)
-    		-- initialize a new transition
-    	do
-    	    src := a_src
-    	    dest := a_dest
-    	    feature_call := a_call
-    	ensure
-    	    src_set: src = a_src
-    	    dest_set: dest = a_dest
-    	    feature_call_set: feature_call = a_call
-    	end
+	subcode: INTEGER = 3
+			-- Subcode of error
 
-feature -- attributes
-
-	src, dest: AFX_STATE
-			-- source and destination of the transition
-
-	feature_call: AUT_CALL_BASED_REQUEST
-			-- the associated feature call
-
-;note
-	copyright: "Copyright (c) 1984-2009, Eiffel Software"
-	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options: "http://www.eiffel.com/licensing"
+note
+	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
@@ -63,4 +49,5 @@ feature -- attributes
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

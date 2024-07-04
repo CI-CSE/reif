@@ -9,6 +9,9 @@ deferred class
 
 inherit
 	SEM_QUERYABLE
+		rename
+			preconditions as extracted_preconditions,
+			postconditions as extracted_postconditions
 		redefine
 			is_transition
 		end
@@ -175,6 +178,14 @@ feature -- Access
 			-- Interface transition of Current
 			-- Make a copy of current.
 		deferred
+		end
+
+	sem_equation_from_equation (a_equation: EPA_EQUATION; a_is_precondition: BOOLEAN; a_is_written: BOOLEAN): SEM_EQUATION
+			-- Equation from `a_equation'
+			-- `a_is_precondition' indicates if `a_equation' is from pre-state.
+			-- `a_is_written' indicates if `a_equation' is human-written.
+		do
+			create Result.make (a_equation, a_is_precondition, a_is_written)
 		end
 
 feature -- Status setting
@@ -367,6 +378,14 @@ feature{NONE} -- Implementation
 					Result.forth
 				end
 			end
+		end
+
+	extend_equation_into_hash_set (a_equation: EPA_EQUATION; a_is_precondition: BOOLEAN; a_is_human_written: BOOLEAN; a_hash_set: DS_HASH_SET [SEM_EQUATION])
+			-- Extend `a_equation' into `a_hash_set'.
+			-- `a_is_precondition' indicates if `a_equation' is from pre-state.
+			-- `a_is_human_written' indicates if `a_equation' is human-provided.
+		do
+			a_hash_set.force_last (create {SEM_EQUATION}.make (a_equation, a_is_precondition, a_is_human_written))
 		end
 
 invariant
