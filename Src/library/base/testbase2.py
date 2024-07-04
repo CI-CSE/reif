@@ -21,9 +21,8 @@ classes = [
   'V_LIST_ITERATOR',
   'V_CELL',
   'V_LINKABLE',
-  # 'V_LINKED_LIST',  
-  'V_CELL_CURSOR',  
-  # 'V_LINKED_LIST_ITERATOR',    
+  'V_LINKED_LIST',  
+  'V_LINKED_LIST_ITERATOR',    
 ]
 
 outfile_name = 'base2.out'
@@ -35,7 +34,9 @@ def run_all(project_path):
     '-batch',
     '-project_path', project_path,
     '-boogie',
-    '-ownership',]
+    '-ownership',
+    '-arithtrigger'
+    ]
   args = args + classes
                   
   with open(outfile_name, 'w') as outfile:

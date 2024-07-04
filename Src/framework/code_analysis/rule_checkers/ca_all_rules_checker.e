@@ -59,7 +59,10 @@ inherit
 			process_once_as,
 			process_paran_as,
 			process_routine_as,
-			process_un_not_as
+			process_unary_as,
+			process_un_not_as,
+			process_integer_as,
+			process_real_as
 		end
 
 create
@@ -140,8 +143,14 @@ feature {NONE} -- Initialization
 			create paran_post_actions.make
 			create routine_pre_actions.make
 			create routine_post_actions.make
+			create unary_pre_actions.make
+			create unary_post_actions.make
 			create un_not_pre_actions.make
 			create un_not_post_actions.make
+			create integer_pre_actions.make
+			create integer_post_actions.make
+			create real_pre_actions.make
+			create real_post_actions.make
 		end
 
 feature {CA_STANDARD_RULE} -- Adding agents
@@ -456,6 +465,16 @@ feature {CA_STANDARD_RULE} -- Adding agents
 			routine_post_actions.extend (a_action)
 		end
 
+	add_unary_pre_action (a_action: attached PROCEDURE [ANY, TUPLE [UNARY_AS]])
+		do
+			unary_pre_actions.extend (a_action)
+		end
+
+	add_unary_post_action (a_action: attached PROCEDURE [ANY, TUPLE [UNARY_AS]])
+		do
+			unary_post_actions.extend (a_action)
+		end
+
 	add_un_not_pre_action (a_action: attached PROCEDURE [ANY, TUPLE [UN_NOT_AS]])
 		do
 			un_not_pre_actions.extend (a_action)
@@ -464,6 +483,26 @@ feature {CA_STANDARD_RULE} -- Adding agents
 	add_un_not_post_action (a_action: attached PROCEDURE [ANY, TUPLE [UN_NOT_AS]])
 		do
 			un_not_post_actions.extend (a_action)
+		end
+
+	add_integer_pre_action (a_action: attached PROCEDURE [ANY, TUPLE [INTEGER_AS]])
+		do
+			integer_pre_actions.extend (a_action)
+		end
+
+	add_integer_post_action (a_action: attached PROCEDURE [ANY, TUPLE [INTEGER_AS]])
+		do
+			integer_post_actions.extend (a_action)
+		end
+
+	add_real_pre_action (a_action: attached PROCEDURE [ANY, TUPLE [REAL_AS]])
+		do
+			real_pre_actions.extend (a_action)
+		end
+
+	add_real_post_action (a_action: attached PROCEDURE [ANY, TUPLE [REAL_AS]])
+		do
+			real_post_actions.extend (a_action)
 		end
 
 feature {NONE} -- Agent lists
@@ -530,7 +569,13 @@ feature {NONE} -- Agent lists
 
 	routine_pre_actions, routine_post_actions: ACTION_SEQUENCE [TUPLE [ROUTINE_AS]]
 
+	unary_pre_actions, unary_post_actions: ACTION_SEQUENCE [TUPLE [UNARY_AS]]
+
 	un_not_pre_actions, un_not_post_actions: ACTION_SEQUENCE [TUPLE [UN_NOT_AS]]
+
+	integer_pre_actions, integer_post_actions: ACTION_SEQUENCE [TUPLE [INTEGER_AS]]
+
+	real_pre_actions, real_post_actions: ACTION_SEQUENCE [TUPLE [REAL_AS]]
 
 feature {CA_RULE_CHECKING_TASK} -- Execution Commands
 
@@ -764,6 +809,27 @@ feature {NONE} -- Processing
 			un_not_pre_actions.call ([a_un_not])
 			Precursor (a_un_not)
 			un_not_post_actions.call ([a_un_not])
+		end
+
+	process_unary_as (a_unary: UNARY_AS)
+		do
+			unary_pre_actions.call ([a_unary])
+			Precursor (a_unary)
+			unary_post_actions.call ([a_unary])
+		end
+
+	process_integer_as (a_integer: INTEGER_AS)
+		do
+			integer_pre_actions.call ([a_integer])
+			Precursor (a_integer)
+			integer_post_actions.call ([a_integer])
+		end
+
+	process_real_as (a_real: REAL_AS)
+		do
+			real_pre_actions.call ([a_real])
+			Precursor (a_real)
+			real_post_actions.call ([a_real])
 		end
 
 feature -- Results

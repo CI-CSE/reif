@@ -5,6 +5,7 @@ note
 		]"
 	author: "Nadia Polikarpova"
 	model: sequence
+	manual_inv: true
 
 deferred class
 	V_LIST [G]
@@ -12,7 +13,37 @@ deferred class
 inherit
 	V_MUTABLE_SEQUENCE [G]
 		redefine
+			first,
+			last,
+			item,
 			at
+		end
+
+feature -- Access
+
+	item alias "[]" (i: INTEGER): G
+			-- Value at index `i'.
+		deferred
+		ensure then
+			definition_sequence: Result = sequence [i]
+		end
+
+	first: G
+			-- First element.
+		do
+			check inv end
+			Result := item (lower)
+		ensure then
+			definition_sequence: Result = sequence.first
+		end
+
+	last: G
+			-- Last element.
+		do
+			check inv end
+			Result := item (upper)
+		ensure then
+			definition_sequence: Result = sequence.last
 		end
 
 feature -- Measurement
@@ -20,7 +51,7 @@ feature -- Measurement
 	lower: INTEGER
 			-- Lower bound of index interval.
 		once
-			check inv_only ("lower_defintion") end
+			check inv_only ("lower_definition") end
 			Result := 1
 		end
 
@@ -75,7 +106,7 @@ feature -- Comparison
 				forget_iterator (i)
 				other.forget_iterator (j)
 			end
-		ensure then
+		ensure
 			definition: Result = (sequence ~ other.sequence)
 			observers_restored: observers ~ old observers
 		end
@@ -92,6 +123,7 @@ feature -- Extension
 			modify_model (["sequence", "owns"], Current)
 		deferred
 		ensure
+			is_wrapped: is_wrapped
 			sequence_effect: sequence ~ old sequence.prepended (v)
 		end
 
@@ -133,6 +165,7 @@ feature -- Extension
 			input_wrapped: input.is_wrapped
 			not_current: input /= Current
 			different_target: input.target /= Current
+			input_target_wrapped: input.target.is_wrapped
 			not_before: not input.before
 			observers_open: across observers as o all o.item.is_open end
 			modify_model (["sequence", "owns"], Current)
@@ -148,9 +181,8 @@ feature -- Extension
 			until
 				input.after
 			loop
+				lemma_concat_interval (sequence.old_, input.sequence, {MML_SEQUENCE [G]}.empty_sequence, sequence, input.index_.old_, input.index_ - 1)
 				extend_back (input.item)
-				check input.sequence.interval (input.index_.old_, input.index_) =
-					input.sequence.interval (input.index_.old_, input.index_ - 1) & input.item end
 				input.forth
 			variant
 				input.sequence.count - input.index_
@@ -171,9 +203,10 @@ feature -- Extension
 			input_wrapped: input.is_wrapped
 			not_current: input /= Current
 			different_target: input.target /= Current
+			input_target_wrapped: input.target.is_wrapped
 			not_before: not input.before
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model (["sequence", "owns", "observers"], Current)
 			modify_model ("index_", input)
 		deferred
 		ensure
@@ -181,6 +214,7 @@ feature -- Extension
 			input_wrapped: input.is_wrapped
 			sequence_effect: sequence ~ old (input.sequence.tail (input.index_) + sequence)
 			input_index_effect: input.index_ = input.sequence.count + 1
+			observers_preserved: observers ~ old observers
 		end
 
 	insert_at (input: V_ITERATOR [G]; i: INTEGER)
@@ -193,9 +227,10 @@ feature -- Extension
 			valid_index: has_index (i) or i = count + 1
 			not_current: input /= Current
 			different_target: input.target /= Current
+			input_target_wrapped: input.target.is_wrapped
 			not_before: not input.before
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model (["sequence", "owns", "observers"], Current)
 			modify_model ("index_", input)
 		deferred
 		ensure
@@ -203,47 +238,8 @@ feature -- Extension
 			input_wrapped: input.is_wrapped
 			sequence_effect: sequence ~ old (sequence.front (i - 1) + input.sequence.tail (input.index_) + sequence.tail (i))
 			input_index_effect: input.index_ = input.sequence.count + 1
+			observers_preserved: observers ~ old observers
 		end
-
---	reverse
---			-- Reverse the order of elements.
---		note
---			explicit: wrapping
-----		require
-----			is_wrapped: is_wrapped
-----			observers_open: across observers as o all o.item.is_open end
-----			modify_model (["map", "observers"], Current)
---		local
---			j, k: INTEGER
---		do
-----			check inv_only ("indexes_in_interval", "lower_when_empty", "upper_when_empty") end
---			from
---				j := lower
---				k := upper
---			invariant
---				inv_only ("indexes_in_interval", "lower_when_empty", "upper_when_empty")
---				map.domain ~ map.domain.old_
---				lower_ <= j and j <= k + 1 and k <= upper_
---				k = lower_ + upper_ - j
---				across j |..| k as i all map.domain [i.item] and then map [i.item] = map.old_ [i.item] end
---				across lower_ |..| (j - 1) as i all map.domain [i.item] and then map [i.item] = map.old_ [lower_ + upper_ - i.item] end
---				across (k + 1) |..| upper_ as i all map.domain [i.item] and then map [i.item] = map.old_ [lower_ + upper_ - i.item] end
---				is_wrapped
-----				inv_only ("indexes_in_interval", "lower_when_empty", "upper_when_empty")
---				observers ~ observers.old_
---			until
---				j >= k
---			loop
---				swap (j, k)
---				j := j + 1
---				k := k - 1
---			end
-----		ensure
-----			is_wrapped: is_wrapped
-----			map_domain_effect: map.domain ~ old map.domain
-----			map_effect: across map.domain as i all map [i.item] = (old map) [lower_ + upper_ - i.item] end
-----			observers_restored: observers ~ old observers
---		end
 
 feature -- Removal
 
@@ -307,10 +303,11 @@ feature -- Removal
 			i := new_cursor
 			i.search_forth (v)
 			i.remove
+			check i.inv_only ("target_bag_constraint", "sequence_definition") end
 			forget_iterator (i)
 		ensure
 			is_wrapped: is_wrapped
---			sequence_effect: sequence |=| old (sequence.removed_at (sequence.inverse.image_of (v).extremum (agent less_equal)))
+			bag_effect: bag ~ old bag.removed (v)
 			observers_restored: observers ~ old observers
 		end
 
@@ -324,31 +321,41 @@ feature -- Removal
 			modify_model (["sequence", "observers", "owns"], Current)
 		local
 			i: V_LIST_ITERATOR [G]
+			n: INTEGER
 		do
 			from
 				i := new_cursor
 				i.search_forth (v)
 			invariant
 				is_wrapped and i.is_wrapped
-				i.inv
-				inv_only ("indexes_in_interval", "lower_when_empty", "upper_when_empty")
 				1 <= i.index_ and i.index_ <= sequence.count + 1
 				not i.off implies i.item = v
-				modify_model ("sequence", Current)
-				modify_model (["index_", "sequence"], i)
+				not sequence.front (i.index_ - 1).has (v)
+				bag = bag.old_.removed_multiple (v, n)
+				bag [v] = bag.old_ [v] - n
+				n >= 0
+				inv_only ("indexes_in_interval", "lower_when_empty", "upper_when_empty")
+				i.inv_only ("sequence_definition", "index_constraint", "target_bag_constraint")
+				modify_model (["sequence", "owns"], Current)
+				modify_model (["index_", "sequence", "target_index_sequence"], i)
 			until
 				i.after
 			loop
 				i.remove
-				check i.inv end
+				check i.inv_only ("target_bag_constraint", "sequence_definition") end
+				lemma_remove_multiple (bag.old_, v, n)
 				i.search_forth (v)
+				check i.inv_only ("sequence_definition", "index_constraint") end
+				n := n + 1
 			variant
 				i.sequence.count - i.index_
 			end
+			lemma_remove_all (bag.old_, v)
 			forget_iterator (i)
+			check bag = bag.old_.removed_all (v) end
 		ensure
 			is_wrapped: is_wrapped
---			sequence_effect: sequence |=| old (sequence.removed (sequence.inverse.image_of (v)))
+			bag_effect: bag ~ old bag.removed_all (v)
 			observers_restored: observers ~ old observers
 		end
 
@@ -376,9 +383,47 @@ feature -- Specification
 		attribute
 		end
 
+feature {V_CONTAINER, V_ITERATOR} -- Specification
+
+	lemma_concat_interval (s1, s2, s3, s: MML_SEQUENCE [G]; i, j: INTEGER)
+			-- If `s' is made up of three parts, the middle of which is an interval of `s2',
+			-- it will still be made of three parts after extending after the second part with the next element of `s2'.
+		note
+			status: lemma
+		require
+			i_j_in_bounds: 1 <= i and i <= j + 1 and j < s2.count
+			s_concat: s = s1 + s2.interval (i, j) + s3
+		do
+		ensure
+			s.extended_at (s1.count + j - i + 2, s2 [j + 1]) = s1 + s2.interval (i, j + 1) + s3
+		end
+
+	lemma_remove_multiple (b: MML_BAG [G]; v: G; n: INTEGER)
+			-- Removing `n' occurrences of `v' from `b' and then one,
+			-- is the same as removing `n' + 1 occurrences.
+		note
+			status: lemma
+		require
+			n >= 0
+		do
+			check across b as x all b.removed_multiple (v, n).removed (v) [x.item] = b.removed_multiple (v, n + 1) [x.item] end end
+		ensure
+			b.removed_multiple (v, n).removed (v) = b.removed_multiple (v, n + 1)
+		end
+
+	lemma_remove_all (b: MML_BAG [G]; v: G)
+			-- Removing `b [v]' occurrences of `v' from `b' is the same as removing all occurrences.
+		note
+			status: lemma
+		do
+			check across b as x all b.removed_multiple (v, b [v]) [x.item] = b.removed_all (v) [x.item] end end
+		ensure
+			b.removed_multiple (v, b [v]) = b.removed_all (v)
+		end
+
 invariant
 	map_definition: map ~ sequence.to_map
-	lower_defintion: lower_ = 1
+	lower_definition: lower_ = 1
 	upper_definition: upper_ = sequence.count
 
 note

@@ -2,6 +2,7 @@ note
 	description: "Streams where values can be output one by one."
 	author: "Nadia Polikarpova"
 	model: off_
+	manual_inv: true
 
 deferred class
 	V_OUTPUT_STREAM [G]
@@ -48,6 +49,7 @@ feature -- Replacement
 					s.item.is_wrapped and
 					across s.item.observers as o all o.item /= Current implies o.item.is_open end
 				end
+			input_subjects_wrapped: input.subjects.any_item.is_wrapped
 			modify (Current, subjects)
 			modify_model (["box"], input)
 		do
@@ -83,6 +85,7 @@ feature -- Replacement
 					s.item.is_wrapped and
 					across s.item.observers as o all o.item /= Current implies o.item.is_open end
 				end
+			input_subjects_wrapped: input.subjects.any_item.is_wrapped
 			modify_model (["box"], input)
 			modify (Current, subjects)
 		local

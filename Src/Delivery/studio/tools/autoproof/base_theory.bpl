@@ -20,9 +20,11 @@ function Default<alpha>(Field alpha): alpha;
 axiom (forall f: Field bool :: !Default(f));
 axiom (forall f: Field int :: Default(f) == 0);
 axiom (forall f: Field ref :: Default(f) == Void);
+axiom (forall f: Field real :: Default(f) == 0.0);
 
 type HeapType = <alpha>[ref, Field alpha]alpha; // Type of a heap (with generic field subtype and generic content type)
 const unique allocated: Field bool; // Ghost field for allocation status of objects
+axiom (forall t: Type :: FieldId(allocated, t) == -1);
 
 // Function which defines basic properties of a heap
 function IsHeap(heap: HeapType): bool;
@@ -80,11 +82,11 @@ const unique observers: Field (Set ref); // Ghost field for observers set of an 
 const unique subjects: Field (Set ref); // Ghost field for subjects set of an object.
 
 // Field IDs for built-in attributes
-axiom (forall t: Type :: FieldId(closed, t) == -1);
-axiom (forall t: Type :: FieldId(owner, t) == -2);
-axiom (forall t: Type :: FieldId(owns, t) == -3);
-axiom (forall t: Type :: FieldId(observers, t) == -4);
-axiom (forall t: Type :: FieldId(subjects, t) == -5);
+axiom (forall t: Type :: FieldId(closed, t) == -2);
+axiom (forall t: Type :: FieldId(owner, t) == -3);
+axiom (forall t: Type :: FieldId(owns, t) == -4);
+axiom (forall t: Type :: FieldId(observers, t) == -5);
+axiom (forall t: Type :: FieldId(subjects, t) == -6);
 
 // Analogue of `detachable_attribute' and `set_detachable_attribute' for built-in attributes:
 axiom (forall heap: HeapType, o: ref :: { heap[o, owner] } IsHeap(heap) && o != Void && heap[o, allocated] ==> heap[heap[o, owner], allocated]);
@@ -93,20 +95,22 @@ axiom (forall heap: HeapType, o, o': ref :: { heap[o, subjects][o'] } IsHeap(hea
 axiom (forall heap: HeapType, o, o': ref :: { heap[o, observers][o'] } IsHeap(heap) && o != Void && heap[o, allocated] && heap[o, observers][o'] ==> heap[o', allocated]);
 
 // Guards for built-in attributes
+// axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, owns, v, o) } 
+  // guard(heap, current, owns, v, o)); // no dependence on owns
 axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, owns, v, o) } 
-  guard(heap, current, owns, v, o)); // no dependence on owns
+	guard(heap, current, owns, v, o) <==> user_inv(heap[current, owns := v], o)); // default guard for owns	
 axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, subjects, v, o) } 
   guard(heap, current, subjects, v, o)); // no dependence on subjects
 axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, observers, v, o) } 
   guard(heap, current, observers, v, o) <==> v[o]); // o's invariant cannot be violated as long as it is still in its subject's observers
 
 // Is o open in h? (not closed and free)
-function {:inline} is_open(h: HeapType, o: ref): bool {
+function is_open(h: HeapType, o: ref): bool {
 	!h[o, closed]
 }
 
 // Is o closed in h?
-function {:inline} is_closed(h: HeapType, o: ref): bool {
+function is_closed(h: HeapType, o: ref): bool {
 	h[o, closed]
 }
 
@@ -123,15 +127,11 @@ function is_wrapped(h: HeapType, o: ref): bool {
 // Is o' in the ownership domain of o? Yes if they are equal, or both closed and o' is transitively owned by o
 function in_domain(h: HeapType, o: ref, o': ref): bool
 {
-	o == o' ||
-	(
-		h[o, closed] &&
-		h[o', closed] &&
-		in_domain(h, o, h[o', owner])
-	)
+	o == o' || ( h[o, closed] && h[o', closed] && in_domain(h, o, h[o', owner]) )
 }
 
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && h[o, closed] && h[o, owns][o'] ==> in_domain(h, o, o'));
+axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o'), trans_owns(h, o) } IsHeap(h) && h[o, closed] ==> (in_trans_owns(h, o, o') <==> in_domain(h, o, o')));
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
 
 // Frame axiom: domain frames itself
@@ -172,6 +172,10 @@ type Frame = <alpha>[ref, Field alpha]bool;
 function Frame#Subset(Frame, Frame): bool;
 axiom(forall a: Frame, b: Frame :: { Frame#Subset(a,b) }
   Frame#Subset(a,b) <==> (forall <alpha> o: ref, f: Field alpha :: {a[o, f]} {b[o, f]} a[o, f] ==> b[o, f]));
+	
+function Frame#Singleton(ref): Frame;
+axiom(forall <alpha> o, o': ref, f: Field alpha :: { Frame#Singleton(o)[o', f] }
+  Frame#Singleton(o)[o', f] <==> o == o');
 
 function has_whole_object(frame: Frame, o: ref): bool
 { (forall <alpha> f: Field alpha :: frame[o, f]) }
@@ -261,6 +265,11 @@ function {:inline true} global(h: HeapType): bool
   (forall o: ref, o': ref :: {h[o, owns][o']} h[o, allocated] && h[o', allocated] && h[o, closed] && h[o, owns][o'] ==> (h[o', closed] && h[o', owner] == o)) && // G2
   (forall o: ref :: {user_inv(h, o)} h[o, allocated] ==> inv(h, o)) // G1
 }
+
+// All objects in valid heaps are valid.
+// This function introduces invariants automatically, so should be used with care.
+function {: inline } global_permissive(): bool
+{ (forall h: HeapType, o: ref :: {is_wrapped (h, o)}{is_closed (h, o)} IsHeap(h) && h[o, allocated] ==> inv(h, o)) }
 
 // Condition under which an update heap[current, f] := v is guaranteed to preserve the invariant of o.
 function guard<T>(heap: HeapType, current: ref, f: Field T, v: T, o: ref): bool;

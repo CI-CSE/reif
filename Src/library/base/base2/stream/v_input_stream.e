@@ -2,6 +2,7 @@ note
 	description: "Streams that provide values one by one."
 	author: "Nadia Polikarpova"
 	model: box
+	manual_inv: true
 
 deferred class
 	V_INPUT_STREAM [G]
@@ -12,6 +13,9 @@ feature -- Access
 			-- Item at current position.
 		require
 			not_off: not off
+			closed: closed
+			subjects_closed: subjects.any_item.closed
+			reads (ownership_domain, subjects.any_item.ownership_domain)
 		deferred
 		ensure
 			definition: Result = box.any_item
@@ -23,6 +27,8 @@ feature -- Status report
 			-- Is current position off scope?
 		require
 			closed: closed
+			subjects_closed: subjects.any_item.closed
+			reads (ownership_domain)
 		deferred
 		ensure
 			definition: Result = box.is_empty
@@ -33,6 +39,7 @@ feature -- Cursor movement
 	forth
 			-- Move one position forward.
 		require
+			subjects_wrapped: subjects.any_item.is_wrapped
 			not_off: not off
 			modify_model (["box"], Current)
 		deferred
@@ -45,12 +52,14 @@ feature -- Cursor movement
 		note
 			explicit: wrapping
 		require
+			subjects_wrapped: subjects.any_item.is_wrapped
 			modify_model (["box"], Current)
 		do
 			from
 			invariant
 				decreases ([])
 				is_wrapped
+				subjects.any_item.closed
 			until
 				off or else item = v
 			loop
@@ -71,6 +80,7 @@ feature -- Specification
 
 invariant
 	box_count_constraint: box.count <= 1
+	one_subject: subjects.count = 1
 	no_observers: observers = []
 
 note

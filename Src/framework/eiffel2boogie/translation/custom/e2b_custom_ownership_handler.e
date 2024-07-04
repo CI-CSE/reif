@@ -35,16 +35,35 @@ feature -- Basic operations
 			l_assign: IV_ASSIGNMENT
 			l_call: IV_PROCEDURE_CALL
 			l_type: IV_TYPE
+			l_names: LIST [STRING]
+			l_trig: IV_FUNCTION_CALL
+			l_old_side_effect: LINKED_LIST [IV_STATEMENT]
 		do
 			l_name := a_feature.feature_name
-			if translation_mapping.builtin_any_functions.has (l_name) then
+			if l_name ~ "use_definition" then
+				l_old_side_effect := a_translator.side_effect
+				a_translator.clear_side_effect
+				a_translator.process_parameters (a_parameters)
+				a_translator.restore_side_effect (l_old_side_effect)
+				check a_translator.last_parameters.count = 1 end
+				if attached {IV_FUNCTION_CALL} a_translator.last_parameters.first as l_fcall then
+					create l_trig.make (name_translator.boogie_function_trigger (l_fcall.name), types.bool)
+					l_trig.arguments.append (l_fcall.arguments)
+					a_translator.side_effect.extend (create {IV_ASSERT}.make_assume (l_trig))
+				end
+			elseif translation_mapping.builtin_any_functions.has (l_name) then
 				a_translator.process_builtin_function_call (a_feature, a_parameters, l_name)
 			elseif translation_mapping.builtin_any_procedures.has (l_name) then
 				set_implicit_model_queries (a_translator, l_name)
 				a_translator.process_builtin_routine_call (a_feature, a_parameters, l_name)
 			elseif translation_mapping.ghost_access.has (l_name) then
-				l_type := translation_mapping.ghost_access_type (l_name)
-				a_translator.set_last_expression (factory.heap_access (a_translator.entity_mapping.heap, a_translator.current_target, l_name, l_type))
+				if l_name ~ "closed" then
+					l_type := types.bool
+					a_translator.set_last_expression (factory.function_call ("is_closed", << a_translator.entity_mapping.heap, a_translator.current_target >>, l_type))
+				else
+					l_type := translation_mapping.ghost_access_type (l_name)
+					a_translator.set_last_expression (factory.heap_access (a_translator.entity_mapping.heap, a_translator.current_target, l_name, l_type))
+				end
 			elseif translation_mapping.ghost_setter.has (l_name) then
 				l_name := l_name.substring (5, l_name.count)
 				a_translator.process_builtin_routine_call (a_feature, a_parameters, "xyz")
@@ -163,12 +182,11 @@ feature -- Basic operations
 			elseif translation_mapping.ghost_access.has (l_name) then
 				if l_name ~ "closed" then
 					l_type := types.bool
-				elseif l_name ~ "owner" then
-					l_type := types.ref
+					a_translator.set_last_expression (factory.function_call ("is_closed", << a_translator.entity_mapping.heap, a_translator.current_target >>, l_type))
 				else
-					l_type := types.set (types.ref)
+					l_type := translation_mapping.ghost_access_type (l_name)
+					a_translator.set_last_expression (factory.heap_access (a_translator.entity_mapping.heap, a_translator.current_target, l_name, l_type))
 				end
-				a_translator.set_last_expression (factory.heap_access (a_translator.entity_mapping.heap, a_translator.current_target, l_name, l_type))
 			else
 					-- cannot happen
 				check False end
@@ -197,7 +215,7 @@ feature -- Basic operations
 
 	check_valid_class_inv_tags (a_class: CLASS_C; a_context_feature: FEATURE_I; a_line_number: INTEGER; a_tags: LIST [STRING])
 			-- Check if `a_tags' only lists valid class invariant of `a_class'.
-			-- Otherwise report error in feature `a_context_featur'.
+			-- Otherwise report error in feature `a_context_feature'.
 		local
 			l_asserts: BYTE_LIST [BYTE_NODE]
 			l_assert: ASSERT_B
@@ -207,6 +225,11 @@ feature -- Basic operations
 			create l_tags_copy.make
 			l_tags_copy.append (a_tags)
 			l_tags_copy.compare_objects
+				-- Remove default tags
+			across translation_mapping.default_tags as t loop
+				l_tags_copy.prune_all (t.item)
+			end
+				-- Remove user-defined tags
 			check_flat_inv_tags (a_class, l_tags_copy)
 			if not l_tags_copy.is_empty then
 				l_string := ""
@@ -272,10 +295,11 @@ feature -- Basic operations
 			l_function: IV_FUNCTION
 			l_field: IV_ENTITY
 			l_pcall: IV_PROCEDURE_CALL
+			l_fcall: IV_FUNCTION_CALL
 			l_if: IV_CONDITIONAL
 		do
 				-- Get definition of `a_field_name' for `current_target_type';
-				-- if it exists, generate a guarded assignment.
+				-- if it exists, generate a guarded assignment.			
 			l_field := helper.field_from_attribute (a_attr, a_translator.current_target_type)
 			l_function := boogie_universe.function_named (
 				name_translator.boogie_function_for_ghost_definition (a_translator.current_target_type, l_field.name))
@@ -288,7 +312,16 @@ feature -- Basic operations
 					types.field_content_type (l_field.type)))
 				l_pcall.node_info.set_attribute ("default", a_attr.feature_name_32)
 				l_pcall.node_info.set_line (a_translator.context_line_number)
-				create l_if.make_if_then (factory.frame_access (a_translator.context_writable, a_translator.current_target, l_field),
+
+					-- Create a condition that l_field is in the modify clause of the current function
+					-- (modify clause is used instead of writable, since it is not possible to prove that something is not writable)
+				create l_fcall.make (name_translator.boogie_function_for_write_frame (a_translator.context_feature, a_translator.context_type), types.frame)
+				l_fcall.add_argument (factory.global_heap)
+				across a_translator.context_implementation.procedure.arguments as i loop
+					l_fcall.add_argument (i.item.entity)
+				end
+
+				create l_if.make_if_then (factory.frame_access (l_fcall, a_translator.current_target, l_field),
 					factory.singleton_block (l_pcall))
 				a_translator.side_effect.extend (l_if)
 			end

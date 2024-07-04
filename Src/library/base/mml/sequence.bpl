@@ -132,16 +132,18 @@ function {: inline } Seq#ButLast<T>(q: Seq T): Seq T
 { Seq#Take(q, Seq#Length(q) - 1) } 
 
 // Prefix until upper
-function {: inline } Seq#Front<T>(q: Seq T, upper: int): Seq T
+function Seq#Front<T>(q: Seq T, upper: int): Seq T
 { if 0 <= upper then Seq#Take(q, upper) else Seq#Empty() } 
+axiom (forall<T> q: Seq T :: { Seq#Front(q, Seq#Length(q)) } Seq#Front(q, Seq#Length(q)) == q);
 
 // Suffix from lower
-function {: inline } Seq#Tail<T>(q: Seq T, lower: int): Seq T
+function Seq#Tail<T>(q: Seq T, lower: int): Seq T
 { if 1 <= lower then Seq#Drop(q, lower - 1) else q } 
+axiom (forall<T> q: Seq T :: { Seq#Tail(q, 1) } Seq#Tail(q, 1) == q);
 
 // Subsequence from lower to upper
-function {: inline } Seq#Interval<T>(q: Seq T, lower: int, upper: int): Seq T
-{ Seq#Tail(Seq#Front(q, upper), lower) } 
+function Seq#Interval<T>(q: Seq T, lower: int, upper: int): Seq T
+{ Seq#Tail(Seq#Front(q, upper), lower) }
 
 // Sequence with element at position i removed
 function {: inline } Seq#RemovedAt<T>(q: Seq T, i: int): Seq T
@@ -158,7 +160,7 @@ axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Item(Seq#Extended(s,v), i) }
 // Sequence with x inserted at position i
 function {: inline } Seq#ExtendedAt<T>(s: Seq T, i: int, val: T): Seq T
 {
-  Seq#Concat (Seq#Extended(Seq#Take(s, i - 1), val), Seq#Drop(s, i -1))
+  Seq#Concat (Seq#Extended(Seq#Take(s, i - 1), val), Seq#Drop(s, i - 1))
 }
 
 // Sequence prepended with x at the beginning
@@ -201,7 +203,7 @@ axiom (forall<T> s: Seq T :: { Bag#Card(Seq#ToBag(s)) }
 axiom (forall<T> a: Seq T, b: Seq T ::
   { Seq#ToBag(Seq#Concat(a, b)) }
     Seq#ToBag(Seq#Concat(a, b)) == Bag#Union(Seq#ToBag(a), Seq#ToBag(b)) );
-
+    
 // update axiom
 axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
   { Seq#ToBag(Seq#Update(s, i, v))[x] }
@@ -212,14 +214,24 @@ axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
 axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#Has(s, x) <==> 0 < Seq#ToBag(s)[x]);
 axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#ToBag(s)[x] == Seq#Occurrences(s, x));
 
+// removed axiom
+axiom (forall<T> s: Seq T, i: int :: { Seq#ToBag(Seq#RemovedAt(s, i)) }
+1 <= i && i <= Seq#Length(s) ==> Seq#ToBag(Seq#RemovedAt(s, i)) == Bag#Difference(Seq#ToBag(s), Bag#Singleton(Seq#Item(s,i))));
+
 // Sequence converted to map
 function Seq#ToMap<T>(Seq T): Map int T;
+axiom (forall<T> s: Seq T :: { Seq#ToMap(s) } 
+  Map#Equal(Seq#ToMap(s), Map#Empty()) <==> Seq#Equal (s, Seq#Empty()));
 axiom (forall<T> s: Seq T :: { Map#Domain(Seq#ToMap(s)) }
   Map#Domain(Seq#ToMap(s)) == Seq#Domain(s));
 axiom (forall<T> s: Seq T :: { Map#Card(Seq#ToMap(s)) }
   Map#Card(Seq#ToMap(s)) == Seq#Length(s));
 axiom (forall<T> s: Seq T, i: int :: { Map#Item(Seq#ToMap(s), i) }
   1 <= i && i <= Seq#Length(s) ==> Map#Item(Seq#ToMap(s), i) == Seq#Item(s, i));  
+  
+axiom (forall<T> s: Seq T :: { Map#ToBag(Seq#ToMap(s)) }
+  Bag#Equal(Map#ToBag(Seq#ToMap(s)), Seq#ToBag(s)));  
+  
 
 // Additional axioms about common things
     
@@ -227,6 +239,7 @@ axiom (forall<T> s, t: Seq T ::
   { Seq#Concat(s, t) }
   Seq#Take(Seq#Concat(s, t), Seq#Length(s)) == s &&
   Seq#Drop(Seq#Concat(s, t), Seq#Length(s)) == t);
+  
 
 // Commutability of Take and Drop with Update.
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
@@ -248,5 +261,27 @@ axiom (forall<T> s: Seq T, v: T, n: int ::
 
 axiom Seq#Take(Seq#Empty(), 0) == Seq#Empty();  // [][..0] == []
 axiom Seq#Drop(Seq#Empty(), 0) == Seq#Empty();  // [][0..] == []
+
+
+function Seq#IsSorted<T>(s: Seq T) returns (bool);
+
+//axiom (forall s: Seq int, i: int ::
+//    1 <= i && i < Seq#Length(s) && Seq#IsSorted(s) ==> Seq#Item(s, i) <= Seq#Item(s, i+1));
+axiom (forall s: Seq int ::
+  { Seq#IsSorted(s) }
+    Seq#IsSorted(s) ==> (forall i, j: int :: 1 <= i && i <= Seq#Length(s) && i <= j && j <= Seq#Length(s) ==> Seq#Item(s, i) <= Seq#Item(s, j)));
+axiom (forall s: Seq int ::
+  { Seq#IsSorted(s) }
+    Seq#Length(s) <= 1 ==> Seq#IsSorted(s));
+axiom (forall s: Seq int, i: int ::
+    1 <= i && i < Seq#Length(s) && Seq#IsSorted(Seq#Front(s, i)) && Seq#Item(s, i) <= Seq#Item(s, i+1) ==> Seq#IsSorted(Seq#Front(s, i+1)));
+
+axiom (forall s: Seq int ::
+  { Seq#Range(s) }
+    (forall i: int, j: int ::
+		1 <= i && i < Seq#Length(s) && 1 <= j && j < Seq#Length(s) ==>
+			Seq#Range(Seq#Update(Seq#Update(s, i, Seq#Item(s, j)), j, Seq#Item(s, i))) == Seq#Range(s)));
+
+
 
 

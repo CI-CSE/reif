@@ -2,6 +2,7 @@ note
 	description: "Iterators to read and write from/to a container in linear order."
 	author: "Nadia Polikarpova"
 	model: target, sequence, index_
+	manual_inv: true
 
 deferred class
 	V_IO_ITERATOR [G]
@@ -35,7 +36,7 @@ feature -- Replacement
 			not_off: not off
 			target_wrapped: target.is_wrapped
 			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
-			modify_model (["sequence"], Current)
+			modify_model (["sequence", "box"], Current)
 			modify_model (["bag"], target)
 		deferred
 		ensure
@@ -53,6 +54,7 @@ feature -- Replacement
 		do
 			check inv_only ("subjects_definition", "subjects_contraint") end
 			put (v)
+			check inv end
 			forth
 		ensure then
 			sequence_effect: sequence ~ old (sequence.replaced_at (index_, v))

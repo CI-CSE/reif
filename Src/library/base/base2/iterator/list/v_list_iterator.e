@@ -2,6 +2,7 @@ note
 	description: "Iterators over lists."
 	author: "Nadia Polikarpova"
 	model: target, index_
+	manual_inv: true
 
 deferred class
 	V_LIST_ITERATOR [G]
@@ -24,8 +25,10 @@ feature -- Extension
 			-- Do not move cursor.
 		require
 			not_off: not off
-			modify_model (["index_", "sequence"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			modify_model (["index_", "sequence", "box", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns"], target)
 		deferred
 		ensure
 			target_sequence_effect: target.sequence ~ old target.sequence.extended_at (index_, v)
@@ -38,8 +41,10 @@ feature -- Extension
 			-- Do not move cursor.
 		require
 			not_off: not off
-			modify_model (["sequence", "box"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			modify_model (["sequence", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns"], target)
 		deferred
 		ensure
 			target_sequence_effect: target.sequence ~ old target.sequence.extended_at (index_ + 1, v)
@@ -51,11 +56,13 @@ feature -- Extension
 			-- Do not move cursor.
 		require
 			not_off: not off
-			other_exists: other /= Void
-			different_target: target /= other.target
 			other_not_before: not other.before
-			modify_model (["index_", "sequence"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_target_wrapped: other.target.is_wrapped
+			observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			different_target: target /= other.target
+			modify_model (["index_", "sequence", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns", "observers"], target)
 			modify_model ("index_", other)
 		deferred
 		ensure
@@ -63,6 +70,7 @@ feature -- Extension
 			index_effect: index_ = old (index_ + other.sequence.tail (other.index_).count)
 			other_index_effect: other.index_ = other.sequence.count + 1
 			target_wrapped: target.is_wrapped
+			target_observers_preserved: target.observers ~ old target.observers
 		end
 
 	insert_right (other: V_ITERATOR [G])
@@ -70,11 +78,13 @@ feature -- Extension
 			-- Move cursor to the last element of inserted sequence.
 		require
 			not_off: not off
-			other_exists: other /= Void
-			different_target: target /= other.target
 			other_not_before: not other.before
-			modify_model (["index_", "sequence"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_target_wrapped: other.target.is_wrapped
+			observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			different_target: target /= other.target
+			modify_model (["index_", "sequence", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns"], target)
 			modify_model ("index_", other)
 		deferred
 		ensure
@@ -88,15 +98,16 @@ feature -- Removal
 
 	remove
 			-- Remove element at current position. Move cursor to the next position.
-		note
-			modify: sequence
 		require
 			not_off: not off
-			modify_model (["sequence", "box"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			modify_model (["index_", "sequence", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns"], target)
 		deferred
 		ensure
 			target_sequence_effect: target.sequence ~ old target.sequence.removed_at (index_)
+			index_effect: index_ = old index_
 			target_wrapped: target.is_wrapped
 		end
 
@@ -105,8 +116,10 @@ feature -- Removal
 		require
 			not_off: not off
 			not_first: not is_first
-			modify_model (["sequence", "index_"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			modify_model (["index_", "sequence", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns"], target)
 		deferred
 		ensure
 			target_sequence_effect: target.sequence ~ old target.sequence.removed_at (index_ - 1)
@@ -119,8 +132,10 @@ feature -- Removal
 		require
 			not_off: not off
 			not_last: not is_last
-			modify_model (["sequence", "index_"], Current)
-			modify_model ("sequence", target)
+			target_wrapped: target.is_wrapped
+			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			modify_model (["sequence", "target_index_sequence"], Current)
+			modify_model (["sequence", "owns"], target)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.removed_at (index_ + 1)

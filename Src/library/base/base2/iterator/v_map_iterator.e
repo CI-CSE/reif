@@ -2,6 +2,7 @@ note
 	description: "Iterators to read from maps in linear order."
 	author: "Nadia Polikarpova"
 	model: target, key_sequence, index_
+	manual_inv: true
 
 deferred class
 	V_MAP_ITERATOR [K, V]
@@ -22,7 +23,8 @@ feature -- Access
 			closed: closed
 			target_closed: target.closed
 			not_off: not off
-			reads (Current, target)
+			-- ToDo: typing crash in AP if `target' used instead of `subjects.any_item':
+			reads (Current, subjects.any_item.ownership_domain)
 		deferred
 		ensure
 			definition: Result = key_sequence [index_]

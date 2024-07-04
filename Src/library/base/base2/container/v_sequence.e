@@ -5,6 +5,7 @@ note
 		]"
 	author: "Nadia Polikarpova"
 	model: map
+	manual_inv: true
 
 deferred class
 	V_SEQUENCE [G]
@@ -50,6 +51,7 @@ feature -- Measurement
 			-- Lower bound of index interval.
 		require
 			closed: closed
+			reads (ownership_domain)
 		deferred
 		ensure
 			definition: Result = lower_
@@ -59,6 +61,7 @@ feature -- Measurement
 			-- Upper bound of index interval.
 		require
 			closed: closed
+			reads (ownership_domain)
 		do
 			check inv end
 			Result := lower + count - 1
@@ -79,7 +82,7 @@ feature -- Measurement
 			check inv end
 			Result := lower <= i and i <= upper
 		ensure then
-			Result = (lower <= i and i <= upper)
+			Result = (lower_ <= i and i <= upper_)
 		end
 
 feature -- Search
@@ -165,7 +168,7 @@ feature -- Iteration
 			explicit: contracts
 		require
 			is_wrapped: is_wrapped
-			modify_model (["observers"], Current)
+			modify_field (["observers", "closed"], Current)
 		do
 			check inv end
 			Result := at (upper)

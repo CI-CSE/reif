@@ -5,6 +5,7 @@ note
 	]"
 	author: "Nadia Polikarpova"
 	model: target, sequence, index_
+	manual_inv: true
 
 deferred class
 	V_ITERATOR [G]
@@ -41,7 +42,13 @@ feature -- Measurement
 
 	index: INTEGER
 			-- Current position.
+		require
+			closed: closed
+			subjects_closed: subjects.any_item.closed
+			reads (ownership_domain, target.ownership_domain)
 		deferred
+		ensure
+			definition: Result = index_
 		end
 
 	valid_index (i: INTEGER): BOOLEAN
@@ -60,7 +67,9 @@ feature -- Status report
 	before: BOOLEAN
 			-- Is current position before any position in `target'?
 		require
-			closed
+			closed: closed
+			target_closed: target.closed
+			reads (ownership_domain)
 		deferred
 		ensure
 			definition: Result = (index_ = 0)
@@ -70,6 +79,7 @@ feature -- Status report
 			-- Is current position after any position in `target'?
 		require
 			closed
+--			reads (ownership_domain)
 		deferred
 		ensure
 			definition: Result = (index_ = sequence.count + 1)
@@ -87,7 +97,9 @@ feature -- Status report
 	is_first: BOOLEAN
 			-- Is cursor at the first position?
 		require
-			closed
+			closed: closed
+			target_closed: target.closed
+			reads (ownership_domain, target.ownership_domain)
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index_ = 1)
@@ -96,7 +108,9 @@ feature -- Status report
 	is_last: BOOLEAN
 			-- Is cursor at the last position?
 		require
-			closed
+			closed: closed
+			target_closed: target.closed
+			reads (ownership_domain, target.ownership_domain)
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index_ = sequence.count)
@@ -107,6 +121,7 @@ feature -- Cursor movement
 	start
 			-- Go to the first position.
 		require
+			target_closed: target.closed
 			modify_model ("index_", Current)
 		deferred
 		ensure then
@@ -116,6 +131,7 @@ feature -- Cursor movement
 	finish
 			-- Go to the last position.
 		require
+			target_closed: target.closed
 			modify_model ("index_", Current)
 		deferred
 		ensure
@@ -133,6 +149,7 @@ feature -- Cursor movement
 			-- Go one position backward.
 		require
 			not_off: not off
+			target_wrapped: target.is_wrapped
 			modify_model ("index_", Current)
 		deferred
 		ensure
@@ -145,12 +162,12 @@ feature -- Cursor movement
 			explicit: wrapping
 		require
 			has_index: valid_index (i)
-			target_closed: target.closed
+			target_wrapped: target.is_wrapped
 			modify_model ("index_", Current)
 		local
 			j: INTEGER
 		do
-			check inv_only ("index_constraint", "target_exists", "target_bag_constraint") end
+			check inv and then target.inv end
 			if i = 0 then
 				go_before
 			elseif i = target.count + 1 then
@@ -169,6 +186,7 @@ feature -- Cursor movement
 				until
 					j = i
 				loop
+					check inv end
 					forth
 					j := j + 1
 				end
@@ -189,6 +207,7 @@ feature -- Cursor movement
 	go_after
 			-- Go after any position of `target'.
 		require
+			target_closed: target.closed
 			modify_model ("index_", Current)
 		deferred
 		ensure
@@ -202,12 +221,15 @@ feature -- Cursor movement
 		note
 			explicit: wrapping
 		do
-			check inv_only ("index_constraint") end
+			check inv end
 			if before then
 				start
 			end
 			from
 			invariant
+				is_wrapped
+				inv
+				target.is_wrapped
 				index_.old_ <= index_ and index_ <= sequence.count + 1
 				not before
 				across index_.old_.max (1) |..| (index_ - 1) as i all sequence [i.item] /= v end
@@ -218,7 +240,6 @@ feature -- Cursor movement
 			variant
 				sequence.count - index_
 			end
-			check inv_only ("box_definition_empty", "box_definition_non_empty") end
 		ensure then
 			index_effect_not_found: not sequence.tail (old index_).has (v) implies index_ = sequence.count + 1
 			index_effect_found: sequence.tail (old index_).has (v) implies index_ >= old index_ and sequence [index_] = v
@@ -232,15 +253,20 @@ feature -- Cursor movement
 		note
 			explicit: wrapping
 		require
+			target_wrapped: target.is_wrapped
 			modify_model ("index_", Current)
 		do
-			check inv_only ("index_constraint") end
+			check inv end
 			if after then
 				finish
 			end
 			from
 			invariant
-				0 <= index_ and index_ <= index_.old_
+				is_wrapped
+				inv
+				target.is_wrapped
+				0 <= index_
+				index_ <= index_.old_
 				not after
 				across (index_ + 1) |..| index_.old_.min (sequence.count) as i all sequence [i.item] /= v end
 			until
@@ -278,8 +304,7 @@ invariant
 	subjects_definition: subjects = [target]
 	target_bag_constraint: target.bag ~ sequence.to_bag
 	index_constraint: 0 <= index_ and index_ <= sequence.count + 1
-	box_definition_empty: not sequence.domain [index_] implies box.is_empty
-	box_definition_non_empty: sequence.domain [index_] implies box ~ << sequence [index_] >>
+	box_definition: box ~ if sequence.domain [index_] then create {MML_SET [G]}.singleton (sequence [index_]) else {MML_SET [G]}.empty_set end
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"

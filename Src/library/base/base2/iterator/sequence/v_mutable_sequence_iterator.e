@@ -1,7 +1,8 @@
 note
 	description: "Iterators to read from and update mutable sequences."
 	author: "Nadia Polikarpova"
-	model: target, sequence, index_
+	model: target, index_
+	manual_inv: true
 
 deferred class
 	V_MUTABLE_SEQUENCE_ITERATOR [G]

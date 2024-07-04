@@ -6,6 +6,8 @@ note
 		]"
 	author: "Nadia Polikarpova"
 	model: map
+	manual_inv: true
+	
 
 deferred class
 	V_MAP [K, V]
@@ -32,6 +34,7 @@ feature -- Search
 			-- Does `map' contain a key equivalent to `k' according to `key_equivalence'?
 		require
 			closed: closed
+			reads (ownership_domain)
 		deferred
 		ensure
 			definition: Result = map.domain [k]
@@ -55,7 +58,7 @@ feature -- Iteration
 			explicit: contracts
 		require
 			is_wrapped: is_wrapped
-			modify_model (["observers"], Current)
+			modify_field (["observers", "closed"], Current)
 		deferred
 		ensure
 			is_wrapped: is_wrapped

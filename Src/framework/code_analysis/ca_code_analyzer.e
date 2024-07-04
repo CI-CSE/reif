@@ -59,6 +59,17 @@ feature {NONE} -- Initialization
 			rules.extend (create {CA_DEEPLY_NESTED_IF_RULE}.make (settings.preference_manager))
 			rules.extend (create {CA_UNNEEDED_HELPER_VARIABLE_RULE}.make (settings.preference_manager))
 			rules.extend (create {CA_UNNEEDED_PARENTHESES_RULE}.make)
+			rules.extend (create {CA_CLASS_NAMING_CONVENTION_RULE}.make)
+			rules.extend (create {CA_FEATURE_NAMING_CONVENTION_RULE}.make)
+			rules.extend (create {CA_VARIABLE_NAMING_CONVENTION_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_ARGUMENT_NAMING_CONVENTION_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_UNNECESSARY_SIGN_OPERATOR_RULE}.make)
+			rules.extend (create {CA_EMPTY_UNCOMMENTED_ROUTINE_RULE}.make)
+			rules.extend (create {CA_UNNEEDED_ACCESSOR_FUNCTION_RULE}.make)
+			rules.extend (create {CA_MERGEABLE_FEATURE_CLAUSES_RULE}.make)
+			rules.extend (create {CA_EMPTY_RESCUE_CLAUSE_RULE}.make)
+			rules.extend (create {CA_INSPECT_NO_WHEN_RULE}.make)
+			rules.extend (create {CA_EXPLICIT_REDUNDANT_INHERITANCE_RULE}.make)
 
 			settings.initialize_rule_settings (rules)
 
@@ -137,15 +148,12 @@ feature -- Analysis interface
 	add_whole_system
 			-- Adds all the classes that are part of the current system. Classes of referenced libraries
 			-- will not be added.
-		local
-			l_cluster: CLUSTER_I
 		do
 			across
 				eiffel_universe.groups as l_groups
 			loop
-				l_cluster ?= l_groups.item
 					-- Only load top-level clusters, as the others will be loaded recursively afterwards.
-				if l_cluster /= Void and then l_cluster.parent_cluster = Void then
+				if attached {CLUSTER_I} l_groups.item as l_cluster and then l_cluster.parent_cluster = Void then
 					add_cluster (l_cluster)
 				end
 			end
@@ -195,8 +203,6 @@ feature -- Analysis interface
 
 	add_class (a_class: attached CONF_CLASS)
 			-- Adds class `a_class'.
-		local
-			l_class_c: CLASS_C
 		do
 			system_wide_check := False
 

@@ -5,6 +5,7 @@ note
 		]"
 	author: "Nadia Polikarpova"
 	model: bag
+	manual_inv: true
 
 deferred class
 	V_CONTAINER [G]
@@ -18,6 +19,7 @@ feature -- Measurement
 			-- Number of elements.
 		require
 			closed: closed
+			reads (ownership_domain)
 		deferred
 		ensure
 			definition: Result = bag.count
@@ -29,6 +31,7 @@ feature -- Status report
 			-- Is container empty?
 		require
 			closed: closed
+			reads (ownership_domain)
 		do
 			Result := count = 0
 		ensure
@@ -121,7 +124,7 @@ feature -- Specification
 		attribute
 		end
 
-	forget_iterator (it: V_ITERATOR [G])
+	forget_iterator (it: like new_cursor)
 			-- Remove `it' from `observers'.
 		note
 			status: ghost
@@ -130,8 +133,8 @@ feature -- Specification
 			wrapped: is_wrapped
 			it_wrapped: it.is_wrapped
 			valid_target: it.target = Current
-			modify_model (["observers"], Current)
-			modify_model (["closed"], it)
+			modify_field (["observers", "closed"], Current)
+			modify_field (["closed"], it)
 		do
 			it.unwrap
 			set_observers (observers / it)
@@ -139,25 +142,6 @@ feature -- Specification
 			is_wrapped
 			it.is_open
 			observers = old observers / it
-		end
-
-	forget_all_iterators (it: V_ITERATOR [G])
-			-- Make `observers' empty.
-		note
-			status: ghost
-			explicit: contracts
-		require
-			wrapped: is_wrapped
-			observers_wrapped: across observers as o all o.item.is_wrapped  end
-			modify_model (["observers"], Current)
-			modify_model (["closed"], observers)
-		do
-			unwrap_all (observers)
-			set_observers ([])
-		ensure
-			is_wrapped
-			across old observers as o all o.item.is_open end
-			observers = []
 		end
 
 invariant
