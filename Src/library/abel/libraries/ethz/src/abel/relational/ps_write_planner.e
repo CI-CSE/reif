@@ -7,6 +7,9 @@ note
 class
 	PS_WRITE_PLANNER
 
+inherit{NONE}
+	REFACTORING_HELPER
+
 create make
 
 feature
@@ -17,6 +20,9 @@ feature
 		local
 			dependencies_to_remove:LIST[ANY]
 		do
+
+			roots.wipe_out
+			sorted_operations.wipe_out
 			roots.extend(dependency_graph)
 
 			-- first find all relational collections and break their parents dependency / add them to roots
@@ -30,19 +36,22 @@ feature
 
 
 			-- now break all cycles
-			from roots.start
-			until roots.after
-			loop
+			fixme ("Is this loop required? At the moment disabled because it will loop infinitely if it's there")
+--			from
+				roots.start
+--			until roots.after
+--			loop
 				break_cycles (roots.item)
-				roots.forth
-			end
+--				roots.forth
+--			end
+--			check dependency_graph.dependencies.count < 1 end
 
 			-- Do a topological sort and remove no-ops from the list
 			topological_sort
 			remove_noops (sorted_operations)
 
 			Result:= sorted_operations
-
+			--print (sorted_operations.count.out)
 		end
 
 

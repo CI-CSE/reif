@@ -117,6 +117,11 @@ feature {NONE} -- Implementation
 		deferred
 		end
 
+	model_file_name: attached STRING
+			-- File name used to generate Model file.
+		deferred
+		end
+
 	boogie_executable: attached STRING
 			-- Executable name to launch Boogie (including path if necessary).
 		deferred
@@ -173,8 +178,8 @@ feature {NONE} -- Implementation
 				-- Prepare command line arguments
 			create l_arguments.make
 			l_arguments.extend ("/trace")
-			l_arguments.extend ("/printModel:4")
-			l_arguments.extend (boogie_file_name)
+			l_arguments.extend ("/mv:" + safe_file_name (model_file_name))
+			l_arguments.extend (safe_file_name (boogie_file_name))
 
 				-- Launch Boogie
 			create l_ee
@@ -218,11 +223,13 @@ feature {NONE} -- Implementation
 			writable: a_file.is_open_write
 		local
 			l_input_file: KL_TEXT_INPUT_FILE
+			l_count: INTEGER
 		do
 			create l_input_file.make (a_file_name)
+			l_count := l_input_file.count
 			l_input_file.open_read
 			if l_input_file.is_open_read then
-				l_input_file.read_string (l_input_file.count)
+				l_input_file.read_string (l_count)
 				a_file.put_string ("// File: ")
 				a_file.put_string (a_file_name)
 				a_file.put_new_line
@@ -234,6 +241,16 @@ feature {NONE} -- Implementation
 				a_file.put_string (a_file_name)
 				a_file.put_new_line
 				a_file.put_new_line
+			end
+		end
+
+	safe_file_name (a_file_name: STRING): STRING
+			-- Safe version of `a_file_name' in case of special characters.
+		do
+			if a_file_name.has (' ') then
+				Result := "%"" + a_file_name + "%""
+			else
+				Result := a_file_name
 			end
 		end
 
