@@ -452,7 +452,7 @@ feature {NONE} -- Visitors' helpers
 				((left.type.is_formal and class_type_in_current_context(left.type).is_numeric) or
 				(right.type.is_formal and class_type_in_current_context(right.type).is_numeric))
 		end
-		
+
 	contains_generic_instantiated_to_boolean (node: BINARY_B): BOOLEAN
 		-- Helper for `requires_(left|right)_boolean_boxing`
 		-- Does the binary operator contain a formal type instantiated to a boolean value?
@@ -983,7 +983,7 @@ feature -- Visitors
 			then
 					-- TODO: handle the case when `context_implementation` is not attached and `side_effect` does not hold `IV_STATEMENT`.
 				translation_pool.add_type (l_type)
-				create_local (l_type)
+				create_local_object_test (l_type)
 				object_test_local := last_local
 				effect.extend (create {IV_ASSIGNMENT}.make (object_test_local, l_expr))
 				l_expr := object_test_local
@@ -1560,6 +1560,22 @@ feature {E2B_CUSTOM_OWNERSHIP_HANDLER, E2B_CUSTOM_AGENT_CALL_HANDLER, E2B_CUSTOM
 			attached context_implementation
 		do
 			create last_local.make (helper.unique_identifier ("temp"), types.for_class_type (t))
+			context_implementation.add_local (last_local.name, last_local.type)
+		end
+
+feature {NONE}
+
+	create_local_object_test (t: E2B_CL_TYPE_A)
+			-- Create a new local with type `t` for an object test.
+		require
+			attached context_implementation
+		do
+			-- Consider all non-logical entities as ref types in the translation of object tests to boogie.
+			if t.base_class.is_logical then
+				create last_local.make (helper.unique_identifier ("temp"), types.for_class_type (t))
+			else
+				create last_local.make (helper.unique_identifier ("temp"), types.ref)
+			end
 			context_implementation.add_local (last_local.name, last_local.type)
 		end
 
