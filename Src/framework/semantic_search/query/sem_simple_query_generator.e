@@ -18,109 +18,13 @@ inherit
 
 feature -- Access
 
-	variables_from_expression (a_expression: STRING): HASH_TABLE [INTEGER, STRING]
-			-- Variables mentioned in `a_expression'.
-			-- Keys are variable names, values are indexes of those variables.
-			-- In `a_expression', variables are represented by curly-braced numbers, and
-			-- those numbers are the variable indexes.
-			-- For example: in the expression "{0}.capacity > {1}.index", {0} is a variable with
-			-- index 0, and {1} is a variable with index 1.
-		local
-			l_possibles: HASH_TABLE [INTEGER, STRING]
-		do
-			create l_possibles.make (10)
-			l_possibles.compare_objects
-			across 0 |..| 9 as l_indexes loop
-				l_possibles.force (l_indexes.item, "{" + l_indexes.item.out + "}")
-			end
-
-			create Result.make (10)
-			Result.compare_objects
-			across l_possibles as l_vars loop
-				if a_expression.has_substring (l_vars.key) then
-					Result.force (l_vars.item, l_vars.key)
-				end
-			end
-		end
-
 	variabled_expression (a_expression: STRING): STRING
 			-- Expression where curly-barced integer varaibles
 			-- are replaced with actual variables such as "v_0".
 		do
 			create Result.make_from_string (a_expression)
-			across variables_from_expression (a_expression) as l_vars loop
+			across curly_braced_variables_from_expression (a_expression) as l_vars loop
 				Result.replace_substring_all (l_vars.key, "v_" + l_vars.item.out)
-			end
-		end
-
-	subexpressions (a_expression: STRING; a_context_class: CLASS_C; a_feature: FEATURE_I): DS_HASH_TABLE [TUPLE [variable_indexes: DS_HASH_SET [INTEGER]; canonical_form: STRING], EPA_EXPRESSION]
-			-- Subexpressions from `a_expression'. Those subexpressions must mention at least one
-			-- variable in `a_expression'. `a_context_class' and `a_feature' define the place where `a_expression'
-			-- should be evaluated.
-			-- Result is a hash-table. Keys are subexpressions, and values the variable indexes that those subexpressions mention.
-			-- Note: The expressions in keys may not be type-checked.
-		local
-			l_var_names: HASH_TABLE [STRING, STRING]
-			l_vars: like variables_from_expression
-			l_expr_text: STRING
-			l_expr: EPA_EXPRESSION
-			l_expr_finder: EPA_ALL_EXPRESSION_FINDER
-			l_repo: DS_HASH_SET [EPA_EXPRESSION]
-			l_has_var: BOOLEAN
-			l_indexes: DS_HASH_SET [INTEGER]
-			l_var_curly: STRING
-		do
-			l_vars := variables_from_expression (a_expression)
-			create l_var_names.make (l_vars.count)
-			l_var_names.compare_objects
-			across l_vars as l_variables loop
-				l_var_names.force ("v_" + l_variables.item.out, l_variables.key)
-			end
-
-				-- Contruct expression text where curly-braced numbers are replaced with actual variable names.
-			create l_expr_text.make_from_string (a_expression)
-			across l_var_names as l_variables loop
-				l_expr_text.replace_substring_all (l_variables.key, l_variables.item)
-			end
-
-				-- Collect subexpressions.
-			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_context_class, a_feature, l_expr_text, a_context_class)
-			create Result.make (10)
-			Result.set_key_equality_tester (expression_equality_tester)
-
-			create l_repo.make (10)
-			l_repo.set_equality_tester (expression_equality_tester)
-			create l_expr_finder.make (a_context_class)
-			l_expr_finder.search_in_ast (l_repo, l_expr.ast, a_feature)
-			l_repo := l_expr_finder.last_found_expressions
-
-			from
-				l_repo.start
-			until
-				l_repo.after
-			loop
-				l_expr := l_repo.item_for_iteration
-				if attached {ACCESS_FEAT_AS} l_expr.ast or else attached {EXPR_CALL_AS} l_expr.ast then
-					create l_indexes.make (3)
-					from
-						l_has_var := False
-						l_var_names.start
-					until
-						l_var_names.after
-					loop
-						if l_expr.text.has_substring (l_var_names.item_for_iteration) then
-							l_var_curly := l_var_names.key_for_iteration
-							l_var_curly.remove_head (1)
-							l_var_curly.remove_tail (1)
-							l_indexes.force_last (l_var_curly.to_integer)
-						end
-						l_var_names.forth
-					end
-					if not l_indexes.is_empty then
-						Result.force_last ([l_indexes, canonical_form (l_expr.text)], l_expr)
-					end
-				end
-				l_repo.forth
 			end
 		end
 
@@ -143,7 +47,7 @@ feature -- Access
 			l_count := a_expression.count
 			from
 				l_var_id := 1
-				l_index1 := a_expression.substring_index ("v_", 1)
+				l_index1 := a_expression.substring_index ({ITP_SHARED_CONSTANTS}.variable_name_prefix, 1)
 			until
 				l_index1 = 0
 			loop
@@ -151,26 +55,7 @@ feature -- Access
 				l_operand := a_expression.substring (l_index1, l_index2)
 				Result.force (l_operand, l_var_id)
 				l_var_id := l_var_id + 1
-				l_index1 := a_expression.substring_index ("v_", l_index2 + 1)
-			end
-		end
-
-	canonical_form (a_expression: STRING): STRING
-			-- Canonical form of `a_expression', with all variables
-			-- replaced with $s. `a_expression' is an expression mentioning
-			-- variables, for example: v_1.has (v_2)
-		local
-			l_possibles: HASH_TABLE [INTEGER, STRING]
-		do
-			create l_possibles.make (10)
-			l_possibles.compare_objects
-			across 0 |..| 9 as l_indexes loop
-				l_possibles.force (l_indexes.item, once "v_" + l_indexes.item.out)
-			end
-
-			Result := a_expression.twin
-			across l_possibles as l_vars loop
-				Result.replace_substring_all (l_vars.key, once "$")
+				l_index1 := a_expression.substring_index ({ITP_SHARED_CONSTANTS}.variable_name_prefix, l_index2 + 1)
 			end
 		end
 
@@ -233,7 +118,7 @@ feature -- Access
 			l_table: STRING
 			l_where_clause: STRING
 		do
-			l_canonical := canonical_form (a_text)
+			l_canonical := canonical_form_of_expression (a_text)
 			l_mapping := variable_mapping (a_text)
 			l_var_count := l_mapping.count
 
@@ -283,15 +168,35 @@ feature -- Access
 			Result := "PropertyBindings" + a_variable_count.out
 		end
 
-	sql_to_select_objects (a_context_class: CLASS_C; a_feature: FEATURE_I; a_expression: STRING; a_negated: BOOLEAN; a_limit: INTEGER): STRING
+	sql_to_select_object (a_context_class: detachable CLASS_C; a_feature: detachable FEATURE_I; a_type: TYPE_A; a_count: INTEGER): STRING
+			-- SQL statement to select at most `a_count' objects whose type conforms to `a_type'
+			-- If `a_context_class' or `a_feature' is not Void, the selection is done only in queryables
+			-- related to that class or feature.
+		do
+			create Result.make (256)
+			Result.append ("SELECT DISTINCT q.uuid, v.var1 FROM Queryables q, PropertyBindings1 v WHERE q.qry_kind = 1 %N")
+			if a_context_class /= Void then
+				Result.append ("AND q.class = '" + a_context_class.name_in_upper + "'%N")
+			end
+			if a_feature /= Void then
+				Result.append ("AND q.feature = '" + a_feature.feature_name.as_lower + "'%N")
+			end
+			Result.append ("AND v.qry_id = q.qry_id AND v.prop_id = (SELECT prop_id FROM Properties WHERE text = '$') %N")
+			Result.append ("AND v.type1 IN (SELECT c.conf_type_id FROM Conformances c, Types tp WHERE tp.type_id = c.type_id AND tp.type_name = '" + output_type_name (a_type.name) + "') %N")
+			Result.append ("LIMIT " + a_count.out)
+		end
+
+	sql_to_select_objects (a_context_class: CLASS_C; a_feature: FEATURE_I; a_expression: STRING; a_negated: BOOLEAN; a_limit: INTEGER): TUPLE [sql: STRING; unconstained_operands: HASH_TABLE [TYPE_A, STRING]]
 			-- SQL statement to select objects satisfying `a_expression'.
 			-- `a_negated' indicates if the semantics of `a_expression' should be negated.
 			-- `a_expression' must have boolean type.
 			-- `a_expression' is in curly-braced integer form, for example: {0}.has ({1})
 			-- `a_limit' indicates the maximal number of row to retrieve from database. 0 means unlimited rows.
+			-- In result, `sql' is the select statement to retrieve queryables, `unconstrained_operands' is a
+			-- hash table, keys are names of operands (u, v, etc.) that are not mentioned in `a_expression', values are their types.
 		local
-			l_operands: like variables_from_expression
-			l_subexprs: like subexpressions
+			l_operands: like curly_braced_variables_from_expression
+			l_subexprs: like single_rooted_expressions
 			l_var_sql: like sql_clauses_for_variable
 			l_prop_sql: like sql_clauses_for_property
 
@@ -318,6 +223,12 @@ feature -- Access
 			l_rep: HASH_TABLE [STRING, STRING]
 			l_rep1: HASH_TABLE [STRING, STRING]
 			l_qualifier: EPA_EXPRESSION_QUALIFIER
+			l_feat_opds: like operands_with_feature
+			l_sql: STRING
+			l_unconstrained_operands: HASH_TABLE [TYPE_A, STRING]
+			l_opd_type: TYPE_A
+			l_opd_index: INTEGER
+			l_opd_name: STRING
 		do
 			create l_contract_extractor
 			l_pres := l_contract_extractor.precondition_of_feature (a_feature, a_context_class).twin
@@ -389,8 +300,37 @@ feature -- Access
 			create l_from.make (128)
 			create l_where.make (512)
 
-			l_operands := variables_from_expression (l_final_expr)
-			l_subexprs := subexpressions (l_final_expr, a_context_class, a_feature)
+			l_operands := curly_braced_variables_from_expression (l_final_expr)
+			l_operands.force (0, curly_brace_surrounded_integer (0)) -- Make sure that target is always included.
+			l_subexprs := single_rooted_expressions (l_final_expr, a_context_class, a_feature)
+			l_feat_opds := operands_with_feature (a_feature).cloned_object
+
+				-- Remove "Result", if any.
+			if a_feature.has_return_value then
+				l_feat_opds.remove (a_feature.argument_count + 1)
+			end
+				-- Remove all mentioned operands.
+			across l_operands as l_mentioned_opds loop
+				l_opd_index := l_mentioned_opds.item
+				if l_feat_opds.has (l_opd_index) then
+					l_feat_opds.remove (l_opd_index)
+				end
+			end
+
+				-- Process operands that are not mentioned in the expression.
+			create l_unconstrained_operands.make (l_feat_opds.count)
+			l_unconstrained_operands.compare_objects
+			from
+				l_feat_opds.start
+			until
+				l_feat_opds.after
+			loop
+				l_opd_type := a_feature.arguments.i_th (l_feat_opds.key_for_iteration)
+				l_opd_type := actual_type_from_formal_type (l_opd_type, a_context_class)
+				l_opd_type := l_opd_type.instantiation_in (a_context_class.actual_type, a_context_class.class_id)
+				l_unconstrained_operands.force (l_opd_type, l_feat_opds.item_for_iteration)
+				l_feat_opds.forth
+			end
 
 			create l_var_preds.make (2)
 			l_var_preds.compare_objects
@@ -448,30 +388,25 @@ feature -- Access
 				l_expr_cursor.forth
 			end
 
-			create Result.make (512)
-			Result.append (l_select)
-			Result.append_character ('%N')
-			Result.append (l_from)
-			Result.append_character ('%N')
-			Result.append (l_where)
-			Result.append_character ('%N')
+			create l_sql.make (512)
+			l_sql.append (l_select)
+			l_sql.append_character ('%N')
+			l_sql.append (l_from)
+			l_sql.append_character ('%N')
+			l_sql.append (l_where)
+			l_sql.append_character ('%N')
 
 			create l_gen.make
 			l_expr := variabled_expression (l_final_expr)
 			l_gen.process_property (ast_from_expression_text (l_expr), l_replacements)
-			Result.append ("%NAND%N")
---			if a_negated then
---				Result.append ("NOT (")
---			end
-			Result.append (l_gen.last_output)
---			if a_negated then
---				Result.append (")")
---			end
-			Result.append_character ('%N')
+			l_sql.append ("%NAND%N")
+			l_sql.append (l_gen.last_output)
+			l_sql.append_character ('%N')
 
 			if a_limit > 0 then
-				Result.append ("LIMIT " + a_limit.out + "%N")
+				l_sql.append ("LIMIT " + a_limit.out + "%N")
 			end
+			Result := [l_sql, l_unconstrained_operands]
 		end
 
 end
