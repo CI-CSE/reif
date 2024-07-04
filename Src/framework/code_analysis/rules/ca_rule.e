@@ -7,10 +7,8 @@ note
 deferred class
 	CA_RULE
 
-feature -- Checking the rule
-	rule_checker: CA_RULE_CHECKER
-		deferred
-		end
+inherit
+	CA_SHARED_NAMES
 
 feature -- Basic properties, usually fix
 
@@ -23,6 +21,19 @@ feature -- Basic properties, usually fix
 		end
 
 	options: LINKED_LIST[CA_RULE_OPTION]
+		deferred
+		end
+
+	is_system_wide: BOOLEAN
+			-- Only check the rule if a system wide analysis is performed.
+		deferred
+		end
+
+feature {CA_RULE_VIOLATION} -- formatted rule checking output
+
+	format_violation_description (a_violation: CA_RULE_VIOLATION; a_formatter: TEXT_FORMATTER)
+		require
+			violation_belongs_to_rule: violations.has (a_violation)
 		deferred
 		end
 
@@ -51,6 +62,17 @@ feature -- Properties the user can change
 			severity := a_severity
 		end
 
-invariant
-	title_set: title.count > 3
+feature -- Rule checking
+
+	set_checking_class (a_class: CLASS_C)
+		do
+			checking_class := a_class
+		end
+
+	checking_class: detachable CLASS_C
+
+feature -- Results
+
+	violations: LINKED_LIST[CA_RULE_VIOLATION]
+
 end

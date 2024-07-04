@@ -185,7 +185,7 @@ feature -- Heap and map access
 		do
 			create Result.make (
 				a_mapping.heap.name,
-				a_mapping.current_entity,
+				a_mapping.current_expression,
 				create {IV_ENTITY}.make ("allocated", types.field (types.bool)))
 		end
 
@@ -194,7 +194,7 @@ feature -- Heap and map access
 		do
 			create Result.make (
 				a_mapping.heap.name,
-				a_mapping.current_entity,
+				a_mapping.current_expression,
 				create {IV_ENTITY}.make ("initialized", types.field (types.bool)))
 		end
 
@@ -203,7 +203,16 @@ feature -- Heap and map access
 		do
 			create Result.make (
 				a_mapping.heap.name,
-				a_mapping.current_entity,
+				a_mapping.current_expression,
+				create {IV_ENTITY}.make (a_name, types.field (a_content_type)))
+		end
+
+	heap_access (a_heap_name: STRING; a_target: IV_EXPRESSION; a_name: STRING; a_content_type: IV_TYPE): IV_HEAP_ACCESS
+			-- Heap access to `a_feature' on `Current'.
+		do
+			create Result.make (
+				a_heap_name,
+				a_target,
 				create {IV_ENTITY}.make (a_name, types.field (a_content_type)))
 		end
 

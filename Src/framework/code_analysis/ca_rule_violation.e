@@ -7,22 +7,36 @@ note
 class
 	CA_RULE_VIOLATION
 
+inherit
+	COMPARABLE
+
 create
 	make_with_rule
 
 feature {NONE} -- Initialization
-	make_with_rule (a_rule: CA_RULE)
+	make_with_rule (a_rule: CA_STANDARD_RULE)
 		do
 			rule := a_rule
-			long_description := ""
+			synchronized_with_source := True
+			create {LINKED_LIST[ANY]} long_description_info.make
 		end
 
 feature
-	rule: CA_RULE
+	rule: CA_STANDARD_RULE
 
-	long_description: STRING
+	long_description_info: LINKED_LIST[ANY]
 
-	affected_class: detachable CLASS_AS
+	format_violation_description (a_formatter: TEXT_FORMATTER)
+		do
+			-- Just delegate to rule. The rule knows about its violations.
+			rule.format_violation_description (Current, a_formatter)
+		end
+
+	affected_class: detachable CLASS_C
+
+	synchronized_with_source: BOOLEAN
+			-- 'True' if the rule violation corresponds to the current state of the
+			-- source code; 'False' if the violation might be outdated or is outdated.
 
 	location: detachable LOCATION_AS
 			-- location of rule violation, if available
@@ -31,18 +45,28 @@ feature
 			-- fix "strategies"
 			-- Empty if there is no fix available for this rule violation
 
-feature {CA_RULE_CHECKER}
+feature -- Inherited from {COMPARABLE}
 
-	set_long_description (a_descr: STRING)
-			-- The long description should contain information that is specific
-			-- to the concrete violation. Regarding this concrete violation, it is the
-			-- only text that the user is able to see; it may therefore also embody
-			-- general information on the rule.
+	is_less alias "<" (a_other: like Current): BOOLEAN
 		do
-			long_description := a_descr
+			if attached location as l_location then
+				if attached a_other.location as l_other_location then
+					if l_location.line = l_other_location.line then
+						Result := (l_location.column < l_other_location.column)
+					else
+						Result := (l_location.line < l_other_location.line)
+					end
+				else
+					Result := False
+				end
+			else
+				Result := False
+			end
 		end
 
-	set_affected_class (a_class: CLASS_AS)
+feature {CA_STANDARD_RULE}
+
+	set_affected_class (a_class: CLASS_C)
 		do
 			affected_class := a_class
 		end
