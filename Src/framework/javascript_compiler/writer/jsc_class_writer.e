@@ -12,7 +12,7 @@ inherit
 	SHARED_WORKBENCH
 		export {NONE} all end
 
-	SHARED_JSC_ENVIRONMENT
+	SHARED_JSC_CONTEXT
 		export {NONE} all end
 
 	INTERNAL_COMPILER_STRING_EXPORTER
@@ -31,6 +31,7 @@ feature {NONE} -- Initialization
 			create signature_writer.make
 			create body_writer.make
 			create constant_writer.make
+			create instruction_writer.make
 			reset ("")
 		end
 
@@ -304,6 +305,76 @@ feature {NONE} -- Class Processing
 			output.put_new_line
 		end
 
+	generate_invariant (a_class: attached CLASS_C): attached JSC_WRITER_DATA
+			-- Generate the class invariant associated with `a_class'.
+		local
+			l_invariant_b: INVARIANT_B
+			l_list : BYTE_LIST[BYTE_NODE]
+			l_assert: ASSERT_B
+			l_parent: CL_TYPE_A
+			l_class: CLASS_C
+		do
+			output.push (output.indentation)
+				output.put_indentation
+				output.put (jsc_context.name_mapper.invariant_name (a_class.class_id))
+				output.put (" : function () {")
+				output.put_new_line
+				output.indent
+
+					if a_class.inv_byte_server.has (a_class.class_id) then
+						l_invariant_b := a_class.inv_byte_server.item (a_class.class_id)
+						check l_invariant_b /= Void end
+
+						l_list := l_invariant_b.byte_list
+						check l_list /= Void end
+
+						from
+							l_list.start
+						until
+							l_list.after
+						loop
+							l_assert ?= l_list.item
+							check l_assert /= Void end
+
+							jsc_context.name_mapper.push_target_current
+								instruction_writer.reset (output.indentation)
+								instruction_writer.process_assertion (l_assert.expr, "Invariant", l_assert.tag)
+								output.put_data (instruction_writer.output.data)
+							jsc_context.name_mapper.pop_target
+
+							l_list.forth
+						end
+					end
+
+					if attached a_class.parents as safe_parents then
+						from
+							safe_parents.start
+						until
+							safe_parents.after
+						loop
+							l_parent := safe_parents.item
+							check l_parent /= Void end
+
+							l_class := l_parent.associated_class
+							check l_class /= Void end
+
+							l_class := jsc_context.informer.redirect_class (l_class, 0)
+
+							if not jsc_context.informer.is_stub (l_class.class_id) and not l_class.is_class_any then
+								output.put_line ("this." + jsc_context.name_mapper.invariant_name (l_class.class_id) + "();")
+							end
+
+							safe_parents.forth
+						end
+					end
+
+				output.unindent
+				output.put_indentation
+				output.put ("}")
+				Result := output.data
+			output.pop
+		end
+
 	generate_deferred (a_class: attached CLASS_C): attached JSC_WRITER_DATA
 			-- Generate the array with the deferred features in this `a_class'.
 		local
@@ -390,6 +461,7 @@ feature {NONE} -- Class Processing
 
 			if not is_stub then
 				l_generated_features.extend (generate_deferred (a_class))
+				l_generated_features.extend (generate_invariant (a_class))
 				output.put_data_list (l_generated_features, ",%N%N")
 				output.put_new_line
 			end
@@ -401,9 +473,10 @@ feature {NONE} -- Feature Processing
 			-- Validate an external feature (a stub)
 		local
 			l_external_name: STRING
-			l_arg_name: STRING
+			l_arg_name, l_arg_name2: STRING
+			len: INTEGER
 			l_test_result: STRING
-			i: INTEGER
+			i, j: INTEGER
 		do
 			l_external_name := a_feature.external_name
 			check l_external_name /= Void end
@@ -418,6 +491,11 @@ feature {NONE} -- Feature Processing
 					l_arg_name := safe_args.item_name (i)
 					check l_arg_name /= Void end
 
+					if not l_test_result.has_substring ("$" + l_arg_name) then
+						jsc_context.add_warning ("Possible malformed external",
+							"Reason: The argument `" + l_arg_name + "' doesn't appear in external or another argument is a prefix of it.")
+					end
+
 					l_test_result.replace_substring_all ("$" + l_arg_name, i.out)
 					i := i + 1
 				end
@@ -426,9 +504,38 @@ feature {NONE} -- Feature Processing
 			l_test_result.replace_substring_all ("$TARGET", "TARGET")
 
 			if l_test_result.index_of ('$', 1) /= 0 then
-				jsc_context.print_error ("JSME", "JavaScript External: Malformed",
-					"What to do: Make sure the external `" + l_external_name + "'%N" +
-					"  is correct", 0)
+				jsc_context.add_warning ("Possible malformed external", "What to do: Make sure the external `" + l_external_name + "'%N" +
+					"  is correct")
+			end
+
+				-- Arguments should not be prefixes of other arguments
+			if attached a_feature.arguments as safe_args then
+				from
+					i := safe_args.lower
+				until
+					i > safe_args.upper
+				loop
+					l_arg_name := safe_args.item_name (i)
+					check l_arg_name /= Void end
+					len := l_arg_name.count
+
+					from
+						j := i + 1
+					until
+						j > safe_args.upper
+					loop
+						l_arg_name2 := safe_args.item_name (j)
+						check l_arg_name2 /= Void end
+
+						if l_arg_name.substring (1, l_arg_name2.count) ~ l_arg_name2 or l_arg_name2.substring (1, len) ~ l_arg_name then
+							jsc_context.add_warning ("Bad parameter names for external feature",
+								"What to do: Rename `"+l_arg_name+"' or `"+l_arg_name2+"'; one is not allowed to be a prefix of the other.")
+						end
+
+						j := j + 1
+					end
+					i := i + 1
+				end
 			end
 		end
 
@@ -511,6 +618,7 @@ feature {NONE} -- Implementation
 	signature_writer: attached JSC_SIGNATURE_WRITER
 	body_writer: attached JSC_BODY_WRITER
 	constant_writer: attached JSC_CONSTANT_WRITER
+	instruction_writer: attached JSC_INSTRUCTION_WRITER
 
 	is_stub: BOOLEAN
 			-- Is current class being translated a stub

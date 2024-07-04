@@ -9,7 +9,7 @@ class
 	JSC_NAME_MAPPER
 
 inherit
-	SHARED_JSC_ENVIRONMENT
+	SHARED_JSC_CONTEXT
 		export {NONE} all end
 
 	INTERNAL_COMPILER_STRING_EXPORTER
@@ -62,7 +62,7 @@ feature -- Target
 		do
 			create l_data.make_from_string (current_class_target)
 
-			l_written_class := jsc_context.current_feature.written_class
+			l_written_class := jsc_context.current_class
 			check l_written_class /= Void end
 
 			l_type := l_written_class.actual_type
@@ -87,13 +87,17 @@ feature -- Target
 
 	is_inside_agent: BOOLEAN assign set_is_inside_agent
 			-- Is translating an agent definition inside a feature
-
 	set_is_inside_agent (a_is_inside_agent: BOOLEAN)
 		do
 			is_inside_agent := a_is_inside_agent
 		end
 
 feature -- Names
+
+	invariant_name (a_class_id: INTEGER): attached STRING
+		do
+			Result := "$invariant_" + a_class_id.out
+		end
 
 	local_name (a_index: INTEGER): attached STRING
 			-- Name of local (in generated JavaScript code)
@@ -105,8 +109,7 @@ feature -- Names
 			end
 
 			if jsc_context.is_reserved_javascript_word (Result) then
-				jsc_context.print_error ("JSRW", "Translation error: JavaScript reserved word",
-					"What to do: Rename local " + Result + ".", 0)
+				jsc_context.add_error ("JavaScript reserved word", "What to do: Rename local " + Result + ".")
 			end
 		end
 
@@ -136,8 +139,7 @@ feature -- Names
 
 			Result := l_arg_name
 			if jsc_context.is_reserved_javascript_word (Result) then
-				jsc_context.print_error ("JSRW", "Translation error: JavaScript reserved word",
-					"What to do: Rename argument " + Result + ".", a_node.line_number)
+				jsc_context.add_error ("JavaScript reserved word: " + Result, "What to do: Rename argument " + Result + ".")
 			end
 		end
 

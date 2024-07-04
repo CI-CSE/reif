@@ -39,6 +39,14 @@ feature -- Access
 	target: STRING
 		-- Target of routine call
 
+	target_and_arguments: LINKED_LIST [STRING]
+			-- Target and arguments of routine call
+		do
+			create Result.make
+			Result.extend (target)
+			Result.append (arguments)
+		end
+
 	feature_name: STRING
 		-- Name of routine called
 
@@ -100,7 +108,7 @@ feature -- Roundtrip
 				target := l_as.access_name_8
 
 			-- Feature Name
-			elseif argument_count = 1 then
+			elseif feature_name.is_empty then
 				feature_name := l_as.access_name_8
 				argument_count := argument_count - 1 -- Fix
 

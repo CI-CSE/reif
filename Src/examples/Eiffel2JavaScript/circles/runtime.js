@@ -1,5 +1,5 @@
 // -------------------------------------------------------
-//	description : "Generated JavaScript runtime"
+//	description : "JavaScript runtime for generated code"
 //	author      : "Alexandru Dima <alex.dima@gmail.com>"
 //	copyright   : "Copyright (C) 2011, Alexandru Dima"
 // -------------------------------------------------------
@@ -10,6 +10,95 @@ if (typeof Object.create !== 'function') {
         F.prototype = o;
         return new F();
     };
+}
+
+// This algorithm is exactly the one specified in ECMA-262, 5th edition
+if (!Array.prototype.indexOf) {
+	Array.prototype.indexOf = function(searchElement /*, fromIndex */) {
+		"use strict";
+		if (this === void 0 || this === null) {
+			throw new TypeError();
+		}
+
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (len === 0) {
+			return -1;
+		}
+
+		var n = 0;
+		if (arguments.length > 0) {
+			n = Number(arguments[1]);
+			if (n !== n) { // shortcut for verifying if it's NaN
+				n = 0;
+			} else if (n !== 0 && n !== (1 / 0) && n !== -(1 / 0)) {
+				n = (n > 0 || -1) * Math.floor(Math.abs(n));
+			}
+		}
+
+		if (n >= len) {
+			return -1;
+		}
+
+		var k = n >= 0 ? n : Math.max(len - Math.abs(n), 0);
+
+		for (; k < len; k++) {
+			if (k in t && t[k] === searchElement) {
+				return k;
+			}
+		}
+		return -1;
+	};
+}
+
+// This algorithm is exactly the one specified in ECMA-262, 5th edition
+if (!Array.prototype.forEach) {
+	Array.prototype.forEach = function(fun /*, thisp */) {
+		"use strict";
+
+		if (this === void 0 || this === null) {
+			throw new TypeError();
+		}
+
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (typeof fun !== "function") {
+			throw new TypeError();
+		}
+
+		var thisp = arguments[1];
+		for (var i = 0; i < len; i++) {
+			if (i in t) {
+				fun.call(thisp, t[i], i, t);
+			}
+		}
+	};
+}
+
+// This algorithm is exactly the one specified in ECMA-262, 5th edition
+if (!Array.prototype.some) {
+	Array.prototype.some = function(fun /*, thisp */) {
+		"use strict";
+
+		if (this === void 0 || this === null) {
+			throw new TypeError();
+		}
+
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (typeof fun !== "function") {
+			throw new TypeError();
+		}
+
+		var thisp = arguments[1];
+		for (var i = 0; i < len; i++) {
+			if (i in t && fun.call(thisp, t[i], i, t)) {
+				return true;
+			}
+		}
+
+		return false;
+	};
 }
 
 if (typeof console === "undefined") {
@@ -76,7 +165,8 @@ var runtime = {
 	
 	declare : function (class_name, parent_classes, class_decl) {
 		var parent_decl, class_prototype, redefining_map, renaming_map, parent_deferred_map, 
-			regex_matches, feature, found_feature, feature_name, i, j, inherits_map, parent_inherits_map;
+			regex_matches, feature, found_feature, feature_name, i, j, inherits_map, parent_inherits_map,
+			own_invariant;
 		
 		// Start off with an empty object
 		class_prototype = {};
@@ -87,6 +177,8 @@ var runtime = {
 				class_prototype[feature] = class_decl[feature];
 			}
 		}
+		own_invariant = this._find_feature_starting_with(class_decl, '$invariant', true);
+		class_prototype['$invariant'] = class_prototype[own_invariant];
 		
 		inherits_map = {};
 		inherits_map['EIFFEL_ANY'] = true;
@@ -119,7 +211,7 @@ var runtime = {
 			
 			// Copy parent's properties
 			for (feature in parent_decl) {
-				if (parent_decl.hasOwnProperty(feature) && feature[0] !== '$' && feature !== '__class_name') {
+				if (parent_decl.hasOwnProperty(feature) && (feature[0] !== '$' || feature.indexOf("$invariant") === 0) && feature !== '$invariant') {
 					// Remove the feature id at the end to get the feature name
 					regex_matches= this._remove_ending_regexp.exec(feature);
 					if (regex_matches && regex_matches.length == 2) {
@@ -175,10 +267,12 @@ var runtime = {
 			result.$generics = [];
 			if (args.length > 0) {
 				if (args[0] instanceof Array) {
+					// First arguments is an array with the actual types of the generics
 					result.$generics = args[0];
 					args = args.slice(1);
 				}
 				if (args.length > 0) {
+					// First argument is a method name to be called as a constructor
 					feature_name = args[0];
 					if (!(feature_name in class_prototype)) {
 						feature_name = $runtime._find_feature_starting_with (result, feature_name, false);
@@ -186,20 +280,6 @@ var runtime = {
 					class_prototype[feature_name].apply(result, args.slice(1));
 				}
 			}
-			
-			/*
-			if (arguments.length > 0 && typeof 
-			
-			result.$generics = arguments[0];
-			if (arguments.length > 1) {
-				if (arguments[1] in class_prototype) {
-					class_prototype[arguments[1]].apply(result, Array.prototype.slice.apply(arguments, [2]));
-				} else {
-					var on_the_fly= $runtime._find_feature_starting_with (result, arguments[1], false);
-					class_prototype[on_the_fly].apply(result, Array.prototype.slice.apply(arguments, [2]));
-				}
-			}
-			*/
 			
 			return result;
 		};
@@ -218,7 +298,7 @@ var runtime = {
 				return false;
 			}
 			for (i = 0; i < type1.generics.length; i ++) {
-				if ( !this.type_inherits(type1.generics[i], type2.generics[i])) {
+				if ( !this._type_inherits(type1.generics[i], type2.generics[i])) {
 					return false;
 				}
 			}
@@ -275,19 +355,6 @@ var runtime = {
 		return false;
 	},
 	
-	special_dispatch: function (obj, full_feature_name, feature_name) {
-		if (typeof obj === "string") {
-			if (feature_name === "out") {
-				return obj;
-			}
-		} else if (typeof obj === "number") {
-			if (feature_name === "out") {
-				return (obj).toString();
-			}
-		}
-		throw "HOLE in special_dispatch";
-	},
-	
 	assert: function (expr, class_name, feature_name, assertion_label) {
 		//var err_msg = null;
 		if (!expr) {
@@ -295,6 +362,7 @@ var runtime = {
 		}
 	},
 	
+	// Base types helper methods
 	make_array_filled: function (element, eiffel_start_index, eiffel_end_index) {
 		var result = [], i;
 		result[0] = eiffel_start_index;

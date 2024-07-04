@@ -69,7 +69,7 @@ inherit
 	SHARED_BYTE_CONTEXT
 		export {NONE} all end
 
-	SHARED_JSC_ENVIRONMENT
+	SHARED_JSC_CONTEXT
 		export {NONE} all end
 
 create
@@ -99,6 +99,9 @@ feature -- Access
 	dependencies2: attached SET[INTEGER]
 			-- Level 2 dependencies
 
+	invariant_checks: attached LIST[attached JSC_WRITER_DATA]
+			-- Generated invariant checks related to the expression
+
 feature -- Basic Operation
 
 	reset (a_indentation: attached STRING)
@@ -109,6 +112,44 @@ feature -- Basic Operation
 			show_tuple_brackets := true
 			create {LINKED_SET[INTEGER]}dependencies1.make
 			create {LINKED_SET[INTEGER]}dependencies2.make
+			create {LINKED_LIST[attached JSC_WRITER_DATA]}invariant_checks.make
+		end
+
+	process_object_test (l_source: attached EXPR_B; l_target_type, l_source_type: attached TYPE_A): attached STRING
+		local
+			l_expression: JSC_WRITER_DATA
+			local_name: STRING
+		do
+			output.push ("")
+				safe_process (l_source)
+				l_expression := output.data
+			output.pop
+
+			local_name := jsc_context.add_object_test_local
+			output.put ("(")
+			output.put (local_name)
+			output.put ("=")
+			output.put_data (l_expression)
+			output.put (")");
+
+			if not types_are_equal(l_target_type, l_source_type, false) then
+				if attached l_target_type.associated_class as safe_class
+				and then jsc_context.informer.is_native_stub (safe_class.class_id) then
+					output.put (" && (")
+					output.put (local_name)
+					output.put (" instanceof ")
+					output.put (jsc_context.informer.get_native_stub (safe_class.class_id))
+					output.put (")")
+				else
+					output.put (" && runtime.inherits(")
+					output.put (local_name)
+					output.put (",")
+					output.put_data (process_type (l_target_type))
+					output.put (")")
+				end
+			end
+
+			Result := local_name
 		end
 
 feature {BYTE_NODE} -- Visitors
@@ -494,25 +535,8 @@ feature {BYTE_NODE} -- Visitors
 	process_external_b (a_node: EXTERNAL_B)
 			-- Process `a_node'.
 		local
-			l_feature: attached FEATURE_I
-			l_feature_ext: EXTERNAL_EXT_I
-			l_feature_external_name: STRING
 		do
-			l_feature := get_feature (a_node)
-
-			static_dispatch_feature_call (l_feature, a_node.parameters, a_node.line_number)
-
---			l_feature_ext := l_feature.extension
---			check l_feature_ext /= Void end
-
---			if l_feature_ext.is_built_in then
---				static_dispatch_feature_call (l_feature, a_node.parameters, a_node.line_number)
---			else
---				l_feature_external_name := a_node.external_name
---				check l_feature_external_name /= Void end
-
---				process_external_procedure_call (a_node.is_static_call, l_feature_external_name, l_feature.arguments, a_node.parameters)
---			end
+			static_dispatch_feature_call (get_feature (a_node), a_node.parameters, a_node.line_number)
 		end
 
 	process_feature_b (a_node: FEATURE_B)
@@ -563,6 +587,7 @@ feature {BYTE_NODE} -- Visitors
 			l_node_target: ACCESS_B
 			l_node_target_type: TYPE_A
 			l_target_name: attached JSC_WRITER_DATA
+			l_class: CLASS_C
 		do
 			output.push ("")
 				safe_process (a_node.target)
@@ -574,6 +599,23 @@ feature {BYTE_NODE} -- Visitors
 
 			l_node_target_type := l_node_target.type
 			check l_node_target_type /= Void end
+
+			if not l_node_target_type.is_formal then
+					-- TODO: shouldn't invariants be checked on formals as well?
+				if l_node_target_type.is_like_current then
+					l_class := jsc_context.current_class
+				else
+					l_class := l_node_target_type.associated_class
+				end
+				check l_class /= Void end
+
+				l_class := jsc_context.informer.redirect_class (l_class, 0)
+
+				if not jsc_context.informer.is_fictive_stub (l_class.class_id)
+					and l_class.assertion_level.is_invariant then
+					invariant_checks.extend (l_target_name)
+				end
+			end
 
 			jsc_context.name_mapper.push_target (l_node_target_type, l_target_name)
 				safe_process (a_node.message)
@@ -587,7 +629,6 @@ feature {BYTE_NODE} -- Visitors
 			l_node_target: OBJECT_TEST_LOCAL_B
 			l_node_expression: EXPR_B
 			l_target_type, l_source_type: TYPE_A
-			l_expression: JSC_WRITER_DATA
 			local_name: STRING
 		do
 			l_context := context
@@ -605,34 +646,7 @@ feature {BYTE_NODE} -- Visitors
 			l_source_type := l_context.real_type (l_node_expression.type)
 			check l_source_type /= Void end
 
-			output.push ("")
-				safe_process (a_node.expression)
-				l_expression := output.data
-			output.pop
-
-			local_name := jsc_context.add_object_test_local
-			output.put ("(")
-			output.put (local_name)
-			output.put ("=")
-			output.put_data (l_expression)
-			output.put (")");
-
-			if not types_are_equal(l_target_type, l_source_type, false) then
-				if attached l_target_type.associated_class as safe_class
-				and then jsc_context.informer.is_native_stub (safe_class.class_id) then
-					output.put (" && (")
-					output.put (local_name)
-					output.put (" instanceof ")
-					output.put (jsc_context.informer.get_native_stub (safe_class.class_id))
-					output.put (")")
-				else
-					output.put (" && runtime.inherits(")
-					output.put (local_name)
-					output.put (",")
-					output.put_data (process_type (l_target_type))
-					output.put (")")
-				end
-			end
+			local_name := process_object_test (l_node_expression, l_target_type, l_source_type)
 
 		end
 
@@ -714,11 +728,12 @@ feature {BYTE_NODE} -- Visitors
 	do_routine_arguments (	l_feature: attached FEATURE_I;
 							omap: ARRAYED_LIST[INTEGER];
 							arguments: attached TUPLE_CONST_B
-							l_inner_arguments, l_outer_arguments: attached LIST[attached JSC_WRITER_DATA])
+							l_inner_arguments, l_outer_arguments, l_closed_evaled_arguments: attached LIST[attached STRING];
+							l_closed_arguments: attached LIST[attached JSC_WRITER_DATA]
+							)
 		local
 			l_arguments_expressions: BYTE_LIST [BYTE_NODE]
 			l_expression: BYTE_NODE
-			l_data: JSC_WRITER_DATA
 			l_open_argument_count, l_closed_argument_count: INTEGER
 			i, j, k: INTEGER
 			old_is_inside_agent: BOOLEAN
@@ -752,23 +767,25 @@ feature {BYTE_NODE} -- Visitors
 							-- Next is an open argument
 						check j <= safe_omap.count end
 						if i /= 1 then
-							create l_data.make_from_string ("arg" + j.out)
-							l_outer_arguments.extend (l_data)
-							l_inner_arguments.extend (l_data)
+							l_outer_arguments.extend ("arg" + j.out)
+							l_inner_arguments.extend ("arg" + j.out)
 						end
 						j := j + 1
 					else
 							-- Next is a closed argument
 						check k <= l_arguments_expressions.count end
-						output.push("")
-							if i /= 1 then
+						if i /= 1 then
+							output.push("")
 								l_expression := l_arguments_expressions.i_th (k)
 								check l_expression /= Void end
 
 								l_expression.process (Current)
-								l_inner_arguments.extend (output.data)
-							end
-						output.pop
+								l_closed_arguments.extend (output.data)
+							output.pop
+
+							l_inner_arguments.extend ("$closed" + jsc_context.feature_nesting_level.out + "_" + k.out)
+							l_closed_evaled_arguments.extend ("$closed" + jsc_context.feature_nesting_level.out + "_" + k.out)
+						end
 						k := k + 1
 					end
 					i := i + 1
@@ -784,7 +801,11 @@ feature {BYTE_NODE} -- Visitors
 			l_system: SYSTEM_I
 			l_class: CLASS_C
 			l_feature: FEATURE_I
-			l_outer_arguments, l_inner_arguments: attached LIST[attached JSC_WRITER_DATA]
+			l_outer_arguments, l_inner_arguments: attached LIST[attached STRING]
+			l_closed_evaled_arguments: attached LIST[attached STRING]
+			l_closed_arguments: attached LIST[attached JSC_WRITER_DATA]
+
+			--l_evaled_inner_arguments
 			l_arguments: TUPLE_CONST_B
 			l_expressions: BYTE_LIST [BYTE_NODE]
 			l_desired_target: attached STRING
@@ -805,60 +826,80 @@ feature {BYTE_NODE} -- Visitors
 
 			this_used_in_closure := true
 
-			create {LINKED_LIST[attached JSC_WRITER_DATA]}l_outer_arguments.make
-			create {LINKED_LIST[attached JSC_WRITER_DATA]}l_inner_arguments.make
+			create {LINKED_LIST[attached STRING]}l_outer_arguments.make
+			create {LINKED_LIST[attached STRING]}l_inner_arguments.make
+			create {LINKED_LIST[attached STRING]}l_closed_evaled_arguments.make
+			create {LINKED_LIST[attached JSC_WRITER_DATA]}l_closed_arguments.make
 
 			l_arguments := a_node.arguments
 			check l_arguments /= Void end
 
-			do_routine_arguments (l_feature, a_node.omap, l_arguments, l_inner_arguments, l_outer_arguments)
+			do_routine_arguments (l_feature, a_node.omap, l_arguments, l_inner_arguments, l_outer_arguments, l_closed_evaled_arguments, l_closed_arguments)
 
-			if a_node.is_inline_agent then
-				output.put ("function (")
-				output.put_data_list (l_outer_arguments, ", ")
-				output.put (") {")
-				output.put_new_line
+			output.put ("(function (")
+			output.put_list (l_closed_evaled_arguments, ", ")
+			output.put (") {")
+			output.put_new_line
+			output.indent
+				output.put_indentation
+				output.put ("return ")
 
-				output.indent
-					output.put_indentation
-					output.put ("return (")
-					old_is_inside_agent := jsc_context.name_mapper.is_inside_agent
-					jsc_context.name_mapper.is_inside_agent := true
-					jsc_context.name_mapper.push_target_current
-						write_inline_feature (l_feature)
-					jsc_context.name_mapper.pop_target
-					jsc_context.name_mapper.is_inside_agent := old_is_inside_agent
+				if a_node.is_inline_agent then
+					output.put ("function (")
+					output.put_list (l_outer_arguments, ", ")
+					output.put (") {")
+					output.put_new_line
 
+					output.indent
+						output.put_indentation
+						output.put ("return (")
+						old_is_inside_agent := jsc_context.name_mapper.is_inside_agent
+						jsc_context.name_mapper.is_inside_agent := true
+						jsc_context.name_mapper.push_target_current
+							write_inline_feature (l_feature)
+						jsc_context.name_mapper.pop_target
+						jsc_context.name_mapper.is_inside_agent := old_is_inside_agent
+
+						output.put ("(")
+						output.put_list (l_inner_arguments, ", ")
+						output.put (")")
+					output.unindent
+
+					output.put (");")
+					output.put_new_line
+					output.put_line ("};")
+				else
+					output.put ("function (")
+					output.put_list (l_outer_arguments, ", ")
+					output.put (") { return ")
+
+					output.push ("")
+						l_expressions := l_arguments.expressions
+						check l_expressions /= Void end
+
+						safe_process (l_expressions[1])
+						l_desired_target := output.force_string
+					output.pop
+
+					if l_desired_target.starts_with ("this") then
+						l_desired_target := "$" + l_desired_target
+					end
+
+					output.put (l_desired_target)
+					output.put (".")
+					output.put (jsc_context.name_mapper.feature_name (l_feature, false))
 					output.put ("(")
-					output.put_data_list (l_inner_arguments, ", ")
-					output.put (")")
-				output.unindent
-
-				output.put ("); }")
-			else
-				output.put ("function (")
-				output.put_data_list (l_outer_arguments, ", ")
-				output.put (") { return ")
-
-				output.push ("")
-					l_expressions := l_arguments.expressions
-					check l_expressions /= Void end
-
-					safe_process (l_expressions[1])
-					l_desired_target := output.force_string
-				output.pop
-
-				if l_desired_target.starts_with ("this") then
-					l_desired_target := "$" + l_desired_target
+					output.put_list (l_inner_arguments, ", ")
+					output.put (");")
+					output.put_new_line
+					output.put_line ("};")
 				end
+			output.unindent
 
-				output.put (l_desired_target)
-				output.put (".")
-				output.put (jsc_context.name_mapper.feature_name (l_feature, false))
-				output.put ("(")
-				output.put_data_list (l_inner_arguments, ", ")
-				output.put ("); }")
-			end
+			output.put_indentation
+			output.put ("}(")
+			output.put_data_list (l_closed_arguments, ", ")
+			output.put ("))")
 		end
 
 	process_string_b (a_node: STRING_B)
@@ -1055,9 +1096,9 @@ feature {NONE} -- External calls
 					-- Fill in the argument names
 				from
 					create {LINKED_LIST[attached STRING]}l_feature_arguments.make
-					i := 1
+					i := a_feature_arguments.lower
 				until
-					i > a_feature_arguments.count
+					i > a_feature_arguments.upper
 				loop
 					l_argument := a_feature_arguments.item_name (i)
 					check l_argument /= Void end

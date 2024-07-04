@@ -98,12 +98,17 @@ feature -- Access
 			end
 
 			if a_type /= Void then
-				l_where_clause.append (once " AND%N")
-				l_where_clause.append (a_name)
 				if a_position = 0 then
+					l_where_clause.append (once " AND%N")
+					l_where_clause.append (a_name)
 					l_where_clause.append (once ".type1 = (SELECT type_id FROM Types WHERE type_name =%"" + a_type + "%")")
 				else
-					l_where_clause.append (".type1 IN (SELECT c.conf_type_id FROM Conformances c, Types tp WHERE tp.type_id = c.type_id AND tp.type_name = '" + output_type_name (a_type) + "')")
+					if output_type_name (a_type) /~ "ANY" then
+						l_where_clause.append (once " AND%N")
+						l_where_clause.append (a_name)
+						l_where_clause.append (".type1 IN (SELECT c.conf_type_id FROM Conformances c, Types tp WHERE tp.type_id = c.type_id AND tp.type_name = '" + output_type_name (a_type) + "')")
+					end
+
 				end
 			end
 
@@ -197,8 +202,33 @@ feature -- Access
 				Result.append ("AND q.feature = '" + a_feature.feature_name.as_lower + "'%N")
 			end
 			Result.append ("AND v.qry_id = q.qry_id AND v.prop_id = (SELECT prop_id FROM Properties WHERE text = '$') %N")
-			Result.append ("AND v.type1 IN (SELECT c.conf_type_id FROM Conformances c, Types tp WHERE tp.type_id = c.type_id AND tp.type_name = '" + output_type_name (a_type.name) + "') %N")
-			Result.append ("LIMIT " + a_count.out)
+			if a_type.name /~ "ANY" then
+				Result.append ("AND v.type1 IN (SELECT c.conf_type_id FROM Conformances c, Types tp WHERE tp.type_id = c.type_id AND tp.type_name = '" + output_type_name (a_type.name) + "') %N")
+			end
+			Result.append ("%NLIMIT " + a_count.out)
+		end
+
+	rewritten_precondition (a_expression: EPA_EXPRESSION): EPA_EXPRESSION
+			-- Precondition assertion rewritten from `a_expression'		
+		local
+			l_expr: EPA_AST_EXPRESSION
+		do
+			fixme ("Here are some hard-coeded rewritten preconditions because we don't have time to do this automatically. Without the hard-coding, we will generated ill-formed SQL select statements. This hard-coding won't affect the effectiveness of the precondition-reduction strategy. 28.03.2011 Jasonw")
+			if a_expression.class_.name_in_upper ~ "DS_ARRAYED_LIST" and then a_expression.text ~ "extendible (other.count)" then
+				create l_expr.make_with_text (a_expression.class_, a_expression.feature_, "capacity >= count + other.count", a_expression.written_class)
+				Result := l_expr
+			elseif a_expression.class_.name_in_upper ~ "DS_HASH_SET" and then a_expression.text ~ "extendible (other.count)" then
+				create l_expr.make_with_text (a_expression.class_, a_expression.feature_, "capacity >= count + other.count", a_expression.written_class)
+				Result := l_expr
+			elseif a_expression.class_.name_in_upper ~ "DS_LINKED_QUEUE" and then a_expression.text ~ "extendible (other.count)" then
+				Result := Void
+			elseif a_expression.class_.name_in_upper ~ "DS_LINKED_LIST" and then a_expression.text ~ "extendible (other.count)" then
+				Result := Void
+			elseif a_expression.class_.name_in_upper ~ "DS_LINKED_STACK" and then a_expression.text ~ "extendible (other.count)" then
+				Result := Void
+			else
+				Result := a_expression
+			end
 		end
 
 	sql_to_select_objects (a_context_class: CLASS_C; a_feature: FEATURE_I; a_expression: STRING; a_negated: BOOLEAN; a_limit: INTEGER; a_feature_included: BOOLEAN; a_prop_kind: INTEGER; a_query_kind: INTEGER; a_ignore_qry_ids: detachable DS_HASH_SET [INTEGER]; a_all_in_one_queryable: BOOLEAN): TUPLE [sql: STRING; unconstained_operands: HASH_TABLE [TYPE_A, STRING]]
@@ -253,29 +283,37 @@ feature -- Access
 			l_queryable_clauses: like clauses_for_queryables
 			l_type_of_replacements: HASH_TABLE [TYPE_A, STRING]
 			l_type: TYPE_A
+			l_constant_collector: EPA_CONSTANT_QUERY_COLLECTOR
+			l_constant_queries: HASH_TABLE [STRING, STRING]
 		do
 			create l_contract_extractor
 			l_pres := l_contract_extractor.precondition_of_feature (a_feature, a_context_class).twin
 			create l_pre_set.make (l_pres.count)
 			l_pre_set.set_equality_tester (expression_equality_tester)
+			create l_constant_collector
+			l_constant_queries := l_constant_collector.quries (a_context_class)
 			from
 				l_pres.start
 			until
 				l_pres.after
 			loop
+				l_pres.replace (rewritten_precondition (l_pres.item))
 				if
+					l_pres.item /= Void and then
 					not l_pres.item.text.has ('{') and then
-					not l_pres.item.text.has ('.') and then
+--					not l_pres.item.text.has ('.') and then
 --					not l_pres.item.text.has ('(') and then
 					not l_pres.item.text.has_substring (once "attached") and then
-					l_pres.item.type /= Void
+					not l_pres.item.text.has_substring ("same_type (") and then
+					l_pres.item.type /= Void and then
+					not l_constant_queries.has (l_pres.item.text)
 				then
 					l_pre_set.force_last (l_pres.item)
 				end
 				l_pres.forth
 			end
 
-			if l_pre_set.count > 0 and l_pre_set.count <= 4 then
+			if l_pre_set.count > 0 and l_pre_set.count <= 6 then
 					-- We don't allow too many precondition predicates,
 					-- because otherwise, the query will take a long long time.
 				create l_qualifier
@@ -341,7 +379,7 @@ feature -- Access
 			l_feat_opds := operands_with_feature (a_feature).cloned_object
 
 				-- Get the set of queryable partition ids.
-			l_qry_partitions := queryable_partitions (l_operands, l_subexprs, a_all_in_one_queryable)
+			l_qry_partitions := queryable_partitions (a_feature, a_context_class, l_operands, l_subexprs, a_all_in_one_queryable)
 
 				-- Remove "Result", if any.
 			if a_feature.has_return_value then
@@ -502,7 +540,7 @@ feature -- Access
 			Result := [l_sql, l_unconstrained_operands]
 		end
 
-	queryable_partitions (a_operands: HASH_TABLE [INTEGER_32, STRING_8]; a_subexprs: like single_rooted_expressions; a_all_in_one: BOOLEAN): TUPLE [variables: HASH_TABLE [INTEGER, INTEGER]; properties: DS_HASH_TABLE [INTEGER, EPA_EXPRESSION]]
+	queryable_partitions (a_feature: FEATURE_I; a_class: CLASS_C; a_operands: HASH_TABLE [INTEGER_32, STRING_8]; a_subexprs: like single_rooted_expressions; a_all_in_one: BOOLEAN): TUPLE [variables: HASH_TABLE [INTEGER, INTEGER]; properties: DS_HASH_TABLE [INTEGER, EPA_EXPRESSION]]
 			-- Queryable partitions from `a_operands' and `a_subexprs'
 			-- `a_operands' are a hash-table from curly-integer operand indexes to operand indexes, for example {0} -> 0; {1} -> 1.
 			-- `a_subexprs' are single-rooted expression mentioning `a_operands'.
@@ -519,6 +557,7 @@ feature -- Access
 			l_mentioned_opds: DS_HASH_SET [INTEGER_32]
 			l_qry_partition_id: INTEGER
 			l_vcur: DS_HASH_SET_CURSOR [INTEGER]
+			l_type_cursor: DS_HASH_TABLE_CURSOR [TYPE_A, INTEGER]
 		do
 			create l_var_parts.make (a_operands.count)
 			create l_prop_parts.make (a_subexprs.count)
@@ -548,13 +587,27 @@ feature -- Access
 
 					-- Then, we merge partitions of different operands into one partition
 					-- if those operands are mentioned in the same expression.
+				l_type_cursor := resolved_operand_types_with_feature (a_feature, a_class, a_class.constraint_actual_type).new_cursor
 				from
 					l_cursor := a_subexprs.new_cursor
 					l_cursor.start
 				until
 					l_cursor.after
 				loop
-					l_mentioned_opds := l_cursor.item.variable_indexes
+						-- An operand of type integer or boolean can be in any queryable.
+						-- So those operands are always in their own queryable partition.
+					l_mentioned_opds := l_cursor.item.variable_indexes.cloned_object
+					from
+						l_type_cursor.start
+					until
+						l_type_cursor.after
+					loop
+						if l_type_cursor.item.is_integer or else l_type_cursor.item.is_boolean then
+							l_mentioned_opds.remove (l_type_cursor.key)
+						end
+						l_type_cursor.forth
+					end
+
 					l_qry_partition_id := minimal_partition_id (l_var_parts, l_mentioned_opds)
 					l_prop_parts.force_last (l_qry_partition_id, l_cursor.key)
 					from
