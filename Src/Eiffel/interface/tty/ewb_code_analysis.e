@@ -1,5 +1,5 @@
 note
-	description: "Summary description for {EWB_CODE_ANALYSIS}."
+	description: "Command-line Inspector Eiffel (code analysis)"
 	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,7 +20,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
+	make_with_arguments (a_arguments: ITERABLE [STRING_32])
 			-- Initialization for `Current'. `a_arguments' are the command-line
 			-- arguments that are relevant for the Code Analyzer.
 		do

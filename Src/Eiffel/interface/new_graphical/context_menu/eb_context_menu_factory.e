@@ -607,7 +607,7 @@ feature {NONE} -- Menu section, Granularity 2.
 			elseif attached {CLUSTER_STONE} a_pebble as l_cluster_stone then
 				extend_basic_opening_menus (a_menu, l_cluster_stone, False)
 				extend_add_to_menu (a_menu, l_cluster_stone)
-			    (create {ES_CODE_ANALYSIS_BENCH_HELPER}).build_context_menu_for_cluster_stone (a_menu, l_cluster_stone)
+				(create {ES_CODE_ANALYSIS_BENCH_HELPER}).build_context_menu_for_cluster_stone (a_menu, l_cluster_stone)
 			elseif attached {TARGET_STONE} a_pebble as l_target_stone then
 				extend_add_to_menu (a_menu, l_target_stone)
 			end
@@ -2124,11 +2124,9 @@ feature {NONE} -- Implementation
 	show_help (a_context: HELP_CONTEXT_I)
 		local
 			l_providers: SERVICE_CONSUMER [HELP_PROVIDERS_S]
-			l_service: HELP_PROVIDERS_S
 		do
 			create l_providers
-			if l_providers.is_service_available then
-				l_service := l_providers.service
+			if attached l_providers.service as l_service then
 				l_service.show_help (a_context)
 			end
 		end
