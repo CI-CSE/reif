@@ -580,7 +580,7 @@ feature -- Properties
 					local
 						cl: CLASS_C
 					do
-						cl := a_root.class_type.associated_class
+						cl := a_root.class_type.base_class
 						if cl.original_class.is_compiled and then
 						   cl.is_precompiled then
 							cl.record_precompiled_class_in_system
@@ -1822,13 +1822,6 @@ debug ("ACTIVITY")
 	io.error.put_new_line
 end
 
-				-- Added for SCOOP: Class ast has been generated. Now traverse it and find SCOOP funcionality.
-				-- Class generation is done after degree 3 - after type checking.
-				if degree_scoop.is_degree_scoop_needed and not workbench.is_degree_scoop_processed then
-					workbench.set_is_degree_scoop_processing (True)
-				elseif workbench.is_degree_scoop_processed then
-					workbench.set_is_degree_scoop_processing (False)
-				end
 
 				if a_system_check then
 						-- Check generic validity on old classes
@@ -1961,15 +1954,6 @@ end
 						-- Byte code production and type checking
 					process_degree_3
 
-
-						-- Added for SCOOP: Start SCOOP class creation if needed.
-					if workbench.is_degree_scoop_processing and not workbench.is_degree_scoop_processed then
-							-- create new client and proxy classes.
-							-- generate an internal error to restart compilation.
-						process_degree_scoop
-					end
-
-
 						-- PLANNER related call to regenerate a class for
 					plan_generate_class
 
@@ -2025,12 +2009,6 @@ end
 						print ("%N")
 						print_memory_statistics
 						create d1.make_now
-					end
-
-						-- SCOOP: get information about compiled classes and features.
-						-- Added by trosim on 2010-02-27
-					if not workbench.is_degree_scoop_processing and workbench.is_degree_scoop_processed then
-						process_degree_scoop_profile_information
 					end
 
 						-- Finalize a successful compilation
@@ -2179,36 +2157,6 @@ end
 			-- reporting all VTCT errors.
 		do
 			degree_5.post_degree_5_execute
-		end
-
-	process_degree_scoop
-			-- Process Degree SCOOP.
-			-- added for SCOOP by paedde
-		do
-				-- Start SCOOP client- and proxy class generation
-			degree_scoop.set_degree_5 (Degree_5)
-			Degree_scoop.execute
-
-			debug ("SCOOP")
-				io.error.put_string ("SCOOP: SCOOP processing finished.")
-				io.error.put_new_line
-			end
-
-			-- flag current scoop compilation as processed
-			workbench.set_is_degree_scoop_processed (true)
-
-			-- create error to restart compilation
-			error_handler.insert_error (create {INTERNAL_ERROR}.make("SCOOP internal error to restart compilation"))
-
-			-- restart compilation
-			error_handler.raise_error
-		end
-
-	process_degree_scoop_profile_information
-			-- Process information for SCOOP profile.
-			-- Added by trosim on 2010-02-26
-		do
-			degree_scoop.build_profile_information
 		end
 
 	process_degree_4
@@ -2500,7 +2448,7 @@ end
 			root_creators.do_all (
 				agent (a_root: SYSTEM_ROOT)
 					do
-						instantiator.dispatch (a_root.class_type, a_root.class_type.associated_class)
+						instantiator.dispatch (a_root.class_type, a_root.class_type.base_class)
 					end)
 
 				-- Initialize types of non-generic classes which haven't been initialized yet.
@@ -2691,7 +2639,7 @@ end
 					root_creators.after
 				loop
 					l_root := root_creators.item_for_iteration
-					l_root_cl := l_root.class_type.associated_class
+					l_root_cl := l_root.class_type.base_class
 					l_root_dtype := root_class_type (l_root.class_type).type_id - 1
 					l_root_ft := l_root_cl.feature_table.item (l_root.procedure_name)
 					if l_root_ft /= Void then
@@ -3788,7 +3736,7 @@ feature -- Dead code removal
 							check
 								valid_root: a_root.is_class_type_set
 							end
-							l_cl := a_root.class_type.associated_class
+							l_cl := a_root.class_type.base_class
 							l_ft := l_cl.feature_table.item (a_root.procedure_name)
 							remover.record (l_ft, l_cl)
 						end
@@ -4203,9 +4151,17 @@ feature -- Generation
 					if a_class /= Void then
 						types := a_class.types
 						l_class_is_finalized := not a_class.is_precompiled or else a_class.is_in_system
+							-- If an expanded type is in a precompiled library, then there will always
+							-- be a generic derivation for TYPE [my_expanded_class] due to the presence
+							-- of `generating_type: TYPE [detachable like Current' in ANY. Even if the
+							-- expanded class is not really used in the system, we need to compile it in
+							-- so that we can generate the generic derivation of `{TYPE}' that includes it.
+							-- This solves many eweasel tests such as test#time002 when
+							-- UTF_CONVERTER expanded class was added to EiffelBase.
+						l_class_is_finalized := l_class_is_finalized or else a_class.is_expanded
 							-- The following line is a hack so that `types.sort' works.
 						current_class := a_class
-						types.sort
+						types.sort (a_class)
 						from
 							types.start
 						until
@@ -4704,16 +4660,7 @@ feature -- Generation
 				cl_type := class_types.item (i)
 					-- Classes could be removed
 				if cl_type /= Void then
-					if final_mode then
-						if
-							not cl_type.associated_class.is_precompiled or else
-							cl_type.associated_class.is_in_system
-						then
-							cl_type.generate_skeleton1 (buffer)
-						end
-					else
-						cl_type.generate_skeleton1 (buffer)
-					end
+					cl_type.generate_skeleton1 (buffer)
 					if not final_mode then
 						cltype_array.put (cl_type, cl_type.static_type_id)
 					end
@@ -4811,16 +4758,7 @@ feature -- Generation
 				cl_type := class_types.item (i)
 					-- Classes could be removed
 				if cl_type /= Void then
-					if final_mode then
-						if
-							not cl_type.associated_class.is_precompiled or else
-							cl_type.associated_class.is_in_system
-						then
-							cl_type.generate_attribute_names (buffer)
-						end
-					else
-						cl_type.generate_attribute_names (buffer)
-					end
+					cl_type.generate_attribute_names (buffer)
 				end
 				i := i + 1
 			end
@@ -4864,16 +4802,7 @@ feature -- Generation
 				cl_type := class_types.item (i)
 					-- Classes could be removed
 				if cl_type /= Void then
-					if final_mode then
-						if
-							not cl_type.associated_class.is_precompiled or else
-							cl_type.associated_class.is_in_system
-						then
-							cl_type.generate_expanded_structure_definition (buffer)
-						end
-					else
-						cl_type.generate_expanded_structure_definition (buffer)
-					end
+					cl_type.generate_expanded_structure_definition (buffer)
 				end
 				i := i + 1
 			end
@@ -5882,7 +5811,7 @@ feature -- Query: Root creators
 				agent (l_root: SYSTEM_ROOT): BOOLEAN
 					do
 						if l_root.is_class_type_set then
-							Result := l_root.class_type.associated_class.original_class.is_compiled
+							Result := l_root.class_type.base_class.original_class.is_compiled
 						end
 					end)
 		end
@@ -6083,7 +6012,6 @@ feature {NONE} -- Element change: Root creators
 	compute_root_type
 			-- Computes the root type
 		local
-			l_type: TYPE_A
 			l_root: SYSTEM_ROOT
 			l_vsrt1: VSRT1
 			l_vsrt2: VSRT2
@@ -6107,8 +6035,8 @@ feature {NONE} -- Element change: Root creators
 					l_vd20.set_class_name (l_root.root_class.name.as_upper)
 					Error_handler.insert_error (l_vd20)
 				else
-					l_type := type_a_generator.evaluate_optional_unchecked (l_root.class_type_as, l_root.root_class.compiled_class)
-					if l_type = Void then
+					if not attached {CL_TYPE_A} type_a_generator.evaluate_type (l_root.class_type_as, l_root.root_class.compiled_class) as l_type then
+							-- Throw an error: type is not valid.					
 							-- Throw an error: type is not valid.
 						create l_vsrt2
 						l_vsrt2.set_root_type_as (l_root.class_type_as)
@@ -6118,7 +6046,7 @@ feature {NONE} -- Element change: Root creators
 						create l_vsrt1
 						l_vsrt1.set_root_type (l_type)
 						error_handler.insert_error (l_vsrt1)
-					elseif l_type.associated_class.is_deferred then
+					elseif l_type.base_class.is_deferred then
 						create l_vsrt3
 						l_vsrt3.set_root_type (l_type)
 						error_handler.insert_error (l_vsrt3)
@@ -6143,7 +6071,7 @@ feature {NONE} -- Element change: Root creators
 								error_handler.insert_error (l_vsrt4)
 							else
 									-- We need to check named tuple labels. This fixes eweasel test#tuple012.
-								l_type.check_labels (l_type.associated_class, Void)
+								l_type.check_labels (l_type.base_class, Void)
 							end
 						end
 
@@ -6152,7 +6080,7 @@ feature {NONE} -- Element change: Root creators
 
 							if not Compilation_modes.is_precompiling and not Lace.compile_all_classes then
 									-- `root_class_c' cannot be used here as `root_type.associated_class' might be changed
-								l_root.class_type.associated_class.check_root_class_creators (l_root.procedure_name, l_root.class_type)
+								l_root.class_type.base_class.check_root_class_creators (l_root.procedure_name, l_root.class_type)
 							end
 						end
 					end
@@ -6411,127 +6339,6 @@ feature {NONE} -- External features
 			"time"
 		end
 
-feature -- Added for SCOOP
-	remove_scoop_compilation_artifacts
-			-- Removes SCOOP compilation artifacts from the system, if necessary.
-			-- SCOOP compilation artifacts include:
-			--	- Compiled classes based on classes generated in the SCOOP degree.
-			--	- Compiled classes based on classes from the SCOOP library.
-			--	- Class types based on classes generated in the SCOOP degree.
-			--	- Class types based on classes from the SCOOP library.
-		do
-			if
-				workbench.system_defined and then
-				system.classes.there_exists (
-					agent (a_class_c: CLASS_C): BOOLEAN
-						do
-							Result :=
-								a_class_c /= Void and then
-								a_class_c.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-						end
-				)
-			then
-				-- There are artifacts to be removed.
-
-				-- Remove artifacts based on class types.
-				system.class_types.twin.do_all (
-					agent (a_class_type: CLASS_TYPE)
-						do
-							if
-								a_class_type /= Void and then a_class_type.associated_class.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-							then
-								system.remove_class_type (a_class_type)
-							end
-						end
-				)
-
-				-- Remove artifacts based on compiled classes.
-				system.classes.twin.do_all (
-					agent (a_class_c: CLASS_C)
-						local
-							l_file: PLAIN_TEXT_FILE
-						do
-							-- Remove artifacts from system.
-							if
-								a_class_c /= Void and then a_class_c.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-							then
-								-- We have an artifact to remove.
-								create l_file.make (a_class_c.lace_class.file_name)
-								if
-									l_file.exists and then
-									l_file.is_writable and then
-									a_class_c.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-								then
-									l_file.delete
-								end
-								a_class_c.lace_class.config_class.invalidate
-								a_class_c.original_class.reset_compiled_class
-								system.remove_unref_class (a_class_c.lace_class)
-								system.classes.remove (a_class_c.class_id)
-								system.remove_class (a_class_c)
-								system.force_rebuild
-
-								degree_5.remove_class (a_class_c)
-								degree_4.remove_class (a_class_c)
-								degree_3.remove_class (a_class_c)
-								degree_scoop.remove_class (a_class_c)
-								degree_2.remove_class (a_class_c)
-								degree_1.remove_class (a_class_c)
-								degree_minus_1.remove_class (a_class_c)
-							end
-
-							-- Remove artifacts from compiled classes in the system.
-							if
-								a_class_c /= Void
-							then
-								-- We have a class from which we want to remove an artifacts.
-
-								-- Remove artifacts from the clients list.
-								a_class_c.clients.twin.do_all (
-									agent (a_supplier_class_c: CLASS_C; a_client_class_c: CLASS_C)
-										do
-											if
-												a_client_class_c /= Void and then a_client_class_c.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-											then
-												a_supplier_class_c.clients.start
-												a_supplier_class_c.clients.search (a_client_class_c)
-												a_supplier_class_c.clients.remove
-											end
-										end (a_class_c, ?)
-								)
-
-								-- Remove artifacts from the syntactical clients list.
-								a_class_c.syntactical_clients.twin.do_all (
-									agent (a_supplier_class_c: CLASS_C; a_client_class_c: CLASS_C)
-										do
-											if
-												a_client_class_c /= Void and then a_client_class_c.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-											then
-												a_supplier_class_c.syntactical_clients.start
-												a_supplier_class_c.syntactical_clients.search (a_client_class_c)
-												a_supplier_class_c.syntactical_clients.remove
-											end
-										end (a_class_c, ?)
-								)
-
-								-- Remove artifacts from the direct descendants list.
-								a_class_c.direct_descendants.twin.do_all (
-									agent (a_parent_class_c: CLASS_C; a_descendant_class_c: CLASS_C)
-										do
-											if
-												a_descendant_class_c /= Void and then a_descendant_class_c.group.name.is_equal ({SCOOP_SYSTEM_CONSTANTS}.override_cluster_name)
-											then
-												a_parent_class_c.direct_descendants.start
-												a_parent_class_c.direct_descendants.search (a_descendant_class_c)
-												a_parent_class_c.direct_descendants.remove
-											end
-										end (a_class_c, ?)
-								)
-							end
-						end
-				)
-			end
-		end
 
 feature -- Added for Plan Generation
 	plan_generate_class
