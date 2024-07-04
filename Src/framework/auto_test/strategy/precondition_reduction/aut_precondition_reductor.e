@@ -115,6 +115,19 @@ feature{NONE} -- Implementation
 			end
 		end
 
+	restart_interpreter_when_necessary
+			-- Restart `interpreter' when necessary.
+		do
+			if not interpreter.is_executing or else not interpreter.is_ready then
+				if interpreter.is_running then
+					interpreter.stop
+				end
+				interpreter.start
+				interpreter.stop
+				assign_void
+			end
+		end
+
 note
 	copyright: "Copyright (c) 1984-2011, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
