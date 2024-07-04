@@ -17,7 +17,6 @@ feature -- Access
 		deferred
 		end
 
-
 	uuid: detachable UUID
 			-- UUID used for the queryable to write
 			-- If Void, a new UUID will be generated
@@ -34,13 +33,13 @@ feature -- Setting
 
 feature{NONE} -- Implementation
 
-	append_field_with_data (a_name: STRING; a_value: STRING; a_type: STRING; a_boost: DOUBLE)
+	append_field_with_data (a_name: STRING; a_value: STRING; a_type: INTEGER; a_boost: DOUBLE)
 			-- Write field specified through `a_name', `a_value', `a_type' and `a_boost' into `output'.
 		do
-			append_field (create {SEM_DOCUMENT_FIELD}.make (a_name, a_value, a_type, a_boost))
+			append_field (create {IR_FIELD}.make_with_raw_value (a_name, a_value, a_type, a_boost))
 		end
 
-	append_field (a_field: SEM_DOCUMENT_FIELD)
+	append_field (a_field: IR_FIELD)
 			-- append `a_field' into `medium'.
 		do
 			if not written_fields.has (a_field) then
@@ -55,7 +54,7 @@ feature{NONE} -- Implementation
 	append_string_field (a_name: STRING; a_value: STRING)
 			-- Append a string field with `a_name' and `a_value' and default boost value.
 		do
-			append_field (create {SEM_DOCUMENT_FIELD}.make_with_string_type (a_name, a_value))
+			append_field (create {IR_FIELD}.make_as_string (a_name, a_value, default_boost_value))
 		end
 
 	append_variables (a_variables: detachable EPA_HASH_SET[EPA_EXPRESSION]; a_field: STRING; a_print_position: BOOLEAN; a_print_ancestor: BOOLEAN)
@@ -67,7 +66,7 @@ feature{NONE} -- Implementation
 		do
 			l_values := variable_info (a_variables, queryable, a_print_position, a_print_ancestor)
 			if not l_values.is_empty then
-				append_field_with_data (a_field, l_values, string_field_type, default_boost_value)
+				append_field_with_data (a_field, l_values, ir_string_value_type, default_boost_value)
 			end
 		end
 
@@ -89,7 +88,7 @@ feature{NONE} -- Implementation
 
 feature{NONE} -- Implementation
 
-	written_fields: DS_HASH_SET [SEM_DOCUMENT_FIELD]
+	written_fields: DS_HASH_SET [IR_FIELD]
 			-- Fields that are already written
 			-- Used to avoid writing duplicated fields
 		deferred
@@ -103,12 +102,12 @@ feature{NONE} -- Implementation
 	format_type_prefix (a_type: INTEGER): STRING
 			-- Prefix for `a_type'
 		do
-			if a_type = dynamic_format_type then
-				Result := dynamic_format_type_prefix
-			elseif a_type = static_format_type then
-				Result := static_format_type_prefix
-			elseif a_type = anonymous_format_type then
-				Result := anonymous_format_type_prefix
+			if a_type = dynamic_type_form then
+				Result := dynamic_type_form_prefix
+			elseif a_type = static_type_form then
+				Result := static_type_form_prefix
+			elseif a_type = anonymous_type_form then
+				Result := anonymous_type_form_prefix
 			end
 		end
 
@@ -150,26 +149,49 @@ feature{NONE} -- Implementation
 			l_list.append (a_string)
 		end
 
-feature{NONE} -- Constants
+feature{NONE} -- Implementation
 
-	integer_prefix: STRING = "i_"
-	boolean_prefix: STRING = "b_"
-	string_prefix: STRING = "s_"
-	text_prefix: STRING = "t_"
-	by_change_prefix: STRING = "by_"
-	to_change_prefix: STRING = "to_"
+	variable_indexes_from_anonymous_text (a_text: STRING): LINKED_LIST [INTEGER]
+			-- Variable indexes from `a_text', `a_text' is in anonymous form
+		local
+			i: INTEGER
+			c: INTEGER
+			l_in_var: BOOLEAN
+			l_index: STRING
+			l_char: CHARACTER
+		do
+			create Result.make
+			create l_index.make (6)
+			from
+				i := 1
+				c := a_text.count
+			until
+				i > c
+			loop
+				l_char := a_text.item (i)
+				if l_char = '{' then
+					l_in_var := True
+				elseif l_char = '}' then
+					Result.extend (l_index.to_integer)
+					l_index.wipe_out
+					l_in_var := False
+				elseif l_in_var then
+					l_index.extend (l_char)
+				end
+				i := i + 1
+			end
+		end
 
-	dynamic_format_type: INTEGER = 1
-	static_format_type: INTEGER = 2
-	anonymous_format_type: INTEGER = 3
-
-
-	dynamic_format_type_prefix: STRING = "d_"
-	static_format_type_prefix: STRING = "s_"
-	anonymous_format_type_prefix: STRING = "a_"
-
-	precondition_prefix: STRING = "pre_"
-	postcondition_prefix: STRING = "post_"
-	property_prefix: STRING = "prop_"
+	text_for_variable_indexes_and_value (a_anonymous_text: STRING; a_value_text: STRING): STRING
+			-- String containing variable indexes in `a_anonymous_text' and `a_value_text'
+		do
+			create Result.make (a_anonymous_text.count + 20)
+			across variable_indexes_from_anonymous_text (a_anonymous_text) as l_indexes loop
+				Result.append (l_indexes.item.out)
+				Result.append_character (',')
+			end
+			Result.append (a_value_text)
+			Result.append_character (';')
+		end
 
 end

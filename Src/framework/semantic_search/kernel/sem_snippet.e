@@ -45,7 +45,6 @@ feature{NONE} -- Initialization
 			context_type := context.class_.actual_type
 			create preconditions.make (20, context.class_, context.feature_)
 			create postconditions.make (20, context.class_, context.feature_)
-			initialize_boosts
 			initialize_tables
 
 			l_inputs := inputs
@@ -78,6 +77,9 @@ feature{NONE} -- Initialization
 				-- Initialize `name' and `description'.
 			set_name ("")
 			set_description ("")
+
+			create changes.make (10)
+			changes.set_key_equality_tester (expression_equality_tester)
 		end
 
 	make_with_transition (a_transition: like Current)
@@ -92,8 +94,7 @@ feature{NONE} -- Initialization
 
 			preconditions := a_transition.preconditions.cloned_object
 			postconditions := a_transition.postconditions.cloned_object
-			precondition_boosts := a_transition.precondition_boosts.cloned_object
-			postcondition_boosts := a_transition.postcondition_boosts.cloned_object
+			changes := a_transition.changes.cloned_object
 			set_name (a_transition.name)
 			set_uuid (a_transition.uuid)
 			set_description (a_transition.description)
@@ -119,6 +120,24 @@ feature -- Access
 			-- Make a copy of current.
 		do
 			Result := cloned_object
+		end
+
+	text_in_static_type_form (a_expression: EPA_EXPRESSION): STRING
+			-- Text of `a_expression' in static type form
+		do
+			to_implement ("To implement. 10.10.2010 Jasonw")
+		end
+
+	text_in_dynamic_type_form (a_expression: EPA_EXPRESSION): STRING
+			-- Text of `a_expression' in static type form
+		do
+			to_implement ("To implement. 10.10.2010 Jasonw")
+		end
+
+	text_in_anonymous_type_form (a_expression: EPA_EXPRESSION): STRING
+			-- Text of `a_expression' in static type form
+		do
+			to_implement ("To implement. 10.10.2010 Jasonw")
 		end
 
 feature -- Type status report

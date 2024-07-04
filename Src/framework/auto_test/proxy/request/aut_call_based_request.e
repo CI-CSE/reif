@@ -67,6 +67,15 @@ feature -- Access
 				(feature_to_call = Void implies Result = 0)
 		end
 
+	feature_name_with_class: STRING
+			-- Feature name with call in form of "CLASS.feature"
+		do
+			create Result.make (64)
+			Result.append (class_of_target_type.name_in_upper)
+			Result.append_character ('.')
+			Result.append (feature_to_call.feature_name)
+		end
+
 	feature_id: INTEGER
 			-- Id of the feature to call
 			-- This is an ID used for predicate evaluation
@@ -99,7 +108,7 @@ feature -- Access
 		end
 
 	operand_types: SPECIAL [TYPE_A]
-			-- Types of operands
+			-- Static types of operands
 			-- Index 0 is for the target object, index 1 is for the first argument, and so on.
 			-- The result object (if any) is placed in (Result.count - 1)-th position.
 		deferred

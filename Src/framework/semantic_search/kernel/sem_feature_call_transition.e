@@ -48,7 +48,6 @@ feature{NONE} -- Initialization
 			create postconditions.make (20, context.class_, context.feature_)
 			create written_preconditions.make (5, context.class_, context.feature_)
 			create written_postconditions.make (5, context.class_, context.feature_)
-			initialize_boosts
 			initialize (a_operands)
 		end
 
@@ -63,15 +62,17 @@ feature{NONE} -- Initialization
 			postconditions := a_transition.postconditions.cloned_object
 			written_preconditions := a_transition.written_preconditions.cloned_object
 			written_postconditions := a_transition.written_postconditions.cloned_object
-			precondition_boosts := a_transition.precondition_boosts.cloned_object
-			postcondition_boosts := a_transition.postcondition_boosts.cloned_object
+			changes := a_transition.changes.cloned_object
 		end
 
 	make_interface_transition (a_transition: like Current)
 			-- Initialize Current by copying ONLY interface related data from `a_transition'.
 		local
 			l_assertions: like preconditions
-			l_boosts: like precondition_boosts
+			l_chg_cursor: like changes.new_cursor
+			l_postconditions, l_written_postconditions: like postconditions
+			l_expr: EPA_EXPRESSION
+			l_changes: like changes
 		do
 			make (a_transition.class_, a_transition.feature_, a_transition.operand_map, a_transition.context, a_transition.is_creation)
 			set_description (a_transition.description)
@@ -79,24 +80,24 @@ feature{NONE} -- Initialization
 			set_name (a_transition.name)
 			preconditions := a_transition.interface_preconditions
 			postconditions := a_transition.interface_postconditions
-			set_precondition_boosts (a_transition.precondition_boosts)
-			set_postcondition_boosts (a_transition.postcondition_boosts)
+			written_preconditions := a_transition.written_preconditions.cloned_object
+			written_postconditions := a_transition.written_postconditions.cloned_object
 
-				-- Remove boosts which mention assertions which does not appear in Current anymore.
-			across <<True, False>> as l_states loop
-				l_assertions := assertions (l_states.item)
-				l_boosts := assertion_boosts (l_states.item)
-				from
-					l_boosts.start
-				until
-					l_boosts.after
-				loop
-					if l_assertions.has (l_boosts.key_for_iteration) then
-						l_boosts.forth
-					else
-						l_boosts.remove (l_boosts.key_for_iteration)
-					end
+				-- Initialize interface changes.
+			from
+				l_postconditions := postconditions
+				l_written_postconditions := written_postconditions
+				l_changes := changes
+				l_chg_cursor := a_transition.changes.new_cursor
+				l_chg_cursor.start
+			until
+				l_chg_cursor.after
+			loop
+				l_expr := l_chg_cursor.key
+				if l_postconditions.has_expression (l_expr) or l_written_postconditions.has_expression (l_expr) then
+					l_changes.force_last (l_chg_cursor.item, l_expr)
 				end
+				l_chg_cursor.forth
 			end
 		end
 
@@ -160,8 +161,6 @@ feature -- Access
 			create Result.make (context, l_positions, l_inputs, l_outputs, content)
 			Result.set_preconditions (preconditions)
 			Result.set_postconditions (postconditions)
-			Result.set_precondition_boosts (precondition_boosts)
-			Result.set_postcondition_boosts (postcondition_boosts)
 		end
 
 	cloned_object: like Current
@@ -298,6 +297,45 @@ feature -- Access
 				Result.force (l_type, l_variable.text)
 				l_cursor.forth
 			end
+		end
+
+	dynamic_type_name_table: HASH_TABLE [STRING, STRING]
+			-- Table from variable names to their dynamic type
+		do
+			if dynamic_type_name_table_internal = Void then
+				dynamic_type_name_table_internal := type_name_table (variable_dynamic_type_table)
+			end
+			Result := dynamic_type_name_table_internal
+		end
+
+	static_type_name_table: HASH_TABLE [STRING, STRING]
+			-- Table from variable names to their static type
+		do
+			if static_type_name_table_internal = Void then
+				static_type_name_table_internal := type_name_table (variable_static_type_table)
+			end
+			Result := static_type_name_table_internal
+		end
+
+	text_in_static_type_form (a_expression: EPA_EXPRESSION): STRING
+			-- Text of `a_expression' in static type form			
+			-- Note: `a_expression' must only mention operands.
+		do
+			Result := expression_with_replacements (a_expression, static_type_name_table, True)
+		end
+
+	text_in_dynamic_type_form (a_expression: EPA_EXPRESSION): STRING
+			-- Text of `a_expression' in static type form
+			-- Note: `a_expression' must only mention operands.
+		do
+			Result := expression_with_replacements (a_expression, dynamic_type_name_table, True)
+		end
+
+	text_in_anonymous_type_form (a_expression: EPA_EXPRESSION): STRING
+			-- Text of `a_expression' in static type form
+			-- Note: `a_expression' must only mention operands.
+		do
+			Result := anonymous_expression_text (a_expression)
 		end
 
 feature -- Status report
@@ -498,6 +536,9 @@ feature{NONE} -- Implementation
 				-- Initialize `name' and `description'.
 			set_name (class_.name_in_upper + once "." + feature_.feature_name.as_lower)
 			set_description (feature_header_comment (feature_))
+
+			create changes.make (10)
+			changes.set_key_equality_tester (expression_equality_tester)
 		end
 
 	rewritten_contracts (a_assertions: DS_HASH_SET [EPA_EXPRESSION]; a_precondition: BOOLEAN): EPA_STATE
@@ -536,5 +577,11 @@ feature{NONE} -- Implementation
 				l_cursor.forth
 			end
 		end
+
+	dynamic_type_name_table_internal: detachable like dynamic_type_name_table
+			-- Cache for `dynamic_type_name_table'
+
+	static_type_name_table_internal: detachable like static_type_name_table
+			-- Cache for `static_type_name_table'
 
 end

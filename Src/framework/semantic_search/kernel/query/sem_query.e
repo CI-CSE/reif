@@ -1,30 +1,16 @@
 note
-	description: "Class represents a semantic search query"
-	author: ""
+	description: "Class represents queries to search engine."
 	date: "$Date$"
 	revision: "$Revision$"
 
 deferred class
 	SEM_QUERY
 
-feature -- Access
+feature -- Process
 
-	text: STRING
-			-- String representation
-			-- as used in the communication protocol
+	process (a_visitor: SEM_QUERY_VISITOR)
+			-- Process Current using `a_visitor'.
 		deferred
-		end
-
-	boost: DOUBLE
-			-- Boost value of current query
-			-- Default: 1.0
-		deferred
-		end
-
-	boost_string: STRING
-			-- String representation of `boost'
-		do
-			Result := boost.out
 		end
 
 end

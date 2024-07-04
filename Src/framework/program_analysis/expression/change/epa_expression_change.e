@@ -28,7 +28,6 @@ feature{NONE} -- Initialization
 		do
 			expression := a_expression
 
-			create values.make (a_values.count)
 			values := a_values
 			set_is_relative (a_relative)
 			set_relevance (1.0)
@@ -44,6 +43,12 @@ feature -- Access
 
 	expression: EPA_EXPRESSION
 			-- Expression to which Current change is associated
+
+	type: TYPE_A
+			-- Type of `expression'
+		do
+			Result := expression.type
+		end
 
 	values: EPA_EXPRESSION_CHANGE_VALUE_SET
 			-- Values by which or to which `expression' changes

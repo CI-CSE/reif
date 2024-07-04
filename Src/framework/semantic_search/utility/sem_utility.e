@@ -18,7 +18,7 @@ inherit
 
 	SEM_FIELD_NAMES
 
-feature
+feature -- Access
 
 	principal_variable_from_anon_content (a_string: STRING): INTEGER
 			-- Returns the index of the principal variable by taking the most frequent one
@@ -163,47 +163,47 @@ feature -- Access
 			create Result
 		end
 
-	queryable_type_field (a_queryable: SEM_QUERYABLE): SEM_DOCUMENT_FIELD
+	queryable_type_field (a_queryable: SEM_QUERYABLE): IR_FIELD
 			-- Field representing the type name of `a_queryable'
 		require
 			a_queryable_attached: a_queryable /= Void
 		do
 			if a_queryable.is_feature_call then
-				create Result.make_with_string_type (document_type_field, transition_field_value)
+				create Result.make_as_string (document_type_field, transition_field_value, default_boost_value)
 			elseif a_queryable.is_snippet then
-				create Result.make_with_string_type (document_type_field, snippet_field_value)
+				create Result.make_as_string (document_type_field, snippet_field_value, default_boost_value)
 			elseif a_queryable.is_objects then
-				create Result.make_with_string_type (document_type_field, object_field_value)
+				create Result.make_as_string (document_type_field, object_field_value, default_boost_value)
 			end
 		end
 
-	type_of_equation (a_equation: EPA_EQUATION): STRING
+	type_of_equation (a_equation: EPA_EQUATION): INTEGER
 			-- Type of the value from `a_equation'
 		local
 			l_value: EPA_EXPRESSION_VALUE
 		do
 			l_value := a_equation.value
 			if l_value.is_integer then
-				Result := integer_field_type
+				Result := ir_integer_value_type
 			elseif l_value.is_boolean then
-				Result := boolean_field_type
+				Result := ir_boolean_value_type
 			else
-				Result := string_field_type
+				Result := ir_string_value_type
 			end
 		end
 
-	type_of_expression (a_equation: EPA_EXPRESSION): STRING
+	type_of_expression (a_equation: EPA_EXPRESSION): INTEGER
 			-- Type of the value from `a_equation'
 		local
 			l_type: TYPE_A
 		do
 			l_type := a_equation.type
 			if l_type.is_integer then
-				Result := integer_field_type
+				Result := ir_integer_value_type
 			elseif l_type.is_boolean then
-				Result := boolean_field_type
+				Result := ir_boolean_value_type
 			else
-				Result := string_field_type
+				Result := ir_string_value_type
 			end
 		end
 
@@ -259,6 +259,7 @@ feature -- Access
 
 	type_name_table (a_tbl: HASH_TABLE [TYPE_A, STRING]): HASH_TABLE [STRING, STRING]
 			-- Table whose values are type names, instead of types
+			-- Key is variable name
 		do
 			create Result.make (a_tbl.count)
 			Result.compare_objects
@@ -345,6 +346,29 @@ feature -- Access
 			else
 				create Result.make_empty
 			end
+		end
+
+	variable_expression_from_context (a_variable_name: STRING; a_context: EPA_CONTEXT): EPA_EXPRESSION
+			-- Expression for variable named `a_variable_name'
+			-- The variable should appear in `a_context'.
+		require
+			a_variable_name_name: a_context.variables.has (a_variable_name)
+		local
+			l_expr_as: EXPR_AS
+			l_type: TYPE_A
+		do
+			l_expr_as := ast_from_expression_text (a_variable_name)
+			l_type := a_context.expression_type (l_expr_as)
+			if l_type=void then
+				create {NONE_A}l_type
+			end
+			create {EPA_AST_EXPRESSION} Result.make_with_type (a_context.class_, a_context.feature_, l_expr_as, a_context.class_, l_type)
+		end
+
+	static_type_form_generator: SEM_STATIC_TYPE_FORM_GENERATOR
+			-- Static type form generator
+		once
+			create Result.make
 		end
 
 end

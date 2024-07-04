@@ -89,7 +89,7 @@ feature{NONE} -- Implementation
 			l_tran: like queryable
 			l_var_dtype_tbl: like type_name_table
 			l_var_stype_tbl: like type_name_table
-			l_type: STRING
+			l_type: INTEGER
 			l_anonymous: STRING
 			a_prefix: STRING
 			l_equation: SEM_EQUATION
@@ -104,6 +104,7 @@ feature{NONE} -- Implementation
 			l_list: LINKED_LIST [STRING]
 			l_meta_value: STRING
 			l_separator: STRING
+			l_char: CHARACTER
 		do
 			l_tran := queryable
 			l_var_dtype_tbl := queryable_dynamic_type_name_table
@@ -138,7 +139,7 @@ feature{NONE} -- Implementation
 				if l_value.is_integer or l_value.is_true_boolean then
 						-- Output anonymous format.
 					l_anonymous := queryable.anonymous_expression_text (l_expr)
-					append_field_with_data (field_name_for_equation (l_anonymous, l_equation.equation, anonymous_format_type, False, l_prefix), l_value_text, l_type, l_boost)
+					append_field_with_data (field_name_for_equation (l_anonymous, l_equation.equation, anonymous_type_form, False, l_prefix), l_value_text, l_type, l_boost)
 
 						-- Output dynamic type format.
 					l_body := expression_with_replacements (l_expr, l_var_dtype_tbl, True)
@@ -146,17 +147,13 @@ feature{NONE} -- Implementation
 						field_name_for_equation (
 							l_body,
 							l_equation.equation,
-							dynamic_format_type,
+							dynamic_type_form,
 							False,
 							l_prefix),
 						l_value_text, l_type, l_boost)
 
-					l_field_name := field_name_for_equation (l_body, l_equation.equation, dynamic_format_type, True, l_prefix)
-					create l_meta_value.make (1024)
-					l_meta_value.append (l_anonymous)
-					l_meta_value.append (l_separator)
-					l_meta_value.append (l_value_text)
-					l_meta_value.append (l_separator)
+					l_field_name := field_name_for_equation (l_body, l_equation.equation, dynamic_type_form, True, l_prefix)
+					l_meta_value := text_for_variable_indexes_and_value (l_anonymous, l_value_text)
 					extend_string_into_list (l_smeta, l_meta_value, l_field_name)
 
 						-- Output static type format.
@@ -165,11 +162,11 @@ feature{NONE} -- Implementation
 						field_name_for_equation (
 							l_body,
 							l_equation.equation,
-							static_format_type,
+							static_type_form,
 							False,
 							l_prefix),
 						l_value_text, l_type, l_boost)
-					l_field_name := field_name_for_equation (l_body, l_equation.equation, static_format_type, True, l_prefix)
+					l_field_name := field_name_for_equation (l_body, l_equation.equation, static_type_form, True, l_prefix)
 					extend_string_into_list (l_dmeta, l_meta_value, l_field_name)
 				end
 				l_equations.forth
@@ -177,12 +174,7 @@ feature{NONE} -- Implementation
 
 			across <<l_smeta, l_dmeta>> as l_metas loop
 				across l_metas.item as l_items loop
-					if l_items.item.starts_with (once "i") then
-						l_type := integer_field_type
-					else
-						l_type := boolean_field_type
-					end
-					append_field_with_data (l_items.key, escaped_field_string (l_items.item), l_type, l_boost)
+					append_field_with_data (l_items.key, escaped_field_string (l_items.item), ir_string_value_type, l_boost)
 				end
 			end
 		end
@@ -199,9 +191,9 @@ feature{NONE} -- Implementation
 			l_change_calculator: EPA_EXPRESSION_CHANGE_CALCULATOR
 			l_dynamic_change: DS_HASH_TABLE [LIST [EPA_EXPRESSION_CHANGE], EPA_EXPRESSION]
 			l_static_change: DS_HASH_TABLE [LIST [EPA_EXPRESSION_CHANGE], EPA_EXPRESSION]
-			l_type: STRING
+			l_type: INTEGER
 		do
-			create l_change_calculator
+			create l_change_calculator.make
 
 			l_static_change := l_change_calculator.change_set (queryable.written_preconditions, queryable.written_postconditions)
 			append_change_set (l_static_change, default_boost_value * 2.0)
@@ -209,7 +201,7 @@ feature{NONE} -- Implementation
 			l_dynamic_change := l_change_calculator.change_set (queryable.preconditions, queryable.postconditions)
 			append_change_set (l_dynamic_change, default_boost_value)
 
-			l_type := string_prefix
+			l_type := ir_string_value_type
 			across <<dynamic_change_meta, static_change_meta>> as l_metas loop
 				across l_metas.item as l_items loop
 					append_field_with_data (l_items.key, escaped_field_string (l_items.item), l_type, default_boost_value)
@@ -245,7 +237,7 @@ feature{NONE} -- Implementation
 			l_tran: like queryable
 			l_var_dtype_tbl: like type_name_table
 			l_var_stype_tbl: like type_name_table
-			l_type: STRING
+			l_type: INTEGER
 			l_anonymous: STRING
 			a_prefix: STRING
 			l_equation: SEM_EQUATION
@@ -268,27 +260,23 @@ feature{NONE} -- Implementation
 						-- Output anonymous format.
 					l_anonymous := queryable.anonymous_expression_text (a_change.expression)
 
-					append_field_with_data (field_name_for_change (l_anonymous, a_change, anonymous_format_type, False), l_value_text, l_type, a_boost_value)
+					append_field_with_data (field_name_for_change (l_anonymous, a_change, anonymous_type_form, False), l_value_text, l_type, a_boost_value)
 
 						-- Output dynamic type format.
 					l_body := expression_with_replacements (l_expr, l_var_dtype_tbl, False)
 					append_field_with_data (
-						field_name_for_change (l_body, a_change, dynamic_format_type, False),
+						field_name_for_change (l_body, a_change, dynamic_type_form, False),
 						l_value_text, l_type, l_boost)
-					l_field_name := field_name_for_change (l_body, a_change, dynamic_format_type, True)
-					create l_meta_value.make (1024)
-					l_meta_value.append (l_anonymous)
-					l_meta_value.append (field_value_separator)
-					l_meta_value.append (l_value_text)
-					l_meta_value.append (field_value_separator)
+					l_field_name := field_name_for_change (l_body, a_change, dynamic_type_form, True)
+					l_meta_value := text_for_variable_indexes_and_value (l_anonymous, l_value_text)
 					extend_string_into_list (dynamic_change_meta, l_meta_value, l_field_name)
 
 						-- Output static type format.
 					l_body := expression_with_replacements (l_expr, l_var_stype_tbl, True)
 					append_field_with_data (
-						field_name_for_change (l_body, a_change, static_format_type, False),
+						field_name_for_change (l_body, a_change, static_type_form, False),
 						l_value_text, l_type, l_boost)
-					l_field_name := field_name_for_change (l_body, a_change, static_format_type, True)
+					l_field_name := field_name_for_change (l_body, a_change, static_type_form, True)
 					extend_string_into_list (static_change_meta, l_meta_value, l_field_name)
 				end
 			end
