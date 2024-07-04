@@ -55,6 +55,29 @@ feature {NONE} -- Initialization
 			disable_tabable_to
 		end
 
+feature -- Minimum size
+
+	set_default_minimum_size
+			-- Resize to a default size.
+		do
+			accommodate_text (" ")
+		end
+
+	accommodate_text (a_text: READABLE_STRING_GENERAL)
+			-- Change internal minimum size to make `a_text' fit.
+		require
+			a_text_not_void: a_text /= Void
+			a_text_not_empty: not a_text.is_empty
+		local
+			t: TUPLE [width: INTEGER; height: INTEGER]
+			a_width, a_height: INTEGER
+		do
+			t := font.string_size (a_text)
+			a_width := t.width
+			a_height := t.height
+			internal_set_minimum_size (a_width.abs + 5, a_height.abs + 5)
+		end
+
 feature -- Status setting
 
 	align_text_top
@@ -84,8 +107,16 @@ feature -- Status setting
 	set_text (a_text: READABLE_STRING_GENERAL)
 			-- Assign `a_text' to `text'.
 		do
-			Precursor {EV_TEXTABLE_IMP} (a_text)
-			text_field.set_string_value_ (create {NS_STRING}.make_with_eiffel_string (a_text.as_string_8))
+			if not a_text.same_string (text) then
+				if a_text.is_empty then
+					set_default_minimum_size
+				else
+					accommodate_text (a_text)
+				end
+				Precursor {EV_TEXTABLE_IMP} (a_text)
+				text_field.set_string_value (a_text)
+				-- invalidate
+			end
 		end
 
 	set_background_color (a_color: EV_COLOR)

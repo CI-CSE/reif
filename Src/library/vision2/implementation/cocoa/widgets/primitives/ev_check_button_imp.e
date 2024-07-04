@@ -19,7 +19,8 @@ inherit
 			default_alignment
 		redefine
 			make,
-			interface
+			interface,
+			accommodate_text
 		end
 
 create
@@ -37,6 +38,18 @@ feature {NONE} -- Initialization
 			set_button_type_ (3)
 
 			align_text_left
+		end
+
+	accommodate_text (a_text: READABLE_STRING_GENERAL)
+			-- Change internal minimum size to make `a_text' fit.
+		local
+			t: TUPLE [width: INTEGER; height: INTEGER]
+			a_width, a_height: INTEGER
+		do
+			t := font.string_size (a_text)
+			a_width := t.width
+			a_height := t.height
+			internal_set_minimum_size (a_width.abs + 25, a_height.abs + 5)
 		end
 
 feature {EV_ANY, EV_ANY_I}

@@ -164,8 +164,15 @@ feature -- Status Setting
 	set_text (a_text: READABLE_STRING_GENERAL)
 			-- <Precursor>
 		do
-			Precursor {EV_TEXTABLE_IMP} (a_text)
-			set_title_ (create {NS_STRING}.make_with_eiffel_string (a_text.as_string_8))
+			if not a_text.same_string (text) then
+				if a_text.is_empty then
+					set_default_minimum_size
+				else
+					accommodate_text (a_text)
+				end
+				Precursor {EV_TEXTABLE_IMP} (a_text)
+				set_title (a_text.as_string_8)
+			end
 		end
 
 	set_background_color (a_color: EV_COLOR)
@@ -176,6 +183,31 @@ feature -- Status Setting
 			if attached {EV_COLOR_IMP} a_color.implementation as imp and attached {NS_BUTTON_CELL} cell as l_cell then
 				l_cell.set_background_color_ (imp.color)
 			end
+		end
+
+feature -- Measurement
+
+	set_default_minimum_size
+			-- Reset `Current' to its default minimum size.
+		do
+			-- TODO: This is not very smart at the moment!
+			-- Calculate dynamically (this depends on the button style and the text)
+			accommodate_text (" ")
+		end
+
+	accommodate_text (a_text: READABLE_STRING_GENERAL)
+			-- Change internal minimum size to make `a_text' fit.
+		require
+			a_text_not_void: a_text /= Void
+			a_text_not_empty: not a_text.is_empty
+		local
+			t: TUPLE [width: INTEGER; height: INTEGER]
+			a_width, a_height: INTEGER
+		do
+			t := font.string_size (a_text)
+			a_width := t.width
+			a_height := t.height
+			internal_set_minimum_size (a_width.abs + 30, a_height.abs + 10)
 		end
 
 feature -- Sensitivity
