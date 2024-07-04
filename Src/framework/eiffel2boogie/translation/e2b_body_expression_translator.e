@@ -66,12 +66,13 @@ feature -- Visitors
 			l_heap_access: IV_HEAP_ACCESS
 			l_call: IV_FUNCTION_CALL
 			l_type_value: IV_VALUE
+			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_type ?= a_node.type.deep_actual_type
 			check l_type /= Void end
 			l_feature := a_node.type.associated_class.feature_of_rout_id (a_node.call.routine_id)
 			check feature_valid: l_feature /= Void end
-			translation_pool.add_referenced_feature (l_feature, l_type)
+--			translation_pool.add_referenced_feature (l_feature, l_type)
 
 			create_local (l_type)
 
@@ -98,7 +99,14 @@ feature -- Visitors
 			current_target := l_local
 			current_target_type := l_type
 
-			process_routine_call (l_feature, a_node.parameters)
+			l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
+			if l_handler /= Void then
+				l_handler.handle_routine_call_in_body (Current, l_feature, a_node.parameters)
+			else
+				process_routine_call (l_feature, a_node.parameters)
+			end
+
+--			process_routine_call (l_feature, a_node.parameters)
 
 			current_target := l_target
 			current_target_type := l_target_type
@@ -190,9 +198,7 @@ feature -- Translation
 		local
 			l_inlining_depth: INTEGER
 		do
-			if has_special_mapping (a_feature, current_target_type) then
-				process_special_mapping_call (a_feature, a_parameters)
-			elseif options.inlining_depth > 0 then
+			if options.inlining_depth > 0 then
 				l_inlining_depth := options.inlining_depth
 				options.set_inlining_depth (options.inlining_depth - 1)
 				process_inlined_routine_call (a_feature, a_parameters)
@@ -244,6 +250,49 @@ feature -- Translation
 				last_expression := Void
 			end
 			side_effect.extend (l_call)
+		end
+
+	process_builtin_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
+			-- Process feature call.
+		local
+			l_target: IV_EXPRESSION
+			l_target_type: TYPE_A
+			l_call: IV_PROCEDURE_CALL
+		do
+			create l_call.make (a_builtin_name)
+			l_call.add_argument (current_target)
+
+				-- Process arguments in context of feature
+			l_target := current_target
+			l_target_type := current_target_type
+			last_expression := Void
+
+			current_target := entity_mapping.current_entity
+			current_target_type := context_type
+
+			procedure_calls.extend (l_call)
+			safe_process (a_parameters)
+			procedure_calls.remove
+
+			current_target := l_target
+			current_target_type := l_target_type
+
+				-- Process call
+			if a_feature.has_return_value then
+				create_local (a_feature.type.instantiated_in (current_target_type))
+				l_call.set_target (last_local)
+				last_expression := last_local
+			else
+					-- No expression generated, this has to be a call statement
+				last_expression := Void
+			end
+			side_effect.extend (l_call)
+		end
+
+	process_special_routine_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+			-- <Precursor>
+		do
+			a_handler.handle_routine_call_in_body (Current, a_feature, a_parameters)
 		end
 
 	inlined_routines: HASH_TABLE [INTEGER, INTEGER]
