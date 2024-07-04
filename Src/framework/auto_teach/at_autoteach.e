@@ -27,7 +27,7 @@ feature {NONE} -- Initialization
 			create input_classes.make
 
 			create ast_iterator.make_with_options (options)
-			ast_iterator.set_message_output_action (message_output_action)
+			ast_iterator.set_message_output_action (agent print_message)
 		end
 
 feature -- Interface
@@ -55,7 +55,7 @@ feature -- Interface
 			l_output_path: PATH
 			l_dir: DIRECTORY
 			l_io: BOOLEAN
-			l_level: INTEGER
+			l_level: NATURAL
 		do
 			if not l_io then
 				l_io := True
