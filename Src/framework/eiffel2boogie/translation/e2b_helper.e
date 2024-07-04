@@ -36,6 +36,8 @@ feature -- Cache control
 			map_access_feature_cache.wipe_out
 			flat_model_cache.wipe_out
 			internal_counter.put (0)
+				-- Reset invariant checks
+			(create {E2B_TYPE_TRANSLATOR}).invariant_check_cache.wipe_out;
 				-- Reset type varibale counter
 			(create {IV_VAR_TYPE}.reset).do_nothing
 		end
@@ -137,7 +139,7 @@ feature -- General note helpers
 		end
 
 	string_class_note_value (a_class: CLASS_C; a_tag: STRING_32): STRING
-			-- Value of an string class note tag, empty string if not present.
+			-- Value of a string class note tag, empty string if not present.
 		local
 			l_values: ARRAYED_LIST [STRING_32]
 		do
@@ -149,7 +151,7 @@ feature -- General note helpers
 		end
 
 	string_feature_note_value (a_feature: FEATURE_I; a_tag: STRING_32): STRING
-			-- Value of an string feature note tag, empty string if not present.
+			-- Value of a string feature note tag, empty string if not present.
 		local
 			l_values: ARRAYED_LIST [STRING_32]
 		do
@@ -158,6 +160,31 @@ feature -- General note helpers
 			if not l_values.is_empty then
 				Result := l_values.i_th (1).as_string_8
 			end
+		end
+
+feature -- Class status helpers
+
+	is_class_status (a_class: CLASS_C; a_value: STRING): BOOLEAN
+			-- Does `a_class' has a note with a tag status that contains the value `a_value'?
+		local
+			l_values: ARRAYED_LIST [STRING_32]
+		do
+			l_values := class_note_values (a_class, "status")
+			if not l_values.is_empty then
+				Result := across l_values as i some i.item.as_string_8.is_equal (a_value)  end
+			end
+		end
+
+	is_skipped_class (a_class: CLASS_C): BOOLEAN
+			-- Is `a_class' skipped?
+		do
+			Result := is_class_status (a_class, "skip")
+		end
+
+	is_manual_inv_class (a_class: CLASS_C): BOOLEAN
+			-- Does `a_class' have the manual inv trigger?
+		do
+			Result := boolean_class_note_value (a_class, "manual_inv")
 		end
 
 feature -- Feature status helpers
@@ -173,22 +200,10 @@ feature -- Feature status helpers
 			end
 		end
 
-	is_ghost (a_feature: FEATURE_I): BOOLEAN
-			-- Is `a_feature' a ghost feature?
+	is_creator (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a creator?
 		do
-			Result := is_feature_status (a_feature, "ghost")
-		end
-
-	is_functional (a_feature: FEATURE_I): BOOLEAN
-			-- Is `a_feature' a ghost feature?
-		do
-			Result := is_feature_status (a_feature, "functional")
-		end
-
-	is_lemma (a_feature: FEATURE_I): BOOLEAN
-			-- Is `a_feature' a ghost feature?
-		do
-			Result := is_feature_status (a_feature, "lemma")
+			Result := is_feature_status (a_feature, "creator")
 		end
 
 	is_dynamic (a_feature: FEATURE_I): BOOLEAN
@@ -197,16 +212,76 @@ feature -- Feature status helpers
 			Result := is_feature_status (a_feature, "dynamic")
 		end
 
-	is_public (a_feature: FEATURE_I): BOOLEAN
-			-- Is `a_feature' a public feature?
+	is_functional (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a functional feature?
 		do
-			Result := a_feature.is_exported_for (system.any_class.compiled_class)
+			Result := is_feature_status (a_feature, "functional")
+		end
+
+	is_ghost (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a ghost feature?
+		do
+			Result := is_feature_status (a_feature, "ghost")
+		end
+
+	is_impure (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' impure?
+		do
+			Result := is_feature_status (a_feature, "impure")
+		end
+
+	is_inline_in_caller (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' inlined in caller?
+		do
+			Result := is_feature_status (a_feature, "inline_in_caller")
+		end
+
+	is_invariant_unfriendly (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' invariant unfriendly?
+		do
+			Result := is_feature_status (a_feature, "inv_unfriendly")
+		end
+
+	is_lemma (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a ghost feature?
+		do
+			Result := is_feature_status (a_feature, "lemma")
+		end
+
+	is_manual_inv (a_feature: FEATURE_I): BOOLEAN
+			-- Does `a_feature' have the manual inv trigger?
+		do
+			Result := boolean_feature_note_value (a_feature, "manual_inv")
+		end
+
+	is_opaque (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a an opaque feature?
+		do
+			Result := is_feature_status (a_feature, "opaque")
 		end
 
 	is_private (a_feature: FEATURE_I): BOOLEAN
 			-- Is `a_feature' a public feature?
 		do
 			Result := a_feature.export_status.is_none
+		end
+
+	is_public (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a public feature?
+		do
+			Result := a_feature.is_exported_for (system.any_class.compiled_class)
+		end
+
+	is_setter (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a setter?
+		do
+			Result := is_feature_status (a_feature, "setter")
+		end
+
+	is_skipped (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' skipped for verification?
+		do
+			Result := is_feature_status (a_feature, "skip")
 		end
 
 	feature_with_string_note_value (a_class: CLASS_C; a_tag, a_value: STRING_32): FEATURE_I
@@ -389,10 +464,37 @@ feature -- Ownership helpers
 			end
 		end
 
-	guard_for_attribute (a_feature: FEATURE_I): STRING_32
+	guards_for_attribute (a_feature: FEATURE_I): LINKED_LIST [TUPLE [str: STRING; origin: CLASS_C]]
 			-- Update guard for attribute `a_feature'.
+		local
+			g: STRING
+			c: CLASS_C
 		do
-			Result := string_feature_note_value (a_feature, "guard")
+			create Result.make
+			Result.compare_objects
+			across all_versions (a_feature) as ver loop
+				g := string_feature_note_value (ver.item, "guard")
+				c := ver.item.written_class
+				if g.is_empty then
+						-- No guard defined
+					if ver.item.assert_id_set = Void then
+							-- This is the original version: apply default
+						if boolean_class_note_value (c, "false_guards") then
+							Result.extend (["false", c])
+						else
+							Result.extend (["inv", c])
+						end
+					else
+							-- This is a redefinition: skip (equivalent to adding true)
+					end
+				else
+						-- Explicit guard: add to list
+					Result.extend (g, c)
+				end
+			end
+		ensure
+			non_empty: not Result.is_empty
+			each_non_empty: across Result as s all not s.item.str.is_empty end
 		end
 
 	attribute_from_string (a_name: STRING; a_type: CL_TYPE_A; a_origin_class: CLASS_C; a_context_feature: FEATURE_I; a_context_line_number: INTEGER): FEATURE_I
@@ -427,6 +529,14 @@ feature -- Ownership helpers
 					types.field (types.for_class_type (l_type)))
 				translation_pool.add_referenced_feature (a_feature, a_context_type)
 			end
+		end
+
+	is_built_in_attribute (a_feature: FEATURE_I): BOOLEAN
+			-- Does `a_feature' represent on the of the built-in attributes?
+			-- (Which means that it is not actually an attribute, but should be).
+		do
+			-- ToDo: take possible renaming into account?
+			Result := translation_mapping.ghost_access.has (a_feature.feature_name_32)
 		end
 
 feature -- Model helpers
@@ -597,7 +707,7 @@ feature -- Eiffel helpers
 			end
 		end
 
-	is_creator (a_feature: FEATURE_I; a_class: CLASS_C): BOOLEAN
+	is_creator_of_class (a_feature: FEATURE_I; a_class: CLASS_C): BOOLEAN
 			-- Is `a_feature' a creator of `a_class'?
 		do
 			Result := a_class.has_creator_of_name_id (a_feature.feature_name_id) or
@@ -686,7 +796,7 @@ feature -- Eiffel helpers
 
 feature -- Contract helpers
 
-	has_flat_precondition (a_feature: FEATURE_I; a_type: CL_TYPE_A): BOOLEAN
+	has_flat_precondition (a_feature: FEATURE_I): BOOLEAN
 			-- Could `a_feature' have a precondition (immediate or inherited)?
 		do
 			Result := a_feature.has_precondition or a_feature.assert_id_set /= Void
@@ -768,7 +878,7 @@ feature -- Other
 			l_contract_extractor: EPA_CONTRACT_EXTRACTOR
 		do
 			Result := options.is_inlining_enabled and then
-				boolean_feature_note_value (a_routine, "inline_in_caller")
+				is_inline_in_caller (a_routine)
 			if not Result and options.is_automatic_inlining_enabled then
 				create l_contract_extractor
 				Result := l_contract_extractor.all_postconditions (a_routine).is_empty
@@ -864,6 +974,8 @@ feature -- Other
 		do
 			Result := a_feature.is_routine and -- is routine
 				not is_feature_logical (a_feature) and -- not logical
+				not helper.is_skipped (a_feature) and -- not feature skipped
+				not helper.is_skipped_class (a_class) and -- not class skipped
 				(a_feature.written_in /= system.any_id or a_feature.rout_id_set.has (system.default_create_rout_id)) and -- is not inherited from ANY
 				not (a_feature.written_in /= a_class.class_id and is_dynamic (a_feature)) -- not an inherited dynamic feature
 		end

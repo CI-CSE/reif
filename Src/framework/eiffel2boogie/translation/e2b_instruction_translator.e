@@ -211,7 +211,16 @@ feature -- Processing
 			end
 
 				-- Create source node
-			process_expression (a_node.source)
+			if helper.is_functional (current_feature) then
+					-- Process as contract expression if it is the body of functional
+					-- (otherwise hard to deal with preconditions)
+				process_contract_expression (a_node.source, False)
+				across last_safety_checks as i loop
+					add_statement (i.item)
+				end
+			else
+				process_expression (a_node.source)
+			end
 			l_source := last_expression
 
 				-- Check for possible boxing of basic types
@@ -1317,7 +1326,7 @@ feature {NONE} -- Implementation
 			l_translator.set_context (current_feature, current_type)
 			l_translator.copy_entity_mapping (entity_mapping)
 			l_translator.locals_map.merge (locals_map)
-			last_frame := l_routine_translator.frame_definition (l_routine_translator.modify_expressions_of (a_modifies, l_translator), a_lhs)
+			last_frame := l_routine_translator.frame_definition (l_routine_translator.modify_expressions_of (a_modifies, l_translator), a_lhs, <<>>)
 			last_safety_checks := l_translator.side_effect
 			locals_map.merge (l_translator.locals_map)
 		end
@@ -1358,8 +1367,8 @@ feature {NONE} -- Implementation
 			across
 				l_translator.side_effect as stmts
 			loop
-				if stmts.is_first and attached current_origin_information as coi then
-					stmts.item.set_origin_information (coi)
+				if stmts.is_first and attached current_origin_information as c then
+					stmts.item.set_origin_information (c)
 					current_origin_information := Void
 				end
 				current_block.add_statement (stmts.item)

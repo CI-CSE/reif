@@ -99,6 +99,32 @@ feature -- Messages for both GUI and command line mode
 
 feature -- Rule Violations
 
+	mergeable_conditionals_violation_1: STRING_32
+		do Result := translation_in_context ("There are two conditionals with semantically equal conditionals.%N%
+									% Thus the conditional instructions can be merged into one", once "code_analyzer.violation") end
+
+	local_used_for_result_violation_1: STRING_32
+		do Result := translation_in_context ("The local variable '", once "code_analyzer.violation") end
+
+	local_used_for_result_violation_2: STRING_32
+		do Result := translation_in_context ("' is only assigned to Result and never used.%NIt can be replaced by Result directly.", once "code_analyzer.violation") end
+
+	real_nan_comparison_violation_1: STRING_32
+		do Result := translation_in_context ("Comparing of a real variable with {REAL}.nan usually does not yield%Nthe intended result.%
+									% You should use the query %".is_nan%"", once "code_analyzer.violation") end
+
+	object_test_failing_violation_1: STRING_32
+		do Result := translation_in_context ("The object test for the variable '", once "code_analyzer.violation") end
+
+	object_test_failing_violation_2: STRING_32
+		do Result := translation_in_context ("' will always fail, therefore%Nthe corresponding block of code can be safely removed.", once "code_analyzer.violation") end
+
+	useless_contract_violation_1: STRING_32
+		do Result := translation_in_context ("Feature '", once "code_analyzer.violation") end
+
+	useless_contract_violation_2: STRING_32
+		do Result := translation_in_context ("' contains a precondition which is not needed and can be removed.", once "code_analyzer.violation") end
+
 	unreachable_code_violation_1: STRING_32
 		do Result := translation_in_context ("Class '", once "code_analyzer.violation") end
 

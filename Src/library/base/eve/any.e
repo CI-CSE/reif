@@ -70,21 +70,21 @@ feature -- Comparison
 			"built_in"
 		end
 
-	is_equal_ (other: ANY): BOOLEAN
+	is_equal_ (other: like Current): BOOLEAN
 			-- Is the abstract state of Current equal to that of `other'?
 		note
 			explicit: contracts
 		require
+--			same_type: generating_type = other.generating_type
 			closed: closed
-			other_void_or_closed: attached other implies other.closed
+			other_closed: other.closed
 			subjects_closed: across subjects as s all s.item.closed end
-			other_subjects_closed: attached other implies across other.subjects as s all s.item.closed end
+			other_subjects_closed: across other.subjects as s all s.item.closed end
 		do
 			Result := True
 		ensure
 			definition: Result = is_model_equal (other)
 		end
-
 
 	frozen standard_is_equal (other: like Current): BOOLEAN
 			-- Is `other' attached to an object of the same type
@@ -118,7 +118,7 @@ feature -- Comparison
 		do
 			if x = Void then
 				Result := y = Void
-			else
+			elseif x.generating_type = y.generating_type then
 				Result := x.is_equal_ (y)
 			end
 		ensure
@@ -431,7 +431,7 @@ feature -- Verification: contract clauses
 			Result := True
 		end
 
-	frozen reads_model (a_field: ANY; a_object: TUPLE): BOOLEAN
+	frozen reads_model (a_models: ANY; a_object: TUPLE): BOOLEAN
 			-- Does this function read model queries `a_models' of objects in `a_objects'?
 		do
 			Result := True
@@ -576,10 +576,11 @@ feature -- Verification: ownership fields
 		do
 		end
 
-	frozen owns: MML_SET [ANY] assign set_owns
+	owns: MML_SET [ANY] assign set_owns
 			-- Owns set of this object.
 		note
 			status: ghost
+			guard: True
 		do
 		end
 
@@ -588,10 +589,11 @@ feature -- Verification: ownership fields
 		do
 		end
 
-	frozen subjects: MML_SET [ANY] assign set_subjects
+	subjects: MML_SET [ANY] assign set_subjects
 			-- Subjects set of this object.
 		note
 			status: ghost
+			guard: True
 		do
 		end
 
@@ -600,10 +602,11 @@ feature -- Verification: ownership fields
 		do
 		end
 
-	frozen observers: MML_SET [ANY] assign set_observers
+	observers: MML_SET [ANY] assign set_observers
 			-- Observers set of this object.
 		note
 			status: ghost
+			guard: in_observers
 		do
 		end
 
@@ -612,19 +615,44 @@ feature -- Verification: ownership fields
 		do
 		end
 
+	in_observers (new_observers: like observers; o: ANY): BOOLEAN
+			-- Is `o' in `new_observers'? (Guard for `observers')
+		note
+			status: functional, ghost
+		do
+			Result := new_observers [o]
+		end
+
 feature -- Verification: auxiliary
 
-	is_model_equal (other: ANY): BOOLEAN
+	is_model_equal (other: like Current): BOOLEAN
 			-- Is the abstract state of `Current' equal to that of `other'?
 		note
 			status: ghost
 			explicit: contracts
 		require
+			other /= Void
+--			generating_type = other.generating_type
 			reads (Current, other)
 		do
 			Result := True
 		ensure
 			reflexive: other = Current implies Result
+			symmetric: Result = other.is_model_equal (Current)
+		end
+
+	lemma_transitive (x: like Current; ys: MML_SET [ANY])
+			-- Property that follows from transitivity of `is_model_equal'.
+			-- ToDo: reformulate once we have call_forall.
+		note
+			status: lemma
+		require
+			equal_x: is_model_equal (x)
+			ys_exist: ys.non_void
+		do
+		ensure
+			x_in_ys_iff_current_in_ys: across ys as y some is_model_equal (y.item) end =
+				across ys as y some x.is_model_equal (y.item) end
 		end
 
 	frozen model_equals (x, y: ANY): BOOLEAN
@@ -633,7 +661,7 @@ feature -- Verification: auxiliary
 		require
 			reads (x, y)
 		do
-			Result := (x = Void and y = Void) or else (x /= Void and then x.is_model_equal (y))
+			Result := (x = Void and y = Void) or ((x /= Void and x.generating_type = y.generating_type) and then x.is_model_equal (y))
 		end
 
 	frozen old_: like Current

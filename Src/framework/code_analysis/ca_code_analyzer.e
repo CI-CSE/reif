@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 			add_rule (create {CA_FEATURE_NEVER_CALLED_RULE}.make)
 			add_rule (create {CA_CQ_SEPARATION_RULE}.make)
 			add_rule (create {CA_UNNEEDED_OT_LOCAL_RULE}.make)
-			add_rule (create {CA_UNNEEDED_OBJECT_TEST_RULE}.make) -- Needs type info.
+			add_rule (create {CA_UNNEEDED_OBJECT_TEST_RULE}.make)
 			add_rule (create {CA_NESTED_COMPLEXITY_RULE}.make (settings.preference_manager))
 			add_rule (create {CA_MANY_ARGUMENTS_RULE}.make (settings.preference_manager))
 			add_rule (create {CA_CREATION_PROC_EXPORTED_RULE}.make)
@@ -55,8 +55,8 @@ feature {NONE} -- Initialization
 			add_rule (create {CA_EMPTY_EFFECTIVE_ROUTINE_RULE}.make)
 			add_rule (create {CA_IF_ELSE_NOT_EQUAL_RULE}.make)
 			add_rule (create {CA_SHORT_CIRCUIT_IF_RULE}.make)
-			add_rule (create {CA_ITERABLE_LOOP_RULE}.make) -- Needs type info.
-			add_rule (create {CA_COUNT_EQUALS_ZERO_RULE}.make) -- Needs type info.
+			add_rule (create {CA_ITERABLE_LOOP_RULE}.make)
+			add_rule (create {CA_COUNT_EQUALS_ZERO_RULE}.make)
 			add_rule (create {CA_DEEPLY_NESTED_IF_RULE}.make (settings.preference_manager))
 			add_rule (create {CA_UNNEEDED_HELPER_VARIABLE_RULE}.make (settings.preference_manager))
 			add_rule (create {CA_UNNEEDED_PARENTHESES_RULE}.make)
@@ -84,6 +84,11 @@ feature {NONE} -- Initialization
 			add_rule (create {CA_ATTRIBUTE_CAN_BE_CONSTANT_RULE}.make)
 			add_rule (create {CA_LOOP_INVARIANT_COMPUTATION_RULE}.make)
 			add_rule (create {CA_UNREACHABLE_CODE_RULE}.make)
+			add_rule (create {CA_OBJECT_TEST_FAILING_RULE}.make)
+			add_rule (create {CA_USELESS_CONTRACT_RULE}.make)
+			add_rule (create {CA_REAL_NAN_COMPARISON_RULE}.make)
+			add_rule (create {CA_LOCAL_USED_FOR_RESULT_RULE}.make)
+			add_rule (create {CA_MERGEABLE_CONDITIONALS_RULE}.make)
 
 				-- Sort rules by ID.
 			create l_rule_comparator.make (

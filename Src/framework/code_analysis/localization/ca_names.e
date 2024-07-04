@@ -18,6 +18,46 @@ feature -- General
 
 feature -- Rules
 
+	mergeable_conditionals_title: STRING_32
+		do Result := translation_in_context ("Mergeable conditionals", once "code_analyzer") end
+
+	mergeable_conditionals_description: STRING_32
+		do Result := translation_in_context ("Successive conditional instructions with the same condition can be merged.", once "code_analyzer") end
+
+	local_used_for_result_title: STRING_32
+		do Result := translation_in_context ("Local variable only used for Result", once "code_analyzer") end
+
+	local_used_for_result_description: STRING_32
+		do Result := translation_in_context ("In a function, a local variable that is never read and that is not assigned%
+							% to any variable but the Result can be omitted. Instead the Result can be directly used.", once "code_analyzer") end
+
+	real_nan_comparison_title: STRING_32
+		do Result := translation_in_context ("{REAL}.nan comparison", once "code_analyzer") end
+
+	real_nan_comparison_description: STRING_32
+		do Result := translation_in_context ("To check whether a REAL object is %"NaN%" (not a number) a comparison using%
+							% the '=' symbol does not yield the intended result. Instead one must use the query {REAL}.is_nan.", once "code_analyzer") end
+
+	real_nan_comparison_fix: STRING_32
+		do Result := translation_in_context ("Change to comparison with {REAL}.is_nan", once "code_analyzer") end
+
+	useless_contract_title: STRING_32
+		do Result := translation_in_context ("Object test fails", once "code_analyzer") end
+
+	useless_contract_description: STRING_32
+		do Result := translation_in_context ("If a certain variable is declared as attached, either explicitly or by%
+							% the project setting %"Are types attached by default?%" then a contract declaring this variable%
+							% not to be void is useless. This rule only applies if the project setting for Void safety is set%
+							% to %"Complete%" (?).", once "code_analyzer") end
+
+	object_test_failing_title: STRING_32
+		do Result := translation_in_context ("Object test fails", once "code_analyzer") end
+
+	object_test_failing_description: STRING_32
+		do Result := translation_in_context ("An object test will always fail if the type that the variable is tested%
+							% for does not conform to any type that conforms to the static type of the tested variable.%
+							% The whole if block will therefore never be executed and it is redundant.", once "code_analyzer") end
+
 	unreachable_code_title: STRING_32
 		do Result := translation_in_context ("Unreachable code", once "code_analyzer") end
 
@@ -738,6 +778,9 @@ feature -- GUI
 
 	rule_id_column: STRING_32
 		do Result := translation_in_context ("Rule ID", once "code_analyzer.column") end
+
+	fixes_column: STRING_32
+		do Result := translation_in_context ("Fix", once "code_analyzer.column") end
 
 	severity_score_column: STRING_32
 		do Result := translation_in_context ("Severity Score", once "code_analyzer.column") end

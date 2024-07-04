@@ -346,8 +346,12 @@ feature -- Statements
 	singleton_block (a_statement: IV_STATEMENT): IV_BLOCK
 			-- Block that consists of `a_statement'.
 		do
-			create Result.make
-			Result.add_statement (a_statement)
+			if attached {IV_BLOCK} a_statement as b then
+				Result := b
+			else
+				create Result.make
+				Result.add_statement (a_statement)
+			end
 		end
 
 	return: IV_RETURN
@@ -389,10 +393,53 @@ feature -- Framing
 			across a_boogie_procedure.arguments as i loop
 				l_fcall.add_argument (i.item.entity)
 			end
-			Result := function_call ("same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
+			if helper.is_setter (a_feature) then
+				Result := function_call ("flat_same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
+			else
+				Result := function_call ("same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
+			end
 				-- TODO: fix inlining
 			if not a_boogie_procedure.name.has_substring (a_feature.feature_name_32.out) then
 				Result := true_
+			end
+		end
+
+feature -- Axioms
+
+	add_dynamic_predicate_definition (a_call, a_body: IV_EXPRESSION; a_type: CL_TYPE_A; a_heap, a_current: IV_ENTITY; a_extra_vars: ARRAY [IV_ENTITY])
+			-- Add axioms that define predicate `a_call' as `a_body' if the dynamic type of `a_current' is `a_type',
+			-- and state that this definition can only be strengthened in descendants.
+		local
+			l_forall: IV_FORALL
+		do
+				-- type_of(current) == type  ==> call(heap, current) == body
+			create l_forall.make (implies_ (
+				function_call ("attached_exact", << a_heap, a_current, type_value (a_type) >>, types.bool),
+				equiv (a_call, a_body)))
+			l_forall.add_bound_variable (a_heap)
+			l_forall.add_bound_variable (a_current)
+			across a_extra_vars as v loop
+				l_forall.add_bound_variable (v.item)
+			end
+			l_forall.add_trigger (a_call)
+
+			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+
+				-- If the definition is trivially true, no point stating that it is only strengthened.
+			if not a_body.is_true then
+					-- Inheritance axiom:
+					-- type_of(current) <: type  ==> call(heap, current) ==> body
+				create l_forall.make (implies_ (
+						function_call ("attached", << a_heap, a_current, type_value (a_type) >>, types.bool),
+						implies_ (a_call, a_body)))
+				l_forall.add_bound_variable (a_heap)
+				l_forall.add_bound_variable (a_current)
+				across a_extra_vars as v loop
+					l_forall.add_bound_variable (v.item)
+				end
+				l_forall.add_trigger (a_call)
+
+				boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 			end
 		end
 

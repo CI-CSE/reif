@@ -144,26 +144,27 @@ feature -- Translation
 
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 			l_name := name_translator.boogie_function_for_feature (a_feature, current_target_type)
-			if helper.is_feature_status (a_feature, "impure") then
+			if helper.is_impure (a_feature) then
 					-- This is not a pure function
 				helper.add_semantic_error (a_feature, messages.impure_function_in_contract, context_line_number)
 				last_expression := dummy_node (a_feature.type)
 			else
 				create l_call.make (l_name, types.for_class_type (feature_class_type (a_feature)))
-				l_call.add_argument (entity_mapping.heap)
-				l_call.add_argument (current_target)
+					-- Once functions are translated as constants; they have neither arguments nor preconditions
+				if not a_feature.is_once then
+					l_call.add_argument (entity_mapping.heap)
+					l_call.add_argument (current_target)
 
-				process_parameters (a_parameters)
-				l_call.arguments.append (last_parameters)
+					process_parameters (a_parameters)
+					l_call.arguments.append (last_parameters)
 
-					-- Add read frame check
-				add_read_frame_check (a_feature)
-					-- Add precondition check
-				add_function_precondition_check (a_feature, l_call)
-				-- This would check that a recursive definitional axiom for a non-functional function is well-defined;
-				-- I believe this is not needed, because we have to prove anyway that this postcondition is satisfied by a terminating implementation.
-	--			add_termination_check (a_feature, last_parameters)
-
+						-- Add read frame check
+					add_read_frame_check (a_feature)
+						-- Add precondition check
+					add_function_precondition_check (a_feature, l_call)
+						-- Add termination check (for recursive functionals)
+					add_recursion_termination_check (a_feature)
+				end
 				last_expression := l_call
 			end
 		end
@@ -191,7 +192,7 @@ feature -- Translation
 			last_expression := l_call
 		end
 
-	process_special_routine_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
+	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
 			a_handler.handle_routine_call_in_contract (Current, a_feature, a_parameters)

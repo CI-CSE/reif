@@ -19,11 +19,10 @@ feature -- Status report
 	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
-			Result := (a_feature.written_in = system.any_id and
-				(translation_mapping.builtin_any_functions.has (a_feature.feature_name) or
+			Result := (translation_mapping.builtin_any_functions.has (a_feature.feature_name) or
 				translation_mapping.builtin_any_procedures.has (a_feature.feature_name) or
 				translation_mapping.ghost_access.has (a_feature.feature_name) or
-				translation_mapping.ghost_setter.has (a_feature.feature_name)))
+				translation_mapping.ghost_setter.has (a_feature.feature_name))
 		end
 
 feature -- Basic operations
@@ -294,11 +293,11 @@ feature -- Basic operations
 				-- generate appropriate guarded assignments to implicit model queries and an invariant check
 			if a_feature.feature_name ~ "wrap" then
 				if use_static_invariant (a_translator) then
-						-- Check exact invariant definition.
 					across helper.flat_model_queries (a_translator.current_target_type.base_class) as m loop
 						set_implicit_model_query (a_translator, m.item)
 					end
 
+						-- Check exact invariant definition.
 					create l_type_translator
 					l_type_translator.translate_inline_invaraint_check (a_translator.current_target_type)
 					across l_type_translator.last_clauses as c loop
@@ -339,8 +338,8 @@ feature -- Basic operations
 						<< a_translator.entity_mapping.heap, a_translator.current_target >>,
 						types.bool))
 					a_translator.side_effect.extend (l_assume)
-					if not helper.boolean_feature_note_value (a_translator.context_feature, "manual_inv")
-						and not helper.boolean_class_note_value (a_translator.context_type.base_class, "manual_inv") then
+					if not helper.is_manual_inv (a_translator.context_feature)
+						and not helper.is_manual_inv_class (a_translator.context_type.base_class) then
 						create l_assume.make_assume (factory.function_call ("inv_frame_trigger", << a_translator.current_target >>, types.bool))
 						a_translator.side_effect.extend (l_assume)
 					end
@@ -351,8 +350,9 @@ feature -- Basic operations
 	use_static_invariant (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR): BOOLEAN
 			-- Should the static definition of the ivnariant be used for the current target of `a_translator'?
 		do
-				-- Yes if the current target is Current and the context feature is not marked as dynamic.
-			Result := a_translator.current_target.same_expression (a_translator.entity_mapping.current_expression) and
+				-- Yes if the current target is "Current" (in inlined procedures Current micht be mapped to something else)
+				-- and the context feature is not marked as dynamic.
+			Result := a_translator.current_target.same_expression (factory.std_current) and
 				not helper.is_dynamic (a_translator.context_feature)
 		end
 

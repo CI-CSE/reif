@@ -184,7 +184,7 @@ feature -- Adding independent units
 		local
 			l_class: E2B_TU_CLASS
 		do
-			if not helper.boolean_class_note_value (a_class_type.base_class, "skip") then
+			if not helper.is_skipped_class (a_class_type.base_class) then
 				create l_class.make (a_class_type)
 				add_type (a_class_type)
 				add_translation_unit (l_class)
@@ -213,17 +213,17 @@ feature {NONE} -- Implementation
 			-- Add signature and implementation of feature `a_feature' of `a_context_type'.
 			-- If `a_referenced' is true, then only the signature will be created.
 		do
-			if a_feature.is_attribute then
+			if a_feature.is_attribute or helper.is_built_in_attribute (a_feature) then
 				add_attribute (a_feature, a_context_type)
 			elseif a_feature.is_routine then
 				if helper.is_feature_logical (a_feature) then
 					add_logical (a_feature, a_context_type)
 				else
-					if helper.is_creator (a_feature, a_context_type.base_class) then
+					if helper.is_creator_of_class (a_feature, a_context_type.base_class) then
 							-- This is a creation routine
 						add_creator (a_feature, a_context_type, a_is_referenced)
 					end
-					if not helper.is_feature_status (a_feature, "creator") then
+					if not helper.is_creator (a_feature) then
 							-- Unless the feature is marked as creator, it can be used as a normal routine;
 							-- Note that a non-creation procedure can be marked as creator
 							-- (e.g. if it's supposed to be used as a creation procedure in descendants),
@@ -263,7 +263,7 @@ feature {NONE} -- Implementation
 				add_translation_unit (l_functional_representation)
 			end
 
-			if not a_is_referenced and not a_feature.is_deferred and not helper.boolean_feature_note_value (a_feature, "skip") then
+			if not a_is_referenced and not a_feature.is_deferred and not helper.is_skipped (a_feature) then
 					-- Add variant functions
 					-- (has to be processed before the implementation)
 				if options.is_ownership_enabled then
@@ -294,7 +294,7 @@ feature {NONE} -- Implementation
 		do
 			create l_creator.make (a_feature, a_context_type)
 			add_translation_unit (l_creator)
-			if not a_is_referenced and not helper.boolean_feature_note_value (a_feature, "skip") then
+			if not a_is_referenced and not helper.is_skipped (a_feature) then
 				create l_creator_impl.make (a_feature, a_context_type)
 				add_translation_unit (l_creator_impl)
 			end
