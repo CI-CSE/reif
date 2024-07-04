@@ -1338,6 +1338,10 @@ feature -- Update
 				l_at_args := arguments_in_range (current_option + 1, argument_count)
 				current_option := argument_count + 1
 				create {EWB_SNIPPET_EXTRACTION} command.make_with_arguments (l_at_args)
+			elseif option.is_equal ("-to_xml") then
+				l_at_args := arguments_in_range (current_option + 1, argument_count)
+				current_option := argument_count + 1
+				create {EWB_XML_TRANSFORMATION} command.make_with_arguments (l_at_args)
 			elseif option.is_equal ("-annotation") then
 				l_at_args := arguments_in_range (current_option + 1, argument_count)
 				current_option := argument_count + 1
@@ -1354,6 +1358,8 @@ feature -- Update
 				workbench.set_planned_class_and_feature_name (argument (current_option + 1).twin,
 				                                              argument (current_option + 2).twin)
 				current_option := argument_count + 2
+			elseif option.is_equal ("-tests") then
+				create {EWB_TEST_EXECUTION} command
 			elseif is_eiffel_class_file_name (option) then
 					-- This option is only valid if no other config options are set
 				if config_file_name = Void and target_name = Void and old_ace_file = Void and old_project_file = Void then

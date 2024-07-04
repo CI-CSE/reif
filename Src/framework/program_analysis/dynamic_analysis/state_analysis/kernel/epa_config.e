@@ -21,6 +21,8 @@ feature{NONE} -- Initialization
 			eiffel_system := a_system
 			create locations.make
 			create variables.make
+			create expressions.make
+			create selected_program_locations.make_default
 		ensure
 			eiffel_system_set: eiffel_system = a_system
 		end
@@ -35,6 +37,12 @@ feature -- Access
 
 	variables: LINKED_LIST [STRING]
 			-- Variables which should be used to construct interesting expressions
+
+	expressions: LINKED_LIST [STRING]
+			-- Expressions which should be evaluated
+
+	selected_program_locations: DS_HASH_SET [INTEGER]
+			-- Selected program locations which should be evaluated
 
 	output_path: STRING assign set_output
 			-- Output-path for storing the collected equations.
@@ -53,34 +61,26 @@ feature -- Access
 
 feature -- Status report
 
-	is_dynamic_annotation_enabled: BOOLEAN
-			-- Is annotation by dynamic means enabled?
-
-	is_static_annotation_enabled: BOOLEAN
-			-- Is annotation by static means enabled?
+	is_all_program_locations_specified: BOOLEAN
+			-- Should all program locations be evaluated?
 
 	is_variables_specified: BOOLEAN
 			-- Are variables used to build expressions to evaluate specified?
+
+	is_expressions_specified: BOOLEAN
+			-- Are expressions to evaluate specified?
 
 	is_output_path_specified: BOOLEAN
 			-- Is a output path specified?
 
 feature -- Setting
 
-	set_is_dynamic_annotation_enabled (b: BOOLEAN)
-			-- Set `is_dynamic_annotation_enabled' with `b'.
+	set_is_all_program_locations_specified (b: BOOLEAN)
+			-- Set `is_all_program_locations_specified' with `b'.
 		do
-			is_dynamic_annotation_enabled := b
+			is_all_program_locations_specified := b
 		ensure
-			is_dynamic_annotation_enabled_set: is_dynamic_annotation_enabled = b
-		end
-
-	set_is_static_annotation_enabled (b: BOOLEAN)
-			-- Set `is_static_annotation_enabled' with `b'.
-		do
-			is_static_annotation_enabled := b
-		ensure
-			is_static_annotation_enabled_set: is_static_annotation_enabled = b
+			is_all_program_locations_specified_set: is_all_program_locations_specified = b
 		end
 
 	set_is_variables_specified (b: BOOLEAN)
@@ -89,6 +89,14 @@ feature -- Setting
 			is_variables_specified := b
 		ensure
 			is_variables_specified_set: is_variables_specified = b
+		end
+
+	set_is_expressions_specified (b: BOOLEAN)
+			-- Set `is_expressions_specified' with `b'.
+		do
+			is_expressions_specified := b
+		ensure
+			is_expressions_specified_set: is_expressions_specified = b
 		end
 
 	set_is_output_path_specified (b: BOOLEAN)
