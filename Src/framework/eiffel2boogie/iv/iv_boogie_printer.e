@@ -197,12 +197,15 @@ feature -- Universe Visitor
 				output.put_new_line
 				output.put_line ("init_locals:")
 				across a_implementation.locals as i loop
-					output.put_indentation
-					output.put (i.item.name)
-					output.put (" := ")
-					output.put (default_value (i.item.type))
-					output.put (";")
-					output.put_new_line
+					-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
+					if default_value (i.item.type) /= Void then
+						output.put_indentation
+						output.put (i.item.name)
+						output.put (" := ")
+						output.put (default_value (i.item.type))
+						output.put (";")
+						output.put_new_line
+					end
 				end
 				across a_implementation.procedure.results as i loop
 					output.put_indentation
@@ -606,6 +609,12 @@ feature -- Type Visitor
 			output.put ("HeapType")
 		end
 
+	process_frame_type (a_type: IV_BASIC_TYPE)
+			-- Process frame type.
+		do
+			output.put ("Frame")
+		end
+
 	process_field_type (a_type: IV_FIELD_TYPE)
 			-- <Precursor>
 		do
@@ -694,6 +703,8 @@ feature -- Other
 				Result := "0.0"
 			elseif a_type.is_set then
 				Result := "Set#Empty()"
+			elseif a_type.is_seq then
+				Result := "Seq#Empty()"
 			elseif a_type.is_reference then
 				Result := "Void"
 			else

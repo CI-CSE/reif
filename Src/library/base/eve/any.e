@@ -408,6 +408,12 @@ feature -- Verification: contract clauses
 			Result := True
 		end
 
+	frozen inv: BOOLEAN
+			-- Helper function for specifying class invariant without certain clauses.
+		do
+			Result := True
+		end
+
 	frozen inv_without (a: ANY): BOOLEAN
 			-- Helper function for specifying class invariant without certain clauses.
 		do
@@ -463,6 +469,13 @@ feature -- Verification: ownership queries
 		end
 
 feature -- Verification: ownership fields
+
+	frozen closed: BOOLEAN
+			-- Is this object in a consistent state.
+		note
+			status: ghost
+		do
+		end
 
 	frozen owner: ANY assign set_owner
 			-- Owner of this object.

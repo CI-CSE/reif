@@ -12,7 +12,7 @@ feature
 			s.observer = Void
 
 			modify (Current)
-			modify_field (["observer", "observers"], s)
+			modify_field (["observer", "observers", "closed"], s)
 		do
 			subject := s
 			s.register (Current)
@@ -35,19 +35,20 @@ feature {F_OOO_SUBJECT} -- Element change
 
 	notify
 		require
-			attached subject
+			is_open
+			inv_without ("cache_synchronized")
 
 			modify_field ("cache", Current)
 		do
 			cache := subject.value
 		ensure
-			cache = subject.value
+			inv
 		end
 
 invariant
 	attached subject
 	subject.observer = Current
-	cache = subject.value
+	cache_synchronized: cache = subject.value
 	subjects = [subject]
 
 end

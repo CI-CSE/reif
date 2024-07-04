@@ -34,11 +34,10 @@ feature
 			is_wrapped -- default: public
 			across observers as o all o.item.is_wrapped end -- default: public
 
-			modify_field ("value", Current)
-			modify_field ("cache", observers_list.sequence)
+			modify_field (["value", "closed"], Current)
+			modify_field (["cache", "closed"], observers_list.sequence)
 		local
 			i: INTEGER
-			l_old_sequence: MML_SET [F_OOM_OBSERVER_D]
 		do
 			unwrap -- default: public
 			unwrap_all (observers)
@@ -47,7 +46,11 @@ feature
 			from
 				i := 1
 			invariant
---				across 1 |..| (i - 1) as j all observers_list[j.item].cache = new_val end
+				across observers_list.sequence as o all
+					o.item.is_open and o.item.inv_without ("cache_synchronized")
+				end
+				is_open and inv
+				value = new_val
 			until
 				i > observers_list.count
 			loop
@@ -66,8 +69,6 @@ feature
 feature {F_OOM_OBSERVER_D}
 
 	register (o: F_OOM_OBSERVER_D)
-		note
-			explicit: contracts
 		require
 			is_wrapped
 			o.is_open
@@ -88,6 +89,7 @@ invariant
 	observers_list /= Void
 	across observers_list.sequence as o all o.item /= Void end
 	observers = observers_list.sequence
+	across observers as c all c.item.generating_type = {F_OOM_OBSERVER_D} end
 	owns = [observers_list]
 	subjects = [] -- default
 	across subjects as s all s.item.observers.has (Current) end -- default

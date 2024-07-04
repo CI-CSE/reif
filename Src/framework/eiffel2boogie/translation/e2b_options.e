@@ -5,7 +5,7 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+frozen class
 	E2B_OPTIONS
 
 create
@@ -17,23 +17,29 @@ feature {NONE} -- Initialization
 			-- Initialize default options.
 		do
 			is_two_step_verification_enabled := False
-			is_inlining_enabled := True
+			is_inlining_enabled := False
 			is_automatic_inlining_enabled := False
-			is_automatic_loop_unrolling_enabled := True
+			is_automatic_loop_unrolling_enabled := False
 			is_sound_loop_unrolling_enabled := True
 			is_precondition_predicate_enabled := False
 			is_postcondition_predicate_enabled := False
 			is_checking_overflow := False
 			is_checking_frame := False
+
 			is_ownership_enabled := True
 			is_ownership_defaults_enabled := True
+
 			loop_unrolling_depth := 7
 			max_recursive_inlining_depth := 4
 
 			is_postcondition_mutation_enabled := False
-			is_coupled_mutations_enabled := False
+			is_coupled_mutations_enabled := True
 			is_aging_enabled := False
 			is_uncoupled_mutations_enabled := False
+
+			is_enforcing_timeout := False
+			timeout := 120
+			is_trace_enabled := False
 		end
 
 feature -- Inlining verification step
@@ -212,6 +218,35 @@ feature -- Framing
 			-- Set `is_ownership_defaults_enabled' to `a_value'.
 		do
 			is_ownership_defaults_enabled := a_value
+		end
+
+feature -- Boogie/Z3
+
+	is_enforcing_timeout: BOOLEAN
+			-- Is timeout enforced?
+
+	set_is_enforcing_timeout (a_value: BOOLEAN)
+			-- Set `is_enforcing_timeout' to `a_value'.
+		do
+			is_enforcing_timeout := a_value
+		end
+
+	timeout: INTEGER
+			-- Timeout of z3 in seconds.
+
+	set_timeout (a_value: INTEGER)
+			-- Set `timeout' to `a_value'.
+		do
+			timeout := a_value
+		end
+
+	is_trace_enabled: BOOLEAN
+			-- Are trace statements printed?
+
+	set_is_trace_enabled (a_value: BOOLEAN)
+			-- Set `is_trace_enabled' to `a_value'.
+		do
+			is_trace_enabled := a_value
 		end
 
 end

@@ -257,12 +257,12 @@ feature -- Helper functions: contracts
 			Result := [l_pre, l_post]
 		end
 
-	modifies_expressions_of (a_feature: FEATURE_I; a_type: TYPE_A): TUPLE [modified_objects: LIST [IV_EXPRESSION]; field_restriction: LIST [TUPLE [fields: LIST [IV_ENTITY]; objects: LIST [IV_EXPRESSION]]]]
+	modifies_expressions_of (a_feature: FEATURE_I; a_type: TYPE_A): TUPLE [fully_modified: LIST [IV_EXPRESSION]; part_modified: LIST [TUPLE [fields: LIST [IV_ENTITY]; objects: LIST [IV_EXPRESSION]]]]
 			-- Modifies expressions for feature `a_feature' of type `a_type'.
 		local
 			l_contracts: like contracts_of
-			l_modified_objects: LINKED_LIST [IV_EXPRESSION]
-			l_field_restrictions: LINKED_LIST [TUPLE [LINKED_LIST [IV_ENTITY], LINKED_LIST [IV_EXPRESSION]]]
+			l_fully_modified: LINKED_LIST [IV_EXPRESSION]
+			l_part_modified: LINKED_LIST [TUPLE [LINKED_LIST [IV_ENTITY], LINKED_LIST [IV_EXPRESSION]]]
 			l_fieldnames: LINKED_LIST [STRING_32]
 			l_fields: LINKED_LIST [IV_ENTITY]
 			l_objects: LINKED_LIST [IV_EXPRESSION]
@@ -271,8 +271,8 @@ feature -- Helper functions: contracts
 			l_feature: FEATURE_I
 			l_boogie_type: IV_TYPE
 		do
-			create l_modified_objects.make
-			create l_field_restrictions.make
+			create l_fully_modified.make
+			create l_part_modified.make
 			l_contracts := contracts_of (a_feature, a_type)
 
 			across
@@ -282,10 +282,9 @@ feature -- Helper functions: contracts
 					l_name := names_heap.item_32 (l_call.feature_name_id)
 					if l_name ~ "modify" then
 						l_objects := translate_contained_expressions (l_call.parameters.i_th (1).expression)
-						l_modified_objects.append (l_objects)
+						l_fully_modified.append (l_objects)
 					elseif l_name ~ "modify_field" then
 						l_objects := translate_contained_expressions (l_call.parameters.i_th (2).expression)
-						l_modified_objects.append (l_objects)
 
 						if attached {TUPLE_CONST_B} l_call.parameters.i_th (2).expression as l_tuple then
 							l_type := l_tuple.expressions.first.type
@@ -297,7 +296,7 @@ feature -- Helper functions: contracts
 						else
 							l_type := l_type.deep_actual_type
 						end
-						if l_type.base_class.name_in_upper ~ "MML_SET" then
+						if l_type.base_class.name_in_upper ~ "MML_SET" or l_type.base_class.name_in_upper ~ "MML_SEQUENCE" then
 							l_type := l_type.generics.first
 						end
 
@@ -309,36 +308,48 @@ feature -- Helper functions: contracts
 								if attached {STRING_B} j.item as l_string then
 									l_fieldnames.extend (l_string.value)
 								else
-									check False end
+									helper.add_semantic_error (Void, a_feature, "The tuple in the first argument of 'modify_field' needs to consist only of manifest strings.")
 								end
 							end
+						else
+							helper.add_semantic_error (Void, a_feature, "First argument of 'modify_field' has to be a manifest string or a tuple of manifest strings.")
 						end
 
 						create l_fields.make
+						l_fields.compare_objects
 						across l_fieldnames as f loop
 							l_feature := l_type.base_class.feature_named_32 (f.item)
-							if l_feature = Void or else (helper.is_ghost (l_feature) and l_feature.written_in = system.any_id) then
-								l_name := f.item
-								l_boogie_type := types.generic
+							if l_feature = Void then
+								l_name := Void
+								helper.add_semantic_error (Void, a_feature, "Feature '" + f.item + "' mentioned in 'modify_field' does not exist in class '" + l_type.base_class.name_in_upper + "'")
 							else
-								check l_feature.is_attribute end
-								l_name := name_translator.boogie_name_for_feature (l_feature, l_type)
-								l_boogie_type := types.for_type_a (l_feature.type)
-								translation_pool.add_feature (l_feature, l_type)
+								if translation_mapping.ghost_access.has (f.item) then
+									l_name := f.item
+									l_boogie_type := translation_mapping.ghost_access_type (f.item)
+								elseif l_feature.is_attribute then
+									l_name := name_translator.boogie_name_for_feature (l_feature, l_type)
+									l_boogie_type := types.for_type_a (l_feature.type)
+									translation_pool.add_feature (l_feature, l_type)
+								else
+									l_name := Void
+									helper.add_semantic_error (Void, a_feature, "Feature '" + f.item + "' mentioned in 'modify_field' is not an attribute")
+								end
 							end
-							l_fields.extend (create {IV_ENTITY}.make (l_name, types.field (l_boogie_type)))
+							if l_name /= Void then
+								l_fields.extend (create {IV_ENTITY}.make (l_name, types.field (l_boogie_type)))
+							end
 						end
 
-						l_field_restrictions.extend ([l_fields, l_objects])
+						l_part_modified.extend ([l_fields, l_objects])
 					else
-						check False end
+						check internal_error: False end
 					end
 				else
-					check False end
+					check internal_error: False end
 				end
 			end
 
-			Result := [l_modified_objects, l_field_restrictions]
+			Result := [l_fully_modified, l_part_modified]
 		end
 
 	translate_contained_expressions (a_expr: EXPR_B): LINKED_LIST [IV_EXPRESSION]

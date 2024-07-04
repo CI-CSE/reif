@@ -20,9 +20,10 @@ feature
 			t.is_wrapped -- default: creator
 			across t.observers as o all o.item.is_wrapped end -- default: creator
 			t /= Void
+			across t.observers as ic all ic.item.generating_type = {F_I_ITERATOR_D} end
 
 			modify (Current)
-			modify_field ("observers", t)
+			modify_field (["observers", "closed"], t)
 		do
 			target := t
 			before := True

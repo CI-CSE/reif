@@ -143,6 +143,12 @@ feature -- Feature status helpers
 			Result := a_feature.is_exported_for (system.any_class.compiled_class)
 		end
 
+	is_private (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a public feature?
+		do
+			Result := a_feature.export_status.is_none
+		end
+
 feature -- Ownership helpers
 
 	is_class_explicit (a_class: CLASS_C; a_type: STRING): BOOLEAN
@@ -330,7 +336,50 @@ feature -- Other
 			-- Unique identifier with base name `a_name'.
 		do
 			internal_counter.put (internal_counter.item + 1)
+			check internal_counter.item >= 0 end
 			Result := a_name + "_" + internal_counter.item.out
+		end
+
+	add_unsupported_error (a_class: CLASS_C; a_feature: FEATURE_I; a_message: STRING)
+			-- Add AutoProof error about unsupported construct.
+			-- If `a_class' is set, the error will be associated with the class.
+			-- If `a_feature' is set, the error will be associated with the feature and its written class.
+		require
+			not_class_and_feature: a_class = Void or a_feature = Void
+			message_set: a_message /= Void and then not a_message.is_empty
+		local
+			l_error: E2B_AUTOPROOF_ERROR
+		do
+			create l_error
+			l_error.set_type ("Unsupported")
+			l_error.set_single_line_message (a_message)
+			if a_feature /= Void then
+				l_error.set_eiffel_feature (a_feature)
+			elseif a_class /= Void then
+				l_error.set_eiffel_class (a_class)
+			end
+			autoproof_errors.extend (l_error)
+		end
+
+	add_semantic_error (a_class: CLASS_C; a_feature: FEATURE_I; a_message: STRING)
+			-- Add AutoProof error about unsupported construct.
+			-- If `a_class' is set, the error will be associated with the class.
+			-- If `a_feature' is set, the error will be associated with the feature and its written class.
+		require
+			not_class_and_feature: a_class = Void or a_feature = Void
+			message_set: a_message /= Void and then not a_message.is_empty
+		local
+			l_error: E2B_AUTOPROOF_ERROR
+		do
+			create l_error
+			l_error.set_type ("Error")
+			l_error.set_single_line_message (a_message)
+			if a_feature /= Void then
+				l_error.set_eiffel_feature (a_feature)
+			elseif a_class /= Void then
+				l_error.set_eiffel_class (a_class)
+			end
+			autoproof_errors.extend (l_error)
 		end
 
 end

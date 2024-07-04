@@ -157,6 +157,12 @@ feature {NONE} -- Initialization
 					end
 				)
 
+				-- Move to previous error button
+			create l_button.make
+			l_button.set_pixmap (stock_pixmaps.view_previous_icon)
+			l_button.set_tooltip ("Go to previous rule violation")
+			l_button.select_actions.extend (agent go_to_previous_violation)
+
 				-- options button
 			create l_popup_button.make
 			l_popup_button.set_pixmap (stock_pixmaps.metric_filter_icon)
@@ -167,12 +173,20 @@ feature {NONE} -- Initialization
 			show_preferences_button := (create {ES_CA_SHOW_PREFERENCES_COMMAND}.make).new_sd_toolbar_item (True)
 
 			create Result.make (4)
-			Result.extend (show_preferences_button)
-			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
-			Result.extend (create {SD_TOOL_BAR_RESIZABLE_ITEM}.make (l_box))
+--			Result.extend (create {SD_TOOL_BAR_RESIZABLE_ITEM}.make (l_box))
 			Result.extend (l_button)
+				-- Move to next error button
+			create l_button.make
+			l_button.set_pixmap (stock_pixmaps.view_next_icon)
+			l_button.set_tooltip ("Go to next rule violation")
+			l_button.select_actions.extend (agent go_to_next_violation)
+
+			Result.extend (l_button)
+
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
-			Result.extend (l_popup_button)
+			Result.extend (show_preferences_button)
+--			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
+--			Result.extend (l_popup_button)
 		end
 
 --	build_options_menu: EV_MENU
@@ -322,6 +336,13 @@ feature {NONE} -- Initialization
 			l_col.set_title ("Location")
 			l_col.set_width (80)
 
+			l_col := a_widget.column (rule_id_column)
+			l_col.set_title ("Rule ID")
+			l_col.set_width (120)
+
+			l_col := a_widget.column (severity_score_column)
+			l_col.set_title ("Severity Score")
+			l_col.set_width (50)
 
 			a_widget.enable_tree
 			a_widget.disable_row_height_fixed
@@ -331,9 +352,11 @@ feature {NONE} -- Initialization
 			enable_sorting_on_columns (
 				<<
 					a_widget.column (category_column),
+					a_widget.column (severity_score_column),
 					a_widget.column (class_column),
 					a_widget.column (location_column),
-					a_widget.column (description_column)
+					a_widget.column (description_column),
+					a_widget.column (rule_id_column)
 				>>)
 		end
 
@@ -581,22 +604,12 @@ feature {NONE} -- Basic operations
 		local
 			l_stone: STONE
 		do
-				-- TODO: change
-
---			if attached {E2B_VERIFICATION_EVENT} a_row.parent_row_root.data as l_event_item then
---				if attached {E2B_VERIFICATION_ERROR} a_row.data as l_error then
---					create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.context_class, l_error.eiffel_line_number, False)
---				elseif l_event_item.line_number > 0 then
---					create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.context_class, l_event_item.line_number, False)
---				elseif l_event_item.context_feature /= Void then
---					create {FEATURE_STONE} l_stone.make (l_event_item.context_feature.api_feature (l_event_item.context_class.class_id))
---				else
---					create {CLASSC_STONE} l_stone.make (l_event_item.context_class)
---				end
---			end
---			if l_stone /= Void and then l_stone.is_valid then
---				(create {EB_CONTROL_PICK_HANDLER}).launch_stone (l_stone)
---			end
+			if attached {CA_RULE_VIOLATION_EVENT} a_row.parent_row_root.data as l_event_item then
+				create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.affected_class, l_event_item.location.line, True)
+			end
+			if l_stone /= Void and then l_stone.is_valid then
+				(create {EB_CONTROL_PICK_HANDLER}).launch_stone (l_stone)
+			end
 		end
 
 	populate_event_grid_row_items (a_event_item: EVENT_LIST_ITEM_I; a_row: EV_GRID_ROW)
@@ -672,6 +685,12 @@ feature {NONE} -- Basic operations
 				l_editor_item := create_clickable_grid_item (l_message_gen.last_line, True)
 				a_row.set_height (l_editor_item.required_height_for_text_and_component)
 				a_row.set_item (description_column, l_editor_item)
+
+				create l_label.make_with_text (l_viol.rule_id)
+				a_row.set_item (rule_id_column, l_label)
+
+				create l_label.make_with_text (l_viol.severity_score.out)
+				a_row.set_item (severity_score_column, l_label)
 
 					-- Class
 				create l_gen.make
@@ -763,6 +782,22 @@ feature {NONE} -- Basic operations
 			end
 		end
 
+	go_to_next_violation
+		do
+			move_next (agent (a_item: EVENT_LIST_ITEM_I): BOOLEAN
+						do
+							Result := True
+						end)
+		end
+
+	go_to_previous_violation
+		do
+			move_previous (agent (a_item: EVENT_LIST_ITEM_I): BOOLEAN
+							do
+								Result := True
+							end)
+		end
+
 feature {NONE} -- Clean up
 
 	internal_recycle
@@ -784,7 +819,9 @@ feature {NONE} -- Constants
 	class_column: INTEGER = 3
 	location_column: INTEGER = 4
 	description_column: INTEGER = 5
-	last_column: INTEGER = 5
+	rule_id_column: INTEGER = 6
+	severity_score_column: INTEGER = 7
+	last_column: INTEGER = 7
 
 	successful_color: EV_COLOR
 			-- Background color for successful rows

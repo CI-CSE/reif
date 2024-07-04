@@ -183,6 +183,7 @@ feature -- Visitors
 	process_array_const_b (a_node: ARRAY_CONST_B)
 			-- <Precursor>
 		do
+			helper.add_unsupported_error (Void, context_feature, "Manifest array in contract not supported.")
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -210,8 +211,13 @@ feature -- Visitors
 			l_right := last_expression
 			l_type := types.for_type_a (a_node.type)
 
-			if l_left.type.is_set then
-				(create {E2B_CUSTOM_MML_HANDLER}).handle_binary (Current, l_left, l_right, a_operator)
+			if l_left.type.is_set or l_left.type.is_seq then
+				if l_right.type.is_set or l_right.type.is_seq then
+					(create {E2B_CUSTOM_MML_HANDLER}).handle_binary (Current, l_left, l_right, a_operator)
+				else
+					helper.add_semantic_error (context_type.base_class, context_feature, "Sets and sequences can only be compared with other sets or sequences")
+					last_expression := dummy_node (a_node.type)
+				end
 			else
 				if is_in_quantifier then
 					if a_operator ~ "+" then
@@ -235,7 +241,10 @@ feature -- Visitors
 					l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
 					create l_fcall.make (l_fname, types.bool)
 					l_fcall.add_argument (last_expression)
-					add_safety_check (l_fcall, "overflow", Void)
+						-- TODO: refactor
+					if not is_in_quantifier then
+						add_safety_check (l_fcall, "overflow", Void)
+					end
 				end
 			end
 		end
@@ -508,6 +517,7 @@ feature -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- <Precursor>
 		do
+			helper.add_unsupported_error (Void, context_feature, "Creation expression in contract not supported.")
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -761,7 +771,10 @@ feature -- Visitors
 					l_call.add_argument (entity_mapping.heap)
 					l_call.add_argument (current_target)
 					l_call.add_argument (create {IV_VALUE}.make (name_translator.boogie_name_for_type (current_target_type), types.type))
-					add_safety_check (l_call, "attached", "implicit_attachment")
+						-- TODO: refactor
+					if not is_in_quantifier then
+						add_safety_check (l_call, "attached", "implicit_attachment")
+					end
 				end
 
 					-- Evaluate message with original expression
@@ -799,6 +812,7 @@ feature -- Visitors
 	process_object_test_b (a_node: OBJECT_TEST_B)
 			-- <Precursor>
 		local
+			l_type: IV_EXPRESSION
 			l_type_check: IV_BINARY_OPERATION
 			l_expr: IV_EXPRESSION
 		do
@@ -810,11 +824,11 @@ feature -- Visitors
 				check attached a_node.info end
 					-- Normalize integer types
 				if a_node.info.type_to_create.is_integer or a_node.info.type_to_create.is_natural then
-					l_type_check := factory.sub_type (factory.type_of (l_expr), create {IV_ENTITY}.make ("INTEGER", types.type))
+					create {IV_ENTITY} l_type.make ("INTEGER", types.type)
 				else
-					l_type_check := factory.sub_type (factory.type_of (l_expr), factory.type_value (a_node.info.type_to_create))
+					l_type := factory.type_value (a_node.info.type_to_create)
 				end
-				last_expression := factory.and_ (factory.not_equal (l_expr, factory.void_), l_type_check)
+				last_expression := factory.function_call ("attached", <<"Heap", l_expr, l_type>>, types.bool)
 			end
 			if attached a_node.target then
 					-- Check for possible unboxing of basic types
@@ -897,6 +911,7 @@ feature -- Visitors
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
+			helper.add_unsupported_error (Void, context_feature, "Manifest string not supported.")
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -918,6 +933,7 @@ feature -- Visitors
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		do
+			helper.add_unsupported_error (Void, context_feature, "Manifest tuple in contract not supported.")
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -1098,16 +1114,7 @@ feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER}
 		local
 			l_type: TYPE_A
 		do
-			l_type := a_type.deep_actual_type
-			if l_type.is_integer or l_type.is_natural or l_type.is_character or l_type.is_character_32 then
-				create {IV_VALUE} Result.make ("0", types.int)
-			elseif l_type.is_boolean then
-				create {IV_VALUE} Result.make ("false", types.bool)
-			elseif l_type.is_expanded then
-				create {IV_VALUE} Result.make ("Unknown", types.generic_type)
-			else
-				create {IV_VALUE} Result.make ("Void", types.ref)
-			end
+			Result := factory.function_call ("unsupported", << >>, types.for_type_a (a_type.deep_actual_type))
 		end
 
 end

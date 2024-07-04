@@ -71,11 +71,17 @@ feature -- Utility functions
 --			length_preserved: (not a_force_wrap) implies (a_input.count = Result.count) -- Make sure 'LF CR' new lines count as 1.
 --		end
 
+feature -- GUI
+
+	severity_score_description: STRING_32
+		do Result := locale.translation ("The importance score of a rule is used to %
+			%enable sorting of rule violations. Within rule violations that belong to the same %
+			%category, you can sort by importance.") end
+
 feature -- Code Analyzer
 
 	analyzing_class (a_class_name: READABLE_STRING_GENERAL): STRING_32
 		do Result := locale.formatted_string (locale.translation ("Analyzing class $1 ...%N"), [a_class_name]) end
-
 
 	self_assignment_violation_1: STRING_32
 		do Result := locale.translation ("Variable '") end
@@ -135,7 +141,28 @@ feature -- Code Analyzer
 
 	nested_complexity_violation_3: STRING_32
 		do Result := locale.translation (" nested branches%Nor loops, which is %
-			%greater than or equal the defined threshold of ") end
+			%greater than or equal to the defined threshold of ") end
+
+	many_arguments_violation_1: STRING_32
+		do Result := locale.translation ("Feature '") end
+
+	many_arguments_violation_2: STRING_32
+		do Result := locale.translation ("' has many arguments. The number of arguments of%N") end
+
+	many_arguments_violation_3: STRING_32
+		do Result := locale.translation (" is greater than or equal to the defined threshold of ") end
+
+	creation_proc_exported_violation_1: STRING_32
+		do Result := locale.translation ("The creation procedure '") end
+
+	creation_proc_exported_violation_2: STRING_32
+		do Result := locale.translation ("' is exported and may still be%Ncalled after the object has been created.") end
+
+	unneeded_object_test_violation_1: STRING_32
+		do Result := locale.translation ("This object test is redundant because the tested variable '") end
+
+	unneeded_object_test_violation_2: STRING_32
+		do Result := locale.translation ("' is already of the static type '") end
 
 feature -- Command Line
 

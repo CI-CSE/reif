@@ -195,7 +195,8 @@ feature -- Processing
 			end
 
 				-- Create assignment node
-			if a_node.target.is_attribute then
+			if a_node.target.is_attribute and options.is_ownership_enabled then
+					-- OWNERSHIP: call update heap instead of direct heap assignment
 				create l_call.make ("update_heap")
 				l_call.add_argument (entity_mapping.current_expression)
 				l_call.add_argument (create {IV_ENTITY}.make (name_translator.boogie_name_for_feature (l_feature, current_type), types.field (types.for_type_a (l_feature.type))))
@@ -533,6 +534,7 @@ feature -- Processing
 		require
 			from_loop: a_node.stop /= Void and a_node.iteration_exit_condition = Void
 		local
+			l_pre_heap: IV_ENTITY
 			l_condition: IV_EXPRESSION
 			l_variant_local: STRING
 			l_invariant: ASSERT_B
@@ -552,6 +554,12 @@ feature -- Processing
 			create l_head_block.make_name (helper.unique_identifier("loop_head"))
 			create l_body_block.make_name (helper.unique_identifier("loop_body"))
 			create l_end_block.make_name (helper.unique_identifier("loop_end"))
+
+				-- Save pre-loop state
+			create l_pre_heap.make (helper.unique_identifier ("PreLoopHeap"), types.heap)
+			current_implementation.add_local (l_pre_heap.name, l_pre_heap.type)
+			create l_assignment.make (l_pre_heap, entity_mapping.heap)
+			add_statement (l_assignment)
 
 				-- From part
 			if a_node.from_part /= Void then
@@ -585,6 +593,13 @@ feature -- Processing
 					add_statement (l_assert)
 					a_node.invariant_part.forth
 				end
+			end
+				-- Default invariants (free)			
+			create l_assume.make (factory.function_call ("HeapSucc", <<l_pre_heap, "Heap">>, types.bool))
+			add_statement (l_assume)
+			if options.is_ownership_enabled then
+				create l_assume.make (factory.writes_frame (current_feature, current_type, current_implementation.procedure, l_pre_heap))
+				add_statement (l_assume)
 			end
 
 				-- Variant
@@ -1015,7 +1030,9 @@ feature {NONE} -- Implementation
 	add_trace_statement (a_node: BYTE_NODE)
 			-- Add statement and possibly add origin information.
 		do
-			current_block.add_statement (factory.trace (name_translator.boogie_name_for_feature (current_feature, current_type) + ":" + a_node.line_number.out))
+			if options.is_trace_enabled then
+				current_block.add_statement (factory.trace (name_translator.boogie_name_for_feature (current_feature, current_type) + ":" + a_node.line_number.out))
+			end
 		end
 
 	process_expression (a_expr: BYTE_NODE)

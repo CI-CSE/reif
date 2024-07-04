@@ -29,8 +29,8 @@ feature -- Element change
 
 	update (new_val: INTEGER)
 		require
-			modify_field ("cache", observer)
-			modify_field ("value", Current)
+			modify_field (["cache", "closed"], observer)
+			modify_field (["value", "closed"], Current)
 		do
 			if attached observer then
 				observer.unwrap
@@ -48,14 +48,12 @@ feature {F_OOO_OBSERVER} -- Element change
 
 	register (o: F_OOO_OBSERVER)
 			-- Register `o' as observer.
-		note
-			explicit: contracts
 		require
 			observer = Void
 			is_wrapped
 			o.is_open
 
-			modify_field (["observer", "observers"], Current)
+			modify_field (["observer", "observers", "closed"], Current)
 		do
 			unwrap
 			observer := o

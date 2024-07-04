@@ -78,9 +78,6 @@ feature -- Basic operations
 
 				-- Modifies
 			create l_modifies.make ("Heap")
---			if options.is_ownership_enabled then
-				l_modifies.add_name ("Writes")
---			end
 			current_boogie_procedure.add_contract (l_modifies)
 
 				-- Pre- and postconditions
@@ -133,14 +130,14 @@ feature -- Basic operations
 			l_post: IV_POSTCONDITION
 		do
 				-- Preserves global invariant
-			create l_pre.make (factory.function_call ("global", << "Heap", "Writes" >>, types.bool))
+			create l_pre.make (factory.function_call ("global", << "Heap" >>, types.bool))
 			l_pre.set_free
 			current_boogie_procedure.add_contract (l_pre)
-			create l_post.make (factory.function_call ("global", << "Heap", "Writes" >>, types.bool))
+			create l_post.make (factory.function_call ("global", << "Heap" >>, types.bool))
 			l_post.set_free
 			current_boogie_procedure.add_contract (l_post)
 
-				-- Writes set is writable
+				-- Modify set is writable
 			create l_fcall.make (name_translator.boogie_name_for_writes_set_function (current_feature, current_type), types.set (types.ref))
 			l_fcall.add_argument (create {IV_ENTITY}.make ("Heap", types.heap_type))
 			across current_boogie_procedure.arguments as i loop
@@ -148,60 +145,37 @@ feature -- Basic operations
 			end
 			create l_pre.make (
 				factory.function_call (
-					"Set#Subset",
+					"Frame#Subset",
 					<<
 						l_fcall,
-						"Writes"
+						"writable"
 					>>,
 					types.bool))
 			l_pre.set_assertion_type ("pre")
+			l_pre.set_assertion_tag ("modify_set_writable")
 			current_boogie_procedure.add_contract (l_pre)
 
-				-- How writes set changes
-			create l_post.make (
-				factory.function_call (
-					"writes_changed",
-					<<
-						factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
-						create {IV_ENTITY}.make ("Heap", types.heap_type),
-						factory.old_ (create {IV_ENTITY}.make ("Writes", types.set (types.ref))),
-						create {IV_ENTITY}.make ("Writes", types.set (types.ref))
-					>>,
-					types.bool))
-			l_post.set_free
-			current_boogie_procedure.add_contract (l_post)
+				-- Everything in the domains of writable objects is writable
+			create l_pre.make (factory.function_call ("writable_domains", <<"Heap">>, types.bool))
+			l_pre.set_free
+			current_boogie_procedure.add_contract (l_pre)
 
 				-- Only writes set has changed
-			create l_fcall.make (name_translator.boogie_name_for_writes_set_function (current_feature, current_type), types.set (types.ref))
-			l_fcall.add_argument (factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)))
-			across current_boogie_procedure.arguments as i loop
-				l_fcall.add_argument (i.item.entity)
-			end
-			create l_post.make (
-				factory.function_call (
-					"writes",
-					<<
-						factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
-						create {IV_ENTITY}.make ("Heap", types.heap_type),
-						l_fcall
-					>>,
-					types.bool))
+			create l_post.make (factory.writes_frame (
+				current_feature,
+				current_type,
+				current_boogie_procedure,
+				factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)))
+				)
 			l_post.set_free
-			current_boogie_procedure.add_contract (l_post)
-
-				-- Field preservations
-			create l_fcall.make (name_translator.boogie_name_for_field_preservation_function (current_feature, current_type), types.bool)
-			l_fcall.add_argument (factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)))
-			l_fcall.add_argument (create {IV_ENTITY}.make ("Heap", types.heap_type))
-			across current_boogie_procedure.arguments as i loop
-				l_fcall.add_argument (i.item.entity)
-			end
-			create l_post.make (l_fcall)
-			l_post.set_assertion_type ("post")
-			l_post.set_assertion_tag ("field_preservation")
 			current_boogie_procedure.add_contract (l_post)
 
 			translation_pool.add_writes_function (current_feature, current_type)
+
+				-- HeapSucc
+			create l_post.make (factory.function_call ("HeapSucc", <<"old(Heap)", "Heap">>, types.bool))
+			l_post.set_free
+			current_boogie_procedure.add_contract (l_post)
 
 				-- OWNERSHIP DEFAULTS
 			if not helper.is_explicit (current_feature, "contracts") then
@@ -212,7 +186,7 @@ feature -- Basic operations
 					current_boogie_procedure.add_contract (l_pre)
 					create l_post.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
 					l_post.set_assertion_type ("post")
-					l_post.set_assertion_tag ("deafult_is_wrapped")
+					l_post.set_assertion_tag ("default_is_wrapped")
 					current_boogie_procedure.add_contract (l_post)
 					create l_post.make (forall_mml_set_property ("Current", "observers", "is_wrapped"))
 					l_post.set_assertion_type ("post")
@@ -224,15 +198,6 @@ feature -- Basic operations
 						l_pre.set_assertion_type ("pre")
 						l_pre.set_assertion_tag ("default_is_closed")
 						current_boogie_procedure.add_contract (l_pre)
-						-- Nadia: don't think that's useful here
---						create l_pre.make (forall_mml_set_property ("observers", "!is_open"))
---						l_pre.set_assertion_type ("pre")
-						create l_post.make (factory.function_call ("!is_open", << "Heap", "Current" >>, types.bool))
-						l_post.set_assertion_type ("post")
-						l_post.set_assertion_tag ("default_is_closed")
-						current_boogie_procedure.add_contract (l_post)
---						create l_post.make (forall_mml_set_property ("observers", "!is_open"))
---						current_boogie_procedure.add_contract (l_post)
 					else
 						create l_pre.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
 						l_pre.set_assertion_type ("pre")
@@ -251,44 +216,38 @@ feature -- Basic operations
 						l_post.set_assertion_tag ("default_observers_are_wrapped")
 						current_boogie_procedure.add_contract (l_post)
 					end
-				else
+				elseif helper.is_private (current_feature) then
 					create l_pre.make (factory.function_call ("is_open", << "Heap", "Current" >>, types.bool))
 					l_pre.set_assertion_type ("pre")
 					l_pre.set_assertion_tag ("default_is_open")
-					current_boogie_procedure.add_contract (l_pre)
-					create l_pre.make (forall_mml_set_property ("Current", "observers", "is_open"))
-					l_pre.set_assertion_type ("pre")
-					l_pre.set_assertion_tag ("default_observers_are_open")
 					current_boogie_procedure.add_contract (l_pre)
 					create l_post.make (factory.function_call ("is_open", << "Heap", "Current" >>, types.bool))
 					l_post.set_assertion_type ("post")
 					l_post.set_assertion_tag ("default_is_open")
 					current_boogie_procedure.add_contract (l_post)
-					create l_post.make (forall_mml_set_property ("Current", "observers", "is_open"))
-					l_post.set_assertion_type ("post")
-					l_post.set_assertion_tag ("default_observers_are_open")
-					current_boogie_procedure.add_contract (l_post)
 				end
-				across arguments_of_current_feature as i loop
-					if i.item.boogie_type.is_reference then
-						create l_pre.make (factory.function_call ("is_wrapped", << "Heap", i.item.name >>, types.bool))
-						l_pre.set_assertion_type ("pre")
-						l_pre.set_assertion_tag ("arg_" + i.item.name + "_is_wrapped")
-						current_boogie_procedure.add_contract (l_pre)
-						create l_post.make (factory.function_call ("is_wrapped", << "Heap", i.item.name >>, types.bool))
-						l_post.set_assertion_type ("post")
-						l_post.set_assertion_tag ("arg_" + i.item.name + "_is_wrapped")
-						current_boogie_procedure.add_contract (l_post)
-					end
-				end
-				if a_for_creator or helper.is_public (current_feature) then
+				if a_for_creator or (helper.is_public (current_feature) and not current_feature.has_return_value) then
 					across arguments_of_current_feature as i loop
 						if i.item.boogie_type.is_reference then
-							create l_pre.make (forall_mml_set_property (i.item.name, "observers", "is_wrapped"))
-							-- ToDo: add?
+							create l_pre.make (factory.function_call ("is_wrapped", << "Heap", i.item.name >>, types.bool))
+							l_pre.set_assertion_type ("pre")
+							l_pre.set_assertion_tag ("arg_" + i.item.name + "_is_wrapped")
+							current_boogie_procedure.add_contract (l_pre)
+							create l_post.make (factory.function_call ("is_wrapped", << "Heap", i.item.name >>, types.bool))
+							l_post.set_assertion_type ("post")
+							l_post.set_assertion_tag ("arg_" + i.item.name + "_is_wrapped")
+							current_boogie_procedure.add_contract (l_post)
 						end
 					end
 				end
+--				if a_for_creator or helper.is_public (current_feature) then
+--					across arguments_of_current_feature as i loop
+--						if i.item.boogie_type.is_reference then
+--							create l_pre.make (forall_mml_set_property (i.item.name, "observers", "is_wrapped"))
+--							-- ToDo: add?
+--						end
+--					end
+--				end
 			end
 		end
 
@@ -467,13 +426,11 @@ feature -- Basic operations
 		local
 			l_: like modifies_expressions_of
 			l_function: IV_FUNCTION
-			l_boogie_type: IV_TYPE
-			l_expr: IV_EXPRESSION
-			l_modif_set: IV_EXPRESSION
+			l_expr, l_disjunct, l_o_conjunct, l_f_conjunct: IV_EXPRESSION
 			l_o, l_f: IV_ENTITY
-			l_objects_expr: IV_EXPRESSION
-			l_fields_expr: IV_EXPRESSION
 			l_forall: IV_FORALL
+			l_fcall: IV_FUNCTION_CALL
+			l_access: IV_MAP_ACCESS
 		do
 			set_context (a_feature, a_type)
 			helper.set_up_byte_context (current_feature, current_type)
@@ -481,7 +438,7 @@ feature -- Basic operations
 			l_ := modifies_expressions_of (current_feature, current_type)
 
 				-- Writes function
-			create l_function.make (name_translator.boogie_name_for_writes_set_function (current_feature, current_type), types.set (types.ref))
+			create l_function.make (name_translator.boogie_name_for_writes_set_function (current_feature, current_type), types.frame)
 			boogie_universe.add_declaration (l_function)
 
 				-- Arguments
@@ -492,65 +449,88 @@ feature -- Basic operations
 				l_function.add_argument (i.item.name, i.item.boogie_type)
 			end
 
-				-- Expression
-			across l_.modified_objects as o loop
-				if o.item = Void then
-					l_expr := factory.function_call ("Set#Empty", << >>, types.set (types.ref))
-				elseif o.item.type.is_set then
-					l_expr := o.item
-				else
-					l_expr := factory.function_call ("Set#Singleton", << o.item >>, types.set (types.ref))
-				end
-				if l_modif_set = Void then
-					l_modif_set := l_expr
-				else
-					l_modif_set := factory.function_call ("Set#Union", << l_modif_set, l_expr >>, types.set (types.ref))
-				end
+				-- Definitional axiom
+				-- Axiom lhs: access on a function application
+			create l_fcall.make (l_function.name, types.frame)
+			across l_function.arguments as a loop
+				l_fcall.add_argument (a.item.entity)
 			end
-			if l_.modified_objects.is_empty and not helper.is_explicit (a_feature, "modifies") then
-				if a_feature.has_return_value then
-					l_modif_set := factory.function_call ("Set#Empty", << >>, types.set (types.ref))
-				else
-					l_modif_set := factory.function_call ("Set#Singleton", << "current" >>, types.set (types.ref))
-				end
-			end
-			l_function.set_body (l_modif_set)
-
-				-- Field preservation function
-			create l_function.make (name_translator.boogie_name_for_field_preservation_function (current_feature, current_type), types.bool)
-			boogie_universe.add_declaration (l_function)
-
-				-- Arguments
-			l_function.add_argument ("heap", types.heap)
-			l_function.add_argument ("heap'", types.heap)
-			l_function.add_argument ("current", types.ref)
-			across arguments_of_current_feature as i loop
-				l_function.add_argument (i.item.name, i.item.boogie_type)
-			end
-
-				-- Expression
 			create l_o.make ("$o", types.ref)
 			create l_f.make ("$f", types.field (types.generic))
-			l_expr := factory.true_
-			across l_.field_restriction as j loop
-				l_objects_expr := factory.false_
-				l_fields_expr := factory.true_ --not_equal (l_f, create {IV_ENTITY}.make ("owner", types.field (types.ref)))
-				across j.item.objects as ro loop
-					if ro.item.type.is_map then
-						l_objects_expr := factory.or_ (l_objects_expr, factory.map_access (ro.item, l_o))
+			create l_access.make_two (l_fcall, l_o, l_f)
+
+				-- Axiom rhs: a big disjunction
+				-- First go over partially modifiable objects
+			across l_.part_modified as restiction loop
+				l_o_conjunct := Void
+				l_f_conjunct := Void
+				across restiction.item.objects as o loop
+					if o.item = Void then
+						l_disjunct := factory.false_
+					elseif o.item.type.is_set then
+						l_disjunct := factory.map_access (o.item, l_o)
+					elseif o.item.type.is_seq then
+						l_disjunct := factory.map_access (factory.function_call ("Set#FromSeq", << o.item >>, types.set (types.ref)), l_o)
 					else
-						l_objects_expr := factory.or_ (l_objects_expr, factory.equal (l_o, ro.item))
+						l_disjunct := factory.equal (l_o, o.item)
+					end
+					if l_o_conjunct = Void then
+						l_o_conjunct := l_disjunct
+					else
+						l_o_conjunct := factory.or_ (l_o_conjunct, l_disjunct)
 					end
 				end
-				across j.item.fields as rf loop
-					l_fields_expr := factory.and_ (l_fields_expr, factory.not_equal (l_f, rf.item))
+				across restiction.item.fields as f loop
+					l_disjunct := factory.equal (l_f, f.item)
+					if l_f_conjunct = Void then
+						l_f_conjunct := l_disjunct
+					else
+						l_f_conjunct := factory.or_ (l_f_conjunct, l_disjunct)
+					end
 				end
-				create l_forall.make (factory.implies_ (factory.and_ (l_objects_expr, l_fields_expr), factory.equal (factory.heap_access ("heap", l_o, l_f.name, types.generic), factory.heap_access ("heap'", l_o, l_f.name, types.generic))))
-				l_forall.add_bound_variable (l_o.name, l_o.type)
-				l_forall.add_bound_variable (l_f.name, l_f.type)
-				l_expr := factory.and_ (l_expr, l_forall)
+				if l_expr = Void then
+					l_expr := factory.and_ (l_o_conjunct, l_f_conjunct)
+				else
+					l_expr := factory.or_ (l_expr, factory.and_ (l_o_conjunct, l_f_conjunct))
+				end
 			end
-			l_function.set_body (l_expr)
+				-- Then go over fully modifiable objects
+			across l_.fully_modified as o loop
+				if o.item = Void then
+					l_disjunct := factory.false_
+				elseif o.item.type.is_set then
+					l_disjunct := factory.map_access (o.item, l_o)
+				elseif o.item.type.is_seq then
+					l_disjunct := factory.map_access (factory.function_call ("Set#FromSeq", << o.item >>, types.set (types.ref)), l_o)
+				else
+					l_disjunct := factory.equal (l_o, o.item)
+				end
+				if l_expr = Void then
+					l_expr := l_disjunct
+				else
+					l_expr := factory.or_ (l_expr, l_disjunct)
+				end
+			end
+			if l_expr = Void then
+				-- Missing modify clause: apply defaults
+				if a_feature.has_return_value then
+					l_expr := factory.false_
+				else
+					l_expr := factory.equal (l_o, create {IV_ENTITY}.make ("current", types.ref))
+				end
+			end
+				-- Finally create the axiom body:
+				-- (forall args, o, f :: function(args)[o, f] <==> is_partially_modifiable[o, f] || is_fully_modifiable[o])
+			create l_forall.make (factory.equiv (l_access, l_expr))
+			across
+				l_function.arguments as a
+			loop
+				l_forall.add_bound_variable (a.item.entity.name, a.item.entity.type)
+			end
+			l_forall.add_bound_variable (l_o.name, l_o.type)
+			l_forall.add_bound_variable (l_f.name, l_f.type)
+			l_forall.add_trigger (l_access)
+			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 		end
 
 
