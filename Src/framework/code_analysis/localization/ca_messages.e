@@ -99,6 +99,58 @@ feature -- Messages for both GUI and command line mode
 
 feature -- Rule Violations
 
+	comparison_of_object_refs_violation_1: STRING_32
+		do Result := translation_in_context ("You are using '=' to compare object references. This only%Nchecks whether they%
+									% point to the same object.%NIf you wanted to compare their states you%Ncan do so by using%
+									% the '~' operator", once "code_analyzer.violation") end
+
+	void_check_using_is_equal_violation_1: STRING_32
+		do Result := translation_in_context ("The local variable or argument '", once "code_analyzer.violation") end
+
+	void_check_using_is_equal_violation_2: STRING_32
+		do Result := translation_in_context ("' is checked being Void using 'is_equal'.%NThis should be done using the '=' or%
+									% '/=' operators", once "code_analyzer.violation") end
+
+	empty_creation_procedure_violation_1: STRING_32
+		do Result := translation_in_context ("Class '", once "code_analyzer.violation") end
+
+	empty_creation_procedure_violation_2: STRING_32
+		do Result := translation_in_context ("' has a single creation%Nprocedure with no arguments which is empty. This should be considered%Nto be%
+									% removed. Note that all clients need to call 'create c' instead%Nof 'create c.", once "code_analyzer.violation") end
+
+	empty_creation_procedure_violation_3: STRING_32
+		do Result := translation_in_context ("' where 'c' is an object of the%Nclass '", once "code_analyzer.violation") end
+
+	empty_creation_procedure_violation_4: STRING_32
+		do Result := translation_in_context ("'.", once "code_analyzer.violation") end
+
+	object_creation_within_loop_violation_1: STRING_32
+		do Result := translation_in_context ("Creating objects within a loop may decrease performance.%NCheck%
+									% whether the object creation can be moved outside the loop.", once "code_analyzer.violation") end
+
+	missing_creation_proc_without_args_violation_1: STRING_32
+		do Result := translation_in_context ("Class '", once "code_analyzer.violation") end
+
+	missing_creation_proc_without_args_violation_2: STRING_32
+		do Result := translation_in_context ("' has at least one%N creation procedure with arguments but%
+									% none without arguments.%NNormally, one should be able to create class%
+									% with empty initializing data,%Nwhere the client can set or add the data later.", once "code_analyzer.violation") end
+
+	empty_loop_violation: STRING_32
+		do Result := translation_in_context ("A loop with an empty body should be removed.%NIn most cases%
+									% the loop never exits.", once "code_analyzer.violation") end
+
+	double_negation_violation: STRING_32
+		do Result := translation_in_context ("Double negations in boolean expressions can be safely removed%N%
+									% to increase the readability of the code.", once "code_analyzer.violation") end
+
+	inherit_from_any_violation_1: STRING_32
+		do Result := translation_in_context ("Class '", once "code_analyzer.violation") end
+
+	inherit_from_any_violation_2: STRING_32
+		do Result := translation_in_context ("' contains an explicit inheritance with no adaptation from the ANY class%N%
+									% which doesn't need to be defined.", once "code_analyzer.violation") end
+
 	self_assignment_violation_1: STRING_32
 		do Result := translation_in_context ("Variable '", once "code_analyzer.violation") end
 

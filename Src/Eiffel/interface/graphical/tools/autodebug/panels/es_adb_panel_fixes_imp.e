@@ -42,7 +42,7 @@ feature{NONE} -- Initialization
 			create l_h_box
 			l_h_box.set_border_width ({ES_UI_CONSTANTS}.frame_border)
 			create evgrid_fixes
-			evgrid_fixes.set_minimum_width (670)
+--			evgrid_fixes.set_minimum_width (670)
 			l_grid := evgrid_fixes
 			l_grid.enable_row_separators
 			l_grid.enable_single_row_selection
@@ -58,9 +58,9 @@ feature{NONE} -- Initialization
 			l_col := l_grid.column (Column_nature)
 			l_col.set_title (Grid_column_text_nature)
 			l_col.set_width (150)
-			l_col := l_grid.column (Column_is_proper)
-			l_col.set_title (Grid_column_text_is_proper)
-			l_col.set_width (100)
+--			l_col := l_grid.column (Column_is_proper)
+--			l_col.set_title (Grid_column_text_is_proper)
+--			l_col.set_width (100)
 			l_col := l_grid.column (Column_status)
 			l_col.set_title (Grid_column_text_status)
 			l_col.set_width (70)
@@ -131,9 +131,9 @@ feature -- Constant
 	Column_fault: INTEGER = 2
 	Column_type: INTEGER = 3
 	Column_nature: INTEGER = 4
-	Column_is_proper: INTEGER = 5
-	Column_status: INTEGER = 6
-	Last_column: INTEGER = 6
+--	Column_is_proper: INTEGER = 5
+	Column_status: INTEGER = 5
+	Last_column: INTEGER = 5
 
 ;note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software"

@@ -99,10 +99,20 @@ feature -- Execution
 			elseif user_options.has ("-nooverflow") then
 				options.set_checking_overflow (False)
 			end
+			if user_options.has ("-trigger") then
+				options.set_generating_triggers (True)
+			elseif user_options.has ("-notrigger") then
+				options.set_generating_triggers (False)
+			end
 			if user_options.has ("-arithtrigger") then
 				options.set_triggering_on_arithmetic (True)
 			elseif user_options.has ("-noarithtrigger") then
 				options.set_triggering_on_arithmetic (False)
+			end
+			if user_options.has ("-arithfresh") then
+				options.set_arithmetic_extracted (True)
+			elseif user_options.has ("-noarithfresh") then
+				options.set_arithmetic_extracted (False)
 			end
 			if user_options.has ("-autounroll") then
 				options.set_automatic_loop_unrolling_enabled (True)

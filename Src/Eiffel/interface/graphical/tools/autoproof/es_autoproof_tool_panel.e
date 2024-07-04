@@ -215,11 +215,30 @@ feature {NONE} -- Initialization
 			end
 			Result.extend (l_item)
 
+			create l_item.make_with_text_and_action ("Generate triggers",
+				agent do
+					options.set_generating_triggers (not options.is_generating_triggers)
+				end)
+			if options.is_generating_triggers then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
+
 			create l_item.make_with_text_and_action ("Use arithmetic operations in triggers",
 				agent do
 					options.set_triggering_on_arithmetic (not options.is_triggering_on_arithmetic)
 				end)
 			if options.is_triggering_on_arithmetic then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
+			create l_item.make_with_text_and_action ("Create fresh variables for arithmetic",
+				agent do
+					options.set_arithmetic_extracted (not options.is_arithmetic_extracted)
+				end)
+			if options.is_arithmetic_extracted then
 				l_item.toggle
 			end
 			Result.extend (l_item)

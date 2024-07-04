@@ -75,9 +75,16 @@ feature{NONE} -- Update GUI
 				else
 					evbutton_fix_selected.disable_sensitive
 				end
+
+				if attached {ES_ADB_FAULT} selected_fault_in_grid as lt_fault and then not lt_fault.is_fixed then
+					evbutton_mark_as_manually_fixed.enable_sensitive
+				else
+					evbutton_mark_as_manually_fixed.disable_sensitive
+				end
 			else
 				evbutton_fix_all_to_be_attempted.disable_sensitive
 				evbutton_fix_selected.disable_sensitive
+				evbutton_mark_as_manually_fixed.disable_sensitive
 			end
 		end
 
@@ -147,7 +154,7 @@ feature -- ADB Actions
 			l_row, l_row_for_feature, l_row_for_fault: EV_GRID_ROW
 			l_fault: ES_ADB_FAULT
 			l_was_row_visible, l_was_sub_row_visible: BOOLEAN
-			l_text: STRING
+			l_text, l_info: STRING
 			l_left_par_index, l_right_par_index: INTEGER
 			l_is_new_feature_row, l_is_new_fault_row: BOOLEAN
 		do
@@ -191,7 +198,6 @@ feature -- ADB Actions
 					create l_label_item.make_with_text ("0")
 					l_row_for_feature.set_item (column_fault, l_label_item)
 
---					create l_feature_under_test.make_from_names (l_signature.feature_under_test, l_signature.class_under_test)
 					create l_label_item.make_with_text (info_center.passing_test_case_count_for_feature (l_signature.class_and_feature_under_test).out)
 					l_row_for_feature.set_item (column_passing, l_label_item)
 
@@ -234,7 +240,9 @@ feature -- ADB Actions
 
 					l_row_for_fault.set_item (column_status, create {EV_GRID_LABEL_ITEM}.make_with_text (l_fault.status_string))
 
-					l_row_for_fault.set_item (column_info, create {EV_GRID_LABEL_ITEM}.make_with_text (l_signature.out))
+					l_info := l_signature.out
+					l_info.replace_substring_all ("%N", "; ")
+					l_row_for_fault.set_item (column_info, create {EV_GRID_LABEL_ITEM}.make_with_text (l_info))
 
 				end
 
@@ -259,19 +267,6 @@ feature -- ADB Actions
 						update_has_to_be_attempted
 					end
 				end
---				if is_fault_visible (l_fault) then
---					if l_is_new_fault_row then
---						l_row_for_fault.show
---					else
---						l_row_for_fault.hide
---					end
---				else
---					l_
---				end
---				if is_fault_visible (l_fault) then
-
---					update_feature_row (l_row_for_feature)
---				end
 			end
 		end
 
@@ -304,7 +299,9 @@ feature -- ADB Actions
 		do
 			tool_panel.set_external_process_running (False)
 			enable_command_invocation_widget (True)
+
 			evbutton_fix_selected.set_text (button_text_fix_selected)
+			evbutton_fix_all_to_be_attempted.set_text (button_text_fix_all)
 		end
 
 	on_valid_fix_found (a_fix: ES_ADB_FIX)
@@ -351,6 +348,27 @@ feature{NONE} -- ADB action implementation
 			end
 		end
 
+feature{ES_ADB_PANEL_FIXES} -- GUI actions
+
+	has_row_for_fault (a_fault: ES_ADB_FAULT): BOOLEAN
+			-- Has current a row associated with `a_fault'?
+		do
+			Result := fault_to_row_table.has (a_fault)
+		end
+
+	on_select_row (a_fault: ES_ADB_FAULT)
+			-- Select the row associated with `a_fault'.
+		require
+			has_row_for_fault (a_fault)
+		local
+			l_feature_row, l_fault_row: EV_GRID_ROW
+		do
+			l_fault_row := fault_to_row_table.item (a_fault)
+			l_fault_row.parent_row.expand
+			evgrid_faults.select_row (l_fault_row.index)
+			evgrid_faults.set_focus
+		end
+
 feature{NONE} -- GUI actions
 
 	register_event_handlers
@@ -364,7 +382,7 @@ feature{NONE} -- GUI actions
 			evmenucheck_contract_fixable.select_actions.extend (agent on_visibility_changed)
 			evmenucheck_not_fixable.select_actions.extend (agent on_visibility_changed)
 
-			evmenucheck_not_yet_attempted.select_actions.extend (agent on_visibility_changed)
+			evmenucheck_to_be_fixed.select_actions.extend (agent on_visibility_changed)
 			evmenucheck_candidate_fix_available.select_actions.extend (agent on_visibility_changed)
 			evmenucheck_candidate_fix_unavailable.select_actions.extend (agent on_visibility_changed)
 			evmenucheck_candidate_fix_accepted.select_actions.extend (agent on_visibility_changed)
@@ -372,6 +390,7 @@ feature{NONE} -- GUI actions
 
 			evbutton_fix_selected.select_actions.extend (agent on_fix_selected)
 			evbutton_fix_all_to_be_attempted.select_actions.extend (agent on_fix_all_to_be_attempted)
+			evbutton_mark_as_manually_fixed.select_actions.extend (agent on_mark_fault_as_manually_fixed)
 		end
 
 	on_row_selected (a_row: EV_GRID_ROW)
@@ -385,6 +404,11 @@ feature{NONE} -- GUI actions
 				else
 					evbutton_fix_selected.disable_sensitive
 				end
+				if attached {ES_ADB_FAULT} a_row.data as lt_fault and then not lt_fault.is_fixed then
+					evbutton_mark_as_manually_fixed.enable_sensitive
+				else
+					evbutton_mark_as_manually_fixed.disable_sensitive
+				end
 			end
 		end
 
@@ -392,18 +416,43 @@ feature{NONE} -- GUI actions
 			-- Action to perform when `a_row' is deselected.
 		do
 			evbutton_fix_selected.disable_sensitive
+			evbutton_mark_as_manually_fixed.disable_sensitive
 		end
 
 	on_grid_events_item_pointer_double_press (a_x: INTEGER_32; a_y: INTEGER_32; a_button: INTEGER_32; a_item: EV_GRID_ITEM)
 			-- Action to perform when user double press on the grid.
 		local
+			l_fixes_panel: ES_ADB_PANEL_FIXES
 		do
 			if a_item /= Void and then attached a_item.row as lt_row then
 				if attached {ES_ADB_FAULT} lt_row.data as lt_fault then
 					if not lt_fault.fixes.is_empty then
-						-- Switch to panel fix and show corresponding fixes.
+							-- Switch to panel fix and show corresponding fixes.
+						l_fixes_panel := tool_panel.fixes_panel
+						tool_panel.autodebug_notebook.select_item (l_fixes_panel)
+						if l_fixes_panel.has_row_for_fault (lt_fault) then
+							l_fixes_panel.on_select_row (lt_fault)
+						end
 					end
 				end
+			end
+		end
+
+	on_mark_fault_as_manually_fixed
+			-- Mark the currently selected fault as being manually fixed.
+		local
+			l_fault: ES_ADB_FAULT
+			l_manual_fix: ES_ADB_FIX_MANUAL
+			l_row: EV_GRID_ROW
+		do
+			l_fault := selected_fault_in_grid
+			if l_fault /= Void and then not l_fault.is_fixed then
+				l_row := fault_to_row_table.item (l_fault)
+				l_manual_fix := l_fault.manual_fix
+				info_center.on_valid_fix_found (l_manual_fix)
+				info_center.on_fix_applied (l_manual_fix)
+				evgrid_faults.select_row (l_row.index)
+				on_row_selected (l_row)
 			end
 		end
 
@@ -418,7 +467,7 @@ feature{NONE} -- GUI actions
 			config.set_show_contract_fixable (evmenucheck_contract_fixable.is_selected)
 			config.set_show_not_fixable (evmenucheck_not_fixable.is_selected)
 
-			config.set_show_not_yet_attempted (evmenucheck_not_yet_attempted.is_selected)
+			config.set_show_to_be_fixed (evmenucheck_to_be_fixed.is_selected)
 			config.set_show_candidate_fix_available (evmenucheck_candidate_fix_available.is_selected)
 			config.set_show_candidate_fix_unavailable (evmenucheck_candidate_fix_unavailable.is_selected)
 			config.set_show_candidate_fix_accepted (evmenucheck_candidate_fix_accepted.is_selected)
@@ -460,17 +509,26 @@ feature{NONE} -- GUI actions
 						l_should_continue := is_approved_by_user ({ES_ADB_INTERFACE_STRINGS}.Msg_discard_existing_fixing_results)
 					end
 					if l_should_continue then
+						config.working_directory.clear_temp_dir
+						copy_project (workbench.eiffel_project, config.working_directory)
+
 						info_center.on_continuation_debugging_start
-						evbutton_fix_selected.set_text (Button_text_fix_selected_stop)
-						evbutton_fix_selected.enable_sensitive
 
-						create l_faults.make_equal (1)
-						l_faults.force_last (l_fault)
+						if is_project_copied_into_working_dir then
+							evbutton_fix_selected.set_text (Button_text_fix_selected_stop)
+							evbutton_fix_selected.enable_sensitive
 
-						create l_fixing_task.make (l_faults, True)
-						create forwarding_task.make (l_fixing_task)
-						forwarding_task.on_terminate_actions.extend (agent info_center.on_continuation_debugging_stop)
-						forwarding_task.start
+							create l_faults.make_equal (1)
+							l_faults.force_last (l_fault)
+
+							create l_fixing_task.make (l_faults, True)
+							create forwarding_task.make (l_fixing_task)
+							forwarding_task.on_terminate_actions.extend (agent info_center.on_continuation_debugging_stop)
+							forwarding_task.start
+						else
+							display_message ({ES_ADB_INTERFACE_STRINGS}.Msg_failed_to_copy_project)
+							info_center.on_continuation_debugging_stop
+						end
 
 					end
 				end
@@ -491,10 +549,6 @@ feature{NONE} -- GUI actions
 		do
 			l_text := evbutton_fix_all_to_be_attempted.text
 			if l_text ~ Button_text_fix_all then
-				info_center.on_continuation_debugging_start
-				evbutton_fix_all_to_be_attempted.set_text (button_text_fix_all_stop)
-				evbutton_fix_all_to_be_attempted.enable_sensitive
-
 					-- Collect the faults to be attempted.
 				create l_all_to_be_attempted.make_equal (info_center.fault_repository.count)
 				from
@@ -510,14 +564,24 @@ feature{NONE} -- GUI actions
 				end
 
 				if not l_all_to_be_attempted.is_empty then
-					create l_fixing_task.make (l_all_to_be_attempted, True)
-					create forwarding_task.make (l_fixing_task)
-					forwarding_task.on_terminate_actions.extend (agent do info_center.on_continuation_debugging_stop; evbutton_fix_all_to_be_attempted.set_text (button_text_fix_all) end)
-					forwarding_task.start
+					config.working_directory.clear_temp_dir
+					copy_project (workbench.eiffel_project, config.working_directory)
 
-				else
-					info_center.on_continuation_debugging_stop
-					evbutton_fix_all_to_be_attempted.set_text (button_text_fix_all)
+					info_center.on_continuation_debugging_start
+
+					if is_project_copied_into_working_dir then
+						evbutton_fix_all_to_be_attempted.set_text (button_text_fix_all_stop)
+						evbutton_fix_all_to_be_attempted.enable_sensitive
+
+						create l_fixing_task.make (l_all_to_be_attempted, True)
+						create forwarding_task.make (l_fixing_task)
+						forwarding_task.on_terminate_actions.extend (agent info_center.on_continuation_debugging_stop)
+						forwarding_task.start
+
+					else
+						display_message ({ES_ADB_INTERFACE_STRINGS}.Msg_failed_to_copy_project)
+						info_center.on_continuation_debugging_stop
+					end
 				end
 			else
 				forwarding_task.cancel
@@ -542,7 +606,7 @@ feature{NONE} -- GUI action implementation
 						or else a_fault.is_exception_type_in_scope_of_implementation_fixing and then config.should_show_implementation_fixable
 						or else not a_fault.is_exception_type_in_scope_of_contract_fixing and then not a_fault.is_exception_type_in_scope_of_implementation_fixing and then config.should_show_not_fixable)
 					  and then
-					  (a_fault.is_not_yet_attempted and then config.should_show_not_yet_attempted
+					  ((a_fault.is_not_yet_attempted or not a_fault.is_approachable) and then config.should_show_to_be_fixed
 					  	or else a_fault.is_candidate_fix_available and then config.should_show_candidate_fix_available
 					  	or else a_fault.is_candidate_fix_unavailable and then config.should_show_candidate_fix_unavailable
 					  	or else a_fault.is_candidate_fix_accepted and then config.should_show_candidate_fix_accepted
@@ -651,7 +715,7 @@ feature -- Config <-> GUI sync
 				enable_check_menu_item (evmenucheck_contract_fixable, True, config.should_show_contract_fixable)
 				enable_check_menu_item (evmenucheck_not_fixable, True, config.should_show_not_fixable)
 
-				enable_check_menu_item (evmenucheck_not_yet_attempted, True, config.should_show_not_yet_attempted)
+				enable_check_menu_item (evmenucheck_to_be_fixed, True, config.should_show_to_be_fixed)
 				enable_check_menu_item (evmenucheck_candidate_fix_available, True, config.should_show_candidate_fix_available)
 				enable_check_menu_item (evmenucheck_candidate_fix_unavailable, True, config.should_show_candidate_fix_unavailable)
 				enable_check_menu_item (evmenucheck_candidate_fix_accepted, True, config.should_show_candidate_fix_accepted)
@@ -665,7 +729,7 @@ feature -- Config <-> GUI sync
 			config.set_show_contract_fixable (evmenucheck_contract_fixable.is_selected)
 			config.set_show_not_fixable (evmenucheck_not_fixable.is_selected)
 
-			config.set_show_not_yet_attempted (evmenucheck_not_yet_attempted.is_selected)
+			config.set_show_to_be_fixed (evmenucheck_to_be_fixed.is_selected)
 			config.set_show_candidate_fix_available (evmenucheck_candidate_fix_available.is_selected)
 			config.set_show_candidate_fix_unavailable (evmenucheck_candidate_fix_unavailable.is_selected)
 			config.set_show_candidate_fix_accepted (evmenucheck_candidate_fix_accepted.is_selected)

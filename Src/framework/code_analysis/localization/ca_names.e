@@ -18,6 +18,101 @@ feature -- General
 
 feature -- Rules
 
+	comparison_of_object_refs_title: STRING_32
+		do Result := translation_in_context ("Comparison of object references", once "code_analyzer") end
+
+	comparison_of_object_refs_description: STRING_32
+		do Result := translation_in_context ("The '=' operator always compares two object references by checking%
+							% whether they point to the same object in memory. In the majority of cases one wants%
+							% to compare the object states, which can be done by the '~' operator.", once "code_analyzer") end
+
+	void_check_using_is_equal_title: STRING_32
+		do Result := translation_in_context ("Void check using 'is_equal'", once "code_analyzer") end
+
+	void_check_using_is_equal_description: STRING_32
+		do Result := translation_in_context ("Checking a local variable or argument to be void should not%
+							% be done by calling 'is_equal' but by the '=' or '/=' operators.", once "code_analyzer") end
+
+	empty_creation_procedure_title: STRING_32
+		do Result := translation_in_context ("Empty creation procedure", once "code_analyzer") end
+
+	empty_creation_procedure_description: STRING_32
+		do Result := translation_in_context ("If there exists only one creation procedure in a class and%
+							% this procedure takes no arguments and has an empty body then the creation%
+							% procedure should be considered to be removed. Note that in this case all%
+							% the clients of the class need to call 'create c' instead of 'create c.make',%
+							% where 'c' is an object of the relevant class and 'make' is its creation procedure.", once "code_analyzer") end
+
+	object_creation_within_loop_title: STRING_32
+		do Result := translation_in_context ("Object creation within loop", once "code_analyzer") end
+
+	object_creation_within_loop_description: STRING_32
+		do Result := translation_in_context ("Creating objects within a loop may decrease performance. On such%
+							% an occurrence it should be checked whether the object creation can be moved outside%
+							% the loop.", once "code_analyzer") end
+
+	comment_not_well_phrased_title: STRING_32
+		do Result := translation_in_context ("Comment not well phrased", once "code_analyzer") end
+
+	comment_not_well_phrased_description: STRING_32
+		do Result := translation_in_context ("The comment does not end with a period or question mark.%
+							% This indicates that the comment is not well phrased. A comment should always%
+							% consist of whole sentences.", once "code_analyzer") end
+
+	missing_creation_proc_without_args_title: STRING_32
+		do Result := translation_in_context ("Missing creation procedure with no arguments", once "code_analyzer") end
+
+	missing_creation_proc_without_args_description: STRING_32
+		do Result := translation_in_context ("In most of the cases a class that has at least one creation procedure%
+							% with arguments should also have a creation procedure with no arguments. Arguments of%
+							% creation procedures most often are some initializing data or options. Normally, one%
+							% should be able to create class with empty initializing data, where the client can set%
+							% or add the data later. For options, an argumentless creation procedure may assume%
+							% default values.", once "code_analyzer") end
+
+	empty_loop_title: STRING_32
+		do Result := translation_in_context ("Empty loop", once "code_analyzer") end
+
+	empty_loop_description: STRING_32
+		do Result := translation_in_context ("A loop with an empty body should be removed.%
+							% In most cases the loop never exits.", once "code_analyzer") end
+
+	double_negation_title: STRING_32
+		do Result := translation_in_context ("Double negation", once "code_analyzer") end
+
+	double_negation_description: STRING_32
+		do Result := translation_in_context ("A double negation appearing in an expression can be safely removed.%
+							% It is also possible that the developer has intended to put a single negation and the%
+							% instruction is erroneous.", once "code_analyzer") end
+
+	undesirable_comment_content_title: STRING_32
+		do Result := translation_in_context ("Undesirable comment content", once "code_analyzer") end
+
+	undesirable_comment_content_description: STRING_32
+		do Result := translation_in_context ("Under some circumstances it might be desirable to keep a certain%
+							% language level. Imaginable cases include source code that will be visible to people%
+							% outside the company or that will even be released publicly.", once "code_analyzer") end
+
+	case_sensitivity_option: STRING_32
+		do Result := translation_in_context ("Case Sensitivity", once "code_analyezer") end
+
+	case_sensitivity_option_description: STRING_32
+		do Result := translation_in_context ("Sets the case sensitivity of all the words in the word list.", once "code_analyzer") end
+
+	bad_words_list_option: STRING_32
+		do Result := translation_in_context ("List of undesirable words in comments", once "code_analyzer") end
+
+	bad_words_list_option_description: STRING_32
+		do Result := translation_in_context ("List of words to be checked for. Use a semicolon separated string of%
+							% words, e.g.: word1;word2;word3", once "code_analyzer") end
+
+	inherit_from_any_title: STRING_32
+		do Result := translation_in_context ("Explicit inheritance from ANY", once "code_analyzer") end
+
+	inherit_from_any_description: STRING_32
+		do Result := translation_in_context ("Inheritance with no adaptations from the ANY class need not explicitely%
+						 	% be defined. This should be removed.", once "code_analyzer") end
+
 	self_assignment_title: STRING_32
 		do Result := translation_in_context ("Self-assignment", once "code_analyzer") end
 

@@ -83,8 +83,8 @@ feature{NONE} -- Initialization
 			create evmenucheck_not_fixable.make_with_text (Menu_text_not_automatic_fixable)
 			evmenu_approchability.extend (evmenucheck_not_fixable)
 
-			create evmenucheck_not_yet_attempted.make_with_text (Menu_text_not_yet_attempted)
-			evmenu_fixes.extend (evmenucheck_not_yet_attempted)
+			create evmenucheck_to_be_fixed.make_with_text (menu_text_to_be_fixed)
+			evmenu_fixes.extend (evmenucheck_to_be_fixed)
 			create evmenucheck_candidate_fix_available.make_with_text (Menu_text_candidate_fix_available)
 			evmenu_fixes.extend (evmenucheck_candidate_fix_available)
 			create evmenucheck_candidate_fix_unavailable.make_with_text (Menu_text_candidate_fix_unavailable)
@@ -110,10 +110,13 @@ feature{NONE} -- Initialization
 			l_h_box.extend (l_label)
 			create evbutton_fix_all_to_be_attempted.make_with_text (Button_text_fix_all)
 			create evbutton_fix_selected.make_with_text (button_text_fix_selected)
+			create evbutton_mark_as_manually_fixed.make_with_text (Button_text_mark_as_manually_fixed)
 			l_h_box.extend (evbutton_fix_all_to_be_attempted)
 			l_h_box.disable_item_expand (evbutton_fix_all_to_be_attempted)
 			l_h_box.extend (evbutton_fix_selected)
 			l_h_box.disable_item_expand (evbutton_fix_selected)
+			l_h_box.extend (evbutton_mark_as_manually_fixed)
+			l_h_box.disable_item_expand (evbutton_mark_as_manually_fixed)
 			extend (l_h_box)
 			disable_item_expand (l_h_box)
 
@@ -122,8 +125,8 @@ feature{NONE} -- Initialization
 feature{NONE} -- GUI elements
 
 	evbutton_fix_all_to_be_attempted: EV_BUTTON
-
 	evbutton_fix_selected: EV_BUTTON
+	evbutton_mark_as_manually_fixed: EV_BUTTON
 
 	evbutton_filter_by_approachability: EV_BUTTON
 	evbutton_filter_by_fixes: EV_BUTTON
@@ -136,7 +139,7 @@ feature{NONE} -- GUI elements
 
 	evmenu_fixes: EV_MENU
 	evmenucheck_all_fixes: EV_CHECK_MENU_ITEM
-	evmenucheck_not_yet_attempted: EV_CHECK_MENU_ITEM
+	evmenucheck_to_be_fixed: EV_CHECK_MENU_ITEM
 	evmenucheck_candidate_fix_available: EV_CHECK_MENU_ITEM
 	evmenucheck_candidate_fix_unavailable: EV_CHECK_MENU_ITEM
 	evmenucheck_candidate_fix_accepted: EV_CHECK_MENU_ITEM

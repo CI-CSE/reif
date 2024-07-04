@@ -48,7 +48,7 @@ feature -- Basic operation
 	execute
 			--
 		local
-			l_traces_before_fixing, l_traces_after_relaxing, l_traces_for_validation: AFX_PROGRAM_EXECUTION_TRACE_REPOSITORY
+			l_traces_before_fixing, l_traces_before_fixing_twin, l_traces_after_relaxing, l_traces_for_validation: AFX_PROGRAM_EXECUTION_TRACE_REPOSITORY
 			l_fixing_targets: DS_ARRAYED_LIST [AFX_FIXING_TARGET]
 			l_contract_fixes: DS_ARRAYED_LIST [AFX_CONTRACT_FIX_TO_FAULT]
 			l_code_fixes, l_valid_code_fixes: DS_ARRAYED_LIST [AFX_CODE_FIX_TO_FAULT]
@@ -68,6 +68,7 @@ feature -- Basic operation
 
 			reproduce_failure
 			l_traces_before_fixing := collect_behavior_of_regular_tests
+			l_traces_before_fixing_twin := l_traces_before_fixing.twin
 
 			if config.is_fixing_implementation then
 				l_fixing_targets := localize_faulty_targets (l_traces_before_fixing)
@@ -82,7 +83,7 @@ feature -- Basic operation
 				l_feature_to_relax.set_monitor_body (False)
 				l_traces_after_relaxing := collect_behavior_of_relaxed_tests (l_feature_to_relax)
 
-				l_contract_fixes := generate_contract_fixes (l_traces_before_fixing, l_traces_after_relaxing)
+				l_contract_fixes := generate_contract_fixes (l_traces_before_fixing_twin, l_traces_after_relaxing)
 				validate_contract_fixes (l_contract_fixes)
 				sort_contract_fixes (l_contract_fixes)
 				fixes.append_last (l_contract_fixes)
@@ -303,6 +304,7 @@ feature{NONE} -- Implementation
 			l_trace_for_validation: AFX_PROGRAM_EXECUTION_TRACE_REPOSITORY
 			l_cursor: DS_ARRAYED_LIST_CURSOR [AFX_CONTRACT_FIX_TO_FAULT]
 			l_feature_contract_remover: EPA_FEATURE_CONTRACT_REMOVER
+			l_index: INTEGER
 		do
 			if session.should_continue then
 				event_actions.notify_on_contract_fix_validation_started (a_contract_fixes)
@@ -332,17 +334,19 @@ feature{NONE} -- Implementation
 						agent (a_fix: AFX_CONTRACT_FIX_TO_FAULT; a_traces: AFX_PROGRAM_EXECUTION_TRACE_REPOSITORY; a_all_features_to_monitor: DS_ARRAYED_LIST [AFX_FEATURE_TO_MONITOR])
 							do a_fix.compute_ranking_wrt_trace_repository (a_traces, a_all_features_to_monitor) end (?, l_trace_for_validation, features_to_monitor))
 
-					-- Remove invalid fixes.
+					-- Remove invalid fixes, keep at most config.max_valid_fix_number valid fixes.
 				from
 					l_cursor := a_contract_fixes.new_cursor
 					l_cursor.start
+					l_index := 0
 				until
 					l_cursor.after
 				loop
-					if l_cursor.item.ranking >= {AFX_CONTRACT_FIX_TO_FAULT}.Ranking_weight_for_failing then
+					if l_cursor.item.ranking >= {AFX_CONTRACT_FIX_TO_FAULT}.Ranking_weight_for_failing or l_index > session.config.max_valid_fix_number.to_integer_32 then
 						a_contract_fixes.remove_at_cursor (l_cursor)
 					else
 						l_cursor.forth
+						l_index := l_index + 1
 					end
 				end
 

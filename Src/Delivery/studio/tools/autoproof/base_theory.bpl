@@ -135,7 +135,7 @@ axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o'), trans_owns(h, o)
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
 
 // Frame axiom: domain frames itself
-axiom (forall h, h': HeapType, x, x': ref :: { in_domain(h', x, x'), HeapSucc(h, h') } 
+axiom (forall h, h': HeapType, x, x': ref :: { in_domain(h, x, x'), in_domain(h', x, x'), HeapSucc(h, h') } 
   IsHeap(h) && IsHeap(h') && HeapSucc(h, h') &&
   h[x, allocated] && h'[x, allocated] &&     
   (forall <T> o: ref, f: Field T :: h[o, allocated] ==> h'[o, f] == h[o, f] || !in_domain(h, x, o))
@@ -189,7 +189,7 @@ function {:inline true} closed_under_domains(frame: Frame, h: HeapType): bool
 
 // Objects outside of ownership domains of frame did not change, unless they were newly allocated
 function same_outside(h: HeapType, h': HeapType, frame: Frame): bool { 
-	(forall <T> o: ref, f: Field T :: { h[o, f] } { h'[o, f] }
+	(forall <T> o: ref, f: Field T :: { h'[o, f] }
     h[o, allocated] ==>      
       h'[o, f] == h[o, f] ||
       frame[o, f] ||        
@@ -199,7 +199,7 @@ function same_outside(h: HeapType, h': HeapType, frame: Frame): bool {
 
 // Objects inside the frame did not change
 function same_inside(h: HeapType, h': HeapType, frame: Frame): bool { 
-	(forall <T> o: ref, f: Field T :: { h[o, f] } { h'[o, f] }
+	(forall <T> o: ref, f: Field T :: { h'[o, f] }
     h[o, allocated] && h'[o, f] != h[o, f] ==> !frame [o, f])
 }
 // This version corresponds to the old semantics of read clauses:
