@@ -72,7 +72,7 @@ feature -- Values
 			create Result.make (l_temp, types.real)
 		end
 
-	type_value (a_value: TYPE_A): IV_VALUE
+	type_value (a_value: CL_TYPE_A): IV_VALUE
 			-- Value for integer `a_value'.
 		do
 			create Result.make (name_translator.boogie_name_for_type (a_value), types.type)
@@ -287,6 +287,12 @@ feature -- Heap and map access
 			create Result.make (a_map, a_indexes)
 		end
 
+	map_update (a_map: IV_EXPRESSION; a_indexes: ARRAY [IV_EXPRESSION]; a_value: IV_EXPRESSION): IV_MAP_UPDATE
+			-- Map update `a_map'[`a_index' := `a_value'].
+		do
+			create Result.make (a_map, a_indexes, a_value)
+		end
+
 	heap_access (a_heap: IV_EXPRESSION; a_target: IV_EXPRESSION; a_name: STRING; a_content_type: IV_TYPE): IV_MAP_ACCESS
 			-- Heap access to `a_feature' on `Current'.
 		do
@@ -359,7 +365,7 @@ feature -- Framing
 			create Result.make (a_frame, << a_obj, a_field >>)
 		end
 
-	writes_routine_frame (a_feature: FEATURE_I; a_type: TYPE_A; a_boogie_procedure: IV_PROCEDURE): IV_EXPRESSION
+	writes_routine_frame (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_boogie_procedure: IV_PROCEDURE): IV_EXPRESSION
 			-- Boolean expression stating that only the modifies set of `a_feature' in `a_type' (translated into `a_boogie_procedure')
 			-- has changed between the old heap and the current heap.
 		local

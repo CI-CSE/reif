@@ -10,6 +10,8 @@ inherit
 
 	ROTA_TASK_I
 
+	E2B_SHARED_CONTEXT
+
 create
 	make
 
@@ -34,12 +36,16 @@ feature -- Status report
 
 feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 
+	started: BOOLEAN
+
 	step
 			-- <Precursor>
 		local
 			l_end_tick: NATURAL
+			l_untranslated: INTEGER
+			l_total: INTEGER
 		do
-				-- Translate features for 100 milliseconds
+				-- Translate features for some milliseconds
 			from
 				l_end_tick := end_tick_for_duration (100)
 			until
@@ -48,6 +54,10 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				translator.step
 			end
 			has_next_step := translator.has_next_step
+
+			l_untranslated := translation_pool.untranslated_elements.count
+			l_total := l_untranslated + translation_pool.translated_elements.count
+			set_status (messages.status_translating (l_untranslated, l_total))
 		end
 
 	cancel

@@ -1,5 +1,5 @@
 note
-	description: "{ESTRING_8} is an expanded, immutable unicode string. It defaults to an empty string."
+	description: "{ESTRING_8} is an expanded, immutable 8-bit string. It defaults to an empty string."
 	author: "Mischael Schill"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -8,28 +8,28 @@ expanded class
 	ESTRING_8
 
 inherit
-	ANY
-		undefine
-			default_create,
-			is_equal,
-			out
-		end
-
 	READABLE_STRING_GENERAL
 		rename
 			item as item_32
-		undefine
-			default_create
+		export {NONE}
+			make,
+			capacity,
+			new_string
 		redefine
+			valid_index,
+			hash_code,
+			starts_with,
+--			split,
+			default_create,
 			is_immutable,
 			out,
-			--is_equal,
+			is_equal,
 			to_string_32,
 			to_string_8
 		end
 
 	READABLE_INDEXABLE[CHARACTER_8]
-		undefine
+		redefine
 			default_create,
 			is_equal,
 			out
@@ -44,22 +44,26 @@ create
 	make_as_upper,
 	make_substring,
 	make_from_c,
-	make_empty
+	make_from_area
 
 create {ESTRING_8}
-	make
+	make_copy
 
 convert
-	make_from_string_general ({READABLE_STRING_GENERAL}),
 	make_from_string_8 ({STRING_8}),
 	make_from_string_32 ({STRING_32}),
 	to_string_8: {STRING_8},
-	to_string_32: {STRING_32}
-
+	to_string_32: {STRING_32},
+	to_c_string: {C_STRING}
 feature {NONE} -- Initialization
 	default_create
 		do
-			make_empty
+		end
+
+	make (n: INTEGER)
+		-- Not useful, therefore not implemented
+		do
+			check false end
 		end
 
 	make_from_separate (a_string: separate READABLE_STRING_GENERAL)
@@ -67,7 +71,7 @@ feature {NONE} -- Initialization
 			a_string.is_valid_as_string_8
 		local
 			i: INTEGER
-			l_string: like area
+			l_string: MANAGED_POINTER
 		do
 			create l_string.make (a_string.count)
 			from
@@ -75,18 +79,22 @@ feature {NONE} -- Initialization
 			until
 				i > a_string.count
 			loop
-				l_string.extend (a_string[i].to_character_8)
+				l_string.put_character (a_string[i].to_character_8, i - 1)
+				i := i + 1
 			end
 			separate_area := l_string
+			area := l_string.item
+			count := l_string.count
 		end
 
 	make_from_string_general,
+	make_from_string_8,
 	make_from_string_32 (a_string: READABLE_STRING_GENERAL)
 		require
 			a_string.is_valid_as_string_8
 		local
 			i: INTEGER
-			l_string: like area
+			l_string: MANAGED_POINTER
 		do
 			create l_string.make (a_string.count)
 			from
@@ -94,21 +102,15 @@ feature {NONE} -- Initialization
 			until
 				i > a_string.count
 			loop
-				l_string.extend (a_string[i].to_character_8)
+				l_string.put_character (a_string[i].to_character_8, i - 1)
+				i := i + 1
 			end
 			separate_area := l_string
+			area := l_string.item
+			count := l_string.count
 		end
 
-	make_from_string_8(a_string: READABLE_STRING_8)
-		local
-			i: INTEGER
-			l_string: like area
-		do
-			create l_string.make_from_separate(a_string)
-			separate_area := l_string
-		end
-
-	make_substring (a_string: separate READABLE_STRING_GENERAL; a_lower, a_upper: INTEGER)
+	make_substring (a_string: like Current; a_lower, a_upper: INTEGER)
 		require
 			a_lower <= a_upper + 1
 			a_lower > 0
@@ -116,104 +118,106 @@ feature {NONE} -- Initialization
 			a_string.is_valid_as_string_8
 		local
 			i: INTEGER
-			l_string: like area
+			l_string: MANAGED_POINTER
 		do
 			create l_string.make (a_upper - a_lower + 1)
 			separate_area := l_string
+			area := l_string.item
 
 			from
 				i := a_lower
 			until
 				i > a_upper
 			loop
-				l_string.extend (a_string[i].to_character_8)
+				l_string.put_character (a_string[i].to_character_8, i - a_lower)
+				i := i + 1
+			end
+			count := l_string.count
+		end
+
+	make_as_lower (a_string: like Current)
+		local
+			i: INTEGER
+			l_string: MANAGED_POINTER
+		do
+			create l_string.make (a_string.count)
+			separate_area := l_string
+			area := l_string.item
+
+			count := a_string.count
+			from
+				i := 1
+			until
+				i > count
+			loop
+				l_string.put_character (a_string[i].as_lower.to_character_8, i - 1)
 				i := i + 1
 			end
 		end
 
-	make (n: INTEGER)
-		do
-			create {STRING_8}separate_area.make (n)
-		end
-
-	make_as_lower (a_string: separate READABLE_STRING_GENERAL)
-		require
-			a_string.is_valid_as_string_8
+	make_as_upper (a_string: like Current)
 		local
 			i: INTEGER
-			l_string: like area
+			l_string: MANAGED_POINTER
 		do
 			create l_string.make (a_string.count)
 			separate_area := l_string
+			area := l_string.item
 
+			count := a_string.count
 			from
 				i := 1
 			until
-				i > a_string.count
+				i > count
 			loop
-				l_string.extend (a_string[i].as_lower.to_character_8)
-				i := i + 1
-			end
-		end
-
-	make_as_upper (a_string: separate READABLE_STRING_GENERAL)
-		require
-			a_string.is_valid_as_string_8
-		local
-			i: INTEGER
-			l_string: like area
-		do
-			create l_string.make (a_string.count)
-			separate_area := l_string
-
-			from
-				i := 1
-			until
-				i > a_string.count
-			loop
-				l_string.extend (a_string[i].as_upper.to_character_8)
+				l_string.put_character (a_string[i].as_upper.to_character_8, i - 1)
 				i := i + 1
 			end
 		end
 
 	make_from_c (a_pointer: POINTER)
 		local
-			i,n: INTEGER
 			l_mp: MANAGED_POINTER
-			l_buf: ARRAYED_LIST[CHARACTER_8]
-			l_string: like area
 		do
 			create l_mp.share_from_pointer (a_pointer, 2147483647)
 			from
-				n := 0
+				count := 0
 			until
-				l_mp.read_natural_8 (n) = 0
+				l_mp.read_natural_8 (count) = 0
 			loop
-				n := n + 1
+				count := count + 1
 			end
-			create l_string.make (n)
-			from
-				i := 0
-			until
-				i = n
-			loop
-				l_string.extend (l_mp.read_character (i))
-				i := i + 1
-			end
-			separate_area := l_string
+			create l_mp.make_from_pointer (a_pointer, count)
+			separate_area := l_mp
+			area := l_mp.item
+		end
+
+	make_from_area (a_area: MANAGED_POINTER)
+		do
+			separate_area := a_area
+			area := a_area.item
+			count := a_area.count
+		end
+
+
+	make_copy (a_area: POINTER; a_separate_area: detachable separate MANAGED_POINTER; a_count: INTEGER)
+		do
+			separate_area := a_separate_area
+			area := a_area
+			count := a_count
 		end
 
 feature -- Access
+	item alias "[]" (i: INTEGER): CHARACTER_8
+		do
+			($Result).memory_copy (area + (i - 1), 1)
+		end
 
 	code (i: INTEGER): NATURAL_32
 		do
-			Result := Current[i].code.to_natural_8
+			Result := item (i).code.as_natural_32
 		end
 
-	item alias "[]" (i: INTEGER): CHARACTER_8
-		do
-			Result := area[i]
-		end
 
 feature -- Status report
 
@@ -223,7 +227,7 @@ feature -- Status report
 			Result := True
 		end
 
-	valid_code (v: like code): BOOLEAN
+	valid_code (v: NATURAL_32): BOOLEAN
 			-- Is `v' a valid code for Current?
 		do
 			Result := v < 256
@@ -258,32 +262,40 @@ feature -- Status report
 
 	is_boolean: BOOLEAN
 			-- Does `Current' represent a BOOLEAN?
+		local
+			l: like as_lower
 		do
-			Result := (true_constant.same_string_general (as_lower) or
-				false_constant.same_string_general (as_lower))
+			l := as_lower
+			Result := (l.is_equal("true") or
+				l.is_equal("false"))
+		end
+
+	valid_index (i: INTEGER): BOOLEAN
+			-- Is `i' a valid index?
+		do
+			Result := i > 0 and i <= count
 		end
 
 feature -- Measurement
 
 	count: INTEGER
-			-- Number of characters in Current
-		do
-			Result := area.count
-		end
 
 	capacity: INTEGER
-			-- Number of characters allocated in Current
 		do
-			Result := area.capacity
+			Result := count
 		end
-
-feature -- Measurement
 
 	index_set: INTEGER_INTERVAL
 			-- Range of acceptable indexes
 		do
 			create Result.make (1, count)
 		end
+
+	hash_code: INTEGER
+		do
+			Result := calculate_hash (area, 4 * count)
+		end
+
 feature -- Comparison
 
 	substring_index_in_bounds (other: READABLE_STRING_GENERAL; start_pos, end_pos: INTEGER): INTEGER
@@ -291,10 +303,30 @@ feature -- Comparison
 			-- and to or before `end_pos';
 			-- 0 if none.
 		local
-			l_string: like area
+			l_pos, l_other_pos, l_other_count: INTEGER
 		do
-			l_string := area
-			Result := l_string.substring_index_in_bounds (other, start_pos, end_pos)
+			l_other_count := other.count
+			from
+				l_pos := start_pos
+				Result := 0
+				l_other_pos := 1
+			until
+				l_pos > end_pos or l_other_pos > l_other_count
+			loop
+				if item(l_pos) = other[l_other_pos] then
+					if Result = 0 then
+						Result := l_pos
+					end
+					l_other_pos := l_other_pos + 1
+				else
+					Result := 0
+					l_other_pos := 1
+				end
+				l_pos := l_pos + 1
+			end
+			if l_other_pos <= l_other_count then
+				Result := 0
+			end
 		end
 
 	substring_index (other: READABLE_STRING_GENERAL; start_index: INTEGER): INTEGER
@@ -304,40 +336,101 @@ feature -- Comparison
 			Result := substring_index_in_bounds (other, start_index, count)
 		end
 
+	is_less alias "<" (a_other: like Current): BOOLEAN
+		local
+			i: INTEGER
+			c1, c2: CHARACTER_8
+			break: BOOLEAN
+		do
+			from
+				i := 1
+			until
+				i > count or else i > a_other.count or else
+					item (i) /= a_other.item (i)
+			loop
+				i := i + 1
+			end
+
+			if count = 0 and a_other.count = 0 then
+				Result := False
+			elseif i > count and i > a_other.count then
+				Result := item (i - 1) < a_other.item (i - 1)
+			elseif i > count then
+				Result := True
+			elseif i > a_other.count then
+				Result := False
+			else
+				Result := item (i) < a_other.item (i)
+			end
+		end
+
+	is_equal (a_other: like Current): BOOLEAN
+		local
+			l_count: INTEGER
+			l_other_area, l_area: like area
+		do
+			l_count := count
+			Result := a_other.count = l_count
+			if Result then
+				Result := area.memory_compare (a_other.area, count)
+			end
+		end
+
+	starts_with (a_other: READABLE_STRING_GENERAL): BOOLEAN
+		local
+			i: INTEGER
+		do
+			Result := a_other.count <= count
+			from
+				i := 1
+			until
+				i > a_other.count or i > count or not Result
+			loop
+				Result := a_other[i] = item(i)
+				i := i + 1
+			end
+		end
+
 	fuzzy_index (other: READABLE_STRING_GENERAL; start: INTEGER; fuzz: INTEGER): INTEGER
 			-- Position of first occurrence of `other' at or after `start'
 			-- with 0..`fuzz' mismatches between the string and `other'.
 			-- 0 if there are no fuzzy matches
 		local
-			l_string: like area
+			l_outer_pos, l_pos, l_other_pos, l_count, l_fuzz_count, l_other_count: INTEGER
 		do
-			l_string := area
-			Result := l_string.fuzzy_index (other, start, fuzz)
+			l_other_count := other.count
+			l_count := count
+
+			from
+				l_outer_pos := start
+			until
+				l_outer_pos > l_count + l_other_count or Result > 0
+			loop
+				from
+					l_pos := l_outer_pos
+					Result := l_pos
+					l_other_pos := 1
+					l_fuzz_count := 0
+				until
+					l_pos > l_count or l_other_pos > l_other_count or Result = 0
+				loop
+					if item(l_pos) = other[l_other_pos] then
+						l_other_pos := l_other_pos + 1
+					else
+						l_fuzz_count := l_fuzz_count + 1
+						if l_fuzz_count > fuzz then
+							Result := 0
+						end
+					end
+					l_pos := l_pos + 1
+				end
+
+				if l_other_pos <= l_other_count then
+					Result := 0
+				end
+				l_outer_pos := l_outer_pos + 1
+			end
 		end
-
-	is_less alias "<" (a_other: like Current): BOOLEAN
-		local
-			l_string1, l_string2: like area
-		do
-			l_string1 := area
-			l_string2 := a_other.area
-			Result := l_string1 < l_string2
-		end
-
---	is_equal (a_other: like Current): BOOLEAN
---		local
---			l_count: INTEGER
---			l_other_area, l_area: STRING_8
---		do
---			l_count := count
---			Result := a_other.count = l_count
---			if Result then
---				l_area := area
---				l_other_area := a_other.area
---				Result := l_other_area.same_items (l_area, 0, 0, l_count)
---			end
-
---		end
 
 feature -- Conversion
 
@@ -356,16 +449,14 @@ feature -- Conversion
 	to_string_32: STRING_32
 		local
 			i: INTEGER
-			l_area: like area
 		do
 			create Result.make (count)
-			l_area := area
 			from
 				i := 1
 			until
-				i = count
+				i > count
 			loop
-				Result.extend(l_area[i].to_character_32)
+				Result.extend (item_32 (i))
 				i := i + 1
 			end
 		end
@@ -374,36 +465,149 @@ feature -- Conversion
 		local
 			i: INTEGER
 		do
-			create Result.make_from_string (area)
-		end
-
-	out: STRING_8
-		local
-			i: INTEGER
-			l_area: like area
-		do
 			create Result.make (count)
-			l_area := area
 			from
 				i := 1
 			until
-				i = count
+				i > count
 			loop
-				Result.extend(l_area[i])
+				Result.extend (item (i))
 				i := i + 1
 			end
+		end
+
+	to_c_string: C_STRING
+		do
+			create Result.make_by_pointer_and_count (area, count)
+		end
+
+--	split (a_splitter: CHARACTER_32): LIST[ESTRING_8]
+--		local
+--			i, n, l, j: INTEGER
+--		do
+--			from
+--				i := 1
+--				n := 1
+--			until
+--				i > count
+--			loop
+--				if item (i) = a_splitter then
+--					n := n + 1
+--				end
+--				i := i + 1
+--			end
+--			create {ARRAYED_LIST[ESTRING_8]}Result.make (n)
+--			from
+--				i := 1
+--				l := 1
+--				j := 1
+--			until
+--				i > count
+--			loop
+--				if item (i) = a_splitter then
+--					Result[j] := substring (l, i-1)
+--					l := i + 1
+--					j := j + 1
+--				end
+--				i := i + 1
+--			end
+--			Result[j] := substring (l, i-1)
+--		end
+
+	out: STRING_8
+		do
+			Result := to_string_8
 		end
 
 
 feature -- Element change
 
-	plus alias "+" (s: READABLE_STRING_GENERAL): like Current
+	plus alias "+" (s: like Current): like Current
 		local
-			l_area: like area
+			l_area: MANAGED_POINTER
 			l_count1, l_count2: INTEGER
 			i: INTEGER
 		do
-			create Result.make_from_string_8 (area + s)
+			-- Todo less copying
+			create l_area.make (count + s.count)
+			l_area.item.memory_copy (area, count)
+			l_area.item.plus (count).memory_copy (s.area, s.count)
+			create Result.make_from_area (l_area)
+		end
+
+
+	trim: ESTRING_8
+		-- Returns a substring where all the leading and trailing whitespace is removed
+		local
+			s, e: INTEGER
+			c: CHARACTER_8
+		do
+			if count = 0 then
+				Result := Current
+			elseif count = 1 then
+				c := item (1)
+				if not (c = ' ' or c = '%T' or c = '%N') then
+					Result := Current
+				end
+			else
+				c := item (1)
+				if not (c = ' ' or c = '%T' or c = '%N' or c = '%R') then
+					c := item (count)
+					if not (c = ' ' or c = '%T' or c = '%N') then
+						Result := Current
+					end
+				else
+					from
+						s := 1
+						c := item (s)
+					until
+						s = count or not (c = ' ' or c = '%T' or c = '%N' or c = '%R')
+					loop
+						s := s + 1
+						c := item (s)
+					end
+					from
+						e := count
+						c := item (e)
+					until
+						e = 1 or not (c = ' ' or c = '%T' or c = '%N' or c = '%R')
+					loop
+						e := e - 1
+						c := item (e)
+					end
+					if e >= s then
+						Result := substring (s, e)
+					end
+				end
+
+			end
+		end
+
+	replace (a_char, a_replacement: CHARACTER_8): ESTRING_8
+			-- Replace every occurence of a_char with a_replacement
+		local
+			i: INTEGER
+			l_area: MANAGED_POINTER
+			c: CHARACTER_8
+		do
+			if has (a_char) then
+				from
+					i := 1
+					create l_area.make (count)
+				until
+					i > count
+				loop
+					c := item (i)
+					if c = a_char then
+						l_area.put_character (a_replacement, i - 1)
+					else
+						l_area.put_character (c, i - 1)
+					end
+				end
+				create Result.make_from_area (l_area)
+			else
+				Result := Current
+			end
 		end
 
 feature -- Duplication
@@ -415,81 +619,50 @@ feature -- Duplication
 			create Result.make_substring(Current, start_index, end_index)
 		end
 
-feature {NONE} -- Implementation
+--	copy(a_other: like Current)
+--		do
+--			separate_area := a_other.separate_area
+--			area := a_other.area
+--			count := a_other.count
+--		end
 
+feature {ESTRING_8} -- Implementation
 	new_string (n: INTEGER): like Current
-			-- New instance of current with space for at least `n' characters.
+			-- Not useful, not implemented
 		do
-			create Result.make(n)
 		end
 
-	string_searcher: ESTRING_8_SEARCHER
+	string_searcher: ESTRING_SEARCHER
 			-- Facilities to search string in another string.
 		do
 			create Result.make
 		end
 
-feature {ESTRING_8, ESTRING_8_SEARCHER} -- Implementation
-	wrapper (a: detachable separate STRING_8): STRING_8
-		external
-			"C inline"
-		alias
-			"return eif_access($a);"
-		end
+	separate_area: detachable separate MANAGED_POINTER
 
-	fast_copy_separate (a: detachable separate STRING_8; b: SPECIAL[CHARACTER_8]; n: INTEGER)
-		external
-			"C inline use <string.h>"
-		alias
-			"{
-		        EIF_PROCEDURE ep;
-		        EIF_TYPE_ID tid;
-
-		        tid = eif_type_id ("SPECIAL[CHARACTER_8]");
-		        ep = eif_procedure ("copy_data", tid);
-		        (ep) (eif_access($b),eif_access($a),0,0,$n);
-			}"
-		end
-
---				EIF_OBJECT area = eif_protect (eif_attribute ($a, "area", EIF_REFERENCE, 0));
---        		EIF_POINTER addr1 = eif_attribute (eif_access (area), "base_address", EIF_POINTER, 0);
---				EIF_POINTER addr2 = eif_attribute (eif_access ($b), "base_address", EIF_POINTER, 0);
---				memcpy (addr2, addr1, $n);
---				eif_wean (area);
-
-
-	separate_area: separate like area
-		attribute
-			Result := ""
-		end
-
-	area: STRING_8
-		local
-			c: CHARACTER_8
-			l_string: STRING_8
-			i: INTEGER
-		do
-			if attached {STRING_8} separate_area as a then
-				Result := a
-			else
-				l_string := wrapper(separate_area)
-
-				create Result.make (l_string.count)
-				from
-					i := 1
-				until
-					i > l_string.count
-				loop
-					Result.extend (l_string[i])
-					i := i + 1
-				end
-				--fast_copy_separate (separate_area, Result.area, count)
-			end
-		end
+	area: POINTER
 
 	item_32 (i: INTEGER): CHARACTER_32
 		do
-			Result := area[i].to_character_32
+			Result := item (i).to_character_32
 		end
+
+	calculate_hash (a_str: POINTER; a_count: INTEGER): INTEGER
+		external
+			"C inline use <math.h>"
+		alias
+			"{
+		    	unsigned char *str = $a_str;
+		        EIF_INTEGER hash = 5381;
+		        int c;
+		        int i;
+
+		        for (i = 0; i < $a_count; i++)
+		            hash = ((hash << 5) + hash) + c;
+
+		        return abs(hash);
+			}"
+		end
+
 
 end

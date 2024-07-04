@@ -26,7 +26,6 @@ feature {NONE} -- Initialization
 		do
 			make_with_defaults
 			create {CA_SUGGESTION} severity
-			create violations.make
 		end
 
 	register_actions (a_checker: attached CA_ALL_RULES_CHECKER)
@@ -40,18 +39,14 @@ feature {NONE} -- Rule checking
 			-- Iterates through all the attributes of `a_class' and looks at its
 			-- callers.
 		local
-			l_feat: LIST [E_FEATURE]
 			l_clients: ARRAYED_LIST [CLASS_C]
 			l_has_clients: BOOLEAN
 			l_callers: LIST [STRING_32]
 		do
-			l_feat := checking_class.written_in_features
-			l_clients := checking_class.clients
+			l_clients := current_context.checking_class.clients
 
-			from
-				l_feat.start
-			until
-				l_feat.after
+			across
+				current_context.checking_class.written_in_features as l_feat
 			loop
 
 					-- Only look at attributes.
@@ -64,7 +59,7 @@ feature {NONE} -- Rule checking
 					loop
 							-- Only look at external clients.
 						if
-							l_clients.item.name.is_equal (checking_class.name)
+							l_clients.item.name.is_equal (current_context.checking_class.name)
 								-- `callers_32' retrieves not only callers but also assigners and creators.
 							and then l_feat.item.callers_32 (l_clients.item, 0) /= Void
 						then
@@ -76,14 +71,12 @@ feature {NONE} -- Rule checking
 
 					if
 						not l_has_clients
-						and then attached l_feat.item.callers_32 (checking_class, 0) as l_c
+						and then attached l_feat.item.callers_32 (current_context.checking_class, 0) as l_c
 						and then l_c.count = 1
 					then
 						create_violation (l_feat.item, l_c.first)
 					end
 				end
-
-				l_feat.forth
 			end
 		end
 

@@ -74,7 +74,7 @@ feature {NONE} -- Initialization
 
 feature -- Analysis interface
 
-	add_completed_action (a_action: attached PROCEDURE [ANY, TUPLE [BOOLEAN]])
+	add_completed_action (a_action: attached PROCEDURE [ANY, TUPLE [ITERABLE [TUPLE [detachable EXCEPTION, CLASS_C]]]])
 			-- Adds `a_action' to the list of procedures that will be
 			-- called when analysis has completed.
 		do
@@ -134,21 +134,16 @@ feature -- Analysis interface
 			-- Add all the classes that are part of the current system. Classes of references libraries
 			-- will not be added.
 		local
-			l_groups: LIST [CONF_GROUP]
 			l_cluster: CLUSTER_I
 		do
-			from
-				l_groups := eiffel_universe.groups
-				l_groups.start
-			until
-				l_groups.after
+			across
+				eiffel_universe.groups as l_groups
 			loop
-				l_cluster ?= l_groups.item_for_iteration
+				l_cluster ?= l_groups.item
 					-- Only load top-level clusters, as the others will be loaded recursively afterwards.
 				if l_cluster /= Void and then l_cluster.parent_cluster = Void then
 					add_cluster (l_cluster)
 				end
-				l_groups.forth
 			end
 
 			system_wide_check := True
@@ -198,7 +193,7 @@ feature -- Analysis interface
 			system_wide_check := False
 
 			if attached {EIFFEL_CLASS_I} a_class as l_eiffel_class
-				and then attached {CLASS_C} l_eiffel_class.compiled_class as l_compiled
+				and then attached l_eiffel_class.compiled_class as l_compiled
 			then
 				classes_to_analyze.extend (l_compiled)
 
@@ -236,8 +231,9 @@ feature {NONE} -- Implementation
 
 	csv_header: STRING = "Severity;Class;Location;Title;Description;Rule ID;Severity Score"
 
-	analysis_completed
-			-- Will be called when the analysis task has finished.
+	analysis_completed (a_exceptions: detachable ITERABLE [TUPLE [detachable EXCEPTION, CLASS_C]])
+			-- Will be called when the analysis task has finished. `a_exceptions'
+			-- contains a list of exception that occurred during analysis.
 		local
 			l_csv_writer: CA_CSV_WRITER
 		do
@@ -262,7 +258,7 @@ feature {NONE} -- Implementation
 			clear_classes_to_analyze
 
 			is_running := False
-			completed_actions.call ([True])
+			completed_actions.call ([a_exceptions])
 			completed_actions.wipe_out
 		end
 
@@ -299,7 +295,7 @@ feature {NONE} -- Implementation
 	system_wide_check: BOOLEAN
 			-- Shall the whole system be analyzed?
 
-	completed_actions: ACTION_SEQUENCE [TUPLE [BOOLEAN]]
+	completed_actions: ACTION_SEQUENCE [TUPLE [ITERABLE [TUPLE [detachable EXCEPTION, CLASS_C]]]]
 			-- List of procedures to call when analysis has completed.
 
 	frozen rota: detachable ROTA_S

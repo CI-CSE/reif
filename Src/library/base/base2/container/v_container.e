@@ -16,6 +16,8 @@ feature -- Measurement
 
 	count: INTEGER
 			-- Number of elements.
+		require
+			closed: closed
 		deferred
 		ensure
 			definition: Result = bag.count
@@ -25,6 +27,8 @@ feature -- Status report
 
 	is_empty: BOOLEAN
 			-- Is container empty?
+		require
+			closed: closed
 		do
 			Result := count = 0
 		ensure
@@ -41,16 +45,14 @@ feature -- Search
 			explicit: contracts
 		require
 			is_wrapped: is_wrapped
-			modify_model (["closed", "observers"], Current)
+			modify_model ("observers", Current)
 		local
 			it: V_ITERATOR [G]
 		do
 			it := new_cursor
 			it.search_forth (v)
 			Result := not it.after
-			unwrap; it.unwrap
-			set_observers (observers / it)
-			wrap
+			forget_iterator (it)
 		ensure
 			definition: Result = bag.domain [v]
 			observers_restored: observers = old observers
@@ -65,7 +67,7 @@ feature -- Search
 			explicit: contracts
 		require
 			is_wrapped: is_wrapped
-			modify_model (["closed", "observers"], Current)
+			modify_model ("observers", Current)
 		local
 			it: V_ITERATOR [G]
 			s: MML_SEQUENCE [G]
@@ -73,10 +75,11 @@ feature -- Search
 			from
 				it := new_cursor
 			invariant
-				1 <= it.index and it.index <= it.sequence.count + 1
-				s = it.sequence.front (it.index - 1)
+				1 <= it.index_ and it.index_ <= it.sequence.count + 1
+				s = it.sequence.front (it.index_ - 1)
 				Result = s.occurrences (v)
-				modify_model ("index", it)
+				it.is_wrapped
+				modify_model ("index_", it)
 			until
 				it.off
 			loop
@@ -86,68 +89,15 @@ feature -- Search
 				s := s & it.item
 				it.forth
 			variant
-				it.sequence.count - it.index
+				it.sequence.count - it.index_
 			end
 			check s = it.sequence end
-			unwrap; it.unwrap
-			set_observers (observers / it)
-			wrap
+			forget_iterator (it)
 		ensure
 			definition: Result = bag [v]
-			observers_restored: observers = old observers
+			observers_restored: observers ~ old observers
 			is_wrapped: is_wrapped
 		end
-
---	count_satisfying (pred: PREDICATE [ANY, TUPLE [G]]): INTEGER
---			-- How many elements satisfy `pred'?
---		require
---			pred_exists: pred /= Void
---			pred_has_one_arg: pred.open_count = 1
---			precondition_satisfied: bag.domain.for_all (agent (x: G; p: PREDICATE [ANY, TUPLE [G]]): BOOLEAN
---				do
---					Result := p.precondition ([x])
---				end (?, pred))
---		do
---			across
---				Current as it
---			loop
---				if pred.item ([it.item]) then
---					Result := Result + 1
---				end
---			end
---		ensure
---			definition: Result = (bag | (bag.domain | pred)).count
---		end
-
---	exists (pred: PREDICATE [ANY, TUPLE [G]]): BOOLEAN
---			-- Is there an element that satisfies `pred'?
---		require
---			pred_exists: pred /= Void
---			pred_has_one_arg: pred.open_count = 1
---			precondition_satisfied: bag.domain.for_all (agent (x: G; p: PREDICATE [ANY, TUPLE [G]]): BOOLEAN
---				do
---					Result := p.precondition ([x])
---				end (?, pred))
---		do
---			Result := across Current as it some pred.item ([it.item]) end
---		ensure
---			definition: Result = bag.domain.exists (pred)
---		end
-
---	for_all (pred: PREDICATE [ANY, TUPLE [G]]): BOOLEAN
---			-- Do all elements satisfy `pred'?
---		require
---			pred_exists: pred /= Void
---			pred_has_one_arg: pred.open_count = 1
---			precondition_satisfied: bag.domain.for_all (agent (x: G; p: PREDICATE [ANY, TUPLE [G]]): BOOLEAN
---				do
---					Result := p.precondition ([x])
---				end (?, pred))
---		do
---			Result := across Current as it all pred.item ([it.item]) end
---		ensure
---			definition: Result = bag.domain.for_all (pred)
---		end
 
 feature -- Iteration
 
@@ -159,21 +109,8 @@ feature -- Iteration
 		deferred
 		ensure then
 			target_definition: Result.target = Current
-			index_definition: Result.index = 1
+			index_definition: Result.index_ = 1
 		end
-
---feature -- Output
-
---	out: STRING
---			-- String representation of the content.
---		local
---			stream: V_STRING_OUTPUT
---		do
---			create Result.make_empty
---			create stream.make (Result)
---			stream.pipe (new_cursor)
---			Result.remove_tail (stream.separator.count)
---		end
 
 feature -- Specification
 
@@ -183,6 +120,48 @@ feature -- Specification
 			status: ghost
 		attribute
 		end
+
+	forget_iterator (it: V_ITERATOR [G])
+			-- Remove `it' from `observers'.
+		note
+			status: ghost
+			explicit: contracts
+		require
+			wrapped: is_wrapped
+			it_wrapped: it.is_wrapped
+			valid_target: it.target = Current
+			modify_model (["observers"], Current)
+			modify_model (["closed"], it)
+		do
+			it.unwrap
+			set_observers (observers / it)
+		ensure
+			is_wrapped
+			it.is_open
+			observers = old observers / it
+		end
+
+	forget_all_iterators (it: V_ITERATOR [G])
+			-- Make `observers' empty.
+		note
+			status: ghost
+			explicit: contracts
+		require
+			wrapped: is_wrapped
+			observers_wrapped: across observers as o all o.item.is_wrapped  end
+			modify_model (["observers"], Current)
+			modify_model (["closed"], observers)
+		do
+			unwrap_all (observers)
+			set_observers ([])
+		ensure
+			is_wrapped
+			across old observers as o all o.item.is_open end
+			observers = []
+		end
+
+invariant
+	not_observer: not observers [Current]
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"

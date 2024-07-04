@@ -138,8 +138,6 @@ feature {F_COM_COMPOSITE_D} -- Implementation
 			-- Set `parent' to `p'.
 		require
 			open: is_open
-			singleton_1: parent = Void
-			singleton_2: children_set.is_empty
 			p_exists: p /= Void
 			no_observers: observers.is_empty
 			modify_field (["parent", "ancestors"], Current)

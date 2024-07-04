@@ -72,17 +72,28 @@ feature -- Basic operations
 			expression_translator.restore_side_effect (l_old_side_effect)
 
 				-- Build quantifier
-			expression_translator.set_last_expression (quantifier (l_bound_var, l_expression))
+			expression_translator.set_last_expression (quantifier (l_bound_var, l_expression, scoped_expression.is_all))
 			across
 				l_new_side_effect as checks
 			loop
 				if attached {IV_ASSERT} checks.item as assert then
 						-- It is a check
 					if assert.expression.has_free_var_named (l_bound_var.name) then
-						if assert.is_free then
-							create l_assert.make_assume (quantifier (l_bound_var, assert.expression))
+						if attached {IV_BINARY_OPERATION} assert.expression as binop and then
+							binop.operator ~ "==>"  and then
+							not binop.right.has_free_var_named (l_bound_var.name) then
+								-- It is an implication where the consequent does not contain the bound variable; do not include antecedents that do.
+							if assert.is_free then
+								create l_assert.make_assume (binop.right)
+							else
+								create l_assert.make (binop.right)
+							end
 						else
-							create l_assert.make (quantifier (l_bound_var, assert.expression))
+							if assert.is_free then
+								create l_assert.make_assume (quantifier (l_bound_var, assert.expression, True))
+							else
+								create l_assert.make (quantifier (l_bound_var, assert.expression, True))
+							end
 						end
 						l_assert.node_info.load (assert.node_info)
 						expression_translator.side_effect.extend (l_assert)
@@ -115,25 +126,21 @@ feature -- Basic operations
 
 feature {NONE} -- Implementation
 
-	quantifier (a_bound_var: IV_ENTITY; a_expr: IV_EXPRESSION): IV_QUANTIFIER
+	quantifier (a_bound_var: IV_ENTITY; a_expr: IV_EXPRESSION; a_is_all: BOOLEAN): IV_QUANTIFIER
 			-- Expression "quant a_bound_var :: a_expr", where quant depends on `scoped_expression'.
 		local
 			l_guard: IV_EXPRESSION
 		do
 			l_guard := guard (a_bound_var)
-			if scoped_expression.is_all then
+			if a_is_all then
 				create {IV_FORALL} Result.make (factory.implies_ (l_guard, a_expr))
 			else
 				create {IV_EXISTS} Result.make (factory.and_ (l_guard, a_expr))
 			end
-			Result.add_bound_variable (a_bound_var.name, a_bound_var.type)
-			-- ToDo: triggers?
---			l_quantifier.add_trigger (l_guard)
---			if attached {IV_FUNCTION_CALL} l_expression as l_fcall then
---				if across l_fcall.arguments as i some attached {IV_ENTITY} i.item as j and then j.name ~ l_counter.name end then
---					l_quantifier.add_trigger (l_expression)
---				end
---			end			
+			Result.add_bound_variable (a_bound_var)
+			if expression_translator.use_triggers then
+				add_triggers (Result)
+			end
 		end
 
 	translate_domain
@@ -148,6 +155,13 @@ feature {NONE} -- Implementation
 
 	guard (a_bound_var: IV_ENTITY): IV_EXPRESSION
 			-- Antecedent in the resulting quantifier, with bound variable `a_bound_var'.
+		deferred
+		end
+
+	add_triggers (a_quantifier: IV_QUANTIFIER)
+			-- Add triggers to `a_quantifier' generated from the current across expression.
+		require
+			single_variable: a_quantifier.bound_variables.count = 1
 		deferred
 		end
 end

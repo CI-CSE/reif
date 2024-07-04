@@ -24,6 +24,9 @@ inherit
 
 feature -- Access
 
+	type: CL_TYPE_A
+			-- Type under translation.
+
 	last_clauses: LINKED_LIST [IV_EXPRESSION]
 			-- Last generated invariant clauses.
 
@@ -35,11 +38,10 @@ feature -- Access
 
 feature -- Basic operations
 
-	translate_type (a_type: TYPE_A)
+	translate_type (a_type: CL_TYPE_A)
 			-- Translate `a_type' to Boogie.
 		require
-			valid_type: a_type.is_class_valid
-			no_like_type: not a_type.is_like
+			no_formals: not a_type.has_formal_generic
 		local
 			l_class: CLASS_C
 			l_boogie_type_name: STRING
@@ -47,6 +49,7 @@ feature -- Basic operations
 			l_path: PATH
 			l_dep: FILE_NAME
 		do
+			type := a_type
 			l_class := a_type.base_class
 			l_boogie_type_name := name_translator.boogie_name_for_type (a_type)
 
@@ -65,11 +68,9 @@ feature -- Basic operations
 
 				-- Add actual generic parameters
 			if a_type.has_generics then
-				across
-					a_type.generics as params
-				loop
-					if not params.item.is_formal then
-						translation_pool.add_type (params.item)
+				across a_type.generics as params loop
+					check attached {CL_TYPE_A} params.item as t then
+						translation_pool.add_type (t)
 					end
 				end
 			end
@@ -87,11 +88,14 @@ feature -- Basic operations
 				end
 
 					-- Inheritance relations
-				generate_inheritance_relations (a_type)
+				generate_inheritance_relations
+
+					-- Model
+				generate_model_axiom
 
 					-- TODO: refactor
 				if l_class.name_in_upper /~ "ARRAY" then
-					translate_invariant_function (a_type)
+					translate_invariant_function
 				end
 			end
 
@@ -100,23 +104,12 @@ feature -- Basic operations
 				helper.model_queries (l_class) as m
 			loop
 				if a_type.base_class.feature_named_32 (m.item) = Void then
-					helper.add_semantic_error (l_class, messages.field_not_attribute (m.item, l_class.name_in_upper), -1)
+					helper.add_semantic_error (l_class, messages.unknown_attribute (m.item, l_class.name_in_upper), -1)
 				end
 			end
 		end
 
-	translate_invariant_function (a_type: TYPE_A)
-			-- Translate `a_type' to Boogie.
-		require
-			a_type_exists: a_type /= Void
-			valid_type: a_type.is_class_valid
-			no_like_type: not a_type.is_like
-		do
-			generate_invariant_function (a_type, Void, Void, a_type.base_class)
-			generate_invariant_axiom (a_type, "user_inv", name_translator.boogie_function_for_invariant (a_type))
-		end
-
-	translate_filtered_invariant_function (a_type: TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+	translate_filtered_invariant_function (a_type: CL_TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
 			-- Translate `a_type' to Boogie.
 		require
 			a_type_exists: a_type /= Void
@@ -125,30 +118,43 @@ feature -- Basic operations
 			a_ancestor_exists: a_ancestor /= Void
 			not_both: a_included = Void or a_excluded = Void
 		do
-			generate_invariant_function (a_type, a_included, a_excluded, a_ancestor)
+			type := a_type
+			generate_invariant_function (a_included, a_excluded, a_ancestor)
+			generate_filtered_invariant_axiom (a_included, a_excluded, a_ancestor)
 		end
 
 feature {NONE} -- Implementation
 
-	generate_inheritance_relations (a_type: TYPE_A)
-			-- Generate inheritance relations for type `a_type'.
+	translate_invariant_function
+			-- Translate invariant of `type'.
+		require
+			a_type_exists: type /= Void
+			valid_type: type.is_class_valid
+			no_like_type: not type.is_like
+		do
+			generate_invariant_function (Void, Void, type.base_class)
+			generate_invariant_axiom ("user_inv", name_translator.boogie_function_for_invariant (type))
+		end
+
+	generate_inheritance_relations
+			-- Generate inheritance relations for `type'.
 		local
 			l_parents: FIXED_LIST [CL_TYPE_A]
-			l_parent: TYPE_A
+			l_parent: CL_TYPE_A
 			l_type_name: STRING
 			l_axiom: IV_AXIOM
 			l_operation: IV_BINARY_OPERATION
 			l_type_value: IV_VALUE
 			l_parent_value: IV_VALUE
 		do
-			l_type_name := name_translator.boogie_name_for_type (a_type)
-			l_parents := a_type.associated_class.parents
+			l_type_name := name_translator.boogie_name_for_type (type)
+			l_parents := type.associated_class.parents
 			from
 				l_parents.start
 			until
 				l_parents.after
 			loop
-				l_parent := l_parents.item.instantiated_in (a_type)
+				l_parent := l_parents.item.instantiated_in (type)
 				translation_pool.add_type (l_parent)
 
 				create l_type_value.make (l_type_name, types.type)
@@ -157,61 +163,49 @@ feature {NONE} -- Implementation
 				create l_axiom.make (l_operation)
 				boogie_universe.add_declaration (l_axiom)
 
-					-- Link model queries
-				link_model_queries (a_type, l_parent)
-
 				l_parents.forth
 			end
 		end
 
-	link_model_queries (a_type: TYPE_A; a_parent_type: TYPE_A)
-			-- Generate axioms that link model queries of `a_parent_type' to model queries of `a_type'.
+	generate_model_axiom
+			-- Generate an axiom listing all model queries of `type'.
 		local
-			l_model: FEATURE_I
+			l_m_name: STRING
 			l_type_var: IV_VAR_TYPE
-			l_f, l_old_m, l_new_m: IV_ENTITY
+			l_f, l_m: IV_ENTITY
 			l_def: IV_EXPRESSION
 			l_fcall: IV_FUNCTION_CALL
 			l_forall: IV_FORALL
 		do
-			across helper.model_queries (a_parent_type.base_class) as m loop
-				l_model := a_parent_type.base_class.feature_named_32 (m.item)
-				if attached l_model and not helper.model_queries (system.any_type.base_class).has (m.item) then
-					create l_type_var.make_fresh
-					create l_f.make ("$f", types.field (l_type_var))
-					create l_old_m.make (
-						name_translator.boogie_procedure_for_feature (l_model, a_parent_type),
-						types.field (types.for_type_in_context (l_model.type, a_parent_type)))
-
-					l_def := factory.false_
-					across helper.model_represented (l_model, a_parent_type.base_class, a_type.associated_class) as m1 loop
-						create l_new_m.make (
-							name_translator.boogie_procedure_for_feature (m1.item, a_type),
-							types.field (types.for_type_in_context (m1.item.type, a_type)))
-						l_def := factory.or_clean (l_def, factory.equal (l_f, l_new_m))
-					end
-					l_fcall := factory.function_call ("ModelRepresents", <<
-							l_f, factory.type_value (a_type),
-							l_old_m, factory.type_value (a_parent_type) >>,
-						types.bool)
-					create l_forall.make (factory.equiv (l_fcall, l_def))
-					l_forall.add_type_variable (l_type_var.name)
-					l_forall.add_bound_variable (l_f.name, l_f.type)
-					l_forall.add_trigger (l_fcall)
-					boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+			create l_type_var.make_fresh
+			create l_f.make ("$f", types.field (l_type_var))
+			l_def := factory.false_
+			across helper.flat_model_queries (type.base_class) as m loop
+				if m.item.written_in /= system.any_id then
+					translation_pool.add_referenced_feature (m.item, type)
 				end
+				create l_m.make (
+					helper.boogie_name_for_attribute (m.item, type),
+					types.field (types.for_class_type (helper.class_type_in_context (m.item.type, type.base_class, m.item, type))))
+				l_def := factory.or_clean (l_def, factory.equal (l_f, l_m))
 			end
+			l_fcall := factory.function_call ("IsModelField", << l_f, factory.type_value (type) >>, types.bool)
+			create l_forall.make (factory.equiv (l_fcall, l_def))
+			l_forall.add_type_variable (l_type_var.name)
+			l_forall.add_bound_variable (l_f)
+			l_forall.add_trigger (l_fcall)
+			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 		end
 
-	generate_invariant_function (a_type: TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
-			-- Generate invariant function for `a_type';
+	generate_invariant_function (a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+			-- Generate invariant function for `type';
 			-- if `a_included /= Void', include only those clauses;
 			-- if `a_excluded /= Void', exclude those clauses;
 			-- restrict clauses to those inherited from `a_ancestor'.
 		require
-			a_type_exists: a_type /= Void
-			valid_type: a_type.is_class_valid
-			no_like_type: not a_type.is_like
+			type_exists: type /= Void
+			valid_type: type.is_class_valid
+			no_like_type: not type.is_like
 			a_ancestor_exists: a_ancestor /= Void
 			not_both: a_included = Void or a_excluded = Void
 		local
@@ -222,10 +216,10 @@ feature {NONE} -- Implementation
 			l_heap := factory.entity ("heap", types.heap)
 			l_current := factory.entity ("current", types.ref)
 
-			if a_included = Void and a_excluded = Void and a_ancestor.class_id = a_type.base_class.class_id then
-				create l_inv_function.make (name_translator.boogie_function_for_invariant (a_type), types.bool)
+			if a_included = Void and a_excluded = Void and a_ancestor.class_id = type.base_class.class_id then
+				create l_inv_function.make (name_translator.boogie_function_for_invariant (type), types.bool)
 			else
-				create l_inv_function.make (name_translator.boogie_function_for_filtered_invariant (a_type, a_included, a_excluded, a_ancestor), types.bool)
+				create l_inv_function.make (name_translator.boogie_function_for_filtered_invariant (type, a_included, a_excluded, a_ancestor), types.bool)
 			end
 			l_inv_function.add_argument (l_heap.name, l_heap.type)
 			l_inv_function.add_argument (l_current.name, l_current.type)
@@ -235,23 +229,23 @@ feature {NONE} -- Implementation
 			l_mapping.set_heap (l_heap)
 			l_mapping.set_current (l_current)
 			create builtin_collector
-			process_invariants (a_ancestor, a_type, a_included, a_excluded, l_mapping)
+			process_invariants (a_ancestor, a_included, a_excluded, l_mapping)
 				-- Add ownership defaults unless included clauses are explicitly specified
 			if options.is_ownership_enabled and a_included = Void then
-				if not a_type.base_class.is_deferred then
+				if not type.base_class.is_deferred then
 						-- For an effective class: built-in ghost sets are empty by default
 						-- (ToDo: the policy seems arbitrary, should it be for all non-frozen classes?)
-					if not helper.is_class_explicit (a_type.base_class, "observers") and not builtin_collector.has_observers then
+					if not helper.is_class_explicit (type.base_class, "observers") and not builtin_collector.has_observers then
 						last_clauses.extend (empty_set_property ("observers"))
 					end
-					if not helper.is_class_explicit (a_type.base_class, "subjects") and not builtin_collector.has_subjects then
+					if not helper.is_class_explicit (type.base_class, "subjects") and not builtin_collector.has_subjects then
 						last_clauses.extend (empty_set_property ("subjects"))
 					end
-					if not helper.is_class_explicit (a_type.base_class, "owns") and not builtin_collector.has_owns then
+					if not helper.is_class_explicit (type.base_class, "owns") and not builtin_collector.has_owns then
 						last_clauses.extend (empty_set_property ("owns"))
 					end
 				end
-				if not helper.is_class_explicit (a_type.base_class, "invariant") then
+				if not helper.is_class_explicit (type.base_class, "invariant") then
 					last_clauses.extend (factory.function_call ("admissibility2", << factory.heap_entity ("heap"), factory.ref_entity ("current") >>, types.bool))
 				end
 			end
@@ -267,15 +261,15 @@ feature {NONE} -- Implementation
 				types.bool)
 		end
 
-	process_invariants (a_class: CLASS_C; a_context_type: TYPE_A; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	process_invariants (a_class: CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
 			-- Process invariants of `a_class' and its ancestors, and store results in `last_clauses'.
 		do
 			create last_clauses.make
 			create last_safety_checks.make
-			process_flat_invariants (a_class, a_context_type, a_included, a_excluded, a_mapping)
+			process_flat_invariants (a_class, a_included, a_excluded, a_mapping)
 		end
 
-	process_flat_invariants (a_class: CLASS_C; a_context_type: TYPE_A; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	process_flat_invariants (a_class: CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
 			-- Recursively process invariants of `a_class' and its ancestors.
 		local
 			l_classes: FIXED_LIST [CLASS_C]
@@ -287,14 +281,14 @@ feature {NONE} -- Implementation
 				l_classes.after
 			loop
 				if l_classes.item.class_id /= system.any_id then
-					process_flat_invariants (l_classes.item, a_context_type, a_included, a_excluded, a_mapping)
+					process_flat_invariants (l_classes.item,a_included, a_excluded, a_mapping)
 				end
 				l_classes.forth
 			end
-			process_immediate_invariants (a_class, a_context_type, a_included, a_excluded, a_mapping)
+			process_immediate_invariants (a_class, a_included, a_excluded, a_mapping)
 		end
 
-	process_immediate_invariants (a_class: CLASS_C; a_context_type: TYPE_A; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
+	process_immediate_invariants (a_class: CLASS_C; a_included, a_excluded: LIST [STRING]; a_mapping: E2B_ENTITY_MAPPING)
 			-- Process invariants written in `a_class'.
 		require
 			a_class_not_void: a_class /= Void
@@ -304,7 +298,7 @@ feature {NONE} -- Implementation
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 		do
 			if inv_byte_server.has (a_class.class_id) then
-				helper.set_up_byte_context_type (a_class.actual_type, a_context_type)
+				helper.set_up_byte_context (a_class.invariant_feature, helper.class_type_in_context (a_class.actual_type, a_class, a_class.invariant_feature, type))
 				from
 					l_list := inv_byte_server.item (a_class.class_id).byte_list
 					l_list.start
@@ -320,7 +314,7 @@ feature {NONE} -- Implementation
 					then
 						create l_translator.make
 						l_translator.copy_entity_mapping (a_mapping)
-						l_translator.set_context (Void, a_context_type)
+						l_translator.set_context (a_class.invariant_feature, type)
 						l_translator.set_origin_class (a_class)
 						l_translator.set_context_line_number (l_assert.line_number)
 						l_translator.set_context_tag (l_assert.tag)
@@ -334,9 +328,9 @@ feature {NONE} -- Implementation
 							-- check if the invariant clause defines one of the built-in ghost sets
 							-- and generate correspoding functions
 						if options.is_ownership_enabled and a_included = Void and a_excluded = Void then
-							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "owns")
-							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "subjects")
-							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "observers")
+							generate_ghost_set_definition (l_translator.last_expression, "owns")
+							generate_ghost_set_definition (l_translator.last_expression, "subjects")
+							generate_ghost_set_definition (l_translator.last_expression, "observers")
 						end
 					end
 					l_assert.process (builtin_collector)
@@ -346,7 +340,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	generate_invariant_axiom (a_type: TYPE_A; a_generic_function, a_special_function: STRING)
+	generate_invariant_axiom (a_generic_function, a_special_function: STRING)
 			-- Generate axioms that connect `a_generic_function' with `a_special_function' for `a_type'.
 		local
 			l_forall: IV_FORALL
@@ -358,34 +352,34 @@ feature {NONE} -- Implementation
 			l_generic_call := factory.function_call (a_generic_function, << l_heap, l_current >>, types.bool)
 			l_special_call := factory.function_call (a_special_function, << l_heap, l_current >>, types.bool)
 
-				-- type_of(current) == a_type  ==>  generic_function(heap, current) == special_function(heap, current)
+				-- type_of(current) == type  ==>  generic_function(heap, current) == special_function(heap, current)
 			create l_forall.make (factory.implies_ (
 					factory.equal (
 						factory.type_of (l_current),
-						factory.type_value (a_type)),
+						factory.type_value (type)),
 					factory.equal (l_generic_call, l_special_call)))
-			l_forall.add_bound_variable (l_heap.name, l_heap.type)
+			l_forall.add_bound_variable (l_heap)
 			l_forall.add_trigger (l_generic_call)
-			l_forall.add_bound_variable (l_current.name, l_current.type)
+			l_forall.add_bound_variable (l_current)
 
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 
 				-- Inheritance axiom:
-				-- type_of(current) <: a_type  ==>  generic_function(heap, current) ==> special_function(heap, current)
+				-- type_of(current) <: type  ==>  generic_function(heap, current) ==> special_function(heap, current)
 			create l_forall.make (factory.implies_ (
 					factory.sub_type (
 						factory.type_of (l_current),
-						factory.type_value (a_type)),
+						factory.type_value (type)),
 					factory.implies_ (l_generic_call, l_special_call)))
-			l_forall.add_bound_variable (l_heap.name, l_heap.type)
+			l_forall.add_bound_variable (l_heap)
 			l_forall.add_trigger (l_generic_call)
-			l_forall.add_bound_variable (l_current.name, l_current.type)
+			l_forall.add_bound_variable (l_current)
 
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 		end
 
-	generate_ghost_set_definition (a_expr: IV_EXPRESSION; a_type: TYPE_A; a_name: STRING)
-			-- If `a_expr' has the form `a_name = def', create a Boogie function that defined `a_name' for `a_type' as `def'.
+	generate_ghost_set_definition (a_expr: IV_EXPRESSION; a_name: STRING)
+			-- If `a_expr' has the form `a_name = def', create a Boogie function that defined `a_name' for `type' as `def'.
 			-- (Only accespting definitions of this form to avoid cycles).
 		local
 			l_current, l_heap: IV_ENTITY
@@ -396,12 +390,14 @@ feature {NONE} -- Implementation
 			create l_heap.make ("heap", types.heap)
 
 			l_def := definition_of (a_expr, l_heap, l_current, a_name)
-			if attached l_def and not helper.is_class_explicit (a_type.base_class, a_name) then
-				create l_function.make (name_translator.boogie_function_for_ghost_definition (a_type, a_name), types.set (types.ref))
-				l_function.add_argument (l_heap.name, l_heap.type)
-				l_function.add_argument (l_current.name, l_current.type)
-				l_function.set_body (l_def)
-				boogie_universe.add_declaration (l_function)
+			if attached l_def and not helper.is_class_explicit (type.base_class, a_name) then
+				create l_function.make (name_translator.boogie_function_for_ghost_definition (type, a_name), types.set (types.ref))
+				if boogie_universe.function_named (l_function.name) = Void then
+					l_function.add_argument (l_heap.name, l_heap.type)
+					l_function.add_argument (l_current.name, l_current.type)
+					l_function.set_body (l_def)
+					boogie_universe.add_declaration (l_function)
+				end
 			end
 		end
 
@@ -415,9 +411,32 @@ feature {NONE} -- Implementation
 			end
 		end
 
+	generate_filtered_invariant_axiom (a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
+			-- Generate axiom (forall o: ref :: {partial_inv(h, o)} IsHeap(h) && h[o, allocated] && h[o, closed] ==> partial_inv(h, o))
+		local
+			l_h, l_o: IV_ENTITY
+			l_fcall: IV_FUNCTION_CALL
+			l_forall: IV_FORALL
+		do
+			create l_h.make ("h", types.heap)
+			create l_o.make ("o", types.ref)
+			l_fcall := factory.function_call (name_translator.boogie_function_for_filtered_invariant (type, a_included, a_excluded, a_ancestor),
+				<< l_h, l_o >>, types.bool)
+			create l_forall.make (factory.implies_ (
+				factory.and_ (factory.function_call ("IsHeap", << l_h >>, types.bool),
+					factory.and_ (
+						factory.heap_access (l_h, l_o, "allocated", types.bool),
+						factory.heap_access (l_h, l_o, "closed", types.bool))),
+				l_fcall))
+			l_forall.add_bound_variable (l_h)
+			l_forall.add_bound_variable (l_o)
+			l_forall.add_trigger (l_fcall)
+			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+		end
+
 feature -- Invariant admissibility
 
-	generate_invariant_admissability_check (a_class: CLASS_C)
+	generate_invariant_admissability_check (a_class_type: CL_TYPE_A)
 			-- Generate invariant admissability check for class `a_class'.
 		local
 			l_proc: IV_PROCEDURE
@@ -430,16 +449,16 @@ feature -- Invariant admissibility
 			l_forall: IV_FORALL
 			l_i, l_current: IV_ENTITY
 		do
-			l_name := a_class.name_in_upper + ".invariant_admissibility_check"
+			l_name := a_class_type.base_class.name_in_upper + ".invariant_admissibility_check"
 			create l_proc.make (l_name)
 			create l_impl.make (l_proc)
 			boogie_universe.add_declaration (l_proc)
 			boogie_universe.add_declaration (l_impl)
-			result_handlers.extend (agent handle_class_validity_result (a_class, ?, ?), l_name)
+			result_handlers.extend (agent handle_class_validity_result (a_class_type.base_class, ?, ?), l_name)
 
 				-- Set up procedure with arguments and precondition
 			l_proc.add_argument ("Current", types.ref)
-			create l_pre.make (factory.function_call ("attached_exact", << factory.global_heap, factory.std_current, factory.type_value (a_class.actual_type) >>, types.bool))
+			create l_pre.make (factory.function_call ("attached_exact", << factory.global_heap, factory.std_current, factory.type_value (a_class_type) >>, types.bool))
 			l_proc.add_contract (l_pre)
 			create l_assume.make_assume (factory.function_call ("user_inv", << factory.global_heap, factory.std_current >>, types.bool))
 
@@ -451,28 +470,20 @@ feature -- Invariant admissibility
 			create l_block.make_name ("pre")
 			l_goto.add_target (l_block)
 			l_impl.body.add_statement (l_block)
+			type := a_class_type
 			create builtin_collector
 			builtin_collector.set_any_target
-			process_invariants (a_class, a_class.actual_type, Void, Void, create {E2B_ENTITY_MAPPING}.make)
+			process_invariants (a_class_type.base_class, Void, Void, create {E2B_ENTITY_MAPPING}.make)
 			across last_safety_checks as i loop
 				l_block.add_statement (i.item)
 			end
-
-				-- A3: o.inv does not mention closed and owner (static check)
-			if builtin_collector.is_inv_unfriendly then
-				helper.add_semantic_error (a_class, messages.invalid_call_in_invariant, -1)
-			end
-
-				-- A1: reads(o.inv) is subset of domain(o) + o.subjects
-
-			create l_block.make_name ("a1")
-			l_goto.add_target (l_block)
-			l_impl.body.add_statement (l_block)
-			l_block.add_statement (l_assume)
-			create l_assert.make (factory.true_)
-			l_assert.node_info.set_type ("A1")
-			l_block.add_statement (l_assert)
 			l_block.add_statement (factory.return)
+
+				-- o.inv does not mention closed and owner (static check)
+
+			if builtin_collector.is_inv_unfriendly then
+				helper.add_semantic_error (a_class_type.base_class, messages.invalid_call_in_invariant, -1)
+			end
 
 				-- A2: o.inv implies forall x: x in o.subjects implies o in x.observers
 
@@ -485,26 +496,14 @@ feature -- Invariant admissibility
 			l_block.add_statement (l_assert)
 			l_block.add_statement (factory.return)
 
-				-- A4: o.inv cannot be violated by updating subjects field of a subject
+				-- A3: o.inv cannot be violated by updates that conform to their guards
 
-			create l_block.make_name ("a4")
+			create l_block.make_name ("a3")
 			l_goto.add_target (l_block)
 			l_impl.body.add_statement (l_block)
 			l_block.add_statement (l_assume)
-			create l_assert.make (factory.function_call ("admissibility4", << factory.global_heap, factory.std_current >>, types.bool))
-			l_assert.node_info.set_type ("A4")
-			l_block.add_statement (l_assert)
-			l_block.add_statement (factory.return)
-
-
-				-- A5: o.inv cannot be violated by enlarging observers field of a subject
-
-			create l_block.make_name ("a5")
-			l_goto.add_target (l_block)
-			l_impl.body.add_statement (l_block)
-			l_block.add_statement (l_assume)
-			create l_assert.make (factory.function_call ("admissibility5", << factory.global_heap, factory.std_current >>, types.bool))
-			l_assert.node_info.set_type ("A5")
+			create l_assert.make (factory.function_call ("admissibility3", << factory.global_heap, factory.std_current >>, types.bool))
+			l_assert.node_info.set_type ("A3")
 			l_block.add_statement (l_assert)
 			l_block.add_statement (factory.return)
 
@@ -538,20 +537,11 @@ feature -- Invariant admissibility
 					check i.item.is_assert_error end
 					create l_error.make (l_failure)
 					l_error.set_boogie_error (i.item)
-					if i.item.attributes["type"] ~ "A1" then
-						l_error.set_message ("A1")
-						l_failure.errors.extend (l_error)
-					elseif i.item.attributes["type"] ~ "A2" then
-						l_error.set_message ("Some subjects might not have Current in their observers set")
+					if i.item.attributes["type"] ~ "A2" then
+						l_error.set_message ("Some subjects might not have Current in their observers set.")
 						l_failure.errors.extend (l_error)
 					elseif i.item.attributes["type"] ~ "A3" then
-						l_error.set_message ("A3")
-						l_failure.errors.extend (l_error)
-					elseif i.item.attributes["type"] ~ "A4" then
-						l_error.set_message ("The invariant might be invalidated by changing subjects of one of the subjects")
-						l_failure.errors.extend (l_error)
-					elseif i.item.attributes["type"] ~ "A5" then
-						l_error.set_message ("The invariant might be invalidated by adding observers to one of the subjects")
+						l_error.set_message ("The invariant might be invalidated by a subject update that conforms to its guard.")
 						l_failure.errors.extend (l_error)
 					else
 						a_result_generator.process_individual_error (i.item, l_failure)

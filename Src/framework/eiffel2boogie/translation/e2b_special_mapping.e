@@ -27,6 +27,7 @@ feature {NONE} -- Initialization
 			call_handlers.extend (create {E2B_CUSTOM_ANY_CALL_HANDLER})
 			create {LINKED_LIST [E2B_CUSTOM_NESTED_HANDLER]} nested_handlers.make
 			nested_handlers.extend (create {E2B_CUSTOM_LOGICAL_HANDLER})
+			nested_handlers.extend (create {E2B_CUSTOM_ANY_CALL_HANDLER})
 		end
 
 feature -- Access
@@ -69,7 +70,7 @@ feature -- Access
 
 feature -- Access (built-ins)
 
-	builtin_any_functions: ARRAY [STRING]
+	builtin_any_functions: ARRAY [STRING_32]
 			-- List of builtin function names.
 		once
 			Result := <<
@@ -83,13 +84,14 @@ feature -- Access (built-ins)
 				"is_fully_writable",
 				"is_field_readable",
 				"is_fully_readable",
-				"domain_has",
+				"transitive_owns",
+				"ownership_domain",
 				"is_fresh"
 			>>
 			Result.compare_objects
 		end
 
-	builtin_any_procedures: ARRAY [STRING]
+	builtin_any_procedures: ARRAY [STRING_32]
 			-- List of builtin procedure names.
 		once
 			Result := <<
@@ -101,7 +103,7 @@ feature -- Access (built-ins)
 			Result.compare_objects
 		end
 
-	ghost_access: ARRAY [STRING]
+	ghost_access: ARRAY [STRING_32]
 			-- List of built-in ghost attributes.
 		once
 			Result := <<
@@ -143,7 +145,7 @@ feature -- Access (built-ins)
 			Result := ghost_access_types [i]
 		end
 
-	ghost_setter: ARRAY [STRING]
+	ghost_setter: ARRAY [STRING_32]
 			-- List of feature names.
 		once
 			Result := <<
@@ -155,7 +157,7 @@ feature -- Access (built-ins)
 			Result.compare_objects
 		end
 
-	void_ok_features: ARRAY [STRING]
+	void_ok_features: ARRAY [STRING_32]
 			-- List of special ANY feature names that can be called on Void.
 		once
 			Result := <<

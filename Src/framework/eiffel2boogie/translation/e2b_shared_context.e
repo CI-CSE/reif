@@ -68,12 +68,63 @@ feature -- Access (public)
 			create Result
 		end
 
+feature -- Status notification.
+
+	status_notifier_agent_cell: CELL [PROCEDURE [ANY, TUPLE [READABLE_STRING_GENERAL]]]
+			-- Once cell holding status update agent.
+		once
+			create Result.put (Void)
+		end
+
+	set_status (a_message: STRING)
+			-- Set status message.
+		do
+			if status_notifier_agent_cell.item /= Void then
+				status_notifier_agent_cell.item.call ([a_message])
+			end
+		end
+
 feature {NONE} -- Implementation
 
 	boogie_universe_cell: CELL [IV_UNIVERSE]
 			-- Once cell holding shared boogie universe instance.
 		once
 			create Result.put (Void)
+		end
+
+	timer: DT_SHARED_SYSTEM_CLOCK
+			-- Timer for debugging.
+		once
+			create Result
+		end
+
+	start_time: ARRAYED_STACK [DT_TIME]
+			-- Start time set by calling 'start'.
+		once
+			create Result.make (5)
+		end
+
+	start_timer
+		local
+			l_time: DT_TIME
+		do
+			l_time := timer.system_clock.time_now
+			start_time.extend (l_time)
+		end
+
+	stop_timer
+		local
+			l_time: DT_TIME
+		do
+			start_time.remove
+		end
+
+	current_timer: INTEGER
+		local
+			l_time: DT_TIME
+		do
+			l_time := start_time.item
+			Result := timer.system_clock.time_now.time_duration (l_time).millisecond_count
 		end
 
 end

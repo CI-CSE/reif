@@ -24,7 +24,7 @@ feature {NONE} -- Initialization
 			rule := a_rule
 				-- This is just the default. The rule may set the affected class otherwise
 				-- if needed.
-			affected_class := a_rule.checking_class
+			affected_class := a_rule.current_context.checking_class
 			create long_description_info.make
 			create fixes.make
 		end
@@ -62,9 +62,9 @@ feature -- Inherited from {COMPARABLE}
 		do
 			if attached location as l_location and then attached a_other.location as l_other_location then
 				if l_location.line = l_other_location.line then
-					Result := (l_location.column < l_other_location.column)
+					Result := l_location.column < l_other_location.column
 				else
-					Result := (l_location.line < l_other_location.line)
+					Result := l_location.line < l_other_location.line
 				end
 			end
 		end

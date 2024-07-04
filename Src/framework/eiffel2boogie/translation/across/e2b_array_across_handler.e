@@ -27,7 +27,7 @@ feature -- Basic operations
 			expression_translator.set_last_expression (factory.function_call (
 				"fun.ARRAY.item",
 				<< expression_translator.entity_mapping.heap, array_expr, expression_translator.locals_map.item (bound_variable.position) >>,
-				types.for_type_a (bound_variable.type.generics.first)))
+				types.for_class_type (expression_translator.class_type_in_current_context (bound_variable.type.generics.first))))
 		end
 
 	handle_call_cursor_index (a_feature: FEATURE_I)
@@ -67,6 +67,12 @@ feature {NONE} -- Implementation
 			Result := factory.function_call ("fun.ARRAY.is_index",
 				<< expression_translator.entity_mapping.heap, array_expr, a_bound_var >>,
 				types.bool)
+		end
+
+	add_triggers (a_quantifier: IV_QUANTIFIER)
+			-- Add triggers to `a_quantifier' generated from the current across expression.
+		do
+			a_quantifier.add_restrictive_trigger
 		end
 
 end

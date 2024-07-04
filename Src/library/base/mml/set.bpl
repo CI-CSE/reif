@@ -125,6 +125,14 @@ function Set#SymDifference<T>(a: Set T, b: Set T): Set T
 { Set#Union(Set#Difference(a, b), Set#Difference(b, a)) }
 
 
+function Set#Min<T>(Set T): T;
+axiom (forall s: Set int :: { Set#Min(s) } 
+  !Set#IsEmpty(s) ==> s[Set#Min(s)] && (forall x: int :: s[x] ==> x >= Set#Min(s)));
+
+function Set#Max<T>(Set T): T;
+axiom (forall s: Set int :: { Set#Max(s) } 
+  !Set#IsEmpty(s) ==> s[Set#Max(s)] && (forall x: int :: s[x] ==> x <= Set#Max(s)));
+
 // Integer intervals
 type Interval = Set int;
 
@@ -135,6 +143,10 @@ function Interval#Upper(Interval): int;
 // Is Current a valid interval?
 function Interval#IsValid(in: Interval): bool
 { (forall i: int :: in[i] <==> Interval#Lower(in) <= i && i <= Interval#Upper(in)) }
+
+// Length of an interval
+axiom (forall in: Interval :: { Set#Card(in) }
+  Interval#IsValid(in) ==> Set#Card(in) == if Interval#Upper(in) < Interval#Lower(in) then 0 else Interval#Upper(in) - Interval#Lower(in) + 1);
 
 // Singleton is a valid interval
 axiom (forall x: int :: {Interval#Lower(Set#Singleton(x))} 

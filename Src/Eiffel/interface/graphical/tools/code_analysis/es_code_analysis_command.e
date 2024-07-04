@@ -37,8 +37,6 @@ feature {NONE} -- Initialization
 
 	make
 			-- Creation method.
-		local
-			e: ES_CA_FIX_EXECUTOR
 		do
 			initialize_preferences
 
@@ -160,7 +158,7 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
 			l_dialog: ES_INFORMATION_PROMPT
 		do
-			-- Compile the project and only analyze if the compilation was successful.
+				-- Compile the project and only analyze if the compilation was successful.
 			eiffel_project.quick_melt (True, True, True)
 			if eiffel_project.successful then
 				create l_helper
@@ -176,7 +174,6 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 	analyze_all
 			-- Analyzes the whole system.
 		local
-			l_cluster: CLUSTER_I
 			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
 			l_scope_label: EV_LABEL
 		do
@@ -204,7 +201,6 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 	analyze_changed_classes
 			-- Only analyze the classes that have been modified since the last analysis.
 		local
-			l_cluster: CLUSTER_I
 			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
 			l_scope_label: EV_LABEL
 			l_analysis_timestamp, l_changed_timestamp: INTEGER
@@ -251,7 +247,6 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 	perform_analysis (a_stone: STONE)
 			-- Analyze `a_stone' only.
 		local
-			l_cluster: CLUSTER_I
 			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
 			l_scope_label: EV_LABEL
 		do
@@ -310,14 +305,21 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 			code_analyzer.analyze
 		end
 
-	analysis_completed (a_success: BOOLEAN)
-			-- Is called when the analysis is completed. `a_success' is ignored (required
-			-- by {CA_CODE_ANALYZER}, though).
+	analysis_completed (a_exceptions: detachable ITERABLE [TUPLE [detachable EXCEPTION, CLASS_C]])
+			-- Is called when the analysis is completed. `a_exceptions' is a list
+			-- of exceptions that occurred during analysis.
 		local
 			l_violation_exists: BOOLEAN
 		do
 				-- First off, remove all event items.
 			event_list.prune_event_items (event_context_cookie)
+
+			if a_exceptions /= Void then
+				across a_exceptions as ic loop
+					event_list.put_event_item (event_context_cookie, create {CA_EXCEPTION_EVENT}.make (ic.item))
+					l_violation_exists := True
+				end
+			end
 
 				-- Add an event item for each rule violation.
 			across code_analyzer.rule_violations as l_viol_list loop
@@ -409,8 +411,8 @@ feature -- Items
 		do
 			create Result.make (Current)
 			initialize_sd_toolbar_item (Result, display_text)
-			Result.set_text ("Analyze item")
-			Result.set_tooltip ("Click to analyze the current item. Drop a stone to analyze any class, cluster, or configuration group.")
+			Result.set_text (ca_names.analyze_item)
+			Result.set_tooltip (ca_names.analyze_item_tooltip)
 			Result.select_actions.extend (agent analyze_current_item)
 
 			Result.drop_actions.extend (agent execute_with_stone)
@@ -423,8 +425,8 @@ feature -- Items
 		do
 			create Result.make (Current)
 			initialize_sd_toolbar_item (Result, display_text)
-			Result.set_text ("Analyze system")
-			Result.set_tooltip ("Analyze whole system")
+			Result.set_text (ca_names.analyze_system)
+			Result.set_tooltip (ca_names.analyze_system_tooltip)
 			Result.select_actions.extend (agent execute)
 		ensure then
 			valid_result: Result /= Void
@@ -444,11 +446,6 @@ feature -- Status report
 
 	droppable (a_pebble: ANY): BOOLEAN
 			-- Can user drop `a_pebble' on `Current'?
-		local
-			l_class_stone: CLASSI_STONE
-			l_cluster_stone: CLUSTER_STONE
-			l_data_stone: DATA_STONE
-			l_list: LIST [CONF_GROUP]
 		do
 			Result :=
 				(attached {CLASSC_STONE} a_pebble) or else

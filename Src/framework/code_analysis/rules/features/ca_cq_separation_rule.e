@@ -34,8 +34,6 @@ feature {NONE} -- Initialization
 		do
 			make_with_defaults
 			default_severity_score := 60
-			create {CA_WARNING} severity
-			create violations.make
 		end
 
 feature {NONE} -- Activation
@@ -79,14 +77,14 @@ feature {NONE} -- AST Visits
 	process_assign (a_assign: ASSIGN_AS)
 			-- Is something assigned to an attributein `a_assign'?
 		do
-			-- Skip the checks if we are not within a function.
-			if is_function then
-				if attached {ACCESS_ID_AS} a_assign.target as l_access_id then
-					if checking_class.feature_with_id (l_access_id.feature_name) /= Void then
-						-- We have an assignment to an attribute.
-						rule_violated := True
-					end
-				end
+				-- Skip the checks if we are not within a function.
+			if
+				is_function
+				and then attached {ACCESS_ID_AS} a_assign.target as l_access_id
+				and then current_context.checking_class.feature_with_id (l_access_id.feature_name) /= Void
+			then
+					-- We have an assignment to an attribute.
+				rule_violated := True
 			end
 		end
 
@@ -97,7 +95,7 @@ feature {NONE} -- AST Visits
 			if
 				is_function
 				and then attached {ACCESS_ID_AS} a_creation.target as l_access_id
-				and then checking_class.feature_with_id (l_access_id.feature_name) /= Void
+				and then current_context.checking_class.feature_with_id (l_access_id.feature_name) /= Void
 			then
 					-- We have a creation of an attribute.
 				rule_violated := True
@@ -111,7 +109,7 @@ feature {NONE} -- AST Visits
 			if
 				is_function
 				and then attached {ACCESS_ID_AS} a_call.call as l_access_id
-				and then attached checking_class.feature_with_id (l_access_id.feature_name) as l_feat
+				and then attached current_context.checking_class.feature_with_id (l_access_id.feature_name) as l_feat
 				and then l_feat.is_procedure
 			then
 					-- There is a procedure call within this function.

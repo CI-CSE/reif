@@ -10,6 +10,8 @@ inherit
 
 	ROTA_TASK_I
 
+	E2B_SHARED_CONTEXT
+
 create
 	make
 
@@ -36,10 +38,18 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			-- <Precursor>
 		do
 			if not is_started then
+				start_timer
 				is_started := True
 				verifier.verify_asynchronous
 			end
 			has_next_step := verifier.is_running
+
+			if has_next_step then
+				set_status (messages.status_boogie_running (current_timer))
+			else
+				set_status (messages.status_boogie_finished (current_timer))
+				stop_timer
+			end
 		end
 
 	cancel

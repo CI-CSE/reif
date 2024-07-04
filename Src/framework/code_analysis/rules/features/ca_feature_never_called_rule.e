@@ -27,8 +27,6 @@ feature {NONE} -- Initialization
 			is_enabled_by_default := False
 			checks_library_classes := False
 			default_severity_score := 40
-			create {CA_WARNING} severity
-			create violations.make
 		end
 
 feature {NONE} -- Activation
@@ -43,17 +41,13 @@ feature {NONE} -- Feature Visitor for Violation Check
 	class_check (a_class: CLASS_AS)
 			-- Checks `a_class' for features that are never called.
 		local
-			l_feat: LIST [E_FEATURE]
 			l_clients: ARRAYED_LIST [CLASS_C]
 			has_callers: BOOLEAN
 		do
-			l_feat := checking_class.written_in_features
-			l_clients := checking_class.clients
+			l_clients := current_context.checking_class.clients
 
-			from
-				l_feat.start
-			until
-				l_feat.after
+			across
+				current_context.checking_class.written_in_features as l_feat
 			loop
 				from
 					has_callers := False
@@ -70,8 +64,6 @@ feature {NONE} -- Feature Visitor for Violation Check
 				if not has_callers then
 					create_violation (l_feat.item)
 				end
-
-				l_feat.forth
 			end
 		end
 
@@ -85,7 +77,7 @@ feature {NONE} -- Feature Visitor for Violation Check
 			l_violation.set_location (a_feature.ast.start_location)
 			l_violation.long_description_info.extend (a_feature.name_32)
 
-			create l_fix.make_with_feature (checking_class, a_feature.ast, a_feature.name_32)
+			create l_fix.make_with_feature (current_context.checking_class, a_feature.ast, a_feature.name_32)
 			l_violation.fixes.extend (l_fix)
 
 			violations.extend (l_violation)

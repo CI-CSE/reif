@@ -105,7 +105,7 @@ feature -- Access
 	context_feature: FEATURE_I
 			-- Context of expression.
 
-	context_type: TYPE_A
+	context_type: CL_TYPE_A
 			-- Context of expression.
 
 	context_line_number: INTEGER
@@ -117,7 +117,7 @@ feature -- Access
 	current_target: IV_EXPRESSION
 			-- Current target.
 
-	current_target_type: TYPE_A
+	current_target_type: CL_TYPE_A
 			-- Type of current target.
 
 	locals_map: HASH_TABLE [IV_EXPRESSION, INTEGER]
@@ -139,8 +139,29 @@ feature -- Access
 	context_readable: IV_EXPRESSION
 			-- Readable frame of the enclosing context if defined, otherwise Void.
 
---	restricted_context_readable: IV_EXPRESSION
---			-- Special readable frame used for function calls if defined, otherwise Void.
+	use_triggers: BOOLEAN
+			-- Should triggers be added to generated quntifiers?
+
+feature -- Convenience
+
+	class_type_in_current_context (a_type: TYPE_A): CL_TYPE_A
+			-- Class type that correspond to `a_type' in the context of `context_type' and possibly `context_feature'.
+		require
+			a_type_attached: attached a_type
+			context_type_attached: attached context_type
+			context_feature_attached: attached context_feature
+		do
+			Result := helper.class_type_in_context (a_type, context_type.base_class, context_feature, context_type)
+		end
+
+	feature_class_type (a_feature: FEATURE_I): CL_TYPE_A
+			-- Type of `a_feature' in the context of `current_target_type'			
+		require
+			a_feature_attached: attached a_feature
+			current_target_type_attached: attached current_target_type
+		do
+			Result := helper.class_type_in_context (a_feature.type, current_target_type.base_class, a_feature, current_target_type)
+		end
 
 feature -- Element change
 
@@ -164,9 +185,10 @@ feature -- Element change
 
 feature -- Basic operations
 
-	set_context (a_feature: FEATURE_I; a_type: TYPE_A)
+	set_context (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Set context of expression to `a_feature' in type `a_type'.
 		require
+			a_feature_attached: attached a_feature
 			a_type_attached: attached a_type
 		do
 			context_feature := a_feature
@@ -174,7 +196,7 @@ feature -- Basic operations
 			current_target_type := a_type
 			current_target := entity_mapping.current_expression
 			if a_feature /= Void and then a_feature.has_return_value then
-				entity_mapping.set_default_result (a_feature.type.instantiated_in (current_target_type))
+				entity_mapping.set_default_result (feature_class_type (a_feature))
 			end
 		end
 
@@ -200,7 +222,9 @@ feature -- Basic operations
 			create locals_map.make (10)
 			create across_handler_map.make (10)
 			create safety_check_condition.make
+			safety_check_condition.extend (factory.true_)
 			create parameters_stack.make
+			use_triggers := True
 		end
 
 	set_local_writable (a_writable: IV_EXPRESSION)
@@ -215,11 +239,11 @@ feature -- Basic operations
 			context_readable := a_readable
 		end
 
---	set_restricted_context_readable (a_readable: IV_EXPRESSION)
---			-- Set `restricted_context_readable' to `a_readable'
---		do
---			restricted_context_readable := a_readable
---		end
+	set_use_triggers (b: BOOLEAN)
+			-- Set `use_triggers' to `b'
+		do
+			use_triggers := b
+		end
 
 feature -- Visitors
 
@@ -231,9 +255,6 @@ feature -- Visitors
 
 	process_argument_b (a_node: ARGUMENT_B)
 			-- <Precursor>
-		local
-			l_name: STRING
-			l_type: IV_TYPE
 		do
 			last_expression := entity_mapping.argument (context_feature, context_type, a_node.position)
 		end
@@ -260,7 +281,7 @@ feature -- Visitors
 		local
 			l_class: CLASS_C
 			l_left, l_right: IV_EXPRESSION
-			l_type: IV_TYPE
+			l_boogie_type: IV_TYPE
 			l_fcall: IV_FUNCTION_CALL
 			l_fname: STRING
 		do
@@ -268,13 +289,14 @@ feature -- Visitors
 			l_left := last_expression
 			safe_process (a_node.right)
 			l_right := last_expression
-			l_type := types.for_type_a (a_node.type)
 
-			l_class := a_node.left.type.instantiated_in (context_type).base_class
+			l_boogie_type := types.for_class_type (class_type_in_current_context (a_node.type))
+
+			l_class := class_type_in_current_context (a_node.left.type).base_class
 			if attached l_class and then helper.is_class_logical (l_class) then
 				check a_operator ~ "==" or a_operator ~ "!=" end
 				(create {E2B_CUSTOM_LOGICAL_HANDLER}).handle_binary (Current, l_class, l_left, l_right, a_operator)
-			elseif is_in_quantifier then
+			elseif is_in_quantifier and options.is_triggering_on_arithmetic then
 				if a_operator ~ "+" then
 					last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
 				elseif a_operator ~ "-" then
@@ -282,10 +304,10 @@ feature -- Visitors
 				elseif a_operator ~ "*" then
 					last_expression := factory.function_call ("multiply", << l_left, l_right >>, types.int)
 				else
-					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
+					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 				end
 			else
-				create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
+				create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 			end
 			if
 				options.is_checking_overflow and then
@@ -296,10 +318,7 @@ feature -- Visitors
 				l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
 				create l_fcall.make (l_fname, types.bool)
 				l_fcall.add_argument (last_expression)
-					-- TODO: refactor
-				if not is_in_quantifier then
-					add_safety_check (l_fcall, "overflow", context_tag, context_line_number)
-				end
+				add_safety_check (l_fcall, "overflow", context_tag, context_line_number)
 			end
 		end
 
@@ -309,7 +328,6 @@ feature -- Visitors
 			-- evaluation of right expression, otherwise it has to be false.
 		local
 			l_left, l_right: IV_EXPRESSION
-			l_type: IV_TYPE
 			l_safety_check_condition: IV_EXPRESSION
 		do
 			safe_process (a_node.left)
@@ -322,9 +340,8 @@ feature -- Visitors
 			end
 			process_semistrict (l_safety_check_condition, a_node.right)
 			l_right := last_expression
-			l_type := types.for_type_a (a_node.type)
 
-			create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
+			create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, types.bool)
 		end
 
 	process_binary_infix (a_node: BINARY_B)
@@ -570,12 +587,12 @@ feature -- Visitors
 			-- <Precursor>
 		local
 			l_feature: FEATURE_I
-			l_current_type: TYPE_A
+			l_current_type: CL_TYPE_A
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_current_type := current_target_type
 
-			current_target_type := a_node.type
+			current_target_type := class_type_in_current_context (a_node.type)
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			check feature_valid: l_feature /= Void end
 			l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
@@ -660,9 +677,6 @@ feature -- Visitors
 
 	process_local_b (a_node: LOCAL_B)
 			-- <Precursor>
-		local
-			l_name: STRING
-			l_type: IV_TYPE
 		do
 			last_expression := entity_mapping.local_ (a_node.position)
 		end
@@ -729,7 +743,7 @@ feature -- Visitors
 			l_temp_expression: IV_EXPRESSION
 			l_target: IV_EXPRESSION
 			l_target_name: STRING
-			l_target_type: TYPE_A
+			l_target_type: CL_TYPE_A
 			l_formal: FORMAL_A
 
 			l_object_test_local: OBJECT_TEST_LOCAL_B
@@ -770,7 +784,7 @@ feature -- Visitors
 					l_target_type := current_target_type
 
 					current_target := last_expression
-					current_target_type := l_nested.target.type
+					current_target_type := class_type_in_current_context (l_nested.target.type)
 					l_nested.message.process (Current)
 
 					current_target := l_target
@@ -797,23 +811,14 @@ feature -- Visitors
 				l_target := current_target
 				l_target_type := current_target_type
 				current_target := last_expression
-				if a_node.target.type.is_like_current then
-					current_target_type := l_target_type
-				else
-					current_target_type := a_node.target.type.deep_actual_type.instantiated_in (l_target_type)
-				end
-				check not current_target_type.is_like end
-				if current_target_type.is_formal then
-					l_formal ?= current_target_type
-					current_target_type := l_target_type.associated_class.constraint (l_formal.position)
-				end
+				current_target_type := class_type_in_current_context (a_node.target.type)
 
 					-- Check if target is attached;
 					-- skip if target is expanded or a mathematical type, or this is a special any feature
 					-- ToDo: better define a special nested handler in E2B_CUSTOM_ANY_HANDLER
 				if not (current_target_type.is_expanded or
-					helper.is_class_logical (current_target_type.base_class) or
-					(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
+						helper.is_class_logical (current_target_type.base_class) or
+						(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
 					translation_pool.add_type (current_target_type)
 					create l_call.make ("attached", types.bool)
 					l_call.add_argument (entity_mapping.heap)
@@ -857,9 +862,9 @@ feature -- Visitors
 	process_object_test_b (a_node: OBJECT_TEST_B)
 			-- <Precursor>
 		local
-			l_type: IV_EXPRESSION
+			l_type: CL_TYPE_A
 			l_type_check: IV_BINARY_OPERATION
-			l_expr: IV_EXPRESSION
+			l_type_expr, l_expr: IV_EXPRESSION
 		do
 			safe_process (a_node.expression)
 			l_expr := last_expression
@@ -868,13 +873,14 @@ feature -- Visitors
 			else
 				check attached a_node.info end
 					-- Normalize integer types
-				translation_pool.add_type (a_node.info.type_to_create.deep_actual_type)
-				if a_node.info.type_to_create.is_integer or a_node.info.type_to_create.is_natural then
-					create {IV_ENTITY} l_type.make ("INTEGER", types.type)
+				l_type := class_type_in_current_context (a_node.info.type_to_create)
+				translation_pool.add_type (l_type)
+				if l_type.is_integer or l_type.is_natural then
+					create {IV_ENTITY} l_type_expr.make ("INTEGER", types.type)
 				else
-					l_type := factory.type_value (a_node.info.type_to_create)
+					l_type_expr := factory.type_value (l_type)
 				end
-				last_expression := factory.function_call ("attached", <<entity_mapping.heap, l_expr, l_type>>, types.bool)
+				last_expression := factory.function_call ("attached", <<entity_mapping.heap, l_expr, l_type_expr>>, types.bool)
 			end
 			if attached a_node.target then
 					-- Check for possible unboxing of basic types
@@ -905,7 +911,7 @@ feature -- Visitors
 		local
 			l_context_type: CL_TYPE_A
 			l_target: IV_EXPRESSION
-			l_target_type: TYPE_A
+			l_target_type: CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
 		do
 			check not parameters_stack.is_empty end
@@ -935,9 +941,6 @@ feature -- Visitors
 
 	process_result_b (a_node: RESULT_B)
 			-- <Precursor>
-		local
-			l_name: STRING
-			l_type: IV_TYPE
 		do
 			last_expression := entity_mapping.result_expression
 		end
@@ -986,9 +989,9 @@ feature -- Visitors
 	process_type_expr_b (a_node: TYPE_EXPR_B)
 			-- <Precursor>
 		local
-			l_type: TYPE_A
+			l_type: CL_TYPE_A
 		do
-			l_type := a_node.type_type.deep_actual_type
+			l_type := class_type_in_current_context (a_node.type_type)
 			translation_pool.add_type (l_type)
 			last_expression := factory.type_value (l_type)
 		end
@@ -1003,14 +1006,14 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			safe_process (a_node.expr)
-			create {IV_UNARY_OPERATION} last_expression.make ("-", last_expression, types.for_type_a (a_node.type))
+			create {IV_UNARY_OPERATION} last_expression.make ("-", last_expression, last_expression.type)
 		end
 
 	process_un_not_b (a_node: UN_NOT_B)
 			-- <Precursor>
 		do
 			safe_process (a_node.expr)
-			create {IV_UNARY_OPERATION} last_expression.make ("!", last_expression, types.for_type_a (a_node.type))
+			last_expression := factory.not_ (last_expression)
 		end
 
 	process_un_old_b (a_node: UN_OLD_B)
@@ -1113,11 +1116,7 @@ feature -- Translation
 
 	implies_safety_expression (a_expr: IV_EXPRESSION): IV_EXPRESSION
 		do
-			if safety_check_condition.is_empty then
-				Result := a_expr
-			else
-				create {IV_BINARY_OPERATION} Result.make (safety_check_condition.item, "==>", a_expr, types.bool)
-			end
+			Result := factory.implies_clean (safety_check_condition.item, a_expr)
 		end
 
 	clear_side_effect
@@ -1149,7 +1148,7 @@ feature -- Translation
 		local
 			l_context_type: CL_TYPE_A
 			l_target: IV_EXPRESSION
-			l_target_type: TYPE_A
+			l_target_type: CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
 		do
 			l_target := current_target
@@ -1168,26 +1167,30 @@ feature -- Translation
 			current_target_type := l_target_type
 		end
 
-	last_set_content_type: TYPE_A
+	last_set_content_type: CL_TYPE_A
 			-- Type of the set content for the last successful call to `process_as_set'.
 
 	process_as_set (a_expr: EXPR_B; a_content_type: IV_TYPE)
 			-- Process `a_expr' of a logical type and convert it to a set of `a_content_type';
 			-- if not possible issue a validity error.
 		local
+			l_expr_type: CL_TYPE_A
 			l_class: CLASS_C
 			l_feature: FEATURE_I
 			l_conversion: STRING
 		do
 			safe_process (a_expr)
 
-			l_class := a_expr.type.instantiated_in (context_type).base_class
+			l_expr_type := class_type_in_current_context (a_expr.type)
+			l_class := l_expr_type.base_class
 			l_feature := l_class.feature_named_32 ("new_cursor")
 			l_conversion := helper.function_for_logical (l_feature)
 			if l_conversion = Void then
 				helper.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
 			else
-				last_set_content_type := l_feature.type.instantiated_in (a_expr.type.instantiated_in (context_type)).generics.first
+				check attached {CL_TYPE_A} helper.class_type_in_context (l_feature.type, l_feature.written_class, l_feature, l_expr_type).generics.first as t then
+					last_set_content_type := t
+				end
 				if not l_conversion.is_empty then
 					last_expression := factory.function_call (l_conversion, << last_expression >>, types.set (a_content_type))
 				end
@@ -1228,11 +1231,6 @@ feature -- Translation
 		local
 			l_fcall: IV_FUNCTION_CALL
 		do
---			if restricted_context_readable /= Void then
---				l_readable := restricted_context_readable
---			elseif context_readable /= Void then
---				l_readable := context_readable
---			end
 			if context_readable /= Void and helper.has_functional_representation (a_feature) then
 				create l_fcall.make (name_translator.boogie_function_for_read_frame (a_feature, current_target_type), types.frame)
 				l_fcall.add_argument (entity_mapping.heap)
@@ -1270,14 +1268,11 @@ feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER}
 
 	is_in_quantifier: BOOLEAN
 			-- Is current expression inside a quantifier?
-			-- ToDo: remove?
 
 	dummy_node (a_type: TYPE_A): IV_EXPRESSION
 			-- Dummy node for type `a_type'.
-		local
-			l_type: TYPE_A
 		do
-			Result := factory.function_call ("unsupported", << >>, types.for_type_in_context (a_type.deep_actual_type, context_type))
+			Result := factory.function_call ("unsupported", << >>, types.for_class_type (class_type_in_current_context (a_type)))
 		end
 
 	process_semistrict (a_condition: IV_EXPRESSION; a_expr: EXPR_B)
@@ -1286,13 +1281,11 @@ feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER}
 			l_fcall: IV_FUNCTION_CALL
 			l_fname: STRING
 		do
-			if not safety_check_condition.is_empty then
-				safety_check_condition.extend (factory.and_ (safety_check_condition.item, a_condition))
-			else
-				safety_check_condition.extend (a_condition)
-			end
+			safety_check_condition.extend (factory.and_clean (safety_check_condition.item, a_condition))
 			safe_process (a_expr)
 			safety_check_condition.remove
 		end
 
+invariant
+	has_safety_check_condition: not safety_check_condition.is_empty
 end

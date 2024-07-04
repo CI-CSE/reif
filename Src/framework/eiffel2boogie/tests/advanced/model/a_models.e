@@ -13,17 +13,24 @@ feature
 
 	foo
 		require
-			modify_model (["x", "y", "closed"], Current)
+			modify_model (["x", "y"], Current)
 		do
 			x := 1
 			z := 1 -- OK: z is non-model
+		end
+
+	foo1
+		require
+			modify_model (["x"], Current)
+		do
+			x := 1
 		end
 
 	bar
 		note
 			explicit: wrapping
 		require
-			modify_model (["x", "closed"], Current)
+			modify_model (["x"], Current)
 		do
 			if x > 0 then
 				foo		-- Bad
@@ -32,6 +39,36 @@ feature
 				y := 1 	-- Bad: y is model
 				wrap
 			end
+		end
+
+	bar_ok
+		note
+			explicit: wrapping
+		require
+			modify_model (["x", "y"], Current)
+		do
+			if x > 0 then
+				foo
+			else
+				unwrap
+				y := 1
+				wrap
+			end
+		end
+
+	bar_ok1
+		note
+			explicit: wrapping
+		require
+			modify_model (["x"], Current)
+		do
+			foo1
+		end
+
+	suspicious
+		require
+			modify_model ("x", Current)
+		do
 		end
 
 end

@@ -27,7 +27,6 @@ feature {NONE} -- Initialization
 			make_with_defaults
 			default_severity_score := 40
 			create {CA_SUGGESTION} severity
-			create violations.make
 		end
 
 feature {NONE} -- Activation
@@ -74,6 +73,10 @@ feature {NONE} -- AST Visits
 			l_violation: CA_RULE_VIOLATION
 			l_fix: CA_UNNEEDED_OT_LOCAL_FIX
 		do
+				-- Artificial Exception to test exception handling.
+--			l_violation := Void
+--			print (l_violation.csv_line)
+
 				-- The expression to be tested must be a simple call.
 			if
 				attached {EXPR_CALL_AS} a_ot.expression as l_call
@@ -92,7 +95,7 @@ feature {NONE} -- AST Visits
 				l_violation.long_description_info.extend (l_ot_local.name_32)
 
 					-- Add the fix.
-				create l_fix.make_with_ot (checking_class, a_ot)
+				create l_fix.make_with_ot (current_context.checking_class, a_ot)
 				l_violation.fixes.extend (l_fix)
 
 				violations.extend (l_violation)

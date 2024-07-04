@@ -16,30 +16,10 @@ inherit
 
 feature -- Access
 
-	current_feature: FEATURE_I
-			-- Currently translated feature.
-
-	current_type: TYPE_A
-			-- Type of currently translated feature.
-
 	current_boogie_procedure: detachable IV_PROCEDURE
 			-- Currently generated Boogie procedure (if any).
 
 feature -- Element change
-
-	set_context (a_feature: FEATURE_I; a_type: TYPE_A)
-			-- Set context of current translation.
-		do
-			current_feature := a_feature
-			if a_type.is_attached then
-				current_type := a_type
-			else
-				current_type := a_type.as_attached_type
-			end
-		ensure
-			current_feature_set: current_feature = a_feature
-			current_type_set: current_type.same_as (a_type.as_attached_type)
-		end
 
 	set_up_boogie_procedure (a_boogie_name: STRING)
 			-- Set up `current_boogie_procedure'.
@@ -57,22 +37,22 @@ feature -- Element change
 
 feature -- Helper functions: arguments and result
 
-	arguments_of (a_feature: FEATURE_I; a_context: TYPE_A): ARRAYED_LIST [TUPLE [name: STRING; type: TYPE_A; boogie_type: IV_TYPE]]
+	arguments_of (a_feature: FEATURE_I; a_context: CL_TYPE_A): ARRAYED_LIST [TUPLE [name: STRING; type: CL_TYPE_A; boogie_type: IV_TYPE]]
 			-- List of feature arguments of `a_feature'.
 		require
 			a_feature_attached: attached a_feature
 			a_context_attached: attached a_context
 		local
 			i: INTEGER
-			l_type: TYPE_A
+			l_type: CL_TYPE_A
 		do
 			create Result.make (a_feature.argument_count)
 			from i := 1 until i > a_feature.argument_count loop
-				l_type := a_feature.arguments.i_th (i).deep_actual_type.instantiated_in (a_context)
+				l_type := helper.class_type_in_context (a_feature.arguments.i_th (i), a_context.base_class, a_feature, a_context)
 				Result.extend([
 					a_feature.arguments.item_name (i),
 					l_type,
-					types.for_type_a (l_type)
+					types.for_class_type (l_type)
 				])
 				i := i + 1
 			end
@@ -87,7 +67,7 @@ feature -- Helper functions: arguments and result
 			Result := arguments_of (current_feature, current_type)
 		end
 
-	add_argument_with_property (a_name: STRING; a_type: TYPE_A; a_boogie_type: IV_TYPE)
+	add_argument_with_property (a_name: STRING; a_type: CL_TYPE_A; a_boogie_type: IV_TYPE)
 			-- Add argument and property to current procedure.
 		require
 			current_procedure_set: attached current_boogie_procedure
@@ -95,37 +75,27 @@ feature -- Helper functions: arguments and result
 			l_pre: IV_PRECONDITION
 		do
 			current_boogie_procedure.add_argument (a_name, a_boogie_type)
-			create l_pre.make (type_property (factory.entity (a_name, a_boogie_type), a_type, factory.global_heap))
+			create l_pre.make (types.type_property (a_type, factory.global_heap, factory.entity (a_name, a_boogie_type)))
 			l_pre.set_free
 			l_pre.node_info.set_attribute ("info", "type property for argument " + a_name)
 			current_boogie_procedure.add_contract (l_pre)
-			translation_pool.add_type (a_type.deep_actual_type.instantiated_in (current_type))
+			translation_pool.add_type (a_type)
 		end
 
 	add_result_with_property
 			-- Add result to current procedure.
 		local
-			l_type: TYPE_A
+			l_type: CL_TYPE_A
 			l_iv_type: IV_TYPE
 		do
 			if current_feature.has_return_value then
-				l_type := current_feature.type.deep_actual_type.instantiated_in (current_type)
-				l_iv_type := types.for_type_a (l_type)
+				l_type := helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type)
+				l_iv_type := types.for_class_type (l_type)
 				translation_pool.add_type (l_type)
 				current_boogie_procedure.add_result_with_property (
 					"Result",
 					l_iv_type,
-					type_property (factory.entity ("Result", l_iv_type), l_type, factory.global_heap))
-			end
-		end
-
-	type_property (a_arg: IV_EXPRESSION; a_type: TYPE_A; a_heap: IV_EXPRESSION): IV_EXPRESSION
-			-- Type property about `a_arg' of `a_type'.
-		do
-			if attached {FORMAL_A} a_type as f then
-				Result := types.type_property (f.constraint (current_type.base_class), a_heap, a_arg)
-			else
-				Result := types.type_property (a_type, a_heap, a_arg)
+					types.type_property (l_type, factory.global_heap, factory.entity ("Result", l_iv_type)))
 			end
 		end
 
@@ -222,7 +192,7 @@ feature -- Helper functions: contracts
 			Result := contracts_of (current_feature, current_type)
 		end
 
-	pre_post_expressions_of (a_feature: FEATURE_I; a_type: TYPE_A; a_mapping: E2B_ENTITY_MAPPING): TUPLE [pre: IV_EXPRESSION; post: IV_EXPRESSION]
+	pre_post_expressions_of (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_mapping: E2B_ENTITY_MAPPING): TUPLE [pre: IV_EXPRESSION; post: IV_EXPRESSION]
 			-- Contracts for feature `a_feature' of type `a_type' as expressions.
 		local
 			l_contracts: like contracts_of
@@ -239,19 +209,24 @@ feature -- Helper functions: contracts
 			l_pre := factory.true_
 			across l_contracts.pre as c loop
 				l_translator.set_origin_class (c.item.origin)
+				helper.set_up_byte_context (c.item.origin.feature_of_rout_id (a_feature.rout_id_set.first),
+					helper.class_type_in_context (c.item.origin.actual_type, c.item.origin, Void, current_type))
 				c.item.clause.process (l_translator)
 				l_pre := factory.and_clean (l_pre, l_translator.last_expression)
 			end
 			l_post := factory.true_
 			across l_contracts.post as c loop
 				l_translator.set_origin_class (c.item.origin)
+				helper.set_up_byte_context (c.item.origin.feature_of_rout_id (a_feature.rout_id_set.first),
+					helper.class_type_in_context (c.item.origin.actual_type, c.item.origin, Void, current_type))
 				c.item.clause.process (l_translator)
 				l_post := factory.and_clean (l_post, l_translator.last_expression)
 			end
+			helper.set_up_byte_context (a_feature, a_type)
 			Result := [l_pre, l_post]
 		end
 
-	modify_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_EXPRESSION_TRANSLATOR): TUPLE [full_objects: LIST [IV_EXPRESSION]; partial_objects: LIST [E2B_FRAME_ELEMENT]; model_objects: LIST [E2B_FRAME_ELEMENT]]
+	modify_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR): TUPLE [full_objects: LIST [IV_EXPRESSION]; partial_objects: LIST [E2B_FRAME_ELEMENT]; model_objects: LIST [E2B_FRAME_ELEMENT]]
 			-- List of fully modified and partially modified objects extracted from modifies clauses `a_clauses'.
 		do
 			Result := [
@@ -259,9 +234,15 @@ feature -- Helper functions: contracts
 				frame_partial_objects_of (a_clauses, "modify_field", a_translator, False),
 				frame_partial_objects_of (a_clauses, "modify_model", a_translator, True)
 				]
+				-- Add `closed' to all model frames
+			across Result.model_objects as m loop
+				if across m.item.fields as f all f.item.name /~ "closed" end then
+					m.item.fields.extend (factory.entity ("closed", types.field (types.bool)))
+				end
+			end
 		end
 
-	read_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_EXPRESSION_TRANSLATOR): TUPLE [full_objects: LIST [IV_EXPRESSION]; partial_objects: LIST [E2B_FRAME_ELEMENT]; model_objects: LIST [E2B_FRAME_ELEMENT]]
+	read_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR): TUPLE [full_objects: LIST [IV_EXPRESSION]; partial_objects: LIST [E2B_FRAME_ELEMENT]; model_objects: LIST [E2B_FRAME_ELEMENT]]
 			-- List of fully modified and partially modified objects extracted from modifies clauses `a_clauses'.
 		do
 			Result := [
@@ -271,7 +252,7 @@ feature -- Helper functions: contracts
 			]
 		end
 
-	frame_full_objects_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_function: STRING; a_translator: E2B_EXPRESSION_TRANSLATOR): LIST [IV_EXPRESSION]
+	frame_full_objects_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_function: STRING; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR): LIST [IV_EXPRESSION]
 			-- Full object descriptions extracted from `a_clauses' and translated with `a_translator', given as arguments to `a_function'.
 		local
 			l_objects_type: like translate_contained_expressions
@@ -285,6 +266,7 @@ feature -- Helper functions: contracts
 				if attached {FEATURE_B} i.item.clause.expr as l_call then
 					l_name := names_heap.item_32 (l_call.feature_name_id)
 					if l_name ~ a_function then
+						a_translator.set_origin_class (i.item.origin)
 						l_objects_type := translate_contained_expressions (l_call.parameters.i_th (1).expression, a_translator, True)
 						Result.append (l_objects_type.expressions)
 					end
@@ -292,15 +274,15 @@ feature -- Helper functions: contracts
 			end
 		end
 
-	frame_partial_objects_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_function: STRING; a_translator: E2B_EXPRESSION_TRANSLATOR; a_check_model: BOOLEAN): LIST [E2B_FRAME_ELEMENT]
+	frame_partial_objects_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_function: STRING; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_check_model: BOOLEAN): LIST [E2B_FRAME_ELEMENT]
 			-- Partial object descriptions extracted from `a_clauses' and translated with `a_translator', given as arguments to `a_function'.
 		local
 			l_fieldnames: LINKED_LIST [STRING_32]
 			l_fields: LINKED_LIST [IV_ENTITY]
 			l_objects_type: like translate_contained_expressions
 			l_name: STRING_32
-			l_type: TYPE_A
-			l_feature, l_to_set: FEATURE_I
+			l_type: CL_TYPE_A
+			l_attr, l_to_set: FEATURE_I
 			l_boogie_type: IV_TYPE
 			l_field: IV_ENTITY
 			l_origin: CLASS_C
@@ -313,12 +295,12 @@ feature -- Helper functions: contracts
 				if attached {FEATURE_B} i.item.clause.expr as l_call then
 					l_name := names_heap.item_32 (l_call.feature_name_id)
 					if l_name ~ a_function then
+						a_translator.set_origin_class (i.item.origin)
 						l_objects_type := translate_contained_expressions (l_call.parameters.i_th (2).expression, a_translator, True)
 						create l_fields.make
-						l_fields.compare_objects
 
 						if l_objects_type.expressions.first /= Void then
-							l_type := l_objects_type.type.instantiated_in (current_type)
+							l_type := helper.class_type_in_context (l_objects_type.type, i.item.origin, current_feature, current_type)
 
 							create l_fieldnames.make
 							if attached {STRING_B} l_call.parameters.i_th (1).expression as l_string then
@@ -335,11 +317,35 @@ feature -- Helper functions: contracts
 								helper.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, i.item.clause.line_number)
 							end
 
-							l_origin := l_objects_type.type.instantiated_in (i.item.origin.actual_type).base_class
+							l_origin := helper.class_type_in_context (
+								l_objects_type.type,
+								i.item.origin,
+								current_feature,
+								helper.class_type_from_class (i.item.origin, current_type)).base_class
 							across l_fieldnames as f loop
-								l_field := (create {E2B_CUSTOM_OWNERSHIP_HANDLER}).field_from_string (f.item, l_type, l_origin, current_feature, i.item.clause.line_number, a_check_model)
-								if attached l_field then
-									l_fields.extend (l_field)
+								if a_check_model then
+									l_attr := l_origin.feature_named_32 (f.item)
+									if attached l_attr and then helper.is_model_query (l_origin, l_attr) then
+										across helper.replaced_model_queries (l_attr, l_origin, l_type.base_class) as m loop
+											l_field := helper.field_from_attribute (m.item, l_type)
+											if across l_fields as fi all not fi.item.same_expression (l_field) end then
+												l_fields.extend (l_field)
+											end
+										end
+										across helper.replacing_model_queries (l_attr, l_origin, l_type.base_class) as m loop
+											l_field := helper.field_from_attribute (m.item, l_type)
+											if across l_fields as fi all not fi.item.same_expression (l_field) end then
+												l_fields.extend (l_field)
+											end
+										end
+									else
+										helper.add_semantic_error (current_feature, messages.unknown_model (f.item, l_origin.name_in_upper), i.item.clause.line_number)
+									end
+								else
+									l_attr := helper.attribute_from_string (f.item, l_type, l_origin, current_feature, i.item.clause.line_number)
+									if attached l_attr then
+										l_fields.extend (helper.field_from_attribute (l_attr, l_type))
+									end
 								end
 							end
 						end
@@ -355,8 +361,8 @@ feature -- Helper functions: contracts
 			-- Is `a_mods' an empty frame?
 		do
 			Result := (a_mods.full_objects.is_empty or else a_mods.full_objects.first = Void) and
-				(a_mods.partial_objects.is_empty or else a_mods.partial_objects.item.objects.first = Void) and
-				(a_mods.model_objects.is_empty or else a_mods.model_objects.item.objects.first = Void)
+				(a_mods.partial_objects.is_empty or else a_mods.partial_objects.first.objects.first = Void) and
+				(a_mods.model_objects.is_empty or else a_mods.model_objects.first.objects.first = Void)
 		end
 
 	frame_definition (a_mods: like modify_expressions_of; a_lhs: IV_EXPRESSION): IV_FORALL
@@ -367,7 +373,8 @@ feature -- Helper functions: contracts
 			l_type_var: IV_VAR_TYPE
 			l_o, l_f: IV_ENTITY
 			l_access: IV_MAP_ACCESS
-			l_written_type, l_type: TYPE_A
+			l_written_type, l_type: CL_TYPE_A
+			r: E2B_FRAME_ELEMENT
 		do
 			create l_type_var.make_fresh
 			create l_o.make ("$o", types.ref)
@@ -377,33 +384,35 @@ feature -- Helper functions: contracts
 
 				-- Axiom rhs: a big disjunction
 				-- Go over partially modifiable objects
-			across a_mods.partial_objects as restiction loop
+			across a_mods.partial_objects as restriction loop
 				l_f_conjunct := factory.false_
-				across restiction.item.fields as f loop
+				across restriction.item.fields as f loop
 					l_f_conjunct := factory.or_clean (l_f_conjunct, factory.equal (l_f, f.item))
 				end
-				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, restiction.item.objects), l_f_conjunct))
+				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, restriction.item.objects), l_f_conjunct))
 			end
 				-- Go over model-modifiable objects
-			across a_mods.model_objects as restiction loop
+			across a_mods.model_objects as restriction loop
+				r := restriction.item
 					-- The type of the objects as seen where the frame clause was written
-				l_written_type := restiction.item.type.instantiated_in (restiction.item.origin.actual_type)
+				l_written_type := helper.class_type_in_context (r.type, r.origin, current_feature, helper.class_type_from_class (r.origin, current_type))
 					-- The type of the objects as seen in the `current_type'
-				l_type := restiction.item.type.instantiated_in (current_type)
+				l_type := helper.class_type_in_context (r.type, r.origin, current_feature, current_type)
+					-- Either `l_f' is not a model query in `l_type'
 				l_f_conjunct := factory.not_ (factory.function_call ("IsModelField", << l_f, factory.type_value (l_type) >>, types.bool))
-				across restiction.item.fields as f loop
-					l_f_conjunct := factory.or_ (l_f_conjunct,
-						factory.function_call ("ModelRepresents", << l_f, factory.type_value (l_type), f.item, factory.type_value (l_written_type) >>, types.bool))
+					-- Or it is one of `r.fields'
+				across r.fields as f loop
+					l_f_conjunct := factory.or_ (l_f_conjunct,factory.equal (l_f, f.item))
 				end
-				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, restiction.item.objects), l_f_conjunct))
+				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, r.objects), l_f_conjunct))
 			end
 				-- Go over fully modifiable objects
 			l_expr := factory.or_clean (l_expr, is_object_in_frame (l_o, a_mods.full_objects))
 				-- Finally create the quantifier				
 			create Result.make (factory.equiv (l_access, l_expr))
 			Result.add_type_variable (l_type_var.name)
-			Result.add_bound_variable (l_o.name, l_o.type)
-			Result.add_bound_variable (l_f.name, l_f.type)
+			Result.add_bound_variable (l_o)
+			Result.add_bound_variable (l_f)
 			Result.add_trigger (l_access)
 		end
 
@@ -427,7 +436,7 @@ feature -- Helper functions: contracts
 			end
 		end
 
-	decreases_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_EXPRESSION_TRANSLATOR): LIST [IV_EXPRESSION]
+	decreases_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR): LIST [IV_EXPRESSION]
 			-- List of variants extracted from decreases clauses `a_clauses'.
 		do
 			create {LINKED_LIST [IV_EXPRESSION]} Result.make
@@ -435,6 +444,7 @@ feature -- Helper functions: contracts
 				a_clauses as i
 			loop
 				if attached {FEATURE_B} i.item.clause.expr as l_call then
+					a_translator.set_origin_class (i.item.origin)
 					Result.append (translate_contained_expressions (l_call.parameters.i_th (1).expression, a_translator, False).expressions)
 				else
 					check internal_error: False end
@@ -464,7 +474,7 @@ feature -- Helper functions: contracts
 			across l_expr_list as k loop
 				if k.item = Void then
 					l_expressions.extend (Void)
-				elseif convert_to_set and helper.is_class_logical (k.item.type.instantiated_in (a_translator.context_type).base_class) then
+				elseif convert_to_set and helper.is_class_logical (a_translator.class_type_in_current_context (k.item.type).base_class) then
 					a_translator.process_as_set (k.item, types.ref)
 					l_expressions.extend (a_translator.last_expression)
 					l_type := a_translator.last_set_content_type

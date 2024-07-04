@@ -27,7 +27,6 @@ feature {NONE} -- Initialization
 		do
 			make_with_defaults
 			create {CA_SUGGESTION} severity
-			create violations.make
 		end
 
 	register_actions (a_checker: attached CA_ALL_RULES_CHECKER)
@@ -44,7 +43,7 @@ feature {NONE} -- Rule checking
 	process_feature (a_feature: FEATURE_AS)
 			-- Stores `a_feature'.
 		do
-			current_feature_i := checking_class.feature_named_32 (a_feature.feature_name.name_32)
+			current_feature_i := current_context.checking_class.feature_named_32 (a_feature.feature_name.name_32)
 		end
 
 	process_equality (a_bin_eq: BIN_EQ_AS)
@@ -66,7 +65,7 @@ feature {NONE} -- Rule checking
 			-- Is `a_expr' the integer constant 0?
 		do
 			if attached {INTEGER_AS} a_expr as l_int then
-				Result := (l_int.has_integer (32) and then l_int.integer_32_value = 0)
+				Result := l_int.has_integer (32) and then l_int.integer_32_value = 0
 			end
 		end
 
@@ -84,10 +83,9 @@ feature {NONE} -- Rule checking
 				and then attached {NESTED_AS} l_ec.call as l_nested_call
 				and then attached {ACCESS_AS} l_nested_call.message as l_msg
 				and then l_msg.access_name_8.is_equal ("count")
+				and then attached current_context.node_type (l_nested_call.target, current_feature_i) as l_type
 			then
-				if attached node_type (l_nested_call.target, current_feature_i) as l_type then
-					Result := l_type.base_class.conform_to (finite)
-				end
+				Result := l_type.base_class.conform_to (finite)
 			end
 		end
 

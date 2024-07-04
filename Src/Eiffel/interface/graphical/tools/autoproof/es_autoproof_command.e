@@ -23,6 +23,8 @@ inherit
 
 	SHARED_EIFFEL_PROJECT
 
+	SHARED_WORKBENCH
+
 	SHARED_ERROR_HANDLER
 
 	COMPILER_EXPORTER
@@ -114,8 +116,9 @@ feature {NONE} -- Basic operations
 			l_helper: ES_AUTOPROOF_BENCH_HELPER
 			l_dialog: ES_INFORMATION_PROMPT
 		do
-				-- Compile the project and only verify if it was succesfull
-			eiffel_project.quick_melt (True, True, True)
+			if workbench.is_changed then
+				eiffel_project.quick_melt (True, True, True)
+			end
 			if eiffel_project.successful then
 				create l_helper
 				if l_helper.autoproof.is_running then
@@ -132,6 +135,7 @@ feature {NONE} -- Basic operations
 		local
 			l_cluster: CLUSTER_I
 			l_helper: ES_AUTOPROOF_BENCH_HELPER
+			l_context: E2B_SHARED_CONTEXT
 		do
 			create l_helper
 			autoproof := l_helper.autoproof
@@ -171,6 +175,8 @@ feature {NONE} -- Basic operations
 				end
 			end
 			disable_tool_button
+			create l_context
+			l_context.status_notifier_agent_cell.put (agent window_manager.display_message)
 			window_manager.display_message ("AutoProof running")
 			autoproof.add_notification (agent process_result)
 			autoproof.verify
@@ -511,7 +517,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2014, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

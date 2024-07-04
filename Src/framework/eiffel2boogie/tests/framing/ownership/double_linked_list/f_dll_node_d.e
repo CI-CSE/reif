@@ -30,9 +30,17 @@ feature -- Access
 
 	left: F_DLL_NODE_D
 			-- Left neighbor.
+		note
+			guard: not_left
+		attribute
+		end
 
 	right: F_DLL_NODE_D
-			-- Right neighbor.
+			-- Right neighbor.			
+		note
+			guard: not_right
+		attribute
+		end
 
 feature -- Modification
 
@@ -43,7 +51,7 @@ feature -- Modification
 			n_singleton: n.left = n
 			default_wrapped: is_wrapped
 			default_arg_wrapped: n.is_wrapped
-			default_observers_wrapped: across observers as o all o.item.is_wrapped  end
+			default_observers_wrapped: across observers as o all o.item.is_wrapped end
 			modify (Current, right, n)
 		local
 			r: F_DLL_NODE_D
@@ -116,7 +124,6 @@ feature {F_DLL_NODE_D} -- Implementation
 		require
 			open: is_open
 			left_open: left.is_open
-			only_closed_observer_is_right: across observers as o all o.item.is_open or o.item = right end
 			modify_field ("left", Current)
 		do
 			left := n -- preserves `right'
@@ -129,12 +136,29 @@ feature {F_DLL_NODE_D} -- Implementation
 		require
 			open: is_open
 			right_open: right.is_open
-			only_closed_observer_is_left: across observers as o all o.item.is_open or o.item = left end
 			modify_field ("right", Current)
 		do
 			right := n -- preserves `left'
 		ensure
 			right = n
+		end
+
+feature -- Specification
+
+	not_left (new_left: F_DLL_NODE_D; o: ANY): BOOLEAN
+			-- Is `o' different from `left'?
+		note
+			status: functional
+		do
+			Result := o /= left
+		end
+
+	not_right (new_right: F_DLL_NODE_D; o: ANY): BOOLEAN
+			-- Is `o' different from `right'?
+		note
+			status: functional
+		do
+			Result := o /= right
 		end
 
 invariant

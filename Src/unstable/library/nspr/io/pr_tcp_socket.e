@@ -14,45 +14,77 @@ inherit
 create
 	open_ipv4,
 	open_ipv6,
-	make_from_fd
+	make_from_fd,
+	accept
 
 feature {NONE} -- Initialization
 	open_ipv4
-	do
-		error := Void
-		address_family := ipv4
-		pr_fd := c.pr_opentcpsocket(address_family)
-		if pr_fd.is_default_pointer then
-			(create {PR_EXCEPTION}.make).raise
+		do
+			error := Void
+			address_family := ipv4
+			pr_fd := c.pr_opentcpsocket(address_family)
+			if pr_fd.is_default_pointer then
+				(create {PR_EXCEPTION}.make).raise
+			end
+		ensure
+			address_family = ipv4
 		end
-	ensure
-		address_family = ipv4
-	end
 
 	open_ipv6
-	do
-		error := Void
-		address_family := ipv6
-		pr_fd := c.pr_opentcpsocket(address_family)
-		if pr_fd.is_default_pointer then
-			(create {PR_EXCEPTION}.make).raise
+		do
+			error := Void
+			address_family := ipv6
+			pr_fd := c.pr_opentcpsocket(address_family)
+			if pr_fd.is_default_pointer then
+				(create {PR_EXCEPTION}.make).raise
+			end
+		ensure
+			address_family = ipv6
 		end
-	ensure
-		address_family = ipv6
-	end
 
 	make_from_fd (a_fd: POINTER; a_address_family: NATURAL_16)
-	do
-		error := Void
-		address_family := a_address_family
-		pr_fd := a_fd
-		can_receive := True
-		can_send := True
-	ensure
-		address_family = a_address_family
-		is_connected
-	end
+		do
+			error := Void
+			address_family := a_address_family
+			pr_fd := a_fd
+			can_receive := not is_closed
+			can_send := not is_closed
+		ensure
+			address_family = a_address_family
+		end
 
+	accept (a_fd: POINTER; a_address_family: NATURAL_16; a_timeout: NATURAL_32)
+		require
+			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
+				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
+		local
+			l_addr: PR_NET_ADDRESS
+			l_error: PR_ERROR
+			l_fd: POINTER
+		do
+			address_family := a_address_family
+			error := Void
+			was_timeout := False
+			create l_addr.make_empty
+			l_fd := c.pr_accept (a_fd, l_addr.pointer, a_timeout)
+			if l_fd.is_default_pointer then
+				create l_error.make
+				if l_error.is_timeout then
+					was_timeout := True
+				else
+					error := l_error
+					if use_exceptions then
+						(create {PR_EXCEPTION}.make).raise
+					end
+				end
+			else
+				pr_fd := l_fd
+				can_send := True
+				can_receive := True
+			end
+		ensure
+			(attached error or was_timeout) xor is_connected
+		end
 
 feature -- Status setting
 	set_use_exceptions (a_val: BOOLEAN)
@@ -145,40 +177,6 @@ feature -- Status setting
 				is_listening
 		end
 
-	accept (a_timeout: NATURAL_32)
-		require
-			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
-				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			not is_closed
-			is_listening
-		local
-			l_addr: PR_NET_ADDRESS
-			l_error: PR_ERROR
-			l_fd: POINTER
-		do
-			error := Void
-			was_timeout := False
-			create l_addr.make_empty
-			l_fd := c.pr_accept (pr_fd, l_addr.pointer, a_timeout)
-			if l_fd.is_default_pointer then
-				create l_error.make
-				if l_error.is_timeout then
-					was_timeout := True
-				else
-					error := l_error
-					if use_exceptions then
-						(create {PR_EXCEPTION}.make).raise
-					end
-				end
-			else
-				create last_accepted_socket.make_from_fd(l_fd, address_family)
-			end
-		ensure
-			not (attached error or was_timeout) implies
-				attached last_accepted_socket and
-				last_accepted_socket /= old last_accepted_socket
-		end
-
 	shutdown_send
 		require
 			not is_closed
@@ -237,13 +235,13 @@ feature -- Status setting
 		end
 
 	close
-		require
-			not is_closed
 		local
 			l_dummy: INTEGER
 		do
-			l_dummy := c.pr_close (pr_fd)
-			create pr_fd
+			if not pr_fd.is_default_pointer then
+				l_dummy := c.pr_close (pr_fd)
+				create pr_fd
+			end
 			can_receive := False
 			can_send := False
 			is_bound := False
@@ -254,8 +252,6 @@ feature -- Status setting
 
 	detach
 		-- Detach socket from Eiffel, leaving the socket perpetually open.
-		require
-			not is_closed
 		do
 			create pr_fd
 			can_receive := False
@@ -267,8 +263,6 @@ feature -- Status setting
 		end
 
 feature -- Access
-	last_accepted_socket: detachable PR_TCP_SOCKET
-
 	pr_fd: POINTER
 		-- The file descriptor of the socket
 
@@ -304,7 +298,6 @@ feature -- Status report
 	was_timeout: BOOLEAN
 		-- True on timeout of `accept' or `connect'
 
-
 	recv_buffer_size: NATURAL
 		do
 			if not is_closed then
@@ -325,14 +318,19 @@ feature -- Input
 		require
 			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
 				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			can_receive
 		local
 			l_error: PR_ERROR
 			l_amount: INTEGER_32
 		do
 			error := Void
 			was_timeout := False
-			l_amount := receive_special_c (pr_fd, a_special, a_timeout)
+
+			if pr_fd.is_default_pointer then
+				l_amount := 0
+			else
+				l_amount := receive_special_c (pr_fd, a_special, a_timeout)
+			end
+
 			if l_amount = -1 then
 				create l_error.make
 				if l_error.is_timeout then
@@ -340,20 +338,17 @@ feature -- Input
 					was_timeout := True
 				else
 					error := l_error
+					close
 					if use_exceptions then
 						(create {PR_EXCEPTION}.make).raise
 					end
 				end
 			elseif l_amount = 0 then
-				can_receive := False
-				can_send := False
+				close
 				bytes_received := 0
 			else
 				bytes_received := l_amount
 			end
-		ensure
-			not (attached error or was_timeout) implies
-				not is_connected or bytes_received > 0
 		end
 
 	receive_to_managed_pointer (a_ptr: MANAGED_POINTER; a_timeout: NATURAL_64)
@@ -361,12 +356,8 @@ feature -- Input
 		require
 			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
 				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			can_receive
 		do
 			receive_to_pointer (a_ptr.item, a_ptr.count, a_timeout)
-		ensure
-			not (attached error or was_timeout) implies
-				not is_connected or bytes_received > 0
 		end
 
 	receive_to_pointer (a_ptr: POINTER; a_count: INTEGER_32; a_timeout: NATURAL_64)
@@ -374,14 +365,20 @@ feature -- Input
 		require
 			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
 				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			can_receive
 		local
 			l_error: PR_ERROR
 			l_amount: INTEGER_32
+			l_char: CHARACTER_8
 		do
 			error := Void
 			was_timeout := False
-			l_amount := c.pr_recv (pr_fd, a_ptr, a_count, 0, a_timeout)
+
+			if pr_fd.is_default_pointer then
+				l_amount := 0
+			else
+				l_amount := c.pr_recv (pr_fd, a_ptr, a_count, 0, a_timeout)
+			end
+
 			if l_amount = -1 then
 				create l_error.make
 				if l_error.is_timeout then
@@ -394,15 +391,11 @@ feature -- Input
 					end
 				end
 			elseif l_amount = 0 then
-				can_receive := False
-				can_send := False
+				close
 				bytes_received := 0
 			else
 				bytes_received := l_amount
 			end
-		ensure
-			not (attached error or was_timeout) implies
-				not is_connected or bytes_received > 0
 		end
 
 	bytes_received: INTEGER
@@ -413,14 +406,19 @@ feature -- Output
 		require
 			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
 				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			can_send
 		local
 			l_error: PR_ERROR
 			l_amount: INTEGER_32
 		do
 			error := Void
 			was_timeout := False
-			l_amount := send_special_c (pr_fd, a_special, a_timeout)
+
+			if pr_fd.is_default_pointer then
+				l_amount := 0
+			else
+				l_amount := send_special_c (pr_fd, a_special, a_timeout)
+			end
+
 			if l_amount = -1 then
 				create l_error.make
 				if l_error.is_timeout then
@@ -428,13 +426,13 @@ feature -- Output
 					was_timeout := True
 				else
 					error := l_error
+					close
 					if use_exceptions then
 						(create {PR_EXCEPTION}.make).raise
 					end
 				end
 			elseif l_amount = 0 then
-				can_receive := False
-				can_send := False
+				close
 				bytes_sent := 0
 			else
 				bytes_sent := l_amount
@@ -449,7 +447,6 @@ feature -- Output
 		require
 			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
 				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			can_send
 		do
 			send_from_pointer (a_ptr.item, a_count, a_timeout)
 		ensure
@@ -462,14 +459,19 @@ feature -- Output
 		require
 			timout_valid: (a_timeout >= pr_interval_min and a_timeout <= pr_interval_max)
 				or a_timeout = pr_interval_no_wait or a_timeout = pr_interval_no_timeout
-			can_send
 		local
 			l_error: PR_ERROR
 			l_amount: INTEGER_32
 		do
 			error := Void
 			was_timeout := False
-			l_amount := c.pr_send (pr_fd, a_ptr, a_count, 0, a_timeout)
+
+			if pr_fd.is_default_pointer then
+				l_amount := 0
+			else
+				l_amount := c.pr_send (pr_fd, a_ptr, a_count, 0, a_timeout)
+			end
+
 			if l_amount = -1 then
 				create l_error.make
 				if l_error.is_timeout then
@@ -477,13 +479,13 @@ feature -- Output
 					was_timeout := True
 				else
 					error := l_error
+					close
 					if use_exceptions then
 						(create {PR_EXCEPTION}.make).raise
 					end
 				end
 			elseif l_amount = 0 then
-				can_receive := False
-				can_send := False
+				close
 				bytes_sent := 0
 			else
 				bytes_sent := l_amount
@@ -517,6 +519,8 @@ feature -- Timeout constants
 	pr_interval_no_timeout: NATURAL_32 = 0xffffffff
 
 feature {NONE} -- Implementation
+	exception_manager: EXCEPTION_MANAGER once create Result end
+
 	c: PR_IO_C
 
 	receive_special_c (a_fd: POINTER; a_special: separate SPECIAL[ANY]; a_timeout: NATURAL_32): INTEGER
@@ -610,7 +614,6 @@ feature {NONE} -- Implementation
 				return d.value.send_buffer_size;
 			}"
 		end
-
 
 	dispose
 		do

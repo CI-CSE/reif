@@ -52,7 +52,7 @@ feature -- Access
 			closed: closed
 			target_closed: target.closed
 			modify ([])
-			reads (Current, target)
+			reads (Current, target.ownership_domain)
 		do
 			check inv and target.inv end
 			Result := target.elements [index]
@@ -65,7 +65,7 @@ feature -- State change
 		require
 			not_after: not after
 			default_wrapped: is_wrapped
-			modify ([Current])
+			modify (Current)
 		do
 			index := index + 1
 			before := False

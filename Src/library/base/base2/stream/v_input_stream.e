@@ -34,7 +34,7 @@ feature -- Cursor movement
 			-- Move one position forward.
 		require
 			not_off: not off
-			modify_model ("box", Current)
+			modify_model (["box"], Current)
 		deferred
 		end
 
@@ -45,12 +45,12 @@ feature -- Cursor movement
 		note
 			explicit: wrapping
 		require
-			modify_model ("box", Current)
+			modify_model (["box"], Current)
 		do
 			from
 			invariant
 				decreases ([])
-				inv
+				is_wrapped
 			until
 				off or else item = v
 			loop
@@ -59,26 +59,6 @@ feature -- Cursor movement
 		ensure
 			box_effect: box.is_empty or else box.any_item = v
 		end
-
---	satisfy (pred: PREDICATE [ANY, TUPLE [G]])
---			-- Move to the first position at or after current where `pred' holds.
---			-- If `pred' never holds, move `after'.
---		note
---			modify: box
---		require
---			pred_exists: pred /= Void
---			pred_has_one_arg: pred.open_count = 1
---			--- pred_is_total: pred.precondition |=| True
---		do
---			from
---			until
---				off or else pred.item ([item])
---			loop
---				forth
---			end
---		ensure
---			box_effect: box.is_empty or else pred.item ([box.any_item])
---		end
 
 feature -- Specification
 

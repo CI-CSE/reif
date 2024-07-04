@@ -58,8 +58,8 @@ axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Item(Seq#Concat(s0,s1), n
   (Seq#Length(s0) < n ==> Seq#Item(Seq#Concat(s0,s1), n) == Seq#Item(s1, n - Seq#Length(s0))));
   
 // Set of indexes
-function Seq#Domain<T>(Seq T): Set int;
-axiom (forall<T> q: Seq T, i: int :: { Seq#Domain(q)[i] } Seq#Domain(q)[i] <==> 1 <= i && i <= Seq#Length(q));
+function Seq#Domain<T>(q: Seq T): Set int
+{ Interval#FromRange(1, Seq#Length(q)) }
 
 // Set of values
 function Seq#Range<T>(Seq T): Set T;
@@ -203,6 +203,15 @@ axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
   // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
 axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#Has(s, x) <==> 0 < Seq#ToBag(s)[x]);
 axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#ToBag(s)[x] == Seq#Occurrences(s, x));
+
+// Sequence converted to map
+function Seq#ToMap<T>(Seq T): Map int T;
+axiom (forall<T> s: Seq T :: { Map#Domain(Seq#ToMap(s)) }
+  Map#Domain(Seq#ToMap(s)) == Seq#Domain(s));
+axiom (forall<T> s: Seq T :: { Map#Card(Seq#ToMap(s)) }
+  Map#Card(Seq#ToMap(s)) == Seq#Length(s));
+axiom (forall<T> s: Seq T, i: int :: { Map#Item(Seq#ToMap(s), i) }
+  1 <= i && i <= Seq#Length(s) ==> Map#Item(Seq#ToMap(s), i) == Seq#Item(s, i));  
 
 // Additional axioms about common things
     

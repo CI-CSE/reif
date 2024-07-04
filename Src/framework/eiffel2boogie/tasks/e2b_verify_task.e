@@ -32,6 +32,7 @@ feature {NONE} -- Implementation
 				-- TODO: decide where to initalize global state
 			create universe.make
 			boogie_universe_cell.put (universe)
+			helper.reset
 			translation_pool.reset
 			autoproof_errors.wipe_out
 			result_handlers.wipe_out
@@ -54,8 +55,17 @@ feature {NONE} -- Implementation
 
 feature -- Access
 
-	sleep_time: NATURAL = 100
+	sleep_time: NATURAL
 			-- <Precursor>
+		do
+			if attached {E2B_TRANSLATE_CHUNK_TASK} sub_task then
+				Result := 0
+			elseif attached {E2B_EXECUTE_BOOGIE_TASK} sub_task then
+				Result := 200
+			else
+				Result := 50
+			end
+		end
 
 	sub_task: detachable ROTA_TASK_I
 			-- <Precursor>

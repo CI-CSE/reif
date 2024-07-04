@@ -16,12 +16,13 @@ inherit
 
 feature -- Basic operations
 
-	translate (a_feature: FEATURE_I; a_context_type: TYPE_A)
+	translate (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
 			-- Translate feature `a_feature' of type `a_context_type'.
 		require
 			is_attribute: a_feature.is_attribute
 		local
 			l_attribute_name, l_old_name: STRING
+			l_class_type: CL_TYPE_A
 			l_type_prop, l_expr: IV_EXPRESSION
 			l_forall: IV_FORALL
 			l_heap, l_o: IV_ENTITY
@@ -30,11 +31,13 @@ feature -- Basic operations
 			l_prev: like previous_versions
 			l_typed_sets: like helper.class_note_values
 		do
-			l_attribute_name := name_translator.boogie_procedure_for_feature (a_feature, a_context_type)
-			l_boogie_type := types.for_type_in_context (a_feature.type, a_context_type)
+			set_context (a_feature, a_context_type)
+			l_class_type := helper.class_type_in_context (current_feature.type, current_type.base_class, Void, current_type)
+			l_attribute_name := name_translator.boogie_procedure_for_feature (current_feature, current_type)
+			l_boogie_type := types.for_class_type (l_class_type)
 
-			l_prev := previous_versions (a_feature, a_context_type)
-			if l_prev = Void then
+			l_prev := previous_versions
+			if l_prev.is_empty then
 					-- No previous versions:
 					-- Add unique field declaration
 				boogie_universe.add_declaration (
@@ -44,7 +47,7 @@ feature -- Basic operations
 
 					-- Mark field as a ghost or non-ghost
 				l_expr := factory.function_call ("IsGhostField", << factory.entity (l_attribute_name, types.field (l_boogie_type)) >>, types.bool)
-				if helper.is_ghost (a_feature) then
+				if helper.is_ghost (current_feature) then
 					boogie_universe.add_declaration (create {IV_AXIOM}.make (l_expr))
 				else
 					boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.not_ (l_expr)))
@@ -71,30 +74,27 @@ feature -- Basic operations
 			l_heap := factory.heap_entity ("heap")
 			l_o := factory.ref_entity ("o")
 			l_heap_access := factory.heap_access (l_heap, l_o, l_attribute_name, l_boogie_type)
-			l_type_prop := types.type_property (a_feature.type.deep_actual_type.instantiated_in (a_context_type), l_heap, l_heap_access)
+			l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access)
 			if not l_type_prop.is_true then
 				l_type_prop := factory.implies_ (factory.and_ (
 						factory.is_heap (l_heap),
-						factory.function_call ("attached", << l_heap, l_o, factory.type_value (a_context_type)>>, types.bool)),
+						factory.function_call ("attached", << l_heap, l_o, factory.type_value (current_type)>>, types.bool)),
 					l_type_prop)
 				create l_forall.make (l_type_prop)
-				l_forall.add_bound_variable (l_heap.name, l_heap.type)
-				l_forall.add_bound_variable (l_o.name, l_o.type)
+				l_forall.add_bound_variable (l_heap)
+				l_forall.add_bound_variable (l_o)
 				l_forall.add_trigger (l_heap_access)
 				boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 			end
 
+				-- Check if it replaces old models correctly
+			check_model_replacement
+
+				-- Add guard
+			generate_guard (l_class_type, l_attribute_name, l_boogie_type)
+
 				-- Add translation references
-			translation_pool.add_type_in_context (a_feature.type, a_context_type)
-
-				-- Mark field as model or non-model
-			l_expr := factory.function_call ("IsModelField", << factory.entity (l_attribute_name, types.field (l_boogie_type)), factory.type_value (a_context_type) >>, types.bool)
-			if helper.model_queries (a_context_type.base_class).has (a_feature.feature_name_32) then
-				boogie_universe.add_declaration (create {IV_AXIOM}.make (l_expr))
-			else
-				boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.not_ (l_expr)))
-			end
-
+			translation_pool.add_type (l_class_type)
 
 --			elseif a_feature.type.is_integer or a_feature.type.is_natural then
 --				create l_heap_access.make ("heap", create {IV_ENTITY}.make ("o", types.ref), create {IV_ENTITY}.make (l_boogie_name, l_constant.type))
@@ -108,34 +108,133 @@ feature -- Basic operations
 --			end
 		end
 
+	generate_guard (a_type: CL_TYPE_A; a_boogie_name: STRING; a_boogie_type: IV_TYPE)
+			-- Generate update guard for attribute `current_feature' of type `a_type' inside `current_type',
+			-- where the Boogie translation of the attribute has name `a_boogie_name' and type `a_boogie_type'.
+		local
+			l_guard_feature: FEATURE_I
+			l_h, l_cur, l_f, l_v, l_o: IV_ENTITY
+			l_fcall: IV_FUNCTION_CALL
+			l_guard, l_fname: STRING
+			l_def: IV_EXPRESSION
+			l_forall: IV_FORALL
+		do
+			create l_h.make ("heap", types.heap)
+			create l_cur.make ("current", types.ref)
+			create l_f.make (a_boogie_name, types.field (a_boogie_type))
+			create l_v.make ("v", a_boogie_type)
+			create l_o.make ("o", types.ref)
+			l_fcall := factory.function_call ("guard", << l_h, l_cur, l_f, l_v, l_o >>, types.bool)
+
+			l_guard := helper.guard_for_attribute (current_feature)
+			if l_guard.as_lower ~ "true" then
+					-- The guard is trivially true
+				create l_forall.make (l_fcall)
+			elseif l_guard.as_lower ~ "false" then
+					-- The guard is trivially false
+				create l_forall.make (factory.not_ (l_fcall))
+			else
+				l_guard_feature := current_type.base_class.feature_named_32 (l_guard)
+				if not l_guard.is_empty and is_valid_guard_feature (l_guard, l_guard_feature, a_type) then
+					translation_pool.add_referenced_feature (l_guard_feature, current_type)
+						-- Generate guard axiom from `l_guard_feature'
+					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type)
+					l_def := factory.function_call (name_translator.boogie_free_function_precondition (l_fname), << l_h, l_cur, l_v, l_o >>, types.bool)
+					l_def := factory.and_ (l_def,
+						factory.function_call (name_translator.boogie_function_precondition (l_fname), << l_h, l_cur, l_v, l_o >>, types.bool))
+					l_def := factory.and_ (l_def,
+						factory.function_call (l_fname, << l_h, l_cur, l_v, l_o >>, types.bool))
+					create l_forall.make (factory.equiv (l_fcall, l_def))
+				else
+						-- No guard defined: apply default
+					create l_forall.make (factory.equiv (l_fcall,
+						factory.function_call ("user_inv", << factory.map_update (l_h, << l_cur, l_f >>, l_v), l_o >>, types.bool)))
+				end
+			end
+
+			l_forall.add_bound_variable (l_h)
+			l_forall.add_bound_variable (l_cur)
+			l_forall.add_bound_variable (l_v)
+			l_forall.add_bound_variable (l_o)
+			l_forall.add_trigger (l_fcall)
+			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+		end
+
 feature {NONE} -- Implementation
 
-	previous_versions (a_feature: FEATURE_I; a_context_type: TYPE_A): LINKED_LIST [TUPLE [feat: FEATURE_I; typ: TYPE_A]]
-			-- Versions of `a_feature' from ancestors of `a_context_type' if inherited or redefined; Void if it is teh original definition.
+	previous_versions: LINKED_LIST [TUPLE [feat: FEATURE_I; typ: CL_TYPE_A]]
+			-- Versions of `current_feature' from ancestors of `current_type' if inherited or redefined; Void if it is the original definition.
 		local
-			l_written_type: TYPE_A
+			l_written_type: CL_TYPE_A
 			l_written_feature: FEATURE_I
 			i: INTEGER
 		do
-			check attached {CL_TYPE_A} a_context_type.deep_actual_type as cl_type then
-				if a_feature.written_in /= a_context_type.base_class.class_id then
-						-- Inherited attribute: return the class where it is written in
-					l_written_type := cl_type.parent_type (a_feature.written_class.actual_type)
-					l_written_feature := l_written_type.base_class.feature_of_body_index (a_feature.body_index)
-					create Result.make
-					Result.extend ([l_written_feature, l_written_type])
-				elseif a_feature.assert_id_set /= Void then
-						-- Redefined attribute: return original versions
-					from
-						create Result.make
-						i := 1
-					until
-						i > a_feature.assert_id_set.count
-					loop
-						l_written_type := cl_type.parent_type (a_feature.assert_id_set [i].written_class.actual_type)
-						l_written_feature := l_written_type.base_class.feature_of_body_index (a_feature.assert_id_set [i].body_index)
+			create Result.make
+			if current_feature.written_in /= current_type.base_class.class_id then
+					-- Inherited attribute: return the class where it is written in				
+				l_written_type := helper.class_type_from_class (current_feature.written_class, current_type)
+				l_written_feature := l_written_type.base_class.feature_of_body_index (current_feature.body_index)
+				Result.extend ([l_written_feature, l_written_type])
+			elseif current_feature.assert_id_set /= Void then
+					-- Redefined attribute: return original versions
+				from
+					i := 1
+				until
+					i > current_feature.assert_id_set.count
+				loop
+					l_written_type := helper.class_type_from_class (current_feature.assert_id_set [i].written_class, current_type)
+					l_written_feature := l_written_type.base_class.feature_of_body_index (current_feature.assert_id_set [i].body_index)
+					if l_written_feature.is_attribute then
 						Result.extend ([l_written_feature, l_written_type])
-						i := i + 1
+					end
+					i := i + 1
+				end
+			end
+		end
+
+	is_valid_guard_feature (a_guard_name: STRING_32; a_guard_feature: FEATURE_I; a_attr_type: CL_TYPE_A): BOOLEAN
+			-- Does `a_guard_feature' have a valid signature for an update guard for an attribute of type `a_attr_type'?
+		do
+			if a_guard_feature = Void then
+				helper.add_semantic_error (current_feature, messages.unknown_feature (a_guard_name, current_type.base_class.name_in_upper), -1)
+			elseif not helper.is_functional (a_guard_feature) then
+				helper.add_semantic_error (a_guard_feature, messages.guard_feature_not_functional, -1)
+			elseif not (a_guard_feature.has_return_value and then a_guard_feature.type.is_boolean) then
+				helper.add_semantic_error (a_guard_feature, messages.guard_feature_not_predicate, -1)
+			elseif a_guard_feature.argument_count /= 2 then
+				helper.add_semantic_error (a_guard_feature, messages.guard_feature_arg_count, -1)
+			elseif not a_guard_feature.arguments [1].same_as (a_attr_type) then
+				helper.add_semantic_error (a_guard_feature, messages.guard_feature_arg1, -1)
+			elseif not a_guard_feature.arguments [2].same_as (system.any_type) then
+				helper.add_semantic_error (a_guard_feature, messages.guard_feature_arg2, -1)
+			else
+				Result := True
+			end
+		end
+
+	check_model_replacement
+			-- For an immediate attribute with a "replaces" clause,
+			-- check that is didn't use to be a model query in any parent.
+		local
+			l_old_version, l_replaced: FEATURE_I
+			found: BOOLEAN
+		do
+			if current_feature.written_in = current_type.base_class.class_id then
+				across helper.feature_note_values (current_feature, "replaces") as f loop
+					l_replaced := current_type.base_class.feature_named_32 (f.item)
+					if attached l_replaced then
+						across current_type.base_class.parents_classes as c until found loop
+							l_old_version := c.item.feature_of_rout_id_set (current_feature.rout_id_set)
+								-- If both `current_feature' and `l_replaced' are model queries of `c.item',
+								-- this will cause child's model frames to be bigger than parent's
+							if attached l_old_version and then
+									(helper.is_model_query (c.item, l_old_version) and helper.is_model_query (c.item, l_replaced)) then
+								helper.add_semantic_error (current_feature, messages.invalid_model_replacement (current_feature.feature_name_32, c.item.name_in_upper), -1)
+								found := True
+							end
+						end
+					else
+						helper.add_semantic_error (current_feature, messages.unknown_model (f.item, current_type.base_class.name_in_upper), -1)
 					end
 				end
 			end

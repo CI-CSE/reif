@@ -27,7 +27,6 @@ feature {NONE} -- Initialization
 			make_with_defaults
 			default_severity_score := 40
 			create {CA_SUGGESTION} severity
-			create violations.make
 		end
 
 feature {NONE} -- Activation
@@ -78,7 +77,7 @@ feature {NONE} -- AST Visits
 	process_feature (a_feature: FEATURE_AS)
 			-- Sets currently checked feature.
 		do
-			current_feature_i := checking_class.feature_named_32 (a_feature.feature_name.name_32)
+			current_feature_i := current_context.checking_class.feature_named_32 (a_feature.feature_name.name_32)
 		end
 
 	process_object_test (a_ot: OBJECT_TEST_AS)
@@ -97,8 +96,11 @@ feature {NONE} -- AST Visits
 					l_access := find_access_id (l_nested)
 				end
 				if l_access /= Void and then attached {CLASS_TYPE_AS} a_ot.type as l_type then
-					l_static_variable_type := node_type (l_access, current_feature_i)
-					if l_type.class_name.name_8.is_equal (l_static_variable_type.name) then
+					l_static_variable_type := current_context.node_type (l_access, current_feature_i)
+					if
+						l_static_variable_type /= Void and then
+						l_type.class_name.name_8.is_equal (l_static_variable_type.name)
+					then
 						create l_violation.make_with_rule (Current)
 						l_violation.set_location (a_ot.start_location)
 						l_violation.long_description_info.extend (l_access.access_name_32)

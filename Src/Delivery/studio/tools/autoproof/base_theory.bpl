@@ -41,17 +41,6 @@ type Type; // Type definition for Eiffel types
 const unique ANY: Type; // Type for ANY
 const unique NONE: Type; // Type for NONE
 
-// Type for generics
-const unique G1: Type;
-const unique G2: Type;
-const unique G3: Type;
-const unique G4: Type;
-const unique G5: Type;
-const unique G6: Type;
-const unique G7: Type;
-const unique G8: Type;
-const unique G9: Type;
-
 // Type function for objects.
 function type_of(o: ref) returns (Type);
 function is_frozen(t: Type) returns (bool);
@@ -75,7 +64,7 @@ function NONE.user_inv(heap: HeapType, current: ref) returns (bool) {
 }
 
 // ----------------------------------------------------------------------
-// Ghosts
+// Built-in attributes
 
 const unique closed: Field bool; // Ghost field for open/closed status of an object.
 const unique owner: Field ref; // Ghost field for owner of an object.
@@ -88,6 +77,14 @@ axiom (forall heap: HeapType, o: ref :: { heap[o, owner] } IsHeap(heap) && o != 
 axiom (forall heap: HeapType, o, o': ref :: { heap[o, owns][o'] } IsHeap(heap) && o != Void && heap[o, allocated] && heap[o, owns][o'] ==> heap[o', allocated]);
 axiom (forall heap: HeapType, o, o': ref :: { heap[o, subjects][o'] } IsHeap(heap) && o != Void && heap[o, allocated] && heap[o, subjects][o'] ==> heap[o', allocated]);
 axiom (forall heap: HeapType, o, o': ref :: { heap[o, observers][o'] } IsHeap(heap) && o != Void && heap[o, allocated] && heap[o, observers][o'] ==> heap[o', allocated]);
+
+// Guards for built-in attributes
+axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, owns, v, o) } 
+  guard(heap, current, owns, v, o)); // no dependence on owns
+axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, subjects, v, o) } 
+  guard(heap, current, subjects, v, o)); // no dependence on subjects
+axiom (forall heap: HeapType, current: ref, v: Set ref, o: ref :: { guard(heap, current, observers, v, o) } 
+  guard(heap, current, observers, v, o) <==> v[o]); // o's invariant cannot be violated as long as it is still in its subject's observers
 
 // Is o open in h? (not closed and free)
 function {:inline} is_open(h: HeapType, o: ref): bool {
@@ -123,44 +120,34 @@ function in_domain(h: HeapType, o: ref, o': ref): bool
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && h[o, closed] && h[o, owns][o'] ==> in_domain(h, o, o'));
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
 
+// Frame axiom: domain frames itself
+axiom (forall h, h': HeapType, x, x': ref :: { in_domain(h', x, x'), HeapSucc(h, h') } 
+  IsHeap(h) && IsHeap(h') && HeapSucc(h, h') &&
+  h[x, allocated] && h'[x, allocated] &&     
+  (forall <T> o: ref, f: Field T :: h[o, allocated] ==> h'[o, f] == h[o, f] || !in_domain(h, x, o))
+  ==> in_domain(h', x, x') == in_domain(h, x, x'));
+
+function domain(h: HeapType, o: ref): Set ref
+{ (lambda o': ref :: in_domain(h, o, o')) }
+
 // Is o' in the transitive owns of o?
 // (the same as in_domain if o is closed)
-function trans_owns(h: HeapType, o: ref, o': ref): bool
+function in_trans_owns(h: HeapType, o: ref, o': ref): bool
 {
-  o == o' || h[o, owns][o'] || (exists x: ref :: h[o, owns][x] && trans_owns(h, x, o'))
+  o == o' || h[o, owns][o'] || (exists x: ref :: h[o, owns][x] && in_trans_owns(h, x, o'))
 }
+
+function trans_owns(h: HeapType, o: ref): Set ref
+{ (lambda o': ref :: in_trans_owns(h, o, o')) }
+
 
 // ----------------------------------------------------------------------
 // Models
 
 function IsModelField<alpha>(field: Field alpha, t: Type): bool; // Is this field a model field in class t?
 
-// Does the model field f_new in class t_new represent the model field f_old of class t_old?
-function ModelRepresents<alpha, beta>(f_new: Field beta, t_new: Type, f_old: Field alpha, t_old: Type): bool;
-
-// All model fields represent themselves in their own classes
-axiom (forall<alpha, beta> f: Field alpha, f': Field beta, t: Type :: { ModelRepresents(f', t, f, t) } 
-  IsModelField(f, t) && IsModelField(f', t) ==> (ModelRepresents(f', t, f, t) <==> f' == f));
-  
-// Representation is transitive  
-axiom (forall<alpha, beta, gamma> f: Field alpha, f': Field beta, f'': Field gamma, t: Type, t': Type, t'': Type :: {ModelRepresents(f', t', f, t), ModelRepresents(f'', t'', f', t')} 
-  IsModelField(f, t) && IsModelField(f', t') && IsModelField(f'', t'') &&
-  ModelRepresents(f', t', f, t) && ModelRepresents(f'', t'', f', t') ==> ModelRepresents(f'', t'', f, t));
-  
-// Built-in ghost fields are model fields.
-axiom (forall t: Type :: { IsModelField(closed, t) } IsModelField(closed, t));
-axiom (forall t: Type :: { IsModelField(owner, t) } IsModelField(owner, t));
-axiom (forall t: Type :: { IsModelField(owns, t) } IsModelField(owns, t));
-axiom (forall t: Type :: { IsModelField(observers, t) } IsModelField(observers, t));
-axiom (forall t: Type :: { IsModelField(subjects, t) } IsModelField(subjects, t));
-
-// Built-in ghost fields never get redefined.
-axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, closed, t2) } ModelRepresents(f, t1, closed, t2) <==> f == closed);
-axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, owner, t2) } ModelRepresents(f, t1, owner, t2) <==> f == owner);
-axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, owns, t2) } ModelRepresents(f, t1, owns, t2) <==> f == owns);
-axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, observers, t2) } ModelRepresents(f, t1, observers, t2) <==> f == observers);
-axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, subjects, t2) } ModelRepresents(f, t1, subjects, t2) <==> f == subjects);
-  
+axiom (forall <alpha> f: Field alpha :: { IsModelField(f, ANY) }
+  IsModelField(f, ANY) <==> f == closed || f == owner || f == owns || f == observers || f == subjects );  
 
 // ----------------------------------------------------------------------
 // Frames
@@ -192,12 +179,18 @@ function same_outside(h: HeapType, h': HeapType, frame: Frame): bool {
   )
 }
 
-// Objects inside the old ownership domains of frame did not change
+// Objects inside the frame did not change
 function same_inside(h: HeapType, h': HeapType, frame: Frame): bool { 
 	(forall <T> o: ref, f: Field T :: { h[o, f] } { h'[o, f] }
-    h[o, allocated] && h'[o, f] != h[o, f] ==>
-      !frame [o, f] && (forall<U> o': ref, g: Field U :: frame[o', g] && o != o' ==> !in_domain(h, o', o)))
+    h[o, allocated] && h'[o, f] != h[o, f] ==> !frame [o, f])
 }
+// This version corresponds to the old semantics of read clauses:
+// // Objects inside the old ownership domains of frame did not change
+// // function same_inside(h: HeapType, h': HeapType, frame: Frame): bool { 
+	// // (forall <T> o: ref, f: Field T :: { h[o, f] } { h'[o, f] }
+    // // h[o, allocated] && h'[o, f] != h[o, f] ==>
+      // // !frame [o, f] && (forall<U> o': ref, g: Field U :: frame[o', g] && o != o' ==> !in_domain(h, o', o)))
+// // }
 
 // Set of all writable objects
 const writable: Frame;
@@ -214,13 +207,8 @@ function user_inv(h: HeapType, o: ref): bool;
 // Read frame of user_inv
 function user_inv_readable(HeapType, ref): Frame;
 axiom (forall<T> h: HeapType, x: ref, o: ref, f: Field T :: { user_inv_readable(h, x)[o, f] }
-  IsHeap(h) ==> user_inv_readable(h, x)[o, f] == (trans_owns(h, x, o) || h[x, subjects][o]));
+  IsHeap(h) ==> user_inv_readable(h, x)[o, f] == (in_trans_owns(h, x, o) || h[x, subjects][o]));
   
-// // Part of read frame of user_inv closed under domains (used for function calls)
-// function user_inv_function_readable(HeapType, ref): Frame;
-// axiom (forall<T> h: HeapType, x: ref, o: ref, f: Field T :: { user_inv_function_readable(h, x)[o, f] }
-  // IsHeap(h) ==> user_inv_function_readable(h, x)[o, f] == trans_owns(h, x, o));  
-
 // Frame axiom
 axiom (forall h, h': HeapType, x: ref :: { user_inv(h', x), HeapSucc(h, h') } 
   IsHeap(h) && IsHeap(h') && HeapSucc(h, h') &&
@@ -249,7 +237,7 @@ function {:inline true} global(h: HeapType): bool
   is_open(h, Void) &&
   (forall o: ref :: h[o, allocated] && is_open(h, o) ==> is_free(h, o)) &&
   (forall o: ref, o': ref :: {h[o, owns][o']} h[o, allocated] && h[o', allocated] && h[o, closed] && h[o, owns][o'] ==> (h[o', closed] && h[o', owner] == o)) && // G2
-  (forall o: ref :: {user_inv(h, o), h[o, closed]} h[o, allocated] ==> inv(h, o)) // G1
+  (forall o: ref :: {user_inv(h, o)} h[o, allocated] ==> inv(h, o)) // G1
 }
 
 // Global invariant with a more permissive trigger: much slower, so only used in public routines  
@@ -258,28 +246,21 @@ function {:inline true} global_public(h: HeapType): bool
   (forall o: ref :: {is_wrapped(h, o)} h[o, allocated] ==> inv(h, o)) // G1
 }
 
+// Condition under which an update heap[current, f] := v is guaranteed to preserve the invariant of o.
+function guard<T>(heap: HeapType, current: ref, f: Field T, v: T, o: ref): bool;
+
 // All subjects know current for an observer
 function {: inline } admissibility2 (heap: HeapType, current: ref): bool
 { 
   (forall s: ref :: heap[current, subjects][s] ==> heap[s, observers][current]) 
 }
 
-// Invariant cannot be invalidated by changing subjects of my subjects (except of myself)
-function {: inline } admissibility4 (heap: HeapType, current: ref): bool
+// Invariant cannot be invalidated by an update that conform to its guard
+function {: inline } admissibility3 (heap: HeapType, current: ref): bool
 {
-  (forall heap': HeapType, s: ref :: 
-    IsHeap(heap') && HeapSucc(heap, heap') && heap[current, subjects][s] && s != current && 
-    (forall <alpha> o: ref, f: Field alpha :: (o == s && f == subjects) || heap'[o, f] == heap[o, f]) ==> 
-      user_inv(heap', current))
-}
-
-// Invariant cannot be invalidated by changing observers to my subjects (except of myself) as long as I am still in there
-function {: inline } admissibility5 (heap: HeapType, current: ref): bool
-{
-  (forall heap': HeapType, s: ref :: 
-    IsHeap(heap') && HeapSucc(heap, heap') && heap[current, subjects][s] && s != current && heap'[s, observers][current] && 
-    (forall <alpha> o: ref, f: Field alpha :: (o == s && f == observers) || heap'[o, f] == heap[o, f]) ==>
-      user_inv(heap', current))      
+  (forall<T> s: ref, f: Field T, v: T ::
+    heap[current, subjects][s] && s != current && IsHeap(heap[s, f := v]) && guard(heap, s, f, v, current) ==>
+      user_inv(heap[s, f := v], current))
 }
 
 // ----------------------------------------------------------------------
@@ -307,34 +288,13 @@ procedure update_heap<T>(Current: ref, field: Field T, value: T);
   requires (Current != Void) && (Heap[Current, allocated]); // type:assign tag:attached_and_allocated
   requires field != closed && field != owner; // type:assign tag:closed_or_owner_not_allowed UP4
   requires is_open(Heap, Current); // type:assign tag:target_open UP1
-  requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) && IsHeap(Heap[Current, field := value]) ==> user_inv(Heap[Current, field := value], o)))); // type:assign tag:observers_open_or_inv_preserved UP2
+  requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) && IsHeap(Heap[Current, field := value]) ==> guard(Heap, Current, field, value, o)))); // type:assign tag:observers_open_or_guard_holds UP2  
   requires writable[Current, field]; // type:assign tag:attribute_writable UP3
   modifies Heap;
   ensures global(Heap);
   ensures Heap == old(Heap[Current, field := value]);
   free ensures HeapSucc(old(Heap), Heap);
   
-// This is an optimization: we do not have to check the observers (this is faster than using the frame axiom of user_inv directly) 
-procedure update_subjects(Current: ref, value: Set ref);
-  requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
-  requires is_open(Heap, Current); // type:pre tag:target_open UP1
-  requires writable[Current, subjects]; // type:pre tag:attribute_writable UP3
-  modifies Heap;
-  ensures global(Heap);
-  ensures Heap == old(Heap[Current, subjects := value]);
-  free ensures HeapSucc(old(Heap), Heap);
-
-// This is an optimization: we can just check that the observer set is growing (this is faster than using the frame axiom of user_inv directly)
-procedure update_observers(Current: ref, value: Set ref);
-  requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
-  requires is_open(Heap, Current); // type:pre tag:target_open UP1
-  requires writable[Current, observers]; // type:pre tag:attribute_writable UP3
-  requires (forall o: ref :: Heap[Current, observers][o] ==> is_open(Heap, o) || value[o]); // type:assign tag:observers_open_or_inv_preserved UP2   
-  modifies Heap;
-  ensures global(Heap);
-  ensures Heap == old(Heap[Current, observers := value]);
-  free ensures HeapSucc(old(Heap), Heap);  
-
 // Unwrap o
 procedure unwrap(o: ref);
   requires (o != Void) && (Heap[o, allocated]); // type:pre tag:attached

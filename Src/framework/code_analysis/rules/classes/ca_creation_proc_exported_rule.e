@@ -6,7 +6,7 @@ note
 			it may still be called by clients after the object has been created.
 			Ususally, this is not intended and ought to be changed. A client might,
 			for example, by accident call 'x.make' instead of 'create x.make',
-			causing the class invariant or postconditions of make to not hold anymore.
+			causing the class invariant or postconditions of make not to hold anymore.
 		]"
 	author: "Stefan Zurfluh"
 	date: "$Date$"
@@ -27,14 +27,13 @@ feature {NONE} -- Initialization
 			-- Initialization for `Current'.
 		do
 			make_with_defaults
-			create {CA_WARNING} severity
-			create violations.make
 		end
 
 	register_actions (a_checker: attached CA_ALL_RULES_CHECKER)
 		do
 			a_checker.add_create_pre_action (agent process_create)
 			a_checker.add_feature_clause_pre_action (agent process_feature_clause)
+			a_checker.add_class_post_action (agent do_post_class_cleanup)
 		end
 
 feature -- Properties
@@ -69,6 +68,13 @@ feature {NONE} -- AST Visitor
 			creation_procedures := a_create.feature_list
 		end
 
+	do_post_class_cleanup (a_class: CLASS_AS)
+		do
+				-- Set the creation procedures to Void. Prevents errors when
+				-- the next class does not have any create clause.
+			creation_procedures := Void
+		end
+
 	process_feature_clause (a_clause: FEATURE_CLAUSE_AS)
 			-- Checks `a_clause' for features that are creation procedures.
 		local
@@ -77,8 +83,8 @@ feature {NONE} -- AST Visitor
 			l_viol: CA_RULE_VIOLATION
 		do
 			if creation_procedures /= Void then
-				across creation_procedures as l_cp loop
-					l_feature := a_clause.feature_with_name (l_cp.item.internal_name.name_id)
+				across creation_procedures as ic loop
+					l_feature := a_clause.feature_with_name (ic.item.internal_name.name_id)
 					if l_feature /= Void then
 						if attached a_clause.clients as l_clients then
 							across l_clients.clients as l_class_list loop

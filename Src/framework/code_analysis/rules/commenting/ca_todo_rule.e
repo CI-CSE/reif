@@ -32,7 +32,6 @@ feature {NONE} -- Initialization
 			make_with_defaults
 			default_severity_score := 60
 			create {CA_SUGGESTION} severity
-			create violations.make
 		end
 
 feature {NONE} -- Activation
@@ -86,7 +85,7 @@ feature {NONE} -- AST Visit
 			l_comments: EIFFEL_COMMENTS
 		do
 			set_parsed_class (a_class)
-			set_match_list (matchlist)
+			set_match_list (current_context.matchlist)
 			set_will_process_leading_leaves (True)
 			set_will_process_trailing_leaves (True)
 

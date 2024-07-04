@@ -24,7 +24,7 @@ feature {NONE} -- Initialization
 
 feature -- Translation: Signature
 
-	translate_routine_signature (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_routine_signature (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
 			not_attribute: not a_feature.is_attribute
@@ -32,20 +32,20 @@ feature -- Translation: Signature
 			translate_signature (a_feature, a_type, False)
 		end
 
-	translate_creator_signature (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_creator_signature (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
 			translate_signature (a_feature, a_type, True)
 		end
 
-	translate_default_create_signature (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_default_create_signature (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
 			translate_signature (a_feature, a_type, True)
 			-- TODO: create special signature
 		end
 
-	translate_logical_signature (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_logical_signature (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate signature of a logical feature `a_feature' of type `a_type'.
 		require
 			class_logical: helper.is_class_logical (a_type.base_class)
@@ -55,10 +55,10 @@ feature -- Translation: Signature
 				-- Add referenced types
 			translation_pool.add_type (current_type)
 			across arguments_of_current_feature as i loop
-				translation_pool.add_type (i.item.type.deep_actual_type.instantiated_in (current_type))
+				translation_pool.add_type (i.item.type)
 			end
 			if current_feature.has_return_value then
-				translation_pool.add_type (current_feature.type.deep_actual_type.instantiated_in (current_type))
+				translation_pool.add_type (helper.class_type_in_context (current_feature.type, current_feature.written_class, current_feature, current_type))
 			end
 
 				-- Add precondition
@@ -67,7 +67,7 @@ feature -- Translation: Signature
 			end
 		end
 
-	translate_signature (a_feature: FEATURE_I; a_type: TYPE_A; a_for_creator: BOOLEAN)
+	translate_signature (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_for_creator: BOOLEAN)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
 			routine: a_feature.is_routine
@@ -160,6 +160,7 @@ feature -- Translation: Signature
 			l_pre: IV_PRECONDITION
 			l_attr_name: STRING
 			l_attribute: FEATURE_I
+			l_boogie_type: IV_TYPE
 		do
 			create l_mapping.make
 			from
@@ -169,11 +170,10 @@ feature -- Translation: Signature
 			loop
 				l_attribute := current_type.base_class.feature_table.item_for_iteration
 				if l_attribute.is_attribute then
+					l_boogie_type := types.for_class_type (helper.class_type_in_context (l_attribute.type, l_attribute.written_class, Void, current_type))
 					translation_pool.add_referenced_feature (l_attribute, current_type)
 					l_attr_name := name_translator.boogie_procedure_for_feature (l_attribute, current_type)
-					create l_pre.make (factory.equal (
-						factory.heap_current_access (l_mapping, l_attr_name, types.for_type_a (l_attribute.type)),
-						types.for_type_a (l_attribute.type).default_value))
+					create l_pre.make (factory.equal (factory.heap_current_access (l_mapping, l_attr_name, l_boogie_type), l_boogie_type.default_value))
 					l_pre.set_free
 					current_boogie_procedure.add_contract (l_pre)
 				end
@@ -312,10 +312,11 @@ feature -- Translation: Signature
 			l_pre.set_free
 			Result.extend (l_pre)
 
-				-- Free precondition: Everything in the domains of writable objects is writable
-			create l_pre.make (factory.function_call ("closed_under_domains", << factory.global_readable, factory.global_heap >>, types.bool))
-			l_pre.set_free
-			Result.extend (l_pre)
+				-- Add this to restore the old semantics of read clauses:
+--				-- Free precondition: Everything in the domains of writable objects is writable
+--			create l_pre.make (factory.function_call ("closed_under_domains", << factory.global_readable, factory.global_heap >>, types.bool))
+--			l_pre.set_free
+--			Result.extend (l_pre)
 
 			translation_pool.add_read_frame_function (current_feature, current_type)
 		end
@@ -338,7 +339,7 @@ feature -- Translation: Signature
 				create l_observers_wrapped.make (factory.implies_ (
 						factory.map_access (factory.heap_access (a_mapping.heap, a_mapping.current_expression, "observers", types.set (types.ref)), << l_i >>),
 						factory.function_call ("is_wrapped", << a_mapping.heap, l_i >>, types.bool)))
-				l_observers_wrapped.add_bound_variable (l_i.name, l_i.type)
+				l_observers_wrapped.add_bound_variable (l_i)
 
 				if a_for_creator then
 					create l_post.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
@@ -405,9 +406,89 @@ feature -- Translation: Signature
 			end
 		end
 
+	generate_frame_check (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_read: BOOLEAN)
+			-- Generate a check of the redefined frame of `a_feature' in `a_type';
+			-- if `a_read' check the read frame, otherwise the write frame.
+		local
+			l_parents: FIXED_LIST [CL_TYPE_A]
+			l_parent: CL_TYPE_A
+			l_old_version: FEATURE_I
+			l_clauses: LIST [E2B_ASSERT_ORIGIN]
+			l_proc: IV_PROCEDURE
+			l_impl: IV_IMPLEMENTATION
+			l_name: STRING
+			l_old_frame, l_new_frame: IV_FUNCTION_CALL
+			l_assert, l_assume: IV_ASSERT
+		do
+			set_context (a_feature, a_type)
+
+			if a_read then
+				l_clauses := contracts_of_current_feature.reads
+			else
+				l_clauses := contracts_of_current_feature.modifies
+			end
+
+				-- If `a_feature' has previous versions and some newly added modify clauses
+			if a_feature.assert_id_set /= Void and
+					across l_clauses as i some i.item.origin.class_id = a_feature.written_in end then
+
+					-- Set up the procedure		
+				l_name := name_translator.boogie_procedure_for_contract_check (current_feature, current_type)
+				create l_proc.make (l_name)
+				create l_impl.make (l_proc)
+				boogie_universe.add_declaration (l_proc)
+				boogie_universe.add_declaration (l_impl)
+				current_boogie_procedure := l_proc
+
+				add_argument_with_property ("Current", current_type, types.ref)
+				across arguments_of_current_feature as i loop
+					add_argument_with_property (i.item.name, i.item.type, i.item.boogie_type)
+				end
+
+				result_handlers.extend (agent handle_contract_validity_result (a_feature, ?, ?), l_name)
+
+					-- Add a check for each parent
+				create l_new_frame.make (name_translator.boogie_function_for_write_frame (current_feature, current_type), types.frame)
+				l_new_frame.add_argument (factory.global_heap)
+				across current_boogie_procedure.arguments as i loop
+					l_new_frame.add_argument (i.item.entity)
+				end
+				l_parents := a_feature.written_class.parents
+				from
+					l_parents.start
+				until
+					l_parents.after
+				loop
+					l_parent := l_parents.item.instantiated_in (current_type)
+					l_old_version := l_parent.base_class.feature_of_rout_id_set (current_feature.rout_id_set)
+					if attached l_old_version then
+						translation_pool.add_referenced_feature (l_old_version, l_parent)
+
+						create l_old_frame.make (name_translator.boogie_function_for_write_frame (l_old_version, l_parent), types.frame)
+						l_old_frame.add_argument (factory.global_heap)
+						across current_boogie_procedure.arguments as i loop
+							l_old_frame.add_argument (i.item.entity)
+						end
+
+						create l_assert.make (factory.function_call ("Frame#Subset", << l_new_frame, l_old_frame >>, types.bool))
+						if a_read then
+							l_assert.node_info.set_type ("read")
+						else
+							l_assert.node_info.set_type ("write")
+						end
+						l_assert.node_info.set_attribute ("rid", l_old_version.rout_id_set.first.out)
+						l_assert.node_info.set_attribute ("cid", l_parent.base_class.class_id.out)
+						l_impl.body.add_statement (l_assert)
+					end
+
+					l_parents.forth
+				end
+			end
+		end
+
 feature -- Translation: Implementation
 
-	translate_routine_implementation (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_routine_implementation (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		require
 			routine: a_feature.is_routine
@@ -415,19 +496,19 @@ feature -- Translation: Implementation
 			translate_implementation (a_feature, a_type, False)
 		end
 
-	translate_creator_implementation (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_creator_implementation (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		do
 			translate_implementation (a_feature, a_type, True)
 		end
 
-	translate_implementation (a_feature: FEATURE_I; a_type: TYPE_A; a_for_creator: BOOLEAN)
+	translate_implementation (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_for_creator: BOOLEAN)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		local
 			l_procedure: IV_PROCEDURE
 			l_implementation: IV_IMPLEMENTATION
 			l_translator: E2B_INSTRUCTION_TRANSLATOR
-			l_type: TYPE_A
+			l_type: CL_TYPE_A
 			l_proc_name, l_local_name: STRING
 			l_values: ARRAYED_LIST [STRING_32]
 			l_assign: IV_ASSIGNMENT
@@ -485,11 +566,11 @@ feature -- Translation: Implementation
 				if l_byte_code.compound /= Void and then not l_byte_code.compound.is_empty then
 					if l_byte_code.locals /= Void then
 						across l_byte_code.locals as i loop
-							l_type := i.item.deep_actual_type.instantiated_in (current_type)
+							l_type := helper.class_type_in_context (i.item, current_feature.written_class, current_feature, current_type)
 							translation_pool.add_type (l_type)
 							l_local_name := name_translator.boogie_name_for_local (i.cursor_index)
-							l_translator.entity_mapping.set_local (i.cursor_index, create {IV_ENTITY}.make (l_local_name, types.for_type_a (l_type)))
-							l_implementation.add_local (l_local_name, types.for_type_a (l_type))
+							l_translator.entity_mapping.set_local (i.cursor_index, create {IV_ENTITY}.make (l_local_name, types.for_class_type (l_type)))
+							l_implementation.add_local (l_local_name, types.for_class_type (l_type))
 						end
 					end
 					l_translator.process_compound (l_byte_code.compound)
@@ -528,42 +609,37 @@ feature -- Translation: Implementation
 
 feature -- Translation: Functions
 
-	translate_functional_representation (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_functional_representation (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Generate a Boogie function that encodes the result of Eiffel function `a_feature' and its definitional axiom.
 		local
 			l_function: IV_FUNCTION
 			l_proc: IV_PROCEDURE
 			l_post: IV_POSTCONDITION
 			l_fcall: IV_FUNCTION_CALL
-			l_boogie_type: IV_TYPE
-			l_type: TYPE_A
-			i: INTEGER
+			l_type: CL_TYPE_A
 		do
 			set_context (a_feature, a_type)
 			helper.set_up_byte_context (current_feature, current_type)
+			translation_pool.add_type (current_type)
 			translation_pool.add_function_precondition_predicate (current_feature, current_type)
 
 				-- Function
-			create l_function.make (
-				name_translator.boogie_function_for_feature (current_feature, current_type),
-				types.for_type_a (a_feature.type.deep_actual_type.instantiated_in (current_type))
-			)
+			l_type := helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type)
+			create l_function.make (name_translator.boogie_function_for_feature (current_feature, current_type), types.for_class_type (l_type))
 			boogie_universe.add_declaration (l_function)
 			create l_fcall.make (l_function.name, l_function.type)
 
 				-- Arguments
-			translation_pool.add_type (current_type)
 			l_function.add_argument ("heap", types.heap)
 			l_function.add_argument ("current", types.ref)
 			l_fcall.add_argument (factory.old_ (factory.global_heap))
 			l_fcall.add_argument (factory.std_current)
-			from i := 1 until i > current_feature.argument_count loop
-				l_type := current_feature.arguments.i_th (i).deep_actual_type.instantiated_in (current_type)
-				translation_pool.add_type (l_type)
-				l_boogie_type := types.for_type_a (l_type)
-				l_function.add_argument (current_feature.arguments.item_name (i), l_boogie_type)
-				l_fcall.add_argument (factory.entity (current_feature.arguments.item_name (i), l_boogie_type))
-				i := i + 1
+			across
+				arguments_of_current_feature as i
+			loop
+				translation_pool.add_type (i.item.type)
+				l_function.add_argument (i.item.name, i.item.boogie_type)
+				l_fcall.add_argument (factory.entity (i.item.name, i.item.boogie_type))
 			end
 
 				-- Definition
@@ -582,7 +658,7 @@ feature -- Translation: Functions
 			generate_frame_axiom (l_function)
 		end
 
-	translate_function_precondition_predicate (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_function_precondition_predicate (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate precondition predicate of feature `a_feature' of type `a_type'.
 		local
 			l_fname: STRING
@@ -591,7 +667,6 @@ feature -- Translation: Functions
 			l_entity: IV_ENTITY
 			l_body, l_free_body: IV_EXPRESSION
 			l_is_logical: BOOLEAN
-			i: INTEGER
 		do
 			set_context (a_feature, a_type)
 			l_is_logical := helper.is_class_logical (a_type.base_class)
@@ -615,28 +690,30 @@ feature -- Translation: Functions
 			end
 			if not l_is_logical or (create {E2B_CUSTOM_LOGICAL_HANDLER}).has_arg_current (a_feature) then
 					-- Non-logical features and some logical once take "current" as the first argument
-				create l_entity.make ("current", types.for_type_a (a_type))
+				create l_entity.make ("current", types.for_class_type (a_type))
 				l_pre_function.add_argument (l_entity.name, l_entity.type)
 				l_free_pre_function.add_argument (l_entity.name, l_entity.type)
 				l_mapping.set_current (l_entity)
 				if not l_is_logical then
-					l_free_body := factory.and_clean (l_free_body, type_property (l_entity, current_type, l_mapping.heap))
+					l_free_body := factory.and_clean (l_free_body, types.type_property (current_type, l_mapping.heap, l_entity))
 				end
 			end
-			from i := 1 until i > a_feature.argument_count loop
-				create l_entity.make (a_feature.arguments.item_name (i), types.for_type_in_context (a_feature.arguments.i_th (i), current_type))
+			across arguments_of_current_feature as i loop
+				create l_entity.make (i.item.name, i.item.boogie_type)
 				l_pre_function.add_argument (l_entity.name, l_entity.type)
 				l_free_pre_function.add_argument (l_entity.name, l_entity.type)
-				l_mapping.set_argument (i, l_entity)
+				l_mapping.set_argument (i.target_index, l_entity)
 				if not l_is_logical then
-					l_free_body := factory.and_clean (l_free_body, type_property (l_entity, a_feature.arguments.i_th (i).instantiated_in (current_type), l_mapping.heap))
+					l_free_body := factory.and_clean (
+						l_free_body,
+						types.type_property (i.item.type, l_mapping.heap, l_entity))
 				end
-				i := i + 1
 			end
 
 				-- Set a dummy result in `l_mapping': we are not using postconditions anyway
 			if a_feature.has_return_value then
-				l_mapping.set_result (factory.entity ("result", types.for_type_in_context (a_feature.type, current_type)))
+				l_mapping.set_result (factory.entity ("result",
+					types.for_class_type (helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type))))
 			end
 				-- Body			
 			l_body := pre_post_expressions_of (a_feature, a_type, l_mapping).pre
@@ -653,7 +730,7 @@ feature -- Translation: Functions
 			end
 		end
 
-	translate_frame_function (a_feature: FEATURE_I; a_type: TYPE_A; a_read: BOOLEAN)
+	translate_frame_function (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_read: BOOLEAN)
 			-- Translate the frame function of feature `a_feature' of type `a_type';
 			-- (translate the read frame for the functional representation if `a_read' and the write frame otherwise)
 		require
@@ -723,12 +800,12 @@ feature -- Translation: Functions
 				frame_definition (l_exprs, l_fcall)))
 			across l_function.arguments as a
 			loop
-				l_forall.add_bound_variable (a.item.entity.name, a.item.entity.type)
+				l_forall.add_bound_variable (a.item.entity)
 			end
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
 		end
 
-	translate_variant_functions (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_variant_functions (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate the decreases of feature `a_feature' of type `a_type'.
 		local
 			l_decreases_list: like decreases_expressions_of
@@ -820,10 +897,12 @@ feature {NONE} -- Translation: Functions
 					-- Take `l_post' from the postcondition
 				l_post := pre_post_expressions_of (current_feature, current_type, l_expr_translator.entity_mapping).post
 					-- Add type property
-				l_post := factory.and_clean (l_post, type_property (
-					l_fcall,
-					current_feature.type.deep_actual_type.instantiated_in (current_type),
-					l_expr_translator.entity_mapping.heap))
+				l_post := factory.and_clean (l_post,
+					types.type_property (
+						helper.class_type_in_context (current_feature.type, current_type.base_class, current_feature, current_type),
+						l_expr_translator.entity_mapping.heap,
+						l_fcall)
+					)
 			end
 
 			create l_forall.make (factory.implies_ (l_pre, l_post))
@@ -850,10 +929,7 @@ feature {NONE} -- Translation: Functions
 	translator_for_function (a_function: IV_FUNCTION): E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			-- Translator that maps `Result' to the invocation of `a_function'.
 		local
-			i: INTEGER
 			l_function_call: IV_FUNCTION_CALL
-			l_boogie_type: IV_TYPE
-			l_type: TYPE_A
 		do
 			create Result.make
 			Result.entity_mapping.set_current (create {IV_ENTITY}.make ("current", types.ref))
@@ -862,11 +938,8 @@ feature {NONE} -- Translation: Functions
 			create l_function_call.make (a_function.name, a_function.type)
 			l_function_call.add_argument (Result.entity_mapping.heap)
 			l_function_call.add_argument (Result.entity_mapping.current_expression)
-			from i := 1 until i > current_feature.argument_count loop
-				l_type := current_feature.arguments.i_th (i).deep_actual_type.instantiated_in (current_type)
-				l_boogie_type := types.for_type_a (l_type)
-				l_function_call.add_argument (create {IV_ENTITY}.make(current_feature.arguments.item_name (i), l_boogie_type))
-				i := i + 1
+			across arguments_of_current_feature as i loop
+				l_function_call.add_argument (create {IV_ENTITY}.make(i.item.name, i.item.boogie_type))
 			end
 			Result.entity_mapping.set_result (l_function_call)
 		end
@@ -906,8 +979,8 @@ feature {NONE} -- Translation: Functions
 			l_condition := factory.and_ (l_condition, l_pre)
 			l_condition := factory.and_ (l_condition, factory.function_call ("same_inside", <<l_old_heap, l_new_heap, l_read_frame>>, types.bool))
 			create l_forall.make (factory.implies_ (l_condition, factory.equal (l_old_call, l_new_call)))
-			l_forall.add_bound_variable (l_old_heap.name, l_old_heap.type)
-			l_forall.add_bound_variable (l_new_heap.name, l_new_heap.type)
+			l_forall.add_bound_variable (l_old_heap)
+			l_forall.add_bound_variable (l_new_heap)
 			across
 				a_function.arguments as args
 			loop
@@ -920,7 +993,7 @@ feature {NONE} -- Translation: Functions
 					l_old_free_pre.add_argument (l_arg)
 					l_pre.add_argument (l_arg)
 					l_free_pre.add_argument (l_arg)
-					l_forall.add_bound_variable (l_arg.name, l_arg.type)
+					l_forall.add_bound_variable (l_arg)
 				end
 			end
 			l_forall.add_compound_trigger (<< factory.function_call ("HeapSucc", <<l_old_heap, l_new_heap>>, types.bool),
@@ -933,7 +1006,7 @@ feature {NONE} -- Translation: Functions
 
 feature -- Translation: agents		
 
-	translate_postcondition_predicate (a_feature: FEATURE_I; a_type: TYPE_A)
+	translate_postcondition_predicate (a_feature: FEATURE_I; a_type: CL_TYPE_A)
 			-- Translate postconditino predicate of feature `a_feature' of type `a_type'.
 		local
 			l_procedure: IV_PROCEDURE
@@ -954,7 +1027,7 @@ feature -- Translation: agents
 				l_function.add_argument (i.item.name, i.item.type)
 			end
 			if a_feature.has_return_value then
-				l_function.add_argument ("result", types.for_type_a (a_feature.type))
+				l_function.add_argument ("result", types.for_class_type (helper.class_type_in_context (a_feature.type, a_feature.written_class, a_feature, a_type)))
 			end
 			boogie_universe.add_declaration (l_function)
 
@@ -969,7 +1042,7 @@ feature -- Translation: agents
 --			current_feature.written_class.direct_descendants.item.feature_of_rout_id_set (current_feature.rout_id_set)
 		end
 
-	generate_postcondition_axiom (a_feature: FEATURE_I; a_context_type: TYPE_A; a_postcondition_type: TYPE_A)
+	generate_postcondition_axiom (a_feature: FEATURE_I; a_context_type: CL_TYPE_A; a_postcondition_type: CL_TYPE_A)
 			-- Generate postcondition axiom for `current_feature' of type `a_context_type' for subtype `a_postcondition_type'.
 		local
 			l_contracts: TUPLE [pre: IV_EXPRESSION; post: IV_EXPRESSION]
@@ -981,7 +1054,6 @@ feature -- Translation: agents
 			l_fcall, l_typeof: IV_FUNCTION_CALL
 			l_type_value: IV_VALUE
 			l_binop1, l_binop2, l_binop3: IV_BINARY_OPERATION
-			i: INTEGER
 		do
 			create l_mapping.make
 			create l_fcall.make (name_translator.postcondition_predicate_name (a_feature, a_context_type), types.bool)
@@ -995,15 +1067,14 @@ feature -- Translation: agents
 			l_fcall.add_argument (l_current)
 			l_mapping.set_current (l_current)
 			create l_args.make
-			from i := 1 until i > a_feature.argument_count loop
-				create l_arg.make (a_feature.arguments.item_name (i), types.for_type_a (a_feature.arguments.i_th (i)))
+			across arguments_of (a_feature, a_context_type) as i loop
+				create l_arg.make (i.item.name, i.item.boogie_type)
 				l_fcall.add_argument (l_arg)
-				l_mapping.set_argument (i, l_arg)
+				l_mapping.set_argument (i.target_index, l_arg)
 				l_args.extend (l_arg)
-				i := i + 1
 			end
 			if a_feature.has_return_value then
-				create l_result.make ("result", types.for_type_a (a_feature.type))
+				create l_result.make ("result", types.for_class_type (helper.class_type_in_context (a_feature.type, a_feature.written_class, a_feature, a_context_type)))
 				l_fcall.add_argument (l_result)
 				l_mapping.set_result (l_result)
 			end
@@ -1017,14 +1088,14 @@ feature -- Translation: agents
 			create l_binop3.make (l_binop1, "==>", l_binop2, types.bool)
 
 			create l_forall.make (l_binop3)
-			l_forall.add_bound_variable (l_heap.name, l_heap.type)
-			l_forall.add_bound_variable (l_old_heap.name, l_old_heap.type)
-			l_forall.add_bound_variable (l_current.name, l_current.type)
+			l_forall.add_bound_variable (l_heap)
+			l_forall.add_bound_variable (l_old_heap)
+			l_forall.add_bound_variable (l_current)
 			across l_args as j loop
-				l_forall.add_bound_variable (j.item.name, j.item.type)
+				l_forall.add_bound_variable (j.item)
 			end
 			if a_feature.has_return_value then
-				l_forall.add_bound_variable (l_result.name, l_result.type)
+				l_forall.add_bound_variable (l_result)
 			end
 			create l_axiom.make (l_forall)
 			boogie_universe.add_declaration (l_axiom)
@@ -1065,6 +1136,8 @@ feature {NONE} -- Implementation
 			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
+			helper.set_up_byte_context (a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first),
+				helper.class_type_in_context (a_origin_class.actual_type, a_origin_class, Void, current_type))
 			a_assert.process (l_translator)
 			l_condition := factory.true_
 			across l_translator.side_effect as i loop
@@ -1081,6 +1154,7 @@ feature {NONE} -- Implementation
 			l_contract.node_info.set_tag (a_assert.tag)
 			l_contract.node_info.set_line (a_assert.line_number)
 			current_boogie_procedure.add_contract (l_contract)
+			helper.set_up_byte_context (current_feature, current_type)
 		end
 
 	process_postcondition (a_assert: ASSERT_B; a_origin_class: CLASS_C; a_fields: LIST [TUPLE [IV_EXPRESSION, IV_ENTITY]])
@@ -1095,6 +1169,8 @@ feature {NONE} -- Implementation
 			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
+			helper.set_up_byte_context (a_origin_class.feature_of_rout_id (current_feature.rout_id_set.first),
+				helper.class_type_in_context (a_origin_class.actual_type, a_origin_class, Void, current_type))
 			a_assert.process (l_translator)
 			a_fields.append (l_translator.field_accesses)
 			l_condition := factory.true_
@@ -1112,6 +1188,7 @@ feature {NONE} -- Implementation
 			l_contract.node_info.set_tag (a_assert.tag)
 			l_contract.node_info.set_line (a_assert.line_number)
 			current_boogie_procedure.add_contract (l_contract)
+			helper.set_up_byte_context (current_feature, current_type)
 		end
 
 	process_fields_list (a_fields: LIST [TUPLE [o: IV_EXPRESSION; f: IV_ENTITY]])
@@ -1142,8 +1219,8 @@ feature {NONE} -- Implementation
 			create l_forall.make (factory.implies_ (l_expr,
 				factory.equal (factory.heap_access (factory.global_heap, o, f.name, l_type_var), factory.heap_access (factory.old_ (factory.global_heap), o, f.name, l_type_var))))
 			l_forall.add_type_variable (l_type_var.name)
-			l_forall.add_bound_variable (o.name, o.type)
-			l_forall.add_bound_variable (f.name, f.type)
+			l_forall.add_bound_variable (o)
+			l_forall.add_bound_variable (f)
 			create l_postcondition.make (l_forall)
 			l_postcondition.node_info.set_type ("frame")
 			if not options.is_checking_frame then
@@ -1167,7 +1244,8 @@ feature {NONE} -- Implementation
 				l_call.add_argument (i.item.entity)
 			end
 			if current_feature.has_return_value then
-				l_call.add_argument (create {IV_ENTITY}.make ("Result", types.for_type_a (current_feature.type)))
+				l_call.add_argument (create {IV_ENTITY}.make ("Result", types.for_class_type (
+					helper.class_type_in_context (current_feature.type, current_feature.written_class, current_feature, current_type))))
 			end
 			create l_post.make (l_call)
 			l_post.set_free
@@ -1205,8 +1283,8 @@ feature {NONE} -- Implementation
 			l_old_allocated := factory.heap_access (factory.old_ (factory.global_heap), o, "allocated", types.bool)
 			create l_forall.make (factory.implies_ (l_old_allocated, factory.equal (l_access, l_old_access)))
 			l_forall.add_type_variable (l_type_var.name)
-			l_forall.add_bound_variable ("$o", types.ref)
-			l_forall.add_bound_variable ("$f", types.field (l_type_var))
+			l_forall.add_bound_variable (o)
+			l_forall.add_bound_variable (factory.entity ("$f", types.field (l_type_var)))
 			create l_postcondition.make (l_forall)
 			l_postcondition.node_info.set_type ("frame")
 			if not options.is_checking_frame then
@@ -1231,5 +1309,48 @@ feature {NONE} -- Implementation
 				end
 			end
 		end
+
+	handle_contract_validity_result (a_feature: FEATURE_I; a_boogie_result: E2B_BOOGIE_PROCEDURE_RESULT; a_result_generator: E2B_RESULT_GENERATOR)
+			-- Handle Boogie result `a_boogie_result'.
+		local
+			l_success: E2B_SUCCESSFUL_VERIFICATION
+			l_failure: E2B_FAILED_VERIFICATION
+			l_error: E2B_DEFAULT_VERIFICATION_ERROR
+		do
+			if a_result_generator.has_validity_error (a_feature, a_feature.written_class) then
+				-- Ignore results of features with a validity error
+			elseif a_boogie_result.is_successful then
+				create l_success
+				l_success.set_class (a_feature.written_class)
+				l_success.set_feature (a_feature)
+				l_success.set_time (a_boogie_result.time)
+				l_success.set_verification_context ("frame")
+				a_result_generator.last_result.add_result (l_success)
+			elseif a_boogie_result.is_inconclusive then
+					-- TODO
+			elseif a_boogie_result.is_error then
+				create l_failure.make
+				l_failure.set_class (a_feature.written_class)
+				l_failure.set_feature (a_feature)
+				l_failure.set_verification_context ("frame")
+				across a_boogie_result.errors as i loop
+					check i.item.is_assert_error end
+					create l_error.make (l_failure)
+					l_error.set_boogie_error (i.item)
+					if i.item.attributes["type"] ~ "write" then
+						l_error.set_message ("The added write frame might not be a subset of the previous version $called_feature.")
+						l_failure.errors.extend (l_error)
+					elseif i.item.attributes["type"] ~ "read" then
+						l_error.set_message ("The read frame might not be a subset of the previous version $called_feature.")
+						l_failure.errors.extend (l_error)
+					else
+						a_result_generator.process_individual_error (i.item, l_failure)
+					end
+				end
+
+				a_result_generator.last_result.add_result (l_failure)
+			end
+		end
+
 
 end
