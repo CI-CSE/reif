@@ -64,10 +64,10 @@ feature -- Translation: Signature
 
 				-- Check status compatibility
 			if not a_feature.has_return_value and helper.is_functional (a_feature) then
-				helper.add_semantic_warning (a_feature, messages.functional_feature_not_function)
+				helper.add_semantic_warning (a_feature, messages.functional_feature_not_function, -1)
 			end
 			if not a_for_creator and helper.is_feature_status (a_feature, "creator") then
-				helper.add_semantic_warning (a_feature, messages.creator_feature_not_creation_procedure)
+				helper.add_semantic_warning (a_feature, messages.creator_feature_not_creation_procedure, -1)
 			end
 
 				-- Set up name
@@ -382,6 +382,8 @@ feature -- Translation: Implementation
 			l_values: ARRAYED_LIST [STRING_32]
 			l_assign: IV_ASSIGNMENT
 			l_call: IV_PROCEDURE_CALL
+			l_ownership_handler: E2B_CUSTOM_OWNERSHIP_HANDLER
+			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 		do
 			set_context (a_feature, a_type)
 			set_inlining_options_for_feature (a_feature)
@@ -439,6 +441,14 @@ feature -- Translation: Implementation
 			if options.is_ownership_enabled and not helper.is_lemma (a_feature) then
 				if not helper.is_explicit (current_feature, "wrapping") then
 					if a_for_creator or helper.is_public (current_feature) and not a_feature.has_return_value then
+							-- Set static ghost sets before wrapping
+						create l_ownership_handler
+						create l_expr_translator.make
+						l_expr_translator.set_context (a_feature, a_type)
+						l_expr_translator.set_context_line_number (a_feature.body.end_location.line)
+						l_ownership_handler.set_static_ghost_sets (l_expr_translator, "wrap")
+						l_implementation.body.statements.append (l_expr_translator.side_effect)
+
 						l_call := factory.procedure_call ("wrap", << "Current" >>)
 						l_call.node_info.set_attribute ("default", "wrapping")
 						l_call.node_info.set_attribute ("cid", system.any_id.out)
@@ -582,19 +592,23 @@ feature -- Translation: Functions
 			across
 				l_decreases_list as i
 			loop
-					-- Decreases function
-				create l_function.make (name_translator.boogie_function_for_variant (i.target_index, current_feature, current_type), i.item.type)
-				l_function.set_inline
-				boogie_universe.add_declaration (l_function)
+				if types.is_variant_type (i.item.type) then
+						-- Decreases function
+					create l_function.make (name_translator.boogie_function_for_variant (i.target_index, current_feature, current_type), i.item.type)
+					l_function.set_inline
+					boogie_universe.add_declaration (l_function)
 
-					-- Arguments
-				translation_pool.add_type (current_type)
-				l_function.add_argument ("heap", types.heap_type)
-				l_function.add_argument ("current", types.ref)
-				across arguments_of_current_feature as j loop
-					l_function.add_argument (j.item.name, j.item.boogie_type)
+						-- Arguments
+					translation_pool.add_type (current_type)
+					l_function.add_argument ("heap", types.heap_type)
+					l_function.add_argument ("current", types.ref)
+					across arguments_of_current_feature as j loop
+						l_function.add_argument (j.item.name, j.item.boogie_type)
+					end
+					l_function.set_body (i.item)
+				else
+					helper.add_semantic_error (a_feature, messages.variant_bad_type (i.target_index), -1)
 				end
-				l_function.set_body (i.item)
 			end
 		end
 
@@ -616,7 +630,7 @@ feature {NONE} -- Translation: Functions
 				functional_body (Context.byte_code.compound).process (l_expr_translator)
 				a_function.set_body (l_expr_translator.last_expression)
 			else
-				helper.add_semantic_error (current_feature, messages.functional_feature_not_single_assignment)
+				helper.add_semantic_error (current_feature, messages.functional_feature_not_single_assignment, -1)
 			end
 		end
 

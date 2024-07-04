@@ -155,7 +155,8 @@ feature {NONE} -- Implementation
 				l_classes.forth
 			end
 
-			if options.is_ownership_enabled then
+				-- Add ownership defaults unless included clauses are explicitly specified
+			if options.is_ownership_enabled and a_included.is_empty then
 				if not helper.is_class_explicit (a_type.base_class, "observers") and not l_ghost_collector.has_observers then
 					l_clauses.extend (empty_set_property ("observers"))
 				end
@@ -166,7 +167,7 @@ feature {NONE} -- Implementation
 					l_clauses.extend (empty_set_property ("owns"))
 				end
 				if not helper.is_class_explicit (a_type.base_class, "invariant") then
-					l_clauses.extend (forall_invariant_property)
+					l_clauses.extend (factory.function_call ("admissibility2", << "heap", "current" >>, types.bool))
 				end
 			end
 
@@ -185,21 +186,6 @@ feature {NONE} -- Implementation
 				end
 				l_decl.set_body (l_expr)
 			end
-		end
-
-	forall_invariant_property: IV_EXPRESSION
-		local
-			l_forall: IV_FORALL
-			l_i, l_current: IV_ENTITY
-		do
-			create l_i.make (helper.unique_identifier ("i"), types.ref)
-			create l_current.make ("current", types.ref)
-			create l_forall.make (
-				factory.implies_ (
-					factory.map_access (factory.heap_access ("heap", l_current, "subjects", types.set (types.ref)), l_i),
-					factory.map_access (factory.heap_access ("heap", l_i, "observers", types.set (types.ref)), l_current)))
-			l_forall.add_bound_variable (l_i.name, l_i.type)
-			Result := l_forall
 		end
 
 	empty_set_property (a_name: STRING): IV_EXPRESSION
@@ -251,9 +237,16 @@ feature {NONE} -- Implementation
 							Result.extend (i.item.expr)
 						end
 						Result.extend (l_translator.last_expression)
-
-						l_assert.process (a_collector)
+							-- If ownership is enabled and we are processing the full invariant,
+							-- check if the invariant clause defines one of the built-in ghost sets
+							-- and generate correspoding functions
+						if options.is_ownership_enabled and (a_included.is_empty and a_excluded.is_empty) then
+							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "owns")
+							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "subjects")
+							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "observers")
+						end
 					end
+					l_assert.process (a_collector)
 
 					l_list.forth
 				end
@@ -285,6 +278,37 @@ feature {NONE} -- Implementation
 			l_forall.add_bound_variable (l_current.name, l_current.type)
 
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+		end
+
+	generate_ghost_set_definition (a_expr: IV_EXPRESSION; a_type: TYPE_A; a_name: STRING)
+			-- If `a_expr' has the form `a_name = def', create a Boogie function that defined `a_name' for `a_type' as `def'.
+			-- (Only accespting definitions of this form to avoid cycles).
+		local
+			l_current, l_heap: IV_ENTITY
+			l_def: IV_EXPRESSION
+			l_function: IV_FUNCTION
+		do
+			create l_current.make ("current", types.ref)
+			create l_heap.make ("heap", types.heap_type)
+
+			l_def := definition_of (a_expr, l_heap, l_current, a_name)
+			if attached l_def and not helper.is_class_explicit (a_type.base_class, a_name) then
+				create l_function.make (name_translator.boogie_function_for_ghost_definition (a_type, a_name), types.set (types.ref))
+				l_function.add_argument (l_heap.name, l_heap.type)
+				l_function.add_argument (l_current.name, l_current.type)
+				l_function.set_body (l_def)
+				boogie_universe.add_declaration (l_function)
+			end
+		end
+
+	definition_of (a_expr: IV_EXPRESSION; a_heap, a_current: IV_ENTITY; a_name: STRING): detachable IV_EXPRESSION
+			-- If `a_expr' has the form `a_name = def' return `def', otherwise `Void'.
+		do
+			if attached {IV_FUNCTION_CALL} a_expr as fcall and then fcall.name ~ "Set#Equal" then
+				if fcall.arguments [1].same_expression (factory.heap_access (a_heap.name, a_current, a_name, types.set (types.ref))) then
+					Result := fcall.arguments [2]
+				end
+			end
 		end
 
 	argument_property (a_expr: IV_EXPRESSION; a_type: TYPE_A): detachable IV_EXPRESSION
@@ -403,7 +427,7 @@ feature -- TODO: move somewhere else
 			l_pre: IV_PRECONDITION
 			l_name: STRING
 			l_goto: IV_GOTO
-			l_block_a1, l_block_a2, l_block_a3: IV_BLOCK
+			l_block_a1, l_block_a2, l_block_a3, l_block_a4, l_block_a5: IV_BLOCK
 			l_assert: IV_ASSERT
 			l_forall: IV_FORALL
 			l_i, l_current: IV_ENTITY
@@ -419,19 +443,20 @@ feature -- TODO: move somewhere else
 			l_proc.add_argument ("Current", types.ref)
 			create l_pre.make (factory.function_call ("attached_exact", << "Heap", "Current", factory.type_value (a_class.actual_type) >>, types.bool))
 			l_proc.add_contract (l_pre)
-			create l_pre.make (factory.function_call ("global", << "Heap" >>, types.bool))
-			l_proc.add_contract (l_pre)
-			create l_pre.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
-			l_proc.add_contract (l_pre)
-			create l_pre.make (factory.function_call (name_translator.boogie_function_for_invariant (a_class.actual_type), << "Heap", "Current" >>, types.bool))
+			create l_pre.make (factory.function_call ("user_inv", << "Heap", "Current" >>, types.bool))
 			l_proc.add_contract (l_pre)
 
 			create l_block_a1.make_name ("a1")
 			create l_block_a2.make_name ("a2")
 			create l_block_a3.make_name ("a3")
+			create l_block_a4.make_name ("a4")
+			create l_block_a5.make_name ("a5")
+
 			create l_goto.make (l_block_a1)
 			l_goto.add_target (l_block_a2)
 			l_goto.add_target (l_block_a3)
+			l_goto.add_target (l_block_a4)
+			l_goto.add_target (l_block_a5)
 			l_impl.body.add_statement (l_goto)
 
 				-- A1: reads(o.inv) is subset of domain(o) + o.subjects
@@ -445,15 +470,7 @@ feature -- TODO: move somewhere else
 				-- A2: o.inv implies forall x: x in o.subjects implies o in x.observers
 
 			l_impl.body.add_statement (l_block_a2)
-
-			create l_i.make (helper.unique_identifier ("i"), types.ref)
-			create l_current.make ("Current", types.ref)
-			create l_forall.make (
-				factory.implies_ (
-					factory.map_access (factory.heap_access ("Heap", l_current, "subjects", types.set (types.ref)), l_i),
-					factory.map_access (factory.heap_access ("Heap", l_i, "observers", types.set (types.ref)), l_current)))
-			l_forall.add_bound_variable (l_i.name, l_i.type)
-			create l_assert.make (l_forall)
+			create l_assert.make (factory.function_call ("admissibility2", << "Heap", "Current" >>, types.bool))
 			l_assert.node_info.set_type ("A2")
 			l_block_a2.add_statement (l_assert)
 			l_block_a2.add_statement (create {IV_RETURN})
@@ -465,6 +482,23 @@ feature -- TODO: move somewhere else
 			l_assert.node_info.set_type ("A3")
 			l_block_a3.add_statement (l_assert)
 			l_block_a3.add_statement (create {IV_RETURN})
+
+				-- A4: o.inv cannot be violated by updating subjects field of a subject
+
+			l_impl.body.add_statement (l_block_a4)
+			create l_assert.make (factory.function_call ("admissibility4", << "Heap", "Current" >>, types.bool))
+			l_assert.node_info.set_type ("A4")
+			l_block_a4.add_statement (l_assert)
+			l_block_a4.add_statement (create {IV_RETURN})
+
+
+				-- A5: o.inv cannot be violated by enlarging observers field of a subject
+
+			l_impl.body.add_statement (l_block_a5)
+			create l_assert.make (factory.function_call ("admissibility5", << "Heap", "Current" >>, types.bool))
+			l_assert.node_info.set_type ("A5")
+			l_block_a5.add_statement (l_assert)
+			l_block_a5.add_statement (create {IV_RETURN})
 
 		end
 
@@ -496,9 +530,13 @@ feature -- TODO: move somewhere else
 					if i.item.attributes["type"] ~ "A1" then
 						l_error.set_message ("A1")
 					elseif i.item.attributes["type"] ~ "A2" then
-						l_error.set_message ("A2")
+						l_error.set_message ("Some subjects might not have Current in their observers set")
 					elseif i.item.attributes["type"] ~ "A3" then
 						l_error.set_message ("A3")
+					elseif i.item.attributes["type"] ~ "A4" then
+						l_error.set_message ("The invariant might be invalidated by changing subjects of one of the subjects")
+					elseif i.item.attributes["type"] ~ "A5" then
+						l_error.set_message ("The invariant might be invalidated by adding observers to one of the subjects")
 					else
 						check internal_error: False end
 					end

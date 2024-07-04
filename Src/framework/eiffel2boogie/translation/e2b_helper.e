@@ -22,6 +22,9 @@ inherit
 	SHARED_SERVER
 		export {NONE} all end
 
+	INTERNAL_COMPILER_STRING_EXPORTER
+		export {NONE} all end
+
 feature -- General note helpers
 
 	class_note_values (a_class: CLASS_C; a_tag: STRING_32): ARRAYED_LIST [STRING_32]
@@ -213,6 +216,24 @@ feature -- Ownership helpers
 			end
 		end
 
+	is_clause_reads (a_clause: ASSERT_B): BOOLEAN
+			-- Is contract clause `a_clause' a reads clause?
+		do
+			Result := attached {FEATURE_B} a_clause.expr as l_call and then (l_call.feature_name ~ "reads" or l_call.feature_name ~ "reads_field")
+		end
+
+	is_clause_modify (a_clause: ASSERT_B): BOOLEAN
+			-- Is contract clause `a_clause' a modify clause?
+		do
+			Result := attached {FEATURE_B} a_clause.expr as l_call and then (l_call.feature_name ~ "modify" or l_call.feature_name ~ "modify_field")
+		end
+
+	is_clause_decreases (a_clause: ASSERT_B): BOOLEAN
+			-- Is contract clause `a_clause' a decreases clause?
+		do
+			Result := attached {FEATURE_B} a_clause.expr as l_call and then l_call.feature_name ~ "decreases"
+		end
+
 feature -- String helpers
 
 	feature_of_type_as_string (a_feature: FEATURE_I; a_type: TYPE_A): STRING
@@ -383,7 +404,7 @@ feature -- Other
 			autoproof_errors.extend (l_error)
 		end
 
-	add_semantic_error (a_class_or_feature: ANY; a_message: STRING)
+	add_semantic_error (a_class_or_feature: ANY; a_message: STRING; a_line_number: INTEGER)
 			-- Add AutoProof validity error concerning `a_class_or_feature' with message `a_message'.
 			-- Verification will not proceed.
 		require
@@ -400,10 +421,11 @@ feature -- Other
 			elseif attached {CLASS_C} a_class_or_feature as x then
 				l_error.set_class (x)
 			end
+			l_error.set_line_number (a_line_number)
 			autoproof_errors.extend (l_error)
 		end
 
-	add_semantic_warning (a_class_or_feature: ANY; a_message: STRING)
+	add_semantic_warning (a_class_or_feature: ANY; a_message: STRING; a_line_number: INTEGER)
 			-- Add AutoProof validity warning concerning `a_class_or_feature' with message `a_message'.
 			-- Verification will proceed.
 		require
@@ -420,6 +442,7 @@ feature -- Other
 			elseif attached {CLASS_C} a_class_or_feature as x then
 				l_error.set_class (x)
 			end
+			l_error.set_line_number (a_line_number)
 			l_error.set_warning (True)
 			autoproof_errors.extend (l_error)
 		end

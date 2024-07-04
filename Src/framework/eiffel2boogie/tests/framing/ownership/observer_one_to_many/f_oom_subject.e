@@ -13,9 +13,8 @@ feature {NONE} -- Initialization
 		note
 			status: creator
 		do
-		        value := v
+			value := v
 			create subscribers.make
-			set_owns ([subscribers])
 		ensure
 			value_set: value = v
 			no_subscribers: subscribers.is_empty
@@ -69,7 +68,6 @@ feature {F_OOM_OBSERVER} -- Internal communication
 		do
 			unwrap
 			subscribers.extend_back (o)
-			set_observers (observers + [o])
 			wrap
 		ensure
 			observers_extended: observers = old observers & o
@@ -78,7 +76,7 @@ feature {F_OOM_OBSERVER} -- Internal communication
 
 invariant
 	subscribers_exists: subscribers /= Void
-	all_subscribers_exist: across subscribers.sequence as o all attached {F_OOM_OBSERVER} o.item end
+	all_subscribers_exist: across subscribers.sequence as o all attached o.item end
 	observers_structure: observers = subscribers.sequence.range
 	owns_structure: owns = [subscribers]
 end

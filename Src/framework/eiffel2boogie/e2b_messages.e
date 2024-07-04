@@ -13,28 +13,37 @@ inherit
 feature -- Validity error messages
 
 	functional_feature_not_function: STRING_32
-		do Result := "Functional feature has to be a function" end
+		do Result := "Functional feature has to be a function." end
 
 	functional_feature_not_single_assignment: STRING_32
-		do Result := "A functional feature has to consist of exactly one assignment to the Result" end
+		do Result := "A functional feature has to consist of exactly one assignment to the Result." end
 
 	creator_feature_not_creation_procedure: STRING_32
-		do Result := "Feature is marked as creator but is not a creation procedure" end
+		do Result := "Feature is marked as creator but is not a creation procedure." end
 
 	creator_call_as_procedure (a_pname: STRING): STRING_32
 		do Result := locale.formatted_string ("Feature '$1' is a creator but is called as a regular procedure.", a_pname) end
 
-	modify_field_first_argument_only_manifeststrings: STRING_32
-		do Result := "The tuple in the first argument of 'modify_field' needs to consist only of manifest strings." end
+	first_argument_string: STRING_32
+		do Result := "First argument has to be a manifest string." end
 
-	modify_field_first_argument_string_or_tuple: STRING_32
-		do Result := "First argument of 'modify_field' has to be a manifest string or a tuple of manifest strings." end
+	first_argument_string_or_tuple: STRING_32
+		do Result := "First argument has to be a manifest string or a tuple of manifest strings." end
 
-	modify_field_field_does_not_exist (a_fname, a_cname: STRING): STRING_32
-		do Result := locale.formatted_string ("Feature '$1' mentioned in 'modify_field' does not exist in class '$2'", a_fname, a_cname) end
+	field_does_not_exist (a_fname, a_cname: STRING): STRING_32
+		do Result := locale.formatted_string ("Feature '$1' does not exist in class '$2'.", a_fname, a_cname) end
 
-	modify_field_field_not_attribute (a_fname: STRING): STRING_32
-		do Result := locale.formatted_string ("Feature '$1' mentioned in 'modify_field' is not an attribute", a_fname) end
+	field_not_attribute (a_fname: STRING): STRING_32
+		do Result := locale.formatted_string ("Feature '$1' is not an attribute.", a_fname) end
+
+	invalid_tag (a_tag, a_class_name: STRING): STRING_32
+		do Result := locale.formatted_string ("Filtered invariant of class '$2' lists invalid tag: $1", a_tag, a_class_name) end
+
+	variant_bad_type (a_index: INTEGER): STRING_32
+		do Result := locale.formatted_string ("Type of variant number $1 has no well-founded order.", a_index.out) end
+
+	invalid_set_seq_comparison: STRING_32
+		do Result := "Sets and sequences can only be compared with other sets or sequences" end
 
 feature -- Verification error messages
 
@@ -68,18 +77,6 @@ feature -- Verification error messages
 	loop_inv_with_tag_not_maintained: STRING_32
 		do Result := "Loop invariant $tag may not be maintained." end
 
-	loop_var_negative: STRING_32
-		do Result := "Loop variant may be negative." end
-
-	loop_var_with_tag_negative: STRING_32
-		do Result := "Loop variant $tag may be negative." end
-
-	loop_var_not_decreasing: STRING_32
-		do Result := "Loop variant may not decrease." end
-
-	loop_var_with_tag_not_decreasing: STRING_32
-		do Result := "Loop variant $tag may not decrease." end
-
 	void_call: STRING_32
 		do Result := "Possible Void call." end
 
@@ -96,10 +93,10 @@ feature -- Verification error messages
 		do Result := "Possible Void call in postcondition $tag." end
 
 	decreases_not_decreasing: STRING_32
-		do Result := "Variant may not decrease at this recursive call" end
+		do Result := "Variant may not decrease at this recursive call / the end of this loop body." end
 
 	decreases_bounded (index: STRING): STRING_32
-		do Result := locale.formatted_string ("Integer variant component at position $1 may be negative", index) end
+		do Result := locale.formatted_string ("Integer variant component at position $1 may be negative.", index) end
 
 	overflow: STRING_32
 		do Result := "Possible arithmetic overflow." end

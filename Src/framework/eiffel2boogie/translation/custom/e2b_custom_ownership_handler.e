@@ -56,6 +56,7 @@ feature -- Basic operations
 			if translation_mapping.builtin_any_functions.has (l_name) then
 				a_translator.process_builtin_function_call (a_feature, a_parameters, l_name)
 			elseif translation_mapping.builtin_any_procedures.has (l_name) then
+				set_static_ghost_sets (a_translator, l_name)
 				a_translator.process_builtin_routine_call (a_feature, a_parameters, l_name)
 			elseif translation_mapping.ghost_access.has (l_name) then
 				l_type := translation_mapping.ghost_access_type (l_name)
@@ -87,6 +88,8 @@ feature -- Basic operations
 			l_name: STRING
 			l_type: IV_TYPE
 			l_tag_filters: LIST [STRING]
+			l_field: IV_ENTITY
+			l_feature: FEATURE_I
 		do
 			l_name := a_feature.feature_name
 			if translation_mapping.builtin_any_functions.has (l_name) then
@@ -95,7 +98,7 @@ feature -- Basic operations
 					if l_tag_filters.is_empty then
 						a_translator.process_builtin_routine_call (a_feature, a_parameters, "user_inv")
 					else
-						check_valid_class_inv_tags (a_translator.current_target_type.base_class, a_translator.context_feature, l_tag_filters)
+						check_valid_class_inv_tags (a_translator.current_target_type.base_class, a_translator.context_feature, a_translator.context_line_number, l_tag_filters)
 						translation_pool.add_filtered_invariant_function (a_translator.current_target_type, Void, l_tag_filters)
 						a_translator.set_last_expression (
 							factory.function_call (
@@ -104,7 +107,7 @@ feature -- Basic operations
 					end
 				elseif l_name ~ "inv_only" then
 					l_tag_filters := extract_tags (a_parameters)
-					check_valid_class_inv_tags (a_translator.current_target_type.base_class, a_translator.context_feature, l_tag_filters)
+					check_valid_class_inv_tags (a_translator.current_target_type.base_class, a_translator.context_feature, a_translator.context_line_number, l_tag_filters)
 					translation_pool.add_filtered_invariant_function (a_translator.current_target_type, l_tag_filters, Void)
 					a_translator.set_last_expression (
 						factory.function_call (
@@ -112,6 +115,35 @@ feature -- Basic operations
 							<< a_translator.entity_mapping.heap, a_translator.current_target >>, types.bool))
 				elseif l_name ~ "inv" then
 					a_translator.process_builtin_routine_call (a_feature, a_parameters, "user_inv")
+				elseif l_name ~ "is_field_writable" then
+					if attached {STRING_B} a_parameters.first.expression as l_string then
+						l_feature := a_translator.current_target_type.base_class.feature_named_32 (l_string.value_32)
+						if l_feature = Void then
+							helper.add_semantic_error (a_translator.context_feature,
+								messages.field_does_not_exist (l_string.value_32, a_translator.current_target_type.base_class.name_in_upper),
+								a_translator.context_line_number)
+						elseif not l_feature.is_attribute then
+							helper.add_semantic_error (a_translator.context_feature,
+								messages.field_not_attribute (l_string.value_32),
+								a_translator.context_line_number)
+						else
+							translation_pool.add_referenced_feature (l_feature, a_translator.current_target_type)
+							create l_field.make (name_translator.boogie_procedure_for_feature (l_feature, a_translator.current_target_type), types.for_type_a (l_feature.type))
+							a_translator.set_last_expression (factory.frame_access (
+								a_translator.context_writable,
+								a_translator.current_target,
+								l_field))
+						end
+					else
+						helper.add_semantic_error (a_translator.context_feature, messages.first_argument_string, a_translator.context_line_number)
+					end
+				elseif l_name ~ "is_fully_writable" then
+					a_translator.set_last_expression (factory.function_call (
+						"fully_writable",
+						<< a_translator.context_writable, a_translator.current_target>>,
+						types.bool))
+				elseif l_name ~ "domain_has" then
+					a_translator.process_builtin_routine_call (a_feature, a_parameters, "in_domain")
 				else
 					a_translator.process_builtin_routine_call (a_feature, a_parameters, l_name)
 				end
@@ -219,7 +251,7 @@ feature -- Basic operations
 			end
 		end
 
-	check_valid_class_inv_tags (a_class: CLASS_C; a_context_feature: FEATURE_I; a_tags: LIST [STRING])
+	check_valid_class_inv_tags (a_class: CLASS_C; a_context_feature: FEATURE_I; a_line_number: INTEGER; a_tags: LIST [STRING])
 			-- Check if `a_tags' only lists valid class invariant of `a_class'.
 			-- Otherwise report error in feature `a_context_featur'.
 		local
@@ -253,8 +285,49 @@ feature -- Basic operations
 					l_string.append (", ")
 				end
 				l_string.remove_tail (2)
-				helper.add_semantic_error (a_context_feature, "Filtered invariant of class '" + a_class.name_in_upper + "' lists invalid tag: " + l_string)
+				helper.add_semantic_error (a_context_feature, messages.invalid_tag (l_string, a_class.name_in_upper), a_line_number)
 			end
 		end
 
+	set_static_ghost_sets (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature_name: STRING)
+			-- If processing a call to `Current.wrap',
+			-- generate guarded assignments to statically known built-in ghost fields and store them in the side effect of `a_translator'.
+		do
+			if a_feature_name ~ "wrap" and a_translator.current_target.same_expression (a_translator.entity_mapping.current_expression) then
+				set_static_ghost_set (a_translator, "owns", "update_heap", True)
+				set_static_ghost_set (a_translator, "subjects", "update_subjects", False)
+				set_static_ghost_set (a_translator, "observers", "update_observers", False)
+			end
+		end
+
+	set_static_ghost_set (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_field_name, a_update_name: STRING; a_pass_field: BOOLEAN)
+			-- If the definition of `a_field_name' in `current_target_type' is statically known,
+			-- generate a guarded update using Boogie procedure `a_update_name' and store it in the side effect of `a_translator';
+			-- if `a_pass_field' the procedure receives the field as argument.
+		local
+			l_function: IV_FUNCTION
+			l_field: IV_ENTITY
+			l_pcall: IV_PROCEDURE_CALL
+			l_if: IV_CONDITIONAL
+		do
+				-- Get definition of `a_field_name' for `current_target_type';
+				-- if it exists, generate a guarded assignment.
+			l_function := boogie_universe.function_named (name_translator.boogie_function_for_ghost_definition (a_translator.current_target_type, a_field_name))
+			if attached l_function then
+				create l_field.make (a_field_name, types.field (types.set (types.ref)))
+				create l_pcall.make (a_update_name)
+				l_pcall.add_argument (a_translator.entity_mapping.current_expression)
+				if a_pass_field then
+					l_pcall.add_argument (l_field)
+				end
+				l_pcall.add_argument (factory.function_call (l_function.name,
+					<< a_translator.entity_mapping.heap, a_translator.entity_mapping.current_expression >>,
+					types.set (types.ref)))
+				l_pcall.node_info.set_attribute ("default", a_field_name)
+				l_pcall.node_info.set_line (a_translator.context_line_number)
+				create l_if.make_if_then (factory.frame_access (a_translator.context_writable, a_translator.current_target, l_field),
+					factory.singleton_block (l_pcall))
+				a_translator.side_effect.extend (l_if)
+			end
+		end
 end

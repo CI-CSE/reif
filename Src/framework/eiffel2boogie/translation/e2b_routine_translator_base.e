@@ -165,20 +165,15 @@ feature -- Helper functions: contracts
 			until
 				l_pre.after
 			loop
-				if attached {FEATURE_B} l_pre.item.expr as l_call then
-					l_name := names_heap.item_32 (l_call.feature_name_id)
-					if l_name  ~ "modify" or l_name ~ "modify_field" then
-						l_modifies.extend (l_pre.item)
-						l_pre.remove
-					elseif l_name ~ "reads" then
-						l_reads.extend (l_pre.item)
-						l_pre.remove
-					elseif l_name ~ "decreases" then
-						l_decreases.extend (l_pre.item)
-						l_pre.remove
-					else
-						l_pre.forth
-					end
+				if helper.is_clause_reads (l_pre.item) then
+					l_reads.extend (l_pre.item)
+					l_pre.remove
+				elseif helper.is_clause_modify (l_pre.item) then
+					l_modifies.extend (l_pre.item)
+					l_pre.remove
+				elseif helper.is_clause_decreases (l_pre.item) then
+					l_decreases.extend (l_pre.item)
+					l_pre.remove
 				else
 					l_pre.forth
 				end
@@ -306,11 +301,11 @@ feature -- Helper functions: contracts
 								if attached {STRING_B} j.item as l_string then
 									l_fieldnames.extend (l_string.value)
 								else
-									helper.add_semantic_error (current_feature, messages.modify_field_first_argument_only_manifeststrings)
+									helper.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, i.item.line_number)
 								end
 							end
 						else
-							helper.add_semantic_error (current_feature, messages.modify_field_first_argument_string_or_tuple)
+							helper.add_semantic_error (current_feature, messages.first_argument_string_or_tuple, i.item.line_number)
 						end
 
 						create l_fields.make
@@ -318,15 +313,11 @@ feature -- Helper functions: contracts
 						across l_fieldnames as f loop
 							l_feature := l_type.base_class.feature_named_32 (f.item)
 							if l_feature = Void then
-								if f.item ~ "closed" then
-									l_name := "closed"
-									l_boogie_type := types.bool
-								else
-									l_name := Void
-									helper.add_semantic_error (current_feature, messages.modify_field_field_does_not_exist (f.item, l_type.base_class.name_in_upper))
-								end
+								l_name := Void
+								helper.add_semantic_error (current_feature, messages.field_does_not_exist (f.item, l_type.base_class.name_in_upper), i.item.line_number)
 							else
 								if translation_mapping.ghost_access.has (f.item) then
+									-- Handle built-in ANY attributes separately, since they are not really attributes
 									l_name := f.item
 									l_boogie_type := translation_mapping.ghost_access_type (f.item)
 								elseif l_feature.is_attribute then
@@ -335,7 +326,7 @@ feature -- Helper functions: contracts
 									translation_pool.add_referenced_feature (l_feature, l_type)
 								else
 									l_name := Void
-									helper.add_semantic_error (current_feature, messages.modify_field_field_not_attribute (f.item))
+									helper.add_semantic_error (current_feature, messages.field_not_attribute (f.item),i.item.line_number)
 								end
 							end
 							if l_name /= Void then
