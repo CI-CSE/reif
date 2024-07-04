@@ -136,6 +136,9 @@ feature -- Access
 			end
 		end
 
+	context_readable: IV_EXPRESSION
+			-- Readable  frame of the enclosing context if defined, otherwise Void.
+
 feature -- Element change
 
 	set_last_expression (a_expression: IV_EXPRESSION)
@@ -188,6 +191,7 @@ feature -- Basic operations
 			current_target := Void
 			current_target_type := Void
 			local_writable := Void
+			context_readable := Void
 			last_set_content_type := Void
 			create entity_mapping.make
 			create locals_map.make (10)
@@ -200,6 +204,12 @@ feature -- Basic operations
 			-- Set `local_writable' to `a_writable'.
 		do
 			local_writable := a_writable
+		end
+
+	set_context_readable (a_readable: IV_EXPRESSION)
+			-- Set `context_readable' to `a_readable'
+		do
+			context_readable := a_readable
 		end
 
 feature -- Visitors
@@ -668,15 +678,15 @@ feature -- Visitors
 
 			l_class := l_nested.target.type.associated_class
 			if l_class.name_in_upper ~ "ARRAY" then
-				create {E2B_ARRAY_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
+				create {E2B_ARRAY_ACROSS_HANDLER} l_across_handler.make (Current, l_object_test_local, l_nested.target, a_node)
 			elseif l_class.name_in_upper ~ "INTEGER_INTERVAL" then
 				l_access ?= l_nested.target
 				check l_access /= Void end
 				l_bin_free ?= l_access.expr
 				check l_bin_free /= Void end
-				create {E2B_INTERVAL_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_bin_free, l_object_test_local)
+				create {E2B_INTERVAL_ACROSS_HANDLER} l_across_handler.make (Current, l_object_test_local, l_bin_free, a_node)
 			elseif helper.is_class_logical (l_class) then
-				create {E2B_SET_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
+				create {E2B_SET_ACROSS_HANDLER} l_across_handler.make (Current, l_object_test_local, l_nested.target, a_node)
 			else
 				last_expression := dummy_node (a_node.type)
 			end
@@ -685,7 +695,7 @@ feature -- Visitors
 
 			if attached l_across_handler then
 				across_handler_map.put (l_across_handler, l_object_test_local.position)
-				l_across_handler.handle_across_expression (a_node)
+				l_across_handler.handle_across_expression
 				across_handler_map.remove (l_object_test_local.position)
 			end
 
@@ -781,7 +791,7 @@ feature -- Visitors
 				if a_node.target.type.is_like_current then
 					current_target_type := l_target_type
 				else
-					current_target_type := a_node.target.type.deep_actual_type
+					current_target_type := a_node.target.type.deep_actual_type.instantiated_in (l_target_type)
 				end
 				check not current_target_type.is_like end
 				if current_target_type.is_formal then
@@ -800,10 +810,7 @@ feature -- Visitors
 					l_call.add_argument (entity_mapping.heap)
 					l_call.add_argument (current_target)
 					l_call.add_argument (factory.type_value (current_target_type))
-						-- TODO: refactor
-					if not is_in_quantifier then
-						add_safety_check (l_call, "attached", context_tag, context_line_number)
-					end
+					add_safety_check (l_call, "attached", context_tag, context_line_number)
 				end
 
 					-- Evaluate message with original expression
@@ -1016,15 +1023,7 @@ feature -- Translation
 			-- Process call to attribute `a_feature'.
 		require
 			is_attribute: a_feature.is_attribute
-		do
-			translation_pool.add_referenced_feature (a_feature, current_target_type)
-
-			check current_target /= Void end
-			last_expression := factory.heap_access (
-				entity_mapping.heap.name,
-				current_target,
-				name_translator.boogie_procedure_for_feature (a_feature, current_target_type),
-				types.for_type_in_context (a_feature.type, current_target_type))
+		deferred
 		end
 
 	process_constant_call (a_feature: CONSTANT_I)
@@ -1058,7 +1057,7 @@ feature -- Translation
 		end
 
 	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING; a_line: INTEGER)
-			-- Add safety check `a_expression' of type `a_name'.
+			-- Add safety check `a_expression' of type `a_name' with tag `a_tag' referring to `a_line'.
 		require
 			boolean_expression: a_expression.type.is_boolean
 		local
@@ -1072,6 +1071,34 @@ feature -- Translation
 			side_effect.extend (l_assert)
 		end
 
+	add_safety_check_with_subsumption (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING; a_line: INTEGER)
+			-- Add safety check `a_expression' of type `a_name' with tag `a_tag' referring to `a_line'; do not supress subsumption.
+		require
+			boolean_expression: a_expression.type.is_boolean
+		do
+			add_safety_check (a_expression, a_name, a_tag, a_line)
+			last_safety_check.set_attribute_string (Void)
+		end
+
+	add_assumption (a_expression: IV_EXPRESSION)
+			-- Add assumption `a_expression'.
+		require
+			boolean_expression: a_expression.type.is_boolean
+		local
+			l_assert: IV_ASSERT
+		do
+			create l_assert.make_assume (implies_safety_expression (a_expression))
+			side_effect.extend (l_assert)
+		end
+
+	last_safety_check: IV_ASSERT
+			-- Assertion added by the last call to `add_safety_check'.
+		do
+			if attached {IV_ASSERT} side_effect.last as l_assert then
+				Result := l_assert
+			end
+		end
+
 	safety_check_condition: LINKED_STACK [IV_EXPRESSION]
 			-- Stack of safety check conditions.
 
@@ -1082,6 +1109,18 @@ feature -- Translation
 			else
 				create {IV_BINARY_OPERATION} Result.make (safety_check_condition.item, "==>", a_expr, types.bool)
 			end
+		end
+
+	clear_side_effect
+			-- Empty the list of side effect instructions.
+		do
+			create side_effect.make
+		end
+
+	restore_side_effect (a_side_effect: like side_effect)
+			-- Set `side_effect' to `a_side_effect'.			
+		do
+			side_effect := a_side_effect
 		end
 
 	process_parameters (a_parameters: BYTE_LIST [PARAMETER_B])
@@ -1146,6 +1185,32 @@ feature -- Translation
 			end
 		end
 
+	add_function_precondition_check (a_feature: FEATURE_I; a_fcall: IV_FUNCTION_CALL)
+			-- Check the precondition of the function call `a_fcall' of `a_feature'.
+		local
+			l_pre_call: IV_FUNCTION_CALL
+		do
+				-- Add check
+			if a_feature.has_precondition then
+				create l_pre_call.make (name_translator.boogie_function_precondition (a_feature, current_target_type), types.bool)
+				across a_fcall.arguments as args loop
+					l_pre_call.add_argument (args.item)
+				end
+				add_safety_check_with_subsumption (l_pre_call, "check", "function_precondition", context_line_number)
+				last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
+				last_safety_check.node_info.set_attribute ("fid", a_feature.feature_id.out)
+			end
+				-- Assume free precondition to trigger the function definition;
+				-- (definitions of logicals do not have free preconditions)
+			if not helper.is_class_logical (current_target_type.base_class) then
+				create l_pre_call.make (name_translator.boogie_free_function_precondition (a_feature, current_target_type), types.bool)
+				across a_fcall.arguments as args loop
+					l_pre_call.add_argument (args.item)
+				end
+				add_assumption (l_pre_call)
+			end
+		end
+
 feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER} -- Implementation
 
 	parameters_stack: LINKED_STACK [LINKED_LIST [IV_EXPRESSION]]
@@ -1170,6 +1235,7 @@ feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER}
 
 	is_in_quantifier: BOOLEAN
 			-- Is current expression inside a quantifier?
+			-- ToDo: remove?
 
 	dummy_node (a_type: TYPE_A): IV_EXPRESSION
 			-- Dummy node for type `a_type'.

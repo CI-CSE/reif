@@ -125,25 +125,31 @@ feature -- Adding independent units
 			internal_add_feature (a_feature, a_context_type, True)
 		end
 
-	add_frame_function (a_feature: FEATURE_I; a_context_type: TYPE_A)
-			-- Add frame function of feature `a_feature' of `a_context_type'.
+	add_write_frame_function (a_feature: FEATURE_I; a_context_type: TYPE_A)
+			-- Add write frame function of feature `a_feature' of `a_context_type'.
 		do
-			add_translation_unit (create {E2B_TU_FRAME}.make (a_feature, a_context_type))
+			add_translation_unit (create {E2B_TU_WRITE_FRAME}.make (a_feature, a_context_type))
+		end
+
+	add_read_frame_function (a_feature: FEATURE_I; a_context_type: TYPE_A)
+			-- Add read frame function of feature `a_feature' of `a_context_type'.
+		do
+			add_translation_unit (create {E2B_TU_READ_FRAME}.make (a_feature, a_context_type))
+		end
+
+	add_function_precondition_predicate (a_feature: FEATURE_I; a_context_type: TYPE_A)
+			-- Add precondition predicate of feature `a_feature' of `a_context_type'.
+		local
+			l_pre_predicate: E2B_TU_FUNCTION_PRE_PREDICATE
+		do
+			create l_pre_predicate.make (a_feature, a_context_type)
+			add_translation_unit (l_pre_predicate)
 		end
 
 	add_filtered_invariant_function (a_type: TYPE_A; a_included, a_excluded: LIST [STRING]; a_ancestor: CLASS_C)
 			-- Add invariant function of type `a_type'.
 		do
 			add_translation_unit (create {E2B_TU_INVARIANT_FUNCTION}.make_filtered (a_type, a_included, a_excluded, a_ancestor))
-		end
-
-	add_precondition_predicate (a_feature: FEATURE_I; a_context_type: TYPE_A)
-			-- Add precondition predicate of feature `a_feature' of `a_context_type'.
-		local
-			l_pre_predicate: E2B_TU_ROUTINE_PRE_PREDICATE
-		do
-			create l_pre_predicate.make (a_feature, a_context_type)
-			add_translation_unit (l_pre_predicate)
 		end
 
 	add_postcondition_predicate (a_feature: FEATURE_I; a_context_type: TYPE_A)
@@ -193,11 +199,7 @@ feature {NONE} -- Implementation
 				add_attribute (a_feature, a_context_type)
 			elseif a_feature.is_routine then
 				if helper.is_class_logical (a_context_type.base_class) then
-						-- It is a feature directly mapped to Boogie:
-						-- only translate its precondition (if exists)
-					if a_feature.has_precondition then
-						add_precondition_predicate (a_feature, a_context_type)
-					end
+					add_logical (a_feature, a_context_type)
 				else
 					if a_context_type.base_class.has_creator_of_name_id (a_feature.feature_name_id) or
 						(a_context_type.base_class.creation_feature /= Void and then a_context_type.base_class.creation_feature.feature_id = a_feature.feature_id)
@@ -236,7 +238,7 @@ feature {NONE} -- Implementation
 			add_translation_unit (l_signature)
 
 				-- Add functional representation
-			if a_feature.has_return_value then
+			if helper.has_functional_representation (a_feature) then
 				create l_functional_representation.make (a_feature, a_context_type)
 				add_translation_unit (l_functional_representation)
 			end
@@ -276,6 +278,15 @@ feature {NONE} -- Implementation
 				create l_creator_impl.make (a_feature, a_context_type)
 				add_translation_unit (l_creator_impl)
 			end
+		end
+
+	add_logical (a_feature: FEATURE_I; a_context_type: TYPE_A)
+			-- Add logical feature `a_feature' of `a_context_type'.
+		local
+			l_logical: E2B_TU_LOGICAL_SIGNATURE
+		do
+			create l_logical.make (a_feature, a_context_type)
+			add_translation_unit (l_logical)
 		end
 
 end

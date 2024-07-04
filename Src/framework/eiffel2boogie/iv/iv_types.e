@@ -98,7 +98,7 @@ feature -- Type translation
 			l_user_type: IV_USER_TYPE
 			l_constructor: STRING
 			l_params, l_domain_types: ARRAY [IV_TYPE]
-			l_default_function, l_leq_function: STRING
+			l_default_function, l_type_inv_function, l_leq_function: STRING
 			l_access_feature: FEATURE_I
 		do
 			l_type := a_type.deep_actual_type
@@ -116,11 +116,15 @@ feature -- Type translation
 			elseif helper.is_class_logical (l_class) then
 					-- The class is mapped to a Boogie type
 				l_constructor := helper.type_for_logical (l_class)
-				create l_params.make (1, l_type.generics.count)
-				across
-					l_type.generics as g
-				loop
-					l_params [g.target_index] := for_type_a (g.item)
+				if l_type.generics = Void then
+					create l_params.make_empty
+				else
+					create l_params.make (1, l_type.generics.count)
+					across
+						l_type.generics as g
+					loop
+						l_params [g.target_index] := for_type_a (g.item)
+					end
 				end
 
 					-- Check if the class corresponds to a map type
@@ -147,6 +151,12 @@ feature -- Type translation
 				l_default_function := helper.function_for_logical (l_class.feature_named_32 ("default_create"))
 				if attached l_default_function then
 					l_user_type.set_default_value (factory.function_call (l_default_function, << >>, l_user_type))
+				end
+
+					-- Check if the type has an invariant
+				l_type_inv_function := helper.string_class_note_value (l_class, "where")
+				if not l_type_inv_function.is_empty then
+					l_user_type.set_type_inv_function (l_type_inv_function)
 				end
 
 					-- Check if the type has a rank function
@@ -181,7 +191,7 @@ feature -- Type translation
 			l_boogie_type: IV_TYPE
 			l_content_type: TYPE_A
 			l_fname: STRING
-			l_arg: IV_EXPRESSION
+			l_arg, l_inv: IV_EXPRESSION
 			l_typed_sets: like helper.class_note_values
 		do
 			Result := factory.true_
@@ -198,12 +208,13 @@ feature -- Type translation
 				end
 				Result := factory.function_call (l_fname, << a_heap, a_expr, factory.type_value (l_content_type) >>, bool)
 				-- ToDo: refactor
-				if a_type.base_class.name_in_upper ~ "ARRAY" then
+				if not a_type.is_formal and then a_type.base_class.name_in_upper ~ "ARRAY" then
 					Result := factory.and_clean (Result, factory.function_call ("ARRAY.inv", << a_heap, a_expr >>, bool))
 				end
 			elseif l_boogie_type ~ int then
 				Result := numeric_property (a_type, a_expr)
 			else
+					-- Check if it is a logical type with some types sets
 				l_typed_sets := helper.class_note_values (a_type.base_class, "typed_sets")
 				if not l_typed_sets.is_empty then
 					if l_typed_sets.count /= a_type.generics.count then
@@ -230,6 +241,11 @@ feature -- Type translation
 						end
 					end
 				end
+			end
+				-- Check if the Boogie type has an invariant
+			l_inv := l_boogie_type.type_inv (a_expr)
+			if attached l_inv then
+				Result := factory.and_clean (Result, l_inv)
 			end
 		end
 

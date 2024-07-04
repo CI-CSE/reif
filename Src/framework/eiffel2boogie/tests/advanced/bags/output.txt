@@ -1,0 +1,21 @@
+======================================
+ANY.default_create (creator, inherited by A_BAGS)
+Successfully verified.
+======================================
+A_BAGS.good
+Successfully verified.
+======================================
+A_BAGS.good1
+Successfully verified.
+======================================
+A_BAGS.bad
+Verification failed.
+
+Line: 68. Precondition may be violated on invocation of multiple.
+--------------------------------------
+Line: 70. Precondition may be violated on invocation of extended_multiple.
+--------------------------------------
+Line: 72. Precondition may be violated on invocation of removed_multiple.
+======================================
+A_BAGS (invariant admissibility)
+Successfully verified.

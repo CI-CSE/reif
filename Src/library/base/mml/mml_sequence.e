@@ -1,7 +1,7 @@
 note
 	description: "Finite sequence."
 	author: "Nadia Polikarpova"
-	theory: "sequence.bpl"
+	theory: "sequence.bpl", "bag.bpl", "set.bpl"
 	maps_to: "Seq"
 	typed_sets: "Seq#Range"		
 
@@ -68,6 +68,11 @@ feature -- Conversion
 			-- Set of values.
 		do
 		end
+		
+	to_bag: MML_BAG [G]
+			-- Bag of sequence values.
+		do
+		end		
 		
 feature -- Measurement
 
@@ -205,5 +210,17 @@ feature -- Iterable implementation
 		do
 		end
 
+feature -- Convenience
+
+	empty_sequence: MML_SEQUENCE [G]
+		note
+			maps_to: "Seq#Empty"
+		external "C inline"
+		alias
+			"[
+				return NULL;
+			]"
+		end
+		
 end
 

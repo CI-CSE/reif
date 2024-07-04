@@ -120,6 +120,18 @@ feature -- General note helpers
 			end
 		end
 
+	string_class_note_value (a_class: CLASS_C; a_tag: STRING_32): STRING
+			-- Value of an string class note tag, empty string if not present.
+		local
+			l_values: ARRAYED_LIST [STRING_32]
+		do
+			Result := ""
+			l_values := class_note_values (a_class, a_tag)
+			if not l_values.is_empty then
+				Result := l_values.i_th (1).as_string_8
+			end
+		end
+
 	string_feature_note_value (a_feature: FEATURE_I; a_tag: STRING_32): STRING
 			-- Value of an string feature note tag, empty string if not present.
 		local
@@ -210,6 +222,12 @@ feature -- Feature status helpers
 				end
 				a_class.feature_table.forth
 			end
+		end
+
+	has_functional_representation (a_feature: FEATURE_I): BOOLEAN
+			-- Will a Boogie function be generated for `a_feature'?
+		do
+			Result := a_feature.has_return_value and not is_feature_status (a_feature, "impure")
 		end
 
 feature -- Class status helpers

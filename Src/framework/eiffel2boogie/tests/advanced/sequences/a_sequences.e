@@ -1,3 +1,6 @@
+note
+	explicit: "all"
+
 class A_SEQUENCES
 
 feature
@@ -34,6 +37,9 @@ feature
 			check s.prepended (1).but_first = s end
 			check s2.extended_at (s.count + 1, 1) [s.count + 1] = 1 end
 			check s1.replaced_at (s.count + 1, 2).tail (s.count + 1).first = 2 end
+			s2 := (create {MML_SEQUENCE [INTEGER]}) & 1 & 2 & 1
+			check s2.to_bag [1] = 2 end
+			check s2.to_bag [0] = 0 end
 		end
 
 	good1 (s: MML_SEQUENCE [A_SETS])
@@ -44,12 +50,26 @@ feature
 			check attached {A_SETS} s.first end
 		end
 
-	bad (s: MML_SEQUENCE [INTEGER])
+	bad (s: MML_SEQUENCE [INTEGER]; k: INTEGER)
 		local
 			x: INTEGER
 		do
-			x := s [1]
-			check s.but_last.count >= 0 end
+			if k = 1 then
+				x := s [1]
+			elseif k = 2 then
+				check s.but_last.count >= 0 end
+			elseif k = 3 then
+				check across s.domain & 10 as i all triv(s.but_last.count) and triv (s [i.item]) end end
+			else
+				check across 1 |..| 10 as i all triv (s [i.item]) end end
+			end
+		end
+
+	triv (x: INTEGER): BOOLEAN
+		note
+			status: functional
+		do
+			Result := true
 		end
 
 	seq_to_set (arg: MML_SEQUENCE[INTEGER])
@@ -75,4 +95,7 @@ feature
 			check set = seq.range end
 		end
 
+invariant
+	subjects = []
+	
 end

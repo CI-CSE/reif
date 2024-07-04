@@ -102,8 +102,9 @@ feature {NONE} -- Implementation
 	process_placeholder (a_formatter: TEXT_FORMATTER; a_placeholder: STRING)
 			-- Add `a_placeholder' to `a_formatter'.
 		local
-			l_cid, l_rid: INTEGER
+			l_cid, l_rid, l_fid: INTEGER
 			l_feature: FEATURE_I
+			l_attributes: like boogie_error.attributes
 		do
 			if a_placeholder ~ "$tag" then
 				if boogie_error.has_related_location then
@@ -112,10 +113,20 @@ feature {NONE} -- Implementation
 					a_formatter.add_comment (safe_value ("tag"))
 				end
 			elseif a_placeholder ~ "$called_feature" then
-				if boogie_error.attributes.has_key ("cid") and boogie_error.attributes.has_key ("rid") then
-					l_cid := boogie_error.attributes["cid"].to_integer
-					l_rid := boogie_error.attributes["rid"].to_integer
+				if boogie_error.is_postcondition_violation then
+					l_attributes := boogie_error.related_attributes
+				else
+					l_attributes := boogie_error.attributes
+				end
+				if l_attributes.has_key ("cid") and l_attributes.has_key ("rid") then
+					l_cid := l_attributes["cid"].to_integer
+					l_rid := l_attributes["rid"].to_integer
 					l_feature := system.class_of_id (l_cid).feature_of_rout_id (l_rid)
+					a_formatter.add_feature (l_feature.api_feature (l_cid), l_feature.feature_name_32)
+				elseif l_attributes.has_key ("cid") and l_attributes.has_key ("fid") then
+					l_cid := l_attributes["cid"].to_integer
+					l_fid := l_attributes["fid"].to_integer
+					l_feature := system.class_of_id (l_cid).feature_of_feature_id (l_fid)
 					a_formatter.add_feature (l_feature.api_feature (l_cid), l_feature.feature_name_32)
 				else
 					a_formatter.add_comment ("?called_feature")
@@ -132,6 +143,8 @@ feature {NONE} -- Implementation
 				else
 					a_formatter.add_comment (safe_value ("type"))
 				end
+			elseif a_placeholder ~ "$variant" then
+				a_formatter.add (boogie_error.attributes["varid"])
 			else
 				a_formatter.add_comment (a_placeholder)
 			end

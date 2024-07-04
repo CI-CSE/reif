@@ -279,6 +279,12 @@ feature -- Heap and map access
 			Result := heap_access (a_mapping.heap.name, a_mapping.current_expression, a_name, a_content_type)
 		end
 
+	is_heap (a_entity: IV_ENTITY): IV_EXPRESSION
+			-- Expression "IsHeap(a_entity)".
+		do
+			Result := function_call ("IsHeap", << a_entity >>, types.bool)
+		end
+
 	array_access (a_heap: IV_ENTITY; a_array, a_index: IV_EXPRESSION; a_content_type: IV_TYPE): IV_MAP_ACCESS
 			-- Array access to `a_array'[`a_index'].
 		do
@@ -315,6 +321,12 @@ feature -- Framing
 			create Result.make ("writable", types.frame)
 		end
 
+	global_readable: IV_ENTITY
+			-- Procedure-wide readable frame.
+		do
+			create Result.make ("readable", types.frame)
+		end
+
 	frame_access (a_frame, a_obj, a_field: IV_EXPRESSION): IV_MAP_ACCESS
 			-- Expression `a_frame [a_obj, a_field]'.
 		do
@@ -329,12 +341,12 @@ feature -- Framing
 			l_old_heap: IV_EXPRESSION
 		do
 			l_old_heap := old_ (create {IV_ENTITY}.make ("Heap", types.heap))
-			create l_fcall.make (name_translator.boogie_function_for_frame (a_feature, a_type), types.set (types.ref))
+			create l_fcall.make (name_translator.boogie_function_for_write_frame (a_feature, a_type), types.set (types.ref))
 			l_fcall.add_argument (l_old_heap)
 			across a_boogie_procedure.arguments as i loop
 				l_fcall.add_argument (i.item.entity)
 			end
-			Result := function_call ("writes", <<l_old_heap, global_heap, l_fcall>>, types.bool)
+			Result := function_call ("same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
 		end
 
 feature -- Miscellaneous
@@ -342,9 +354,9 @@ feature -- Miscellaneous
 	trace (a_text: STRING): IV_STATEMENT
 			-- Tracing statement.
 		local
-			l_assume: IV_ASSUME
+			l_assume: IV_ASSERT
 		do
-			create l_assume.make (true_)
+			create l_assume.make_assume (true_)
 			l_assume.set_attribute_string (":captureState %"" + a_text + "%"")
 			Result := l_assume
 		end

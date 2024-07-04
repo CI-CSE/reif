@@ -13,10 +13,16 @@ inherit
 feature -- Validity error messages
 
 	functional_feature_not_function: STRING_32
-		do Result := "Functional feature has to be a function." end
+		do Result := "Functional feature has to be a pure function." end
 
 	functional_feature_not_single_assignment: STRING_32
 		do Result := "A functional feature has to consist of exactly one assignment to the Result." end
+
+	pure_function_has_mods: STRING_32
+		do Result := "Function with a non-empty modify clause has to be declared impure." end
+
+	impure_function_in_contract: STRING_32
+		do Result := "Impure function cannot be used in specifications." end
 
 	creator_call_as_procedure (a_pname: STRING): STRING_32
 		do Result := locale.formatted_string ("Feature '$1' is a creator but is called as a regular procedure.", a_pname) end
@@ -36,6 +42,9 @@ feature -- Validity error messages
 	invalid_context_for_special_predicate (a_kind: STRING): STRING_32
 		do Result := locale.formatted_string ("$1 clauses are only allowed in preconditions and loop invariants (will be ignored)", a_kind) end
 
+	invalid_context_for_read_predicate: STRING_32
+		do Result := "Read sets are only allowed for functions (will be ignored)" end
+
 	variant_bad_type (a_index: INTEGER): STRING_32
 		do Result := locale.formatted_string ("Type of variant number $1 has no well-founded order.", a_index.out) end
 
@@ -52,6 +61,9 @@ feature -- Verification error messages
 
 	check_with_tag_violated: STRING_32
 		do Result := "Check $tag may be violated." end
+
+	function_precondition_violated: STRING_32
+		do Result := "Precondition may be violated on invocation of $called_feature." end
 
 	precondition_violated: STRING_32
 		do Result := "Precondition may be violated on call to $called_feature (untagged)." end
@@ -95,8 +107,8 @@ feature -- Verification error messages
 	decreases_not_decreasing: STRING_32
 		do Result := "Variant may not decrease at this recursive call / the end of this loop body." end
 
-	decreases_bounded (index: STRING): STRING_32
-		do Result := locale.formatted_string ("Integer variant component at position $1 may be negative.", index) end
+	decreases_bounded: STRING_32
+		do Result := "Integer variant component at position $variant may be negative." end
 
 	overflow: STRING_32
 		do Result := "Possible arithmetic overflow." end
@@ -123,10 +135,16 @@ feature -- Verification error messages
 		do Result := "Target of assignment may not be open." end
 
 	assignment_observers_open_or_inv_preserved: STRING_32
-		do Result := "Observers of the assignment target may not be open or do not preserver their invariant." end
+		do Result := "Observers of the assignment target may be invalidated." end
 
 	assignment_attribute_writable: STRING_32
-		do Result := "The attribute of the assignment may not be writable." end
+		do Result := "Target attribute may not be writable." end
+
+	access_attribute_readable: STRING_32
+		do Result := "Attribute $called_feature might not be readable." end
+
+	access_frame_readable: STRING_32
+		do Result := "Some memebers of the read frame of $called_feature might not be readable." end
 
 	ownership_explicit_note: STRING_32
 		do Result := "Disable this default by making $explicit_value explicit." end

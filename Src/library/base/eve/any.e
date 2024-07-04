@@ -68,9 +68,6 @@ feature -- Comparison
 			other_not_void: other /= Void
 		external
 			"built_in"
-		ensure
-			symmetric: Result implies other ~ Current
-			consistent: standard_is_equal (other) implies Result
 		end
 
 	frozen standard_is_equal (other: like Current): BOOLEAN
@@ -80,9 +77,6 @@ feature -- Comparison
 			other_not_void: other /= Void
 		external
 			"built_in"
-		ensure
-			same_type: Result implies same_type (other)
-			symmetric: Result implies other.standard_is_equal (Current)
 		end
 
 	frozen equal (a: detachable ANY; b: like a): BOOLEAN
@@ -95,10 +89,6 @@ feature -- Comparison
 				Result := b /= Void and then
 							a.is_equal (b)
 			end
-		ensure
-			definition: Result = (a = Void and b = Void) or else
-						((a /= Void and b /= Void) and then
-						a.is_equal (b))
 		end
 
 	frozen standard_equal (a: detachable ANY; b: like a): BOOLEAN
@@ -112,10 +102,6 @@ feature -- Comparison
 				Result := b /= Void and then
 							a.standard_is_equal (b)
 			end
-		ensure
-			definition: Result = (a = Void and b = Void) or else
-						((a /= Void and b /= Void) and then
-						a.standard_is_equal (b))
 		end
 
 	frozen is_deep_equal (other: like Current): BOOLEAN
@@ -124,10 +110,6 @@ feature -- Comparison
 			other_not_void: other /= Void
 		external
 			"built_in"
-		ensure
-			shallow_implies_deep: standard_is_equal (other) implies Result
-			same_type: Result implies same_type (other)
-			symmetric: Result implies other.is_deep_equal (Current)
 		end
 
 	frozen deep_equal (a: detachable ANY; b: like a): BOOLEAN
@@ -139,11 +121,6 @@ feature -- Comparison
 			else
 				Result := b /= Void and then a.is_deep_equal (b)
 			end
-		ensure
-			shallow_implies_deep: standard_equal (a, b) implies Result
-			both_or_none_void: (a = Void) implies (Result = (b = Void))
-			same_type: (Result and (a /= Void)) implies (b /= Void and then a.same_type (b))
-			symmetric: Result implies deep_equal (b, a)
 		end
 
 feature -- Duplication
@@ -342,6 +319,10 @@ feature -- Basic operations
 
 	frozen do_nothing
 			-- Execute a null action.
+		note
+			explicit: contracts, wrapping
+		require
+			modify ([])
 		do
 		end
 
@@ -387,19 +368,25 @@ feature -- SCOOP
 feature -- Verification: contract clauses
 
 	frozen modify (a: ANY): BOOLEAN
-			-- Helper function for adding modifies clauses in contracts.
+			-- Helper function for adding modify clauses in contracts.
 		do
 			Result := True
 		end
 
 	frozen modify_field (a_field: ANY; a_object: ANY): BOOLEAN
-			-- Helper function for adding modifies clauses in contracts.
+			-- Helper function for adding modify clauses in contracts.
 		do
 			Result := True
 		end
 
 	frozen reads (a: ANY): BOOLEAN
-			-- Helper function for adding reads clauses in contracts.
+			-- Helper function for adding read clauses in contracts.
+		do
+			Result := True
+		end
+
+	frozen reads_field (a_field: ANY; a_object: ANY): BOOLEAN
+			-- Helper function for adding read clauses in contracts.
 		do
 			Result := True
 		end
@@ -482,6 +469,18 @@ feature -- Verification: ownership queries
 			Result := True
 		end
 
+	frozen is_field_readable (a_field: STRING): BOOLEAN
+			-- Is field `a_field' of `Current' readable?
+		do
+			Result := True
+		end
+
+	frozen is_fully_readable: BOOLEAN
+			-- Are all fields of `Current' readable?
+		do
+			Result := True
+		end
+
 	frozen domain_has (a_obj: ANY): BOOLEAN
 			-- Is `a_obj' in the ownership domain of `Current'?
 		do
@@ -552,12 +551,8 @@ feature -- Verification: auxiliary
 		do
 		end
 
-invariant
---	reflexive_equality: standard_is_equal (Current)
---	reflexive_conformance: conforms_to (Current)
-
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -35,6 +35,12 @@ feature -- Status report
 			end
 		end
 
+	has_arg_current (a_feature: FEATURE_I): BOOLEAN
+			-- Does the translation of `a_feature' take "current" as the first argument?
+		do
+			Result := a_feature.has_return_value and not a_feature.is_external
+		end
+
 feature -- Basic operations
 
 	handle_routine_call_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
@@ -125,16 +131,7 @@ feature {NONE} -- Implementation
 			end
 
 				-- Add precondition check
-			if a_feature.has_precondition and not a_translator.is_in_quantifier then
-				create l_pre_call.make (name_translator.precondition_predicate_name (a_feature, a_translator.current_target_type), types.bool)
-				across
-					l_fcall.arguments as args
-				loop
-					l_pre_call.add_argument (args.item)
-				end
-				a_translator.add_safety_check (l_pre_call, "check", "precondition_of_function_" + a_feature.feature_name, a_translator.context_line_number)
-			end
-
+			a_translator.add_function_precondition_check (a_feature, l_fcall)
 		end
 
 	handle_nested (a_translator: E2B_EXPRESSION_TRANSLATOR; a_nested: NESTED_B)

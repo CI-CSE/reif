@@ -88,7 +88,9 @@ feature
 		local
 			x: INTEGER
 		do
-			x := s.any_item
+			if not s.is_empty then
+				x := s.any_item
+			end
 			Result := x + set_sum_bad (s / x)
 		end
 
@@ -108,6 +110,23 @@ feature
 			else
 				Result := s [1] + sequence_sum_bad (s)
 			end
+		end
+
+	bag_sum (b: MML_BAG [INTEGER]): INTEGER
+		local
+			x: INTEGER
+		do
+			if b.is_empty then
+				Result := 0
+			else
+				x := b.domain.any_item
+				Result := x + bag_sum (b / x)
+			end
+		end
+
+	bag_sum_bad (b: MML_BAG [INTEGER]): INTEGER
+		do
+			Result := bag_sum_bad (b)
 		end
 
 	no_args_bad
