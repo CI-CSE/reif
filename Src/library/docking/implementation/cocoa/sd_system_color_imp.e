@@ -44,7 +44,6 @@ feature -- Access
 			-- SD_TITE_BAR background of the focused window Blue
 		local
 			l_color: detachable NS_COLOR
-			l_color_utils: NS_COLOR_UTILS
 		do
 			create l_color.keyboard_focus_indicator_color
 			l_color := l_color.color_using_color_space_name (create {NS_STRING}.make_with_string ("NSDeviceRGBColorSpace"))

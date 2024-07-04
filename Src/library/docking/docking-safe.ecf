@@ -17,6 +17,12 @@
 		</option>
 		<setting name="dotnet_naming_convention" value="true"/>
 		<library name="base" location="$ISE_LIBRARY\library\base\base-safe.ecf" readonly="true"/>
+		<library name="cocoa" location="$ISE_LIBRARY\library\cocoa\cocoa-safe.ecf" readonly="false">
+			<condition>
+				<platform value="macintosh"/>
+				<custom name="vision_implementation" value="cocoa"/>
+			</condition>
+		</library>
 		<library name="kmp_matcher" location="$ISE_LIBRARY\library\text\regexp\kmp_matcher\kmp_matcher-safe.ecf"/>
 		<library name="vision2" location="$ISE_LIBRARY\library\vision2\vision2-safe.ecf" readonly="true"/>
 		<library name="vision2_extension" location="$ISE_LIBRARY\library\vision2_extension\vision2_extension-safe.ecf" readonly="true"/>

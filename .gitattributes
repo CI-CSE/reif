@@ -3365,7 +3365,6 @@ Src/experimental/library/i18n/example_application/po_files/ru_RU.po -text
 Src/experimental/library/i18n/example_application/po_files/xx_XX.po -text
 Src/experimental/library/i18n/example_application/po_files/zh_CN.po -text
 Src/experimental/library/i18n/forum.txt -text
-Src/experimental/library/i18n/package.iron -text
 Src/experimental/library/i18n/tests/test_files/locale/results/unix/POSIX -text
 Src/experimental/library/i18n/tests/test_files/locale/results/unix/en_AG -text
 Src/experimental/library/i18n/tests/test_files/locale/results/unix/en_IN -text
@@ -3658,7 +3657,6 @@ Src/experimental/library/vision2/implementation/carbon/widgets/dialogs/.DS_Store
 Src/experimental/library/vision2/implementation/carbon/wrapper/config.ewg -text
 Src/experimental/library/vision2/implementation/carbon/wrapper/generated_wrapper/eiffel/abstraction/.DS_Store -text
 Src/experimental/library/vision2/implementation/cocoa/Readme.txt -text
-Src/experimental/library/vision2/package.iron -text
 Src/experimental/library/vision2/tests/graphics/01bpp.bmp -text
 Src/experimental/library/vision2/tests/graphics/04bpp.bmp -text
 Src/experimental/library/vision2/tests/graphics/08bpp.bmp -text
