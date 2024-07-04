@@ -86,10 +86,14 @@ feature -- Access
 			-- Feature which was analyzed through dynamic means.
 
 	collected_runtime_data: DS_HASH_TABLE [LINKED_LIST [TUPLE [EPA_POSITIONED_VALUE, EPA_POSITIONED_VALUE]], STRING]
-			-- Runtime data collected through dynamic means.
+			-- Runtime data collected through dynamic means
+			-- Keys are program locations and expressions of the form `loc;expr'.
+			-- Values are a list of pre-state / post-state pairs containing pre-state and post-state values.
 
 	analysis_order: LINKED_LIST [TUPLE [INTEGER, INTEGER]]
-			--
+			-- List of pre-state / post-state pairs in the order they were analyzed.
+			-- Note: The analysis order is not the same as the execution order which is complete
+			-- whilst the analysis order only contains the hit pre-state / post-state breakpoint slots.
 
 	output_path: STRING
 			-- Output-path where the file should be written to.
@@ -123,7 +127,7 @@ feature -- Basic operations
 			-- Write object to disk.
 			create l_printer.make
 			l_object.accept (l_printer)
-			create l_file.make_create_read_write (output_path + context_class.name + "." + analyzed_feature.feature_name_32 + ".txt")
+			create l_file.make_create_read_write (output_path)
 			l_file.put_string (l_printer.to_json)
 			l_file.close
 		end
