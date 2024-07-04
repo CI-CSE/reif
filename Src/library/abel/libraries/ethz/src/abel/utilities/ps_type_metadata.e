@@ -188,6 +188,11 @@ feature -- Attributes
 		end
 
 
+feature  -- Utilities
+
+	reflection:INTERNAL
+		-- An instance of INTERNAL.
+
 
 feature {PS_METADATA_FACTORY} -- Initialization
 
@@ -231,14 +236,18 @@ feature {PS_METADATA_FACTORY} -- Initialization
 				attributes.extend (attr_name)
 				i:= i+1
 			end
+
+--			fixme ("A little hack to support Escher")
+--			if reflection.type_conforms_to (type.type_id, reflection.dynamic_type_from_string ("VERSIONED_CLASS")) then
+--				attr_name_to_type_hash.extend (factory.create_metadata_from_object (i), "version")
+--				attributes.extend ("version")
+--			end
 		end
 
 
 
 feature{NONE} -- Implementation
 
-	reflection:INTERNAL
-		-- An instance of INTERNAL.
 
 	factory: PS_METADATA_FACTORY
 		-- The factory that created `Current'

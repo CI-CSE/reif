@@ -11,9 +11,9 @@ inherit
 
 feature{NONE}
 
-	make_repository: PS_RELATIONA_IN_MEMORY_REPOSITORY
+	make_repository: PS_IN_MEMORY_REPOSITORY
 		do
-			create Result.make (create {PS_IN_MEMORY_DATABASE}.make)
+			create Result.make_empty
 		end
 
 feature
@@ -29,8 +29,6 @@ feature
 	test_crud_flat_in_memory
 		do
 			crud_tests.all_flat_object_tests
-			--crud_tests.test_flat_class_store
-			--crud_tests.test_flat_class_all_crud
 		end
 
 	test_references_in_memory
@@ -58,5 +56,15 @@ feature
 	test_transaction_repeatable_read
 		do
 			transaction_tests.test_repeatable_read
+		end
+
+	test_object_graph_write_settings
+		do
+			object_graph_tests.test_write_settings
+		end
+
+	test_object_graph_read_settings
+		do
+			object_graph_tests.test_retrieval_settings
 		end
 end
