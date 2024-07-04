@@ -50,7 +50,7 @@ feature {NONE} -- Initialization
 							-- We still want to instantiate the list, as we want to analyze exactly zero classes.
 						create {ARRAYED_LIST [STRING_32]} class_name_list.make (0)
 					else
-						class_name_list := l_args.item.as_string_32.split (' ')
+						class_name_list := l_args.item.split (' ')
 					end
 				else
 					unknown_arguments.extend (l_args.item)

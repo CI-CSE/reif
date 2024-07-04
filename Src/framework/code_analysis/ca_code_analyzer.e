@@ -84,6 +84,16 @@ feature {NONE} -- Initialization
 			create l_rule_sorter.make (l_rule_comparator)
 			l_rule_sorter.sort (rules)
 
+				-- Sort rules by ID.
+			create l_rule_comparator.make (
+				agent (u, v: CA_RULE): BOOLEAN
+					do
+						Result := u.id < v.id
+					end
+			)
+			create l_rule_sorter.make (l_rule_comparator)
+			l_rule_sorter.sort (rules)
+
 			settings.initialize_rule_settings (rules)
 
 			create classes_to_analyze.make
