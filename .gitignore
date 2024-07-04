@@ -334,10 +334,13 @@ Src/dotnet/consumer/*.wb
 Src/dotnet/consumer/EIFGENs
 Src/dotnet/consumer/EiffelSoftware.MetadataConsumer.rc
 Src/examples/Eiffel2JavaScript/circles/EIFGENs
+Src/examples/Eiffel2JavaScript/helloworld/EIFGENs
+Src/examples/Eiffel2JavaScript/translator_test/EIFGENs
 Src/examples/docking/simple/EIFGENs
 Src/examples/proofs/account/EIFGENs
 Src/examples/proofs/demo/EIFGENs
 Src/examples/scoop/baboon_crossing/EIFGENs
+Src/examples/scoop/barbershop/*.rc
 Src/examples/scoop/barbershop/EIFGENs
 Src/examples/scoop/counter/EIFGENs
 Src/examples/scoop/dining_philosophers/EIFGENs

@@ -233,6 +233,9 @@ feature -- Basic Operations
 				if attached rescue_code as safe_rescue_code then
 					output.put_line ("} catch ($err) {")
 					output.put_data (safe_rescue_code)
+					output.indent
+					output.put_line ("if (!$retry) { throw $err; }")
+					output.unindent
 					output.put_line ("}")
 					output.unindent
 					output.put_line ("}")
@@ -350,7 +353,7 @@ feature {NONE} -- Implementation
 				output.pop
 			end
 
-			if a_this_used_in_closure then
+			if a_this_used_in_closure and not jsc_context.name_mapper.is_inside_agent then
 					-- Write the closure self reference
 				output.push ("")
 					output.put ("$this = this")

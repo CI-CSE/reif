@@ -154,7 +154,7 @@ feature -- Basic operations
 				l_transition_tuple.operand_map := l_operand_map
 				-- Feature name is in the first column
 				l_transition_tuple.feature_name := l_executor.last_results.item.at (1)
-				io.put_string ("Feature: " + l_transition_tuple.feature_name + "%N")
+				--io.put_string ("Feature: " + l_transition_tuple.feature_name + "%N")
 				-- Position of i-th variable is in the '1 + i*6'-th column
 				from
 					l_i := 1
@@ -163,7 +163,7 @@ feature -- Basic operations
 					variables.after
 				loop
 					l_transition_tuple.operand_map.put (l_executor.last_results.item.at (1 + l_i*6).to_integer, variables.key_for_iteration)
-					io.put_string ("%TVariable: " + variables.key_for_iteration + " -> " + l_executor.last_results.item.at (1 + l_i*6) + "%N")
+					--io.put_string ("%TVariable: " + variables.key_for_iteration + " -> " + l_executor.last_results.item.at (1 + l_i*6) + "%N")
 					l_i := l_i + 1
 					variables.forth
 				end
@@ -261,6 +261,33 @@ feature -- Some test cases
 
 			make (l_operand_map, l_preconditions, l_postconditions, connection)
 			set_class_name ("LINKED_LIST")
+		end
+
+	test_4
+			-- Variables: l: LINKED_LIST [ANY]
+			-- Preconditions: True
+			-- Postconditions: l.count > old l.count
+			-- Note: `append' and `extend' should be in the result, and pay attention, that both features
+			-- needs 2 operands, but we only have one, so in the result, only one variable has its binding.
+		local
+			l_preconditions: LINKED_LIST [STRING]
+			l_postconditions: LINKED_LIST [STRING]
+			l_operand_map: HASH_TABLE [TYPE_A, STRING]
+		do
+
+
+			create l_operand_map.make (1)
+			l_operand_map.compare_objects
+			l_operand_map.force (type_a_from_string_in_application_context ("TWO_WAY_TREE [ANY]"), "Current")
+			l_operand_map.force (type_a_from_string_in_application_context ("ANY"), "v")
+
+			create l_preconditions.make
+			create l_postconditions.make
+			l_preconditions.extend ("not Current.is_inserted (v)")
+			l_postconditions.extend ("Current.is_inserted (v)")
+
+			make (l_operand_map, l_preconditions, l_postconditions, connection)
+			set_class_name ("TWO_WAY_TREE")
 		end
 
 ;note
