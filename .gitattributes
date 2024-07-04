@@ -3569,22 +3569,22 @@ Src/experimental/library/ribbon/test/src/ribbon_project.er -text
 Src/experimental/library/runtime/logging/doc/Arch_Design_and_Impl.docx -text
 Src/experimental/library/runtime/logging/doc/Arch_Design_and_Impl.pdf -text svneol=unset#application/pdf
 Src/experimental/library/runtime/logging/doc/Arch_Design_and_Impl.vsd -text
-<<<<<<< HEAD
 Src/experimental/library/runtime/logging/doc/Readme.1st -text
 Src/experimental/library/store/dbms/rdbms/mysql/Readme -text
-Src/experimental/library/text/parser/xml/parser/license.lic -text
-Src/experimental/library/text/parser/xml/tree/license.lic -text
-Src/experimental/library/text/uri/license.lic -text
-=======
 Src/experimental/library/store/test/test_results/oracle_results -text
->>>>>>> 72a8a3e771e09764df9889f35d98d576161f0656
-Src/experimental/library/vision2/Clib/default_vision2_icon.ico -text
+Src/experimental/library/store/test/test_results/oracle_results -text
 Src/experimental/library/text/parser/xml/README.txt -text
 Src/experimental/library/text/parser/xml/parser/callbacks/README.TXT -text
+Src/experimental/library/text/parser/xml/parser/callbacks/README.TXT -text
+Src/experimental/library/text/parser/xml/parser/license.lic -text
 Src/experimental/library/text/parser/xml/parser/license.lic -text
 Src/experimental/library/text/parser/xml/tree/README.TXT -text
+Src/experimental/library/text/parser/xml/tree/README.TXT -text
+Src/experimental/library/text/parser/xml/tree/license.lic -text
 Src/experimental/library/text/parser/xml/tree/license.lic -text
 Src/experimental/library/text/uri/license.lic -text
+Src/experimental/library/text/uri/license.lic -text
+Src/experimental/library/vision2/Clib/default_vision2_icon.ico -text
 Src/experimental/library/vision2/Clib/default_vision2_icon.ico -text
 Src/experimental/library/vision2/implementation/carbon/Readme.txt -text
 Src/experimental/library/vision2/implementation/carbon/kernel/.DS_Store -text
