@@ -7,17 +7,40 @@ note
 deferred class
 	AT_COMMON
 
-feature -- Shared strings
+inherit
+	AT_TRI_STATE_BOOLEAN_CONSTANTS
+
+	AT_SHARED_HINT_TABLES
+
+
+feature {NONE} -- Shared strings
 
 	at_strings: AT_STRINGS
 			-- Localized strings for AutoTeach.
-		once
+		once ("PROCESS")
 			create Result
 		ensure
 			valid_result: Result /= Void
 		end
 
-feature {AT_COMMON} -- Utility
+feature -- Enums
+
+	enum_block_type: AT_ENUM_BLOCK_TYPE
+		once ("PROCESS")
+			create Result
+		end
+
+	enum_placeholder: AT_ENUM_PLACEHOLDER
+		once ("PROCESS")
+			create Result
+		end
+
+	enum_policy_type: AT_ENUM_POLICY_TYPE
+		once ("PROCESS")
+			create Result
+		end
+
+feature -- For use with contracts
 
 	is_valid_hint_level (a_level: INTEGER): BOOLEAN
 			-- Does `a_level' represent a valid hint level?
@@ -26,6 +49,70 @@ feature {AT_COMMON} -- Utility
 				-- be acceptable, in practice it is probably better to have a limit,
 				-- so that the program throws an error if absurd hint levels are specified.
 			Result := a_level >= 0 and a_level <= 10
+		end
+
+
+feature {NONE} -- Utility
+
+		-- Copy-pasted from the eweasel source code.
+	is_white (c: CHARACTER): BOOLEAN
+			-- Is `c' a white space character?
+		do
+			Result := c = ' ' or c = '%T' or c = '%R' or c = '%N';
+		end;
+
+		-- Copy-pasted from the eweasel source code.
+	broken_into_words (line: STRING): DYNAMIC_LIST [STRING]
+			-- Result of breaking `line' into words, where each
+			-- word is terminated by white space
+		require
+			line_exists: line /= Void;
+		local
+			pos, first, last: INTEGER;
+			word: STRING;
+			char: CHARACTER;
+			in_word, is_white_char: BOOLEAN;
+		do
+			from
+				create {ARRAYED_LIST [STRING]} Result.make (4)
+				pos := 1;
+			until
+				pos > line.count
+			loop
+				char := line.item (pos);
+				is_white_char := is_white (char);
+				if in_word then
+					if is_white_char then
+						in_word := False;
+						last := pos - 1;
+						create word.make (last - first + 1);
+						word.set (line, first, last);
+						Result.extend (word);
+					end
+				else
+					if not is_white_char then
+						in_word := True;
+						first := pos;
+					end
+				end;
+				pos := pos + 1;
+			end;
+			if in_word then
+				last := pos - 1;
+				create word.make (last - first + 1);
+				word.set (line, first, last);
+				Result.extend (word);
+			end
+		end;
+
+	capitalized (a_string: READABLE_STRING_GENERAL): READABLE_STRING_GENERAL
+			-- `a_string', where the first character is converted to upper case.
+		do
+			if a_string.count < 1 then
+				Result := a_string.twin
+			else
+				Result := a_string.substring (1, 1).as_upper + a_string.substring (2, a_string.count)
+			end
 		end
 
 	count_leading (a_char: CHARACTER; a_string: STRING): INTEGER
@@ -47,6 +134,36 @@ feature {AT_COMMON} -- Utility
 			end
 
 			Result := i - 1
+		end
+
+	tab_string (a_tab_count: INTEGER): STRING
+			-- A string made of `a_tab_count' tabs.
+		require
+			non_negative: a_tab_count >= 0
+		do
+			if a_tab_count = 0 then
+					-- We need a special case, as {STRING}.multiply does not accept zero as an argument.
+				Result := ""
+			else
+				Result := "%T"
+				Result.multiply (a_tab_count)
+			end
+		end
+
+	on_off_to_tristate (a_string: STRING): AT_TRI_STATE_BOOLEAN
+			-- Translates "on" to tri_true, "off" to tri_false and any other string to tri_undefined.
+			-- Case insensitive.
+		local
+			l_string: STRING
+		do
+			l_string := a_string.as_lower
+			if l_string.same_string ("on") then
+				Result := Tri_true
+			elseif l_string.same_string ("off") then
+				Result := Tri_false
+			else
+				Result := Tri_undefined
+			end
 		end
 
 end

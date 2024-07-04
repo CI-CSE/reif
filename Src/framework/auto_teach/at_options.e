@@ -19,9 +19,22 @@ feature {NONE} -- Initialization
 	make_with_defaults
 			-- Initialization for `Current'.
 		do
-			hint_level := 2
+			hint_level := 0
 			insert_code_placeholder := True
 			create output_directory.make_with_path (create {PATH}.make_current)
+
+			hint_table := hint_tables.default_unannotated_hint_table
+		end
+
+feature -- Copying
+
+	restore_from, replace_with (a_other: like Current)
+			-- Replaces the value of all options from the values of `a_other'
+		do
+			should_run_hinter := a_other.should_run_hinter
+			insert_code_placeholder := a_other.insert_code_placeholder
+			hint_level := a_other.hint_level
+			output_directory := a_other.output_directory
 		end
 
 feature -- Hinter options
@@ -38,15 +51,9 @@ feature -- Hinter options
 	output_directory: DIRECTORY assign set_output_directory
 			-- Output directory for classes processed by hinter.
 
-		-- TODO: convert these to preferences
+	hint_table: AT_HINT_TABLE assign set_hint_table
+			-- The table defining the policy for showing/hiding code blocks.
 
-	hide_routine_bodies: BOOLEAN = True
-
-	hide_preconditions: BOOLEAN = True
-
-	hide_postconditions: BOOLEAN = True
-
-	hide_class_invariants: BOOLEAN = True
 
 feature {NONE} -- Setters
 
@@ -82,6 +89,14 @@ feature {NONE} -- Setters
 			output_directory := a_dir
 		ensure
 			directory_set: output_directory = a_dir
+		end
+
+	set_hint_table (a_hint_table: AT_HINT_TABLE)
+			-- Set `hint_table' to `a_hint_table'.
+		do
+			hint_table := a_hint_table
+		ensure
+			hint_table_set: hint_table = a_hint_table
 		end
 
 end
