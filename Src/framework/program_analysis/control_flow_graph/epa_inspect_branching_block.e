@@ -1,5 +1,5 @@
 note
-	description: "Summary description for {EPA_INSPECT_SPLITTING_BLOCK}."
+	description: "Object that represents a inspect branching block in a CFG."
 	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
@@ -16,7 +16,7 @@ inherit
 create
 	make
 
-feature{NONE} -- Initialization
+feature {NONE} -- Initialization
 
 	make (a_id: INTEGER; a_switch: like switch; a_intervals: like intervals)
 			-- Initialize Current.
@@ -58,6 +58,7 @@ feature{NONE} -- Initialization
 				check should_not_happen: False end
 			end
 			asts.extend (condition)
+			initialize_predecessors_and_successors
 		ensure
 			condition_attached: condition /= Void
 		end
@@ -99,5 +100,13 @@ feature -- Access
 
 	intervals: ARRAYED_LIST [INTERVAL_AS]
 			-- Interval of current case
+
+feature -- Visitor
+
+	process (a_visitor: EPA_CFG_BLOCK_VISITOR)
+			-- Visitor feature.
+		do
+			a_visitor.process_inspect_branching_block (Current)
+		end
 
 end
