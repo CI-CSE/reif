@@ -216,11 +216,15 @@ feature -- Visitors
 				last_expression := factory.function_call ("Set#Equal", << l_left, l_right >>, l_type)
 			else
 					-- TODO: REFACTOR
-				if a_operator ~ "+" then
-					last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
-				else
+--				if a_operator ~ "+" then
+--					last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
+--				elseif a_operator ~ "-" then
+--					last_expression := factory.function_call ("subtract", << l_left, l_right >>, types.int)
+--				elseif a_operator ~ "*" then
+--					last_expression := factory.function_call ("multiply", << l_left, l_right >>, types.int)
+--				else
 					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
-				end
+--				end
 				if
 					options.is_checking_overflow and then
 					(a_node.left.type.is_integer or a_node.left.type.is_natural) and then
@@ -230,7 +234,7 @@ feature -- Visitors
 					l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
 					create l_fcall.make (l_fname, types.bool)
 					l_fcall.add_argument (last_expression)
-					add_safety_check (l_fcall, "overflow")
+					add_safety_check (l_fcall, "overflow", Void)
 				end
 			end
 		end
@@ -692,7 +696,7 @@ feature -- Visitors
 					l_call.add_argument (entity_mapping.heap)
 					l_call.add_argument (current_target)
 					l_call.add_argument (create {IV_VALUE}.make (name_translator.boogie_name_for_type (current_target_type), types.type))
-					add_safety_check (l_call, "attached")
+					add_safety_check (l_call, "attached", "implicit_attachment")
 				end
 
 					-- Evaluate message with original expression
@@ -836,18 +840,19 @@ feature -- Visitors
 		local
 			l_call: IV_FUNCTION_CALL
 		do
-			create l_call.make ("$TUPLE.item", types.generic_type)
-			l_call.add_argument (entity_mapping.heap)
-			l_call.add_argument (current_target)
-			l_call.add_argument (create {IV_VALUE}.make (a_node.position.out, types.int))
-			last_expression := l_call
+			last_expression := factory.function_call (
+				"fun.TUPLE.item",
+				<<
+					entity_mapping.heap,
+					current_target,
+					factory.int_value (a_node.position)
+				>>,
+				types.generic_type)
 		end
 
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		do
-			-- body: create tuple ref
-			-- loop through `expressions' and put elements
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -946,7 +951,7 @@ feature -- Translation
 		deferred
 		end
 
-	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING)
+	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING)
 			-- Add safety check `a_expression' of type `a_name'.
 		require
 			boolean_expression: a_expression.type.is_boolean
