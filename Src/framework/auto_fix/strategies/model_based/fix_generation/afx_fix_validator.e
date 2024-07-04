@@ -63,8 +63,6 @@ feature{NONE} -- Initialization
 			end
 
 			create valid_fixes.make
-
-			create timer.make (agent on_test_case_execution_time_out)
 		end
 
 feature -- Access
@@ -120,7 +118,6 @@ feature{NONE} -- Actions
 
 					-- Maximal number of valid fixes have already been found, terminate fix validation.
 				if config.max_valid_fix_number > 0 and then config.max_valid_fix_number <= l_valid_fixes_count then
-					timer.set_timeout (0)
 					worker.set_should_quit (True)
 					should_quit := True
 				end
@@ -140,9 +137,6 @@ feature{NONE} -- Actions
 
 feature{NONE} -- Requests for interpreter
 
-	timer: AFX_TIMER_THREAD
-			-- Timer to control test case execution time out.
-
 	exception_count: NATURAL_32
 			-- Number of exceptions that are encountered so far
 
@@ -155,6 +149,8 @@ feature -- Basic operations
 			-- Validate fixes in `melted_fixes'.
 		local
 			l_fac: PROCESS_FACTORY
+			l_cmd_line: STRING
+			l_timer: AFX_TIMER_THREAD
 		do
 			if not melted_fixes.is_empty then
 				exception_count := 0
@@ -164,14 +160,18 @@ feature -- Basic operations
 				if socket_listener.is_listening then
 					event_actions.notify_on_interpreter_starts (port)
 					create l_fac
-					process := l_fac.process_launcher_with_command_line (system.eiffel_system.application_name (True) + " --validate-fix " + config.interpreter_log_path + " true " + port.out + " -eif_root " + afx_project_root_class + "." + afx_project_root_feature, config.working_directory)
+					l_cmd_line := system.eiffel_system.application_name (True) + " --validate-fix " + config.interpreter_log_path + " true " + port.out + " -eif_root " + afx_project_root_class + "." + afx_project_root_feature
+--					Io.put_string ("Launching debugee with: " + l_cmd_line + "%N")
+--					Io.output.flush
+					process := l_fac.process_launcher_with_command_line (l_cmd_line, config.working_directory)
 					process.launch
 					check process.launched end
 
 					if attached {like socket} socket_listener.wait_for_connection (5000) as l_socket then
 						socket := l_socket
-						timer.reset_timer
-						create worker.make (fixes, melted_fixes, agent on_fix_validation_start, agent on_fix_validation_end, timer, socket, all_test_cases, all_passing_test_cases)
+						create l_timer.make (agent on_test_case_execution_time_out)
+						l_timer.reset_timer
+						create worker.make (fixes, melted_fixes, agent on_fix_validation_start, agent on_fix_validation_end, l_timer, socket, all_test_cases, all_passing_test_cases)
 						worker.execute
 						process.wait_for_exit_with_timeout (5000)
 						if not process.has_exited then
@@ -187,7 +187,6 @@ feature -- Basic operations
 						process.wait_for_exit
 					end
 				end
-
 			end
 		end
 
@@ -218,15 +217,22 @@ feature -- Basic operations
 			l_body_id: INTEGER
 			l_pattern_id: INTEGER
 			l_data: TUPLE [byte_code: STRING; last_bpslot: INTEGER]
+			l_retried: BOOLEAN
 		do
-			l_class ?= a_fix.recipient_written_class
-			l_feat := a_fix.origin_recipient
-			l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + a_fix.feature_text, False)
-			if not l_data.byte_code.is_empty then
-				l_body_id := l_feat.real_body_id (l_class.types.first) - 1
-				l_pattern_id := l_feat.real_pattern_id (l_class.types.first)
-				create Result.make (a_fix.id, l_body_id, l_pattern_id, l_data.byte_code, l_data.last_bpslot)
+			if not l_retried then
+				l_class ?= a_fix.recipient_written_class
+				l_feat := a_fix.origin_recipient
+				l_data := feature_byte_code_with_text (l_class, l_feat, "feature " + a_fix.feature_text, False)
+				if not l_data.byte_code.is_empty then
+					l_body_id := l_feat.real_body_id (l_class.types.first) - 1
+					l_pattern_id := l_feat.real_pattern_id (l_class.types.first)
+					create Result.make (a_fix.id, l_body_id, l_pattern_id, l_data.byte_code, l_data.last_bpslot)
+				end
 			end
+		rescue
+			l_retried := True
+			Result := Void
+			retry
 		end
 
 feature{NONE} -- Inter-process communication
