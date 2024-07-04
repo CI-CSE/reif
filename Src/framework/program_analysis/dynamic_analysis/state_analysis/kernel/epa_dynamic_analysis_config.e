@@ -5,7 +5,7 @@ note
 	revision: "$Revision$"
 
 class
-	EPA_CONFIG
+	EPA_DYNAMIC_ANALYSIS_CONFIG
 
 inherit
 	SHARED_EXEC_ENVIRONMENT
@@ -16,7 +16,7 @@ create
 feature {NONE} -- Initialization
 
 	make (a_system: like eiffel_system)
-			-- Initialize Current.
+			-- Initialize `eiffel_system' with `a_system'.
 		do
 			eiffel_system := a_system
 		ensure
@@ -45,7 +45,7 @@ feature -- Access
 			-- be evaluated.
 
 	output_path: STRING
-			-- Output-path for storing the collected data.
+			-- Output-path where the collected runtime data should be stored.
 
 	working_directory: STRING
 			-- Working directory of the project
@@ -54,7 +54,7 @@ feature -- Access
 		end
 
 	root_class: CLASS_C
-			-- Root class in `system'.
+			-- Root class in `eiffel_system'.
 		do
 			Result := eiffel_system.root_type.associated_class
 		end
@@ -69,7 +69,7 @@ feature -- Status report
 			-- Are specific program locations where expressions should
 			-- be evaluated specified?
 
-	is_all_progm_locs_set: BOOLEAN
+	is_all_prgm_locs_set: BOOLEAN
 			-- Are expresions at all program locations evaluated?
 
 	is_aut_choice_of_exprs_set: BOOLEAN
@@ -157,12 +157,12 @@ feature -- Setting
 			is_specific_prgm_locs_set_set: is_specific_prgm_locs_set = b
 		end
 
-	set_is_all_progm_locs_set (b: BOOLEAN)
+	set_is_all_prgm_locs_set (b: BOOLEAN)
 			-- Set `is_all_progm_locs_set' to `b'
 		do
-			is_all_progm_locs_set := b
+			is_all_prgm_locs_set := b
 		ensure
-			is_all_progm_locs_set_set: is_all_progm_locs_set = b
+			is_all_prgm_locs_set_set: is_all_prgm_locs_set = b
 		end
 
 	set_is_aut_choice_of_exprs_set (b: BOOLEAN)
@@ -206,9 +206,13 @@ feature -- Setting
 		end
 
 	set_output (a_output_path: like output_path)
-			-- Set `output' to `a_output'.
+			-- Set `output_path' to `a_output_path'.
+		require
+			a_output_path_not_void: a_output_path /= Void
 		do
 			output_path := a_output_path
+		ensure
+			output_path_set: output_path.is_equal (a_output_path)
 		end
 
 end
