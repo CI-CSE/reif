@@ -19,24 +19,37 @@ inherit
 create
 	default_create, make_with_two_agents
 
+feature {NONE} -- Initialization
+
+	make_with_two_agents (a_block_type: AT_BLOCK_TYPE; a_default_visibility_agent: like default_visibility_agent; a_default_content_visibility_agent: like default_content_visibility_agent)
+			-- Initialize `Current', setting the block type and the agents for retrieving
+			-- the block default visibility and default content visibility respectively.
+		require
+			complex_block: a_block_type.enum_type.is_complex_block_type (a_block_type)
+		do
+			make_with_visibility_agent (a_block_type, a_default_visibility_agent)
+			default_content_visibility_agent := a_default_content_visibility_agent
+			global_treat_as_complex := True
+		end
+
 feature -- Content visibility
 
-	default_content_visibility: AT_TRI_STATE_BOOLEAN
+	default_content_visibility: AT_TRILEAN
 			-- The default 'content visibility' value for this type of block.
 		do
 			Result := default_content_visibility_agent.item ([block_type])
 		end
 
-	global_content_visibility_override: AT_TRI_STATE_BOOLEAN assign set_global_content_visibility_override
+	global_content_visibility_override: AT_TRILEAN assign set_global_content_visibility_override
 			-- Global (class-wide) content visibility override flag.
 			-- If set to True or False, overrides the default content visibility.
 
-	local_content_visibility_override: AT_TRI_STATE_BOOLEAN assign set_local_content_visibility_override
+	local_content_visibility_override: AT_TRILEAN assign set_local_content_visibility_override
 			-- Local (one occurrence only) content visibility override flag.
 			-- If set to True or False, overrides the default content visibility
 			-- and the global content visibility flag.
 
-	effective_content_visibility: AT_TRI_STATE_BOOLEAN
+	effective_content_visibility: AT_TRILEAN
 			-- What is the effective content visibility for this block type,
 			-- keeping the default value and the overrides into account?
 		do
@@ -82,9 +95,9 @@ feature -- Treatment
 
 	global_treat_as_complex: BOOLEAN assign set_global_treat_as_complex
 		-- The global policy of treating this block type as a complex block.
-		-- This is not a tri-state boolean, it must always be set to some value.
+		-- This is not a trilean, it must always be set to some value.
 
-	local_treat_as_complex_override: AT_TRI_STATE_BOOLEAN assign set_local_treat_as_complex_override
+	local_treat_as_complex_override: AT_TRILEAN assign set_local_treat_as_complex_override
 		-- The local policy of treating this block type as a complex block.
 		-- Overrides the global policy.
 
@@ -97,13 +110,13 @@ feature -- Treatment
 
 feature {NONE} -- Setters
 
-	set_global_content_visibility_override (a_value: AT_TRI_STATE_BOOLEAN)
+	set_global_content_visibility_override (a_value: AT_TRILEAN)
 			-- Set `global_content_visibility_override' to `a_value'.
 		do
 			global_content_visibility_override := a_value
 		end
 
-	set_local_content_visibility_override (a_value: AT_TRI_STATE_BOOLEAN)
+	set_local_content_visibility_override (a_value: AT_TRILEAN)
 			-- Set `local_content_visibility_override' to `a_value'.
 		do
 			local_content_visibility_override := a_value
@@ -115,28 +128,16 @@ feature {NONE} -- Setters
 			global_treat_as_complex := a_value
 		end
 
-	set_local_treat_as_complex_override (a_value: AT_TRI_STATE_BOOLEAN)
+	set_local_treat_as_complex_override (a_value: AT_TRILEAN)
 			-- Set `local_treat_as_complex_override' to `a_value'.
 		do
 			local_treat_as_complex_override := a_value
 		end
 
-feature {NONE} -- Initialization
-
-	make_with_two_agents (a_block_type: AT_BLOCK_TYPE; a_default_visibility_agent: like default_visibility_agent; a_default_content_visibility_agent: like default_content_visibility_agent)
-			-- Initialize `Current', setting the block type and the agents for retrieving
-			-- the block default visibility and default content visibility respectively.
-		require
-			complex_block: a_block_type.enum_type.is_complex_block_type (a_block_type)
-		do
-			make_with_visibility_agent (a_block_type, a_default_visibility_agent)
-			default_content_visibility_agent := a_default_content_visibility_agent
-			global_treat_as_complex := True
-		end
 
 feature {NONE} -- Implementation
 
-	default_content_visibility_agent: FUNCTION [ANY, TUPLE [AT_BLOCK_TYPE], AT_TRI_STATE_BOOLEAN]
+	default_content_visibility_agent: FUNCTION [ANY, TUPLE [AT_BLOCK_TYPE], AT_TRILEAN]
 			-- Agent for retrieving the default content visibility for this block type.
 
 invariant

@@ -39,6 +39,9 @@ axiom (forall<T> s0: Seq T, s1: Seq T, x: T ::
 axiom (forall<T> s: Seq T, v: T, x: T ::
   { Seq#Has(Seq#Extended(s, v), x) }
     Seq#Has(Seq#Extended(s, v), x) <==> (v == x || Seq#Has(s, x)));
+axiom (forall<T> s: Seq T, v: T, x: T ::
+  { Seq#Has(Seq#Prepended(s, v), x) }
+    Seq#Has(Seq#Prepended(s, v), x) <==> (v == x || Seq#Has(s, x)));    
 axiom (forall<T> s: Seq T, n: int, x: T ::
   { Seq#Has(Seq#Take(s, n), x) }
   Seq#Has(Seq#Take(s, n), x) <==>
@@ -53,6 +56,9 @@ axiom (forall<T> s: Seq T, n: int, x: T ::
 // Is a sequence empty?
 function {: inline } Seq#IsEmpty<T>(a: Seq T): bool
 { Seq#Equal(a, Seq#Empty()) }
+
+function Seq#IsConstant<T>(s: Seq T, x: T): bool
+{ (forall i: int :: { Seq#Item(s, i) } 1 <= i && i <= Seq#Length(s) ==> Seq#Item(s, i) == x) }
 
 // Element at a given index
 function Seq#Item<T>(Seq T, int): T;
@@ -103,22 +109,34 @@ function {: inline } Seq#LessEqual<T>(q0: Seq T, q1: Seq T): bool
 // Prefix of length how_many
 function Seq#Take<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
+  // (n < 0 ==> Seq#Length(Seq#Take(s,n)) == 0) &&
+  // (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
+  // (Seq#Length(s) < n ==> Seq#Length(Seq#Take(s,n)) == Seq#Length(s)));
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
-    (Seq#Length(s) < n ==> Seq#Length(Seq#Take(s,n)) == Seq#Length(s)));
+    (Seq#Length(s) < n ==> Seq#Length(Seq#Take(s,n)) == Seq#Length(s)));  
 axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Item(Seq#Take(s,n), j) } {:weight 25}
   1 <= j && j <= n && j <= Seq#Length(s) ==>
     Seq#Item(Seq#Take(s,n), j) == Seq#Item(s, j));
+// axiom (forall<T> s: Seq T, n: int :: {Seq#Take(s,n)}
+  // (n < 0 ==> Seq#Take(s,n) == Seq#Empty() : Seq T) &&
+  // (n >= Seq#Length(s) ==> Seq#Take(s,n) == s));
 
 // Sequence without its prefix of length howMany    
 function Seq#Drop<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
+  // (n < 0 ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s)) &&
+  // (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&
+  // (Seq#Length(s) < n ==> Seq#Length(Seq#Drop(s,n)) == 0));
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&
     (Seq#Length(s) < n ==> Seq#Length(Seq#Drop(s,n)) == 0));
 axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Item(Seq#Drop(s,n), j) } {:weight 25}
-  0 <= n && 1 <= j && j <= Seq#Length(s)-n ==>
+  0 <= n && 1 <= j && j <= Seq#Length(s)-n ==> 
     Seq#Item(Seq#Drop(s,n), j) == Seq#Item(s, j+n));
+// axiom (forall<T> s: Seq T, n: int :: {Seq#Drop(s,n)}
+  // (n < 0 ==> Seq#Drop(s,n) == s) &&
+  // (n >= Seq#Length(s) ==> Seq#Drop(s,n) == Seq#Empty() : Seq T));  
 
 // First element
 function {: inline } Seq#First<T>(q: Seq T): T
@@ -138,11 +156,13 @@ function {: inline } Seq#ButLast<T>(q: Seq T): Seq T
 
 // Prefix until upper
 function Seq#Front<T>(q: Seq T, upper: int): Seq T
+// { Seq#Take(q, upper) }
 { if 0 <= upper then Seq#Take(q, upper) else Seq#Empty() : Seq T } 
 axiom (forall<T> q: Seq T :: { Seq#Front(q, Seq#Length(q)) } Seq#Front(q, Seq#Length(q)) == q);
 
 // Suffix from lower
 function Seq#Tail<T>(q: Seq T, lower: int): Seq T
+// { Seq#Drop(q, lower - 1) }
 { if 1 <= lower then Seq#Drop(q, lower - 1) else q } 
 axiom (forall<T> q: Seq T :: { Seq#Tail(q, 1) } Seq#Tail(q, 1) == q);
 
@@ -177,16 +197,15 @@ axiom (forall<T> s: Seq T, i: int, val: T :: { Seq#Length(Seq#ExtendedAt(s, i, v
 	Seq#Length(Seq#ExtendedAt(s, i, val)) == Seq#Length(s) + 1);
 
 // Sequence prepended with x at the beginning
-function Seq#Prepended<T>(s: Seq T, val: T): Seq T
-{
-  Seq#Concat (Seq#Singleton(val), s)
-}
-axiom (forall<T> s: Seq T, val: T, i: int :: { Seq#Item(Seq#Prepended(s, val), i) }
-  2 <= i && i <= Seq#Length(s) + 1 ==> Seq#Item(Seq#Prepended(s, val), i) == Seq#Item(s, i - 1));
-axiom (forall<T> s: Seq T, val: T :: { Seq#Item(Seq#Prepended(s, val), 1) }
-  Seq#Item(Seq#Prepended(s, val), 1) == val);
-axiom (forall<T> s: Seq T, val: T :: { Seq#Length(Seq#Prepended(s, val)) }
-	Seq#Length(Seq#Prepended(s, val)) == Seq#Length(s) + 1);  
+function Seq#Prepended<T>(s: Seq T, val: T): Seq T;
+// {
+  // Seq#Concat (Seq#Singleton(val), s)
+// }
+axiom (forall<T> s: Seq T, v: T :: { Seq#Length(Seq#Prepended(s, v)) }
+	Seq#Length(Seq#Prepended(s, v)) == Seq#Length(s) + 1);    
+axiom (forall<T> s: Seq T, v: T, i: int :: { Seq#Item(Seq#Prepended(s, v), i) }
+  (2 <= i && i <= Seq#Length(s) + 1 ==> Seq#Item(Seq#Prepended(s, v), i) == Seq#Item(s, i - 1)) &&
+  (i == 1 ==> Seq#Item(Seq#Prepended(s, v), 1) == v));
   
 // Concatenation of two sequences
 function Seq#Concat<T>(Seq T, Seq T): Seq T;
@@ -231,7 +250,10 @@ axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#ToBag(s)[x] == Seq#Oc
 
 // removed axiom
 axiom (forall<T> s: Seq T, i: int :: { Seq#ToBag(Seq#RemovedAt(s, i)) }
-1 <= i && i <= Seq#Length(s) ==> Seq#ToBag(Seq#RemovedAt(s, i)) == Bag#Difference(Seq#ToBag(s), Bag#Singleton(Seq#Item(s,i))));
+  1 <= i && i <= Seq#Length(s) ==> Seq#ToBag(Seq#RemovedAt(s, i)) == Bag#Difference(Seq#ToBag(s), Bag#Singleton(Seq#Item(s,i))));
+// prepend axiom
+axiom (forall<T> s: Seq T, v: T :: { Seq#ToBag(Seq#Prepended(s, v)) }
+  Seq#ToBag(Seq#Prepended(s, v)) == Bag#Extended(Seq#ToBag(s), v));
 
 // Sequence converted to map
 function Seq#ToMap<T>(Seq T): Map int T;
@@ -276,6 +298,12 @@ axiom (forall<T> s: Seq T, v: T, n: int ::
 
 axiom (forall<T> :: Seq#Take(Seq#Empty() : Seq T, 0) == Seq#Empty() : Seq T);  // [][..0] == []
 axiom (forall<T> :: Seq#Drop(Seq#Empty() : Seq T, 0) == Seq#Empty() : Seq T);  // [][0..] == []
+
+// 2 x Take and drop
+// axiom (forall<T> s: Seq T, n: int, m: int :: { Seq#Take(Seq#Take(s, n), m) }
+	// Seq#Equal(Seq#Take(Seq#Take(s, n), m), Seq#Take(s, min(n, m))));
+// axiom (forall<T> s: Seq T, n: int, m: int :: { Seq#Drop(Seq#Drop(s, n), m) }
+	// Seq#Equal(Seq#Drop(Seq#Drop(s, n), m), Seq#Drop(s, n + m)));
 
 function Seq#NonNull(s: Seq ref): bool
 { (forall i: int :: { Seq#Item(s, i) } 1 <= i && i <= Seq#Length(s) ==> Seq#Item(s, i) != Void) }

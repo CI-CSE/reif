@@ -119,6 +119,9 @@ function in_domain(h: HeapType, o: ref, o': ref): bool
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && h[o, closed] && h[o, owns][o'] ==> in_domain(h, o, o'));
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o'), trans_owns(h, o) } IsHeap(h) && h[o, closed] ==> (in_trans_owns(h, o, o') <==> in_domain(h, o, o')));
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
+axiom (forall h: HeapType, o, o', o'': ref :: { in_domain(h, o, o'), Set#Equal(Set#Singleton(o''), h[o, owns]) } IsHeap(h) && h[o, closed] && o != o' && Set#Equal(Set#Singleton(o''), h[o, owns]) ==> 
+	(in_domain(h, o, o') <==> in_domain(h, o'', o')));
+	
 
 // Frame axiom: domain frames itself
 axiom (forall h, h': HeapType, x, x': ref :: { in_domain(h, x, x'), in_domain(h', x, x'), HeapSucc(h, h') } 
@@ -140,6 +143,8 @@ function in_trans_owns(h: HeapType, o: ref, o': ref): bool
 function trans_owns(h: HeapType, o: ref): Set ref
 { (lambda o': ref :: in_trans_owns(h, o, o')) }
 
+const universe: Set ref;
+axiom (forall o: ref :: { universe[o] } universe[o]);
 
 // ----------------------------------------------------------------------
 // Models
@@ -314,7 +319,7 @@ procedure unwrap_all (Current: ref, s: Set ref);
   ensures global(Heap);
   ensures (forall o: ref :: s[o] ==> is_open(Heap, o)); // UWE1
   ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o') && user_inv(Heap, o'))); // UWE2
-  ensures (forall <T> o: ref, f: Field T :: !(s[o] && f == closed) && !((exists o': ref :: s[o'] && old(Heap[o', owns][o])) && f == owner) ==> Heap[o, f] == old(Heap[o, f]));
+  ensures (forall <T> o: ref, f: Field T :: !(f == closed && s[o]) && !(f == owner && (exists o': ref :: s[o'] && old(Heap[o', owns][o]))) ==> Heap[o, f] == old(Heap[o, f]));
   ensures (forall o: ref :: s[o] ==> user_inv(Heap, o) && inv_frame_trigger(o));
   free ensures HeapSucc(old(Heap), Heap);
 
@@ -342,23 +347,28 @@ procedure wrap_all(Current: ref, s: Set ref);
   ensures global(Heap);  
   ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> Heap[o', owner] == o)); // WE2
   ensures (forall o: ref :: s[o] ==> is_wrapped(Heap, o)); // WE3
-  ensures (forall <T> o: ref, f: Field T :: !(s[o] && f == closed) && !((exists o': ref :: s[o'] && old(Heap[o', owns][o])) && f == owner) ==> Heap[o, f] == old(Heap[o, f]));
+  ensures (forall <T> o: ref, f: Field T :: !(f == closed && s[o]) && !(f == owner && (exists o': ref :: s[o'] && old(Heap[o', owns][o]))) ==> Heap[o, f] == old(Heap[o, f]));
   free ensures HeapSucc(old(Heap), Heap);
 
 // ----------------------------------------------------------------------
 // Attached/Detachable functions
 
-// Property that reference `o' is attached to an object of type `t' on heap `heap'.
+// Reference `o' is attached to an object of type `t' on heap `heap'.
 function attached_exact(heap: HeapType, o: ref, t: Type) returns (bool) {
 	(o != Void) && (heap[o, allocated]) && (type_of(o) == t)
 }
 
-// Property that reference `o' is attached and conforms to type `t' on heap `heap'.
+// Reference `o' is either Void or attached to an object of type `t' on heap `heap'.
+function detachable_exact(heap: HeapType, o: ref, t: Type) returns (bool) {
+	(o == Void) || attached_exact(heap, o, t)
+}
+
+// Reference `o' is attached and conforms to type `t' on heap `heap'.
 function attached(heap: HeapType, o: ref, t: Type) returns (bool) {
 	(o != Void) && (heap[o, allocated]) && (type_of(o) <: t)
 }
 
-// Property that reference `o' is either Void or attached and conforms to `t' on heap `heap'.
+// Reference `o' is either Void or attached and conforms to `t' on heap `heap'.
 function detachable(heap: HeapType, o: ref, t: Type) returns (bool) {
 	(o == Void) || attached(heap, o, t)
 }

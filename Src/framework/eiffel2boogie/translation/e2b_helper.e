@@ -191,6 +191,12 @@ feature -- Feature status helpers
 			Result := is_feature_status (a_feature, "lemma")
 		end
 
+	is_dynamic (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a dynamic feature (i.e. does not know the exact type of Current)?
+		do
+			Result := is_feature_status (a_feature, "dynamic")
+		end
+
 	is_public (a_feature: FEATURE_I): BOOLEAN
 			-- Is `a_feature' a public feature?
 		do
@@ -358,6 +364,18 @@ feature -- Ownership helpers
 			Result := attached {FEATURE_B} a_clause.expr as l_call and then l_call.feature_name ~ "decreases"
 		end
 
+	is_type_exact (a_type: TYPE_A; a_class_type: CL_TYPE_A; a_context_feature: FEATURE_I): BOOLEAN
+			-- Is `a_type' (which corresponds to `a_class_type')
+			-- in the context of `a_context_feature' represent a fixed dynamic type?
+		require
+			type_exists: attached a_type
+			class_type_exists: attached a_class_type
+		do
+				-- Yes, if the base class is frozen, or the type is "like Current" (provided we are not inside a dynamic feature)
+			Result := a_class_type.base_class.is_frozen or
+				(a_type.is_like_current and not (attached a_context_feature and then is_dynamic (a_context_feature)))
+		end
+
 	boogie_name_for_attribute (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): STRING_32
 			-- Name of the boogie tranlsation of `a_feature', taking special translation of built-ins into account.
 		local
@@ -522,6 +540,13 @@ feature -- String helpers
 
 feature -- Eiffel helpers
 
+	constraint_type (a_class: CLASS_C): CL_TYPE_A
+			-- Type based on `a_class' without formal generic parameters.
+		do
+			Result := a_class.constraint_actual_type
+			a_class.update_types (Result)
+		end
+
 	is_same_class (c1, c2: CLASS_C): BOOLEAN
 			-- Are `c1' and `c2' the same class?			
 		do
@@ -570,6 +595,13 @@ feature -- Eiffel helpers
 					a_child.non_conforming_parents_classes.forth
 				end
 			end
+		end
+
+	is_creator (a_feature: FEATURE_I; a_class: CLASS_C): BOOLEAN
+			-- Is `a_feature' a creator of `a_class'?
+		do
+			Result := a_class.has_creator_of_name_id (a_feature.feature_name_id) or
+				(a_class.creation_feature /= Void and then a_class.creation_feature.feature_id = a_feature.feature_id)
 		end
 
 	feature_for_call_access (a_node: CALL_ACCESS_B; a_target_type: TYPE_A): FEATURE_I
@@ -825,6 +857,15 @@ feature -- Other
 			if not autoproof_errors.has (l_error) then
 				autoproof_errors.extend (l_error)
 			end
+		end
+
+	verify_feature_in_class (a_feature: FEATURE_I; a_class: CLASS_C): BOOLEAN
+			-- Should `a_feature' be verified as part of verification of `a_class'?
+		do
+			Result := a_feature.is_routine and -- is routine
+				not is_feature_logical (a_feature) and -- not logical
+				(a_feature.written_in /= system.any_id or a_feature.rout_id_set.has (system.default_create_rout_id)) and -- is not inherited from ANY
+				not (a_feature.written_in /= a_class.class_id and is_dynamic (a_feature)) -- not an inherited dynamic feature
 		end
 
 feature {NONE} -- Implementation

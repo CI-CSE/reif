@@ -14,21 +14,23 @@ inherit
 create
 	make_with_defaults
 
+
 feature {NONE} -- Initialization
 
 	make_with_defaults
 			-- Initialization for `Current'.
 		do
 			hint_level := 0
-			insert_code_placeholder := True
+			must_insert_code_placeholder := True
 			create output_directory.make_with_path (create {PATH}.make_current)
 
 			hint_table := hint_tables.default_auto_hint_table
 		end
 
+
 feature -- AutoTeach options
 
-	insert_code_placeholder: BOOLEAN assign set_insert_code_placeholder
+	must_insert_code_placeholder: BOOLEAN assign set_insert_code_placeholder
 			-- Shall AutoTeach insert a placeholder where code is removed?
 
 	hint_level: NATURAL assign set_hint_level
@@ -40,7 +42,7 @@ feature -- AutoTeach options
 	max_hint_level: NATURAL
 			-- The maximum hint level with which AutoTeach should be run.
 
-	create_level_subfolders: BOOLEAN assign set_create_level_subfolders
+	must_create_level_subfolders: BOOLEAN assign set_create_level_subfolders
 			-- If true, a subfolder will be created for each hint level, and
 			-- the output of every run will be placed in the proper subfolder.
 
@@ -53,8 +55,6 @@ feature -- AutoTeach options
 	set_hint_level_range (a_min_level, a_max_level: NATURAL)
 			-- Set the hint level range for which AutoTeach should be run in the current execution.
 		require
-			valid_min: is_valid_hint_level (a_min_level)
-			valid_max: is_valid_hint_level (a_max_level)
 			ordering: a_min_level <= a_max_level
 		do
 			min_hint_level := a_min_level
@@ -86,17 +86,15 @@ feature -- AutoTeach options
 feature {NONE} -- Setters
 
 	set_insert_code_placeholder (a_bool: BOOLEAN)
-			-- Set `insert_code_placeholder' to `a_bool'.
+			-- Set `must_insert_code_placeholder' to `a_bool'.
 		do
-			insert_code_placeholder := a_bool
+			must_insert_code_placeholder := a_bool
 		ensure
-			insert_code_placeholder_set: insert_code_placeholder = a_bool
+			insert_code_placeholder_set: must_insert_code_placeholder = a_bool
 		end
 
 	set_hint_level (a_level: NATURAL)
 			-- Set `hint_level' to `a_level'.
-		require
-			valid_level: is_valid_hint_level (a_level)
 		do
 			hint_level := a_level
 		ensure
@@ -112,11 +110,11 @@ feature {NONE} -- Setters
 		end
 
 	set_create_level_subfolders (a_bool: BOOLEAN)
-			-- Set `create_level_subfolders' to `a_bool'.
+			-- Set `must_create_level_subfolders' to `a_bool'.
 		do
-			create_level_subfolders := a_bool
+			must_create_level_subfolders := a_bool
 		ensure
-			create_level_subfolders_set: create_level_subfolders = a_bool
+			create_level_subfolders_set: must_create_level_subfolders = a_bool
 		end
 
 	set_hint_table (a_hint_table: AT_HINT_TABLE)
@@ -128,8 +126,6 @@ feature {NONE} -- Setters
 		end
 
 invariant
-
 	level_ordering: min_hint_level <= max_hint_level
-	valid_hint_level: is_valid_hint_level (hint_level)
 
 end

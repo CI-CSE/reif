@@ -1,8 +1,9 @@
 note
 	description: "Iterators over linked stacks."
 	author: "Nadia Polikarpova"
-	model: target, sequence, index_
+	model: target, index_
 	manual_inv: true
+	false_guards: true
 
 class
 	V_LINKED_STACK_ITERATOR [G]
@@ -18,15 +19,16 @@ create {V_CONTAINER}
 
 feature {NONE} -- Initialization
 
-	make (t: V_LINKED_STACK [G]; it: V_LINKED_LIST_ITERATOR_2 [G])
+	make (t: V_LINKED_STACK [G]; it: V_LINKED_LIST_ITERATOR [G])
 			-- Create a proxy for `it' with target `t'.
 		note
-			status: creator
 			explicit: contracts
+			status: creator
 		require
-			t_wrapped: t.is_open
+			t_open: t.is_open
+			t.inv_only ("bag_definition", "sequence_definition")
 			it_wrapped: it.is_wrapped
-			it_target_owned: t.owns [it.target]
+			connected: t.list = it.target
 			same_elements: t.bag ~ it.target.bag
 			modify_field ("owner", it)
 			modify_field ("observers", t)
@@ -37,9 +39,8 @@ feature {NONE} -- Initialization
 			iterator := it
 			check it.inv end
 		ensure
-			is_wrapped
+			wrapped: is_wrapped
 			target_effect: target = t
-			sequence_effect: sequence ~ it.sequence
 			index_effect: index_ = it.index_
 			t_observers_effect: t.observers = old t.observers & Current
 		end
@@ -47,13 +48,14 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	target: V_LINKED_STACK [G]
+			-- Stack to iterate over.
 
 	item: G
 			-- Item at current position.
 		do
 			check inv end
 			check iterator.inv end
-			check iterator.target.transitive_owns <= target.transitive_owns end
+			check target.inv end
 			Result := iterator.item
 		end
 
@@ -64,7 +66,7 @@ feature -- Measurement
 		do
 			check inv end
 			check iterator.inv end
-			check iterator.target.transitive_owns <= target.transitive_owns end
+			check target.inv end
 			Result := iterator.index
 		end
 
@@ -83,6 +85,8 @@ feature -- Status report
 		do
 			check inv end
 			check iterator.inv end
+			check target.inv end
+			check iterator.target.ownership_domain <= target.ownership_domain end
 			Result := iterator.after
 		end
 
@@ -91,7 +95,7 @@ feature -- Status report
 		do
 			check inv end
 			check iterator.inv end
-			check iterator.target.transitive_owns <= target.transitive_owns end
+			check target.inv end
 			Result := iterator.is_first
 		end
 
@@ -100,7 +104,7 @@ feature -- Status report
 		do
 			check inv end
 			check iterator.inv end
-			check iterator.target.transitive_owns <= target.transitive_owns end
+			check target.inv end
 			Result := iterator.is_last
 		end
 
@@ -109,48 +113,60 @@ feature -- Cursor movement
 	start
 			-- Go to the first position.
 		do
+			check iterator.inv end
+			check target.inv_only ("owns_definition") end
 			iterator.start
 		end
 
 	finish
 			-- Go to the last position.
 		do
+			check iterator.inv end
+			check target.inv_only ("owns_definition") end
 			iterator.finish
 		end
 
 	forth
 			-- Move one position forward.
 		do
+			check iterator.inv end
+			check target.inv_only ("owns_definition") end
 			iterator.forth
 		end
 
 	back
 			-- Go one position backwards.
 		do
+			check iterator.inv end
+			check target.inv_only ("owns_definition") end
 			iterator.back
 		end
 
 	go_before
 			-- Go before any position of `target'.
 		do
+			check iterator.inv end
 			iterator.go_before
 		end
 
 	go_after
 			-- Go after any position of `target'.
 		do
+			check iterator.inv end
+			check target.inv_only ("owns_definition") end
 			iterator.go_after
 		end
 
 feature {V_CONTAINER, V_ITERATOR} -- Implementation
 
-	iterator: V_LINKED_LIST_ITERATOR_2 [G]
+	iterator: V_LINKED_LIST_ITERATOR [G]
 			-- Iterator over the storage.
 
 invariant
+	sequence_definition: sequence ~ target.sequence
 	iterator_exists: iterator /= Void
 	owns_structure: owns = [ iterator ]
-	targets_connected: target.owns [iterator.target]
+	targets_connected: target.list = iterator.target
 	same_sequence: sequence ~ iterator.sequence
 	same_index: index_ = iterator.index_
 

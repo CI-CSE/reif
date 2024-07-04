@@ -163,6 +163,24 @@ feature -- Convenience
 			Result := helper.class_type_in_context (a_feature.type, current_target_type.base_class, a_feature, current_target_type)
 		end
 
+	expression_class_type (a_node: EXPR_B): CL_TYPE_A
+			-- Type of `a_expr' in current context (takes redefinition into account).
+		require
+			a_node_attched: attached a_node
+			current_target_type_attached: attached current_target_type
+		do
+			if attached {EXTERNAL_B} a_node as ext and then ext.is_static_call then
+				Result := feature_class_type (helper.feature_for_call_access (ext, ext.static_class_type))
+			elseif attached { CALL_ACCESS_B } a_node as ca then
+				Result := feature_class_type (helper.feature_for_call_access (ca, current_target_type))
+			elseif attached { RESULT_B } a_node as res then
+				check attached context_feature and then context_feature.has_return_value end
+				Result := feature_class_type (context_feature)
+			else
+				Result := class_type_in_current_context (a_node.type)
+			end
+		end
+
 feature -- Element change
 
 	set_last_expression (a_expression: IV_EXPRESSION)
@@ -590,9 +608,11 @@ feature -- Visitors
 			l_current_type: CL_TYPE_A
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
-			l_current_type := current_target_type
+			check a_node.is_static_call end
 
-			current_target_type := class_type_in_current_context (a_node.type)
+			l_current_type := current_target_type
+			current_target_type := class_type_in_current_context (a_node.static_class_type)
+
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			check feature_valid: l_feature /= Void end
 			l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
@@ -815,7 +835,7 @@ feature -- Visitors
 				l_target := current_target
 				l_target_type := current_target_type
 				current_target := last_expression
-				current_target_type := class_type_in_current_context (a_node.target.type)
+				current_target_type := expression_class_type (a_node.target)
 
 					-- Check if target is attached;
 					-- skip if target is expanded or a mathematical type, or this is a special any feature
@@ -1208,15 +1228,15 @@ feature -- Translation
 				last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
 				last_safety_check.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
 			end
-				-- Assume free precondition to trigger the function definition;
-				-- (definitions of logicals do not have free preconditions)
-			if not helper.is_class_logical (current_target_type.base_class) then
-				create l_pre_call.make (name_translator.boogie_free_function_precondition (l_fname), types.bool)
-				across a_fcall.arguments as args loop
-					l_pre_call.add_argument (args.item)
-				end
-				add_assumption (l_pre_call)
-			end
+--				-- Assume free precondition to trigger the function definition;
+--				-- (definitions of logicals do not have free preconditions)
+--			if not helper.is_class_logical (current_target_type.base_class) then
+--				create l_pre_call.make (name_translator.boogie_free_function_precondition (l_fname), types.bool)
+--				across a_fcall.arguments as args loop
+--					l_pre_call.add_argument (args.item)
+--				end
+--				add_assumption (l_pre_call)
+--			end
 		end
 
 	add_read_frame_check (a_feature: FEATURE_I)

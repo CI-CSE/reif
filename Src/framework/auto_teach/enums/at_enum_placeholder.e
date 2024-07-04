@@ -9,7 +9,7 @@ class
 
 inherit
 
-	AT_ENUM
+	AT_ENUM [AT_PLACEHOLDER]
 		redefine
 			name
 		end
@@ -19,21 +19,13 @@ feature -- Access
 	name: STRING = "placeholder"
 			-- <Precursor>
 
-	value_type: AT_PLACEHOLDER
-			-- <Precursor>
-		do
-			check
-				callable: False
-			end
-		end
-
-	value (a_value_name: STRING): like value_type
+	value (a_value_name: STRING): AT_PLACEHOLDER
 			-- The value with name `a_value_name'.
 		do
 			create Result.make_with_value_name (a_value_name)
 		end
 
-	value_from_number (a_numerical_value: INTEGER): like value_type
+	value_from_number (a_numerical_value: INTEGER): AT_PLACEHOLDER
 			-- The value with numerical value `a_numerical_value'.
 		do
 			create Result.make_with_numerical_value (a_numerical_value)
@@ -41,7 +33,7 @@ feature -- Access
 
 feature {AT_ENUM} -- Value list
 
-	value_list: ARRAY [TUPLE [numerical_value: INTEGER; name: STRING]]
+	value_list: ARRAY [TUPLE [numerical_value: INTEGER; value_name: STRING]]
 			-- Effective list of values.
 		once ("PROCESS")
 			Result := <<	[0, "no_placeholder"],

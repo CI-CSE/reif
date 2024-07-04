@@ -3,6 +3,7 @@ note
 	author: "Nadia Polikarpova"
 	model: target, sequence, index_
 	manual_inv: true
+	false_guards: true
 
 deferred class
 	V_IO_ITERATOR [G]
@@ -35,7 +36,7 @@ feature -- Replacement
 		require
 			not_off: not off
 			target_wrapped: target.is_wrapped
-			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
+			target_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
 			modify_model (["sequence", "box"], Current)
 			modify_model (["bag"], target)
 		deferred
@@ -48,6 +49,7 @@ feature -- Replacement
 	output (v: G)
 			-- Replace item at current position with `v' and go to the next position.
 		note
+			status: dynamic
 			explicit: wrapping
 		require else
 			modify_model (["sequence", "index_"], Current)

@@ -43,6 +43,10 @@ feature {NONE} -- Initialization
 			is_trace_enabled := False
 
 			is_generating_trivial_loop_variants := True
+
+			is_bulk_verification_enabled := True
+
+			is_print_time := True
 		end
 
 feature -- Inlining verification step
@@ -274,9 +278,29 @@ feature -- Boogie/Z3
 			is_trace_enabled := a_value
 		end
 
+feature -- Output
+
+	is_print_time: BOOLEAN
+			-- Is verification time output to the console?
+
+	set_print_time (a_value: BOOLEAN)
+			-- Set `is_time_output' to `a_value'.
+		do
+			is_print_time := a_value
+		end
+
 feature -- Other
 
 	is_generating_trivial_loop_variants: BOOLEAN
 			-- Are trivially false loop variants generated?
+
+	is_bulk_verification_enabled: BOOLEAN
+			-- Are classes verified in bulk or by individual routines?
+
+	set_bulk_verification_enabled (a_value: BOOLEAN)
+			-- Set `is_bulk_verification_enabled' to `a_value'.
+		do
+			is_bulk_verification_enabled := a_value
+		end
 
 end

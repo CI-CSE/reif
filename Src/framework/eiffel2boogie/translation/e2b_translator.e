@@ -44,6 +44,12 @@ feature -- Element change
 			across a_input.feature_list as i loop
 				add_feature (i.item)
 			end
+			across a_input.feature_of_type_list as i loop
+				add_feature_of_type (i.item.f, i.item.t)
+			end
+			across a_input.class_check_list as i loop
+				translation_pool.add_class_check (i.item)
+			end
 		end
 
 	add_class (a_class: CLASS_C)
@@ -52,7 +58,7 @@ feature -- Element change
 			l_feature: FEATURE_I
 		do
 			if not helper.is_class_logical (a_class) then
-				translation_pool.add_class_check (constraint_type (a_class))
+				translation_pool.add_class_check (helper.constraint_type (a_class))
 			end
 			if a_class.has_feature_table then
 				from
@@ -61,9 +67,7 @@ feature -- Element change
 					a_class.feature_table.after
 				loop
 					l_feature := a_class.feature_table.item_for_iteration
-					if l_feature.is_routine and
-						not helper.is_feature_logical (l_feature) and
-						(l_feature.written_in /= system.any_id or l_feature.rout_id_set.has (system.default_create_rout_id)) then
+					if helper.verify_feature_in_class (l_feature, a_class) then
 						add_feature_of_type (l_feature, a_class.actual_type)
 					end
 					a_class.feature_table.forth
@@ -91,7 +95,7 @@ feature -- Element change
 			a_feature_attached: attached a_feature
 			a_context_type_attached: attached a_context_type
 		do
-			translation_pool.add_feature (a_feature, constraint_type (a_context_type.base_class))
+			translation_pool.add_feature (a_feature, helper.constraint_type (a_context_type.base_class))
 		end
 
 feature -- Basic operations
@@ -110,12 +114,4 @@ feature -- Basic operations
 			translation_pool.mark_translated (l_unit)
 		end
 
-feature {NONE} -- Implementation
-
-	constraint_type (a_class: CLASS_C): CL_TYPE_A
-			-- Type based on `a_class' without formal generic parameters.
-		do
-			Result := a_class.constraint_actual_type
-			a_class.update_types (Result)
-		end
 end

@@ -20,7 +20,8 @@ feature -- Measurement
 			-- Number of elements.
 		require
 			closed: closed
-			reads (ownership_domain)
+--			reads (ownership_domain)
+			reads (universe)
 		deferred
 		ensure
 			definition: Result = bag.count
@@ -30,9 +31,12 @@ feature -- Status report
 
 	is_empty: BOOLEAN
 			-- Is container empty?
+		note
+			status: dynamic
 		require
 			closed: closed
-			reads (ownership_domain)
+--			reads (ownership_domain)
+			reads (universe)
 		do
 			Result := count = 0
 		ensure
@@ -45,10 +49,8 @@ feature -- Search
 			-- Is value `v' contained?
 			-- (Uses reference equality.)
 		note
-			status: impure
-			explicit: contracts
+			status: impure, dynamic
 		require
-			is_wrapped: is_wrapped
 			modify_model ("observers", Current)
 		local
 			it: V_ITERATOR [G]
@@ -60,17 +62,14 @@ feature -- Search
 		ensure
 			definition: Result = bag.domain [v]
 			observers_restored: observers = old observers
-			is_wrapped: is_wrapped
 		end
 
 	occurrences (v: G): INTEGER
 			-- How many times is value `v' contained?
 			-- (Uses reference equality.)
 		note
-			status: impure
-			explicit: contracts
+			status: impure, dynamic
 		require
-			is_wrapped: is_wrapped
 			modify_model ("observers", Current)
 		local
 			it: V_ITERATOR [G]
@@ -99,7 +98,6 @@ feature -- Search
 		ensure
 			definition: Result = bag [v]
 			observers_restored: observers ~ old observers
-			is_wrapped: is_wrapped
 		end
 
 feature -- Iteration
@@ -107,7 +105,6 @@ feature -- Iteration
 	new_cursor: V_ITERATOR [G]
 			-- New iterator pointing to a position in the container, from which it can traverse all elements by going `forth'.
 		note
-			explicit: contracts
 			status: impure
 		deferred
 		ensure then
@@ -122,6 +119,21 @@ feature -- Specification
 		note
 			status: ghost
 		attribute
+		end
+
+	add_iterator (it: V_ITERATOR [G])
+			-- Add `it' to `observers'.
+		note
+			status: ghost
+			explicit: contracts
+		require
+			wrapped: is_wrapped
+			modify_field (["observers", "closed"], Current)
+		do
+			set_observers (observers & it)
+		ensure
+			wrapped: is_wrapped
+			observer_added: observers = old observers & it
 		end
 
 	forget_iterator (it: V_ITERATOR [G])
@@ -139,9 +151,9 @@ feature -- Specification
 			it.unwrap
 			set_observers (observers / it)
 		ensure
-			is_wrapped
-			it.is_open
-			observers = old observers / it
+			wrapped: is_wrapped
+			it_open: it.is_open
+			observer_removed: observers = old observers / it
 		end
 
 invariant

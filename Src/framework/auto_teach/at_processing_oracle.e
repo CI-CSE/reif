@@ -17,6 +17,23 @@ inherit
 create
 	make_with_options
 
+feature {NONE} -- Initialization
+
+	make_with_options (a_options: AT_OPTIONS)
+			-- Initialization for `Current'.
+		do
+			set_options (a_options)
+
+			create {ARRAYED_STACK [AT_BLOCK_TYPE]} block_type_call_stack.make (32)
+			create {ARRAYED_STACK [AT_BLOCK_VISIBILITY_DESCRIPTOR]} block_stack.make (32)
+			create {ARRAYED_STACK [BOOLEAN]} effective_visibility_stack.make (32)
+			create {ARRAYED_STACK [TUPLE [value: AT_TRILEAN; policy_strength: AT_POLICY_STRENGTH]]} content_visibility_stack.make (32)
+			create undefined_visibility_warning_set.make (enum_block_type.values.count)
+			initialize_visibility_descriptors_table
+
+			refresh
+		end
+
 feature -- Interface
 
 	set_options (a_options: AT_OPTIONS)
@@ -37,7 +54,7 @@ feature -- Oracle
 			Result := (nesting_in_atomic_block > 0)
 		end
 
-	current_content_visibility: AT_TRI_STATE_BOOLEAN
+	current_content_visibility: AT_TRILEAN
 			-- What is the current status of content visibility?
 		do
 			if content_visibility_stack.is_empty then
@@ -100,7 +117,7 @@ feature -- Status signaling
 			-- Signal the oracle that a block of type `a_block_type' is about to be processed.
 		local
 			l_in_hidden_region, l_is_complex_block: BOOLEAN
-			l_block_visibility, l_content_visibility_status, l_block_content_visibility: AT_TRI_STATE_BOOLEAN
+			l_block_visibility, l_content_visibility_status, l_block_content_visibility: AT_TRILEAN
 			l_visibility_policy_strength, l_content_visibility_policy_strength: AT_POLICY_STRENGTH
 			l_descriptor, l_descriptor_in_table: AT_BLOCK_VISIBILITY_DESCRIPTOR
 		do
@@ -155,7 +172,7 @@ feature -- Status signaling
 					-- as it is, without asking any more questions.
 					-- We are done.
 
-				l_block_visibility := to_tri_state (effective_visibility_stack.item)
+				l_block_visibility := effective_visibility_stack.item
 
 			else
 					-- Determine if this is a complex block and if it should be actually treated as such.
@@ -320,7 +337,7 @@ feature -- Meta-command processing interface
 
 						elseif l_command.command_word.same_string (at_strings.placeholder_command) and then string_is_bool (l_command.payload) then
 								-- Toggle placeholder
-							options.insert_code_placeholder := string_to_bool (l_command.payload)
+							options.must_insert_code_placeholder := string_to_bool (l_command.payload)
 
 						elseif l_command.command_word.same_string (at_strings.mode_command) then
 								-- Switch to another mode
@@ -418,19 +435,19 @@ feature -- Meta-command processing interface
 
 feature {NONE} -- Implementation: meta-command processing
 
-	set_block_global_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRI_STATE_BOOLEAN)
+	set_block_global_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRILEAN)
 			-- Sets the global visibility override flag for block type `a_block_type' to `a_value'.
 		do
 			visibility_descriptors [a_block_type].global_visibility_override := a_value
 		end
 
-	set_block_local_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRI_STATE_BOOLEAN)
+	set_block_local_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRILEAN)
 			-- Sets the local visibility override flag for block type `a_block_type' to `a_value'.
 		do
 			visibility_descriptors [a_block_type].local_visibility_override := a_value
 		end
 
-	set_block_content_global_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRI_STATE_BOOLEAN)
+	set_block_content_global_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRILEAN)
 			-- Sets the global content visibility override flag for block type `a_block_type' to `a_value'.
 		require
 			complex_block: enum_block_type.is_complex_block_type (a_block_type)
@@ -446,7 +463,7 @@ feature {NONE} -- Implementation: meta-command processing
 			end
 		end
 
-	set_block_content_local_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRI_STATE_BOOLEAN)
+	set_block_content_local_visibility_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRILEAN)
 			-- Sets the local content visibility override flag for block type `a_block_type' to `a_value'.
 		require
 			complex_block: enum_block_type.is_complex_block_type (a_block_type)
@@ -479,7 +496,7 @@ feature {NONE} -- Implementation: meta-command processing
 			end
 		end
 
-	set_block_local_treat_as_complex_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRI_STATE_BOOLEAN)
+	set_block_local_treat_as_complex_override (a_block_type: AT_BLOCK_TYPE; a_value: AT_TRILEAN)
 			-- Sets the local override flag for treating blocks of type `a_block_type' as complex
 			-- (as opposed to treating them as atomic blocks) to `a_value'.
 		require
@@ -510,7 +527,7 @@ feature {NONE} -- Implementation: block visibility
 			-- Stack, parallel to `block_stack', indicating, for every
 			-- level, wether we are inside an effectively visible block.
 
-	content_visibility_stack: STACK [TUPLE [value: AT_TRI_STATE_BOOLEAN; policy_strength: AT_POLICY_STRENGTH]]
+	content_visibility_stack: STACK [TUPLE [value: AT_TRILEAN; policy_strength: AT_POLICY_STRENGTH]]
 			-- Stack, parallel to `block_stack', indicating, for
 			-- every level, the current state of content visibility.
 
@@ -553,21 +570,6 @@ feature {NONE} -- Implementation: miscellaneous
 			-- A copy of the original options passed to the initialization procedure.
 			-- This copy is restored at the end of the processing of every class.
 
-	make_with_options (a_options: AT_OPTIONS)
-			-- Initialization for `Current'.
-		do
-			set_options (a_options)
-
-			create {ARRAYED_STACK [AT_BLOCK_TYPE]} block_type_call_stack.make (32)
-			create {ARRAYED_STACK [AT_BLOCK_VISIBILITY_DESCRIPTOR]} block_stack.make (32)
-			create {ARRAYED_STACK [BOOLEAN]} effective_visibility_stack.make (32)
-			create {ARRAYED_STACK [TUPLE [value: AT_TRI_STATE_BOOLEAN; policy_strength: AT_POLICY_STRENGTH]]} content_visibility_stack.make (32)
-			create undefined_visibility_warning_set.make (enum_block_type.values.count)
-			initialize_visibility_descriptors_table
-
-			refresh
-		end
-
 	initialize_visibility_descriptors_table
 			-- Fill `visibility_descriptors' with the proper descriptors.
 		local
@@ -589,14 +591,14 @@ feature {NONE} -- Implementation: miscellaneous
 			end
 		end
 
-	block_default_visibility (a_block_type: AT_BLOCK_TYPE): AT_TRI_STATE_BOOLEAN
+	block_default_visibility (a_block_type: AT_BLOCK_TYPE): AT_TRILEAN
 			-- What is the default visibility for `a_block_type' according to the current hint table?
 			-- This function is mainly here for being passed as an agent when initalizing visibility descriptors.
 		do
 			Result := options.hint_table.visibility_for (a_block_type, options.hint_level).visibility
 		end
 
-	block_content_default_visibility (a_block_type: AT_BLOCK_TYPE): AT_TRI_STATE_BOOLEAN
+	block_content_default_visibility (a_block_type: AT_BLOCK_TYPE): AT_TRILEAN
 			-- What is the default content visibility for `a_block_type' according to the current hint table?
 			-- This function is mainly here for being passed as an agent when initalizing visibility descriptors.
 		do

@@ -3,8 +3,9 @@ note
 	author: "Nadia Polikarpova"
 	model: sequence
 	manual_inv: true
+	false_guards: true
 
-frozen class
+class
 	V_LINKED_STACK [G]
 
 inherit
@@ -22,7 +23,6 @@ feature {NONE} -- Initialization
 			status: creator
 		do
 			create list
-			set_owns ([list])
 		ensure then
 			sequence_effect: sequence.is_empty
 		end
@@ -61,8 +61,8 @@ feature -- Measurement
 			-- Number of elements.
 		do
 			check inv end
+			check list.transitive_owns <= transitive_owns end
 			Result := list.count
-			check list.inv_only ("count_definition") end
 		end
 
 feature -- Iteration
@@ -71,9 +71,8 @@ feature -- Iteration
 			-- New iterator pointing to a position in the container, from which it can traverse all elements by going `forth'.
 		note
 			status: impure
-			explicit: contracts
 		local
-			list_cursor: V_LINKED_LIST_ITERATOR_2 [G]
+			list_cursor: V_LINKED_LIST_ITERATOR [G]
 		do
 			unwrap
 			list_cursor := list.new_cursor
@@ -87,7 +86,6 @@ feature -- Extension
 			-- Push `v' on the stack.
 		do
 			list.extend_front (v)
-			check sequence.prepended (v) = sequence.old_.extended_at (1, v) end
 		end
 
 feature -- Removal
@@ -106,7 +104,7 @@ feature -- Removal
 
 feature {V_CONTAINER, V_ITERATOR} -- Implementation
 
-	list: V_LINKED_LIST_2 [G]
+	list: V_LINKED_LIST [G]
 			-- Underlying list.
 			-- Should not be reassigned after creation.
 
@@ -120,6 +118,7 @@ feature -- Specification
 		do
 			it.unwrap
 			set_observers (observers / it)
+			check it.iterator.inv_only ("subjects_definition", "A2") end
 			list.forget_iterator (it.iterator)
 		end
 
@@ -127,10 +126,10 @@ invariant
 	list_exists: list /= Void
 	owns_definition: owns = [list]
 	sequence_definition: sequence ~ list.sequence
-	observers_correspond: observers.count = list.observers.count
+	observers_correspond: list.observers.count <= observers.count
 
 note
-	explicit: observers, owns
+	explicit: observers
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[

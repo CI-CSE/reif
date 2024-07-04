@@ -22,7 +22,7 @@ inherit
 
 				-- Features
 			process_feature_as,
-			process_routine_as,
+			process_body_as,
 
 				-- Routine arguments
 			process_formal_argu_dec_list_as,
@@ -79,6 +79,22 @@ inherit
 create
 	make_with_options
 
+feature {NONE} -- Initialization
+
+	make_with_options (a_options: AT_OPTIONS)
+			-- Initialize Current
+		do
+			make_with_default_context
+			options := a_options.twin
+
+			hidden_region_indentation := -1
+
+			create oracle.make_with_options (a_options)
+			oracle.set_message_output_action (agent print_message)
+
+			reset
+		end
+
 feature -- Interface
 
 	set_options (a_options: AT_OPTIONS)
@@ -103,7 +119,7 @@ feature -- Interface
 		end
 
 	has_run: BOOLEAN
-		-- Did the `Current' process a class?
+		-- Did `Current' process a class?
 
 	reset
 			-- Reset the status of Current
@@ -272,9 +288,19 @@ feature {NONE} -- Implementation - skipping and handling of breaks
 		do
 			if a_insert_blank_line and not blank_line_inserted then
 					-- Prepare it for real
-				l_new_line_with_tabs := tab_string (current_indentation)
+
+				if hidden_region_indentation = -1 then
+						-- We are entering a new hidden region.
+					hidden_region_indentation := current_indentation
+				else
+						-- We are already in a hidden region, otherwise `hidden_region_indentation'
+						-- would be -1. Keep that indentation.
+				end
+
+				l_new_line_with_tabs := tab_string (hidden_region_indentation)
 				l_new_line_with_tabs.prepend ("%N")
 				blank_line_inserted := True
+
 			else
 					-- Fake blank line, actually an empty string
 				l_new_line_with_tabs := ""
@@ -297,7 +323,7 @@ feature {NONE} -- Implementation - skipping and handling of breaks
 		local
 			l_placeholder: AT_PLACEHOLDER
 		do
-			if options.insert_code_placeholder then
+			if options.must_insert_code_placeholder then
 				l_placeholder := oracle.current_placeholder_type
 			else
 				l_placeholder := enum_placeholder.Ph_none
@@ -369,6 +395,11 @@ feature {NONE} -- Implementation - skipping and handling of breaks
 	placeholder_inserted: BOOLEAN
 			-- Did we already insert a placeholder for the current skipping section?
 
+	hidden_region_indentation: INTEGER
+			-- What is the base indentation of the region currently being hidden?
+			-- -1 if we currently are not inside a hidden region.
+			-- (used for the placeholder and for textual hints)
+
 
 feature {NONE} -- Implementation - printing
 
@@ -393,8 +424,8 @@ feature {NONE} -- Implementation - printing
 				l_indentation := count_leading ('%T', a_line)
 			else
 					-- We are in a hidden region, use the indentation of the current
-					-- section for indenting the hint.
-				l_indentation := current_indentation
+					-- region for indenting the hint.
+				l_indentation := if hidden_region_indentation >= 0 then hidden_region_indentation else current_indentation end
 			end
 
 				-- This is necessary, otherwise we might not be on a new line.
@@ -411,6 +442,10 @@ feature {NONE} -- Implementation - printing
 				-- character at the end of a_line (or there should have been), but we ate it
 				-- when we called l_line.adjust.
 			last_unprinted_break_line := "%N"
+
+				-- If more code is hidden after the hint, we want another placeholder.
+			blank_line_inserted := False
+			placeholder_inserted := False
 		end
 
 	put_string_to_context (a_string: STRING)
@@ -422,6 +457,7 @@ feature {NONE} -- Implementation - printing
 				context.add_string (a_string)
 				blank_line_inserted := False
 				placeholder_inserted := False
+				hidden_region_indentation := -1
 			else
 				skip_with_current_placeholder
 			end
@@ -444,18 +480,6 @@ feature {NONE} -- Implementation - miscellanea
 
 	options: AT_OPTIONS
 			-- The AutoTeach options.
-
-	make_with_options (a_options: AT_OPTIONS)
-			-- Initialize Current
-		do
-			make_with_default_context
-			options := a_options.twin
-
-			create oracle.make_with_options (a_options)
-			oracle.set_message_output_action (agent print_message)
-
-			reset
-		end
 
 	message_output_action: detachable PROCEDURE [ANY, TUPLE [READABLE_STRING_GENERAL]]
 			-- The action to be called for outputting messages.
@@ -511,14 +535,31 @@ feature {AST_EIFFEL} -- Visitors
 		end
 
 
-	process_routine_as (a_as: ROUTINE_AS)
+	process_body_as (a_as: BODY_AS)
 			-- Process `a_as'.
 		do
-			process_leading_leaves (a_as.first_token (match_list).index)
+			safe_process (a_as.internal_arguments)
+			safe_process (a_as.colon_symbol (match_list))
+			safe_process (a_as.type)
+			safe_process (a_as.assign_keyword (match_list))
+			safe_process (a_as.assigner)
+			safe_process (a_as.is_keyword (match_list))
 
-				-- The routine-specific clauses are about to begin, time to reset this flag.
-			processing_feature_comment := False
-			Precursor (a_as)
+			if attached {CONSTANT_AS} a_as.content as c_as then
+				c_as.process (Current)
+				safe_process (a_as.indexing_clause)
+			else
+				safe_process (a_as.indexing_clause)
+
+					-- We have basically redefined this feature just for doing this:
+				if attached a_as.content as l_content then
+					processing_feature_comment := True
+					process_leading_leaves (l_content.first_token (match_list).index)
+					processing_feature_comment := False
+				end
+
+				safe_process (a_as.content)
+			end
 		end
 
 	process_do_as (a_as: DO_AS)
@@ -544,18 +585,9 @@ feature {AST_EIFFEL} -- Visitors
 		do
 			process_leading_leaves (a_as.first_token (match_list).index)
 			oracle.begin_process_block (enum_block_type.Bt_feature)
-
 			current_indentation := indentation (a_as.feature_name.first_token (match_list))
 
-				-- We set the `processing_feature_comment' flag to true a bit earlier than we
-				-- should, but this saves us from overriding other features from the parent
-				-- class just for setting this.
-			processing_feature_comment := True
 			Precursor (a_as)
-
-				-- If this feature is a routine, this should already have been reset in `process_routine_as'.
-				-- If not, we do it here.
-			processing_feature_comment := False
 
 			oracle.end_process_block (enum_block_type.Bt_feature)
 		end
@@ -958,7 +990,7 @@ feature {AST_EIFFEL} -- Complex instructions visitors
 			end
 
 			if attached a_as.invariant_keyword (match_list) as l_invariant_keyword then
-				oracle.begin_process_block (enum_block_type.bt_loop_invariant)
+				oracle.begin_process_block (enum_block_type.Bt_loop_invariant)
 
 				current_indentation := indentation (l_invariant_keyword)
 				safe_process (l_invariant_keyword)
@@ -987,11 +1019,15 @@ feature {AST_EIFFEL} -- Complex instructions visitors
 			end
 
 			if attached l_until_keyword then
+				oracle.begin_process_block (enum_block_type.Bt_loop_termination)
+
 				current_indentation := indentation (l_until_keyword)
 				safe_process (l_until_keyword)
 
 				current_indentation := current_indentation + 1
-				process_expression_as (a_as.stop, enum_block_type.Bt_loop_termination_condition)
+				process_expression_as (a_as.stop, enum_block_type.Bt_loop_termination_expression)
+
+				oracle.end_process_block (enum_block_type.Bt_loop_termination)
 			end
 
 			l_loop_keyword := a_as.loop_keyword (match_list)
@@ -1015,36 +1051,33 @@ feature {AST_EIFFEL} -- Complex instructions visitors
 		end
 
 		process_loop_variant_as (a_as: VARIANT_AS)
-			-- Process `a_as', which is a loop invariant block.
-		local
-			l_variant_keyword: detachable KEYWORD_AS
-		do
-			process_leading_leaves (a_as.first_token (match_list).index)
-			oracle.begin_process_block (enum_block_type.bt_loop_variant)
+				-- Process `a_as', which is a loop invariant block.
+			local
+				l_variant_keyword: detachable KEYWORD_AS
+			do
+				process_leading_leaves (a_as.first_token (match_list).index)
+				oracle.begin_process_block (enum_block_type.bt_loop_variant)
 
-			l_variant_keyword := a_as.variant_keyword (match_list)
+				l_variant_keyword := a_as.variant_keyword (match_list)
 
-			check attached l_variant_keyword end
-			if attached l_variant_keyword then
-				current_indentation := indentation (l_variant_keyword)
-				safe_process (l_variant_keyword)
-				 process_next_break (l_variant_keyword)
-			end
+				check attached l_variant_keyword end
+				if attached l_variant_keyword then
+					current_indentation := indentation (l_variant_keyword)
+					safe_process (l_variant_keyword)
+					process_next_break (l_variant_keyword)
+				end
 
-			current_indentation := current_indentation + 1
+				current_indentation := current_indentation + 1
 
-				-- See the long comment in `process_local_dec_list_as'.
-			if oracle.output_enabled and oracle.current_content_visibility /= Tri_false then
+				oracle.begin_process_block (enum_block_type.Bt_loop_variant_expression)
 				safe_process (a_as.tag)
 				safe_process (a_as.colon_symbol (match_list))
 				safe_process (a_as.expr)
-			else
-				skip_with_current_placeholder
-			end
+				oracle.end_process_block (enum_block_type.Bt_loop_variant_expression)
 
-			process_next_break (a_as)
-			oracle.end_process_block (enum_block_type.bt_loop_variant)
-		end
+				process_next_break (a_as)
+				oracle.end_process_block (enum_block_type.bt_loop_variant)
+			end
 
 	process_inspect_as (a_as: INSPECT_AS)
 			-- Process `a_as'.

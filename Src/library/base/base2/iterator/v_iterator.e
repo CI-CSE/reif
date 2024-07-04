@@ -46,7 +46,8 @@ feature -- Measurement
 		require
 			closed: closed
 			subjects_closed: subjects.any_item.closed
-			reads (ownership_domain, target.ownership_domain)
+--			reads (ownership_domain, target.ownership_domain)
+			reads (universe)
 		deferred
 		ensure
 			definition: Result = index_
@@ -55,7 +56,7 @@ feature -- Measurement
 	valid_index (i: INTEGER): BOOLEAN
 			-- Is `i' a valid position for a cursor?
 		note
-			status: functional, ghost
+			status: functional, ghost, dynamic
 		require
 			target_exists: target /= Void
 			reads (Current, target)
@@ -69,8 +70,8 @@ feature -- Status report
 			-- Is current position before any position in `target'?
 		require
 			closed: closed
-			target_closed: target.closed
-			reads (ownership_domain)
+--			reads (ownership_domain)
+			reads (universe)
 		deferred
 		ensure
 			definition: Result = (index_ = 0)
@@ -80,8 +81,9 @@ feature -- Status report
 			-- Is current position after any position in `target'?
 		require
 			closed
-			target_closed: target.closed
-			reads (ownership_domain)
+			target.closed
+--			reads (ownership_domain, target.ownership_domain)
+			reads (universe)
 		deferred
 		ensure
 			definition: Result = (index_ = sequence.count + 1)
@@ -89,6 +91,8 @@ feature -- Status report
 
 	off: BOOLEAN
 			-- Is current position off scope?
+		note
+			status: dynamic
 		do
 			check inv end
 			Result := before or after
@@ -101,7 +105,8 @@ feature -- Status report
 		require
 			closed: closed
 			target_closed: target.closed
-			reads (ownership_domain, target.ownership_domain)
+--			reads (ownership_domain, target.ownership_domain)
+			reads (universe)
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index_ = 1)
@@ -112,7 +117,8 @@ feature -- Status report
 		require
 			closed: closed
 			target_closed: target.closed
-			reads (ownership_domain, target.ownership_domain)
+--			reads (ownership_domain, target.ownership_domain)
+			reads (universe)
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index_ = sequence.count)
@@ -128,6 +134,7 @@ feature -- Cursor movement
 		deferred
 		ensure then
 			index_effect: index_ = 1
+			target_closed: target.closed
 		end
 
 	finish
@@ -138,6 +145,7 @@ feature -- Cursor movement
 		deferred
 		ensure
 			index_effect: index_ = sequence.count
+			target_closed: target.closed
 		end
 
 	forth
@@ -151,16 +159,18 @@ feature -- Cursor movement
 			-- Go one position backward.
 		require
 			not_off: not off
-			target_wrapped: target.is_wrapped
+			target_closed: target.closed
 			modify_model ("index_", Current)
 		deferred
 		ensure
 			index_effect: index_ = old index_ - 1
+			target_closed: target.closed
 		end
 
 	go_to (i: INTEGER)
 			-- Go to position `i'.
 		note
+			status: dynamic
 			explicit: wrapping
 		require
 			has_index: valid_index (i)
@@ -169,7 +179,7 @@ feature -- Cursor movement
 		local
 			j: INTEGER
 		do
-			check inv and then target.inv end
+			check inv end
 			if i = 0 then
 				go_before
 			elseif i = target.count + 1 then
@@ -214,6 +224,7 @@ feature -- Cursor movement
 		deferred
 		ensure
 			index_effect: index_ = sequence.count + 1
+			target_closed: target.closed
 		end
 
 	search_forth (v: G)
@@ -221,16 +232,17 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `after'.
 			-- (Use reference equality.)
 		note
+			status: dynamic
 			explicit: wrapping
 		do
-			check inv end
+			check inv_only ("subjects_definition") end
 			if before then
 				start
 			end
 			from
 			invariant
 				is_wrapped
-				inv
+				inv_only ("index_constraint", "box_definition")
 				target.is_wrapped
 				index_.old_ <= index_ and index_ <= sequence.count + 1
 				not before
@@ -253,23 +265,23 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `before'.
 			-- (Use reference equality.)
 		note
+			status: dynamic
 			explicit: wrapping
 		require
 			target_wrapped: target.is_wrapped
 			modify_model ("index_", Current)
 		do
-			check inv end
 			if after then
 				finish
 			end
 			from
 			invariant
 				is_wrapped
-				inv
+				inv_only ("index_constraint", "subjects_definition")
 				target.is_wrapped
 				0 <= index_
 				index_ <= index_.old_
-				not after
+				index_ <= sequence.count
 				across (index_ + 1) |..| index_.old_.min (sequence.count) as i all sequence [i.item] /= v end
 			until
 				before or else item = v

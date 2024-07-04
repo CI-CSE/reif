@@ -8,7 +8,7 @@ deferred class
 	AT_COMMON
 
 inherit
-	AT_TRI_STATE_BOOLEAN_CONSTANTS
+	AT_TRILEAN_CONSTANTS
 
 	AT_SHARED_HINT_TABLES
 
@@ -45,28 +45,7 @@ feature -- Enums
 			create Result
 		end
 
-feature -- For use with contracts
-
-	is_valid_hint_level (a_level: NATURAL): BOOLEAN
-			-- Does `a_level' represent a valid hint level?
-		do
-				-- 20 is arbitrary. Theoretically any positive number would
-				-- be acceptable, in practice it is probably better to have a limit,
-				-- so that the program throws an error if absurd hint levels are specified.
-			Result := a_level >= 0 and a_level <= 20
-		ensure
-			Result implies a_level < {INTEGER}.max_value.as_natural_32
-		end
-
-
 feature {NONE} -- Utility
-
-		-- Taken from the eweasel source code.
-	is_white (a_char: CHARACTER): BOOLEAN
-			-- Is `a_char' a white space character?
-		do
-			Result := a_char = ' ' or a_char = '%T' or a_char = '%R' or a_char = '%N';
-		end;
 
 		-- Taken from the eweasel source code.
 	broken_into_words (a_line: STRING): DYNAMIC_LIST [STRING]
@@ -83,7 +62,7 @@ feature {NONE} -- Utility
 			until
 				l_pos > a_line.count
 			loop
-				l_is_white_char := is_white (a_line.item (l_pos));
+				l_is_white_char := a_line.item (l_pos).is_space;
 				if l_in_word then
 					if l_is_white_char then
 						l_in_word := False;

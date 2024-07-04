@@ -22,7 +22,22 @@ classes = [
   'V_CELL',
   'V_LINKABLE',
   'V_LINKED_LIST',  
-  'V_LINKED_LIST_ITERATOR',    
+  'V_LINKED_LIST_ITERATOR',
+  'V_DISPENSER',
+  'V_STACK',
+  'V_LINKED_STACK',
+  'V_LINKED_STACK_ITERATOR',
+  'V_QUEUE',
+  'V_LINKED_QUEUE',
+  'V_LINKED_QUEUE_ITERATOR',
+  'V_DOUBLY_LINKABLE',
+  'V_DOUBLY_LINKED_LIST',
+  'V_DOUBLY_LINKED_LIST_ITERATOR',
+  'V_ARRAY',
+  'V_INDEX_ITERATOR',
+  'V_ARRAY_ITERATOR',
+  'V_ARRAYED_LIST',
+  'V_ARRAYED_LIST_ITERATOR'
 ]
 
 outfile_name = 'base2.out'
@@ -44,9 +59,9 @@ def run_all(project_path):
     call([os.path.join(os.getenv("ISE_LIBRARY"), 'Eiffel', 'Ace', 'EIFGENs', 'bench', 'F_code', 'ec.exe')] + args, stdout=outfile, stderr=outfile)
     end = time.clock()
     
-  if 'Verification failed.' in open(outfile_name).read():
+  if 'Verification failed' in open(outfile_name).read():
     print Back.RED + Fore.RED + Style.BRIGHT + ': failed' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
-  elif 'Successfully verified.' in open(outfile_name).read():
+  elif 'Successfully verified' in open(outfile_name).read():
     print Back.GREEN + Fore.GREEN + Style.BRIGHT + ': ok' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
   else:
     print Back.RED + Fore.RED + Style.BRIGHT + ':OOPS' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
@@ -69,10 +84,10 @@ def run_each(project_path):
       start = time.clock()
       call([os.path.join(os.getenv("ISE_LIBRARY"), 'Eiffel', 'Ace', 'EIFGENs', 'bench', 'F_code', 'ec.exe')] + args1, stdout=tempfile, stderr=tempfile)
       end = time.clock()      
-    
-    if 'Verification failed.' in open(tempfile_name).read():
+        
+    if 'Verification failed' in open(tempfile_name).read():
       print Back.RED + Fore.RED + Style.BRIGHT + ': failed' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
-    elif 'Successfully verified.' in open(tempfile_name).read():
+    elif 'Successfully verified' in open(tempfile_name).read():
       print Back.GREEN + Fore.GREEN + Style.BRIGHT + ': ok' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
     else:
       print Back.RED + Fore.RED + Style.BRIGHT + ':OOPS' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
