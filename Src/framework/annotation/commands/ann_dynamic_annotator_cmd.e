@@ -165,9 +165,9 @@ feature {NONE} -- Implementation
 			l_bp_slot: INTEGER
 			l_state: DS_HASH_SET [EPA_EQUATION]
 		do
-			io.put_string ("%N==> " + a_bp.breakable_line_number.out + "%N")
-			io.put_string (a_state.debug_output +"%N")
-			io.put_string ("==>%N")
+--			io.put_string ("%N==> " + a_bp.breakable_line_number.out + "%N")
+--			io.put_string (a_state.debug_output +"%N")
+--			io.put_string ("==>%N")
 			l_bp_slot := a_bp.breakable_line_number
 			create l_state.make_default
 

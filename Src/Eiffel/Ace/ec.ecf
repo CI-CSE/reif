@@ -237,7 +237,7 @@
 		<library name="lex" location="$ISE_LIBRARY\library\lex\lex.ecf" readonly="false"/>
 		<library name="memory_analyzer" location="$ISE_LIBRARY\library\memory_analyzer\memory_analyzer.ecf" readonly="false"/>
 		<library name="net" location="$ISE_LIBRARY\library\net\net.ecf" readonly="false"/>
-		<library name="patterns" location="$ISE_LIBRARY\library\patterns\patterns.ecf" readonly="false"/>
+		<library name="patterns" location="$EIFFEL_SRC\library\patterns\patterns.ecf" readonly="false"/>
 		<library name="preferences_reg" location="$ISE_LIBRARY\library\preferences\preferences_reg.ecf" readonly="false">
 			<condition>
 				<platform value="windows"/>
@@ -333,6 +333,7 @@
 				<exclude>/ewb_contract_inference\.e$</exclude>
 				<exclude>/ewb_auto_test\.e$</exclude>
 				<exclude>/ewb_testing\.e$</exclude>
+				<exclude>/ewb_dynamic_program_analysis\.e$</exclude>
 				<exclude>/ewb_annotation\.e$</exclude>
 				<exclude>/ewb_snippet_extraction\.e$</exclude>
 			</file_rule>
