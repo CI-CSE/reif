@@ -559,8 +559,8 @@ feature{NONE} -- Actions
 
 					-- Setup break points to evaluate expressions, and
 					-- break points for expression evaluation.
-				las_pre_state_expression_evaluation_manager := breakpoint_manager_for_expression_evaluation (last_test_case_info, True)
-				las_pre_state_expression_evaluation_manager.toggle_breakpoints (True)
+				last_pre_state_expression_evaluation_manager := breakpoint_manager_for_expression_evaluation (last_test_case_info, True)
+				last_pre_state_expression_evaluation_manager.toggle_breakpoints (True)
 
 				if last_test_case_info.is_passing then
 					last_post_state_expression_evaluation_manger := breakpoint_manager_for_expression_evaluation (last_test_case_info, False)
@@ -746,6 +746,8 @@ feature{NONE} -- Implementation
 			l_pre_valuations: DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
 			l_post_valuations: DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
 			l_transition_info: CI_TEST_CASE_TRANSITION_INFO
+			l_sql_generator: CI_SQL_INFERRER
+			l_mock_generator: CI_SEMANTIC_SEARCH_DATA_COLLECTOR_INFERRER
 		do
 			create l_context.make (last_test_case_info.variables)
 			create l_transition.make (
@@ -815,6 +817,24 @@ feature{NONE} -- Implementation
 
 			transition_data.extend (l_transition_info)
 			last_feature_under_test_breakpoint_manager := Void
+
+			if config.should_generate_sql or config.should_generate_mocking then
+				if config.should_generate_sql then
+					create l_sql_generator
+					l_sql_generator.set_config (config)
+					l_sql_generator.set_logger (log_manager)
+					create data.make (transition_data)
+					l_sql_generator.infer (data)
+				end
+				if config.should_generate_mocking then
+					create l_mock_generator
+					l_mock_generator.set_config (config)
+					l_mock_generator.set_logger (log_manager)
+					create data.make (transition_data)
+					l_mock_generator.infer (data)
+				end
+				transition_data.wipe_out
+			end
 		end
 
 	setup_inferrers
@@ -832,6 +852,7 @@ feature{NONE} -- Implementation
 			l_constant_change_inferrer: CI_CONSTANT_CHANGE_INFERRER
 			l_semantic_search_inferrer: CI_SEMANTIC_SEARCH_DATA_COLLECTOR_INFERRER
 			l_solr_inferrer: CI_SOLR_INFERRER
+			l_sql_inferrer: CI_SQL_INFERRER
 		do
 			create inferrers.make
 
@@ -903,12 +924,12 @@ feature{NONE} -- Implementation
 				inferrers.extend (l_constant_change_inferrer)
 			end
 
-			if config.should_generate_mocking then
-				create l_semantic_search_inferrer
-				l_semantic_search_inferrer.set_config (config)
-				l_semantic_search_inferrer.set_logger (log_manager)
-				inferrers.extend (l_semantic_search_inferrer)
-			end
+--			if config.should_generate_mocking then
+--				create l_semantic_search_inferrer
+--				l_semantic_search_inferrer.set_config (config)
+--				l_semantic_search_inferrer.set_logger (log_manager)
+--				inferrers.extend (l_semantic_search_inferrer)
+--			end
 
 			if config.should_generate_solr then
 				create l_solr_inferrer
@@ -916,6 +937,13 @@ feature{NONE} -- Implementation
 				l_solr_inferrer.set_logger (log_manager)
 				inferrers.extend (l_solr_inferrer)
 			end
+
+--			if config.should_generate_sql then
+--				create l_sql_inferrer
+--				l_sql_inferrer.set_config (config)
+--				l_sql_inferrer.set_logger (log_manager)
+--				inferrers.extend (l_sql_inferrer)
+--			end
 		end
 
 	mutate_equality_comparision_expressions (a_state: EPA_STATE)
@@ -1075,7 +1103,7 @@ feature{NONE} -- Results
 			-- The list of breakpoint slots that were hit during the last execution
 			-- of `feature_'
 
-	las_pre_state_expression_evaluation_manager: like breakpoint_manager_for_expression_evaluation
+	last_pre_state_expression_evaluation_manager: like breakpoint_manager_for_expression_evaluation
 	last_post_state_expression_evaluation_manger: like breakpoint_manager_for_expression_evaluation
 			-- Breakpoint expression evaluation manager
 

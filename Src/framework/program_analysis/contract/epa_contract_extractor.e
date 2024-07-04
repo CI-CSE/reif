@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Class to extract contracts from program elements"
 	author: ""
 	date: "$Date$"
@@ -37,7 +37,7 @@ feature -- Access
 				l_asserts.after
 			loop
 				l_exprs := l_asserts.item_for_iteration.assertions
-				Result.append (tags (l_asserts.item_for_iteration.source_class, l_asserts.item_for_iteration.source_class.invariant_feature, a_class, a_class.invariant_feature, l_exprs, False, False, False, False))
+				Result.append (tags (l_asserts.item_for_iteration.source_class, l_asserts.item_for_iteration.source_class.invariant_feature, a_class, l_asserts.item_for_iteration.source_class.invariant_feature, l_exprs, False, False, False, False))
 				l_asserts.forth
 			end
 		ensure
@@ -213,7 +213,7 @@ feature{NONE} -- Implementation
 					if a_written_feature = Void then
 						create l_expr.make (l_expr_as, a_written_class, a_context_class)
 					else
-						create l_expr.make_with_feature (a_context_class, a_written_feature, l_expr_as, a_written_class)
+						create l_expr.make_with_feature (a_context_class, a_context_feature, l_expr_as, a_written_class)
 					end
 					if attached {ID_AS} a_asserts.item.tag as l_tag then
 						l_expr.set_tag (l_tag.name)
@@ -241,7 +241,7 @@ feature{NONE} -- Implementation
 			until
 				a_exprs.after
 			loop
-				if a_test.item ([a_exprs.item_for_iteration]) then
+				if a_test.item ([a_exprs.item_for_iteration]) and then not a_exprs.item_for_iteration.text.has ('{') then
 					if a_feature = Void then
 						create l_expr.make_with_text (a_context_class, a_exprs.item.written_class.invariant_feature, text_from_ast (a_exprs.item_for_iteration.ast), a_exprs.item_for_iteration.written_class)
 					else

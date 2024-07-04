@@ -2,7 +2,7 @@ note
 	description: "Summary description for {SSA_ARG_INSTANTITATE}."
 	author: ""
 	date: "$Date$"
-	revision: "$Revision$"
+	revision: "$Revision: 84595 $"
 
 class
 	SSA_ARG_INSTANTIATE

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Configuration for contract inference"
 	author: ""
 	date: "$Date$"
@@ -112,6 +112,17 @@ feature -- Access
 		do
 			create l_path.make_from_string (contract_output_directory)
 			l_path.extend ("solr")
+			Result := l_path
+			safe_recursive_create_directory (l_path)
+		end
+
+	sql_directory: STRING
+			-- Directory for sql documents
+		local
+			l_path: FILE_NAME
+		do
+			create l_path.make_from_string (contract_output_directory)
+			l_path.extend ("sql")
 			Result := l_path
 			safe_recursive_create_directory (l_path)
 		end
@@ -290,10 +301,14 @@ feature -- Access
 			-- Should generate solr files?
 			-- Default: False
 
+	should_generate_sql: BOOLEAN
+			-- Should generate sql files?
+			-- Default: False
+
 	should_enable_post_serialization_retrieval: BOOLEAN
 			-- Should post-state object serialization be enabled?
 		do
-			Result := should_generate_mocking or should_generate_solr
+			Result := should_generate_mocking or should_generate_solr or should_generate_sql
 		end
 
 	is_breakpoint_monitoring_enabled: BOOLEAN
@@ -586,6 +601,14 @@ feature -- Setting
 			should_generate_solr := b
 		ensure
 			should_generate_solr_set: should_generate_solr = b
+		end
+
+	set_should_generate_sql (b: BOOLEAN)
+			-- Set `should_generate_sql' with `b'.
+		do
+			should_generate_sql := b
+		ensure
+			should_generate_sql_set: should_generate_sql = b
 		end
 
 	set_is_breakpoint_monitoring_enabled (b: BOOLEAN)

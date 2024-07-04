@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Shared equality testers"
 	author: ""
 	date: "$Date$"
@@ -26,6 +26,24 @@ feature -- Access
 
 	sem_transition_variable_position_equality_tester: SEM_TRANSITION_VARIABLE_POSITION_EQUALITY_TESTER
 			-- Equality tester for {SEM_TRANSITION_VARIABLE_POSITION} objects
+		once
+			create Result
+		end
+
+	sql_type_equality_tester: SQL_TYPE_EQUALITY_TESTER
+			-- Equality tester for {SQL_TYPE}
+		once
+			create Result
+		end
+
+	semq_term_equality_tester: SEMQ_TERM_EQUALITY_TESTER
+			-- Equality tester for {SEMQ_TERM}
+		once
+			create Result
+		end
+
+	sem_variable_with_uuid_equality_tester: SEM_VARIABLE_WITH_UUID_EQUALITY_TESTER
+			-- Equality test for {SEM_VARIABLE_WITH_UUUID}
 		once
 			create Result
 		end
