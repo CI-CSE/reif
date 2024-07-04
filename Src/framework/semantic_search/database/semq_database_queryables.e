@@ -10,6 +10,8 @@ class
 inherit
 	SEMQ_DATABASE
 
+	EPA_UTILITY
+
 create
 	make
 
@@ -21,11 +23,11 @@ feature -- Initialization
 			create queryables.make (1) -- there should only be one at a time
 			open_mysql
 			mysql.prepare_statement (once "INSERT INTO `semantic_search`.`HitBreakpoints` VALUES (?, ?)")
-			stmt_insert_hitbreakpoints := mysql.last_statement
+			stmt_insert_hitbreakpoints := mysql.last_prepared_statement
 			mysql.prepare_statement (once "SELECT `qry_id` FROM `semantic_search`.`Queryables` WHERE `uuid` = ?")
-			stmt_find_uuid := mysql.last_statement
+			stmt_find_uuid := mysql.last_prepared_statement
 			mysql.prepare_statement (once "INSERT INTO `semantic_search`.`Queryables` VALUES (NULL, 0, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL)")
-			stmt_insert_queryable := mysql.last_statement
+			stmt_insert_queryable := mysql.last_prepared_statement
 			stmt_insert_queryable.set_string (1, config.timestamp)
 		end
 
@@ -38,7 +40,7 @@ feature -- Basic operations
 		do
 			stmt_find_uuid.set_string (1, a_uuid)
 			stmt_find_uuid.execute
-			if stmt_find_uuid.num_rows > 0 then
+			if stmt_find_uuid.row_count > 0 then
 				Result := 0
 			else
 				stmt_insert_queryable.set_string (2, a_uuid)
@@ -57,13 +59,28 @@ feature -- Basic operations
 			stmt: STRING
 			attributes: HASH_TABLE [STRING, STRING]
 			hit_breakpoints: LIST [STRING]
+			l_str: STRING
+			l_parts: LIST [STRING]
 		do
 			-- Setup
 			attributes := queryables.at (a_qry_id)
 			make_sem_field_names
 
-			create stmt.make (65536) -- Serialization can be very large
+			-- Fix missing `is_query` attribute in SSQL file
+			if not attributes.has (once "is_query") and attributes.has (once "test_case_name") then
+				l_str := attributes.at (once "test_case_name").twin
+				l_parts := string_slices (l_str, once "__")
+				if l_parts.i_th (4).same_string (once "CMD") then
+					attributes.put (once "False", once "is_query")
+				else
+					attributes.put (once "True", once "is_query")
+				end
+			end
+
+			-- Serialization can be very large
+			create stmt.make (65536)
 			stmt.append (once "UPDATE `semantic_search`.`Queryables` SET `uuid` = `uuid`")
+
 			-- `qry_kind` tinyint(3) unsigned NOT NULL
 			if attributes.has (once "document_type") then
 				stmt.append (once ", `qry_kind` = "+sem_field_names.queryable_types.at (attributes.at (once "document_type")).out)
@@ -196,8 +213,8 @@ feature -- Basic operations
 					hit_breakpoints.off
 				loop
 					if hit_breakpoints.item.at (1) /= '_' then
-						stmt_insert_hitbreakpoints.set_int (1, a_qry_id)
-						stmt_insert_hitbreakpoints.set_int (2, hit_breakpoints.item.to_integer)
+						stmt_insert_hitbreakpoints.set_integer (1, a_qry_id)
+						stmt_insert_hitbreakpoints.set_integer (2, hit_breakpoints.item.to_integer)
 						stmt_insert_hitbreakpoints.execute
 					end
 					hit_breakpoints.forth
@@ -226,15 +243,15 @@ feature{SEMQ_DATABASE} -- MySQL Client
 	cleanup_mysql
 			-- Close statements
 		do
-			stmt_insert_hitbreakpoints.close
-			stmt_find_uuid.close
-			stmt_insert_queryable.close
+			stmt_insert_hitbreakpoints.dispose
+			stmt_find_uuid.dispose
+			stmt_insert_queryable.dispose
 		end
 
 feature{NONE} -- Prepared Statements
 
-	stmt_insert_hitbreakpoints: MYSQL_STMT
-	stmt_find_uuid: MYSQL_STMT
-	stmt_insert_queryable: MYSQL_STMT
+	stmt_insert_hitbreakpoints: MYSQL_PREPARED_STATEMENT
+	stmt_find_uuid: MYSQL_PREPARED_STATEMENT
+	stmt_insert_queryable: MYSQL_PREPARED_STATEMENT
 
 end

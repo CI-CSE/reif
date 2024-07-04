@@ -55,7 +55,7 @@ feature -- Initialization
 			else
 				create types.make (100)
 			end
-			mysql.last_result.free_result
+			mysql.last_result.dispose
 
 			-- Only for new types
 			type_conformance_calc.type_added_actions.extend (agent add_type (?))
@@ -108,8 +108,8 @@ feature -- Basic operations
 		do
 			conf_type_id := get_id (a_conformant_type.name)
 			type_id := get_id (a_type.name)
-			stmt_insert_conformance.set_int (1, conf_type_id)
-			stmt_insert_conformance.set_int (2, type_id)
+			stmt_insert_conformance.set_integer (1, conf_type_id)
+			stmt_insert_conformance.set_integer (2, type_id)
 			stmt_insert_conformance.execute
 		end
 
@@ -123,9 +123,9 @@ feature{SEMQ_DATABASE} -- MySQL Client
 	cleanup_mysql
 			-- Close statements
 		do
-			stmt_find_type.close
-			stmt_insert_type.close
-			stmt_insert_conformance.close
+			stmt_find_type.dispose
+			stmt_insert_type.dispose
+			stmt_insert_conformance.dispose
 		end
 
 feature{NONE} -- Prepared Statements
@@ -135,15 +135,15 @@ feature{NONE} -- Prepared Statements
 		do
 			open_mysql
 			mysql.prepare_statement (once "SELECT `type_id` FROM `semantic_search`.`Types` WHERE `type_name` = ?")
-			stmt_find_type := mysql.last_statement
+			stmt_find_type := mysql.last_prepared_statement
 			mysql.prepare_statement (once "INSERT INTO `semantic_search`.`Types` VALUES (NULL, ?)")
-			stmt_insert_type := mysql.last_statement
+			stmt_insert_type := mysql.last_prepared_statement
 			mysql.prepare_statement (once "INSERT INTO `semantic_search`.`Conformances` VALUES (?, ?)")
-			stmt_insert_conformance := mysql.last_statement
+			stmt_insert_conformance := mysql.last_prepared_statement
 		end
 
-	stmt_find_type: MYSQL_STMT
-	stmt_insert_type: MYSQL_STMT
-	stmt_insert_conformance: MYSQL_STMT
+	stmt_find_type: MYSQL_PREPARED_STATEMENT
+	stmt_insert_type: MYSQL_PREPARED_STATEMENT
+	stmt_insert_conformance: MYSQL_PREPARED_STATEMENT
 
 end

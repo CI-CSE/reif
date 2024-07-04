@@ -59,7 +59,13 @@ feature{SEMQ_DATABASE} -- MySQL Client
 			-- Initialize MySQL Client
 		do
 			if mysql = Void then
-				create mysql.make (config.mysql_host, config.mysql_user, config.mysql_password, config.mysql_schema)
+				create mysql.make
+				mysql.set_host (config.mysql_host)
+				mysql.set_username (config.mysql_user)
+				mysql.set_password (config.mysql_password)
+				mysql.set_database (config.mysql_schema)
+				mysql.set_port (config.mysql_port)
+				mysql.connect
 			end
 		end
 
@@ -73,7 +79,7 @@ feature{SEMQ_DATABASE} -- MySQL Client
 		do
 			if mysql /= Void and mysql.is_connected then
 				cleanup_mysql
-				mysql.close
+				mysql.dispose
 				mysql := Void
 			end
 		ensure

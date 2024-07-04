@@ -47,7 +47,7 @@ feature -- Initialization
 			else
 				create properties.make (1000)
 			end
-			mysql.last_result.free_result
+			mysql.last_result.dispose
 		end
 
 feature -- Basic operations
@@ -85,8 +85,8 @@ feature{SEMQ_DATABASE} -- MySQL Client
 	cleanup_mysql
 			-- Close statements
 		do
-			stmt_find_property.close
-			stmt_insert_property.close
+			stmt_find_property.dispose
+			stmt_insert_property.dispose
 		end
 
 feature{NONE} -- Prepared Statements
@@ -96,12 +96,12 @@ feature{NONE} -- Prepared Statements
 		do
 			open_mysql
 			mysql.prepare_statement (once "SELECT `prop_id` FROM `semantic_search`.`Properties` WHERE `text` = ?")
-			stmt_find_property := mysql.last_statement
+			stmt_find_property := mysql.last_prepared_statement
 			mysql.prepare_statement (once "INSERT INTO `semantic_search`.`Properties` VALUES (NULL, ?)")
-			stmt_insert_property := mysql.last_statement
+			stmt_insert_property := mysql.last_prepared_statement
 		end
 
-	stmt_find_property: MYSQL_STMT
-	stmt_insert_property: MYSQL_STMT
+	stmt_find_property: MYSQL_PREPARED_STATEMENT
+	stmt_insert_property: MYSQL_PREPARED_STATEMENT
 
 end

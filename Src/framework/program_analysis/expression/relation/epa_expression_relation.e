@@ -32,11 +32,14 @@ feature -- Access
 			l_empty_set: EPA_HASH_SET [EPA_EXPRESSION]
 		do
 			find_relevant_expressions (a_context)
+
 			if
 				a_should_merge
 			then
 				merge_not_disjoint_sets
 			end
+
+			-- Set Result
 			create l_empty_set.make_default
 			Result := l_empty_set
 			Result.set_equality_tester (expression_equality_tester)
@@ -90,20 +93,20 @@ feature -- Access
 		end
 
 	dependent_expressions (a_expr: EPA_EXPRESSION; a_context: ETR_CONTEXT): DS_HASH_SET [EPA_EXPRESSION]
-            -- Set of expressions that `a_expr' dependends on in `a_context'
-            -- `a_context' indicates in which scope the relevance relation is calculated.
-            -- Depencency is defined as follows:
-            -- If `a_expr' appears as a left-hand value of an assignment and another expression, `b_expr', appears in the right-hand expression
-            -- of the same assignment, then `a_expr' is dependent on `b_expr'.
-            -- For example, in assignment "total := price + tax", "total" is dependent on both "price" and "tax'.
-            -- Note: Recalculate result every time, no cache is maintained. So if this feature is used frequently,
-            -- please do the caching somewhere else.
-        do
-        	fixme("Not yet implemented. Feb 13, 2011. megg")
-        ensure
-            good_result: Result /= Void
-            equality_tester_set: Result.equality_tester = expression_equality_tester
-        end
+			-- Set of expressions that `a_expr' dependends on in `a_context'
+			-- `a_context' indicates in which scope the relevance relation is calculated.
+			-- Depencency is defined as follows:
+			-- If `a_expr' appears as a left-hand value of an assignment and another expression, `b_expr', appears in the right-hand expression
+			-- of the same assignment, then `a_expr' is dependent on `b_expr'.
+			-- For example, in assignment "total := price + tax", "total" is dependent on both "price" and "tax'.
+			-- Note: Recalculate result every time, no cache is maintained. So if this feature is used frequently,
+			-- please do the caching somewhere else.
+		do
+			fixme("Not yet implemented. Feb 13, 2011. megg")
+		ensure
+			good_result: Result /= Void
+			equality_tester_set: Result.equality_tester = expression_equality_tester
+		end
 
 feature -- Status report
 
@@ -122,11 +125,14 @@ feature -- Status report
 			l_is_expression_relevant: BOOLEAN
 		do
 			find_relevant_expressions (a_context)
+
 			if
 				a_should_merge
 			then
 				merge_not_disjoint_sets
 			end
+
+			-- Set Result
 			from
 				i := 1
 			until
@@ -171,17 +177,17 @@ feature -- Status report
 		end
 
 	is_expression_dependent (a_expr: EPA_EXPRESSION; b_expr: EPA_EXPRESSION; a_context: ETR_CONTEXT): BOOLEAN
-            -- Is `a_expr' dependent on `b_expr'?
-            -- `a_context' indicates in which scope the relevance relation is calculated.
-            -- Dependency is defined as follows:
-            -- If `a_expr' appears as a left-hand value of an assignment and `b_expr' appears in the right-hand expression
-            -- of the same assignment, then `a_expr' is dependent on `b_expr'.
-            -- For example, in assignment "total := price + tax", "total" is dependent on both "price" and "tax'.
-            -- Note: Recalculate result every time, no cache is maintained. So if this feature is used frequently,
-            -- please do the caching somewhere else.
-        do
-        	fixme("Not yet implemented. Feb 13, 2011. megg")
-        end
+			-- Is `a_expr' dependent on `b_expr'?
+			-- `a_context' indicates in which scope the relevance relation is calculated.
+			-- Dependency is defined as follows:
+			-- If `a_expr' appears as a left-hand value of an assignment and `b_expr' appears in the right-hand expression
+			-- of the same assignment, then `a_expr' is dependent on `b_expr'.
+			-- For example, in assignment "total := price + tax", "total" is dependent on both "price" and "tax'.
+			-- Note: Recalculate result every time, no cache is maintained. So if this feature is used frequently,
+			-- please do the caching somewhere else.
+		do
+			fixme("Not yet implemented. Feb 13, 2011. megg")
+		end
 
 feature -- Helper features
 
@@ -233,6 +239,7 @@ feature {NONE} -- Implementation
 			l_features: LINKED_LIST[FEATURE_I]
 		do
 			create l_relevancy_finder.make (a_context)
+
 			if attached {ETR_CLASS_CONTEXT} a_context as l_class_ctxt then
 				l_relevancy_finder.set_context_class (l_class_ctxt.context_class)
 				l_relevancy_finder.set_written_class (l_class_ctxt.written_class)
@@ -248,6 +255,8 @@ feature {NONE} -- Implementation
 					l_feat_tbl.forth
 				end
 				l_feat_tbl.go_to (l_cursor)
+
+				-- Process all features of `a_context'
 				from
 					l_features.start
 				until
@@ -256,15 +265,23 @@ feature {NONE} -- Implementation
 					l_feature := l_features.item_for_iteration
 					l_relevancy_finder.set_context_feature (l_feature)
 					l_relevancy_finder.set_written_class (l_feature.written_class)
+
+					-- Process feature
 					l_relevancy_finder.find (l_feature.e_feature.ast)
+
+					-- Process preconditions
 					across precondition_of_feature (l_feature, l_class_ctxt.context_class) as l_preconditions loop
 						l_relevancy_finder.find (l_preconditions.item.ast)
 					end
+
+					-- Process postconditions
 					across postcondition_of_feature (l_feature, l_class_ctxt.context_class) as l_postconditions loop
 						l_relevancy_finder.find (l_postconditions.item.ast)
 					end
 					l_features.forth
 				end
+
+				-- Process invariants
 				across invariant_of_class (l_class_ctxt.context_class) as l_invariants loop
 					l_relevancy_finder.find (l_invariants.item.ast)
 				end
@@ -273,10 +290,16 @@ feature {NONE} -- Implementation
 				l_relevancy_finder.set_context_feature (l_feat_ctxt.written_feature)
 				l_relevancy_finder.set_written_class (l_feat_ctxt.written_feature.written_class)
 				l_relevancy_finder.set_context_class (l_feat_ctxt.context_class)
+
+				-- Process feature
 				l_relevancy_finder.find (l_feature.e_feature.ast)
+
+				-- Process preconditions
 				across precondition_of_feature (l_feature, l_feat_ctxt.context_class) as l_preconditions loop
 					l_relevancy_finder.find (l_preconditions.item.ast)
 				end
+
+				-- Process postconditions
 				across postcondition_of_feature (l_feature, l_feat_ctxt.context_class) as l_postconditions loop
 					l_relevancy_finder.find (l_postconditions.item.ast)
 				end
@@ -293,52 +316,81 @@ feature {NONE} -- Implementation
 		local
 			m,n: INTEGER
 			l_count: INTEGER
-			l_rev_sets: like relevant_expression_sets
+			l_sets, l_edited_sets: like relevant_expression_sets
 		do
-			l_rev_sets := relevant_expression_sets
-			l_count := l_rev_sets.count
+			l_sets := relevant_expression_sets
+			create l_edited_sets.make (relevant_expression_sets.count)
+			across relevant_expression_sets as l_revs loop
+				l_edited_sets.extend (l_revs.item.cloned_object)
+			end
+			remove_unnecessary_expressions (l_edited_sets)
+			l_count := l_edited_sets.count
+
 			from
 				m := 1
 			until
 				m > l_count
 			loop
 				from
-					n := 1
+					n := m + 1
 				until
 					n > l_count
 				loop
+
+					-- Merge sets
 					if
 						m /= n and then
-						l_rev_sets.i_th (m) /= Void and then
-						l_rev_sets.i_th (n) /= Void and then
-						expression_set_without_constants (l_rev_sets.i_th (m)).is_disjoint (expression_set_without_constants (l_rev_sets.i_th (n)))
+						l_edited_sets.i_th (m) /= Void and then
+						l_edited_sets.i_th (n) /= Void and then
+						not l_edited_sets.i_th (m).is_disjoint (l_edited_sets.i_th (n))
 					then
-						l_rev_sets.i_th (m).merge (l_rev_sets.i_th (n))
-						l_rev_sets.put_i_th (Void, n)
-						m := 1
-						n := 1
+						l_sets.i_th (m).merge (l_sets.i_th (n))
+						l_sets.put_i_th (Void, n)
+						l_edited_sets.i_th (m).merge (l_edited_sets.i_th (n))
+						l_edited_sets.put_i_th (Void, n)
+						n := m + 1
+					else
+						n := n + 1
 					end
-					n := n + 1
 				end
-					-- Find the next set which may be merged with another set.
+
+				-- Find the next set which may be merged with another set.
 				from
 					m := m + 1
 				until
-				   m > l_count or else l_rev_sets.i_th (m) /= Void
+				   m > l_count or else l_edited_sets.i_th (m) /= Void
 				loop
 					m := m + 1
 				end
 			end
 		end
 
-	expression_set_without_constants (a_set: EPA_HASH_SET [EPA_EXPRESSION]): EPA_HASH_SET [EPA_EXPRESSION]
-			-- A set whose elements are non-constant elements from `a_set'.
+	remove_unnecessary_expressions (a_expression_sets: ARRAYED_LIST [EPA_HASH_SET [EPA_EXPRESSION]])
+			-- Removes the unnecessary expressions from `a_sets' namely
+			-- constants and the expression "Void".
 		require
-			a_set_not_void: a_set /= Void
+			a_expression_sets_not_void: a_expression_sets /= Void
+		local
+			i: INTEGER
 		do
-			create Result.make (a_set.count)
+			from
+				i := 1
+			until
+				i > a_expression_sets.count
+			loop
+				a_expression_sets.put_i_th (set_without_unnecessary_expressions (a_expression_sets.i_th (i)), i)
+				i := i + 1
+			end
+		end
+
+	set_without_unnecessary_expressions (a_expression_set: EPA_HASH_SET [EPA_EXPRESSION]): EPA_HASH_SET [EPA_EXPRESSION]
+			-- A set whose elements are non-constant and non-void expressions from `a_set'.
+		require
+			a_expression_set_not_void: a_expression_set /= Void
+		do
+			create Result.make (a_expression_set.count)
 			Result.set_equality_tester (expression_equality_tester)
-			a_set.do_if (agent Result.force_last, agent (a_expr: EPA_EXPRESSION): BOOLEAN do Result := not a_expr.is_constant end)
+			a_expression_set.do_if (agent Result.force_last, agent (a_expr: EPA_EXPRESSION): BOOLEAN do Result := not a_expr.is_constant and not a_expr.is_void and not a_expr.is_result end)
 		ensure
 			Result_not_void: Result /= Void
 			equality_tester_set: Result.equality_tester = expression_equality_tester

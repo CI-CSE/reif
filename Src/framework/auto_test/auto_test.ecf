@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-5-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-5-0 http://www.eiffel.com/developers/xml/configuration-1-5-0.xsd" name="auto_test_library" uuid="197D2624-6547-4BAB-904B-131A4FA4EA32" library_target="auto_test">
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-8-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-8-0 http://www.eiffel.com/developers/xml/configuration-1-8-0.xsd" name="auto_test_library" uuid="197D2624-6547-4BAB-904B-131A4FA4EA32" library_target="auto_test">
 	<target name="auto_test">
 		<root all_classes="true"/>
-		<option warning="false">
+		<option warning="false" syntax="provisional">
 			<assertions/>
 		</option>
-		<setting name="multithreaded" value="true"/>
+		<setting name="concurrency" value="thread"/>
 		<external_include location="$(EIFFEL_SRC)\framework\auto_test\spec\include">
 			<condition>
 				<platform value="windows"/>
@@ -42,9 +42,12 @@
 		<library name="gobo_tools" location="$ISE_LIBRARY\library\gobo\gobo_tools.ecf"/>
 		<library name="gobo_utility" location="$ISE_LIBRARY\library\gobo\gobo_utility.ecf"/>
 		<library name="gobo_xml" location="$ISE_LIBRARY\library\gobo\gobo_xml.ecf"/>
+		<library name="mysql" location="$ISE_LIBRARY\library\mysql\mysql.ecf"/>
 		<library name="net" location="$ISE_LIBRARY\library\net\net.ecf"/>
 		<library name="parser" location="$EIFFEL_SRC\framework\parser\parser.ecf"/>
 		<library name="process" location="$ISE_LIBRARY\library\process\process.ecf"/>
+		<library name="program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf"/>
+		<library name="semantic_search" location="$EIFFEL_SRC\framework\semantic_search\semantic_search.ecf"/>
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
 		<library name="testing_engine" location="$EIFFEL_SRC\framework\testing\testing.ecf"/>
 		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf"/>
@@ -54,8 +57,7 @@
 			<condition>
 				<platform value="windows"/>
 			</condition>
-		 </library>
-		<library name="program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf"/>
+		</library>
 		<cluster name="auto_test_library" location=".\" recursive="true">
 			<file_rule>
 				<exclude>/.svn$</exclude>
