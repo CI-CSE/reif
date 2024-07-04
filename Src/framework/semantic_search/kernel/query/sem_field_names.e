@@ -201,6 +201,11 @@ feature -- Access
 
 	void_value_id: INTEGER = 32768
 
+	test_case_field: STRING = "test_case_name"
+
+	breakpoint_number_field: STRING = "breakpoint_number"
+	first_body_breakpoint_field: STRING = "first_body_breakpoint"
+
 feature -- Access
 
 	serialization_field_array_separator: CHARACTER = ','
@@ -210,6 +215,9 @@ feature -- Access
 
 	field_value_separator: CHARACTER = ';'
 			-- Field value separator
+
+	triple_field_value_separator: STRING = ";;;"
+			-- Triple file value separator
 
 	field_section_separator: CHARACTER = '%T'
 			-- Field value separator

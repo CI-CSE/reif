@@ -66,6 +66,15 @@ feature -- Access
 	fault_id: detachable STRING
 			-- Fault identifier if the transition to be written represents a failing test case
 
+	test_case: STRING
+			-- Test case
+
+	pre_integer_bounded_functions: detachable STRING
+			-- String representation of integer-bounded functions in pre-state
+
+	post_integer_bounded_functions: detachable STRING
+			-- String representation of integer-bounded functions in pre-state
+
 feature -- Setting
 
 	set_pre_state_serialization (a_data: like pre_state_serialization)
@@ -150,6 +159,24 @@ feature -- Setting
 			uuid := a_uuid
 		ensure
 			uuid_set: uuid = a_uuid
+		end
+
+	set_test_case (a_test_case: STRING)
+			-- Set `test_case' with `a_test_case'.
+		do
+			test_case := a_test_case
+		end
+
+	set_pre_integer_bounded_functions (a_functions: like pre_integer_bounded_functions)
+			-- Set `pre_integer_bounded_functions' with `a_functions'.
+		do
+			pre_integer_bounded_functions := a_functions
+		end
+
+	set_post_integer_bounded_functions (a_functions: like post_integer_bounded_functions)
+			-- Set `post_integer_bounded_functions' with `a_functions'.
+		do
+			post_integer_bounded_functions := a_functions
 		end
 
 	clear_for_write
@@ -269,22 +296,47 @@ feature{NONE} -- Implementation
 			l_cursor: DS_HASH_SET_CURSOR [INTEGER]
 			l_data: STRING
 			l_list: SORTED_TWO_WAY_LIST [INTEGER]
-
+			l_last_index: INTEGER
+			i: INTEGER
+			l_bp_count: INTEGER
 		do
+			l_bp_count := a_transtion.feature_.number_of_breakpoint_slots
+			append_string_field (breakpoint_number_field, l_bp_count.out)
+			append_string_field (first_body_breakpoint_field, a_transtion.feature_.first_breakpoint_slot_index.out)
 			create l_data.make (128)
 			create l_list.make
 			a_transtion.hit_breakpoints.do_all (agent l_list.extend)
-
 			from
 				l_list.start
 			until
 				l_list.after
 			loop
-				if not l_data.is_empty then
-					l_data.append_character (',')
+				if l_list.item >= l_last_index + 1 then
+					from
+						i := l_last_index + 1
+					until
+						i = l_list.item
+					loop
+						l_data.append_character ('_')
+						l_data.append_character (';')
+						i := i + 1
+					end
 				end
 				l_data.append_integer (l_list.item)
+				l_data.append_character (';')
+				l_last_index := l_list.item
 				l_list.forth
+			end
+			if l_last_index < l_bp_count then
+				from
+					i := l_last_index
+				until
+					i > l_bp_count
+				loop
+					l_data.append_character ('_')
+					l_data.append_character (';')
+					i := i + 1
+				end
 			end
 			append_string_field (hit_break_points_field, l_data)
 		end
@@ -293,6 +345,12 @@ feature{NONE} -- Implementation
 			-- Append `a_stamp' into `medium'.
 		do
 			append_string_field (timestamp_field, a_stamp)
+		end
+
+	append_test_case (a_test_case: STRING)
+			-- Append `a_test_case' into `medium'.
+		do
+			append_string_field (test_case_field, a_test_case)
 		end
 
 	append_exception

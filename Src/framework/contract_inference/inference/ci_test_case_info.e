@@ -19,7 +19,8 @@ inherit
 create
 	make,
 	make_empty,
-	make_with_data
+	make_with_data,
+	make_with_transition
 
 feature{NONE} -- Initialization
 
@@ -76,6 +77,60 @@ feature{NONE} -- Initialization
 			end
 		end
 
+	make_with_transition (a_test_case_class: CLASS_C; a_test_case_feature: FEATURE_I; a_transition: SEM_FEATURE_CALL_TRANSITION)
+			-- Initialize Current with data.
+		local
+			l_parts: LIST [STRING]
+			l_cursor: DS_HASH_SET_CURSOR [EPA_EXPRESSION]
+			l_var_name: STRING
+			l_prefix_count: INTEGER
+		do
+			test_case_class := a_test_case_class
+			class_under_test := a_transition.class_
+			feature_under_test := a_transition.feature_
+			test_feature := a_test_case_feature
+			is_feature_under_test_query := a_transition.is_query
+			is_feature_under_test_creation := a_transition.is_creation
+			is_passing := a_transition.is_passing
+
+			create operand_variable_indexes.make (64)
+			l_prefix_count := variable_name_prefix.count
+			across 0 |..| operand_count_of_feature (feature_under_test) as l_indexes loop
+				if not operand_variable_indexes.is_empty then
+					operand_variable_indexes.append_character (',')
+				end
+				operand_variable_indexes.append_integer (l_indexes.item)
+				operand_variable_indexes.append_character (',')
+				l_var_name := a_transition.reversed_variable_position.item (l_indexes.item).text
+				l_var_name.remove_head (l_prefix_count)
+				operand_variable_indexes.append_integer (l_var_name.to_integer)
+			end
+
+			setup_operand_map (operand_variable_indexes)
+
+				-- Setup variables.
+			create variables.make (20)
+			variables.compare_objects
+			from
+				l_cursor := a_transition.variables.new_cursor
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				variables.force (l_cursor.item.type, l_cursor.item.text)
+				l_cursor.forth
+			end
+
+			hash_code := test_case_class.name_in_upper.hash_code
+
+				-- Setup UUID.
+			if a_transition.uuid = Void then
+				uuid := ""
+			else
+				uuid := a_transition.uuid
+			end
+		end
+
 feature -- Access
 
 	test_case_class: CLASS_C
@@ -88,7 +143,7 @@ feature -- Access
 			-- Feature under test
 
 	test_feature: FEATURE_I
-			-- Wrapping feature with execute `feature_under_test'
+			-- Wrapping feature which executes `feature_under_test'
 
 	before_test_break_point_slot: INTEGER
 			-- Break point slot before the execution of `feature_under_test'
@@ -286,10 +341,35 @@ feature -- Access
 			l_cursor: CURSOR
 			l_variables: like variables
 			l_class_ctxt: ETR_CLASS_CONTEXT
+			l_typed_var: ETR_TYPED_VAR
+			l_feat_tbl: FEATURE_TABLE
+			l_fcursor: CURSOR
+			l_var_prefix: STRING
+			l_type: TYPE_A
 		do
+			l_var_prefix := variable_name_prefix
+			l_feat_tbl := a_test_case_class.feature_table
+
+			create l_locals.make (20)
+			l_locals.compare_objects
+			l_fcursor := l_feat_tbl.cursor
+			from
+				l_feat_tbl.start
+			until
+				l_feat_tbl.after
+			loop
+				if l_feat_tbl.item_for_iteration.feature_name.starts_with (l_var_prefix) then
+					l_type := l_feat_tbl.item_for_iteration.type
+					create l_typed_var.make (l_feat_tbl.item_for_iteration.feature_name, l_type, l_type)
+					l_locals.force (l_typed_var, l_typed_var.name)
+				end
+				l_feat_tbl.forth
+			end
+			l_feat_tbl.go_to (l_fcursor)
+
 			create l_class_ctxt.make (a_test_case_class)
 			create l_feature_context.make (a_test_case_class.feature_named (test_feature_name), l_class_ctxt)
-			l_locals := l_feature_context.local_by_name
+--			l_locals := l_feature_context.local_by_name
 
 			create l_variables.make (l_locals.count)
 			l_variables.compare_objects

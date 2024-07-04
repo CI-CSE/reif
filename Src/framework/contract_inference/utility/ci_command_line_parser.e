@@ -68,6 +68,8 @@ feature -- Basic operations
 			l_breakpoint_monitoring_flag: AP_FLAG
 			l_sql_option: AP_STRING_OPTION
 			l_test_case_range: AP_STRING_OPTION
+			l_use_ssql_option: AP_FLAG
+			l_timeout: AP_INTEGER_OPTION
 		do
 				-- Setup command line argument parser.
 			create l_parser.make
@@ -207,15 +209,15 @@ feature -- Basic operations
 			l_parser.options.force_last (l_generate_mock_option)
 
 			create l_use_mock_option.make_with_long_form ("use-mock")
-			l_use_mock_option.set_description ("Enable using mocking information.")
+			l_use_mock_option.set_description ("Enable using mocking information. Default: False")
 			l_parser.options.force_last (l_use_mock_option)
 
 			create l_solr_option.make_with_long_form ("generate-solr")
 			l_solr_option.set_description ("Enable generating solr files. Format: --generate-solr [on|off]. Default: off")
 			l_parser.options.force_last (l_solr_option)
 
-			create l_sql_option.make_with_long_form ("generate-sql")
-			l_sql_option.set_description ("Enable generating sql files. Format: --generate-sql [on|off]. Default: off")
+			create l_sql_option.make_with_long_form ("generate-ssql")
+			l_sql_option.set_description ("Enable generating sql files. Format: --generate-ssql [on|off]. Default: off")
 			l_parser.options.force_last (l_sql_option)
 
 			create l_breakpoint_monitoring_flag.make_with_long_form ("monitor-breakpoint")
@@ -223,8 +225,16 @@ feature -- Basic operations
 			l_parser.options.force_last (l_breakpoint_monitoring_flag)
 
 			create l_test_case_range.make_with_long_form ("test-case-range")
-			l_test_case_range.set_description ("Specify the range of test cases to run. Format --test-case-range start,end. start and end are two integer numbers. 0,0 means to run all test cases. Default: 0,0")
+			l_test_case_range.set_description ("Specify the range of test cases to run. Format: --test-case-range start,end. start and end are two integer numbers. 0,0 means to run all test cases. Default: 0,0")
 			l_parser.options.force_last (l_test_case_range)
+
+			create l_use_ssql_option.make_with_long_form ("use-ssql")
+			l_use_ssql_option.set_description ("Enable using ssql information. Default: False")
+			l_parser.options.force_last (l_use_ssql_option)
+
+			create l_timeout.make_with_long_form ("time-out")
+			l_timeout.set_description ("Specify maximal time (in seconds) for a test case to run. Format: --time-out integer. Default: 120")
+			l_parser.options.force_last (l_timeout)
 
 			l_parser.parse_list (l_args)
 			if l_build_project_option.was_found then
@@ -373,10 +383,17 @@ feature -- Basic operations
 			end
 
 			config.set_should_use_mocking (l_use_mock_option.was_found)
+			config.set_should_use_ssql (l_use_ssql_option.was_found)
 			config.set_should_generate_mocking (l_generate_mock_option.was_found)
 
 			config.set_should_freeze (l_freeze_option.was_found)
 			config.set_is_tilda_enabled ( l_tilda_option.was_found)
+
+			if l_timeout.was_found then
+				config.set_test_case_execution_timeout (l_timeout.parameter)
+			else
+				config.set_test_case_execution_timeout (120)
+			end
 
 			if l_test_case_range.was_found then
 				setup_test_case_range (config, l_test_case_range.parameter)

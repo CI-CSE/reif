@@ -116,13 +116,13 @@ feature -- Access
 			safe_recursive_create_directory (l_path)
 		end
 
-	sql_directory: STRING
+	ssql_directory: STRING
 			-- Directory for sql documents
 		local
 			l_path: FILE_NAME
 		do
 			create l_path.make_from_string (contract_output_directory)
-			l_path.extend ("sql")
+			l_path.extend ("ssql")
 			Result := l_path
 			safe_recursive_create_directory (l_path)
 		end
@@ -293,6 +293,10 @@ feature -- Access
 			-- Should use mocking information instead of re-run the test suite?
 			-- Default: False
 
+	should_use_ssql: BOOLEAN
+			-- Should use ssql information instead of re-run the test suite?
+			-- Default: False
+
 	should_generate_mocking: BOOLEAN
 			-- Should generate mocking information?
 			-- Default: False
@@ -320,6 +324,10 @@ feature -- Access
 
 	end_test_case_number: INTEGER
 			-- End test case number
+
+	test_case_execution_timeout: INTEGER
+			-- Maximal time in seconds for a test case to run
+			-- Default: 120
 
 feature -- Status report
 
@@ -630,6 +638,22 @@ feature -- Setting
 		do
 			start_test_case_number := a_start_number
 			end_test_case_number := a_end_number
+		end
+
+	set_should_use_ssql (b: BOOLEAN)
+			-- Set `should_use_ssql' with `b'.
+		do
+			should_use_ssql := b
+		ensure
+			should_use_ssql_set: should_use_ssql = b
+		end
+
+	set_test_case_execution_timeout (i: INTEGER)
+			-- Set `test_case_execution_timeout' with `i'.
+		do
+			test_case_execution_timeout := i
+		ensure
+			test_case_execution_timeout_set: test_case_execution_timeout = i
 		end
 
 feature{NONE} -- Implementation

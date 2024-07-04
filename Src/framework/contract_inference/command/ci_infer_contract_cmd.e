@@ -30,6 +30,8 @@ inherit
 
 	EXCEPTION_CODE_MEANING
 
+	ITP_SHARED_CONSTANTS
+
 create
 	make
 
@@ -116,6 +118,9 @@ feature -- Basic operations
 			if config.should_use_mocking then
 				initialize_with_mocking
 				on_application_exited (debugger_manager)
+			elseif config.should_use_ssql then
+				initialize_with_ssql
+				on_application_exited (debugger_manager)
 			else
 					-- Compile project			
 				compile_project (eiffel_project, True)
@@ -156,6 +161,7 @@ feature{NONE} -- Implementation
 			l_test_case_info_bp_manager.toggle_breakpoints (True)
 
 				-- Start debugger.
+			create timeout.make_with_action (1000 * config.test_case_execution_timeout, True, agent on_execution_timeout (system.eiffel_system.name))
 			start_debugger (debugger_manager, feature_.feature_name.as_lower + " " + config.start_test_case_number.out + " " + config.end_test_case_number.out, config.working_directory, {EXEC_MODES}.run, False)
 
 				-- Clean up debugger.
@@ -163,6 +169,10 @@ feature{NONE} -- Implementation
 			debugger_manager.observer_provider.application_stopped_actions.prune_all (l_app_stop_agent)
 			debugger_manager.observer_provider.application_stopped_actions.prune_all (l_app_exited_agent)
 			remove_debugger_session
+			if not timeout.has_terminated then
+				timeout.set_should_terminate (True)
+				timeout.join
+			end
 		end
 
 	breakpoint_manager_for_setup_test_case: EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER
@@ -240,6 +250,9 @@ feature{NONE} -- Implementation
 		do
 				-- Setup expressions to be evaluated before and after the test case execution.
 			create l_context.make_with_class_and_feature (a_tc_info.test_case_class, a_tc_info.test_feature, False, True, True)
+			across a_tc_info.variables as l_vars loop
+				l_context.variables.force (l_vars.item, l_vars.key)
+			end
 			create l_expr_finder.make_for_feature (a_tc_info.class_under_test, a_tc_info.feature_under_test, a_tc_info.operand_map, l_context, config.data_directory, a_tc_info.class_under_test.constraint_actual_type)
 			l_expr_finder.set_is_for_pre_execution (a_pre_execution)
 			l_expr_finder.set_is_creation (a_tc_info.is_feature_under_test_creation)
@@ -254,6 +267,7 @@ feature{NONE} -- Implementation
 			create Result.make (l_functions.count)
 			Result.set_equality_tester (expression_equality_tester)
 			l_functions.do_all (agent (a_function: EPA_FUNCTION; a_set: DS_HASH_SET [EPA_EXPRESSION]; a_ctxt: EPA_CONTEXT) do a_set.force_last (a_function.as_expression (a_ctxt)) end (?, Result, l_context))
+
 		end
 
 	nullary_functions (a_functions: DS_HASH_SET [EPA_FUNCTION]; a_context: EPA_CONTEXT; a_pre_execution: BOOLEAN): DS_HASH_SET [EPA_FUNCTION]
@@ -475,12 +489,25 @@ feature{NONE} -- Implementation
 
 	log_new_test_case_found (a_tc_info: CI_TEST_CASE_INFO)
 			-- Log that a test case `a_tc_info' has been found.
+		local
+			l_file_name: FILE_NAME
+			l_file: PLAIN_TEXT_FILE
 		do
 			test_case_count := test_case_count + 1
 			log_manager.put_line (msg_separator)
 			log_manager.put_line_with_time (msg_found_test_case + test_case_count.out)
 			log_manager.put_line (msg_test_class_name + a_tc_info.test_case_class.name)
 			log_manager.put_line (msg_feature_under_test + a_tc_info.class_under_test.name_in_upper + once "." + a_tc_info.feature_under_test.feature_name)
+
+				-- Write a file to indicate which test case we are currently working on.
+				-- This file is used to recover from a failing run (for example, the test case execution does not terminate).
+			if config.start_test_case_number > 0 then
+				create l_file_name.make_from_string (config.log_directory)
+				l_file_name.set_file_name (once "test_case_number.txt")
+				create l_file.make_create_read_write (l_file_name)
+				l_file.put_integer (config.start_test_case_number + test_case_count - 1)
+				l_file.close
+			end
 		end
 
 feature{NONE} -- Implementation
@@ -569,6 +596,14 @@ feature{NONE} -- Actions
 				else
 					last_post_state_expression_evaluation_manger := Void
 				end
+				if not timeout.has_started then
+					timeout.start
+				else
+					if not timeout.has_paused then
+						timeout.pause
+					end
+					timeout.resume
+				end
 			end
 		end
 
@@ -588,6 +623,7 @@ feature{NONE} -- Actions
 				setup_object_equivalent_classes (last_pre_execution_evaluations)
 --				mutate_equality_comparision_expressions (last_pre_execution_evaluations)
 			else
+				timeout.pause
 				if a_state = Void then
 					create last_post_execution_evaluations.make (0, class_, feature_)
 				else
@@ -638,6 +674,7 @@ feature{NONE} -- Actions
 	on_application_stopped (a_dm: DEBUGGER_MANAGER)
 			-- Action to be performed when application is stopped in the debugger
 		do
+			timeout.pause
 			if a_dm.application_is_executing or a_dm.application_is_stopped then
 				if a_dm.application_status.reason_is_catcall then
 					a_dm.controller.resume_workbench_application
@@ -670,6 +707,13 @@ feature{NONE} -- Actions
 			l_preconditions: DS_HASH_SET [EPA_EXPRESSION]
 			l_postconditions: DS_HASH_SET [EPA_EXPRESSION]
 		do
+			if timeout /= Void then
+				if timeout.has_started and then not timeout.has_terminated then
+					timeout.pause
+					timeout.set_should_terminate (True)
+					timeout.join
+				end
+			end
 				-- Setup results.
 			create l_preconditions.make (100)
 			l_preconditions.set_equality_tester (expression_equality_tester)
@@ -739,6 +783,20 @@ feature{NONE} -- Actions
 			end
 		end
 
+	on_execution_timeout (a_executable_base_name: STRING)
+			-- Agent to be called when current test case execution (including state expression evaluation) times out.
+		local
+			l_exe_env: EXECUTION_ENVIRONMENT
+		do
+			timeout.set_should_terminate (True)
+			create l_exe_env
+			if {PLATFORM}.is_windows then
+				l_exe_env.system ("taskkill /IM " + a_executable_base_name + ".exe")
+			else
+				l_exe_env.system ("killall " + a_executable_base_name)
+			end
+		end
+
 feature{NONE} -- Implementation
 
 	initialize_data_structure
@@ -773,11 +831,11 @@ feature{NONE} -- Implementation
 			if last_pre_execution_evaluations = Void then
 				create last_pre_execution_evaluations.make (0, class_, feature_)
 			end
-			l_transition.set_preconditions (last_pre_execution_evaluations)
+			l_transition.set_preconditions_unsafe (last_pre_execution_evaluations)
 			if last_post_execution_evaluations = Void then
 				create last_post_execution_evaluations.make (0, last_pre_execution_evaluations.class_, last_pre_execution_evaluations.feature_)
 			end
-			l_transition.set_postconditions (last_post_execution_evaluations)
+			l_transition.set_postconditions_unsafe (last_post_execution_evaluations)
 
 				-- Analyze functions in pre-execution state.
 			create l_func_analyzer
@@ -1363,46 +1421,141 @@ feature{NONE} -- Implementation
 			-- Initialize data through mockings.
 		do
 				-- Iterate through all files storing transition information and load those transitions.
-			transition_file_paths (config.semantic_search_document_directory).do_all (agent build_last_transition_from_file)
+			transition_file_paths (config.semantic_search_document_directory, ".+\.tran").do_all (agent build_last_transition_from_file)
 		end
 
-	transition_file_paths (a_directory: STRING): LINKED_LIST [STRING]
+	initialize_with_ssql
+			-- Initialize data through ssql files.
+		do
+				-- Iterate through all files storing transition information and load those transitions.
+			transition_file_paths (config.ssql_directory, "tran.+\.ssql").do_all (agent build_last_transition_from_ssql)
+		end
+
+	transition_file_paths (a_directory: STRING; a_pattern: STRING): LINKED_LIST [STRING]
 			-- Absolute file paths for transitions in `a_directory'
 		local
-			l_dir: DIRECTORY
-			l_file_path: FILE_NAME
-
+			l_file_searcher: EPA_FILE_SEARCHER
 		do
 			create Result.make
-			create l_dir.make_open_read (config.semantic_search_document_directory)
-			from
-				l_dir.readentry
-			until
-				l_dir.lastentry = Void
-			loop
-				if l_dir.lastentry.ends_with (once ".tran") then
-					create l_file_path.make_from_string (config.semantic_search_document_directory)
-					l_file_path.set_file_name (l_dir.lastentry)
-					Result.extend (l_file_path)
-				end
-				l_dir.readentry
+			create l_file_searcher.make_with_pattern (a_pattern)
+			l_file_searcher.file_found_actions.extend (
+				agent (a_path: STRING; a_file: STRING; a_result: LINKED_LIST [STRING])
+					do
+						a_result.extend (a_path)
+					end (?, ?, Result))
+
+			l_file_searcher.search (a_directory)
+		end
+
+	test_case_info_from_transition (a_transition: SEM_FEATURE_CALL_TRANSITION): CI_TEST_CASE_INFO
+			-- Test case info from `a_tranition'.
+		local
+			l_tc_class: CLASS_C
+			l_tc_feature: FEATURE_I
+		do
+			l_tc_class := root_class_of_system
+			l_tc_feature := root_feature_of_system
+			create Result.make_with_transition (l_tc_class, l_tc_feature, a_transition)
+		end
+
+	function_valuations_from_state (a_state: EPA_STATE; a_transition: SEM_FEATURE_CALL_TRANSITION; a_test_case_info: CI_TEST_CASE_INFO): DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
+			-- Function valuations `a_state' in `a_transition' and `a_test_case_info'
+		local
+			l_func_analyzer: CI_FUNCTION_ANALYZER
+		do
+			create l_func_analyzer
+			l_func_analyzer.analyze (
+				a_state,
+				a_transition.context,
+				a_test_case_info.operand_map,
+				a_test_case_info.class_under_test,
+				a_test_case_info.feature_under_test,
+				a_test_case_info.class_under_test.constraint_actual_type)
+			Result := l_func_analyzer.valuations
+		end
+
+	build_last_transition_from_ssql (a_absolute_path: STRING)
+			-- Build transition from ssql file specified by `a_absolute_path'.
+		local
+			l_loader: SEMQ_QUERYABLE_LOADER
+			l_transition: SEM_FEATURE_CALL_TRANSITION
+			l_tc_info: CI_TEST_CASE_INFO
+			l_transition_info: CI_TEST_CASE_TRANSITION_INFO
+			l_pre_valuations: DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
+			l_post_valuations: DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
+			l_pre_integer_bounded_functions: DS_HASH_SET [CI_FUNCTION_WITH_INTEGER_DOMAIN]
+			l_post_integer_bounded_functions: DS_HASH_SET [CI_FUNCTION_WITH_INTEGER_DOMAIN]
+			l_signature: STRING
+			l_bounded_integer_function_fields: HASH_TABLE [IR_FIELD, STRING]
+			l_field: IR_FIELD
+			l_bounded_integer_functions: like bounded_functions_from_fields
+		do
+			log_manager.push_fine_level
+			log_manager.put_line_with_time ("Loading test case from file: " + a_absolute_path)
+			log_manager.pop_level
+
+			create l_loader
+			l_loader.load (a_absolute_path)
+			l_transition ?= l_loader.last_queryable
+			l_tc_info := test_case_info_from_transition (l_transition)
+				-- Logging.			
+			l_pre_valuations := function_valuations_from_state (l_transition.preconditions, l_transition, l_tc_info)
+			l_post_valuations := function_valuations_from_state (l_transition.postconditions, l_transition, l_tc_info)
+
+			create l_bounded_integer_function_fields.make (2)
+			l_bounded_integer_function_fields.compare_objects
+			if l_loader.last_meta.has (prestate_bounded_functions_field) then
+				create l_field.make_as_string (prestate_bounded_functions_field, l_loader.last_meta.item (prestate_bounded_functions_field), default_boost_value)
+				l_bounded_integer_function_fields.force (l_field, prestate_bounded_functions_field)
 			end
-			l_dir.close
+			if l_loader.last_meta.has (poststate_bounded_functions_field) then
+				create l_field.make_as_string (poststate_bounded_functions_field, l_loader.last_meta.item (poststate_bounded_functions_field), default_boost_value)
+				l_bounded_integer_function_fields.force (l_field, poststate_bounded_functions_field)
+			end
+			l_bounded_integer_functions := bounded_functions_from_fields (l_transition, l_bounded_integer_function_fields)
+			if l_bounded_integer_functions.has (True) then
+				l_pre_integer_bounded_functions := l_bounded_integer_functions.item (True)
+			else
+				create l_pre_integer_bounded_functions.make (0)
+				l_pre_integer_bounded_functions.set_equality_tester (ci_function_with_integer_domain_partial_equality_tester)
+			end
+
+			if l_bounded_integer_functions.has (False) then
+				l_post_integer_bounded_functions := l_bounded_integer_functions.item (False)
+			else
+				create l_post_integer_bounded_functions.make (0)
+				l_post_integer_bounded_functions.set_equality_tester (ci_function_with_integer_domain_partial_equality_tester)
+			end
+
+				-- Fabricate transition info for the last executed test case.
+			l_signature := "loaded_test_case_" + (transition_data.count + 1).out
+			create l_transition_info.make_with_signature (
+				l_tc_info,
+				l_transition,
+				l_pre_valuations,
+				l_post_valuations,
+				l_pre_integer_bounded_functions,
+				l_post_integer_bounded_functions,
+				l_signature)
+
+			transition_data.extend (l_transition_info)
 		end
 
 	build_last_transition_from_file (a_absolute_path: STRING)
-			-- Build transition from `a_transition', `a_test_case_info' and
-			-- `a_serialization_info' and store resulting transition in `transitions'.
+			-- Build transition from mocking file specified by `a_absolute_path'.
 		local
 			l_transition: SEM_FEATURE_CALL_TRANSITION
 			l_context: EPA_CONTEXT
-			l_func_analyzer: CI_FUNCTION_ANALYZER
 			l_pre_valuations: DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
 			l_post_valuations: DS_HASH_TABLE [EPA_FUNCTION_VALUATIONS, EPA_FUNCTION]
 			l_transition_info: CI_TEST_CASE_TRANSITION_INFO
 			l_loader: CI_FEATURE_CALL_TRANSITION_LOADER
 			l_test_case_info: CI_TEST_CASE_INFO
 		do
+			log_manager.push_fine_level
+			log_manager.put_line_with_time ("(Mocking) Loading test case from file: " + a_absolute_path)
+			log_manager.pop_level
+
 			create l_loader
 			l_loader.load_from_file (a_absolute_path)
 
@@ -1411,35 +1564,10 @@ feature{NONE} -- Implementation
 
 
 				-- Analyze functions in pre-execution state.
-			create l_func_analyzer
-			l_func_analyzer.analyze (
-				l_transition.preconditions,
-				l_transition.context,
-				l_test_case_info.operand_map,
-				l_test_case_info.class_under_test,
-				l_test_case_info.feature_under_test,
-				l_test_case_info.class_under_test.constraint_actual_type)
-			l_pre_valuations := l_func_analyzer.valuations
-
-				-- Logging.
-			log_manager.push_level ({EPA_LOG_MANAGER}.fine_level)
-			log_manager.put_line_with_time ("(Mocking) Function analysis in pre-state:")
-			log_manager.put_line (l_func_analyzer.dumped_result)
+			l_pre_valuations := function_valuations_from_state (l_transition.preconditions, l_transition, l_test_case_info)
 
 				-- Analyze functions in post-execution state.
-			create l_func_analyzer
-			l_func_analyzer.analyze (
-				l_transition.postconditions,
-				l_transition.context,
-				l_test_case_info.operand_map,
-				l_test_case_info.class_under_test,
-				l_test_case_info.feature_under_test,
-				l_test_case_info.class_under_test.constraint_actual_type)
-			l_post_valuations := l_func_analyzer.valuations
-
-			log_manager.put_line_with_time ("(Mocking) Function analysis in post-state:")
-			log_manager.put_line (l_func_analyzer.dumped_result)
-			log_manager.pop_level
+			l_post_valuations := function_valuations_from_state (l_transition.postconditions, l_transition, l_test_case_info)
 
 				-- Fabricate transition info for the last executed test case.
 			create l_transition_info.make (
@@ -1454,5 +1582,9 @@ feature{NONE} -- Implementation
 			l_transition_info.set_serialization_info (l_loader.last_serialization_info)
 			transition_data.extend (l_transition_info)
 		end
+
+	timeout: EPA_THREAD_BASED_TIMER
+			-- Timer to terminate debuggee if the execution
+			-- takes too long
 
 end
