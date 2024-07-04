@@ -65,7 +65,7 @@ feature -- Data event handler
 						end
 					else
 						l_feature_under_test := a_data.class_and_feature_under_test
-						if not last_faulty_features.has(l_feature_under_test) then
+						if not last_faulty_features.has(l_feature_under_test) and then is_interesting_faulty_feature_under_test (l_feature_under_test) then
 							last_faulty_features.force (l_feature_under_test)
 						end
 					end
@@ -120,23 +120,28 @@ feature{NONE} -- Implementation
 			-- Save `last_faulty_features' to disk.
 		local
 			l_file_name: FILE_NAME
+			l_file: KL_TEXT_OUTPUT_FILE
 			l_text_file: PLAIN_TEXT_FILE
 			l_content: STRING
 		do
-			create l_content.make (1000)
-			from last_faulty_features.start
-			until last_faulty_features.after
-			loop
-				l_content := l_content + last_faulty_features.item_for_iteration + "%N"
-				last_faulty_features.forth
-			end
+			if configuration.is_building_faulty_feature_list then
+				create l_content.make (1000)
+				from last_faulty_features.start
+				until last_faulty_features.after
+				loop
+					l_content := l_content + last_faulty_features.item_for_iteration + "%N"
+					last_faulty_features.forth
+				end
 
-			create l_file_name.make_from_string (model_directory_name)
-			l_file_name.set_file_name ("faulty_feature_list.log")
-			create l_text_file.make_open_write (l_file_name)
-			l_text_file.put_string (l_content)
-			l_text_file.flush
-			l_text_file.close
+				l_file_name := configuration.faulty_feature_list_file_name
+				create l_file.make (l_file_name)
+				l_file.recursive_open_write
+				if l_file.is_open_write then
+					l_file.put_string (l_content)
+					l_file.flush
+					l_file.close
+				end
+			end
 		end
 
 feature{NONE} -- Access
@@ -146,6 +151,22 @@ feature{NONE} -- Access
 
 	last_faulty_features: EPA_HASH_SET[STRING]
 			-- Set of faulty features.
+
+	is_interesting_faulty_feature_under_test (a_feature: STRING): BOOLEAN
+			-- A naiive criterion for filtering out uninteresting features.
+		require
+			feature_not_empty: a_feature /= Void and then not a_feature.is_empty
+		do
+			Result := True
+			if a_feature.substring_index ("for_all", 1) /= 0
+					or else a_feature.substring_index ("there_exists", 1) /= 0
+					or else a_feature.substring_index ("correct_mismatch", 1) /= 0
+					or else a_feature.substring_index ("do_if", 1) /= 0
+					or else a_feature.substring_index ("do_all", 1) /= 0
+			then
+				Result := False
+			end
+		end
 
 
 ;note
