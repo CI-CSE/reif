@@ -16,11 +16,11 @@ create
 
 feature {NONE} -- Initialization
 
-	t: CALL_QUALIFIED
-
 	make
 			-- Build a program and compute its aliases.
 		do
+			create aliases.make
+			create {COMPOUND} scope.make
 			fill_examples
 			get_environment_example_number
 			from until example_number = 0 loop
@@ -41,8 +41,6 @@ feature {NONE} -- Initialization
 			end
 		end
 
-
-
 feature -- Access
 
 	automatic: BOOLEAN
@@ -54,7 +52,7 @@ feature -- Access
 	examples: ARRAY [TUPLE [prog: PROCEDURE [APPLICATION, TUPLE]; tag: STRING; comment: STRING]]
 			-- Example programs for alias computation.
 		once
-			create Result.make (1, Example_estimate)
+			create Result.make_empty
 		end
 
 	example_number: INTEGER
@@ -69,6 +67,8 @@ feature -- Access
 	just_one: BOOLEAN
 			-- Are we in a mode where we execute one example and stop?
 
+	aliases: ALIAS_RELATION
+			-- Alias relation being built.
 
 feature -- Status report
 
@@ -181,6 +181,7 @@ feature -- Element change
 			put_example (agent ex20_deadlock, "Example 20, not in the article: deadlock", "This is example 20, not in the article.")
 			put_example (agent ex21_deadlock, "Example 21, not in the article: deadlock variant", "This is example 21, not in the article.")
 			put_example (agent ex22_qualified, "Example 22, not in the article: qualified call with argument handling", "This is example 22, not in the article.")
+			put_example (agent ex23_gerasimov, "Example 23, not in the article: Gerasimov's recursive procedure example", "This is example 23, not in the article.")
 		end
 
 
@@ -208,7 +209,6 @@ feature -- Basic operations
 			end
 			prog.call ([])
 		end
-
 
 	compute_aliases
 			-- Compute aliases.

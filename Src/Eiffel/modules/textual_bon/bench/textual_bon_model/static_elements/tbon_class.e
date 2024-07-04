@@ -11,27 +11,40 @@ create
 	make
 
 feature -- Initialization
-	make (class_as: CLASS_AS)
+	make (a_class_as: CLASS_AS; a_text_formatter: like associated_text_formatter_decorator)
 			-- Create a textual BON class.
 		do
-			associated_class := class_as
-			create name.make_element (associated_class_name)
-			create {ARRAYED_LIST[TBON_CLASS_TYPE]} ancestors.make (10)
-			create {ARRAYED_LIST[TBON_FEATURE_CLAUSE]} feature_clauses.make (10)
-			create {ARRAYED_LIST[TBON_FORMAL_GENERIC]} type_parameters.make (10)
-			create indexing_clause.make_element (associated_class_indices)
-			create class_invariant.make_element (associated_class_invariant_assertion_list)
+			associated_class := a_class_as
+			associated_text_formatter_decorator := a_text_formatter
 
-			extract_associated_class_ancestors
-			extract_associated_class_type_parameters
+			create name.make_element (associated_text_formatter_decorator, associated_class_name)
+			create {LINKED_LIST[TBON_CLASS_TYPE]} ancestors.make
+			create {LINKED_LIST[TBON_FEATURE_CLAUSE]} feature_clauses.make
+			create {LINKED_LIST[TBON_FORMAL_GENERIC]} type_parameters.make
 
-			io.put_string ("TBON_CLASS DONE")
+			if associated_class.top_indexes /= Void then
+				create indexing_clause.make_element (associated_text_formatter_decorator, associated_class_indices)
+			end
+
+			if associated_class.invariant_part /= Void then
+				create class_invariant.make_element (associated_text_formatter_decorator, associated_class_invariant_assertion_list)
+			end
+
+			if associated_class.conforming_parents /= Void then
+				extract_associated_class_ancestors
+			end
+
+			if associated_class.generics /= Void then
+				extract_associated_class_type_parameters
+			end
 		end
 
 feature -- Access
 
 	ancestors: LIST[TBON_CLASS_TYPE]
 			-- From which classes does this class inherit?
+
+	associated_text_formatter_decorator: TEXT_FORMATTER_DECORATOR
 
 	class_invariant: TBON_INVARIANT
 			-- What is the invariant of this class?
@@ -48,7 +61,25 @@ feature -- Access
 	type_parameters: LIST[TBON_FORMAL_GENERIC]
 			-- What are the type parameters of this class?
 
-feature -- Status report	
+feature -- Status report
+	has_ancestors: BOOLEAN
+			-- Does this class have any ancestors?
+		do
+			Result := ancestors /= Void and then ancestors.count > 0
+		end
+
+	has_indexing_clause: BOOLEAN
+			-- Does this class have an indexing clause?
+		do
+			Result := indexing_clause /= Void
+		end
+
+	has_type_parameters: BOOLEAN
+			-- Does this class have any type parameters?
+		do
+			Result := type_parameters /= Void and then type_parameters.count > 0
+		end
+
 	is_deferred: BOOLEAN
 			-- Is this class deferred?
 
@@ -116,6 +147,8 @@ feature {NONE} -- Implementation
 
 	associated_class_invariant_assertion_list: LIST[TBON_ASSERTION]
 			-- Extract the class invariants of the assocated class.	
+		require
+			class_has_invariant: associated_class.invariant_part /= Void
 		local
 			l_assertion: TBON_ASSERTION
 			l_assertions: like associated_class.invariant_part.assertion_list
@@ -147,11 +180,11 @@ feature {NONE} -- Implementation
 			until
 				associated_class.top_indexes.exhausted
 			loop
-				create l_index_tag.make_element (associated_class.top_indexes.item.tag.string_value_32)
+				create l_index_tag.make_element (associated_text_formatter_decorator, associated_class.top_indexes.item.tag.string_value_32)
 				l_index_terms := strings_from_atomics (associated_class.top_indexes.item.index_list)
-				create l_index.make_element (l_index_tag, l_index_terms)
+				create l_index.make_element (associated_text_formatter_decorator, l_index_tag, l_index_terms)
 
-				l_index_list.put (l_index)
+				l_index_list.extend (l_index)
 
 				associated_class.top_indexes.forth
 			end
@@ -188,11 +221,11 @@ feature {NONE} -- Implementation
 							l_argument.id_list.exhausted
 						loop
 							-- Index the names heap to get formal argument name
-							create l_argument_formal_name.make_element (l_argument.names_heap.item_32 (l_argument.id_list.item))
+							create l_argument_formal_name.make_element (associated_text_formatter_decorator, l_argument.names_heap.item_32 (l_argument.id_list.item))
 							-- Get argument type
-							create l_argument_type.make_element (l_argument.type.dump)
+							create l_argument_type.make_element (associated_text_formatter_decorator, l_argument.type.dump)
 
-							create l_feature_argument.make_element (l_argument_formal_name, l_argument_type)
+							create l_feature_argument.make_element (associated_text_formatter_decorator, l_argument_formal_name, l_argument_type)
 							l_argument_list.put (l_feature_argument)
 
 							l_argument.id_list.forth
@@ -205,13 +238,15 @@ feature {NONE} -- Implementation
 
 	extract_associated_class_ancestors
 			-- Extract the ancestors for the associated class
+		require
+			has_conforming_parents: associated_class.conforming_parents /= Void
 		do
 			associated_class.conforming_parents.do_all (
 				agent (ancestor: PARENT_AS)
 					local
 						ancestor_class_type: TBON_CLASS_TYPE
 					do
-						create ancestor_class_type.make_element (ancestor.type.class_name.string_value_32)
+						create ancestor_class_type.make_element (associated_text_formatter_decorator, ancestor.type.class_name.string_value_32)
 						ancestors.put (ancestor_class_type)
 					ensure
 						ancestors.count = old ancestors.count + 1
@@ -242,6 +277,8 @@ feature {NONE} -- Implementation
 	extract_associated_class_type_parameters
 			-- Extract the type paramters of the associated class.
 			-- Results are stored in the type_parameters list.
+		require
+			has_generics: associated_class.generics /= Void
 		do
 			associated_class.generics.do_all (
 				agent (generic: FORMAL_DEC_AS)
@@ -251,16 +288,16 @@ feature {NONE} -- Implementation
 						l_formal_generic: TBON_FORMAL_GENERIC
 						l_constraining_type: TBON_CLASS_TYPE
 					do
-						create l_identifier.make_element (generic.name.name_8)
-						create l_formal_generic_name.make_element (l_identifier)
+						create l_identifier.make_element (associated_text_formatter_decorator, generic.name.name_8)
+						create l_formal_generic_name.make_element (associated_text_formatter_decorator, l_identifier)
 
 						if generic.has_constraint then
-							create l_constraining_type.make_element (generic.constraints.first.type.dump)
+							create l_constraining_type.make_element (associated_text_formatter_decorator, generic.constraints.first.type.dump)
 						else
 							l_constraining_type := Void
 						end
 
-						create l_formal_generic.make_element (l_formal_generic_name, l_constraining_type)
+						create l_formal_generic.make_element (associated_text_formatter_decorator, l_formal_generic_name, l_constraining_type)
 						type_parameters.put (l_formal_generic)
 					ensure
 						type_parameters.count = old type_parameters.count + 1
@@ -291,14 +328,14 @@ feature {NONE} -- Implementation
 			-- Remember deferred/effective/redefined!
 		do
 			-- Name
-			create l_feature_name.make_element (feat.feature_name.string_value_32)
+			create l_feature_name.make_element (associated_text_formatter_decorator, feat.feature_name.string_value_32)
 
 			-- Arguments
 			l_feature_arguments := create_arguments_for_feature (feat)
 
 			-- Type
 			if feat.body.type /= Void then -- feat.is_function or feat.is_attribute then
-				create l_feature_type.make_element (feat.body.type.dump)
+				create l_feature_type.make_element (associated_text_formatter_decorator, feat.body.type.dump)
 			else
 				l_feature_type := Void
 			end
@@ -342,7 +379,7 @@ feature {NONE} -- Implementation
 						if l_renaming_old_name.is_equal (l_feature_name.string_value) then
 							check l_renaming_old_name /= Void and l_renaming_final_name /= Void end
 
-							create l_renaming_parent.make_element (associated_class.parents.item.type.class_name.string_value_32)
+							create l_renaming_parent.make_element (associated_text_formatter_decorator, associated_class.parents.item.type.class_name.string_value_32)
 							create l_feature_renaming_clause.make_element (l_renaming_parent, l_renaming_final_name)
 
 							-- End both loops
@@ -369,7 +406,8 @@ feature {NONE} -- Implementation
 						local
 							l_bon_assertion: TBON_EXPRESSION
 						do
-							create l_bon_assertion.make_element
+							l_bon_assertion := make_tbon_expression_from_tagged_as (l_precondition)
+
 							assertion_list.put (l_bon_assertion)
 						ensure
 							assertion_list.count = old assertion_list.count + 1
@@ -397,7 +435,8 @@ feature {NONE} -- Implementation
 						local
 							l_bon_assertion: TBON_EXPRESSION
 						do
-							create l_bon_assertion.make_element
+							l_bon_assertion := make_tbon_expression_from_tagged_as (l_postcondition)
+
 							assertion_list.put (l_bon_assertion)
 						ensure
 							assertion_list.count = old assertion_list.count + 1
@@ -413,7 +452,8 @@ feature {NONE} -- Implementation
 				l_feature_postcondition /= Void
 			end
 
-			create l_feature.make_element (l_feature_name,
+			create l_feature.make_element (associated_text_formatter_decorator,
+										   l_feature_name,
 										   l_feature_arguments,
 										   l_feature_type,
 										   l_feature_type_mark,
@@ -472,7 +512,7 @@ feature {NONE} -- Implementation
 
 			set_redefined_bon_features_as_redefined (l_feature_list)
 
-			create l_bon_feature_clause.make_element (l_comment_list, l_feature_list, l_selective_export)
+			create l_bon_feature_clause.make_element (associated_text_formatter_decorator, l_comment_list, l_feature_list, l_selective_export)
 
 			Result := l_bon_feature_clause
 		end
@@ -495,7 +535,7 @@ feature {NONE} -- Implementation
 						local
 							l_class_type: TBON_CLASS_TYPE
 						do
-							create l_class_type.make_element (client_id.name_8)
+							create l_class_type.make_element (associated_text_formatter_decorator, client_id.name_8)
 							l_client_list.put (l_class_type)
 						ensure
 							l_client_list.count = old l_client_list.count + 1
@@ -508,6 +548,15 @@ feature {NONE} -- Implementation
 			end
 
 			Result := l_selective_export
+		end
+
+	set_class_status
+			-- Set the status of this class
+		do
+			if associated_class.is_deferred then
+				set_is_deferred
+			-- Sufficient information about parents seems to be unavailable to determine other status flags.
+			end
 		end
 
 	set_redefined_bon_features_as_redefined (feature_list: LIST[TBON_FEATURE])
@@ -576,8 +625,246 @@ feature {NONE} -- Implementation
 			end
 		end
 
+	feature {TBON_CLASS} -- Expression handling
+
+	make_tbon_expression_from_atomic_as (l_atomic_as: ATOMIC_AS): TBON_EXPRESSION
+			-- Make a TBON_EXPRESSION from a ATOMIC_AS
+			-- Actually returns a TBON_CONSTANT_EXPRESSION
+		local
+			l_constant: TBON_CONSTANT_EXPRESSION
+			l_string_value: STRING_32
+			-- Assignment attempts
+			l_bit_const: BIT_CONST_AS
+			l_bool: BOOL_AS
+			l_char: CHAR_AS
+			l_id: ID_AS
+			l_integer: INTEGER_AS
+			l_real: REAL_AS
+			l_static_access: STATIC_ACCESS_AS
+			l_string: STRING_AS
+			l_unique: UNIQUE_AS
+		do
+			l_bit_const ?= l_atomic_as
+			l_bool ?= l_atomic_as
+			l_char ?= l_atomic_as
+			l_id ?= l_atomic_as
+			l_integer ?= l_atomic_as
+			l_real ?= l_atomic_as
+			l_static_access ?= l_atomic_as
+			l_string ?= l_atomic_as
+			l_unique ?= l_atomic_as
+
+			l_string_value := "ERROR"
+
+			if l_bit_const /= Void then
+				l_string_value := l_bit_const.value.string_value_32
+			elseif l_bool /= Void then
+				if l_bool.value then
+					l_string_value := "True" -- ITUFIXME42 shouldn't this come from ti or bti?
+				else
+					l_string_value := "False"
+				end
+			elseif l_char /= Void then
+				if l_char.value.out /= Void then
+					l_string_value := l_char.value.out
+				end
+			elseif l_id /= Void then
+				l_string_value := l_id.name_32
+			elseif l_integer /= Void then
+				if l_integer.has_integer (8) then
+				    l_string_value.append_integer_8 (l_integer.integer_8_value)
+				elseif l_integer.has_integer (16) then
+				    l_string_value.append_integer_16 (l_integer.integer_16_value)
+				elseif l_integer.has_integer (32) then
+				    l_string_value.append_integer (l_integer.integer_32_value)
+				elseif l_integer.has_integer (64) then
+				    l_string_value.append_integer_64 (l_integer.integer_64_value)
+				elseif l_integer.has_natural (8) then
+					l_string_value.append_natural_8 (l_integer.natural_8_value)
+				elseif l_integer.has_natural (16) then
+					l_string_value.append_natural_16 (l_integer.natural_16_value)
+				elseif l_integer.has_natural (32) then
+					l_string_value.append_natural_32 (l_integer.natural_32_value)
+				elseif l_integer.has_natural (64) then
+					l_string_value.append_natural_64 (l_integer.natural_64_value)
+				end
+			elseif l_real /= Void then
+				l_string_value := l_real.value
+			elseif l_static_access /= Void then
+				l_string_value :=  l_static_access.access_name_32
+			elseif l_string /= Void then
+				l_string_value := l_string.value_32
+			elseif l_unique /= Void then
+				l_string_value := l_unique.string_value_32
+			end
+			create l_constant.make_element (l_string_value)
+			Result := l_constant
+		end
+
+	make_tbon_expression_from_binary_as (l_binary_as: BINARY_AS): TBON_EXPRESSION
+			-- Make a TBON_EXPRESSION from a BINARY_AS
+		local
+			l_operator: TBON_BINARY_OPERATOR
+			l_binary: TBON_BINARY_OPERATOR_EXPRESSION
+			-- Following locals are used for assignment attempts
+			l_div: BIN_DIV_AS
+			l_minus: BIN_MINUS_AS
+			l_mod: BIN_MOD_AS
+			l_plus: BIN_PLUS_AS
+			l_power: BIN_POWER_AS
+			l_slash: BIN_SLASH_AS
+			l_star: BIN_STAR_AS
+			l_and: BIN_AND_AS
+			l_and_then: BIN_AND_THEN_AS
+			l_eq: BIN_EQ_AS
+			l_ne: BIN_NE_AS
+			l_not_tilde: BIN_NOT_TILDE_AS
+			l_tilde: BIN_TILDE_AS
+			l_free: BIN_FREE_AS
+			l_implies: BIN_IMPLIES_AS
+			l_or: BIN_OR_AS
+			l_or_else: BIN_OR_ELSE_AS
+			l_xor: BIN_XOR_AS
+		do
+			-- Assignment attempts
+			l_div ?= l_binary_as
+			l_minus ?= l_binary_as
+			l_mod ?= l_binary_as
+			l_plus ?= l_binary_as
+			l_power ?= l_binary_as
+			l_slash ?= l_binary_as
+			l_star ?= l_binary_as
+			l_and ?= l_binary_as
+			l_and_then ?= l_binary_as
+			l_eq ?= l_binary_as
+			l_ne ?= l_binary_as
+			l_not_tilde ?= l_binary_as
+			l_tilde ?= l_binary_as
+			l_free ?= l_binary_as
+			l_implies ?= l_binary_as
+			l_or ?= l_binary_as
+			l_or_else ?= l_binary_as
+			l_xor ?= l_binary_as
+
+			create l_operator.make_element
+
+			if l_div /= Void then
+				l_operator.set_as_division
+			elseif l_minus /= Void then
+				l_operator.set_as_minus
+			elseif l_mod /= Void then
+				l_operator.set_as_modulo
+			elseif l_plus /= Void then
+				l_operator.set_as_plus
+			elseif l_power /= Void then
+				l_operator.set_as_power
+			elseif l_slash /= Void then
+				-- ITUFIXME42
+			elseif l_star /= Void then
+				-- ITUFIXME42
+			elseif l_and /= Void then
+				l_operator.set_as_and
+			elseif l_and_then /= Void then
+				-- ITUFIXME42
+			elseif l_eq /= Void then
+				l_operator.set_as_equals
+			elseif l_ne /= Void then
+				l_operator.set_as_not_equals
+			elseif l_not_tilde /= Void then
+				-- ITUFIXME42
+			elseif l_tilde /= Void then
+				-- ITUFIXME42
+			elseif l_free /= Void then
+				-- ITUFIXME42
+			elseif l_implies /= Void then
+				l_operator.set_as_implication
+			elseif l_or /= Void then
+				l_operator.set_as_or
+			elseif l_or_else /= Void then
+				-- ITUFIXME42
+			elseif l_xor /= Void then
+				l_operator.set_as_xor
+			else
+				-- Handle faulty state
+			end
+
+			l_binary.make_element (make_tbon_expression_from_expr_as (l_div.left), l_operator, make_tbon_expression_from_expr_as (l_div.right))
+			Result := l_binary
+		end
+
+	make_tbon_expression_from_expr_as (l_expr_as: EXPR_AS): TBON_EXPRESSION
+			-- Makes a TBON_ASSERTION from the given EXPR_AS
+		local
+			l_binary: BINARY_AS
+			l_unary: UNARY_AS
+			l_atomic: ATOMIC_AS
+			l_quantified: QUANTIFIED_AS
+			l_type_expr: TYPE_EXPR_AS
+		do
+			l_binary ?= l_expr_as
+			l_unary ?= l_expr_as
+			l_atomic ?= l_expr_as
+			l_quantified ?= l_expr_as
+			l_type_expr ?= l_expr_as
+			if l_binary /= Void then
+				Result := make_tbon_expression_from_binary_as (l_binary)
+			elseif l_unary /= Void then
+				Result := make_tbon_expression_from_unary_as (l_unary)
+			elseif l_atomic /= Void then
+				Result := make_tbon_expression_from_atomic_as (l_atomic)
+			elseif l_quantified /= Void then
+
+			elseif l_type_expr /= Void then
+
+			end
+		end
+
+	make_tbon_expression_from_tagged_as (l_tagged_as: TAGGED_AS): TBON_EXPRESSION
+			-- Makes a TBON_ASSERTION from the given TAGGED_AS
+		do
+			-- ITUFIXME42: Could be a handling for the tag.
+			Result := make_tbon_expression_from_expr_as(l_tagged_as.expr)
+		end
+
+	make_tbon_expression_from_unary_as (l_unary_as: UNARY_AS): TBON_EXPRESSION
+			-- Make a TBON_EXPRESSION from a UNARY_AS
+		local
+			l_operator: TBON_UNARY_OPERATOR
+			l_unary: TBON_UNARY_OPERATOR_EXPRESSION
+			-- Assignment attempt
+			l_un_free: UN_FREE_AS
+			l_un_minus: UN_MINUS_AS
+			l_un_not: UN_NOT_AS
+			l_un_old: UN_OLD_AS
+			l_un_plus: UN_PLUS_AS
+		do
+			l_un_free ?= l_unary_as
+			l_un_minus ?= l_unary_as
+			l_un_not ?= l_unary_as
+			l_un_old ?= l_unary_as
+			l_un_plus ?= l_unary_as
+
+			l_operator.make_element
+
+			if l_un_free /= Void then
+				-- ITUFIXME42
+			elseif l_un_minus /= Void then
+				l_operator.set_as_minus
+			elseif l_un_not /= Void then
+				l_operator.set_as_not
+			elseif l_un_old /= Void then
+				l_operator.set_as_old
+			elseif l_un_plus /= Void then
+				l_operator.set_as_plus
+			end
+
+			l_unary.make_element (l_operator, make_tbon_expression_from_expr_as (l_unary_as.expr))
+		end
+
 
 invariant
+	must_have_name: name /= Void
+	must_describe_class: associated_class /= Void
 	deferred_status_is_consistent: is_deferred implies not is_effective and not is_root
 	effective_status_is_consistent: is_effective implies not is_deferred and not is_root
 	root_status_is_consistent: is_root implies not is_deferred and not is_effective

@@ -8,10 +8,24 @@ class
 	PS_OBJECT_QUERY [G -> ANY]
 inherit
 	PS_QUERY [G]
-		redefine set_criterion, query_result end
+		redefine set_criterion end
 
 create make
 
+
+feature {NONE} -- Creation
+
+	make
+			-- Create an new query on objects of type `G'.
+		do
+			create {PS_EMPTY_CRITERION} criteria.default_create
+			create result_cursor.make
+			result_cursor.set_query (Current)
+			is_executed := False
+		ensure
+			not_executed: not is_executed
+			query_result_initialized: result_cursor.query = Current
+		end
 
 feature
 
@@ -25,7 +39,7 @@ feature
 		end
 
 
-	query_result: PS_RESULT_SET[G]
+	result_cursor: PS_RESULT_SET[G]
 
 	is_object_query:BOOLEAN = True
 			-- Is `Current' an instance of PS_OBJECT_QUERY?
