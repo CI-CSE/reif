@@ -74,6 +74,7 @@ feature -- Basic operations
 			l_cursor: CURSOR
 			l_type: detachable CLASS_TYPE
 			l_tmp_server: TMP_AST_SERVER
+			l_locals: HASH_TABLE [LOCAL_INFO, INTEGER]
 		do
 			fixme ("Code adapted from ETEST_EVALUATOR_BYTE_CODE_FACTORY, refactoring needed. 23.12.2009 Jasonw")
 			if attached feature_as_with_text (a_text, a_written_class) as l_feature then
@@ -94,9 +95,18 @@ feature -- Basic operations
 				l_ast_context.set_written_class (a_written_class)
 				l_ast_context.set_is_ignoring_export (a_ignore_export)
 				l_feature_checker := epa_feature_checker
+				l_feature_checker.error_handler.wipe_out
 				l_feature_checker.init (l_ast_context)
 				l_feature_checker.type_check_and_code (a_feature, True, False)
-				if attached l_feature_checker.byte_code as l_byte_code then
+
+				if attached {ROUTINE_AS} a_feature.e_feature.ast.body.content as l_routine then
+					l_feature_checker.context.clear_local_context
+					l_feature_checker.check_locals (l_routine)
+					l_locals := l_feature_checker.context.locals.twin
+				else
+					create l_locals.make (0)
+				end
+				if l_feature_checker.error_handler.error_list.count = 0 and then attached l_feature_checker.byte_code as l_byte_code then
 					l_last_bpslot := l_feature_checker.break_point_slot_count
 					l_context := context
 					l_byte_array := byte_array
@@ -125,6 +135,7 @@ feature -- Basic operations
 					l_context.set_current_feature (a_feature)
 					l_context.set_workbench_mode
 					l_byte_array.clear
+					l_ast_context.set_locals (l_locals)
 					l_ast_context.init_byte_code (l_byte_code)
 					l_byte_code.make_byte_code (l_byte_array)
 					l_result := l_byte_array.melted_feature.string_representation

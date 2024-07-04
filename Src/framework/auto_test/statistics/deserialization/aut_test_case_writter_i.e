@@ -92,7 +92,6 @@ feature{NONE} -- Construction
 			l_class_str: STRING
 			l_oper_dec: STRING
 			l_var_dec: STRING
-			l_all_var_dec: STRING
 		do
 			-- Class body.
 			l_class_str := tc_class_template.twin
@@ -101,8 +100,8 @@ feature{NONE} -- Construction
 			l_class_str.replace_substring_all (ph_feature_name, tc_feature_name)
 			l_class_str.replace_substring_all (ph_generation_type, tc_generation_type)
 			l_class_str.replace_substring_all (ph_summary, tc_summary)
-			l_all_var_dec := tc_all_variable_declaration
-			l_class_str.replace_substring_all (ph_var_declaration, l_all_var_dec)
+			l_class_str.replace_substring_all (ph_var_declaration, tc_all_variable_declaration)
+			l_class_str.replace_substring_all (ph_var_initialization, tc_var_initialization)
 			l_class_str.replace_substring_all (ph_body, tc_body)
 			l_class_str.replace_substring_all (ph_is_creation, tc_is_creation.out)
 			l_class_str.replace_substring_all (ph_is_query, tc_is_query.out)
@@ -309,6 +308,11 @@ feature{NONE} -- Construction
 		deferred
 		end
 
+	tc_var_initialization: STRING
+			-- Text for the body of the feature `load_variables'.
+		deferred
+		end
+
 feature{NONE} -- Construction cache
 
 	uuid_generator: UUID_GENERATOR
@@ -347,6 +351,7 @@ feature{NONE} -- Constants
 	ph_finish_block_string: STRING = "$(FINISH_BLOCK_STRING)"
 	ph_pre_object_info: STRING = "$(PRE_OBJECT_INFO)"
 	ph_post_object_info: STRING = "$(POST_OBJECT_INFO)"
+	ph_var_initialization: STRING = "$(VAR_INITIALIZATION)"
 
 
 	ph_class_under_test: STRING = "$(CLASS_UNDER_TEST)"
@@ -356,12 +361,15 @@ feature{NONE} -- Constants
 	ph_var_declaration_in_one_line: STRING = "$(VAR_DECLARATION_IN_ONE_LINE)"
 	ph_pre_state: STRING = "$(PRE_STATE)"
 	ph_post_state: STRING = "$(POST_STATE)"
+	ph_feature_type: STRING = "$(FEATURE_TYPE)"
+	ph_command: STRING = "CMD"
+	ph_query: STRING = "QRY"
 
 	tc_name_extension: STRING = "e"
 	tc_feature_name: STRING = "generated_test_1"
 	tc_generation_type: STRING = "AutoTest test case extracted from serialization"
 
-	tc_class_name_template: STRING = "TC__$(CLASS_UNDER_TEST)__$(FEATURE_UNDER_TEST)__$(STATUS)__c$(EXCEPTION_CODE)__b$(BREAKPOINT_INDEX)__REC_$(EXCEPTION_RECIPIENT_CLASS)__$(EXCEPTION_RECIPIENT)__TAG_$(ASSERTION_TAG)__$(HASH_CODE)__$(UUID)"
+	tc_class_name_template: STRING = "TC__$(CLASS_UNDER_TEST)__$(FEATURE_UNDER_TEST)__$(FEATURE_TYPE)__$(STATUS)__c$(EXCEPTION_CODE)__b$(BREAKPOINT_INDEX)__REC_$(EXCEPTION_RECIPIENT_CLASS)__$(EXCEPTION_RECIPIENT)__TAG_$(ASSERTION_TAG)__$(HASH_CODE)__$(UUID)"
 	tc_var_initialization_template: STRING = "$(VAR) ?= pre_variable_table[$(INDEX)]%N"
 	tc_operand_table_initializer_template: STRING = "%T%T%T%Ttci_operand_table_cache.put ($(VAR_INDEX),$(OPERAND_INDEX))"
 
@@ -381,9 +389,11 @@ feature -- Test routine
         local
 $(VAR_DECLARATION)
         do
+        		-- Initialize objects.
+$(VAR_INITIALIZATION)
 $(BODY)
         end
-        
+                
 feature -- Test case information
 
 	tci_class_name: STRING do Result := "$(CLASS_NAME)" end

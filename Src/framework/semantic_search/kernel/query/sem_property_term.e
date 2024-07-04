@@ -25,6 +25,7 @@ feature{NONE} -- Initialization
 			initialize
 			queryable := a_queryable
 			equation := a_equation
+			set_is_negated (a_equation.is_negated)
 		end
 
 feature -- Access

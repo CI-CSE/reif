@@ -28,6 +28,8 @@ inherit
 
 	ERL_G_TYPE_ROUTINES
 
+	EPA_COMPILATION_UTILITY
+
 create
 	default_create
 
@@ -83,14 +85,60 @@ feature{NONE} -- Implementation
 
 	generate_test_case (a_data: AUT_DESERIALIZED_DATA)
 			-- Generate the test case from 'a_data' and save it into `test_case_dir'.
-		local
-			l_file_name: STRING
 		do
 			reset_cache
 			current_data := a_data
-			write_to (test_case_dir)
-
+			if is_test_case_valid then
+				write_to (test_case_dir)
+			end
 			current_data := Void
+		end
+
+	is_test_case_valid: BOOLEAN
+			-- Is test case in `current_data' valid?
+			-- A test case is valid if it compiles.
+		local
+			l_text: STRING
+			l_tc_body: STRING
+			l_class: EIFFEL_CLASS_C
+			l_feature: FEATURE_I
+			l_data: like feature_byte_code_with_text
+			l_file: PLAIN_TEXT_FILE
+			l_file_name: FILE_NAME
+		do
+			l_tc_body := tc_body
+			create l_text.make (1024)
+			l_text.append (once "make local %N")
+			l_text.append (tc_all_variable_declaration)
+			l_text.append (once "%Ndo %N")
+			l_text.append (tc_code_cache)
+			l_text.append (once "%Nend%N")
+			l_class ?= workbench.system.root_type.associated_class
+			l_feature := l_class.feature_named (workbench.system.root_creation_name)
+				-- Melt the code to see if it is valid.
+			l_data := feature_byte_code_with_text (l_class, l_feature, once "feature " + l_text, False)
+			Result := not l_data.byte_code.is_empty
+			if not Result then
+				prepare_directory (test_case_dir)
+				create l_file_name.make_from_string (test_case_dir)
+				l_file_name.set_file_name ("error.log")
+				create l_file.make_open_read_append (l_file_name.out)
+				l_file.put_string ("---------------------------------------------------%N")
+				if current_data.file_path /= Void then
+					l_file.put_string (once "File: ")
+					l_file.put_string (current_data.file_path)
+					l_file.put_string (once " (line ")
+					l_file.put_integer (current_data.line_number)
+					l_file.put_character (')')
+				end
+				l_file.put_character ('%N')
+
+				l_file.put_string (tc_all_variable_declaration)
+				l_file.put_character ('%N')
+				l_file.put_string (tc_code_cache)
+				l_file.put_character ('%N')
+				l_file.close
+			end
 		end
 
 	prepare_directory (a_dir_name: STRING)
@@ -108,15 +156,13 @@ feature{NONE} -- Implementation
 			-- <Precursor>
 		local
 			l_file_name: FILE_NAME
-			l_length: INTEGER
 		do
 			create l_file_name.make_from_string (a_dir_name)
 			l_file_name.set_subdirectory (tc_class_under_test)
 			l_file_name.set_subdirectory (tc_feature_under_test + "__" + tc_directory_postfix)
 
-			-- Make sure the length of file name does not exceed 255 characters.
-			l_length := 255 - l_file_name.string.count - 3
-			truncate_class_name (l_length)
+			-- Make sure the length of file name does not exceed 255 characters.			
+			truncate_class_name (253)
 			l_file_name.set_file_name (tc_class_name)
 			l_file_name.add_extension (tc_name_extension)
 
@@ -146,6 +192,11 @@ feature{NONE} -- Class content
 				l_name.copy (tc_class_name_template)
 				l_name.replace_substring_all (ph_class_under_test, tc_class_under_test)
 				l_name.replace_substring_all (ph_feature_under_test, tc_feature_under_test)
+				if tc_is_query then
+					l_name.replace_substring_all (ph_feature_type, ph_query)
+				else
+					l_name.replace_substring_all (ph_feature_type, ph_command)
+				end
 				l_name.replace_substring_all (ph_success_status, tc_success_status)
 				l_name.replace_substring_all (ph_exception_code, tc_exception_code.out)
 				l_name.replace_substring_all (ph_breakpoint_index, tc_breakpoint_index.out)
@@ -157,7 +208,6 @@ feature{NONE} -- Class content
 				l_name.replace_substring_all (ph_uuid, tc_uuid)
 				l_name.replace_substring_all (ph_pre_object_info, tc_pre_object_info)
 				l_name.replace_substring_all (ph_post_object_info, tc_post_object_info)
-
 				tc_class_name_cache := l_name
 			end
 			Result := tc_class_name_cache
@@ -370,9 +420,9 @@ feature{NONE} -- Class content
 			-- <Precursor>
 		local
 			l_data: like current_data
-			l_line, l_dec: STRING
+			l_line: STRING
 			l_variables_table, l_operands_table: HASH_TABLE [TYPE_A, ITP_VARIABLE]
-			l_var, l_op: ITP_VARIABLE
+			l_var: ITP_VARIABLE
 			l_type: TYPE_A
 			l_prefix: STRING
 			l_nested_table: EPA_NESTED_HASH_TABLE [INTEGER, INTEGER, INTEGER]
@@ -400,9 +450,8 @@ feature{NONE} -- Class content
 
 				-- Declare a local variable if it is no operand.
 				if not l_operands_table.has (l_var) then
-					l_type_name := l_type.name.twin
-					l_type_name.replace_substring_all (once "?", once "")
-					l_line := "%T%T%T" + l_var.name (l_prefix) + ": " + l_type_name + "%N"
+					l_type_name := output_type_name (l_type.name)
+					l_line := once "%T%T%T" + l_var.name (l_prefix) + ": " + l_type_name + once "%N"
 					l_variables_declaration.append (l_line)
 				end
 
@@ -431,9 +480,8 @@ feature{NONE} -- Class content
 					l_new_index := l_reindexing.item_for_iteration.first
 
 					l_op_name := l_data.variable_name_prefix.twin + l_new_index.out
-					l_type_name := l_type.name.twin
-					l_type_name.replace_substring_all (once "?", once "")
-					l_line := "%T%T%T" + l_op_name + ": " + l_type_name + "%N"
+					l_type_name := output_type_name (l_type.name.twin)
+					l_line := once "%T%T%T" + l_op_name + once ": " + l_type_name + once "%N"
 					l_operands_declaration.append (l_line)
 
 					l_reindexing.forth
@@ -453,81 +501,23 @@ feature{NONE} -- Class content
 			l_data: like current_data
 			l_test_call: STRING
 			l_variables_table, l_operands_table: HASH_TABLE [TYPE_A, ITP_VARIABLE]
-			l_var, l_op: ITP_VARIABLE
-			l_type: TYPE_A
-			l_prefix: STRING
 			l_nested_table: EPA_NESTED_HASH_TABLE [INTEGER, INTEGER, INTEGER]
 			l_op_index: INTEGER
-			l_occurrence, l_new_index, l_current_occurrence: INTEGER
+			l_current_occurrence: INTEGER
 			l_reindexing: DS_HASH_TABLE [DS_HASH_SET[INTEGER], INTEGER]
 			l_op_name, l_new_name: STRING
 			l_start_index, l_end_index: INTEGER
-			l_char: CHARACTER
-			l_line: STRING
 		do
 			create Result.make (256)
 			l_data := current_data
 			l_variables_table := l_data.variable_type_table
 			l_operands_table := l_data.operand_type_table
 
-			-- Initialization of local variables.
-			from
-				l_prefix := l_data.variable_name_prefix
-				l_variables_table.start
-			until
-				l_variables_table.after
-			loop
-				l_var := l_variables_table.key_for_iteration
-				l_type := l_variables_table.item_for_iteration
-
-				-- Output local variable initialization, if it is no operand.
-				if not l_operands_table.has (l_var) then
-					create l_line.make (64)
-					l_line.append (once "%T%T%T")
-					l_line.append (tc_var_initialization_template)
-					l_line.replace_substring_all (once "$(VAR)", l_var.name (l_data.variable_name_prefix))
-					l_line.replace_substring_all (once "$(INDEX)", l_var.index.out)
-					Result.append (l_line)
-				end
-
-				l_variables_table.forth
-			end
-
-			-- Initialization of operands.
-			l_nested_table := operand_reindexing_table
-			from
-				l_operands_table.start
-			until
-				l_operands_table.after
-			loop
-				l_op_index := l_operands_table.key_for_iteration.index
-				l_type := l_operands_table.item_for_iteration
-
-				-- Use the same object to initialize variables from repeated occurrences of the operand.
-				check l_nested_table.has (l_op_index) end
-				l_reindexing := l_nested_table.item (l_op_index)
-				from l_reindexing.start
-				until l_reindexing.after
-				loop
-					l_occurrence := l_reindexing.key_for_iteration
-					l_new_index := l_reindexing.item_for_iteration.first
-					l_op_name := l_data.variable_name_prefix.twin + l_new_index.out
-
-					create l_line.make (64)
-					l_line.append (once "%T%T%T")
-					l_line.append (tc_var_initialization_template)
-					l_line.replace_substring_all (once "$(VAR)", l_op_name)
-					l_line.replace_substring_all (once "$(INDEX)", l_op_index.out)
-					Result.append (l_line)
-
-					l_reindexing.forth
-				end
-
-				l_operands_table.forth
-			end
-
 			-- Renaming operands in the test call.
 			l_test_call := l_data.code_str.twin
+			if l_data.is_feature_creation then
+				l_test_call := output_type_name (l_test_call)
+			end
 			l_nested_table := operand_reindexing_table
 			from
 				l_operands_table := l_data.operand_type_table
@@ -570,18 +560,107 @@ feature{NONE} -- Class content
 				l_operands_table.forth
 			end
 			tc_code_cache := l_test_call
+			Result.append (once "%T%T%Tsetup_before_test%N%N")
 
-			Result.append (once "%N%T%T%Tsetup_before_test%N%N")
-			Result.append (once "%T%T%T%T-- Execute feature under test.%N%T%T%T")
+			Result.append (once "%T%T%T%T-- Retrieve object information in pre-state.%N")
+			Result.append (once "%T%T%Tif is_pre_state_information_enabled then%N")
+			Result.append (once "%T%T%T%Tfinish_pre_state_calculation%N")
+			Result.append (once "%T%T%Tend%N%N")
+
+			Result.append (once "%T%T%T%T--Execute the feature under test.%N")
+			Result.append (once "%T%T%Tright_before_test%N%N%T%T%T")
 			Result.append (l_test_call)
-			Result.append ("%N%N%T%T%T%T-- Setup object serialization in post-state.%N")
+			Result.append (once "%N%N%T%T%Tright_after_test%N")
+			Result.append ("%N%N%T%T%T%T-- Retrieve object information in post-state.%N")
 			Result.append ("%T%T%Tif is_post_state_information_enabled then%N")
 			Result.append ("%T%T%T%Tpost_serialization_cache := ascii_string_as_array (serialized_object (special_from_tuple (")
 			Result.append (tuple_for_objects)
 			Result.append (")))%N")
 			Result.append ("%T%T%T%Tfinish_post_state_calculation%N")
 			Result.append ("%T%T%Tend%N")
-			Result.append (once "%N%N%T%T%Tcleanup_after_test%N")
+			Result.append (once "%N%T%T%Tcleanup_after_test%N")
+		end
+
+	tc_var_initialization: STRING
+			-- Text for the body of the feature `load_variables'.
+		local
+			l_data: like current_data
+			l_variables_table, l_operands_table: HASH_TABLE [TYPE_A, ITP_VARIABLE]
+			l_var: ITP_VARIABLE
+			l_type: TYPE_A
+			l_prefix: STRING
+			l_line: STRING
+			l_cursor: CURSOR
+			l_nested_table: EPA_NESTED_HASH_TABLE [INTEGER, INTEGER, INTEGER]
+			l_op_index: INTEGER
+			l_new_index: INTEGER
+			l_reindexing: DS_HASH_TABLE [DS_HASH_SET[INTEGER], INTEGER]
+			l_op_name: STRING
+			l_occurrence: INTEGER
+		do
+			create Result.make (256)
+			l_data := current_data
+			l_variables_table := l_data.variable_type_table
+			l_operands_table := l_data.operand_type_table
+
+				-- Initialization of local variables.
+			l_cursor := l_variables_table.cursor
+			from
+				l_prefix := l_data.variable_name_prefix
+				l_variables_table.start
+			until
+				l_variables_table.after
+			loop
+				l_var := l_variables_table.key_for_iteration
+				l_type := l_variables_table.item_for_iteration
+
+					-- Output local variable initialization, if it is no operand.
+				if not l_operands_table.has (l_var) then
+					create l_line.make (64)
+					l_line.append (once "%T%T%T")
+					l_line.append (tc_var_initialization_template)
+					l_line.replace_substring_all (once "$(VAR)", l_var.name (l_data.variable_name_prefix))
+					l_line.replace_substring_all (once "$(INDEX)", l_var.index.out)
+					Result.append (l_line)
+				end
+				l_variables_table.forth
+			end
+			l_variables_table.go_to (l_cursor)
+
+				-- Initialization of operands.
+			l_nested_table := operand_reindexing_table
+			l_cursor := l_operands_table.cursor
+			from
+				l_operands_table.start
+			until
+				l_operands_table.after
+			loop
+				l_op_index := l_operands_table.key_for_iteration.index
+				l_type := l_operands_table.item_for_iteration
+
+					-- Use the same object to initialize variables from repeated occurrences of the operand.
+				check l_nested_table.has (l_op_index) end
+				l_reindexing := l_nested_table.item (l_op_index)
+				from l_reindexing.start
+				until l_reindexing.after
+				loop
+					l_occurrence := l_reindexing.key_for_iteration
+					l_new_index := l_reindexing.item_for_iteration.first
+					l_op_name := l_data.variable_name_prefix.twin + l_new_index.out
+
+					create l_line.make (64)
+					l_line.append (once "%T%T%T")
+					l_line.append (tc_var_initialization_template)
+					l_line.replace_substring_all (once "$(VAR)", l_op_name)
+					l_line.replace_substring_all (once "$(INDEX)", l_op_index.out)
+					Result.append (l_line)
+
+					l_reindexing.forth
+				end
+
+				l_operands_table.forth
+			end
+			l_operands_table.go_to (l_cursor)
 		end
 
 	tc_code_cache: STRING
@@ -659,10 +738,6 @@ feature{NONE} -- Class content
 
 	tc_hash_code: STRING
 			-- <Precursor>
-		local
-			l_hash_string: STRING
-			l_index: INTEGER
-			l_hash_value: INTEGER
 		do
 			Result := current_data.trans_hashcode.hash_code.out
 		end
@@ -775,8 +850,8 @@ feature{NONE} -- Auxiliary features
 		local
 			l_data: like current_data
 			l_reindexing_table: like operand_reindexing_table
-			l_operand_types, l_variable_types, l_all_types: HASH_TABLE [TYPE_A, ITP_VARIABLE]
-			l_operand_indexes, l_used_indexes: DS_HASH_SET [INTEGER]
+			l_operand_types, l_variable_types: HASH_TABLE [TYPE_A, ITP_VARIABLE]
+			l_used_indexes: DS_HASH_SET [INTEGER]
 			l_var_index: INTEGER
 			l_operand_position_name_table: HASH_TABLE [STRING, INTEGER]
 			l_operand_name_occurrence_table: HASH_TABLE [INTEGER, STRING]

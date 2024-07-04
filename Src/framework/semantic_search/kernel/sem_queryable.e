@@ -40,6 +40,23 @@ feature -- Access
 			-- Key is a variable, value is the 0-based appearing index of that
 			-- variable in Current transition.
 
+	variable_position_set: DS_HASH_SET [INTEGER]
+			-- Set of positions of `variables'
+		local
+			l_cursor: DS_HASH_TABLE_CURSOR [INTEGER, EPA_EXPRESSION]
+		do
+			create Result.make (variables.count)
+			from
+				l_cursor := variable_positions.new_cursor
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				Result.force_last (l_cursor.item)
+				l_cursor.forth
+			end
+		end
+
 	variable_name_positions: HASH_TABLE [INTEGER, STRING]
 			-- Table from variable name to their positions
 		local
@@ -64,6 +81,16 @@ feature -- Access
 	reversed_variable_position: HASH_TABLE [EPA_EXPRESSION, INTEGER]
 			-- Revsersed table for `variable_position'
 			-- Key is variable expression, value is the index of that variable
+
+	variable_types: HASH_TABLE [TYPE_A, INTEGER]
+			-- Table of variable types
+			-- key is variable position, value is the type of the variable in that position.
+		do
+			create Result.make (variables.count)
+			across reversed_variable_position as l_vars loop
+				Result.put (l_vars.item.type, l_vars.key)
+			end
+		end
 
 	variable_type_table: DS_HASH_TABLE [INTEGER, TYPE_A]
 			-- Table of types of `variables'

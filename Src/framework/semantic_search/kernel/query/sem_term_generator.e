@@ -51,6 +51,8 @@ feature{NONE} -- Process
 			l_contracts: DS_HASH_SET_CURSOR [EPA_EQUATION]
 			l_changes: DS_HASH_TABLE_CURSOR [LIST [EPA_EXPRESSION_CHANGE], EPA_EXPRESSION]
 			l_terms: like last_terms
+			l_pos_cursor: DS_HASH_TABLE_CURSOR [SEM_TRANSITION_VARIABLE_POSITION, EPA_EXPRESSION]
+			l_pos_term: SEM_VARIABLE_POSITION_TERM
 		do
 			l_terms := last_terms
 				-- Add variable terms into `terms'.
@@ -75,7 +77,7 @@ feature{NONE} -- Process
 			until
 				l_contracts.after
 			loop
-				create l_contract_term.make (a_call, l_contracts.item, True, False)
+				create l_contract_term.make (a_call, l_contracts.item, True, False, l_contracts.item.is_negated)
 				if term_occurrence_function /= Void then
 					l_contract_term.set_occurrence (term_occurrence_function.item ([l_contract_term]))
 				end
@@ -91,7 +93,7 @@ feature{NONE} -- Process
 			until
 				l_contracts.after
 			loop
-				create l_contract_term.make (a_call, l_contracts.item, True, True)
+				create l_contract_term.make (a_call, l_contracts.item, True, True, l_contracts.item.is_negated)
 				if term_occurrence_function /= Void then
 					l_contract_term.set_occurrence (term_occurrence_function.item ([l_contract_term]))
 				end
@@ -106,7 +108,7 @@ feature{NONE} -- Process
 			until
 				l_contracts.after
 			loop
-				create l_contract_term.make (a_call, l_contracts.item, False, False)
+				create l_contract_term.make (a_call, l_contracts.item, False, False, l_contracts.item.is_negated)
 				if term_occurrence_function /= Void then
 					l_contract_term.set_occurrence (term_occurrence_function.item ([l_contract_term]))
 				end
@@ -121,7 +123,7 @@ feature{NONE} -- Process
 			until
 				l_contracts.after
 			loop
-				create l_contract_term.make (a_call, l_contracts.item, False, True)
+				create l_contract_term.make (a_call, l_contracts.item, False, True, l_contracts.item.is_negated)
 				if term_occurrence_function /= Void then
 					l_contract_term.set_occurrence (term_occurrence_function.item ([l_contract_term]))
 				end
@@ -144,6 +146,18 @@ feature{NONE} -- Process
 					l_terms.extend (l_change_term)
 				end
 				l_changes.forth
+			end
+
+				-- Add variable position into `terms'.
+			from
+				l_pos_cursor := a_call.interface_variable_positions.new_cursor
+				l_pos_cursor.start
+			until
+				l_pos_cursor.after
+			loop
+				create l_pos_term.make (a_call, l_pos_cursor.key, l_pos_cursor.item)
+				l_terms.extend (l_pos_term)
+				l_pos_cursor.forth
 			end
 		end
 

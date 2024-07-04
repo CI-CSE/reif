@@ -57,6 +57,7 @@ feature -- Basic operations
 				end
 			end
 			create l_executor.make
+			io.put_string (l_ir_query.text)
 			l_executor.execute (l_ir_query)
 			last_result := l_executor.last_result
 		end
@@ -91,11 +92,11 @@ feature{NONE} -- Process terms
 			l_term: IR_TERM
 			l_field: IR_FIELD
 			l_value: detachable IR_VALUE
-			l_data: like reversed_occurrence_for_boolean
+			l_data: like final_occurrence_for_term
 			l_occur: INTEGER
 		do
 			l_value := value_from_expression_value (a_term.value)
-			l_data := reversed_occurrence_for_boolean (l_value, a_term.occurrence)
+			l_data := final_occurrence_for_term (l_value, a_term)
 			l_value := l_data.value
 			l_occur := l_data.occurrence
 			if l_value /= Void then
@@ -112,10 +113,10 @@ feature{NONE} -- Process terms
 			l_field: IR_FIELD
 			l_value: detachable IR_VALUE
 			l_occur: INTEGER
-			l_data: like reversed_occurrence_for_boolean
+			l_data: like final_occurrence_for_term
 		do
 			l_value := value_from_expression_value (a_term.value)
-			l_data := reversed_occurrence_for_boolean (l_value, a_term.occurrence)
+			l_data := final_occurrence_for_term (l_value, a_term)
 			l_value := l_data.value
 			l_occur := l_data.occurrence
 
@@ -151,6 +152,19 @@ feature{NONE} -- Process terms
 			terms.force_last (l_term)
 		end
 
+	process_variable_position_term (a_term: SEM_VARIABLE_POSITION_TERM)
+			-- Process `a_term'.
+		local
+			l_field: IR_FIELD
+			l_value: IR_STRING_VALUE
+			l_term: IR_TERM
+		do
+			create l_value.make (once "%"" + output_type_name (a_term.type.name) + once "%"")
+			create l_field.make (field_name_for_term (a_term, primary_type_form, False), l_value, default_boost_value)
+			create l_term.make (l_field, a_term.occurrence)
+			terms.force_last (l_term)
+		end
+
 feature{NONE} -- Implementation
 
 	ir_boolean_query: IR_BOOLEAN_QUERY
@@ -158,13 +172,17 @@ feature{NONE} -- Implementation
 		local
 			l_returned_fields: DS_HASH_SET [STRING]
 			l_type_form: INTEGER
-			l_should_add: BOOLEAN
 		do
 				-- Iterate through all terms in `a_boolean_query' and
 				-- translate those terms into information-retrieval terms.
 			create terms.make (20)
 			terms.set_equality_tester (ir_term_equality_tester)
 			query.config.terms.do_all (agent {SEM_TERM}.process (Current))
+
+				-- Add extra specified fields.
+			across query.config.extra_fields as l_fields loop
+				terms.force_last (ir_term_from_data (l_fields.key, l_fields.item))
+			end
 
 				-- Setup searchable terms in result information-retrieval boolean query.
 			create Result.make
@@ -178,19 +196,22 @@ feature{NONE} -- Implementation
 			l_returned_fields.force_last (uuid_field)
 			l_type_form := primary_type_form
 			across query_config.terms as l_terms loop
-				l_should_add := True
-				if attached {SEM_EQUATION_TERM} l_terms.item as l_equation_term then
-					if l_equation_term.type.is_boolean and then l_equation_term.value.as_boolean.item = False then
-						l_should_add := False
-					end
-				end
-
-				if l_should_add then
-					l_returned_fields.force_last (
-						field_name_prefix_for_term (l_terms.item, primary_type_form, True) +
-						encoded_field_string (l_terms.item.field_content_in_type_form (l_type_form)))
-				end
+				l_returned_fields.force_last (
+					field_name_prefix_for_term (l_terms.item, primary_type_form, True) +
+					encoded_field_string (l_terms.item.field_content_in_type_form (l_type_form)))
 			end
+
+				-- Add extra specified returned fields.
+			across query.config.returned_fields as l_fields loop
+				l_returned_fields.force_last (l_fields.item)
+			end
+
+		end
+
+	ir_term_from_data (a_field_name: STRING; a_field_value: STRING): IR_TERM
+			-- ir term from `a_field_name' and `a_field_value'
+		do
+			create Result.make_as_string (a_field_name, a_field_value, default_boost_value, {IR_TERM_OCCURRENCE}.term_occurrence_must)
 		end
 
 	value_from_expression_value (a_expression_value: EPA_EXPRESSION_VALUE): IR_VALUE
@@ -203,6 +224,12 @@ feature{NONE} -- Implementation
 			elseif a_expression_value.is_integer then
 				l_int := a_expression_value.as_integer.item
 				create {IR_INTEGER_RANGE_VALUE} Result.make (l_int, l_int)
+			elseif a_expression_value.is_any then
+				create {IR_ANY_VALUE} Result.make
+			elseif attached {EPA_NUMERIC_RANGE_VALUE} a_expression_value as l_range then
+				create {IR_INTEGER_RANGE_VALUE} Result.make (l_range.lower, l_range.upper)
+			elseif a_expression_value.is_any then
+				create {IR_ANY_VALUE} Result.make
 			end
 		end
 
@@ -216,22 +243,25 @@ feature{NONE} -- Implementation
 			Result.append (encoded_field_string (a_term.field_content_in_type_form (a_type_form)))
 		end
 
-	reversed_occurrence_for_boolean (a_value: IR_VALUE; a_occurrence: INTEGER): TUPLE [value: detachable IR_VALUE; occurrence: INTEGER]
-			-- Reversed occurrence for boolean
+	final_occurrence_for_term (a_value: IR_VALUE; a_term: SEM_TERM): TUPLE [value: detachable IR_VALUE; occurrence: INTEGER]
+			-- Final occurrence for `a_term'
 		local
 			l_occur: INTEGER
 		do
-			if attached {IR_BOOLEAN_VALUE} a_value as l_bvalue and then l_bvalue.item = False then
-				if a_occurrence = term_occurrence_should then
-					Result := [Void, term_occurrence_should]
-				elseif a_occurrence = term_occurrence_must then
-					Result := [create {IR_BOOLEAN_VALUE}.make (True), term_occurrence_must_not]
-				elseif a_occurrence = term_occurrence_must_not then
-					Result := [create {IR_BOOLEAN_VALUE}.make (True), term_occurrence_must]
+			if a_term.is_negated then
+				l_occur := a_term.occurrence
+				if l_occur = term_occurrence_must then
+					Result := [a_value, term_occurrence_must_not]
+				elseif l_occur = term_occurrence_must_not then
+					Result := [a_value, term_occurrence_must]
+				elseif l_occur = term_occurrence_should then
+					Result := [Void, l_occur]
 				end
 			else
-				Result := [a_value, a_occurrence]
+				Result := [a_value, a_term.occurrence]
 			end
+
+
 		end
 
 	document_type_term (a_queryable: SEM_QUERYABLE): IR_TERM

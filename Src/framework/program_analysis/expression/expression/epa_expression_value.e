@@ -32,7 +32,13 @@ feature -- Access
 		deferred
 		end
 
-	text, out: STRING
+	out: STRING
+			-- Text representation of Current.
+		do
+			Result := text
+		end
+
+	text: STRING
 			-- New string containing terse printable representation
 			-- of current object
 		do
@@ -202,6 +208,11 @@ feature -- Status report
 
 	is_numeric_range: BOOLEAN
 			-- Is current a numeric range value?
+		do
+		end
+
+	is_any: BOOLEAN
+			-- Is current an any value?
 		do
 		end
 

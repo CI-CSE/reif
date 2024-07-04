@@ -19,7 +19,8 @@ inherit
 			start_creation,
 			remove_task,
 			clean,
-			compute_interpreter_root_class
+			compute_interpreter_root_class,
+			initiate_testing_task
 		end
 
 create
@@ -36,8 +37,16 @@ feature {NONE} -- Status setting
 			compile_project (class_names)
 		end
 
+	initiate_testing_task
+			-- Launch a {ETEST_GENERATION_TESTING} task in `sub_task'
+		do
+			compute_interpreter_root_class
+		end
+
 	remove_task (a_task: like sub_task; a_cancel: BOOLEAN)
 			-- <Precursor>
+		local
+			l_test_task: ETEST_GENERATION_TESTING
 		do
 			if not a_cancel then
 				if
@@ -47,6 +56,19 @@ feature {NONE} -- Status setting
 					system.remove_explicit_root (interpreter_root_class_name, interpreter_root_feature_name)
 					system.make_update (False)
 					initiate_testing_task
+					if attached interpreter_root_class then
+						if is_random_testing_enabled then
+							create l_test_task.make_random (Current, class_names)
+							l_test_task.start
+							sub_task := l_test_task
+						elseif is_load_log_enabled then
+							load_log
+						elseif is_test_case_deserialization_enabled then
+							process_deserialization
+						elseif is_collecting_interface_related_classes then
+							collect_interface_related_classes
+						end
+					end
 				end
 			end
 			if not has_next_step then
@@ -94,6 +116,7 @@ feature {NONE} -- Basic operations
 		do
 			l_system := system
 			check l_system /= Void end
+
 				-- Create actual root class in EIFGENs cluster
 			l_dir := l_system.project_location
 			create l_file_name.make_from_string (l_dir.eifgens_cluster_path)
@@ -122,6 +145,7 @@ feature {NONE} -- Basic operations
 					end, True)
 
 			l_melt := new_melt_task
+			l_melt.set_is_freezing_needed (should_freeze_before_testing)
 			l_melt.start (True)
 			sub_task := l_melt
 		end

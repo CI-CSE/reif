@@ -78,5 +78,5 @@ feature -- Process
 			-- Process `a_value'.
 		deferred
 		end
-
+		
 end

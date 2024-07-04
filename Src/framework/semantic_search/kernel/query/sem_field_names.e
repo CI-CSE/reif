@@ -36,7 +36,7 @@ feature -- Access
 
 	variables_field: STRING = "variables"
 
-	static_variables_field: STRING = "static_variables"
+	dynamic_variables_field: STRING = "dynamic_variables"
 
 	inputs_field: STRING = "inputs"
 
@@ -96,6 +96,91 @@ feature -- Access
 
 	poststate_bounded_functions_field: STRING = "poststate_bounded_functions"
 
+	any_value: STRING = "[any_value]"
+
+	feature_type_field: STRING = "feature_type"
+
+	feature_type_command: STRING = "command"
+
+	feature_type_query: STRING = "query"
+
+	is_creation_field: STRING = "is_creation"
+
+	operand_count_field: STRING = "operand_count"
+
+	argument_count_field: STRING = "argument_count"
+
+	test_case_status_field: STRING = "transition_status"
+
+	test_case_status_passing: STRING = "passing"
+
+	test_case_status_failing: STRING = "failing"
+
+	pre_serialization_field: STRING = "pre_serialization"
+
+	pre_object_info_field: STRING = "pre_object_info"
+
+	recipient_field: STRING = "recipient"
+
+	recipient_class_field: STRING = "recipient_class"
+
+	exception_break_point_slot_field: STRING = "exception_break_point_slot"
+
+	exception_code_field: STRING = "exception_code"
+
+	exception_meaning_field: STRING = "exception_meaning"
+
+	exception_trace_field: STRING = "exception_trace"
+
+	exception_tag_field: STRING = "exception_assertion_tag"
+
+	fault_id_field: STRING = "fault_id"
+
+	s_s_arg_field: STRING = "s_s_arg_"
+	s_d_arg_field: STRING = "s_d_arg_"
+	t_s_arg_field: STRING = "t_s_arg_"
+	t_d_arg_field: STRING = "t_d_arg_"
+			-- A particular argument variable
+
+	s_s_args_field: STRING = "s_s_args"
+	s_d_args_field: STRING = "s_d_args"
+	t_s_args_field: STRING = "t_s_args"
+	t_d_args_field: STRING = "t_d_args"
+			-- Agument variables
+
+	s_s_tgt_field: STRING = "s_s_tgt"
+	s_d_tgt_field: STRING = "s_d_tgt"
+	t_s_tgt_field: STRING = "t_s_tgt"
+	t_d_tgt_field: STRING = "t_d_tgt"
+			-- Target variables
+
+	s_s_rlt_field: STRING = "s_s_rlt"
+	s_d_rlt_field: STRING = "s_d_rlt"
+	t_s_rlt_field: STRING = "t_s_rlt"
+	t_d_rlt_field: STRING = "t_d_rlt"
+			-- Result variables
+
+	s_s_opd_field: STRING = "s_s_opd"
+	s_d_opd_field: STRING = "s_d_opd"
+	t_s_opd_field: STRING = "t_s_opd"
+	t_d_opd_field: STRING = "t_d_opd"
+			-- Operand variables (target + argument)
+
+	s_s_ifc_field: STRING = "s_s_ifc"
+	s_d_ifc_field: STRING = "s_d_ifc"
+	t_s_ifc_field: STRING = "t_s_ifc"
+	t_d_ifc_field: STRING = "t_d_ifc"
+			-- Interface variables (target + argument + result)	
+
+	target_varaible_short: STRING = "tgt"
+	result_varaible_short: STRING = "rlt"
+	argument_variable_short: STRING = "args"
+	one_argument_variable_short: STRING = "arg"
+	operand_variable_short: STRING = "opd"
+	interface_variable_short: STRING = "ifc"
+
+	hit_break_points_field: STRING = "hit_breakpoints"
+
 feature -- Access
 
 	serialization_field_array_separator: CHARACTER = ','
@@ -108,15 +193,6 @@ feature -- Access
 
 	default_variable_prefix: STRING = "v_"
 			-- Default prefix for variables
-
-	output_type_name (a_type: STRING): STRING
-			-- Formatted type name from `a_type'
-		do
-			create Result.make_from_string (a_type)
-			Result.replace_substring_all (once "?", once "")
-			Result.replace_substring_all (once "detachable ", once "")
-			Result.replace_substring_all (once "separate ", once "")
-		end
 
 feature -- Access
 

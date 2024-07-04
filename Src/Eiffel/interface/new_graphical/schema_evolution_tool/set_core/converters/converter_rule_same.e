@@ -1,39 +1,38 @@
 note
-	description: "Summary description for {SSA_LEAF_STUB}."
-	author: ""
-	date: "$Date$"
+	description: "Rule for `nothing has changed'. "
+	author: "Matthias Loeu, Marco Piccioni"
+	date: "09.04.09"
 	revision: "$Revision$"
 
 class
-	SSA_LEAF_STUB
+	CONVERTER_RULE_SAME
 
 inherit
-	ID_AS
-		redefine
-			text
-		end
+	CONVERTER_RULE
 
 create
 	make
 
-feature
-	make (a_str: STRING)
-		require
-			attached a_str
+feature -- Access
+	rule: STRING
 		do
-			str := a_str
-			index := 1
+			Result := ""
+			process := ""
 		end
 
-	str: STRING
 
-	text (a_list: LEAF_AS_LIST): STRING
+feature {NONE} -- Implementation
+
+	first_comment: STRING
+			-- The first comment that appears for this rule.
 		do
-			Result := str
+			Result := ""
 		end
+invariant
+	-- Insert invariant here
 note
 	copyright: "Copyright (c) 1984-2010, Eiffel Software"
-	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

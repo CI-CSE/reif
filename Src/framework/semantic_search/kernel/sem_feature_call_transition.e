@@ -24,6 +24,7 @@ inherit
 
 create
 	make,
+	make_with_context_type,
 	make_with_transition,
 	make_interface_transition
 
@@ -48,7 +49,22 @@ feature{NONE} -- Initialization
 			create postconditions.make (20, context.class_, context.feature_)
 			create written_preconditions.make (5, context.class_, context.feature_)
 			create written_postconditions.make (5, context.class_, context.feature_)
+			create hit_breakpoints.make (20)
 			initialize (a_operands)
+		end
+
+	make_with_context_type (a_class: like class_; a_feature: like feature_;  a_operands: HASH_TABLE [STRING, INTEGER]; a_context: like context; a_is_creation: BOOLEAN; a_context_type: like context_type)
+			-- Initialize Current as the transition of `a_feature' in `a_class'.
+			-- `a_operands' is a table indicating the operands for current transition.
+			-- Key of `a_operands' are 0-based operand (including result, if any) indexes,
+			-- 0 means target, 1 means the first argument, and so on,
+			-- value of `a_operands' is the name of that operands.
+			-- All the variables in `a_operands' should also be defined in `a_context'.
+		require
+			operand_count_valid: operand_count_of_feature (a_feature) = a_operands.count
+		do
+			make (a_class, a_feature, a_operands, a_context,a_is_creation)
+			context_type := a_context_type
 		end
 
 	make_with_transition (a_transition: like Current)
@@ -63,6 +79,9 @@ feature{NONE} -- Initialization
 			written_preconditions := a_transition.written_preconditions.cloned_object
 			written_postconditions := a_transition.written_postconditions.cloned_object
 			changes := a_transition.changes.cloned_object
+			hit_breakpoints := a_transition.hit_breakpoints.cloned_object
+			set_is_passing (a_transition.is_passing)
+			interface_variable_positions := a_transition.interface_variable_positions.cloned_object
 		end
 
 	make_interface_transition (a_transition: like Current)
@@ -78,11 +97,13 @@ feature{NONE} -- Initialization
 			set_description (a_transition.description)
 			set_uuid (a_transition.uuid)
 			set_name (a_transition.name)
+			set_is_passing (a_transition.is_passing)
 			preconditions := a_transition.interface_preconditions
 			postconditions := a_transition.interface_postconditions
 			written_preconditions := a_transition.written_preconditions.cloned_object
 			written_postconditions := a_transition.written_postconditions.cloned_object
-
+			interface_variable_positions := a_transition.interface_variable_positions.cloned_object
+			hit_breakpoints := a_transition.hit_breakpoints.cloned_object
 				-- Initialize interface changes.
 			from
 				l_postconditions := postconditions
@@ -179,7 +200,7 @@ feature -- Access
 			l_reversed := reversed_variable_position
 
 			create Result.make (operand_count_of_feature (feature_))
-			across operand_index_set (feature_, True, True) as l_indexes loop
+			across operand_index_set (feature_, l_reversed.has (0), True) as l_indexes loop
 				l_opd_index := l_indexes.item
 				Result.put (l_reversed.item (l_opd_index).text, l_opd_index)
 			end
@@ -248,6 +269,17 @@ feature -- Access
 			interface_postconditions.do_all (agent extend_equation_into_hash_set (?, False, False, Result))
 			written_preconditions.do_all (agent extend_equation_into_hash_set (?, True, True, Result))
 			written_postconditions.do_all (agent extend_equation_into_hash_set (?, False, True, Result))
+		end
+
+	all_precondition_equations: DS_HASH_SEt [SEM_EQUATION]
+			-- Equations including `preconditions' and `written_preconditions'.
+			-- Note: create a new result set every time, may be slow.
+		do
+			create Result.make (preconditions.count + written_preconditions.count)
+			Result.set_equality_tester (sem_equation_equality_tester)
+
+			preconditions.do_all (agent extend_equation_into_hash_set (?, True, False, Result))
+			written_preconditions.do_all (agent extend_equation_into_hash_set (?, True, True, Result))
 		end
 
 	variable_static_type_table: HASH_TABLE [TYPE_A, STRING]
@@ -347,10 +379,46 @@ feature -- Access
 			Result := variable_static_type_table.item (a_variable.text)
 		end
 
+	argument_count: INTEGER
+			-- Number of arguments in `feature_'
+		do
+			Result := feature_.argument_count
+		end
+
+	operand_count: INTEGER
+			-- Number of operands (target + argument) in `feature_'
+		do
+			Result := argument_count + 1
+		end
+
+	interface_variable_count: INTEGER
+			-- Number of interface variable count (target + argument + result) in `feature_'
+		do
+			Result := operand_count
+			if is_query then
+				Result := Result +  1
+			end
+		end
+
+	hit_breakpoints: DS_HASH_SET [INTEGER]
+			-- List of breakpoints that are hit during the execution of Current transition
+
 feature -- Status report
 
 	is_creation: BOOLEAN
 			-- Is current transition a creation?
+
+	is_passing: BOOLEAN
+			-- Is current transition from a passing test case?
+
+	is_feature_call: BOOLEAN = True
+			-- Is Current a feature call queryable?
+
+	is_query: BOOLEAN
+			-- Is `feature_' a query?
+		do
+			Result := feature_.has_return_value
+		end
 
 feature -- Status report
 
@@ -360,10 +428,15 @@ feature -- Status report
 			Result := content_of_transition_internal (variable_type_name)
 		end
 
-feature -- Type status report
+feature -- Setting
 
-	is_feature_call: BOOLEAN = True
-			-- Is Current a feature call queryable?
+	set_is_passing (b: BOOLEAN)
+			-- Set `is_passing' with `b'.
+		do
+			is_passing := b
+		ensure
+			is_passing_set: is_passing = b
+		end
 
 feature -- Visitor
 
@@ -548,6 +621,9 @@ feature{NONE} -- Implementation
 
 			create changes.make (10)
 			changes.set_key_equality_tester (expression_equality_tester)
+
+			create interface_variable_positions.make (variables.count)
+			interface_variable_positions.set_key_equality_tester (expression_equality_tester)
 		end
 
 	rewritten_contracts (a_assertions: DS_HASH_SET [EPA_EXPRESSION]; a_precondition: BOOLEAN): EPA_STATE

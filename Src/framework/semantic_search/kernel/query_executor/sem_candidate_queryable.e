@@ -4,7 +4,7 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-deferred class
+class
 	SEM_CANDIDATE_QUERYABLE
 
 inherit
@@ -18,6 +18,98 @@ inherit
 
 	DEBUG_OUTPUT
 
+create
+	make,
+	make_with_score,
+	make_from_document
+
+feature{NONE} -- Initialization
+
+	make (a_uuid: STRING)
+			-- Initialize Current.
+		do
+			uuid := a_uuid
+			create variable_types.make (10)
+			create criteria.make (10)
+			criteria.compare_objects
+			create criteria_by_value_internal.make (10)
+			criteria_by_value_internal.compare_objects
+			create integer_criteria_by_value_internal.make (10)
+			integer_criteria_by_value_internal.compare_objects
+			set_is_valid (True)
+			create fields_by_name.make (10)
+			fields_by_name.compare_objects
+			create normal_fields.make (10)
+			normal_fields.compare_objects
+		end
+
+	make_with_score (a_uuid: STRING; a_score: DOUBLE)
+			-- Initialize Current.
+		do
+			make (a_uuid)
+			set_score (a_score)
+		end
+
+	make_from_document (a_document: IR_DOCUMENT)
+			-- Initialize Current using data from `a_document'.
+		local
+			l_fields: HASH_TABLE [LINKED_LIST [IR_FIELD], STRING_8]
+			l_variables: like variable_types
+			l_field_name: STRING
+		do
+			fields_by_name := a_document.table_by_name
+			l_fields := fields_by_name
+
+				-- Initialize UUID and score.
+			set_is_valid (l_fields.has (uuid_field))
+			if is_valid then
+				make (l_fields.item (uuid_field).first.value.text)
+			end
+
+			if is_valid then
+				set_is_valid (l_fields.has (score_field))
+				if is_valid then
+					set_score (l_fields.item (score_field).first.value.text.to_double)
+				end
+			end
+
+				-- Initialize variables.
+			if is_valid then
+				set_is_valid (l_fields.has (variables_field))
+				if is_valid then
+					set_variables_from_string (l_fields.item (variables_field).first.value.text)
+				end
+			end
+
+			if is_valid then
+					-- Initialize meta data.
+				l_variables := variable_types
+				across l_fields as l_field_tbl loop
+					l_field_name := l_field_tbl.item.first.name
+					if l_field_tbl.key.starts_with (once "s_") then
+							-- This is a field for meta data.
+						extend_criterion_from_string (l_field_name, l_field_tbl.item.first.value.text, l_variables)
+					else
+							-- This is a normal field.
+
+						normal_fields.force (
+							create {IR_FIELD}.make (
+								l_field_name,
+								l_field_tbl.item.first.value,
+								default_boost_value),
+							l_field_name)
+					end
+				end
+			end
+
+			if is_valid then
+				l_fields.search (content_field)
+				if l_fields.found then
+					content := l_fields.found_item.first.value.text
+				end
+			end
+		end
+
 feature -- Access
 
 	uuid: STRING
@@ -26,13 +118,29 @@ feature -- Access
 	score: DOUBLE
 			-- Score of Current document
 
-	variables: HASH_TABLE [TYPE_A, INTEGER]
+	variable_types: HASH_TABLE [TYPE_A, INTEGER]
 			-- Table for variables inside Current document
 			-- Key is object index, value is the dynamic type of that variable
 
+	content: detachable STRING
+			-- Content of current candidate
+
 	criteria: HASH_TABLE [LINKED_LIST [SEM_MATCHING_CRITERION], STRING]
 			-- Table of criteria that are used for matching
-			-- Key is criteria content, value is the matching criteria of the same content.			
+			-- Key is criteria content, value is the matching criteria of the same content.	
+
+	variable_position_fields: DS_HASH_SET [STRING]
+			-- Set of fields describing variable positions
+		once
+			create Result.make (6)
+			Result.set_equality_tester (string_equality_tester)
+			Result.force_last ("b_s_args")
+			Result.force_last ("b_d_args")
+			Result.force_last ("b_s_opd")
+			Result.force_last ("b_d_opd")
+			Result.force_last ("b_s_ifc")
+			Result.force_last ("b_d_ifc")
+		end
 
 	criteria_by_value (a_criterion_name: STRING; a_value: IR_VALUE): detachable LINKED_LIST [SEM_MATCHING_CRITERION]
 			-- List of matching criterion with `a_criterion_name' and `a_value'
@@ -44,14 +152,19 @@ feature -- Access
 			l_lower, l_upper: INTEGER
 			l_iinternal: like integer_criteria_by_value_internal
 			l_cursor: DS_HASH_TABLE_CURSOR [LINKED_LIST [SEM_MATCHING_CRITERION], INTEGER]
+			l_bool_value: IR_BOOLEAN_VALUE
+			l_vpos_fields: like variable_position_fields
 		do
 			l_internal := criteria_by_value_internal
+			l_vpos_fields := variable_position_fields
 			l_internal.search (a_criterion_name)
 			if l_internal.found then
 				l_tbl := l_internal.found_item
 				l_tbl.search (a_value)
 				if l_tbl.found then
 					Result := l_tbl.found_item
+				elseif l_vpos_fields.has (a_criterion_name) then
+					Result := l_tbl.first
 				elseif attached {IR_INTEGER_RANGE_VALUE} a_value as l_range then
 						-- For integer range values, we do a linear search.
 					l_lower := l_range.lower
@@ -76,14 +189,56 @@ feature -- Access
 							Result := Void
 						end
 					end
+				elseif attached {IR_ANY_VALUE} a_value as l_any_value then
+					create l_bool_value.make (True)
+					l_tbl.search (l_bool_value)
+					if l_tbl.found then
+						Result := l_tbl.found_item
+					end
 				end
 			end
 		end
 
 	text: STRING
 			-- Text representation of Current.
-		deferred
+		do
+			create Result.make (2048)
+
+				-- Append UUID
+			Result.append (uuid)
+			Result.append_character ('%N')
+
+				-- Append content
+			if content /= Void then
+				Result.append (content)
+				Result.append_character ('%N')
+			end
+
+				-- Append variable information.
+			across variable_types as l_variables loop
+				Result.append (l_variables.key.out)
+				Result.append_character (':')
+				Result.append_character (' ')
+				Result.append (l_variables.item.name)
+				Result.append_character ('%N')
+			end
+
+				-- Append meta information.
+			across criteria as l_criteria loop
+				across l_criteria.item as l_cri_list loop
+					Result.append (l_cri_list.item.text)
+					Result.append_character ('%N')
+				end
+			end
 		end
+
+	fields_by_name: HASH_TABLE [LINKED_LIST [IR_FIELD], STRING_8]
+			-- Table from field name to fields with that particular name
+			-- Key is field name, value is a list of fields with the same name.		
+
+	normal_fields: HASH_TABLE [IR_FIELD, STRING]
+			-- Normal fields
+			-- Key is field name, value is that field
 
 feature -- Status report
 
@@ -97,13 +252,44 @@ feature -- Status report
 
 	is_valid: BOOLEAN
 			-- Is Current candidate valid?
-		deferred
+
+feature -- Setting
+
+	set_score (a_score: DOUBLE)
+			-- Set `score' with `a_score'.
+		do
+			score := a_score
+		ensure
+			score_set: score = a_score
 		end
+
+	set_is_valid (a_valid: BOOLEAN)
+			-- Set `is_valid' with `a_valid'.
+		do
+			is_valid := a_valid
+		ensure
+			is_valid_set: is_valid = a_valid
+		end
+
+	set_variables_from_string (a_string: STRING)
+			-- Set `variable_types' from `a_string'.
+		local
+			l_variable: like variable_and_position_from_config
+			l_variables: like variable_types
+		do
+			l_variables := variable_types
+			across a_string.split (field_value_separator) as l_vars loop
+				l_variable := variable_and_position_from_config (l_vars.item)
+				l_variables.force (l_variable.type, l_variable.position)
+			end
+		end
+
 
 feature -- Basic operations
 
-	extend_criterion_from_string (a_criterion_name: STRING; a_value: STRING)
+	extend_criterion_from_string (a_criterion_name: STRING; a_value: STRING; a_types: HASH_TABLE [TYPE_A, INTEGER])
 			-- Add an criterion parsed from `a_criterion_name' and `a_value' into `criteria'.
+			-- `a_types' is a table from variable indexes to variable types.
 		local
 			l_criterion_name: STRING
 			l_index: INTEGER
@@ -112,12 +298,13 @@ feature -- Basic operations
 			l_operands: ARRAYED_LIST [INTEGER]
 			l_value: IR_VALUE
 			l_int_value: INTEGER
+			l_name: STRING
 		do
 				-- 1. Remove prefix from `a_criterion_name'
 				-- 2. Decode `a_criterion_name'
 			l_index := a_criterion_name.index_of ('_', 1)
-			l_index := a_criterion_name.index_of ('_', l_index + 1)
-			l_index := a_criterion_name.index_of ('_', l_index + 1)
+--			l_index := a_criterion_name.index_of ('_', l_index + 1)
+--			l_index := a_criterion_name.index_of ('_', l_index + 1)
 			l_criterion_name := decoded_field_string (a_criterion_name.substring (l_index + 1, a_criterion_name.count))
 
 				-- Iterate through all combinations of objects.
@@ -132,7 +319,14 @@ feature -- Basic operations
 					across l_combination as l_positions loop
 						l_operands.extend (l_positions.item.to_integer)
 					end
-					create l_criterion.make (l_criterion_name, l_operands, l_value)
+					create l_name.make (l_criterion_name.count + 10)
+					if l_value.is_boolean_value then
+						l_name.append (boolean_prefix)
+					elseif l_value.is_integer_value then
+						l_name.append (integer_prefix)
+					end
+					l_name.append (l_criterion_name)
+					create l_criterion.make (l_name, l_value, l_operands, a_types)
 
 						-- Setup `criteria'.
 					extend_criteria (l_criterion)

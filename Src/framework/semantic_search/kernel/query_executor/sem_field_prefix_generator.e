@@ -12,6 +12,8 @@ inherit
 
 	SEM_CONSTANTS
 
+	SEM_FIELD_NAMES
+
 feature -- Basic operations
 
 	term_prefix (a_term: SEM_TERM; a_type_form: INTEGER; a_meta: BOOLEAN): STRING
@@ -38,6 +40,8 @@ feature{NONE} -- Process
 	last_is_meta: BOOLEAN
 			-- Last meta indicator
 
+	last_is_any_change: BOOLEAN
+
 feature{NONE} -- Process
 
 	append_position_1_2_prefix (a_type: TYPE_A)
@@ -47,12 +51,16 @@ feature{NONE} -- Process
 			if last_is_meta then
 				last_prefix.append (string_prefix)
 			else
-				if a_type.is_integer then
-					last_prefix.append (integer_prefix)
-				elseif a_type.is_boolean then
+				if last_is_any_change then
 					last_prefix.append (boolean_prefix)
 				else
-					check other_type_not_supported: False end
+					if a_type.is_integer then
+						last_prefix.append (integer_prefix)
+					elseif a_type.is_boolean then
+						last_prefix.append (boolean_prefix)
+					else
+						check other_type_not_supported: False end
+					end
 				end
 			end
 
@@ -69,14 +77,24 @@ feature{NONE} -- Process
 	process_change_term (a_term: SEM_CHANGE_TERM)
 			-- Process `a_term'.
 		do
+			if a_term.value.text ~ any_value then
+				last_is_any_change := True
+			else
+				last_is_any_change := False
+			end
 			append_position_1_2_prefix (a_term.type)
 
 				-- Append position 3 prefix.
-			if a_term.is_relative then
-				last_prefix.append (by_change_prefix)
-			elseif a_term.is_absolute then
-				last_prefix.append (to_change_prefix)
+			if last_is_any_change then
+				last_prefix.append (change_prefix)
+			else
+				if a_term.is_relative then
+					last_prefix.append (by_change_prefix)
+				elseif a_term.is_absolute then
+					last_prefix.append (to_change_prefix)
+				end
 			end
+			last_is_any_change := False
 		end
 
 	process_contract_term (a_term: SEM_CONTRACT_TERM)
@@ -105,6 +123,24 @@ feature{NONE} -- Process
 			-- Process `a_term'.
 		do
 			-- Do nothing
+		end
+
+	process_variable_position_term (a_term: SEM_VARIABLE_POSITION_TERM)
+			-- Process `a_term'.
+		do
+			if last_is_meta then
+				last_prefix.append (string_prefix)
+			else
+				last_prefix.append (text_prefix)
+			end
+				-- Append position 2 prefix.
+			if last_type_form = dynamic_type_form then
+				last_prefix.append (dynamic_type_form_prefix)
+			elseif last_type_form = static_type_form then
+				last_prefix.append (static_type_form_prefix)
+			elseif last_type_form = anonymous_type_form then
+				last_prefix.append (anonymous_type_form_prefix)
+			end
 		end
 
 end

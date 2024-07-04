@@ -10,7 +10,10 @@ class
 inherit
 	AST_FEATURE_CHECKER_GENERATOR
 		export{ANY}
-			break_point_slot_count
+			break_point_slot_count,
+			context,
+			check_locals,
+			error_handler
 		end
 
 end

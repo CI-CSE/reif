@@ -16,6 +16,8 @@ inherit
 
 	REFACTORING_HELPER
 
+	SEM_FIELD_NAMES
+
 create
 	make
 
@@ -28,6 +30,7 @@ feature{NONE} -- Initialization
 			queryable := a_queryable
 			expression := a_expression
 			change := a_change
+			set_is_negated (change.is_negated)
 		end
 
 feature -- Access
@@ -51,14 +54,7 @@ feature -- Access
 			-- Text representation of Current
 		do
 			create Result.make (128)
-			Result.append (once "Change for ")
-			Result.append (expression.text)
-			Result.append (once " : ")
-			if change.is_relative then
-				Result.append (once "by:: ")
-			else
-				Result.append (once "to:: ")
-			end
+			Result.append (once "Change, ")
 			Result.append (change.debug_output)
 		end
 
@@ -68,11 +64,17 @@ feature -- Access
 			l_value_text: STRING
 		do
 			fixme ("This is only a simplified solution, which may give wrong information if there are multiple values in the original change or the change value is not a boolean nor an integer. 10.10.2010 Jasonw")
-			l_value_text := change.values.first.text
-			if l_value_text.is_boolean then
-				create {EPA_BOOLEAN_VALUE} Result.make (l_value_text.to_boolean)
-			elseif l_value_text.is_integer then
-				create {EPA_INTEGER_VALUE} Result.make (l_value_text.to_integer)
+			if attached {EPA_INTEGER_RANGE} change.values as l_range then
+				create {EPA_NUMERIC_RANGE_VALUE} Result.make (l_range.lower, l_range.upper)
+			else
+				l_value_text := change.values.first.text
+				if l_value_text.is_boolean then
+					create {EPA_BOOLEAN_VALUE} Result.make (l_value_text.to_boolean)
+				elseif l_value_text.is_integer then
+					create {EPA_INTEGER_VALUE} Result.make (l_value_text.to_integer)
+				elseif l_value_text ~ any_value then
+					create {EPA_ANY_VALUE} Result.make (any_value)
+				end
 			end
 		end
 
