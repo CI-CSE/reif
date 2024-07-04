@@ -61,6 +61,24 @@ feature -- AST
 			create Result.make_with_indentation_string ("%T")
 		end
 
+	ast_from_compound_text (a_text: STRING): AST_EIFFEL
+			-- AST node from `a_text'
+			-- `a_text' must be the textual representation of a compound AS.
+		local
+			l_text: STRING
+		do
+			l_text := "feature dummy__feature do%N" + a_text + "%Nend"
+			entity_feature_parser.parse_from_utf8_string (l_text, Void)
+
+			if attached {DO_AS} entity_feature_parser.feature_node.body.as_routine.routine_body as l_do then
+				if attached l_do.compound then
+					Result := l_do.compound
+				end
+			end
+
+			check Result /= Void end
+		end
+
 	ast_from_statement_text (a_text: STRING): AST_EIFFEL
 			-- AST node from `a_text'
 			-- `a_text' must a statement AST and must be able to be parsed in to a single AST node.
@@ -247,9 +265,9 @@ feature -- AST
 			if attached {BODY_AS} a_feature.body as l_body and then attached {ROUTINE_AS} l_body.as_routine as l_routine then
 				if attached {EIFFEL_LIST [TYPE_DEC_AS]} l_routine.locals as l_lcls then
 					l_names_heap := names_heap
-					l_type := l_lcls.item.type
-					l_type_a := type_a_from_string (text_from_ast (l_type), a_context_class)
 					across l_lcls as l_locals loop
+						l_type := l_locals.item.type
+						l_type_a := type_a_from_string (text_from_ast (l_type), a_context_class)
 						across l_locals.item.id_list as l_vars loop
 							Result.put (l_type_a, l_names_heap.item (l_vars.item))
 						end
@@ -257,7 +275,7 @@ feature -- AST
 				end
 			end
 		end
-
+		
 	arguments_from_feature (a_feature: FEATURE_I; a_context_class: CLASS_C): DS_HASH_TABLE [TYPE_A, STRING]
 			-- Arguments from `a_feature'
 			-- Key of result is argument name, value is type of that argument.
@@ -621,6 +639,57 @@ feature -- Class/feature related
 			end
 		end
 
+feature -- Status report
+
+	is_argument_mentioned (a_expression: EPA_EXPRESSION; a_feature: FEATURE_I; a_class: CLASS_C): BOOLEAN
+			-- Is any argument of `a_feature' mentioned in `a_expression'?
+		local
+			l_replacements: HASH_TABLE [STRING, STRING]
+			l_cursor: DS_HASH_TABLE_CURSOR [INTEGER, STRING]
+		do
+			if a_feature.argument_count > 0 then
+				create l_replacements.make (a_feature.argument_count)
+				l_replacements.compare_objects
+
+				from
+					l_cursor := arguments_of_feature (a_feature).new_cursor
+					l_cursor.start
+				until
+					l_cursor.after
+				loop
+					l_replacements.force (once "@@", l_cursor.key)
+					l_cursor.forth
+				end
+				Result := expression_rewriter.expression_text (a_expression, l_replacements).has_substring (once "@@")
+			end
+		end
+
+	is_feature_of_same_signature (a_feature: FEATURE_I; b_feature: FEATURE_I): BOOLEAN
+			-- Do `a_feature' and `b_feature' have the same signature (arguments and return type)?
+		do
+				-- Check return type equality.
+			Result := a_feature.has_return_value = b_feature.has_return_value
+			if Result then
+				if a_feature.has_return_value then
+					Result :=
+						a_feature.type.same_type (b_feature.type) and then
+						a_feature.type.is_equivalent (b_feature.type)
+				end
+			end
+				-- Check argument type equality.
+			if Result then
+				Result := a_feature.argument_count = b_feature.argument_count
+			end
+
+			if Result and then a_feature.argument_count > 0 then
+				Result :=
+					across 1 |..| a_feature.argument_count as l_indexes all
+						a_feature.arguments.i_th (l_indexes.item).same_type (b_feature.arguments.i_th (l_indexes.item)) and then
+						a_feature.arguments.i_th (l_indexes.item).is_equivalent (b_feature.arguments.i_th (l_indexes.item))
+					end
+			end
+		end
+
 feature -- String manipulation
 
 	string_slices (a_string: STRING; a_separater: STRING): LIST [STRING]
@@ -774,13 +843,15 @@ feature -- Context
 			end
 		end
 
-	body_ast_from_feature (a_feature: FEATURE_I): detachable DO_AS
+	body_ast_from_feature (a_feature: FEATURE_I): detachable INTERNAL_AS
 			-- Body AST from `a_feature', if any
 		do
 			if attached {BODY_AS} a_feature.body.body as l_body then
 				if attached {ROUTINE_AS} l_body.content as l_routine then
 					if attached {DO_AS} l_routine.routine_body as l_do then
 						Result := l_do
+					elseif attached {ONCE_AS} l_routine.routine_body as l_once then
+						Result := l_once
 					end
 				end
 			end
@@ -791,6 +862,10 @@ feature -- Context
 		do
 			if attached {DO_AS} body_ast_from_feature (a_feature) as l_body then
 				if attached {EIFFEL_LIST [INSTRUCTION_AS]} l_body.compound as l_compound then
+					Result := l_compound
+				end
+			elseif attached {ONCE_AS} body_ast_from_feature (a_feature) as l_once then
+				if attached {EIFFEL_LIST [INSTRUCTION_AS]} l_once.compound as l_compound then
 					Result := l_compound
 				end
 			end

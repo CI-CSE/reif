@@ -80,7 +80,7 @@ feature -- Generate
 				l_feature := l_feat_table.item_for_iteration
 				if
 					l_feature.argument_count = 0 and then
-					l_feature.type.actual_type.is_boolean and then
+--					l_feature.type.actual_type.is_boolean and then
 					l_feature.written_class.class_id /= l_any_class_id
 				then
 					l_suitable_features.extend (l_feature)
@@ -137,9 +137,11 @@ feature{NONE} -- Implementation
 			current_written_class := context_feature.written_class
 			create l_post_gen
 			l_post_gen.generate (context_class, a_feature)
-			l_post_str := l_post_gen.last_postcondition
-			if l_post_str /= Void and then not l_post_str.is_empty and then not l_post_str.has_substring ("{") then
-				generate_invariant_from_string (l_post_str)
+			if not l_post_gen.last_postconditions.is_empty then
+				l_post_str := l_post_gen.last_postconditions.first.text
+				if l_post_str /= Void and then not l_post_str.is_empty and then not l_post_str.has_substring ("{") then
+					generate_invariant_from_string (l_post_str)
+				end
 			end
 --			else
 
@@ -237,12 +239,15 @@ feature{NONE} -- Process
 		do
 			if is_suitable_as_invariant then
 				l_final_feature := final_feature (l_as.access_name, current_written_class, context_class)
-				check l_final_feature /= Void end
-				text.append (l_final_feature.feature_name)
-				if l_as.internal_parameters /= Void then
-					text.append ("(")
-					safe_process (l_as.internal_parameters)
-					text.append (")")
+				if l_final_feature /= Void then
+					text.append (l_final_feature.feature_name)
+					if l_as.internal_parameters /= Void then
+						text.append ("(")
+						safe_process (l_as.internal_parameters)
+						text.append (")")
+					end
+				else
+					is_suitable_as_invariant := False
 				end
 			end
 		end

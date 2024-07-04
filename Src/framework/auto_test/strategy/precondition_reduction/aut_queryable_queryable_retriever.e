@@ -18,10 +18,27 @@ inherit
 
 	SEM_SHARED_EQUALITY_TESTER
 
+	EPA_TIME_UTILITY
+
 feature -- Access
 
 	last_objects: LINKED_LIST [SEMQ_RESULT]
 			-- Objects that are retrieved through last `retrieve_invariant_violating_objects'
+
+feature -- Logging
+
+	log_manager: ELOG_LOG_MANAGER
+			-- Log manager
+
+feature -- Setting
+
+	set_log_manager (a_manager: like log_manager)
+			-- Set `log_manager' with `a_manager'.
+		do
+			log_manager := a_manager
+		ensure
+			log_manager_set: log_manager = a_manager
+		end
 
 feature -- Basic operations
 
@@ -55,14 +72,37 @@ feature -- Basic operations
 			l_obj_list: LINKED_LIST [SEM_QUERYABLE]
 			l_obj_meta: HASH_TABLE [HASH_TABLE [STRING, STRING], STRING]
 			l_tmp_result: SEMQ_RESULT
+			l_msg: STRING
+			l_time: DT_DATE_TIME
 		do
 			create last_objects.make
 
 			l_curly_expr := curly_braced_integer_form (a_predicate, a_context_class, a_feature)
 			create l_sql_gen
 			l_select := l_sql_gen.sql_to_select_objects (a_context_class, a_feature, l_curly_expr, not a_satisfying, 5)
+
+			if log_manager /= Void then
+				log_manager.put_line_with_time ("Start query: " + a_predicate.text + " from " + a_context_class.name_in_upper + "." + a_feature.feature_name)
+				l_msg := l_select.twin
+				l_msg.replace_substring_all ("%N", " ")
+				log_manager.put_line ("%T" + l_msg)
+				l_time := time_now
+			end
+
 			a_connection.execute_query (l_select)
-			if a_connection.last_error_number = 0 then
+			if log_manager /= Void then
+				create l_msg.make (50)
+				l_msg.append ("%TDuration: ")
+				l_msg.append_integer (duration_from_time (l_time))
+				l_msg.append_string (once "ms")
+				log_manager.put_line (l_msg)
+			end
+			if a_connection.last_error_number /= 0 then
+				if log_manager /= Void and then a_connection.last_error /= Void then
+					log_manager.put_line ("Error: " + a_connection.last_error)
+				end
+			end
+			if a_connection.last_error_number = 0 and then a_connection.has_result then
 				l_sql_result := a_connection.last_result
 				l_column_names := l_sql_result.column_names
 				l_var_count := l_sql_result.column_count - 1
@@ -108,6 +148,7 @@ feature -- Basic operations
 						else
 							create l_query.make (l_uuid, {SEM_CONSTANTS}.object_field_value)
 							create l_query_executor.make (a_connection)
+							l_query_executor.set_log_manager (log_manager)
 							l_query_executor.execute (l_query)
 							l_tmp_result := l_query_executor.last_results.first
 							l_uuids.force_last (l_tmp_result, l_uuid)
