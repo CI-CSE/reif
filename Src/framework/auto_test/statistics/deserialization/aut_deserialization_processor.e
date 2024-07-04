@@ -47,15 +47,17 @@ feature{NONE} -- Initialization
 				-- Config the `test_case_categorizer' and subscribe it to `data_event'.
 			if a_conf.is_deserializing_for_fixing then
 				create {AUT_TEST_CASE_CATEGORIZER_BY_FAULT}test_case_extractor.make (configuration)
-			else
+			elseif a_conf.is_failing_test_case_deserialization_enabled or a_conf.is_passing_test_case_deserialization_enabled then
 				create {AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST}test_case_extractor.make (configuration)
 			end
-			deserialization_started_event.subscribe (agent test_case_extractor.on_deserialization_started)
-			test_case_deserialized_event.subscribe (agent test_case_extractor.on_test_case_deserialized)
-			deserialization_finished_event.subscribe (agent test_case_extractor.on_deserialization_finished)
+			if test_case_extractor /= VOid then
+				deserialization_started_event.subscribe (agent test_case_extractor.on_deserialization_started)
+				test_case_deserialized_event.subscribe (agent test_case_extractor.on_test_case_deserialized)
+				deserialization_finished_event.subscribe (agent test_case_extractor.on_deserialization_finished)
+			end
 
 			if configuration.is_building_behavioral_models then
-				create behavioral_model_builder.make (configuration.model_directory)
+				create behavioral_model_builder.make (configuration)
 
 				deserialization_started_event.subscribe (agent behavioral_model_builder.on_deserialization_started)
 				test_case_deserialized_event.subscribe (agent behavioral_model_builder.on_test_case_deserialized)
@@ -192,16 +194,16 @@ feature{NONE} -- Implementation
 				configuration.error_handler.report_cannot_read_error (data_input)
 			end
 
-			if not configuration.error_handler.has_error then
-					-- `data_output' should always denote a directory.
-					-- As long as there is no existing file with the same name, it's acceptable.
-				data_output := l_conf.data_output
-				check data_output /= Void and then not data_output.is_empty end
-				create l_file.make (data_output)
-				if l_file.exists and then not l_file.is_directory then
-					configuration.error_handler.report_cannot_write_error (data_output)
-				end
-			end
+--			if not configuration.error_handler.has_error then
+--					-- `data_output' should always denote a directory.
+--					-- As long as there is no existing file with the same name, it's acceptable.
+--				data_output := l_conf.data_output
+--				check data_output /= Void and then not data_output.is_empty end
+--				create l_file.make (data_output)
+--				if l_file.exists and then not l_file.is_directory then
+--					configuration.error_handler.report_cannot_write_error (data_output)
+--				end
+--			end
 		end
 
 	process_file (a_file: RAW_FILE)
@@ -502,28 +504,28 @@ feature{NONE} -- Auxiliary routines
 				if configuration.is_validating_serialization then
 					test_case_deserializability_checker.check_deserializability (l_serialization)
 					if test_case_deserializability_checker.last_result then
-						report_serialization_data (l_serialization)
+						test_case_deserialized_event.publish ([l_serialization])
 					end
 				else
-					report_serialization_data (l_serialization)
+					test_case_deserialized_event.publish ([l_serialization])
 				end
 			end
 			is_inside_serialization := False
 		end
 
-	report_serialization_data (a_data: AUT_DESERIALIZED_TEST_CASE)
-			-- Report a newly found serialization data.
-		local
-			l_is_unique: BOOLEAN
-		do
-			if (a_data.is_execution_successful implies configuration.is_passing_test_case_deserialization_enabled)
-					and then (not a_data.is_execution_successful implies configuration.is_failing_test_case_deserialization_enabled)
-					or else (configuration.is_building_behavioral_models and then a_data.is_execution_successful)
-					or else (configuration.is_deserializing_for_fixing) then
-				check a_data.class_ /= Void and then a_data.feature_ /= Void end
-				test_case_deserialized_event.publish ([a_data])
-			end
-		end
+--	report_serialization_data (a_data: AUT_DESERIALIZED_TEST_CASE)
+--			-- Report a newly found serialization data.
+--		local
+--			l_is_unique: BOOLEAN
+--		do
+--			if (a_data.is_execution_successful implies configuration.is_passing_test_case_deserialization_enabled)
+--					and then (not a_data.is_execution_successful implies configuration.is_failing_test_case_deserialization_enabled)
+--					or else (configuration.is_building_behavioral_models and then a_data.is_execution_successful)
+--					or else (configuration.is_deserializing_for_fixing) then
+--				check a_data.class_ /= Void and then a_data.feature_ /= Void end
+--				test_case_deserialized_event.publish ([a_data])
+--			end
+--		end
 
 	has_next_line (a_stream: RAW_FILE): BOOLEAN
 			-- Has next non-empty line in `a_stream'?
