@@ -754,7 +754,6 @@ feature {NONE} -- Socket IPC
 		do
 			if not l_retried then
 				socket.put_natural_32 (last_response_flag)
-				log_message("%TResponse_flag: " + last_response_flag.out + "%N")
 				if attached last_response as l_last_response then
 					socket.independent_store (l_last_response)
 				end
