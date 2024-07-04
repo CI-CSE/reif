@@ -36,6 +36,8 @@ feature -- Access
 
 	variables_field: STRING = "variables"
 
+	static_variables_field: STRING = "static_variables"
+
 	inputs_field: STRING = "inputs"
 
 	outputs_field: STRING = "outputs"
@@ -55,6 +57,8 @@ feature -- Access
 	id_field: STRING = "id"
 
 	uuid_field: STRING = "uuid"
+
+	score_field: STRING = "score"
 
 	export_status_field: STRING = "export_status"
 
@@ -99,7 +103,7 @@ feature -- Access
 	field_name_value_separator: STRING = " : "
 			-- Separator to separate field name and field value
 
-	field_value_separator: STRING = ";;;"
+	field_value_separator: CHARACTER = ';'
 			-- Field value separator
 
 	default_variable_prefix: STRING = "v_"

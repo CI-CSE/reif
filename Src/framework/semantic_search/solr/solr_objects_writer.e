@@ -34,8 +34,8 @@ feature -- Basic operations
 			medium.put_string (once "<add><doc>%N")
 			append_queryable_type
 			append_uuid
-			append_variables (queryable.variables, variables_field, True, False)
-			append_variables (queryable.variables, variable_types_field, False, True)
+			append_variables (queryable.variables, variables_field, True, False, False)
+			append_variables (queryable.variables, variable_types_field, False, True, False)
 			append_properties
 			append_serialization
 			append_content
@@ -123,7 +123,7 @@ feature{NONE} -- Implementation
 
 			across <<l_dmeta, l_smeta>> as l_metas loop
 				across l_metas.item as l_items loop
-					append_field_with_data (l_items.key, escaped_field_string (l_items.item), ir_string_value_type, default_boost_value)
+					append_field_with_data (l_items.key, encoded_field_string (l_items.item), ir_string_value_type, default_boost_value)
 				end
 			end
 		end
