@@ -104,18 +104,11 @@ feature -- Basic operation
 feature {NONE} -- Visit operations
 
 	process_body_as (l_as: BODY_AS)
-		local
-			l_feature_body_representation: STRING
 		do
-			l_feature_body_representation := text_from_ast (l_as)
-			if
-				not l_feature_body_representation.has_substring ("attached")
-			then
-				safe_process (l_as.arguments)
-				safe_process (l_as.type)
-				safe_process (l_as.assigner)
-				safe_process (l_as.content)
-			end
+			safe_process (l_as.arguments)
+			safe_process (l_as.type)
+			safe_process (l_as.assigner)
+			safe_process (l_as.content)
 		end
 
 	process_require_as (l_as: REQUIRE_AS)
@@ -173,27 +166,33 @@ feature -- Dumping
 	dumped_representation: STRING
 			-- Returns a string containing the found sets of relevant expressions
 			-- Structure of the string:
-			-- expr_1_1,expr_1_2,...,expr_1_n;expr_2_1,expr_2_2,...,expr_2_n;...
+			-- {expr_1,expr_2,...};{expr_n,...};...
 		local
-			i: INTEGER
+			i,j: INTEGER
 		do
 			create Result.make (256)
+			i := 0
 			across relevant_expression_sets as l_sets
 			loop
+				if i > 0 then
+					Result.append_character (';')
+				end
+				Result.append_character ('{')
+				j := 0
 				from
 					l_sets.item.start
 				until
 					l_sets.item.after
 				loop
-					if i > 0 then
+					if j > 0 then
 						Result.append_character (',')
-						Result.append_character (' ')
 					end
 					Result.append (l_sets.item.item_for_iteration.text)
 					l_sets.item.forth
-					i := i + 1
+					j := j + 1
 				end
-				Result.append (";")
+				Result.append_character ('}')
+				i := i + 1
 			end
 		ensure
 			Result_not_void: Result /= Void
