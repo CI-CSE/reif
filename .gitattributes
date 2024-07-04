@@ -4074,6 +4074,7 @@ Src/library/abel/libraries/ethz/src/couchdb/eCouchDB/README -text
 Src/library/abel/libraries/ethz/src/couchdb/eCouchDB/library/couchdb_client.rc -text
 Src/library/abel/libraries/ethz/src/couchdb/eCouchDB/library/exception_trace.log -text
 Src/library/abel/libraries/ethz/src/couchdb/eCouchDB/test/test.rc -text
+Src/library/abel/libraries/ethz/src/couchdb/readme.txt -text
 Src/library/abel/libraries/ethz/src/mysql/README -text
 Src/library/abel/libraries/ethz/src/mysql/README_OLD -text
 Src/library/abel/libraries/ethz/src/schema_evolution/serializer_lib/serializer.ecf svneol=native#text/xml
@@ -4912,6 +4913,7 @@ Src/library/wel/tests/graphics/16bpp.bmp -text
 Src/library/wel/tests/graphics/24bpp.bmp -text
 Src/library/wel/tests/graphics/32bpp.bmp -text
 Src/library/wizard/help/Clib/htmlhelp.lib -text
+Src/library/zeromq/zmq/zmq_context.e svneol=native#unset
 Src/scripts/check_setup.eant -text
 Src/scripts/check_trunk_head_compilation_validity -text
 Src/scripts/tools/_inc/_f_code_tpl_ -text
