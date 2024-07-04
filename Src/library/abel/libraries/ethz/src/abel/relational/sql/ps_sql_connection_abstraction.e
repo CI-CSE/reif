@@ -1,0 +1,46 @@
+note
+	description: "Summary description for {PS_SQL_CONNECTION_ABSTRACTION}."
+	author: ""
+	date: "$Date$"
+	revision: "$Revision$"
+
+deferred class
+	PS_SQL_CONNECTION_ABSTRACTION
+inherit
+	ITERABLE[PS_SQL_ROW_ABSTRACTION]
+
+feature
+
+	execute_sql (sql_string: STRING)
+		deferred
+		end
+
+--	last_insert_id: INTEGER
+--		deferred
+--		end
+
+	commit
+		deferred
+		end
+
+	rollback
+		deferred
+		end
+
+	last_result: ITERATION_CURSOR[PS_SQL_ROW_ABSTRACTION]
+		deferred
+		end
+
+	new_cursor:ITERATION_CURSOR[PS_SQL_ROW_ABSTRACTION]
+		do
+			Result:= last_result
+		end
+
+	last_error: PS_ERROR
+		deferred
+		end
+
+invariant
+	-- no_autocommit: true
+
+end

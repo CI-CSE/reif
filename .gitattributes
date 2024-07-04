@@ -78,7 +78,6 @@ Documentation/tools/web/trunk/misc/patches/trash.module -text
 Documentation/tools/xmldoc2wiki/README.txt -text
 Src/C/eif_config_h.SH eol=lf
 Src/C/run-time/eif_size_h.SH eol=lf
-Src/C/run-time/include/gc_pthread_redirects.h -text
 Src/C/shell/bin/cat.exe -text
 Src/C/shell/bin/chmod.exe -text
 Src/C/shell/bin/mkdir.exe -text
@@ -1977,6 +1976,7 @@ Src/Eiffel/doc/runtime/typing/TYPE_A_encodings.png -text
 Src/Eiffel/ecosystem/services/history_manager/INCOMPLETE.txt -text
 Src/Eiffel/eiffel/com_il_generation/Core/run-time/rt_exception_manager.cs -text
 Src/Eiffel/interface/shared/buffer/command_scanner.l -text
+Src/Eiffel/modules/textual_bon/editor_scanner/editor_textual_bon_scanner.l -text
 Src/README.txt -text
 Src/build/build.ico -text
 Src/compatible/library/Eiffel2Java/Eiffel2Java.lic -text
@@ -3192,6 +3192,10 @@ Src/library/diff/diff_index_link.e -text
 Src/library/diff/diff_line.e -text
 Src/library/diff/diff_line_add.e -text
 Src/library/diff/diff_line_del.e -text
+Src/library/ebbro/documentation/Docs_1.webarchive -text
+Src/library/ebbro/documentation/Docs_2.webarchive -text
+Src/library/ebbro/documentation/ebbro_integrated_demo.swf -text
+Src/library/ebbro/readme.txt -text
 Src/library/editor/bitmaps/copy_selection.png -text
 Src/library/editor/bitmaps/cut_selection.png -text
 Src/library/editor/bitmaps/icon_close_color.png -text
@@ -3200,6 +3204,11 @@ Src/library/editor/bitmaps/right_scroll_arrow.png -text
 Src/library/edk/include/edk.lib -text
 Src/library/edk/spec/msc/windows/lib/edk.lib -text
 Src/library/encoding/implementation/unix/Clib/iconv-config -text
+Src/library/escher/documentation/Schema_Evolution_Management.webarchive -text
+Src/library/escher/documentation/library_doc_1.webarchive -text
+Src/library/escher/documentation/library_doc_2.webarchive -text
+Src/library/escher/documentation/tutorial.webarchive -text
+Src/library/escher/readme.txt -text
 Src/library/graph/license.lic -text
 Src/library/i18n/README -text
 Src/library/i18n/TODO -text
@@ -3759,6 +3768,7 @@ Src/library/runtime/logging/doc/Arch_Design_and_Impl.vsd -text
 Src/library/runtime/logging/doc/Readme.1st -text
 Src/library/scoopli/support/scoop_base.ecf.noany -text
 Src/library/store/dbms/rdbms/mysql/Readme -text
+Src/library/store/test/test_results/odbc_PostgreSQL_results.txt svneol=native#unset
 Src/library/text/parser/xml/parser/callbacks/README.TXT -text
 Src/library/text/parser/xml/parser/license.lic -text
 Src/library/text/parser/xml/tree/README.TXT -text
@@ -3927,6 +3937,8 @@ Src/tools/doc_builder/resources/templates/header_mainarea.jpg -text
 Src/tools/doc_builder/resources/xml/all_libs.lic -text
 Src/tools/dotnet_reference_builder/dotnet_reference_builder.lic -text
 Src/tools/ecf_builder/doc/howto.txt -text
+Src/tools/ecf_updater/README.md -text
+Src/tools/ecf_updater/license.lic -text
 Src/tools/eiffel_echo/eiffel_echo.lic -text
 Src/tools/eiffel_image_embedder/eimgemb.lic -text
 Src/tools/eiffel_make/emake.lic -text
@@ -4008,6 +4020,12 @@ Src/unstable/README.txt -text
 Src/unstable/library/persistency/database/sqlite3/README -text
 Src/unstable/library/persistency/database/sqlite3/license.lic -text
 Src/unstable/library/text/regexp/pcre/pcre.rc -text
+benchmarks/scoop/scoop0001/description.txt -text
+benchmarks/scoop/scoop0002/description.txt -text
+benchmarks/scoop/scoop0003/description.txt -text
+benchmarks/scoop/scoop0004/description.txt -text
+benchmarks/scoop/scoop0005/description.txt -text
+benchmarks/scoop/scoop0006/description.txt -text
 eweasel/BUGS -text
 eweasel/CHANGES -text
 eweasel/GPL.txt -text
@@ -4137,6 +4155,7 @@ eweasel/tests/dotnet108/Ace -text
 eweasel/tests/dotnet114/dotnet_excep_trace -text
 eweasel/tests/dotnet116/a.dll -text
 eweasel/tests/except036/dotnet_output -text
+eweasel/tests/except038/bad_file -text
 eweasel/tests/exec002/notes -text
 eweasel/tests/exec003/notes -text
 eweasel/tests/exec004/notes -text

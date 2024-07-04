@@ -1,68 +1,210 @@
 note
-	description: "Summary description for {PS_CRUD_TESTS}."
-	author: ""
+	description: "Provides tests for the CRUD (Create, Read, Update, Delete) operations"
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
-deferred class
+class
 	PS_CRUD_TESTS
 
 inherit
-	PS_TESTS_GENERAL
+	PS_TEST_PROVIDER
+
+create make
+
+feature {PS_REPOSITORY_TESTS} -- References
+
+	all_references_tests
+		do
+			test_insert_void_reference
+			test_insert_one_reference
+			test_insert_reference_cycle
+			test_crud_reference_cycle
+			test_crud_update_on_reference
+		end
 
 
-feature {NONE}
+	test_insert_void_reference
+		local
+			test: PS_GENERIC_CRUD_TEST[REFERENCE_CLASS_1]
+		do
+			create test.make (repository)
+			test.test_insert (test_data.void_reference)
+			repository.clean_db_for_testing
+		end
+
+
+	test_insert_one_reference
+		local
+			test: PS_GENERIC_CRUD_TEST [REFERENCE_CLASS_1]
+		do
+			create test.make (repository)
+			test.test_insert (test_data.reference_to_single_other)
+
+			assert ("The result does not have exactly two items", test.count_results = 2)
+			repository.clean_db_for_testing
+		end
+
+	test_insert_reference_cycle
+		local
+			test: PS_GENERIC_CRUD_TEST[REFERENCE_CLASS_1]
+		do
+			create test.make (repository)
+			test.test_insert (test_data.reference_cycle)
+			assert ("The wrong number of items has been inserted", test.count_results = 3)
+			repository.clean_db_for_testing
+		end
+
+	test_crud_reference_cycle
+		local
+			test: PS_GENERIC_CRUD_TEST[REFERENCE_CLASS_1]
+		do
+			create test.make (repository)
+			test.test_crud_operations (test_data.reference_cycle, agent {REFERENCE_CLASS_1}.update)
+			repository.clean_db_for_testing
+		end
+
+	test_crud_update_on_reference
+		local
+			test: PS_GENERIC_CRUD_TEST [REFERENCE_CLASS_1]
+		do
+			create test.make (repository)
+			test.test_crud_operations (test_data.reference_to_single_other, agent update_reference)
+		end
+
+feature {PS_REPOSITORY_TESTS} -- Flat objects
+
+	all_flat_object_tests
+		do
+--			test_empty_object
+			test_flat_class_store
+			test_flat_class_all_crud
+		end
+
+
+	test_empty_object
+		-- Test if an object that contains no attributes (e.g. an instance of ANY), is stored as well
+		local
+			test: PS_GENERIC_CRUD_TEST[ANY]
+			obj: ANY
+		do
+			create test.make (repository)
+			create obj
+			test.test_crud_operations (obj, agent test.default_update_operation (?))
+			-- repository is clean after delete...
+		end
 
 
 	test_flat_class_store
 		-- Test if a simple store-and-retrieve returns the same result
 		local
-			query: PS_OBJECT_QUERY[FLAT_CLASS_1]
+			test: PS_GENERIC_CRUD_TEST[FLAT_CLASS_1]
 		do
+			create test.make (repository)
+			test.test_insert_special_equality (test_data.flat_class, agent {FLAT_CLASS_1}.is_almost_equal (?, 0.00001))
 			repository.clean_db_for_testing
-			create query.make
-			flat_executor.insert (test_data.flat_class)
-			flat_executor.execute_query (query)
-			assert ("The query doesn't return a result", not query.result_cursor.after)
---			print (query.result_cursor.item.a_string_32)
---			print (test_data.flat_class.a_string_32)
---			print ( (query.result_cursor.item.a_string_32.is_deep_equal (test_data.flat_class.a_string_32)).out + "%N")
---			print ( (query.result_cursor.item.real_32_max = test_data.flat_class.real_32_max).out + "%N")
---			print (query.result_cursor.item.out + test_data.flat_class.out)
---			print ((query.result_cursor.item.almost_equals (test_data.flat_class)).out)
---			print (test_data.flat_class.tagged_out)
---			print (query.result_cursor.item.tagged_out)
-			assert ("The results are not equal", query.result_cursor.item.is_almost_equal (test_data.flat_class, 0.00001))
 		end
 
 
 	test_flat_class_all_crud
 		-- Test all CRUD operations on a flat class
 		local
-			query: PS_OBJECT_QUERY[FLAT_CLASS_1]
+			test: PS_GENERIC_CRUD_TEST[FLAT_CLASS_1]
 		do
+			create test.make (repository)
+			test.test_crud_operations_special_equality (test_data.flat_class, agent{FLAT_CLASS_1}.update,  agent {FLAT_CLASS_1}.is_almost_equal (?, 0.00001))
 			repository.clean_db_for_testing
-			-- Insert:
-			create query.make
-			flat_executor.insert (test_data.flat_class)
-			flat_executor.execute_query (query)
-			assert ("The query doesn't return a result", not query.result_cursor.after)
-			assert ("The results are not equal after insert", query.result_cursor.item.is_almost_equal (test_data.flat_class, 0.00001))
-
-			test_data.flat_class.update
-			flat_executor.update (test_data.flat_class)
-			create query.make
-			flat_executor.execute_query (query)
-			assert ("The query doesn't return a result", not query.result_cursor.after)
---			print (test_data.flat_class.out + query.result_cursor.item.out)
-			assert ("The results are not equal after update", query.result_cursor.item.is_almost_equal (test_data.flat_class, 0.00001))
-
-			flat_executor.delete (test_data.flat_class)
-			create query.make
-			flat_executor.execute_query (query)
-			assert ("The query returns a result, but it should be empty", query.result_cursor.after)
+		end
 
 
+feature {PS_REPOSITORY_TESTS} -- Collections
+
+	all_collection_tests
+		-- All collection tests
+		do
+			test_referenced_collection_store
+			test_referenced_collection_update_known_object
+			test_referenced_collection_new_object
+			test_direct_collection_store
+			test_direct_collection_update_known_object
+			test_direct_collection_new_object
+			test_collection_basic_type_store
+			--test_data_structures_store
+			--test_update_on_reference			
+		end
+
+	test_referenced_collection_store
+		-- Test if a SPECIAL collection, that is referenced by an ARRAY object, gets stored correctly
+		local
+			test: PS_GENERIC_CRUD_TEST[ARRAY[PERSON]]
+		do
+			create test.make (repository)
+			test.test_insert (test_data.array_of_persons)
+			repository.clean_db_for_testing
+		end
+
+	test_referenced_collection_update_known_object
+		-- Test if a reference change to a known object is correctly adjusted.
+		local
+			test: PS_GENERIC_CRUD_TEST[ARRAY[PERSON]]
+		do
+			create test.make (repository)
+			test.test_crud_operations (test_data.array_of_persons, agent {ARRAY[PERSON]}.put (test_data.array_of_persons.item (1), 2))
+			repository.clean_db_for_testing
+		end
+
+	test_referenced_collection_new_object
+		-- Test if a newly inserted collection item gets correctly inserted
+		local
+			test: PS_GENERIC_CRUD_TEST[ARRAY[PERSON]]
+			new: PERSON
+		do
+			create new.make ("some", "new_guy", 20)
+			create test.make (repository)
+			test.test_crud_operations (test_data.array_of_persons, agent {ARRAY[PERSON]}.force (new, 5))
+			repository.clean_db_for_testing
+		end
+
+	test_direct_collection_store
+		-- Test if a direct collection store is supported
+		local
+			test: PS_GENERIC_CRUD_TEST[SPECIAL[PERSON]]
+		do
+			create test.make (repository)
+			test.test_insert (test_data.special_of_persons)
+			repository.clean_db_for_testing
+		end
+
+	test_direct_collection_update_known_object
+		-- Test if a reference change to a known object is correctly adjusted.
+		local
+			test: PS_GENERIC_CRUD_TEST[SPECIAL[PERSON]]
+		do
+			create test.make (repository)
+			test.test_crud_operations (test_data.special_of_persons, agent {SPECIAL[PERSON]}.put (test_data.special_of_persons.item (0),1))
+			repository.clean_db_for_testing
+		end
+
+	test_direct_collection_new_object
+		-- Test if a newly inserted collection item gets correctly inserted
+		local
+			test: PS_GENERIC_CRUD_TEST[SPECIAL[PERSON]]
+			new: PERSON
+		do
+			create new.make ("some", "new_guy", 20)
+			create test.make (repository)
+			test.test_crud_operations (test_data.special_of_persons, agent {SPECIAL[PERSON]}.force (new, 4))
+			repository.clean_db_for_testing
+		end
+
+
+	test_collection_basic_type_store
+		-- Test if a collection can store basic types
+		local
+			test: PS_GENERIC_CRUD_TEST[ARRAY[INTEGER]]
+		do
+			create test.make (repository)
+			test.test_crud_operations (test_data.array_of_integers, agent {ARRAY[INTEGER]}.put(20, 10))
 		end
 
 
@@ -70,15 +212,14 @@ feature {NONE}
 	test_data_structures_store
 		-- Test if a simple store-and-retrieve returns the same result
 		local
-			query: PS_OBJECT_QUERY[DATA_STRUCTURES_CLASS_1]
+			test: PS_GENERIC_CRUD_TEST[DATA_STRUCTURES_CLASS_1]
 		do
+			create test.make (repository)
+			test.test_insert (test_data.data_structures_1)
+			-- TODO: They are probably not equal, as DATA_STRUCTURES uses FLAT_CLASS, which uses REALs that have a rounding error.
 			repository.clean_db_for_testing
-			create query.make
-			structures_executor.insert (test_data.data_structures_1)
-			structures_executor.execute_query (query)
-			assert ("The query doesn't return a result", not query.result_cursor.after)
-			assert ("The results are not equal", query.result_cursor.item.is_deep_equal (test_data.data_structures_1))
 		end
+
 
 
 	test_update_on_reference
@@ -91,19 +232,19 @@ feature {NONE}
 			repository.clean_db_for_testing
 
 			create query.make
-			structures_executor.insert (test_data.data_structures_1)
-			structures_executor.execute_query (query)
+			executor.insert (test_data.data_structures_1)
+			executor.execute_query (query)
 			assert ("The query doesn't return a result", not query.result_cursor.after)
 			retrieved:= query.result_cursor.item
 			assert ("The results are not equal", retrieved.is_deep_equal (test_data.data_structures_1))
 
 			-- perform update
 			retrieved.array_1[1].update
-			flat_executor.update (retrieved.array_1[1])
+			executor.update (retrieved.array_1[1])
 
 			-- check if update worked
 			create query.make
-			structures_executor.execute_query (query)
+			executor.execute_query (query)
 			assert ("The query doesn't return a result", not query.result_cursor.after)
 			retrieved:= query.result_cursor.item
 			assert ("The results are equal", not retrieved.is_deep_equal (test_data.data_structures_1))
@@ -113,22 +254,19 @@ feature {NONE}
 			testdata_copy.array_1[1].update
 			assert ("There was more than just one update", retrieved.is_deep_equal (testdata_copy))
 
+			repository.clean_db_for_testing
 		end
 
 
+feature {NONE} -- Update agents
 
-
-
-	initialize_crud_tests
+	update_reference (obj: REFERENCE_CLASS_1)
+		local
+			ref_obj: REFERENCE_CLASS_1
 		do
-			create flat_executor.make_with_repository (repository)
-			create structures_executor.make_with_repository (repository)
+			ref_obj:= attach (obj.refer)
+			ref_obj.update
+			executor.update (ref_obj)
 		end
-
-
-
-
-	flat_executor: PS_CRUD_EXECUTOR [FLAT_CLASS_1]
-	structures_executor: PS_CRUD_EXECUTOR [DATA_STRUCTURES_CLASS_1]
 
 end

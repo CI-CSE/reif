@@ -9,17 +9,20 @@ deferred class
 
 inherit
 	ITERABLE[PS_OBJECT_GRAPH_PART]
+	PS_EIFFELSTORE_EXPORT
 
 feature
-
---	object_id: PS_OBJECT_IDENTIFIER_WRAPPER
-		-- The object id of the object to insert/update.
 
 	write_mode: PS_WRITE_OPERATION
 		-- Insert, Update, Delete or No_operation mode
 
-	Insert, Update, Delete, No_operation: INTEGER = unique
-		-- The different modes
+	object_identifier: INTEGER
+		-- The object identifier of `Current'. Returns 0 if `Current' is a basic type
+		do
+			Result:= 0
+		ensure
+			is_basic_attribute implies Result = 0
+		end
 
 
 	dependencies: LIST[PS_OBJECT_GRAPH_PART]
@@ -29,8 +32,17 @@ feature
 
 	remove_dependency (obj:PS_OBJECT_GRAPH_PART)
 		-- Remove dependency `obj' from the list
+		require
+			is_present: dependencies.has (obj)
 		do
 			dependencies.prune (obj)
+		ensure
+			not_present: not dependencies.has (obj)
+		end
+
+	storable_tuple (optional_primary: INTEGER):PS_PAIR[STRING, STRING]
+		-- The storable tuple of the current object.
+		deferred
 		end
 
 
@@ -48,10 +60,18 @@ feature
 		end
 
 
+	to_string:STRING
+		deferred
+		end
+
+
 	new_cursor:PS_OBJECT_GRAPH_CURSOR
 		do
 			create Result.make (Current)
 		end
+
+invariant
+	no_self_dependence: not dependencies.has (Current)
 
 end
 

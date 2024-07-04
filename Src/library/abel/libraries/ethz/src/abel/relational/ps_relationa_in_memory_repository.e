@@ -37,14 +37,14 @@ feature {PS_EIFFELSTORE_EXPORT} -- Modification
 	insert (object: ANY; transaction: PS_TRANSACTION)
 			-- Insert `object' within `transaction' into `Current'
 		do
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).insert)
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).insert, transaction)
 			executor.perform_operations (planner.generate_plan (disassembler.disassembled_object), transaction)
 		end
 
 	update (object: ANY; transaction: PS_TRANSACTION)
 			-- Update `object' within `transaction'
 		do
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).update)
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).update, transaction)
 			executor.perform_operations (planner.generate_plan (disassembler.disassembled_object), transaction)
 			--check false end
 		end
@@ -52,32 +52,64 @@ feature {PS_EIFFELSTORE_EXPORT} -- Modification
 	delete (object: ANY; transaction: PS_TRANSACTION)
 			-- Delete `object' within `transaction' from `Current'
 		do
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).delete)
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).delete, transaction)
 			executor.perform_operations (planner.generate_plan (disassembler.disassembled_object), transaction)
 
 		end
 
+
+feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
+
+	commit_transaction (transaction: PS_TRANSACTION)
+		-- Explicitly commit the transaction
+		do
+			if id_manager.can_commit (transaction) then
+				backend.commit (transaction)
+				id_manager.commit (transaction)
+			else
+				rollback_transaction (transaction)
+			end
+		end
+
+	rollback_transaction (transaction: PS_TRANSACTION)
+		-- Rollback the transaction
+		do
+			backend.rollback (transaction)
+			id_manager.rollback (transaction)
+		end
 feature {PS_EIFFELSTORE_EXPORT} -- Testing
 
 	clean_db_for_testing
 		-- Wipe out all data
 		do
-			make
+			-- Ugly, but it works for now...
+			if attached{PS_GENERIC_LAYOUT_SQL_BACKEND} backend as sql_backend then
+				sql_backend.wipe_out_all
+			else
+				create {PS_IN_MEMORY_DATABASE} backend.make
+			end
+
+			make (backend)
 		end
 
 feature{NONE} -- Initialization
 
-	make
+	make (a_backend: PS_BACKEND_STRATEGY)
 		-- Initialize `Current'
 		do
 			create transaction_isolation_level
 			create default_object_graph.make_default
 			create id_manager.make
-			create disassembler.make (id_manager, default_object_graph)
 			create planner.make
-			create memory_db.make
-			create executor.make (memory_db)
-			create retriever.make (memory_db)
+			create disassembler.make (id_manager, default_object_graph)
+		--	create memory_db.make
+			backend:= a_backend
+			create executor.make (backend)
+			create retriever.make (backend, id_manager)
+
+			create special_handler.make
+			retriever.add_handler (special_handler)
+			disassembler.add_handler (special_handler)
 		end
 
 feature {PS_EIFFELSTORE_EXPORT}
@@ -85,8 +117,10 @@ feature {PS_EIFFELSTORE_EXPORT}
 	disassembler:PS_OBJECT_DISASSEMBLER
 	planner:PS_WRITE_PLANNER
 	executor: PS_WRITE_EXECUTOR
-	memory_db: PS_IN_MEMORY_DATABASE
+--	memory_db: PS_IN_MEMORY_DATABASE
+	backend: PS_BACKEND_STRATEGY
 	retriever:PS_RETRIEVAL_MANAGER
 
+	special_handler: PS_SPECIAL_COLLECTION_HANDLER
 
 end

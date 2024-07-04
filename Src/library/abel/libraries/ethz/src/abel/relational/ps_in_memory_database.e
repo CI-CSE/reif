@@ -1,5 +1,5 @@
 note
-	description: "Stores all object values in the main memory."
+	description: "Stores objects as a collection of strings in main memory."
 	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -11,130 +11,219 @@ inherit
 	PS_BACKEND_STRATEGY
 	PS_EIFFELSTORE_EXPORT
 
+inherit{NONE}
+	REFACTORING_HELPER
+
 create make
 
-feature
 
-	retrieve (class_name:STRING; criteria:PS_CRITERION; attributes:LIST[STRING]; transaction:PS_TRANSACTION) : ITERATION_CURSOR[PS_PAIR [INTEGER, HASH_TABLE[STRING, STRING]]]
-		-- Retrieves all objects of class `class_name' that match the criteria in `criteria' within transaction `transaction'.
-		-- If `atributes' is not empty, it will only retrieve the attributes listed there.
-		local
-			result_list: LINKED_LIST[PS_PAIR [INTEGER, HASH_TABLE[STRING, STRING]]]
-			pair:PS_PAIR [INTEGER, HASH_TABLE[STRING, STRING]]
+
+feature {PS_EIFFELSTORE_EXPORT}-- Supported collection operations
+
+	is_objectoriented_collection_store_supported:BOOLEAN = True
+			-- Can the current backend handle relational collections?
+
+	is_relational_collection_store_supported:BOOLEAN = False
+			-- Can the current backend handle relational collections?
+
+
+feature {PS_EIFFELSTORE_EXPORT} -- Status report
+
+	can_handle_type (type: PS_TYPE_METADATA) : BOOLEAN
+			-- Can the current backend handle objects of type `type'?
 		do
-			create result_list.make
+			Result:= True
+		end
 
-			across attach (class_to_object_keys[class_name]) as obj_cursor
-			loop
-				create pair.make (obj_cursor.item, attach (internal_db[obj_cursor.item]))
-				result_list.extend (pair)
+	can_handle_relational_collection (owner_type, collection_item_type: PS_TYPE_METADATA): BOOLEAN
+			-- Can the current backend handle the relational collection between the two classes `owner_type' and `collection_type'?
+		do
+			Result:= False
+		end
+
+	can_handle_objectoriented_collection (collection_type: PS_TYPE_METADATA): BOOLEAN
+			-- Can the current backend handle an objectoriented collection of type `collection_type'?
+		do
+			Result:= True
+		end
+
+feature {PS_EIFFELSTORE_EXPORT} -- Object retrieval operations
+
+	retrieve (type: PS_TYPE_METADATA; criteria:PS_CRITERION; attributes:LIST[STRING]; transaction:PS_TRANSACTION) : ITERATION_CURSOR[PS_RETRIEVED_OBJECT]
+		-- Retrieves all objects of class `class_name' that match the criteria in `criteria' within transaction `transaction'.
+		-- If `attributes' is not empty, it will only retrieve the attributes listed there.
+		local
+			keys: ARRAYED_LIST[INTEGER]
+			attr: LIST[STRING]
+		do
+			-- Evaluate which objects to load
+			-- (here: ignore criteria and just return everything from that class)
+			if db.has (type.class_of_type.name) then
+				create keys.make_from_array ( attach (db[type.class_of_type.name]).current_keys )
+			else
+				create keys.make (0)
 			end
 
-			Result:= result_list.new_cursor
+			-- Evaluate which attributes to load
+			if attributes.is_empty then
+				attr:= type.attributes
+			else
+				attr:= attributes
+			end
+
+			-- Retrieve result and return cursor
+			Result:= load_objects (type, attr, keys).new_cursor
 		end
+
+
+
+	retrieve_from_keys (type: PS_TYPE_METADATA; primary_keys: LIST[INTEGER]; transaction:PS_TRANSACTION) : LINKED_LIST[PS_RETRIEVED_OBJECT]
+		-- Retrieve all objects of type `type' and with primary key in `primary_keys'.
+		do
+			-- Retrieve all keys in primary_keys and with all attributes
+			Result:= load_objects (type, type.attributes, primary_keys)
+		end
+
+
+feature {PS_EIFFELSTORE_EXPORT}-- Object write operations
 
 
 
 	insert (an_object:PS_SINGLE_OBJECT_PART; a_transaction:PS_TRANSACTION)
 		-- Inserts the object into the database
 		local
-			class_name:STRING
-			key:INTEGER
-			values:HASH_TABLE[STRING,STRING]
-			new_list:LINKED_LIST[INTEGER]
+			new_primary: PS_PAIR[INTEGER, STRING]
 		do
-			class_name:= an_object.object_id.class_name
-			key:= an_object.object_id.object_identifier
+			-- Add a new entry in primary <--> POID mapping table
+			new_primary:= new_key (an_object.object_id.metadata.class_of_type.name)
+			key_mapper.add_entry (an_object.object_id, new_primary.first, a_transaction)
 
-			create values.make (an_object.attributes.count)
-			across an_object.attributes as attr_name loop
-				check attached an_object.attribute_values.at (attr_name.item) as ref then
-
-					if attached{PS_BASIC_ATTRIBUTE_PART} ref as basic then
-						values.extend (basic.value.out, attr_name.item)
-					elseif attached {PS_COMPLEX_ATTRIBUTE_PART} ref as complex then
-						values.extend (complex.object_id.object_identifier.out, attr_name.item)
-					end
-
-				end
-			end
-
-			internal_db.extend (values, key)
-			if attached{LIST[INTEGER]} class_to_object_keys.at (class_name) as list then
-				list.extend (key)
-			else
-				create new_list.make
-				new_list.extend (key)
-				class_to_object_keys.extend (new_list, class_name)
-			end
-
-
+			-- Create new object in DB with freshly created primary key and then write all attributes
+			insert_empty_object (new_primary.first, new_primary.second)
+			write_attributes (an_object, a_transaction)
 		end
+
 
 	update (an_object:PS_SINGLE_OBJECT_PART; a_transaction:PS_TRANSACTION)
 		-- Updates an_object
-		local
-			existing_values:HASH_TABLE[STRING, STRING]
-			i:INTEGER
 		do
-			existing_values := attach ( internal_db[an_object.object_id.object_identifier] )
-
-			across an_object.attributes as attr_name
-			from
-				i:=an_object.attributes.count
-			loop
-				--print (i.out + "%N " + attr_name.item + "%N")
-				if attached{PS_BASIC_ATTRIBUTE_PART} an_object.attribute_values.at (attr_name.item) as basic then
-					existing_values.replace (basic.value.out, attr_name.item)
-				elseif attached {PS_COMPLEX_ATTRIBUTE_PART} an_object.attribute_values.at (attr_name.item) as complex then
-					existing_values.replace (complex.object_id.object_identifier.out, attr_name.item)
-				end
-				i:=i-1
-			variant
-				i
-			end
+			-- write all attributes in `an_object'
+			write_attributes (an_object, a_transaction)
 		end
 
 	delete (an_object:PS_SINGLE_OBJECT_PART; a_transaction:PS_TRANSACTION)
 		-- Deletes an_object from the database
+		local
+			primary:PS_PAIR[INTEGER, PS_TYPE_METADATA]
 		do
-			internal_db.remove (an_object.object_id.object_identifier)
-			attach (class_to_object_keys[an_object.object_id.class_name]).prune (an_object.object_id.object_identifier)
+			-- Remove the entry in the primary <--> POID mapping table
+			primary:= key_mapper.primary_key_of (an_object.object_id, a_transaction)
+			key_mapper.remove_primary_key (primary.first, an_object.object_id.metadata, a_transaction)
+
+			-- remove the complete object from DB
+			attach (db[primary.second.class_of_type.name]).remove (primary.first)
 		end
 
-	insert_collection (a_collection: PS_COLLECTION_PART[ITERABLE[ANY]]; a_transaction:PS_TRANSACTION)
+
+feature {PS_EIFFELSTORE_EXPORT} -- Object-oriented collection operations
+
+
+	retrieve_objectoriented_collection (collection_type: PS_TYPE_METADATA; collection_primary_key: INTEGER; transaction: PS_TRANSACTION): PS_RETRIEVED_OBJECT_COLLECTION
+			-- Retrieves the object-oriented collection of type `object_type' and with primary key `object_primary_key'.
+	 	local
+	 		info:HASH_TABLE[STRING, STRING]
+	 	do
+			create Result.make (collection_primary_key, collection_type.class_of_type)
+
+			across get_ordered_collection (collection_primary_key) as cursor loop
+				Result.add_item (cursor.item.first, cursor.item.second)
+			end
+
+			info:= attach (collection_info[collection_primary_key])
+
+			across info.current_keys as key_cursor loop
+				Result.add_information (key_cursor.item, attach (info[key_cursor.item]))
+			end
+	 	end
+
+
+	insert_objectoriented_collection (a_collection: PS_OBJECT_COLLECTION_PART[ITERABLE[detachable ANY]]; a_transaction:PS_TRANSACTION)
+		-- Add all entries in `a_collection' to the database
+		local
+			id: INTEGER
+			primary:INTEGER
+			item_primary:INTEGER
+			new_inserts: LINKED_LIST[STRING]
+		do
+			if not key_mapper.has_primary_key_of (a_collection.object_id, a_transaction) then -- Collection not yet in database
+				-- first set up everything
+				primary:= new_key (default_class_string_for_collections).first -- only key is interesting
+				key_mapper.add_entry (a_collection.object_id, primary, a_transaction)
+				insert_empty_collection (primary)
+
+				-- add additional information
+				fixme ("test if a simple reference copy is safe enough in this case, or if a deep_clone is needed...")
+				collection_info.force (a_collection.additional_information, primary)
+
+			else
+				-- we already have the collection and its additional information in the database, we just have to extend it
+				primary:= key_mapper.primary_key_of (a_collection.object_id, a_transaction).first
+			end
+
+			-- Now add all collection values to the collection
+			across a_collection.values as coll_item loop
+				item_primary:= key_mapper.quick_translate (coll_item.item.object_identifier, a_transaction)
+
+				add_to_collection (primary, coll_item.item.storable_tuple (item_primary), a_collection.order_of (coll_item.item))
+			end
+		end
+
+	delete_objectoriented_collection (a_collection: PS_OBJECT_COLLECTION_PART[ITERABLE[detachable ANY]]; a_transaction:PS_TRANSACTION)
+		-- Delete `a_collection' from the database
+		do
+			collection_info.remove (key_mapper.primary_key_of (a_collection.object_id, a_transaction).first)
+			collections.remove (key_mapper.primary_key_of (a_collection.object_id, a_transaction).first)
+		end
+
+feature {PS_EIFFELSTORE_EXPORT}-- Relational collection operations
+
+
+	retrieve_relational_collection (owner_type, collection_item_type: PS_TYPE_METADATA; owner_key: INTEGER; owner_attribute_name: STRING; transaction: PS_TRANSACTION) : PS_RETRIEVED_RELATIONAL_COLLECTION
+			-- Retrieves the relational collection between class `owner_type' and `collection_item_type', where the owner has primary key `owner_key' and the attribute name of the collection inside the owner object is called `owner_attribute_name'
+		do
+			check not_implemented: False end
+			create Result.make (owner_key, owner_type.class_of_type, owner_attribute_name)
+		end
+
+
+	insert_relational_collection (a_collection: PS_RELATIONAL_COLLECTION_PART[ITERABLE[detachable ANY]]; a_transaction:PS_TRANSACTION)
 		-- Add all entries in a_collection to the database
 		do
+			check not_implemented: False end
 		end
 
-	update_collection (a_collection: PS_COLLECTION_PART[ITERABLE[ANY]]; a_transaction:PS_TRANSACTION)
-		-- Update a_collection (replace with any pre-existing collection)
-		do
-		end
 
-	delete_collection (a_collection: PS_COLLECTION_PART[ITERABLE[ANY]]; a_transaction:PS_TRANSACTION)
+	delete_relational_collection (a_collection: PS_RELATIONAL_COLLECTION_PART[ITERABLE[detachable ANY]]; a_transaction:PS_TRANSACTION)
 		-- Delete a_collection from the database
 		do
+			check not_implemented: False end
 		end
 
 
-	-- How to access the data?
-	-- Queries: CLASS_NAME (+ Criteria) -> Cursor of primary keys (or actual data)
-	-- Reload: Key -> Object
+feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 
-	-- Update: Key, Object ->
-	-- Insert: Object ->
-	-- Delete: Key ->
+	commit (a_transaction: PS_TRANSACTION)
+		-- Tries to commit `a_transaction'. As with every other error, a failed commit will result in a new exception and the error will be placed inside `a_transaction'
+		do
+		end
 
+	rollback (a_transaction: PS_TRANSACTION)
+		-- Aborts `a_transaction' and undoes all changes in the database
+		do
+		end
 
-	-- HASH_TABLE [LIST[INTEGER] (key), STRING (class_name) ]
-	-- HASH_TABLE [HASH_TABLE [STRING (Value), STRING (attr_name)], INTEGER (key) ]
+feature {PS_EIFFELSTORE_EXPORT} -- Miscellaneous
 
-
-	internal_db:HASH_TABLE[HASH_TABLE[ STRING, STRING], INTEGER]
-		-- The internal data store. First key is the POID, and second key is the attribute name
-
-	class_to_object_keys: HASH_TABLE [attached LIST[INTEGER], STRING]
 
 	string_representation:STRING
 		-- The current DB content as a string
@@ -143,39 +232,232 @@ feature
 			objects:LIST[INTEGER]
 			object_values: HASH_TABLE[STRING, STRING]
 		do
-			class_names:= class_to_object_keys.current_keys
+			fixme ("TODO, still needed?")
 			Result := ""
+		end
 
-			across class_names as class_cursor loop
 
-				Result:= Result + "Current class: " + class_cursor.item + "%N%N"
-				-- print each object of this class
 
-				objects := attach (class_to_object_keys[class_cursor.item])
-				across objects  as obj_cursor loop
+feature {NONE} -- Implementation - Loading and storing objects
 
-					Result:= Result + "%T Object key: " + obj_cursor.item.out + "%N"
-					object_values := attach ( internal_db[obj_cursor.item])
+	load_objects (type:PS_TYPE_METADATA; attributes:LIST[STRING]; keys: LIST[INTEGER]):LINKED_LIST[PS_RETRIEVED_OBJECT]
+		-- Loads all objects of class `type' whose primary key is listed in `keys'. Only loads the attributes listed in `attributes'
+		local
+			current_obj:PS_RETRIEVED_OBJECT
+			attr_val:PS_PAIR[STRING, STRING]
+		do
+			create Result.make
+			across keys as obj_primary loop
+				if has_object (type.class_of_type.name, obj_primary.item) then
 
-					across object_values.current_keys as key_cursor loop
-						Result := Result + "%T%T" + key_cursor.item + ": " + attach (object_values[key_cursor.item]) + "%N"
+					create current_obj.make (obj_primary.item, type.class_of_type)
+
+					across attributes as cursor loop
+						if has_attribute (type.class_of_type.name, obj_primary.item, cursor.item) then
+							attr_val:= get_attribute (type.class_of_type.name, obj_primary.item, cursor.item)
+						else
+							create attr_val.make (Void_value, None_type)
+						end
+						current_obj.add_attribute (cursor.item, attr_val.first, attr_val.second)
+	--					print ("loaded attribute: " + cursor.item + "%N%T value: " + attr_val.first + "%N%T type: " + attr_val.second + "%N%N")
 					end
-					Result:= Result + "%N%N"
+
+					Result.extend (current_obj)
 				end
 			end
 		end
 
+	write_attributes (an_object:PS_SINGLE_OBJECT_PART; transaction: PS_TRANSACTION)
+		-- Stores all attributes of `an_object' in the internal database, replacing any existing attribute with the same name if present
+		local
+			attr_primary:INTEGER
+			primary:PS_PAIR[INTEGER, PS_TYPE_METADATA]
+		do
+			primary:= key_mapper.primary_key_of (an_object.object_id, transaction)
+
+			across an_object.attributes as attr_cursor loop
+				attr_primary:= key_mapper.quick_translate (an_object.get_value (attr_cursor.item).object_identifier, transaction)
+				add_or_replace_attribute (primary.second.class_of_type.name, primary.first, attr_cursor.item, an_object.get_value (attr_cursor.item).storable_tuple (attr_primary))
+			end
+		end
+
+
+feature {NONE} -- Implementation - Key generation
+
+	key_set:HASH_TABLE[INTEGER, STRING]
+		-- stores the maximum key for every class
+
+	new_key (class_name:STRING):PS_PAIR[INTEGER, STRING]
+		-- creates a new, not yet used, primary key for objects of type `class_name'
+		local
+			max:INTEGER
+		do
+			max:= key_set[class_name]
+			max:= max+1
+
+			create Result.make (max, class_name)
+			key_set.force (max,class_name)
+		end
+
+feature{NONE} -- Implementation - Database and DB access for objects
+
+
+	db:
+	-- The internal "database" that stores every object as a collection of strings.
+	HASH_TABLE [ -- class_name to objects table
+		HASH_TABLE [ -- primary key to object
+				HASH_TABLE[PS_PAIR[STRING, STRING],STRING], -- attribute to value
+			INTEGER],
+		STRING]
+		-- The internal "database" that stores every object as a collection of strings.
+
+
+	insert_empty_object (key:INTEGER; class_name:STRING)
+		-- Insert an empty object of type `class_name' with primary key `key'
+		local
+		new_class: HASH_TABLE [HASH_TABLE[PS_PAIR[STRING, STRING],STRING],INTEGER]
+		new_obj: HASH_TABLE[PS_PAIR[STRING, STRING],STRING]
+		do
+			if not db.has (class_name) then
+				create new_class.make (default_objects_per_class_size)
+				db.extend (new_class, class_name)
+			else
+				new_class:= attach (db[class_name])
+			end
+			create new_obj.make (default_attribute_count)
+			new_class.extend (new_obj, key)
+		end
+
+
+
+	get_object_as_strings (class_name:STRING; key:INTEGER): HASH_TABLE[PS_PAIR[STRING, STRING],STRING]
+		-- Get the object of type `class_name' with key `key' in string representation
+		local
+			intermediate: HASH_TABLE [HASH_TABLE[PS_PAIR[STRING, STRING],STRING], INTEGER]
+		do
+			intermediate:= attach (db[class_name])
+			Result:= attach (intermediate[key])
+		end
+
+	has_object (class_name: STRING; key:INTEGER):BOOLEAN
+		do
+			Result:= db.has (class_name) and then attach (db[class_name]).has (key)
+		end
+
+	has_attribute (class_name:STRING; key: INTEGER;  attr_name:STRING):BOOLEAN
+		-- Does the object of type `class_name' and with key `key' have an attribute with name `attr_name'?
+		do
+			Result:= get_object_as_strings(class_name, key).has (attr_name)
+		end
+
+	add_or_replace_attribute (class_name:STRING; key: INTEGER;  attr_name:STRING; value:PS_PAIR[STRING, STRING])
+		-- Add or replace the value of `attr_name' in the object of type `class_name' and with primary key `key'
+		do
+			get_object_as_strings(class_name, key).force (value, attr_name)
+		end
+
+	get_attribute (class_name:STRING; key: INTEGER;  attr_name:STRING):PS_PAIR[STRING, STRING]
+		-- Get the value of the attribute `attr_name' from the object of type `class_name' and with primary key `key'
+		do
+			Result:= attach (get_object_as_strings(class_name, key).item (attr_name))
+		end
+
+
+feature{NONE} -- Implementation - Database and DB access for Object-oriented Collections
+
+
+	insert_empty_collection (key: INTEGER)
+		-- Insert an empty object-oriented collection with pimary key `key'
+		local
+			list:LINKED_LIST[PS_PAIR[STRING, PS_PAIR[STRING, INTEGER]]]
+		do
+			create list.make
+			collections.extend (list, key)
+			collection_info.extend (create {HASH_TABLE[STRING, STRING]}.make (10), key)
+		end
+
+
+	add_to_collection (key:INTEGER; value:PS_PAIR [STRING, STRING]; order:INTEGER)
+		-- Add `value' to the collection with primary key `key'.
+		-- Insert the object in the collection list such that (previous.order <= order < next.order).
+		local
+			collection: LINKED_LIST[PS_PAIR[STRING, PS_PAIR[STRING, INTEGER]]]
+			new_item: PS_PAIR[STRING, PS_PAIR[STRING, INTEGER]]
+			previous_order:INTEGER
+		do
+			create new_item.make (value.first, create {PS_PAIR[STRING, INTEGER]}.make (value.second, order))
+
+			from
+				collection:= attach (collections[key])
+				collection.start
+			until
+				collection.after
+			loop
+				if (collection.isfirst or else previous_order <= order) and order < collection.item.second.second then
+					collection.put_left (new_item)
+				end
+			end
+		end
+
+
+	get_ordered_collection (key:INTEGER):LINKED_LIST[PS_PAIR[STRING, STRING]]
+		-- Get all values of the collection with primary key `key' in the correct order.
+		local
+			collection: LINKED_LIST[PS_PAIR[STRING, PS_PAIR[STRING, INTEGER]]]
+			coll_item: PS_PAIR[STRING, STRING]
+		do
+			create Result.make
+			collection:= attach (collections[key])
+
+			across collection as cursor loop
+				-- The database should be ordered already
+				create coll_item.make (cursor.item.first, cursor.item.second.first)
+				Result.extend (coll_item)
+			end
+
+		end
+
+
+	collections: HASH_TABLE[LINKED_LIST[PS_PAIR[STRING, PS_PAIR[STRING, INTEGER]]],INTEGER]
+		-- Internal store of collection objects
+
+	collection_info: HASH_TABLE [HASH_TABLE[STRING, STRING], INTEGER]
+		-- The capacity of individual SPECIAL objects
+
+
+
 feature{NONE} -- Initialization
 
 	make
+		-- Initialize `Current'
 		do
-			create internal_db.make (db_size)
-			create class_to_object_keys.make (db_size)
+			create collections.make (default_collection_db_capacity)
+			create collection_info.make (default_collection_db_capacity)
+
+			create key_mapper.make
+			create key_set.make (default_class_size)
+			create db.make (default_class_size)
 		end
 
-	db_size:INTEGER = 100
+
+	default_class_size: INTEGER = 20
+		-- The default capacity for the amount of classes the DB can handle
+
+	default_objects_per_class_size: INTEGER = 50
+		-- The default capacity for the amount of objects per class
+
+	default_attribute_count:INTEGER = 10
+		-- The default capacity for attributes per object
 
 
+	default_class_string_for_collections: STRING = "COLLECTION"
+		-- The default string for the key generator when dealing with collections
 
+	default_collection_db_capacity:INTEGER = 50
+		-- The default capacity of the in-memory database for storing collection objects
 
+	Void_value: STRING = ""
+
+	None_type: STRING = "NONE"
+		-- The type used for an attribute that is Void.
 end

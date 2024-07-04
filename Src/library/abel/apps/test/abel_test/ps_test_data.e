@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {PS_TEST_DATA}."
-	author: ""
+	description: "Collects and initializes some data."
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -16,17 +16,33 @@ create
 
 feature
 	people:LIST[PERSON]
+		-- A list of 4 persons
 
 	flat_class: FLAT_CLASS_1
+		-- An object containing all basic types
 
 	data_structures_1: DATA_STRUCTURES_CLASS_1
+		-- An object containing the most common data structures in EiffelBase.
 
-	reference_1: REFERENCE_CLASS_1
+	reference_to_single_other: REFERENCE_CLASS_1
+		-- A reference class object that points to another one of its kind.
+
+	reference_cycle: REFERENCE_CLASS_1
 		-- 1 references 2, 2 references 3, 3 references 1 and 2
 
-	reference_2: REFERENCE_CLASS_1
-		-- 1 references 2, 2 references 3, 3 references 1 and 2
+	void_reference:REFERENCE_CLASS_1
+		-- an object containing at least one void reference
 
+	tuple_query: detachable PS_TUPLE_QUERY[ANY]
+
+	array_of_persons: ARRAY[PERSON]
+		-- An array of 4 persons
+
+	special_of_persons: SPECIAL[PERSON]
+		-- A special object of 4 persons
+
+	array_of_integers: ARRAY[INTEGER]
+		-- An integer array with numbers from 1 to 10
 
 feature {NONE} -- Initialization
 
@@ -35,39 +51,44 @@ feature {NONE} -- Initialization
 			-- Initialization for `Current'.
 		local
 			ref2, ref3: REFERENCE_CLASS_1
+			i:INTEGER
 		do
 			fill_people
 			create flat_class.make
 			create data_structures_1.make
 
-			create reference_1.make (1)
+			create void_reference.make (100)
+			create reference_cycle.make (1)
 			create ref2.make (2)
 			create ref3.make (3)
 
---			reference_1.add_ref (ref2)
---			ref2.add_ref (ref3)
---			ref3.add_ref (reference_1)
-
-
-			create reference_2.make (1)
-			create ref2.make (2)
-			create ref3.make (3)
-
-			reference_2.add_ref (ref2)
+			reference_cycle.add_ref (ref2)
 			ref2.add_ref (ref3)
-			ref3.add_ref (reference_2)
+			ref3.add_ref (reference_cycle)
 
+			reference_cycle.references.extend (ref2)
+			ref2.references.extend (ref3)
+			ref3.references.extend (reference_cycle)
+			ref3.references.extend (ref2)
 
---			print ( reference_1.tagged_out+ attach (reference_1.refer).tagged_out + attach (attach (reference_1.refer).refer).tagged_out + "%N")
---			print ( reference_2.tagged_out+ attach (reference_2.refer).tagged_out + attach (attach (reference_2.refer).refer).tagged_out + "%N")
+--			reference_1.ref_arrays.grow (1)
+--			reference_1.ref_arrays[1]:= ref2
 
---			print (reference_2.is_deep_equal (reference_1))
---			check reference_2.is_deep_equal (reference_1) end
+			create reference_to_single_other.make (1)
+			create ref2.make (2)
+			reference_to_single_other.add_ref (ref2)
 
---			reference_1.references.extend (ref2)
---			ref2.references.extend (ref3)
---			ref3.references.extend (reference_1)
---			ref3.references.extend (ref2)
+			create special_of_persons.make_empty (4)
+			across people as p loop special_of_persons.extend (p.item) end
+			create array_of_persons.make_from_special (special_of_persons.deep_twin)
+
+			create array_of_integers.make_filled (0, 1, 10)
+			from i:=1
+			until i>10
+			loop
+				array_of_integers[i] := i
+				i:= i+1
+			end
 
 		end
 
@@ -76,7 +97,7 @@ feature {NONE} -- Initialization
 
 
 	fill_people
-			-- Populate an in-memory database.
+			-- Add some persons to `people'
 		local
 			pe:PERSON
 		do

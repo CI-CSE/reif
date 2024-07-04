@@ -1,47 +1,62 @@
 note
-	description: "Summary description for {PS_MANUAL_TEST_IN_MEMORY}."
-	author: ""
+	description: "Tests ABEL with an in-memory 'database' backend."
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
 	PS_MANUAL_TEST_IN_MEMORY
-
 inherit
-	PS_CRITERIA_TESTS
-	PS_CRUD_TESTS
+	PS_REPOSITORY_TESTS
 
+feature{NONE}
 
-feature {NONE}
-	on_prepare
+	make_repository: PS_RELATIONA_IN_MEMORY_REPOSITORY
 		do
-			create {PS_IN_MEMORY_REPOSITORY} repository.make
-			initialize_tests_general
-			initialize_criteria_tests
-			initialize_crud_tests
+			create Result.make (create {PS_IN_MEMORY_DATABASE}.make)
 		end
-
 
 feature
 
 	test_criteria_in_memory
-	do
-		test_criteria_agents
-		test_criteria_predefined
-		test_criteria_agents_and_predefined
-	end
+		do
+			criteria_tests.test_criteria_agents
+			criteria_tests.test_criteria_predefined
+			criteria_tests.test_criteria_agents_and_predefined
+		end
 
 
 	test_crud_flat_in_memory
-	do
-		test_flat_class_store
-		test_flat_class_all_crud
-	end
+		do
+			crud_tests.all_flat_object_tests
+			--crud_tests.test_flat_class_store
+			--crud_tests.test_flat_class_all_crud
+		end
 
-	test_crud_structures_in_memory
-	do
-		test_data_structures_store
-		test_update_on_reference
-	end
+	test_references_in_memory
+		do
+			crud_tests.all_references_tests
+		end
 
+
+	test_collections_in_memory
+		do
+			crud_tests.all_collection_tests
+		end
+
+
+	test_transaction_lost
+		do
+			transaction_tests.test_no_lost_update
+		end
+
+	test_transaction_dirty
+		do
+			transaction_tests.test_no_dirty_reads
+		end
+
+	test_transaction_repeatable_read
+		do
+			transaction_tests.test_repeatable_read
+		end
 end

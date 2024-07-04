@@ -95,8 +95,7 @@ feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 			no_error: not transaction.has_error
 			repository_correct: transaction.repository = Current
 			not_readonly: not transaction.is_readonly
-		do
-
+		deferred
 		end
 
 	rollback_transaction (transaction: PS_TRANSACTION)
@@ -105,17 +104,16 @@ feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 			transaction_alive: transaction.is_active
 			repository_correct: transaction.repository = Current
 			not_readonly: not transaction.is_readonly
-		do
-
+		deferred
 		end
 
 
 feature {PS_EIFFELSTORE_EXPORT} -- Status
 
-	is_identified (an_object:ANY):BOOLEAN
+	is_identified (an_object:ANY; a_transaction:PS_TRANSACTION):BOOLEAN
 		-- Is `an_object' already identified and thus registered in this repository?
 		do
-			Result:=id_manager.is_identified (an_object)
+			Result:=id_manager.is_identified (an_object, a_transaction)
 		end
 
 

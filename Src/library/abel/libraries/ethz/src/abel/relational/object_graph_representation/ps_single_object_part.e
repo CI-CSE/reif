@@ -39,6 +39,11 @@ feature
 
 	attribute_values: HASH_TABLE [PS_OBJECT_GRAPH_PART, STRING]
 
+	get_value (attr:STRING):PS_OBJECT_GRAPH_PART
+		do
+			Result:= attach (attribute_values[attr])
+		end
+
 	dependencies:LINKED_LIST[PS_OBJECT_GRAPH_PART]
 		do
 			create Result.make
@@ -54,12 +59,20 @@ feature
 	remove_dependency (obj:PS_OBJECT_GRAPH_PART)
 		-- Remove dependency `obj' from the list
 		do
+--			print (obj)
 			from attributes.start
 			until attributes.after
 			loop
-				if attached attribute_values.item (attributes.item_for_iteration) as item and then item = obj then
-					attribute_values.remove (attributes.item_for_iteration)
-					attributes.remove
+--				print (attributes.item.out + "%N")
+				if attached attribute_values.item (attributes.item_for_iteration) as item then
+--					print (item)
+					if  item.is_equal( obj )then
+						attribute_values.remove (attributes.item_for_iteration)
+						attributes.remove
+--						print ("removed%N")
+					else
+						attributes.forth
+					end
 				else
 					attributes.forth
 				end
@@ -109,6 +122,7 @@ feature {NONE} -- Initialization
 --			create basic_attribute_values.make (hashtable_size)
 --			create reference_values.make (hashtable_size)
 			create attributes.make
+			attributes.compare_objects
 			create attribute_values.make (hashtable_size)
 
 		end

@@ -12,64 +12,27 @@ inherit
 	PS_EIFFELSTORE_EXPORT
 
 create
-	make
+	make, make_new
 
 feature {PS_EIFFELSTORE_EXPORT}
 
-	get_metadata (object: ANY): PS_METADATA
+	create_metadata_from_type (a_type: TYPE[detachable ANY]): PS_TYPE_METADATA
+		do
+			if metadata_cache.has (a_type.type_id) then
+				Result:= attach (metadata_cache[a_type.type_id])
+			else
+				create Result.make(a_type, Current)
+				metadata_cache.extend (Result, a_type.type_id)
+				Result.initialize
+			end
+		end
+
+	create_metadata_from_object (object: ANY): PS_TYPE_METADATA
 			-- Returns the metadata of the class if already known to the system.
 			-- If metadata is unknown, it will generate the metadata through reflection, store
 			-- this information into the database, and then return the result.
-		local
-			reflection: INTERNAL
-			class_name: STRING
-			i: INTEGER
-			type: INTEGER
-			type_name: STRING
-			temp: PS_METADATA
 		do
-			create reflection
-			class_name := reflection.class_name (object)
-			if metadata_list.has (class_name) then
-				check attached metadata_list[class_name] as res then
-					Result := res
-				end
-			else
-				create Result.make (class_name, false)
-				metadata_list.put (Result, class_name)
-				from
-					i := 1
-				until
-					i > reflection.field_count (object)
-				loop
-					type := reflection.field_static_type_of_type (i, reflection.dynamic_type (object))
-					type_name := reflection.class_name_of_type (type)
-						-- TODO
-						-- Expand this check statement, add some dummy values instead of always creating new one...
-					if type_name.has_substring ("STRING") or type_name.has_substring ("INTEGER") then
-						create temp.make (type_name, true)
-						Result.add_attribute (reflection.field_name (i, object), temp)
-					else
-						-- call recursive function to first generate metadata of other type
-					end
-						--print (reflection.field_name (i, object) + reflection.field_count (object).out + i.out)
-						-- TODO: inheritance...
-					i := i + 1
-				end
-					-- insert this into database					
-				connection.execute_query ("INSERT INTO ps_class (classname) VALUES ('" + Result.name + "')")
-				print (connection.last_error_message)
-				Result.set_class_id (connection.last_result.last_insert_id)
-				from
-					Result.attributes.start
-				until
-					Result.attributes.after
-				loop
-					connection.execute_query ("INSERT INTO ps_attribute (name, attributetype, class) VALUES ('" + Result.attributes.item + "', 0, " + Result.class_id.out + ") ") -- TODO attributetype
-					Result.set_attribute_id (connection.last_result.last_insert_id, Result.attributes.item)
-					Result.attributes.forth
-				end
-			end
+			Result:= create_metadata_from_type (object.generating_type)
 		end
 
 
@@ -79,36 +42,41 @@ feature {NONE} -- Initialization
 	make (a_connection: MYSQLI_CLIENT)
 			-- Initialize `Current'
 		do
-			connection := a_connection
-			create metadata_list.make (capacity)
-			initialize
+--			connection := a_connection
+			create metadata_cache.make (capacity)
+			--initialize
 		end
 
-	initialize
-			-- This function fetches all metadata from the tables in the database.
+	make_new
 		do
-			-- check if scheme is present in database. if not, create it
-			connection.execute_query ("SHOW tables")
-			if connection.last_result.there_exists (agent are_metadata_tables_present) then
-				-- load all metadata about classes and inheritance structure
-				-- TODO
-			else
-					-- Create tables. Do not load anything.
-				connection.execute_query (Class_table_sql)
-				connection.execute_query (Inheritance_table_sql)
-				connection.execute_query (Attributetype_table_sql)
-				connection.execute_query (Attribute_table_sql)
-				print (connection.last_error_message)
-			end
+			create metadata_cache.make (capacity)
 		end
+
+--	initialize
+			-- This function fetches all metadata from the tables in the database.
+--		do
+--			-- check if scheme is present in database. if not, create it
+--			connection.execute_query ("SHOW tables")
+--			if connection.last_result.there_exists (agent are_metadata_tables_present) then
+--				-- load all metadata about classes and inheritance structure
+--				-- TODO
+--			else
+--					-- Create tables. Do not load anything.
+--				connection.execute_query (Class_table_sql)
+--				connection.execute_query (Inheritance_table_sql)
+--				connection.execute_query (Attributetype_table_sql)
+--				connection.execute_query (Attribute_table_sql)
+--				print (connection.last_error_message)
+--			end
+--		end
 
 
 feature {NONE} -- Implementation
 
-	metadata_list: HASH_TABLE [PS_METADATA, STRING]
+	metadata_cache: HASH_TABLE[PS_TYPE_METADATA, INTEGER]
 	capacity: INTEGER = 100
 
-	connection: MYSQLI_CLIENT
+--	connection: MYSQLI_CLIENT
 
 	are_metadata_tables_present (row: MYSQLI_ROW): BOOLEAN
 			-- Are the tables used for storing metadata present in the database?
@@ -117,6 +85,8 @@ feature {NONE} -- Implementation
 		end
 
 feature {NONE} -- SQL strings
+
+
 
 	Class_table_sql: STRING = "CREATE TABLE ps_class (classid INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY, classname VARCHAR(64))"
 
