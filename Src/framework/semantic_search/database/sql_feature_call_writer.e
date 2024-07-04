@@ -27,6 +27,7 @@ feature -- Basic operations
 	write (a_document: SEM_FEATURE_CALL_TRANSITION)
 			-- Write `a_document' into `output'.
 		do
+			next_augxiliary_variable_id := max_vairable_id_from_queryable (a_document)
 			queryable := a_document
 			append_basic_info
 			append_contracts (a_document)
@@ -44,6 +45,7 @@ feature -- Basic operations
 
 			next_reference_equivalent_class_id := 1
 			next_object_equivalent_class_id := 1
+			next_augxiliary_variable_id := 1
 		end
 
 feature{NONE} -- Implementation
@@ -84,9 +86,9 @@ feature{NONE} -- Implementation
 			l_obj_equiv_sets.set_key_equality_tester (expression_equality_tester)
 			append_contracts_internal (queryable.written_preconditions, l_obj_equiv_sets, True, True, a_transition)
 
-				-- Appending preconditions.
+				-- Appending postconditions.
 			setup_reference_value_table (queryable.postconditions)
-			l_obj_equiv_sets := object_equivalent_classes (queryable.preconditions)
+			l_obj_equiv_sets := object_equivalent_classes (queryable.postconditions)
 			append_contracts_internal (queryable.postconditions, l_obj_equiv_sets, False, False, a_transition)
 			create l_obj_equiv_sets.make (0)
 			l_obj_equiv_sets.set_key_equality_tester (expression_equality_tester)

@@ -41,7 +41,6 @@ feature -- Access
 	postconditions: EPA_STATE assign set_postconditions
 			-- Postcondition of Current transition
 			-- Assertions may mention variables other than feature operands (including result).
-			-- Assertions may mention variables other than feature operands (including result).
 			-- For a list of assertions only mentioning feature operands, see `interface_postconditions'.
 			-- Relationship: `postconditions' is a superset of `interface_postconditions',
 			-- `interface_postconditoin' is a superset of `written_postcondition'.
@@ -186,6 +185,20 @@ feature -- Status setting
 			-- Set `postconditions' with 'a_post'.
 		do
 			set_state (a_post, postconditions)
+		end
+
+	set_preconditions_unsafe (a_pre: like preconditions)
+			-- Set `preconditions' with `a_pre'.
+			-- No context rewriting is done.
+		do
+			set_state_unsafe (a_pre, preconditions)
+		end
+
+	set_postconditions_unsafe (a_post: like postconditions)
+			-- Set `postconditions' with `a_post'.
+			-- No context rewriting is done.
+		do
+			set_state_unsafe (a_post, postconditions)
 		end
 
 	set_name (a_name: like name)

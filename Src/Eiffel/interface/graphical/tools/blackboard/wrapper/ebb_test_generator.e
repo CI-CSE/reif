@@ -15,9 +15,10 @@ inherit
 		redefine
 			remove_task,
 			print_test_set
+--			step
 		end
 
-	EBB_SHARED_BLACKBOARD
+	EBB_SHARED_ALL
 
 create
 	make
@@ -29,12 +30,16 @@ feature {NONE} -- Initialization
 		do
 			make_generator (a_test_suite, a_etest_suite)
 			instance := a_instance
+			number_of_tests_needed := 20
 		end
 
 feature -- Access
 
 	instance: EBB_AUTOTEST_INSTANCE
 			-- Instance running this test generator.
+
+	number_of_tests_needed: INTEGER
+			-- Number of tests needed for a passing score.
 
 feature -- Element change
 
@@ -58,11 +63,26 @@ feature -- Basic operations
 			-- `a_list': List of test case results to be printed to a test set.
 		do
 			current_results := a_list
-
---			Precursor (a_list)
-
+			Precursor (a_list)
 			current_results := Void
 		end
+
+--	step
+--			-- <Precursor>
+--		local
+--			l_retry: BOOLEAN
+--		do
+--			if l_retry then
+--				instance.execution.cancel
+--			else
+--				Precursor
+--			end
+--		rescue
+--			if not l_retry then
+--				l_retry := True
+--				retry
+--			end
+--		end
 
 feature {NONE}
 
@@ -126,12 +146,12 @@ feature {NONE}
 
 			l_feature := feature_with_name (l_class_name, l_feature_name)
 
-			if not l_feature.is_attribute and not l_feature.is_deferred then
+			if is_feature_verified (l_feature) then
 				if l_type ~ "passing" then
-					if l_number >= 50 then
-						create l_result.make (l_feature, instance.configuration, 1.0)
+					if l_number >= number_of_tests_needed then
+						create l_result.make (l_feature, instance.configuration, {EBB_VERIFICATION_SCORE}.successful)
 					else
-						create l_result.make (l_feature, instance.configuration, (l_number / 50.0).truncated_to_real)
+						create l_result.make (l_feature, instance.configuration, (l_number / number_of_tests_needed).truncated_to_real)
 					end
 					l_result.set_number_of_passing (l_number)
 					blackboard.add_verification_result (l_result)
@@ -162,7 +182,7 @@ feature {NONE}
 
 			l_feature := feature_with_name (l_class_name, l_feature_name)
 
-			create l_result.make (l_feature, instance.configuration, 0)
+			create l_result.make (l_feature, instance.configuration, {EBB_VERIFICATION_SCORE}.failed)
 			l_result.set_exception_trace (l_trace)
 			l_result.set_code (l_code.to_integer)
 			if l_tag /= Void and then not l_tag.is_empty then

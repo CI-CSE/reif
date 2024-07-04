@@ -37,7 +37,7 @@ feature {NONE} -- Initalization
 			l_shared_project.eiffel_project.manager.load_agents.extend (agent data.update_from_universe)
 			l_shared_project.eiffel_project.manager.load_agents.extend (agent set_initialized)
 
-			sleep_time := 500
+			sleep_time := 200
 		end
 
 feature -- Access
@@ -146,22 +146,6 @@ feature -- Events
 
 	blackboard_stopped_event: EVENT_TYPE [TUPLE]
 			-- Event that blackboard executino has stopped.
-
-	on_class_changed (a_class: CLASS_I)
-			-- Handle event that `a_class' has been changed.
-			-- I.e. added, removed, or a feature was added/removed/renamed.
-		do
-				-- TODO: Check if class had been removed. HOW?
-			if False then
-				data.remove_class (a_class)
-			else
-				if data.has_class (a_class) then
-					data.update_class (a_class)
-				else
-					data.add_class (a_class)
-				end
-			end
-		end
 
 feature {NONE} -- Implementation
 
