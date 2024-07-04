@@ -4412,6 +4412,7 @@ Src/library/spelling/UnicodeLetter.hs -text
 Src/library/spelling/documentation/basis.sty -text
 Src/library/spelling/documentation/object_model.png -text
 Src/library/spelling/documentation/report.tex -text
+Src/library/spelling/documentation/spell_checker_report.pdf -text
 Src/library/spelling/en_ignore_dictionary.xml -text
 Src/library/spelling/tests/word_set/empty_word.xml -text
 Src/library/spelling/tests/word_set/no_root.xml -text
@@ -4783,6 +4784,7 @@ eweasel/tests/attach052/Ace -text
 eweasel/tests/attach064/Ace -text
 eweasel/tests/attach096/Ace -text
 eweasel/tests/attach097/Ace_rev2 -text
+eweasel/tests/attach103/Ace svneol=native#text/xml
 eweasel/tests/ccomp001/notes -text
 eweasel/tests/ccomp002/notes -text
 eweasel/tests/ccomp003/notes -text
@@ -5614,11 +5616,9 @@ eweasel/tests/store014/data_57 -text
 eweasel/tests/store014/data_60 -text
 eweasel/tests/store014/data_61 -text
 eweasel/tests/store014/data_62 -text
-eweasel/tests/store015/Ace -text
 eweasel/tests/store016/data54 -text
 eweasel/tests/store018/data -text
 eweasel/tests/store020/data -text
-eweasel/tests/store026/Ace -text
 eweasel/tests/store026/zz.store -text
 eweasel/tests/store029/zz.store -text
 eweasel/tests/store033/Ace -text
