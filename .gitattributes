@@ -1761,6 +1761,7 @@ Src/Delivery/studio/bitmaps/png/splash_shadow.png -text
 Src/Delivery/studio/config/windows/msc/appl.ico -text
 Src/Delivery/studio/eifinit/libraries.cfg -text
 Src/Delivery/studio/eifinit/precompile.cfg -text
+Src/Delivery/studio/eifinit/precompiles.cfg -text
 Src/Delivery/studio/help/defaults/eiffel_unit_test_tcf_template.txt -text
 Src/Delivery/studio/help/errors/VRVA -text
 Src/Delivery/studio/lang/mo_files/de_DE.mo -text
@@ -3677,15 +3678,15 @@ Src/experimental/library/wizard/help/Clib/htmlhelp.lib -text
 Src/framework/alias_calculus/alias_calculus.rc -text
 Src/framework/alias_calculus/application_with_printout.BK -text
 Src/framework/alias_calculus/results.txt -text
+Src/framework/auto_teach/at_ast_iterator.e -text svneol=native#unset
+Src/framework/auto_teach/at_autoteach.e -text svneol=native#unset
 Src/framework/auto_teach/at_common.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/at_hinter.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/at_hinter_ast_iterator.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/at_hinter_processing_oracle.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/enums/at_block_type.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/enums/at_enum_block_type.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/hint_tables/at_default_annotated_hint_table.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/hint_tables/at_default_unannotated_hint_table.e -text svneol=native#unset
-Src/framework/auto_teach/hinter/hint_tables/at_hint_table.e -text svneol=native#unset
+Src/framework/auto_teach/at_processing_oracle.e -text svneol=native#unset
+Src/framework/auto_teach/enums/at_block_type.e -text svneol=native#unset
+Src/framework/auto_teach/enums/at_enum_block_type.e -text svneol=native#unset
+Src/framework/auto_teach/hint_tables/at_default_auto_hint_table.e -text svneol=native#unset
+Src/framework/auto_teach/hint_tables/at_default_manual_hint_table.e -text svneol=native#unset
+Src/framework/auto_teach/hint_tables/at_hint_table.e -text svneol=native#unset
 Src/framework/auto_teach/localization/at_strings.e -text svneol=native#unset
 Src/framework/auto_teach/utils/enum/at_enum.e -text svneol=native#unset
 Src/framework/auto_teach/utils/enum/at_enum_value.e -text svneol=native#unset
@@ -6403,19 +6404,65 @@ Src/unstable/library/text/encryption/crypto/license.lic -text
 Src/unstable/library/text/encryption/crypto/tests/license.lic -text
 Src/unstable/library/text/regexp/pcre/package.iron -text
 Src/unstable/library/text/regexp/pcre/pcre.rc -text
+Src/web/eiffel-lang.org/eiffel-lang.ecf svneol=native#text/xml
+Src/web/eiffel-lang.org/eiffel-lang.ini -text
+Src/web/eiffel-lang.org/eiffel-lang.json -text
+Src/web/eiffel-lang.org/eiffel-lang_app.ecf svneol=native#text/xml
 Src/web/eiffel-lang.org/themes/demo/css/all.css -text
 Src/web/eiffel-lang.org/themes/demo/images/bg-header.jpg -text
 Src/web/eiffel-lang.org/themes/demo/images/logo.png -text
-Src/web/eiffel-lang.org/wdocs.ecf svneol=native#text/xml
-Src/web/eiffel-lang.org/wdocs.ini -text
-Src/web/eiffel-lang.org/wdocs.json -text
-Src/web/eiffel-lang.org/wdocs_app.ecf svneol=native#text/xml
+Src/web/eiffel-lang.org/themes/eiffel-lang/css/all.css -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/css/doc.css -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museosans_500-webfont.eot -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museosans_500-webfont.svg -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museosans_500-webfont.ttf -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museosans_500-webfont.woff -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museoslab_500-webfont.eot -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museoslab_500-webfont.svg -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museoslab_500-webfont.ttf -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/fonts/museoslab_500-webfont.woff -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/bg-head.jpg -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/bg-head2.jpg -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/bg-header.jpg -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico-documnet.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico-download.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico-download2.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico-search.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico-social-h.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico-social.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico1.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico2.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico3.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico4.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico5.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico6.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico7.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/ico8.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/img-plugin.jpg -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/logo.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/sep.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/images/sep2.png -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/scss/960.scss -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/scss/all.scss -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/scss/base/base-reset.scss -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/scss/markup-mixins.scss -text
+Src/web/eiffel-lang.org/themes/eiffel-lang/scss/variables.scss -text
+Src/web/eiffel_download/New[!!-~]SQL.text -text
+Src/web/eiffel_download/Readme.md -text
+Src/web/eiffel_download/download.ini -text
+Src/web/eiffel_download/ewf_download.ecf svneol=native#text/xml
+Src/web/eiffel_download/site/config/application_configuration.json -text
+Src/web/eiffel_download/site/config/downloads_configuration.json -text
+Src/web/eiffel_download/site/config/downloads_configuration.xml svneol=native#text/xml
+Src/web/eiffel_download/site/www/static/css/download.css -text
+Src/web/eiffel_download/site/www/static/css/responsive_select.css -text
 Src/web/support/api/IIRF.ini -text
 Src/web/support/api/ecf-target-any_connector -text
 Src/web/support/api/ecf-target-connector -text
 Src/web/support/api/esa.ini -text
 Src/web/support/api/esa_api.ecf svneol=native#text/xml
-Src/web/support/api/site/config/esa_application_configuration.json -text
+Src/web/support/api/site/config/application_configuration.json -text
+Src/web/support/api/site/config/esa_application_configuration[!!-~]-[!!-~]copia.json -text
 Src/web/support/api/site/www/static/css/bootstrap.css -text
 Src/web/support/api/site/www/static/css/dashboard.css -text
 Src/web/support/api/site/www/static/doc/cj_doc.html svneol=native#text/xml
@@ -6722,6 +6769,9 @@ eweasel/tests/dotnet102/a.dll -text
 eweasel/tests/dotnet108/Ace -text
 eweasel/tests/dotnet114/dotnet_excep_trace -text
 eweasel/tests/dotnet116/a.dll -text
+eweasel/tests/dotnet117/Ace svneol=native#text/xml
+eweasel/tests/dotnet117/a.dll -text
+eweasel/tests/dotnet117/a.il -text
 eweasel/tests/except036/dotnet_output -text
 eweasel/tests/except038/bad_file -text
 eweasel/tests/exec003/notes -text
@@ -7460,6 +7510,7 @@ eweasel/tests/store036/file.store -text
 eweasel/tests/store037/Ace svneol=native#text/xml
 eweasel/tests/store037/Ace_safe svneol=native#text/xml
 eweasel/tests/store039/Ace svneol=native#text/xml
+eweasel/tests/store040/Ace svneol=native#text/xml
 eweasel/tests/string003/Ace svneol=native#text/xml
 eweasel/tests/syntax001/notes -text
 eweasel/tests/syntax002/notes -text

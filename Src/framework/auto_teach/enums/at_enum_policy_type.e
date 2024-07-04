@@ -17,8 +17,9 @@ inherit
 feature -- Access
 
 	name: STRING = "policy_type"
+			-- <Precursor>
 
-	value_type: AT_PLACEHOLDER
+	value_type: AT_POLICY_TYPE
 			-- <Precursor>
 		do
 			check

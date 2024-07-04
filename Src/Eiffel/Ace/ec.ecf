@@ -219,7 +219,7 @@
 		<library name="com_light" location="$EIFFEL_SRC\framework\com_light\com_light.ecf" readonly="false"/>
 		<library name="auto_teach" location="$EIFFEL_SRC\framework\auto_teach\auto_teach.ecf" readonly="false">
 			<option>
-				<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+				<assertions precondition="true" postcondition="true" check="true" loop="true" supplier_precondition="true"/>
 			</option>
 		</library>
 		<library name="command_tunnel" location="$EIFFEL_SRC\framework\command_tunnel\command_tunnel.ecf" readonly="false"/>
@@ -329,11 +329,11 @@
 		<cluster name="flat_short_b" location="$EIFFEL_SRC\Eiffel\flat_short\bench\"/>
 		<cluster name="interface" location="$EIFFEL_SRC\Eiffel\interface\" recursive="true">
 			<file_rule>
-				<exclude>^/none$</exclude>
 				<exclude>/overrides$</exclude>
+				<exclude>^/tty$</exclude>
 				<exclude>/lite$</exclude>
 				<exclude>/preferences$</exclude>
-				<exclude>^/tty$</exclude>
+				<exclude>^/none$</exclude>
 			</file_rule>
 			<file_rule>
 				<exclude>/mswin$</exclude>

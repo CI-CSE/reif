@@ -40,6 +40,11 @@ feature -- Enums
 			create Result
 		end
 
+	enum_mode: AT_ENUM_MODE
+		once ("PROCESS")
+			create Result
+		end
+
 feature -- For use with contracts
 
 	is_valid_hint_level (a_level: INTEGER): BOOLEAN
@@ -54,54 +59,50 @@ feature -- For use with contracts
 
 feature {NONE} -- Utility
 
-		-- Copy-pasted from the eweasel source code.
-	is_white (c: CHARACTER): BOOLEAN
-			-- Is `c' a white space character?
+		-- Taken from the eweasel source code.
+	is_white (a_char: CHARACTER): BOOLEAN
+			-- Is `a_char' a white space character?
 		do
-			Result := c = ' ' or c = '%T' or c = '%R' or c = '%N';
+			Result := a_char = ' ' or a_char = '%T' or a_char = '%R' or a_char = '%N';
 		end;
 
-		-- Copy-pasted from the eweasel source code.
-	broken_into_words (line: STRING): DYNAMIC_LIST [STRING]
+		-- Taken from the eweasel source code.
+	broken_into_words (a_line: STRING): DYNAMIC_LIST [STRING]
 			-- Result of breaking `line' into words, where each
 			-- word is terminated by white space
-		require
-			line_exists: line /= Void;
 		local
-			pos, first, last: INTEGER;
-			word: STRING;
-			char: CHARACTER;
-			in_word, is_white_char: BOOLEAN;
+			l_pos, l_first, l_last: INTEGER;
+			l_word: STRING;
+			l_in_word, l_is_white_char: BOOLEAN;
 		do
 			from
 				create {ARRAYED_LIST [STRING]} Result.make (4)
-				pos := 1;
+				l_pos := 1;
 			until
-				pos > line.count
+				l_pos > a_line.count
 			loop
-				char := line.item (pos);
-				is_white_char := is_white (char);
-				if in_word then
-					if is_white_char then
-						in_word := False;
-						last := pos - 1;
-						create word.make (last - first + 1);
-						word.set (line, first, last);
-						Result.extend (word);
+				l_is_white_char := is_white (a_line.item (l_pos));
+				if l_in_word then
+					if l_is_white_char then
+						l_in_word := False;
+						l_last := l_pos - 1;
+						create l_word.make (l_last - l_first + 1);
+						l_word.set (a_line, l_first, l_last);
+						Result.extend (l_word);
 					end
 				else
-					if not is_white_char then
-						in_word := True;
-						first := pos;
+					if not l_is_white_char then
+						l_in_word := True;
+						l_first := l_pos;
 					end
 				end;
-				pos := pos + 1;
+				l_pos := l_pos + 1;
 			end;
-			if in_word then
-				last := pos - 1;
-				create word.make (last - first + 1);
-				word.set (line, first, last);
-				Result.extend (word);
+			if l_in_word then
+				l_last := l_pos - 1;
+				create l_word.make (l_last - l_first + 1);
+				l_word.set (a_line, l_first, l_last);
+				Result.extend (l_word);
 			end
 		end;
 
@@ -150,19 +151,71 @@ feature {NONE} -- Utility
 			end
 		end
 
-	on_off_to_tristate (a_string: STRING): AT_TRI_STATE_BOOLEAN
-			-- Translates "on" to tri_true, "off" to tri_false and any other string to tri_undefined.
-			-- Case insensitive.
+	string_is_bool (a_string: STRING): BOOLEAN
+			-- Can `a_string' be parsed to a boolean, also accepting "on" and "off" as input.
 		local
-			l_string: STRING
+			l_lower_string: STRING
 		do
-			l_string := a_string.as_lower
-			if l_string.same_string ("on") then
-				Result := Tri_true
-			elseif l_string.same_string ("off") then
-				Result := Tri_false
+			l_lower_string := a_string.as_lower
+			Result := l_lower_string.is_boolean or else l_lower_string.same_string ("on") or else l_lower_string.same_string ("off")
+		end
+
+	string_to_bool (a_string: STRING): BOOLEAN
+			-- Convert `a_string' to a boolean value, also accepting "on" and "off" as input.
+		require
+			is_bool: string_is_bool (a_string)
+		local
+			l_lower_string: STRING
+		do
+			l_lower_string := a_string.as_lower
+			if l_lower_string.is_boolean then
+				Result := l_lower_string.to_boolean
+			elseif l_lower_string.same_string ("on") then
+				Result := True
+			elseif l_lower_string.same_string ("off") then
+				Result := False
 			else
-				Result := Tri_undefined
+				check valid_input: False end
+			end
+		end
+
+	parse_natural_range_string (a_string: READABLE_STRING_GENERAL; a_default_second: INTEGER): TUPLE [first: INTEGER; second: INTEGER]
+			-- Parses a range string with format "3-8". If the string is a simple number
+			-- without dash, then `a_default_second' is returned as the second number.
+			-- The returned numbers are guaranteed to be nonnegative (unless `a_default_second'
+			-- is returned as the second number).
+			-- Void is returned if parsing failed.
+		local
+			l_first_string, l_second_string: READABLE_STRING_GENERAL
+			l_strings: LIST [READABLE_STRING_GENERAL]
+			l_error: BOOLEAN
+		do
+			l_strings := a_string.split ('-')
+			if l_strings.count = 1 then
+				if l_strings.first.is_natural_32 then
+					create Result
+					Result.first := l_strings.first.to_integer_32
+					Result.second := a_default_second
+				else
+					Result := Void
+				end
+			elseif l_strings.count = 2 then
+				create Result
+				if l_strings.first.is_natural_32 then
+					Result.first := l_strings.first.to_integer_32
+				else
+					l_error := True
+				end
+				if l_strings.last.is_natural_32 then
+					Result.second := l_strings.last.to_integer_32
+				else
+					l_error := True
+				end
+				if l_error then
+					Result := Void
+				end
+			else
+				Result := Void
 			end
 		end
 
