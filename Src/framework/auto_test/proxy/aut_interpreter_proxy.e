@@ -106,6 +106,7 @@ feature {NONE} -- Initialization
 		local
 			l_itp_class: CLASS_C
 			l_file_printer: AUT_PROXY_LOG_TEXT_STREAM_PRINTER
+			l_dir: DIRECTORY_NAME
 		do
 			configuration := a_config
 
@@ -159,6 +160,15 @@ feature {NONE} -- Initialization
 			end
 			generate_typed_object_pool
 			setup_online_statistics
+
+			create l_dir.make_from_string (configuration.output_dirname)
+			l_dir.extend ("test_cases")
+			online_test_case_directory := l_dir.out
+
+			setup_online_test_case_directory
+			if configuration.is_test_case_serialization_retrieved_online and configuration.is_output_test_case_on_line then
+				on_test_case_serialization_actions.extend (agent output_test_case)
+			end
 		ensure
 			executable_file_name_set: executable_file_name = an_executable_file_name
 			system_set: system = a_system
@@ -253,6 +263,18 @@ feature -- Access
 		ensure
 			filename_not_void: Result /= Void
 			valid_filename: Result.is_equal (proxy_failure_log_file.name)
+		end
+
+	on_test_case_serialization_actions: ACTION_SEQUENCE [TUPLE [serialization: detachable STRING]]
+			-- Actions to be performed when test case serialization data arrived.
+			-- Have effect only if test case serialization is enabled.
+		do
+			if attached on_test_case_serialization_actions_internal as l_actions then
+				Result := l_actions
+			else
+				create on_test_case_serialization_actions_internal
+				Result := on_test_case_serialization_actions_internal
+			end
 		end
 
 feature -- Settings
@@ -1009,6 +1031,7 @@ feature{NONE} -- Process scheduling
 					  test_case_serialization_filename,
 					  configuration.is_duplicated_test_case_serialized.out,
 					  configuration.is_post_state_serialized.out,
+					  configuration.is_test_case_serialization_retrieved_online.out,
 					  "-eif_root", interpreter_root_class_name + "." + interpreter_root_feature_name>>)
 			else
 				create arguments.make_from_array (
@@ -1148,7 +1171,8 @@ feature -- Socket IPC
 			-- Retrieve response from the interpreter,
 			-- store it in `last_raw_response'.
 		local
-			l_data: TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; output: STRING; error: STRING]
+			l_raw_data: attached ANY
+			l_data: TUPLE [invariant_violating_object_index: INTEGER; predicate_evaluation: detachable TUPLE [feat_id: INTEGER; results: detachable ARRAY [NATURAL_8]]; serialization: detachable TUPLE [serialization: detachable STRING]; output: STRING; error: STRING]
 			l_retried: BOOLEAN
 			l_socket: like socket
 			l_response_flag: NATURAL_32
@@ -1157,7 +1181,8 @@ feature -- Socket IPC
 				l_socket := socket
 				l_socket.read_natural_32
 				l_response_flag := l_socket.last_natural_32
-				l_data ?= l_socket.retrieved
+				l_raw_data ?= l_socket.retrieved
+				l_data ?= l_raw_data
 				process.set_timeout (0)
 				if l_data /= Void then
 					create last_raw_response.make (create {STRING}.make_from_string (l_data.output), create {STRING}.make_from_string (l_data.error), l_response_flag)
@@ -1178,6 +1203,10 @@ feature -- Socket IPC
 
 						-- Update predicate evaluations in predicate pool.
 					update_predicates_in_pool (l_data.predicate_evaluation)
+
+					if l_data.serialization /= Void then
+						on_test_case_serialization_actions.call (l_data.serialization)
+					end
 				else
 					last_raw_response := Void
 				end
@@ -2323,6 +2352,42 @@ feature -- Objec state retrieval
 			online_statistics.set_output_frequency (configuration.online_statistics_frequency)
 		end
 
+	online_test_case_directory: STRING
+			-- Absolute path to the directory to store online test cases
+
+	setup_online_test_case_directory
+			-- Setup the directory to store online test cases (test cases that are output during testing).
+		local
+			l_dir: DIRECTORY
+		do
+			create l_dir.make (online_test_case_directory)
+			if l_dir.exists then
+				l_dir.delete_content
+			else
+				l_dir.create_dir
+			end
+		end
+
+	on_test_case_serialization_actions_internal: detachable like on_test_case_serialization_actions
+
+	output_test_case (a_serialization: detachable STRING)
+			-- Output test case represented by `a_serialization' in `online_test_case_dir'.
+		local
+			l_test_deserializer: AUT_DESERIALIZATION_STRING_PROCESSOR
+		do
+			create l_test_deserializer.make
+			l_test_deserializer.test_case_deserialized_event.subscribe (
+				agent (a_test: AUT_DESERIALIZED_TEST_CASE)
+					local
+						l_test_categorizer: AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST
+					do
+						create l_test_categorizer.make (configuration, online_test_case_directory)
+						l_test_categorizer.write_test_case_to_file (a_test)
+
+					end)
+			l_test_deserializer.process_test_case (a_serialization)
+		end
+
 invariant
 	is_running_implies_reader: is_running implies (stdout_reader /= Void)
 	request_printer_not_void: socket_data_printer /= Void
@@ -2338,7 +2403,7 @@ invariant
 
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2012, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

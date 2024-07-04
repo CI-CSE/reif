@@ -1,4 +1,4 @@
-indexing
+note
 	description: "Objects that provide editing possibility of a primitive type"
 	author: ""
 	date: "$Date$"
@@ -21,7 +21,7 @@ create
 
 feature -- Creation
 
-	make_with_text_and_type (a_text: STRING; a_type: STRING) is
+	make_with_text_and_type (a_text: STRING; a_type: STRING)
 			-- adds the needed actions after initialization
 		do
 			default_create
@@ -34,7 +34,7 @@ feature {NONE}-- Implementation
 
 	type: STRING
 
-	update_value (a_value: STRING_32): BOOLEAN is
+	update_value (a_value: STRING_32): BOOLEAN
 			-- after the user changed the value in the gui,
 			-- update that value in the DECODED object
 		local
@@ -47,7 +47,7 @@ feature {NONE}-- Implementation
 				if not a_value.is_equal (text) and validate_input (a_value) then
 					-- only update if value is different than already exisiting value
 					l_root_obj := get_root_object
-					if {l_root_disp: ES_EBBRO_DISPLAYABLE} l_root_obj then
+					if attached {ES_EBBRO_DISPLAYABLE} l_root_obj as l_root_disp then
 						if l_root_disp.is_wrapper then
 							if find_row_nondecoded (row.index - get_root_row_index + 1, l_root_disp.wrapped_object, a_value) = 0 then
 								--set_background_color (create {EV_COLOR}.make_with_8_bit_rgb (255, 180, 180))
@@ -77,7 +77,7 @@ feature {NONE}-- Implementation
 						update_all_possible_shared_values(a_value)
 
 						--add to history
-						if {l_root_disp2: ES_EBBRO_DISPLAYABLE} l_root_obj then
+						if attached {ES_EBBRO_DISPLAYABLE} l_root_obj as l_root_disp2 then
 							l_root_disp2.history.add_item (current, current.text, a_value)
 						end
 					end
@@ -97,7 +97,7 @@ feature {NONE}-- Implementation
 		end
 
 
-	validate_input (a_value: STRING): BOOLEAN is
+	validate_input (a_value: STRING): BOOLEAN
 			-- test if a value entered is conform to a type
 		local
 			l_type_name: STRING
@@ -143,66 +143,66 @@ feature {NONE}-- Implementation
 
 
 
---	find_row_decoded (a_position: INTEGER; a_decoded: GENERAL_DECODED; a_new_value: STRING): INTEGER
+	find_row_decoded (a_position: INTEGER; a_decoded: GENERAL_DECODED; a_new_value: STRING): INTEGER
 		-- recursive breadth first search through a decoded object to find the field at position `a_position'.
 		-- returns the remaining positions to search if not found
 		-- returns 0 if the field was found, -1 if not found
---		local
---			i,pos: INTEGER
---			attr: ANY
---			internal: INTERNAL
---		do
---			create internal
---			internal.mark (a_decoded)
+		local
+			i,pos: INTEGER
+			attr: ANY
+			internal: INTERNAL
+		do
+			create internal
+			internal.mark (a_decoded)
 				-- to prevent recursive searching
---			from
---				i := 1
---				pos := a_position
---			until
---				i > a_decoded.attribute_values.count or pos <= 0
---			loop
---				pos := pos - 1
---				attr := a_decoded.attribute_values.i_th (i).object
---				if attr /= void then
---					if base_types.has (attr.generating_type) then
---						if pos = 1 then
---							-- found: update the attribute of that decoded object
---							change_value_decoded (a_decoded, a_new_value, i)
---							pos := 0
---						end
---					elseif not internal.is_marked (attr) then
---						if {a_dec_attr: GENERAL_DECODED} attr then
---							pos := find_row_decoded (pos, a_dec_attr, a_new_value)
---						elseif {arr: ARRAY[ANY]} attr then
+			from
+				i := 1
+				pos := a_position
+			until
+				i > a_decoded.attribute_values.count or pos <= 0
+			loop
+				pos := pos - 1
+				attr := a_decoded.attribute_values.i_th (i).object
+				if attr /= void then
+					if base_types.has (attr.generating_type) then
+						if pos = 1 then
+							-- found: update the attribute of that decoded object
+							change_value_decoded (a_decoded, a_new_value, i)
+							pos := 0
+						end
+					elseif not internal.is_marked (attr) then
+						if {a_dec_attr: GENERAL_DECODED} attr then
+							pos := find_row_decoded (pos, a_dec_attr, a_new_value)
+						elseif {arr: ARRAY[ANY]} attr then
 							--array type
---							pos := find_row_array (pos, arr, a_new_value)
---						elseif {spec:SPECIAL[ANY]} attr then
+							pos := find_row_array (pos, arr, a_new_value)
+						elseif {spec:SPECIAL[ANY]} attr then
 							--special type
-							--TODO: implement for special types
---							pos := find_row_special(pos,spec,a_new_value)
---						elseif {chain:CHAIN[ANY]} attr then
---							pos := find_row_chain(pos,chain,a_new_value)
---						elseif {l_tuple:TUPLE[ANY]} attr then
---							pos := find_row_tuple(pos,l_tuple,a_new_value)
---						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} attr then
---							pos := find_row_hashtable(pos,l_hash,a_new_value)
---						else
---							pos := find_row_nondecoded (pos, attr, a_new_value)
---						end
+ 							--TODO: implement for special types
+							pos := find_row_special(pos,spec,a_new_value)
+						elseif {chain:CHAIN[ANY]} attr then
+							pos := find_row_chain(pos,chain,a_new_value)
+						elseif {l_tuple:TUPLE[ANY]} attr then
+							pos := find_row_tuple(pos,l_tuple,a_new_value)
+						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} attr then
+							pos := find_row_hashtable(pos,l_hash,a_new_value)
+						else
+							pos := find_row_nondecoded (pos, attr, a_new_value)
+						end
 
---					end
---				else
+					end
+				else
 					--pos := pos + 1
 					--cycle_abort := true
---				end
---				i := i + 1
+				end
+				i := i + 1
 
---			end
---			Result := pos
---			internal.unmark (a_decoded)
---		end
+			end
+			Result := pos
+			internal.unmark (a_decoded)
+		end
 
-	find_row_nondecoded(a_position: INTEGER; a_obj: ANY; a_new_value: STRING): INTEGER is
+	find_row_nondecoded (a_position: INTEGER; a_obj: ANY; a_new_value: STRING): INTEGER
 			-- same as `find_row_decoded', but for a non-DECODED object
 		local
 			internal: INTERNAL
@@ -210,67 +210,65 @@ feature {NONE}-- Implementation
 			field: ANY
 			pos: INTEGER
 		do
-	--		create internal
-	--		pos := a_position
-	--		internal.mark (a_obj)
-	--		if {root_array: ARRAY[ANY]} a_obj then
-	--			pos := find_row_array (pos, root_array, a_new_value)
-	--		elseif {root_spec:SPECIAL[ANY]} a_obj then
-	--			pos := find_row_special (pos, root_spec, a_new_value)
-	--		elseif {root_chain:CHAIN[ANY]} a_obj then
-	--			pos := find_row_chain(pos,root_chain,a_new_value)
-	--		elseif {root_tuple:TUPLE[ANY]} a_obj then
-	--			pos := find_row_tuple(pos,root_tuple,a_new_value)
-	--		elseif {root_hash:HASH_TABLE[ANY,HASHABLE]} a_obj then
-	--			pos := find_row_hashtable(pos,root_hash,a_new_value)
-	--		else
-	--			from
-	--				i := 1
-	--			until
-	--				i > internal.field_count (a_obj) or pos <= 0
-	--			loop
-	--				pos := pos - 1
-	--				field := internal.field (i, a_obj)
---
---					if field /= Void then
---						if base_types.has (field.generating_type) then
---								--base type
---							if pos = 1 then
---								change_value_nondecoded (a_obj, a_new_value, i)
---
---								pos := 0
----							end
---						elseif not internal.is_marked (field) then
---					--		if {a_dec: GENERAL_DECODED} field then
---								--decoded
-					--			pos := find_row_decoded (pos, a_dec, a_new_value)
-					--		elseif {arr: ARRAY[ANY]} field then
+			create internal
+			pos := a_position
+			internal.mark (a_obj)
+			if {root_array: ARRAY[ANY]} a_obj then
+				pos := find_row_array (pos, root_array, a_new_value)
+			elseif {root_spec:SPECIAL[ANY]} a_obj then
+				pos := find_row_special (pos, root_spec, a_new_value)
+			elseif {root_chain:CHAIN[ANY]} a_obj then
+				pos := find_row_chain(pos,root_chain,a_new_value)
+			elseif {root_tuple:TUPLE[ANY]} a_obj then
+				pos := find_row_tuple(pos,root_tuple,a_new_value)
+			elseif {root_hash:HASH_TABLE[ANY,HASHABLE]} a_obj then
+				pos := find_row_hashtable(pos,root_hash,a_new_value)
+			else
+				from
+					i := 1
+				until
+					i > internal.field_count (a_obj) or pos <= 0
+				loop
+					pos := pos - 1
+					field := internal.field (i, a_obj)
+
+					if field /= Void then
+						if base_types.has (field.generating_type) then
+								--base type
+							if pos = 1 then
+								change_value_nondecoded (a_obj, a_new_value, i)
+								pos := 0
+							end
+						elseif not internal.is_marked (field) then
+							if {a_dec: GENERAL_DECODED} field then
+								--decoded
+								pos := find_row_decoded (pos, a_dec, a_new_value)
+							elseif {arr: ARRAY[ANY]} field then
 								-- array type
-					--			pos := find_row_array (pos, arr, a_new_value)
-					--		elseif {spec:SPECIAL[ANY]} field then
+								pos := find_row_array (pos, arr, a_new_value)
+							elseif {spec:SPECIAL[ANY]} field then
 								--special type
 								--TODO: implement for special types
-					--			pos := find_row_special(pos,spec,a_new_value)
-					--		elseif {chain:CHAIN[ANY]} field then
-					--			pos := find_row_chain(pos,chain,a_new_value)
-					--		elseif {l_tuple:TUPLE[ANY]} field then
-					--			pos := find_row_tuple(pos,l_tuple,a_new_value)
-					--		elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
-					--			pos := find_row_hashtable(pos,l_hash,a_new_value)
-					--		else
-					--			pos := find_row_nondecoded (pos, field, a_new_value)
-					--		end
-					--	end
-				--	end
-				--	i := i + 1
-			--	end
-		--	end
-		--	Result := pos
-		--	internal.unmark (a_obj)
+								pos := find_row_special(pos,spec,a_new_value)
+							elseif {chain:CHAIN[ANY]} field then
+								pos := find_row_chain(pos,chain,a_new_value)
+							elseif {l_tuple:TUPLE[ANY]} field then
+								pos := find_row_tuple(pos,l_tuple,a_new_value)
+							elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
+								pos := find_row_hashtable(pos,l_hash,a_new_value)
+							else
+								pos := find_row_nondecoded (pos, field, a_new_value)
+							end
+						end
+					end
+					i := i + 1
+				end
+			end
+			Result := pos
+			internal.unmark (a_obj)
 		end
 
-
-	find_row_array(a_position: INTEGER; an_array: ARRAY[ANY]; a_new_value: STRING): INTEGER is
+	find_row_array(a_position: INTEGER; an_array: ARRAY[ANY]; a_new_value: STRING): INTEGER
 			-- same as `find_row_decoded', but for a non-DECODED object
 		local
 			internal: INTERNAL
@@ -278,56 +276,54 @@ feature {NONE}-- Implementation
 			field: ANY
 			pos: INTEGER
 		do
-	--		create internal
-	--		pos := a_position
-	--		internal.mark (an_array)
-	--		from
-	--			i := 1
-	--		until
-	--			i > an_array.count or pos <= 0
-	--		loop
-	--			pos := pos -1
-	--			field := an_array.item (i)
-	--			if field /= Void then
-	--				if base_types.has (field.generating_type) then
-	--						--base type
-	--					if pos = 1 then
-	--						change_value_array (an_array, a_new_value, a_position)
-	--						pos := 0
-	--					end
-	--				elseif not internal.is_marked (field) then
-	--		--			if {a_dec: GENERAL_DECODED} field then
-			--				--decoded
-			--				pos := find_row_decoded (pos, a_dec, a_new_value)
-			--			elseif {spec:SPECIAL[ANY]} field then
+			create internal
+			pos := a_position
+			internal.mark (an_array)
+			from
+				i := 1
+			until
+				i > an_array.count or pos <= 0
+			loop
+				pos := pos -1
+				field := an_array.item (i)
+				if field /= Void then
+					if base_types.has (field.generating_type) then
+							--base type
+						if pos = 1 then
+							change_value_array (an_array, a_new_value, a_position)
+							pos := 0
+						end
+					elseif not internal.is_marked (field) then
+						if {a_dec: GENERAL_DECODED} field then
+							--decoded
+							pos := find_row_decoded (pos, a_dec, a_new_value)
+						elseif {spec:SPECIAL[ANY]} field then
 							--special type
 							--TODO: implement for special types
-			--				pos := find_row_special(pos,spec,a_new_value)
-			--			elseif {arr: ARRAY[ANY]} field then
-			--				-- array type
-			--				pos := find_row_array (pos, arr, a_new_value)
-			--			elseif {chain:CHAIN[ANY]} field then
-			--					pos := find_row_chain(pos,chain,a_new_value)
-			--			elseif {l_tuple:TUPLE[ANY]} field then
-			--					pos := find_row_tuple(pos,l_tuple,a_new_value)
-			--			elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
-			--					pos := find_row_hashtable(pos,l_hash,a_new_value)
-			--			else
-			--				pos := find_row_nondecoded (pos, field, a_new_value)
-			--			end
-			--		end
-	--			end
+							pos := find_row_special(pos,spec,a_new_value)
+						elseif {arr: ARRAY[ANY]} field then
+							-- array type
+							pos := find_row_array (pos, arr, a_new_value)
+						elseif {chain:CHAIN[ANY]} field then
+								pos := find_row_chain(pos,chain,a_new_value)
+						elseif {l_tuple:TUPLE[ANY]} field then
+								pos := find_row_tuple(pos,l_tuple,a_new_value)
+						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
+								pos := find_row_hashtable(pos,l_hash,a_new_value)
+						else
+							pos := find_row_nondecoded (pos, field, a_new_value)
+						end
+					end
+				end
 
-
-	--			i := i + 1
-
-	--		end
-	--		Result := pos
-	--		internal.unmark (an_array)
+				i := i + 1
+			end
+			Result := pos
+			internal.unmark (an_array)
 		end
 
 
-	find_row_special(a_position: INTEGER; a_spec: SPECIAL[ANY]; a_new_value: STRING): INTEGER is
+	find_row_special(a_position: INTEGER; a_spec: SPECIAL[ANY]; a_new_value: STRING): INTEGER
 			-- same as `find_row_decoded', but for a non-DECODED object
 		local
 			internal: INTERNAL
@@ -335,109 +331,107 @@ feature {NONE}-- Implementation
 			field: ANY
 			pos: INTEGER
 		do
---			create internal
---			pos := a_position
---			internal.mark (a_spec)
---			from
---				i := 0
---			until
---				i > a_spec.count-1 or pos <= 0
---			loop
---				pos := pos -1
---				field := a_spec.item (i)
---				if field /= Void then
---					if base_types.has (field.generating_type) then
---							--base type
---						if pos = 1 then
---							change_value_spec (a_spec, a_new_value, a_position-1)
---							pos := 0
---						end
---					elseif not internal.is_marked (field) then
---						if {a_dec: GENERAL_DECODED} field then
---							--decoded
---							pos := find_row_decoded (pos, a_dec, a_new_value)
---						elseif {spec:SPECIAL[ANY]} field then
---							--special type
---							--TODO: implement for special types
----							pos := find_row_special(pos,spec,a_new_value)
---						elseif {arr: ARRAY[ANY]} field then
---							-- array type
---							pos := find_row_array (pos, arr, a_new_value)
---						elseif {chain:CHAIN[ANY]} field then
----								pos := find_row_chain(pos,chain,a_new_value)
---						elseif {l_tuple:TUPLE[ANY]} field then
---								pos := find_row_tuple(pos,l_tuple,a_new_value)
---						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
---								pos := find_row_hashtable(pos,l_hash,a_new_value)
---						else
---							pos := find_row_nondecoded (pos, field, a_new_value)
---						end
---					end
---				end
---
+			create internal
+			pos := a_position
+			internal.mark (a_spec)
+			from
+				i := 0
+			until
+				i > a_spec.count-1 or pos <= 0
+			loop
+				pos := pos -1
+				field := a_spec.item (i)
+				if field /= Void then
+					if base_types.has (field.generating_type) then
+							--base type
+						if pos = 1 then
+							change_value_spec (a_spec, a_new_value, a_position-1)
+							pos := 0
+						end
+					elseif not internal.is_marked (field) then
+						if {a_dec: GENERAL_DECODED} field then
+							--decoded
+							pos := find_row_decoded (pos, a_dec, a_new_value)
+						elseif {spec:SPECIAL[ANY]} field then
+							--special type
+							--TODO: implement for special types
+							pos := find_row_special(pos,spec,a_new_value)
+						elseif {arr: ARRAY[ANY]} field then
+							-- array type
+							pos := find_row_array (pos, arr, a_new_value)
+						elseif {chain:CHAIN[ANY]} field then
+							pos := find_row_chain(pos,chain,a_new_value)
+						elseif {l_tuple:TUPLE[ANY]} field then
+								pos := find_row_tuple(pos,l_tuple,a_new_value)
+						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
+								pos := find_row_hashtable(pos,l_hash,a_new_value)
+						else
+							pos := find_row_nondecoded (pos, field, a_new_value)
+						end
+					end
+ 				end
 
---				i := i + 1
-
---			end
---			Result := pos
---			internal.unmark (a_spec)
+				i := i + 1
+			end
+			Result := pos
+			internal.unmark (a_spec)
 		end
 
-	find_row_chain(a_position: INTEGER; a_chain: CHAIN[ANY]; a_new_value: STRING): INTEGER is
+	find_row_chain(a_position: INTEGER; a_chain: CHAIN[ANY]; a_new_value: STRING): INTEGER
 			-- same as `find_row_decoded', but for a non-DECODED object
 		local
 			internal: INTERNAL
 			field: ANY
 			pos: INTEGER
 		do
---			create internal
---			pos := a_position
---			internal.mark (a_chain)
---			from
---				a_chain.start
---			until
---				a_chain.after or pos <= 0
---			loop
---				pos := pos -1
---				field := a_chain.item
---				if field /= Void then
---					if base_types.has (field.generating_type) then
---							--base type
---						if pos = 1 then
---							change_value_chain (a_chain, a_new_value, a_position)
----							pos := 0
---						end
---					elseif not internal.is_marked (field) then
---						if {a_dec: GENERAL_DECODED} field then
---							--decoded
---							pos := find_row_decoded (pos, a_dec, a_new_value)
---						elseif {spec:SPECIAL[ANY]} field then
---							--special type
---							--TODO: implement for special types
---							pos := find_row_special(pos,spec,a_new_value)
---						elseif {arr: ARRAY[ANY]} field then
---							-- array type
---							pos := find_row_array (pos, arr, a_new_value)
---						elseif {chain:CHAIN[ANY]} field then
---								pos := find_row_chain(pos,chain,a_new_value)
---						elseif {l_tuple:TUPLE[ANY]} field then
---								pos := find_row_tuple(pos,l_tuple,a_new_value)
---						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
---								pos := find_row_hashtable(pos,l_hash,a_new_value)
---						else
---							pos := find_row_nondecoded (pos, field, a_new_value)
---						end
---					end
---				end
---
---				a_chain.forth
-----
---			end
---			Result := pos
---			internal.unmark (a_chain)
+			create internal
+			pos := a_position
+			internal.mark (a_chain)
+			from
+				a_chain.start
+			until
+				a_chain.after or pos <= 0
+			loop
+				pos := pos -1
+				field := a_chain.item
+				if field /= Void then
+					if base_types.has (field.generating_type) then
+							--base type
+						if pos = 1 then
+							change_value_chain (a_chain, a_new_value, a_position)
+							pos := 0
+						end
+					elseif not internal.is_marked (field) then
+						if {a_dec: GENERAL_DECODED} field then
+							--decoded
+							pos := find_row_decoded (pos, a_dec, a_new_value)
+						elseif {spec:SPECIAL[ANY]} field then
+							--special type
+							--TODO: implement for special types
+							pos := find_row_special(pos,spec,a_new_value)
+						elseif {arr: ARRAY[ANY]} field then
+							-- array type
+							pos := find_row_array (pos, arr, a_new_value)
+						elseif {chain:CHAIN[ANY]} field then
+								pos := find_row_chain(pos,chain,a_new_value)
+						elseif {l_tuple:TUPLE[ANY]} field then
+								pos := find_row_tuple(pos,l_tuple,a_new_value)
+						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
+								pos := find_row_hashtable(pos,l_hash,a_new_value)
+						else
+							pos := find_row_nondecoded (pos, field, a_new_value)
+						end
+					end
+				end
+
+				a_chain.forth
+
+			end
+			Result := pos
+			internal.unmark (a_chain)
 		end
 
-	find_row_tuple(a_position: INTEGER; a_tuple: TUPLE[ANY]; a_new_value: STRING): INTEGER is
+	find_row_tuple(a_position: INTEGER; a_tuple: TUPLE[ANY]; a_new_value: STRING): INTEGER
 			-- same as `find_row_decoded', but for a non-DECODED object
 		local
 			internal: INTERNAL
@@ -445,119 +439,117 @@ feature {NONE}-- Implementation
 			field: ANY
 			pos: INTEGER
 		do
---			create internal
---			pos := a_position
---			internal.mark (a_tuple)
---			from
---				i := 1
---			until
---				i > a_tuple.count or pos <= 0
---			loop
---				pos := pos -1
---				field := a_tuple.item (i)
---				if field /= Void then
---					if base_types.has (field.generating_type) then
---							--base type
---						if pos = 1 then
---							change_value_tuple (a_tuple, a_new_value, a_position)
---							pos := 0
---						end
---					elseif not internal.is_marked (field) then
---						if {a_dec: GENERAL_DECODED} field then
---							--decoded
---							pos := find_row_decoded (pos, a_dec, a_new_value)
---						elseif {spec:SPECIAL[ANY]} field then
---							--special type
---							--TODO: implement for special types
---							pos := find_row_special(pos,spec,a_new_value)
---						elseif {arr: ARRAY[ANY]} field then
---							-- array type
---							pos := find_row_array (pos, arr, a_new_value)
---						elseif {chain:CHAIN[ANY]} field then
---								pos := find_row_chain(pos,chain,a_new_value)
---						elseif {l_tuple:TUPLE[ANY]} field then
---								pos := find_row_tuple(pos,l_tuple,a_new_value)
---						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
---								pos := find_row_hashtable(pos,l_hash,a_new_value)
---						else
---							pos := find_row_nondecoded (pos, field, a_new_value)
---						end
---					end
---				end
---
---
---				i := i + 1
---
---			end
---			Result := pos
---			internal.unmark (a_tuple)
+			create internal
+			pos := a_position
+			internal.mark (a_tuple)
+			from
+				i := 1
+			until
+				i > a_tuple.count or pos <= 0
+			loop
+				pos := pos -1
+				field := a_tuple.item (i)
+				if field /= Void then
+					if base_types.has (field.generating_type) then
+							--base type
+						if pos = 1 then
+							change_value_tuple (a_tuple, a_new_value, a_position)
+							pos := 0
+						end
+					elseif not internal.is_marked (field) then
+						if {a_dec: GENERAL_DECODED} field then
+							--decoded
+							pos := find_row_decoded (pos, a_dec, a_new_value)
+						elseif {spec:SPECIAL[ANY]} field then
+							--special type
+							--TODO: implement for special types
+							pos := find_row_special(pos,spec,a_new_value)
+						elseif {arr: ARRAY[ANY]} field then
+							-- array type
+							pos := find_row_array (pos, arr, a_new_value)
+						elseif {chain:CHAIN[ANY]} field then
+								pos := find_row_chain(pos,chain,a_new_value)
+						elseif {l_tuple:TUPLE[ANY]} field then
+								pos := find_row_tuple(pos,l_tuple,a_new_value)
+						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
+								pos := find_row_hashtable(pos,l_hash,a_new_value)
+						else
+							pos := find_row_nondecoded (pos, field, a_new_value)
+						end
+					end
+				end
+
+				i := i + 1
+			end
+			Result := pos
+			internal.unmark (a_tuple)
 		end
 
-	find_row_hashtable(a_position: INTEGER; a_hash: HASH_TABLE[ANY,HASHABLE]; a_new_value: STRING): INTEGER is
+	find_row_hashtable(a_position: INTEGER; a_hash: HASH_TABLE[ANY,HASHABLE]; a_new_value: STRING): INTEGER
 			-- same as `find_row_decoded', but for a non-DECODED object
 		local
 			internal: INTERNAL
 			field:ANY
 			pos: INTEGER
 		do
---			create internal
---			pos := a_position
---			internal.mark (a_hash)
---			from
---				a_hash.start
---			until
---				a_hash.off or pos <= 0
---			loop
---				-- decrementing more than 1 ...because hash_table is displayed with the placeholder row pair(key,item) in the GUI
---				pos := pos - 3
---				field := a_hash.item_for_iteration
---				if field /= Void then
---					if base_types.has (field.generating_type) then
---							--base type
---						if pos <= 1 then
---							change_value_hashtable (a_hash, a_new_value, a_position)
---							pos := 0
---						end
---					elseif not internal.is_marked (field) then
---						if {a_dec: GENERAL_DECODED} field then
---							--decoded
---							pos := find_row_decoded (pos, a_dec, a_new_value)
---						elseif {spec:SPECIAL[ANY]} field then
---							--special type
---							--TODO: implement for special types
---							pos := find_row_special(pos,spec,a_new_value)
---						elseif {arr: ARRAY[ANY]} field then
---							-- array type
---							pos := find_row_array (pos, arr, a_new_value)
---						elseif {chain:CHAIN[ANY]} field then
---								pos := find_row_chain(pos,chain,a_new_value)
---						elseif {l_tuple:TUPLE[ANY]} field then
---								pos := find_row_tuple(pos,l_tuple,a_new_value)
---						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
---								pos := find_row_hashtable(pos,l_hash,a_new_value)
---						else
---							pos := find_row_nondecoded (pos, field, a_new_value)
---						end
---					end
---				end
---
---				if pos /= 0 then
---					a_hash.forth
---				end
---
---			end
---			Result := pos
+			create internal
+			pos := a_position
+			internal.mark (a_hash)
+			from
+				a_hash.start
+			until
+				a_hash.off or pos <= 0
+			loop
+				-- decrementing more than 1 ...because hash_table is displayed with the placeholder row pair(key,item) in the GUI
+				pos := pos - 3
+				field := a_hash.item_for_iteration
+				if field /= Void then
+					if base_types.has (field.generating_type) then
+							--base type
+						if pos <= 1 then
+							change_value_hashtable (a_hash, a_new_value, a_position)
+							pos := 0
+						end
+					elseif not internal.is_marked (field) then
+						if {a_dec: GENERAL_DECODED} field then
+							--decoded
+							pos := find_row_decoded (pos, a_dec, a_new_value)
+						elseif {spec:SPECIAL[ANY]} field then
+							--special type
+							--TODO: implement for special types
+							pos := find_row_special(pos,spec,a_new_value)
+						elseif {arr: ARRAY[ANY]} field then
+							-- array type
+							pos := find_row_array (pos, arr, a_new_value)
+						elseif {chain:CHAIN[ANY]} field then
+								pos := find_row_chain(pos,chain,a_new_value)
+						elseif {l_tuple:TUPLE[ANY]} field then
+								pos := find_row_tuple(pos,l_tuple,a_new_value)
+						elseif {l_hash:HASH_TABLE[ANY,HASHABLE]} field then
+								pos := find_row_hashtable(pos,l_hash,a_new_value)
+						else
+							pos := find_row_nondecoded (pos, field, a_new_value)
+						end
+					end
+				end
 
---			internal.unmark (a_hash)
+				if pos /= 0 then
+					a_hash.forth
+				end
+
+			end
+			Result := pos
+
+			internal.unmark (a_hash)
 		end
 
-	get_root_row_index: INTEGER is
+	get_root_row_index: INTEGER
 			-- returns the index of the root row for that object
 		do
 			Result := get_root_row.index
 		end
 
-	get_root_object: ANY is
+	get_root_object: ANY
 			-- returns the root object
 		local
 			l_data:TUPLE[ANY,ARRAY[INTEGER]]
@@ -574,7 +566,7 @@ feature {NONE}-- Implementation
 		end
 
 
-	get_root_row: EV_GRID_ROW is
+	get_root_row: EV_GRID_ROW
 			-- returns the root row this item is part of
 		local
 			r: EV_GRID_ROW
@@ -593,13 +585,13 @@ feature {NONE}-- Implementation
 
 
 
---	change_value_decoded (a_decoded: GENERAL_DECODED; a_value: STRING; a_position: INTEGER) is
+	change_value_decoded (a_decoded: GENERAL_DECODED; a_value: STRING; a_position: INTEGER) is
 			-- change the value at a specified position given a `DECODED' object
---		do
---			a_decoded.change_value (a_value, a_position)
---		end
+		do
+			a_decoded.change_value (a_value, a_position)
+		end
 
-	change_value_nondecoded (a_obj: ANY; a_value: STRING; a_position: INTEGER) is
+	change_value_nondecoded (a_obj: ANY; a_value: STRING; a_position: INTEGER)
 			-- change the value at a specified position given a nondecoded object
 		local
 			l_type_name: STRING
@@ -656,7 +648,7 @@ feature {NONE}-- Implementation
 		end
 
 
-	change_value_array (a_array: ARRAY[ANY]; a_value: STRING; a_position: INTEGER) is
+	change_value_array (a_array: ARRAY[ANY]; a_value: STRING; a_position: INTEGER)
 			-- change one field of an array (non-DECODED)
 		local
 			l_internal: INTERNAL
@@ -713,7 +705,7 @@ feature {NONE}-- Implementation
 
 		end
 
-	change_value_spec(a_spec: SPECIAL[ANY]; a_value: STRING; a_position: INTEGER) is
+	change_value_spec(a_spec: SPECIAL[ANY]; a_value: STRING; a_position: INTEGER)
 			-- change one field of an special (non-DECODED)
 		local
 			l_internal: INTERNAL
@@ -769,7 +761,7 @@ feature {NONE}-- Implementation
 
 		end
 
-	change_value_chain(a_chain: CHAIN[ANY]; a_value: STRING; a_position: INTEGER) is
+	change_value_chain(a_chain: CHAIN[ANY]; a_value: STRING; a_position: INTEGER)
 			-- change one field of a chain (non-DECODED)
 		local
 			l_internal: INTERNAL
@@ -826,7 +818,7 @@ feature {NONE}-- Implementation
 
 		end
 
-	change_value_tuple(a_tuple: TUPLE[ANY]; a_value: STRING; a_position: INTEGER) is
+	change_value_tuple(a_tuple: TUPLE[ANY]; a_value: STRING; a_position: INTEGER)
 			-- change one field of a tuple (non-DECODED)
 		local
 			l_internal: INTERNAL
@@ -883,7 +875,7 @@ feature {NONE}-- Implementation
 
 		end
 
-	change_value_hashtable(a_hash: HASH_TABLE[ANY,HASHABLE]; a_new_value: STRING; a_position: INTEGER) is
+	change_value_hashtable(a_hash: HASH_TABLE[ANY,HASHABLE]; a_new_value: STRING; a_position: INTEGER)
 			-- change one field of a hashtable (non-DECODED)
 		local
 			l_internal: INTERNAL
@@ -907,7 +899,7 @@ feature {NONE}-- Implementation
 				else
 					--value has been edited
 					l_item_index := (((l_edited_row_index - 2) - l_hash_table_index) / a_hash.count).ceiling
-					l_type_name := a_hash.generating_type.substring (a_hash.generating_type.index_of ('[', 1)+1, a_hash.generating_type.index_of (',', 1)-1)
+					l_type_name := a_hash.generating_type.name.substring (a_hash.generating_type.name.index_of ('[', 1)+1, a_hash.generating_type.name.index_of (',', 1)-1)
 					l_type_name.right_adjust
 					l_type_name.left_adjust
 					l_value := generate_correct_object(l_type_name,create {STRING}.make_from_string (a_new_value))
@@ -929,7 +921,7 @@ feature {NONE} -- Implementation helper
 
 	change_value:STRING
 
-	update_all_possible_shared_values(a_value:STRING) is
+	update_all_possible_shared_values(a_value:STRING)
 			-- if the currently edited value, belongs to an object which is shared among other objects
 			-- this procedure updates all values - which belong to the same displayable object (to which the edited item belongs to)
 		local
@@ -956,7 +948,7 @@ feature {NONE} -- Implementation helper
 
 		end
 
-	update_all_possible_values_rek(a_row:EV_GRID_ROW) is
+	update_all_possible_values_rek(a_row:EV_GRID_ROW)
 			-- if the currently edited value, belongs to an object which is shared among other objects
 			-- this procedure updates all values - which belong to the same ES_EBBRO_ES_EBBRO_DISPLAYABLE object (to which the edited item belongs to)
 			-- rekursive implementation to update values ...
@@ -999,7 +991,7 @@ feature {NONE} -- Implementation helper
 
 
 
-	get_first_display_parent(a_row:EV_GRID_ROW):ES_EBBRO_DISPLAYABLE is
+	get_first_display_parent(a_row:EV_GRID_ROW):ES_EBBRO_DISPLAYABLE
 			-- returns the display object to which the currently edited row belongs to...
 			-- rekursivly goes from parent to parent ...until the first displayable.
 		local
@@ -1019,7 +1011,7 @@ feature {NONE} -- Implementation helper
 			end
 		end
 
-	get_local_index(a_parent_row:EV_GRID_ROW;a_child_row:EV_GRID_ROW):INTEGER is
+	get_local_index(a_parent_row:EV_GRID_ROW;a_child_row:EV_GRID_ROW):INTEGER
 			-- returns the real offset from a parent row (which holds the display object) and the row
 			-- which value has been edited.
 		local
@@ -1049,14 +1041,14 @@ feature {NONE} -- Implementation helper
 			end
 		end
 
-	is_valid_character_type(a_value:STRING):BOOLEAN is
+	is_valid_character_type(a_value:STRING):BOOLEAN
 			-- checks whether value is a character
 		do
 			result := a_value.count <=1
 		end
 
 
-	generate_correct_object(l_type_name:STRING;a_value:STRING):ANY is
+	generate_correct_object(l_type_name:STRING;a_value:STRING):ANY
 			-- creates a object which corresponds to l_type_name from a_value
 		do
 
@@ -1102,7 +1094,7 @@ feature {NONE} -- Implementation helper
 				end
 			end
 		end
-indexing
+note
 	copyright: "Copyright (c) 1984-2012, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"

@@ -2167,6 +2167,7 @@ feature -- Title part
 		once
 			Result := locale.formatted_string (locale.translation ("About $1"), [workbench_name])
 		end
+	t_Add_eis_entry: STRING_32					do Result := locale.translation("Add a new entry in the list.")	end
 	t_Add_search_scope: STRING_32				do Result := locale.translation("Add Search Scope")	end
 	t_Alias: STRING_32							do Result := locale.translation("Alias")	end
 	t_All_test_runs: STRING_32					do Result := locale.translation("Show test run history dialog")	end
@@ -2576,6 +2577,8 @@ feature -- Titles translation needless (Title Original) for preference strings.
 	to_Project_toolbar: STRING =				"Project Bar"
 	to_Refactory_toolbar: STRING =				"Refactor Bar"
 
+	to_Ebbro_tool: STRING =						"Ebbro"
+
 feature -- Description texts
 
 	e_Add_exported_feature: STRING_32	do Result := locale.translation("Add a new feature to this dynamic library definition")	end
@@ -2872,7 +2875,7 @@ feature -- String escape
 		end
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2012, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

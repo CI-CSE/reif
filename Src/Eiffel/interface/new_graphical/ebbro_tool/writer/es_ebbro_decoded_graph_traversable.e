@@ -1,4 +1,4 @@
-indexing
+note
 	description: "Objects that traverse a DECODED object graph starting at a specified root DECODED object"
 	author: ""
 	date: "$Date$"
@@ -15,12 +15,12 @@ inherit
 
 feature -- implementation
 
-	internal_traverse is
+	internal_traverse
 
 	local
 		i, nb: INTEGER
 		l_object: ANY
-		l_field: ?ANY
+		l_field: detachable ANY
 		l_int: INTERNAL
 		l_objects_to_visit: like new_dispenser
 		l_visited: like visited_objects
@@ -28,7 +28,7 @@ feature -- implementation
 		l_tuple: TUPLE [ANY]
 		l_dtype: INTEGER
 		l_spec: SPECIAL [ANY]
-		l_arr: ?ARRAY [ANY]
+		l_arr: detachable ARRAY [ANY]
 		r: like root_object
 		l_decoded: BINARY_DECODED
 	do
@@ -69,7 +69,8 @@ feature -- implementation
 				l_dtype := l_int.dynamic_type (l_object)
 				if l_int.is_special_type (l_dtype) then
 					if l_int.is_special_any_type (l_dtype) then
-						if {l_sp: SPECIAL [ANY]} l_object then
+					--	if {l_sp: SPECIAL [ANY]} l_object then
+						if attached {SPECIAL [ANY]} l_object as l_sp then
 							from
 								i := 0
 								nb := l_sp.count
@@ -86,7 +87,8 @@ feature -- implementation
 						end
 					end
 				elseif l_int.is_tuple (l_object) then
-					if {l_tuple_obj: TUPLE} l_object then
+				--	if {l_tuple_obj: TUPLE} l_object then
+					if attached {TUPLE} l_object as l_tuple_obj then
 						from
 							i := 1
 							nb := l_tuple_obj.count + 1
@@ -107,8 +109,6 @@ feature -- implementation
 					from
 						i := 1
 						nb := l_int.field_count_of_type (l_dtype) + 1
-					variant
-						nb - i
 					until
 						i = nb
 					loop
@@ -120,6 +120,8 @@ feature -- implementation
 							end
 						end
 						i := i + 1
+					variant
+						nb - i
 					end
 				end
 -----------------------------------------------------------------------------
@@ -128,8 +130,6 @@ feature -- implementation
 				from
 					i := 1
 					nb := l_decoded.attribute_values.count + 1
-				variant
-					nb - i
 				until
 					i = nb
 				loop
@@ -147,6 +147,8 @@ feature -- implementation
 						end
 					end
 					i := i + 1
+				variant
+					nb - i
 				end
 			end
 
@@ -158,7 +160,7 @@ feature -- implementation
 		from
 			i := 0
 			nb := l_visited.count
-			l_arr := l_visited
+			l_arr := l_visited.to_array
 			l_spec := l_arr.area
 			l_arr := Void
 		until
@@ -175,4 +177,35 @@ feature -- implementation
 
 
 
+note
+	copyright: "Copyright (c) 1984-2012, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
+	copying: "[
+			This file is part of Eiffel Software's Eiffel Development Environment.
+			
+			Eiffel Software's Eiffel Development Environment is free
+			software; you can redistribute it and/or modify it under
+			the terms of the GNU General Public License as published
+			by the Free Software Foundation, version 2 of the License
+			(available at the URL listed under "license" above).
+			
+			Eiffel Software's Eiffel Development Environment is
+			distributed in the hope that it will be useful, but
+			WITHOUT ANY WARRANTY; without even the implied warranty
+			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+			See the GNU General Public License for more details.
+			
+			You should have received a copy of the GNU General Public
+			License along with Eiffel Software's Eiffel Development
+			Environment; if not, write to the Free Software Foundation,
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+		]"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end

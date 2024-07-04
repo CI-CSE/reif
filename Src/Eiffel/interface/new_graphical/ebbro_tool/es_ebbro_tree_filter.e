@@ -1,4 +1,4 @@
-indexing
+note
 	description: "Object which is handles filter funcionality on an ebbro grid"
 	author: ""
 	date: "$Date$"
@@ -15,7 +15,7 @@ create
 	make
 feature -- init
 
-	make is
+	make
 			-- creation
 		do
 			filter_in := false
@@ -23,7 +23,7 @@ feature -- init
 
 feature -- basic operations
 
-	set_grid(a_grid_view:EV_GRID) is
+	set_grid(a_grid_view:EV_GRID)
 			-- sets the grid on which the tree should be build on
 		require
 			not_void: a_grid_view /= void
@@ -31,7 +31,7 @@ feature -- basic operations
 			main_grid := a_grid_view
 		end
 
-	set_filter_in(a_value:BOOLEAN) is
+	set_filter_in(a_value:BOOLEAN)
 			-- sets the filter in flag and updates accordingly
 		do
 			filter_in := a_value
@@ -47,21 +47,21 @@ feature -- settings
 
 feature -- filter activations
 
-	activate_void_filter(a_row:EV_GRID_ROW) is
+	activate_void_filter(a_row:EV_GRID_ROW)
 			-- activates the void filter on a row
 		do
 			reset_object_filter (a_row)
 			filter_void_objects (a_row)
 		end
 
-	activate_cycle_filter(a_row:EV_GRID_ROW) is
+	activate_cycle_filter(a_row:EV_GRID_ROW)
 			-- activates a cycle filter on a row
 		do
 			reset_object_filter (a_row)
 			filter_cycle_objects(a_row)
 		end
 
-	reset_object_filter(a_row:EV_GRID_ROW) is
+	reset_object_filter(a_row:EV_GRID_ROW)
 			-- resets all filters and shows all objects on a row
 		do
 			show_all_objects(a_row)
@@ -75,7 +75,7 @@ feature{NONE} --implementation access
 feature{NONE} --implementation
 
 
-	update_filtered_objects is
+	update_filtered_objects
 			-- updates the filters on all root objects
 			-- used when filter options change (filter IN / OUT)
 		local
@@ -113,7 +113,7 @@ feature{NONE} --implementation
 		end
 
 
-	show_all_objects(a_row:EV_GRID_ROW) is
+	show_all_objects(a_row:EV_GRID_ROW)
 			-- show all objects - none filter
 		local
 			l_sub_row:EV_GRID_ROW
@@ -135,7 +135,7 @@ feature{NONE} --implementation
 		end
 
 
-	has_void_subrow(a_row:EV_GRID_ROW):BOOLEAN is
+	has_void_subrow(a_row:EV_GRID_ROW):BOOLEAN
 			-- help routine which checks whether row has a void object in a subrow or not (recursive)
 		local
 			l_sub_row:EV_GRID_ROW
@@ -150,14 +150,14 @@ feature{NONE} --implementation
 				l_sub_row := a_row.subrow (i)
 				if l_sub_row.subrow_count > 0 then
 					result := has_void_subrow(l_sub_row)
-				elseif {l_item:EV_GRID_LABEL_ITEM} l_sub_row.item (3) and then l_item.text.is_equal (void_type)  then
+				elseif attached {EV_GRID_LABEL_ITEM} l_sub_row.item (3) as l_item and then l_item.text.is_equal (void_type)  then
 					result := true
 				end
 				i := i + 1
 			end
 		end
 
-	has_cycle_subrow(a_row:EV_GRID_ROW):BOOLEAN is
+	has_cycle_subrow(a_row:EV_GRID_ROW):BOOLEAN
 			-- help routine which checks whether row has cycle object in a subrow or not (recursive)
 		local
 			l_sub_row:EV_GRID_ROW
@@ -183,7 +183,7 @@ feature{NONE} --implementation
 
 
 
-	filter_void_objects(a_row:EV_GRID_ROW) is
+	filter_void_objects(a_row:EV_GRID_ROW)
 			-- filters out / in void objects ( recursive)
 		local
 			l_sub_row:EV_GRID_ROW
@@ -200,7 +200,7 @@ feature{NONE} --implementation
 					if l_sub_row.subrow_count > 0 and then has_void_subrow (l_sub_row) then
 						filter_void_objects(l_sub_row)
 					else
-						if {l_item:EV_GRID_LABEL_ITEM} l_sub_row.item (3) and then not l_item.text.is_equal (void_type) then
+						if attached {EV_GRID_LABEL_ITEM} l_sub_row.item (3) as l_item and then not l_item.text.is_equal (void_type) then
 							l_sub_row.hide
 						else
 							l_sub_row.show
@@ -211,7 +211,7 @@ feature{NONE} --implementation
 					if l_sub_row.subrow_count > 0 then
 						filter_void_objects(l_sub_row)
 					else
-						if {l_item2:EV_GRID_LABEL_ITEM} l_sub_row.item (3) and then l_item2.text.is_equal (void_type) then
+						if attached {EV_GRID_LABEL_ITEM} l_sub_row.item (3) as l_item2 and then l_item2.text.is_equal (void_type) then
 							l_sub_row.hide
 						else
 							l_sub_row.show
@@ -223,7 +223,7 @@ feature{NONE} --implementation
 			end
 		end
 
-	filter_cycle_objects(a_row:EV_GRID_ROW) is
+	filter_cycle_objects(a_row:EV_GRID_ROW)
 			-- filters out / in cycle objects (recursive)
 		local
 			l_sub_row:EV_GRID_ROW
@@ -267,8 +267,8 @@ feature{NONE} --implementation
 		end
 
 
-indexing
-	copyright: "Copyright (c) 1984-2009, Eiffel Software"
+note
+	copyright: "Copyright (c) 1984-2012, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -292,10 +292,10 @@ indexing
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 5949 Hollister Ave., Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 end

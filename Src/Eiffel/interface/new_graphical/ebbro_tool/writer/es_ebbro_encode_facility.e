@@ -1,4 +1,4 @@
-indexing
+note
 	description: "Objects that decides which serialization mechanism to use, then serializes an object to a file"
 	author: ""
 	date: "$Date$"
@@ -16,7 +16,7 @@ create
 
 feature -- creation
 
-	make(a_controller: ES_EBBRO_CONTROLLER) is
+	make(a_controller: ES_EBBRO_CONTROLLER)
 			-- create a new ENCODE_FACILITY with a controller
 		do
 			controller := a_controller
@@ -31,7 +31,7 @@ feature -- Implementation
 
 feature -- basic operations
 
-	serialize_object(a_displayable: ES_EBBRO_DISPLAYABLE;a_format:INTEGER; a_filename:STRING; a_filepath:STRING) is
+	serialize_object(a_displayable: ES_EBBRO_DISPLAYABLE;a_format:INTEGER; a_filename:STRING; a_filepath:STRING)
 			-- write an object back to the file with all updated fields
 		require
 			a_displayable_not_void: a_displayable /= Void
@@ -74,7 +74,8 @@ feature -- basic operations
 				end
 
 			else
-				if a_format = binary_format_id and then {l_bin_dec:BINARY_DECODED} a_displayable.original_decoded then
+				if a_format = binary_format_id and then attached {BINARY_DECODED} a_displayable.original_decoded as l_bin_dec then
+			--	if a_format = binary_format_id and then {l_bin_dec:BINARY_DECODED} a_displayable.original_decoded then
 					-- object that was displayed is attached as a `BINARY_DECODED' object, use the `TYPE_INDEPENDENT_SERIALIZER'
 					l_type_ind_ser.set_is_for_fast_retrieval (false)
 
@@ -101,13 +102,13 @@ feature -- basic operations
 
 feature -- Actions for Controller
 
-	on_encode_object(a_displayable: ES_EBBRO_DISPLAYABLE;a_format:INTEGER; a_filename:STRING; a_filepath:STRING) is
+	on_encode_object(a_displayable: ES_EBBRO_DISPLAYABLE;a_format:INTEGER; a_filename:STRING; a_filepath:STRING)
 			-- encode an object
 		do
 			serialize_object(a_displayable,a_format, a_filename, a_filepath)
 		end
 
-indexing
+note
 	copyright: "Copyright (c) 1984-2012, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"

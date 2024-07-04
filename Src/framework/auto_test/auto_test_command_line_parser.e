@@ -108,6 +108,8 @@ feature{NONE} -- Initialization
 			l_pr_check_objects: AP_FLAG
 			l_arff_directory_option: AP_STRING_OPTION
 			l_online_statistics_frequency: AP_INTEGER_OPTION
+			l_retrieve_serialization_on_line_option: AP_FLAG
+			l_output_test_case_on_line_option: AP_FLAG
 
 			l_dir: DIRECTORY
 			l_file_name: FILE_NAME
@@ -412,6 +414,14 @@ feature{NONE} -- Initialization
 			create l_online_statistics_frequency.make_with_long_form ("online-statistics-frequency")
 			l_online_statistics_frequency.set_description ("Specify the frequency of online-statistics output. Format: --online-statistics-frequency <seconds>. <seconds> is the number of seconds. If 0, no online-statistics will be outputed. Default: 0.")
 			parser.options.force_last (l_online_statistics_frequency)
+
+			create l_retrieve_serialization_on_line_option.make_with_long_form ("retrieve-serialization-online")
+			l_retrieve_serialization_on_line_option.set_description ("Should the proxy side retrieve test case serialization during testing? Only have effect when test case serialization is enabled. Default: False.")
+			parser.options.force_last (l_retrieve_serialization_on_line_option)
+
+			create l_output_test_case_on_line_option.make_with_long_form ("output-test-case-online")
+			l_output_test_case_on_line_option.set_description ("Should AutoTest output test case files during testing? Have effect only if the option retrieve-serialization-online is enabled. Default: False")
+			parser.options.force_last (l_output_test_case_on_line_option)
 
 			parser.parse_list (a_arguments)
 
@@ -1011,6 +1021,14 @@ feature{NONE} -- Initialization
 				online_statistics_frequency := 0
 			end
 
+			if l_retrieve_serialization_on_line_option.was_found then
+				is_test_case_serialization_retrieved_online := True
+			end
+
+			if l_output_test_case_on_line_option.was_found then
+				is_output_test_case_on_line := True
+			end
+
 --			if parser.parameters.count = 0 then
 --				error_handler.report_missing_ecf_filename_error
 --				-- TODO: Display usage_instruction (currently not exported, find better way to do it.)
@@ -1368,6 +1386,16 @@ feature -- Status report
 			-- Number of seconds for the online-statistics to be outputed once.
 			-- If 0, no online-statistics is outputed.
 			-- Default: 0
+
+	is_test_case_serialization_retrieved_online: BOOLEAN
+			-- Is test case serialization retrieved online during testing?
+			-- Only have effect when test case serialization is enabled.
+			-- Default: False
+
+	is_output_test_case_on_line: BOOLEAN
+			-- Should AutoTest output test case files during testing?
+			-- Only have effect when `is_test_case_serialization_retrieved_online' is True.
+			-- Default: False
 
 feature{NONE} -- Implementation
 

@@ -48,9 +48,9 @@ feature{NONE} -- Initialization
 
 				-- Config the `test_case_categorizer' and subscribe it to `data_event'.
 			if a_conf.is_deserializing_for_fixing then
-				create {AUT_TEST_CASE_CATEGORIZER_BY_FAULT}test_case_extractor.make (configuration)
+				create {AUT_TEST_CASE_CATEGORIZER_BY_FAULT}test_case_extractor.make (configuration, configuration.data_output)
 			elseif a_conf.is_test_case_deserialization_enabled then
-				create {AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST}test_case_extractor.make (configuration)
+				create {AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST}test_case_extractor.make (configuration, configuration.data_output)
 			end
 			if test_case_extractor /= VOid then
 				deserialization_started_event.subscribe (agent test_case_extractor.on_deserialization_started)
@@ -218,8 +218,7 @@ feature{NONE} -- Implementation
 			l_retried: BOOLEAN
 			l_line: STRING
 		do
-			io.put_string (once "%NNow processing: " + a_file.name + once "...")
-
+			on_deserialization_start_actions.call ([once "%NNow processing: " + a_file.name + once "..."])
 			if not l_retried then
 				a_file.open_read
 				if a_file.is_open_read then
@@ -239,8 +238,7 @@ feature{NONE} -- Implementation
 			else
 				configuration.error_handler.report_error_message ("Bad serialization data file: " + a_file.name)
 			end
-
-			io.put_string (once "Done.")
+			on_deserialization_end_actions.call ([once "Done."])
 		rescue
 			l_retried := True
 			retry
@@ -286,30 +284,6 @@ feature{NONE} -- Implementation
 			retry
 		end
 
-	last_class_name: detachable STRING
-
-	last_time: detachable STRING
-
-	last_test_case: detachable STRING
-
-	last_operands: detachable STRING
-
-	last_variables: detachable STRING
-
-	last_trace: detachable STRING
-
-	last_hash_code: detachable STRING
-
-	last_pre_state: detachable STRING
-
-	last_post_state: detachable STRING
-
-	last_length: detachable STRING
-
-	last_pre_serialization: detachable ARRAY[NATURAL_8]
-
-	last_post_serialization: detachable ARRAY[NATURAL_8]
-
 	last_tag: detachable STRING
 
 	last_file_path: detachable STRING
@@ -327,22 +301,6 @@ feature{NONE} -- Auxiliary routines
 			is_inside_serialization := True
 
 			reset_serialization_data
-		end
-
-	reset_serialization_data
-			-- Reset serialization data used during parsing.
-		do
-			last_class_name := Void
-			last_time := Void
-			last_test_case := Void
-			last_operands := Void
-			last_variables := Void
-			last_trace := Void
-			last_hash_code := Void
-			last_pre_state := Void
-			last_post_state := Void
-			last_length := Void
-			last_pre_serialization := Void
 		end
 
 	collect_tag_block (a_tag: STRING; a_line: STRING; a_stream: RAW_FILE)

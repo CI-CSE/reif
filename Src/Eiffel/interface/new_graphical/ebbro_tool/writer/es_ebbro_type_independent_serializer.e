@@ -1,4 +1,4 @@
-indexing
+note
 	description: "Objects that ..."
 	author: ""
 	date: "$Date$"
@@ -24,7 +24,7 @@ create
 
 feature --Creation
 
-	make (a_serializer: SED_READER_WRITER) is
+	make (a_serializer: SED_READER_WRITER)
 			-- Initialize current instance
 		do
 			create internal
@@ -44,13 +44,13 @@ feature {NONE} -- Implementation
 	decoded_map: HASH_TABLE[BINARY_DECODED,INTEGER]
 		-- mapping of all decoded objects found using `traversable.traverse'
 
-	decoded_breadth_first_traversable: ES_EBBRO_DECODED_GRAPH_BREADTH_FIRST_TRAVERSABLE is
+	decoded_breadth_first_traversable: ES_EBBRO_DECODED_GRAPH_BREADTH_FIRST_TRAVERSABLE
 			-- Return an instance of DECODED_GRAPH_BREADTH_FIRST_TRAVERSABLE.
 		once
 			Result := create {ES_EBBRO_DECODED_GRAPH_BREADTH_FIRST_TRAVERSABLE}
 		end
 
-	decoded_depth_first_traversable: ES_EBBRO_DECODED_GRAPH_DEPTH_FIRST_TRAVERSABLE is
+	decoded_depth_first_traversable: ES_EBBRO_DECODED_GRAPH_DEPTH_FIRST_TRAVERSABLE
 			-- Return an instance of DECODED_GRAPH_DEPTH_FIRST_TRAVERSABLE.
 		once
 			Result := create {ES_EBBRO_DECODED_GRAPH_DEPTH_FIRST_TRAVERSABLE}
@@ -60,14 +60,14 @@ feature {NONE} -- Implementation
 
 feature -- Access
 
-	set_root_object (a_decoded_object: BINARY_DECODED ) is
+	set_root_object (a_decoded_object: BINARY_DECODED )
 			-- Make 'an_object' the root_object.
 		do
 			traversable.set_root_object (a_decoded_object)
 			is_root_object_set := true
 		end
 
-	write_header (a_list: ARRAYED_LIST [ANY]) is
+	write_header (a_list: ARRAYED_LIST [ANY])
 			-- Write header of storable.
 		local
 			l_dtype_table, l_attr_dtype_table: like type_table
@@ -116,7 +116,8 @@ feature -- Access
 				l_ser.write_compressed_natural_32 (l_dtype.abs.to_natural_32)
 
 				-- Write type name
-				if {l_root_dec: BINARY_DECODED} root_object then
+				if attached {BINARY_DECODED} root_object as l_root_dec then
+			--	if {l_root_dec: BINARY_DECODED} root_object then
 					if l_root_dec.header_tuple_array.has (-l_dtype) then
 						l_ser.write_string_8 (l_root_dec.header_tuple_array.item(-l_dtype))
 					else
@@ -154,14 +155,14 @@ feature -- Access
 
 
 
-	type_table (a_list: ARRAYED_LIST [ANY]): HASH_TABLE [INTEGER, INTEGER] is
+	type_table (a_list: ARRAYED_LIST [ANY]): HASH_TABLE [INTEGER, INTEGER]
 			-- Given a list of objects `a_list', builds a compact table of the
 			-- dynamic type IDs present in `a_list'.
 			-- it also records the type NAMES in this version
 		local
 			l_dtype: INTEGER
 			l_int: like internal
-			l_array: ?ARRAY [ANY]
+			l_array: detachable ARRAY [ANY]
 			l_area: SPECIAL [ANY]
 			i, nb: INTEGER
 
@@ -176,7 +177,7 @@ feature -- Access
 					-- there will be in the system, we guessed that 500 should give
 					-- us a good initial number in most cases.
 				create Result.make (500)
-				l_array := a_list
+				l_array := a_list.to_array
 				l_area := l_array.area
 				l_array := Void
 				i := 0
@@ -201,7 +202,7 @@ feature -- Access
 			end
 		end
 
-	write_attributes_decoded (a_decoded: BINARY_DECODED) is
+	write_attributes_decoded (a_decoded: BINARY_DECODED)
 			-- Write attribute description for type whose dynamic type id is `a_dtype'.
 			-- if the object to be written is a decoded
 		local
@@ -248,7 +249,8 @@ feature -- Access
 						if l_any /= Void then
 							l_ser.write_compressed_natural_32 (l_int.dynamic_type (l_any).to_natural_32)
 						else
-							if {l_root_dec: BINARY_DECODED} root_object then
+						--	if {l_root_dec: BINARY_DECODED} root_object then
+						if attached {BINARY_DECODED} root_object as l_root_dec then
 								if l_root_dec.header_tuple_array.has (l_dtype) and then l_int.dynamic_type_from_string (l_root_dec.header_tuple_array.item (l_dtype)) >= 0 then
 									l_dtype := l_int.dynamic_type_from_string (l_root_dec.header_tuple_array.item (l_dtype))
 								end
@@ -267,7 +269,7 @@ feature -- Access
 		end
 
 
-	encode_objects (a_list: ARRAYED_LIST [ANY]) is
+	encode_objects (a_list: ARRAYED_LIST [ANY])
 			-- Encode all objects referenced in `a_list'.
 			-- allow encoding of `DECODED' objects.
 		local
@@ -280,7 +282,7 @@ feature -- Access
 			l_obj: ANY
 			i, nb: INTEGER
 			l_area: SPECIAL [ANY]
-			l_array: ?ARRAY [ANY]
+			l_array: detachable ARRAY [ANY]
 			l_dec: BINARY_DECODED
 		do
 			l_int := internal
@@ -291,7 +293,7 @@ feature -- Access
 
 
 			from
-				l_array := a_list
+				l_array := a_list.to_array
 				l_area := l_array.area
 				l_array := Void
 				i := 0
@@ -377,7 +379,8 @@ feature -- Access
 							l_ser.write_compressed_integer_32 (l_spec_item_type)
 
 								-- Store count of special
-							if {l_abstract_spec: ABSTRACT_SPECIAL} l_obj then
+						--	if {l_abstract_spec: ABSTRACT_SPECIAL} l_obj then
+							if attached {ABSTRACT_SPECIAL} l_obj as l_abstract_spec then
 								l_ser.write_compressed_integer_32 (l_abstract_spec.count)
 							else
 								check l_abstract_spec_attached: False end
@@ -388,7 +391,8 @@ feature -- Access
 						if l_is_for_slow_retrieval then
 							l_ser.write_natural_8 (is_tuple_flag)
 						end
-						if {l_tuple: TUPLE} l_obj then
+					--	if {l_tuple: TUPLE} l_obj then
+						if attached {TUPLE} l_obj as l_tuple then
 							encode_tuple_object (l_tuple)
 						else
 							check
@@ -406,7 +410,7 @@ feature -- Access
 		end
 
 
-	write_object_table (a_list: ARRAYED_LIST [ANY]) is
+	write_object_table (a_list: ARRAYED_LIST [ANY])
 			-- Write mapping between object's reference ID in `a_list' with
 			-- all the necessary information necessary to recreate it at a
 			-- later time.
@@ -419,7 +423,7 @@ feature -- Access
 			l_dtype, l_spec_item_type: INTEGER
 			l_obj: ANY
 			l_area: SPECIAL [ANY]
-			l_array: ?ARRAY [ANY]
+			l_array: detachable ARRAY [ANY]
 			l_dec: BINARY_DECODED
 		do
 			if is_for_fast_retrieval then
@@ -431,9 +435,8 @@ feature -- Access
 				l_object_indexes := object_indexes
 				l_spec_mapping := special_type_mapping
 
-
 				from
-					l_array := a_list
+					l_array := a_list.to_array
 					l_area := l_array.area
 					l_array := Void
 					i := 0
@@ -501,7 +504,8 @@ feature -- Access
 							l_ser.write_compressed_integer_32 (l_spec_item_type)
 
 								-- Write number of elements in SPECIAL
-							if {l_abstract_spec: ABSTRACT_SPECIAL} l_obj then
+						--	if {l_abstract_spec: ABSTRACT_SPECIAL} l_obj then
+							if attached {ABSTRACT_SPECIAL} l_obj as l_abstract_spec then
 								l_ser.write_compressed_integer_32 (l_abstract_spec.count)
 							else
 								check
@@ -526,7 +530,7 @@ feature -- Access
 
 
 
-	encode_special_decoded(a_decoded: BINARY_DECODED) is
+	encode_special_decoded(a_decoded: BINARY_DECODED)
 			-- encode a special type object wrapped in a DECODED object
 			-- note: this has to be of type SPECIAL[ANY], otherwise it wouldn't be wrapped in a DECODED
 		require
@@ -545,7 +549,7 @@ feature -- Access
 			end
 		end
 
-	encode_tuple_decoded(a_decoded: BINARY_DECODED) is
+	encode_tuple_decoded(a_decoded: BINARY_DECODED)
 			-- encode a tuple object wrapped in a DECODED object
 		require
 			is_tuple_decoded: a_decoded.is_tuple
@@ -566,56 +570,57 @@ feature -- Access
 				l_attr := a_decoded.attribute_values.i_th (i).object
 
 				if l_attr /= void then
-					if {l_attr_dec: BINARY_DECODED} l_attr then
+				--	if {l_attr_dec: BINARY_DECODED} l_attr then
+					if attached {BINARY_DECODED} l_attr as l_attr_dec then
 						-- of type DECODED
 						l_ser.write_natural_8 ({TUPLE}.reference_code)
 						encode_reference (l_attr_dec)
 					else
 						-- known type
 
-						if {l_char8: CHARACTER_8} l_attr then
+						if attached {CHARACTER_8} l_attr as l_char8 then
 							l_ser.write_natural_8 ({TUPLE}.character_8_code)
 							l_ser.write_character_8 (l_char8)
-						elseif {l_char32: CHARACTER_32} l_attr then
+						elseif attached {CHARACTER_32} l_attr as l_char32 then
 							l_ser.write_natural_8 ({TUPLE}.character_32_code)
 							l_ser.write_character_32 (l_char32)
 
-						elseif {l_bool: BOOLEAN} l_attr then
+						elseif attached {BOOLEAN} l_attr as l_bool then
 							l_ser.write_natural_8 ({TUPLE}.boolean_code)
 							l_ser.write_boolean ( l_bool )
 
-						elseif {l_nat8: NATURAL_8} l_attr then
+						elseif attached {NATURAL_8} l_attr as l_nat8 then
 							l_ser.write_natural_8 ({TUPLE}.natural_8_code)
 							l_ser.write_natural_8 (l_nat8)
-						elseif {l_nat16: NATURAL_16} l_attr then
+						elseif attached {NATURAL_16} l_attr as l_nat16 then
 							l_ser.write_natural_8 ({TUPLE}.natural_16_code)
 							l_ser.write_natural_16 (l_nat16)
-						elseif {l_nat32: NATURAL_32} l_attr then
+						elseif attached {NATURAL_32} l_attr as l_nat32 then
 							l_ser.write_natural_8 ({TUPLE}.natural_32_code)
 							l_ser.write_natural_32 (l_nat32)
-						elseif {l_nat64: NATURAL_64} l_attr then
+						elseif attached {NATURAL_64} l_attr as l_nat64 then
 							l_ser.write_natural_8 ({TUPLE}.natural_64_code)
 							l_ser.write_natural_64 (l_nat64)
 
-						elseif {l_int8: INTEGER_8} l_attr then
+						elseif attached {INTEGER_8} l_attr as l_int8 then
 							l_ser.write_natural_8 ({TUPLE}.integer_8_code)
 							l_ser.write_integer_8 (l_int8)
-						elseif {l_int16: INTEGER_16} l_attr then
+						elseif attached {INTEGER_16} l_attr as l_int16 then
 							l_ser.write_natural_8 ({TUPLE}.integer_16_code)
 							l_ser.write_integer_16 (l_int16)
-						elseif {l_int32: INTEGER_32} l_attr then
+						elseif attached {INTEGER_32} l_attr as l_int32 then
 							l_ser.write_natural_8 ({TUPLE}.integer_32_code)
 							l_ser.write_integer_32 (l_int32)
-						elseif {l_int64: INTEGER_64} l_attr then
+						elseif attached {INTEGER_64} l_attr as l_int64 then
 							l_ser.write_natural_8 ({TUPLE}.integer_64_code)
 							l_ser.write_integer_64 (l_int64)
-						elseif {l_real32: REAL_32} l_attr then
+						elseif attached {REAL_32} l_attr as l_real32 then
 							l_ser.write_natural_8 ({TUPLE}.real_32_code)
 							l_ser.write_real_32 (l_real32)
-						elseif {l_real64: REAL_64} l_attr then
+						elseif attached {REAL_64} l_attr as l_real64 then
 							l_ser.write_natural_8 ({TUPLE}.real_64_code)
 							l_ser.write_real_64 (l_real64)
-						elseif {l_pointer: POINTER} l_attr then
+						elseif attached {POINTER} l_attr as l_pointer then
 							l_ser.write_natural_8 ({TUPLE}.pointer_code)
 							l_ser.write_pointer (l_pointer)
 						else
@@ -633,7 +638,7 @@ feature -- Access
 		end
 
 
-	encode_normal_decoded(a_decoded: BINARY_DECODED) is
+	encode_normal_decoded(a_decoded: BINARY_DECODED)
 			-- encode a normal DECODED object
 		require
 			a_decoded_not_special: not a_decoded.is_special
@@ -671,7 +676,8 @@ feature -- Access
 				l_field := a_decoded.attribute_values.i_th (i).object
 				l_gen_type := a_decoded.attribute_generic_types.i_th (i).dtype
 
-				if {l_field_dec: BINARY_DECODED} l_field then
+			--	if {l_field_dec: BINARY_DECODED} l_field then
+				if attached {BINARY_DECODED} l_field as l_field_dec then
 						-- field is another DECODED object
 					encode_reference (l_field_dec)
 				else
@@ -741,7 +747,7 @@ feature -- Access
 		end
 
 
-	attributes_dynamic_types (a_type_table: like type_table): like type_table is
+	attributes_dynamic_types (a_type_table: like type_table): like type_table
 			-- Table of dynamic types of attributes appearing in `a_type_table'.
 		local
 			l_int: like internal
@@ -770,7 +776,8 @@ feature -- Access
 					loop
 						l_attr := l_dec.attribute_values.i_th (i).object
 						if l_attr /= void then
-							if {l_attr_dec: BINARY_DECODED} l_attr then
+						--	if {l_attr_dec: BINARY_DECODED} l_attr then
+							if attached {BINARY_DECODED} l_attr as l_attr_dec then
 								l_dtype := l_attr_dec.generic_type
 							else
 								l_dtype := l_int.dynamic_type (l_attr)
@@ -782,7 +789,8 @@ feature -- Access
 						else
 							l_dtype := l_dec.attribute_generic_types.i_th (i).dtype
 							l_no_put := false
-							if {l_root_dec: BINARY_DECODED} root_object then
+						--	if {l_root_dec: BINARY_DECODED} root_object then
+							if attached {BINARY_DECODED} root_object as l_root_dec then
 								if l_root_dec.header_tuple_array.has (l_dtype) and then l_int.dynamic_type_from_string (l_root_dec.header_tuple_array.item (l_dtype)) >= 0 then
 									l_dtype := l_int.dynamic_type_from_string (l_root_dec.header_tuple_array.item (l_dtype))
 								elseif l_dtype <= l_int.max_predefined_type then
@@ -822,15 +830,15 @@ feature -- Access
 			end
 		end
 
-	is_dtype_of_decoded(a_dtype: INTEGER): BOOLEAN is
+	is_dtype_of_decoded(a_dtype: INTEGER): BOOLEAN
 			-- tests if a d_type occurs in a DECODED object
 		do
 			result := decoded_map.has (a_dtype)
 		end
 
 
-indexing
-	copyright: "Copyright (c) 1984-2009, Eiffel Software"
+note
+	copyright: "Copyright (c) 1984-2012, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -854,10 +862,10 @@ indexing
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 5949 Hollister Ave., Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 end
