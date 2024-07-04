@@ -8714,11 +8714,11 @@ end
 					temp_keyword_as := Void
 				end
 				if yyvs20.item (yyvsp20) /= Void then
-					yyval79 := ast_factory.new_routine_as (temp_string_as1, yyvs76.item (yyvsp76), yyvs119.item (yyvsp119), yyvs78.item (yyvsp78), yyvs51.item (yyvsp51), yyvs20.item (yyvsp20).second, yyvs12.item (yyvsp12), once_manifest_string_count, fbody_pos, temp_keyword_as, yyvs20.item (yyvsp20).first, object_test_locals)
+					yyval78 := ast_factory.new_routine_as (temp_string_as1, yyvs75.item (yyvsp75), yyvs118.item (yyvsp118), yyvs77.item (yyvsp77), yyvs51.item (yyvsp51), yyvs20.item (yyvsp20).second, yyvs12.item (yyvsp12), once_manifest_string_counter_value, fbody_pos, temp_keyword_as, yyvs20.item (yyvsp20).first, object_test_locals)
 				else
-					yyval79 := ast_factory.new_routine_as (temp_string_as1, yyvs76.item (yyvsp76), yyvs119.item (yyvsp119), yyvs78.item (yyvsp78), yyvs51.item (yyvsp51), Void, yyvs12.item (yyvsp12), once_manifest_string_count, fbody_pos, temp_keyword_as, Void, object_test_locals)
+					yyval78 := ast_factory.new_routine_as (temp_string_as1, yyvs75.item (yyvsp75), yyvs118.item (yyvsp118), yyvs77.item (yyvsp77), yyvs51.item (yyvsp51), Void, yyvs12.item (yyvsp12), once_manifest_string_counter_value, fbody_pos, temp_keyword_as, Void, object_test_locals)
 				end
-				once_manifest_string_count := 0
+				reset_once_manifest_string_counter
 				object_test_locals := Void
 			
 if yy_parsing_status >= yyContinue then
@@ -11035,16 +11035,11 @@ debug ("GEYACC")
 	std.error.put_line ("Executing parser user-code from file 'eiffel.y' at line <not available>")
 end
 
-				yyval82 := yyvs82.item (yyvsp82)
-				if not is_ignoring_attachment_marks and then yyval82 /= Void then
-					yyval82.set_attachment_mark (yyvs4.item (yyvsp4), False, True)
+				yyval81 := yyvs81.item (yyvsp81)
+				if attached yyval81 then
+					yyval81.set_separate_mark (yyvs12.item (yyvsp12))
 				end
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line (yyvs4.item (yyvsp4)), token_column (yyvs4.item (yyvsp4)), filename,
-						once "Use the `detachable' keyword instead of ?."))
-				end
-		
+			
 if yy_parsing_status >= yyContinue then
 	yyssp := yyssp - 2
 	yyvsp4 := yyvsp4 -1
@@ -11150,7 +11145,9 @@ debug ("GEYACC")
 end
 
 				yyval82 := yyvs82.item (yyvsp82)
-				yyval82.set_separate_mark (yyvs12.item (yyvsp12))
+				if attached yyval82 then
+					yyval82.set_separate_mark (yyvs12.item (yyvsp12))
+				end
 			
 if yy_parsing_status >= yyContinue then
 	yyssp := yyssp - 2
@@ -11221,9 +11218,9 @@ debug ("GEYACC")
 	std.error.put_line ("Executing parser user-code from file 'eiffel.y' at line <not available>")
 end
 
-				yyval117 := yyvs117.item (yyvsp117)
-				if yyval117 /= Void then
-					yyval117.set_positions (yyvs4.item (yyvsp4 - 1), yyvs4.item (yyvsp4))
+				yyval81 := yyvs81.item (yyvsp81)
+				if attached yyval81 then
+					yyval81.set_separate_mark (yyvs12.item (yyvsp12))
 				end
 			
 if yy_parsing_status >= yyContinue then
@@ -11352,7 +11349,9 @@ debug ("GEYACC")
 end
 
 				yyval82 := yyvs82.item (yyvsp82)
-				yyval82.set_separate_mark (yyvs12.item (yyvsp12))
+				if attached yyval82 then
+					yyval82.set_separate_mark (yyvs12.item (yyvsp12))
+				end
 			
 if yy_parsing_status >= yyContinue then
 	yyssp := yyssp - 2
@@ -14761,8 +14760,8 @@ debug ("GEYACC")
 end
 
 				set_id_level (Normal_level)
-				yyval68 := ast_factory.new_invariant_as (yyvs25.item (yyvsp25), once_manifest_string_count, yyvs12.item (yyvsp12), object_test_locals)
-				once_manifest_string_count := 0
+				yyval67 := ast_factory.new_invariant_as (yyvs25.item (yyvsp25), once_manifest_string_counter_value, yyvs12.item (yyvsp12), object_test_locals)
+				reset_once_manifest_string_counter
 				object_test_locals := Void
 			
 if yy_parsing_status >= yyContinue then
@@ -20935,7 +20934,7 @@ end
 					yyvs16.item (yyvsp16).set_is_once_string (True)
 					yyvs16.item (yyvsp16).set_once_string_keyword (yyvs12.item (yyvsp12))
 				end
-				once_manifest_string_count := once_manifest_string_count + 1
+				increment_once_manifest_string_counter
 				yyval36 := yyvs16.item (yyvsp16)
 			
 if yy_parsing_status >= yyContinue then
