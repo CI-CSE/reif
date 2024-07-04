@@ -11,7 +11,8 @@ deferred class
 inherit
 	V_ITERATOR [G]
 		redefine
-			target
+			target,
+			is_model_equal
 		end
 
 feature -- Access
@@ -26,14 +27,13 @@ feature -- Cursor movement
 			-- If `v' does not appear, go after.
 			-- (Use object equality.)
 		require
-			target_wrapped: target.is_wrapped
+			target_closed: target.closed
 			lock_wrapped: target.lock.is_wrapped
-			target_registered: target.lock.sets [target]
-			v_locked: target.lock.owns [v]
+			v_locked: target.lock.locked [v]
 			modify_model ("index_", Current)
 		deferred
 		ensure
-			index_effect_found: target.set_has (v) implies v.is_model_equal (sequence [index_])
+			index_effect_found: target.set_has (v) implies sequence [index_] = target.set_item (v)
 			index_effect_not_found: not target.set_has (v) implies index_ = sequence.count + 1
 		end
 
@@ -45,19 +45,29 @@ feature -- Removal
 			not_off: not off
 			target_wrapped: target.is_wrapped
 			lock_wrapped: target.lock.is_wrapped
-			target_registered: target.lock.sets [target]
-			only_iterator: target.observers = [target.lock, Current]
-			modify_model (["sequence"], Current)
-			modify_model (["set"], target)
+			only_iterator: target.observers = [Current]
+			modify_model (["sequence", "box"], Current)
+			modify_model ("set", target)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.removed_at (index_)
 			target_set_effect: target.set ~ old (target.set / sequence [index_])
 			target_wrapped: target.is_wrapped
+			index_ = old index_
+		end
+
+feature -- Specification
+
+	is_model_equal (other: like Current): BOOLEAN
+			-- Is iterator traversing the same container in the same order and is at the same position at `other'?		
+		note
+			status: ghost, functional, nonvariant
+		do
+			Result := target = other.target and sequence = other.sequence and index_ = other.index_
 		end
 
 invariant
-	target_set_constraint: target.set = sequence.range
+	target_set_constraint: target.set ~ sequence.range
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"

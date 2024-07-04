@@ -27,7 +27,7 @@ feature -- Replacement
 					s.item.is_wrapped and
 					across s.item.observers as o all o.item /= Current implies o.item.is_open end
 				end
-			modify_model (["off_"], Current)
+			modify_model ("off_", Current)
 			modify (subjects)
 		deferred
 		ensure
@@ -40,8 +40,7 @@ feature -- Replacement
 	pipe (input: V_INPUT_STREAM [G])
 			-- Copy values from `input' until either `Current' or `input' is `off'.
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			input_wrapped: input.is_wrapped
 			input_not_current: input /= Current
@@ -49,9 +48,9 @@ feature -- Replacement
 					s.item.is_wrapped and
 					across s.item.observers as o all o.item /= Current implies o.item.is_open end
 				end
-			input_subjects_wrapped: input.subjects.any_item.is_wrapped
+			input_subjects_wrapped: across input.subjects as s all s.item.is_wrapped end
 			modify (Current, subjects)
-			modify_model (["box"], input)
+			modify_model ("box", input)
 		do
 			from
 			invariant
@@ -76,8 +75,7 @@ feature -- Replacement
 	pipe_n (input: V_INPUT_STREAM [G]; n: INTEGER)
 			-- Copy `n' elements from `input'; stop if either `Current' or `input' is `off'.
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			input_exists: input.is_wrapped
 			input_not_current: input /= Current
@@ -86,8 +84,8 @@ feature -- Replacement
 					s.item.is_wrapped and
 					across s.item.observers as o all o.item /= Current implies o.item.is_open end
 				end
-			input_subjects_wrapped: input.subjects.any_item.is_wrapped
-			modify_model (["box"], input)
+			input_subjects_wrapped: across input.subjects as s all s.item.is_wrapped end
+			modify_model ("box", input)
 			modify (Current, subjects)
 		local
 			i: INTEGER

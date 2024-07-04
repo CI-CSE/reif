@@ -60,13 +60,13 @@ feature -- Basic operations
 					-- Add equivalences
 				generate_equivalences_for_class (current_type.base_class)
 
-					-- Mark field as a ghost or non-ghost
-				l_expr := factory.function_call ("IsGhostField", << l_f >>, types.bool)
-				if helper.is_ghost (current_feature) then
-					boogie_universe.add_declaration (create {IV_AXIOM}.make (l_expr))
-				else
-					boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.not_ (l_expr)))
-				end
+--					-- Mark field as a ghost or non-ghost
+--				l_expr := factory.function_call ("IsGhostField", << l_f >>, types.bool)
+--				if helper.is_ghost (current_feature) then
+--					boogie_universe.add_declaration (create {IV_AXIOM}.make (l_expr))
+--				else
+--					boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.not_ (l_expr)))
+--				end
 
 					-- Add type properties
 				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, helper.is_type_exact (current_feature.type, l_class_type, Void),
@@ -234,14 +234,16 @@ feature {NONE} -- Implementation
 					-- The guard is trivially false
 				Result := factory.false_
 			elseif a_guard_string.as_lower ~ "inv" then
-					-- The guard it the invariant of observers in the post-state
-				Result := factory.function_call ("user_inv", << factory.map_update (a_h, << a_cur, a_f >>, a_v), a_o >>, types.bool)
+					-- The guard is the preservation of the invariant of observers
+				Result := factory.implies_ (
+					factory.function_call ("user_inv", << a_h, a_o >>, types.bool),
+					factory.function_call ("user_inv", << factory.map_update (a_h, << a_cur, a_f >>, a_v), a_o >>, types.bool))
 			else
 				l_guard_feature := a_origin_class.feature_named_32 (a_guard_string)
 				if is_valid_guard_feature (a_guard_string, l_guard_feature, a_attr_type) then
 					translation_pool.add_referenced_feature (l_guard_feature, current_type)
 						-- Generate guard definition from `l_guard_feature'
-					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type)
+					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type, False)
 					if helper.has_flat_precondition (l_guard_feature) then
 						Result := factory.function_call (name_translator.boogie_function_precondition (l_fname), << a_h, a_cur, a_v, a_o >>, types.bool)
 					else

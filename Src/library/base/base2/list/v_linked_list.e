@@ -16,26 +16,14 @@ frozen class
 inherit
 	V_LIST [G]
 		redefine
---			default_create,
 			first,
 			last,
+			new_cursor,
 			is_equal_,
 			put,
 			prepend,
 			reverse
 		end
-
---feature {NONE} -- Initialization
-
---	default_create
---			-- Create an empty list.
---		note
---			status: creator
---		do
---		ensure then
---			sequence_effect: sequence.is_empty
---			observers_empty: observers.is_empty
---		end
 
 feature -- Initialization
 
@@ -45,7 +33,7 @@ feature -- Initialization
 			explicit: wrapping
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 			modify_field (["observers", "closed"], other)
 		local
 			i: V_LIST_ITERATOR [G]
@@ -91,11 +79,19 @@ feature -- Access
 
 feature -- Iteration
 
+	new_cursor: like at
+			-- New iterator pointing to the first position.
+		note
+			status: impure
+		do
+			create Result.make (Current)
+			Result.start
+		end
+
 	at (i: INTEGER): V_LINKED_LIST_ITERATOR [G]
 			-- New iterator pointing at position `i'.
 		note
 			status: impure
-			explicit: wrapping
 		do
 			create Result.make (Current)
 			check Result.inv end
@@ -116,8 +112,9 @@ feature -- Comparison
 			-- (Use reference comparison.)
 		local
 			c1, c2: V_LINKABLE [G]
-			i: INTEGER
+			i_: INTEGER
 		do
+			check inv end
 			if other = Current then
 				Result := True
 			elseif count = other.count then
@@ -125,25 +122,24 @@ feature -- Comparison
 					Result := True
 					c1 := first_cell
 					c2 := other.first_cell
-					i := 1
+					i_ := 1
 				invariant
-					1 <= i and i <= sequence.count + 1
-					inv
+					1 <= i_ and i_ <= sequence.count + 1
 					other.inv
-					i <= sequence.count implies c1 = cells [i] and c2 = other.cells [i]
-					i = sequence.count + 1 implies c1 = Void and c2 = Void
+					i_ <= sequence.count implies c1 = cells [i_] and c2 = other.cells [i_]
+					i_ = sequence.count + 1 implies c1 = Void and c2 = Void
 					if Result
-						then across 1 |..| (i - 1) as k all sequence [k.item] = other.sequence [k.item] end
-						else sequence [i - 1] /= other.sequence [i - 1] end
+						then across 1 |..| (i_ - 1) as k all sequence [k.item] = other.sequence [k.item] end
+						else sequence [i_ - 1] /= other.sequence [i_ - 1] end
 				until
 					c1 = Void or not Result
 				loop
 					Result := c1.item = c2.item
 					c1 := c1.right
 					c2 := c2.right
-					i := i + 1
+					i_ := i_ + 1
 				variant
-					sequence.count - i
+					sequence.count - i_
 				end
 			end
 		end
@@ -161,11 +157,14 @@ feature -- Replacement
 
 	reverse
 			-- Reverse the order of elements.
+		note
+			explicit: wrapping
 		local
 			rest, next: V_LINKABLE [G]
 			rest_cells: MML_SEQUENCE [V_LINKABLE [G]]
 		do
 			lemma_cells_distinct
+			unwrap
 			from
 				last_cell := first_cell
 				rest := first_cell
@@ -203,6 +202,7 @@ feature -- Replacement
 			variant
 				rest_cells.count
 			end
+			wrap
 		end
 
 feature -- Extension
@@ -428,8 +428,6 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 		require
 			valid_position: 1 <= i and i <= cells.count
 			inv_only ("cells_domain", "cells_exist", "cells_first", "cells_linked")
---			reads (Current, cells.range)
-			reads (universe)
 		local
 			j: INTEGER
 		do
@@ -456,7 +454,7 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			c_in_list: cells [index_] = c
 			wrapped: is_wrapped
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence"], Current)
+			modify_model ("sequence", Current)
 		do
 			lemma_cells_distinct
 			unwrap
@@ -481,8 +479,8 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			c_in_list: cells [index_] = c
 			new_right_void: new.right = Void
 
-			modify_model (["sequence", "owns"], Current)
-			modify_model (["right", "owner"], new)
+			modify_model ("sequence", Current)
+			modify_model ("right", new)
 		do
 			lemma_cells_distinct
 			unwrap
@@ -513,10 +511,10 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			c_in_list: cells [index_] = c
 			wrapped: is_wrapped
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		do
-			unwrap
 			lemma_cells_distinct
+			unwrap
 			check c.right = cells [index_ + 1] end
 			check index_ + 1 < cells.count implies c.right.right = cells [index_ + 2] end
 
@@ -546,7 +544,7 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 			other_wrapped: other.is_wrapped
 			observers_open: across observers as o all o.item.is_open end
 			other_observers_open: across other.observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], [Current, other])
+			modify_model ("sequence", [Current, other])
 		local
 			other_first, other_last: V_LINKABLE [G]
 			other_count: INTEGER
@@ -600,24 +598,21 @@ feature -- Specificaton
 		attribute
 		end
 
-feature {V_LINKED_LIST, V_LINKED_LIST_ITERATOR} -- Specificaton	
+feature {V_CONTAINER, V_ITERATOR} -- Specificaton	
 
 	lemma_cells_distinct
 			-- All cells in `cells' are distinct.
 		note
 			status: lemma
 		require
-			inv_only ("cells_domain", "cells_exist", "cells_linked", "cells_last")
+			closed
 		do
+			check inv end
 			if cells.count > 0 then
 				lemma_cells_distinct_from (1)
 			end
 		ensure
-			cells_distinct: across 1 |..| cells.count as j all
-				across 1 |..| cells.count as k all
-					j.item < k.item implies cells [j.item] /= cells [k.item]
-				end
-			end
+			cells_distinct: cells.no_duplicates
 		end
 
 	lemma_cells_distinct_from (i: INTEGER)
@@ -645,7 +640,7 @@ feature {V_LINKED_LIST, V_LINKED_LIST_ITERATOR} -- Specificaton
 	is_linked (cs: like cells): BOOLEAN
 			-- Are adjacent cells of `cs' liked to each other?
 		note
-			status: ghost, functional
+			status: ghost, functional, static
 		require
 			cs.non_void
 			reads_field ("right", cs)

@@ -139,14 +139,6 @@ feature -- Adding independent units
 			add_translation_unit (create {E2B_TU_READ_FRAME}.make (a_feature, a_context_type))
 		end
 
-	add_contracts_check (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
-			-- Add consistency check for contracts of `a_feature' in `a_context_type'.
-		require
-			no_formals: not a_context_type.has_formal_generic
-		do
-			add_translation_unit (create {E2B_TU_CONTRACT_CHECK}.make (a_feature, a_context_type))
-		end
-
 	add_function_precondition_predicate (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
 			-- Add precondition predicate of feature `a_feature' of `a_context_type'.
 		require
@@ -230,10 +222,6 @@ feature {NONE} -- Implementation
 							-- in this case it will not be verified at all in the current context type.
 						add_routine (a_feature, a_context_type, a_is_referenced)
 					end
-					if not a_is_referenced and a_feature.written_in = a_context_type.base_class.class_id then
-							-- If this is a new version of the feature, check contract consistency
-						add_contracts_check (a_feature, a_context_type)
-					end
 				end
 			elseif a_feature.is_constant then
 					-- Ignore constants / nothing to verify
@@ -294,7 +282,10 @@ feature {NONE} -- Implementation
 		do
 			create l_creator.make (a_feature, a_context_type)
 			add_translation_unit (l_creator)
-			if not a_is_referenced and not helper.is_skipped (a_feature) then
+			if a_is_referenced or helper.is_skipped (a_feature) or (helper.is_explicit (a_feature, "contracts") and not helper.is_creator (a_feature)) then
+				-- Skip if: only referenced, should be skipped or
+				-- contracts are explicit (unless creator), becuase in that case the non-creator version has a stronger spec and the same implementation
+			else
 				create l_creator_impl.make (a_feature, a_context_type)
 				add_translation_unit (l_creator_impl)
 			end

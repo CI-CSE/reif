@@ -12,7 +12,7 @@ function ref_rank_leq(r1, r2: ref): bool
 // Heap and allocation
 
 type Field _; // Type of a field (with open subtype)
-function IsGhostField<alpha>(field: Field alpha): bool; // Is this field a ghost field?
+// function IsGhostField<alpha>(field: Field alpha): bool; // Is this field a ghost field?
 function FieldId<alpha>(field: Field alpha, t: Type): int; // ID of field within t; used to express that all fields of the same class are distinct.
 
 // Default field value
@@ -287,7 +287,7 @@ procedure update_heap<T>(Current: ref, field: Field T, value: T);
   requires (Current != Void) && (Heap[Current, allocated]); // type:assign tag:attached_and_allocated
   requires field != closed && field != owner; // type:assign tag:closed_or_owner_not_allowed UP4
   requires is_open(Heap, Current); // type:assign tag:target_open UP1
-  requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) && IsHeap(Heap[Current, field := value]) ==> guard(Heap, Current, field, value, o)))); // type:assign tag:observers_open_or_guard_holds UP2  
+  requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (IsHeap(Heap[Current, field := value]) ==> guard(Heap, Current, field, value, o)))); // type:assign tag:observers_open_or_guard_holds UP2  
   requires writable[Current, field]; // type:assign tag:attribute_writable UP3
   modifies Heap;
   ensures global(Heap);
@@ -313,7 +313,7 @@ procedure unwrap_all (Current: ref, s: Set ref);
   modifies Heap;
   ensures global(Heap);
   ensures (forall o: ref :: s[o] ==> is_open(Heap, o)); // UWE1
-  ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o') && user_inv(Heap, o'))); // UWE2
+  ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o'))); // UWE2
   ensures (forall <T> o: ref, f: Field T :: !(f == closed && s[o]) && !(f == owner && (exists o': ref :: s[o'] && old(Heap[o', owns][o]))) ==> Heap[o, f] == old(Heap[o, f]));
   ensures (forall o: ref :: s[o] ==> user_inv(Heap, o) && inv_frame_trigger(o));
   free ensures HeapSucc(old(Heap), Heap);
@@ -488,6 +488,26 @@ function divide(a, b: int): int { a div b }
 function min(a, b: int): int { if a <= b then a else b }
 function max(a, b: int): int { if a >= b then a else b }
 function abs(a: int): int { if a >= 0 then a else -a }
+function sign(a: int): int { if a == 0 then 0 else if a > 0 then 1 else -1 }
+
+function min_real(a, b: real): real { if a <= b then a else b }
+function max_real(a, b: real): real { if a >= b then a else b }
+function abs_real(a: real): real { if a >= 0.0 then a else -a }
+function sign_real(a: real): int { if a == 0.0 then 0 else if a > 0.0 then 1 else -1 }
+
+function bit_and(a, b: int): int;
+function bit_or(a, b: int): int;
+function bit_xor(a, b: int): int;
+function bit_not(a: int): int;
+function bit_shift_left(a, n: int): int;
+function bit_shift_right(a, n: int): int;
+
+// ----------------------------------------------------------------------
+// once procedures
+
+function global_once_value<T>(rid: int): T;
+function object_once_value<T>(o: ref, rid: int): T;
+
 
 // Expanded types
 

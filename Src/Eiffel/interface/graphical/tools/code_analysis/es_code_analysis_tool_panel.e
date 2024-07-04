@@ -44,6 +44,8 @@ feature {NONE} -- Initialization
 
 				-- We want the tool to synchronize with the event list, when first initialized.
 			is_event_list_synchronized_on_initialized := True
+
+			create undo_actions.make
 		end
 
 	on_after_initialized
@@ -97,6 +99,14 @@ feature {NONE} -- Initialization
 			hints_button.enable_select
 			hints_button.select_actions.extend (agent on_update_visiblity)
 
+				-- "Undo Fixes" button.
+			create undo_button.make
+			undo_button.set_pixmap(stock_pixmaps.general_undo_icon)
+			undo_button.set_pixel_buffer (stock_pixmaps.general_undo_icon_buffer)
+			undo_button.select_actions.extend (agent on_undo)
+			undo_button.set_text ("Undo Fix")
+			undo_button.disable_sensitive
+
 			update_button_titles
 
 				-- Scope label.
@@ -119,6 +129,8 @@ feature {NONE} -- Initialization
 			Result.extend (suggestions_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 			Result.extend (hints_button)
+			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
+			Result.extend (undo_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 		end
 
@@ -204,10 +216,9 @@ feature {NONE} -- Initialization
 			l_col.set_title (ca_names.description_column)
 			l_col.set_width (500)
 
-			l_col := a_widget.column (5)  	-- Fix column. Replace with constant INTEGER called 'fix_column' and receive a
-											--complimentary segmentation fault! Also tried changing its name, no luck.
+			l_col := a_widget.column (fix_column)
 			l_col.set_title (ca_names.fixes_column)
-			l_col.set_width (50)
+			l_col.set_width (30)
 
 			l_col := a_widget.column (class_column)
 			l_col.set_title (ca_names.class_column)
@@ -238,8 +249,7 @@ feature {NONE} -- Initialization
 					a_widget.column (location_column),
 					a_widget.column (description_column),
 					a_widget.column (rule_id_column),
-					a_widget.column (5) 	-- Fix column. Replace with constant INTEGER called 'fix_column' and receive a
-											--complimentary segmentation fault! Also tried changing its name, no luck.
+					a_widget.column (fix_column)
 				>>)
 		end
 
@@ -288,6 +298,9 @@ feature -- Status report
 		do
 			Result := not is_initialized or else hints_button.is_selected
 		end
+
+	is_fix_in_progress: BOOLEAN
+			-- Is currently a fix in progress?
 
 	is_item_visible (a_item: EV_GRID_ROW): BOOLEAN
 			-- Is `a_item' visible?
@@ -341,10 +354,13 @@ feature {NONE} -- User interface items
 	hints_button: SD_TOOL_BAR_TOGGLE_BUTTON
 			-- Toogle to show/hide hints.
 
+	undo_button: SD_TOOL_BAR_BUTTON
+			-- Button for undoing fixes.
+
 	text_filter: EV_TEXT_FIELD
 			-- Text field to enter filter
 
-feature {ES_CODE_ANALYSIS_COMMAND} -- UI Items
+feature -- UI Items
 
 	scope_label: EV_LABEL
 			-- Label showing the scope of the last analysis.
@@ -442,6 +458,19 @@ feature {NONE} -- Events
 			end
 		end
 
+	on_undo
+		do
+			undo_button.disable_sensitive
+
+			undo_actions.start
+			undo_actions.item.call (Void)
+			undo_actions.remove
+
+			if not undo_actions.is_empty then
+				undo_button.enable_sensitive
+			end
+		end
+
 feature {NONE} -- Query
 
 	is_appliable_event (a_event_item: EVENT_LIST_ITEM_I): BOOLEAN
@@ -488,6 +517,19 @@ feature {NONE} -- Query
 			Result := attached {CA_NO_ISSUES_EVENT} a_event_item
 		end
 
+feature -- Basic operations
+
+	register_undo_action (a_procedure: PROCEDURE[ANY, TUPLE])
+		do
+			undo_actions.put_front (a_procedure)
+			undo_button.enable_sensitive
+		end
+
+	set_fix_in_progress (a_value: BOOLEAN)
+		do
+			is_fix_in_progress := a_value
+		end
+
 feature {NONE} -- Basic operations
 
 	do_default_action (a_row: EV_GRID_ROW)
@@ -520,6 +562,7 @@ feature {NONE} -- Basic operations
 			l_label: EV_GRID_LABEL_ITEM
 			l_pos_token: EDITOR_TOKEN_NUMBER
 			l_line: EIFFEL_EDITOR_LINE
+			l_text: EV_GRID_TEXT_ITEM
 		do
 			a_row.set_data (a_event_item)
 
@@ -586,11 +629,15 @@ feature {NONE} -- Basic operations
 
 					-- Fix
 				if not l_viol.data.fixes.is_empty then
-					create l_label.make_with_text ("Fix me!")
-					l_label.align_text_center
-					l_label.pointer_button_release_actions.extend (agent show_fixes_context_menu (l_viol.data.fixes, a_row, ?, ?, ?, ?, ?, ?, ?, ?))
-					a_row.set_item(5, l_label) 	-- Fix column. Replace with constant INTEGER called 'fix_column' and receive a
-											   	--complimentary segmentation fault! Also tried changing its name, no luck.
+					create l_text.make_with_text ("")
+					l_text.set_pixmap (stock_pixmaps.tool_diagram_icon)
+					l_text.set_background_color (colors.stock_colors.grey)
+					l_text.set_layout_procedure (agent (a_label: EV_GRID_LABEL_ITEM; a_layout: EV_GRID_LABEL_ITEM_LAYOUT)
+							do
+								a_layout.set_pixmap_x(a_label.width // 2 - a_label.pixmap.width // 2)
+							end)
+					l_text.pointer_button_release_actions.extend (agent show_fixes_context_menu (l_viol.data.fixes, a_row, ?, ?, ?, ?, ?, ?, ?, ?))
+					a_row.set_item(fix_column, l_text)
 				end
 
 				create l_label.make_with_text (l_viol.rule_id)
@@ -613,7 +660,7 @@ feature {NONE} -- Basic operations
 				else -- No location attached.
 					create l_pos_token.make ("")
 				end
---					-- Create editor item.
+					-- Create editor item.
 				create l_line.make_unix_style
 				l_line.append_token (l_pos_token)
 				l_editor_item := create_clickable_grid_item (l_line, False)
@@ -641,7 +688,7 @@ feature {NONE} -- Basic operations
 			l_fix_executor: ES_CA_FIX_EXECUTOR
 		do
 				-- Only process left clicks (`button = 1').
-			if button = 1 then
+			if button = 1 and not is_fix_in_progress then
 				create l_menu
 
 				across a_fixes as l_fixes loop
@@ -737,9 +784,9 @@ feature {NONE} -- Basic operations
 							end)
 		end
 
+	undo_actions: LINKED_LIST[PROCEDURE[ANY, TUPLE]]
+
 feature {NONE} -- Exception Info
-
-
 
 	raise_default_exception_dialog (a_empty_dialog: EV_DIALOG; an_exception: EXCEPTION)
 			-- Raises the exception dialog `a_empty_dialog' for `an_exception'.

@@ -15,12 +15,14 @@ inherit
 			go_to
 		redefine
 			target,
+			sequence,
 			index_
 		end
 
 	V_INDEX_ITERATOR [G]
 		redefine
 			target,
+			sequence,
 			index_
 		end
 
@@ -46,7 +48,6 @@ feature {NONE} -- Initialization
 			else
 				index := i
 			end
-			set_target_index_sequence
 			check target.inv end
 		ensure
 			target_effect: target = list
@@ -70,13 +71,14 @@ feature -- Initialization
 		do
 			check other.inv_only ("index_constraint", "sequence_definition", "default_owns", "index_definition") end
 			check inv_only ("no_observers", "subjects_definition", "A2", "default_owns") end
-			target.forget_iterator (Current)
-			target := other.target
-			target.add_iterator (Current)
-			index := other.index
-			set_target_index_sequence
-			check target.inv end
-			wrap
+			if Current /= other then
+				target.forget_iterator (Current)
+				target := other.target
+				target.add_iterator (Current)
+				index := other.index
+				check target.inv end
+				wrap
+			end
 		ensure then
 			target_effect: target = other.target
 			index_effect: index_ = other.index_
@@ -110,7 +112,6 @@ feature -- Extension
 			target.extend_at (v, index)
 			check target.inv end
 			index := index + 1
-			set_target_index_sequence
 		end
 
 	extend_right (v: G)
@@ -118,7 +119,6 @@ feature -- Extension
 		do
 			target.extend_at (v, index + 1)
 			check target.inv end
-			set_target_index_sequence
 		end
 
 	insert_left (other: V_ITERATOR [G])
@@ -131,7 +131,6 @@ feature -- Extension
 			target.insert_at (other, index)
 			check target.inv end
 			index := index + old_other_count
-			set_target_index_sequence
 		end
 
 	insert_right (other: V_ITERATOR [G])
@@ -144,7 +143,6 @@ feature -- Extension
 			target.insert_at (other, index + 1)
 			check target.inv end
 			index := index + old_other_count
-			set_target_index_sequence
 		end
 
 feature -- Removal
@@ -154,7 +152,6 @@ feature -- Removal
 		do
 			target.remove_at (index)
 			check target.inv end
-			set_target_index_sequence
 		end
 
 	remove_left
@@ -163,7 +160,6 @@ feature -- Removal
 			target.remove_at (index - 1)
 			index := index - 1
 			check target.inv end
-			set_target_index_sequence
 		end
 
 	remove_right
@@ -171,10 +167,16 @@ feature -- Removal
 		do
 			target.remove_at (index + 1)
 			check target.inv end
-			set_target_index_sequence
 		end
 
 feature -- Specification
+
+	sequence: MML_SEQUENCE [G]
+			-- Sequence of elements in `target'.
+		note
+			status: ghost
+		attribute
+		end
 
 	index_: INTEGER
 			-- Current position.

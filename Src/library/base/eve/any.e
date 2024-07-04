@@ -75,11 +75,8 @@ feature -- Comparison
 		note
 			explicit: contracts
 		require
---			same_type: generating_type = other.generating_type
-			closed: closed
-			other_closed: other.closed
-			subjects_closed: across subjects as s all s.item.closed end
-			other_subjects_closed: across other.subjects as s all s.item.closed end
+			closed_with_subjects: is_closed_with_subjects
+			other_closed_with_subjects: other.is_closed_with_subjects
 		do
 			Result := True
 		ensure
@@ -289,11 +286,16 @@ feature -- Output
 
 	io: STD_FILES
 			-- Handle to standard file setup
+		note
+			status: impure
+			explicit: contracts
+		require
+			modify ([])
 		once
 			create Result
 			Result.set_output_default
 		ensure
-			io_not_void: Result /= Void
+			is_writable: Result.is_fully_writable
 		end
 
 	out: STRING
@@ -303,6 +305,20 @@ feature -- Output
 			Result := tagged_out
 		ensure
 			out_not_void: Result /= Void
+		end
+
+	out_: V_STRING
+			-- New string containing terse printable representation
+			-- of current object
+		note
+			status: impure, skip
+		require
+			modify ([])
+		do
+			create Result.make_from_string (out)
+		ensure
+			out_fresh: Result.is_fresh
+			out_wrapped: Result.is_wrapped
 		end
 
 	frozen tagged_out: STRING
@@ -317,6 +333,10 @@ feature -- Output
 	print (o: detachable ANY)
 			-- Write terse external representation of `o'
 			-- on standard output.
+		note
+			explicit: contracts
+		require
+			modify ([])
 		do
 			if o /= Void then
 				io.put_string (o.out)
@@ -490,6 +510,11 @@ feature -- Verification: ownership operations
 		do
 		end
 
+	frozen unwrap_no_inv
+			-- Unwrap object `a' and do not assume its invariant.
+		do
+		end
+
 	frozen unwrap_all (a: MML_SET [ANY])
 			-- Unwrap all objects in `a' simultaneously.
 		do
@@ -629,6 +654,14 @@ feature -- Verification: ownership fields
 			Result := new_observers [o]
 		end
 
+	is_closed_with_subjects: BOOLEAN
+			-- Are `Current' and its `subjects' closed?
+		note
+			status: functional, ghost, inv_unfriendly
+		do
+			Result := closed and across subjects as s all s.item.closed end
+		end
+
 feature -- Verification: auxiliary
 
 	is_model_equal (other: like Current): BOOLEAN
@@ -668,6 +701,9 @@ feature -- Verification: auxiliary
 			reads (x, y)
 		do
 			Result := (x = Void and y = Void) or ((x /= Void and x.generating_type = y.generating_type) and then x.is_model_equal (y))
+		ensure
+			reflexive: x = y implies Result
+			symmetric: Result = model_equals (y, x)
 		end
 
 	frozen old_: like Current

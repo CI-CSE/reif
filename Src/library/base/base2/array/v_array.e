@@ -83,7 +83,7 @@ feature -- Initialization
 			-- Reallocate memory unless count stays the same.
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "lower_", "owns"], Current)
+			modify_model (["sequence", "lower_"], Current)
 		do
 			if other /= Current then
 				check other.inv end
@@ -124,6 +124,7 @@ feature -- Access
 			create Result.make (l, u)
 			check Result.inv end
 			Result.copy_range (Current, l, u, Result.lower)
+			check across 1 |..| Result.sequence.count as i all Result.sequence [i.item] = sequence [i.item - 1 + idx (l)] end end
 		ensure
 			result_wrapped: Result.is_wrapped
 			result_fresh: Result.is_fresh
@@ -203,7 +204,7 @@ feature -- Replacement
 			index_not_too_small: index >= lower_
 			enough_space: upper_ - index >= lst - fst
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence"], Current)
+			modify_model ("sequence", Current)
 		do
 			if lst >= fst then
 				check area.inv end
@@ -226,7 +227,7 @@ feature -- Resizing
 		require
 			valid_indexes: l <= u + 1
 			observers_open: across observers as o all o.item.is_open  end
-			modify_model (["sequence", "lower_", "owns"], Current)
+			modify_model (["sequence", "lower_"], Current)
 		local
 			new_count, x, y: INTEGER
 		do
@@ -275,7 +276,7 @@ feature -- Resizing
 			explicit: wrapping
 		require
 			observers_open: across observers as o all o.item.is_open  end
-			modify_model (["sequence", "lower_", "owns"], Current)
+			modify_model (["sequence", "lower_"], Current)
 		do
 			check inv end
 			if is_empty then
@@ -302,7 +303,7 @@ feature -- Resizing
 			explicit: wrapping
 		require
 			observers_open: across observers as o all o.item.is_open  end
-			modify_model (["sequence", "lower_", "owns"], Current)
+			modify_model (["sequence", "lower_"], Current)
 		do
 			include (i)
 			put (v, i)
@@ -321,7 +322,7 @@ feature -- Resizing
 			-- Remove all elements.
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "lower_", "owns"], Current)
+			modify_model (["sequence", "lower_"], Current)
 		do
 			create area.make_empty (0)
 			lower := 1

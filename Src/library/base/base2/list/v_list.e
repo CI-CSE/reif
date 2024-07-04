@@ -33,7 +33,7 @@ feature -- Measurement
 	lower: INTEGER
 			-- Lower bound of index interval.
 		note
-			status: dynamic
+			status: nonvariant
 		do
 			check inv_only ("lower_definition") end
 			Result := 1
@@ -42,9 +42,9 @@ feature -- Measurement
 	count: INTEGER
 			-- Number of elements.
 		note
-			status: dynamic
+			status: nonvariant
 		do
-			check inv_only ("count_definition", "map_definition_list", "bag_definition") end
+			check inv_only ("count_definition", "bag_definition") end
 			Result := count_
 		end
 
@@ -66,7 +66,7 @@ feature -- Extension
 			-- Insert `v' at the front.
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.prepended (v)
@@ -76,7 +76,7 @@ feature -- Extension
 			-- Insert `v' at the back.
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old (sequence & v)
@@ -87,7 +87,7 @@ feature -- Extension
 		require
 			valid_index: 1 <= i and i <= sequence.count + 1
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.extended_at (i, v)
@@ -96,15 +96,14 @@ feature -- Extension
 	append (input: V_ITERATOR [G])
 			-- Append sequence of values produced by `input'.
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			not_current: input /= Current
 			different_target: input.target /= Current
 			input_target_wrapped: input.target.is_wrapped
 			not_before: not input.before
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 			modify_model ("index_", input)
 		do
 			from
@@ -135,7 +134,7 @@ feature -- Extension
 			input_target_wrapped: input.target.is_wrapped
 			not_before: not input.before
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns", "observers"], Current)
+			modify_model (["sequence", "observers"], Current)
 			modify_model ("index_", input)
 		deferred
 		ensure
@@ -153,7 +152,7 @@ feature -- Extension
 			input_target_wrapped: input.target.is_wrapped
 			not_before: not input.before
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns", "observers"], Current)
+			modify_model (["sequence", "observers"], Current)
 			modify_model ("index_", input)
 		deferred
 		ensure
@@ -169,7 +168,7 @@ feature -- Removal
 		require
 			not_empty: not is_empty
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.but_first
@@ -180,7 +179,7 @@ feature -- Removal
 		require
 			not_empty: not is_empty
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.but_last
@@ -191,7 +190,7 @@ feature -- Removal
 		require
 			has_index: 1 <= i and i <= sequence.count
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence ~ old sequence.removed_at (i)
@@ -200,12 +199,11 @@ feature -- Removal
 	remove (v: G)
 			-- Remove the first occurrence of `v'.
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			has: sequence.has (v)
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "observers", "owns"], Current)
+			modify_model (["sequence", "observers"], Current)
 		local
 			i: V_LIST_ITERATOR [G]
 		do
@@ -215,22 +213,23 @@ feature -- Removal
 			check i.inv_only ("target_bag_constraint", "sequence_definition") end
 			forget_iterator (i)
 		ensure
-			bag_effect: bag ~ old bag.removed (v)
+			sequence_effect: across 1 |..| sequence.count.old_ as j some
+					sequence.old_ [j.item] = v and
+					not sequence.old_.front (j.item - 1).has (v) and
+					sequence ~ sequence.old_.removed_at (j.item) end
 			observers_restored: observers ~ old observers
 		end
 
 	remove_all (v: G)
 			-- Remove all occurrences of `v'.
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "observers", "owns"], Current)
+			modify_model (["sequence", "observers"], Current)
 		local
 			i: V_LIST_ITERATOR [G]
-			n: INTEGER
-			b: like bag
+			n_, j_: INTEGER
 		do
 			from
 				i := new_cursor
@@ -241,27 +240,34 @@ feature -- Removal
 				1 <= i.index_ and i.index_ <= sequence.count + 1
 				not i.off implies i.item = v
 				not sequence.front (i.index_ - 1).has (v)
-				bag = bag.old_.removed_multiple (v, n)
-				bag [v] = bag.old_ [v] - n
-				n >= 0
-				modify_model (["sequence", "owns"], Current)
-				modify_model (["index_", "sequence", "target_index_sequence"], i)
+				sequence.count + n_ = sequence.old_.count
+				sequence.front (i.index_ - 1) = removed_all (sequence.old_.front (i.index_ + n_ - 1), v)
+				across i.index_ |..| sequence.count as j all sequence [j.item] = sequence.old_[j.item + n_] end
+				n_ >= 0
+				modify_model ("sequence", Current)
+				modify_model (["index_", "sequence"], i)
 			until
 				i.after
 			loop
-				b := bag
+				use_definition (removed_all (sequence.old_.front (i.index_ + n_), v))
+				check sequence.old_.front (i.index_ + n_).but_last = sequence.old_.front (i.index_ + n_ - 1) end
 				i.remove
 				check i.inv_only ("target_bag_constraint", "sequence_definition") end
-				bag.old_.lemma_remove_multiple (v, n)
+				j_ := i.index_
+
 				i.search_forth (v)
-				n := n + 1
+
+				check sequence.old_.front (i.index_ + n_) = sequence.old_.front (j_ + n_) + sequence.old_.interval (j_ + n_ + 1, i.index_ + n_) end
+				check sequence.interval (j_, i.index_ - 1) = sequence.old_.interval (j_ + n_ + 1, i.index_ + n_) end
+				lemma_removed_all_concat (sequence.old_.front (j_ + n_), sequence.old_.interval (j_ + n_ + 1, i.index_ + n_), v)
+				n_ := n_ + 1
 			variant
 				i.sequence.count - i.index_
 			end
 			bag.old_.lemma_remove_all (v)
 			forget_iterator (i)
 		ensure
-			bag_effect: bag ~ old bag.removed_all (v)
+			sequence_effect: sequence ~ removed_all (old sequence, v)
 			observers_restored: observers ~ old observers
 		end
 
@@ -269,7 +275,7 @@ feature -- Removal
 			-- Remove all elements.
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
+			modify_model ("sequence", Current)
 		deferred
 		ensure
 			sequence_effect: sequence.is_empty
@@ -285,15 +291,45 @@ feature -- Specification
 	is_model_equal (other: like Current): BOOLEAN
 			-- Is the abstract state of `Current' equal to that of `other'?
 		note
-			status: ghost, functional
+			status: ghost, functional, nonvariant
 		do
 			Result := sequence ~ other.sequence
+		end
+
+	removed_all (s: like sequence; x: G): like sequence
+			-- Sequence `s' with all occurrences of `x' removed.
+		note
+			status: ghost, functional, nonvariant, static, opaque
+		require
+			reads ([])
+		do
+			Result := if s.is_empty then s else
+				if s.last = x then removed_all (s.but_last, x) else removed_all (s.but_last, x) & s.last end end
+		ensure
+			not Result.has (x)
+			not s.has (x) implies Result = s
+		end
+
+	lemma_removed_all_concat (s1, s2: like sequence; x: G)
+			-- `removed_all' distributes over sequence concatenation.
+		note
+			status: lemma, static
+		do
+			use_definition (removed_all (s2, x))
+			if not s2.is_empty then
+				check (s1 + s2).but_last = s1 + s2.but_last end
+				lemma_removed_all_concat (s1, s2.but_last, x)
+				use_definition (removed_all (s1 + s2, x))
+			else
+				check s1 + s2 = s1 end
+			end
+		ensure
+			removed_all (s1 + s2, x) = removed_all (s1, x) + removed_all (s2, x)
 		end
 
 invariant
 	lower_definition: lower_ = 1
 	count_definition: count_ = sequence.count
-	map_definition_list: map = sequence.to_map
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"

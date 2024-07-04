@@ -42,8 +42,8 @@ feature -- Initialization
 			-- Initialize by copying all the items of `other'.
 		require
 			observers_open: across observers as o all o.item.is_open end
-			modify_model (["sequence", "owns"], Current)
-			modify_field (["closed"], other)
+			modify_model ("sequence", Current)
+			modify_field ("closed", other)
 		do
 			if other /= Current then
 				other.unwrap
@@ -72,7 +72,6 @@ feature -- Iteration
 			-- New iterator pointing at position `i'.
 		note
 			status: impure
-			explicit: wrapping
 		do
 			create Result.make (Current, i)
 			check Result.inv end

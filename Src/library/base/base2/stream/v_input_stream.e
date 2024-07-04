@@ -14,7 +14,7 @@ feature -- Access
 			-- Item at current position.
 		require
 			not_off: not off
-			subjects_closed: subjects.any_item.closed
+			subjects_closed: across subjects as s all s.item.closed end
 		deferred
 		ensure
 			definition: Result = box.any_item
@@ -25,7 +25,7 @@ feature -- Status report
 	off: BOOLEAN
 			-- Is current position off scope?
 		require
-			subjects_closed: subjects.any_item.closed
+			subjects_closed: across subjects as s all s.item.closed end
 		deferred
 		ensure
 			definition: Result = box.is_empty
@@ -36,12 +36,10 @@ feature -- Cursor movement
 	forth
 			-- Move one position forward.
 		require
-			subjects_closed: subjects.any_item.closed
+			subjects_closed: across subjects as s all s.item.closed end
 			not_off: not off
 			modify_model (["box"], Current)
 		deferred
-		ensure
-			subjects_closed: subjects.any_item.closed
 		end
 
 	search (v: G)
@@ -49,17 +47,16 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `after'.
 			-- (Use reference equality.)
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
-			subjects_wrapped: subjects.any_item.is_wrapped
+			subjects_closed: across subjects as s all s.item.is_wrapped end
 			modify_model (["box"], Current)
 		do
 			from
 			invariant
 				decreases ([])
 				is_wrapped
-				subjects.any_item.closed
+				across subjects as s all s.item.is_wrapped end
 			until
 				off or else item = v
 			loop
@@ -80,7 +77,6 @@ feature -- Specification
 
 invariant
 	box_count_constraint: box.count <= 1
-	one_subject: subjects.count = 1
 	no_observers: observers = []
 
 note

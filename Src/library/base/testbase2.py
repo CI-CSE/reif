@@ -10,8 +10,6 @@ classes = [
   'V_INPUT_STREAM',
   'V_OUTPUT_STREAM',
   'V_ITERATOR',  
-  'V_MAP',
-  'V_MAP_ITERATOR',
   'V_SEQUENCE',
   'V_SEQUENCE_ITERATOR',
   'V_MUTABLE_SEQUENCE',
@@ -39,12 +37,21 @@ classes = [
   'V_ARRAYED_LIST',
   'V_ARRAYED_LIST_ITERATOR',
   'V_ARRAY2',
+  'V_LOCKER',
   'V_LOCK',
-  'V_SET',
-  'V_SET_ITERATOR',
+  'V_MAP',
+  'V_MAP_ITERATOR',  
+  'V_TABLE',
+  'V_TABLE_ITERATOR',  
   'V_HASHABLE',
   'V_HASH_LOCK',
-  'V_HASH_SET'
+  'V_HASH_TABLE',
+  'V_HASH_TABLE_ITERATOR',
+  'V_SET',
+  'V_SET_ITERATOR',
+  'V_HASH_SET',
+  'V_HASH_SET_ITERATOR',
+  'V_RANDOM'
 ]
 
 outfile_name = 'base2.out'
@@ -78,8 +85,11 @@ def run_each(project_path):
     '-target', 'base', 
     '-batch',
     '-project_path', project_path,
-    '-boogie',
-    '-ownership',]
+    '-boogie',	
+    '-ownership',
+	# '-forked 1',
+	# '-noindependent'
+	]
     
   outfile = open(outfile_name, 'w')
   
@@ -98,6 +108,9 @@ def run_each(project_path):
       print Back.GREEN + Fore.GREEN + Style.BRIGHT + ': ok' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
     else:
       print Back.RED + Fore.RED + Style.BRIGHT + ':OOPS' + Style.RESET_ALL + ' (' +  '{0:0.2f}'.format(end - start) + ' sec)'
+
+    # if c != classes[-1]:
+        # time.sleep(10)
     
     outfile.write(open(tempfile_name).read())
     if os.path.isfile(tempfile_name):
@@ -109,7 +122,7 @@ init()
 
 if len(sys.argv) > 1:
   # run all together
-  run_all ('H:\\Temp\\bin\\fin')
+  run_all ('C:\\Temp\\base2')
 else:
   # run one by one
-  run_each ('H:\\Temp\\bin\\fin')
+  run_each ('C:\\Temp\\base2')

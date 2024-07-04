@@ -1,3 +1,6 @@
+note
+	ca_only: "CA037"
+
 class
 	CAT_UNDESIRABLE_COMMENT_CONTENT
 
@@ -8,7 +11,7 @@ feature {NONE} -- Test
 		local
 			a: INTEGER
 		do
-			-- fix this ?##@!!
+			-- fix this shit!
 			if a1 then
 				-- a1 is Fucking true
 				a := a2

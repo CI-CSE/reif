@@ -96,14 +96,8 @@ feature -- Visitors
 
 	process_un_old_b (a_node: UN_OLD_B)
 			-- <Precursor>
-		local
-			l_call: IV_FUNCTION_CALL
-			l_temp_heap: IV_EXPRESSION
 		do
-			l_temp_heap := entity_mapping.heap
-			entity_mapping.set_heap (entity_mapping.old_heap)
-			safe_process (a_node.expr)
-			entity_mapping.set_heap (l_temp_heap)
+			process_as_old (a_node.expr)
 		end
 
 feature -- Translation
@@ -124,8 +118,9 @@ feature -- Translation
 			if context_readable /= Void then
 					-- Using subsumption here, since in a query call chains it can trigger for the followings checks
 				add_safety_check_with_subsumption (factory.frame_access (context_readable, current_target, l_field), "access", "attribute_readable", context_line_number)
-				last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
+				last_safety_check.node_info.set_attribute ("cid", current_target_type.base_class.class_id.out)
 				last_safety_check.node_info.set_attribute ("fid", a_feature.feature_id.out)
+				check system.class_of_id (current_target_type.base_class.class_id).feature_of_feature_id (a_feature.feature_id).feature_name_id = a_feature.feature_name_id end
 			end
 
 			last_expression := factory.heap_access (entity_mapping.heap, current_target, l_field.name, l_content_type)
@@ -143,7 +138,9 @@ feature -- Translation
 			check a_feature.has_return_value end
 
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
-			l_name := name_translator.boogie_function_for_feature (a_feature, current_target_type)
+			l_name := name_translator.boogie_function_for_feature (a_feature, current_target_type,
+				use_uninterpreted_context_function and helper.is_same_feature (a_feature, context_feature))
+
 			if helper.is_impure (a_feature) then
 					-- This is not a pure function
 				helper.add_semantic_error (context_feature, messages.impure_function_in_contract (a_feature.feature_name), context_line_number)
@@ -153,7 +150,9 @@ feature -- Translation
 					-- Once functions are translated as constants; they have neither arguments nor preconditions
 				if not a_feature.is_once then
 					l_call.add_argument (entity_mapping.heap)
-					l_call.add_argument (current_target)
+					if not helper.is_static (a_feature) then
+						l_call.add_argument (current_target)
+					end
 
 					process_parameters (a_parameters)
 					l_call.arguments.append (last_parameters)
@@ -181,7 +180,9 @@ feature -- Translation
 
 			create l_call.make (a_builtin_name, types.for_class_type (feature_class_type (a_feature)))
 			l_call.add_argument (entity_mapping.heap)
-			l_call.add_argument (current_target)
+			if not helper.is_static (a_feature) then
+				l_call.add_argument (current_target)
+			end
 
 			process_parameters (a_parameters)
 			l_call.arguments.append (last_parameters)

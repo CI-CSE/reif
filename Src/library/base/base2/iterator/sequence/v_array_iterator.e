@@ -12,6 +12,7 @@ inherit
 	V_INDEX_ITERATOR [G]
 		redefine
 			target,
+			sequence,
 			index_
 		end
 
@@ -21,6 +22,7 @@ inherit
 			go_to
 		redefine
 			target,
+			sequence,
 			index_
 		end
 
@@ -46,7 +48,6 @@ feature {NONE} -- Initialization
 			else
 				index := i
 			end
-			set_target_index_sequence
 			check target.inv end
 		ensure
 			target_effect: target = t
@@ -70,13 +71,14 @@ feature -- Initialization
 		do
 			check other.inv_only ("index_constraint", "sequence_definition", "default_owns", "index_definition") end
 			check inv_only ("no_observers", "subjects_definition", "A2", "default_owns") end
-			target.forget_iterator (Current)
-			target := other.target
-			target.add_iterator (Current)
-			index := other.index
-			set_target_index_sequence
-			check target.inv end
-			wrap
+			if other /= Current then
+				target.forget_iterator (Current)
+				target := other.target
+				target.add_iterator (Current)
+				index := other.index
+				check target.inv end
+				wrap
+			end
 		ensure then
 			target_effect: target = other.target
 			index_effect: index_ = other.index_
@@ -103,6 +105,13 @@ feature -- Replacement
 		end
 
 feature -- Specification
+
+	sequence: MML_SEQUENCE [G]
+			-- Sequence of elements in `target'.
+		note
+			status: ghost
+		attribute
+		end
 
 	index_: INTEGER
 			-- Current position.

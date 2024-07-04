@@ -28,7 +28,7 @@ feature -- Status report
 	is_empty: BOOLEAN
 			-- Is container empty?
 		note
-			status: dynamic
+			status: nonvariant
 		do
 			Result := count = 0
 		ensure
@@ -41,7 +41,7 @@ feature -- Search
 			-- Is value `v' contained?
 			-- (Uses reference equality.)
 		note
-			status: impure, dynamic
+			status: impure, nonvariant
 		require
 			modify_model ("observers", Current)
 		local
@@ -60,7 +60,7 @@ feature -- Search
 			-- How many times is value `v' contained?
 			-- (Uses reference equality.)
 		note
-			status: impure, dynamic
+			status: impure, nonvariant
 		require
 			modify_model ("observers", Current)
 		local
@@ -110,7 +110,6 @@ feature -- Specification
 			-- Bag of elements.
 		note
 			status: ghost
-			guard: inv
 		attribute
 		end
 
@@ -124,7 +123,7 @@ feature -- Specification
 			it_wrapped: it.is_wrapped
 			valid_target: it.target = Current
 			modify_field (["observers", "closed"], Current)
-			modify_field (["closed"], it)
+			modify (it) -- not using modify_field here because of the typing bug
 		do
 			it.unwrap
 			set_observers (observers / it)
@@ -132,6 +131,8 @@ feature -- Specification
 			wrapped: is_wrapped
 			it_open: it.is_open
 			observer_removed: observers = old observers / it
+			it.owns ~ old it.owns
+			it.observers ~ old it.observers
 		end
 
 feature {V_CONTAINER, V_ITERATOR} -- Specification
@@ -142,6 +143,7 @@ feature {V_CONTAINER, V_ITERATOR} -- Specification
 			status: ghost
 		require
 			wrapped: is_wrapped
+			valid_type: attached {like new_cursor} it
 			modify_field (["observers", "closed"], Current)
 		do
 			unwrap

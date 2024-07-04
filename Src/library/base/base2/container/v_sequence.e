@@ -12,12 +12,8 @@ deferred class
 	V_SEQUENCE [G]
 
 inherit
-	V_MAP [INTEGER, G]
-		rename
-			has_key as has_index,
-			at_key as at
+	V_CONTAINER [G]
 		redefine
-			item,
 			is_empty
 		end
 
@@ -25,15 +21,17 @@ feature -- Access
 
 	item alias "[]" (i: INTEGER): G
 			-- Value at index `i'.
+		require
+			has_index: has_index (i)
 		deferred
 		ensure then
-			definition_sequence: Result = sequence [i - lower_ + 1]
+			definition: Result = sequence [i - lower_ + 1]
 		end
 
 	first: G
 			-- First element.
 		note
-			status: dynamic
+			status: nonvariant
 		require
 			not_empty: not is_empty
 		do
@@ -46,7 +44,7 @@ feature -- Access
 	last: G
 			-- Last element.
 		note
-			status: dynamic
+			status: nonvariant
 		require
 			not_empty: not is_empty
 		do
@@ -68,7 +66,7 @@ feature -- Measurement
 	upper: INTEGER
 			-- Upper bound of index interval.
 		note
-			status: dynamic
+			status: nonvariant
 		do
 			check inv end
 			Result := lower + count - 1
@@ -86,7 +84,7 @@ feature -- Measurement
 	has_index (i: INTEGER): BOOLEAN
 			-- Is any value associated with `i'?
 		note
-			status: dynamic
+			status: nonvariant
 		do
 			check inv end
 			Result := lower <= i and i <= upper
@@ -99,7 +97,7 @@ feature -- Status report
 	is_empty: BOOLEAN
 			-- Is container empty?
 		note
-			status: dynamic
+			status: nonvariant
 		do
 			Result := count = 0
 		ensure then
@@ -112,7 +110,7 @@ feature -- Search
 			-- Index of the first occurrence of `v';
 			-- out of range, if `v' does not occur.			
 		note
-			status: impure, dynamic
+			status: impure, nonvariant
 		require
 			modify_model (["observers"], Current)
 		do
@@ -134,7 +132,7 @@ feature -- Search
 			-- Index of the first occurrence of `v' starting from position `i';
 			-- out of range, if `v' does not occur.
 		note
-			status: impure, dynamic
+			status: impure, nonvariant
 		require
 			has_index: has_index (i)
 			modify_model (["observers"], Current)
@@ -161,7 +159,7 @@ feature -- Iteration
 	new_cursor: like at
 			-- New iterator pointing to the first position.
 		note
-			status: impure, dynamic
+			status: impure, nonvariant
 		do
 			Result := at (lower)
 		end
@@ -169,7 +167,7 @@ feature -- Iteration
 	at_last: like at
 			-- New iterator pointing to the last position.
 		note
-			status: impure, dynamic
+			status: impure, nonvariant
 		require
 			modify_field (["observers", "closed"], Current)
 		do
@@ -187,11 +185,17 @@ feature -- Iteration
 			-- If `i' is off scope, iterator is off.
 		note
 			status: impure
+		require
+			modify_field (["observers", "closed"], Current)
 		deferred
-		ensure then
+		ensure
+			result_fresh: Result.is_fresh
+			result_wrapped: Result.is_wrapped and Result.inv
+			result_in_observers: observers = old observers & Result
+			target_definition: Result.target = Current
 			index_definition_in_bounds: lower_ - 1 <= i and i <= upper_ + 1 implies Result.index_ = i - lower_ + 1
 			index_definition_before: i < lower_ implies Result.index_ = 0
-			index_definition_after: i > upper_ implies Result.index_ = map.count + 1
+			index_definition_after: i > upper_ implies Result.index_ = sequence.count + 1
 		end
 
 feature -- Specification
@@ -200,73 +204,36 @@ feature -- Specification
 			-- Sequence of elements.
 		note
 			status: ghost
-			replaces: map
+			replaces: bag
 		attribute
 		end
 
 	lower_: INTEGER
-			-- Lower bound of `map.domain'.
+			-- Lower bound of index interval.
 		note
 			status: ghost
 		attribute
 		end
 
 	upper_: INTEGER
-			-- Upper bound of `map.domain'.
+			-- Upper bound of index interval.
 		note
-			status: functional, ghost, dynamic
+			status: functional, ghost, nonvariant
 		do
 			Result := lower_ + sequence.count - 1
 		end
 
 	idx (i: INTEGER): INTEGER
+			-- Sequence index of position `i'.
 		note
-			status: ghost, functional, dynamic
+			status: ghost, functional, nonvariant
 		do
 			Result := i - lower_ + 1
 		end
 
-	map_from_sequence: MML_MAP [INTEGER, G]
-			-- Copy elements from `sequence' into `map'.
-		note
-			status: ghost, dynamic
-			explicit: contracts
-		require
-			reads_field (["sequence", "lower_"], Current)
-		local
-			i: INTEGER
-			b: MML_BAG [G]
-		do
-			from
-				i := 1
-				create Result
-			invariant
-				1 <= i and i <= sequence.count + 1
-				Result.domain ~ create {MML_INTERVAL}.from_range (lower_, lower_ + i - 2)
-				across 1 |..| (i - 1) as k all Result [k.item + lower_ - 1] = sequence [k.item] end
-				b ~ sequence.front (i - 1).to_bag
-				b ~ Result.to_bag
-			until
-				i > sequence.count
-			loop
-				Result := Result.updated (i + lower_ - 1, sequence [i])
-				check sequence.front (i - 1) & sequence [i] ~ sequence.front (i) end
-				b := b & sequence [i]
-				i := i + 1
-			end
-			check sequence.front (i - 1) = sequence end
-		ensure
-			domain_definition: Result.domain ~ create {MML_INTERVAL}.from_range (lower_, lower_ + sequence.count - 1)
-			definition: across 1 |..| sequence.count as k all
-					across lower_ |..| upper_ as j all
-						j.item = k.item + lower_ - 1 implies Result [j.item] = sequence [k.item]
-					end end
-			bag_constraint: Result.to_bag ~ sequence.to_bag
-		end
-
 invariant
 	lower_constraint: sequence.is_empty implies lower_ = 1
-	map_definition: map ~ map_from_sequence
+	bag_definition: bag ~ sequence.to_bag
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"

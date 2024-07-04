@@ -1,6 +1,5 @@
 note
-	description: "Summary description for {E2B_FORK_VERIFICATION_TASK}."
-	author: ""
+	description: "Verification task that verifies one feature at a time and (possibly) in parallel."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -97,7 +96,7 @@ feature -- Access
 	sleep_time: NATURAL
 			-- <Precursor>
 		do
-			if translation_task /= Void or not remaining_inputs.is_empty then
+			if verification_tasks.count < options.max_parallel_boogies and (translation_task /= Void or not remaining_inputs.is_empty) then
 				Result := 0
 			else
 				Result := 50
@@ -153,7 +152,7 @@ feature {ROTA_S, ROTA_TASK_I, ROTA_TASK_COLLECTION_I} -- Basic operation
 				end
 			end
 
-			if translation_task = Void and not remaining_inputs.is_empty then
+			if translation_task = Void and not remaining_inputs.is_empty and verification_tasks.count < options.max_parallel_boogies then
 				remaining_inputs.start
 				create translation_task.make (remaining_inputs.item)
 				translation_task.set_context (context_from_input (remaining_inputs.item))

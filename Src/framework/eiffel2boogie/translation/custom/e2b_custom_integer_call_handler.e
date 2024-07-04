@@ -42,10 +42,12 @@ feature -- Implementation
 	handle_routine_call (a_translator: E2B_EXPRESSION_TRANSLATOR; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		local
+			l_type: TYPE_A
 			l_name: STRING
 			l_fname: STRING
 			l_fcall: IV_FUNCTION_CALL
 		do
+			l_type := a_translator.current_target_type
 			l_name := a_feature.feature_name
 			if l_name.same_string ("truncated_to_integer") then
 				l_fname := "real_to_integer_32"
@@ -67,12 +69,44 @@ feature -- Implementation
 				l_fname := "int_to_integer_32"
 			elseif l_name.same_string ("to_integer_64") or l_name.same_string ("as_integer_64") then
 				l_fname := "int_to_integer_64"
+			elseif l_name.same_string ("to_double") or l_name.same_string ("to_real") then
+				l_fname := "real"
+			elseif l_name.same_string ("bit_and") then
+					l_fname := "bit_and"
+			elseif l_name.same_string ("bit_or") then
+					l_fname := "bit_or"
+			elseif l_name.same_string ("bit_xor") then
+					l_fname := "bit_xor"
+			elseif l_name.same_string ("bit_not") then
+					l_fname := "bit_not"
+			elseif l_name.same_string ("bit_shift_left") then
+					l_fname := "bit_shift_left"
+			elseif l_name.same_string ("bit_shift_right") then
+					l_fname := "bit_shift_right"
 			elseif l_name.same_string ("min") then
-				l_fname := "min"
+				if l_type.is_natural or l_type.is_integer or l_type.is_character then
+					l_fname := "min"
+				elseif l_type.is_real_32 or l_type.is_real_64 then
+					l_fname := "min_real"
+				end
 			elseif l_name.same_string ("max") then
-				l_fname := "max"
+				if l_type.is_natural or l_type.is_integer or l_type.is_character then
+					l_fname := "max"
+				elseif l_type.is_real_32 or l_type.is_real_64 then
+					l_fname := "max_real"
+				end
 			elseif l_name.same_string ("abs") then
-				l_fname := "abs"
+				if l_type.is_natural or l_type.is_integer or l_type.is_character then
+					l_fname := "abs"
+				elseif l_type.is_real_32 or l_type.is_real_64 then
+					l_fname := "abs_real"
+				end
+			elseif l_name.same_string ("sign") then
+				if l_type.is_natural or l_type.is_integer or l_type.is_character then
+					l_fname := "sign"
+				elseif l_type.is_real_32 or l_type.is_real_64 then
+					l_fname := "sign_real"
+				end
 			else
 				l_fname := Void
 			end

@@ -12,8 +12,8 @@ axiom (forall<T> s: Set T :: { Set#Card(s) } 0 <= Set#Card(s));
 function Set#Empty<T>(): Set T;
 axiom (forall<T> o: T :: { Set#Empty()[o] } !Set#Empty()[o]);
 axiom (forall<T> s: Set T :: { Set#Card(s) }
-  (Set#Card(s) == 0 <==> s == Set#Empty()) &&
-  (Set#Card(s) != 0 ==> (exists x: T :: s[x])));
+  (Set#Card(s) == 0 <==> s == Set#Empty()));// &&
+  // (Set#Card(s) != 0 ==> (exists x: T :: s[x])));
 axiom (forall<T> f: Field (Set T) :: { Default(f) } Default(f) == Set#Empty() : Set T);  
 
 // Singleton set  
@@ -43,6 +43,9 @@ axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }  // extensionality axio
 function Set#Subset<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
+axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b), Set#Card(a) }{ Set#Subset(a,b), Set#Card(b) }
+  Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
+  
   
 // Is a superset of b?
 function {: inline } Set#Superset<T>(a: Set T, b: Set T): bool

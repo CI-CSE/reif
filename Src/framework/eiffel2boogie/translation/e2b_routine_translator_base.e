@@ -238,12 +238,6 @@ feature -- Helper functions: contracts
 				frame_partial_objects_of (a_clauses, "modify_field", a_translator, False),
 				frame_partial_objects_of (a_clauses, "modify_model", a_translator, True)
 				]
-				-- Add `closed' to all model frames
-			across Result.model_objects as m loop
-				if across m.item.fields as f all f.item.name /~ "closed" end then
-					m.item.fields.extend (factory.entity ("closed", types.field (types.bool)))
-				end
-			end
 		end
 
 	read_expressions_of (a_clauses: LIST [E2B_ASSERT_ORIGIN]; a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR): TUPLE [full_objects: LIST [IV_EXPRESSION]; partial_objects: LIST [E2B_FRAME_ELEMENT]; model_objects: LIST [E2B_FRAME_ELEMENT]]
@@ -270,7 +264,7 @@ feature -- Helper functions: contracts
 				if attached {FEATURE_B} i.item.clause.expr as l_call then
 					l_name := names_heap.item_32 (l_call.feature_name_id)
 					if l_name ~ a_function then
-						a_translator.set_origin_class (i.item.origin)
+--						a_translator.set_origin_class (i.item.origin)
 						l_objects_type := translate_contained_expressions (l_call.parameters.i_th (1).expression, a_translator, True)
 						Result.append (l_objects_type.expressions)
 					end
@@ -305,7 +299,6 @@ feature -- Helper functions: contracts
 
 						if l_objects_type.expressions.first /= Void then
 							l_type := helper.class_type_in_context (l_objects_type.type, i.item.origin, current_feature, current_type)
-
 							create l_fieldnames.make
 							if attached {STRING_B} l_call.parameters.i_th (1).expression as l_string then
 								l_fieldnames.extend (l_string.value)
@@ -474,6 +467,7 @@ feature -- Helper functions: contracts
 			l_expressions: LINKED_LIST [IV_EXPRESSION]
 			l_type: TYPE_A
 			l_feature: FEATURE_I
+			l_like_type: LIKE_FEATURE
 		do
 			create l_expr_list.make
 			if attached {TUPLE_CONST_B} a_expr as l_tuple then
@@ -498,8 +492,12 @@ feature -- Helper functions: contracts
 					k.item.process (a_translator)
 					l_expressions.extend (a_translator.last_expression)
 					if attached {CALL_ACCESS_B} k.item as a then
-						l_feature := helper.feature_for_call_access (a, a_translator.current_target_type)
-						l_type := l_feature.type
+--						l_feature := helper.feature_for_call_access (a, a_translator.current_target_type)
+--						l_type := l_feature.type
+						l_feature := helper.feature_for_call_access (a, a_translator.origin_class.actual_type)
+						create l_like_type.make (l_feature, a_translator.current_target_type.base_class.class_id)
+						l_like_type.set_actual_type (l_feature.type.actual_type)
+						l_type := l_like_type
 					else
 						l_type := k.item.type
 					end

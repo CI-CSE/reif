@@ -253,6 +253,24 @@ feature {NONE} -- Initialization
 			end
 			Result.extend (l_item)
 
+			create l_item.make_with_text_and_action ("Check each invariant clause independently",
+				agent do
+					options.set_inv_check_independent (not options.is_inv_check_independent)
+				end)
+			if options.is_inv_check_independent then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
+			create l_item.make_with_text_and_action ("Ignore nonvariant annotations",
+				agent do
+					options.set_ignoring_nonvariant (not options.is_ignoring_nonvariant)
+				end)
+			if options.is_ignoring_nonvariant then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
 			Result.extend (create {EV_MENU_SEPARATOR})
 
 --			create l_item.make_with_text_and_action ("Enable ownership",

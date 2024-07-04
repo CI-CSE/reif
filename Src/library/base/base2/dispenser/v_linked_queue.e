@@ -35,7 +35,7 @@ feature -- Initialization
 		require
 			no_observers: observers.is_empty
 			modify_model ("sequence", Current)
-			modify_model ("closed", other)
+			modify_field ("closed", other)
 		do
 			if other /= Current then
 				other.unwrap
@@ -72,13 +72,8 @@ feature -- Iteration
 			-- New iterator pointing to a position in the container, from which it can traverse all elements by going `forth'.
 		note
 			status: impure
-		local
-			list_cursor: V_LINKED_LIST_ITERATOR [G]
 		do
-			unwrap
-			list_cursor := list.new_cursor
-			create Result.make (Current, list_cursor)
-			wrap
+			create Result.make (Current)
 		end
 
 feature -- Comparison
@@ -121,22 +116,26 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 
 feature -- Specification
 
-	forget_iterator (it: like new_cursor)
+	forget_iterator (it: V_ITERATOR [G])
 			-- Remove `it' from `observers'.
 		note
 			status: ghost
 			explicit: contracts
 		do
-			it.unwrap
-			set_observers (observers / it)
-			check it.iterator.inv_only ("subjects_definition", "A2") end
-			list.forget_iterator (it.iterator)
+			check it.inv_only ("subjects_definition", "A2") end
+			check attached {V_LINKED_QUEUE_ITERATOR [G]} it as lsit then
+				lsit.unwrap
+				set_observers (observers / lsit)
+				check lsit.iterator.inv_only ("subjects_definition", "A2") end
+				list.forget_iterator (lsit.iterator)
+			end
 		end
 
 invariant
 	list_exists: list /= Void
 	owns_definition: owns = [list]
 	sequence_implementation: sequence ~ list.sequence
+	observers_type: across observers as o all attached {V_LINKED_QUEUE_ITERATOR [G]} o.item end
 	observers_correspond: list.observers.count <= observers.count
 
 note

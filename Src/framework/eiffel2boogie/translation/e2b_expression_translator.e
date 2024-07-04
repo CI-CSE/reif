@@ -142,6 +142,9 @@ feature -- Access
 	use_triggers: BOOLEAN
 			-- Should triggers be added to generated quntifiers?
 
+	use_uninterpreted_context_function: BOOLEAN
+			-- Translate function calls to `context_feature' with its uninterpreted version.
+
 feature -- Convenience
 
 	class_type_in_current_context (a_type: TYPE_A): CL_TYPE_A
@@ -273,6 +276,12 @@ feature -- Basic operations
 			-- Set `use_triggers' to `b'
 		do
 			use_triggers := b
+		end
+
+	set_use_uninterpreted_context_function (b: BOOLEAN)
+			-- Set `use_uninterpreted_context_function' to `b'
+		do
+			use_uninterpreted_context_function := b
 		end
 
 feature -- Visitors
@@ -625,10 +634,10 @@ feature -- Visitors
 			l_current_type: CL_TYPE_A
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
-			check a_node.is_static_call end
-
 			l_current_type := current_target_type
-			current_target_type := class_type_in_current_context (a_node.static_class_type)
+			if a_node.is_static_call then
+				current_target_type := class_type_in_current_context (a_node.static_class_type)
+			end
 
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			check feature_valid: l_feature /= Void end
@@ -830,7 +839,7 @@ feature -- Visitors
 				else
 					check False end
 				end
-				if last_expression = Void then
+				if last_expression = Void and not a_node.type.is_void then
 					last_expression := dummy_node (a_node.type)
 				end
 			else
@@ -845,14 +854,7 @@ feature -- Visitors
 				current_target := last_expression
 				current_target_type := expression_class_type (a_node.target)
 
-					-- Check if target is attached;
-					-- skip if target is expanded or a mathematical type, or this is a special any feature
-					-- ToDo: better define a special nested handler in E2B_CUSTOM_ANY_HANDLER
-				if not (current_target_type.is_expanded or
-						helper.is_class_logical (current_target_type.base_class) or
-						(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
-					add_safety_check (factory.not_equal (current_target, factory.void_), "attached", context_tag, context_line_number)
-				end
+				add_void_call_check (a_node)
 
 					-- Evaluate message with original expression
 --				if attached {CL_TYPE_A} current_target_type as l_cl_type then
@@ -1226,13 +1228,34 @@ feature -- Translation
 			end
 		end
 
+	process_as_old (a_expr: EXPR_B)
+			-- Process `old a_expr'.
+		local
+			l_temp_heap: IV_EXPRESSION
+		do
+			l_temp_heap := entity_mapping.heap
+			entity_mapping.set_heap (entity_mapping.old_heap)
+			safe_process (a_expr)
+			entity_mapping.set_heap (l_temp_heap)
+		end
+
+	add_void_call_check (a_node: NESTED_B)
+			-- Add void check for the target of `a_node' if needed.
+		do
+			if not (current_target_type.is_expanded or
+					helper.is_class_logical (current_target_type.base_class) or
+					(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
+				add_safety_check (factory.not_equal (current_target, factory.void_), "attached", context_tag, context_line_number)
+			end
+		end
+
 	add_function_precondition_check (a_feature: FEATURE_I; a_fcall: IV_FUNCTION_CALL)
 			-- Check the precondition of the function call `a_fcall' of `a_feature'.
 		local
 			l_fname: STRING
 			l_pre_call: IV_FUNCTION_CALL
 		do
-			l_fname := name_translator.boogie_function_for_feature (a_feature, current_target_type)
+			l_fname := name_translator.boogie_function_for_feature (a_feature, current_target_type, False)
 				-- Add check
 				-- Note: here we assume that there is no default precondition!
 			if helper.has_flat_precondition (a_feature) then
@@ -1241,8 +1264,9 @@ feature -- Translation
 					l_pre_call.add_argument (args.item)
 				end
 				add_safety_check_with_subsumption (l_pre_call, "check", "function_precondition", context_line_number)
-				last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
+				last_safety_check.node_info.set_attribute ("cid", current_target_type.base_class.class_id.out)
 				last_safety_check.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
+				check system.class_of_id (current_target_type.base_class.class_id).feature_of_rout_id (a_feature.rout_id_set.first).feature_name_id = a_feature.feature_name_id end
 			end
 --				-- Assume free precondition to trigger the function definition;
 --				-- (definitions of logicals do not have free preconditions)
@@ -1263,13 +1287,16 @@ feature -- Translation
 			if context_readable /= Void and helper.has_functional_representation (a_feature) then
 				create l_fcall.make (name_translator.boogie_function_for_read_frame (a_feature, current_target_type), types.frame)
 				l_fcall.add_argument (entity_mapping.heap)
-				l_fcall.add_argument (current_target)
+				if not helper.is_static (a_feature) then
+					l_fcall.add_argument (current_target)
+				end
 				l_fcall.arguments.append (last_parameters)
 					-- Using subsumption here, since in a query call chains it can trigger for the followings checks
 				add_safety_check_with_subsumption (factory.function_call ("Frame#Subset", <<l_fcall, context_readable>>, types.bool),
 					"access", "frame_readable", context_line_number)
-				last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
+				last_safety_check.node_info.set_attribute ("cid", current_target_type.base_class.class_id.out)
 				last_safety_check.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
+				check system.class_of_id (current_target_type.base_class.class_id).feature_of_rout_id (a_feature.rout_id_set.first).feature_name_id = a_feature.feature_name_id end
 			end
 		end
 
@@ -1354,13 +1381,17 @@ feature -- Translation
 					check checked_when_creating: l_decreases_fun.type.has_rank end
 					create l_callee_variant.make (l_decreases_fun.name, l_decreases_fun.type)
 					l_callee_variant.add_argument (entity_mapping.heap)
-					l_callee_variant.add_argument (current_target)
+					if not helper.is_static (a_feature) then
+						l_callee_variant.add_argument (current_target)
+					end
 					l_callee_variant.arguments.append (last_parameters)
 					l_callee_variants.extend (l_callee_variant)
 
 					create l_caller_variant.make (l_decreases_fun.name, l_decreases_fun.type)
 					l_caller_variant.add_argument (factory.old_ (entity_mapping.heap))
-					l_caller_variant.add_argument (entity_mapping.current_expression)
+					if not helper.is_static (a_feature) then
+						l_caller_variant.add_argument (entity_mapping.current_expression)
+					end
 					from
 						j := 1
 					until
@@ -1379,7 +1410,7 @@ feature -- Translation
 		end
 
 
-feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER} -- Implementation
+feature -- Implementation
 
 	parameters_stack: LINKED_STACK [LINKED_LIST [IV_EXPRESSION]]
 			-- Stack of procedure calls.

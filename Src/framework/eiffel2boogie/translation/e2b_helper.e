@@ -35,6 +35,7 @@ feature -- Cache control
 		do
 			map_access_feature_cache.wipe_out
 			flat_model_cache.wipe_out
+			ghost_attribute_cache.wipe_out
 			internal_counter.put (0)
 				-- Reset invariant checks
 			(create {E2B_TYPE_TRANSLATOR}).invariant_check_cache.wipe_out;
@@ -206,10 +207,10 @@ feature -- Feature status helpers
 			Result := is_feature_status (a_feature, "creator")
 		end
 
-	is_dynamic (a_feature: FEATURE_I): BOOLEAN
-			-- Is `a_feature' a dynamic feature (i.e. does not know the exact type of Current)?
+	is_nonvariant (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' nonvariant (i.e. does not know the dynmaic type of Current)?
 		do
-			Result := is_feature_status (a_feature, "dynamic")
+			Result := not options.is_ignoring_nonvariant and then is_feature_status (a_feature, "nonvariant")
 		end
 
 	is_functional (a_feature: FEATURE_I): BOOLEAN
@@ -221,7 +222,7 @@ feature -- Feature status helpers
 	is_ghost (a_feature: FEATURE_I): BOOLEAN
 			-- Is `a_feature' a ghost feature?
 		do
-			Result := is_feature_status (a_feature, "ghost")
+			Result := is_feature_status (a_feature, "ghost") or is_class_status (a_feature.written_class, "ghost")
 		end
 
 	is_impure (a_feature: FEATURE_I): BOOLEAN
@@ -255,9 +256,15 @@ feature -- Feature status helpers
 		end
 
 	is_opaque (a_feature: FEATURE_I): BOOLEAN
-			-- Is `a_feature' a an opaque feature?
+			-- Is `a_feature' an opaque function (its definition is not automatically available)?
 		do
 			Result := is_feature_status (a_feature, "opaque")
+		end
+
+	is_static (a_feature: FEATURE_I): BOOLEAN
+			-- Is `a_feature' a static feature (it does not take Current as argument)?
+		do
+			Result := is_feature_status (a_feature, "static")
 		end
 
 	is_private (a_feature: FEATURE_I): BOOLEAN
@@ -284,19 +291,20 @@ feature -- Feature status helpers
 			Result := is_feature_status (a_feature, "skip")
 		end
 
-	feature_with_string_note_value (a_class: CLASS_C; a_tag, a_value: STRING_32): FEATURE_I
+	features_with_string_note_value (a_class: CLASS_C; a_tag, a_value: STRING_32): LINKED_LIST [FEATURE_I]
 			-- Feature of class `a_class', which has a note where `a_tag' contain `a_value'.
 		local
 			l_feature: FEATURE_I
 		do
 			from
+				create Result.make
 				a_class.feature_table.start
 			until
-				Result /= Void or a_class.feature_table.after
+				a_class.feature_table.after
 			loop
 				l_feature := a_class.feature_table.item_for_iteration
 				if feature_note_values (l_feature, a_tag).has (a_value) then
-					Result := l_feature
+					Result.extend (l_feature)
 				end
 				a_class.feature_table.forth
 			end
@@ -448,7 +456,7 @@ feature -- Ownership helpers
 		do
 				-- Yes, if the base class is frozen, or the type is "like Current" (provided we are not inside a dynamic feature)
 			Result := a_class_type.base_class.is_frozen or
-				(a_type.is_like_current and not (attached a_context_feature and then is_dynamic (a_context_feature)))
+				(a_type.is_like_current and not (attached a_context_feature and then is_nonvariant (a_context_feature)))
 		end
 
 	boogie_name_for_attribute (a_feature: FEATURE_I; a_context_type: CL_TYPE_A): STRING_32
@@ -539,6 +547,38 @@ feature -- Ownership helpers
 			Result := translation_mapping.ghost_access.has (a_feature.feature_name_32)
 		end
 
+	ghost_attributes (a_class: CLASS_C): ARRAYED_LIST [FEATURE_I]
+			-- All ghost attributes of `a_class' (in the order from most immediate to most inherited).
+		local
+			l_feature: FEATURE_I
+		do
+			if ghost_attribute_cache.has_key (a_class.class_id) then
+				Result := ghost_attribute_cache [a_class.class_id]
+			else
+				from
+					create Result.make (5)
+					Result.start
+					a_class.feature_table.start
+				until
+					a_class.feature_table.after
+				loop
+					l_feature := a_class.feature_table.item_for_iteration
+					if (l_feature.is_attribute and is_ghost (l_feature)) or is_built_in_attribute (l_feature) then
+						from
+							Result.start
+						until
+							Result.after or else is_conforming_or_non_conforming_parent_class (l_feature.written_class, Result.item.written_class)
+						loop
+							Result.forth
+						end
+						Result.put_left (l_feature)
+					end
+					a_class.feature_table.forth
+				end
+				ghost_attribute_cache.put (Result, a_class.class_id)
+			end
+		end
+
 feature -- Model helpers
 
 	model_queries (a_class: CLASS_C): ARRAYED_LIST [STRING_32]
@@ -548,21 +588,28 @@ feature -- Model helpers
 		end
 
 	flat_model_queries (a_class: CLASS_C): ARRAYED_LIST [FEATURE_I]
-			-- Names of model queries declared in class `a_class' and all its ancestors.
+			-- Model queries declared in class `a_class' and all its ancestors.
 		local
-			l_new_version: FEATURE_I
+			l_f, l_new_version: FEATURE_I
 		do
 			if flat_model_cache.has_key (a_class.class_id) then
 				Result := flat_model_cache [a_class.class_id]
 			else
 				create Result.make (5)
 				if a_class.class_id = system.any_id then
-					across translation_mapping.ghost_access as m loop
-						Result.extend (a_class.feature_named_32 (m.item))
-					end
+--					across translation_mapping.ghost_access as m loop
+--						Result.extend (a_class.feature_named_32 (m.item))
+--					end
+					Result.extend (a_class.feature_named_32 ("subjects"))
+					Result.extend (a_class.feature_named_32 ("observers"))
 				else
 					across model_queries (a_class) as m loop
-						Result.extend (a_class.feature_named_32 (m.item))
+						l_f := a_class.feature_named_32 (m.item)
+						if l_f /= Void then
+							Result.extend (l_f)
+						else
+							add_semantic_warning (a_class, messages.unknown_attribute (m.item, a_class.name_in_upper), -1)
+						end
 					end
 					across a_class.parents_classes as c loop
 						across flat_model_queries (c.item) as q loop
@@ -618,7 +665,8 @@ feature -- Model helpers
 			feature_exists: attached a_feature
 			feature_is_model: is_model_query (a_class, a_feature)
 		local
-			l_rep_feature, l_new_version: FEATURE_I
+			l_new_version: FEATURE_I
+			l_rep_features: LINKED_LIST [FEATURE_I]
 		do
 			create Result.make (5)
 			Result.extend (a_descendant.feature_of_rout_id_set (a_feature.rout_id_set))
@@ -626,12 +674,13 @@ feature -- Model helpers
 				if a_descendant.inherits_from (d.item) then
 					l_new_version := d.item.feature_of_rout_id_set (a_feature.rout_id_set)
 					if model_queries (d.item).has (l_new_version.feature_name_32) then
-						l_rep_feature := l_new_version
+						create l_rep_features.make
+						l_rep_features.extend (l_new_version)
 					else
-						l_rep_feature := feature_with_string_note_value (d.item, "replaces", l_new_version.feature_name_32)
+						l_rep_features := features_with_string_note_value (d.item, "replaces", l_new_version.feature_name_32)
 					end
-					if attached l_rep_feature then
-						across replacing_model_queries (l_rep_feature, d.item, a_descendant) as q loop
+					across l_rep_features as rep_f loop
+						across replacing_model_queries (rep_f.item, d.item, a_descendant) as q loop
 							if not Result.has (q.item) then
 								Result.extend (q.item)
 							end
@@ -727,15 +776,7 @@ feature -- Eiffel helpers
 			-- Feature represented by `a_node'.
 		do
 			check is_conforming_or_non_conforming_parent_class (a_target_type.associated_class, system.class_of_id (a_node.written_in)) end
-			Result := a_target_type.associated_class.feature_of_name_id (a_node.feature_name_id)
---			Result := system.class_of_id (a_node.written_in).feature_of_name_id (a_node.feature_name_id)
-			if Result /= Void then
-					-- Not renamed
-				Result := a_target_type.associated_class.feature_of_name_id (a_node.feature_name_id)
-			else
-					-- Renamed
-				Result := a_target_type.associated_class.feature_of_rout_id (a_node.routine_id)
-			end
+			Result := a_target_type.associated_class.feature_of_rout_id (a_node.routine_id)
 			Result := Result.instantiated (a_target_type)
 			check Result /= Void end
 		end
@@ -835,6 +876,11 @@ feature -- Byte context helpers
 			end
 			check a_type.has_associated_class_type (Void) end
 			Context.init (a_type.associated_class_type (Void))
+--			if a_feature /= Void then
+--				Context.set_class_type (a_feature.written_type (a_type.associated_class_type (Void)))
+--			else
+--				-- TODO: Investiage why it is Void.
+--			end
 
 				-- Set up feature data
 			if a_feature /= Void then
@@ -845,39 +891,6 @@ feature -- Byte context helpers
 				end
 			end
 		end
-
-	set_up_byte_context_type (a_type: TYPE_A; a_context: TYPE_A)
-			-- Set up byte context.
-		do
-				-- Set up class type
-			if not a_type.has_associated_class_type (Void) then
-				if attached {CL_TYPE_A} a_type as l_cl_type_a then
-					a_type.associated_class.update_types (l_cl_type_a)
-				else
-					check False end
-				end
-			end
-			check a_type.has_associated_class_type (Void) end
-			Context.init (a_type.associated_class_type (Void))
-
-				-- Set up context type
-			if not a_context.has_associated_class_type (Void) then
-				if attached {CL_TYPE_A} a_context as l_cl_type_a then
-					a_context.associated_class.update_types (l_cl_type_a)
-				else
-					check False end
-				end
-			end
-			check a_context.has_associated_class_type (Void) end
-			Context.change_class_type_context (
-				a_type.associated_class_type (Void), a_type.associated_class_type (Void).type,
-				a_context.associated_class_type (Void), a_context.associated_class_type (Void).type)
-		end
-
-feature -- IV nodes helper
-
-
-
 
 feature -- Other
 
@@ -986,7 +999,7 @@ feature -- Other
 				not helper.is_skipped (a_feature) and -- not feature skipped
 				not helper.is_skipped_class (a_class) and -- not class skipped
 				(a_feature.written_in /= system.any_id or a_feature.rout_id_set.has (system.default_create_rout_id)) and -- is not inherited from ANY
-				not (a_feature.written_in /= a_class.class_id and is_dynamic (a_feature)) -- not an inherited dynamic feature
+				not (a_feature.written_in /= a_class.class_id and is_nonvariant (a_feature)) -- not an inherited nonvariant feature
 		end
 
 feature {NONE} -- Implementation
@@ -1021,5 +1034,12 @@ feature {NONE} -- Implementation
 		once
 			create Result.make (50)
 		end
+
+	ghost_attribute_cache: HASH_TABLE [ARRAYED_LIST [FEATURE_I], INTEGER]
+			-- Cache of a list of all ghost attributes for each class.
+		once
+			create Result.make (50)
+		end
+
 
 end

@@ -17,16 +17,14 @@ inherit
 			search as search_forth
 		redefine
 			item,
-			search_forth,
-			is_model_equal
+			search_forth
 		end
 
 	ITERATION_CURSOR [G]
 		rename
 			after as off
 		redefine
-			item,
-			is_model_equal
+			item
 		end
 
 feature -- Access
@@ -55,7 +53,7 @@ feature -- Measurement
 	valid_index (i: INTEGER): BOOLEAN
 			-- Is `i' a valid position for a cursor?
 		note
-			status: functional, ghost, dynamic
+			status: functional, ghost, nonvariant
 		require
 			target_exists: target /= Void
 			reads (Current, target)
@@ -84,7 +82,7 @@ feature -- Status report
 	off: BOOLEAN
 			-- Is current position off scope?
 		note
-			status: dynamic
+			status: nonvariant
 		do
 			check inv end
 			Result := before or after
@@ -118,7 +116,7 @@ feature -- Cursor movement
 			target_closed: target.closed
 			modify_model ("index_", Current)
 		deferred
-		ensure then
+		ensure
 			index_effect: index_ = 1
 			target_closed: target.closed
 		end
@@ -156,8 +154,7 @@ feature -- Cursor movement
 	go_to (i: INTEGER)
 			-- Go to position `i'.
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			has_index: valid_index (i)
 			target_wrapped: target.is_wrapped
@@ -218,8 +215,7 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `after'.
 			-- (Use reference equality.)
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		do
 			check inv_only ("subjects_definition") end
 			if before then
@@ -251,8 +247,7 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `before'.
 			-- (Use reference equality.)
 		note
-			status: dynamic
-			explicit: wrapping
+			status: nonvariant
 		require
 			target_wrapped: target.is_wrapped
 			modify_model ("index_", Current)
@@ -297,14 +292,6 @@ feature -- Specification
 			status: ghost
 			replaces: box
 		attribute
-		end
-
-	is_model_equal (other: like Current): BOOLEAN
-			-- Is the abstract state of `Current' equal to that of `other'?
-		note
-			status: ghost, functional
-		do
-			Result := target = other.target and sequence ~ other.sequence and index_ = other.index_
 		end
 
 invariant

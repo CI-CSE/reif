@@ -27,6 +27,8 @@ feature {NONE} -- Initialization
 			is_generating_triggers := False
 			is_triggering_on_arithmetic := False
 			is_arithmetic_extracted := False
+			is_inv_check_independent := True
+			is_ignoring_nonvariant := False
 
 			is_ownership_enabled := True
 			is_ownership_defaults_enabled := True
@@ -44,6 +46,7 @@ feature {NONE} -- Initialization
 			is_generating_trivial_loop_variants := True
 
 			is_bulk_verification_enabled := True
+			max_parallel_boogies := 3
 
 			is_print_time := True
 		end
@@ -219,6 +222,24 @@ feature -- Quantifiers
 			is_arithmetic_extracted := a_value
 		end
 
+	is_inv_check_independent: BOOLEAN
+			-- Should each invariant clause be checked independently?
+
+	set_inv_check_independent (a_value: BOOLEAN)
+			-- Set `is_inv_check_independent' to `a_value'.
+		do
+			is_inv_check_independent := a_value
+		end
+
+	is_ignoring_nonvariant: BOOLEAN
+			-- Should the "nonvariant" annotation be ignored?
+
+	set_ignoring_nonvariant (a_value: BOOLEAN)
+			-- Set `is_ignoring_nonvariant' to `a_value'.
+		do
+			is_ignoring_nonvariant := a_value
+		end
+
 feature -- Framing
 
 	is_ownership_enabled: BOOLEAN
@@ -291,6 +312,15 @@ feature -- Other
 			-- Set `is_bulk_verification_enabled' to `a_value'.
 		do
 			is_bulk_verification_enabled := a_value
+		end
+
+	max_parallel_boogies: INTEGER
+			-- Maximum number of parallel Boogie instances.
+
+	set_max_parallel_boogies (a_value: INTEGER)
+			-- Set `max_parallel_boogies' to `a_value'.
+		do
+			max_parallel_boogies := a_value
 		end
 
 end
