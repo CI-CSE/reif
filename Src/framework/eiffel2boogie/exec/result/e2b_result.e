@@ -15,9 +15,7 @@ feature {NONE} -- Initialization
 			-- Initialize Boogie result.
 		do
 			create procedure_results.make
---			create verified_procedures.make
---			create verification_errors.make
-			create syntax_errors.make
+			create execution_errors.make
 		end
 
 feature -- Access
@@ -37,8 +35,16 @@ feature -- Access
 	procedure_results: LINKED_LIST [E2B_PROCEDURE_RESULT]
 			-- List of procedure results.
 
-	verified_procedures: LINKED_LIST [E2B_PROCEDURE_RESULT]
-			-- List of verified procedures.
+	verified_procedures: LINKED_LIST [E2B_SUCCESSFUL_VERIFICATION]
+			-- List of successfully verified features.
+		do
+			create Result.make
+			across procedure_results as i loop
+				if attached {E2B_SUCCESSFUL_VERIFICATION} i.item as l_failed then
+					Result.extend (l_failed)
+				end
+			end
+		end
 
 	verification_errors: LINKED_LIST [E2B_FAILED_VERIFICATION]
 			-- List of verification errors.
@@ -51,18 +57,18 @@ feature -- Access
 			end
 		end
 
-	syntax_errors: LINKED_LIST [STRING]
-			-- List of syntax errors.
+	execution_errors: LINKED_LIST [TUPLE [title: STRING; message: STRING]]
+			-- List of errors running the verification.
 
 	boogie_file_lines: LIST [STRING]
 			-- List of lines in Boogie file.
 
 feature -- Status report
 
-	has_syntax_errors: BOOLEAN
+	has_execution_errors: BOOLEAN
 			-- Did syntax errors occur?
 		do
-			Result := not syntax_errors.is_empty
+			Result := not execution_errors.is_empty
 		end
 
 	has_verification_errors: BOOLEAN
@@ -81,7 +87,7 @@ feature -- Status report
 	is_verification_successful: BOOLEAN
 			-- Did verification succeed?
 		do
-			Result := not has_syntax_errors and then not has_verification_errors
+			Result := not has_execution_errors and then not has_verification_errors
 		end
 
 feature {E2B_OUTPUT_PARSER} -- Element change

@@ -10,6 +10,10 @@ inherit
 
 	E2B_SHARED_CONTEXT
 
+	SHARED_ERROR_HANDLER
+
+	COMPILER_EXPORTER
+
 create
 	make
 
@@ -113,6 +117,7 @@ feature {NONE} -- Implementation
 							create l_failed_verification.make (l_current_procedure)
 							l_failed_verification.set_time (verified_regexp.captured_substring (1).to_real)
 							l_failed_verification.errors.append (l_current_errors)
+							l_current_errors.do_all (agent {E2B_VERIFICATION_ERROR}.set_procedure_result (l_failed_verification))
 							last_result.procedure_results.extend (l_failed_verification)
 						end
 						l_total_time := l_total_time + verified_regexp.captured_substring (1).to_real
@@ -170,15 +175,14 @@ feature {NONE} -- Implementation
 						-- line: syntax_error_regexp.captured_substring (2).to_integer
 						-- column: syntax_error_regexp.captured_substring (3).to_integer
 						-- message: syntax_error_regexp.captured_substring (4)
-						last_result.syntax_errors.extend (l_line)
+						last_result.execution_errors.extend (["Syntax error", l_line])
 
 					elseif semantic_error_regexp.matches (l_line) then
 						-- file: semantic_error_regexp.captured_substring (1)
 						-- line: semantic_error_regexp.captured_substring (2).to_integer
 						-- column: semantic_error_regexp.captured_substring (3).to_integer
 						-- message: semantic_error_regexp.captured_substring (4)
-						check False end
-							-- TODO: what kind of errors are these?
+						last_result.execution_errors.extend (["Semantic error", l_line])
 
 					elseif execution_trace_regexp.matches (l_line) then
 						-- file: execution_trace_regexp.captured_substring (1)
@@ -231,6 +235,9 @@ feature {NONE} -- Implementation
 				lines.forth
 			end
 			last_result.set_total_time (l_total_time)
+			if error_handler.has_warning then
+				error_handler.trace
+			end
 		end
 
 feature {NONE} -- Implementation
@@ -263,21 +270,23 @@ feature {NONE} -- Implementation
 			-- Instruction location of `a_line' (if any).
 		local
 			i: INTEGER
+			l_line: STRING
 			l_exit: BOOLEAN
 		do
---			from
---				i := a_line
---			until
---				i < 1 or l_exit
---			loop
---				if instruction_location_regexp.matches (boo) then
---					Result := instruction_location_regexp.captured_substring (3).to_integer
---					l_exit := True
---				elseif  then
---					l_exit := True
---				end
---				i := i - 1
---			end
+			from
+				i := a_line - 1
+			until
+				l_exit or Result /= Void
+			loop
+				l_line := boogie_file_lines [i]
+				if instruction_location_regexp.matches (l_line) then
+					Result := [instruction_location_regexp.captured_substring (1), instruction_location_regexp.captured_substring (2).to_integer]
+				elseif l_line.starts_with ("{") then
+					l_exit := True
+				else
+					i := i - 1
+				end
+			end
 		end
 
 	eiffel_feature_context_of_boogie_line (a_line: INTEGER): FEATURE_I
@@ -369,7 +378,10 @@ feature {NONE} -- Implementation
 			l_is_pre, l_is_post, l_is_assert: BOOLEAN
 			l_is_loop_inv_on_entry, l_is_loop_inv_maintained: BOOLEAN
 			l_boogie_line, l_related_boogie_line: STRING
+			l_pre_violation: E2B_PRECONDITION_VIOLATION
 			l_post_violation: E2B_POSTCONDITION_VIOLATION
+			l_eiffel_location: TUPLE [file: STRING; line: INTEGER]
+			l_called_feature: STRING
 		do
 			check attached boogie_file_lines end
 
@@ -384,17 +396,37 @@ feature {NONE} -- Implementation
 			l_related_boogie_line := boogie_file_lines [a_related_linenumber]
 
 			if l_is_pre then
+				create l_pre_violation.make (a_code, a_message)
+				Result := l_pre_violation
+					-- Line in Eiffel code
+				l_eiffel_location := eiffel_instruction_location (a_linenumber)
+				if attached l_eiffel_location then
+					l_pre_violation.set_eiffel_file_name (l_eiffel_location.file)
+					l_pre_violation.set_eiffel_line_number (l_eiffel_location.line)
+				end
+					-- Called routine
+				proc_call_regexp.match (l_boogie_line)
+				if proc_call_regexp.has_matched then
+					if proc_call_regexp.match_count = 3 then
+						l_called_feature := proc_call_regexp.captured_substring (2)
+					elseif proc_call_regexp.match_count = 2 then
+						l_called_feature := proc_call_regexp.captured_substring (1)
+					end
+					l_pre_violation.set_called_feature (name_translator.feature_for_boogie_name (l_called_feature))
+				end
 					-- pre
 				assert_regexp.match (l_related_boogie_line)
 				check assert_regexp.has_matched end
 				if assert_regexp.captured_substring (2) ~ "pre" then
-					create {E2B_VIOLATION} Result.make_with_description (a_code, a_message, "Precondition may be violated.")
 				elseif assert_regexp.captured_substring (2) ~ "attached" then
-					create {E2B_VIOLATION} Result.make_with_description (a_code, a_message, "Precondition may be violated (attached).")
+					l_pre_violation.set_is_attached_check
 				elseif assert_regexp.captured_substring (2) ~ "overflow" then
-					create {E2B_VIOLATION} Result.make_with_description (a_code, a_message, "Precondition may be violated (overflow).")
+					l_pre_violation.set_is_overflow_check
 				else
-					check False end
+					l_related_boogie_line.left_adjust
+					l_related_boogie_line.right_adjust
+					create {E2B_VIOLATION} Result.make_with_description (a_code, a_message, "Precondition may be violated: " + l_related_boogie_line)
+--					check False end
 				end
 				Result.set_tag (assert_regexp_tag (assert_regexp))
 			elseif l_is_post then
@@ -420,6 +452,7 @@ feature {NONE} -- Implementation
 					check False end
 				end
 				Result.set_tag (assert_regexp_tag (assert_regexp))
+				Result.set_eiffel_line_number (assert_regexp_line (assert_regexp))
 			else
 				check False end
 			end
@@ -428,7 +461,7 @@ feature {NONE} -- Implementation
 		end
 
 
-feature {NONE} -- Implementation: regular expressions
+feature {NONE} -- Implementation: regular expressions Boogie output
 
 	version_regexp: RX_PCRE_REGULAR_EXPRESSION
 			-- Regular expression for version information line.
@@ -556,6 +589,8 @@ feature {NONE} -- Implementation: regular expressions
 			Result.compile ("^The end.$")
 		end
 
+feature {NONE} -- Implementation: regular expressions Boogie code
+
 	assert_regexp: RX_PCRE_REGULAR_EXPRESSION
 			-- Regular expression assertion information in Boogie source.
 		once
@@ -587,8 +622,14 @@ feature {NONE} -- Implementation: regular expressions
 			-- Regular expression assertion for instruction location in Boogie source.
 		once
 			create Result.make
-			Result.compile ("^\s*// (.*) --- (.*):(\d+)$")
+			Result.compile ("^\s*// (.*):(\d+)$")
 		end
 
+	proc_call_regexp: RX_PCRE_REGULAR_EXPRESSION
+			-- Regular expression assertion for instruction location in Boogie source.
+		once
+			create Result.make
+			Result.compile ("^\s*call([^:]+:=)?\s([^(]+).*$")
+		end
 
 end
