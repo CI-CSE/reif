@@ -5250,6 +5250,7 @@ Src/unstable/library/compression/zlib/spec/win64/lib/msc/zlibstat.lib -text
 Src/unstable/library/compression/zlib/spec/windows/lib/msc/zlibstat.lib -text
 Src/unstable/library/compression/zlib/testing/index.html -text
 Src/unstable/library/estring/estring.ecf svneol=native#text/xml
+Src/unstable/library/estring/estring_searcher.e svneol=native#text/plain
 Src/unstable/library/net2/net2.ecf svneol=native#text/plain
 Src/unstable/library/network/socket/netssl/README -text
 Src/unstable/library/network/socket/netssl/license.lic -text
@@ -5305,6 +5306,7 @@ Src/unstable/library/text/regexp/pcre/pcre.rc -text
 Src/web/support/esa_api/ecf-target-any_connector -text
 Src/web/support/esa_api/ecf-target-connector -text
 Src/web/support/esa_api/esa.ini -text
+Src/web/support/esa_api/www/400.tpl -text
 Src/web/support/esa_api/www/404.tpl -text
 Src/web/support/esa_api/www/406.tpl -text
 Src/web/support/esa_api/www/auth.js -text
@@ -5314,6 +5316,7 @@ Src/web/support/esa_api/www/cj_reports_detail.tpl -text
 Src/web/support/esa_api/www/collection_json.tpl -text
 Src/web/support/esa_api/www/collection_json_error.tpl -text
 Src/web/support/esa_api/www/dashboard.css -text
+Src/web/support/esa_api/www/dashboard.tpl -text
 Src/web/support/esa_api/www/docs.js -text
 Src/web/support/esa_api/www/guest_report_detail.tpl -text
 Src/web/support/esa_api/www/guest_reports.tpl -text
@@ -5321,10 +5324,13 @@ Src/web/support/esa_api/www/holder.js -text
 Src/web/support/esa_api/www/home.tpl -text
 Src/web/support/esa_api/www/list_reports.tpl -text
 Src/web/support/esa_api/www/login.js -text
+Src/web/support/esa_api/www/logoff.tpl -text
+Src/web/support/esa_api/www/navbar.tpl -text
 Src/web/support/esa_api/www/optional_enhancement_js.tpl -text
 Src/web/support/esa_api/www/optional_styling_css.tpl -text
 Src/web/support/esa_api/www/reports.tpl -text
 Src/web/support/esa_api/www/reports_detail.tpl -text
+Src/web/support/esa_api/www/user_reports.tpl -text
 Src/web/support/esa_db/scripts/AddUser2.sql -text
 Src/web/support/esa_db/scripts/GetProblemReportsGuest.sql -text
 Src/web/support/esa_db/scripts/GetProblemReportsRowCountGuest.sql -text

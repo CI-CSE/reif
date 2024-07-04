@@ -82,6 +82,8 @@ feature -- Analysis interface
 		end
 
 	add_output_action (a_action: attached PROCEDURE [ANY, TUPLE [READABLE_STRING_GENERAL]])
+			-- Adds `a_action' to the procedures that are called for outputting status. The final results
+			-- (rule violations) are not given to these procedures.
 		do
 			output_actions.extend (a_action)
 		end
@@ -117,6 +119,8 @@ feature -- Analysis interface
 		end
 
 	is_rule_checkable (a_rule: attached CA_RULE): BOOLEAN
+			-- Will `a_rule' be checked based on the current preferences and based on the current
+			-- checking scope?
 		do
 			Result := a_rule.is_enabled.value
 						and then (system_wide_check or else (not a_rule.is_system_wide))
@@ -124,14 +128,14 @@ feature -- Analysis interface
 		end
 
 	clear_classes_to_analyze
-			-- Remove all classes that have been added to the list of classes
+			-- Removes all classes that have been added to the list of classes
 			-- to analyze.
 		do
 			classes_to_analyze.wipe_out
 		end
 
 	add_whole_system
-			-- Add all the classes that are part of the current system. Classes of references libraries
+			-- Adds all the classes that are part of the current system. Classes of referenced libraries
 			-- will not be added.
 		local
 			l_cluster: CLUSTER_I
