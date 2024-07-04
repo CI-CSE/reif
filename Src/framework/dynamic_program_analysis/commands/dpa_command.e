@@ -262,7 +262,6 @@ feature {NONE} -- Implementation
 			-- Choose pre-state breakpoint slots depending on specified options
 			-- `configuration'
 		local
-			i, l_upper: INTEGER
 			l_pre_state_bp_finder: DPA_INTERESTING_PRE_STATE_FINDER
 			l_bp_interval: INTEGER_INTERVAL
 		do
@@ -368,6 +367,7 @@ feature {NONE} -- Implementation
 		local
 			l_bp_mgr: EPA_EXPRESSION_EVALUATION_BREAKPOINT_MANAGER
 			l_bp_count, l_pre_state_bp: INTEGER
+			l_post_states: DS_HASH_SET [INTEGER]
 			l_process_write_feature: PROCEDURE [ANY, TUPLE [BREAKPOINT, EPA_STATE]]
 		do
 			create processor.make (pre_state_breakpoints, post_state_bp_map, debugger_manager)
@@ -391,19 +391,33 @@ feature {NONE} -- Implementation
 
 			l_bp_count := breakpoint_count (feature_)
 
-			across pre_state_breakpoints.to_array as l_pre_states loop
-				l_pre_state_bp := l_pre_states.item
+			from
+				pre_state_breakpoints.start
+			until
+				pre_state_breakpoints.after
+			loop
+				l_pre_state_bp := pre_state_breakpoints.item_for_iteration
 				if l_pre_state_bp < l_bp_count then
 					create l_bp_mgr.make (class_, feature_)
 					l_bp_mgr.set_breakpoint_with_expression_and_action (l_pre_state_bp, expressions, l_process_write_feature)
 					l_bp_mgr.toggle_breakpoints (True)
 
-					across post_state_bp_map.item (l_pre_state_bp).to_array as l_post_states loop
+					l_post_states := post_state_bp_map.item (l_pre_state_bp)
+
+					from
+						l_post_states.start
+					until
+						l_post_states.after
+					loop
 						create l_bp_mgr.make (class_, feature_)
-						l_bp_mgr.set_breakpoint_with_expression_and_action (l_post_states.item, expressions, l_process_write_feature)
+						l_bp_mgr.set_breakpoint_with_expression_and_action (l_post_states.item_for_iteration, expressions, l_process_write_feature)
 						l_bp_mgr.toggle_breakpoints (True)
+
+						l_post_states.forth
 					end
 				end
+
+				pre_state_breakpoints.forth
 			end
 		ensure
 			processor_not_void: processor /= Void
@@ -510,17 +524,5 @@ feature {NONE} -- Implementation
 
 	writer: DPA_DATA_WRITER
 			-- Writer used to persistently store the runtime data.
-
---	reference_feature
---			-- Feature referencing all classes currently not used.
---			-- This feature will be removed after testing.
---		local
---			l_retriever: DPA_DATA_RETRIEVER
---			l_multiple: DPA_MULTIPLE_JSON_DATA_FILES_READER
---			l_single: DPA_SINGLE_JSON_DATA_FILE_READER
---			l_database: DPA_MYSQL_DATA_READER
---			l_serialized_reader: DPA_SERIALIZED_DATA_FILE_READER
---		do
---		end
 
 end
