@@ -56,6 +56,14 @@ feature
 			transaction_tests.test_repeatable_read
 		end
 
+	test_transaction_cleanup
+		do
+			transaction_tests.test_correct_insert_rollback
+			transaction_tests.test_correct_update_rollback
+			transaction_tests.test_correct_delete_rollback
+		end
+
+
 feature {NONE} -- Initialization
 
 	make_repository: PS_RELATIONA_IN_MEMORY_REPOSITORY
@@ -64,7 +72,7 @@ feature {NONE} -- Initialization
 			backend: PS_GENERIC_LAYOUT_SQL_BACKEND
 		do
 			create database.make (username, password, db_name, db_host, db_port)
-			create backend.make (database)
+			create backend.make (database, create {PS_MYSQL_STRINGS})
 
 			backend.wipe_out_all
 

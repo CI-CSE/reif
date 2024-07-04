@@ -1,82 +1,35 @@
 note
-	description: "Summary description for {PS_GENERIC_LAYOUT_SQL_STRINGS}."
-	author: ""
+	description: "All SQL strings that are needed to access a database with a generic layout."
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	PS_GENERIC_LAYOUT_SQL_STRINGS
 
-feature {PS_EIFFELSTORE_EXPORT} -- Table creation
+feature {PS_GENERIC_LAYOUT_KEY_MANAGER} -- Table creation
 
 
-	Create_value_table: STRING = "[
-					CREATE TABLE ps_value (
-					objectid INTEGER NOT NULL AUTO_INCREMENT,
-					attributeid INTEGER,
-					runtimetype INTEGER,
-					value VARCHAR(128),
-
-					PRIMARY KEY (objectid, attributeid),
-					FOREIGN KEY (attributeid) REFERENCES ps_attribute (attributeid) ON DELETE CASCADE,
-					FOREIGN KEY (runtimetype) REFERENCES ps_class (classid) ON DELETE CASCADE
-					)
-		]"
+	Create_value_table: STRING
+		deferred
+		end
 
 
-	Create_class_table: STRING = "[
-		
-			CREATE TABLE ps_class (
-				classid INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY, 
-				classname VARCHAR(64)
-			)
+	Create_class_table: STRING
+		deferred
+		end
 
-		]"
 
---	Create_inheritance_table: STRING = "[
+	Create_attribute_table: STRING
+		deferred
+		end
 
---			CREATE TABLE ps_inheritance (
---				superclass INTEGER,
---				subclass INTEGER,
---				
---				PRIMARY KEY (superclass, subclass),
---				FOREIGN KEY (superclass) REFERENCES ps_class (classid) ON DELETE CASCADE,
---				FOREIGN KEY (subclass) REFERENCES ps_class (classid) ON DELETE CASCADE
---			 )
-		--]"
 
---	Attributetype_table_sql: STRING = "[
---			CREATE TABLE ps_attributetype (
---				attributetypeid INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
---				description VARCHAR(64)
---			)
---		]"
+feature {PS_GENERIC_LAYOUT_KEY_MANAGER} -- Data querying - Key manager
 
---	Attribute_table_sql: STRING = "[
---			CREATE TABLE ps_attribute (
---				attributeid INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
---				name VARCHAR(128),
---				attributetype INTEGER,
---				class INTEGER,
-
---				FOREIGN KEY (attributetype) REFERENCES ps_attributetype (attributetypeid) ON DELETE CASCADE,
---				FOREIGN KEY (class) REFERENCES ps_class (classid) ON DELETE CASCADE
---			)
---		]"
-
-	Create_attribute_table: STRING = "[
-			CREATE TABLE ps_attribute (
-				attributeid INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
-				name VARCHAR(128),
-				class INTEGER,
-
-				FOREIGN KEY (class) REFERENCES ps_class (classid) ON DELETE CASCADE
-			)
-		]"
-
-feature {PS_EIFFELSTORE_EXPORT} -- Data querying
-
-	Show_tables: STRING = "SHOW TABLES"
+	Show_tables: STRING
+		deferred
+		end
 
 	Query_class_table: STRING = "[
 			SELECT classid, classname 
@@ -95,24 +48,13 @@ feature {PS_EIFFELSTORE_EXPORT} -- Data querying
 
 	Query_new_id_of_attribute (attribute_name:STRING; class_key:INTEGER):STRING
 		do
-			Result:= "SELECT attributeid FROM ps_attribute WHERE name = '" + attribute_name + "' AND class = " +class_key.out
-		end
-
-	Query_values_from_class (class_id:INTEGER) : STRING
-		do
-			Result:= "[
-				SELECT objectid, attributeid, runtimetype, value
-				FROM ps_value
-				WHERE objectid IN (
-					SELECT v.objectid
-					FROM ps_value v, ps_attribute a
-					WHERE v.attributeid = a.attributeid AND a.class =
-			]"
-			Result := Result + class_id.out + " ) ORDER BY objectid "
+			Result:= "SELECT attributeid FROM ps_attribute WHERE name = '" + attribute_name + "' AND class = " + class_key.out
 		end
 
 
-	Query_values_from_class_new (attributes: STRING) :STRING
+feature {PS_GENERIC_LAYOUT_SQL_BACKEND}-- Data querying - Backend implementation
+
+	Query_values_from_class (attributes: STRING) :STRING
 		do
 			Result:= "[
 				SELECT objectid, attributeid, runtimetype, value
@@ -120,6 +62,10 @@ feature {PS_EIFFELSTORE_EXPORT} -- Data querying
 				WHERE attributeid IN
 			]"
 			Result := Result + attributes  + " ORDER BY objectid "
+		end
+
+	For_update_appendix: STRING
+		deferred
 		end
 
 
@@ -136,17 +82,57 @@ feature {PS_EIFFELSTORE_EXPORT} -- Data querying
 			Result.append (" )")
 		end
 
-feature {PS_EIFFELSTORE_EXPORT} -- Data modification
+
+	Query_new_primary_of_object (attribute_id:INTEGER; object_identifier:STRING) : STRING
+		do
+			Result:= "SELECT objectid FROM ps_value WHERE attributeid = " + attribute_id.out + "  AND value = '"+ object_identifier +"'"
+		end
+
+
+	Query_present_attributes_of_object (primary_key:INTEGER):STRING
+		do
+			Result:= "SELECT attributeid FROM ps_value WHERE objectid = " + primary_key.out
+		end
+
+feature {PS_GENERIC_LAYOUT_KEY_MANAGER} -- Data modification - Key manager
 
 	Insert_class_use_autoincrement (class_name:STRING):STRING
-		do
-			Result:="INSERT INTO ps_class (classname) VALUES ('" + class_name + "')"
+		deferred
 		end
 
 	Insert_attribute_use_autoincrement (attribute_name:STRING; class_key:INTEGER):STRING
-		do
-			Result:= "INSERT INTO ps_attribute (name, class) VALUES ('" + attribute_name + "', " + class_key.out +  ")"
+		deferred
 		end
+
+
+feature {PS_GENERIC_LAYOUT_SQL_BACKEND} -- Data modification - Backend
+
+	Insert_value_use_autoincrement (attribute_id, runtimetype:INTEGER;  value: STRING): STRING
+		deferred
+		end
+
+
+	Remove_old_object_identifier (existence_attribute_of_class:INTEGER; object_identifier: STRING): STRING
+		do
+			Result:= "UPDATE ps_value SET value = '' WHERE attributeid = " + existence_attribute_of_class.out + "  AND value = '"+ object_identifier +"'"
+		end
+
+	Delete_values_of_object (primary_key: INTEGER):STRING
+		do
+			Result:= "DELETE FROM ps_value WHERE objectid = " + primary_key.out
+		end
+
+
+	Update_value (object_primary, attribute_id: INTEGER; new_runtime_type:INTEGER; new_value:STRING) : STRING
+		do
+			Result:= "UPDATE ps_value SET runtimetype = " + new_runtime_type.out + ", value = '" + new_value + "' WHERE objectid = " + object_primary.out + " AND attributeid = "+ attribute_id.out
+		end
+
+	Insert_value (object_primary, attribute_id, runtime_type:INTEGER; value:STRING):STRING
+		do
+			Result:= "INSERT INTO ps_value (objectid, attributeid, runtimetype, value) VALUES ( " + object_primary.out + ", " + attribute_id.out + ", " + runtime_type.out + ", '" + value + "')"
+		end
+
 
 feature {PS_EIFFELSTORE_EXPORT} -- Table and column names
 
@@ -164,5 +150,26 @@ feature {PS_EIFFELSTORE_EXPORT} -- Table and column names
 
 
 	Value_table: STRING = "ps_value"
+	Value_table_id_column: STRING = "objectid"
+	Value_table_attributeid_column: STRING = "attributeid"
+	Value_table_runtimetype_column: STRING = "runtimetype"
+	Value_table_value_column: STRING = "value"
+
+
+feature {PS_EIFFELSTORE_EXPORT} -- Special attributes and classes
+
+	None_class: STRING = "NONE"
+	Existence_attribute: STRING = "ps_existence"
+
+
+feature {PS_EIFFELSTORE_EXPORT} -- Management and testing
+
+	Delete_all_values: STRING = "DELETE FROM ps_value"
+
+	Drop_value_table: STRING = "DROP TABLE ps_value"
+	Drop_attribute_table: STRING = "DROP TABLE ps_attribute"
+	Drop_class_table: STRING = "DROP TABLE ps_class"
+
+
 
 end

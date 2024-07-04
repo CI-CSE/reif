@@ -1,27 +1,42 @@
 note
-	description: "Summary description for {PS_MYSQL_ROW}."
-	author: ""
+	description: "Wrapper for a row in a MySQL result."
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
 	PS_MYSQL_ROW
-
 inherit
 	PS_SQL_ROW_ABSTRACTION
 
-create
+create {PS_MYSQL_CONNECTION}
 	make
 
+feature {PS_EIFFELSTORE_EXPORT} -- Status report
 
-feature
-
-	get_value (table_header: STRING): STRING
+	has_column (column_name: STRING):BOOLEAN
+		-- Does `Current' have a column with name `column_name'?
 		do
-			Result:= internal_row.at_field (table_header).as_string_8
+			Result:= internal_row.mysql_result.field_map.has (column_name)
 		end
 
-	get_value_by_index (index:INTEGER):STRING
+feature {PS_EIFFELSTORE_EXPORT} -- Access
+
+
+	count: INTEGER
+		-- The number of items in `Current' row.
+		do
+			Result:= internal_row.count
+		end
+
+	at alias "@" (column_name: STRING): STRING
+		-- Get the item at column `column_name'. Empty string if database field is NULL.
+		do
+			Result:= internal_row.at_field (column_name).as_string_8
+		end
+
+	item alias "[]" (index:INTEGER):STRING
+		-- Get the item at index `index'. Empty string if database field is NULL.
 		do
 			Result:= internal_row.at (index).as_string_8
 		end
@@ -36,5 +51,6 @@ feature {NONE} -- Initialization
 		end
 
 	internal_row: MYSQLI_ROW
+		-- The actual row that gets wrapped here
 
 end

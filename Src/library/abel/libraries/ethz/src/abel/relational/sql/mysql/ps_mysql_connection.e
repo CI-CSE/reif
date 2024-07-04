@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {PS_MYSQL_CONNECTION}."
-	author: ""
+	description: "Wrapper for a connection to a MySQL database."
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -10,29 +10,43 @@ class
 inherit
 	PS_SQL_CONNECTION_ABSTRACTION
 
-create
+inherit{NONE}
+	REFACTORING_HELPER
+
+create {PS_MYSQL_DATABASE}
 	make
+
+feature {PS_EIFFELSTORE_EXPORT} -- Settings
+
+	set_autocommit (flag:BOOLEAN)
+		-- Enable or disable autocommit
+		do
+			internal_connection.set_flag_autocommit (flag)
+			autocommit:= flag
+		ensure then
+			correctly_set: autocommit = flag
+		end
+
 
 feature {PS_EIFFELSTORE_EXPORT}
 
-	execute_sql (sql_string: STRING)
+	execute_sql (statement: STRING)
+		-- Execute the SQL statement `statement', and store the result (if any) in `Current.last_result'
+		-- In case of an error, it will report it in `last_error' and raise an exception.
 		do
-			internal_connection.execute_query (sql_string)
+			internal_connection.execute_query (statement)
 			if internal_connection.has_error then
-				print (sql_string)
+				print (statement)
 				print (internal_connection.last_error_message)
---				check sql_error: FALSE end
 				last_error:= get_error
 				last_error.raise
 			end
 		end
 
---	last_insert_id: INTEGER
---		do
---			Result:= internal_connection.last_result.last_insert_id
---		end
 
 	commit
+		-- Commit the currently active transaction.
+		-- In case of an error, including a failed commit, it will report it in `last_error' and raise an exception.
 		do
 			internal_connection.commit
 			if internal_connection.has_error then
@@ -43,6 +57,8 @@ feature {PS_EIFFELSTORE_EXPORT}
 		end
 
 	rollback
+		-- Rollback the currently active transaction.
+		-- In case of an error, it will report it in `last_error' and raise an exception.
 		do
 			internal_connection.rollback
 			if internal_connection.has_error then
@@ -53,6 +69,7 @@ feature {PS_EIFFELSTORE_EXPORT}
 
 
 	last_result: ITERATION_CURSOR[PS_SQL_ROW_ABSTRACTION]
+		-- The result of the last database operation
 		local
 			result_list: LINKED_LIST[PS_SQL_ROW_ABSTRACTION]
 		do
@@ -66,21 +83,24 @@ feature {PS_EIFFELSTORE_EXPORT}
 
 
 	last_error: PS_ERROR
+		-- The last occured error
 
 
+feature {PS_MYSQL_DATABASE} -- Access
+
+	internal_connection: MYSQLI_CLIENT
+		-- The actual connection that gets wrapped here
 
 
-feature {PS_MYSQL_DATABASE} -- Initialization
+feature {NONE} -- Initialization
 
-	make (a_connection: MYSQLI_CLIENT)
+	make (a_connection: MYSQLI_CLIENT; isolation_level: PS_TRANSACTION_ISOLATION_LEVEL)
 			-- Initialization for `Current'.
 		do
 			internal_connection:= a_connection
 			create {PS_NO_ERROR} last_error
+			transaction_isolation_level:= isolation_level
 		end
-
-	internal_connection: MYSQLI_CLIENT
-
 
 feature {NONE} -- Implementation
 
@@ -93,6 +113,7 @@ feature {NONE} -- Implementation
 			if transaction_errors.has (error_number) then
 				create {PS_TRANSACTION_ERROR} Result
 			else
+				fixme ("TODO: Extend this for all types of errors")
 				create {PS_GENERAL_ERROR} Result.make (internal_connection.last_error_message)
 			end
 		end
@@ -100,6 +121,7 @@ feature {NONE} -- Implementation
 
 
 	transaction_errors: ARRAY[INTEGER]
+		-- All MySQL error codes that indicate a tconflict between transactions
 		once
 			Result :=  <<
 				1205 -- Lock timeout
@@ -107,3 +129,4 @@ feature {NONE} -- Implementation
 		end
 
 end
+

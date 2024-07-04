@@ -76,7 +76,7 @@ feature {PS_REPOSITORY_TESTS} -- Flat objects
 
 	all_flat_object_tests
 		do
---			test_empty_object
+			test_empty_object
 			test_flat_class_store
 			test_flat_class_all_crud
 		end
@@ -130,7 +130,7 @@ feature {PS_REPOSITORY_TESTS} -- Collections
 			test_direct_collection_new_object
 			test_collection_basic_type_store
 			--test_data_structures_store
-			--test_update_on_reference			
+			--test_update_on_reference
 		end
 
 	test_referenced_collection_store
@@ -193,7 +193,7 @@ feature {PS_REPOSITORY_TESTS} -- Collections
 		do
 			create new.make ("some", "new_guy", 20)
 			create test.make (repository)
-			test.test_crud_operations (test_data.special_of_persons, agent {SPECIAL[PERSON]}.force (new, 4))
+			test.test_crud_operations (test_data.special_of_persons, agent {SPECIAL[PERSON]}.extend (new))
 			repository.clean_db_for_testing
 		end
 
@@ -204,6 +204,8 @@ feature {PS_REPOSITORY_TESTS} -- Collections
 			test: PS_GENERIC_CRUD_TEST[ARRAY[INTEGER]]
 		do
 			create test.make (repository)
+--			print ("adsf")
+--			test.test_insert (test_data.array_of_integers)
 			test.test_crud_operations (test_data.array_of_integers, agent {ARRAY[INTEGER]}.put(20, 10))
 		end
 
@@ -268,5 +270,6 @@ feature {NONE} -- Update agents
 			ref_obj.update
 			executor.update (ref_obj)
 		end
+
 
 end

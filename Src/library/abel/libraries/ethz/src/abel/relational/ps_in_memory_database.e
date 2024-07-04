@@ -58,8 +58,8 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object retrieval operations
 		do
 			-- Evaluate which objects to load
 			-- (here: ignore criteria and just return everything from that class)
-			if db.has (type.class_of_type.name) then
-				create keys.make_from_array ( attach (db[type.class_of_type.name]).current_keys )
+			if db.has (type.base_class.name) then
+				create keys.make_from_array ( attach (db[type.base_class.name]).current_keys )
 			else
 				create keys.make (0)
 			end
@@ -95,7 +95,7 @@ feature {PS_EIFFELSTORE_EXPORT}-- Object write operations
 			new_primary: PS_PAIR[INTEGER, STRING]
 		do
 			-- Add a new entry in primary <--> POID mapping table
-			new_primary:= new_key (an_object.object_id.metadata.class_of_type.name)
+			new_primary:= new_key (an_object.object_id.metadata.base_class.name)
 			key_mapper.add_entry (an_object.object_id, new_primary.first, a_transaction)
 
 			-- Create new object in DB with freshly created primary key and then write all attributes
@@ -121,19 +121,32 @@ feature {PS_EIFFELSTORE_EXPORT}-- Object write operations
 			key_mapper.remove_primary_key (primary.first, an_object.object_id.metadata, a_transaction)
 
 			-- remove the complete object from DB
-			attach (db[primary.second.class_of_type.name]).remove (primary.first)
+			attach (db[primary.second.base_class.name]).remove (primary.first)
 		end
 
 
 feature {PS_EIFFELSTORE_EXPORT} -- Object-oriented collection operations
 
 
+	retrieve_all_collections (collection_type: PS_TYPE_METADATA; transaction:PS_TRANSACTION): ITERATION_CURSOR[PS_RETRIEVED_OBJECT_COLLECTION]
+			-- Retrieves all collections of type `collection_type'.
+		local
+			res_list: LINKED_LIST[PS_RETRIEVED_OBJECT_COLLECTION]
+	 	do
+	 		create res_list.make
+	 		across collections.current_keys as key_cursor
+	 		loop
+	 			res_list.extend (retrieve_objectoriented_collection (collection_type, key_cursor.item, transaction))
+	 		end
+	 		Result:=res_list.new_cursor
+	 	end
+
 	retrieve_objectoriented_collection (collection_type: PS_TYPE_METADATA; collection_primary_key: INTEGER; transaction: PS_TRANSACTION): PS_RETRIEVED_OBJECT_COLLECTION
 			-- Retrieves the object-oriented collection of type `object_type' and with primary key `object_primary_key'.
 	 	local
 	 		info:HASH_TABLE[STRING, STRING]
 	 	do
-			create Result.make (collection_primary_key, collection_type.class_of_type)
+			create Result.make (collection_primary_key, collection_type.base_class)
 
 			across get_ordered_collection (collection_primary_key) as cursor loop
 				Result.add_item (cursor.item.first, cursor.item.second)
@@ -173,16 +186,19 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object-oriented collection operations
 			-- Now add all collection values to the collection
 			across a_collection.values as coll_item loop
 				item_primary:= key_mapper.quick_translate (coll_item.item.object_identifier, a_transaction)
-
 				add_to_collection (primary, coll_item.item.storable_tuple (item_primary), a_collection.order_of (coll_item.item))
 			end
 		end
 
 	delete_objectoriented_collection (a_collection: PS_OBJECT_COLLECTION_PART[ITERABLE[detachable ANY]]; a_transaction:PS_TRANSACTION)
 		-- Delete `a_collection' from the database
+		local
+			key:INTEGER
 		do
-			collection_info.remove (key_mapper.primary_key_of (a_collection.object_id, a_transaction).first)
-			collections.remove (key_mapper.primary_key_of (a_collection.object_id, a_transaction).first)
+			key:= key_mapper.primary_key_of (a_collection.object_id, a_transaction).first
+			collection_info.remove (key)
+			collections.remove (key)
+			key_mapper.remove_primary_key (key, a_collection.object_id.metadata, a_transaction)
 		end
 
 feature {PS_EIFFELSTORE_EXPORT}-- Relational collection operations
@@ -192,7 +208,7 @@ feature {PS_EIFFELSTORE_EXPORT}-- Relational collection operations
 			-- Retrieves the relational collection between class `owner_type' and `collection_item_type', where the owner has primary key `owner_key' and the attribute name of the collection inside the owner object is called `owner_attribute_name'
 		do
 			check not_implemented: False end
-			create Result.make (owner_key, owner_type.class_of_type, owner_attribute_name)
+			create Result.make (owner_key, owner_type.base_class, owner_attribute_name)
 		end
 
 
@@ -222,6 +238,19 @@ feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 		do
 		end
 
+
+	transaction_isolation_level: PS_TRANSACTION_ISOLATION_LEVEL
+		-- The currently active transaction isolation level
+		do
+			create Result
+			Result:= Result.read_uncommitted
+		end
+
+	set_transaction_isolation_level (a_level: PS_TRANSACTION_ISOLATION_LEVEL)
+		-- Set the transaction isolation level `a_level' for all future transactions
+		do
+		end
+
 feature {PS_EIFFELSTORE_EXPORT} -- Miscellaneous
 
 
@@ -248,13 +277,13 @@ feature {NONE} -- Implementation - Loading and storing objects
 		do
 			create Result.make
 			across keys as obj_primary loop
-				if has_object (type.class_of_type.name, obj_primary.item) then
+				if has_object (type.base_class.name, obj_primary.item) then
 
-					create current_obj.make (obj_primary.item, type.class_of_type)
+					create current_obj.make (obj_primary.item, type.base_class)
 
 					across attributes as cursor loop
-						if has_attribute (type.class_of_type.name, obj_primary.item, cursor.item) then
-							attr_val:= get_attribute (type.class_of_type.name, obj_primary.item, cursor.item)
+						if has_attribute (type.base_class.name, obj_primary.item, cursor.item) then
+							attr_val:= get_attribute (type.base_class.name, obj_primary.item, cursor.item)
 						else
 							create attr_val.make (Void_value, None_type)
 						end
@@ -277,7 +306,7 @@ feature {NONE} -- Implementation - Loading and storing objects
 
 			across an_object.attributes as attr_cursor loop
 				attr_primary:= key_mapper.quick_translate (an_object.get_value (attr_cursor.item).object_identifier, transaction)
-				add_or_replace_attribute (primary.second.class_of_type.name, primary.first, attr_cursor.item, an_object.get_value (attr_cursor.item).storable_tuple (attr_primary))
+				add_or_replace_attribute (primary.second.base_class.name, primary.first, attr_cursor.item, an_object.get_value (attr_cursor.item).storable_tuple (attr_primary))
 			end
 		end
 
@@ -387,15 +416,22 @@ feature{NONE} -- Implementation - Database and DB access for Object-oriented Col
 		do
 			create new_item.make (value.first, create {PS_PAIR[STRING, INTEGER]}.make (value.second, order))
 
+			fixme ("BROKEN: doesn't work as intended...")
 			from
 				collection:= attach (collections[key])
+	--			if collection.is_empty then
+					collection.extend (new_item)
+					--collection.forth
+	--			end
 				collection.start
 			until
 				collection.after
 			loop
 				if (collection.isfirst or else previous_order <= order) and order < collection.item.second.second then
 					collection.put_left (new_item)
+--					print ("added item")
 				end
+				collection.forth
 			end
 		end
 
@@ -408,7 +444,7 @@ feature{NONE} -- Implementation - Database and DB access for Object-oriented Col
 		do
 			create Result.make
 			collection:= attach (collections[key])
-
+--			print ("in get_ordered_collection")
 			across collection as cursor loop
 				-- The database should be ordered already
 				create coll_item.make (cursor.item.first, cursor.item.second.first)

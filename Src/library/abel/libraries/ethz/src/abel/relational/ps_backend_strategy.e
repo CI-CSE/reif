@@ -53,17 +53,26 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object retrieval operations
 		-- If `type' has a generic parameter, the retrieve function will return objects of all generic instances of the generating class.
 		-- You can find out about the actual generic parameter by comparing the class name associated to a foreign key value.
 		require
-			most_general_type: across type.supertypes as supertype all not (supertype.item.class_of_type.name.is_equal (type.class_of_type.name) and type.is_subtype_of (supertype.item)) end
+			most_general_type: across type.supertypes as supertype all not (supertype.item.base_class.name.is_equal (type.base_class.name) and type.is_subtype_of (supertype.item)) end
 			all_attributes_exist: across attributes as attr all type.attributes.has (attr.item) end
 
 		deferred
 			-- TODO: to have lazy loading support, we need to have a special ITERATION_CURSOR and a function next in this class to load the next item of this customized cursor
 		ensure
 			attributes_loaded: not Result.after implies check_attributes_loaded (type, attributes, Result.item)
-			class_metadata_set: not Result.after implies Result.item.class_metadata.name.is_equal (type.class_of_type.name)
+			class_metadata_set: not Result.after implies Result.item.class_metadata.name.is_equal (type.base_class.name)
 		end
 
 
+	retrieve_from_single_key (type: PS_TYPE_METADATA; primary_key: INTEGER; transaction: PS_TRANSACTION) : LINKED_LIST[PS_RETRIEVED_OBJECT]
+		-- Retrieve the object of type `type' and key `primary_key'. Wrapper of the `retrieve_from_keys' in case you only need one object
+		local
+			keys: LINKED_LIST[INTEGER]
+		do
+			create keys.make
+			keys.extend (primary_key)
+			Result:= Current.retrieve_from_keys (type, keys, transaction)
+		end
 
 
 	retrieve_from_keys (type: PS_TYPE_METADATA; primary_keys: LIST[INTEGER]; transaction:PS_TRANSACTION) : LINKED_LIST[PS_RETRIEVED_OBJECT]
@@ -73,7 +82,7 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object retrieval operations
 		deferred
 		ensure
 		--	primary_keys.count = Result.count
-			across Result as res all res.item.class_metadata.name = type.class_of_type.name end
+			across Result as res all res.item.class_metadata.name = type.base_class.name end
 		end
 
 
@@ -120,6 +129,14 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object write operations
 
 
 feature {PS_EIFFELSTORE_EXPORT} -- Object-oriented collection operations
+
+	retrieve_all_collections (collection_type: PS_TYPE_METADATA; transaction:PS_TRANSACTION): ITERATION_CURSOR[PS_RETRIEVED_OBJECT_COLLECTION]
+			-- Retrieves all collections of type `collection_type'.
+	 	require
+	 		objectoriented_collection_operation_supported: is_objectoriented_collection_store_supported
+	 		backend_can_handle_collection: can_handle_objectoriented_collection (collection_type)
+	 	deferred
+	 	end
 
 
 	retrieve_objectoriented_collection (collection_type: PS_TYPE_METADATA; collection_primary_key: INTEGER; transaction: PS_TRANSACTION): PS_RETRIEVED_OBJECT_COLLECTION
@@ -204,6 +221,18 @@ feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 		deferred
 		end
 
+
+	transaction_isolation_level: PS_TRANSACTION_ISOLATION_LEVEL
+		-- The currently active transaction isolation level
+		deferred
+		end
+
+	set_transaction_isolation_level (a_level: PS_TRANSACTION_ISOLATION_LEVEL)
+		-- Set the transaction isolation level `a_level' for all future transactions
+		deferred
+		end
+
+
 feature {PS_EIFFELSTORE_EXPORT} -- Mapping
 
 	key_mapper: PS_KEY_POID_TABLE
@@ -250,8 +279,8 @@ feature{NONE} -- Correctness checks
 				if an_object.attributes.has (attr.item) then
 					retrieved_object:= retrieved_obj_list.first
 					current_item:= attach (an_object.attribute_values[attr.item])
-					Result:= Result and current_item.storable_tuple (key_mapper.quick_translate (current_item.object_identifier, transaction)).first.is_equal (retrieved_object.attribute_value (attr.item).first)
-					Result:= Result and current_item.storable_tuple (key_mapper.quick_translate (current_item.object_identifier, transaction)).second.is_equal (retrieved_object.attribute_value (attr.item).second)
+					Result:= Result and current_item.storable_tuple (key_mapper.quick_translate (current_item.object_identifier, transaction)).first.is_equal (retrieved_object.attribute_value (attr.item).value)
+					Result:= Result and current_item.storable_tuple (key_mapper.quick_translate (current_item.object_identifier, transaction)).second.is_equal (retrieved_object.attribute_value (attr.item).attribute_class_name)
 				end
 			end
 		end

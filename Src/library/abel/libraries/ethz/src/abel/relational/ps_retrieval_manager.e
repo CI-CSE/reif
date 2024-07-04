@@ -14,260 +14,93 @@ inherit{NONE}
 
 create make
 
-feature {NONE}
 
-	make (a_backend: PS_BACKEND_STRATEGY; an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
-		-- Initialize `Current'
-		do
-			backend:= a_backend
-			id_manager:= an_id_manager
-			create query_to_cursor_map.make (100)
-			create bookkeeping_manager.make (100)
-			create collection_handlers.make
-			create metadata_manager.make_new
-
-		end
-
-	backend:PS_BACKEND_STRATEGY
-		-- The storage backend
-
-	metadata_manager: PS_METADATA_MANAGER
-
-	id_manager: PS_OBJECT_IDENTIFICATION_MANAGER
---	query_to_cursor_map: HASH_TABLE[ITERATION_CURSOR[PS_PAIR [INTEGER, HASH_TABLE[STRING, STRING]]], INTEGER]
-	query_to_cursor_map: HASH_TABLE[ITERATION_CURSOR[PS_RETRIEVED_OBJECT], INTEGER]
-
-	bookkeeping_manager: HASH_TABLE[HASH_TABLE[ANY, INTEGER], INTEGER]
-		-- keeps track of already loaded object for each query
-
-	new_identifier: INTEGER
-			-- Get a new identifier for a query
-		do
---			fixme ( "TODO: make this fault free...")
-			Result := identifier_number
-			identifier_number := identifier_number + 1
-		end
-	identifier_number: INTEGER
-
-feature
-
-	collection_handlers: LINKED_LIST[PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]]
-
-	add_handler (a_handler: PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]])
-		do
-			collection_handlers.extend (a_handler)
-		end
+feature {PS_EIFFELSTORE_EXPORT} -- Query execution
 
 	setup_query (query:PS_OBJECT_QUERY[ANY]; transaction:PS_TRANSACTION)
-		local
-			results: ITERATION_CURSOR[PS_RETRIEVED_OBJECT]
-			bookkeeping_table:HASH_TABLE[ANY, INTEGER]
-			reflection: INTERNAL
-			type: PS_TYPE_METADATA
+		-- Set up query `query' and retrieve the first result
 		do
-			create reflection
-			query.set_identifier (new_identifier)
-			query.register_as_executed (transaction)
-			type:= metadata_manager.create_metadata_from_type (reflection.type_of_type (reflection.generic_dynamic_type (query, 1)))
-			results:=backend.retrieve (type, query.criteria, create{LINKED_LIST[STRING]}.make, transaction)
-
-			query_to_cursor_map.extend (results, query.backend_identifier)
-
-			create bookkeeping_table.make (100)
-			bookkeeping_manager.extend (bookkeeping_table, query.backend_identifier)
-
-			retrieve_until_criteria_match (query, transaction, bookkeeping_table)
-
+			initialize_query (query, create {LINKED_LIST[STRING]}.make, transaction)
+			retrieve_until_criteria_match (query, transaction)
 		end
 
 
 	next_entry (query:PS_OBJECT_QUERY[ANY])
-		local
-			bookkeeping_table:HASH_TABLE[ANY, INTEGER]
+		-- Retrieve the next entry of query `query'
 		do
 			attach (query_to_cursor_map[query.backend_identifier]).forth
-			bookkeeping_table:= attach (bookkeeping_manager[query.backend_identifier])
-			retrieve_until_criteria_match (query, query.transaction, bookkeeping_table)
+			retrieve_until_criteria_match (query, query.transaction)
 		end
 
 
 
-feature {NONE} -- Implementation
+feature {NONE} -- Implementation - Retrieval
 
 
-	retrieve_until_criteria_match (query:PS_OBJECT_QUERY[ANY]; transaction:PS_TRANSACTION; bookkeeping:HASH_TABLE[ANY, INTEGER])
+	retrieve_until_criteria_match (query:PS_OBJECT_QUERY[ANY]; transaction:PS_TRANSACTION)
 		-- Retrieve objects until the criteria in `query.criteria' are satisfied
 		local
---			results: ITERATION_CURSOR[PS_PAIR [INTEGER, HASH_TABLE[STRING, STRING]]]
-			results: ITERATION_CURSOR[PS_RETRIEVED_OBJECT]
-			current_object:PS_RETRIEVED_OBJECT
 			new_object:ANY
 			found:BOOLEAN
-			reflection:INTERNAL
-			new_type:INTEGER
+			type: PS_TYPE_METADATA
+			bookkeeping:HASH_TABLE[ANY, INTEGER]
+
 		do
-			create reflection
-			results:= attach (query_to_cursor_map[query.backend_identifier])
+			-- Get the type of objects that the query operates on.
+			type:= metadata_manager.create_metadata_from_type (query.generic_type)
+			bookkeeping := attach (bookkeeping_manager[query.backend_identifier])
 
+			-- Check if we have a query on normal objects or on collections
+			if attached {ITERATION_CURSOR[PS_RETRIEVED_OBJECT]} query_to_cursor_map[query.backend_identifier] as results then
 
-			from
-				found:= False
-			until
-				found or results.after
-			loop
-
-				current_object := results.item
-
-				-- This has to be the detachable type, otherwise the is_deep_equal feature won't work any more
-				new_type:= reflection.detachable_type (reflection.generic_dynamic_type (query, 1))
---				print (new_type.out + " " + reflection.detachable_type (query.generating_type.generic_parameter_type (1).type_id).out + "%N")
---				check new_type = query.generating_type.generic_parameter_type (1).type_id end
-
-				--new_object:= build (new_type, current_object, transaction, bookkeeping)
-				new_object:= build_new (metadata_manager.create_metadata_from_type (reflection.type_of_type (new_type)), current_object, transaction, bookkeeping)
-
-
-				if query.criteria.is_satisfied_by (new_object) then
-					query.result_cursor.set_entry (new_object)
-					found := true
-				else
-					results.forth
-				end
-			end
-			if results.after then
-				query.result_cursor.set_entry (Void)
-			end
-		end
-
-	big_multiline_comment:STRING = "[
-
-	build (--query: PS_OBJECT_QUERY[ANY];
-		dynamic_type:INTEGER
-		 obj:PS_RETRIEVED_OBJECT;
---		 obj:PS_PAIR[INTEGER, HASH_TABLE[STRING, STRING]];
-
-		  transaction:PS_TRANSACTION; bookkeeping:HASH_TABLE[ANY, INTEGER]):ANY
-		-- Retrieve the results of `query'
-		local
-			reflection:INTERNAL
-			i, no_fields:INTEGER
-			field_name, field_val: STRING
-			field_type_name:STRING
-			field_type:INTEGER
-			test:ANY
-			new_obj:ANY
-
---			cursor:ITERATION_CURSOR[PS_PAIR [INTEGER, HASH_TABLE[STRING, STRING]]]
-			cursor:ITERATION_CURSOR[PS_RETRIEVED_OBJECT]
-
-
-			collection_handler: detachable PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]
-			collection_result: PS_PAIR [LIST[STRING], HASH_TABLE[STRING, STRING] ]
-			collection_as_list: LINKED_LIST[detachable ANY]
-			collection_item: detachable ANY
-		do
-			if bookkeeping.has (obj.primary_key+ obj.class_metadata.name.hash_code) then
-				Result:= attach (bookkeeping[obj.primary_key+ obj.class_metadata.name.hash_code])
-			else
-
-
-				create reflection
-				Result:= reflection.new_instance_of  (dynamic_type)
-
-				bookkeeping.extend (Result, obj.primary_key + obj.class_metadata.name.hash_code)
-				no_fields:= reflection.field_count (Result)
-
-				from i:=1
-				until i> no_fields
+				-- Normal objects: Retrieve until criteria match
+				from
+					found:= False
+				until
+					found or results.after
 				loop
-					field_name := reflection.field_name (i, Result)
-					if obj.to_old_format.second.has (field_name) then
-						field_val := attach (obj.to_old_format.second[field_name])
+					new_object:= build_object (type, results.item, transaction, bookkeeping)
 
-						--field_type_name := reflection.class_name_of_type (reflection.field_static_type_of_type (i, reflection.dynamic_type (Result)))
-						field_type:= reflection.detachable_type (
-							reflection.field_static_type_of_type (i, reflection.dynamic_type (Result))
-							)
-						--print (field_type.out + "%N")
-						--print (field_name + ": " + field_type_name + " = " + field_val + " type: " + field_type.out+ "%N")
-
-						if not try_basic_attribute (Result, field_val, i) then
-							--print (reflection.class_name_of_type (field_type))
-
-							-- either a reference type or a collection
-							across collection_handlers as coll_cursor loop
-								if coll_cursor.item.can_handle_type (reflection.type_of_type (field_type)) then
-									collection_handler:= coll_cursor.item
-								end
-							end
-
-							if attached collection_handler then -- collection
-								fixme ("relational collections")
-								--collection_result:= backend.retrieve_collection (field_val.to_integer, dynamic_type, field_type, field_name)
-								collection_result:= backend.retrieve_objectoriented_collection (metadata_manager.create_metadata_from_type (reflection.type_of_type (field_type)), field_val.to_integer, transaction)
-								create collection_as_list.make
-								across collection_result.first as foreignkey_cursor loop
-
-									if foreignkey_cursor.item.to_integer = 0 then
-										collection_as_list.extend (Void)
-									else
-										-- retrieve single object
-										from
-											cursor:= backend.retrieve (metadata_manager.create_metadata_from_type (reflection.type_of_type (reflection.generic_dynamic_type_of_type (field_type, 1))), create{PS_EMPTY_CRITERION}, create{LINKED_LIST[STRING]}.make, transaction)
-										until
-											cursor.after
-										loop
-											if cursor.item.to_old_format.first = foreignkey_cursor.item.to_integer then
-												collection_as_list.extend (build (reflection.generic_dynamic_type_of_type (field_type, 1), cursor.item, transaction, bookkeeping))
-											end
-											cursor.forth
-										end
-									end
-								end
-								reflection.set_reference_field (i, Result, collection_handler.build_collection (field_type, collection_as_list, collection_result.second))
-
-							else -- reference type
-
-								from
-									cursor:= backend.retrieve (metadata_manager.create_metadata_from_type (reflection.type_of_type (field_type)), create{PS_EMPTY_CRITERION}, create{LINKED_LIST[STRING]}.make, transaction)
-								until
-									cursor.after
-								loop
-									print ("XXXXXXXXXXXX" + cursor.item.class_metadata.name + reflection.class_name_of_type (field_type) + "%N")
-									if cursor.item.primary_key = field_val.to_integer_32 and then cursor.item.class_metadata.name.is_equal (reflection.class_name_of_type (field_type)) then
-										print (reflection.type_of_type (field_type).out)
-										print (reflection.type_of_type (reflection.field_static_type_of_type (i, dynamic_type)).out)
-										--check false end
-										new_obj:= build (field_type, cursor.item, transaction, bookkeeping)
-										print (new_obj.generating_type.out)
-										reflection.set_reference_field (i, Result, new_obj)
-									end
-									cursor.forth
-								end
-							end
-						end
+					if query.criteria.is_satisfied_by (new_object) then
+						query.result_cursor.set_entry (new_object)
+						found := True
+					else
+						results.forth
 					end
-					i := i + 1
-				variant
-					no_fields+1 - i
 				end
+				if results.after then
+					query.result_cursor.set_entry (Void)
+				end
+
+			else
+				-- Collection: Retrieve the next one, as we don't have criteria on collections.
+				check attached {ITERATION_CURSOR[PS_RETRIEVED_OBJECT_COLLECTION]} query_to_cursor_map[query.backend_identifier] as direct_collection then
+					if direct_collection.after then
+						query.result_cursor.set_entry (Void)
+					else
+						new_object:= build_object_collection (type, direct_collection.item, get_handler (type), transaction, bookkeeping)
+						query.result_cursor.set_entry (new_object)
+					end
+				end
+
 			end
-		ensure
-			type_correct: Result.generating_type.type_id = dynamic_type
 		end
 
-	]"
 
+feature {NONE} -- Implementation: Build functions for PS_RETRIEVED_* objects
 
-	build_new(type:PS_TYPE_METADATA; obj:PS_RETRIEVED_OBJECT; transaction:PS_TRANSACTION; bookkeeping:HASH_TABLE[ANY, INTEGER]): ANY
+	build_object(type:PS_TYPE_METADATA; obj:PS_RETRIEVED_OBJECT; transaction:PS_TRANSACTION; bookkeeping:HASH_TABLE[ANY, INTEGER]): ANY
+		-- Build the object `obj'
 		require
-			obj.class_metadata.name.is_equal (type.class_of_type.name)
+			obj.class_metadata.name.is_equal (type.base_class.name)
 		local
 			reflection:INTERNAL
 			field_value: ANY
+			field_val: detachable ANY
 			field_type:PS_TYPE_METADATA
 			keys: LINKED_LIST [INTEGER]
 			referenced_obj: LIST[PS_RETRIEVED_OBJECT]
+			collection_result: PS_RETRIEVED_OBJECT_COLLECTION
 		do
 			if bookkeeping.has (obj.primary_key+ obj.class_metadata.name.hash_code) then
 				Result:= attach (bookkeeping[obj.primary_key+ obj.class_metadata.name.hash_code])
@@ -279,19 +112,20 @@ feature {NONE} -- Implementation
 				backend.key_mapper.add_entry (id_manager.get_identifier_wrapper (Result, transaction), obj.primary_key, transaction)
 
 				across obj.attributes as attr_cursor loop
---					print (attr_cursor.item)
-					if not try_basic_attribute (Result, obj.attribute_value (attr_cursor.item).first, type.index_of (attr_cursor.item)) then
+					-- Set all the attributes
 
+					-- See if it is a basic attribute
+					if not try_basic_attribute (Result, obj.attribute_value (attr_cursor.item).value, type.field_index (attr_cursor.item)) then
+
+						-- If not it is either a referenced object or a collection. In either case, use the `Current.build' function.
 						field_type:= type.attribute_type (attr_cursor.item)
+						field_val:= build (field_type, obj.attribute_value (attr_cursor.item), transaction, bookkeeping)
 
-						if not obj.attribute_value (attr_cursor.item).first.is_empty then
-							create keys.make
-							keys.extend (obj.attribute_value (attr_cursor.item).first.to_integer)
-							referenced_obj:= backend.retrieve_from_keys (field_type, keys, transaction)
-							if not referenced_obj.is_empty then
-								field_value:= build_new (field_type, referenced_obj.first, transaction, bookkeeping)
-								reflection.set_reference_field (type.index_of (attr_cursor.item), Result, field_value)
-							end
+						if attached field_val then
+							print (reflection.field_name (type.field_index (attr_cursor.item), Result).out + "%N")
+							print (type.type.out + field_type.type.out + "%N")
+
+							reflection.set_reference_field (type.field_index (attr_cursor.item), Result, field_val)
 						end
 					end
 				end
@@ -300,10 +134,106 @@ feature {NONE} -- Implementation
 			type_correct: Result.generating_type.type_id = type.type.type_id
 		end
 
+	build_relational_collection (type: PS_TYPE_METADATA; relational_collection: PS_RETRIEVED_RELATIONAL_COLLECTION; handler: PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]; transaction: PS_TRANSACTION; bookkeeping: HASH_TABLE[ANY, INTEGER]): ANY
+		-- Build a new collection object from the retrieved collection `relational_collection'
+		do
+			Result:= handler.build_relational_collection (type, build_collection_items (type, relational_collection, transaction, bookkeeping))
+			id_manager.identify (Result, transaction)
+		end
+
+	build_object_collection (type: PS_TYPE_METADATA; object_collection: PS_RETRIEVED_OBJECT_COLLECTION; handler: PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]; transaction: PS_TRANSACTION; bookkeeping: HASH_TABLE[ANY, INTEGER]): ANY
+		-- Build a new collection object from the retrieved collection `object_collection'
+		do
+			Result:= handler.build_collection (type, build_collection_items (type, object_collection, transaction, bookkeeping), object_collection)
+			id_manager.identify (Result, transaction)
+		end
+
+
+feature {NONE} -- Implementation - Build support functions.
+
+	build (type: PS_TYPE_METADATA; value: PS_PAIR[STRING, STRING]; transaction: PS_TRANSACTION; bookkeeping:HASH_TABLE[ANY, INTEGER]): detachable ANY
+		-- Build an object based on the type.
+		local
+			object_result: LIST [PS_RETRIEVED_OBJECT]
+			collection_result: PS_RETRIEVED_OBJECT_COLLECTION
+		do
+			if type.is_basic_type then
+
+				-- Create a basic type
+				if type.type.name.is_equal ("STRING_8") then
+					Result:= value.first
+				elseif type.type.name.is_equal ("STRING_32") then
+					Result:= value.first.as_string_32
+				elseif type.type.name.is_equal ("INTEGER_8") then
+					Result:= value.first.to_integer_8
+				elseif type.type.name.is_equal ("INTEGER_16") then
+					Result:= value.first.to_integer_16
+				elseif type.type.name.is_equal ("INTEGER_32") then
+					Result:= value.first.to_integer_32
+				elseif type.type.name.is_equal ("INTEGER_64") then
+					Result:= value.first.to_integer_64
+				elseif type.type.name.is_equal ("NATURAL_8") then
+					Result:= value.first.to_natural_8
+				elseif type.type.name.is_equal ("NATURAL_16") then
+					Result:= value.first.to_natural_16
+				elseif type.type.name.is_equal ("NATURAL_32") then
+					Result:= value.first.to_natural_32
+				elseif type.type.name.is_equal ("NATURAL_64") then
+					Result:= value.first.to_natural_64
+				elseif type.type.name.is_equal ("REAL_32") then
+					Result:= value.first.to_real
+				elseif type.type.name.is_equal ("REAL_64") then
+					Result:= value.first.to_double
+				elseif type.type.name.is_equal ("BOOLEAN") then
+					Result:= value.first.to_boolean
+				elseif type.type.name.is_equal ("CHARACTER_8") then
+					Result:= value.first.to_natural_8.to_character_8
+				elseif type.type.name.is_equal ("CHARACTER_32") then
+					Result:= value.first.to_natural_32.to_character_32
+				else
+					check unknown_basic_type: False end
+					Result:= 0
+				end
+
+			elseif has_handler (type) then
+
+				-- Build a collection
+				collection_result:= backend.retrieve_objectoriented_collection (type, value.first.to_integer, transaction)
+				Result:= build_object_collection (type, collection_result, get_handler (type), transaction, bookkeeping)
+
+			else
+
+				-- Build a new object
+				if not value.first.is_empty then
+					object_result:= backend.retrieve_from_single_key (type, value.first.to_integer, transaction)
+					if not object_result.is_empty then
+						Result:= build_object (type, object_result.first, transaction, bookkeeping)
+					end
+				end
+
+			end
+		end
+
+
+	build_collection_items (type: PS_TYPE_METADATA; collection: PS_RETRIEVED_COLLECTION; transaction: PS_TRANSACTION; bookkeeping: HASH_TABLE[ANY, INTEGER]): LINKED_LIST[detachable ANY]
+		-- Build a list with all collection items correctly loaded
+		local
+			collection_items: LINKED_LIST[detachable ANY]
+			retrieved_item: LIST[PS_RETRIEVED_OBJECT]
+			item: detachable ANY
+		do
+			-- Build every object of the list and store it in collection_items
+			create Result.make
+
+			across collection.collection_items as items loop
+				item:= build (type.actual_generic_parameter (1), items.item, transaction, bookkeeping)
+				Result.extend (item)
+			end
+		end
 
 
 	try_basic_attribute (obj:ANY; value:STRING; index:INTEGER):BOOLEAN
-		-- See if field at `index' is of basic type, and set it if true
+		-- See if field at `index' is of basic type, and if so, initialize it
 		local
 			type:INTEGER
 			reflection:INTERNAL
@@ -333,7 +263,6 @@ feature {NONE} -- Implementation
 			end
 
 		end
-
 
 
 	set_expanded_attribute (obj: ANY; value:STRING; index: INTEGER)
@@ -395,8 +324,105 @@ feature {NONE} -- Implementation
 			end
 		end
 
+feature {NONE} -- Implementation: Collection handlers
+
+	collection_handlers: LINKED_LIST[PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]]
+		-- All registered collection handlers
+
+	has_handler (type: PS_TYPE_METADATA):BOOLEAN
+		-- Is `type' a collection that has a handler?
+		do
+			Result:= across collection_handlers as handler some handler.item.can_handle_type (type.type)  end
+		end
+
+	get_handler (type: PS_TYPE_METADATA): PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]
+		-- Get the handler for collections of type `type'
+		require
+			has_handler (type)
+		local
+			res: detachable PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]]
+		do
+			across collection_handlers as handler loop
+				if handler.item.can_handle_type(type.type) then
+					res:= handler.item
+				end
+			end
+			Result:= attach (res)
+		end
 
 
+feature {NONE} -- Implementation: Query initialization
 
+	initialize_query (query: PS_QUERY[ANY]; attributes:LIST[STRING]; transaction:PS_TRANSACTION)
+		-- Initialize query - Set an identifier, initialize with bookkeeping manager and execute against backend.
+		local
+			results: ITERATION_CURSOR[ANY]
+			bookkeeping_table:HASH_TABLE[ANY, INTEGER]
+			type: PS_TYPE_METADATA
+		do
+			query.set_identifier (new_query_identifier)
+			query.register_as_executed (transaction)
+			type:= metadata_manager.create_metadata_from_type (query.generic_type)
+
+			if has_handler (type) then
+				results:= backend.retrieve_all_collections (type, transaction)
+			else
+				results:=backend.retrieve (type, query.criteria, attributes, transaction)
+			end
+
+			query_to_cursor_map.extend (results, query.backend_identifier)
+			create bookkeeping_table.make (100)
+			bookkeeping_manager.extend (bookkeeping_table, query.backend_identifier)
+		end
+
+	new_query_identifier: INTEGER
+			-- Get a new identifier for a query
+		do
+			Result := next_query_identifier
+			next_query_identifier := next_query_identifier + 1
+		end
+
+	next_query_identifier: INTEGER
+		-- The next identifier number
+
+
+feature {NONE} -- Implementation - Core data structures
+
+	metadata_manager: PS_METADATA_FACTORY
+		-- Creates metadata for types
+
+	id_manager: PS_OBJECT_IDENTIFICATION_MANAGER
+		-- A reference to the main object identification manager
+
+	query_to_cursor_map: HASH_TABLE[ITERATION_CURSOR[ANY], INTEGER]
+		-- Has a result cursor (as returned from the storage backend) for every executed query
+
+	bookkeeping_manager: HASH_TABLE[HASH_TABLE[ANY, INTEGER], INTEGER]
+		-- keeps track of already loaded object for each query
+
+
+feature {NONE} -- Initialization
+
+	make (a_backend: PS_BACKEND_STRATEGY; an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
+		-- Initialize `Current'
+		do
+			backend:= a_backend
+			id_manager:= an_id_manager
+			create query_to_cursor_map.make (100)
+			create bookkeeping_manager.make (100)
+			create collection_handlers.make
+			create metadata_manager.make
+		end
+
+	backend:PS_BACKEND_STRATEGY
+		-- The storage backend
+
+feature {PS_REPOSITORY} -- Initialization - Collection handlers		
+
+	add_handler (a_handler: PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]])
+		-- Add a collection handler to `Current'
+		do
+			collection_handlers.extend (a_handler)
+		end
 
 end

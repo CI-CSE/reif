@@ -106,13 +106,13 @@ feature {PS_EIFFELSTORE_EXPORT} -- Internal
 			transaction_set: transaction = a_transaction
 		end
 
-	class_name: STRING
-			-- The name of the class `G'.
+	generic_type: TYPE[detachable ANY]
+		-- Get the (detachable) generic type of `Current'
 		local
 			reflection:INTERNAL
-		once
+		once ("OBJECT")
 			create reflection
-			Result:= reflection.class_name_of_type (reflection.generic_dynamic_type (Current, 1))
+			Result:= reflection.type_of_type (reflection.detachable_type (reflection.generic_dynamic_type (Current, 1)))
 		end
 
 	backend_identifier: INTEGER
@@ -147,6 +147,7 @@ feature {NONE} -- Initialization
 
 
 	initialize
+		-- Initialize the shared parts between object and tuple queries
 		do
 			create {PS_EMPTY_CRITERION} criteria
 			reset

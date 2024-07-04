@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {PS_SQL_CONNECTION_ABSTRACTION}."
-	author: ""
+	description: "Provides an interface for a wrapper to a database connection."
+	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -9,38 +9,63 @@ deferred class
 inherit
 	ITERABLE[PS_SQL_ROW_ABSTRACTION]
 
-feature
+feature {PS_EIFFELSTORE_EXPORT} -- Settings
 
-	execute_sql (sql_string: STRING)
+	set_autocommit (flag:BOOLEAN)
+		-- Enable or disable autocommit on this connection.
 		deferred
+		ensure
+			autocommit_correctly_disabled: not flag implies not autocommit -- We actually can't guarantee it the other way round in all cases
 		end
 
---	last_insert_id: INTEGER
---		deferred
---		end
+	autocommit: BOOLEAN
+		-- Is autocommit enabled? Default: no
+
+	transaction_isolation_level: PS_TRANSACTION_ISOLATION_LEVEL
+		-- The transaction isolation level of the current connection, as set at creation time.
+
+feature {PS_EIFFELSTORE_EXPORT} -- Database operations
+
+	execute_sql (statement: STRING)
+		-- Execute the SQL statement `statement', and store the result (if any) in `Current.last_result'
+		-- In case of an error, it will report it in `last_error' and raise an exception.
+		deferred
+			-- Remarks when implementing this feature:
+			-- The SQL string can come with or without a `;' character at the end.
+			-- It is also possible that there are multiple statements in `statement'. In this case they are separated by a `;'.
+			-- In case of such multi-statement function call, only the result of the last statement has to be stored in `last_result'.
+		end
 
 	commit
+		-- Commit the currently active transaction.
+		-- In case of an error, including a failed commit, it will report it in `last_error' and raise an exception.
 		deferred
 		end
 
 	rollback
+		-- Rollback the currently active transaction.
+		-- In case of an error, it will report it in `last_error' and raise an exception.
 		deferred
 		end
+
+feature {PS_EIFFELSTORE_EXPORT} -- Database results
 
 	last_result: ITERATION_CURSOR[PS_SQL_ROW_ABSTRACTION]
+		-- The result of the last database operation
 		deferred
-		end
-
-	new_cursor:ITERATION_CURSOR[PS_SQL_ROW_ABSTRACTION]
-		do
-			Result:= last_result
 		end
 
 	last_error: PS_ERROR
+		-- The last occured error
 		deferred
 		end
 
-invariant
-	-- no_autocommit: true
+feature {PS_EIFFELSTORE_EXPORT} -- Utilities
+
+	new_cursor:ITERATION_CURSOR[PS_SQL_ROW_ABSTRACTION]
+		-- Get a cursor over the `last_result' (Convenience function to support the `across' syntax)
+		do
+			Result:= last_result
+		end
 
 end
