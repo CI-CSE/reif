@@ -3,9 +3,7 @@ note
 	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
-
-	documentation:
-	"[
+	documentation: "[
 		Documentation of the object graph depth concept:
 			Each CRUD operation has a depth parameter. The depth indicates how much of an object should be loaded.
 			
@@ -23,8 +21,7 @@ note
 			Note: On some repositories the actual object graph depth will be ignored, and it will always use Object_graph_depth_infinite
 			instead.
 	]"
-
-	fixme: "Some settings are constant right now. They should get implemeted in the future"
+	TODO: "Some settings are constant right now. They should get implemented in the future"
 
 class
 	PS_OBJECT_GRAPH_SETTINGS
@@ -35,46 +32,41 @@ create
 feature -- Query settings
 
 	query_depth: INTEGER
-			-- object graph depth for queries, or reading objects in general
+			-- Object graph depth for queries, or reading objects in general.
 
 feature -- Insert settings
 
 	insert_depth: INTEGER
-			-- object graph depth for inserts
+			-- Object graph depth for inserts.
 
-
-	is_update_during_insert_enabled:BOOLEAN = False
+	is_update_during_insert_enabled: BOOLEAN = False
 			-- Should an object be updated, if it is already in the database and it is referenced by a new object?
 
-
-	custom_update_depth_during_insert:INTEGER
+	custom_update_depth_during_insert: INTEGER
 			-- The object graph depth that should be applied for an update to an object, which is found during insert and is already in the database.
 		do
-			Result:=update_depth
+			Result := update_depth
 		end
-
 
 feature -- Update settings
 
 	update_depth: INTEGER
-			-- Object graph depth for updates
+			-- Object graph depth for updates.
 			-- Updates are somewhat special: For depth 1, the system will look at references and update them if they point to another object than before, but it will not
 			-- call update on the referenced object. In addition, if an update operation finds a new (= not previously loaded) object, it will insert it
-			-- if is_isert_during_update_enabled is True
+			-- if is_isert_during_update_enabled is True.
 
 	update_last_references: BOOLEAN = True
 			-- Should the last (Depth = 1) references be updated?
 			-- Note: This only covers the references (-> foreign keys) to objects, not the referenced object itself.
 
-
 	is_insert_during_update_enabled: BOOLEAN = True
 			-- Should the system automatically insert objects which are not present in the database and found during an update?
 
-
 	custom_insert_depth_during_update: INTEGER
-			-- The object graph depth that should be applied to insert an object which is found during an update, but isn't yet in the database.	
+			-- The object graph depth that should be applied to insert an object which is found during an update, but isn't yet in the database.
 		do
-			Result:=insert_depth
+			Result := insert_depth
 		end
 
 	throw_error_for_unknown_objects: BOOLEAN
@@ -83,19 +75,18 @@ feature -- Update settings
 		require
 			no_automatic_insert: not is_insert_during_update_enabled
 		do
-			Result:= False
+			Result := False
 		end
-
 
 feature -- Deletion settings
 
 	deletion_depth: INTEGER
-			-- Object graph depth for deletion
+			-- Object graph depth for deletion.
 
 feature -- Modification
 
 	set_query_depth (depth: INTEGER)
-			-- Change the object graph depth for queries
+			-- Change the object graph depth for queries.
 		require
 			valid_depth: is_valid_depth (depth)
 		do
@@ -103,7 +94,7 @@ feature -- Modification
 		end
 
 	set_insert_depth (depth: INTEGER)
-			-- Change the object graph depth for insertion
+			-- Change the object graph depth for insertion.
 		require
 			valid_depth: is_valid_depth (depth)
 		do
@@ -111,7 +102,7 @@ feature -- Modification
 		end
 
 	set_update_depth (depth: INTEGER)
-			-- Change the object graph depth for updates
+			-- Change the object graph depth for updates.
 		require
 			valid_depth: is_valid_depth (depth)
 		do
@@ -119,7 +110,7 @@ feature -- Modification
 		end
 
 	set_deletion_depth (depth: INTEGER)
-			-- Change the object graph depth for deletion
+			-- Change the object graph depth for deletion.
 		require
 			valid_depth: is_valid_depth (depth)
 		do
@@ -128,17 +119,16 @@ feature -- Modification
 
 feature -- Status
 
-	is_valid_depth (depth:INTEGER):BOOLEAN
-		-- Is `depth' in a valid range?
+	is_valid_depth (depth: INTEGER): BOOLEAN
+			-- Is `depth' in a valid range?
 		do
 			Result := depth >= Minimum_depth or depth = Object_graph_depth_infinite
 		end
 
 feature -- Creation
 
-
 	make, reset_to_default
-			-- Create a new OBJECT_GRAPH_DEPTH object with our system's default values
+			-- Create a new OBJECT_GRAPH_DEPTH object with our system's default values.
 		do
 			query_depth := Object_graph_depth_infinite
 			insert_depth := Object_graph_depth_infinite
@@ -149,10 +139,10 @@ feature -- Creation
 feature -- Constants
 
 	Minimum_depth: INTEGER = 1
-		-- The smallest possible object graph depth
+			-- The smallest possible object graph depth.
 
 	Object_graph_depth_infinite: INTEGER = -1
-		-- Load/store full object
+			-- Load/store full object.
 
 invariant
 	valid_query_depth: is_valid_depth (query_depth)

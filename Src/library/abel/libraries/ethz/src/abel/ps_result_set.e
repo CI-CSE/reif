@@ -8,7 +8,9 @@ class
 	PS_RESULT_SET [G -> ANY]
 
 inherit
+
 	ITERATION_CURSOR [G]
+
 	PS_EIFFELSTORE_EXPORT
 
 create {PS_QUERY}
@@ -22,7 +24,7 @@ feature -- Access
 			Result := attach (detachable_item)
 		end
 
-feature -- Status report	
+feature -- Status report
 
 	after: BOOLEAN
 			-- Are there no more items to iterate over?
@@ -32,10 +34,10 @@ feature -- Cursor movement
 	forth
 			-- Move cursor to next position.
 		do
-			if attached {PS_OBJECT_QUERY[ANY]} query as q then
+			if attached {PS_OBJECT_QUERY [ANY]} query as q then
 				q.transaction.repository.next_entry (q)
 			else
-				check attached {PS_TUPLE_QUERY[ANY]} query as tq then
+				check attached {PS_TUPLE_QUERY [ANY]} query as tq then
 					tq.transaction.repository.next_tuple_entry (tq)
 				end
 			end
@@ -47,7 +49,7 @@ feature -- Cursor movement
 feature {PS_EIFFELSTORE_EXPORT} -- Basic operations
 
 	set_entry (object: detachable ANY)
-			-- Set `object' as item if not Void, otherwise set after to True
+			-- Set `item' to `object', or after if `object' is Void.
 		require
 			actual_type_is_G: (object /= Void) implies (attached {G} object)
 		do
@@ -55,18 +57,17 @@ feature {PS_EIFFELSTORE_EXPORT} -- Basic operations
 				detachable_item := new_item
 				after := False
 			else
-				after:=True
+				after := True
 			end
 		ensure
 			Void_means_after: object = Void implies after
 			not_void_means_item: object /= Void implies not after and object = item
 		end
 
-
 feature {PS_QUERY} -- Initialization
 
 	set_query (a_query: PS_QUERY [ANY])
-			-- Set query to `a_query'. Part of initialization process
+			-- Set query to `a_query'. Part of initialization process.
 		do
 			detachable_query := a_query
 		ensure
@@ -74,8 +75,9 @@ feature {PS_QUERY} -- Initialization
 		end
 
 	query: PS_QUERY [ANY]
+			-- Get the query which has `Current' as its result cursor.
 		do
-			Result:= attach (detachable_query)
+			Result := attach (detachable_query)
 		end
 
 	make
@@ -87,15 +89,15 @@ feature {PS_QUERY} -- Initialization
 feature {NONE} -- Implementation
 
 	detachable_item: detachable G
-		-- `item' as detachable (Void safety)
+			-- `item' as detachable (Void safety).
 
-	detachable_query: detachable PS_QUERY[ANY]
-		-- `query' as detachable (Void safety)
+	detachable_query: detachable PS_QUERY [ANY]
+			-- `query' as detachable (Void safety).
 
 invariant
 	attached_item_or_after: attached detachable_item or after
 	attached_query_or_after: attached detachable_query or after
 	item_identified: not after implies query.transaction.repository.is_identified (item, query.transaction)
-	item_can_be_handled:  not after implies query.transaction.repository.can_handle (item)
+	item_can_be_handled: not after implies query.transaction.repository.can_handle (item)
 
 end

@@ -5,7 +5,7 @@ note
 	revision: "$Revision$"
 
 class
-	EPA_INTERESTING_PRE_STATE_FINDER
+	DPA_INTERESTING_PRE_STATE_FINDER
 
 inherit
 	AST_ITERATOR
@@ -24,12 +24,12 @@ inherit
 	KL_SHARED_STRING_EQUALITY_TESTER
 
 create
-	default_create, make_with
+	default_create, make
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
-	make_with (a_ast: like ast)
-			-- Sets `ast' to `a_ast'
+	make (a_ast: like ast)
+			-- Initialize `ast' with `a_ast'
 		require
 			a_ast_not_void: a_ast /= Void
 		do
@@ -43,8 +43,15 @@ feature -- Basic operations
 	find
 			-- Find all interesting pre-states and make them available
 			-- in `interesting_pre_states'
+		require
+			ast_not_void: ast /= Void
+		local
+			l_bp_slot_initializer: ETR_BP_SLOT_INITIALIZER
 		do
 			create interesting_pre_states.make_default
+
+			create l_bp_slot_initializer
+			l_bp_slot_initializer.init_from (ast)
 
 			ast.process (Current)
 		end
@@ -52,8 +59,9 @@ feature -- Basic operations
 feature -- Process operations
 
 	process_access_id_as (l_as: ACCESS_ID_AS)
+			-- Process `l_as'.
 		do
-			if is_nested then
+			if is_nested_node then
 				if not l_as.access_name_8.is_equal (io_string) then
 					interesting_pre_states.force_last (l_as.breakpoint_slot)
 				end
@@ -64,33 +72,39 @@ feature -- Process operations
 		end
 
 	process_create_creation_as (l_as: CREATE_CREATION_AS)
+			-- Process `l_as'.
 		do
 			interesting_pre_states.force_last (l_as.breakpoint_slot)
 		end
 
 	process_nested_as (l_as: NESTED_AS)
+			-- Process `l_as'.
 		do
-			is_nested := True
+			is_nested_node := True
 			l_as.target.process (Current)
-			is_nested := False
+			is_nested_node := False
 		end
 
 	process_assign_as (l_as: ASSIGN_AS)
+			-- Process `l_as'.
 		do
 			l_as.target.process (Current)
 		end
 
 	process_assigner_call_as (l_as: ASSIGNER_CALL_AS)
+			-- Process `l_as'.
 		do
 			l_as.target.process (Current)
 		end
 
 	process_access_feat_as (l_as: ACCESS_FEAT_AS)
+			-- Process `l_as'.
 		do
 			-- Nothing to be done
 		end
 
 	process_if_as (l_as: IF_AS)
+			-- Process `l_as'.
 		do
 			safe_process (l_as.compound)
 			safe_process (l_as.elsif_list)
@@ -98,6 +112,7 @@ feature -- Process operations
 		end
 
 	process_loop_as (l_as: LOOP_AS)
+			-- Process `l_as'.
 		do
 			safe_process (l_as.iteration)
 			safe_process (l_as.from_part)
@@ -105,6 +120,7 @@ feature -- Process operations
 		end
 
 	process_result_as (l_as: RESULT_AS)
+			-- Process `l_as'.
 		do
 			interesting_pre_states.force_last (l_as.breakpoint_slot)
 		end
@@ -115,28 +131,24 @@ feature -- Access
 			-- Contains all found interesting pre-states
 			-- in terms of breakpoint slots.
 
+	ast: AST_EIFFEL
+			-- AST which is used to collect interesting variables
+
 feature -- Setting
 
 	set_ast (a_ast: like ast)
 			-- Set `ast' to `a_ast'
 		require
 			a_ast_not_void: a_ast /= Void
-		local
-			l_bp_slot_initializer: ETR_BP_SLOT_INITIALIZER
 		do
 			ast := a_ast
-			create l_bp_slot_initializer
-			l_bp_slot_initializer.init_from (ast)
 		ensure
 			ast_set: ast = a_ast
 		end
 
 feature {NONE} -- Implementation
 
-	ast: AST_EIFFEL assign set_ast
-			-- AST which is used to collect interesting variables
-
-	is_nested: BOOLEAN
+	is_nested_node: BOOLEAN
 			-- Is the current node part of a NESTED_AS node?
 
 feature {NONE} -- Implementation

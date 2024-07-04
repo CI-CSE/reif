@@ -1,5 +1,5 @@
 note
-	description: "A repository that holds values in memory, but takes objects apart and stores them in a relational-like fashion"
+	description: "A repository that holds values in memory, but takes objects apart and stores them in a relational-like fashion."
 	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -8,18 +8,23 @@ class
 	PS_RELATIONAL_REPOSITORY
 
 inherit
+
 	PS_REPOSITORY
 
+inherit {NONE}
 
-create make
+	REFACTORING_HELPER
+
+create
+	make
 
 feature {PS_EIFFELSTORE_EXPORT} -- Object query
 
 	execute_query (query: PS_OBJECT_QUERY [ANY]; transaction: PS_TRANSACTION)
-			-- Execute `query'.
+			-- Execute `query' within `transaction'.
 		do
 			id_manager.register_transaction (transaction)
-			if attached {PS_OBJECT_QUERY[ANY]} query as obj_query then
+			if attached {PS_OBJECT_QUERY [ANY]} query as obj_query then
 				retriever.setup_query (obj_query, transaction)
 			end
 		rescue
@@ -27,75 +32,67 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object query
 		end
 
 	next_entry (query: PS_OBJECT_QUERY [ANY])
-			-- retrieves the next object. stores item directly into result_set
-			-- in case of an error it is written into the transaction connected to the query
+			-- Retrieves the next object. Stores item directly into result_set.
+			-- In case of an error it is written into the transaction connected to the query.
 		do
 			id_manager.register_transaction (query.transaction)
-			if attached {PS_OBJECT_QUERY[ANY]} query as obj_query then
+			if attached {PS_OBJECT_QUERY [ANY]} query as obj_query then
 				retriever.next_entry (obj_query)
 			end
 		rescue
 			default_transactional_rescue (query.transaction)
 		end
 
-
-	execute_tuple_query (tuple_query: PS_TUPLE_QUERY[ANY]; transaction: PS_TRANSACTION)
-		-- Execute the tuple query `tuple_query' within the readonly transaction `transaction'
+	execute_tuple_query (tuple_query: PS_TUPLE_QUERY [ANY]; transaction: PS_TRANSACTION)
+			-- Execute the tuple query `tuple_query' within the readonly transaction `transaction'.
 		do
 			fixme ("TODO")
 		end
 
-
-	next_tuple_entry (tuple_query: PS_TUPLE_QUERY[ANY])
-		-- Retrieves the next tuple and stores it in `query.result_cursor'
+	next_tuple_entry (tuple_query: PS_TUPLE_QUERY [ANY])
+			-- Retrieves the next tuple and stores it in `query.result_cursor'.
 		do
 			fixme ("TODO")
 		end
-
 
 feature {PS_EIFFELSTORE_EXPORT} -- Modification
 
 	insert (object: ANY; transaction: PS_TRANSACTION)
-			-- Insert `object' within `transaction' into `Current'
+			-- Insert `object' within `transaction' into `Current'.
 		do
 			id_manager.register_transaction (transaction)
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).insert, agent id_manager.is_identified (?, transaction))
-
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).insert, agent id_manager.is_identified(?, transaction))
 			planner.set_object_graph (disassembler.object_graph)
 			planner.generate_plan
-
 			executor.perform_operations (planner.operation_plan, transaction)
 		rescue
 			default_transactional_rescue (transaction)
 		end
 
 	update (object: ANY; transaction: PS_TRANSACTION)
-			-- Update `object' within `transaction'
+			-- Update `object' within `transaction'.
 		do
 			id_manager.register_transaction (transaction)
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).update, agent id_manager.is_identified (?, transaction))
-
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).update, agent id_manager.is_identified(?, transaction))
 			planner.set_object_graph (disassembler.object_graph)
 			planner.generate_plan
-
 			executor.perform_operations (planner.operation_plan, transaction)
 		rescue
 			default_transactional_rescue (transaction)
 		end
 
 	delete (object: ANY; transaction: PS_TRANSACTION)
-			-- Delete `object' within `transaction' from `Current'
+			-- Delete `object' within `transaction' from `Current'.
 		do
 			id_manager.register_transaction (transaction)
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).delete, agent id_manager.is_identified (?, transaction))
-
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).delete, agent id_manager.is_identified(?, transaction))
 			planner.set_object_graph (disassembler.object_graph)
 			planner.generate_plan
-
 			executor.perform_operations (planner.operation_plan, transaction)
-
-			across planner.operation_plan as op loop
-				if attached {PS_COMPLEX_PART} op.item as complex and then complex.write_operation = complex.write_operation.delete  then
+			across
+				planner.operation_plan as op
+			loop
+				if attached {PS_COMPLEX_PART} op.item as complex and then complex.write_operation = complex.write_operation.delete then
 					id_manager.delete_identification (complex.represented_object, transaction)
 				end
 			end
@@ -103,11 +100,10 @@ feature {PS_EIFFELSTORE_EXPORT} -- Modification
 			default_transactional_rescue (transaction)
 		end
 
-
 feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 
 	commit_transaction (transaction: PS_TRANSACTION)
-		-- Explicitly commit the transaction
+			-- Explicitly commit the transaction.
 		do
 			if id_manager.can_commit (transaction) then
 				backend.commit (transaction) -- can fail and raise an exception
@@ -121,102 +117,86 @@ feature {PS_EIFFELSTORE_EXPORT} -- Transaction handling
 		end
 
 	rollback_transaction (transaction: PS_TRANSACTION; manual_rollback: BOOLEAN)
-		-- Rollback the transaction
+			-- Rollback the transaction.
 		do
 			backend.rollback (transaction)
 			id_manager.rollback (transaction)
 			transaction.declare_as_aborted
 		end
 
-
 feature {PS_EIFFELSTORE_EXPORT} -- Testing
 
 	clean_db_for_testing
-		-- Wipe out all data
+			-- Wipe out all data.
+		local
+			handlers: LINKED_LIST[PS_COLLECTION_HANDLER[ITERABLE [detachable ANY]]]
 		do
-			-- Ugly, but it works for now...
-			if attached{PS_GENERIC_LAYOUT_SQL_BACKEND} backend as sql_backend then
-				sql_backend.wipe_out_all
-			else
-				create {PS_IN_MEMORY_DATABASE} backend.make
-			end
-
+			handlers:= collection_handlers
+			backend.wipe_out
 			make (backend)
+			across handlers as handler_cursor loop
+				add_collection_handler (handler_cursor.item)
+			end
 		end
 
 feature {PS_EIFFELSTORE_EXPORT} -- Status Report
 
-
-	can_handle (object:ANY): BOOLEAN
-		-- Can `Current' handle the object `object'?
+	can_handle (object: ANY): BOOLEAN
+			-- Can `Current' handle the object `object'?
 		local
 			new_transaction: PS_TRANSACTION
 		do
 			create new_transaction.make_readonly (Current)
-			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).insert, agent id_manager.is_identified (?, new_transaction))
-
+			disassembler.execute_disassembly (object, (create {PS_WRITE_OPERATION}).insert, agent id_manager.is_identified(?, new_transaction))
 			planner.set_object_graph (disassembler.object_graph)
 			planner.generate_plan
-
-			Result:= executor.can_backend_handle_operations (planner.operation_plan)
+			Result := executor.can_backend_handle_operations (planner.operation_plan)
 		end
 
-feature{NONE} -- Initialization
+feature {NONE} -- Initialization
 
 	make (a_backend: PS_BACKEND_STRATEGY)
-		-- Initialize `Current'
-		local
-			special_handler: PS_SPECIAL_COLLECTION_HANDLER
+			-- Initialize `Current'.
 		do
+			backend := a_backend
 			create transaction_isolation_level
 			set_transaction_isolation_level (transaction_isolation_level.repeatable_read)
 			create default_object_graph.make
 			create id_manager.make
 			create planner.make
 			create disassembler.make (id_manager.metadata_manager, default_object_graph)
-		--	create memory_db.make
-			backend:= a_backend
 			create executor.make (backend, id_manager)
 			create retriever.make (backend, id_manager)
-
-			create special_handler.make
-			add_collection_handler (special_handler)
+			create collection_handlers.make
 		end
 
 feature -- Initialization
 
-	add_collection_handler (handler: PS_COLLECTION_HANDLER[ITERABLE[detachable ANY]])
-		-- Add a handler for a specific type of collections
+	add_collection_handler (handler: PS_COLLECTION_HANDLER [ITERABLE [detachable ANY]])
+			-- Add a handler for a specific type of collections.
 		do
 			retriever.add_handler (handler)
 			disassembler.add_handler (handler)
+			collection_handlers.extend (handler)
 		end
 
-feature {PS_EIFFELSTORE_EXPORT}
+feature {PS_EIFFELSTORE_EXPORT} -- Implementation
 
-	disassembler:PS_OBJECT_DISASSEMBLER
-	planner:PS_WRITE_PLANNER
+	disassembler: PS_OBJECT_DISASSEMBLER
+			-- A disassembler to create explicit object graphs.
+
+	planner: PS_WRITE_PLANNER
+			-- A write planner to generate an operation plan from an object graph.
+
 	executor: PS_WRITE_EXECUTOR
+			-- An executor to execute operations in an operation plan
+
 	backend: PS_BACKEND_STRATEGY
-	retriever:PS_RETRIEVAL_MANAGER
+			-- A BACKEND_STRATEGY implementation
 
+	retriever: PS_RETRIEVAL_MANAGER
+			-- A retrieval manager to build objects.
 
-
-feature {NONE} -- obsolete
-
-	identify_all (identifier_manager: PS_OBJECT_IDENTIFICATION_MANAGER; transaction: PS_TRANSACTION; object_graph: PS_OBJECT_GRAPH_PART)
-		-- Add an object identifier to all objects in object_graph.
-		do
-			fixme ("move to executor as soon as the planner doesn't need it any more")
-			across object_graph as obj loop
-				if attached {PS_COMPLEX_PART} obj.item as complex then
-					if not identifier_manager.is_identified (complex.represented_object, transaction) then
-						identifier_manager.identify (complex.represented_object, transaction)
-					end
-					complex.set_object_wrapper (identifier_manager.get_identifier_wrapper (complex.represented_object, transaction))
-				end
-			end
-		end
-
-
+	collection_handlers: LINKED_LIST[PS_COLLECTION_HANDLER[ITERABLE [detachable ANY]]]
+			-- The collection handlers registered with `Current'
 end
