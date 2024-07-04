@@ -1,5 +1,5 @@
 note
-	description: "Command-line Inspector Eiffel (code analysis)"
+	description: "Command-line Eiffel Inspector (code analysis)"
 	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
