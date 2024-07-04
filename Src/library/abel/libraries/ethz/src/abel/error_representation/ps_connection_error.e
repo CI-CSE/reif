@@ -1,11 +1,11 @@
 note
-	description: "Represents an connection problem."
+	description: "Represents an connection error."
 	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	PS_CONNECTION_PROBLEM
+	PS_CONNECTION_ERROR
 
 inherit
 

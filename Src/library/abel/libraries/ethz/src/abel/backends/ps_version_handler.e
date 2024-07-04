@@ -5,7 +5,7 @@ note
 	revision: "$Revision$"
 
 class
-	PS_ESCHER_INTEGRATION
+	PS_VERSION_HANDLER
 
 inherit
 
@@ -70,10 +70,10 @@ feature {PS_EIFFELSTORE_EXPORT} -- Status report
 			Result := real_backend.can_handle_relational_collection (owner_type, collection_item_type)
 		end
 
-	can_handle_objectoriented_collection (collection_type: PS_TYPE_METADATA): BOOLEAN
-			-- Can the current backend handle an objectoriented collection of type `collection_type'?
+	can_handle_object_oriented_collection (collection_type: PS_TYPE_METADATA): BOOLEAN
+			-- Can the current backend handle an object_oriented collection of type `collection_type'?
 		do
-			Result := real_backend.can_handle_objectoriented_collection (collection_type)
+			Result := real_backend.can_handle_object_oriented_collection (collection_type)
 		end
 
 feature {PS_EIFFELSTORE_EXPORT} -- Object retrieval operations
@@ -112,12 +112,14 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object retrieval operations
 					result_list.extend (Result.item)
 					Result.forth
 				end
-					-- Check for each result if the version matchs
+					-- Check for each result if the version matches
 				across
 					result_list as cursor
 				loop
 					stored_version := cursor.item.attribute_value ("version").value.to_integer
 					if stored_version /= current_version then
+						fixme ("check if a transformation function between the two version exists.")
+						fixme ("if it does, invoke it. If it does not, raise an exception")
 						create error
 						transaction.set_error (error)
 						error.raise
@@ -204,22 +206,22 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object-oriented collection operations
 			Result := real_backend.retrieve_all_collections (collection_type, transaction)
 		end
 
-	retrieve_objectoriented_collection (collection_type: PS_TYPE_METADATA; collection_primary_key: INTEGER; transaction: PS_TRANSACTION): PS_RETRIEVED_OBJECT_COLLECTION
+	retrieve_object_oriented_collection (collection_type: PS_TYPE_METADATA; collection_primary_key: INTEGER; transaction: PS_TRANSACTION): PS_RETRIEVED_OBJECT_COLLECTION
 			-- Retrieves the object-oriented collection of type `object_type' and with primary key `object_primary_key'.
 		do
-			Result := real_backend.retrieve_objectoriented_collection (collection_type, collection_primary_key, transaction)
+			Result := real_backend.retrieve_object_oriented_collection (collection_type, collection_primary_key, transaction)
 		end
 
-	insert_objectoriented_collection (a_collection: PS_OBJECT_COLLECTION_PART [ITERABLE [detachable ANY]]; a_transaction: PS_TRANSACTION)
+	insert_object_oriented_collection (a_collection: PS_OBJECT_COLLECTION_PART [ITERABLE [detachable ANY]]; a_transaction: PS_TRANSACTION)
 			-- Add all entries in a_collection to the database. If the order is not conflicting with the items already in the database, it will try to preserve order.
 		do
-			real_backend.insert_objectoriented_collection (a_collection, a_transaction)
+			real_backend.insert_object_oriented_collection (a_collection, a_transaction)
 		end
 
-	delete_objectoriented_collection (a_collection: PS_OBJECT_COLLECTION_PART [ITERABLE [detachable ANY]]; a_transaction: PS_TRANSACTION)
+	delete_object_oriented_collection (a_collection: PS_OBJECT_COLLECTION_PART [ITERABLE [detachable ANY]]; a_transaction: PS_TRANSACTION)
 			-- Delete a_collection from the database
 		do
-			real_backend.delete_objectoriented_collection (a_collection, a_transaction)
+			real_backend.delete_object_oriented_collection (a_collection, a_transaction)
 		end
 
 feature {PS_EIFFELSTORE_EXPORT} -- Relational collection operations
