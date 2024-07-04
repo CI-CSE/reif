@@ -463,8 +463,12 @@ feature -- Expression Visitor
 		local
 			l_do_left_par, l_do_right_par: BOOLEAN
 		do
-			l_do_left_par := not (attached {IV_BINARY_OPERATION} a_operation.left as l_b and then l_b.operator ~ a_operation.operator)
-			l_do_right_par := not (attached {IV_BINARY_OPERATION} a_operation.right as l_b and then l_b.operator ~ a_operation.operator)
+			l_do_left_par :=
+				(a_operation.operator /~ "&&" and a_operation.operator /~ "||") or
+				not (attached {IV_BINARY_OPERATION} a_operation.left as l_b and then l_b.operator ~ a_operation.operator)
+			l_do_right_par :=
+				(a_operation.operator /~ "&&" and a_operation.operator /~ "||") or
+				not (attached {IV_BINARY_OPERATION} a_operation.right as l_b and then l_b.operator ~ a_operation.operator)
 
 			if l_do_left_par then
 				output.put ("(")
@@ -606,13 +610,26 @@ feature -- Type Visitor
 			-- <Precursor>
 		do
 			output.put ("Field ")
-			a_type.content_type.process (Current)
+			if a_type.content_type.is_map or a_type.content_type.is_seq then
+				output.put ("(")
+				a_type.content_type.process (Current)
+				output.put (")")
+			else
+				a_type.content_type.process (Current)
+			end
 		end
 
 	process_set_type (a_type: IV_SET_TYPE)
 			-- <Precursor>
 		do
 			output.put ("Set ")
+			a_type.content_type.process (Current)
+		end
+
+	process_seq_type (a_type: IV_SEQ_TYPE)
+			-- <Precursor>
+		do
+			output.put ("Seq ")
 			a_type.content_type.process (Current)
 		end
 

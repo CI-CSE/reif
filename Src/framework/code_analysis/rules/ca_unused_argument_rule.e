@@ -8,6 +8,9 @@ class
 	CA_UNUSED_ARGUMENT_RULE
 inherit
 	CA_STANDARD_RULE
+		redefine
+			id
+		end
 
 create
 	make
@@ -33,12 +36,15 @@ feature {NONE} -- Activation
 
 feature -- Properties
 
-	title: STRING
+	title: STRING_32
 		do
 			Result := ca_names.unused_argument_title
 		end
 
-	description: STRING
+	id: STRING_32 = "CA002T"
+			-- "T" stands for 'under test'.
+
+	description: STRING_32
 		do
 			Result :=  ca_names.unused_argument_description
 		end
@@ -58,25 +64,25 @@ feature -- Properties
 		local
 			j: INTEGER
 		do
-			a_formatter.add_string (ca_messages.unused_argument_violation_1)
+			a_formatter.add (ca_messages.unused_argument_violation_1)
 			from
 				j := 2
 			until
 				j > a_violation.long_description_info.count
 			loop
-				if j > 2 then a_formatter.add_string (", ") end
-				a_formatter.add_char ('%'')
-				if attached {STRING} a_violation.long_description_info.at (j) as l_arg then
-					a_formatter.add_string (l_arg)
+				if j > 2 then a_formatter.add (", ") end
+				a_formatter.add ("'")
+				if attached {STRING_32} a_violation.long_description_info.at (j) as l_arg then
+					a_formatter.add_local (l_arg)
 				end
-				a_formatter.add_char('%'')
+				a_formatter.add ("'")
 				j := j + 1
 			end
-			a_formatter.add_string (ca_messages.unused_argument_violation_2)
+			a_formatter.add (ca_messages.unused_argument_violation_2)
 			if attached {FEATURE_AS} a_violation.long_description_info.first as l_feature then
 				a_formatter.add_feature_name (l_feature.feature_name.name_32, a_violation.affected_class)
 			end
-			a_formatter.add_string (ca_messages.unused_argument_violation_3)
+			a_formatter.add (ca_messages.unused_argument_violation_3)
 		end
 
 feature {NONE} -- Rule Checking
@@ -91,21 +97,23 @@ feature {NONE} -- Rule Checking
 			j: INTEGER
 		do
 			has_arguments := (a_body_as.arguments /= Void)
-			if has_arguments then
-				routine_body := a_body_as
-				create arg_names.make (0)
-				create args_used.make (0)
-				n_arguments := 0
-				across a_body_as.arguments as l_args loop
-					from
-						j := 1
-					until
-						j > l_args.item.id_list.count
-					loop
-						arg_names.extend (l_args.item.item_name (j))
-						args_used.extend (False)
-						n_arguments := n_arguments + 1
-						j := j + 1
+			if attached a_body_as.as_routine as l_rout then
+				if has_arguments and (not l_rout.is_external) then
+					routine_body := a_body_as
+					create arg_names.make (0)
+					create args_used.make (0)
+					n_arguments := 0
+					across a_body_as.arguments as l_args loop
+						from
+							j := 1
+						until
+							j > l_args.item.id_list.count
+						loop
+							arg_names.extend (l_args.item.item_name (j))
+							args_used.extend (False)
+							n_arguments := n_arguments + 1
+							j := j + 1
+						end
 					end
 				end
 			end
@@ -136,7 +144,7 @@ feature {NONE} -- Rule Checking
 
 	process_access_id (a_aid: ACCESS_ID_AS)
 		local
-			id, j: INTEGER
+			j: INTEGER
 		do
 			from
 				j := 1
@@ -144,7 +152,7 @@ feature {NONE} -- Rule Checking
 				j > n_arguments
 			loop
 				if args_used.at (j) = False then
-					if arg_names.at (j).is_equal (a_aid.feature_name.name_8) then
+					if arg_names.at (j).is_equal (a_aid.feature_name.name_32) then
 						args_used.put_i_th (True, j)
 					end
 				end
@@ -156,7 +164,7 @@ feature {NONE} -- Rule Checking
 	current_feature: FEATURE_AS
 	routine_body: BODY_AS
 	n_arguments: INTEGER
-	arg_names: ARRAYED_LIST[STRING]
+	arg_names: ARRAYED_LIST[STRING_32]
 	args_used: ARRAYED_LIST[BOOLEAN]
 
 end

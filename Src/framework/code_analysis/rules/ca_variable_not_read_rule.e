@@ -17,19 +17,31 @@ feature {NONE} -- Initialization
 
 	make
 		do
+			make_backward
 			is_enabled := True
 			create {CA_WARNING} severity
 			create violations.make
 		end
 
-feature -- Properties
+feature {NONE} -- Node Visitor
 
-	title: STRING
-		once
-			Result := "---"
+	visit_node (a_start_node, a_end_node: EPA_BASIC_BLOCK; a_edge: EPA_CFG_EDGE; a_new_start: BOOLEAN)
+		do
+
 		end
 
-	description: STRING
+feature {NONE} -- Analysis data
+
+	lv_entry, lv_exit: HASH_TABLE[LINKED_LIST[STRING], INTEGER]
+
+feature -- Properties
+
+	title: STRING_32
+		once
+			Result := ca_names.variable_not_read_title
+		end
+
+	description: STRING_32
 		once
 			Result :=  "---"
 		end
@@ -49,6 +61,5 @@ feature -- Properties
 		do
 
 		end
-
 
 end

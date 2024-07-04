@@ -35,10 +35,59 @@ feature -- Rules
 	npath_description: STRING_32
 		do Result := locale.translation ("The NPATH measure is too high.") end
 
+	npath_threshold_option: STRING_32
+		do Result := locale.translation ("Minimum NPATH threshold") end
+
 	empty_if_title: STRING_32
 		do Result := locale.translation ("Empty if statement") end
 
 	empty_if_description: STRING_32
-		do Result := locale.translation ("") end
+		do Result := locale.translation ("An empty if statement is useless and should be removed.") end
+
+	variable_not_read_title: STRING_32
+		do Result := locale.translation ("Variable not read after assignment") end
+
+	feature_never_called_title: STRING_32
+		do Result := locale.translation ("Feature never called") end
+
+	cq_separation_title: STRING_32
+		do Result := locale.translation ("No command-query separation (possible function side effect)") end
+
+	unneeded_ot_local_title: STRING_32
+		do Result := locale.translation ("Unneeded object test local") end
+
+	unneeded_ot_local_description: STRING_32
+		do Result := locale.translation ("For local variables, feature arguments, %
+			%and object test locals it is unnecessary to let the attached keyword %
+			%create a new and safe local reference.") end
+
+	unneeded_object_test_title: STRING_32
+		do Result := locale.translation ("Object test typing not needed") end
+
+	unneeded_object_test_description: STRING_32
+		do Result := locale.translation ("---") end
+
+	nested_complexity_title: STRING_32
+		do Result := locale.translation ("Too high complexity of nested branches and loops") end
+
+	nested_complexity_description: STRING_32
+		do Result := locale.translation ("---") end
+
+	nested_complexity_threshold_option: STRING_32
+		do Result := locale.translation ("Minimum nested branches and loops threshold") end
+
+feature -- GUI
+
+	tool_errors: STRING_32
+		do Result := locale.translation ("Errors") end
+
+	tool_warnings: STRING_32
+		do Result := locale.translation ("Warnings") end
+
+	tool_suggestions: STRING_32
+		do Result := locale.translation ("Suggestions") end
+
+	tool_hints: STRING_32
+		do Result := locale.translation ("Hints") end
 
 end

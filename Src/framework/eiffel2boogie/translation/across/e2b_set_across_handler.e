@@ -49,7 +49,6 @@ feature -- Basic operations
 			l_upper: IV_EXPRESSION
 			l_binop1, l_binop2: IV_BINARY_OPERATION
 			l_and: IV_BINARY_OPERATION
-			l_implies: IV_BINARY_OPERATION
 			l_quantifier: IV_QUANTIFIER
 			l_expression: IV_EXPRESSION
 			l_set: IV_EXPRESSION
@@ -69,13 +68,18 @@ feature -- Basic operations
 
 
 			create l_map.make (l_set, l_counter)
-			create l_implies.make (l_map, "==>", l_expression, types.bool)
 			if loop_expr.is_all then
-				create {IV_FORALL} l_quantifier.make (l_implies)
+				create {IV_FORALL} l_quantifier.make (factory.implies_ (l_map, l_expression))
 			else
-				create {IV_EXISTS} l_quantifier.make (l_implies)
+				create {IV_EXISTS} l_quantifier.make (factory.and_ (l_map, l_expression))
 			end
 			l_quantifier.add_bound_variable (l_counter.name, l_counter.type)
+			l_quantifier.add_trigger (l_map)
+			if attached {IV_FUNCTION_CALL} l_expression as l_fcall then
+				if across l_fcall.arguments as i some attached {IV_ENTITY} i.item as j and then j.name ~ l_counter.name end then
+					l_quantifier.add_trigger (l_expression)
+				end
+			end
 			expression_translator.set_last_expression (l_quantifier)
 		end
 
@@ -101,3 +105,4 @@ feature -- Basic operations
 		end
 
 end
+

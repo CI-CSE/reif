@@ -1,69 +1,4 @@
 // ----------------------------------------------------------------------
-// Sets
-
-type Set T = [T]bool;
-
-function Set#Empty<T>(): Set T;
-axiom (forall<T> o: T :: { Set#Empty()[o] } !Set#Empty()[o]);
-
-function Set#Singleton<T>(T): Set T;
-axiom (forall<T> r: T :: { Set#Singleton(r) } Set#Singleton(r)[r]);
-axiom (forall<T> r: T, o: T :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> r == o);
-
-function Set#UnionOne<T>(Set T, T): Set T;
-axiom (forall<T> a: Set T, x: T, o: T :: { Set#UnionOne(a,x)[o] }
-  Set#UnionOne(a,x)[o] <==> o == x || a[o]);
-axiom (forall<T> a: Set T, x: T :: { Set#UnionOne(a, x) }
-  Set#UnionOne(a, x)[x]);
-axiom (forall<T> a: Set T, x: T, y: T :: { Set#UnionOne(a, x), a[y] }
-  a[y] ==> Set#UnionOne(a, x)[y]);
-
-function Set#Union<T>(Set T, Set T): Set T;
-axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Union(a,b)[o] }
-  Set#Union(a,b)[o] <==> a[o] || b[o]);
-axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), a[y] }
-  a[y] ==> Set#Union(a, b)[y]);
-axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), b[y] }
-  b[y] ==> Set#Union(a, b)[y]);
-axiom (forall<T> a, b: Set T :: { Set#Union(a, b) }
-  Set#Disjoint(a, b) ==>
-    Set#Difference(Set#Union(a, b), a) == b &&
-    Set#Difference(Set#Union(a, b), b) == a);
-
-function Set#Intersection<T>(Set T, Set T): Set T;
-axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
-  Set#Intersection(a,b)[o] <==> a[o] && b[o]);
-
-axiom (forall<T> a, b: Set T :: { Set#Union(Set#Union(a, b), b) }
-  Set#Union(Set#Union(a, b), b) == Set#Union(a, b));
-axiom (forall<T> a, b: Set T :: { Set#Union(a, Set#Union(a, b)) }
-  Set#Union(a, Set#Union(a, b)) == Set#Union(a, b));
-axiom (forall<T> a, b: Set T :: { Set#Intersection(Set#Intersection(a, b), b) }
-  Set#Intersection(Set#Intersection(a, b), b) == Set#Intersection(a, b));
-axiom (forall<T> a, b: Set T :: { Set#Intersection(a, Set#Intersection(a, b)) }
-  Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
-
-function Set#Difference<T>(Set T, Set T): Set T;
-axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Difference(a,b)[o] }
-  Set#Difference(a,b)[o] <==> a[o] && !b[o]);
-axiom (forall<T> a, b: Set T, y: T :: { Set#Difference(a, b), b[y] }
-  b[y] ==> !Set#Difference(a, b)[y] );
-
-function Set#Subset<T>(Set T, Set T): bool;
-axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
-  Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
-
-function Set#Equal<T>(Set T, Set T): bool;
-axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }
-  Set#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <==> b[o]));
-axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }  // extensionality axiom for sets
-  Set#Equal(a,b) ==> a == b);
-
-function Set#Disjoint<T>(Set T, Set T): bool;
-axiom (forall<T> a: Set T, b: Set T :: { Set#Disjoint(a,b) }
-  Set#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} !a[o] || !b[o]));
-
-// ----------------------------------------------------------------------
 // Reference types
 
 type ref; // Type definition for reference types
@@ -152,6 +87,17 @@ function {:inline} is_open(h: HeapType, o: ref): bool {
 	!h[o, closed]
 }
 
+// Is o closed in h?
+function {:inline} is_closed(h: HeapType, o: ref): bool {
+	h[o, closed]
+}
+
+// Only allocated references can be in ghost sets
+axiom (forall h: HeapType, o: ref, r: ref, f: Field (Set ref) :: h[o, f][r] ==> h[r, allocated]);
+//axiom (forall h: HeapType, o: ref, r: ref :: h[o, observers][r] ==> h[r, allocated]);
+//axiom (forall h: HeapType, o: ref, r: ref :: h[o, owns][r] ==> h[r, allocated]);
+//axiom (forall h: HeapType, o: ref, r: ref :: h[o, subjects][r] ==> h[r, allocated]);
+
 // Is o' in the ownership domain of o? Yes if they are equal, or both closed and o' is transitively owned by o
 function in_domain(h: HeapType, o: ref, o': ref): bool
 {
@@ -164,11 +110,13 @@ function in_domain(h: HeapType, o: ref, o': ref): bool
 }
 
 axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } h[o, closed] && h[o, owns][o'] ==> in_domain(h, o, o'));
+axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
 
-// Objects outside of ownership domains of mods did not change
+// Objects outside of ownership domains of mods did not change, unless they were newly allocated
 function writes(h: HeapType, h': HeapType, mods: Set ref): bool { 
 	(forall <T> o: ref, f: Field T :: { h[o, f] } { h'[o, f] }
-		(forall o': ref :: { mods[o'] } { in_domain(h, o', o) } mods[o'] ==> !in_domain(h, o', o))
+		((forall o': ref :: { mods[o'] } { in_domain(h, o', o) } mods[o'] ==> !in_domain(h, o', o)) &&
+		 h[o, allocated])
 			==>
 		h'[o, f] == h[o, f])
 	&&
@@ -188,7 +136,7 @@ function no_garbage(old_heap: HeapType, new_heap: HeapType): bool {
 // are still writable 
 function writes_changed(h: HeapType, h': HeapType, wr: Set ref, wr': Set ref): bool
 {
-	(forall o: ref ::
+	(forall o: ref :: { wr'[o] }
 		(wr[o] && is_free(h', o)) ||
 		(!is_free(h, o) && is_free(h', o)) ||
 		(!h[o, allocated] && h'[o, allocated] && is_free(h', o))
@@ -220,13 +168,15 @@ function {:inline true} global_heap(h: HeapType): bool
 // Global invariants
 function {:inline true} global(h: HeapType, wr: Set ref): bool
 {
-  global_heap(h) &&
-  (forall o: ref :: wr[o] ==> h[o, allocated] && is_free(h, o))
+  global_heap(h)
+//  &&
+//  (forall o: ref :: wr[o] ==> h[o, allocated] && is_free(h, o))
 }
 
 // Allocate fresh object
 procedure allocate(t: Type) returns (result: ref);
 	modifies Heap, Writes;
+	ensures global(Heap, Writes);
 	ensures !old(Heap[result, allocated]); // AL1
 	ensures Heap[result, allocated]; // AL2
 	ensures result != Void;
@@ -243,46 +193,62 @@ procedure allocate(t: Type) returns (result: ref);
 procedure update_heap<T>(Current: ref, field: Field T, value: T);
 	requires field != closed && field != owner; // update tag:closed_or_owner_not_allowed UP4
 	requires is_open(Heap, Current); // update tag:target_open UP1
-	requires (forall o: ref :: Heap[Current, observers][o] ==> is_open(Heap, o)); // update tag:all_observers_open UP2
+	requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) ==> user_inv(Heap[Current, field := value], o)))); // update tag:observers_open_or_inv_preserved UP2
 	requires Writes[Current]; // update tag:target_writable UP3
 	modifies Heap;
-	ensures Heap[Current, field] == value;
-	ensures (forall<U> o: ref, f: Field U :: !(o == Current && f == field) ==> Heap[o, f] == old(Heap[o, f]));
+	ensures global_heap(Heap);
+	ensures Heap == old(Heap[Current, field := value]);
 
 // Unwrap o
 procedure unwrap(o: ref);
-//	free requires inv(Heap, o);
 	requires is_wrapped(Heap, o); // pre tag:wrapped UW1
 	requires Writes[o]; // pre tag:writable UW2
 	modifies Heap, Writes;
+	ensures global(Heap, Writes);
 	ensures is_open(Heap, o); // UWE1
 	ensures (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o')); // UWE2
 	ensures Set#Equal(Writes, old(Set#Union(Writes, Heap[o, owns]))); // UWE3
 	ensures (forall <T> o': ref, f: Field T :: !(o' == o && f == closed) && !(old(Heap[o, owns][o']) && f == owner) ==> Heap[o', f] == old(Heap[o', f]));
 	ensures user_inv(Heap, o);
 
+procedure unwrap_all (Current: ref, s: Set ref);
+	requires (forall o: ref :: s[o] ==> is_wrapped(Heap, o)); // pre tag:wrapped UW1
+	requires (forall o: ref :: s[o] ==> Writes[o]); // pre tag:writable UW2
+	modifies Heap, Writes;
+	ensures global(Heap, Writes);
+	ensures (forall o: ref :: s[o] ==> is_open(Heap, o)); // UWE1
+	ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o'))); // UWE2
+	ensures (forall o: ref :: s[o] ==> Set#Subset(old(Heap[o, owns]), Writes)) && Set#Subset(old(Writes), Writes); // ensures Set#Equal(Writes, old(Set#Union(Writes, Heap[o, owns]))); // UWE3
+	ensures (forall <T> o: ref, f: Field T :: !(s[o] && f == closed) && !((exists o': ref :: s[o'] && old(Heap[o', owns][o])) && f == owner) ==> Heap[o, f] == old(Heap[o, f]));
+	ensures (forall o: ref :: s[o] ==> user_inv(Heap, o));
+
 // Wrap o
 procedure wrap(o: ref);
 	requires is_open(Heap, o); // pre tag:open W1
 	requires user_inv(Heap, o); // pre tag:invariant_holds W2
-	requires (forall o': ref :: Heap[o, owns][o'] ==> is_wrapped(Heap, o') && Writes[o']); // pre tag:owned_objects_wrapped W3
+	requires (forall o': ref :: Heap[o, owns][o'] ==> is_wrapped(Heap, o')); // pre tag:owned_objects_wrapped W3
+//	requires (forall o': ref :: Heap[o, owns][o'] ==> Writes[o']); // pre tag:owned_objects_writable W3
 	requires Writes[o]; // pre tag:writable W4
 	modifies Heap, Writes;
+	ensures global(Heap, Writes);
 	ensures Set#Equal(Writes, old(Set#Difference(Writes, Heap[o, owns]))); // WE1
 	ensures (forall o': ref :: old(Heap[o, owns][o']) ==> Heap[o', owner] == o); // WE2
 	ensures is_wrapped(Heap, o); // WE3
 	ensures (forall <T> o': ref, f: Field T :: !(o' == o && f == closed) && !(old(Heap[o, owns][o']) && f == owner) ==> Heap[o', f] == old(Heap[o', f]));
 
-procedure wrap_all(s: Set ref);
+procedure wrap_all(Current: ref, s: Set ref);
 	requires (forall o: ref :: s[o] ==> is_open(Heap, o)); // pre tag:open W1
 	requires (forall o: ref :: s[o] ==> user_inv(Heap, o)); // pre tag:invariant_holds W2
-	requires (forall o: ref :: s[o] ==> (forall o': ref :: Heap[o, owns][o'] ==> is_wrapped(Heap, o') && Writes[o'])); // pre tag:owned_objects_wrapped W3
+	requires (forall o: ref :: s[o] ==> (forall o': ref :: Heap[o, owns][o'] ==> is_wrapped(Heap, o'))); // pre tag:owned_objects_wrapped W3
+	requires (forall o: ref :: s[o] ==> (forall o': ref :: Heap[o, owns][o'] ==> Writes[o'])); // pre tag:owned_objects_writable W3
 	requires (forall o: ref :: s[o] ==> Writes[o]); // pre tag:writable W4
 	modifies Heap, Writes;
-//	ensures Set#Equal(Writes, old(Set#Difference(Writes, Heap[o, owns]))); // WE1
+	ensures global(Heap, Writes);
+	ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> !Writes[o'])); // WE1
+	ensures (forall o: ref :: old(Writes[o]) && !(exists o': ref :: s[o'] && old(Heap[o', owns][o])) ==> Writes[o]); // WE1
 	ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> Heap[o', owner] == o)); // WE2
 	ensures (forall o: ref :: s[o] ==> is_wrapped(Heap, o)); // WE3
-//	ensures (forall <T> o': ref, f: Field T :: !(o' == o && f == closed) && !(old(Heap[o, owns][o']) && f == owner) ==> Heap[o', f] == old(Heap[o', f]));
+	ensures (forall <T> o: ref, f: Field T :: !(s[o] && f == closed) && !((exists o': ref :: s[o'] && old(Heap[o', owns][o])) && f == owner) ==> Heap[o, f] == old(Heap[o, f]));
 
 // ----------------------------------------------------------------------
 // Attached/Detachable functions

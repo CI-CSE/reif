@@ -515,10 +515,22 @@ feature -- Visitors
 			-- <Precursor>
 		local
 			l_feature: FEATURE_I
+			l_current_type: TYPE_A
+			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			l_current_type := current_target_type
+
+			current_target_type := a_node.type
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			check feature_valid: l_feature /= Void end
-			process_routine_call (l_feature, a_node.parameters, False)
+			l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
+			if l_handler /= Void then
+				process_special_routine_call (l_handler, l_feature, a_node.parameters)
+			else
+				process_routine_call (l_feature, a_node.parameters, False)
+			end
+
+			current_target_type := l_current_type
 		end
 
 	process_feature_b (a_node: FEATURE_B)
@@ -626,6 +638,8 @@ feature -- Visitors
 				create {E2B_INTERVAL_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_bin_free, l_object_test_local)
 			elseif l_name ~ "MML_SET" then
 				create {E2B_SET_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
+			elseif l_name ~ "MML_SEQUENCE" then
+				create {E2B_SEQUENCE_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
 			else
 				last_expression := dummy_node (a_node.type)
 			end
@@ -669,6 +683,7 @@ feature -- Visitors
 			l_call: IV_FUNCTION_CALL
 			l_info: IV_ASSERTION_INFORMATION
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
+			l_name: STRING
 		do
 			l_handler := translation_mapping.handler_for_nested (a_node)
 			l_object_test_local ?= a_node.target
@@ -682,12 +697,15 @@ feature -- Visitors
 					l_feature ?= a_node.message
 				end
 				check l_feature /= Void end
-				if l_feature.feature_name.is_case_insensitive_equal ("item") then
+				l_name := l_feature.feature_name.as_lower
+				if l_name ~ "item" then
 					l_across_handler.handle_call_item (Void)
-				elseif l_feature.feature_name.is_case_insensitive_equal ("index") or l_feature.feature_name.is_case_insensitive_equal ("cursor_index") then
+				elseif l_name ~ "index" or l_name ~ "cursor_index" then
 					l_across_handler.handle_call_cursor_index (Void)
-				elseif l_feature.feature_name.is_case_insensitive_equal ("after") then
+				elseif l_name ~ "after" then
 					l_across_handler.handle_call_after (Void)
+				elseif l_name ~ "is_wrapped" or l_name ~ "is_open" then
+					last_expression := dummy_node (a_node.type)
 				else
 					check False end
 					last_expression := dummy_node (a_node.type)
@@ -697,7 +715,7 @@ feature -- Visitors
 					l_target_type := current_target_type
 
 					current_target := last_expression
-					l_target_type := l_nested.target.type
+					current_target_type := l_nested.target.type
 					l_nested.message.process (Current)
 
 					current_target := l_target

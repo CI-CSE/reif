@@ -33,7 +33,7 @@ feature {NONE} -- Initialization
 
 feature -- Status report
 
-	has alias "[]" (x: G): BOOLEAN
+	has alias "[]" (x: ANY): BOOLEAN
 			-- Is `x' contained?
 		do
 		end
@@ -45,7 +45,7 @@ feature -- Status report
 
 feature -- Comparison
 
-	is_subset_of alias "<=" (a_other: MML_SET [G]): BOOLEAN
+	is_subset_of alias "<=" (a_other: MML_SET [ANY]): BOOLEAN
 			-- Does `a_other' have all elements of `Current'?
 		do
 		end
@@ -94,4 +94,20 @@ feature -- Iterable implementation
 		do
 		end
 
+feature -- Convenience
+
+	empty_set: MML_SET [G]
+		external "built_in"
+		end
+
+note
+	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end

@@ -1337,6 +1337,13 @@ RT_LNK void eif_exit_eiffel_code(void);
 #define scoop_task_wait_for_processor_redundancy 10
 #define scoop_task_check_uncontrolled 11
 #define scoop_task_update_statistics 12
+#define scoop_task_set_active 13
+#define scoop_task_set_passive 14
+#define scoop_task_is_passive 15
+#define scoop_task_is_synced_on 16
+#define scoop_task_set_synced_on 17
+#define scoop_task_set_not_synced_on 18
+
 
 #ifdef WORKBENCH
 #define RTS_TCB(t,c,s,a) \
@@ -1357,6 +1364,16 @@ RT_LNK void eif_exit_eiffel_code(void);
 #endif
 #define RTS_PID(o) HEADER(o)->ov_pid
 
+/* 
+ * SCOOP processor ID swapping.
+ *
+ * `eif_globals' should be reloaded after the restoration.
+ */
+#define RTS_IMPERSONATE(o)                                              \
+  {                                                                     \
+    eif_globals = (eif_global_context_t*) eif_thr_impersonate(o);       \
+  }
+
 /*
  * Object status:
  * EIF_IS_DIFFERENT_PROCESSOR (o1, o2) - tells if o1 and o2 run on different processors
@@ -1368,6 +1385,10 @@ RT_LNK void eif_exit_eiffel_code(void);
 #define EIF_IS_DIFFERENT_PROCESSOR(o1,o2) (RTS_PID (o1) != RTS_PID (o2))
 #define RTS_OS(c,o) (RTS_PID (c) != RTS_PID (o))
 #define RTS_OU(c,o) ((o) && (scp_mnger) && EIF_TEST (eif_is_uncontrolled (RTS_PID (c), RTS_PID (o))))
+
+#define EIF_SET_ACTIVE(o) RTS_TCB(scoop_task_set_active,0,RTS_PID (o),0)
+#define EIF_SET_PASSIVE(o) RTS_TCB(scoop_task_set_passive,0,RTS_PID (o),0)
+#define EIF_IS_PASSIVE(o) (eif_is_passive (RTS_PID (o)) == EIF_TRUE)
 
 /*
  * Processor:
@@ -1395,7 +1416,7 @@ RT_LNK void eif_exit_eiffel_code(void);
 #define RTS_RC(p) RTS_TCB(scoop_task_signify_start_of_new_chain,RTS_PID(p),0,NULL)
 #define RTS_RD(p) RTS_TCB(scoop_task_signify_end_of_new_chain,RTS_PID(p),RTS_PID(p),NULL)
 #define RTS_RF(p) RTS_TCB(scoop_task_signify_end_of_new_chain,RTS_PID(p),-1,NULL)
-#define RTS_RS(p,s) RTS_TCB(scoop_task_add_supplier_to_request_chain,RTS_PID(p),RTS_PID(s),NULL)
+#define RTS_RS(p,s) if (s) {RTS_TCB(scoop_task_add_supplier_to_request_chain,RTS_PID(p),RTS_PID(s),NULL)}
 #define RTS_RW(p) RTS_TCB(scoop_task_wait_for_supplier_processor_locks,RTS_PID(p),0,NULL)
 
 
@@ -1808,4 +1829,12 @@ RT_LNK void eif_exit_eiffel_code(void);
 #endif
 
 
+
+EIF_BOOLEAN eif_is_synced_on (EIF_SCP_PID c, EIF_SCP_PID );
+#define EIF_IS_SYNCED_ON(c,s) \
+	(eif_is_synced_on (RTS_PID (c), RTS_PID(s)) == EIF_TRUE)
+#define EIF_SET_SYNCED_ON(c,s) \
+	RTS_TCB(scoop_task_set_synced_on, RTS_PID(c), RTS_PID(s), 0)
+#define EIF_SET_NOT_SYNCED_ON(c,s) \
+	RTS_TCB(scoop_task_set_not_synced_on, RTS_PID(c), RTS_PID(s), 0)
 

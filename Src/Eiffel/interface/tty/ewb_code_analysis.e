@@ -13,6 +13,9 @@ inherit
 	SHARED_SERVER
 		export {NONE} all end
 
+inherit {NONE}
+	CA_SHARED_NAMES
+
 create
 	make_with_arguments
 
@@ -21,19 +24,39 @@ feature {NONE} -- Initialization
 	make_with_arguments (a_arguments: LINKED_LIST [STRING])
 			-- Initialization for `Current'.
 		do
+			create class_name_list.make
 
+			across a_arguments as l_args loop
+				if l_args.item.is_equal ("-caclass") or l_args.item.is_equal ("-caclasses") then
+					from l_args.forth
+					until l_args.after or l_args.item.starts_with ("-")
+					loop class_name_list.extend (l_args.item); l_args.forth
+					end
+				end
+			end
 		end
+
+feature {NONE} -- Options
+
+	class_name_list: LINKED_LIST [STRING]
 
 feature -- Execution (declared in EWB_CMD)
 
 	execute
-			-- UNDER TEST
 		local
 			l_code_analyzer: CA_CODE_ANALYZER
 			l_rule_name, l_line, l_col: STRING
 		do
 			create l_code_analyzer.make
-			l_code_analyzer.add_whole_system
+
+			if class_name_list.is_empty then
+				l_code_analyzer.add_whole_system
+			else
+				across class_name_list as l_cn loop
+					try_add_class_with_name (l_code_analyzer, l_cn.item)
+				end
+			end
+
 			l_code_analyzer.analyze
 
 			print ("%NEiffel Code Analysis%N")
@@ -42,10 +65,7 @@ feature -- Execution (declared in EWB_CMD)
 			across l_code_analyzer.rule_violations as l_vlist loop
 
 				if not l_vlist.item.is_empty then
-					print ("%NIn class '" + l_vlist.key.name + "':%N")
-
-					-- Sort
-
+					print (ca_messages.cmd_class + l_vlist.key.name + "':%N")
 
 					across l_vlist.item as l_v loop
 						l_rule_name := l_v.item.rule.title
@@ -60,23 +80,27 @@ feature -- Execution (declared in EWB_CMD)
 			end
 		end
 
+	try_add_class_with_name (a_analyzer: CA_CODE_ANALYZER; a_class_name: STRING)
+		do
+			if attached universe.compiled_classes_with_name (a_class_name) as l_c then
+				across l_c as l_classes loop
+					a_analyzer.add_class (l_classes.item)
+				end
+			else
+				print (ca_messages.cmd_class_not_found_1 + a_class_name + ca_messages.cmd_class_not_found_2)
+			end
+		end
+
 feature -- Info (declared in EWB_CMD)
 
-	name: STRING
-		do
-			Result := "Code Analysis"
-		end
+	name: STRING = "Code Analysis"
 
 	help_message: STRING_GENERAL
 		do
-			Result := "Code Analysis performs static analyses on the source code and %
-			           %outputs a list of issues found according to a set of rules."
+			Result := ca_messages.cmd_help_message
 		end
 
-	abbreviation: CHARACTER
-		do
-			Result := 'a'
-		end
+	abbreviation: CHARACTER = 'a'
 
 note
 	copyright: "Copyright (c) 1984-2013, Eiffel Software"

@@ -12,11 +12,17 @@ inherit
 
 feature -- Basic properties, usually fix
 
-	title: STRING
+	title: STRING_32
 		deferred
 		end
 
-	description: STRING
+	id: detachable STRING_32
+			-- A preferrably unique identifier for the rule. It should start with "CA".
+		once
+			Result := Void
+		end
+
+	description: STRING_32
 		deferred
 		end
 
@@ -27,6 +33,16 @@ feature -- Basic properties, usually fix
 	is_system_wide: BOOLEAN
 			-- Only check the rule if a system wide analysis is performed.
 		deferred
+		end
+
+	checks_library_classes: BOOLEAN
+		once
+			Result := True
+		end
+
+	checks_nonlibrary_classes: BOOLEAN
+		once
+			Result := True
 		end
 
 feature {CA_RULE_VIOLATION} -- formatted rule checking output
@@ -73,6 +89,15 @@ feature -- Rule checking
 
 feature -- Results
 
+	frozen clear_violations
+		do
+			violations.wipe_out
+		end
+
 	violations: LINKED_LIST[CA_RULE_VIOLATION]
 
+feature {NONE} -- Implementation
+
+invariant
+	checks_some_classes: checks_library_classes or checks_nonlibrary_classes
 end

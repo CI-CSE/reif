@@ -10,7 +10,7 @@ class
 inherit
 	CA_STANDARD_RULE
 		redefine
-			title
+			id
 		end
 
 create
@@ -34,12 +34,15 @@ feature {NONE} -- Activation
 
 feature -- Properties
 
-	title: STRING
+	title: STRING_32
 		do
 			Result := ca_names.self_assignment_title
 		end
 
-	description: STRING
+	id: STRING_32 = "CA001T"
+			-- "T" stands for 'under test'.
+
+	description: STRING_32
 		do
 			Result :=  ca_names.self_assignment_description
 		end
@@ -56,11 +59,11 @@ feature -- Properties
 
 	format_violation_description (a_violation: CA_RULE_VIOLATION; a_formatter: TEXT_FORMATTER)
 		do
-			a_formatter.add_string (ca_messages.self_assignment_violation_1)
+			a_formatter.add (ca_messages.self_assignment_violation_1)
 			if attached {STRING_32} a_violation.long_description_info.first as l_name then
-				a_formatter.add_string (l_name)
+				a_formatter.add_local (l_name)
 			end
-			a_formatter.add_string (ca_messages.self_assignment_violation_2)
+			a_formatter.add (ca_messages.self_assignment_violation_2)
 		end
 
 feature {NONE} -- Checking the rule

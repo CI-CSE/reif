@@ -3716,6 +3716,7 @@ Src/framework/file_formats/pe/pe.lic -text
 Src/framework/framework.lic -text
 Src/framework/gui_testing/gui_testing.lic -text
 Src/framework/interface_names/interface_names.lic -text
+Src/framework/iron/api/license.lic -text
 Src/framework/iron/README.md -text
 Src/framework/jstar_proofs/examples/bank_account/bank_account.abs -text
 Src/framework/jstar_proofs/examples/bank_account/bank_account.logic -text
@@ -5103,6 +5104,7 @@ Src/unstable/library/persistency/abel/documentation/includes/frontend.xml -text
 Src/unstable/library/persistency/abel/documentation/technical_documentation/abel_documentation.pdf -text
 Src/unstable/library/persistency/abel/documentation/technical_documentation/abel_documentation.tex -text
 Src/unstable/library/persistency/abel/documentation/technical_documentation/lstlang0.sty -text
+Src/unstable/library/persistency/abel/documentation/technical_documentation/references.bib -text
 Src/unstable/library/persistency/abel/documentation/tutorial/abel_tutorial.pdf -text svneol=unset#unset
 Src/unstable/library/persistency/abel/documentation/tutorial/abel_tutorial.tex -text
 Src/unstable/library/persistency/abel/documentation/tutorial/lstlang0.sty -text

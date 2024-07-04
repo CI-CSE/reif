@@ -128,16 +128,17 @@ feature -- Helper functions: arguments and result
 
 feature -- Helper functions: contracts
 
-	contracts_of (a_feature: FEATURE_I; a_type: TYPE_A): TUPLE [pre, post, modifies, reads: LIST [ASSERT_B]]
+	contracts_of (a_feature: FEATURE_I; a_type: TYPE_A): TUPLE [pre, post, modifies, reads, decreases: LIST [ASSERT_B]]
 			-- Contracts for feature `a_feature' of type `a_type'.
 		local
-			l_pre, l_post, l_modifies, l_reads: LINKED_LIST [ASSERT_B]
+			l_pre, l_post, l_modifies, l_reads, l_decreases: LINKED_LIST [ASSERT_B]
 			l_name: STRING_32
 		do
 			create l_pre.make
 			create l_post.make
 			create l_modifies.make
 			create l_reads.make
+			create l_decreases.make
 
 			helper.set_up_byte_context (a_feature, a_type)
 			if attached Context.byte_code as l_byte_code then
@@ -172,6 +173,9 @@ feature -- Helper functions: contracts
 					elseif l_name ~ "reads" then
 						l_reads.extend (l_pre.item)
 						l_pre.remove
+					elseif l_name ~ "decreases" then
+						l_decreases.extend (l_pre.item)
+						l_pre.remove
 					else
 						l_pre.forth
 					end
@@ -192,6 +196,9 @@ feature -- Helper functions: contracts
 					elseif l_name ~ "reads" then
 						l_reads.extend (l_post.item)
 						l_post.remove
+					elseif l_name ~ "decreases" then
+						l_decreases.extend (l_post.item)
+						l_post.remove
 					else
 						l_post.forth
 					end
@@ -199,7 +206,7 @@ feature -- Helper functions: contracts
 					l_post.forth
 				end
 			end
-			Result := [l_pre, l_post, l_modifies, l_reads]
+			Result := [l_pre, l_post, l_modifies, l_reads, l_decreases]
 		end
 
 	contracts_of_current_feature: like contracts_of
@@ -290,6 +297,9 @@ feature -- Helper functions: contracts
 						else
 							l_type := l_type.deep_actual_type
 						end
+						if l_type.base_class.name_in_upper ~ "MML_SET" then
+							l_type := l_type.generics.first
+						end
 
 						create l_fieldnames.make
 						if attached {STRING_B} l_call.parameters.i_th (1).expression as l_string then
@@ -341,12 +351,19 @@ feature -- Helper functions: contracts
 				across l_tuple.expressions as i loop
 					l_expr_list.extend (i.item)
 				end
+				if l_tuple.expressions.is_empty then
+					l_expr_list.extend (Void)
+				end
 			else
 				l_expr_list.extend (a_expr)
 			end
 			create Result.make
 			across l_expr_list as k loop
-				Result.extend (translate_individual_expression (k.item))
+				if k.item = Void then
+					Result.extend (Void)
+				else
+					Result.extend (translate_individual_expression (k.item))
+				end
 			end
 		end
 
@@ -356,7 +373,7 @@ feature -- Helper functions: contracts
 		do
 			create l_translator.make
 			l_translator.entity_mapping.set_heap (create {IV_ENTITY}.make ("heap", types.heap))
-			l_translator.entity_mapping.set_current (create {IV_ENTITY}.make ("current", types.heap))
+			l_translator.entity_mapping.set_current (create {IV_ENTITY}.make ("current", types.ref))
 			l_translator.set_context (current_feature, current_type)
 			a_expr.process (l_translator)
 			Result := l_translator.last_expression

@@ -365,6 +365,23 @@ feature -- Basic operations
 			Result := Current
 		end
 
+feature -- SCOOP
+	frozen set_handler_active (a_obj: separate ANY)
+			--
+		external
+			"C inline use %"eif_macros.h%""
+		alias
+			"EIF_SET_ACTIVE(eif_access($a_obj))"
+		end
+
+	frozen set_handler_passive (a_obj: separate ANY)
+			--
+		external
+			"C inline use %"eif_macros.h%""
+		alias
+			"EIF_SET_PASSIVE(eif_access($a_obj))"
+		end
+
 feature -- Verification: contract clauses
 
 	frozen modify (a: ANY): BOOLEAN
@@ -385,6 +402,24 @@ feature -- Verification: contract clauses
 			Result := True
 		end
 
+	frozen decreases (a: ANY): BOOLEAN
+			-- Helper function for adding decreases clauses in contracts.
+		do
+			Result := True
+		end
+
+	frozen inv_without (a: ANY): BOOLEAN
+			-- Helper function for specifying class invariant without certain clauses.
+		do
+			Result := True
+		end
+
+	frozen inv_only (a: ANY): BOOLEAN
+			-- Helper function for specifying class invariant with only certain clauses.
+		do
+			Result := True
+		end
+
 feature -- Verification: ownership operations
 
 	frozen wrap
@@ -392,7 +427,7 @@ feature -- Verification: ownership operations
 		do
 		end
 
-	frozen wrap_all (a: ANY)
+	frozen wrap_all (a: MML_SET [ANY])
 			-- Wrap all objects in `a' simultaneously.
 		do
 		end
@@ -402,7 +437,7 @@ feature -- Verification: ownership operations
 		do
 		end
 
-	frozen unwrap_all (a: ANY)
+	frozen unwrap_all (a: MML_SET [ANY])
 			-- Unwrap all objects in `a' simultaneously.
 		do
 		end
@@ -438,8 +473,6 @@ feature -- Verification: ownership fields
 
 	frozen set_owner (a: ANY)
 			-- Set owner of this object to `a'.
-		note
-			status: ghost
 		do
 		end
 
@@ -452,8 +485,6 @@ feature -- Verification: ownership fields
 
 	frozen set_owns (a: MML_SET [ANY])
 			-- Set owns set of this object.
-		note
-			status: ghost
 		do
 		end
 
@@ -466,8 +497,6 @@ feature -- Verification: ownership fields
 
 	frozen set_subjects (a: MML_SET [ANY])
 			-- Set subjects set of this object.
-		note
-			status: ghost
 		do
 		end
 
@@ -480,8 +509,6 @@ feature -- Verification: ownership fields
 
 	frozen set_observers (a: MML_SET [ANY])
 			-- Set observers set of this object.
-		note
-			status: ghost
 		do
 		end
 

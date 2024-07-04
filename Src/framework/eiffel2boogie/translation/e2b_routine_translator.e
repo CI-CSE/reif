@@ -78,9 +78,9 @@ feature -- Basic operations
 
 				-- Modifies
 			create l_modifies.make ("Heap")
-			if options.is_ownership_enabled then
+--			if options.is_ownership_enabled then
 				l_modifies.add_name ("Writes")
-			end
+--			end
 			current_boogie_procedure.add_contract (l_modifies)
 
 				-- Pre- and postconditions
@@ -115,7 +115,6 @@ feature -- Basic operations
 						-- Normal frame condition
 					process_fields_list (l_fields)
 				end
---			add_invariant_conditions (a_for_creator)
 			end
 
 			if options.is_precondition_predicate_enabled then
@@ -124,31 +123,6 @@ feature -- Basic operations
 			if options.is_postcondition_predicate_enabled then
 				add_postcondition_predicate
 			end
-		end
-
-	add_invariant_conditions (a_is_creator: BOOLEAN)
-		local
-			l_fcall: IV_FUNCTION_CALL
-			l_pre: IV_PRECONDITION
-			l_post: IV_POSTCONDITION
-			l_info: IV_ASSERTION_INFORMATION
-		do
-			translation_pool.add_type (current_type)
-			l_fcall := factory.function_call (
-				name_translator.boogie_name_for_invariant_function (current_type),
-				<< "Heap", "Current" >>,
-				types.bool)
-			if not a_is_creator then
-				create l_pre.make (l_fcall)
-				l_pre.set_free
-				current_boogie_procedure.add_contract (l_pre)
-			end
-			create l_post.make (l_fcall)
---			create l_info.make ("post")
---			l_info.set_tag ("invariant")
---			l_post.set_information (l_info)
-			l_post.set_assertion_type ("post")
-			current_boogie_procedure.add_contract (l_post)
 		end
 
 	add_ownership_contracts (a_for_creator: BOOLEAN)
@@ -230,7 +204,106 @@ feature -- Basic operations
 			translation_pool.add_writes_function (current_feature, current_type)
 
 				-- OWNERSHIP DEFAULTS
+			if not helper.is_explicit (current_feature, "contracts") then
+				if a_for_creator then
+					create l_pre.make (factory.function_call ("is_open", << "Heap", "Current" >>, types.bool))
+					l_pre.set_assertion_type ("pre")
+					l_pre.set_assertion_tag ("default_is_open")
+					current_boogie_procedure.add_contract (l_pre)
+					create l_post.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
+					l_post.set_assertion_type ("post")
+					l_post.set_assertion_tag ("deafult_is_wrapped")
+					current_boogie_procedure.add_contract (l_post)
+					create l_post.make (forall_mml_set_property ("Current", "observers", "is_wrapped"))
+					l_post.set_assertion_type ("post")
+					l_post.set_assertion_tag ("defaults_observers_are_wrapped")
+					current_boogie_procedure.add_contract (l_post)
+				elseif helper.is_public (current_feature) then
+					if current_feature.has_return_value then
+						create l_pre.make (factory.function_call ("!is_open", << "Heap", "Current" >>, types.bool))
+						l_pre.set_assertion_type ("pre")
+						l_pre.set_assertion_tag ("default_is_closed")
+						current_boogie_procedure.add_contract (l_pre)
+						-- Nadia: don't think that's useful here
+--						create l_pre.make (forall_mml_set_property ("observers", "!is_open"))
+--						l_pre.set_assertion_type ("pre")
+						create l_post.make (factory.function_call ("!is_open", << "Heap", "Current" >>, types.bool))
+						l_post.set_assertion_type ("post")
+						l_post.set_assertion_tag ("default_is_closed")
+						current_boogie_procedure.add_contract (l_post)
+--						create l_post.make (forall_mml_set_property ("observers", "!is_open"))
+--						current_boogie_procedure.add_contract (l_post)
+					else
+						create l_pre.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
+						l_pre.set_assertion_type ("pre")
+						l_pre.set_assertion_tag ("default_is_wrapped")
+						current_boogie_procedure.add_contract (l_pre)
+						create l_pre.make (forall_mml_set_property ("Current", "observers", "is_wrapped"))
+						l_pre.set_assertion_type ("pre")
+						l_pre.set_assertion_tag ("default_observers_are_wrapped")
+						current_boogie_procedure.add_contract (l_pre)
+						create l_post.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
+						l_post.set_assertion_type ("post")
+						l_post.set_assertion_tag ("default_is_wrapped")
+						current_boogie_procedure.add_contract (l_post)
+						create l_post.make (forall_mml_set_property ("Current", "observers", "is_wrapped"))
+						l_post.set_assertion_type ("post")
+						l_post.set_assertion_tag ("default_observers_are_wrapped")
+						current_boogie_procedure.add_contract (l_post)
+					end
+				else
+					create l_pre.make (factory.function_call ("is_open", << "Heap", "Current" >>, types.bool))
+					l_pre.set_assertion_type ("pre")
+					l_pre.set_assertion_tag ("default_is_open")
+					current_boogie_procedure.add_contract (l_pre)
+					create l_pre.make (forall_mml_set_property ("Current", "observers", "is_open"))
+					l_pre.set_assertion_type ("pre")
+					l_pre.set_assertion_tag ("default_observers_are_open")
+					current_boogie_procedure.add_contract (l_pre)
+					create l_post.make (factory.function_call ("is_open", << "Heap", "Current" >>, types.bool))
+					l_post.set_assertion_type ("post")
+					l_post.set_assertion_tag ("default_is_open")
+					current_boogie_procedure.add_contract (l_post)
+					create l_post.make (forall_mml_set_property ("Current", "observers", "is_open"))
+					l_post.set_assertion_type ("post")
+					l_post.set_assertion_tag ("default_observers_are_open")
+					current_boogie_procedure.add_contract (l_post)
+				end
+				across arguments_of_current_feature as i loop
+					if i.item.boogie_type.is_reference then
+						create l_pre.make (factory.function_call ("is_wrapped", << "Heap", i.item.name >>, types.bool))
+						l_pre.set_assertion_type ("pre")
+						l_pre.set_assertion_tag ("arg_" + i.item.name + "_is_wrapped")
+						current_boogie_procedure.add_contract (l_pre)
+						create l_post.make (factory.function_call ("is_wrapped", << "Heap", i.item.name >>, types.bool))
+						l_post.set_assertion_type ("post")
+						l_post.set_assertion_tag ("arg_" + i.item.name + "_is_wrapped")
+						current_boogie_procedure.add_contract (l_post)
+					end
+				end
+				if a_for_creator or helper.is_public (current_feature) then
+					across arguments_of_current_feature as i loop
+						if i.item.boogie_type.is_reference then
+							create l_pre.make (forall_mml_set_property (i.item.name, "observers", "is_wrapped"))
+							-- ToDo: add?
+						end
+					end
+				end
+			end
+		end
 
+	forall_mml_set_property (a_target_name: STRING; a_set_name: STRING; a_function_name: STRING): IV_EXPRESSION
+		local
+			l_forall: IV_FORALL
+			l_i: IV_ENTITY
+		do
+			create l_i.make (helper.unique_identifier ("i"), types.ref)
+			create l_forall.make (
+				factory.implies_ (
+					factory.map_access (factory.heap_access ("Heap", create {IV_ENTITY}.make (a_target_name, types.ref), a_set_name, types.set (types.ref)), l_i),
+					factory.function_call (a_function_name, << "Heap", l_i >>, types.bool)))
+			l_forall.add_bound_variable (l_i.name, l_i.type)
+			Result := l_forall
 		end
 
 	translate_routine_implementation (a_feature: FEATURE_I; a_type: TYPE_A)
@@ -312,12 +385,9 @@ feature -- Basic operations
 					create l_assign.make (factory.heap_current_access (l_translator.entity_mapping, "observers", types.set (types.ref)), factory.function_call ("Set#Empty", <<>>, types.set (types.ref)))
 					l_implementation.body.add_statement (l_assign)
 
-					if options.is_ownership_defaults_enabled then
-
-					end
 				else
-					if options.is_ownership_defaults_enabled then
-						if helper.is_public (current_feature) then
+					if not helper.is_explicit (current_feature, "wrapping") then
+						if helper.is_public (current_feature) and not a_feature.has_return_value then
 							l_implementation.body.add_statement (factory.procedure_call ("unwrap", << "Current" >>))
 						end
 					end
@@ -347,11 +417,9 @@ feature -- Basic operations
 			end
 
 				-- OWNERSHIP: end of routine body
-			if options.is_ownership_enabled and options.is_ownership_defaults_enabled then
-				if a_for_creator then
-					l_implementation.body.add_statement (factory.procedure_call ("wrap", << "Current" >>))
-				else
-					if helper.is_public (current_feature) then
+			if options.is_ownership_enabled then
+				if not helper.is_explicit (current_feature, "wrapping") then
+					if a_for_creator or helper.is_public (current_feature) and not a_feature.has_return_value then
 						l_implementation.body.add_statement (factory.procedure_call ("wrap", << "Current" >>))
 					end
 				end
@@ -426,7 +494,9 @@ feature -- Basic operations
 
 				-- Expression
 			across l_.modified_objects as o loop
-				if o.item.type.is_set then
+				if o.item = Void then
+					l_expr := factory.function_call ("Set#Empty", << >>, types.set (types.ref))
+				elseif o.item.type.is_set then
 					l_expr := o.item
 				else
 					l_expr := factory.function_call ("Set#Singleton", << o.item >>, types.set (types.ref))
@@ -435,6 +505,13 @@ feature -- Basic operations
 					l_modif_set := l_expr
 				else
 					l_modif_set := factory.function_call ("Set#Union", << l_modif_set, l_expr >>, types.set (types.ref))
+				end
+			end
+			if l_.modified_objects.is_empty and not helper.is_explicit (a_feature, "modifies") then
+				if a_feature.has_return_value then
+					l_modif_set := factory.function_call ("Set#Empty", << >>, types.set (types.ref))
+				else
+					l_modif_set := factory.function_call ("Set#Singleton", << "current" >>, types.set (types.ref))
 				end
 			end
 			l_function.set_body (l_modif_set)
@@ -452,14 +529,18 @@ feature -- Basic operations
 			end
 
 				-- Expression
-			create l_o.make ("o", types.ref)
-			create l_f.make ("f", types.field (types.generic))
+			create l_o.make ("$o", types.ref)
+			create l_f.make ("$f", types.field (types.generic))
 			l_expr := factory.true_
 			across l_.field_restriction as j loop
 				l_objects_expr := factory.false_
-				l_fields_expr := factory.true_
+				l_fields_expr := factory.true_ --not_equal (l_f, create {IV_ENTITY}.make ("owner", types.field (types.ref)))
 				across j.item.objects as ro loop
-					l_objects_expr := factory.or_ (l_objects_expr, factory.equal (l_o, ro.item))
+					if ro.item.type.is_map then
+						l_objects_expr := factory.or_ (l_objects_expr, factory.map_access (ro.item, l_o))
+					else
+						l_objects_expr := factory.or_ (l_objects_expr, factory.equal (l_o, ro.item))
+					end
 				end
 				across j.item.fields as rf loop
 					l_fields_expr := factory.and_ (l_fields_expr, factory.not_equal (l_f, rf.item))

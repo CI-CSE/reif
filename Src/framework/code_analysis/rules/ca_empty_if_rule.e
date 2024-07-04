@@ -6,8 +6,11 @@ note
 
 class
 	CA_EMPTY_IF_RULE
+
 inherit
 	CA_STANDARD_RULE
+		redefine id end
+
 create
 	make
 
@@ -29,29 +32,29 @@ feature {NONE} -- Activation
 
 feature -- Properties
 
-	title: STRING
+	title: STRING_32
 		do
 			Result := ca_names.empty_if_title
 		end
 
-	description: STRING
+	id: STRING_32 = "CA017T"
+			-- "T" stands for 'under test'.
+
+	description: STRING_32
 		do
 			Result := ca_names.empty_if_description
 		end
+
+	is_system_wide: BOOLEAN = False
 
 	options: LINKED_LIST[CA_RULE_OPTION[ANY]]
 		once
 			create Result.make
 		end
 
-	is_system_wide: BOOLEAN
-		once
-			Result := False
-		end
-
 	format_violation_description (a_violation: CA_RULE_VIOLATION; a_formatter: TEXT_FORMATTER)
 		do
-			-- TODO
+			a_formatter.add (ca_messages.empty_if_violation_1)
 		end
 
 feature {NONE} -- Rule Checking

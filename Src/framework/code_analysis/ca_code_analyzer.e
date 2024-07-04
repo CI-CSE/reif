@@ -19,64 +19,67 @@ feature {NONE} -- Initialization
 	make
 			-- Initialization for `Current'.
 		do
-			create settings
+			create settings.make
 			create rules.make
 			-- Adding example rules
 			rules.extend (create {CA_SELF_ASSIGNMENT_RULE}.make)
 			rules.extend (create {CA_UNUSED_ARGUMENT_RULE}.make)
 			rules.extend (create {CA_NPATH_RULE}.make)
 			rules.extend (create {CA_EMPTY_IF_RULE}.make)
+			rules.extend (create {CA_FEATURE_NEVER_CALLED_RULE}.make)
+			rules.extend (create {CA_CQ_SEPARATION_RULE}.make)
+			rules.extend (create {CA_UNNEEDED_OT_LOCAL_RULE}.make)
+			rules.extend (create {CA_UNNEEDED_OBJECT_TEST_RULE}.make)
+			rules.extend (create {CA_NESTED_COMPLEXITY_RULE}.make)
+
+			-- Issues (contract violations, exceptions) with {EPA_CFG_BUILDER} and
+			-- classes from library 'program_analysis' in general.
+--			rules.extend (create {CA_VARIABLE_NOT_READ_RULE}.make)
 
 			create classes_to_analyze.make
 			create rule_violations.make (100)
+			create completed_actions
+
+			create ignoredby.make (25)
+			create library_class.make (25)
+			create nonlibrary_class.make (25)
 		end
 
 feature -- Analysis interface
 
+	add_completed_action (a_action: PROCEDURE [ANY, TUPLE [BOOLEAN] ])
+		do
+			completed_actions.extend (a_action)
+		end
+
 	analyze
+		require
+			not is_running
 		local
 			l_rules_checker: CA_ALL_RULES_CHECKER
+			l_task: CA_RULE_CHECKING_TASK
 		do
+			is_running := True
+				-- TODO: caching
+			rule_violations.wipe_out
+
 			create l_rules_checker.make
 			across rules as l_rules loop
+				l_rules.item.clear_violations
 				if l_rules.item.is_enabled then -- important: only add enabled rules
 					if system_wide_check or else (not l_rules.item.is_system_wide) then
-						-- do not add system wide rules if we check only parts of the system
+							-- do not add system wide rules if we check only parts of the system
 						if attached {CA_STANDARD_RULE} l_rules.item as l_std_rule then
+
 							l_std_rule.prepare_checking (l_rules_checker)
-						elseif attached {CA_BACKWARD_ITERATION_RULE} l_rules.item as l_back_rule then
-							-- TODO
+								-- TODO: prepare rules of other types?
 						end
 					end
 				end
 			end
 
-			across classes_to_analyze as l_classes loop
-
-				-- TODO: more elegant and performant solution?
-				across rules as l_rules loop
-					l_rules.item.set_checking_class (l_classes.item)
-					-- If rule is non-standard then it will not be checked by l_rules_checker.
-					-- We will have the rule check the current class here:
-					if attached {CA_BACKWARD_ITERATION_RULE} l_rules.item as l_back_rule then
-						l_back_rule.process_class_as (l_classes.item.ast)
-					end
-				end
-
-				l_rules_checker.run_on_class (l_classes.item)
-
-				rule_violations.extend (create {SORTED_TWO_WAY_LIST[CA_RULE_VIOLATION]}.make, l_classes.item)
-			end
-
-			across rules as l_rules loop
-				across l_rules.item.violations as l_v loop
-					rule_violations.at (l_v.item.affected_class).extend (l_v.item)
-				end
-			end
-
-			clear_classes_to_analyze
-		ensure
-			violation_list_exists: analysis_successful implies rule_violations /= Void
+			create l_task.make (l_rules_checker, rules, classes_to_analyze, agent analysis_completed)
+			rota.run_task (l_task)
 		end
 
 	clear_classes_to_analyze
@@ -135,6 +138,25 @@ feature -- Analysis interface
 			end
 		end
 
+	add_group (a_group: CONF_GROUP)
+		require
+			a_group_not_void: a_group /= Void
+		local
+			l_conf_class: CONF_CLASS
+			l_class_i: CLASS_I
+		do
+			from
+				a_group.classes.start
+			until
+				a_group.classes.after
+			loop
+				l_conf_class := a_group.classes.item_for_iteration
+				l_class_i := eiffel_universe.class_named (l_conf_class.name, a_group)
+				add_class (l_class_i)
+				a_group.classes.forth
+			end
+		end
+
 	add_classes (a_classes: ITERABLE[CLASS_I])
 		do
 			system_wide_check := False
@@ -154,6 +176,8 @@ feature -- Analysis interface
 				l_class_c := a_class.compiled_class
 				check l_class_c /= Void end
 				classes_to_analyze.extend (l_class_c)
+
+				extract_indexes (l_class_c)
 			else
 				print ("Class " + a_class.name + " not compiled (skipped).%N")
 			end
@@ -161,18 +185,129 @@ feature -- Analysis interface
 
 feature -- Properties
 
+	is_running: BOOLEAN
+
 	analysis_successful: BOOLEAN
 
 	rules: LINKED_LIST[CA_RULE]
 
 	rule_violations: detachable HASH_TABLE[SORTED_TWO_WAY_LIST[CA_RULE_VIOLATION], CLASS_C]
 
+	preferences: PREFERENCES
+		do Result := settings.preferences end
+
 feature {NONE} -- Implementation
+
+	analysis_completed
+		do
+			across classes_to_analyze as l_classes loop
+				rule_violations.extend (create {SORTED_TWO_WAY_LIST[CA_RULE_VIOLATION]}.make, l_classes.item)
+			end
+
+			across rules as l_rules loop
+				across l_rules.item.violations as l_v loop
+						-- check the ignore list
+					if is_violation_valid (l_v.item) then
+						rule_violations.at (l_v.item.affected_class).extend (l_v.item)
+					end
+				end
+			end
+
+			clear_classes_to_analyze
+
+			is_running := False
+			completed_actions.call ([True])
+			completed_actions.wipe_out
+		end
+
+	is_violation_valid (a_viol: CA_RULE_VIOLATION): BOOLEAN
+		local
+			l_affected_class: CLASS_C
+			l_rule: CA_RULE
+		do
+			l_affected_class := a_viol.affected_class
+			l_rule := a_viol.rule
+
+			Result := True
+
+			if (ignoredby.has (l_affected_class))
+							and then (ignoredby.at (l_affected_class)).has (l_rule.id) then
+				Result := False
+			end
+
+			if (not l_rule.checks_library_classes) and then library_class.at (l_affected_class) = True then
+				Result := False
+			end
+
+			if (not l_rule.checks_nonlibrary_classes) and then nonlibrary_class.at (l_affected_class) = True then
+				Result := False
+			end
+		end
 
 	settings: CA_SETTINGS
 
-	classes_to_analyze: LINKED_SET[CLASS_C]
+	classes_to_analyze: LINKED_SET [CLASS_C]
 
 	system_wide_check: BOOLEAN
+
+	completed_actions: ACTION_SEQUENCE [TUPLE [BOOLEAN]]
+
+	frozen rota: detachable ROTA_S
+			-- Access to rota service
+		local
+			l_service_consumer: SERVICE_CONSUMER [ROTA_S]
+		do
+			create l_service_consumer
+			if l_service_consumer.is_service_available and then l_service_consumer.service.is_interface_usable then
+				Result := l_service_consumer.service
+			end
+		end
+
+
+feature {NONE} -- Class-wide Options (From Indexing Clauses)
+
+	extract_indexes (a_class: CLASS_C)
+		local
+			l_ast: CLASS_AS
+			l_item: STRING_32
+			l_ignoredby: LINKED_LIST [STRING_32]
+		do
+			create l_ignoredby.make
+			l_ignoredby.compare_objects
+			library_class.force (False, a_class)
+			nonlibrary_class.force (False, a_class)
+			l_ast := a_class.ast
+
+			across l_ast.internal_top_indexes as l_indexes loop
+
+				if l_indexes.item.tag.name_32.is_equal ("ca_ignoredby") then
+					across l_indexes.item.index_list as l_list loop
+						l_item := l_list.item.string_value_32
+						l_item.prune_all ('%"')
+						l_ignoredby.extend (l_item)
+					end
+				elseif l_indexes.item.tag.name_32.is_equal ("ca_library") then
+					if not l_indexes.item.index_list.is_empty then
+						l_item := l_indexes.item.index_list.first.string_value_32
+						l_item.to_lower
+						l_item.prune_all ('%"')
+						if l_item.is_equal ("true") then
+							library_class.force (True, a_class)
+						elseif l_item.is_equal ("false") then
+							nonlibrary_class.force (True, a_class)
+						end
+					end
+				end
+			end
+
+			ignoredby.force (l_ignoredby, a_class)
+		end
+
+	ignoredby: HASH_TABLE [LINKED_LIST [STRING_32], CLASS_C]
+
+	library_class, nonlibrary_class: HASH_TABLE [BOOLEAN, CLASS_C]
+
+invariant
+--	law_of_non_contradiction: one class must not be both a library_class and a nonlibrary_class
 
 end

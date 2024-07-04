@@ -8,62 +8,65 @@ feature
 	count: INTEGER
 
 	capacity: INTEGER
-		note
-			status: ghost
 		require
-			reads ([Current])
+			reads (Current)
 		do
 			Result := elements.count
+		ensure
+			Result = elements.count
 		end
 
 	make (cap: INTEGER)
 		note
 			status: creator
 		require
-			is_open -- default: creator
 			cap >= 0
 		do
-			create elements.make (1, capacity)
-			set_owns ([elements]) -- default: ?
-			wrap -- default: creator
+			create elements.make (1, cap)
+			set_owns ([elements])
 		ensure
-			is_wrapped -- default: creator
 			capacity = cap
 			count = 0
-			observers.is_empty -- default: explicit class note
+			observers = []
 		end
 
 	add (v: INTEGER)
+		note
+			explicit: contracts
 		require
-			is_wrapped -- default: ?
-			count < capacity
+			is_wrapped
 			across observers as o all o.item.is_wrapped end
-			
+
+			count < capacity
+
 			modify (Current)
-			modify (observers)
+			modify_field ("closed", observers)
 		do
-			unwrap -- default: ?
-			across observers as o loop o.item.unwrap end -- across over ghost
+			unwrap_all (observers)
+
 			set_observers ([])
 			count := count + 1
 			elements.put (v, count)
-			wrap -- default: ?
 		ensure
 			count = old count + 1
-			observers.is_empty
+			observers = []
 			across old observers as o all o.item.is_open end
+			elements = old elements
+			capacity = old capacity
+			is_wrapped
 		end
 
 feature {F_I_ITERATOR}
 
-	elements: ARRAY [INTEGER]
-  
+	elements: F_I_ARRAY
+
 invariant
 	elements /= Void
 	0 <= count and count <= elements.count
-	owns = [ elements ]
-	subjects = [] -- default
+	owns = [elements]
+	not observers[Current] and not observers[elements]
 
 note
   explicit: observers
+
 end
