@@ -4018,6 +4018,9 @@ Src/library/GIF/Clib/gd_lib/gd.lib svneol=native#unset
 Src/library/api_wrapper/implementation/unix/Clib/dl-config -text
 Src/library/api_wrapper/license.lic -text
 Src/library/cURL/readme.txt -text
+Src/library/base/mml/map.bpl -text
+Src/library/base/mml/sequence.bpl -text
+Src/library/base/mml/set.bpl -text
 Src/library/dadle/openEHR/ref_impl_eiffel/components/.DS_Store -text
 Src/library/dadle/openEHR/ref_impl_eiffel/components/._.DS_Store -text
 Src/library/dadle/openEHR/ref_impl_eiffel/components/adl_parser/.DS_Store -text
@@ -4229,7 +4232,11 @@ Src/library/i18n/example_application/po_files/xx_XX.po -text
 Src/library/i18n/example_application/po_files/zh_CN.po -text
 Src/library/i18n/forum.txt -text
 Src/library/i18n/tests/test_files/locale/results/unix/POSIX -text
+Src/library/i18n/tests/test_files/locale/results/unix/en_AG -text
 Src/library/i18n/tests/test_files/locale/results/unix/en_IN -text
+Src/library/i18n/tests/test_files/locale/results/unix/en_NG -text
+Src/library/i18n/tests/test_files/locale/results/unix/en_ZM -text
+Src/library/i18n/tests/test_files/locale/results/unix/fr_FR -text
 Src/library/i18n/tests/test_files/locale/results/unix/zh_CN -text
 Src/library/i18n/tests/test_files/locale/results/windows/af_ZA -text
 Src/library/i18n/tests/test_files/locale/results/windows/am_ET -text
@@ -4827,6 +4834,7 @@ Src/library/spelling/tests/word_set/unknown_root_element.xml -text
 Src/library/spelling/tests/word_set/valid.xml -text
 Src/library/store/dbms/rdbms/mysql/Readme -text
 Src/library/text/parser/xml/README.txt -text
+Src/library/store/test/test_results/oracle_results -text
 Src/library/text/parser/xml/parser/callbacks/README.TXT -text
 Src/library/text/parser/xml/parser/license.lic -text
 Src/library/text/parser/xml/tree/README.TXT -text

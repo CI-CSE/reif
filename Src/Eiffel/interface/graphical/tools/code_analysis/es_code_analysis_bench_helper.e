@@ -1,6 +1,6 @@
 note
 	description: "[
-		Helper class to minimize changes of proper EiffelStudio for the integration of AutoProof.
+		Helper class to minimize changes of proper EiffelStudio for the integration of the Code Analysis Tool.
 	]"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -35,6 +35,27 @@ feature -- Basic operations
 			end
 		end
 
+	build_context_menu_for_cluster_stone (a_menu: EV_MENU; a_stone: CLUSTER_STONE)
+			-- Build context menu for class stone `a_stone' and add it to `a_menu'.
+			--
+			-- Added to {EB_CONTEXT_MENU_FACTORY}.extend_standard_compiler_item_menu
+		require
+			a_menu_not_void: a_menu /= Void
+			a_stone_not_void: a_stone /= Void
+		local
+			l_item: EV_MENU_ITEM
+		do
+			create l_item.make_with_text_and_action ("Run Code Analysis of cluster"
+				, agent ca_command.execute_with_stone (a_stone))
+			l_item.set_pixmap (icon_pixmaps.view_flat_icon)
+
+			if code_analyzer.is_running then
+				l_item.disable_sensitive
+				l_item.set_text (l_item.text + " (already running)")
+			end
+			a_menu.extend (l_item)
+		end
+
 feature -- Verification
 
 	code_analyzer: CA_CODE_ANALYZER
@@ -50,7 +71,7 @@ feature -- Verification
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2014, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

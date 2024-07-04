@@ -74,7 +74,10 @@ feature {NONE} -- Initialization
         local
         	l_label: EV_LABEL
 			l_box: EV_HORIZONTAL_BOX
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
 		do
+			create l_helper
+
 				-- "toggle errors" button
 			create errors_button.make
 			errors_button.set_pixmap (stock_pixmaps.general_error_icon)
@@ -112,7 +115,7 @@ feature {NONE} -- Initialization
 			scope_label.set_foreground_color (create {EV_COLOR}.make_with_8_bit_rgb (100, 100, 100))
 
 			create Result.make (5)
-			run_analysis_button := (create {ES_CODE_ANALYSIS_COMMAND}.make).new_sd_toolbar_item (True)
+			run_analysis_button := l_helper.ca_command.new_sd_toolbar_item (True)
 			Result.extend (run_analysis_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 			Result.extend (errors_button)
@@ -632,20 +635,7 @@ feature {NONE} -- Basic operations
 			l_line: EIFFEL_EDITOR_LINE
 		do
 			a_row.set_data (a_event_item)
---			if is_failed_execution_event (a_event_item) then
---					-- Icon
---				create l_label
---				l_label.set_pixmap (stock_pixmaps.general_warning_icon)
---				l_label.set_data ("warning")
---				l_label.disable_full_select
---				a_row.set_item (category_column, l_label)
 
---					-- Message
---				create l_label.make_with_text (a_event_item.data.out)
---				a_row.set_item (category_column, l_label)
-
---					-- Color
---				a_row.set_background_color (failed_color)
 			if attached {CA_NO_ISSUES_EVENT} a_event_item as l_noissues then
 				create l_label
 				l_label.disable_full_select
@@ -685,6 +675,7 @@ feature {NONE} -- Basic operations
 				create l_message_gen.make
 				l_message_gen.add (l_viol.title)
 				l_editor_item := create_clickable_grid_item (l_message_gen.last_line, True)
+				l_editor_item.pointer_button_release_actions.extend (agent show_fixes_context_menu (l_viol.data.fixes, a_row, ?, ?, ?, ?, ?, ?, ?, ?))
 				a_row.set_height (l_editor_item.required_height_for_text_and_component)
 				a_row.set_item (description_column, l_editor_item)
 
@@ -723,6 +714,29 @@ feature {NONE} -- Basic operations
 
 			if not is_item_visible (a_row) then
 				a_row.hide
+			end
+		end
+
+	show_fixes_context_menu (a_fixes: LINKED_LIST [CA_FIX]; a_row: EV_GRID_ROW; x: INTEGER; y: INTEGER; button: INTEGER; x_tilt: DOUBLE; y_tilt: DOUBLE; pressure: DOUBLE; screen_x: INTEGER; screen_y: INTEGER)
+		local
+			l_menu: EV_MENU
+			l_item: EV_MENU_ITEM
+			l_fix_executor: ES_CA_FIX_EXECUTOR
+		do
+				-- Only process right clicks (`button = 3')
+			if button = 3 and then not a_fixes.is_empty then
+				create l_menu
+
+				across a_fixes as l_fixes loop
+						-- Only make fixes available that have not been applied already.
+					if not l_fixes.item.applied then
+						create l_fix_executor.make_with_fix (l_fixes.item, a_row)
+						create l_item.make_with_text_and_action (ca_messages.fix + l_fixes.item.caption, l_fix_executor)
+						l_menu.extend (l_item)
+					end
+				end
+
+				l_menu.show
 			end
 		end
 
@@ -861,7 +875,7 @@ feature {NONE} -- Constants
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2014, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

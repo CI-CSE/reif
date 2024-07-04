@@ -379,6 +379,8 @@ Src/framework/cli_writer/Clib/*.lib
 Src/framework/cli_writer/Clib/*.obj
 Src/framework/cli_writer/Clib/*.pdb
 Src/framework/cli_writer/spec
+Src/framework/code_analysis/EIFGENs
+Src/framework/code_analysis/tests/*.log
 Src/framework/code_analysis/tests/EIFGENs
 Src/framework/code_analysis/tests/log.txt
 Src/framework/code_analysis/tests/test_output.txt
@@ -490,7 +492,6 @@ Src/library/com/spec/bcb
 Src/library/com/spec/mingw
 Src/library/com/spec/msc
 Src/library/docking/.git
-Src/library/docking/EIFGENs
 Src/library/encryption/spec
 Src/library/event/spec
 Src/library/gobo
@@ -511,7 +512,6 @@ Src/library/runtime/logging/spec
 Src/library/store/spec
 Src/library/testing/.git
 Src/library/testing/EIFGENs
-Src/library/testing_eweasel/compilation/EIFGENs
 Src/library/vision2/spec/bcb
 Src/library/vision2/spec/linux-x86-64
 Src/library/vision2/spec/macosx-x86

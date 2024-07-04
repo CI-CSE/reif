@@ -29,6 +29,9 @@ feature -- Rules
 		do Result := locale.translation ("A feature should only have arguments which are actually %
 			           %needed and used in the computation.") end
 
+	unused_argument_fix: STRING_32
+		do Result := locale.translation ("Remove unused argument ") end
+
 	npath_title: STRING_32
 		do Result := locale.translation ("High NPATH") end
 
@@ -56,6 +59,13 @@ feature -- Rules
 	feature_never_called_title: STRING_32
 		do Result := locale.translation ("Feature never called") end
 
+	feature_never_called_description: STRING_32
+		do Result := locale.translation ("There is no use for a feature that is %
+			%never called by any class (including the one where it is defined).") end
+
+	feature_never_called_fix: STRING_32
+		do Result := locale.translation ("Remove feature '") end
+
 	cq_separation_title: STRING_32
 		do Result := locale.translation ("No command-query separation (possible function side effect)") end
 
@@ -66,6 +76,9 @@ feature -- Rules
 		do Result := locale.translation ("For local variables, feature arguments, %
 			%and object test locals it is unnecessary to let the attached keyword %
 			%create a new and safe local reference.") end
+
+	unneeded_ot_local_fix: STRING_32
+		do Result := locale.translation ("Remove object test local '") end
 
 	unneeded_object_test_title: STRING_32
 		do Result := locale.translation ("Object test typing not needed") end
@@ -341,6 +354,13 @@ feature -- Rules
 
 	max_line_length_option: STRING_32
 		do Result := locale.translation ("Maximum line length") end
+
+	unneeded_parentheses_title: STRING_32
+		do Result := locale.translation ("Unneeded parentheses") end
+
+	unneeded_parentheses_description: STRING_32
+		do Result := locale.translation ("Parentheses that are not needed should be %
+			%removed. This helps enforcing a consistent coding style.") end
 
 feature -- Preferences
 

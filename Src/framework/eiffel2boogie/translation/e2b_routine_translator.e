@@ -66,10 +66,7 @@ feature -- Translation: Signature
 			if not a_feature.has_return_value and helper.is_functional (a_feature) then
 				helper.add_semantic_warning (a_feature, messages.functional_feature_not_function, -1)
 			end
-			if not a_for_creator and helper.is_feature_status (a_feature, "creator") then
-				helper.add_semantic_warning (a_feature, messages.creator_feature_not_creation_procedure, -1)
-			end
-
+			
 				-- Set up name
 			if a_for_creator then
 				l_proc_name := name_translator.boogie_procedure_for_creator (current_feature, current_type)
@@ -100,18 +97,11 @@ feature -- Translation: Signature
 				-- Pre- and postconditions
 			l_contracts := contracts_of (current_feature, current_type)
 			across l_contracts.pre as j loop
-				process_precondition (j.item)
+				process_precondition (j.item, l_contracts.pre_origin [j.target_index])
 			end
 			create l_fields.make
 			across l_contracts.post as j loop
-				process_postcondition (j.item, l_fields)
-			end
-
-			if not l_contracts.modifies.is_empty then
-				check True end
-			end
-			if not l_contracts.reads.is_empty then
-				check True end
+				process_postcondition (j.item, l_contracts.post_origin [j.target_index], l_fields)
 			end
 
 				-- Creator: add free preconditions that all attributes are initialized to default values
@@ -651,28 +641,21 @@ feature {NONE} -- Translation: Functions
 	generate_definition_from_post (a_function: IV_FUNCTION)
 			-- Generate a definitional axiom for `a_function' from the postcondition of the current feature.
 		local
-			l_contracts: TUPLE [pre: LIST [ASSERT_B]; post: LIST [ASSERT_B]]
+			l_contracts: like pre_post_expressions_of
 			l_axiom: IV_AXIOM
 			l_forall: IV_FORALL
 			l_pre: IV_EXPRESSION
-			l_post: IV_EXPRESSION
-			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
-			l_function_call: IV_FUNCTION_CALL
+			l_entity_mapping: E2B_ENTITY_MAPPING
 		do
-			l_contracts := contracts_of_current_feature
-			l_pre := factory.true_
-			across l_contracts.pre as c loop
-				l_translator := translator_for_function (a_function)
-				c.item.process (l_translator)
-				l_pre := factory.and_clean (l_pre, l_translator.last_expression)
+			l_entity_mapping := translator_for_function (a_function).entity_mapping
+			l_contracts := pre_post_expressions_of (current_feature, current_type, l_entity_mapping)
+			if options.is_ownership_enabled and helper.is_public (current_feature) then
+				-- Add ownership default precondition
+				l_pre := factory.and_clean (l_contracts.pre, factory.heap_access (l_entity_mapping.heap.name, l_entity_mapping.current_expression, "closed", types.bool))
+			else
+				l_pre := l_contracts.pre
 			end
-			l_post := factory.true_
-			across l_contracts.post as c loop
-				l_translator := translator_for_function (a_function)
-				c.item.process (l_translator)
-				l_post := factory.and_clean (l_post, l_translator.last_expression)
-			end
-			create l_forall.make (factory.implies_ (l_pre, l_post))
+			create l_forall.make (factory.implies_ (l_pre, l_contracts.post))
 			l_forall.bound_variables.append (a_function.arguments)
 			create l_axiom.make (l_forall)
 			boogie_universe.add_declaration (l_axiom)
@@ -732,7 +715,7 @@ feature -- Translation: agents
 				l_mapping.set_argument (i, l_entity)
 				i := i + 1
 			end
-			l_function.set_body (contract_expressions_of (a_feature, a_type, l_mapping).pre)
+			l_function.set_body (pre_post_expressions_of (a_feature, a_type, l_mapping).pre)
 			boogie_universe.add_declaration (l_function)
 		end
 
@@ -811,7 +794,7 @@ feature -- Translation: agents
 				l_mapping.set_result (l_result)
 			end
 
-			l_contracts := contract_expressions_of (a_feature, a_postcondition_type, l_mapping)
+			l_contracts := pre_post_expressions_of (a_feature, a_postcondition_type, l_mapping)
 			create l_typeof.make ("type_of", types.type)
 			l_typeof.add_argument (l_current)
 			create l_type_value.make (name_translator.boogie_name_for_type (a_postcondition_type), types.type)
@@ -852,14 +835,15 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	process_precondition (a_assert: ASSERT_B)
-			-- Process `a_assert' as precondition.
+	process_precondition (a_assert: ASSERT_B; a_origin_class: CLASS_C)
+			-- Process `a_assert' as precondition inherited from `a_origin_class'.
 		local
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
 			l_contract: IV_PRECONDITION
 		do
 			create l_translator.make
 			l_translator.set_context (current_feature, current_type)
+			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
 			a_assert.process (l_translator)
@@ -878,7 +862,7 @@ feature {NONE} -- Implementation
 			current_boogie_procedure.add_contract (l_contract)
 		end
 
-	process_postcondition (a_assert: ASSERT_B; a_fields: LIST [TUPLE [IV_EXPRESSION, IV_ENTITY]])
+	process_postcondition (a_assert: ASSERT_B; a_origin_class: CLASS_C; a_fields: LIST [TUPLE [IV_EXPRESSION, IV_ENTITY]])
 			-- Process `a_assert' as postcondition.
 		local
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR
@@ -886,6 +870,7 @@ feature {NONE} -- Implementation
 		do
 			create l_translator.make
 			l_translator.set_context (current_feature, current_type)
+			l_translator.set_origin_class (a_origin_class)
 			l_translator.set_context_line_number (a_assert.line_number)
 			l_translator.set_context_tag (a_assert.tag)
 			a_assert.process (l_translator)

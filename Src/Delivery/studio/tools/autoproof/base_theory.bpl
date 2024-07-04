@@ -163,6 +163,18 @@ function writes(h: HeapType, h': HeapType, mods: Frame): bool {
 // Is invariant of object o satisifed?
 function user_inv(h: HeapType, o: ref): bool;
 
+// Reads axiom
+axiom (forall h, h': HeapType, x: ref :: {user_inv(h, x), user_inv(h', x), HeapSucc(h, h')} 
+  HeapSucc(h, h') && h[x, allocated] && user_inv(h, x) && 
+  (forall <T> o: ref, f: Field T :: h[o, allocated] ==> // every object's field
+      h'[o, f] == h[o, f] ||                            // is unchanged
+      f == closed || f == owner ||                      // or is outside of the read set of the invariant
+      (!in_domain(h, x, o) && !h[x, subjects][o]) ||    
+      (!in_domain(h, x, o) && f == subjects) ||         // or is the subjects field of one of the subjects
+      (!in_domain(h, x, o) && f == observers && Set#Subset(h[o, observers], h'[o, observers]))  // or is the observers of one of the subjects and it grows
+   )
+  ==> user_inv(h', x));
+
 // Is object o closed or the invariant satisfied?
 function {:inline true} inv(h: HeapType, o: ref): bool {
 	h[o, closed] ==> user_inv(h, o)
@@ -208,7 +220,10 @@ function {: inline } admissibility5 (heap: HeapType, current: ref): bool
     heap[current, subjects][s] && s != current && Set#Subset(heap[s, observers], heap'[s, observers]) && (forall <alpha> o: ref, f: Field alpha :: (o == s && f == observers) || heap'[o, f] == heap[o, f]) ==>
     user_inv(heap', current)
   )
-} 
+}
+
+// ----------------------------------------------------------------------
+// Built-in operations
 
 // Allocate fresh object
 procedure allocate(t: Type) returns (result: ref);
@@ -232,13 +247,14 @@ procedure update_heap<T>(Current: ref, field: Field T, value: T);
   requires (Current != Void) && (Heap[Current, allocated]); // type:assign tag:attached_and_allocated
   requires field != closed && field != owner; // type:assign tag:closed_or_owner_not_allowed UP4
   requires is_open(Heap, Current); // type:assign tag:target_open UP1
-  requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) ==> user_inv(Heap[Current, field := value], o)))); // type:assign tag:observers_open_or_inv_preserved UP2
+  requires (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) && HeapSucc(Heap, Heap[Current, field := value]) ==> user_inv(Heap[Current, field := value], o)))); // type:assign tag:observers_open_or_inv_preserved UP2
   requires writable[Current, field]; // type:assign tag:attribute_writable UP3
   modifies Heap;
   ensures global(Heap);
   ensures Heap == old(Heap[Current, field := value]);
   free ensures HeapSucc(old(Heap), Heap);
   
+// This is an optimization: we do not have to check the observers (this is faster than using the frame axiom of user_inv directly) 
 procedure update_subjects(Current: ref, value: Set ref);
   requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
   requires is_open(Heap, Current); // type:pre tag:target_open UP1
@@ -248,6 +264,7 @@ procedure update_subjects(Current: ref, value: Set ref);
   ensures Heap == old(Heap[Current, subjects := value]);
   free ensures HeapSucc(old(Heap), Heap);
 
+// This is an optimization: we can just check that the observer set is growing (this is faster than using the frame axiom of user_inv directly)
 procedure update_observers(Current: ref, value: Set ref);
   requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
   requires is_open(Heap, Current); // type:pre tag:target_open UP1
@@ -322,11 +339,7 @@ function attached_exact(heap: HeapType, o: ref, t: Type) returns (bool) {
 
 // Property that reference `o' is attached and conforms to type `t' on heap `heap'.
 function attached(heap: HeapType, o: ref, t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) && (type_of(o) == t)
-  
-// ******************* reenable when ownership and inheritance are combined *******************
-//	(o != Void) && (heap[o, allocated]) && (type_of(o) <: t)
-
+	(o != Void) && (heap[o, allocated]) && (type_of(o) <: t)
 }
 
 // Property that reference `o' is either Void or attached and conforms to `t' on heap `heap'.
@@ -334,54 +347,14 @@ function detachable(heap: HeapType, o: ref, t: Type) returns (bool) {
 	(o == Void) || (attached(heap, o, t))
 }
 
-// Property that field `f' is of attached type `t'.
-function attached_attribute(heap: HeapType, o: ref, f: Field ref, t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> attached(heap, heap[o, f], t)
+// Property that field `f' of an object of type `ot' is of attached type `t'.
+function attached_attribute(heap: HeapType, o: ref, ot: Type, f: Field ref, t: Type) returns (bool) {
+	attached(heap, o, ot) ==> attached(heap, heap[o, f], t)
 }
 
-// Property that field `f' is of detachable type `t'.
-function detachable_attribute(heap: HeapType, o: ref, f: Field ref, t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> detachable(heap, heap[o, f], t)
-}
-
-// Property that `s' is a set of objects of attached type `t'.
-function {: inline } set_attached(heap: HeapType, s: Set ref, t: Type) returns (bool) {
-	(forall o: ref :: s[o] ==> attached(heap, o, t))
-}
-
-// Property that field `f' is a set of objects of attached type `t'.
-function set_attached_attribute(heap: HeapType, o: ref, f: Field (Set ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> set_attached(heap, heap[o, f], t)
-}
-
-// Property that `s' is a set of objects of attached type `t'.
-function {: inline } set_detachable(heap: HeapType, s: Set ref, t: Type) returns (bool) {
-	(forall o: ref :: s[o] ==> detachable(heap, o, t))
-}
-
-// Property that field `f' is a set of objects of detachable type `t'.
-function set_detachable_attribute(heap: HeapType, o: ref, f: Field (Set ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> set_detachable(heap, heap[o, f], t)
-}
-
-// Property that `s' is a sequence of objects of attached type `t'.
-function {: inline } sequence_attached(heap: HeapType, s: Seq ref, t: Type) returns (bool) {
-	(forall o: ref :: Seq#Range(s)[o] ==> attached(heap, o, t))
-}
-
-// Property that field `f' is a sequence of objects of detachable type `t'.
-function sequence_attached_attribute(heap: HeapType, o: ref, f: Field (Seq ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> sequence_attached(heap, heap[o, f], t)
-}
-
-// Property that `s' is a sequence of objects of attached type `t'.
-function {: inline } sequence_detachable(heap: HeapType, s: Seq ref, t: Type) returns (bool) {
-	(forall o: ref :: Seq#Range(s)[o] ==> detachable(heap, o, t))
-}
-
-// Property that field `f' is a sequence of objects of detachable type `t'.
-function sequence_detachable_attribute(heap: HeapType, o: ref, f: Field (Seq ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> sequence_detachable(heap, heap[o, f], t)
+// Property that field `f' of an object of type `ot' is of detachable type `t'.
+function detachable_attribute(heap: HeapType, o: ref, ot: Type, f: Field ref, t: Type) returns (bool) {
+	attached(heap, o, ot) ==> detachable(heap, heap[o, f], t)
 }
 
 // ----------------------------------------------------------------------

@@ -18,9 +18,6 @@ feature -- Validity error messages
 	functional_feature_not_single_assignment: STRING_32
 		do Result := "A functional feature has to consist of exactly one assignment to the Result." end
 
-	creator_feature_not_creation_procedure: STRING_32
-		do Result := "Feature is marked as creator but is not a creation procedure." end
-
 	creator_call_as_procedure (a_pname: STRING): STRING_32
 		do Result := locale.formatted_string ("Feature '$1' is a creator but is called as a regular procedure.", a_pname) end
 
@@ -38,6 +35,9 @@ feature -- Validity error messages
 
 	invalid_tag (a_tag, a_class_name: STRING): STRING_32
 		do Result := locale.formatted_string ("Filtered invariant of class '$2' lists invalid tag: $1", a_tag, a_class_name) end
+
+	invalid_context_for_special_predicate (a_kind: STRING): STRING_32
+		do Result := locale.formatted_string ("$1 clauses are only allowed in preconditions and loop invariants (will be ignored)", a_kind) end
 
 	variant_bad_type (a_index: INTEGER): STRING_32
 		do Result := locale.formatted_string ("Type of variant number $1 has no well-founded order.", a_index.out) end

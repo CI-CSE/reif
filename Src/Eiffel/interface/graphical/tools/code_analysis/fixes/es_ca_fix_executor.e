@@ -1,0 +1,128 @@
+note
+	description: "Refactoring that fixes a rule violation that has been found by the Code Analysis tool."
+	legal: "See notice at end of class."
+	status: "See notice at end of class."
+	date: "$Date$"
+	revision: "$Revision$"
+
+class
+	ES_CA_FIX_EXECUTOR
+
+inherit
+	PROCEDURE [ANY, TUPLE]
+		redefine call end
+
+inherit {NONE}
+	SHARED_EIFFEL_PROJECT
+		rename
+			is_equal as shared_eiffel_project_is_equal,
+			copy as shared_eiffel_project_copy
+		end
+
+	EB_SHARED_WINDOW_MANAGER
+		rename
+			is_equal as shared_window_manager_is_equal,
+			copy as shared_window_manager_copy
+		end
+
+create
+	make_with_fix
+
+feature {NONE} -- Initialization
+
+	make_with_fix (a_fix: CA_FIX; a_row: EV_GRID_ROW)
+		do
+			fix := a_fix
+			ui_row := a_row
+		end
+
+feature {NONE} -- Implementation
+
+	fix: CA_FIX
+
+	ui_row: EV_GRID_ROW
+
+    apply_fix
+            -- Make the changes.
+		local
+			l_class_modifier: ES_CA_CLASS_TEXT_MODIFICATION
+			l_dialog: ES_INFORMATION_PROMPT
+        do
+        		-- Only continue fixing when there are no unsaved files.
+        	if window_manager.has_modified_windows then
+        		create l_dialog.make_standard ("You may not apply a fix when there are unsaved changes.")
+        		l_dialog.show_on_active_window
+        	else
+        		window_manager.display_message ("Fixing rule violation...")
+
+        		eiffel_project.quick_melt (True, True, True)
+        			-- The compilation must be successful before the fix.
+        		if eiffel_project.successful then
+		        	create l_class_modifier.make (fix.class_to_change.original_class)
+					l_class_modifier.prepare
+
+					l_class_modifier.execute_fix (fix, false)
+
+		        	l_class_modifier.commit
+
+						-- Mark the fix as applied so that it may not be applied a second time. Then
+						-- color the rule violation entry in the GUI.
+					fix.set_applied
+		        	ui_row.set_background_color (light_green)
+
+		        		-- Now compile again, which in all cases should succeed.
+		        	eiffel_project.quick_melt (True, True, True)
+
+		        	window_manager.display_message ("Fixing rule violation succeeded.")
+		        else
+		        	create l_dialog.make_standard ("Fix could not be applied due to failed compilation.")
+		        	l_dialog.show_on_active_window
+		        end
+	        end
+        end
+
+    call alias "()" (args: detachable separate TUPLE)
+    	do
+    		apply_fix
+    	end
+
+feature {NONE} -- Utilities
+
+	light_green: EV_COLOR
+		once
+			create Result.make_with_8_bit_rgb (181, 230, 29)
+		end
+
+note
+	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options:	"http://www.eiffel.com/licensing"
+	copying: "[
+			This file is part of Eiffel Software's Eiffel Development Environment.
+			
+			Eiffel Software's Eiffel Development Environment is free
+			software; you can redistribute it and/or modify it under
+			the terms of the GNU General Public License as published
+			by the Free Software Foundation, version 2 of the License
+			(available at the URL listed under "license" above).
+			
+			Eiffel Software's Eiffel Development Environment is
+			distributed in the hope that it will be useful, but
+			WITHOUT ANY WARRANTY; without even the implied warranty
+			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+			See the GNU General Public License for more details.
+			
+			You should have received a copy of the GNU General Public
+			License along with Eiffel Software's Eiffel Development
+			Environment; if not, write to the Free Software Foundation,
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+		]"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
+
+end

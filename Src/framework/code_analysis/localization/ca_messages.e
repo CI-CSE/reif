@@ -78,6 +78,9 @@ feature -- GUI
 			%enable sorting of rule violations. Within rule violations that belong to the same %
 			%category, you can sort by importance.") end
 
+	fix: STRING_32
+		do Result := locale.translation ("Fix: ") end
+
 feature -- Code Analyzer
 
 	analyzing_class (a_class_name: READABLE_STRING_GENERAL): STRING_32
@@ -307,6 +310,9 @@ feature -- Code Analyzer
 
 	unneeded_helper_variable_violation_2: STRING_32
 		do Result := locale.translation ("' used here can be replaced by the%Nexpression that this variable gets assigned before. Thus the local variable is%Nnot actually needed.") end
+
+	unneeded_parentheses_violation_1: STRING_32
+		do Result := locale.translation ("These parentheses are not needed and should be removed in order to maintain a consistent coding style.") end
 
 feature -- Command Line
 
