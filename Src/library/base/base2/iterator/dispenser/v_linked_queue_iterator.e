@@ -11,7 +11,8 @@ class
 inherit
 	V_ITERATOR [G]
 		redefine
-			target
+			target,
+			is_equal_
 		end
 
 create {V_CONTAINER}
@@ -26,7 +27,7 @@ feature {NONE} -- Initialization
 			status: creator
 		require
 			t_open: t.is_open
-			t.inv_only ("bag_definition", "sequence_definition")
+			t.inv_only ("bag_definition", "sequence_implementation")
 			it_wrapped: it.is_wrapped
 			connected: t.list = it.target
 			same_elements: t.bag ~ it.target.bag
@@ -106,6 +107,15 @@ feature -- Status report
 			check iterator.inv end
 			check target.inv end
 			Result := iterator.is_last
+		end
+
+feature -- Comparison
+
+	is_equal_ (other: like Current): BOOLEAN
+			-- Is iterator traversing the same container and is at the same position at `other'?
+		do
+			check inv; other.inv; iterator.inv; other.iterator.inv; target.inv; other.target.inv end
+			Result := iterator.is_equal_ (other.iterator)
 		end
 
 feature -- Cursor movement

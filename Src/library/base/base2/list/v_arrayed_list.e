@@ -18,6 +18,7 @@ inherit
 		redefine
 			item,
 			default_create,
+			is_equal_,
 			put,
 			prepend
 		end
@@ -76,6 +77,38 @@ feature -- Iteration
 			create Result.make (Current, i)
 			check Result.inv end
 			check inv_only ("lower_definition") end
+		end
+
+feature -- Comparison
+
+	is_equal_ (other: like Current): BOOLEAN
+			-- Is list made of the same values in the same order as `other'?
+			-- (Use reference comparison.)
+		local
+			i: INTEGER
+		do
+			if other = Current then
+				Result := True
+			elseif count = other.count then
+				from
+					Result := True
+					i := 1
+				invariant
+					1 <= i and i <= sequence.count + 1
+					inv
+					other.inv
+					if Result
+						then across 1 |..| (i - 1) as k all sequence [k.item] = other.sequence [k.item] end
+						else sequence [i - 1] /= other.sequence [i - 1] end
+				until
+					i > count_ or not Result
+				loop
+					Result := item (i) = other.item (i)
+					i := i + 1
+				variant
+					sequence.count - i
+				end
+			end
 		end
 
 feature -- Replacement
@@ -442,7 +475,7 @@ invariant
 	array_starts_from_zero: array.lower_ = 0
 	first_index_in_bounds: 0 <= first_index and first_index < array.sequence.count
 	sequence_count_constraint: sequence.count <= array.sequence.count
-	sequence_definition: across 1 |..| sequence.count as i all sequence [i.item] = array.sequence [array_seq_index (i.item)] end
+	sequence_implementation: across 1 |..| sequence.count as i all sequence [i.item] = array.sequence [array_seq_index (i.item)] end
 	array_no_observers: array.observers.is_empty
 
 note

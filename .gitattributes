@@ -5194,6 +5194,10 @@ Src/tools/dotnet_reference_builder/dotnet_reference_builder.lic -text
 Src/tools/ecf_builder/doc/howto.txt -text
 Src/tools/ecf_redirection/README.txt -text
 Src/tools/ecf_redirection/licence.lic -text
+Src/tools/ecf_tool/README.md -text
+Src/tools/ecf_tool/ecf_tool.ecf svneol=native#text/xml
+Src/tools/ecf_tool/license.lic -text
+Src/tools/ecf_tool/src/licence.lic -text
 Src/tools/ecf_updater/README.md -text
 Src/tools/ecf_updater/license.lic -text
 Src/tools/eiffel_echo/eiffel_echo.lic -text
@@ -6491,7 +6495,6 @@ Src/web/eiffel_download/site/config/downloads_configuration.json -text
 Src/web/eiffel_download/site/config/downloads_configuration.xml svneol=native#text/xml
 Src/web/eiffel_download/site/www/static/css/download.css -text
 Src/web/eiffel_download/site/www/static/css/responsive_select.css -text
-Src/web/eiffel_download/site/www/template/html/post_download.html svneol=native#text/xml
 Src/web/support/api/IIRF.ini -text
 Src/web/support/api/ecf-target-any_connector -text
 Src/web/support/api/ecf-target-connector -text

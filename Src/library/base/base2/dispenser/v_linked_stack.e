@@ -12,6 +12,7 @@ inherit
 	V_STACK [G]
 		redefine
 			default_create,
+			is_equal_,
 			forget_iterator
 		end
 
@@ -80,6 +81,16 @@ feature -- Iteration
 			wrap
 		end
 
+feature -- Comparison
+
+	is_equal_ (other: like Current): BOOLEAN
+			-- Is stack made of the same values in the same order as `other'?
+			-- (Use reference comparison.)
+		do
+			check inv; other.inv; list.inv; other.list.inv end
+			Result := list.is_equal_ (other.list)
+		end
+
 feature -- Extension
 
 	extend (v: G)
@@ -125,7 +136,7 @@ feature -- Specification
 invariant
 	list_exists: list /= Void
 	owns_definition: owns = [list]
-	sequence_definition: sequence ~ list.sequence
+	sequence_implementation: sequence ~ list.sequence
 	observers_correspond: list.observers.count <= observers.count
 
 note

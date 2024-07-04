@@ -15,12 +15,14 @@ class
 inherit
 	V_MUTABLE_SEQUENCE [G]
 		redefine
+			is_equal_,
 			lower,
 			upper,
 			item,
 			put,
 			fill,
-			clear
+			clear,
+			is_model_equal
 		end
 
 create
@@ -48,7 +50,7 @@ feature {NONE} -- Initialization
 		ensure
 			sequence_domain_definition: sequence.count = u - l + 1
 			sequence_definition: across 1 |..| sequence.count as i all sequence [i.item] = ({G}).default end
-			lower_definition: l <= u implies lower_ =  l
+			lower_definition: lower_ = if l <= u then l else 1 end
 			no_observers: observers.is_empty
 		end
 
@@ -70,7 +72,7 @@ feature {NONE} -- Initialization
 		ensure
 			sequence_domain_definition: sequence.count = u - l + 1
 			sequence_definition: across 1 |..| sequence.count as i all sequence [i.item] = v end
-			lower_definition: l <= u implies lower_ =  l
+			lower_definition: lower_ = if l <= u then l else 1 end
 			no_observers: observers.is_empty
 		end
 
@@ -159,24 +161,18 @@ feature -- Iteration
 
 feature -- Comparison
 
-	is_equal_ (other: like Current): BOOLEAN
+	is_equal_ (other: ANY): BOOLEAN
 			-- Is array made of the same items as `other'?
 			-- (Use reference comparison.)
-		require
-			closed: closed
-			other_closed: other.closed
---			reads (ownership_domain, other.ownership_domain)
-			reads (universe)
 		do
-			check inv end
-			check other.inv end
 			if other = Current then
 				Result := True
-			elseif lower = other.lower and upper = other.upper then
-				Result := area.same_items (other.area, 0, 0, count)
+			elseif attached {V_ARRAY [G]} other as a then
+				check inv; a.inv end
+				if lower = a.lower and upper = a.upper then
+					Result := area.same_items (a.area, 0, 0, count)
+				end
 			end
-		ensure
-			definition: Result = (sequence ~ other.sequence and lower_ = other.lower_)
 		end
 
 feature -- Replacement
@@ -342,12 +338,22 @@ feature {V_CONTAINER, V_ITERATOR} -- Implementation
 	area: V_SPECIAL [G]
 			-- Memory area where elements are stored.
 
+feature -- Specification
+
+	is_model_equal (other: ANY): BOOLEAN
+			-- Is the abstract state of `Current' equal to that of `other'?
+		note
+			status: ghost, functional
+		do
+			Result := attached {V_ARRAY [G]} other as a and then (sequence ~ a.sequence and lower_ = a.lower_)
+		end
+
 invariant
 	area_exists: area /= Void
 	lower_definition: lower_ = lower
 	upper_definition: upper = lower_ + sequence.count - 1
 	owns_definition: owns = [ area ]
-	sequence_definition: sequence ~ area.sequence
+	sequence_implementation: sequence ~ area.sequence
 
 note
 	explicit: observers

@@ -17,14 +17,16 @@ inherit
 			search as search_forth
 		redefine
 			item,
-			search_forth
+			search_forth,
+			is_model_equal
 		end
 
 	ITERATION_CURSOR [G]
 		rename
 			after as off
 		redefine
-			item
+			item,
+			is_model_equal
 		end
 
 feature -- Access
@@ -44,10 +46,7 @@ feature -- Measurement
 	index: INTEGER
 			-- Current position.
 		require
-			closed: closed
 			subjects_closed: subjects.any_item.closed
---			reads (ownership_domain, target.ownership_domain)
-			reads (universe)
 		deferred
 		ensure
 			definition: Result = index_
@@ -68,10 +67,6 @@ feature -- Status report
 
 	before: BOOLEAN
 			-- Is current position before any position in `target'?
-		require
-			closed: closed
---			reads (ownership_domain)
-			reads (universe)
 		deferred
 		ensure
 			definition: Result = (index_ = 0)
@@ -80,10 +75,7 @@ feature -- Status report
 	after: BOOLEAN
 			-- Is current position after any position in `target'?
 		require
-			closed
 			target.closed
---			reads (ownership_domain, target.ownership_domain)
-			reads (universe)
 		deferred
 		ensure
 			definition: Result = (index_ = sequence.count + 1)
@@ -92,7 +84,7 @@ feature -- Status report
 	off: BOOLEAN
 			-- Is current position off scope?
 		note
-			status: dynamic
+			status: dynamic, inv_unfriendly
 		do
 			check inv end
 			Result := before or after
@@ -103,10 +95,7 @@ feature -- Status report
 	is_first: BOOLEAN
 			-- Is cursor at the first position?
 		require
-			closed: closed
 			target_closed: target.closed
---			reads (ownership_domain, target.ownership_domain)
-			reads (universe)
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index_ = 1)
@@ -115,10 +104,7 @@ feature -- Status report
 	is_last: BOOLEAN
 			-- Is cursor at the last position?
 		require
-			closed: closed
 			target_closed: target.closed
---			reads (ownership_domain, target.ownership_domain)
-			reads (universe)
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index_ = sequence.count)
@@ -311,6 +297,14 @@ feature -- Specification
 			status: ghost
 			replaces: box
 		attribute
+		end
+
+	is_model_equal (other: ANY): BOOLEAN
+			-- Is the abstract state of `Current' equal to that of `other'?
+		note
+			status: ghost, functional
+		do
+			Result := attached {V_ITERATOR [G]} other as i and then (target = i.target and sequence ~ i.sequence and index_ = i.index_)
 		end
 
 invariant

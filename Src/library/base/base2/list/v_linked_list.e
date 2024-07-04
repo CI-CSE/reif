@@ -19,6 +19,7 @@ inherit
 			default_create,
 			first,
 			last,
+			is_equal_,
 			put,
 			prepend,
 			reverse
@@ -108,6 +109,45 @@ feature -- Iteration
 			end
 		end
 
+feature -- Comparison
+
+	is_equal_ (other: like Current): BOOLEAN
+			-- Is list made of the same values in the same order as `other'?
+			-- (Use reference comparison.)
+		local
+			c1, c2: V_LINKABLE [G]
+			i: INTEGER
+		do
+			if other = Current then
+				Result := True
+			elseif count = other.count then
+				from
+					Result := True
+					c1 := first_cell
+					c2 := other.first_cell
+					i := 1
+				invariant
+					1 <= i and i <= sequence.count + 1
+					inv
+					other.inv
+					i <= sequence.count implies c1 = cells [i] and c2 = other.cells [i]
+					i = sequence.count + 1 implies c1 = Void and c2 = Void
+					if Result
+						then across 1 |..| (i - 1) as k all sequence [k.item] = other.sequence [k.item] end
+						else sequence [i - 1] /= other.sequence [i - 1] end
+				until
+					c1 = Void or not Result
+				loop
+					Result := c1.item = c2.item
+					c1 := c1.right
+					c2 := c2.right
+					i := i + 1
+				variant
+					sequence.count - i
+				end
+			end
+		end
+
 feature -- Replacement
 
 	put (v: G; i: INTEGER)
@@ -136,7 +176,7 @@ feature -- Replacement
 			invariant
 				across 1 |..| count_ as i all cells.old_ [i.item].is_wrapped end
 				rest_cells.count = count_ - cells.count
-				inv_only ("cells_domain", "first_cell_empty", "cells_exist", "sequence_definition", "cells_linked", "cells_first", "cells_last")
+				inv_only ("cells_domain", "first_cell_empty", "cells_exist", "sequence_implementation", "cells_linked", "cells_first", "cells_last")
 
 				rest_cells.non_void
 				is_linked (rest_cells)
@@ -621,7 +661,7 @@ invariant
 	last_cell_empty: cells.is_empty = (last_cell = Void)
 	owns_definition: owns = cells.range
 	cells_exist: cells.non_void
-	sequence_definition: across 1 |..| cells.count as i all sequence [i.item] = cells [i.item].item end
+	sequence_implementation: across 1 |..| cells.count as i all sequence [i.item] = cells [i.item].item end
 	cells_linked: is_linked (cells)
 	cells_first: cells.count > 0 implies first_cell = cells.first
 	cells_last: cells.count > 0 implies last_cell = cells.last and then last_cell.right = Void
