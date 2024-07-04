@@ -32,9 +32,13 @@ create
 feature {NONE} -- Initialization
 
 	make
+		local
+			l_menu_item_utils: NS_MENU_ITEM_UTILS
 		do
 			pixmapable_imp_initialize
-			create menu_item.separator_item
+			create l_menu_item_utils
+			create menu_item.make
+			menu_item := l_menu_item_utils.separator_item
 			pixmapable_imp_initialize
 			is_sensitive := True
 			set_is_initialized (True)
@@ -80,11 +84,13 @@ feature {NONE} -- Implementation
 	enable_sensitive
 			-- Implemented to fulfill assertions but leave c_object unsensitive.
 		do
+			is_sensitive := True
 		end
 
 	disable_sensitive
 			-- Implemented to fulfill assertions but leave c_object unsensitive.
 		do
+			is_sensitive := False
 		end
 
 feature {EV_ANY_I} -- Implementation

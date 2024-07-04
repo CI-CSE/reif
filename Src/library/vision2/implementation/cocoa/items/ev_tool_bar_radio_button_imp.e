@@ -22,9 +22,7 @@ inherit
 	EV_RADIO_PEER_IMP
 		redefine
 			interface,
-			make,
-			enable_select,
-			disable_select
+			make
 		end
 
 create
@@ -40,6 +38,8 @@ feature {NONE} -- Initialization
 
 			Precursor {EV_TOOL_BAR_BUTTON_IMP}
 			Precursor {EV_RADIO_PEER_IMP}
+				-- NSRadioButton = 4
+			button.set_button_type_ (4)
 			is_selected := True
 			select_actions.extend (agent enable_select)
 		end
@@ -49,14 +49,12 @@ feature -- Status setting
 	enable_select
 			-- Select `Current'.
 		do
-			Precursor
 			is_selected := True
 		end
 
 	disable_select
 			-- Unselect 'Current'
 		do
-			Precursor
 			is_selected := False
 		end
 

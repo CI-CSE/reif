@@ -4,8 +4,6 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
--- TODO: Refactor radio_group to be attached??
-
 deferred class
 	EV_RADIO_PEER_IMP
 
@@ -23,41 +21,6 @@ feature -- Initialization
 			check l_radio_group /= Void end
 			l_radio_group.put_front (current)
 			set_is_initialized (True)
-		end
-
-feature -- Status setting
-
-	enable_select
-			-- Select `Current'.
-		local
-			button_imp: detachable like Current
-			l_radio_group: like radio_group
-		do
-			l_radio_group := radio_group
-			check l_radio_group /= Void end
-			if not l_radio_group.is_empty then
-				button_imp ?= peers.first.implementation
-				check
-					button_imp /= Void
-				end
-				button_imp.disable_select
-				l_radio_group.start
-				l_radio_group.prune (current)
-				l_radio_group.put_front (current)
-				-- First element of 'radio_group' is the one that is selected
-			end
-		end
-
-	disable_select
-			-- Unselect 'Current'
-		local
-			l_radio_group: like radio_group
-		do
-			l_radio_group := radio_group
-			check l_radio_group /= Void end
-			l_radio_group.start
-			l_radio_group.prune (current)
-			l_radio_group.extend (current)
 		end
 
 feature -- Status report

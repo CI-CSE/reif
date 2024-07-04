@@ -40,13 +40,17 @@ feature -- Access
 	set_interval (an_interval: INTEGER)
 			-- Assign `an_interval' in milliseconds to `interval'.
 			-- Zero disables.
+		local
+			l_timer_utils: NS_TIMER_UTILS
 		do
 			if attached timer as previous_timer then
 				previous_timer.invalidate
 				timer := Void
 			end
 			if an_interval > 0 then
-				create timer.scheduled_timer (an_interval / 1000.0, agent on_timeout, Void, True)
+				create l_timer_utils
+				timer := l_timer_utils.scheduled_timer_with_time_interval__target__selector__user_info__repeats_ (an_interval * 1000.0, Void,
+				create {OBJC_SELECTOR}.make_with_name ("on_ns_timer_timeout:"), Void, True)
 			end
 			interval := an_interval
 		end
@@ -66,6 +70,13 @@ feature -- Implementation
 		-- Are the timeout actions in the process of being called.
 
 	timer: detachable NS_TIMER
+
+feature {NONE} -- Implementation
+
+	on_ns_timer_timeout (a_timer: NS_TIMER)
+		do
+			on_timeout
+		end
 
 feature {EV_ANY, EV_ANY_I} -- Implementation
 

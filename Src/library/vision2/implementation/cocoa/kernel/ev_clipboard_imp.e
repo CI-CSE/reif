@@ -25,26 +25,56 @@ feature {NONE}-- Initialization
 			-- initialize `Current'.
 		do
 			set_is_initialized (True)
+			clipboard := (create {NS_PASTEBOARD_UTILS}).general_pasteboard
+		ensure then
+			clipboard_not_void: clipboard /= Void
 		end
 
 feature -- Access
 
 	has_text: BOOLEAN
 			-- Does the clipboard currently contain text?
+		local
+			l_classes: NS_MUTABLE_ARRAY
+			l_string: NS_STRING
 		do
+			create l_string.make
+			create l_classes.make
+			l_classes.add_object_ (l_string.class_objc)
+			if attached {NS_ARRAY} clipboard.read_objects_for_classes__options_ (l_classes, Void) as l_objects and then l_objects.count > 0 then
+				if attached {NS_STRING} l_objects.object_at_index_ (0) as l_text then
+					Result := text.is_equal (l_text.to_eiffel_string)
+				end
+			end
 		end
 
 	text: STRING_32
 			-- `Result' is current clipboard content.
+		local
+			l_string: STRING
 		do
 			create Result.make_empty
+			l_string := clipboard.string_for_type_ (create {NS_STRING}.make_with_eiffel_string ("NSStringPboardType")).to_eiffel_string
+			if l_string /= Void then
+				Result.append (l_string)
+			end
 		end
 
 feature -- Status Setting
 
 	set_text (a_text: READABLE_STRING_GENERAL)
 			-- Assign `a_text' to clipboard.
+		local
+			l_array: NS_MUTABLE_ARRAY
+			l_string_type: NS_STRING
+			l_result : BOOLEAN
+			l_count: INTEGER_64
 		do
+			create l_array.make
+			create l_string_type.make_with_eiffel_string ("NSStringPboardType")
+			l_array.add_object_ (l_string_type)
+			l_count := clipboard.declare_types__owner_ (l_array, Void)
+			l_result := clipboard.set_string__for_type_ (create {NS_STRING}.make_with_eiffel_string (a_text.as_string_8), l_string_type)
 		end
 
 feature {EV_ANY_I}
@@ -52,6 +82,11 @@ feature {EV_ANY_I}
 	destroy
 			-- Destroy `Current'
 		do
+			set_is_destroyed (True)
 		end
+
+feature {NONE} -- Implementation
+
+	clipboard: NS_PASTEBOARD
 
 end -- class EV_CLIPBOARD_IMP

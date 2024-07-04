@@ -25,9 +25,7 @@ inherit
 	EV_RADIO_PEER_IMP
 		redefine
 			interface,
-			make,
-			enable_select,
-			disable_select
+			make
 		end
 
 create
@@ -44,13 +42,14 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize `Current'
 		do
-			cocoa_view := current
+			cocoa_view := Current
 			Precursor {EV_RADIO_PEER_IMP}
 			Precursor {EV_BUTTON_IMP}
-			cocoa_make
-			set_button_type ({NS_BUTTON}.radio_button)
+				-- NSRadioButton = 4
+			set_button_type_ (4)
 			align_text_left
-			set_state ({NS_CELL}.on_state)
+				-- NSOnState
+			set_state_ (1)
 			select_actions.extend (agent enable_select)
 		end
 
@@ -59,15 +58,15 @@ feature -- Status setting
 	enable_select
 			-- Select `Current'.
 		do
-			Precursor
-			set_state ({NS_CELL}.on_state)
+				-- NSOnState = 1
+			set_state_ (1)
 		end
 
 	disable_select
 			-- Unselect 'Current'
 		do
-			Precursor
-			set_state ({NS_CELL}.off_state)
+				-- NSOffState = 0
+			set_state_ (0)
 		end
 
 feature -- Status report
@@ -75,7 +74,8 @@ feature -- Status report
 	is_selected: BOOLEAN
 			-- Is `Current' selected.
 		do
-			Result := state = {NS_CELL}.on_state
+				-- NSOnState = 1
+			Result := state = 1
 		end
 
 feature {EV_ANY, EV_ANY_I} -- Implementation
