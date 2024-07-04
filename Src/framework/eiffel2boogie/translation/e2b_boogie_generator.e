@@ -42,6 +42,7 @@ feature -- Basic operations
 			l_filename.set_directory (theory_directory)
 			l_filename.set_file_name ("base_theory.bpl")
 			last_generated_verifier_input.add_boogie_file (l_filename)
+
 			create l_filename.make
 			l_filename.set_directory (theory_directory)
 			l_filename.set_file_name ("arrays.bpl")

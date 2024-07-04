@@ -157,18 +157,20 @@ feature -- Functions
 			-- Function call to `a_function_name' with arguments `a_arguments'.
 		do
 			create Result.make (a_function_name, a_result_type)
-			across a_arguments as i loop
-				if attached {STRING} i.item as s then
-					Result.add_argument (create {IV_ENTITY}.make (s, types.generic_type))
-				elseif attached {IV_EXPRESSION} i.item as e then
-					Result.add_argument (e)
-				else
-					check False end
+			if attached a_arguments then
+				across a_arguments as i loop
+					if attached {STRING} i.item as s then
+						Result.add_argument (create {IV_ENTITY}.make (s, types.generic_type))
+					elseif attached {IV_EXPRESSION} i.item as e then
+						Result.add_argument (e)
+					else
+						check False end
+					end
 				end
 			end
 		end
 
-feature -- Heap access
+feature -- Heap and map access
 
 	heap_current_allocated (a_mapping: E2B_ENTITY_MAPPING): IV_HEAP_ACCESS
 			-- Heap access to `allocated' on `Current'.
@@ -188,13 +190,24 @@ feature -- Heap access
 				create {IV_ENTITY}.make ("initialized", types.field (types.bool)))
 		end
 
-	heap_current_access (a_mapping: E2B_ENTITY_MAPPING; a_name: STRING): IV_HEAP_ACCESS
+	heap_current_access (a_mapping: E2B_ENTITY_MAPPING; a_name: STRING; a_content_type: IV_TYPE): IV_HEAP_ACCESS
 			-- Heap access to `a_feature' on `Current'.
 		do
 			create Result.make (
 				a_mapping.heap.name,
 				a_mapping.current_entity,
-				create {IV_ENTITY}.make (a_name, types.field (types.generic_type)))
+				create {IV_ENTITY}.make (a_name, types.field (a_content_type)))
+		end
+
+	array_access (a_heap: IV_ENTITY; a_array, a_index: IV_EXPRESSION): IV_MAP_ACCESS
+			-- Array access to `a_array'[`a_index'].
+		do
+			create Result.make (
+				create {IV_HEAP_ACCESS}.make (
+					a_heap.name,
+					a_array,
+					create {IV_ENTITY}.make ("area", types.field (types.generic_type))),
+				a_index)
 		end
 
 feature -- Miscellaneous

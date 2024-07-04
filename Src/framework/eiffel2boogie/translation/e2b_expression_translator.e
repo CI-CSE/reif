@@ -129,14 +129,14 @@ feature -- Basic operations
 	set_context (a_feature: FEATURE_I; a_type: TYPE_A)
 			-- Set context of expression to `a_feature' in type `a_type'.
 		require
-			a_feature_attached: attached a_feature
+--			a_feature_attached: attached a_feature
 			a_type_attached: attached a_type
 		do
 			context_feature := a_feature
 			context_type := a_type
 			current_target_type := a_type
 			current_target := entity_mapping.current_entity
-			if a_feature.has_return_value then
+			if a_feature /= Void and then a_feature.has_return_value then
 				entity_mapping.set_default_result (a_feature.type.instantiated_in (current_target_type))
 			end
 		end
@@ -160,6 +160,7 @@ feature -- Basic operations
 			create locals_map.make (10)
 			create across_handler_map.make (10)
 			create safety_check_condition.make
+			create parameters_stack.make
 		end
 
 feature -- Visitors
@@ -208,18 +209,24 @@ feature -- Visitors
 			safe_process (a_node.right)
 			l_right := last_expression
 			l_type := types.for_type_a (a_node.type)
-			create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
 
-			if
-				options.is_checking_overflow and then
-				(a_node.left.type.is_integer or a_node.left.type.is_natural) and then
-				(a_operator ~ "+" or a_operator ~ "-")
-			then
-					-- Arithmetic operation
-				l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
-				create l_fcall.make (l_fname, types.bool)
-				l_fcall.add_argument (last_expression)
-				add_safety_check (l_fcall, "overflow")
+				-- TODO: REFACTOR
+			if l_left.type.is_set then
+				check l_right.type.is_set end
+				last_expression := factory.function_call ("Set#Equal", << l_left, l_right >>, l_type)
+			else
+				create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
+				if
+					options.is_checking_overflow and then
+					(a_node.left.type.is_integer or a_node.left.type.is_natural) and then
+					(a_operator ~ "+" or a_operator ~ "-")
+				then
+						-- Arithmetic operation
+					l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
+					create l_fcall.make (l_fname, types.bool)
+					l_fcall.add_argument (last_expression)
+					add_safety_check (l_fcall, "overflow")
+				end
 			end
 		end
 
@@ -624,7 +631,9 @@ feature -- Visitors
 			l_feature: FEATURE_B
 			l_call: IV_FUNCTION_CALL
 			l_info: IV_ASSERTION_INFORMATION
+			l_handler: E2B_CUSTOM_NESTED_HANDLER
 		do
+			l_handler := translation_mapping.handler_for_nested (a_node)
 			l_object_test_local ?= a_node.target
 			if l_object_test_local /= Void and then across_handler_map.has (l_object_test_local.position) then
 					-- Special mapping of object test local in across loop
@@ -637,6 +646,17 @@ feature -- Visitors
 				elseif l_feature.feature_name.is_case_insensitive_equal ("after") then
 					l_across_handler.handle_call_after (Void)
 				else
+					last_expression := dummy_node (a_node.type)
+				end
+			elseif l_handler /= Void then
+				if attached {E2B_BODY_EXPRESSION_TRANSLATOR} Current as t then
+					l_handler.handle_nested_in_body (t, a_node)
+				elseif attached {E2B_CONTRACT_EXPRESSION_TRANSLATOR} Current as t then
+					l_handler.handle_nested_in_contract (t, a_node)
+				else
+					check False end
+				end
+				if last_expression = Void then
 					last_expression := dummy_node (a_node.type)
 				end
 			else
@@ -714,10 +734,23 @@ feature -- Visitors
 				last_expression := factory.not_equal (l_expr, factory.void_)
 			else
 				check attached a_node.info end
-				l_type_check := factory.sub_type (factory.type_of (l_expr), factory.type_value (a_node.info.type_to_create))
+					-- Normalize integer types
+				if a_node.info.type_to_create.is_integer or a_node.info.type_to_create.is_natural then
+					l_type_check := factory.sub_type (factory.type_of (l_expr), create {IV_ENTITY}.make ("INTEGER", types.type))
+				else
+					l_type_check := factory.sub_type (factory.type_of (l_expr), factory.type_value (a_node.info.type_to_create))
+				end
 				last_expression := factory.and_ (factory.not_equal (l_expr, factory.void_), l_type_check)
 			end
 			if attached a_node.target then
+					-- Check for possible unboxing of basic types
+				if a_node.expression.type.is_reference then
+					if a_node.target.type.is_boolean then
+						l_expr := factory.function_call ("unboxed_bool", << l_expr >>, types.bool)
+					elseif a_node.target.type.is_integer or a_node.target.type.is_natural then
+						l_expr := factory.function_call ("unboxed_int", << l_expr >>, types.int)
+					end
+				end
 				locals_map.force (l_expr, a_node.target.position)
 			end
 		end
@@ -737,11 +770,27 @@ feature -- Visitors
 			-- <Precursor>
 		local
 			l_context_type: CL_TYPE_A
+			l_target: IV_EXPRESSION
+			l_target_type: TYPE_A
+			l_last_expression: IV_EXPRESSION
 		do
-			l_context_type := context.context_cl_type
-			helper.set_up_byte_context (Void, context_type)
+			check not parameters_stack.is_empty end
+
+				-- Process arguments in context of feature
+			l_target := current_target
+			l_target_type := current_target_type
+			l_last_expression := last_expression
+
+			current_target := entity_mapping.current_entity
+			current_target_type := context_type
+			last_expression := Void
+
 			safe_process (a_node.expression)
-			helper.set_up_byte_context (Void, l_context_type)
+			parameters_stack.item.extend (last_expression)
+
+			last_expression := l_last_expression
+			current_target := l_target
+			current_target_type := l_target_type
 		end
 
 	process_paran_b (a_node: PARAN_B)
@@ -911,7 +960,25 @@ feature -- Translation
 			end
 		end
 
-feature {E2B_ACROSS_HANDLER} -- Implementation
+	process_parameters (a_parameters: BYTE_LIST [PARAMETER_B])
+			-- Process parameter list `a_parameters'.
+		local
+			l_list: LINKED_LIST [IV_EXPRESSION]
+		do
+			create l_list.make
+			parameters_stack.extend (l_list)
+			safe_process (a_parameters)
+			last_parameters := parameters_stack.item
+			parameters_stack.remove
+		end
+
+feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER} -- Implementation
+
+	parameters_stack: LINKED_STACK [LINKED_LIST [IV_EXPRESSION]]
+			-- Stack of procedure calls.
+
+	last_parameters: LINKED_LIST [IV_EXPRESSION]
+			-- List of last processed parameters.
 
 	last_local: IV_ENTITY
 			-- Last created local.
@@ -938,27 +1005,6 @@ feature {E2B_ACROSS_HANDLER} -- Implementation
 				create {IV_VALUE} Result.make ("Unknown", types.generic_type)
 			else
 				create {IV_VALUE} Result.make ("Void", types.ref)
-			end
-		end
-
-feature {NONE} -- Special mapping: ARRAY
-
-	process_array_routine (a_translator: E2B_EXPRESSION_TRANSLATOR; a_type: TYPE_A; a_feature: FEATURE_I; a_params: BYTE_LIST [PARAMETER_B])
-			-- Processing for array routines.
-		local
-			l_name: STRING
-		do
-			l_name := a_feature.feature_name
-			if l_name ~ "make" then
-
-			elseif l_name ~ "put" then
-
-			elseif l_name ~ "item" then
-
-			elseif l_name ~ "count" then
-
-			elseif l_name ~ "is_empty" then
-
 			end
 		end
 

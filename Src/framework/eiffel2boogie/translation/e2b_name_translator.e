@@ -79,6 +79,19 @@ feature -- Access
 			result_attached: attached Result
 		end
 
+	boogie_name_for_invariant_function (a_type: TYPE_A): STRING
+			-- Name invariant function of `a_type'.
+		require
+			a_type: attached a_type
+		local
+			l_type_name: STRING
+		do
+			l_type_name := boogie_name_for_type (a_type)
+			Result := l_type_name + ".self_inv"
+		ensure
+			result_attached: attached Result
+		end
+
 	feature_for_boogie_name (a_name: STRING): FEATURE_I
 			-- Feature named `a_name' in Boogie code.
 		require
@@ -161,6 +174,9 @@ feature -- Access
 		do
 			if a_name.has ('^') then
 				l_class_name := a_name.substring (1, a_name.index_of ('^', 1)-1)
+					-- TODO: handle generic parameters
+			elseif a_name.has ('#') then
+				l_class_name := a_name.substring (1, a_name.index_of ('#', 1)-1)
 					-- TODO: handle generic parameters
 			else
 				l_class_name := a_name

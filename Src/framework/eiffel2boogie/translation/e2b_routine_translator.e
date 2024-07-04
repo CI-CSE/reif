@@ -95,17 +95,6 @@ feature -- Basic operations
 			l_modifies.add_name ("Writes")
 			current_boogie_procedure.add_contract (l_modifies)
 
-				-- Ownership default
-			add_ownership_conditions
-
-			if a_for_creator then
-					-- Creator
-				add_ownership_conditions_for_creator
-			elseif a_feature.is_exported_for (system.any_class.compiled_class) then
-					-- Public routine
-				add_ownership_conditions_for_public
-			end
-
 				-- Pre- and postconditions
 			if options.is_precondition_predicate_enabled then
 				add_precondition_predicate
@@ -122,20 +111,29 @@ feature -- Basic operations
 				process_postcondition (j.item, l_fields)
 			end
 
-				-- Frame condition
+				-- Framing
+			if options.is_using_ownership then
+					-- Ownership default
+				add_ownership_conditions
 
---			if helper.feature_note_values (current_feature, "framing").has ("False") then
---					-- No frame condition
---			elseif helper.feature_note_values (current_feature, "pure").has ("True") then
---					-- Pure feature
---				add_pure_frame_condition
---			else
---					-- Normal frame condition
---				process_fields_list (l_fields)
---			end
-
-				-- Ownership conditions
---			add_ownership_conditions (a_for_creator)
+				if a_for_creator then
+						-- Creator
+					add_ownership_conditions_for_creator
+				elseif a_feature.is_exported_for (system.any_class.compiled_class) then
+						-- Public routine
+					add_ownership_conditions_for_public
+				end
+			else
+				if helper.feature_note_values (current_feature, "framing").has ("False") then
+						-- No frame condition
+				elseif helper.feature_note_values (current_feature, "pure").has ("True") then
+						-- Pure feature
+					add_pure_frame_condition
+				else
+						-- Normal frame condition
+					process_fields_list (l_fields)
+				end
+			end
 
 		end
 
@@ -149,51 +147,53 @@ feature -- Basic operations
 			l_pre.set_free
 			current_boogie_procedure.add_contract (l_pre)
 
-			create l_pre.make (factory.function_call (
-				"Set#Subset",
-				<<
-					factory.function_call (
-						name_translator.boogie_name_for_writes_set_function (current_feature, current_type),
-						<<
-							"Heap",
-							"Current"
-						>>,
-						types.set (types.ref)),
-					"Writes"
-				>>,
-				types.bool))
+			create l_fcall.make (name_translator.boogie_name_for_writes_set_function (current_feature, current_type), types.set (types.ref))
+			l_fcall.add_argument (create {IV_ENTITY}.make ("Heap", types.heap_type))
+			across current_boogie_procedure.arguments as i loop
+				l_fcall.add_argument (i.item.entity)
+			end
+			create l_pre.make (
+				factory.function_call (
+					"Set#Subset",
+					<<
+						l_fcall,
+						"Writes"
+					>>,
+					types.bool))
+			l_pre.set_assertion_type ("pre")
 			current_boogie_procedure.add_contract (l_pre)
 
 			create l_post.make (factory.function_call ("global", << "Heap", "Writes" >>, types.bool))
 			l_post.set_free
 			current_boogie_procedure.add_contract (l_post)
 
-			create l_post.make (factory.function_call (
-				"writes_changed",
-				<<
-					factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
-					create {IV_ENTITY}.make ("Heap", types.heap_type),
-					factory.old_ (create {IV_ENTITY}.make ("Writes", types.set (types.ref))),
-					create {IV_ENTITY}.make ("Writes", types.set (types.ref))
-				>>,
-				types.bool))
+			create l_post.make (
+				factory.function_call (
+					"writes_changed",
+					<<
+						factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
+						create {IV_ENTITY}.make ("Heap", types.heap_type),
+						factory.old_ (create {IV_ENTITY}.make ("Writes", types.set (types.ref))),
+						create {IV_ENTITY}.make ("Writes", types.set (types.ref))
+					>>,
+					types.bool))
 			l_post.set_free
 			current_boogie_procedure.add_contract (l_post)
 
-			create l_post.make (factory.function_call (
-				"writes",
-				<<
-					factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
-					create {IV_ENTITY}.make ("Heap", types.heap_type),
-					factory.function_call (
-						name_translator.boogie_name_for_writes_set_function (current_feature, current_type),
-						<<
-							factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
-							create {IV_ENTITY}.make ("Current", types.ref)
-						>>,
-						types.set (types.ref))
-				>>,
-				types.bool))
+			create l_fcall.make (name_translator.boogie_name_for_writes_set_function (current_feature, current_type), types.set (types.ref))
+			l_fcall.add_argument (factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)))
+			across current_boogie_procedure.arguments as i loop
+				l_fcall.add_argument (i.item.entity)
+			end
+			create l_post.make (
+				factory.function_call (
+					"writes",
+					<<
+						factory.old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)),
+						create {IV_ENTITY}.make ("Heap", types.heap_type),
+						l_fcall
+					>>,
+					types.bool))
 			l_post.set_free
 			current_boogie_procedure.add_contract (l_post)
 			translation_pool.add_writes_function (current_feature, current_type)
@@ -211,7 +211,7 @@ feature -- Basic operations
 			create l_heap_access.make ("Heap", create {IV_ENTITY}.make ("Current", types.ref), create {IV_ENTITY}.make ("dependents", types.set (types.ref)))
 			create l_pre.make (factory.equal (
 				l_heap_access,
-				factory.function_call ("Set#Empty", <<>>, types.set (types.ref))))
+				factory.function_call ("Set#Empty", Void, types.set (types.ref))))
 			current_boogie_procedure.add_contract (l_pre)
 
 			create l_post.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
@@ -220,11 +220,18 @@ feature -- Basic operations
 		end
 
 	add_ownership_conditions_for_public
+		local
+			l_pre: IV_PRECONDITION
+			l_post: IV_POSTCONDITION
 		do
+			create l_pre.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
+			l_pre.set_assertion_type ("pre")
+			current_boogie_procedure.add_contract (l_pre)
 
+			create l_post.make (factory.function_call ("is_wrapped", << "Heap", "Current" >>, types.bool))
+			l_post.set_assertion_type ("post")
+			current_boogie_procedure.add_contract (l_post)
 		end
-
-
 
 	translate_routine_implementation (a_feature: FEATURE_I; a_type: TYPE_A)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
@@ -276,9 +283,9 @@ feature -- Basic operations
 
 			if a_for_creator then
 					-- Add creator initialization for ownership
-				create l_assign.make (factory.heap_current_access (l_translator.entity_mapping, "owns"), factory.function_call ("Set#Empty", <<>>, types.set (types.ref)))
+				create l_assign.make (factory.heap_current_access (l_translator.entity_mapping, "owns", types.set (types.ref)), factory.function_call ("Set#Empty", <<>>, types.set (types.ref)))
 				l_implementation.body.add_statement (l_assign)
-				create l_assign.make (factory.heap_current_access (l_translator.entity_mapping, "depends"), factory.function_call ("Set#Empty", <<>>, types.set (types.ref)))
+				create l_assign.make (factory.heap_current_access (l_translator.entity_mapping, "depends", types.set (types.ref)), factory.function_call ("Set#Empty", <<>>, types.set (types.ref)))
 				l_implementation.body.add_statement (l_assign)
 					-- Add creator initialization for attributes
 				from
@@ -291,7 +298,7 @@ feature -- Basic operations
 						translation_pool.add_referenced_feature (l_attribute, current_type)
 						l_local_name := name_translator.boogie_name_for_feature (l_attribute, current_type)
 						create l_assign.make (
-							factory.heap_current_access (l_translator.entity_mapping, l_local_name),
+							factory.heap_current_access (l_translator.entity_mapping, l_local_name, types.for_type_a (l_attribute.type)),
 							factory.default_value (l_attribute.type))
 						l_implementation.body.add_statement (l_assign)
 					end
@@ -316,9 +323,9 @@ feature -- Basic operations
 			end
 
 			if a_for_creator then
-					-- Creator finalizer: set "initialized" to true
-				create l_assign.make (factory.heap_current_initialized (l_translator.entity_mapping), factory.true_)
-				l_implementation.body.add_statement (l_assign)
+--					-- Creator finalizer: set "initialized" to true
+--				create l_assign.make (factory.heap_current_initialized (l_translator.entity_mapping), factory.true_)
+--				l_implementation.body.add_statement (l_assign)
 			end
 		end
 
@@ -862,7 +869,7 @@ feature {NONE} -- Implementation
 			Result := l_expr
 				-- TODO: refactor
 			if a_type.base_class.name_in_upper ~ "ARRAY" then
-				create l_fcall.make ("ARRAY.$inv", types.bool)
+				create l_fcall.make ("ARRAY.inv", types.bool)
 				l_fcall.add_argument (l_heap)
 				l_fcall.add_argument (l_ref)
 				Result := factory.and_ (Result, l_fcall)
