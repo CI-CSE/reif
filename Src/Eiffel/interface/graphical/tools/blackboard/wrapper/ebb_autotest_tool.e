@@ -22,8 +22,8 @@ feature -- Access
 			-- <Precursor>
 		once
 			create Result.make
-			Result.extend (create {EBB_TOOL_CONFIGURATION}.make (Current, "10 seconds"))
-			Result.last.put_integer_setting (10, "timeout")
+			Result.extend (create {EBB_TOOL_CONFIGURATION}.make (Current, "15 seconds"))
+			Result.last.put_integer_setting (15, "timeout")
 			Result.extend (create {EBB_TOOL_CONFIGURATION}.make (Current, "1 minute"))
 			Result.last.put_integer_setting (60, "timeout")
 			Result.extend (create {EBB_TOOL_CONFIGURATION}.make (Current, "5 minutes"))
@@ -47,8 +47,17 @@ feature -- Basic operations
 	last_instance: EBB_AUTOTEST_INSTANCE
 			-- <Precursor>
 
+feature -- Options
+
+	timeout: STRING = "timeout"
+			-- Timeout in seconds (default: 10)
+	use_boundary_integers: STRING = "use_boundary_integers"
+			-- Use {INTEGER}.max_value and {INTEGER}.min_value for input (default: False)
+	generate_test_case: STRING = "generate_test_case"
+			-- Generate test case for faults (default: False)
+
 ;note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2011, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
