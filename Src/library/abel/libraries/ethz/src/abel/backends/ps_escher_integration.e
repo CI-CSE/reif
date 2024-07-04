@@ -9,17 +9,21 @@ class
 
 inherit
 
-	PS_BACKEND_STRATEGY
+	PS_BACKEND
 		redefine
 			key_mapper
 		end
+
+inherit {NONE}
+
+	REFACTORING_HELPER
 
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (real: PS_BACKEND_STRATEGY)
+	make (real: PS_BACKEND)
 			-- Initialization for `Current'.
 		local
 			factory: PS_METADATA_FACTORY
@@ -29,7 +33,7 @@ feature {NONE} -- Initialization
 			integer_metadata := factory.create_metadata_from_type ({INTEGER})
 		end
 
-	real_backend: PS_BACKEND_STRATEGY
+	real_backend: PS_BACKEND
 			-- The actual backend used for storage
 
 	integer_metadata: PS_TYPE_METADATA
@@ -40,16 +44,16 @@ feature {NONE} -- Initialization
 
 feature {PS_EIFFELSTORE_EXPORT} -- Supported collection operations
 
-	is_objectoriented_collection_store_supported: BOOLEAN
+	supports_object_collection: BOOLEAN
 			-- Can the current backend handle relational collections?
 		do
-			Result := real_backend.is_objectoriented_collection_store_supported
+			Result := real_backend.supports_object_collection
 		end
 
-	is_relational_collection_store_supported: BOOLEAN
+	supports_relational_collection: BOOLEAN
 			-- Can the current backend handle relational collections?
 		do
-			Result := real_backend.is_relational_collection_store_supported
+			Result := real_backend.supports_relational_collection
 		end
 
 feature {PS_EIFFELSTORE_EXPORT} -- Status report
@@ -168,13 +172,13 @@ feature {PS_EIFFELSTORE_EXPORT} -- Object write operations
 			if attached {VERSIONED_CLASS} an_object.represented_object as versioned_object then
 				stored_version := versioned_object.version
 				if simulate_version_mismatch then
+					fixme ("Remove testing-related code")
 					stored_version := stored_version - 1
 				end
 				create version_attribute.make (stored_version, integer_metadata, an_object.root)
 				an_object.add_attribute ("version", version_attribute)
 				real_backend.insert (an_object, a_transaction)
 				an_object.attributes.prune ("version") -- to satisfy postcondition
-					--an_object.attribute_values.remove ("version")
 			else
 				real_backend.insert (an_object, a_transaction)
 			end
@@ -287,6 +291,7 @@ feature -- Testing
 			-- Enable or disable the testing simulation
 		do
 			simulate_version_mismatch := switch
+			fixme ("Remove testing-related code")
 		end
 
 	simulate_version_mismatch: BOOLEAN

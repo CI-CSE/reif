@@ -155,7 +155,7 @@ feature {PS_EIFFELSTORE_EXPORT} -- Status Report
 
 feature {NONE} -- Initialization
 
-	make (a_backend: PS_BACKEND_STRATEGY)
+	make (a_backend: PS_BACKEND)
 			-- Initialize `Current'.
 		do
 			backend := a_backend
@@ -182,8 +182,8 @@ feature -- Initialization
 
 feature {PS_EIFFELSTORE_EXPORT} -- Implementation
 
-	disassembler: PS_OBJECT_DISASSEMBLER
-			-- A disassembler to create explicit object graphs.
+	disassembler: PS_OBJECT_GRAPH_BUILDER
+			-- An object graph builder to create explicit object graphs.
 
 	planner: PS_WRITE_PLANNER
 			-- A write planner to generate an operation plan from an object graph.
@@ -191,8 +191,8 @@ feature {PS_EIFFELSTORE_EXPORT} -- Implementation
 	executor: PS_WRITE_EXECUTOR
 			-- An executor to execute operations in an operation plan
 
-	backend: PS_BACKEND_STRATEGY
-			-- A BACKEND_STRATEGY implementation
+	backend: PS_BACKEND
+			-- A BACKEND implementation
 
 	retriever: PS_RETRIEVAL_MANAGER
 			-- A retrieval manager to build objects.

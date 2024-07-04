@@ -47,9 +47,9 @@ feature {PS_EIFFELSTORE_EXPORT} -- Basic operations
 			internal_object_id := an_object_id
 		end
 
-feature {PS_OBJECT_GRAPH_PART, PS_OBJECT_DISASSEMBLER} -- Initialization
+feature {PS_OBJECT_GRAPH_PART, PS_OBJECT_GRAPH_BUILDER} -- Initialization
 
-	initialize (a_level: INTEGER; operation: PS_WRITE_OPERATION; disassembler: PS_OBJECT_DISASSEMBLER)
+	initialize (a_level: INTEGER; operation: PS_WRITE_OPERATION; disassembler: PS_OBJECT_GRAPH_BUILDER)
 			-- Initialize `Current' and its whole object graph.
 		local
 			new_mode: BOOLEAN
@@ -82,7 +82,7 @@ feature {PS_OBJECT_GRAPH_PART, PS_OBJECT_DISASSEMBLER} -- Initialization
 
 feature {PS_COMPLEX_PART} -- Initialization
 
-	finish_initialization (disassembler: PS_OBJECT_DISASSEMBLER)
+	finish_initialization (disassembler: PS_OBJECT_GRAPH_BUILDER)
 			-- Initialize all attributes or collection items of `Current'.
 		deferred
 		end
@@ -91,7 +91,7 @@ feature {NONE} -- Implementation
 
 	internal_object_id: detachable like object_wrapper
 			-- A little helper to circumvent Void safety:
-			-- The object_id field will be set just before it gets executed by the PS_BACKEND_STRATEGY,
-			-- and this way the field doesn't always have to be checked by PS_BACKEND_STRATEGY for a Void reference
+			-- The object_id field will be set just before it gets executed by the PS_BACKEND,
+			-- and this way the field doesn't always have to be checked by PS_BACKEND for a Void reference
 
 end

@@ -101,7 +101,7 @@ feature {NONE} -- Implementation: Build functions for PS_RETRIEVED_* objects
 				Result := reflection.new_instance_of (type.type.type_id)
 				bookkeeping.extend (Result, obj.primary_key + obj.class_metadata.name.hash_code)
 				id_manager.identify (Result, transaction)
-				backend.key_mapper.add_entry (id_manager.get_identifier_wrapper (Result, transaction), obj.primary_key, transaction)
+				backend.key_mapper.add_entry (id_manager.identifier_wrapper (Result, transaction), obj.primary_key, transaction)
 				across
 					obj.attributes as attr_cursor
 				loop
@@ -234,7 +234,7 @@ feature {NONE} -- Implementation - Build support functions.
 					reflection.set_reference_field (index, obj, value.to_string_32)
 					Result := True
 				elseif type_name.is_case_insensitive_equal ("STRING_8") then
-					reflection.set_reference_field (index, obj, value.to_string_8)
+					reflection.set_reference_field (index, obj, value.twin)
 					Result := True
 				else
 						-- Not of a basic type - return false
@@ -363,7 +363,7 @@ feature {NONE} -- Implementation - Core data structures
 
 feature {NONE} -- Initialization
 
-	make (a_backend: PS_BACKEND_STRATEGY; an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
+	make (a_backend: PS_BACKEND; an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
 			-- Initialize `Current'.
 		do
 			backend := a_backend
@@ -374,7 +374,7 @@ feature {NONE} -- Initialization
 			create metadata_manager.make
 		end
 
-	backend: PS_BACKEND_STRATEGY
+	backend: PS_BACKEND
 			-- The storage backend.
 
 feature {PS_REPOSITORY} -- Initialization - Collection handlers

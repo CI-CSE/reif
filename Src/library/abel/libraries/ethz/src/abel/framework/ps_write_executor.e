@@ -16,7 +16,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_backend: PS_BACKEND_STRATEGY; an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
+	make (a_backend: PS_BACKEND; an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
 			-- Initialize `Current'.
 		do
 			backend := a_backend
@@ -129,19 +129,19 @@ feature {NONE} -- Implementation
 					if not id_manager.is_identified (complex.represented_object, transaction) then
 						id_manager.identify (complex.represented_object, transaction)
 					end
-					complex.set_object_wrapper (id_manager.get_identifier_wrapper (complex.represented_object, transaction))
+					complex.set_object_wrapper (id_manager.identifier_wrapper (complex.represented_object, transaction))
 				end
 				referenced_objects.forth
 			end
 			if not id_manager.is_identified (object.represented_object, transaction) then
 				id_manager.identify (object.represented_object, transaction)
 			end
-			object.set_object_wrapper (id_manager.get_identifier_wrapper (object.represented_object, transaction))
+			object.set_object_wrapper (id_manager.identifier_wrapper (object.represented_object, transaction))
 		end
 
 feature {NONE} -- Implementation
 
-	backend: PS_BACKEND_STRATEGY
+	backend: PS_BACKEND
 			-- The backend to execute the operations on.
 
 	id_manager: PS_OBJECT_IDENTIFICATION_MANAGER
