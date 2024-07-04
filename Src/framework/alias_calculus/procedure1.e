@@ -1,5 +1,6 @@
 note
 	description: "Procedure with a body and no argument."
+	terminology: "Called PROCEDURE1 because `procedure' is an Eiffel keyword"
 	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
@@ -27,7 +28,6 @@ feature {NONE} -- Initializaation
 				set: name = n
 				aliases_exist: aliases /= Void
 				aliases_empty: aliases.is_empty
-
 			end
 
 

@@ -7,7 +7,7 @@ note
 			Recursion is handled through caching. Specifically, the result
 			of any application of the current call to an alias relation `a'
 			is recorded in the array `cached_output'; for a new integer
-			value `cc' (the latest value of the global counter global counter
+			value `cc' (the latest value of the global counter
 			`cached_count'), the  result of this application will be in 
 			`cached_output [cc]'. The input relation itself, `a',
 			is recorded in a hash table `cached_input'; the key is `a'
@@ -115,7 +115,7 @@ feature -- Basic operations
 feature -- Input and output
 
 	out: STRING
-			-- Produce printable representation of call.
+			-- Printable representation of call.
 		do
 			Result := tabs + "call "+ proc_name + "%N"
 		end
