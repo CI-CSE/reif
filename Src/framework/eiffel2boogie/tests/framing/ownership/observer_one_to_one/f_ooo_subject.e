@@ -1,8 +1,30 @@
+note
+	status: no_ownership_defaults
+
 class F_OOO_SUBJECT
+
+inherit
+
+	ANY
+		redefine
+			default_create
+		end
 
 feature {NONE} -- Initialization
 
-	-- TODO: default create
+	default_create
+		note
+			status: creator
+		require else
+			is_open -- default: creator
+			modify (Current) -- default: creator
+		do
+			set_observers([observer])
+			wrap -- default: creator
+		ensure then
+			is_wrapped -- default: creator
+			observer = Void -- default: default_create
+		end
 
 feature -- Access
 
@@ -16,13 +38,13 @@ feature -- Element change
 
 	update (new_val: INTEGER)
 		require
-			is_wrapped	-- default
-			across observers as oc all oc.item.is_wrapped end -- default
+			is_wrapped	-- default: public
+			across observers as oc all oc.item.is_wrapped end -- default: public
 
 			modify (observer)
-			modify ([Current, "value"])
+			modify_field ("value", Current)
 		do
-			unwrap -- default
+			unwrap -- default: public
 			if attached observer then
 				observer.unwrap
 			end
@@ -31,29 +53,43 @@ feature -- Element change
 				observer.notify
 				observer.wrap
 			end
-			wrap -- default
+			wrap -- default: public
 		ensure
 			value_set: value = new_val
-			is_wrapped	-- default
-			across observers as oc all oc.item.is_wrapped end -- default
+			is_wrapped	-- default: public
+			across observers as oc all oc.item.is_wrapped end -- default: public
+
+			observer = old observer -- TODO: fine-grained modifies
+			observer.subject = old observer.subject -- TODO: fine-grained modifies
 		end
 
 feature {F_OOO_OBSERVER} -- Element change
 
 	register (o: F_OOO_OBSERVER)
 			-- Register `o' as observer.
+		note
+			explicit: contracts
 		require
+			-- is_open: removed due to explicit contracts
+			-- across observers as sc all sc.item.is_open end: removed due to explicit contracts
+
 			observer = Void
 			is_wrapped
 			o.is_open
+
+--			modify ([Current, "observer"]) -- default: command
+			modify (Current)
 		do
 			unwrap
 			observer := o
-			-- add_observer_ (o) -- feature from ANY, maintains open_, ensures observers = old observers + { o }
+			set_observers ([o]) -- add_observer_ (o) -- feature from ANY, maintains open_, ensures observers = old observers + { o }
 			wrap
 		ensure
 			observer = o
 			is_wrapped
+
+			-- is_open: removed due to explicit contracts
+			-- across observers as sc all sc.item.is_open end: removed due to explicit contracts
 		end
 
 invariant
@@ -62,71 +98,3 @@ invariant
 	subjects = [] -- default
 
 end
-
-
-  -- value: INTEGER
-  -- observer: F_OOO_OBSERVER
-  
-  -- -- default_create
-    -- -- require
-      -- -- open_
-    -- -- do
-      -- -- owns_ := {}
-      -- -- subjects_ := {}
-      -- -- observers_ := {}
-      -- -- value := 0
-      -- -- observer := Void
-      -- -- wrap_
-    -- -- ensure
-      -- -- wrapped_
-    -- -- end
-    
-  -- update (new_val: INTEGER)
-    -- -- require
-      -- -- wrapped_
-      -- -- across observers_ as o all o.wrapped_ end
-    -- modify [value] Current
-    -- modify observer
-    -- do
-      -- -- unwrap_
-      -- if observer /= Void then
-        -- observer.unwrap_
-      -- end
-      -- value := new_val
-      -- if observer /= Void then
-        -- observer.notify
-        -- observer.wrap_
-      -- end
-      -- -- wrap_
-    -- ensure
-      -- value = new_val
-      -- -- wrapped_
-      -- -- across observers_ as o all o.wrapped_ end      
-    -- end
-    
--- feature {F_OOO_OBSERVER}    
-
-  -- register (o: F_OOO_OBSERVER)
-    -- note explicit: contracts
-    -- require
-      -- observer = Void
-      -- wrapped_
-      -- o.open_
-    -- do
-      -- -- unwrap_
-      -- observer := o
-      -- add_observer_ (o) -- feature from ANY, maintains open_, ensures observers = old observers + { o }
-      -- -- wrap_
-    -- ensure
-      -- observer = o
-      -- wrapped_
-    -- end
-    
--- invariant
-  -- -- another way to write this is: observers_ = { observer } - { Void } (but this could be slower)
-  -- observer = Void implies observers_.is_empty
-  -- observer /= Void implies observers_ = { observer }
-  -- -- owns_ = {}
-  -- -- subjects = {}
--- note
-  -- explicit: observers_

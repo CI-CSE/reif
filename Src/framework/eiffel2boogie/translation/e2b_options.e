@@ -17,20 +17,21 @@ feature {NONE} -- Initialization
 			-- Initialize default options.
 		do
 			is_two_step_verification_enabled := False
-			is_inlining_enabled := True
+			is_inlining_enabled := False
 			is_automatic_inlining_enabled := False
 			is_automatic_loop_unrolling_enabled := False
 			is_sound_loop_unrolling_enabled := True
 			is_precondition_predicate_enabled := False
 			is_postcondition_predicate_enabled := False
 			is_checking_overflow := False
-			is_checking_frame := True
-			is_using_ownership := True
-			loop_unrolling_depth := 5
+			is_checking_frame := False
+			is_ownership_enabled := True
+			is_ownership_defaults_enabled := True
+			loop_unrolling_depth := 4
 			max_recursive_inlining_depth := 4
 
 			is_postcondition_mutation_enabled := False
-			is_coupled_mutations_enabled := True
+			is_coupled_mutations_enabled := False
 			is_aging_enabled := False
 			is_uncoupled_mutations_enabled := False
 		end
@@ -195,13 +196,22 @@ feature -- Framing
 			is_checking_frame := a_value
 		end
 
-	is_using_ownership: BOOLEAN
-			-- Is ownership translation used?
+	is_ownership_enabled: BOOLEAN
+			-- Is ownership enabled?
 
-	set_using_ownership (a_value: BOOLEAN)
-			-- Set `is_using_ownership' to `a_value'.
+	set_ownership_enabled (a_value: BOOLEAN)
+			-- Set `is_ownership_enabled' to `a_value'.
 		do
-			is_using_ownership := a_value
+			is_ownership_enabled := a_value
+		end
+
+	is_ownership_defaults_enabled: BOOLEAN
+			-- Is ownership enabled?
+
+	set_ownership_defaults_enabled (a_value: BOOLEAN)
+			-- Set `is_ownership_defaults_enabled' to `a_value'.
+		do
+			is_ownership_defaults_enabled := a_value
 		end
 
 end
