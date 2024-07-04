@@ -29,6 +29,9 @@ feature {NONE} -- Initialization
 			across a_arguments as l_args loop
 				if l_args.item.is_equal ("-cadefaults") then
 					restore_preferences := True
+				elseif l_args.item.is_equal ("-caloadprefs") then
+					l_args.forth
+					preference_file := l_args.item
 				elseif l_args.item.is_equal ("-caclass") or l_args.item.is_equal ("-caclasses") then
 					from l_args.forth
 					until l_args.after or l_args.item.starts_with ("-")
@@ -46,6 +49,8 @@ feature {NONE} -- Options
 	restore_preferences: BOOLEAN
 			-- Does the user want to restore the Code Analysis preferences to their
 			-- default values?
+
+	preference_file: STRING
 
 feature -- Execution (declared in EWB_CMD)
 
@@ -68,11 +73,13 @@ feature -- Execution (declared in EWB_CMD)
 				end
 			end
 
-			output_window.add ("%NEiffel Code Analysis%N")
-			output_window.add ("--------------------%N")
+			output_window.add ("%NInspector Eiffel%N")
+			output_window.add ("----------------%N")
 
 			if restore_preferences then
 				l_code_analyzer.preferences.restore_defaults
+			elseif preference_file /= Void then -- The user wants to load preferences.
+				import_preferences (l_code_analyzer.preferences, preference_file)
 			end
 			l_code_analyzer.analyze
 
@@ -105,7 +112,18 @@ feature -- Execution (declared in EWB_CMD)
 			if not l_has_violations then output_window.add (ca_messages.no_issues + "%N") end
 		end
 
+	import_preferences (a_pref: PREFERENCES; a_xml_file: STRING)
+			-- Imports the preferences from the XML file `a_xml_file' to
+			-- `a_pref'.
+		local
+			l_storage: PREFERENCES_STORAGE_XML
+		do
+			create l_storage.make_with_location_and_version (a_xml_file, a_pref.version)
+			a_pref.import_from_storage (l_storage)
+		end
+
 	print_line (a_string: READABLE_STRING_GENERAL)
+			-- Prints `a_string' and a new line to the output window.
 		do
 			output_window.add (a_string + "%N")
 		end
@@ -125,7 +143,7 @@ feature -- Execution (declared in EWB_CMD)
 
 feature -- Info (declared in EWB_CMD)
 
-	name: STRING = "Code Analysis"
+	name: STRING = "Inspector Eiffel"
 			-- Name of this command-line tool.
 
 	help_message: STRING_GENERAL

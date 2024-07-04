@@ -13,6 +13,13 @@ function ref_rank_leq(r1, r2: ref): bool
 
 type Field _; // Type of a field (with open subtype)
 function IsGhostField<alpha>(field: Field alpha): bool; // Is this field a ghost field?
+function FieldId<alpha>(field: Field alpha, t: Type): int; // ID of field within t; used to express that all fields of the same class are distinct.
+
+// Default field value
+function Default<alpha>(Field alpha): alpha;
+axiom (forall f: Field bool :: !Default(f));
+axiom (forall f: Field int :: Default(f) == 0);
+axiom (forall f: Field ref :: Default(f) == Void);
 
 type HeapType = <alpha>[ref, Field alpha]alpha; // Type of a heap (with generic field subtype and generic content type)
 const unique allocated: Field bool; // Ghost field for allocation status of objects
@@ -71,6 +78,13 @@ const unique owner: Field ref; // Ghost field for owner of an object.
 const unique owns: Field (Set ref); // Ghost field for owns set of an object.
 const unique observers: Field (Set ref); // Ghost field for observers set of an object.
 const unique subjects: Field (Set ref); // Ghost field for subjects set of an object.
+
+// Field IDs for built-in attributes
+axiom (forall t: Type :: FieldId(closed, t) == -1);
+axiom (forall t: Type :: FieldId(owner, t) == -2);
+axiom (forall t: Type :: FieldId(owns, t) == -3);
+axiom (forall t: Type :: FieldId(observers, t) == -4);
+axiom (forall t: Type :: FieldId(subjects, t) == -5);
 
 // Analogue of `detachable_attribute' and `set_detachable_attribute' for built-in attributes:
 axiom (forall heap: HeapType, o: ref :: { heap[o, owner] } IsHeap(heap) && o != Void && heap[o, allocated] ==> heap[heap[o, owner], allocated]);
@@ -210,18 +224,26 @@ axiom (forall<T> h: HeapType, x: ref, o: ref, f: Field T :: { user_inv_readable(
   IsHeap(h) ==> user_inv_readable(h, x)[o, f] == (in_trans_owns(h, x, o) || h[x, subjects][o]));
   
 // Frame axiom
-axiom (forall h, h': HeapType, x: ref :: { user_inv(h', x), HeapSucc(h, h') } 
+axiom (forall h, h': HeapType, x: ref :: { user_inv(h, x), user_inv(h', x), HeapSucc(h, h') } 
   IsHeap(h) && IsHeap(h') && HeapSucc(h, h') &&
-  x != Void && h[x, allocated] && h'[x, allocated] &&   
+  x != Void && h[x, allocated] && h'[x, allocated] &&
+  is_open(h, x) && is_open(h', x) &&
   user_inv(h, x) && 
   (forall <T> o: ref, f: Field T :: h[o, allocated] ==> // every object's field
       h'[o, f] == h[o, f] ||                            // is unchanged
       f == closed || f == owner ||                      // or is outside of the read set of the invariant
-      (!in_domain(h, x, o) && !h[x, subjects][o]) ||    
-      (!in_domain(h, x, o) && f == subjects) ||         // or is the subjects field of one of the subjects
-      (!in_domain(h, x, o) && f == observers && Set#Subset(h[o, observers], h'[o, observers]))  // or is the observers of one of the subjects and it grows
+      !user_inv_readable(h, x)[o, f]
+      // (!in_trans_owns(h, x, o) && guard(h, o, f, h'[o, f], x)) // or changed in a way that conforms to its guard
    )
   ==> user_inv(h', x));
+
+// Old unsound frame axiom:  
+// h'[o, f] == h[o, f] ||                            // is unchanged
+// f == closed || f == owner ||                      // or is outside of the read set of the invariant
+// (!in_domain(h, x, o) && !h[x, subjects][o]) ||    
+// (!in_domain(h, x, o) && f == subjects) ||         // or is the subjects field of one of the subjects
+// (!in_domain(h, x, o) && f == observers && Set#Subset(h[o, observers], h'[o, observers]))  // or is the observers of one of the subjects and it grows
+  
 
 // Is object o closed or the invariant satisfied?
 function {:inline true} inv(h: HeapType, o: ref): bool {
@@ -238,12 +260,6 @@ function {:inline true} global(h: HeapType): bool
   (forall o: ref :: h[o, allocated] && is_open(h, o) ==> is_free(h, o)) &&
   (forall o: ref, o': ref :: {h[o, owns][o']} h[o, allocated] && h[o', allocated] && h[o, closed] && h[o, owns][o'] ==> (h[o', closed] && h[o', owner] == o)) && // G2
   (forall o: ref :: {user_inv(h, o)} h[o, allocated] ==> inv(h, o)) // G1
-}
-
-// Global invariant with a more permissive trigger: much slower, so only used in public routines  
-function {:inline true} global_public(h: HeapType): bool
-{
-  (forall o: ref :: {is_wrapped(h, o)} h[o, allocated] ==> inv(h, o)) // G1
 }
 
 // Condition under which an update heap[current, f] := v is guaranteed to preserve the invariant of o.
@@ -274,11 +290,7 @@ procedure allocate(t: Type) returns (result: ref);
   ensures Heap[result, allocated]; // AL2
   ensures result != Void;
   ensures type_of(result) == t;
-  ensures is_open(Heap, result); // AL3
-  ensures is_free(Heap, result); // AL4
-  ensures Set#Equal(Heap[result, owns], Set#Empty());
-  ensures Set#Equal(Heap[result, observers], Set#Empty());
-  ensures Set#Equal(Heap[result, subjects], Set#Empty());
+  ensures (forall<T> f: Field T :: f != allocated ==> Heap[result, f] == Default(f));
   ensures has_whole_object(writable, result);
   ensures (forall <T> o: ref, f: Field T :: o != result ==> Heap[o, f] == old(Heap[o, f]));
   free ensures HeapSucc(old(Heap), Heap);

@@ -54,12 +54,13 @@ feature -- Iteration
 			status: impure
 			explicit: contracts
 		require
+			is_wrapped: is_wrapped
 			modify_model (["observers"], Current)
 		deferred
 		ensure
 			is_wrapped: is_wrapped
 			result_fresh: Result.is_fresh
-			result_wrapped: Result.is_wrapped
+			result_wrapped: Result.is_wrapped and Result.inv
 			result_in_observers: observers = old observers & Result
 			target_definition: Result.target = Current
 			index_definition_found: has_key (k) implies Result.key_sequence [Result.index_] = k
@@ -78,7 +79,6 @@ feature -- Specification
 
 
 invariant
-	bag_domain_definition: bag.domain ~ map.range
 	bag_definition: bag ~ map.to_bag
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"

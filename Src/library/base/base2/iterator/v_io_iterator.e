@@ -22,6 +22,7 @@ feature -- Measurement
 	index_: INTEGER
 			-- Current position.
 		note
+			status: ghost
 			replaces: off_
 		attribute
 		end
@@ -33,6 +34,7 @@ feature -- Replacement
 		require
 			not_off: not off
 			target_wrapped: target.is_wrapped
+			other_observers_open: across target.observers as o all o.item /= Current implies o.item.is_open end
 			modify_model (["sequence"], Current)
 			modify_model (["bag"], target)
 		deferred
@@ -49,7 +51,7 @@ feature -- Replacement
 		require else
 			modify_model (["sequence", "index_"], Current)
 		do
-			check inv end
+			check inv_only ("subjects_definition", "subjects_contraint") end
 			put (v)
 			forth
 		ensure then
