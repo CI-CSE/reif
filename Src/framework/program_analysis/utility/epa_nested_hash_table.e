@@ -15,7 +15,7 @@ inherit
 		end
 
 create
-	make, make_with_equality_testers
+	make, make_with_equality_testers, make_with_default_equality_testers
 
 feature -- Initialization
 
@@ -28,6 +28,16 @@ feature -- Initialization
 			set_value_equality_tester (a_val_tester)
 			set_secondary_key_equailty_tester (a_k2_tester)
 			set_primary_key_equailty_tester (a_k1_tester)
+		end
+
+	make_with_default_equality_testers (n: INTEGER)
+			-- Initialization.
+		do
+			make (n)
+
+			set_value_equality_tester (create {KL_EQUALITY_TESTER_A[V]})
+			set_secondary_key_equailty_tester (create {KL_EQUALITY_TESTER_A [K2]})
+			set_primary_key_equailty_tester (create {KL_EQUALITY_TESTER_A [K1]})
 		end
 
 feature -- Access

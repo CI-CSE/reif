@@ -28,7 +28,7 @@ create
 
 feature -- Creation Procedures
 
-	make_with (a_ast: AST_EIFFEL)
+	make_with (a_ast: like ast)
 			-- Sets `ast' to `a_ast'
 		require
 			a_ast_not_void: a_ast /= Void
@@ -67,7 +67,6 @@ feature -- Process operations
 		do
 			-- Nothing to be done
 		end
-
 
 	process_nested_as (l_as: NESTED_AS)
 		do
@@ -114,10 +113,11 @@ feature -- Access
 
 	interesting_pre_states: DS_HASH_SET [INTEGER]
 			-- Contains all found interesting pre-states
+			-- in terms of breakpoint slots.
 
 feature -- Setting
 
-	set_ast (a_ast: AST_EIFFEL)
+	set_ast (a_ast: like ast)
 			-- Sets `ast' to `a_ast'
 		require
 			a_ast_not_void: a_ast /= Void

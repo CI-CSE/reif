@@ -1,65 +1,53 @@
 note
-	description: "Summary description for {EPA_STATE_TRANSITION_MODEL_STATE_EQUALITY_TESTER}."
+	description: "Summary description for {AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST}."
 	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	EPA_STATE_TRANSITION_MODEL_STATE_EQUALITY_TESTER
+	AUT_TEST_CASE_CATEGORIZER_BY_FEATURE_UNDER_TEST
 
 inherit
-    KL_EQUALITY_TESTER [EPA_STATE_TRANSITION_MODEL_STATE]
-    	redefine
-    		test
-    	select
-    		test
-    	end
-
-    EPA_STATE_EQUALITY_TESTER
-    	rename
-    		test as test_epa_state
-    	end
+	AUT_TEST_CASE_CATEGORIZER
 
 create
-    default_create
+	make
 
-feature -- Equality
+feature -- Data event handler
 
-	test (u, v: EPA_STATE_TRANSITION_MODEL_STATE): BOOLEAN
-			-- <Precurosr>
+	on_deserialization_started
+			-- <Precursor>
 		do
-			Result := test_epa_state (u, v)
---		    if u = v then
---		        Result := True
---		    elseif u = Void or else v = Void then
---		    	Result := False
---		    elseif u.class_.class_id = v.class_.class_id then
---		        if u.hash_code = v.hash_code and then u.count = v.count then
---    		        Result := True
---    		        from
---    		            u.start
---    		            v.start
---    		        until
---    		            u.after or not Result
---    		        loop
---    		            Result := equation_equality_tester.test (u.item_for_iteration, v.item_for_iteration)
---    		            u.forth
---    		            v.forth
---    		        end
---				end
---		    end
 		end
 
---feature{NONE} -- implementation
+	on_test_case_deserialized (a_data: AUT_DESERIALIZED_TEST_CASE)
+			-- <Precursor>
+		local
+			l_categories: DS_ARRAYED_LIST [STRING]
+		do
+			if a_data.test_case_text.is_empty then
+				l_categories := categorize (a_data)
+				write_test_case (a_data, l_categories)
+			end
+		end
 
---	equation_equality_tester: EPA_EQUATION_EQUALITY_TESTER
---			-- equality tester for predicates
---		once
---		    create Result
---		end
+	on_deserialization_finished
+			-- <Precursor>
+		do
+		end
+
+feature -- Basic operation
+
+	categorize (a_data: AUT_DESERIALIZED_TEST_CASE): DS_ARRAYED_LIST [STRING]
+			-- <Precursor>
+		do
+			create Result.make (2)
+			Result.force_last (a_data.tc_class_under_test)
+			Result.force_last (a_data.tc_feature_under_test)
+		end
 
 note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2011, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

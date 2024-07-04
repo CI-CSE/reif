@@ -12,7 +12,7 @@ create
 
 feature -- Access
 
-	register: EPA_NESTED_HASH_TABLE[AUT_DESERIALIZED_DATA, FEATURE_I, CLASS_C]
+	register: EPA_NESTED_HASH_TABLE[AUT_DESERIALIZED_TEST_CASE, FEATURE_I, CLASS_C]
 			-- Shared register.
 		do
 			Result := internal_register.item
@@ -25,12 +25,13 @@ feature -- Setting
 		do
 			internal_register.put (a_register)
 		end
+
 feature{NONE} -- Implementation
 
-	internal_register: CELL [EPA_NESTED_HASH_TABLE[AUT_DESERIALIZED_DATA, FEATURE_I, CLASS_C]]
+	internal_register: CELL [EPA_NESTED_HASH_TABLE[AUT_DESERIALIZED_TEST_CASE, FEATURE_I, CLASS_C]]
 			-- Internal storage for the register.
 		local
-			l_reg: EPA_NESTED_HASH_TABLE[AUT_DESERIALIZED_DATA, FEATURE_I, CLASS_C]
+			l_reg: EPA_NESTED_HASH_TABLE[AUT_DESERIALIZED_TEST_CASE, FEATURE_I, CLASS_C]
 		once
 			create l_reg.make_with_equality_testers (100, data_equality_tester, feature_equality_tester, class_equality_tester)
 			create Result.put (l_reg)
@@ -52,7 +53,7 @@ feature{NONE} -- Implementation
 		end
 
 ;note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2011, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
