@@ -21,17 +21,17 @@ feature -- Access
 	feature_field: STRING = "feature"
 
 	to_field_prefix: STRING = "to::"
-
 	by_field_prefix: STRING = "by::"
+	precondition_field_prefix: STRING = "pre::"
+	postcondition_field_prefix: STRING = "post::"
+	property_field_prefix: STRING = "prop::"
 
 	prefix_separator: STRING = "::"
 
 	changed_field_prefix: STRING = "changed::"
 
-	precondition_field_prefix: STRING = "pre::"
 	written_precondition_field_prefix: STRING = "written_pre::"
 
-	postcondition_field_prefix: STRING = "post::"
 	written_postcondition_field_prefix: STRING = "written_post::"
 
 	variables_field: STRING = "variables"
@@ -69,8 +69,6 @@ feature -- Access
 	library_field: STRING = "library"
 
 	serialization_field: STRING = "serialization"
-
-	property_field_prefix: STRING = "property::"
 
 	begin_field: STRING = "begin"
 
@@ -227,6 +225,55 @@ feature -- Access
 
 feature -- Access
 
+	property_types: HASH_TABLE [INTEGER, STRING]
+			-- Property types: Property, Precondition, Postcondition
+			--                 Absolute and relative change
+			-- The value is the identifier stored in a database
+		once
+			create Result.make (5)
+			Result.put (1, "prop")
+			Result.put (2, "pre")
+			Result.put (3, "post")
+			Result.put (4, "to")
+			Result.put (5, "by")
+		end
+
+	queryable_types: HASH_TABLE [INTEGER, STRING]
+			-- Queryable types: Object, Transition
+			-- The value is the identifier stored in a database
+		once
+			create Result.make (2)
+			Result.put (1, "object")
+			Result.put (2, "transition")
+		end
+
+	queryable_feature_types: HASH_TABLE [INTEGER, STRING]
+			-- Queryable types: Object, Transition
+			-- The value is the identifier stored in a database
+		once
+			create Result.make (2)
+			Result.put (1, "command")
+			Result.put (2, "query")
+		end
+
+	queryable_true_false: HASH_TABLE [INTEGER, STRING]
+			-- Mapping True to 1 and False to 0
+		once
+			create Result.make (2)
+			Result.put (0, "False")
+			Result.put (1, "True")
+		end
+
+	queryable_transition_status: HASH_TABLE [INTEGER, STRING]
+			-- Transition status for transition field in Queryable
+		once
+			create Result.make (2)
+			Result.put (1, "failing")
+			Result.put (2, "passing")
+		end
+
+feature -- Access
+
 	begin_field_value: STRING = "begin"
 	end_field_value: STRING = "end"
 
@@ -353,5 +400,57 @@ feature -- Status report
 		do
 			Result := True
 		end
+
+feature -- Property types
+
+	property_kind_object_property: INTEGER = 1
+			-- Property kind ID for a property in objects
+
+	property_kind_precondition: INTEGER = 2
+			-- Property kind ID for a precondition
+
+	property_kind_postcondition: INTEGER = 3
+			-- Property kind ID for a postcondition
+
+	property_kind_absolute_change: INTEGER = 4
+			-- Property kind ID for an absolute change
+
+	property_kind_relative_change: INTEGER = 5
+			-- Property kind ID for a relative change
+
+	is_property_kind_valid (a_kind: INTEGER): BOOLEAN
+			-- Is `a_kine' a valid property kind ID?
+		do
+			Result :=
+				a_kind = property_kind_precondition or else
+				a_kind = property_kind_postcondition or else
+				a_kind = property_kind_absolute_change or else
+				a_kind = property_kind_relative_change or else
+				a_kind = property_kind_object_property
+		end
+
+	property_kind_prefix (a_property_kind: INTEGER): STRING
+			-- Property prefix for `a_property_kind'
+		require
+			a_property_kind_valid: is_property_kind_valid (a_property_kind)
+		do
+			if a_property_kind = property_kind_precondition then
+				Result := precondition_field_prefix
+			elseif a_property_kind = property_kind_postcondition then
+				Result := postcondition_field_prefix
+			elseif a_property_kind = property_kind_absolute_change then
+				Result := to_field_prefix
+			elseif a_property_kind = property_kind_relative_change then
+				Result := by_field_prefix
+			elseif a_property_kind = property_kind_object_property then
+				Result := property_field_prefix
+			end
+		end
+
+	boolean_type_prefix: STRING = "b::"
+			-- Prefix for a boolean type
+
+	integer_type_prefix: STRING = "i::"
+			-- Prefix for an integer type
 
 end

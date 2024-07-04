@@ -184,7 +184,8 @@ feature -- Status report
 				a_type = object_state_request_flag or else
 				a_type = type_request_flag or else
 				a_type = precondition_evaluation_request_flag or else
-				a_type = predicate_evaluation_request_flag
+				a_type = predicate_evaluation_request_flag or else
+				a_type = execute_agent_creation_flag
 		end
 
 	should_generate_log: BOOLEAN
@@ -279,7 +280,7 @@ feature {NONE} -- Handlers
 			-- Report execute request.
 		require
 			last_request_attached: last_request /= Void
-			last_request_is_execute_request: last_request_type = execute_request_flag
+			last_request_is_execute_request: last_request_type = execute_request_flag or last_request_type = execute_agent_creation_flag
 		local
 			l_bcode: detachable STRING
 			l_cstring: C_STRING
@@ -314,7 +315,7 @@ feature {NONE} -- Handlers
 						l_bcode.count)
 
 						-- Test case serialization: retrieve pre-TC state.
-					if is_test_case_serialization_enabled then
+					if is_test_case_serialization_enabled and then not is_test_case_agent_creation then
 						retrieve_test_case_prestate (l_last_request.l_data)
 					end
 
@@ -345,7 +346,7 @@ feature {NONE} -- Handlers
 					end
 
 						-- Test case serialization.
-					if is_test_case_serialization_enabled then
+					if is_test_case_serialization_enabled and then not is_test_case_agent_creation then
 						retrieve_post_test_case_state
 						log_test_case_serialization
 					end
@@ -608,9 +609,13 @@ feature {NONE} -- Parsing
 				if last_request = Void then
 					report_error (once "Received data is not recognized as a request.")
 				else
+					is_test_case_agent_creation := False
 					inspect
 						last_request_type
 					when execute_request_flag then
+						report_execute_request
+					when execute_agent_creation_flag then
+						is_test_case_agent_creation := True
 						report_execute_request
 					when type_request_flag then
 						report_type_request
@@ -1506,6 +1511,9 @@ feature -- Test case serialization
 			-- Information about already created agent objects.
 			-- Key is variable ID, value is the agent creation information describing
 			-- how that agent is created.
+
+	is_test_case_agent_creation: BOOLEAN
+			-- Is the test case to-be-executed an agent creation?
 
 invariant
 	log_file_open_write: log_file.is_open_write

@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 
 		"AutoTest command line parser"
@@ -90,6 +90,7 @@ feature{NONE} -- Initialization
 			l_8times_option: AP_STRING_OPTION
 			l_9times_option: AP_STRING_OPTION
 			l_freeze_flag: AP_FLAG
+			l_agents_option: AP_STRING_OPTION
 		do
 			create parser.make_empty
 			parser.set_application_description ("auto_test is a contract-based automated testing tool for Eiffel systems.")
@@ -324,6 +325,10 @@ feature{NONE} -- Initialization
 			create l_freeze_flag.make_with_short_form ('f')
 			l_freeze_flag.set_description ("Freeze the target system before testing. Default: False")
 			parser.options.force_last (l_freeze_flag)
+
+			create l_agents_option.make_with_long_form ("agents")
+			l_agents_option.set_description ("Should features with agent type arguments be processed? Possible options: none, only, all. None means: don't process features of this kind. Only means: discard all but features of this kind. All means: Process all features. Default: all")
+			parser.options.force_last (l_agents_option)
 
 			parser.parse_list (a_arguments)
 
@@ -772,6 +777,20 @@ feature{NONE} -- Initialization
 				should_freeze_before_testing := True
 			end
 
+			is_executing_agent_features_enabled := True
+			is_executing_normal_features_enabled := True
+
+			if not error_handler.has_error and then l_agents_option.was_found then
+				if l_agents_option.parameter ~ "only" then
+					is_executing_normal_features_enabled := False
+				elseif l_agents_option.parameter ~ "none" then
+					is_executing_agent_features_enabled := False
+				elseif l_agents_option.parameter ~ "all" then
+					-- Do nothing
+				else
+					error_handler.report_statistics_format_error (l_agents_option.parameter)
+				end
+			end
 --			if parser.parameters.count = 0 then
 --				error_handler.report_missing_ecf_filename_error
 --				-- TODO: Display usage_instruction (currently not exported, find better way to do it.)
@@ -893,6 +912,12 @@ feature -- Status report
 
 	is_html_statistics_format_enabled: BOOLEAN
 			-- Should statistics be output static HTML?
+
+	is_executing_agent_features_enabled: BOOLEAN
+			-- Should features with agent type arguments be used for test cases?
+
+	is_executing_normal_features_enabled: BOOLEAN
+			-- Should features without arguments of agent type be used for test cases?
 
 	is_slicing_enabled: BOOLEAN
 			-- Should test cases be minimized via slicing?
