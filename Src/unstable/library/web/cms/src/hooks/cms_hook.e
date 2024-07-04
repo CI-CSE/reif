@@ -2,6 +2,7 @@ note
 	description: "[
 			Marker interface for CMS Hook
 		]"
+	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 

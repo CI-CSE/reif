@@ -885,6 +885,12 @@ feature {NONE} -- Byte code
 			object_store.assign_value (a_object, a_index)
 		end
 
+	variable_at_index (a_index: INTEGER): detachable ANY
+			-- Object in `object_store' at position `a_index'.
+		do
+			Result := object_store.variable_value (a_index)
+		end
+
 	main_loop
 			-- Main loop
 		do
