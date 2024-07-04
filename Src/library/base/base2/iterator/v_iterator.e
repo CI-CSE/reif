@@ -15,7 +15,7 @@ inherit
 			search as search_forth
 --			satisfy as satisfy_forth
 		redefine
-			is_equal,
+--			is_equal,
 			search_forth
 --			satisfy_forth
 		end
@@ -23,22 +23,22 @@ inherit
 	ITERATION_CURSOR [G]
 		rename
 			after as off
-		redefine
-			is_equal
+--		redefine
+--			is_equal
 		end
 
 feature -- Access
 
 	target: V_CONTAINER [G]
 			-- Container to iterate over.
-		deferred
-		end
 
 feature -- Measurement
 
 	index: INTEGER
 			-- Current position.
-		deferred
+		note
+			replaces: box
+		attribute
 		end
 
 	count_left: INTEGER
@@ -46,7 +46,7 @@ feature -- Measurement
 		note
 			status: functional
 		require
-			target_closed: target.closed
+			target_exists: target /= Void
 			reads (Current, target)
 		do
 			Result := target.count - index + 1
@@ -57,7 +57,7 @@ feature -- Measurement
 		note
 			status: functional
 		require
-			target_closed: target.closed
+			target_exists: target /= Void
 			reads (Current, target)
 		do
 			Result := 0 <= i and i <= target.count + 1
@@ -67,6 +67,8 @@ feature -- Status report
 
 	before: BOOLEAN
 			-- Is current position before any position in `target'?
+		require
+			closed
 		deferred
 		ensure
 			definition: Result = (index = 0)
@@ -74,6 +76,8 @@ feature -- Status report
 
 	after: BOOLEAN
 			-- Is current position after any position in `target'?
+		require
+			closed
 		deferred
 		ensure
 			definition: Result = (index = sequence.count + 1)
@@ -84,10 +88,14 @@ feature -- Status report
 		do
 			check inv end
 			Result := before or after
+		ensure then
+			new_definition: Result = not sequence.domain [index]
 		end
 
 	is_first: BOOLEAN
 			-- Is cursor at the first position?
+		require
+			closed
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index = 1)
@@ -95,32 +103,35 @@ feature -- Status report
 
 	is_last: BOOLEAN
 			-- Is cursor at the last position?
+		require
+			closed
 		deferred
 		ensure
 			definition: Result = (not sequence.is_empty and index = sequence.count)
 		end
 
-feature -- Comparison
+--feature -- Comparison
 
-	is_equal (other: like Current): BOOLEAN
-			-- Is `other' attached to the same container at the same position?
-			-- (Use reference comparison)
-		do
-			if other = Current then
-				Result := True
-			else
-				Result := target = other.target and index = other.index
-			end
-		ensure then
-			definition: Result = (target = other.target and sequence ~ other.sequence and index = other.index)
-		end
+--	is_equal (other: like Current): BOOLEAN
+			-- ToDo: not correct: there could potentially be different sequences for the same target, redefine later
+--			-- Is `other' attached to the same container at the same position?
+--			-- (Use reference comparison)
+--		do
+--			if other = Current then
+--				Result := True
+--			else
+--				Result := target = other.target and index = other.index
+--			end
+--		ensure then
+--			definition: Result = (target = other.target and sequence ~ other.sequence and index = other.index)
+--		end
 
 feature -- Cursor movement
 
 	start
 			-- Go to the first position.
-		note
-			modify: index
+		require else
+			modify_model ("index", Current)
 		deferred
 		ensure then
 			index_effect: index = 1
@@ -128,8 +139,8 @@ feature -- Cursor movement
 
 	finish
 			-- Go to the last position.
-		note
-			modify: index
+		require
+			modify_model ("index", Current)
 		deferred
 		ensure
 			index_effect: index = sequence.count
@@ -137,8 +148,6 @@ feature -- Cursor movement
 
 	forth
 			-- Go one position forward.
-		note
-			modify: index
 		deferred
 		ensure then
 			index_effect: index = old index + 1
@@ -146,10 +155,9 @@ feature -- Cursor movement
 
 	back
 			-- Go one position backward.
-		note
-			modify: index
 		require
 			not_off: not off
+			modify_model ("index", Current)
 		deferred
 		ensure
 			index_effect: index = old index - 1
@@ -158,32 +166,29 @@ feature -- Cursor movement
 	go_to (i: INTEGER)
 			-- Go to position `i'.
 		note
-			modify: index
 			explicit: wrapping
 		require
 			has_index: valid_index (i)
-			target_closed: target.closed
+			modify_model ("index", Current)
 		local
 			j: INTEGER
 		do
 			check inv end
 			if i = 0 then
 				go_before
-				check index = i end
 			elseif i = target.count + 1 then
 				go_after
-				check index = i end
 			elseif i = target.count then
 				finish
-				check index = i end
 			else
-				check not sequence.is_empty end
 				from
 					start
 					j := 1
 				invariant
-					1 <= j and j <= sequence.count
+					sequence.domain [i]
+					j_in_bounds: 1 <= j and j <= i
 					index_counter: index = j
+					inv
 				until
 					j = i
 				loop
@@ -197,8 +202,8 @@ feature -- Cursor movement
 
 	go_before
 			-- Go before any position of `target'.
-		note
-			modify: index
+		require
+			modify_model ("index", Current)
 		deferred
 		ensure
 			index_effect: index = 0
@@ -206,8 +211,8 @@ feature -- Cursor movement
 
 	go_after
 			-- Go after any position of `target'.
-		note
-			modify: index
+		require
+			modify_model ("index", Current)
 		deferred
 		ensure
 			index_effect: index = sequence.count + 1
@@ -218,7 +223,6 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `after'.
 			-- (Use reference equality.)
 		note
-			modify: index
 			explicit: wrapping
 		do
 			check inv end
@@ -226,6 +230,11 @@ feature -- Cursor movement
 				start
 			end
 			from
+			invariant
+				index.old_ <= index
+				not before
+				across index.old_.max (1) |..| (index - 1) as i all sequence [i.item] /= v end
+				inv
 			until
 				after or else item = v
 			loop
@@ -234,7 +243,7 @@ feature -- Cursor movement
 				count_left
 			end
 		ensure then
-			index_effect_not_found: not sequence.tail (old index).has (v) implies index = target.count + 1
+			index_effect_not_found: not sequence.tail (old index).has (v) implies index = sequence.count + 1
 			index_effect_found: sequence.tail (old index).has (v) implies
 				(sequence [index] = v and not sequence.interval (old index, index - 1).has (v))
 		end
@@ -272,17 +281,26 @@ feature -- Cursor movement
 			-- If `v' does not occur, move `before'.
 			-- (Use reference equality.)
 		note
-			modify: index
 			explicit: wrapping
+		require
+			modify_model ("index", Current)
 		do
+			check inv end
 			if after then
 				finish
 			end
 			from
+			invariant
+				index <= index.old_
+				not after
+				across (index + 1) |..| index.old_.min (sequence.count) as i all sequence [i.item] /= v end
+				inv
 			until
 				before or else item = v
 			loop
 				back
+			variant
+				index
 			end
 		ensure
 			index_effect_not_found: not sequence.front (old index).has (v) implies index = 0
@@ -329,14 +347,13 @@ feature -- Specification
 
 invariant
 	target_exists: target /= Void
+	subjects_definition: subjects = [target]
 	target_bag_constraint: target.bag ~ sequence.to_bag
 	index_constraint: 0 <= index and index <= sequence.count + 1
 	box_definition_empty: not sequence.domain [index] implies box.is_empty
 	box_definition_non_empty: sequence.domain [index] implies box ~ create {MML_SET [G]}.singleton (sequence [index])
-	subjects_definition: subjects = [target]
 
 note
-	explicit: owns, observers
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[

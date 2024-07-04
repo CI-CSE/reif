@@ -30,7 +30,7 @@ feature -- Access
 	last_safety_checks: LINKED_LIST [IV_ASSERT]
 			-- Last generated precondition of the invariant.
 
-	ghost_collector: E2B_GHOST_SET_COLLECTOR
+	builtin_collector: E2B_BUILTIN_CALLS_COLLECTOR
 			-- Visitor that collects information about the usage of built-in ghost fields.
 
 feature -- Basic operations
@@ -41,22 +41,24 @@ feature -- Basic operations
 			valid_type: a_type.is_class_valid
 			no_like_type: not a_type.is_like
 		local
+			l_class: CLASS_C
 			l_boogie_type_name: STRING
 			l_constant: IV_CONSTANT
 			l_path: PATH
 			l_dep: FILE_NAME
 		do
+			l_class := a_type.base_class
 			l_boogie_type_name := name_translator.boogie_name_for_type (a_type)
 
 				-- Add dependencies
 			across
-				helper.class_note_values (a_type.base_class, "theory") as deps
+				helper.class_note_values (l_class, "theory") as deps
 			loop
 				create l_path.make_from_string (deps.item)
 				if l_path.is_absolute then
 					create l_dep.make_from_string (deps.item)
 				else
-					create l_dep.make_from_string (l_path.absolute_path_in (a_type.base_class.lace_class.file_name.parent).canonical_path.out)
+					create l_dep.make_from_string (l_path.absolute_path_in (l_class.lace_class.file_name.parent).canonical_path.out)
 				end
 				boogie_universe.add_dependency (l_dep)
 			end
@@ -73,7 +75,7 @@ feature -- Basic operations
 			end
 
 			-- TODO: refactor
-			if not a_type.is_tuple and not helper.is_class_logical (a_type.base_class) then
+			if not a_type.is_tuple and not helper.is_class_logical (l_class) then
 					-- Type definition
 				create l_constant.make (l_boogie_type_name, types.type)
 				l_constant.set_unique
@@ -88,8 +90,17 @@ feature -- Basic operations
 				generate_inheritance_relations (a_type)
 
 					-- TODO: refactor
-				if a_type.base_class.name_in_upper /~ "ARRAY" then
+				if l_class.name_in_upper /~ "ARRAY" then
 					translate_invariant_function (a_type)
+				end
+			end
+
+				-- Check model clause
+			across
+				helper.model_queries (l_class) as m
+			loop
+				if a_type.base_class.feature_named_32 (m.item) = Void then
+					helper.add_semantic_error (l_class, messages.field_not_attribute (m.item, l_class.name_in_upper), -1)
 				end
 			end
 		end
@@ -146,7 +157,49 @@ feature {NONE} -- Implementation
 				create l_axiom.make (l_operation)
 				boogie_universe.add_declaration (l_axiom)
 
+					-- Link model queries
+				link_model_queries (a_type, l_parent)
+
 				l_parents.forth
+			end
+		end
+
+	link_model_queries (a_type: TYPE_A; a_parent_type: TYPE_A)
+			-- Generate axioms that link model queries of `a_parent_type' to model queries of `a_type'.
+		local
+			l_model: FEATURE_I
+			l_type_var: IV_VAR_TYPE
+			l_f, l_old_m, l_new_m: IV_ENTITY
+			l_def: IV_EXPRESSION
+			l_fcall: IV_FUNCTION_CALL
+			l_forall: IV_FORALL
+		do
+			across helper.model_queries (a_parent_type.base_class) as m loop
+				l_model := a_parent_type.base_class.feature_named_32 (m.item)
+				if attached l_model and not helper.model_queries (system.any_type.base_class).has (m.item) then
+					create l_type_var.make_fresh
+					create l_f.make ("$f", types.field (l_type_var))
+					create l_old_m.make (
+						name_translator.boogie_procedure_for_feature (l_model, a_parent_type),
+						types.field (types.for_type_in_context (l_model.type, a_parent_type)))
+
+					l_def := factory.false_
+					across helper.model_represented (l_model, a_parent_type.base_class, a_type.associated_class) as m1 loop
+						create l_new_m.make (
+							name_translator.boogie_procedure_for_feature (m1.item, a_type),
+							types.field (types.for_type_in_context (m1.item.type, a_type)))
+						l_def := factory.or_clean (l_def, factory.equal (l_f, l_new_m))
+					end
+					l_fcall := factory.function_call ("ModelRepresents", <<
+							l_f, factory.type_value (a_type),
+							l_old_m, factory.type_value (a_parent_type) >>,
+						types.bool)
+					create l_forall.make (factory.equiv (l_fcall, l_def))
+					l_forall.add_type_variable (l_type_var.name)
+					l_forall.add_bound_variable (l_f.name, l_f.type)
+					l_forall.add_trigger (l_fcall)
+					boogie_universe.add_declaration (create {IV_AXIOM}.make (l_forall))
+				end
 			end
 		end
 
@@ -181,19 +234,20 @@ feature {NONE} -- Implementation
 			create l_mapping.make
 			l_mapping.set_heap (l_heap)
 			l_mapping.set_current (l_current)
+			create builtin_collector
 			process_invariants (a_ancestor, a_type, a_included, a_excluded, l_mapping)
 				-- Add ownership defaults unless included clauses are explicitly specified
 			if options.is_ownership_enabled and a_included = Void then
 				if not a_type.base_class.is_deferred then
 						-- For an effective class: built-in ghost sets are empty by default
 						-- (ToDo: the policy seems arbitrary, should it be for all non-frozen classes?)
-					if not helper.is_class_explicit (a_type.base_class, "observers") and not ghost_collector.has_observers then
+					if not helper.is_class_explicit (a_type.base_class, "observers") and not builtin_collector.has_observers then
 						last_clauses.extend (empty_set_property ("observers"))
 					end
-					if not helper.is_class_explicit (a_type.base_class, "subjects") and not ghost_collector.has_subjects then
+					if not helper.is_class_explicit (a_type.base_class, "subjects") and not builtin_collector.has_subjects then
 						last_clauses.extend (empty_set_property ("subjects"))
 					end
-					if not helper.is_class_explicit (a_type.base_class, "owns") and not ghost_collector.has_owns then
+					if not helper.is_class_explicit (a_type.base_class, "owns") and not builtin_collector.has_owns then
 						last_clauses.extend (empty_set_property ("owns"))
 					end
 				end
@@ -209,7 +263,7 @@ feature {NONE} -- Implementation
 		do
 			Result := factory.function_call (
 				"Set#IsEmpty",
-				<< factory.heap_access ("heap", create {IV_ENTITY}.make ("current", types.ref), a_name, types.set (types.ref)) >>,
+				<< factory.heap_access (factory.entity ("heap", types.heap), factory.entity ("current", types.ref), a_name, types.set (types.ref)) >>,
 				types.bool)
 		end
 
@@ -218,7 +272,6 @@ feature {NONE} -- Implementation
 		do
 			create last_clauses.make
 			create last_safety_checks.make
-			create ghost_collector
 			process_flat_invariants (a_class, a_context_type, a_included, a_excluded, a_mapping)
 		end
 
@@ -271,6 +324,8 @@ feature {NONE} -- Implementation
 						l_translator.set_origin_class (a_class)
 						l_translator.set_context_line_number (l_assert.line_number)
 						l_translator.set_context_tag (l_assert.tag)
+						l_translator.set_context_readable (factory.function_call ("user_inv_readable", << factory.global_heap, factory.std_current >>, types.frame))
+--						l_translator.set_restricted_context_readable (factory.function_call ("user_inv_function_readable", << factory.global_heap, factory.std_current >>, types.frame))
 						l_assert.process (l_translator)
 						last_safety_checks.append (l_translator.side_effect)
 						last_safety_checks.extend (create {IV_ASSERT}.make_assume (l_translator.last_expression))
@@ -284,7 +339,7 @@ feature {NONE} -- Implementation
 							generate_ghost_set_definition (l_translator.last_expression, a_context_type, "observers")
 						end
 					end
-					l_assert.process (ghost_collector)
+					l_assert.process (builtin_collector)
 
 					l_list.forth
 				end
@@ -354,7 +409,7 @@ feature {NONE} -- Implementation
 			-- If `a_expr' has the form `a_name = def' return `def', otherwise `Void'.
 		do
 			if attached {IV_FUNCTION_CALL} a_expr as fcall and then fcall.name ~ "Set#Equal" then
-				if fcall.arguments [1].same_expression (factory.heap_access (a_heap.name, a_current, a_name, types.set (types.ref))) then
+				if fcall.arguments [1].same_expression (factory.heap_access (a_heap, a_current, a_name, types.set (types.ref))) then
 					Result := fcall.arguments [2]
 				end
 			end
@@ -365,7 +420,6 @@ feature -- Invariant admissibility
 	generate_invariant_admissability_check (a_class: CLASS_C)
 			-- Generate invariant admissability check for class `a_class'.
 		local
-			l_reads_collector: E2B_READS_COLLECTOR
 			l_proc: IV_PROCEDURE
 			l_impl: IV_IMPLEMENTATION
 			l_pre: IV_PRECONDITION
@@ -387,8 +441,6 @@ feature -- Invariant admissibility
 			l_proc.add_argument ("Current", types.ref)
 			create l_pre.make (factory.function_call ("attached_exact", << factory.global_heap, factory.std_current, factory.type_value (a_class.actual_type) >>, types.bool))
 			l_proc.add_contract (l_pre)
-			create l_pre.make (factory.function_call ("global", << factory.global_heap >>, types.bool))
-			l_proc.add_contract (l_pre)
 			create l_assume.make_assume (factory.function_call ("user_inv", << factory.global_heap, factory.std_current >>, types.bool))
 
 			create l_goto.make_empty
@@ -399,9 +451,16 @@ feature -- Invariant admissibility
 			create l_block.make_name ("pre")
 			l_goto.add_target (l_block)
 			l_impl.body.add_statement (l_block)
+			create builtin_collector
+			builtin_collector.set_any_target
 			process_invariants (a_class, a_class.actual_type, Void, Void, create {E2B_ENTITY_MAPPING}.make)
 			across last_safety_checks as i loop
 				l_block.add_statement (i.item)
+			end
+
+				-- A3: o.inv does not mention closed and owner (static check)
+			if builtin_collector.is_inv_unfriendly then
+				helper.add_semantic_error (a_class, messages.invalid_call_in_invariant, -1)
 			end
 
 				-- A1: reads(o.inv) is subset of domain(o) + o.subjects
@@ -423,17 +482,6 @@ feature -- Invariant admissibility
 			l_block.add_statement (l_assume)
 			create l_assert.make (factory.function_call ("admissibility2", << factory.global_heap, factory.std_current >>, types.bool))
 			l_assert.node_info.set_type ("A2")
-			l_block.add_statement (l_assert)
-			l_block.add_statement (factory.return)
-
-				-- A3: o.inv does not mention closed/owner/is_open/is_closed/is_wrapped
-
-			create l_block.make_name ("a3")
-			l_goto.add_target (l_block)
-			l_impl.body.add_statement (l_block)
-			l_block.add_statement (l_assume)
-			create l_assert.make (factory.true_)
-			l_assert.node_info.set_type ("A3")
 			l_block.add_statement (l_assert)
 			l_block.add_statement (factory.return)
 
@@ -469,7 +517,10 @@ feature -- Invariant admissibility
 			l_failure: E2B_FAILED_VERIFICATION
 			l_error: E2B_DEFAULT_VERIFICATION_ERROR
 		do
-			if a_boogie_result.is_successful then
+			if a_result_generator.has_validity_error (Void, a_class) then
+				-- Ignore results of classes with a validity error
+
+			elseif a_boogie_result.is_successful then
 				create l_success
 				l_success.set_class (a_class)
 				l_success.set_time (a_boogie_result.time)

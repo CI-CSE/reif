@@ -9,14 +9,16 @@ class
 
 inherit
 	COMPARABLE
-		redefine out end
+		rename
+			out as csv_line
+		redefine csv_line end
 
 create
 	make_with_rule
 
 feature {NONE} -- Initialization
 
-	make_with_rule (a_rule: CA_RULE)
+	make_with_rule (a_rule: attached CA_RULE)
 			-- Initializes a violation of rule `a_rule'.
 		do
 			rule := a_rule
@@ -58,24 +60,18 @@ feature -- Inherited from {COMPARABLE}
 	is_less alias "<" (a_other: like Current): BOOLEAN
 			-- Shall `Current' be "before" `a_other'. (For sorting, for example.)
 		do
-			if attached location as l_location then
-				if attached a_other.location as l_other_location then
-					if l_location.line = l_other_location.line then
-						Result := (l_location.column < l_other_location.column)
-					else
-						Result := (l_location.line < l_other_location.line)
-					end
+			if attached location as l_location and then attached a_other.location as l_other_location then
+				if l_location.line = l_other_location.line then
+					Result := (l_location.column < l_other_location.column)
 				else
-					Result := False
+					Result := (l_location.line < l_other_location.line)
 				end
-			else
-				Result := False
 			end
 		end
 
 feature {CA_RULE} -- Setting violation properties
 
-	set_affected_class (a_class: CLASS_C)
+	set_affected_class (a_class: attached CLASS_C)
 			-- Sets the class that this violations refers to to 'a_class'. This is only
 			-- needed when 'a_class' differs from '{CA_RULE}.checking_class' of the rule at
 			-- the time this violation is created. (See 'make_with_rule'.)
@@ -83,7 +79,7 @@ feature {CA_RULE} -- Setting violation properties
 			affected_class := a_class
 		end
 
-	set_location (a_location: LOCATION_AS)
+	set_location (a_location: attached LOCATION_AS)
 			-- Sets the location in code to `a_location'.
 		do
 			location := a_location
@@ -91,7 +87,7 @@ feature {CA_RULE} -- Setting violation properties
 
 feature -- String representation
 
-	out: STRING
+	csv_line: STRING
 			-- String representation of `Current' as a CSV line.
 		local
 			l_yankee: YANK_STRING_WINDOW
@@ -100,7 +96,7 @@ feature -- String representation
 			Result.append_character (';')
 			Result.append (affected_class.name)
 			Result.append_character (';')
-			if attached location then
+			if location /= Void then
 				Result.append (location.line.out)
 				Result.append (", ")
 				Result.append (location.column.out)

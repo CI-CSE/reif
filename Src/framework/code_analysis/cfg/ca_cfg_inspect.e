@@ -15,13 +15,13 @@ create
 
 feature {NONE} -- Initialization
 
-	make_complete (a_expr: EXPR_AS; a_intervals: detachable LIST [EIFFEL_LIST [INTERVAL_AS]]; a_has_else: BOOLEAN; a_label: INTEGER)
+	make_complete (a_expr: attached EXPR_AS; a_intervals: detachable LIST [EIFFEL_LIST [INTERVAL_AS]]; a_has_else: BOOLEAN; a_label: INTEGER)
 			-- Initializes `Current' with inspect expression `a_expr', inspect intervals `a_intervals', and label `a_label'.
 			-- `a_has_else' is True iff the inspect has an else clause.
 		do
 			initialize
 			has_else := a_has_else
-			if attached a_intervals then
+			if a_intervals /= Void then
 				n_when_branches := a_intervals.count
 			end
 			if a_has_else then
@@ -64,7 +64,7 @@ feature -- Properties
 			-- The else branch, if existing.
 		do
 			if has_else then
-				Result := out_edges.at (n_when_branches + 1)
+				Result := out_edges [n_when_branches + 1]
 			else
 				Result := Void
 			end
@@ -76,20 +76,20 @@ feature -- Properties
 	has_else: BOOLEAN
 			-- Does the inspect instruction have an else branch?
 
-	set_when_branch (a_bb: CA_CFG_BASIC_BLOCK; a_index: INTEGER)
+	set_when_branch (a_bb: attached CA_CFG_BASIC_BLOCK; a_index: INTEGER)
 			-- Sets the when branch with index `a_index' to `a_bb'.
 		require
 			valid_index: (a_index >= 1) and (a_index <= n_when_branches)
 		do
-			out_edges.put_i_th (a_bb, a_index)
+			out_edges [a_index] := a_bb
 		end
 
-	set_else_branch (a_bb: CA_CFG_BASIC_BLOCK)
+	set_else_branch (a_bb: attached CA_CFG_BASIC_BLOCK)
 			-- Sets the else branch to `a_bb'.
 		require
 			has_else
 		do
-			out_edges.put_i_th (a_bb, n_when_branches + 1)
+			out_edges [n_when_branches + 1] := a_bb
 		end
 
 invariant

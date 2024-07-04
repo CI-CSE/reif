@@ -17,8 +17,7 @@ inherit
 		redefine
 			tooltext,
 			new_sd_toolbar_item,
-			new_mini_sd_toolbar_item,
-			initialize_sd_toolbar_item
+			new_mini_sd_toolbar_item
 		end
 
 	CA_SHARED_NAMES
@@ -41,6 +40,8 @@ feature {NONE} -- Initialization
 		local
 			e: ES_CA_FIX_EXECUTOR
 		do
+			initialize_preferences
+
 			enable_sensitive
 			set_up_menu_items
 
@@ -222,7 +223,7 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 				l_changed_timestamp := l_class.date
 				if l_changed_timestamp /= l_analysis_timestamp then
 					code_analyzer.rule_violations.remove (l_class.compiled_class)
-					code_analyzer.add_class (l_class)
+					code_analyzer.add_class (l_class.config_class)
 				end
 
 				analysis_timestamp.forth
@@ -266,7 +267,7 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 			l_scope_label := ca_tool.panel.scope_label
 
 			if attached {CLASSC_STONE} a_stone as s then
-				code_analyzer.add_class (s.class_i)
+				code_analyzer.add_class (s.class_i.config_class)
 				l_scope_label.set_text (s.class_name)
 				l_scope_label.set_foreground_color (create {EV_COLOR}.make_with_8_bit_rgb (140, 140, 255))
 				l_scope_label.set_pebble (s)
@@ -345,10 +346,12 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 		once
 			create l_generator
 			Result := l_generator.generate_uuid
+		ensure
+			valid_result: Result /= Void
 		end
 
 	ca_tool: detachable ES_CODE_ANALYSIS_TOOL
-			-- Proof tool (if applicable).
+			-- Analysis tool (if applicable).
 		local
 			l_tool: ES_TOOL [EB_TOOL]
 			l_window: EB_DEVELOPMENT_WINDOW
@@ -365,7 +368,7 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 		end
 
 	show_ca_tool
-			-- Shows the proof tool.
+			-- Shows the analysis tool.
 		local
 			l_tool: ES_CODE_ANALYSIS_TOOL
 		do
@@ -376,38 +379,55 @@ feature {ES_CODE_ANALYSIS_BENCH_HELPER} -- Basic operations
 		end
 
 	disable_tool_button
-			-- Disable proof button on tool.
+			-- Disable analysis button on tool.
 		local
 			l_tool: ES_CODE_ANALYSIS_TOOL
 		do
 			l_tool := ca_tool
 			if l_tool /= Void and then l_tool.is_tool_instantiated then
-				ca_tool.panel.run_analysis_button.disable_sensitive
+				ca_tool.panel.whole_system_button.disable_sensitive
+				ca_tool.panel.current_item_button.disable_sensitive
 			end
 		end
 
 	enable_tool_button
-			-- Enable proof button on tool.
+			-- Enable analysis button on tool.
 		local
 			l_tool: ES_CODE_ANALYSIS_TOOL
 		do
 			l_tool := ca_tool
 			if l_tool /= Void and then l_tool.is_tool_instantiated then
-				ca_tool.panel.run_analysis_button.enable_sensitive
+				ca_tool.panel.whole_system_button.enable_sensitive
+				ca_tool.panel.current_item_button.enable_sensitive
 			end
 		end
 
 feature -- Items
 
-	new_sd_toolbar_item (display_text: BOOLEAN): EB_SD_COMMAND_TOOL_BAR_DUAL_POPUP_BUTTON
+	new_sd_toolbar_item (display_text: BOOLEAN): EB_SD_COMMAND_TOOL_BAR_BUTTON
 			-- <Precursor>
 		do
 			create Result.make (Current)
 			initialize_sd_toolbar_item (Result, display_text)
-			Result.select_actions.extend (agent execute)
+			Result.set_text ("Analyze item")
+			Result.set_tooltip ("Click to analyze the current item. Drop a stone to analyze any class, cluster, or configuration group.")
+			Result.select_actions.extend (agent analyze_current_item)
 
 			Result.drop_actions.extend (agent execute_with_stone)
 			Result.drop_actions.set_veto_pebble_function (agent droppable)
+		ensure then
+			valid_result: Result /= Void
+		end
+
+	new_whole_system_toolbar_item (display_text: BOOLEAN): EB_SD_COMMAND_TOOL_BAR_BUTTON
+		do
+			create Result.make (Current)
+			initialize_sd_toolbar_item (Result, display_text)
+			Result.set_text ("Analyze system")
+			Result.set_tooltip ("Analyze whole system")
+			Result.select_actions.extend (agent execute)
+		ensure then
+			valid_result: Result /= Void
 		end
 
 	new_mini_sd_toolbar_item: EB_SD_COMMAND_TOOL_BAR_BUTTON
@@ -416,13 +436,8 @@ feature -- Items
 			Result := Precursor {EB_TOOLBARABLE_AND_MENUABLE_COMMAND}
 			Result.drop_actions.extend (agent execute_with_stone)
 			Result.drop_actions.set_veto_pebble_function (agent droppable)
-		end
-
-	initialize_sd_toolbar_item (a_item: EB_SD_COMMAND_TOOL_BAR_DUAL_POPUP_BUTTON; display_text: BOOLEAN)
-			-- <Precursor>
-		do
-			Precursor (a_item, display_text)
-			a_item.set_menu_function (agent drop_down_menu)
+		ensure then
+			valid_result: Result /= Void
 		end
 
 feature -- Status report
@@ -502,6 +517,8 @@ feature {NONE} -- Implementation
 		do
 			check service_consumer.is_service_available end
 			Result := service_consumer.service
+		ensure
+			valid_result: Result /= Void
 		end
 
 	set_up_menu_items
@@ -562,6 +579,96 @@ feature {NONE} -- Implementation
 		do
 			Result := "Code Analysis"
 		end
+
+feature -- GUI preferences
+
+	code_analysis_namespace: STRING = "tools.code_analysis"
+			-- The namespace for the Code Analysis preferences.
+
+	initialize_preferences
+			-- Initializes the preferences related to the tool panel.
+		local
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
+			l_factory: GRAPHICAL_PREFERENCE_FACTORY
+			l_manager: PREFERENCE_MANAGER
+		do
+			create l_helper
+			code_analyzer := l_helper.code_analyzer
+			create l_factory
+			l_manager := code_analyzer.preferences.new_manager (code_analysis_namespace)
+
+			error_bgcolor := l_factory.new_color_preference_value (l_manager,
+				ca_names.color_category + "." + ca_names.error_bgcolor, default_error_bgcolor)
+			error_bgcolor.set_default_value (color_string (default_error_bgcolor))
+			warning_bgcolor := l_factory.new_color_preference_value (l_manager,
+				ca_names.color_category + "." + ca_names.warning_bgcolor, default_warning_bgcolor)
+			warning_bgcolor.set_default_value (color_string (default_warning_bgcolor))
+			suggestion_bgcolor := l_factory.new_color_preference_value (l_manager,
+				ca_names.color_category + "." + ca_names.suggestion_bgcolor, default_suggestion_bgcolor)
+			suggestion_bgcolor.set_default_value (color_string (default_suggestion_bgcolor))
+			hint_bgcolor := l_factory.new_color_preference_value (l_manager,
+				ca_names.color_category + "." + ca_names.suggestion_bgcolor, default_hint_bgcolor)
+			hint_bgcolor.set_default_value (color_string (default_hint_bgcolor))
+			fixed_violation_bgcolor := l_factory.new_color_preference_value (l_manager,
+				ca_names.color_category + "." + ca_names.fixed_violation_bgcolor, default_fixed_violation_bgcolor)
+			fixed_violation_bgcolor.set_default_value (color_string (default_fixed_violation_bgcolor))
+		end
+
+	color_string (a_color: attached EV_COLOR): STRING
+			-- String representation of `a_color' for use in preferences.
+		do
+			create Result.make_empty
+			Result.append_integer (a_color.red_8_bit)
+			Result.append_character (';')
+			Result.append_integer (a_color.green_8_bit)
+			Result.append_character (';')
+			Result.append_integer (a_color.blue_8_bit)
+		ensure
+			valid_result: Result /= Void
+		end
+
+	error_bgcolor,
+	warning_bgcolor,
+	suggestion_bgcolor,
+	hint_bgcolor,
+	fixed_violation_bgcolor: COLOR_PREFERENCE
+			-- Color preferences
+
+	default_error_bgcolor: EV_COLOR
+		do
+			create Result.make_with_8_bit_rgb (255, 220, 220)
+		ensure
+			valid_result: Result /= Void
+		end
+
+	default_warning_bgcolor: EV_COLOR
+		do
+			create Result.make_with_8_bit_rgb (255, 255, 188)
+		ensure
+			valid_result: Result /= Void
+		end
+
+	default_suggestion_bgcolor: EV_COLOR
+		do
+			create Result.make_with_8_bit_rgb (239, 228, 176)
+		ensure
+			valid_result: Result /= Void
+		end
+
+	default_hint_bgcolor: EV_COLOR
+		do
+			create Result.make_with_8_bit_rgb (188, 226, 193)
+		ensure
+			valid_result: Result /= Void
+		end
+
+	default_fixed_violation_bgcolor: EV_COLOR
+		do
+			create Result.make_with_8_bit_rgb (181, 230, 29)
+		ensure
+			valid_result: Result /= Void
+		end
+
 
 note
 	copyright: "Copyright (c) 1984-2014, Eiffel Software"

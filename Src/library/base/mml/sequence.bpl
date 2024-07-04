@@ -127,13 +127,17 @@ function {: inline } Seq#ButFirst<T>(q: Seq T): Seq T
 function {: inline } Seq#ButLast<T>(q: Seq T): Seq T
 { Seq#Take(q, Seq#Length(q) - 1) } 
 
+// Prefix until upper
+function {: inline } Seq#Front<T>(q: Seq T, upper: int): Seq T
+{ if 0 <= upper then Seq#Take(q, upper) else Seq#Empty() } 
+
 // Suffix from lower
 function {: inline } Seq#Tail<T>(q: Seq T, lower: int): Seq T
-{ Seq#Drop(q, lower - 1) } 
+{ if 1 <= lower then Seq#Drop(q, lower - 1) else q } 
 
 // Subsequence from lower to upper
 function {: inline } Seq#Interval<T>(q: Seq T, lower: int, upper: int): Seq T
-{ Seq#Drop(Seq#Take(q, upper), lower - 1) } 
+{ Seq#Tail(Seq#Front(q, upper), lower) } 
 
 // Sequence with element at position i removed
 function {: inline } Seq#RemovedAt<T>(q: Seq T, i: int): Seq T
@@ -182,6 +186,8 @@ axiom (forall<T> s: Seq T, v: T ::
     Seq#ToBag(Seq#Extended(s, v)) == Bag#Extended(Seq#ToBag(s), v)
   );
 axiom (forall<T> :: Seq#ToBag(Seq#Empty(): Seq T) == Bag#Empty(): Bag T);
+axiom (forall<T> s: Seq T :: { Bag#Card(Seq#ToBag(s)) }
+  Bag#Card(Seq#ToBag(s)) == Seq#Length(s));
 
 // concatenation axiom
 axiom (forall<T> a: Seq T, b: Seq T ::
@@ -195,8 +201,8 @@ axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
     Seq#ToBag(Seq#Update(s, i, v))[x] ==
       Bag#Union(Bag#Difference(Seq#ToBag(s), Bag#Singleton(Seq#Item(s,i))), Bag#Singleton(v))[x] );
   // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
-axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] }
-  (exists i : int :: { Seq#Item(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Item(s,i)) <==> 0 < Seq#ToBag(s)[x] );    
+axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#Has(s, x) <==> 0 < Seq#ToBag(s)[x]);
+axiom (forall<T> s: Seq T, x: T :: { Seq#ToBag(s)[x] } Seq#ToBag(s)[x] == Seq#Occurrences(s, x));
 
 // Additional axioms about common things
     

@@ -21,6 +21,8 @@ feature -- Status report
 
 	off: BOOLEAN
 			-- Is current position off scope?
+		require
+			closed: closed
 		deferred
 		ensure
 			definition: Result = box.is_empty
@@ -32,7 +34,7 @@ feature -- Cursor movement
 			-- Move one position forward.
 		require
 			not_off: not off
-			modify_field ("box", Current)
+			modify_model ("box", Current)
 		deferred
 		end
 
@@ -43,11 +45,12 @@ feature -- Cursor movement
 		note
 			explicit: wrapping
 		require
-			modify_field ("box", Current)
+			modify_model ("box", Current)
 		do
 			from
 			invariant
 				decreases ([])
+				inv
 			until
 				off or else item = v
 			loop
@@ -88,9 +91,9 @@ feature -- Specification
 
 invariant
 	box_count_constraint: box.count <= 1
+	no_observers: observers = []
 
 note
-	explicit: owns, subjects, observers
 	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[

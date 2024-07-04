@@ -44,6 +44,13 @@ feature
 			x := prev.x
 		end
 
+	get_x: INTEGER
+		note
+			status: functional
+		do
+			Result := x
+		end
+
 feature {A_A}
 
 	set_to_next
@@ -67,6 +74,12 @@ feature {A_A}
 		ensure
 			open: is_open
 			almost_holds: inv_without ("prev_exists")
+		end
+
+	something
+		require
+			next /= Void
+		do
 		end
 
 	set_prev

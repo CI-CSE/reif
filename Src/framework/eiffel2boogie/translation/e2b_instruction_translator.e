@@ -196,7 +196,7 @@ feature -- Processing
 				end
 				translation_pool.add_referenced_feature (l_feature, current_type)
 				l_target := factory.heap_access (
-					entity_mapping.heap.name,
+					entity_mapping.heap,
 					entity_mapping.current_expression,
 					name_translator.boogie_procedure_for_feature (l_feature, current_type),
 					types.for_type_a (l_feature.type))
@@ -588,7 +588,7 @@ feature -- Processing
 			l_variant_locals: ARRAYED_LIST [IV_ENTITY]
 			l_variant_exprs: ARRAYED_LIST [IV_EXPRESSION]
 			l_assignment: IV_ASSIGNMENT
-			l_modifies, l_decreases: ARRAYED_LIST [ASSERT_B]
+			l_modifies, l_decreases: ARRAYED_LIST [E2B_ASSERT_ORIGIN]
 		do
 			set_current_origin_information (a_node)
 
@@ -619,9 +619,9 @@ feature -- Processing
 				loop
 					l_invariant ?= a_node.invariant_part.item
 					if helper.is_clause_modify (l_invariant) then
-						l_modifies.extend (l_invariant)
+						l_modifies.extend (create {E2B_ASSERT_ORIGIN}.make (l_invariant, current_feature.written_class))
 					elseif helper.is_clause_decreases (l_invariant) then
-						l_decreases.extend (l_invariant)
+						l_decreases.extend (create {E2B_ASSERT_ORIGIN}.make (l_invariant, current_feature.written_class))
 					end
 					a_node.invariant_part.forth
 				end
@@ -629,10 +629,8 @@ feature -- Processing
 
 				-- Process modifies
 			l_frame := process_loop_modifies (l_modifies)
-			if l_frame.writable /= Void then
-				l_old_writable := local_writable
-				local_writable := l_frame.writable
-			end
+			l_old_writable := local_writable
+			local_writable := l_frame.writable
 
 				-- Goto head
 			create l_goto.make (l_head_block)
@@ -687,10 +685,9 @@ feature -- Processing
 			create l_assume.make_assume (l_condition)
 			add_statement (l_assume)
 
-				-- If the loop had its own writable, revert to the old local writable
-			if l_old_writable /= Void then
-				local_writable := l_old_writable
-			end
+				-- Revert to the old local writable
+			local_writable := l_old_writable
+
 			current_block := l_temp_block
 		end
 
@@ -1026,7 +1023,7 @@ feature -- Processing
 
 feature {NONE} -- Loop processing
 
-	process_loop_modifies (a_modifies: LIST [ASSERT_B]): TUPLE [frame: IV_ENTITY; writable: IV_ENTITY]
+	process_loop_modifies (a_modifies: LIST [E2B_ASSERT_ORIGIN]): TUPLE [frame: IV_ENTITY; writable: IV_ENTITY]
 			-- Process `a_modifies', initialize the loop frame and writable sets and return the correspoding local variables.
 		require
 			modifies_exists: a_modifies /= Void
@@ -1050,7 +1047,7 @@ feature {NONE} -- Loop processing
 				create l_assert.make (factory.function_call ("Frame#Subset", <<l_frame, context_writable>>, types.bool))
 				l_assert.node_info.set_type ("check")
 				l_assert.node_info.set_tag ("frame_writable")
-				l_assert.node_info.set_line (a_modifies.first.line_number)
+				l_assert.node_info.set_line (a_modifies.first.clause.line_number)
 				l_assert.set_attribute_string (":subsumption 0")
 				add_statement (l_assert)
 
@@ -1134,7 +1131,7 @@ feature {NONE} -- Loop processing
 			end
 		end
 
-	process_loop_variants (a_variant: VARIANT_B; a_decreases: LIST [ASSERT_B]; a_exit_condition: IV_EXPRESSION; a_variant_exprs, a_variant_locals: LIST [IV_EXPRESSION])
+	process_loop_variants (a_variant: VARIANT_B; a_decreases: LIST [E2B_ASSERT_ORIGIN]; a_exit_condition: IV_EXPRESSION; a_variant_exprs, a_variant_locals: LIST [IV_EXPRESSION])
 			-- Process variant `a_variant' and decreases clauses `a_decreases'
 			-- and fill `a_variant_exprs' and `a_variant_locals' with variant expressions and local variables that store their value at the biginning of the iteration;
 			-- add assignments of expressions to locals.
@@ -1145,7 +1142,7 @@ feature {NONE} -- Loop processing
 		do
 			if a_variant /= Void then
 				set_current_origin_information (a_variant)
-				process_expression (a_variant.expr)
+				process_contract_expression (a_variant.expr)
 				a_variant_exprs.extend (last_expression)
 			end
 			process_decreases (a_decreases)
@@ -1298,7 +1295,7 @@ feature {NONE} -- Implementation
 			locals_map.merge (l_translator.locals_map)
 		end
 
-	process_modifies (a_modifies: LIST [ASSERT_B]; a_lhs: IV_EXPRESSION)
+	process_modifies (a_modifies: LIST [E2B_ASSERT_ORIGIN]; a_lhs: IV_EXPRESSION)
 			-- Generate frame definition of `a_lhs' using `a_modifies' and store it in `last_frame' .
 		local
 			l_routine_translator: E2B_ROUTINE_TRANSLATOR
@@ -1316,8 +1313,8 @@ feature {NONE} -- Implementation
 			locals_map.merge (l_translator.locals_map)
 		end
 
-	process_decreases (a_decreases: LIST [ASSERT_B])
-			-- Generate frame definition of `a_lhs' using `a_modifies' and store it in `last_frame' .
+	process_decreases (a_decreases: LIST [E2B_ASSERT_ORIGIN])
+			-- Translate termination metrics encoded by `a_decreases' and store them in `last_decreases'.
 		local
 			l_routine_translator: E2B_ROUTINE_TRANSLATOR
 			l_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR

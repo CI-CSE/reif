@@ -18,11 +18,20 @@ feature -- Validity error messages
 	functional_feature_not_single_assignment: STRING_32
 		do Result := "A functional feature has to consist of exactly one assignment to the Result." end
 
+	functional_feature_redefined: STRING_32
+		do Result := "Functional feature cannot be redefined." end
+
 	pure_function_has_mods: STRING_32
 		do Result := "Function with a non-empty modify clause has to be declared impure." end
 
 	impure_function_in_contract: STRING_32
 		do Result := "Impure function cannot be used in specifications." end
+
+	invalid_call_in_invariant: STRING_32
+		do Result := "Class invariant must not access built-in attributes closed or owner, or functions marked inv_unfriendly." end
+
+	invalid_call_in_friendly_function: STRING_32
+		do Result := "A pure function must not access built-in attributes closed or owner, or functions marked inv_unfriendly, unless it is itself inv_unfriendly." end
 
 	creator_call_as_procedure (a_pname: STRING): STRING_32
 		do Result := locale.formatted_string ("Feature '$1' is a creator but is called as a regular procedure.", a_pname) end
@@ -35,6 +44,9 @@ feature -- Validity error messages
 
 	field_not_attribute (a_fname, a_cname: STRING): STRING_32
 		do Result := locale.formatted_string ("Feature '$1' is not an attribute of class '$2'.", a_fname, a_cname) end
+
+	field_not_model (a_fname, a_cname: STRING): STRING_32
+		do Result := locale.formatted_string ("Feature '$1' is not a model attribute of class '$2'.", a_fname, a_cname) end
 
 	invalid_tag (a_tag, a_class_name: STRING): STRING_32
 		do Result := locale.formatted_string ("Filtered invariant of class '$2' lists invalid tag: $1", a_tag, a_class_name) end
@@ -144,7 +156,7 @@ feature -- Verification error messages
 		do Result := "Attribute $called_feature might not be readable." end
 
 	access_frame_readable: STRING_32
-		do Result := "Some memebers of the read frame of $called_feature might not be readable." end
+		do Result := "Some members of the read frame of $called_feature might not be readable." end
 
 	ownership_explicit_note: STRING_32
 		do Result := "Disable this default by making $explicit_value explicit." end

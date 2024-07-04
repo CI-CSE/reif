@@ -120,8 +120,47 @@ function in_domain(h: HeapType, o: ref, o': ref): bool
 	)
 }
 
-axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } h[o, closed] && h[o, owns][o'] ==> in_domain(h, o, o'));
-axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
+axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && h[o, closed] && h[o, owns][o'] ==> in_domain(h, o, o'));
+axiom (forall h: HeapType, o, o': ref :: { in_domain(h, o, o') } IsHeap(h) && o != o' && Set#Equal(Set#Empty(), h[o, owns]) ==> !in_domain(h, o, o'));
+
+// Is o' in the transitive owns of o?
+// (the same as in_domain if o is closed)
+function trans_owns(h: HeapType, o: ref, o': ref): bool
+{
+  o == o' || h[o, owns][o'] || (exists x: ref :: h[o, owns][x] && trans_owns(h, x, o'))
+}
+
+// ----------------------------------------------------------------------
+// Models
+
+function IsModelField<alpha>(field: Field alpha, t: Type): bool; // Is this field a model field in class t?
+
+// Does the model field f_new in class t_new represent the model field f_old of class t_old?
+function ModelRepresents<alpha, beta>(f_new: Field beta, t_new: Type, f_old: Field alpha, t_old: Type): bool;
+
+// All model fields represent themselves in their own classes
+axiom (forall<alpha, beta> f: Field alpha, f': Field beta, t: Type :: { ModelRepresents(f', t, f, t) } 
+  IsModelField(f, t) && IsModelField(f', t) ==> (ModelRepresents(f', t, f, t) <==> f' == f));
+  
+// Representation is transitive  
+axiom (forall<alpha, beta, gamma> f: Field alpha, f': Field beta, f'': Field gamma, t: Type, t': Type, t'': Type :: {ModelRepresents(f', t', f, t), ModelRepresents(f'', t'', f', t')} 
+  IsModelField(f, t) && IsModelField(f', t') && IsModelField(f'', t'') &&
+  ModelRepresents(f', t', f, t) && ModelRepresents(f'', t'', f', t') ==> ModelRepresents(f'', t'', f, t));
+  
+// Built-in ghost fields are model fields.
+axiom (forall t: Type :: { IsModelField(closed, t) } IsModelField(closed, t));
+axiom (forall t: Type :: { IsModelField(owner, t) } IsModelField(owner, t));
+axiom (forall t: Type :: { IsModelField(owns, t) } IsModelField(owns, t));
+axiom (forall t: Type :: { IsModelField(observers, t) } IsModelField(observers, t));
+axiom (forall t: Type :: { IsModelField(subjects, t) } IsModelField(subjects, t));
+
+// Built-in ghost fields never get redefined.
+axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, closed, t2) } ModelRepresents(f, t1, closed, t2) <==> f == closed);
+axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, owner, t2) } ModelRepresents(f, t1, owner, t2) <==> f == owner);
+axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, owns, t2) } ModelRepresents(f, t1, owns, t2) <==> f == owns);
+axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, observers, t2) } ModelRepresents(f, t1, observers, t2) <==> f == observers);
+axiom (forall<alpha> f: Field alpha, t1: Type, t2: Type :: { ModelRepresents(f, t1, subjects, t2) } ModelRepresents(f, t1, subjects, t2) <==> f == subjects);
+  
 
 // ----------------------------------------------------------------------
 // Frames
@@ -136,11 +175,11 @@ axiom(forall a: Frame, b: Frame :: { Frame#Subset(a,b) }
 function has_whole_object(frame: Frame, o: ref): bool
 { (forall <alpha> f: Field alpha :: frame[o, f]) }
 
-// Frame is closed under ownership domains 
+// Frame is closed under ownership domains and includes all unallocated objects
 function {:inline true} closed_under_domains(frame: Frame, h: HeapType): bool
 { 
   (forall <U> o': ref, f': Field U :: {frame[o', f']} 
-    (exists <V> o: ref, f: Field V :: frame[o, f] && in_domain(h, o, o') && o != o') ==> frame[o', f'])
+    !h[o', allocated] || (exists <V> o: ref, f: Field V :: frame[o, f] && in_domain(h, o, o') && o != o') ==> frame[o', f'])
 }
 
 // Objects outside of ownership domains of frame did not change, unless they were newly allocated
@@ -156,7 +195,7 @@ function same_outside(h: HeapType, h': HeapType, frame: Frame): bool {
 // Objects inside the old ownership domains of frame did not change
 function same_inside(h: HeapType, h': HeapType, frame: Frame): bool { 
 	(forall <T> o: ref, f: Field T :: { h[o, f] } { h'[o, f] }
-    h'[o, f] != h[o, f] ==>
+    h[o, allocated] && h'[o, f] != h[o, f] ==>
       !frame [o, f] && (forall<U> o': ref, g: Field U :: frame[o', g] && o != o' ==> !in_domain(h, o', o)))
 }
 
@@ -172,7 +211,17 @@ const readable: Frame;
 // Is invariant of object o satisifed?
 function user_inv(h: HeapType, o: ref): bool;
 
-// Reads axiom
+// Read frame of user_inv
+function user_inv_readable(HeapType, ref): Frame;
+axiom (forall<T> h: HeapType, x: ref, o: ref, f: Field T :: { user_inv_readable(h, x)[o, f] }
+  IsHeap(h) ==> user_inv_readable(h, x)[o, f] == (trans_owns(h, x, o) || h[x, subjects][o]));
+  
+// // Part of read frame of user_inv closed under domains (used for function calls)
+// function user_inv_function_readable(HeapType, ref): Frame;
+// axiom (forall<T> h: HeapType, x: ref, o: ref, f: Field T :: { user_inv_function_readable(h, x)[o, f] }
+  // IsHeap(h) ==> user_inv_function_readable(h, x)[o, f] == trans_owns(h, x, o));  
+
+// Frame axiom
 axiom (forall h, h': HeapType, x: ref :: { user_inv(h', x), HeapSucc(h, h') } 
   IsHeap(h) && IsHeap(h') && HeapSucc(h, h') &&
   x != Void && h[x, allocated] && h'[x, allocated] &&   
@@ -224,13 +273,13 @@ function {: inline } admissibility4 (heap: HeapType, current: ref): bool
       user_inv(heap', current))
 }
 
-// Invariant cannot be invalidated by adding observers to my subjects (except to myself)
+// Invariant cannot be invalidated by changing observers to my subjects (except of myself) as long as I am still in there
 function {: inline } admissibility5 (heap: HeapType, current: ref): bool
 {
   (forall heap': HeapType, s: ref :: 
-    IsHeap(heap') && HeapSucc(heap, heap') && heap[current, subjects][s] && s != current && Set#Subset(heap[s, observers], heap'[s, observers]) && 
+    IsHeap(heap') && HeapSucc(heap, heap') && heap[current, subjects][s] && s != current && heap'[s, observers][current] && 
     (forall <alpha> o: ref, f: Field alpha :: (o == s && f == observers) || heap'[o, f] == heap[o, f]) ==>
-      user_inv(heap', current))
+      user_inv(heap', current))      
 }
 
 // ----------------------------------------------------------------------
@@ -280,7 +329,7 @@ procedure update_observers(Current: ref, value: Set ref);
   requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
   requires is_open(Heap, Current); // type:pre tag:target_open UP1
   requires writable[Current, observers]; // type:pre tag:attribute_writable UP3
-  requires Set#Subset(Heap[Current, observers], value) || (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) && IsHeap(Heap[Current, observers := value]) ==> user_inv(Heap[Current, observers := value], o)))); // type:assign tag:set_grows_or_observers_open_or_inv_preserved UP2  
+  requires (forall o: ref :: Heap[Current, observers][o] ==> is_open(Heap, o) || value[o]); // type:assign tag:observers_open_or_inv_preserved UP2   
   modifies Heap;
   ensures global(Heap);
   ensures Heap == old(Heap[Current, observers := value]);
@@ -484,6 +533,8 @@ function subtract(a, b: int): int { a - b }
 function multiply(a, b: int): int { a * b }
 function modulo(a, b: int): int { a mod b }
 function divide(a, b: int): int { a div b }
+function min(a, b: int): int { if a <= b then a else b }
+function max(a, b: int): int { if a >= b then a else b }
 
 // Expanded types
 

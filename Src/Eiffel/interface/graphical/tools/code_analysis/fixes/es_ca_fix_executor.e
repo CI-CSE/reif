@@ -9,33 +9,33 @@ class
 	ES_CA_FIX_EXECUTOR
 
 inherit
-	PROCEDURE [ANY, TUPLE]
-		redefine call end
 
-inherit {NONE}
-	SHARED_EIFFEL_PROJECT
-		rename
-			is_equal as shared_eiffel_project_is_equal,
-			copy as shared_eiffel_project_copy
-		end
+	ERF_CLASS_TEXT_MODIFICATION
 
 	EB_SHARED_WINDOW_MANAGER
-		rename
-			is_equal as shared_window_manager_is_equal,
-			copy as shared_window_manager_copy
+		undefine
+			is_equal,
+			copy
 		end
+
+	SHARED_EIFFEL_PROJECT
 
 create
 	make_with_fix
 
 feature {NONE} -- Initialization
 
-	make_with_fix (a_fix: CA_FIX; a_row: EV_GRID_ROW)
+	make_with_fix (a_fix: attached CA_FIX; a_row: attached EV_GRID_ROW)
 			-- Initializes `Current' with fix `a_fix' to apply and with GUI grid
 			-- row `a_row' (will be painted green when fix has been applied).
+		require
+			fix_not_yet_applied: not a_fix.applied
 		do
 			fix := a_fix
 			ui_row := a_row
+
+				-- Call initialization of {ERF_CLASS_TEXT_MODIFICATION}.
+			make (fix.class_to_change.original_class)
 		end
 
 feature {NONE} -- Implementation
@@ -46,12 +46,16 @@ feature {NONE} -- Implementation
 	ui_row: EV_GRID_ROW
 			-- The associated grid row of the GUI.
 
+feature -- Fixing
+
     apply_fix
             -- Make the changes.
 		local
-			l_class_modifier: ES_CA_CLASS_TEXT_MODIFICATION
 			l_dialog: ES_INFORMATION_PROMPT
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
         do
+        	create l_helper
+
         		-- Only continue fixing when there are no unsaved files.
         	if window_manager.has_modified_windows then
         		create l_dialog.make_standard ("You may not apply a fix when there are unsaved changes.")
@@ -62,17 +66,16 @@ feature {NONE} -- Implementation
         		eiffel_project.quick_melt (True, True, True)
         			-- The compilation must be successful before the fix.
         		if eiffel_project.successful then
-		        	create l_class_modifier.make (fix.class_to_change.original_class)
-					l_class_modifier.prepare
+					prepare
 
-					l_class_modifier.execute_fix (fix, false)
+					execute_fix (false)
 
-		        	l_class_modifier.commit
+		        	commit
 
 						-- Mark the fix as applied so that it may not be applied a second time. Then
 						-- color the rule violation entry in the GUI.
 					fix.set_applied
-		        	ui_row.set_background_color (light_green)
+		        	ui_row.set_background_color (l_helper.ca_command.fixed_violation_bgcolor.value)
 
 		        		-- Now compile again, which in all cases should succeed.
 		        	eiffel_project.quick_melt (True, True, True)
@@ -85,19 +88,23 @@ feature {NONE} -- Implementation
 	        end
         end
 
-    call alias "()" (args: detachable separate TUPLE)
-    		-- Apply the fix. Thanks to this, this class can be used as an
-    		-- agent. `args' are empty.
-    	do
-    		apply_fix
-    	end
+	execute_fix (process_leading: BOOLEAN)
+			-- Execute `a_visitor' on this class, if we `process_leading' we process all nodes and process the `BREAK_AS' directly,
+			-- otherwise we process the `BREAK_AS' at the end.
+		require
+			text_managed: text_managed
+		do
+			compute_ast
+			if not is_parse_error then
+				fix.setup (ast, match_list, process_leading, true)
+				fix.process_ast_node (ast)
+				if not process_leading then
+					fix.process_all_break_as
+				end
+			end
 
-feature {NONE} -- Utilities
-
-	light_green: EV_COLOR
-			-- The color the data row from the GUI is painted in.
-		once
-			create Result.make_with_8_bit_rgb (181, 230, 29)
+			rebuild_text
+			logger.refactoring_class (class_i)
 		end
 
 note

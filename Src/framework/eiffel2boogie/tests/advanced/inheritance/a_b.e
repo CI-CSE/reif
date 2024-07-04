@@ -2,10 +2,19 @@ class
 	A_B
 
 inherit
+	A_C
+		rename
+			right as next
+		redefine
+			something
+		end
+
 	A_A
 		redefine
 			prev,
-			break
+			break,
+			get_x,
+			something
 		end
 
 feature
@@ -39,6 +48,11 @@ feature
 			other.wrap -- Fail: dynamic type unknown
 		end
 
+	get_x: INTEGER
+		do
+			Result := 0
+		end
+
 feature {A_A}
 
 	break
@@ -49,6 +63,11 @@ feature {A_A}
 			prev := Void
 		ensure then
 			still_almost_holds: inv_without ("prev_exists")
+		end
+
+	something
+		do
+			check next.get_x = next.x end
 		end
 
 invariant

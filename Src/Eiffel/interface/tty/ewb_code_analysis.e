@@ -13,7 +13,6 @@ inherit
 	SHARED_SERVER
 		export {NONE} all end
 
-inherit {NONE}
 	CA_SHARED_NAMES
 
 create
@@ -58,6 +57,8 @@ feature -- Execution (declared in EWB_CMD)
 			l_has_violations: BOOLEAN
 		do
 			create l_code_analyzer.make
+				-- Delegate any output to the command line window.
+			l_code_analyzer.add_output_action (agent print_line)
 
 			if class_name_list.is_empty then
 				l_code_analyzer.add_whole_system
@@ -67,8 +68,8 @@ feature -- Execution (declared in EWB_CMD)
 				end
 			end
 
-			print ("%NEiffel Code Analysis%N")
-			print ("--------------------%N")
+			output_window.add ("%NEiffel Code Analysis%N")
+			output_window.add ("--------------------%N")
 
 			if restore_preferences then
 				l_code_analyzer.preferences.restore_defaults
@@ -80,7 +81,7 @@ feature -- Execution (declared in EWB_CMD)
 				if not l_vlist.item.is_empty then
 					l_has_violations := True
 						-- Always sort the rule violations by the class they are referring to.
-					print (ca_messages.cmd_class + l_vlist.key.name + "':%N")
+					output_window.add (ca_messages.cmd_class + l_vlist.key.name + "':%N")
 
 						-- See `{CA_RULE_VIOLATION}.is_less' for information on the sorting.
 					across l_vlist.item as l_v loop
@@ -90,30 +91,35 @@ feature -- Execution (declared in EWB_CMD)
 							l_line := l_v.item.location.line.out
 							l_col := l_v.item.location.column.out
 
-							print ("  (" + l_line + ":" + l_col + "): "
+							output_window.add ("  (" + l_line + ":" + l_col + "): "
 								+ l_rule_name + " (" + l_rule_id + "): ")
 						else -- No location attached. Print without location.
-							print ("  "	+ l_rule_name + " (" + l_rule_id + "): ")
+							output_window.add ("  "	+ l_rule_name + " (" + l_rule_id + "): ")
 						end
 						l_v.item.format_violation_description (output_window)
-						print ("%N")
+						output_window.add ("%N")
 					end
 				end
 			end
 
-			if not l_has_violations then print (ca_messages.no_issues + "%N") end
+			if not l_has_violations then output_window.add (ca_messages.no_issues + "%N") end
+		end
+
+	print_line (a_string: READABLE_STRING_GENERAL)
+		do
+			output_window.add (a_string + "%N")
 		end
 
 	try_add_class_with_name (a_analyzer: CA_CODE_ANALYZER; a_class_name: STRING)
 			-- Adds class with name `a_class_name' if it is found amongst the compiled
 			-- classes to `a_analyzer'.
 		do
-			if attached universe.compiled_classes_with_name (a_class_name) as l_c then
-				across l_c as l_classes loop
-					a_analyzer.add_class (l_classes.item)
+			if attached universe.classes_with_name (a_class_name) as l_c then
+				across l_c as ic loop
+					a_analyzer.add_class (ic.item.config_class)
 				end
 			else
-				print (ca_messages.cmd_class_not_found_1 + a_class_name + ca_messages.cmd_class_not_found_2)
+				output_window.add (ca_messages.cmd_class_not_found_1 + a_class_name + ca_messages.cmd_class_not_found_2)
 			end
 		end
 

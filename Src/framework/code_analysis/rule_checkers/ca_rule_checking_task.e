@@ -10,12 +10,14 @@ class
 inherit
 	ROTA_TIMED_TASK_I
 
+	CA_SHARED_NAMES
+
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (a_rules_checker: CA_ALL_RULES_CHECKER; a_rules: LINKED_LIST [CA_RULE]; a_classes: LINKED_SET [CLASS_C]; a_completed_action: PROCEDURE [ANY, TUPLE []])
+	make (a_rules_checker: attached CA_ALL_RULES_CHECKER; a_rules: attached LINKED_LIST [attached CA_RULE]; a_classes: attached LINKED_SET [CLASS_C]; a_completed_action: attached PROCEDURE [ANY, TUPLE []])
 			-- Initializes `Current'. `a_rules_checker' will be used for checking standard rules. All classes from `a_classes'
 			-- will be analyzed by all rules from `a_rules'. `a_completed_action' will be called as soon as the analysis is done.
 		do
@@ -35,6 +37,16 @@ feature {NONE} -- Initialization
 			end
 		end
 
+feature -- Initialization
+
+	set_output_actions (a_output_actions: attached ACTION_SEQUENCE [TUPLE [READABLE_STRING_GENERAL]])
+			-- Sets the output acitons to `a_output_actions'.
+		do
+			output_actions := a_output_actions
+		ensure
+			output_actions = a_output_actions
+		end
+
 feature {NONE} -- Implementation
 
 	rules_checker: CA_ALL_RULES_CHECKER
@@ -51,6 +63,10 @@ feature {NONE} -- Implementation
 
 	completed_action: PROCEDURE [ANY, TUPLE []]
 			-- Shall be called when analysis has completed.
+
+	output_actions: detachable ACTION_SEQUENCE [TUPLE [READABLE_STRING_GENERAL]]
+			-- These procedures will be called whenever something should
+			-- be output.
 
 feature -- From ROTA
 
@@ -77,6 +93,11 @@ feature -- From ROTA
 						l_cfg_rule.check_class (classes.item)
 					end
 				end
+			end
+
+				-- Status output.
+			if output_actions /= Void then
+				output_actions.call ([ca_messages.analyzing_class (classes.item.name)])
 			end
 
 			rules_checker.run_on_class (classes.item)

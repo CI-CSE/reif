@@ -20,7 +20,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_ot (a_class: CLASS_C; a_ot: OBJECT_TEST_AS)
+	make_with_ot (a_class: attached CLASS_C; a_ot: attached OBJECT_TEST_AS)
 			-- Initializes `Current' with class `a_class' and affected object test `a_ot'.
 		do
 			make (ca_names.unneeded_ot_local_fix + a_ot.name.name_32 + "'", a_class)
@@ -82,11 +82,9 @@ feature {NONE} -- Visitor
 			-- `a_id' by the object test expression if `a_id' is the object
 			-- test local.
 		do
-			if within_ot then
-				if a_id.name_id = ot_local then
-						-- Replace the object test local by the expression from the object test.
-					a_id.replace_text (tested_expression, matchlist)
-				end
+			if within_ot and then a_id.name_id = ot_local then
+					-- Replace the object test local by the expression from the object test.
+				a_id.replace_text (tested_expression, matchlist)
 			end
 		end
 

@@ -82,8 +82,11 @@ feature -- Translation: Signature
 			translation_pool.add_type (current_type)
 
 				-- Check status compatibility
-			if not helper.has_functional_representation (a_feature) and helper.is_functional (a_feature) then
-				helper.add_semantic_warning (a_feature, messages.functional_feature_not_function, -1)
+			if not helper.has_functional_representation (current_feature) and helper.is_functional (current_feature) then
+				helper.add_semantic_warning (current_feature, messages.functional_feature_not_function, -1)
+			end
+			if a_feature.has_return_value and has_functional_versions then
+				helper.add_semantic_error (current_feature, messages.functional_feature_redefined, -1)
 			end
 
 				-- Set up name
@@ -106,7 +109,7 @@ feature -- Translation: Signature
 			add_result_with_property
 
 				-- Modifies
-			if helper.is_lemma (a_feature) then
+			if helper.is_lemma (current_feature) then
 					-- Lemmas do not modify the heap
 			else
 				create l_modifies.make ("Heap")
@@ -116,11 +119,11 @@ feature -- Translation: Signature
 				-- Pre- and postconditions
 			l_contracts := contracts_of (current_feature, current_type)
 			across l_contracts.pre as j loop
-				process_precondition (j.item, l_contracts.pre_origin [j.target_index])
+				process_precondition (j.item.clause, j.item.origin)
 			end
 			create l_fields.make
 			across l_contracts.post as j loop
-				process_postcondition (j.item, l_contracts.post_origin [j.target_index], l_fields)
+				process_postcondition (j.item.clause, j.item.origin, l_fields)
 			end
 
 				-- Creator: add default field initialization
@@ -130,7 +133,7 @@ feature -- Translation: Signature
 
 				-- Framing
 			if options.is_ownership_enabled then
-				add_ownership_contracts (a_for_creator, not helper.is_lemma (a_feature))
+				add_ownership_contracts (a_for_creator, not helper.is_lemma (current_feature))
 			else
 				if helper.feature_note_values (current_feature, "framing").has ("False") then
 						-- No frame condition
@@ -324,14 +327,16 @@ feature -- Translation: Signature
 			l_post: IV_POSTCONDITION
 			l_i: IV_ENTITY
 			l_observers_wrapped: IV_FORALL
+			l_written_feature: FEATURE_I
 		do
 			create Result.make
 
-			if not helper.is_explicit (current_feature, "contracts") then
+				-- Features with functional representation and features marked with "explicit: contracts" do not get any defaults
+			if not helper.is_explicit (current_feature, "contracts") and not helper.has_functional_representation (current_feature) then
 					-- Observers wrapped
 				create l_i.make (helper.unique_identifier ("i"), types.ref)
 				create l_observers_wrapped.make (factory.implies_ (
-						factory.map_access (factory.heap_access (a_mapping.heap.name, a_mapping.current_expression, "observers", types.set (types.ref)), << l_i >>),
+						factory.map_access (factory.heap_access (a_mapping.heap, a_mapping.current_expression, "observers", types.set (types.ref)), << l_i >>),
 						factory.function_call ("is_wrapped", << a_mapping.heap, l_i >>, types.bool)))
 				l_observers_wrapped.add_bound_variable (l_i.name, l_i.type)
 
@@ -347,52 +352,43 @@ feature -- Translation: Signature
 					l_post.node_info.set_attribute ("default", "contracts")
 					Result.extend (l_post)
 				elseif helper.is_public (current_feature) then
-					if helper.has_functional_representation (current_feature) then
-							-- Pure function
-						create l_pre.make (factory.function_call ("!is_open", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
-						l_pre.node_info.set_type ("pre")
-						l_pre.node_info.set_tag ("default_is_closed")
-						l_pre.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_pre)
-					else
-						create l_pre.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
-						l_pre.node_info.set_type ("pre")
-						l_pre.node_info.set_tag ("default_is_wrapped")
-						l_pre.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_pre)
-						create l_pre.make (l_observers_wrapped)
-						l_pre.node_info.set_type ("pre")
-						l_pre.node_info.set_tag ("default_observers_are_wrapped")
-						l_pre.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_pre)
-						create l_post.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
-						l_post.node_info.set_type ("post")
-						l_post.node_info.set_tag ("default_is_wrapped")
-						l_post.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_post)
-						create l_post.make (l_observers_wrapped)
-						l_post.node_info.set_type ("post")
-						l_post.node_info.set_tag ("default_observers_are_wrapped")
-						l_post.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_post)
-					end
+					create l_pre.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+					l_pre.node_info.set_type ("pre")
+					l_pre.node_info.set_tag ("default_is_wrapped")
+					l_pre.node_info.set_attribute ("default", "contracts")
+					Result.extend (l_pre)
+					create l_pre.make (l_observers_wrapped)
+					l_pre.node_info.set_type ("pre")
+					l_pre.node_info.set_tag ("default_observers_are_wrapped")
+					l_pre.node_info.set_attribute ("default", "contracts")
+					Result.extend (l_pre)
+					create l_post.make (factory.function_call ("is_wrapped", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+					l_post.node_info.set_type ("post")
+					l_post.node_info.set_tag ("default_is_wrapped")
+					l_post.node_info.set_attribute ("default", "contracts")
+					Result.extend (l_post)
+					create l_post.make (l_observers_wrapped)
+					l_post.node_info.set_type ("post")
+					l_post.node_info.set_tag ("default_observers_are_wrapped")
+					l_post.node_info.set_attribute ("default", "contracts")
+					Result.extend (l_post)
 				elseif helper.is_private (current_feature) then
 					create l_pre.make (factory.function_call ("is_open", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
 					l_pre.node_info.set_type ("pre")
 					l_pre.node_info.set_tag ("default_is_open")
 					l_pre.node_info.set_attribute ("default", "contracts")
 					Result.extend (l_pre)
-					if not helper.has_functional_representation (current_feature) then
-						create l_post.make (factory.function_call ("is_open", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
-						l_post.node_info.set_type ("post")
-						l_post.node_info.set_tag ("default_is_open")
-						l_post.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_post)
-					end
+
+					create l_post.make (factory.function_call ("is_open", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+					l_post.node_info.set_type ("post")
+					l_post.node_info.set_tag ("default_is_open")
+					l_post.node_info.set_attribute ("default", "contracts")
+					Result.extend (l_post)
 				end
-				if a_for_creator or (helper.is_public (current_feature) and not helper.has_functional_representation (current_feature)) then
+				if a_for_creator or helper.is_public (current_feature) then
+					l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
 					across arguments_of_current_feature as i loop
-						if i.item.boogie_type ~ types.ref then
+						if i.item.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (i.target_index).is_formal then
 							create l_pre.make (factory.function_call ("is_wrapped", << a_mapping.heap, factory.entity (i.item.name, i.item.boogie_type) >>, types.bool))
 							l_pre.node_info.set_type ("pre")
 							l_pre.node_info.set_tag ("arg_" + i.item.name + "_is_wrapped")
@@ -438,6 +434,7 @@ feature -- Translation: Implementation
 			l_call: IV_PROCEDURE_CALL
 			l_ownership_handler: E2B_CUSTOM_OWNERSHIP_HANDLER
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
+			l_builtin_collector: E2B_BUILTIN_CALLS_COLLECTOR
 		do
 			set_context (a_feature, a_type)
 			set_inlining_options_for_feature (a_feature)
@@ -459,6 +456,10 @@ feature -- Translation: Implementation
 			l_translator.set_context (l_implementation, current_feature, current_type)
 			if helper.has_functional_representation (a_feature) then
 				l_translator.set_context_readable (factory.global_readable)
+				if not helper.is_feature_status (current_feature, "inv_unfriendly") then
+					create l_builtin_collector
+					l_builtin_collector.set_any_target
+				end
 			end
 
 				-- Add initial tracing information
@@ -492,6 +493,13 @@ feature -- Translation: Implementation
 						end
 					end
 					l_translator.process_compound (l_byte_code.compound)
+
+					if l_builtin_collector /= Void then
+						l_byte_code.compound.process (l_builtin_collector)
+						if l_builtin_collector.is_inv_unfriendly then
+							helper.add_semantic_error (a_feature, messages.invalid_call_in_friendly_function, -1)
+						end
+					end
 				end
 			end
 
@@ -558,7 +566,7 @@ feature -- Translation: Functions
 				i := i + 1
 			end
 
-				-- Axiom
+				-- Definition
 			generate_definition (l_function)
 			if not helper.is_functional (a_feature) then
 					-- Add a postcondition to the corresponding procedure connecting it to the function
@@ -570,6 +578,7 @@ feature -- Translation: Functions
 				l_proc.add_contract (l_post)
 			end
 
+				-- Frame axiom
 			generate_frame_axiom (l_function)
 		end
 
@@ -650,7 +659,7 @@ feature -- Translation: Functions
 		require
 			read_for_pure_functions: a_read implies helper.has_functional_representation (a_feature)
 		local
-			l_exprs: like frame_expressions_of
+			l_exprs: like modify_expressions_of
 			l_function: IV_FUNCTION
 			l_forall: IV_FORALL
 			l_fcall: IV_FUNCTION_CALL
@@ -684,7 +693,7 @@ feature -- Translation: Functions
 				l_exprs := read_expressions_of (contracts_of (current_feature, current_type).reads, l_translator)
 
 					-- Defaults and validity
-				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty then
+				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty and l_exprs.model_objects.is_empty then
 					-- Missing modify clause: apply defaults
 					l_exprs.full_objects.extend (create {IV_ENTITY}.make ("current", types.ref))
 				end
@@ -692,7 +701,7 @@ feature -- Translation: Functions
 				l_exprs := modify_expressions_of (contracts_of (current_feature, current_type).modifies, l_translator)
 
 					-- Defaults and validity
-				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty then
+				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty and l_exprs.model_objects.is_empty then
 					-- Missing modify clause: apply defaults
 					if not a_feature.has_return_value then
 						l_exprs.full_objects.extend (create {IV_ENTITY}.make ("current", types.ref))
@@ -810,6 +819,11 @@ feature {NONE} -- Translation: Functions
 			else
 					-- Take `l_post' from the postcondition
 				l_post := pre_post_expressions_of (current_feature, current_type, l_expr_translator.entity_mapping).post
+					-- Add type property
+				l_post := factory.and_clean (l_post, type_property (
+					l_fcall,
+					current_feature.type.deep_actual_type.instantiated_in (current_type),
+					l_expr_translator.entity_mapping.heap))
 			end
 
 			create l_forall.make (factory.implies_ (l_pre, l_post))
@@ -1126,7 +1140,7 @@ feature {NONE} -- Implementation
 				l_expr := factory.true_
 			end
 			create l_forall.make (factory.implies_ (l_expr,
-				factory.equal (factory.heap_access ("Heap", o, f.name, l_type_var), factory.heap_access ("old(Heap)", o, f.name, l_type_var))))
+				factory.equal (factory.heap_access (factory.global_heap, o, f.name, l_type_var), factory.heap_access (factory.old_ (factory.global_heap), o, f.name, l_type_var))))
 			l_forall.add_type_variable (l_type_var.name)
 			l_forall.add_bound_variable (o.name, o.type)
 			l_forall.add_bound_variable (f.name, f.type)
@@ -1186,9 +1200,9 @@ feature {NONE} -- Implementation
 		do
 			create l_type_var.make_fresh
 			create o.make ("$o", types.ref)
-			l_access := factory.heap_access ("Heap", o, "$f", l_type_var)
-			l_old_access := factory.heap_access ("old(Heap)", o, "$f", l_type_var)
-			l_old_allocated := factory.heap_access ("old(Heap)", o, "allocated", types.bool)
+			l_access := factory.heap_access (factory.global_heap, o, "$f", l_type_var)
+			l_old_access := factory.heap_access (factory.old_ (factory.global_heap), o, "$f", l_type_var)
+			l_old_allocated := factory.heap_access (factory.old_ (factory.global_heap), o, "allocated", types.bool)
 			create l_forall.make (factory.implies_ (l_old_allocated, factory.equal (l_access, l_old_access)))
 			l_forall.add_type_variable (l_type_var.name)
 			l_forall.add_bound_variable ("$o", types.ref)
@@ -1199,6 +1213,23 @@ feature {NONE} -- Implementation
 				l_postcondition.set_free
 			end
 			current_boogie_procedure.add_contract (l_postcondition)
+		end
+
+	has_functional_versions: BOOLEAN
+			-- Are any previous versions of `current_feature' functional?
+		local
+			i: INTEGER
+		do
+			if current_feature.assert_id_set /= Void then
+				from
+					i := 1
+				until
+					Result or i > current_feature.assert_id_set.count
+				loop
+					Result := helper.is_functional (current_feature.assert_id_set [i].written_class.feature_of_body_index (current_feature.assert_id_set [i].body_index))
+					i := i + 1
+				end
+			end
 		end
 
 end

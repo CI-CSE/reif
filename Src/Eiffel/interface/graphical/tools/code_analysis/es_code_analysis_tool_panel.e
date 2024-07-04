@@ -29,7 +29,6 @@ inherit
 	SHARED_ERROR_TRACER
 		export {NONE} all end
 
-inherit {NONE}
 	CA_SHARED_NAMES
 
 create {ES_CODE_ANALYSIS_TOOL}
@@ -39,8 +38,6 @@ feature {NONE} -- Initialization
 
 	on_before_initialize
 			-- <Precursor>
-		local
-			l_shared_writer: EB_SHARED_WRITER
 		do
 			Precursor
 
@@ -67,8 +64,6 @@ feature {NONE} -- Initialization
     create_tool_bar_items: ARRAYED_LIST [SD_TOOL_BAR_ITEM]
             -- <Precursor>
         local
-        	l_label: EV_LABEL
-			l_box: EV_HORIZONTAL_BOX
 			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
 		do
 			create l_helper
@@ -104,14 +99,20 @@ feature {NONE} -- Initialization
 			update_button_titles
 
 				-- Scope label.
-			create l_label.make_with_text (ca_names.scope)
-			l_label.set_tooltip (ca_names.scope_tooltip)
 			create scope_label.make_with_text (ca_names.analysis_not_run)
 			scope_label.set_foreground_color (dark_gray)
+			scope_label.set_minimum_height (26)
 
 			create Result.make (5)
-			run_analysis_button := l_helper.ca_command.new_sd_toolbar_item (True)
-			Result.extend (run_analysis_button)
+				-- Button to analyze whole system.
+			whole_system_button := l_helper.ca_command.new_whole_system_toolbar_item (True)
+			Result.extend (whole_system_button)
+				-- Button to analyze current item or dropped stone.
+			current_item_button := l_helper.ca_command.new_sd_toolbar_item (True)
+			Result.extend (current_item_button)
+			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
+				-- Label to display last analyzed scope.
+			Result.extend (create {SD_TOOL_BAR_WIDGET_ITEM}.make (scope_label))
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 			Result.extend (errors_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
@@ -121,37 +122,57 @@ feature {NONE} -- Initialization
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 			Result.extend (hints_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
-			Result.extend (create {SD_TOOL_BAR_WIDGET_ITEM}.make (l_label))
-			Result.extend (create {SD_TOOL_BAR_WIDGET_ITEM}.make (scope_label))
 		end
 
 	create_right_tool_bar_items: ARRAYED_LIST [SD_TOOL_BAR_ITEM]
 			-- <Precursor>
 		local
+			l_prev_button, l_next_button, l_clear_filter: SD_TOOL_BAR_BUTTON
 			l_box: EV_HORIZONTAL_BOX
-			l_button: SD_TOOL_BAR_BUTTON
-			l_popup_button: SD_TOOL_BAR_POPUP_BUTTON
-			l_label: EV_LABEL
 		do
 				-- "Move to previous error" button.
-			create l_button.make
-			l_button.set_pixmap (stock_pixmaps.view_previous_icon)
-			l_button.set_tooltip (ca_names.go_to_previous_tooltip)
-			l_button.select_actions.extend (agent go_to_previous_violation)
+			create l_prev_button.make
+			l_prev_button.set_pixmap (stock_pixmaps.view_previous_icon)
+			l_prev_button.set_tooltip (ca_names.go_to_previous_tooltip)
+			l_prev_button.select_actions.extend (agent go_to_previous_violation)
+
+				-- "Move to next error" button.
+			create l_next_button.make
+			l_next_button.set_pixmap (stock_pixmaps.view_next_icon)
+			l_next_button.set_tooltip (ca_names.go_to_next_tooltip)
+			l_next_button.select_actions.extend (agent go_to_next_violation)
+
+				-- Preferences button.
 
 			show_preferences_button := (create {ES_CA_SHOW_PREFERENCES_COMMAND}.make).new_sd_toolbar_item (True)
 
-			create Result.make (4)
-			Result.extend (l_button)
+				-- Text field and button for filter.
 
-				-- "Move to next error" button.
-			create l_button.make
-			l_button.set_pixmap (stock_pixmaps.view_next_icon)
-			l_button.set_tooltip (ca_names.go_to_next_tooltip)
-			l_button.select_actions.extend (agent go_to_next_violation)
+			create l_box
+			l_box.extend (create {EV_LABEL}.make_with_text (ca_names.tool_text_filter))
+			l_box.disable_item_expand (l_box.last)
+			create text_filter
+			text_filter.key_release_actions.force_extend (agent on_update_visiblity)
+			text_filter.set_minimum_width_in_characters (10)
+			l_box.extend (text_filter)
+			l_box.disable_item_expand (text_filter)
+			create l_clear_filter.make
+			l_clear_filter.set_pixmap (stock_mini_pixmaps.general_delete_icon)
+			l_clear_filter.pointer_button_press_actions.force_extend (
+				agent
+					do
+						text_filter.set_text ("")
+						on_update_visiblity
+					end
+				)
 
-			Result.extend (l_button)
-
+				-- Adding the controls to the tool bar.
+			create Result.make (7)
+			Result.extend (create {SD_TOOL_BAR_RESIZABLE_ITEM}.make (l_box))
+			Result.extend (l_clear_filter)
+			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
+			Result.extend (l_prev_button)
+			Result.extend (l_next_button)
 			Result.extend (create {SD_TOOL_BAR_SEPARATOR}.make)
 			Result.extend (show_preferences_button)
 		end
@@ -211,7 +232,7 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	run_analysis_button: EB_SD_COMMAND_TOOL_BAR_BUTTON
+	whole_system_button, current_item_button: EB_SD_COMMAND_TOOL_BAR_BUTTON
 			-- Button to execute Code Analysis.
 
 	show_preferences_button: EB_SD_COMMAND_TOOL_BAR_BUTTON
@@ -258,7 +279,7 @@ feature -- Status report
 	is_item_visible (a_item: EV_GRID_ROW): BOOLEAN
 			-- Is `a_item' visible?
 		local
-			l_text: STRING
+			l_text: STRING_32
 		do
 			Result := True
 			if attached {CA_RULE_VIOLATION_EVENT} a_item.data as l_viol then
@@ -270,6 +291,17 @@ feature -- Status report
 					Result := False
 				elseif is_hint_event (l_viol) and not show_hints then
 					Result := False
+				else
+					l_text := text_filter.text.as_lower
+					if
+						not l_text.is_empty and then
+						not l_viol.title.as_lower.has_substring (l_text) and then
+						not l_viol.rule_id.as_lower.has_substring (l_text) and then
+						not l_viol.affected_class.name.as_lower.has_substring (l_text) and then
+						not l_viol.violation_description.as_lower.has_substring (l_text)
+					then
+						Result := False
+					end
 				end
 			end
 		end
@@ -461,11 +493,8 @@ feature {NONE} -- Basic operations
 			-- `a_row': The row to create items on.
 		local
 			l_editor_item: EB_GRID_EDITOR_TOKEN_ITEM
-			l_gen, l_message_gen, l_text_gen: EB_EDITOR_TOKEN_GENERATOR
-			l_lines: LIST [EIFFEL_EDITOR_LINE]
-			l_tip: EB_EDITOR_TOKEN_TOOLTIP
+			l_gen, l_message_gen: EB_EDITOR_TOKEN_GENERATOR
 			l_label: EV_GRID_LABEL_ITEM
-			l_row: EV_GRID_ROW
 			l_pos_token: EDITOR_TOKEN_NUMBER
 			l_line: EIFFEL_EDITOR_LINE
 		do
@@ -488,20 +517,19 @@ feature {NONE} -- Basic operations
 				if is_error_event (l_viol) then
 					l_label.set_pixmap (stock_pixmaps.general_error_icon)
 					l_label.set_data ("Error")
-
 					a_row.set_background_color (error_bg_color)
 				elseif is_warning_event (l_viol) then
 					l_label.set_pixmap (stock_pixmaps.general_warning_icon)
 					l_label.set_data ("Warning")
-
 					a_row.set_background_color (warning_bg_color)
 				elseif is_suggestion_event (l_viol) then
 					l_label.set_pixmap (stock_pixmaps.view_editor_icon)
 					l_label.set_data ("Suggestion")
-
+					a_row.set_background_color (suggestion_bg_color)
 				elseif is_hint_event (l_viol) then
 					l_label.set_pixmap (stock_pixmaps.general_information_icon)
 					l_label.set_data ("Hint")
+					a_row.set_background_color (hint_bg_color)
 				end
 
 				a_row.set_item (category_column, l_label)
@@ -552,7 +580,7 @@ feature {NONE} -- Basic operations
 			end
 		end
 
-	show_fixes_context_menu (a_fixes: LINKED_LIST [CA_FIX]; a_row: EV_GRID_ROW; x: INTEGER; y: INTEGER; button: INTEGER; x_tilt: DOUBLE; y_tilt: DOUBLE; pressure: DOUBLE; screen_x: INTEGER; screen_y: INTEGER)
+	show_fixes_context_menu (a_fixes: attached LINKED_LIST [CA_FIX]; a_row: EV_GRID_ROW; x: INTEGER; y: INTEGER; button: INTEGER; x_tilt: DOUBLE; y_tilt: DOUBLE; pressure: DOUBLE; screen_x: INTEGER; screen_y: INTEGER)
 			-- Show a context menu for data row `a_row' where the user can choose from fixes in `a_fixes'.
 			-- If `button' is not set to `3' (right mouse button) then no context menu will be shown. All
 			-- the other arguments are required by the mouse button event and are ignored.
@@ -569,7 +597,8 @@ feature {NONE} -- Basic operations
 						-- Only make fixes available that have not been applied already.
 					if not l_fixes.item.applied then
 						create l_fix_executor.make_with_fix (l_fixes.item, a_row)
-						create l_item.make_with_text_and_action (ca_messages.fix + l_fixes.item.caption, l_fix_executor)
+						create l_item.make_with_text_and_action (ca_messages.fix + l_fixes.item.caption,
+						                                         agent l_fix_executor.apply_fix)
 						l_menu.extend (l_item)
 					end
 				end
@@ -616,7 +645,7 @@ feature {NONE} -- Basic operations
 			hints_button.set_text (hint_count.out + " " + ca_names.tool_hints)
 		end
 
-	find_event_row (a_event_item: EVENT_LIST_ITEM_I): EV_GRID_ROW
+	find_event_row (a_event_item: EVENT_LIST_ITEM_I): detachable EV_GRID_ROW
 			-- <Precursor>
 		local
 			l_grid: like grid_events
@@ -663,13 +692,14 @@ feature {NONE} -- Clean up
 	internal_recycle
 			-- <Precursor>
 		do
-			if is_initialized then
-				if session_manager.is_service_available then
-					if session_data.session_connection.is_connected (Current) then
-						session_data.session_connection.disconnect_events (Current)
-					end
-				end
+			if
+				is_initialized
+				and then session_manager.is_service_available
+				and then session_data.session_connection.is_connected (Current)
+			then
+				session_data.session_connection.disconnect_events (Current)
 			end
+			
 			Precursor {ES_CLICKABLE_EVENT_LIST_TOOL_PANEL_BASE}
 		end
 
@@ -677,20 +707,54 @@ feature {NONE} -- Colors
 
 	error_bg_color: EV_COLOR
 			-- Background color for errors.
-		once
-			create Result.make_with_8_bit_rgb (255, 220, 220)
+		local
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
+		do
+			create l_helper
+			Result := l_helper.ca_command.error_bgcolor.value
+		ensure
+			valid_result: Result /= Void
 		end
 
 	warning_bg_color: EV_COLOR
-			-- Background color for warnings.
-		once
-			create Result.make_with_8_bit_rgb (255, 255, 188)
+			-- Background color for errors.
+		local
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
+		do
+			create l_helper
+			Result := l_helper.ca_command.warning_bgcolor.value
+		ensure
+			valid_result: Result /= Void
+		end
+
+	suggestion_bg_color: EV_COLOR
+			-- Background color for errors.
+		local
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
+		do
+			create l_helper
+			Result := l_helper.ca_command.suggestion_bgcolor.value
+		ensure
+			valid_result: Result /= Void
+		end
+
+	hint_bg_color: EV_COLOR
+			-- Background color for errors.
+		local
+			l_helper: ES_CODE_ANALYSIS_BENCH_HELPER
+		do
+			create l_helper
+			Result := l_helper.ca_command.hint_bgcolor.value
+		ensure
+			valid_result: Result /= Void
 		end
 
 	dark_gray: EV_COLOR
 			-- Dark gray color (e. g. for font foreground).
-		once
+		do
 			create Result.make_with_8_bit_rgb (100, 100, 100)
+		ensure
+			valid_result: Result /= Void
 		end
 
 feature {NONE} -- Constants

@@ -43,14 +43,15 @@ feature {F_OI_SUBJECT} -- Internal communication
 		ensure
 			open: is_open
 			same_subject: subject = old subject
+			same_owns: owns = old owns
 			invariant_holds: inv
 		end
 
 invariant
 	subject_exists: subject /= Void
+	subjects_structure: subjects = [subject]
 	subject_aware: subject.observers.has (Current)
 	synchronized: is_synchronized (subject.value)
-	subjects_structure: subjects = [subject]
-	subject_not_in_domain: not domain_has (subject)
 	observers_structure: observers.is_empty
+	owns_empty: owns = []
 end

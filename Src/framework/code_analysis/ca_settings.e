@@ -7,7 +7,7 @@ note
 class
 	CA_SETTINGS
 
-inherit {NONE}
+inherit
 	CA_SHARED_NAMES
 
 create
@@ -47,7 +47,7 @@ feature {NONE} -- Initialization
 
 feature {CA_CODE_ANALYZER} -- Initialization
 
-	initialize_rule_settings (a_rules: ITERABLE [CA_RULE])
+	initialize_rule_settings (a_rules: attached ITERABLE [attached CA_RULE])
 			-- Initializes the preferences for all rules in `a_rules' including
 			-- "enabled" and "severity".
 		local
@@ -82,7 +82,7 @@ feature -- Settings
 	preferences: PREFERENCES
 			-- The preferences specific to Code Analysis.
 
-	preference_manager: PREFERENCE_MANAGER
+	preference_manager: detachable PREFERENCE_MANAGER
 			-- The preference manager.
 		do
 			Result := preferences.manager (code_analysis_namespace)
@@ -105,8 +105,7 @@ feature {NONE} -- Implementation
 			int: INTEGER
 		do
 			int := a_value.to_integer
-			Result := False
-			if int >= 0 and int < 10_000 then
+			if int >= 0 and int <= 100 then
 				Result := True
 			end
 		end

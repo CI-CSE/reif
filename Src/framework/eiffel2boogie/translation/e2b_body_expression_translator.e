@@ -234,7 +234,7 @@ feature -- Translation
 				last_safety_check.node_info.set_attribute ("fid", a_feature.feature_id.out)
 			end
 
-			last_expression := factory.heap_access (entity_mapping.heap.name, current_target, l_field.name, l_content_type)
+			last_expression := factory.heap_access (entity_mapping.heap, current_target, l_field.name, l_content_type)
 		end
 
 	process_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
@@ -572,25 +572,6 @@ feature -- Translation
 					"check", "frame_writable", context_line_number)
 			end
 		end
-
-	add_read_frame_check (a_feature: FEATURE_I)
-			-- If there is a read frame, check that `a_feature's read frame is a subframe of it.
-		local
-			l_fcall: IV_FUNCTION_CALL
-		do
-			if context_readable /= Void and helper.has_functional_representation (a_feature) then
-				create l_fcall.make (name_translator.boogie_function_for_read_frame (a_feature, current_target_type), types.frame)
-				l_fcall.add_argument (entity_mapping.heap)
-				l_fcall.add_argument (current_target)
-				l_fcall.arguments.append (last_parameters)
-					-- Using subsumption here, since in a query call chains it can trigger for the followings checks
-				add_safety_check_with_subsumption (factory.function_call ("Frame#Subset", <<l_fcall, context_readable>>, types.bool),
-					"access", "frame_readable", context_line_number)
-				last_safety_check.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
-				last_safety_check.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
-			end
-		end
-
 
 feature {NONE} -- Implementation
 

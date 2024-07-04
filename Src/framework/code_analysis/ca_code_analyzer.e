@@ -7,8 +7,9 @@ note
 class
 	CA_CODE_ANALYZER
 
-inherit {NONE}
+inherit
 	SHARED_EIFFEL_PROJECT
+
 	CA_SHARED_NAMES
 
 create
@@ -64,6 +65,7 @@ feature {NONE} -- Initialization
 			create classes_to_analyze.make
 			create rule_violations.make (100)
 			create completed_actions
+			create output_actions
 
 			create ignoredby.make (25)
 			create library_class.make (25)
@@ -72,11 +74,16 @@ feature {NONE} -- Initialization
 
 feature -- Analysis interface
 
-	add_completed_action (a_action: PROCEDURE [ANY, TUPLE [BOOLEAN]])
+	add_completed_action (a_action: attached PROCEDURE [ANY, TUPLE [BOOLEAN]])
 			-- Adds `a_action' to the list of procedures that will be
 			-- called when analysis has completed.
 		do
 			completed_actions.extend (a_action)
+		end
+
+	add_output_action (a_action: attached PROCEDURE [ANY, TUPLE [READABLE_STRING_GENERAL]])
+		do
+			output_actions.extend (a_action)
 		end
 
 	analyze
@@ -105,10 +112,11 @@ feature -- Analysis interface
 			end
 
 			create l_task.make (l_rules_checker, l_rules_to_check, classes_to_analyze, agent analysis_completed)
+			l_task.set_output_actions (output_actions)
 			rota.run_task (l_task)
 		end
 
-	is_rule_checkable (a_rule: CA_RULE): BOOLEAN
+	is_rule_checkable (a_rule: attached CA_RULE): BOOLEAN
 		do
 			Result := a_rule.is_enabled.value
 						and then (system_wide_check or else (not a_rule.is_system_wide))
@@ -146,57 +154,33 @@ feature -- Analysis interface
 			system_wide_check := True
 		end
 
-	add_cluster (a_cluster: CLUSTER_I)
+	add_cluster (a_cluster: attached CLUSTER_I)
 			-- Add all classes of cluster `a_cluster'.
-		local
-			l_conf_class: CONF_CLASS
-			l_class_i: CLASS_I
 		do
 			system_wide_check := False
 
-			from
-				a_cluster.classes.start
-			until
-				a_cluster.classes.after
-			loop
-				l_conf_class := a_cluster.classes.item_for_iteration
-				l_class_i := eiffel_universe.class_named (l_conf_class.name, a_cluster)
-				add_class (l_class_i)
-				a_cluster.classes.forth
+			across a_cluster.classes as ic loop
+				add_class (ic.item)
 			end
+
 			if a_cluster.sub_clusters /= Void then
-				from
-					a_cluster.sub_clusters.start
-				until
-					a_cluster.sub_clusters.after
-				loop
-					add_cluster (a_cluster.sub_clusters.item_for_iteration)
-					a_cluster.sub_clusters.forth
+				across a_cluster.sub_clusters as ic loop
+					add_cluster (ic.item)
 				end
 			end
 		end
 
-	add_group (a_group: CONF_GROUP)
+	add_group (a_group: attached CONF_GROUP)
 			-- Add all classes of the configuration group `a_group'.
 		require
 			a_group_not_void: a_group /= Void
-		local
-			l_conf_class: CONF_CLASS
-			l_class_i: CLASS_I
 		do
-			from
-				a_group.classes.start
-			until
-				a_group.classes.after
-			loop
-				l_conf_class := a_group.classes.item_for_iteration
-				l_class_i := eiffel_universe.class_named (l_conf_class.name, a_group)
-				add_class (l_class_i)
-				a_group.classes.forth
+			across a_group.classes as ic loop
+				add_class (ic.item)
 			end
 		end
 
-	add_classes (a_classes: ITERABLE [CLASS_I])
+	add_classes (a_classes: attached ITERABLE [attached CONF_CLASS])
 			-- Add the classes `a_classes'.
 		do
 			system_wide_check := False
@@ -206,21 +190,21 @@ feature -- Analysis interface
 			end
 		end
 
-	add_class (a_class: CLASS_I)
+	add_class (a_class: attached CONF_CLASS)
 			-- Adds class `a_class'.
 		local
 			l_class_c: CLASS_C
 		do
 			system_wide_check := False
 
-			if a_class.is_compiled then
-				l_class_c := a_class.compiled_class
-				check l_class_c /= Void end
-				classes_to_analyze.extend (l_class_c)
+			if attached {EIFFEL_CLASS_I} a_class as l_eiffel_class
+				and then attached {CLASS_C} l_eiffel_class.compiled_class as l_compiled
+			then
+				classes_to_analyze.extend (l_compiled)
 
-				extract_indexes (l_class_c)
+				extract_indexes (l_compiled)
 			else
-				print ("Class " + a_class.name + " not compiled (skipped).%N")
+				output_actions.call ([ca_messages.class_skipped (a_class.name)])
 			end
 		end
 
@@ -235,6 +219,9 @@ feature -- Properties
 	rule_violations: detachable HASH_TABLE [SORTED_TWO_WAY_LIST [CA_RULE_VIOLATION], CLASS_C]
 			-- All found violations from the last analysis.
 
+	settings: CA_SETTINGS
+			-- The settings manager for Code Analysis.
+
 	preferences: PREFERENCES
 			-- Code Analysis preferences.
 		do Result := settings.preferences end
@@ -245,14 +232,16 @@ feature -- Properties
 
 feature {NONE} -- Implementation
 
+	csv_file_name: STRING = "last_analysis_result.csv"
+
+	csv_header: STRING = "Severity;Class;Location;Title;Description;Rule ID;Severity Score"
+
 	analysis_completed
 			-- Will be called when the analysis task has finished.
 		local
-			l_logger: CA_LOGGER
+			l_csv_writer: CA_CSV_WRITER
 		do
-			create l_logger.make ("last_analysis_result.csv")
-				-- CSV title column.
-			l_logger.log ("Severity;Class;Location;Title;Description;Rule ID;Severity Score")
+			create l_csv_writer.make (csv_file_name, csv_header)
 
 			across rules as l_rules loop
 				across l_rules.item.violations as l_v loop
@@ -263,12 +252,12 @@ feature {NONE} -- Implementation
 							-- Add the violation.
 						rule_violations.at (l_v.item.affected_class).extend (l_v.item)
 							-- Log it.
-						l_logger.log (l_v.item.out)
+						l_csv_writer.add_line (l_v.item.csv_line)
 					end
 				end
 			end
 
-			l_logger.close_log
+			l_csv_writer.close_file
 
 			clear_classes_to_analyze
 
@@ -277,7 +266,7 @@ feature {NONE} -- Implementation
 			completed_actions.wipe_out
 		end
 
-	is_violation_valid (a_viol: CA_RULE_VIOLATION): BOOLEAN
+	is_violation_valid (a_viol: attached CA_RULE_VIOLATION): BOOLEAN
 			-- Is the violation `a_viol' valid under the current settings
 			-- such as the rule ignore list of a class, or the library or
 			-- non-library status of a class?
@@ -304,9 +293,6 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	settings: CA_SETTINGS
-			-- The settings manager for Code Analysis.
-
 	classes_to_analyze: LINKED_SET [CLASS_C]
 			-- List of classes that shall be analyzed.
 
@@ -314,7 +300,7 @@ feature {NONE} -- Implementation
 			-- Shall the whole system be analyzed?
 
 	completed_actions: ACTION_SEQUENCE [TUPLE [BOOLEAN]]
-			-- List of procedure to call when analysis has completed.
+			-- List of procedures to call when analysis has completed.
 
 	frozen rota: detachable ROTA_S
 			-- Accesses the rota service.
@@ -327,7 +313,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	is_severity_enabled (a_severity: CA_RULE_SEVERITY): BOOLEAN
+	is_severity_enabled (a_severity: attached CA_RULE_SEVERITY): BOOLEAN
 		do
 			Result := (attached {CA_HINT} a_severity and settings.are_hints_enabled.value)
 				or else (attached {CA_SUGGESTION} a_severity and settings.are_suggestions_enabled.value)
@@ -335,14 +321,15 @@ feature {NONE} -- Implementation
 				or else (attached {CA_ERROR} a_severity and settings.are_errors_enabled.value)
 		end
 
+	output_actions: ACTION_SEQUENCE [TUPLE [READABLE_STRING_GENERAL]]
+			-- Will be called whenever there is a message to output.
 
 feature {NONE} -- Class-wide Options (From Indexing Clauses)
 
-	extract_indexes (a_class: CLASS_C)
+	extract_indexes (a_class: attached CLASS_C)
 			-- Extracts options from the indexing clause of class `a_class'.
 		local
 			l_ast: CLASS_AS
-			l_item: STRING_32
 			l_ignoredby: LINKED_LIST [STRING_32]
 		do
 			create l_ignoredby.make
@@ -352,33 +339,43 @@ feature {NONE} -- Class-wide Options (From Indexing Clauses)
 			nonlibrary_class.force (False, a_class)
 			l_ast := a_class.ast
 
-			if attached l_ast.internal_top_indexes then
-				across l_ast.internal_top_indexes as l_indexes loop
+			if attached l_ast.internal_top_indexes as l_top then
+				search_indexing_tags (l_top, a_class, l_ignoredby)
+			end
+			if attached l_ast.internal_bottom_indexes as l_bottom then
+				search_indexing_tags (l_bottom, a_class, l_ignoredby)
+			end
 
-					if l_indexes.item.tag.name_32.is_equal ("ca_ignoredby") then
-							-- Class wants to ignore certain rules.
-						across l_indexes.item.index_list as l_list loop
-							l_item := l_list.item.string_value_32
-							l_item.prune_all ('%"')
-							l_ignoredby.extend (l_item)
-						end
-					elseif l_indexes.item.tag.name_32.is_equal ("ca_library") then
-							-- Class has information on whether it is a library class.
-						if not l_indexes.item.index_list.is_empty then
-							l_item := l_indexes.item.index_list.first.string_value_32
-							l_item.to_lower
-							l_item.prune_all ('%"')
-							if l_item.is_equal ("true") then
-								library_class.force (True, a_class)
-							elseif l_item.is_equal ("false") then
-								nonlibrary_class.force (True, a_class)
-							end
+			ignoredby.force (l_ignoredby, a_class)
+		end
+
+	search_indexing_tags (a_clause: attached INDEXING_CLAUSE_AS; a_class: attached CLASS_C; a_ignoredby: attached LINKED_LIST [STRING_32])
+			-- Searches `a_clause' for settings relevant to code analysis.
+		local
+			l_item: STRING_32
+		do
+			across a_clause as ic loop
+				if ic.item.tag.name_32.is_equal ("ca_ignoredby") then
+						-- Class wants to ignore certain rules.
+					across ic.item.index_list as l_list loop
+						l_item := l_list.item.string_value_32
+						l_item.prune_all ('%"')
+						a_ignoredby.extend (l_item)
+					end
+				elseif ic.item.tag.name_32.is_equal ("ca_library") then
+						-- Class has information on whether it is a library class.
+					if not ic.item.index_list.is_empty then
+						l_item := ic.item.index_list.first.string_value_32
+						l_item.to_lower
+						l_item.prune_all ('%"')
+						if l_item.is_equal ("true") then
+							library_class.force (True, a_class)
+						elseif l_item.is_equal ("false") then
+							nonlibrary_class.force (True, a_class)
 						end
 					end
 				end
 			end
-
-			ignoredby.force (l_ignoredby, a_class)
 		end
 
 	ignoredby: HASH_TABLE [LINKED_LIST [STRING_32], CLASS_C]
@@ -388,6 +385,6 @@ feature {NONE} -- Class-wide Options (From Indexing Clauses)
 			-- Stores classes that are marked as library or non-library classes.
 
 invariant
---	law_of_non_contradiction: one class must not be both a library_class and a nonlibrary_class
+	--	law_of_non_contradiction: one class must not be both a library_class and a nonlibrary_class
 
 end
