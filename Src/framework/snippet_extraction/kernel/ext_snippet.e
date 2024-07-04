@@ -24,11 +24,12 @@ create
 
 feature{NONE} -- Initialization
 
-	make (a_content: like content; a_variable_context: like variable_context; a_holes: like holes; a_source: STRING)
+	make (a_content: like content; a_variable_context: like variable_context; a_holes: like holes; a_source: like source)
 			-- Initialize Current.
 		require
 			not_a_content_is_empty: not a_content.is_empty
 		local
+			l_retried: BOOLEAN
 			l_bp_initializer: ETR_BP_SLOT_INITIALIZER
 		do
 			variable_context := a_variable_context.deep_twin
@@ -42,10 +43,17 @@ feature{NONE} -- Initialization
 
 			create annotations.make
 
-				-- Initialize break point slots.
-			create l_bp_initializer
-			l_bp_initializer.set_current_breakpoint_slot (1)
-			l_bp_initializer.init_from (ast)
+			if not l_retried then
+				fixme ("Seems not to work with 'across' loops. msteindorfer:2011-07-14")
+
+					-- Initialize break point slots.
+				create l_bp_initializer
+				l_bp_initializer.set_current_breakpoint_slot (1)
+				l_bp_initializer.init_from (ast)
+			end
+		rescue
+			l_retried := True
+			retry
 		end
 
 feature -- Configuration
@@ -102,9 +110,8 @@ feature -- Access
 			-- Textual representation of originating AST.
 			-- The content should be a parse-able string.
 
-	source: STRING
+	source: EXT_SNIPPET_ORIGIN
 			-- The source where current snippet come from
-			-- Format: file@revision@line
 
 	ast: detachable EIFFEL_LIST [INSTRUCTION_AS]
 			-- AST representation of `content'
@@ -132,6 +139,36 @@ feature -- Access
 
 	annotations: LINKED_LIST [ANN_ANNOTATION]
 		-- List of annotations associated with current snippet	
+
+	as_string: STRING
+			-- String representation of current snippet containing operand definition and snippet content.
+		local
+			l_cursor: like operands.new_cursor
+			l_output: STRING
+		do
+			create Result.make (128)
+			l_output := Result
+
+				-- Build operands and their types.
+			from
+				l_cursor := operands.new_cursor
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				l_output.append (l_cursor.key)
+				l_output.append_character (':')
+				l_output.append_character (' ')
+				l_output.append (output_type_name (l_cursor.item))
+				l_output.append_character ('%N')
+				l_cursor.forth
+			end
+			l_output.append_character ('%N')
+
+				-- Build `content'.
+			l_output.append (content)
+			l_output.append_character ('%N')
+		end
 
 feature{NONE} -- Implementation
 
@@ -163,30 +200,11 @@ feature{NONE} -- Implementation
 		do
 			create debug_output.make (128)
 			l_output := debug_output
-
-				-- Build operands and their types.
-			from
-				l_cursor := operands.new_cursor
-				l_cursor.start
-			until
-				l_cursor.after
-			loop
-				l_output.append (l_cursor.key)
-				l_output.append_character (':')
-				l_output.append_character (' ')
-				l_output.append (output_type_name (l_cursor.item))
-				l_output.append_character ('%N')
-				l_cursor.forth
-			end
-			l_output.append_character ('%N')
-
-				-- Build `content'.
-			l_output.append (content)
-			l_output.append_character ('%N')
-			l_output.append_character ('%N')
+			l_output.append (as_string)
 
 				-- Build `source'.
-			l_output.append (source)
+			l_output.append_character ('%N')
+			l_output.append (source.out)
 		end
 
 end

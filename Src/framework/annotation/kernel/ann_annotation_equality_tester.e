@@ -5,17 +5,17 @@ note
 	revision: "$Revision$"
 
 class
-	ANN_ANNOTATION_EQUALITY_TESTER
+	ANN_ANNOTATION_EQUALITY_TESTER [G -> ANN_ANNOTATION]
 
 inherit
-	KL_EQUALITY_TESTER [ANN_ANNOTATION]
+	KL_EQUALITY_TESTER [G]
 		redefine
 			test
 		end
 
 feature -- Status report
 
-	test (v, u: ANN_ANNOTATION): BOOLEAN
+	test (v, u: G): BOOLEAN
 		do
 			if v = u then
 				Result := True
@@ -26,7 +26,7 @@ feature -- Status report
 			else
 				Result :=
 					v.generating_type ~ u.generating_type and then
-					v.debug_output ~ v.debug_output
+					v.debug_output ~ u.debug_output
 			end
 		end
 end

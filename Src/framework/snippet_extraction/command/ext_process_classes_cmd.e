@@ -42,6 +42,9 @@ feature -- Basic operations
 		local
             l_target_type: TYPE_A
 		do
+			if config.snippet_log_file /= Void then
+				create_snippet_file
+			end
 			across
 				config.target_types as l_type_name_cursor
 			loop
@@ -56,6 +59,9 @@ feature -- Basic operations
 					end
 				end
 			end
+			if config.snippet_log_file /= Void then
+				close_snippet_file
+			end
 		end
 
 feature {NONE} -- Implementation
@@ -63,23 +69,34 @@ feature {NONE} -- Implementation
 	process_feature (a_target_type: TYPE_A; a_class: CLASS_C; a_feature: FEATURE_I)
 			-- Starts processing snippet extraction with relevant `a_target_type' on `a_class' with `a_feature'.
 		local
-			l_origin: STRING
+			l_basic_file_name: STRING
+			l_origin: EXT_SNIPPET_ORIGIN
 			l_extractor: EXT_DEFERRED_SNIPPET_EXTRACTOR
 			l_ann_extractor: EXT_PROBABILITY_ANNOTATION_EXTRACTOR
 		do
-			l_origin := origin_as_string (a_target_type, a_class, a_feature)
+			if attached config.namespace as l_namespace then
+				create l_origin.make (l_namespace, a_class.name, a_feature.feature_name)
+			else
+				create l_origin.make ("[unknown]", a_class.name, a_feature.feature_name)
+			end
+
+			l_basic_file_name := basic_file_name (a_target_type, l_origin)
 
 				-- Start extraction.
-			create {EXT_SNIPPET_EXTRACTOR} l_extractor.make
+			create {EXT_SNIPPET_EXTRACTOR} l_extractor.make (config)
 			l_extractor.extract_from_feature (a_target_type, a_feature, a_class, l_origin)
 
 				-- Store snippets, if any where extracted.
 			if attached l_extractor.last_snippets as l_snippets and then not l_snippets.is_empty then
-				write_snippets_to_file (l_snippets, l_origin)
+				write_snippets_to_file (l_snippets, l_basic_file_name, l_origin.out_separator)
 				to_implement ("Store snippets in serialized XML format.")
 
 				create l_ann_extractor
 				l_snippets.do_all (agent l_ann_extractor.extract_from_snippet)
+			end
+
+			if not l_extractor.last_snippets.is_empty and then config.snippet_log_file /= Void then
+				log_snippet_in_file (l_extractor.last_snippets)
 			end
 		end
 
@@ -177,18 +194,22 @@ feature {NONE} -- Class selector
 
 feature {NONE} -- Output
 
-	origin_as_string (a_target_type: TYPE_A; a_class: CLASS_C; a_feature: FEATURE_I): STRING
-			-- Create a textual representation of the origin.
+	basic_file_name (a_target_type: TYPE_A; a_origin: EXT_SNIPPET_ORIGIN): STRING
+			-- Create a basic file name based on a snippet's origin and it's type.
+		local
+			l_target_name: STRING
 		do
+				-- Remove all whitespaces.
+			l_target_name := a_target_type.name.twin
+			l_target_name.replace_substring_all (" ", "")
+
 			create Result.make_empty
-			Result.append (a_target_type.name)
-			Result.append ("@")
-			Result.append (a_class.name)
-			Result.append (".")
-			Result.append (a_feature.feature_name)
+			Result.append (a_origin.out)
+			Result.append (a_origin.out_separator)
+			Result.append (l_target_name)
 		end
 
-	write_snippets_to_file (a_snippets: LINKED_SET [EXT_SNIPPET]; a_basic_file_name: STRING)
+	write_snippets_to_file (a_snippets: LINKED_SET [EXT_SNIPPET]; a_basic_file_name: STRING; a_separator: STRING)
 			-- Writes the snippets to a file if `{EXT_CONFIG}.output' path is configured.
 			-- `a_file_name' is considered as a basic filename that still gets expanded by
 			-- a postfix and a file extension.
@@ -203,7 +224,8 @@ feature {NONE} -- Output
 				loop
 						-- Concatenate the file name.
 					create l_file_name.make_from_string (a_basic_file_name)
-					l_file_name.append (once "@targets")
+					l_file_name.append (a_separator)
+					l_file_name.append (once "targets")
 					l_file_name.append (target_variable_list_as_string (l_cursor.item))
 
 						-- Create whole path name.
@@ -256,6 +278,36 @@ feature {NONE} -- Output
 			end
 
 			Result.append ("]")
+		end
+
+feature{NONE} -- Implementation
+
+	snippet_file: PLAIN_TEXT_FILE
+			-- File used to log snippets
+
+	log_snippet_in_file (a_snippets: LINKED_LIST [EXT_SNIPPET])
+			-- Log `a_snippets' in specified file.
+		do
+			across a_snippets as l_snippet loop
+				snippet_file.put_string (l_snippet.item.as_string)
+				snippet_file.put_string ("---------------------------------------------------------------------------%N")
+			end
+		end
+
+	create_snippet_file
+			-- Create `snippet_file'.
+		do
+			if snippet_file = Void then
+				create snippet_file.make_create_read_write (config.snippet_log_file)
+			end
+		end
+
+	close_snippet_file
+			-- Close `snippet_file'.
+		do
+			if snippet_file /= Void and then snippet_file.is_open_write then
+				snippet_file.close
+			end
 		end
 
 end

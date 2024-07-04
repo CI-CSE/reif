@@ -34,6 +34,10 @@ feature -- Access
 		assign set_target_types
 			-- Target class types for extraction.
 
+	namespace: detachable STRING
+		assign set_namespace
+			-- Identifying the snippet source, i.e. project name.
+
 	class_name: detachable STRING
 		assign set_class_name
 			-- Class context for mining where `feature_name' can be found.
@@ -54,6 +58,20 @@ feature -- Access
 		assign set_log_file_name
 			-- File name used to write logging information to.
 
+	maximum_lines_of_code: INTEGER
+			-- The allowed maximum lines of code for a snippet to be reported
+			-- 0 means no limit. Default: 0.
+			-- This option is used to ignore snippets which are too large.
+
+	maximum_cfg_structure_level: INTEGER
+			-- The allowed maximum structure levels for a snippet to be reported
+			-- 0 means no limit. Default: 0.
+			-- This option is used to ignore snippets which have too complicated control flow structures.
+
+	snippet_log_file: detachable STRING
+			-- If attached, the absolute path of the file used to log only snippets
+			-- Default: Void
+
 feature -- Setting
 
 	set_target_types (a_target_types: like target_types)
@@ -62,6 +80,17 @@ feature -- Setting
 			attached a_target_types
 		do
 			target_types := a_target_types.twin
+		end
+
+	set_namespace (a_namespace: like namespace)
+			-- Set `namespace' with `a_namespace'.
+		do
+			if a_namespace = Void then
+				namespace := Void
+			else
+				namespace := a_namespace.twin
+				namespace.to_upper
+			end
 		end
 
 	set_class_name (a_class_name: like class_name)
@@ -105,6 +134,24 @@ feature -- Setting
 			-- Set `log_file_name' with `a_log_file_name'.
 		do
 			log_file_name := a_log_file_name
+		end
+
+	set_maximum_lines_of_code (i: INTEGER)
+			-- Set `maximum_lines_of_code'with `i'.
+		do
+			maximum_lines_of_code := i
+		end
+
+	set_maximum_cfg_structure_level (i: INTEGER)
+			-- Set `maximum_cfg_structure_level' with `i'.
+		do
+			maximum_cfg_structure_level := i
+		end
+
+	set_snippet_log_file (a_path: STRING)
+			-- Set `snippet_log_file' with `a_path'.
+		do
+			snippet_log_file := a_path.twin
 		end
 
 end

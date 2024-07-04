@@ -1,6 +1,5 @@
 note
 	description: "Class to extract holes from ASTs."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -44,8 +43,7 @@ feature {NONE} -- Implementation
 			attached a_hole
 			attached a_location
 		do
-			fixme ("Provide a hole identifier instead of `out'.")
-			last_holes.extend (a_hole, a_hole.out)
+			last_holes.extend (a_hole, a_hole.hole_name)
 			last_holes_by_location.extend (a_hole, a_location)
 		end
 

@@ -28,11 +28,12 @@ create
 
 feature {NONE} -- Initialization
 
-	make
+	make (a_config: like config)
 			-- Default initialization.
 		do
 			set_logging_active (True)
-			create snippet_decider.make
+			config := a_config
+			setup_snippet_decider
 		end
 
 feature -- Access
@@ -44,6 +45,11 @@ feature -- Access
 		assign set_logging_active
 			 -- Should logging commands be executed?
 
+	config: EXT_CONFIG
+			-- Configuration for snippet extraction
+
+feature -- Basic operations
+
 	set_logging_active (a_active: BOOLEAN)
 			-- Set `is_logging_active' to `a_active'.
 		require
@@ -52,9 +58,7 @@ feature -- Access
 			is_logging_active := a_active
 		end
 
-feature -- Basic operations
-
-	extract_from_feature (a_type: TYPE_A; a_feature: FEATURE_I; a_context_class: CLASS_C; a_source: detachable STRING)
+	extract_from_feature (a_type: TYPE_A; a_feature: FEATURE_I; a_context_class: CLASS_C; a_source: detachable EXT_SNIPPET_ORIGIN)
 			-- Extract snippet for relevant target of type `a_type' from
 			-- `a_feature' viewed in `a_context_class'.
 			-- Make results available in `last_snippets'.
@@ -74,7 +78,7 @@ feature -- Basic operations
 				if attached a_source then
 					origin := a_source
 				else
-					origin := "unknown@unknown@unknown"
+					create origin.make ("unknown", "unknown", "unknown")
 				end
 
 				create last_snippets.make
@@ -101,8 +105,8 @@ feature -- Basic operations
 						log.put_string ("%N")
 						log_ast_structure (l_compound)
 						log.put_string ("%N")
-	--					log_ast_text (l_compound)
-	--					log.put_string ("%N")
+						log_ast_text (l_compound)
+						log.put_string ("%N")
 
 						relevant_variables.do_all_with_key (agent process_feature_with_relevant_variable (l_compound, ?, ?))
 					else
@@ -113,9 +117,9 @@ feature -- Basic operations
 				log.put_string ("[Finished extraction]")
 				log.put_string ("%N%N%N")
 			end
-		rescue
-			l_retried := True
-			retry
+--		rescue
+--			l_retried := True
+--			retry
 		end
 
 feature {NONE} -- Implementation
@@ -129,7 +133,7 @@ feature {NONE} -- Implementation
 	context_class: CLASS_C
 			-- Class where `feature_' is viewed
 
-	origin: STRING
+	origin: EXT_SNIPPET_ORIGIN
 			-- Textual representation of the origin of a snippet.
 
 	relevant_variables: DS_HASH_TABLE [TYPE_A, STRING]
@@ -191,7 +195,20 @@ feature {NONE} -- Implementation
 			Result.compare_objects
 
 				-- Collect all possible candidate variables.
---			operand_name_types_with_feature (feature_, context_class).do_all_with_key (agent Result.force)
+			if attached operand_name_types_with_feature (feature_, context_class) as l_operands then
+				if l_operands.has ("Result") and then attached l_operands.at ("Result").name as l_result_type_name then
+					Result.force (l_result_type_name, "Result")
+				end
+
+--				from
+--					l_operands.start
+--				until
+--					l_operands.after
+--				loop
+--					Result.force (l_operands.item_for_iteration.name, l_operands.key_for_iteration)
+--					l_operands.forth
+--				end
+			end
 			across locals_from_feature_as (feature_.e_feature.ast, context_class) as l_locals loop
 				Result.force (l_locals.item.name, l_locals.key)
 			end
@@ -251,7 +268,7 @@ feature {NONE} -- Implementation
 			-- Initialization of variable context on which the extraction relies.
 		local
 			l_target_variable_table: HASH_TABLE [STRING, STRING]
-			l_object_test_as_alias_finder: EXT_OBJECT_TEST_AS_ALIAS_FINDER
+			l_object_test_as_alias_finder: EXT_READ_ONLY_ALIAS_FINDER
 		do
 				-- Create variable context.
 			create l_target_variable_table.make (5)
@@ -263,7 +280,7 @@ feature {NONE} -- Implementation
 			create l_object_test_as_alias_finder.make (l_target_variable_table, context_class)
 			a_compound_as.process (l_object_test_as_alias_finder)
 
-			l_target_variable_table.merge (l_object_test_as_alias_finder.last_object_test_aliases)
+			l_target_variable_table.merge (l_object_test_as_alias_finder.last_aliases)
 
 				-- Create and configure class feature `variable_context'.
 			create variable_context.make
@@ -311,11 +328,21 @@ feature {NONE} -- Implementation
 			create l_holes.make (10)
 			l_holes.compare_objects
 
-			l_compound_as := perform_ast_if_as_hole_step   (l_compound_as, l_holes, l_hole_factory)
-			l_compound_as := perform_ast_loop_as_hole_step (l_compound_as, l_holes, l_hole_factory)
-			l_compound_as := perform_ast_general_hole_step (l_compound_as, l_holes, l_hole_factory)
+			l_compound_as := perform_ast_if_as_hole_step		(l_compound_as, l_holes, l_hole_factory)
+			l_compound_as := perform_ast_inspect_as_hole_step	(l_compound_as, l_holes, l_hole_factory)
+			l_compound_as := perform_ast_loop_as_hole_step		(l_compound_as, l_holes, l_hole_factory)
 
-			log.put_string ("%N")
+--			log.put_string ("%N---%N")
+--			log_ast_text (l_compound_as)
+
+			l_compound_as := perform_ast_general_hole_step		(l_compound_as, l_holes, l_hole_factory)
+
+--			log.put_string ("%N---%N")
+--			log_ast_text (l_compound_as)
+
+			l_compound_as := perform_ast_hole_merge				(l_compound_as, l_holes, l_hole_factory)
+
+			log.put_string ("%N---%N")
 			log_ast_text (l_compound_as)
 
 			if not l_compound_as.is_empty then
@@ -345,15 +372,12 @@ feature {NONE} -- Implementation
 			l_variable_context: EXT_VARIABLE_CONTEXT
 			l_entry_point_finder: EXT_ENTRY_POINT_FINDER
 		do
-				-- Create temporary variable context.
+				-- Create temporary structures.
 			create l_target_variable_table.make (1)
 			l_target_variable_table.compare_objects
 			l_target_variable_table.force (a_variable_type, a_variable_name)
-			create l_variable_context.make
-			l_variable_context.set_target_variables (l_target_variable_table)
 
-			create l_entry_point_finder.make
-			l_entry_point_finder.set_variable_context (l_variable_context)
+			create l_entry_point_finder.make_from_arguments (l_target_variable_table)
 			a_compound_as.process (l_entry_point_finder)
 
 			if attached l_entry_point_finder.last_entry_point as l_entry_point then
@@ -374,8 +398,7 @@ feature {NONE} -- Implementation
 			l_ast_rewriter: EXT_AST_REWRITER [like a_compound_as]
 		do
 				-- Associate statements with holes.
-			create l_ast_hole_extractor.make_with_factory (a_factory)
-			l_ast_hole_extractor.set_variable_context (variable_context)
+			create l_ast_hole_extractor.make_with_arguments (variable_context, a_factory)
 			l_ast_hole_extractor.extract (a_compound_as)
 
 				-- Rewrite statements associated with holes.
@@ -387,14 +410,47 @@ feature {NONE} -- Implementation
 			Result := l_ast_rewriter.last_ast
 		end
 
+	perform_ast_hole_merge (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]; a_holes: HASH_TABLE [EXT_HOLE, STRING]; a_factory: EXT_HOLE_FACTORY): like a_compound_as
+		local
+			l_ast_processor: EXT_AST_HOLE_MERGER
+		do
+			create l_ast_processor.make_with_arguments (ast_printer_output, a_holes, a_factory)
+
+				-- Process AST.
+			l_ast_processor.rewrite (a_compound_as)
+
+				-- Update hole table.
+			a_holes.merge (l_ast_processor.last_holes_added)
+			l_ast_processor.last_holes_removed.current_keys.do_all (agent a_holes.remove)
+
+			Result := l_ast_processor.last_ast
+		end
+
 	perform_ast_if_as_hole_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]; a_holes: HASH_TABLE [EXT_HOLE, STRING]; a_factory: EXT_HOLE_FACTORY): like a_compound_as
 		local
 			l_ast_hole_extractor: EXT_AST_IF_AS_HOLE_EXTRACTOR
 			l_ast_rewriter: EXT_AST_REWRITER [like a_compound_as]
 		do
 				-- Associate statements with holes.
-			create l_ast_hole_extractor.make_with_factory (a_factory)
-			l_ast_hole_extractor.set_variable_context (variable_context)
+			create l_ast_hole_extractor.make_with_arguments (variable_context, a_factory)
+			l_ast_hole_extractor.extract (a_compound_as)
+
+				-- Rewrite statements associated with holes.
+			create {EXT_AST_HOLE_REWRITER} l_ast_rewriter.make_with_arguments (ast_printer_output, l_ast_hole_extractor.last_holes_by_location)
+			l_ast_rewriter.rewrite (a_compound_as)
+
+				-- Add holes to collection and return rewritten AST.
+			a_holes.merge (l_ast_hole_extractor.last_holes)
+			Result := l_ast_rewriter.last_ast
+		end
+
+	perform_ast_inspect_as_hole_step (a_compound_as: EIFFEL_LIST [INSTRUCTION_AS]; a_holes: HASH_TABLE [EXT_HOLE, STRING]; a_factory: EXT_HOLE_FACTORY): like a_compound_as
+		local
+			l_ast_hole_extractor: EXT_AST_INSPECT_AS_HOLE_EXTRACTOR
+			l_ast_rewriter: EXT_AST_REWRITER [like a_compound_as]
+		do
+				-- Associate statements with holes.
+			create l_ast_hole_extractor.make_with_arguments (variable_context, a_factory)
 			l_ast_hole_extractor.extract (a_compound_as)
 
 				-- Rewrite statements associated with holes.
@@ -410,8 +466,7 @@ feature {NONE} -- Implementation
 		local
 			l_ast_processor: EXT_AST_LOOP_AS_HOLE_PROCESSOR
 		do
-			create l_ast_processor.make_with_arguments (ast_printer_output, a_factory)
-			l_ast_processor.set_variable_context (variable_context)
+			create l_ast_processor.make_with_arguments (ast_printer_output, variable_context, a_factory)
 
 				-- Process AST.
 			l_ast_processor.extract (a_compound_as)
@@ -427,8 +482,7 @@ feature {NONE} -- Implementation
 			l_ast_rewriter: EXT_AST_PRUNE_REWRITER
 			l_path_initializer: ETR_AST_PATH_INITIALIZER
 		do
-			create l_ast_rewriter.make_with_output (ast_printer_output)
-			l_ast_rewriter.set_variable_context (variable_context)
+			create l_ast_rewriter.make_with_arguments (ast_printer_output, variable_context)
 
 			if attached {EIFFEL_LIST [INSTRUCTION_AS]} ast_from_compound_text (text_from_ast_with_printer (a_compound_as, l_ast_rewriter)) as l_rewritten_compound_as then
 				Result := l_rewritten_compound_as
@@ -446,8 +500,7 @@ feature {NONE} -- Implementation
 			l_ast_rewriter: EXT_AST_IF_AS_REWRITER
 			l_path_initializer: ETR_AST_PATH_INITIALIZER
 		do
-			create l_ast_rewriter.make_with_output (ast_printer_output)
-			l_ast_rewriter.set_variable_context (variable_context)
+			create l_ast_rewriter.make_with_arguments (ast_printer_output, variable_context)
 
 			if attached {EIFFEL_LIST [INSTRUCTION_AS]} ast_from_compound_text (text_from_ast_with_printer (a_compound_as, l_ast_rewriter)) as l_rewritten_compound_as then
 				Result := l_rewritten_compound_as
@@ -608,6 +661,20 @@ feature {NONE} -- Debug
 				log.put_string (" usage information about type ")
 				log.put_string (a_type_name)
 				log.put_string ("]%N")
+			end
+		end
+
+feature{NONE} -- Implementation
+
+	setup_snippet_decider
+			-- Setup `snippet_decider'.
+		do
+			create snippet_decider.make
+			if config.maximum_cfg_structure_level> 0 then
+				snippet_decider.criteria.extend (agent snippet_decider.check_snippet_deep_code_structure_rule (?, config.maximum_cfg_structure_level))
+			end
+			if config.maximum_lines_of_code > 0 then
+				snippet_decider.criteria.extend (agent snippet_decider.check_snippet_maximum_length_rule (?, config.maximum_lines_of_code))
 			end
 		end
 
