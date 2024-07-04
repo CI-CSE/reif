@@ -30,7 +30,8 @@ feature {NONE} -- Initialization
 
 feature {NONE} -- Activation
 
-	register_actions (a_checker: attached CA_ALL_RULES_CHECKER)
+	register_actions (a_checker: CA_ALL_RULES_CHECKER)
+			-- <Precursor>
 		do
 			a_checker.add_class_pre_action (agent class_pre)
 			a_checker.add_class_post_action (agent class_pre)
@@ -40,29 +41,49 @@ feature {NONE} -- Activation
 feature {NONE} -- Rule checking
 
 	class_pre (a_class_as: CLASS_AS)
+			-- To be run at the beginning of the analysis of a class.
 		do
 			create seen_feature_table.make (32)
 		end
 
 	class_post (a_class_as: CLASS_AS)
+			-- To be run at the end of the analysis of a class.
 		do
 			seen_feature_table := Void
 		end
 
-	process_feature_clause (a_feature_clause_as: attached FEATURE_CLAUSE_AS)
+	process_feature_clause (a_feature_clause_as: FEATURE_CLAUSE_AS)
+			-- Process `a_feature_clause_as'.
 		local
 			l_viol: CA_RULE_VIOLATION
 			l_key: STRING
 			l_comment_text: STRING
 		do
-			l_comment_text := stringify_comments (a_feature_clause_as.comment (current_context.matchlist))
+				-- Sample violation
+				--
+				-- class
+				--		MY_CLASS
+				--
+				-- feature -- My feature group
+				--
+				--	-- some features here
+				--
+				-- feature -- My feature group
+				--
+				--	-- some more features
+				--
 
-				-- If the comment is empty, we ignore this feature clause.
-				-- There is another rule in charge of complaining about uncommented feature clauses.
-			if not l_comment_text.is_empty then
+			l_comment_text := stringify_comments (a_feature_clause_as.comment (current_context.matchlist))
+			check
+				attached seen_feature_table
+			end
+			if not l_comment_text.is_empty and attached seen_feature_table as l_seen_feature_table then
+					-- If the comment is empty, we ignore this feature clause.
+					-- There is another rule in charge of complaining about uncommented feature clauses.
+
 				l_key := l_comment_text.as_lower + stringify_clients (a_feature_clause_as.clients) -- Case insensitive on comments
-				if not seen_feature_table.has (l_key) then
-					seen_feature_table.put (a_feature_clause_as, l_key)
+				if not l_seen_feature_table.has (l_key) then
+					l_seen_feature_table.put (a_feature_clause_as, l_key)
 				else
 					create l_viol.make_with_rule (Current)
 					l_viol.set_location (a_feature_clause_as.start_location)
@@ -72,11 +93,13 @@ feature {NONE} -- Rule checking
 			end
 		end
 
-	seen_feature_table: detachable HASH_TABLE [FEATURE_CLAUSE_AS, STRING]
+	seen_feature_table: detachable STRING_TABLE [FEATURE_CLAUSE_AS]
 			-- Contains the features that have been met so far. The key is a combination
 			-- of the feature comment and the exports.
 
 	stringify_comments (a_comments: EIFFEL_COMMENTS): STRING
+			-- Convert `a_comments' to a string representation, ignoring
+			-- whitespace at the beginning and the end of each line.
 		local
 			l_adjusted_comment: STRING
 		do
@@ -90,18 +113,20 @@ feature {NONE} -- Rule checking
 			end
 		end
 
-	stringify_clients (a_clients: CLIENT_AS): STRING
+	stringify_clients (a_clients: CLIENT_AS): STRING_GENERAL
+			-- Convert `a_clients' to a string representation.
 		local
 			l_inner_clients: CLASS_LIST_AS
-			l_client_list: SORTABLE_ARRAY [STRING]
+			l_client_list: ARRAYED_LIST [READABLE_STRING_GENERAL]
+			l_string_sorter: QUICK_SORTER [READABLE_STRING_GENERAL]
 			l_current_client: STRING
 			i: INTEGER
 		do
 			if a_clients = Void or else a_clients.clients = Void then
-				create Result.make_empty
+				create {STRING_32} Result.make_empty
 			else
 				l_inner_clients := a_clients.clients
-				create l_client_list.make_filled (Void, 1, l_inner_clients.count)
+				create l_client_list.make_filled (l_inner_clients.count)
 				from
 					i := 1
 				until
@@ -114,8 +139,9 @@ feature {NONE} -- Rule checking
 					l_client_list [i] := l_current_client
 					i := i + 1
 				end
-				l_client_list.sort
-				create Result.make (256) -- Should be more space than enough
+				create l_string_sorter.make (create {STRING_COMPARATOR}.make)
+				l_string_sorter.sort (l_client_list)
+				create {STRING_32} Result.make (256) -- Should be more space than enough
 				across
 					l_client_list as ic
 				loop
@@ -127,6 +153,7 @@ feature {NONE} -- Rule checking
 feature -- Properties
 
 	title: STRING_32
+			-- <Precursor>
 		do
 			Result := ca_names.mergeable_feature_clauses_title
 		end
@@ -135,15 +162,20 @@ feature -- Properties
 			-- <Precursor>
 
 	description: STRING_32
+			-- <Precursor>
 		do
 			Result := ca_names.mergeable_feature_clauses_description
 		end
 
-	format_violation_description (a_violation: attached CA_RULE_VIOLATION; a_formatter: attached TEXT_FORMATTER)
+	format_violation_description (a_violation: CA_RULE_VIOLATION; a_formatter: TEXT_FORMATTER)
+			-- <Precursor>
 		do
 			a_formatter.add (ca_messages.mergeable_feature_clauses_violation_1)
-			check attached {STRING} a_violation.long_description_info.first as comment_text then
-				a_formatter.add_quoted_text (comment_text)
+			check
+				attached {STRING} a_violation.long_description_info.first
+			end
+			if attached {STRING} a_violation.long_description_info.first as l_comment_text then
+				a_formatter.add_quoted_text (l_comment_text)
 			end
 			a_formatter.add (ca_messages.mergeable_feature_clauses_violation_2)
 		end
