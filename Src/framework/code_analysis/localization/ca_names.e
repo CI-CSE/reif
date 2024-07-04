@@ -18,24 +18,30 @@ feature -- General
 
 feature -- Rules
 
-	exported_feature_never_called_fix: STRING_32
-		do Result := translation_in_context ("Change feature to secret", once "code_analyzer") end
+	export_can_be_restricted_fix: STRING_32
+		do Result := translation_in_context ("Change feature export to {NONE}", once "code_analyzer") end
 
-	exported_feature_never_called_description: STRING_32
+	export_can_be_restricted_description: STRING_32
 		do Result := translation_in_context ("An exported feature that is used only in unqualified calls may be changed to secret.", once "code_analyzer") end
 
-	exported_feature_never_called_title: STRING_32
+	export_can_be_restricted_title: STRING_32
 		do Result := translation_in_context ("Exported feature never called", once "code_analyzer") end
 
-	unused_inheritance_fix: STRING_32
-		do Result := translation_in_context ("Remove inheritance", once "code_analyzer") end
+	generic_param_too_long_fix_1: STRING_32
+		do Result := translation_in_context ("Replace '", once "code_analyzer") end
 
-	unused_inheritance_description: STRING_32
-		do Result := translation_in_context ("A class has an inheritance link that is used neither for implementation%
-							% nor for polymorphy. This inheritance link should be removed.", once "code_analyzer") end
+	generic_param_too_long_fix_2: STRING_32
+		do Result := translation_in_context ("' with ", once "code_analyzer") end
 
-	unused_inheritance_title: STRING_32
-		do Result := translation_in_context ("Unused inheritance", once "code_analyzer") end
+	generic_param_too_long_description: STRING_32
+		do Result := translation_in_context ("Names of formal generic parameters in generic class declarations should%
+							% only have one character.", once "code_analyzer") end
+
+	generic_param_too_long_title: STRING_32
+		do Result := translation_in_context ("Formal generic parameter name too long", once "code_analyzer") end
+
+	mergeable_conditionals_fix: STRING_32
+		do Result := translation_in_context ("Merge conditionals", once "code_analyzer") end
 
 	mergeable_conditionals_title: STRING_32
 		do Result := translation_in_context ("Mergeable conditionals", once "code_analyzer") end

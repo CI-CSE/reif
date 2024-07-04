@@ -1,14 +1,15 @@
+note
+	ca_only: "CA073"
+
 class
 	CAT_COMMENT_NOT_WELL_PHRASED
 
-feature{ANY} -- Testany
-
-feature {STRING} -- Teststring
-
-feature -- Test no export
-
+feature -- Comment
+feature {ANY,
+ANY} -- Comment
+feature {ANY}
 feature
-
-feature
+feature{ANY} -- Comment
+feature{ANY}
 
 end

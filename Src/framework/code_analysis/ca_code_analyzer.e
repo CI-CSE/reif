@@ -1,6 +1,5 @@
 note
 	description: "THE Code Analyzer."
-	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -89,8 +88,8 @@ feature {NONE} -- Initialization
 			add_rule (create {CA_REAL_NAN_COMPARISON_RULE}.make)
 			add_rule (create {CA_LOCAL_USED_FOR_RESULT_RULE}.make)
 			add_rule (create {CA_MERGEABLE_CONDITIONALS_RULE}.make)
-			add_rule (create {CA_UNUSED_INHERITANCE_RULE}.make_with_defaults)
-			add_rule (create {CA_EXPORTED_FEATURE_NEVER_CALLED_RULE}.make_with_defaults)
+			add_rule (create {CA_GENERIC_PARAM_TOO_LONG_RULE}.make_with_defaults)
+			add_rule (create {CA_EXPORT_CAN_BE_RESTRICTED_RULE}.make)
 
 				-- Sort rules by ID.
 			create l_rule_comparator.make (

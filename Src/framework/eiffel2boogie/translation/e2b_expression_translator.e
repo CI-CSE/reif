@@ -69,6 +69,7 @@ inherit
 			process_un_minus_b,
 			process_un_not_b,
 			process_un_old_b,
+			process_un_plus_b,
 			process_void_b
 		end
 
@@ -301,7 +302,7 @@ feature -- Visitors
 	process_array_const_b (a_node: ARRAY_CONST_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (Void, context_feature, "Manifest array in contract not supported.")
+			helper.add_unsupported_error (context_feature, "Manifest array in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -623,7 +624,7 @@ feature -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (Void, context_feature, "Creation expression in contract not supported.")
+			helper.add_unsupported_error (context_feature, "Creation expression in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -982,14 +983,14 @@ feature -- Visitors
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (Void, context_feature, "Agents in contract not supported.")
+			helper.add_unsupported_error (context_feature, "Agents in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (Void, context_feature, "Manifest string not supported.")
+			helper.add_unsupported_error (context_feature, "Manifest string not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -1006,7 +1007,7 @@ feature -- Visitors
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (Void, context_feature, "Manifest tuple in contract not supported.")
+			helper.add_unsupported_error (context_feature, "Manifest tuple in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -1045,6 +1046,13 @@ feature -- Visitors
 		do
 			check False end
 			last_expression := dummy_node (a_node.type)
+		end
+
+	process_un_plus_b (a_node: UN_PLUS_B)
+			-- <Precursor>
+		do
+			safe_process (a_node.expr)
+			-- Nothing to do, there is no unary plus in Boogie
 		end
 
 	process_void_b (a_node: VOID_B)
