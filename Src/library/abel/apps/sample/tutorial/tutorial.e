@@ -15,29 +15,72 @@ create
 feature 	-- Tutorial exploration features
 
 	explore
-			-- Your code goes here.
+			-- Tutorial code.
 		local
-			lis: LINKED_LIST [PERSON]
-			p1, p2: PERSON
+			p1, p2, p3: PERSON
+			c1, c2, c3: CHILD
+			repo_factory: PS_REPOSITORY_FACTORY
+			mysql_repo: PS_RELATIONAL_REPOSITORY
 		do
+			print ("---o--- ABEL Tutorial ---o---")
+			io.new_line
+			print ("Insert 3 new persons in the database")
+			io.new_line
 			create p1.make ("Albo", "Bitossi")
 			p1.celebrate_birthday
-			simple_insert (p1)
+			executor.insert (p1)
 			create p2.make ("Berno", "Citrini")
 			p2.celebrate_birthday
 			p2.celebrate_birthday
 			p2.celebrate_birthday
-			simple_insert (p2)
-			lis := simple_query
-			across lis as local_lis
-			loop
-				io.new_line
-				print (local_lis.item.first_name + " ")
-				print (local_lis.item.last_name + ", age: ")
-				print (local_lis.item.age)
+			executor.insert (p2)
+			create p3.make ("Dumbo", "Ermini")
+			executor.insert (p3)
+			print ("Query the database for persons and print result")
+			print_result (simple_query)
+			print ("Update an existing person in the database and print result")
+			p2.celebrate_birthday
+			executor.update (p2)
+			print_result (simple_query)
+			print ("Delete Dumbo Ermini from the database and print result")
+			executor.delete (p3)
+			print_result (simple_query)
+			-- Uncomment the following 2 lines to have a failing update of an object not known to ABEL
+			--print ("A failing update...")
+			--failing_update
+			-- Uncomment the following 2 lines to have a failing delete of an object not known to ABEL
+			--print ("A failing delete...")			
+			--failing_delete
+			print ("Combined criterion example: search for an Albo Bitossi who is not 20")
+			print_result (query_with_composite_criterion)
+--			print ("Delete Albo Bitossi using a deletion query")
+			--delete_person_with_deletion_query ("Bitossi")
+			--print_result (simple_query)
+			print ("Insert 3 children in the database")
+			create c1.make ("Baby", "Doe")
+			create c2.make ("John", "Doe")
+			create c3.make ("Grandpa", "Doe")
+			c1.set_father (c2)
+			c2.set_father (c3)
+			executor.insert (c1)
+			io.new_line
+			print ("Query the database for children and print result")
+			print_children_result (query_for_children)
+			print ("Inserting John Doe has no effect")
+			executor.insert (c2)
+			print_children_result (query_for_children)
+			print ("Updating John Doe has no effect")
+			if attached {CHILD} c1.father as dad then
+				dad.celebrate_birthday
 			end
-
-
+			executor.update (c1)
+			print_children_result (query_for_children)
+			print ("Celebrating the birthday fo all PERSON objects in the repository")
+			update_ages
+			print_result (simple_query)
+			create repo_factory
+			mysql_repo := repo_factory.create_mysql_repository_with_default_host_port ("tutorial","tutorial","tutorial")
+			create executor.make (mysql_repo)
 		end
 
 feature {NONE} -- Initialization
@@ -82,37 +125,36 @@ feature -- CRUD operations
 			end
 		end
 
-	simple_insert (a_person: PERSON)
-		-- Insert `a_person' into the current repository.
-		do
-			executor.insert (a_person)
-		end
-
-	simple_update (a_person: PERSON)
-		-- Update age of `a_person' age into the current repository.
-		do
-			a_person.celebrate_birthday
-			executor.update (a_person)
-		end
-
-	delete_person (name: STRING)
-		-- Delete the person called `name'.
+	query_with_composite_criterion: LINKED_LIST [PERSON]
+		-- Query using a composite criterion.
 		local
 			query: PS_OBJECT_QUERY [PERSON]
 		do
-			-- First retrieve the person from the database.
+			create Result.make
 			create query.make
+			query.set_criterion (composite_search_criterion)
 			executor.execute_query (query)
-			across query as query_result
-			loop
-				if query_result.item.last_name.is_equal (name) then
 
-					-- Now delete the person.
-					executor.delete (query_result.item)
-				end
+			across query as	query_result
+			loop
+				Result.extend (query_result.item)
 			end
 		end
 
+	query_for_children: LINKED_LIST [CHILD]
+		-- Query all children from repository.
+		local
+			query:PS_OBJECT_QUERY [CHILD]
+		do
+			create Result.make
+			create query.make
+			executor.execute_query (query)
+
+			across query as	query_result
+			loop
+				Result.extend (query_result.item)
+			end
+		end
 
 feature -- Failing write operations
 
@@ -121,137 +163,65 @@ feature -- Failing write operations
 		local
 			a_person: PERSON
 		do
-			create a_person.make ("Albo", "Bitossi")
+			create a_person.make ("Bob", "Barath")
 			executor.update (a_person)
 				-- Results in a precondition violation.
 		end
 
-	failing_delete (name: STRING)
+	failing_delete
 		-- Try and fail to delete a new person object.
 		local
 			a_person: PERSON
 		do
-			create a_person.make ("Albo", "Bitossi")
+			create a_person.make ("Cersei", "Lannis")
 			executor.delete (a_person)
 				-- Results in a precondition violation.
 		end
 
-
 feature -- Queries with criteria
 
-	create_criteria_traditional : PS_CRITERION
-		-- Create a new criterion using the traditional approach.
-		do
-
-			-- for predefined criteria.
-			Result:=
-				factory.new_predefined ("age", factory.less, 5)
-
-			-- for agent criteria
-			Result :=
-				factory.new_agent (agent age_less_than (?, 5))
-		end
-
-	create_criteria_double_bracket : PS_CRITERION
-		-- Create a new criteria using the double bracket syntax.
-		do
-
-			-- for predefined criteria
-			Result:= factory[["age", factory.less, 5]]
-
-			-- for agent criteria
-			Result := factory[[agent age_less_than (?, 5)]]
-		end
-
-	search_albo_bitossi : PS_CRITERION
+	composite_search_criterion : PS_CRITERION
 		-- Combining criteria.
 		local
 			first_name_criterion: PS_CRITERION
 			last_name_criterion: PS_CRITERION
 			age_criterion: PS_CRITERION
 		do
-			first_name_criterion:=
+			first_name_criterion :=
 				factory[[ "first_name", factory.equals, "Albo" ]]
 
 			last_name_criterion :=
 				factory[[ "last_name", factory.equals, "Bitossi" ]]
 
 			age_criterion :=
-				factory[[ "age", factory.equals, 20 ]]
+				factory[[ agent age_more_than (?, 20)]]
 
 			Result := first_name_criterion and last_name_criterion and not age_criterion
 
-			-- using double brackets for compactness.
+			-- using double brackets for compactness (comment this Result to get the previous one).
 			Result := factory[[ "first_name", "=", "Albo" ]]
 				and factory[[ "last_name", "=", "Bitossi" ]]
-				and not factory[[ "age", "=", 20 ]]
+				and not factory[[ agent age_more_than (?, 20) ]]
 		end
 
 feature -- Deletion queries
 
-	delete_person_with_deletion_query (name: STRING)
-		-- Delete `name' using a deletion query.
+	delete_person_with_deletion_query (last_name: STRING)
+		-- Delete person with `last_name' using a deletion query.
 		local
 			deletion_query: PS_OBJECT_QUERY [PERSON]
 			criterion: PS_PREDEFINED_CRITERION
 		do
 			create deletion_query.make
-			create criterion.make ("last_name", "=", name)
+			create criterion.make ("last_name", "=", last_name)
 			deletion_query.set_criterion (criterion)
 			executor.execute_deletion_query (deletion_query)
-		end
-
-feature -- Tuple queries
-
-	print_all_last_names
-		-- Print the last name of all PERSON objects.
-		local
-			query: PS_TUPLE_QUERY [PERSON]
-			last_name_index: INTEGER
-			single_result: TUPLE
-		do
-			create query.make
-			-- Find out at which position in the tuple the last_name is returned.
-			last_name_index := query.attribute_index ("last_name")
-
-			from
-				executor.execute_tuple_query (query)
-			until
-				query.result_cursor.after
-			loop
-				single_result := query.result_cursor.item
-				print (single_result [last_name_index] )
-			end
-		end
-
-	print_last_names_of_20_year_old
-		-- Print the last name of all PERSON objects with age = 20.
-		local
-			query: PS_TUPLE_QUERY [PERSON]
-		do
-			create query.make
-
-			-- Only return the last_name of persons.
-			query.set_projection (<<"last_name">>)
-
-			-- Only return persons with age = 20.
-			query.set_criterion (factory [["age", "=", 20]])
-
-			from
-				executor.execute_tuple_query (query)
-			until
-				query.result_cursor.after
-			loop
-				-- As we only have the last_name in the tuple,
-				-- its index has to be 1.
-				print (query.result_cursor.item [1])
-			end
 		end
 
 feature -- Transaction handling
 
 	update_ages
-		-- Increase everyone's age by one.
+		-- Increase the age of all persons by one.
 		local
 			query: PS_OBJECT_QUERY [PERSON]
 			transaction: PS_TRANSACTION
@@ -285,22 +255,48 @@ feature -- Error handling
 		do
 			-- Some complicated operations.
 		rescue
-			my_visitor.visit (executor.last_error)
-			if my_visitor.shall_retry then
-				retry
-			else
-				-- The exception propagates upwards, and maybe
-				-- another feature can handle it.
+				my_visitor.visit (executor.last_error)
+				if my_visitor.shall_retry then
+					retry
+				else
+					-- The exception propagates upwards, and maybe
+					-- another feature can handle it.
+				end
 			end
-		end
 
 feature -- Utilities
 
-	age_less_than (person: PERSON; age: INTEGER): BOOLEAN
+	age_more_than (person: PERSON; age: INTEGER): BOOLEAN
 		-- Age check on `person' used as an agent routine.
 		require
 			age_non_negative: age >= 0
 		do
-			Result:= person.age < age
+			Result:= person.age > age
+		end
+
+	print_result (lis: LINKED_LIST [PERSON])
+		-- Utility to print a query result.
+		do
+			across lis as local_list
+			loop
+				io.new_line
+				print (local_list.item.first_name + " ")
+				print (local_list.item.last_name + ", age: ")
+				print (local_list.item.age)
+			end
+			io.new_line
+		end
+
+	print_children_result (lis: LINKED_LIST [CHILD])
+		-- Utility to print a query result.
+		do
+			across lis as local_list
+			loop
+				io.new_line
+				print (local_list.item.first_name + " ")
+				print (local_list.item.last_name + ", age: ")
+				print (local_list.item.age)
+			end
+			io.new_line
 		end
 end

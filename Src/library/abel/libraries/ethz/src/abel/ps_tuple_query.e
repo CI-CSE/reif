@@ -72,6 +72,7 @@ feature -- Projections
 				end
 				i := i + 1
 			end
+			Result.compare_objects
 		end
 
 	set_projection (a_projection: ARRAY [STRING])
@@ -87,19 +88,19 @@ feature -- Utilities
 	attribute_index (name: STRING): INTEGER
 			-- Get the tuple index for the attribute with name `name'
 		require
-			name_exists: projection.has (name)
+			 name_exists: projection.has (name)
 		do
 			from
-				Result:= 0
+				Result:= 1
 			until
-				Result > projection.count or name.is_equal (projection[Result])
+				Result > projection.count or name.is_equal (projection [Result])
 			loop
 				Result:= Result + 1
 			end
 		ensure
 			positive: Result > 0
 			in_range: Result <= projection.count
-			correct: name.is_equal (projection[Result])
+			correct: name.is_equal (projection [Result])
 		end
 
 feature -- Cursor generation
@@ -113,13 +114,14 @@ feature -- Cursor generation
 feature {NONE} -- Initialization
 
 	make
-			-- Create an new query on objects of type `G'.
+			-- Create a new query for objects of type `G'.
 		do
-			create projection.make_empty -- some stupid void safety rule...
+			create projection.make_empty
 			initialize
 			create projection.make_from_array (default_projection)
+			projection.compare_objects
 		ensure then
-			projection_correctly_initialized: projection = default_projection
+			projection_correctly_initialized: projection.is_deep_equal (old default_projection)
 		end
 
 	create_result_cursor
