@@ -105,6 +105,12 @@ feature -- Access
 	context_type: TYPE_A
 			-- Context of expression.
 
+	context_line_number: INTEGER
+			-- (approximate) line number of expression.
+
+	context_tag: detachable STRING
+			-- Context tag of expression (if any).
+
 	current_target: IV_EXPRESSION
 			-- Current target.
 
@@ -123,6 +129,18 @@ feature -- Element change
 			-- Set `last_expression' to `a_expression'.
 		do
 			last_expression := a_expression
+		end
+
+	set_context_line_number (a_line: INTEGER)
+			-- Set (approximate) line number of expression.
+		do
+			context_line_number := a_line
+		end
+
+	set_context_tag (a_tag: STRING)
+			-- Set context tag.
+		do
+			context_tag := a_tag
 		end
 
 feature -- Basic operations
@@ -215,7 +233,11 @@ feature -- Visitors
 				if l_right.type.is_set or l_right.type.is_seq then
 					(create {E2B_CUSTOM_MML_HANDLER}).handle_binary (Current, l_left, l_right, a_operator)
 				else
-					helper.add_semantic_error (context_type.base_class, context_feature, "Sets and sequences can only be compared with other sets or sequences")
+					if context_feature = Void then
+						helper.add_semantic_error (context_type.base_class, "Sets and sequences can only be compared with other sets or sequences")
+					else
+						helper.add_semantic_error (context_feature, "Sets and sequences can only be compared with other sets or sequences")
+					end
 					last_expression := dummy_node (a_node.type)
 				end
 			else
@@ -243,7 +265,7 @@ feature -- Visitors
 					l_fcall.add_argument (last_expression)
 						-- TODO: refactor
 					if not is_in_quantifier then
-						add_safety_check (l_fcall, "overflow", Void)
+						add_safety_check (l_fcall, "overflow", context_tag, context_line_number)
 					end
 				end
 			end
@@ -256,10 +278,7 @@ feature -- Visitors
 		local
 			l_left, l_right: IV_EXPRESSION
 			l_type: IV_TYPE
-			l_fcall: IV_FUNCTION_CALL
-			l_fname: STRING
 			l_safety_check_condition: IV_EXPRESSION
-			l_not: IV_UNARY_OPERATION
 		do
 			safe_process (a_node.left)
 			l_left := last_expression
@@ -269,17 +288,11 @@ feature -- Visitors
 			else
 				l_safety_check_condition := factory.not_ (l_left)
 			end
-			if not safety_check_condition.is_empty then
-				l_safety_check_condition := factory.and_ (safety_check_condition.item, l_safety_check_condition)
-			end
-			safety_check_condition.extend (l_safety_check_condition)
-
-			safe_process (a_node.right)
+			process_semistrict (l_safety_check_condition, a_node.right)
 			l_right := last_expression
 			l_type := types.for_type_a (a_node.type)
-			create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
 
-			safety_check_condition.remove
+			create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
 		end
 
 	process_binary_infix (a_node: BINARY_B)
@@ -581,10 +594,13 @@ feature -- Visitors
 
 			safe_process (a_node.condition)
 			l_cond := last_expression
-			safe_process (a_node.then_expression)
+
+			process_semistrict (l_cond, a_node.then_expression)
 			l_then := last_expression
-			safe_process (a_node.else_expression)
+
+			process_semistrict (factory.not_ (l_cond), a_node.else_expression)
 			l_else := last_expression
+
 			create {IV_CONDITIONAL_EXPRESSION} last_expression.make_if_then_else (l_cond, l_then, l_else)
 		end
 
@@ -636,13 +652,13 @@ feature -- Visitors
 			check l_object_test_local /= Void end
 			l_nested ?= l_assign.source
 			check l_nested /= Void end
-			l_access ?= l_nested.target
-			check l_access /= Void end
 
 			l_name := l_nested.target.type.associated_class.name_in_upper
 			if l_name ~ "ARRAY" then
 				create {E2B_ARRAY_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
 			elseif l_name ~ "INTEGER_INTERVAL" then
+				l_access ?= l_nested.target
+				check l_access /= Void end
 				l_bin_free ?= l_access.expr
 				check l_bin_free /= Void end
 				create {E2B_INTERVAL_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_bin_free, l_object_test_local)
@@ -691,7 +707,6 @@ feature -- Visitors
 			l_feature: FEATURE_B
 			l_nested: NESTED_B
 			l_call: IV_FUNCTION_CALL
-			l_info: IV_ASSERTION_INFORMATION
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
 		do
@@ -770,10 +785,10 @@ feature -- Visitors
 					create l_call.make ("attached", types.bool)
 					l_call.add_argument (entity_mapping.heap)
 					l_call.add_argument (current_target)
-					l_call.add_argument (create {IV_VALUE}.make (name_translator.boogie_name_for_type (current_target_type), types.type))
+					l_call.add_argument (factory.type_value (current_target_type))
 						-- TODO: refactor
 					if not is_in_quantifier then
-						add_safety_check (l_call, "attached", "implicit_attachment")
+						add_safety_check (l_call, "attached", context_tag, context_line_number)
 					end
 				end
 
@@ -823,12 +838,13 @@ feature -- Visitors
 			else
 				check attached a_node.info end
 					-- Normalize integer types
+				translation_pool.add_type (a_node.info.type_to_create.deep_actual_type)
 				if a_node.info.type_to_create.is_integer or a_node.info.type_to_create.is_natural then
 					create {IV_ENTITY} l_type.make ("INTEGER", types.type)
 				else
 					l_type := factory.type_value (a_node.info.type_to_create)
 				end
-				last_expression := factory.function_call ("attached", <<"Heap", l_expr, l_type>>, types.bool)
+				last_expression := factory.function_call ("attached", <<entity_mapping.heap, l_expr, l_type>>, types.bool)
 			end
 			if attached a_node.target then
 					-- Check for possible unboxing of basic types
@@ -1032,7 +1048,7 @@ feature -- Translation
 		deferred
 		end
 
-	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING)
+	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING; a_line: INTEGER)
 			-- Add safety check `a_expression' of type `a_name'.
 		require
 			boolean_expression: a_expression.type.is_boolean
@@ -1115,6 +1131,21 @@ feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER}
 			l_type: TYPE_A
 		do
 			Result := factory.function_call ("unsupported", << >>, types.for_type_a (a_type.deep_actual_type))
+		end
+
+	process_semistrict (a_condition: IV_EXPRESSION; a_expr: EXPR_B)
+			-- Add `a_condition' to the safety check, then process `a_expr'.
+		local
+			l_fcall: IV_FUNCTION_CALL
+			l_fname: STRING
+		do
+			if not safety_check_condition.is_empty then
+				safety_check_condition.extend (factory.and_ (safety_check_condition.item, a_condition))
+			else
+				safety_check_condition.extend (a_condition)
+			end
+			safe_process (a_expr)
+			safety_check_condition.remove
 		end
 
 end

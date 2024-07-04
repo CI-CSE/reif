@@ -1,0 +1,67 @@
+note
+	description: "Summary description for {CA_CFG_BACKWARD_ITERATOR}."
+	author: ""
+	date: "$Date$"
+	revision: "$Revision$"
+
+deferred class
+	CA_CFG_BACKWARD_ITERATOR
+
+inherit
+	CA_CFG_ITERATOR
+
+feature -- Iteration
+
+	process_cfg (a_cfg: CA_CFG)
+		local
+			l_label: INTEGER
+			l_bfs_nodes: LINKED_QUEUE [CA_CFG_BASIC_BLOCK]
+			l_current_node: CA_CFG_BASIC_BLOCK
+			l_visited: BINARY_SEARCH_TREE_SET [INTEGER]
+		do
+				-- Create edge list using BFS.
+			from
+				create worklist.make
+				create l_visited.make
+				create l_bfs_nodes.make
+				l_bfs_nodes.extend (a_cfg.end_node)
+			until
+				l_bfs_nodes.is_empty
+			loop
+				across l_bfs_nodes.item.in_edges as l_ins loop
+					l_label := l_ins.item.label
+
+					worklist.put ([l_ins.item, l_bfs_nodes.item])
+
+					if not l_visited.has (l_label) then
+						l_visited.extend (l_label)
+						l_bfs_nodes.extend (l_ins.item)
+					end
+				end
+				l_bfs_nodes.remove
+			end
+
+			from
+				initialize_processing (a_cfg)
+			until
+				worklist.is_empty
+			loop
+				l_current_node := worklist.item.fr
+				if visit_edge (l_current_node, worklist.item.to) then
+					across l_current_node.in_edges as l_ins loop
+						worklist.put ([l_ins.item, l_current_node])
+					end
+				end
+				worklist.remove
+			end
+		end
+
+	initialize_processing (a_cfg: CA_CFG)
+		deferred
+		end
+
+feature {NONE} -- Implementation
+
+	worklist: LINKED_QUEUE [TUPLE [fr, to: CA_CFG_BASIC_BLOCK]]
+
+end

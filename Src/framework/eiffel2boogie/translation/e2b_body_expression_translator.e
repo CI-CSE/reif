@@ -132,6 +132,7 @@ feature -- Visitors
 				-- Is this a normal reference type?
 			if l_local.type.is_reference then
 				create l_proc_call.make ("allocate")
+				l_proc_call.node_info.set_line (a_node.call.line_number)
 				l_proc_call.add_argument (factory.type_value (l_type))
 				l_proc_call.set_target (l_local)
 				side_effect.extend (l_proc_call)
@@ -238,34 +239,54 @@ feature -- Translation
 		local
 			l_target: IV_EXPRESSION
 			l_target_type: TYPE_A
-			l_call: IV_PROCEDURE_CALL
+			l_pcall: IV_PROCEDURE_CALL
+			l_fcall: IV_FUNCTION_CALL
 		do
-			if a_for_creator then
-				translation_pool.add_referenced_creator (a_feature, current_target_type)
-			else
+			if helper.is_functional (a_feature) then
+				check not a_for_creator end
 				translation_pool.add_referenced_feature (a_feature, current_target_type)
-			end
+				if a_feature.has_return_value then
 
-			if a_for_creator then
-				create l_call.make (name_translator.boogie_name_for_creation_routine (a_feature, current_target_type))
+					create l_fcall.make (name_translator.boogie_name_for_functional_feature (a_feature, current_target_type), types.for_type_a (a_feature.type))
+					l_fcall.add_argument (entity_mapping.heap)
+					l_fcall.add_argument (current_target)
+					process_parameters (a_parameters)
+					l_fcall.arguments.append (last_parameters)
+
+					last_expression := l_fcall
+				else
+						-- It's a procedure call, nothing to generate
+						-- There should be an error being reported for this feature
+					last_expression := Void
+				end
 			else
-				create l_call.make (name_translator.boogie_name_for_feature (a_feature, current_target_type))
-			end
-			l_call.add_argument (current_target)
+				if a_for_creator then
+					translation_pool.add_referenced_creator (a_feature, current_target_type)
+					create l_pcall.make (name_translator.boogie_name_for_creation_routine (a_feature, current_target_type))
+				else
+					translation_pool.add_referenced_feature (a_feature, current_target_type)
+					create l_pcall.make (name_translator.boogie_name_for_feature (a_feature, current_target_type))
+				end
 
-			process_parameters (a_parameters)
-			l_call.arguments.append (last_parameters)
+				l_pcall.node_info.set_line (context_line_number)
+				l_pcall.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
+				l_pcall.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
 
-				-- Process call
-			if a_feature.has_return_value then
-				create_local (a_feature.type.instantiated_in (current_target_type))
-				l_call.set_target (last_local)
-				last_expression := last_local
-			else
-					-- No expression generated, this has to be a call statement
-				last_expression := Void
+				l_pcall.add_argument (current_target)
+				process_parameters (a_parameters)
+				l_pcall.arguments.append (last_parameters)
+
+					-- Process call
+				if a_feature.has_return_value then
+					create_local (a_feature.type.instantiated_in (current_target_type))
+					l_pcall.set_target (last_local)
+					last_expression := last_local
+				else
+						-- No expression generated, this has to be a call statement
+					last_expression := Void
+				end
+				side_effect.extend (l_pcall)
 			end
-			side_effect.extend (l_call)
 		end
 
 	process_builtin_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_builtin_name: STRING)
@@ -397,16 +418,15 @@ feature -- Translation
 			inlined_routines.force (inlined_routines.item (a_feature.body_index) - 1, a_feature.body_index)
 		end
 
-	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING)
+	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING; a_line: INTEGER)
 			-- <Precursor>
 		local
 			l_assert: IV_ASSERT
-			l_info: IV_ASSERTION_INFORMATION
 		do
 			create l_assert.make (implies_safety_expression (a_expression))
-			create l_info.make (a_name)
-			l_info.set_tag (a_tag)
-			l_assert.set_information (l_info)
+			l_assert.node_info.set_type (a_name)
+			l_assert.node_info.set_tag (a_tag)
+			l_assert.node_info.set_line (a_line)
 			side_effect.extend (l_assert)
 		end
 

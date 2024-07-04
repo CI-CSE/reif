@@ -27,6 +27,12 @@ feature {NONE} -- Access: stateful
 			create Result.make
 		end
 
+	result_handlers: HASH_TABLE [PROCEDURE [ANY, TUPLE [E2B_BOOGIE_PROCEDURE_RESULT, E2B_RESULT]], STRING]
+			-- List of Boogie verification result handlers.
+		once
+			create Result.make (100)
+		end
+
 feature {NONE} -- Access: stateless
 
 	name_translator: E2B_NAME_TRANSLATOR
@@ -39,6 +45,12 @@ feature {NONE} -- Access: stateless
 			-- Shared mapping for special translations.
 		once
 			create Result.make
+		end
+
+	messages: E2B_MESSAGES
+			-- Messages used in AutoProof.
+		once
+			create Result
 		end
 
 feature -- Access (public)

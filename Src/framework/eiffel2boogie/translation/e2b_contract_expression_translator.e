@@ -23,7 +23,7 @@ create
 
 feature -- Access
 
-	side_effect: LINKED_LIST [TUPLE [expr: IV_EXPRESSION; info: IV_ASSERTION_INFORMATION]]
+	side_effect: LINKED_LIST [TUPLE [expr: IV_EXPRESSION; info: IV_NODE_INFO]]
 			-- List of side effect statements.
 
 	field_accesses: LINKED_LIST [TUPLE [o: IV_EXPRESSION; f: IV_ENTITY]]
@@ -106,13 +106,8 @@ feature -- Translation
 		do
 			check a_feature.has_return_value end
 
-			if helper.is_feature_status (a_feature, "ghost") then
-				translation_pool.add_ghost_function (a_feature, current_target_type)
-				l_name := name_translator.boogie_name_for_feature (a_feature, current_target_type)
-			else
-				translation_pool.add_functional_feature (a_feature, current_target_type)
-				l_name := name_translator.boogie_name_for_functional_feature (a_feature, current_target_type)
-			end
+			translation_pool.add_functional_feature (a_feature, current_target_type)
+			l_name := name_translator.boogie_name_for_functional_feature (a_feature, current_target_type)
 
 			create l_call.make (
 				l_name,
@@ -159,13 +154,14 @@ feature -- Translation
 			a_handler.handle_routine_call_in_contract (Current, a_feature, a_parameters)
 		end
 
-	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING)
+	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING; a_line: INTEGER)
 			-- <Precursor>
 		local
-			l_info: IV_ASSERTION_INFORMATION
+			l_info: IV_NODE_INFO
 		do
-			create l_info.make (a_name)
+			create l_info.make_with_type (a_name)
 			l_info.set_tag (a_tag)
+			l_info.set_line (a_line)
 			side_effect.extend ([implies_safety_expression (a_expression), l_info])
 		end
 
