@@ -10,8 +10,6 @@ class
 inherit
 	AFX_UTILITY
 
---	AFX_RANK_COMPUTATION_MEAN_TYPE_CONSTANT
-
 	SHARED_EXEC_ENVIRONMENT
 
 create
@@ -23,8 +21,6 @@ feature{NONE} -- Initialization
 			-- Initialize `eiffel_system' with `a_system'.
 		do
 			eiffel_system := a_system
-			set_is_using_model_based_strategy (True)
---			set_is_monitoring_breakpointwise (True)
 		ensure
 			eiffel_system_set: eiffel_system = a_system
 		end
@@ -146,15 +142,20 @@ feature -- Access
 			Result := l_path
 		end
 
-	cutoff_time_minutes: INTEGER
-			-- Cut-off time in minutes.
-
-	set_cutoff_time_minutes (a_time: INTEGER)
-			-- Set `cutoff_time_minutes' with `a_time'.
-		require
-			time_great_enough: a_time > 0
+	report_file_path: STRING
+			-- Path to the AutoFix report file.
 		do
-			cutoff_time_minutes := a_time
+			Result := report_file_path_cache
+		end
+
+	maximum_session_length_in_minutes: NATURAL
+			-- Maximum AutoFix session length in minutes.
+			-- '0' means unlimited length.
+
+	set_maximum_session_length_in_minutes (a_length: NATURAL)
+			-- Set `maximum_session_length_in_minutes' with `a_length'.
+		do
+			maximum_session_length_in_minutes := a_length
 		end
 
 feature -- State retrieval related
@@ -173,6 +174,9 @@ feature -- Test case analysis
 
 	test_case_path: detachable STRING
 			-- Full path of the folder storing test cases
+
+	test_case_file_list: STRING
+			-- Full path to a file, where test cases to be used to build the fixing project are listed.
 
 	max_test_case_number: INTEGER
 			-- Max number of test cases
@@ -198,30 +202,6 @@ feature -- Test case analysis
 	should_freeze: BOOLEAN
 			-- Should project be freezed before auto-fixing?
 			-- Default: False
-
---	is_combining_integral_expressions_in_feature: BOOLEAN assign set_is_combining_integral_expressions_in_feature
---			-- Is current strategy for combining integral expressions based on feature?
---			-- One, and only one, of `is_combining_integral_expressions_in_feature' and
---			--		`is_combining_integral_expressions_in_breakpoint' is True.
-
---	is_combining_integral_expressions_in_breakpoint: BOOLEAN assign set_is_combining_integral_expressions_in_breakpoint
---			-- Is current strategy for combining integral expressions based on breakpoint?
---			-- One, and only one, of `is_combining_integral_expressions_in_feature' and
---			--		`is_combining_integral_expressions_in_breakpoint' is True.
-
---feature -- Distinguishing expressions based on their breakpoint index
-
---	is_breakpoint_specific: BOOLEAN assign set_breakpoint_specific
---			-- Is comparison between expressions breakpoint-specific?
-
---	set_breakpoint_specific (a_flag: BOOLEAN)
---			-- Set `is_breakpoint_specific'.
---		do
---			is_breakpoint_specific := a_flag
---		end
-
---	is_program_state_extended: BOOLEAN
---			-- Is monitoring extended program states?
 
 feature -- Usage of Control Flow Graph (CFG) in rank computation
 
@@ -338,38 +318,6 @@ feature -- Type of fault localization algorithm
 	Fault_localization_strategy_heuristicIII_new: INTEGER = 12
 	Default_fault_localization_strategy: INTEGER = 12
 
---feature -- Fix condition preference
-
---	fix_condition_preference: INTEGER
---			-- Preference of sources of fix conditions.
-
---	set_fix_condition_preference (a_pref: INTEGER)
---			-- Set `fix_condition_preference'.
---		require
---			is_valid_preference: is_valid_fix_condition_preference (a_pref)
---		do
---			fix_condition_preference := a_pref
---		end
-
---	is_valid_fix_condition_preference (a_pref: INTEGER): BOOLEAN
---		do
---			Result := (a_pref = Fix_condition_preference_invariant) or else (a_pref = Fix_condition_preference_evidence)
---		end
-
---	is_fix_condition_preferring_invariant: BOOLEAN
---		do
---			Result := fix_condition_preference = Fix_condition_preference_invariant
---		end
-
---	is_fix_condition_preferring_evidence: BOOLEAN
---		do
---			Result := fix_condition_preference = Fix_condition_preference_evidence
---		end
-
---	Fix_condition_preference_invariant: INTEGER = 1
---	Fix_condition_preference_evidence: INTEGER = 2
---	Default_fix_condition_preference: INTEGER = 2
-
 feature -- Fix generation
 
 	max_fix_candidate: INTEGER
@@ -417,15 +365,6 @@ feature -- Fix generation
 
 feature -- AutoFix report
 
-	should_generate_report: BOOLEAN
-			-- Should a report be generated regarding the AutoFix process?
-
-	set_generate_report (a_flag: BOOLEAN)
-			-- Set `should_generate_report'.
-		do
-			should_generate_report := a_flag
-		end
-
 	report_file: PLAIN_TEXT_FILE
 			-- File to which the AutoFix report will be sent.
 
@@ -467,22 +406,6 @@ feature -- Status report
 			is_using_state_based_test_case_selection_set:
 					is_using_state_based_test_case_selection = a_flag
 		end
-
---	is_monitoring_featurewise: BOOLEAN
---			-- Will all expressions be monitored featurewise?
---		do
---			Result := is_monitoring_featurewise_cache
---		ensure
---			definition: Result = is_monitoring_featurewise_cache
---		end
-
---	is_monitoring_breakpointwise: BOOLEAN
---			-- Will expressions be monitored breakpointwise?
---		do
---			Result := is_monitoring_breakpointwise_cache
---		ensure
---			definition: Result = is_monitoring_breakpointwise_cache
---		end
 
 	should_retrieve_state: BOOLEAN
 			-- Should state of the system be retrieved?
@@ -534,34 +457,6 @@ feature -- Setting
 			max_failing_test_case_number_set: max_failing_test_case_number = a_number
 		end
 
---	set_is_monitoring_featurewise (a_flag: BOOLEAN)
---			-- Set `is_monitoring_featurewise'.
---		do
---			is_monitoring_featurewise_cache := a_flag
---			is_monitoring_breakpointwise_cache := not a_flag
---		end
-
---	set_is_monitoring_breakpointwise (a_flag: BOOLEAN)
---			-- Set `is_monitoring_breakpointwise'.
---		do
---			is_monitoring_breakpointwise_cache := a_flag
---			is_monitoring_featurewise_cache := not a_flag
---		end
-
---	set_is_combining_integral_expressions_in_feature (a_flag: BOOLEAN)
---			-- Set `is_combining_integral_expressions_in_feature'.
---		do
---			is_combining_integral_expressions_in_feature := a_flag
---			is_combining_integral_expressions_in_breakpoint := not a_flag
---		end
-
---	set_is_combining_integral_expressions_in_breakpoint (a_flag: BOOLEAN)
---			-- Set `is_combining_integral_expressions_in_breakpoint'.
---		do
---			is_combining_integral_expressions_in_breakpoint := a_flag
---			is_combining_integral_expressions_in_feature := not a_flag
---		end
-
 	set_should_retrieve_state (b: BOOLEAN)
 			-- Set `should_retrieve_state' with `b'.
 		do
@@ -585,6 +480,16 @@ feature -- Setting
 			create test_case_path.make_from_string (a_path)
 		ensure
 			test_case_path_set: test_case_path ~ a_path
+		end
+
+	set_test_case_file_list (a_path: STRING)
+			-- Set `test_case_file_list'.
+		require
+			path_not_empty: a_path /= Void and then not a_path.is_empty
+		do
+			create test_case_file_list.make_from_string (a_path)
+		ensure
+			file_list_set: test_case_file_list ~ a_path
 		end
 
 	set_max_test_case_number (b: INTEGER)
@@ -681,12 +586,6 @@ feature -- Setting
 			model_directory := a_directory.twin
 		end
 
---	set_program_state_extended (a_flag: BOOLEAN)
---			-- Set `is_program_state_extended'.
---		do
---			is_program_state_extended := a_flag
---		end
-
 	set_max_fix_candidate (a_max: INTEGER)
 			-- Set `max_fix_candidate'.
 		require
@@ -703,7 +602,18 @@ feature -- Setting
 			max_fixing_target := a_max
 		end
 
+	set_report_file_path (a_path: STRING)
+			-- Set `report_file_path'.
+		require
+			path_not_empty: a_path /= VOid and then not a_path.is_empty
+		do
+			report_file_path_cache := a_path
+		end
+
 feature{NONE} -- Implementation
+
+	report_file_path_cache: STRING
+			-- Cache of `report_file_path'.
 
 	working_directory_cache: detachable STRING
 			-- Cache for working_directory
@@ -725,12 +635,6 @@ feature{NONE} -- Implementation
 
 	is_using_random_based_strategy_cache: BOOLEAN
 			-- Cache for `is_using_random_based_strategy'.
-
---	is_monitoring_featurewise_cache: BOOLEAN
---			-- Cache for `is_monitoring_featurewise'.
-
---	is_monitoring_breakpointwise_cache: BOOLEAN
---			-- Cache for `is_monitoring_breakpointwise'.
 
 feature{NONE} -- Implementation
 
