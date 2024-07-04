@@ -99,6 +99,9 @@ feature -- Access
 	last_expression: IV_EXPRESSION
 			-- Last generated expression.
 
+	side_effect: LINKED_LIST [IV_STATEMENT]
+			-- List of side effect statements.			
+
 	context_feature: FEATURE_I
 			-- Context of expression.
 
@@ -185,6 +188,7 @@ feature -- Basic operations
 			current_target := Void
 			current_target_type := Void
 			local_writable := Void
+			last_set_content_type := Void
 			create entity_mapping.make
 			create locals_map.make (10)
 			create across_handler_map.make (10)
@@ -235,6 +239,7 @@ feature -- Visitors
 	process_binary (a_node: BINARY_B; a_operator: STRING)
 			-- Process binary node `a_node' with operator `a_operator'.
 		local
+			l_class: CLASS_C
 			l_left, l_right: IV_EXPRESSION
 			l_type: IV_TYPE
 			l_fcall: IV_FUNCTION_CALL
@@ -246,44 +251,35 @@ feature -- Visitors
 			l_right := last_expression
 			l_type := types.for_type_a (a_node.type)
 
-			if l_left.type.is_set or l_left.type.is_seq then
-				if l_right.type.is_set or l_right.type.is_seq then
-					(create {E2B_CUSTOM_MML_HANDLER}).handle_binary (Current, l_left, l_right, a_operator)
-				else
-					if context_feature = Void then
-						helper.add_semantic_error (context_type.base_class, messages.invalid_set_seq_comparison, a_node.line_number)
-					else
-						helper.add_semantic_error (context_feature,  messages.invalid_set_seq_comparison, a_node.line_number)
-					end
-					last_expression := dummy_node (a_node.type)
-				end
-			else
-				if is_in_quantifier then
-					if a_operator ~ "+" then
-						last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
-					elseif a_operator ~ "-" then
-						last_expression := factory.function_call ("subtract", << l_left, l_right >>, types.int)
-					elseif a_operator ~ "*" then
-						last_expression := factory.function_call ("multiply", << l_left, l_right >>, types.int)
-					else
-						create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
-					end
+			l_class := a_node.left.type.instantiated_in (context_type).base_class
+			if attached l_class and then helper.is_class_logical (l_class) then
+				check a_operator ~ "==" or a_operator ~ "!=" end
+				(create {E2B_CUSTOM_LOGICAL_HANDLER}).handle_binary (Current, l_class, l_left, l_right, a_operator)
+			elseif is_in_quantifier then
+				if a_operator ~ "+" then
+					last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
+				elseif a_operator ~ "-" then
+					last_expression := factory.function_call ("subtract", << l_left, l_right >>, types.int)
+				elseif a_operator ~ "*" then
+					last_expression := factory.function_call ("multiply", << l_left, l_right >>, types.int)
 				else
 					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
 				end
-				if
-					options.is_checking_overflow and then
-					(a_node.left.type.is_integer or a_node.left.type.is_natural) and then
-					(a_operator ~ "+" or a_operator ~ "-")
-				then
-						-- Arithmetic operation
-					l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
-					create l_fcall.make (l_fname, types.bool)
-					l_fcall.add_argument (last_expression)
-						-- TODO: refactor
-					if not is_in_quantifier then
-						add_safety_check (l_fcall, "overflow", context_tag, context_line_number)
-					end
+			else
+				create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_type)
+			end
+			if
+				options.is_checking_overflow and then
+				(a_node.left.type.is_integer or a_node.left.type.is_natural) and then
+				(a_operator ~ "+" or a_operator ~ "-")
+			then
+					-- Arithmetic operation
+				l_fname := "is_" + a_node.left.type.associated_class.name.as_lower
+				create l_fcall.make (l_fname, types.bool)
+				l_fcall.add_argument (last_expression)
+					-- TODO: refactor
+				if not is_in_quantifier then
+					add_safety_check (l_fcall, "overflow", context_tag, context_line_number)
 				end
 			end
 		end
@@ -660,7 +656,7 @@ feature -- Visitors
 			l_nested: NESTED_B
 			l_access: ACCESS_EXPR_B
 			l_bin_free: BIN_FREE_B
-			l_name: STRING
+			l_class: CLASS_C
 			l_across_handler: E2B_ACROSS_HANDLER
 		do
 			l_assign ?= a_node.iteration_code.first
@@ -670,19 +666,17 @@ feature -- Visitors
 			l_nested ?= l_assign.source
 			check l_nested /= Void end
 
-			l_name := l_nested.target.type.associated_class.name_in_upper
-			if l_name ~ "ARRAY" then
+			l_class := l_nested.target.type.associated_class
+			if l_class.name_in_upper ~ "ARRAY" then
 				create {E2B_ARRAY_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
-			elseif l_name ~ "INTEGER_INTERVAL" then
+			elseif l_class.name_in_upper ~ "INTEGER_INTERVAL" then
 				l_access ?= l_nested.target
 				check l_access /= Void end
 				l_bin_free ?= l_access.expr
 				check l_bin_free /= Void end
 				create {E2B_INTERVAL_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_bin_free, l_object_test_local)
-			elseif l_name ~ "MML_SET" then
+			elseif helper.is_class_logical (l_class) then
 				create {E2B_SET_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
-			elseif l_name ~ "MML_SEQUENCE" then
-				create {E2B_SEQUENCE_ACROSS_HANDLER} l_across_handler.make (Current, a_node, l_nested.target, l_object_test_local)
 			else
 				last_expression := dummy_node (a_node.type)
 			end
@@ -796,8 +790,11 @@ feature -- Visitors
 				end
 
 					-- Check if target is attached;
-					-- skip if target is expanded or a mathematical type
-				if not (current_target_type.is_expanded or types.is_mml_type (current_target_type)) then
+					-- skip if target is expanded or a mathematical type, or this is a special any feature
+					-- ToDo: better define a special nested handler in E2B_CUSTOM_ANY_HANDLER
+				if not (current_target_type.is_expanded or
+					helper.is_class_logical (current_target_type.base_class) or
+					(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
 					translation_pool.add_type (current_target_type)
 					create l_call.make ("attached", types.bool)
 					l_call.add_argument (entity_mapping.heap)
@@ -960,7 +957,7 @@ feature -- Visitors
 					current_target,
 					factory.int_value (a_node.position)
 				>>,
-				types.generic_type)
+				types.ref) -- ToDo: the type is unknown
 		end
 
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
@@ -1019,20 +1016,15 @@ feature -- Translation
 			-- Process call to attribute `a_feature'.
 		require
 			is_attribute: a_feature.is_attribute
-		local
-			l_current: IV_ENTITY
-			l_field: IV_ENTITY
-			l_heap_access: IV_HEAP_ACCESS
 		do
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 
 			check current_target /= Void end
-			create l_field.make (
+			last_expression := factory.heap_access (
+				entity_mapping.heap.name,
+				current_target,
 				name_translator.boogie_procedure_for_feature (a_feature, current_target_type),
-				types.field (types.for_type_in_context (a_feature.type, current_target_type))
-			)
-			create l_heap_access.make (entity_mapping.heap.name, current_target, l_field)
-			last_expression := l_heap_access
+				types.for_type_in_context (a_feature.type, current_target_type))
 		end
 
 	process_constant_call (a_feature: CONSTANT_I)
@@ -1069,7 +1061,15 @@ feature -- Translation
 			-- Add safety check `a_expression' of type `a_name'.
 		require
 			boolean_expression: a_expression.type.is_boolean
-		deferred
+		local
+			l_assert: IV_ASSERT
+		do
+			create l_assert.make (implies_safety_expression (a_expression))
+			l_assert.node_info.set_type (a_name)
+			l_assert.node_info.set_tag (a_tag)
+			l_assert.node_info.set_line (a_line)
+			l_assert.set_attribute_string (":subsumption 0")
+			side_effect.extend (l_assert)
 		end
 
 	safety_check_condition: LINKED_STACK [IV_EXPRESSION]
@@ -1118,6 +1118,32 @@ feature -- Translation
 			last_expression := l_last_expression
 			current_target := l_target
 			current_target_type := l_target_type
+		end
+
+	last_set_content_type: TYPE_A
+			-- Type of the set content for the last successful call to `process_as_set'.
+
+	process_as_set (a_expr: EXPR_B; a_content_type: IV_TYPE)
+			-- Process `a_expr' of a logical type and convert it to a set of `a_content_type';
+			-- if not possible issue a validity error.
+		local
+			l_class: CLASS_C
+			l_feature: FEATURE_I
+			l_conversion: STRING
+		do
+			safe_process (a_expr)
+
+			l_class := a_expr.type.instantiated_in (context_type).base_class
+			l_feature := l_class.feature_named_32 ("new_cursor")
+			l_conversion := helper.function_for_logical (l_feature)
+			if l_conversion = Void then
+				helper.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
+			else
+				last_set_content_type := l_feature.type.instantiated_in (a_expr.type.instantiated_in (context_type)).generics.first
+				if not l_conversion.is_empty then
+					last_expression := factory.function_call (l_conversion, << last_expression >>, types.set (a_content_type))
+				end
+			end
 		end
 
 feature {E2B_ACROSS_HANDLER, E2B_CUSTOM_CALL_HANDLER, E2B_CUSTOM_NESTED_HANDLER} -- Implementation

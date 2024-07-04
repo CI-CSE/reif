@@ -175,6 +175,43 @@ feature -- Feature status helpers
 			Result := a_feature.export_status.is_none
 		end
 
+	function_for_logical (a_feature: FEATURE_I): STRING
+			-- Boogie function that `a_feature' maps to;
+			-- Void if `a_feature' is not from a logical class.
+		local
+			l_values: ARRAYED_LIST [STRING_32]
+		do
+			if attached a_feature and then is_class_logical (a_feature.written_class) then
+				l_values := feature_note_values (a_feature, "maps_to")
+				if l_values.is_empty then
+						-- Use standard naming scheme
+					Result := type_for_logical (a_feature.written_class) + "#" + to_camel_case (a_feature.feature_name)
+				else
+					Result := l_values.first
+				end
+			end
+		end
+
+	map_access_feature (a_class: CLASS_C): FEATURE_I
+			-- The feature of the logical class `a_class' that maps to map access in Boogie (if any).
+		require
+			logical_class: is_class_logical (a_class)
+		local
+			l_feature: FEATURE_I
+		do
+			from
+				a_class.feature_table.start
+			until
+				Result /= Void or a_class.feature_table.after
+			loop
+				l_feature := a_class.feature_table.item_for_iteration
+				if function_for_logical (l_feature) ~ "[]" then
+					Result := l_feature
+				end
+				a_class.feature_table.forth
+			end
+		end
+
 feature -- Class status helpers
 
 	is_class_logical (a_class: CLASS_C): BOOLEAN
@@ -182,7 +219,21 @@ feature -- Class status helpers
 		local
 			l_values: ARRAYED_LIST [STRING_32]
 		do
-			Result := not class_note_values (a_class, "maps_to").is_empty
+			Result := attached type_for_logical (a_class)
+		end
+
+	type_for_logical (a_class: CLASS_C): STRING
+			-- Boogie type that `a_class' maps to;
+			-- Void if `a_class' is not logical.
+		require
+			a_class_exists: attached a_class
+		local
+			l_values: ARRAYED_LIST [STRING_32]
+		do
+			l_values := class_note_values (a_class, "maps_to")
+			if not l_values.is_empty then
+				Result := l_values.first
+			end
 		end
 
 feature -- Ownership helpers
@@ -253,6 +304,20 @@ feature -- String helpers
 
 feature -- Eiffel helpers
 
+	is_same_class (c1, c2: CLASS_C): BOOLEAN
+			-- Are `c1' and `c2' the same class?			
+		do
+			Result := (c1 = Void and c2 = Void) or else
+				c1.class_id = c2.class_id
+		end
+
+	is_same_feature (f1, f2: FEATURE_I): BOOLEAN
+			-- Are `f1' and `f2' the same feature?
+		do
+			Result := (f1 = Void and f2 = Void) or else
+				(f1.written_in = f2.written_in and f1.feature_id = f2.feature_id)
+		end
+
 	is_conforming_or_non_conforming_parent_class (a_child, a_parent: CLASS_C): BOOLEAN
 			-- Does `a_child' inherit conforminlgy or non-conformingly from `a_parent'?
 		do
@@ -293,7 +358,19 @@ feature -- Eiffel helpers
 			Result := Result.instantiated (a_target_type)
 			check Result /= Void end
 		end
-		
+
+	set_any_type: TYPE_A
+			-- Type MML_SET [ANY] (supplier of ANY).
+		do
+			Result := system.any_type.base_class.feature_named_32 ("owns").type
+		end
+
+	set_class: CLASS_C
+			-- Class MML_SET.
+		do
+			Result := set_any_type.base_class
+		end
+
 feature -- Byte context helpers
 
 	set_up_byte_context (a_feature: FEATURE_I; a_type: TYPE_A)
@@ -432,7 +509,9 @@ feature -- Other
 				l_error.set_class (x)
 			end
 			l_error.set_line_number (a_line_number)
-			autoproof_errors.extend (l_error)
+			if not autoproof_errors.has (l_error) then
+				autoproof_errors.extend (l_error)
+			end
 		end
 
 	add_semantic_warning (a_class_or_feature: ANY; a_message: STRING; a_line_number: INTEGER)
@@ -454,7 +533,30 @@ feature -- Other
 			end
 			l_error.set_line_number (a_line_number)
 			l_error.set_warning (True)
-			autoproof_errors.extend (l_error)
+			if not autoproof_errors.has (l_error) then
+				autoproof_errors.extend (l_error)
+			end
+		end
+
+feature {NONE} -- Implementation
+
+	to_camel_case (a_name: STRING): STRING
+			-- Eiffel-style identifier `a_name' converted to camel case.
+		local
+			i: INTEGER
+		do
+			Result := a_name.string
+			from
+				i := 1
+			until
+				not Result.valid_index (i)
+			loop
+				Result.replace_substring (Result.substring (i, i).as_upper, i, i)
+				i := Result.index_of ('_', i)
+				if Result.valid_index (i) then
+					Result.remove (i)
+				end
+			end
 		end
 
 end

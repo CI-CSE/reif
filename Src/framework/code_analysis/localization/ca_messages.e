@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {CA_MESSAGES}."
-	author: ""
+	description: "Message strings for the Code Analyzer"
+	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -9,67 +9,6 @@ frozen class
 
 inherit {NONE}
 	SHARED_LOCALE
-
-feature -- Utility functions
-
---	wrapped_string (a_input: READABLE_STRING_GENERAL; a_max_count: INTEGER; a_force_wrap: BOOLEAN): READABLE_STRING_GENERAL
---			--
---		require
---			a_max_count >= 5
---		local
---			l_words: LIST[READABLE_STRING_GENERAL]
---			l_word: READABLE_STRING_GENERAL
---			l_output: STRING_32
---			l_current_line_char_count, j: INTEGER
---		do
---			if a_input.count <= a_max_count then
---				-- The trivial case.
---				Result := a_input
---			else
---				from
---					l_current_line_char_count := 0
---					l_output.make_empty
---					l_words := a_input.split (' ')
---					l_words.start
---				until
---					l_words.after
---				loop
---					l_word := l_words.item
---					if l_word.count > a_max_count and then a_force_wrap then -- A very long word.
---						if l_current_line_char_count /= 0 then
---							l_output.append_character ('%N')
---						end
---						from
---							j := 1
---						until
---							j + a_max_count > l_word.count
---						loop
---							l_output.append (l_word.substring (j, j + a_max_count - 1))
---							l_output.append_character ('%N')
---							j := j + a_max_count
---						end
---						l_output.append (l_word.substring (j, l_word.count))
---					else
---						if l_current_line_char_count + l_word.count > a_max_count then
---							if l_current_line_char_count /= 0 then
---								l_output.append_character ('%N')
---							end
---							current_line_char_count := l_word.count
---						else
---							l_output.append_character (' ')
---							current_line_char_count := current_line_char_count + 1 + l_word.count
---						end
---						l_output.append (l_word)
---					end
-
---					l_words.forth
---				end
-
---				Result := l_output
---			end
---		ensure
---			length_preserved: (not a_force_wrap) implies (a_input.count = Result.count) -- Make sure 'LF CR' new lines count as 1.
---		end
 
 feature -- GUI
 
@@ -80,6 +19,55 @@ feature -- GUI
 
 	fix: STRING_32
 		do Result := locale.translation ("Fix: ") end
+
+	no_issues: STRING_32
+		do Result := locale.translation ("Code analysis found no issues!") end
+
+	class_context_menu_caption (a_class_name: READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (locale.translation ("Run Code Analysis of Class '$1'"), [a_class_name]) end
+
+	cluster_context_menu_caption: STRING_32
+		do Result := locale.translation ("Run Code Analysis of cluster") end
+
+	already_running: STRING_32
+		do Result := locale.translation (" (already running)") end
+
+	already_running_long: STRING_32
+		do Result := locale.translation ("Code analysis is already running.%NPlease%
+						% wait until the current analysis has finished.") end
+
+	status_bar_running: STRING_32
+		do Result := locale.translation ("Code analysis running...") end
+
+	system_scope: STRING_32
+		do Result := locale.translation ("System") end
+
+	system_scope_tooltip: STRING_32
+		do Result := locale.translation ("The whole system was analyzed recently.") end
+
+	class_scope_tooltip: STRING_32
+		do Result := locale.translation ("Class that has been analyzed recently.") end
+
+	cluster_scope_tooltip: STRING_32
+		do Result := locale.translation ("Cluster that has been analyzed recently.") end
+
+	conf_group_tooltip: STRING_32
+		do Result := locale.translation ("Configuration group that has been analyzed recently.") end
+
+	status_bar_terminated: STRING_32
+		do Result := locale.translation ("Code Analysis has terminated.") end
+
+	analyze_whole_system: STRING_32
+		do Result := locale.translation ("Analyze whole system") end
+
+	analyze_current_item: STRING_32
+		do Result := locale.translation ("Analyze current item") end
+
+	analyze_parent_cluster: STRING_32
+		do Result := locale.translation ("Analyze parent cluster of current item") end
+
+	run_code_analysis: STRING_32
+		do Result := locale.translation ("Run Code Analysis") end
 
 feature -- Code Analyzer
 

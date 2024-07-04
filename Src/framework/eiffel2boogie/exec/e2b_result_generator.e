@@ -38,12 +38,15 @@ feature -- Basic operations
 			create last_result.make
 				-- Add AutoProof errors
 			last_result.verification_results.append (autoproof_errors)
-				-- Add Boogie errors
-			across a_boogie_result.boogie_errors as i loop
-				create l_ap_error
-				l_ap_error.set_type ("Boogie")
-				l_ap_error.set_message (i.item)
-				last_result.verification_results.extend (l_ap_error)
+
+				-- Add Boogie errors (if there were no validity errors)			
+			if across autoproof_errors as i all i.item.is_warning end then
+				across a_boogie_result.boogie_errors as i loop
+					create l_ap_error
+					l_ap_error.set_type ("Boogie")
+					l_ap_error.set_message (i.item)
+					last_result.verification_results.extend (l_ap_error)
+				end
 			end
 				-- Call result handler for each Boogie procedure
 			across a_boogie_result.procedure_results as i loop
@@ -83,8 +86,8 @@ feature {NONE} -- Implementation
 					not l_error.is_warning and
 					l_error.context_class /= Void and then
 					l_error.context_class.class_id = a_feature.written_in and then
-					l_error.context_feature /= Void and then
-					l_error.context_feature.rout_id_set.first = a_feature.rout_id_set.first
+					(l_error.context_feature = Void or else -- Either the whole class has an error
+					l_error.context_feature.rout_id_set.first = a_feature.rout_id_set.first) -- or just htis feature
 				then
 					Result := True
 				end
@@ -296,8 +299,14 @@ feature {NONE} -- Implementation
 	line_for_error (a_error: E2B_BOOGIE_PROCEDURE_ERROR): INTEGER
 			-- Select line number for `a_error'.
 		do
-			if a_error.attributes.has_key ("line") then
-				Result := a_error.attributes["line"].to_integer
+			if a_error.is_postcondition_violation then
+				if a_error.related_attributes.has_key ("line") then
+					Result := a_error.related_attributes["line"].to_integer
+				end
+			else
+				if a_error.attributes.has_key ("line") then
+					Result := a_error.attributes["line"].to_integer
+				end
 			end
 		end
 

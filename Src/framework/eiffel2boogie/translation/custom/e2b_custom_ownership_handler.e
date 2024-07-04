@@ -10,8 +10,6 @@ inherit
 
 	E2B_CUSTOM_CALL_HANDLER
 
-	E2B_CUSTOM_NESTED_HANDLER
-
 	SHARED_WORKBENCH
 
 	SHARED_SERVER
@@ -26,20 +24,6 @@ feature -- Status report
 				translation_mapping.builtin_any_procedures.has (a_feature.feature_name) or
 				translation_mapping.ghost_access.has (a_feature.feature_name) or
 				translation_mapping.ghost_setter.has (a_feature.feature_name)))
-		end
-
-	is_handling_nested (a_nested: NESTED_B): BOOLEAN
-			-- Is this handler handling the call?
-		do
-			if
-				not a_nested.target.type.is_like and then
-				a_nested.target.type.base_class /= Void and then
-				(a_nested.target.type.base_class.class_id = system.tuple_id or a_nested.target.type.base_class.class_id = system.array_id)
-			then
-				if attached {FEATURE_B} a_nested.message as f then
-					Result := f.feature_name.same_string ("to_mml_set")
-				end
-			end
 		end
 
 feature -- Basic operations
@@ -73,7 +57,10 @@ feature -- Basic operations
 				elseif l_name ~ "observers" then
 					l_call := factory.procedure_call ("update_observers", << a_translator.current_target, l_call.arguments.i_th (2)>>)
 				else
-					l_call := factory.procedure_call ("update_heap", << a_translator.current_target, l_name, l_call.arguments.i_th (2)>>)
+					l_call := factory.procedure_call ("update_heap", <<
+						a_translator.current_target,
+						factory.entity (l_name, types.field ((create {E2B_SPECIAL_MAPPING}.make).ghost_access_type (l_name))),
+						l_call.arguments.i_th (2)>>)
 				end
 				l_call.node_info.set_line (a_translator.context_line_number)
 				a_translator.side_effect.extend (l_call)
@@ -127,18 +114,8 @@ feature -- Basic operations
 					a_translator.process_builtin_routine_call (a_feature, a_parameters, "user_inv")
 				elseif l_name ~ "is_field_writable" then
 					if attached {STRING_B} a_parameters.first.expression as l_string then
-						l_feature := a_translator.current_target_type.base_class.feature_named_32 (l_string.value_32)
-						if l_feature = Void then
-							helper.add_semantic_error (a_translator.context_feature,
-								messages.field_does_not_exist (l_string.value_32, a_translator.current_target_type.base_class.name_in_upper),
-								a_translator.context_line_number)
-						elseif not l_feature.is_attribute then
-							helper.add_semantic_error (a_translator.context_feature,
-								messages.field_not_attribute (l_string.value_32),
-								a_translator.context_line_number)
-						else
-							translation_pool.add_referenced_feature (l_feature, a_translator.current_target_type)
-							create l_field.make (name_translator.boogie_procedure_for_feature (l_feature, a_translator.current_target_type), types.for_type_a (l_feature.type))
+						l_field := field_from_string (l_string.value, a_translator.current_target_type, a_translator.context_feature, a_translator.context_line_number)
+						if attached l_field then
 							a_translator.set_last_expression (factory.frame_access (
 								a_translator.context_writable,
 								a_translator.current_target,
@@ -158,7 +135,9 @@ feature -- Basic operations
 					a_translator.process_builtin_routine_call (a_feature, a_parameters, l_name)
 				end
 			elseif translation_mapping.ghost_access.has (l_name) then
-				if l_name ~ "owner" then
+				if l_name ~ "closed" then
+					l_type := types.bool
+				elseif l_name ~ "owner" then
 					l_type := types.ref
 				else
 					l_type := types.set (types.ref)
@@ -167,77 +146,6 @@ feature -- Basic operations
 			else
 					-- cannot happen
 				check False end
-			end
-		end
-
-	handle_nested_in_body (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR; a_nested: NESTED_B)
-			-- <Precursor>
-		do
-			handle_nested (a_translator, a_nested)
-		end
-
-	handle_nested_in_contract (a_translator: E2B_CONTRACT_EXPRESSION_TRANSLATOR; a_nested: NESTED_B)
-			-- <Precursor>
-		do
-			handle_nested (a_translator, a_nested)
-		end
-
-	handle_nested (a_translator: E2B_EXPRESSION_TRANSLATOR; a_nested: NESTED_B)
-			-- Handle `a_nested'.
-		local
-			l_tuple: TUPLE_CONST_B
-			l_array: ARRAY_CONST_B
-			l_exprs: LINKED_LIST [IV_EXPRESSION]
-			l_expr: IV_EXPRESSION
-			l_elem_type: IV_TYPE
-		do
-			if attached {ACCESS_EXPR_B} a_nested.target as x then
-				l_tuple ?= x.expr
-				l_array ?= x.expr
-			end
-			check l_tuple /= Void or l_array /= Void end
-			create l_exprs.make
-			if l_tuple /= Void then
-				across l_tuple.expressions as i loop
-					i.item.process (a_translator)
-					l_exprs.extend (a_translator.last_expression)
-					if l_elem_type = Void then
-						l_elem_type := a_translator.last_expression.type
-					elseif l_elem_type /= a_translator.last_expression.type then
-						-- TODO: signal an error
-					end
-				end
-			else
-				check l_array /= Void end
-				across l_array.expressions as i loop
-					i.item.process (a_translator)
-					l_exprs.extend (a_translator.last_expression)
-					if l_elem_type = Void then
-						l_elem_type := a_translator.last_expression.type
-					elseif l_elem_type /= a_translator.last_expression.type then
-						-- TODO: signal an error
-					end
-				end
-			end
-			if l_exprs.is_empty then
-				-- TODO: how to determine elem type here?
-				a_translator.set_last_expression (
-					factory.function_call ("Set#Empty", Void, types.set (types.ref)))
-			else
-				from
-					l_exprs.start
-					l_expr := factory.function_call ("Set#Singleton", << l_exprs.item >>, types.set (l_elem_type))
-					l_exprs.forth
-				until
-					l_exprs.after
-				loop
-					l_expr := factory.function_call (
-						"Set#UnionOne",
-						<< l_expr, l_exprs.item >>,
-						types.set (l_elem_type))
-					l_exprs.forth
-				end
-				a_translator.set_last_expression (l_expr)
 			end
 		end
 
@@ -360,5 +268,28 @@ feature -- Basic operations
 					factory.singleton_block (l_pcall))
 				a_translator.side_effect.extend (l_if)
 			end
+		end
+
+	field_from_string (a_name: STRING; a_type: TYPE_A; a_context_feature: FEATURE_I; a_context_line_number: INTEGER): IV_ENTITY
+			-- Boogie field corresponding to an attribute (or built-in ghost access) with name `a_name' in type `a_type'.
+		local
+			l_feature: FEATURE_I
+		do
+			l_feature := a_type.base_class.feature_named_32 (a_name)
+			if l_feature = Void then
+				helper.add_semantic_error (a_context_feature, messages.field_not_attribute (a_name, a_type.base_class.name_in_upper), a_context_line_number)
+			else
+				if translation_mapping.ghost_access.has (a_name) then
+					-- Handle built-in ANY attributes separately, since they are not really attributes
+					Result := factory.entity (a_name, types.field (translation_mapping.ghost_access_type (a_name)))
+				elseif l_feature.is_attribute then
+					Result := factory.entity (name_translator.boogie_procedure_for_feature (l_feature, a_type),
+						types.field (types.for_type_a (l_feature.type)))
+					translation_pool.add_referenced_feature (l_feature, a_type)
+				else
+					helper.add_semantic_error (a_context_feature, messages.field_not_attribute (a_name, a_type.base_class.name_in_upper), a_context_line_number)
+				end
+			end
+
 		end
 end

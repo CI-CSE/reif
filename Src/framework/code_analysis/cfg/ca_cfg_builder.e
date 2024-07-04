@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {CA_CFG_BUILDER}."
-	author: ""
+	description: "Provides functionality to build a Control Flow Graph from an Abstract Syntax Tree."
+	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -14,12 +14,13 @@ create
 feature {NONE} -- Initialization
 
 	make
+			-- Initialization.
 		do
 
 		end
 
 	make_with_feature (a_feature: FEATURE_AS)
-			-- Initialization for `Current'.
+			-- Initialization for `Current' using feature AST `a_feature'.
 		do
 			current_feature := a_feature
 		end
@@ -27,11 +28,13 @@ feature {NONE} -- Initialization
 feature -- Actions
 
 	set_feature (a_feature: FEATURE_AS)
+			-- Sets the feature whose CFG shall be built to `a_feature'.
 		do
 			current_feature := a_feature
 		end
 
 	build_cfg
+			-- Builds the CFG for the feature that has been set.
 		require
 			feature_set: current_feature /= Void
 			is_routine: current_feature.body.is_routine
@@ -48,22 +51,25 @@ feature -- Actions
 			end
 		end
 
-	cfg: CA_CFG
+	cfg: detachable CA_CFG
+			-- Last CFG that has been built.
 
 	current_feature: detachable FEATURE_AS
+			-- Feature whose CFG shall be built.
 
 feature {NONE} -- Implementation
 
 	current_label: INTEGER
+			-- Current label counter.
 
 	process_compound (a_compound: EIFFEL_LIST [INSTRUCTION_AS]): CA_CFG
+			-- Creates the CFG for `a_compound'.
 		require
 			a_compound.count >= 1
 		local
 			l_cfg, l_subgraph: CA_CFG
 			l_last_block, l_current_block, l_temp_block: CA_CFG_BASIC_BLOCK
 			l_intervals: LINKED_LIST [EIFFEL_LIST [INTERVAL_AS]]
-			l_empty: BOOLEAN
 		do
 			create l_cfg.make (current_label, current_label + 1)
 			current_label := current_label + 2
@@ -144,15 +150,12 @@ feature {NONE} -- Implementation
 					create {CA_CFG_SKIP} l_last_block.make (current_label)
 					current_label := current_label + 1
 
-					l_empty := True
-
 					if attached l_inspect.case_list then
 						across l_inspect.case_list as l_cases loop
 							if attached l_cases.item.compound as l_comp then
 								l_subgraph := process_compound (l_comp)
 								add_when_edge (l_current_block, l_subgraph.start_node, l_cases.cursor_index)
 								add_edge (l_subgraph.end_node, l_last_block)
-								l_empty := False
 							end
 						end
 					end
@@ -160,7 +163,6 @@ feature {NONE} -- Implementation
 						l_subgraph := process_compound (l_else)
 						add_else_edge (l_current_block, l_subgraph.start_node)
 						add_edge (l_subgraph.end_node, l_last_block)
-						l_empty := False
 					end
 						-- TODO: If there is nothing in the `inspect'?
 
@@ -200,6 +202,8 @@ feature {NONE} -- Implementation
 		end
 
 	is_sequential (a_instruction: INSTRUCTION_AS): BOOLEAN
+			-- Is `a_instruction' a "sequential" instruction, i. e. not
+			-- a branch like if, etc.?
 		do
 			Result := attached {ASSIGNER_CALL_AS} a_instruction
 				or attached {ASSIGN_AS} a_instruction
@@ -208,12 +212,17 @@ feature {NONE} -- Implementation
 		end
 
 	add_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Updates `a_from' and `a_to' so that they both have information
+			-- about the edge from `a_from' to `a_to'.
 		do
 			a_from.add_out_edge (a_to)
 			a_to.add_in_edge (a_from)
 		end
 
 	add_true_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Adds a "true" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_IF} a_from
 		do
 			if attached {CA_CFG_IF} a_from as a_if then
 				a_if.set_true_branch (a_to)
@@ -222,6 +231,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_false_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Adds a "false" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_IF} a_from
 		do
 			if attached {CA_CFG_IF} a_from as a_if then
 				a_if.set_false_branch (a_to)
@@ -230,6 +242,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_when_edge (a_from, a_to: CA_CFG_BASIC_BLOCK; a_index: INTEGER)
+			-- Adds a "when" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_INSPECT} a_from
 		do
 			if attached {CA_CFG_INSPECT} a_from as a_inspect then
 				a_inspect.set_when_branch (a_inspect, a_index)
@@ -238,6 +253,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_else_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Adds an "else" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_INSPECT} a_from
 		do
 			if attached {CA_CFG_INSPECT} a_from as a_inspect then
 				a_inspect.set_else_branch (a_to)
@@ -246,6 +264,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_loop_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Adds a "loop" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_LOOP} a_from
 		do
 			if attached {CA_CFG_LOOP} a_from as a_loop then
 				a_loop.set_loop_branch (a_to)
@@ -254,6 +275,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_exit_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Adds an "exit" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_LOOP} a_from
 		do
 			if attached {CA_CFG_LOOP} a_from as a_loop then
 				a_loop.set_exit_branch (a_to)
@@ -262,6 +286,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_loop_in_edge (a_from, a_to: CA_CFG_BASIC_BLOCK)
+			-- Adds a "loop-in" edge from `a_from' to `a_to'.
+		require
+			attached {CA_CFG_LOOP} a_from
 		do
 			if attached {CA_CFG_LOOP} a_to as a_loop then
 				a_from.add_out_edge (a_to)

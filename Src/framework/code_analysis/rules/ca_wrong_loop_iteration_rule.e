@@ -1,5 +1,5 @@
 note
-	description: "Summary description for {CA_WRONG_LOOP_ITERATION_RULE}."
+	description: "See `description' below."
 	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -32,9 +32,12 @@ feature {NONE} -- Initialization
 feature {NONE} -- Checking Loop For Pattern
 
 	process_loop (a_loop: LOOP_AS)
+			-- Checks `a_loop' for rule violations.
 		do
-			if extract_from (a_loop) then
-				if is_valid_stop_condition (a_loop.stop) then
+			analyze_from_part (a_loop)
+			if from_part_conforms then
+				analyze_stop_condition (a_loop.stop)
+				if is_valid_stop_condition then
 					if attached a_loop.compound as l_comp then
 						check_xxcrement (l_comp.last)
 					end
@@ -42,9 +45,15 @@ feature {NONE} -- Checking Loop For Pattern
 			end
 		end
 
-	extract_from (a_loop: LOOP_AS): BOOLEAN
+	from_part_conforms: BOOLEAN
+			-- Does the from part look at last in `analyze_from_part' correspond to the pattern we are
+			-- looking for?
+
+	analyze_from_part (a_loop: LOOP_AS)
+			-- Analyzes the from part of `a_loop' in regard to whether it conform to what we
+			-- are looking for.
 		do
-			Result := False
+			from_part_conforms := False
 
 			if attached a_loop.from_part as l_from and then l_from.count = 1 then
 				if attached {ASSIGN_AS} l_from.first as l_assign then
@@ -54,25 +63,32 @@ feature {NONE} -- Checking Loop For Pattern
 								-- x is a local variable and X is an integer constant.
 							iteration_variable := l_target.feature_name
 							loop_start := l_start.integer_64_value
-							Result := True
+							from_part_conforms := True
 						end
 					end
 				end
 			end
 		end
 
-	is_valid_stop_condition (a_stop: EXPR_AS): BOOLEAN
+	is_valid_stop_condition: BOOLEAN
+			-- Does the loop stop condition analyzed in `analyze_stop_condition'
+			-- correspond to the pattern we are looking for?
+
+
+	analyze_stop_condition (a_stop: EXPR_AS)
+			-- Analyze stop condition `a_stop' with regard to to the pattern
+			-- we are looking for.
 		local
 			l_viol: CA_RULE_VIOLATION
 		do
-			Result := False
+			is_valid_stop_condition := False
 
 			if attached {COMPARISON_AS} a_stop as l_comp then
 				if attached {EXPR_CALL_AS} l_comp.left as l_call and then attached {ACCESS_ID_AS} l_call.call as l_access then
 					if l_access.feature_name.is_equal (iteration_variable) then
 							-- The variable that is used for initialization is compared.
 						if attached {INTEGER_AS} l_comp.right as l_int and then l_int.has_integer (64) then
-							Result := True -- The loop structure still follows the pattern.
+							is_valid_stop_condition := True -- The loop structure still follows the pattern.
 							loop_end := l_int.integer_64_value
 							if attached {BIN_GE_AS} l_comp or attached {BIN_GT_AS} l_comp then
 									-- '>' or '>=' comparison.
@@ -100,6 +116,8 @@ feature {NONE} -- Checking Loop For Pattern
 		end
 
 	check_xxcrement (a_instruction: INSTRUCTION_AS)
+			-- Does the loop iteration `a_instruction' correspond to the pattern
+			-- we are looking for?
 		local
 			l_viol: CA_RULE_VIOLATION
 		do
@@ -128,7 +146,10 @@ feature {NONE} -- Checking Loop For Pattern
 		end
 
 	loop_start, loop_end: INTEGER_64
+			-- First and last value the loop counter has during iteration.
+
 	iteration_variable: ID_AS
+			-- The loop iteration variable (often times `i` or `j`).
 
 feature -- Properties
 

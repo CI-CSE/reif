@@ -17,6 +17,10 @@ feature
 			check s1 <= s1 + s2 end
 			s2 := {MML_SET[INTEGER]}.empty_set & 1
 			check s2.any_item = 1 end
+			check s2.count = 1 end
+			create s1.singleton (1)
+			check s1.count = 1 end
+			check across s1 as i all i.item = 1 end end
 		end
 
 	good1 (s: MML_SET [A_SETS])
@@ -30,8 +34,10 @@ feature
 	bad (s: MML_SET[INTEGER])
 		local
 			s1: MML_SET[INTEGER]
+			x: INTEGER
 		do
-			s1 := s1 & 1;
+			s1 := s1 & 1
+			x := s.any_item
 			check bad_disjoint: s.is_disjoint (s1) end
 			check bad_empty: s.is_empty end
 			check bad_has: s.has (1)  end

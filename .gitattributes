@@ -3273,6 +3273,15 @@ Src/experimental/library/editor/bitmaps/right_scroll_arrow.png -text
 Src/experimental/library/edk/include/edk.lib -text
 Src/experimental/library/edk/spec/msc/windows/lib/edk.lib -text
 Src/experimental/library/encoding/implementation/unix/Clib/iconv-config -text
+Src/experimental/library/gobo/gobo_gelex-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_geyacc-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_math-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_pattern-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_regexp-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_string-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_structure-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_time-safe.ecf svneol=native#text/xml
+Src/experimental/library/gobo/gobo_utility-safe.ecf svneol=native#text/xml
 Src/experimental/library/graph/license.lic -text
 Src/experimental/library/i18n/README -text
 Src/experimental/library/i18n/TODO -text
@@ -3304,7 +3313,11 @@ Src/experimental/library/i18n/example_application/po_files/xx_XX.po -text
 Src/experimental/library/i18n/example_application/po_files/zh_CN.po -text
 Src/experimental/library/i18n/forum.txt -text
 Src/experimental/library/i18n/tests/test_files/locale/results/unix/POSIX -text
+Src/experimental/library/i18n/tests/test_files/locale/results/unix/en_AG -text
 Src/experimental/library/i18n/tests/test_files/locale/results/unix/en_IN -text
+Src/experimental/library/i18n/tests/test_files/locale/results/unix/en_NG -text
+Src/experimental/library/i18n/tests/test_files/locale/results/unix/en_ZM -text
+Src/experimental/library/i18n/tests/test_files/locale/results/unix/fr_FR -text
 Src/experimental/library/i18n/tests/test_files/locale/results/unix/zh_CN -text
 Src/experimental/library/i18n/tests/test_files/locale/results/windows/af_ZA -text
 Src/experimental/library/i18n/tests/test_files/locale/results/windows/am_ET -text
@@ -3556,11 +3569,15 @@ Src/experimental/library/ribbon/test/src/ribbon_project.er -text
 Src/experimental/library/runtime/logging/doc/Arch_Design_and_Impl.docx -text
 Src/experimental/library/runtime/logging/doc/Arch_Design_and_Impl.pdf -text svneol=unset#application/pdf
 Src/experimental/library/runtime/logging/doc/Arch_Design_and_Impl.vsd -text
+<<<<<<< HEAD
 Src/experimental/library/runtime/logging/doc/Readme.1st -text
 Src/experimental/library/store/dbms/rdbms/mysql/Readme -text
 Src/experimental/library/text/parser/xml/parser/license.lic -text
 Src/experimental/library/text/parser/xml/tree/license.lic -text
 Src/experimental/library/text/uri/license.lic -text
+=======
+Src/experimental/library/store/test/test_results/oracle_results -text
+>>>>>>> 72a8a3e771e09764df9889f35d98d576161f0656
 Src/experimental/library/vision2/Clib/default_vision2_icon.ico -text
 Src/experimental/library/text/parser/xml/README.txt -text
 Src/experimental/library/text/parser/xml/parser/callbacks/README.TXT -text
@@ -3667,8 +3684,12 @@ Src/framework/configuration/versioning/configuration-1-0-0.xsd -text
 Src/framework/configuration/versioning/configuration-1-2-0.xsd -text
 Src/framework/configuration/versioning/configuration-1-3-0.xsd -text
 Src/framework/dotnet_loader/dotnet_loader.lic -text
+Src/framework/eiffel2boogie/tests/advanced/functional/output.txt -text
+Src/framework/eiffel2boogie/tests/advanced/inheritance/output.txt -text
+Src/framework/eiffel2boogie/tests/advanced/lemma/output.txt -text
 Src/framework/eiffel2boogie/tests/advanced/sequences/output.txt -text
 Src/framework/eiffel2boogie/tests/advanced/sets/output.txt -text
+Src/framework/eiffel2boogie/tests/advanced/termination/output.txt -text
 Src/framework/eiffel2boogie/tests/basic/attributes/output.txt -text
 Src/framework/eiffel2boogie/tests/basic/basic/output.txt -text
 Src/framework/eiffel2boogie/tests/basic/boolean/output.txt -text
@@ -3680,6 +3701,13 @@ Src/framework/eiffel2boogie/tests/basic/references/output.txt -text
 Src/framework/eiffel2boogie/tests/examples/cost2011/output.txt -text
 Src/framework/eiffel2boogie/tests/examples/vstte2008/output.txt -text
 Src/framework/eiffel2boogie/tests/examples/vstte2010/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/composite/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/double_linked_list/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/iterator/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/master_clock/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/observer_one_to_many/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/observer_one_to_one/output.txt -text
+Src/framework/eiffel2boogie/tests/framing/ownership/pip/output.txt -text
 Src/framework/eiffel2boogie/tests/language/generics/output.txt -text
 Src/framework/eiffel2boogie/tests/language/integer/output.txt -text
 Src/framework/eiffel2boogie/tests/template/args.txt_ -text
@@ -5184,6 +5212,9 @@ Src/tools/syntax_updater/syntax_updater.lic -text
 Src/tools/unicode/character_32_property.template -text
 Src/tools/visitor_factory/visitor_factory.lic -text
 Src/unstable/README.txt -text
+Src/unstable/library/compression/bzip2/Readme.txt -text
+Src/unstable/library/compression/zlib/Readme.txt -text
+Src/unstable/library/compression/zlib/example/index.html -text
 Src/unstable/library/pattern/criteria/README.txt -text
 Src/unstable/library/pattern/criteria/license.lic -text
 Src/unstable/library/pattern/criteria/testing/criteria_tests.rc -text
@@ -5637,6 +5668,7 @@ eweasel/tests/exec213/x.cs -text
 eweasel/tests/exec213/x.dll -text
 eweasel/tests/exec283/Ace -text
 eweasel/tests/exec315/Ace -text
+eweasel/tests/exec359/Ace svneol=native#text/xml
 eweasel/tests/fake001/notes -text
 eweasel/tests/fake002/notes -text
 eweasel/tests/fake003/notes -text
@@ -6128,11 +6160,13 @@ eweasel/tests/melt071/notes -text
 eweasel/tests/melt072/notes -text
 eweasel/tests/melt073/notes -text
 eweasel/tests/melt103/Ace svneol=native#text/xml
+eweasel/tests/melt104/Ace svneol=native#text/xml
 eweasel/tests/once001/Ace -text
 eweasel/tests/once004/Ace -text
 eweasel/tests/once005/Ace -text
 eweasel/tests/path001/Ace svneol=native#text/xml
 eweasel/tests/path002/Ace svneol=native#text/xml
+eweasel/tests/pretty029/Ace svneol=native#text/xml
 eweasel/tests/replication002/Ace -text
 eweasel/tests/runtime018/Ace svneol=native#text/xml
 eweasel/tests/scoop010/tcf -text

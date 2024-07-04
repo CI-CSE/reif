@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {CA_UNUSED_ARGUMENT_RULE}."
-	author: ""
+	description: "See `description' below."
+	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -16,9 +16,11 @@ create
 	make
 
 feature {NONE} -- Initialization
+
 	make
+			-- Initialization.
 		do
-			-- set the default parameters (subject to be changed by user)
+				-- Set the default parameters (subject to be changed by user).
 			is_enabled_by_default := True
 			create {CA_WARNING} severity
 			create violations.make
@@ -82,11 +84,13 @@ feature -- Properties
 feature {NONE} -- Rule Checking
 
 	process_feature (a_feature_as: FEATURE_AS)
+			-- Sets the current feature.
 		do
 			current_feature := a_feature_as
 		end
 
 	process_body (a_body_as: BODY_AS)
+			-- Retrieves the arguments from `a_body_as'.
 		local
 			j: INTEGER
 		do
@@ -114,11 +118,15 @@ feature {NONE} -- Rule Checking
 		end
 
 	post_process_body (a_body: BODY_AS)
+			-- Adds a violation if the feature contains unused arguments.
 		local
 			l_violation: CA_RULE_VIOLATION
 			j: INTEGER
 		do
-			if has_arguments and then args_used.has (False) then
+			if a_body.content /= Void
+			and then not current_feature.is_deferred
+			and then has_arguments
+			and then args_used.has (False) then
 				create l_violation.make_with_rule (Current)
 				l_violation.set_location (routine_body.start_location)
 				l_violation.long_description_info.extend (current_feature)
@@ -127,7 +135,7 @@ feature {NONE} -- Rule Checking
 				until
 					j > n_arguments
 				loop
-					if args_used.at (j) = False then
+					if not args_used.at (j) then
 						l_violation.long_description_info.extend (arg_names.at (j))
 					end
 					j := j + 1
@@ -137,6 +145,7 @@ feature {NONE} -- Rule Checking
 		end
 
 	process_access_id (a_aid: ACCESS_ID_AS)
+			-- Mark an argument as used if it corresponds to `a_aid'.
 		local
 			j: INTEGER
 		do
@@ -145,7 +154,7 @@ feature {NONE} -- Rule Checking
 			until
 				j > n_arguments
 			loop
-				if args_used.at (j) = False then
+				if not args_used.at (j) then
 					if arg_names.at (j).is_equal (a_aid.feature_name.name_32) then
 						args_used.put_i_th (True, j)
 					end
@@ -155,10 +164,21 @@ feature {NONE} -- Rule Checking
 		end
 
 	has_arguments: BOOLEAN
+			-- Does current feature have arguments?
+
 	current_feature: FEATURE_AS
+			-- Currently checked feature.
+
 	routine_body: BODY_AS
+			-- Current routine body.
+
 	n_arguments: INTEGER
-	arg_names: ARRAYED_LIST[STRING_32]
-	args_used: ARRAYED_LIST[BOOLEAN]
+			-- # arguments for current routine.
+
+	arg_names: ARRAYED_LIST [STRING_32]
+			-- Argument names of current routine.
+
+	args_used: ARRAYED_LIST [BOOLEAN]
+			-- Which argument has been used?
 
 end

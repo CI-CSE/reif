@@ -53,21 +53,24 @@ feature -- Basic operations
 			l_expression: IV_EXPRESSION
 			l_set: IV_EXPRESSION
 			l_map: IV_MAP_ACCESS
+			l_content_type: IV_TYPE
 		do
+			l_content_type := types.for_type_a (object_test_local.type.generics.first)
+
 				-- Set expression
-			set_access.process (expression_translator)
+			expression_translator.process_as_set (set_access, l_content_type)
 			l_set := expression_translator.last_expression
 
 				-- Loop content
-			expression_translator.create_iterator (types.ref)
+				-- ToDo: save old side effects; add new side effects to the quantifier body; restore side effects
+			expression_translator.create_iterator (l_content_type)
 			l_counter := expression_translator.last_local
 			expression_translator.locals_map.put (l_counter, object_test_local.position)
 			loop_expr.expression_code.process (expression_translator)
 			l_expression := expression_translator.last_expression
 			expression_translator.locals_map.remove (object_test_local.position)
 
-
-			create l_map.make (l_set, l_counter)
+			create l_map.make (l_set, << l_counter >>)
 			if loop_expr.is_all then
 				create {IV_FORALL} l_quantifier.make (factory.implies_ (l_map, l_expression))
 			else

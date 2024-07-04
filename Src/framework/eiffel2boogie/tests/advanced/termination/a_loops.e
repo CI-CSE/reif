@@ -37,7 +37,7 @@ feature
 
 --	loop_decreases_bad_type
 --		local
---			x: REAL
+--			x: REAL_64
 --		do
 --			from
 --				x := 1.0
@@ -46,7 +46,7 @@ feature
 --			until
 --				x = 0.0
 --			loop
---				x := x / 2
+--				x := x / 2.0
 --			end
 --		end
 
@@ -127,22 +127,6 @@ feature
 				i = 0 -- default variant: if 0 <= i then i else -i			
 			loop
 				i := i - 1
-			end
-
-			from
-				ss := s
-			until
-				ss.is_empty
-			loop
-				ss := ss.but_first -- default variant: if |[]| <= |ss| then |ss| - |[]| else |[]| - |ss|
-			end
-
-			from
-				sset := set
-			until
-				sset.is_empty
-			loop
-				sset := sset / sset.any_item -- default variant: if [] <= sset then sset - [] else [] - sset
 			end
 		end
 

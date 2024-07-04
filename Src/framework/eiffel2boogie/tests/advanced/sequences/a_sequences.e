@@ -14,6 +14,7 @@ feature
 			check s1.has (1) end
 			check s1.item (s.count + 1) = 1 end
 			check s1.item (s.count + 2) = 2 end
+			check across s as i all s1.has (i.item) end end
 			check s1.domain [s.count] and not s1.domain [s.count + 3] end
 			check s1.range [1] end
 			check s1.first = s.first end
@@ -43,6 +44,14 @@ feature
 			check attached {A_SETS} s.first end
 		end
 
+	bad (s: MML_SEQUENCE [INTEGER])
+		local
+			x: INTEGER
+		do
+			x := s [1]
+			check s.but_last.count >= 0 end
+		end
+
 	seq_to_set (arg: MML_SEQUENCE[INTEGER])
 		require
 			arg.count >= 3
@@ -63,7 +72,7 @@ feature
 			set := set & 3
 			seq := seq & 3
 
-			check set = seq end
+			check set = seq.range end
 		end
 
 end

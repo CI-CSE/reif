@@ -12,6 +12,7 @@ inherit
 
 	E2B_EXPRESSION_TRANSLATOR
 		redefine
+			side_effect,
 			reset,
 			set_context,
 			process_creation_expr_b,
@@ -27,8 +28,8 @@ feature -- Access
 	origin_class: CLASS_C
 			-- Context where the expression in inherited from.
 
-	side_effect: LINKED_LIST [TUPLE [expr: IV_EXPRESSION; info: IV_NODE_INFO]]
-			-- List of side effect statements.
+	side_effect: LINKED_LIST [IV_ASSERT]
+			-- List of side effect statements (only safety checks generated here).
 
 	field_accesses: LINKED_LIST [TUPLE [o: IV_EXPRESSION; f: IV_ENTITY]]
 			-- List of field accesses.
@@ -101,7 +102,6 @@ feature -- Translation
 		local
 			l_current: IV_ENTITY
 			l_field: IV_ENTITY
-			l_heap_access: IV_HEAP_ACCESS
 		do
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 
@@ -110,8 +110,11 @@ feature -- Translation
 				name_translator.boogie_procedure_for_feature (a_feature, current_target_type),
 				types.field (types.for_type_in_context (a_feature.type, current_target_type))
 			)
-			create l_heap_access.make (entity_mapping.heap.name, current_target, l_field)
-			last_expression := l_heap_access
+			last_expression := factory.heap_access (
+				entity_mapping.heap.name,
+				current_target,
+				l_field.name,
+				types.for_type_in_context (a_feature.type, current_target_type))
 
 			field_accesses.extend ([current_target, l_field])
 		end
@@ -185,17 +188,6 @@ feature -- Translation
 			-- <Precursor>
 		do
 			a_handler.handle_routine_call_in_contract (Current, a_feature, a_parameters)
-		end
-
-	add_safety_check (a_expression: IV_EXPRESSION; a_name: STRING; a_tag: STRING; a_line: INTEGER)
-			-- <Precursor>
-		local
-			l_info: IV_NODE_INFO
-		do
-			create l_info.make_with_type (a_name)
-			l_info.set_tag (a_tag)
-			l_info.set_line (a_line)
-			side_effect.extend ([implies_safety_expression (a_expression), l_info])
 		end
 
 feature {NONE} -- Implementation

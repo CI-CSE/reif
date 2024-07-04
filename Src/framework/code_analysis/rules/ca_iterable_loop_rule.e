@@ -1,6 +1,6 @@
 note
-	description: "Summary description for {CA_ITERABLE_LOOP_RULE}."
-	author: ""
+	description: "See `description' below."
+	author: "Stefan Zurfluh"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -35,23 +35,27 @@ feature {NONE} -- Initialization
 feature {NONE} -- Rule checking
 
 	iterable: CLASS_C
+			-- The {ITERABLE} class.
 		once
 			Result := Eiffel_universe.compiled_classes_with_name ("ITERABLE").first.compiled_class
 		end
 
 	current_feature_i: FEATURE_I
+			-- Currently checked feature.
 
 	process_feature (a_feature: FEATURE_AS)
+			-- Sets currently checked feature.
 		do
 			current_feature_i := checking_class.feature_named_32 (a_feature.feature_name.name_32)
 		end
 
 	process_loop (a_loop: LOOP_AS)
+			-- Checks `a_loop' for a rule violation.
 		local
 			l_viol: CA_RULE_VIOLATION
 		do
-
-			if matching_until_part (a_loop.stop) and then matching_from_part (a_loop.from_part) then
+			check_until_part (a_loop.stop)
+			if matching_until_part and then matching_from_part (a_loop.from_part) then
 				if matching_last_instruction (a_loop.compound) then
 					create l_viol.make_with_rule (Current)
 					l_viol.set_location (a_loop.start_location)
@@ -61,37 +65,41 @@ feature {NONE} -- Rule checking
 			end
 		end
 
-	matching_until_part (a_stop_condition: EXPR_AS): BOOLEAN
+	matching_until_part: BOOLEAN
+			-- Is the until part analyzed in `check_until_part' as expected?
+
+	check_until_part (a_stop_condition: EXPR_AS)
 			-- Checks if `a_stop_condition' is of the form 'list.after', where list is
 			-- a variable of a type that conforms to {ITERABLE}.
 		local
 			l_type: TYPE_A
+			l_target: ACCESS_AS
 		do
-			Result := False
+			matching_until_part := False
 
 			if attached a_stop_condition as l_stop and then attached {EXPR_CALL_AS} l_stop as l_call then
 				if attached {NESTED_AS} l_call.call as l_nested_call then
-					if attached {ACCESS_AS} l_nested_call.target as l_target then
-						if attached {ACCESS_AS} l_nested_call.message as l_msg and then l_msg.access_name_8.is_equal ("after") then
-							l_type := node_type (l_target, current_feature_i)
-							if l_type.base_class.conform_to (iterable) then
-								Result := True
-								expected_var := l_target.access_name_32
-							end
+					if attached {ACCESS_AS} l_nested_call.message as l_msg and then l_msg.access_name_8.is_equal ("after") then
+						l_target := l_nested_call.target
+						l_type := node_type (l_target, current_feature_i)
+						if l_type.base_class.conform_to (iterable) then
+							matching_until_part := True
+							expected_var := l_target.access_name_32
 						end
 					end
 				end
 			end
 		ensure
-			expected_variable_set: Result implies attached expected_var
+			expected_variable_set: matching_until_part implies attached expected_var
 		end
 
 	expected_var: detachable STRING_32
+			-- The expected iteration variable.
 
 	matching_from_part (a_from: detachable EIFFEL_LIST [INSTRUCTION_AS]): BOOLEAN
+			-- Does `a_from' contain an instruction of the form `expected_var'.start?			
 		require
 			expected_variable_set: attached expected_var
-			-- Checks if `a_from' contains an instruction of the form `expected_var'.start.
 		do
 			Result := False
 
@@ -99,7 +107,7 @@ feature {NONE} -- Rule checking
 				across a_from as l_instr loop
 					if attached {INSTR_CALL_AS} l_instr.item as l_call then
 						if attached {NESTED_AS} l_call.call as l_nested_call then
-							if attached {ACCESS_AS} l_nested_call.target as l_target and then l_target.access_name_32.is_equal (expected_var) then
+							if l_nested_call.target.access_name_32.is_equal (expected_var) then
 								if attached {ACCESS_AS} l_nested_call.message as l_msg and then l_msg.access_name_8.is_equal ("start") then
 										-- We do not have to check the type of `l_target' since we know it is the expected variable
 										-- that has already been checked for conformance to {ITERABLE}.
@@ -113,12 +121,13 @@ feature {NONE} -- Rule checking
 		end
 
 	matching_last_instruction (a_loop_body: detachable EIFFEL_LIST [INSTRUCTION_AS]): BOOLEAN
+			-- Is the last instruction of `a_loop_body' of the form `expected_var'.start?
 		do
 			Result := False
 
 			if attached a_loop_body and then attached {INSTR_CALL_AS} a_loop_body.last as l_call then
 				if attached {NESTED_AS} l_call.call as l_nested_call then
-					if attached {ACCESS_AS} l_nested_call.target as l_target and then l_target.access_name_32.is_equal (expected_var) then
+					if l_nested_call.target.access_name_32.is_equal (expected_var) then
 						if attached {ACCESS_AS} l_nested_call.message as l_msg and then l_msg.access_name_8.is_equal ("forth") then
 								-- We do not have to check the type of `l_target' since we know it is the expected variable
 								-- that has already been checked for conformance to {ITERABLE}.
