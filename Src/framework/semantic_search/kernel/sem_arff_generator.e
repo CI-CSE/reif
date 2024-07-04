@@ -22,6 +22,12 @@ inherit
 
 	ITP_SHARED_CONSTANTS
 
+	EPA_UTILITY
+
+	EPA_SHARED_EQUALITY_TESTERS
+
+	SEM_UTILITY
+
 create
 	make_for_feature_transition,
 	make_for_objects,
@@ -33,7 +39,7 @@ feature{NONE} -- Initialization
 			-- Initialize Current for feature calls.
 		do
 			is_for_feature_transition := True
-			reset
+			initialize
 		ensure
 			is_for_feature_transition_set: is_for_feature_transition
 		end
@@ -42,7 +48,7 @@ feature{NONE} -- Initialization
 			-- Initialize Current for objects.
 		do
 			is_for_objects := True
-			reset
+			initialize
 		ensure
 			is_for_objects_set: is_for_objects
 		end
@@ -51,9 +57,50 @@ feature{NONE} -- Initialization
 			-- Initialize Current for snippet.
 		do
 			is_for_snippet := True
-			reset
+			initialize
 		ensure
 			is_for_snippet_set: is_for_snippet
+		end
+
+feature -- Status report
+
+	should_generate_arff_for_all_test_cases: BOOLEAN
+			-- Should an ARFF file be generated for all test cases (passing,
+			-- failing test cases for all faults)
+			-- Default: True
+
+	should_generate_arff_for_only_passing_test_cases: BOOLEAN
+			-- Should an ARFF file be generated for only passing test cases?
+			-- Default: True
+
+	should_generate_arff_for_each_fault: BOOLEAN
+			-- Should an ARFF file be generated for each fault (along with passing test cases)?
+			-- Default: True
+
+feature -- Setting
+
+	set_should_generate_arff_for_all_test_cases (b: BOOLEAN)
+			-- Set `should_generate_arff_for_all_test_cases' with `b'.
+		do
+			should_generate_arff_for_all_test_cases := b
+		ensure
+			should_generate_arff_for_all_test_cases_set: should_generate_arff_for_all_test_cases = b
+		end
+
+	set_should_generate_arff_for_only_passing_test_cases (b: BOOLEAN)
+			-- Set `should_generate_arff_for_only_passing_test_cases' with `b'.
+		do
+			should_generate_arff_for_only_passing_test_cases := b
+		ensure
+			should_generate_arff_for_only_passing_test_cases_set: should_generate_arff_for_only_passing_test_cases = b
+		end
+
+	set_should_generate_arff_for_each_fault (b: BOOLEAN)
+			-- Set `should_generate_arff_for_each_fault' with `b'.
+		do
+			should_generate_arff_for_each_fault := b
+		ensure
+			should_generate_arff_for_each_fault_set: should_generate_arff_for_each_fault = b
 		end
 
 feature -- Basic operatioins
@@ -76,13 +123,17 @@ feature -- Basic operatioins
 			reset
 		end
 
-	generate_maximal_arff (a_name: STRING; a_medium: IO_MEDIUM)
+	generate_maximal_arff (a_name: STRING; a_base_file_name: STRING; a_directory: STRING)
 			-- Generate maximal ARFF from data in Current.
 			-- In this mode, all expressions in all added queryables will appear
 			-- as an attribute in the final ARFF data. If some expressions only appear in some
 			-- queryables, in the ARFF data, the will be missing values in lines
 			-- for queryables in which those expressions does not appear.
 			-- `a_name' is the name of the ARFF relation to be generated.
+			-- `a_base_file_name' is the basic part of the ARFF file name, depending on the type of
+			-- ARFF file to generate (see `should_generate_arff_for_all_test_cases'), extra part
+			-- will be added into the final file name.
+			-- `a_directory' is the directory to generate ARFF files.
 		local
 			l_arff_relation: WEKA_ARFF_RELATION
 			l_attributes: ARRAYED_LIST [WEKA_ARFF_ATTRIBUTE]
@@ -104,7 +155,102 @@ feature -- Basic operatioins
 				end
 				l_arff_relation.extend (l_instance_values)
 			end
-			l_arff_relation.to_medium (a_medium)
+
+			if should_generate_arff_for_all_test_cases then
+				generate_arff_file (l_arff_relation, a_base_file_name + all_arff + ".arff", a_directory)
+			end
+
+			if should_generate_arff_for_only_passing_test_cases then
+				generate_maximal_arff_for_only_passing_test_cases (l_arff_relation, a_name, a_base_file_name, a_directory)
+			end
+
+			if should_generate_arff_for_each_fault then
+				generate_maximal_arff_for_each_fault (l_arff_relation, a_name, a_base_file_name, a_directory)
+			end
+		end
+
+	generate_maximal_arff_for_only_passing_test_cases (a_relation: WEKA_ARFF_RELATION; a_name: STRING; a_base_file_name: STRING; a_directory: STRING)
+			-- Generate ARFF for only passing test cases in `a_relation'.
+			-- `a_name' is the name of the ARFF relation to be generated.
+			-- `a_base_file_name' is the basic part of the ARFF file name, depending on the type of
+			-- ARFF file to generate (see `should_generate_arff_for_all_test_cases'), extra part
+			-- will be added into the final file name.
+			-- `a_directory' is the directory to generate ARFF files.			
+		local
+			l_only_passing_relation: WEKA_ARFF_RELATION
+			l_fault_attr: WEKA_ARFF_ATTRIBUTE
+		do
+			l_only_passing_relation := a_relation.content_cloned_object
+			l_fault_attr := l_only_passing_relation.attribute_by_name (fault_signature_attribute_name)
+
+				-- Remove all values representing faults.
+			across l_only_passing_relation.values_of_attribute (l_fault_attr) as l_values loop
+				if l_values.item /~ nonsensical_value then
+					l_only_passing_relation.remove_value (l_fault_attr, l_values.item)
+				end
+			end
+			generate_arff_file (l_only_passing_relation, a_base_file_name + only_passing_arff + ".arff", a_directory)
+		end
+
+	generate_maximal_arff_for_each_fault (a_relation: WEKA_ARFF_RELATION; a_name: STRING; a_base_file_name: STRING; a_directory: STRING)
+			-- Generate an ARFF for each fault (including all passing test cases as well).
+			-- `a_name' is the name of the ARFF relation to be generated.
+			-- `a_base_file_name' is the basic part of the ARFF file name, depending on the type of
+			-- ARFF file to generate (see `should_generate_arff_for_all_test_cases'), extra part
+			-- will be added into the final file name.
+			-- `a_directory' is the directory to generate ARFF files.
+		local
+			l_relation: WEKA_ARFF_RELATION
+			l_fault_attr: WEKA_ARFF_ATTRIBUTE
+			l_left_values: LINKED_LIST [STRING]
+			l_ori_values: DS_HASH_SET [STRING]
+			l_removed_values: DS_HASH_SET [STRING]
+			l_cursor: DS_HASH_SET_CURSOR [STRING]
+		do
+			l_fault_attr := a_relation.attribute_by_name (fault_signature_attribute_name)
+			l_ori_values := a_relation.value_set_of_attribute (l_fault_attr)
+
+				-- Remove all values representing faults.			
+			from
+				l_cursor := l_ori_values.new_cursor
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				if l_cursor.item /~ nonsensical_value then
+					create l_left_values.make
+					l_left_values.compare_objects
+					l_left_values.extend (nonsensical_value)
+					l_left_values.extend (l_cursor.item)
+
+					l_relation := a_relation.content_cloned_object
+					l_removed_values := l_ori_values.cloned_object
+					across l_left_values as l_vars loop
+						if l_removed_values.has (l_vars.item) then
+							l_removed_values.remove (l_vars.item)
+						end
+					end
+
+					if not l_removed_values.is_empty then
+						l_relation.remove_values (l_fault_attr, l_removed_values)
+					end
+					generate_arff_file (l_relation, a_base_file_name + fault_arff + l_cursor.item + ".arff", a_directory)
+				end
+				l_cursor.forth
+			end
+		end
+
+	generate_arff_file (a_relation: WEKA_ARFF_RELATION; a_file_name: STRING; a_directory: STRING)
+			-- Generate ARFF file from `a_relation' into a file named `a_file_name' in `a_directory'.
+		local
+			l_file_name: FILE_NAME
+			l_file: PLAIN_TEXT_FILE
+		do
+			create l_file_name.make_from_string (a_directory)
+			l_file_name.set_file_name (a_file_name)
+			create l_file.make_create_read_write (l_file_name)
+			a_relation.to_medium (l_file)
+			l_file.close
 		end
 
 feature -- Status report
@@ -146,6 +292,8 @@ feature{NONE} -- Process
 			l_expr: EPA_EXPRESSION
 			l_change_kind: INTEGER
 			l_value: EPA_EXPRESSION_VALUE
+			l_extra_expressions: like extra_expressions_for_transitions
+			l_evaluations: like expression_evaluations
 		do
 			last_queryable := a_call
 			extend_instance
@@ -165,8 +313,16 @@ feature{NONE} -- Process
 			else
 				extend_meta_attribute (exception_tag_attribute_name, nonsensical_value, none_type)
 			end
+
+			extend_operand_equality_attributes (a_call)
+
 			a_call.interface_preconditions.do_if (agent extend_attribute (?, property_kind_precondition), agent is_equation_suitable_as_attribute)
 			a_call.interface_postconditions.do_if (agent extend_attribute (?, property_kind_postcondition), agent is_equation_suitable_as_attribute)
+
+			create_expresion_evaluator (a_call)
+			l_extra_expressions := extra_expressions_for_transitions (a_call, True)
+			l_evaluations := expression_evaluations (l_extra_expressions)
+			l_evaluations.do_all (agent extend_attribute (?, property_kind_precondition))
 
 			from
 				l_cursor := a_call.changes.new_cursor
@@ -198,6 +354,14 @@ feature{NONE} -- Process
 			end
 		end
 
+	process_objects (a_objects: SEM_OBJECTS)
+			-- Process `a_objects'.
+		do
+			to_implement ("Support objects later. 30.11.2010 Jasonw")
+		end
+
+feature{NONE} -- Implementation
+
 	value_from_expression (a_expression: EPA_EXPRESSION): EPA_EXPRESSION_VALUE
 			-- Value constant from `a_expression'
 		do
@@ -217,7 +381,178 @@ feature{NONE} -- Process
 			end
 		end
 
+	extend_operand_equality_attributes (a_transition: SEM_FEATURE_CALL_TRANSITION)
+			-- Extend attributes to represent equality relation between operands of `a_transition'.
+		local
+			l_operands: EPA_HASH_SET [EPA_EXPRESSION]
+			l_positions: HASH_TABLE [EPA_EXPRESSION, INTEGER]
+			l_pre_positions: HASH_TABLE [EPA_EXPRESSION, INTEGER]
+			l_post_positions: HASH_TABLE [EPA_EXPRESSION, INTEGER]
+			l_cursor: DS_HASH_SET_CURSOR [EPA_EXPRESSION]
+			l_opd_count: INTEGER
+		do
+				-- Collect all operands for `a_transition'.
+			create l_operands.make (10)
+			l_operands.set_equality_tester (expression_equality_tester)
+			a_transition.inputs.union (a_transition.outputs).do_all (agent l_operands.force_last)
+			l_opd_count := operand_count_of_feature (a_transition.feature_)
+			create l_positions.make (l_operands.count)
 
+			from
+				l_operands.start
+			until
+				l_operands.after
+			loop
+				l_positions.force (l_operands.item_for_iteration, a_transition.variable_positions.item (l_operands.item_for_iteration))
+				l_operands.forth
+			end
+
+				-- Generate attributes in pre-state.
+			l_pre_positions := l_positions.twin
+			if a_transition.is_creation then
+				l_pre_positions.remove (0)
+			end
+			if a_transition.is_query then
+				l_pre_positions.remove (l_opd_count - 1)
+			end
+			create l_operands.make (l_pre_positions.count)
+			l_operands.set_equality_tester (expression_equality_tester)
+			across l_pre_positions as l_poses loop l_operands.force_last (l_poses.item) end
+			generate_variable_equality_comparison_attributes (l_operands, a_transition, True)
+
+				-- Generate attributes in post-state.
+			l_post_positions := l_positions.twin
+			create l_operands.make (l_post_positions.count)
+			l_operands.set_equality_tester (expression_equality_tester)
+			across l_post_positions as l_poses loop l_operands.force_last (l_poses.item) end
+			generate_variable_equality_comparison_attributes (l_operands, a_transition, False)
+		end
+
+	generate_variable_equality_comparison_attributes (a_operands: DS_HASH_SET [EPA_EXPRESSION]; a_transition: SEM_FEATURE_CALL_TRANSITION; a_precondition: BOOLEAN)
+			-- Generate attributes for "var1 = var2" and "var1 ~ var2" for each variable pair in `a_operands.
+			-- `a_precondition' indicates if those variables are from pre-state.
+		local
+			l_state: EPA_STATE
+			l_cursor: DS_HASH_SET_CURSOR [EPA_EXPRESSION]
+			l_var: EPA_EXPRESSION
+			l_equation: EPA_EQUATION
+			l_expr_text: STRING
+			l_set: EPA_HASH_SET [EPA_EXPRESSION]
+			l_var1: EPA_EXPRESSION
+			l_var2: EPA_EXPRESSION
+			l_expr: EPA_AST_EXPRESSION
+			l_expr1: EPA_EXPRESSION
+			l_expr2: EPA_EXPRESSION
+		do
+			if a_precondition then
+				l_state := a_transition.preconditions
+			else
+				l_state := a_transition.postconditions
+			end
+
+			create l_set.make (a_operands.count)
+			l_set.set_equality_tester (expression_equality_tester)
+			l_set.append (a_operands)
+
+			across l_set.combinations (2) as l_pairs loop
+				l_expr1 := l_pairs.item.first
+				l_expr2 := l_pairs.item.last
+				if attached {EPA_BOOLEAN_VALUE} value_of_var1_equal_to_var2 (l_expr1, l_expr2, l_state) as l_bool_value then
+					l_expr_text := l_expr1.text + " = " + l_expr2.text
+					create l_expr.make_with_text (l_expr1.class_, l_expr1.feature_, l_expr_text, l_expr1.written_class)
+					create l_equation.make (l_expr, l_bool_value)
+					extend_attribute (l_equation, property_kind_precondition)
+				end
+
+				if attached {EPA_BOOLEAN_VALUE} value_of_var1_object_equal_to_var2 (l_expr1, l_expr2, l_state) as l_bool_value then
+					l_expr_text := l_expr1.text + " ~ " + l_expr2.text
+					create l_expr.make_with_text (l_expr1.class_, l_expr1.feature_, l_expr_text, l_expr1.written_class)
+					create l_equation.make (l_expr, l_bool_value)
+					extend_attribute (l_equation, property_kind_precondition)
+				end
+			end
+		end
+
+	value_of_var1_equal_to_var2 (a_var1: EPA_EXPRESSION; a_var2: EPA_EXPRESSION; a_state: EPA_STATE): detachable EPA_BOOLEAN_VALUE
+			-- The value of the expression `a_var1 = a_var2' evaluated in `a_state'
+			-- Return Void if the value is not calculatable.
+		local
+			l_equ1, l_equ2: EPA_EQUATION
+			l_value1, l_value2: EPA_EXPRESSION_VALUE
+		do
+			l_equ1 := a_state.item_with_expression (a_var1)
+			l_equ2 := a_state.item_with_expression (a_var2)
+			if l_equ1 /= Void and then l_equ2 /= Void then
+				l_value1 := l_equ1.value
+				l_value2 := l_equ2.value
+				if l_value1.is_integer and then l_value2.is_integer then
+					if l_value1.as_integer.item = l_value2.as_integer.item then
+						Result := true_expression_value
+					else
+						Result := false_expression_value
+					end
+				elseif l_value1.is_boolean and then l_value2.is_boolean then
+					if l_value1.as_boolean.item = l_value2.as_boolean.item then
+						Result := true_expression_value
+					else
+						Result := false_expression_value
+					end
+				elseif l_value1.is_reference and then l_value2.is_reference then
+					if l_value1.as_reference.item ~ l_value2.as_reference.item then
+						Result := true_expression_value
+					else
+						Result := false_expression_value
+					end
+				end
+			end
+		end
+
+	value_of_var1_object_equal_to_var2 (a_var1: EPA_EXPRESSION; a_var2: EPA_EXPRESSION; a_state: EPA_STATE): detachable EPA_BOOLEAN_VALUE
+			-- The value of the expression `a_var1 ~ a_var2' evaluated in `a_state'
+			-- Return Void if the value is not calculatable.
+		local
+			l_equ1, l_equ2: EPA_EQUATION
+			l_value1, l_value2: EPA_EXPRESSION_VALUE
+		do
+			l_equ1 := a_state.item_with_expression (a_var1)
+			l_equ2 := a_state.item_with_expression (a_var2)
+			if l_equ1 /= Void and then l_equ2 /= Void then
+				l_value1 := l_equ1.value
+				l_value2 := l_equ2.value
+				if l_value1.is_integer and then l_value2.is_integer then
+					if l_value1.as_integer.item = l_value2.as_integer.item then
+						Result := true_expression_value
+					else
+						Result := false_expression_value
+					end
+				elseif l_value1.is_boolean and then l_value2.is_boolean then
+					if l_value1.as_boolean.item = l_value2.as_boolean.item then
+						Result := true_expression_value
+					else
+						Result := false_expression_value
+					end
+				elseif l_value1.is_reference and then l_value2.is_reference then
+					if l_value1.as_reference.object_equivalent_class_id = l_value2.as_reference.object_equivalent_class_id then
+						Result := true_expression_value
+					else
+						Result := false_expression_value
+					end
+				end
+			end
+		end
+
+
+	true_expression_value: EPA_BOOLEAN_VALUE
+			-- True expression value
+		do
+			create Result.make (True)
+		end
+
+	false_expression_value: EPA_BOOLEAN_VALUE
+			-- True expression value
+		do
+			create Result.make (False)
+		end
 
 	class_attribute_name: STRING = "class"
 	feature_attribute_name: STRING = "feature"
@@ -225,12 +560,6 @@ feature{NONE} -- Process
 	fault_signature_attribute_name: STRING = "fault_signature"
 	exception_tag_attribute_name: STRING = "exception_tag"
 	test_case_attribute_name: STRING = "test_case_name"
-
-	process_objects (a_objects: SEM_OBJECTS)
-			-- Process `a_objects'.
-		do
-			to_implement ("Support objects later. 30.11.2010 Jasonw")
-		end
 
 feature{NONE} -- Implementation
 
@@ -337,6 +666,86 @@ feature{NONE} -- Implementation
 				extend_new_attribute (l_attr_name, a_equation, a_attribute_kind)
 			end
 			last_instance.force (value_of_attribute (a_equation), l_attr_name)
+		end
+
+	extra_expressions_for_transitions (a_call: SEM_FEATURE_CALL_TRANSITION; a_precondition: BOOLEAN): DS_HASH_SET [EPA_EXPRESSION]
+			-- Extra expressions for `a_call'. Extra expressions are used to support advanced anslysis.
+			-- `a_precondition' indicates whether those extra expressions should be evaluated in prestate.
+		local
+			l_expr: EPA_EXPRESSION
+			l_text: STRING
+		do
+			create Result.make (10)
+			Result.set_equality_tester (expression_equality_tester)
+
+--			l_text := "i < Current.lower - 1"
+--			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_call.class_, a_call.feature_, l_text, a_call.class_)
+--			l_expr := expression_in_test_context (a_call, l_expr)
+--			Result.force_last (l_expr)
+
+--			l_text := "i = Current.lower - 1"
+--			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_call.class_, a_call.feature_, l_text, a_call.class_)
+--			l_expr := expression_in_test_context (a_call, l_expr)
+--			Result.force_last (l_expr)
+
+--			l_text := "i > Current.lower - 1"
+--			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_call.class_, a_call.feature_, l_text, a_call.class_)
+--			l_expr := expression_in_test_context (a_call, l_expr)
+--			Result.force_last (l_expr)
+
+--			l_text := "i > Current.upper + 1"
+--			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_call.class_, a_call.feature_, l_text, a_call.class_)
+--			l_expr := expression_in_test_context (a_call, l_expr)
+--			Result.force_last (l_expr)
+
+--			l_text := "i = Current.upper + 1"
+--			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_call.class_, a_call.feature_, l_text, a_call.class_)
+--			l_expr := expression_in_test_context (a_call, l_expr)
+--			Result.force_last (l_expr)
+
+--			l_text := "i < Current.upper + 1"
+--			create {EPA_AST_EXPRESSION} l_expr.make_with_text (a_call.class_, a_call.feature_, l_text, a_call.class_)
+--			l_expr := expression_in_test_context (a_call, l_expr)
+--			Result.force_last (l_expr)
+		end
+
+	expression_evaluations (a_expressions: DS_HASH_SET [EPA_EXPRESSION]): DS_HASH_SET [EPA_EQUATION]
+			-- Evaluations for `a_expressions' using `expression_evaluator'
+		local
+			l_evaluator: like expression_evaluator
+			l_cursor: DS_HASH_SET_CURSOR [EPA_EXPRESSION]
+			l_value: EPA_EXPRESSION_VALUE
+			l_equation: EPA_EQUATION
+		do
+			create Result.make (a_expressions.count)
+			Result.set_equality_tester (equation_equality_tester)
+			l_evaluator := expression_evaluator
+
+			from
+				l_cursor := a_expressions.new_cursor
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				l_evaluator.evaluate (l_cursor.item.ast)
+				if not l_evaluator.has_error then
+					l_value := l_evaluator.last_value
+					if l_value.is_boolean or l_value.is_integer then
+						create l_equation.make (l_cursor.item, l_value)
+						Result.force_last (l_equation)
+					end
+				end
+				l_evaluator.wipe_out_error
+				l_cursor.forth
+			end
+		end
+
+	create_expresion_evaluator (a_call: SEM_FEATURE_CALL_TRANSITION)
+			-- Create `expression_evaluator' for `a_call'.
+		do
+			create expression_evaluator
+				-- We use preconditions as postconditions.
+			expression_evaluator.set_context (a_call.preconditions, a_call.preconditions, a_call.class_)
 		end
 
 	value_of_attribute (a_equation: EPA_EQUATION): STRING
@@ -501,5 +910,34 @@ feature{NONE} -- Implementation
 				Result := a_expression.text
 			end
 		end
+
+	initialize
+			-- Initialize Current.
+		do
+			reset
+			set_should_generate_arff_for_all_test_cases (True)
+			set_should_generate_arff_for_each_fault (True)
+			set_should_generate_arff_for_only_passing_test_cases (True)
+		end
+
+	all_arff: STRING = "__all__noname"
+	only_passing_arff: STRING = "__passing__noname"
+	fault_arff: STRING = "__fault__"
+
+	expression_in_test_context (a_call: SEM_FEATURE_CALL_TRANSITION; a_expression: EPA_EXPRESSION): EPA_EXPRESSION
+			-- Expression in test context
+			-- For example, `a_expression' = "Current.is_empty", and if in current
+			-- test context Current = v_5, then the result is: v_5.is_empty.
+		local
+			l_replacements: HASH_TABLE [STRING, STRING]
+			l_text: STRING
+		do
+			l_replacements := feature_operand_to_variable_mapping (a_call.feature_, a_call.operand_map)
+			l_text := expression_rewriter.ast_text (a_expression.ast, l_replacements)
+			create {EPA_AST_EXPRESSION} Result.make_with_text (a_call.context.class_, a_call.context.feature_, l_text, a_call.context.class_)
+		end
+
+	expression_evaluator: SEM_EXPRESSION_EVALUATOR
+			-- Expression evaluator
 
 end
