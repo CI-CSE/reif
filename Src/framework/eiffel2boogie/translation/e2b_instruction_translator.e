@@ -20,6 +20,7 @@ inherit
 			process_inspect_b,
 			process_instr_call_b,
 			process_loop_b,
+			process_nested_b,
 			process_retry_b,
 			process_reverse_b
 		end
@@ -485,7 +486,11 @@ feature -- Processing
 					l_invariant ?= a_node.invariant_part.item
 					set_current_origin_information (l_invariant)
 					process_contract_expression (l_invariant.expr)
-						-- TODO: add side effect of contract expression as additional invariants
+					across last_safety_checks as i loop
+						create l_assert.make (i.item.expr)
+						l_assert.set_information (i.item.info)
+						add_statement (l_assert)
+					end
 					create l_assert.make (last_expression)
 					add_statement (l_assert)
 					a_node.invariant_part.forth
@@ -702,6 +707,16 @@ feature -- Processing
 			current_block := l_temp_block
 		end
 
+	process_nested_b (a_node: NESTED_B)
+			-- <Precursor>
+		do
+			set_current_origin_information (a_node)
+				-- Instruction call is in the side effect of the expression,
+				-- so the generated expression itself is ignored.
+			process_expression (a_node)
+			add_trace_statement (a_node)
+		end
+
 	process_retry_b (a_node: RETRY_B)
 			-- <Precursor>
 		local
@@ -790,6 +805,7 @@ feature {NONE} -- Implementation
 			l_translator.locals_map.merge (locals_map)
 			a_expr.process (l_translator)
 			last_expression := l_translator.last_expression
+			last_safety_checks := l_translator.side_effect
 			if last_expression = Void then
 				last_expression := factory.false_
 			end
@@ -798,6 +814,9 @@ feature {NONE} -- Implementation
 
 	last_expression: IV_EXPRESSION
 			-- Last generated expression.
+
+	last_safety_checks: LINKED_LIST [TUPLE [expr: IV_EXPRESSION; info: IV_ASSERTION_INFORMATION]]
+			-- List of last generated safety checks.
 
 	locals_map: HASH_TABLE [IV_EXPRESSION, INTEGER]
 			-- Mapping for object test locals.
