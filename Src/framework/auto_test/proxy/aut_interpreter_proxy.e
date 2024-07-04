@@ -876,7 +876,7 @@ feature -- Execution
 				l_socket := socket
 				l_socket.read_natural_32
 				l_response_flag := l_socket.last_natural_32
-				l_any ?= l_socket.retrieved
+				l_any ?= retrieved_from_medium (l_socket)
 				l_data ?= l_any
 				process.set_timeout (0)
 				if l_data /= Void and then attached {AUT_OBJECT_STATE_REQUEST} last_request as l_request then
@@ -1621,7 +1621,7 @@ feature -- Predicate evaluation
 				l_socket := socket
 				l_socket.read_natural_32
 				l_response_flag := l_socket.last_natural_32
-				l_any ?= l_socket.retrieved
+				l_any ?= retrieved_from_medium (l_socket)
 				l_data ?= l_any
 				process.set_timeout (0)
 				if l_data /= Void and then l_data.evaluation_result /= Void then
@@ -2427,7 +2427,7 @@ invariant
 
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2015, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

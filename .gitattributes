@@ -2926,6 +2926,7 @@ Src/contrib/library/text/parser/uri_template/doc/uritemplate-RFC6570 -text
 Src/contrib/library/text/parser/uri_template/license.lic -text
 Src/contrib/library/text/parser/uri_template/package.iron -text
 Src/contrib/library/text/parser/wikitext/package.iron -text
+Src/contrib/library/text/parser/wikitext/tests/tests-safe.ecf svneol=native#text/xml
 Src/contrib/library/text/template/smarty/package.iron -text
 Src/contrib/library/utility/general/error/license.lic -text
 Src/contrib/library/utility/general/error/package.iron -text
