@@ -31,6 +31,8 @@ feature {EV_ANY_I, EV_ANY} -- Access
 			assign_interface (an_interface)
 		end
 
+--	cocoa_item: NS_OBJECT
+
 feature {EV_ANY, EV_ANY_IMP} -- Implementation
 
 	destroy
@@ -44,6 +46,7 @@ feature --dispose
 
 	dispose
 			-- Called by the Eiffel GC when `Current' is destroyed.
+			-- Destroy `c_object'.
 		do
 			destroy
 			precursor {IDENTIFIED}
@@ -63,6 +66,8 @@ feature {EV_INTERMEDIARY_ROUTINES, EV_ANY_I, EV_STOCK_PIXMAPS_IMP} -- Implementa
 			Result := l_app_imp
 		end
 
+invariant
+--	cocoa_view_set: cocoa_item /= void
 note
 	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"

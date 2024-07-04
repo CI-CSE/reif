@@ -19,8 +19,18 @@ inherit
 		end
 
 	EV_WIDGET_IMP
+		undefine
+			ev_apply_new_size,
+			minimum_width,
+			minimum_height
 		redefine
 			initialize,
+			interface,
+			destroy
+		end
+
+	EV_SIZEABLE_CONTAINER_IMP
+		redefine
 			interface
 		end
 
@@ -35,6 +45,7 @@ feature {NONE} -- Initialization
 			create radio_group.make
 			create remove_item_actions
 			new_item_actions.extend (agent add_radio_button)
+			create remove_item_actions
 			remove_item_actions.extend (agent remove_radio_button)
 			Precursor {EV_WIDGET_IMP}
 		end
@@ -71,6 +82,7 @@ feature -- Element change
 	replace (v: like item)
 			-- Replace `item' with `v'.
 		deferred
+
 		end
 
 feature -- Status Setting
@@ -183,7 +195,8 @@ feature -- Basic operations
 			-- Propagate the current foreground color of the
 			-- container to the children.
 		do
-			Precursor {EV_CONTAINER_I}
+			--precursor {EV_CONTAINER_PI}
+
 		end
 
 	propagate_background_color
@@ -191,6 +204,17 @@ feature -- Basic operations
 			-- container to the children.
 		do
 			Precursor {EV_CONTAINER_I}
+		end
+
+feature -- Command
+
+	destroy
+			-- Render `Current' unusable.
+		do
+--			if interface.prunable then
+--				interface.wipe_out
+--			end
+			Precursor {EV_WIDGET_IMP}
 		end
 
 feature -- Event handling

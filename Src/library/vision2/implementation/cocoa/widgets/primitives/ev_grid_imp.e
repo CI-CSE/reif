@@ -56,6 +56,8 @@ inherit
 			set_foreground_color
 		end
 
+	NS_STRING_CONSTANTS
+
 create
 	make
 
@@ -69,6 +71,8 @@ feature {NONE} -- Initialization
 
 	make
 			-- Initialize `Current'
+		local
+			l_color: detachable NS_COLOR
 		do
 			create_implementation_objects
 

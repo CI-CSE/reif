@@ -5,11 +5,15 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
+-- TODO find the icons by tag instead of using fixed icon paths (probably by using NS_WORKSPACE and constants from IconsCore)
+
 class
 	EV_STOCK_PIXMAPS_IMP
 
 inherit
 	NS_IMAGE_UTILS
+
+	NS_IMAGE_CONSTANTS
 
 	EV_ANY_HANDLER
 

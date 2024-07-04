@@ -48,6 +48,11 @@ inherit
 			cocoa_view
 		end
 
+	EV_SIZEABLE_PRIMITIVE_IMP
+		redefine
+			interface
+		end
+
 create
 	make
 
@@ -58,14 +63,11 @@ feature {NONE} -- Initialization
 		do
 			set_vertical_button_style
 			create button.make
-			button.set_translates_autoresizing_mask_into_constraints_ (False)
-			-- NSRegularSquareBezelStyle = 2
-			button.set_bezel_style_ (2)
-			-- NSImageAbove = 5
-			button.set_image_position_ (5)
+			button.set_bezel_style ({NS_BUTTON}.rectangular_square_bezel_style)
+			button.set_image_position ({NS_CELL}.image_above)
 			cocoa_view := button
 			pixmapable_imp_initialize
---			button.set_action (agent select_actions.call ([]))
+			button.set_action (agent select_actions.call ([]))
 			set_is_initialized (True)
 		end
 
@@ -104,6 +106,7 @@ feature -- Access
 feature -- Element change
 
 	disable_sensitive_internal
+			--
 		do
 			disable_sensitive
 			button.set_enabled_ (False)
@@ -111,6 +114,7 @@ feature -- Element change
 
 
 	enable_sensitive_internal
+			--
 		do
 			enable_sensitive
 			button.set_enabled_ (True)
@@ -120,8 +124,11 @@ feature -- Element change
 			-- Assign `a_text' to `text'.
 		do
 			Precursor {EV_TEXTABLE_IMP} (a_text)
-			button.set_title_ (create {NS_STRING}.make_with_eiffel_string (a_text.as_string_8))
+			button.set_title (a_text)
 			set_minsize
+			if attached parent_imp as l_parent then
+				l_parent.notify_change (nc_minsize, current)
+			end
 		end
 
 	set_pixmap (a_pixmap: EV_PIXMAP)
@@ -132,8 +139,11 @@ feature -- Element change
 			-- First load the pixmap into the button
 			pixmap_imp ?= a_pixmap.implementation
 			check pixmap_imp /= Void then end
-			button.set_image_ (pixmap_imp.image)
+			button.set_image (pixmap_imp.image)
 			set_minsize
+			if attached parent_imp as l_parent then
+				l_parent.notify_change (nc_minsize, current)
+			end
 		end
 
 	set_gray_pixmap (a_gray_pixmap: EV_PIXMAP)

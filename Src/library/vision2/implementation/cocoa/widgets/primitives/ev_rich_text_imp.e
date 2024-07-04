@@ -49,6 +49,11 @@ feature {NONE} -- Initialization
 			tab_positions.internal_remove_actions.extend (agent update_tab_positions)
 		end
 
+	initialize_buffer_events
+			-- Initialize `text_buffer' events
+		do
+		end
+
 	create_caret_move_actions: EV_INTEGER_ACTION_SEQUENCE
 			-- Create a caret move action sequence.
 		do
@@ -107,7 +112,7 @@ feature {NONE} -- Implementation
 	font_char_set (a_font: EV_FONT): INTEGER
 			-- `Result' is char set of font `a_font'.
 		do
-			Result := 0
+
 		end
 
 feature -- Status Report
