@@ -1,70 +1,38 @@
 note
-	description:
-		"[
-			This class encapsulates all information needed to perform a write operation.
-			Only the values in the `basic_attributes' and `references' lists actually get inserted/updated.
-			Any other values that might be present in the object will be ignored (this allows to leave current 
-			DB entries "untouched", and later to define non-persistent attributes to an object)
-
-		]"
+	description: "Enumeration of the four different write operations: Insert, Update, Delete and No_operation."
 	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+frozen class
 	PS_WRITE_OPERATION
-
-inherit
-	PS_ABSTRACT_DB_OPERATION
-
-create make_with_mode
-
 
 feature
 
-
---	metadata: PS_METADATA
-
-	basic_attributes: LINKED_LIST[STRING]
-
-	basic_attribute_values: HASH_TABLE [ANY, STRING]
-
-	references: LINKED_LIST[STRING]
-
-	reference_values: HASH_TABLE [PS_ABSTRACT_DB_OPERATION, STRING]
-
-	dependencies:LINKED_LIST[PS_ABSTRACT_DB_OPERATION]
-		do
-			create Result.make
-			from reference_values.start	until reference_values.after
-			loop
-				Result.extend (reference_values.item_for_iteration)
-				reference_values.forth
-			end
+	Update:PS_WRITE_OPERATION
+			-- Update semantics: In simple objects, it will update all objects listed in the `attributes' list
+			-- In collections, it will (logically) delete the collection in the database and reinsert it with all `values'
+		once
+			create Result
 		end
 
-
-feature {NONE} -- Initialization
-
-	make
-		do
-			create basic_attributes.make
-			create references.make
-			create basic_attribute_values.make (hashtable_size)
-			create reference_values.make (hashtable_size)
+	Insert:PS_WRITE_OPERATION
+			-- Insert semantics: In simple objects, it will insert all objects listed in the `attributes' list
+			-- In collections, it will insert the values in `values', adding them to possible present data in the database
+		once
+			create Result
 		end
 
-
-	make_with_mode (an_object:PS_OBJECT_IDENTIFIER_WRAPPER; a_mode: INTEGER)
-		do
-			object_id:=an_object
-			mode:=a_mode
-			make
+	Delete:PS_WRITE_OPERATION
+			-- Delete semantics: Will always delete the whole object regardless of the values in `attributes' or the whole collection
+		once
+			create Result
 		end
 
-
-	hashtable_size:INTEGER = 20
-
-
+	No_operation:PS_WRITE_OPERATION
+			-- No operation: Backend will ignore this object, but it might be needed to resolve primary keys.
+		once
+			create Result
+		end
 
 end

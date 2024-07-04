@@ -1,0 +1,29 @@
+note
+	description: "An object graph part that can be completely ignored, including the references pointing to it."
+	author: "Roman Schmocker"
+	date: "$Date$"
+	revision: "$Revision$"
+
+class
+	PS_IGNORE_PART
+
+inherit
+	PS_OBJECT_GRAPH_PART
+
+create make
+
+feature
+
+	dependencies:LINKED_LIST[PS_OBJECT_GRAPH_PART]
+
+
+	make
+		do
+			create dependencies.make
+			create write_mode
+			write_mode:=write_mode.No_operation
+		end
+
+	is_basic_attribute:BOOLEAN = False
+
+end

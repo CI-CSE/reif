@@ -17,13 +17,15 @@ create make
 
 feature {PS_EIFFELSTORE_EXPORT}
 
+-- Todo: The algorithm is currently broken: an object that has already been inserted with depth X won't change its depth if the disassembler finds it again at a later stage with depth >X
+
 
 	execute_disassembly (an_object:ANY; a_depth: INTEGER; a_mode: INTEGER)
 	do
 	--	disassembled_object:= disassemble (an_object, a_depth, a_mode)
 	end
 
-	disassembled_object: PS_ABSTRACT_DB_OPERATION
+	disassembled_object: PS_OBJECT_GRAPH_PART
 		require
 			no_error: not has_error
 		attribute
@@ -34,7 +36,7 @@ feature {PS_EIFFELSTORE_EXPORT}
 
 
 
-	disassemble (an_object:ANY; depth: INTEGER; mode:INTEGER; reference_owner:PS_ABSTRACT_DB_OPERATION; ref_attribute_name:STRING): PS_ABSTRACT_DB_OPERATION
+	disassemble (an_object:ANY; depth: INTEGER; mode:PS_WRITE_OPERATION; reference_owner:PS_OBJECT_GRAPH_PART; ref_attribute_name:STRING): PS_OBJECT_GRAPH_PART
 		-- Disassembles the object, returning a graph of database operations.
 		local
 			object_id: PS_OBJECT_IDENTIFIER_WRAPPER
@@ -49,69 +51,70 @@ feature {PS_EIFFELSTORE_EXPORT}
 					if collection_handlers.there_exists (agent {PS_COLLECTION_HANDLER[ITERABLE[ANY]]}.can_handle (an_object)) then
 						Result:=perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
 					else -- just return the correct poid
-						create {PS_NO_OPERATION} Result.make ( id_manager.get_identifier_wrapper(an_object))
+						create {PS_SINGLE_OBJECT_PART} Result.make_with_mode ( id_manager.get_identifier_wrapper(an_object), mode.No_operation)
 					end
 				elseif is_insert_during_update_enabled then
 					-- call again disassemble on the same object with different parameters
-					Result:=disassemble (an_object, custom_insert_depth_during_update, Insert, reference_owner, ref_attribute_name)
+					Result:=disassemble (an_object, custom_insert_depth_during_update, mode.Insert, reference_owner, ref_attribute_name)
 				else
-					create {PS_ERROR_PROPAGATION_OPERATION} Result.make
+					create {PS_IGNORE_PART} Result.make
 				end
 
 			else --if depth > 0
 
-				object_has_id:= id_manager.is_identified (an_object)
-
-				inspect mode
-					when Insert then
-						if object_has_id then
-							-- known object found - decide if we need to update or just set the correct poid.
-							if is_update_during_insert_enabled then
-								Result:= disassemble (an_object, custom_update_depth_during_insert, Update, reference_owner, ref_attribute_name)
-							else
-								create {PS_NO_OPERATION} Result.make (id_manager.get_identifier_wrapper (an_object))
-							end
+				if mode = mode.Insert then
+					if object_has_id then
+						-- known object found - decide if we need to update or just set the correct poid.
+						if is_update_during_insert_enabled then
+							Result:= disassemble (an_object, custom_update_depth_during_insert, mode.Update, reference_owner, ref_attribute_name)
 						else
-							id_manager.identify (an_object)
-							Result:= perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
-						end
-					when Update then
-						if object_has_id then
-							Result:= perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
-						else
-							-- unknown object found - decide if we insert it or not
-							if is_insert_during_update_enabled then
-								Result:= disassemble (an_object, custom_insert_depth_during_update, Insert, reference_owner, ref_attribute_name)
-							else
-								fixme ("decide on behaviour if no inserts should happen during update - throw exception or set reference to 0")
-								create {PS_ERROR_PROPAGATION_OPERATION} Result.make
-							end
-						end
-					when Delete then
-						if object_has_id then
-							Result:= perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
-						else
-							has_error:=True
-							fixme ("Throw error - Unknown object for deletion")
-							create {PS_ERROR_PROPAGATION_OPERATION} Result.make
+							create {PS_SINGLE_OBJECT_PART} Result.make_with_mode ( id_manager.get_identifier_wrapper(an_object), mode.No_operation)
 						end
 					else
+						id_manager.identify (an_object)
+						Result:= perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
+					end
+				elseif mode = mode.Update then
+					if object_has_id then
+						Result:= perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
+					else
+						-- unknown object found - decide if we insert it or not
+						if is_insert_during_update_enabled then
+							Result:= disassemble (an_object, custom_insert_depth_during_update, mode.Insert, reference_owner, ref_attribute_name)
+						else
+					--		fixme ("decide on behaviour if no inserts should happen during update - throw exception or set reference to 0")
+							if is_report_error_for_new_objects_during_insert_enabled then
+								create {PS_IGNORE_PART} Result.make
+								has_error:=True
+							else
+								create {PS_NULL_REFERENCE_PART} Result.make
+							end
+						end
+					end
+				elseif mode = mode.Delete then
+					if object_has_id then
+						Result:= perform_disassemble (an_object, depth, mode, reference_owner, ref_attribute_name)
+					else
 						has_error:=True
-						fixme ("Throw error - Implementation error in function disassemble")
-						create {PS_ERROR_PROPAGATION_OPERATION} Result.make
-
+						fixme ("Throw error - Unknown object for deletion")
+						create {PS_IGNORE_PART} Result.make
+					end
+				else
+					has_error:=True
+					fixme ("Throw error - Implementation error in function disassemble")
+					create {PS_IGNORE_PART} Result.make
 				end
 			end
 		end
 
-		perform_disassemble (an_object:ANY; depth: INTEGER; mode:INTEGER; reference_owner:PS_ABSTRACT_DB_OPERATION; ref_attribute_name:STRING): PS_ABSTRACT_DB_OPERATION
+		perform_disassemble (an_object:ANY; depth: INTEGER; mode:PS_WRITE_OPERATION; reference_owner:PS_OBJECT_GRAPH_PART; ref_attribute_name:STRING): PS_OBJECT_GRAPH_PART
 			-- Checks if the operation for the object already exists and if not, issues the command to the plain_object feature or a collection handler.
 			require
 				object_known: id_manager.is_identified (an_object)
 			local
 				object_id: PS_OBJECT_IDENTIFIER_WRAPPER
 				collection_found:BOOLEAN
-				void_safety_default: PS_ERROR_PROPAGATION_OPERATION
+				void_safety_default: PS_IGNORE_PART
 			do
 				create void_safety_default.make -- Void safety...
 				Result:=void_safety_default
@@ -146,13 +149,14 @@ feature {PS_EIFFELSTORE_EXPORT}
 
 			end
 
-		disassemble_plain_object (id: PS_OBJECT_IDENTIFIER_WRAPPER; depth: INTEGER; mode:INTEGER; reference_owner:PS_ABSTRACT_DB_OPERATION; ref_attribute_name:STRING): PS_WRITE_OPERATION
+		disassemble_plain_object (id: PS_OBJECT_IDENTIFIER_WRAPPER; depth: INTEGER; mode:PS_WRITE_OPERATION; reference_owner:PS_OBJECT_GRAPH_PART; ref_attribute_name:STRING): PS_SINGLE_OBJECT_PART
 				-- disassembles a normal object, and recursively calls disassemble on reference types.
 			local
 				reflection:INTERNAL
 				i:INTEGER
 				attr_name:STRING
-				ref_value:PS_ABSTRACT_DB_OPERATION
+				ref_value:PS_OBJECT_GRAPH_PART
+				basic_attr:PS_BASIC_ATTRIBUTE_PART
 			do
 				create Result.make_with_mode (id, mode)
 				create reflection
@@ -160,20 +164,24 @@ feature {PS_EIFFELSTORE_EXPORT}
 				from i:=1
 				until i< reflection.field_count (id.item)
 				loop
+					fixme ("Should this be an IF attached?")
 					check attached reflection.field (i, id.item) as attr_value then
 						attr_name:= reflection.field_name (i, id.item)
 						if is_basic_type (attr_value) then
-							Result.basic_attributes.extend (attr_name)
-							Result.basic_attribute_values.extend (attr_value, attr_name)
+							create basic_attr.make (attr_value)
+							Result.add_attribute (attr_name, basic_attr)
+--							Result.basic_attributes.extend (attr_name)
+--							Result.basic_attribute_values.extend (attr_value, attr_name)
 
 						else
 							-- if (depth > 1 or infinite) or (mode = Update and followRefs) then handle reference types:
-							if depth > 1 or current_global_depth(mode) = Infinite or (depth=1 and update_references_at_depth_1 and mode=Update) then
+							if depth > 1 or current_global_depth(mode) = Infinite or (depth=1 and update_references_at_depth_1 and mode=mode.Update) then
 								ref_value:= disassemble (attr_value, depth-1, mode, Result, attr_name)
-								if not attached{PS_ERROR_PROPAGATION_OPERATION} ref_value then
-									Result.references.extend (attr_name)
-									Result.reference_values.extend (ref_value, attr_name)
-								end
+								Result.add_attribute (attr_name, ref_value)
+--								if not attached{PS_IGNORE_PART} ref_value then
+--									Result.references.extend (attr_name)
+--									Result.reference_values.extend (ref_value, attr_name)
+--								end
 							end
 						end
 					end
@@ -187,7 +195,7 @@ feature {PS_EIFFELSTORE_EXPORT}
 		end
 
 
-		register_operation (an_operation:PS_ABSTRACT_DB_OPERATION; a_poid:INTEGER)
+		register_operation (an_operation:PS_OBJECT_GRAPH_PART; a_poid:INTEGER)
 			do
 				internal_operation_store.extend (an_operation, a_poid)
 			end
@@ -206,23 +214,26 @@ feature {PS_EIFFELSTORE_EXPORT}
 				Result:=global_update_depth
 			end
 
-		current_global_depth (current_mode:INTEGER):INTEGER
+		current_global_depth (mode:PS_WRITE_OPERATION):INTEGER
 			do
-				inspect current_mode
-				when Insert then
+				if mode = mode.Insert then
 					Result:=global_insert_depth
-				when Update then
+				elseif mode = mode.update then
 					Result := global_update_depth
-				else
+				elseif mode = mode.delete then
 					Result:= global_delete_depth
+				else
+					Result := 1
 				end
 			end
 
 		is_insert_during_update_enabled:BOOLEAN
 		is_update_during_insert_enabled:BOOLEAN
 		update_references_at_depth_1:BOOLEAN
+		is_report_error_for_new_objects_during_insert_enabled:BOOLEAN = False
 
-		internal_operation_store: HASH_TABLE[PS_ABSTRACT_DB_OPERATION, INTEGER]
+
+		internal_operation_store: HASH_TABLE[PS_OBJECT_GRAPH_PART, INTEGER]
 			-- translates POIDs to operations.
 
 
@@ -231,14 +242,12 @@ feature {PS_EIFFELSTORE_EXPORT}
 		collection_handlers: LINKED_LIST[PS_COLLECTION_HANDLER[ITERABLE[ANY]]]
 
 
-		Insert, Update, Delete:INTEGER = Unique -- fixme: common ancestor with abstract_db_operation
-
 		Infinite:INTEGER = 0 -- Infinite follow of references
 
 		make (an_id_manager: PS_OBJECT_IDENTIFICATION_MANAGER)
 			do
 				create internal_operation_store.make (100)
-				create {PS_ERROR_PROPAGATION_OPERATION} disassembled_object.make
+				create {PS_IGNORE_PART} disassembled_object.make
 				id_manager:= an_id_manager
 				create collection_handlers.make
 			end
