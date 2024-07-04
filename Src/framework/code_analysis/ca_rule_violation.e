@@ -9,11 +9,13 @@ class
 
 inherit
 	COMPARABLE
+		redefine out end
 
 create
 	make_with_rule
 
 feature {NONE} -- Initialization
+
 	make_with_rule (a_rule: CA_RULE)
 			-- Initializes a violation of rule `a_rule'.
 		do
@@ -26,6 +28,7 @@ feature {NONE} -- Initialization
 		end
 
 feature -- Properties
+
 	rule: CA_RULE
 			-- The rule that is violated.
 
@@ -47,8 +50,8 @@ feature -- Properties
 			-- Location of rule violation, if available.
 
 	fixes: LINKED_LIST [CA_FIX]
-			-- Fix "strategies".
-			-- Empty if there is no fix available for this rule violation
+			-- Fix "strategies". Empty if there is no fix available for this rule
+			-- violation.
 
 feature -- Inherited from {COMPARABLE}
 
@@ -84,6 +87,41 @@ feature {CA_RULE} -- Setting violation properties
 			-- Sets the location in code to `a_location'.
 		do
 			location := a_location
+		end
+
+feature -- String representation
+
+	out: STRING
+			-- String representation of `Current' as a CSV line.
+		local
+			l_yankee: YANK_STRING_WINDOW
+		do
+			create Result.make_from_string (rule.severity.name)
+			Result.append_character (';')
+			Result.append (affected_class.name)
+			Result.append_character (';')
+			if attached location then
+				Result.append (location.line.out)
+				Result.append (", ")
+				Result.append (location.column.out)
+			end
+			Result.append_character (';')
+			Result.append (rule.title)
+			Result.append (";%"")
+
+			create l_yankee.make
+			format_violation_description (l_yankee)
+				-- Replace new lines by blanks for CSV compatibility.
+			l_yankee.stored_output.replace_substring_all ("%N", " ")
+				-- Replace double quotes by two double quotes in a row
+				-- for CSV compatibility.
+			l_yankee.stored_output.replace_substring_all ("%"", "%"%"")
+
+			Result.append (l_yankee.stored_output)
+			Result.append ("%";")
+			Result.append (rule.id)
+			Result.append_character (';')
+			Result.append (rule.severity_score.value.out)
 		end
 
 end

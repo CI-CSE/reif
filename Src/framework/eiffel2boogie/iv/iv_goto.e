@@ -13,9 +13,15 @@ inherit
 	IV_STATEMENT
 
 create
-	make
+	make, make_empty
 
 feature {NONE} -- Initialization
+
+	make_empty
+			-- Initialize goto statement without targets.
+		do
+			create blocks.make
+		end
 
 	make (a_block: IV_BLOCK)
 			-- Initialize goto statement with target `a_block'.
@@ -55,6 +61,6 @@ feature -- Visitor
 
 invariant
 	blocks_attached: attached blocks
-	blocks_valid: not blocks.has (Void) and not blocks.is_empty
+	blocks_valid: not blocks.has (Void)
 
 end
