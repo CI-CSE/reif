@@ -34,7 +34,7 @@ feature
 
 	rapidminer_working_directory: STRING
 		do
-			Result := "/home/"
+			Result := "/tmp"
 		end
 
 	rapidminer_test_arff_path: STRING
@@ -45,6 +45,12 @@ feature
 	rapidminer_command: STRING
 		do
 			Result := ". rapidminer -f"
+		end
+
+	temp_directory: STRING
+			-- Temp directory from current user
+		do
+			Result := "/tmp"
 		end
 
 end
