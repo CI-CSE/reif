@@ -77,6 +77,11 @@ inherit
 
 	AUT_SHARED_ONLINE_STATISTICS
 
+	EPA_UTILITY
+		undefine
+			system
+		end
+
 create
 	make
 
@@ -206,6 +211,13 @@ feature -- Status
 	is_test_case_index_logging_enabled: BOOLEAN
 			-- Should `test_case_index' be logged?
 
+	is_last_test_case_executed: BOOLEAN
+			-- Is last test case executed?
+			-- True if either:
+			-- 1. the test case executed with no exception
+			-- 2. the test case executed with some exception
+			-- False if there is a precondition violation or class invariant violation in pre-state.
+
 feature -- Access
 
 	timeout: INTEGER
@@ -286,6 +298,14 @@ feature -- Settings
 			is_test_case_index_logging_enabled := b
 		ensure
 			is_test_case_index_logging_enabled_set: is_test_case_index_logging_enabled = b
+		end
+
+	set_is_last_test_case_executed (b: BOOLEAN)
+			-- Set `is_last_test_case_executed' with `b'.
+		do
+			is_last_test_case_executed := b
+		ensure
+			is_last_test_case_executed_set: is_last_test_case_executed = b
 		end
 
 feature -- Execution
@@ -563,6 +583,7 @@ feature -- Execution
 			l_object_state: AUT_OBJECT_STATE
 			l_normal_response: AUT_NORMAL_RESPONSE
 		do
+			is_last_test_case_executed := False
 			l_target_type := variable_table.variable_type (a_target)
 			l_feature := l_target_type.associated_class.feature_of_rout_id (a_feature.rout_id_set.first)
 
@@ -596,6 +617,7 @@ feature -- Execution
 			else
 				is_ready := False
 			end
+			set_is_last_test_case_executed (is_last_test_case_executed_internal (last_request))
 			stop_process_on_problems (last_response)
 			log_speed
 
@@ -624,6 +646,7 @@ feature -- Execution
 			normal_response: AUT_NORMAL_RESPONSE
 			l_invoke_request: AUT_INVOKE_FEATURE_REQUEST
 		do
+			is_last_test_case_executed := False
 			create l_invoke_request.make_assign (system, a_receiver, a_query.feature_name, a_target, an_argument_list)
 			if a_feature /= Void then
 				l_invoke_request.set_feature_id (a_feature.id)
@@ -657,6 +680,7 @@ feature -- Execution
 			else
 				is_ready := False
 			end
+			set_is_last_test_case_executed (is_last_test_case_executed_internal (last_request))
 			stop_process_on_problems (last_response)
 			if is_ready and normal_response /= Void and then normal_response.exception = Void then
 				if not is_replaying then
@@ -703,6 +727,49 @@ feature -- Execution
 					-- generate them automatically.
 				retrieve_type_of_variable (a_receiver)
 			end
+		ensure
+			last_request_not_void: last_request /= Void
+		end
+
+	batch_assign_variables (a_object_types: DS_ARRAYED_LIST [TUPLE [var_with_uuid: SEM_VARIABLE_WITH_UUID; var: ITP_VARIABLE; type: TYPE_A]]; a_serialized_objects: DS_HASH_TABLE[STRING,STRING])
+			-- Assign multiple objects to variables.
+			-- A `var' will receive object `a_serialized_objects'[`index'] of type `type'
+		require
+			is_launched: is_launched
+			is_ready: is_ready
+			object_types_not_empty: a_object_types /= VOid and then not a_object_types.is_empty
+			serialized_objects_not_empty: a_serialized_objects /= Void and then not a_serialized_objects.is_empty
+		local
+			l_variable_type_list: DS_ARRAYED_LIST [TUPLE [var: ITP_VARIABLE; type: TYPE_A]]
+			l_variable: ITP_VARIABLE
+			l_variable_type: TYPE_A
+			l_target_variable, l_result_variable: ITP_VARIABLE
+			l_target_type, l_result_type: TYPE_A
+			l_nbr_variables: INTEGER
+
+			l_starting_index, l_ending_index: INTEGER
+			l_argument_variables: DS_ARRAYED_LIST [ITP_VARIABLE]
+		do
+			create {AUT_BATCH_ASSIGNMENT_REQUEST} last_request.make (system, a_object_types, a_serialized_objects)
+
+			last_request.process (socket_data_printer)
+			flush_process
+			parse_invoke_response
+			last_request.set_response (last_response)
+			proxy_log_printers.report_request (Current, last_request)
+
+			if last_response.is_bad or last_response.is_error then
+				is_ready := False
+			else
+					-- Define variables in the variable table.
+				from a_object_types.start
+				until a_object_types.after
+				loop
+					variable_table.define_variable (a_object_types.item_for_iteration.var, a_object_types.item_for_iteration.type)
+					a_object_types.forth
+				end
+			end
+			stop_process_on_problems (last_response)
 		ensure
 			last_request_not_void: last_request /= Void
 		end
@@ -1989,6 +2056,9 @@ feature{NONE} -- Logging
 	precondition_satisfaction_message_type: STRING = "precondition_satisfaction"
 			-- Message type for precondition satisfaction
 
+	precondition_reduction_message_type: STRING = "precondition_reduction"
+			-- Message type for precondition reduction.
+
 feature -- Objec state retrieval
 
 	record_operand_states (a_request: AUT_CALL_BASED_REQUEST; a_before_execution: BOOLEAN)
@@ -2154,6 +2224,27 @@ feature -- Objec state retrieval
 			end
 			if last_response.is_bad then
 				is_ready  := False
+			end
+		end
+
+	is_last_test_case_executed_internal (a_request: AUT_REQUEST): BOOLEAN
+			-- Is last test case executed?
+		local
+			l_exception: AUT_EXCEPTION
+		do
+			if attached {AUT_CALL_BASED_REQUEST} a_request as l_request then
+				if l_request.response.is_normal then
+					if l_request.response.is_exception then
+						if attached {AUT_NORMAL_RESPONSE} l_request.response as l_normal_response and then l_normal_response.exception /= Void and then not l_normal_response.is_precondition_violation then
+							l_exception := l_normal_response.exception
+							if not l_exception.is_invariant_violation_on_feature_entry then
+								Result := True
+							end
+						end
+					else
+						Result := True
+					end
+				end
 			end
 		end
 
