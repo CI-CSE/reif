@@ -3758,8 +3758,8 @@ Src/framework/file_formats/pe/pe.lic -text
 Src/framework/framework.lic -text
 Src/framework/gui_testing/gui_testing.lic -text
 Src/framework/interface_names/interface_names.lic -text
-Src/framework/iron/api/license.lic -text
 Src/framework/iron/README.md -text
+Src/framework/iron/api/license.lic -text
 Src/framework/jstar_proofs/examples/bank_account/bank_account.abs -text
 Src/framework/jstar_proofs/examples/bank_account/bank_account.logic -text
 Src/framework/jstar_proofs/examples/bank_account/client.abs -text
