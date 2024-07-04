@@ -99,9 +99,15 @@ feature -- Messages for both GUI and command line mode
 
 feature -- Rule Violations
 
+	export_can_be_restricted_violation_1: STRING_32
+		do Result := translation_in_context ("The export status of feature '", once "code_analyzer.violation") end
+
+	export_can_be_restricted_violation_2: STRING_32
+		do Result := translation_in_context ("' can be changed to {NONE}.", once "code_analyzer.violation") end
+
 	generic_param_too_long_violation_1: STRING_32
 		do Result := translation_in_context ("The formal generic parameter '", once "code_analyzer.violation") end
-		
+
 	generic_param_too_long_violation_2: STRING_32
 		do Result := translation_in_context ("'%Nhas more than one character in its name.%NIt should only have one.", once "code_analyzer.violation") end
 
@@ -119,11 +125,17 @@ feature -- Rule Violations
 		do Result := translation_in_context ("Comparing of a real variable with {REAL}.nan usually does not yield%Nthe intended result.%
 									% You should use the query %".is_nan%"", once "code_analyzer.violation") end
 
-	object_test_failing_violation_1: STRING_32
+	object_test_succeeds_violation_1: STRING_32
 		do Result := translation_in_context ("The object test for the variable '", once "code_analyzer.violation") end
 
-	object_test_failing_violation_2: STRING_32
-		do Result := translation_in_context ("' will always fail, therefore%Nthe corresponding block of code can be safely removed.", once "code_analyzer.violation") end
+	object_test_succeeds_violation_2: STRING_32
+		do Result := translation_in_context ("The non-Void test for the variable '", once "code_analyzer.violation") end
+
+	object_test_succeeds_violation_3: STRING_32
+		do Result := translation_in_context ("' will always succeed, therefore%N the test can be removed.", once "code_analyzer.violation") end
+
+	object_test_failing_violation_1: STRING_32
+		do Result := translation_in_context ("This object test will always fail, therefore the corresponding%N block of code can be safely removed.", once "code_analyzer.violation") end
 
 	useless_contract_violation_1: STRING_32
 		do Result := translation_in_context ("Feature '", once "code_analyzer.violation") end
