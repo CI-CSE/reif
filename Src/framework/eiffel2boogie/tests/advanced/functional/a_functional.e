@@ -40,11 +40,42 @@ feature
 			Result := a + 4
 		end
 
+	functional3 (a: A_FUNCTIONAL): INTEGER
+		note
+			status: functional
+		do
+			-- Checks are allowed in functional, to help prove validity of their bodies
+			check assume: a /= Void end
+			Result := a.functional1
+		end
+
 	call_functional
 		do
 			check functional1 = 7 end
 			check functional2 (1) = 5 end
 			check functional2 (2) = 6 end
+		end
+
+feature -- Preconditions
+
+	functional4 (x: INTEGER): INTEGER
+		note
+			status: functional
+		require
+			positive: x >= 0
+		do
+			Result := x + 1
+		end
+
+	caller
+		local
+			y: INTEGER
+		do
+			y := functional4 (1)  -- OK
+			y := functional4 (-1) -- Bad
+			y := functional2 (-1) -- OK
+		ensure
+			bad: functional4 (-1) = 0
 		end
 
 end

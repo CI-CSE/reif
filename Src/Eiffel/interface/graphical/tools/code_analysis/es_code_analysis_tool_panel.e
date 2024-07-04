@@ -138,7 +138,7 @@ feature {NONE} -- Initialization
 				-- live text filter
 			create l_box
 
-			l_box.extend (create {EV_LABEL}.make_with_text (ep_names.tool_text_filter + ": "))
+			l_box.extend (create {EV_LABEL}.make_with_text (ca_names.tool_text_filter + ": "))
 			l_box.disable_item_expand (l_box.last)
 			create text_filter
 			text_filter.key_release_actions.force_extend (agent on_update_visiblity)
@@ -605,7 +605,11 @@ feature {NONE} -- Basic operations
 			l_stone: STONE
 		do
 			if attached {CA_RULE_VIOLATION_EVENT} a_row.parent_row_root.data as l_event_item then
-				create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.affected_class, l_event_item.location.line, True)
+				if attached l_event_item.location as l_loc then
+					create {COMPILED_LINE_STONE} l_stone.make_with_line (l_event_item.affected_class, l_loc.line, True)
+				else
+					create {CLASSC_STONE} l_stone.make (l_event_item.affected_class)
+				end
 			end
 			if l_stone /= Void and then l_stone.is_valid then
 				(create {EB_CONTROL_PICK_HANDLER}).launch_stone (l_stone)
@@ -623,8 +627,6 @@ feature {NONE} -- Basic operations
 			l_lines: LIST [EIFFEL_EDITOR_LINE]
 			l_tip: EB_EDITOR_TOKEN_TOOLTIP
 			l_label: EV_GRID_LABEL_ITEM
-			l_error_list: LIST [EP_ERROR]
-			l_error: EP_ERROR
 			l_row: EV_GRID_ROW
 			l_pos_token: EDITOR_TOKEN_NUMBER
 			l_line: EIFFEL_EDITOR_LINE
@@ -699,10 +701,14 @@ feature {NONE} -- Basic operations
 				a_row.set_item (class_column, l_editor_item)
 
 					-- Location
-				create l_pos_token.make (l_viol.location.line.out + ", " + l_viol.location.column.max (1).out)
-				l_pos_token.set_is_clickable (True)
-				l_pos_token.set_pebble (create {COMPILED_LINE_STONE}.make_with_line (l_viol.affected_class, l_viol.location.line, True))
---										-- Create editor item
+				if attached l_viol.location as l_loc then
+					create l_pos_token.make (l_viol.location.line.out + ", " + l_viol.location.column.max (1).out)
+					l_pos_token.set_is_clickable (True)
+					l_pos_token.set_pebble (create {COMPILED_LINE_STONE}.make_with_line (l_viol.affected_class, l_viol.location.line, True))
+				else -- No location attached.
+					create l_pos_token.make ("")
+				end
+--					-- Create editor item
 				create l_line.make_unix_style
 				l_line.append_token (l_pos_token)
 				l_editor_item := create_clickable_grid_item (l_line, False)
@@ -743,6 +749,7 @@ feature {NONE} -- Basic operations
 			a_viol.format_description (l_text_gen)
 			l_text_gen.add_new_line
 			l_editor_item := create_multiline_clickable_grid_item (l_text_gen.lines, True, False)
+			l_editor_item.set_tooltip (a_viol.data.rule.description)
 			l_row.set_height (l_editor_item.required_height_for_text_and_component)
 			l_row.set_item (description_column, l_editor_item)
 			l_row.set_height (l_row.height + 2)
@@ -851,12 +858,6 @@ feature {NONE} -- Constants
 			-- Background color for partial success
 		once
 			create Result.make_with_rgb (1.0, 0.9, 0.4)
-		end
-
-	ep_names: EP_NAMES
-			-- Shared access to interface names
-		once
-			create Result
 		end
 
 note

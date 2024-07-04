@@ -100,7 +100,7 @@ function {:inline} is_free(h: HeapType, o: ref): bool {
 }
 
 // Is o wrapped in h? (closed and free)
-function {:inline} is_wrapped(h: HeapType, o: ref): bool {
+function is_wrapped(h: HeapType, o: ref): bool {
 	h[o, closed] && is_free(h, o)
 }
 
@@ -131,14 +131,14 @@ axiom(forall a: Frame, b: Frame :: { Frame#Subset(a,b) }
 // Set of all writable objects
 const writable: Frame;
 
-function fully_writable(o: ref): bool
-{ (forall <alpha> f: Field alpha :: writable[o, f]) }
+function fully_writable(wr: Frame, o: ref): bool
+{ (forall <alpha> f: Field alpha :: wr[o, f]) }
 
-// Everything in the domain of a writable object is writable
-function {:inline true} writable_domains(h: HeapType): bool
+// Writable set 'wr' is closed under ownership domains 
+function {:inline true} writable_domains(wr: Frame, h: HeapType): bool
 { 
-  (forall <alpha> o, o': ref, f: Field alpha :: {writable[o, closed], writable[o', f]}{fully_writable(o), writable[o', f]} 
-    writable[o, closed] && in_domain(h, o, o') ==> writable[o', f]) 
+  (forall <alpha> o, o': ref, f: Field alpha :: {wr[o, closed], wr[o', f]}{fully_writable(wr, o), wr[o', f]} 
+    wr[o, closed] && in_domain(h, o, o') && o != o' ==> wr[o', f]) 
 }
 
 // Objects outside of ownership domains of mods did not change, unless they were newly allocated
@@ -171,7 +171,13 @@ function {:inline true} global(h: HeapType): bool
   is_open(h, Void) &&
   (forall o: ref :: h[o, allocated] && is_open(h, o) ==> is_free(h, o)) &&
   (forall o: ref, o': ref :: {h[o, owns][o']} h[o, allocated] && h[o', allocated] && h[o, closed] && h[o, owns][o'] ==> (h[o', closed] && h[o', owner] == o)) && // G2
-  (forall o: ref :: {user_inv(h, o)}{h[o, allocated]} h[o, allocated] ==> inv(h, o)) // G1
+  (forall o: ref :: {user_inv(h, o), h[o, closed]} h[o, allocated] ==> inv(h, o)) // G1
+}
+
+// Global invariant with a more permissive trigger: much slower, so only used in public routines  
+function {:inline true} global_public(h: HeapType): bool
+{
+  (forall o: ref :: {is_wrapped(h, o)} h[o, allocated] ==> inv(h, o)) // G1
 }
 
 // Allocate fresh object
@@ -187,7 +193,7 @@ procedure allocate(t: Type) returns (result: ref);
   ensures Set#Equal(Heap[result, owns], Set#Empty());
   ensures Set#Equal(Heap[result, observers], Set#Empty());
   ensures Set#Equal(Heap[result, subjects], Set#Empty());
-  ensures fully_writable(result);
+  ensures fully_writable(writable, result);
   ensures (forall <T> o: ref, f: Field T :: o != result ==> Heap[o, f] == old(Heap[o, f]));
   free ensures HeapSucc(old(Heap), Heap);
 
@@ -202,6 +208,25 @@ procedure update_heap<T>(Current: ref, field: Field T, value: T);
   ensures global(Heap);
   ensures Heap == old(Heap[Current, field := value]);
   free ensures HeapSucc(old(Heap), Heap);
+  
+procedure update_subjects(Current: ref, value: Set ref);
+  requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
+  requires is_open(Heap, Current); // type:pre tag:target_open UP1
+  requires writable[Current, subjects]; // type:pre tag:attribute_writable UP3
+  modifies Heap;
+  ensures global(Heap);
+  ensures Heap == old(Heap[Current, subjects := value]);
+  free ensures HeapSucc(old(Heap), Heap);
+
+procedure update_observers(Current: ref, value: Set ref);
+  requires (Current != Void) && (Heap[Current, allocated]); // type:pre tag:attached_and_allocated
+  requires is_open(Heap, Current); // type:pre tag:target_open UP1
+  requires writable[Current, observers]; // type:pre tag:attribute_writable UP3
+  requires Set#Subset(Heap[Current, observers], value) || (forall o: ref :: Heap[Current, observers][o] ==> (is_open(Heap, o) || (user_inv(Heap, o) ==> user_inv(Heap[Current, observers := value], o)))); // type:pre tag:set_grows_or_observers_open_or_inv_preserved UP2
+  modifies Heap;
+  ensures global(Heap);
+  ensures Heap == old(Heap[Current, observers := value]);
+  free ensures HeapSucc(old(Heap), Heap);  
 
 // Unwrap o
 procedure unwrap(o: ref);
@@ -211,7 +236,7 @@ procedure unwrap(o: ref);
   modifies Heap;
   ensures global(Heap);  
   ensures is_open(Heap, o); // UWE1
-  ensures (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o')); // UWE2
+  ensures (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o') && user_inv(Heap, o')); // UWE2
   ensures (forall <T> o': ref, f: Field T :: !(o' == o && f == closed) && !(old(Heap[o, owns][o']) && f == owner) ==> Heap[o', f] == old(Heap[o', f]));
   ensures user_inv(Heap, o);
   free ensures HeapSucc(old(Heap), Heap);
@@ -223,7 +248,7 @@ procedure unwrap_all (Current: ref, s: Set ref);
   modifies Heap;
   ensures global(Heap);
   ensures (forall o: ref :: s[o] ==> is_open(Heap, o)); // UWE1
-  ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o'))); // UWE2
+  ensures (forall o: ref :: s[o] ==> (forall o': ref :: old(Heap[o, owns][o']) ==> is_wrapped(Heap, o') && user_inv(Heap, o'))); // UWE2
   ensures (forall <T> o: ref, f: Field T :: !(s[o] && f == closed) && !((exists o': ref :: s[o'] && old(Heap[o', owns][o])) && f == owner) ==> Heap[o, f] == old(Heap[o, f]));
   ensures (forall o: ref :: s[o] ==> user_inv(Heap, o));
   free ensures HeapSucc(old(Heap), Heap);
@@ -289,24 +314,44 @@ function detachable_attribute(heap: HeapType, o: ref, f: Field ref, t: Type) ret
 	(o != Void) && (heap[o, allocated]) ==> detachable(heap, heap[o, f], t)
 }
 
-// Property that field `f' is a set of objects of detachable type `t'.
+// Property that `s' is a set of objects of attached type `t'.
+function {: inline } set_attached(heap: HeapType, s: Set ref, t: Type) returns (bool) {
+	(forall o: ref :: s[o] ==> attached(heap, o, t))
+}
+
+// Property that field `f' is a set of objects of attached type `t'.
 function set_attached_attribute(heap: HeapType, o: ref, f: Field (Set ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> (forall o': ref :: heap[o, f][o'] ==> attached(heap, o', t))
+	(o != Void) && (heap[o, allocated]) ==> set_attached(heap, heap[o, f], t)
+}
+
+// Property that `s' is a set of objects of attached type `t'.
+function {: inline } set_detachable(heap: HeapType, s: Set ref, t: Type) returns (bool) {
+	(forall o: ref :: s[o] ==> detachable(heap, o, t))
 }
 
 // Property that field `f' is a set of objects of detachable type `t'.
 function set_detachable_attribute(heap: HeapType, o: ref, f: Field (Set ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> (forall o': ref :: heap[o, f][o'] ==> detachable(heap, o', t))
+	(o != Void) && (heap[o, allocated]) ==> set_detachable(heap, heap[o, f], t)
+}
+
+// Property that `s' is a sequence of objects of attached type `t'.
+function {: inline } sequence_attached(heap: HeapType, s: Seq ref, t: Type) returns (bool) {
+	(forall o: ref :: Seq#Range(s)[o] ==> attached(heap, o, t))
 }
 
 // Property that field `f' is a sequence of objects of detachable type `t'.
 function sequence_attached_attribute(heap: HeapType, o: ref, f: Field (Seq ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> (forall o': ref :: Seq#Range(heap[o, f])[o'] ==> attached(heap, o', t))
+	(o != Void) && (heap[o, allocated]) ==> sequence_attached(heap, heap[o, f], t)
+}
+
+// Property that `s' is a sequence of objects of attached type `t'.
+function {: inline } sequence_detachable(heap: HeapType, s: Seq ref, t: Type) returns (bool) {
+	(forall o: ref :: Seq#Range(s)[o] ==> detachable(heap, o, t))
 }
 
 // Property that field `f' is a sequence of objects of detachable type `t'.
 function sequence_detachable_attribute(heap: HeapType, o: ref, f: Field (Seq ref), t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) ==> (forall o': ref :: Seq#Range(heap[o, f])[o'] ==> detachable(heap, o', t))
+	(o != Void) && (heap[o, allocated]) ==> sequence_detachable(heap, heap[o, f], t)
 }
 
 // ----------------------------------------------------------------------

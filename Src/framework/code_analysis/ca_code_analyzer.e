@@ -33,8 +33,31 @@ feature {NONE} -- Initialization
 			rules.extend (create {CA_NESTED_COMPLEXITY_RULE}.make (settings.preference_manager))
 			rules.extend (create {CA_MANY_ARGUMENTS_RULE}.make (settings.preference_manager))
 			rules.extend (create {CA_CREATION_PROC_EXPORTED_RULE}.make)
-
 			rules.extend (create {CA_VARIABLE_NOT_READ_RULE}.make)
+			rules.extend (create {CA_SEMICOLON_ARGUMENTS_RULE}.make)
+			rules.extend (create {CA_VERY_LONG_ROUTINE_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_VERY_BIG_CLASS_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_FEATURE_SECTION_COMMENT_RULE}.make)
+			rules.extend (create {CA_FEATURE_NOT_COMMENTED_RULE}.make)
+			rules.extend (create {CA_BOOLEAN_RESULT_RULE}.make)
+			rules.extend (create {CA_BOOLEAN_COMPARISON_RULE}.make)
+			rules.extend (create {CA_VERY_SHORT_IDENTIFIER_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_VERY_LONG_IDENTIFIER_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_MISSING_IS_EQUAL_RULE}.make)
+			rules.extend (create {CA_SIMPLIFIABLE_BOOLEAN_RULE}.make)
+			rules.extend (create {CA_SELF_COMPARISON_RULE}.make)
+			rules.extend (create {CA_TODO_RULE}.make)
+			rules.extend (create {CA_WRONG_LOOP_ITERATION_RULE}.make)
+			rules.extend (create {CA_INSPECT_INSTRUCTIONS_RULE}.make (settings.preference_manager))
+			rules.extend (create {CA_ATTRIBUTE_TO_LOCAL_RULE}.make)
+			rules.extend (create {CA_EMPTY_EFFECTIVE_ROUTINE_RULE}.make)
+			rules.extend (create {CA_IF_ELSE_NOT_EQUAL_RULE}.make)
+			rules.extend (create {CA_SHORT_CIRCUIT_IF_RULE}.make)
+			rules.extend (create {CA_ITERABLE_LOOP_RULE}.make)
+			rules.extend (create {CA_COUNT_EQUALS_ZERO_RULE}.make)
+			rules.extend (create {CA_DEEPLY_NESTED_IF_RULE}.make (settings.preference_manager))
+				-- Not yet correct.
+--			rules.extend (create {CA_UNNEEDED_HELPER_VARIABLE_RULE}.make (settings.preference_manager))
 
 			settings.initialize_rule_settings (rules)
 
@@ -49,7 +72,7 @@ feature {NONE} -- Initialization
 
 feature -- Analysis interface
 
-	add_completed_action (a_action: PROCEDURE [ANY, TUPLE [BOOLEAN] ])
+	add_completed_action (a_action: PROCEDURE [ANY, TUPLE [BOOLEAN]])
 		do
 			completed_actions.extend (a_action)
 		end

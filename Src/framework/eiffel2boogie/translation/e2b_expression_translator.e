@@ -1011,7 +1011,7 @@ feature -- Translation
 
 			check current_target /= Void end
 			create l_field.make (
-				name_translator.boogie_name_for_feature (a_feature, current_target_type),
+				name_translator.boogie_procedure_for_feature (a_feature, current_target_type),
 				types.field (types.for_type_in_context (a_feature.type, current_target_type))
 			)
 			create l_heap_access.make (entity_mapping.heap.name, current_target, l_field)

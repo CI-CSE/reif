@@ -102,10 +102,34 @@ feature -- Boolean operators
 			create Result.make (a_left, "||", a_right, types.bool)
 		end
 
+	or_clean (a_left, a_right: IV_EXPRESSION): IV_EXPRESSION
+			-- Or operator `||', removing "false" disjuncts.
+		do
+			if a_left.is_false then
+				Result := a_right
+			elseif a_right.is_false then
+				Result := a_left
+			else
+				create {IV_BINARY_OPERATION} Result.make (a_left, "||", a_right, types.bool)
+			end
+		end
+
 	and_ (a_left, a_right: IV_EXPRESSION): IV_BINARY_OPERATION
 			-- And operator `&&'.
 		do
 			create Result.make (a_left, "&&", a_right, types.bool)
+		end
+
+	and_clean (a_left, a_right: IV_EXPRESSION): IV_EXPRESSION
+			-- Ads operator `&&', removing "true" conjuncts.
+		do
+			if a_left.is_true then
+				Result := a_right
+			elseif a_right.is_true then
+				Result := a_left
+			else
+				create {IV_BINARY_OPERATION} Result.make (a_left, "||", a_right, types.bool)
+			end
 		end
 
 	implies_ (a_left, a_right: IV_EXPRESSION): IV_BINARY_OPERATION
@@ -126,7 +150,7 @@ feature -- Boolean operators
 			create Result.make ("!", a_expr, types.bool)
 		end
 
-feature -- Operators
+feature -- Relational operators
 
 	equal (a_left, a_right: IV_EXPRESSION): IV_BINARY_OPERATION
 			-- Equal operator `=='.
@@ -156,6 +180,32 @@ feature -- Operators
 			-- Less than operator `<:'.
 		do
 			create Result.make (a_left, "<:", a_right, types.bool)
+		end
+
+feature -- Integer operators
+
+	plus (a_left, a_right: IV_EXPRESSION): IV_BINARY_OPERATION
+			-- Plus operator `+'.
+		do
+			create Result.make (a_left, "+", a_right, types.int)
+		end
+
+	plus_one (a_expr: IV_EXPRESSION): IV_BINARY_OPERATION
+			-- `a_expr + 1'.
+		do
+			Result := plus (a_expr, int_value (1))
+		end
+
+	minus (a_left, a_right: IV_EXPRESSION): IV_BINARY_OPERATION
+			-- Plus operator `-'.
+		do
+			create Result.make (a_left, "-", a_right, types.int)
+		end
+
+	minus_one (a_expr: IV_EXPRESSION): IV_BINARY_OPERATION
+			-- `a_expr - 1'.
+		do
+			Result := minus (a_expr, int_value (1))
 		end
 
 feature -- Functions
@@ -267,18 +317,32 @@ feature -- Statements
 
 feature -- Framing
 
-	writes_frame (a_feature: FEATURE_I; a_type: TYPE_A; a_boogie_procedure: IV_PROCEDURE; a_pre_heap: IV_EXPRESSION): IV_EXPRESSION
+	global_writable: IV_ENTITY
+			-- Procedure-wide writable frame.
+		do
+			create Result.make ("writable", types.frame)
+		end
+
+	frame_access (a_frame, a_obj, a_field: IV_EXPRESSION): IV_MAP_ACCESS
+			-- Expression `a_frame [a_obj, a_field]'.
+		do
+			create Result.make_two (a_frame, a_obj, a_field)
+		end
+
+	writes_routine_frame (a_feature: FEATURE_I; a_type: TYPE_A; a_boogie_procedure: IV_PROCEDURE): IV_EXPRESSION
 			-- Boolean expression stating that only the modifies set of `a_feature' in `a_type' (translated into `a_boogie_procedure')
-			-- has changed between `a_pre_heap' and the current heap.
+			-- has changed between the old heap and the current heap.
 		local
 			l_fcall: IV_FUNCTION_CALL
+			l_old_heap: IV_EXPRESSION
 		do
-			create l_fcall.make (name_translator.boogie_name_for_writes_set_function (a_feature, a_type), types.set (types.ref))
-			l_fcall.add_argument (old_ (create {IV_ENTITY}.make ("Heap", types.heap_type)))
+			l_old_heap := old_ (create {IV_ENTITY}.make ("Heap", types.heap_type))
+			create l_fcall.make (name_translator.boogie_function_for_frame (a_feature, a_type), types.set (types.ref))
+			l_fcall.add_argument (l_old_heap)
 			across a_boogie_procedure.arguments as i loop
 				l_fcall.add_argument (i.item.entity)
 			end
-			Result := function_call ("writes", <<a_pre_heap, "Heap", l_fcall>>, types.bool)
+			Result := function_call ("writes", <<l_old_heap, "Heap", l_fcall>>, types.bool)
 		end
 
 feature -- Miscellaneous

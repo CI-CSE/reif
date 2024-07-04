@@ -75,6 +75,30 @@ feature -- Execution
 			end
 		end
 
+	stop_verification
+			-- Stop running verification.
+		local
+			l_helper: ES_AUTOPROOF_BENCH_HELPER
+			l_autoproof: E2B_AUTOPROOF
+			l_result: E2B_RESULT
+			l_error: E2B_AUTOPROOF_ERROR
+		do
+			create l_helper
+			l_autoproof := l_helper.autoproof
+			if l_autoproof.is_running then
+				l_autoproof.cancel
+				enable_tool_button
+				window_manager.display_message ("AutoProof canceled")
+
+				event_list.prune_event_items (event_context_cookie)
+
+				create l_error
+				l_error.set_type ("canceled")
+				l_error.set_message ("Execution canceled by user.")
+				event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (l_error))
+			end
+		end
+
 feature {NONE} -- Basic operations
 
 	save_compile_and_verify (a_stone: STONE)
@@ -156,9 +180,6 @@ feature {NONE} -- Basic operations
 			-- Process verification result.
 		do
 			event_list.prune_event_items (event_context_cookie)
-			across a_result.autoproof_errors as i loop
-				event_list.put_event_item (event_context_cookie, create {E2B_FAILED_EXECUTION_EVENT}.make (i.item))
-			end
 			across a_result.verification_results as i loop
 				event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (i.item))
 			end
@@ -212,6 +233,7 @@ feature {NONE} -- Basic operations
 			l_tool := proof_tool
 			if l_tool /= Void and then l_tool.is_tool_instantiated then
 				proof_tool.panel.proof_button.disable_sensitive
+				proof_tool.panel.stop_button.enable_sensitive
 			end
 		end
 
@@ -223,6 +245,7 @@ feature {NONE} -- Basic operations
 			l_tool := proof_tool
 			if l_tool /= Void and then l_tool.is_tool_instantiated then
 				proof_tool.panel.proof_button.enable_sensitive
+				proof_tool.panel.stop_button.disable_sensitive
 			end
 		end
 

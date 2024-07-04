@@ -8,41 +8,28 @@ note
 class
 	E2B_AUTOPROOF_ERROR
 
+inherit
+
+	E2B_VERIFICATION_RESULT
+
 feature -- Access
-
-	eiffel_class: detachable CLASS_C
-			-- Related Eiffel class (if any)
-
-	eiffel_feature: detachable FEATURE_I
-			-- Related Eiffel feature (if any)
 
 	type: STRING
 			-- Type of error.
 
-	single_line_message: STRING
-			-- Short one-line message about error.
+	single_line_message (a_formatter: TEXT_FORMATTER)
+			-- Single line description of this result.
+		do
+			a_formatter.add (internal_message)
+		end
 
-	multi_line_message: STRING
-			-- Long multi-line message about error.
+	context_line_number: INTEGER
+			-- Line number of error (if any)
+
+	is_warning: BOOLEAN
+			-- Should verification proceed if this error occurs?
 
 feature -- Element change
-
-	set_eiffel_class (a_class: CLASS_C)
-			-- Set `eiffel_class' to `a_class'.
-		require
-			eiffel_feature_not_set: eiffel_feature = Void
-		do
-			eiffel_class := a_class
-		end
-
-	set_eiffel_feature (a_feature: FEATURE_I)
-			-- Set `eiffel_feature' to `a_feature'.
-		require
-			eiffel_class_not_set: eiffel_class = Void
-		do
-			eiffel_feature := a_feature
-			eiffel_class := a_feature.written_class
-		end
 
 	set_type (a_string: STRING)
 			-- Set `type' to `a_type'.
@@ -50,16 +37,27 @@ feature -- Element change
 			type := a_string
 		end
 
-	set_single_line_message (a_string: STRING)
+	set_message (a_string: STRING)
 			-- Set `single_line_message' to `a_string'.
 		do
-			single_line_message := a_string
+			internal_message := a_string
 		end
 
-	set_multi_line_message (a_string: STRING)
-			-- Set `multi_line_message' to `a_string'.
+	set_line_number (a_value: INTEGER)
+			-- Set `context_line_number' to `a_value'.
 		do
-			multi_line_message := a_string
+			context_line_number := a_value
 		end
+
+	set_warning (a_flag: BOOLEAN)
+			-- Set `is_warning' to `a_flag'
+		do
+			is_warning := a_flag
+		end
+
+feature {NONE} -- Implementation
+
+	internal_message: STRING
+			-- Message for this error.
 
 end

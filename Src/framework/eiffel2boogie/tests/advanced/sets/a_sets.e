@@ -15,8 +15,18 @@ feature
 			check (s1 * s2).has(1) end
 			check (s1 - s2).is_disjoint(s2 - s1) end
 			check s1 <= s1 + s2 end
+			s2 := {MML_SET[INTEGER]}.empty_set & 1
+			check s2.any_item = 1 end
 		end
-		
+
+	good1 (s: MML_SET [A_SETS])
+		require
+			not s.is_empty
+			across s as x all x.item /= Void  end
+		do
+			check attached {A_SETS} s.any_item end
+		end
+
 	bad (s: MML_SET[INTEGER])
 		local
 			s1: MML_SET[INTEGER]
@@ -25,6 +35,7 @@ feature
 			check bad_disjoint: s.is_disjoint (s1) end
 			check bad_empty: s.is_empty end
 			check bad_has: s.has (1)  end
+			check s1.any_item = 2 end
 		end
 
 end

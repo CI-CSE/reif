@@ -88,7 +88,7 @@ feature -- Code Analyzer
 
 	self_assignment_violation_2: STRING_32
 		do Result := locale.translation ("' is assigned to itself. Assigning a variable to %
-			                        %itself is%Na meaningless statement due to a typing%
+			                        %itself is%Na meaningless instruction due to a typing%
 			                        % error. Most probably, one of the two%Nvariable %
 			                        %names was misspelled.") end
 
@@ -131,7 +131,7 @@ feature -- Code Analyzer
 			%need of the object test%Nlocal '") end
 
 	empty_if_violation_1: STRING_32
-		do Result := locale.translation ("An empty if statement is useless and should be removed.") end
+		do Result := locale.translation ("An empty if instruction is useless and should be removed.") end
 
 	nested_complexity_violation_1: STRING_32
 		do Result := locale.translation ("In routine '") end
@@ -166,9 +166,147 @@ feature -- Code Analyzer
 
 	variable_not_read_violation_1: STRING_32
 		do Result := locale.translation ("The local variable '") end
-		
+
 	variable_not_read_violation_2: STRING_32
 		do Result := locale.translation ("' is not read / used before it gets reassigned or out of scope.") end
+
+	semicolon_arguments_violation_1: STRING_32
+		do Result := locale.translation ("Some arguments of routine '") end
+
+	semicolon_arguments_violation_2: STRING_32
+		do Result := locale.translation ("' are not separated by semicolons. This is considered bad style.") end
+
+	very_long_routine_violation_1: STRING_32
+		do Result := locale.translation ("Routine '") end
+
+	very_long_routine_violation_2: STRING_32
+		do Result := locale.translation ("' contains ") end
+
+	very_long_routine_violation_3: STRING_32
+		do Result := locale.translation (" instructions, which is above the%Ndefined threshold of ") end
+
+	very_long_routine_violation_4: STRING_32
+		do Result := locale.translation (". The routine should be shortened.") end
+
+	very_big_class_violation_1: STRING_32
+		do Result := locale.translation ("Class '") end
+
+	very_big_class_violation_2: STRING_32
+		do Result := locale.translation ("' contains ") end
+
+	very_big_class_violation_3: STRING_32
+		do Result := locale.translation (" features and ") end
+
+	very_big_class_violation_4: STRING_32
+		do Result := locale.translation (" instructions, at least%None of which is above the defined thresholds of ") end
+
+	very_big_class_violation_5: STRING_32
+		do Result := locale.translation (" and ") end
+
+	very_big_class_violation_6: STRING_32
+		do Result := locale.translation (".") end
+
+	feature_section_comment_violation: STRING_32
+		do Result := locale.translation ("A feature section has no comment.") end
+
+	feature_not_commented_violation_1: STRING_32
+		do Result := locale.translation ("Feature '") end
+
+	feature_not_commented_violation_2: STRING_32
+		do Result := locale.translation ("' is not commented. A feature comment is strongly%Nrecommended to enable clients to understand what the feature does.") end
+
+	boolean_result_violation: STRING_32
+		do Result := locale.translation ("For the assignment of the boolean result this if-else instruction is not needed.%NYou can directly assign the boolean expression that you are checking to the%Nresult.") end
+
+	boolean_comparison_violation: STRING_32
+		do Result := locale.translation ("This boolean variable or query does not need to be compared to a boolean constant.") end
+
+	very_short_identifier_violation_1: STRING_32
+		do Result := locale.translation ("The name of identifier '") end
+
+	very_short_identifier_violation_2: STRING_32
+		do Result := locale.translation ("' has ") end
+
+	very_short_identifier_violation_3: STRING_32
+		do Result := locale.translation (" characters, which is below the defined minimum of ") end
+
+	very_long_identifier_violation_1: STRING_32
+		do Result := locale.translation ("The name of identifier '") end
+
+	very_long_identifier_violation_2: STRING_32
+		do Result := locale.translation ("' has ") end
+
+	very_long_identifier_violation_3: STRING_32
+		do Result := locale.translation (" characters, which is above the defined maximum of ") end
+
+	missing_is_equal_violation_1: STRING_32
+		do Result := locale.translation ("This class defines '{HASHABLE}.hash_code', but does not redefine 'is_equal'.%N'is_equal' may need to be redefined.") end
+
+	simplifiable_boolean_violation: STRING_32
+		do Result := locale.translation ("This negated boolean expression can be%
+			% simplified by removing the negation and%Nusing the inverse comparison operator.") end
+
+	self_comparison_violation_1: STRING_32
+		do Result := locale.translation ("' compared to itself always evaluates to the same boolean value.") end
+
+	self_comparison_violation_2: STRING_32
+		do Result := locale.translation (" Here, since it is the loop stop condition the loop will not terminate.") end
+
+	wrong_loop_iteration_violation_1: STRING_32
+		do Result := locale.translation ("Wrong comparison suspected in loop stop condition.") end
+
+	wrong_loop_iteration_violation_2: STRING_32
+		do Result := locale.translation ("Suspectedly the loop iterates in the wrong direction.") end
+
+	inspect_instructions_violation_1: STRING_32
+		do Result := locale.translation ("This inspect case consists of ") end
+
+	inspect_instructions_violation_2: STRING_32
+		do Result := locale.translation (" instructions, which is above the defined maximum of ") end
+
+	attribute_to_local_violation_1: STRING_32
+		do Result := locale.translation ("The attribute '") end
+
+	attribute_to_local_violation_2: STRING_32
+		do Result := locale.translation ("' is used only in%Nfeature'") end
+
+	attribute_to_local_violation_3: STRING_32
+		do Result := locale.translation ("' from the same class. It can be converted into a%Nlocal variable.") end
+
+	empty_effective_routine_violation_1: STRING_32
+		do Result := locale.translation ("Routine '") end
+
+	empty_effective_routine_violation_2: STRING_32
+		do Result := locale.translation ("' has an empty body. Since it is defined %
+			%within a%Ndeferred class it should be considered to be declared as deferred.") end
+
+	if_else_not_equal_violation: STRING_32
+		do Result := locale.translation ("Condition of if-else instruction checks for inequality rather than equality.") end
+
+	short_circuit_if_violation: STRING_32
+		do Result := locale.translation ("These two nested if instructions may be %
+			%combined into a single if instruction%Nusing the short circuit 'and then' operator.") end
+
+	iterable_loop_violation_1: STRING_32
+		do Result := locale.translation ("Iterating through '") end
+
+	iterable_loop_violation_2: STRING_32
+		do Result := locale.translation ("' may be done using an across loop, which%Nis more recommendable than a from-until loop.") end
+
+	count_equals_zero_violation: STRING_32
+		do Result := locale.translation ("Consider replacing this comparison to zero by a call to '") end
+
+	deeply_nested_if_violation_1: STRING_32
+		do Result := locale.translation ("This if instruction is nested within ") end
+
+	deeply_nested_if_violation_2: STRING_32
+		do Result := locale.translation (" or more outer if instructions, which%Nmakes the code less readable. It should be avoided.") end
+
+	unneeded_helper_variable_violation_1: STRING_32
+		do Result := locale.translation ("The local variable '") end
+
+	unneeded_helper_variable_violation_2: STRING_32
+		do Result := locale.translation ("' used here can be replaced by the%Nexpression that this variable gets assigned before. Thus the local variable is%Nnot actually needed.") end
 
 feature -- Command Line
 

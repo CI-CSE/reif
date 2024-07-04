@@ -94,6 +94,17 @@ feature -- General note helpers
 			end
 		end
 
+	boolean_class_note_value (a_class: CLASS_C; a_tag: STRING_32): BOOLEAN
+			-- Value of a boolean feature note tag, False if not present.
+		local
+			l_values: ARRAYED_LIST [STRING_32]
+		do
+			l_values := class_note_values (a_class, a_tag)
+			if not l_values.is_empty then
+				Result := l_values.i_th (1).is_case_insensitive_equal ("true")
+			end
+		end
+
 	integer_feature_note_value (a_feature: FEATURE_I; a_tag: STRING_32): INTEGER
 			-- Value of an integer feature note tag, -1 if not present.
 		local
@@ -353,9 +364,8 @@ feature -- Other
 		end
 
 	add_unsupported_error (a_class: CLASS_C; a_feature: FEATURE_I; a_message: STRING)
-			-- Add AutoProof error about unsupported construct.
-			-- If `a_class' is set, the error will be associated with the class.
-			-- If `a_feature' is set, the error will be associated with the feature and its written class.
+			-- Add AutoProof error about unsupported construct concerning `a_class_or_feature' with message `a_message'.
+			-- Verification will not proceed.
 		require
 			not_class_and_feature: a_class = Void or a_feature = Void
 			message_set: a_message /= Void and then not a_message.is_empty
@@ -364,19 +374,18 @@ feature -- Other
 		do
 			create l_error
 			l_error.set_type ("Unsupported")
-			l_error.set_single_line_message (a_message)
+			l_error.set_message (a_message)
 			if a_feature /= Void then
-				l_error.set_eiffel_feature (a_feature)
+				l_error.set_feature (a_feature)
 			elseif a_class /= Void then
-				l_error.set_eiffel_class (a_class)
+				l_error.set_class (a_class)
 			end
 			autoproof_errors.extend (l_error)
 		end
 
 	add_semantic_error (a_class_or_feature: ANY; a_message: STRING)
-			-- Add AutoProof error about unsupported construct.
-			-- If `a_class' is set, the error will be associated with the class.
-			-- If `a_feature' is set, the error will be associated with the feature and its written class.
+			-- Add AutoProof validity error concerning `a_class_or_feature' with message `a_message'.
+			-- Verification will not proceed.
 		require
 			class_or_feature_or_void: a_class_or_feature = Void or else (attached {CLASS_C} a_class_or_feature or attached {FEATURE_I} a_class_or_feature)
 			message_set: a_message /= Void and then not a_message.is_empty
@@ -384,13 +393,34 @@ feature -- Other
 			l_error: E2B_AUTOPROOF_ERROR
 		do
 			create l_error
-			l_error.set_type ("Error")
-			l_error.set_single_line_message (a_message)
+			l_error.set_type ("Validity")
+			l_error.set_message (a_message)
 			if attached {FEATURE_I} a_class_or_feature as x then
-				l_error.set_eiffel_feature (x)
+				l_error.set_feature (x)
 			elseif attached {CLASS_C} a_class_or_feature as x then
-				l_error.set_eiffel_class (x)
+				l_error.set_class (x)
 			end
+			autoproof_errors.extend (l_error)
+		end
+
+	add_semantic_warning (a_class_or_feature: ANY; a_message: STRING)
+			-- Add AutoProof validity warning concerning `a_class_or_feature' with message `a_message'.
+			-- Verification will proceed.
+		require
+			class_or_feature_or_void: a_class_or_feature = Void or else (attached {CLASS_C} a_class_or_feature or attached {FEATURE_I} a_class_or_feature)
+			message_set: a_message /= Void and then not a_message.is_empty
+		local
+			l_error: E2B_AUTOPROOF_ERROR
+		do
+			create l_error
+			l_error.set_type ("Validity")
+			l_error.set_message (a_message)
+			if attached {FEATURE_I} a_class_or_feature as x then
+				l_error.set_feature (x)
+			elseif attached {CLASS_C} a_class_or_feature as x then
+				l_error.set_class (x)
+			end
+			l_error.set_warning (True)
 			autoproof_errors.extend (l_error)
 		end
 
