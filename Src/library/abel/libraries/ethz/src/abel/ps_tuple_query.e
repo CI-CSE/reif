@@ -5,6 +5,11 @@ note
 		
 		You can set a projection on the attributes you would like to have, to restrict the amount of data that is going to be retrieved.
 		You'll get completely loaded objects as attributes if you include an attribute in your projection that is not of a basic type (strings and numbers).
+		Objects of this type can be used directly to iterate through the query result.
+		Example: across my_query as cur
+				 loop 
+					-- do something with cur.item 
+				 end  
 	]"
 	author: "Roman Schmocker"
 	date: "$Date$"
@@ -24,7 +29,7 @@ create
 
 feature -- Access
 
-	result_cursor: PS_RESULT_SET [TUPLE]
+	result_cursor: PS_RESULT_CURSOR [TUPLE]
 			-- Iteration cursor containing the result of the query.
 
 feature -- Status report
@@ -105,16 +110,17 @@ feature -- Utilities
 
 feature -- Cursor generation
 
-	new_cursor: PS_RESULT_SET [TUPLE]
+	new_cursor: PS_RESULT_CURSOR [TUPLE]
 			-- Return the result_cursor.
 		do
+			--TODO: according to class ITERABLE, this should return a fresh copy of the cursor.
 			Result := result_cursor
 		end
 
 feature {NONE} -- Initialization
 
 	make
-			-- Create a new query for objects of type `G'.
+			-- Create a query for all objects of type G (no filtering criteria).
 		do
 			create projection.make_empty
 			initialize

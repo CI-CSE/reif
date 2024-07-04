@@ -125,10 +125,11 @@ feature {NONE} -- Initialization
 			create socket_data_printer.make (system, variable_table, Current)
 
 			executable_file_name := an_executable_file_name
-			melt_path := u.file_directory_path (an_executable_file_name)
+			create melt_path.make_from_string (an_executable_file_name)
+			melt_path := melt_path.parent
 			interpreter_log_filename := an_interpreter_log_filename
 			test_case_serialization_filename := a_serialization_file_name.twin
-			proxy_log_file := u.make_text_output_file (a_proxy_log_filename)
+			create proxy_log_file.make (a_proxy_log_filename)
 				-- Create proxy log printers.
 			create proxy_log_printers.make
 			proxy_log_file.open_write
@@ -167,7 +168,7 @@ feature {NONE} -- Initialization
 			executable_file_name_set: executable_file_name = an_executable_file_name
 			system_set: system = a_system
 			proxy_log_file_created: proxy_log_file /= Void
-			test_case_serialization_filename_set: test_case_serialization_filename.is_equal (a_serialization_file_name)
+			test_case_serialization_filename_set: test_case_serialization_filename.same_string_general (a_serialization_file_name)
 			error_handler_set: error_handler = a_error_handler
 			timeout_set: timeout = default_timeout
 			is_logging_enabled: is_logging_enabled
@@ -237,13 +238,13 @@ feature -- Access
 	variable_table: AUT_VARIABLE_TABLE
 			-- Table for index and types of object in object pool
 
-	proxy_log_filename: STRING
+	proxy_log_filename: PATH
 			-- File name of proxy log
 		do
-			Result := proxy_log_file.name
+			Result := proxy_log_file.path
 		ensure
 			filename_not_void: Result /= Void
-			valid_filename: Result.is_equal (proxy_log_file.name)
+			valid_filename: Result.name.same_string (proxy_log_file.name)
 		end
 
 	configuration: TEST_GENERATOR
@@ -256,7 +257,7 @@ feature -- Access
 			Result := proxy_failure_log_file.name
 		ensure
 			filename_not_void: Result /= Void
-			valid_filename: Result.is_equal (proxy_failure_log_file.name)
+			valid_filename: Result.same_string_general (proxy_failure_log_file.name)
 		end
 
 	on_test_case_serialization_actions: ACTION_SEQUENCE [TUPLE [serialization: detachable STRING]]
@@ -307,7 +308,7 @@ feature -- Settings
 			if proxy_log_file.is_open_write then
 				proxy_log_file.close
 			end
-			create proxy_log_file.make (a_filename)
+			create proxy_log_file.make_with_path (a_filename)
 			proxy_log_file.open_write
 			log_line ("-- An existing proxy has switched to this log file.")
 		end
@@ -1007,7 +1008,7 @@ feature{NONE} -- Process scheduling
 			l_workdir: STRING_32
 		do
 				-- $MELT_PATH needs to be set here in only to allow debugging.
-			put (melt_path, "MELT_PATH")
+			put (melt_path.name, "MELT_PATH")
 			create stdout_reader.make
 
 				-- We need `injected_feature_body_id'-1 because the underlying C array is 0-based.
@@ -1346,7 +1347,7 @@ feature {NONE} -- Implementation
 	test_case_serialization_filename: STRING
 			-- Name of the file to store serialized test cases
 
-	melt_path: READABLE_STRING_GENERAL
+	melt_path: PATH
 			-- Path where melt file of test client resides
 
 	melt_path: READABLE_STRING_GENERAL
@@ -1367,7 +1368,7 @@ feature {NONE} -- Implementation
 	proxy_start_time: DT_DATE_TIME
 			-- Time when Current proxy started.
 
-	proxy_log_file: KL_TEXT_OUTPUT_FILE
+	proxy_log_file: KL_TEXT_OUTPUT_FILE_32
 			-- Proxy log file
 
 	proxy_failure_log_file: KL_TEXT_OUTPUT_FILE

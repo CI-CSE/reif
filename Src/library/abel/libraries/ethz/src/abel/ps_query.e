@@ -12,7 +12,7 @@ feature -- Access
 	criteria: PS_CRITERION
 			-- Criteria for `Current' query.
 
-	result_cursor: PS_RESULT_SET [ANY]
+	result_cursor: PS_RESULT_CURSOR [ANY]
 			-- Iteration cursor containing the result of the query.
 		deferred
 		end
@@ -126,7 +126,7 @@ feature {NONE} -- Implementation
 feature {NONE} -- Initialization
 
 	make
-			-- Initialize `Current'.
+			-- Create a query for all objects of type G (no filtering criteria).
 		deferred
 		ensure
 			not_executed: not is_executed
@@ -136,7 +136,7 @@ feature {NONE} -- Initialization
 		end
 
 	make_with_criterion (a_criterion: PS_CRITERION)
-			-- Initialize `Current' and set the criterion `a_criterion'
+			-- Create a query for object of type G filtered using `a_criterion'.
 		require
 			only_predefined_for_tuples: is_tuple_query implies not a_criterion.has_agent_criterion
 			criterion_can_handle_objects: is_criterion_fitting_generic_type (a_criterion)

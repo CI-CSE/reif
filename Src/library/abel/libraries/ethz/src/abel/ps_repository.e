@@ -1,8 +1,8 @@
 note
 	description: "[
 		Common ancestor for all repository strategies.
-		Descendants implement support for different kinds of databases.
-		The repository object receives QUERYs from a CRUD_EXECUTOR object and returns ANY objects.
+		Descendants, obtained from PS_REPOSITORY_FACTORY, implement support for different kinds of databases.
+		The repository object receives QUERYs from an EXECUTOR object and returns ANY objects.
 		
 		Every feature with a PS_TRANSACTION as an argument will either
 			- return normally, if no error occurred

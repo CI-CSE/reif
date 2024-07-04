@@ -1,5 +1,12 @@
 note
-	description: "Represents a query for objects of type G."
+	description: "[
+	Represents a query for objects of type G.
+	Objects of this type can be used directly to iterate through the query result.
+	Example: across my_query as cur
+			 loop 
+				-- do something with cur.item 
+			 end  
+	]"
 	author: "Roman Schmocker"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -21,7 +28,7 @@ create
 
 feature -- Access
 
-	result_cursor: PS_RESULT_SET [G]
+	result_cursor: PS_RESULT_CURSOR [G]
 			-- Iteration cursor containing the result of the query.
 
 feature -- Status report
@@ -42,16 +49,17 @@ feature -- Basic operations
 
 feature -- Cursor generation
 
-	new_cursor: PS_RESULT_SET [G]
+	new_cursor: PS_RESULT_CURSOR [G]
 			-- Return the result_cursor.
 		do
+			--TODO: according to class ITERABLE, this should return a fresh copy of the cursor.
 			Result := result_cursor
 		end
 
 feature {NONE} -- Initialization
 
 	make
-			-- Create an new query on objects of type `G'.
+			-- Create a query for all objects of type G (no filtering criteria).
 		do
 			initialize
 		end

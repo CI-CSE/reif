@@ -71,11 +71,12 @@ feature -- Basic operations
 			l_freeze_option: AP_FLAG
 			l_max_fix_postcondition: AP_INTEGER_OPTION
 			l_model_dir_option: AP_STRING_OPTION
-			l_path_name: FILE_NAME
+			l_path_name: PATH
 			l_postmortem_analysis_of_fixes: AP_STRING_OPTION
 			l_postmortem_analysis_output_dir: AP_STRING_OPTION
+			l_enable_fixing_contracts: AP_FLAG
 
-			l_report_file_name_str: FILE_NAME
+			l_report_file_name_str: PATH
 			l_report_file: PLAIN_TEXT_FILE
 			l_range_borders: LIST[STRING]
 		do
@@ -163,6 +164,10 @@ feature -- Basic operations
 			create l_daikon_option.make_with_long_form ("daikon")
 			l_daikon_option.set_description ("Enable Daikon to infer invariants on system states. Default: False")
 			l_parser.options.force_last (l_daikon_option)
+
+			create l_enable_fixing_contracts.make_with_long_form ("enable_fixing_contract")
+			l_enable_fixing_contracts.set_description ("Enable fixing faults in contract.")
+			l_parser.options.force_last (l_enable_fixing_contracts)
 
 			create l_max_valid_fix_option.make_with_long_form ("max-valid-fix")
 			l_max_test_case_no_option.set_description ("Maximal number of valid fix, stop after found this number of valid fixes. 0 means not bounded. Default: 0.")
@@ -295,7 +300,7 @@ feature -- Basic operations
 			end
 
 			if l_report_file_option.was_found and then attached l_report_file_option.parameter as lt_report_file_name and then not lt_report_file_name.is_empty then
-				config.set_report_file_path (lt_report_file_name)
+				config.set_report_file_path (create {PATH}.make_from_string (lt_report_file_name))
 			else
 				config.set_using_default_report_file_path (True)
 			end
@@ -380,11 +385,9 @@ feature -- Basic operations
 			end
 
 			if l_model_dir_option.was_found then
-				config.set_model_directory (l_model_dir_option.parameter)
+				config.set_model_directory (create {PATH}.make_from_string (l_model_dir_option.parameter))
 			else
-				create l_path_name.make_from_string (config.output_directory)
-				l_path_name.extend ("model")
-				config.set_model_directory (l_path_name)
+				config.set_model_directory (config.output_directory.extended ("model"))
 			end
 
 			config.set_should_freeze (l_freeze_option.was_found)
@@ -396,6 +399,8 @@ feature -- Basic operations
 			config.set_should_analyze_test_cases (l_analyze_tc_option.was_found)
 
 			config.set_is_daikon_enabled (l_daikon_option.was_found)
+
+			config.enable_fixing_contracts (l_enable_fixing_contracts.was_found)
 		end
 
 feature{NONE} -- Implementation
