@@ -10,20 +10,83 @@ class
 
 feature
 
-	a, b: detachable STRING_8
+	a, b, c: detachable STRING_8
 
-	test1
+	test_globals
 		note
 			aliasing:
 				"[
-					Void: any
-					NonVoid: any
 					{AAT_BASIC}.a: {AAT_BASIC}.b
 					{AAT_BASIC}.b: {AAT_BASIC}.a
 				]"
 		do
 			a := "a"
 			b := a
+		end
+
+	test_locals
+		note
+			aliasing1: ""
+			aliasing2: ""
+			aliasing3:
+				"[
+					{AAT_BASIC}.test2.l_a: {AAT_BASIC}.test2.l_b
+					{AAT_BASIC}.test2.l_b: {AAT_BASIC}.test2.l_a
+				]"
+			aliasing4:
+				"[
+					{AAT_BASIC}.test2.l_a: {AAT_BASIC}.test2.l_b, {AAT_BASIC}.a
+					{AAT_BASIC}.test2.l_b: {AAT_BASIC}.a, {AAT_BASIC}.test2.l_a
+					{AAT_BASIC}.a: {AAT_BASIC}.test2.l_b, {AAT_BASIC}.test2.l_a
+				]"
+			aliasing5: ""
+		local
+			l_a: STRING_8
+			l_b: STRING_8
+		do
+			l_a := "ab"
+			l_b := l_a
+			a := l_b
+
+			a := a
+		end
+
+	test_void_assignment
+		note
+			aliasing: ""
+		do
+			a := b
+		end
+
+	test_void_assignment_2
+		note
+			aliasing3: "[
+					{AAT_BASIC}.a: {AAT_BASIC}.b
+					{AAT_BASIC}.b: {AAT_BASIC}.a
+				]"
+			aliasing: ""
+		do
+			a := "a"
+			b := a
+			a := Void
+		end
+
+	test_void_assignment_3
+		note
+			aliasing4: "[
+					{AAT_BASIC}.a: {AAT_BASIC}.b, {AAT_BASIC}.c
+					{AAT_BASIC}.b: {AAT_BASIC}.c, {AAT_BASIC}.a
+					{AAT_BASIC}.c: {AAT_BASIC}.b, {AAT_BASIC}.a
+				]"
+			aliasing: "[
+					{AAT_BASIC}.a: {AAT_BASIC}.c
+					{AAT_BASIC}.c: {AAT_BASIC}.a
+				]"
+		do
+			a := "a"
+			b := a
+			c := b
+			b := Void
 		end
 
 note
