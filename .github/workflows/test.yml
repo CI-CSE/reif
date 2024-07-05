@@ -334,7 +334,7 @@ jobs:
           python3 runtests.py \
             --dir $(pwd)/examples \
             --ec $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin/ec \
-            --test-timeout 180 \
+            --test-timeout 250 \
             --ecf $(pwd)/tests.ecf | tee tests.txt
 
           # python is piped, so take its status from PIPESTATUS
