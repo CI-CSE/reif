@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Command-line Eiffel Inspector (code analysis)"
 	author: "Stefan Zurfluh"
 	date: "$Date$"
@@ -20,7 +20,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: ITERABLE [STRING_32])
+	make_with_arguments (a_arguments: ITERABLE [READABLE_STRING_32])
 			-- Initialization for `Current'. `a_arguments' are the command-line
 			-- arguments that are relevant for the Code Analyzer.
 		local
