@@ -69,21 +69,20 @@ feature -- Execution
 						else
 							s.append ("*")
 						end
-
 						jo.put_string (i_item.mapping.description, "description")
 						i_json.extend (jo)
 					end(?, j))
 				vis.process_router (l_router)
-				rep.add_string_field ("routing", j.representation)
+				rep.add_iterator_field ("routing", j)
 --				vis.on_mapping_actions.extend (agent (i_mapping: WSF_ROUTER_MAPPING; i_json: JSON_OBJECT)
 --					do
 --					end(?, j))
 			end
-			rep.add_self (req.percent_encoded_path_info)
+			rep.add_self (rep.location)
 			rep.execute
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

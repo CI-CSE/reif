@@ -1,8 +1,9 @@
-note
+﻿note
 	description	: "Objects that represent the cursor of a text viewer"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author		: "Christophe Bonnard [ bonnard@bigfoot.com ] / Arnaud PICHERY [ aranud@mail.dotcom.fr ]"
+	author: "Christophe Bonnard [ bonnard@bigfoot.com ] / Arnaud PICHERY [ aranud@mail.dotcom.fr ]"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -157,7 +158,7 @@ feature -- Access
 			if token = line.eol_token then
 				Result := '%N'
 			else
-				Result := token.wide_image @ pos_in_token
+				Result := token.wide_image [pos_in_token]
 			end
 		end
 
@@ -464,7 +465,6 @@ feature {NONE} -- Implementation
 		local
 			current_x: INTEGER
 			current_token, l_previous, l_end_token: detachable EDITOR_TOKEN
-			x_in_token: INTEGER
 		do
 				-- Update the current token.
 			from
@@ -488,18 +488,13 @@ feature {NONE} -- Implementation
 					pos_in_token := 1
 					token := current_token
 				else
-						-- we are too far, so the good token is the
+						-- We are too far, so the good token is the
 						-- previous one, we have to look into it.
 					l_previous := current_token.previous
 					check l_previous /= Void end -- Never, otherwise a bug.
 					token := l_previous
-
-						-- rewind our pixel position
-					current_x := current_x - token.width
-					x_in_token := x_in_pixels - current_x
-
-						-- Now retrieve the position inside the token.
-					pos_in_token := token.retrieve_position_by_width(x_in_token)
+						-- Retrieve the position inside the token.
+					pos_in_token := l_previous.retrieve_position_by_width (l_previous.width + x_in_pixels - current_x)
 				end
 			else
 				-- The cursor is further than the end of the line, so
@@ -541,13 +536,13 @@ feature {NONE} -- Private attributes
 		-- Whole text displayed.
 
 invariant
-	x_in_pixels_positive_or_null	: x_in_pixels >= 0
-	y_in_lines_positive_or_null		: y_in_lines >= 0
-	pos_in_token_positive			: pos_in_token > 0
-	whole_text_not_void				: whole_text /= Void
+	x_in_pixels_positive_or_null: x_in_pixels >= 0
+	y_in_lines_positive_or_null: y_in_lines >= 0
+	pos_in_token_positive: pos_in_token > 0
+	whole_text_not_void: whole_text /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -557,7 +552,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class VIEWER_CURSOR
+end

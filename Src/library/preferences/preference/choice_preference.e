@@ -1,14 +1,11 @@
-note
-	description: "Summary description for {CHOICE_PREFERENCE}."
-	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
-
-deferred class
+﻿deferred class
 	CHOICE_PREFERENCE [G]
 
 inherit
 	LIST_PREFERENCE [G]
+		undefine
+			is_valid_string_for_selection,
+			select_value_from_string
 		redefine
 			text_value,
 			set_value_from_string,
@@ -22,7 +19,7 @@ inherit
 feature {PREFERENCE_EXPORTER} -- Access
 
 	text_value: STRING_32
-			-- String representation of `value'.				
+			-- String representation of `value'.
 		local
 			i: INTEGER
 			s: like item_to_string_representation
@@ -34,7 +31,7 @@ feature {PREFERENCE_EXPORTER} -- Access
 					lst as c
 				loop
 					i := i + 1
-					if attached c.item as l_item then
+					if attached c as l_item then
 						if not Result.is_empty then
 							Result.append_character (';')
 						end
@@ -110,7 +107,7 @@ feature -- Change
 				across
 					l_parts as c
 				loop
-					s := c.item
+					s := c
 					if not s.is_empty and then s.item (1) = '[' and then s.item (s.count) = ']' then
 						s := s.substring (2, s.count - 1)
 						selected_index := i
@@ -124,12 +121,8 @@ feature -- Change
 
 	set_selected_index (a_index: INTEGER)
 			-- Set `selected_index'
---		require
---			index_valid: a_index > 0
 		do
 			selected_index := a_index
---		ensure
---			index_set: selected_index = a_index
 		end
 
 feature {PREFERENCES} -- Access
@@ -141,7 +134,9 @@ feature {PREFERENCES} -- Access
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -150,4 +145,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

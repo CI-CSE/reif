@@ -53,7 +53,7 @@ feature {NONE} -- Initialization
 			l_user_label: EV_LABEL
 			l_pass_label: EV_LABEL
 			l_text: EV_LABEL
-			l_link: EVS_LINK_LABEL
+			l_link: EV_LINK_LABEL
 			l_hbox: EV_HORIZONTAL_BOX
 			l_shrinkable: EV_FIXED
 			l_string: STRING_32
@@ -169,6 +169,13 @@ feature {NONE} -- Initialization
 			shrink_widget := l_shrinkable
 
 			l_shrinkable.resize_actions.extend (agent (a_x: INTEGER_32; a_y: INTEGER_32; a_width: INTEGER_32; a_height: INTEGER_32)
+				do
+					if a_width > 0 and a_height > 0 then
+						shrink_widget.set_item_size (login_frame, a_width, a_height)
+					end
+				end)
+
+			l_shrinkable.dpi_changed_actions.extend (agent (a_dpi: NATURAL_32; a_x: INTEGER_32; a_y: INTEGER_32; a_width: INTEGER_32; a_height: INTEGER_32)
 				do
 					if a_width > 0 and a_height > 0 then
 						shrink_widget.set_item_size (login_frame, a_width, a_height)
@@ -385,17 +392,17 @@ feature {NONE} -- Implementation: access
 			result_attached: Result /= Void
 		end
 
-	default_description: attached STRING
+	default_description: attached STRING_32
 			-- Default text for the bug report description
 		do
-			if last_description /= Void then
-				create Result.make_from_string (last_description)
+			if attached last_description as d then
+				create Result.make_from_string (d)
 			else
 				Result := locale_formatter.translation (lb_enter_bug_information)
 			end
 		end
 
-	last_description: STRING
+	last_description: READABLE_STRING_GENERAL
 			-- Last description
 
 feature {NONE} -- Status report
@@ -428,8 +435,8 @@ feature {NONE} -- Status report
 			is_initialized: is_initialized
 			not_is_recycled: not is_recycled
 		do
-			Result := description_text.text /= Void and then not description_text.text.is_empty and then
-				 not (description_text.text.is_equal (default_description) and last_description = Void)
+			Result := attached description_text.text as txt and then not txt.is_empty and then
+				 not (txt.is_equal (default_description) and last_description = Void)
 		end
 
 	can_submit: BOOLEAN
@@ -454,7 +461,7 @@ feature {NONE} -- Action handlers
 			execute_with_busy_cursor (agent
 				local
 					l_error: ES_ERROR_PROMPT
-					l_error_info: STRING
+					l_error_info: STRING_32
 				do
 					login_button.disable_sensitive
 					support_login.force_logout
@@ -470,14 +477,14 @@ feature {NONE} -- Action handlers
 					else
 						if support_login.is_bad_request then
 							if attached support_login.last_error as ll_error then
-								l_error_info := "Unable to login due to network problem. Please try again later."
-								l_error_info.append ("%N")
+								l_error_info := {STRING_32} "Unable to login due to network problem. Please try again later."
+								l_error_info.append_character ('%N')
 								l_error_info.append (ll_error)
 							else
-								l_error_info := "Unable to login due to network problem. Please try again later."
+								l_error_info := {STRING_32} "Unable to login due to network problem. Please try again later."
 							end
 						else
-							l_error_info := "Unable to login with the specified user name and password. Please check and try again."
+							l_error_info := {STRING_32} "Unable to login with the specified user name and password. Please check and try again."
 						end
 
 						create l_error.make_standard (l_error_info)
@@ -491,7 +498,8 @@ feature {NONE} -- Action handlers
 							-- Set focus back to button, as it will have been the last focused widget
 						login_button.set_focus
 					end
-				end)
+				end
+			)
 		end
 
 	on_logout
@@ -625,15 +633,15 @@ feature {NONE} -- Action handlers
 			l_text: STRING_GENERAL
 		do
 			l_text := a_text_widget.text
-			if l_text = Void or else l_text.as_string_8.is_equal (default_description) then
+			if l_text = Void or else l_text.is_case_insensitive_equal (default_description) then
 				a_text_widget.set_foreground_color (colors.grid_item_text_color)
 				if a_text_widget /= description_text or else last_description = Void then
-					a_text_widget.set_text ("")
+					a_text_widget.remove_text
 				end
 			end
 		end
 
-	on_text_component_focused_out (a_text_widget: EV_TEXT_COMPONENT; a_default_text: STRING_GENERAL)
+	on_text_component_focused_out (a_text_widget: EV_TEXT_COMPONENT; a_default_text: READABLE_STRING_GENERAL)
 			-- Called when a registered text widget loses focused
 			--
 			-- `a_text_widget': The unfocused text_widget.
@@ -785,7 +793,7 @@ feature {NONE} -- User interface elements
 	severity_label: EV_LABEL
 				-- Severity label
 
-	log_out_link: EVS_LINK_LABEL
+	log_out_link: EV_LINK_LABEL
 			-- Logged in message lable link to log ou
 
 	username_text: EV_TEXT_FIELD
@@ -1053,7 +1061,7 @@ invariant
 	shrink_interval_positive: shrink_interval > 0
 
 ;note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

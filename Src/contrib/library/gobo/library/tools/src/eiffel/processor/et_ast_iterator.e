@@ -5,7 +5,7 @@ note
 		"Eiffel AST iterators"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2003-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2003-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -28,7 +28,7 @@ feature {ET_AST_NODE} -- Processing
 			an_expression.across_keyword.process (Current)
 			an_expression.iterable_expression.process (Current)
 			an_expression.as_keyword.process (Current)
-			an_expression.cursor_name.process (Current)
+			an_expression.item_name.process (Current)
 			if attached an_expression.invariant_part as l_invariant_part then
 				l_invariant_part.process (Current)
 			end
@@ -48,7 +48,7 @@ feature {ET_AST_NODE} -- Processing
 			an_instruction.across_keyword.process (Current)
 			an_instruction.iterable_expression.process (Current)
 			an_instruction.as_keyword.process (Current)
-			an_instruction.cursor_name.process (Current)
+			an_instruction.item_name.process (Current)
 			if attached an_instruction.from_compound as l_from_compound then
 				l_from_compound.process (Current)
 			end
@@ -169,6 +169,9 @@ feature {ET_AST_NODE} -- Processing
 		do
 			a_name.alias_keyword.process (Current)
 			a_name.alias_string.process (Current)
+			if attached a_name.convert_keyword as l_convert_keyword then
+				l_convert_keyword.process (Current)
+			end
 		end
 
 	process_alias_name (a_name: ET_ALIAS_NAME)
@@ -176,13 +179,28 @@ feature {ET_AST_NODE} -- Processing
 		do
 			a_name.alias_keyword.process (Current)
 			a_name.alias_string.process (Current)
+			if attached a_name.convert_keyword as l_convert_keyword then
+				l_convert_keyword.process (Current)
+			end
+		end
+
+	process_alias_name_list (a_list: ET_ALIAS_NAME_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
 		end
 
 	process_aliased_feature_name (a_name: ET_ALIASED_FEATURE_NAME)
 			-- Process `a_name'.
 		do
 			a_name.feature_name.process (Current)
-			a_name.alias_name.process (Current)
+			a_name.alias_names.process (Current)
 		end
 
 	process_all_export (an_export: ET_ALL_EXPORT)
@@ -235,17 +253,10 @@ feature {ET_AST_NODE} -- Processing
 		do
 		end
 
-	process_attachment_separate_keywords (a_keywords: ET_ATTACHMENT_SEPARATE_KEYWORDS)
+	process_attachment_mark_separate_keyword (a_keywords: ET_ATTACHMENT_MARK_SEPARATE_KEYWORD)
 			-- Process `a_keywords'.
 		do
-			a_keywords.attachment_keyword.process (Current)
-			a_keywords.separateness_keyword.process (Current)
-		end
-
-	process_attachment_symbol_separate_keyword (a_keywords: ET_ATTACHMENT_SYMBOL_SEPARATE_KEYWORD)
-			-- Process `a_keywords'.
-		do
-			a_keywords.attachment_symbol.process (Current)
+			a_keywords.attachment_mark.process (Current)
 			a_keywords.separateness_keyword.process (Current)
 		end
 
@@ -286,6 +297,27 @@ feature {ET_AST_NODE} -- Processing
 			if attached an_instruction.creation_call as l_creation_call then
 				l_creation_call.process (Current)
 			end
+		end
+
+	process_base_type_constraint_list (a_list: ET_BASE_TYPE_CONSTRAINT_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			a_list.left_brace.process (Current)
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
+			a_list.right_brace.process (Current)
+		end
+
+	process_base_type_rename_constraint (a_type_rename_constraint: ET_BASE_TYPE_RENAME_CONSTRAINT)
+			-- Process `a_type_rename_constraint'.
+		do
+			a_type_rename_constraint.type.process (Current)
+			a_type_rename_constraint.renames.process (Current)
 		end
 
 	process_binary_integer_constant (a_constant: ET_BINARY_INTEGER_CONSTANT)
@@ -472,6 +504,12 @@ feature {ET_AST_NODE} -- Processing
 			a_class.end_keyword.process (Current)
 		end
 
+	process_class_assertion (a_assertion: ET_CLASS_ASSERTION)
+			-- Process `a_assertion'.
+		do
+			process_keyword (a_assertion.class_keyword)
+		end
+
 	process_class_type (a_type: ET_CLASS_TYPE)
 			-- Process `a_type'.
 		do
@@ -586,6 +624,20 @@ feature {ET_AST_NODE} -- Processing
 			a_list.end_keyword.process (Current)
 		end
 
+	process_constraint_rename_list (a_list: ET_CONSTRAINT_RENAME_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			a_list.rename_keyword.process (Current)
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
+			a_list.end_keyword.process (Current)
+		end
+
 	process_convert_builtin_expression (a_convert_expression: ET_CONVERT_BUILTIN_EXPRESSION)
 			-- Process `a_convert_expression'.
 		do
@@ -645,6 +697,9 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_expression'.
 		do
 			an_expression.create_keyword.process (Current)
+			if attached an_expression.creation_region as l_creation_region then
+				l_creation_region.process (Current)
+			end
 			an_expression.creation_type.process (Current)
 			if attached an_expression.creation_call as l_creation_call then
 				l_creation_call.process (Current)
@@ -655,6 +710,9 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_instruction'.
 		do
 			an_instruction.create_keyword.process (Current)
+			if attached an_instruction.creation_region as l_creation_region then
+				l_creation_region.process (Current)
+			end
 			if attached an_instruction.creation_type as l_creation_type then
 				l_creation_type.process (Current)
 			end
@@ -664,12 +722,20 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_creation_region (a_region: ET_CREATION_REGION)
+			-- Process `a_region'.
+		do
+			a_region.left_symbol.process (Current)
+			a_region.class_name.process (Current)
+			a_region.right_symbol.process (Current)
+		end
+
 	process_creator (a_list: ET_CREATOR)
 			-- Process `a_list'.
 		local
 			i, nb: INTEGER
 		do
-			a_list.creation_keyword.process (Current)
+			a_list.create_keyword.process (Current)
 			if attached a_list.clients_clause as l_clients_clause then
 				l_clients_clause.process (Current)
 			end
@@ -1060,6 +1126,26 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_elseif_expression (an_elseif_part: ET_ELSEIF_EXPRESSION)
+			-- Process `an_elseif_part'.
+		do
+			an_elseif_part.conditional.process (Current)
+			an_elseif_part.then_keyword.process (Current)
+			an_elseif_part.then_expression.process (Current)
+		end
+
+	process_elseif_expression_list (a_list: ET_ELSEIF_EXPRESSION_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
+		end
+
 	process_elseif_part (an_elseif_part: ET_ELSEIF_PART)
 			-- Process `an_elseif_part'.
 		do
@@ -1087,6 +1173,18 @@ feature {ET_AST_NODE} -- Processing
 			an_expression.left.process (Current)
 			an_expression.operator.process (Current)
 			an_expression.right.process (Current)
+		end
+
+	process_explicit_convert_from_expression (a_convert_expression: ET_EXPLICIT_CONVERT_FROM_EXPRESSION)
+			-- Process `a_convert_expression'.
+		do
+			a_convert_expression.expression.process (Current)
+		end
+
+	process_explicit_convert_to_expression (a_convert_expression: ET_EXPLICIT_CONVERT_TO_EXPRESSION)
+			-- Process `a_convert_expression'.
+		do
+			a_convert_expression.expression.process (Current)
 		end
 
 	process_export_list (a_list: ET_EXPORT_LIST)
@@ -1566,6 +1664,20 @@ feature {ET_AST_NODE} -- Processing
 			an_identifier.comma.process (Current)
 		end
 
+	process_if_expression (a_expression: ET_IF_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			a_expression.conditional.process (Current)
+			a_expression.then_keyword.process (Current)
+			a_expression.then_expression.process (Current)
+			if attached a_expression.elseif_parts as l_elseif_parts then
+				l_elseif_parts.process (Current)
+			end
+			a_expression.else_keyword.process (Current)
+			a_expression.else_expression.process (Current)
+			a_expression.end_keyword.process (Current)
+		end
+
 	process_if_instruction (an_instruction: ET_IF_INSTRUCTION)
 			-- Process `an_instruction'.
 		do
@@ -1654,24 +1766,24 @@ feature {ET_AST_NODE} -- Processing
 			an_expression.right.process (Current)
 		end
 
-	process_infix_free_name (a_name: ET_INFIX_FREE_NAME)
-			-- Process `a_name'.
-		do
-			process_infix_name (a_name)
-		end
-
-	process_infix_name (a_name: ET_INFIX_NAME)
-			-- Process `a_name'.
-		do
-			a_name.infix_keyword.process (Current)
-			a_name.operator_string.process (Current)
-		end
-
 	process_infix_or_else_operator (an_operator: ET_INFIX_OR_ELSE_OPERATOR)
 			-- Process `an_operator'.
 		do
 			an_operator.or_keyword.process (Current)
 			an_operator.else_keyword.process (Current)
+		end
+
+	process_inspect_expression (a_expression: ET_INSPECT_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			a_expression.conditional.process (Current)
+			if attached a_expression.when_parts as l_when_parts then
+				l_when_parts.process (Current)
+			end
+			if attached a_expression.else_part as l_else_part then
+				l_else_part.process (Current)
+			end
+			a_expression.end_keyword.process (Current)
 		end
 
 	process_inspect_instruction (an_instruction: ET_INSPECT_INSTRUCTION)
@@ -1698,6 +1810,13 @@ feature {ET_AST_NODE} -- Processing
 				a_list.item (i).process (Current)
 				i := i + 1
 			end
+		end
+
+	process_iteration_cursor (a_iteration_cursor: ET_ITERATION_CURSOR)
+			-- Process `a_iteration_cursor'.
+		do
+			a_iteration_cursor.at_symbol.process (Current)
+			a_iteration_cursor.item_name.process (Current)
 		end
 
 	process_keyword (a_keyword: ET_KEYWORD)
@@ -1861,6 +1980,9 @@ feature {ET_AST_NODE} -- Processing
 		local
 			i, nb: INTEGER
 		do
+			if attached an_expression.cast_type as l_type then
+				l_type.process (Current)
+			end
 			an_expression.left_symbol.process (Current)
 			nb := an_expression.count
 			from i := 1 until i > nb loop
@@ -2354,19 +2476,6 @@ feature {ET_AST_NODE} -- Processing
 			an_expression.expression.process (Current)
 		end
 
-	process_prefix_free_name (a_name: ET_PREFIX_FREE_NAME)
-			-- Process `a_name'.
-		do
-			process_prefix_name (a_name)
-		end
-
-	process_prefix_name (a_name: ET_PREFIX_NAME)
-			-- Process `a_name'.
-		do
-			a_name.prefix_keyword.process (Current)
-			a_name.operator_string.process (Current)
-		end
-
 	process_qualified_call (a_call: ET_QUALIFIED_CALL)
 			-- Process `a_call'.
 		do
@@ -2421,6 +2530,17 @@ feature {ET_AST_NODE} -- Processing
 			if attached a_call.arguments as l_arguments then
 				l_arguments.process (Current)
 			end
+		end
+
+	process_quantifier_expression (a_expression: ET_QUANTIFIER_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			a_expression.quantifier_symbol.process (Current)
+			a_expression.item_name.process (Current)
+			a_expression.colon_symbol.process (Current)
+			a_expression.iterable_expression.process (Current)
+			a_expression.bar_symbol.process (Current)
+			a_expression.iteration_expression.process (Current)
 		end
 
 	process_question_mark_symbol (a_symbol: ET_QUESTION_MARK_SYMBOL)
@@ -2485,6 +2605,26 @@ feature {ET_AST_NODE} -- Processing
 				a_list.item (i).process (Current)
 				i := i + 1
 			end
+		end
+
+	process_repeat_instruction (a_instruction: ET_REPEAT_INSTRUCTION)
+			-- Process `a_instruction'.
+		local
+			i, nb: INTEGER
+		do
+			a_instruction.open_repeat_symbol.process (Current)
+			a_instruction.item_name.process (Current)
+			a_instruction.colon_symbol.process (Current)
+			a_instruction.iterable_expression.process (Current)
+			a_instruction.bar_symbol.process (Current)
+			if attached a_instruction.loop_compound as l_loop_compound then
+				nb := l_loop_compound.count
+				from i := 1 until i > nb loop
+					l_loop_compound.item (i).process (Current)
+					i := i + 1
+				end
+			end
+			a_instruction.close_repeat_symbol.process (Current)
 		end
 
 	process_result (an_expression: ET_RESULT)
@@ -2576,8 +2716,8 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_assertion'.
 		do
 			an_assertion.tag.process (Current)
-			if attached an_assertion.expression as l_expression then
-				l_expression.process (Current)
+			if attached an_assertion.untagged_assertion as l_untagged_assertion then
+				l_untagged_assertion.process (Current)
 			end
 		end
 
@@ -2618,6 +2758,34 @@ feature {ET_AST_NODE} -- Processing
 		do
 			a_type.type.process (Current)
 			a_type.comma.process (Current)
+		end
+
+	process_type_constraint_comma (a_type_constraint_comma: ET_TYPE_CONSTRAINT_COMMA)
+			-- Process `a_type_constraint_comma'.
+		do
+			a_type_constraint_comma.type_constraint.process (Current)
+			a_type_constraint_comma.comma.process (Current)
+		end
+
+	process_type_constraint_list (a_list: ET_TYPE_CONSTRAINT_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			a_list.left_brace.process (Current)
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
+			a_list.right_brace.process (Current)
+		end
+
+	process_type_rename_constraint (a_type_rename_constraint: ET_TYPE_RENAME_CONSTRAINT)
+			-- Process `a_type_rename_constraint'.
+		do
+			a_type_rename_constraint.type.process (Current)
+			a_type_rename_constraint.renames.process (Current)
 		end
 
 	process_underscored_integer_constant (a_constant: ET_UNDERSCORED_INTEGER_CONSTANT)
@@ -2733,6 +2901,26 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_expression'.
 		do
 			process_keyword (an_expression)
+		end
+
+	process_when_expression (a_when_part: ET_WHEN_EXPRESSION)
+			-- Process `a_when_part'.
+		do
+			a_when_part.choices.process (Current)
+			a_when_part.then_keyword.process (Current)
+			a_when_part.then_expression.process (Current)
+		end
+
+	process_when_expression_list (a_list: ET_WHEN_EXPRESSION_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
 		end
 
 	process_when_part (a_when_part: ET_WHEN_PART)

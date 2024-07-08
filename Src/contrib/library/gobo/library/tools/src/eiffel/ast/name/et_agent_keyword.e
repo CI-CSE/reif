@@ -5,7 +5,7 @@ note
 		"Eiffel 'agent' keywords"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2006-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 2006-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,8 +20,6 @@ inherit
 			text as name,
 			is_local as is_local_keyword,
 			is_precursor as is_precursor_keyword,
-			is_infix as is_infix_keyword,
-			is_prefix as is_prefix_keyword,
 			is_alias as is_alias_keyword
 		redefine
 			process,
@@ -44,6 +42,7 @@ feature -- Access
 
 	lower_name: STRING
 			-- Lower-name of feature name
+			-- (using UTF-8 encoding)
 			-- (May return the same object as `name' if already in lower case.)
 		do
 			Result := tokens.agent_keyword_name

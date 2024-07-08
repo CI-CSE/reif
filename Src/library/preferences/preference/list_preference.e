@@ -1,10 +1,4 @@
-note
-	description: "Summary description for {LIST_PREFERENCE}."
-	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
-
-deferred class
+﻿deferred class
 	LIST_PREFERENCE [G]
 
 inherit
@@ -28,27 +22,52 @@ feature -- Access
 				across
 					lst as c
 				loop
-					Result.put (c.item, i)
+					Result.put (c, i)
 					i := i + 1
 				end
 			end
 		ensure
-			value_unmodified: value.count = old (value.count)
+			value_unmodified: value.count = old value.count
 			same_count: Result.count = value.count
-			same: not value.is_empty implies (across value as c all c.item ~ Result[Result.lower + c.target_index - c.first_index] end)
+			same: not value.is_empty implies ∀ c: value ¦ c ~ Result [Result.lower + @ c.target_index - @ c.first_index]
+		end
+
+	value_as_list_of_text: LIST [STRING_32]
+		local
+			l_value: like value
+			lst: ARRAYED_LIST [STRING_32]
+		do
+			l_value := value
+			create lst.make (l_value.count)
+			lst.compare_objects
+			⟳ i: l_value ¦ lst.force (item_to_string_representation (i)) ⟲
+			Result := lst
+		end
+
+	string_type: STRING
+			-- String description of this preference type.
+		once
+			Result := "LIST"
+		end
+
+feature -- Measurement
+
+	value_count: INTEGER
+		do
+			Result := value.count
 		end
 
 feature {PREFERENCE_EXPORTER} -- Access
 
 	text_value: STRING_32
-			-- String representation of `value'.				
+			-- String representation of `value'.
 		do
 			create Result.make_empty
 			if attached value as lst then
 				across
 					lst as c
 				loop
-					if attached c.item as l_item then
+					if attached c as l_item then
 						if not Result.is_empty then
 							Result.append_character (item_separator)
 						end
@@ -80,7 +99,7 @@ feature -- Formatting
 	escaped_string (s: STRING_32): STRING_32
 			-- Escaped string `s' to avoid issue with `item_separator' (i.e  ';')
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 			l_escaped_characters: like escaped_characters
 		do
@@ -92,11 +111,9 @@ feature -- Formatting
 			until
 				i > n
 			loop
-				c := s[i]
-				if i < n then
-					if l_escaped_characters.has (c) then
-						Result.append_character (escape_character)
-					end
+				c := s [i]
+				if i < n and then l_escaped_characters.has (c) then
+					Result.append_character (escape_character)
 				end
 				Result.append_character (c)
 				i := i + 1
@@ -105,7 +122,7 @@ feature -- Formatting
 
 	unescaped_string (s: STRING_32): STRING_32
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 		do
 			from
@@ -115,46 +132,14 @@ feature -- Formatting
 			until
 				i > n
 			loop
-				c := s[i]
-				if c = escape_character and i < n then
-					if escaped_characters.has (s[i+1]) then
-						i := i + 1
-						c := s[i]
-					end
+				c := s [i]
+				if c = escape_character and i < n and then escaped_characters.has (s [i + 1]) then
+					i := i + 1
+					c := s [i]
 				end
 				Result.append_character (c)
 				i := i + 1
 			end
-		end
-
-feature -- Access
-
-	value_count: INTEGER
-		do
-			Result := value.count
-		end
-
-	value_as_list_of_text: LIST [STRING_32]
-		local
-			l_value: like value
-			lst: ARRAYED_LIST [STRING_32]
-		do
-			l_value := value
-			create lst.make (l_value.count)
-			across
-				l_value as c
-			loop
-				lst.force (item_to_string_representation (c.item))
-			end
-			Result := lst
-		end
-
-feature -- Access
-
-	string_type: STRING
-			-- String description of this preference type.
-		once
-			Result := "LIST"
 		end
 
 feature -- Change
@@ -172,8 +157,8 @@ feature -- Change
 			across
 				lst as c
 			loop
-				if not c.item.is_empty then
-					l_value.force (item_from_string_representation (unescaped_string (c.item)))
+				if not c.is_empty then
+					l_value.force (item_from_string_representation (unescaped_string (c)))
 				end
 			end
 			set_value (l_value)
@@ -182,7 +167,7 @@ feature -- Change
 feature -- Query
 
 	valid_value_string (a_string: READABLE_STRING_GENERAL): BOOLEAN
-			-- Is `a_string' valid for this preference type to convert into a value?		
+			-- Is `a_string' valid for this preference type to convert into a value?
 		do
 			Result := True
 		end
@@ -210,7 +195,7 @@ feature {NONE} -- Implementation
 			until
 				i > n
 			loop
-				c := s[i]
+				c := s [i]
 				if c = escape_character then -- escape character
 					i := i + 1
 				elseif c = item_separator then
@@ -244,7 +229,9 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -253,4 +240,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

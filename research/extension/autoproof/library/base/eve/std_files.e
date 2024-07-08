@@ -13,6 +13,22 @@
 class
 	STD_FILES
 
+inherit
+	ANY
+		redefine
+			default_create
+		end
+
+feature {NONE} -- Creation
+
+	default_create
+			-- Initialize storage.
+		note
+			status: creator
+		do
+			create internal_last_string_.make_from_string ("")
+		end
+
 feature -- Access
 
 	input: PLAIN_TEXT_FILE
@@ -131,7 +147,7 @@ feature -- Status report
 			instance_free: class
 		end
 
-	last_real, lastreal: REAL_32
+	last_real, lastreal, last_real_32: REAL_32
 			-- Last real read by `read_real'
 		do
 			Result := input.last_real
@@ -148,8 +164,8 @@ feature -- Status report
 			instance_free: class
 		end
 
-	last_double, lastdouble: REAL_64
-			-- Last double read by `read_double'
+	last_double, lastdouble, last_real_64: REAL_64
+			-- Last double read by `read_double'.
 		do
 			Result := input.last_double
 		ensure
@@ -179,28 +195,37 @@ feature -- Element change
 			default_output := output
 		end
 
-	put_character, putchar (c: CHARACTER)
+	put_character, putchar (c: CHARACTER_8)
 			-- Write `c' at end of default output.
 		do
 			standard_default.put_character (c)
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write `s' at end of default output.
 		require
 			string_not_void: s /= Void
-			modify (Current)
 		do
 			standard_default.put_string (s)
+		ensure
+			modify (Current)
 		end
 
-	put_real, putreal (r: REAL_32)
+	put_string_32 (s: READABLE_STRING_32)
+			-- Write `s' at end of default output.
+		require
+			string_not_void: s /= Void
+		do
+			standard_default.put_string_32 (s)
+		end
+
+	put_real, putreal, put_real_32 (r: REAL_32)
 			-- Write `r' at end of default output.
 		do
 			standard_default.put_real (r)
 		end
 
-	put_double, putdouble (d: REAL_64)
+	put_double, putdouble, put_real_64 (d: REAL_64)
 			-- Write `d' at end of default output.
 		do
 			standard_default.put_double (d)
@@ -266,10 +291,10 @@ feature -- Element change
 
 	put_new_line, new_line
 			-- Write line feed at end of default output.
-		require
-			modify (Current)
 		do
 			standard_default.put_new_line
+		ensure
+			modify (Current)
 		end
 
 feature -- Input
@@ -277,8 +302,6 @@ feature -- Input
 	read_integer, readint, read_integer_32
 			-- Read a new 32-bit integer from standard input.
 			-- Make result available in `last_integer'.
-		require
-			reads ([])
 		do
 			input.read_integer
 		ensure
@@ -288,6 +311,8 @@ feature -- Input
 	read_integer_8
 			-- Read a new 8-bit integer from standard input.
 			-- Make result available in `last_integer_8'.
+		require
+			reads ([])
 		do
 			input.read_integer_8
 		ensure
@@ -308,6 +333,8 @@ feature -- Input
 	read_integer_64
 			-- Read a new 64-bit integer from standard input.
 			-- Make result available in `last_integer_64'.
+		require
+			reads ([])
 		do
 			input.read_integer_64
 		ensure
@@ -371,15 +398,13 @@ feature -- Input
 	read_line, readline
 			-- Read a line from standard input.
 			-- Make result available in `last_string'.
-		require
-			modify (Current)
 		do
 			input.read_line
 			create internal_last_string_.make_from_string (last_string)
 		ensure
 			internal_last_string_ /= Void
 			internal_last_string_.is_wrapped
-
+			modify (Current)
 			last_string_not_void: last_string /= Void
 		end
 
@@ -438,7 +463,7 @@ feature -- EVE
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

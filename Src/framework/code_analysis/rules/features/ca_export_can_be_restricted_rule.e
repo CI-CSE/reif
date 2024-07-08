@@ -15,7 +15,7 @@ inherit
 
 	AST_ITERATOR
 		redefine
-			process_nested_as
+			process_nested_expr_as
 		end
 
 create
@@ -48,7 +48,7 @@ feature {NONE} -- Implementation
 				current_context.checking_class.written_in_features as l_feat
 			loop
 					-- Only check features that are exported
-				if not l_feat.item.export_status.is_none then
+				if not l_feat.export_status.is_none then
 					from
 						l_clients.start
 						l_has_clients_outside_hierarchy := False
@@ -58,14 +58,14 @@ feature {NONE} -- Implementation
 					loop
 						if
 							not l_clients.item.inherits_from (current_context.checking_class)
-							and then l_feat.item.callers_32 (l_clients.item, 0) /= Void
+							and then l_feat.callers_32 (l_clients.item, 0) /= Void
 						then
 							l_has_clients_outside_hierarchy := True
 						elseif
-							l_feat.item.callers_32 (l_clients.item, 0) /= Void
-							and then not has_qualified_calls (l_feat.item, l_clients.item)
+							l_feat.callers_32 (l_clients.item, 0) /= Void
+							and then not has_qualified_calls (l_feat, l_clients.item)
 						then
-							create_violation (l_feat.item.ast)
+							create_violation (l_feat.ast)
 						end
 
 						l_clients.forth
@@ -85,13 +85,12 @@ feature {NONE} -- Implementation
 			Result := found_qualified_call
 		end
 
-	process_nested_as (a_nested: attached NESTED_AS)
+	process_nested_expr_as (a_nested: NESTED_EXPR_AS)
 		do
 			if
-				attached {ACCESS_FEAT_AS} a_nested as l_feat
-				and then l_feat.access_name_32.same_string (current_feature_name)
-				and then attached current_context.node_type (a_nested.target, current_feature) as l_type
-				and then l_type.name.is_equal (current_context.checking_class.name)
+				a_nested.message.access_name_32.same_string (current_feature_name) and then
+				attached current_context.node_type (a_nested.target, current_feature) as l_type and then
+				l_type.name.is_equal (current_context.checking_class.name)
 			then
 				found_qualified_call := True
 			end

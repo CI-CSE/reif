@@ -5,7 +5,7 @@ note
 		"Eiffel dynamic type set builders"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2004-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2004-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -99,6 +99,11 @@ feature -- Factory
 			static_type_set: Result.static_type = a_type
 		end
 
+feature -- Measurement
+
+	dynamic_type_set_count: INTEGER
+			-- Number of dynamic type sets created by `new_dynamic_type_set'
+
 feature -- Generation
 
 	build_dynamic_type_sets
@@ -107,7 +112,7 @@ feature -- Generation
 		deferred
 		end
 
-	mark_type_alive (a_type: ET_DYNAMIC_TYPE)
+	mark_type_alive (a_type: ET_DYNAMIC_PRIMARY_TYPE)
 			-- Mark `a_type' as alive.
 			-- This means that instances of that type can be created in the system.
 			-- In case of reference type, we have to make sure that its 'dispose'
@@ -119,8 +124,25 @@ feature -- Generation
 		do
 			if not a_type.is_alive then
 				a_type.set_alive
-					-- Make sure that feature 'dispose' is alive for reference types.
-				if not a_type.is_expanded then
+				if a_type.is_expanded then
+						-- Make sure that feature 'twin' is alive for expanded types.
+						-- Note that this will make fetaure 'copy' alive as well
+						-- because 'twin' calls 'copy' internally.
+					l_seed := current_system.twin_seed
+					if l_seed > 0 then
+						if attached a_type.seeded_dynamic_query (l_seed, current_dynamic_system) as l_feature then
+							l_feature.set_regular (True)
+						end
+					end
+						-- Make sure that feature 'is_equal' is alive for expanded types.
+					l_seed := current_system.is_equal_seed
+					if l_seed > 0 then
+						if attached a_type.seeded_dynamic_query (l_seed, current_dynamic_system) as l_feature then
+							l_feature.set_regular (True)
+						end
+					end
+				else
+						-- Make sure that feature 'dispose' is alive for reference types.
 					l_seed := current_system.dispose_seed
 					if l_seed > 0 then
 						if attached a_type.seeded_dynamic_procedure (l_seed, current_dynamic_system) as l_feature then
@@ -134,7 +156,7 @@ feature -- Generation
 			a_type_alive: a_type.is_alive
 		end
 
-	mark_string_type_alive (a_string_type: ET_DYNAMIC_TYPE)
+	mark_string_type_alive (a_string_type: ET_DYNAMIC_PRIMARY_TYPE)
 			-- Make sure that `a_string_type' and the type of its 'area'
 			-- are marked as alive.
 		require
@@ -157,7 +179,7 @@ feature -- Generation
 					set_fatal_error
 					error_handler.report_giaaa_error
 				else
-					mark_type_alive (l_dynamic_type_set.static_type)
+					mark_type_alive (l_dynamic_type_set.static_type.primary_type)
 				end
 			end
 		ensure
@@ -176,7 +198,7 @@ feature -- Error handling
 
 feature {ET_DYNAMIC_QUALIFIED_CALL} -- Generation
 
-	propagate_call_type (a_type: ET_DYNAMIC_TYPE; a_call: ET_DYNAMIC_QUALIFIED_CALL)
+	propagate_call_type (a_type: ET_DYNAMIC_PRIMARY_TYPE; a_call: ET_DYNAMIC_QUALIFIED_CALL)
 			-- Propagate `a_type' from target type set `a_call'.
 		require
 			a_type_not_void: a_type /= Void
@@ -186,7 +208,7 @@ feature {ET_DYNAMIC_QUALIFIED_CALL} -- Generation
 
 feature {ET_DYNAMIC_QUALIFIED_CALL} -- Generation
 
-	propagate_tuple_label_expression_dynamic_types (a_call: ET_DYNAMIC_QUALIFIED_QUERY_CALL; a_type: ET_DYNAMIC_TYPE)
+	propagate_tuple_label_expression_dynamic_types (a_call: ET_DYNAMIC_QUALIFIED_QUERY_CALL; a_type: ET_DYNAMIC_PRIMARY_TYPE)
 			-- Propagate dynamic types of the label in tuple `a_type' to
 			-- the dynamic type set of the result type of `a_call'.
 		require
@@ -196,7 +218,7 @@ feature {ET_DYNAMIC_QUALIFIED_CALL} -- Generation
 		deferred
 		end
 
-	propagate_tuple_label_setter_dynamic_types (a_call: ET_DYNAMIC_QUALIFIED_PROCEDURE_CALL; a_type: ET_DYNAMIC_TYPE)
+	propagate_tuple_label_setter_dynamic_types (a_call: ET_DYNAMIC_QUALIFIED_PROCEDURE_CALL; a_type: ET_DYNAMIC_PRIMARY_TYPE)
 			-- Propagate dynamic types of the source of tuple label setter `a_call'
 			-- to the dynamic type set of the corresponding tuple label in `a_type'.
 		require
@@ -208,7 +230,7 @@ feature {ET_DYNAMIC_QUALIFIED_CALL} -- Generation
 
 feature {ET_DYNAMIC_OBJECT_EQUALITY_EXPRESSION, ET_DYNAMIC_EQUALITY_EXPRESSION} -- Generation
 
-	propagate_is_equal_argument_type (a_type: ET_DYNAMIC_TYPE; a_feature: ET_DYNAMIC_FEATURE)
+	propagate_is_equal_argument_type (a_type: ET_DYNAMIC_PRIMARY_TYPE; a_feature: ET_DYNAMIC_FEATURE)
 			-- Propagate `a_type' as argument of `a_feature', the feature being the
 			-- feature 'is_equal' possibly used internally in object equality ('~' and '/~')
 			-- or in equality ('=' and '/=') when the target type is expanded.
@@ -220,7 +242,7 @@ feature {ET_DYNAMIC_OBJECT_EQUALITY_EXPRESSION, ET_DYNAMIC_EQUALITY_EXPRESSION} 
 
 feature {ET_DYNAMIC_SYSTEM} -- Generation
 
-	propagate_type_of_type_result_type (a_type: ET_DYNAMIC_TYPE; a_feature: ET_DYNAMIC_FEATURE)
+	propagate_type_of_type_result_type (a_type: ET_DYNAMIC_PRIMARY_TYPE; a_feature: ET_DYNAMIC_FEATURE)
 			-- Propagate `a_type' to the dynamic type set of the result of the
 			-- built-in feature `a_feature' corresponding to "INTERNAL.type_of_type".
 		require
@@ -229,7 +251,7 @@ feature {ET_DYNAMIC_SYSTEM} -- Generation
 		deferred
 		end
 
-	propagate_alive_conforming_descendants (a_type: ET_DYNAMIC_TYPE)
+	propagate_alive_conforming_descendants (a_type: ET_DYNAMIC_PRIMARY_TYPE)
 			-- Propagage `a_type' to all `alive_conforming_descendants' to which it conforms.
 		require
 			a_type_not_void: a_type /= Void
@@ -241,15 +263,13 @@ feature {ET_DYNAMIC_SYSTEM} -- Generation
 				until
 					l_alive_conforming_descendants.after
 				loop
-					if a_type.conforms_to_type (l_alive_conforming_descendants.key_for_iteration) then
-						l_alive_conforming_descendants.item_for_iteration.put_type_from_type_set (a_type, a_type, current_dynamic_system)
-					end
+					l_alive_conforming_descendants.item_for_iteration.put_type_from_type_set (a_type, a_type, current_dynamic_system)
 					l_alive_conforming_descendants.forth
 				end
 			end
 		end
 
-feature {ET_DYNAMIC_TYPE, ET_DYNAMIC_SYSTEM} -- Generation
+feature {ET_DYNAMIC_PRIMARY_TYPE, ET_DYNAMIC_SYSTEM} -- Generation
 
 	propagate_reference_field_dynamic_types (a_attribute: ET_DYNAMIC_FEATURE)
 			-- Propagate the dynamic types of the dynamic type set of
@@ -273,7 +293,7 @@ feature {ET_DYNAMIC_TYPE, ET_DYNAMIC_SYSTEM} -- Generation
 
 feature {ET_DYNAMIC_TUPLE_TYPE} -- Generation
 
-	build_tuple_item (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; an_item_feature: ET_DYNAMIC_FEATURE)
+	build_tuple_reference_item (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; an_item_feature: ET_DYNAMIC_FEATURE)
 			-- Build type set of result type of `an_item_feature' from `a_tuple_type'.
 		require
 			a_tuple_type_not_void: a_tuple_type /= Void
@@ -281,7 +301,7 @@ feature {ET_DYNAMIC_TUPLE_TYPE} -- Generation
 		deferred
 		end
 
-	build_tuple_put (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; a_put_feature: ET_DYNAMIC_FEATURE)
+	build_tuple_put_reference (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; a_put_feature: ET_DYNAMIC_FEATURE)
 			-- Build type set of argument type of `a_put_feature' from `a_tuple_type'.
 		require
 			a_tuple_type_not_void: a_tuple_type /= Void
@@ -310,7 +330,7 @@ feature {ET_DYNAMIC_FEATURE} -- Generation
 		end
 
 	alive_conforming_descendants_per_type: detachable DS_HASH_TABLE [like new_dynamic_type_set, ET_DYNAMIC_TYPE]
-			-- Dynamic type set sof all alive types which conform to a given type, indexed by this type.
+			-- Dynamic type sets of all alive types which conform to a given type, indexed by this type.
 			-- All the given types for which `alive_conforming_descendants' has been called are kept and
 			-- updated in this table.
 
@@ -320,8 +340,9 @@ feature {ET_DYNAMIC_FEATURE} -- Generation
 			a_type_not_void: a_type /= Void
 		local
 			l_alive_conforming_descendants_per_type: like alive_conforming_descendants_per_type
-			l_dynamic_types: DS_ARRAYED_LIST [ET_DYNAMIC_TYPE]
-			l_other_type: ET_DYNAMIC_TYPE
+			l_dynamic_types: DS_ARRAYED_LIST [ET_DYNAMIC_PRIMARY_TYPE]
+			l_primary_type: ET_DYNAMIC_PRIMARY_TYPE
+			l_other_type: ET_DYNAMIC_PRIMARY_TYPE
 			i, nb: INTEGER
 		do
 			l_alive_conforming_descendants_per_type := alive_conforming_descendants_per_type
@@ -334,14 +355,18 @@ feature {ET_DYNAMIC_FEATURE} -- Generation
 				Result := l_alive_conforming_descendants_per_type.found_item
 			else
 				Result := new_dynamic_type_set (a_type)
-				l_dynamic_types := current_dynamic_system.dynamic_types
-				nb := l_dynamic_types.count
-				from i := 1 until i > nb loop
-					l_other_type := l_dynamic_types.item (i)
-					if l_other_type.is_alive and then l_other_type.conforms_to_type (a_type) then
-						Result.put_type_from_type_set (l_other_type, l_other_type, current_dynamic_system)
+				l_alive_conforming_descendants_per_type.force_last_new (Result, a_type)
+				if Result /= a_type then
+					l_primary_type := a_type.primary_type
+					l_dynamic_types := current_dynamic_system.dynamic_types
+					nb := l_dynamic_types.count
+					from i := 1 until i > nb loop
+						l_other_type := l_dynamic_types.item (i)
+						if l_other_type.is_alive then
+							Result.put_type_from_type_set (l_other_type, l_other_type, current_dynamic_system)
+						end
+						i := i + 1
 					end
-					i := i + 1
 				end
 			end
 		ensure

@@ -208,7 +208,7 @@ concurrent_prefix='c'
 cp='/bin/cp'
 eiflib='finalized'
 if [ -n "$LD" ]; then
-	ld='$LD'
+	ld=$LD
 else
 	ld='ld'
 fi
@@ -236,7 +236,7 @@ shared_suffix='.dylib'
 shared_rt_suffix='.dylib'
 sharedlibs='-lm'
 mtsharedlibs='-lm -lpthread'
-sharedlibversion='.18.11'
+sharedlibversion='.23.06'
 sharedlink='gcc'
 suffix='.a'
 wkeiflib='wkbench'

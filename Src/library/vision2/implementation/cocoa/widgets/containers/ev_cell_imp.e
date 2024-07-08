@@ -19,9 +19,9 @@ inherit
 	EV_SINGLE_CHILD_CONTAINER_IMP
 		redefine
 			interface,
+			set_background_color,
 			client_height,
-			client_width,
-			make
+			client_width
 		end
 
 	EV_DOCKABLE_TARGET_IMP
@@ -111,4 +111,14 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 			-- Provides a common user interface to possibly dependent
 			-- functionality implemented by `Current'.
 
+note
+	copyright: "Copyright (c) 1984-2019, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end -- class EV_CELL_IMP

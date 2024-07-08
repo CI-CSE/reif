@@ -9,12 +9,11 @@ class
 inherit
 	KL_TEXT_OUTPUT_FILE
 		rename
-			make as kl_make,
-			make_with_name as make
+			make as kl_make
 		export
 			{ANY} path
 		redefine
-			make, make_with_path
+			make_with_path
 		end
 
 create
@@ -27,19 +26,14 @@ feature {NONE} -- Initialization
 			-- (`a_name' should follow the pathname convention
 			-- of the underlying platform. For pathname conversion
 			-- use KI_FILE_SYSTEM.pathname_from_file_system.)
-		local
-			u: UTF_CONVERTER
 		do
-			name := u.utf_32_string_to_utf_8_string_8 (a_name)
-			Precursor (a_name)
+			kl_make ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_name))
 		end
 
 	make_with_path (a_path: PATH)
 			-- <Precursor>
-		local
-			u: UTF_CONVERTER
 		do
-			name := u.utf_32_string_to_utf_8_string_8 (a_path.name)
+			name := {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_path.name)
 			Precursor (a_path)
 		end
 

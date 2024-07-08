@@ -20,6 +20,8 @@ feature {NONE} -- Initialization
 			-- Creation method
 		require
 			a_grid_not_void: a_grid /= Void
+		local
+			col: EV_GRID_COLUMN
 		do
 			object_grid := a_grid
 
@@ -31,31 +33,39 @@ feature {NONE} -- Initialization
 			object_grid.insert_new_column (3)
 			object_grid.insert_new_column (4)
 			object_grid.insert_new_column (5)
-			object_grid.column (1).set_title ("Object Type")
-			object_grid.column (2).set_title ("Count/Address")
-			object_grid.column (3).set_title ("Delta/Start Object")
-			object_grid.column (4).set_title ("Phyiscal Size")
-			object_grid.column (5).set_title ("Average/Deep Physical Size")
-			object_grid.column (1).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (1, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (2).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (2, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (3).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (3, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (4).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (4, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (5).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (5, ?, ?, ?, ?, ?, ?, ?, ?))
 
-			object_grid.column (1).header_item.pointer_double_press_actions.extend (agent adjust_column_width (1, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (2).header_item.pointer_double_press_actions.extend (agent adjust_column_width (2, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (3).header_item.pointer_double_press_actions.extend (agent adjust_column_width (3, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (4).header_item.pointer_double_press_actions.extend (agent adjust_column_width (4, ?, ?, ?, ?, ?, ?, ?, ?))
-			object_grid.column (5).header_item.pointer_double_press_actions.extend (agent adjust_column_width (5, ?, ?, ?, ?, ?, ?, ?, ?))
+			col := object_grid.column (1)
+			col.set_title ("Object Type")
+			col.header_item.pointer_button_press_actions.extend (agent on_grid_header_click (1, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.header_item.pointer_double_press_actions.extend (agent adjust_column_width (1, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.set_width (col.minimum_width.max (500))
+
+			col := object_grid.column (2)
+			col.set_title ("Count/Address")
+			col.header_item.pointer_button_press_actions.extend (agent on_grid_header_click (2, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.header_item.pointer_double_press_actions.extend (agent adjust_column_width (2, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.set_width (col.minimum_width.max (100))
+
+			col := object_grid.column (3)
+			col.set_title ("Delta/Start Object")
+			col.header_item.pointer_button_press_actions.extend (agent on_grid_header_click (3, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.header_item.pointer_double_press_actions.extend (agent adjust_column_width (3, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.set_width (col.minimum_width.max (100))
+
+			col := object_grid.column (4)
+			col.set_title ("Physical Size")
+			col.header_item.pointer_button_press_actions.extend (agent on_grid_header_click (4, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.header_item.pointer_double_press_actions.extend (agent adjust_column_width (4, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.set_width (col.minimum_width.max (100))
+
+			col := object_grid.column (5)
+			col.set_title ("Average/Deep Physical Size")
+			col.header_item.pointer_button_press_actions.extend (agent on_grid_header_click (5, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.header_item.pointer_double_press_actions.extend (agent adjust_column_width (5, ?, ?, ?, ?, ?, ?, ?, ?))
+			col.set_width (col.minimum_width.max (100))
 
 			object_grid.set_pick_and_drop_mode
 			object_grid.set_item_pebble_function (agent pick_item)
-
-			object_grid.column (1).set_width (500)
-			object_grid.column (2).set_width (100)
-			object_grid.column (3).set_width (100)
-			object_grid.column (4).set_width (100)
-			object_grid.column (5).set_width (100)
 
 			show_memory_map
 		ensure
@@ -69,8 +79,11 @@ feature {NONE} -- Initialization
 		require
 			a_column_index_valid: column_index_valid (a_column_index)
 		do
-			if object_grid.row_count > 0 then
-				object_grid.column (a_column_index).set_width (object_grid.column (a_column_index).required_width_of_item_span (1, object_grid.row_count))
+			if 
+				object_grid.row_count > 0 and then
+				attached object_grid.column (a_column_index) as col
+			then
+				col.set_width (col.required_width_of_item_span (1, object_grid.row_count).max (col.minimum_width))
 			end
 		end
 
@@ -128,7 +141,7 @@ feature -- Command
 					if l_map /= Void then
 						add_to_reference_table (l_new_table.key_for_iteration, l_map)
 					else
-						check has_l_map: False end  -- Implied by `finding_route_to_once' and code in this "from" part.
+						check has_l_map: False end -- Implied by `finding_route_to_once' and code in this "from" part.
 					end
 				end
 
@@ -190,15 +203,19 @@ feature {NONE} -- Implementation
 			valid: a_item.column.index = 1
 		do
 			if a_item /= Void and then a_item.column.index = 1 then
-				-- If is an item represent a object. Only an item represent an object has been setted the data.
+					-- If is an item represent a object. Only an item represent an object has been setted the data.
 				if attached a_item.data as l_data then
 					create {MA_OBJECT_STONE} Result.make (l_data)
 					object_grid.set_accept_cursor (accept_node)
 					object_grid.set_deny_cursor (deny_node)
 				else
 						-- If is an item represent a class.
-					if attached {EV_GRID_LABEL_ITEM} a_item as l_item then
-						create {MA_CLASS_STONE} Result.make (l_item.text)
+					if
+						attached {EV_GRID_LABEL_ITEM} a_item as l_item and then
+						l_item.text.is_valid_as_string_8
+					then
+							-- TODO: handle Unicode.
+						create {MA_CLASS_STONE} Result.make (l_item.text.to_string_8)
 					else
 						create {MA_CLASS_STONE} Result.make ("Unknown grid item")
 					end
@@ -244,14 +261,14 @@ feature {NONE} -- Implementation
 			if l_grid_data /= Void then
 				inspect
 					sorted_column
-					when 1 then create l_agent_sorter.make (agent sort_on_type_name)
-					when 2 then create l_agent_sorter.make (agent sort_on_count)
-					when 3 then create l_agent_sorter.make (agent sort_on_delta)
-					when 4, 5 then
+				when 1 then create l_agent_sorter.make (agent sort_on_type_name)
+				when 2 then create l_agent_sorter.make (agent sort_on_count)
+				when 3 then create l_agent_sorter.make (agent sort_on_delta)
+				when 4, 5 then
 						-- No sorting can be performed on sizes as it will slow down the grid usage.
 				end
 				if l_agent_sorter /= Void then
-					;(create {QUICK_SORTER [like row_data]}.make (l_agent_sorter)).sort (l_grid_data)
+					; (create {QUICK_SORTER [like row_data]}.make (l_agent_sorter)).sort (l_grid_data)
 						-- Perform update action.
 					a_update_action.call
 				end
@@ -359,10 +376,10 @@ feature {NONE} -- Implementation
 				l_data := memory.objects_instance_of_type (a_dynamic_type)
 				if l_data /= Void then
 
-					debug ("larry")
+					debug ("memory_analyzer")
 						io.put_string ("%Nin MA_OBJECT_SNAPSHOT_MEDIATOR: void object? " + l_data.count.out + " orignal object is: " + internal.type_name_of_type (a_dynamic_type))
 					end
-					--| FIXIT: Why get void object here? There sometime a void object...?
+						-- FIXIT: Why get void object here? There sometime a void object...?
 					object_grid.insert_new_rows_parented (l_data.count, a_parent_row.index + 1, a_parent_row)
 					from
 						i := 0
@@ -397,14 +414,14 @@ feature {NONE} -- Implementation
 							create l_item.make_with_text ("Click to compute deep physical size")
 							l_item.set_data (l_any)
 							l_item.pointer_button_press_actions.extend (agent (a1, a2, a3: INTEGER_32; a4, a5, a6: REAL_64; a7, a8: INTEGER_32; a_item: EV_GRID_LABEL_ITEM)
-								do
-									if attached a_item.data as d then
-										a_item.set_text (formatted_size (internal.deep_physical_size_64 (d)))
-									else
-										a_item.set_text ("0 B")
-									end
-									a_item.pointer_button_press_actions.wipe_out
-								end (?, ?, ?, ?, ?, ?, ?, ?, l_item))
+									do
+										if attached a_item.data as d then
+											a_item.set_text (formatted_size (internal.deep_physical_size_64 (d)))
+										else
+											a_item.set_text ("0 B")
+										end
+										a_item.pointer_button_press_actions.wipe_out
+									end (?, ?, ?, ?, ?, ?, ?, ?, l_item))
 							object_grid.set_item (5, j, l_item)
 
 							l_row := object_grid.row (j)
@@ -433,7 +450,7 @@ feature {NONE} -- Implementation
 			l_int: INTERNAL
 			l_any: ANY
 			l_row: EV_GRID_ROW
-			l_string: STRING
+			l_string: READABLE_STRING_32
 			l_count: INTEGER
 		do
 			if a_parent_row.subrow_count = 0 then
@@ -446,8 +463,7 @@ feature {NONE} -- Implementation
 					until
 						j = nb
 					loop
-						l_string := l_int.type_name (l_data.item (j))
-						if not is_object_from_ma (l_string) then
+						if not is_object_from_ma (l_int.type_name_32 (l_data.item (j))) then
 							l_count := l_count + 1
 						end
 						j := j + 1
@@ -461,9 +477,9 @@ feature {NONE} -- Implementation
 					until
 						j = nb
 					loop
-						l_string := l_int.type_name (l_data.item (j))
+						l_string := l_int.type_name_32 (l_data.item (j))
 						if not is_object_from_ma (l_string) then
-							create l_item.make_with_text ((i - l_row_index).out + ": " + l_string)
+							create l_item.make_with_text ((i - l_row_index).out.to_string_32 + ": " + l_string)
 							l_item.set_data (l_data.item (j))
 							l_item.set_pixmap (icons.object_grid_icon)
 							object_grid.set_item (1, i, l_item)
@@ -660,15 +676,16 @@ feature {NONE} -- Implementation
 
 feature -- Status report
 
-	is_object_from_ma (a_str: STRING): BOOLEAN
+	is_object_from_ma (a_str: READABLE_STRING_32): BOOLEAN
 			-- If the type of object is from MA.
 		do
 			if a_str /= Void then
-				Result := a_str.is_equal (once "MA_GRID_LABEL_ITEM") or else
-						a_str.is_equal (once "TUPLE [MA_OBJECT_SNAPSHOT_MEDIATOR, ANY, EV_GRID_ROW]") or else
+				Result :=
+					a_str.same_string_general (once "MA_GRID_LABEL_ITEM") or else
+					a_str.same_string_general (once "TUPLE [MA_OBJECT_SNAPSHOT_MEDIATOR, ANY, EV_GRID_ROW]") or else
 						--a_str.is_equal (once "MA_OBJECT_SNAPSHOT_MEDIATOR") or else
-						a_str.is_equal (once "TUPLE [MA_OBJECT_SNAPSHOT_MEDIATOR, ANY]") or else
-						a_str.has_substring ("MA_OBJECT_SNAPSHOT")
+					a_str.same_string_general (once "TUPLE [MA_OBJECT_SNAPSHOT_MEDIATOR, ANY]") or else
+					a_str.has_substring ("MA_OBJECT_SNAPSHOT")
 			end
 		end
 
@@ -696,7 +713,7 @@ feature {NONE} -- Fields
 			-- the main grid to show object snapshot datas
 
 	sorted_column: INTEGER
-			-- Column on which sorting is done.	
+			-- Column on which sorting is done.
 
 	sorting_order: BOOLEAN
 			-- If True, sorted from the smaller to the bigger.
@@ -730,7 +747,7 @@ feature {NONE} -- Route building.
 			-- A selected object.
 
 	selected_item: detachable MA_GRID_CHECK_BOX_ITEM
-			-- All selected items.		
+			-- All selected items.
 
 feature {NONE} -- Sorting Implemention
 
@@ -741,14 +758,11 @@ feature {NONE} -- Sorting Implemention
 			l_physical_size: NATURAL_64
 			l_spec: SPECIAL [ANY]
 		do
-			l_physical_size := 0
+				-- l_physical_size := 0
 			l_spec := memory.objects_instance_of_type (a_type)
-			across l_spec as l_items loop
-				l_physical_size := l_physical_size + internal.physical_size_64 (l_items.item)
-			end
+			⟳ i: l_spec ¦ l_physical_size := l_physical_size + internal.physical_size_64 (i) ⟲
 			a_item.set_text (formatted_size (l_physical_size))
 			a_average_item.set_text (formatted_size (l_physical_size // l_spec.count.as_natural_64))
-
 				-- Prevents recomputation
 			a_item.pointer_button_press_actions.wipe_out
 			a_average_item.pointer_button_press_actions.wipe_out
@@ -818,8 +832,8 @@ invariant
 	object_grid_not_void: object_grid /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

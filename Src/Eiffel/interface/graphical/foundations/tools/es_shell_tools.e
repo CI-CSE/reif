@@ -124,7 +124,12 @@ feature {NONE} -- Clean up
 						check l_count_unmodified: l_count = l_tools.count end
 
 						create l_new_tools.make (1, l_count - l_remove_indexes.count)
-						from i := 1; l_index := 1 until i > l_count loop
+						from
+							i := 1
+							l_index := 1
+						until
+							i > l_count
+						loop
 							if not l_remove_indexes.has (i) then
 								l_tool := l_tools.item (i)
 									-- Must set the correct edition
@@ -213,7 +218,7 @@ feature {NONE} -- Access
 		local
 			l_tools: DS_ARRAYED_LIST [TYPE [ES_TOOL [EB_TOOL]]]
 		once
-			create l_tools.make (27)
+			create l_tools.make (28)
 
 				-- Common tools
 			l_tools.put_last ({ES_CLASS_TOOL})
@@ -237,8 +242,11 @@ feature {NONE} -- Access
 			l_tools.put_last ({ES_TESTING_RESULTS_TOOL})
 			l_tools.put_last ({ES_WEB_BROWSER_TOOL})
 
-				-- ES Cloud tools
+				-- ES Cloud tool
 			l_tools.put_last ({ES_CLOUD_ACCOUNT_TOOL})
+
+				-- Source Control Management tool
+			l_tools.put_last ({ES_SCM_TOOL})
 
 
 				-- Custom formatter tools
@@ -320,26 +328,22 @@ feature -- Query
 			end
 		end
 
-	frozen tool (a_type: TYPE [ES_TOOL [EB_TOOL]]): attached ES_TOOL [EB_TOOL]
-			-- Retrieves an activate tool associated with a particular type.
+	frozen tool (a_type: TYPE [ES_TOOL [EB_TOOL]]): detachable ES_TOOL [EB_TOOL]
+			-- Retrieves an activate tool associated with a particular type if possible.
 			-- Note: Requesting a tool descriptor that has not yet been instantiated will instatiate it before
 			--       it is returned.
 			--
 			-- `a_type': The type of tool requested.
-			-- `Result': An activated tool corresponding to the supplied type.
+			-- `Result': An activated tool corresponding to the supplied type if the tool is in the system, `Void` otherwise.
 		require
 			is_interface_usable: is_interface_usable
 			a_type_attached: a_type /= Void
-		local
-			l_tool: detachable like tool
 		do
-			l_tool := tool_edition (a_type, 1)
-			check l_tool_not_void: l_tool /= Void end
-			Result := l_tool
+			Result := tool_edition (a_type, 1)
 		ensure
-			not_result_is_recycled: not Result.is_recycled
-			requested_tools_has_a_type: requested_tools.has (tool_id (a_type))
-			result_sited: Result.window = window
+			not_result_is_recycled: attached Result implies not Result.is_recycled
+			requested_tools_has_a_type: attached Result implies requested_tools.has (tool_id (a_type))
+			result_sited: attached Result implies Result.window = window
 		end
 
 	frozen tools (a_type: TYPE [ES_TOOL [EB_TOOL]]): DS_ARRAYED_LIST [ES_TOOL [EB_TOOL]]
@@ -359,17 +363,20 @@ feature -- Query
 			l_count := editions_of_tool (a_type, False)
 			if l_count = 0 then
 					-- No requests made yet, so we force the retrival of the first edition
-				Result.force_last (tool (a_type))
+				if attached tool (a_type) as t then
+					Result.force_last (t)
+				end
 			else
 					-- Iterate over the available editions.
 				from i := {NATURAL_8} 1 until i > l_count loop
-					Result.force_last (tool_edition (a_type, i))
+					if attached tool_edition (a_type, i) as t then
+						Result.force_last (t)
+					end
 					i := i + 1
 				end
 			end
 		ensure
 			result_attached: Result /= Void
-			not_result_is_empty: not Result.is_empty
 			result_contains_attached_items: not Result.has (Void)
 			result_contains_valid_items: Result.for_all (agent (a_tool: ES_TOOL [EB_TOOL]): BOOLEAN
 				do
@@ -379,7 +386,7 @@ feature -- Query
 				end)
 		end
 
-	tool_edition (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_edition: NATURAL_8): attached ES_TOOL [EB_TOOL]
+	tool_edition (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_edition: NATURAL_8): detachable ES_TOOL [EB_TOOL]
 			-- Retrieves an activate edition of a tool associated with a particular type.
 			-- Note: Requesting a tool descriptor that has not yet been instantiated will instatiate it before
 			--       it is returned.
@@ -405,30 +412,32 @@ feature -- Query
 				l_editions := l_tools.item (l_id)
 				if a_edition > l_editions.count then
 					l_tool := new_tool (a_type, a_edition)
-					l_editions.grow (a_edition)
-					l_editions.put (l_tool, a_edition)
+					if attached l_tool then
+						l_editions.grow (a_edition)
+						l_editions.put (l_tool, a_edition)
+					end
 				end
 			else
-				create l_editions.make (1, 1)
-				l_editions.put (new_tool (a_type, 1), 1)
-				l_tools.force (l_editions, l_id)
+				l_tool := new_tool (a_type, 1)
+				if attached l_tool then
+					create l_editions.make_filled (l_tool, 1, 1)
+					l_tools.force (l_editions, l_id)
+				end
 			end
 
-			check
-				l_editions_attached: l_editions /= Void
-				l_editions_big_enough: l_editions.count >= a_edition
+			if
+				attached l_editions and then
+				l_editions.count >= a_edition
+			then
+				Result := l_editions.item (a_edition)
 			end
-			l_tool := l_editions.item (a_edition)
-			check l_tool_attached: l_tool /= Void end
-			Result := l_tool
 		ensure
-			result_attached: Result /= Void
-			not_result_is_recycled: not Result.is_recycled
-			requested_tools_has_a_type: requested_tools.has (tool_id (a_type))
-			result_sited: Result.window = window
+			not_result_is_recycled: attached Result implies not Result.is_recycled
+			requested_tools_has_a_type: attached Result implies requested_tools.has (tool_id (a_type))
+			result_sited: attached Result implies Result.window = window
 		end
 
-	tool_next_available_edition (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_reuse: BOOLEAN): ES_TOOL [EB_TOOL]
+	tool_next_available_edition (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_reuse: BOOLEAN): detachable ES_TOOL [EB_TOOL]
 			-- Retrieves the next available tool associated with a particular type.
 			-- Note: Requesting a tool descriptor that has not yet been instantiated will instatiate it before
 			--       it is returned.
@@ -446,7 +455,10 @@ feature -- Query
 			l_count, i: INTEGER
 		do
 			l_tool := tool_edition (a_type, 1)
-			if not l_tool.is_visible then
+			if
+				attached l_tool and then
+				not l_tool.is_visible
+			then
 					-- We reuse the first edition if it is not on the UI.
 				Result := l_tool
 			else
@@ -460,27 +472,25 @@ feature -- Query
 					until
 						i > l_count or Result /= Void
 					loop
-						l_tool := l_tools[i]
+						l_tool := l_tools [i]
 						if
 							not l_tool.is_recycled and then
 							(not l_tool.is_tool_instantiated or else
-							(not l_tool.panel.is_recycled and then not l_tool.panel.is_shown))
+								(not l_tool.panel.is_recycled and then not l_tool.panel.is_shown))
 						then
 							Result := l_tool
 						end
 						i := i + 1
 					end
 				end
-
 				if Result = Void then
 					Result := tool_edition (a_type, l_editions + 1)
 				end
 			end
 		ensure
-			result_attached: Result /= Void
-			not_result_is_recycled: not Result.is_recycled
-			requested_tools_has_a_type: requested_tools.has (tool_id (a_type))
-			result_sited: Result.window = window
+			not_result_is_recycled: attached Result implies not Result.is_recycled
+			requested_tools_has_a_type: attached Result implies requested_tools.has (tool_id (a_type))
+			result_sited: attached Result implies Result.window = window
 			--editions_of_tool_increment: not a_reuse implies editions_of_tool (a_type, False) = old editions_of_tool (a_type, False) + 1
 		end
 
@@ -570,8 +580,8 @@ feature -- Basic operation
 		do
 			show_tool_edition (a_type, 1, a_activate)
 		ensure
-			tool_is_instatiated: tool (a_type).is_tool_instantiated
-			tool_is_shown: tool (a_type).panel.is_visible
+			tool_is_instatiated: attached tool (a_type) as t implies t.is_tool_instantiated
+			tool_is_shown: attached tool (a_type) as t implies t.panel.is_visible
 		end
 
 	show_tool_edition (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_edition: NATURAL_8; a_activate: BOOLEAN)
@@ -587,10 +597,12 @@ feature -- Basic operation
 			a_edition_positive: a_edition > 0
 			a_edition_small_enough: a_edition <= editions_of_tool (a_type, False) + 1
 		do
-			tool_edition (a_type, a_edition).show (a_activate)
+			if attached tool_edition (a_type, a_edition) as t then
+				t.show (a_activate)
+			end
 		ensure
-			tool_is_instatiated: tool_edition (a_type, a_edition).is_tool_instantiated
-			tool_is_shown: tool_edition (a_type, a_edition).panel.is_visible
+			tool_is_instatiated: attached tool_edition (a_type, a_edition) as t implies t.is_tool_instantiated
+			tool_is_shown: attached tool_edition (a_type, a_edition) as t implies t.panel.is_visible
 		end
 
 	show_tool_next_available_edition (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_reuse: BOOLEAN; a_activate: BOOLEAN)
@@ -603,10 +615,12 @@ feature -- Basic operation
 			is_interface_usable: is_interface_usable
 			a_type_attached: a_type /= Void
 		do
-			tool_next_available_edition (a_type, a_reuse).show (a_activate)
+			if attached tool_next_available_edition (a_type, a_reuse)as t then
+				t.show (a_activate)
+			end
 		ensure
-			tool_is_instatiated: (old tool_next_available_edition (a_type, a_reuse)).is_tool_instantiated
-			tool_is_shown: (old tool_next_available_edition (a_type, a_reuse)).panel.is_visible
+			tool_is_instatiated: attached (old tool_next_available_edition (a_type, a_reuse)) as t implies t.is_tool_instantiated
+			tool_is_shown: attached (old tool_next_available_edition (a_type, a_reuse)) as t implies t.panel.is_visible
 		end
 
 feature {ES_TOOL} -- Removal
@@ -635,31 +649,39 @@ feature {ES_TOOL} -- Removal
 
 feature {NONE} -- Factory
 
-	new_tool (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_edition: NATURAL_8): ES_TOOL [EB_TOOL]
-			-- Creates and initializes a tool.
+	new_tool (a_type: TYPE [ES_TOOL [EB_TOOL]]; a_edition: NATURAL_8): detachable ES_TOOL [EB_TOOL]
+			-- Creates and initializes a tool if possible.
 			--
 			-- `a_type': Tool type to initialize a tool for.
 			-- `a_edition': The edition number of the tool to create, for multiple instance supported tool.
-			-- `Result': An new initialized tool corresponding to the supplied tool type.
+			-- `Result': An new initialized tool corresponding to the supplied tool type, or `Void` if the tool cannot be created.
 		require
 			is_interface_usable: is_interface_usable
 			a_type_attached: a_type /= Void
 			a_edition_positive: a_edition > 0
 			a_edition_small_enough: a_edition <= editions_of_tool (a_type, False) + 1
 		local
-			l_internal: like internal
+			type_id: like {INTERNAL}.generic_dynamic_type
+			is_retried: BOOLEAN
 		do
-			l_internal := internal
-			Result := {ES_TOOL [EB_TOOL]} / l_internal.new_instance_of (l_internal.generic_dynamic_type (a_type, 1))
-			check
-				result_attached: Result /= Void
-				result_is_multiple_edition: a_edition > 1 implies Result.is_multiple_edition
+			if not is_retried then
+				type_id := {INTERNAL}.generic_dynamic_type (a_type, 1)
+				if not {INTERNAL}.type_of_type (type_id).is_deferred then
+					Result := {ES_TOOL [EB_TOOL]} / {INTERNAL}.new_instance_of (type_id)
+					check
+						result_attached: Result /= Void
+						result_is_multiple_edition: a_edition > 1 implies Result.is_multiple_edition
+					end
+					Result.set_edition (a_edition)
+					Result.set_window (window)
+				end
 			end
-			Result.set_edition (a_edition)
-			Result.set_window (window)
 		ensure
 			result_attached: Result /= Void
 			result_sited: Result.window = window
+		rescue
+			is_retried := True
+			retry
 		end
 
 feature {NONE} -- Internal implementation cache
@@ -680,7 +702,7 @@ invariant
 	internal_requested_tools_contains_attached_items: not is_recycled implies not internal_requested_tools.has_item (Void)
 
 ;note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -11,6 +11,7 @@ class
 inherit
 	PROPERTY_DIALOG [STRING_TABLE [CONF_OPTION]]
 		redefine
+			create_interface_objects,
 			initialize
 		end
 
@@ -46,6 +47,14 @@ feature {NONE} -- Initialization
 			group_options_set: group_options = o
 		end
 
+	create_interface_objects
+		do
+			Precursor
+			create properties
+			create new_class
+			create class_list
+		end
+
 	initialize
 			-- Initialization
 		local
@@ -69,7 +78,7 @@ feature {NONE} -- Initialization
 			vb.set_padding (layout_constants.default_padding_size)
 			vb.set_border_width (layout_constants.default_border_size)
 
-			create class_list
+--			create class_list
 			vb.extend (class_list)
 
 			create l_label
@@ -77,7 +86,7 @@ feature {NONE} -- Initialization
 			vb.extend (l_label)
 			vb.disable_item_expand (l_label)
 
-			create new_class
+--			create new_class
 			vb.extend (new_class)
 			vb.disable_item_expand (new_class)
 
@@ -104,8 +113,11 @@ feature {NONE} -- Initialization
 			vb2.set_padding (layout_constants.default_padding_size)
 			vb2.set_border_width (layout_constants.default_border_size)
 
-			create p
-			properties := p
+			p := properties
+			if p = Void then
+				create p
+				properties := p
+			end
 			vb2.extend (p)
 
 			create l_description
@@ -144,13 +156,16 @@ feature {NONE} -- Agents
 			-- Add a new class.
 		local
 			l_name: STRING_32
+			l_value: like value
 		do
 			l_name := new_class.text.as_upper
-			if not (l_name.is_empty or (value /= Void and then value.has (l_name))) then
-				if value = Void then
-					create value.make (1)
+			l_value := value
+			if not (l_name.is_empty or (l_value /= Void and then l_value.has (l_name))) then
+				if l_value = Void then
+					create l_value.make (1)
+					value := l_value
 				end
-				value.force (create {CONF_OPTION}, l_name)
+				l_value.force ({CONF_OPTION}.create_from_namespace_or_latest (latest_namespace), l_name)
 				current_class := l_name
 				refresh
 			end
@@ -160,7 +175,9 @@ feature {NONE} -- Agents
 			-- Remove a class.
 		do
 			if attached current_class as c then
-				value.remove (c)
+				if attached value as l_value then
+					l_value.remove (c)
+				end
 				current_class := Void
 				refresh
 			end
@@ -170,32 +187,33 @@ feature {NONE} -- Agents
 			-- Show options for `a_class'
 		require
 			properties_set: properties /= Void
-			a_class_ok: value /= Void and then a_class /= Void and then value.has (a_class)
+			a_class_ok: attached value as v and then a_class /= Void and then v.has (a_class)
 		local
-			l_opts, l_inh_opts: CONF_OPTION
+			l_inh_opts: CONF_OPTION
 		do
 			current_class := a_class
-			l_opts := value.item (a_class)
 			check
-				class_in_value: l_opts /= Void
+				class_in_value: attached value as l_value and then
+				attached l_value.item (a_class) as l_opts
+			then
+				l_inh_opts := {CONF_OPTION}.create_from_namespace_or_latest (latest_namespace)
+				l_inh_opts.merge (l_opts)
+				l_inh_opts.merge (group_options)
+
+				lock_update
+
+				properties.reset
+				add_misc_option_properties (l_opts, l_inh_opts, True, False)
+				add_dotnet_option_properties (l_opts, l_inh_opts, True, True, False)
+				add_assertion_option_properties (l_opts, l_inh_opts, True, False)
+				add_warning_option_properties (l_opts, l_inh_opts, True, False)
+				add_debug_option_properties (l_opts, l_inh_opts, True, False)
+
+				properties.column (1).set_width (properties.column (1).required_width_of_item_span (1, properties.row_count) + 3)
+				properties.set_expanded_section_store (class_section_expanded_status)
+
+				unlock_update
 			end
-			create l_inh_opts
-			l_inh_opts.merge (l_opts)
-			l_inh_opts.merge (group_options)
-
-			lock_update
-
-			properties.reset
-			add_misc_option_properties (l_opts, l_inh_opts, True, False)
-			add_dotnet_option_properties (l_opts, l_inh_opts, True, True, False)
-			add_assertion_option_properties (l_opts, l_inh_opts, True, False)
-			add_warning_option_properties (l_opts, l_inh_opts, True, False)
-			add_debug_option_properties (l_opts, l_inh_opts, True, False)
-
-			properties.column (1).set_width (properties.column (1).required_width_of_item_span (1, properties.row_count) + 3)
-			properties.set_expanded_section_store (class_section_expanded_status)
-
-			unlock_update
 		ensure
 			current_class_set: current_class = a_class
 		end
@@ -222,16 +240,13 @@ feature {NONE} -- Implementation
 			properties.reset
 			new_class.set_text ("")
 
-			if value /= Void then
+			if attached value as l_value then
 					-- sort class names alphabetically
-				from
-					create l_sorted_list.make (value.count)
-					value.start
-				until
-					value.after
+				create l_sorted_list.make (l_value.count)
+				across
+					l_value as ic
 				loop
-					l_sorted_list.extend (value.key_for_iteration)
-					value.forth
+					l_sorted_list.extend (@ ic.key)
 				end
 				create l_sorter.make (create {COMPARABLE_COMPARATOR [READABLE_STRING_GENERAL]})
 				l_sorter.sort (l_sorted_list)
@@ -244,7 +259,7 @@ feature {NONE} -- Implementation
 					create l_item.make_with_text (l_sorted_list.item_for_iteration)
 					l_item.select_actions.extend (agent show_options (l_sorted_list.item_for_iteration))
 					class_list.extend (l_item)
-					if current_class /= Void and then current_class.same_string (l_sorted_list.item_for_iteration) then
+					if attached current_class as cl and then cl.same_string (l_sorted_list.item_for_iteration) then
 						l_item.enable_select
 					end
 					l_sorted_list.forth
@@ -266,7 +281,7 @@ invariant
 	elements: is_initialized implies class_list /= Void and new_class /= Void
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -16,6 +16,7 @@ inherit
 			new_debug_as,
 			new_expr_address_as,
 			new_feature_as,
+			new_feature_name_alias_as,
 			new_formal_dec_as,
 			new_integer_as,
 			new_integer_hexa_as,
@@ -95,8 +96,8 @@ feature -- Access
 					until
 						k.keys.after
 					loop
+						k.keys.item.value_to_lower
 						l_str := k.keys.item.value
-						l_str.to_lower
 						system.add_new_debug_clause (l_str)
 						k.keys.forth
 					end
@@ -127,8 +128,6 @@ feature -- Access
 			feature_name: FEATURE_NAME
 			is_query: BOOLEAN
 			argument_count: INTEGER
-			alias_name: STRING_AS
-			operator: STRING
 			arguments: EIFFEL_LIST [TYPE_DEC_AS]
 			vfav: VFAV_SYNTAX
 			l_built_in_processor: like built_in_processor
@@ -148,13 +147,9 @@ feature -- Access
 					f.after
 				loop
 					feature_name := f.item
-					alias_name := feature_name.alias_name
-					if feature_name.is_prefix or else feature_name.is_infix then
-							-- Infix and prefix features will be checked for VFFD(5,6) later
-					elseif alias_name /= Void then
+					if attached {FEATURE_NAME_ALIAS_AS} feature_name as l_feat_name_alias_as then
 							-- TODO This code occurs in almost the same fashion in `{RENAMING_A}.adapt_alias_feature_name_properties'
 						vfav := Void
-						operator := alias_name.value
 						arguments := b.arguments
 						if arguments /= Void then
 								-- It's possible to calculate the value of `argument_count' once
@@ -170,38 +165,54 @@ feature -- Access
 								arguments.forth
 							end
 						end
-						if feature_name.is_bracket then
+						if l_feat_name_alias_as.has_bracket_alias then
 							if not is_query or else argument_count < 1 then
 									-- Invalid bracket alias.
-								create {VFAV2_SYNTAX} vfav.make (feature_name)
-							elseif feature_name.has_convert_mark then
+								create {VFAV2_SYNTAX} vfav.make (l_feat_name_alias_as, l_feat_name_alias_as.bracket_alias_as)
+							elseif l_feat_name_alias_as.has_convert_mark then
 									-- Invalid convert mark.
-								create {VFAV3_SYNTAX} vfav.make (feature_name)
+								create {VFAV5_SYNTAX} vfav.make (l_feat_name_alias_as, l_feat_name_alias_as.bracket_alias_as)
 							end
-						elseif feature_name.is_parentheses then
+						elseif l_feat_name_alias_as.has_parentheses_alias then
 							if argument_count < 1 then
 									-- Invalid parenthesis alias.
-								create {VFAV4_SYNTAX} vfav.make (feature_name)
-							elseif feature_name.has_convert_mark then
+								create {VFAV3_SYNTAX} vfav.make (l_feat_name_alias_as, l_feat_name_alias_as.parenthesis_alias_as)
+							elseif l_feat_name_alias_as.has_convert_mark then
 									-- Invalid convert mark.
-								create {VFAV3_SYNTAX} vfav.make (feature_name)
+								create {VFAV5_SYNTAX} vfav.make (l_feat_name_alias_as, l_feat_name_alias_as.parenthesis_alias_as)
 							end
-						elseif is_query and then (
-								(argument_count = 0 and then feature_name.is_valid_unary_operator (operator)) or else
-								(argument_count = 1 and then feature_name.is_valid_binary_operator (operator))
-							)
-						then
-							if argument_count = 1 then
-								feature_name.set_is_binary
-							elseif feature_name.has_convert_mark then
-									-- Invalid convert mark
-								create {VFAV3_SYNTAX} vfav.make (feature_name)
+						elseif is_query then
+							across
+								l_feat_name_alias_as.aliases as ic
+							until
+								vfav /= Void
+							loop
+								if
+									(argument_count = 0 and then ic.item.is_valid_unary) or else
+									(argument_count = 1 and then ic.item.is_valid_binary)
+								then
+										-- FIXME: maybe move this check outside the loop [2019-09-25].
+									if argument_count = 0 and then l_feat_name_alias_as.has_convert_mark then
+											-- Invalid convert mark
+										create {VFAV5_SYNTAX} vfav.make (l_feat_name_alias_as, ic.item.alias_name)
+									end
+								else
+										-- Invalid operator alias
+									create {VFAV1_SYNTAX} vfav.make (l_feat_name_alias_as, ic.item.alias_name)
+								end
+							end
+							if vfav /= Void then
+									-- Error detected
+							elseif argument_count = 1 then
+								l_feat_name_alias_as.set_is_binary
+							elseif l_feat_name_alias_as.has_convert_mark then
+								create {VFAV5_SYNTAX} vfav.make (l_feat_name_alias_as, Void)
 							else
-								feature_name.set_is_unary
+								l_feat_name_alias_as.set_is_unary
 							end
 						else
-								-- Invalid operator alias
-							create {VFAV1_SYNTAX} vfav.make (feature_name)
+								-- This is an alias, but not a bracket or parenthesis alias, and this is not a query ...
+							create {VFAV1_SYNTAX} vfav.make (l_feat_name_alias_as, Void)
 						end
 						if vfav /= Void then
 							error_handler.insert_error (vfav)
@@ -223,7 +234,7 @@ feature -- Access
 							-- We have an associating built in class.
 							-- If we find a feature with the name matching the built in then we set this
 							-- replacement feature as an attribute of the dummy built in.
-						l_built_in_feature_node := l_built_in_class_as.feature_with_name (f.first.internal_name.name_id)
+						l_built_in_feature_node := l_built_in_class_as.feature_with_name (f.first.feature_name.name_id)
 						if l_built_in_feature_node /= Void then
 							l_routine_as ?= b.content
 							l_built_in_as ?= l_routine_as.routine_body
@@ -245,7 +256,39 @@ feature -- Access
 			end
 		end
 
-	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_CONSTRAINT_AS
+	new_feature_name_alias_as (feature_name: detachable ID_AS; aliases: detachable LIST [FEATURE_ALIAS_NAME]; convert_keyword: detachable KEYWORD_AS): detachable FEATURE_NAME_ALIAS_AS
+			-- <Precursor>
+		local
+			first_operator, second_operator:  STRING_AS
+			has_error: BOOLEAN
+		do
+			if attached feature_name and then attached aliases then
+				across
+					aliases as a
+				loop
+					first_operator := a.item.alias_name
+					across
+						aliases as b
+					loop
+						second_operator := b.item.alias_name
+						if
+								-- Avoid processing already processed operators.
+							a.target_index < b.target_index and then
+								-- Check whether aliases have the same name.
+							first_operator.value.same_string (second_operator.value)
+						then
+							error_handler.insert_error (create {VFAV4_SYNTAX}.make (feature_name, first_operator, second_operator))
+							has_error := True
+						end
+					end
+				end
+				if not has_error then
+					Result := Precursor (feature_name, aliases, convert_keyword)
+				end
+			end
+		end
+
+	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEATURE_NAME]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_CONSTRAINT_AS
 			-- New FORMAL_DECLARATION AST node
 		do
 			if f /= Void then
@@ -253,7 +296,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
+	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -262,7 +305,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
+	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -271,7 +314,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
+	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -280,7 +323,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
+	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_CONSTANT
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -315,7 +358,7 @@ feature -- Access for Errors
 
 feature {NONE} -- Validation
 
-	validate_integer_real_type (a_psr: EIFFEL_SCANNER_SKELETON; a_type: detachable TYPE_AS; buffer: STRING; for_integer: BOOLEAN)
+	validate_integer_real_type (a_psr: EIFFEL_SCANNER_SKELETON; a_type: detachable TYPE_AS; buffer: READABLE_STRING_8; for_integer: BOOLEAN)
 			-- New integer value.
 		local
 			l_type: TYPE_A
@@ -371,9 +414,9 @@ feature {NONE} -- Validation
 
 note
 	ca_ignore:
-		"CA011", "CA011 — too many arguments",
-		"CA033", "CA033 — very long class"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+		"CA011", "CA011: too many arguments",
+		"CA033", "CA033: very long class"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

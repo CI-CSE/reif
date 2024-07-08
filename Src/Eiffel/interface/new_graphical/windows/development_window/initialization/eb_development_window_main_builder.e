@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
-					Main Builder for EB_DEVELOPMENT_WINDOW.
-					Build all tools and formatters.
-																		]"
+			Main Builder for EB_DEVELOPMENT_WINDOW.
+			Build all tools and formatters.
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date		: "$Date$"
@@ -45,7 +45,7 @@ feature -- Command
 			-- Initialize window size.
 		local
 			l_screen: EV_SCREEN
-			l_x, l_y: INTEGER
+			l_x, l_y, l_width, l_height: INTEGER
 			l_data: EB_DEVELOPMENT_WINDOW_DATA
 			l_border_width: INTEGER
 		do
@@ -53,13 +53,14 @@ feature -- Command
 			-- One is saved in preferences
 			-- The other is saved in session manager
 			-- Maybe we should divide the class EB_DEVELOPMENT_WINDOW_DATA into two classes?
-			if(create {SHARED_WORKBENCH}).workbench.system_defined then
-				l_data ?= develop_window.project_session_data.value (develop_window.development_window_data.development_window_data_id)
-			end
-			if l_data = Void then
-				l_data ?= develop_window.session_data.value (develop_window.development_window_data.development_window_data_id)
-			end
-			if l_data = Void then
+			if
+				(create {SHARED_WORKBENCH}).workbench.system_defined and then
+				attached {EB_DEVELOPMENT_WINDOW_DATA} develop_window.project_session_data.value (develop_window.development_window_data.development_window_data_id) as l_project_data
+			then
+				l_data := l_project_data
+			elseif attached {EB_DEVELOPMENT_WINDOW_DATA} develop_window.session_data.value (develop_window.development_window_data.development_window_data_id) as l_session_data then
+				l_data := l_session_data
+			else
 				l_data := develop_window.development_window_data
 			end
 			create l_screen
@@ -67,9 +68,12 @@ feature -- Command
 			l_border_width := (develop_window.window.width - develop_window.window.client_width) // 2
 
 				-- When window is maximized, then the border might be slightly off screen.
-			develop_window.window.set_size (
-				l_data.width.min (l_screen.width + l_border_width * 2),
-				l_data.height.min (l_screen.height + l_border_width * 2))
+
+			l_width := l_data.width.min (l_screen.width + l_border_width * 2)
+			l_height := l_data.height.min (l_screen.height + l_border_width * 2)
+			develop_window.window.set_size (l_width, l_height)
+				-- TODO: set_size on first show event was added for gtk3, check how to avoid this workaround [2021-08-24]
+			develop_window.window.show_actions.extend_kamikaze (agent (develop_window.window).set_size (l_width, l_height))
 
 			l_x := l_data.x_position
 			if (l_x + l_border_width) < l_screen.virtual_left or (l_x + l_border_width) > l_screen.virtual_right then
@@ -133,6 +137,7 @@ feature -- Command
 			l_editor_cut_cmd: EB_EDITOR_CUT_COMMAND
 			l_editor_copy_cmd: EB_EDITOR_COPY_COMMAND
 			l_editor_paste_cmd: EB_EDITOR_PASTE_COMMAND
+			l_editor_insert_symbol_cmd: EB_INSERT_SYMBOL_EDITOR_COMMAND
 			l_new_cluster_cmd: EB_NEW_CLUSTER_COMMAND
 			l_new_library_cmd: EB_NEW_LIBRARY_COMMAND
 			l_new_assembly_cmd: EB_NEW_ASSEMBLY_COMMAND
@@ -142,10 +147,12 @@ feature -- Command
 			l_toggle_stone_cmd: EB_UNIFY_STONE_CMD
 			l_system_info_cmd: EB_SYSTEM_INFORMATION_CMD
 			l_send_stone_to_context_cmd: EB_STANDARD_CMD
+			l_show_cloud_account_cmd: ES_CLOUD_ACCOUNT_CMD
+			l_source_control_cmd: SCM_CMD
 
 			l_show_toolbar_commands: HASH_TABLE [EB_SHOW_TOOLBAR_COMMAND, SD_TOOL_BAR_CONTENT]
 			l_editor_commands: ARRAYED_LIST [EB_GRAPHICAL_COMMAND]
-			l_focus_commands: ARRAYED_LIST [EB_CLOSE_PANEL_COMMAND]
+			l_focus_commands: ARRAYED_LIST [EB_FOCUS_PANEL_COMMAND]
 			l_simple_shortcut_commands: ARRAYED_LIST [EB_SIMPLE_SHORTCUT_COMMAND]
 
 			l_reset_command: EB_RESET_LAYOUT_COMMAND
@@ -157,6 +164,7 @@ feature -- Command
 			l_minimize_editors_command: EB_MINIMIZE_EDITORS_COMMAND
 			l_restore_editors_command: EB_RESTORE_EDITORS_COMMAND
 
+			l_reload_current_panel_command: EB_RELOAD_CURRENT_PANEL_COMMAND
 			l_close_current_panel_command: EB_CLOSE_CURRENT_PANEL_COMMAND
 			l_close_all_tabs_command: EB_CLOSE_ALL_TAB_COMMAND
 			l_close_all_but_current_command: EB_CLOSE_ALL_BUT_CURRENT_COMMAND
@@ -274,6 +282,11 @@ feature -- Command
 			l_dev_commands.set_editor_paste_cmd (l_editor_paste_cmd)
 			l_dev_commands.toolbarable_commands.extend (l_editor_paste_cmd)
 
+			create l_editor_insert_symbol_cmd.make (develop_window)
+			auto_recycle (l_editor_insert_symbol_cmd)
+			l_dev_commands.set_editor_insert_symbol_cmd (l_editor_insert_symbol_cmd)
+			l_dev_commands.toolbarable_commands.extend (l_editor_insert_symbol_cmd)
+
 			create l_new_cluster_cmd.make (develop_window, False)
 			auto_recycle (l_new_cluster_cmd)
 			l_dev_commands.set_new_cluster_cmd (l_new_cluster_cmd)
@@ -313,6 +326,14 @@ feature -- Command
 			auto_recycle (l_system_info_cmd)
 			l_dev_commands.set_system_info_cmd (l_system_info_cmd)
 			l_dev_commands.toolbarable_commands.extend (l_system_info_cmd)
+
+			l_show_cloud_account_cmd := develop_window.show_cloud_account_cmd
+			auto_recycle (l_show_cloud_account_cmd)
+			l_dev_commands.toolbarable_commands.extend (l_show_cloud_account_cmd)
+
+			l_source_control_cmd := develop_window.source_control_cmd
+			auto_recycle (l_source_control_cmd)
+			l_dev_commands.toolbarable_commands.extend (l_source_control_cmd)
 
 			create l_send_stone_to_context_cmd.make
 			auto_recycle (l_send_stone_to_context_cmd)
@@ -378,6 +399,10 @@ feature -- Command
 			l_dev_commands.set_enable_disable_bp_here_command (create {ES_TOGGLE_BREAKPOINT_HERE_CMD}.make_enable_disable (develop_window))
 			l_dev_commands.set_run_to_this_point_command (create {ES_EXEC_RUN_TO_THIS_POINT_CMD}.make (develop_window))
 
+			create l_reload_current_panel_command.make (develop_window)
+			l_dev_commands.set_reload_current_panel_command (l_reload_current_panel_command)
+			l_dev_commands.focus_commands.extend (l_reload_current_panel_command)
+
 			create l_close_current_panel_command.make (develop_window)
 			l_dev_commands.set_close_current_panel_command (l_close_current_panel_command)
 			l_dev_commands.focus_commands.extend (l_close_current_panel_command)
@@ -422,7 +447,7 @@ feature -- Command
 			create l_restore_tab_cmd.make (develop_window)
 			auto_recycle (l_restore_tab_cmd)
 			l_dev_commands.set_restore_tab_cmd (l_restore_tab_cmd)
-			l_dev_commands.toolbarable_commands.extend (l_dev_commands.restore_tab_cmd)
+			l_dev_commands.toolbarable_commands.extend (l_restore_tab_cmd)
 
 			l_dev_commands.set_customized_formatter_command (create {EB_SETUP_CUSTOMIZED_FORMATTER_COMMAND})
 			l_dev_commands.set_customized_tool_command (create {EB_SETUP_CUSTOMIZED_TOOL_COMMAND})
@@ -455,7 +480,6 @@ feature -- Command
 			l_go_to_next_warning_cmd: ES_NEXT_WARNING_COMMAND
 			l_go_to_previous_warning_cmd: ES_PREVIOUS_WARNING_COMMAND
 			l_apply_fix_cmd: ES_FIX_COMMAND
-			l_ear_commander: ES_ERROR_LIST_COMMANDER_I
 			l_maximize_editor_area_command: EB_MAXIMIZE_EDITOR_AREA_COMMAND
 			l_minimize_editor_area_command: EB_MINIMIZE_EDITOR_AREA_COMMAND
 			l_restore_editor_area_command: EB_RESTORE_EDITOR_AREA_COMMAND
@@ -463,11 +487,7 @@ feature -- Command
 			l_dev_commands: EB_DEVELOPMENT_WINDOW_COMMANDS
 		do
 				-- Error navigation
-			l_ear_commander ?= develop_window.shell_tools.tool ({ES_ERROR_LIST_TOOL})
-			check
-				l_ear_commander_attached: l_ear_commander /= Void
-			end
-			if l_ear_commander /= Void then
+			if attached {ES_ERROR_LIST_COMMANDER_I} develop_window.shell_tools.tool ({ES_ERROR_LIST_TOOL}) as l_ear_commander then
 				l_dev_commands := develop_window.commands
 				create l_go_to_previous_error_cmd.make (l_ear_commander)
 				l_dev_commands.set_go_to_previous_error_command (l_go_to_previous_error_cmd)
@@ -497,6 +517,10 @@ feature -- Command
 
 				create l_restore_editor_area_command.make (develop_window)
 				l_dev_commands.set_restore_editor_area_command (l_restore_editor_area_command)
+			else
+				check
+					is_es_error_list_commander_i: False
+				end
 			end
 		end
 
@@ -682,7 +706,7 @@ feature -- Command
 				l_managed_dependency_formatters.forth
 			end
 
-			(l_managed_main_formatters @ 1).enable_select;
+			(l_managed_main_formatters [1]).enable_select;
 
 				-- We now select the correct class formatter.
 			l_f_ind := develop_window.preferences.context_tool_data.default_class_formatter_index
@@ -696,7 +720,7 @@ feature -- Command
 			if l_f_ind < 1 or l_f_ind > develop_window.managed_class_formatters.count then
 				l_f_ind := 6
 			end
-			(develop_window.managed_class_formatters @ l_f_ind).enable_select;
+			(develop_window.managed_class_formatters [l_f_ind]).enable_select;
 				-- We now select the correct feature formatter.
 			l_f_ind := develop_window.preferences.context_tool_data.default_feature_formatter_index
 			if l_f_ind > 2 then
@@ -717,8 +741,6 @@ feature -- Command
 	build_tools
 			-- Build all tools that can take place in this window and attach them with docking manager.
 		local
-			l_undo_redo_observer: UNDO_REDO_OBSERVER
-
 			l_docking_manager: SD_DOCKING_MANAGER
 			l_editors_manager: EB_EDITORS_MANAGER
 			l_names: EB_DOCKING_NAMES
@@ -758,17 +780,17 @@ feature -- Command
 			l_editors_manager.add_edition_observer (develop_window.tools.search_tool)
 			l_editors_manager.add_cursor_observer (develop_window.agents)
 
-			l_undo_redo_observer ?= l_dev_commands.undo_cmd
-			check
-				l_undo_redo_observer /= Void
+			if attached {UNDO_REDO_OBSERVER} l_dev_commands.undo_cmd as l_undo_observer then
+				develop_window.editors_manager.editor_switched_actions.extend (agent (a_editor: EB_SMART_EDITOR; a_observer: UNDO_REDO_OBSERVER) do a_observer.on_changed end (?, l_undo_observer))
+			else
+				check is_undo_redo_observer: False end
 			end
-			develop_window.editors_manager.editor_switched_actions.extend (agent (a_editor: EB_SMART_EDITOR; a_observer: UNDO_REDO_OBSERVER) do a_observer.on_changed end (?, l_undo_redo_observer))
 
-			l_undo_redo_observer ?= l_dev_commands.redo_cmd
-			check
-				l_undo_redo_observer /= Void
+			if attached {UNDO_REDO_OBSERVER} l_dev_commands.redo_cmd as l_redo_observer then
+				develop_window.editors_manager.editor_switched_actions.extend (agent (a_editor: EB_SMART_EDITOR; a_observer: UNDO_REDO_OBSERVER) do a_observer.on_changed end (?, l_redo_observer))
+			else
+				check is_undo_redo_observer: False end
 			end
-			develop_window.editors_manager.editor_switched_actions.extend (agent (a_editor: EB_SMART_EDITOR; a_observer: UNDO_REDO_OBSERVER) do a_observer.on_changed end (?, l_undo_redo_observer))
 
 				-- Refresh cursor position.
 			develop_window.editors_manager.editor_switched_actions.extend (agent (a_editor: EB_SMART_EDITOR) do develop_window.refresh_cursor_position end)
@@ -828,6 +850,8 @@ feature -- Command
 			l_window.set_icon_pixmap (develop_window.pixmap)
 
 			register_action (l_window.resize_actions, agent (x,y,w,h: INTEGER) do develop_window.save_size end)
+			register_action (l_window.dpi_changed_actions, agent (dpi: NATURAL; x,y,w,h: INTEGER) do develop_window.update_dpi (dpi) end)
+			register_action (l_window.dpi_changed_actions, agent (dpi: NATURAL; x,y,w,h: INTEGER) do develop_window.save_size_and_dpi end)
 			register_action (l_window.move_actions, agent (x,y,w,h: INTEGER) do develop_window.save_position end)
 
 				-- Initialize commands and connect them.
@@ -929,7 +953,6 @@ feature {NONE} -- Tool construction
 		local
 			l_show_cmd: ES_SHOW_TOOL_COMMAND
 			l_accel: EV_ACCELERATOR
-			l_shortcut: SHORTCUT_PREFERENCE
 			l_dev_commands: EB_DEVELOPMENT_WINDOW_COMMANDS
 		do
 			l_dev_commands := develop_window.commands
@@ -940,8 +963,7 @@ feature {NONE} -- Tool construction
 
 			if a_tool.shortcut_preference_name /= Void and then a_tool.edition = 1 then
 					-- Create shortcuts for first edition only!
-				l_shortcut := develop_window.preferences.misc_shortcut_data.shortcuts.item (a_tool.shortcut_preference_name)
-				if l_shortcut /= Void then
+				if attached develop_window.preferences.misc_shortcut_data.shortcuts.item (a_tool.shortcut_preference_name) as l_shortcut then
 					create l_accel.make_with_key_combination (l_shortcut.key, l_shortcut.is_ctrl, l_shortcut.is_alt, l_shortcut.is_shift)
 					l_accel.actions.extend (agent check_mode_and_show (l_show_cmd, a_tool))
 					l_show_cmd.set_accelerator (l_accel)
@@ -964,13 +986,13 @@ feature {NONE} -- Docking
 		local
 			l_tool: ES_TOOL [EB_TOOL]
 			l_info: TUPLE [type: TYPE [ES_TOOL [EB_TOOL]]; edition: NATURAL_8]
-			l_eb_debugger_manager: EB_DEBUGGER_MANAGER
 			l_ignore: BOOLEAN
 			l_internal: INTERNAL
 		do
-			l_eb_debugger_manager ?= develop_window.debugger_manager
-			check not_void: l_eb_debugger_manager /= Void end
-			if not l_eb_debugger_manager.raised then
+			if
+				attached {EB_DEBUGGER_MANAGER} develop_window.debugger_manager as l_eb_debugger_manager and then
+				not l_eb_debugger_manager.raised
+			then
 				-- We don't restore debug related tools for non-debug mode except breakpoint tool.
 				create l_internal
 				check exists: l_internal.dynamic_type_from_string ("ES_CALL_STACK_TOOL") /= -1 end
@@ -980,11 +1002,11 @@ feature {NONE} -- Docking
 				check exists: l_internal.dynamic_type_from_string ("ES_THREADS_TOOL") /= -1 end
 				check exists: l_internal.dynamic_type_from_string ("ES_BREAKPOINTS_TOOL") /= -1 end
 				if
-					a_tool_id.as_string_8.is_equal ("ES_CALL_STACK_TOOL") or
-					a_tool_id.as_string_8.is_equal ("ES_OBJECTS_TOOL") or
-					a_tool_id.as_string_8.is_equal ("ES_OBJECT_VIEWER_TOOL") or
-					a_tool_id.as_string_8.has_substring  ("ES_WATCH_TOOL") or -- We use `has_substring' here since second watch tool's name is ES_WATCH_TOOL:2, 3rd tool's name is ES_WATCH_TOOL:3, ...
-					a_tool_id.as_string_8.is_equal ("ES_THREADS_TOOL")
+					a_tool_id.same_string ("ES_CALL_STACK_TOOL") or
+					a_tool_id.same_string ("ES_OBJECTS_TOOL") or
+					a_tool_id.same_string ("ES_OBJECT_VIEWER_TOOL") or
+					a_tool_id.has_substring  ("ES_WATCH_TOOL") or -- We use `has_substring' here since second watch tool's name is ES_WATCH_TOOL:2, 3rd tool's name is ES_WATCH_TOOL:3, ...
+					a_tool_id.same_string ("ES_THREADS_TOOL")
 				then
 					l_ignore := True
 				end
@@ -1130,7 +1152,7 @@ feature{NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

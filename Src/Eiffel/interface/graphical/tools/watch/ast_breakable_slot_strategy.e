@@ -29,7 +29,6 @@ inherit
 			process_access_assert_as,
 			process_precursor_as,
 			process_nested_expr_as,
-			process_nested_as,
 			process_creation_expr_as,
 			process_type_expr_as,
 			process_routine_as,
@@ -46,6 +45,7 @@ inherit
 			process_address_result_as,
 			process_address_current_as,
 			process_address_as,
+			process_predecessor_as,
 			process_routine_creation_as,
 			process_un_free_as,
 			process_un_minus_as,
@@ -88,6 +88,7 @@ inherit
 			process_guard_as,
 			process_if_as,
 			process_inspect_as,
+			process_inspect_expression_as,
 			process_instr_call_as,
 			process_loop_as,
 			process_retry_as,
@@ -118,6 +119,7 @@ inherit
 			process_create_as,
 			process_client_as,
 			process_case_as,
+			process_case_expression_as,
 			process_ensure_as,
 			process_ensure_then_as,
 			process_require_as,
@@ -514,8 +516,6 @@ feature {NONE} -- Implementation
 
 	process_verbatim_string_as (l_as: VERBATIM_STRING_AS)
 		do
-			if not expr_type_visiting then
-			end
 			last_type := string_type
 		end
 
@@ -532,10 +532,8 @@ feature {NONE} -- Implementation
 			if l_as.type /= Void then
 				l_as.type.process (Current)
 			end
-			if l_as.assigner /= Void then
-				if not has_error_internal then
-					l_feat := current_assigner_feature
-				end
+			if attached l_as.assigner and then not has_error_internal then
+				l_feat := current_assigner_feature
 			end
 			safe_process (l_as.content)
 		end
@@ -575,23 +573,17 @@ feature {NONE} -- Implementation
 			l_rout_id_set: ID_SET
 			l_last_class: like last_class
 			l_last_type: like last_type
-			l_formal: FORMAL_A
 			l_last_type_set: TYPE_SET_A
-			l_named_tuple_type: NAMED_TUPLE_TYPE_A
 			l_type: TYPE_A
 			l_pos: INTEGER
 			l_actual_argument_typs: like expr_types
 			l_is_multi_constrained: BOOLEAN
 		do
-			if l_as.is_argument then
-			elseif l_as.is_local then
-			elseif l_as.is_tuple_access then
-			else
+			if l_as.is_feature then
 				if not has_error_internal then
 					if last_type /= Void then
 						last_type := last_type.actual_type
-						if last_type.is_formal then
-							l_formal ?= last_type
+						if attached {FORMAL_A} last_type as l_formal then
 							if l_formal.is_multi_constrained (current_class) then
 								l_is_multi_constrained := True
 								l_last_type_set := last_type.to_type_set.constraining_types (current_class)
@@ -670,17 +662,11 @@ feature {NONE} -- Implementation
 			if l_as.is_argument then
 				last_type := current_feature.arguments.i_th (l_as.argument_position)
 			elseif l_as.is_local then
-				if last_type = Void then
-					if locals_for_current_feature.has_key (l_as.access_name) then
-						last_type := locals_for_current_feature.found_item
-					end
+				if not attached last_type and then locals_for_current_feature.has_key (l_as.access_name) then
+					last_type := locals_for_current_feature.found_item
 				end
-			elseif l_as.is_tuple_access then
+			elseif attached {NAMED_TUPLE_TYPE_A} last_type.actual_type as l_named_tuple_type then
 				if not has_error_internal then
-					l_named_tuple_type ?= last_type.actual_type
-					check
-						l_named_tuple_type /= Void
-					end
 					l_pos := l_named_tuple_type.label_position (l_as.access_name)
 					if l_pos > 0 then
 						last_type := l_named_tuple_type.generics.i_th (l_pos)
@@ -778,10 +764,8 @@ feature {NONE} -- Implementation
 					real_feature := l_current_feature.ancestor_version (l_parent_class)
 				end
 			end
-			if not expr_type_visiting then
-				if l_as.parameter_count > 0 then
-					l_as.parameters.process (Current)
-				end
+			if not expr_type_visiting and then l_as.parameter_count > 0 then
+				l_as.parameters.process (Current)
 			end
 			if real_feature /= Void then
 				l_type := real_feature.type
@@ -813,12 +797,6 @@ feature {NONE} -- Implementation
 		end
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)
-		do
-			l_as.target.process (Current)
-			l_as.message.process (Current)
-		end
-
-	process_nested_as (l_as: NESTED_AS)
 		do
 			l_as.target.process (Current)
 			l_as.message.process (Current)
@@ -878,24 +856,17 @@ feature {NONE} -- Implementation
 					l_as.precondition.process (Current)
 				end
 			end
-				if l_as.locals /= Void then
-					if l_as.locals.count > 0 then
-						processing_locals := True
-						l_as.locals.process (Current)
-						processing_locals := False
-					end
+				if attached l_as.locals and then not l_as.locals.is_empty then
+					processing_locals := True
+					l_as.locals.process (Current)
+					processing_locals := False
 				end
 				safe_process (l_as.routine_body)
-			if is_inline_agent then
-			else
-				if l_as.postcondition /= Void then
-					l_as.postcondition.process (Current)
-				end
+			if not is_inline_agent and then attached l_as.postcondition as p then
+				p.process (Current)
 			end
-			if l_as.rescue_clause /= Void then
-				if not l_as.rescue_clause.is_empty then
-					format_compound (l_as.rescue_clause)
-				end
+			if attached l_as.rescue_clause as c and then not c.is_empty then
+				format_compound (c)
 			end
 			if not l_as.is_deferred and not l_as.is_external then
 				put_breakable (l_as)
@@ -935,22 +906,13 @@ feature {NONE} -- Implementation
 
 	process_operand_as (l_as: OPERAND_AS)
 		do
-			if l_as.class_type /= Void then
-				l_as.class_type.process (Current)
-			else
-				if l_as.expression /= Void then
-					l_as.expression.process (Current)
-				else
-					if l_as.target /= Void then
-						reset_last_class_and_type
-						l_as.target.process (Current)
-					else
-						if expr_type_visiting then
-							fixme ("Currently we only handle ? for targets, current code does not handle ? for arguments")
-							last_type := current_class.actual_type
-						end
-					end
-				end
+			if attached l_as.class_type as t then
+				t.process (Current)
+			elseif attached l_as.expression as e then
+					e.process (Current)
+			elseif expr_type_visiting then
+				fixme ("Currently we only handle ? for targets, current code does not handle ? for arguments")
+				last_type := current_class.actual_type
 			end
 		end
 
@@ -966,7 +928,6 @@ feature {NONE} -- Implementation
 		local
 			first_printed: BOOLEAN
 			l_names_heap: like names_heap
-			l_id: INTEGER
 			l_feature: FEATURE_I
 			l_feat: E_FEATURE
 		do
@@ -977,8 +938,7 @@ feature {NONE} -- Implementation
 				until
 					l_as.id_list.after
 				loop
-					l_id := l_as.id_list.item
-					l_feature := feature_from_ancestors (source_class, l_id)
+					l_feature := feature_from_ancestors (source_class, l_as.id_list.item)
 						check
 							l_feature /= Void
 							l_feature.rout_id_set /= Void
@@ -1016,19 +976,13 @@ feature {NONE} -- Implementation
 		end
 
 	process_address_result_as (l_as: ADDRESS_RESULT_AS)
-		local
-			l_type: TYPE_A
 		do
-			l_type ?= current_feature.type
-			create {TYPED_POINTER_A} last_type.make_typed (l_type)
+			create {TYPED_POINTER_A} last_type.make_typed (current_feature.type)
 		end
 
 	process_address_current_as (l_as: ADDRESS_CURRENT_AS)
-		local
-			l_type: TYPE_A
 		do
-			l_type ?= current_class.actual_type
-			create {TYPED_POINTER_A} last_type.make_typed (l_type)
+			create {TYPED_POINTER_A} last_type.make_typed (current_class.actual_type)
 		end
 
 	process_address_as (l_as: ADDRESS_AS)
@@ -1040,9 +994,10 @@ feature {NONE} -- Implementation
 				if l_as.is_argument then
 					create {TYPED_POINTER_A} last_type.make_typed (current_feature.arguments.i_th (l_as.argument_position))
 				elseif l_as.is_local then
-					if locals_for_current_feature.has_key (l_as.feature_name.internal_name.name) then
+					if locals_for_current_feature.has_key (l_as.feature_name.feature_name.name) then
 						create {TYPED_POINTER_A} last_type.make_typed (locals_for_current_feature.found_item)
 					end
+						-- TODO: handle object test locals, loop cursors, etc.
 				else
 					l_feat := feature_in_class (current_class, l_as.routine_ids)
 					if l_feat /= Void and then l_feat.is_attribute then
@@ -1052,6 +1007,13 @@ feature {NONE} -- Implementation
 					end
 				end
 			end
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
+		do
+			reset_last_class_and_type
+				-- TODO: handle the case.
 		end
 
 	process_routine_creation_as (l_as: ROUTINE_CREATION_AS)
@@ -1089,7 +1051,6 @@ feature {NONE} -- Implementation
 			l_type: TYPE_A
 			l_expr_type: TYPE_A
 			l_last_type: TYPE_A
-			l_formal: FORMAL_A
 			l_feature_list: like feature_from_type_set
 		do
 			check
@@ -1099,8 +1060,7 @@ feature {NONE} -- Implementation
 				l_expr_type := expr_type (l_as.expr)
 			end
 			if not has_error_internal then
-				if l_expr_type.is_formal then
-					l_formal ?= l_expr_type
+				if attached {FORMAL_A} l_expr_type as l_formal then
 					if l_formal.is_multi_constrained (current_class) then
 						l_feature_list := feature_from_type_set (l_formal.constrained_types (current_class), l_as.routine_ids)
 						if not has_error_internal then
@@ -1172,7 +1132,6 @@ feature {NONE} -- Implementation
 	process_binary_as (l_as: BINARY_AS)
 		local
 			l_feat: E_FEATURE
-			l_formal: FORMAL_A
 			l_type: TYPE_A
 			l_left_type, l_right_type: TYPE_A
 			l_left_class: CLASS_C
@@ -1189,8 +1148,7 @@ feature {NONE} -- Implementation
 				last_type := last_type.actual_type
 					-- Find correct left type and left class.
 				l_left_type := last_type
-				if l_left_type.is_formal then
-					l_formal ?= l_left_type
+				if attached {FORMAL_A} l_left_type as l_formal then
 					if l_formal.is_multi_constrained (current_class) then
 						l_is_left_multi_constrained := True
 						l_left_type_set := l_formal.constrained_types (current_class)
@@ -1205,8 +1163,7 @@ feature {NONE} -- Implementation
 					end
 					l_right_type := l_right_type.actual_type
 
-					if l_right_type.is_formal then
-						l_formal ?= l_right_type
+					if attached {FORMAL_A} l_right_type as l_formal then
 						if l_formal.is_multi_constrained (current_class) then
 							l_is_right_multi_constrained := True
 							l_right_type_set := l_formal.constrained_types (current_class)
@@ -1392,7 +1349,6 @@ feature {NONE} -- Implementation
 			l_feat: E_FEATURE
 			l_type: TYPE_A
 			l_last_type: TYPE_A
-			l_formal: FORMAL_A
 			l_last_type_set: TYPE_SET_A
 			l_last_class: CLASS_C
 			l_result: LIST[TUPLE[feature_item: E_FEATURE; type: RENAMED_TYPE_A]]
@@ -1404,8 +1360,7 @@ feature {NONE} -- Implementation
 			end
 			if not has_error_internal then
 				last_type := last_type.actual_type
-				if last_type.is_formal then
-					l_formal ?= last_type
+				if attached {FORMAL_A} last_type as l_formal then
 					if l_formal.is_multi_constrained (current_class) then
 						l_last_type_set := l_formal.constrained_types (current_class)
 							-- Here we get back the feature and the renamed type where the feature is from (it means that it includes a possible renaming)
@@ -1421,14 +1376,15 @@ feature {NONE} -- Implementation
 					l_feat := feature_in_class (last_class, l_as.routine_ids)
 				end
 			end
-			if not expr_type_visiting then
-				if l_as.operands /= Void then
-					l_last_type := last_type
-					l_last_class := last_class
-					l_as.operands.process (Current)
-					last_type := l_last_type
-					last_class := l_last_class
-				end
+			if
+				not expr_type_visiting and then
+				attached l_as.operands
+			then
+				l_last_type := last_type
+				l_last_class := last_class
+				l_as.operands.process (Current)
+				last_type := l_last_type
+				last_class := l_last_class
 			end
 			if not has_error_internal then
 				check
@@ -1590,10 +1546,23 @@ feature {NONE} -- Implementation
 			if l_as.case_list /= Void then
 				l_as.case_list.process (Current)
 			end
-			if l_as.else_part /= Void then
-				if not l_as.else_part.is_empty then
-					format_compound (l_as.else_part)
-				end
+			if attached l_as.else_part as e and then not e.is_empty then
+				format_compound (e)
+			end
+		end
+
+	process_inspect_expression_as (l_as: INSPECT_EXPRESSION_AS)
+		do
+			check
+				not_expr_type_visiting: not expr_type_visiting
+			end
+			l_as.switch.process (Current)
+			if l_as.case_list /= Void then
+				l_as.case_list.process (Current)
+			end
+			if attached l_as.else_part as l_else_part then
+				put_breakable (l_as)
+				l_else_part.process (Current)
 			end
 		end
 
@@ -1617,7 +1586,6 @@ feature {NONE} -- Implementation
 			end
 			if l_as.from_part /= Void then
 				format_compound (l_as.from_part)
-			else
 			end
 			if l_as.invariant_part /= Void then
 				l_as.invariant_part.process (Current)
@@ -1731,7 +1699,6 @@ feature {NONE} -- Implementation
 			-- Shared part of `'processing_class_as' for both normal flat views and doc.
 		local
 			l_creators: EIFFEL_LIST [CREATE_AS]
-			l_create: CREATE_AS
 			l_features: EIFFEL_LIST [FEATURE_NAME]
 			l_feat: FEATURE_I
 		do
@@ -1755,9 +1722,8 @@ feature {NONE} -- Implementation
 				if l_feat /= Void then
 					create l_creators.make (1)
 					create l_features.make (1)
-					l_features.extend (create {FEAT_NAME_ID_AS}.initialize (create {ID_AS}.initialize_from_id (l_feat.feature_name_id)))
-					create l_create.initialize (Void, l_features, Void)
-					l_creators.extend (l_create)
+					l_features.extend (create {FEATURE_NAME}.initialize (create {ID_AS}.initialize_from_id (l_feat.feature_name_id)))
+					l_creators.extend (create {CREATE_AS}.initialize (Void, l_features, Void))
 				end
 			end
 			if l_creators /= Void then
@@ -1965,6 +1931,18 @@ feature {NONE} -- Implementation
 			l_as.interval.process (Current)
 			if l_as.compound /= Void then
 				format_compound (l_as.compound)
+			end
+		end
+
+	process_case_expression_as (l_as: CASE_EXPRESSION_AS)
+		do
+			check
+				not_expr_type_visiting: not expr_type_visiting
+			end
+			l_as.interval.process (Current)
+			if attached l_as.content as l_content then
+				put_breakable (l_as)
+				l_content.process (Current)
 			end
 		end
 
@@ -2456,11 +2434,8 @@ feature {NONE} -- Implementation: helpers
 
 	type_feature_i_from_ancestor (a_ancestor: CLASS_C; a_formal: FORMAL_A): TYPE_FEATURE_I
 			-- Formal constraint class from `a_ancestor'
-		local
-			l_type_feature_i: TYPE_FEATURE_I
 		do
-			l_type_feature_i := a_ancestor.formal_at_position (a_formal.position)
-			Result := l_type_feature_i
+			Result := a_ancestor.formal_at_position (a_formal.position)
 		end
 
 	type_from_ancestor (a_ancestor: CLASS_C; a_formal: FORMAL_A): TYPE_A
@@ -2482,18 +2457,17 @@ feature {NONE} -- Implementation: helpers
 			-- Formal constraint class from `a_type_feature_i'.
 		local
 			l_type: TYPE_A
-			l_formal: FORMAL_A
-			l_formal_dec: FORMAL_CONSTRAINT_AS
 		do
 			l_type := a_type_feature_i.type
-			l_formal ?= l_type
-			if l_formal /= Void then
+			if attached {FORMAL_A} l_type as l_formal then
 				check
 					current_class_has_generics: current_class.generics /= Void
 				end
-				l_formal_dec ?= current_class.generics.i_th (l_formal.position)
-				check l_formal_dec_not_void: l_formal_dec /= Void end
-				Result := l_formal_dec.constraint_type (current_class).base_class
+				if attached {FORMAL_CONSTRAINT_AS} current_class.generics.i_th (l_formal.position) as l_formal_dec then
+					Result := l_formal_dec.constraint_type (current_class).base_class
+				else
+					check False end
+				end
 			else
 				Result := l_type.base_class
 			end
@@ -2534,14 +2508,9 @@ feature {NONE} -- Implementation: helpers
 		require
 			any_compiled: system.any_class.is_compiled
 			array_compiled: system.array_class.is_compiled
-		local
-			generics: ARRAYED_LIST [TYPE_A]
-			any_type: CL_TYPE_A
 		once
-			create generics.make (1)
-			create any_type.make (system.any_id)
-			generics.extend (any_type)
-			create Result.make (system.array_id, generics)
+			create Result.make (system.array_id,
+				create {ARRAYED_LIST [TYPE_A]}.make_from_array (<<create {CL_TYPE_A}.make (system.any_id)>>))
 				-- Type of a strip is a frozen array.
 			Result.set_frozen_mark
 		end
@@ -2684,11 +2653,9 @@ feature {NONE} -- Implementation: helpers
 					-- is used to create current ROUTINE type.
 				create l_oargtypes.make (l_count)
 
-				if l_count > 0 then
-					if l_oidx > 1 then
-							-- Target is open, so insert it.
-						l_oargtypes.extend (l_target_type)
-					end
+				if l_count > 0 and then l_oidx > 1 then
+						-- Target is open, so insert it.
+					l_oargtypes.extend (l_target_type)
 				end
 
 					-- Always insert target's type in `l_argtypes' as first argument.
@@ -2787,7 +2754,7 @@ invariant
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

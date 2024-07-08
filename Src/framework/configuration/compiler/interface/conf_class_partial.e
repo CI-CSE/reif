@@ -174,7 +174,7 @@ feature {NONE} -- Implementation
 						last_error := create {CONF_ERROR_PARTIAL}.make ("Unknown error in merging partial classes.")
 					end
 				else
-					path := group.target.system.uuid.out + "/" + group.name
+					path := group.target.system.uuid.string + "/" + group.name
 
 					u.create_directory_path (base_location.build_path (path, {STRING_32} ""))
 
@@ -188,9 +188,8 @@ feature {NONE} -- Implementation
 					l_name := name_from_associated_file
 					if l_name /= Void then
 						set_name (l_name)
-
-							-- rename file to class name
-						file_name := name.as_lower + {STRING_32} ".e"
+							-- Rename file to class name.
+						file_name := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (name).as_lower + {STRING_32} ".e"
 						l_file.rename_path (full_file_name)
 					else
 						create {CONF_ERROR_PARTIAL} last_error.make ("Unable to find class name from associated file.")
@@ -218,7 +217,7 @@ feature {NONE} -- Shared instances
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

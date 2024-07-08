@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Abstract representation of an inspect value of a particular type."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,7 +10,6 @@ deferred class TYPED_INTERVAL_VAL_B [H -> COMPARABLE]
 inherit
 	INTERVAL_VAL_B
 		redefine
-			is_less,
 			is_equal
 		end
 
@@ -52,30 +51,28 @@ feature {TYPED_INTERVAL_B, TYPED_INTERVAL_VAL_B, BYTE_NODE_VISITOR} -- Data
 feature {TYPED_INTERVAL_B} -- C code generation
 
 	generate_interval (other: like Current)
-			-- Generate interval Current..`other'.
+			-- <Precursor>
 		local
-			lo, up: H
+			l, u: H
 			buf: GENERATION_BUFFER
+			done: BOOLEAN
 		do
-				-- Do not use `lo > up' as exit test since `lo'
-				-- will be out of bounds when `up' is the greatest
+				-- Do not use `l > u` as exit test because `l`
+				-- will be out of bounds when `u` is the greatest
 				-- allowed value.
 			from
 				buf := buffer
-				lo := value
-				up := other.value
-				buf.put_new_line
-				buf.put_string ("case ")
-				generate_value (lo)
-				buf.put_character (':')
+				l := value
+				u := other.value
 			until
-				lo = up
+				done
 			loop
-				lo := next_value (lo)
 				buf.put_new_line
 				buf.put_string ("case ")
-				generate_value (lo)
+				generate_value (l)
 				buf.put_character (':')
+				done := l = u
+				l := next_value (l)
 			end
 		end
 
@@ -98,7 +95,7 @@ feature {NONE} -- Implementation: C code generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -111,22 +108,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

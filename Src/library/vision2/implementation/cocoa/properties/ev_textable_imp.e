@@ -1,6 +1,7 @@
-note
+﻿note
 	description: "Eiffel Vision textable. Cocoa implementation."
 	author: "Daniel Furrer"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -65,7 +66,7 @@ feature -- Element change
 
 feature -- Internal
 
-	internal_text: detachable STRING
+	internal_text: detachable STRING_32
 
 feature {EV_ANY_IMP} -- Implementation
 
@@ -77,4 +78,53 @@ feature {EV_ANY_IMP} -- Implementation
 
 	alignment: INTEGER -- the alignement
 
-end -- class EV_TEXTABLE_IMP
+	filter_ampersand (s: STRING_32; char: CHARACTER)
+			-- Replace occurrences of '&' from `s'  by `char' and
+			-- replace occurrences of "&&" with '&'.
+		require
+			s_not_void: s /= Void
+			s_has_at_least_one_ampersand: s.occurrences ('&') > 0
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > s.count
+			loop
+				if s [i] = '&' then
+					if s [i + 1] = '&' then
+						i := i + 1
+					else
+						s [i] := char
+					end
+				end
+				i := i + 1
+			end
+			s.replace_substring_all (once "&&", once "&")
+		end
+
+	u_lined_filter (s: READABLE_STRING_GENERAL): STRING_32
+			-- Copy of `s' with underscores instead of ampersands.
+			-- (If `s' does not contain ampersands, return `s'.)
+		require
+			s_not_void: s /= Void
+		do
+			Result := s.as_string_32
+			Result.replace_substring_all (once  "_", once  "__")
+			if s.has_code (('&').natural_32_code) then
+				filter_ampersand (Result, '_')
+			end
+		end
+
+note
+	copyright: "Copyright (c) 1984-2019, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
+end

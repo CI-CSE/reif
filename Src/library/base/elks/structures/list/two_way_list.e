@@ -1,12 +1,12 @@
-note
+﻿note
 	description: "Sequential, two-way linked lists"
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: two_way_list, sequence;
-	representation: linked;
-	access: index, cursor, membership;
-	contents: generic;
+	names: two_way_list, sequence
+	representation: linked
+	access: index, cursor, membership
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -20,36 +20,17 @@ class TWO_WAY_LIST [G] inherit
 			remove, remove_left, remove_right, wipe_out,
 			previous, finish, move, islast, new_chain,
 			forth, back, cursor, new_cursor
-		select
-			put_front,
-			merge_right,
-			move, put_right,
-			wipe_out
-		end
-
-	LINKED_LIST [G]
-		rename
-			put_front as ll_put_front,
-			put_right as ll_put_right,
-			merge_right as ll_merge_right,
-			move as ll_move,
-			wipe_out as ll_wipe_out
-		export
-			{NONE}
-				ll_put_front, ll_put_right,
-				ll_move, ll_merge_right, ll_wipe_out
-		redefine
-			put_left, merge_left, remove, new_chain,
-			remove_left, finish, islast, first_element, extend,
-			last_element, previous, new_cell, remove_right,
-			forth, back, cursor, new_cursor
 		end
 
 create
-	make
+	make,
+	make_from_iterable
 
 create {TWO_WAY_LIST}
 	make_sublist
+
+convert
+	make_from_iterable ({ARRAY [G]})
 
 feature -- Access
 
@@ -160,7 +141,7 @@ feature -- Cursor movement
 			p: like first_element
 		do
 			if i > 0 then
-				ll_move (i)
+				Precursor (i)
 			elseif i < 0 then
 				if after then
 					after := False
@@ -189,7 +170,7 @@ feature -- Element change
 			-- Add `v' to beginning.
 			-- Do not move cursor.
 		do
-			ll_put_front (v)
+			Precursor (v)
 			if count = 1 then
 				last_element := first_element
 			end
@@ -253,7 +234,7 @@ feature -- Element change
 			a: like active
 		do
 			was_last := islast
-			ll_put_right (v)
+			Precursor (v)
 			if count = 1 then
 					-- `p' is only element in list
 				last_element := active
@@ -310,7 +291,7 @@ feature -- Element change
 			if is_empty or else islast then
 				last_element := other.last_element
 			end
-			ll_merge_right (other)
+			Precursor (other)
 		end
 
 feature -- Removal
@@ -380,7 +361,7 @@ feature -- Removal
 	wipe_out
 			-- Remove all items.
 		do
-			ll_wipe_out
+			Precursor
 			last_element := Void
 		end
 
@@ -461,6 +442,7 @@ feature {TWO_WAY_LIST} -- Implementation
 			-- A newly created instance of the same type.
 			-- This feature may be redefined in descendants so as to
 			-- produce an adequately allocated and initialized object.
+		obsolete "Use explicit creation instead. See also explanations for `duplicate`. [2018-11-30]"
 		do
 			create Result.make
 		end
@@ -496,7 +478,7 @@ invariant
 				l.right = Void
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

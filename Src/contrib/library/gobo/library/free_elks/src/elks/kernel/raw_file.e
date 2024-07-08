@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Files, viewed as persistent sequences of bytes"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -20,7 +20,8 @@ create
 	make, make_with_name, make_with_path,
 	make_open_read, make_open_write, make_open_append,
 	make_open_read_write, make_create_read_write,
-	make_open_read_append
+	make_open_read_append,
+	make_open_temporary, make_open_temporary_with_prefix
 
 feature -- Status report
 
@@ -94,13 +95,13 @@ feature -- Output
 			end
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal, put_real_32 (r: REAL_32)
 			-- Write binary value of `r' at current position.
 		do
 			file_prb (file_pointer, r)
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble, put_real_64 (d: REAL_64)
 			-- Write binary value `d' at current position.
 		do
 			file_pdb (file_pointer, d)
@@ -110,7 +111,7 @@ feature -- Output
 			-- Put `data' of length `size' pointed by `p' at
 			-- current position.
 		obsolete
-			"Use `put_managed_pointer' instead."
+			"Use `put_managed_pointer' instead. [2017-05-31]"
 		require
 			p_not_null: p /= default_pointer
 			extendible: extendible
@@ -184,14 +185,14 @@ feature -- Input
 			last_natural_64 := integer_buffer.read_natural_64 (0)
 		end
 
-	read_real, readreal
+	read_real, readreal, read_real_32
 			-- Read the binary representation of a new real
 			-- from file. Make result available in `last_real'.
 		do
 			last_real := file_grb (file_pointer)
 		end
 
-	read_double, readdouble
+	read_double, readdouble, read_real_64
 			-- Read the binary representation of a new double
 			-- from file. Make result available in `last_double'.
 		do
@@ -203,7 +204,7 @@ feature -- Input
 			-- or until end of file.
 			-- Make result available in `p'.
 		obsolete
-			"Use `read_to_managed_pointer' instead."
+			"Use `read_to_managed_pointer' instead. [2017-05-31]"
 		require
 			p_not_null: p /= default_pointer
 			is_readable: file_readable
@@ -218,7 +219,7 @@ feature -- Input
 			bytes_read := file_fread (p.item + start_pos, 1, nb_bytes, file_pointer)
 		end
 
-	read_to_string (a_string: STRING; pos, nb: INTEGER): INTEGER
+	read_to_string (a_string: STRING_8; pos, nb: INTEGER): INTEGER
 			-- Fill `a_string', starting at position `pos' with at
 			-- most `nb' characters read from current file.
 			-- Return the number of characters actually read.
@@ -228,19 +229,27 @@ feature -- Input
 			a_string.reset_hash_codes
 		end
 
+feature {FILE_ITERATION_CURSOR} -- Iteration
+
+	file_fread (dest: POINTER; elem_size, nb_elems: INTEGER; file: POINTER): INTEGER
+			-- Read `nb_elems' of size `elem_size' in file `file' and store them
+			-- in location `dest'.
+		external
+			"C signature (void *, size_t, size_t, FILE *): EIF_INTEGER use <stdio.h>"
+		alias
+			"fread"
+		end
+
 feature {NONE} -- Implementation
 
 	integer_buffer: MANAGED_POINTER
 			-- Buffer used to read INTEGER_64, INTEGER_16, INTEGER_8
-		local
-			r: detachable MANAGED_POINTER
 		do
-			r := internal_integer_buffer
-			if r = Void then
-				create r.make (16)
-				internal_integer_buffer := r
+			Result := internal_integer_buffer
+			if Result = Void then
+				create Result.make (16)
+				internal_integer_buffer := Result
 			end
-			Result := r
 		end
 
 	internal_integer_buffer: detachable MANAGED_POINTER
@@ -254,7 +263,7 @@ feature {NONE} -- Implementation
 			"eif_file_gib"
 		end
 
-	file_grb (file: POINTER): REAL
+	file_grb (file: POINTER): REAL_32
 			-- Read a real from `file'
 		external
 			"C signature (FILE *): EIF_REAL_32 use %"eif_file.h%""
@@ -262,7 +271,7 @@ feature {NONE} -- Implementation
 			"eif_file_grb"
 		end
 
-	file_gdb (file: POINTER): DOUBLE
+	file_gdb (file: POINTER): REAL_64
 			-- Read a double from `file'
 		external
 			"C signature (FILE *): EIF_REAL_64 use %"eif_file.h%""
@@ -304,7 +313,7 @@ feature {NONE} -- Implementation
 			"eif_file_pib"
 		end
 
-	file_prb (file: POINTER; r: REAL)
+	file_prb (file: POINTER; r: REAL_32)
 			-- Put `r' to end of `file'.
 		external
 			"C signature (FILE *, EIF_REAL_32) use %"eif_file.h%""
@@ -312,7 +321,7 @@ feature {NONE} -- Implementation
 			"eif_file_prb"
 		end
 
-	file_pdb (file: POINTER; d: DOUBLE)
+	file_pdb (file: POINTER; d: REAL_64)
 			-- Put `d' to end of `file'.
 		external
 			"C signature (FILE *, EIF_REAL_64) use %"eif_file.h%""
@@ -320,21 +329,12 @@ feature {NONE} -- Implementation
 			"eif_file_pdb"
 		end
 
-	file_fread (dest: POINTER; elem_size, nb_elems: INTEGER; file: POINTER): INTEGER
-			-- Read `nb_elems' of size `elem_size' in file `file' and store them
-			-- in location `dest'.
-		external
-			"C signature (void *, size_t, size_t, FILE *): EIF_INTEGER use <stdio.h>"
-		alias
-			"fread"
-		end
-
 invariant
 
 	not_plain_text: not is_plain_text
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

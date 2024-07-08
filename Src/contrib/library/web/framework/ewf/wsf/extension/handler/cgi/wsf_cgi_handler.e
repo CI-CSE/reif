@@ -16,35 +16,79 @@ feature {NONE} -- Creation
 
 	make (a_dir: PATH)
 		do
-			working_direction := a_dir
+			working_directory := a_dir
 		end
 
 feature -- Settings
 
 	buffer_size: INTEGER = 1_024
 
-	working_direction: PATH
+	working_directory: PATH
 
 feature -- Status report
 
-	cgi_file_path (req: WSF_REQUEST): PATH
+	cgi_request_data (req: WSF_REQUEST): TUPLE [location: PATH; script_name: READABLE_STRING_8; path_info: READABLE_STRING_8]
 		local
-			l_path_info: READABLE_STRING_32
+			l_path_info, l_scriptname: STRING_32
+			fut: FILE_UTILITIES
+			r,p,pp: PATH
+			enc: PERCENT_ENCODER
+			wc: INTEGER
 		do
 				-- Path to CGI executable.
 			l_path_info := req.path_info
 			if l_path_info.starts_with_general ("/") then
-				l_path_info := l_path_info.substring (2, l_path_info.count)
+				r := working_directory.extended (l_path_info.substring (2, l_path_info.count))
+			else
+				r := working_directory.extended (l_path_info)
 			end
 
-				-- Process
-			Result := working_direction.extended (l_path_info)
+			from
+				p := r
+			until
+				p = Void or else fut.file_path_exists (p)
+			loop
+				pp := p.parent
+				if not p.same_as (pp) then
+					p := pp
+				else
+					p := Void
+				end
+			end
+			create enc
+			wc := working_directory.name.count
+			if p = Void then
+				p := r
+				l_path_info := ""
+			else
+				l_path_info := r.name
+				l_path_info.remove_head (wc + 1)
+			end
+			l_scriptname := p.name
+			l_scriptname.remove_head (wc + 1)
+			l_path_info.remove_head (l_scriptname.count + 1)
+
+			Result := [p, to_percent_encoded_uri (l_scriptname), to_percent_encoded_uri (l_path_info)]
 		end
 
-	exists (req: WSF_REQUEST): BOOLEAN
-			-- CGI file exists?
+	to_percent_encoded_uri (s: READABLE_STRING_32): STRING_8
+		local
+			enc: PERCENT_ENCODER
+			p: PATH
 		do
-			Result := (create {FILE_UTILITIES}).file_path_exists (cgi_file_path (req))
+			if s.is_empty then
+				Result := ""
+			else
+				create p.make_from_string (s)
+				create Result.make (s.count)
+				create enc
+				across
+					p.components as ic
+				loop
+					Result.append_character ('/')
+					enc.append_percent_encoded_string_to (ic.item.name, Result)
+				end
+			end
 		end
 
 feature -- Execution
@@ -53,10 +97,8 @@ feature -- Execution
 			-- Execute `req' responding in `res'.
 		local
 			fut: FILE_UTILITIES
-			l_exec_path: PATH
 			proc: BASE_PROCESS
 			l_input_env: STRING_TABLE [READABLE_STRING_GENERAL]
-			l_input_header: detachable STRING
 			l_input_buf: STRING
 			l_output: STRING
 			l_output_header_sent: BOOLEAN
@@ -64,10 +106,6 @@ feature -- Execution
 			s: STRING
 			i, j, n: INTEGER
 		do
-				-- Header
-			if attached req.raw_header_data as l_header then
-				l_input_header := l_header
-			end
 				-- Input data
 			create l_input_buf.make (req.content_length_value.to_integer_32)
 			req.read_input_data_into (l_input_buf)
@@ -83,13 +121,17 @@ feature -- Execution
 					check supported: False end
 				end
 			end
-				-- No need to import `l_input_header` in environment
+				-- No need to import input_header in environment
 				-- As current connector already did the job.
+			if
+				attached cgi_request_data (req) as d and then
+				fut.file_path_exists (d.location)
+			then
+				l_input_env.force (d.script_name, "SCRIPT_NAME")
+				l_input_env.force (d.path_info, "PATH_INFO")
 
 				-- Process
-			l_exec_path := cgi_file_path (req)
-			if fut.file_path_exists (l_exec_path) then
-				proc := (create {BASE_PROCESS_FACTORY}).process_launcher (l_exec_path.name, Void, working_direction.name)
+				proc := (create {BASE_PROCESS_FACTORY}).process_launcher (d.location.name, Void, working_directory.name)
 				proc.set_hidden (True)
 				proc.set_environment_variable_table (l_input_env)
 				proc.set_separate_console (False)
@@ -102,7 +144,7 @@ feature -- Execution
 				if proc.launched then
 						-- Do not send the header to CGI script
 						-- value are passed via environment variables
-						--				proc.put_string (l_input_header)
+						--				proc.put_string (input_header)
 						-- Send payload.
 					proc.put_string (l_input_buf)
 
@@ -225,7 +267,7 @@ feature -- Execution
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2019, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

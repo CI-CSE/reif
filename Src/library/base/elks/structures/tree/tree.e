@@ -3,10 +3,10 @@
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: tree;
-	access: cursor, membership;
-	representation: recursive;
-	contents: generic;
+	names: tree
+	access: cursor, membership
+	representation: recursive
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -256,6 +256,14 @@ feature -- Status report
 			same_parent: Result = not is_root and other.parent = parent
 		end
 
+feature -- Iteration
+
+	new_cursor: TREE_ITERATION_CURSOR [G]
+			-- <Precursor>
+		do
+			create Result.make (Current)
+		end
+
 feature -- Cursor movement
 
 	child_go_to (p: CURSOR)
@@ -352,6 +360,7 @@ feature -- Element change
 			-- Fill with as many items of `other' as possible.
 			-- The representations of `other' and current node
 			-- need not be the same.
+		obsolete "Fill the tree explicitly. [2018-11-30]"
 		do
 			replace (other.item)
 			fill_subtree (other)
@@ -461,6 +470,7 @@ feature -- Duplication
 			-- Copy of sub-tree beginning at cursor position and
 			-- having min (`n', `arity' - `child_index' + 1)
 			-- children.
+		obsolete "Create and initialize a new tree explicitly. [2018-11-30]"
 		require
 			not_child_off: not child_off
 			valid_sublist: n >= 0
@@ -569,6 +579,7 @@ feature {NONE} -- Implementation
 
 	fill_subtree (s: TREE [G])
 			-- Fill children with children of `other'.
+		obsolete "Fill subtree explicitly. [2018-11-30]"
 		deferred
 		end
 
@@ -878,9 +889,15 @@ feature {NONE} -- Implementation
 			result_is_leaf: is_leaf
 		end
 
+	is_stable: BOOLEAN
+			-- Use to disable invariant monitoring to avoid DDD issue.
+		do
+			Result := True
+		end
+
 invariant
 
-	tree_consistency: child_readable implies (attached child as c and then c.parent = Current)
+	tree_consistency: is_stable and child_readable implies (attached child as c and then c.parent = Current)
 	leaf_definition: is_leaf = (arity = 0)
 	child_off_definition: child_off = child_before or child_after
 	child_before_definition: child_before = (child_index = 0)
@@ -890,7 +907,7 @@ invariant
 	child_after_definition: child_after = (child_index >= child_capacity + 1)
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -8,15 +8,17 @@ class
 
 feature {NONE} -- Access
 
-	non_client_option_ids: ARRAY [INTEGER]
-			-- Non client options ids
-			-- It should be made a hashtable if the number of values grows too large.
+	supplier_option_ids: ARRAY [INTEGER]
+			-- Supplier option ids, i.e. IDs of the options that cannot be changed by the client.
 		once
+				-- It should be made a hashtable if the number of values grows too large.
 			Result :=
 				<<
 					at_catcall_detection,
 					at_full_class_checking,
 					at_is_attached_by_default,
+					at_is_obsolete_iteration,
+					at_is_obsolete_routine_type,
 					at_is_void_safe,
 					at_manifest_array_type,
 					at_namespace,
@@ -24,14 +26,18 @@ feature {NONE} -- Access
 					at_syntax_level,
 					at_void_safety
 				>>
+		ensure
+			class
 		end
 
 feature {NONE} -- Helper
 
-	is_non_client_option (an_option: INTEGER): BOOLEAN
-			-- Is `an_option' non client option?
+	is_supplier_option (an_option: INTEGER): BOOLEAN
+			-- Is `an_option' controlled by a supplier rather than by a client?
 		do
-			Result := non_client_option_ids.has (an_option)
+			Result := supplier_option_ids.has (an_option)
+		ensure
+			class
 		end
 
 feature {NONE} -- Implementation constants
@@ -85,12 +91,15 @@ feature {NONE} -- Implementation constants
 	t_test_cluster: INTEGER = 45
 	t_concurrency: INTEGER = 46
 	t_redirection: INTEGER = 47
-	t_capability: INTEGER = 48
-	t_capability_catcall_detection: INTEGER = 49
-	t_capability_code: INTEGER = 50
-	t_capability_concurrency: INTEGER = 51
-	t_capability_platform: INTEGER = 52
-	t_capability_void_safety: INTEGER = 53
+	t_void_safety: INTEGER = 48
+	t_capability: INTEGER = 49
+	t_capability_catcall_detection: INTEGER = 50
+	t_capability_code: INTEGER = 51
+	t_capability_concurrency: INTEGER = 52
+	t_capability_platform: INTEGER = 53
+	t_capability_void_safety: INTEGER = 54
+	t_namespace: INTEGER = 55
+
 
 		-- Attribute states
 	at_abstract: INTEGER = 1000
@@ -164,6 +173,7 @@ feature {NONE} -- Implementation constants
 	at_use: INTEGER = 1068
 	at_match: INTEGER = 1069
 	at_manifest_array_type: INTEGER = 1070
+	at_is_obsolete_iteration: INTEGER = 1071
 
 		-- Undefined tag starting number
 	undefined_tag_start: INTEGER = 100000
@@ -172,7 +182,7 @@ feature {NONE} -- Implementation constants
 			-- Name of the attribute "enabled".
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

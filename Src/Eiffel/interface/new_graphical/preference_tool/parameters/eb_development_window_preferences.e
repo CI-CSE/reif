@@ -12,6 +12,7 @@ inherit
 	EB_DEVELOPMENT_WINDOW_DATA
 	ES_TOOLBAR_PREFERENCE
 	EB_SHARED_GRAPHICAL_COMMANDS
+	ES_SHARED_FONTS_AND_COLORS
 
 create
 	make
@@ -53,7 +54,8 @@ feature {EB_SHARED_PREFERENCES, EB_DEVELOPMENT_WINDOW_SESSION_DATA,
 			Result := <<"New_tab__visible", "New_window__hidden", "New_editor__hidden", "New_context_window__hidden", "Open_file__hidden",
 				"New_class__hidden", "New_feature__hidden", "Open_shell__visible", "Save_file__visible", "Save_all_file__visible", "Separator",
 				"Undo__visible", "Redo__visible", "Separator", "Editor_cut__visible", "Editor_copy__visible", "Editor_paste__visible", "Separator",
-				"ES_GROUP_TOOL__hidden", "ES_FEATURES_TOOL__hidden", "ES_SEARCH_TOOL__visible", "Separator", "Send_to_context__visible",
+				"ES_GROUP_TOOL__hidden", "ES_FEATURES_TOOL__hidden", "ES_SEARCH_TOOL__visible", "Cloud_account__hidden", "SCM_tool__visible", "Separator",
+				"Send_to_context__visible",
 				"New_cluster__hidden", "Remove_class_cluster__hidden", "Toggle_stone__hidden", "Raise_all__hidden", "Minimize_all__hidden",
 				"Print__hidden", "ES_OUTPUTS_TOOL__hidden", "ES_DIAGRAM_TOOL__hidden", "ES_CLASS_TOOL__hidden", "ES_FEATURE_RELATION_TOOL__hidden",
 				"ES_DEPENDENCY_TOOL__hidden", "ES_METRICS_TOOL__hidden", "ES_CONSOLE_TOOL__hidden", "ES_ERROR_LIST_TOOL__hidden",
@@ -174,6 +176,37 @@ feature {EB_SHARED_PREFERENCES, EB_DEVELOPMENT_WINDOW_SESSION_DATA,
 			Result := outputs_tool_prompted_preference.value
 		end
 
+	consecutive_successful_compilations_threshold: NATURAL
+			-- Number of consecutive successfult compilations threshold, by default 4.
+		do
+			Result := consecutive_successful_compilations_threshold_preference.value.to_natural_32
+		end
+
+	pretty_printer_messindex: NATURAL
+			-- Threshold of estudio pretty printer messindex.
+		do
+			Result := pretty_printer_messindex_preference.value.to_natural_32
+		end
+
+	is_pretty_printer_notification_enabled: BOOLEAN
+			-- Is pretty printer notification enabled?
+		do
+			Result := is_pretty_printer_notification_enabled_preference.value
+		end
+
+feature -- General font and color preference
+
+	grid_preferences: EB_GRID_PREFERENCES
+		do
+			Result := internal_grid_preferences
+			if Result = Void then
+				create Result.make (Current)
+				internal_grid_preferences := Result
+			end
+		end
+
+	internal_grid_preferences: detachable like grid_preferences
+
 feature {EB_SHARED_PREFERENCES} -- Preference
 
 	estudio_dbg_menu_allowed_preference: BOOLEAN_PREFERENCE
@@ -231,6 +264,28 @@ feature {EB_SHARED_PREFERENCES} -- Preference
 	outputs_tool_prompted_preference: BOOLEAN_PREFERENCE
 			-- If show up output tool if start compiling?
 
+	consecutive_successful_compilations_threshold_preference: INTEGER_PREFERENCE
+		-- Number of successful compilations in a row, to be used when a criteria is met, we suggest something to the user.
+		-- for example Pretty printer option.
+
+	pretty_printer_messindex_preference: INTEGER_PREFERENCE
+		-- Compute messindex as the diff between the current code and the pretty printed code.
+
+	is_pretty_printer_notification_enabled_preference: BOOLEAN_PREFERENCE
+			-- Is pretty printer notification enabled?
+
+feature {EB_SHARED_PREFERENCES, EB_GRID_PREFERENCES} -- Grid related preferences			
+
+	grid_font_preference: FONT_PREFERENCE
+	grid_foreground_color_preference: COLOR_PREFERENCE
+	grid_background_color_preference: COLOR_PREFERENCE
+	grid_focused_selection_text_color_preference: COLOR_PREFERENCE
+	grid_focused_selection_color_preference: COLOR_PREFERENCE
+	grid_non_focused_selection_text_color_preference: COLOR_PREFERENCE
+	grid_non_focused_selection_color_preference: COLOR_PREFERENCE
+	grid_separator_color_preference: COLOR_PREFERENCE
+	grid_tree_node_connector_color_preference: COLOR_PREFERENCE
+
 feature -- Element change
 
 	save_force_debug_mode (a_bool: BOOLEAN)
@@ -246,6 +301,12 @@ feature -- Element change
 			completion_list_height_preference.set_value (a_height)
 			preferences.save_preference (completion_list_width_preference)
 			preferences.save_preference (completion_list_height_preference)
+		end
+
+	update_pretty_printer_notification (a_bool: BOOLEAN)
+			-- Update pretty printer notification with `a_bool`.
+		do
+			is_pretty_printer_notification_enabled_preference.set_value (a_bool)
 		end
 
 feature -- Basic operations
@@ -299,12 +360,32 @@ feature {NONE} -- Preference Strings
 	estudio_dbg_menu_accelerator_allowed_string: STRING = "interface.development_window.estudio_dbg_menu_accelerator_allowed"
 	estudio_dbg_menu_enabled_string: STRING = "interface.development_window.estudio_dbg_menu_enabled"
 
+	consecutive_successful_compilations_threshold_string: STRING = "interface.development_window.consecutive_successful_compilations_threshold"
+		-- Number of successful compilations in a row, to be used when a criteria is met, we suggest  something to the user.
+		-- for example Pretty printer option.
+
+	pretty_printer_messindex_string: STRING = "interface.development_window.pretty_printer_messindex"
+		-- Compute messindex as the diff between the current code and the pretty printed code.
+
+	is_pretty_printer_notification_enabled_string: STRING = "interface.development_window.is_pretty_printer_notification_enabled"
+
+	grid_font_string: STRING = "interface.development_window.grid.font"
+	grid_foreground_color_string: STRING = "interface.development_window.grid.foreground_color"
+	grid_background_color_string: STRING = "interface.development_window.grid.background_color"
+	grid_focused_selection_text_color_string: STRING = "interface.development_window.grid.focused_selection_text_color"
+	grid_focused_selection_color_string: STRING = "interface.development_window.grid.focused_selection_color"
+	grid_non_focused_selection_text_color_string: STRING = "interface.development_window.grid.non_focused_selection_text_color"
+	grid_non_focused_selection_color_string: STRING = "interface.development_window.grid.non_focused_selection_color"
+	grid_separator_color_string: STRING = "interface.development_window.grid.separator_color"
+	grid_tree_node_connector_color_string: STRING = "interface.development_window.grid.tree_node_connector_color"
+
 feature {NONE} -- Implementation
 
 	initialize_preferences
 			-- Initialize preference values.
 		local
 			l_manager: EB_PREFERENCE_MANAGER
+			g: ES_GRID
 		do
 			create l_manager.make (preferences, "development_window")
 			is_force_debug_mode_preference := l_manager.new_boolean_preference_value (l_manager, is_force_debug_mode_string, False)
@@ -334,6 +415,32 @@ feature {NONE} -- Implementation
 			estudio_dbg_menu_enabled_preference := l_manager.new_boolean_preference_value (l_manager, estudio_dbg_menu_enabled_string, False)
 			estudio_dbg_menu_enabled_preference.set_hidden (not estudio_dbg_menu_allowed_preference.value)
 			estudio_dbg_menu_enabled_preference.change_actions.extend (agent update_estudio_dbg_menu)
+
+
+			consecutive_successful_compilations_threshold_preference := l_manager.new_integer_preference_value (l_manager, consecutive_successful_compilations_threshold_string, 4)
+			pretty_printer_messindex_preference := l_manager.new_integer_preference_value (l_manager, pretty_printer_messindex_string, 2)
+			is_pretty_printer_notification_enabled_preference := l_manager.new_boolean_preference_value (l_manager, is_pretty_printer_notification_enabled_string, True)
+
+			create g
+			grid_font_preference := l_manager.new_font_preference_value (l_manager, grid_font_string, if attached (create {EV_GRID_LABEL_ITEM}).font as ft then ft else fonts.standard_label_font end)
+			if not grid_font_preference.has_default_value then
+				grid_font_preference.set_as_default_value (fonts.standard_label_font)
+			end
+			grid_foreground_color_preference := l_manager.new_color_preference_value (l_manager, grid_foreground_color_string, g.foreground_color)
+			if not grid_foreground_color_preference.has_default_value then
+				grid_foreground_color_preference.set_as_default_value (g.foreground_color)
+			end
+			grid_background_color_preference := l_manager.new_color_preference_value (l_manager, grid_background_color_string, g.background_color)
+			if not grid_background_color_preference.has_default_value then
+				grid_background_color_preference.set_as_default_value (g.background_color)
+			end
+			grid_focused_selection_text_color_preference := l_manager.new_color_preference_value (l_manager, grid_focused_selection_text_color_string, g.focused_selection_text_color)
+			grid_focused_selection_color_preference := l_manager.new_color_preference_value (l_manager, grid_focused_selection_color_string, g.focused_selection_color)
+			grid_non_focused_selection_text_color_preference := l_manager.new_color_preference_value (l_manager, grid_non_focused_selection_text_color_string, g.non_focused_selection_text_color)
+			grid_non_focused_selection_color_preference := l_manager.new_color_preference_value (l_manager, grid_non_focused_selection_color_string, g.non_focused_selection_color)
+			grid_separator_color_preference := l_manager.new_color_preference_value (l_manager, grid_separator_color_string, g.separator_color)
+			grid_tree_node_connector_color_preference := l_manager.new_color_preference_value (l_manager, grid_tree_node_connector_color_string, g.tree_node_connector_color)
+
 			auto_hide_animation_speed_preference.change_actions.extend (agent on_auto_hide_animation_speed_changed)
 			undocked_window_lower_than_main_window_preference.change_actions.extend (agent on_undocked_window_lower_than_main_window)
 			show_all_applicable_docking_indicators_preference.change_actions.extend (agent on_show_all_applicable_docking_indicators_changed)
@@ -388,7 +495,7 @@ invariant
 	estudio_dbg_menu_enabled_preference_not_void: estudio_dbg_menu_enabled_preference /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,39 +1,56 @@
-note
+﻿note
 	description: "Abstract description of an Eiffel creation expression call."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
 	revision: "$Revision$"
 
-deferred class
+class
 	CREATION_EXPR_AS
 
 inherit
-	CALL_AS
+	EXPR_AS
 		redefine
-			is_equivalent
+			is_detachable_expression
 		end
+
+create
+	make
 
 feature {NONE} -- Initialization
 
-	initialize (a: BOOLEAN; t: like type; c: like call)
-			-- Create a new CREATION_EXPR AST node.
+	make (a: BOOLEAN; t: like type; c: like call; k_as: like create_keyword)
+			-- New CREATION_EXPR AST node.
 		require
 			t_not_void: t /= Void
 		do
 			is_active := a
 			type := t
 			call := c
+			if k_as /= Void then
+				create_keyword_index := k_as.index
+			end
 		ensure
 			is_active_set: is_active = a
 			type_set: type = t
 			call_set: call = c
+			create_keyword_set: k_as /= Void implies create_keyword_index = k_as.index
 		end
+
+feature -- Status report
+
+	is_detachable_expression: BOOLEAN = True
+			-- <Precursor>
+			--
+			-- Although the expression is always attached, its computation may be sophisticated.
+			-- Treating is as detachable allows for using it in assertions like
+			--     expected_data: attached (create {FOO}.make (something_complicated)) as foo
+			--     is_valid: some_checks_on (foo)
 
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- Process current element.
 		do
 			v.process_creation_expr_as (Current)
 		end
@@ -54,7 +71,7 @@ feature -- Access
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 			Result :=
 				is_active = other.is_active and then
@@ -62,12 +79,53 @@ feature -- Comparison
 				equivalent (type, other.type)
 		end
 
+feature -- Roundtrip
+
+	create_keyword_index: INTEGER
+			-- Index of keyword "create" associated with this structure
+
+	create_keyword (a_list: LEAF_AS_LIST): detachable KEYWORD_AS
+			-- Keyword "create" associated with this structure
+		require
+			a_list_not_void: a_list /= Void
+		do
+			Result := keyword_from_index (a_list, create_keyword_index)
+		end
+
+	index: INTEGER
+			-- <Precursor>
+		do
+			Result := create_keyword_index
+		end
+
+feature -- Roundtrip/Token
+
+	first_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
+		do
+			Result :=
+				if a_list /= Void and create_keyword_index /= 0 then
+					create_keyword (a_list)
+				else
+					type.first_token (a_list)
+				end
+		end
+
+	last_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
+		do
+			Result :=
+				if attached call as l_call then
+					l_call.last_token (a_list)
+				else
+					type.last_token (a_list)
+				end
+		end
+
 invariant
 		-- A creation expression contains its type
 	type_exists: type /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -98,4 +156,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class CREATION_EXPR_AS
+end

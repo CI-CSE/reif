@@ -33,6 +33,7 @@ feature {NONE} -- Initialization
 			create misc_shortcut_data.make (a_preferences)
 			create property_data.make (a_preferences)
 			create ebbro_tool_data.make (a_preferences)
+			create source_control_tool_data.make (a_preferences)
 			is_gui_mode := True
 		end
 
@@ -71,6 +72,9 @@ feature -- Access
 	metric_tool_data: EB_METRIC_TOOL_DATA
 			-- Preference data for metric tool.
 
+	source_control_tool_data: EB_SOURCE_CONTROL_TOOL_DATA
+			-- Preference data for source control tool
+
 	error_list_tool_data: ES_ERROR_LIST_DATA
 			-- Preference data for error list tool.
 
@@ -100,7 +104,7 @@ invariant
 	property_data_attached: is_gui_mode implies attached property_data
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

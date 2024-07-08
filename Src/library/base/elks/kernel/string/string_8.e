@@ -25,24 +25,38 @@ inherit
 		rename
 			append as append_string_general,
 			append_substring as append_substring_general,
-			prepend as prepend_string_general,
-			prepend_substring as prepend_substring_general,
-			same_string as same_string_general,
-			same_characters as same_characters_general,
-			same_caseless_characters as same_caseless_characters_general,
-			starts_with as starts_with_general,
 			ends_with as ends_with_general,
-			is_case_insensitive_equal as is_case_insensitive_equal_general,
-			item as character_32_item,
 			has as character_32_has,
 			index_of as character_32_index_of,
+			is_case_insensitive_equal as is_case_insensitive_equal_general,
+			item as character_32_item,
 			last_index_of as character_32_last_index_of,
-			occurrences as character_32_occurrences
+			occurrences as character_32_occurrences,
+			plus as plus_general,
+			prepend as prepend_string_general,
+			prepend_substring as prepend_substring_general,
+			same_caseless_characters as same_caseless_characters_general,
+			same_characters as same_characters_general,
+			same_string as same_string_general,
+			starts_with as starts_with_general
 		undefine
 			copy, is_equal, out
 		redefine
 			append_string_general,
 			prepend_string_general
+		end
+
+	DYNAMIC_TABLE [CHARACTER_8, INTEGER]
+		rename
+			force as put,
+			valid_key as valid_index
+		undefine
+			copy,
+			is_equal,
+			out
+		redefine
+			prune_all,
+			changeable_comparison_criterion
 		end
 
 	INDEXABLE [CHARACTER_8, INTEGER]
@@ -87,6 +101,7 @@ create
 	make_from_c,
 	make_from_c_substring,
 	make_from_c_pointer,
+	make_from_c_byte_array,
 	make_from_cil,
 	make_from_separate
 
@@ -224,12 +239,6 @@ feature -- Status report
 
 	extendible: BOOLEAN = True
 			-- May new items be added? (Answer: yes.)
-
-	prunable: BOOLEAN
-			-- May items be removed? (Answer: yes.)
-		do
-			Result := True
-		end
 
 	changeable_comparison_criterion: BOOLEAN = False
 
@@ -673,27 +682,27 @@ feature -- Element change
 		end
 
 	prepend_boolean (b: BOOLEAN)
-			-- Prepend the string representation of `b' at front.
+			-- Prepend the string representation of `b` at front.
 		do
-			prepend (b.out)
+			prepend (if b then "True" else "False" end)
 		end
 
 	prepend_double (d: REAL_64)
 			-- Prepend the string representation of `d' at front.
 		do
-			prepend (d.out)
+			prepend_string_general (d.out)
 		end
 
 	prepend_integer (i: INTEGER)
 			-- Prepend the string representation of `i' at front.
 		do
-			prepend (i.out)
+			prepend_string_general (i.out)
 		end
 
 	prepend_real (r: REAL_32)
 			-- Prepend the string representation of `r' at front.
 		do
-			prepend (r.out)
+			prepend_string_general (r.out)
 		end
 
 	prepend_string (s: detachable READABLE_STRING_8)
@@ -763,14 +772,6 @@ feature -- Element change
 			appended: elks_checking implies same_string (old (Current + s.substring (start_index, end_index)))
 		end
 
-	plus alias "+" (s: READABLE_STRING_GENERAL): like Current
-			-- <Precursor>
-		do
-			Result := new_string (count + s.count)
-			Result.append (Current)
-			Result.append_string_general (s)
-		end
-
 	append_string (s: detachable READABLE_STRING_8)
 			-- Append a copy of `s', if not void, at end.
 		do
@@ -813,7 +814,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -864,7 +865,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -915,7 +916,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -966,7 +967,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -1004,7 +1005,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -1042,7 +1043,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -1080,7 +1081,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -1118,7 +1119,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_8)
+					append_character ((l_value \\ 10 + 48).to_character_8)
 					l_value := l_value // 10
 				end
 
@@ -1141,13 +1142,13 @@ feature -- Element change
 	append_real (r: REAL_32)
 			-- Append the string representation of `r' at end.
 		do
-			append (r.out)
+			append_string_general (r.out)
 		end
 
 	append_double (d: REAL_64)
 			-- Append the string representation of `d' at end.
 		do
-			append (d.out)
+			append_string_general (d.out)
 		end
 
 	append_character, extend (c: CHARACTER_8)
@@ -1169,9 +1170,9 @@ feature -- Element change
 		end
 
 	append_boolean (b: BOOLEAN)
-			-- Append the string representation of `b' at end.
+			-- Append the string representation of `b` at end.
 		do
-			append (b.out)
+			append (if b then "True" else "False" end)
 		end
 
 	insert (s: READABLE_STRING_8; i: INTEGER)
@@ -1258,6 +1259,24 @@ feature -- Element change
 			inserted: item (i) = c
 			stable_before_i: elks_checking implies substring (1, i - 1) ~ (old substring (1, i - 1))
 			stable_after_i: elks_checking implies substring (i + 1, count) ~ (old substring (i, count))
+		end
+
+feature -- Basic operations
+
+	plus alias "+" (s: READABLE_STRING_8): like Current
+			-- <Precursor>
+		do
+			Result := new_string (count + s.count)
+			Result.append (Current)
+			Result.append (s)
+		end
+
+	plus_general (s: READABLE_STRING_GENERAL): like Current
+			-- <Precursor>
+		do
+			Result := new_string (count + s.count)
+			Result.append (Current)
+			Result.append_string_general (s)
 		end
 
 feature -- Removal
@@ -1461,7 +1480,7 @@ feature -- Conversion
 		end
 
 	left_justify
-			-- Left justify Current using `count' as witdth.
+			-- Left justify Current using `count' as width.
 		local
 			i, nb: INTEGER
 			l_area: like area
@@ -1786,7 +1805,7 @@ invariant
 	compare_character: not object_comparison
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

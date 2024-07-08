@@ -1,13 +1,13 @@
-note
+﻿note
 	description: "Compact trees as active structures that may be traversed using a cursor"
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: compact_cursor_tree, cursor_tree;
-	representation: array;
-	access: cursor, membership;
-	size: resizable;
-	contents: generic;
+	names: compact_cursor_tree, cursor_tree
+	representation: array
+	access: cursor, membership
+	size: resizable
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -17,7 +17,7 @@ class COMPACT_CURSOR_TREE [G] inherit
 		rename
 			index as linear_index
 		redefine
-			put_left, put_right, extend, has, occurrences
+			put_left, extend, has, occurrences
 		end
 
 create
@@ -30,8 +30,7 @@ feature -- Initialization
 			-- Create an empty tree.
 			-- `i' is an estimate of the number of nodes.
 		local
---<			l_default: G
-			l_default: detachable G
+			l_default: G
 		do
 			last := 1
 			active := 1
@@ -75,10 +74,7 @@ feature -- Access
 	item: G
 			-- Current item
 		do
---<			Result := item_table.item (active)
-			check attached item_table.item (active) as r then
-				Result := r
-			end
+			Result := item_table.item (active)
 		end
 
 	cursor: COMPACT_TREE_CURSOR
@@ -685,9 +681,8 @@ feature {NONE} -- Implementation
 			Result := 10
 		end
 
-
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -696,6 +691,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
 
 end

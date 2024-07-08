@@ -4,6 +4,7 @@ note
 		Depends on a generated Erl-G reflection library.
 		]"
 	author: "Andreas Leitner"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -111,7 +112,7 @@ feature {NONE} -- Initialization
 			create log_file.make_with_name (l_log_filename)
 			log_file.open_append
 			if not log_file.is_open_write then
-				report_error ("could not open log file '" + l_log_filename + "'.")
+				report_error ("could not open log file '" + {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_log_filename) + "'.")
 				die (1)
 			end
 
@@ -190,7 +191,7 @@ feature {NONE} -- Initialization
 				log_internal_error (l_trace)
 			end
 			log_message ("</session>%N")
-			report_error ("internal. " + l_trace)
+			report_error ({STRING} "internal. " + l_trace)
 			die (1)
 		end
 
@@ -398,7 +399,7 @@ end
 					l_type.append (value_of_object (l_value, l_generating_type))
 					print_line_and_flush (l_type)
 				else
-					report_error (once "Variable `v_" + l_index.out + "' not defined.")
+					report_error ({STRING} "Variable `v_" + l_index.out + "' not defined.")
 				end
 				log_message (once "report_type_request end%N")
 			else
@@ -532,12 +533,12 @@ log_message_with_timestamp ("* REPORT END *")
 
 feature {NONE} -- Error Reporting
 
-	report_error (a_reason: STRING)
+	report_error (a_reason: READABLE_STRING)
 		require
 			a_reason_not_void: a_reason /= Void
 			a_reason_not_empty: not a_reason.is_empty
 		do
-			error_buffer.append (once "error: " + a_reason + once "%N")
+			error_buffer.append ({STRING} "error: " + a_reason + "%N")
 			last_response_flag := internal_error_respones_flag
 			has_error := True
 			log_message (error_buffer)
@@ -552,11 +553,11 @@ feature {NONE} -- Error Reporting
 			not_a_reason_is_empty: not a_reason.is_empty
 		do
 			if should_generate_log then
-				log_file.put_string (once "<error type='internal'>%N")
-				log_file.put_string (once "%T<reason>%N<![CDATA[%N")
-				log_file.put_string (a_reason)
-				log_file.put_string (once "]]>%N</reason>%N")
-				log_file.put_string (once "</error>%N")
+				log_file.put_string ("<error type='internal'>%N")
+				log_file.put_string ("%T<reason>%N<![CDATA[%N")
+				log_file.put_string_general (a_reason)
+				log_file.put_string ("]]>%N</reason>%N")
+				log_file.put_string ("</error>%N")
 			end
 		end
 
@@ -577,13 +578,12 @@ feature {ITP_TEST_CASE_SERIALIZER} -- Logging
 			log_message (once "]]>%N</instance>%N")
 		end
 
-	log_message (a_message: STRING)
+	log_message (a_message: READABLE_STRING_GENERAL)
 			-- Log message `a_messgae' to `log_message'.
 		require
 			a_message_not_void: a_message /= Void
 		do
-			log_file.put_string (a_message)
---			log_file.flush
+			log_file.put_string_general (a_message)
 		end
 
 	log_message_with_timestamp (a_msg: STRING)
@@ -669,13 +669,13 @@ feature {ITP_TEST_CASE_SERIALIZER} -- Logging
 			l_buffer.append (l_trace)
 
 				-- Store exception into log file.
-			log_message (once "<call_result type='exception'>%N")
-			log_message (once "%T<meaning value='" + l_meaning + once "'/>%N")
-			log_message (once "%T<tag value='" + l_tag + once "'/>%N")
-			log_message (once "%T<recipient value='" + l_recipient + once "'/>%N")
-			log_message (once "%T<class value='" + l_recipient_class_name + once "'>%N")
-			log_message (once "%T<invariant violation on entry='" + is_last_invariant_violated.out + once "'>%N")
-			log_message (once "%T<exception_trace>%N<![CDATA[%N")
+			log_message ("<call_result type='exception'>%N")
+			log_message ({STRING_32} "%T<meaning value='" + l_meaning + "'/>%N")
+			log_message ({STRING_32} "%T<tag value='" + l_tag + "'/>%N")
+			log_message ("%T<recipient value='" + l_recipient + "'/>%N")
+			log_message ("%T<class value='" + l_recipient_class_name + "'>%N")
+			log_message ({STRING} "%T<invariant violation on entry='" + is_last_invariant_violated.out + "'>%N")
+			log_message ("%T<exception_trace>%N<![CDATA[%N")
 			log_message (l_trace)
 			log_message (once "]]>%N</exception_trace>%N")
 			log_message (once "</call_result>%N")
@@ -786,7 +786,7 @@ log_message_with_timestamp ("* EXTRA *")
 			retry
 		end
 
-	print_line_and_flush (a_text: STRING)
+	print_line_and_flush (a_text: READABLE_STRING_8)
 			-- Print `a_text' followed by a newline and flush output stream.
 		require
 			a_text_not_void: a_text /= Void
@@ -1840,7 +1840,7 @@ invariant
 	socket_attached: socket /= Void
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -207,7 +207,7 @@ concurrent_prefix='c'
 cp='/bin/cp'
 eiflib='finalized'
 if [ -n "$LD" ]; then
-	ld='$LD'
+	ld=$LD
 else
 	ld='ldppc'
 fi
@@ -235,7 +235,7 @@ shared_suffix='.so'
 shared_rt_suffix='.so'
 sharedlibs='-lm'
 mtsharedlibs='-lm'
-sharedlibversion='.18.11'
+sharedlibversion='.23.06'
 sharedlink='ldppc'
 suffix='.a'
 wkeiflib='wkbench'

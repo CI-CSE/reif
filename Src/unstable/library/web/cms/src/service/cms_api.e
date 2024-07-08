@@ -24,11 +24,12 @@ create
 
 feature {NONE} -- Initialize
 
-	make (a_setup: CMS_SETUP; req: WSF_REQUEST)
+	make (a_setup: CMS_SETUP; req: WSF_REQUEST; resp: WSF_RESPONSE)
 			-- Create the API service with a setup `a_setup'
-			-- and request `req'.
+			-- and request `req', response `resp`.
 		do
 			request := req
+			response := resp
 			setup := a_setup
 			create error_handler.make
 			create {CMS_ENV_LOGGER} logger.make
@@ -65,10 +66,15 @@ feature {NONE} -- Initialize
 			initialize_content_filters_and_formats
 
 				-- Initialize storage.
+			has_storage_error := False
 			if attached setup.storage (error_handler) as l_storage then
 				storage := l_storage
+				has_storage_error := error_handler.has_error
 			else
 				create {CMS_STORAGE_NULL} storage
+				storage.error_handler.append (error_handler)
+				has_storage_error := error_handler.has_error
+				error_handler.remove_all_errors
 			end
 
 				-- Keep enable modules list.
@@ -139,23 +145,37 @@ feature {NONE} -- Initialize
 			if i > 0 then
 				j := l_url.index_of ('/', i + 3)
 				if j > 0 then
-					l_base_url := l_url.substring (j, l_url.count)
+					if l_url [l_url.count] = '/' then
+						l_base_url := l_url.substring (j, l_url.count - 1)
+					else
+						l_base_url := l_url.substring (j, l_url.count)
+					end
+					if l_base_url.is_whitespace then
+						l_base_url := Void
+					end
 				end
 			end
 			if l_base_url /= Void then
-				base_url := l_base_url
 				if l_base_url.ends_with_general ("/") then
+					check base_url_no_ending_slash: False end
 					create base_path.make_from_string (l_base_url)
+					l_base_url := l_base_url.substring (1, l_base_url.count - 1)
 				else
 					create base_path.make_from_string (l_base_url + "/")
 				end
+				base_url := l_base_url
+				administration_base_url := l_base_url + setup.administration_base_path
+				webapi_base_url := l_base_url + setup.webapi_base_path
 			else
 				create base_path.make_from_string ("/")
+				administration_base_url := setup.administration_base_path
+				webapi_base_url := setup.webapi_base_path
 			end
 		ensure
 			site_url_set: site_url /= Void
 			site_url_ends_with_slash: site_url.ends_with_general ("/")
 			base_path_set: base_path /= Void and then base_path.ends_with_general ("/")
+			base_url_valid: attached base_url as e_base_url implies not e_base_url.ends_with_general ("/")
 		end
 
 	initialize_content_types
@@ -215,7 +235,6 @@ feature {CMS_API_ACCESS} -- CMS Formats management
 	load_formats
 		local
 			f: CMS_FORMAT
-			jp: JSON_PARSER
 			s: STRING_32
 			l_name, l_title: READABLE_STRING_8
 		do
@@ -224,9 +243,7 @@ feature {CMS_API_ACCESS} -- CMS Formats management
 				attached storage.custom_value ("cms.formats", "api-formats") as v_formats and then
 				v_formats.is_valid_as_string_8
 			then
-				create jp.make_with_string (v_formats.to_string_8)
-				jp.parse_content
-				if jp.is_parsed and then jp.is_valid and then attached jp.parsed_json_object as j_formats then
+				if attached {JSON_OBJECT} json_value_from_string (v_formats.to_string_8) as j_formats then
 						-- { "plain_text": { "title": "Plain text", "filters": "plain_text+foobar+toto"}, ...}
 					across
 						j_formats as ic
@@ -322,7 +339,9 @@ feature {CMS_ACCESS} -- Module management
 			-- Install CMS or uninstalled module which are enabled.
 		local
 			l_module: CMS_MODULE
+			l_tmp_err_handler: ERROR_HANDLER
 		do
+			create l_tmp_err_handler.make_with_id ("cms_api.install_all_modules")
 			across
 				setup.modules as ic
 			loop
@@ -333,7 +352,14 @@ feature {CMS_ACCESS} -- Module management
 					-- if this is installed or not...
 				if l_module.is_enabled and not l_module.is_installed (Current) then
 					install_module (l_module)
+					if has_error then
+						l_tmp_err_handler.append (error_handler)
+						reset_error
+					end
 				end
+			end
+			if l_tmp_err_handler.has_error then
+				error_handler.append (l_tmp_err_handler)
 			end
 		end
 
@@ -350,7 +376,7 @@ feature {CMS_ACCESS} -- Module management
 			module_not_installed: not is_module_installed (m)
 		do
 			m.install (Current)
-			if m.is_enabled then
+			if not has_error and then m.is_enabled then
 				m.initialize (Current)
 			end
 		end
@@ -361,6 +387,14 @@ feature {CMS_ACCESS} -- Module management
 			module_installed: is_module_installed (m)
 		do
 			m.uninstall (Current)
+		end
+
+	update_module (m: CMS_MODULE; a_installed_version: READABLE_STRING_GENERAL)
+			-- Update module `m'.
+		require
+			module_installed: is_module_installed (m)
+		do
+			m.update (a_installed_version, Current)
 		end
 
 	enable_module (m: CMS_MODULE)
@@ -395,7 +429,7 @@ feature -- Access: url
 	base_url: detachable IMMUTABLE_STRING_8
 			-- Base url if any.
 			--| Usually it is Void, but it could be
-			--|  /project/demo/
+			--|  /project/demo
 
 	base_path: IMMUTABLE_STRING_8
 			-- Base path, default to "/"
@@ -403,11 +437,15 @@ feature -- Access: url
 	site_url: IMMUTABLE_STRING_8
 			-- Site url
 
+	administration_base_url: IMMUTABLE_STRING_8
+
+	webapi_base_url: IMMUTABLE_STRING_8
+
 feature -- Access: WebAPI
 
 	is_webapi_request (req: WSF_REQUEST): BOOLEAN
 		do
-			Result := setup.webapi_enabled and then req.percent_encoded_path_info.starts_with_general (setup.webapi_base_path)
+			Result := setup.webapi_enabled and then req.percent_encoded_path_info.starts_with_general (webapi_base_url)
 		end
 
 	webapi_path (a_relative_path: detachable READABLE_STRING_8): STRING_8
@@ -454,7 +492,7 @@ feature -- Access: Administration
 
 	is_administration_request (req: WSF_REQUEST): BOOLEAN
 		do
-			Result := req.percent_encoded_path_info.starts_with_general (setup.administration_base_path)
+			Result := req.percent_encoded_path_info.starts_with_general (administration_base_url)
 		end
 
 	administration_path (a_relative_path: detachable READABLE_STRING_8): STRING_8
@@ -464,7 +502,7 @@ feature -- Access: Administration
 				if a_relative_path.is_empty then
 					Result.append_character ('/')
 				else
-					if a_relative_path[1] /= '/' then
+					if a_relative_path [1] /= '/' then
 						Result.append_character ('/')
 					end
 					Result.append (a_relative_path)
@@ -510,7 +548,7 @@ feature -- CMS links
 			Result := local_link (a_title, administration_path_location (a_relative_location))
 		end
 
-	local_link (a_title: READABLE_STRING_GENERAL; a_location: READABLE_STRING_8): CMS_LOCAL_LINK
+	local_link (a_title: detachable READABLE_STRING_GENERAL; a_location: READABLE_STRING_8): CMS_LOCAL_LINK
 		do
 			create Result.make (a_title, a_location)
 		end
@@ -518,10 +556,24 @@ feature -- CMS links
 	user_local_link (u: CMS_USER; a_opt_title: detachable READABLE_STRING_GENERAL): CMS_LOCAL_LINK
 		do
 			if a_opt_title /= Void then
-				create Result.make (a_opt_title, user_url (u))
+				create Result.make (a_opt_title, user_location (u))
 			else
-				create Result.make (user_display_name (u), user_url (u))
+				create Result.make (user_display_name (u), user_location (u))
 			end
+		end
+
+	user_html_absolute_link (u: CMS_USER): STRING
+		require
+			u_with_name: not u.name.is_whitespace
+		do
+			Result := absolute_link (real_user_display_name (u), "user/" + u.id.out, Void)
+		end
+
+	user_name_html_link (u: CMS_USER): STRING
+		require
+			u_with_name: not u.name.is_whitespace
+		do
+			Result := link (u.name, "user/" + u.id.out, Void)
 		end
 
 	user_html_link (u: CMS_USER): STRING
@@ -529,6 +581,13 @@ feature -- CMS links
 			u_with_name: not u.name.is_whitespace
 		do
 			Result := link (real_user_display_name (u), "user/" + u.id.out, Void)
+		end
+
+	user_html_administration_link (u: CMS_USER): STRING
+		require
+			u_with_name: not u.name.is_whitespace
+		do
+			Result := link (real_user_display_name (u), administration_path_location ("user/" + u.id.out), Void)
 		end
 
 feature -- Helpers: URLs
@@ -557,7 +616,61 @@ feature -- Helpers: URLs
 		require
 			u_with_id: u.has_id
 		do
-			Result := location_url ("user/" + u.id.out, Void)
+			Result := location_url (user_location (u), Void)
+		end
+
+	user_location (u: CMS_USER): READABLE_STRING_8
+		require
+			u_with_id: u.has_id
+		do
+			Result := "user/" + u.id.out
+		end
+
+	administration_location_absolute_url (a_relative_location: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING
+			-- Absolute URL for `a_location'.
+			--| Options `opts' could be
+			--|  - absolute: True|False	=> return absolute url
+			--|  - query: string		=> append "?query"
+			--|  - fragment: string		=> append "#fragment"
+		do
+			Result := location_absolute_url (administration_path_location (a_relative_location), opts)
+		end
+
+	administration_location_url (a_relative_location: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING
+			-- URL for `a_location'.
+			--| Options `opts' could be
+			--|  - absolute: True|False	=> return absolute url
+			--|  - query: string		=> append "?query"
+			--|  - fragment: string		=> append "#fragment"
+		do
+			Result := location_url (administration_path_location (a_relative_location), opts)
+		end
+
+	destination_location (req: WSF_REQUEST): detachable STRING
+			-- Destination value from `req`.
+			-- If the location includes the `base_url` part, remove it.
+		local
+			s: READABLE_STRING_32
+		do
+			if attached {WSF_STRING} req.item ("destination") as p_destination then
+--TODO: check why previous code sometimes used the url encoded value.
+--				Result := p_destination.url_encoded_value
+				s := p_destination.value
+				if s.is_valid_as_string_8 then
+					Result := s.to_string_8
+				else
+					Result := p_destination.url_encoded_value.to_string_8
+				end
+			end
+			if
+				Result /= Void and then
+				attached base_url as l_base_url and then
+				Result.count >= l_base_url.count - 1
+			then
+				if l_base_url.same_characters (Result, 1, l_base_url.count - 1, 2) then
+					Result.remove_head (l_base_url.count) -- there must be a slash to remove
+				end
+			end
 		end
 
 feature -- Helpers: html links
@@ -572,6 +685,20 @@ feature -- Helpers: html links
 			-- Real user profile name or name, even if `u` has only user `id` value.
 		do
 			Result := user_api.real_user_display_name (u)
+		end
+
+	custom_user_name (a_user: CMS_USER; a_inc_profile_name, a_inc_username, a_inc_email: BOOLEAN): STRING_32
+			-- Custom  name for user `u` and its username.
+			-- various possibilities:
+			-- 	"$profilename ($username) <$email>"
+			-- 	"$profilename ($username)"
+			-- 	"$username"
+			-- 	"$username <$email>"
+			-- 	"$profilename <$email>"
+			-- 	"$profilename"
+			-- 	"$email"
+		do
+			Result := user_api.custom_user_name (a_user, a_inc_profile_name, a_inc_username, a_inc_email)
 		end
 
 feature -- Settings
@@ -634,6 +761,29 @@ feature {NONE} -- Access: request
 	request: WSF_REQUEST
 			-- Associated http request.
 			--| note: here for the sole purpose of CMS_API.
+
+	response: WSF_RESPONSE
+			-- Associated http response.
+			--| note: here for the sole purpose of CMS_API, mainly to report error.
+
+feature -- Access: request
+
+	self_link: CMS_LOCAL_LINK
+		local
+			s: READABLE_STRING_8
+			loc: READABLE_STRING_8
+		do
+			s := request.percent_encoded_path_info
+			if not s.is_empty and then s[1] = '/' then
+				loc := s.substring (2, s.count)
+			else
+				loc := s
+			end
+			if attached request.query_string as q and then not q.is_whitespace then
+				loc := loc + "?" + q
+			end
+			Result := local_link (Void, loc)
+		end
 
 feature -- Content
 
@@ -764,7 +914,37 @@ feature -- Filters and Formats
 			end
 		end
 
+feature -- Template
+
+	resolved_smarty_template_text (a_loc: PATH): detachable READABLE_STRING_8
+			-- Resolved smarty template located at `a_loc`.
+		local
+			smt: CMS_SMARTY_TEMPLATE_TEXT
+		do
+			smt := resolved_smarty_template (a_loc)
+			if smt /= Void then
+				Result := smt.string
+			end
+		end
+
+	resolved_smarty_template (a_loc: PATH): detachable CMS_SMARTY_TEMPLATE_TEXT
+			-- Resolved smarty template located at `a_loc`.
+		do
+			if attached file_content (a_loc) as txt then
+				create Result.make (txt)
+				across
+					builtin_variables as ic
+				loop
+					Result.set_value (ic.item, ic.key)
+				end
+			end
+		end
+
 feature -- Status Report
+
+	has_storage_error: BOOLEAN
+			-- Has storage issue?
+			--| Can not connect, or database not found, or ...
 
 	has_error: BOOLEAN
 			-- Has error?
@@ -782,12 +962,17 @@ feature -- Status Report
 
 feature -- Logging
 
-	logs (a_category: detachable READABLE_STRING_GENERAL; a_lower: INTEGER; a_count: INTEGER): LIST [CMS_LOG]
-			-- List of recent logs from `a_lower' to `a_lower+a_count'.
+	logs (a_category: detachable READABLE_STRING_GENERAL; a_level: INTEGER; params: detachable CMS_DATA_QUERY_PARAMETERS): LIST [CMS_LOG]
+			-- List of recent logs, and if `params` is set, from `params.offset' to `params.offset + params.a_count'.
 			-- If `a_category' is set, filter to return only associated logs.
-			-- If `a_count' <= 0 then, return all logs.
+			-- If `a_level > 0' , filter to return only associated logs for that level.
+			-- If `params.count' <= 0 then, return all logs.
 		do
-			Result := storage.logs (a_category, a_lower, a_count)
+			if params /= Void then
+				Result := storage.logs (a_category, a_level, params.offset.to_integer_32, params.size.to_integer_32)
+			else
+				Result := storage.logs (a_category, a_level, 0, 0)
+			end
 		end
 
 	log	(a_category: READABLE_STRING_8; a_message: READABLE_STRING_8; a_level: INTEGER; a_link: detachable CMS_LINK)
@@ -808,25 +993,35 @@ feature -- Logging
 			end
 
 			inspect a_level
-				when {CMS_LOG}.level_emergency then
-					logger.put_alert (m, Void)
-				when {CMS_LOG}.level_alert then
-					logger.put_alert (m, Void)
-				when {CMS_LOG}.level_critical then
-					logger.put_critical (m, Void)
-				when {CMS_LOG}.level_error then
-					logger.put_error (m, Void)
-				when {CMS_LOG}.level_warning then
-					logger.put_warning (m, Void)
-				when {CMS_LOG}.level_notice then
-					logger.put_information (m, Void)
-				when {CMS_LOG}.level_info then
-					logger.put_information (m, Void)
-				when {CMS_LOG}.level_debug then
-					logger.put_debug (m, Void)
-				else
-					logger.put_debug (m, Void)
+			when {CMS_LOG}.level_emergency then
+				response.put_error (m)
+				logger.put_alert (m, Void)
+			when {CMS_LOG}.level_alert then
+				response.put_error (m)
+				logger.put_alert (m, Void)
+			when {CMS_LOG}.level_critical then
+				response.put_error (m)
+				logger.put_critical (m, Void)
+			when {CMS_LOG}.level_error then
+				response.put_error (m)
+				logger.put_error (m, Void)
+			when {CMS_LOG}.level_warning then
+				logger.put_warning (m, Void)
+			when {CMS_LOG}.level_notice then
+				logger.put_information (m, Void)
+			when {CMS_LOG}.level_info then
+				logger.put_information (m, Void)
+			when {CMS_LOG}.level_debug then
+				response.put_error (m)
+				logger.put_debug (m, Void)
+			else
+				logger.put_debug (m, Void)
 			end
+		end
+
+	log_error (a_category: READABLE_STRING_8; a_message: READABLE_STRING_8; a_link: detachable CMS_LINK)
+		do
+			log (a_category, a_message, {CMS_LOG}.level_error, a_link)
 		end
 
 	log_debug (a_category: READABLE_STRING_8; a_message: READABLE_STRING_8; a_link: detachable CMS_LINK)
@@ -854,7 +1049,9 @@ feature -- Internationalization (i18n)
 			Result := l_formatter.formatted_string (a_text, args)
 		end
 
-	formatted_date_time_ago (dt: DATE_TIME): STRING_32
+feature -- Formating		
+
+	formatted_date_time_ago (dt: DATE_TIME): STRING_8
 			-- Output date `dt` using time ago duration.
 		local
 			ago: DATE_TIME_AGO_CONVERTER
@@ -910,7 +1107,80 @@ feature -- Internationalization (i18n)
 				Result.append_character ('0')
 			end
 			Result.append_integer (i)
+		end
 
+feature -- Factory
+
+	random_generator: RANDOM
+			-- New generator of random value.
+		once
+			create Result.make
+--			Result.set_seed ((100 * (create {DATE_TIME}.make_now_utc).fine_second).truncated_to_integer)
+			Result.set_seed (random_seed)
+			Result.start
+		end
+
+	random_seed: INTEGER
+			-- Seed of the random number generator.
+		local
+			l_seed: NATURAL_64
+			l_date: C_DATE
+		do
+			create l_date
+				-- Compute the seed as number of milliseconds since EPOC (January 1st 1970)
+			l_seed := (l_date.year_now - 1970).to_natural_64 * 12 * 30 * 24 * 60 * 60 * 1000
+			l_seed := l_seed + l_date.month_now.to_natural_64 * 30 * 24 * 60 * 60 * 1000
+			l_seed := l_seed + l_date.day_now.to_natural_64 * 24 * 60 * 60 * 1000
+			l_seed := l_seed + l_date.hour_now.to_natural_64 * 60 * 60 * 1000
+			l_seed := l_seed + l_date.minute_now.to_natural_64 * 60 * 1000
+			l_seed := l_seed + l_date.second_now.to_natural_64 * 1000
+			l_seed := l_seed + l_date.millisecond_now.to_natural_64
+				-- Use RFC 4122 trick to preserve as much meaning of `l_seed' onto an INTEGER_32.
+			Result := (l_seed |>> 32).bit_xor (l_seed).as_integer_32 & 0x7FFFFFFF
+		ensure
+			instance_free: class
+		end
+
+	new_uppercase_uuid: STRING
+		do
+			Result := {UUID_GENERATOR}.generate_uuid.out
+		end
+
+	new_lowercase_uuid: STRING
+		do
+			Result := {UUID_GENERATOR}.generate_uuid.out.as_lower
+		end
+
+	new_random_identifier (a_length: INTEGER; a_chars: detachable READABLE_STRING_8): STRING
+		require
+			a_chars /= Void implies a_chars.count > 1
+		local
+			rnd: RANDOM
+			n,i: INTEGER
+		do
+			rnd := random_generator
+			create Result.make_filled ('_', a_length)
+			n := a_length
+			if a_chars /= Void then
+				from until n = 0 loop
+					rnd.forth
+					i := rnd.item \\ a_chars.count
+					Result [n] := a_chars[i + 1]
+					n := n - 1
+				end
+			else
+				from until n = 1 loop
+					rnd.forth
+					i := rnd.item \\ 36
+					if i <= 9 then
+						Result [n] := '0' + i
+					else
+						Result [n] := 'A' + i - 10
+					end
+					n := n - 1
+				end
+				Result.put ('A' + i \\ 26, 1) -- Start with a letter!
+			end
 		end
 
 feature -- Emails
@@ -929,6 +1199,14 @@ feature -- Emails
 			create Result.make (setup.site_email, a_to_address, l_subject, a_content)
 		end
 
+	new_html_email (a_to_address: READABLE_STRING_8; a_subject: READABLE_STRING_8; a_content: READABLE_STRING_8): CMS_EMAIL
+			-- New HTML email object using MIME header.
+		do
+			Result := new_email (a_to_address, a_subject, a_content)
+			Result.add_header_line ("MIME-Version:1.0")
+			Result.add_header_line ("Content-Type: text/html; charset=utf-8")
+		end
+
 	process_email (e: CMS_EMAIL)
 			-- Process email `e'.
 		do
@@ -938,8 +1216,10 @@ feature -- Emails
 			setup.mailer.safe_process_email (e)
 			if setup.mailer.has_error then
 				error_handler.add_custom_error (0, "Mailer error", "Error occurred while processing email.")
+				storage.save_mail (e)
 			else
 				e.set_is_sent (True)
+				storage.save_mail (e)
 			end
 		end
 
@@ -960,6 +1240,9 @@ feature {NONE} -- Emails implementation
 		local
 			l_sender, l_from: READABLE_STRING_8
 		do
+			if not e.has_id then
+				e.set_id (new_random_identifier (16, Void))
+			end
 			l_sender := setup.site_email
 			l_from := e.from_address
 			if not l_sender.is_case_insensitive_equal_general (l_from) then
@@ -1037,11 +1320,13 @@ feature -- Query: module
 			--| usage: if attached module ({FOO_MODULE}) as mod then ...
 		do
 			Result := installed_module (a_type)
-			if Result /= Void and then not Result.is_enabled then
-				Result := Void
+			if Result /= Void then
+				if not Result.is_enabled or else not Result.is_initialized then
+					Result := Void
+				end
 			end
 		ensure
-			Result /= Void implies (Result.is_enabled) -- and a_type.is_conforming_to (Result.generating_type))
+			Result /= Void implies (Result.is_enabled and Result.is_initialized) -- and a_type.is_conforming_to (Result.generating_type))
 		end
 
 	installed_module (a_type: TYPE [CMS_MODULE]): detachable CMS_MODULE
@@ -1269,6 +1554,12 @@ feature -- Element Change: Error
 			error_handler.reset
 		end
 
+	report_error (a_name: STRING_8; a_message: detachable READABLE_STRING_GENERAL)
+			-- Report a custom error.
+		do
+			error_handler.add_custom_error (-1, a_name, a_message)
+		end
+
 feature {NONE}-- Implementation
 
 	error_handler: ERROR_HANDLER
@@ -1300,13 +1591,16 @@ feature -- Environment/ theme
 			Result := setup.files_location
 		end
 
-	files_path: STRING_8
+	based_files_path: STRING_8
 		do
 			create Result.make_from_string (base_path)
 			Result.append ("files/")
 		ensure
 			ends_with_slash: Result.ends_with ("/")
+			ends_with_files_path: Result.ends_with (files_path)
 		end
+
+	files_path: STRING_8 = "/files/"
 
 	cache_location: PATH
 			-- CMS internal cache location.
@@ -1465,7 +1759,7 @@ feature -- Environment/ module
 			-- Location of resource `a_resource' for `a_module'.
 		do
 				--| site/modules/$modname/$a_resource
-			Result := module_resource_location_by_name (a_module.name, a_resource)
+			Result := module_resource_location_by_name (a_module.name_for_resource, a_resource)
 		end
 
 	module_resource_location_by_name (a_module_name: READABLE_STRING_GENERAL; a_resource: PATH): PATH
@@ -1541,6 +1835,11 @@ feature -- Access: active user
 			Result implies user /= Void
 		end
 
+	user_is_administrator: BOOLEAN
+		do
+			Result := attached user as u and then user_api.is_admin_user (u)
+		end
+
 	user: detachable CMS_USER
 			-- Current user or Void in case of visitor.
 		note
@@ -1549,12 +1848,25 @@ feature -- Access: active user
 			Result := current_user (request)
 		end
 
+	set_inactive_user (a_user: CMS_USER)
+		require
+			a_user_attached: a_user /= Void
+			is_inactive_user: not a_user.is_active
+		do
+			current_inactive_user := a_user
+		end
+
 	set_user (a_user: CMS_USER)
 			-- Set `a_user' as current `user'.
 		require
 			a_user_attached: a_user /= Void
+			is_active_user: a_user.is_active -- TODO: check if we could allow temp user.
 		do
-			set_current_user (request, a_user)
+			current_inactive_user := Void
+			if a_user.is_active then
+					-- in case existing code do not check for `is_active`.
+				set_current_user (request, a_user)
+			end
 		end
 
 	unset_user
@@ -1617,11 +1929,13 @@ feature -- Request utilities
 
 feature {CMS_API_ACCESS, CMS_RESPONSE, CMS_MODULE} -- Request utilities
 
+	current_inactive_user: detachable CMS_USER
+
 	current_user (req: WSF_REQUEST): detachable CMS_USER
 			-- Current user or Void in case of Guest user.
 		do
 			check req = request end
-			if attached {CMS_USER} execution_variable (cms_execution_variable_name ("user")) as l_user then
+			if attached {CMS_USER} execution_variable (cms_execution_variable_name_for_user) as l_user then
 				Result := l_user
 			end
 		end
@@ -1630,7 +1944,7 @@ feature {CMS_API_ACCESS, CMS_RESPONSE, CMS_MODULE} -- Request utilities
 			-- Set `a_user' as `current_user'.
 		do
 			check req = request end
-			set_execution_variable (cms_execution_variable_name ("user"), a_user)
+			set_execution_variable (cms_execution_variable_name_for_user, a_user)
 		ensure
 			user_set: current_user (req) ~ a_user
 		end
@@ -1639,25 +1953,41 @@ feature {CMS_API_ACCESS, CMS_RESPONSE, CMS_MODULE} -- Request utilities
 			-- Unset current user.
 		do
 			check req = request end
-			req.unset_execution_variable (cms_execution_variable_name ("user"))
+			req.unset_execution_variable (cms_execution_variable_name_for_user)
 		ensure
 			user_unset: current_user (req) = Void
 		end
 
 feature {NONE} -- Implementation: current user
 
+	internal_cms_execution_variable_name_for_user: detachable like cms_execution_variable_name_for_user
+
+	cms_execution_variable_name_for_user: READABLE_STRING_GENERAL
+		do
+			Result := internal_cms_execution_variable_name_for_user
+			if Result = Void then
+				Result := cms_execution_variable_name ("user")
+				internal_cms_execution_variable_name_for_user := Result
+			end
+		end
+
 	cms_execution_variable_name (a_name: READABLE_STRING_GENERAL): READABLE_STRING_GENERAL
 			-- Execution variable name for `a_name'.
 		local
 			s32: STRING_32
 		do
-			create s32.make_from_string_general (once "_roccms_.")
-			s32.append_string_general (a_name)
+			create s32.make (19 + a_name.count)
+			s32.append_integer_64 (request.request_time_stamp) -- About 10 characters
+			s32.append (once {STRING_32} "_roccms_.") -- 9 characters
+			s32.append_string_general (a_name) -- a_name.count characters.
 			Result := s32
 		end
 
+invariant
+	attached base_url as inv_base_url implies inv_base_url [inv_base_url.count] /= '/'
+
 note
-	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end
 

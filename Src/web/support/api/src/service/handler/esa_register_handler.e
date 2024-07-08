@@ -62,7 +62,9 @@ feature -- HTTP Methods
 			create l_register_view
 			create l_rhf
 			if attached current_media_type (req) as l_type then
-				log.write_information (generator + ".do_get Processing request using media type " + l_type )
+				debug
+					log.write_information (generator + ".do_get Processing request using media type " + l_type )
+				end
                 l_register_view.set_questions (api_service.security_questions)
 				l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).register_page (req, res, l_register_view)
 			else
@@ -81,7 +83,9 @@ feature -- HTTP Methods
 		do
 			create l_rhf
 			if attached current_media_type (req) as l_type then
-				log.write_information (generator + ".do_post Processing request using media type " + l_type )
+				debug
+					log.write_information (generator + ".do_post Processing request using media type " + l_type )
+				end
 				l_register := extract_data_from_request (req, l_type)
 				if l_register.is_valid_form then
 					l_successful := add_user (l_register, req.absolute_script_url (""))
@@ -94,7 +98,7 @@ feature -- HTTP Methods
 						remove_user (l_register)
 						l_register.set_questions (api_service.security_questions)
 						if attached l_register.email as l_email then
-							l_register.add_error ("Email", "Unable to send email to " + l_email + ". Please check email address or contact administrator.")
+							l_register.add_error ("Email", "Unable to send email to " + l_email.to_string_8 + ". Please check email address or contact administrator.")
 						end
 						l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).register_page (req, res, l_register)
 					end
@@ -134,7 +138,7 @@ feature -- HTTP Methods
 			   attached a_register.last_name as l_last_name and then
 			   attached a_register.user_name as l_user_name and then
 			   attached a_register.question as l_question then
-			   Result := api_service.add_user (l_first_name, l_last_name, l_email, l_user_name, l_password, l_answer, l_token, l_question)
+			   Result := api_service.add_user (l_first_name, l_last_name, l_email.to_string_8, l_user_name, l_password, l_answer, l_token, l_question)
 			   if Result then
 					email_notification_service.send_post_registration_email (l_email, l_token, a_host)
 					Result := email_notification_service.successful
@@ -154,7 +158,7 @@ feature -- HTTP Methods
 		end
 
 
-	extract_data_from_request (req: WSF_REQUEST; a_type: READABLE_STRING_32): ESA_REGISTER_VIEW
+	extract_data_from_request (req: WSF_REQUEST; a_type: READABLE_STRING_8): ESA_REGISTER_VIEW
 			-- Is the form data populated?
 			-- first_name, last_name, user_email, user_name, password, check_password, question, answer_question.
 		do

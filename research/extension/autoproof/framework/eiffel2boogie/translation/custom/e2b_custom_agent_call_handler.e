@@ -1,21 +1,11 @@
-note
-	description: "[
-		TODO
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
-
-class
+﻿class
 	E2B_CUSTOM_AGENT_CALL_HANDLER
 
 inherit
 
 	E2B_CUSTOM_CALL_HANDLER
-
 	E2B_CUSTOM_NESTED_HANDLER
-
 	SHARED_WORKBENCH
-
 	SHARED_NAMES_HEAP
 
 feature -- Status report
@@ -23,12 +13,8 @@ feature -- Status report
 	is_handling_call (a_target_type: TYPE_A; a_feature: FEATURE_I): BOOLEAN
 			-- <Precursor>
 		do
-			Result :=
-					a_target_type.base_class.name_in_upper ~ "PROCEDURE" or
-					a_target_type.base_class.name_in_upper ~ "ROUTINE" or
-					a_target_type.base_class.name_in_upper ~ "FUNCTION"
+			Result := attached {CL_TYPE_A} a_target_type as c and then {E2B_HELPER}.is_agent_type (c)
 		end
-
 
 	is_handling_nested (a_nested: NESTED_B): BOOLEAN
 			-- <Precursor>
@@ -51,7 +37,7 @@ feature -- Basic operations
 				create l_new_args.make (l_tuple.expressions.count)
 				across l_tuple.expressions as i loop
 					create l_param
-					l_param.set_expression (i.item)
+					l_param.set_expression (i)
 					l_new_args.extend (l_param)
 				end
 			else
@@ -59,6 +45,8 @@ feature -- Basic operations
 			end
 			if a_feature.feature_name ~ "call" then
 				a_translator.process_builtin_routine_call (a_feature, l_new_args, "routine.call_" + l_new_args.count.out)
+			elseif a_feature.feature_name ~ "item" then
+				a_translator.process_builtin_routine_call (a_feature, l_new_args, "routine.item_" + l_new_args.count.out)
 			else
 				a_translator.set_last_expression (factory.function_call ("unsupported", << >>, types.ref))
 			end
@@ -76,16 +64,16 @@ feature -- Basic operations
 				create l_new_args.make (l_tuple.expressions.count)
 				across l_tuple.expressions as i loop
 					create l_param
-					l_param.set_expression (i.item)
+					l_param.set_expression (i)
 					l_new_args.extend (l_param)
 				end
 			else
 				l_new_args := a_parameters
 			end
-			l_is_function := a_translator.current_target_type.base_class.name_in_upper ~ "FUNCTION"
-			if a_feature.feature_name_32 ~ "precondition" then
+			l_is_function := a_translator.current_target_type.base_class.name_in_upper.same_string ("FUNCTION")
+			if a_feature.feature_name.same_string ("precondition") then
 				a_translator.process_builtin_routine_call (a_feature, l_new_args, "routine.precondition_" + l_new_args.count.out)
-			elseif a_feature.feature_name_32 ~ "postcondition" then
+			elseif a_feature.feature_name.same_string ("postcondition") then
 				if l_is_function then
 					process_postcondition_call (a_translator, a_feature, l_new_args, "function.postcondition_" + l_new_args.count.out)
 				else
@@ -252,22 +240,19 @@ feature -- Basic operations
 			-- Handle nested in either contract or body.
 		local
 			l_name: STRING
-			l_access: ACCESS_EXPR_B
-			l_agent: ROUTINE_CREATION_B
 			l_expr: EXPR_B
-
 			l_agent_class: CLASS_C
 			l_agent_feature: FEATURE_I
 			l_agent_type: CL_TYPE_A
-
 			l_fcall: IV_FUNCTION_CALL
 		do
 			if attached {FEATURE_B} a_nested.message as l_call then
 				l_name := names_heap.item (l_call.feature_name_id)
-				if l_name ~ "postcondition" then
-					l_access ?= a_nested.target
-					l_agent ?= l_access.expr
-
+				if
+					l_name ~ "postcondition" and then
+					attached {ACCESS_EXPR_B} a_nested.target as l_access and then
+					attached {ROUTINE_CREATION_B} l_access.expr as l_agent
+				then
 					l_agent_class := system.class_of_id (l_agent.origin_class_id)
 					l_agent_feature := l_agent_class.feature_of_feature_id (l_agent.feature_id)
 						-- TODO: take actual type of open/closed target of agent creation
@@ -314,41 +299,34 @@ feature -- Implementation
 			a_translator.set_last_expression (l_call)
 		end
 
-	agents_theory_filename: FILE_NAME
+	agents_theory_filename: PATH
 			-- File name of agents theory.
 		once
-			create Result.make
-			Result.set_directory (theory_directory)
-			Result.set_file_name ("agents.bpl")
+			Result := {E2B_BOOGIE_GENERATOR}.theory_directory.extended ("agents.bpl")
 		end
 
-	theory_directory: DIRECTORY_NAME
-			-- Directory containing theory files.
-		local
-			l_ee: EXECUTION_ENVIRONMENT
-			l_ise_eiffel, l_eiffel_src: STRING
-			l_path: DIRECTORY_NAME
-			l_dir: DIRECTORY
-		once
-			create l_ee
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2021-2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
 
-				-- 1. Delivery of installation
-			create l_path.make_from_string (l_ee.get ("ISE_EIFFEL"))
-			l_path.extend ("studio")
-			l_path.extend ("tools")
-			l_path.extend ("autoproof")
-			create l_dir.make (l_path)
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
 
-				-- 2. Delivery of development version
-			if not l_dir.exists then
-				create l_path.make_from_string (l_ee.get ("EIFFEL_SRC"))
-				l_path.extend ("Delivery")
-				l_path.extend ("studio")
-				l_path.extend ("tools")
-				l_path.extend ("autoproof")
-			end
-
-			Result := l_path
-		end
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

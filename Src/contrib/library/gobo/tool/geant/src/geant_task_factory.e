@@ -5,7 +5,7 @@ note
 		"Geant tasks factory"
 
 	library: "Gobo Eiffel Ant"
-	copyright: "Copyright (c) 2001-2016, Sven Ehrke, Jocelyn Fiat, and others"
+	copyright: "Copyright (c) 2001-2021, Sven Ehrke, Jocelyn Fiat, and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -43,7 +43,7 @@ feature {NONE} -- Property
 
 feature -- Access
 
-	new_task (a_xml_element: XM_ELEMENT): GEANT_TASK
+	new_task (a_xml_element: XM_ELEMENT): detachable GEANT_TASK
 			-- New GEANT_TASK for `a_xml_element'
 		require
 			a_xml_element_not_void: a_xml_element /= Void
@@ -117,16 +117,6 @@ feature -- Factory
 			new_unset_task_not_void: Result /= Void
 		end
 
-	new_gexace_task (a_xml_element: XM_ELEMENT): GEANT_GEXACE_TASK
-			-- gexace
-		require
-			a_xml_element_not_void: a_xml_element /= Void
-		do
-			create Result.make (project, a_xml_element)
-		ensure
-			new_gexace_task_not_void: Result /= Void
-		end
-
 	new_gelex_task (a_xml_element: XM_ELEMENT): GEANT_GELEX_TASK
 			-- gelex
 		require
@@ -185,6 +175,16 @@ feature -- Factory
 			create Result.make_from_interpreting_element (create {GEANT_INTERPRETING_ELEMENT}.make (project, a_xml_element))
 		ensure
 			new_echo_task_not_void: Result /= Void
+		end
+
+	new_cat_task (a_xml_element: XM_ELEMENT): GEANT_CAT_TASK
+			-- cat
+		require
+			a_xml_element_not_void: a_xml_element /= Void
+		do
+			create Result.make_from_interpreting_element (create {GEANT_INTERPRETING_ELEMENT}.make (project, a_xml_element))
+		ensure
+			new_cat_task_not_void: Result /= Void
 		end
 
 	new_mkdir_task (a_xml_element: XM_ELEMENT): GEANT_MKDIR_TASK
@@ -330,8 +330,6 @@ feature {NONE} -- Implementation
 			builders.force_new (agent new_set_task, Set_task_name)
 				-- unset
 			builders.force_new (agent new_unset_task, Unset_task_name)
-				-- gexace
-			builders.force_new (agent new_gexace_task, Gexace_task_name)
 				-- gelex
 			builders.force_new (agent new_gelex_task, Gelex_task_name)
 				-- geyacc
@@ -344,6 +342,8 @@ feature {NONE} -- Implementation
 			builders.force_new (agent new_geant_task, Geant_task_name)
 				-- echo
 			builders.force_new (agent new_echo_task, Echo_task_name)
+				-- cat
+			builders.force_new (agent new_cat_task, Cat_task_name)
 				-- mkdir
 			builders.force_new (agent new_mkdir_task, Mkdir_task_name)
 				-- delete
@@ -374,6 +374,6 @@ invariant
 
 	project_not_void: project /= Void
 	builders_not_void: builders /= Void
-	no_void_builder: not builders.has_item (Void)
+	no_void_builder: not builders.has_void_item
 
 end

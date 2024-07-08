@@ -84,10 +84,13 @@ feature -- Comparison
 
 feature -- Status report
 
-	debug_output: READABLE_STRING_GENERAL
+	debug_output: STRING_32
 			-- String that should be displayed in debugger to represent `Current'.
 		do
-			Result := package.human_identifier + " (version:" + version.value + ")"
+			create Result.make_from_string (package.human_identifier)
+			Result.append_string_general (" (version:")
+			Result.append_string_general (version.value)
+			Result.append_character (')')
 		end
 
 feature -- Access
@@ -223,7 +226,7 @@ feature -- Access: items
 				across
 					p_items as ic
 				loop
-					Result.force (ic.item, ic.key)
+					Result.force (ic, @ ic.key)
 				end
 			end
 			if attached version_items as v_items and then not v_items.is_empty then
@@ -233,7 +236,7 @@ feature -- Access: items
 				across
 					v_items as ic
 				loop
-					Result.force (ic.item, ic.key)
+					Result.force (ic, @ ic.key)
 				end
 			end
 		end
@@ -298,7 +301,7 @@ feature -- Visitor
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

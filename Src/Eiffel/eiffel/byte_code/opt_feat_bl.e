@@ -10,18 +10,19 @@ inherit
 		rename
 			make as make_opt_feat
 		undefine
-			is_polymorphic, free_register,
+			is_polymorphic, is_temporary, free_register,
 			has_one_signature,
 			generate_on, basic_register, generate_access,
 			register, analyze_on, set_register,
 			is_feature_call, generate_special_feature, set_parent,
 			generate_parameters,
 			generate_parameters_list, generate_access_on_type,
-			call_kind, set_call_kind
+			call_kind, set_call_kind,
+			return_c_type
 		redefine
 			parent, is_feature_special, generate_end,
 			generate_metamorphose_end, analyze
-		end;
+		end
 
 	FEATURE_BL
 		undefine
@@ -119,44 +120,39 @@ feature -- Code generation
 
 	generate_end (gen_reg: REGISTRABLE; class_type: CL_TYPE_A)
 		local
-			expr: EXPR_B
 			id: INTEGER
 			buf: GENERATION_BUFFER
 		do
 			buf := buffer
-			id := array_desc.array_descriptor
 			if is_item then
 				if access_area then
 					buf.put_string ("RTAA(")
 				else
 					buf.put_string ("RTAUA(")
-				end;
+				end
 			else
 				if access_area then
 					buf.put_string ("RTAP(")
 				else
 					buf.put_string ("RTAUP(")
-				end;
-			end;
-			type_c (id).generate (buf)
-			buf.put_string ({C_CONST}.comma_space);
-			buf.put_string (external_reg_name (id));
-			buf.put_string ({C_CONST}.comma_space);
-			if not access_area then
-				register_acces (buf, id);
-				buf.put_string ({C_CONST}.comma_space);
-			end;
-
-			expr := parameters @ 1;
-			expr.print_register
-
-			if not is_item then
-				buf.put_string ({C_CONST}.comma_space);
-					-- Index
-				expr := parameters @ 2
-				expr.print_register
+				end
 			end
-			buf.put_character (')');
+			id := array_desc.array_descriptor
+			type_c (id).generate (buf)
+			buf.put_string ({C_CONST}.comma_space)
+			buf.put_string (external_reg_name (id))
+			buf.put_string ({C_CONST}.comma_space)
+			if not access_area then
+				register_acces (buf, id)
+				buf.put_string ({C_CONST}.comma_space)
+			end
+			parameters [1].print_register
+			if not is_item then
+				buf.put_string ({C_CONST}.comma_space)
+					-- Index
+				parameters [2].print_register
+			end
+			buf.put_character (')')
 		end
 
 	generate_metamorphose_end (gen_reg, meta_reg: REGISTRABLE; class_type: CL_TYPE_A;
@@ -167,7 +163,7 @@ feature -- Code generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

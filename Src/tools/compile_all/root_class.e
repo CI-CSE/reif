@@ -1,8 +1,8 @@
 ﻿note
-	description	: "System's root class."
+	description: "System's root class."
 	date: "$Date$"
 	revision: "$Revision$"
-	ca_ignore: "CA033", "CA033 — too long class"
+	ca_ignore: "CA033", "CA033: too large class"
 
 class
 	ROOT_CLASS
@@ -33,6 +33,7 @@ feature {NONE} -- Initialization
 				-- get arguments
 			create arguments.make
 			create failed_compilations.make
+			base_location := {EXECUTION_ENVIRONMENT}.current_working_path
 			arguments.execute (agent start)
 		end
 
@@ -95,16 +96,16 @@ feature {NONE} -- Implementation
 	arguments: ARGUMENT_PARSER
 			-- Command line arguments.
 
-	base_location: detachable PATH
+	base_location: PATH
 			-- Base location where to look for .ecf files.
 
-	ignores: STRING_TABLE [STRING_TABLE [BOOLEAN]]
+	ignores: detachable STRING_TABLE [STRING_TABLE [BOOLEAN]]
 			-- Ignored files/targets.
 
-	directory_ignores: STRING_TABLE [READABLE_STRING_GENERAL]
+	directory_ignores: detachable STRING_TABLE [READABLE_STRING_GENERAL]
 			-- Ignored directories
 
-	regexp_ignores: ARRAYED_LIST [REGULAR_EXPRESSION]
+	regexp_ignores: detachable ARRAYED_LIST [REGULAR_EXPRESSION]
 			-- Ignored regexp
 
 	path_regexp_ignored (p: READABLE_STRING_32): BOOLEAN
@@ -134,9 +135,8 @@ feature {NONE} -- Implementation
 			-- Starts application
 		require
 			arguments_attached: arguments /= Void
-		local
-			loc: PATH
 		do
+			base_location := arguments.location
 			if attached arguments.ignore as l_ignore then
 				load_ignores (l_ignore)
 			end
@@ -144,13 +144,11 @@ feature {NONE} -- Implementation
 				;(create {EXECUTION_ENVIRONMENT}).put ("ecb", "EC_NAME")
 			end
 			set_interface_texts_from_argument (arguments)
-			loc := arguments.location
 
-			set_base_location (loc)
-			localized_print ({STRING_32} "Base location: %"" + loc.name + "%"")
+			localized_print ({STRING_32} "Base location: %"" + base_location.name + "%"")
 			io.put_new_line
 			io.put_new_line
-			process_directory (loc)
+			process_directory (base_location)
 
 			io.put_new_line
 			localized_print("Passed: ")
@@ -226,14 +224,13 @@ feature {NONE} -- Implementation
 			base_location_set: base_location = loc
 		end
 
-	load_ignores (a_file: READABLE_STRING_GENERAL)
+	load_ignores (a_file: READABLE_STRING_32)
 			-- Retrieve list of ignored files/targets from `a_file'.
 		require
 			a_file_ok: a_file /= Void
 		local
 			l_ini_loader: INI_DOCUMENT_READER
 			l_file: PLAIN_TEXT_FILE
-			l_ini_file: INI_DOCUMENT
 			l_ignored_files: ARRAYED_LIST [INI_SECTION]
 			l_ini_section: INI_SECTION
 			l_ignored_targets: ARRAYED_LIST [INI_LITERAL]
@@ -241,33 +238,31 @@ feature {NONE} -- Implementation
 			l_actual_path: STRING_32
 			l_label: STRING
 			rexp: REGULAR_EXPRESSION
+			ignored_directories: like directory_ignores
+			ignored_expressions: like regexp_ignores
+			ignored_targets: like ignores
 		do
 			create l_file.make_with_name (a_file)
 			if not l_file.exists or else not l_file.is_readable then
-				display_error ("Could not open ignore file "+a_file)
+				display_error ({STRING_32} "Could not open ignore file "+a_file)
 			else
 				l_file.open_read
 				create l_ini_loader.make
 				l_ini_loader.read_from_file (l_file, False)
 				l_file.close
-				if not l_ini_loader.successful then
-					l_ini_loader.errors.do_all (agent (a_error: INI_SYNTAX_ERROR)
-						do
-							display_error (a_error.message)
-						end)
-				else
-					l_ini_file := l_ini_loader.read_document
-					from
-						l_ignored_files := l_ini_file.sections
-						create ignores.make (l_ignored_files.count)
-						create directory_ignores.make (l_ignored_files.count)
-						create regexp_ignores.make (l_ignored_files.count)
-						l_ignored_files.start
-					until
-						l_ignored_files.after
+				if attached l_ini_loader.read_document as l_ini_file then
+					l_ignored_files := l_ini_file.sections
+					create ignored_targets.make (l_ignored_files.count)
+					ignores := ignored_targets
+					create ignored_directories.make (l_ignored_files.count)
+					directory_ignores := ignored_directories
+					create ignored_expressions.make (l_ignored_files.count)
+					regexp_ignores := ignored_expressions
+					across
+						l_ignored_files as s
 					loop
 							-- every section represents one configuration file
-						l_ini_section := l_ignored_files.item
+						l_ini_section := s.item
 						l_label := l_ini_section.label
 						if l_label.starts_with ("regexp=") then
 							create rexp
@@ -276,7 +271,7 @@ feature {NONE} -- Implementation
 							l_label.right_adjust
 							rexp.compile (l_label)
 							if rexp.error_message /= Void then
-								regexp_ignores.extend (rexp)
+								ignored_expressions.extend (rexp)
 							end
 						else
 							l_label := translated_platform_path (l_label)
@@ -285,23 +280,25 @@ feature {NONE} -- Implementation
 							if not l_file.exists then
 								display_error ("Could not read file/path "+l_label+"!")
 							elseif l_file.is_directory then
-								directory_ignores.force (l_actual_path, l_actual_path)
+								ignored_directories.force (l_actual_path, l_actual_path)
 							else
 									-- no literals implies the whole configuration file is ignored, else each literal represents an ignored target
-								from
-									l_ignored_targets := l_ini_section.literals
-									create l_ig_target.make_caseless (l_ignored_targets.count)
-									l_ignored_targets.start
-								until
-									l_ignored_targets.after
+								l_ignored_targets := l_ini_section.literals
+								create l_ig_target.make_caseless (l_ignored_targets.count)
+								across
+									l_ignored_targets as t
 								loop
-									l_ig_target.force (True, l_ignored_targets.item.name)
-									l_ignored_targets.forth
+									l_ig_target.force (True, t.item.name)
 								end
-								ignores.force (l_ig_target, l_actual_path)
+								ignored_targets.force (l_ig_target, l_actual_path)
 							end
 						end
-						l_ignored_files.forth
+					end
+				else
+					across
+						l_ini_loader.errors as e
+					loop
+						display_error (e.item.message)
 					end
 				end
 			end
@@ -317,11 +314,13 @@ feature {NONE} -- Implementation
 			l_fn: PATH
 			l_entries: ARRAYED_LIST [PATH]
 		do
-			if not path_regexp_ignored (a_directory.name) then
+			if path_regexp_ignored (a_directory.name) then
+				display_error ({STRING_32} "Directory ignored: " + a_directory.name + " .")
+			else
 				create l_dir.make_with_path (a_directory)
 				if not l_dir.is_readable then
 					display_error ({STRING_32} "Could not read "+a_directory.name+"!")
-				elseif directory_ignores = Void or else not directory_ignores.has (a_directory.name) then
+				elseif attached directory_ignores as i implies not i.has (a_directory.name) then
 						-- Process only if the directory is not excluded.
 						-- 1 - process config files with an ecf extension
 					l_entries := l_dir.entries
@@ -367,42 +366,51 @@ feature {NONE} -- Implementation
 				elseif l_loader.last_redirection /= Void then
 					display_error ({STRING_32} "Ignore redirection configuration " + a_file.name + "!")
 				else
-					l_skip_dotnet := arguments.skip_dotnet
-					l_platform := arguments.platform_option
-					across l_loader.last_system.compilable_targets as l_cursor loop
-						l_target := l_cursor.item
-						l_is_ignored := l_ignored_targets /= Void and then l_ignored_targets.has (l_target.name)
-						if not l_is_ignored then
-								-- If we are asking for a .NET code generation and we are on a platform
-								-- that does not support .NET or that we asked to ignore .NET, we ignore it.
-							l_is_ignored := l_target.setting_msil_generation and l_skip_dotnet
-						end
-						if not l_is_ignored then
-								-- If a platform is set in the ECF, we check that
-								-- 1- if the platform option was set that it should be the same.
-								-- 2- if the platform option is not set that it should be the same as the current platform.
-								-- Otherwise we we ignore this target since it means it will most likely not compile.
-							if not l_target.setting_platform.is_empty then
-								if not l_platform.is_empty then
-									l_is_ignored := not l_platform.is_case_insensitive_equal (l_target.setting_platform)
-								else
-									l_is_ignored := get_platform (l_target.setting_platform) /= current_platform
+					check
+						from_condition: attached l_loader.last_system as system
+					then
+						l_skip_dotnet := arguments.skip_dotnet
+						l_platform := arguments.platform_option
+						across system.targets as l_cursor loop
+							l_target := l_cursor.item
+							if
+								(l_target.root /= Void and then not l_target.is_abstract)  -- Compilable targets
+								or attached {CONF_REMOTE_TARGET_REFERENCE} l_target.parent_reference -- Consider remote targets as compilable for now
+							then
+								l_is_ignored := l_ignored_targets /= Void and then l_ignored_targets.has (l_target.name)
+								if not l_is_ignored then
+										-- If we are asking for a .NET code generation and we are on a platform
+										-- that does not support .NET or that we asked to ignore .NET, we ignore it.
+									l_is_ignored := l_target.setting_msil_generation and l_skip_dotnet
 								end
-							else
-									-- If we have requested an exclusive platform, e.g. via `macosx!', and that the ECF
-									-- is not specifying any platform, then we should ignore it since we requested
-									-- to only process ECF which targets a specific platform.
-								l_is_ignored := arguments.is_platform_exclusive
-							end
-						end
+								if not l_is_ignored then
+										-- If a platform is set in the ECF, we check that
+										-- 1- if the platform option was set that it should be the same.
+										-- 2- if the platform option is not set that it should be the same as the current platform.
+										-- Otherwise we we ignore this target since it means it will most likely not compile.
+									if not l_target.setting_platform.is_empty then
+										if not l_platform.is_empty then
+											l_is_ignored := not l_platform.is_case_insensitive_equal (l_target.setting_platform)
+										else
+											l_is_ignored := get_platform (l_target.setting_platform) /= current_platform
+										end
+									else
+											-- If we have requested an exclusive platform, e.g. via `macosx!', and that the ECF
+											-- is not specifying any platform, then we should ignore it since we requested
+											-- to only process ECF which targets a specific platform.
+										l_is_ignored := arguments.is_platform_exclusive
+									end
+								end
 
-						if l_is_ignored then
-							output_action (interface_text_target, l_target)
-							report_ignored (a_file, l_target)
-							output_status_ignored
-							io.new_line
-						else
-							process_target (l_target, a_dir)
+								if l_is_ignored then
+									output_action (interface_text_target, l_target)
+									report_ignored (a_file, l_target)
+									output_status_ignored
+									io.new_line
+								else
+									process_target (l_target, a_dir)
+								end
+							end
 						end
 					end
 				end
@@ -433,15 +441,15 @@ feature {NONE} -- Implementation
 				end
 				if arguments.is_finalize then
 					b := compilation ("finalize", l_is_clean, a_target, a_dir) and then b
-					-- l_is_clean := False --| Clean only once: not used afterwards.
 				end
-				if not b and arguments.has_keep_failed then
-					--| Keep failed
-				elseif b and arguments.has_keep_passed then
-					--| Keep passed
-				elseif arguments.has_keep_all then
-					--| Keep all
-				else
+				if
+						-- Keep failed.
+					(b or not arguments.has_keep_failed) and
+						-- Keep passed.
+					not (b and arguments.has_keep_passed) and
+						-- Keep all.
+					not arguments.has_keep_all
+				then
 					clean_after (arguments.compilation_dir = Void, compilation_directory (a_target, arguments.compilation_dir, a_dir), a_target.name)
 				end
 			end
@@ -493,7 +501,7 @@ feature {NONE} -- Implementation
 					l_platform_id := current_platform
 				end
 			end
-			create l_state.make (l_platform_id, build_workbench, a_target.concurrency_mode, a_target.setting_msil_generation, a_target.setting_dynamic_runtime, a_target.variables, l_version)
+			create l_state.make (l_platform_id, build_workbench, a_target.concurrency_mode, a_target.void_safety_mode, a_target.setting_msil_generation, a_target.setting_dynamic_runtime, a_target.variables, l_version)
 
 				-- setup ISE_PRECOMP
 			eiffel_layout.set_precompile (a_target.setting_msil_generation)
@@ -503,11 +511,11 @@ feature {NONE} -- Implementation
 			create l_vis.make_build (l_state, a_target, create {CONF_PARSE_FACTORY})
 			a_target.process (l_vis)
 
-			if l_vis.is_error then
+			if attached l_vis.last_errors as e and then not e.is_empty then
 				if arguments.is_log_verbose then
 					create l_file.make_with_path (logs_filename ("parse", a_target))
 					l_file.open_write
-					l_vis.last_errors.do_all (agent (a_error: CONF_ERROR; a_file: PLAIN_TEXT_FILE)
+					e.do_all (agent (a_error: CONF_ERROR; a_file: PLAIN_TEXT_FILE)
 						do
 							a_file.put_string (a_error.out)
 						end (?, l_file))
@@ -532,7 +540,6 @@ feature {NONE} -- Implementation
 			a_dir_ok: a_dir /= Void and then not a_dir.is_empty
 		local
 			l_args: ARRAYED_LIST [READABLE_STRING_GENERAL]
-			l_prc_factory: PROCESS_FACTORY
 			l_prc_launcher: PROCESS
 			l_file: PATH
 			l_info_file: RAW_FILE
@@ -602,24 +609,17 @@ feature {NONE} -- Implementation
 					if not arguments.finalize_ec_options.is_empty then
 						l_args.extend (arguments.finalize_ec_options)
 					end
+				else
+					l_action := {STRING_32} "Compiling"
 				end
 
 				if not arguments.ec_options.is_empty then
 					l_args.extend (arguments.ec_options)
 				end
-				debug
-					across
-						l_args as c
-					loop
-						print (c.item + " ")
-					end
-					print ("%N")
-				end
 
 				output_action (l_action, a_target)
 
-				create l_prc_factory
-				l_prc_launcher := l_prc_factory.process_launcher (eiffel_layout.ec_command_name.name, l_args, Void)
+				l_prc_launcher := {PROCESS_FACTORY}.process_launcher (eiffel_layout.ec_command_name.name, l_args, Void)
 				if arguments.is_log_verbose then
 					l_file := logs_filename (a_action_mode, a_target)
 					add_data_to_file (l_file, a_target.system.file_name, a_target.name, l_args)
@@ -733,7 +733,7 @@ feature {NONE} -- Implementation
 				end
 				l_file.put_string ("%N")
 				if attached ISE_EC_FLAGS_environment_variable_value as v then
-					l_file.put_string ("ISE_EC_FLAGS: "+ v + "%N")
+					l_file.put_string_32 ({STRING_32} "ISE_EC_FLAGS: "+ v + "%N")
 				end
 
 				l_file.close
@@ -753,9 +753,12 @@ feature {NONE} -- Implementation
 				l_raw_file.open_read
 				l_raw_file.read_stream (l_raw_file.count)
 				l_raw_file.close
-				localized_print ("%N")
-				localized_print (l_raw_file.last_string)
-				localized_print ("%N")
+				io.put_new_line
+					-- Output file data unmodified (without any localization)
+					-- to avoid any unncessary conversion and preserve Unicode as is.
+					-- Localized printing could be used only when data would be read as localized.
+				io.put_string (l_raw_file.last_string)
+				io.put_new_line
 			end
 		end
 
@@ -920,7 +923,7 @@ feature {NONE} -- Directory manipulation
 					directories_created_by_application.force (d.path)
 				end
 			else
-				io.error.put_string ("ERROR: unable to create directory %"" + d.path.name + "%".%N")
+				localized_print_error ("ERROR: unable to create directory %"" + d.path.name + "%".%N")
 			end
 		rescue
 			rescued := True
@@ -944,7 +947,7 @@ feature {NONE} -- Directory manipulation
 					d.recursive_delete
 				end
 			else
-				io.error.put_string ("ERROR: unable to remove directory %"" + d.path.name + "%".%N")
+				localized_print_error ("ERROR: unable to remove directory %"" + d.path.name + "%".%N")
 			end
 		rescue
 			rescued := True
@@ -965,7 +968,7 @@ feature {NONE} -- Directory manipulation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,5 +1,4 @@
 note
-	description: "Summary description for {ES_LIBRARY_PROVIDER}."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -62,7 +61,8 @@ feature {NONE} -- Implementation
 		do
 			fn := real_directory_path (a_target, a_path)
 			create Result.make (fn, a_path)
-			if Result.has_library_target then
+			if Result.has_library_target and then not Result.is_redirection then
+				-- Exclude redirection!
 				if a_search_iron then
 					apply_iron_package_information_to (fn, Result)
 				end
@@ -91,7 +91,7 @@ feature {NONE} -- Implementation
 						across
 							pfinfo.notes as ic
 						loop
-							cfg.set_info (ic.item, ic.key)
+							cfg.set_info (ic, @ ic.key)
 						end
 					end
 					if attached pf.title as pf_title then
@@ -105,7 +105,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

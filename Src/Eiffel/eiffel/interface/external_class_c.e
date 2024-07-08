@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Representation of a non-Eiffel compiled class that is external to current system."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -73,6 +73,7 @@ feature -- Initialization
 					-- signature.
 				is_deferred := external_class.is_deferred
 				is_expanded := external_class.is_expanded
+				is_once := False
 				is_enum := external_class.is_enum
 				is_frozen := external_class.is_frozen
 
@@ -105,6 +106,7 @@ feature -- Initialization
 					is_frozen,
 					True,	-- is_external
 					False,  -- is_partial
+					is_once,
 					Void,	-- top_indexes
 					Void,	-- bottom_indexes
 					Void,	-- generics
@@ -408,7 +410,6 @@ feature -- Query
 		local
 			l_consumed_type: CONSUMED_TYPE
 			l_properties: ARRAYED_LIST [CONSUMED_PROPERTY]
-			l_prop: CONSUMED_PROPERTY
 			i, nb: INTEGER
 			done: BOOLEAN
 		do
@@ -425,12 +426,12 @@ feature -- Query
 				until
 					i > nb or done
 				loop
-					l_prop := l_properties.i_th (i)
-					if l_prop /= Void then
-						if l_prop.getter.eiffel_name.is_equal (a_feat.feature_name) then
-							done := True
-							Result := l_prop.setter /= Void
-						end
+					if
+						attached l_properties [i] as l_prop and then
+						l_prop.getter.eiffel_name.is_equal (a_feat.feature_name)
+					then
+						done := True
+						Result := l_prop.setter /= Void
 					end
 					i := i + 1
 				end
@@ -706,7 +707,6 @@ feature {NONE} -- Initialization
 			l_feat_arg: FEAT_ARG
 			l_names_heap: like Names_heap
 			l_list: ARRAYED_LIST [INTEGER]
-			l_name: STRING
 			l_name_id: INTEGER
 			l_underlying_enum_type: STRING
 			l_enum_member: CONSUMED_ENTITY
@@ -931,7 +931,7 @@ feature {NONE} -- Initialization
 							l_record_pos := j
 						end
 						create l_feat_arg.make (k - l_record_pos + 1)
-						create l_arg_ids.make (1, k - j + 1)
+						create l_arg_ids.make_filled (0, 1, k - j + 1)
 					until
 						j > k
 					loop
@@ -960,21 +960,31 @@ feature {NONE} -- Initialization
 
 				l_feat.set_is_frozen (l_member.is_frozen)
 				if l_member.is_prefix then
-						-- Set feature flags
-					l_feat.set_is_prefix (True)
-					l_feat.set_is_unary (True)
-						-- Set both feature name and alias name
+						-- Set both feature name and alias name.
 					names_heap.put (Prefix_infix_names.prefix_feature_name_with_symbol (l_member.eiffel_name))
 					l_name_id := names_heap.found_item
-					l_feat.set_feature_name_id (l_name_id, l_name_id)
+					names_heap.put (l_member.eiffel_name)
+					l_feat.set_feature_name_id (l_name_id, create {like {FEATURE_I}.alias_name_ids}.make_filled
+						({OPERATOR_KIND}.alias_id
+							(names_heap.found_item,
+							{OPERATOR_KIND}.is_valid_unary_kind_mask ⦶ {OPERATOR_KIND}.is_unary_kind_mask),
+						1))
+						-- Set feature flags.
+					l_feat.set_is_prefix (True)
+					l_feat.set_is_unary (True)
 				elseif l_member.is_infix then
-						-- Set feature flags
-					l_feat.set_is_infix (True)
-					l_feat.set_is_binary (True)
 						-- Set both feature name and alias name
 					names_heap.put (Prefix_infix_names.infix_feature_name_with_symbol (l_member.eiffel_name))
 					l_name_id := names_heap.found_item
-					l_feat.set_feature_name_id (l_name_id, l_name_id)
+					names_heap.put (l_member.eiffel_name)
+					l_feat.set_feature_name_id (l_name_id, create {like {FEATURE_I}.alias_name_ids}.make_filled
+						({OPERATOR_KIND}.alias_id
+							(names_heap.found_item,
+							{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask),
+						1))
+						-- Set feature flags.
+					l_feat.set_is_infix (True)
+					l_feat.set_is_binary (True)
 				else
 					l_feat.set_feature_name (l_member.eiffel_name)
 				end
@@ -984,13 +994,13 @@ feature {NONE} -- Initialization
 				l_feat.set_written_in (l_written_type.class_id)
 
 					-- Add creation routine to `creators' if any.
-				if l_constructor /= Void then
+				if attached l_constructor then
 						-- Special case for value type where creation routines
 						-- are simply generated as normal feature and cannot be used
 						-- as creation procedure because usually there are more
 						-- than one possible creation routine and this is forbidden
 						-- by Eiffel specification on expanded.
-					l_creators.put (l_all_export, l_member.eiffel_name)
+					l_creators.put (l_all_export, names_heap.id_of (l_member.eiffel_name))
 					if external_class.is_expanded then
 						l_feat.set_export_status (l_all_export)
 					else
@@ -1031,8 +1041,7 @@ feature {NONE} -- Initialization
 					end
 				end
 
-				l_name := l_member.dotnet_eiffel_name
-				l_names_heap.put (l_name)
+				l_names_heap.put (l_member.dotnet_eiffel_name)
 				l_id := l_names_heap.found_item
 
 				if overloaded_names.has (l_id) then
@@ -1092,14 +1101,14 @@ feature {NONE} -- Initialization
 							check func_attached: l_extrn_func_i /= Void or l_def_func_i /= Void end
 
 							l_setter_name := l_setter.eiffel_name
-							if l_inherited /= Void and then l_inherited.has (l_property) then
+							if
+								attached l_inherited and then
+								l_inherited.has (l_property) and then
+								attached l_feat_i.written_class.feature_named (l_getter.eiffel_name) as l_feat and then
+								attached l_feat.assigner_name
+							then
 									-- property is inherited so use inherit setter name (fixes test#dotnet043)
-								if
-									attached {FEATURE_I} l_feat_i.written_class.feature_named (l_getter.eiffel_name) as l_feat and then
-									l_feat.assigner_name /= Void
-								then
-									l_setter_name := l_feat.assigner_name
-								end
+								l_setter_name := l_feat.assigner_name
 							end
 							check l_setter_name_attached: l_setter_name /= Void end
 							l_feat_i := a_feat_tbl.item (l_setter_name)
@@ -1131,7 +1140,7 @@ feature {NONE} -- Initialization
 						if l_setter /= Void then
 							if
 								attached {ATTRIBUTE_I} a_feat_tbl.item (l_getter.eiffel_name) as l_attr_i and
-								attached {FEATURE_I} a_feat_tbl.item (l_setter.eiffel_name) as l_feat
+								attached a_feat_tbl.item (l_setter.eiffel_name) as l_feat
 							then
 								l_attr_i.set_type (l_attr_i.type, l_feat.feature_name_id)
 							else
@@ -1339,45 +1348,42 @@ feature {NONE} -- Implementation
 						a_feat.written_class.simple_conform_to (l_feat.written_class) and then
 						attached {IL_EXTENSION_I} l_feat.extension as l_other_ext and then
 						l_other_ext.alias_name_id = l_feat_ext.alias_name_id and then
-						(a_feat.written_class = l_feat.written_class or else not l_feat.is_frozen)
-					then
+						(a_feat.written_class = l_feat.written_class or else not l_feat.is_frozen) and then
 							-- We found a routine, let's check that is the right one
 							-- by comparing their return type and their arguments type.
-						if
-							l_feat.type.same_as (a_feat.type) and then
-							l_feat.argument_count = a_feat.argument_count
-						then
-							if l_feat.argument_count = 0 then
+						l_feat.type.same_as (a_feat.type) and then
+						l_feat.argument_count = a_feat.argument_count
+					then
+						if l_feat.argument_count = 0 then
+							l_found := True
+						else
+							from
+								i := l_other_ext.argument_types.lower
+								nb := l_other_ext.argument_types.upper
 								l_found := True
-							else
-								from
-									i := l_other_ext.argument_types.lower
-									nb := l_other_ext.argument_types.upper
-									l_found := True
-								until
-									i > nb or not l_found
-								loop
-									l_found := l_other_ext.argument_types.item (i) =
-										l_feat_ext.argument_types.item (i)
+							until
+								i > nb or not l_found
+							loop
+								l_found := l_other_ext.argument_types.item (i) =
+									l_feat_ext.argument_types.item (i)
 
-									i := i + 1
-								end
+								i := i + 1
 							end
-							if l_found then
-									-- We found an inherited feature matching current.
-									-- If we are in an interface and that a parent interface
-									-- already define the same feature, then we have to create
-									-- a new routine ID.
-								if is_interface then
-									if
-										not a_feat.is_deferred or else
-										a_feat.written_class = l_feat.written_class
-									then
-										Result := l_feat
-									end
-								else
+						end
+						if l_found then
+								-- We found an inherited feature matching current.
+								-- If we are in an interface and that a parent interface
+								-- already define the same feature, then we have to create
+								-- a new routine ID.
+							if is_interface then
+								if
+									not a_feat.is_deferred or else
+									a_feat.written_class = l_feat.written_class
+								then
 									Result := l_feat
 								end
+							else
+								Result := l_feat
 							end
 						end
 					end
@@ -1465,13 +1471,9 @@ feature {NONE} -- Implementation
 			a_external_type_not_void: a_external_type /= Void
 			a_value_not_void: a_value /= Void and then not a_value.is_empty
 		local
-			l_int: INTEGER_CONSTANT
 			l_val: like a_value
 			l_is_negative: BOOLEAN
 			l_value: VALUE_I
-			l_bool_value: BOOL_VALUE_I
-			l_char_value: CHAR_VALUE_I
-			l_string_value: STRING_VALUE_I
 			l_int32: INTEGER
 			l_int64: INTEGER_64
 			l_real64: DOUBLE
@@ -1544,23 +1546,18 @@ feature {NONE} -- Implementation
 				else
 					l_val := a_value
 				end
-				create l_int.make_from_string (Void, l_is_negative, l_val)
-				l_value := l_int
+				create {INTEGER_CONSTANT} l_value.make_from_string (Void, l_is_negative, l_val)
 			elseif a_external_type.is_natural then
 				create {INTEGER_CONSTANT} l_value.make_from_type (a_external_type, False, a_value)
 			elseif a_external_type.is_boolean then
-				a_value.to_lower
-				create l_bool_value.make (a_value.is_equal (a_value.True_constant))
-				l_value := l_bool_value
+				create {BOOL_VALUE_I} l_value.make (a_value.is_case_insensitive_equal (a_value.true_constant))
 			elseif a_external_type.is_character then
 				check
 					valid_count: a_value.count = 1
 				end
-				create l_char_value.make_character_8 (a_value.item (1))
-				l_value := l_char_value
+				create {CHAR_VALUE_I} l_value.make_character_8 (a_value.item (1))
 			elseif a_external_type.base_class.original_class = System.system_string_class then
-				create l_string_value.make (a_value, True)
-				l_value := l_string_value
+				create {STRING_VALUE_I} l_value.make (a_value, True)
 			end
 			a_constant.set_value (l_value)
 		end
@@ -1590,7 +1587,7 @@ feature {NONE} -- Implementation
 			create Result
 		end
 
-	new_emitter (a_manager: CONF_CONSUMER_MANAGER): IL_EMITTER
+	new_emitter (a_manager: CONF_CONSUMER_MANAGER): detachable CONSUMER
 			-- If there is an error generated by `a_manager' while trying to get the emitter
 			-- we catch that error and wrap it into a compiler error before sending it back.
 			-- If it is an unknown exception we let it go through.
@@ -1598,13 +1595,11 @@ feature {NONE} -- Implementation
 			a_manager_attached: a_manager /= Void
 		local
 			retried: BOOLEAN
-			vd71: VD71
 		do
 			if not retried then
-				Result := a_manager.il_emitter
+				Result := a_manager.consumer
 			else
-				create vd71.make (a_manager.last_error)
-				error_handler.insert_error (vd71)
+				error_handler.insert_error (create {VD71}.make (a_manager.last_error))
 				error_handler.raise_error
 			end
 		rescue
@@ -1619,37 +1614,36 @@ feature {NONE} -- Implementation
 		require
 			assembly_attached: assembly /= Void
 		local
-			l_emitter: IL_EMITTER
+			l_emitter: CONSUMER
 			l_man: CONF_CONSUMER_MANAGER
 			l_assemblies: STRING_TABLE [CONF_PHYSICAL_ASSEMBLY_INTERFACE]
-			l_path: STRING_32
+			l_path: ARRAYED_LIST [READABLE_STRING_32]
 		do
 				-- Create message
 			degree_output.put_string ({STRING_32} "   Consuming assembly '" + assembly.location.evaluated_path.name + "'...")
 
 			l_assemblies := universe.conf_system.all_assemblies
 			if l_assemblies /= Void then
-				create l_path.make (256)
+				create l_path.make (l_assemblies.count)
 					-- Note: All system assemblies are required because they are needed by the consumer
 					-- to resolve dependencies.
-				from l_assemblies.start until l_assemblies.after loop
-					if attached {CONF_PHYSICAL_ASSEMBLY} l_assemblies.item_for_iteration as l_assembly then
-						if not l_assembly.is_dependency then
-							l_path.append_character (';')
-							l_path.append (l_assembly.consumed_assembly.location.name)
-						end
-					else
-						check is_physical_assembly: False end
+				across
+					l_assemblies as a
+				loop
+					if
+						attached {CONF_PHYSICAL_ASSEMBLY} a.item as p and then
+						not p.is_dependency
+					then
+						l_path.extend (p.consumed_assembly.location.name)
 					end
-					l_assemblies.forth
 				end
 				if not l_path.is_empty then
 					create l_man.make (create {CONF_COMP_FACTORY}, create {PATH}.make_from_string (system.metadata_cache_path), system.clr_runtime_version, assembly.target,  create {SEARCH_TABLE [CONF_CLASS]}.make (0), create {SEARCH_TABLE [CONF_CLASS]}.make (0), create {SEARCH_TABLE [CONF_CLASS]}.make (0))
 					l_emitter := new_emitter (l_man)
-					if l_emitter.exists and then l_emitter.is_initialized then
-						l_emitter.consume_assembly_from_path (assembly.consumed_assembly.location.name, False, l_path)
+					if l_emitter.is_available and then l_emitter.is_initialized then
+						l_emitter.consume_assembly_from_path (<<assembly.consumed_assembly.location.name>>, False, l_path)
 						l_man.rebuild_assembly (assembly)
-						l_emitter.unload
+						l_emitter.release
 					end
 				end
 			end
@@ -1679,7 +1673,7 @@ invariant
 	valid_enclosing_class: is_nested implies enclosing_class /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -1710,4 +1704,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EXTERNAL_CLASS_C
+end

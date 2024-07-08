@@ -1,7 +1,4 @@
-note
-	description: "[
-		TODO
-	]"
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -17,8 +14,7 @@ inherit
 			set_context,
 			class_type_in_current_context,
 			process_creation_expr_b,
-			process_un_old_b,
-			process_attribute_call
+			process_un_old_b
 		end
 
 create
@@ -55,7 +51,7 @@ feature -- Basic operations
 			-- Set context of expression to `a_feature' in type `a_type'.
 		do
 			Precursor (a_feature, a_type)
-			origin_class := a_type.base_class
+			origin_class := context.current_type.base_class
 		end
 
 	reset
@@ -130,10 +126,8 @@ feature -- Translation
 	process_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
 			-- Process feature call.
 		local
-			l_target: IV_EXPRESSION
-			l_target_type: TYPE_A
 			l_call: IV_FUNCTION_CALL
-			l_name: STRING
+			l_name: READABLE_STRING_8
 		do
 			check a_feature.has_return_value end
 
@@ -143,7 +137,7 @@ feature -- Translation
 
 			if helper.is_impure (a_feature) then
 					-- This is not a pure function
-				helper.add_semantic_error (context_feature, messages.impure_function_in_contract (a_feature.feature_name), context_line_number)
+				helper.add_semantic_error (context_feature, messages.impure_function_in_contract (a_feature.feature_name_32), context_line_number)
 				last_expression := dummy_node (a_feature.type)
 			else
 				create l_call.make (l_name, types.for_class_type (feature_class_type (a_feature)))

@@ -1,7 +1,5 @@
-note
+﻿note
 	description: "Translates Eiffel to IV AST nodes."
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	E2B_TRANSLATOR
@@ -22,7 +20,9 @@ feature {NONE} -- Initialization
 		do
 			translation_pool.reset
 				-- Add types and features used by every system
-			translation_pool.add_type (helper.set_any_type)
+			if attached helper.set_any_type as t then
+				translation_pool.add_type (t)
+			end
 		end
 
 feature -- Status report
@@ -39,16 +39,16 @@ feature -- Element change
 			-- Add all classes and featurse from `a_input' to be translated.
 		do
 			across a_input.class_list as i loop
-				add_class (i.item)
+				add_class (i)
 			end
 			across a_input.feature_list as i loop
-				add_feature (i.item)
+				add_feature (i)
 			end
 			across a_input.feature_of_type_list as i loop
-				add_feature_of_type (i.item.f, i.item.t)
+				add_feature_of_type (i.f, i.t)
 			end
 			across a_input.class_check_list as i loop
-				translation_pool.add_class_check (i.item)
+				translation_pool.add_class_check (i)
 			end
 		end
 
@@ -56,6 +56,7 @@ feature -- Element change
 			-- Add `a_class' to be translated.
 		local
 			l_feature: FEATURE_I
+			c: CURSOR
 		do
 			if not helper.is_class_logical (a_class) then
 				translation_pool.add_class_check (helper.constraint_type (a_class))
@@ -68,7 +69,12 @@ feature -- Element change
 				loop
 					l_feature := a_class.feature_table.item_for_iteration
 					if helper.verify_feature_in_class (l_feature, a_class) then
+							-- Record current position because it can change after adding the feature.
+						c := a_class.feature_table.cursor
+							-- Add the feature.
 						add_feature_of_type (l_feature, a_class.actual_type)
+							-- Restore the current position to continue iteration.
+						a_class.feature_table.go_to (c)
 					end
 					a_class.feature_table.forth
 				end
@@ -79,14 +85,8 @@ feature -- Element change
 			-- Add `a_feature' to be translated.
 		require
 			a_feature_attached: attached a_feature
-		local
-			l_class: CLASS_C
-			l_context_type: CL_TYPE_A
 		do
-			l_class := system.class_of_id (a_feature.written_in)
-			l_context_type := l_class.actual_type
-
-			add_feature_of_type (a_feature, l_context_type)
+			add_feature_of_type (a_feature, system.class_of_id (a_feature.written_in).actual_type)
 		end
 
 	add_feature_of_type (a_feature: FEATURE_I; a_context_type: CL_TYPE_A)
@@ -120,7 +120,7 @@ feature -- Basic operations
 						l_error.set_class (x.type.base_class)
 						l_error.set_feature (x.feat)
 					end
-					l_error.set_message (messages.internal_translation_error (l_unit.id))
+					l_error.set_message (messages.internal_translation_error (l_unit.id.to_string_32))
 					autoproof_errors.extend (l_error)
 				end
 			else
@@ -133,5 +133,29 @@ feature -- Basic operations
 			l_failed := True
 			retry
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2010-2015 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

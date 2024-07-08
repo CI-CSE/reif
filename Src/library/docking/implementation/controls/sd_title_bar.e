@@ -100,6 +100,7 @@ feature {NONE} -- Initlization
 			-- default setting
 		 	disable_focus_color
 		 	viewport.resize_actions.extend (agent on_fixed_resize)
+		 	viewport.dpi_changed_actions.extend (agent on_dpi_change_fixed_resize)
 
 		 	add_title_bar (Current)
 		end
@@ -443,7 +444,7 @@ feature {NONE} -- Agents
 
 				l_custom_widget := internal_custom_widget
 				if l_custom_widget /= Void  then
-					-- We have to check if `internal_custome_widget' is_destroyed, it makes sense while an application is exiting.
+					-- We have to check if `internal_custom_widget' is_destroyed, it makes sense while an application is exiting.
 					-- See bug#13731
 					if not l_custom_widget.is_destroyed then
 						if a_width >= tool_bar_width + l_custom_widget.minimum_width + (internal_shared.highlight_before_width + internal_shared.highlight_tail_width) then
@@ -462,6 +463,7 @@ feature {NONE} -- Agents
 							if internal_title.minimum_height < a_height then
 								internal_title.set_minimum_height (a_height)
 							end
+							internal_title.set_minimum_size (a_width - tool_bar_width - l_custom_widget.minimum_width, a_height)
 							fixed.set_item_x_position (l_custom_widget, a_width - tool_bar_width - l_custom_widget.minimum_width)
 							fixed.set_item_size (internal_title, a_width - tool_bar_width - l_custom_widget.minimum_width, a_height)
 						else
@@ -478,7 +480,9 @@ feature {NONE} -- Agents
 								if internal_title.minimum_height < a_height then
 									internal_title.set_minimum_height (a_height)
 								end
-								fixed.set_item_size (internal_title, a_width - tool_bar_width, a_height)
+
+								internal_title.set_minimum_size (a_width - tool_bar_width, a_height)
+								fixed.set_item_size (internal_title, (a_width - tool_bar_width).max (1), a_height)
 							end
 						end
 					end
@@ -487,6 +491,7 @@ feature {NONE} -- Agents
 						if internal_title.minimum_height < a_height then
 							internal_title.set_minimum_height (a_height)
 						end
+						internal_title.set_minimum_size (a_width - tool_bar_width, a_height)
 						fixed.set_item_size (internal_title, a_width - tool_bar_width, a_height)
 						if internal_tool_bar.has (mini_tool_bar_indicator) then
 							internal_tool_bar.prune (mini_tool_bar_indicator)
@@ -500,6 +505,12 @@ feature {NONE} -- Agents
 					fixed.set_item_x_position (internal_tool_bar, a_width - tool_bar_width)
 				end
 			end
+		end
+
+	on_dpi_change_fixed_resize (a_dpi: NATURAL_32; a_x: INTEGER_32; a_y: INTEGER_32; a_width: INTEGER_32; a_height: INTEGER_32)
+			-- Handle dpi changed actions.
+		do
+			on_fixed_resize (a_x, a_y, a_width, a_height)
 		end
 
 	on_stick_select
@@ -741,7 +752,7 @@ invariant
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

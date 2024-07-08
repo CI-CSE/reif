@@ -3,6 +3,7 @@
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	author: "Etienne Amodeo"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -259,15 +260,15 @@ feature {NONE} -- Click ast exploration
 							class_name := Void
 							if attached {FEATURE_NAME} clickable and has_parents then
 								pos_in_txt := a_click_ast.character_start_position
-								if pos_in_txt < inherit_clauses @ i then
+								if pos_in_txt < inherit_clauses [i] then
 									from
 										j := 1
 									until
-										j = i or else pos_in_txt < inherit_clauses @ j
+										j = i or else pos_in_txt < inherit_clauses [j]
 									loop
 										j := j + 1
 									end
-									if j /= 1 and then pos_in_txt < inherit_clauses @ j then
+									if j /= 1 and then pos_in_txt < inherit_clauses [j] then
 										a_class := clickable_info.
 											associated_eiffel_class (current_class_i, parents.i_th (j - 1).type)
 										if a_class /= Void then
@@ -318,10 +319,9 @@ feature {NONE} -- Click ast exploration
 			if not retried then
 				if not c.is_precompiled and c.file_is_readable then
 					last_syntax_error := Void
-					check
-						not_error_handler_has_error: not error_handler.has_error
-					end
 					if attached {EIFFEL_CLASS_C} c as l_eiffel_class then
+							-- Clear error handler, as per-note in parsed_ast.
+						error_handler.wipe_out
 						current_class_as := l_eiffel_class.parsed_ast (after_save)
 					else
 						check is_eiffel_class: False end
@@ -334,7 +334,7 @@ feature {NONE} -- Click ast exploration
 							last_syntax_error := l_syn
 						end
 					end
-						-- Clear error handler, as per-note in parsed_ast
+						-- Clear error handler, as per-note in parsed_ast.
 					error_handler.wipe_out
 				else
 						-- Class is precompiled, we should not reparse it since its definition
@@ -364,9 +364,9 @@ feature {NONE}-- Clickable/Editable implementation
 			if attached clickable_position_list as l_plist and then not l_plist.is_empty then
 				index_min := 1
 				index_max := l_plist.count
-				if a_position >= (l_plist @ 1).start then
+				if a_position >= l_plist [1].start then
 						-- search in the list
-					if a_position >= (l_plist @ index_max).start then
+					if a_position >= l_plist [index_max].start then
 						index_min := index_max
 					else
 						from
@@ -374,7 +374,7 @@ feature {NONE}-- Clickable/Editable implementation
 							index_min >= index_max - 1
 						loop
 							middle := index_min + (index_max - index_min) // 2
-							position := (l_plist @ middle).start
+							position := l_plist [middle].start
 							if position > a_position then
 								index_max := middle
 							else
@@ -382,7 +382,7 @@ feature {NONE}-- Clickable/Editable implementation
 							end
 						end
 					end
-					click_pos := l_plist @ index_min
+					click_pos := l_plist [index_min]
 					if a_position <= click_pos.stop then
 						if click_pos.is_feature then
 							class_i := Universe.safe_class_named (click_pos.class_name, group)
@@ -414,106 +414,108 @@ feature {NONE}-- Clickable/Editable implementation
 			line_not_void: line /= Void
 			token_in_line: line.has_token (token)
 		local
-			l_type: TYPE_A
 			vn: READABLE_STRING_32
 			vn_id: INTEGER
 			td: detachable AST_EIFFEL
 			l_precursor_feat: detachable E_FEATURE
+			retried: BOOLEAN
 		do
-			if is_ok_for_completion then
+			if not retried and is_ok_for_completion then
 				initialize_context
-				if attached current_class_c as cl then
+				if
+					attached current_class_c as cl and then
+					attached token and then
+					not token_image_is_in_array (token, unwanted_symbols)
+				then
+					if ft /= Void then
+						current_feature_as := [ft, ft.feature_names.first]
+					else
+						current_feature_as := Void
+					end
+					error := False
+					last_was_constrained := False
 					if
-						token /= Void and then
-						not token_image_is_in_array (token, unwanted_symbols)
+						attached feature_and_type_from (token, line) as tu and then
+						attached tu.feat as feat
 					then
-						if ft /= Void then
-							current_feature_as := [ft, ft.feature_names.first]
+						if token_image_is_same_as_word (token, "precursor") then
+							Result := [feat, Void]
 						else
-							current_feature_as := Void
-						end
-						error := False
-						last_was_constrained := False
-						last_feature := Void
-						is_for_feature := True
-						l_type := type_from (token, line)
-						is_for_feature := False
-						if attached last_feature as feat then
-							if token_image_is_same_as_word (token, "precursor") then
+							vn := token.wide_image
+							if vn /= Void and then vn.is_case_insensitive_equal_general (feat.name_32) then
 								Result := [feat, Void]
-							else
-								vn := token.wide_image
-								if vn /= Void and then vn.is_case_insensitive_equal (feat.name_32) then
-									Result := [feat, Void]
+							end
+						end
+					elseif attached token.previous as l_prev and then l_prev.wide_image.same_string_general (".") then
+							-- Ignore nested expression.
+					elseif
+						cl.has_feature_table and then
+						ft /= Void and then
+						attached cl.feature_with_name_32 (ft.feature_names.first.visual_name_32) as feat
+					then
+						if token_image_is_same_as_word (token, "precursor") then
+							l_precursor_feat := Void
+							across
+								feat.precursors as l_precursors
+							until
+								l_precursor_feat /= Void
+							loop
+								if attached l_precursors.item as pr then
+									l_precursor_feat := pr.feature_with_rout_id_set (feat.rout_id_set)
+								else
+									check has_precursors_item: False end
 								end
 							end
-						elseif attached token.previous as l_prev and then l_prev.wide_image.same_string_general (".") then
-								-- Ignore nested expression.
-						elseif
-							cl.has_feature_table and then
-							ft /= Void and then
-							attached cl.feature_with_name_32 (ft.feature_names.first.visual_name_32) as feat
-						then
-							if token_image_is_same_as_word (token, "precursor") then
-								l_precursor_feat := Void
-								across
-									feat.precursors as l_precursors
-								until
-									l_precursor_feat /= Void
-								loop
-									l_precursor_feat := l_precursors.item.feature_with_rout_id_set (feat.rout_id_set)
-								end
-								if l_precursor_feat /= Void then
-									Result := [l_precursor_feat, Void]
-								end
-							else
-									-- Search for locals, arguments, ... in current feature.
-									-- TODO: check if there is a simpler solution [2017-04-15].			
-								vn := token.wide_image
-								vn_id := feat.names_heap.id_of_32 (vn) --FIXME: try to reuse existing lookup if possible.
-								td := Void
-								if vn_id > 0 then
-									if attached feat.locals as l_feat_locals then
-										across
-											l_feat_locals as ic
-										until
-											td /= Void
-										loop
-											if attached {TYPE_DEC_AS} ic.item as l_type_dec then
-												across
-													l_type_dec.id_list as id_ic
-												until
-													td /= Void
-												loop
-													if vn_id = id_ic.item then
-														td := l_type_dec
-													end
+							if l_precursor_feat /= Void then
+								Result := [l_precursor_feat, Void]
+							end
+						else
+								-- Search for locals, arguments, ... in current feature.
+								-- TODO: check if there is a simpler solution [2017-04-15].			
+							vn := token.wide_image
+							vn_id := feat.names_heap.id_of_32 (vn) --FIXME: try to reuse existing lookup if possible.
+							td := Void
+							if vn_id > 0 then
+								if attached feat.locals as l_feat_locals then
+									across
+										l_feat_locals as ic
+									until
+										td /= Void
+									loop
+										if attached {TYPE_DEC_AS} ic.item as l_type_dec then
+											across
+												l_type_dec.id_list as id_ic
+											until
+												td /= Void
+											loop
+												if vn_id = id_ic.item then
+													td := l_type_dec
 												end
 											end
 										end
 									end
-									if td = Void and attached feat.argument_names as l_feat_args then
-										across
-											l_feat_args as ic
-										until
-											td /= Void
-										loop
-											if vn.is_case_insensitive_equal (ic.item) then
-												td := feat.ast
-											end
+								end
+								if td = Void and attached feat.argument_names as l_feat_args then
+									across
+										l_feat_args as ic
+									until
+										td /= Void
+									loop
+										if vn.is_case_insensitive_equal (ic.item) then
+											td := feat.ast
 										end
 									end
-									if td = Void then
-											-- TODO: implement solution for reminding locals [2017-04-15].
-											-- + object test locals
-											-- + inline agent locals + args
-											-- + across iteration local variables
-											-- + separate local variables
-									end
 								end
-								if td /= Void then
-									Result := [feat, td]
+								if td = Void then
+										-- TODO: implement solution for reminding locals [2017-04-15].
+										-- + object test locals
+										-- + inline agent locals + args
+										-- + across iteration local variables
+										-- + separate local variables
 								end
+							end
+							if td /= Void then
+								Result := [feat, td]
 							end
 						end
 					end
@@ -521,6 +523,9 @@ feature {NONE}-- Clickable/Editable implementation
 			end
 		ensure
 			result_with_feat: Result /= Void implies Result.feat /= Void
+		rescue
+			retried := True
+			retry
 		end
 
 	last_feature: E_FEATURE
@@ -545,6 +550,25 @@ feature {NONE} -- Implementation (`type_from')
 			if not error then
 				Result := searched_type
 			end
+		end
+
+	feature_and_type_from (token: EDITOR_TOKEN; line: EDITOR_LINE): TUPLE [feat: E_FEATURE; type: detachable TYPE_A]
+			-- try to analyze class text to find feature associated with word represented by `token'
+		require
+			token_not_void: token /= Void
+			line_not_void: line /= Void
+			token_in_line: line.has_token (token)
+			current_class_c_not_void: current_class_c /= Void
+		local
+			t: TYPE_A
+		do
+			last_feature := Void
+			is_for_feature := True
+			t := type_from (token, line)
+				-- Side effect to get `last_feature`.
+			is_for_feature := False
+			Result := [last_feature, t]
+
 		end
 
 	searched_type: TYPE_A
@@ -642,7 +666,7 @@ feature {NONE} -- Implementation (`type_from')
 									end
 									written_class := l_precursor_from.base_class
 									if l_precursor_from.base_class.has_feature_table then
-										feat := l_precursor_from.base_class.feature_with_name_id (current_feature_as.name.internal_name.name_id)
+										feat := l_precursor_from.base_class.feature_with_name_id (current_feature_as.name.feature_name.name_id)
 									end
 								end
 							end
@@ -660,7 +684,7 @@ feature {NONE} -- Implementation (`type_from')
 										type_as_associated_class: type.has_associated_class
 									end
 									if type.base_class.has_feature_table then
-										feat := l_precursor_from.base_class.feature_with_name_id (current_feature_as.name.internal_name.name_id)
+										feat := l_precursor_from.base_class.feature_with_name_id (current_feature_as.name.feature_name.name_id)
 										written_class := l_precursor_from.base_class
 									end
 									l_current_class_c_parents.forth
@@ -789,7 +813,6 @@ feature {NONE} -- Implementation (`type_from')
 		local
 			l_feature_state: TUPLE [feature_item: E_FEATURE; class_type_of_feature: CL_TYPE_A; features_found_count: INTEGER; constraint_position: INTEGER]
 			feat: E_FEATURE
-			type: TYPE_A
 			l_pos: INTEGER
 			l_named_tuple_type: NAMED_TUPLE_TYPE_A
 			l_processed_class: CLASS_C
@@ -805,7 +828,7 @@ feature {NONE} -- Implementation (`type_from')
 						-- There's no feature with the name `a_name' in the type set.
 					feat := Void
 				elseif	l_feature_state.features_found_count = 1 then
-						-- We found exactly one feautre, this is good.
+						-- We found exactly one feature, this is good.
 						-- Let's store the class type to which the feature belongs into `last_target_type'.
 					feat := l_feature_state.feature_item
 					last_target_type := l_feature_state.class_type_of_feature
@@ -815,9 +838,7 @@ feature {NONE} -- Implementation (`type_from')
 					feat := Void
 				end
 				if feat /= Void and then feat.type /= Void then
-					type := feat.type
-				else
-					type := Void
+					Result := feat.type
 				end
 			else
 				check
@@ -830,16 +851,15 @@ feature {NONE} -- Implementation (`type_from')
 					l_processed_class /= Void and then l_processed_class.has_feature_table
 					or l_named_tuple_type /= Void
 				then
-					type := Void
 					if l_named_tuple_type /= Void then
-						l_pos := l_named_tuple_type.label_position (a_name)
+						l_pos := l_named_tuple_type.label_position_by_id (names_heap.id_of_32 (a_name))
 						if l_pos > 0 then
-							type := l_named_tuple_type.generics.i_th (l_pos)
+							Result := l_named_tuple_type.generics.i_th (l_pos)
 						end
-						if type = Void then
+						if Result = Void then
 							feat := l_processed_class.feature_with_name_32 (a_name)
 							if feat /= Void then
-								type := feat.type
+								Result := feat.type
 							end
 						end
 					else
@@ -849,13 +869,12 @@ feature {NONE} -- Implementation (`type_from')
 							feat := feature_of_constaint_renamed (last_formal, a_name)
 						end
 						if feat /= Void then
-							type := feat.type
+							Result := feat.type
 						end
 					end
 				end
 			end
 			last_feature := feat
-			Result := type
 		end
 
 	move_to_next_target (a_type, a_parent_type: TYPE_A; a_class: CLASS_C)
@@ -988,7 +1007,7 @@ feature {NONE} -- Implementation (`type_from')
 				loop
 					l_class := l_list.item
 					if l_class.has_feature_table then
-						l_feature := l_class.feature_table.alias_item_32 (bracket_str)
+						l_feature := l_class.feature_table.item_alias_id ({PREDEFINED_NAMES}.bracket_symbol_id)
 						written_class := l_class
 					end
 					l_list.forth
@@ -998,7 +1017,7 @@ feature {NONE} -- Implementation (`type_from')
 					has_associated_class: last_target_type.has_associated_class
 				end
 				if last_target_type.base_class.has_feature_table then
-					l_feature := last_target_type.base_class.feature_table.alias_item_32 (bracket_str)
+					l_feature := last_target_type.base_class.feature_table.item_alias_id ({PREDEFINED_NAMES}.bracket_symbol_id)
 					written_class := last_target_type.base_class
 				end
 			end
@@ -1025,7 +1044,7 @@ feature {NONE} -- Implementation (`type_from')
 			l_renaming: RENAMING_A
 			i, upper, l_new_name_id, l_old_name_id: INTEGER
 		do
-			l_new_name_id := names_heap.id_of (encoding_converter.utf32_to_utf8 (a_new_name))
+			l_new_name_id := names_heap.id_of ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_new_name))
 			l_renames := current_class_c.constraint_renaming (current_class_c.generics.i_th (last_formal.position))
 			from
 				i := l_renames.lower
@@ -1125,13 +1144,14 @@ feature {NONE}-- Implementation
 					go_to_previous_token
 				end
 			end
-			if found_precursor then
+			if
+				found_precursor and then
 					-- Precursor {CLASS}.
-				if token_image_is_same_as_word (current_token, closing_brace) then
-					go_to_previous_token
-					skip_parenthesis_backward (opening_brace, closing_brace)
-					go_to_previous_token
-				end
+				token_image_is_same_as_word (current_token, closing_brace)
+			then
+				go_to_previous_token
+				skip_parenthesis_backward (opening_brace, closing_brace)
+				go_to_previous_token
 			end
 			go_to_previous_token
 			if current_token /= Void then
@@ -1247,6 +1267,24 @@ feature {NONE}-- Implementation
 						-- otherwise, we will not analyze this expression
 					if is_known_infix (exp.item) then
 						infix_list.extend (exp.item.wide_image)
+					elseif token_image_is_same_as_word (exp.item, opening_bracket) then
+							-- if there is a bracket, we fill the new `sub_exp' with what's inside
+						from
+							par_cnt := 1
+							sub_exp.extend (exp.item)
+						until
+							par_cnt = 0 or else exp.after
+						loop
+							exp.forth
+							if not exp.after then
+								sub_exp.extend (exp.item)
+								if token_image_is_same_as_word (exp.item, closing_bracket) then
+									par_cnt := par_cnt - 1
+								elseif token_image_is_same_as_word (exp.item, opening_bracket) then
+									par_cnt := par_cnt + 1
+								end
+							end
+						end
 					else
 						error := True
 					end
@@ -1265,7 +1303,7 @@ feature {NONE}-- Implementation
 					stop := False
 					error := exp.after
 					if not error then
-						if token_image_is_same_as_word (exp.item, Opening_parenthesis) then
+						if token_image_is_same_as_word (exp.item, Opening_parenthesis)	then
 								-- if there is a parenthesis, we fill the new `sub_exp' with what's inside
 							from
 								par_cnt := 1
@@ -1420,26 +1458,11 @@ feature {NONE}-- Implementation
 			index: INTEGER
 		do
 			create priority.make
+			⟳ g: infix_groups ¦
+				g.compare_objects
+				⟳ i: infix_list ¦ if g.has (i) then priority.extend (@ i.target_index) end ⟲
+			⟲
 			from
-				infix_groups.start
-			until
-				infix_groups.after
-			loop
-				infix_groups.item.compare_objects
-				from
-					infix_list.start
-				until
-					infix_list.after
-				loop
-					if infix_groups.item.has (infix_list.item) then
-						priority.extend (infix_list.index)
-					end
-					infix_list.forth
-				end
-				infix_groups.forth
-			end
-			from
-
 			until
 				error or priority.is_empty
 			loop
@@ -1689,7 +1712,6 @@ feature {NONE}-- Implementation
 			group_is_valid: group.is_valid
 		local
 			image: STRING_32
-			l_token: EDITOR_TOKEN
 			l_feat: E_FEATURE
 			l_end_match: like scan_for_type
 			l_type_text: STRING_32
@@ -1715,23 +1737,23 @@ feature {NONE}-- Implementation
 						if attached {UNEVALUATED_LIKE_TYPE} Result and not Result.is_valid then
 								-- The type is not valid, recheck.
 							Result := Void
-							if token_text_8 (current_token) ~ {EIFFEL_KEYWORD_CONSTANTS}.like_keyword then
-								if current_token.next /= Void and then current_token.next.next /= Void then
-									l_token := current_token.next.next
-									if l_token.is_text then
-										image := string_32_to_lower_copy_optimized (l_token.wide_image)
-										if current_class_c /= Void then
-											l_feat := current_class_c.feature_with_name_32 (image)
-											if l_feat /= Void then
-												Result := l_feat.type
-											end
-											if Result = Void then
-												Result := type_of_local_entity_named (image)
-											end
-											if Result = Void then
-												Result := type_of_constants_or_reserved_word (l_token)
-											end
-										end
+							if
+								token_text_8 (current_token) ~ {EIFFEL_KEYWORD_CONSTANTS}.like_keyword and then
+								attached current_token.next as n and then
+								attached n.next as l_token and then
+								l_token.is_text
+							then
+								image := string_32_to_lower_copy_optimized (l_token.wide_image)
+								if current_class_c /= Void then
+									l_feat := current_class_c.feature_with_name_32 (image)
+									if l_feat /= Void then
+										Result := l_feat.type
+									end
+									if Result = Void then
+										Result := type_of_local_entity_named (image)
+									end
+									if Result = Void then
+										Result := type_of_constants_or_reserved_word (l_token)
 									end
 								end
 							end
@@ -1750,9 +1772,8 @@ feature {NONE}-- Implementation
 			a_name_not_void: a_name /= Void
 			current_class_c_not_void: current_class_c /= Void
 		local
-			feat: E_FEATURE
 			cls_c: CLASS_C
-			l_name: STRING_32
+			i: like names_heap.id_of_32
 		do
 			if a_name.is_case_insensitive_equal (equal_sign) or a_name.is_case_insensitive_equal (different_sign) then
 				Result := boolean_type
@@ -1760,18 +1781,22 @@ feature {NONE}-- Implementation
 				cls_c := a_type.base_class
 				if cls_c /= Void and then cls_c.has_feature_table then
 					written_class := cls_c
-					l_name := string_32_to_lower_copy_optimized (a_name)
-					feat := cls_c.feature_with_name_32 (infix_feature_name_with_symbol_32 (l_name))
-					if feat /= Void and then feat.type /= Void then
-						Result := feat.type
-						if Result.is_formal then
-							if
-								attached {FORMAL_A} Result as formal and then
-								a_type.has_generics and then
-								a_type.generics.valid_index (formal.position)
-							then
-								Result := a_type.generics [formal.position]
-							end
+					i := names_heap.id_of_32 (string_32_to_lower_copy_optimized (a_name))
+					if
+						i > 0 and then
+						cls_c.has_feature_table and then
+						attached cls_c.feature_table.item_alias_id
+							({OPERATOR_KIND}.alias_id (i, {OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask)) as f and then
+						attached f.type as t
+					then
+						Result := t
+						if
+							Result.is_formal and then
+							attached {FORMAL_A} Result as formal and then
+							a_type.has_generics and then
+							a_type.generics.valid_index (formal.position)
+						then
+							Result := a_type.generics [formal.position]
 						end
 					end
 				end
@@ -1786,40 +1811,24 @@ feature {NONE}-- Implementation
 			a_name_attached: a_name /= Void
 			not_a_name_is_empty: not a_name.is_empty
 		local
-			l_token: EDITOR_TOKEN
-			l_line: EDITOR_LINE
-			l_name: STRING_32
-			l_analyzer: attached ES_EDITOR_CLASS_ANALYZER
-			l_result: detachable ES_EDITOR_ANALYZER_STATE_INFO
-			l_locals: attached HASH_TABLE [detachable TYPE_A, STRING_32]
-			l_feature: like current_feature_i
-			l_class: like current_class_c
 			retried: BOOLEAN
 		do
-			if not retried then
-				l_feature := current_feature_i
-				l_class := current_class_c
-				if l_feature /= Void and then l_class /= Void and then a_name /= Void and then not a_name.is_empty then
-					l_token := current_token
-					l_line := current_line
-					if l_token /= Void and then l_line /= Void then
-						create l_analyzer.make_with_feature (l_class, l_feature)
-						l_result := l_analyzer.scan (l_token, l_line)
-						if l_result /= Void and then l_result.has_current_frame then
-							l_locals := l_result.current_frame.all_locals
-							l_name := a_name.as_string_32
-							if l_locals.has (l_name) then
-								Result := l_locals.item (l_name)
-							end
-						else
-							if attached {HASH_TABLE [detachable TYPE_A, STRING_32]} locals_from_local_entities_finder as l_found_locals then
-								l_name := a_name.as_string_32
-								if l_found_locals.has (l_name) then
-									Result := l_found_locals.item (l_name)
-								end
-							end
-						end
-					end
+			if
+				not retried and then
+				attached current_feature_i as l_feature and then
+				attached current_class_c as l_class and then
+				attached a_name and then
+				not a_name.is_empty and then
+				attached current_token as l_token and then
+				attached current_line as l_line
+			then
+				if
+					attached (create {ES_EDITOR_CLASS_ANALYZER}.make_with_feature (l_class, l_feature)).scan (l_token, l_line) as l_result and then
+					l_result.has_current_frame
+				then
+					Result := l_result.current_frame.all_locals.item (a_name.as_string_32)
+				elseif attached locals_from_local_entities_finder as l_found_locals then
+					Result := l_found_locals.item (a_name.as_string_32)
 				end
 			end
 		rescue
@@ -1827,7 +1836,7 @@ feature {NONE}-- Implementation
 			retry
 		end
 
-	locals_from_local_entities_finder: HASH_TABLE [detachable TYPE_A, attached STRING_32]
+	locals_from_local_entities_finder: detachable HASH_TABLE [detachable TYPE_A, attached STRING_32]
 			-- Stack entities from finder
 			--| could be finder from AST for instance
 			-- i.e: Locals,arguments,object test locals
@@ -1858,7 +1867,7 @@ feature {NONE}-- Implementation
 					if Result = Void then
 							-- Used the compiled information
 						current_feature := l_current_class_c.feature_with_name_id (
-								current_feature_as.name.internal_name.name_id
+								current_feature_as.name.feature_name.name_id
 							)
 						if current_feature /= Void then
 							Result := current_feature.type
@@ -1984,11 +1993,13 @@ feature {NONE}-- Implementation
 			end
 			if current_token /= Void and current_line /= Void then
 				from
-					if is_string (current_token) and then not current_token.wide_image.is_empty then
+					if
+						is_string (current_token) and then
+						not current_token.wide_image.is_empty and then
 							-- we check if there is a string split on several lines
-						if current_token.wide_image @ 1 = ('%%').to_character_32 then
-							uncomplete_string := True
-						end
+						current_token.wide_image [1] = ('%%').to_character_32
+					then
+						uncomplete_string := True
 					end
 						-- we move to previous token, if  there is one
 					if current_token /= current_line.first_token then
@@ -2023,7 +2034,7 @@ feature {NONE}-- Implementation
 						else
 							if is_string (current_token) and then not current_token.wide_image.is_empty then
 									-- we check if a string is split on several lines
-								if current_token.wide_image @ 1 = ('%%').to_character_32 then
+								if current_token.wide_image [1] = ('%%').to_character_32 then
 									uncomplete_string := True
 								else
 										-- if the string is on one lines, we skip it
@@ -2071,11 +2082,13 @@ feature {NONE}-- Implementation
 			end
 			if current_token /= Void and current_line /= Void then
 				from
-					if is_string (current_token) and then not current_token.wide_image.is_empty then
+					if
+						is_string (current_token) and then
+						not current_token.wide_image.is_empty and then
 							-- we check if there is a string split on several lines
-						if current_token.wide_image @ current_token.wide_image.count = ('%%').to_character_32 then
-							uncomplete_string := True
-						end
+						current_token.wide_image [current_token.wide_image.count] = ('%%').to_character_32
+					then
+						uncomplete_string := True
 					end
 						-- we move to next token, if there is one
 					if current_token.next /= Void then
@@ -2109,7 +2122,7 @@ feature {NONE}-- Implementation
 						else
 							if is_string (current_token) and then not current_token.wide_image.is_empty then
 									-- we check if a string is split on several lines
-								if current_token.wide_image @ 1 = ('%%').to_character_32 then
+								if current_token.wide_image [1] = ('%%').to_character_32 then
 									uncomplete_string := True
 								else
 										-- Handle manifest string token.
@@ -2250,15 +2263,13 @@ feature {NONE} -- Implementation
 
 	current_feature_i: detachable FEATURE_I
 			-- Current feature_i
-		local
-			l_current_class_c: detachable CLASS_C
 		do
-			l_current_class_c := current_class_c
-			if l_current_class_c /= Void then
-				if l_current_class_c.has_feature_table then
-					if current_feature_as /= Void then
-						Result := l_current_class_c.feature_of_name_id (current_feature_as.name.internal_name.name_id)
-					end
+			if attached current_class_c as l_current_class_c then
+				if
+					l_current_class_c.has_feature_table and then
+					attached current_feature_as as a
+				then
+					Result := l_current_class_c.feature_of_name_id (a.name.feature_name.name_id)
 				end
 					-- We hack here to avoid current feature void.
 					-- type_a_checker only need a feature for like_argument checking.
@@ -2301,9 +2312,9 @@ feature {NONE} -- Implementation
 		do
 			index_min := 1
 			index_max := table.count
-			if i >= table @ 1 then
+			if i >= table [1] then
 					-- search in the list
-				if i >= table @ index_max then
+				if i >= table [index_max] then
 					index_min := index_max
 				else
 					from
@@ -2312,7 +2323,7 @@ feature {NONE} -- Implementation
 						index_min >= index_max - 1
 					loop
 						middle := index_min + (index_max - index_min) // 2
-						position := table @ middle
+						position := table [middle]
 						if position > i then
 							index_max := middle
 						else
@@ -2396,19 +2407,19 @@ feature {EB_COMPLETION_POSSIBILITIES_PROVIDER} -- Constants
 			Result := <<":=", "?=", ";", ",">>
 		end
 
-	infix_groups: LINKED_LIST [ARRAY [STRING]]
+	infix_groups: LINKED_LIST [ARRAY [READABLE_STRING_32]]
 			-- list of operators groups, sorted by priority
 		once
 			create Result.make
-			Result.extend (<<"@">>)
-			Result.extend (<<"^">>)
-			Result.extend (<<"*", "/", "//", "\\">>)
-			Result.extend (<<"+", "-">>)
-			Result.extend (<<"/=", "=", ">", ">=", "<", "<=">>)
-			Result.extend (<<"and">>)
-			Result.extend (<<"xor">>)
-			Result.extend (<<"or">>)
-			Result.extend (<<"implies">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "@">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "^">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "*", {STRING_32} "/", {STRING_32} "//", {STRING_32} "\\">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "+", {STRING_32} "-">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "/=", {STRING_32} "=", {STRING_32} ">", {STRING_32} ">=", {STRING_32} "<", {STRING_32} "<=">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "and">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "xor">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "or">>)
+			Result.extend ({ARRAY [READABLE_STRING_32]} <<{STRING_32} "implies">>)
 		end
 
 invariant
@@ -2416,7 +2427,7 @@ invariant
 	current_token_in_current_line: (current_line = Void and current_token = Void) or else (current_line /= Void and then current_line.has_token (current_token))
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -23,6 +23,7 @@ class ARRAYED_SET [G] inherit
 	ARRAYED_LIST [G]
 		rename
 			extend as al_extend,
+			has as has alias "∋",
 			put as al_put,
 			prune as al_prune
 		export
@@ -33,13 +34,28 @@ class ARRAYED_SET [G] inherit
 		undefine
 			is_inserted,
 			changeable_comparison_criterion
+		redefine
+			make_from_iterable
 		end
 
 create
-	make
+	make,
+	make_from_iterable
 
 create {ARRAYED_SET}
 	make_filled
+
+convert
+	make_from_iterable ({ARRAY [G]})
+
+feature {NONE} -- Creation
+
+	make_from_iterable (other: ITERABLE [G])
+			-- Create a circular chain with all items obtained from `other`.
+		do
+			make (estimated_count_of (other))
+			⟳ o: other ¦ extend (o) ⟲
+		end
 
 feature -- Element change
 
@@ -61,7 +77,7 @@ feature -- Removal
 		end
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

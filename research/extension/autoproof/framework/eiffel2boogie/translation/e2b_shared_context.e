@@ -1,6 +1,4 @@
-note
-	description: "Summary description for {E2B_SHARED_TRANSLATOR}."
-	author: ""
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -60,6 +58,8 @@ feature -- Access (public)
 			-- Shared translation options.
 		once
 			create Result.make
+		ensure
+			class
 		end
 
 	helper: E2B_HELPER
@@ -76,7 +76,7 @@ feature -- Status notification.
 			create Result.put (Void)
 		end
 
-	set_status (a_message: STRING)
+	set_status (a_message: READABLE_STRING_32)
 			-- Set status message.
 		do
 			if status_notifier_agent_cell.item /= Void then
@@ -113,8 +113,6 @@ feature {NONE} -- Implementation
 		end
 
 	stop_timer
-		local
-			l_time: DT_TIME
 		do
 			start_time.remove
 		end

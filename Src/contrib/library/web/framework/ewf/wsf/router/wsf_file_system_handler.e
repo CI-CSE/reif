@@ -221,8 +221,10 @@ feature -- Execution
 					if f.is_directory then
 						if index_disabled then
 							process_directory_index_disabled (uri, req, res)
+						elseif uri.ends_with ("/") then
+							process_index (uri, fn, req, res)
 						else
-							process_index (req.request_uri, fn, req, res)
+							res.redirect_now (uri + "/")
 						end
 					else
 						process_file (f, req, res)
@@ -252,7 +254,7 @@ feature -- Execution
 			if attached directory_index_file (d) as f then
 				process_file (f, req, res)
 			else
-				uri := a_uri
+				uri := a_uri.to_string_8
 				if not uri.is_empty and then uri [uri.count] /= '/'  then
 					uri.append_character ('/')
 				end
@@ -334,7 +336,7 @@ feature -- Execution
 				)
 
 				create h.make
-				h.put_content_type_text_html
+				h.put_content_type_utf_8_text_html
 				res.set_status_code ({HTTP_STATUS_CODE}.ok)
 				h.put_content_length (s.count)
 				res.put_header_lines (h)
@@ -374,7 +376,7 @@ feature -- Execution
 			ext := extension (f.path.name)
 			ct := extension_mime_mapping.mime_type (ext)
 			if ct = Void then
-				ct := {HTTP_MIME_TYPES}.application_force_download
+				ct := {HTTP_MIME_TYPES}.application_octet_stream
 			end
 			create fres.make_with_content_type_and_path (ct, f.path)
 			fres.set_status_code ({HTTP_STATUS_CODE}.ok)
@@ -428,7 +430,7 @@ feature -- Execution
 				hdl.call ([uri, req, res])
 			else
 				create h.make
-				h.put_content_type_text_plain
+				h.put_content_type_utf_8_text_plain
 				create s.make_empty
 				s.append ("Resource %"" + uri + "%" not found%N")
 				res.set_status_code ({HTTP_STATUS_CODE}.not_found)
@@ -448,7 +450,7 @@ feature -- Execution
 				hdl.call ([uri, req, res])
 			else
 				create h.make
-				h.put_content_type_text_plain
+				h.put_content_type_utf_8_text_plain
 				create s.make_empty
 				s.append ("Resource %"" + uri + "%": Access denied%N")
 				res.set_status_code ({HTTP_STATUS_CODE}.forbidden)
@@ -468,7 +470,7 @@ feature -- Execution
 				hdl.call ([uri, req, res])
 			else
 				create h.make
-				h.put_content_type_text_plain
+				h.put_content_type_utf_8_text_plain
 				create s.make_empty
 				s.append ("Directory index %"" + uri + "%": Access denied%N")
 				res.set_status_code ({HTTP_STATUS_CODE}.forbidden)
@@ -652,7 +654,7 @@ feature {NONE} -- implementation: date time
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2020, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

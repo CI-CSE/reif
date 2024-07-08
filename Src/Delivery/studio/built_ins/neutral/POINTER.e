@@ -8,15 +8,17 @@ feature -- Access
 			Result := Precursor
 		end
 
+feature -- Status report
+
+	is_default_pointer: BOOLEAN
+			-- Is current `default_pointer'?
+		do
+			Result := Precursor
+		end
+
 feature -- Operations
 
 	plus alias "+" (offset: INTEGER): POINTER
-			-- Pointer moved by an offset of `offset' bytes.
-		do
-			Result := Precursor (offset)
-		end
-
-	infix "+" (offset: INTEGER): POINTER
 			-- Pointer moved by an offset of `offset' bytes.
 		do
 			Result := Precursor (offset)

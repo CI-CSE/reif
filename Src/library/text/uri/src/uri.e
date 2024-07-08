@@ -1,21 +1,21 @@
-note
-	description : "[
-				Object that represents a URI Scheme
-				
-				See http://en.wikipedia.org/wiki/URI_scheme
-				See http://en.wikipedia.org/wiki/Uniform_resource_identifier
-				See http://en.wikipedia.org/wiki/Uniform_resource_locator
-				See http://tools.ietf.org/html/rfc3986 (URI)
-
-				Global syntax element:
-				   pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
-				   pct-encoded   = "%" HEXDIG HEXDIG
-				   unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
-				   reserved      = gen-delims / sub-delims
-				   gen-delims    = ":" / "/" / "?" / "#" / "[" / "]" / "@"
-				   sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
-				                 / "*" / "+" / "," / ";" / "="
-			]"
+﻿note
+	description: "[
+			Object that represents a URI Scheme
+			
+			See http://en.wikipedia.org/wiki/URI_scheme
+			See http://en.wikipedia.org/wiki/Uniform_resource_identifier
+			See http://en.wikipedia.org/wiki/Uniform_resource_locator
+			See http://tools.ietf.org/html/rfc3986 (URI)
+			
+			Global syntax element:
+			   pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+			   pct-encoded   = "%" HEXDIG HEXDIG
+			   unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+			   reserved      = gen-delims / sub-delims
+			   gen-delims    = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+			   sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+			                 / "*" / "+" / "," / ";" / "="
+		]"
 	date: "$Date$"
 	revision: "$Revision$"
 	EIS: "name=URI-RFC3986 Generic syntax", "protocol=URI", "src=http://tools.ietf.org/html/rfc3986"
@@ -28,6 +28,7 @@ note
 	EIS: "name=mailto-RFC2368", "protocol=URI", "src=http://tools.ietf.org/html/rfc2368"
 	EIS: "name=ipv6-RFC2373", "protocol=URI", "src=http://tools.ietf.org/html/rfc2373"
 	EIS: "name=ipv6-RFC2373 in URL", "protocol=URI", "src=http://tools.ietf.org/html/rfc2732"
+	EIS: "name=RFC3490 Internationalizing Domain Names in Applications (IDNA)", "protocol=URI", "src=https://tools.ietf.org/html/rfc3490"
 
 class
 	URI
@@ -55,14 +56,14 @@ feature {NONE} -- Initialization
 		note
 			EIS: "name=Syntax Components", "protocol=URI", "src=http://tools.ietf.org/html/rfc3986#section-3"
 		local
-			p,q,r,qq: INTEGER
+			p, q, r, qq: INTEGER
 			s, t: STRING_8
 		do
 			is_valid := True
 			p := a_string.index_of (':', 1)
 			if p > 0 then
 				set_scheme (a_string.substring (1, p - 1))
-				if a_string.count > p + 1 and then a_string[p+1] = '/' and then a_string[p+2] = '/' then
+				if a_string.count > p + 1 and then a_string [p + 1] = '/' and then a_string [p + 2] = '/' then
 						--| Starts by scheme://
 						--| waiting for hierarchical part username:password@hostname:port
 					p := p + 2
@@ -70,7 +71,7 @@ feature {NONE} -- Initialization
 					q := a_string.index_of ('@', p + 1)
 					if q > 0 and (r = 0 or q < r) then
 							--| found user:passwd
-						t := a_string.substring (p + 1, q - 1)
+						t := a_string.substring (p + 1, q - 1).to_string_8
 						set_userinfo (t)
 						p := q
 						q := a_string.index_of ('/', p + 1)
@@ -82,13 +83,13 @@ feature {NONE} -- Initialization
 						q := qq
 					end
 					if q > 0 then
-						t := a_string.substring (p + 1, q - 1)
+						t := a_string.substring (p + 1, q - 1).to_string_8
 					else
 						q := a_string.count
-						t := a_string.substring (p + 1, q)
-						q := 0 --| end of processing						
+						t := a_string.substring (p + 1, q).to_string_8
+						q := 0 --| end of processing
 					end
-					if not t.is_empty and then t[1] = '[' then
+					if not t.is_empty and then t [1] = '[' then
 						p := t.index_of (']', 2)
 						if p > 0 then
 							p := t.index_of (':', p + 1)
@@ -119,7 +120,7 @@ feature {NONE} -- Initialization
 
 				if q > 0 and q <= a_string.count then
 						--| found query
-					t := a_string.substring (q, a_string.count)
+					t := a_string.substring (q, a_string.count).to_string_8
 					q := t.index_of ('?', 1)
 					if q > 0 then
 						s := t.substring (1, q - 1)
@@ -157,19 +158,13 @@ feature {NONE} -- Initialization
 			if is_valid then
 				check_validity (True)
 			end
-		ensure
-			same_if_valid: is_valid and not is_corrected implies a_string.starts_with (string)
 		end
 
-	make_with_details (a_scheme: READABLE_STRING_8; a_host: detachable READABLE_STRING_8; a_path: READABLE_STRING_8)
+	make_with_details (a_scheme: READABLE_STRING_8; a_host: detachable READABLE_STRING_GENERAL; a_path: READABLE_STRING_8)
 			-- Create Current uri from scheme `a_scheme', host `a_host' and path `a_path'.
 		do
 			create scheme.make_from_string (a_scheme)
-			if a_host /= Void then
-				create host.make_from_string (a_host)
-			else
-				host := Void
-			end
+			set_hostname (a_host)
 			create path.make_from_string (a_path)
 		end
 
@@ -190,7 +185,7 @@ feature {NONE} -- Initialization
 			is_same_uri: is_same_uri (a_uri)
 		end
 
-feature -- Basic operation		
+feature -- Basic operation
 
 	check_validity (a_fixing: BOOLEAN)
 			-- Check validity of URI
@@ -218,32 +213,34 @@ feature -- Basic operation
 
 				-- Check path
 				-- 		TODO: no space, all character well escaped, ...
-			if path.has (' ') then
-					-- Fix bad URI
-				if a_fixing then
-					create s.make_from_string (path)
-					s.replace_substring_all (" ", "%%20")
-					set_path (s)
-					is_corrected := True
-				end
+			if
+				path.has (' ') and then
+				a_fixing
+			then
+					-- Fix bad URI.
+				create s.make_from_string (path)
+				s.replace_substring_all (" ", "%%20")
+				set_path (s)
+				is_corrected := True
 			end
 			if not is_valid_path (path) then
 				is_valid := False
 			end
 
 				-- Check query
-				-- 		TODO: no space, all character well escaped, ...			
-			if attached query as q then
-				if q.has (' ') then
-						-- Fix bad URI						
-					if a_fixing then
-						create s.make_from_string (q)
-						s.replace_substring_all (" ", "%%20")
-						set_query (s)
-						is_corrected := True
-					else
-						is_valid := False
-					end
+				-- 		TODO: no space, all character well escaped, ...
+			if
+				attached query as q and then
+				q.has (' ')
+			then
+					-- Fix bad URI
+				if a_fixing then
+					create s.make_from_string (q)
+					s.replace_substring_all (" ", "%%20")
+					set_query (s)
+					is_corrected := True
+				else
+					is_valid := False
 				end
 			end
 			if not is_valid_query (query) then
@@ -299,6 +296,49 @@ feature -- Access
 			-- Host name.
 			--| RFC3986: host = IP-literal / IPv4address / reg-name
 
+	idn_hostname: detachable IMMUTABLE_STRING_8
+			-- Hostname, formatted with Punycode according to the IDN standard (RFC 3490).
+			--| RFC3490 Internationalizing Domain Names in Applications (IDNA):
+			--| see https://tools.ietf.org/html/rfc3490
+		do
+			Result := host
+		end
+
+	hostname: detachable STRING_32
+			-- Unicode hostname.
+			-- Decoded IDN value from `host`.
+		note
+			EIS: "name=RFC3490 Internationalizing Domain Names in Applications (IDNA)", "protocol=URI", "src=https://tools.ietf.org/html/rfc3490"
+		local
+			lst: LIST [READABLE_STRING_8]
+			s: READABLE_STRING_8
+			l_is_first: BOOLEAN
+		do
+			if attached host as h then
+				create Result.make (h.count)
+				lst := h.split ('.')
+				l_is_first := True
+				across
+					lst as ic
+				loop
+					s := ic
+					if l_is_first then
+						l_is_first := False
+					else
+						Result.append_character ('.')
+					end
+					if
+						s.count > 4 and then s.head (4).is_case_insensitive_equal_general ("xn--") and then
+						attached {PUNYCODE}.decoded_string (s.substring (5, s.count)) as pc
+					then
+						Result.append_string (pc)
+					else
+						Result.append_string_general (s)
+					end
+				end
+			end
+		end
+
 	port: INTEGER
 			-- Associated port, if `0' this is not defined.
 			-- RFC3986: port = *DIGIT
@@ -337,7 +377,7 @@ feature -- Access
 			l_path := path
 			if l_path.is_empty then
 				create {ARRAYED_LIST [READABLE_STRING_8]} Result.make (0)
-			elseif l_path.count = 1 and then l_path[1] = '/' then
+			elseif l_path.count = 1 and then l_path [1] = '/' then
 				create {ARRAYED_LIST [READABLE_STRING_8]} Result.make (1)
 				Result.force ("")
 			else
@@ -354,10 +394,10 @@ feature -- Access
 		do
 			l_path := path
 			if l_path.is_empty then
-			elseif l_path.count = 1 and then l_path[1] = '/' then
+			elseif l_path.count = 1 and then l_path [1] = '/' then
 				Result := 1
 			else
-				Result := path.occurrences ('/')+ 1
+				Result := path.occurrences ('/') + 1
 			end
 		end
 
@@ -367,7 +407,7 @@ feature -- Access
 		require
 			valid_index: i >= 0 and i < path_segment_count
 		local
-			p,q,n: INTEGER
+			p, q, n: INTEGER
 			l_path: like path
 		do
 			l_path := path
@@ -397,7 +437,7 @@ feature -- Access
 						check valid_index: False end
 					end
 				end
-				Result := l_path.substring (q+1, p-1)
+				Result := l_path.substring (q + 1, p - 1)
 			end
 		end
 
@@ -420,7 +460,7 @@ feature -- Access
 			across
 				lst as e
 			loop
-				Result.force (decoded_www_form_urlencoded_string (e.item))
+				Result.force (decoded_www_form_urlencoded_string (e))
 			end
 		end
 
@@ -436,28 +476,28 @@ feature -- Access
 				across
 					lst as e
 				loop
-					i := e.item.index_of ('=', 1)
+					i := e.index_of ('=', 1)
 					if i > 0 then
-						Result.force ([e.item.substring (1, i - 1), e.item.substring (i + 1, e.item.count)])
+						Result.force ([e.substring (1, i - 1), e.substring (i + 1, e.count)])
 					else
-						Result.force ([e.item, Void])
+						Result.force ([e, Void])
 					end
 				end
 			end
 		end
 
 	decoded_query_items: detachable LIST [TUPLE [name: READABLE_STRING_32; value: detachable READABLE_STRING_32]]
-			-- Decoded query items composing the `query'.	
+			-- Decoded query items composing the `query'.
 		do
 			if attached query_items as lst then
 				create {ARRAYED_LIST [like decoded_query_items.item]} Result.make (lst.count)
 				across
 					lst as e
 				loop
-					if attached e.item.value as l_val then
-						Result.force ([decoded_www_form_urlencoded_string (e.item.name), decoded_www_form_urlencoded_string (l_val)])
+					if attached e.value as l_val then
+						Result.force ([decoded_www_form_urlencoded_string (e.name), decoded_www_form_urlencoded_string (l_val)])
 					else
-						Result.force ([decoded_www_form_urlencoded_string (e.item.name), Void])
+						Result.force ([decoded_www_form_urlencoded_string (e.name), Void])
 					end
 				end
 			end
@@ -475,9 +515,9 @@ feature -- Access
 				until
 					Result /= Void
 				loop
-					k := decoded_www_form_urlencoded_string (e.item.name)
+					k := decoded_www_form_urlencoded_string (e.name)
 					if a_name.same_string (k) then
-						if attached e.item.value as l_val then
+						if attached e.value as l_val then
 							Result := decoded_www_form_urlencoded_string (l_val)
 						else
 							Result := {STRING_32} ""
@@ -492,9 +532,9 @@ feature -- Query
 	hier: STRING_8
 			-- Hier part.
 			-- hier-part   = "//" authority path-abempty
-            --      / path-absolute
-            --      / path-rootless
-            --      / path-empty
+			--      / path-absolute
+			--      / path-rootless
+			--      / path-empty
 		do
 			create Result.make (10)
 			if attached authority as l_authority then
@@ -510,7 +550,7 @@ feature -- Query
 			--| userinfo = username:password
 		local
 			i: INTEGER
-			u,p: detachable READABLE_STRING_8
+			u, p: detachable READABLE_STRING_8
 		do
 			if attached userinfo as t then
 				i := t.index_of (':', 1)
@@ -631,15 +671,15 @@ feature -- Conversion
 				else
 					p.append_character ('/')
 				end
-				p.append (c.item)
+				p.append (c)
 			end
-			if p.is_empty then
-			else
-				if p.item (1) /= '/' then
-					if not path.is_empty and then path.item (1) = '/' then
-						p.prepend_character ('/')
-					end
-				end
+			if
+				not p.is_empty and then
+				p.item (1) /= '/' and then
+				not path.is_empty and then
+				path.item (1) = '/'
+			then
+				p.prepend_character ('/')
 			end
 			create Result.make_from_string (string)
 			Result.set_path (p)
@@ -673,24 +713,58 @@ feature -- Element Change
 			if v = Void then
 				userinfo := Void
 			else
-				create userinfo.make_from_string (v.as_string_8)
+				create userinfo.make_from_string (v)
 			end
 		ensure
 			userinfo_set: is_same_string (v, userinfo)
 		end
 
-	set_hostname (v: detachable READABLE_STRING_8)
-			-- Set `host' to `v'
+	set_hostname (v: detachable READABLE_STRING_GENERAL)
+			-- Set `host` from string `v` formatted with Punycode according to the IDN standard if needed.
+		note
+			EIS: "name=RFC3490 Internationalizing Domain Names in Applications (IDNA)", "protocol=URI", "src=https://tools.ietf.org/html/rfc3490"
 		require
 			is_valid_host (v)
+		local
+			pc: STRING_8
+			l_is_first: BOOLEAN
+			h: STRING_8
+			s: READABLE_STRING_GENERAL
 		do
-			if v = Void then
-				host := Void
-			else
-				create host.make_from_string (v)
+			host := Void
+			if v /= Void then
+				if v.starts_with ("xn--") and then is_ascii_string (v) then
+						-- note: if starts with xn-- and has non ASCII character ...
+						--       this is wrong, consider it as normal domain name.
+					create host.make_from_string (v.to_string_8.as_lower)
+				else
+					if is_ascii_string (v) then
+						create host.make_from_string (v.to_string_8.as_lower)
+					else
+						l_is_first := True
+						create h.make (v.count)
+						across
+							v.split ('.') as ic
+						loop
+							if l_is_first then
+								l_is_first := False
+							else
+								h.append_character ('.')
+							end
+							s := ic
+							if is_ascii_string (s) then
+								h.append (s.to_string_8)
+							else
+								pc := {PUNYCODE}.encoded_string (s)
+								h.append ("xn--")
+								h.append (pc)
+							end
+						end
+						check h_is_lower_case: h.same_string (h.as_lower) end
+						create host.make_from_string (h)
+					end
+				end
 			end
-		ensure
-			hostname_set: is_same_string (v, host)
 		end
 
 	set_port (v: like port)
@@ -702,7 +776,7 @@ feature -- Element Change
 		end
 
 	set_path (a_path: READABLE_STRING_8)
-			-- Set `path' to `a_path'	
+			-- Set `path' to `a_path'
 		require
 			is_valid_path: is_valid_path (a_path)
 		do
@@ -712,17 +786,17 @@ feature -- Element Change
 		end
 
 	set_unencoded_path (a_path: READABLE_STRING_GENERAL)
-			-- Set non encoded `path' to `a_path'	
+			-- Set non encoded `path' to `a_path'
 			-- note: `a_segment' may contains unicode, and reserved characters apart from '/'
 			--		 that is used as segment separator
 		require
 			a_path_valid: has_authority implies a_path.is_empty or else a_path.starts_with ("/")
 		local
-			i,j,n: INTEGER
+			i, j, n: INTEGER
 		do
 			if a_path.is_empty then
 				set_path ("")
-			elseif a_path.count = 1 and then a_path[1] = '/' then
+			elseif a_path.count = 1 and then a_path [1] = '/' then
 				set_path ("/")
 			else
 				set_path ("") -- Reset path
@@ -734,13 +808,12 @@ feature -- Element Change
 					i = 0 or j > n
 				loop
 					i := a_path.index_of ('/', j)
-					if i = 1 and then a_path[i] = '/' then
+					if i = 1 and then a_path [i] = '/' then
 						j := i + 1
 							-- skipped
 					elseif i > 1 then
-						if a_path[i - 1] = '\' then
-								-- Slash being escaped ... skipped
-						else
+							-- Skip an escaped backslash.
+						if a_path [i - 1] /= '\' then
 							add_unencoded_path_segment (a_path.substring (j, i - 1))
 						end
 						j := i + 1
@@ -866,7 +939,7 @@ feature -- Change: query
 			across
 				lst as c
 			loop
-				add_query_parameter (c.item.name, c.item.value)
+				add_query_parameter (c.name, c.value)
 			end
 		end
 
@@ -876,7 +949,7 @@ feature -- Change: query
 			across
 				tb as c
 			loop
-				add_query_parameter (c.key, c.item)
+				add_query_parameter (@ c.key, c)
 			end
 		end
 
@@ -885,7 +958,7 @@ feature -- Status report
 	is_valid_scheme (s: READABLE_STRING_GENERAL): BOOLEAN
 			-- 		scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 		do
 			if s.is_empty then
@@ -909,7 +982,7 @@ feature -- Status report
 	is_valid_userinfo (s: detachable READABLE_STRING_GENERAL): BOOLEAN
 			--		userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 		do
 			Result := True
@@ -926,11 +999,11 @@ feature -- Status report
 						or is_sub_delims_character (c)
 						or c = ':'
 					then
-						-- True
+							-- True
 					elseif c = '%%' then
 						if
 							i + 2 <= n and then
-							is_hexa_decimal_character (string_item (s, i+ 1)) and is_hexa_decimal_character (string_item (s, i + 2))
+							is_hexa_decimal_character (string_item (s, i + 1)) and is_hexa_decimal_character (string_item (s, i + 2))
 						then
 								-- True
 							i := i + 2
@@ -963,7 +1036,7 @@ feature -- Status report
 			--                  ; least-significant 32 bits of address
 			--
 			--      h16         = 1*4HEXDIG
-			--                  ; 16 bits of address represented in hexadecimal			
+			--                  ; 16 bits of address represented in hexadecimal
 			--
 			--      IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
 			--
@@ -973,16 +1046,16 @@ feature -- Status report
 			--                  / "2" %x30-34 DIGIT     ; 200-249
 			--                  / "25" %x30-35          ; 250-255
 			--
-			--		reg-name    = *( unreserved / pct-encoded / sub-delims )			
+			--		reg-name    = *( unreserved / pct-encoded / sub-delims )
 		do
 			Result := True
-			if s /= Void and then not s.is_empty then
-				if string_item (s, 1) = '[' and string_item (s, s.count) = ']' then
-					Result := True  -- IPV6 : to complete
-				else
-					Result := True -- IPV4 or reg-name : to complete
-				end
-			end
+				-- if s /= Void and then not s.is_empty then
+				-- if string_item (s, 1) = '[' and string_item (s, s.count) = ']' then
+				-- TODO: IPv6.
+				-- else
+				-- TODO: IPv4 or reg-name.
+				-- end
+				-- end
 		end
 
 	is_valid_path (s: READABLE_STRING_GENERAL): BOOLEAN
@@ -996,13 +1069,13 @@ feature -- Status report
 			--      path-absolute = "/" [ segment-nz *( "/" segment ) ]
 			--      path-noscheme = segment-nz-nc *( "/" segment )
 			--      path-rootless = segment-nz *( "/" segment )
-			--      path-empty    = 0<pchar>		
+			--      path-empty    = 0<pchar>
 			--      segment       = *pchar
 			--      segment-nz    = 1*pchar
 			--      segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
 			--                    ; non-zero-length segment without any colon ":"
 			--
-			--      pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"			
+			--      pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
 		do
 			if s.is_empty or string_item (s, 1) = '/' then
 				Result := is_valid_in_uri_string (s)
@@ -1015,13 +1088,13 @@ feature -- Status report
 			else
 				Result := is_valid_in_uri_string (s)
 			end
-			-- TO COMPLETE
+				-- TO COMPLETE
 		end
 
 	is_valid_query (s: detachable READABLE_STRING_GENERAL): BOOLEAN
-			-- 	query = *( pchar / "/" / "?" )	
+			-- 	query = *( pchar / "/" / "?" )
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 		do
 			Result := True
@@ -1033,7 +1106,7 @@ feature -- Status report
 					not Result or i > n
 				loop
 					c := string_item (s, i)
-						-- pchar = unreserved / pct-encoded / sub-delims / ":" / "@"	
+						-- pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
 					if -- pchar
 						is_unreserved_character (c)
 						or is_sub_delims_character (c)
@@ -1047,7 +1120,7 @@ feature -- Status report
 							i + 2 <= n and then
 							is_hexa_decimal_character (string_item (s, i + 1)) and is_hexa_decimal_character (string_item (s, i + 2))
 						then
-							-- True
+								-- True
 							i := i + 2
 						else
 							Result := False
@@ -1061,9 +1134,9 @@ feature -- Status report
 		end
 
 	is_valid_fragment (s: detachable READABLE_STRING_GENERAL): BOOLEAN
-			--fragment = *( pchar / "/" / "?" )	
+			--fragment = *( pchar / "/" / "?" )
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 		do
 			Result := True
@@ -1075,7 +1148,7 @@ feature -- Status report
 					not Result or i > n
 				loop
 					c := string_item (s, i)
-						-- pchar = unreserved / pct-encoded / sub-delims / ":" / "@"	
+						-- pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
 					if -- pchar
 						is_unreserved_character (c)
 						or is_sub_delims_character (c)
@@ -1098,6 +1171,23 @@ feature -- Status report
 					end
 					i := i + 1
 				end
+			end
+		end
+
+	is_ascii_string (a_string: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is `a_string` containing only ASCII characters?
+		local
+			i, n: INTEGER
+		do
+			from
+				i := 1
+				n := a_string.count
+				Result := True
+			until
+				i > n or not Result
+			loop
+				Result := a_string.code (i) <= 127 --| note: 127 = {CHARACTER_8}.max_ascii_value
+				i := i + 1
 			end
 		end
 
@@ -1148,7 +1238,7 @@ feature -- Assertion helper
 	is_valid_in_uri_string (s: READABLE_STRING_GENERAL): BOOLEAN
 			-- Is `s' composed only of ASCII character?
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 		do
 			from
 				Result := True
@@ -1185,8 +1275,8 @@ feature -- Status report
 			Result.append (string)
 		end
 
-;note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+note
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -1195,4 +1285,5 @@ feature -- Status report
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

@@ -4,6 +4,7 @@
 		register their AST visitor agents here.
 	]"
 	author: "Stefan Zurfluh", "Eiffel Software"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -13,6 +14,17 @@ class
 inherit
 
 	AST_ITERATOR
+		export {NONE}
+			process_none_id_as,
+			process_typed_char_as,
+			process_agent_routine_creation_as,
+			process_inline_agent_creation_as,
+			process_keyword_as,
+			process_symbol_as,
+			process_break_as,
+			process_leaf_stub_as,
+			process_symbol_stub_as,
+			process_keyword_stub_as
 		redefine
 			process_access_feat_as,
 			process_access_id_as,
@@ -21,7 +33,6 @@ inherit
 			process_array_as,
 			process_assign_as,
 			process_assigner_call_as,
-			process_bang_creation_as,
 			process_binary_as,
 			process_bin_eq_as,
 			process_bin_ge_as,
@@ -36,7 +47,6 @@ inherit
 			process_case_as,
 			process_converted_expr_as,
 			process_create_as,
-			process_create_creation_as,
 			process_creation_as,
 			process_do_as,
 			process_eiffel_list,
@@ -44,6 +54,7 @@ inherit
 			process_expr_call_as,
 			process_feature_as,
 			process_feature_clause_as,
+			process_guard_as,
 			process_id_as,
 			process_if_as,
 			process_if_expression_as,
@@ -53,13 +64,13 @@ inherit
 			process_integer_as,
 			process_invariant_as,
 			process_loop_as,
-			process_nested_as,
 			process_nested_expr_as,
 			process_object_test_as,
 			process_once_as,
 			process_parameter_list_as,
 			process_paran_as,
 			process_precursor_as,
+			process_predecessor_as,
 			process_real_as,
 			process_routine_as,
 			process_static_access_as,
@@ -95,8 +106,6 @@ feature {NONE} -- Initialization
 			create assign_post_actions
 			create assigner_call_pre_actions
 			create assigner_call_post_actions
-			create bang_creation_pre_actions
-			create bang_creation_post_actions
 			create binary_pre_actions
 			create binary_post_actions
 			create bin_eq_pre_actions
@@ -127,8 +136,6 @@ feature {NONE} -- Initialization
 			create converted_expr_post_actions
 			create create_pre_actions
 			create create_post_actions
-			create create_creation_pre_actions
-			create create_creation_post_actions
 			create creation_pre_actions
 			create creation_post_actions
 			create do_pre_actions
@@ -143,6 +150,8 @@ feature {NONE} -- Initialization
 			create feature_post_actions
 			create feature_clause_pre_actions
 			create feature_clause_post_actions
+			create guard_pre_actions
+			create guard_post_actions
 			create id_pre_actions
 			create id_post_actions
 			create if_pre_actions
@@ -159,8 +168,18 @@ feature {NONE} -- Initialization
 			create invariant_post_actions
 			create loop_pre_actions
 			create loop_post_actions
-			create nested_pre_actions
-			create nested_post_actions
+			create loop_iteration_pre_actions
+			create loop_iteration_post_actions
+			create loop_from_pre_actions
+			create loop_from_post_actions
+			create loop_invariant_pre_actions
+			create loop_invariant_post_actions
+			create loop_exit_pre_actions
+			create loop_exit_post_actions
+			create loop_body_pre_actions
+			create loop_body_post_actions
+			create loop_variant_pre_actions
+			create loop_variant_post_actions
 			create nested_expr_pre_actions
 			create nested_expr_post_actions
 			create object_test_pre_actions
@@ -173,6 +192,8 @@ feature {NONE} -- Initialization
 			create paran_post_actions
 			create precursor_pre_actions
 			create precursor_post_actions
+			create predecessor_pre_actions
+			create predecessor_post_actions
 			create routine_pre_actions
 			create routine_post_actions
 			create static_access_pre_actions
@@ -255,16 +276,6 @@ feature {CA_STANDARD_RULE} -- Adding agents
 	add_assigner_call_post_action (a_action: attached PROCEDURE [ASSIGNER_CALL_AS])
 		do
 			assigner_call_post_actions.extend (a_action)
-		end
-
-	add_bang_creation_pre_action (a_action: attached PROCEDURE [BANG_CREATION_AS])
-		do
-			bang_creation_pre_actions.extend (a_action)
-		end
-
-	add_bang_creation_post_action (a_action: attached PROCEDURE [BANG_CREATION_AS])
-		do
-			bang_creation_post_actions.extend (a_action)
 		end
 
 	add_binary_pre_action (a_action: attached PROCEDURE [BINARY_AS])
@@ -426,16 +437,6 @@ feature {CA_STANDARD_RULE} -- Adding agents
 			create_post_actions.extend (a_action)
 		end
 
-	add_create_creation_pre_action (a_action: attached PROCEDURE [CREATE_CREATION_AS])
-		do
-			create_creation_pre_actions.extend (a_action)
-		end
-
-	add_create_creation_post_action (a_action: attached PROCEDURE [CREATE_CREATION_AS])
-		do
-			create_creation_post_actions.extend (a_action)
-		end
-
 	add_creation_pre_action (a_action: attached PROCEDURE [CREATION_AS])
 		do
 			creation_pre_actions.extend (a_action)
@@ -504,6 +505,16 @@ feature {CA_STANDARD_RULE} -- Adding agents
 	add_feature_clause_post_action (a_action: attached PROCEDURE [FEATURE_CLAUSE_AS])
 		do
 			feature_clause_post_actions.extend (a_action)
+		end
+
+	add_guard_pre_action (a: PROCEDURE [GUARD_AS])
+		do
+			guard_pre_actions.extend (a)
+		end
+
+	add_guard_post_action (a: PROCEDURE [GUARD_AS])
+		do
+			guard_post_actions.extend (a)
 		end
 
 	add_id_pre_action (a_action: attached PROCEDURE [ID_AS])
@@ -576,24 +587,74 @@ feature {CA_STANDARD_RULE} -- Adding agents
 			invariant_post_actions.extend (a)
 		end
 
-	add_loop_pre_action (a_action: attached PROCEDURE [LOOP_AS])
+	add_loop_pre_action (a: PROCEDURE [LOOP_AS])
 		do
-			loop_pre_actions.extend (a_action)
+			loop_pre_actions.extend (a)
 		end
 
-	add_loop_post_action (a_action: attached PROCEDURE [LOOP_AS])
+	add_loop_post_action (a: PROCEDURE [LOOP_AS])
 		do
-			loop_post_actions.extend (a_action)
+			loop_post_actions.extend (a)
 		end
 
-	add_nested_pre_action (a_action: attached PROCEDURE [NESTED_AS])
+	add_loop_iteration_pre_action (a: PROCEDURE [ITERATION_AS, LOOP_AS])
 		do
-			nested_pre_actions.extend (a_action)
+			loop_iteration_pre_actions.extend (a)
 		end
 
-	add_nested_post_action (a_action: attached PROCEDURE [NESTED_AS])
+	add_loop_iteration_post_action (a: PROCEDURE [ITERATION_AS, LOOP_AS])
 		do
-			nested_post_actions.extend (a_action)
+			loop_iteration_post_actions.extend (a)
+		end
+
+	add_loop_from_pre_action (a: PROCEDURE [EIFFEL_LIST [INSTRUCTION_AS], LOOP_AS])
+		do
+			loop_from_pre_actions.extend (a)
+		end
+
+	add_loop_from_post_action (a: PROCEDURE [EIFFEL_LIST [INSTRUCTION_AS], LOOP_AS])
+		do
+			loop_from_post_actions.extend (a)
+		end
+
+	add_loop_invariant_pre_action (a: PROCEDURE [EIFFEL_LIST [TAGGED_AS], LOOP_AS])
+		do
+			loop_invariant_pre_actions.extend (a)
+		end
+
+	add_loop_invariant_post_action (a: PROCEDURE [EIFFEL_LIST [TAGGED_AS], LOOP_AS])
+		do
+			loop_invariant_post_actions.extend (a)
+		end
+
+	add_loop_exit_pre_action (a: PROCEDURE [EXPR_AS, LOOP_AS])
+		do
+			loop_exit_pre_actions.extend (a)
+		end
+
+	add_loop_exit_post_action (a: PROCEDURE [EXPR_AS, LOOP_AS])
+		do
+			loop_exit_post_actions.extend (a)
+		end
+
+	add_loop_body_pre_action (a: PROCEDURE [EIFFEL_LIST [INSTRUCTION_AS], LOOP_AS])
+		do
+			loop_body_pre_actions.extend (a)
+		end
+
+	add_loop_body_post_action (a: PROCEDURE [EIFFEL_LIST [INSTRUCTION_AS], LOOP_AS])
+		do
+			loop_body_post_actions.extend (a)
+		end
+
+	add_loop_variant_pre_action (a: PROCEDURE [VARIANT_AS, LOOP_AS])
+		do
+			loop_variant_pre_actions.extend (a)
+		end
+
+	add_loop_variant_post_action (a: PROCEDURE [VARIANT_AS, LOOP_AS])
+		do
+			loop_variant_post_actions.extend (a)
 		end
 
 	add_nested_expr_pre_action (a: PROCEDURE [NESTED_EXPR_AS])
@@ -654,6 +715,16 @@ feature {CA_STANDARD_RULE} -- Adding agents
 	add_precursor_post_action (a: PROCEDURE [PRECURSOR_AS])
 		do
 			precursor_post_actions.extend (a)
+		end
+
+	add_predecessor_pre_action (a: PROCEDURE [PREDECESSOR_AS])
+		do
+			predecessor_pre_actions.extend (a)
+		end
+
+	add_predecessor_post_action (a: PROCEDURE [PREDECESSOR_AS])
+		do
+			predecessor_post_actions.extend (a)
 		end
 
 	add_routine_agent_pre_action (a_action:  PROCEDURE [AGENT_ROUTINE_CREATION_AS])
@@ -751,8 +822,6 @@ feature {NONE} -- Agent lists
 
 	assigner_call_pre_actions, assigner_call_post_actions: ACTION_SEQUENCE [TUPLE [ASSIGNER_CALL_AS]]
 
-	bang_creation_pre_actions, bang_creation_post_actions: ACTION_SEQUENCE [TUPLE [BANG_CREATION_AS]]
-
 	binary_pre_actions, binary_post_actions: ACTION_SEQUENCE [TUPLE [BINARY_AS]]
 
 	bin_eq_pre_actions, bin_eq_post_actions: ACTION_SEQUENCE [TUPLE [BIN_EQ_AS]]
@@ -783,8 +852,6 @@ feature {NONE} -- Agent lists
 
 	create_pre_actions, create_post_actions: ACTION_SEQUENCE [TUPLE [CREATE_AS]]
 
-	create_creation_pre_actions, create_creation_post_actions: ACTION_SEQUENCE [TUPLE [CREATE_CREATION_AS]]
-
 	creation_pre_actions, creation_post_actions: ACTION_SEQUENCE [TUPLE [CREATION_AS]]
 
 	do_pre_actions, do_post_actions: ACTION_SEQUENCE [TUPLE [DO_AS]]
@@ -798,6 +865,8 @@ feature {NONE} -- Agent lists
 	feature_pre_actions, feature_post_actions: ACTION_SEQUENCE [TUPLE [FEATURE_AS]]
 
 	feature_clause_pre_actions, feature_clause_post_actions: ACTION_SEQUENCE [TUPLE [FEATURE_CLAUSE_AS]]
+
+	guard_pre_actions, guard_post_actions: ACTION_SEQUENCE [TUPLE [GUARD_AS]]
 
 	id_pre_actions, id_post_actions: ACTION_SEQUENCE [TUPLE [ID_AS]]
 
@@ -815,7 +884,17 @@ feature {NONE} -- Agent lists
 
 	loop_pre_actions, loop_post_actions: ACTION_SEQUENCE [TUPLE [LOOP_AS]]
 
-	nested_pre_actions, nested_post_actions: ACTION_SEQUENCE [TUPLE [NESTED_AS]]
+	loop_iteration_pre_actions, loop_iteration_post_actions: ACTION_SEQUENCE [TUPLE [ITERATION_AS, LOOP_AS]]
+
+	loop_from_pre_actions, loop_from_post_actions: ACTION_SEQUENCE [TUPLE [EIFFEL_LIST [INSTRUCTION_AS], LOOP_AS]]
+
+	loop_invariant_pre_actions, loop_invariant_post_actions: ACTION_SEQUENCE [TUPLE [EIFFEL_LIST [TAGGED_AS], LOOP_AS]]
+
+	loop_exit_pre_actions, loop_exit_post_actions: ACTION_SEQUENCE [TUPLE [EXPR_AS, LOOP_AS]]
+
+	loop_body_pre_actions, loop_body_post_actions: ACTION_SEQUENCE [TUPLE [EIFFEL_LIST [INSTRUCTION_AS], LOOP_AS]]
+
+	loop_variant_pre_actions, loop_variant_post_actions: ACTION_SEQUENCE [TUPLE [VARIANT_AS, LOOP_AS]]
 
 	nested_expr_pre_actions, nested_expr_post_actions: ACTION_SEQUENCE [NESTED_EXPR_AS]
 
@@ -828,6 +907,8 @@ feature {NONE} -- Agent lists
 	parameter_list_pre_actions, parameter_list_post_actions: ACTION_SEQUENCE [TUPLE [PARAMETER_LIST_AS]]
 
 	precursor_pre_actions, precursor_post_actions: ACTION_SEQUENCE [TUPLE [PRECURSOR_AS]]
+
+	predecessor_pre_actions, predecessor_post_actions: ACTION_SEQUENCE [TUPLE [PREDECESSOR_AS]]
 
 	routine_pre_actions, routine_post_actions: ACTION_SEQUENCE [TUPLE [ROUTINE_AS]]
 
@@ -918,13 +999,6 @@ feature {NONE} -- Processing
 			assigner_call_post_actions.call (a)
 		end
 
-	process_bang_creation_as (a_bang_creation: BANG_CREATION_AS)
-		do
-			bang_creation_pre_actions.call ([a_bang_creation])
-			Precursor (a_bang_creation)
-			bang_creation_post_actions.call ([a_bang_creation])
-		end
-
 	process_binary_as (a: BINARY_AS)
 		local
 			old_is_assigner_call: BOOLEAN
@@ -937,11 +1011,12 @@ feature {NONE} -- Processing
 			binary_post_actions.call ([a])
 		end
 
-	process_bin_eq_as (a_bin_eq: BIN_EQ_AS)
+	process_bin_eq_as (a: BIN_EQ_AS)
 		do
-			bin_eq_pre_actions.call ([a_bin_eq])
-			Precursor (a_bin_eq)
-			bin_eq_post_actions.call ([a_bin_eq])
+			bin_eq_pre_actions.call (a)
+			a.left.process (Current)
+			a.right.process (Current)
+			bin_eq_post_actions.call (a)
 		end
 
 	process_bin_ge_as (a_bin_ge: BIN_GE_AS)
@@ -972,18 +1047,20 @@ feature {NONE} -- Processing
 			bin_lt_post_actions.call ([a_bin_lt])
 		end
 
-	process_bin_ne_as (a_bin_ne: BIN_NE_AS)
+	process_bin_ne_as (a: BIN_NE_AS)
 		do
-			bin_ne_pre_actions.call ([a_bin_ne])
-			Precursor (a_bin_ne)
-			bin_ne_post_actions.call ([a_bin_ne])
+			bin_ne_pre_actions.call (a)
+			a.left.process (Current)
+			a.right.process (Current)
+			bin_ne_post_actions.call (a)
 		end
 
 	process_bin_not_tilde_as (a: BIN_NOT_TILDE_AS)
 			-- <Precursor>
 		do
 			bin_not_tilde_pre_actions.call (a)
-			Precursor (a)
+			a.left.process (Current)
+			a.right.process (Current)
 			bin_not_tilde_post_actions.call (a)
 		end
 
@@ -991,7 +1068,8 @@ feature {NONE} -- Processing
 			-- <Precursor>
 		do
 			bin_tilde_pre_actions.call (a)
-			Precursor (a)
+			a.left.process (Current)
+			a.right.process (Current)
 			bin_tilde_post_actions.call (a)
 		end
 
@@ -1035,15 +1113,7 @@ feature {NONE} -- Processing
 			create_post_actions.call ([a_create])
 		end
 
-	process_create_creation_as (a_create_creation: CREATE_CREATION_AS)
-		do
-			create_creation_pre_actions.call ([a_create_creation])
-			Precursor (a_create_creation)
-			create_creation_post_actions.call ([a_create_creation])
-		end
-
 	process_creation_as (a: CREATION_AS)
-			-- <Precursor>
 		do
 			creation_pre_actions.call (a)
 			is_assign := True
@@ -1097,6 +1167,13 @@ feature {NONE} -- Processing
 			feature_clause_post_actions.call ([a_clause])
 		end
 
+	process_guard_as (a: GUARD_AS)
+		do
+			guard_pre_actions.call (a)
+			Precursor (a)
+			guard_post_actions.call (a)
+		end
+
 	process_id_as (a_id: ID_AS)
 		do
 			id_pre_actions.call ([a_id])
@@ -1146,24 +1223,41 @@ feature {NONE} -- Processing
 			invariant_post_actions.call (a)
 		end
 
-	process_loop_as (a_loop: LOOP_AS)
+	process_loop_as (a: LOOP_AS)
+			-- <Precursor>
 		do
-			loop_pre_actions.call ([a_loop])
-			Precursor (a_loop)
-			loop_post_actions.call ([a_loop])
-		end
-
-	process_nested_as (a: NESTED_AS)
-		local
-			old_is_assigner_call: BOOLEAN
-		do
-			nested_pre_actions.call (a)
-			old_is_assigner_call := is_assigner_call
-			is_assigner_call := False
-			a.target.process (Current)
-			is_assigner_call := old_is_assigner_call
-			a.message.process (Current)
-			nested_post_actions.call (a)
+			loop_pre_actions.call (a)
+			if attached a.iteration as p then
+				loop_iteration_pre_actions.call (p, a)
+				p.process (Current)
+				loop_iteration_post_actions.call (p, a)
+			end
+			if attached a.from_part as p then
+				loop_from_pre_actions.call (p, a)
+				p.process (Current)
+				loop_from_post_actions.call (p, a)
+			end
+			if attached a.invariant_part as p then
+				loop_invariant_pre_actions.call (p, a)
+				p.process (Current)
+				loop_invariant_post_actions.call (p, a)
+			end
+			if attached a.stop as p then
+				loop_exit_pre_actions.call (p, a)
+				p.process (Current)
+				loop_exit_post_actions.call (p, a)
+			end
+			if attached a.compound as p then
+				loop_body_pre_actions.call (p, a)
+				p.process (Current)
+				loop_body_post_actions.call (p, a)
+			end
+			if attached a.variant_part as p then
+				loop_variant_pre_actions.call (p, a)
+				p.process (Current)
+				loop_variant_post_actions.call (p, a)
+			end
+			loop_post_actions.call (a)
 		end
 
 	process_nested_expr_as (a: NESTED_EXPR_AS)
@@ -1214,6 +1308,13 @@ feature {NONE} -- Processing
 			precursor_post_actions.call (a)
 		end
 
+	process_predecessor_as (a: PREDECESSOR_AS)
+		do
+			predecessor_pre_actions.call (a)
+			Precursor (a)
+			predecessor_post_actions.call (a)
+		end
+
 	process_routine_as (a_routine: ROUTINE_AS)
 		do
 			routine_pre_actions.call ([a_routine])
@@ -1262,8 +1363,8 @@ feature {NONE} -- Processing
 		end
 
 note
-	ca_ignore: "CA033", "CA033 — very long class"
-	copyright:	"Copyright (c) 2014-2018, Eiffel Software"
+	ca_ignore: "CA033", "CA033: very long class"
+	copyright:	"Copyright (c) 2014-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

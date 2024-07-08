@@ -1,8 +1,9 @@
-note
+﻿note
 	description: "Objects that is an UML view for an eiffel cluster."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	author: "Benno Baumgartner"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -17,7 +18,6 @@ inherit
 			recursive_transform,
 			set_name_label_text,
 			minimum_size,
-			set_is_selected,
 			xml_node_name,
 			xml_element,
 			set_with_xml_element,
@@ -485,10 +485,10 @@ feature {NONE} -- Implementation
 	label_rectangle: EV_MODEL_RECTANGLE
 			-- The rectangle for the label.
 
-	set_name_label_text (a_text: STRING)
+	set_name_label_text (a_text: READABLE_STRING_32)
 			-- Set `name_label'.`text' to `a_text'.
 		local
-			s, rest: STRING
+			s, rest: STRING_32
 			i: INTEGER
 		do
 			if a_text.count > max_cluster_name_length then
@@ -528,7 +528,7 @@ feature {NONE} -- Implementation
 				expand
 				if ew /= Void then
 					ew.context_editor.history.register_named_undoable (
-						interface_names.t_diagram_cluster_expand (model.name),
+						interface_names.t_diagram_cluster_expand (model.name_32),
 						[<<agent expand, agent toggle_is_iconified, agent request_update>>],
 						[<<agent collapse, agent toggle_is_iconified, agent request_update>>])
 				end
@@ -536,7 +536,7 @@ feature {NONE} -- Implementation
 				collapse
 				if ew /= Void then
 					ew.context_editor.history.register_named_undoable (
-						interface_names.t_diagram_cluster_collapse (model.name),
+						interface_names.t_diagram_cluster_collapse (model.name_32),
 						[<<agent collapse, agent toggle_is_iconified, agent request_update>>],
 						[<<agent expand, agent toggle_is_iconified, agent request_update>>])
 				end
@@ -610,7 +610,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -641,4 +641,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class UML_CLUSTER_FIGURE
+end

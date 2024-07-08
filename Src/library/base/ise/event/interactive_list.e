@@ -106,13 +106,10 @@ feature -- Element Change
 			if new_count > capacity then
 				grow (new_count)
 			end
-			from
-				s.start
-			until
-				s.after
+			across
+				if s = Current then s.twin else s end as c
 			loop
-				extend (s.item)
-				s.forth
+				extend (c)
 			end
 		end
 
@@ -313,7 +310,7 @@ feature -- Removal
 			until
 				i = l_count
 			loop
-				on_item_removed_at (l @ i, 1)
+				on_item_removed_at (l [i], 1)
 				i := i + 1
 			end
 		end
@@ -361,7 +358,7 @@ feature {NONE} -- Implementation
 
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -371,11 +368,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-
-
-
-end -- class ACTIVE_LIST
-
+end

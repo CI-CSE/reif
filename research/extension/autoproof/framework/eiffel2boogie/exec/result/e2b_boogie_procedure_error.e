@@ -1,7 +1,5 @@
-note
+﻿note
 	description: "Individual error of verifying a Boogie procedure."
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	E2B_BOOGIE_PROCEDURE_ERROR
@@ -11,18 +9,18 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_error_code: STRING)
-			-- Make error with `a_error_code'.
+	make (a_error_message: STRING)
+			-- Make error with `a_error_message'.
 		do
-			error_code := a_error_code.twin
+			error_message := a_error_message.twin
 		ensure
-			error_code_set: error_code ~ a_error_code
+			error_message_set: error_message ~ a_error_message
 		end
 
 feature -- Access
 
-	error_code: STRING
-			-- Boogie error code
+	error_message: STRING
+			-- Boogie error message
 
 	line: INTEGER
 			-- Line where error occured.
@@ -47,31 +45,31 @@ feature -- Status report
 	is_assert_error: BOOLEAN
 			-- Is this an assertion error?
 		do
-			Result := error_code ~ "BP5001"
+			Result := error_message.has_substring ("assertion")
 		end
 
 	is_precondition_violation: BOOLEAN
 			-- Is this a precondition violation?
 		do
-			Result := error_code ~ "BP5002"
+			Result := error_message.has_substring ("precondition")
 		end
 
 	is_postcondition_violation: BOOLEAN
 			-- Is this a postcondition violation?
 		do
-			Result := error_code ~ "BP5003"
+			Result := error_message.has_substring ("postcondition");
 		end
 
 	is_loop_inv_violated_on_entry: BOOLEAN
 			-- Is this a loop invariant failed on entry error?
 		do
-			Result := error_code ~ "BP5004"
+			Result := error_message.has_substring ("entry")
 		end
 
 	is_loop_inv_not_maintained: BOOLEAN
 			-- Is this a loop invariant not maintained error?
 		do
-			Result := error_code ~ "BP5005"
+			Result := error_message.has_substring ("maintained")
 		end
 
 	has_related_location: BOOLEAN
@@ -110,17 +108,16 @@ feature {NONE} -- Implementation
 			-- Parse attributes from line `a_line'.
 		local
 			l_index: INTEGER
-			l_comment_text: STRING
 			l_parts: LIST [STRING]
 			l_part: STRING
+			value: STRING
 		do
 			create Result.make (4)
 			l_index := a_line.substring_index ("//", 1)
 			if l_index > 0 then
-				l_comment_text := a_line.substring (l_index + 2, a_line.count)
-				l_parts := l_comment_text.split (' ')
+				l_parts := a_line.substring (l_index + 2, a_line.count).split (' ')
 				across l_parts as i loop
-					l_part := i.item
+					l_part := i
 					l_part.left_adjust
 					l_part.right_adjust
 					if not l_part.is_empty then
@@ -128,11 +125,38 @@ feature {NONE} -- Implementation
 						if l_index = 0 then
 							Result.force (Void, l_part)
 						else
-							Result.force (l_part.substring (l_index + 1, l_part.count), l_part.substring (1, l_index - 1))
+							value := l_part.substring (l_index + 1, l_part.count)
+								-- Replace no-break spaces with ordinary ones.
+							value.replace_substring_all ("%/194/%/160/", " ")
+							Result.force (value, l_part.substring (1, l_index - 1))
 						end
 					end
 				end
 			end
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2013-2014 ETH Zurich",
+		"Copyright (c) 2018 Politecnico di Milano",
+		"Copyright (c) 2021-2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

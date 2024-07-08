@@ -48,19 +48,23 @@ feature -- Completion access
 	exploring_current_class: BOOLEAN
 			-- was automatic completion called after a blank space ?
 
-	completion_possibilities: SORTABLE_ARRAY [EB_NAME_FOR_COMPLETION]
+	feature_completion_possibilities: SORTABLE_ARRAY [EB_NAME_FOR_COMPLETION]
 			-- completion possibilities for the current position in the editor
 
-feature -- Basic operations
+feature -- Basic operations / reset
 
-	reset_completion_list
-			-- Reset completion possibilities
+	reset_completion_lists
+			-- Reset all completion possibilities
 		do
-			completion_possibilities := Void
+			feature_completion_possibilities := Void
+			class_completion_possibilities := Void
+			alias_name_completion_possibilities := Void
 		end
 
-	build_completion_list (a_current_token: EDITOR_TOKEN; a_pos_in_cursor: INTEGER)
-			-- create the list of completion possibilities for the position
+feature -- Basic operations		
+
+	build_feature_completion_list (a_current_token: EDITOR_TOKEN; a_pos_in_cursor: INTEGER)
+			-- create the list of feature completion possibilities for the position
 			-- associated with `cursor'
 		require
 			a_current_token_not_void: a_current_token /= Void
@@ -72,7 +76,6 @@ feature -- Basic operations
 			feat: E_FEATURE
 			l_class_list: LIST[CLASS_C]
 			cls_c: CLASS_C
-			crtrs: HASH_TABLE [EXPORT_I, STRING]
 			show_any_features: BOOLEAN
 			l_current_class_c: CLASS_C
 			l_class_as: CLASS_AS
@@ -89,7 +92,7 @@ feature -- Basic operations
 				last_formal := Void
 				last_was_constrained := False
 				last_was_multi_constrained := False
-				create completion_possibilities.make (1, 30)
+				create feature_completion_possibilities.make (1, 30)
 				create inserted_feature_table.make (30)
 				cp_index := 1
 				initialize_context
@@ -150,25 +153,20 @@ feature -- Basic operations
 										add_generics_creation_list (cls_c)
 									else
 											-- Creators
-										crtrs := cls_c.creators
-										if crtrs /= Void then
-											from
-												crtrs.start
-											until
-												crtrs.after
+										if attached cls_c.creators as cs then
+											across
+												cs as c
 											loop
 												if
-													feat_table.has (crtrs.key_for_iteration) and then
-													crtrs.item_for_iteration.is_exported_to (l_current_class_c)
+													attached feat_table [names_heap.item (c.key)] as f and then
+													c.item.is_exported_to (l_current_class_c)
 												then
-													feat := feat_table.item (crtrs.key_for_iteration)
 													if l_has_renaming then
-														add_renaming_to_completion_possibilities (feat, l_constraints, cls_c)
+														add_renaming_to_completion_possibilities (f, l_constraints, cls_c)
 													else
-														add_feature_to_completion_possibilities	(feat)
+														add_feature_to_completion_possibilities	(f)
 													end
 												end
-												crtrs.forth
 											end
 										end
 									end
@@ -181,7 +179,11 @@ feature -- Basic operations
 										loop
 											feat := f.item
 											if
-												(exploring_current_class or else feat.is_exported_to (l_current_class_c)) and then
+												(
+													exploring_current_class
+													or else feat.is_exported_to (l_current_class_c)
+													or else (cls_c.is_once and then feat.is_once_creation (cls_c))
+												) and then
 												(show_any_features or else not feat.written_class.is_class_any)
 											then
 												if l_has_renaming then
@@ -224,10 +226,10 @@ feature -- Basic operations
 						-- Reset and sort matches
 						--| TODO check if we can return completion_possibilities as an empty array.
 					if cp_index = 1 then
-						reset_completion_list
+						feature_completion_possibilities := Void
 					else
-						completion_possibilities := completion_possibilities.subarray (1, cp_index - 1)
-						completion_possibilities.sort
+						feature_completion_possibilities := feature_completion_possibilities.subarray (1, cp_index - 1)
+						feature_completion_possibilities.sort
 					end
 					reset_after_search
 				end
@@ -444,8 +446,32 @@ feature -- Class names completion
 			accessible_classes_from_group_not_void: Result /= Void
 		end
 
-	class_completion_possibilities: SORTABLE_ARRAY [EB_NAME_FOR_COMPLETION]
+	class_completion_possibilities: detachable SORTABLE_ARRAY [EB_NAME_FOR_COMPLETION]
 			-- completion possibilities for the class name at current position in the editor.
+
+	build_alias_name_completion_list (a_token: EDITOR_TOKEN)
+			-- create the list of completion possibilities for the position
+			-- associated with `cursor'
+		require
+			a_token_not_void: a_token /= Void
+		local
+			l_poss: like alias_name_completion_possibilities
+		do
+			create insertion.put ("")
+			is_create := False
+			alias_name_completion_possibilities := Void
+			build_overload_list := False
+--			create l_poss.make_empty
+			alias_name_completion_possibilities := l_poss
+			if l_poss /= Void and then l_poss.count > 1 then
+				l_poss.sort
+			end
+			reset_after_search
+			calculate_insertion (a_token)
+		end
+
+	alias_name_completion_possibilities: detachable SORTABLE_ARRAY [EB_NAME_FOR_COMPLETION]
+			-- completion possibilities for the text name at current position in the editor.
 
 feature {NONE} -- Implementation
 
@@ -783,9 +809,9 @@ feature {NONE} -- Implementation
 		end
 
 	add_feature_to_completion_possibilities (feat: E_FEATURE)
-			-- add the signature of `feat' to `completion_possibilities'
+			-- add the signature of `feat' to `feature_completion_possibilities'
 		require
-			completion_possibilities_not_void: completion_possibilities /= Void
+			completion_possibilities_not_void: feature_completion_possibilities /= Void
 			feat_is_not_void: feat /= Void
 		do
 			if not build_overload_list then
@@ -796,7 +822,7 @@ feature {NONE} -- Implementation
 		end
 
 	internal_add_feature (feat: E_FEATURE)
-			-- Internal add feat to `completion_possibilities'
+			-- Internal add feat to `feature_completion_possibilities'
 		require
 			feat_not_void: feat /= Void
 		local
@@ -860,7 +886,7 @@ feature {NONE} -- Implementation
 					ft.after
 				loop
 					feat := ft.item_for_iteration
-					if feat.is_class then
+					if feat.is_class or feat.is_once_creation (cl) then
 						Result.extend (feat.api_feature (ft.feat_tbl_id))
 					end
 					ft.forth
@@ -878,7 +904,7 @@ feature {NONE} -- Implementation
 			l_new_group: BOOLEAN
 			l_feature: EB_FEATURE_FOR_COMPLETION
 			l_father: EB_NAME_FOR_COMPLETION
-			l_father_name: STRING
+			l_father_name: STRING_32
 			l_e_feature: E_FEATURE
 		do
 			l_overloaded_names := a_class.feature_table.overloaded_names
@@ -938,13 +964,13 @@ feature {NONE} -- Implementation
 		require
 			name /= Void
 		local
-			l_possibilities: like completion_possibilities
+			l_possibilities: like feature_completion_possibilities
 		do
-			l_possibilities := completion_possibilities
+			l_possibilities := feature_completion_possibilities
 			if l_possibilities = Void then
 				check has_completion_possibilities: False end
 				create l_possibilities.make_empty
-				completion_possibilities := l_possibilities
+				feature_completion_possibilities := l_possibilities
 				cp_index := 1
 			end
 			if l_possibilities.capacity < cp_index then
@@ -1018,7 +1044,7 @@ feature {NONE} -- Implementation
 			if tfs /= Void then
 				index := tfs.feature_index_in_table
 				if features_ast.valid_index (index) then
-					Result := features_ast @ index
+					Result := features_ast [index]
 				end
 			end
 			current_token := token
@@ -1464,7 +1490,7 @@ feature {NONE} -- Implementation
 				not l_list.is_empty and then
 				attached {CLASS_I} l_list.first as l_class_i
 			then
-				if attached {CLASS_C} l_class_i.compiled_representation as l_class_c then
+				if attached l_class_i.compiled_representation as l_class_c then
 					Result.set_pebble (create {CLASSC_STONE}.make (l_class_c))
 				else
 					Result.set_pebble (create {CLASSI_STONE}.make (l_class_i))
@@ -1544,8 +1570,8 @@ feature {NONE} -- Implementation
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
-	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

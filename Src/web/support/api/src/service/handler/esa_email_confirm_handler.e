@@ -112,7 +112,7 @@ feature -- HTTP Methods
 
 feature -- Implementation
 
-	extract_data_from_request (req: WSF_REQUEST; a_type: READABLE_STRING_32): detachable STRING
+	extract_data_from_request (req: WSF_REQUEST; a_type: READABLE_STRING_8): detachable STRING
 			-- Is the form data populated?
 		do
 
@@ -144,11 +144,11 @@ feature -- Implementation
 			end
 		end
 
-	extract_data_from_form (req: WSF_REQUEST): detachable STRING
+	extract_data_from_form (req: WSF_REQUEST): detachable STRING_8
 			-- Extract token.
 		do
 			if attached {WSF_STRING} req.form_parameter ("token") as l_email then
-				Result := l_email.value
+				Result := l_email.value.to_string_8
 			end
 		end
 

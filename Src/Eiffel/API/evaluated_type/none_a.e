@@ -12,7 +12,6 @@ inherit
 	DEANCHORED_TYPE_A
 		redefine
 			c_type,
-			dump,
 			generate_gen_type_il,
 			generated_id,
 			has_reference,
@@ -60,7 +59,7 @@ feature -- Access
 			-- Is the current type the same as `other' ?
 		do
 			if other.is_valid then
-				Result := other.is_none
+				Result := other.is_none and then has_same_marks (other)
 			end
 		end
 
@@ -141,7 +140,7 @@ feature {TYPE_A} -- Helpers
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

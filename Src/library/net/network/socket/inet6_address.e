@@ -1,5 +1,5 @@
-note
-	description: "Objects that represents an IP V6 address ..."
+﻿note
+	description: "Objects that represents an IP V6 address."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -24,7 +24,7 @@ feature -- Constants
 
 feature {INET_ADDRESS_FACTORY} -- Initialization
 
-	make_from_host_and_address (a_hostname: detachable STRING; an_address: ARRAY [NATURAL_8])
+	make_from_host_and_address (a_hostname: detachable READABLE_STRING_8; an_address: ARRAY [NATURAL_8])
 		require
 			an_address_count_valid: an_address.count = inaddrsz
 		do
@@ -33,7 +33,7 @@ feature {INET_ADDRESS_FACTORY} -- Initialization
 			the_address := an_address
 		end
 
-	make_from_host_and_address_and_interface_name (a_hostname: detachable STRING; an_address: ARRAY [NATURAL_8]; an_iface_name: STRING)
+	make_from_host_and_address_and_interface_name (a_hostname: detachable READABLE_STRING_8; an_address: ARRAY [NATURAL_8]; an_iface_name: READABLE_STRING_8)
 		require
 			an_address_count_valid: an_address.count = inaddrsz
 		do
@@ -42,7 +42,7 @@ feature {INET_ADDRESS_FACTORY} -- Initialization
 			make_from_host_and_address_and_scope(a_hostname, an_address, 0)
 		end
 
-	make_from_host_and_address_and_scope (a_hostname: detachable STRING; an_address: ARRAY [NATURAL_8]; a_scope_id: INTEGER)
+	make_from_host_and_address_and_scope (a_hostname: detachable READABLE_STRING_8; an_address: ARRAY [NATURAL_8]; a_scope_id: INTEGER)
 		require
 			an_address_count_valid: an_address.count = inaddrsz
 		do
@@ -53,7 +53,7 @@ feature {INET_ADDRESS_FACTORY} -- Initialization
 			end
 		end
 
-	make_from_host_and_pointer (a_hostname: detachable STRING; a_pointer: POINTER)
+	make_from_host_and_pointer (a_hostname: detachable READABLE_STRING_8; a_pointer: POINTER)
 		local
 			ptr: POINTER
 			addr: ARRAY [NATURAL_8]
@@ -78,7 +78,7 @@ feature {INET_ADDRESS_FACTORY} -- Initialization
 
 feature -- Access
 
-	host_address: STRING
+	host_address: STRING_8
 		local
 			l_scope_ifname: like the_scope_ifname
 		do
@@ -189,7 +189,7 @@ feature {NONE} -- Implementation
 
 	the_scope_id: INTEGER
 
-	the_scope_ifname: detachable STRING
+	the_scope_ifname: detachable READABLE_STRING_8
 
 	is_scope_ifname_set: BOOLEAN
 			-- This will be set to true if the object is constructed with a scoped
@@ -202,7 +202,7 @@ feature {NONE} -- Implementation
 			-- This will be set to true when the scope_id field contains a valid
 			-- integer scope_id.
 
-	numeric_to_text (addr: ARRAY [NATURAL_8]): STRING
+	numeric_to_text (addr: ARRAY [NATURAL_8]): STRING_8
 		require
 			addr /= Void and then addr.count = inaddrsz
 		local
@@ -216,7 +216,7 @@ feature {NONE} -- Implementation
 				i >= inaddrsz
 			loop
 				e := ((( addr.item (i).as_natural_16 |<< 8 ) & 0xff00) | (addr.item (i+1).as_natural_16 & 0xff)).as_natural_16
-				Result.append_string(e.to_hex_string)
+				Result.append_string_general(e.to_hex_string)
 				if i < inaddrsz - 1 then
 					Result.append_character(':')
 				end
@@ -254,4 +254,14 @@ feature {NONE} -- Externals
 			"((unsigned char*)$ptr)[$index]"
 		end
 
+note
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end

@@ -18,12 +18,15 @@ inherit
 			filters,
 			setup_hooks,
 			install,
-			permissions
+			permissions,
+			has_permission_to_use_authentication
 		end
 
 	CMS_WITH_WEBAPI
 
 	CMS_HOOK_BLOCK
+
+	CMS_HOOK_AUTHENTICATION
 
 create
 	make
@@ -67,6 +70,11 @@ feature -- Access
 		end
 
 	perm_use_basic_auth: STRING = "use basic_auth"
+
+	has_permission_to_use_authentication (api: CMS_API): BOOLEAN
+		do
+			Result := api.has_permission (perm_use_basic_auth)
+		end
 
 feature -- Access: auth strategy
 
@@ -178,9 +186,26 @@ feature -- Hooks configuration
 		do
 			Precursor (a_hooks)
 			a_hooks.subscribe_to_block_hook (Current)
+			a_hooks.subscribe_to_hook (Current, {CMS_HOOK_AUTHENTICATION})
 		end
 
 feature -- Hooks
+
+	get_login_redirection (a_response: CMS_RESPONSE; a_destination_url: detachable READABLE_STRING_8)
+		local
+			loc: READABLE_STRING_8
+		do
+			if has_permission_to_use_authentication (a_response.api) then
+				loc := a_response.redirection
+				if loc = Void then
+					if a_destination_url /= Void then
+						a_response.set_redirection (login_location + "?destination=" + secured_url_content (a_destination_url))
+					else
+						a_response.set_redirection (login_location)
+					end
+				end
+			end
+		end
 
 	block_list: ITERABLE [like {CMS_BLOCK}.name]
 		do

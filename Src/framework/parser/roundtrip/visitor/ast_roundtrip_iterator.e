@@ -317,7 +317,7 @@ feature
 			safe_process (l_as.internal_operands)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 			-- Process `l_as'.
 		do
 			safe_process (l_as.create_keyword (match_list))
@@ -326,30 +326,11 @@ feature
 			safe_process (l_as.call)
 		end
 
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process `l_as'.
-		do
-			safe_process (l_as.lbang_symbol)
-			safe_process (l_as.type)
-			safe_process (l_as.rbang_symbol)
-			safe_process (l_as.target)
-			safe_process (l_as.call)
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
+	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 			-- Process `l_as'.
 		do
 			safe_process (l_as.create_keyword (match_list))
 			safe_process (l_as.type)
-			safe_process (l_as.call)
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			safe_process (l_as.lbang_symbol)
-			safe_process (l_as.type)
-			safe_process (l_as.rbang_symbol)
 			safe_process (l_as.call)
 		end
 
@@ -450,25 +431,9 @@ feature
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
-			safe_process (l_as.lparan_symbol (match_list))
-			safe_process (l_as.target)
-			safe_process (l_as.rparan_symbol (match_list))
-			safe_process (l_as.dot_symbol (match_list))
-			safe_process (l_as.message)
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-		do
 			safe_process (l_as.target)
 			safe_process (l_as.dot_symbol (match_list))
 			safe_process (l_as.message)
-		end
-
-	process_creation_expr_as (l_as: CREATION_EXPR_AS)
-		do
-			check
-				should_not_reach_here: False
-			end
 		end
 
 	process_type_expr_as (l_as: TYPE_EXPR_AS)
@@ -545,7 +510,6 @@ feature
 		do
 			safe_process (l_as.class_type)
 			safe_process (l_as.question_mark_symbol (match_list))
-			safe_process (l_as.target)
 			safe_process (l_as.expression)
 		end
 
@@ -614,6 +578,13 @@ feature
 		do
 			safe_process (l_as.address_symbol (match_list))
 			safe_process (l_as.feature_name)
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
+		do
+			safe_process (a.predecessor_symbol (match_list))
+			safe_process (a.name)
 		end
 
 	process_routine_creation_as (l_as: ROUTINE_CREATION_AS)
@@ -813,14 +784,7 @@ feature
 			safe_process (l_as.body)
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-			safe_process (l_as.frozen_keyword)
-			safe_process (l_as.infix_prefix_keyword)
-			safe_process (l_as.alias_name)
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
 			safe_process (l_as.frozen_keyword)
 			safe_process (l_as.feature_name)
@@ -830,13 +794,16 @@ feature
 		do
 			safe_process (l_as.frozen_keyword)
 			safe_process (l_as.feature_name)
-			if l_as.alias_name /= Void then
-				safe_process (l_as.alias_keyword (match_list))
-				safe_process (l_as.alias_name)
-				if l_as.has_convert_mark then
-					safe_process (l_as.convert_keyword (match_list))
-				end
+			across
+				l_as.aliases as ic
+			loop
+				safe_process (l_as.keyword_at (match_list, ic.alias_keyword_index))
+				safe_process (ic.alias_name)
 			end
+			if l_as.convert_keyword_index > 0 then
+				safe_process (l_as.convert_keyword (match_list))
+			end
+
 		end
 
 	process_feature_list_as (l_as: FEATURE_LIST_AS)
@@ -875,13 +842,6 @@ feature
 			safe_process (l_as.check_keyword (match_list))
 			safe_process (l_as.full_assertion_list)
 			safe_process (l_as.end_keyword)
-		end
-
-	process_creation_as (l_as: CREATION_AS)
-		do
-			check
-				Should_not_reach_here: False
-			end
 		end
 
 	process_debug_as (l_as: DEBUG_AS)
@@ -925,14 +885,25 @@ feature
 			safe_process (l_as.end_keyword)
 		end
 
-	process_inspect_as (l_as: INSPECT_AS)
+	process_inspect_abstraction (a: INSPECT_ABSTRACTION_AS [CASE_ABSTRACTION_AS [detachable AST_EIFFEL], detachable AST_EIFFEL])
+			-- Process `a`.
 		do
-			safe_process (l_as.inspect_keyword (match_list))
-			safe_process (l_as.switch)
-			safe_process (l_as.case_list)
-			safe_process (l_as.else_keyword (match_list))
-			safe_process (l_as.else_part)
-			safe_process (l_as.end_keyword)
+			safe_process (a.inspect_keyword (match_list))
+			safe_process (a.switch)
+			safe_process (a.case_list)
+			safe_process (a.else_keyword (match_list))
+			safe_process (a.else_part)
+			safe_process (a.end_keyword)
+		end
+
+	process_inspect_as (a: INSPECT_AS)
+		do
+			process_inspect_abstraction (a)
+		end
+
+	process_inspect_expression_as (a: INSPECT_EXPRESSION_AS)
+		do
+			process_inspect_abstraction (a)
 		end
 
 	process_instr_call_as (l_as: INSTR_CALL_AS)
@@ -945,55 +916,87 @@ feature
 			l_until: detachable KEYWORD_AS
 			l_variant_processing_after: BOOLEAN
 			l_variant_part: detachable VARIANT_AS
+			i: ITERATION_AS
 		do
-			safe_process (l_as.iteration)
-			safe_process (l_as.from_keyword (match_list))
-			safe_process (l_as.from_part)
-			safe_process (l_as.invariant_keyword (match_list))
-			safe_process (l_as.full_invariant_list)
-				-- Special code to handle the old or new ordering of the `variant'
-				-- clause in a loop.
-			l_until := l_as.until_keyword (match_list)
-			l_variant_part := l_as.variant_part
-			if l_until = Void then
-					-- Must be across loop
-				l_variant_processing_after := True
-			elseif l_variant_part /= Void then
-				if l_variant_part.start_position > l_until.start_position then
+			i := l_as.iteration
+			if attached i and then i.is_symbolic then
+					-- The loop is of the form
+					-- ⟳ var: expr ¦ compound ⟲
+				safe_process (l_as.repeat_symbol (match_list))
+				i.process (Current)
+				safe_process (l_as.compound)
+				safe_process (l_as.end_symbol)
+			else
+				safe_process (i)
+				safe_process (l_as.from_keyword (match_list))
+				safe_process (l_as.from_part)
+				safe_process (l_as.invariant_keyword (match_list))
+				safe_process (l_as.full_invariant_list)
+					-- Special code to handle the old or new ordering of the `variant'
+					-- clause in a loop.
+				l_until := l_as.until_keyword (match_list)
+				l_variant_part := l_as.variant_part
+				if l_until = Void then
+						-- Must be across loop
 					l_variant_processing_after := True
-				else
+				elseif l_variant_part /= Void then
+					if l_variant_part.start_position > l_until.start_position then
+						l_variant_processing_after := True
+					else
+						l_variant_part.process (Current)
+					end
+				end
+				safe_process (l_until)
+				safe_process (l_as.stop)
+				safe_process (l_as.loop_keyword (match_list))
+				safe_process (l_as.compound)
+				if l_variant_part /= Void and l_variant_processing_after then
 					l_variant_part.process (Current)
 				end
+				safe_process (l_as.end_keyword)
 			end
-			safe_process (l_until)
-			safe_process (l_as.stop)
-			safe_process (l_as.loop_keyword (match_list))
-			safe_process (l_as.compound)
-			if l_variant_part /= Void and l_variant_processing_after then
-				l_variant_part.process (Current)
-			end
-			safe_process (l_as.end_keyword)
 		end
 
-	process_iteration_as (l_as: ITERATION_AS)
+	process_iteration_as (a: ITERATION_AS)
+			-- <Precursor>
 		do
-			safe_process (l_as.across_keyword (match_list))
-			l_as.expression.process (Current)
-			safe_process (l_as.as_keyword (match_list))
-			l_as.identifier.process (Current)
+			if a.is_symbolic then
+				a.identifier.process (Current)
+				safe_process (a.in_symbol (match_list))
+				a.expression.process (Current)
+				safe_process (a.bar_symbol (match_list))
+			else
+				safe_process (a.across_keyword (match_list))
+				a.expression.process (Current)
+				safe_process (a.as_keyword (match_list))
+				a.identifier.process (Current)
+			end
 		end
 
 	process_loop_expr_as (l_as: LOOP_EXPR_AS)
+		local
+			i: ITERATION_AS
 		do
-			l_as.iteration.process (Current)
-			safe_process (l_as.invariant_keyword (match_list))
-			safe_process (l_as.full_invariant_list)
-			safe_process (l_as.until_keyword (match_list))
-			safe_process (l_as.exit_condition)
-			safe_process (l_as.qualifier_keyword (match_list))
-			l_as.expression.process (Current)
-			safe_process (l_as.variant_part)
-			safe_process (l_as.end_keyword)
+			i := l_as.iteration
+			if i.is_symbolic then
+					-- The loop is of the form
+					-- ∀ var: expr | expr
+				safe_process (l_as.qualifier_symbol (match_list))
+				i.process (Current)
+				l_as.expression.process (Current)
+			else
+					-- The loop is of the form
+					-- across expr as var [invariant expr] [until expr] all expr [variant expr] end
+				i.process (Current)
+				safe_process (l_as.invariant_keyword (match_list))
+				safe_process (l_as.full_invariant_list)
+				safe_process (l_as.until_keyword (match_list))
+				safe_process (l_as.exit_condition)
+				safe_process (l_as.qualifier_keyword (match_list))
+				l_as.expression.process (Current)
+				safe_process (l_as.variant_part)
+				safe_process (l_as.end_keyword)
+			end
 		end
 
 	process_separate_instruction_as (a: SEPARATE_INSTRUCTION_AS)
@@ -1051,6 +1054,7 @@ feature
 			safe_process (l_as.frozen_keyword (match_list))
 			safe_process (l_as.deferred_keyword (match_list))
 			safe_process (l_as.expanded_keyword (match_list))
+			safe_process (l_as.once_keyword (match_list))
 			safe_process (l_as.external_keyword (match_list))
 			safe_process (l_as.class_keyword (match_list))
 			safe_process (l_as.class_name)
@@ -1239,12 +1243,23 @@ feature
 			safe_process (l_as.clients)
 		end
 
-	process_case_as (l_as: CASE_AS)
+	process_case_abstraction (a: CASE_ABSTRACTION_AS [detachable AST_EIFFEL])
+			-- Process `a`.
 		do
-			safe_process (l_as.when_keyword (match_list))
-			safe_process (l_as.interval)
-			safe_process (l_as.then_keyword (match_list))
-			safe_process (l_as.compound)
+			safe_process (a.when_keyword (match_list))
+			safe_process (a.interval)
+			safe_process (a.then_keyword (match_list))
+			safe_process (a.content)
+		end
+
+	process_case_as (a: CASE_AS)
+		do
+			process_case_abstraction (a)
+		end
+
+	process_case_expression_as (a: CASE_EXPRESSION_AS)
+		do
+			process_case_abstraction (a)
 		end
 
 	process_ensure_as (l_as: ENSURE_AS)
@@ -1527,18 +1542,17 @@ feature{NONE} -- Implementation
 				attached l_as.id_list as l_ids and then
 				l_ids.count > 0
 			then
+				across
+					l_ids as id_as_index
 				from
-					l_ids.start
 					i := 1
 						-- Temporary/reused objects to print identifiers.
 					create l_id_as.initialize_from_id (1)
 					if attached l_as.separator_list as l_sep_list then
 						l_count := l_sep_list.count
 					end
-				until
-					l_ids.after
 				loop
-					l_index := l_ids.item
+					l_index := id_as_index
 					if match_list.valid_index (l_index) then
 						l_leaf := match_list.i_th (l_index)
 							-- Note that we do not set the `name_id' for `l_id_as' since it will require
@@ -1553,7 +1567,6 @@ feature{NONE} -- Implementation
 						safe_process (l_as.separator_list_i_th (i, match_list))
 						i := i + 1
 					end
-					l_ids.forth
 				end
 			end
 		end
@@ -1561,12 +1574,11 @@ feature{NONE} -- Implementation
 	internal_match_list: detachable like match_list
 			-- Storage for `match_list'.
 
-invariant
-
-note
+;note
+	ca_ignore: "CA033", "CA033: too large class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

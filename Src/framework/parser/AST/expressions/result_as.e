@@ -1,6 +1,5 @@
-note
-	description:"Abstract description to access to `Result'. %
-				%Version for Bench."
+﻿note
+	description:"Abstract description to access to 'Result'."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -13,8 +12,11 @@ inherit
 	ACCESS_AS
 		undefine
 			text
+		end
+
+	EXPR_AS
 		redefine
-			is_equivalent
+			is_detachable_expression
 		end
 
 	KEYWORD_AS
@@ -26,10 +28,15 @@ inherit
 create
 	make_with_location
 
+feature -- Status Report
+
+	is_detachable_expression: BOOLEAN = True
+			-- <Precursor>
+
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- Process current element.
 		do
 			v.process_result_as (Current)
 		end
@@ -39,20 +46,20 @@ feature -- Properties
 	access_name: STRING = "Result"
 
 	parameters: detachable EIFFEL_LIST [EXPR_AS]
-			-- No parameters for Result
+			-- No parameters for Result.
 		do
 		end
 
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 			Result := True
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -83,4 +90,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class RESULT_AS
+end

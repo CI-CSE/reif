@@ -1,10 +1,7 @@
-note
-
-	description:
-
-		"Objects that instruct interpreter to create an object"
-
+﻿note
+	description: "Objects that instruct interpreter to create an object"
 	copyright: "Copyright (c) 2005, Andreas Leitner and others"
+	reviewed_by: "Alexander Kogtenkov"
 	license: "Eiffel Forum License v2 (see forum.txt)"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -162,25 +159,13 @@ feature -- Execution
 			elseif precondition_evaluator /= Void and then precondition_evaluator.has_next_step then
 				precondition_evaluator.step
 			else
-				set_arguments_from_candidate (precondition_evaluator.last_evaluated_operands)
-				interpreter.log_precondition_evaluation_overhead (precondition_evaluator, type, creation_procedure)
-
-				if arguments.for_all (agent is_variable_defined) then
-					receiver := interpreter.variable_table.new_variable
-					interpreter.set_precondition_evaluator (precondition_evaluator)
-					interpreter.create_object (receiver, type, creation_procedure, arguments, feature_)
-					if queue /= Void then
-						if attached {TYPE_A} interpreter.variable_table.variable_type (receiver) as l_receiver then
-							queue.mark (create {AUT_FEATURE_OF_TYPE}.make_as_creator (creation_procedure, l_receiver))
-						end
-					end
-					if not interpreter.variable_table.is_variable_defined (receiver) then
-						-- There was an error creating the object.
-						receiver := Void
-					end
-					steps_completed := True
-				else
-					cancel
+				receiver := interpreter.variable_table.new_variable
+				interpreter.create_object (receiver, type, creation_procedure, input_creator.receivers)
+				if
+					attached queue and then
+					attached interpreter.variable_table.variable_type (receiver) as l_receiver
+				then
+					queue.mark (create {AUT_FEATURE_OF_TYPE}.make_as_creator (creation_procedure, l_receiver))
 				end
 			end
 		end
@@ -294,12 +279,9 @@ feature {NONE} -- Steps
 	choose_boolean_constant
 			-- Choose boolean constant and set it to
 			-- `last_constant'.
-		local
-			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 2)
-			if i = 0 then
+			if random.item \\ 2 = 0 then
 				create {ITP_CONSTANT} last_constant.make (False)
 			else
 				create {ITP_CONSTANT} last_constant.make (True)
@@ -311,12 +293,9 @@ feature {NONE} -- Steps
 	choose_character_8_constant
 			-- Choose CHARACTER_8 constant and set it to
 			-- `last_constant'.
-		local
-			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 255)
-			create last_constant.make (i.to_character_8)
+			create last_constant.make ((random.item \\ 255).to_character_8)
 		ensure
 			last_constant_not_void: last_constant /= Void
 		end
@@ -324,12 +303,9 @@ feature {NONE} -- Steps
 	choose_character_32_constant
 			-- Choose CHARACTER_32 constant and set it to
 			-- `last_constant'.
-		local
-			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 600)
-			create last_constant.make (i.to_character_32)
+			create last_constant.make ((random.item \\ 600).to_character_32)
 		ensure
 			last_constant_not_void: last_constant /= Void
 		end
@@ -337,12 +313,9 @@ feature {NONE} -- Steps
 	choose_double_constant
 			-- Choose double constant and set it to
 			-- `last_constant'.
-		local
-			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 10)
-			inspect i
+			inspect random.item \\ 10
 			when 0 then
 				create last_constant.make (-1.0)
 			when 1 then
@@ -390,7 +363,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((-1).to_integer_8)
 			elseif i = 1 then
@@ -439,7 +412,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((-1).to_integer_16)
 			elseif i = 1 then
@@ -568,7 +541,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((-1).to_integer_64)
 			elseif i = 1 then
@@ -617,7 +590,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((0).to_natural_8)
 			elseif i = 1 then
@@ -666,7 +639,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((0).to_natural_16)
 			elseif i = 1 then
@@ -716,7 +689,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((0).as_natural_32)
 			elseif i = 1 then
@@ -765,7 +738,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 18)
+			i := random.item \\ 18
 			if i = 0 then
 				create last_constant.make ((0).to_natural_64)
 			elseif i = 1 then
@@ -823,7 +796,7 @@ feature {NONE} -- Steps
 			i: INTEGER
 		do
 			random.forth
-			i := (random.item  \\ 10)
+			i := random.item \\ 10
 			inspect i
 			when 0 then
 				create last_constant.make ((-1.0).truncated_to_real)
@@ -954,7 +927,7 @@ invariant
 	receiver_defined: receiver /= Void implies interpreter.variable_table.is_variable_defined (receiver)
 
 note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

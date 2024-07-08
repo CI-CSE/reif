@@ -39,6 +39,11 @@ inherit
 			{NONE} all
 		end
 
+	EV_SHARED_APPLICATION
+		export
+			{NONE} all
+		end
+
 	SD_ACCESS
 
 create
@@ -1037,6 +1042,28 @@ feature -- Basic operations
 			show_formatting_marks := not show_formatting_marks
 		end
 
+feature -- Status setting
+
+	load_fully
+			-- Wait until all editors finish loading.
+		local
+			a: like ev_application
+		do
+			development_window.window.set_pointer_style (default_pixmaps.wait_cursor)
+			from
+				a := ev_application
+			until
+				full_loaded
+			loop
+					-- As editor text is loaded on idle, unless idle_actions are called EiffelStudio
+					-- stays in an infinite loop.
+				a.process_events
+			end
+			development_window.window.set_pointer_style (default_pixmaps.standard_cursor)
+		ensure
+			full_loaded
+		end
+
 feature -- Memory management
 
 	internal_recycle
@@ -1224,40 +1251,28 @@ feature {NONE} -- Agents
 	on_editor_focus_in (a_content: SD_CONTENT)
 			-- Handle docking content focus in actions
 		local
-			l_item: EB_CLOSE_PANEL_COMMAND
-			l_commands: ARRAYED_LIST [EB_CLOSE_PANEL_COMMAND]
+			l_item: EB_FOCUS_PANEL_COMMAND
 		do
-			from
-				l_commands := development_window.commands.focus_commands
-				l_commands.start
-			until
-				l_commands.after
+			across
+				development_window.commands.focus_commands as ic
 			loop
-				l_item := l_commands.item
+				l_item := ic.item
 				l_item.set_current_focused_content (a_content)
 				l_item.enable_sensitive
-
-				l_commands.forth
 			end
 		end
 
 	on_editor_focus_out (a_content: SD_CONTENT)
 			-- Handle docking content focus out actions
 		local
-			l_item: EB_CLOSE_PANEL_COMMAND
-			l_commands: ARRAYED_LIST [EB_CLOSE_PANEL_COMMAND]
+			l_item: EB_FOCUS_PANEL_COMMAND
 		do
-			from
-				l_commands := development_window.commands.focus_commands
-				l_commands.start
-			until
-				l_commands.after
+			across
+				development_window.commands.focus_commands as ic
 			loop
-				l_item := l_commands.item
+				l_item := ic.item
 				l_item.set_current_focused_content (Void)
 				l_item.disable_sensitive
-
-				l_commands.forth
 			end
 		end
 
@@ -1665,8 +1680,7 @@ feature {NONE} -- Implementation
 			l_list_string := l_class_name.split (operating_environment.directory_separator)
 			l_class_name := l_list_string [l_list_string.count]
 			if l_class_name.has ('.') then
-				Result := l_class_name.substring (1,
-														l_class_name.last_index_of ('.', l_class_name.count) - 1)
+				Result := l_class_name.substring (1, l_class_name.last_index_of ('.', l_class_name.count) - 1)
 			end
 			Result.to_upper
 		end
@@ -1705,24 +1719,27 @@ feature {NONE} -- Implementation
 	editor_with_stone_internal (a_editors: ARRAYED_LIST [EB_SMART_EDITOR]; a_stone: STONE): detachable EB_SMART_EDITOR
 			-- Editor from `a_editors' having `a_stone'.
 		require
+			a_stone_set: a_stone /= Void
 			editors_not_void: a_editors /= Void
+		local
+			e: like editor_with_stone_internal
 		do
-				-- FIXME: check the implementation about the use of ~ to compare strings [oct/2016]
 			across
 				a_editors as ic
 			until
 				Result /= Void
 			loop
-				if attached ic.item.stone as l_editor_stone then
-					if a_stone ~ l_editor_stone then
-						Result := ic.item
+				e := ic.item
+				if attached e.stone as l_editor_stone then
+					if a_stone.same_as (l_editor_stone) then
+						Result := e
 					elseif
 						attached {FILED_STONE} a_stone as l_file_stone1 and then
 						attached {FILED_STONE} l_editor_stone as l_file_stone2 and then
 						(l_file_stone1.is_valid and l_file_stone2.is_valid) and then
-						(l_file_stone1.file_name ~ l_file_stone2.file_name)
+						l_file_stone1.file_name.is_case_insensitive_equal (l_file_stone2.file_name)
 					then
-						Result := ic.item
+						Result := e
 					end
 				end
 			end
@@ -1808,8 +1825,17 @@ feature {NONE} -- Implementation
 				a_editors.forth
 			end
 		end
+
+feature {NONE} -- Implementation
+
+	default_pixmaps: EV_STOCK_PIXMAPS
+			-- Default pixmaps and cursors.
+		once
+			create Result
+		end
+
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Tree showing the classes present in the system."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -225,21 +225,16 @@ feature -- Activation
 		require
 			not_void: a_textable /= Void
 			not_void: a_list /= Void
-		local
-			l_item: EB_CLASSES_TREE_ITEM
-			l_actions: EV_TREE_NODE_ACTION_SEQUENCES
 		do
 			from
 				a_list.start
 			until
 				a_list.after
 			loop
-				l_item ?= a_list.item
-				if l_item /= Void then
+				if attached {EB_CLASSES_TREE_ITEM} a_list.item as l_item then
 					if l_item.text.is_equal (l_item.dummy_string) then
 						-- Current `a_list' contain dummy node, we set `a_textable' with it in expand actions
-						l_actions ?= a_list
-						if l_actions /= Void then
+						if attached {EV_TREE_NODE_ACTION_SEQUENCES} a_list as l_actions then
 							l_actions.expand_actions.extend_kamikaze (agent associate_textable_recursively (a_textable, a_list))
 						end
 					end
@@ -302,22 +297,19 @@ feature -- Activation
 		require
 			a_stone_not_void: a_stone /= Void
 		local
-			classi_stone: CLASSI_STONE
-			cluster_stone: CLUSTER_STONE
 			l_grp: CONF_GROUP
-			l_path: STRING
+			l_path: STRING_32
 		do
-			classi_stone ?= a_stone
-			if classi_stone /= Void then
+			if attached {CLASSI_STONE} a_stone as classi_stone then
 				l_grp := classi_stone.group
 				l_path := classi_stone.class_i.config_class.path
 			end
-			if l_grp = Void then
-				cluster_stone ?= a_stone
-				if cluster_stone /= Void then
-					l_grp := cluster_stone.group
-					l_path := cluster_stone.path
-				end
+			if
+				l_grp = Void and then
+				attached {CLUSTER_STONE} a_stone as cluster_stone
+			then
+				l_grp := cluster_stone.group
+				l_path := cluster_stone.path
 			end
 			if l_grp /= Void then
 				check
@@ -380,17 +372,13 @@ feature -- Activation
 
 	show_class (a_class: CLASS_I)
 			-- Expand all parents of `a_class' and highlight `a_class'.
-		local
-			a_folder: EB_CLASSES_TREE_FOLDER_ITEM
-			a_class_item: EB_CLASSES_TREE_CLASS_ITEM
 		do
 			show_subfolder (a_class.group, a_class.config_class.path)
-			a_folder ?= selected_item
-			if a_folder /= Void then
-				a_class_item := find_class_in (a_class, a_folder)
-				if a_class_item /= Void then
-					a_class_item.enable_select
-				end
+			if
+				attached {EB_CLASSES_TREE_FOLDER_ITEM} selected_item as a_folder and then
+				attached find_class_in (a_class, a_folder) as a_class_item
+			then
+				a_class_item.enable_select
 			end
 		end
 
@@ -404,23 +392,23 @@ feature -- Activation
 			a_target_item := show_target_in (a_target, Void)
 		end
 
-	path_name_from_tree_node (tree_node: EV_TREE_NODE): STRING
+	path_name_from_tree_node (tree_node: EV_TREE_NODE): STRING_32
 			-- `Result' is a path name representing `tree_node' in the
 			-- form "base.kernel.COMPARABLE".
 		require
 			tree_node_not_void: tree_node /= Void
 		local
-			l_parent: EV_TREE_NODE
+			n: EV_TREE_NODE
 		do
 			from
-				l_parent ?= tree_node.parent
+				n := tree_node
 				Result := tree_node.text
 			until
-				l_parent = Void
+				not attached {EV_TREE_NODE} n.parent as p
 			loop
 				Result.prepend_character ('.')
-				Result.prepend (l_parent.text)
-				l_parent ?= l_parent.parent
+				Result.prepend (p.text)
+				n := p
 			end
 		ensure
 			Result_not_void: Result /= Void
@@ -460,7 +448,7 @@ feature -- Observer pattern
 			refresh
 		end
 
-	on_class_moved (a_class: CONF_CLASS; old_group: CONF_GROUP; old_path: STRING)
+	on_class_moved (a_class: CONF_CLASS; old_group: CONF_GROUP; old_path: READABLE_STRING_32)
 			-- Refresh the tree to display `a_class' in its new folder.
 			-- `old_path' is old relative path in `old_group'
 		do
@@ -516,8 +504,6 @@ feature {NONE} -- Memory management
 	internal_recycle
 			-- Recycle `Current', but leave `Current' in an unstable state,
 			-- so that we know whether we're still referenced or not.
-		local
-			l_item: EB_CLASSES_TREE_ITEM
 		do
 			manager.remove_observer (Current)
 			from
@@ -525,8 +511,7 @@ feature {NONE} -- Memory management
 			until
 				after
 			loop
-				l_item ?= item
-				if l_item /= Void then
+				if attached {EB_CLASSES_TREE_ITEM} item as l_item then
 					l_item.recycle
 				end
 				forth
@@ -549,11 +534,11 @@ feature {NONE} -- Rebuilding
 	library_header: EB_CLASSES_TREE_HEADER_ITEM
 			-- Header for libraries.
 
-	expanded_clusters: HASH_TABLE [STRING, STRING]
+	expanded_clusters: HASH_TABLE [READABLE_STRING_32, READABLE_STRING_32]
 		-- All cluster names marked as expanded during last call to
 		-- `store_expanded_state'.
 
-	selected_name: STRING
+	selected_name: STRING_32
 		-- Full name of item selected in `Current' before rebuilding,
 		-- including path.
 
@@ -579,8 +564,8 @@ feature {NONE} -- Rebuilding
 			tree_list_not_void: tree_list /= Void
 		local
 			current_node: EV_TREE_NODE
-			l_parent: EV_TREE_NODE
-			l_name: STRING
+--			l_parent: EV_TREE_NODE
+			l_name: STRING_32
 		do
 			from
 				tree_list.start
@@ -590,7 +575,7 @@ feature {NONE} -- Rebuilding
 				current_node := tree_list.item
 				if current_node.is_expanded then
 					recursive_store (current_node)
-					l_parent ?= current_node.parent
+--					l_parent ?= current_node.parent
 					l_name := path_name_from_tree_node (current_node)
 					expanded_clusters.put (l_name, l_name)
 				end
@@ -600,20 +585,11 @@ feature {NONE} -- Rebuilding
 
 	restore_expanded_state
 			-- Restore all nodes of `Current', represented in `expanded_clusters'.
-		local
-			keys: ARRAY [STRING]
-			counter: INTEGER
-			key: STRING
 		do
-			keys := expanded_clusters.current_keys
-			from
-				counter := 1
-			until
-				counter > keys.count
+			across
+				expanded_clusters as c
 			loop
-				key := keys.item (counter)
-				expand_tree_item (key, Current)
-				counter := counter + 1
+				expand_tree_item (c.key, Current)
 			end
 			if selected_name /= Void then
 					-- If an item was selected before the rebuild, re-select
@@ -632,14 +608,14 @@ feature {NONE} -- Rebuilding
 			end
 		end
 
-	select_tree_item (full_path: STRING; tree_list: EV_TREE_NODE_LIST)
+	select_tree_item (full_path: STRING_32; tree_list: EV_TREE_NODE_LIST)
 			-- Select item in `tree_list' recursively, whose data path matches `full_path'.
 		require
 			full_path_not_void: full_path /= Void
 			tree_list_not_void: tree_list /= Void
 		local
-			key: STRING
-			item_key: STRING
+			key: STRING_32
+			item_key: STRING_32
 			dot_index: INTEGER
 		do
 			key := full_path
@@ -667,14 +643,14 @@ feature {NONE} -- Rebuilding
 			end
 		end
 
-	expand_tree_item (full_path: STRING; tree_item: EV_TREE_NODE_LIST)
+	expand_tree_item (full_path: STRING_32; tree_item: EV_TREE_NODE_LIST)
 			-- Expand item of `tree_item', whose data matches `full_path'.
 		require
 			full_path_not_void: full_path /= Void
 			tree_item_not_void: tree_item /= Void
 		local
-			key: STRING
-			item_key: STRING
+			key: STRING_32
+			item_key: STRING_32
 			dot_index: INTEGER
 		do
 			key := full_path
@@ -706,8 +682,6 @@ feature {NONE} -- Implementation
 	on_key_pushed (a_key: EV_KEY)
 			-- If `a_key' is enter, set a stone in the development window.
 		local
-			conv_class: EB_CLASSES_TREE_CLASS_ITEM
-			conv_cluster: EB_CLASSES_TREE_FOLDER_ITEM
 			titem: EV_TREE_NODE
 			testfile: RAW_FILE
 		do
@@ -717,8 +691,7 @@ feature {NONE} -- Implementation
 				window /= Void and then
 				titem /= Void
 			then
-				conv_class ?= titem
-				if conv_class /= Void then
+				if attached {EB_CLASSES_TREE_CLASS_ITEM} titem as conv_class then
 					create testfile.make_with_path (conv_class.data.file_name)
 					if testfile.exists and then testfile.is_readable then
 						window.set_stone (conv_class.stone)
@@ -726,11 +699,8 @@ feature {NONE} -- Implementation
 						prompts.show_warning_prompt ("Class file could not be read. Removing class from the system.", Void, Void)
 						manager.remove_class (conv_class.data)
 					end
-				else
-					conv_cluster ?=  titem
-					if conv_cluster /= Void then
-						window.set_stone (conv_cluster.stone)
-					end
+				elseif attached {EB_CLASSES_TREE_FOLDER_ITEM} titem as conv_cluster then
+					window.set_stone (conv_cluster.stone)
 				end
 			end
 		end
@@ -745,7 +715,6 @@ feature {NONE} -- Implementation
 			-- List of parent groups of `group', from the root to `group', `cluster' included.
 		local
 			l_group, l_next_group: CONF_GROUP
-			l_cluster: CONF_CLUSTER
 			l_sys: CONF_SYSTEM
 			l_search_table: SEARCH_TABLE [CONF_GROUP]
 		do
@@ -761,9 +730,9 @@ feature {NONE} -- Implementation
 				Result.put_front (l_group)
 				l_search_table.force (l_group)
 				if l_group.is_cluster then
-					l_cluster ?= l_group
-					check cluster: l_cluster /= Void end
-					l_next_group := l_cluster.parent
+					check cluster: attached {CONF_CLUSTER} l_group as l_cluster then
+						l_next_group := l_cluster.parent
+					end
 				else
 					l_next_group := Void
 				end
@@ -785,16 +754,16 @@ feature {NONE} -- Implementation
 			-- Fint the tree item associated to `a_name' in `parent_cluster'.
 		require
 			parent_cluster_not_void: parent_cluster /= Void
-		local
-			l_folder: EB_CLASSES_TREE_FOLDER_ITEM
 		do
 			from
 				parent_cluster.start
 			until
 				parent_cluster.after or Result /= Void
 			loop
-				l_folder ?= parent_cluster.item
-				if l_folder /= Void and then l_folder.name.same_string (a_name) then
+				if
+					attached {EB_CLASSES_TREE_FOLDER_ITEM} parent_cluster.item as l_folder and then
+					l_folder.name.same_string (a_name)
+				then
 					Result := l_folder
 				end
 				parent_cluster.forth
@@ -805,7 +774,6 @@ feature {NONE} -- Implementation
 			-- Find the tree item associated to `clusteri' in `parent_cluster'.
 		local
 			folder_list: EV_TREE_NODE_LIST
-			folder: EB_CLASSES_TREE_FOLDER_ITEM
 		do
 			if parent_cluster = Void then
 				if clusteri.is_override then
@@ -831,8 +799,10 @@ feature {NONE} -- Implementation
 			until
 				folder_list.after or else Result /= Void
 			loop
-				folder ?= folder_list.item
-				if folder /= Void and then folder.data.actual_group = clusteri then
+				if
+					attached {EB_CLASSES_TREE_FOLDER_ITEM} folder_list.item as folder and then
+					folder.data.actual_group = clusteri
+				then
 					Result := folder
 				end
 				folder_list.forth
@@ -843,7 +813,6 @@ feature {NONE} -- Implementation
 			-- Find the tree item associated to `a_class' in `parent_cluster'.
 		local
 			folder_list: EV_TREE_NODE_LIST
-			folder: EB_CLASSES_TREE_CLASS_ITEM
 		do
 			if parent_cluster = Void then
 				folder_list := Current
@@ -856,8 +825,10 @@ feature {NONE} -- Implementation
 			until
 				folder_list.after or else Result /= Void
 			loop
-				folder ?= folder_list.item
-				if folder /= Void and then folder.data = a_class then
+				if
+					attached {EB_CLASSES_TREE_CLASS_ITEM} folder_list.item as folder and then
+					folder.data = a_class
+				then
 					Result := folder
 				end
 				folder_list.forth
@@ -1090,14 +1061,11 @@ feature {NONE} -- Implementation
 
 	is_group_valid (a_data: ANY): BOOLEAN
 			-- Does `a_data' contain valid groups information?
-		local
-			l_groups: LIST [CONF_GROUP]
 		do
 			if a_data = Void then
 				Result := True
 			else
-				l_groups ?= a_data
-				if l_groups /= Void then
+				if attached {LIST [CONF_GROUP]} a_data as l_groups then
 					Result := l_groups.for_all (agent (a_group: CONF_GROUP): BOOLEAN do Result := a_group /= Void and then a_group.is_valid end)
 				end
 			end
@@ -1159,7 +1127,7 @@ invariant
 	expanded_clusters_not_void: expanded_clusters /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "EiffelVision pixmap. Mswindows implementation for %
 				  %widget pixmap (drawable & self-displayable)"
 	legal: "See notice at end of class."
@@ -15,10 +15,12 @@ inherit
 			has_focus, is_sensitive, is_displayed, set_focus, x_position,
 			y_position, on_parented, on_orphaned, disable_sensitive,
 			enable_sensitive, show, pointed_target,
-			set_minimum_width, set_tooltip, screen_x, screen_y, set_size,
+			reset_minimum_width, reset_minimum_height, reset_minimum_size,
+			set_minimum_width, set_minimum_height, set_minimum_size,
+			set_tooltip, screen_x, screen_y, set_size,
 			parent, is_show_requested, minimum_width, draw_rubber_band,
 			set_pointer_style, erase_rubber_band, disable_transport,
-			destroy, set_minimum_height, set_minimum_size,
+			destroy,
 			disable_capture, pointer_position, start_transport,
 			enable_transport, pointer_style, tooltip, has_capture,
 			end_transport, enable_capture, minimum_height,
@@ -28,11 +30,11 @@ inherit
 			internal_enable_dockable, internal_disable_dockable,
 			update_buttons, refresh_now, init_file_drop_actions, update_for_pick_and_drop,
 			is_tabable_from, is_tabable_to, enable_tabable_from, enable_tabable_to,
-			disable_tabable_from, disable_tabable_to, init_resize_actions
+			disable_tabable_from, disable_tabable_to, init_resize_actions, init_dpi_changed_actions
 		redefine
 			interface, make,
 			read_from_named_path,
-			clear, stretch, set_size, clear_rectangle, draw_point,
+			clear, stretch, clear_rectangle, draw_point,
 			draw_text, draw_segment, draw_straight_line, draw_arc,
 			draw_pixmap, draw_rectangle, draw_ellipse, draw_polyline,
 			draw_pie_slice, fill_rectangle, fill_ellipse, fill_polygon,
@@ -62,7 +64,7 @@ inherit
 			wel_font, wel_set_font, on_getdlgcode,
 			on_wm_dropfiles
 		redefine
-			on_paint, on_erase_background,
+			on_erase_background,
 			class_background,
 			default_style,
 			class_style
@@ -683,8 +685,8 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 			-- Interface for the bridge pattern.
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA
@@ -693,4 +695,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EV_PIXMAP_IMP_WIDGET
+end

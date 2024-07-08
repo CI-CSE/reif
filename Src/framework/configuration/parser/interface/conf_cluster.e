@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "A project cluster."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -12,7 +12,6 @@ inherit
 	CONF_PHYSICAL_GROUP
 		redefine
 			make,
-			options,
 			is_group_equivalent,
 			process,
 			class_by_name,
@@ -131,39 +130,61 @@ feature -- Access queries
 	options: CONF_OPTION
 			-- Options (Debuglevel, assertions, ...)
 		local
-			l_lib: detachable CONF_LIBRARY
 			l_local: CONF_OPTION
-			l_result: detachable CONF_OPTION
 		do
 				-- get local options
 			if attached internal_options as l_internal_options then
 				l_local := l_internal_options.twin
 			else
-				create l_local
+				l_local := {CONF_OPTION}.create_from_namespace_or_latest (namespace)
 			end
-			if attached parent as l_parent then
-				l_local.merge (l_parent.options)
+			l_local.merge (if attached parent as p then p.options else target.options end)
+				-- If used as library, get options from application level if the library is defined there.
+			if
+				is_used_in_library and then
+				attached target.system.application_target_library as l
+			then
+				Result := l.options
+			end
+			if attached Result then
+				Result.merge (l_local)
+					-- Need to set local namespace, because local namespaces cannot be merged for libraries
+				Result.set_local_namespace (l_local.local_namespace)
 			else
-				l_local.merge (target.options)
+				Result := l_local
 			end
+		end
+
+	adapted_options: CONF_OPTION
+			-- <Precursor>
+		local
+			l_local: CONF_OPTION
+		do
+				-- Get local options
+			if attached forced_options as o then
+				l_local := o.twin
+			elseif attached internal_options as o then
+				l_local := o.twin
+			else
+				l_local := {CONF_OPTION}.create_from_namespace_or_latest (namespace)
+			end
+			l_local.merge (if attached parent as p then p.adapted_options else target.adapted_options end)
 
 				-- if used as library, get options from application level if the library is defined there
-			if is_used_in_library then
-				l_lib := target.system.application_target_library
-				if l_lib /= Void then
-					l_result := l_lib.options
-				end
+			if
+				is_used_in_library and then
+				attached target.system.application_target_library as l
+			then
+				Result := l.adapted_options
 			end
 
-			if l_result /= Void then
-				l_result.merge (l_local)
-
+			if attached Result then
+				Result.merge (l_local)
 					-- Need to set local namespace, because local namespaces cannot be merged for libraries
-				l_result.set_local_namespace (l_local.local_namespace)
+				Result.set_local_namespace (l_local.local_namespace)
 			else
-				l_result := l_local
+				Result := l_local
 			end
-			Result := l_result
 		end
 
 	class_options: like internal_class_options
@@ -203,6 +224,44 @@ feature -- Access queries
 			end
 		end
 
+	adapted_class_options: like internal_class_options
+			-- Options for classes.
+		do
+				-- Get local options
+			if
+				attached parent as p and then
+				attached p.adapted_class_options as o
+			then
+				Result := o.twin
+			end
+			if attached forced_class_options as o then
+				if Result /= Void then
+					Result.merge (o)
+				else
+					Result := o.twin
+				end
+			elseif attached internal_class_options as o then
+				if Result /= Void then
+					Result.merge (o)
+				else
+					Result := o.twin
+				end
+			end
+
+				-- if used as library, get options from application level if the library is defined there
+			if
+				is_used_in_library and then
+				attached target.system.application_target_library as l and then
+				attached l.adapted_class_options as o
+			then
+				if Result /= Void then
+					Result.merge (o)
+				else
+					Result := o.twin
+				end
+			end
+		end
+
 	mapping: STRING_TABLE [READABLE_STRING_32]
 			-- Special classes name mapping (eg. STRING => STRING_32).
 		local
@@ -232,7 +291,6 @@ feature -- Access queries
 			-- Get the class with the final (after renaming/prefix) name `a_class'.
 			-- Either if it is defined in this cluster or if `a_dependencies' in a dependency.
 		local
-			l_groups: like accessible_groups
 			l_grp: CONF_GROUP
 			l_name: READABLE_STRING_GENERAL
 		do
@@ -258,17 +316,11 @@ feature -- Access queries
 
 					-- search in dependencies
 				if a_dependencies then
-					l_groups := accessible_groups
-					from
-						l_groups.start
-					until
-						l_groups.after
-					loop
-						l_grp := l_groups.item_for_iteration
+					across accessible_groups as g loop
+						l_grp := g
 						if l_grp.classes_set then
 							Result.append (l_grp.class_by_name (l_name, False))
 						end
-						l_groups.forth
 					end
 
 					class_by_name_cache.force (Result, l_name)
@@ -279,28 +331,20 @@ feature -- Access queries
 	name_by_class (a_class: CONF_CLASS; a_dependencies: BOOLEAN): LINKED_SET [READABLE_STRING_GENERAL]
 			-- Get name in this context of `a_class' (if `a_dependencies') then we check dependencies).
 		local
-			l_groups: like accessible_groups
 			l_grp: CONF_GROUP
 		do
 			if a_dependencies and then attached name_by_class_cache.item (a_class) as l_name_by_class_cache_found_item then
 				Result := l_name_by_class_cache_found_item
 			else
-					-- search in cluster itself
+					-- Search in the cluster itself.
 				Result := Precursor {CONF_PHYSICAL_GROUP} (a_class, a_dependencies)
-
-					-- search in dependencies
+					-- Search in dependencies.
 				if a_dependencies then
-					l_groups := accessible_groups
-					from
-						l_groups.start
-					until
-						l_groups.after
-					loop
-						l_grp := l_groups.item_for_iteration
+					across accessible_groups as g loop
+						l_grp := g
 						if l_grp.classes_set then
 							Result.append (l_grp.name_by_class (a_class, False))
 						end
-						l_groups.forth
 					end
 					name_by_class_cache.force (Result, a_class)
 				end
@@ -323,49 +367,16 @@ feature -- Access queries
 					l_grps := target.clusters
 					create l_accessible_groups_cache.make_map (l_grps.count)
 					accessible_groups_cache := l_accessible_groups_cache
-
-					from
-						l_grps.start
-					until
-						l_grps.after
-					loop
-						l_accessible_groups_cache.force (l_grps.item_for_iteration)
-						l_grps.forth
-					end
-
+					⟳ g: l_grps ¦ l_accessible_groups_cache.force (g) ⟲
 					l_grps := target.libraries
-					l_accessible_groups_cache.resize (accessible_groups.count+l_grps.count)
-					from
-						l_grps.start
-					until
-						l_grps.after
-					loop
-						l_accessible_groups_cache.force (l_grps.item_for_iteration)
-						l_grps.forth
-					end
-
+					l_accessible_groups_cache.resize (accessible_groups.count + l_grps.count)
+					⟳ g: l_grps ¦ l_accessible_groups_cache.force (g) ⟲
 					l_grps := target.assemblies
-					l_accessible_groups_cache.resize (accessible_groups.count+l_grps.count)
-					from
-						l_grps.start
-					until
-						l_grps.after
-					loop
-						l_accessible_groups_cache.force (l_grps.item_for_iteration)
-						l_grps.forth
-					end
-
+					l_accessible_groups_cache.resize (accessible_groups.count + l_grps.count)
+					⟳ g: l_grps ¦ l_accessible_groups_cache.force (g) ⟲
 					l_grps := target.overrides
-					l_accessible_groups_cache.resize (accessible_groups.count+l_grps.count)
-					from
-						l_grps.start
-					until
-						l_grps.after
-					loop
-						l_accessible_groups_cache.force (l_grps.item_for_iteration)
-						l_grps.forth
-					end
-
+					l_accessible_groups_cache.resize (accessible_groups.count + l_grps.count)
+					⟳ g: l_grps ¦ l_accessible_groups_cache.force (g) ⟲
 					if attached target.precompile as l_target_precompile then
 						l_accessible_groups_cache.force (l_target_precompile)
 					end
@@ -486,6 +497,30 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 			added: el_internal_dependencies.has (a_group)
 		end
 
+	add_dependency_name (a_group_name: like {CONF_GROUP}.name)
+			-- Add dependency on group named `a_group_name`.
+		require
+			a_group_not_void: a_group_name /= Void
+		local
+			l_dep_names: like dependency_names
+		do
+			l_dep_names := dependency_names
+			if l_dep_names = Void then
+				create l_dep_names.make (0)
+				dependency_names := l_dep_names
+			end
+			l_dep_names.force (a_group_name)
+		ensure
+			dependency_names_set: attached dependency_names as el_depnames
+			added: el_depnames.has (a_group_name)
+		end
+
+	reset_dependency_names
+			-- Reset group dependency names.
+		do
+			dependency_names := Void
+		end
+
 	add_file_rule (a_file_rule: CONF_FILE_RULE)
 			-- Add `a_file_rule'.
 		require
@@ -566,6 +601,10 @@ feature {CONF_ACCESS} -- Implementation, attributes stored in configuration file
 	internal_dependencies: detachable like dependencies
 			-- Dependencies to other groups of this cluster itself.
 
+	dependency_names: detachable ARRAYED_LIST [like {CONF_GROUP}.name]
+			-- Dependencies to other groups of this cluster itself.
+			-- It will be expanded as `dependencies`.
+
 	internal_file_rule: like file_rule
 			-- Rules for files to be included or excluded of this cluster itself.
 
@@ -586,7 +625,7 @@ invariant
 	parent_child_relationship: attached parent as p implies (attached p.children as p_children and then p_children.has (Current))
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

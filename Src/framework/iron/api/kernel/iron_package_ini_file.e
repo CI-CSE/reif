@@ -28,7 +28,7 @@ feature -- Access
 	item (a_name: READABLE_STRING_GENERAL): detachable READABLE_STRING_32
 			-- Data associated with `item'
 		do
-			Result := ini.item (a_name)
+			Result := ini.adjusted_item (a_name)
 		end
 
 	package_name: detachable READABLE_STRING_32
@@ -65,7 +65,8 @@ feature -- Conversion
 
 	to_package (a_repo: IRON_REPOSITORY): IRON_PACKAGE
 		local
-			s,t: STRING_8
+			s: STRING_8
+			t: READABLE_STRING_8
 			l_path_uri: PATH_URI
 		do
 			if attached item ("id") as l_id and then l_id.is_valid_as_string_8 then
@@ -82,7 +83,7 @@ feature -- Conversion
 				across
 					l_tags.split (',') as ic
 				loop
-					Result.tags.force (ic.item)
+					Result.tags.force (ic)
 				end
 			end
 			create l_path_uri.make_from_path (path)
@@ -114,7 +115,7 @@ feature -- Conversion
 				if not s.is_empty then
 					s.append_character (',')
 				end
-				s.append (ic.item)
+				s.append (ic)
 			end
 			ini.put (s, "tags")
 		end
@@ -151,7 +152,7 @@ feature -- Storage
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,13 +1,13 @@
-note
+﻿note
 
-	description:
-		"Directory for an EiffelStudio project.%
-		%This represents the directory in which the%
-		%EIFGEN directory resides."
+	description: "[
+			Directory for an EiffelStudio project.
+			This represents the directory in which the EIFGEN directory resides.
+		]"
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	date: "$Date$";
-	revision: "$Revision $"
+	status: "See notice at end of class."
+	date: "$Date$"
+	revision: "$Revision$"
 
 class REMOTE_PROJECT_DIRECTORY
 
@@ -167,7 +167,7 @@ feature -- Access
 			else
 				Result := project_location.workbench_path
 			end
-			Result := Result.extended (system_name + "." + msil_generation_type)
+			Result := Result.extended (system_name).appended_with_extension (msil_generation_type)
 		ensure
 			assembly_driver_not_void: Result /= Void
 		end
@@ -369,7 +369,7 @@ feature {NONE} -- Implementation
 				if not ok then
 					create vd43
 					vd43.set_path (rn.name)
-					Error_handler.insert_warning (vd43)
+					Error_handler.insert_warning (vd43, False)
 				end
 			end
 		end
@@ -388,7 +388,7 @@ invariant
 	project_location_not_void: project_location /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -419,4 +419,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class REMOTE_PROJECT_DIRECTORY
+end

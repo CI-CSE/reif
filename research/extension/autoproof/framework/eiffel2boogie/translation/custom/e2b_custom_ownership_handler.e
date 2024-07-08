@@ -1,9 +1,4 @@
-note
-	description: "Summary description for {E2B_CUSTOM_OWNERSHIP_HANDLER}."
-	date: "$Date$"
-	revision: "$Revision$"
-
-class
+﻿class
 	E2B_CUSTOM_OWNERSHIP_HANDLER
 
 inherit
@@ -31,10 +26,8 @@ feature -- Basic operations
 			-- <Precursor>
 		local
 			l_name: STRING
-			l_assign: IV_ASSIGNMENT
 			l_call: IV_PROCEDURE_CALL
 			l_type: IV_TYPE
-			l_names: LIST [STRING]
 			l_trig: IV_FUNCTION_CALL
 			l_old_side_effect: LINKED_LIST [IV_STATEMENT]
 		do
@@ -73,16 +66,17 @@ feature -- Basic operations
 			elseif translation_mapping.ghost_setter.has (l_name) then
 				l_name := l_name.substring (5, l_name.count)
 				a_translator.process_builtin_routine_call (a_feature, a_parameters, "xyz")
-				l_call ?= a_translator.side_effect.last
-				a_translator.side_effect.finish
-				a_translator.side_effect.remove	-- last side effect is actual call, here to non-existing "xyz"
-				a_translator.set_last_expression (Void)
-				l_call := factory.procedure_call ("update_heap", <<
-					a_translator.current_target,
-					factory.entity (l_name, types.field ((create {E2B_SPECIAL_MAPPING}.make).ghost_access_type (l_name))),
-					l_call.arguments.i_th (2)>>)
-				l_call.node_info.set_line (a_translator.context_line_number)
-				a_translator.side_effect.extend (l_call)
+				if attached {IV_PROCEDURE_CALL} a_translator.side_effect.last as c then
+					a_translator.side_effect.finish
+					a_translator.side_effect.remove	-- last side effect is actual call, here to non-existing "xyz"
+					a_translator.set_last_expression (Void)
+					l_call := factory.procedure_call ("update_heap", <<
+						a_translator.current_target,
+						factory.entity (l_name, types.field ((create {E2B_SPECIAL_MAPPING}.make).ghost_access_type (l_name))),
+						c.arguments.i_th (2)>>)
+					l_call.node_info.set_line (a_translator.context_line_number)
+					a_translator.side_effect.extend (l_call)
+				end
 			else
 				check false end
 			end
@@ -209,7 +203,7 @@ feature -- Basic operations
 				Result.extend (l_string.value)
 			elseif attached {TUPLE_CONST_B} a_parameters.first.expression as l_tuple then
 				across l_tuple.expressions as i loop
-					if attached {STRING_B} i.item as l_string then
+					if attached {STRING_B} i as l_string then
 						Result.extend (l_string.value)
 					else
 						check False end
@@ -220,55 +214,45 @@ feature -- Basic operations
 			end
 		end
 
-	check_valid_class_inv_tags (a_class: CLASS_C; a_context_feature: FEATURE_I; a_line_number: INTEGER; a_tags: LIST [STRING])
+	check_valid_class_inv_tags (a_class: CLASS_C; a_context_feature: FEATURE_I; a_line_number: INTEGER; a_tags: LIST [READABLE_STRING_8])
 			-- Check if `a_tags' only lists valid class invariant of `a_class'.
 			-- Otherwise report error in feature `a_context_feature'.
 		local
-			l_asserts: BYTE_LIST [BYTE_NODE]
-			l_assert: ASSERT_B
-			l_tags_copy: LINKED_LIST [STRING]
-			l_string: STRING
+			l_tags_copy: LINKED_LIST [READABLE_STRING_8]
+			l_string: STRING_32
 		do
 			create l_tags_copy.make
 			l_tags_copy.append (a_tags)
 			l_tags_copy.compare_objects
 				-- Remove default tags
 			across translation_mapping.default_tags as t loop
-				l_tags_copy.prune_all (t.item)
+				l_tags_copy.prune_all (t)
 			end
 				-- Remove user-defined tags
 			check_flat_inv_tags (a_class, l_tags_copy)
 			if not l_tags_copy.is_empty then
-				l_string := ""
+				l_string := {STRING_32} ""
 				across l_tags_copy as i loop
-					l_string.append (i.item)
-					l_string.append (", ")
+					l_string.append ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (i))
+					l_string.append ({STRING_32} ", ")
 				end
 				l_string.remove_tail (2)
 				helper.add_semantic_error (a_context_feature, messages.invalid_tag (l_string, a_class.name_in_upper), a_line_number)
 			end
 		end
 
-	check_flat_inv_tags (a_class: CLASS_C; a_tags: LIST [STRING])
+	check_flat_inv_tags (a_class: CLASS_C; a_tags: LIST [READABLE_STRING_8])
 			-- Remove from `a_tags' all class invariant tags present in `a_class' and its ancestors.
 		local
-			l_asserts: BYTE_LIST [BYTE_NODE]
-			l_assert: ASSERT_B
 			l_classes: FIXED_LIST [CLASS_C]
 		do
 			if inv_byte_server.has (a_class.class_id) then
-				from
-					l_asserts := inv_byte_server.item (a_class.class_id).byte_list
-					l_asserts.start
-				until
-					l_asserts.after
+				across
+					inv_byte_server.item (a_class.class_id).byte_list as node
 				loop
-					l_assert ?= l_asserts.item_for_iteration
-					check l_assert /= Void end
-					if l_assert.tag /= Void then
-						a_tags.prune_all (l_assert.tag)
+					if attached {ASSERT_B} node as a then
+						a_tags.prune_all (a.tag)
 					end
-					l_asserts.forth
 				end
 			end
 			from
@@ -296,20 +280,20 @@ feature -- Basic operations
 				if use_static_invariant (a_translator) then
 						-- Check exact invariant definition.
 					create l_type_translator
-					l_type_translator.translate_inline_invaraint_check (a_translator.current_target_type, a_translator.current_target)
+					l_type_translator.translate_inline_invariant_check (a_translator.current_target_type, a_translator.current_target)
 
 					across helper.ghost_attributes (a_translator.current_target_type.base_class) as a loop
-						set_implicit_ghost (a_translator, a.item)
+						set_implicit_ghost (a_translator, a)
 					end
 
 					across l_type_translator.last_clauses as c loop
-						c.item.node_info.set_line (a_translator.context_line_number)
-						c.item.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
-						c.item.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
+						c.node_info.set_line (a_translator.context_line_number)
+						c.node_info.set_attribute ("cid", a_feature.written_class.class_id.out)
+						c.node_info.set_attribute ("rid", a_feature.rout_id_set.first.out)
 						if options.is_inv_check_independent then
-							a_translator.add_independent_check (c.item)
-						else	
-							a_translator.side_effect.extend (c.item)
+							a_translator.add_independent_check (c)
+						else
+							a_translator.side_effect.extend (c)
 						end
 					end
 				else
@@ -354,7 +338,7 @@ feature -- Basic operations
 		end
 
 	use_static_invariant (a_translator: E2B_BODY_EXPRESSION_TRANSLATOR): BOOLEAN
-			-- Should the static definition of the ivnariant be used for the current target of `a_translator'?
+			-- Should the static definition of the invariant be used for the current target of `a_translator'?
 		do
 				-- Yes if the current target is "Current" and the context feature is not marked as nonvariant,
 				-- or the type of the target is exact.
@@ -385,7 +369,7 @@ feature -- Basic operations
 				l_pcall.add_argument (factory.function_call (l_function.name,
 					<< a_translator.entity_mapping.heap, a_translator.current_target >>,
 					types.field_content_type (l_field.type)))
-				l_pcall.node_info.set_attribute ("default", a_attr.feature_name_32)
+				l_pcall.node_info.set_attribute ("default", a_attr.feature_name)
 				l_pcall.node_info.set_line (a_translator.context_line_number)
 
 					-- Create a condition that l_field is in the modify clause of the current function
@@ -393,7 +377,7 @@ feature -- Basic operations
 				create l_fcall.make (name_translator.boogie_function_for_write_frame (a_translator.context_feature, a_translator.context_type), types.frame)
 				l_fcall.add_argument (factory.global_heap)
 				across a_translator.context_implementation.procedure.arguments as i loop
-					l_fcall.add_argument (i.item.entity)
+					l_fcall.add_argument (i.entity)
 				end
 
 				create l_if.make_if_then (factory.frame_access (l_fcall, a_translator.current_target, l_field),
@@ -401,5 +385,29 @@ feature -- Basic operations
 				a_translator.side_effect.extend (l_if)
 			end
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

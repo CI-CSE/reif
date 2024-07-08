@@ -1,7 +1,5 @@
-note
-	description: "[
-			Represents a group of switches for group validation.
-		]"
+﻿note
+	description: "Represents a group of switches for group validation.]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -23,7 +21,7 @@ feature {NONE} -- Initialization
 			-- `a_allow_non_switched': True to allow non switched arguments; False to allow only switch qualified arguments.
 		require
 			a_switches_attached: a_switches /= Void
-			switches_contained_unique_items: across a_switches as c all a_switches.occurrences (c.item) = 1 end
+			switches_contained_unique_items: ∀ c: a_switches ¦ a_switches.occurrences (c) = 1
 		local
 			l_switches: like switches
 		do
@@ -31,7 +29,7 @@ feature {NONE} -- Initialization
 			across
 				a_switches as c
 			loop
-				if attached c.item as l_switch then
+				if attached c as l_switch then
 					l_switches.extend (l_switch)
 				end
 			end
@@ -50,7 +48,7 @@ feature {NONE} -- Initialization
 			-- `a_allow_non_switched': True to allow non switched arguments; False to allow only switch qualified arguments.
 		require
 			a_switches_attached: a_switches /= Void
-			switches_contained_unique_items: across a_switches as c all a_switches.occurrences (c.item) = 1 end
+			switches_contained_unique_items: ∀ c: a_switches ¦ a_switches.occurrences (c) = 1
 		do
 			make (a_switches, a_allow_non_switched)
 			is_hidden := True
@@ -75,9 +73,9 @@ feature -- Status report
 invariant
 	switches_attached: switches /= Void
 
-;note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software"
-	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+note
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

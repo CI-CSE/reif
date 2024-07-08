@@ -5,7 +5,7 @@ note
 		"Test suites"
 
 	library: "Gobo Eiffel Test Library"
-	copyright: "Copyright (c) 2000-2006, Eric Bezault and others"
+	copyright: "Copyright (c) 2000-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -15,6 +15,8 @@ class TS_TEST_SUITE
 inherit
 
 	TS_TEST
+
+	ITERABLE [TS_TEST]
 
 create
 
@@ -62,6 +64,24 @@ feature -- Measurement
 			end
 		end
 
+feature -- Element change
+
+	add_test_cases_to_suite (a_suite: TS_TEST_SUITE)
+			-- Add test cases to `a_suite'.
+		local
+			l_cursor: DS_LIST_CURSOR [TS_TEST]
+		do
+			l_cursor := tests.new_cursor
+			from
+				l_cursor.start
+			until
+				l_cursor.after
+			loop
+				l_cursor.item.add_test_cases_to_suite (a_suite)
+				l_cursor.forth
+			end
+		end
+
 feature -- Execution
 
 	execute (a_summary: TS_SUMMARY)
@@ -88,6 +108,14 @@ feature -- Element change
 			a_test_not_void: a_test /= Void
 		do
 			tests.put_last (a_test)
+		end
+
+feature -- Iteration
+
+	new_cursor: ITERATION_CURSOR [TS_TEST]
+			-- <Precursor>
+		do
+			Result := tests.new_iterator
 		end
 
 feature {NONE} -- Implementation

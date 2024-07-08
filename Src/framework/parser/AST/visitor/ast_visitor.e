@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Visitor to traverse an AST."
 
 deferred class
@@ -46,39 +46,7 @@ feature -- Roundtrip
 		deferred
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
-			-- Process `l_as'.
-		require
-			is_valid_visitor: is_valid
-			l_as_not_void: l_as /= Void
-		deferred
-		end
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process `l_as'.
-		require
-			is_valid_visitor: is_valid
-			l_as_not_void: l_as /= Void
-		deferred
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		require
-			is_valid_visitor: is_valid
-			non_void_as: l_as /= Void
-		deferred
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		require
-			is_valid_visitor: is_valid
-			non_void_as: l_as /= Void
-		deferred
-		end
-
-feature -- Roundtrip
+feature -- Roundtrip: leaves
 
 	process_keyword_as (l_as: KEYWORD_AS)
 			-- Process `l_as'.
@@ -324,14 +292,6 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 		deferred
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-			-- Process `l_as'.
-		require
-			is_valid_visitor: is_valid
-			non_void_as: l_as /= Void
-		deferred
-		end
-
 	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 			-- Process `l_as'.
 		require
@@ -372,15 +332,7 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 		deferred
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-			-- Process `l_as'.
-		require
-			is_valid_visitor: is_valid
-			non_void_as: l_as /= Void
-		deferred
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 			-- Process `l_as'.
 		require
 			is_valid_visitor: is_valid
@@ -822,6 +774,14 @@ feature {AST_EIFFEL} -- Expressions visitors
 		deferred
 		end
 
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- Process `a`.
+		require
+			is_valid
+			attached a
+		deferred
+		end
+
 	process_type_expr_as (l_as: TYPE_EXPR_AS)
 			-- Process `l_as'.
 		require
@@ -1075,6 +1035,22 @@ feature {AST_EIFFEL} -- Expressions visitors
 		require
 			is_valid_visitor: is_valid
 			attached_as: attached l_as
+		deferred
+		end
+
+	process_inspect_expression_as (a: INSPECT_EXPRESSION_AS)
+			-- Process `a`.
+		require
+			is_valid_visitor: is_valid
+			a_attached: attached a
+		deferred
+		end
+
+	process_case_expression_as (a: CASE_EXPRESSION_AS)
+			-- Process `a`.
+		require
+			is_valid_visitor: is_valid
+			a_attached: attached a
 		deferred
 		end
 
@@ -1347,7 +1323,7 @@ feature -- Quantification
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Shared object that manages all debugging actions."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -503,7 +503,7 @@ feature -- Breakpoints management
 
 	edit_breakpoint_condition (bp: BREAKPOINT)
 		local
-			s: STRING
+			s: STRING_32
 			exp: DBG_EXPRESSION
 			fe: E_FEATURE
 			d: STRING
@@ -552,7 +552,7 @@ feature -- Breakpoints management
 
 	edit_breakpoint_when_hits (bp: BREAKPOINT)
 		local
-			s: STRING
+			s: STRING_32
 			d: STRING
 			wha: detachable BREAKPOINT_WHEN_HITS_ACTION_PRINT_MESSAGE
 		do
@@ -707,7 +707,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

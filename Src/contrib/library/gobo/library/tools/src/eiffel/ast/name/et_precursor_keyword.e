@@ -5,7 +5,7 @@ note
 		"Eiffel 'precursor' keywords"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2003-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 2003-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -19,8 +19,6 @@ inherit
 			make_precursor as make,
 			text as name,
 			is_local as is_local_keyword,
-			is_infix as is_infix_keyword,
-			is_prefix as is_prefix_keyword,
 			is_alias as is_alias_keyword
 		redefine
 			process,
@@ -46,6 +44,7 @@ feature -- Access
 
 	lower_name: STRING
 			-- Lower-name of feature call
+			-- (using UTF-8 encoding)
 			-- (May return the same object as `name' if already in lower case.)
 		do
 			Result := tokens.precursor_keyword_name

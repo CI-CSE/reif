@@ -5,7 +5,7 @@ note
 		"Eiffel adapted class universes"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2008-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 2008-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -77,6 +77,19 @@ feature -- Access
 	universe: ET_UNIVERSE
 			-- Eiffel class universe being adapted
 
+feature -- Setting
+
+	set_name (a_name: STRING)
+			-- Set `name' to `a_name'.
+		require
+			a_name_not_void: a_name /= Void
+			a_name_not_empty: not a_name.is_empty
+		do
+			name := a_name
+		ensure
+			name_set: name = a_name
+		end
+
 feature -- Status setting
 
 	set_read_only (b: BOOLEAN)
@@ -106,8 +119,8 @@ feature -- Setting
 	set_class_renamings (a_renamings: like class_renamings)
 			-- Set `class_renamings' to `a_renamings'.
 		require
-			no_void_old_class_renamings: a_renamings /= Void implies not a_renamings.has_void
-			no_void_new_class_renamings: a_renamings /= Void implies not a_renamings.has_void_item
+			no_void_old_class_renaming: a_renamings /= Void implies not a_renamings.has_void
+			no_void_new_class_renaming: a_renamings /= Void implies not a_renamings.has_void_item
 		do
 			class_renamings := a_renamings
 		ensure
@@ -119,6 +132,9 @@ feature -- Exporting classes
 	export_classes (other_universe: ET_UNIVERSE)
 			-- Export non-hidden classes locally declared in `universe'
 			-- so that they can be used in classes of `other_universe'.
+			-- Note that mapped classes are also exported, provided that
+			-- the classes they are mapped to is also declared in
+			-- `universe'.
 		require
 			other_universe_not_void: other_universe /= Void
 		local
@@ -127,14 +143,17 @@ feature -- Exporting classes
 			l_other_class: ET_MASTER_CLASS
 			l_class_name: ET_CLASS_NAME
 			l_old_class_name: STRING
+			l_actual_intrinsic_class: ET_CLASS
 		do
 			l_cursor := universe.master_classes.new_cursor
 			from l_cursor.start until l_cursor.after loop
 				l_class := l_cursor.item
-				if l_class.is_mapped then
-						-- Do not export mapped classes.
-						-- They will be exported under their actual name.
-				elseif l_class.actual_intrinsic_class.universe = universe then
+				l_actual_intrinsic_class := l_class.actual_intrinsic_class
+				if l_actual_intrinsic_class.universe /= universe then
+						-- Do not export classes not declared locally.
+				elseif l_actual_intrinsic_class.group.is_hidden then
+						-- Do not export classes in hidden groups.
+				else
 						-- Take into account class renaming and classname prefix.
 					l_class_name := l_cursor.key
 					l_old_class_name := l_class_name.upper_name
@@ -164,8 +183,8 @@ invariant
 
 	name_not_void: name /= Void
 	name_not_empty: not name.is_empty
-	no_void_old_class_renamings: attached class_renamings as l_class_renamings implies not l_class_renamings.has_void
-	no_void_new_class_renamings: attached class_renamings as l_class_renamings implies not l_class_renamings.has_void_item
+	no_void_old_class_renaming: attached class_renamings as l_class_renamings implies not l_class_renamings.has_void
+	no_void_new_class_renaming: attached class_renamings as l_class_renamings implies not l_class_renamings.has_void_item
 	universe_not_void: universe /= Void
 
 end

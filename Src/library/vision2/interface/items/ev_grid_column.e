@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Column of an EV_GRID, containing EV_GRID_ITEMs."
 	date: "$Date$"
 	legal: "See notice at end of class."
@@ -109,6 +109,12 @@ feature -- Access
 			Result := implementation.width
 		ensure
 			Result_non_negative: Result >= 0
+		end
+
+	minimum_width: INTEGER
+			-- Minimum width of current column.
+		do
+			Result := implementation.minimum_width
 		end
 
 	virtual_x_position: INTEGER
@@ -279,7 +285,7 @@ feature -- Status setting
 		require
 			not_destroyed: not is_destroyed
 			parented: attached parent as l_parent
-			valid_rows: start_row >= 1 and end_row <= l_parent.row_count and start_row <= end_row
+			valid_rows: start_row >= 1 and end_row <= l_parent.row_count and start_row - 1 <= end_row
 		do
 			Result := implementation.required_width_of_item_span (start_row, end_row)
 		ensure
@@ -300,7 +306,7 @@ feature -- Status setting
 			header_item.resize_to_content
 			set_width (required_width_of_item_span (1, l_parent.row_count).max (header_item.width))
 		ensure
-			width_set: attached parent as l_par and then width = required_width_of_item_span (1, l_par.row_count)
+			width_set: attached parent as l_par and then width = required_width_of_item_span (1, l_par.row_count).max (header_item.width)
 		end
 
 feature -- Status report
@@ -384,6 +390,7 @@ feature -- Element change
 		require
 			not_destroyed: not is_destroyed
 			width_non_negative: a_width >= 0
+			a_width_greater_or_equal_minimum: a_width >= minimum_width
 			is_parented: parent /= Void
 		do
 			implementation.set_width (a_width)
@@ -514,7 +521,7 @@ invariant
 	virtual_position_and_virtual_position_unlocked_equal_when_not_locked: not is_locked implies virtual_x_position = virtual_x_position_unlocked
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

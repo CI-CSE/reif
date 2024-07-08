@@ -77,12 +77,18 @@ feature {NONE} -- Initialization
 				-- A parser to process configutation options specified in the command line.
 			create configuration_option_parser.make
 				(agent: ITERABLE [READABLE_STRING_32]
+					local
+						t: like eiffel_layout.default_il_environment.installed_runtimes
+						n: ARRAYED_LIST [READABLE_STRING_32]
 					do
 							-- agent eiffel_layout.default_il_environment.installed_runtimes
 							-- would work, but it would cause computation of CLR run-times
-							-- immediately though it might never required.
+							-- immediately though it might be never required.
 							-- Therefore we are using the inline agent instead.
-						Result := eiffel_layout.default_il_environment.installed_runtimes
+						t := eiffel_layout.default_il_environment.installed_runtimes
+						create n.make (t.count)
+						⟳ r: t ¦ n.extend (@ r.key) ⟲
+						Result := n
 					end)
 				-- Check that environment variables
 				-- are properly set.
@@ -116,9 +122,14 @@ feature {NONE} -- Initialization
 			initialize
 
 				-- Execution
-			execute
+			execute (l_preference_access)
 
 			l_eifgen_init.dispose
+
+			if workbench.system_defined and then not workbench.successful then
+					-- Exit with non-zero error code.
+				die (-1)
+			end
 		end
 
 	initialize
@@ -130,7 +141,7 @@ feature {NONE} -- Initialization
 			;(create {CA_CODE_ANALYZER}.make).install_obsolete_call_processor
 		end
 
-	execute
+	execute (preferences: PREFERENCES)
 			-- Analyze the command line options and
 			-- execute the appropriate command.
 		local
@@ -149,7 +160,7 @@ feature {NONE} -- Initialization
 						-- Reset errors
 					option_error_message := Void
 					option_warning_messages := Void
-					analyze_options
+					analyze_options (preferences)
 					if has_error then
 						print_option_error
 						print_option_warnings
@@ -160,9 +171,9 @@ feature {NONE} -- Initialization
 					elseif not file_error then
 						print_option_warnings
 						if output_window = Void then
-							command.set_output_window (Error_window)
+							command_line_io.set_output_window (error_window)
 						else
-							command.set_output_window (output_window)
+							command_line_io.set_output_window (output_window)
 						end
 
 							--| Initialization of the display
@@ -299,7 +310,7 @@ feature -- Properties
 	no_project_needed: BOOLEAN
 			-- Is a project needed to perform `command'?
 
-	command: EWB_CMD
+	command: detachable E_CMD
 			-- Command to be executed corresponding to
 			-- command line options
 
@@ -319,7 +330,7 @@ feature -- Properties
 			Result := option_error_message /= Void
 		end
 
-	option_error_message: detachable STRING_32
+	option_error_message: detachable READABLE_STRING_32
 			-- Error message when an error occurred.
 
 	option_warning_messages: detachable ARRAYED_LIST [READABLE_STRING_32]
@@ -384,54 +395,60 @@ feature -- Properties
 	is_experimental_flag_set, is_compatible_flag_set: BOOLEAN
 			-- Did use specify one of `-experiment' or `-compat' argument?
 
-	help_messages: HASH_TABLE [READABLE_STRING_GENERAL, STRING]
-			-- Help message table
+	help_messages: STRING_TABLE [READABLE_STRING_32]
+			-- Help message table.
 		once
-			create Result.make (35)
-			Result.put (ancestors_help, ancestors_cmd_name)
-			Result.put (aversions_help, aversions_cmd_name)
-			Result.put (config_help, config_cmd_name)
-			Result.put (config_option_help, config_option_cmd_name)
-			Result.put (callers_help, callers_cmd_name)
-			Result.put (callees_help, callees_cmd_name)
-			Result.put (clients_help, clients_cmd_name)
-			Result.put (descendants_help, descendants_cmd_name)
-			Result.put (dversions_help, dversions_cmd_name)
-			Result.put (file_help, file_cmd_name)
-			Result.put (filter_help, filter_cmd_name)
-			Result.put (flat_help, flat_cmd_name)
-			Result.put (flatshort_help, flatshort_cmd_name)
-			Result.put (help_help, help_cmd_name)
-			Result.put (implementers_help, implementers_cmd_name)
-			Result.put (library_help, library_cmd_name)
-			Result.put (loop_help, loop_cmd_name)
-			Result.put (debug_help, debug_cmd_name)
-			Result.put (melt_help, melt_cmd_name)
-			Result.put (overwrite_old_project_help, overwrite_old_project_cmd_name)
-			Result.put (pretty_help, pretty_cmd_name)
-			Result.put (project_help, project_cmd_name)
-			Result.put (project_path_help, project_path_cmd_name)
-			Result.put (quick_melt_help, quick_melt_cmd_name)
-			Result.put (short_help, short_cmd_name)
-			Result.put (single_file_compilation_help, single_file_compilation_cmd_name)
-			Result.put (stop_help, stop_cmd_name)
-			Result.put (suppliers_help, suppliers_cmd_name)
-			Result.put (target_help, target_cmd_name)
-			Result.put (use_settings_help, use_settings_cmd_name)
-			Result.put (no_library_help, no_library_cmd_name)
-			Result.put (version_help, version_cmd_name)
-			Result.put (batch_help, batch_cmd_name)
-			Result.put (clean_help, clean_cmd_name)
-			Result.put (gui_help, gui_cmd_name)
-			Result.put (gc_stats_help, gc_stats_cmd_name)
-			Result.put (compat_help, compat_cmd_name)
-			Result.put (experiment_help, experiment_cmd_name)
-			Result.put (full_help, full_class_checking_cmd_name)
-			Result.put (ca_class_help, ca_class_cmd_name)
-			Result.put (ca_default_help, ca_default_cmd_name)
-			Result.put (ca_rule_help, ca_rule_cmd_name)
-			Result.put (ca_setting_help, ca_setting_cmd_name)
-			add_help_special_cmds
+			create Result.make (48)
+			Result [ancestors_cmd_name] := ancestors_help
+			Result [aversions_cmd_name] := aversions_help
+			Result [batch_cmd_name] := batch_help
+			Result [c_compile_cmd_name] := c_compile_help
+			Result [ca_class_cmd_name] := ca_class_help
+			Result [ca_default_cmd_name] := ca_default_help
+			Result [ca_rule_cmd_name] := ca_rule_help
+			Result [ca_setting_cmd_name] := ca_setting_help
+			Result [callees_cmd_name] := callees_help
+			Result [callers_cmd_name] := callers_help
+			Result [clean_cmd_name] := clean_help
+			Result [clients_cmd_name] := clients_help
+			Result [config_cmd_name] := config_help
+			Result [config_option_cmd_name] := config_option_help
+			Result [debug_cmd_name] := debug_help
+			Result [descendants_cmd_name] := descendants_help
+			Result [dversions_cmd_name] := dversions_help
+			Result [file_cmd_name] := file_help
+			Result [filter_cmd_name] := filter_help
+			Result [finalize_cmd_name] := finalize_help
+			Result [flat_cmd_name] := flat_help
+			Result [flatshort_cmd_name] := flatshort_help
+			Result [freeze_cmd_name] := freeze_help
+			Result [full_class_checking_cmd_name] := full_help
+			Result [gc_stats_cmd_name] := gc_stats_help
+			Result [gui_cmd_name] := gui_help
+			Result [help_cmd_name] := help_help
+			Result [implementers_cmd_name] := implementers_help
+			Result [library_cmd_name] := library_help
+			Result [loop_cmd_name] := loop_help
+			Result [melt_cmd_name] := melt_help
+			Result [no_library_cmd_name] := no_library_help
+			Result [overwrite_old_project_cmd_name] := overwrite_old_project_help
+			Result [precompile_cmd_name] := precompile_help
+			Result [preference_cmd_name] := preference_help
+			Result [pretty_cmd_name] := pretty_help
+			Result [project_cmd_name] := project_help
+			Result [project_path_cmd_name] := project_path_help
+			Result [quick_melt_cmd_name] := quick_melt_help
+			Result [reset_ide_layout_cmd_name] := reset_ide_layout_help
+			Result [short_cmd_name] := short_help
+			Result [single_file_compilation_cmd_name] := single_file_compilation_help
+			Result [stop_cmd_name] := stop_help
+			Result [suppliers_cmd_name] := suppliers_help
+			Result [target_cmd_name] := target_help
+			Result [use_settings_cmd_name] := use_settings_help
+			Result [version_cmd_name] := version_help
+-- Hide -compat and -experiment flags.			
+--			Result [compat_cmd_name] := compat_help
+--			Result [experiment_cmd_name] := experiment_help
 		end
 
 	loop_cmd: EWB_LOOP
@@ -504,73 +521,76 @@ feature {NONE} -- Output
 			-- Print the usage of command line options.
 		do
 			print_version
-			localized_print ("%N")
+			io.put_new_line
 			localized_print (ewb_names.usage)
 			localized_print (argument (0))
-			io.put_string (" [-help | [-compat | -experiment] | -version | -full%N%T")
-			io.put_string ("-batch | -clean | -verbose | -use_settings |%N%T")
-			io.put_string ("-freeze | -finalize [-keep] | -precompile [-finalize [-keep]] | -c_compile |%N%T")
-			io.put_string ("-loop | -debug | -quick_melt | -melt | ")
-			io.put_string ("-clients [-filter filtername] class |%N%
-				%%T-suppliers [-filter filtername] class |%N%
-				%%T-flatshort [-filter filtername] [-all | -all_and_parents | class] |%N%
-				%%T-flat [-filter filtername] [-all | -all_and_parents | class] |%N%
-				%%T-short [-filter filtername] [-all | -all_and_parents | class] | %N%
-				%%T-pretty input_filename [output_filename] |%N%
-				%%T-filter filtername [-all | class] |%N%
-				%%T-descendants [-filter filtername] class |%N")
-			io.put_string ("%
-				%%T-ancestors [-filter filtername] class |%N%
-				%%T-aversions [-filter filtername] class feature |%N%
-				%%T-dversions [-filter filtername] class feature |%N%
-				%%T-implementers [-filter filtername] class feature |%N%
-				%%T-callers [-filter filtername] [-show_all] [-assigners | -creators] class feature |%N%
-				%%T-callees [-filter filtername] [-show_all] [-assignees | -creators] class feature |%N")
-			io.put_string ("%
-				%%T[[-config config.ecf] [-target target] [-config_option option]|%N%
-				%%T[class_file.e [-library library_name]] |%N%
-				%%T-stop | -no_library |%N%
-				%%T-project_path Project_directory_path | -file File |%N%
-				%%T-ca_class (-all | class) | -ca_default | -ca_rule rule | -ca_setting file |%N%
-				%%T-gc_stats]%N")
+				-- The leading space on the first line is required to delimit options from the command name.
+			io.put_string ("[
+				 -help | -version | -full |
+				-batch | -clean | -verbose | -use_settings |
+				-freeze | -finalize [-keep] | -precompile [-finalize [-keep]] | -c_compile |
+				-loop | -debug | -quick_melt | -melt |
+				(-clients | -suppliers | -ancestors | -descendants) [-filter filtername] class |
+				(-flatshort | -flat | -short) [-filter filtername] [-all | -all_and_parents | class] |
+				(-aversions | -dversions | -implementers) [-filter filtername] class feature |
+				-callers [-filter filtername] [-show_all] [-assigners | -creators] class feature |
+				-callees [-filter filtername] [-show_all] [-assignees | -creators] class feature |
+				-filter filtername [-all | class] |
+				-pretty input_filename [output_filename] |
+				-reset_ide_layout |
+				[[-config config.ecf] [-target target] [-config_option option] |
+				[class_file.e [-library library_name]] |
+				-stop | -no_library |
+				-project_path project_directory | -file file |
+				-preference preference_name preference_value |
+				-ca_class (-all | class) | -ca_default | -ca_rule rule | -ca_setting file |
+				-gc_stats]
+
+			]")
 		end
 
 	print_version
 			-- Print Version Number
 		do
-			localized_print ("ISE " + Workbench_name + " version " + Version_number + "%N")
+			io.put_string_32 ({STRING_32} "ISE " + Workbench_name + " version " + Version_number + "%N")
 		end
 
 	print_help
 			-- Print the help.
 		local
-			command_list: SORTED_TWO_WAY_LIST [STRING]
-			cmd_name: STRING
+			command_list: SORTED_TWO_WAY_LIST [READABLE_STRING_32]
+			cmd_name: READABLE_STRING_32
+			more_help: like extension.service.help
 		do
 			print_usage
 			localized_print (ewb_names.options)
 			localized_print (ewb_names.default_quick_melt_the_system)
 
 			create command_list.make
-			across
-				help_messages.current_keys as k
-			loop
-				command_list.extend (k.item)
+			⟳ h: help_messages ¦ command_list.extend (@ h.key) ⟲
+			if attached extension.service as s then
+				more_help := s.help
+				⟳ h: more_help ¦ command_list.extend (@ h.key) ⟲
 			end
 			across
 				command_list as c
 			loop
 				cmd_name := c.item
-				print_one_help (cmd_name, help_messages.item (cmd_name))
+				print_one_help (cmd_name,
+					if attached more_help and then more_help.has (cmd_name) then
+						more_help [cmd_name]
+					else
+						help_messages [cmd_name]
+					end)
 			end
 		end
 
-	print_one_help (opt: STRING; txt: READABLE_STRING_GENERAL)
+	print_one_help (opt: READABLE_STRING_32; txt: READABLE_STRING_32)
 		do
 			io.put_string ("%T-")
-			io.put_string (opt)
+			io.put_string_32 (opt)
 			io.put_string (": ")
-			localized_print (txt)
+			io.put_string_32 (txt)
 			io.put_string (".%N")
 		end
 
@@ -648,15 +668,7 @@ feature {NONE} -- Output
 
 feature {NONE} -- Update
 
-	add_help_special_cmds
-		do
-			help_messages.put (freeze_help, freeze_cmd_name)
-			help_messages.put (precompile_help, precompile_cmd_name)
-			help_messages.put (finalize_help, finalize_cmd_name)
-			Help_messages.put (c_compile_help, c_compile_cmd_name)
-		end
-
-	analyze_options
+	analyze_options (preferences: PREFERENCES)
 			-- Analyze the options entered by the user.
 		do
 				-- Reset compiler_profile
@@ -668,7 +680,7 @@ feature {NONE} -- Update
 			until
 				(current_option > argument_count) or else has_error
 			loop
-				analyze_one_option
+				analyze_one_option (preferences)
 			end
 				-- Default command
 			if (not has_error) and then (command = Void) then
@@ -688,10 +700,10 @@ feature {NONE} -- Update
 	configuration_settings: detachable CONF_TARGET_SETTINGS
 			-- Configuration settings (if any) specified in the command-line.
 
-	configuration_option_parser: CONF_STRING_PARSER
+	configuration_option_parser: CONF_TARGET_SETTINGS_PARSER
 			-- A parser of configuration options.
 
-	analyze_one_option
+	analyze_one_option (preferences: PREFERENCES)
 			-- Analyze current option.
 		local
 			cn, fn: STRING_32
@@ -705,9 +717,10 @@ feature {NONE} -- Update
 			l_at_args: LINKED_LIST [STRING_8]
 			in_filename, out_filename: STRING_32
 			l_configuration_settings: like configuration_settings
+			option_arguments: ARRAYED_LIST [READABLE_STRING_32]
 		do
 			filter_name := ""
-			option := argument (current_option);
+			option := argument (current_option)
 
 			if option.same_string_general ("-help") then
 				help_only := True
@@ -1018,6 +1031,18 @@ feature {NONE} -- Update
 					end
 				end
 
+			elseif option.same_string_general ("-reset_ide_layout") then
+				if command /= Void then
+					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
+				else
+					no_project_needed := True
+
+					if not has_error then
+						create {EWB_RESET_IDE_LAYOUT} command.make
+						command_option := option
+					end
+				end
+
 			elseif option.same_string_general ("-filter") then
 				if command /= Void then
 					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
@@ -1133,7 +1158,7 @@ feature {NONE} -- Update
 					current_option := current_option + 1
 					create config_file_name.make_from_string (argument (current_option))
 				else
-					option_error_message := locale.translation ("Missing config name for option -config.")
+					option_error_message := locale.translation ("Missing configuration file name for option -config.")
 				end
 			elseif option.same_string_general ("-config_option") then
 				if current_option < argument_count then
@@ -1147,12 +1172,42 @@ feature {NONE} -- Update
 					if attached configuration_option_parser.error as e then
 							-- Add option name to the error message.
 						option_error_message := locale.formatted_string (locale.translation_in_context
-							("Error in command-line option %"-config_option%": $1", once "compiler"), e)
+							("Error in command-line option %"$1%": $2.", once "compiler.command-line.option"), option, e)
 							-- Reset configuration settings.
 						configuration_settings := Void
 					end
 				else
-					option_error_message := locale.translation ("Missing configuration option for option -config_option.")
+					option_error_message := locale.formatted_string (locale.translation_in_context
+						("Missing configuration setting for option %"$1%".", once "compiler.command-line.option"), option)
+				end
+			elseif option.same_string_general ("-preference") then
+					-- Set specified preference to the given value.
+				if current_option >= argument_count then
+					option_error_message := locale.formatted_string (locale.translation_in_context
+						("[
+							Missing preference name for option "$1".
+						]", once "compiler.command-line.option"), option)
+				elseif current_option + 1 >= argument_count then
+					current_option := current_option + 1
+					option_error_message := locale.formatted_string (locale.translation_in_context
+						("[
+							Missing preference value for option "$1".
+						]", once "compiler.command-line.option"), option)
+				else
+					current_option := current_option + 2
+					if not attached preferences.get_preference ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (argument (current_option - 1))) as p then
+						option_error_message := locale.formatted_string (locale.translation_in_context
+							("[
+								Unknown preference name for option "$1": "$2".
+							]", once "compiler.command-line.option"), option, argument (current_option - 1))
+					elseif not p.is_valid_string_for_selection (argument (current_option)) then
+						option_error_message := locale.formatted_string (locale.translation_in_context
+							("[
+								Invalid preference value "$3" for preference of name "$2" in option "$1".
+							]", once "compiler.command-line.option"), option, argument (current_option - 1), argument (current_option))
+					else
+						p.select_value_from_string (argument (current_option))
+					end
 				end
 			elseif option.same_string_general ("-target") then
 				if is_single_file_compilation then
@@ -1287,6 +1342,7 @@ feature {NONE} -- Update
 					option_error_message := locale.translation ("Cannot mix -config or -target when compiling a system using an Eiffel class as argument")
 				end
 			elseif option.same_string_general ("-compat") then
+				check valid_option: compat_cmd_name.same_string ("compat") end
 					-- This option enables the default set of options of 6.3 and earlier if not specified
 					-- in the ECF file.
 				if is_experimental_flag_set then
@@ -1296,6 +1352,7 @@ feature {NONE} -- Update
 					is_compatible_flag_set := True
 				end
 			elseif option.same_string_general ("-experiment") then
+				check valid_option: experiment_cmd_name.same_string ("experiment") end
 					-- This option enables the new options of the compiler that are not mainstream.
 				if is_compatible_flag_set then
 					option_error_message := locale.translation ("Cannot override -compat with -experiment.")
@@ -1456,6 +1513,42 @@ feature {NONE} -- Update
 				create {EWB_TEST_EXECUTION} command
 				command_option := option
 
+			elseif
+				attached extension.service as s and then
+				option.count > 1 and then
+				option [1] = (create {ES_ARGUMENTS}).option_sign.item and then
+				attached option.tail (option.count - 1) as o and then
+				attached s.argument_count (o) as n and then
+				n /= s.unknown_option
+			then
+					-- This is a known service-provided option.
+					-- Check if there are sufficient option arguments.
+				if current_option + n > argument_count then
+					option_error_message := locale.formatted_string
+						(locale.plural_translation_in_context
+							({STRING_32} "Insufficient arguments for option `$1` that expects $2 argument.",
+							{STRING_32} "Insufficient arguments for option `$1` that expects $2 arguments.",
+							"compiler.option",
+							n),
+						option,
+						n)
+				else
+						-- Collect option arguments.
+					create option_arguments.make (n)
+					⟳ i: (current_option + 1) |..| (current_option + n) ¦ option_arguments.extend (argument (i)) ⟲
+						-- Current option will be added at the end of the routine.
+					current_option := current_option + n
+						-- Retrieve the associated command.
+					if not attached s.command (o, option_arguments) as c then
+						option_error_message := s.error
+					elseif attached command and then c /= command then
+						option_error_message := locale.formatted_string ({STRING_32} "Option `$1` conflicts with `$2`.", option, command_option)
+					else
+						command := c
+						command_option := option
+					end
+				end
+
 			elseif is_eiffel_class_file_name (create {PATH}.make_from_string (option)) then
 					-- This option is only valid if no other config options are set
 				if config_file_name = Void and target_name = Void and old_ace_file = Void and old_project_file = Void then
@@ -1512,11 +1605,13 @@ feature {NONE} -- Update
 			end
 		end
 
-feature {NONE} -- Onces
+feature -- Command-line input/output
 
 	command_line_io: COMMAND_LINE_IO
 		once
 			create Result
+		ensure
+			class
 		end
 
 feature {NONE} -- Implementation
@@ -1622,8 +1717,16 @@ feature{NONE} -- Implementation
 			end
 		end
 
+feature {NONE} -- Option extension
+
+	extension: SERVICE_CONSUMER [COMMAND_LINE_OPTION_EXTENSION_S]
+			-- A command-line option extension service.
+		once
+			create Result
+		end
+
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

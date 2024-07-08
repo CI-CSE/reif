@@ -34,31 +34,7 @@ feature -- Roundtrip
 			safe_process (l_as.operands)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
-			-- Process `l_as'.
-		do
-			process_creation_as (l_as)
-		end
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process `l_as'.
-		do
-			process_creation_as (l_as)
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			process_creation_expr_as (l_as)
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			process_creation_expr_as (l_as)
-		end
-
-feature -- Roundtrip
+feature -- Roundtrip: leaves
 
 	process_keyword_as (l_as: KEYWORD_AS)
 			-- Process `l_as'.
@@ -69,7 +45,7 @@ feature -- Roundtrip
 			-- Process `l_as'.
 		do
 		end
-		
+
 	process_break_as (l_as: BREAK_AS)
 			-- Process `l_as'.
 		do
@@ -216,12 +192,6 @@ feature {NONE} -- Implementation
 			l_as.message.process (Current)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			l_as.target.process (Current)
-			l_as.message.process (Current)
-		end
-
 	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 			l_as.type.process (Current)
@@ -248,23 +218,12 @@ feature {NONE} -- Implementation
 		end
 
 	process_eiffel_list (l_as: EIFFEL_LIST [AST_EIFFEL])
-		local
-			l_cursor: INTEGER
 		do
-			from
-				l_cursor := l_as.index
-				l_as.start
-			until
-				l_as.after
+			across
+				l_as as c
 			loop
-				if attached l_as.item as l_item then
-					l_item.process (Current)
-				else
-					check False end
-				end
-				l_as.forth
+				c.process (Current)
 			end
-			l_as.go_i_th (l_cursor)
 		end
 
 	process_indexing_clause_as (l_as: INDEXING_CLAUSE_AS)
@@ -276,7 +235,6 @@ feature {NONE} -- Implementation
 		do
 			safe_process (l_as.class_type)
 			safe_process (l_as.expression)
-			safe_process (l_as.target)
 		end
 
 	process_tagged_as (l_as: TAGGED_AS)
@@ -328,6 +286,12 @@ feature {NONE} -- Implementation
 	process_address_as (l_as: ADDRESS_AS)
 		do
 				-- Nothing to be done
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
+		do
+			safe_process (a.name)
 		end
 
 	process_routine_creation_as (l_as: ROUTINE_CREATION_AS)
@@ -516,12 +480,7 @@ feature {NONE} -- Implementation
 			safe_process (l_as.indexes)
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-				-- Nothing to be done
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
 				-- Nothing to be done
 		end
@@ -598,11 +557,22 @@ feature {NONE} -- Implementation
 			l_as.else_expression.process (Current)
 		end
 
-	process_inspect_as (l_as: INSPECT_AS)
+	process_inspect_abstraction (a: INSPECT_ABSTRACTION_AS [CASE_ABSTRACTION_AS [detachable AST_EIFFEL], detachable AST_EIFFEL])
+			-- Process `a`.
 		do
-			l_as.switch.process (Current)
-			safe_process (l_as.case_list)
-			safe_process (l_as.else_part)
+			a.switch.process (Current)
+			safe_process (a.case_list)
+			safe_process (a.else_part)
+		end
+
+	process_inspect_as (a: INSPECT_AS)
+		do
+			process_inspect_abstraction (a)
+		end
+
+	process_inspect_expression_as (a: INSPECT_EXPRESSION_AS)
+		do
+			process_inspect_abstraction (a)
 		end
 
 	process_instr_call_as (l_as: INSTR_CALL_AS)
@@ -816,10 +786,21 @@ feature {NONE} -- Implementation
 			l_as.clients.process (Current)
 		end
 
-	process_case_as (l_as: CASE_AS)
+	process_case_abstraction (a: CASE_ABSTRACTION_AS [detachable AST_EIFFEL])
+			-- Process `a`.
 		do
-			l_as.interval.process (Current)
-			safe_process (l_as.compound)
+			a.interval.process (Current)
+			safe_process (a.content)
+		end
+
+	process_case_as (a: CASE_AS)
+		do
+			process_case_abstraction (a)
+		end
+
+	process_case_expression_as (a: CASE_EXPRESSION_AS)
+		do
+			process_case_abstraction (a)
 		end
 
 	process_ensure_as (l_as: ENSURE_AS)
@@ -915,12 +896,9 @@ feature {NONE} -- Implementation
 
 	process_parameter_list_as (l_as: PARAMETER_LIST_AS)
 			-- Process `l_as'.
-		local
-			l_list: detachable EIFFEL_LIST [EXPR_AS]
 		do
-			l_list := l_as.parameters
-			if l_list /= Void and then not l_list.is_empty then
-				l_list.process (Current)
+			if attached l_as.parameters as l and then not l.is_empty then
+				l.process (Current)
 			end
 		end
 
@@ -982,9 +960,10 @@ feature -- Quantification
 		end
 
 note
+	ca_ignore: "CA033", "CA033: too large class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

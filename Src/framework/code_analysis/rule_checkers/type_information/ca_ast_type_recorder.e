@@ -34,7 +34,7 @@ feature -- AST Type Analysis
 			prepare_for_class (c)
 				-- Process all immediate features.
 			across c.written_in_features as f loop
-				internal_analyze_feature (f.item.associated_feature_i, c)
+				internal_analyze_feature (f.associated_feature_i, c)
 			end
 				-- Process class invariant.
 			if attached c.invariant_feature as f and then f.written_in = c.class_id then
@@ -99,11 +99,12 @@ feature {NONE} -- Implementation: Data Structures
 		end
 
 note
+	ca_ignore: "CA011", "CA011: too many arguments"
 	date: "$Date$"
 	revision: "$Revision$"
 	author: "Stefan Zurfluh"
 	revised_by: "Alexander Kogtenkov"
-	copyright:	"Copyright (c) 2018, Eiffel Software"
+	copyright:	"Copyright (c) 2018-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

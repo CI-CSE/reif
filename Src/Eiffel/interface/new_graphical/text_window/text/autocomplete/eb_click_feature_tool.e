@@ -1,8 +1,9 @@
-note
+﻿note
 	description: "Object that analyze a feature text to make it clickable"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	author: "Etienne Amodeo"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -98,6 +99,8 @@ feature -- Basic operation
 					then
 						if attached described_access_id (token, line, ft) as tu then
 							feat := tu.feat
+						else
+							feat := Void
 						end
 					else
 					end
@@ -139,12 +142,8 @@ feature -- Analysis preparation
 				feature_name := current_feature_as.name
 				if feature_name.is_frozen then
 					feature_name_image := "frozen"
-				elseif feature_name.is_infix then
-					feature_name_image := "infix"
-				elseif feature_name.is_prefix then
-					feature_name_image := "prefix"
 				else
-					feature_name_image := feature_name.internal_name.name_32
+					feature_name_image := feature_name.feature_name.name_32
 				end
 			else
 				feature_name_image := current_feature_name
@@ -187,7 +186,7 @@ feature -- Analysis preparation
 							-- If a string is written one several lines (more than 2 in fact),
 							-- it will be made of several token, some of which may not be
 							-- string tokens (those like % .... % )
-						if token.wide_image @ token.wide_image.count /= ('%"').to_character_32 then
+						if token.wide_image [token.wide_image.count] /= {CHARACTER_32} '%"' then
 							from
 								if token.next /= Void then
 									pos_in_file := token.character_length + pos_in_file
@@ -248,7 +247,7 @@ feature -- Implementation
 	current_feature_id: INTEGER;
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -279,4 +278,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_CLICK_FEATURE_TOOL
+end

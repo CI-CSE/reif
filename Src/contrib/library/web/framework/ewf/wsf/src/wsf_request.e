@@ -304,7 +304,7 @@ feature -- Access: Input
 			s: STRING
 			l_input: WGI_INPUT_STREAM
 			l_raw_data: detachable STRING_8
-			nb, l_step: INTEGER
+			l_length, l_total, nb, l_step: INTEGER
 		do
 			if raw_input_data_recorded and then attached raw_input_data as d then
 				a_medium.put_string (d)
@@ -314,14 +314,20 @@ feature -- Access: Input
 				end
 				l_input := input
 
+				l_length := content_length_value.as_integer_32
 				from
+					l_total := 0
 					l_step := 8_192
 					create s.make (l_step)
 				until
 					l_step = 0 or l_input.end_of_input
 				loop
+					if l_total + l_step > l_length then
+						l_step := l_length - l_total
+					end
 					l_input.append_to_string (s, l_step)
 					nb := l_input.last_appended_count
+					l_total := l_total + nb
 
 					a_medium.put_string (s)
 					if l_raw_data /= Void then
@@ -392,7 +398,7 @@ feature -- Helper
 			--| Based on header "Accept:" that can be for instance
 			--| 	text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 		do
-			if attached (create {SERVER_MEDIA_TYPE_NEGOTIATION}.make (a_content_type.as_string_8)).preference (<<a_content_type.as_string_8>>, http_accept) as l_variants then
+			if attached (create {SERVER_MEDIA_TYPE_NEGOTIATION}.make (a_content_type.to_string_8)).preference (<<a_content_type.to_string_8>>, http_accept) as l_variants then
 				Result := l_variants.is_acceptable
 			end
 		end
@@ -503,6 +509,7 @@ feature -- Access: global variables
 		local
 			i: INTEGER
 			n: INTEGER
+			s: STRING_32
 		do
 			from
 				i := 1
@@ -511,7 +518,11 @@ feature -- Access: global variables
 			until
 				i = 0
 			loop
-				if attached {WSF_STRING} a_item_fct.item ([a_name + "[" + i.out + "]"]) as v then
+				create s.make_from_string_general (a_name)
+				s.append_character ('[')
+				s.append_integer (i)
+				s.append_character (']')
+				if attached {WSF_STRING} a_item_fct.item ([s]) as v then
 					Result.force (v.value, n)
 					n := n + 1
 					i := i + 1
@@ -533,6 +544,7 @@ feature -- Access: global variables
 			n,k: READABLE_STRING_GENERAL
 			v: like table_item
 			val: detachable WSF_VALUE
+			done: BOOLEAN
 		do
 			if f /= Void then
 				Result := f.item ([a_name])
@@ -547,16 +559,54 @@ feature -- Access: global variables
 						n := a_name.substring (1, p - 1)
 						k := a_name.substring (p + 1, q - 1)
 
-						if f /= Void then
-							val := f.item ([n])
-						else
-							val := item (n)
-						end
-						if attached {WSF_TABLE} val as tb then
-							v := tb.value (k)
-							if q = a_name.count then
-								Result := v
+						from
+							if f /= Void then
+								val := f.item ([n])
 							else
+								val := item (n)
+							end
+						until
+							Result /= Void or q > a_name.count or done
+						loop
+							if attached {WSF_TABLE} val as tb then
+								if k.is_empty then
+									v := val
+								else
+									v := tb.value (k)
+								end
+								if q = a_name.count then
+									Result := v
+									done := True
+								elseif attached {WSF_TABLE} v as v_table then
+									p := q + 1
+									if a_name[p] = '[' then
+										-- case tb[k1][k2][k3], v = tb[k1]
+										-- now searching for v[k2]
+										q := a_name.index_of_code (93, p + 1) -- 93 ']'
+										if q > p then
+											k := a_name.substring (p + 1, q - 1)
+											v := v_table.value (k)
+											if q = a_name.count then
+												Result := v
+												done := True
+											else
+													-- recursion ...
+												val := v
+												done := v = Void -- Exit
+											end
+										else
+											-- ???  tb[k1][...
+											done := True
+										end
+									else
+										-- ??? tb[k1]...
+										done := True
+									end
+								else
+									done := True
+								end
+							else
+								done := True
 							end
 						end
 					end
@@ -1804,14 +1854,14 @@ feature -- URL Utility
 			Result := s
 		end
 
-	absolute_script_url (a_path: STRING): STRING
+	absolute_script_url (a_path: READABLE_STRING_8): STRING
 			-- Absolute Url for the script if any, extended by `a_path'
 		do
 			Result := script_url (a_path)
 			Result.prepend (server_url)
 		end
 
-	script_url (a_path: STRING): STRING
+	script_url (a_path: READABLE_STRING_8): STRING
 			-- Url relative to script name if any, extended by `a_path'
 		local
 			l_base_url: like internal_url_base
@@ -1854,7 +1904,7 @@ feature -- URL Utility
 					end
 				end
 				if l_base_url = Void then
-					create l_base_url.make_empty
+					create {STRING_8} l_base_url.make_empty
 				end
 				internal_url_base := l_base_url
 			end
@@ -1867,7 +1917,7 @@ feature {NONE} -- Implementation: URL Utility
 	internal_server_url: detachable like server_url
 			-- Server url
 
-	internal_url_base: detachable STRING
+	internal_url_base: detachable READABLE_STRING_8
 			-- URL base of potential script
 
 	internal_percent_encoded_path_info: detachable like percent_encoded_path_info
@@ -1912,7 +1962,7 @@ feature {WSF_MIME_HANDLER} -- Temporary File handling
 			end
 		end
 
-	save_uploaded_file (a_up_file: WSF_UPLOADED_FILE; a_content: STRING)
+	save_uploaded_file (a_up_file: WSF_UPLOADED_FILE; a_content: READABLE_STRING_8)
 			-- Save uploaded file content `a_content' into `a_filename'.
 		local
 			dn: PATH
@@ -2110,7 +2160,7 @@ invariant
 	wgi_request.content_type /= Void implies content_type /= Void
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2020, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

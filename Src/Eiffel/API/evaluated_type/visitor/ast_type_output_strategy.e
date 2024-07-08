@@ -298,6 +298,7 @@ feature {TYPE_A} -- Visitors
 	process_none_a (a_type: NONE_A)
 			-- Process `a_type'.
 		do
+			process_annotations (a_type)
 			text_formatter.add (ti_none_class)
 		end
 
@@ -435,7 +436,7 @@ feature {NONE} -- Generic visitors
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -57,7 +57,7 @@ feature -- Access (Target)
 			result_not_void: Result /= Void
 		end
 
-	target_of_id (a_id: STRING): CONF_TARGET
+	target_of_id (a_id: READABLE_STRING_8): CONF_TARGET
 			-- Target of `a_id'
 		require
 			a_id_not_void: a_id /= Void
@@ -116,7 +116,7 @@ feature -- Access (Group)
 			result_not_void: Result /= Void
 		end
 
-	group_of_id (a_id: STRING): CONF_GROUP
+	group_of_id (a_id: READABLE_STRING_8): CONF_GROUP
 			-- Group of `a_id'
 		require
 			a_id_not_void: a_id /= Void
@@ -203,7 +203,7 @@ feature -- Access (Class)
 			result_not_void: Result /= Void
 		end
 
-	class_of_id (a_id: STRING): CONF_CLASS
+	class_of_id (a_id: READABLE_STRING_8): CONF_CLASS
 			-- Class of `a_id'
 		require
 			a_id_not_void: a_id /= Void
@@ -295,13 +295,13 @@ feature  -- Element Change
 			is_for_url := a_b
 		ensure
 			is_for_url_set: is_for_url = a_b
-			name_sep_set: (a_b and (not old is_for_url)) implies (old name_sep) ~ decode (name_sep)
+			name_sep_set: (a_b and (not old is_for_url)) implies (old name_sep) ~ decode_string_8 (name_sep)
 			name_sep_set: ((not a_b) and old is_for_url) implies (old name_sep) ~ encode (name_sep)
 		end
 
 feature -- ID modification
 
-	substitute_target_uuid (a_id: STRING; a_target_uuid: READABLE_STRING_GENERAL): STRING
+	substitute_target_uuid (a_id: READABLE_STRING_8; a_target_uuid: READABLE_STRING_GENERAL): STRING
 			-- Substitute uuid of `a_id' to `a_target_uuid'.
 		require
 			a_id_not_void: a_id /= Void
@@ -335,7 +335,7 @@ feature -- ID modification
 			end
 		end
 
-	substitute_target_name (a_id: STRING; a_target_name: READABLE_STRING_GENERAL): STRING
+	substitute_target_name (a_id: READABLE_STRING_8; a_target_name: READABLE_STRING_GENERAL): STRING
 			-- Substitute target name of `a_id' to `a_target_name'.
 		require
 			a_id_not_void: a_id /= Void
@@ -373,7 +373,7 @@ feature -- ID modification
 			end
 		end
 
-	substitute_group (a_id: STRING; a_group_name: READABLE_STRING_GENERAL): STRING
+	substitute_group (a_id: READABLE_STRING_8; a_group_name: READABLE_STRING_GENERAL): STRING
 			-- Substitute group name of `a_id' to `a_group_name'.
 		require
 			a_id_not_void: a_id /= Void
@@ -411,7 +411,7 @@ feature -- ID modification
 			end
 		end
 
-	url_id (a_id: STRING): STRING
+	url_id (a_id: READABLE_STRING_GENERAL): STRING
 			-- URL form of `a_id'.
 		require
 			a_id_not_void: a_id /= Void
@@ -557,13 +557,13 @@ feature {NONE} -- Access
 
 feature {NONE} -- Implementation
 
-	last_id: STRING
+	last_id: READABLE_STRING_8
 			-- Last id modified
 
-	last_split_strings: ARRAYED_LIST [STRING]
+	last_split_strings: ARRAYED_LIST [READABLE_STRING_8]
 			-- Last split strings from `last_id'
 
-	split_by_string (a_source_string: STRING; a_separator: STRING): ARRAYED_LIST [STRING]
+	split_by_string (a_source_string: READABLE_STRING_8; a_separator: READABLE_STRING_8): ARRAYED_LIST [READABLE_STRING_8]
 			-- Split a string by a string separator.
 		require
 			a_source_string_attached: a_source_string /= Void
@@ -592,10 +592,10 @@ feature {NONE} -- Implementation
 					check
 						last_character_is_a_separator: a_source_string.substring (j, c).same_string_general (a_separator)
 					end
-					l_list.extend (create {STRING}.make_empty)
+					l_list.extend (create {STRING_8}.make_empty)
 				end
 			else
-				l_list.extend (create {STRING}.make_empty)
+				l_list.extend (create {STRING_8}.make_empty)
 			end
 			Result := l_list
 		ensure
@@ -626,7 +626,7 @@ feature {NONE} -- Implementation. Encoding/Decoding
 			Result := escape_char.natural_32_code
 		end
 
-	hex_strings: ARRAY [STRING]
+	hex_strings: ARRAY [STRING_8]
 		once
 			Result := <<
 			    "%%00", "%%01", "%%02", "%%03", "%%04", "%%05", "%%06", "%%07",
@@ -704,7 +704,7 @@ feature {NONE} -- Implementation. Encoding/Decoding
 			result_not_void: Result /= Void
 		end
 
-	decode_string_8 (a_string: STRING): STRING
+	decode_string_8 (a_string: READABLE_STRING_8): STRING
 			-- Decode `a_string' to the original one.
 			-- Hex presentations are converted back to what it was.
 		local
@@ -731,7 +731,7 @@ feature {NONE} -- Implementation. Encoding/Decoding
 			end
 		end
 
-	decode (a_string: STRING): STRING_32
+	decode (a_string: READABLE_STRING_8): STRING_32
 			-- Decode `a_string' to the Unicode original one.
 			-- Hex presentations are converted back to what it was.
 		require
@@ -779,7 +779,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

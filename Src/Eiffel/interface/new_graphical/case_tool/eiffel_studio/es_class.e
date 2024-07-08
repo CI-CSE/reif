@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Objects is a model for a class in Eiffel Studio."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -60,7 +59,7 @@ feature {NONE} -- Initialization
 			if es_class_id = Void then
 				es_class_id := generate_uuid
 			end
-			name := a_class.name.twin
+			set_name_32 (a_class.name.twin)
 			class_i := a_class
 
 			is_needed_on_diagram := True
@@ -103,8 +102,6 @@ feature -- Status report
 		local
 			l_links: like internal_links
 			i, nb: INTEGER
-			cs_link: ES_CLIENT_SUPPLIER_LINK
-			i_link: ES_INHERITANCE_LINK
 		do
 			from
 				l_links := internal_links
@@ -113,11 +110,15 @@ feature -- Status report
 			until
 				i > nb or else not Result
 			loop
-				cs_link ?= l_links.i_th (i)
-				i_link ?= l_links.i_th (i)
-				if i_link /= Void and then i_link.is_needed_on_diagram then
+				if
+					attached {ES_INHERITANCE_LINK} l_links.i_th (i) as i_link and then
+					i_link.is_needed_on_diagram
+				then
 					Result := False
-				elseif cs_link /= Void and then cs_link.is_needed_on_diagram then
+				elseif
+					attached {ES_CLIENT_SUPPLIER_LINK} l_links.i_th (i) as cs_link and then
+					cs_link.is_needed_on_diagram
+				then
 					if cs_link.client /= Current then
 						Result := False
 					end
@@ -131,8 +132,6 @@ feature -- Status report
 		local
 			l_links: like internal_links
 			i, nb: INTEGER
-			cs_link: ES_CLIENT_SUPPLIER_LINK
-			i_link: ES_INHERITANCE_LINK
 		do
 			from
 				l_links := internal_links
@@ -141,11 +140,15 @@ feature -- Status report
 			until
 				i > nb or else not Result
 			loop
-				cs_link ?= l_links.i_th (i)
-				i_link ?= l_links.i_th (i)
-				if i_link /= Void and then i_link.is_needed_on_diagram then
+				if
+					attached {ES_INHERITANCE_LINK} l_links.i_th (i) as i_link and then
+					i_link.is_needed_on_diagram
+				then
 					Result := False
-				elseif cs_link /= Void and then cs_link.is_needed_on_diagram then
+				elseif
+					attached {ES_CLIENT_SUPPLIER_LINK} l_links.i_th (i) as cs_link and then
+					cs_link.is_needed_on_diagram
+				then
 					if cs_link.supplier /= Current then
 						Result := False
 					end
@@ -159,8 +162,6 @@ feature -- Status report
 		local
 			l_links: like internal_links
 			i, nb: INTEGER
-			cs_link: ES_CLIENT_SUPPLIER_LINK
-			i_link: ES_INHERITANCE_LINK
 		do
 			from
 				l_links := internal_links
@@ -169,13 +170,17 @@ feature -- Status report
 			until
 				i > nb or else not Result
 			loop
-				cs_link ?= l_links.i_th (i)
-				i_link ?= l_links.i_th (i)
-				if i_link /= Void and then i_link.is_needed_on_diagram then
+				if
+					attached {ES_INHERITANCE_LINK} l_links.i_th (i) as i_link and then
+					i_link.is_needed_on_diagram
+				then
 					if i_link.descendant /= Current then
 						Result := False
 					end
-				elseif cs_link /= Void and then cs_link.is_needed_on_diagram then
+				elseif
+					attached {ES_CLIENT_SUPPLIER_LINK} l_links.i_th (i) as cs_link and then
+					cs_link.is_needed_on_diagram
+				then
 					Result := False
 				end
 				i := i + 1
@@ -187,8 +192,6 @@ feature -- Status report
 		local
 			l_links: like internal_links
 			i, nb: INTEGER
-			cs_link: ES_CLIENT_SUPPLIER_LINK
-			i_link: ES_INHERITANCE_LINK
 		do
 			from
 				l_links := internal_links
@@ -197,13 +200,17 @@ feature -- Status report
 			until
 				i > nb or else not Result
 			loop
-				cs_link ?= l_links.i_th (i)
-				i_link ?= l_links.i_th (i)
-				if i_link /= Void and then i_link.is_needed_on_diagram then
+				if
+					attached {ES_INHERITANCE_LINK} l_links.i_th (i) as i_link and then
+					i_link.is_needed_on_diagram
+				then
 					if i_link.ancestor /= Current then
 						Result := False
 					end
-				elseif cs_link /= Void and then cs_link.is_needed_on_diagram then
+				elseif
+					attached {ES_CLIENT_SUPPLIER_LINK} l_links.i_th (i) as cs_link and then
+					cs_link.is_needed_on_diagram
+				then
 					Result := False
 				end
 				i := i + 1
@@ -277,7 +284,6 @@ feature -- Access
 			-- `links' that are EIFFEL_ITEMS and are needed_on_diagram.
 		local
 			l_links: like internal_links
-			l_item: ES_ITEM
 		do
 			l_links := internal_links
 			create {ARRAYED_LIST [ES_ITEM]} Result.make (l_links.count)
@@ -286,8 +292,7 @@ feature -- Access
 			until
 				l_links.after
 			loop
-				l_item ?= l_links.item
-				if l_item /= Void and then l_item.is_needed_on_diagram then
+				if attached {ES_ITEM} l_links.item as l_item and then l_item.is_needed_on_diagram then
 					Result.extend (l_item)
 				end
 				l_links.forth
@@ -411,14 +416,14 @@ feature -- Element change
 						graph.remove_node (Current)
 					end
 				else
-					if not class_i.name.is_equal (name) then
+					if not class_i.name.same_string_general (name_32) then
 						-- should never happen (see above)
-						set_name (class_i.name)
+						set_name_32 (class_i.name)
 					end
 					set_is_root_class(system.root_creators.there_exists (
 						agent (a_root: SYSTEM_ROOT): BOOLEAN
 							do
-								Result := a_root.root_class.name.is_equal (class_i.name)
+								Result := a_root.root_class.name.same_string (class_i.name)
 							end))
 					c := class_c
 					if c /= Void then
@@ -627,12 +632,10 @@ feature {NONE} -- Implementation
 	add_suppliers (a_type: TYPE_AS)
 			-- Add suppliers of `a_type' to `suppliers'.
 		local
-			ct: CLASS_TYPE_AS
 			g: TYPE_LIST_AS
 			l_class_i: CLASS_I
 		do
-			ct ?= a_type
-			if ct /= Void then
+			if attached {CLASS_TYPE_AS} a_type as ct then
 				l_class_i := class_i_by_name (ct.class_name.name_8)
 				if l_class_i /= Void then
 						-- Class may not exist
@@ -670,11 +673,9 @@ feature {NONE} -- Implementation
 	has_suppliers (a_type: TYPE_AS; a_class: CLASS_I): BOOLEAN
 			-- Does `a_type' have `a_class' as supplier?
 		local
-			ct: CLASS_TYPE_AS
 			g: TYPE_LIST_AS
 		do
-			ct ?= a_type
-			if ct /= Void then
+			if attached {CLASS_TYPE_AS} a_type as ct then
 				Result := class_i_by_name (ct.class_name.name_8) = a_class
 				if not Result then
 					g := ct.generics
@@ -695,19 +696,21 @@ feature {NONE} -- Implementation
 	internal_code_generator: CLASS_TEXT_MODIFIER
 			-- Code generator returned by `code_generator'.
 
-	class_i_by_name (a_name: STRING): CLASS_I
+	class_i_by_name (a_name: READABLE_STRING_GENERAL): detachable CLASS_I
 			-- Return class with `a_name'.
 			-- `Void' if not in system.
 		local
 			cl: LINKED_SET [CONF_CLASS]
 			l_nodes: ARRAYED_LIST [EG_NODE]
-			l_item: ES_CLASS
 		do
 			cl := class_i.group.class_by_name (a_name, True)
 			if cl /= Void and then not cl.is_empty then
-				Result ?= cl.first
-				check
-					Result_not_void: Result /= Void
+				if attached {like class_i_by_name} cl.first as cl_i then
+					Result := cl_i
+				else
+					check
+						Result_not_void: False
+					end
 				end
 			end
 			if Result = Void and graph /= Void then
@@ -717,8 +720,7 @@ feature {NONE} -- Implementation
 				until
 					l_nodes.after or else Result /= Void
 				loop
-					l_item ?= l_nodes.item
-					if l_item.name.is_equal (a_name) then
+					if attached {ES_CLASS} l_nodes.item as l_item and then a_name.same_string (l_item.name_32) then
 						Result := l_item.class_i
 					end
 					l_nodes.forth
@@ -735,7 +737,7 @@ invariant
 	feature_clause_list_changed_actions_not_Void: feature_clause_list_changed_actions /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -766,4 +768,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class ES_CLASS
+end

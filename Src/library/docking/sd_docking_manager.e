@@ -21,6 +21,8 @@ class
 inherit
 	SD_ACCESS
 
+	EV_BUILDER
+
 create
 	make
 
@@ -123,11 +125,18 @@ feature {NONE} -- Initialization
 
 			create tool_bar_container.make
 			internal_viewport.extend (tool_bar_container)
-			tool_bar_container.set_minimum_size (0, 0)
+			tool_bar_container.set_minimum_size (1, 1)
 			create main_container.make
 			tool_bar_container.center.extend (main_container)
 			create fixed_area
 			main_container.center_area.extend (fixed_area)
+
+			debug ("ev_identifier")
+				internal_viewport.set_identifier_name ("SD:Manager:Viewport")
+				tool_bar_container.set_identifier_name ("SD:Manager:Toolbar container")
+				main_container.set_identifier_name ("SD:Manager:Toolbar>Main container")
+				fixed_area.set_identifier_name ("SD:Manager:Toolbar>Main>Fixed area")
+			end
 		end
 
 	init_managers (a_list: ARRAYED_LIST [SD_DOCKING_MANAGER_HOLDER])
@@ -146,7 +155,7 @@ feature {NONE} -- Initialization
 		end
 
 	init_inner_container (a_list: ARRAYED_LIST [SD_DOCKING_MANAGER_HOLDER])
-			-- Insert inner contianer
+			-- Insert inner container
 		require
 			not_void: a_list /= Void
 		local
@@ -155,7 +164,7 @@ feature {NONE} -- Initialization
 			create l_inner_container.make (Current)
 			a_list.extend (l_inner_container)
 			fixed_area.extend (l_inner_container)
-			l_inner_container.set_minimum_size (0, 0)
+			l_inner_container.set_minimum_size (1, 1)
 			inner_containers.extend (l_inner_container)
 		end
 
@@ -923,7 +932,7 @@ invariant
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

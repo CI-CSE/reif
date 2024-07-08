@@ -123,18 +123,34 @@ feature -- Access
 			end
 		end
 
+	read_string_8 (a_index: INTEGER): detachable STRING_8
+			-- Retrieved value at `a_index' position in `item'.
+		do
+			if attached {DB_TUPLE} item as l_item then
+				if attached {STRING_8} l_item.item (a_index) as ll_item then
+					Result := ll_item
+				elseif attached {BOOLEAN_REF} l_item.item (a_index) as ll_item then
+					Result := ll_item.item.out
+				end
+			end
+		end
+
 	read_string_32 (a_index: INTEGER): detachable STRING_32
 			-- Retrieved value at `a_index' position in `item'.
 		do
 				-- FIXME: handle string_32 !
 			if attached {DB_TUPLE} item as l_item then
-				if attached {READABLE_STRING_32} l_item as l_string then
+				if attached {READABLE_STRING_32}  l_item.item (a_index) as l_string then
+					Result := l_string
+				elseif  attached {STRING_32} l_item.item (a_index) as l_string then
 					Result := l_string
 				else
 					if attached read_string (a_index) as s8 then
 						Result := s8.to_string_32 -- FIXME: any escape?
 					else
-						check is_string_nor_null: l_item = Void end
+						debug
+							check is_string_nor_null: l_item = Void end
+						end
 					end
 				end
 			end

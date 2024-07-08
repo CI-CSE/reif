@@ -48,7 +48,7 @@ inherit
 
 feature -- Initialization
 
-	make (n: like name_id; a: like alias_name; c: like has_convert_mark; i: INTEGER)
+	make (n: like name_id; a: STRING; c: like has_convert_mark; i: INTEGER)
 			-- Initialize feature with name `n' with
 			-- identification `i'.
 		require
@@ -56,12 +56,37 @@ feature -- Initialization
 			positive_i: i >= 0
 		do
 			name_id := n
-			alias_name := a
+			if a /= Void then
+				add_alias (a)
+			end
 			has_convert_mark := c
 			feature_id := i
 		ensure
 			name_id_set: name_id = n
-			alias_name_set: alias_name = a
+			has_alias_name: a /= Void implies has_alias_named (a)
+			feature_id_set: feature_id = i
+		end
+
+	make_with_aliases (n: like name_id; a_aliases: LIST [STRING]; c: like has_convert_mark; i: INTEGER)
+			-- Initialize feature with name `n' with
+			-- identification `i'.
+		require
+			valid_n: n >= 0
+			positive_i: i >= 0
+		do
+			name_id := n
+			if a_aliases /= Void then
+				across
+					a_aliases as ic
+				loop
+					add_alias (ic.item)
+				end
+			end
+			has_convert_mark := c
+			feature_id := i
+		ensure
+			name_id_set: name_id = n
+			has_alias_name: a_aliases /= Void implies across a_aliases as ic all has_alias_named (ic.item) end
 			feature_id_set: feature_id = i
 		end
 
@@ -74,14 +99,28 @@ feature -- Status report
 		do
 			cl_id := associated_class_id
 			if eiffel_system.valid_class_id (cl_id) and then eiffel_system.class_of_id (cl_id) /= Void then
-				if cl_id /= written_in then
+				if cl_id = written_in then
+					Result := True
+				else
 					cl_id := written_in
 					Result := eiffel_system.valid_class_id (cl_id) and then eiffel_system.class_of_id (cl_id) /= Void
-				else
-					Result := True
 				end
 			end
 		end
+
+	valid_body_index: BOOLEAN
+			-- The use of this routine as precondition for real_body_id
+			-- allows the enhancement of the external functions
+			-- Indeed, if an external has to be encapsulated (macro, signature)
+			-- an EXECUTION_UNIT is created instead of an EXT_EXECUTION_UNIT
+		do
+			Result := associated_class.has_types
+			if Result then
+				Result := (is_constant and is_once) or
+					(not (is_attribute and then not is_attribute_with_body ) and then
+					not is_constant and then not is_deferred and then not is_unique)
+			end
+		end;
 
 feature -- Properties
 
@@ -89,10 +128,10 @@ feature -- Properties
 			-- Name id in the names heap.
 
 	name_32: STRING_32
-			-- Final name of the feature
-			-- UTF-32 encoding
+			-- Final name of the feature.
+			-- UTF-32 encoding.
 		do
-			Result := encoding_converter.utf8_to_utf32 (names_heap.item (name_id))
+			Result := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (names_heap.item (name_id))
 		end
 
 	name_8: STRING_8
@@ -102,13 +141,7 @@ feature -- Properties
 			Result := name
 		end
 
-	alias_name_32: STRING_32
-			-- Alias name of the feature (if any)
-		do
-			if alias_name /= Void then
-				Result := encoding_converter.utf8_to_utf32 (alias_name)
-			end
-		end
+	aliases: detachable ARRAYED_LIST [TUPLE [alias_name: STRING; alias_name_32: STRING_32]]
 
 	has_convert_mark: BOOLEAN
 			-- Is convert mark specified for an operator alias?
@@ -116,14 +149,29 @@ feature -- Properties
 	has_alias_name: BOOLEAN
 			-- Does current routine represent a routine with an alias?
 		do
-			Result := alias_name /= Void
+			Result := attached aliases as lst and then not lst.is_empty
 		end
 
-	assigner_name_32: STRING_32
+	has_alias_named (a_name: STRING): BOOLEAN
+		do
+			if attached aliases as lst then
+				across
+					lst as c
+				until
+					Result
+				loop
+					if attached a_name.is_case_insensitive_equal (c.item.alias_name) then
+						Result := True
+					end
+				end
+			end
+		end
+
+	assigner_name_32: detachable STRING_32
 			-- Name of the assigner procedure (if any)
 		do
 			if attached assigner_name as l_name then
-				Result := encoding_converter.utf8_to_utf32 (l_name)
+				Result := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (l_name)
 			end
 		end
 
@@ -162,12 +210,12 @@ feature -- Properties
 	is_prefix: BOOLEAN
 			-- Is feature a prefixed one ?
 
-	obsolete_message_32: STRING_32
+	obsolete_message_32: detachable STRING_32
 			-- Obsolete message
 			-- (Void if Current is not obsolete)
 		do
 			if attached obsolete_message as l_m then
-				Result := encoding_converter.utf8_to_utf32 (l_m)
+				Result := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (l_m)
 			end
 		end
 
@@ -197,6 +245,9 @@ feature -- Properties
 
 	is_class: BOOLEAN
 			-- Is current feature a class one, i.e. can be called on a class type rather than on object?
+
+	is_ghost: BOOLEAN
+			-- Is current feature a ghost one, i.e. cannot be used for execution?
 
 	is_constant: BOOLEAN
 			-- Is current feature a constant ?
@@ -308,18 +359,15 @@ feature -- Properties
 			-- Count of local variables
 		do
 			if attached locals as lst then
-				from
-					lst.start
-				until
-					lst.after
+				across
+					lst as l
 				loop
 					if
-						attached lst.item as l_dec and then
+						attached l.item as l_dec and then
 						attached l_dec.id_list as l_id_list
 					then
 						Result := Result + l_id_list.count
 					end
-					lst.forth
 				end
 			end
 		end
@@ -352,6 +400,20 @@ feature -- Properties
 		do
 		end
 
+feature -- Element change
+
+	add_alias (a: STRING_8)
+		local
+			lst: like aliases
+		do
+			lst := aliases
+			if lst = Void then
+				create lst.make (1)
+				aliases := lst
+			end
+			lst.force ([a, {UTF_CONVERTER}.utf_8_string_8_to_string_32 (a)])
+		end
+
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 
 	name: STRING
@@ -369,9 +431,6 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 	obsolete_message: STRING;
 			-- Obsolete message
 			-- (Void if Current is not obsolete)
-
-	alias_name: STRING
-			-- Alias name of the feature (if any)
 
 feature -- Access
 
@@ -425,35 +484,28 @@ feature -- Access
 			-- Precursor definition of written in classes
 			-- of current feature defined in `from_c'
 		local
-			f: FEATURE_I;
-			inh_info: INH_ASSERT_INFO;
-			i, nb: INTEGER;
-			assert_id_set: ASSERT_ID_SET;
-			e_class: CLASS_C
+			i, nb: INTEGER
 		do
-			f := associated_feature_i;
-			if f /= Void then
-				assert_id_set := f.assert_id_set;
-				if assert_id_set /= Void then
-					nb := assert_id_set.count;
-					create Result.make (nb);
-					from
-						i := 1
-					until
-						i > nb
-					loop
-						inh_info := assert_id_set.item (i);
-						e_class := Eiffel_system.class_of_id (inh_info.written_in);
-						if e_class /= Void then
-							--| On the off chance that this information
-							--| is not upto date hence the check with void
-							Result.extend (e_class)
-						end;
-						i := i + 1
+			if
+				attached associated_feature_i as f and then
+				attached f.assert_id_set as assert_id_set
+			then
+				nb := assert_id_set.count
+				create Result.make (nb)
+				from
+					i := 1
+				until
+					i > nb
+				loop
+					if attached Eiffel_system.class_of_id (assert_id_set.item (i).written_in) as e_class then
+						--| On the off chance that this information
+						--| is not upto date hence the check with void
+						Result.extend (e_class)
 					end
+					i := i + 1
 				end
 			end
-		end;
+		end
 
 	is_debuggable: BOOLEAN
 			-- Is feature debuggable?
@@ -467,27 +519,25 @@ feature -- Access
 			if rescued then
 					--| See why this occurs
 				Result := False
-			else
-				if
-					(body_index /= 0) and then
-					(not is_constant) and then
-					(not is_deferred) and then
-					(not is_unique) and then
-					(not (is_attribute and not is_attribute_with_body)) and then
-					(attached associated_feature_i as fi and then not fi.from_non_conforming_parent)
-						--| Try to support breakpoint in non-conforming inherited feature
-				then
-					Result := attached written_class as cl and then cl.is_debuggable
-				end
+			elseif
+				body_index /= 0 and then
+				not is_constant and then
+				not is_deferred and then
+				not is_unique and then
+				not (is_attribute and not is_attribute_with_body) and then
+				attached written_class as c
+			then
+				Result := c.is_debuggable
 			end
 		ensure
 			debuggable_if: Result implies
-				(body_index /= 0) and then
-				(not (is_attribute and not is_attribute_with_body)) and then
-				(not is_constant) and then
-				(not is_deferred) and then
-				(not is_unique) and then
-				(attached written_class as w_cl and then w_cl.is_debuggable)
+				body_index /= 0 and then
+				not is_constant and then
+				not is_deferred and then
+				not is_unique and then
+				not (is_attribute and not is_attribute_with_body) and then
+				attached written_class as c and then
+				c.is_debuggable
 		rescue
 			rescued := True
 			retry
@@ -497,13 +547,13 @@ feature -- Access
 			-- Process text of the feature.
 			-- True if successfully proceed.
 		local
-			class_text: STRING;
-			start_position, end_position: INTEGER;
-			body_as: FEATURE_AS;
-			c: like written_class;
+			class_text: STRING
+			start_position, end_position: INTEGER
+			body_as: FEATURE_AS
+			c: like written_class
 		do
-			c := written_class;
-			class_text := c.text;
+			c := written_class
+			class_text := c.text
 			if class_text /= Void then
 				if attached name as l_name then
 						-- Attempt to locate a feature using the same name as Current
@@ -526,26 +576,25 @@ feature -- Access
 
 				if c /= associated_class then
 						-- From a different class
-					a_text_formatter.add ("-- Version inherited from class: ");
-					a_text_formatter.add_classi (c.lace_class, c.name_in_upper);
-					a_text_formatter.add_new_line;
+					a_text_formatter.add ("-- Version inherited from class: ")
+					a_text_formatter.add_classi (c.lace_class, c.name_in_upper)
+					a_text_formatter.add_new_line
 				end
-				a_text_formatter.add_new_line;
+				a_text_formatter.add_new_line
 
-				a_text_formatter.add_indent;
+				a_text_formatter.add_indent
 				if
 					class_text.count >= end_position and
 					start_position < end_position
 				then
-					class_text := class_text.substring
-								(start_position, end_position);
-					a_text_formatter.add_feature (Current, encoding_converter.utf8_to_utf32 (class_text))
-				end;
-				a_text_formatter.add_new_line;
+					class_text := class_text.substring (start_position, end_position)
+					a_text_formatter.add_feature (Current, {UTF_CONVERTER}.utf_8_string_8_to_string_32 (class_text))
+				end
+				a_text_formatter.add_new_line
 			else
 				Result := true
 			end
-		end;
+		end
 
 	associated_class: CLASS_C
 			-- Class where the feature was evaluated in
@@ -581,7 +630,13 @@ feature -- Access
 			has_export_status: export_status /= Void;
 		do
 			Result := export_status.is_exported_to (client);
-		end;
+		end
+
+	is_once_creation (c: CLASS_C): BOOLEAN
+			-- Is it a creation procedure in a once class `c`?
+		do
+			Result := attached associated_feature_i as fi and then fi.is_once_creation (c)
+		end
 
 	ast: FEATURE_AS
 			-- Associated AST structure for feature
@@ -604,8 +659,8 @@ feature -- Access
 					-- In this case we must certainly be handling a dotnet feature or the AST cannot be loaded due to corruption
 					-- and we need to create an empty AST otherwise we cannot pick and drop it.
 				create l_feature_names.make (1)
-				l_feature_names.extend (create {FEAT_NAME_ID_AS}.initialize (
-					create {ID_AS}.initialize (name)))
+				l_feature_names.extend (create {FEATURE_NAME}.initialize
+					(create {ID_AS}.initialize (name)))
 				if is_frozen then
 					l_feature_names.last.set_frozen_keyword (create {KEYWORD_AS}.make_null)
 				end
@@ -643,40 +698,30 @@ feature -- Access
 				a_flag = {DEPEND_UNIT}.is_in_invariant_flag or
 				a_flag = {DEPEND_UNIT}.is_in_require_flag
 		local
-			dep: CLASS_DEPENDANCE
-			fdep: detachable FEATURE_DEPENDANCE
 			l_depend_unit: DEPEND_UNIT
 			l_system: like eiffel_system
-			l_class_c: CLASS_C
-			l_e_feature: E_FEATURE
 		do
 			create Result.make
-			l_system := eiffel_system
-			if Depend_server.has (written_class.class_id) then
-				dep := Depend_server.item (written_class.class_id)
-				fdep := dep.item (body_index)
+			if
+				Depend_server.has (written_class.class_id) and then
 					-- It is possible detached when compilation is not finished. See bug#11409.
-				if fdep /= Void then
-					from
-						fdep.start
-					until
-						fdep.after
-					loop
-						l_depend_unit := fdep.item
-						if l_depend_unit.rout_id /= 0 then
-							if a_flag = 0 or else l_depend_unit.internal_flags.bit_xor (a_flag) = 0 then
-								l_class_c := l_system.class_of_id (l_depend_unit.class_id)
-								if l_class_c /= Void then
-									l_e_feature := l_class_c.feature_with_rout_id (l_depend_unit.rout_id)
-										-- We ignore inline agents because what they called are already
-										-- propagated to the enclosing feature.
-									if l_e_feature /= Void and then not l_e_feature.is_inline_agent then
-										Result.extend ([l_class_c, l_e_feature.name_32])
-									end
-								end
-							end
-						end
-						fdep.forth
+				attached Depend_server.item (written_class.class_id).item (body_index) as fdep
+			then
+				l_system := eiffel_system
+				across
+					fdep as d
+				loop
+					l_depend_unit := d.item
+					if
+						l_depend_unit.rout_id /= 0 and then
+						(a_flag = 0 or else l_depend_unit.internal_flags.bit_xor (a_flag) = 0) and then
+						attached l_system.class_of_id (l_depend_unit.class_id) as l_class_c and then
+						attached l_class_c.feature_with_rout_id (l_depend_unit.rout_id) as l_e_feature and then
+						not l_e_feature.is_inline_agent
+					then
+							-- We ignore inline agents because what they called are already
+							-- propagated to the enclosing feature.
+						Result.extend ([l_class_c, l_e_feature.name_32])
 					end
 				end
 			end
@@ -700,38 +745,33 @@ feature -- Access
 				a_flag = {DEPEND_UNIT}.is_in_invariant_flag or
 				a_flag = {DEPEND_UNIT}.is_in_require_flag
 		local
-			dep: CLASS_DEPENDANCE;
-			fdep: FEATURE_DEPENDANCE;
-			current_d, l_depend_unit: DEPEND_UNIT;
+			fdep: FEATURE_DEPENDANCE
+			current_d, l_depend_unit: DEPEND_UNIT
 			l_found: BOOLEAN
 		do
 			create Result.make
-			dep := Depend_server.item (cl_class.class_id)
 				-- No need to set the `flags' here since we do an explicit comparison.
-			create current_d.make (associated_class.class_id,associated_feature_i)
-			from
+			create current_d.make (associated_class.class_id, associated_feature_i)
 				-- Loop through the features of each client
 				-- of current_class.
-				dep.start
-			until
-				dep.after
+			across
+				Depend_server.item (cl_class.class_id) as d
 			loop
-				fdep := dep.item_for_iteration
+				fdep := d.item
+				across
+					fdep as f
 				from
 					l_found := False
-					fdep.start
 				until
-					l_found or fdep.after
+					l_found
 				loop
-					l_depend_unit := fdep.item
+					l_depend_unit := f.item
 					l_found := l_depend_unit.same_as (current_d) and then
 						l_depend_unit.internal_flags & a_flag = a_flag
-					fdep.forth
 				end
 				if l_found then
 					Result.put_front (fdep.feature_name_32)
 				end
-				dep.forth
 			end
 			if Result.is_empty then
 				Result := Void
@@ -805,40 +845,30 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 				a_flag = {DEPEND_UNIT}.is_in_invariant_flag or
 				a_flag = {DEPEND_UNIT}.is_in_require_flag
 		local
-			dep: CLASS_DEPENDANCE
-			fdep: detachable FEATURE_DEPENDANCE
 			l_depend_unit: DEPEND_UNIT
 			l_system: like eiffel_system
-			l_class_c: CLASS_C
-			l_e_feature: E_FEATURE
 		do
 			create Result.make
-			l_system := eiffel_system
-			if Depend_server.has (written_class.class_id) then
-				dep := Depend_server.item (written_class.class_id)
-				fdep := dep.item (body_index)
+			if
+				Depend_server.has (written_class.class_id) and then
 					-- It is possible detached when compilation is not finished. See bug#11409.
-				if fdep /= Void then
-					from
-						fdep.start
-					until
-						fdep.after
-					loop
-						l_depend_unit := fdep.item
-						if l_depend_unit.rout_id /= 0 then
-							if a_flag = 0 or else l_depend_unit.internal_flags.bit_xor (a_flag) = 0 then
-								l_class_c := l_system.class_of_id (l_depend_unit.class_id)
-								if l_class_c /= Void then
-									l_e_feature := l_class_c.feature_with_rout_id (l_depend_unit.rout_id)
-										-- We ignore inline agents because what they called are already
-										-- propagated to the enclosing feature.
-									if l_e_feature /= Void and then not l_e_feature.is_inline_agent then
-										Result.extend ([l_class_c, l_e_feature.name])
-									end
-								end
-							end
-						end
-						fdep.forth
+				attached Depend_server.item (written_class.class_id).item (body_index) as fdep
+			then
+				l_system := eiffel_system
+				across
+					fdep as d
+				loop
+					l_depend_unit := d.item
+					if
+						l_depend_unit.rout_id /= 0 and then
+						(a_flag = 0 or else l_depend_unit.internal_flags.bit_xor (a_flag) = 0) and then
+						attached l_system.class_of_id (l_depend_unit.class_id) as l_class_c and then
+						attached l_class_c.feature_with_rout_id (l_depend_unit.rout_id) as l_e_feature and then
+						not l_e_feature.is_inline_agent
+					then
+							-- We ignore inline agents because what they called are already
+							-- propagated to the enclosing feature.
+						Result.extend ([l_class_c, l_e_feature.name])
 					end
 				end
 			end
@@ -862,38 +892,32 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 				a_flag = {DEPEND_UNIT}.is_in_invariant_flag or
 				a_flag = {DEPEND_UNIT}.is_in_require_flag
 		local
-			dep: CLASS_DEPENDANCE;
-			fdep: FEATURE_DEPENDANCE;
-			current_d, l_depend_unit: DEPEND_UNIT;
+			fdep: FEATURE_DEPENDANCE
+			current_d, l_depend_unit: DEPEND_UNIT
 			l_found: BOOLEAN
 		do
 			create Result.make
-			dep := Depend_server.item (cl_class.class_id)
 				-- No need to set the `flags' here since we do an explicit comparison.
 			create current_d.make (associated_class.class_id,associated_feature_i)
-			from
-				-- Loop through the features of each client
-				-- of current_class.
-				dep.start
-			until
-				dep.after
+				-- Loop through the features of each client of current_class.
+			across
+				Depend_server.item (cl_class.class_id) as d
 			loop
-				fdep := dep.item_for_iteration
+				fdep := d.item
+				across
+					fdep as f
 				from
 					l_found := False
-					fdep.start
 				until
-					l_found or fdep.after
+					l_found
 				loop
-					l_depend_unit := fdep.item
+					l_depend_unit := f.item
 					l_found := l_depend_unit.same_as (current_d) and then
 						l_depend_unit.internal_flags & a_flag = a_flag
-					fdep.forth
 				end
 				if l_found then
 					Result.put_front (fdep.feature_name)
 				end
-				dep.forth
 			end
 			if Result.is_empty then
 				Result := Void
@@ -1005,27 +1029,14 @@ feature -- Output
 		require
 			valid_st: a_text_formatter /= Void
 		local
-			l_name: STRING
+			l_name: STRING_32
 		do
-			if is_infix then
-				a_text_formatter.process_keyword_text (Ti_infix_keyword, Void)
-				a_text_formatter.add_space
-				a_text_formatter.process_symbol_text (Ti_double_quote)
-				a_text_formatter.process_operator_text (extract_symbol_from_infix_32 (name_32), Current)
-				a_text_formatter.process_symbol_text (Ti_double_quote)
-			elseif is_prefix then
-				a_text_formatter.process_keyword_text (Ti_prefix_keyword, Void)
-				a_text_formatter.add_space
-				a_text_formatter.process_symbol_text (Ti_double_quote)
-				a_text_formatter.process_operator_text (extract_symbol_from_prefix_32 (name_32), Current)
-				a_text_formatter.process_symbol_text (Ti_double_quote)
-			else
-				l_name := name.as_lower
-				if is_once or else is_constant then
-					l_name.put ((l_name @ 1).upper, 1)
-				end
-				a_text_formatter.add_feature (Current, encoding_converter.utf8_to_utf32 (l_name))
+			l_name := name_32.as_lower
+			if is_once or else is_constant then
+					-- TODO: Use `{CHARACTER_32}.to_title` when it is available.
+				l_name [1] := l_name [1].as_upper
 			end
+			a_text_formatter.add_feature (Current, l_name)
 		end
 
 	append_full_name (a_text_formatter: TEXT_FORMATTER)
@@ -1033,117 +1044,50 @@ feature -- Output
 			-- (with infix and prefix keywords and alias names if any).
 		require
 			valid_st: a_text_formatter /= Void
-		local
-			a: like alias_name_32
 		do
 			append_name (a_text_formatter)
-			if not is_infix and then not is_prefix then
-				a := alias_name_32
-				if a /= Void then
+			if attached aliases as lst then
+				across
+					lst as ic
+				loop
 					a_text_formatter.add_space
 					a_text_formatter.process_keyword_text (Ti_alias_keyword, Void)
 					a_text_formatter.add_space
 					a_text_formatter.process_symbol_text (Ti_double_quote)
-					a_text_formatter.process_operator_text (extract_alias_name_32 (a), Current)
+					a_text_formatter.process_operator_text (extract_alias_name_32 (ic.item.alias_name_32), Current)
 					a_text_formatter.process_symbol_text (Ti_double_quote)
 				end
 			end
 			if has_convert_mark then
 				a_text_formatter.add_space
-				a_text_formatter.process_keyword_text (ti_convert_keyword, Void)
+				a_text_formatter.process_keyword_text (Ti_convert_keyword, Void)
 			end
 		end
 
-	infix_symbol_32 : STRING_32
-			--
-		require
-			is_infix: is_infix
-		do
-			Result := encoding_converter.utf8_to_utf32 (extract_symbol_from_infix (name))
-		ensure
-			infix_symbol_not_void: Result /= Void
-		end
-
-	prefix_symbol_32 : STRING_32
-			--
-		require
-			is_infix: is_prefix
-		do
-			Result := encoding_converter.utf8_to_utf32 (extract_symbol_from_prefix (name))
-		ensure
-			prefix_symbol_not_void: Result /= Void
-		end
-
-	alias_symbol_32: STRING_32
-		require
-			is_alias: has_alias_name
-		do
-			Result := encoding_converter.utf8_to_utf32 (extract_alias_name (alias_name))
-		ensure
-			alias_symbol_not_void: Result /= Void
-		end
-
-feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Output
-
-	infix_symbol : STRING
-			--
-		require
-			is_infix: is_infix
-		do
-			Result := extract_symbol_from_infix (name)
-		ensure
-			infix_symbol_not_void: Result /= Void
-		end
-
-	prefix_symbol : STRING
-			--
-		require
-			is_infix: is_prefix
-		do
-			Result := extract_symbol_from_prefix (name)
-		ensure
-			prefix_symbol_not_void: Result /= Void
-		end
-
-	alias_symbol: STRING
-		require
-			is_alias: has_alias_name
-		do
-			Result := extract_alias_name (alias_name)
-		ensure
-			alias_symbol_not_void: Result /= Void
-		end
-
-feature -- Output
+feature -- Output: signature
 
 	feature_signature_32: STRING_32
-			-- Signature of Current feature
+			-- Signature of Current feature.
 		do
 			if attached feature_signature as l_s then
-				Result := encoding_converter.utf8_to_utf32 (l_s)
+				Result := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (l_s)
 			end
 		end
 
-	append_arguments_to (s: STRING)
+	append_arguments_to (s: STRING_GENERAL)
 			-- Append arguments to `s'.
 		require
 			s_not_void: s /= Void
-		local
-			args: like arguments
 		do
-			args := arguments
-			if args /= Void then
+			if attached arguments as args then
 				s.append (" (")
-				from
-					args.start
-				until
-					args.after
+				across
+					args as a
 				loop
-					s.append (args.argument_names.i_th (args.index))
+					s.append (args.argument_names [a.target_index])
 					s.append (": ")
-					s.append (args.item.dump)
-					args.forth
-					if not args.after then
+					s.append (a.item.dump)
+					if not a.is_last then
 						s.append ("; ")
 					end
 				end
@@ -1151,21 +1095,7 @@ feature -- Output
 			end
 		end
 
-	valid_body_index: BOOLEAN
-			-- The use of this routine as precondition for real_body_id
-			-- allows the enhancement of the external functions
-			-- Indeed, if an external has to be encapsulated (macro, signature)
-			-- an EXECUTION_UNIT is created instead of an EXT_EXECUTION_UNIT
-		do
-			Result := associated_class.has_types
-			if Result then
-				Result := (is_constant and is_once) or
-					(not (is_attribute and then not is_attribute_with_body ) and then
-					not is_constant and then not is_deferred and then not is_unique)
-			end
-		end;
-
-feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Output
+feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Output: signature
 
 	feature_signature: STRING
 			-- Signature of Current feature
@@ -1192,13 +1122,6 @@ feature -- Implementation
 			end
 		end
 
-feature {E_FEATURE} -- Implementation
-
-	associated_class_id: INTEGER
-            -- Class id where the feature was evaluated in
-
-feature -- Implementation
-
 	associated_feature_i: FEATURE_I
 			-- Assocated feature_i
 		do
@@ -1214,6 +1137,11 @@ feature -- Implementation
 		do
 			Result := body_index
 		end
+
+feature {E_FEATURE} -- Implementation
+
+	associated_class_id: INTEGER
+            -- Class id where the feature was evaluated in
 
 feature {FEATURE_I} -- Setting
 
@@ -1241,6 +1169,14 @@ feature {FEATURE_I} -- Setting
 			is_class := value
 		ensure
 			is_class_set: is_class = value
+		end
+
+	set_ghost (value: BOOLEAN)
+			-- Set `is_ghost` to `value`.
+		do
+			is_ghost := value
+		ensure
+			is_ghost_set: is_ghost = value
 		end
 
 	set_is_origin (b: BOOLEAN)
@@ -1308,9 +1244,10 @@ invariant
 	written_class_not_void: is_valid implies written_class /= Void
 
 note
+	ca_ignore: "CA033", "CA033: very large class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

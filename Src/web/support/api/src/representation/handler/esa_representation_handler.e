@@ -59,6 +59,11 @@ feature -- View
 		deferred
 		end
 
+	problem_closed_reports_guest (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: detachable ESA_REPORT_VIEW)
+			-- Problem recently closed reports representation for a guest user
+		deferred
+		end
+
 	problem_user_reports (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: detachable ESA_REPORT_VIEW)
 			-- Problem reports representation for a given user
 		deferred
@@ -66,6 +71,11 @@ feature -- View
 
 	problem_reports_responsible	(req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: detachable ESA_REPORT_VIEW)
 			-- Problem reports representation for a given user
+		deferred
+		end
+
+	problem_reports_responsible_closed (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: detachable ESA_REPORT_VIEW)
+			-- Problem reports closed or won't fix for responsible users.
 		deferred
 		end
 
@@ -94,7 +104,7 @@ feature -- View
 		deferred
 		end
 
-	update_report_responsible (req: WSF_REQUEST; res: WSF_RESPONSE; a_redirect_uri: READABLE_STRING_32)
+	update_report_responsible (req: WSF_REQUEST; res: WSF_RESPONSE; a_redirect_uri: READABLE_STRING_8)
 			-- Update report responsible
 		deferred
 		end
@@ -201,12 +211,12 @@ feature -- View
 		end
 
 
-	reminder_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_error: detachable STRING)
+	reminder_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_error: detachable READABLE_STRING_GENERAL)
 			-- Reminder page.
 		deferred
 		end
 
-	post_reminder_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_email: detachable STRING)
+	post_reminder_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_email: detachable READABLE_STRING_8)
 			-- Post reminder page.
 		deferred
 		end

@@ -17,15 +17,17 @@ create
 
 feature -- Intialization
 
-	data_reader (a_query: STRING; a_parameters: STRING_TABLE [ANY])
+	data_reader (a_query: READABLE_STRING_GENERAL; a_parameters: HASH_TABLE [ANY, READABLE_STRING_GENERAL])
 			-- SQL data reader for the query `a_query' with arguments `a_parameters'
 		do
-			log.write_information (generator + ".data_reader" + " execute query: " + a_query)
-			log.write_debug (generator + ".data_reader" + " arguments:" + log_parameters (a_parameters))
+			debug
+				log.write_information (generator + ".data_reader" + " execute query: " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_query))
+			end
+			log.write_debug (generator + ".data_reader execute query: " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_query)  + " arguments:" + log_parameters (a_parameters))
 			query := a_query
 			parameters := a_parameters
 		ensure
-			query_set: query = a_query
+			query_set: query.same_string_general (a_query)
 			parameters_set: parameters = a_parameters
 		end
 
@@ -42,7 +44,7 @@ feature -- Intialization
 				a_base_selection.load_result
 				Result := a_base_selection.container
 			else
-				log.write_error (generator + "." + a_base_selection.error_message_32)
+				log.write_error (generator + "." + a_base_selection.error_message_32.to_string_8)
 			end
 			unset_map_name (a_base_selection)
 			a_base_selection.terminate
@@ -60,10 +62,10 @@ feature -- Intialization
 
 feature --  Access
 
-	query: STRING
+	query: IMMUTABLE_STRING_32
 			-- SQL query to execute.
 
-	parameters: STRING_TABLE [ANY]
+	parameters: HASH_TABLE [ANY, READABLE_STRING_GENERAL]
 			-- query parameters.
 
 feature -- Status Report
@@ -116,7 +118,7 @@ feature {NONE} -- Implementation
 				a_parameters.after
 			loop
 				Result.append ("name:")
-				Result.append (a_parameters.key_for_iteration.as_string_32)
+				Result.append (a_parameters.key_for_iteration.to_string_8)
 				Result.append (", value:")
 				if
 					a_parameters.key_for_iteration.has_substring ("Password") or else

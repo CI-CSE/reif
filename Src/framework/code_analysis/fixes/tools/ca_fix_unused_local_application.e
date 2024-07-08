@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "EXACT COPY from {FIX_UNUSED_LOCAL_APPLICATION} in order to make it available for this library."
 
 class
@@ -47,16 +47,14 @@ feature {AST_EIFFEL} -- Visitor
 			r: ERT_TOKEN_REGION
 			s: STRING_8
 		do
-			if attached a.locals as l then
+			if attached a.locals as locals then
 					-- Iterate over all local declarations.
-				from
-					k := l.count
-					l.start
-				until
-					l.after
+				k := locals.count
+				across
+					locals as l
 				loop
 						-- Iterate over all identifiers.
-					identifiers := l.item.id_list
+					identifiers := l.id_list
 					from
 							-- Current identifier.
 						i := 1
@@ -70,7 +68,7 @@ feature {AST_EIFFEL} -- Visitor
 						i > n
 					loop
 							-- Check if the current identifier is unused.
-						if across unused_locals as u some u.item.name = identifiers.i_th (i) end then
+						if across unused_locals as u some u.name = identifiers.i_th (i) end then
 								-- Update identifier count.
 							m := m - 1
 							if m = 0 then
@@ -83,7 +81,7 @@ feature {AST_EIFFEL} -- Visitor
 									r := a.token_region (token_list)
 								else
 										-- Remove this declaration.
-									r := l.item.token_region (token_list)
+									r := l.token_region (token_list)
 								end
 								if token_list.i_th (r.start_index - 1).is_separator then
 										-- Remove leading white space.
@@ -134,8 +132,6 @@ feature {AST_EIFFEL} -- Visitor
 						end
 						i := i + 1
 					end
-						-- Advance to the next declaration.
-					l.forth
 				end
 			end
 		end
@@ -143,34 +139,35 @@ feature {AST_EIFFEL} -- Visitor
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful, but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-		]"
+		This file is part of Eiffel Software's Eiffel Development Environment.
+		
+		Eiffel Software's Eiffel Development Environment is free
+		software; you can redistribute it and/or modify it under
+		the terms of the GNU General Public License as published
+		by the Free Software Foundation, version 2 of the License
+		(available at the URL listed under "license" above).
+		
+		Eiffel Software's Eiffel Development Environment is
+		distributed in the hope that it will be useful, but
+		WITHOUT ANY WARRANTY; without even the implied warranty
+		of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+		
+		You should have received a copy of the GNU General Public
+		License along with Eiffel Software's Eiffel Development
+		Environment; if not, write to the Free Software Foundation,
+		Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+	]"
 	source: "[
-			Eiffel Software
-			5949 Hollister Ave., Goleta, CA 93117 USA
-			Telephone 805-685-1006, Fax 805-685-6869
-			Website http://www.eiffel.com
-			Customer support http://support.eiffel.com
-		]"
+		Eiffel Software
+		5949 Hollister Ave., Goleta, CA 93117 USA
+		Telephone 805-685-1006, Fax 805-685-6869
+		Website http://www.eiffel.com
+		Customer support http://support.eiffel.com
+	]"
+
 end

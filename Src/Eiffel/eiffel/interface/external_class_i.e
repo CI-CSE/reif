@@ -72,7 +72,7 @@ feature -- Access
 			if attached type_file as l_type_file and then (create {RAW_FILE}.make_with_name (l_type_file)).exists then
 				l_reader.deserialize (l_type_file, type_position)
 				if l_reader.successful then
-					Result ?= l_reader.deserialized_object
+					Result := {CONSUMED_TYPE} / l_reader.deserialized_object
 				end
 			end
 		end
@@ -89,12 +89,8 @@ feature -- Access
 			c_not_void: c /= Void
 		local
 			l_name: STRING
-			l_is_array: BOOLEAN
-			l_array_type: CONSUMED_ARRAY_TYPE
 		do
-			l_array_type ?= c
-			l_is_array := l_array_type /= Void
-			if l_is_array then
+			if attached {CONSUMED_ARRAY_TYPE} c then
 				Result := System.native_array_class
 			else
 				if c.is_by_ref then
@@ -105,7 +101,7 @@ feature -- Access
 							-- written as an Eiffel class, e.g. INTEGER, ....
 					Result := basic_type_mapping.item (l_name)
 					if Result = Void then
-						Result ?= assembly.class_by_dotnet_name (l_name, c.assembly_id)
+						Result := {CLASS_I} / assembly.class_by_dotnet_name (l_name, c.assembly_id)
 						check has_result: Result /= Void end
 					end
 				end
@@ -167,7 +163,8 @@ feature {NONE} -- Implementation
 	consumed_type_deserializer: EIFFEL_DESERIALIZER
 			-- Deserializer engine
 		once
-			create Result
+			-- FIXME: may be dangerous to use once here.
+			Result := {EIFFEL_SERIALIZATION}.deserializer_for_version (system.clr_runtime_version)
 		ensure
 			consumed_type_deserializer_not_void: Result /= Void
 		end
@@ -180,7 +177,7 @@ feature {NONE} -- Type anchor
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

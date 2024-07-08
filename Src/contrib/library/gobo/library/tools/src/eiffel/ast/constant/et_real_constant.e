@@ -5,7 +5,7 @@ note
 		"Eiffel real constants"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 1999-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -54,7 +54,7 @@ feature -- Initialization
 
 feature -- Access
 
-	literal: STRING
+	literal: STRING_8
 			-- Literal real absolute value
 
 	sign: detachable ET_SYMBOL_OPERATOR
@@ -66,6 +66,16 @@ feature -- Access
 	type: detachable ET_CLASS_TYPE
 			-- Type of real constant;
 			-- Void if not determined yet
+
+	indexing_term_value: STRING_8
+			-- Value of current indexing term
+		do
+			if attached sign as l_sign then
+				Result := l_sign.text + literal
+			else
+				Result := literal
+			end
+		end
 
 	position: ET_POSITION
 			-- Position of first character of
@@ -111,6 +121,32 @@ feature -- Status report
 	is_real_constant: BOOLEAN = True
 			-- Is current constant a real constant?
 
+	has_indexing_term_value (a_value: STRING_8): BOOLEAN
+			-- Does current indexing term have value `a_value'?
+			-- (case-insensitive comparison)
+		do
+			if not attached sign as l_sign then
+				Result := STRING_.same_case_insensitive (literal, a_value)
+			elseif literal.count = a_value.count - 1 then
+				if l_sign.is_minus and then a_value.item (1) = '-' then
+					Result := STRING_.same_case_insensitive ("-" + literal, a_value)
+				elseif l_sign.is_plus and then a_value.item (1) = '+' then
+					Result := STRING_.same_case_insensitive ("+" + literal, a_value)
+				end
+			end
+		end
+
+	valid_literal (a_literal: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is `a_literal' a valid value for `literal'?
+		require
+			a_literal_not_void: a_literal /= Void
+		do
+			Result := {RX_PCRE_ROUTINES}.regexp (literal_regexp).recognizes (a_literal)
+		ensure
+			instance_free: class
+			definition: Result = {RX_PCRE_ROUTINES}.regexp (literal_regexp).recognizes (a_literal)
+		end
+		
 feature -- Setting
 
 	set_sign (a_sign: like sign)
@@ -155,8 +191,19 @@ feature -- Type conversion
 			end
 		end
 
+feature {NONE} -- Implementation
+
+	literal_regexp: STRING
+			-- Regular expression for `literal'
+		deferred
+		ensure
+			instance_free: class
+			literal_regexp_not_void: Result /= Void
+		end
+
 invariant
 
 	literal_not_void: literal /= Void
+	valid_literal: valid_literal (literal)
 
 end

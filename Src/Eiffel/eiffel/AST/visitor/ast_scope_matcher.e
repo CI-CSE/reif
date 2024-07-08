@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Detector of local scopes."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -14,13 +14,17 @@ inherit
 			process_bin_and_as,
 			process_bin_and_then_as,
 			process_bin_eq_as,
+			process_bin_free_as,
 			process_bin_implies_as,
 			process_bin_ne_as,
 			process_bin_or_as,
 			process_bin_or_else_as,
-			process_object_test_as,
 			process_converted_expr_as,
+			process_expr_call_as,
+			process_nested_expr_as,
+			process_object_test_as,
 			process_paran_as,
+			process_un_free_as,
 			process_un_not_as
 		end
 
@@ -47,72 +51,217 @@ feature {NONE} -- Initialization
 
 feature {AST_EIFFEL} -- Visitor pattern: boolean logic
 
-	process_bin_and_as (l_as: BIN_AND_AS)
+	process_bin_and_as (a: BIN_AND_AS)
+			-- <Precursor>
 		do
 				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
-			if l_as.class_id = boolean_type.class_id and then is_negated = is_negation_expected then
-				if is_nested then
-					l_as.left.process (Current)
+			if a.class_id = boolean_type.class_id then
+				process_conjunction (a.left, a.right)
+			end
+		end
+
+	process_bin_and_then_as (a: BIN_AND_THEN_AS)
+			-- <Precursor>
+		do
+				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
+			if a.class_id = boolean_type.class_id then
+				process_semistrict_conjunction (a.left, a.right)
+			end
+		end
+
+	process_bin_free_as (a: BIN_FREE_AS)
+			-- <Precursor>
+		do
+				-- Apply the CAP only if `a` corresponds to a built-in boolean operator.
+			if a.class_id = boolean_type.class_id then
+				inspect boolean_type.base_class.feature_of_rout_id (a.first).feature_name_id
+				when {PREDEFINED_NAMES}.conjuncted_name_id then
+					process_conjunction (a.left, a.right)
+				when {PREDEFINED_NAMES}.conjuncted_semistrict_name_id then
+					process_semistrict_conjunction (a.left, a.right)
+				when {PREDEFINED_NAMES}.disjuncted_name_id then
+					process_disjunction (a.left, a.right)
+				when {PREDEFINED_NAMES}.disjuncted_semistrict_name_id then
+					process_semistrict_disjunction (a.left, a.right)
+				when {PREDEFINED_NAMES}.implication_name_id then
+					process_implication (a.left, a.right)
+				else
+						-- Non-built-in operator, nothing to do.
 				end
-				l_as.right.process (Current)
 			end
 		end
 
-	process_bin_and_then_as (l_as: BIN_AND_THEN_AS)
+	process_bin_implies_as (a: BIN_IMPLIES_AS)
+			-- <Precursor>
 		do
 				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
-			if l_as.class_id = boolean_type.class_id and then is_negated = is_negation_expected then
-				l_as.left.process (Current)
-				l_as.right.process (Current)
+			if a.class_id = boolean_type.class_id then
+				process_implication (a.left, a.right)
 			end
 		end
 
-	process_bin_implies_as (l_as: BIN_IMPLIES_AS)
+	process_bin_or_as (a: BIN_OR_AS)
+			-- <Precursor>
+		do
+				-- Apply the CAP only if `a` corresponds to the boolean operator.
+			if a.class_id = boolean_type.class_id then
+				process_disjunction (a.left, a.right)
+			end
+		end
+
+	process_bin_or_else_as (a: BIN_OR_ELSE_AS)
+			-- <Precursor>
+		do
+				-- Apply the CAP only if `a` corresponds to the boolean operator.
+			if a.class_id = boolean_type.class_id then
+				process_semistrict_disjunction (a.left, a.right)
+			end
+		end
+
+	process_expr_call_as (a: EXPR_CALL_AS)
+			-- <Precursor>
+		do
+				-- Look for expressions of the form
+				--     (something).negated
+			a.call.process (Current)
+		end
+
+	process_nested_expr_as (a: NESTED_EXPR_AS)
+			-- <Precursor>
+		do
+			if a.message.class_id = boolean_type.class_id then
+				inspect a.message.feature_name.name_id
+				when {PREDEFINED_NAMES}.conjuncted_name_id then
+					if
+						a.message.parameter_count = 1 and then
+						attached a.message.parameters [1] as p
+					then
+						process_conjunction (a.target, p)
+					end
+				when {PREDEFINED_NAMES}.conjuncted_semistrict_name_id then
+					if
+						a.message.parameter_count = 1 and then
+						attached a.message.parameters [1] as p
+					then
+						process_semistrict_conjunction (a.target, p)
+					end
+				when {PREDEFINED_NAMES}.disjuncted_name_id then
+					if
+						a.message.parameter_count = 1 and then
+						attached a.message.parameters [1] as p
+					then
+						process_disjunction (a.target, p)
+					end
+				when {PREDEFINED_NAMES}.disjuncted_semistrict_name_id then
+					if
+						a.message.parameter_count = 1 and then
+						attached a.message.parameters [1] as p
+					then
+						process_semistrict_disjunction (a.target, p)
+					end
+				when {PREDEFINED_NAMES}.implication_name_id then
+					if
+						a.message.parameter_count = 1 and then
+						attached a.message.parameters [1] as p
+					then
+						process_implication (a.target, p)
+					end
+				when {PREDEFINED_NAMES}.negated_name_id then
+					process_negation (a.target)
+				else
+						-- A call to some non-built-in feature.
+				end
+			end
+		end
+
+	process_un_free_as (a: UN_FREE_AS)
+			-- <Precursor>
+		do
+				-- Apply the CAP only if `a' corresponds to the boolean operator.
+			if
+				a.class_id = boolean_type.class_id and then
+				boolean_type.base_class.feature_of_rout_id (a.first).feature_name_id = {PREDEFINED_NAMES}.negated_name_id
+			then
+				process_negation (a.expr)
+			end
+		end
+
+	process_un_not_as (a: UN_NOT_AS)
+			-- <Precursor>
+		do
+				-- Apply the CAP only if `a' corresponds to the boolean operator.
+			if a.class_id = boolean_type.class_id then
+				process_negation (a.expr)
+			end
+		end
+
+feature {NONE} -- Boolean connectives
+
+	process_conjunction (l, r: EXPR_AS)
+			-- Process conjunction with left-hand side `l` and right-hand side `r`.
+		do
+			if is_negated = is_negation_expected then
+				if is_nested then
+					l.process (Current)
+				end
+				r.process (Current)
+			end
+		end
+
+	process_semistrict_conjunction (l, r: EXPR_AS)
+			-- Process semistrict conjunction with left-hand side `l` and right-hand side `r`.
+		do
+			if is_negated = is_negation_expected then
+				l.process (Current)
+				r.process (Current)
+			end
+		end
+
+	process_disjunction (l, r: EXPR_AS)
+			-- Process disjunction with left-hand side `l` and right-hand side `r`.
+		do
+			if is_negated /= is_negation_expected then
+				if is_nested then
+					l.process (Current)
+				end
+				r.process (Current)
+			end
+		end
+
+	process_semistrict_disjunction (l, r: EXPR_AS)
+			-- Process semistrict disjunction with left-hand side `l` and right-hand side `r`.
+		do
+			if is_negated /= is_negation_expected then
+				l.process (Current)
+				r.process (Current)
+			end
+		end
+
+	process_implication (l, r: EXPR_AS)
+			-- Process implication with left-hand side `l` and right-hand side `r`.
 		local
 			old_is_nested: BOOLEAN
 		do
 				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
-			if l_as.class_id = boolean_type.class_id and then is_negated /= is_negation_expected then
+			if is_negated /= is_negation_expected then
 				old_is_nested := is_nested
 				is_nested := True
 				is_negated := not is_negated
-				l_as.left.process (Current)
+				l.process (Current)
 				is_negated := not is_negated
-				l_as.right.process (Current)
+				r.process (Current)
 				is_nested := old_is_nested
 			end
 		end
 
-	process_bin_or_as (l_as: BIN_OR_AS)
+	process_negation (e: EXPR_AS)
+			-- Process negation of expression `e`.
 		do
-				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
-			if l_as.class_id = boolean_type.class_id and then is_negated /= is_negation_expected then
-				if is_nested then
-					l_as.left.process (Current)
-				end
-				l_as.right.process (Current)
-			end
-		end
-
-	process_bin_or_else_as (l_as: BIN_OR_ELSE_AS)
-		do
-				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
-			if l_as.class_id = boolean_type.class_id and then is_negated /= is_negation_expected then
-				l_as.left.process (Current)
-				l_as.right.process (Current)
-			end
-		end
-
-	process_un_not_as (l_as: UN_NOT_AS)
-		do
-				-- Apply the CAP only if `l_as' corresponds to the corresponding boolean operator.
-			if l_as.class_id = boolean_type.class_id then
-					-- Boolean expression is negated
-				is_negated := not is_negated
-				l_as.expr.process (Current)
-					-- Revert original status in case there are other voidness tests
-				is_negated := not is_negated
-			end
+				-- Boolean expression is negated.
+			is_negated := not is_negated
+			e.process (Current)
+				-- Revert original status in case there are other voidness tests.
+			is_negated := not is_negated
 		end
 
 feature {AST_EIFFEL} -- Visitor pattern: content
@@ -167,9 +316,9 @@ feature {NONE} -- Check for void test
 				if attached {EXPR_CALL_AS} expr as expr_call_as then
 					if attached {ACCESS_INV_AS} expr_call_as.call as access_inv_as then
 						add_access_scope (access_inv_as)
-					elseif attached {RESULT_AS} expr_call_as.call as result_as then
-						add_result_scope
 					end
+				elseif attached {RESULT_AS} expr then
+					add_result_scope
 				end
 			end
 		end
@@ -208,9 +357,9 @@ feature {NONE} -- Check for void test
 				if attached {EXPR_CALL_AS} e as expr_call_as then
 					if attached {ACCESS_INV_AS} expr_call_as.call as access_inv_as then
 						add_access_scope (access_inv_as)
-					elseif attached {RESULT_AS} expr_call_as.call as result_as then
-						add_result_scope
 					end
+				elseif attached {RESULT_AS} e then
+					add_result_scope
 				end
 			end
 		end
@@ -235,20 +384,20 @@ feature {NONE} -- Context
 		require
 			a_attached: a /= Void
 		do
-			if a.is_argument then
-				add_argument_scope (a.feature_name.name_id)
+			if a.is_readonly then
+				add_readonly_scope (a.feature_name.name_id)
 			elseif a.is_local then
 				add_local_scope (a.feature_name.name_id)
-			elseif not a.is_object_test_local and then not a.is_tuple_access then
-					-- It must be a feature
+			elseif not a.is_tuple_access then
+					-- It must be a feature.
 				add_attribute_scope (a.feature_name.name_id)
 			end
 		end
 
-	add_argument_scope (id: INTEGER_32)
+	add_readonly_scope (id: INTEGER_32)
 			-- Add scope of a non-void argument.
 		do
-			context.add_argument_instruction_scope (id)
+			context.add_readonly_instruction_scope (id)
 		end
 
 	add_attribute_scope (id: INTEGER_32)
@@ -296,7 +445,7 @@ invariant
 	context_attached: context /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

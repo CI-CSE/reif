@@ -654,7 +654,7 @@ feature -- Byte code generation
 			Temp_byte_code_array.append_integer (real_body_id - 1)
 
 				-- Result SK value
-			l_type := context.real_type (result_type)
+			l_type := context.real_type (if is_once_creation then real_type (context.current_type) else result_type end)
 			Temp_byte_code_array.append_natural_32 (l_type.sk_value (context.context_class_type.type))
 
 				-- Argument number
@@ -962,6 +962,27 @@ end
 			create Result.make
 		end
 
+feature -- Status report
+
+	has_hector: BOOLEAN
+			-- Does the current byte code has a hector?
+
+	is_once_creation: BOOLEAN
+			-- Is it a creation procedure of a once class?
+		do
+				-- False by default.
+		end
+
+feature -- Status setting
+
+	set_has_hector (v: BOOLEAN)
+			-- Set `has_hector` to `v`.
+		do
+			has_hector := v
+		ensure
+			has_hector_set: has_hector = v
+		end
+
 feature -- Array optimization
 
 	has_loop: BOOLEAN
@@ -1026,7 +1047,7 @@ invariant
 	valid_once_manifest_string_count: once_manifest_string_count >= 0
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

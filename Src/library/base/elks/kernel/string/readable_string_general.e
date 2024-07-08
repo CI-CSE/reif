@@ -29,6 +29,9 @@ inherit
 			is_equal
 		end
 
+convert
+	as_string_32: {READABLE_STRING_32, STRING_32}
+
 feature {NONE} -- Initialization
 
 	make (n: INTEGER)
@@ -798,8 +801,25 @@ feature -- Conversion
 			-- Convert `Current' as a STRING_8.
 		require
 			is_valid_as_string_8: is_valid_as_string_8
+		local
+			i, nb: INTEGER
 		do
-			Result := as_string_8
+			if attached {STRING_8} Current as s then
+				Result := s
+			else
+				nb := count
+				create Result.make (nb)
+				Result.set_count (nb)
+				from
+					i := 1
+				until
+					i > nb
+				loop
+					check from_precondition: Result.valid_code (code (i)) end
+					Result.put_code (code (i), i)
+					i := i + 1
+				end
+			end
 		ensure
 			as_string_8_not_void: Result /= Void
 			identity: (conforms_to ("") and Result = Current) or (not conforms_to ("") and Result /= Current)
@@ -818,9 +838,11 @@ feature -- Conversion
 		end
 
 	as_readable_string_8: READABLE_STRING_8
-			--
+			-- Convert `Current` as a READABLE_STRING_8. If a code of `Current` is
+			-- not a valid code for a READABLE_STRING_8 it is replaced with the null
+			-- character.
 		obsolete
-			"Use explicit conversion `to_string_8' instead. [2017-05-31]"
+			"Use explicit conversion `to_string_8' with a test that the string is made of ASCII characters only. [2017-05-31]"
 		do
 			Result := as_string_8
 		end
@@ -829,6 +851,15 @@ feature -- Conversion
 			-- Convert `Current' as a STRING_8. If a code of `Current' is
 			-- not a valid code for a STRING_8 it is replaced with the null
 			-- character.
+		obsolete
+			"[
+				For 32-bit strings:
+					- use explicit conversion `to_string_8` with a test that the string is made of ASCII characters only.
+				For 8-bit strings:
+					- consider changing the type of reattachment target to READABLE_STRING_8 or
+					- use explicit conversion `to_string_8` to avoid implicit performance penalty.
+				[2019-11-30]
+			]"
 		local
 			i, nb: INTEGER
 			l_code: like code
@@ -871,9 +902,9 @@ feature -- Conversion
 		end
 
 	as_readable_string_32: READABLE_STRING_32
-			--
+			-- Equivalent to `as_string_32` with a different name.
 		obsolete
-			"Use explicit conversion `to_string_32' instead. [2017-05-31]"
+			"Use explicit conversion `to_string_32`, or, better use READABLE_STRING_32 and descendants instead. [2017-05-31]"
 		do
 			Result := as_string_32
 		end
@@ -1104,6 +1135,8 @@ feature -- Conversion
 feature -- Element change
 
 	plus alias "+" (s: READABLE_STRING_GENERAL): like Current
+			-- Concatenation of the current string with `s`.
+		obsolete "Use `plus` on sized variants of string classes. [2020-05-31]"
 		require
 			argument_not_void: s /= Void
 			compatible_strings: is_string_8 implies s.is_valid_as_string_8
@@ -1260,7 +1293,7 @@ feature -- Access: Cursor
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

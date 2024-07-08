@@ -5,20 +5,33 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-frozen class
+deferred class
 	EIFFEL_SERIALIZER
 
-inherit
-	SED_MULTI_OBJECT_SERIALIZATION
-		undefine
-			log_last_exception
+feature -- Access
+
+	last_file_position: INTEGER
+			-- Position after last serialization
+		deferred
 		end
 
-	SHARED_LOGGER
-		export
-			{NONE} all
-		undefine
-			default_create
+	error_message: detachable STRING_32
+			-- Reason for failure
+		deferred
+		end
+
+feature -- Status report
+
+	successful: BOOLEAN
+			-- Was last storage successful?
+		deferred
+		end
+
+feature -- Serialization
+
+	serialize (a: ANY; path: READABLE_STRING_GENERAL; is_appending: BOOLEAN)
+			-- Serialize `a` to `path`, as new file or just appended if `is_appending`.
+		deferred
 		end
 
 note

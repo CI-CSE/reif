@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-18-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-18-0 http://www.eiffel.com/developers/xml/configuration-1-18-0.xsd" name="es_cloud" uuid="DA857F5D-FEEA-4227-BAD5-CD6E2C342716" library_target="es_cloud">
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-21-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-21-0 http://www.eiffel.com/developers/xml/configuration-1-21-0.xsd" name="es_cloud" uuid="DA857F5D-FEEA-4227-BAD5-CD6E2C342716" library_target="es_cloud">
 	<description>ISE Eiffel - Account solution</description>
 	<target name="es_cloud">
 		<root all_classes="true"/>
@@ -7,8 +7,15 @@
 			<exclude>/EIFGENs$</exclude>
 			<exclude>/\.svn</exclude>
 		</file_rule>
+		<capability>
+			<concurrency support="none" use="thread"/>
+			<void_safety support="none" use="none"/>
+		</capability>
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="true"/>
 		<library name="base_extension" location="$ISE_LIBRARY\library\base_extension\base_extension.ecf" readonly="false"/>
+		<library name="ec_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf"/>
+		<library name="ecosystem" location="$EIFFEL_SRC\Eiffel\ecosystem\ecosystem.ecf" readonly="false" use_application_options="true"/>
+		<library name="eiffel_edition" location="$EIFFEL_SRC\Eiffel\edition\edition.ecf"/>
 		<library name="environment" location="$EIFFEL_SRC\framework\environment\environment.ecf" readonly="false" use_application_options="true"/>
 		<library name="http" location="$ISE_LIBRARY\contrib\library\network\protocol\http\http.ecf"/>
 		<library name="http_authorization" location="$ISE_LIBRARY\contrib\library\web\authentication\http_authorization\http_authorization.ecf"/>
@@ -25,6 +32,7 @@
 		<library name="time" location="$ISE_LIBRARY\library\time\time.ecf"/>
 		<library name="uri" location="$ISE_LIBRARY\library\text\uri\uri.ecf"/>
 		<library name="uuid" location="$EIFFEL_SRC\library\uuid\uuid.ecf" readonly="false"/>
+		<library name="vision2" location="$ISE_LIBRARY\library\vision2\vision2.ecf"/>
 		<library name="wel" location="$ISE_LIBRARY\library\wel\wel.ecf">
 			<condition>
 				<platform value="windows"/>
@@ -34,6 +42,7 @@
 			<cluster name="service" location="$|service\"/>
 			<cluster name="model" location="$|model\"/>
 			<cluster name="implementation" location="$|implementation\" hidden="true">
+				<cluster name="common" location="$|spec\common\"/>
 				<cluster name="unix" location="$|spec\unix\">
 					<condition>
 						<platform excluded_value="windows"/>
@@ -44,6 +53,7 @@
 						<platform value="windows"/>
 					</condition>
 				</cluster>
+				<cluster name="concurrency_common" location="$|concurrency\common\"/>
 				<cluster name="concurrency_none" location="$|concurrency\none\">
 					<condition>
 						<concurrency excluded_value="thread"/>

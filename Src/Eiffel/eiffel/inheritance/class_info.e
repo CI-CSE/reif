@@ -1,24 +1,29 @@
 note
+	description: "[
+		Temporary data structure of a class produced after first pass.
+		Instances of `PARENT_AS` produced by Yacc are transformed into instances
+		of `PARENT_C`: renamings, redefinings etc.. are inserted into hash table
+		for quick interrogations for inheritance analysis and infix/prefix
+		notation are interpreted. Those structures are forgotten after second
+		pass.
+
+		Attribute `features` is useful for iterating on it during second
+		pass in order to analyze local features written in a class.
+	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Temporary data structure of a class produced after first pass.
--- Instances of PARENT_AS produced by Yacc are transformed into instances
--- of PARENT_C: renamings, redefinings etc.. are inserted into hash table
--- for quick interrogations for inheritance analysis and infix/prefix
--- notation are interpreted. Those structures are forgotten after second
--- pass.
--- Attribute `features' is useful for iterating on it during second
--- pass in order to analyze local features written in a class.
 
 class CLASS_INFO
 
 inherit
-	SHARED_ERROR_HANDLER;
-	SHARED_EXPORT_STATUS;
+	SHARED_ERROR_HANDLER
+	SHARED_EXPORT_STATUS
+
 	SHARED_SERVER
 		export
 			{NONE} all
-		end;
+		end
+
 	IDABLE
 		rename
 			id as class_id,
@@ -104,101 +109,124 @@ feature -- Access
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 
-	creation_table (feat_table: FEATURE_TABLE): HASH_TABLE [EXPORT_I, STRING]
-			-- Creators table
+	creation_table (feat_table: FEATURE_TABLE): like {CLASS_C}.creators
+			-- Creation table of the current class.
+			-- The function has a side effect: it records creation positions of features in `feat_table`.
 		require
-			good_argument: feat_table /= Void;
+			good_argument: feat_table /= Void
 		local
-			feature_name: ID_AS;
-			a_class: CLASS_C;
-			a_feature, l_def_create: FEATURE_I;
-			feature_list: EIFFEL_LIST [FEATURE_NAME];
-			clients: CLIENT_AS;
-			c_reation: CREATE_AS;
-			l_export_status: EXPORT_I;
-			vgcp1: VGCP1;
-			vgcp2: VGCP2;
-			vgcp21: VGCP21;
-			vgcp3: VGCP3;
-			vgcp4: VGCP4;
+			feature_name: ID_AS
+			a_class: CLASS_C
+			a_feature, l_def_create: FEATURE_I
+			c_reation: CREATE_AS
+			l_export_status: EXPORT_I
+			vgcp1: VGCP1
+			vgcp2: VGCP2
+			vgcp21: VGCP21
+			vgcp3: VGCP3
+			vgcp4: VGCP4
 			has_default_create: BOOLEAN
+			position: like {FEATURE_I}.creator_position
 		do
-			a_class := feat_table.associated_class;
-			if creators = Void then
-				-- Do nothing
+			a_class := feat_table.associated_class
+			if not attached creators as cs then
+					-- Do nothing.
 				has_default_create := True
-			elseif a_class.is_deferred then
-				create vgcp1;
-				vgcp1.set_class (a_class);
-				Error_handler.insert_error (vgcp1);
-			else
-				from
-					create Result.make (creators.count);
-					creators.start;
-					if a_class.is_expanded then
-						l_def_create := feat_table.feature_of_rout_id (System.default_create_rout_id)
+				if a_class.class_id = system.any_id then
+					if attached feat_table.item_id (system.names.default_create_name_id) as f then
+						f.set_creator_position (1)
+						check_once_creator (f, a_class, agent (c: CLASS_C): LOCATION_AS do Result := c.ast.class_name end (a_class))
 					end
-				until
-					creators.after
+				elseif attached feat_table.feature_of_rout_id (system.default_create_rout_id) as f then
+					f.set_creator_position (1)
+					check_once_creator (f, a_class, agent (c: CLASS_C): LOCATION_AS do Result := c.ast.class_name end (a_class))
+				end
+			elseif a_class.is_deferred then
+				create vgcp1
+				vgcp1.set_class (a_class)
+				Error_handler.insert_error (vgcp1)
+			else
+				create Result.make (cs.count)
+				if a_class.is_expanded then
+					l_def_create := feat_table.feature_of_rout_id (System.default_create_rout_id)
+				end
+				position := 1
+				across
+					cs as c
 				loop
-					c_reation := creators.item;
-					if c_reation.feature_list /= Void then
-						from
-							clients := c_reation.clients;
-							if clients /= Void then
-								l_export_status := export_status_generator.export_status (system, a_class, clients)
+					c_reation := c.item
+					if attached c_reation.feature_list as feature_list then
+						l_export_status :=
+							if attached c_reation.clients as clients then
+								export_status_generator.export_status (system, a_class, clients)
 							else
-								l_export_status := Export_all;
-							end;
-							feature_list := c_reation.feature_list;
-							feature_list.start
-						until
-							feature_list.after
+								export_all
+							end
+						across
+							feature_list as f
 						loop
-							feature_name := feature_list.item.internal_name
-							a_feature := feat_table.item_id (feature_name.name_id);
+							feature_name := f.item.feature_name
+							a_feature := feat_table.item_id (feature_name.name_id)
 							if a_feature = Void then
-								create vgcp2;
-								vgcp2.set_class (a_class);
-								vgcp2.set_feature_name (feature_name.name);
-								vgcp2.set_location (feature_list.item.start_location)
-								Error_handler.insert_error (vgcp2);
+								create vgcp2
+								vgcp2.set_class (a_class)
+								vgcp2.set_feature_name (feature_name.name)
+								vgcp2.set_location (f.item.start_location)
+								Error_handler.insert_error (vgcp2)
 							else
-								if Result.has (feature_name.name) then
-									create vgcp3;
-									vgcp3.set_class (a_class);
-									vgcp3.set_feature_name (feature_name.name);
-									vgcp3.set_location (feature_list.item.start_location)
-									Error_handler.insert_error (vgcp3);
+								if Result.has (feature_name.name_id) then
+									create vgcp3
+									vgcp3.set_class (a_class)
+									vgcp3.set_feature_name (feature_name.name)
+									vgcp3.set_location (f.item.start_location)
+									Error_handler.insert_error (vgcp3)
 								else
 									has_default_create := has_default_create or a_feature = l_def_create
-									Result.put (l_export_status, feature_name.name);
-								end;
+									Result [feature_name.name_id] := l_export_status
+								end
 								if not a_feature.type.is_void then
-									create vgcp21;
-									vgcp21.set_class (a_class);
-									vgcp21.set_feature_name (feature_name.name);
-									vgcp21.set_location (feature_list.item.start_location)
-									Error_handler.insert_error (vgcp21);
-								end;
-							end;
-							feature_list.forth;
-						end;
+									create vgcp21
+									vgcp21.set_class (a_class)
+									vgcp21.set_feature_name (feature_name.name)
+									vgcp21.set_location (f.item.start_location)
+									Error_handler.insert_error (vgcp21)
+								end
+								check_once_creator (a_feature, a_class, agent (f.item).start_location)
+								a_feature.set_creator_position (position)
+								position := position + 1
+							end
+						end
 					end
-					creators.forth;
-				end;
-			end;
+				end
+			end
 			if a_class.is_expanded and not has_default_create then
-				create vgcp4;
-				vgcp4.set_class (a_class);
+				create vgcp4
+				vgcp4.set_class (a_class)
 				vgcp4.set_feature_name ("default_create")
-				Error_handler.insert_error (vgcp4);
+				Error_handler.insert_error (vgcp4)
 				Error_handler.checksum
 			end
-		end;
+		end
+
+feature {NONE} -- Validity checks
+
+	check_once_creator (a_feature: FEATURE_I; a_class: CLASS_C; l: FUNCTION [LOCATION_AS])
+			-- Check that feature `f` of class `c` is valid as a creation procedure if the class is once.
+			-- Report an error if this is not the case for location `l`.
+		do
+			if not a_class.is_once then
+					-- Skip the check for non-once classes.
+			elseif not a_feature.is_once then
+				error_handler.insert_error (create {ONCE_CREATION_ERROR}.make ({ONCE_CREATION_ERROR}.reason_non_once, a_feature, a_class, l.item))
+			elseif a_feature.written_in /= class_id then
+				error_handler.insert_error (create {ONCE_CREATION_ERROR}.make ({ONCE_CREATION_ERROR}.reason_inherited, a_feature, a_class, l.item))
+			elseif a_feature.is_object_relative_once then
+				error_handler.insert_error (create {ONCE_CREATION_ERROR}.make ({ONCE_CREATION_ERROR}.reason_object_relative, a_feature, a_class, l.item))
+			end
+		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

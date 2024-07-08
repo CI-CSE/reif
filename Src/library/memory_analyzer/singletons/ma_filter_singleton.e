@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
-					Objects that is a filter that filter out the
-					information (classes, memory cost) we don't care.
-																			]"
+			Objects that is a filter that filter out the
+			information (classes, memory cost) we don't care.
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -35,12 +35,14 @@ feature  -- Filter
 				item_and_filter_names.after or
 				Result = True
 			loop
-				if (item_and_filter_names.item_for_iteration.class_name.as_string_8) ~ (a_class_name) and
-					 item_and_filter_names.item_for_iteration.selected then
+				if
+					item_and_filter_names.item_for_iteration.class_name.same_string (a_class_name) and
+					item_and_filter_names.item_for_iteration.selected
+				then
 					Result := True
 				end
 
-				debug ("larry")
+				debug ("memory_analyzer")
 					if a_class_name.is_equal ("XML_GRAPH_ROUTINES") then
 						io.put_string ("%N MA_FILTER_SINGLETON a_class_name is: " + item_and_filter_names.item_for_iteration.class_name + " " + a_class_name.out + " RESULT IS:" + Result.out)
 						io.put_string ("%N MA_FILTER_SINGLETON: " + item_and_filter_names.item_for_iteration.class_name + " " + item_and_filter_names.item_for_iteration.selected.out)
@@ -61,14 +63,14 @@ invariant
 	item_and_filter_names_not_void: item_and_filter_names /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 

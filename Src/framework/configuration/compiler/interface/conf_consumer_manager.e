@@ -31,6 +31,8 @@ inherit
 
 	CONF_ACCESS
 
+	SHARED_LOCALE
+
 create
 	make
 
@@ -112,6 +114,10 @@ feature -- Commands
 		local
 			l_retried: BOOLEAN
 			o: like old_assemblies
+			an_assembly: CONF_PHYSICAL_ASSEMBLY
+			ca: CONSUMED_ASSEMBLY
+			l_chained_forwarded_types: ARRAYED_LIST [TUPLE [forwarded_type: CONSUMED_FORWARDED_TYPE; physical_assembly: CONF_PHYSICAL_ASSEMBLY]]
+			l_forwarded_assemblies: STRING_TABLE [CONF_ASSEMBLY]
 		do
 			if not l_retried then
 					-- load information from metadata cache, consume if the metadata cache does not yet exist
@@ -136,7 +142,7 @@ feature -- Commands
 				create assemblies.make (o.count)
 				linear_assemblies.wipe_out
 
-					-- go through all the assemblies and update the information if necessary
+					-- Go through all the assemblies and update the information if necessary.
 				from
 					a_new_assemblies.start
 				until
@@ -155,12 +161,78 @@ feature -- Commands
 				until
 					linear_assemblies.after
 				loop
-					build_dependencies (linear_assemblies.item)
+					an_assembly := linear_assemblies.item
+					build_dependencies (an_assembly)
+
+						-- Then handle Forwarded types
+					if attached an_assembly.consumed_assembly.forwarded_types as l_fwd_types and then not l_fwd_types.is_empty then
+							-- Update information for forwarded types of `an_assembly`.
+						across
+							l_fwd_types as ft
+						loop
+							if
+								attached ft as l_fwd_type and then
+								l_fwd_type.assembly = Void and then -- This type was already processed
+								attached an_assembly.dependencies as l_assembly_dependencies and then
+								attached l_assembly_dependencies [l_fwd_type.assembly_id] as l_fwd_assembly
+							then
+								ca := l_fwd_assembly.consumed_assembly
+								l_fwd_type.set_assembly (ca)
+
+									-- Create and add to the CONF_TARGET, the CONF_ASSEMBLY-s to support forwarded types
+								if l_forwarded_assemblies = Void then
+									create l_forwarded_assemblies.make (1)
+								end
+								register_forwarded_type_assembly (an_assembly, ca, l_forwarded_assemblies)
+
+								if ca.has_forwarded_type (l_fwd_type) then
+									if l_chained_forwarded_types = Void then
+										create l_chained_forwarded_types.make (1)
+									end
+									l_chained_forwarded_types.force ([l_fwd_type, an_assembly])
+								end
+							end
+						end
+					end
 					linear_assemblies.forth
 				end
+				if l_chained_forwarded_types /= Void then
+						-- Resolve forwarded types chain.
+					across
+						l_chained_forwarded_types as ft
+					loop
+						if
+							attached ft as l_fwd_type_tuple and then
+							attached l_fwd_type_tuple.forwarded_type as l_fwd_type
+						then
+							an_assembly := l_fwd_type_tuple.physical_assembly
+							ca := l_fwd_type.assembly
+							if ca /= Void then
+								from
+								until
+									not attached ca.forwarded_type_for_dotnet_name (l_fwd_type.dotnet_name) as f_t
+								loop
+									if attached f_t.assembly as f_ca then
+										ca := f_ca
+										l_fwd_type.set_assembly (f_ca)
+
+											-- Create and add to the CONF_TARGET, the CONF_ASSEMBLY-s to support forwarded types
+										if l_forwarded_assemblies = Void then
+											create l_forwarded_assemblies.make (1)
+										end
+										register_forwarded_type_assembly (an_assembly, ca, l_forwarded_assemblies)
+									else
+											-- At this point, all forwarded types should have an associated CONSUMED_ASSEMBLY object.
+										check has_assembly: False end
+									end
+								end
+							end
+						end
+					end
+				end
 			end
-			if attached internal_il_emitter.item as e then
-				e.unload
+			if attached internal_consumer.item as e then
+				e.release
 			end
 		ensure
 			assemblies_set: not is_error implies assemblies /= Void
@@ -174,6 +246,44 @@ feature -- Commands
 			then
 				l_retried := True
 				retry
+			end
+		end
+
+	register_forwarded_type_assembly (a_physical_assembly: CONF_PHYSICAL_ASSEMBLY; ca: CONSUMED_ASSEMBLY; a_forwarded_assemblies_cache: STRING_TABLE [CONF_ASSEMBLY])
+			-- Register assemblies implementing the forwarded types from `ca` in the context of declared assembly `a_physical_assembly`.
+			-- Use `a_forwarded_assemblies_cache` as a cache to avoid having un-needed CONF_ASSEMBLY duplication.
+		require
+			a_physical_assembly /= Void
+			ca /= Void
+			a_forwarded_assemblies_cache /= Void
+		local
+			l_forwarded_assembly: CONF_ASSEMBLY
+			loc, k: READABLE_STRING_GENERAL
+			l_assembly_target: CONF_TARGET
+		do
+				-- Create and add to the CONF_TARGET, the CONF_ASSEMBLY-s to support forwarded types
+			loc := ca.location.name
+			across
+				a_physical_assembly.assemblies as l_assembly
+			loop
+				l_assembly_target := l_assembly.target
+				k := l_assembly_target.name + {STRING_32} "#" + loc
+				l_forwarded_assembly := a_forwarded_assemblies_cache [k]
+				if l_forwarded_assembly = Void then
+					debug ("consumer")
+						print ({STRING_32} "Import assembly related to forwarded-type: " + ca.name + " [target:" + l_assembly_target.name + "]%N")
+					end
+					l_forwarded_assembly := factory.new_assembly (ca.name, loc, l_assembly_target)
+					a_forwarded_assemblies_cache [k] := l_forwarded_assembly
+					l_assembly_target.add_assembly (l_forwarded_assembly)
+					if attached get_physical_assembly (ca) as l_physical_assembly then
+						l_forwarded_assembly.set_physical_assembly (l_physical_assembly)
+						l_physical_assembly.set_is_dependency (False)
+						set_renamed_classes (l_forwarded_assembly)
+					end
+				else
+					check forwarded_assembly_already_added: l_assembly_target.assemblies.has_item (l_forwarded_assembly) end
+				end
 			end
 		end
 
@@ -227,7 +337,7 @@ feature {NONE} -- Implementation
 				Result := a.item (l_guid)
 				if Result = Void then
 						-- see if we have information from a previous compilation
-					if attached old_assemblies as o and then attached {like get_physical_assembly} o.item (l_guid) as l_as_i then
+					if attached old_assemblies as o and then attached {CONF_PHYSICAL_ASSEMBLY} o.item (l_guid) as l_as_i then
 						Result := l_as_i
 					else
 						check old_unset: attached old_assemblies as o implies not attached o.item (l_guid) end
@@ -289,47 +399,58 @@ feature {NONE} -- Implementation
 			a_assembly_physical_assembly_set: a_assembly.physical_assembly /= Void
 		local
 			l_new_classes: STRING_TABLE [CONF_CLASS]
-			l_renamings: STRING_TABLE [READABLE_STRING_32]
-			l_prefix: READABLE_STRING_32
+			l_renaming_group: CONF_RENAMING_GROUP
 			l_name: STRING_32
+			l_dotnet_renaming_groups: STRING_TABLE [CONF_RENAMING_GROUP]
 		do
 			if
 				attached a_assembly.physical_assembly as a and then
 				attached a.classes as l_classes
 			then
-				l_renamings := a_assembly.renaming
-				l_prefix := a_assembly.name_prefix
+				if
+					not l_classes.is_empty and then
+				 	attached a_assembly.target.dotnet_renaming as l_dotnet_renaming and then
+				 	not l_dotnet_renaming.is_empty
+				then
+						-- TODO Check libraries target dotnet_renaming ...
+					l_dotnet_renaming_groups := l_dotnet_renaming
+				end
+
+				l_renaming_group := a_assembly
 
 					-- Do we have any renamings?
 				if
-					(l_renamings = Void or else l_renamings.is_empty) and
-					(l_prefix = Void or else l_prefix.is_empty)
+					not l_renaming_group.has_renaming_or_prefix and
+					l_dotnet_renaming_groups = Void
 				then
 					a_assembly.set_classes (l_classes)
 				else
-					from
-						create l_new_classes.make (l_classes.count)
-						l_classes.start
-					until
-						l_classes.after
-					loop
-						if attached {CONF_CLASS_ASSEMBLY} l_classes.item_for_iteration as l_class then
+					create l_new_classes.make (l_classes.count)
+					across l_classes as c loop
+						if attached {CONF_CLASS_ASSEMBLY} c as l_class then
 							create l_name.make_from_string (l_class.name)
-							if
-								l_renamings /= Void and then
-								attached l_renamings.item (l_name) as l_found_item
-							then
-								l_name := l_found_item -- FIXME: should has "twin" ?
+								-- "prefix" is the default "renaming", but if a "renaming" exists
+								-- do not apply the "prefix"
+							if l_renaming_group.has_renaming_or_prefix then
+								l_name := renamed_name (l_class.dotnet_name, l_name, l_renaming_group)
 							end
-							if l_prefix /= Void then
-								l_name.prepend (l_prefix)
+							if
+								l_dotnet_renaming_groups /= Void and then
+								not l_dotnet_renaming_groups.is_empty and then
+								attached dotnet_renaming_group_for (l_class.dotnet_name, l_dotnet_renaming_groups) as grp
+							then
+								l_name := renamed_name (l_class.dotnet_name, l_name, grp)
 							end
 							l_new_classes.force (l_class, l_name)
+							debug ("consumer")
+								if not l_name.is_case_insensitive_equal_general (l_class.name) then
+									print ({STRING_32} "RENAME " + l_class.dotnet_name + " {"+ l_class.name + "} -> " + l_name + " from ["+ l_class.group.name +"]%N")
+								end
+							end
 						else
 								-- In assemblies there are only CONF_CLASS_ASSEMBLY.
 							check has_only_conf_class_assembly: False end
 						end
-						l_classes.forth
 					end
 					a_assembly.set_classes (l_new_classes)
 				end
@@ -340,41 +461,54 @@ feature {NONE} -- Implementation
 			classes_set: a_assembly.classes_set
 		end
 
+	renamed_name (a_dotnet_name, a_name: STRING_32; a_renaming_grp: CONF_RENAMING_GROUP): STRING_32
+			-- Renamed name for `a_name` according to the ` a_renaming_grp` group.
+		do
+			if
+				attached a_renaming_grp.renaming as l_renamings and then
+				attached l_renamings.item (a_name) as l_found_item
+			then
+				Result := l_found_item -- FIXME: should has "twin" ?
+			elseif attached a_renaming_grp.name_prefix as l_prefix then
+				Result := l_prefix + a_name
+			else
+				Result := a_name
+			end
+		end
+
+	dotnet_renaming_group_for (a_dotnet_classname: READABLE_STRING_GENERAL; a_namespace_renaming_groups: STRING_TABLE [CONF_RENAMING_GROUP]): detachable CONF_RENAMING_GROUP
+			-- Dotnet renaming group based on dotnet namespace for dotnet class `a_dotnet_classname`, from `a_namespace_renaming_groups`.
+		local
+			ns: READABLE_STRING_GENERAL
+			i: INTEGER
+		do
+				-- TODO: eventually support wildcard such as "System.*"
+			i := a_dotnet_classname.last_index_of ('.', a_dotnet_classname.count)
+			if i > 0 then
+				ns := a_dotnet_classname.substring (1, i - 1)
+				Result := a_namespace_renaming_groups [ns]
+			end
+		end
+
 	build_dependencies (an_assembly: CONF_PHYSICAL_ASSEMBLY)
 			-- Build dependencies for `an_assembly'.
 		require
 			an_assembly_ok: an_assembly /= Void
 			assemblies_attached: attached assemblies
 		local
-			l_guid, l_dep_guid: READABLE_STRING_32
+			l_guid: READABLE_STRING_32
 			l_reader: EIFFEL_DESERIALIZER
-			l_referenced_assemblies: detachable ARRAYED_LIST [CONSUMED_ASSEMBLY]
-			i, cnt: INTEGER
-			l_cons_ass: CONSUMED_ASSEMBLY
 		do
 			l_guid := an_assembly.guid
 
 				-- we have to get the dependencies from the reference file
-			create l_reader
-			l_reader.deserialize (an_assembly.consumed_path.extended
-				(referenced_assemblies_info_file).name, 0)
+			l_reader := {EIFFEL_SERIALIZATION}.deserializer_for_version (il_version)
+			l_reader.deserialize (an_assembly.consumed_path.extended (referenced_assemblies_info_file).name, 0)
 			if attached {CONSUMED_ASSEMBLY_MAPPING} l_reader.deserialized_object as l_referenced_assemblies_mapping then
-				l_referenced_assemblies := l_referenced_assemblies_mapping.assemblies
-				if l_referenced_assemblies /= Void then
-					from
-						l_referenced_assemblies.start
-						i := 1
-						cnt := l_referenced_assemblies.count
-					until
-						i > cnt
-					loop
-						l_cons_ass := l_referenced_assemblies.i_th (i)
-						l_dep_guid := l_cons_ass.unique_id
-							-- if it's not the assembly itself
-						if not l_dep_guid.same_string (l_guid) then
-							an_assembly.add_dependency (get_physical_assembly (l_cons_ass), i)
-						end
-						i := i + 1
+				across l_referenced_assemblies_mapping.assemblies as a loop
+						-- if it's not the assembly itself
+					if not a.unique_id.same_string (l_guid) then
+						an_assembly.add_dependency (get_physical_assembly (a), @ a.target_index)
 					end
 				end
 			else
@@ -389,14 +523,17 @@ feature {NONE} -- Implementation
 			a_assembly_ok: a_assembly /= Void
 		local
 			l_old_dotnet_classes: detachable STRING_TABLE [CONF_CLASS]
+			l_forwarded_types: detachable ARRAYED_LIST [CONSUMED_FORWARDED_TYPE]
 			l_reader: EIFFEL_DESERIALIZER
 			i, cnt: INTEGER
 			l_name, l_dotnet_name: detachable STRING
 			l_pos: INTEGER
 			l_new_classes, l_new_dotnet_classes: STRING_TABLE [CONF_CLASS]
 			l_class: CONF_CLASS_ASSEMBLY
+			aid: INTEGER
+			fwd_ct: CONSUMED_FORWARDED_TYPE
 		do
-			create l_reader
+			l_reader := {EIFFEL_SERIALIZATION}.deserializer_for_version (il_version)
 
 				-- Twin old classes because we will remove reused classes.
 			if attached a_assembly.dotnet_classes as l_assembly_dotnet_classes then
@@ -414,6 +551,7 @@ feature {NONE} -- Implementation
 					-- Add classes.
 				create l_new_classes.make (l_old_dotnet_classes.count)
 				create l_new_dotnet_classes.make (l_old_dotnet_classes.count)
+				check l_forwarded_types = Void end
 				from
 					i := l_types.eiffel_names.lower
 					cnt := l_types.eiffel_names.upper
@@ -431,46 +569,52 @@ feature {NONE} -- Implementation
 						l_name /= Void and then not l_name.is_empty and then
 						l_dotnet_name /= Void
 					then
-						l_name.to_upper
-						if attached {CONF_CLASS_ASSEMBLY} l_old_dotnet_classes.item (l_dotnet_name) as l_dotnet_class then
-							l_class := l_dotnet_class
-							l_old_dotnet_classes.remove (l_dotnet_name)
-							l_class.set_group (a_assembly)
-							l_class.set_type_position (l_pos)
-							if l_class.is_compiled then
-								modified_classes.force (l_class)
+						aid := l_types.assembly_ids.item (i)
+						if aid > 0 then
+							create fwd_ct.make (l_dotnet_name, l_name, aid)
+							if l_forwarded_types = Void then
+								create l_forwarded_types.make (cnt)
 							end
+							l_forwarded_types.force (fwd_ct)
 						else
-							l_class := factory.new_class_assembly (l_name, l_dotnet_name, a_assembly, l_pos)
-							added_classes.force (l_class)
+							l_name.to_upper
+							if attached {CONF_CLASS_ASSEMBLY} l_old_dotnet_classes.item (l_dotnet_name) as l_dotnet_class then
+								l_class := l_dotnet_class
+								l_old_dotnet_classes.remove (l_dotnet_name)
+								l_class.set_group (a_assembly)
+								l_class.set_type_position (l_pos)
+								if l_class.is_compiled then
+									modified_classes.force (l_class)
+								end
+							else
+								l_class := factory.new_class_assembly (l_name, l_dotnet_name, a_assembly, l_pos)
+								added_classes.force (l_class)
+							end
+							l_new_classes.force (l_class, l_name)
+							l_new_dotnet_classes.force (l_class, l_dotnet_name)
 						end
-						l_new_classes.force (l_class, l_name)
-						l_new_dotnet_classes.force (l_class, l_dotnet_name)
 					end
 					i := i + 1
 				end
 
 					-- Classes in l_old_dotnet_classes are not used any more, mark them as removed.
-				if l_old_dotnet_classes /= Void then
-					from
-						l_old_dotnet_classes.start
-					until
-						l_old_dotnet_classes.after
-					loop
-						if attached {CONF_CLASS_ASSEMBLY} l_old_dotnet_classes.item_for_iteration as l_dotnet_class then
-							l_dotnet_class.invalidate
-							if l_dotnet_class.is_compiled then
-								removed_classes.force (l_dotnet_class)
-							end
-						else
-							check is_conf_class_assembly: False end
+				across l_old_dotnet_classes as o loop
+					if attached {CONF_CLASS_ASSEMBLY} o as c then
+						c.invalidate
+						if c.is_compiled then
+							removed_classes.force (c)
 						end
-						l_old_dotnet_classes.forth
+					else
+						check is_conf_class_assembly: False end
 					end
 				end
 
 				a_assembly.set_classes (l_new_classes)
 				a_assembly.set_dotnet_classes (l_new_dotnet_classes)
+				if l_forwarded_types /= Void then
+					l_forwarded_types.trim
+				end
+				a_assembly.consumed_assembly.set_forwarded_types (l_forwarded_types)
 			else
 				check deserialisation_failed: not l_reader.successful end
 				add_error (create {CONF_METADATA_CORRUPT})
@@ -557,7 +701,7 @@ feature {NONE} -- retrieving information from cache
 				until
 					attached Result
 				loop
-					l_as := a.item
+					l_as := a
 					if l_as.has_same_path (l_formated_location) then
 						Result := l_as
 					end
@@ -589,7 +733,7 @@ feature {NONE} -- retrieving information from cache
 					until
 						attached Result
 					loop
-						l_as := cache_assemblies.item
+						l_as := cache_assemblies
 						if l_as.has_same_gac_information (l_name, l_version, l_culture, l_key) then
 							Result := l_as
 						end
@@ -612,17 +756,17 @@ feature {NONE} -- Consuming
 			an_assemblies_not_void: an_assemblies /= Void
 		local
 			l_a: CONF_ASSEMBLY
-			l_paths: STRING_32
+			l_paths: ARRAYED_LIST [READABLE_STRING_32]
 			l_path: READABLE_STRING_GENERAL
 			l_unique_paths: STRING_TABLE [BOOLEAN]
 		do
 			create l_unique_paths.make_caseless (10)
 
 			on_consume_assemblies
-			if attached il_emitter as l_emitter then
-				create l_paths.make_empty
+			if attached consumer as l_emitter then
+				create l_paths.make (an_assemblies.count)
 				across an_assemblies as l_assembly loop
-					l_a := l_assembly.item
+					l_a := l_assembly
 					if l_a.is_non_local_assembly then
 						if
 							attached l_a.assembly_name as l_assembly_name and
@@ -631,6 +775,11 @@ feature {NONE} -- Consuming
 							attached l_a.assembly_public_key_token as l_assembly_public_key_token
 						then
 							l_emitter.consume_assembly (l_assembly_name, l_assembly_version, l_assembly_culture, l_assembly_public_key_token, True)
+							if attached l_emitter.last_error_message as m then
+								add_error (create {CONF_METADATA_CONSUMER_FAILURE}.make
+									({SHARED_LOCALE}.locale.formatted_string ({SHARED_LOCALE}.locale.translation_in_context
+										({STRING_32} "Error when loading .NET metadata for %"$1%": $2.", "configuration.compiler"), l_assembly_name, m)))
+							end
 						else
 							check is_non_local_assembly: False end
 						end
@@ -638,14 +787,17 @@ feature {NONE} -- Consuming
 						l_path := l_a.location.evaluated_path.name
 						if not l_unique_paths.has (l_path) then
 							l_unique_paths.force (True, l_path)
-							l_paths.append_string_general (l_path)
-							l_paths.append_character (';')
+							l_paths.extend (l_path)
 						end
 					end
 				end
 				if not l_paths.is_empty then
-					l_paths.remove_tail (1)
 					l_emitter.consume_assembly_from_path (l_paths, True, Void)
+					if attached l_emitter.last_error_message as m then
+						add_error (create {CONF_METADATA_CONSUMER_FAILURE}.make
+							({SHARED_LOCALE}.locale.formatted_string ({SHARED_LOCALE}.locale.translation_in_context
+								({STRING_32} "Error when loading .NET assemblies metadata: $1.", "configuration.compiler"), m)))
+					end
 				end
 			end
 			retrieve_cache
@@ -662,29 +814,32 @@ feature {NONE} -- Consuming
 			an_assemblies_not_void: an_assemblies /= Void
 		local
 			l_a: CONF_ASSEMBLY
-			l_paths: STRING_32
+			l_paths: ARRAYED_LIST [READABLE_STRING_32]
 			l_path: READABLE_STRING_GENERAL
 			l_unique_paths: STRING_TABLE [BOOLEAN]
 		do
 			create l_unique_paths.make_caseless (10)
 
 			on_consume_assemblies
-			create l_paths.make_empty
+			create l_paths.make (an_assemblies.count)
 			across an_assemblies as l_assembly loop
-				l_a := l_assembly.item
+				l_a := l_assembly
 				if not l_a.is_non_local_assembly then
 					l_path := l_a.location.evaluated_path.name
 					if not l_unique_paths.has (l_path) then
 						l_unique_paths.force (True, l_path)
-						l_paths.append_string_general (l_path)
-						l_paths.append_character (';')
+						l_paths.extend (l_path)
 					end
 				end
 			end
 			if not l_paths.is_empty then
-				l_paths.remove_tail (1)
-				if attached il_emitter as l_emitter then
+				if attached consumer as l_emitter then
 					l_emitter.consume_assembly_from_path (l_paths, True, Void)
+					if attached l_emitter.last_error_message as m then
+						add_error (create {CONF_METADATA_CONSUMER_FAILURE}.make
+							({SHARED_LOCALE}.locale.formatted_string ({SHARED_LOCALE}.locale.translation_in_context
+								({STRING_32} "Error when loading .NET assemblies metadata: $1.", "configuration.compiler"), m)))
+					end
 				end
 			end
 			retrieve_cache
@@ -702,13 +857,18 @@ feature {NONE} -- Consuming
 		do
 			on_consume_assemblies
 			if
-				attached il_emitter as l_emitter and then
+				attached consumer as l_emitter and then
 				(attached an_assembly.assembly_name as l_assembly_name and then not l_assembly_name.is_empty) and
 				(attached an_assembly.assembly_version as l_assembly_version and then not l_assembly_version.is_empty) and
 				(attached an_assembly.assembly_culture as l_assembly_culture and then not l_assembly_culture.is_empty) and
 				(attached an_assembly.assembly_public_key_token as l_assembly_public_key_token and then not l_assembly_public_key_token.is_empty)
 			then
 				l_emitter.consume_assembly (l_assembly_name, l_assembly_version, l_assembly_culture, l_assembly_public_key_token, True)
+				if attached l_emitter.last_error_message as m then
+					add_error (create {CONF_METADATA_CONSUMER_FAILURE}.make
+						({SHARED_LOCALE}.locale.formatted_string ({SHARED_LOCALE}.locale.translation_in_context
+							({STRING_32} "Error when loading metadata for %"$1%": $2.", "configuration.compiler"), l_assembly_name, m)))
+				end
 			else
 				check an_assembly_ok: False end
 			end
@@ -735,31 +895,44 @@ feature {NONE} -- error handling
 			l_conf_exception.raise
 		end
 
-feature {CONSUMER_EXPORT} -- il emitter
+feature {CONSUMER_EXPORT} -- Consumer
 
-	il_emitter: detachable IL_EMITTER
-			-- Instance of IL_EMITTER
+	consumer: detachable CONSUMER
+			-- Instance of a consumer.
 		do
-			Result := internal_il_emitter.item
+			Result := internal_consumer.item
 			if Result = Void then
-				create Result.make (metadata_cache_path, il_version)
-				if not Result.exists then
-						-- IL_EMITTER component could not be loaded.
+				Result := {CONSUMER_FACTORY}.consumer (full_cache_path, il_version)
+				if not attached Result then
+					add_error (create {CONF_ERROR_EMITTER_INIT}.make
+						(locale.formatted_string (locale.translation_in_context
+							({STRING_32} "Cannot obtain a .NET assembly metadata consumer for IL version $1.", "configuration.compiler"),
+							il_version)))
+				elseif not Result.is_available then
+						-- Consumer could not be loaded.
 					add_error (create {CONF_ERROR_EMITTER})
+					Result.release
 					Result := Void
 				elseif not Result.is_initialized then
-						-- Path to cache is not valid
-					add_error (create {CONF_ERROR_EMITTER_INIT}.make (Result.last_com_code))
+						-- Consumer cannot be initialized (e.g., due to the error in the path).
+					add_error (create {CONF_ERROR_EMITTER_INIT}.make
+						(if attached Result.last_error_message as m then
+							{SHARED_LOCALE}.locale.formatted_string
+								({SHARED_LOCALE}.locale.translation_in_context ({STRING_32} "Cannot initialize a .NET assembly metadata consumer: $1.", "configuration.compiler"), m)
+						else
+							{SHARED_LOCALE}.locale.translation_in_context ({STRING_32} "Cannot initialize a .NET assembly metadata consumer.", "configuration.compiler")
+						end))
+					Result.release
 					Result := Void
 				else
-					internal_il_emitter.put (Result)
+					internal_consumer.put (Result)
 				end
 			end
 		ensure
-			valid_result: Result /= Void implies Result.exists and then Result.is_initialized
+			valid_result: Result /= Void implies Result.is_available and then Result.is_initialized
 		end
 
-	internal_il_emitter: CELL [detachable IL_EMITTER]
+	internal_consumer: CELL [detachable CONSUMER]
 			-- Unique instance of IL_EMITTER
 		once
 			create Result.put (Void)
@@ -781,7 +954,7 @@ feature {NONE} -- helpers
 			l_eac_file := full_cache_path.extended (cache_info_file)
 			create l_file.make_with_path (l_eac_file)
 			if l_file.exists and then l_file.is_readable then
-				create l_reader
+				l_reader := {EIFFEL_SERIALIZATION}.deserializer_for_version (il_version)
 				l_reader.deserialize (l_eac_file.name, 0)
 				if attached {like cache_content} l_reader.deserialized_object as l_cache_content then
 					cache_content := l_cache_content
@@ -810,7 +983,7 @@ feature {NONE} -- helpers
 				from
 					create l_guids.make (cache_assemblies.count)
 				loop
-					l_guids.force (a.item.unique_id)
+					l_guids.force (a.unique_id)
 				end
 			else
 				create l_guids.make (0)
@@ -820,7 +993,7 @@ feature {NONE} -- helpers
 				across
 					a as ic
 				loop
-					if not l_guids.has (ic.item.guid) then
+					if not l_guids.has (ic.guid) then
 						add_error (create {CONF_METADATA_CORRUPT})
 					end
 				end
@@ -863,7 +1036,7 @@ feature {NONE} -- Contract
 					across
 						linear_assemblies as l
 					all
-						l.item.is_valid and l.item.classes_set and a.item (l.item.guid) = l.item
+						l.is_valid and l.classes_set and a.item (l.guid) = l
 					end
 			end
 		end
@@ -910,7 +1083,7 @@ invariant
 	consume_assembly_observer_not_void: consume_assembly_observer /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

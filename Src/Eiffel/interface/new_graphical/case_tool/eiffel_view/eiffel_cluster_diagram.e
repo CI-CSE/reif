@@ -1,8 +1,7 @@
-note
-	description: "Objects that is view for a CLUSTER_GRAPH"
+﻿note
+	description: "Objects that is view for a CLUSTER_GRAPH."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -88,16 +87,15 @@ feature -- Store/Retrive
 			-- Retrive state from `node'.
 		local
 			l_cluster_id: STRING
-			esc: ES_CLUSTER
 		do
 			node.forth
 			model.set_subcluster_depth (xml_routines.xml_integer (node, subcluster_depth_str))
 			model.set_supercluster_depth (xml_routines.xml_integer (node, supercluster_depth_str))
 			l_cluster_id := xml_routines.xml_string (node, center_cluster_id_str)
 			Precursor {EIFFEL_WORLD} (node)
-
-			esc := model.cluster_of_id (l_cluster_id)
-			model.set_center_cluster (esc)
+			if attached model.cluster_of_id (l_cluster_id) as center_cluster then
+				model.set_center_cluster (center_cluster)
+			end
 		end
 
 feature -- Element change
@@ -130,7 +128,7 @@ feature -- Status
 
 feature {EB_DIAGRAM_HTML_GENERATOR} -- Load view
 
-	change_view (view_name: STRING; f: RAW_FILE)
+	change_view (view_name: READABLE_STRING_GENERAL; f: RAW_FILE)
 			-- Change view to `view_name' load from file `f' without saving `Current'.
 		require
 			f_closed: f.is_closed
@@ -151,17 +149,16 @@ feature {NONE} -- Implementation
 
 	on_group_drop (a_stone: CLUSTER_STONE)
 			-- Add to diagram.
-		local
-			l_cluster: CONF_CLUSTER
-			l_lib: CONF_LIBRARY
 		do
 			if a_stone.is_valid then
 				if a_stone.group.is_cluster then
-					l_cluster ?= a_stone.group
-					on_cluster_drop (l_cluster)
+					if attached {CONF_CLUSTER} a_stone.group as l_cluster then
+						on_cluster_drop (l_cluster)
+					end
 				elseif a_stone.group.is_library then
-					l_lib ?= a_stone.group
-					on_library_drop (l_lib)
+					if attached {CONF_LIBRARY} a_stone.group as l_lib then
+						on_library_drop (l_lib)
+					end
 				end
 			end
 		end
@@ -205,7 +202,7 @@ feature {NONE} -- Implementation
 				loop
 					cluster_added := False
 					parent := l_clusters.item
-					parent_fig ?= figure_from_model (parent)
+					parent_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (parent)
 					l_cluster := parent.sub_cluster_of (a_cluster)
 					if parent.is_needed_on_diagram and then l_cluster = Void then
 						create es_cluster.make (a_cluster)
@@ -213,7 +210,7 @@ feature {NONE} -- Implementation
 						parent.extend (es_cluster)
 						model.add_children_relations (es_cluster, parent)
 						add_classes_of_cluster (es_cluster, True, True)
-						cluster_fig ?= figure_from_model (es_cluster)
+						cluster_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (es_cluster)
 						cluster_fig.set_port_position (parent_fig.port_x, parent_fig.port_y)
 
 						check
@@ -224,7 +221,7 @@ feature {NONE} -- Implementation
 					elseif parent.is_needed_on_diagram and then not l_cluster.is_needed_on_diagram then
 						add_classes_of_cluster (l_cluster, False, True)
 						model.add_children_relations (l_cluster, parent)
-						cluster_fig ?= figure_from_model (l_cluster)
+						cluster_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (l_cluster)
 						cluster_fig.set_port_position (parent_fig.port_x, parent_fig.port_y)
 						check
 							fig_inserted: cluster_fig /= Void
@@ -294,14 +291,14 @@ feature {NONE} -- Implementation
 					cluster_added := False
 					parent := l_clusters.item
 					if parent.is_needed_on_diagram then
-						parent_fig ?= figure_from_model (parent)
+						parent_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (parent)
 						es_cluster := parent.sub_cluster_of (a_lib)
 						if es_cluster = Void then
 							create es_cluster.make (a_lib)
 							model.add_cluster (es_cluster)
 							parent.extend (es_cluster)
 							model.add_children_relations (es_cluster, parent)
-							cluster_fig ?= figure_from_model (es_cluster)
+							cluster_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (es_cluster)
 							cluster_fig.set_port_position (parent_fig.port_x, parent_fig.port_y)
 
 							check
@@ -313,7 +310,7 @@ feature {NONE} -- Implementation
 							es_cluster.enable_needed_on_diagram
 							enable_all_links (es_cluster)
 							model.add_children_relations (es_cluster, parent)
-							cluster_fig ?= figure_from_model (es_cluster)
+							cluster_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (es_cluster)
 							cluster_fig.set_port_position (parent_fig.port_x, parent_fig.port_y)
 							check
 								fig_inserted: cluster_fig /= Void
@@ -353,13 +350,10 @@ feature {NONE} -- Implementation
 
 	on_class_drop (a_stone: CLASSI_STONE)
 			-- `a_stone' was dropped on `Current'
-		local
-			l_class_fig_stone: CLASSI_FIGURE_STONE
 		do
 			if a_stone.is_valid then
-				l_class_fig_stone ?= a_stone
 				is_dropped_on_diagram := True
-				if l_class_fig_stone /= Void then
+				if attached {CLASSI_FIGURE_STONE} a_stone as l_class_fig_stone then
 					move_class (l_class_fig_stone.source, context_editor.pointer_position.x, context_editor.pointer_position.y)
 				else
 					add_to_diagram (a_stone.class_i)
@@ -394,12 +388,12 @@ feature {NONE} -- Implementation
 					l_clusters.after
 				loop
 					parent := l_clusters.item
-					parent_fig ?= figure_from_model (parent)
+					parent_fig := {EG_CLUSTER_FIGURE} / figure_from_model (parent)
 					create es_cluster.make (a_cluster)
 					model.add_cluster (es_cluster)
 					parent.extend (es_cluster)
 					update_cluster_legend
-					cluster_fig ?= figure_from_model (es_cluster)
+					cluster_fig := {EG_CLUSTER_FIGURE} / figure_from_model (es_cluster)
 					cluster_fig.set_port_position (parent_fig.port_x, parent_fig.port_y)
 					l_array_redo.extend (agent es_cluster.enable_needed_on_diagram)
 					l_array_undo.extend (agent es_cluster.disable_needed_on_diagram)
@@ -424,7 +418,6 @@ feature {NONE} -- Implementation
 			dial: EB_CREATE_CLASS_DIALOG
 			drop_x, drop_y: INTEGER
 			clf: EIFFEL_CLUSTER_FIGURE
-			l_cluster: CONF_CLUSTER
 		do
 			drop_x := context_editor.pointer_position.x
 			drop_y := context_editor.pointer_position.y
@@ -432,8 +425,7 @@ feature {NONE} -- Implementation
 			clf := top_cluster_at (Current, drop_x, drop_y)
 			create dial.make_default (context_editor.develop_window, True)
 			if clf /= Void then
-				l_cluster ?= clf.model.group
-				if l_cluster /= Void then
+				if attached {CONF_CLUSTER} clf.model.group as l_cluster then
 					dial.preset_cluster (l_cluster)
 				end
 			end
@@ -444,7 +436,7 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Cluster manager observer
 
-	on_class_moved (a_class: CONF_CLASS; old_cluster: CONF_GROUP; old_path: STRING)
+	on_class_moved (a_class: CONF_CLASS; old_cluster: CONF_GROUP; old_path: READABLE_STRING_32)
 			-- `a_class' has been moved away from `old_cluster'.
 			-- `old_path' is old relative path in `old_group'
 		local
@@ -461,12 +453,12 @@ feature {NONE} -- Cluster manager observer
 			l_manager: EB_CLUSTERS
 		do
 			if not is_dropped_on_diagram then
-				l_class_i ?= a_class
+				l_class_i := {CLASS_I} / a_class
 				check
 					l_class_i_not_void: l_class_i /= Void
 				end
-				new_cluster_i ?= l_class_i.group
-				old_cluster_i ?= old_cluster
+				new_cluster_i := {CONF_CLUSTER} / l_class_i.group
+				old_cluster_i := {CONF_CLUSTER} / old_cluster
 
 				l_classes := model.class_from_interface (l_class_i)
 				l_clusters := model.cluster_from_interface (l_class_i.group)
@@ -480,9 +472,8 @@ feature {NONE} -- Cluster manager observer
 					l_classes.after
 				loop
 					es_class := l_classes.item
-					l_remove_links := es_class.needed_links
 					update_cluster_legend
-					fig ?= figure_from_model (es_class)
+					fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (es_class)
 					fig.request_update
 					l_remove_links := es_class.needed_links
 					l_array_redo.extend (agent remove_class_virtual (fig, l_remove_links))
@@ -503,7 +494,7 @@ feature {NONE} -- Cluster manager observer
 						create es_class.make (l_class_i)
 						l_cluster.extend (es_class)
 						update_cluster_legend
-						fig ?= figure_from_model (es_class)
+						fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (es_class)
 						fig.request_update
 						l_remove_links := es_class.needed_links
 						l_array_redo.extend (agent reinclude_class (fig, l_remove_links, fig.x, fig.y))
@@ -520,7 +511,7 @@ feature {NONE} -- Cluster manager observer
 							model.add_supplier_relations (es_class)
 						end
 						update_cluster_legend
-						fig ?= figure_from_model (es_class)
+						fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (es_class)
 						fig.request_update
 						l_remove_links := es_class.needed_links
 						l_array_redo.extend (agent reinclude_class (fig, l_remove_links, fig.x, fig.y))
@@ -542,17 +533,11 @@ feature {NONE} -- Cluster manager observer
 
 	on_cluster_changed (a_cluster: CLUSTER_I)
 			-- `a_cluster' was renamed.
-		local
-			l_clusters: ARRAYED_LIST [ES_CLUSTER]
 		do
-			l_clusters := model.cluster_from_interface (a_cluster)
-			from
-				l_clusters.start
-			until
-				l_clusters.after
+			across
+				model.cluster_from_interface (a_cluster) as c
 			loop
-				l_clusters.item.set_name (a_cluster.cluster_name)
-				l_clusters.forth
+				c.item.set_name_32 (a_cluster.cluster_name)
 			end
 		end
 
@@ -595,7 +580,7 @@ feature {EB_CREATE_CLASS_DIAGRAM_COMMAND} -- Element Change
 						es_cluster.extend (new_class)
 						model.add_node_relations (new_class)
 						update_cluster_legend
-						fig ?= figure_from_model (new_class)
+						fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (new_class)
 						position_new_class_in_cluster (fig, True)
 
 						fig.request_update
@@ -609,7 +594,7 @@ feature {EB_CREATE_CLASS_DIAGRAM_COMMAND} -- Element Change
 						enable_all_links (new_class)
 						model.add_node_relations (new_class)
 						update_cluster_legend
-						fig ?= figure_from_model (new_class)
+						fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (new_class)
 
 						position_new_class_in_cluster (fig, False)
 
@@ -649,7 +634,7 @@ feature {EB_CREATE_CLASS_DIAGRAM_COMMAND} -- Element Change
 						es_cluster.extend (new_class)
 						model.add_node_relations (new_class)
 						update_cluster_legend
-						fig ?= figure_from_model (new_class)
+						fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (new_class)
 
 						position_new_class_in_cluster (fig, False)
 
@@ -671,7 +656,7 @@ feature {EB_CREATE_CLASS_DIAGRAM_COMMAND} -- Element Change
 					new_cluster.extend (new_class)
 					model.add_node_relations (new_class)
 					update_cluster_legend
-					fig ?= figure_from_model (new_class)
+					fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (new_class)
 					fig.request_update
 					remove_links := new_class.needed_links
 					l_array_redo.extend (agent reinclude_class (fig, remove_links, fig.x, fig.y))
@@ -727,13 +712,6 @@ feature {EB_CREATE_CLASS_DIAGRAM_COMMAND} -- Element Change
 			l_class_bounding_box.set_x (l_class_x_offset)
 			l_class_bounding_box.set_y (l_class_y_offset)
 
-			if l_insertion_bounding_box.intersection (l_class_bounding_box).is_equal (l_class_bounding_box) then
-				-- Class fits in insertion box
-
-			else
-				-- Class will end up resizing diagram as it does not fit.
-			end
-
 			from
 				i := classes.count
 				l_add_across := True
@@ -754,12 +732,11 @@ feature {EB_CREATE_CLASS_DIAGRAM_COMMAND} -- Element Change
 						end
 						l_add_across := not l_add_across
 
-
 						if i > 1 then
 								-- Reset counter so that we iterate all the classes again.
 							i := classes.count + 1
 						else
-							-- We have iterated all of the classes so we exit at this final set position to avoid infinite looping
+							-- We have iterated all of the classes so we exit at this final set position to avoid infinite looping.
 						end
 					end
 				end
@@ -809,7 +786,7 @@ feature {NONE} -- Implementation
 			es_class: ES_CLASS
 			l_array_redo: ARRAYED_LIST [PROCEDURE]
 			l_array_undo: ARRAYED_LIST [PROCEDURE]
-			l_old_path: STRING
+			l_old_path: STRING_32
 		do
 			dropped_on_cluster := top_cluster_at (Current, drop_x, drop_y)
 			if dropped_on_cluster /= Void then
@@ -823,8 +800,8 @@ feature {NONE} -- Implementation
 				then
 					l_clusters := model.cluster_from_interface (l_cluster.group)
 					l_classes := model.class_from_interface (l_class_i)
-					new_cluster_i ?= l_cluster.group
-					old_cluster_i ?= l_class_i.group
+					new_cluster_i := {CONF_CLUSTER} / l_cluster.group
+					old_cluster_i := {CONF_CLUSTER} / l_class_i.group
 					l_manager := manager
 					create l_array_redo.make (10)
 					create l_array_undo.make (10)
@@ -834,7 +811,7 @@ feature {NONE} -- Implementation
 						l_classes.after
 					loop
 						es_class := l_classes.item
-						fig ?= figure_from_model (es_class)
+						fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (es_class)
 						remove_links := es_class.needed_links
 						remove_class_virtual (fig, remove_links)
 						update_cluster_legend
@@ -856,7 +833,7 @@ feature {NONE} -- Implementation
 							create es_class.make (l_class_i)
 							l_cluster.extend (es_class)
 							update_cluster_legend
-							fig ?= figure_from_model (es_class)
+							fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (es_class)
 							fig.request_update
 							remove_links := es_class.needed_links
 							l_array_redo.extend (agent reinclude_class (fig, remove_links, fig.x, fig.y))
@@ -868,7 +845,7 @@ feature {NONE} -- Implementation
 							enable_all_links (es_class)
 							model.add_node_relations (es_class)
 							update_cluster_legend
-							fig ?= figure_from_model (es_class)
+							fig := {EIFFEL_CLASS_FIGURE} / figure_from_model (es_class)
 							fig.request_update
 							remove_links := es_class.needed_links
 							l_array_redo.extend (agent reinclude_class (fig, remove_links, fig.x, fig.y))
@@ -903,8 +880,6 @@ feature {NONE} -- Implementation
 			-- All class figures in `a_cluster' that are needed on diagram plus ther positions.
 		local
 			l_linkables: LIST [EG_LINKABLE]
-			es_class: ES_CLASS
-			class_fig: EIFFEL_CLASS_FIGURE
 		do
 			from
 				create {ARRAYED_LIST [TUPLE [EIFFEL_CLASS_FIGURE, INTEGER, INTEGER]]} Result.make (5)
@@ -912,10 +887,8 @@ feature {NONE} -- Implementation
 			until
 				l_linkables.after
 			loop
-				es_class ?= l_linkables.item
-				if es_class /= Void and then es_class.is_needed_on_diagram then
-					class_fig ?= figure_from_model (es_class)
-					if class_fig /= Void then
+				if attached {ES_CLASS} l_linkables.item_for_iteration as es_class and then es_class.is_needed_on_diagram then
+					if attached {EIFFEL_CLASS_FIGURE} figure_from_model (es_class) as class_fig then
 						Result.extend ([class_fig, class_fig.port_x, class_fig.port_y])
 					end
 				end
@@ -929,18 +902,12 @@ feature {NONE} -- Implementation
 			-- All links to remove in `a_cluster'
 		require
 			a_classes_not_void: a_classes /= Void
-		local
-			fig: EIFFEL_CLASS_FIGURE
 		do
-			from
-				create {ARRAYED_LIST [ES_ITEM]} Result.make (a_classes.count * 2)
-				a_classes.start
-			until
-				a_classes.after
+			create {ARRAYED_LIST [ES_ITEM]} Result.make (a_classes.count * 2)
+			across
+				a_classes as c
 			loop
-				fig := a_classes.item.figure
-				Result.append (fig.model.needed_links)
-				a_classes.forth
+				Result.append (c.item.figure.model.needed_links)
 			end
 		ensure
 			result_not_void: Result /= Void
@@ -966,27 +933,21 @@ feature {NONE} -- Implementation
 
 	top_cluster_at (a_group: EV_MODEL_GROUP; ax, ay: INTEGER): EIFFEL_CLUSTER_FIGURE
 			-- Top cluster at `ax', `ay'. Void if none.
-		local
-			l_item: EIFFEL_CLUSTER_FIGURE
 		do
-			from
-				a_group.start
-			until
-				a_group.after
+			across
+				a_group as g
 			loop
-				l_item ?= a_group.item
-				if l_item /= Void and then l_item.model.is_needed_on_diagram
-						and then
-				   (ax >= l_item.left and then ax <= l_item.right)
-						and then
-				   (ay >= l_item.top and then ay <= l_item.bottom)
+				if
+					attached {EIFFEL_CLUSTER_FIGURE} g.item as l_item and then
+					l_item.model.is_needed_on_diagram and then
+					(l_item.left <= ax and then ax <= l_item.right) and then
+					(l_item.top <= ay and then ay <= l_item.bottom)
 				then
 					Result := top_cluster_at (l_item, ax, ay)
 					if Result = Void then
 						Result := l_item
 					end
 				end
-				a_group.forth
 			end
 		end
 
@@ -994,37 +955,23 @@ feature {NONE} -- Implementation
 			-- Parents of `a_cluster', clusters and libs included
 		require
 			a_cluster_not_void: a_cluster /= Void
-		local
-			l_cluster: CONF_CLUSTER
-			l_lib: CONF_LIBRARY
-			l_as: CONF_ASSEMBLY
-			l_phys_as: CONF_PHYSICAL_ASSEMBLY
-			l_assemblies: ARRAYED_LIST [CONF_ASSEMBLY]
 		do
-			l_cluster ?= a_cluster
-			l_lib ?= a_cluster
-			l_as ?= a_cluster
-			l_phys_as ?= a_cluster
-			if l_cluster /= Void then
+			if attached {CONF_CLUSTER} a_cluster as l_cluster then
 				if l_cluster.parent /= Void then
 					Result := model.cluster_from_interface (l_cluster.parent)
 				else
 					Result := library_usage_parents (l_cluster.target)
 				end
-			elseif l_lib /= Void then
+			elseif attached {CONF_LIBRARY} a_cluster as l_lib then
 				Result := library_usage_parents (l_lib.target)
-			elseif l_as /= Void then
+			elseif attached {CONF_ASSEMBLY} a_cluster as l_as then
 				Result := library_usage_parents (l_as.target)
-			elseif l_phys_as /= Void then
+			elseif attached {CONF_PHYSICAL_ASSEMBLY} a_cluster as l_phys_as then
 				create Result.make (5)
-				from
-					l_assemblies := l_phys_as.assemblies
-					l_assemblies.start
-				until
-					l_assemblies.after
+				across
+					l_phys_as.assemblies as p
 				loop
-					Result.append (model.cluster_from_interface (l_assemblies.item))
-					l_assemblies.forth
+					Result.append (model.cluster_from_interface (p.item))
 				end
 			else
 				check error: False end
@@ -1037,19 +984,13 @@ feature {NONE} -- Implementation
 			-- Return groups because of library usage of `a_target'.
 		require
 			a_target_not_void: a_target /= Void
-		local
-			l_libs: ARRAYED_LIST [CONF_LIBRARY]
 		do
 			create Result.make (5)
-			l_libs := a_target.system.used_in_libraries
-			if l_libs /= Void then
-				from
-					l_libs.start
-				until
-					l_libs.after
+			if attached a_target.system.used_in_libraries as l_libs then
+				across
+					l_libs as l
 				loop
-					Result.append (model.cluster_from_interface (l_libs.item))
-					l_libs.forth
+					Result.append (model.cluster_from_interface (l.item))
 				end
 			end
 		ensure
@@ -1064,7 +1005,6 @@ feature {NONE} -- Implementation
 		local
 			l_classes: STRING_TABLE [CONF_CLASS]
 			new_class: ES_CLASS
-			l_item: CLASS_I
 			a_status_bar: EB_DEVELOPMENT_WINDOW_STATUS_BAR
 		do
 			a_status_bar := window_status_bar
@@ -1076,14 +1016,14 @@ feature {NONE} -- Implementation
 					until
 						l_classes.after
 					loop
-						l_item ?= l_classes.item_for_iteration
-						check
-							l_item_not_void: l_item /= Void
-						end
-						if context_editor.ignore_excluded_figures or else not context_editor.is_excluded_in_preferences (l_item.name) then
-							create new_class.make (l_item)
-							a_cluster.extend (new_class)
-							model.add_node_relations (new_class)
+						if attached {CLASS_I} l_classes.item_for_iteration as l_item then
+							if context_editor.ignore_excluded_figures or else not context_editor.is_excluded_in_preferences (l_item.name) then
+								create new_class.make (l_item)
+								a_cluster.extend (new_class)
+								model.add_node_relations (new_class)
+							end
+						else
+							check l_item_not_void: False end
 						end
 						if with_status_bar then
 						 	a_status_bar.progress_bar.set_value (a_status_bar.progress_bar.value + 1)
@@ -1100,32 +1040,38 @@ feature {NONE} -- Implementation
 					until
 						l_classes.after
 					loop
-						l_item ?= l_classes.item_for_iteration
-						check
-							l_item_not_void: l_item /= Void
-						end
-						new_class := a_cluster.node_of (l_item)
-						if new_class = Void then
-							l_item ?= l_classes.item_for_iteration
-							if context_editor.ignore_excluded_figures or else not context_editor.is_excluded_in_preferences (l_item.name) then
-								create new_class.make (l_item)
-								model.add_node (new_class)
-								model.add_node_relations (new_class)
-								a_cluster.extend (new_class)
+						if attached {CLASS_I} l_classes.item_for_iteration as l_item then
+							new_class := a_cluster.node_of (l_item)
+							if new_class = Void then
+								if attached {CLASS_I} l_classes.item_for_iteration as l_sub_item then
+									if context_editor.ignore_excluded_figures or else not context_editor.is_excluded_in_preferences (l_sub_item.name) then
+										create new_class.make (l_sub_item)
+										model.add_node (new_class)
+										model.add_node_relations (new_class)
+										a_cluster.extend (new_class)
+									end
+								else
+									check has_sub_item: False end
+								end
+							else
+								if attached new_class.class_i as l_sub_item then
+									if context_editor.ignore_excluded_figures or else not context_editor.is_excluded_in_preferences (l_sub_item.name) then
+										if not new_class.is_needed_on_diagram then
+											new_class.enable_needed_on_diagram
+											enable_all_links (new_class)
+											model.add_node_relations (new_class)
+										end
+										if not a_cluster.has (new_class) then
+											a_cluster.extend (new_class)
+											model.add_node_relations (new_class)
+										end
+									end
+								else
+									check has_sub_item: False end
+								end
 							end
 						else
-							l_item := new_class.class_i
-							if context_editor.ignore_excluded_figures or else not context_editor.is_excluded_in_preferences (l_item.name) then
-								if not new_class.is_needed_on_diagram then
-									new_class.enable_needed_on_diagram
-									enable_all_links (new_class)
-									model.add_node_relations (new_class)
-								end
-								if not a_cluster.has (new_class) then
-									a_cluster.extend (new_class)
-									model.add_node_relations (new_class)
-								end
-							end
+							check l_item_not_void: False end
 						end
 						if with_status_bar then
 						 	a_status_bar.progress_bar.set_value (a_status_bar.progress_bar.value + 1)
@@ -1140,48 +1086,29 @@ feature {NONE} -- Implementation
 			-- Veto function.
 			-- CREATE_CLASS_STONE, CLASSI_STONE, CLUSTER_STONE none assemble accepted.
 		local
-			l_cc_stone: CREATE_CLASS_STONE
-			l_class_stone: CLASSI_STONE
-			l_cluster_stone: CLUSTER_STONE
 			l_pointer_position: EV_COORDINATE
-			l_class_fig_stone: CLASSI_FIGURE_STONE
-			l_cluster: EIFFEL_CLUSTER_FIGURE
-			l_cluster_fig_stone: CLUSTER_FIGURE_STONE
 		do
-			l_cc_stone ?= a_any
-			l_class_stone ?= a_any
-			l_cluster_stone ?= a_any
-			l_cluster_fig_stone ?= a_any
-			if l_cc_stone /= Void or l_cluster_stone /= Void or l_class_stone /= Void then
+			if attached {CLASSI_STONE} a_any as l_class_stone then
 				Result := True
-				if l_cluster_stone /= Void then
-					if l_cluster_stone.group.is_assembly or l_cluster_stone.group.is_physical_assembly then
+					-- Only a figure is picked, we check it.
+				if attached {CLASSI_FIGURE_STONE} l_class_stone as l_class_fig_stone then
+					l_pointer_position := context_editor.pointer_position
+					if
+						attached top_cluster_at (Current, l_pointer_position.x, l_pointer_position.y) as l_cluster implies
+							-- If the figure is readonly or contains the same group, we deny dropping.
+							(l_cluster.model.group.is_readonly or else
+							l_cluster.model.group.is_library or else
+							l_cluster.model.group = l_class_fig_stone.class_i.group)
+					then
 						Result := False
 					end
 				end
-					-- Only a figure is picked, we check it.
-				if l_class_stone /= Void then
-					l_class_fig_stone ?= l_class_stone
-					if l_class_fig_stone /= Void then
-						l_pointer_position := context_editor.pointer_position
-						l_cluster := top_cluster_at (Current, l_pointer_position.x, l_pointer_position.y)
-						if l_cluster /= Void then
-								-- If the figure is readonly or contains the same group, we deny dropping
-							if l_cluster.model.group.is_readonly or else l_cluster.model.group.is_library then
-								Result := False
-							else
-								if l_cluster.model.group = l_class_fig_stone.class_i.group then
-									Result := False
-								end
-							end
-						else
-							Result := False
-						end
-					end
-				end
-				if l_cluster_fig_stone /= Void then
-					Result := False
-				end
+			elseif attached {CREATE_CLASS_STONE} a_any then
+				Result := True
+			elseif attached {CLUSTER_FIGURE_STONE} a_any then
+				-- Result := False
+			elseif attached {CLUSTER_STONE} a_any as l_cluster_stone then
+				Result := not l_cluster_stone.group.is_assembly and not l_cluster_stone.group.is_physical_assembly
 			end
 		end
 
@@ -1209,7 +1136,7 @@ feature {NONE} -- Implementation
 			until
 				l_clusters.after or l_found
 			loop
-				l_found := (a_group = l_clusters.item.group)
+				l_found := a_group = l_clusters.item.group
 				if l_found then
 					l_found_cluster := l_clusters.item
 				end
@@ -1222,7 +1149,7 @@ feature {NONE} -- Implementation
 				if a_group.is_cluster then
 					add_classes_of_cluster (es_cluster, True, with_status_bar)
 				end
-				cluster_fig ?= figure_from_model (es_cluster)
+				cluster_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (es_cluster)
 				check
 					fig_inserted: cluster_fig /= Void
 				end
@@ -1242,7 +1169,7 @@ feature {NONE} -- Implementation
 					l_found_cluster.enable_needed_on_diagram
 					enable_all_links (l_found_cluster)
 				end
-				cluster_fig ?= figure_from_model (l_found_cluster)
+				cluster_fig := {EIFFEL_CLUSTER_FIGURE} / figure_from_model (l_found_cluster)
 				update_cluster_legend
 				remove_classes := classes_to_remove_in_cluster (l_found_cluster)
 				remove_links := links_to_remove_in_classes (remove_classes)
@@ -1278,7 +1205,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -1309,4 +1236,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EIFFEL_CLUSTER_DIAGRAM
+end

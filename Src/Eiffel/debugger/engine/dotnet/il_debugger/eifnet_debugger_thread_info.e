@@ -1,8 +1,6 @@
-note
-	description: "Objects that ..."
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -11,9 +9,6 @@ class
 
 inherit
 	DISPOSABLE
-		redefine
-			dispose
-		end
 
 	ICOR_EXPORTER
 
@@ -88,7 +83,6 @@ feature -- Access
 			l_info: EIFNET_DEBUG_VALUE_INFO
 			r: INTEGER
 			p: POINTER
-			s32: STRING_32
 			extform: EIFNET_DEBUG_EXTERNAL_FORMATTER
 		do
 			if not thread_details_fetched then
@@ -114,9 +108,8 @@ feature -- Access
 										)
 						l_icdov.clean_on_dispose
 						if l_name_icd /= Void then
-							s32 := extform.system_string_value_to_string (l_name_icd)
-							if s32 /= Void then
-								thread_name := s32.as_string_8
+							if attached extform.system_string_value_to_string (l_name_icd) as s32 then
+								thread_name := s32
 							end
 							l_name_icd.clean_on_dispose
 						end
@@ -204,11 +197,8 @@ feature -- Change
 			--		maybe later, we'll do it here
 		require
 			stepper_not_null: p /= Default_pointer
-		local
-			s: ICOR_DEBUG_STEPPER
 		do
-			create s.make_by_pointer (p)
-			pending_steppers.put (s, p)
+			pending_steppers.put (create {ICOR_DEBUG_STEPPER}.make_by_pointer (p), p)
 		end
 
 	has_icd_stepper (p: POINTER): BOOLEAN
@@ -255,7 +245,7 @@ feature -- Properties
 			Result := Result + thread_id
 		end
 
-	thread_name: STRING
+	thread_name: STRING_32
 
 	thread_priority: INTEGER
 
@@ -279,7 +269,7 @@ feature -- Disposable
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -292,22 +282,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
-end -- class EIFNET_DEBUGGER_THREAD_INFO
+end

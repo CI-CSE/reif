@@ -1,22 +1,22 @@
 @echo off
 
-iff not defined INSTALL_DIR then 
+call %~dp0init.btm
+
+set EIFFEL_SRC=%TMP_EIFFEL_SRC
+set ISE_LIBRARY=%TMP_EIFFEL_SRC
+set ISE_SRC=%TMP_EIFFEL_SRC
+
+iff not defined INSTALL_DIR then
 	echo INSTALL_DIR not defined
 	CANCEL
 endiff
-iff not defined INIT_DIR then
-	set INIT_DIR=%@EXECSTR[cd]
-endiff
-iff not defined INSTALL_LOG then
-	set INSTALL_LOG=%INIT_DIR%\install.log
-endiff
 
-call %INIT_DIR%\set_simple_aliases.btm
+set SVN_VERSION=%@EXECSTR[set_version %EIFFEL_SRC]
 
-set SVN_VERSION=%@EXECSTR[bash -o igncr set_version.sh %EIFFEL_SRC]
+remtrace Build Installation for %SVN_VERSION%
 
-cdd %INIT_DIR\install
-safe_md %INIT_DIR\install\bin
+cdd %INIT_DIR%\install
+safe_md %INIT_DIR%\install\bin
 iff .%ISE_PLATFORM%.==.win64. then
 	set IS_WIN64=yes
 	set WINNAME=x64
@@ -25,105 +25,233 @@ else
 	set WINNAME=x86
 endiff
 
+
 iff .%1.==.. then
-	remtrace ---------------------------------------------
-	remtrace Checkout and compile the hallow tool
-	remtrace ---------------------------------------------
-
-	cdd %EIFFEL_SRC\tools
-	co -r %ORIGO_SVN_REVISION %DEFAULT_ORIGO_SVN/Src/tools/hallow hallow
-	cd %EIFFEL_SRC\tools\hallow
-	clean_project
-	finalize hallow.ecf
-	cleanup_dotnet_eiffel hallow hallow.exe
-	iff not exist libhallow.dll then
-		remtrace Couldnt generate hallow.exe
-		CANCEL
+	iff exist %INIT_DIR%\install\bin\hallow.exe then
+		remtrace Reuse hallow tool from %INIT_DIR%\install\bin\hallow.exe
 	else
-		move hallow.exe %INIT_DIR\install\bin
-		move libhallow.dll %INIT_DIR\install\bin
-		move eiffelsoftware.runtime.dll %INIT_DIR\install\bin
+		remtrace =============================================
+		remtrace Checkout and compile the hallow tool
+		remtrace =============================================
+
+		cdd %EIFFEL_SRC%\tools
+		remtrace Compile finish_freezing Clib
+		cd %EIFFEL_SRC%\tools\finish_freezing\Clib
+		default_make
+
+		cdd %EIFFEL_SRC%\tools
+		co -r %PUBLIC_SVN_REVISION% %DEFAULT_PUBLIC_SVN%/Src/tools/hallow hallow
+		cd %EIFFEL_SRC%\tools\hallow
+		clean_project
+		iff "%USE_NET20%" EQ "True" then
+			finalize hallow.ecf hallow_20
+			cleanup_dotnet_eiffel hallow_20 hallow.exe
+		else
+			finalize hallow.ecf hallow_40
+			cleanup_dotnet_eiffel hallow_40 hallow.exe
+		endiff
+		iff not exist libhallow.dll then
+			remtrace Couldnt generate hallow.exe
+			CANCEL_ON_ERROR
+		else
+			move hallow.exe %INIT_DIR%\install\bin
+			move libhallow.dll %INIT_DIR%\install\bin
+			move eiffelsoftware.runtime.dll %INIT_DIR%\install\bin
+		endiff
 	endiff
 
-	remtrace --------------------------------------------------
+	remtrace ==================================================
 	remtrace Recompile Custom actions for installation program
-	remtrace --------------------------------------------------
+	remtrace ==================================================
+	iff not defined NO_ENTERPRISE_BUILD then
+		remtrace NO_ENTERPRISE_BUILD=%NO_ENTERPRISE_BUILD%
+		cd %EIFFEL_SRC
+		cd tools
+		iff EXIST setup then
+			remtrace setup already exists in %EIFFEL_SRC%\tools\setup
+		else
+			iff EXIST %INIT_DIR%\isesvn\tools\setup then
+				remtrace Get ISE SVN tools setup from folder
+				iff EXIST setup then
+					fullrd setup
+				endiff
+				xcopy /E /I /Y %INIT_DIR%\isesvn\tools\setup setup
+			else
+				remtrace Get ISE SVN tools setup from subversion
+				co %DEFAULT_ISE_SVN%/Src/tools/setup setup
+			endiff
+		endiff
 
-	cdd %EIFFEL_SRC
-	cd tools
-	co %DEFAULT_ISE_SVN/Src/tools/setup setup
-	cd %EIFFEL_SRC\tools\setup\studio
-	clean_project
-	finalize setup.ecf
-	cleanup_eiffel setup setup.dll
-	iff not exist setup.dll then
-		remtrace Couldnt generate setup.dll
-		QUIT
-		CANCEL
+		remtrace Build studio setup.dll
+		iff EXIST %INIT_DIR%\install\binaries\%WINNAME%\setup.dll then
+			remtrace Reuse setup.dll for %WINNAME%
+		else
+			cd %EIFFEL_SRC%\tools\setup\studio
+			clean_project
+			finalize setup.ecf
+			cleanup_eiffel setup setup.dll
+			iff not exist setup.dll then
+				remtrace Couldnt generate setup.dll
+				QUIT
+				CANCEL_ON_ERROR
+			endiff
+			safe_md %INIT_DIR%\install\binaries
+			safe_md %INIT_DIR%\install\binaries\%WINNAME%
+			move setup.dll %INIT_DIR%\install\binaries\%WINNAME%\setup.dll
+		endiff
 	endiff
-	safe_md %INIT_DIR\install\binaries
-	safe_md %INIT_DIR\install\binaries\%WINNAME
-	move setup.dll %INIT_DIR\install\binaries\%WINNAME
 endiff
 
-remtrace ----------------------------------------------
-remtrace Building the MSIs
-remtrace ----------------------------------------------
+remtrace ==============================================
+remtrace Building the Setups (archive and msi)
+remtrace ==============================================
 
-cdd %INIT_DIR\install\content\eiffelstudio
-safe_md %INSTALL_DIR\setups
-safe_md %INSTALL_DIR\setups\gpl
-safe_md %INSTALL_DIR\setups\enterprise
+
+cdd %INIT_DIR%\install\content\eiffelstudio
+safe_md %INSTALL_DIR%\setups
+safe_md %INSTALL_DIR%\setups\standard
+safe_md %INSTALL_DIR%\setups\enterprise
+safe_md %INSTALL_DIR%\setups\branded
+
+
+iff EXIST %INSTALL_DIR%\%STUDIO_NAME% then
+    echo Rename %STUDIO_NAME% as EiffelStudio (issue from previous build?)
+    ren %INSTALL_DIR%\%STUDIO_NAME% %INSTALL_DIR%\EiffelStudio
+endiff
+
+iff defined NO_MSI then
+	goto BUILD_ZIP
+endiff
+
+remtrace ==============================================
+remtrace Building the MSIs
+remtrace ==============================================
+
+remtrace Clean previous WIX processing
+remtrace Remove LICENSE from %INSTALL_DIR%\EiffelStudio\LICENSE
+fullrf %INSTALL_DIR%\EiffelStudio\LICENSE
+fullrf %INSTALL_DIR%\EiffelStudio\studio\spec\%ISE_PLATFORM%\bin\ec.exe
+fullrf %INSTALL_DIR%\EiffelStudio\studio\spec\%ISE_PLATFORM%\bin\ecb.exe
+svn revert %INIT_DIR%\install\content\eiffelstudio\studio_*
 
 remtrace Creating WIX files
-nmake /nologo clean
-nmake /nologo
+espawn -u:%ISE_C_COMPILER_VER% "nmake /nologo clean"
+espawn -u:%ISE_C_COMPILER_VER% "nmake /nologo"
 
-remtrace Preparing GPL edition
-nmake /nologo gpl_%WINNAME
-copy %INIT_DIR\install\bin\studio_gpl_%WINNAME\package.msi %INSTALL_DIR\setups\gpl\%STUDIO_NAME%_gpl_%SVN_VERSION-%ISE_PLATFORM%.msi
+iff not defined NO_ENTERPRISE_BUILD then
+	remtrace Preparing Enterprise edition
+	remtrace Clean previous ENT WIX files
+	fullrd %INIT_DIR%\install\bin\studio_ent_%WINNAME%
+	espawn -u:%ISE_C_COMPILER_VER% "nmake /nologo enterprise_%WINNAME"
+	safe_copy %INIT_DIR%\install\bin\studio_ent_%WINNAME%\package.msi %INSTALL_DIR%\setups\enterprise\%STUDIO_NAME%_ent_%SVN_VERSION-%ISE_PLATFORM%.msi
 
-remtrace Preparing Commercial edition
-nmake /nologo enterprise_%WINNAME
-copy %INIT_DIR\install\bin\studio_ent_%WINNAME\package.msi %INSTALL_DIR\setups\enterprise\%STUDIO_NAME%_ent_%SVN_VERSION-%ISE_PLATFORM%.msi
+	remtrace Preparing Branded edition
+	remtrace Clean previous Branded WIX files
+	fullrd %INIT_DIR%\install\bin\studio_branded_%WINNAME%
+	espawn -u:%ISE_C_COMPILER_VER% "nmake /nologo branded_%WINNAME"
+	safe_copy %INIT_DIR%\install\bin\studio_branded_%WINNAME%\package.msi %INSTALL_DIR%\setups\branded\%STUDIO_NAME%_branded_%SVN_VERSION-%ISE_PLATFORM%.msi
+endiff
 
-remtrace ----------------------------------------------
+iff not defined NO_STANDARD_BUILD then
+	remtrace Preparing Standard edition
+	remtrace Clean previous Standard WIX files
+	fullrd %INIT_DIR%\install\bin\studio_std_%WINNAME%
+	espawn -u:%ISE_C_COMPILER_VER%  "nmake /nologo standard_%WINNAME"
+	safe_copy %INIT_DIR%\install\bin\studio_std_%WINNAME%\package.msi %INSTALL_DIR%\setups\standard\%STUDIO_NAME%_rev_%SVN_VERSION-%ISE_PLATFORM%.msi
+endiff
+
+:BUILD_ZIP
+remtrace ==============================================
 remtrace Building the Zips
-remtrace ----------------------------------------------
-cdd %INSTALL_DIR
-ren EiffelStudio %STUDIO_NAME%
-
-copy %INSTALL_DIR\releases\gpl_version\ec.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
-copy %INSTALL_DIR\releases\gpl_version\ecb.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
-iff exist %INSTALL_DIR\releases\gpl_version\LICENSE then
-	copy %INSTALL_DIR\releases\gpl_version\LICENSE %INSTALL_DIR\%STUDIO_NAME%\LICENSE
+remtrace ==============================================
+iff not defined NO_STANDARD_BUILD then
+	cdd %INSTALL_DIR
+	iff exist %INSTALL_DIR%\setups\standard\%STUDIO_NAME%_rev_%SVN_VERSION-%ISE_PLATFORM%.7z then
+		remtrace Standard archive: reuse
+	else
+		iff EXIST EiffelStudio then
+		    ren EiffelStudio %STUDIO_NAME%
+		endiff
+		remtrace Standard archive
+		safe_copy %INSTALL_DIR%\releases\standard_version\ec.exe %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+		safe_copy %INSTALL_DIR%\releases\standard_version\ecb.exe %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+		iff exist %INSTALL_DIR%\releases\standard_version\LICENSE then
+			safe_copy %INSTALL_DIR%\releases\standard_version\LICENSE %INSTALL_DIR%\%STUDIO_NAME%\LICENSE
+		else
+			remtrace Missing Standard license text
+		endiff
+		7z a -t7z -mx9 -r %INSTALL_DIR%\setups\standard\%STUDIO_NAME%_rev_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% >>& %INSTALL_LOG
+	endiff
+	remtrace Uploading Standard packages online
+	cdd %INSTALL_DIR%\setups\standard
+	call share_delivery %STUDIO_NAME%_rev_%SVN_VERSION%-%ISE_PLATFORM%.7z standard
+	iff not defined NO_MSI then
+		call share_delivery %STUDIO_NAME%_rev_%SVN_VERSION%-%ISE_PLATFORM%.msi standard
+	endiff
+	iff not EXIST %STUDIO_NAME%_rev_%SVN_VERSION%-%ISE_PLATFORM%.7z then
+		if EXIST %~dp0notify.bat %~dp0notify.bat "Failure : no %STUDIO_NAME%_rev_%SVN_VERSION%-%ISE_PLATFORM%.7z release!"
+	endiff
 else
-	remtrace Missing GPL license text
+	remtrace DO NOT Build Standard Zip
 endiff
-7z a -t7z %INSTALL_DIR\setups\gpl\%STUDIO_NAME%_gpl_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% -mx9 >>& %INSTALL_LOG
 
-copy %INSTALL_DIR\releases\enterprise_version\ec.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
-copy %INSTALL_DIR\releases\enterprise_version\ecb.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
-iff exist %INSTALL_DIR\releases\enterprise_version\LICENSE then
-	copy %INSTALL_DIR\releases\enterprise_version\LICENSE %INSTALL_DIR\%STUDIO_NAME%\LICENSE
-else
-	remtrace Missing Enterprise license text
+iff not defined NO_ENTERPRISE_BUILD then
+	cdd %INSTALL_DIR
+	iff exist %INSTALL_DIR%\setups\enterprise\%STUDIO_NAME%_ent_%SVN_VERSION-%ISE_PLATFORM%.7z then
+		remtrace Enterprise archive: reuse
+	else
+		remtrace Enterprise archive
+		iff EXIST EiffelStudio then
+		    ren EiffelStudio %STUDIO_NAME%
+		endiff
+		safe_copy %INSTALL_DIR%\releases\enterprise_version\ec.exe %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+		safe_copy %INSTALL_DIR%\releases\enterprise_version\ecb.exe %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+		iff exist %INSTALL_DIR%\releases\enterprise_version\LICENSE then
+			safe_copy %INSTALL_DIR%\releases\enterprise_version\LICENSE %INSTALL_DIR%\%STUDIO_NAME%\LICENSE
+		else
+			remtrace Missing Enterprise license text
+		endiff
+		7z a -t7z -mx9 -r %INSTALL_DIR%\setups\enterprise\%STUDIO_NAME%_ent_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% >>& %INSTALL_LOG
+	endiff
+remtrace Uploading ENT packages online
+	cdd %INSTALL_DIR%\setups\enterprise
+	call share_delivery %STUDIO_NAME%_ent_%SVN_VERSION%-%ISE_PLATFORM%.7z enterprise
+	iff not defined NO_MSI then
+		call share_delivery %STUDIO_NAME%_ent_%SVN_VERSION%-%ISE_PLATFORM%.msi enterprise
+	endiff
 endiff
-7z a -t7z %INSTALL_DIR\setups\enterprise\%STUDIO_NAME%_ent_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% -mx9 >>& %INSTALL_LOG
+
+iff not defined NO_ENTERPRISE_BUILD then
+	cdd %INSTALL_DIR
+	iff exist %INSTALL_DIR%\setups\branded\%STUDIO_NAME%_branded_%SVN_VERSION-%ISE_PLATFORM%.7z then
+		remtrace Branded archive: reuse
+	else
+		remtrace Branded archive
+		iff EXIST EiffelStudio then
+		    ren EiffelStudio %STUDIO_NAME%
+		endiff
+		safe_copy %INSTALL_DIR%\releases\branded_version\ec.exe %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+		safe_copy %INSTALL_DIR%\releases\branded_version\ecb.exe %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+		iff exist %INSTALL_DIR%\releases\branded_version\LICENSE then
+			safe_copy %INSTALL_DIR%\releases\branded_version\LICENSE %INSTALL_DIR%\%STUDIO_NAME%\LICENSE
+		else
+			remtrace Missing Branded license text
+		endiff
+		7z a -t7z -mx9 -r %INSTALL_DIR%\setups\branded\%STUDIO_NAME%_branded_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% >>& %INSTALL_LOG
+	endiff
+remtrace Uploading Branded packages online
+	cdd %INSTALL_DIR%\setups\branded
+	call share_delivery %STUDIO_NAME%_branded_%SVN_VERSION%-%ISE_PLATFORM%.7z branded
+	iff not defined NO_MSI then
+		call share_delivery %STUDIO_NAME%_branded_%SVN_VERSION%-%ISE_PLATFORM%.msi branded
+	endiff
+endiff
 
 remtrace Restoring the layout to its original state
 cdd %INSTALL_DIR
-ren %STUDIO_NAME% EiffelStudio
-
-remtrace Uploading packages online
-cdd %INSTALL_DIR\setups\gpl
-scp %STUDIO_NAME%_gpl_%SVN_VERSION%-%ISE_PLATFORM%.msi manus@eiffel.com:builds/nightly/
-ssh manus@eiffel.com chmod 444 builds/nightly/%STUDIO_NAME%_gpl_%SVN_VERSION%-%ISE_PLATFORM%.msi
-scp %STUDIO_NAME%_gpl_%SVN_VERSION%-%ISE_PLATFORM%.7z manus@eiffel.com:builds/nightly/
-ssh manus@eiffel.com chmod 444 builds/nightly/%STUDIO_NAME%_gpl_%SVN_VERSION%-%ISE_PLATFORM%.7z
-
-fullrf %INSTALL_DIR\EiffelStudio\studio\spec\%ISE_PLATFORM%\bin\ec.exe
-fullrf %INSTALL_DIR\EiffelStudio\studio\spec\%ISE_PLATFORM%\bin\ecb.exe
+if not exist EiffelStudio ren %STUDIO_NAME% EiffelStudio
+fullrf %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin\ec.exe
+fullrf %INSTALL_DIR%\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin\ecb.exe
 
 remtrace Your deliveries are now ready
 cdd %INIT_DIR

@@ -34,3 +34,13 @@ echo *****************************************************************
 echo *                 Compiling EWF Wizard                          *
 echo *****************************************************************
 call make_a_wizard.bat new_projects ewf ewf_wizard >> %INSTALL_LOG% 2>>&1
+
+echo *****************************************************************
+echo *                 Compiling Library Wizard                      *
+echo *****************************************************************
+call make_a_wizard.bat new_projects library library_wizard >> %INSTALL_LOG% 2>>&1
+
+echo *****************************************************************
+echo *                 Compiling WrapC Wizard                          *
+echo *****************************************************************
+call make_a_wizard.bat new_projects wrapc wrapc_wizard >> %INSTALL_LOG% 2>>&1

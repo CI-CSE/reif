@@ -12,10 +12,10 @@ note
 				max_concurrent_connections: set to 1, for single threaded behavior
 				max_tcp_clients: max number of open tcp connection
 				
-				socket_timeout: connection timeout
-				socket_recv_timeout: read data timeout
+				socket_timeout_ns: connection timeout in nanoseconds
+				socket_recv_timeout_ns: read data timeout in nanoseconds
 
-				keep_alive_timeout: amount of time the server will wait for subsequent
+				keep_alive_timeout_ns: amount of nanoseconds the server will wait for subsequent
 									requests on a persistent connection,
 				max_keep_alive_requests: number of requests allowed on a persistent connection,
 
@@ -40,6 +40,8 @@ inherit
 
 	WGI_STANDALONE_HTTPD_LOGGER_CONSTANTS
 
+	WSF_TIMEOUT_UTILITIES
+
 create
 	make,
 	make_and_launch
@@ -57,9 +59,9 @@ feature {NONE} -- Initialization
 			port_number := {WGI_STANDALONE_CONSTANTS}.default_http_server_port --| Default, but quite often, this port is already used ...
 			max_concurrent_connections := {WGI_STANDALONE_CONSTANTS}.default_max_concurrent_connections
 			max_tcp_clients := {WGI_STANDALONE_CONSTANTS}.default_max_tcp_clients
-			socket_timeout := {WGI_STANDALONE_CONSTANTS}.default_socket_timeout -- seconds
-			socket_recv_timeout := {WGI_STANDALONE_CONSTANTS}.default_socket_recv_timeout -- seconds
-			keep_alive_timeout := {WGI_STANDALONE_CONSTANTS}.default_keep_alive_timeout -- seconds.
+			socket_timeout_ns := seconds_to_nanoseconds ({WGI_STANDALONE_CONSTANTS}.default_socket_timeout) -- default in seconds
+			socket_recv_timeout_ns := seconds_to_nanoseconds ({WGI_STANDALONE_CONSTANTS}.default_socket_recv_timeout) -- default in seconds
+			keep_alive_timeout_ns := seconds_to_nanoseconds ({WGI_STANDALONE_CONSTANTS}.default_keep_alive_timeout) -- default in seconds.
 			max_keep_alive_requests := {WGI_STANDALONE_CONSTANTS}.default_max_keep_alive_requests
 			verbose := False
 			verbose_level := notice_level
@@ -70,8 +72,11 @@ feature {NONE} -- Initialization
 				if attached {READABLE_STRING_GENERAL} opts.option ("server_name") as l_server_name then
 					server_name := l_server_name.to_string_8
 				end
-				if attached {READABLE_STRING_GENERAL} opts.option ("base") as l_base_str then
-					base_url := l_base_str.as_string_8
+				if 
+					attached {READABLE_STRING_GENERAL} opts.option ("base") as l_base_str and then
+					l_base_str.is_valid_as_string_8
+				then
+					base_url := l_base_str.to_string_8
 				end
 
 				verbose := opts.option_boolean_value ("verbose", verbose)
@@ -111,10 +116,12 @@ feature {NONE} -- Initialization
 				end
 				max_concurrent_connections := opts.option_integer_value ("max_concurrent_connections", max_concurrent_connections)
 				max_tcp_clients := opts.option_integer_value ("max_tcp_clients", max_tcp_clients)
-				socket_timeout := opts.option_integer_value ("socket_timeout", socket_timeout)
-				socket_recv_timeout := opts.option_integer_value ("socket_recv_timeout", socket_recv_timeout)
-				keep_alive_timeout := opts.option_integer_value ("keep_alive_timeout", keep_alive_timeout)
+				socket_timeout_ns := opts.option_timeout_ns_value ("socket_timeout", socket_timeout_ns)
+				socket_recv_timeout_ns := opts.option_timeout_ns_value ("socket_recv_timeout", socket_recv_timeout_ns)
+				keep_alive_timeout_ns := opts.option_timeout_ns_value ("keep_alive_timeout", keep_alive_timeout_ns)
 				max_keep_alive_requests := opts.option_integer_value ("max_keep_alive_requests", max_keep_alive_requests)
+				max_bind_attempts := opts.option_integer_value ("max_bind_attempts", max_bind_attempts)
+				is_reuse_address_allowed := opts.option_boolean_value ("allow_reuse_address", is_reuse_address_allowed)
 
 				if
 					opts.option_boolean_value ("is_secure", is_secure) and then
@@ -127,6 +134,11 @@ feature {NONE} -- Initialization
 					attached opts.option_string_32_value ("ssl_protocol", "tls_1_2") as ssl_prot
 				then
 					secure_settings := [ssl_prot, opts.option_string_32_value ("ssl_ca_crt", Void), opts.option_string_32_value ("ssl_ca_key", Void)]
+				end
+				if is_secure then
+					if opts.has_integer_option ("secure_port") then
+						port_number := opts.option_integer_value ("secure_port", port_number)
+					end
 				end
 			end
 
@@ -167,11 +179,13 @@ feature -- Execution
 			cfg.set_secure_settings (secure_settings)
 			cfg.set_http_server_name (server_name)
 			cfg.http_server_port := port_number
+			cfg.max_bind_attempts := max_bind_attempts
+			cfg.is_reuse_address_allowed := is_reuse_address_allowed
 			cfg.set_max_concurrent_connections (max_concurrent_connections)
 			cfg.set_max_tcp_clients (max_tcp_clients)
-			cfg.set_socket_timeout (socket_timeout)
-			cfg.set_socket_recv_timeout (socket_recv_timeout)
-			cfg.set_keep_alive_timeout (keep_alive_timeout)
+			cfg.set_socket_timeout_ns (socket_timeout_ns)
+			cfg.set_socket_recv_timeout_ns (socket_recv_timeout_ns)
+			cfg.set_keep_alive_timeout_ns (keep_alive_timeout_ns)
 			cfg.set_max_keep_alive_requests (max_keep_alive_requests)
 		end
 
@@ -244,11 +258,16 @@ feature {NONE} -- Implementation
 		end
 
 	max_tcp_clients: INTEGER
-	socket_timeout: INTEGER
-	socket_recv_timeout: INTEGER
+	socket_timeout_ns: NATURAL_64
+	socket_recv_timeout_ns: NATURAL_64
 
-	keep_alive_timeout: INTEGER
+	keep_alive_timeout_ns: NATURAL_64
 	max_keep_alive_requests: INTEGER
+
+	max_bind_attempts: INTEGER
+		-- In seconds
+
+	is_reuse_address_allowed: BOOLEAN
 
 	is_secure_connection_supported: BOOLEAN
 			-- Is SSL supported in current compiled system?

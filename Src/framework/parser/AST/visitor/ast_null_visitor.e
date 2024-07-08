@@ -1,5 +1,5 @@
 ﻿note
-	description: "Class that parses an Eiffel class an does nothing"
+	description: "Class that parses an Eiffel class an does nothing."
 
 class
 	AST_NULL_VISITOR
@@ -33,31 +33,7 @@ feature -- Roundtrip
 			process_agent_routine_creation_as (l_as)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
-			-- Process `l_as'.
-		do
-			process_creation_as (l_as)
-		end
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process `l_as'.
-		do
-			process_creation_as (l_as)
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			process_creation_expr_as (l_as)
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			process_creation_expr_as (l_as)
-		end
-
-feature -- Roundtrip
+feature -- Roundtrip: leaves
 
 	process_keyword_as (l_as: KEYWORD_AS)
 			-- Process `l_as'.
@@ -184,10 +160,6 @@ feature -- Implementation
 		do
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-		end
-
 	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 		end
@@ -261,6 +233,11 @@ feature -- Implementation
 		end
 
 	process_address_as (l_as: ADDRESS_AS)
+		do
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
 		do
 		end
 
@@ -392,11 +369,7 @@ feature -- Implementation
 		do
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
 		end
 
@@ -457,6 +430,10 @@ feature -- Implementation
 		end
 
 	process_iteration_as (l_as: ITERATION_AS)
+		do
+		end
+
+	process_inspect_expression_as (a: INSPECT_EXPRESSION_AS)
 		do
 		end
 
@@ -587,6 +564,10 @@ feature -- Implementation
 		end
 
 	process_case_as (l_as: CASE_AS)
+		do
+		end
+
+	process_case_expression_as (a: CASE_EXPRESSION_AS)
 		do
 		end
 
@@ -730,9 +711,10 @@ feature -- Quantification
 		end
 
 note
+	ca_ignore: "CA033", "CA033: too large class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

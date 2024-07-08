@@ -1,24 +1,26 @@
-note
+﻿note
 	description: "[
 		Subsets with the associated operations,
 		without commitment to a particular representation
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: subset, set;
-	access: membership;
-	contents: generic;
+	names: subset, set
+	access: membership
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
-deferred class SUBSET [G] inherit
+deferred class SUBSET [G]
+
+inherit
 
 	SET [G]
 
 feature -- Comparison
 
-	is_subset (other: SUBSET [G]): BOOLEAN
+	is_subset alias "⊆" (other: SUBSET [G]): BOOLEAN
 			-- Is current set a subset of `other'?
 		require
 			set_exists: other /= Void
@@ -26,13 +28,13 @@ feature -- Comparison
 		deferred
 		end
 
-	is_superset (other: SUBSET [G]): BOOLEAN
+	is_superset alias "⊇" (other: SUBSET [G]): BOOLEAN
 			-- Is current set a superset of `other'?
 		require
 			set_exists: other /= Void
 			same_rule: object_comparison = other.object_comparison
 		do
-			Result := other.is_subset (Current)
+			Result := other ⊆ Current
 		end
 
 	disjoint (other: SUBSET [G]): BOOLEAN
@@ -43,16 +45,8 @@ feature -- Comparison
 		require
 			set_exists: other /= Void
 			same_rule: object_comparison = other.object_comparison
-		local
-			temp: like Current
 		do
-			if not is_empty then
-				temp := duplicate (count)	
-				temp.intersect (other)
-				Result := temp.is_empty
-			else
-				Result := True
-			end
+			Result := ∀ o: other ¦ not has (o)
 		end
 
 feature -- Element change
@@ -61,7 +55,7 @@ feature -- Element change
 			-- Add all items of `other'.
 		require
 			set_exists: other /= Void
- 			same_rule: object_comparison = other.object_comparison
+			same_rule: object_comparison = other.object_comparison
 		deferred
 		end
 
@@ -70,6 +64,12 @@ feature -- Duplication
 	duplicate (n: INTEGER): like Current
 			-- New structure containing min (`n', `count')
 			-- items from current structure
+		obsolete
+			"[
+				Create a new container explicitly using `make_from_iterable` if available.
+				Otherwise, replace a call to the feature with code that creates and initializes container.
+				[2018-11-30]
+			]"
 		require
 			non_negative: n >= 0
 		deferred
@@ -109,18 +109,25 @@ feature -- Basic operations
 		require
 			set_exists: other /= Void
 			same_rule: object_comparison = other.object_comparison
-		local
-			temp: like Current
 		do
-			temp := duplicate (count)	
-			temp.intersect (other)
-			merge (other)
-			subtract (temp)
+			if other = Current then
+				wipe_out
+			else
+				across
+					other as o
+				loop
+					if has (o) then
+						prune (o)
+					else
+						extend (o)
+					end
+				end
+			end
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

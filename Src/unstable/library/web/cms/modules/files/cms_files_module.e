@@ -207,7 +207,7 @@ feature -- Handler
 					body.append ("<br/><br/>%N")
 
 					body.append ("<a class=%"button%" href=%"" + l_file_url + "%">Download</a>%N")
-					body.append ("<a class=%"button%" href=%"" + req.script_url ("/" + uploads_location + f.filename + "/remove") + "%">Remove</a>%N")
+					body.append ("<a class=%"button%" href=%"" + req.script_url ("/" + uploads_location + percent_encoded (f.filename) + "/remove") + "%">Remove</a>%N")
 					body.append ("</div>%N") -- metadata
 					body.append ("<br/>%N")
 					body.append ("<div class=%"overview%">")
@@ -341,7 +341,7 @@ feature -- Handler
 
 							-- create medadata file
 						l_uploaded_file.set_size (uf.size)
-						l_uploaded_file.set_type (uf.content_type)
+						l_uploaded_file.set_type (uf.content_type.to_string_8) -- READABLE_STRING to STRING
 
 							-- store the just uploaded file
 						l_files_api.save_uploaded_file (l_uploaded_file)
@@ -435,7 +435,7 @@ feature -- Handler
 
 									-- add remove button
 								a_output.append ("<td>")
-								a_output.append ("<a class=%"button%" href=%"" + req.script_url ("/" + uploads_location + f.filename + "/remove") + "%">Remove</a>%N")
+								a_output.append ("<a class=%"button%" href=%"" + req.script_url ("/" + uploads_location + percent_encoded (f.filename) + "/remove") + "%">Remove</a>%N")
 								a_output.append ("</td>%N")
 
 								a_output.append ("</tr>%N")
@@ -549,7 +549,7 @@ feature -- Mapping helper: uri template agent (analogue to the demo-module)
 			a_tpl_attached: a_tpl /= Void
 			proc_attached: proc /= Void
 		do
-			map_uri_template (a_router, a_tpl, create {WSF_URI_TEMPLATE_AGENT_HANDLER}.make (proc), rqst_methods)
+			map_uri_template (a_router, a_tpl.to_string_8, create {WSF_URI_TEMPLATE_AGENT_HANDLER}.make (proc), rqst_methods)
 		end
 
 end

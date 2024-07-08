@@ -31,19 +31,28 @@ feature {NONE} -- Implementation
 		do
 				-- Does `current_target' extend something?
 			properties.add_section ("Information")
+
+				-- FIXME: for now, it is readonly information
+				--        it requires manual editing of the file to change!
+
 				-- Name.
 			create l_string_prop.make (conf_interface_names.target_name_name)
 			l_string_prop.set_description (conf_interface_names.target_name_description)
 			l_string_prop.set_value (current_target.name)
+			l_string_prop.enable_readonly
 			properties.add_property (l_string_prop)
 
-				-- Name.
+				-- Location.
 			create l_file_prop.make (conf_interface_names.target_location_name, current_target)
 			l_string_prop.set_description (conf_interface_names.target_location_description)
 			l_file_prop.set_value (current_target.system.file_name)
+			l_file_prop.disable_text_editing
+			l_file_prop.enable_readonly
 			properties.add_property (l_file_prop)
 
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 		ensure
 			properties_not_void: properties /= Void
 		end
@@ -114,7 +123,9 @@ feature {NONE} -- Implementation
 			l_root_prop.use_inherited_actions.extend (agent handle_value_changes (True))
 			update_inheritance_root (Void, l_root_prop)
 			properties.add_property (l_root_prop)
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 
 				-- Language section.
 			properties.add_section (conf_interface_names.section_language)
@@ -148,13 +159,17 @@ feature {NONE} -- Implementation
 			else
 				inherited_capability := Void
 			end
-			add_use_capability_property
-				(conf_interface_names.option_concurrency_name,
-				conf_interface_names.option_concurrency_description,
-				conf_interface_names.option_concurrency_value,
-				current_target.changeable_internal_options.concurrency_capability,
-				inherited_capability)
-			properties.current_section.expand
+			add_use_capability_property (
+					conf_interface_names.option_concurrency_name,
+					conf_interface_names.option_concurrency_description,
+					conf_interface_names.option_concurrency_value,
+					current_target.changeable_internal_options.concurrency_capability,
+					inherited_capability
+				)
+
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 
 				-- Execution section.
 			properties.add_section (conf_interface_names.section_execution)
@@ -196,7 +211,9 @@ feature {NONE} -- Implementation
 			l_version_prop.use_inherited_actions.extend (agent handle_value_changes (False))
 			update_inheritance_version (Void, l_version_prop)
 			properties.add_property (l_version_prop)
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 
 				-- Capability section.
 			properties.add_section (conf_interface_names.section_capability)
@@ -215,7 +232,9 @@ feature {NONE} -- Implementation
 				current_target.changeable_internal_options.concurrency,
 				inherited_choice
 			)
-			properties.current_section.collapse
+			if attached properties.current_section as l_current_section then
+				l_current_section.collapse
+			end
 		ensure
 			properties_not_void: properties /= Void
 		end
@@ -235,7 +254,6 @@ feature {NONE} -- Implementation
 			l_dir_prop: DIRECTORY_PROPERTY
 			l_file_prop: FILE_PROPERTY
 			l_key_file_prop: KEY_FILE_PROPERTY
-			l_installed_runtimes: ARRAYED_LIST [READABLE_STRING_32]
 			l_il_env: IL_ENVIRONMENT
 			l_il_choices: ARRAYED_LIST [STRING_32]
 			l_il_version: STRING_32
@@ -253,6 +271,9 @@ feature {NONE} -- Implementation
 			add_full_checking_property (current_target.changeable_internal_options, current_target.options, l_extends, False)
 				-- Syntax.			
 			add_syntax_property (current_target.changeable_internal_options, current_target.options, l_extends, False)
+				-- Manifest array type checks.
+				-- Loop syntax.
+			add_obsolete_iteration_property (current_target.changeable_internal_options, current_target.options, l_extends, False)
 				-- Manifest array type checks.
 			add_array_property (current_target.changeable_internal_options, current_target.options, l_extends, False)
 			add_choice_property
@@ -295,7 +316,10 @@ feature {NONE} -- Implementation
 				l_bool_prop.enable_readonly
 			end
 			properties.add_property (l_bool_prop)
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
+
 				-- Absent explicit assertion.
 			l_bool_prop := new_boolean_property (conf_interface_names.target_absent_explicit_assertion_name, current_target.setting_absent_explicit_assertion)
 			l_bool_prop.set_description (conf_interface_names.target_absent_explicit_assertion_description)
@@ -347,13 +371,24 @@ feature {NONE} -- Implementation
 				-- Optimization section.
 			properties.add_section (conf_interface_names.section_optimization)
 				-- Dead code removal.
-			l_bool_prop := new_boolean_property (conf_interface_names.target_dead_code_removal_name, current_target.setting_dead_code_removal)
-			l_bool_prop.set_description (conf_interface_names.target_dead_code_removal_description)
-			add_boolean_setting_actions (l_bool_prop, s_dead_code_removal)
-			if l_il_generation then
-				l_bool_prop.enable_readonly
+			add_choice_property
+				(locale.translation_in_context ("Dead code removal", "configuration.option.dead_code"),
+				locale.translation_in_context ("[
+					Set the kind of code removal algorithm that should be applied when compiling in finalized mode:
+						- None: do not perform dead code removal;
+						- Features only: remove code based on feature call graph;
+						- All: remove code based on feature call graph and keeping only classes used to create objects or marked as visible.
+				]", "configuration.option.dead_code"),
+				create {ARRAYED_LIST [STRING_32]}.make_from_array
+					(<<
+						locale.translation_in_context ("None", "configuration.option.dead_code"),
+						locale.translation_in_context ("Features only", "configuration.option.dead_code"),
+						locale.translation_in_context ("All", "configuration.option.dead_code")
+					>>),
+				current_target.changeable_internal_options.dead_code, if l_extends then current_target.options.dead_code else Void end)
+			if attached last_added_choice_property as l_prop and then l_il_generation then
+				l_prop.enable_readonly
 			end
-			properties.add_property (l_bool_prop)
 				-- Inlining.
 			l_bool_prop := new_boolean_property (conf_interface_names.target_inlining_name, current_target.setting_inlining)
 			l_bool_prop.set_description (conf_interface_names.target_inlining_description)
@@ -493,15 +528,11 @@ feature {NONE} -- Implementation
 			properties.add_property (l_string_prop)
 
 			create l_il_env
-			l_installed_runtimes := l_il_env.installed_runtimes
-			create l_il_choices.make (l_installed_runtimes.count)
-			from
-				l_installed_runtimes.start
-			until
-				l_installed_runtimes.after
+			create l_il_choices.make (l_il_env.installed_runtimes.count)
+			across
+				l_il_env.installed_runtimes as r
 			loop
-				l_il_choices.put_right (l_installed_runtimes.item_for_iteration)
-				l_installed_runtimes.forth
+				l_il_choices.put_right (@ r.key)
 			end
 			l_il_choices.force ("")
 			create l_choice_prop.make_with_choices (conf_interface_names.target_msil_clr_version_name, l_il_choices)
@@ -576,7 +607,7 @@ feature {NONE} -- Implementation helper
 		do
 			a_property.set_refresh_action (agent current_target.setting_boolean (a_name))
 			a_property.refresh
-			a_property.change_value_actions.extend (agent set_boolean_setting (a_name, true_boolean_settings.has (a_name), ?))
+			a_property.change_value_actions.extend (agent set_boolean_setting (a_name, is_boolean_setting_true (a_name, current_target.system.namespace), ?))
 			a_property.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent update_inheritance_setting (a_name, a_property)))
 			a_property.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
 			a_property.use_inherited_actions.extend (agent current_target.update_setting (a_name, Void))
@@ -706,7 +737,7 @@ feature {NONE} -- Validation and warning generation
 			l_targets: STRING_TABLE [CONF_TARGET]
 		do
 			l_targets := conf_system.targets
-			l_targets.search (a_name.as_lower)
+			l_targets.search (a_name)
 			if not (create {EIFFEL_SYNTAX_CHECKER}).is_valid_target_name (a_name) then
 				prompts.show_error_prompt (conf_interface_names.target_name_invalid, window, Void)
 			elseif l_targets.found and then l_targets.found_item /= current_target then
@@ -743,7 +774,7 @@ feature {NONE} -- Validation and warning generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

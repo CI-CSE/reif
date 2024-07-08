@@ -1,0 +1,179 @@
+{
+        "perso-oneyear": {
+                "plan": "perso",
+                "title": "Personal (one-year)",
+                "price": 145,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "perso-mly": {
+                "plan": "perso",
+                "title": "Personal (monthly)",
+                "price": 14,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+        "pro-oneyear": {
+                "plan": "pro",
+                "title": "Professional (one-year)",
+                "price": 495,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "pro-mly": {
+                "plan": "pro",
+                "title": "Professional (monthly)",
+                "price": 49,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+        "proplus-oneyear": {
+                "plan": "pro+",
+                "title": "Professional+ (one-year)",
+                "price": 795,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "proplus-mly": {
+                "plan": "pro+",
+                "title": "Professional+ (monthly)",
+                "price": 79,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+
+
+        "perso_2pf-oneyear": {
+                "plan": "perso_2pf",
+                "title": "Personal 2 platforms (one-year)",
+                "price": 175,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "perso_2pf-mly": {
+                "plan": "perso_2pf",
+                "title": "Personal 2 platforms (monthly)",
+                "price": 17,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+        "pro_2pf-oneyear": {
+                "plan": "pro_2pf",
+                "title": "Professional 2 platforms (one-year)",
+                "price": 645,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "pro_2pf-mly": {
+                "plan": "pro_2pf",
+                "title": "Professional 2 platforms (monthly)",
+                "price": 64,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+        "proplus_2pf-oneyear": {
+                "plan": "pro+_2pf",
+                "title": "Professional+ 2 platforms (one-year)",
+                "price": 1195,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "proplus_2pf-mly": {
+                "plan": "pro+_2pf",
+                "title": "Professional+ 2 platforms (monthly)",
+                "price": 119,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+
+
+        "perso_3pf-oneyear": {
+                "plan": "perso_3pf",
+                "title": "Personal 3 platforms (one-year)",
+                "price": 195,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "perso_3pf-mly": {
+                "plan": "perso_3pf",
+                "title": "Personal 3 platforms (monthly)",
+                "price": 19,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+        "pro_3pf-oneyear": {
+                "plan": "pro_3pf",
+                "title": "Professional 3 platforms (one-year)",
+                "price": 745,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "pro_3pf-mly": {
+                "plan": "pro_3pf",
+                "title": "Professional 3 platforms (monthly)",
+                "price": 74,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+        "proplus_3pf-oneyear": {
+                "plan": "pro+_3pf",
+                "title": "Professional+ 3 platforms (one-year)",
+                "price": 1495,
+                "currency": "usd",
+                "interval": "onetime",
+                "duration": "12",
+                "status": "published"
+        },
+        "proplus_3pf-mly": {
+                "plan": "pro+_3pf",
+                "title": "Professional+ 3 platforms (monthly)",
+                "price": 149,
+                "price.cents": 50,
+                "currency": "usd",
+                "interval": "month",
+                "status": "published"
+        },
+
+
+        "perso-dly": {
+                "plan": "perso",
+                "title": "Personal (daily)",
+                "price": 2,
+                "price.cents": 0,
+                "currency": "usd",
+                "interval": "day",
+                "status": "test"
+        }
+}

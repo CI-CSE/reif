@@ -107,11 +107,13 @@ feature -- Execution
 			if is_verbose then
 				log ("%N%NStarting Web Application Server ...")
 				log ("  - port = " + configuration.http_server_port.out)
+				log ("  - allow_reuse_address = " + configuration.is_reuse_address_allowed.out)
+				log ("  - max_bind_attempts = " + configuration.max_bind_attempts.out)
 				log ("  - max_tcp_clients = " + configuration.max_tcp_clients.out)
 				log ("  - max_concurrent_connections = " + configuration.max_concurrent_connections.out)
-				log ("  - socket_timeout = " + configuration.socket_timeout.out + " seconds")
-				log ("  - socket_recv_timeout = " + configuration.socket_recv_timeout.out + " seconds")
-				log ("  - keep_alive_timeout = " + configuration.keep_alive_timeout.out + " seconds")
+				log ("  - socket_timeout = " + timeout_representation (configuration.socket_timeout_ns))
+				log ("  - socket_recv_timeout = " + timeout_representation (configuration.socket_recv_timeout_ns))
+				log ("  - keep_alive_timeout = " + timeout_representation (configuration.keep_alive_timeout_ns))
 				log ("  - max_keep_alive_requests = " + configuration.max_keep_alive_requests.out)
 				if configuration.has_secure_support then
 					if configuration.is_secure then
@@ -155,6 +157,7 @@ feature -- Listening
 		local
 			l_listening_socket: detachable HTTPD_STREAM_SOCKET
 			l_http_port: INTEGER
+			l_addr: INET_ADDRESS
 			l_connection_handler: HTTPD_CONNECTION_HANDLER
 		do
 			is_terminated := False
@@ -163,13 +166,12 @@ feature -- Listening
 			is_shutdown_requested := False
 			l_http_port := configuration.http_server_port
 
-			if
-				attached configuration.http_server_name as l_servername and then
-				attached (create {INET_ADDRESS_FACTORY}).create_from_name (l_servername) as l_addr
-			then
-				l_listening_socket := new_listening_socket (l_addr, l_http_port)
-			else
-				l_listening_socket := new_listening_socket (Void, l_http_port)
+			if attached configuration.http_server_name as l_servername then
+				l_addr := (create {INET_ADDRESS_FACTORY}).create_from_name (l_servername)
+			end
+			l_listening_socket := new_listening_socket (l_addr, l_http_port)
+			if configuration.is_reuse_address_allowed then
+				l_listening_socket.set_reuse_address
 			end
 
 			if not l_listening_socket.is_bound then
@@ -237,11 +239,31 @@ feature -- Listening
 feature {NONE} -- Factory
 
 	new_listening_socket (a_addr: detachable INET_ADDRESS; a_http_port: INTEGER): HTTPD_STREAM_SOCKET
+		local
+			retried_count: INTEGER
+			nb: INTEGER
+			delay: INTEGER
 		do
-			if a_addr /= Void then
-				create Result.make_server_by_address_and_port (a_addr, a_http_port)
-			else
-				create Result.make_server_by_port (a_http_port)
+			nb := configuration.max_bind_attempts
+			delay := 1_000_000_000 -- 1 second
+
+			from
+				if a_addr /= Void then
+					create Result.make_server_by_address_and_port (a_addr, a_http_port)
+				else
+					create Result.make_server_by_port (a_http_port)
+				end
+				retried_count := 0
+			until
+				Result.is_bound or retried_count > nb
+			loop
+				if not Result.is_bound then
+					log ("%NCould not bind yet to expected port, try again soon (port="+ a_http_port.out +") " + retried_count.out + "/" + nb.out+ "%N")
+					retried_count := retried_count + 1
+					{EXECUTION_ENVIRONMENT}.sleep (delay) -- 1 seconds
+						-- Try to bind again
+					Result.bind
+				end
 			end
 		end
 
@@ -366,8 +388,25 @@ feature -- Output
 			end
 		end
 
+	timeout_representation (a_ns: NATURAL_64): STRING
+		do
+			if 1_000 * (a_ns // 1_000) = a_ns then
+				if 1_000_000 * (a_ns // 1_000_000) = a_ns then
+					if 1_000_000_000 * (a_ns // 1_000_000_000) = a_ns then
+						Result := (a_ns // 1_000_000_000).out + " seconds"
+					else
+						Result := (a_ns // 1_000_000).out + " milliseconds"
+					end
+				else
+					Result := (a_ns // 1_000).out + " microseconds"
+				end
+			else
+				Result := a_ns.out + " nanoseconds"
+			end
+		end
+
 note
-	copyright: "2011-2016, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

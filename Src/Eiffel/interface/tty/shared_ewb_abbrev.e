@@ -167,10 +167,12 @@ feature
 
 	Text_doc_abb: CHARACTER = 't'
 
-	Version_abb: CHARACTER = 'v';
+	Version_abb: CHARACTER = 'v'
 
-note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	reset_ide_layout_abb: CHARACTER = 'z'
+
+;note
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

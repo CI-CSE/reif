@@ -1,3 +1,6 @@
-<div class="box">
-<h1>Hello EiffelStudio users</h1><p><a href="{$escloud_url/}">Go to Cloud page...</a></p>
-</div>
+{unless isset="$user"}
+{include file="block_cloud_front_any.tpl" /}
+{/unless}
+{if isset="$user"}
+{include file="block_cloud_front_user.tpl" /}
+{/if}

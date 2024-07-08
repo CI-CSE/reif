@@ -63,7 +63,7 @@ feature -- Access: Auth Session
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_debug (generator + ".has_user_token for a_user:" + a_user.name )
+			log.write_debug (generator + ".has_user_token for a_user:" + a_user.name.to_string_8 )
 			create l_parameters.make (1)
 			l_parameters.put (a_user.id, "uid")
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_has_user_token, l_parameters))
@@ -85,7 +85,7 @@ feature -- Change Auth Session
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_debug (generator + ".new_user_session_auth for a_user:" + a_user.name )
+			log.write_debug (generator + ".new_user_session_auth for a_user:" + a_user.name.to_string_8 )
 			create l_parameters.make (3)
 			l_parameters.put (a_user.id, "uid")
 			l_parameters.put (a_token, "token")
@@ -101,7 +101,7 @@ feature -- Change Auth Session
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_debug (generator + ".update_user_session_auth for a_user:" + a_user.name )
+			log.write_debug (generator + ".update_user_session_auth for a_user:" + a_user.name.to_string_8 )
 			create l_parameters.make (3)
 			l_parameters.put (a_user.id, "uid")
 			l_parameters.put (a_token, "token")
@@ -119,7 +119,9 @@ feature -- Access
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_information (generator + ".countries")
+			debug
+				log.write_information (generator + ".countries")
+			end
 			create l_parameters.make (0)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_countries, l_parameters))
 			db_handler.execute_query
@@ -127,53 +129,59 @@ feature -- Access
 			post_execution
 		end
 
-	token_from_email (a_email: READABLE_STRING_32): detachable STRING
+	token_from_email (a_email: READABLE_STRING_GENERAL): detachable STRING_32
 			-- Activation token for user with email `a_email' if any.
 		require
 			attached_email: a_email /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".token_from_email")
+			debug
+				log.write_information (generator + ".token_from_email")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_email, 100), {DATA_PARAMETERS_NAMES}.email_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetRegistrationToken", l_parameters))
 			db_handler.execute_reader
 			if not db_handler.after then
 				db_handler.start
-				Result := db_handler.read_string (1)
+				Result := db_handler.read_string_32 (1)
 			end
 			post_execution
 		end
 
-	token_from_username (a_username: READABLE_STRING_32): detachable STRING
+	token_from_username (a_username: READABLE_STRING_GENERAL): detachable STRING_32
 			-- Activation token for user with username `a_username', if any.
 		require
 			attached_username: a_username /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".token_from_username")
+			debug
+				log.write_information (generator + ".token_from_username")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.email_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetRegistrationTokenFromUsername", l_parameters))
 			db_handler.execute_reader
 			if not db_handler.after then
 				db_handler.start
-				Result := db_handler.read_string (1)
+				Result := db_handler.read_string_32 (1)
 			end
 
 			post_execution
 		end
 
-	membership_creation_date (a_username: READABLE_STRING_32): detachable DATE_TIME
+	membership_creation_date (a_username: READABLE_STRING_GENERAL): detachable DATE_TIME
 			-- Creation date of membership of user with username `a_username'.
 		require
 			attached_username: a_username /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".membership_creation_date")
+			debug
+				log.write_information (generator + ".membership_creation_date")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetMembershipCreationDate", l_parameters))
@@ -185,14 +193,16 @@ feature -- Access
 			post_execution
 		end
 
-	role (a_username: READABLE_STRING_32): detachable STRING_32
+	role (a_username: READABLE_STRING_GENERAL): detachable STRING_32
 			-- Role associated with user with username `a_username'.
 		require
 			attached_username: a_username /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".role")
+			debug
+				log.write_information (generator + ".role")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetRole", l_parameters))
@@ -212,7 +222,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".role_description")
+			debug
+				log.write_information (generator + ".role_description")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_synopsis, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetRoleDescription", l_parameters))
@@ -230,7 +242,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator+".security_questions")
+			debug
+				log.write_information (generator+".security_questions")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetSecurityQuestions", l_parameters))
 			db_handler.execute_reader
@@ -238,31 +252,35 @@ feature -- Access
 			post_execution
 		end
 
-	question_from_email (a_email: READABLE_STRING_8): detachable STRING_8
+	question_from_email (a_email: READABLE_STRING_GENERAL): detachable READABLE_STRING_32
 			-- Security question associated with account with email `a_email' if any.
 		require
 			attached_email: a_email /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".question_from_email")
+			debug
+				log.write_information (generator + ".question_from_email")
+			end
 			create l_parameters.make (1)
-			l_parameters.put (string_parameter (a_email.to_string_32, 100), {DATA_PARAMETERS_NAMES}.username_param)
+			l_parameters.put (string_parameter (a_email, 100), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetQuestionFromEmail", l_parameters))
 			db_handler.execute_reader
 			if not db_handler.after then
 				db_handler.start
-				Result := db_handler.read_string (1)
+				Result := db_handler.read_string_32 (1)
 			end
 			post_execution
 		end
 
-	user_creation_date (a_username: STRING): detachable DATE_TIME
+	user_creation_date (a_username: READABLE_STRING_GENERAL): detachable DATE_TIME
 			-- Last accounts admin page view date for user `a_username'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".user_creation_date")
+			debug
+				log.write_information (generator + ".user_creation_date")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetUserCreationDate", l_parameters))
@@ -274,14 +292,16 @@ feature -- Access
 			post_execution
 		end
 
-	contact_from_email (a_email: STRING): detachable TUPLE [first_name: STRING; last_name: STRING]
+	contact_from_email (a_email: READABLE_STRING_GENERAL): detachable TUPLE [first_name: READABLE_STRING_32; last_name: READABLE_STRING_32]
 			-- Contact with email `a_email' if any.
 		require
 			attached_email: a_email /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".contact_from_email")
+			debug
+				log.write_information (generator + ".contact_from_email")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_email, 100), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetContactFromEmail", l_parameters))
@@ -293,14 +313,16 @@ feature -- Access
 			post_execution
 		end
 
-	user_from_email (a_email: READABLE_STRING_32): detachable TUPLE [first_name: STRING; last_name: STRING; user_name: STRING]
+	user_from_email (a_email: READABLE_STRING_GENERAL): detachable TUPLE [first_name: READABLE_STRING_32; last_name: READABLE_STRING_32; user_name: READABLE_STRING_32]
 			-- User with email `a_email' if any.
 		require
 			attached_email: a_email /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".user_from_email")
+			debug
+				log.write_information (generator + ".user_from_email")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_email, 100), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetUserFromEmail", l_parameters))
@@ -312,14 +334,16 @@ feature -- Access
 			post_execution
 		end
 
-	user_from_username (a_username: READABLE_STRING_32): detachable USER
+	user_from_username (a_username: READABLE_STRING_GENERAL): detachable USER
 			-- User with username `a_username' if any.
 		require
 			attached_username: a_username /= Void
 		local
-			l_parameters: STRING_TABLE[ANY]
+			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_information (generator + ".user_from_username")
+			debug
+				log.write_information (generator + ".user_from_username")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_user_from_username, l_parameters))
@@ -333,14 +357,16 @@ feature -- Access
 			post_execution
 		end
 
-	user_information (a_username: READABLE_STRING_32): USER_INFORMATION
+	user_information (a_username: READABLE_STRING_GENERAL): USER_INFORMATION
 			-- Full user information from username.
 		require
 			attached_username: a_username /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".user_information")
+			debug
+				log.write_information (generator + ".user_information")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetUserInformation", l_parameters))
@@ -356,14 +382,16 @@ feature -- Access
 
 feature -- Element Settings
 
-	remove_user (a_username: READABLE_STRING_32)
+	remove_user (a_username: READABLE_STRING_GENERAL)
 			-- Remove user with username `a_username' from database.
 		require
 			attached_username: a_username /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_user")
+			debug
+				log.write_information (generator + ".remove_user")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_writer ("RemoveUser", l_parameters))
@@ -371,15 +399,16 @@ feature -- Element Settings
 			post_execution
 		end
 
-
-	remove_token (a_token: STRING)
+	remove_token (a_token: READABLE_STRING_GENERAL)
 				-- Remove token  `a_token' from database.
 		require
 			attached_token: a_token /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_token")
+			debug
+				log.write_information (generator + ".remove_token")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_token, 7), {DATA_PARAMETERS_NAMES}.registrationtoken_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_writer ("RemoveRegistrationToken", l_parameters))
@@ -387,7 +416,7 @@ feature -- Element Settings
 			post_execution
 		end
 
-	update_password (a_email: STRING; a_password: STRING)
+	update_password (a_email: READABLE_STRING_GENERAL; a_password: READABLE_STRING_GENERAL)
 			-- Update password of user with email `a_email'.
 		require
 			attached_email: a_email /= Void
@@ -397,10 +426,12 @@ feature -- Element Settings
 			l_password_salt, l_password_hash: STRING
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".update_password")
+			debug
+				log.write_information (generator + ".update_password")
+			end
 			create l_security
 			l_password_salt := l_security.salt
-			l_password_hash := l_security.password_hash (a_password, l_password_salt)
+			l_password_hash := l_security.password_hash (a_password.to_string_8, l_password_salt)
 
 			create l_parameters.make (3)
 			l_parameters.put (string_parameter (a_email, 100), {DATA_PARAMETERS_NAMES}.email_param)
@@ -411,12 +442,14 @@ feature -- Element Settings
 			post_execution
 		end
 
-	update_email_from_user_and_token (a_token: READABLE_STRING_32; a_user: READABLE_STRING_32)
+	update_email_from_user_and_token (a_token: READABLE_STRING_GENERAL; a_user: READABLE_STRING_GENERAL)
 			-- Update email of user with email `a_email'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".update_email_from_user_and_token")
+			debug
+				log.write_information (generator + ".update_email_from_user_and_token")
+			end
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_user, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (string_parameter (a_token, 50), {DATA_PARAMETERS_NAMES}.Token_param)
@@ -426,12 +459,14 @@ feature -- Element Settings
 		end
 
 
-	update_personal_information (a_username: STRING; a_first_name, a_last_name, a_position, a_address, a_city, a_country, a_region, a_code, a_tel, a_fax: detachable STRING)
+	update_personal_information (a_username: READABLE_STRING_GENERAL; a_first_name, a_last_name, a_position, a_address, a_city, a_country, a_region, a_code, a_tel, a_fax: detachable READABLE_STRING_GENERAL)
 			-- Update personal information of user with username `a_username'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".update_personal_information")
+			debug
+				log.write_information (generator + ".update_personal_information")
+			end
 			create l_parameters.make (11)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			if attached a_first_name then
@@ -470,12 +505,14 @@ feature -- Element Settings
 			post_execution
 		end
 
-	change_user_email (a_user: READABLE_STRING_32; a_new_email: READABLE_STRING_32; a_token: READABLE_STRING_32)
+	change_user_email (a_user: READABLE_STRING_GENERAL; a_new_email: READABLE_STRING_8; a_token: READABLE_STRING_GENERAL)
 			-- Change User email.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".change_user_email")
+			debug
+				log.write_information (generator + ".change_user_email")
+			end
 			create l_parameters.make (3)
 			l_parameters.put (string_parameter (a_user, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (string_parameter (a_new_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
@@ -485,12 +522,14 @@ feature -- Element Settings
 			post_execution
 		end
 
-	change_password (a_user: READABLE_STRING_32; a_email: READABLE_STRING_32; a_token: READABLE_STRING_32)
+	change_password (a_user: READABLE_STRING_GENERAL; a_email: READABLE_STRING_8; a_token: READABLE_STRING_GENERAL)
 			-- Change User Password.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".change_password")
+			debug
+				log.write_information (generator + ".change_password")
+			end
 			create l_parameters.make (3)
 			l_parameters.put (string_parameter (a_user, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (string_parameter (a_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
@@ -522,31 +561,31 @@ feature -- Factories
 			end
 		end
 
-	new_user: TUPLE [first_name: STRING; last_name: STRING; user_name: STRING]
+	new_user: TUPLE [first_name: READABLE_STRING_32; last_name: READABLE_STRING_32; user_name: READABLE_STRING_32]
 			-- Build a new user from a db_tuple,
 			-- by default an empty user.
 		do
 			create Result.default_create
-			if attached db_handler.read_string (1) as l_item_fname then
+			if attached db_handler.read_string_32 (1) as l_item_fname then
 				Result.first_name := l_item_fname
 			end
-			if attached db_handler.read_string (2) as l_item_lname then
+			if attached db_handler.read_string_32 (2) as l_item_lname then
 				Result.last_name := l_item_lname
 			end
-			if attached db_handler.read_string (3) as l_item_name then
+			if attached db_handler.read_string_32 (3) as l_item_name then
 				Result.user_name := l_item_name
 			end
 		end
 
-	new_contact: TUPLE [first_name: STRING; last_name: STRING]
+	new_contact: TUPLE [first_name: READABLE_STRING_32; last_name: READABLE_STRING_32]
 			-- Build a new user from a db_tuple,
 			-- by default an empty user.
 		do
 			create Result.default_create
-			if attached db_handler.read_string (1) as l_item_fname then
+			if attached db_handler.read_string_32 (1) as l_item_fname then
 				Result.first_name := l_item_fname
 			end
-			if attached db_handler.read_string (2) as l_item_lname then
+			if attached db_handler.read_string_32 (2) as l_item_lname then
 				Result.last_name := l_item_lname
 			end
 		end
@@ -556,7 +595,7 @@ feature -- Factories
 			-- by default an empty user.
 		do
 			create Result.make ("")
-			if attached db_handler.read_string (3) as l_item_name then
+			if attached db_handler.read_string_32 (3) as l_item_name then
 				create Result.make (l_item_name)
 			end
 		end
@@ -566,91 +605,93 @@ feature -- Factories
 			-- by default an empty user.
 		do
 			create Result.make ("")
-			if attached db_handler.read_string (3) as l_item_name then
+			if attached db_handler.read_string_32 (3) as l_item_name then
 				create Result.make (l_item_name)
 			end
 		end
 
-	new_user_account_information (a_user_name: STRING): USER_INFORMATION
+	new_user_account_information (a_user_name: READABLE_STRING_32): USER_INFORMATION
 			-- Build a new user account information from.
 		do
 			create Result.make (a_user_name)
-			if attached db_handler.read_string (1) as l_first_name then
+			if attached db_handler.read_string_32 (1) as l_first_name then
 				Result.set_first_name (l_first_name)
 			end
-			if attached db_handler.read_string (2) as l_last_name then
+			if attached db_handler.read_string_32 (2) as l_last_name then
 				Result.set_last_name (l_last_name)
 			end
-			if attached db_handler.read_string (3) as l_email then
+			if attached db_handler.read_string_8 (3) as l_email then
 				Result.set_email (l_email)
 			end
-			if attached db_handler.read_string (4) as l_address then
+			if attached db_handler.read_string_32 (4) as l_address then
 				Result.set_address (l_address)
 			end
-			if attached db_handler.read_string (5) as l_city then
+			if attached db_handler.read_string_32 (5) as l_city then
 				Result.set_city (l_city)
 			end
-			if attached db_handler.read_string (6) as l_region then
+			if attached db_handler.read_string_32 (6) as l_region then
 				Result.set_region (l_region)
 			end
-			if attached db_handler.read_string (7) as l_postal_code then
+			if attached db_handler.read_string_8 (7) as l_postal_code then
 				Result.set_postal_code (l_postal_code)
 			end
-			if attached db_handler.read_string (8) as l_country then
+			if attached db_handler.read_string_32 (8) as l_country then
 				Result.set_country (l_country)
 			end
-			if attached db_handler.read_string (9) as l_phone then
+			if attached db_handler.read_string_8 (9) as l_phone then
 				Result.set_telephone (l_phone)
 			end
-			if attached db_handler.read_string (10) as l_fax then
+			if attached db_handler.read_string_8 (10) as l_fax then
 				Result.set_fax (l_fax)
 			end
-			if attached db_handler.read_string (11) as l_position then
+			if attached db_handler.read_string_32 (11) as l_position then
 				Result.set_position (l_position)
 			end
-			if attached db_handler.read_string (12) as l_organization_name then
+			if attached db_handler.read_string_32 (12) as l_organization_name then
 				Result.set_organization_name (l_organization_name)
 			end
-			if attached db_handler.read_string (13) as l_organization_email then
+			if attached db_handler.read_string_8 (13) as l_organization_email then
 				Result.set_organization_email (l_organization_email)
 			end
-			if attached db_handler.read_string (14) as l_organization_url then
+			if attached db_handler.read_string_8 (14) as l_organization_url then
 				Result.set_organization_url (l_organization_url)
 			end
-			if attached db_handler.read_string (15) as l_organization_address then
+			if attached db_handler.read_string_32 (15) as l_organization_address then
 				Result.set_organization_address (l_organization_address)
 			end
-			if attached db_handler.read_string (16) as l_organization_city then
+			if attached db_handler.read_string_32 (16) as l_organization_city then
 				Result.set_organization_city (l_organization_city)
 			end
-			if attached db_handler.read_string (17) as l_organization_region then
+			if attached db_handler.read_string_32 (17) as l_organization_region then
 				Result.set_organization_region (l_organization_region)
 			end
-			if attached db_handler.read_string (18) as l_organization_postal_code then
+			if attached db_handler.read_string_8 (18) as l_organization_postal_code then
 				Result.set_organization_postal_code (l_organization_postal_code)
 			end
-			if attached db_handler.read_string (19) as l_organization_country then
+			if attached db_handler.read_string_32 (19) as l_organization_country then
 				Result.set_organization_country (l_organization_country)
 			end
-			if attached db_handler.read_string (20) as l_organization_phone then
+			if attached db_handler.read_string_8 (20) as l_organization_phone then
 				Result.set_organization_telephone (l_organization_phone)
 			end
-			if attached db_handler.read_string (21) as l_organization_fax then
-				Result.set_organization_country (l_organization_fax)
+			if attached db_handler.read_string_8 (21) as l_organization_fax then
+				Result.set_organization_fax (l_organization_fax)
 			end
 
 		end
 
 feature -- Status Report
 
-	is_active (a_username: READABLE_STRING_32): BOOLEAN
+	is_active (a_username: READABLE_STRING_GENERAL): BOOLEAN
 			-- Is membership for user with username `a_username' active?
 		require
 				attached_username: a_username /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".is_active")
+			debug
+				log.write_information (generator + ".is_active")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("IsMemberhipActive", l_parameters))
@@ -662,12 +703,14 @@ feature -- Status Report
 			post_execution
 		end
 
-	validate_login (a_username: READABLE_STRING_32; a_password_salt: READABLE_STRING_32): BOOLEAN
+	validate_login (a_username: READABLE_STRING_GENERAL; a_password_salt: READABLE_STRING_GENERAL): BOOLEAN
 			-- Does account with username `a_username' and password `a_password' exist?
 		local
-			l_parameters: HASH_TABLE[ANY,STRING_32]
+			l_parameters: HASH_TABLE [ANY,STRING_32]
 		do
-			log.write_information (generator + ".validate_login")
+			debug
+				log.write_information (generator + ".validate_login")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_username, {DATA_PARAMETERS_NAMES}.username_param)
@@ -684,20 +727,20 @@ feature -- Status Report
 			post_execution
 		end
 
-
-
-	activation_valid (a_email, a_token: READABLE_STRING_32): BOOLEAN
+	activation_valid (a_email: READABLE_STRING_8; a_token: READABLE_STRING_GENERAL): BOOLEAN
 			-- Is activation for user with email `a_email' using token `a_token' valid?
 		require
 			attached_email: a_email /= Void
 			attached_token: a_token /= Void
 		local
-			l_token: detachable STRING
+			l_token: detachable READABLE_STRING_32
 		do
-			log.write_information (generator + ".activation_valid")
+			debug
+				log.write_information (generator + ".activation_valid")
+			end
 			l_token := token_from_email (a_email)
 			if l_token = Void then
-				if user_from_email(a_email) = Void then
+				if user_from_email (a_email) = Void then
 					set_last_error ("Account not registered with that email address", "Activation validation")
 					log.write_error (generator + ".activation_valid Account not registered with that email address :" + a_email )
 				else
@@ -721,7 +764,9 @@ feature -- Status Report
 		local
 			l_parameters: HASH_TABLE [ANY,STRING_32]
 		do
-			log.write_information (generator + ".email_token_age")
+			debug
+				log.write_information (generator + ".email_token_age")
+			end
 			create Result.default_create
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_user, 50), {DATA_PARAMETERS_NAMES}.Username_param)
@@ -744,7 +789,7 @@ feature -- Status Report
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_debug (generator + ".email_from_reset_password token:" + a_token )
+			log.write_debug (generator + ".email_from_reset_password token:" + a_token.to_string_8 )
 			create l_parameters.make (1)
 			l_parameters.put (a_token, "token")
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_email_reset_password, l_parameters))

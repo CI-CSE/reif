@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			Objects that manage the layout of a grid ...
 			In fact, it will keep the expanded nodes layout on 'record'
@@ -20,9 +20,6 @@ class
 
 inherit
 	DEBUG_OUTPUT
-		redefine
-			debug_output
-		end
 
 	EV_SHARED_APPLICATION
 
@@ -193,7 +190,7 @@ feature -- Access
 					current_processing_id := 0 --| Cancel current restoration if any
 					gid := global_identification
 					debug ("es_grid_layout")
-						print (":" + name + ": record : session [" + gid + "] %N")
+						print ({STRING_32} ":" + name + ": record : session [" + gid + "] %N")
 					end
 
 					from
@@ -240,13 +237,13 @@ feature -- Access
 
 					gid := global_identification
 					debug ("es_grid_layout")
-						print (":" + name + ": restore : session [" + gid + "] %N")
+						print ({STRING_32} ":" + name + ": restore : session [" + gid + "] %N")
 					end
 
 					s := l_layout.id
 					if not s.is_equal (gid) then
 						debug ("es_grid_layout")
-							print (":" + name + ": different session -> " + s + " /= " + gid + "%N")
+							print ({STRING_32} ":" + name + ": different session -> " + s + " /= " + gid + "%N")
 						end
 						wipe_out
 					else
@@ -260,7 +257,7 @@ feature -- Access
 							until
 								r > grid.row_count
 							loop
-								if attached {like layout} lst_curs.item as t then
+								if attached {like layout} lst_curs as t then
 									process_row_layout_restoring (grid.row (r), t)
 								end
 								r := r + grid.row (r).subrow_count_recursive + 1
@@ -298,22 +295,19 @@ feature {NONE} -- Implementation
 
 	row_is_ready_for_identification (a_row: EV_GRID_ROW): BOOLEAN
 		do
-			if attached identification_agent /= Void and attached row_is_ready_for_identification_agent as l_row_is_ready_for_identification_agent then
-				Result := l_row_is_ready_for_identification_agent.item ([a_row])
-			else
-				Result := row_is_ready_for_default_identification (a_row)
-			end
+			Result :=
+				if attached identification_agent and attached row_is_ready_for_identification_agent as l_row_is_ready_for_identification_agent then
+					l_row_is_ready_for_identification_agent (a_row)
+				else
+					row_is_ready_for_default_identification (a_row)
+				end
 		end
 
 	row_is_ready_for_evaluation (a_row: EV_GRID_ROW): BOOLEAN
 		require
 			value_agent /= Void
 		do
-			if attached row_is_ready_for_evaluation_agent as l_row_is_ready_for_evaluation_agent then
-				Result := l_row_is_ready_for_evaluation_agent.item ([a_row])
-			else
-				Result := True
-			end
+			Result := attached row_is_ready_for_evaluation_agent as is_ready implies is_ready (a_row)
 		end
 
 	row_is_ready_for_default_identification (a_row: EV_GRID_ROW): BOOLEAN
@@ -324,11 +318,12 @@ feature {NONE} -- Implementation
 	global_identification: STRING_32
 		do
 			Result := name.twin
-			if attached global_identification_agent as l_global_identification_agent then
-				if attached l_global_identification_agent.item (Void) as s then
-					Result.append_string_general ("::")
-					Result.append_string (s)
-				end
+			if
+				attached global_identification_agent as identification and then
+				attached identification (Void) as s
+			then
+				Result.append_string_general ("::")
+				Result.append_string (s)
 			end
 		end
 
@@ -350,7 +345,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	reset_recorded_values_from (lay: like layout)
+	reset_recorded_values_from (lay: attached like layout)
 		require
 			lay /= Void
 		do
@@ -359,7 +354,9 @@ feature {NONE} -- Implementation
 				across
 					lst as lst_curs
 				loop
-					reset_recorded_values_from (lst_curs.item)
+					if attached lst_curs as x then
+						reset_recorded_values_from (x)
+					end
 				end
 			end
 		end
@@ -379,7 +376,7 @@ feature {NONE} -- Implementation
 						l_val := l_value_agent.item ([a_row, True])
 					end
 					debug ("es_grid_layout")
-						print (":" + name + ": " + generator + ".recorded_row_layout : "  + a_row.index.out + " %"" + l_id + "%".%N")
+						print ({STRING_32} ":" + name + ": " + generator + ".recorded_row_layout : "  + a_row.index.out + " %"" + l_id + "%".%N")
 					end
 					if a_row.is_expanded then
 						debug ("es_grid_layout")
@@ -419,20 +416,20 @@ feature {NONE} -- Implementation
 	restore_row_layout_on_idle (a_row: EV_GRID_ROW; lay: attached like layout; l_curr_pid: INTEGER)
 		do
 			debug ("es_grid_layout")
-				print (":" + name + ": " + generator + ".restore_row_layout_on_idle : " + a_row.index.out + " -> " + string_id_for_lay (lay) + ": BEGIN %N")
+				print ({STRING_32} ":" + name + ": " + generator + ".restore_row_layout_on_idle : " + a_row.index.out + " -> " + string_id_for_lay (lay) + ": BEGIN %N")
 			end
 --			a_row.parent.refresh_now
 --			print ("Row after refresh_now => " + a_row.count.out + "%N")
 			Ev_application.do_once_on_idle (agent delayed_restore_row_layout (a_row, lay, l_curr_pid))
 			debug ("es_grid_layout")
-				print (":" + name + ": " + generator + ".restore_row_layout_on_idle : " + a_row.index.out + " -> " + string_id_for_lay (lay) + " : FINISHED %N")
+				print ({STRING_32} ":" + name + ": " + generator + ".restore_row_layout_on_idle : " + a_row.index.out + " -> " + string_id_for_lay (lay) + " : FINISHED %N")
 			end
 		end
 
 	delayed_restore_row_layout (a_row: EV_GRID_ROW; lay: attached like layout; l_curr_pid: INTEGER)
 		do
 			debug ("es_grid_layout")
-				print (":" + name + ": " + generator + ".delayed_restore_row_layout : " + a_row.index.out + " -> " + string_id_for_lay (lay) +"%N")
+				print ({STRING_32} ":" + name + ": " + generator + ".delayed_restore_row_layout : " + a_row.index.out + " -> " + string_id_for_lay (lay) +"%N")
 			end
 			if a_row.parent /= Void and lay /= Void and row_is_ready_for_identification (a_row) then
 					--| `lay' should not be Void, but issue bug#10172 still occurs
@@ -461,17 +458,17 @@ feature {NONE} -- Implementation
 			if on_idle and l_pid /= current_processing_id then
 					--| Cancel this restoration operation
 				debug ("es_grid_layout")
-					print (":" + name + ": restore_row_layout -> cancelled : " + a_row.index.out + "[" + string_id_for_lay (lay) + "] %N")
+					print ({STRING_32} ":" + name + ": restore_row_layout -> cancelled : " + a_row.index.out + "[" + string_id_for_lay (lay) + "] %N")
 				end
 			elseif a_row /= Void then
 				ts := lay.id
 				if ts /= Void then
 					debug ("es_grid_layout")
-						print (":" + name + ": restore_row_layout -> [" + ts + "] ")
+						print ({STRING_32}":" + name + ": restore_row_layout -> [" + ts + "] ")
 					end
 					if attached row_identification (a_row) as l_id then
 						debug ("es_grid_layout")
-							print (" ?id[%"" + l_id + "%"]")
+							print ({STRING_32} " ?id[%"" + l_id + "%"]")
 						end
 						if ts.is_equal (l_id) then
 								--| Same identification text .. so we suppose same row ...
@@ -494,7 +491,6 @@ feature {NONE} -- Implementation
 								--| Let's check difference
 							if attached value_agent as l_value_agent then
 								tv := lay.value
-								has_diff := False
 								l_val := l_value_agent.item ([a_row, False])
 								if tv = Void or l_val = Void then
 									has_diff := tv /= Void or l_val /= Void
@@ -540,7 +536,7 @@ feature {NONE} -- Implementation
 								until
 									r > a_row.subrow_count or l_done
 								loop
-									if attached {like layout} lst_curs.item as t and then t.is_visible_row then
+									if attached {like layout} lst_curs as t and then t.is_visible_row then
 										process_row_layout_restoring (a_row.subrow (r), t)
 										l_done := True --| "first visible row's group found"
 									end
@@ -553,7 +549,7 @@ feature {NONE} -- Implementation
 								until
 									r > a_row.subrow_count
 								loop
-									if attached {like layout} lst_curs.item as t and then not t.is_visible_row then
+									if attached {like layout} lst_curs as t and then not t.is_visible_row then
 										process_row_layout_restoring (a_row.subrow (r), t)
 									end
 									r := r + 1
@@ -601,7 +597,7 @@ feature {NONE} -- Implementation
 			if a_row /= Void then
 				if grid.is_content_partially_dynamic then
 					debug ("es_grid_layout")
-						print (":" + name + ": process_row_layout_restoring -> [" + string_id_for_lay (lay) + "] %N")
+						print ({STRING_32} ":" + name + ": process_row_layout_restoring -> [" + string_id_for_lay (lay) + "] %N")
 					end
 						--| In this case, we need to force a redraw to be sure the first cell of the row
 						--| get computed, then we'll be able to get the cell's text.
@@ -628,7 +624,7 @@ feature {NONE} -- Implementation
 					end
 				else
 					debug ("es_grid_layout")
-						print (":" + name + ": process_row_layout_restoring -> [" + string_id_for_lay (lay) + "] now%N")
+						print ({STRING_32} ":" + name + ": process_row_layout_restoring -> [" + string_id_for_lay (lay) + "] now%N")
 					end
 					restore_row_layout (a_row, lay, False, current_processing_id)
 				end
@@ -685,7 +681,7 @@ feature {NONE} -- Debugging
 				across
 					tu_lst as tu_lst_curs
 				loop
-					if attached {like layout} tu_lst_curs.item as tu then
+					if attached {like layout} tu_lst_curs as tu then
 						Result.append_string (grid_layout_output (tu, off + "  "))
 					end
 				end
@@ -715,7 +711,7 @@ feature {NONE} -- Agent
 			-- row and old value
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

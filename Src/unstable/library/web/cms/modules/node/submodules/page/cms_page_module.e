@@ -7,14 +7,15 @@ class
 	CMS_PAGE_MODULE
 
 inherit
-	CMS_MODULE
+	CMS_MODULE_WITH_SQL_STORAGE
 		rename
 			module_api as page_api
 		redefine
 			setup_hooks,
 			initialize,
-			install, is_installed,
-			page_api
+			is_installed,
+			page_api,
+			name_for_resource
 		end
 
 	CMS_HOOK_EXPORT
@@ -43,6 +44,11 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	name: STRING = "page"
+
+	name_for_resource: STRING
+		do
+			Result := {CMS_NODE_MODULE}.name
+		end
 
 feature {CMS_API} -- Module Initialization			
 
@@ -96,23 +102,8 @@ feature {CMS_API} -- Module management
 			-- Is Current module installed?
 		do
 			Result := Precursor (a_api)
-			if Result and attached a_api.storage.as_sql_storage as l_sql_storage then
-				Result := l_sql_storage.sql_table_exists ("page_nodes")
-			end
-		end
-
-	install (a_api: CMS_API)
-		do
-				-- Schema
-			if attached a_api.storage.as_sql_storage as l_sql_storage then
-				if attached a_api.installed_module ({CMS_NODE_MODULE}) as l_node_module then
-					l_sql_storage.sql_execute_file_script (a_api.module_resource_location (l_node_module, (create {PATH}.make_from_string ("scripts")).extended (name).appended_with_extension ("sql")), Void)
-				end
-				if l_sql_storage.has_error then
-					a_api.logger.put_error ("Could not initialize database for module [" + name + "]", generating_type)
-				else
-					Precursor {CMS_MODULE} (a_api)
-				end
+			if Result then
+				Result := has_sql_table ("page_nodes", a_api)
 			end
 		end
 
@@ -124,7 +115,7 @@ feature {NONE} -- Administration
 			create Result.make (Current)
 		end
 
-feature {CMS_API} -- Access: API
+feature {CMS_API, CMS_MODULE_API, CMS_MODULE} -- Access: API
 
 	page_api: detachable CMS_PAGE_API
 			-- <Precursor>
@@ -292,7 +283,7 @@ feature -- Hooks
 													else
 														l_entity.set_author (l_page_api.cms_api.user)
 													end
-													a_import_ctx.log (l_node_type.name + " %"" + fp.utf_8_name + "%" WARNING (Author is unknown!)")
+													a_import_ctx.log (l_node_type.name + " %"" + html_encoded (fp.name) + "%" WARNING (Author is unknown!)")
 												end
 												if attached l_entity.author as l_author then
 													if
@@ -302,7 +293,7 @@ feature -- Hooks
 															-- Page Already exists!
 															-- FIXME/TODO
 														l_entity := l_pages.first
-														a_import_ctx.log (l_node_type.name + " from %"" + fp.utf_8_name + "%" SKIPPED (already exists for user #" + l_author.id.out + ")!")
+														a_import_ctx.log (l_node_type.name + " from %"" + html_encoded (fp.name) + "%" SKIPPED (already exists for user #" + l_author.id.out + ")!")
 													else
 														if
 															attached l_entity.parent as l_parent and then
@@ -314,7 +305,7 @@ feature -- Hooks
 														l_page_api.import_page (l_entity)
 														apply_taxonomy_to_node (j, l_entity, l_page_api.cms_api)
 														l_new_pages.force (l_entity, l_node_api.node_path (l_entity))
-														a_import_ctx.log (l_node_type.name + " #" + l_entity.id.out + " imported from %"" + fp.utf_8_name + "%" for user #" + l_author.id.out + ".")
+														a_import_ctx.log (l_node_type.name + " #" + l_entity.id.out + " imported from %"" + html_encoded (fp.name) + "%" for user #" + l_author.id.out + ".")
 														if attached {CMS_LOCAL_LINK} l_entity.link as l_link then
 															loc := l_node_api.node_path (l_entity)
 															if not l_link.location.starts_with_general ("node/") then
@@ -328,10 +319,10 @@ feature -- Hooks
 														import_comments_file_for_entity (p.extended (l_id).extended ("comments.json"), l_entity, l_node_api.cms_api, a_import_ctx)
 													end
 												else
-													a_import_ctx.log (l_node_type.name + " %"" + fp.utf_8_name + "%" skipped (Author is unknown!)")
+													a_import_ctx.log (l_node_type.name + " %"" + html_encoded (fp.name) + "%" skipped (Author is unknown!)")
 												end
 											else
-												a_import_ctx.log (l_node_type.name + " %"" + fp.utf_8_name + "%" skipped (Status is Not Published!)")
+												a_import_ctx.log (l_node_type.name + " %"" + html_encoded (fp.name) + "%" skipped (Status is Not Published!)")
 											end
 										end
 									end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Predefined constants for use in NAMES_HEAP"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -232,28 +232,52 @@ feature -- Constants
 	is_attached_name_id: INTEGER = 219
 	is_deferred_name_id: INTEGER = 220
 	is_expanded_name_id: INTEGER = 221
-
-feature -- Classification
-
-	is_semi_strict_id (name_id: INTEGER): BOOLEAN
-			-- Does `name_id' denote a semistrict operator?
-		do
-			inspect name_id
-			when
-				conjuncted_semistrict_name_id, disjuncted_semistrict_name_id, implication_name_id,
-				infix_and_then_name_id, infix_or_else_name_id, infix_implies_name_id
-			then
-				Result := True
-			else
-					-- False by default
-			end
-		ensure
-			definition: Result = (name_id = conjuncted_semistrict_name_id or name_id = disjuncted_semistrict_name_id or name_id = implication_name_id) or
-				(name_id = infix_and_then_name_id or name_id = infix_or_else_name_id or name_id = infix_implies_name_id)
-		end
+	minus_name_id: INTEGER = 222
+	ieee_is_equal_name_id: INTEGER = 223
+	ieee_is_greater_name_id: INTEGER = 224
+	ieee_is_greater_equal_name_id: INTEGER = 225
+	ieee_is_less_name_id: INTEGER = 226
+	ieee_is_less_equal_name_id: INTEGER = 227
+	ieee_maximum_number_name_id: INTEGER = 228
+	ieee_minimum_number_name_id: INTEGER = 229
+	make_from_c_byte_array_name_id: INTEGER = 230
+	identity_name_id: INTEGER = 231
+	opposite_name_id: INTEGER = 232
+	product_name_id: INTEGER = 233
+	quotient_name_id: INTEGER = 234
+	integer_quotient_name_id: INTEGER = 235
+	integer_remainder_name_id: INTEGER = 236
+	power_name_id: INTEGER = 237
+	is_less_name_id: INTEGER = 238
+	is_less_equal_name_id: INTEGER = 239
+	is_greater_name_id: INTEGER = 240
+	is_greater_equal_name_id: INTEGER = 241
+	negated_name_id: INTEGER = 242
+	conjuncted_name_id: INTEGER = 243
+	disjuncted_name_id: INTEGER = 244
+	disjuncted_exclusive_name_id: INTEGER = 245
+	inspect_attribute_name_id: INTEGER = 246
+	minus_operator_name_id: INTEGER = 247
+	not_operator_name_id: INTEGER = 248
+	plus_operator_name_id: INTEGER = 249
+	slash_operator_name_id: INTEGER = 250
+	slash_slash_operator_name_id: INTEGER = 251
+	back_back_operator_name_id: INTEGER = 252
+	circumflex_accent_operator_name_id: INTEGER = 253
+	asterisk_operator_name_id: INTEGER = 254
+	and_operator_name_id: INTEGER = 255
+	and_then_operator_name_id: INTEGER = 256
+	implies_operator_name_id: INTEGER = 257
+	or_operator_name_id: INTEGER = 258
+	or_else_operator_name_id: INTEGER = 259
+	xor_operator_name_id: INTEGER = 260
+	greater_operator_name_id: INTEGER = 261
+	greater_equal_operator_name_id: INTEGER = 262
+	less_operator_name_id: INTEGER = 263
+	less_equal_operator_name_id: INTEGER = 264
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -284,4 +308,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class PREDEFINED_NAMES
+end

@@ -10,6 +10,8 @@ class
 inherit
 	WSF_FORM_FIELD
 
+	WSF_FORM_INPUT_WITH_HTML5
+
 create
 	make
 
@@ -40,7 +42,7 @@ feature -- Element change
 			cols := i
 		end
 
-	set_text_value (s: like default_value)
+	set_text_value (s: detachable READABLE_STRING_GENERAL)
 		do
 			set_default_value (s)
 		end
@@ -59,7 +61,7 @@ feature -- Element change
 			if v = Void then
 				default_value := Void
 			else
-				default_value := v.as_string_32
+				default_value := v.to_string_32
 			end
 		end
 
@@ -78,6 +80,8 @@ feature -- Conversion
 			append_css_class_to (a_html, Void)
 			append_css_id_to (a_html)
 			append_css_style_to (a_html)
+
+			append_html5_input_attributes_to (a_theme, a_html)
 
 			if is_readonly then
 				a_html.append (" readonly=%"readonly%">")

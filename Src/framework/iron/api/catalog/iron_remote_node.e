@@ -53,7 +53,7 @@ feature -- Access
 					across
 						lst as p
 					loop
-						Result.force (p.item)
+						Result.force (p)
 					end
 				else
 					last_operation_succeed := False
@@ -230,7 +230,7 @@ feature -- Operation
 			across
 				a_indexes as ic
 			loop
-				ctx.add_form_parameter ("map[]", ic.item.to_string_8)
+				ctx.add_form_parameter ("map[]", ic.to_string_8)
 			end
 			res := sess.post (urls.path_add_package_index (repository, a_package), ctx, Void)
 			if res.error_occurred then
@@ -364,7 +364,7 @@ feature {NONE} -- Implementation
 				elseif v.is_integer then
 					Result := [Void, v.to_integer]
 				else
-					s := v.as_string_8
+					s := v.to_string_8
 					i := s.last_index_of (':', s.count)
 					if i > 0 then
 						h := s.substring (1, i - 1)
@@ -432,7 +432,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

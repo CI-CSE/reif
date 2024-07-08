@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Any medium that can perform input and/or output"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -95,10 +95,10 @@ feature -- Status report
 		do
 		end
 
-	last_character: CHARACTER
-			-- Last character read by `read_character'
+	last_character: CHARACTER_8
+			-- Last character read by `read_character`.
 
-	last_string: STRING
+	last_string: STRING_8
 			-- Last string read
 
 	last_integer: INTEGER
@@ -137,11 +137,25 @@ feature -- Status report
 	last_natural_8: NATURAL_8
 			-- Last 8-bit natural read by `read_natural_8'
 
-	last_real: REAL
+	last_real: REAL_32
 			-- Last real read by `read_real'
 
-	last_double: DOUBLE
+	last_real_32: REAL_32
+			-- Last 32-bit real read by `read_real_32`.
+			-- Synonym of `last_real`.
+		do
+			Result := last_real
+		end
+
+	last_double: REAL_64
 			-- Last double read by `read_double'
+
+	last_real_64: REAL_64
+			-- Last 64-bit real read by `read_real_64`.
+			-- Synonym of `last_double`.
+		do
+			Result := last_double
+		end
 
 	bytes_read: INTEGER
 			-- Last number of bytes read by `read_to_managed_pointer'.
@@ -232,7 +246,7 @@ feature -- Output
 		deferred
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write `s' to medium.
 		require
 			extendible: extendible
@@ -240,14 +254,14 @@ feature -- Output
 		deferred
 		end
 
-	put_character, putchar (c: CHARACTER)
+	put_character, putchar (c: CHARACTER_8)
 			-- Write `c' to medium.
 		require
 			extendible: extendible
 		deferred
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal, put_real_32 (r: REAL_32)
 			-- Write `r' to medium.
 		require
 			extendible: extendible
@@ -317,7 +331,7 @@ feature -- Output
 		deferred
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble, put_real_64 (d: REAL_64)
 			-- Write `d' to medium.
 		require
 			extendible: extendible
@@ -337,7 +351,7 @@ feature -- Output
 
 feature -- Input
 
-	read_real, readreal
+	read_real, readreal, read_real_32
 			-- Read a new real.
 			-- Make result available in `last_real'.
 		require
@@ -345,7 +359,7 @@ feature -- Input
 		deferred
 		end
 
-	read_double, readdouble
+	read_double, readdouble, read_real_64
 			-- Read a new double.
 			-- Make result available in `last_double'.
 		require
@@ -513,20 +527,20 @@ feature -- Obsolete
 			Result := last_integer
 		end
 
-	lastreal: REAL
+	lastreal: REAL_32
 			-- Last real read by `read_real'
 		do
 			Result := last_real
 		end
 
-	lastdouble: DOUBLE
+	lastdouble: REAL_64
 			-- Last double read by `read_double'
 		do
 			Result := last_double
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

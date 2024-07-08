@@ -1,5 +1,5 @@
 ﻿note
-	description	: "Standard Byte code generation for features"
+	description: "Standard Byte code generation for features."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -150,6 +150,10 @@ feature -- Analyzis
 				context.add_dt_current
 				context.add_dt_current
 			end
+			if workbench_mode then
+					-- Dynamic type of Current is used by `generate_monitoring_start`.
+				context.add_dt_current
+			end
 
 				-- Local variables should be recorded because their types
 				-- are used to evaluate types of object test locals.
@@ -162,6 +166,8 @@ feature -- Analyzis
 					have_precond := precondition /= Void or else inh_assert.has_precondition
 				end
 				have_postcond := postcondition /= Void or else inh_assert.has_postcondition
+					-- Dynamic type of Current is used by `generate_save_assertion_level`.
+				context.add_dt_current
 			end
 
 				-- Check if there is a wait condition.
@@ -233,6 +239,8 @@ feature -- Analyzis
 				else
 					l_context.analyze_external_result
 				end
+			elseif is_once_creation then
+				l_context.mark_result_used
 			end
 
 			if compound /= Void then
@@ -375,6 +383,7 @@ feature -- Analyzis
 			i: INTEGER
 			keep: BOOLEAN
 			l_context: like context
+			result_type_c: TYPE_C
 		do
 			buf := buffer
 			l_is_process_or_thread_relative_once := is_process_or_thread_relative_once
@@ -383,6 +392,13 @@ feature -- Analyzis
 
 				-- Generate the header "int foo(Current, args)"
 			type_c := real_type (result_type).c_type
+			result_type_c :=
+				if is_once_creation then
+						-- Record the type of the class itself.
+					real_type (context.current_type).c_type
+				else
+					type_c
+				end
 
 				-- Function's name
 			internal_name := generated_c_feature_name
@@ -392,7 +408,7 @@ feature -- Analyzis
 
 				-- If it is a once, performs once declaration.
 			if l_is_process_or_thread_relative_once then
-				generate_once_declaration (internal_name, type_c)
+				generate_once_declaration (internal_name, result_type_c)
 			end
 
 				-- Generate reference to once manifest string field
@@ -409,8 +425,7 @@ feature -- Analyzis
 			extern := True
 			name := internal_name
 			if
-				l_is_process_or_thread_relative_once and then
-				l_context.is_once_call_optimized or else
+				l_is_process_or_thread_relative_once and then l_context.is_once_call_optimized or else
 				context.current_feature.is_attribute
 			then
 					-- Once routines should be protected against exceptions.
@@ -426,11 +441,12 @@ feature -- Analyzis
 				extern := False
 			end
 			args := argument_names
-			if not type_c.is_void and then l_context.workbench_mode then
-				return_type_name := once "EIF_TYPED_VALUE"
-			else
-				return_type_name := type_c.c_string
-			end
+			return_type_name :=
+				if not result_type_c.is_void and then l_context.workbench_mode then
+					once "EIF_TYPED_VALUE"
+				else
+					result_type_c.c_string
+				end
 			buf.generate_function_signature
 				(return_type_name, name, extern,
 				 l_context.header_buffer, args, argument_types)
@@ -508,7 +524,6 @@ feature -- Analyzis
 				l_context.generate_body_label
 			end
 
-
 			if not is_object_relative_once then
 					-- If necessary, generate the once stuff (i.e. check if
 					-- the value of the once was already set within the same
@@ -540,7 +555,7 @@ feature -- Analyzis
 				buf.put_string ("RTRS;")
 			end
 
-			if not type_c.is_void then
+			if not result_type_c.is_void then
 					-- Function returns something. This can be done
 					-- by inner returns, so have some mercy
 					-- for lint and highlight the NOTREACHED status...
@@ -559,7 +574,7 @@ feature -- Analyzis
 					-- Remove the GC hooks we've been generated.
 				finish_compound
 					-- Generate final "return Result", if required.
-				generate_return_exp
+				generate_return_exp (result_type_c)
 			end
 
 				-- Undefines all macros defined for temporary locals.
@@ -603,10 +618,10 @@ feature -- Analyzis
 				buf.generate_block_open
 				buf.put_gtcx
 				buf.put_new_line
-				if not type_c.is_void then
+				if not result_type_c.is_void then
 					buf.put_string ("return ")
 				end
-				l_context.generate_once_optimized_call_start (type_c, body_index, is_process_relative_once, is_object_relative_once, buf)
+				l_context.generate_once_optimized_call_start (result_type_c, body_index, is_process_relative_once, is_object_relative_once, buf)
 				buf.put_string (name)
 				buf.put_string (",(")
 				from
@@ -641,8 +656,12 @@ end
 		end
 
 	generate_compound
-			-- Generate the function compound
+			-- Generate the function compound.
 		do
+			if is_once_creation then
+				buffer.put_new_line
+				buffer.put_string ("Result = Current;")
+			end
 			if attached compound as c then
 				c.generate
 			end
@@ -670,18 +689,16 @@ end
 			end
 		end
 
-	generate_return_exp
-			-- Generate the return expression
+	generate_return_exp (type_c: TYPE_C)
+			-- Generate the return expression for a function with return type `type_c`.
 		local
-			type_c: TYPE_C
 			buf: GENERATION_BUFFER
 		do
 				-- Do not forget to remove the GC hooks before returning
 				-- if they have already been generated. For instance, when
 				-- generating return for a once function, hooks have not
 				-- been generated.
-			if not result_type.is_void then
-				type_c := real_type (result_type).c_type
+			if not type_c.is_void then
 				buf := buffer
 				buf.put_new_line
 				if context.workbench_mode then
@@ -704,7 +721,7 @@ end
 					end
 				end
 			end
-		end -- generate_return_exp
+		end
 
 	generate_once_declaration (a_name: STRING; a_type: TYPE_C)
 			-- Generate static variable and their declarations used by
@@ -1181,69 +1198,77 @@ end
 				-- Preconditions are always generated in workbench mode.
 				-- In finalized mode they are generated if requested by user
 				-- or when there are uncontrolled arguments.
-			if
-				have_assert and then
-				(workbench_mode or else context.system.keep_assertions or else has_wait_condition)
-			then
-				buf.put_new_line
-				if has_wait_condition then
-						-- The precondition has to be checked all the time if there is a wait condition.
-					buf.put_string (if workbench_mode or else context.system.keep_assertions then
-							-- If there is no wait condition, the precondition may still need to be checked if assertion monitoring is enabled.
-						"if (uarg || (RTAL & CK_REQUIRE) || RTAC) {"
+			if have_assert then
+				if workbench_mode or else context.system.keep_assertions or else has_wait_condition then
+					buf.put_new_line
+					if has_wait_condition then
+							-- The precondition has to be checked all the time if there is a wait condition.
+						buf.put_string (if workbench_mode or else context.system.keep_assertions then
+								-- If there is no wait condition, the precondition may still need to be checked if assertion monitoring is enabled.
+							"if (uarg || (RTAL & CK_REQUIRE) || RTAC) {"
+						else
+							"if (uarg) {"
+						end)
+						buf.indent
+							-- There are wait conditions.
+							-- If they fail, the precondition needs to be re-eveluated.
+							-- The generated code looks like
+							--    for (;;) {
+							--       int has_wait_condition = 0
+							--       ... // Allocate request chain (see below).
+							--       ... // Evaluate preconditions and set has_wait_condition if wait conditions are involved.
+							--       if (!has_wait_condition) break;
+							--       RTCK; // Remove a stack item pushed when entering a precondition.
+							--       RTS_SRF (Current); // Free request chain to let the scheduler reschedule this call.
+							--    }
+							--    RTCF; // Raise exception
+						buf.put_new_line
+						buf.put_string ("for (;;) {")
+						buf.indent
+						buf.put_new_line
+						buf.put_string ("int has_wait_condition = 0;")
 					else
-						"if (uarg) {"
-					end)
-					buf.indent
-						-- There are wait conditions.
-						-- If they fail, the precondition needs to be re-eveluated.
-						-- The generated code looks like
-						--    for (;;) {
-						--       int has_wait_condition = 0
-						--       ... // Allocate request chain (see below).
-						--       ... // Evaluate preconditions and set has_wait_condition if wait conditions are involved.
-						--       if (!has_wait_condition) break;
-						--       RTCK; // Remove a stack item pushed when entering a precondition.
-						--       RTS_SRF (Current); // Free request chain to let the scheduler reschedule this call.
-						--    }
-						--    RTCF; // Raise exception
-					buf.put_new_line
-					buf.put_string ("for (;;) {")
-					buf.indent
-					buf.put_new_line
-					buf.put_string ("int has_wait_condition = 0;")
-				else
-						-- The precondition is checked on demand only.
-					buf.put_string ("if ((RTAL & CK_REQUIRE) || RTAC) {")
-					buf.indent
-				end
+							-- The precondition is checked on demand only.
+						buf.put_string ("if ((RTAL & CK_REQUIRE) || RTAC) {")
+						buf.indent
+					end
 
-				if inh_assert.has_precondition then
-					inh_assert.generate_precondition
-				end
+					if inh_assert.has_precondition then
+						inh_assert.generate_precondition
+					end
 
-				if precondition /= Void then
-					Context.set_new_precondition_block (True)
-					precondition.generate
-				end
+					if precondition /= Void then
+						Context.set_new_precondition_block (True)
+						precondition.generate
+					end
 
-				buf.put_new_line
-				buf.put_string ("RTJB;")
-				Context.generate_current_label_definition
-
-				if has_wait_condition then
-						-- End part of the loop that checks wait conditions.
 					buf.put_new_line
-					buf.put_string ("if (!has_wait_condition) break;")
+					buf.put_string ("RTJB;")
+					Context.generate_current_label_definition
+
+					if has_wait_condition then
+							-- End part of the loop that checks wait conditions.
+						buf.put_new_line
+						buf.put_string ("if (!has_wait_condition) break;")
+						buf.put_new_line
+						buf.put_string ("RTCK;")
+						context.generate_request_chain_wait_condition_failure
+						buf.generate_block_close
+					end
 					buf.put_new_line
-					buf.put_string ("RTCK;")
-					context.generate_request_chain_wait_condition_failure
+					buf.put_string ("RTCF;")
+						-- Close on-demand check block.
 					buf.generate_block_close
+				elseif
+					context.system.exception_stack_managed and then
+					attached precondition as l_assertion
+				then
+					check
+						is_final_mode: context.final_mode
+						assertion_not_kept: not system.keep_assertions
+					end
+					context.increment_breakpoint_slot_for_assertion (l_assertion)
 				end
-				buf.put_new_line
-				buf.put_string ("RTCF;")
-					-- Close on-demand check block.
-				buf.generate_block_close
 			end
 			context.set_assertion_type (0)
 		end
@@ -1291,6 +1316,16 @@ end
 				buf := buffer
 				buf.put_new_line
 				buf.put_string ("RTEC (EN_POST);")
+
+			elseif
+				context.system.exception_stack_managed and then
+				attached postcondition as l_assertion
+			then
+				check
+					is_final_mode: context.final_mode
+					assertion_not_kept: not system.keep_assertions
+				end
+				context.increment_breakpoint_slot_for_assertion (l_assertion)
 			end
 		end
 
@@ -1635,11 +1670,7 @@ end
 			buf.put_string ({C_CONST}.comma_space)
 			buf.put_integer (context.local_list.count)
 			buf.put_string ({C_CONST}.comma_space)
-			if arguments /= Void then
-				buf.put_integer (arguments.count)
-			else
-				buf.put_integer (0)
-			end
+			buf.put_integer (if arguments /= Void then arguments.count else 0 end)
 			buf.put_string ({C_CONST}.comma_space)
 			buf.put_real_body_id (real_body_id)
 			buf.put_two_character (')', ';')
@@ -1858,7 +1889,7 @@ feature -- Byte code generation
 
 				from
 				until
-					ba.forward_marks4.count = 0
+					ba.forward_marks4.is_empty
 				loop
 					ba.write_forward4
 				end
@@ -1909,6 +1940,10 @@ feature -- Byte code generation
 				-- Record position to retry in case of rescue.
 			ba.mark_retry
 
+			if is_once_creation then
+				ba.append (bc_current)
+				ba.append (bc_rassign)
+			end
 			if compound /= Void then
 				a_generator.generate (ba, compound)
 			end
@@ -2101,7 +2136,7 @@ feature {NONE} -- C code generation: wait conditions
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

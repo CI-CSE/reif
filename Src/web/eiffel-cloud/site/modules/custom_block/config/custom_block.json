@@ -5,6 +5,18 @@
 			"region": "content",
 			"weight": 0,
 			"conditions": ["is_front"]
+		},
+		"cloud_footer":	{
+			"is_raw": "yes",
+			"region": "footer",
+			"weight": 99,
+			"conditions": ["*"]
+		},
+		"licenses_buy_notes":	{
+			"is_raw": "yes",
+			"region": "content",
+			"weight": 10,
+			"conditions": ["path:licenses/_/buy*"]
 		}
 	}
 }

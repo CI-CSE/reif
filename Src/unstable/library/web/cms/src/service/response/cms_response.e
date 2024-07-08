@@ -40,9 +40,14 @@ feature -- Access
 feature -- Access: metadata
 
 	title: detachable READABLE_STRING_32
+			-- Head title.
 
 	page_title: detachable READABLE_STRING_32
 			-- Page title
+
+	page_class_css: detachable READABLE_STRING_8
+			-- Page class CSS applied to the main section.
+			-- note: depends on the theme code.
 
 	description: detachable READABLE_STRING_32
 
@@ -110,7 +115,27 @@ feature -- Head customization
 			add_additional_head_line (s, True)
 		end
 
-	add_javascript_url (a_src: STRING)
+	add_defer_javascript_url (a_src: STRING)
+		local
+			s: STRING_8
+		do
+			create s.make_from_string ("<script type=%"text/javascript%" src=%"")
+			s.append (a_src)
+			s.append ("%" defer></script>")
+			add_additional_head_line (s, False)
+		end
+
+	add_javascript_module_url (a_src: READABLE_STRING_8)
+		local
+			s: STRING_8
+		do
+			create s.make_from_string ("<script type=%"module%" src=%"")
+			s.append (a_src)
+			s.append ("%"></script>")
+			add_additional_head_line (s, False)
+		end
+
+	add_javascript_url (a_src: READABLE_STRING_8)
 		local
 			s: STRING_8
 		do
@@ -120,27 +145,76 @@ feature -- Head customization
 			add_additional_head_line (s, False)
 		end
 
-	add_javascript_content (a_script: STRING)
+	add_javascript_content (a_script: READABLE_STRING_GENERAL)
 		local
 			s: STRING_8
 		do
 			create s.make_from_string ("<script type=%"text/javascript%">%N")
-			s.append (a_script)
+			s.append (utf_8_encoded (a_script))
 			s.append ("%N</script>")
 			add_additional_head_line (s, True)
 		end
 
-feature -- Element change				
-
-	set_title (t: like title)
+	add_javascript_module (a_script: READABLE_STRING_GENERAL; a_src: detachable READABLE_STRING_8)
+		local
+			s: STRING_8
 		do
-			title := t
+			create s.make_from_string ("<script type=%"module%"")
+			if a_src /= Void then
+				s.append (" src=%"")
+				s.append (a_src)
+				s.append ("%">%N")
+			end
+			s.append (utf_8_encoded (a_script))
+			s.append ("%N</script>")
+			add_additional_head_line (s, False)
+		end
+
+feature -- Element change
+
+	set_title (t: detachable READABLE_STRING_GENERAL)
+			-- Set the page and the head title to `t`
+		do
+			set_head_title (t)
 			set_page_title (t)
 		end
 
-	set_page_title (t: like page_title)
+	set_head_title (t: detachable READABLE_STRING_GENERAL)
+			-- Set the html head title to `t`
 		do
-			page_title := t
+			if t = Void then
+				title := Void
+			else
+				title := t
+			end
+		end
+
+	set_page_title (t: detachable READABLE_STRING_GENERAL)
+		do
+			if t = Void then
+				page_title := Void
+			else
+				page_title := t
+				if title = Void then
+					title := t
+				end
+			end
+		end
+
+	set_page_class_css (a_class_css: like page_class_css)
+			-- Set theme page class css.
+		do
+			page_class_css := a_class_css
+		end
+
+	add_page_class_css (a_class_css: attached like page_class_css)
+			-- Add `a_css` to the `page_css`.
+		do
+			if attached page_class_css as pgcss then
+				page_class_css := pgcss + " " + a_class_css
+			else
+				page_class_css := a_class_css
+			end
 		end
 
 	set_description (d: like description)
@@ -406,7 +480,7 @@ feature -- Blocks regions
 	blocks: STRING_TABLE [CMS_BLOCK]
 			-- Blocks indexed by their block id.
 
-	block_region_settings: STRING_TABLE [STRING]
+	block_region_settings: STRING_TABLE [READABLE_STRING_8]
 
 	block_region (b: CMS_BLOCK; a_default_region: detachable READABLE_STRING_8): CMS_BLOCK_REGION
 			-- Region associated with block `b', or else `a_default_region' if provided.
@@ -416,7 +490,7 @@ feature -- Blocks regions
 			l_region_name := block_region_settings.item (b.name)
 			if l_region_name = Void then
 				if attached setup.text_item ("blocks." + b.name + ".region") as l_setup_name then
-					l_region_name := l_setup_name.as_string_8 -- FIXME: potential truncated string 32.
+					l_region_name := utf_8_encoded (l_setup_name) -- FIXME: is utf-8 ok here?
 						-- Remember for later.
 					block_region_settings.force (l_region_name, b.name)
 				elseif a_default_region /= Void then
@@ -851,21 +925,38 @@ feature -- Generation
 			l_empty_blocks: detachable ARRAYED_LIST [CMS_BLOCK]
 			l_block_html: STRING
 		do
-				-- Menu
-			create {CMS_LOCAL_LINK} lnk.make ("Home", "")
-			lnk.set_weight (-10)
-			add_to_primary_menu (lnk)
-			api.hooks.invoke_menu_system_alter (menu_system, Current)
-
 			if api.enabled_modules.count <= 1 then
 					-- It is the required CMS_CORE_MODULE!
-				lnk := api.administration_link ("Install", "install")
-				if lnk.location.same_string (location) then
-						-- We are on the Install page!
+				if api.has_storage_error then
+					add_error_message ("Issue with the storage initialization!")
 				else
-					add_to_primary_menu (lnk)
+					lnk := api.administration_link ("Install", "install")
+					if lnk.location.same_string (location) then
+							-- We are on the Install page!
+					else
+						add_to_primary_menu (lnk)
+					end
 				end
 			end
+
+				-- Cms response
+			api.hooks.invoke_response_alter (Current)
+
+				-- Sort items
+			menu_system.sort
+
+				-- Values
+			common_prepare (page)
+			custom_prepare (page)
+
+				-- Cms values
+			api.hooks.invoke_value_table_alter (values, Current)
+
+				-- Predefined values
+			page.register_variable (page, "page") -- DO NOT REMOVE
+
+				-- Sort items
+			menu_system.sort
 
 				-- Blocks
 			create l_menu_list_prepared.make (0)
@@ -908,24 +999,6 @@ feature -- Generation
 				end
 			end
 			l_menu_list_prepared.wipe_out -- Clear for memory purpose.
-
-				-- Sort items
-			across menu_system as ic loop
-				ic.item.sort
-			end
-
-				-- Values
-			common_prepare (page)
-			custom_prepare (page)
-
-				-- Cms response
-			api.hooks.invoke_response_alter (Current)
-
-				-- Cms values
-			api.hooks.invoke_value_table_alter (values, Current)
-
-				-- Predefined values
-			page.register_variable (page, "page") -- DO NOT REMOVE
 
 				-- Values Associated with current Execution object.
 			across
@@ -1006,8 +1079,10 @@ feature -- Generation
 			page.register_variable (absolute_url ("", Void), "host") -- Same as `site_url'.
 			page.register_variable (request.is_https, "is_https")
 			if attached title as l_title then
+				page.register_variable (l_title, "head_title")
 				page.register_variable (l_title, "site_title")
 			else
+				page.register_variable (site_name, "head_title")
 				page.register_variable (site_name, "site_title")
 			end
 			page.set_is_front (is_front)
@@ -1027,6 +1102,9 @@ feature -- Generation
 			page.register_variable (horizontal_primary_tabs_html, "primary_tabs")
 
 				-- Page related
+			if attached page_class_css as l_page_css then
+				page.register_variable (l_page_css, "page_class_css")
+			end
 			if attached page_title as l_page_title then
 				page.register_variable (l_page_title, "page_title")
 			end
@@ -1115,11 +1193,17 @@ feature -- Helpers: html links
 			Result := api.user_html_link (u)
 		end
 
+	destination_location: detachable READABLE_STRING_8
+			-- Destination location
+			-- used across the CMS to track a location to come to later.
+		do
+			Result := api.destination_location (request)
+		end
+
 feature -- Execution
 
 	execute
 		do
---			(create {DEVELOPER_EXCEPTION}).raise
 			begin
 			process
 			terminate
@@ -1128,7 +1212,15 @@ feature -- Execution
 feature {NONE} -- Execution		
 
 	begin
+		local
+			lnk: CMS_LINK
 		do
+				-- Menu
+			create {CMS_LOCAL_LINK} lnk.make ("Home", "")
+			lnk.set_weight (-10)
+			add_to_primary_menu (lnk)
+
+			api.hooks.invoke_menu_system_alter (menu_system, Current)
 		end
 
 	process
@@ -1182,6 +1274,6 @@ feature {NONE} -- Execution
 		end
 
 note
-	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

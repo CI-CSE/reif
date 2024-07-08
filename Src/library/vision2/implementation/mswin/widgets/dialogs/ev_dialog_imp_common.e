@@ -65,7 +65,7 @@ inherit
 			show as show_internal
 		undefine
 			has_focus, on_middle_button_up, show_internal, on_right_button_down,
-			on_move, on_size, default_ex_style, on_sys_key_down, on_key_up,
+			on_move, on_size, default_ex_style, on_sys_key_down, on_key_up,on_dpi_changed,
 			window_process_message, on_middle_button_down, on_kill_focus,
 			on_right_button_up, on_accelerator_command, on_menu_command,
 			on_middle_button_double_click, on_destroy, on_left_button_up,
@@ -360,6 +360,7 @@ feature {NONE} -- Implementation
 				pointer_motion_actions_internal := l_event
 			end
 
+
 			pointer_x := other_imp.pointer_x
 			pointer_y := other_imp.pointer_y
 			press_action := other_imp.press_action
@@ -372,6 +373,9 @@ feature {NONE} -- Implementation
 			remove_item_actions := other_imp.remove_item_actions
 			if attached other_imp.resize_actions_internal as l_event then
 				resize_actions_internal := l_event
+			end
+			if attached other_imp.dpi_changed_actions_internal as l_event then
+				dpi_changed_actions_internal := l_event
 			end
 
 			rubber_band_is_drawn := other_imp.rubber_band_is_drawn
@@ -663,7 +667,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 			-- Interface for `Current'.
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

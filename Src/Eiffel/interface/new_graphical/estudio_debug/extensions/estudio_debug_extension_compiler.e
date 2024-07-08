@@ -10,6 +10,9 @@ class
 
 inherit
 	ESTUDIO_DEBUG_EXTENSION
+		redefine
+			new_menu_item
+		end
 
 	SHARED_LOCALE
 
@@ -23,10 +26,39 @@ feature -- Execution
 
 	execute
 		do
-			open_debug_class_feature_info (Void, Void)
 		end
 
-	open_debug_class_feature_info (a_cl, a_ft: detachable STRING_GENERAL)
+
+	build_debug_sub_menu (a_menu: EV_MENU)
+			-- Builds the debug submenu
+		require
+			not_a_menu_is_destroyed: not a_menu.is_destroyed
+		local
+			l_menu_item: EV_MENU_ITEM
+			l_cb_menu_item: EV_CHECK_MENU_ITEM
+		do
+			create l_menu_item.make_with_text_and_action ("Show class/feature info", agent open_debug_class_feature_info (Void, Void))
+			a_menu.extend (l_menu_item)
+
+			a_menu.extend (create {EV_MENU_SEPARATOR})
+			create l_cb_menu_item.make_with_text ("Use emdc for .Net MD consumer")
+			if is_eiffel_layout_defined and then eiffel_layout.use_emdc_consumer then
+				l_cb_menu_item.enable_select
+			end
+			l_cb_menu_item.select_actions.extend (agent eiffel_layout.set_use_emdc_consumer (not l_cb_menu_item.is_selected, True))
+			a_menu.extend (l_cb_menu_item)
+
+			create l_cb_menu_item.make_with_text ("Use JSON for emdc for .Net MD consumer")
+			if is_eiffel_layout_defined and then eiffel_layout.use_json_dotnet_md_cache then
+				l_cb_menu_item.enable_select
+			end
+			l_cb_menu_item.select_actions.extend (agent eiffel_layout.set_use_json_dotnet_md_cache (not l_cb_menu_item.is_selected, True))
+			a_menu.extend (l_cb_menu_item)
+		end
+
+feature -- Class/Feature info		
+
+	open_debug_class_feature_info (a_cl: detachable READABLE_STRING_GENERAL; a_ft: detachable READABLE_STRING_32)
 		local
 			l_dlg: EV_DIALOG
 			hb: EV_HORIZONTAL_BOX
@@ -107,10 +139,10 @@ feature -- Execution
 									l_row.set_item (1, create {EV_GRID_LABEL_ITEM}.make_with_text ("class_id"))
 									gei := create {EV_GRID_EDITABLE_ITEM}.make_with_text (cl.class_id.out)
 									gei.set_background_color (bgcol)
-									gei.pointer_double_press_actions.force_extend (agent gei.activate)
+									gei.pointer_double_press_actions.extend (agent (e: EV_GRID_EDITABLE_ITEM; x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32) do e.activate end (gei, ?, ?, ?, ?, ?, ?, ?, ?))
 									gei.deactivate_actions.extend (agent (ai_gei: EV_GRID_EDITABLE_ITEM)
 											local
-												l_id: STRING
+												l_id: READABLE_STRING_GENERAL
 												i_sh_sys: SHARED_WORKBENCH
 											do
 												if attached ai_gei.text_field as tf then
@@ -134,10 +166,10 @@ feature -- Execution
 										l_row.set_item (1, create {EV_GRID_LABEL_ITEM}.make_with_text ("type_id"))
 										gei := create {EV_GRID_EDITABLE_ITEM}.make_with_text (cl.types.first.type_id.out)
 										gei.set_background_color (bgcol)
-										gei.pointer_double_press_actions.force_extend (agent gei.activate)
+										gei.pointer_double_press_actions.extend (agent (e: EV_GRID_EDITABLE_ITEM; x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32) do e.activate end (gei, ?, ?, ?, ?, ?, ?, ?, ?))
 										gei.deactivate_actions.extend (agent (ai_gei: EV_GRID_EDITABLE_ITEM)
 												local
-													l_id: STRING
+													l_id: READABLE_STRING_GENERAL
 													i_sh_sys: SHARED_WORKBENCH
 												do
 													if attached ai_gei.text_field as tf then
@@ -156,10 +188,10 @@ feature -- Execution
 										l_row.set_item (1, create {EV_GRID_LABEL_ITEM}.make_with_text ("static_type_id"))
 										gei := create {EV_GRID_EDITABLE_ITEM}.make_with_text (cl.types.first.static_type_id.out)
 										gei.set_background_color (bgcol)
-										gei.pointer_double_press_actions.force_extend (agent gei.activate)
+										gei.pointer_double_press_actions.extend (agent (e: EV_GRID_EDITABLE_ITEM; x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32) do e.activate end (gei, ?, ?, ?, ?, ?, ?, ?, ?))
 										gei.deactivate_actions.extend (agent (ai_gei: EV_GRID_EDITABLE_ITEM)
 												local
-													l_id: STRING
+													l_id: READABLE_STRING_GENERAL
 													i_sh_sys: SHARED_WORKBENCH
 												do
 													if attached ai_gei.text_field as tf then
@@ -315,21 +347,40 @@ feature -- Execution
 			l_row, sr: EV_GRID_ROW
 			gi: EV_GRID_LABEL_ITEM
 			gei: EV_GRID_EDITABLE_ITEM
-			f, s: STRING
+			f, s: STRING_32
 		do
 			if attached {ES_GRID} r.parent as g then
 				l_row := g.grid_extended_new_subrow (r)
-				create gi.make_with_text (fi.feature_name_32)
+				f := fi.feature_name_32
+				create gi.make_with_text (f)
 				if a_list then
 					gi.set_background_color (bgcol)
-					gi.pointer_double_press_actions.force_extend (agent open_debug_class_feature_info (cl.name, fi.feature_name_32))
+					gi.pointer_double_press_actions.extend
+						(agent (class_name: READABLE_STRING_GENERAL; feature_name: READABLE_STRING_32;
+							x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32)
+							do
+								open_debug_class_feature_info (class_name, feature_name)
+							end (cl.name, fi.feature_name_32, ?, ?, ?, ?, ?, ?, ?, ?))
 				end
 				l_row.set_item (1, gi)
-				s := attached_string (fi.alias_name_32).as_string_8
-				if s.is_empty then
-					s := fi.feature_id.out
+				if fi.has_alias and then attached fi.alias_names_32 as lst then
+					create s.make_empty
+					across
+						lst as ic
+					loop
+						if not s.is_empty then
+							s.append_character (',')
+							s.append_character (' ')
+						end
+						s.append (ic.item)
+					end
+				end
+				if s = Void or else s.is_empty then
+					s := fi.feature_id.out.to_string_32
 				else
-					s.prepend_string (fi.feature_id.out + "  ")
+					s.prepend_string_general (fi.feature_id.out)
+					s.append_character (' ')
+					s.append_character (' ')
 				end
 				l_row.set_item (2, create {EV_GRID_LABEL_ITEM}.make_with_text (s))
 
@@ -341,10 +392,10 @@ feature -- Execution
 				else
 					gei := create {EV_GRID_EDITABLE_ITEM}.make_with_text (fi.feature_id.out)
 					gei.set_background_color (bgcol)
-					gei.pointer_double_press_actions.force_extend (agent gei.activate)
+					gei.pointer_double_press_actions.extend (agent (e: EV_GRID_EDITABLE_ITEM; x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32) do e.activate end (gei, ?, ?, ?, ?, ?, ?, ?, ?))
 					gei.deactivate_actions.extend (agent (ai_gei: EV_GRID_EDITABLE_ITEM; ai_cl: CLASS_C)
 							local
-								l_id: STRING
+								l_id: READABLE_STRING_GENERAL
 							do
 								if attached ai_gei.text_field as tf then
 									l_id := tf.text
@@ -408,7 +459,12 @@ feature -- Execution
 					sr := g.grid_extended_new_subrow (l_row)
 					sr.set_item (1, create {EV_GRID_LABEL_ITEM}.make_with_text ("written_class"))
 					create gi.make_with_text (wcl.name)
-					gi.pointer_double_press_actions.force_extend (agent open_debug_class_feature_info (wcl.name, f))
+					gi.pointer_double_press_actions.extend
+						(agent (class_name: READABLE_STRING_GENERAL; feature_name: READABLE_STRING_32;
+							x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32)
+						do
+							open_debug_class_feature_info (class_name, feature_name)
+						end (wcl.name, f, ?, ?, ?, ?, ?, ?, ?, ?))
 					gi.set_background_color (bgcol)
 					sr.set_item (2, gi)
 				end
@@ -468,11 +524,19 @@ feature -- Access
 
 	menu_path: ARRAY [STRING]
 		do
-			Result := <<"Compiler", "Show class/feature info">>
+			Result := <<"Compiler">>
+		end
+
+feature {NONE} -- Implementation
+
+	new_menu_item (a_title: STRING): EV_MENU
+		do
+			Result := imp_new_menu_item (a_title)
+			build_debug_sub_menu (Result)
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

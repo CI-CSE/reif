@@ -35,7 +35,7 @@ feature {NONE} -- Initialize
 	build_interface
 			-- Build all the tool's widgets.
 		local
-			vbox: EV_VERTICAL_BOX
+			mainbox,vbox: EV_VERTICAL_BOX
 			search_box: EV_HORIZONTAL_BOX
 			replace_box: EV_HORIZONTAL_BOX
 			label, label_search: EV_LABEL
@@ -83,8 +83,8 @@ feature {NONE} -- Initialize
 
 				-- Ensures alignments of combo boxes by making sure that their preceding
 				-- labels have the same width.
-			label_search.set_minimum_width (label.width.max (label_search.minimum_width))
-			label.set_minimum_width (label_search.minimum_width)
+			label_search.set_minimum_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (label.width.max (label_search.minimum_width)))
+			label.set_minimum_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (label_search.minimum_width))
 
 					-- Options and replace all
 			create option_and_replace_all_box
@@ -173,21 +173,14 @@ feature {NONE} -- Initialize
 			vbox.extend (option_and_replace_all_box)
 			vbox.disable_item_expand (option_and_replace_all_box)
 
-			create notebook
-
-			notebook.set_tab_position (notebook.tab_top)
-			notebook.extend (vbox)
-			notebook.extend (scope_tab)
-			notebook.item_tab (vbox).set_text (interface_names.t_search_tool)
-			notebook.item_tab (scope_tab).set_text (interface_names.l_scope.twin)
-
-			create vbox
-			vbox.extend (notebook)
-			vbox.disable_item_expand (notebook)
+			create mainbox
+			mainbox.extend (vbox)
+			mainbox.disable_item_expand (vbox)
+			mainbox.extend (scope_tab)
 
 			create frame
 			frame.set_style ((create {EV_FRAME_CONSTANTS}).Ev_frame_raised)
-			frame.extend (vbox)
+			frame.extend (mainbox)
 			widget := frame
 		end
 
@@ -234,16 +227,16 @@ feature {NONE} -- Initialize
 			create Result
 
 			create hbox
-			hbox.set_border_width (Layout_constants.Small_border_size)
+			hbox.set_border_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (Layout_constants.Small_border_size))
 
 			create cell
-			cell.set_minimum_width (5)
+			cell.set_minimum_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (5))
 			hbox.extend (cell)
 			hbox.disable_item_expand (cell)
 
 			create scope
 			create vbox
-			vbox.set_padding_width (layout_constants.small_border_size )
+			vbox.set_padding_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (layout_constants.small_border_size) )
 			vbox.extend (current_editor_button)
 			vbox.extend (whole_project_button)
 			vbox.extend (custom_button)
@@ -262,12 +255,12 @@ feature {NONE} -- Initialize
 			scope.extend (vbox)
 
 			create cell
-			cell.set_minimum_width (3)
+			cell.set_minimum_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (3))
 			scope.extend (cell)
 			scope.disable_item_expand (cell)
 
 			create vbox
-			vbox.set_padding_width (layout_constants.small_border_size)
+			vbox.set_padding_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size  (layout_constants.small_border_size))
 
 			create l_hbox
 			vbox.extend (l_hbox)
@@ -299,7 +292,7 @@ feature {NONE} -- Initialize
 
 			Result.extend (options)
 			Result.disable_item_expand (options)
-			Result.set_border_width (layout_constants.small_border_size)
+			Result.set_border_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (layout_constants.small_border_size))
 		end
 
 	build_report_box: EV_VERTICAL_BOX
@@ -321,7 +314,6 @@ feature {EB_DEVELOPMENT_WINDOW_BUILDER, ES_TOOL} -- Initialize
 			l_cmd.set_mini_pixel_buffer (pixmaps.mini_pixmaps.callstack_send_to_external_editor_icon_buffer)
 			mini_toolbar.extend (l_cmd.new_mini_sd_toolbar_item)
 			mini_toolbar.compute_minimum_size
-
 			content.set_mini_toolbar (mini_toolbar)
 		ensure then
 			mini_toolbar_exists: mini_toolbar /= Void
@@ -435,9 +427,6 @@ feature -- Widgets
 
 	replace_combo_box: EV_COMBO_BOX
 			-- Replacment combo box
-
-	notebook: EV_NOTEBOOK
-			-- Notebook, one tab for basic search, one for scopes.
 
 	whole_word_button: EV_CHECK_BUTTON
 			-- button to look for isolated words
@@ -587,7 +576,6 @@ feature {NONE} -- Destroy behavior.
 			incremental_search_button := Void
 			scope_list := Void
 			replace_combo_box := Void
-			notebook := Void
 			whole_word_button := Void
 			search_button := Void
 			replace_button := Void
@@ -609,7 +597,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

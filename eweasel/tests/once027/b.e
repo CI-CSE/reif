@@ -1,26 +1,22 @@
-note
-	description: "Summary description for {B}."
-	date: "$Date$"
-	revision: "$Revision$"
-
-class
-	B
+once class B
 
 inherit
-
 	A
-		redefine
-			make
-		end
 
 create
-	make
-	
-feature {NONE}
+	make,
+	make_default,
+	make_object,
+	make_thread,
+	make_process,
+	make_do
 
-	make
-		once
-			create t.make_from_string ("A<-B")
-		end
+feature {NONE} -- Creation
+
+    make_default once end
+    make_object once ("OBJECT") end
+    make_thread once ("THREAD") end
+    make_process once ("PROCESS") end
+    make_do do end
 
 end

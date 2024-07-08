@@ -86,7 +86,7 @@ feature -- Initialization/Checking
 					a_convertors.after or has_error
 				loop
 					l_feat := a_convertors.item
-					l_name_id := l_feat.feature_name.internal_name.name_id
+					l_name_id := l_feat.feature_name.feature_name.name_id
 					if l_processed.has (l_name_id) then
 							-- Routine specified twice in Convert_clause.
 						create l_vncp.make ("Routine specified twice in Convert_clause.")
@@ -111,7 +111,11 @@ feature -- Initialization/Checking
 								l_feat.conversion_types.after or has_error
 							loop
 								l_type := l_feat.conversion_types.item
-								l_named_type ?= type_a_generator.evaluate_type (l_type, a_class)
+								if attached {DEANCHORED_TYPE_A} type_a_generator.evaluate_type (l_type, a_class) as nt then
+									l_named_type := nt
+								else
+									l_named_type := Void
+								end
 								if
 									l_named_type = Void or else
 									not l_named_type.is_full_named_type
@@ -147,7 +151,7 @@ feature -- Initialization/Checking
 											l_named_type.check_for_obsolete_class (a_class, Void)
 
 												-- We request that conversion type is attached only for the highest level
-												-- of void-safety.
+												-- of void safety.
 											if
 												a_class.lace_class.is_void_safe_call and then
 												not l_named_type.is_attached
@@ -160,7 +164,7 @@ feature -- Initialization/Checking
 											else
 													-- Check that specified routine argument or return
 													-- type matches conversion type `l_named_type'.
-												if attached a_feat_tbl.item_id (l_feat.feature_name.internal_name.name_id) as f then
+												if attached a_feat_tbl.item_id (l_feat.feature_name.feature_name.name_id) as f then
 													delayed_check_conversion_type (a_class, f, l_feat, l_named_type)
 												end
 											end
@@ -334,7 +338,7 @@ feature -- Initialization/Checking
 
 				-- We do not allow conversion of the form `source.to_target' or
 				-- `create target.make_from (source)' if `source' is not attached
-				-- as otherwise this we would be breaking void-safety.
+				-- as otherwise this we would be breaking void safety.
 			if a_source_type.is_attached or else not a_context_class.lace_class.is_void_safe_call then
 				if a_target_type.has_associated_class then
 					l_target_class := a_target_type.base_class
@@ -572,15 +576,15 @@ feature {NONE} -- Implementation: checking
 			l_feat: FEATURE_I
 			l_vncp: VNCP
 		do
-			a_feat_tbl.search_id (a_convert_feat.feature_name.internal_name.name_id)
+			a_feat_tbl.search_id (a_convert_feat.feature_name.feature_name.name_id)
 			if a_feat_tbl.found then
 				l_feat := a_feat_tbl.found_item
 				if not l_feat.is_once or not l_feat.is_external then
 					if a_convert_feat.is_creation_procedure then
 							-- Check it is listed as part of creation procedures of current class.
 						if
-							a_class.creators = Void or else
-							not a_class.creators.has (a_convert_feat.feature_name.internal_name.name)
+							attached a_class.creators as cs implies
+							not cs.has (a_convert_feat.feature_name.feature_name.name_id)
 						then
 								-- Not a creation procedure.
 							create l_vncp.make ("Not a creation procedure.")
@@ -620,7 +624,7 @@ feature {NONE} -- Implementation: checking
 				end
 			else
 				create l_vncp.make ("Routine not found: " +
-					a_convert_feat.feature_name.internal_name.name)
+					a_convert_feat.feature_name.feature_name.name)
 				l_vncp.set_class (a_class)
 				l_vncp.set_location (a_convert_feat.feature_name.start_location)
 				Error_handler.insert_error (l_vncp)
@@ -772,16 +776,14 @@ feature {NONE} -- Implementation: access
 			-- Compare two instances `u' and `v' of NAMED_TYPE_A using `same_as'.
 		do
 			if v = Void then
-				Result := (u = Void)
-			elseif u = Void then
-				Result := False
-			else
+				Result := u = Void
+			elseif u /= Void then
 				Result := u.same_as (v)
 			end
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

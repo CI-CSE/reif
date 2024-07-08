@@ -51,7 +51,8 @@ inherit
 			initialize,
 			destroy,
 			set_background_color,
-			create_interface_objects
+			create_interface_objects,
+			debug_output
 		end
 
 	SD_WIDGETS_LISTS
@@ -147,6 +148,7 @@ feature -- Command
 			l_minimum_width: INTEGER
 			l_minimum_height: INTEGER
 			l_item: like item_type
+			l_item_rect: EV_RECTANGLE
 			l_items: like internal_items
 			l_item_before: detachable like item_type
 		do
@@ -160,6 +162,7 @@ feature -- Command
 				l_items.after
 			loop
 				l_item := l_items.item
+				l_item_rect := l_item.rectangle
 				if l_items.index = l_items.count or l_item.is_wrap then
 					-- Minimum width only make sence in this case.
 					if
@@ -169,12 +172,12 @@ feature -- Command
 					then
 						l_item := l_item_before
 					end
-					if l_minimum_width < l_item.rectangle.right then
-						l_minimum_width := l_item.rectangle.right
+					if l_minimum_width < l_item_rect.right then
+						l_minimum_width := l_item_rect.right
 					end
 				end
 				if l_items.index = l_items.count then
-					l_minimum_height := l_item.rectangle.bottom
+					l_minimum_height := l_item_rect.bottom
 				end
 
 				l_item_before := l_items.item
@@ -186,8 +189,7 @@ feature -- Command
 				print ("%N             items.count: " + l_items.count.out)
 			end
 
-			set_minimum_width (l_minimum_width)
-			set_minimum_height (l_minimum_height)
+			set_minimum_size (l_minimum_width, l_minimum_height)
 		end
 
 	update_size
@@ -294,6 +296,8 @@ feature {SD_TOOL_BAR_TITLE_BAR, SD_TITLE_BAR} -- Special setting
 						l_height := l_pixmap.height + 2 * padding_width
 					elseif attached l_item.pixel_buffer as l_pixel_buffer then
 						l_height := l_pixel_buffer.height + 2 * padding_width
+					elseif attached {SD_TOOL_BAR_WIDGET_ITEM} l_item as l_widget_item then
+						l_height := l_widget_item.widget.minimum_height
 					end
 
 					if Result < l_height then
@@ -944,7 +948,8 @@ feature {NONE} -- Output
 
 	debug_output: STRING_32
 		do
-			Result := {STRING_32} "SD_TOOL_BAR: "
+			Result := Precursor
+			Result.append ("::SD_TOOL_BAR: ")
 			Result.append
 				(if attached content as c then
 					c.title
@@ -959,7 +964,7 @@ invariant
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

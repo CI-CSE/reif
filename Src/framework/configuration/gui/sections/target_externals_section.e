@@ -1,5 +1,4 @@
 ﻿note
-	description: "Objects that ..."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -202,16 +201,18 @@ feature -- Element update
 			-- Set include externals.
 		local
 			l_external: EXTERNAL_INCLUDE_SECTION
+			l_internal_includes: like internal_includes
 		do
 			if a_externals /= Void and then not a_externals.is_empty then
-				create internal_includes.make (target, configuration_window)
+				create l_internal_includes.make (target, configuration_window)
+				internal_includes := l_internal_includes
 				from
 					a_externals.start
 				until
 					a_externals.after
 				loop
 					create l_external.make (a_externals.item, target, configuration_window)
-					internal_includes.extend (l_external)
+					l_internal_includes.extend (l_external)
 					a_externals.forth
 				end
 				order_headers
@@ -220,12 +221,15 @@ feature -- Element update
 
 	set_cflag (e: ARRAYED_LIST [CONF_EXTERNAL_CFLAG])
 			-- Set C flag externals.
+		local
+			l_internal_cflag: like internal_cflag
 		do
 			if attached e and then not e.is_empty then
-				create internal_cflag.make (target, configuration_window)
+				create l_internal_cflag.make (target, configuration_window)
+				internal_cflag := l_internal_cflag
 				across e as c loop
-					internal_cflag.extend
-						(create {EXTERNAL_CFLAG_SECTION}.make (c.item, target, configuration_window))
+					l_internal_cflag.extend
+						(create {EXTERNAL_CFLAG_SECTION}.make (c, target, configuration_window))
 				end
 				order_headers
 			end
@@ -235,16 +239,18 @@ feature -- Element update
 			-- Set object externals.
 		local
 			l_external: EXTERNAL_OBJECT_SECTION
+			l_internal_objects: like internal_objects
 		do
 			if a_externals /= Void and then not a_externals.is_empty then
-				create internal_objects.make (target, configuration_window)
+				create l_internal_objects.make (target, configuration_window)
+				internal_objects := l_internal_objects
 				from
 					a_externals.start
 				until
 					a_externals.after
 				loop
 					create l_external.make (a_externals.item, target, configuration_window)
-					internal_objects.extend (l_external)
+					l_internal_objects.extend (l_external)
 					a_externals.forth
 				end
 				order_headers
@@ -255,16 +261,18 @@ feature -- Element update
 			-- Set library externals.
 		local
 			l_external: EXTERNAL_LIBRARY_SECTION
+			l_internal_libraries: like internal_libraries
 		do
 			if a_externals /= Void and then not a_externals.is_empty then
-				create internal_libraries.make (target, configuration_window)
+				create l_internal_libraries.make (target, configuration_window)
+				internal_libraries := l_internal_libraries
 				from
 					a_externals.start
 				until
 					a_externals.after
 				loop
 					create l_external.make (a_externals.item, target, configuration_window)
-					internal_libraries.extend (l_external)
+					l_internal_libraries.extend (l_external)
 					a_externals.forth
 				end
 				order_headers
@@ -275,16 +283,18 @@ feature -- Element update
 			-- Set resource externals.
 		local
 			l_external: EXTERNAL_RESOURCE_SECTION
+			l_internal_resources: like internal_resources
 		do
 			if a_externals /= Void and then not a_externals.is_empty then
-				create internal_resources.make (target, configuration_window)
+				create l_internal_resources.make (target, configuration_window)
+				internal_resources := l_internal_resources
 				from
 					a_externals.start
 				until
 					a_externals.after
 				loop
 					create l_external.make (a_externals.item, target, configuration_window)
-					internal_resources.extend (l_external)
+					l_internal_resources.extend (l_external)
 					a_externals.forth
 				end
 				order_headers
@@ -293,12 +303,15 @@ feature -- Element update
 
 	set_linker_flag (e: ARRAYED_LIST [CONF_EXTERNAL_LINKER_FLAG])
 			-- Set linker flag externals.
+		local
+			l_internal_linker_flag: like internal_linker_flag
 		do
 			if attached e and then not e.is_empty then
-				create internal_linker_flag.make (target, configuration_window)
+				create l_internal_linker_flag.make (target, configuration_window)
+				internal_linker_flag := l_internal_linker_flag
 				across e as c loop
-					internal_linker_flag.extend
-						(create {EXTERNAL_LINKER_FLAG_SECTION}.make (c.item, target, configuration_window))
+					l_internal_linker_flag.extend
+						(create {EXTERNAL_LINKER_FLAG_SECTION}.make (c, target, configuration_window))
 				end
 				order_headers
 			end
@@ -308,16 +321,18 @@ feature -- Element update
 			-- Set make externals.
 		local
 			l_external: EXTERNAL_MAKE_SECTION
+			l_internal_makefiles: like internal_makefiles
 		do
 			if a_externals /= Void and then not a_externals.is_empty then
-				create internal_makefiles.make (target, configuration_window)
+				create l_internal_makefiles.make (target, configuration_window)
+				internal_makefiles := l_internal_makefiles
 				from
 					a_externals.start
 				until
 					a_externals.after
 				loop
 					create l_external.make (a_externals.item, target, configuration_window)
-					internal_makefiles.extend (l_external)
+					l_internal_makefiles.extend (l_external)
 					a_externals.forth
 				end
 				order_headers
@@ -484,9 +499,9 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			

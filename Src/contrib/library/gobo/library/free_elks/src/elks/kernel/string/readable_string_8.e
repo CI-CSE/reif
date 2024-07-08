@@ -2,7 +2,7 @@
 	description: "[
 		Sequences of 8-bit characters, accessible through integer indices
 		in a contiguous range. Read-only interface.
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -15,17 +15,18 @@ deferred class
 inherit
 	READABLE_STRING_GENERAL
 		rename
-			same_string as same_string_general,
-			same_characters as same_characters_general,
-			same_caseless_characters as same_caseless_characters_general,
-			starts_with as starts_with_general,
 			ends_with as ends_with_general,
-			is_case_insensitive_equal as is_case_insensitive_equal_general,
-			item as character_32_item,
 			has as character_32_has,
 			index_of as character_32_index_of,
+			is_case_insensitive_equal as is_case_insensitive_equal_general,
+			item as character_32_item,
 			last_index_of as character_32_last_index_of,
-			occurrences as character_32_occurrences
+			occurrences as character_32_occurrences,
+			plus as plus_general,
+			same_caseless_characters as same_caseless_characters_general,
+			same_characters as same_characters_general,
+			same_string as same_string_general,
+			starts_with as starts_with_general
 		redefine
 			copy, is_equal, out
 		end
@@ -90,7 +91,7 @@ feature {NONE} -- Initialization
 
 	make_from_c (c_string: POINTER)
 			-- Initialize from contents of `c_string',
-			-- a string created by some C function
+			-- a string created by some C function.
 		require
 			c_string_exists: c_string /= default_pointer
 		local
@@ -105,11 +106,45 @@ feature {NONE} -- Initialization
 			c_string_provider.read_substring_into_character_8_area (area, 1, l_count)
 		end
 
+	make_from_c_byte_array (a_byte_array: POINTER; a_character_count: INTEGER)
+			-- Initialize from contents of `a_byte_array' for a length of `a_character_count`,
+			-- given that each character is encoded in 1 single byte.
+			-- ex: (char*) "abc"  for STRING_8 "abc"			
+		require
+			a_byte_array_exists: not a_byte_array.is_default_pointer
+		do
+			c_string_provider.set_shared_from_pointer_and_count (a_byte_array, a_character_count)
+			create area.make_filled ('%/000/', a_character_count + 1)
+			count := a_character_count
+			internal_hash_code := 0
+			c_string_provider.read_substring_into_character_8_area (area, 1, a_character_count)
+		end
+
+	make_from_c_substring (c_string: POINTER; start_pos, end_pos: INTEGER)
+			-- Initialize from substring of `c_string',
+			-- between `start_pos' and `end_pos',
+			-- `c_string' created by some C function.
+		require
+			c_string_exists: c_string /= default_pointer
+			start_position_big_enough: start_pos >= 1
+			end_position_big_enough: start_pos <= end_pos + 1
+		local
+			l_count: INTEGER
+		do
+			l_count := end_pos - start_pos + 1
+			c_string_provider.set_shared_from_pointer_and_count (c_string + (start_pos - 1), l_count)
+			create area.make_filled ('%/000/', l_count + 1)
+			count := l_count
+			internal_hash_code := 0
+			internal_case_insensitive_hash_code := 0
+			c_string_provider.read_substring_into_character_8_area (area, 1, l_count)
+		end
+
 	make_from_c_pointer (c_string: POINTER)
 			-- Create new instance from contents of `c_string',
-			-- a string created by some C function
+			-- a string created by some C function.
 		obsolete
-			"Use `make_from_c' instead."
+			"Use `make_from_c' instead. [2017-05-31]"
 		require
 			c_string_exists: c_string /= default_pointer
 		do
@@ -157,7 +192,7 @@ feature -- Access
 	item_code (i: INTEGER): INTEGER
 			-- Numeric code of character at position `i'.
 		obsolete
-			"For consistency with Unicode string handling, use `code (i)' instead."
+			"For consistency with Unicode string handling, use `code (i)' instead. [2017-05-31]"
 		require
 			index_small_enough: i <= count
 			index_large_enough: i > 0
@@ -253,7 +288,7 @@ feature -- Access
 		end
 
 	string_representation: STRING_8
-			-- Similar to `string' but only create a new object if `Current' is not of dynamic type {STRING_8}
+			-- Similar to `string' but only create a new object if `Current' is not of dynamic type {STRING_8}.
 		do
 			if same_type (create {STRING_8}.make_empty) and then attached {STRING_8} Current as l_s8 then
 				Result := l_s8
@@ -288,16 +323,16 @@ feature -- Access
 feature -- Measurement
 
 	capacity: INTEGER
-			-- Allocated space
+			-- <Precursor>
 		do
 			Result := area.count - 1
 		end
 
 	count: INTEGER
-			-- Actual number of characters making up the string
+			-- Actual number of characters making up the string.
 
 	occurrences (c: CHARACTER_8): INTEGER
-			-- Number of times `c' appears in the string
+			-- Number of times `c' appears in the string.
 		local
 			i, nb: INTEGER
 			a: SPECIAL [CHARACTER_8]
@@ -370,7 +405,7 @@ feature -- Comparison
 		ensure
 			symmetric: Result implies other.is_case_insensitive_equal (Current)
 			consistent: attached {like Current} other as l_other implies (standard_is_equal (l_other) implies Result)
-			valid_result: as_lower ~ other.as_lower implies Result
+			valid_result: as_lower.same_string (other.as_lower) implies Result
 		end
 
  	same_caseless_characters (other: READABLE_STRING_8; start_pos, end_pos, index_pos: INTEGER): BOOLEAN
@@ -521,7 +556,7 @@ feature -- Status report
 				loop
 					i := i + 1
 				end
-				Result := (i < nb)
+				Result := i < nb
 			end
 		ensure
 			false_if_empty: count = 0 implies not Result
@@ -610,7 +645,7 @@ feature -- Status report
 		end
 
 	is_boolean: BOOLEAN
-			-- Does `Current' represent a BOOLEAN?
+			-- <Precursor>
 		local
 			nb: INTEGER
 			l_area: like area
@@ -665,6 +700,20 @@ feature {READABLE_STRING_8} -- Duplication
 			-- same_characters: For every `i' in 1..`count', `item' (`i') = `other'.`item' (`i')
 		end
 
+feature -- Basic operations
+
+	plus alias "+" (s: READABLE_STRING_8): like Current
+			-- Concatenation with `s`.
+		require
+			argument_attached: attached s
+		deferred
+		ensure
+			plus_attached: attached Result
+			new_count: Result.count = count + s.count
+			initial: elks_checking implies Result.substring (1, count) ~ Current
+			final: elks_checking implies Result.substring (count + 1, count + s.count).same_string (s)
+		end
+
 feature {NONE} -- Element change
 
 	fill_character (c: CHARACTER_8)
@@ -699,27 +748,26 @@ feature -- Conversion
 feature -- Duplication
 
 	substring (start_index, end_index: INTEGER): like Current
-			-- Copy of substring containing all characters at indices
-			-- between `start_index' and `end_index'
+			-- <Precursor>
 		deferred
 		end
 
 feature -- Output
 
 	out: STRING
-			-- Printable representation
+			-- <Precursor>
 		do
 			create Result.make (count)
-			Result.append (Current)
+			Result.append_string_general (Current)
 		ensure then
 			out_not_void: Result /= Void
-			same_items: same_type ("") implies Result.same_string (Current)
+			same_items: same_type ("") implies Result.same_string_general (Current)
 		end
 
 feature {NONE} -- Implementation
 
 	string_searcher: STRING_8_SEARCHER
-			-- String searcher specialized for READABLE_STRING_8 instances
+			-- String searcher specialized for READABLE_STRING_8 instances.
 		once
 			create Result.make
 		end
@@ -827,13 +875,14 @@ feature
 	HEXADECIMAL_STRING_TO_INTEGER_CONVERTER,
 	STRING_TO_INTEGER_CONVERTOR,
 	STRING_TO_REAL_CONVERTOR,
-	STRING_8_ITERATION_CURSOR} -- Implementation
+	STRING_8_ITERATION_CURSOR,
+	IO_MEDIUM} -- Implementation
 
 	area: SPECIAL [CHARACTER_8]
-			-- Storage for characters
+			-- Storage for characters.
 
 	area_lower: INTEGER
-			-- Minimum index
+			-- Minimum index.
 		do
 		ensure
 			area_lower_non_negative: Result >= 0
@@ -841,7 +890,7 @@ feature
 		end
 
 	area_upper: INTEGER
-			-- Maximum index
+			-- Maximum index.
 		do
 			Result := area_lower + count - 1
 		ensure
@@ -853,7 +902,7 @@ invariant
 	area_not_void: area /= Void
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

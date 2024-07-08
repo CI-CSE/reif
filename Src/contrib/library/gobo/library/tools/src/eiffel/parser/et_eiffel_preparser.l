@@ -1,4 +1,4 @@
-%{
+﻿%{
 note
 
 	description:
@@ -6,7 +6,7 @@ note
 		"Eiffel preparsers"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2002-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2002-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -22,26 +22,21 @@ create
 	make
 %}
 
-UTF8_BOM (\xEF\xBB\xBF)
+HORIZONTAL_BREAK	[ \t\x0B\f\r\u{00A0}\u{1680}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}]
+BREAK				{HORIZONTAL_BREAK}{+}[\n]
+FREEOP_CHAR			[^a-zA-Z0-9_:;,?'"$.=()[\]{}]{-}{BREAK}
+CHAR_CODE			[0-9](_*[0-9]+)*|0[xX][0-9a-fA-F](_*[0-9a-fA-F]+)*|0[cC][0-7](_*[0-7]+)*|0[bB][0-1](_*[0-1]+)*
 
-%x MS MSN MSN1 VS1 VS2 VS3 LAVS1 LAVS2 LAVS3
+%x MS MSN MSN1 VS1 VS2 VS3
 %option nodefault line outfile="et_eiffel_preparser.e"
 
 %%
 
-----------/** BOM **/-----------------------------------------------------------
-
-{UTF8_BOM}	{
-				-- Ignore byte order mark (BOM).
-				-- See http://en.wikipedia.org/wiki/Byte_order_mark
-			}
-
-
 ----------/** Separators, Comments, Symbols **/----------------------------------------------------
 
-([ \t\r\n]|"--".*)+	|
-[-+*/^=><.;,:!?(){}[\]$~]	|
-("//"|"\\\\"|"/="|"/~"|">="|"<="|"->"|".."|"<<"|">>"|":="|"?=")	{
+({BREAK}|"--".*)+	|
+[-+*/^=><.;,:!?(){}[\]$~@∀∃¦⟳⟲∧⇒¬∨⊻]	|
+("//"|"\\\\"|"/="|"/~"|">="|"<="|"->"|".."|"<<"|">>"|":="|"?="|"∧…"|"∨…")	{
 			}
 
 ----------/** Reserved words **/------------------------------------------------
@@ -74,7 +69,6 @@ UTF8_BOM (\xEF\xBB\xBF)
 [iI][fF]	|
 [iI][mM][pP][lL][iI][eE][sS]	|
 [iI][nN][dD][eE][xX][iI][nN][gG]	|
-[iI][nN][fF][iI][xX]	|
 [iI][nN][hH][eE][rR][iI][tT]	|
 [iI][nN][sS][pP][eE][cC][tT]	|
 [iI][nN][vV][aA][rR][iI][aA][nN][tT]	|
@@ -88,7 +82,6 @@ UTF8_BOM (\xEF\xBB\xBF)
 [oO][nN][cC][eE]	|
 [oO][rR]	|
 [pP][rR][eE][cC][uU][rR][sS][oO][rR]	|
-[pP][rR][eE][fF][iI][xX]	|
 [rR][eE][dD][eE][fF][iI][nN][eE]	|
 [rR][eE][nN][aA][mM][eE]	|
 [rR][eE][qQ][uU][iI][rR][eE]	|
@@ -189,21 +182,26 @@ UTF8_BOM (\xEF\xBB\xBF)
 
 ----------/** Eiffel free operators **/-----------------------------------------
 
-[@#|&][^%" \t\r\n]*	{
-			}
-
 		-- Note: Accepts non-printable characters as well,
 		-- provided that they are not break characters.
 
+-- Legacy: free operators which must start with [@#|&] is not in the standard anymore.
+-- Make sure that we don't have a subsequence of the form "--" (beginning of a comment).
+[@#|&]([@#0-9a-zA-Z_!\$&\'\(\)\*\+\,\./:;<>=\?\[\\\]\^\`\{\}\|\~]|\-[@#0-9a-zA-Z_!\$&\'\(\)\*\+\,\./:;<>=\?\[\\\]\^\`\{\}\|\~])*\-? {
+			}
+
+-- Make sure that we don't have a subsequence of the form "--", "->", "<<" or "<<" (which are special symbols).
+-- Do not allow breaks (spaces, newlines) either.
+({FREEOP_CHAR}{-}[\-<>]|\-{FREEOP_CHAR}{-}[\->]|>{FREEOP_CHAR}{-}[>]|<{FREEOP_CHAR}{-}[<])+({FREEOP_CHAR}{-}[\-]\-|{FREEOP_CHAR}{-}[\->]>|{FREEOP_CHAR}{-}[<]<)? {
+			}
 
 ----------/** Eiffel characters **/---------------------------------------------
 
 \'[^%\n]\'	|
-\'%.\'		|
-\'%\/[0-9]+\/\'	{
+\'%[ABCDFHLNQRSTUV%'"()<>]\'	|
+\'%\/{CHAR_CODE}\/\'	{
 			}
-
-\'%\/[0-9]+	{
+\'%\/{CHAR_CODE}	{
 					-- Syntax error: missing character / at end
 					-- of special character specification %/code/.
 				column := column + text_count
@@ -213,7 +211,7 @@ UTF8_BOM (\xEF\xBB\xBF)
 				last_token := E_CHARERR
 			}
 \'%\/		{
-					-- Syntax error: missing ASCII code in
+					-- Syntax error: missing character code in
 					-- special character specification %/code/.
 				column := column + 3
 				set_syntax_error
@@ -229,7 +227,7 @@ UTF8_BOM (\xEF\xBB\xBF)
 				column := column - 1
 				last_token := E_CHARERR
 			}
-\'(.|%.|%\/[0-9]+\/)?	{
+\'([^%\n]|%[ABCDFHLNQRSTUV%'"()<>]|%\/{CHAR_CODE}\/)?	{
 					-- Syntax error: missing quote at
 					-- end of character constant.
 				column := column + text_count
@@ -245,15 +243,17 @@ UTF8_BOM (\xEF\xBB\xBF)
 \"[^%\n"]*\"	{
 			}
 
-\"[^\n"%]*\{/[ \t\r]*\n {
+\"[^\n"]*[{\{]/{HORIZONTAL_BREAK}*\n {
 					-- Verbatim string.
-				verbatim_marker := text_substring (2, text_count - 1)
+				verbatim_marker := utf8_text_substring (2, text_count - 1)
+				verbatim_marker_count := text_count - 2
+				verbatim_opening_character := unicode_text_item (text_count)
 				set_start_condition (VS1)
 			}
 <VS1>{
 		-- Discard space characters at the
 		-- end of Verbatim_string_opener.
-	[ \t\r]*\n {
+	{HORIZONTAL_BREAK}*\n {
 				last_literal_start := 1
 				last_literal_end := 0
 				set_start_condition (VS2)
@@ -274,9 +274,10 @@ UTF8_BOM (\xEF\xBB\xBF)
 <VS2>{
 		-- Read one line of a verbatim string body
 		-- from the beginning of line.
-	[ \t\r]*\}[^%\n"]*\" {
+	{HORIZONTAL_BREAK}*[}\]][^\n"]*\" {
 				if is_verbatim_string_closer (last_literal_end + 1, text_count - 1) then
 					verbatim_marker := no_verbatim_marker
+					verbatim_marker_count := 0
 					set_start_condition (INITIAL)
 				else
 					more
@@ -295,13 +296,13 @@ UTF8_BOM (\xEF\xBB\xBF)
 				more
 				last_literal_end := text_count - 1
 			}
-	[^"\n]* {
+	.		{
 					-- No final brace-double-quote.
 				last_token := E_STRERR
 				report_syntax_error (current_position)
 				set_start_condition (INITIAL)
 			}
-	<<EOF>>	{
+	<<EOF>>		{
 					-- No final brace-double-quote.
 				last_token := E_STRERR
 				report_syntax_error (current_position)
@@ -321,114 +322,24 @@ UTF8_BOM (\xEF\xBB\xBF)
 				last_literal_end := text_count - 1
 				set_start_condition (VS2)
 			}
-	.*		{
-					-- No final brace-double-quote.
-				last_token := E_STRERR
-				report_syntax_error (current_position)
-				set_start_condition (INITIAL)
-			}
-	<<EOF>>	{
-					-- No final brace-double-quote.
-				last_token := E_STRERR
-				report_syntax_error (current_position)
-				set_start_condition (INITIAL)
-			}
-}
-
-\"[^\n"%]*\[/[ \t\r]*\n {
-					-- Left aligned verbatim string.
-				verbatim_marker := text_substring (2, text_count - 1)
-				set_start_condition (LAVS1)
-			}
-<LAVS1>{
-		-- Discard space characters at the
-		-- end of Verbatim_string_opener.
-	[ \t\r]*\n {
-				last_literal_start := 1
-				last_literal_end := 0
-				set_start_condition (LAVS2)
-			}
 	.		{
-					-- No final bracket-double-quote.
+					-- No final brace-double-quote.
 				last_token := E_STRERR
 				report_syntax_error (current_position)
 				set_start_condition (INITIAL)
 			}
-	<<EOF>>	{
-					-- No final bracket-double-quote.
-				last_token := E_STRERR
-				report_syntax_error (current_position)
-				set_start_condition (INITIAL)
-			}
-}
-<LAVS2>{
-		-- Read one line of a verbatim string body
-		-- from the beginning of line.
-	[ \t\r]*\][^%\n"]*\" {
-				if is_verbatim_string_closer (last_literal_end + 1, text_count - 1) then
-					verbatim_marker := no_verbatim_marker
-					set_start_condition (INITIAL)
-				else
-					more
-					set_start_condition (LAVS3)
-				end
-			}
-	[^"\n]*\" {
-				more
-				set_start_condition (LAVS3)
-			}
-	[^"\n]*\r\n {
-				more
-				last_literal_end := text_count - 2
-			}
-	[^"\n]*\n {
-				more
-				last_literal_end := text_count - 1
-			}
-	[^"\n]* {
-					-- No final bracket-double-quote.
-				last_token := E_STRERR
-				report_syntax_error (current_position)
-				set_start_condition (INITIAL)
-			}
-	<<EOF>>	{
-					-- No final bracket-double-quote.
-				last_token := E_STRERR
-				report_syntax_error (current_position)
-				set_start_condition (INITIAL)
-			}
-}
-<LAVS3>{
-		-- Read remaining characters of a line
-		-- in verbatim string body.
-	.*\r\n	{
-				more
-				last_literal_end := text_count - 2
-				set_start_condition (LAVS2)
-			}
-	.*\n	{
-				more
-				last_literal_end := text_count - 1
-				set_start_condition (LAVS2)
-			}
-	.*		{
-					-- No final bracket-double-quote.
-				last_token := E_STRERR
-				report_syntax_error (current_position)
-				set_start_condition (INITIAL)
-			}
-	<<EOF>>	{
-					-- No final bracket-double-quote.
+	<<EOF>>		{
+					-- No final brace-double-quote.
 				last_token := E_STRERR
 				report_syntax_error (current_position)
 				set_start_condition (INITIAL)
 			}
 }
 
-\"([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/[0-9]+\/))*\"	{
+\"([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/{CHAR_CODE}\/))*\"	{
 					-- Manifest string with special characters.
 			}
-\"([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/[0-9]+\/))*	{
+\"([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/{CHAR_CODE}\/))*	{
 					-- Manifest string with special characters which may be made
 					-- up of several lines or may include invalid characters.
 					-- Keep track of current line and column.
@@ -439,30 +350,15 @@ UTF8_BOM (\xEF\xBB\xBF)
 			}
 
 <MS>{
-	%\r?\n	{
+	%{HORIZONTAL_BREAK}*\n	{
 					-- Multi-line manifest string.
 				more
 				set_start_condition (MSN)
 			}
-	%[ \t\r]/[ \t\r]*\n	{
-					-- Multi-line manifest string.
-
-					-- Syntax error: no space allowed after character
-					-- % at end of line in multi-line manifest strings.
-				column := yy_column - 1
-				line := yy_line
---				set_syntax_error
---				error_handler.report_SSNS_error (filename, current_position)
-				column := ms_column
-				line := ms_line
-
-				more
-				set_start_condition (MSN1)
-			}
-	%\/[0-9]+\/	{
+	%\/{CHAR_CODE}\/	{
 				more
 			}
-	%\/[0-9]+	{
+	%\/{CHAR_CODE}	{
 					-- Syntax error: missing character / at end of special
 					-- character specification %/code/ in manifest string.
 				column := yy_column
@@ -471,8 +367,8 @@ UTF8_BOM (\xEF\xBB\xBF)
 --				error_handler.report_SSAS_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
-				more
+--				last_token := E_STRERR
+				set_start_condition (INITIAL)
 			}
 	%\/		{
 					-- Syntax error: missing ASCII code in special character
@@ -483,26 +379,26 @@ UTF8_BOM (\xEF\xBB\xBF)
 --				error_handler.report_SSAC_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
-				more
+--				last_token := E_STRERR
+				set_start_condition (INITIAL)
 			}
 	%[abcdfhlnqrstuv]	{
 					-- Syntax error: special character specification
 					-- %l where l is a letter code should be in
 					-- upper-case in manifest strings.
-				column := yy_column - 1
+				column := yy_column
 				line := yy_line
 --				set_syntax_error
 --				error_handler.report_SSCU_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
+--				last_token := E_STRERR
+				set_start_condition (INITIAL)
+			}
+	([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/{CHAR_CODE}\/))+	{
 				more
 			}
-	([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/[0-9]+\/))+	{
-				more
-			}
-	([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/[0-9]+\/))*\"	{
+	([^%\n"]|%([ABCDFHLNQRSTUV%'"()<>]|\/{CHAR_CODE}\/))*\"	{
 				set_start_condition (INITIAL)
 			}
 	%.		{
@@ -514,7 +410,6 @@ UTF8_BOM (\xEF\xBB\xBF)
 --				error_handler.report_SSSC_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				more
 			}
 	%		{
@@ -526,7 +421,6 @@ UTF8_BOM (\xEF\xBB\xBF)
 				error_handler.report_SSSC_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				last_token := E_STRERR
 				set_start_condition (INITIAL)
 			}
@@ -538,11 +432,10 @@ UTF8_BOM (\xEF\xBB\xBF)
 				error_handler.report_SSNL_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				last_token := E_STRERR
 				set_start_condition (INITIAL)
 			}
-	<<EOF>>	{
+	<<EOF>>		{
 					-- Syntax error: missing double quote at
 					-- end of manifest string.
 				column := yy_column
@@ -551,14 +444,13 @@ UTF8_BOM (\xEF\xBB\xBF)
 				error_handler.report_SSEQ_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				last_token := E_STRERR
 				set_start_condition (INITIAL)
 			}
 }
 
 <MSN1>{
-	[ \t\r]*\n	{
+	{HORIZONTAL_BREAK}*\n	{
 				more
 				set_start_condition (MSN)
 			}
@@ -577,11 +469,11 @@ UTF8_BOM (\xEF\xBB\xBF)
 }
 
 <MSN>{
-	[ \r\t]*%	{
+	{HORIZONTAL_BREAK}*%	{
 				more
 				set_start_condition (MS)
 			}
-	[ \r\t]*\n	{
+	{HORIZONTAL_BREAK}*\n	{
 					-- Syntax error: empty line in middle of
 					-- multi-line manifest string.
 				column := 1
@@ -590,7 +482,6 @@ UTF8_BOM (\xEF\xBB\xBF)
 --				error_handler.report_SSEL_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				more
 			}
 	.		{
@@ -602,11 +493,10 @@ UTF8_BOM (\xEF\xBB\xBF)
 				error_handler.report_SSNP_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				last_token := E_STRERR
 				set_start_condition (INITIAL)
 			}
-	<<EOF>>	{
+	<<EOF>>		{
 					-- Syntax error: missing character % at beginning
 					-- of line in multi-line manifest string.
 				column := yy_column
@@ -615,7 +505,6 @@ UTF8_BOM (\xEF\xBB\xBF)
 				error_handler.report_SSNP_error (filename, current_position)
 				column := ms_column
 				line := ms_line
-
 				last_token := E_STRERR
 				set_start_condition (INITIAL)
 			}
@@ -694,11 +583,11 @@ UTF8_BOM (\xEF\xBB\xBF)
 
 ---------/** Eiffel reals **/---------------------------------------------------
 
-[0-9]+\./[^.0-9]					|
+[0-9]+\./[^.0-9eE]					|
 [0-9]+\.[0-9]*[eE][+-]?[0-9]+		|
 [0-9]*\.[0-9]+([eE][+-]?[0-9]+)?	{
 			}
-[0-9]+(_+[0-9]+)+\./[^.0-9]	|
+[0-9]+(_+[0-9]+)+\./[^.0-9eE]	|
 [0-9]+(_+[0-9]+)*\.([0-9]+(_+[0-9]+)*)?[eE][+-]?[0-9]+(_+[0-9]+)*	|
 ([0-9]+(_+[0-9]+)*)?\.[0-9]+(_+[0-9]+)*([eE][+-]?[0-9]+(_+[0-9]+)*)?	{
 			}

@@ -1,10 +1,16 @@
-note
+﻿note
 	description: "Unicode description of a character code."
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
 	UNICODE_CHARACTER_DATA
+
+inherit
+	ANY
+		redefine
+			out
+		end
 
 create
 	make
@@ -65,7 +71,7 @@ feature {NONE} -- Initialization
 				code := to_natural (l_list.i_th (1))
 				name := l_list.i_th (2)
 				general_category := l_list.i_th (3)
-				canonical_combining_class := to_natural (l_list.i_th (4))
+				canonical_combining_class := from_decimal (l_list.i_th (4))
 				bidirectional_category := l_list.i_th (5)
 				character_decomposition_tag := void_if_empty (l_list.i_th (6))
 				decimal_digit_value := void_if_empty (l_list.i_th (7))
@@ -95,6 +101,7 @@ feature {NONE} -- Initialization
 				is_space := (not general_category.is_empty and then general_category.item (1) = 'Z') or
 					bidirectional_category.same_string ("WS") or bidirectional_category.same_string ("B") or
 					bidirectional_category.same_string ("S")
+				category := category_mask [general_category]
 			else
 				code := 0
 				name := ""
@@ -114,6 +121,12 @@ feature -- Access
 
 	code: NATURAL_32
 			-- Value for current character code.
+
+	hexadecimal_code: STRING_8
+			-- Hexadecimal representation of `code`.
+		do
+			Result := hexadecimal_code_point (code)
+		end
 
 	name: STRING
 			-- Name of the current character.
@@ -306,17 +319,40 @@ feature {NONE} -- Implementation
 			same_string_if_not_empty: not a_string.is_empty implies Result = a_string
 		end
 
+	from_decimal (s: STRING): NATURAL_32
+			-- Convert `s` in decimal notation to a NATURAL_32.
+			-- If `s` is empty, then `0` as a signaling value that nothing was specified.
+		do
+			if s.is_empty then
+				Result := 0
+			else
+				decimal_convertor.parse_string_with_type (s, {NUMERIC_INFORMATION}.type_natural_32)
+				Result := decimal_convertor.parsed_natural_32
+			end
+		end
+
 	to_natural (a_string: STRING): NATURAL_32
-			-- Convert `a_string' to a NATURAL_32.
+			-- Convert `a_string` in hexadecimal notation to a NATURAL_32.
 			-- If `a_string' is empty, then 0 as a signaling value that nothing was specified.
 		do
 			if a_string.is_empty then
 				Result := 0
 			else
-				ctoi_convertor.reset ({NUMERIC_INFORMATION}.type_natural_32)
 				ctoi_convertor.parse_string_with_type (a_string, {NUMERIC_INFORMATION}.type_natural_32)
 				Result := ctoi_convertor.parsed_natural_32
 			end
+		end
+
+	decimal_convertor: STRING_TO_INTEGER_CONVERTOR
+			-- Convertor used to convert decimal string to integer or natural.
+		once
+			create Result.make
+			Result.set_leading_separators (" ")
+			Result.set_trailing_separators (" ")
+			Result.set_leading_separators_acceptable (True)
+			Result.set_trailing_separators_acceptable (True)
+		ensure
+			ctoi_convertor_not_void: Result /= Void
 		end
 
 	ctoi_convertor: HEXADECIMAL_STRING_TO_INTEGER_CONVERTER
@@ -340,5 +376,143 @@ feature {NONE} -- Implementation
 	is_hexa_digit_flag: NATURAL_8 = 0x40
 	is_space_flag: NATURAL_8 = 0x80
 			-- Various flags
+
+feature -- General category
+
+	category: NATURAL_32
+			-- A bit mask with the bit set for the specific category.
+
+	category_letter_uppercase: NATURAL_32 = 0x0000_0001
+	category_letter_lowercase: NATURAL_32 = 0x0000_0002
+	category_letter_titlecase: NATURAL_32 = 0x0000_0004
+	category_letter_modifier: NATURAL_32 = 0x0000_0008
+	category_letter_other: NATURAL_32 = 0x0000_0010
+
+	category_mark_nonspacing: NATURAL_32 = 0x0000_0020
+	category_mark_spacing_combining: NATURAL_32 = 0x0000_0040
+	category_mark_enclosing: NATURAL_32 = 0x0000_0080
+
+	category_number_decimal_digit: NATURAL_32 = 0x0000_0100
+	category_number_letter: NATURAL_32 = 0x0000_0200
+	category_number_other: NATURAL_32 = 0x0000_0400
+
+	category_punctuation_connector: NATURAL_32 = 0x0000_0800
+	category_punctuation_dash: NATURAL_32 = 0x0000_1000
+	category_punctuation_open: NATURAL_32 = 0x0000_2000
+	category_punctuation_close: NATURAL_32 = 0x0000_4000
+	category_punctuation_initial_quote: NATURAL_32 = 0x0000_8000
+	category_punctuation_final_quote: NATURAL_32 = 0x0001_0000
+	category_punctuation_other: NATURAL_32 = 0x0002_0000
+
+	category_symbol_math: NATURAL_32 = 0x0004_0000
+	category_symbol_currency: NATURAL_32 = 0x0008_0000
+	category_symbol_modifier: NATURAL_32 = 0x0010_0000
+	category_symbol_other: NATURAL_32 = 0x0020_0000
+
+	category_separator_space: NATURAL_32 = 0x0040_0000
+	category_separator_line: NATURAL_32 = 0x0080_0000
+	category_separator_paragraph: NATURAL_32 = 0x0100_0000
+
+	category_other_control: NATURAL_32 = 0x0200_0000
+	category_other_format: NATURAL_32 = 0x0400_0000
+	category_other_surrogate: NATURAL_32 = 0x0800_0000
+	category_other_private_use: NATURAL_32 = 0x1000_0000
+	category_other_not_assigned: NATURAL_32 = 0x0200_0000
+
+	category_mask: STRING_TABLE [NATURAL_32]
+			-- Category mask indexed by its code in the database.
+		once
+			create Result.make (32)
+
+			Result ["Lu"] := category_letter_uppercase
+			Result ["Ll"] := category_letter_lowercase
+			Result ["Lt"] := category_letter_titlecase
+			Result ["Lm"] := category_letter_modifier
+			Result ["Lo"] := category_letter_other
+
+			Result ["Mn"] := category_mark_nonspacing
+			Result ["Mc"] := category_mark_spacing_combining
+			Result ["Me"] := category_mark_enclosing
+
+			Result ["Nd"] := category_number_decimal_digit
+			Result ["Nl"] := category_number_letter
+			Result ["No"] := category_number_other
+
+			Result ["Pc"] := category_punctuation_connector
+			Result ["Pd"] := category_punctuation_dash
+			Result ["Ps"] := category_punctuation_open
+			Result ["Pe"] := category_punctuation_close
+			Result ["Pi"] := category_punctuation_initial_quote
+			Result ["Pf"] := category_punctuation_final_quote
+			Result ["Po"] := category_punctuation_other
+
+			Result ["Sm"] := category_symbol_math
+			Result ["Sc"] := category_symbol_currency
+			Result ["Sk"] := category_symbol_modifier
+			Result ["So"] := category_symbol_other
+
+			Result ["Zs"] := category_separator_space
+			Result ["Zl"] := category_separator_line
+			Result ["Zp"] := category_separator_paragraph
+
+			Result ["Cc"] := category_other_control
+			Result ["Cf"] := category_other_format
+			Result ["Cs"] := category_other_surrogate
+			Result ["Co"] := category_other_private_use
+			Result ["Cn"] := category_other_not_assigned
+		ensure
+			class
+		end
+
+feature -- Output
+
+	out: like {ANY}.out
+			-- <Precursor>
+		do
+			Result := hexadecimal_code
+			Result.append_character (';')
+			Result.append (name)
+			Result.append_character (';')
+			Result.append (general_category)
+			Result.append_character (';')
+			Result.append_natural_32 (canonical_combining_class)
+			Result.append_character (';')
+			Result.append (bidirectional_category)
+			Result.append_character (';')
+			if attached character_decomposition_tag as s then Result.append (s) end
+			Result.append_character (';')
+			if attached decimal_digit_value as s then Result.append (s) end
+			Result.append_character (';')
+			if attached digit_value as s then Result.append (s) end
+			Result.append_character (';')
+			if attached numeric_value as s then Result.append (s) end
+			Result.append_character (';')
+			Result.append_character (if is_mirrored then 'Y' else 'N' end)
+			Result.append_character (';')
+			if attached v1_name as s then Result.append (s) end
+			Result.append_character (';')
+			if attached iso_10646_comment as s then Result.append (s) end
+			Result.append_character (';')
+			if upper_code /= 0 then Result.append (hexadecimal_code_point (upper_code)) end
+			Result.append_character (';')
+			if lower_code /= 0 then Result.append (hexadecimal_code_point (lower_code)) end
+			Result.append_character (';')
+			if title_code /= 0 then Result.append (hexadecimal_code_point (title_code)) end
+		end
+
+	hexadecimal_code_point (n: like code): like code.to_hex_string
+			-- Code point `n` as a string with 4 or more hexadecimal digits.
+		do
+			Result := n.to_hex_string
+			Result.keep_tail
+				(if n <= 0xFFFF then 4
+				elseif n <= 0xF_FFFF then 5
+				elseif n <= 0xFF_FFFF then 6
+				elseif n <= 0xFFF_FFFF then 7
+				else 8
+				end)
+		ensure
+			class
+		end
 
 end

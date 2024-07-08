@@ -3,10 +3,10 @@
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: sorted_priority_queue, dispenser, heap;
-	representation: heap;
-	access: fixed, membership;
-	contents: generic;
+	names: sorted_priority_queue, dispenser, heap
+	representation: heap
+	access: fixed, membership
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -15,7 +15,7 @@ class HEAP_PRIORITY_QUEUE [G -> COMPARABLE]
 inherit
 	PRIORITY_QUEUE [G]
 		redefine
-			linear_representation, is_equal, copy,
+			is_equal, copy,
 			replaceable
 		end
 
@@ -25,14 +25,25 @@ inherit
 		end
 
 create
-	make
+	make,
+	make_from_iterable
 
-feature -- Initialization
+convert
+	make_from_iterable ({ARRAY [G]})
+
+feature {NONE} -- Initialization
 
 	make (n: INTEGER)
 			-- Allocate heap space.
 		do
 			create area.make_empty (n)
+		end
+
+	make_from_iterable (other: ITERABLE [G])
+			-- Create a priority queue with all items obtained from `other`.
+		do
+			make (estimated_count_of (other))
+			⟳ o: other ¦ extend (o) ⟲
 		end
 
 feature -- Access
@@ -68,6 +79,14 @@ feature -- Access
 					i := i + 1
 				end
 			end
+		end
+
+feature -- Iteration
+
+	new_cursor: HEAP_PRIORITY_QUEUE_ITERATION_CURSOR [G]
+			-- <Precursor>
+		do
+			create Result.make (Current)
 		end
 
 feature -- Measurement
@@ -152,8 +171,8 @@ feature -- Comparison
 				object_comparison = other.object_comparison and then
 				count = other.count
 			then
-				l_current := duplicate (count)
-				l_other := other.duplicate (count)
+				l_current := twin
+				l_other := other.twin
 				from
 					Result := True
 				until
@@ -216,6 +235,12 @@ feature -- Duplication
 
 	duplicate (n: INTEGER): like Current
 			-- New priority queue containing `n' greatest items of Current.
+		obsolete
+			"[
+				Create a new container explicitly using `make_from_iterable` if available.
+				Otherwise, replace the call to the feature with code that creates and initializes the container.
+				[2018-11-30]
+			]"
 		require
 			n_positive: n >= 0
 			n_in_bounds: n <= count
@@ -238,15 +263,8 @@ feature -- Duplication
 			end
 
 				--| Insert `n' greatest items into new queue.
-			from
-				create Result.make (n)
-				l_tmp.start
-			until
-				l_tmp.after
-			loop
-				Result.put (l_tmp.item)
-				l_tmp.forth
-			end
+			create Result.make (n)
+			⟳ x: l_tmp ¦ Result.put (x) ⟲
 		end
 
 feature -- Removal
@@ -290,9 +308,9 @@ feature -- Removal
 			l_item: G
 			l_done: BOOLEAN
 		do
-				--| Create an ARRAYED_LIST with all items of Current except first
-				--| occurrence of `v'. Then recreate current with items from ARRAYED_LIST
-				--| if `v' was found.
+				-- Create an ARRAYED_LIST with all items of Current except the first
+				-- occurrence of `v'. Then recreate current object with items from ARRAYED_LIST
+				-- if `v' was found.
 			create l_tmp.make (count)
 			if object_comparison then
 				from
@@ -327,16 +345,9 @@ feature -- Removal
 			end
 
 			if l_tmp.count = count - 1 then
-					--| Item was found, we can update `Current'.
-				from
-					l_tmp.start
-					wipe_out
-				until
-					l_tmp.after
-				loop
-					put (l_tmp.item)
-					l_tmp.forth
-				end
+					-- Item was found, we can update `Current'.
+				wipe_out
+				⟳ x: l_tmp ¦ put (x) ⟲
 			end
 		end
 
@@ -388,13 +399,15 @@ feature -- Conversion
 			end
 		end
 
-feature {HEAP_PRIORITY_QUEUE} -- Implementation
+feature {HEAP_PRIORITY_QUEUE, HEAP_PRIORITY_QUEUE_ITERATION_CURSOR} -- Access
 
 	lower: INTEGER = 1
-			-- Lower bound for internal access to `area'.
+			-- Lower bound for internal access to `area`.
 
 	area: SPECIAL [G]
-			-- Storage for queue
+			-- Storage for queue.
+
+feature {HEAP_PRIORITY_QUEUE} -- Implementation
 
 	i_th (i: INTEGER): G
 		require
@@ -443,7 +456,7 @@ feature {NONE} -- Comparison
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

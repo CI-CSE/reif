@@ -1,8 +1,4 @@
-note
-	description: "[
-			Objects that ...
-		]"
-	author: "$Author$"
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -85,9 +81,24 @@ feature -- Status report
 				Precursor {FEATURE_STONE}
 		end
 
+feature -- Access
+
+	associated_text: detachable STRING_32
+
+feature -- Change	
+
+	set_associated_text (s: detachable READABLE_STRING_GENERAL)
+		do
+			if s = Void then
+				associated_text := Void
+			else
+				associated_text := s.to_string_32
+			end
+		end
+
 feature -- dragging
 
-	origin_text: STRING
+	origin_text: STRING_32
 			-- Text of the feature
 		do
 			Result := Precursor {ACCESS_ID_STONE}
@@ -169,7 +180,7 @@ feature -- dragging
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

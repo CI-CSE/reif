@@ -1,9 +1,12 @@
-note
-	description: "Objects that contains all the information relative to any header.%
-				  % Headers can only have email addresses informations."
+﻿note
+	description: "[
+			Objects that contains all the information relative to any header.
+			Headers can only have email addresses informations.
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	author: "David s"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -13,9 +16,9 @@ class
 create
 	make, make_with_entries
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
-	make (item: STRING)
+	make (item: READABLE_STRING_8)
 			-- Initialize the header with one 'item'.
 		do
 			create entries.make (1)
@@ -31,21 +34,21 @@ feature -- Initialization
 
 feature -- Access
 
-	entries: ARRAYED_LIST [STRING]
-		-- Multiple entries.
+	entries: ARRAYED_LIST [READABLE_STRING_8]
+			-- Multiple entries.
 
 feature -- Status report
 
 	multiple_entries: BOOLEAN
-		-- Has the header multiple entries.
+			-- Has the header multiple entries.
 
-	unique_entry: STRING
+	unique_entry: READABLE_STRING_8
 			-- Entry,
 			-- Useful if not multiple entries.
 		require
 			has_unique_entry: not multiple_entries
 		do
-			Result:= entries.first
+			Result := entries.first
 		end
 
 feature -- Status setting
@@ -53,13 +56,7 @@ feature -- Status setting
 	enable_multiple_entries
 			-- Enable multiple entries.
 		do
-			multiple_entries:= True
-		end
-
-	enable_contains_addresses
-		obsolete
-			"Implementation was never used, so no need to call this routine [2017-05-31]."
-		do
+			multiple_entries := True
 		end
 
 feature -- Basic operations
@@ -81,17 +78,13 @@ feature -- Basic operations
 		require
 			entries_exist: entries /= Void
 		do
-			across
-				list as ic
-			loop
-				entries.force (ic.item)
-			end
+			⟳ e: list ¦ entries.force (e) ⟲
 			if entries.count > 1 then
 				enable_multiple_entries
 			end
 		end
 
-	remove_entry (entry: STRING)
+	remove_entry (entry: READABLE_STRING_8)
 			-- Remove 'entry'
 		require
 			has_entry: entries.has (entry)
@@ -104,32 +97,22 @@ feature -- Basic operations
 		require
 			valid_index: entries.valid_cursor_index (i)
 		do
-			entries.prune (entries.i_th (i))
+			entries.prune (entries [i])
 		end
 
 feature {NONE} -- Implementation
 
-	from_array_to_entries (src: ARRAY [STRING])
+	from_array_to_entries (src: ARRAY [READABLE_STRING_8])
 			-- Convert 'array' into entries.
 		require
 			entries_exists: entries /= Void
-		local
-			lin_array: LINEAR [STRING]
 		do
-			lin_array:= src.linear_representation
-			from
-				lin_array.start
-			until
-				lin_array.after
-			loop
-				entries.extend (lin_array.item)
-				lin_array.forth
-			end
+			⟳ e: src ¦ entries.extend (e) ⟲
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA
@@ -138,8 +121,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class HEADER
-
+end

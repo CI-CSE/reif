@@ -1,6 +1,7 @@
-note
+﻿note
 	description: "Provides functionality to build a Control Flow Graph from an Abstract Syntax Tree."
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -146,8 +147,6 @@ feature {NONE} -- AST Visitor
 		end
 
 	process_elseif_as (a_elseif: ELSIF_AS)
-		require else
-			correct_structure: attached {CA_CFG_IF} last_block
 		local
 			l_elseif_block: CA_CFG_IF
 			l_skip: CA_CFG_SKIP
@@ -217,7 +216,7 @@ feature {NONE} -- AST Visitor
 			create l_intervals.make
 			if a_inspect.case_list /= Void then
 				across a_inspect.case_list as l_cases loop
-					l_intervals.extend (l_cases.item.interval)
+					l_intervals.extend (l_cases.interval)
 				end
 			end
 			create l_inspect_block.make_complete (a_inspect.switch, l_intervals,

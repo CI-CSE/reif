@@ -3,10 +3,10 @@
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: linked_list, sequence;
-	representation: linked;
-	access: index, cursor, membership;
-	contents: generic;
+	names: linked_list, sequence
+	representation: linked
+	access: index, cursor, membership
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -22,7 +22,11 @@ class LINKED_LIST [G] inherit
 		end
 
 create
-	make
+	make,
+	make_from_iterable
+
+convert
+	make_from_iterable ({ARRAY [G]})
 
 feature {NONE} -- Initialization
 
@@ -32,6 +36,13 @@ feature {NONE} -- Initialization
 			before := True
 		ensure
 			is_before: before
+		end
+
+	make_from_iterable (other: ITERABLE [G])
+			-- Create a linked list with all items obtained from `other`.
+		do
+			make
+			⟳ o: other ¦ extend (o) ⟲
 		end
 
 feature -- Access
@@ -440,18 +451,15 @@ feature -- Element change
 			-- position. Do not move cursor. Empty `other'.
 		local
 			other_first_element: like first_element
-			other_last_element: like last_element
 			other_count: INTEGER
 			p: like first_element
 		do
-			other_last_element := other.last_element
-			if other_last_element /= Void then
+			if attached other.last_element as other_last_element then
 				other_first_element := other.first_element
 				other_count := other.count
 				other.wipe_out
 				check
 					other_first_element /= Void
-					other_last_element /= Void
 				end
 				if is_empty then
 					first_element := other_first_element
@@ -475,18 +483,15 @@ feature -- Element change
 			-- position. Do not move cursor. Empty `other'.
 		local
 			other_first_element: like first_element
-			other_last_element: like last_element
 			other_count: INTEGER
 			a: like active
 		do
-			other_last_element := other.last_element
-			if other_last_element /= Void then
+			if attached other.last_element as other_last_element then
 				other_first_element := other.first_element
 				other_count := other.count
 				other.wipe_out
 				check
 					other_first_element /= Void
-					other_last_element /= Void
 				end
 				a := active
 				if a = Void then
@@ -603,15 +608,13 @@ feature -- Duplication
 			-- Update current object using fields of object attached
 			-- to `other', so as to yield equal objects.
 		local
-			cur: detachable LINKED_LIST_CURSOR [G]
+			cur: LINKED_LIST_CURSOR [G]
 		do
 			if other /= Current then
 				standard_copy (other)
 				if not other.is_empty then
 					internal_wipe_out
-					if attached {LINKED_LIST_CURSOR [G]} other.cursor as l_cur then
-						cur := l_cur
-					end
+					cur := other.cursor
 					from
 						other.start
 					until
@@ -637,6 +640,7 @@ feature {LINKED_LIST} -- Implementation
 			-- A newly created instance of the same type.
 			-- This feature may be redefined in descendants so as to
 			-- produce an adequately allocated and initialized object.
+		obsolete "Use explicit creation instead. See also explanations for `duplicate`. [2018-11-30]"
 		do
 			create Result.make
 		end
@@ -740,7 +744,7 @@ invariant
 	after_constraint: after implies (active = last_element)
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

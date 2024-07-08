@@ -31,6 +31,12 @@
 #define EIF_C_CHARACTER_TYPE	11
 #define EIF_C_DECIMAL_TYPE		12
 
+#ifndef my_bool
+#ifdef bool
+#define my_bool bool /* needed with MySQL 8, as it uses directly "bool" and not anymore "my_bool" */
+#endif
+#endif
+
 /* Public functions */
 extern int eif_mysql_column_data(MYSQL_ROW row_ptr, int ind, char *ar,
 	int len);

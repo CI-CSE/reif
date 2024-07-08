@@ -54,7 +54,6 @@ feature -- Visit nodes
 			-- Process `a_library'.
 		do
 			if
-				not is_override_only and then
 				attached a_library.library_target as t and then
 				not processed_libraries.has (t.system.uuid)
 			then
@@ -67,18 +66,14 @@ feature -- Visit nodes
 	process_precompile (a_precompile: CONF_PRECOMPILE)
 			-- Process `a_precompile'.
 		do
-			if not is_override_only then
-				process_library (a_precompile)
-			end
+			process_library (a_precompile)
 		end
 
 	process_cluster (a_cluster: CONF_CLUSTER)
 			-- Process `a_cluster'.
 		do
-			if not is_override_only then
-				on_process_group (a_cluster)
-				find_modified (a_cluster)
-			end
+			on_process_group (a_cluster)
+			find_modified (a_cluster)
 		end
 
 	process_override (an_override: CONF_OVERRIDE)
@@ -100,34 +95,13 @@ feature -- Visit nodes
 
 feature -- Status
 
-	is_override_only: BOOLEAN
-			-- Should we only check the override clusters?
-
 	is_force_rebuild: BOOLEAN
 			-- Do we need to do a full rebuild of the configuration?
-
-feature -- Status update
-
-	enable_override_only
-			-- Only scan override clusters.
-		do
-			is_override_only := True
-		ensure
-			is_override_only: is_override_only
-		end
 
 feature -- Access
 
 	modified_classes: ARRAYED_LIST [CONF_CLASS]
 			-- The list of modified classes.
-
-feature -- Update
-
-	resest_modified_classes
-			-- Reset `modified_classes'.
-		do
-			create modified_classes.make (0)
-		end
 
 feature -- Observer
 
@@ -169,12 +143,12 @@ feature {NONE} -- Implementation
 		do
 			if attached a_group.classes as l_classes then
 				is_read_only := a_group.is_readonly
-				from
-					l_classes.start
+				across
+					l_classes as c
 				until
-					is_force_rebuild or l_classes.after
+					is_force_rebuild
 				loop
-					l_class := l_classes.item_for_iteration
+					l_class := c
 						-- Check for changes.
 					if is_read_only then
 							-- Do not look into source code changes for read-only group.
@@ -196,24 +170,18 @@ feature {NONE} -- Implementation
 							overrides.do_if (agent modified_classes.extend, agent {CONF_CLASS}.is_compiled)
 						end
 					end
-					l_classes.forth
 				end
 			end
 		end
 
-	handle_class (a_file, a_path: READABLE_STRING_32; a_cluster: CONF_CLUSTER)
-			-- Handle class in `a_file' with `a_path' in `a_cluster'
-		local
-			l_path: PATH
+	handle_class (f, d: READABLE_STRING_32; c: CONF_CLUSTER)
+			-- Handle class in source file `f` in directory `d` in cluster `c`.
 		do
-			if not is_force_rebuild then
-				is_force_rebuild := valid_eiffel_extension (a_file)
-				if is_force_rebuild then
-					create l_path.make_from_string (a_path)
-					l_path := l_path.extended (a_file)
-					is_force_rebuild := attached a_cluster.classes_by_filename as classes_by_filename implies not classes_by_filename.has (l_path)
-				end
-			end
+			is_force_rebuild :=
+				is_force_rebuild or else
+				valid_eiffel_extension (f) and then
+				(attached c.classes_by_filename as t ⇒
+				not t.has ((create {PATH}.make_from_string (d)).extended (f)))
 		end
 
 invariant
@@ -221,7 +189,7 @@ invariant
 	process_group_observer_not_void: process_group_observer /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

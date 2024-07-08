@@ -12,9 +12,6 @@ class ACCESS_FEAT_AS
 
 inherit
 	ACCESS_AS
-		redefine
-			is_equivalent
-		end
 
 	FEATURE_ID_AS
 		rename
@@ -48,7 +45,7 @@ feature {NONE} -- Initialization
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- Process current element.
 		do
 			v.process_access_feat_as (Current)
 		end
@@ -56,7 +53,7 @@ feature -- Visitor
 feature -- Attributes
 
 	parameters: detachable EIFFEL_LIST [EXPR_AS]
-			-- List of parameters
+			-- List of parameters.
 		do
 			if attached internal_parameters as l_internal_paran then
 				Result := l_internal_paran.parameters
@@ -65,7 +62,7 @@ feature -- Attributes
 		end
 
 	parameter_count: INTEGER
-			-- Count of parameters
+			-- Count of parameters.
 		do
 			if attached parameters as l_params then
 				Result := l_params.count
@@ -81,31 +78,41 @@ feature -- Attributes
 	is_local: BOOLEAN
 			-- Is current entity a local?
 		do
-			Result := (flags & is_local_flag) /= 0
+			Result := flags & is_local_flag /= 0
 		end
 
 	is_argument: BOOLEAN
 			-- Is the current entity an argument?
 		do
-			Result := (flags & is_argument_flag) /= 0
+			Result := flags & is_argument_flag /= 0
 		end
 
-	is_object_test_local: BOOLEAN
-			-- Is the current entity an object test local?
+	is_inline_local: BOOLEAN
+			-- Is the current entity an inline local (object-test local, iteration cursor, separate local)?
 		do
-			Result := (flags & is_object_test_local_flag) /= 0
+			Result := flags & is_inline_local_flag /= 0
+		end
+
+	is_readonly: BOOLEAN
+			-- Is current entity read-only?
+		do
+			Result := flags ⊗ (is_argument_flag ⦶ is_inline_local_flag) /= 0
+		ensure
+			Result = (is_argument ∨ is_inline_local)
 		end
 
 	is_tuple_access: BOOLEAN
 			-- Is the current entity an access to one of the TUPLE labels?
 		do
-			Result := (flags & is_tuple_access_flag) /= 0
+			Result := flags & is_tuple_access_flag /= 0
 		end
 
 	is_feature: BOOLEAN
 			-- Is the current entity a feature?
 		do
-			Result := (flags & (is_local_flag | is_argument_flag | is_object_test_local_flag | is_tuple_access_flag)) = 0
+			Result := flags & (is_local_flag | is_argument_flag | is_inline_local_flag | is_tuple_access_flag) = 0
+		ensure
+			Result = ¬ (is_local ∨ is_argument ∨ is_inline_local ∨ is_tuple_access)
 		end
 
 	argument_position: INTEGER
@@ -134,7 +141,7 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER}
 feature -- Roundtrip
 
 	internal_parameters: detachable PARAMETER_LIST_AS
-			-- Internal list of parameters, in which "(" and ")" are stored
+			-- Internal list of parameters, in which "(" and ")" are stored.
 
 feature -- Roundtrip/Token
 
@@ -164,7 +171,7 @@ feature -- Roundtrip/Token
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 			Result := Precursor (other) and then equivalent (parameters, other.parameters)
 		end
@@ -216,12 +223,12 @@ feature -- Setting
 			is_local_set: is_local
 		end
 
-	enable_object_test_local
-			-- Set `is_object_test_local' to true.
+	enable_inline_local
+			-- Set `is_inline_local' to true.
 		do
-			flags := flags | is_object_test_local_flag
+			flags := flags | is_inline_local_flag
 		ensure
-			is_object_test_local_set: is_object_test_local
+			is_inline_local
 		end
 
 	enable_argument
@@ -248,7 +255,7 @@ feature {NONE} -- Implementation
 	is_local_flag: NATURAL_8 = 0x01
 	is_argument_flag: NATURAL_8 = 0x02
 	is_tuple_access_flag: NATURAL_8 = 0x04
-	is_object_test_local_flag: NATURAL_8 = 0x08
+	is_inline_local_flag: NATURAL_8 = 0x08
 			-- Various possible values for `flags'.
 
 invariant
@@ -261,7 +268,7 @@ invariant
 	parameter_count_correct: (parameters /= Void implies parameter_count > 0) and (parameters = Void implies parameter_count = 0)
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

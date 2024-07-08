@@ -1,4 +1,4 @@
-note
+﻿note
 
 	description: "Node for string constants. Version for Bench."
 	legal: "See notice at end of class."
@@ -13,7 +13,6 @@ inherit
 		undefine
 			text
 		redefine
-			is_equivalent,
 			string_value_32
 		end
 
@@ -61,9 +60,9 @@ feature -- Properties
 			-- Is current preceded by `once' keyword?
 
 	value_32: STRING_32
-			-- Real string value in UTF-32
+			-- Real string value in UTF-32.
 		do
-			Result := encoding_converter.utf8_to_utf32 (value)
+			Result := {UTF_CONVERTER}.utf_8_string_8_to_string_32 (value)
 		ensure
 			Result_set: Result /= Void
 		end
@@ -78,12 +77,37 @@ feature -- Properties
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 
 	value: STRING
-			-- Real string value in UTF-8
+			-- Real string value in UTF-8.
+
+	value_is_lower: BOOLEAN
+			-- Is value with all characters in lower case?
+		local
+			s: READABLE_STRING_32
+		do
+			s := value_32
+			Result := s.same_string (s.as_lower)
+		end
+
+	value_as_lower: STRING
+			-- UTF-8 encoded value of lower case `value_32`.
+		do
+			Result := {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (value_32.as_lower)
+		end
+
+	value_to_lower
+			-- Convert `value` to the UTF-8 lower case version of `value_32`.
+		local
+			s: STRING_8
+		do
+			s := {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (value_32.as_lower)
+			value.wipe_out
+			value.append (s)
+		end
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Roundtrip/Text
 
 	string_text (a_match_list: LEAF_AS_LIST): STRING
-			-- Text of the string part (not including the type)
+			-- Text of the string part (not including the type).
 		require
 			a_match_list_attached: a_match_list /= Void
 		do
@@ -103,10 +127,12 @@ feature -- Settings
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 				-- `value' cannot be Void
-			Result := is_once_string = other.is_once_string and then value.is_equal (other.value) and then
+			Result :=
+				is_once_string = other.is_once_string and then
+				value.is_equal (other.value) and then
 				equivalent (type, other.type)
 		end
 
@@ -147,7 +173,7 @@ feature -- Roundtrip
 			-- Once string keyword.
 
 	once_string_keyword (a_list: LEAF_AS_LIST): detachable KEYWORD_AS
-			-- Once string keyword
+			-- Once string keyword.
 		require
 			a_list_not_void: a_list /= Void
 		local
@@ -184,14 +210,14 @@ feature -- Roundtrip/Token
 
 	first_token (a_list: detachable LEAF_AS_LIST): LEAF_AS
 		do
-			if a_list = Void then
-				Result := Current
-			else
-				if attached type as l_type and then attached l_type.first_token (a_list) as l_result then
-					Result := l_result
-				else
-					Result := Current
+			if attached a_list then
+				Result := once_string_keyword (a_list)
+				if not attached Result and then attached type as t then
+					Result := t.first_token (a_list)
 				end
+			end
+			if not attached Result then
+				Result := Current
 			end
 		end
 
@@ -199,9 +225,9 @@ invariant
 	value_not_void: value /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
@@ -230,4 +256,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class STRING_AS
+end

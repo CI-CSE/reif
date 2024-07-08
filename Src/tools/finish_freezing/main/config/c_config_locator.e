@@ -71,11 +71,13 @@ feature -- Status report
 		end
 
 	is_msc_vc140_configuration: BOOLEAN
-			-- Is this VS 2015?
+			-- Is this VS 2015 or later?
 		require
 			has_checked: has_checked
 		do
 			Result := attached {VS_2015_CONFIG} internal_c_configuration
+					or attached {VS_SETUP_CONFIG} internal_c_configuration
+					-- Note: VS_20(17|19|22)_CONFIG inherits from VS_SETUP_CONFIG
 		end
 
 feature -- Status setting
@@ -193,7 +195,7 @@ feature {NONE} -- Localization
 	e_compiler_deprecated_1: STRING_32 = "The located Microsoft C/C++ compiler at '$1' has been deprecated and cannot be used. Please upgrade to one of the supported C/C++ compilers."
 
 ;note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

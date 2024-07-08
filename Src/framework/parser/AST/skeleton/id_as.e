@@ -18,7 +18,6 @@ inherit
 			string_value as name
 		redefine
 			is_id,
-			is_equivalent,
 			is_equal,
 			is_detachable_expression
 		end
@@ -94,62 +93,54 @@ feature -- Update
 		end
 
 	to_upper
-			-- Make sure `name' is in upper case
+			-- Make sure `name_32` is in upper case.
 		local
-			l_code: CHARACTER_8
-			l_area: SPECIAL [CHARACTER_8]
+			l_code: CHARACTER_32
+			l_area: SPECIAL [CHARACTER_32]
 			l_index: INTEGER
-			l_needs_uppering: BOOLEAN
+			n: STRING_32
 		do
 				-- We only want to duplicate string if necessary
+			n := name_32
 			from
-				l_area := name.area
-				l_index := l_area.count - 2
-					-- We have to take null character in to account
+				l_area := n.area
+				l_index := n.count - 1
 			until
 				l_index < 0
 			loop
 				l_code := l_area [l_index]
-				if l_code = l_code.as_upper then
-					l_index := l_index - 1
-				else
-						-- Character is lower case so we make sure `Current' is correctly initialized.
-					l_needs_uppering := True
+				l_index := l_index - 1
+				if l_code /= l_code.as_upper then
+						-- The character is not in upper case. Make sure `Current' is correctly initialized.
+					initialize ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (n.as_upper))
 					l_index := -1
 				end
-			end
-			if l_needs_uppering then
-				initialize (name.as_upper)
 			end
 		end
 
 	to_lower
-			-- Make sure `name' is in upper case
+			-- Make sure `name_32` is in lower case.
 		local
-			l_code: CHARACTER_8
-			l_area: SPECIAL [CHARACTER_8]
+			l_code: CHARACTER_32
+			l_area: SPECIAL [CHARACTER_32]
 			l_index: INTEGER
-			l_needs_lowering: BOOLEAN
+			n: STRING_32
 		do
 				-- We only want to duplicate string if necessary
+			n := name_32
 			from
-				l_area := name.area
-				l_index := l_area.count - 2
-					-- We have to take null character in to account
+				l_area := n.area
+				l_index := n.count - 1
 			until
 				l_index < 0
 			loop
 				l_code := l_area [l_index]
-				if l_code = l_code.as_lower then
-					l_index := l_index - 1
-				else
-						-- Character is upper case so we make sure `Current' is correctly initialized.
-					l_needs_lowering := True
+				l_index := l_index - 1
+				if l_code /= l_code.as_lower then
+						-- The character is not in lower case. Make sure `Current' is correctly initialized.
+					initialize ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (n.as_lower))
 					l_index := -1
 				end
-			end
-			if l_needs_lowering then
-				initialize (name.as_lower)
 			end
 		end
 
@@ -228,7 +219,7 @@ feature -- Comparison
 		end
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 			Result := is_equal (other)
 		end
@@ -245,7 +236,7 @@ invariant
 	name_id_in_bounds: names_heap.valid_index (name_id)
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -74,7 +74,7 @@ feature -- Basic Exportations
 
 			initialize
 			if not cr.is_initialized then
-				(create {EIFFEL_SERIALIZER}).serialize (
+				{EIFFEL_SERIALIZATION}.serialize (
 					cr.new_cache_info (cr.absolute_info_path),
 					cr.absolute_info_path.name, False)
 			end
@@ -155,11 +155,11 @@ feature {NONE} -- Implementation
 			retried_count: INTEGER
 		do
 			if retried_count = 0 then
-				Result ?= new_marshalled_cache_manager_object.unwrap
+				Result := {MARSHAL_CACHE_MANAGER} / new_marshalled_cache_manager_object.unwrap
 			else
 					-- Resets cached internal manager
 				internal_marshalled_cache_manager := Void
-				Result ?= new_marshalled_cache_manager_object.unwrap
+				Result := {MARSHAL_CACHE_MANAGER} /new_marshalled_cache_manager_object.unwrap
 			end
 		rescue
 			retried_count := retried_count + 1

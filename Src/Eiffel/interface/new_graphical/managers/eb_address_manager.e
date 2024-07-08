@@ -5,7 +5,8 @@
 	status: "See notice at end of class."
 	date: "$Date$"
 	revision: "$Revision$"
-	author: "Arnaud PICHERY [ aranud@mail.dotcom.fr] "
+	author: "Arnaud PICHERY [aranud@mail.dotcom.fr]"
+	revised_by: "Alexander Kogtenkov"
 
 class
 	EB_ADDRESS_MANAGER
@@ -327,7 +328,7 @@ feature -- Access
 	cluster_label_text: STRING
 			-- Name of the class as it appears in the cluster label.
 		do
-			if cluster_label /= Void and then not cluster_label.text.is_equal (default_cluster_name) then
+			if cluster_label /= Void and then not cluster_label.text.same_string (default_cluster_name) then
 				Result := cluster_label.text
 			end
 		end
@@ -335,7 +336,7 @@ feature -- Access
 	class_label_text: STRING
 			-- Name of the class as it appears in the class label.
 		do
-			if class_label /= Void and then not class_label.text.is_equal (default_class_name) then
+			if class_label /= Void and then not class_label.text.same_string (default_class_name) then
 				Result := class_label.text
 			end
 		end
@@ -343,7 +344,7 @@ feature -- Access
 	feature_label_text: STRING
 			-- Name of the class as it appears in the feature label.
 		do
-			if feature_label /= Void and then not feature_label.text.is_equal (default_feature_name) then
+			if feature_label /= Void and then not feature_label.text.same_string (default_feature_name) then
 				Result := feature_label.text
 			end
 		end
@@ -416,7 +417,6 @@ feature -- Element change
 			new_formatters_non_void: new_formatters /= Void
 			for_development_window: not mode
 		local
-			l_but: SD_TOOL_BAR_BUTTON
 			l_cnt: INTEGER
 		do
 			create formatters_combo.make
@@ -426,8 +426,7 @@ feature -- Element change
 			until
 				l_cnt > 7
 			loop
-				l_but := known_formatters.i_th (l_cnt).new_sd_button
-				tool_bar_items.extend (l_but)
+				tool_bar_items.extend (known_formatters.i_th (l_cnt).new_sd_button)
 				l_cnt := l_cnt + 1
 			end
 			widget.extend (formatters_combo)
@@ -679,13 +678,14 @@ feature -- Observer management
 	on_new_tab_command
 			-- Handle EB_NEW_TAB_EDITOR_COMMAND.
 		do
-			if class_address.is_displayed and class_address.is_sensitive then
-				if
-					attached window_manager.last_focused_development_window as l_window and then
-					attached l_window.editors_manager.current_editor as l_editor and then not l_editor.file_loaded
-				then
-					ev_application.do_once_on_idle (agent class_address.set_focus)
-				end
+			if
+				class_address.is_displayed and
+				class_address.is_sensitive and then
+				attached window_manager.last_focused_development_window as l_window and then
+				attached l_window.editors_manager.current_editor as l_editor and then
+				not l_editor.file_loaded
+			then
+				ev_application.do_once_on_idle (agent class_address.set_focus)
 			end
 		end
 
@@ -779,6 +779,27 @@ feature -- Updating
 				cluster_label.set_foreground_color (preferences.editor_data.cluster_text_color)
 				class_label.set_foreground_color (preferences.editor_data.class_text_color)
 				feature_label.set_foreground_color (preferences.editor_data.feature_text_color)
+
+				set_background_color_if_needed (cluster_label, preferences.editor_data.cluster_background_color)
+				set_background_color_if_needed (class_label, preferences.editor_data.class_background_color)
+				set_background_color_if_needed (feature_label, preferences.editor_data.feature_background_color)
+			end
+		end
+
+	set_background_color_if_needed (lab: EV_LABEL; bg: EV_COLOR)
+			-- Set background color `bg` to `lab`,
+			-- but only if `bg` and `lab.background_color` really differs
+			-- note: this is mostly to support dark theme.
+		local
+			r,g,b: REAL_64
+			c1: EV_COLOR
+		do
+			c1 := lab.background_color
+			r := (c1.red_16_bit - bg.red_16_bit).abs / {EV_COLOR}.max_16_bit
+			g := (c1.green_16_bit - bg.green_16_bit).abs / {EV_COLOR}.max_16_bit
+			b := (c1.blue_16_bit - bg.blue_16_bit).abs / {EV_COLOR}.max_16_bit
+			if (r + g + b) / 3 > 0.5 then
+				lab.set_background_color (bg)
 			end
 		end
 
@@ -945,7 +966,7 @@ feature {NONE} -- Execution
 	process_class
 			-- Finish processing the class after the user chose it.
 		local
-			ctxt: STRING
+			ctxt: READABLE_STRING_32
 			l_classc: CLASS_C
 		do
 			remove_error_message
@@ -1071,23 +1092,24 @@ feature {NONE} -- Execution
 			l_class_c: detachable CLASS_C
 		do
 			create l_env
-			if l_env.application.ctrl_pressed then
-				if attached window_manager.last_focused_development_window as l_win then
-					if not choosing_class and then attached current_feature as l_feature then
-						-- The `class_i' maybe not correct, so use `written_class' here
-						-- Such as:
-						-- If user entry is `{INTEGER_16}.out' then, when call `{EB_DEVELOPMENT_WINDOW}.set_stone', editor manger will switch to `{INTEGER_16_REF}.out' automatically.
-						l_class_c := l_feature.written_class
-						if attached l_class_c then
-							create l_file_name.make_from_string (l_class_c.file_name)
-						end
-					elseif attached current_class as l_class_c_2 then
-						create l_file_name.make_from_string (l_class_c_2.file_name)
+			if
+				l_env.application.ctrl_pressed and then
+				attached window_manager.last_focused_development_window as l_win
+			then
+				if not choosing_class and then attached current_feature as l_feature then
+					-- The `class_i' maybe not correct, so use `written_class' here
+					-- Such as:
+					-- If user entry is `{INTEGER_16}.out' then, when call `{EB_DEVELOPMENT_WINDOW}.set_stone', editor manger will switch to `{INTEGER_16_REF}.out' automatically.
+					l_class_c := l_feature.written_class
+					if attached l_class_c then
+						create l_file_name.make_from_string (l_class_c.file_name)
 					end
-						-- Make sure no editor with current class/feature opened already
-					if attached l_file_name and then not attached l_win.editors_manager.editor_with_class (l_file_name) then
-						l_win.commands.new_tab_cmd.execute
-					end
+				elseif attached current_class as l_class_c_2 then
+					create l_file_name.make_from_string (l_class_c_2.file_name)
+				end
+					-- Make sure no editor with current class/feature opened already
+				if attached l_file_name and then not attached l_win.editors_manager.editor_with_class (l_file_name) then
+					l_win.commands.new_tab_cmd.execute
 				end
 			end
 		end
@@ -1163,7 +1185,6 @@ feature {NONE} -- Implementation
 			cluster_names: ARRAYED_LIST [STRING_32]
 			cluster_pixmaps: ARRAYED_LIST [EV_PIXMAP]
 			clusteri: CONF_GROUP
-			cname: STRING
 		do
 			create cluster_names.make (group_list.count)
 			create cluster_pixmaps.make (group_list.count)
@@ -1173,8 +1194,7 @@ feature {NONE} -- Implementation
 				group_list.after
 			loop
 				clusteri := group_list.item
-				cname := clusteri.name.twin
-				cluster_names.extend (cname)
+				cluster_names.extend (clusteri.name.twin)
 				cluster_pixmaps.extend (pixmap_from_group (clusteri))
 				group_list.forth
 			end
@@ -1644,13 +1664,14 @@ feature {NONE} -- open new class
 					if
 						ev_application.ctrl_pressed and
 						not ev_application.alt_pressed and
-						not ev_application.shift_pressed
+						not ev_application.shift_pressed and
+						must_show_choice and
+						choice /= Void and then
+						not choice.is_destroyed
 					then
-						if must_show_choice and choice /= Void and then not choice.is_destroyed then
-							lost_focus_action_enabled := False
-							choice.show
-							lost_focus_action_enabled := True
-						end
+						lost_focus_action_enabled := False
+						choice.show
+						lost_focus_action_enabled := True
 					end
 				when {EV_KEY_CONSTANTS}.Key_up, {EV_KEY_CONSTANTS}.Key_down then
 					s := class_address.text
@@ -1695,13 +1716,14 @@ feature {NONE} -- open new class
 					if
 						ev_application.ctrl_pressed and
 						not ev_application.alt_pressed and
-						not ev_application.shift_pressed
+						not ev_application.shift_pressed and then
+						must_show_choice and
+						choice /= Void and then
+						not choice.is_destroyed
 					then
-						if must_show_choice and choice /= Void and then not choice.is_destroyed then
-							lost_focus_action_enabled := False
-							choice.show
-							lost_focus_action_enabled := True
-						end
+						lost_focus_action_enabled := False
+						choice.show
+						lost_focus_action_enabled := True
 					end
 				when {EV_KEY_CONSTANTS}.Key_up, {EV_KEY_CONSTANTS}.Key_down then
 					s := feature_address.text
@@ -1869,7 +1891,7 @@ feature {NONE} -- open new class
 			clist: CLASS_C_SERVER
 			l_class: CLASS_C
 			i: INTEGER
-			ccname: STRING
+			ccname: STRING_32
 		do
 			current_typed_class := Void
 			if Workbench.is_universe_ready and enable_feature_complete then
@@ -1882,7 +1904,7 @@ feature {NONE} -- open new class
 					i > clist.upper or current_typed_class /= Void
 				loop
 					l_class := clist.item (i)
-					if l_class /= Void and then l_class.name.is_equal (ccname) then
+					if l_class /= Void and then ccname.same_string (l_class.name) then
 						current_typed_class := l_class
 					end
 					i := i + 1
@@ -1893,18 +1915,18 @@ feature {NONE} -- open new class
 	type_class
 			-- Try to complete the class name.
 		local
-			str: STRING
+			str: STRING_32
 			nb: INTEGER
 			index, j: INTEGER
 			list: CLASS_C_SERVER
-			current_found: STRING
-			l_suggestions: ARRAYED_LIST [TUPLE [entry: STRING; depth: INTEGER]]
-			cname: STRING
+			current_found: STRING_32
+			l_suggestions: ARRAYED_LIST [TUPLE [entry: STRING_32; depth: INTEGER]]
+			cname: STRING_32
 			array_count: INTEGER
 			do_not_complete: BOOLEAN
 			same_st: BOOLEAN
 			last_caret_position: INTEGER
-			str_area, other_area: SPECIAL [CHARACTER]
+			str_area, other_area: SPECIAL [CHARACTER_32]
 			truncated: BOOLEAN
 		do
 				-- The text in `class_address' has changed => we don't know what's inside.
@@ -1961,7 +1983,7 @@ feature {NONE} -- open new class
 									if l_suggestions = Void then
 										create l_suggestions.make (1)
 									end
-									l_suggestions.force ([l_class.name, j])
+									l_suggestions.force ([cname, j])
 								end
 							end
 						end
@@ -2010,17 +2032,17 @@ feature {NONE} -- open new class
 	type_cluster
 			-- Try to complete the cluster name.
 		local
-			str: STRING
+			str: STRING_32
 			nb: INTEGER
 			j: INTEGER
 			list: ARRAYED_LIST [CONF_GROUP]
-			l_suggestions: ARRAYED_LIST [TUPLE [entry: STRING; depth: INTEGER]]
-			current_found: STRING
-			cname: STRING
+			l_suggestions: ARRAYED_LIST [TUPLE [entry: STRING_32; depth: INTEGER]]
+			current_found: STRING_32
+			cname: STRING_32
 			do_not_complete: BOOLEAN
 			last_caret_position: INTEGER
 			same_st: BOOLEAN
-			str_area, other_area: SPECIAL [CHARACTER]
+			str_area, other_area: SPECIAL [CHARACTER_32]
 			truncated: BOOLEAN
 		do
 			cluster_address.change_actions.block
@@ -2127,7 +2149,7 @@ feature {NONE} -- open new class
 
 			--|FIXME: The way used to decide if a name should be completed is bad.
 --			if not str.is_empty and then not (str.substring_index (l_From, 1) > 0) then
-			if not str.is_empty and then not (str.substring_index (interface_names.l_from ("", ""), 1) > 0) then
+			if not str.is_empty and then str.substring_index (interface_names.l_from ("", ""), 1) = 0 then
 				last_caret_position := feature_address.caret_position
 					-- Only perform `left_adjust' so that we can type `infix "X"' in the combo box.
 				string_general_left_adjust (str)
@@ -2171,7 +2193,7 @@ feature {NONE} -- open new class
 							until
 								j = nb or not same_st
 							loop
-								same_st := (str_area.item (j)) = (other_area.item (j))
+								same_st := str_area.item (j) = other_area.item (j)
 								j := j + 1
 							end
 							if same_st then
@@ -2184,7 +2206,7 @@ feature {NONE} -- open new class
 						list.forth
 					end
 					if l_suggestions /= Void and then not l_suggestions.is_empty then
-						sort_unicode_suggestions (l_suggestions)
+						sort_suggestions (l_suggestions)
 						if type_feature_offset < 0 then
 							type_feature_offset := l_suggestions.count + type_feature_offset
 						end
@@ -2258,11 +2280,8 @@ feature {NONE} -- open new class
 			-- Send a stone representing `feature' to `parent'.
 		require
 			feature_selected: current_feature /= Void
-		local
-			st: FEATURE_STONE
 		do
-			create st.make (current_feature)
-			parent.set_stone (st)
+			parent.set_stone (create {FEATURE_STONE}.make (current_feature))
 		end
 
 feature {NONE} -- Selection removal
@@ -2283,42 +2302,7 @@ feature {NONE} -- Selection removal
 
 feature {NONE} -- Sorting
 
-	sort_suggestions (a_suggestions: LIST [TUPLE [entry: STRING_8; depth: INTEGER]])
-		local
-			l_suggestion_sorter: QUICK_SORTER [TUPLE [entry: STRING_8; depth: INTEGER]]
-		do
-			create l_suggestion_sorter.make (create {AGENT_EQUALITY_TESTER [TUPLE [entry: STRING_8; depth: INTEGER]]}.make (agent (t1,t2: TUPLE [entry: STRING_8; depth: INTEGER]): BOOLEAN
-				local
-					minc: INTEGER
-					l_index: INTEGER
-					dif: BOOLEAN
-					t1_area, t2_area: SPECIAL [CHARACTER]
-				do
-					t1_area := t1.entry.area
-					t2_area := t2.entry.area
-					from
-						l_index := t1.depth
-						minc := t2_area.count.min (t1_area.count)
-						dif := False
-					until
-						dif or l_index = minc
-					loop
-						if t1_area [l_index] /= t2_area [l_index] then
-							dif := True
-							Result := t1_area [l_index] < t2_area [l_index]
-						end
-						l_index := l_index + 1
-					end
-					if not dif then
-							-- t2 and t1 have the same characters.
-							-- shorter one is less than.
-						Result := t1_area.count < t2_area.count
-					end
-				end))
-			l_suggestion_sorter.sort (a_suggestions)
-		end
-
-	sort_unicode_suggestions (a_suggestions: LIST [TUPLE [entry: STRING_32; depth: INTEGER]])
+	sort_suggestions (a_suggestions: LIST [TUPLE [entry: STRING_32; depth: INTEGER]])
 		local
 			l_suggestion_sorter: QUICK_SORTER [TUPLE [entry: STRING_32; depth: INTEGER]]
 		do
@@ -2380,14 +2364,12 @@ feature {NONE} -- Implementation of the clickable labels for `header_info'
 	generate_header_info
 			-- Create all parent_windows used in `header_info'.
 		local
-			def_col: EV_STOCK_COLORS
 			hb: EV_HORIZONTAL_BOX
 		do
 			create header_info
 			create cluster_label
 			create class_label
 			create feature_label
-			create def_col
 			create hb
 
 			update_colors
@@ -2589,18 +2571,17 @@ feature {NONE} -- Implementation of the clickable labels for `header_info'
 			-- One of the widgets displayed in `address_dialog' has lost the focus.
 			-- If none now has the focus, hide `address_dialog'.
 		do
-			if mode then
-			-- Now it's for context tool, `address_dialog' exists.
-				if
-					lost_focus_action_enabled and then
-					(class_address = Void or else not class_address.has_focus) and then
-					(feature_address = Void or else not feature_address.has_focus) and then
-					(cluster_address = Void or else not cluster_address.has_focus) and then
-					(address_dialog = Void or else not address_dialog.has_focus) and then
-					(choice = Void or else (choice.is_destroyed or else not choice.is_show_requested))
-				then
-					address_dialog.hide
-				end
+			if
+				mode and then
+					-- Now it's for context tool, `address_dialog' exists.
+				lost_focus_action_enabled and then
+				(class_address = Void or else not class_address.has_focus) and then
+				(feature_address = Void or else not feature_address.has_focus) and then
+				(cluster_address = Void or else not cluster_address.has_focus) and then
+				(address_dialog = Void or else not address_dialog.has_focus) and then
+				(choice = Void or else (choice.is_destroyed or else not choice.is_show_requested))
+			then
+				address_dialog.hide
 			end
 		end
 
@@ -2614,11 +2595,9 @@ feature {NONE} -- Implementation of the clickable labels for `header_info'
 	Default_font: EV_FONT
 			-- Font used to display labels.
 			-- FIXIT: We should use once routine instead of creating a EV_FONT every time? Because this is GDI object limitations on Windows.
-		local
-			l_shared: SD_SHARED -- FIXIT: After class EV_STOCK_FONTS added, we should use that instead of SD_SHARED.
 		do
-			create l_shared
-			Result := l_shared.tool_bar_font.twin
+				-- TODO: After class EV_STOCK_FONTS added, we should use that instead of SD_SHARED.
+			Result := (create {SD_SHARED}).tool_bar_font.twin
 		end
 
 	highlight_label (lab: EV_LABEL)
@@ -2770,28 +2749,16 @@ feature {NONE} -- Choice Positioning
 			a_positioned_not_void: a_positioned /= Void
 		local
 			screen: EV_SCREEN
-			show_below: BOOLEAN
-			l_height: INTEGER
 		do
 				-- Get y pos of cursor
 			create screen
-			show_below := True
 			Result := a_positioned.screen_y
-
-			l_height := calculate_completion_list_height (a_positioned)
-
 			if Result < ((screen.virtual_height / 3) * 2) then
-					-- Cursor in upper two thirds of screen
-				show_below := True
-			else
-					-- Cursor in lower third of screen
-				show_below := False
-			end
-
-			if show_below then
+					-- Cursor in upper two thirds of screen.
 				Result := Result + a_positioned.height
 			else
-				Result := Result - l_height
+					-- Cursor in lower third of screen.
+				Result := Result - calculate_completion_list_height (a_positioned)
 			end
 			Result := Result.max (screen.virtual_top)
 		end
@@ -2801,32 +2768,18 @@ feature {NONE} -- Choice Positioning
 		require
 			a_positioned_not_void: a_positioned /= Void
 		local
-			upper_space,
-			lower_space,
 			y_pos: INTEGER
 			screen: EV_SCREEN
-			show_below: BOOLEAN
 		do
 				-- Get y pos of cursor
 			create screen
-			show_below := True
 			y_pos := a_positioned.screen_y
-
-			if y_pos < ((screen.virtual_height / 3) * 2) then
-					-- Cursor in upper two thirds of screen
-				show_below := True
+			if y_pos < (screen.virtual_height / 3) * 2 then
+					-- Cursor in upper two thirds of screen.
+				Result := screen.virtual_bottom - y_pos - a_positioned.height - border_size
 			else
-					-- Cursor in lower third of screen
-				show_below := False
-			end
-
-			upper_space := y_pos - border_size
-			lower_space := screen.virtual_bottom - y_pos - a_positioned.height - border_size
-
-			if show_below then
-				Result := lower_space
-			else
-				Result := upper_space
+					-- Cursor in lower third of screen.
+				Result := y_pos - border_size
 			end
 			Result := Result.min (choice.required_height)
 		end
@@ -2835,16 +2788,12 @@ feature {NONE} -- Choice Positioning
 			-- Determine the width the popup dialog should have
 		require
 			a_positioned_not_void: a_positioned /= Void
-		local
-			l_screen: EV_SCREEN
 		do
-			Result := a_positioned.width
-			create l_screen
-			Result := l_screen.width.min (Result)
+			Result := (create {EV_SCREEN}).width.min (a_positioned.width)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

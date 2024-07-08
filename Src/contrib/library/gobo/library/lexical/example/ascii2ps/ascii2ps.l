@@ -5,7 +5,7 @@ note
 
 		"Pretty printer using PostScript facilities"
 
-	copyright: "Copyright (c) 1999, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2018, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -39,7 +39,7 @@ create
 " "					output ("%T( ) show%N")
 "\t"				output ("%Tprinttab%N")
 ""				output ("%Tnewpage%N")
-[^ \t\n\r\\()]+	{
+[^ \t\n\r\f\\()]+	{
 					output ("%T(")
 					output (text)
 					output (") printword%N")
@@ -122,6 +122,9 @@ feature {NONE} -- Initialization
 				filename := basename (in_filename)
 			else
 				std.error.put_string (usage_message)
+				in_filename := ""
+				out_filename := ""
+				filename := ""
 				Exceptions.die (1)
 			end
 

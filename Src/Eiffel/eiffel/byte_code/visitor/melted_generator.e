@@ -206,71 +206,59 @@ feature {NONE} -- Visitors
 	process_array_const_b (a_node: ARRAY_CONST_B)
 			-- Process `a_node'.
 		local
-			l_real_ty: GEN_TYPE_A
 			l_feat_i: FEATURE_I
-			l_expr: EXPR_B
 			l_target_type: TYPE_A
 			l_base_class: CLASS_C
 			l_special_info: CREATE_TYPE
 			l_special_type: TYPE_A
-			l_special_class_type: SPECIAL_CLASS_TYPE
 			i: INTEGER
 		do
-			l_real_ty ?= context.real_type (a_node.type)
-			l_target_type := l_real_ty.generics.first
+			if attached {GEN_TYPE_A} context.real_type (a_node.type) as l_real_ty then
+				l_target_type := l_real_ty.generics.first
 
-				-- We first create a SPECIAL in which we will store the information above before
-				-- creating the ARRAY using `make_from_special'.
-				-- First push the number of elements in the SPECIAL
-			ba.append (Bc_int32)
-			ba.append_integer (a_node.expressions.count)
-				-- Then create an instance of the SPECIAL.
-			ba.append (bc_spcreate)
-			if system.is_using_new_special then
-					-- We are going to use `make_empty'
+					-- We first create a SPECIAL in which we will store the information above before
+					-- creating the ARRAY using `make_from_special'.
+					-- First push the number of elements in the SPECIAL
+				ba.append (Bc_int32)
+				ba.append_integer (a_node.expressions.count)
+					-- Then create an instance of the SPECIAL.
+				ba.append (bc_spcreate)
 				ba.append_boolean (False)
-				ba.append_boolean (True)
-			else
-					-- We are going to use `make'
-				ba.append_boolean (False)
-				ba.append_boolean (False)
-			end
-			l_special_info := a_node.special_info.updated_info
-			l_special_info.make_byte_code (ba)
-			ba.append_natural_16 ({SHARED_GEN_CONF_LEVEL}.terminator_type)
-			l_special_type := l_special_info.type
-			check
-				is_special_type: l_special_type /= Void and then l_special_type.base_class.lace_class = System.special_class
-			end
-			l_special_class_type ?= l_special_type.associated_class_type (context.context_class_type.type)
-			check
-				l_class_type_not_void: l_special_class_type /= Void
-			end
-			l_special_class_type.make_creation_byte_code (ba)
-
-				-- We compute the expressions and store them into the special
-			from
-				a_node.expressions.start
-				i := 0
-			until
-				a_node.expressions.after
-			loop
-				l_expr ?= a_node.expressions.item
+					-- Specify whether `make_empty` or `make` is going to be used.
+				ba.append_boolean (system.is_using_new_special)
+				l_special_info := a_node.special_info.updated_info
+				l_special_info.make_byte_code (ba)
+				ba.append_natural_16 ({SHARED_GEN_CONF_LEVEL}.terminator_type)
+				l_special_type := l_special_info.type
 				check
-					l_expr_not_void: l_expr /= Void
+					is_special_type: l_special_type /= Void and then l_special_type.base_class.lace_class = System.special_class
 				end
-				make_expression_byte_code_for_type (l_expr, l_target_type)
-				ba.append (bc_special_extend)
-				ba.append_integer (i)
-				i := i + 1
-				a_node.expressions.forth
-			end
+				if attached {SPECIAL_CLASS_TYPE} l_special_type.associated_class_type (context.context_class_type.type) as l_special_class_type then
+					l_special_class_type.make_creation_byte_code (ba)
 
-				-- Now we create the ARRAY instance vi the call to `to_array' from SPECIAL
-			l_base_class := l_special_class_type.associated_class
-			l_feat_i := l_base_class.feature_table.item_id ({PREDEFINED_NAMES}.to_array_name_id)
-			ba.append (Bc_array)
-			ba.append_integer (l_feat_i.rout_id_set.first)
+						-- We compute the expressions and store them into the special
+					across
+						a_node.expressions as es
+					loop
+						if attached {EXPR_B} es.item as e then
+							make_expression_byte_code_for_type (e, l_target_type)
+							ba.append (bc_special_extend)
+							ba.append_integer (i)
+							i := i + 1
+						else
+							check is_expression: False end
+						end
+					end
+
+						-- Now we create the ARRAY instance vi the call to `to_array' from SPECIAL
+					l_base_class := l_special_class_type.associated_class
+					l_feat_i := l_base_class.feature_table.item_id ({PREDEFINED_NAMES}.to_array_name_id)
+					ba.append (Bc_array)
+					ba.append_integer (l_feat_i.rout_id_set.first)
+				else
+					check is_special_class_type: False then end
+				end
+			end
 		end
 
 	process_assert_b (a_node: ASSERT_B)
@@ -332,27 +320,21 @@ feature {NONE} -- Visitors
 
 	process_attribute_b (a_node: ATTRIBUTE_B)
 			-- Process `a_node'.
-		local
-			f: FEATURE_B
 		do
-			f := a_node.wrapper
-			if f /= Void then
+			if attached a_node.wrapper as f then
 				process_feature_b (f)
-			else
-				if a_node.context_type.is_basic then
-						-- Access to `item' from basic types.
-						-- Nothing to be done since the right value is already on the stack.
+			elseif not a_node.context_type.is_basic then
+					-- Access to `item' from non-basic types
+					-- when the right value is not yet on the stack.
+				if a_node.is_first then
+					ba.append (bc_current)
+					ba.append (bc_attribute)
 				else
-					if a_node.is_first then
-						ba.append (bc_current)
-						ba.append (bc_attribute)
-					else
-						ba.append (bc_attribute_inv)
-						ba.append_raw_string (a_node.attribute_name)
-					end
-					ba.append_integer (a_node.routine_id)
-					ba.append_natural_32 (context.real_type (a_node.type).sk_value (context.context_class_type.type))
+					ba.append (bc_attribute_inv)
+					ba.append_raw_string (a_node.attribute_name)
 				end
+				ba.append_integer (a_node.routine_id)
+				ba.append_natural_32 (context.real_type (a_node.type).sk_value (context.context_class_type.type))
 			end
 		end
 
@@ -601,6 +583,46 @@ feature {NONE} -- Visitors
 			ba.mark_forward
 		end
 
+	process_case_expression_b (b: CASE_EXPRESSION_B)
+			-- <Precursor>
+		local
+			i: INTEGER
+		do
+			generate_melted_debugger_hook (ba)
+			from
+				i := b.interval.count
+			until
+				i < 1
+			loop
+				ba.write_forward2
+				i := i - 1
+			end
+			b.content.process (Current)
+				-- To end of inspect
+			ba.append (Bc_jmp)
+			ba.mark_forward
+		end
+
+	process_case_expression_b_for_type (b: CASE_EXPRESSION_B; t: TYPE_A)
+			-- Same as `process_case_expression_b`, but converts result value to type `t`.
+		local
+			i: INTEGER
+		do
+			generate_melted_debugger_hook (ba)
+			from
+				i := b.interval.count
+			until
+				i < 1
+			loop
+				ba.write_forward2
+				i := i - 1
+			end
+			make_expression_byte_code_for_type (b.content, t)
+				-- To end of inspect
+			ba.append (Bc_jmp)
+			ba.mark_forward
+		end
+
 	process_char_const_b (a_node: CHAR_CONST_B)
 			-- Process `a_node'.
 		do
@@ -649,31 +671,30 @@ feature {NONE} -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- Process `a_node'.
 		local
-			l_special_type: TYPE_A
-			l_class_type: SPECIAL_CLASS_TYPE
 			l_call: ROUTINE_B
 			l_nested: NESTED_B
 			l_is_make_filled: BOOLEAN
+			target_type: TYPE_A
 		do
-			if attached {BASIC_A} context.real_type (a_node.type) as l_basic_type then
+			target_type := context.real_type (a_node.type)
+			if attached {BASIC_A} target_type as l_basic_type then
 					-- Special cases for basic types where nothing needs to be created, we
 					-- simply need to push a default value as their creation procedure
 					-- is `default_create' and it does nothing.
 				l_basic_type.c_type.make_default_byte_code (ba)
 			else
 				l_call := a_node.call
-				if a_node.is_special_creation then
-				 	l_is_make_filled := a_node.is_special_make_filled
-					l_special_type := context.real_type (a_node.type)
+				if
+					a_node.is_special_creation and then
+					attached {SPECIAL_CLASS_TYPE} target_type.associated_class_type (context.context_class_type.type) as l_class_type
+				then
 					check
 						is_special_call_valid: a_node.is_special_call_valid
-						is_special_type: l_special_type /= Void and then
-							l_special_type.base_class.lace_class = system.special_class
+						is_special_type:
+							target_type.has_associated_class and then
+							target_type.base_class.lace_class = system.special_class
 					end
-					l_class_type ?= l_special_type.associated_class_type (context.context_class_type.type)
-					check
-						l_class_type_not_void: l_class_type /= Void
-					end
+				 	l_is_make_filled := a_node.is_special_make_filled
 					l_call.parameters.first.process (Current)
 					if l_is_make_filled then
 						l_call.parameters.i_th (2).process (Current)
@@ -697,8 +718,11 @@ feature {NONE} -- Visitors
 					ba.append (Bc_create)
 						-- If there is a call, we need to duplicate newly created object
 						-- after its creation. This information is used by the runtime
-						-- to do this duplication.
-					ba.append_boolean (l_call /= Void)
+						-- to perform this duplication.
+						-- The duplication is not needed for once creation procedure calls
+						-- that act as functions and return the object.
+					ba.append_boolean
+						(not (target_type.has_associated_class and then target_type.base_class.is_once) and then attached l_call)
 
 						-- Create associated object.
 					a_node.info.updated_info.make_byte_code (ba)
@@ -855,6 +879,7 @@ feature {NONE} -- Visitors
 			l_pos: INTEGER
 			l_is_in_creation_call: like is_in_creation_call
 			l_is_active_region: like is_active_region
+			creation_expression: CREATION_EXPR_B
 		do
 			l_is_in_creation_call := is_in_creation_call
 			is_in_creation_call := False
@@ -916,8 +941,16 @@ feature {NONE} -- Visitors
 				end
 			end
 
-			if a_node.is_static_call then
-				ba.append (bc_current)
+			if attached a_node.static_class_type as p then
+				if a_node.is_class_target_needed then
+						-- Generate an empty object to be used as a target of the call.
+					create creation_expression
+					creation_expression.set_info (p.create_info)
+					creation_expression.set_type (p)
+					process_creation_expr_b (creation_expression)
+				else
+					ba.append (bc_current)
+				end
 				ba.append (bc_extern)
 				ba.append_integer (a_node.routine_id)
 				make_precursor_byte_code (a_node)
@@ -941,8 +974,6 @@ feature {NONE} -- Visitors
 		local
 			i, l_pos, l_nb_expr_address: INTEGER
 			l_has_hector: BOOLEAN
-			l_parameter_b: PARAMETER_B
-			l_access_expression_b: ACCESS_EXPR_B
 			l_is_in_creation_call: like is_in_creation_call
 			l_is_active_region: like is_active_region
 		do
@@ -952,53 +983,42 @@ feature {NONE} -- Visitors
 			is_active_region := False
 			if a_node.parameters /= Void then
 					-- Generate the expression address byte code
-				from
-					a_node.parameters.start
-				until
-					a_node.parameters.after
+				across
+					a_node.parameters as ps
 				loop
-					l_parameter_b := a_node.parameters.item
-					if l_parameter_b /= Void and then l_parameter_b.is_hector then
+					if attached ps.item as p and then p.is_hector then
 						l_has_hector := True
 						if
-							attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+							attached {EXPR_ADDRESS_B} p.expression as l_expr_address_b and then
 							l_expr_address_b.is_protected
 						then
 							l_expr_address_b.expr.process (Current)
 							l_nb_expr_address := l_nb_expr_address + 1
 						end
 					end
-					a_node.parameters.forth
 				end
 
-				l_has_hector := l_has_hector or else (a_node.parent /= Void and then a_node.parent.target.is_hector)
+				l_has_hector := l_has_hector or else attached a_node.parent as p and then p.target.is_hector
 
 					-- Generate byte code for parameters
-				from
-					a_node.parameters.start
-				until
-					a_node.parameters.after
-				loop
-					a_node.parameters.item.process (Current)
-					a_node.parameters.forth
-				end
+				⟳ p: a_node.parameters ¦ p.process (Current) ⟲
 			end
 
 			if l_has_hector then
-				if a_node.parent /= Void and then a_node.parent.target.is_hector then
+				if
+					attached a_node.parent as p and then
+					p.target.is_hector and then
+					attached {ACCESS_EXPR_B} p.target as l_access_expression_b
+				then
 						-- We are in the case of a nested calls which have
 						-- a target using the `$' operator. It can only be the case
 						-- of `($a).f (..)'. where `($a)' represents an
 						-- ACCESS_EXPR_B object which contains an HECTOR_B
 						-- or an EXPR_ADDESS_B object.
-					l_access_expression_b ?= a_node.parent.target
-					check
-						has_access_expression: l_access_expression_b /= Void
-					end
 					if attached {HECTOR_B} l_access_expression_b.expr as l_hector_b then
 						make_protected_byte_code (l_hector_b, a_node.parameters.count)
 					elseif
-						attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+						attached {EXPR_ADDRESS_B} l_access_expression_b.expr as l_expr_address_b and then
 						l_expr_address_b.is_protected
 					then
 						i := i + 1
@@ -1007,18 +1027,15 @@ feature {NONE} -- Visitors
 							a_node.parameters.count + l_nb_expr_address - i)
 					end
 				end
-				from
-					a_node.parameters.start
-				until
-					a_node.parameters.after
+				across
+					a_node.parameters as ps
 				loop
 					l_pos := l_pos + 1
-					l_parameter_b := a_node.parameters.item
-					if l_parameter_b /= Void and then l_parameter_b.is_hector then
-						if attached {HECTOR_B} l_parameter_b.expression as l_hector_b then
+					if attached ps.item as p and then p.is_hector then
+						if attached {HECTOR_B} p.expression as l_hector_b then
 							make_protected_byte_code (l_hector_b, a_node.parameters.count - l_pos)
 						elseif
-							attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+							attached {EXPR_ADDRESS_B} p.expression as l_expr_address_b and then
 							l_expr_address_b.is_protected
 						then
 							i := i + 1
@@ -1027,7 +1044,6 @@ feature {NONE} -- Visitors
 								a_node.parameters.count + l_nb_expr_address - i)
 						end
 					end
-					a_node.parameters.forth
 				end
 			end
 
@@ -1105,7 +1121,6 @@ feature {NONE} -- Visitors
 	process_if_b (a_node: IF_B)
 			-- Process `a_node'.
 		local
-			l_elsif_clause: ELSIF_B
 			i, nb_jumps: INTEGER
 		do
 			if attached {HIDDEN_IF_B} a_node then
@@ -1126,34 +1141,29 @@ feature {NONE} -- Visitors
 				-- Deferred writing of the jump value
 			ba.mark_forward
 
-			if a_node.compound /= Void then
-					-- Generated byte code for first compound (if any).
-				a_node.compound.process (Current)
+			if attached a_node.compound as c then
+					-- Generate byte code for first compound (if any).
+				c.process (Current)
 			end
 			ba.append (Bc_jmp)
 			ba.mark_forward2
 			nb_jumps := nb_jumps + 1
 
-				-- Writes the relative jump value.
+				-- Write the relative jump value.
 			ba.write_forward
 
-			if a_node.elsif_list /= Void then
-					-- Generates byte code for alternatives
-				from
-					a_node.elsif_list.start
-				until
-					a_node.elsif_list.after
+			if attached a_node.elsif_list as l then
+					-- Generate byte code for alternatives.
+				across
+					l as e
 				loop
-					l_elsif_clause ?= a_node.elsif_list.item
-					check l_elsif_clause_not_void: l_elsif_clause /= Void end
-					l_elsif_clause.process (Current)
+					e.item.process (Current)
 					nb_jumps := nb_jumps + 1
-					a_node.elsif_list.forth
 				end
 			end
 
 			if a_node.else_part /= Void then
-					-- Generates byte code for default compound.
+					-- Generate byte code for default compound.
 				a_node.else_part.process (Current)
 			end
 
@@ -1187,8 +1197,10 @@ feature {NONE} -- Visitors
 				-- Deferred writing of the jump value.
 			ba.mark_forward
 
-				-- Generate hook for Then_part.
-			generate_melted_debugger_hook (ba)
+			if a_node.has_breakpoints then
+					-- Generate hook for Then_part.
+				generate_melted_debugger_hook (ba)
+			end
 				-- Generate expression for Then_part.
 			make_expression_byte_code_for_type (a_node.then_expression, t)
 
@@ -1209,8 +1221,10 @@ feature {NONE} -- Visitors
 				nb_jumps := nb_jumps + l.count
 			end
 
-				-- Generate hook for Else_part.
-			generate_melted_debugger_hook (ba)
+			if a_node.has_breakpoints then
+					-- Generate hook for Else_part.
+				generate_melted_debugger_hook (ba)
+			end
 				-- Generate expression for Else_part.
 			make_expression_byte_code_for_type (a_node.else_expression, t)
 
@@ -1226,48 +1240,84 @@ feature {NONE} -- Visitors
 			end
 		end
 
-	process_inspect_b (a_node: INSPECT_B)
-			-- Process `a_node'.
+	process_inspect_b (b: INSPECT_B)
+			-- <Precursor>
 		local
-			i, l_nb_jump: INTEGER
-			l_case: CASE_B
+			n: like {INSPECT_B}.case_list.count
 		do
 			generate_melted_debugger_hook (ba)
 
 				-- Generate switch expression byte code
-			a_node.switch.process (Current)
-			if a_node.case_list /= Void then
-				from
-					i := a_node.case_list.count
-					l_nb_jump := i
-				until
-					i < 1
-				loop
-					l_case ?= a_node.case_list.i_th (i)
-					check
-						l_case_not_void: l_case /= Void
-					end
-					make_case_range (l_case)
-					i := i - 1
-				end
-					-- Go to else part
+			b.switch.process (Current)
+			if attached b.case_list as cs then
+				n := cs.count
+					-- Generate code for the inspect intervals.
+					-- Because `ba.mark_forward2` and `ba.write_forward2`use a stack,
+					-- the order of intervals need to be reversed, so that compounds come
+					-- in source order to preserve breakpoints order.
+				⟳ c: cs.new_cursor.reversed ¦ make_case_range (c) ⟲
+					-- Go to else part.
 				ba.append (Bc_jmp)
 				ba.mark_forward3
-
-					-- Generate code for the various inspect matches
-				a_node.case_list.process (Current)
+					-- Generate code for the inspect cases.
+				⟳ c: cs ¦ process_case_b (c) ⟲
 				ba.write_forward3
 			end
-			if a_node.else_part /= Void then
+			if attached b.else_part as p then
 					-- We need to pop the value of the expression since we do not need it anymore.
 				ba.append (bc_pop)
 				ba.append_natural_32 (1)
-				a_node.else_part.process (Current)
+				p.process (Current)
 			else
 				ba.append (Bc_inspect_excep)
 			end
 
-				-- Jumps for cases compounds
+				-- Jumps for cases.
+			from
+			until
+				n < 1
+			loop
+				ba.write_forward
+				n := n - 1
+			end
+		end
+
+	process_inspect_expression_b (b: INSPECT_EXPRESSION_B)
+			-- <Precursor>
+		local
+			i, l_nb_jump: INTEGER
+			t: TYPE_A
+		do
+			t := context.real_type (b.type)
+
+				-- Generate switch expression byte code.
+			b.switch.process (Current)
+			if attached b.case_list as cs then
+				l_nb_jump := cs.count
+					-- Generate code for the inspect intervals.
+					-- Because `ba.mark_forward2` and `ba.write_forward2`use a stack,
+					-- the order of intervals need to be reversed, so that compounds come
+					-- in source order to preserve breakpoints order.
+				⟳ c: cs.new_cursor.reversed ¦ make_case_range (c) ⟲
+					-- Go to else part.
+				ba.append (Bc_jmp)
+				ba.mark_forward3
+					-- Generate code for the inspect cases.
+				⟳ c: cs ¦ process_case_expression_b_for_type (c, t) ⟲
+				ba.write_forward3
+			end
+			if attached b.else_part as p then
+				generate_melted_debugger_hook (ba)
+					-- Pop the value of the expression that is not needed anymore.
+				ba.append (bc_pop)
+				ba.append_natural_32 (1)
+					-- Generate code for default case.
+				make_expression_byte_code_for_type (p, t)
+			else
+				ba.append (Bc_inspect_excep)
+			end
+
+				-- Jumps for cases.
 			from
 				i := l_nb_jump
 			until
@@ -1539,8 +1589,9 @@ feature {NONE} -- Visitors
 			l_old_hidden_code_level := l_context.hidden_code_level
 			l_context.set_hidden_code_level (0)
 
-				-- Generate loop iteration part.
-			generate_melted_debugger_hook (ba)
+				-- Allow the debugger to stop after a nested call.
+			generate_melted_debugger_hook_nested
+				-- Initialize cursor without generating a debugger hook.
 			l_context.enter_hidden_code
 			a_node.iteration_code.process (Current)
 			l_context.exit_hidden_code
@@ -1624,8 +1675,12 @@ feature {NONE} -- Visitors
 			ba.append (bc_lassign)
 			ba.append_short_integer (result_local_number)
 
-				-- Advance the loop cursor.
+				-- Allow the debugger to stop after a nested call.
+			generate_melted_debugger_hook_nested
+				-- Advance cursor without generating a debugger hook.
+			l_context.enter_hidden_code
 			a_node.advance_code.process (Current)
+			l_context.exit_hidden_code
 
 				-- Save hook context & restore recorded context.
 			body_breakpoint_slot := l_context.get_breakpoint_slot
@@ -1739,7 +1794,16 @@ feature {NONE} -- Visitors
 
 			make_expression_byte_code_for_type (a_node.expression, l_target_type)
 
-			if l_target_type.is_none then
+			if
+					-- Assignment on something of type NONE always fails.
+				l_target_type.is_none or else
+					-- Assignment to an expanded variable.
+				l_target_type.is_expanded and then
+					-- Assigning Void to expanded.
+				(l_source_type.is_none or else
+					-- Non-conforming expanded types.
+				l_source_type.is_expanded and then not l_source_type.conform_to (context.associated_class, l_target_type))
+			then
 					-- Remove expression value because it is not used.
 				ba.append (bc_pop)
 				ba.append_uint32_integer (1)
@@ -1747,30 +1811,21 @@ feature {NONE} -- Visitors
 				ba.append (bc_bool)
 				ba.append_boolean (False)
 			elseif l_target_type.is_expanded and then l_source_type.is_expanded then
-					-- NOOP if classes are different or normal assignment otherwise.
-				if
-					attached {CL_TYPE_A} l_source_type as l_source_class_type and then
-					attached {CL_TYPE_A} l_target_type as l_target_class_type and then
-					l_target_class_type.class_id = l_source_class_type.class_id
-				then
-						-- Do normal assignment.
-					if l_target_type.is_basic then
-						ba.append (a_node.target.assign_code)
-					else
-						ba.append (a_node.target.expanded_assign_code)
-					end
-					melted_assignment_generator.generate_assignment (ba, a_node.target)
-						-- Types conform.
-					ba.append (bc_bool)
-					ba.append_boolean (True)
-				else
-						-- Remove expression value because it is not used.
-					ba.append (bc_pop)
-					ba.append_uint32_integer (1)
-						-- Types do not conform.
-					ba.append (bc_bool)
-					ba.append_boolean (False)
+					-- Do normal assignment.
+				check
+					from_conformance_test_of_expanded_types:
+						l_source_type.conform_to (context.associated_class, l_target_type)
 				end
+				ba.append
+					(if l_target_type.is_basic then
+						a_node.target.assign_code
+					else
+						a_node.target.expanded_assign_code
+					end)
+				melted_assignment_generator.generate_assignment (ba, a_node.target)
+					-- Types conform.
+				ba.append (bc_bool)
+				ba.append_boolean (True)
 			else
 					-- Target is a reference, source is a reference, or both
 				if system.is_scoop and then not l_target_type.is_separate and then l_source_type.is_separate then
@@ -1803,9 +1858,17 @@ feature {NONE} -- Visitors
 		do
 			l_is_str32 := a_node.is_string_32
 			if l_is_str32 then
-				ba.append (bc_once_string32)
+				if a_node.is_immutable then
+					ba.append (bc_once_immstring32)
+				else
+					ba.append (bc_once_string32)
+				end
 			else
-				ba.append (bc_once_string)
+				if a_node.is_immutable then
+					ba.append (Bc_once_immstring8)
+				else
+					ba.append (bc_once_string)
+				end
 			end
 			ba.append_integer (a_node.body_index - 1)
 			ba.append_integer (a_node.number - 1)
@@ -2005,13 +2068,21 @@ feature {NONE} -- Visitors
 		do
 			if a_node.is_string_32 then
 				l_value_32 := a_node.value_32
-				ba.append (Bc_string32)
+				if a_node.is_immutable then
+					ba.append (Bc_immstring32)
+				else
+					ba.append (Bc_string32)
+				end
 					-- Bytes to read
 				ba.append_integer (l_value_32.count * 4)
 				ba.append_raw_string_32 (l_value_32)
 			else
 				l_value := a_node.value_8
-				ba.append (Bc_string)
+				if a_node.is_immutable then
+					ba.append (Bc_immstring8)
+				else
+					ba.append (Bc_string)
+				end
 					-- Bytes to read
 				ba.append_integer (l_value.count)
 				ba.append_raw_string (l_value)
@@ -2024,14 +2095,11 @@ feature {NONE} -- Visitors
 			l_attr_names: LINKED_LIST [STRING]
 		do
 			l_attr_names := a_node.attribute_names
-			from
-				l_attr_names.start
-			until
-				l_attr_names.after
+			across
+				l_attr_names as names
 			loop
 				ba.append (Bc_add_strip)
-				ba.append_raw_string (l_attr_names.item)
-				l_attr_names.forth
+				ba.append_raw_string (names.item)
 			end
 			ba.append (Bc_end_strip)
 			ba.append_short_integer (context.class_type.type_id - 1)
@@ -2090,40 +2158,36 @@ feature {NONE} -- Visitors
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- Process `a_node'.
 		local
-			l_real_ty: TUPLE_TYPE_A
 			l_expr: EXPR_B
 		do
-			l_real_ty ?= context.real_type (a_node.type)
-				-- Need to insert expression into
-				-- the stack back to front in order
-				-- to be inserted into the area correctly
-			from
-				a_node.expressions.finish
-			until
-				a_node.expressions.before
-			loop
-				l_expr := a_node.expressions.item
-				check l_expr_not_void: l_expr /= Void end
-				l_expr.process (Current)
-				if l_expr.is_hector then
-					if attached {HECTOR_B} l_expr as l_hector_b then
-						make_protected_byte_code (l_hector_b, 0)
-					else
-							-- Address expressions are disallowed for tuple
-							-- initialization.
-						check False end
+			if attached {TUPLE_TYPE_A} context.real_type (a_node.type) as l_real_ty then
+					-- Need to insert expression into
+					-- the stack back to front in order
+					-- to be inserted into the area correctly
+				from
+					a_node.expressions.finish
+				until
+					a_node.expressions.before
+				loop
+					l_expr := a_node.expressions.item
+					check l_expr_not_void: l_expr /= Void end
+					l_expr.process (Current)
+					if l_expr.is_hector then
+						if attached {HECTOR_B} l_expr as l_hector_b then
+							make_protected_byte_code (l_hector_b, 0)
+						else
+								-- Address expressions are disallowed for tuple
+								-- initialization.
+							check False end
+						end
 					end
+					a_node.expressions.back
 				end
-				a_node.expressions.back
-			end
-			ba.append (Bc_tuple)
-			l_real_ty.make_type_byte_code (ba, True, context.context_class_type.type)
-			ba.append_short_integer (-1)
-			ba.append_integer (a_node.expressions.count + 1)
-			if l_real_ty.is_basic_uniform then
-				ba.append_integer (1)
-			else
-				ba.append_integer (0)
+				ba.append (Bc_tuple)
+				l_real_ty.make_type_byte_code (ba, True, context.context_class_type.type)
+				ba.append_short_integer (-1)
+				ba.append_integer (a_node.expressions.count + 1)
+				ba.append_integer (l_real_ty.is_basic_uniform.to_integer)
 			end
 		end
 
@@ -2316,7 +2380,6 @@ feature {NONE} -- Implementation
 		local
 			l_context: like context
 			l_ba: like ba
-			s: TRAVERSABLE_SUBSET [INTEGER_32]
 		do
 			l_context := context
 			l_ba := ba
@@ -2355,15 +2418,11 @@ feature {NONE} -- Implementation
 			a_node.expr.process (separate_target_collector)
 			if separate_target_collector.has_separate_target then
 					-- Enumerate all separate arguments used as a target of a call.
-				s := separate_target_collector.target
-				from
-					s.start
-				until
-					s.after
+				across
+					separate_target_collector.target as s
 				loop
 					l_ba.append (bc_wait_arg)
 					l_ba.append_short_integer (s.item)
-					s.forth
 				end
 			end
 				-- Assertion byte code
@@ -2471,7 +2530,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	make_case_range (a_node: CASE_B)
+	make_case_range (a_node: ABSTRACT_CASE_B [BYTE_NODE])
 			-- Generate range byte code
 		require
 			a_node_not_void: a_node /= Void
@@ -2502,7 +2561,6 @@ feature {NONE} -- Implementation
 		require
 			a_node_not_void: a_node /= Void
 		local
-			l_basic_type: BASIC_A
 			l_inst_cont_type: TYPE_A
 			l_finish_byte_code: BOOLEAN
 			creation_expression: CREATION_EXPR_B
@@ -2512,22 +2570,34 @@ feature {NONE} -- Implementation
 					-- The call may be separate.
 				ba.append (bc_separate)
 					-- Arguments need to be passed together with feature information.
-				if attached a_node.parameters as p then
-					ba.append_argument_count (p.count)
-				else
-					ba.append_argument_count (0)
-				end
+				ba.append_argument_count (if attached a_node.parameters as p then p.count else 0 end)
 					-- Indicate if this is a query or procedure call and in case of separate creation whether the target region is active.
-				ba.append_boolean (not a_node.type.is_void or else is_active)
+				ba.append_natural_8
+					(if is_creation then
+							-- Add flags specific for object creation.
+							-- Indicate whether the newly created object should be placed in a new active region.
+						if is_active then scoop_call_mask_active_creation else scoop_call_mask_none end
+						⦶
+							-- Indicate whether the creation procedure of a once class returns a value.
+						if l_inst_cont_type.has_associated_class and then l_inst_cont_type.base_class.is_once then
+							scoop_call_mask_query
+						else
+							scoop_call_mask_none
+						end
+					elseif not a_node.type.is_void then
+							-- The call returns a value.
+						scoop_call_mask_query
+					else
+						scoop_call_mask_none
+					end)
 			end
 				-- Note: Manu 08/08/2002: if `a_node.precursor_type' is not Void, it can only means
 				-- that we are currently performing a static access call on a feature
 				-- from a basic class. Assuming otherwise is not correct as you
 				-- cannot seriously inherit from a basic class.
-			if l_inst_cont_type.is_basic and a_node.precursor_type = Void then
-				l_basic_type ?= l_inst_cont_type
+			if l_inst_cont_type.is_basic and a_node.precursor_type = Void and then attached {BASIC_A} l_inst_cont_type as l_basic_type then
 				if a_node.is_feature_special (False, l_basic_type) then
-					a_node.make_special_byte_code (ba, l_basic_type)
+					a_node.make_special_byte_code (ba, l_basic_type, a_node.type)
 				else
 						-- Process the call via the `feature_name' in the
 						-- associated reference type
@@ -2679,7 +2749,8 @@ feature {NONE} -- SCOOP
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	ca_ignore: "CA033", "CA033: too large class"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

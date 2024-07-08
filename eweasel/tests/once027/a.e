@@ -1,23 +1,7 @@
-note
-	description: "Summary description for {A}."
-	date: "$Date$"
-	revision: "$Revision$"
+class A
 
-class
-	A
+feature {NONE} -- Creation
 
-create
-	make
-
-feature {NONE} -- Initialization
-
-	make
-		do
-			create t.make_from_string ("A")
-		end
-
-feature -- Access
-
-	t: STRING
+    make once end
 
 end

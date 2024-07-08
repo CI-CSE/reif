@@ -1,7 +1,5 @@
-note
+﻿note
 	description: "Verification task that verifies one feature at a time and (possibly) in parallel."
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	E2B_FORK_VERIFICATION_TASK
@@ -9,8 +7,8 @@ class
 inherit
 
 	E2B_VERIFY_TASK
-
 	SHARED_WORKBENCH
+	INTERNAL_COMPILER_STRING_EXPORTER
 
 create
 	make
@@ -19,22 +17,20 @@ feature {NONE} -- Initialization
 
 	make (a_translator_input: E2B_TRANSLATOR_INPUT)
 			-- Initialize task.
-		local
-			l_part_input: E2B_TRANSLATOR_INPUT
 		do
 			create remaining_inputs.make
 			create verification_tasks.make
 			across a_translator_input.feature_list as l_cursor loop
-				add_sub_task_for_feature (l_cursor.item)
+				add_sub_task_for_feature (l_cursor)
 			end
 			across a_translator_input.class_list as l_cursor loop
-				add_sub_tasks_for_class (l_cursor.item)
+				add_sub_tasks_for_class (l_cursor)
 			end
 			across a_translator_input.feature_of_type_list as l_cursor loop
-				add_sub_task_for_feature_of_type (l_cursor.item.f, l_cursor.item.t)
+				add_sub_task_for_feature_of_type (l_cursor.f, l_cursor.t)
 			end
 			across a_translator_input.class_check_list as l_cursor loop
-				add_sub_task_for_class_check (l_cursor.item)
+				add_sub_task_for_class_check (l_cursor)
 			end
 		end
 
@@ -193,11 +189,35 @@ feature {NONE} -- Implementation
 				Result := "C-" + a_input.class_list.first.name_in_upper
 			end
 			if not a_input.feature_list.is_empty then
-				Result := "F-" + a_input.feature_list.first.written_class.name_in_upper + "." + a_input.feature_list.first.feature_name_32.out
+				Result := "F-" + a_input.feature_list.first.written_class.name_in_upper + "." + a_input.feature_list.first.feature_name
 			end
 			if not a_input.feature_of_type_list.is_empty then
-				Result := "FT-" + a_input.feature_of_type_list.first.t.base_class.name_in_upper + "." + a_input.feature_of_type_list.first.f.feature_name_32.out
+				Result := "FT-" + a_input.feature_of_type_list.first.t.base_class.name_in_upper + "." + a_input.feature_of_type_list.first.f.feature_name
 			end
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

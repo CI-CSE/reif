@@ -59,7 +59,11 @@ feature -- Access
 			l_lowered_var: READABLE_STRING_GENERAL
 		do
 			l_lowered_var := a_var.as_lower
-			l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + a_version
+			if {EIFFEL_ENV}.is_workbench then
+				l_eiffel := {STRING_32} "\SOFTWARE\ISE\" + {EIFFEL_ENV}.Wkbench_suffix + {STRING_32} "\Eiffel_" + a_version
+			else
+				l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + a_version
+			end
 			create l_reg
 			if a_app /= Void then
 					-- Lookup application-specific setting.
@@ -89,6 +93,10 @@ feature -- Access
 			i,n: INTEGER
 		do
 			l_es_root_keyname := {STRING_32} "\SOFTWARE\ISE"
+			if {EIFFEL_ENV}.is_workbench then
+				l_es_root_keyname.append_character ('\')
+				l_es_root_keyname.append_string_general ({EIFFEL_ENV}.wkbench_suffix)
+			end
 			create l_reg
 			l_key_path := {STRING_32} "HKEY_CURRENT_USER" + l_es_root_keyname
 			p := l_reg.open_key_with_access (l_key_path, l_reg.key_read)
@@ -108,7 +116,11 @@ feature -- Access
 						i > n
 					loop
 						if attached l_reg.enumerate_key (p, i - 1) as k then
-							Result.force (k.name)
+							if k.name.same_string ({EIFFEL_ENV}.wkbench_suffix) then
+									-- Ignore
+							else
+								Result.force (k.name)
+							end
 						end
 						i := i + 1
 					end
@@ -116,8 +128,43 @@ feature -- Access
 			end
 		end
 
+feature -- Environment change
+
+	set_application_item (a_var: READABLE_STRING_GENERAL; a_app: detachable READABLE_STRING_GENERAL; a_version: STRING; a_value: detachable READABLE_STRING_GENERAL)
+			-- Set value `a_value` in variable `a_var` as if we were `a_app` for version `a_version` (formatted as MM.mm).
+		require
+			a_var_ok: a_var /= Void and then not a_var.has ('%U')
+			a_app_ok: a_app = Void or else not a_app.has ('%U')
+			a_version_ok: a_version /= Void implies not a_version.is_whitespace
+		local
+			l_reg: WEL_REGISTRY
+			l_eiffel: STRING_32
+			l_lowered_var: READABLE_STRING_GENERAL
+			val: WEL_REGISTRY_KEY_VALUE
+			kn: STRING_32
+		do
+			l_lowered_var := a_var.as_lower
+			l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + a_version
+			create l_reg
+
+			create kn.make_from_string_general ("HKEY_CURRENT_USER")
+			kn.append (l_eiffel)
+
+			if a_app /= Void then
+					-- Lookup application-specific setting.
+				kn.extend ('\')
+				kn.append_string_general (a_app)
+			end
+			if a_value /= Void then
+				create val.make ({WEL_REGISTRY_KEY_VALUE}.reg_sz, a_value)
+				l_reg.save_key_value (kn, l_lowered_var, val)
+			else
+				l_reg.delete_key_value (kn, l_lowered_var)
+			end
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -50,7 +50,7 @@ feature -- Access
 			Result_not_void: Result /= Void
 		end
 
-	full_signature_compiled (a_feature: E_FEATURE): STRING
+	full_signature_compiled (a_feature: E_FEATURE): STRING_32
 			-- Parameter of `a_feature'. (i.e. (foo: LIST [BAR], bar: BAR): INTEGER
 		require
 			a_feature_not_void: a_feature /= Void
@@ -64,7 +64,7 @@ feature -- Access
 			Result_not_void: Result /= Void
 		end
 
-	full_name_compiled (a_feature: E_FEATURE): STRING
+	full_name_compiled (a_feature: E_FEATURE): STRING_32
 			-- Full name of `a_feature' (i.e. "feature_name (foo: FOO): LIST [FOO, BAR [FOO2]]")
 		require
 			a_feature_not_void: a_feature /= Void
@@ -74,7 +74,7 @@ feature -- Access
 			Result_not_void: Result /= Void
 		end
 
-	full_name (a_feature: FEATURE_AS): STRING
+	full_name (a_feature: FEATURE_AS): STRING_32
 			-- Full name of `a_feature' (i.e. "feature_name: LIST [FOO, BAR [FOO2]]")
 			-- without parameters.
 		require
@@ -113,13 +113,11 @@ feature {NONE} -- Implementation
 		local
 			l_generics: ARRAYED_LIST [TYPE_A]
 			i, nb: INTEGER
-			formal: FORMAL_A
 		do
-			formal ?= a_type
-			if formal = Void then
-				Result := a_type.base_class.name_in_upper.twin
-			else
+			if attached {FORMAL_A} a_type as formal then
 				Result := formal.dump
+			else
+				Result := a_type.base_class.name_in_upper.twin
 			end
 
 			l_generics := a_type.generics
@@ -147,12 +145,10 @@ feature {NONE} -- Implementation
 		require
 			a_type_not_void: a_type /= Void
 		local
-			ct: CLASS_TYPE_AS
 			g: TYPE_LIST_AS
 		do
 			Result := ""
-			ct ?= a_type
-			if ct /= Void then
+			if attached {CLASS_TYPE_AS} a_type as ct then
 				Result.append (supplier_name (class_i_by_name (ct.class_name.name_8)))
 				g := ct.generics
 				if g /= Void then
@@ -188,7 +184,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

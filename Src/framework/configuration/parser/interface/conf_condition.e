@@ -52,7 +52,10 @@ feature -- Access
 			-- Build where it is is enabled or for which it is disabled (if `invert' is true)
 
 	concurrency: detachable TUPLE [value: ARRAYED_LIST [INTEGER]; invert: BOOLEAN]
-			-- Concurrency setting where it is is enabled or for which it is disabled (if `invert' is true)
+			-- Concurrency capability where it is is enabled or for which it is disabled (if `invert' is true)
+
+	void_safety: detachable TUPLE [value: ARRAYED_LIST [INTEGER]; invert: BOOLEAN]
+			-- Void_safety capability where it is is enabled or for which it is disabled (if `invert' is true)
 
 	dotnet: detachable CELL [BOOLEAN]
 			-- Enabled for dotnet?
@@ -87,6 +90,11 @@ feature -- Queries
 				-- concurrency
 			if Result and attached concurrency as l_concurrency then
 				Result := l_concurrency.value.has (a_state.concurrency) xor l_concurrency.invert
+			end
+
+				-- void_safety
+			if Result and attached void_safety as l_void_safety then
+				Result := l_void_safety.value.has (a_state.void_safety) xor l_void_safety.invert
 			end
 
 				-- dotnet
@@ -133,7 +141,7 @@ feature -- Queries
 				until
 					not Result
 				loop
-					Result := custom_satisfied (a_state, ic.key, ic.item)
+					Result := custom_satisfied (a_state, @ ic.key, ic)
 				end
 			end
 		end
@@ -343,6 +351,48 @@ feature -- Update
 			concurrency_void: concurrency = Void
 		end
 
+	add_void_safety (a_void_safety: INTEGER)
+			-- Add requirement on `a_void_safety'.
+		require
+			valid_platform: valid_void_safety (a_void_safety)
+			not_invert: attached void_safety as c implies not c.invert
+		local
+			l_void_safety: like void_safety
+		do
+			l_void_safety := void_safety
+			if l_void_safety = Void then
+				l_void_safety := [create {ARRAYED_LIST [INTEGER]}.make (1), False]
+				l_void_safety.compare_objects
+				void_safety := l_void_safety
+			end
+			l_void_safety.value.force (a_void_safety)
+		end
+
+	exclude_void_safety (a_void_safety: INTEGER)
+			-- Add an exclude requirement on `a_void_safety'.
+		require
+			valid_void_safety: valid_void_safety (a_void_safety)
+			all_invert: attached void_safety as c implies c.invert
+		local
+			l_void_safety: like void_safety
+		do
+			l_void_safety := void_safety
+			if l_void_safety = Void then
+				l_void_safety := [create {ARRAYED_LIST [INTEGER]}.make (1), True]
+				l_void_safety.compare_objects
+				void_safety := l_void_safety
+			end
+			l_void_safety.value.force (a_void_safety)
+		end
+
+	wipe_out_void_safety
+			-- Wipe out void_safety.
+		do
+			void_safety := Void
+		ensure
+			void_safety_void: void_safety = Void
+		end
+
 	set_dotnet (a_value: BOOLEAN)
 			-- Set `dotnet' to `a_value'.
 		do
@@ -453,6 +503,7 @@ feature -- Output
 			append_list (platform, platform_names, Result)
 			append_list (build, build_names, Result)
 			append_list (concurrency, concurrency_names, Result)
+			append_list (void_safety, void_safety_names, Result)
 
 			from
 				version.start
@@ -463,7 +514,8 @@ feature -- Output
 					Result.append (l_min.version)
 					Result.append_string_general (" <= ")
 				end
-				Result.append_string_general (version.key_for_iteration + " version")
+				Result.append_string_general (version.key_for_iteration)
+				Result.append_string_general (" version")
 				if attached version.item_for_iteration.max as l_max then
 					Result.append_string_general (" <= ")
 					Result.append (l_max.version)
@@ -490,33 +542,33 @@ feature -- Output
 
 			across custom as custom_ic loop
 				across
-					custom_ic.item as l_c
+					custom_ic as l_c
 				loop
 						-- FIXME: jfiat
-					Result.append_string_general (custom_ic.key)
-					if l_c.item.inverted then
-						if l_c.item.is_case_insensitive then
+					Result.append_string_general (@ custom_ic.key)
+					if l_c.inverted then
+						if l_c.is_case_insensitive then
 							Result.append_string_general (" /<caseless>= ")
-						elseif l_c.item.is_wildcard then
+						elseif l_c.is_wildcard then
 							Result.append_string_general (" /<wildcard>= ")
-						elseif l_c.item.is_regular_expression then
+						elseif l_c.is_regular_expression then
 							Result.append_string_general (" /<regexp>= ")
 						else
 							Result.append_string_general (" /= ")
 						end
 
 					else
-						if l_c.item.is_case_insensitive then
+						if l_c.is_case_insensitive then
 							Result.append_string_general (" =<caseless>= ")
-						elseif l_c.item.is_wildcard then
+						elseif l_c.is_wildcard then
 							Result.append_string_general (" =<wildcard>= ")
-						elseif l_c.item.is_regular_expression then
+						elseif l_c.is_regular_expression then
 							Result.append_string_general (" =<regexp>= ")
 						else
 							Result.append_string_general (" = ")
 						end
 					end
-					Result.append_string_general (l_c.key)
+					Result.append_string_general (@ l_c.key)
 					Result.append_string_general (" and ")
 				end
 			end
@@ -574,11 +626,12 @@ invariant
 	platform_ok: attached platform as p implies p.object_comparison and p.value /= Void
 	build_ok: attached build as b implies b.object_comparison and b.value /= Void
 	concurrency_ok: attached concurrency as c implies c.object_comparison and attached c.value
+	void_safety_ok: attached void_safety as c implies c.object_comparison and attached c.value
 	version_not_void: version /= Void
 	custom_not_void: custom /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

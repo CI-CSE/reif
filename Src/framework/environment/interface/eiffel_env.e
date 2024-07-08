@@ -1,7 +1,6 @@
 ﻿note
 
-	description:
-		"Environment for bitmaps, help, binaries, scripts...."
+	description: "Environment for bitmaps, help, binaries, scripts...."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -11,6 +10,8 @@ deferred class EIFFEL_ENV
 
 inherit
 	ANY
+
+	LOCALIZED_PRINTER
 
 	SHARED_COMPILER_PROFILE
 
@@ -92,26 +93,36 @@ feature -- Access
 				Result.append_string_general ("Base Path = ")
 				Result.append (unix_layout_base_path.name)
 			else
-				Result.append_string_general ("$ISE_EIFFEL = ")
+				Result.append_string_general ("$" + {EIFFEL_CONSTANTS}.ise_eiffel_env)
+				Result.append_string_general (" = ")
 				Result.append (install_path.name)
 				Result.append_string_general ("%N")
-				Result.append_string_general ("$ISE_LIBRARY = ")
+				Result.append_string_general ("$" + {EIFFEL_CONSTANTS}.ise_library_env)
+				Result.append_string_general (" = ")
 				Result.append (eiffel_library.name)
 				Result.append_string_general ("%N")
-				Result.append_string_general ("$ISE_PLATFORM = ")
+				Result.append_string_general ("$" + {EIFFEL_CONSTANTS}.ise_platform_env)
+				Result.append_string_general (" = ")
 				Result.append_string_general (eiffel_platform)
 				if {PLATFORM}.is_windows then
 					Result.append_string_general ("%N")
-					Result.append_string_general ("$ISE_C_COMPILER = ")
+					Result.append_string_general ("$" + {EIFFEL_CONSTANTS}.ise_c_compiler_env)
+					Result.append_string_general (" = ")
 					Result.append_string_general (eiffel_c_compiler)
+					if attached eiffel_c_compiler_version as eccv and then not eccv.is_whitespace then
+						Result.append_string_general ("%N")
+						Result.append_string_general ("$" + {EIFFEL_CONSTANTS}.ise_c_compiler_ver_env)
+						Result.append_string_general (" = ")
+						Result.append_string_general (eccv)
+					end
 				end
 			end
 		ensure
 			not_result_is_empty: not Result.is_empty
 		end
 
-	copyright_year: STRING = "2018"
-			-- Copyright year
+	copyright_year: STRING = "2023"
+			-- Copyright year.
 
 feature -- Access
 
@@ -124,13 +135,14 @@ feature -- Access
 				create Result.make_empty
 			end
 		ensure
+			instance_free: class
 			executable_suffix_not_void: Result /= Void
 			not_result_is_empty: {PLATFORM}.is_windows implies not Result.is_empty
 		end
 
 feature {NONE} -- Access
 
-	required_environment_variables: ARRAYED_LIST [TUPLE [var: READABLE_STRING_GENERAL; is_directory: BOOLEAN]]
+	required_environment_variables: ARRAYED_LIST [TUPLE [var: READABLE_STRING_8; is_directory: BOOLEAN]]
 			-- List of required environment variables.
 		once
 			create Result.make (4)
@@ -180,7 +192,7 @@ feature -- Status update
 			l_op_env: like operating_environment
 			l_value: detachable STRING_32
 			l_variables: like required_environment_variables
-			l_variable: TUPLE [var: READABLE_STRING_GENERAL; is_directory: BOOLEAN]
+			l_variable: like required_environment_variables.item
 			l_is_valid: like is_valid_environment
 			u: FILE_UTILITIES
 		do
@@ -217,7 +229,7 @@ feature -- Status update
 				elseif l_variable.is_directory and then not u.directory_exists (l_value) then
 					io.error.put_string (l_product_names.workbench_name)
 					io.error.put_string (": the environment variable " + {EIFFEL_CONSTANTS}.ise_eiffel_env + " points to a non-existing directory:%N")
-					io.error.put_string (l_value.as_string_8)
+					localized_print_error (l_value)
 					l_is_valid := False
 				else
 						-- Set the environment variable, as it may have come from the Windows registry.
@@ -249,7 +261,7 @@ feature -- Status update
 
 				if not directory_path_exists (bin_path) then
 					io.error.put_string (l_product_names.workbench_name)
-					io.error.put_string (": the path $" + {EIFFEL_CONSTANTS}.ise_eiffel_env + "/studio/spec/$" + {EIFFEL_CONSTANTS}.ise_platform_env + "/bin points to a non-existing directory:%N")
+					io.error.put_string (": the path $" + {EIFFEL_CONSTANTS}.ise_eiffel_env + "/" + distribution_name + "/spec/$" + {EIFFEL_CONSTANTS}.ise_platform_env + "/bin points to a non-existing directory:%N")
 					io.error.put_string (bin_path.utf_8_name)
 					on_check_environment_failure
 				end
@@ -278,6 +290,9 @@ feature -- Status update
 					-- We only initialize .NET precompiled libraries on Windows.
 				init_precompile_directory (True)
 			end
+
+				-- Check dotnet related settings
+			check_dotnet_environment
 		ensure
 			is_valid_environment: is_valid_environment
 		end
@@ -346,7 +361,6 @@ feature -- Status update
 			if l_ise_iron /= Void and then l_ise_iron.is_empty then
 				l_ise_iron := Void
 			end
-
 
 			if l_ise_iron = Void then
 				if l_iron = Void then
@@ -508,10 +522,10 @@ feature {NONE} -- Helpers
 
 feature -- IL environment
 
-	default_il_environment: IL_ENVIRONMENT
+	default_il_environment: IL_ENVIRONMENT_I
 			-- Default il environment, using the newest available runtime.
 		once
-			create Result
+			create {IL_ENVIRONMENT} Result
 		end
 
 feature -- Query
@@ -705,7 +719,7 @@ feature -- Directories (top-level)
 			-- When ISE_PRECOMP is defined:
 			--   $ISE_PRECOMP
 			-- Otherwise if `is_user_files_supported':
-			--   On Windows: C:\Users\manus\Documents\Eiffel User Files\MM.mm\precomp\spec\$ISE_PLATFORM
+			--   On Windows: C:\Users\username\Documents\Eiffel User Files\MM.mm\precomp\spec\$ISE_PLATFORM
 			--   On Mac: ~/Eiffel User Files/MM.mm/precomp/spec/$ISE_PLATFORM
 			--   On Unix: ~/.es/Eiffel User Files/MM.mm/precomp/spec/$ISE_PLATFORM
 			-- Otherwise
@@ -742,6 +756,8 @@ feature -- Directories (top-level)
 			not_result_is_empty: not Result.is_empty
 		end
 
+feature -- IRON
+
 	iron_command_name: PATH
 			-- path where the iron command is located in the installation directory.
 			-- With platform: $ISE_EIFFEL/tools/spec/$ISE_PLATFORM/bin/iron{.exe}
@@ -749,7 +765,7 @@ feature -- Directories (top-level)
 		require
 			is_valid_environment: is_valid_environment
 		do
-			Result := shared_path.extended ("tools").extended ("spec").extended (eiffel_platform).extended ("bin").extended (iron_name + executable_suffix)
+			Result := application_tools_bin_path.extended (iron_name + executable_suffix)
 		ensure
 			not_result_is_empty: not Result.is_empty
 		end
@@ -761,19 +777,19 @@ feature -- Directories (top-level)
 		require
 			is_valid_environment: is_valid_environment
 		do
-			Result := shared_path.extended ("tools").extended (iron_name)
+			Result := shared_application_tools_path.extended (iron_name)
 		ensure
 			not_result_is_empty: not Result.is_empty
 		end
 
 	iron_path: PATH
 			-- Actual location of the iron installed libraries.
-			-- When ISE_IRON_PATH is defined:
-			--   $ISE_IRON_PATH
-			-- Otherwise if IRON_PATH is defined
-			--	 $IRON_PATH
+			-- When IRON_PATH is defined:
+			--   $IRON_PATH
+			-- Otherwise if ISE_IRON_PATH is defined
+			--	 $ISE_IRON_PATH
 			-- Otherwise if `is_user_files_supported':
-			--   On Windows: C:\Users\manus\Documents\Eiffel User Files\MM.mm\iron
+			--   On Windows: C:\Users\username\Documents\Eiffel User Files\MM.mm\iron
 			--   On Mac: ~/Eiffel User Files/MM.mm/iron
 			--   On Unix: ~/.es/Eiffel User Files/MM.mm/iron
 			-- Otherwise
@@ -783,9 +799,9 @@ feature -- Directories (top-level)
 		local
 			l_value: like get_environment_32
 		do
-			l_value := get_environment_32 ({EIFFEL_CONSTANTS}.ise_iron_path_env)
+			l_value := get_environment_32 ({EIFFEL_CONSTANTS}.iron_path_env)
 			if l_value = Void or else l_value.is_empty then
-				l_value := get_environment_32 ({EIFFEL_CONSTANTS}.iron_path_env)
+				l_value := get_environment_32 ({EIFFEL_CONSTANTS}.ise_iron_path_env)
 			end
 			if l_value = Void or else l_value.is_empty then
 				if is_user_files_supported then
@@ -808,7 +824,7 @@ feature  -- Directories (dotnet)
 	assemblies_path: PATH
 			-- Location of Eiffel Assembly Cache.
 			-- If `is_user_files_supported':
-			--   On Windows: C:\Users\manus\Documents\Eiffel User Files\MM.mm\dotnet\assemblies
+			--   On Windows: C:\Users\username\Documents\Eiffel User Files\MM.mm\dotnet\assemblies
 			--   On Mac: ~/Eiffel User Files/MM.mm/dotnet/assemblies
 			--   On Unix: ~/.es/Eiffel User Files/MM.mm/dotnet/assemblies
 			-- Otherwise
@@ -826,8 +842,109 @@ feature  -- Directories (dotnet)
 				Result := install_path
 			end
 			Result := Result.extended (dotnet_name).extended (assemblies_name)
+			if use_json_dotnet_md_cache then
+				Result := Result.extended ("json")
+			end
 		ensure
 			not_result_is_empty: not Result.is_empty
+		end
+
+	emdc_command_name: PATH
+			-- Complete path to `emdc'.
+		require
+			is_valid_environment: is_valid_environment
+		once
+			Result := bin_path.extended (emdc_name).appended (executable_suffix)
+		ensure
+			not_result_is_empty: not Result.is_empty
+		end
+
+	nemdc_command_name: PATH
+			-- Complete path to `nemdc'.
+		require
+			is_valid_environment: is_valid_environment
+		once
+			Result := bin_path.extended ("netcore").extended (nemdc_name).appended (executable_suffix)
+		ensure
+			not_result_is_empty: not Result.is_empty
+		end
+
+feature -- Cache settings		
+
+	check_dotnet_environment
+			-- Check .Net environment
+		do
+			if
+				not {PLATFORM}.is_windows
+			then
+					-- On non Windows platform (Linux, ...), always use "emdc".
+				use_emdc_consumer := True
+			elseif
+				attached get_environment_32 ("ISE_EMDC") as v1 and then v1.count > 0 and then
+				not (v1.is_case_insensitive_equal ("false") or v1.is_case_insensitive_equal ("no"))
+			then
+				use_emdc_consumer := True
+			else
+				use_emdc_consumer := False
+			end
+			update_use_json_dotnet_md_cache
+		end
+
+	update_use_json_dotnet_md_cache
+			-- Update `use_json_dotnet_md_cache` accordingly to `use_emdc_consumer` and the environment.
+		do
+			if use_emdc_consumer then
+					-- By default, use JSON content
+				use_json_dotnet_md_cache := True
+
+					-- unless ISE_EMDC_JSON is "false"
+				if
+					attached get_environment_32 ("ISE_EMDC_JSON") as v2 and then
+					v2.count > 0 and then
+					( v2.is_case_insensitive_equal ("false")
+					  or v2.is_case_insensitive_equal ("no")
+					)
+				then
+					use_json_dotnet_md_cache := False
+				end
+			else
+				use_json_dotnet_md_cache := False
+			end
+		end
+
+	use_emdc_consumer: BOOLEAN
+			-- Use emdc executable as .Net meta consumer?
+
+	use_json_dotnet_md_cache: BOOLEAN
+			-- Use JSON for cache storage.
+
+	set_use_emdc_consumer (b: BOOLEAN; a_permanent: BOOLEAN)
+			-- Set `use_emdc_consumer` to `b`
+			-- and if `a_permanent` is True, update the environment accordingly	
+		do
+			use_emdc_consumer := b
+			if a_permanent then
+				if b then
+					environment.set_application_item ("ISE_EMDC", application_name, version_name, "true")
+				else
+					environment.set_application_item ("ISE_EMDC", application_name, version_name, "false")
+				end
+			end
+			update_use_json_dotnet_md_cache
+		end
+
+	set_use_json_dotnet_md_cache (b: BOOLEAN; a_permanent: BOOLEAN)
+			-- Set `use_json_dotnet_md_cache` to `b`
+			-- and if `a_permanent` is True, update the environment accordingly
+		do
+			use_json_dotnet_md_cache := b
+			if a_permanent then
+				if b then
+					environment.set_application_item ("ISE_EMDC_JSON", application_name, version_name, "true")
+				else
+					environment.set_application_item ("ISE_EMDC_JSON", application_name, version_name, "false")
+				end
+			end
 		end
 
 feature -- Directories (distribution)
@@ -1002,6 +1119,21 @@ feature -- Directories (distribution)
 			not_result_is_empty: not Result.is_empty
 		end
 
+	application_tools_bin_path: PATH
+			-- Location of binary tools components.
+		require
+			is_valid_environment: is_valid_environment
+		once
+			if is_unix_layout then
+				Result := unix_layout_base_path
+			else
+				Result := shared_application_tools_path.extended (spec_name).extended (eiffel_platform)
+			end
+			Result := Result.extended (bin_name)
+		ensure
+			not_result_is_empty: not Result.is_empty
+		end
+
 	runtime_include_path: PATH
 			-- Location of Eiffel runtime include files.
 		require
@@ -1095,7 +1227,7 @@ feature -- Directories (top-level user)
 			-- With ISE_APP_DATA defined:
 			--   $ISE_APP_DATA
 			-- When hidden files is available:
-			--   On Windows: C:\Users\manus\AppData\Local\Eiffel Software\.es\MM.mm
+			--   On Windows: C:\Users\username\AppData\Local\Eiffel Software\.es\MM.mm
 			--   On Unix & Mac: ~/.es/MM.mm
 			-- Otherwise we use a subdirectory of `user_files_path':
 			--   `user_files_path'\settings
@@ -1139,7 +1271,7 @@ feature -- Directories (top-level user)
 			-- With ISE_APP_DATA defined:
 			--   $ISE_APP_DATA
 			-- When hidden files is available:
-			--   On Windows: C:\Users\manus\AppData\Local\Eiffel Software\.es\MM.mm
+			--   On Windows: C:\Users\username\AppData\Local\Eiffel Software\.es\MM.mm
 			--   On Unix & Mac: ~/.es/MM.mm
 			-- Otherwise we use a subdirectory of `user_files_path':
 			--   `user_files_path'\settings
@@ -1161,7 +1293,7 @@ feature -- Directories (top-level user)
 			-- With ISE_APP_DATA defined:
 			--   $ISE_APP_DATA
 			-- When hidden files is available:
-			--   On Windows: C:\Users\manus\AppData\Local\Eiffel Software\.es\MM.mm
+			--   On Windows: C:\Users\username\AppData\Local\Eiffel Software\.es\MM.mm
 			--   On Unix & Mac: ~/.es/MM.mm
 			-- Otherwise we use a subdirectory of `user_files_path':
 			--   `user_files_path'\settings
@@ -1188,7 +1320,7 @@ feature -- Directories (top-level user)
 			-- With ISE_USER_FILES is defined:
 			--   $ISE_USER_FILES
 			-- Otherwise
-			--   On Windows: C:\Users\manus\Documents\Eiffel User Files\MM.mm
+			--   On Windows: C:\Users\username\Documents\Eiffel User Files\MM.mm
 			--   On Mac: ~/Eiffel User Files/MM.mm
 			--   On Unix: ~/.es/Eiffel User Files/MM.mm
 			-- When purge the ES stored configuration data, it will not erase the files
@@ -1250,7 +1382,7 @@ feature -- Directories (top-level user)
 			-- With ISE_USER_FILES is defined:
 			--   $ISE_USER_FILES
 			-- Otherwise
-			--   On Windows: C:\Users\manus\Documents\Eiffel User Files\MM.mm
+			--   On Windows: C:\Users\username\Documents\Eiffel User Files\MM.mm
 			--   On Mac: ~/Eiffel User Files/MM.mm
 			--   On Unix: ~/.es/Eiffel User Files/MM.mm
 			-- When purge the ES stored configuration data, it will not erase the files
@@ -1274,7 +1406,7 @@ feature -- Directories (top-level user)
 			-- With ISE_USER_FILES is defined:
 			--   $ISE_USER_FILES
 			-- Otherwise
-			--   On Windows: C:\Users\manus\Documents\Eiffel User Files\MM.mm
+			--   On Windows: C:\Users\username\Documents\Eiffel User Files\MM.mm
 			--   On Mac: ~/Eiffel User Files/MM.mm
 			--   On Unix: ~/.es/Eiffel User Files/MM.mm
 			-- When purge the ES stored configuration data, it will not erase the files
@@ -1596,6 +1728,16 @@ feature -- Directories (platform independent)
 			not_result_is_empty: not Result.is_empty
 		end
 
+	shared_application_tools_path: PATH
+			-- Location of shared files specific for the current application's tools (platform independent).
+		require
+			is_valid_environment: is_valid_environment
+		once
+			Result := shared_path.extended (distribution_tools_name)
+		ensure
+			not_result_is_empty: not Result.is_empty
+		end
+
 	lib_path: PATH
 			-- Location of libs files (platform dependent).
 		require
@@ -1648,6 +1790,9 @@ feature -- Files (commands)
 			is_valid_environment: is_valid_environment
 		local
 			l_args: ARGUMENTS_32
+			fut: FILE_UTILITIES
+			l_ec_name: like ec_name
+			p: PATH
 		once
 			if is_workbench and (attached application_name as appname and then appname.same_string ("ec")) then
 					-- We have to launch ourself to perform a compilation that would make sense
@@ -1655,7 +1800,13 @@ feature -- Files (commands)
 				create l_args
 				create Result.make_from_string (l_args.command_name)
 			else
-				Result := bin_path.extended (ec_name + executable_suffix)
+				l_ec_name := ec_name
+				create p.make_from_string (l_ec_name)
+				if p.is_absolute and then fut.file_path_exists (p) then
+					Result := p
+				else
+					Result := bin_path.extended (l_ec_name + executable_suffix)
+				end
 			end
 		ensure
 			not_result_is_empty: not Result.is_empty
@@ -1860,6 +2011,12 @@ feature -- Executable names
 	ecdbg_name: STRING_8 = "ecdbgd"
 			-- Name of console line debugger command.
 
+	emdc_name: STRING_8 = "emdc"
+			-- Name of the .Net metadata consumer executable (emdc).
+
+	nemdc_name: STRING_8 = "nemdc"
+			-- Name of the .Net CORE metadata consumer executable (emdc).
+
 feature {NONE} -- Configuration of layout
 
 	unix_layout_base_path: PATH
@@ -1928,18 +2085,6 @@ feature -- Environment update
 			a_value_ok: a_value /= Void and then not a_value.has ('%U')
 		do
 			environment.put (a_value, a_var)
-		ensure
-			value_updated: attached get_environment_32 (a_var) as v implies v.same_string_general (a_value)
-		end
-
-	set_environment_32 (a_value, a_var: READABLE_STRING_GENERAL)
-			-- Update environment variable `a_key' to be `a_value'.
-		obsolete "use set_environment"
-		require
-			a_var_ok: a_var /= Void and then not a_var.is_empty and then not a_var.has ('%U')
-			a_value_ok: a_value /= Void and then not a_value.has ('%U')
-		do
-			set_environment (a_value, a_var)
 		ensure
 			value_updated: attached get_environment_32 (a_var) as v implies v.same_string_general (a_value)
 		end
@@ -2097,6 +2242,16 @@ feature -- Directory constants (top-level)
 			not_result_is_empty: not Result.is_empty
 		end
 
+	distribution_tools_name: STRING_8
+			-- Name of tools distribution.
+			--
+			--| Redefine for alternative tools distributions.
+		once
+			Result := "tools"
+		ensure
+			not_result_is_empty: not Result.is_empty
+		end
+
 	docs_name: STRING = "docs"
 			-- Documentation folder name.
 
@@ -2244,7 +2399,7 @@ feature {NONE} -- Implementation
 
 	user_directory_name: detachable PATH
 			-- Directory name corresponding to the user directory
-			-- On Windows: C:\Users\manus\Documents
+			-- On Windows: C:\Users\username\Documents
 			-- On Unix & Mac: $HOME
 		once
 			Result := environment.user_directory_path
@@ -2272,11 +2427,15 @@ feature -- Preferences
 		do
 			l_prod_version_name := product_name_for_version (a_version_name)
 			if {PLATFORM}.is_windows then
-				create Result.make_from_string_general ({STRING_32} "HKEY_CURRENT_USER\SOFTWARE\ISE\" + l_prod_version_name + "\" + application_name + "\Preferences")
+				create Result.make_from_string_general ({STRING_32} "HKEY_CURRENT_USER\SOFTWARE\ISE\")
 				if is_workbench then
-					Result.append_character ('_')
 					Result.append_string_general (wkbench_suffix)
+					Result.append_character ('\')
 				end
+				Result.append_string_general (l_prod_version_name)
+				Result.append_character ('\')
+				Result.append_string_general (application_name)
+				Result.append_string_general ("\Preferences")
 			else
 				p := hidden_files_path_for_version (version_name, a_create_dir)
 				p := p.extended (l_prod_version_name).appended_with_extension ("rc")
@@ -2322,11 +2481,10 @@ feature -- Existing installations
 				across
 					lst as ic
 				loop
-					s := ic.item
+					s := ic
 					if s.is_valid_as_string_8 then
-
+						Result.extend (s.to_string_8)
 					end
-					Result.extend (s.to_string_8)
 				end
 			else
 				create Result.make (0)
@@ -2343,17 +2501,21 @@ feature -- Existing installations
 		once
 			lst := installed_product_version_names
 			create Result.make (lst.count)
-			l_prod_name := product_name
+			l_prod_name := product_name + "_"
 			across
 				lst as ic
 			loop
-				s := ic.item
+				s := ic
 				if s.starts_with (l_prod_name) then
-					v := s.tail (s.count - l_prod_name.count - 1)
+					v := s.tail (s.count - l_prod_name.count)
 				else
 					v := s
 				end
-				Result.force (v)
+				if v.is_empty or else not v[1].is_digit then
+						-- Expecting major.minor value  (i.e:  23.06...)
+				else
+					Result.force (v)
+				end
 			end
 		end
 
@@ -2375,8 +2537,8 @@ feature {NONE} -- Helper
 			Result := u.file_path_exists (p)
 		end
 
-;note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+note
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

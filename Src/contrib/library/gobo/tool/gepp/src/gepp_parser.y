@@ -5,7 +5,7 @@ note
 
 		"Parsers for 'gepp' preprocessors"
 
-	copyright: "Copyright (c) 1999-2007, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -26,7 +26,9 @@ inherit
 			make as make_gepp_scanner,
 			reset as reset_gepp_scanner
 		redefine
-			echo, fatal_error
+			echo, 
+			fatal_error,
+			report_invalid_unicode_character_error
 		end
 
 	KL_SHARED_EXECUTION_ENVIRONMENT
@@ -155,6 +157,7 @@ feature {NONE} -- Initialization
 			create defined_values.make (10)
 			create line_nb_stack.make (Max_include_depth)
 			create include_stack.make (Max_include_depth)
+			last_string_value := ""
 		ensure
 			error_handler_set: error_handler = a_handler
 		end
@@ -242,11 +245,9 @@ feature -- Error handling
 			-- Report a syntax error.
 		local
 			an_error: UT_SYNTAX_ERROR
-			file_buffer: YY_FILE_BUFFER
 			filename: STRING
 		do
-			file_buffer ?= input_buffer
-			if file_buffer /= Void then
+			if attached {YY_FILE_BUFFER} input_buffer as file_buffer then
 				filename := file_buffer.file.name
 			else
 				filename := "string"
@@ -265,6 +266,17 @@ feature -- Error handling
 			error_handler.report_error (l_error)
 		end
 
+	report_invalid_unicode_character_error (a_code: NATURAL_32)
+			-- Report that the surrogate or invalid Unicode character
+			-- with code `a_code' has been read from the input
+			-- buffer and caused the scanner to fail.
+		local
+			l_error: UT_MESSAGE
+		do
+			create l_error.make ("Surrogate or invalid Unicode character '\u{" + a_code.to_hex_string + "}'")
+			error_handler.report_error (l_error)
+		end
+		
 feature -- Status report
 
 	ignored: BOOLEAN
@@ -354,6 +366,6 @@ invariant
 
 	error_handler_not_void: error_handler /= Void
 	defined_values_not_void: defined_values /= Void
-	no_void_defined_value: not defined_values.has_item (Void)
+	no_void_defined_value: not defined_values.has_void_item
 
 end

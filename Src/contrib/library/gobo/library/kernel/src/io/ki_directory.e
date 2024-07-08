@@ -5,7 +5,7 @@ note
 		"Interface for directories"
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2001-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2001-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -56,7 +56,7 @@ feature -- Access
 		deferred
 		ensure
 			no_void_filename: Result /= Void implies not STRING_ARRAY_.has_void (Result)
---			no_empty_filename: Result /= Void implies forall s in Result, s.count > 0
+			no_empty_filename: Result /= Void implies across Result as i_filename all not i_filename.is_empty end
 		end
 
 	directory_names: detachable ARRAY [STRING]
@@ -65,8 +65,8 @@ feature -- Access
 			-- (Do not include parent and current directory names.)
 		deferred
 		ensure
-			no_void_filename: Result /= Void implies not STRING_ARRAY_.has_void (Result)
---			no_empty_filename: Result /= Void implies forall s in Result, s.count > 0
+			no_void_directory_names: Result /= Void implies not STRING_ARRAY_.has_void (Result)
+			no_empty_directory_names: Result /= Void implies across Result as i_directory_name all not i_directory_name.is_empty end
 		end
 
 feature -- Status report
@@ -83,6 +83,7 @@ feature -- Status report
 		do
 			Result := an_entry /= Void and then an_entry.count > 0
 		ensure then
+			instance_free: class
 			an_entry_not_void: Result implies an_entry /= Void
 			an_entry_not_empty: Result implies an_entry.count > 0
 		end

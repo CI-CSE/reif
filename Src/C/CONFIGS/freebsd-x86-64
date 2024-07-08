@@ -208,12 +208,12 @@ concurrent_prefix='c'
 cp='/bin/cp'
 eiflib='finalized'
 if [ -n "$LD" ]; then
-	ld='$LD'
+	ld=$LD
 else
 	ld='ld'
 fi
 lintflags=''
-ldflags=""
+ldflags=" -L/usr/local/lib -L/usr/lib "
 ldsharedflags="$ldflags -shared -o"
 libs='-lm -lcompat'
 ln='/bin/ln'
@@ -236,7 +236,7 @@ shared_suffix='.so'
 shared_rt_suffix='.so'
 sharedlibs='-lm -lcompat'
 mtsharedlibs='-lm -lcompat -lpthread'
-sharedlibversion='.18.11'
+sharedlibversion='.23.06'
 sharedlink='ld'
 suffix='.a'
 wkeiflib='wkbench'

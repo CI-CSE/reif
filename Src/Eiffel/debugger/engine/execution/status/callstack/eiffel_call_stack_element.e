@@ -51,6 +51,11 @@ feature -- Properties
 			-- Only in that case can we request the locals
 			-- and the arguments.
 
+	is_class_feature: BOOLEAN
+		do
+			Result := attached routine_i as f and then f.is_class
+		end
+
 	dynamic_class: CLASS_C
 			-- Dynamic class where routine is called from
 
@@ -126,12 +131,11 @@ feature -- Properties
 			-- Local value at position `i'
 		require
 			routine_attached: routine /= Void
-		local
-			locs: like locals
 		do
-			locs := locals
-			if locs /= Void then
-				Result := locs.i_th (i)
+			if attached locals as locs then
+				if locs.valid_index (i) then
+					Result := locs.i_th (i)
+				end
 			end
 		end
 
@@ -139,15 +143,10 @@ feature -- Properties
 			-- Local value at position `i'
 		require
 			routine_attached: routine /= Void
-		local
-			locs: like locals
-			pos: INTEGER
 		do
-			locs := locals
-			if locs /= Void then
-				pos := routine.locals_count + i
-				if locs.valid_index (pos) then
-					Result := locs.i_th (pos)
+			if attached object_test_locals as locs then
+				if locs.valid_index (i) then
+					Result := locs.i_th (i)
 				end
 			end
 		end
@@ -217,6 +216,15 @@ feature -- Properties
 			end
 		end
 
+	object_test_locals: LIST [ABSTRACT_DEBUG_VALUE]
+			-- Value of object_test_local variables
+		do
+			if not initialized then
+				initialize_stack
+			end
+			Result := private_object_test_locals
+		end
+
 	arguments: LIST [ABSTRACT_DEBUG_VALUE]
 			-- Value of arguments
 		local
@@ -262,6 +270,7 @@ feature -- Stack reset
 			initialized := False
 			private_arguments := Void
 			private_locals := Void
+			private_object_test_locals := Void
 			private_result := Void
 			private_object_test_locals_info := Void
 		ensure
@@ -290,6 +299,9 @@ feature {NONE} -- Implementation Properties
 	private_locals: ARRAYED_LIST [ABSTRACT_DEBUG_VALUE]
 			-- Associated locals
 
+	private_object_test_locals: ARRAYED_LIST [ABSTRACT_DEBUG_VALUE]
+			-- Associated object test locals
+
 	private_arguments: FIXED_LIST [ABSTRACT_DEBUG_VALUE]
 			-- Associated arguments
 
@@ -310,7 +322,7 @@ feature {NONE} -- Implementation Properties
 
 feature {NONE} -- Implementation helper
 
-	error_value (a_name, a_mesg: STRING): DUMMY_MESSAGE_DEBUG_VALUE
+	error_value (a_name: STRING_32; a_mesg: STRING): DUMMY_MESSAGE_DEBUG_VALUE
 		do
 			create Result.make_with_name (a_name)
 			Result.set_message (a_mesg)
@@ -335,7 +347,7 @@ invariant
 note
 	date        : "$Date$"
 	revision    : "$Revision$"
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

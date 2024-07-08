@@ -17,7 +17,7 @@ inherit
 	AST_ITERATOR
 		redefine
 			process_assign_as,
-			process_create_creation_as
+			process_creation_as
 		end
 
 create
@@ -53,9 +53,9 @@ feature {NONE} -- Implementation
 
 					-- Get all locals.
 				across l_locals as l_local_dec loop
-					if attached l_local_dec.item.type as local_type then
-						across l_local_dec.item.id_list as l_id loop
-							all_locals.extend ([l_id.item, local_type], l_local_dec.item.item_name_32 (l_id.target_index))
+					if attached l_local_dec.type as local_type then
+						across l_local_dec.id_list as l_id loop
+							all_locals.extend ([l_id, local_type], l_local_dec.item_name_32 (@ l_id.target_index))
 						end
 					end
 				end
@@ -111,7 +111,7 @@ feature {NONE} -- Implementation
 			Precursor (a_assign)
 		end
 
-	process_create_creation_as (a_create: attached CREATE_CREATION_AS)
+	process_creation_as (a_create: CREATION_AS)
 			-- <Precursor>
 		do
 			if

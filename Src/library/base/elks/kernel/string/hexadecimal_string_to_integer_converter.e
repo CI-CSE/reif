@@ -108,11 +108,11 @@ feature -- Parse
 			l_c: CHARACTER_32
 		do
 			reset (type)
-			i := 0
-			nb := s.count
 			if attached {READABLE_STRING_8} s as l_str8 then
 				from
 					l_area8 := l_str8.area
+					i := l_str8.area_lower
+					nb := i + l_str8.count
 				until
 					i = nb or last_state >= 4
 				loop
@@ -127,6 +127,8 @@ feature -- Parse
 			elseif attached {READABLE_STRING_32} s as l_str32 then
 				from
 					l_area32 := l_str32.area
+					i := l_str32.area_lower
+					nb := i + l_str32.count
 				until
 					i = nb or last_state >= 4
 				loop
@@ -139,7 +141,7 @@ feature -- Parse
 					if l_c.is_character_8 then
 						parse_character (l_c.to_character_8)
 					else
-							-- Not a valid character.						
+							-- Not a valid character.
 						last_state := 4
 					end
 					i := i + 1
@@ -160,7 +162,7 @@ feature -- Parse
 					if l_code.is_valid_character_8_code then
 						parse_character (l_code.to_character_8)
 					else
-							-- Not a valid character.						
+							-- Not a valid character.
 						last_state := 4
 					end
 					i := i + 1
@@ -170,7 +172,7 @@ feature -- Parse
 
 	parse_character (c: CHARACTER)
 			-- Parse `c' in current parse session.
-			-- Make result available in `overflowed', `underflowed' and `parse_successful'.			
+			-- Make result available in `overflowed', `underflowed' and `parse_successful'.
 		local
 			temp_p1: like max_natural_type
 			temp_p2: like max_natural_type
@@ -210,13 +212,7 @@ feature -- Parse
 					elseif c.is_hexa_digit then
 						l_state := 3
 						part1 := 0
-						if c >= '0' and c <= '9' then
-							part2 := (c.code - 48).to_natural_64
-						elseif c >= 'a' and c <= 'f' then
-							part2 := (c.code - 87).to_natural_64
-						elseif c >= 'A' and c <= 'F' then
-							part2 := (c.code - 55).to_natural_64
-						end
+						part2 := c.to_hexa_digit
 					elseif leading_separators_acceptable and then leading_separators.has (c) then
 					else
 						l_state := 4
@@ -225,13 +221,7 @@ feature -- Parse
 						-- Let's find first prefix or digit after sign.
 					if c.is_hexa_digit then
 						part1 := 0
-						if c >= '0' and c <= '9' then
-							part2 := (c.code - 48).to_natural_64
-						elseif c >= 'a' and c <= 'f' then
-							part2 := (c.code - 87).to_natural_64
-						elseif c >= 'A' and c <= 'F' then
-							part2 := (c.code - 55).to_natural_64
-						end
+						part2 := c.to_hexa_digit
 						l_state := 3
 						if
 							conversion_type /= type_no_limitation and then
@@ -249,13 +239,7 @@ feature -- Parse
 				when 2 then
 					if c.is_hexa_digit then
 						part1 := 0
-						if c >= '0' and c <= '9' then
-							part2 := (c.code - 48).to_natural_64
-						elseif c >= 'a' and c <= 'f' then
-							part2 := (c.code - 87).to_natural_64
-						elseif c >= 'A' and c <= 'F' then
-							part2 := (c.code - 55).to_natural_64
-						end
+						part2 := c.to_hexa_digit
 						l_state := 3
 						if
 							conversion_type /= type_no_limitation and then
@@ -272,13 +256,7 @@ feature -- Parse
 						temp_p1 := part1
 						temp_p2 := part2
 						part1 := part1 * 16 + part2
-						if c >= '0' and c <= '9' then
-							part2 := (c.code - 48).to_natural_64
-						elseif c >= 'a' and c <= 'f' then
-							part2 := (c.code - 87).to_natural_64
-						elseif c >= 'A' and c <= 'F' then
-							part2 := (c.code - 55).to_natural_64
-						end
+						part2 := c.to_hexa_digit
 						if conversion_type /= type_no_limitation then
 							internal_overflowed := overflow_checker.will_overflow (part1, part2,
 								conversion_type, sign)
@@ -412,7 +390,7 @@ feature {NONE} -- Attributes
 			-- Naturals used for conversion.
 
 ;note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

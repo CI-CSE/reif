@@ -8,9 +8,6 @@
 deferred class
 	ARGUMENT_BASE_PARSER
 
-inherit
-	LOCALIZED_PRINTER
-
 feature {NONE} -- Initialization
 
 	make (a_cs: like is_case_sensitive; a_allow_non_switched: like is_allowing_non_switched_arguments; a_non_switch_required: like is_non_switch_argument_required)
@@ -66,7 +63,7 @@ feature -- Access
 			Result := internal_values
 		ensure
 			result_attached: Result /= Void
-			result_contains_attached_valid_items: across Result as l_c all not l_c.item.is_empty end
+			result_contains_attached_valid_items: ∀ l_c: Result ¦ not l_c.is_empty
 		end
 
 	frozen option_values: LIST [ARGUMENT_OPTION]
@@ -83,7 +80,7 @@ feature -- Access
 			create Result.make (0)
 		ensure
 			result_attached: Result /= Void
-			result_contains_attached_valid_items: across Result as l_c all not l_c.item.is_empty end
+			result_contains_attached_valid_items: ∀ l_c: Result ¦ not l_c.is_empty
 		end
 
 feature {NONE} -- Access
@@ -129,12 +126,10 @@ feature {NONE} -- Access
 
 				l_prefixes := switch_prefixes
 				l_use_separated_switched := is_using_separated_switch_values
-				from
-					l_args.start
-				until
-					l_args.after
+				across
+					l_args as a
 				loop
-					l_arg := l_args.item
+					l_arg := a
 					if l_arg.count > 2 then
 						if l_prefixes.has (l_arg.item (1)) and not l_prefixes.has (l_arg.item (2)) then
 								-- This means the argument is a single prefix switched (Unix style uses two (--) for full
@@ -162,7 +157,7 @@ feature {NONE} -- Access
 									l_arg.item (j + 1) = switch_value_qualifer
 								then
 									create l_next_arg.make (1 + (nb - j))
-									l_next_arg.append_character (l_prefixes[1])
+									l_next_arg.append_character (l_prefixes [1])
 									l_next_arg.append (l_arg.substring (j, l_arg.count))
 
 										-- Exit loop
@@ -191,7 +186,6 @@ feature {NONE} -- Access
 					else
 						Result.extend (l_arg)
 					end
-					l_args.forth
 				end
 			else
 				Result := argument_source.arguments
@@ -343,7 +337,7 @@ feature {NONE} -- Status report
 			-- Indicates if the Unix command switch style is being used by the application switches.
 			--| Note: Redefine to force use of Unix long name switches.
 		once
-			Result := across switches as s some s.item.has_short_name end
+			Result := ∃ s: switches ¦ s.has_short_name
 		end
 
 	frozen has_available_options: BOOLEAN
@@ -374,15 +368,12 @@ feature {NONE} -- Status report
 		do
 			l_cs := is_case_sensitive
 			Result :=
-				across
-					available_switches as s
-				some
+				∃ s: available_switches ¦
 					if l_cs then
-						s.item.id.same_string_general (a_name)
+						s.id.same_string_general (a_name)
 					else
-						s.item.id.is_case_insensitive_equal_general (a_name)
+						s.id.is_case_insensitive_equal_general (a_name)
 					end
-				end
 		ensure
 			available_switches_unmoved: available_switches.cursor ~ old available_switches.cursor
 		end
@@ -441,7 +432,7 @@ feature -- Status Setting
 
 feature {NONE} -- Query
 
-	option_of_name (a_name: READABLE_STRING_8): detachable ARGUMENT_OPTION
+	option_of_name (a_name: READABLE_STRING_GENERAL): detachable ARGUMENT_OPTION
 			-- Retrieves the first switch-qualified option, passed by user, by switch name.
 			--
 			-- `a_name': The switch names to retrieve an options for.
@@ -451,9 +442,7 @@ feature {NONE} -- Query
 			not_a_name_is_empty: not a_name.is_empty
 			has_parsed: has_parsed
 		do
-			if attached internal_option_of_name (a_name) as l_result then
-				Result := l_result
-			end
+			Result := internal_option_of_name (a_name)
 		end
 
 	options_of_name (a_name: READABLE_STRING_GENERAL): LIST [ARGUMENT_OPTION]
@@ -474,7 +463,7 @@ feature {NONE} -- Query
 			across
 				option_values as o
 			loop
-				l_opt := o.item
+				l_opt := o
 				if
 					if l_cs then
 						l_opt.switch.id.same_string_general (a_name)
@@ -506,8 +495,8 @@ feature {NONE} -- Query
 				create Result.make (l_options.count)
 				Result.compare_objects
 				across l_options as l_option loop
-					if l_option.item.has_value then
-						Result.extend (l_option.item.value)
+					if l_option.has_value then
+						Result.extend (l_option.value)
 					end
 				end
 			else
@@ -516,10 +505,10 @@ feature {NONE} -- Query
 			end
 		ensure
 			result_attached: Result /= Void
-			result_contains_attached_valid_items: across Result as l_c all not l_c.item.is_empty end
+			result_contains_attached_valid_items: ∀ l_c: Result ¦ not l_c.is_empty
 		end
 
-	unique_options_values_of_name (a_name: READABLE_STRING_8; a_ignore_case: BOOLEAN): ARRAYED_LIST [IMMUTABLE_STRING_32]
+	unique_options_values_of_name (a_name: READABLE_STRING_GENERAL; a_ignore_case: BOOLEAN): ARRAYED_LIST [IMMUTABLE_STRING_32]
 			-- Retrieves a list of unique switch-qualified option values, passed by user, by switch name.
 			--
 			-- `a_name': The switch names to retrieve a list of options for.
@@ -543,7 +532,7 @@ feature {NONE} -- Query
 			across
 				l_options as o
 			loop
-				l_option := o.item
+				l_option := o
 				if l_option.has_value then
 					l_value := l_option.value
 					if a_ignore_case then
@@ -559,7 +548,7 @@ feature {NONE} -- Query
 			end
 		ensure
 			result_attached: Result /= Void
-			result_contains_valid_items: across Result as l_c all not l_c.item.is_empty end
+			result_contains_valid_items: ∀ l_c: Result ¦ not l_c.is_empty
 		end
 
 	switch_of_name (a_name: READABLE_STRING_GENERAL): ARGUMENT_SWITCH
@@ -582,12 +571,12 @@ feature {NONE} -- Query
 			loop
 				if
 					if l_cs then
-						s.item.id.same_string_general (a_name)
+						s.id.same_string_general (a_name)
 					else
-						s.item.id.is_case_insensitive_equal_general (a_name)
+						s.id.is_case_insensitive_equal_general (a_name)
 					end
 				then
-					Result := s.item
+					Result := s
 				end
 			end
 			check
@@ -691,7 +680,6 @@ feature {NONE} -- Parsing
 			l_switch: detachable ARGUMENT_SWITCH
 			l_match_switch: detachable ARGUMENT_SWITCH
 			l_prefixes: like switch_prefixes
-			l_args: like arguments
 			l_cs: like is_case_sensitive
 			l_match: BOOLEAN
 			l_err: BOOLEAN
@@ -707,168 +695,160 @@ feature {NONE} -- Parsing
 				-- Set parsed so we can access certain functions
 			has_parsed := True
 
-			l_args := arguments
-			if l_args.count >= 1 then
-				l_switches := available_switches
-				l_prefixes := switch_prefixes
-				l_cs := is_case_sensitive
-				l_use_separated := is_using_separated_switch_values
-
-					-- Iterate arguments
-				from
-					l_args.start
-				until
-					l_args.after
-				loop
-					check
-						l_last_switch_unattached: not l_use_separated implies l_last_switch = Void
-					end
-					l_arg := l_args.item
-					if not l_stop_processing and then not l_arg.is_empty and then l_arg.count > 1 and then l_prefixes.has (l_arg.item (1)) then
-						if l_arg.count > 2 and then l_prefixes.has (l_arg.item (2)) then
-							l_option := l_arg.shared_substring (3, l_arg.count)
-							l_use_long_name := True
+			l_switches := available_switches
+			l_prefixes := switch_prefixes
+			l_cs := is_case_sensitive
+			l_use_separated := is_using_separated_switch_values
+			across
+				arguments as a
+			loop
+				check
+					l_last_switch_unattached: not l_use_separated implies l_last_switch = Void
+				end
+				l_arg := a
+				if not l_stop_processing and then not l_arg.is_empty and then l_arg.count > 1 and then l_prefixes.has (l_arg.item (1)) then
+					if l_arg.count > 2 and then l_prefixes.has (l_arg.item (2)) then
+						l_option := l_arg.shared_substring (3, l_arg.count)
+						l_use_long_name := True
+					else
+						if l_arg.count = 2 and then l_arg.same_string_general ("--") then
+								-- The user specified just a double switch qualifer (--), which means we ignore all future option processing.
+							l_stop_processing := True
+							l_option := l_arg
 						else
-							if l_arg.count = 2 and then l_arg.same_string_general ("--") then
-									-- The user specified just a double switch qualifer (--), which means we ignore all future option processing.
-								l_stop_processing := True
-								l_option := l_arg
-							else
-								l_option := l_arg.shared_substring (2, l_arg.count)
-							end
-							l_use_long_name := False
+							l_option := l_arg.shared_substring (2, l_arg.count)
 						end
+						l_use_long_name := False
+					end
 
-							-- Indicates a switch option
-						if not l_stop_processing then
-							l_last_switch := Void
-							if not l_option.is_empty then
-								l_err := False
-								l_value := Void
+						-- Indicates a switch option
+					if not l_stop_processing then
+						l_last_switch := Void
+						if not l_option.is_empty then
+							l_err := False
+							l_value := Void
 
-								if not l_use_separated then
-									j := l_option.index_of (switch_value_qualifer, 1)
-									if j > 0 then
-										if j = 1 then
-											add_template_error (e_invalid_switch_error, [ellipse_text (l_arg)])
-											l_err := True
-										else
-											l_value := l_option.shared_substring (j + 1, l_option.count)
-											l_option := l_option.shared_substring (1, j - 1)
-										end
+							if not l_use_separated then
+								j := l_option.index_of (switch_value_qualifer, 1)
+								if j > 0 then
+									if j = 1 then
+										add_template_error (e_invalid_switch_error, [ellipse_text (l_arg)])
+										l_err := True
+									else
+										l_value := l_option.shared_substring (j + 1, l_option.count)
+										l_option := l_option.shared_substring (1, j - 1)
 									end
 								end
+							end
 
-								if not l_err then
-									if not l_cs then
-										l_option := l_option.as_lower
-									end
+							if not l_err then
+								if not l_cs then
+									l_option := l_option.as_lower
+								end
 
-										-- Attempt to find a matching switch
-									l_match_switch := Void
-									l_match := False
-									across
-										l_switches as s
-									until
-										l_match
-									loop
-										l_switch := s.item
-										if l_use_long_name then
-											if l_cs then
-												l_match := l_switch.long_name.same_string (l_option)
-											else
-												l_match := l_switch.long_name.is_case_insensitive_equal (l_option)
-											end
+									-- Attempt to find a matching switch
+								l_match_switch := Void
+								l_match := False
+								across
+									l_switches as s
+								until
+									l_match
+								loop
+									l_switch := s
+									if l_use_long_name then
+										if l_cs then
+											l_match := l_switch.long_name.same_string (l_option)
 										else
-											if l_cs then
-												l_match := l_switch.name.same_string (l_option)
-											else
-												l_match := l_switch.name.is_case_insensitive_equal (l_option)
-											end
-										end
-										if l_match then
-											l_match_switch := l_switch
-										end
-									end
-
-									if not l_match and not l_use_long_name then
-											-- Check if switch is actually a list of concatenated short switches
-										from
-											k := 1
-											l_count := l_option.count
-										until
-											k > l_count
-										loop
-											l_match := False
-											across
-												l_switches as s
-											until
-												l_match
-											loop
-												l_switch := s.item
-												if l_switch.has_short_name then
-													if l_cs then
-														l_match := l_switch.short_name = l_option [k]
-													else
-														l_match := l_switch.short_name.as_lower = l_option [k]
-													end
-													if l_match and k < l_count then
-															-- if matches and we are not processing the last item
-														internal_option_values.extend (l_switch.new_option)
-													end
-												end
-											end
-											k := k + 1
-										end
-										if l_match then
-												-- Last item can be a value switch
-											l_match_switch := l_switch
-										end
-									end
-
-									if l_match then
-										if l_switch /= Void then
-											if l_value /= Void and then not l_value.is_empty and then attached {ARGUMENT_VALUE_SWITCH} l_match_switch as l_value_switch then
-												internal_option_values.extend (l_value_switch.new_value_option (l_value))
-											else
-													-- Create user option
-												internal_option_values.extend (l_switch.new_option)
-											end
-										else
-											check l_switch_attached: False end
-										end
-										if l_use_separated then
-											l_last_switch := l_switch
+											l_match := l_switch.long_name.is_case_insensitive_equal (l_option)
 										end
 									else
-										add_template_error (e_unrecognized_switch_error, [ellipse_text (l_arg)])
+										if l_cs then
+											l_match := l_switch.name.same_string (l_option)
+										else
+											l_match := l_switch.name.is_case_insensitive_equal (l_option)
+										end
+									end
+									if l_match then
+										l_match_switch := l_switch
 									end
 								end
-							else
-								add_template_error (e_invalid_switch_error, [ellipse_text (l_arg)])
-							end
-						end
-					else
-						if attached {ARGUMENT_VALUE_SWITCH} l_last_switch as l_last_value_switch then
-							check
-								not_internal_option_values_is_empty: not internal_option_values.is_empty
-								same_name: internal_option_values.last.switch.id.same_string (l_last_value_switch.id)
-							end
-							internal_option_values.finish
-							if l_arg /= Void and then not l_arg.is_empty then
-								internal_option_values.replace (l_last_value_switch.new_value_option (l_arg))
+
+								if not l_match and not l_use_long_name then
+										-- Check if switch is actually a list of concatenated short switches
+									from
+										k := 1
+										l_count := l_option.count
+									until
+										k > l_count
+									loop
+										l_match := False
+										across
+											l_switches as s
+										until
+											l_match
+										loop
+											l_switch := s
+											if l_switch.has_short_name then
+												if l_cs then
+													l_match := l_switch.short_name = l_option [k]
+												else
+													l_match := l_switch.short_name.as_lower = l_option [k]
+												end
+												if l_match and k < l_count then
+														-- if matches and we are not processing the last item
+													internal_option_values.extend (l_switch.new_option)
+												end
+											end
+										end
+										k := k + 1
+									end
+									if l_match then
+											-- Last item can be a value switch
+										l_match_switch := l_switch
+									end
+								end
+
+								if l_match then
+									if l_switch /= Void then
+										if l_value /= Void and then not l_value.is_empty and then attached {ARGUMENT_VALUE_SWITCH} l_match_switch as l_value_switch then
+											internal_option_values.extend (l_value_switch.new_value_option (l_value))
+										else
+												-- Create user option
+											internal_option_values.extend (l_switch.new_option)
+										end
+									else
+										check l_switch_attached: False end
+									end
+									if l_use_separated then
+										l_last_switch := l_switch
+									end
+								else
+									add_template_error (e_unrecognized_switch_error, [ellipse_text (l_arg)])
+								end
 							end
 						else
-							if not l_arg.is_empty then
-									-- Create non-switched option
-								internal_values.extend (l_arg)
-							else
-								add_template_error (e_invalid_switch_error, [ellipse_text (l_arg)])
-							end
+							add_template_error (e_invalid_switch_error, [ellipse_text (l_arg)])
 						end
-						l_last_switch := Void
 					end
-					l_args.forth
+				else
+					if attached {ARGUMENT_VALUE_SWITCH} l_last_switch as l_last_value_switch then
+						check
+							not_internal_option_values_is_empty: not internal_option_values.is_empty
+							same_name: internal_option_values.last.switch.id.same_string (l_last_value_switch.id)
+						end
+						internal_option_values.finish
+						if l_arg /= Void and then not l_arg.is_empty then
+							internal_option_values.replace (l_last_value_switch.new_value_option (l_arg))
+						end
+					else
+						if not l_arg.is_empty then
+								-- Create non-switched option
+							internal_values.extend (l_arg)
+						else
+							add_template_error (e_invalid_switch_error, [ellipse_text (l_arg)])
+						end
+					end
+					l_last_switch := Void
 				end
 			end
 
@@ -938,7 +918,7 @@ feature {NONE} -- Validation
 				available_switches as s
 			loop
 				l_succ := True
-				l_switch := s.item
+				l_switch := s
 				if has_option (l_switch.id) then
 					l_options := options_of_name (l_switch.id)
 				else
@@ -958,7 +938,7 @@ feature {NONE} -- Validation
 						across
 							l_options as o
 						loop
-							if o.item.has_value then
+							if o.has_value then
 								add_template_error (e_non_value_switch, [l_switch.name])
 							end
 						end
@@ -967,7 +947,7 @@ feature {NONE} -- Validation
 						across
 							l_options as o
 						loop
-							if not o.item.has_value then
+							if not o.has_value then
 								add_template_error (e_require_switch_value, [l_val_switch.name, l_val_switch.arg_name])
 								l_succ := False
 							end
@@ -978,7 +958,7 @@ feature {NONE} -- Validation
 							across
 								l_options as o
 							loop
-								l_value := o.item.value
+								l_value := o.value
 								l_validator.validate (l_value)
 								if not l_validator.is_option_valid then
 									add_template_error (e_invalid_switch_value_with_reason, [ellipse_text (l_value), l_switch.name, l_validator.reason])
@@ -1012,9 +992,9 @@ feature {NONE} -- Validation
 					across
 						l_values as v
 					loop
-						l_validator.validate (v.item)
+						l_validator.validate (v)
 						if not l_validator.is_option_valid then
-							add_template_error (e_invalid_non_switched_value_with_reason, [v.item, l_validator.reason])
+							add_template_error (e_invalid_non_switched_value_with_reason, [v, l_validator.reason])
 						end
 					end
 				else
@@ -1040,7 +1020,7 @@ feature {NONE} -- Validation
 			across
 				option_values as o
 			loop
-				l_option := o.item.switch
+				l_option := o.switch
 				if l_dependencies.has (l_option) then
 					if attached l_dependencies [l_option] as l_switches then
 						from
@@ -1084,7 +1064,7 @@ feature {NONE} -- Validation
 			across
 				option_values as o
 			loop
-				l_switch := o.item.switch
+				l_switch := o.switch
 				from Result.start until Result.is_empty or Result.after loop
 					if not l_switch.is_special and then not Result.item.switches.has (l_switch) then
 						Result.remove
@@ -1095,7 +1075,7 @@ feature {NONE} -- Validation
 			end
 				-- Check optional.
 			from Result.start until Result.after loop
-				if across Result.item.switches as s all s.item.optional or else has_option (s.item.id) end then
+				if ∀ s: Result.item.switches ¦ s.optional or else has_option (s.id) then
 					Result.forth
 				else
 					Result.remove
@@ -1119,7 +1099,7 @@ feature {NONE} -- Validation
 			across
 				l_groups as g
 			loop
-				Result.extend (expand_switch_group (g.item))
+				Result.extend (expand_switch_group (g))
 			end
 			check
 				matching_counts: Result.count = l_groups.count
@@ -1141,7 +1121,6 @@ feature {NONE} -- Validation
 			l_group_switches: ARRAYED_LIST [ARGUMENT_SWITCH]
 			l_switch_dependencies: like switch_dependencies
 			l_switch: ARGUMENT_SWITCH
-			l_upper, i: INTEGER
 		do
 			l_group_switches := a_group.switches.twin
 			l_switch_dependencies := switch_dependencies
@@ -1149,20 +1128,16 @@ feature {NONE} -- Validation
 				from l_group_switches.start until l_group_switches.after loop
 					l_switch := l_group_switches.item
 					if attached l_switch_dependencies [l_switch] as l_appurtenances then
-						from
-							i := l_appurtenances.lower
-							l_upper := l_appurtenances.upper
-						until
-							i > l_upper
+						across
+							l_appurtenances as a
 						loop
-							l_switch := l_appurtenances[i]
+							l_switch := a
 							if not l_group_switches.has (l_switch) then
 								l_group_switches.extend (l_switch)
 								check
 									not_l_group_switches_after: not l_group_switches.after
 								end
 							end
-							i := i + 1
 						end
 					end
 					l_group_switches.forth
@@ -1229,26 +1204,26 @@ feature {NONE} -- Output
 			else
 				l_name := system_name
 			end
-			localized_print ("USAGE: %N")
+			io.put_string_32 ("USAGE: %N")
 
 			l_cfgs := command_option_configurations
 			if not l_cfgs.is_empty then
 				across
 					l_cfgs as c
 				loop
-					localized_print (tab_string)
-					localized_print (l_name)
-					localized_print (" ")
-					create l_cfg.make_from_string (c.item)
+					io.put_string_32 (tab_string)
+					io.put_string_32 (l_name)
+					io.put_string_32 (" ")
+					create l_cfg.make_from_string (c)
 					l_cfg.replace_substring_all ({STRING_32} "%N", {STRING_32} "%N" + create {STRING_32}.make_filled (' ', l_name.count + 1))
-					localized_print (l_cfg)
-					if not c.is_last then
+					io.put_string_32 (l_cfg)
+					if not @ c.is_last then
 						io.new_line
 					end
 				end
 			else
-				localized_print (tab_string)
-				localized_print (l_name)
+				io.put_string_32 (tab_string)
+				io.put_string_32 (l_name)
 			end
 
 			if has_visible_available_options then
@@ -1260,7 +1235,7 @@ feature {NONE} -- Output
 			l_ext := extended_usage
 			if not l_ext.is_empty then
 				io.new_line
-				localized_print (l_ext)
+				io.put_string_32 (l_ext)
 			end
 			io.new_line
 		end
@@ -1268,12 +1243,12 @@ feature {NONE} -- Output
 	display_logo
 			-- Displays copyright information.
 		do
-			localized_print (name)
-			localized_print (" - Version: ")
-			localized_print (version)
+			io.put_string_32 (name)
+			io.put_string_32 (" - Version: ")
+			io.put_string_32 (version)
 			if not copyright.is_empty then
 				io.new_line
-				localized_print (copyright)
+				io.put_string_32 (copyright)
 			end
 			io.new_line
 			io.new_line
@@ -1282,13 +1257,13 @@ feature {NONE} -- Output
 	display_version
 			-- Displays version information.
 		do
-				-- Only display the version information if it was not already displayed			
-			localized_print (name)
-			localized_print (" version ")
-			localized_print (version)
+				-- Only display the version information if it was not already displayed
+			io.put_string_32 (name)
+			io.put_string_32 (" version ")
+			io.put_string_32 (version)
 			if not copyright.is_empty then
 				io.new_line
-				localized_print (copyright)
+				io.put_string_32 (copyright)
 			end
 			io.new_line
 		end
@@ -1299,17 +1274,15 @@ feature {NONE} -- Output
 			not_is_successful: not is_successful
 		local
 			l_errors: like error_messages
-			l_error: STRING_32
 		do
 			l_errors := error_messages
-			localized_print_error (string_formatter.format_unicode ("{1} error(s) occurred.%N", [l_errors.count]))
+			io.error.put_string_32 (string_formatter.format_unicode ("{1} error(s) occurred.%N", [l_errors.count]))
 			across
 				l_errors as e
 			loop
-				localized_print_error (tab_string)
-				localized_print_error ("> ")
-				l_error := format_terminal_text (e.item, tab_string.count.as_natural_8 + 2)
-				localized_print_error (l_error)
+				io.error.put_string_32 (tab_string)
+				io.error.put_string_32 ("> ")
+				io.error.put_string_32 (format_terminal_text (e, tab_string.count.as_natural_8 + 2))
 				io.error.new_line
 			end
 			io.error.new_line
@@ -1341,14 +1314,14 @@ feature {NONE} -- Output
 			l_count: INTEGER
 			i: INTEGER
 		do
-			localized_print ("%NOPTIONS:%N")
+			io.put_string_32 ("%NOPTIONS:%N")
 
 			create l_value_switches.make (0)
 
 				-- Output prefix option qualifiers
 			l_prefixes := switch_prefixes
 			create l_def_prefix.make (1)
-			l_def_prefix.append_character (l_prefixes[1])
+			l_def_prefix.append_character (l_prefixes [1])
 			if l_prefixes.count > 1 then
 				create l_prefix.make ((l_prefixes.count * 5) + 2)
 				from
@@ -1363,17 +1336,17 @@ feature {NONE} -- Output
 						end
 					end
 					l_prefix.append_character ('%'')
-					l_prefix.append_character (l_prefixes[i])
+					l_prefix.append_character (l_prefixes [i])
 					l_prefix.append_character ('%'')
 					i := i + 1
 				end
-				localized_print (tab_string)
-				localized_print("Options ")
+				io.put_string_32 (tab_string)
+				io.put_string_32 ("Options ")
 				if is_case_sensitive then
-					localized_print ("are case-sensitive and ")
+					io.put_string_32 ("are case-sensitive and ")
 				end
-				localized_print ("should be prefixed with: ")
-				localized_print (l_prefix)
+				io.put_string_32 ("should be prefixed with: ")
+				io.put_string_32 (l_prefix)
 				io.new_line
 				io.new_line
 			end
@@ -1384,7 +1357,7 @@ feature {NONE} -- Output
 			across
 				l_switches as s
 			loop
-				l_switch := s.item
+				l_switch := s
 				if not l_switch.is_hidden then
 					if is_using_unix_switch_style or else l_switch.has_short_name then
 						l_max_len := l_max_len.max (l_switch.long_name.count + 5)
@@ -1396,12 +1369,12 @@ feature {NONE} -- Output
 
 			l_inline_args := is_showing_argument_usage_inline
 
-				-- Output available options	
+				-- Output available options
 
 			across
 				l_switches as s
 			loop
-				l_switch := s.item
+				l_switch := s
 				if attached {ARGUMENT_VALUE_SWITCH} l_switch as l_value_switch_1 then
 					l_value_switches.extend (l_value_switch_1)
 				end
@@ -1450,15 +1423,15 @@ feature {NONE} -- Output
 					l_desc.append (l_arg_desc)
 				end
 
-				localized_print (tab_string)
-				localized_print (l_name)
-				localized_print (": ")
-				localized_print (l_desc)
+				io.put_string_32 (tab_string)
+				io.put_string_32 (l_name)
+				io.put_string_32 (": ")
+				io.put_string_32 (l_desc)
 				io.new_line
 			end
 
 			if not l_inline_args and then not l_value_switches.is_empty then
-				localized_print ("%NARGUMENTS:%N")
+				io.put_string_32 ("%NARGUMENTS:%N")
 
 				create l_added_args.make (l_value_switches.count)
 
@@ -1466,13 +1439,13 @@ feature {NONE} -- Output
 				across
 					l_value_switches as s
 				loop
-					l_max_len := l_max_len.max (s.item.arg_name.count)
+					l_max_len := l_max_len.max (s.arg_name.count)
 				end
 
 				across
 					l_value_switches as s
 				loop
-					l_value_switch := s.item
+					l_value_switch := s
 
 					l_immutable := l_value_switch.arg_name
 					if not l_added_args.has (l_immutable) then
@@ -1486,10 +1459,10 @@ feature {NONE} -- Output
 						l_name.insert_character ('>', l_immutable.count + 2)
 
 						l_desc := format_terminal_text (l_value_switch.arg_description, (l_immutable.count + tab_string.count + 4).as_natural_8)
-						localized_print (tab_string)
-						localized_print (l_name)
-						localized_print (": ")
-						localized_print (l_desc)
+						io.put_string_32 (tab_string)
+						io.put_string_32 (l_name)
+						io.put_string_32 (": ")
+						io.put_string_32 (l_desc)
 						io.new_line
 
 						l_added_args.put (True, l_immutable)
@@ -1553,7 +1526,7 @@ feature {NONE} -- Usage
 				across
 					l_groups as g
 				loop
-					l_group := g.item
+					l_group := g
 					if not l_group.is_hidden then
 						l_switches := l_group.switches
 							-- Add nologo switch, if not already added
@@ -1576,7 +1549,7 @@ feature {NONE} -- Usage
 			end
 		ensure
 			result_attached: Result /= Void
-			result_contains_valid_items: across Result as l_c all not l_c.item.is_empty end
+			result_contains_valid_items: ∀ l_c: Result ¦ not l_c.is_empty
 			available_switches_unmoved: available_switches.cursor ~ old available_switches.cursor
 			switch_groups_unmoved: switch_groups.cursor ~ old switch_groups.cursor
 		end
@@ -1603,16 +1576,16 @@ feature {NONE} -- Usage
 		do
 			if not a_group.is_empty then
 				l_dependencies := switch_dependencies
-				l_prefix := switch_prefixes[1]
+				l_prefix := switch_prefixes [1]
 				l_use_separated := is_using_separated_switch_values
 				l_verbose := is_usage_verbose
 				l_unix_style := is_using_unix_switch_style
-				create Result.make  (a_group.count * 12)
+				create Result.make (a_group.count * 12)
 
 				across
 					a_group as g
 				loop
-					l_switch := g.item
+					l_switch := g
 					l_opt := l_switch.optional
 					if not l_switch.id.same_string (help_switch) and not l_switch.is_hidden then
 						l_add_switch := not a_add_appurtenances implies (not a_src_group.has (l_switch) or l_switch.optional)
@@ -1689,7 +1662,7 @@ feature {NONE} -- Usage
 							if l_opt then
 								Result.append_character (']')
 							end
-							if not g.is_last then
+							if not @ g.is_last then
 								Result.append_character (' ')
 							end
 						end
@@ -1864,7 +1837,7 @@ feature {NONE} -- Switches
 			across
 				l_switches as s
 			loop
-				l_switch := s.item
+				l_switch := s
 				if not l_switch.is_hidden then
 					Result.extend (l_switch)
 				end
@@ -1950,7 +1923,7 @@ feature {NONE} -- Constants
 		ensure
 			result_attached: Result /= Void
 			not_result_is_empty: not Result.is_empty
-			result_contains_printable_items: across Result as l_c all is_character_printable (l_c.item) end
+			result_contains_printable_items: ∀ l_c: Result ¦ is_character_printable (l_c)
 		end
 
 	switch_value_qualifer: CHARACTER_32
@@ -2062,7 +2035,7 @@ feature {NONE} -- Implementation: Query
 			across
 				option_values as o
 			loop
-				l_opt := o.item
+				l_opt := o
 				if
 					if l_cs then
 						a_name.same_string (l_opt.switch.id)
@@ -2092,8 +2065,8 @@ invariant
 	is_successful_means_has_parsed: is_successful implies has_parsed
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

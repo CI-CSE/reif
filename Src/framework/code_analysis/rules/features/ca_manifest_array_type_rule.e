@@ -1,6 +1,6 @@
 ﻿note
 	description: "[
-			RULE #63: Manifest array type
+			RULE #93: Manifest array type
 			
 			The type of the manifest array does not match the array type of the target.
 			This may lead to cat-calls.
@@ -49,7 +49,6 @@ feature {NONE} -- Activation
 			c.add_inline_agent_creation_pre_action (agent process_agent_start)
 			c.add_inline_agent_creation_post_action (agent process_agent_end)
 			c.add_instruction_call_pre_action (agent process_instr_call)
-			c.add_nested_pre_action (agent process_nested)
 			c.add_nested_expr_pre_action (agent process_nested_expr)
 			c.add_precursor_pre_action (agent process_precursor)
 			checker := c
@@ -214,12 +213,6 @@ feature {NONE} -- Checking the rule
 			process_call (a.call, current_context.checking_class.actual_type)
 		end
 
-	process_nested (a: NESTED_AS)
-			-- Check arguments of the call in `a` for rule violations.
-		do
-			process_call (a.message, current_context.node_type (a.target, current_feature))
-		end
-
 	process_nested_expr (a: NESTED_EXPR_AS)
 			-- Check arguments of the call in `a` for rule violations.
 		do
@@ -285,7 +278,7 @@ feature {NONE} -- Checking the rule
 					actual_arguments := a.new_cursor
 				loop
 					if attached t.base_class as b then
-						check_array_type (actual_arguments.item, formal_argument.item.evaluated_type_in_descendant (c,b,current_feature).instantiation_in (t, b.class_id))
+						check_array_type (actual_arguments.item, formal_argument.evaluated_type_in_descendant (c,b,current_feature).instantiation_in (t, b.class_id))
 					end
 					actual_arguments.forth
 				end
@@ -343,7 +336,7 @@ feature {NONE} -- Checking the rule
 					from
 						v := expressions.new_cursor
 					loop
-						check_array_type (v.item, g.item)
+						check_array_type (v.item, g)
 						v.forth
 					end
 				end
@@ -356,7 +349,7 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 	author: "Alexander Kogtenkov"
-	copyright:	"Copyright (c) 2018, Eiffel Software"
+	copyright:	"Copyright (c) 2018-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

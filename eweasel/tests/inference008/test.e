@@ -7,6 +7,7 @@ create
 feature {NONE} -- Initialization
 
 	make
+			-- Perform test.
 		local
 			b
 			t

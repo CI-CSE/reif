@@ -5,7 +5,7 @@ note
 		"UTF-32 encoding routines"
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2005, Colin Adams and others"
+	copyright: "Copyright (c) 2005-2020, Colin Adams and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -24,13 +24,13 @@ inherit
 
 feature -- Status report
 
-	valid_utf32 (a_string: STRING): BOOLEAN
+	valid_utf32 (a_string: STRING_8): BOOLEAN
 			-- Are the bytes in `a_string' a valid UTF-32 encoding?
 			-- 'a_string' has one byte per character.
 			-- Default to big endian when no BOM.
 		require
 			a_string_not_void: a_string /= Void
-			a_string_is_string: ANY_.same_types (a_string, "")
+			a_string_is_string: a_string.same_type ({STRING_8} "")
 		local
 			i, nb: INTEGER
 			least_endian: BOOLEAN
@@ -56,17 +56,19 @@ feature -- Status report
 				end
 			end
 		ensure
+			instance_free: class
 			empty_is_true: a_string.count = 0 implies Result
 			utf32_count_multiple_of_four: Result implies ((a_string.count \\ 4) = 0)
 		end
 
 feature -- Endian-ness detection
 
-	bom_be: STRING
+	bom_be: STRING_8
 			-- BOM in big-endian format
 		once
 			Result := "%/0/%/0/%/254/%/255/"
 		ensure
+			instance_free: class
 			bom_be_not_void: Result /= Void
 			four_bytes: Result.count = 4
 			first_byte: Result.item_code (1) = 0
@@ -75,11 +77,12 @@ feature -- Endian-ness detection
 			fourth_byte: Result.item_code (4) = Hex_ff
 		end
 
-	bom_le: STRING
+	bom_le: STRING_8
 			-- BOM in little-endian format
 		once
 			Result := "%/255/%/254/%/0/%/0/"
 		ensure
+			instance_free: class
 			bom_le_not_void: Result /= Void
 			four_bytes: Result.count = 4
 			first_byte: Result.item_code (1) = Hex_ff
@@ -100,6 +103,7 @@ feature -- Endian-ness detection
 		do
 			Result := first = 0 and second = 0 and third = Hex_fe and fourth = Hex_ff
 		ensure
+			instance_free: class
 			definition: Result = (first = 0 and second = 0 and third = Hex_fe and fourth = Hex_ff)
 		end
 
@@ -115,6 +119,7 @@ feature -- Endian-ness detection
 		do
 			Result := first = Hex_ff and second = Hex_fe and third = 0 and fourth = 0
 		ensure
+			instance_free: class
 			definition: Result = (first = Hex_ff and second = Hex_fe and third = 0 and fourth = 0)
 		end
 
@@ -123,6 +128,7 @@ feature -- Endian-ness detection
 		do
 			Result := a >= 0 and a < Hex_100
 		ensure
+			instance_free: class
 			definition: Result = (a >= 0 and a < Hex_100)
 		end
 
@@ -142,6 +148,7 @@ feature -- Access
 				Result := fourth + third * 256 + second * Two_byte_offset + first * Three_byte_offset
 			end
 		ensure
+			instance_free: class
 			code_not_negative: Result >= 0
 		end
 

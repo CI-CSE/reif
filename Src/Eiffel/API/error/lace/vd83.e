@@ -10,13 +10,14 @@ class
 
 inherit
 	ERROR
+		undefine
+			has_associated_file
 		redefine
 			error_string
 		end
 
 	LACE_WARNING
 		redefine
-			build_explain,
 			error_string,
 			trace_single_line
 		end
@@ -97,7 +98,7 @@ feature {NONE} -- Output
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

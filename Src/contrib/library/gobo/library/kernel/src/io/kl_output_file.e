@@ -6,7 +6,7 @@ note
 		%(8-bit code between 0 and 255)"
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2001-2008, Eric Bezault and others"
+	copyright: "Copyright (c) 2001-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -33,18 +33,18 @@ feature -- Status report
 
 feature -- Output
 
-	put_character (c: CHARACTER)
+	put_character (c: CHARACTER_8)
 			-- Write `c' to output file.
 		do
 			old_put_character (c)
 		end
 
-	put_string (a_string: STRING)
+	put_string (a_string: READABLE_STRING_8)
 			-- Write `a_string' to output file.
 			-- Note: If `a_string' is a UC_STRING or descendant, then
 			-- write the bytes of its associated UTF unicode encoding.
 		do
-			old_put_string (STRING_.as_string (a_string))
+			old_put_string (STRING_.as_readable_string_8_no_uc_string (a_string).to_string_8)
 		end
 
 feature -- Basic operations
@@ -170,7 +170,7 @@ feature {NONE} -- Implementation
 		deferred
 		end
 
-	old_put_character (c: CHARACTER)
+	old_put_character (c: CHARACTER_8)
 			-- Write `c' at current position.
 		require
 			extendible: extendible
@@ -182,7 +182,7 @@ feature {NONE} -- Implementation
 		deferred
 		end
 
-	old_put_string (s: STRING)
+	old_put_string (s: READABLE_STRING_8)
 			-- Write `s' at current position.
 		require
 			extendible: extendible

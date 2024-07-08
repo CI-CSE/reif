@@ -1,6 +1,5 @@
-note
-	description:
-		"EiffelVision notebook, Mswindows implementation."
+﻿note
+	description: "EiffelVision notebook, MS Windows implementation."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -25,9 +24,6 @@ inherit
 			enable_sensitive,
 			disable_sensitive,
 			set_default_minimum_size,
-			compute_minimum_width,
-			compute_minimum_height,
-			compute_minimum_size,
 			on_size,
 			interface,
 			child_added,
@@ -559,11 +555,11 @@ feature {NONE} -- WEL Implementation
 
 	hide_current_selection
 			-- Hide the currently selected page.
-		local
-			ww: detachable EV_WIDGET_IMP
 		do
-			ww ?= selected_window
-			if ww /= Void and then ww.exists then
+			if 
+				attached {EV_WIDGET_IMP} selected_window as ww and then
+				ww.exists 
+			then
 				ww.show_window (ww.wel_item, Sw_hide)
 			end
 		end
@@ -578,12 +574,15 @@ feature {NONE} -- WEL Implementation
 	on_tcn_selchange
 			-- Selection has changed.
 			-- Shows the current selected page by default.
-		local
-			ww: detachable EV_WIDGET_IMP
 		do
-			ww ?= selected_window
-			check ww /= Void then end
-			ww.show_window (ww.wel_item, sw_show)
+			if 
+				attached {EV_WIDGET_IMP} selected_window as ww and then
+				ww.exists
+			then
+				ww.show_window (ww.wel_item, sw_show)
+			else
+				check has_selected_window: selected_window /= Void end
+			end
 
 			if selection_actions_internal /= Void then
 				selection_actions.call (Void)
@@ -718,8 +717,7 @@ feature {NONE} -- Implementation
 				wel_win_not_void: wel_win /= Void then
 			end
 			remove_item_actions.call ([v_imp.attached_interface])
-			ev_children.go_i_th (i)
-			ev_children.remove
+			ev_children.remove_i_th (i)
 			disable_notebook_assertions
 			if selected_item_index = i then
 				if selected_item_index > 1 then
@@ -1038,8 +1036,8 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_NOTEBOOK note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA
@@ -1048,4 +1046,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- EV_NOTEBOOK_IMP
+end

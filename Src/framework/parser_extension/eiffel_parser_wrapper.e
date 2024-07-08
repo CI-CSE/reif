@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			An Eiffel parser wrapper for optionally contain errors/warnings within a parser. Parsers can be
 			performed with a set of configuration options also.
@@ -94,13 +94,10 @@ feature -- Basic operation
 		do
 			a_parser.formal_parameters.wipe_out
 			if a_formals /= Void then
-				from
-					a_formals.start
-				until
-					a_formals.after
+				across
+					a_formals as f
 				loop
-					a_parser.formal_parameters.extend (a_formals.item.formal)
-					a_formals.forth
+					a_parser.formal_parameters.extend (f.formal)
 				end
 			end
 			parse (a_parser, u.utf_32_string_to_utf_8_string_8 (a_text), a_ignore_errors, a_context_class)
@@ -141,13 +138,10 @@ feature -- Basic operation
 		do
 			a_parser.formal_parameters.wipe_out
 			if a_formals /= Void then
-				from
-					a_formals.start
-				until
-					a_formals.after
+				across
+					a_formals as f
 				loop
-					a_parser.formal_parameters.extend (a_formals.item.formal)
-					a_formals.forth
+					a_parser.formal_parameters.extend (f.formal)
 				end
 			end
 			parse_with_option (a_parser, u.utf_32_string_to_utf_8_string_8 (a_text), a_options, a_ignore_errors, a_context_class)
@@ -155,7 +149,7 @@ feature -- Basic operation
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Basic operation
 
-	parse (a_parser: EIFFEL_PARSER; a_text: READABLE_STRING_8; a_ignore_errors: BOOLEAN; a_context_class: ABSTRACT_CLASS_C)
+	parse (a_parser: EIFFEL_PARSER; a_text: STRING_8; a_ignore_errors: BOOLEAN; a_context_class: ABSTRACT_CLASS_C)
 			-- Performs a parse using an Eiffel parser.
 			--
 			-- `a_parser'       : The Eiffel parser to perform a parse with.
@@ -182,7 +176,7 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Basic operation
 				if a_context_class /= Void then
 					a_parser.set_filename (a_context_class.file_name)
 				end
-				a_parser.parse_from_utf8_string (a_text.as_string_8, a_context_class)
+				a_parser.parse_from_utf8_string (a_text, a_context_class)
 
 				has_error := error_handler.error_level /= l_level
 				if a_ignore_errors then
@@ -201,7 +195,7 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Basic operation
 			error_handler_has_warning_unchanged: error_handler.has_warning = old error_handler.has_warning
 		end
 
-	parse_with_option (a_parser: EIFFEL_PARSER; a_text: READABLE_STRING_8; a_options: CONF_OPTION; a_ignore_errors: BOOLEAN; a_context_class: ABSTRACT_CLASS_C)
+	parse_with_option (a_parser: EIFFEL_PARSER; a_text: STRING_8; a_options: CONF_OPTION; a_ignore_errors: BOOLEAN; a_context_class: ABSTRACT_CLASS_C)
 			-- Performs a parse using an Eiffel parser.
 			--
 			-- `a_parser'       : The Eiffel parser to perform a parse with.
@@ -213,17 +207,19 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Basic operation
 			a_parser_attached: a_parser /= Void
 			a_text_attached: a_text /= Void
 		do
-			inspect a_options.syntax.index
-			when {CONF_OPTION}.syntax_index_obsolete then
-				a_parser.set_syntax_version ({EIFFEL_SCANNER}.obsolete_syntax)
-			when {CONF_OPTION}.syntax_index_transitional then
-				a_parser.set_syntax_version ({EIFFEL_SCANNER}.transitional_syntax)
-			when {CONF_OPTION}.syntax_index_provisional then
-				a_parser.set_syntax_version ({EIFFEL_SCANNER}.provisional_syntax)
-			else
-				a_parser.set_syntax_version ({EIFFEL_SCANNER}.ecma_syntax)
-			end
+			a_parser.set_syntax_version
+				(inspect a_options.syntax.index
+				when {CONF_OPTION}.syntax_index_obsolete then
+					{EIFFEL_SCANNER}.obsolete_syntax
+				when {CONF_OPTION}.syntax_index_transitional then
+					{EIFFEL_SCANNER}.transitional_syntax
+				when {CONF_OPTION}.syntax_index_provisional then
+					{EIFFEL_SCANNER}.provisional_syntax
+				else
+					{EIFFEL_SCANNER}.ecma_syntax
+				end)
 			a_parser.set_is_ignoring_attachment_marks (a_options.void_safety.index = {CONF_OPTION}.void_safety_index_none)
+			a_parser.set_is_explicit_iteration_cursor (a_options.is_obsolete_iteration)
 			parse (a_parser, a_text, a_ignore_errors, a_context_class)
 		end
 
@@ -241,8 +237,9 @@ feature {NONE} -- Basic operations
 			not_has_error: not has_error
 		end
 
-;note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+note
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

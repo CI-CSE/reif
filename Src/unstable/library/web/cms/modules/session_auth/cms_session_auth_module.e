@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			This module allows the use Session Based Authentication using Cookies to restrict access
 			by looking up users in the given providers.
@@ -19,10 +19,16 @@ inherit
 			setup_hooks,
 			initialize,
 			install,
+			permissions,
+			has_permission_to_use_authentication,
 			session_api
 		end
 
+	CMS_WITH_WEBAPI
+
 	CMS_HOOK_BLOCK
+
+	CMS_HOOK_AUTHENTICATION
 
 create
 	make
@@ -40,6 +46,23 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	name: STRING = "session_auth"
+
+	permissions: LIST [READABLE_STRING_8]
+			-- List of permission ids, used by this module, and declared.
+		do
+			Result := Precursor
+			Result.force (perm_use_session_auth)
+		end
+
+	perm_use_session_auth: STRING = "use session_auth"
+
+	has_permission_to_use_authentication (api: CMS_API): BOOLEAN
+		do
+			Result := api.has_permission (perm_use_session_auth)
+			if not Result then
+				Result := attached api.setup.text_item ("modules." + name + ".login") as s and then s.is_case_insensitive_equal ("on")
+			end
+		end
 
 feature {CMS_API} -- Module Initialization			
 
@@ -75,14 +98,25 @@ feature {CMS_API} -- Module management
 				l_sql_storage.sql_execute_file_script (api.module_resource_location (Current, (create {PATH}.make_from_string ("scripts")).extended ("install.sql")), Void)
 
 				if l_sql_storage.has_error then
-					api.logger.put_error ("Could not initialize database for module [" + name + "]", generating_type)
+					api.report_error ("[" + name + "]: installation failed!", l_sql_storage.error_handler.as_string_representation)
 				else
 					Precursor {CMS_AUTH_MODULE_I} (api) -- Mark it as installed.
+					if attached api.user_api.anonymous_user_role as ano then
+						ano.add_permission (perm_use_session_auth)
+						api.user_api.save_user_role (ano)
+					end
 				end
 			end
 		end
 
-feature {CMS_API} -- Access: API
+feature {CMS_EXECUTION} -- Administration
+
+	webapi: CMS_SESSION_AUTH_MODULE_WEBAPI
+		do
+			create Result.make (Current)
+		end
+
+feature {CMS_API, CMS_MODULE_API, CMS_MODULE} -- Access: API
 
 	session_api: detachable CMS_SESSION_API
 			-- <Precursor>	
@@ -144,7 +178,7 @@ feature {NONE} -- Implementation: routes
 					create vals.make (1)
 						-- add the variable to the block
 					l_tpl_block.set_value (api.user, "user")
-					l_tpl_block.set_value (r.url ("", Void), "site_url")
+					l_tpl_block.set_value (api.site_url, "site_url")
 					api.hooks.invoke_value_table_alter (vals, r)
 					across
 						vals as ic
@@ -171,14 +205,10 @@ feature {NONE} -- Implementation: routes
 				create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
 				r.set_status_code ({HTTP_CONSTANTS}.found)
 			end
-			if
-				attached {WSF_STRING} req.item ("destination") as p_destination and then
-				attached p_destination.value as v and then
-				v.is_valid_as_string_8
-			then
-				r.set_redirection (secured_url_content (v.to_string_8))
+			if attached api.destination_location (req) as v then
+				r.set_redirection (secured_url_content (v))
 			else
-				r.set_redirection (req.absolute_script_url (""))
+				r.set_redirection (r.absolute_url ("", Void))
 			end
 
 			r.execute
@@ -187,9 +217,8 @@ feature {NONE} -- Implementation: routes
 	handle_login_with_session (api: CMS_API; a_session_api: CMS_SESSION_API; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			r: CMS_RESPONSE
-			l_username, l_username_or_email, l_password: detachable READABLE_STRING_GENERAL
+			l_username_or_email, l_password: detachable READABLE_STRING_GENERAL
 			l_user: detachable CMS_USER
-			l_tmp_user: detachable CMS_TEMP_USER
 		do
 			if
 				attached {WSF_STRING} req.form_parameter ("username") as p_username and then
@@ -199,7 +228,7 @@ feature {NONE} -- Implementation: routes
 				l_password := p_password.value
 				l_user := api.user_api.user_with_credential (l_username_or_email, l_password)
 				if l_user /= Void then
-					if attached {CMS_TEMP_USER} l_user as l_temp_user then
+					if not l_user.is_active or attached {CMS_TEMP_USER} l_user as l_temp_user then
 						create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
 						if attached smarty_template_login_block (req, Current, "login", api) as l_tpl_block then
 							l_tpl_block.set_value (l_username_or_email, "username")
@@ -209,12 +238,8 @@ feature {NONE} -- Implementation: routes
 					else
 						a_session_api.process_user_login (l_user, req, res)
 						create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
-						if
-							attached {WSF_STRING} req.item ("destination") as p_destination and then
-							attached p_destination.value as v and then
-							v.is_valid_as_string_8
-						then
-							r.set_redirection (secured_url_content (v.to_string_8))
+						if attached api.destination_location (req) as v then
+							r.set_redirection (secured_url_content (v))
 						else
 							r.set_redirection ("")
 						end
@@ -248,9 +273,26 @@ feature -- Hooks configuration
 		do
 			Precursor (a_hooks)
 			a_hooks.subscribe_to_block_hook (Current)
+			a_hooks.subscribe_to_hook (Current, {CMS_HOOK_AUTHENTICATION})
 		end
 
 feature -- Hooks
+
+	get_login_redirection (a_response: CMS_RESPONSE; a_destination_url: detachable READABLE_STRING_8)
+		local
+			loc: READABLE_STRING_8
+		do
+			if has_permission_to_use_authentication (a_response.api) then
+				loc := a_response.redirection
+				if loc = Void or else loc.has_substring ("basic") then
+					if a_destination_url /= Void then
+						a_response.set_redirection (login_location + "?destination=" + secured_url_content (a_destination_url))
+					else
+						a_response.set_redirection (login_location)
+					end
+				end
+			end
+		end
 
 	block_list: ITERABLE [like {CMS_BLOCK}.name]
 		do

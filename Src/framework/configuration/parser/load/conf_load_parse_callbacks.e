@@ -47,9 +47,6 @@ feature {NONE} -- Initialization
 			make
 			create current_tag.make
 			create current_attributes.make (0)
-			create group_list.make (0)
-			create uses_list.make (0)
-			create overrides_list.make (0)
 			create current_content.make_empty
 			factory := a_factory
 			last_undefined_tag_number := undefined_tag_start
@@ -93,6 +90,8 @@ feature -- Callbacks
 				l_tag := tag_from_state_transitions (current_tag.item, l_local_part)
 					-- Record levels of note element as a flag we allow any content in note.
 
+				create current_content.make_empty
+
 				if note_level = 0 and then l_tag = t_note then
 						-- Root element
 					create l_elem.make (l_local_part)
@@ -121,36 +120,35 @@ feature -- Callbacks
 			l_attribute: INTEGER
 			l_local: READABLE_STRING_32
 		do
-			if not is_error then
-				if
-					not a_local_part.is_case_insensitive_equal_general ("xmlns") and
-					not a_local_part.is_case_insensitive_equal_general ("xsi") and
-					not a_local_part.is_case_insensitive_equal_general ("schemaLocation")
-				then
-					l_local := a_local_part.as_lower
+			if
+				not is_error and then
+				not a_local_part.is_case_insensitive_equal_general ("xmlns") and
+				not a_local_part.is_case_insensitive_equal_general ("xsi") and
+				not a_local_part.is_case_insensitive_equal_general ("schemaLocation")
+			then
+				l_local := a_local_part.as_lower
 
-					if note_level = 0 then
-							-- check if the attribute is valid for the current state
-						if attached tag_attributes.item (current_tag.item) as l_attr then
-							l_attribute := l_attr.item (l_local)
-						end
-						if current_attributes = Void then
-							create current_attributes.make (1)
-						end
-						if l_attribute /= 0 and then not current_attributes.has (l_attribute) then
-								-- Check and put defined attributes in `current_attributes'.
-							if not a_value.is_empty then
-								current_attributes.force (lt_gt_escaped_string (a_value), l_attribute)
-							else
-								set_parse_error_message (conf_interface_names.e_parse_invalid_value (a_local_part))
-							end
+				if note_level = 0 then
+						-- check if the attribute is valid for the current state
+					if attached tag_attributes.item (current_tag.item) as l_attr then
+						l_attribute := l_attr.item (l_local)
+					end
+					if current_attributes = Void then
+						create current_attributes.make (1)
+					end
+					if l_attribute /= 0 and then not current_attributes.has (l_attribute) then
+							-- Check and put defined attributes in `current_attributes'.
+						if not a_value.is_empty then
+							current_attributes.force (lt_gt_escaped_string (a_value), l_attribute)
 						else
-							report_unknown_attribute (a_local_part)
+							set_parse_error_message (conf_interface_names.e_parse_invalid_value (a_local_part))
 						end
 					else
-							-- Put undefined attributes in `current_attributes_undefined'.
-						current_attributes_undefined.force (lt_gt_escaped_string (a_value), l_local)
+						report_unknown_attribute (a_local_part)
 					end
+				else
+						-- Put undefined attributes in `current_attributes_undefined'.
+					current_attributes_undefined.force (lt_gt_escaped_string (a_value), l_local)
 				end
 			end
 		end
@@ -279,6 +277,13 @@ feature -- Callbacks
 					else
 						check concurrency_under_current_condition: False end
 					end
+				when t_void_safety then
+					l_current_condition := current_condition
+					if l_current_condition /= Void then
+						process_void_safety_attributes (l_current_condition)
+					else
+						check void_safety_under_current_condition: False end
+					end
 				when t_dotnet then
 					l_current_condition := current_condition
 					if l_current_condition /= Void then
@@ -309,6 +314,12 @@ feature -- Callbacks
 					end
 				when t_mapping then
 					process_mapping_attributes
+				when t_namespace then
+					if includes_this_or_after (namespace_1_23_0) then
+						process_namespace_attributes
+					else
+						set_parse_error_message (conf_interface_names.e_parse_invalid_tag ({STRING_32} "namespace"))
+					end
 				when t_note then
 					process_element_under_note
 				else
@@ -324,16 +335,11 @@ feature -- Callbacks
 	on_end_tag (a_namespace: detachable READABLE_STRING_32; a_prefix: detachable READABLE_STRING_32; a_local_part: READABLE_STRING_32)
 			-- End tag.
 		local
-			l_group: detachable CONF_GROUP
-			l_error: CONF_ERROR_GRUNDEF
-			l_e_ov: CONF_ERROR_OVERRIDE
-			l_current_target: like current_target
 			l_current_cluster: like current_cluster
+			l_target: detachable CONF_TARGET
 		do
 			if not is_error then
-				current_content.left_adjust
-				current_content.right_adjust
-				if not current_content.is_empty then
+				if not current_content.is_whitespace then
 					lt_gt_escape_string (current_content)
 
 					inspect
@@ -341,18 +347,21 @@ feature -- Callbacks
 					when t_description then
 						process_description_content
 					when t_exclude then
+						current_content.adjust
 						process_exclude_content
 					when t_include then
+						current_content.adjust
 						process_include_content
 					else
+						current_content.adjust
 						if note_level > 0 then
 							current_element_under_note.item.set_content (current_content)
 						else
 							set_parse_error_message (conf_interface_names.e_parse_invalid_content (current_content))
 						end
 					end
-					create current_content.make_empty
 				end
+				create current_content.make_empty
 
 				l_current_cluster := current_cluster
 
@@ -362,58 +371,50 @@ feature -- Callbacks
 					if current_library_target /= Void then
 						set_error (create {CONF_ERROR_LIBTAR})
 					end
+					if attached last_system as syst then
+						across
+							syst.targets as ic
+						loop
+							l_target := ic
+							if attached l_target.parent_reference as p_ref then
+								if
+									not attached {CONF_LOCAL_TARGET_REFERENCE} p_ref as p_remote or else
+									not attached p_remote.name as l_parent_name
+								then
+										-- Do not try here to resolve remote parent.
+								elseif not attached syst.target (l_parent_name) as l_parent then
+									set_parse_error_message (conf_interface_names.e_parse_incorrect_target_parent (l_parent_name, l_target.name))
+								elseif l_target = l_parent or l_target.same_as (l_parent) then
+									set_parse_error_message (conf_interface_names.e_parse_incorrect_target_parent (l_parent.name, l_target.name))
+								else
+									l_target.set_parent (l_parent)
+								end
+							end
+						end
+					end
 				when t_target then
 						-- check for overrides and precompiles in a library_target
-					l_current_target := current_target
-					if
-						attached last_system as l_last_system and then
-					 	l_current_target = l_last_system.library_target
-					 then
-						if l_current_target /= Void and then not l_current_target.overrides.is_empty then
+					if attached current_target as l_current_target then
+						if
+							attached last_system as l_last_system and then
+						 	l_current_target = l_last_system.library_target and then
+							not l_current_target.overrides.is_empty
+						then
 							set_error (create {CONF_ERROR_LIBOVER})
 						end
-					end
-						-- handle uses and overrides
-					across uses_list as uses_ic loop
-						l_group := group_list.item (uses_ic.key)
-						if l_group = Void then
-							create l_error
-							l_error.set_group (uses_ic.key)
-							set_error (l_error)
-						else
-							uses_ic.item.do_all (agent {CONF_CLUSTER}.add_dependency (l_group))
+						if l_current_target.extends = Void then
+								-- Set default options for the standalone target in case the old schema is being processed.
+								-- Extension targets do not need it because the options are inherited from the standalone ones.
+							if attached a_namespace then
+								set_default_options (l_current_target, a_namespace)
+							else
+									-- FIXME: is this safe to use default_namespace?
+									-- maybe: check a_namespace /= Void end
+								set_default_options (l_current_target, {XML_XMLNS_CONSTANTS}.default_namespace)
+							end
 						end
+						current_target := Void
 					end
-					across overrides_list as overrides_ic loop
-						l_group := group_list.item (overrides_ic.key)
-						if l_group = Void then
-							create l_error
-							l_error.set_group (overrides_ic.key)
-							set_error (l_error)
-						elseif l_group.is_override then
-							create l_e_ov
-							l_e_ov.set_group (l_group.name)
-							set_error (l_e_ov)
-						else
-							overrides_ic.item.do_all (agent {CONF_OVERRIDE}.add_override (l_group))
-						end
-					end
-					uses_list.wipe_out
-					overrides_list.wipe_out
-					group_list.wipe_out
-					if l_current_target /= Void and then l_current_target.extends = Void then
-							-- Set default options for the standalone target in case the old schema is being processed.
-							-- Extension targets do not need it because the options are inherited from the standalone ones.
-						if a_namespace /= Void then
-							set_default_options (l_current_target, a_namespace)
-						else
-								-- FIXME: is this safe to use default_namespace?
-								-- maybe: check a_namespace /= Void end
-							set_default_options (l_current_target, {XML_XMLNS_CONSTANTS}.default_namespace)
-						end
-					end
-					l_current_target := Void
-					current_target := Void
 				when t_file_rule then
 					current_file_rule := Void
 				when t_option then
@@ -437,15 +438,20 @@ feature -- Callbacks
 					current_action := Void
 				when t_post_compile_action then
 					current_action := Void
+				when t_namespace then
+					current_renaming := Void
 				when t_precompile then
 					current_group := Void
 					current_library := Void
+					current_renaming := Void
 				when t_library then
 					current_group := Void
 					current_library := Void
+					current_renaming := Void
 				when t_assembly then
 					current_group := Void
 					current_assembly := Void
+					current_renaming := Void
 				when t_cluster then
 					if l_current_cluster /= Void then
 						current_group := l_current_cluster.parent
@@ -563,7 +569,7 @@ feature {NONE} -- Conversion from earlier version
 						n := p.count
 					invariant
 						no_spaces:
-							across p.substring (1, i - 1) as t all not t.item.is_space end
+							across p.substring (1, i - 1) as t all not t.is_space end
 					until
 						i > n or else p [i].is_space
 					loop
@@ -628,10 +634,11 @@ feature {NONE} -- Implementation attribute processing
 							set_parse_error_message (conf_interface_names.e_parse_invalid_attribute ("location"))
 						else
 							redir := factory.new_redirection_with_file_name (file_name, l_loc, l_uu)
-							if includes_this_or_after (namespace_1_16_0) then
-								if attached current_attributes.item (at_message) as l_msg then
-									redir.set_message (l_msg)
-								end
+							if
+								includes_this_or_after (namespace_1_16_0) and then
+								attached current_attributes.item (at_message) as l_msg
+							then
+								redir.set_message (l_msg)
 							end
 							last_redirection := redir
 						end
@@ -681,9 +688,11 @@ feature {NONE} -- Implementation attribute processing
 					end
 					if not is_error then
 						if l_uu = Void then
-							l_last_system := factory.new_system_generate_uuid_with_file_name (file_name, l_lower_name)
+							l_last_system := factory.new_system_generate_uuid_with_file_name (file_name, l_lower_name,
+								if attached current_namespace as n then n else latest_namespace end)
 						else
-							l_last_system := factory.new_system_with_file_name (file_name, l_lower_name, l_uu)
+							l_last_system := factory.new_system_with_file_name (file_name, l_lower_name, l_uu,
+								if attached current_namespace as n then n else latest_namespace end)
 						end
 						last_system := l_last_system
 						if attached current_attributes.item (at_readonly) as l_readonly then
@@ -708,23 +717,20 @@ feature {NONE} -- Implementation attribute processing
 			last_system_not_void: last_system /= Void
 		local
 			l_parent_target: detachable CONF_TARGET
-			l_lower_name: STRING_32
 			l_current_target: like current_target
 			l_extends, l_extends_location: detachable READABLE_STRING_32
 			l_parent_system: detachable CONF_SYSTEM
 		do
 			if attached last_system as l_last_system then
 				if attached current_attributes.item (at_name) as l_name then
-						-- We will use `l_lower_name' for lookup, but `l_name' for error messages.
-					l_lower_name := l_name.as_lower
-					if not is_valid_target_name (l_lower_name) then
+					if not is_valid_target_name (l_name) then
 						set_parse_error_message (conf_interface_names.e_parse_incorrect_target_invalid_name (l_name))
 					end
-					if l_last_system.targets.has (l_lower_name) then
+					if l_last_system.targets.has (l_name) then
 						set_parse_error_message (conf_interface_names.e_parse_multiple_target_with_name (l_name))
 					end
 
-					l_current_target := factory.new_target (l_lower_name, l_last_system)
+					l_current_target := factory.new_target (l_name, l_last_system)
 					current_target := l_current_target
 					if attached current_attributes.item (at_abstract) as l_abstract then
 						if l_abstract.is_boolean then
@@ -733,7 +739,7 @@ feature {NONE} -- Implementation attribute processing
 							set_parse_error_message (conf_interface_names.e_parse_invalid_value (ta_abstract))
 						end
 					end
-					if attached current_library_target as l_current_library_target and then l_lower_name.same_string_general (l_current_library_target) then
+					if attached current_library_target as l_current_library_target and then l_name.is_case_insensitive_equal_general (l_current_library_target) then
 						l_last_system.set_library_target (l_current_target)
 						current_library_target := Void
 					end
@@ -748,31 +754,34 @@ feature {NONE} -- Implementation attribute processing
 									-- This is not a remote system, it is current one!
 								l_extends_location := Void
 							else
-								l_current_target.set_remote_parent (create {CONF_REMOTE_TARGET}.make (l_extends, l_extends_location))
+								l_current_target.reference_parent (create {CONF_REMOTE_TARGET_REFERENCE}.make (l_extends, l_extends_location))
 							end
 						else
 							report_unknown_attribute (ta_extends_location)
 						end
-					elseif l_extends /= Void then
+					end
+					if
+						l_current_target.parent_reference = Void and then
+						l_extends /= Void
+					then
 						if l_parent_system = Void then
 								-- Use the current system if a parent one is not specified
 							l_parent_system := l_last_system
 						end
 							-- Target are known internally in lower case,
 							-- so we should respect this (see bug#12698).
-						l_parent_target := l_parent_system.target (l_extends)
-						if l_parent_target = Void or else l_parent_target = l_current_target then
-							if l_extends_location /= Void then
-									-- No target `l_extends` on remote location!
-								set_parse_error_message (conf_interface_names.e_parse_incorrect_remote_target_parent (l_extends, l_name, l_extends_location))
+						if l_extends.is_case_insensitive_equal_general (l_current_target.name) then
+							set_parse_error_message (conf_interface_names.e_parse_incorrect_target_parent (l_extends, l_name))
+						else
+							l_parent_target := l_parent_system.target (l_extends)
+							if l_parent_target = Void then
+								l_current_target.reference_parent (create {CONF_LOCAL_TARGET_REFERENCE}.make (l_extends))
+									-- Could be declared later in the configuration file.
 							else
-								set_parse_error_message (conf_interface_names.e_parse_incorrect_target_parent (l_extends, l_name))
+								l_current_target.set_parent (l_parent_target)
+								check not_same_target: l_parent_target /= l_current_target and not l_parent_target.same_as (l_current_target) end
 							end
 						end
-					end
-					if l_parent_target /= Void then
-						l_current_target.set_parent (l_parent_target)
-						group_list := l_parent_target.groups
 					end
 				else
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_target_no_name)
@@ -876,69 +885,82 @@ feature {NONE} -- Implementation attribute processing
 		require
 			current_target_set: current_target /= Void
 		do
-			if attached current_attributes.item (at_name) as l_name then
-				if attached current_attributes.item (at_value) as l_value then
-					if not valid_setting (l_name, current_namespace) then
-						set_parse_error_message (conf_interface_names.e_parse_incorrect_setting (l_name))
-					else
-						if attached current_target as l_current_target then
-							if l_name.same_string (s_multithreaded) then
-									-- Translate "multithreaded" setting into "concurrency" setting.
-								if includes_this_or_before (namespace_1_6_0) then
-										-- The setting is allowed.
-									if l_value.is_boolean then
-											-- SCOOP is not supported in old projects.
-										if l_value.to_boolean then
-											l_current_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_thread)
-											l_current_target.changeable_internal_options.concurrency_capability.put_root_index ({CONF_TARGET_OPTION}.concurrency_index_thread)
-										else
-											l_current_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_none)
-											l_current_target.changeable_internal_options.concurrency_capability.put_root_index ({CONF_TARGET_OPTION}.concurrency_index_none)
-										end
-									else
-											-- Boolean value is expected.
-										set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
-									end
-								else
-										-- The setting is not available in this XML schema.
-									set_parse_error_message (conf_interface_names.e_parse_incorrect_setting (l_name))
-								end
-							elseif l_name.same_string (s_concurrency) then
-									-- Process "concurrency" setting.
-								if includes_this_or_after (namespace_1_7_0) and then includes_this_or_before (namespace_1_15_0) then
-										-- The setting is allowed.
-									if l_current_target.changeable_internal_options.concurrency_capability.is_valid_item (l_value) then
-											-- Enable associated capability.
-										l_current_target.changeable_internal_options.concurrency_capability.value.put (l_value)
-											-- Update setting with this value.
-										l_current_target.changeable_internal_options.concurrency_capability.put_root (l_value)
-									else
-											-- The value is invalid.
-										set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
-									end
-								else
-										-- The setting is not available in this XML schema.
-									set_parse_error_message (conf_interface_names.e_parse_incorrect_setting (l_name))
-								end
-							elseif l_name.same_string (s_manifest_array_type) then
-								if l_current_target.changeable_internal_options.array_override.is_valid_item (l_value) then
-									l_current_target.changeable_internal_options.array_override.put (l_value)
-								else
-										-- The value is invalid.
-									set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
-								end
-							else
-								l_current_target.add_setting (l_name, l_value)
-							end
+			if not attached current_attributes.item (at_name) as l_name then
+				set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_no_name)
+			elseif not attached current_attributes.item (at_value) as l_value then
+				set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
+			elseif not valid_setting (l_name, current_namespace) then
+				set_parse_error_message (conf_interface_names.e_parse_incorrect_setting (l_name))
+			elseif not attached current_target as l_current_target then
+				check precondition__current_target_set: False end
+			elseif l_name.same_string (s_multithreaded) then
+					-- Translate "multithreaded" setting into "concurrency" setting.
+				if includes_this_or_before (namespace_1_6_0) then
+						-- The setting is allowed.
+					if l_value.is_boolean then
+							-- SCOOP is not supported in old projects.
+						if l_value.to_boolean then
+							l_current_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_thread)
+							l_current_target.changeable_internal_options.concurrency_capability.put_root_index ({CONF_TARGET_OPTION}.concurrency_index_thread)
 						else
-							check precondition__current_target_set: False end
+							l_current_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_none)
+							l_current_target.changeable_internal_options.concurrency_capability.put_root_index ({CONF_TARGET_OPTION}.concurrency_index_none)
 						end
+					else
+							-- Boolean value is expected.
+						set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
 					end
 				else
+						-- The setting is not available in this XML schema.
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_setting (l_name))
+				end
+			elseif l_name.same_string (s_concurrency) then
+					-- Process "concurrency" setting.
+				if includes_this_or_after (namespace_1_7_0) and then includes_this_or_before (namespace_1_15_0) then
+						-- The setting is allowed.
+					if l_current_target.changeable_internal_options.concurrency_capability.is_valid_item (l_value) then
+							-- Enable associated capability.
+						l_current_target.changeable_internal_options.concurrency_capability.value.put (l_value)
+							-- Update setting with this value.
+						l_current_target.changeable_internal_options.concurrency_capability.put_root (l_value)
+					else
+							-- The value is invalid.
+						set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
+					end
+				else
+						-- The setting is not available in this XML schema.
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_setting (l_name))
+				end
+			elseif l_name.same_string (s_manifest_array_type) then
+				if l_current_target.changeable_internal_options.array_override.is_valid_item (l_value) then
+					l_current_target.changeable_internal_options.array_override.put (l_value)
+				else
+						-- The value is invalid.
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
+				end
+			elseif l_name.same_string (s_dead_code_removal) then
+					-- The setting is boolean in 18.11 and earlier, an enumaration afterwards.
+				if includes_this_or_before (namespace_1_19_0) then
+					if l_value.is_boolean then
+							-- In 18.11 and earlier, dead code removal involved only features.
+						l_current_target.changeable_internal_options.dead_code.put_index
+							(if l_value.to_boolean then
+								{CONF_TARGET_OPTION}.dead_code_index_feature
+							else
+								{CONF_TARGET_OPTION}.dead_code_index_none
+							end)
+					else
+							-- Boolean value is expected.
+						set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
+					end
+				elseif l_current_target.changeable_internal_options.dead_code.is_valid_item (l_value) then
+					l_current_target.changeable_internal_options.dead_code.put (l_value)
+				else
+						-- The value is invalid.
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_value (l_name))
 				end
 			else
-				set_parse_error_message (conf_interface_names.e_parse_incorrect_setting_no_name)
+				l_current_target.add_setting (l_name, l_value)
 			end
 		end
 
@@ -1126,13 +1148,13 @@ feature {NONE} -- Implementation attribute processing
 				if
 					is_valid_group_name (l_lower_name) and
 					attached current_attributes.item (at_location) as l_location and
-					not group_list.has (l_lower_name) and
 					attached current_target as l_current_target -- implied by precondition `current_target_not_void'
 				then
 					l_current_library := factory.new_library (l_lower_name, l_location, l_current_target)
 					l_current_group := l_current_library
 					current_library := l_current_library
 					current_group := l_current_group
+					current_renaming := l_current_library
 					if attached current_attributes.item (at_readonly) as l_readonly then
 						if l_readonly.is_boolean then
 							l_current_library.set_readonly (l_readonly.to_boolean)
@@ -1150,12 +1172,9 @@ feature {NONE} -- Implementation attribute processing
 					if attached current_attributes.item (at_prefix) as l_prefix then
 						l_current_library.set_name_prefix (l_prefix)
 					end
-					group_list.force (l_current_group, l_lower_name)
 					l_current_target.add_library (l_current_library)
 				elseif not is_valid_group_name (l_lower_name) then
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_library_name (l_name))
-				elseif group_list.has (l_lower_name) then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_library_conflict (l_name))
 				else
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_library (l_name))
 				end
@@ -1183,13 +1202,13 @@ feature {NONE} -- Implementation attribute processing
 				if
 					is_valid_group_name (l_lower_name) and
 					attached current_attributes.item (at_location) as l_location and
-					not group_list.has (l_lower_name) and
 					l_current_target.precompile = Void
 				then
 					l_current_library := factory.new_precompile (l_lower_name, l_location, l_current_target)
 					l_current_group := l_current_library
 					current_library := l_current_library
 					current_group := l_current_group
+					current_renaming := l_current_library
 					if attached current_attributes.item (at_readonly) as l_readonly then
 						if l_readonly.is_boolean then
 							l_current_library.set_readonly (l_readonly.to_boolean)
@@ -1203,12 +1222,9 @@ feature {NONE} -- Implementation attribute processing
 					if attached current_attributes.item (at_eifgens_location) as l_eifgen then
 						l_current_library.set_eifgens_location (factory.new_location_from_path (l_eifgen, l_current_target))
 					end
-					group_list.force (l_current_group, l_lower_name)
 					l_current_target.set_precompile (l_current_library)
 				elseif not is_valid_group_name (l_lower_name) then
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_precompile_name (l_name))
-				elseif group_list.has (l_lower_name) then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_precompile_conflict (l_name))
 				elseif attached l_current_target.precompile as l_precompile then
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_precompile_multiple (l_name, l_precompile.name))
 				else
@@ -1227,27 +1243,22 @@ feature {NONE} -- Implementation attribute processing
 			current_target_set: current_target /= Void
 		local
 			l_lower_name: STRING_32
-			l_location: like current_attributes.item
 			l_current_assembly: like current_assembly
 			l_current_group: like current_group
 		do
 			if attached current_attributes.item (at_name) as l_name then
 				l_lower_name := l_name.as_lower
-				l_location := current_attributes.item (at_location)
-				if
-					is_valid_group_name (l_lower_name) and
-					l_location /= Void and
-					not group_list.has (l_lower_name) and
-					attached current_target as l_current_target -- implied by precondition `current_target_not_void'
-				then
+				if not is_valid_group_name (l_lower_name) then
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_assembly_name (l_name))
+				elseif not attached current_attributes.item (at_location) as l_location then
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_assembly (l_name))
+				elseif attached current_target as l_current_target then -- implied by precondition `current_target_not_void'
 					if
-						l_location.same_string_general ("none") and then -- condition merged with the next 4 conditions during refactorying
-						(
-							attached current_attributes.item (at_assembly_name) as l_assembly_name and
-							attached current_attributes.item (at_assembly_version) as l_assembly_version and
-							attached current_attributes.item (at_assembly_culture) as l_assembly_culture and
-							attached current_attributes.item (at_assembly_key) as l_assembly_key
-						)
+						l_location.same_string ({STRING_32} "none") and then
+						attached current_attributes.item (at_assembly_name) as l_assembly_name and
+						attached current_attributes.item (at_assembly_version) as l_assembly_version and
+						attached current_attributes.item (at_assembly_culture) as l_assembly_culture and
+						attached current_attributes.item (at_assembly_key) as l_assembly_key
 					then
 						l_current_assembly := factory.new_assembly_from_gac (l_lower_name, l_assembly_name, l_assembly_version, l_assembly_culture, l_assembly_key, l_current_target)
 					else
@@ -1256,6 +1267,7 @@ feature {NONE} -- Implementation attribute processing
 					l_current_group := l_current_assembly
 					current_assembly := l_current_assembly
 					current_group := l_current_group
+					current_renaming := l_current_assembly
 					if attached current_attributes.item (at_readonly) as l_readonly then
 						if l_readonly.is_boolean then
 							l_current_assembly.set_readonly (l_readonly.to_boolean)
@@ -1266,14 +1278,7 @@ feature {NONE} -- Implementation attribute processing
 					if attached current_attributes.item (at_prefix) as l_prefix then
 						l_current_assembly.set_name_prefix (l_prefix)
 					end
-					group_list.force (l_current_group, l_lower_name)
 					l_current_target.add_assembly (l_current_assembly)
-				elseif not is_valid_group_name (l_lower_name) then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_assembly_name (l_name))
-				elseif l_location = Void then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_assembly (l_name))
-				elseif group_list.has (l_lower_name) then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_assembly_conflict (l_name))
 				else
 					check should_not_reach: False end
 				end
@@ -1304,7 +1309,6 @@ feature {NONE} -- Implementation attribute processing
 				if
 					is_valid_group_name (l_lower_name) and
 					l_location /= Void and
-					not group_list.has (l_lower_name) and
 					attached current_target as l_current_target -- implied by precondition `target_set'
 				then
 					l_parent := current_cluster
@@ -1344,7 +1348,6 @@ feature {NONE} -- Implementation attribute processing
 						l_loc.set_parent (l_parent.location)
 					end
 
-					group_list.force (l_current_group, l_lower_name)
 					l_current_target.add_cluster (l_current_cluster)
 				elseif not is_valid_group_name (l_lower_name) then
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_cluster_name (l_name))
@@ -1378,7 +1381,6 @@ feature {NONE} -- Implementation attribute processing
 				if
 					is_valid_group_name (l_lower_name) and
 					l_location /= Void and
-					not group_list.has (l_lower_name) and
 					attached current_target as l_current_target -- implied by precondition `target_set'
 				then
 					l_parent := current_cluster
@@ -1415,12 +1417,9 @@ feature {NONE} -- Implementation attribute processing
 						l_parent.add_child (l_current_cluster)
 						l_current_cluster.set_parent (l_parent)
 					end
-					group_list.force (l_current_group, l_lower_name)
 					l_current_target.add_override (l_current_override)
 				elseif not is_valid_group_name (l_lower_name) then
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_override_name (l_name))
-				elseif group_list.has (l_lower_name) then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_override_conflict (l_name))
 				else
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_override (l_name))
 				end
@@ -1429,6 +1428,29 @@ feature {NONE} -- Implementation attribute processing
 			end
 		ensure
 			override_and_cluster_and_group: current_override /= Void and current_cluster /= Void and current_group /= Void
+		end
+
+	process_namespace_attributes
+			-- Process attributes of a namespace tag.
+		require
+			current_target_not_void: current_target /= Void
+		local
+			r: CONF_NAMESPACE
+		do
+			if attached current_attributes [at_name] as n then
+				r := factory.new_namespace (n)
+				if attached current_attributes [at_prefix] as p then
+					r.set_name_prefix (p)
+				end
+				current_renaming := r
+				if attached current_target as l_current_target then
+					l_current_target.add_dotnet_renaming (r)
+				end
+			else
+				set_parse_error_message (conf_interface_names.e_parse_incorrect_namespace_no_name)
+			end
+		ensure
+			target: not is_error implies current_target /= Void
 		end
 
 	process_debug_attributes (a_current_option: attached like current_option)
@@ -1460,22 +1482,43 @@ feature {NONE} -- Implementation attribute processing
 			current_option_not_void: a_current_option /= Void
 		local
 			l_lower_name: STRING_32
-			l_enabled: like current_attributes.item
 		do
-			if attached current_attributes.item (at_name) as l_name then
-				l_lower_name := l_name.as_lower
-				l_enabled := current_attributes.item (at_enabled)
-				if l_enabled = Void then
-					set_parse_error_message (conf_interface_names.e_parse_incorrect_warning (l_name))
-				elseif not l_enabled.is_boolean then
-					set_parse_error_message (conf_interface_names.e_parse_invalid_value (at_enabled_string))
-				elseif valid_warning (l_lower_name, current_namespace) then
-					a_current_option.add_warning (l_lower_name, l_enabled.to_boolean)
+			if not attached current_attributes.item (at_name) as l_name then
+				set_parse_error_message (conf_interface_names.e_parse_incorrect_warning_no_name)
+			elseif
+				includes_this_or_after (namespace_1_21_0) and then
+				l_name.is_case_insensitive_equal_general (w_obsolete_feature)
+			then
+					-- The warning `obsolete_feature` has attribute "value" of enumeration type.
+				if
+					attached current_attributes.item (at_value) as v and then
+					a_current_option.warning_obsolete_call.is_valid_item (v)
+				then
+					a_current_option.warning_obsolete_call.put (v)
 				else
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_warning (l_name))
 				end
 			else
-				set_parse_error_message (conf_interface_names.e_parse_incorrect_warning_no_name)
+					-- The warning has attribute "enabled" of boolean type.
+				l_lower_name := l_name.as_lower
+				if not attached current_attributes.item (at_enabled) as l_enabled then
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_warning (l_name))
+				elseif not l_enabled.is_boolean then
+					set_parse_error_message (conf_interface_names.e_parse_invalid_value (at_enabled_string))
+				elseif valid_warning (l_lower_name, current_namespace) then
+					if l_name.is_case_insensitive_equal_general (w_obsolete_feature) then
+						a_current_option.warning_obsolete_call.put_index
+							(if l_enabled.to_boolean then
+								{CONF_OPTION}.warning_term_index_current
+							else
+								{CONF_OPTION}.warning_term_index_none
+							end)
+					else
+						a_current_option.add_warning (l_lower_name, l_enabled.to_boolean)
+					end
+				else
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_warning (l_name))
+				end
 			end
 		end
 
@@ -1547,23 +1590,21 @@ feature {NONE} -- Implementation attribute processing
 	process_renaming_attributes
 			-- Process attributes of a renaming tag.
 		require
-			group: current_group /= Void
+			attached current_renaming
 		local
 			l_old_name, l_new_name: like current_attributes.item
 		do
-			l_old_name := current_attributes.item (at_old_name)
-			l_new_name := current_attributes.item (at_new_name)
-			if l_old_name /= Void and l_new_name /= Void then
-				if attached {CONF_VIRTUAL_GROUP} current_group as l_virtual_group then
-					l_virtual_group.add_renaming (l_old_name.as_upper, l_new_name.as_upper)
+			l_old_name := current_attributes [at_old_name]
+			l_new_name := current_attributes [at_new_name]
+			if attached l_old_name and attached l_new_name then
+				if attached current_renaming as r then
+					r.add_renaming (l_old_name.as_upper, l_new_name.as_upper)
 				else
-					check
-						virtual_group: False
-					end
+					check from_precondition: False end
 				end
-			elseif l_old_name /= Void then
+			elseif attached l_old_name then
 				set_parse_error_message (conf_interface_names.e_parse_incorrect_renaming_no_new (l_old_name))
-			elseif l_new_name /= Void then
+			elseif attached l_new_name then
 				set_parse_error_message (conf_interface_names.e_parse_incorrect_renaming_no_old (l_new_name))
 			else
 				set_parse_error_message (conf_interface_names.e_parse_incorrect_renaming_no_name)
@@ -1584,10 +1625,10 @@ feature {NONE} -- Implementation attribute processing
 				not attached current_group as l_current_group and then
 				attached current_target
 			then
-				l_target_option := factory.new_target_option
+				l_target_option := factory.new_target_option (if attached current_namespace as n then n else latest_namespace end)
 				l_current_option := l_target_option
 			else
-				l_current_option := factory.new_option
+				l_current_option := factory.new_option (if attached current_namespace as n then n else latest_namespace end)
 			end
 			current_option := l_current_option
 			if attached current_attributes.item (at_trace) as l_trace then
@@ -1618,11 +1659,23 @@ feature {NONE} -- Implementation attribute processing
 					set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_is_debug))
 				end
 			end
-			if attached current_attributes.item (at_warning) as l_warning then
-				if l_warning.is_boolean then
-					l_current_option.set_warning (l_warning.to_boolean)
+			if attached current_attributes.item (at_warning) as o then
+				if includes_this_or_after (namespace_1_21_0) then
+						-- Starting from 19.11 warnings can be reported as errors.
+					if l_current_option.warning.is_valid_item (o) then
+						l_current_option.warning.put (o)
+					else
+						set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_warning))
+					end
+				elseif o.is_boolean then
+					l_current_option.warning.put_index
+						(if o.to_boolean then
+							{CONF_OPTION}.warning_index_warning
+						else
+							{CONF_OPTION}.warning_index_none
+						end)
 				else
-					set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_is_warning))
+					set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_warning))
 				end
 			end
 			if
@@ -1682,16 +1735,24 @@ feature {NONE} -- Implementation attribute processing
 					set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_is_attached_by_default))
 				end
 			end
+				-- Should obsolete loops be used?
+			if attached current_attributes.item (at_is_obsolete_iteration) as a then
+				if not includes_this_or_after (namespace_1_22_0) then
+					report_unknown_attribute (o_is_obsolete_iteration)
+				elseif a.is_boolean then
+					l_current_option.set_is_obsolete_iteration (a.to_boolean)
+				else
+					set_parse_error_message (conf_interface_names.e_parse_invalid_value (a))
+				end
+			end
 				-- Should obsolete routine types be used?
 			if attached current_attributes.item (at_is_obsolete_routine_type) as l_is_obsolete_routine_type then
-				if includes_this_or_after (namespace_1_15_0) then
-					if l_is_obsolete_routine_type.is_boolean then
-						l_current_option.set_is_obsolete_routine_type (l_is_obsolete_routine_type.to_boolean)
-					else
-						set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_is_obsolete_routine_type))
-					end
-				else
+				if not includes_this_or_after (namespace_1_15_0) then
 					report_unknown_attribute (o_is_obsolete_routine_type)
+				elseif l_is_obsolete_routine_type.is_boolean then
+					l_current_option.set_is_obsolete_routine_type (l_is_obsolete_routine_type.to_boolean)
+				else
+					set_parse_error_message (conf_interface_names.e_parse_invalid_value (o_is_obsolete_routine_type))
 				end
 			end
 				-- Capability: Void safety.
@@ -1819,10 +1880,10 @@ feature {NONE} -- Implementation attribute processing
 				end
 			else
 				if attached current_group as l_current_group then
-					l_current_group.set_options (l_current_option)
+					l_current_group.merge_options (l_current_option)
 				elseif attached current_target as l_target then
 					if attached l_target_option then
-						l_target.set_options (l_target_option)
+						l_target.merge_options (l_target_option)
 					else
 						check attached_target_option: False end
 					end
@@ -1895,20 +1956,13 @@ feature {NONE} -- Implementation attribute processing
 			-- Process attributes of an uses tag.
 		require
 			current_cluster_set: current_cluster /= Void
-		local
-			ll: detachable ARRAYED_LIST [CONF_CLUSTER]
 		do
 			if attached current_cluster as l_current_cluster then
 				if attached current_attributes.item (at_group) as l_group and then is_valid_group_name (l_group) then
 					if l_group.same_string_general ("none") then
 						l_current_cluster.set_dependencies (create {SEARCH_TABLE [CONF_GROUP]}.make (0))
 					else
-						ll := uses_list.item (l_group)
-						if ll = Void then
-							create ll.make (1)
-						end
-						ll.extend (l_current_cluster)
-						uses_list.force (ll, l_group)
+						l_current_cluster.add_dependency_name (l_group)
 					end
 				else
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_uses (l_current_cluster.name))
@@ -1923,20 +1977,13 @@ feature {NONE} -- Implementation attribute processing
 			-- Process attributes of an overides tag.
 		require
 			current_override_set: current_override /= Void
-		local
-			ll:  detachable ARRAYED_LIST [CONF_OVERRIDE]
 		do
 			if attached current_override as l_current_override then
 				if attached current_attributes.item (at_group) as l_group and then is_valid_group_name (l_group) then
 					if l_group.same_string_general ("none") then
 						l_current_override.set_override (create {ARRAYED_LIST [CONF_GROUP]}.make (0))
 					else
-						ll := overrides_list.item (l_group)
-						if ll = Void then
-							create ll.make (1)
-						end
-						ll.extend (l_current_override)
-						overrides_list.force (ll, l_group)
+						l_current_override.add_override_group_name (l_group)
 					end
 				else
 					set_parse_error_message (conf_interface_names.e_parse_incorrect_overrides (l_current_override.name))
@@ -2160,6 +2207,63 @@ feature {NONE} -- Implementation attribute processing
 			end
 		end
 
+	process_void_safety_attributes (a_current_condition: attached like current_condition)
+			-- Process attributes of a void_safety tag.
+		require
+			current_condition_set: a_current_condition /= Void
+		local
+			l_name, l_value, l_excluded_value: like current_attributes.item
+			l_void_safety_values: detachable LIST [attached like current_attributes.item]
+			l_invert: BOOLEAN
+			l_conc: INTEGER
+		do
+			if includes_this_or_after (namespace_1_19_0) then
+				l_name := current_attributes.item (at_name)
+				l_value := current_attributes.item (at_value)
+				l_excluded_value := current_attributes.item (at_excluded_value)
+				if l_value = Void and then l_excluded_value = Void then
+						-- No value is set so we are in an invalid state.
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_void_safety ("(undefined)"))
+				elseif l_value /= Void and then l_excluded_value /= Void then
+					set_parse_error_message (conf_interface_names.e_parse_incorrect_void_safety ("(Cannot include and exclude at the same time)"))
+				elseif l_value /= Void then
+					l_void_safety_values := l_value.split (' ')
+					-- Check for value and exclude_value tags.
+				elseif l_excluded_value /= Void then
+					l_void_safety_values := l_excluded_value.split (' ')
+					l_invert := True
+				else
+					check code_implies_value_or_excluded_value_set: False end
+				end
+
+				if
+					not is_error and then
+					l_void_safety_values /= Void -- note: from code: not is_error implies l_void_safety_values /= Void
+				then
+					from
+						l_void_safety_values.start
+					until
+						l_void_safety_values.after or is_error
+					loop
+						l_conc := get_void_safety (l_void_safety_values.item)
+						if not valid_void_safety (l_conc) then
+							set_parse_error_message (conf_interface_names.e_parse_incorrect_void_safety (l_void_safety_values.item))
+						else
+							if l_invert then
+								a_current_condition.exclude_void_safety (l_conc)
+							else
+								a_current_condition.add_void_safety (l_conc)
+							end
+						end
+						l_void_safety_values.forth
+					end
+				end
+			else
+					-- "void_safety" tag is not available.
+				set_parse_error_message (conf_interface_names.e_parse_incorrect_condition)
+			end
+		end
+
 	process_dotnet_attributes (a_current_condition: attached like current_condition)
 			-- Process attributes of a dotnet tag.
 		require
@@ -2309,7 +2413,7 @@ feature {NONE} -- Custom conditions
 			Result.extend ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.wildcard_matching, val_match_wildcard)
 		ensure
 			known_count: Result.count = 4
-			known_kinds: across Result as c all {CONF_CONDITION_CUSTOM_ATTRIBUTES}.is_known_match_kind (c.item) end
+			known_kinds: across Result as c all {CONF_CONDITION_CUSTOM_ATTRIBUTES}.is_known_match_kind (c) end
 			known_keys:
 				Result.has (val_match_case_sensitive) and
 				Result.has (val_match_case_insensitive) and
@@ -2390,64 +2494,9 @@ feature {NONE} -- Processing of options
 			t_attached: t /= Void
 			a_namespace_attached: a_namespace /= Void
 		local
-			default_options: CONF_TARGET_OPTION
 			new_options: CONF_TARGET_OPTION
 		do
-			if
-				a_namespace.same_string (namespace_1_18_0)
-			then
-					-- Use the defaults of ES 18.01.
-				default_options := default_options_18_01
-			elseif
-				a_namespace.same_string (namespace_1_17_0) or else
-				a_namespace.same_string (namespace_1_16_0)
-			then
-					-- Use the defaults of ES 16.11.
-				default_options := default_options_16_11
-			elseif
-				a_namespace.same_string (namespace_1_15_0)
-			then
-					-- Use the defaults of ES 15.11.
-				default_options := default_options_15_11
-			elseif
-				a_namespace.same_string (namespace_1_14_0) or else
-				a_namespace.same_string (namespace_1_13_0)
-			then
-					-- Use the defaults of ES 14.05.
-				default_options := default_options_14_05
-			elseif
-				a_namespace.same_string (namespace_1_12_0) or else
-				a_namespace.same_string (namespace_1_11_0)
-			then
-					-- Use the defaults of ES 7.3.
-				default_options := default_options_7_3
-			elseif
-				a_namespace.same_string (namespace_1_10_0) or else
-				a_namespace.same_string (namespace_1_9_0)
-			then
-					-- Use the defaults of ES 7.0.
-				default_options := default_options_7_0
-			elseif
-				a_namespace.same_string (namespace_1_8_0) or else
-				a_namespace.same_string (namespace_1_7_0) or else
-				a_namespace.same_string (namespace_1_6_0) or else
-				a_namespace.same_string (namespace_1_5_0)
-			then
-					-- Use the defaults of ES 6.4.
-				default_options := default_options_6_4
-			elseif
-				a_namespace.same_string (namespace_1_4_0) or else
-				a_namespace.same_string (namespace_1_3_0) or else
-				a_namespace.same_string (namespace_1_2_0) or else
-				a_namespace.same_string (namespace_1_0_0)
-			then
-					-- Use the defaults of ES 6.3 and below.
-				default_options := default_options_6_3
-			else
-					-- Unknown version, do not change anything just in case it is above the current one.
-				-- default_options := Void
-			end
-			if attached default_options then
+			if attached {CONF_TARGET_OPTION}.create_from_namespace (a_namespace) as default_options then
 				new_options := t.options
 				new_options.merge (default_options)
 				t.set_options (new_options)
@@ -2457,13 +2506,13 @@ feature {NONE} -- Processing of options
 	non_client_options: ARRAY [TUPLE [name: READABLE_STRING_GENERAL; id: INTEGER]]
 			-- Non-client option names with their IDs
 		local
-			ids: like non_client_option_ids
+			ids: like supplier_option_ids
 			i: INTEGER
 			o: like at_syntax
 		once
 			create Result.make_empty
 			if attached tag_attributes.item (t_option) as a then
-				ids := non_client_option_ids
+				ids := supplier_option_ids
 				from
 					i := 1
 				until
@@ -2519,23 +2568,13 @@ feature {NONE} -- Implementation
 	current_library: detachable CONF_LIBRARY
 	current_assembly: detachable CONF_ASSEMBLY
 	current_group: detachable CONF_GROUP
+	current_renaming: detachable CONF_RENAMING_GROUP
 	current_file_rule: detachable CONF_FILE_RULE
 	current_option: detachable CONF_OPTION
 	current_external: detachable CONF_EXTERNAL
 	current_action: detachable CONF_ACTION
 	current_content: STRING_32
 	current_condition: detachable CONF_CONDITION
-
-	uses_list: STRING_TABLE [ARRAYED_LIST [CONF_CLUSTER]]
-			-- The list of classes, that have a uses clause on something.
-			-- Entries will be handled at the end.
-
-	overrides_list: STRING_TABLE [ARRAYED_LIST [CONF_OVERRIDE]]
-			-- The list of classes, that have an overrides clause on something.
-			-- Entries will be handled at the end.
-
-	group_list: STRING_TABLE [CONF_GROUP]
-			-- All groups of `current_target', to check for name conflicts and to compute dependencies and overrides.
 
 	current_tag: LINKED_STACK [INTEGER]
 			-- The stack of tags we are currently processing
@@ -2680,9 +2719,11 @@ feature {NONE} -- Implementation state transitions
 			Result.force (l_trans, t_none)
 
 				-- system
+				-- => note
 				-- => description
 				-- => target
-			create l_trans.make (2)
+			create l_trans.make (3)
+			l_trans.force (t_note, "note")
 			l_trans.force (t_description, "description")
 			l_trans.force (t_target, "target")
 			Result.force (l_trans, t_system)
@@ -2721,6 +2762,7 @@ feature {NONE} -- Implementation state transitions
 			l_trans.force (t_setting, "setting")
 			l_trans.force (t_capability, tag_capability)
 			l_trans.force (t_mapping, "mapping")
+			l_trans.force (t_namespace, "namespace")
 			l_trans.force (t_external_include, "external_include")
 			l_trans.force (t_external_cflag, "external_cflag")
 			l_trans.force (t_external_object, "external_object")
@@ -2738,6 +2780,12 @@ feature {NONE} -- Implementation state transitions
 			l_trans.force (t_test_cluster, "tests")
 			l_trans.force (t_override, "override")
 			Result.force (l_trans, t_target)
+
+				-- namespace
+				-- => renaming
+			create l_trans.make (1)
+			l_trans.force (t_renaming, "renaming")
+			Result.force (l_trans, t_namespace)
 
 				-- file_rule
 				-- => description
@@ -2858,15 +2906,17 @@ feature {NONE} -- Implementation state transitions
 				-- => build
 				-- => multithreaded
 				-- => concurrency
+				-- => void_safety
 				-- => dotnet
 				-- => dynamic_runtime
 				-- => version
 				-- => custom
-			create l_trans.make (8)
+			create l_trans.make (9)
 			l_trans.force (t_platform, "platform")
 			l_trans.force (t_build, "build")
 			l_trans.force (t_multithreaded, "multithreaded")
 			l_trans.force (t_concurrency, "concurrency")
+			l_trans.force (t_void_safety, "void_safety")
 			l_trans.force (t_dotnet, "dotnet")
 			l_trans.force (t_dynamic_runtime, "dynamic_runtime")
 			l_trans.force (t_version_condition, "version")
@@ -2966,18 +3016,21 @@ feature {NONE} -- Implementation state transitions
 				-- * full_class_checking
 				-- * cat_call_detection
 				-- * is_attached_by_default
+				-- * is_obsolete_iteration
+				-- * is_obsolete_routine_type
 				-- * is_void_safe
-			create l_attr.make (16)
+			create l_attr.make (17)
 			l_attr.force (at_trace, o_is_trace)
 			l_attr.force (at_profile, o_is_profile)
 			l_attr.force (at_optimize, o_is_optimize)
 			l_attr.force (at_debug, o_is_debug)
-			l_attr.force (at_warning, o_is_warning)
+			l_attr.force (at_warning, o_warning)
 			l_attr.force (at_manifest_array_type, o_manifest_array_type)
 			l_attr.force (at_msil_application_optimize, o_is_msil_application_optimize)
 			l_attr.force (at_namespace, o_namespace)
 			l_attr.force (at_full_class_checking, o_is_full_class_checking)
 			l_attr.force (at_is_attached_by_default, o_is_attached_by_default)
+			l_attr.force (at_is_obsolete_iteration, o_is_obsolete_iteration)
 			l_attr.force (at_is_obsolete_routine_type, o_is_obsolete_routine_type)
 			l_attr.force (at_syntax_level, "syntax_level")
 			l_attr.force (at_syntax, o_syntax)
@@ -3096,13 +3149,22 @@ feature {NONE} -- Implementation state transitions
 			Result.force (l_attr, t_test_cluster)
 			Result.force (l_attr, t_override)
 
-				-- debug/warning
+				-- debug
 				-- * name
 				-- * enabled
 			create l_attr.make (2)
 			l_attr.force (at_name, "name")
 			l_attr.force (at_enabled, at_enabled_string)
 			Result.force (l_attr, t_debug)
+
+				-- warning
+				-- * name
+				-- * enabled
+				-- * value
+			create l_attr.make (3)
+			l_attr.force (at_name, wa_name)
+			l_attr.force (at_enabled, at_enabled_string)
+			l_attr.force (at_value, wa_value)
 			Result.force (l_attr, t_warning)
 
 				-- assertions
@@ -3148,6 +3210,14 @@ feature {NONE} -- Implementation state transitions
 			l_attr.force (at_excluded_value, "excluded_value")
 			Result.force (l_attr, t_concurrency)
 
+				-- void_safety
+				-- * value
+				-- * excluded_value
+			create l_attr.make (2)
+			l_attr.force (at_value, "value")
+			l_attr.force (at_excluded_value, "excluded_value")
+			Result.force (l_attr, t_void_safety)
+
 				-- version
 			create l_attr.make (3)
 			l_attr.force (at_min, "min")
@@ -3186,6 +3256,14 @@ feature {NONE} -- Implementation state transitions
 			l_attr.force (at_feature_rename, "feature_rename")
 			Result.force (l_attr, t_visible)
 
+				-- namespace
+				-- * name
+				-- * prefix
+			create l_attr.make (4)
+			l_attr.force (at_name, "name")
+			l_attr.force (at_prefix, "prefix")
+			Result.force (l_attr, t_namespace)
+
 				-- mapping, renaming
 				-- * old_name
 				-- * new_name
@@ -3194,6 +3272,8 @@ feature {NONE} -- Implementation state transitions
 			l_attr.force (at_new_name, "new_name")
 			Result.force (l_attr, t_mapping)
 			Result.force (l_attr, t_renaming)
+		ensure
+			class
 		end
 
 	tag_with_undefined_attributes: SEARCH_TABLE [INTEGER]
@@ -3211,72 +3291,6 @@ feature {NONE} -- Implementation state transitions
 			set_parse_error_message (conf_interface_names.e_parse_invalid_attribute (name))
 		end
 
-feature {NONE} -- Default options
-
-	default_options_18_01: CONF_TARGET_OPTION
-			-- Default options of 18.01.
-		once
-			create Result.make_18_01
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_16_11: CONF_TARGET_OPTION
-			-- Default options of 16.11.
-		once
-			create Result.make_16_11
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_15_11: CONF_TARGET_OPTION
-			-- Default options of 15.11.
-		once
-			create Result.make_15_11
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_14_05: CONF_TARGET_OPTION
-			-- Default options of 14.05.
-		once
-			create Result.make_14_05
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_7_3: CONF_TARGET_OPTION
-			-- Default options of 7.3.
-		once
-			create Result.make_7_3
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_7_0: CONF_TARGET_OPTION
-			-- Default options of 7.0.
-		once
-			create Result.make_7_0
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_6_4: CONF_TARGET_OPTION
-			-- Default options of 6.4.
-		once
-			create Result.make_6_4
-		ensure
-			result_attached: Result /= Void
-		end
-
-	default_options_6_3: CONF_TARGET_OPTION
-			-- Default options of 6.3.
-		once
-			create Result.make_6_3
-		ensure
-			result_attached: Result /= Void
-		end
-
 feature -- Assertions
 
 	has_resolved_namespaces: BOOLEAN = True
@@ -3285,13 +3299,10 @@ invariant
 	current_tag_not_void: current_tag /= Void
 	current_attributes_not_void: current_attributes /= Void
 	current_content_not_void: current_content /= Void
-	group_list_not_void: group_list /= Void
-	uses_list_not_void: uses_list /= Void
-	overrides_list_not_void: overrides_list /= Void
 	factory_not_void: factory /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

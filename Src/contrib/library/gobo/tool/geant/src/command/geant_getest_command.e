@@ -5,7 +5,7 @@ note
 		"Getest commands"
 
 	library: "Gobo Eiffel Ant"
-	copyright: "Copyright (c) 2001, Sven Ehrke and others"
+	copyright: "Copyright (c) 2001-2021, Sven Ehrke and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -45,10 +45,11 @@ feature -- Status report
 	is_executable: BOOLEAN
 			-- Can command be executed?
 		do
-			Result := config_filename /= Void and then config_filename.count > 0
+			Result := attached config_filename as l_config_filename and then l_config_filename.count > 0
+			Result := Result and then (not attached exit_code_variable_name as l_exit_code_variable_name or else l_exit_code_variable_name.count > 0)
 		ensure then
-			config_filename_not_void: Result implies config_filename /= Void
-			config_filename_not_empty: Result implies config_filename.count > 0
+			config_filename_not_void_and_not_empty: Result implies attached config_filename as l_config_filename and then l_config_filename.count > 0
+			exit_code_variable_name_void_or_not_empty: Result implies (not attached exit_code_variable_name as l_exit_code_variable_name or else l_exit_code_variable_name.count > 0)
 		end
 
 feature -- Access
@@ -56,16 +57,16 @@ feature -- Access
 	verbose: BOOLEAN
 			-- Getest '--verbose' command-line options
 
-	config_filename: STRING
+	config_filename: detachable STRING
 			-- Config filename
 
-	compile: STRING
+	compile: detachable STRING
 			-- Compilation command-line
 
-	class_regexp: STRING
+	class_regexp: detachable STRING
 			-- Class regular expression
 
-	feature_regexp: STRING
+	feature_regexp: detachable STRING
 			-- Feature regular expression
 
 	default_test_included: BOOLEAN
@@ -85,6 +86,9 @@ feature -- Access
 
 	defines: DS_HASH_TABLE [STRING, STRING]
 			-- Defined values from the command-line (--define option)
+
+	exit_code_variable_name: detachable STRING
+			-- Name of variable holding exit code of gec compilation process
 
 feature -- Setting
 
@@ -177,6 +181,17 @@ feature -- Setting
 			abort_set: abort = b
 		end
 
+	set_exit_code_variable_name (a_exit_code_variable_name: like exit_code_variable_name)
+			-- Set `exit_code_variable_name' to `a_exit_code_variable_name'.
+		require
+			a_exit_code_variable_name_not_void: a_exit_code_variable_name /= Void
+			a_exit_code_variable_name_not_empty: a_exit_code_variable_name.count > 0
+		do
+			exit_code_variable_name := a_exit_code_variable_name
+		ensure
+			exit_code_variable_name_set: exit_code_variable_name = a_exit_code_variable_name
+		end
+
 feature -- Execution
 
 	execute
@@ -226,36 +241,45 @@ feature -- Execution
 						a_cursor.forth
 					end
 				end
-				if compile /= Void then
+				if attached compile as l_compile then
 					cmd.append_string ("--compile=%"")
-					cmd := STRING_.appended_string (cmd, compile)
+					cmd := STRING_.appended_string (cmd, l_compile)
 					cmd.append_string ("%" ")
 				end
-				if class_regexp /= Void then
+				if attached class_regexp as l_class_regexp then
 					cmd.append_string ("--class=%"")
-					cmd := STRING_.appended_string (cmd, class_regexp)
+					cmd := STRING_.appended_string (cmd, l_class_regexp)
 					cmd.append_string ("%" ")
 				end
-				if feature_regexp /= Void then
+				if attached feature_regexp as l_feature_regexp then
 					cmd.append_string ("--feature=%"")
-					cmd := STRING_.appended_string (cmd, feature_regexp)
+					cmd := STRING_.appended_string (cmd, l_feature_regexp)
 					cmd.append_string ("%" ")
 				end
 				if default_test_included then
 					cmd.append_string ("--default_test ")
 				end
-				a_filename := file_system.pathname_from_file_system (config_filename, unix_file_system)
-				a_filename := file_system.pathname_from_file_system (config_filename, unix_file_system)
-				cmd := STRING_.appended_string (cmd, a_filename)
-				project.trace (<<"  [getest] ", cmd>>)
-				execute_shell (cmd)
+				check is_executable: attached config_filename as l_config_filename then
+					a_filename := file_system.pathname_from_file_system (l_config_filename, unix_file_system)
+					a_filename := file_system.pathname_from_file_system (l_config_filename, unix_file_system)
+					cmd := STRING_.appended_string (cmd, a_filename)
+					project.trace (<<"  [getest] ", cmd>>)
+					execute_shell (cmd)
+					if attached exit_code_variable_name as l_exit_code_variable_name then
+							-- Store return_code of compilation process:
+						project.set_variable_value (l_exit_code_variable_name, exit_code.out)
+							-- Reset `exit_code' since return_code of process is available through
+							-- variable 'exit_code_variable_name':
+						exit_code := 0
+					end
+				end
 			end
 		end
 
 invariant
 
 	defines_not_void: defines /= Void
-	no_void_define_name: not defines.has (Void)
-	no_void_define_value: not defines.has_item (Void)
+	no_void_define_name: not defines.has_void
+	no_void_define_value: not defines.has_void_item
 
 end

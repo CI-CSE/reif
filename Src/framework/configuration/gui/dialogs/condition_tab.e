@@ -12,6 +12,7 @@ inherit
 	EV_VERTICAL_BOX
 		redefine
 			data,
+			create_interface_objects,
 			initialize,
 			is_in_default_state
 		end
@@ -76,6 +77,30 @@ feature {NONE} -- Initialization
 			condition_set: data = a_condition
 		end
 
+	create_interface_objects
+		do
+			Precursor
+			create custom
+			create version_max_msil_clr
+			create version_min_msil_clr
+			create version_max_compiler
+			create version_min_compiler
+
+			create dynamic_runtime
+			create dynamic_runtime_enabled
+
+			create platforms
+			create exclude_platforms
+			create concurrency
+			create void_safety
+			create exclude_concurrency
+			create exclude_void_safety
+			create build_enabled
+			create builds
+			create dotnet_enabled
+			create dotnet
+		end
+
 	initialize
 			-- Initialize.
 		local
@@ -101,7 +126,7 @@ feature {NONE} -- Initialization
 			create vb
 			l_frame.extend (vb)
 			vb.set_border_width (layout_constants.default_border_size)
-			create platforms
+--			create platforms
 			from
 				platform_names.start
 			until
@@ -109,16 +134,17 @@ feature {NONE} -- Initialization
 			loop
 				create li.make_with_text (platform_names.item_for_iteration)
 				platforms.extend (li)
-				if data.platform /= Void and then data.platform.value.has (platform_names.key_for_iteration) then
+				if attached data.platform as l_platform and then l_platform.value.has (platform_names.key_for_iteration) then
 					platforms.check_item (li)
 				end
 				platform_names.forth
 			end
 			vb.extend (platforms)
 			platforms.set_minimum_size (105, 75)
-			create exclude_platforms.make_with_text (conf_interface_names.dial_cond_platforms_exclude)
+--			create exclude_platforms
+			exclude_platforms.set_text (conf_interface_names.dial_cond_platforms_exclude)
 			vb.extend (exclude_platforms)
-			if data.platform /= Void and then data.platform.invert then
+			if attached data.platform as l_platform and then l_platform.invert then
 				exclude_platforms.enable_select
 			end
 
@@ -128,7 +154,7 @@ feature {NONE} -- Initialization
 			create vb
 			l_frame.extend (vb)
 			vb.set_border_width (layout_constants.default_border_size)
-			create concurrency
+--			create concurrency
 			from
 				concurrency_names.start
 			until
@@ -136,17 +162,46 @@ feature {NONE} -- Initialization
 			loop
 				create li.make_with_text (conf_interface_names.dial_cond_concurrency_value (concurrency_names.item_for_iteration))
 				concurrency.extend (li)
-				if data.concurrency /= Void and then data.concurrency.value.has (concurrency_names.key_for_iteration) then
+				if attached data.concurrency as l_concurrency and then l_concurrency.value.has (concurrency_names.key_for_iteration) then
 					concurrency.check_item (li)
 				end
 				concurrency_names.forth
 			end
 			vb.extend (concurrency)
 			concurrency.set_minimum_size (105, 75)
-			create exclude_concurrency.make_with_text (conf_interface_names.dial_cond_concurrency_exclude)
+--			create exclude_concurrency
+			exclude_concurrency.set_text (conf_interface_names.dial_cond_concurrency_exclude)
 			vb.extend (exclude_concurrency)
-			if data.concurrency /= Void and then data.concurrency.invert then
+			if attached data.concurrency as l_concurrency and then l_concurrency.invert then
 				exclude_concurrency.enable_select
+			end
+
+				-- void_safety
+			create l_frame.make_with_text (conf_interface_names.dial_cond_void_safety)
+			hb_top.extend (l_frame)
+			create vb
+			l_frame.extend (vb)
+			vb.set_border_width (layout_constants.default_border_size)
+			create void_safety
+			from
+				void_safety_names.start
+			until
+				void_safety_names.after
+			loop
+				create li.make_with_text (conf_interface_names.dial_cond_void_safety_value (void_safety_names.item_for_iteration))
+				void_safety.extend (li)
+				if attached data.void_safety as l_void_safety and then l_void_safety.value.has (void_safety_names.key_for_iteration) then
+					void_safety.check_item (li)
+				end
+				void_safety_names.forth
+			end
+			vb.extend (void_safety)
+			void_safety.set_minimum_size (105, 75)
+--			create exclude_void_safety
+			exclude_void_safety.set_text (conf_interface_names.dial_cond_void_safety_exclude)
+			vb.extend (exclude_void_safety)
+			if attached data.void_safety as l_void_safety and then l_void_safety.invert then
+				exclude_void_safety.enable_select
 			end
 
 				-- other
@@ -160,22 +215,24 @@ feature {NONE} -- Initialization
 				-- build
 			create vb
 			hb.extend (vb)
-			create build_enabled.make_with_text (conf_interface_names.dial_cond_build)
+--			create build_enabled
+			build_enabled.set_text (conf_interface_names.dial_cond_build)
 			vb.extend (build_enabled)
-			create builds.make_with_strings (<<build_workbench_name, build_finalize_name>>)
+--			create builds
+			builds.set_strings (<<build_workbench_name, build_finalize_name>>)
 			builds.disable_edit
 			vb.extend (builds)
 			vb.disable_item_expand (builds)
-			if data.build /= Void then
+			if attached data.build as l_build then
 				build_enabled.enable_select
-				if data.build.invert then
-					if data.build.value.first = build_workbench then
+				if l_build.invert then
+					if l_build.value.first = build_workbench then
 						builds.last.enable_select
 					else
 						builds.first.enable_select
 					end
 				else
-					if data.build.value.first = build_workbench then
+					if l_build.value.first = build_workbench then
 						builds.first.enable_select
 					else
 						builds.last.enable_select
@@ -187,15 +244,18 @@ feature {NONE} -- Initialization
 
 				-- dynamic runtime
 			append_small_margin (vb)
-			create dynamic_runtime_enabled.make_with_text (conf_interface_names.dial_cond_dynamic_runtime)
+--			create dynamic_runtime_enabled
+			dynamic_runtime_enabled.set_text (conf_interface_names.dial_cond_dynamic_runtime)
 			vb.extend (dynamic_runtime_enabled)
-			create dynamic_runtime.make_with_strings (boolean_list)
+
+--			create dynamic_runtime
+			dynamic_runtime.set_strings (boolean_list)
 			dynamic_runtime.disable_edit
 			vb.extend (dynamic_runtime)
 			vb.disable_item_expand (dynamic_runtime)
-			if data.dynamic_runtime /= Void then
+			if attached data.dynamic_runtime as l_dynamic_runtime then
 				dynamic_runtime_enabled.enable_select
-				if data.dynamic_runtime.item then
+				if l_dynamic_runtime.item then
 					dynamic_runtime.first.enable_select
 				else
 					dynamic_runtime.last.enable_select
@@ -207,15 +267,17 @@ feature {NONE} -- Initialization
 
 				-- dotnet
 			append_small_margin (vb)
-			create dotnet_enabled.make_with_text (conf_interface_names.dial_cond_dotnet)
+--			create dotnet_enabled
+			dotnet_enabled.set_text (conf_interface_names.dial_cond_dotnet)
 			vb.extend (dotnet_enabled)
-			create dotnet.make_with_strings (boolean_list)
+--			create dotnet
+			dotnet.set_strings (boolean_list)
 			dotnet.disable_edit
 			vb.extend (dotnet)
 			vb.disable_item_expand (dotnet)
-			if data.dotnet /= Void then
+			if attached data.dotnet as l_dotnet then
 				dotnet_enabled.enable_select
-				if data.dotnet.item then
+				if l_dotnet.item then
 					dotnet.first.enable_select
 				else
 					dotnet.last.enable_select
@@ -237,7 +299,7 @@ feature {NONE} -- Initialization
 			create hb_version
 			vb.extend (hb_version)
 			vb.disable_item_expand (hb_version)
-			create version_min_compiler
+--			create version_min_compiler
 			hb_version.extend (version_min_compiler)
 			hb_version.disable_item_expand (version_min_compiler)
 			version_min_compiler.set_minimum_width (version_field_width)
@@ -246,7 +308,7 @@ feature {NONE} -- Initialization
 			hb_version.extend (l_label)
 			hb_version.disable_item_expand (l_label)
 			hb_version.extend (create {EV_CELL})
-			create version_max_compiler
+--			create version_max_compiler
 			hb_version.extend (version_max_compiler)
 			hb_version.disable_item_expand (version_max_compiler)
 			version_max_compiler.set_minimum_width (version_field_width)
@@ -257,7 +319,7 @@ feature {NONE} -- Initialization
 			create hb_version
 			vb.extend (hb_version)
 			vb.disable_item_expand (hb_version)
-			create version_min_msil_clr
+--			create version_min_msil_clr
 			hb_version.extend (version_min_msil_clr)
 			hb_version.disable_item_expand (version_min_msil_clr)
 			version_min_msil_clr.set_minimum_width (version_field_width)
@@ -266,7 +328,7 @@ feature {NONE} -- Initialization
 			hb_version.extend (l_label)
 			hb_version.disable_item_expand (l_label)
 			hb_version.extend (create {EV_CELL})
-			create version_max_msil_clr
+--			create version_max_msil_clr
 			hb_version.extend (version_max_msil_clr)
 			hb_version.disable_item_expand (version_max_msil_clr)
 			version_max_msil_clr.set_minimum_width (version_field_width)
@@ -283,7 +345,7 @@ feature {NONE} -- Initialization
 			vb.extend (vb_grid)
 			vb_grid.set_border_width (1)
 			vb_grid.set_background_color ((create {EV_STOCK_COLORS}).black)
-			create custom
+--			create custom
 			vb_grid.extend (custom)
 			fill_custom
 			create hb
@@ -306,6 +368,9 @@ feature {NONE} -- Initialization
 				-- concurrency
 			concurrency.focus_out_actions.extend (agent on_concurrency)
 			exclude_concurrency.select_actions.extend (agent on_concurrency)
+				-- void_safety
+			void_safety.focus_out_actions.extend (agent on_void_safety)
+			exclude_void_safety.select_actions.extend (agent on_void_safety)
 				--other
 			build_enabled.select_actions.extend (agent on_build_enabled)
 			builds.select_actions.extend (agent on_build)
@@ -337,8 +402,14 @@ feature {NONE} -- GUI elements
 	concurrency: EV_CHECKABLE_LIST
 			-- Concurrency list.
 
+	void_safety: EV_CHECKABLE_LIST
+			-- Void_safety list.
+
 	exclude_concurrency: EV_CHECK_BUTTON
 			-- Are the selected concurrency elements excluded?
+
+	exclude_void_safety: EV_CHECK_BUTTON
+			-- Are the selected void_safety elements excluded?
 
 	build_enabled: EV_CHECK_BUTTON
 			-- Is the build value set?
@@ -422,6 +493,31 @@ feature {NONE} -- Actions
 			end
 		end
 
+	on_void_safety
+			-- void_safety value was changed, update data.
+		local
+			is_excluded: BOOLEAN
+		do
+			data.wipe_out_void_safety
+			is_excluded := exclude_void_safety.is_selected
+			from
+				void_safety.start
+				void_safety_names.start
+			until
+				void_safety.after
+			loop
+				if void_safety.is_item_checked (void_safety.item) then
+					if is_excluded then
+						data.exclude_void_safety (void_safety_names.key_for_iteration)
+					else
+						data.add_void_safety (void_safety_names.key_for_iteration)
+					end
+				end
+				void_safety.forth
+				void_safety_names.forth
+			end
+		end
+
 	on_dotnet_enabled
 			-- enable/disable combo box to choose a value for .NET.
 		do
@@ -501,7 +597,7 @@ feature {NONE} -- Actions
 			if (l_min /= Void and then l_min.is_error) or (l_max /= Void and then l_max.is_error) then
 				fill_compiler_version
 				prompts.show_error_prompt (conf_interface_names.version_valid_format, parent_window (Current), Void)
-			elseif l_min /= Void and l_max /= Void and then l_min > l_max then
+			elseif l_min /= Void and then l_max /= Void and then l_min > l_max then
 				fill_compiler_version
 				prompts.show_error_prompt (conf_interface_names.version_min_max, parent_window (Current), Void)
 			elseif l_min /= Void or l_max /= Void then
@@ -529,7 +625,7 @@ feature {NONE} -- Actions
 			if (l_min /= Void and then l_min.is_error) or (l_max /= Void and then l_max.is_error) then
 				fill_msil_clr_version
 				prompts.show_error_prompt (conf_interface_names.version_valid_format, parent_window (Current), Void)
-			elseif l_min /= Void and l_max /= Void and then l_min > l_max then
+			elseif l_min /= Void and then l_max /= Void and then l_min > l_max then
 				fill_msil_clr_version
 				prompts.show_error_prompt (conf_interface_names.version_min_max, parent_window (Current), Void)
 			elseif l_min /= Void or l_max /= Void then
@@ -542,8 +638,8 @@ feature {NONE} -- Actions
 	update_variable (a_new_key: READABLE_STRING_GENERAL; a_old_key: READABLE_STRING_GENERAL; a_old_value: READABLE_STRING_GENERAL)
 			-- Update variable name from `a_old_key' to `a_new_key'.
 		require
-			a_old_key_ok: a_old_key /= Void and then data.custom /= Void and then data.custom.has (a_old_key)
-			a_old_value_ok: a_old_value /= Void and then attached data.custom.item (a_old_key) as l_item and then l_item.has (a_old_value)
+			a_old_key_ok: a_old_key /= Void and then attached data.custom as l_custom and then l_custom.has (a_old_key)
+			a_old_value_ok: a_old_value /= Void and then attached l_custom.item (a_old_key) as l_item and then l_item.has (a_old_value)
 		local
 			d: CONF_CONDITION_CUSTOM_ATTRIBUTES
 		do
@@ -561,23 +657,50 @@ feature {NONE} -- Actions
 	update_invert (a_invert_value: READABLE_STRING_GENERAL; a_value: READABLE_STRING_GENERAL; a_key: READABLE_STRING_GENERAL)
 			-- Update inversion status of custom condition of `a_key'.
 		require
-			a_key_ok: a_key /= Void and then data.custom /= Void and then data.custom.has (a_key)
-			a_value_ok: a_value /= Void and then attached data.custom.item (a_key) as l_item and then l_item.has (a_value)
+			a_key_ok: a_key /= Void and then attached data.custom as l_custom and then l_custom.has (a_key)
+			a_value_ok: a_value /= Void and then attached l_custom.item (a_key) as l_item and then l_item.has (a_value)
 			a_invert_value_ok: a_invert_value /= Void and then (a_invert_value.starts_with ("=") or a_invert_value.starts_with ("/=") or a_invert_value.ends_with ("-match") or a_invert_value.ends_with ("-mismatch"))
 		local
 			d: CONF_CONDITION_CUSTOM_ATTRIBUTES
 		do
 			data.remove_custom (a_key, a_value)
 			create d -- FIXME
-			d.inverted := a_invert_value.starts_with ("/=") or a_invert_value.ends_with ("-mismatch")
+			if a_invert_value.is_case_insensitive_equal (comp_equal) then
+				d.inverted := False
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.case_sensitive_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_equal_mismatch) then
+				d.inverted := True
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.case_sensitive_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_caseless_match) then
+				d.inverted := False
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.case_insensitive_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_caseless_mismatch) then
+				d.inverted := True
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.case_insensitive_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_regexp_match) then
+				d.inverted := False
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.regexp_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_regexp_mismatch) then
+				d.inverted := True
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.regexp_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_wildcard_match) then
+				d.inverted := False
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.wildcard_matching)
+			elseif a_invert_value.is_case_insensitive_equal (comp_wildcard_mismatch) then
+				d.inverted := True
+				d.set_match ({CONF_CONDITION_CUSTOM_ATTRIBUTES}.wildcard_matching)
+			else
+				check unknown: False end
+			end
+			-- note: d.inverted := a_invert_value.starts_with ("/=") or a_invert_value.ends_with ("-mismatch")
 			data.add_custom (a_key, a_value, d)
 		end
 
 	update_value (a_value: READABLE_STRING_GENERAL; a_old_value: READABLE_STRING_GENERAL; a_key: READABLE_STRING_GENERAL)
 			-- Update value of custom condition of `a_key'.
 		require
-			a_key_ok: a_key /= Void and then data.custom /= Void and then data.custom.has (a_key.as_lower)
-			a_old_value_ok: a_old_value /= Void and then attached data.custom.item (a_key.as_lower) as l_item and then l_item.has (a_old_value)
+			a_key_ok: a_key /= Void and then attached data.custom as l_custom and then l_custom.has (a_key.as_lower)
+			a_old_value_ok: a_old_value /= Void and then attached l_custom.item (a_key.as_lower) as l_item and then l_item.has (a_old_value)
 			a_value_not_void: a_value /= Void
 		local
 			d: CONF_CONDITION_CUSTOM_ATTRIBUTES
@@ -642,15 +765,15 @@ feature {NONE} -- Implementation
 				version_min_compiler.set_text ("")
 				version_max_compiler.set_text ("")
 			else
-				if l_version.min = Void then
+				if attached l_version.min as v_min then
+					version_min_compiler.set_text (v_min.version)
+				else
 					version_min_compiler.set_text ("")
-				else
-					version_min_compiler.set_text (l_version.min.version)
 				end
-				if l_version.max = Void then
-					version_max_compiler.set_text ("")
+				if attached l_version.max as v_max then
+					version_max_compiler.set_text (v_max.version)
 				else
-					version_max_compiler.set_text (l_version.max.version)
+					version_max_compiler.set_text ("")
 				end
 			end
 		end
@@ -665,15 +788,15 @@ feature {NONE} -- Implementation
 				version_min_msil_clr.set_text ("")
 				version_max_msil_clr.set_text ("")
 			else
-				if l_version.min = Void then
+				if attached l_version.min as v_min then
+					version_min_msil_clr.set_text (v_min.version)
+				else
 					version_min_msil_clr.set_text ("")
-				else
-					version_min_msil_clr.set_text (l_version.min.version)
 				end
-				if l_version.max = Void then
-					version_max_msil_clr.set_text ("")
+				if attached l_version.max as v_max then
+					version_max_msil_clr.set_text (v_max.version)
 				else
-					version_max_msil_clr.set_text (l_version.max.version)
+					version_max_msil_clr.set_text ("")
 				end
 			end
 		end
@@ -717,27 +840,27 @@ feature {NONE} -- Implementation
 						l_text.set_value (l_key)
 						l_text.change_value_actions.extend (agent update_variable ({READABLE_STRING_32} ?, l_key, l_values.key_for_iteration))
 						custom.set_item (1, i, l_text)
-						create l_choice.make_with_choices ("", create {ARRAYED_LIST [READABLE_STRING_32]}.make_from_array ({ARRAY [READABLE_STRING_32]} <<"=", "/=", "caseless-match", "caseless-mismatch", "regexp-match", "regexp-mismatch", "wildcard-match", "wildcard-mismatch">>))
+						create l_choice.make_with_choices ("", create {ARRAYED_LIST [READABLE_STRING_32]}.make_from_array ({ARRAY [READABLE_STRING_32]} <<comp_equal, comp_equal_mismatch, comp_caseless_match, comp_caseless_mismatch, comp_regexp_match, comp_regexp_mismatch, comp_wildcard_match, comp_wildcard_mismatch>>))
 						l_custom_item := l_values.item_for_iteration
 						if l_custom_item.inverted then
 							if l_custom_item.is_regular_expression then
-								l_choice.set_value ("regexp-mismatch")
+								l_choice.set_value (comp_regexp_mismatch)
 							elseif l_custom_item.is_wildcard then
-								l_choice.set_value ("wildcard-mismatch")
+								l_choice.set_value (comp_wildcard_mismatch)
 							elseif l_custom_item.is_case_insensitive then
-								l_choice.set_value ("caseless-mismatch")
+								l_choice.set_value (comp_caseless_mismatch)
 							else
-								l_choice.set_value ("/=")
+								l_choice.set_value (comp_equal_mismatch)
 							end
 						else
 							if l_custom_item.is_regular_expression then
-								l_choice.set_value ("regexp-match")
+								l_choice.set_value (comp_regexp_match)
 							elseif l_custom_item.is_wildcard then
-								l_choice.set_value ("wildcard-match")
+								l_choice.set_value (comp_wildcard_match)
 							elseif l_custom_item.is_case_insensitive then
-								l_choice.set_value ("caseless-match")
+								l_choice.set_value (comp_caseless_match)
 							else
-								l_choice.set_value ("=")
+								l_choice.set_value (comp_equal)
 							end
 						end
 						l_choice.change_value_actions.extend (agent update_invert ({READABLE_STRING_32} ?, l_values.key_for_iteration, l_key))
@@ -762,7 +885,7 @@ feature {NONE} -- Implementation
 			Result := <<conf_interface_names.boolean_true, conf_interface_names.boolean_false>>
 		ensure
 			Result_not_void: Result /= Void
-			Result_has_two_value: Result @ 1 /= Void and Result @ 2 /= Void
+			Result_has_two_value: Result [1] /= Void and Result [2] /= Void
 		end
 
 	boolean_value_from_name (a_string: READABLE_STRING_GENERAL): BOOLEAN
@@ -774,8 +897,19 @@ feature {NONE} -- Implementation
 			Result := conf_interface_names.boolean_values.item (a_string)
 		end
 
+feature {NONE} -- Constants
+
+	comp_equal: STRING_8 = "="
+	comp_equal_mismatch: STRING_8 = "/="
+	comp_caseless_match: STRING_8 = "caseless-match"
+	comp_caseless_mismatch: STRING_8 = "caseless-mismatch"
+	comp_regexp_match: STRING_8 = "regexp-match"
+	comp_regexp_mismatch: STRING_8 = "regexp-mismatch"
+	comp_wildcard_match: STRING_8 = "wildcard-match"
+	comp_wildcard_mismatch: STRING_8 = "wildcard-mismatch"
+
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

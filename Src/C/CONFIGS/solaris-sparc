@@ -207,7 +207,7 @@ concurrent_prefix='c'
 cp='/bin/cp'
 eiflib='finalized'
 if [ -n "$LD" ]; then
-	ld='$LD'
+	ld=$LD
 else
 	ld='ld'
 fi
@@ -235,7 +235,7 @@ shared_suffix='.so'
 shared_rt_suffix='.so'
 sharedlibs='-lsocket -lnsl -lm -lrt'
 mtsharedlibs='-lsocket -lnsl -lm -lrt -lpthread'
-sharedlibversion='.18.11'
+sharedlibversion='.23.06'
 sharedlink='ld'
 suffix='.a'
 wkeiflib='wkbench'

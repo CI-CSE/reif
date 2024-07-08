@@ -6,6 +6,7 @@
 			but does not redefine 'is_equal'. 'is_equal' may need to be redefined.
 		]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -60,15 +61,12 @@ feature {NONE} -- Checking the rule
 
 	process_class (a_class: CLASS_AS)
 			-- Checks `a_class' for rule violations.
-		local
-			l_viol: CA_RULE_VIOLATION
 		do
 			if is_current_hashable and then (not redefines_is_equal) then
 					-- {HASHABLE}.hash_code is implemented ("modulo" renaming) but
 					-- is_equal is not redefined.
-				create l_viol.make_with_rule (Current)
 					-- Add {HASHABLE} to info for formatted output:
-				violations.extend (l_viol)
+				violations.extend (create {CA_RULE_VIOLATION}.make_with_rule (Current))
 			end
 		end
 
@@ -76,7 +74,7 @@ feature {NONE} -- Checking the rule
 			-- Is currently checked class a descendant of {HASHABLE}?
 		do
 			across current_context.checking_class.parents as l_parents loop
-				if l_parents.item.name.is_equal ("HASHABLE") then
+				if l_parents.name.is_equal ("HASHABLE") then
 					Result := True
 				end
 			end
@@ -86,7 +84,7 @@ feature {NONE} -- Checking the rule
 			-- Does current class redefine `is_equal'?
 		do
 			across current_context.checking_class.written_in_features as l_feat loop
-				if l_feat.item.name_32.is_equal ("is_equal") then
+				if l_feat.name_32.is_equal ("is_equal") then
 					Result := True
 				end
 			end

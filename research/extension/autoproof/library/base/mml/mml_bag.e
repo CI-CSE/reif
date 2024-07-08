@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Finite bags."
 	author: "Nadia Polikarpova"
 	revised_by: "Alexander Kogtenkov"
@@ -166,7 +166,7 @@ feature -- Modification
 			check is_executable: False then end
 		end
 
-	difference alias "-" (other: MML_BAG [G]): MML_BAG[G]
+	difference alias "-" (other: MML_BAG [G]): MML_BAG [G]
 			-- Current bag with all occurrences of values from `other' removed.
 		do
 			check is_executable: False then end
@@ -206,7 +206,7 @@ feature -- Lemmas
 		require
 			n >= 0
 		do
-			check across domain as x all removed_multiple (v, n).removed (v) [x.item] = removed_multiple (v, n + 1) [x.item] end end
+			check ∀ x: domain ¦ removed_multiple (v, n).removed (v) [x] = removed_multiple (v, n + 1) [x] end
 		ensure
 			removed_multiple (v, n).removed (v) = removed_multiple (v, n + 1)
 		end
@@ -216,16 +216,18 @@ feature -- Lemmas
 		note
 			status: lemma
 		do
-			check across domain as x all removed_multiple (v, Current [v]) [x.item] = removed_all (v) [x.item] end end
+			check ∀ x: domain ¦ removed_multiple (v, Current [v]) [x] = removed_all (v) [x] end
 		ensure
 			removed_multiple (v, Current [v]) = removed_all (v)
 		end
 
 	lemma_domain_count
-			-- `domain' has no more elements thatn the bag,
+			-- `domain' has no more elements than the bag,
 			-- and they have equal number of elements iff every element occurs exactly once.
 		note
 			status: lemma
+		require
+			decreases (count)
 		local
 			x: G
 		do
@@ -233,7 +235,7 @@ feature -- Lemmas
 				x := domain.any_item
 				check Current = (Current / x) & x end
 				check domain = (Current / x).domain & x end
-				check Current[x] = (Current / x)[x] + 1 end
+				check Current [x] = (Current / x) [x] + 1 end
 				check is_constant (1) implies not (Current / x).domain [x] end
 				check domain.count = if Current [x] = 1 then (Current / x).domain.count + 1 else (Current / x).domain.count end end
 				(Current / x).lemma_domain_count

@@ -20,7 +20,6 @@ inherit
 		redefine
 			interface,
 			make,
-			call_button_event_actions,
 			destroy,
 			x_position,
 			y_position
@@ -46,9 +45,6 @@ inherit
 				pointer_leave_actions,
 				pointer_leave_actions_internal,
 				pointer_enter_actions_internal
-		redefine
-			init_resize_actions,
-			init_file_drop_actions
 		end
 
 	EV_DOCKABLE_SOURCE_IMP
@@ -77,15 +73,19 @@ feature {NONE} -- Initialization
 				target_entry[0].target = "STRING";
 				target_entry[0].flags = 0;
 				target_entry[0].info = 0;
+			
+				guint n_targets = G_N_ELEMENTS (target_entry);
+				
 				gtk_drag_dest_set (
 					(GtkWidget*) $a_widget,
-					GTK_DEST_DEFAULT_DROP,
+					GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_HIGHLIGHT | GTK_DEST_DEFAULT_DROP,
 					target_entry,
-					sizeof (target_entry) / sizeof (GtkTargetEntry),
-					GDK_ACTION_LINK
+					n_targets,
+					GDK_ACTION_COPY|GDK_ACTION_MOVE|GDK_ACTION_LINK
 				);
 			]"
 		end
+
 
 feature -- Event handling
 
@@ -101,10 +101,17 @@ feature -- Event handling
 			end
 		end
 
+	init_dpi_changed_actions (a_dpi_changed_actions: like dpi_changed_actions)
+			-- Initialize `a_dpi_changed_actions' accordingly to the current widget.
+		do
+		end
+
+
 	init_file_drop_actions (a_file_drop_actions: like file_drop_actions)
 			-- <Precursor>
 		do
 		end
+
 
 feature {EV_WINDOW_IMP, EV_INTERMEDIARY_ROUTINES, EV_ANY_I, EV_APPLICATION_IMP} -- Implementation
 
@@ -350,6 +357,30 @@ feature -- Element change
 			end
 		end
 
+	reset_minimum_width
+			-- Reset the minimum width.
+		local
+			v: INTEGER
+		do
+			{GTK2}.g_object_get_integer (c_object, height_request_string.item, $v)
+			{GTK2}.gtk_widget_set_minimum_size (c_object, -1, v)
+		end
+
+	reset_minimum_height
+			-- Reset the minimum height.
+		local
+			v: INTEGER
+		do
+			{GTK2}.g_object_get_integer (c_object, height_request_string.item, $v)
+			{GTK2}.gtk_widget_set_minimum_size (c_object, v, -1)
+		end
+
+	reset_minimum_size
+			-- Reset the minimum size (width and height).
+		do
+			{GTK2}.gtk_widget_set_minimum_size (c_object, -1, -1)
+		end
+
 feature -- Measurement
 
 	x_position: INTEGER
@@ -539,7 +570,7 @@ feature {EV_ANY, EV_ANY_I, EV_INTERMEDIARY_ROUTINES} -- Implementation
 	interface: detachable EV_WIDGET note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

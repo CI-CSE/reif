@@ -16,6 +16,9 @@
 			}
 		}
 	},
+	"settings": {
+		"use_safe_redirection": true
+		},
 	"smtp": {
 		"server": "localhost"
 		},

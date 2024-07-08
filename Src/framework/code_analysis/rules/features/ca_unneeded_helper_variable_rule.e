@@ -77,11 +77,11 @@ feature {NONE} -- Rule checking
 			l_viol: CA_RULE_VIOLATION
 		do
 			across suspected_variables as l_suspects loop
-				if locals_usage [l_suspects.item] = 2 then
+				if locals_usage [l_suspects] = 2 then
 						-- 2 usages: 1 assignment and 1 read.
 					create l_viol.make_with_rule (Current)
-					l_viol.set_location (location [l_suspects.item])
-					l_viol.long_description_info.extend (l_suspects.item.name_32)
+					l_viol.set_location (location [l_suspects])
+					l_viol.long_description_info.extend (l_suspects.name_32)
 					violations.extend (l_viol)
 				end
 			end
@@ -168,13 +168,11 @@ feature {NONE} -- Rule checking
 			-- Updates usage information if `a_access_id' represents a local.
 		local
 			l_id: ID_AS
-			l_used: INTEGER
 		do
 			if a_access_id.is_local then
 				l_id := a_access_id.feature_name
 				if locals_usage.has_key (l_id) then
-					l_used := locals_usage [l_id]
-					locals_usage.force (l_used + 1, l_id)
+					locals_usage.force (locals_usage [l_id] + 1, l_id)
 				else
 					locals_usage.extend (1, l_id)
 				end

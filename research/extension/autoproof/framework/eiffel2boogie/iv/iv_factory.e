@@ -1,9 +1,5 @@
-note
-	description: "[
-		Helper class to create IV-nodes.
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
+﻿note
+	description: "Helper class to create IV-nodes."
 
 frozen class
 	IV_FACTORY
@@ -16,6 +12,13 @@ inherit
 		end
 
 	E2B_SHARED_CONTEXT
+		rename
+			equal as any_equal
+		export
+			{NONE} all
+		end
+
+	INTERNAL_COMPILER_STRING_EXPORTER
 		rename
 			equal as any_equal
 		export
@@ -80,19 +83,19 @@ feature -- Values
 
 feature -- Entities
 
-	entity (a_name: STRING; a_type: IV_TYPE): IV_ENTITY
+	entity (a_name: READABLE_STRING_8; a_type: IV_TYPE): IV_ENTITY
 			-- Entity with name `a_name' and type `a_type'.
 		do
 			create Result.make (a_name, a_type)
 		end
 
-	unique_entity (a_name_prefix: STRING; a_type: IV_TYPE): IV_ENTITY
+	unique_entity (a_name_prefix: READABLE_STRING_8; a_type: IV_TYPE): IV_ENTITY
 			-- Entity with name `a_name_X' (where 'X' is unique) and type `a_type'.
 		do
 			create Result.make (helper.unique_identifier (a_name_prefix), a_type)
 		end
 
-	heap_entity (a_name: STRING): IV_ENTITY
+	heap_entity (a_name: READABLE_STRING_8): IV_ENTITY
 		do
 			Result := entity (a_name, types.heap)
 		end
@@ -107,7 +110,7 @@ feature -- Entities
 			Result := function_call ("old", << global_heap >>, types.heap)
 		end
 
-	ref_entity (a_name: STRING): IV_ENTITY
+	ref_entity (a_name: READABLE_STRING_8): IV_ENTITY
 		do
 			Result := entity (a_name, types.ref)
 		end
@@ -201,7 +204,7 @@ feature -- Boolean operators
 			across
 				a_conjuncts as i
 			loop
-				Result := and_clean (Result, i.item.expression)
+				Result := and_clean (Result, i.expression)
 			end
 		end
 
@@ -279,38 +282,38 @@ feature -- Functions
 			Result.add_argument (a_arg)
 		end
 
-	function_call (a_function_name: STRING; a_arguments: ARRAY [IV_EXPRESSION]; a_result_type: IV_TYPE): IV_FUNCTION_CALL
+	function_call (a_function_name: READABLE_STRING_8; a_arguments: ARRAY [IV_EXPRESSION]; a_result_type: IV_TYPE): IV_FUNCTION_CALL
 			-- Function call to `a_function_name' with arguments `a_arguments'.
 		do
 			create Result.make (a_function_name, a_result_type)
 			if attached a_arguments then
 				across a_arguments as i loop
-					Result.add_argument (i.item)
+					Result.add_argument (i)
 				end
 			end
 		end
 
 feature -- Heap and map access
 
-	map_access (a_map: IV_EXPRESSION; a_indexes: ARRAY [IV_EXPRESSION]): IV_MAP_ACCESS
+	map_access (a_map: IV_EXPRESSION; a_indexes: like {IV_MAP_ACCESS}.indexes): IV_MAP_ACCESS
 			-- Map access to `a_map'[`a_index'].
 		do
 			create Result.make (a_map, a_indexes)
 		end
 
-	map_update (a_map: IV_EXPRESSION; a_indexes: ARRAY [IV_EXPRESSION]; a_value: IV_EXPRESSION): IV_MAP_UPDATE
+	map_update (a_map: IV_EXPRESSION; a_indexes: ARRAYED_LIST [IV_EXPRESSION]; a_value: IV_EXPRESSION): IV_MAP_UPDATE
 			-- Map update `a_map'[`a_index' := `a_value'].
 		do
 			create Result.make (a_map, a_indexes, a_value)
 		end
 
-	heap_access (a_heap: IV_EXPRESSION; a_target: IV_EXPRESSION; a_name: STRING; a_content_type: IV_TYPE): IV_MAP_ACCESS
+	heap_access (a_heap: IV_EXPRESSION; a_target: IV_EXPRESSION; a_name: READABLE_STRING_8; a_content_type: IV_TYPE): IV_MAP_ACCESS
 			-- Heap access to `a_feature' on `Current'.
 		do
-			Result := map_access (a_heap, <<a_target, create {IV_ENTITY}.make (a_name, types.field (a_content_type)) >>)
+			Result := map_access (a_heap, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<<a_target, create {IV_ENTITY}.make (a_name, types.field (a_content_type)) >>))
 		end
 
-	heap_current_access (a_mapping: E2B_ENTITY_MAPPING; a_name: STRING; a_content_type: IV_TYPE): IV_MAP_ACCESS
+	heap_current_access (a_mapping: E2B_ENTITY_MAPPING; a_name: READABLE_STRING_8; a_content_type: IV_TYPE): IV_MAP_ACCESS
 			-- Heap access to `a_feature' on `Current'.
 		do
 			Result := heap_access (a_mapping.heap, a_mapping.current_expression, a_name, a_content_type)
@@ -326,8 +329,8 @@ feature -- Heap and map access
 			-- Array access to `a_array'[`a_index'].
 		do
 			Result := map_access (
-				heap_access (a_heap, a_array, "area", create {IV_MAP_TYPE}.make (<<>>, << types.int >>, a_content_type)),
-				<< a_index >>)
+				heap_access (a_heap, a_array, "area", create {IV_MAP_TYPE}.make (<<>>, create {ARRAYED_LIST [IV_TYPE]}.make_from_array (<<types.int>>), a_content_type)),
+				create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<<a_index>>))
 		end
 
 feature -- Statements
@@ -338,7 +341,7 @@ feature -- Statements
 			create Result.make (a_proc_name)
 			if attached a_arguments then
 				across a_arguments as i loop
-					Result.add_argument (i.item)
+					Result.add_argument (i)
 				end
 			end
 		end
@@ -377,7 +380,7 @@ feature -- Framing
 	frame_access (a_frame, a_obj, a_field: IV_EXPRESSION): IV_MAP_ACCESS
 			-- Expression `a_frame [a_obj, a_field]'.
 		do
-			create Result.make (a_frame, << a_obj, a_field >>)
+			create Result.make (a_frame, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<< a_obj, a_field >>))
 		end
 
 	writes_routine_frame (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_boogie_procedure: IV_PROCEDURE): IV_EXPRESSION
@@ -391,7 +394,7 @@ feature -- Framing
 			create l_fcall.make (name_translator.boogie_function_for_write_frame (a_feature, a_type), types.set (types.ref))
 			l_fcall.add_argument (l_old_heap)
 			across a_boogie_procedure.arguments as i loop
-				l_fcall.add_argument (i.item.entity)
+				l_fcall.add_argument (i.entity)
 			end
 			if helper.is_setter (a_feature) then
 				Result := function_call ("flat_same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
@@ -399,7 +402,7 @@ feature -- Framing
 				Result := function_call ("same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
 			end
 				-- TODO: fix inlining
-			if not a_boogie_procedure.name.has_substring (a_feature.feature_name_32.out) then
+			if not a_boogie_procedure.name.has_substring (a_feature.feature_name) then
 				Result := true_
 			end
 		end
@@ -419,7 +422,7 @@ feature -- Axioms
 			l_forall.add_bound_variable (a_heap)
 			l_forall.add_bound_variable (a_current)
 			across a_extra_vars as v loop
-				l_forall.add_bound_variable (v.item)
+				l_forall.add_bound_variable (v)
 			end
 			l_forall.add_trigger (a_call)
 
@@ -435,7 +438,7 @@ feature -- Axioms
 				l_forall.add_bound_variable (a_heap)
 				l_forall.add_bound_variable (a_current)
 				across a_extra_vars as v loop
-					l_forall.add_bound_variable (v.item)
+					l_forall.add_bound_variable (v)
 				end
 				l_forall.add_trigger (a_call)
 
@@ -445,7 +448,7 @@ feature -- Axioms
 
 feature -- Miscellaneous
 
-	trace (a_text: STRING): IV_STATEMENT
+	trace (a_text: READABLE_STRING_8): IV_STATEMENT
 			-- Tracing statement.
 		local
 			l_assume: IV_ASSERT
@@ -454,5 +457,29 @@ feature -- Miscellaneous
 			l_assume.set_attribute_string (":captureState %"" + a_text + "%"")
 			Result := l_assume
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

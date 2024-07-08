@@ -206,7 +206,7 @@ feature {DUMP_VALUE, DBG_EXPRESSION_EVALUATOR, DBG_EVALUATOR, APPLICATION_EXECUT
 
 feature {NONE} -- Dotnet specific
 
-	dotnet_value_class_name: STRING
+	dotnet_value_class_name: STRING_32
 			-- Class name for the dotnet value
 		require
 			is_dotnet_system
@@ -358,7 +358,7 @@ feature -- Status report
 						attached truncated_string_representation (0, l_max) as l_str
 					then
 						if (l_max > 0) and then last_string_representation_length > (l_max - 0 + 1) then
-							l_str.append ("...")
+							l_str.append_string_general ("...")
 						end
 						create Result.make (l_str.count)
 						Result.append (Character_routines.eiffel_string_32 (l_str))
@@ -370,7 +370,7 @@ feature -- Status report
 								--| TODO: 2009-09-22: remove after a few weeks of testing
 							Result := "`debug_output' disabled on this expanded item!"
 						else
-							check should_not_occurs: False end
+							check error_reported: debugger_manager.application.error_reported end
 						end
 					end
 				else
@@ -381,20 +381,22 @@ feature -- Status report
 			end
 		end
 
-	full_output: STRING
+	full_output: STRING_32
 			-- Complete output, including string representation.
 			--| `output_value' = "This is a string"
 		do
 			Result := output_value (True).twin
-			if (type /= Type_manifest_string or type /= Type_manifest_string_32) and has_formatted_output then
-				if attached formatted_output as fo then
-					Result.append_character (' ')
-					Result.append_character ('=')
-					Result.append_character (' ')
-					Result.append_character ('%"')
-					Result.append (fo)
-					Result.append_character ('%"')
-				end
+			if
+				(type /= Type_manifest_string or type /= Type_manifest_string_32) and
+				has_formatted_output and then
+				attached formatted_output as fo
+			then
+				Result.append_character (' ')
+				Result.append_character ('=')
+				Result.append_character (' ')
+				Result.append_character ('%"')
+				Result.append (fo)
+				Result.append_character ('%"')
 			end
 			debug ("debug_recv")
 				print ("Output is ")
@@ -552,7 +554,7 @@ feature {DUMP_VALUE} -- string_representation Implementation
 
 			l_count: INTEGER
 			s8_c, s32_c, sc: detachable CLASS_C
-			l_area_name, l_count_name, l_area_lower_name: detachable READABLE_STRING_8
+			l_area_name, l_count_name, l_area_lower_name: detachable READABLE_STRING_32
 			l_area_lower_value: INTEGER
 			l_slice_max: INTEGER
 			comp_data: DEBUGGER_DATA_FROM_COMPILER
@@ -587,9 +589,9 @@ feature {DUMP_VALUE} -- string_representation Implementation
 								--| we have to test the 2 cases : STRING and STRING_32
 
 							f := sc.feature_with_name (area_name).ancestor_version (l_dynamic_class)
-							l_area_name := f.name_32.as_string_8
+							l_area_name := f.name_32
 							f := sc.feature_with_name (count_name).ancestor_version (l_dynamic_class)
-							l_count_name := f.name_32.as_string_8
+							l_count_name := f.name_32
 
 								--| And also manage the IMMUTABLE_STRING_8 and _32 !
 							s8_c := comp_data.immutable_string_8_class_c
@@ -604,7 +606,7 @@ feature {DUMP_VALUE} -- string_representation Implementation
 							if sc /= Void then
 								f := sc.feature_with_name (area_lower_name).ancestor_version (l_dynamic_class)
 								if f /= Void then
-									l_area_lower_name := f.name_32.as_string_8
+									l_area_lower_name := f.name_32
 								end
 							end
 
@@ -633,20 +635,19 @@ feature {DUMP_VALUE} -- string_representation Implementation
 									area_attribute := cv_spec
 									done := count_attribute /= Void and (l_area_lower_name = Void or else area_lower_attribute /= Void)
 								end
-							else
-								if count_attribute = Void or area_lower_attribute = Void then
-									if attached {DEBUG_BASIC_VALUE [INTEGER]} l_attributes_item as int_value then
-										if count_attribute = Void and then int_value.name.is_equal (l_count_name) then
-											count_attribute := int_value
-											done := area_attribute /= Void and (l_area_lower_name = Void or else area_lower_attribute /= Void)
-										elseif
-											l_area_lower_name /= Void and then area_lower_attribute = Void and then
-											int_value.name.is_equal (l_area_lower_name)
-										then
-											area_lower_attribute := int_value
-											done := area_attribute /= Void and count_attribute /= Void
-										end
-									end
+							elseif
+								(count_attribute = Void or area_lower_attribute = Void) and then
+								attached {DEBUG_BASIC_VALUE [INTEGER]} l_attributes_item as int_value
+							then
+								if count_attribute = Void and then int_value.name.is_equal (l_count_name) then
+									count_attribute := int_value
+									done := area_attribute /= Void and (l_area_lower_name = Void or else area_lower_attribute /= Void)
+								elseif
+									l_area_lower_name /= Void and then area_lower_attribute = Void and then
+									int_value.name.is_equal (l_area_lower_name)
+								then
+									area_lower_attribute := int_value
+									done := area_attribute /= Void and count_attribute /= Void
 								end
 							end
 							l_attributes_cursor.forth
@@ -707,22 +708,23 @@ feature {DUMP_VALUE} -- string_representation Implementation
 		local
 			l_feat: FEATURE_I
 		do
-			if debugger_manager.safe_application_is_stopped then
-				if dynamic_class /= Void then
-					l_feat := debug_output_feature_i (dynamic_class)
-					if
-						l_feat /= Void and then
-						attached classic_feature_result_value_on_current (l_feat, dynamic_class) as l_final_result_value and then
-						not l_final_result_value.is_void
-					then
-						Result := l_final_result_value.classic_string_representation (min, max)
-						last_string_representation_length := l_final_result_value.last_string_representation_length
-					end
+			if
+				debugger_manager.safe_application_is_stopped and then
+				attached dynamic_class
+			then
+				l_feat := debug_output_feature_i (dynamic_class)
+				if
+					l_feat /= Void and then
+					attached classic_feature_result_value_on_current (l_feat, dynamic_class) as l_final_result_value and then
+					not l_final_result_value.is_void
+				then
+					Result := l_final_result_value.classic_string_representation (min, max)
+					last_string_representation_length := l_final_result_value.last_string_representation_length
 				end
 			end
 		end
 
-	generating_type_evaluated_string: detachable STRING
+	generating_type_evaluated_string: detachable STRING_32
 			-- Full generic type using evaluation of generating_type on the related object
 			-- WARNING: This has to be an Eiffel type (descendant of ANY to implement generating_type)
 		require
@@ -747,7 +749,7 @@ feature {DUMP_VALUE} -- string_representation Implementation
 
 feature {NONE} -- Classic specific
 
-	classic_generating_type_evaluated_string: detachable STRING
+	classic_generating_type_evaluated_string: detachable STRING_32
 		require
 			is_stopped: debugger_manager.safe_application_is_stopped
 			is_valid_eiffel_type: dynamic_class /= Void and then not dynamic_class.is_true_external
@@ -759,9 +761,9 @@ feature {NONE} -- Classic specific
 			if
 				l_feat /= Void and then
 				attached classic_feature_result_value_on_current (l_feat, dynamic_class) as l_final_result_value and then
-				not l_final_result_value.is_void and then attached l_final_result_value.classic_string_representation (0, -1) as l_result
+				not l_final_result_value.is_void
 			then
-				Result := l_result
+				Result := l_final_result_value.classic_string_representation (0, -1)
 			end
 		end
 
@@ -777,7 +779,11 @@ feature {NONE} -- Classic specific
 			check
 				running_and_stopped: debugger_manager.safe_application_is_stopped
 			end
-			if a_feat /= Void and debugger_manager.application.is_valid_and_known_object_address (value_address) then
+			if
+				a_feat /= Void and then
+				not debugger_manager.application.error_reported and then
+				debugger_manager.application.is_valid_and_known_object_address (value_address)
+			then
 					-- Initialize the communication.
 				l_dbg_obj := debugger_manager.object_manager.classic_debugged_object_with_class (value_address, a_compiled_class)
 				if not l_dbg_obj.is_erroneous then
@@ -797,12 +803,17 @@ feature {NONE} -- Classic specific
 
 									-- Receive the Result.
 								recv_value (Current)
-								if is_exception then
-									Result := Void --| exception_item
+								if error then
+									debugger_manager.application.report_error
+									Result := Void -- Error ...
 								else
-									if item /= Void then
-										item.set_hector_addr
-										Result := item.dump_value
+									if is_exception then
+										Result := Void --| exception_item
+									else
+										if item /= Void then
+											item.set_hector_addr
+											Result := item.dump_value
+										end
 									end
 								end
 								reset_recv_value
@@ -831,9 +842,9 @@ feature -- Action
 			utf: UTF_CONVERTER
 		do
 			last_classic_send_value_succeed := True
-			inspect (type)
+			inspect type
 			when Type_manifest_string then
-				s8 := value_string.as_string_8
+				s8 := value_string.to_string_8
 				value_string_c := s8.to_c
 				send_string_value ($value_string_c, s8.count)
 			when type_manifest_string_32 then
@@ -864,10 +875,10 @@ feature -- Action
 
 feature -- Access
 
-	generating_type_representation (generating_type_evaluation_enabled: BOOLEAN): STRING
+	generating_type_representation (generating_type_evaluation_enabled: BOOLEAN): STRING_32
 			-- {TYPE}.generating_type string representation
 		local
-			l_generating_type_string: STRING
+			l_generating_type_string: STRING_32
 		do
 			create Result.make (100)
 
@@ -925,10 +936,10 @@ feature -- Access
 				if format_result then
 					create Result.make (value_string.count + 2)
 					Result.append_character ('%"')
-					Result.append (value_string.as_string_8)
+					Result.append (value_string)
 					Result.append_character ('%"')
 				else
-					Result := value_string.as_string_8.twin
+					Result := value_string.twin
 				end
 			when Type_manifest_string_32 then
 				s := utf.utf_8_string_8_to_string_32 (value_string)
@@ -1201,7 +1212,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -39,7 +39,8 @@ feature -- Intialization
 				a_base_selection.load_result
 				Result := a_base_selection.container
 			else
-				io.put_string (generator + "." + a_base_selection.error_message_32)
+				io.put_string (generator + ".")
+				io.put_string_32 (a_base_selection.error_message_32)
 			end
 			unset_map_name (a_base_selection)
 			a_base_selection.terminate
@@ -113,7 +114,7 @@ feature {NONE} -- Implementation
 				a_parameters.after
 			loop
 				Result.append ("name:")
-				Result.append (a_parameters.key_for_iteration.as_string_32)
+				Result.append ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_parameters.key_for_iteration))
 				Result.append (", value:")
 				if
 					a_parameters.key_for_iteration.has_substring ("Password") or else

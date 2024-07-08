@@ -1,4 +1,4 @@
-class JSON_CONFIGURATION
+﻿class JSON_CONFIGURATION
 
 create
 	make,
@@ -73,7 +73,7 @@ feature -- Basic operation
 		local
 			p: JSON_PARSER
 			f: PLAIN_TEXT_FILE
-			s,t: detachable STRING_8
+			s, t: detachable STRING_8
 			i: INTEGER
 			u: UTF_CONVERTER
 		do
@@ -108,7 +108,7 @@ feature -- Basic operation
 				from
 					i := 1
 				until
-					s[i] = '{'
+					s [i] = '{'
 				loop
 					i := i + 1
 				end
@@ -127,11 +127,7 @@ feature -- Basic operation
 				has_error := p.errors.count > 0
 				debug
 					if has_error then
-						across
-							p.errors as c
-						loop
-							print (c.item + "%N")
-						end
+						⟳ e: p.errors ¦ print (e + "%N") ⟲
 					end
 				end
 			end
@@ -149,7 +145,7 @@ feature -- Basic operation
 				if not f.exists or else f.is_writable then
 					f.open_write
 					if attached text as l_text then
-						f.put_string (l_text)
+						f.put_string ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_text))
 					elseif attached data as l_data then
 						f.put_string (l_data.representation)
 					end
@@ -183,8 +179,8 @@ feature -- Access
 				across
 					l_map as c
 				loop
-					if attached {JSON_STRING} c.item as v then
-						Result.force (v.unescaped_string_8, c.key.unescaped_string_8)
+					if attached {JSON_STRING} c as v then
+						Result.force (v.unescaped_string_8, @ c.key.unescaped_string_8)
 					end
 				end
 			end
@@ -199,10 +195,10 @@ feature -- Access
 
 feature -- Query
 
-	json_value (a_json_data: detachable JSON_VALUE; a_id: STRING): detachable JSON_VALUE
+	json_value (a_json_data: detachable JSON_VALUE; a_id: READABLE_STRING_GENERAL): detachable JSON_VALUE
 		local
 			l_id: JSON_STRING
-			l_ids: LIST [STRING]
+			l_ids: LIST [READABLE_STRING_GENERAL]
 		do
 			Result := a_json_data
 			if Result /= Void then
@@ -213,7 +209,7 @@ feature -- Query
 					until
 						l_ids.after or Result = Void
 					loop
-						create l_id.make_from_string (l_ids.item)
+						create l_id.make_from_string_general (l_ids.item)
 						if attached {JSON_OBJECT} Result as v_data then
 							if v_data.has_key (l_id) then
 								Result := v_data.item (l_id)

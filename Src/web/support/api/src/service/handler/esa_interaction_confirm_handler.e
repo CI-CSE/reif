@@ -73,7 +73,9 @@ feature -- HTTP Methods
 			   attached {WSF_STRING} req.path_parameter("report_id") as l_report_id and then l_report_id.is_integer and then
 			   attached {WSF_STRING} req.path_parameter ("id") as l_id and then l_id.is_integer  then
 				if attached current_media_type (req) as l_type then
-					log.write_information (generator + ".do_get Processing request")
+					debug
+						log.write_information (generator + ".do_get Processing request")
+					end
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).interaction_form_confirm_page (req, res, l_report_id.integer_value, l_id.integer_value)
 				else
 					l_rhf.new_representation_handler (esa_config, Empty_string, media_type_variants (req)).interaction_form_confirm_page (req, res, l_report_id.integer_value, l_id.integer_value)
@@ -103,7 +105,9 @@ feature -- HTTP Methods
 				attached {WSF_STRING} req.path_parameter("report_id") as l_report_id and then l_report_id.is_integer
 			then
 				if attached current_media_type (req) as l_type then
-					log.write_information (generator + ".do_post Processing request")
+					debug
+						log.write_information (generator + ".do_post Processing request")
+					end
 					l_interaction := extract_form_data(req, l_type)
 					l_old_report := api_service.problem_report (l_report_id.integer_value)
 					api_service.commit_interaction (l_interaction)
@@ -127,7 +131,7 @@ feature -- HTTP Methods
 
 feature {NONE} -- Implementation
 
-	extract_form_data (req: WSF_REQUEST; a_type: READABLE_STRING_32): INTEGER
+	extract_form_data (req: WSF_REQUEST; a_type: READABLE_STRING_8): INTEGER
 			-- Extract data from a post request (form in text/html or template in CJ).
 		local
 			l_parser: JSON_PARSER
@@ -171,7 +175,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	send_new_interaction_email (a_user: STRING; a_report_id: INTEGER; a_old_report: detachable REPORT; a_url: STRING)
+	send_new_interaction_email (a_user: READABLE_STRING_GENERAL; a_report_id: INTEGER; a_old_report: detachable REPORT; a_url: STRING)
 			-- Send interaction creation confirmation email to interested parties.
 		local
 			l_subscribers: LIST [STRING]
@@ -189,7 +193,7 @@ feature {NONE} -- Implementation
 				email_notification_service.send_new_interaction_email (api_service.user_account_information (a_user), l_report, l_subscribers, a_old_report, a_url, api_service.role (a_user), l_submitter_email)
 			else
 					-- Not expected.
-				log.write_critical (generator + ".send_new_interaction_email Unexpected behavior user [" + a_user +"]" + "does not has email, or the report does not exist or does not has synopsis")
+				log.write_critical (generator + ".send_new_interaction_email Unexpected behavior user [" + a_user.to_string_8 +"]" + "does not has email, or the report does not exist or does not has synopsis")
 			end
 		end
 

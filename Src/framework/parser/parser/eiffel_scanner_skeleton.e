@@ -1,5 +1,4 @@
 ﻿note
-
 	description: "Eiffel scanner skeletons"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -17,15 +16,13 @@ inherit
 			yy_initialize, yy_load_input_buffer, reset, fatal_error
 		end
 
-	EIFFEL_TOKENS
-		export
-			{NONE} all
-		end
-
-	SHARED_ERROR_HANDLER
-		export {NONE} all end
-
 	COMPILER_EXPORTER
+	INTERNAL_COMPILER_STRING_EXPORTER
+	SHARED_ERROR_HANDLER
+
+inherit {NONE}
+
+	EIFFEL_TOKENS
 		export {NONE} all end
 
 	REFACTORING_HELPER
@@ -40,17 +37,15 @@ inherit
 	BOM_CONSTANTS
 		export {NONE} all end
 
-	INTERNAL_COMPILER_STRING_EXPORTER
+	SHARED_LOCALE
+		export {NONE} all end
 
 feature {NONE} -- Initialization
 
 	make
 			-- Create a new Eiffel scanner using default factory for creating AST nodes.
-		local
-			l_factory: AST_FACTORY
 		do
-			create l_factory
-			make_with_factory (l_factory)
+			make_with_factory (create {AST_FACTORY})
 		end
 
 	make_with_factory (a_factory: AST_FACTORY)
@@ -70,6 +65,7 @@ feature {NONE} -- Initialization
 		ensure
 			ast_factory_set: ast_factory = a_factory
 			ast_factory_set_with_parser: ast_factory.parser = Current
+			syntax_version = obsolete_syntax
 		end
 
 feature -- Initialization
@@ -89,6 +85,8 @@ feature -- Initialization
 			character_column := column
 			next_character_position := position
 			next_character_column := column
+		ensure then
+			syntax_version = obsolete_syntax
 		end
 
 	yy_initialize
@@ -195,6 +193,9 @@ feature -- Access
 	has_syntax_warning: BOOLEAN
 			-- Do we create SYNTAX_WARNING instances for obsolte syntactical constructs?
 
+	is_warning_as_error: BOOLEAN
+			-- Should syntax warnings be reported as errors?
+
 	Maximum_string_character_code: NATURAL_32 = 0x10FFFF
 			-- Maximum value for character code inside a string
 			-- According to ISO/IEC 10646, the maximum Unicode point is 10FFFF.
@@ -209,17 +210,33 @@ feature -- Access
 			--   C compiler (e.g., CL does not support strings longer than 0xFFFF bytes)
 			--   CLI specification (e.g., identifiers cannot be longer 0x1FFFFFFF bytes)
 
-	ecma_syntax: NATURAL_8 = 0x00
+	ecma_syntax: like syntax_version = 0x00
 			-- Syntax strictly follows the ECMA specification
 
-	obsolete_syntax: NATURAL_8 = 0x01
+	obsolete_syntax: like syntax_version = 0x01
 			-- Allows pre-ECMA keywords and ignore new ECMA keywords such as `note', `attribute', `attached' and `detachable'
 
-	transitional_syntax: NATURAL_8 = 0x2
+	transitional_syntax: like syntax_version = 0x2
 			-- Allows both pre and ECMA keywords
 
-	provisional_syntax: NATURAL_8 = 0x3
+	provisional_syntax: like syntax_version = 0x3
 			-- ECMA syntax + possible future extensions
+
+feature -- Status report
+
+	is_valid_syntax_version (v: like syntax_version): BOOLEAN
+			-- Is `v` a valid syntax version value?
+		do
+			inspect v
+			when ecma_syntax, obsolete_syntax, transitional_syntax, provisional_syntax then
+				Result := True
+			else
+					-- False otherwise.
+			end
+		ensure
+			class
+			definition: Result = (<<ecma_syntax, obsolete_syntax, transitional_syntax, provisional_syntax>>).has (v)
+		end
 
 feature -- Access: Encoding
 
@@ -228,54 +245,6 @@ feature -- Access: Encoding
 
 	detected_bom: detachable STRING
 			-- Bom of the encoding detected by last parsing
-
-feature -- Comparison
-
-	is_text_case_insensitve_equal_to (a_text: STRING_8): BOOLEAN
-			-- Is `text' the same as `a_text' in a case insensitive way?
-			--| We use `STRING_8' and not `READABLE_STRING_8' to have
-			--| an efficient comparison using the areas.
-		local
-			i, j, nb: INTEGER
-			l_other_area: SPECIAL [CHARACTER_8]
-		do
-			nb := text_count
-			if nb > 0 and a_text.count = nb then
-				if attached yy_content_area as l_area then
-					from
-						i := 0
-						j := yy_start
-						Result := True
-						l_other_area := a_text.area
-					until
-						i = nb
-					loop
-						if l_area.item (j).as_lower /= l_other_area.item (i).as_lower then
-							i := nb - 1
-							Result := False
-						end
-						i := i + 1
-						j := j + 1
-					end
-				else
-						-- Inefficient version.
-					from
-						i := 1
-						Result := True
-					until
-						i > nb
-					loop
-						if text_item (i).as_lower /= a_text.item (i).as_lower then
-							i := nb
-							Result := False
-						end
-						i := i + 1
-					end
-				end
-			end
-		ensure
-			definition: Result = (text.same_string (a_text))
-		end
 
 feature {NONE} -- Status
 
@@ -324,14 +293,22 @@ feature -- Settings
 			has_syntax_warning_set: has_syntax_warning = b
 		end
 
-	set_syntax_version (a_version: like syntax_version)
-			-- Set `syntax_version' to `a_version'.
-		require
-			valid_version: a_version = ecma_syntax or a_version = transitional_syntax or a_version = obsolete_syntax or a_version = provisional_syntax
+	set_warning_as_error (b: BOOLEAN)
+			-- Set `is_warning_as_error` to `b`.
 		do
-			syntax_version := a_version
+			is_warning_as_error := b
 		ensure
-			syntax_version_set: syntax_version = a_version
+			is_warning_as_error = b
+		end
+
+	set_syntax_version (v: like syntax_version)
+			-- Set `syntax_version` to `v`.
+		require
+			is_valid_syntax_version (v)
+		do
+			syntax_version := v
+		ensure
+			syntax_version = v
 		end
 
 	set_filename (a_filename: like filename)
@@ -364,7 +341,7 @@ feature {NONE} -- Error handling
 			a_error_not_void: a_error /= Void
 		do
 			a_error.set_associated_class (current_class)
-			error_handler.insert_warning (a_error)
+			error_handler.insert_warning (a_error, is_warning_as_error)
 		end
 
 	fatal_error (a_message: STRING)
@@ -443,8 +420,20 @@ feature {NONE} -- Error handling
 		do
 			report_one_error (
 				create {SYNTAX_ERROR}.make (line, column, filename,
-					"Identifier, manifest string or free operator is " + a_text.count.out +
-					" characters long that exceeds limit of " + maximum_string_length.out + " characters."))
+					locale.formatted_string (locale.plural_translation_in_context (
+							"Identifier, manifest string or free operator is $1 character long.",
+							"Identifier, manifest string or free operator is $1 characters long.",
+							"compiler.parser",
+							 a_text.count
+							), [a_text.count])
+					+ locale.formatted_string (locale.plural_translation_in_context (
+							" It exceeds limit of $1 character.",
+							" It exceeds limit of $1 characters.",
+							"compiler.parser",
+							maximum_string_length
+							), [maximum_string_length])
+					)
+				)
 		end
 
 	report_unknown_token_error (a_token: CHARACTER)
@@ -461,96 +450,107 @@ feature {AST_FACTORY} -- Error handling
 			report_one_error (create {VIIN}.make (line, column, filename, ""))
 		end
 
-	report_invalid_type_for_real_error (a_type: TYPE_AS; a_real: STRING)
+	report_invalid_type_for_real_error (a_type: TYPE_AS; a_real: READABLE_STRING_8)
 			-- Error when an incorrect type `a_type' is specified for a real constant `a_real'.
 		require
 			a_type_not_void: a_type /= Void
 			a_real_not_void: a_real /= Void
-		local
-			an_error: SYNTAX_ERROR
 		do
-			create an_error.make (line, column, filename,
-				"Specified type %"" + a_type.dump +
-					"%" is not a valid type for real constant %"" + a_real + "%"")
-			report_one_error (an_error)
+			report_one_error
+				(create {SYNTAX_ERROR}.make (line, column, filename,
+					locale.formatted_string (locale.translation_in_context
+						("[
+							Specified type "$1" is not a valid type for real constant "$2".
+						]",
+						"compiler.parser"),
+					a_type.dump,
+					a_real)))
 		end
 
-	report_invalid_type_for_integer_error (a_type: TYPE_AS; an_int: STRING)
+	report_invalid_type_for_integer_error (a_type: TYPE_AS; an_int: READABLE_STRING_8)
 			-- Error when an incorrect type `a_type' is specified for an integer constant `an_int'.
 		require
 			a_type_not_void: a_type /= Void
 			an_int_not_void: an_int /= Void
-		local
-			an_error: SYNTAX_ERROR
 		do
-			create an_error.make (line, column, filename,
-				"Specified type %"" + a_type.dump +
-					"%" is not a valid type for integer constant %"" + an_int + "%"")
-			report_one_error (an_error)
+			report_one_error
+				(create {SYNTAX_ERROR}.make (line, column, filename,
+					locale.formatted_string (locale.translation_in_context
+						("[
+							Specified type "$1" is not a valid type for integer constant "$2".
+						]",
+						"compiler.parser"),
+					a_type.dump,
+					an_int)))
 		end
 
-	report_integer_too_large_error (a_type: detachable TYPE_AS; an_int: STRING)
+	report_integer_too_large_error (a_type: detachable TYPE_AS; an_int: READABLE_STRING_8)
 			-- `an_int', although only made up of digits, doesn't fit
 			-- in an INTEGER (i.e. greater than maximum_integer_value).
 		require
 			an_int_not_void: an_int /= Void
-		local
-			an_error: SYNTAX_ERROR
-			l_message: STRING
 		do
 			fixme ("Change plain syntax error to Integer_too_large error when the corresponding validity rule is available.")
-			if a_type /= Void then
-				l_message := "Integer value " + an_int + " is too large for " + a_type.dump + "."
-			else
-				l_message := "Integer value " + an_int + " is too large for any integer type."
-			end
-			create an_error.make (line, column, filename, l_message)
-			report_one_error (an_error)
+			report_one_error (create {SYNTAX_ERROR}.make (line, column, filename,
+				if attached a_type then
+					locale.formatted_string (locale.translation_in_context
+							("Integer value $1 is too large for $2.",
+							"compiler.parser"),
+						an_int,
+						a_type.dump)
+				else
+					locale.formatted_string (locale.translation_in_context
+							("Integer value $1 is too large for any integer type.",
+							"compiler.parser"),
+						an_int)
+				end))
 		end
 
-	report_integer_too_small_error (a_type: detachable TYPE_AS; an_int: STRING)
+	report_integer_too_small_error (a_type: detachable TYPE_AS; an_int: READABLE_STRING_8)
 			-- `an_int', although only made up of digits, doesn't fit
 			-- in an INTEGER (i.e. less than minimum_integer_value).
 		require
 			an_int_not_void: an_int /= Void
-		local
-			an_error: SYNTAX_ERROR
-			l_message: STRING
 		do
 			fixme ("Change plain syntax error to Integer_too_small error when the corresponding validity rule is available.")
-			if a_type /= Void then
-				l_message := "Integer value " + an_int + " is too small for " + a_type.dump + "."
-			else
-				l_message := "Integer value " + an_int + " is too small for any integer type."
-			end
-			create an_error.make (line, column, filename, l_message)
-			report_one_error (an_error)
+			report_one_error (create {SYNTAX_ERROR}.make (line, column, filename,
+				if attached a_type then
+					locale.formatted_string (locale.translation_in_context
+							("Integer value $1 is too small for $2.",
+							"compiler.parser"),
+						an_int,
+						a_type.dump)
+				else
+					locale.formatted_string (locale.translation_in_context
+							("Integer value $1 is too small for any integer type.",
+							"compiler.parser"),
+						an_int)
+				end))
 		end
 
-	report_character_code_too_large_error (a_code: STRING)
+	report_character_code_too_large_error (a_code: READABLE_STRING_8)
 			-- Integer encoded by `a_code' is too large to fit into a CHARACTER_32
 		require
 			a_code_not_void: a_code /= Void
-		local
-			l_message: STRING
-			an_error: BAD_CHARACTER
 		do
-			l_message := "Character code " + a_code + " is too large for CHARACTER_32."
-			create an_error.make (line, column, filename, l_message)
-			report_one_error (an_error)
+			report_one_error (create {BAD_CHARACTER}.make (line, column, filename,
+				locale.formatted_string (locale.translation_in_context
+						("Character code $1 is too large for CHARACTER_32.",
+						"compiler.parser"),
+					a_code)))
 		end
 
-feature {NONE} -- Implementation
+feature {NONE} -- Token processing
 
 	process_id_as
-			-- Process current token which is an identifier
+			-- Process current token which is an identifier.
 		local
 			l_count: INTEGER
 		do
 			l_count := text_count
 				-- Note: Identifiers are converted to lower-case.
 			if l_count > maximum_string_length then
-				report_too_long_string (text)
+				report_too_long_string (utf8_text)
 			else
 				last_detachable_id_as_value := ast_factory.new_filled_id_as (Current)
 			end
@@ -562,24 +562,24 @@ feature {NONE} -- Implementation
 			-- Used for roundtrip.
 		local
 			l_count: INTEGER
-			message: STRING
 		do
 			l_count := text_count
 				-- Note: Identifiers are converted to lower-case.
 			if l_count > maximum_string_length then
-				report_too_long_string (text)
+				report_too_long_string (utf8_text)
 			else
 				last_detachable_id_as_value := ast_factory.new_filled_id_as_with_existing_stub (Current, a_index)
 				if has_syntax_warning then
-					if attached last_detachable_id_as_value as l_value and then attached l_value.name as l_name then
-						message := once "Keyword `" + l_name
-						message.append_string ("' is used as identifier.")
-					else
-						message := once "Keyword is used as identifier."
-					end
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line (keyword), token_column (keyword),
-							filename, message))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line (keyword), token_column (keyword),
+							filename,
+							if attached last_detachable_id_as_value as l_value and then attached l_value.name as l_name then
+								locale.formatted_string (locale.translation_in_context
+									("Keyword `$1` is used as identifier.", "compiler.parser"), l_name)
+							else
+								locale.translation_in_context ("Keyword is used as identifier.", "compiler.parser")
+							end
+						))
 				end
 				if attached last_detachable_id_as_value as l_value then
 					if is_lower then
@@ -588,6 +588,21 @@ feature {NONE} -- Implementation
 						l_value.to_upper
 					end
 				end
+			end
+		end
+
+	process_string_character_as_value (str: READABLE_STRING_8)
+			-- Check whether `str' is a valid character value
+			-- in a string and set `last_token' accordingly.
+		require
+			not_empty: str.count >= 0
+		do
+			if not attached ast_factory.new_temporary_integer_value (Current, '+', str) as i then
+				report_string_bad_special_character_error
+			elseif i.natural_64_value > {NATURAL_32}.Max_value then
+				report_character_code_too_large_error (str)
+			else
+				process_string_character_code (i.natural_32_value)
 			end
 		end
 
@@ -617,7 +632,7 @@ feature {NONE} -- Implementation
 				-- We remove the double quotes and initializes it with scanned input.
 			l_str := ast_factory.new_string (n - 2)
 			if l_str /= Void then
-				append_text_substring_to_string (2, n - 1, l_str)
+				append_utf8_text_substring_to_string (2, n - 1, l_str)
 			end
 
 				-- `roundtrip_token_buffer' is used for the getting the actual input
@@ -636,7 +651,7 @@ feature {NONE} -- Implementation
 					-- not needed by the factory.
 				if l_str = Void then
 					create l_str.make (n - 2)
-					append_text_substring_to_string (2, n - 1, l_str)
+					append_utf8_text_substring_to_string (2, n - 1, l_str)
 				end
 				report_too_long_string (l_str)
 			end
@@ -645,7 +660,7 @@ feature {NONE} -- Implementation
 					-- `last_token' is set to `yyEOF_token' on error (when string is too long)
 		end
 
-feature {NONE} -- Implementation
+feature {NONE} -- Helper
 
 	is_verbatim_string_closer: BOOLEAN
 			-- Is `text' a valid Verbatim_string_closer?
@@ -667,7 +682,7 @@ feature {NONE} -- Implementation
 				end
 			end
 			nb := verbatim_marker.count
-			if nb = (text_count - j) then
+			if nb = text_count - j then
 				Result := True
 				from i := 1 until i > nb loop
 					if verbatim_marker.item (i) = text_item (j) then
@@ -693,7 +708,7 @@ feature {NONE} -- Implementation
 		do
 			from
 				verbatim_common_columns := 0
-				done := s.count = 0
+				done := s.is_empty
 			until
 				done
 			loop
@@ -726,7 +741,7 @@ feature {NONE} -- Implementation
 							s.remove (i)
 							i := s.index_of ('%N', i)
 						end
-						done := s.count = 0
+						done := s.is_empty
 					else
 						done := True
 					end
@@ -751,21 +766,6 @@ feature {NONE} -- Implementation
 			less_memory: Result.capacity <= a_string.capacity
 		end
 
-	cloned_lower_string (a_string: STRING): STRING
-			-- Clone of `a_string'; convert characters to lower case
-			-- (Reduce memory storage if possible.)
-		require
-			a_string_not_void: a_string /= Void
-		do
-			create Result.make (a_string.count)
-			Result.append_string (a_string)
-			Result.to_lower
-		ensure
-			cloned_string_not_void: Result /= Void
-			new_object: Result /= a_string
-			less_memory: Result.capacity <= a_string.capacity
-		end
-
 	char_32_from_source (a_str: STRING): CHARACTER_32
 			-- Convert UTF-8 stream to UTF-32 character.
 		require
@@ -778,7 +778,7 @@ feature {NONE} -- Implementation
 		end
 
 	create_break_as_with_saved_data
-			-- Create break as with saved data
+			-- Create break as with saved data.
 		local
 			u: UTF_CONVERTER
 			l_buf: like roundtrip_token_buffer
@@ -807,12 +807,12 @@ feature {NONE} -- Implementation
 	update_character_locations
 			-- Update character locations for later use.
 		do
-			if yyline_used and attached yy_content_area as l_content_area then
+			if yyline_used and attached yy_unicode_content_area as l_content_area then
 				update_character_position_from_buffer (l_content_area, yy_start, yy_end - 1)
 			end
 		end
 
-	update_character_position_from_buffer (s: SPECIAL [CHARACTER]; start_pos, end_pos: INTEGER)
+	update_character_position_from_buffer (s: SPECIAL [CHARACTER_32]; start_pos, end_pos: INTEGER)
 			-- Count of characters corresponding to UTF-8 sequence `s'.
 			-- Compute column number in character.
 		require
@@ -837,37 +837,14 @@ feature {NONE} -- Implementation
 				i > n
 			loop
 				c := s [i].code
-				if c <= 0x7F then
-						-- 0xxxxxxx
-					i := i + 1
-					cp := cp + 1
+				i := i + 1
+				cp := cp + 1
+				cc :=
 					if c = 0xA then -- New line
-						cc := 1
+						1
 					else
-						cc := cc + 1
+						cc + 1
 					end
-				elseif c <= 0xDF then
-						-- 110xxxxx 10xxxxxx
-					i := i + 2
-					if i <= n then
-						cp := cp + 1
-						cc := cc + 1
-					end
-				elseif c <= 0xEF then
-						-- 1110xxxx 10xxxxxx 10xxxxxx
-					i := i + 3
-					if i <= n then
-						cp := cp + 1
-						cc := cc + 1
-					end
-				elseif c <= 0xF7 then
-						-- 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-					i := i + 4
-					if i <= n then
-						cp := cp + 1
-						cc := cc + 1
-					end
-				end
 			end
 			next_character_column := cc
 			next_character_position := cp
@@ -875,25 +852,26 @@ feature {NONE} -- Implementation
 		end
 
 	last_counted_character_column: INTEGER
-			-- Last counted character column
+			-- Last counted character column.
 
 feature {NONE} -- Constants
 
 	Initial_buffer_size: INTEGER = 5120
-			-- Initial size for `token_buffer'
+			-- Initial size for `token_buffer`.
 			-- (See `eif_rtlimits.h')
 
 	Initial_verbatim_marker_size: INTEGER = 3
-			-- Initial size for `verbatim_marker'
+			-- Initial size for `verbatim_marker`.
 
 invariant
 	ast_factory_not_void: ast_factory /= Void
 	token_buffer_not_void: token_buffer /= Void
 	verbatim_marker_not_void: verbatim_marker /= Void
 	filename_not_void: filename /= Void
+	is_valid_syntax_version (syntax_version)
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

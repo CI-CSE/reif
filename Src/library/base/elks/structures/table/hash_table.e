@@ -11,21 +11,22 @@
 
 class HASH_TABLE [G, K -> detachable HASHABLE] inherit
 
-	UNBOUNDED [detachable G]
+	UNBOUNDED [G]
 		rename
 			has as has_item
 		redefine
-			has_item, copy, is_equal
+			copy, is_equal
 		end
 
-	TABLE [detachable G, K]
+	DYNAMIC_TABLE [G, K]
 		rename
+			at as definite_item,
+			extend as collection_extend,
+			item as definite_item,
 			has as has_item,
-			extend as collection_extend
-		export
-			{NONE} prune_all
+			valid_key as has
 		redefine
-			copy, is_equal, wipe_out, has_item
+			copy, is_equal
 		end
 
 	TABLE_ITERABLE [G, K]
@@ -55,7 +56,11 @@ class HASH_TABLE [G, K -> detachable HASHABLE] inherit
 
 create
 	make,
-	make_equal
+	make_equal,
+	make_from_iterable_tuples
+
+convert
+	make_from_iterable_tuples ({ARRAY [TUPLE [G, K]]})
 
 feature -- Initialization
 
@@ -115,6 +120,26 @@ feature -- Initialization
 			compare_objects: object_comparison
 		end
 
+	make_from_iterable_tuples (other: ITERABLE [TUPLE [G, K]])
+		local
+			t: TUPLE [value: G; key: K]
+		do
+			make
+				(if attached {FINITE [TUPLE [G, K]]} other as f then
+					f.count
+				elseif attached {READABLE_INDEXABLE [TUPLE [G, K]]} other as r then
+					r.upper - r.lower + 1
+				else
+					0
+				end)
+			across
+				other as o
+			loop
+				t := o
+				force (t.value, t.key)
+			end
+		end
+
 	accommodate (n: INTEGER)
 			-- Reallocate table with enough space for `n' items;
 			-- keep all current items.
@@ -159,6 +184,20 @@ feature -- Access
 
 	found_item: detachable G
 			-- Item, if any, yielded by last search operation
+
+	definite_item (key: K): G
+			-- <Precursor>
+		local
+			old_position: like item_position
+			old_control: like control
+		do
+			old_position := item_position
+			old_control := control
+			internal_search (key)
+			Result := content.item (position)
+			control := old_control
+			item_position := old_position
+		end
 
 	item alias "[]", at alias "@" (key: K): detachable G assign force
 			-- Item associated with `key', if present
@@ -224,7 +263,7 @@ feature -- Access
 			end
 		ensure then
 			default_value_if_not_present:
-				(not (has (key))) implies (Result = computed_default_value)
+				(not has (key)) implies (Result = computed_default_value)
 		end
 
 	has (key: K): BOOLEAN
@@ -291,7 +330,8 @@ feature -- Access
 		end
 
 	has_key (key: K): BOOLEAN
-			-- Is there an item in the table with key `key'? Set `found_item' to the found item.
+			-- Is there an item in the table with key `key'?
+			-- Set `found_item' to the found item.
 		local
 			old_position: INTEGER
 			l_default_value: detachable G
@@ -311,10 +351,9 @@ feature -- Access
 			item_if_found: found implies (found_item = item (key))
 		end
 
-	has_item (v: detachable G): BOOLEAN
+	has_item (v: G): BOOLEAN
 			-- Does structure include `v'?
-			-- (Reference or object equality,
-			-- based on `object_comparison'.)
+			-- (Reference or object equality, based on `object_comparison'.)
 		local
 			i, nb: INTEGER
 			l_content: like content
@@ -427,7 +466,7 @@ feature -- Measurement
 	capacity: INTEGER
 			-- Number of items that may be stored.
 
-	occurrences (v: detachable G): INTEGER
+	occurrences (v: G): INTEGER
 			-- Number of table items equal to `v'.
 		local
 			old_iteration_position: INTEGER
@@ -487,12 +526,12 @@ feature -- Comparison
 				until
 					not Result
 				loop
-					other.search (l_c.key)
+					other.search (@ l_c.key)
 					if other.found then
 						if object_comparison then
-							Result := l_c.item ~ other.found_item
+							Result := l_c ~ other.found_item
 						else
-							Result := l_c.item = other.found_item
+							Result := l_c = other.found_item
 						end
 					else
 						Result := False
@@ -504,9 +543,6 @@ feature -- Comparison
 	same_keys (a_search_key, a_key: K): BOOLEAN
 			-- Does `a_search_key' equal to `a_key'?
 			--| Default implementation is using ~.
-		require
-			valid_search_key: valid_key (a_search_key)
-			valid_key: valid_key (a_key)
 		do
 			Result := a_search_key ~ a_key
 		end
@@ -518,7 +554,7 @@ feature -- Comparison
 				-- If any of the tables are empty, it is clearly disjoint,
 				-- otherwise we check that no elements of `other' appears in Current.
 			Result := is_empty or else other.is_empty or else
-				not across other as o some has (o.key) end
+				not across other as o some has (@ o.key) end
 		end
 
 feature -- Status report
@@ -528,12 +564,6 @@ feature -- Status report
 
 	extendible: BOOLEAN = False
 			-- May new items be added?
-
-	prunable: BOOLEAN
-			-- May items be removed?
-		do
-			Result := True
-		end
 
 	conflict: BOOLEAN
 			-- Did last operation cause a conflict?
@@ -591,7 +621,8 @@ feature -- Status report
 		end
 
 	valid_key (k: K): BOOLEAN
-			-- Is `k' a valid key?
+			-- Is `k` a valid key?
+		obsolete "Remove the call to this feature or use `has` instead. [2018-11-30]"
 		do
 			Result := True
 			debug ("prevent_hash_table_catcall")
@@ -729,7 +760,9 @@ feature -- Element change
 			-- there was one, `new' otherwise).
 			--
 			-- To choose between various insert/replace procedures,
-			-- see `instructions' in the Indexing clause.
+			-- see usage instructions at end of class.
+		require else
+			True
 		local
 			l_default_key: detachable K
 			l_new_pos, l_new_index_pos: like position
@@ -791,7 +824,9 @@ feature -- Element change
 			-- `found_item' to the default value.
 			--
 			-- To choose between various insert/replace procedures,
-			-- see `instructions' in the Indexing clause.
+			-- see usage instructions at end of class.
+		require else
+			True
 		local
 			l_default_key: detachable K
 			l_default_value: detachable G
@@ -847,7 +882,7 @@ feature -- Element change
 			-- Set `inserted'.
 			--
 			-- To choose between various insert/replace procedures,
-			-- see `instructions' in the Indexing clause.
+			-- see usage instructions at end of class.
 		require
 			not_present: not has (key)
 		local
@@ -893,7 +928,7 @@ feature -- Element change
 			-- with `key' (default value if there was none).
 			--
 			-- To choose between various insert/replace procedures,
-			-- see `instructions' in the Indexing clause.
+			-- see usage instructions at end of class.
 		local
 			l_default_item: detachable G
 		do
@@ -923,7 +958,7 @@ feature -- Element change
 			-- associated with `new_key'.
 			--
 			-- To choose between various insert/replace procedures,
-			-- see `instructions' in the Indexing clause.
+			-- see usage instructions at end of class.
 		local
 			l_item: G
 		do
@@ -959,16 +994,11 @@ feature -- Element change
 		require
 			other_not_void: other /= Void
 		do
-			from
-				other.start
-			until
-				other.after
-			loop
-				force (other.item_for_iteration, other.key_for_iteration)
-				other.forth
+			if other /= Current then
+				⟳ o: other ¦ force (o, @ o.key) ⟲
 			end
 		ensure
-			inserted: other.current_keys.linear_representation.for_all (agent has)
+			inserted: ∀ o: other ¦ item (@ o.key) = o
 		end
 
 feature -- Removal
@@ -980,6 +1010,8 @@ feature -- Removal
 			-- if so, set `position' to index of removed element.
 			-- If not, set `not_found'.
 			-- Reset `found_item' to its default value if `removed'.
+		require else
+			prunable
 		local
 			l_default_key: detachable K
 			l_default_value: detachable G
@@ -1028,7 +1060,7 @@ feature -- Removal
 				control := removed_constant
 				found_item := l_default_value
 			end
-		ensure
+		ensure then
 			removed_or_not_found: removed or not_found
 			not_present: not has (key)
 			one_less: found implies (count = old count - 1)
@@ -1039,7 +1071,7 @@ feature -- Removal
 					(has_default = old has_default)
 		end
 
-	prune (v: detachable G)
+	prune (v: G)
 			-- Remove first occurrence of `v', if any,
 			-- after cursor position.
 			-- Move cursor to right neighbor.
@@ -1685,7 +1717,7 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Inapplicable
 
-	collection_extend (v: detachable G)
+	collection_extend (v: G)
 			-- Insert a new occurrence of `v'.
 		do
 		end
@@ -1753,7 +1785,7 @@ note
 		]"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

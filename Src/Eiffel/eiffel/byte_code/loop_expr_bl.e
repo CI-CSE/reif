@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Enlarged byte node for a loop expression."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -128,10 +128,11 @@ feature -- C code generation
 	unanalyze
 			-- <Precursor>
 		do
-			if context.workbench_mode or else context.assertion_level.is_loop then
-				if attached variant_code as v then
-					v.unanalyze
-				end
+			if
+				(context.workbench_mode or else context.assertion_level.is_loop) and then
+				attached variant_code as v
+			then
+				v.unanalyze
 			end
 			iteration_exit_condition_code.unanalyze
 			if attached exit_condition_code as e then
@@ -160,11 +161,12 @@ feature -- C code generation
 			l_old_hidden_code_level := l_context.hidden_code_level
 			l_context.set_hidden_code_level (0)
 
-			generate_frozen_debugger_hook
+				-- Allow the debugger to stop after a nested call.
+			generate_frozen_debugger_hook_nested
+				-- Initialize cursor without generating a debugger hook.
 			l_context.enter_hidden_code
 			iteration_code.generate
 			l_context.exit_hidden_code
-
 
 				-- Initialize result of the loop expression.
 			buf.put_new_line
@@ -266,8 +268,12 @@ feature -- C code generation
 			expression_code.print_register
 			buf.put_character (';')
 
-				-- Advance the cursor.
+				-- Allow the debugger to stop after a nested call.
+			generate_frozen_debugger_hook_nested
+				-- Advance cursor without generating a debugger hook.
+			context.enter_hidden_code
 			advance_code.generate
+			context.exit_hidden_code
 
 				-- Generate the "invariant" part.
 			if i /= Void then
@@ -355,7 +361,7 @@ feature {NONE} -- Assertion generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

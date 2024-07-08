@@ -1,10 +1,10 @@
-note
+﻿note
 	description : "Dialog to handle exception handling ..."
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
-	author      : "$Author$"
-	date        : "$Date$"
-	revision    : "$Revision$"
+	author: "$Author$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	ES_EXCEPTION_HANDLER_DIALOG
@@ -172,8 +172,6 @@ feature -- Change
 		require
 			exception_handler_not_void: exception_handler /= Void
 		local
-			exceptions_handling: LIST [TUPLE [INTEGER, STRING]]
-			elt: TUPLE [role: INTEGER; name: STRING]
 			lst: detachable LIST [STRING]
 			eh: DBG_EXCEPTION_HANDLER
 			l_sorter: SORTER [STRING]
@@ -189,42 +187,30 @@ feature -- Change
 				lst.compare_objects
 			end
 
-			from
-				exceptions_handling := eh.enabled_handled_exceptions_by_name
-				exceptions_handling.start
-			until
-				exceptions_handling.after
+			across
+				eh.enabled_handled_exceptions_by_name as e
 			loop
-				elt := exceptions_handling.item
-				if elt /= Void then
+				if attached e.item as elt then
 					lst.prune_all (elt.name)
 					add_row_from_data (elt)
 				end
-				exceptions_handling.forth
 			end
-			from
-				exceptions_handling := eh.disabled_handled_exceptions_by_name
-				exceptions_handling.start
-			until
-				exceptions_handling.after
+			across
+				eh.disabled_handled_exceptions_by_name as e
 			loop
-				elt := exceptions_handling.item
-				if elt /= Void then
-					if not lst.has (elt.name) then
-						lst.force (elt.name)
-					end
+				if
+					attached e.item as elt and then
+					not lst.has (elt.name)
+				then
+					lst.force (elt.name)
 				end
-				exceptions_handling.forth
 			end
-			from
-				create {QUICK_SORTER [STRING]} l_sorter.make (create {COMPARABLE_COMPARATOR [STRING]})
-				l_sorter.sort (lst)
-				lst.start
-			until
-				lst.after
+			create {QUICK_SORTER [STRING]} l_sorter.make (create {COMPARABLE_COMPARATOR [STRING]})
+			l_sorter.sort (lst)
+			across
+				lst as c
 			loop
-				add_row_from_data ([{DBG_EXCEPTION_HANDLER}.Role_disabled , lst.item_for_iteration])
-				lst.forth
+				add_row_from_data ([{DBG_EXCEPTION_HANDLER}.Role_disabled , c.item])
 			end
 
 			if exception_handler.enabled then
@@ -269,26 +255,26 @@ feature -- Change
 
 			cell_combo.activate_actions.extend (agent activate_combo (cell_combo, ?))
 			cell_combo.deactivate_actions.extend (agent refresh_row (row, Void))
-			cell_combo.pointer_double_press_actions.force_extend (agent cell_combo.activate)
+			cell_combo.pointer_double_press_actions.extend (agent (c: EV_GRID_COMBO_ITEM; x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32) do c.activate end (cell_combo, ?, ?, ?, ?, ?, ?, ?, ?))
 			row.set_item (1, cell_combo)
 
 			create cell_lab.make_with_text (pat)
 			row.set_item (2, cell_lab)
 
-			cell_lab.pointer_double_press_actions.force_extend (agent (arow: EV_GRID_ROW)
+			cell_lab.pointer_double_press_actions.extend (agent (arow: EV_GRID_ROW; x, y, button: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32)
 				local
 					r: INTEGER
 				do
 					if arow /= Void and then arow.parent /= Void then
 						r := role_pattern_from_row (arow).role
-						if r /= {DBG_EXCEPTION_HANDLER}.Role_continue then
-							r := {DBG_EXCEPTION_HANDLER}.Role_continue
-						else
+						if r = {DBG_EXCEPTION_HANDLER}.Role_continue then
 							r := {DBG_EXCEPTION_HANDLER}.Role_stop
+						else
+							r := {DBG_EXCEPTION_HANDLER}.Role_continue
 						end
 						set_role_on_row (r, arow)
 					end
-				end(row)
+				end (row, ?, ?, ?, ?, ?, ?, ?, ?)
 			)
 
 			refresh_row (row, elt)
@@ -296,15 +282,14 @@ feature -- Change
 
 	set_role_on_row (r: INTEGER; a_row: EV_GRID_ROW)
 			-- Set role `r' on row `a_row'
-		local
-			lab: EV_GRID_LABEL_ITEM
 		do
-			if a_row /= Void and then a_row.parent /= Void then
-				lab ?= a_row.item (1)
-				if lab /= Void then
-					lab.set_text (Status_id[r])
-					refresh_row (a_row, Void)
-				end
+			if
+				attached a_row and then
+				attached a_row.parent and then
+				attached {EV_GRID_LABEL_ITEM} a_row.item (1) as lab
+			then
+				lab.set_text (Status_id[r])
+				refresh_row (a_row, Void)
 			end
 		end
 
@@ -312,21 +297,20 @@ feature -- Change
 			-- Refresh `a_row'
 		local
 			t: like role_pattern_from_row
-			item: EV_GRID_LABEL_ITEM
 		do
 			if a_row /= Void and then a_row.parent /= Void then
 				t := a_details
 				if t = Void then
 					t := role_pattern_from_row (a_row)
 				end
-				if t /= Void then
-					item ?= a_row.item (1)
-					if item /= Void then
-						if attached Status_pixmaps [t.role] as p then
-							item.set_pixmap (p)
-						else
-							item.remove_pixmap
-						end
+				if
+					attached t and then
+					attached {EV_GRID_LABEL_ITEM} a_row.item (1) as item
+				then
+					if attached Status_pixmaps [t.role] as p then
+						item.set_pixmap (p)
+					else
+						item.remove_pixmap
 					end
 				end
 			end
@@ -335,7 +319,7 @@ feature -- Change
 	activate_combo (ci: EV_GRID_COMBO_ITEM; a_dlg: EV_POPUP_WINDOW)
 			-- Activate combo grid item `ci'
 		local
-			t: STRING
+			t: like {EV_COMBO_BOX}.text
 			cbox: detachable EV_COMBO_BOX
 			found: BOOLEAN
 		do
@@ -348,7 +332,7 @@ feature -- Change
 				until
 					cbox.after or found
 				loop
-					if cbox.item.text.is_equal (t) then
+					if cbox.item.text.same_string (t) then
 						found := True
 						cbox.item.enable_select
 					end
@@ -380,7 +364,7 @@ feature {NONE} -- Implementation
 	row_selected (r: EV_GRID_ROW)
 		do
 			selected_row := r
-			selected_data ?= r.data
+			selected_data := if attached {like selected_data} r.data as s then s else Void end
 			tf_pattern.set_text (selected_data)
 		end
 
@@ -427,29 +411,32 @@ feature {NONE} -- Implementation
 			debugger_manager.set_catcall_detection_mode (not disable_catcall_console_warning_checkbox.is_selected, not disable_catcall_debugger_warning_checkbox.is_selected)
 		end
 
-	role_pattern_from_row (a_row: detachable EV_GRID_ROW): TUPLE [role: INTEGER; pattern: STRING]
+	role_pattern_from_row (a_row: EV_GRID_ROW): TUPLE [role: INTEGER; pattern: STRING]
 			-- Role,Pattern contained by `a_row' if any
 		require
 			a_row_not_void: a_row /= Void
 		local
-			l_st: STRING
+			l_st: like {EV_GRID_LABEL_ITEM}.text
 			l_pat: STRING
-			cell: detachable EV_GRID_LABEL_ITEM
 			r: INTEGER
 		do
-			cell ?= a_row.item (1)
-			l_st := cell.text
-			if l_st.is_equal (status_id[{DBG_EXCEPTION_HANDLER}.role_stop]) then
-				r := {DBG_EXCEPTION_HANDLER}.role_stop
-			elseif l_st.is_equal (status_id[{DBG_EXCEPTION_HANDLER}.role_continue]) then
-				r := {DBG_EXCEPTION_HANDLER}.role_continue
-			elseif l_st.is_equal (status_id[{DBG_EXCEPTION_HANDLER}.role_disabled]) then
-				r := {DBG_EXCEPTION_HANDLER}.role_disabled
+			if attached {EV_GRID_LABEL_ITEM} a_row.item (1) as cell then
+				l_st := cell.text
+				if l_st.same_string_general (status_id [{DBG_EXCEPTION_HANDLER}.role_stop]) then
+					r := {DBG_EXCEPTION_HANDLER}.role_stop
+				elseif l_st.same_string_general (status_id [{DBG_EXCEPTION_HANDLER}.role_continue]) then
+					r := {DBG_EXCEPTION_HANDLER}.role_continue
+				elseif l_st.same_string_general (status_id [{DBG_EXCEPTION_HANDLER}.role_disabled]) then
+					r := {DBG_EXCEPTION_HANDLER}.role_disabled
+				end
 			end
 
-			cell ?= a_row.item (2)
-			if cell /= Void then
-				l_pat := cell.text
+			if
+				attached {EV_GRID_LABEL_ITEM} a_row.item (2) as cell and then
+				attached cell.text as t and then
+				t.is_valid_as_string_8
+			then
+				l_pat := t.to_string_8
 			end
 
 			Result := [r, l_pat]
@@ -462,7 +449,6 @@ feature {NONE} -- events
 		local
 			lst: detachable LIST [STRING]
 			t: like role_pattern_from_row
-			s: STRING
 			r: INTEGER
 		do
 			lst := exception_handler.external_exception_names
@@ -479,14 +465,10 @@ feature {NONE} -- events
 					end
 					r := r + 1
 				end
-				from
-					lst.start
-				until
-					lst.after
+				across
+					lst as c
 				loop
-					s := lst.item_for_iteration
-					add_row_from_data ([{DBG_EXCEPTION_HANDLER}.role_continue, s])
-					lst.forth
+					add_row_from_data ([{DBG_EXCEPTION_HANDLER}.role_continue, c.item])
 				end
 			end
 		end
@@ -495,16 +477,18 @@ feature {NONE} -- events
 		local
 			r: INTEGER
 		do
-			if selected_row /= Void and selected_data /= Void then
-				if selected_data.is_equal (tf_pattern.text) then
-					r := selected_row.index
-					grid.remove_row (r)
-					if grid.row_count > 0 then
-						if r <= grid.row_count then
-							grid.select_row (r)
-						else
-							grid.select_row (grid.row_count)
-						end
+			if
+				selected_row /= Void and
+				selected_data /= Void and then
+				selected_data.same_string_general (tf_pattern.text)
+			then
+				r := selected_row.index
+				grid.remove_row (r)
+				if grid.row_count > 0 then
+					if r <= grid.row_count then
+						grid.select_row (r)
+					else
+						grid.select_row (grid.row_count)
 					end
 				end
 			end
@@ -604,7 +588,7 @@ feature -- Access
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

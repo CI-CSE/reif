@@ -53,11 +53,11 @@ feature -- Visit nodes
 				if attached a_target.precompile as l_pre then
 					l_pre.process (Current)
 				end
-				across a_target.libraries as i loop i.item.process (Current) end
-				across a_target.assemblies as i loop i.item.process (Current) end
-				across a_target.clusters as i loop i.item.process (Current) end
+				across a_target.libraries as i loop i.process (Current) end
+				across a_target.assemblies as i loop i.process (Current) end
+				across a_target.clusters as i loop i.process (Current) end
 					-- Overrides must be processed at the end.
-				across a_target.overrides as i loop i.item.process (Current) end
+				across a_target.overrides as i loop i.process (Current) end
 			end
 		rescue
 			if
@@ -108,8 +108,13 @@ feature -- Visit nodes
 		do
 		end
 
+	process_namespace (n: CONF_NAMESPACE)
+			-- <Precursor>
+		do
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -2,7 +2,7 @@
 	description: "Byte code reader."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2013, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2020, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -42,6 +42,7 @@
 #include "eif_size.h"
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 /*------------------------------------------------------------------*/
 
@@ -255,9 +256,13 @@ static  char    *builtin_op_names [] = {
 "BC_BUILTIN_TYPE__HAS_DEFAULT" ,
 "BC_BUILTIN_TYPE__DEFAULT" ,
 "BC_BUILTIN_TYPE__TYPE_ID" ,
-"BC_BUILTIN_TYPE__RUNTIME_NAME" ,
+"BC_BUILTIN_TYPE__RUNTIME_NAME__S1" ,
 "BC_BUILTIN_TYPE__GENERIC_PARAMETER_TYPE" ,
 "BC_BUILTIN_TYPE__GENERIC_PARAMETER_COUNT",
+"BC_BUILTIN_TYPE__IS_ATTACHED",
+"BC_BUILTIN_TYPE__IS_DEFERRED",
+"BC_BUILTIN_TYPE__IS_EXPANDED",
+"BC_BUILTIN_TYPE__RUNTIME_NAME__S4" ,
 };
 
 
@@ -265,7 +270,7 @@ static  char    *basic_op_names [] = {
 "",
 "BC_MAX" ,
 "BC_MIN" ,
-"BC_GENERATOR" ,
+"BC_GENERATOR__S1" ,
 "BC_OFFSET" ,
 "BC_ZERO" ,
 "BC_ONE",
@@ -276,6 +281,7 @@ static  char    *basic_op_names [] = {
 "BC_NAN",
 "BC_NEGATIVE_INFINITY",
 "BC_POSITIVE_INFINITY",
+"BC_GENERATOR__S4" ,
 };
 
 static  char    *bit_op_names [] = {
@@ -870,11 +876,18 @@ static  void    print_instructions (void)
 /* Calls */
 			case  BC_SEPARATE :
 				/* Separate feature call prefix */
-				fprintf (ofp, "%d args ", get_uint16(&ip));
-				if (get_bool(&ip))
-					fprintf (ofp, "(query/active)");
-				else
-					fprintf (ofp, "(command/passive)");
+				fprintf (ofp, "%d args", get_uint16(&ip));
+				{
+					EIF_NATURAL_8 scoop_call_flags = get_uint8 (&ip);
+					if (scoop_call_flags & SCOOP_CALL_MASK_QUERY)
+						fprintf (ofp, " query");
+					else
+						fprintf (ofp, " command");
+					if (scoop_call_flags & SCOOP_CALL_MASK_ACTIVE_CREATION)
+						fprintf (ofp, " active");
+					else
+						fprintf (ofp, " passive");
+				}
 				break;
 			case  BC_EXTERN_INV :
 				/* External with invariant check */
@@ -1332,7 +1345,7 @@ static  void    print_cid (void)
 	fprintf (ofp, "{");
 
 	while ((t=get_int16(&ip)) != -1)
-		fprintf (ofp, "%d, ", (int) t);
+		fprintf (ofp, "%d (%04" PRIX16 "), ", (int) t, (int) t);
 
 	fprintf (ofp, "-1}");
 }

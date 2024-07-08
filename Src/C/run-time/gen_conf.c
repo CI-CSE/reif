@@ -2,7 +2,7 @@
 	description: "Generic conformance routines."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2015, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2019, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -56,6 +56,7 @@ doc:<file name="gen_conf.c" header="eif_gen_conf.h" version="$Id$" summary="Gene
 #include "rt_interp.h"
 #endif
 #include "rt_globals_access.h"
+#include "rt_string.h"
 
 /*------------------------------------------------------------------*/
 /* Debugging flag. If set, the names of the generated types will be */
@@ -2008,7 +2009,7 @@ rt_private char *rt_none_name_type = "NONE";
 
 /*
 doc:	<routine name="eif_typename_of_type" return_type="EIF_REFERENCE" export="public">
-doc:		<summary>Given a type ID with annotations, returns the Eiffel string representation of that type.</summary>
+doc:		<summary>Given a type ID with annotations, returns the Eiffel 8-bit string representation of that type.</summary>
 doc:		<param name="ftype" type="EIF_TYPE">Dynamic type.</param>
 doc:		<return>Returns type name of `dftype'.</return>
 doc:		<thread_safety>Not Safe</thread_safety>
@@ -2018,12 +2019,29 @@ doc:	</routine>
 rt_public EIF_REFERENCE eif_typename_of_type (EIF_TYPE ftype)
 {
 	char    *name;
-	EIF_REFERENCE ret;	/* Return value. */
 
 	name = eif_typename (ftype);
+	return makestr(name, strlen(name));
+}
 
-	ret = makestr(name, strlen(name));
-	return ret;
+/*
+doc:	<routine name="eif_typename_of_type" return_type="EIF_REFERENCE" export="public">
+doc:		<summary>Given a type ID with annotations, returns the Eiffel 32-bit string representation of that type.</summary>
+doc:		<param name="ftype" type="EIF_TYPE">Dynamic type.</param>
+doc:		<return>Returns type name of `dftype'.</return>
+doc:		<thread_safety>Not Safe</thread_safety>
+doc:		<synchronization>None</synchronization>
+doc:	</routine>
+*/
+rt_public EIF_REFERENCE eif_typename_of_type_32 (EIF_TYPE ftype)
+{
+	EIF_REFERENCE result;
+
+	result = string_32_from_char_8 (eif_typename (ftype));
+	if (result == (EIF_REFERENCE) 0) {
+		enomem(MTC_NOARG);
+	}
+	return result;
 }
 
 rt_public char *rt_typename_id (EIF_TYPE_INDEX dftype)
@@ -2432,7 +2450,11 @@ rt_public EIF_BOOLEAN eif_is_attached_type2 (EIF_TYPE ftype)
 {
 		/* A type is attached if it is marked attached or if it is expanded. */
 	return EIF_TEST(RT_CONF_IS_ATTACHED_FLAG(ftype.annotations) ||
-		EIF_IS_EXPANDED_TYPE(System(eif_cid_map[ftype.id])));
+		( 
+			!RT_CONF_IS_NONE_TYPE(ftype.id) &&
+			EIF_IS_EXPANDED_TYPE(System(eif_cid_map[ftype.id]))
+		)
+	);
 }
 
 /*------------------------------------------------------------------*/
@@ -2502,11 +2524,11 @@ rt_public EIF_TYPE eif_non_attached_type2 (EIF_TYPE ftype)
 
 rt_public EIF_TYPE eif_attached_type2 (EIF_TYPE ftype)
 {
-	if (EIF_IS_EXPANDED_TYPE(System(eif_cid_map[ftype.id]))) {
-		CHECK("No marks", !RT_CONF_HAS_ATTACHMENT_MARK_FLAG(ftype.annotations));
-	} else {
+	if (RT_CONF_IS_NONE_TYPE (ftype.id) || !EIF_IS_EXPANDED_TYPE(System(eif_cid_map[ftype.id]))) {
 		ftype.annotations &= ~DETACHABLE_FLAG;
 		ftype.annotations |= ATTACHED_FLAG;
+	} else {
+		CHECK("No marks", !RT_CONF_HAS_ATTACHMENT_MARK_FLAG(ftype.annotations));
 	}
 	return ftype;
 }

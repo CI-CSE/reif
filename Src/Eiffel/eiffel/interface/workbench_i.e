@@ -98,6 +98,47 @@ feature -- Attributes
 			end
 		end
 
+feature -- Status report: compilation
+
+	compilation_status_without_complaint: like compilation_status = 0
+			-- The status of a compilation finished without an issue.
+
+	compilation_status_with_warning: like compilation_status = 1
+			-- The status of a compilation finished without an error but with one or more warning.
+
+	compilation_status_with_error: like compilation_status = 2
+			-- The status of a compilation finished with one or more errors.
+
+	is_compilation_status (v: like compilation_status): BOOLEAN
+			-- Does `v` represent a valid compilation status value.
+			-- See `compilation_status`.
+		do
+			Result :=
+				(<<compilation_status_without_complaint,
+				compilation_status_with_warning,
+				compilation_status_with_error>>).has (v)
+		ensure
+			class
+			definition: Result =
+				(<<compilation_status_without_complaint,
+				compilation_status_with_warning,
+				compilation_status_with_error>>).has (v)
+		end
+
+	compilation_status: NATURAL_8
+			-- Status of last compilation.
+		do
+			if not successful then
+				Result := compilation_status_with_error
+			elseif attached system as s and then s.has_warning then
+				Result := compilation_status_with_warning
+			else
+				Result := compilation_status_without_complaint
+			end
+		ensure
+			is_compilation_status (Result)
+		end
+
 feature -- Update
 
 	set_lace (a_lace: like lace)
@@ -282,14 +323,11 @@ feature -- Commands
 			an_actions_not_void: an_actions /= Void
 		local
 			l_action: CONF_ACTION
-			vd84: VD84
 			vd85: VD85
 			l_prc_factory:  BASE_PROCESS_FACTORY
 			l_prc_launcher: BASE_PROCESS
 			l_success: BOOLEAN
 			l_wd: detachable IMMUTABLE_STRING_32
-			l_cmd: STRING_32
-			l_args: ARRAYED_LIST [STRING_8]
 			l_state: CONF_STATE
 		do
 			create l_prc_factory
@@ -306,16 +344,19 @@ feature -- Commands
 					else
 						l_wd := Void
 					end
-					if {PLATFORM}.is_windows then
-						l_cmd := l_action.command
-						l_prc_launcher := l_prc_factory.process_launcher_with_command_line (l_cmd, l_wd)
-					else
-						l_cmd := {STRING_32} "/bin/sh"
-						create l_args.make (2)
-						l_args.extend ("-c")
-						l_args.extend ("%'%'" + l_action.command + "%'%'")
-						l_prc_launcher := l_prc_factory.process_launcher (l_cmd, l_args, l_wd)
-					end
+					l_prc_launcher :=
+						if {PLATFORM}.is_windows then
+							if attached execution_environment.item ("COMSPEC") as l_comspec then
+								l_prc_factory.process_launcher_with_command_line (l_comspec + {STRING_32} " /C " + l_action.command, l_wd)
+							else
+								l_prc_factory.process_launcher_with_command_line (l_action.command, l_wd)
+							end
+						else
+							l_prc_factory.process_launcher
+								("/bin/sh",
+								<<{STRING_32} "-c", {STRING_32} "%'%'" + l_action.command + "%'%'">>,
+								l_wd)
+						end
 					l_prc_launcher.set_separate_console (is_gui)
 
 					l_prc_launcher.launch
@@ -326,12 +367,11 @@ feature -- Commands
 					if not l_success then
 						if l_action.must_succeed then
 							not_actions_successful := True
-							create vd84.make (l_action.command)
-							error_handler.insert_error (vd84)
+							error_handler.insert_error (create {VD84}.make (l_action.command))
 							error_handler.checksum
 						else
 							create vd85.make (l_action.command)
-							error_handler.insert_warning (vd85)
+							error_handler.insert_warning (vd85, lace.target.options.is_warning_as_error)
 						end
 					end
 				end
@@ -339,7 +379,7 @@ feature -- Commands
 			end
 		end
 
-	recompile (a_syntax_analysis, a_system_check, a_generate_code: BOOLEAN)
+	recompile (is_for_finalization, a_syntax_analysis, a_system_check, a_generate_code: BOOLEAN)
 			-- Incremental recompilation
 		local
 			retried: INTEGER
@@ -391,7 +431,7 @@ feature -- Commands
 					if Lace.has_group_changed or missing_class_error or compilation_modes.is_discover then
 						system.set_rebuild (True)
 					end
-					System.recompile (a_syntax_analysis, a_system_check, a_generate_code)
+					System.recompile (is_for_finalization, a_syntax_analysis, a_system_check, a_generate_code)
 
 					process_actions (universe.conf_system.all_post_compile_action)
 				else
@@ -406,7 +446,7 @@ feature -- Commands
 					system.set_rebuild (False)
 					system.reset_has_compilation_started
 					compilation_counter := compilation_counter + 1
-					if (System.has_been_changed or else System.freezing_occurred) then
+					if System.has_been_changed or else System.freezing_occurred then
 						save_project (Compilation_modes.is_precompiling)
 					end
 				end
@@ -693,7 +733,7 @@ feature {E_PROJECT} -- Status update
 		do
 			is_compiling := False
 			if eiffel_project.manager.is_created then
-				Eiffel_project.Manager.on_project_recompiled (successful)
+				Eiffel_project.Manager.on_project_recompiled (compilation_status)
 			end
 		end
 
@@ -711,7 +751,7 @@ feature {NONE} -- Implementation
 			-- Was there a problem during running the pre and post compile actions?
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

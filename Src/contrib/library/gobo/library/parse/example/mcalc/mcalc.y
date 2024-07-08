@@ -5,7 +5,7 @@ note
 
 		"Calculator with memory"
 
-	copyright: "Copyright (c) 1999-2006, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -18,8 +18,6 @@ inherit
 		rename
 			make as make_parser_skeleton
 		end
-
-	KL_IMPORTED_STRING_ROUTINES
 
 create
 
@@ -45,7 +43,7 @@ input: -- Empty
 	;
 
 line: '\n'
-	| exp '\n'		{ print ($1.out); print ("%N") }
+	| exp '\n'		{ print ($1); print ("%N") }
 	| error '\n'	{ recover }
 	;
 
@@ -68,6 +66,7 @@ feature {NONE} -- Initialization
 			-- Create a new calculator with memory.
 		do
 			make_parser_skeleton
+			last_string_value := ""
 			create memory_values.make (10)
 		end
 
@@ -108,7 +107,7 @@ feature {NONE} -- Scanner
 	read_token
 			-- Lexical analyzer returns a double floating point
 			-- number on the stack and the token NUM, a STRING and
-			-- and the token VAR, a token ASSIGNMENT, or the ASCII
+			-- and the token VAR, a token ASSIGNMENT, or the
 			-- character read if not a number. Skips all blanks
 			-- and tabs, returns 0 for EOF.
 		local

@@ -1,5 +1,5 @@
 
---| Copyright (c) 1993-2006 University of Southern California and contributors.
+--| Copyright (c) 1993-2021 University of Southern California, Eiffel Software and contributors.
 --| All rights reserved.
 --| Your use of this work is governed under the terms of the GNU General
 --| Public License version 2.
@@ -7,21 +7,21 @@
 class TEST1
 feature
 
-	prefix "not": INTEGER is
+	p0 alias "not": INTEGER is
 		do
 		end
 		
-	prefix "###", prefix "+": INTEGER;
+	p1 alias "###", p2 alias "+": INTEGER;
 		
-	infix "###" (b: BOOLEAN): INTEGER is
+	i1 alias "###" (b: BOOLEAN): INTEGER is
 		once
 		end
 		
-	infix "+" (b: BOOLEAN): INTEGER is
+	i2 alias "+" (b: BOOLEAN): INTEGER is
 		once
 		end
 		
-	infix "@free_operator" (b: like Current): like Current is
+	i3 alias "#free_operator" (b: like Current): like Current is
 		external
 			"C"
 		alias

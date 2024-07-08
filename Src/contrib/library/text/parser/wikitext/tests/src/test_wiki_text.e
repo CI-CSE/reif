@@ -112,33 +112,33 @@ end
 
 </p>
 
-<a name="One"></a><h1>One</h1>
+<a id="One"></a><h1>One</h1>
 
-<a name="one.1"></a><h2>one.1</h2>
+<a id="one.1"></a><h2>one.1</h2>
 
-<a name="one.2"></a><h2>one.2</h2>
+<a id="one.2"></a><h2>one.2</h2>
 
-<a name="one.3"></a><h2>one.3</h2>
+<a id="one.3"></a><h2>one.3</h2>
 
-<a name="Two"></a><h1>Two</h1>
+<a id="Two"></a><h1>Two</h1>
 
-<a name="two.1"></a><h2>two.1</h2>
+<a id="two.1"></a><h2>two.1</h2>
 
-<a name="two.2"></a><h2>two.2</h2>
+<a id="two.2"></a><h2>two.2</h2>
 
-<a name="Three"></a><h1>Three</h1>
+<a id="Three"></a><h1>Three</h1>
 
-<a name="three.1"></a><h2>three.1</h2>
+<a id="three.1"></a><h2>three.1</h2>
 
-<a name="three.2"></a><h2>three.2</h2>
+<a id="three.2"></a><h2>three.2</h2>
 
-<a name="three.3"></a><h2>three.3</h2>
+<a id="three.3"></a><h2>three.3</h2>
 
-<a name="And_the_last_one"></a><h1>And the last one</h1>
+<a id="And_the_last_one"></a><h1>And the last one</h1>
 
-<a name="with_spaces_in_text"></a><h2>with spaces in text</h2>
+<a id="with_spaces_in_text"></a><h2>with spaces in text</h2>
 
-<a name="summer:%C3%A9t%C3%A9"></a><h2>summer:été</h2>
+<a id="summer:%C3%A9t%C3%A9"></a><h2>summer:été</h2>
 <p>end
 </p>
 </div>
@@ -180,7 +180,8 @@ end
 			l_expected_output := "{
 <div class="wikipage"><p>begin
 
-<ol class="wiki-toc"><a name="toc"></a><span class="title">Contents</span>
+<div class="wiki-toc">
+<ol><a id="toc"></a><span class="title">Contents</span>
 <li><a href="#One">One</a><ol>
 	<li><a href="#one.1">one.1</a></li>
 	<li><a href="#one.2">one.2</a></li>
@@ -199,30 +200,31 @@ end
 	</ol>
 </li>
 </ol>
+</div>
 
 </p>
 
-<a name="One"></a><h1>One</h1>
+<a id="One"></a><h1>One</h1>
 
-<a name="one.1"></a><h2>one.1</h2>
+<a id="one.1"></a><h2>one.1</h2>
 
-<a name="one.2"></a><h2>one.2</h2>
+<a id="one.2"></a><h2>one.2</h2>
 
-<a name="one.3"></a><h2>one.3</h2>
+<a id="one.3"></a><h2>one.3</h2>
 
-<a name="Two"></a><h1>Two</h1>
+<a id="Two"></a><h1>Two</h1>
 
-<a name="two.1"></a><h2>two.1</h2>
+<a id="two.1"></a><h2>two.1</h2>
 
-<a name="two.2"></a><h2>two.2</h2>
+<a id="two.2"></a><h2>two.2</h2>
 
-<a name="Three"></a><h1>Three</h1>
+<a id="Three"></a><h1>Three</h1>
 
-<a name="three.1"></a><h2>three.1</h2>
+<a id="three.1"></a><h2>three.1</h2>
 
-<a name="three.2"></a><h2>three.2</h2>
+<a id="three.2"></a><h2>three.2</h2>
 
-<a name="three.3"></a><h2>three.3</h2>
+<a id="three.3"></a><h2>three.3</h2>
 <p>end
 </p>
 </div>
@@ -268,7 +270,8 @@ end
 			l_expected_output := "{
 <div class="wikipage"><p>begin
 
-<ol class="wiki-toc"><a name="toc"></a><span class="title">Contents</span>
+<div class="wiki-toc">
+<ol><a id="toc"></a><span class="title">Contents</span>
 <li><a href="#One">One</a><ol>
 	<li><a href="#one.1">one.1</a></li>
 	<li><a href="#one.2">one.2</a></li>
@@ -287,38 +290,39 @@ end
 	</ol>
 </li>
 </ol>
+</div>
 
 </p>
 
-<a name="One"></a><h1>One</h1>
+<a id="One"></a><h1>One</h1>
 
-<a name="one.1"></a><h2>one.1</h2>
+<a id="one.1"></a><h2>one.1</h2>
 
-<a name="one.1.1"></a><h3>one.1.1</h3>
+<a id="one.1.1"></a><h3>one.1.1</h3>
 
-<a name="one.1.2"></a><h3>one.1.2</h3>
+<a id="one.1.2"></a><h3>one.1.2</h3>
 
-<a name="one.2"></a><h2>one.2</h2>
+<a id="one.2"></a><h2>one.2</h2>
 
-<a name="one.3"></a><h2>one.3</h2>
+<a id="one.3"></a><h2>one.3</h2>
 
-<a name="Two"></a><h1>Two</h1>
+<a id="Two"></a><h1>Two</h1>
 
-<a name="two.1"></a><h2>two.1</h2>
+<a id="two.1"></a><h2>two.1</h2>
 
-<a name="two.2"></a><h2>two.2</h2>
+<a id="two.2"></a><h2>two.2</h2>
 
-<a name="Three"></a><h1>Three</h1>
+<a id="Three"></a><h1>Three</h1>
 
-<a name="three.1"></a><h2>three.1</h2>
+<a id="three.1"></a><h2>three.1</h2>
 
-<a name="three.2"></a><h2>three.2</h2>
+<a id="three.2"></a><h2>three.2</h2>
 
-<a name="three.2.1"></a><h3>three.2.1</h3>
+<a id="three.2.1"></a><h3>three.2.1</h3>
 
-<a name="three.2.2"></a><h3>three.2.2</h3>
+<a id="three.2.2"></a><h3>three.2.2</h3>
 
-<a name="three.3"></a><h2>three.3</h2>
+<a id="three.3"></a><h2>three.3</h2>
 <p>end
 </p>
 </div>
@@ -350,12 +354,12 @@ end
 		local
 			t: WIKI_CONTENT_TEXT
 			o: STRING
-			l_expected_output: STRING
+			e: STRING
 		do
 			create t.make_from_string ("=test=%N<div>toto</div>%Nend")
-			l_expected_output := "[
+			e := "[
 
-<a name="test"></a><h1>test</h1>
+<a id="test"></a><h1>test</h1>
 <p><div>toto</div>
 end
 </p>
@@ -365,7 +369,7 @@ end
 			create o.make_empty
 
 			t.structure.process (new_xhtml_generator (o))
-			assert ("o", same_output (o, l_expected_output))
+			assert ("o", same_output (o, e))
 		end
 
 	test_paragraph
@@ -431,7 +435,7 @@ end.
 ]")
 			l_expected_output := "[
 			
-<a name="Test"></a><h2>Test</h2>
+<a id="Test"></a><h2>Test</h2>
 <p>This is a first line.
 Then the second line.
 </p>
@@ -463,7 +467,7 @@ end.
 
 			l_expected_output := "[
 
-<a name="test"></a><h2>test</h2>
+<a id="test"></a><h2>test</h2>
 <p>Template#seealso
 1= <a href="Breakpoint commands" class="wiki_link wiki_notfound">Breakpoint commands</a>, <a href="Breakpoint information command" class="wiki_link wiki_notfound">Breakpoint information command</a>  
 2={{{2}}} 
@@ -471,7 +475,7 @@ end.
 
 </p>
 
-<a name="end"></a><h2>end</h2>
+<a id="end"></a><h2>end</h2>
 
 ]"
 
@@ -496,7 +500,7 @@ end.
 
 			l_expected_output := "[
 
-<a name="test"></a><h2>test</h2>
+<a id="test"></a><h2>test</h2>
 <p>Template#seealso
 1= <a href="Breakpoint commands" class="wiki_link wiki_notfound">Breakpoint commands</a>  
 2= <a href="Breakpoint information command" class="wiki_link wiki_notfound">Breakpoint information command</a>  
@@ -504,7 +508,7 @@ end.
 
 </p>
 
-<a name="end"></a><h2>end</h2>
+<a id="end"></a><h2>end</h2>
 
 ]"
 
@@ -528,14 +532,14 @@ end.
 
 			l_expected_output := "[
 
-<a name="test"></a><h2>test</h2>
+<a id="test"></a><h2>test</h2>
 <p>Template#Rule
 name=foo
 text=bar
 
 </p>
 
-<a name="end"></a><h2>end</h2>
+<a id="end"></a><h2>end</h2>
 
 ]"
 
@@ -560,11 +564,11 @@ text=bar
 
 			l_expected_output := "[
 
-<a name="test"></a><h2>test</h2>
+<a id="test"></a><h2>test</h2>
 <p><div class="wiki-template unknown" class="inline"><strong>unknown</strong>:  <a href="Breakpoint commands" class="wiki_link wiki_notfound">Breakpoint commands</a>, <a href="Breakpoint information command" class="wiki_link wiki_notfound">Breakpoint information command</a> </div>
 </p>
 
-<a name="end"></a><h2>end</h2>
+<a id="end"></a><h2>end</h2>
 
 ]"
 
@@ -589,7 +593,7 @@ text=bar
 
 			l_expected_output := "[
 
-<a name="test"></a><h2>test</h2>
+<a id="test"></a><h2>test</h2>
 <p>Template#SeeAlso
 1= <a href="Breakpoint commands" class="wiki_link wiki_notfound">Breakpoint commands</a>, <a href="Breakpoint information command" class="wiki_link wiki_notfound">Breakpoint information command</a>  
 2={{{2}}} 
@@ -597,7 +601,7 @@ text=bar
 
 </p>
 
-<a name="end"></a><h2>end</h2>
+<a id="end"></a><h2>end</h2>
 
 ]"
 
@@ -712,6 +716,109 @@ text=bar
 
 			t.structure.process (new_xhtml_generator (o))
 			assert ("o", not o.is_empty)
+		end
+
+	test_table_with_wiki_code_and_bang
+		local
+			t: WIKI_CONTENT_TEXT
+			o,e: STRING
+		do
+			create t.make_from_string ("[
+{| 
+|- 
+| Test 
+| 
+<code>
+bang-bang !! double exclamation marks
+</code>..
+|}
+			]")
+			e := "[
+<p><table><tr><td> Test </td><td> 
+<code>bang-bang !! double exclamation marks</code><br/>
+..</td></tr>
+</table>
+</p>
+
+			]"--
+
+			create o.make_empty
+
+			t.structure.process (new_xhtml_generator (o))
+			assert ("o", not o.is_empty)
+			assert ("expected", o.same_string (e))
+
+			create t.make_from_string ("[
+{| 
+|- 
+| Test 
+| 
+<code>
+bang-bang <em>!!</em> double exclamation marks
+</code>..
+|}
+			]")
+			e := "[
+<p><table><tr><td> Test </td><td> 
+<code>bang-bang &lt;em&gt;!!&lt;/em&gt; double exclamation marks</code><br/>
+..</td></tr>
+</table>
+</p>
+
+			]"--
+
+			create o.make_empty
+
+			t.structure.process (new_xhtml_generator (o))
+			assert ("o", not o.is_empty)
+			assert ("expected", o.same_string (e))
+
+			create t.make_from_string ("[
+{|
+|-
+| Test
+|
+```
+bang-bang !! double exclamation marks
+```..
+|}
+			]")
+			e := "[
+<p><table><tr><td> Test</td><td>
+<code>bang-bang !! double exclamation marks</code><br/>
+..</td></tr>
+</table>
+</p>
+
+			]"--
+
+			create o.make_empty
+
+			t.structure.process (new_xhtml_generator (o))
+			assert ("o", not o.is_empty)
+			assert ("expected", o.same_string (e))
+
+			create t.make_from_string ("[
+{|
+|-
+| Test
+|
+`bang-bang !! double exclamation marks`..
+|}
+			]")
+			e := "[
+<p><table><tr><td> Test</td><td>
+<code class="inline">bang-bang !! double exclamation marks</code>..</td></tr>
+</table>
+</p>
+
+			]"--
+
+			create o.make_empty
+
+			t.structure.process (new_xhtml_generator (o))
+			assert ("o", not o.is_empty)
+			assert ("expected", o.same_string (e))
 		end
 
 	test_preformatted_text
@@ -1445,6 +1552,23 @@ e := "{
 			t.structure.process (gen)
 			assert ("o", not o.is_empty)
 			assert ("as e", o.same_string (e))
+
+			create t.make_from_string ("[
+Test [/path-to-page a page].
+			]")
+
+e := "{
+<p>Test <a href="/path-to-page" class="wiki_ext_link">a page</a>.
+</p>
+
+}"
+
+			create o.make_empty
+
+			gen := new_xhtml_generator (o)
+			t.structure.process (gen)
+			assert ("o", not o.is_empty)
+			assert ("as e", o.same_string (e))
 		end
 
 	test_bracket_text_without_url
@@ -1504,6 +1628,80 @@ test [[#anchor|anchor link]]
 e := "{
 <p>test <a href="#anchor" class="wiki_link">anchor link</a>
 </p>
+
+}"
+
+			create o.make_empty
+
+			gen := new_xhtml_generator (o)
+			t.structure.process (gen)
+			assert ("o", not o.is_empty)
+			assert ("as e", o.same_string (e))
+		end
+
+	test_anchor_external_link
+		local
+			t: WIKI_CONTENT_TEXT
+			o: STRING
+			e: STRING
+			gen: like new_xhtml_generator
+		do
+			create t.make_from_string ("[
+test [#Section_name Anchor to #Section_name]
+			]")
+
+e := "{
+<p>test <a href="#Section_name" class="wiki_ext_link">Anchor to #Section_name</a>
+</p>
+
+}"
+
+			create o.make_empty
+
+			gen := new_xhtml_generator (o)
+			t.structure.process (gen)
+			assert ("o", not o.is_empty)
+			assert ("as e", o.same_string (e))
+		end
+
+	test_anchor_section_link
+		local
+			t: WIKI_CONTENT_TEXT
+			o: STRING
+			e: STRING
+			gen: like new_xhtml_generator
+		do
+			create t.make_from_string ("[
+* test [[#anchor|anchor link]]
+* test [[#Another_anchor|Another anchor link]]
+* test [[#another_anchor|Another anchor link]]
+* test [[#Summer-été|Summer-été]]
+
+== anchor ==
+first test
+
+== Another anchor ==
+another
+
+== Summer-été ==
+Summer
+			]")
+
+e := "{
+<ul><li> test <a href="#anchor" class="wiki_link">anchor link</a></li>
+<li> test <a href="#Another_anchor" class="wiki_link">Another anchor link</a></li>
+<li> test <a href="#another_anchor" class="wiki_link">Another anchor link</a></li>
+<li> test <a href="#Summer-%C3%A9t%C3%A9" class="wiki_link">Summer-été</a></li>
+</ul>
+
+<a id="anchor"></a><h2>anchor</h2>
+<p>first test</p>
+
+<a id="Another_anchor"></a><h2>Another anchor</h2>
+<p>another</p>
+
+<a id="Summer-%C3%A9t%C3%A9"></a><h2>Summer-été</h2>
+<p>Summer</p>
 
 }"
 

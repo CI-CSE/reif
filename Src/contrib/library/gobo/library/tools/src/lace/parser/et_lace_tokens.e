@@ -1,7 +1,7 @@
 note
 
 	description: "Parser token codes"
-	generator: "geyacc version 4.0"
+	generator: "geyacc"
 
 deferred class ET_LACE_TOKENS
 

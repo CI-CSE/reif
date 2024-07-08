@@ -20,6 +20,15 @@ inherit
 			{NONE} all
 		end
 
+inherit {NONE}
+
+	OPERATOR_KIND
+		export
+			{NONE} all
+			{INTERNAL_COMPILER_STRING_EXPORTER}
+				is_alias_id
+		end
+
 feature {NONE} -- Initialization
 
 	initialize (l: like left; r: like right; o: like operator)
@@ -48,6 +57,40 @@ feature -- Attributes
 
 	right: EXPR_AS
 			-- Right opernad
+
+feature -- Status report
+
+	is_binary: BOOLEAN
+			-- Does the node represent a binary expression?
+			-- (And not, for example, an equality test.)
+		do
+			Result := True
+		end
+
+feature -- Access
+
+	operator_name_32: STRING_32
+		do
+			Result := op_name.name_32
+		end
+
+	op_name: ID_AS
+			-- Symbol representing the operator (without the infix).
+		deferred
+		end
+
+	operator_id: like alias_id
+			-- The alias ID of the associated unary operator.
+		require
+			is_binary
+		deferred
+		ensure
+			is_alias_id (Result)
+			is_fixed_alias_id (Result)
+			is_valid_binary_alias_id (Result)
+			is_binary_alias_id (Result)
+			name_id_of_alias_id (Result) = op_name.name_id
+		end
 
 feature -- Roundtrip
 
@@ -131,26 +174,9 @@ feature -- Roundtrip/Token
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 
-	infix_function_name: detachable STRING
-			-- Internal name of the infix feature associated to the
-			-- binary expression
-		deferred
-		end
-
-feature -- Properties
-
-	infix_function_name_32: detachable STRING_32
-			-- Internal name of the infix feature associated to the
-			-- binary expression
+	operator_name: STRING
 		do
-			if attached infix_function_name as l_name then
-				Result := encoding_converter.utf8_to_utf32 (l_name)
-			end
-		end
-
-	op_name: ID_AS
-			-- Symbol representing the operator (without the infix).
-		deferred
+			Result := op_name.name
 		end
 
 feature -- Comparison
@@ -189,7 +215,7 @@ invariant
 	right_not_void: right /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -220,5 +246,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class BINARY_AS
-
+end

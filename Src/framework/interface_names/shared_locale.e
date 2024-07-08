@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Locale used by interface name translation."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -25,7 +25,8 @@ feature -- Access
         do
 			Result := locale_internal.item
 		ensure
-			locale_not_void: Result /= Void
+			class
+			attached Result
 		end
 
 	locale_manager: I18N_LOCALE_MANAGER
@@ -36,11 +37,13 @@ feature -- Access
 			else
 				create Result.make (".")
 			end
+		ensure
+			class
 		end
 
 feature -- Status change
 
-	set_locale_with_id (a_id: STRING)
+	set_locale_with_id (a_id: STRING_32)
 			-- Set `locale' with `a_id'.
 			-- `a_id' is a Locale Id.
 			-- If locale of `a_id' not found, an empty locale is set.
@@ -55,6 +58,8 @@ feature -- Status change
 			else
 				locale_internal.put (empty_locale)
 			end
+		ensure
+			class
 		end
 
 	set_locale (a_locale: like locale)
@@ -63,18 +68,24 @@ feature -- Status change
 			a_locale_not_void: a_locale /= Void
 		do
 			locale_internal.put (a_locale)
+		ensure
+			class
 		end
 
 	set_system_locale
 			-- Set `locale' `system_locale'
 		do
 			locale_internal.put (system_locale)
+		ensure
+			class
 		end
 
 	set_empty_locale
 			-- Set locale to be an empty locale.
 		do
 			locale_internal.put (empty_locale)
+		ensure
+			class
 		end
 
 feature {NONE} -- Implementation
@@ -83,27 +94,30 @@ feature {NONE} -- Implementation
 		once
 			create Result.put (empty_locale)
 		ensure
-			result_not_void: Result /= Void
+			class
+			attached Result
 		end
 
 	system_locale: I18N_LOCALE
 		once
 			Result := locale_manager.system_locale
 		ensure
-			result_not_void: Result /= Void
+			class
+			attached Result
 		end
 
 	empty_locale: I18N_LOCALE
 		once
 			Result := locale_manager.locale (create {I18N_LOCALE_ID}.make_from_string (""))
 		ensure
-			result_not_void: Result /= Void
+			class
+			attached Result
 		end
 
 feature -- File saving
 
 	save_string_in_file (a_file: FILE; a_str: READABLE_STRING_GENERAL)
-			-- Save `a_str' in `a_file', according to current locale.
+			-- Save `a_str' in `a_file', according to current system locale.
 			-- `a_str' is taken as UTF-32 string.
 		require
 			a_file_not_void: a_file /= Void
@@ -111,12 +125,7 @@ feature -- File saving
 			a_file_exist: a_file.exists
 			a_str_not_void: a_str /= Void
 		do
-			utf32.convert_to (system_encoding, a_str)
-			if utf32.last_conversion_successful then
-				a_file.put_string (utf32.last_converted_stream)
-			else
-				a_file.put_string (a_str.as_string_8)
-			end
+			a_file.put_string (utf32_to_console_encoding (system_encoding, a_str))
 		end
 
 	read_string_from_file (a_file: FILE): STRING_32
@@ -181,16 +190,19 @@ feature -- String
 			end
 		end
 
-	first_character_as_upper (a_s: READABLE_STRING_GENERAL): STRING_GENERAL
+	first_character_as_upper (a_s: READABLE_STRING_GENERAL): STRING_32
 			-- First character to upper case if possible.
 			-- Be careful to apply this to a translated word.
 			-- Since translation might result in more than one word from one in English.
 		require
 			a_s_not_void: a_s /= Void
 		do
-			Result := as_string_general_twin (a_s)
+			Result := a_s.as_string_32
+			if Result = a_s then
+				Result := Result.twin
+			end
 			if not Result.is_empty then
-				Result.put_code (a_s.item (1).as_upper.natural_32_code, 1)
+				Result [1] := Result [1].as_upper
 			end
 		ensure
 			Result_not_void: Result /= Void
@@ -330,7 +342,7 @@ feature -- String
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

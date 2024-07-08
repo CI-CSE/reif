@@ -18,9 +18,12 @@
 @import "site/eiffel_org_nodes";
 @import "site/removed";
 
-body, body.page {
-	background: #0AA694 url(../images/bg-head.jpg);
+body {
 	font: 16px/24px "Open Sans", Arial, Helvetica, sans-serif; 
+}
+	
+div#page {
+	background: #0AA694 url(../images/bg-head.jpg);
 }
 
 .rss-block, #content{
@@ -64,7 +67,7 @@ body, body.page {
 
 .jumbotron {
 	@extend %clearfix;
-	background-color: none; //#0AA694;
+	//background-color: #0AA694;
 	padding: 20px;
 	margin-bottom: 10px;
 	margin-left: auto;

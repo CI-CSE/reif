@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Temporization buffer used during the C generation"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,6 +10,8 @@ class
 
 inherit
 	STRING_HANDLER
+
+	SHARED_ENCODING_CONVERTER
 
 create
 	make
@@ -422,7 +424,7 @@ feature -- Automatically indented output
 			l_buffer.put ('0', i - 1)
 		end
 
-	put_string (s: STRING)
+	put_string (s: READABLE_STRING_8)
 			-- Write string `s'.
 		require
 			s_not_void: s /= Void
@@ -481,7 +483,7 @@ feature -- Automatically indented output
 				if i /= 1 then
 					put_string (sep)
 				end
-				put_string ((a @ i).out)
+				put_string ((a [i]).out)
 				i := i + 1
 			end
 		end
@@ -606,6 +608,20 @@ feature -- Automatically indented output
 			escape_string (current_buffer, s)
 		end
 
+	generate_manifest_string_32 (value: STRING_32; is_immutable: BOOLEAN)
+			-- Generate code that creates a new string with the content specified by `value`.
+			-- The new string is of immutable variant if `is_immutable`.
+		do
+			put_string (if is_immutable then {C_CONST}.rtmis32_ex_h else {C_CONST}.rtms32_ex_h end)
+			put_character ('(')
+			put_string_literal (encoding_converter.string_32_to_stream (value))
+			put_character(',')
+			put_integer(value.count)
+			put_character(',')
+			put_integer (value.hash_code)
+			put_character(')')
+		end
+
 	put_gtcx
 			-- Add GTCX macro.
 		do
@@ -709,7 +725,7 @@ feature -- prototype code generation
 			generate_function_declaration (type, f_name, False, arg_types)
 		end
 
-	generate_function_signature (type: STRING; f_name: STRING;
+	generate_function_signature (type: STRING; f_name: READABLE_STRING_8;
 					extern: BOOLEAN; extern_header: like Current
 					arg_names: ARRAY [STRING]; arg_types: ARRAY [STRING])
 			-- Generate the function signature for ANSI C
@@ -752,9 +768,9 @@ feature -- prototype code generation
 				until
 					i > nb
 				loop
-					put_string (arg_types @ i)
+					put_string (arg_types [i])
 					current_buffer.append_character (' ')
-					put_string (arg_names @ i)
+					put_string (arg_names [i])
 					if i /= nb then
 						put_string (l_sep)
 					end
@@ -767,7 +783,7 @@ feature -- prototype code generation
 
 feature {GENERATION_BUFFER} -- prototype code generation
 
-	generate_function_declaration (type: STRING; f_name: STRING; extern: BOOLEAN; arg_types: ARRAY [STRING])
+	generate_function_declaration (type: STRING; f_name: READABLE_STRING_8; extern: BOOLEAN; arg_types: ARRAY [STRING])
 				-- Generate funtion declaration using macros
 		require
 			type_not_void: type /= Void
@@ -810,7 +826,7 @@ feature {GENERATION_BUFFER} -- prototype code generation
 					if i /= 1 then
 						put_string (l_sep)
 					end
-					put_string (arg_types @ i)
+					put_string (arg_types [i])
 					i := i + 1
 				end
 			end
@@ -957,7 +973,7 @@ invariant
 	buffers_not_void: buffers /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -221,7 +221,7 @@ feature {NONE} -- Cache
 				string_cache.append (a_str)
 			else
 				if tmp_target_file = Void then
-					create tmp_target_file.make_create_read_write (create {FILE_NAME}.make_temporary_name)
+					create tmp_target_file.make_open_temporary
 				end
 				tmp_target_file.putstring (string_cache)
 				tmp_target_file.putstring (a_str)
@@ -242,7 +242,7 @@ feature {NONE} -- Cache
 			a_file_name_not_void: a_file_name /= Void
 		do
 			if tmp_target_file = Void then
-				create tmp_target_file.make_create_read_write (create {FILE_NAME}.make_temporary_name)
+				create tmp_target_file.make_open_temporary
 			end
 			tmp_target_file.putstring (string_cache)
 			tmp_target_file.close
@@ -1031,7 +1031,7 @@ feature {NONE} -- Implementation
 	set_target_file_name
 			-- Finalize file name using `root_directory'.
 		do
-			target_file_name := root_directory.path.appended (Eiffel_system.name).appended_with_extension ("xml")
+			target_file_name := root_directory.path.extended (Eiffel_system.name).appended_with_extension ("xml")
 		end
 
 	feature_name (f: E_FEATURE): STRING

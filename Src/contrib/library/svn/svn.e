@@ -54,6 +54,11 @@ feature -- Operations: working copy
 		deferred
 		end
 
+	commit_from_location (a_changelist: SVN_CHANGELIST; a_log_message: detachable READABLE_STRING_GENERAL; a_options: detachable SVN_OPTIONS; a_location: PATH): SVN_RESULT
+			-- Commit changes for locations `a_changelist', and return information about command execution.
+		deferred
+		end
+
 feature -- Access
 
 	repository_info (a_location: READABLE_STRING_GENERAL; a_options: detachable SVN_OPTIONS): detachable SVN_REPOSITORY_INFO
@@ -67,18 +72,18 @@ feature -- Access
 		deferred
 		end
 
-	diff (a_location: READABLE_STRING_GENERAL; a_start, a_end: detachable SVN_RANGE_INDEX; a_options: detachable SVN_OPTIONS): detachable STRING
+	diff (a_location: READABLE_STRING_GENERAL; a_start, a_end: detachable SVN_RANGE_INDEX; a_options: detachable SVN_OPTIONS): detachable SVN_RESULT
 			-- Difference for `a_location', between `a_start' and `a_end' if provided.
 		deferred
 		end
 
-	content (a_location: READABLE_STRING_GENERAL; a_rev: detachable SVN_RANGE_INDEX; a_options: detachable SVN_OPTIONS): detachable STRING
+	content (a_location: READABLE_STRING_GENERAL; a_rev: detachable SVN_RANGE_INDEX; a_options: detachable SVN_OPTIONS): detachable READABLE_STRING_8
 			-- Content of `a_location', at revision `a_rev' if provided.
 		deferred
 		end
 
 note
-	copyright: "Copyright (c) 2003-2015, Jocelyn Fiat"
+	copyright: "Copyright (c) 2003-2022, Jocelyn Fiat"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			 Jocelyn Fiat

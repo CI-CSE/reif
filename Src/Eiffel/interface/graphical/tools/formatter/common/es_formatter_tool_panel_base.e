@@ -268,7 +268,7 @@ feature -- Setting
 
 			if l_control_bar /= Void and then l_control_bar.count > 0 then
 				if not tool_bar.has (l_control_bar.first) then
-					clear_control_bar_butons (tool_bar)
+					clear_control_bar_buttons (tool_bar)
 					from
 						l_control_bar.start
 					until
@@ -281,7 +281,7 @@ feature -- Setting
 					tool_bar.compute_minimum_size
 				end
 			else
-				clear_control_bar_butons (tool_bar)
+				clear_control_bar_buttons (tool_bar)
 			end
 		end
 
@@ -544,11 +544,7 @@ feature{NONE} -- Implementation
 			l_cursor: CURSOR
 			l_formatter: EB_FORMATTER
 			l_generator: TUPLE [displayer_generator: FUNCTION [EB_FORMATTER_DISPLAYER]; displayer_name: STRING]
-			l_browser_formatter: EB_BROWSER_FORMATTER
-			l_editor_formatter: EB_EDITOR_FORMATTER
 			l_displayer: EB_FORMATTER_DISPLAYER
-			l_browser_displayer: EB_FORMATTER_BROWSER_DISPLAYER
-			l_editor_displayer: EB_FORMATTER_EDITOR_DISPLAYER
 		do
 				-- Setup displaysers.
 			l_formatters := a_formatters
@@ -564,13 +560,23 @@ feature{NONE} -- Implementation
 					l_generator := l_formatter.displayer_generator
 					l_displayer := new_displayer (l_generator.displayer_name, l_generator.displayer_generator)
 					if l_formatter.is_browser_formatter then
-						l_browser_displayer ?= l_displayer
-						l_browser_formatter ?= l_formatter
-						l_browser_formatter.set_browser_displayer (l_browser_displayer)
+						if
+							attached {EB_FORMATTER_BROWSER_DISPLAYER} l_displayer as l_browser_displayer and then
+							attached {EB_BROWSER_FORMATTER} l_formatter as l_browser_formatter
+						then
+							l_browser_formatter.set_browser_displayer (l_browser_displayer)
+						else
+							check has_displayer_and_formatter: False end
+						end
 					else
-						l_editor_displayer ?= l_displayer
-						l_editor_formatter ?= l_formatter
-						l_editor_formatter.set_editor_displayer (l_editor_displayer)
+						if
+							attached {EB_FORMATTER_EDITOR_DISPLAYER} l_displayer as l_editor_displayer and then
+							attached {EB_EDITOR_FORMATTER} l_formatter as l_editor_formatter
+						then
+							l_editor_formatter.set_editor_displayer (l_editor_displayer)
+						else
+							check has_displayer_and_formatter: False end
+						end
 					end
 				end
 				l_formatters.forth
@@ -660,11 +666,8 @@ feature{NONE} -- Implementation
 
 	window: EV_WINDOW
 			-- Window dialogs can refer to.
-		local
-			conv_dev: EB_DEVELOPMENT_WINDOW
 		do
-			conv_dev ?= develop_window
-			if conv_dev /= Void then
+			if attached {EB_DEVELOPMENT_WINDOW} develop_window as conv_dev then
 				Result := conv_dev.window
 			else
 				create Result
@@ -698,15 +701,13 @@ feature{NONE} -- Implementation
 	empty_widget_internal: like empty_widget
 			-- Implementation of `empty_widget'
 
-	clear_control_bar_butons (a_tool_bar: SD_GENERIC_TOOL_BAR)
+	clear_control_bar_buttons (a_tool_bar: SD_GENERIC_TOOL_BAR)
 			-- Clear previous `control_bar' buttons from a formatter.
 		require
 			not_void: a_tool_bar /= Void
 		local
 			l_predefind, l_customized: INTEGER
 			l_items: ARRAYED_LIST [SD_TOOL_BAR_ITEM]
-			l_widget_item: SD_TOOL_BAR_WIDGET_ITEM
-			l_parent: EV_CONTAINER
 		do
 			l_predefind := predefined_formatters.count
 			l_customized := customized_formatters.count
@@ -721,15 +722,13 @@ feature{NONE} -- Implementation
 				l_items.after
 			loop
 				l_items.forth
-
 				if not l_items.after then
 					a_tool_bar.prune (l_items.item)
-					l_widget_item ?= l_items.item
-					if l_widget_item /= Void then
-						l_parent := l_widget_item.widget.parent
-						if l_parent /= Void then
-							l_parent.prune (l_widget_item.widget)
-						end
+					if
+						attached {SD_TOOL_BAR_WIDGET_ITEM} l_items.item as l_widget_item and then
+						attached l_widget_item.widget.parent as l_parent
+					then
+						l_parent.prune (l_widget_item.widget)
 					end
 				end
 			end
@@ -975,7 +974,7 @@ invariant
 	veto_format_function_agent_attached: veto_format_function_agent /= Void
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

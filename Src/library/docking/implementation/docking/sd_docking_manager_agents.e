@@ -9,8 +9,6 @@ class
 	SD_DOCKING_MANAGER_AGENTS
 
 inherit
-	ANY
-
 	EV_SHARED_APPLICATION
 		export
 			{NONE} all
@@ -20,10 +18,12 @@ inherit
 
 	SD_DOCKING_MANAGER_HOLDER
 
+	EV_BUILDER
+
 create
 	make
 
-feature {NONE}  -- Initlization
+feature {NONE} -- Initlization
 
 	make (a_docking_manager: SD_DOCKING_MANAGER)
 			-- Associate new object with `a_docking_manager'.
@@ -71,6 +71,7 @@ feature -- Command
 			l_docking_manager.zones.zones.add_actions.extend (agent on_added_zone)
 			l_docking_manager.zones.zones.remove_actions.extend (agent on_pruned_zone)
 			l_docking_manager.internal_viewport.resize_actions.extend (agent on_resize (?, ?, ?, ?, False))
+			l_docking_manager.internal_viewport.dpi_changed_actions.extend (agent on_dpi_change_resize (?, ?, ?, ?, ?, False))
 
 			ev_application.pointer_button_press_actions.extend (widget_pointer_press_handler)
 			ev_application.pointer_button_press_actions.extend (widget_pointer_press_for_upper_zone_handler)
@@ -79,7 +80,7 @@ feature -- Command
 			l_docking_manager.main_window.focus_in_actions.extend (top_level_window_focus_in)
 		end
 
-feature  -- Agents
+feature -- Agents
 
 	on_widget_pointer_press (a_widget: EV_WIDGET; a_button, a_x, a_y: INTEGER)
 			-- Handle EV_APPLICATION's pointer button press actions
@@ -87,7 +88,6 @@ feature  -- Agents
 			not_destroyed: not is_destroyed
 		local
 			l_auto_hide_zone: detachable SD_AUTO_HIDE_ZONE
-			l_zones: ARRAYED_LIST [SD_ZONE]
 			l_content: detachable SD_CONTENT
 			l_setter: SD_SYSTEM_SETTER
 			l_docking_manager: like docking_manager
@@ -95,23 +95,18 @@ feature  -- Agents
 			create {SD_SYSTEM_SETTER_IMP} l_setter
 			if not l_setter.is_during_pnd then
 				l_docking_manager := docking_manager
-				l_zones := l_docking_manager.zones.zones.twin
-				from
-					l_zones.start
-				until
-					l_zones.after
+				across
+					l_docking_manager.zones.zones.twin as ic
 				loop
-					if attached {EV_CONTAINER} l_zones.item as lt_container then
+					if
+						attached ic as l_zone and then
+						attached {EV_CONTAINER} l_zone as lt_container then
 						if
 							not lt_container.is_destroyed and then
 							(is_parent_recursive (lt_container, a_widget) and not ignore_additional_click) and
-							l_zones.item.content /= l_docking_manager.zones.place_holder_content
+							l_zone.content /= l_docking_manager.zones.place_holder_content
 						then
-							if l_docking_manager.property.last_focus_content /= l_zones.item.content then
-								l_docking_manager.property.set_last_focus_content (l_zones.item.content)
-								l_zones.item.on_focus_in (Void)
-								l_zones.item.content.focus_in_actions.call (Void)
-							else
+							if l_docking_manager.property.last_focus_content = l_zone.content then
 								l_content := l_docking_manager.property.last_focus_content
 								if
 									l_content /= Void and then
@@ -124,13 +119,15 @@ feature  -- Agents
 								elseif l_auto_hide_zone /= Void then
 									l_auto_hide_zone.set_focus_color (True)
 								end
+							else
+								l_docking_manager.property.set_last_focus_content (l_zone.content)
+								l_zone.on_focus_in (Void)
+								l_zone.content.focus_in_actions.call (Void)
 							end
 						end
 					else
 						check not_possible: False end
 					end
-
-					l_zones.forth
 				end
 
 				ignore_additional_click := False
@@ -141,17 +138,12 @@ feature  -- Agents
 			-- Handle EV_APPLICATION's pointer button press actions, for recover SD_UPPER_ZONE's size
 		require
 			not_destroyed: not is_destroyed
-		local
-			l_zones: ARRAYED_LIST [SD_ZONE]
 		do
-			l_zones := docking_manager.zones.zones.twin
-			from
-				l_zones.start
-			until
-				l_zones.after
+			across
+				docking_manager.zones.zones.twin as ic
 			loop
-				if attached {SD_UPPER_ZONE} l_zones.item as l_upper_zone then
-					if attached {EV_CONTAINER} l_zones.item as lt_container then
+				if attached {SD_UPPER_ZONE} ic as l_upper_zone then
+					if attached {EV_CONTAINER} ic as lt_container then
 						if
 							is_parent_recursive (lt_container, a_widget) and then
 							not attached {EV_TOOL_BAR} a_widget and then -- We ignore click on tool bar.
@@ -164,8 +156,6 @@ feature  -- Agents
 						check not_possible: False end
 					end
 				end
-
-				l_zones.forth
 			end
 		end
 
@@ -174,49 +164,116 @@ feature  -- Agents
 		require
 			not_destroyed: not is_destroyed
 		local
-			l_width, l_height: INTEGER
+			l_viewport_width, l_viewport_height: INTEGER
+			l_fixed_area_width, l_fixed_area_height: INTEGER
 			l_main_container: SD_MULTI_DOCK_AREA
+			l_fixed_area: EV_FIXED
+			l_internal_viewport: EV_VIEWPORT
 			l_docking_manager: like docking_manager
 		do
 			debug ("docking")
-				io.put_string ("%N SD_DOCKING_MANAGER on_resize ~~~~~~~~~~~~~~~~~~~~")
+				io.put_string ("%N SD_DOCKING_MANAGER {" + generator + "}.on_resize ~~~~~~~~~~~~~~~~~~~~%N")
+				io.put_string (  " SD_DOCKING_MANAGER -> (" + a_x.out + ", " + a_y.out + ") " + a_width.out + " x " + a_height.out + "%N")
 			end
 			l_docking_manager := docking_manager
 			l_docking_manager.command.remove_auto_hide_zones (False)
 
-			-- This is to make sure item in `fixed_area' is resized, otherwise zone's size is incorrect when maximize a zone
-			l_docking_manager.fixed_area.set_minimum_size (0, 0)
+			l_internal_viewport := l_docking_manager.internal_viewport
+			l_fixed_area := l_docking_manager.fixed_area
 
-			if a_width > 0 then
-				l_width := l_docking_manager.internal_viewport.width
-				if l_width > 0 then
-					l_docking_manager.internal_viewport.set_item_width (l_width)
+			l_viewport_width := l_internal_viewport.width
+			l_viewport_height := l_internal_viewport.height
+
+				-- This is to make sure item in `fixed_area' is resized, otherwise zone's size is incorrect when maximize a zone
+			l_fixed_area.set_minimum_size (1, 1)
+
+			check same_size_as_viewport: l_viewport_width = a_width and l_viewport_height = a_height end
+
+			l_main_container := l_docking_manager.query.inner_container_main
+
+			if a_width > 0 and a_height > 0 then
+				if l_viewport_width > 0 or l_viewport_height > 0 then
+					if attached l_internal_viewport.item as l_viewport_item then
+						l_viewport_item.reset_minimum_size
+						l_internal_viewport.set_item_size (l_viewport_width.max (l_viewport_item.minimum_width), l_viewport_height.max (l_viewport_item.minimum_height))
+					else
+						check False end
+						l_internal_viewport.set_item_size (l_viewport_width, l_viewport_height)
+					end
 				end
 
-				-- We have to make sure `l_width' not smaller than the minimum width of `l_main_container''s item
-				-- Otherwise, it will cause bug#12065. This bug ONLY happens on Solaris (both CDE and JDS), not happens on Windows, Ubuntu
-				-- And we don't need to care about the height of `l_main_container''s item since it works fine
-				l_main_container := l_docking_manager.query.inner_container_main
-				l_width := l_docking_manager.fixed_area.width
-				if l_main_container.readable and then l_main_container.item /= Void and then l_width < l_main_container.item.minimum_width then
-					l_width := l_main_container.item.minimum_width
+					-- We have to make sure `l_width' not smaller than the minimum width of `l_main_container''s item
+					-- Otherwise, it will cause bug#12065. This bug ONLY happens on Solaris (both CDE and JDS), not happens on Windows, Ubuntu
+					-- And we don't need to care about the height of `l_main_container''s item since it works fine
+				l_fixed_area_width := l_fixed_area.width
+				l_fixed_area_height :=  l_fixed_area.height
+				if
+					l_main_container.readable and then
+					attached l_main_container.item as l_main_container_item
+				then
+					l_fixed_area_width := l_fixed_area_width.max (l_main_container_item.minimum_width)
+					l_fixed_area_height := l_fixed_area_height.max (l_main_container_item.minimum_height)
+				end
+				if l_fixed_area_width > 0 or l_fixed_area_height > 0 then
+					l_main_container.reset_minimum_size
+					l_fixed_area.set_item_size (l_main_container, l_fixed_area_width, l_fixed_area_height)
+				end
+			elseif a_width > 0 then
+				if l_viewport_width > 0 then
+					if attached l_internal_viewport.item as l_viewport_item then
+						l_viewport_item.reset_minimum_width
+						l_internal_viewport.set_item_width (l_viewport_width.max (l_viewport_item.minimum_width))
+					else
+						check False end
+						l_internal_viewport.set_item_width (l_viewport_width)
+					end
 				end
 
-				if l_width > 0 then
-					l_docking_manager.fixed_area.set_item_width (l_main_container , l_width)
+					-- We have to make sure `l_width' not smaller than the minimum width of `l_main_container''s item
+					-- Otherwise, it will cause bug#12065. This bug ONLY happens on Solaris (both CDE and JDS), not happens on Windows, Ubuntu
+					-- And we don't need to care about the height of `l_main_container''s item since it works fine
+				l_fixed_area_width := l_fixed_area.width
+				if
+					l_main_container.readable and then
+					attached l_main_container.item as l_main_container_item
+				then
+					l_fixed_area_width := l_fixed_area_width.max (l_main_container_item.minimum_width)
+				end
+				if l_fixed_area_width > 0 then
+					l_main_container.reset_minimum_width
+					l_fixed_area.set_item_width (l_main_container, l_fixed_area_width)
+				end
+			elseif a_height > 0 then
+				if l_viewport_height > 0 then
+					if attached l_internal_viewport.item as l_viewport_item then
+						l_viewport_item.reset_minimum_height
+						l_internal_viewport.set_item_height (l_viewport_height.max (l_viewport_item.minimum_height))
+					else
+						check False end
+						l_internal_viewport.set_item_height (l_viewport_height)
+					end
+				end
+				l_fixed_area_height := l_fixed_area.height
+				if l_fixed_area_height > 0 then
+					l_main_container.reset_minimum_height
+					l_fixed_area.set_item_height (l_main_container, l_fixed_area_height)
 				end
 			end
-			if a_height > 0 then
-				l_height := l_docking_manager.internal_viewport.height
-				if l_height > 0 then
-					l_docking_manager.internal_viewport.set_item_height (l_height)
-				end
-				l_height := l_docking_manager.fixed_area.height
-				if l_height > 0 then
-					l_docking_manager.fixed_area.set_item_height (l_docking_manager.query.inner_container_main, l_height)
-				end
+			l_docking_manager.tool_bar_manager.on_resize (a_x, a_y, l_viewport_width, l_viewport_height, a_force)
+			if attached l_internal_viewport.item as l_viewport_item then
+					-- Make sure the viewport item is also resized when the viewport is resized.
+					-- note: without this code, the behavior is unexpected whenever the window is resized (until a sd tool is maximized then unmaximized)
+				l_viewport_item.reset_minimum_size
+				l_internal_viewport.set_item_size (a_width.max (l_viewport_item.minimum_width), a_height.max (l_viewport_item.minimum_height))
 			end
-			l_docking_manager.tool_bar_manager.on_resize (a_x, a_y, l_docking_manager.internal_viewport.width, l_docking_manager.internal_viewport.height, a_force)
+		end
+
+	on_dpi_change_resize (a_dpi: NATURAL_32; a_x: INTEGER; a_y: INTEGER; a_width: INTEGER; a_height: INTEGER; a_force: BOOLEAN)
+			-- Handle dpi change zone event. Resize all the widgets in fixed_area (EV_FIXED)
+		require
+			not_destroyed: not is_destroyed
+		do
+			on_resize (a_x, a_y, a_width, a_height, a_force)
 		end
 
 	on_added_zone (a_zone: SD_ZONE)
@@ -311,32 +368,20 @@ feature  -- Agents
 		end
 
 	on_top_level_window_focus_out
-			-- Handle top level window focus out actions
-		local
-			l_floating_zones: ARRAYED_LIST [SD_FLOATING_ZONE]
-			l_has_focus: BOOLEAN
+			-- Handle top level window focus out actions.
 		do
-			if not is_destroyed and then is_docking_manager_attached then
-				if not docking_manager.main_window.is_destroyed and not docking_manager.property.is_opening_config then
-					l_floating_zones := docking_manager.query.floating_zones
-					l_has_focus := docking_manager.main_window.has_focus
-					if not l_has_focus then
-						from
-							l_floating_zones.start
-						until
-							l_floating_zones.after or l_has_focus
-						loop
-							l_has_focus := l_floating_zones.item.has_focus
-							l_floating_zones.forth
-						end
-					end
-					if not l_has_focus then
-						--FIXIT: Currently we disable this feature
-						-- Because when show a dialog, it'll get focus, make main window lost focus
-						-- We should make a window can never get focus first
-		--				docking_manager.tool_bar_manager.hide_all_floating
-					end
-				end
+			if
+				not is_destroyed and then
+				is_docking_manager_attached and then
+				not docking_manager.main_window.is_destroyed and
+				not docking_manager.property.is_opening_config and then
+				not docking_manager.main_window.has_focus and then
+				not ∃ ic: docking_manager.query.floating_zones ¦ ic.has_focus
+			then
+					-- TODO: Currently we disable this feature
+					-- Because when show a dialog, it'll get focus, make main window lost focus
+					-- We should make a window can never get focus first
+					-- docking_manager.tool_bar_manager.hide_all_floating
 			end
 		end
 
@@ -398,16 +443,14 @@ feature  -- Agents
 			l_screen_x := l_position.x
 			l_screen_y := l_position.y
 
-			if not notify_one_auto_hide_panel ({SD_ENUMERATION}.top, l_widget, l_screen_x, l_screen_y) then
-				if not notify_one_auto_hide_panel ({SD_ENUMERATION}.bottom, l_widget, l_screen_x, l_screen_y) then
-					if not notify_one_auto_hide_panel ({SD_ENUMERATION}.left, l_widget, l_screen_x, l_screen_y) then
-						if not notify_one_auto_hide_panel ({SD_ENUMERATION}.right, l_widget, l_screen_x, l_screen_y) then
-							if not pointer_in_tab then
-								focused_tab_stub := Void
-							end
-						end
-					end
-				end
+			if
+				not notify_one_auto_hide_panel ({SD_ENUMERATION}.top, l_widget, l_screen_x, l_screen_y) and then
+				not notify_one_auto_hide_panel ({SD_ENUMERATION}.bottom, l_widget, l_screen_x, l_screen_y) and then
+				not notify_one_auto_hide_panel ({SD_ENUMERATION}.left, l_widget, l_screen_x, l_screen_y) and then
+				not notify_one_auto_hide_panel ({SD_ENUMERATION}.right, l_widget, l_screen_x, l_screen_y) and then
+				not pointer_in_tab
+			then
+				focused_tab_stub := Void
 			end
 
 			debug ("docking")
@@ -451,7 +494,7 @@ feature  -- Agents
 					pointer_in_tab := False
 				end
 				if attached {SD_AUTO_HIDE_STATE} l_stubs.item.content.state as l_state then
-					-- a_target not correct?
+						-- a_target not correct?
 					l_state.animation.on_pointer_motion (a_target, a_screen_x, a_screen_y)
 				else
 					check must_be_auto_hide_state: False end
@@ -471,10 +514,12 @@ feature -- Destory
 			-- Destory all underline objects
 		local
 			l_main_window: EV_WINDOW
+			ev_app: like ev_application
 		do
 			if attached docking_manager as l_docking_manager then
 				if attached l_docking_manager.internal_viewport as l_viewport then
 					l_viewport.resize_actions.wipe_out
+					l_viewport.dpi_changed_actions.wipe_out
 				else
 					check viewport_attached: False end
 				end
@@ -484,13 +529,13 @@ feature -- Destory
 				l_main_window.focus_out_actions.prune_all (top_level_window_focus_out)
 				l_main_window.focus_in_actions.prune_all (top_level_window_focus_in)
 			end
-
-			ev_application.pnd_motion_actions.prune_all (pnd_motion_actions_handler)
-			ev_application.pick_actions.prune_all (pick_actions_handler)
-			ev_application.drop_actions.prune_all (drop_actions_handler)
-			ev_application.theme_changed_actions.prune_all (theme_changed_handler)
-			ev_application.pointer_button_press_actions.prune_all (widget_pointer_press_handler)
-			ev_application.pointer_button_press_actions.prune_all (widget_pointer_press_for_upper_zone_handler)
+			ev_app := ev_application
+			ev_app.pnd_motion_actions.prune_all (pnd_motion_actions_handler)
+			ev_app.pick_actions.prune_all (pick_actions_handler)
+			ev_app.drop_actions.prune_all (drop_actions_handler)
+			ev_app.theme_changed_actions.prune_all (theme_changed_handler)
+			ev_app.pointer_button_press_actions.prune_all (widget_pointer_press_handler)
+			ev_app.pointer_button_press_actions.prune_all (widget_pointer_press_for_upper_zone_handler)
 			focused_tab_stub := Void
 			clear_docking_manager
 
@@ -502,35 +547,15 @@ feature -- Destory
 feature -- Contract support
 
 	user_widget_valid (a_content: SD_CONTENT): BOOLEAN
-			-- Dose a_widget alreay in docking library?
+			-- Does a_content alreay in docking system?
 		require
 			not_destroyed: not is_destroyed
-		local
-			l_found: BOOLEAN
-			l_contents: ARRAYED_LIST [SD_CONTENT]
 		do
-			l_contents := docking_manager.contents.twin
-
-			from
-				l_contents.start
-			until
-				l_contents.after or l_found
-			loop
-				if l_contents.item /= a_content then
-					if attached {EV_CONTAINER} l_contents.item.user_widget as l_container then
-						if l_container.has_recursive (a_content.user_widget) then
-							l_found := True
-						end
-					end
-
-					if a_content.user_widget = l_contents.item.user_widget then
-						l_found := True
-					end
-				end
-
-				l_contents.forth
-			end
-			Result := not l_found
+			Result := not ∃ ic: docking_manager.contents ¦
+					ic /= a_content and then
+					(attached {EV_CONTAINER} ic.user_widget as l_container and then
+						l_container.has_recursive (a_content.user_widget) or else
+						ic.user_widget = a_content.user_widget)
 		end
 
 	title_unique (a_content: SD_CONTENT): BOOLEAN
@@ -538,64 +563,16 @@ feature -- Contract support
 		require
 			not_destroyed: not is_destroyed
 			a_content_not_void: a_content /= Void
-		local
-			l_contents: ARRAYED_LIST [SD_CONTENT]
 		do
-			l_contents := docking_manager.contents.twin
-			Result := True
-
-			from
-				l_contents.start
-			until
-				l_contents.after or not Result
-			loop
-				if l_contents.item /= a_content then
-					Result := not l_contents.item.unique_title.as_string_32.is_equal (a_content.unique_title.as_string_32)
-				end
-				l_contents.forth
-			end
+			Result :=
+				∀ ic: docking_manager.contents ¦
+					ic = a_content or else not ic.unique_title.same_string (a_content.unique_title)
 		end
 
 	is_destroyed: BOOLEAN
 			-- If Current destroyed?
 
-feature {SD_DEBUG_ACCESS} -- For debug
-
-	show_inner_container_structure
-			-- For debug
-		require
-			not_destroyed: not is_destroyed
-		do
-			io.put_string ("%N --------------------- SD_DOCKING_MANAGER inner container -------------------")
-			docking_manager.inner_containers.start
-			show_inner_container_structure_imp (docking_manager.inner_containers.item.item, " ")
-		end
-
-	show_inner_container_structure_imp (a_container: EV_WIDGET; a_indent: READABLE_STRING_8)
-			-- For debug
-		require
-			not_destroyed: not is_destroyed
-		do
-			if attached {SD_DOCKING_ZONE} a_container as l_docking_zone then
-				io.put_string ("%N " + a_indent + a_container.generating_type.name_32.as_string_8 + " " + l_docking_zone.content.unique_title)
-			else
-				if a_container /= Void then
-					io.put_string ("%N " + a_indent + a_container.generating_type.name_32.as_string_8)
-				else
-					io.put_string ("%N " + a_indent + "Void")
-				end
-			end
-			if attached {EV_SPLIT_AREA} a_container as l_split_area then
-				if attached l_split_area.first as l_first then
-					show_inner_container_structure_imp (l_first, a_indent + " ")
-				end
-				if attached l_split_area.second as l_second then
-					show_inner_container_structure_imp (l_second, a_indent + " ")
-				end
-			end
-		end
-
-feature {NONE}  -- Implementation
+feature {NONE} -- Implementation
 
 	is_parent_recursive (a_parent: EV_CONTAINER; a_child: EV_WIDGET): BOOLEAN
 			-- If `a_parent' is parent of `a_child' ?
@@ -645,9 +622,9 @@ invariant
 	internal_shared_not_void: internal_shared /= Void
 
 note
-	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	library: "SmartDocking: Library of reusable components for Eiffel."
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

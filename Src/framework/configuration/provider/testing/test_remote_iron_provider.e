@@ -19,7 +19,6 @@ feature -- Test routines
 			-- New test routine
 		local
 			iron_prov: ES_LIBRARY_IRON_PROVIDER
-			deliv_prov: ES_LIBRARY_LOCAL_PROVIDER
 			prov: ES_LIBRARY_PROVIDER
 			target: detachable CONF_TARGET
 		do
@@ -36,12 +35,12 @@ feature -- Test routines
 			sys: CONF_SYSTEM
 		do
 			create fac
-			sys := fac.new_system_generate_uuid_with_file_name (a_name, a_name)
+			sys := fac.new_system_generate_uuid_with_file_name (a_name, a_name, {CONF_FILE_CONSTANTS}.latest_namespace)
 			Result := fac.new_target (a_name, sys)
 		end
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

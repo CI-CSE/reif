@@ -15,17 +15,18 @@ deferred class
 inherit
 	READABLE_STRING_GENERAL
 		rename
-			same_string as same_string_general,
-			same_characters as same_characters_general,
-			same_caseless_characters as same_caseless_characters_general,
-			starts_with as starts_with_general,
 			ends_with as ends_with_general,
-			is_case_insensitive_equal as is_case_insensitive_equal_general,
-			item as character_32_item,
 			has as character_32_has,
 			index_of as character_32_index_of,
+			is_case_insensitive_equal as is_case_insensitive_equal_general,
+			item as character_32_item,
 			last_index_of as character_32_last_index_of,
-			occurrences as character_32_occurrences
+			occurrences as character_32_occurrences,
+			plus as plus_general,
+			same_caseless_characters as same_caseless_characters_general,
+			same_characters as same_characters_general,
+			same_string as same_string_general,
+			starts_with as starts_with_general
 		redefine
 			copy, is_equal, out
 		end
@@ -103,6 +104,20 @@ feature {NONE} -- Initialization
 			internal_hash_code := 0
 			internal_case_insensitive_hash_code := 0
 			c_string_provider.read_substring_into_character_8_area (area, 1, l_count)
+		end
+
+	make_from_c_byte_array (a_byte_array: POINTER; a_character_count: INTEGER)
+			-- Initialize from contents of `a_byte_array' for a length of `a_character_count`,
+			-- given that each character is encoded in 1 single byte.
+			-- ex: (char*) "abc"  for STRING_8 "abc"			
+		require
+			a_byte_array_exists: not a_byte_array.is_default_pointer
+		do
+			c_string_provider.set_shared_from_pointer_and_count (a_byte_array, a_character_count)
+			create area.make_filled ('%/000/', a_character_count + 1)
+			count := a_character_count
+			internal_hash_code := 0
+			c_string_provider.read_substring_into_character_8_area (area, 1, a_character_count)
 		end
 
 	make_from_c_substring (c_string: POINTER; start_pos, end_pos: INTEGER)
@@ -685,6 +700,20 @@ feature {READABLE_STRING_8} -- Duplication
 			-- same_characters: For every `i' in 1..`count', `item' (`i') = `other'.`item' (`i')
 		end
 
+feature -- Basic operations
+
+	plus alias "+" (s: READABLE_STRING_8): like Current
+			-- Concatenation with `s`.
+		require
+			argument_attached: attached s
+		deferred
+		ensure
+			plus_attached: attached Result
+			new_count: Result.count = count + s.count
+			initial: elks_checking implies Result.substring (1, count) ~ Current
+			final: elks_checking implies Result.substring (count + 1, count + s.count).same_string (s)
+		end
+
 feature {NONE} -- Element change
 
 	fill_character (c: CHARACTER_8)
@@ -729,10 +758,10 @@ feature -- Output
 			-- <Precursor>
 		do
 			create Result.make (count)
-			Result.append (Current)
+			Result.append_string_general (Current)
 		ensure then
 			out_not_void: Result /= Void
-			same_items: same_type ("") implies Result.same_string (Current)
+			same_items: same_type ("") implies Result.same_string_general (Current)
 		end
 
 feature {NONE} -- Implementation
@@ -846,7 +875,8 @@ feature
 	HEXADECIMAL_STRING_TO_INTEGER_CONVERTER,
 	STRING_TO_INTEGER_CONVERTOR,
 	STRING_TO_REAL_CONVERTOR,
-	STRING_8_ITERATION_CURSOR} -- Implementation
+	STRING_8_ITERATION_CURSOR,
+	IO_MEDIUM} -- Implementation
 
 	area: SPECIAL [CHARACTER_8]
 			-- Storage for characters.
@@ -872,7 +902,7 @@ invariant
 	area_not_void: area /= Void
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

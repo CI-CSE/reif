@@ -1,3 +1,7 @@
+[![GitHub Actions](https://github.com/gobo-eiffel/gobo/actions/workflows/github-ci.yml/badge.svg)](https://github.com/gobo-eiffel/gobo/actions/workflows/github-ci.yml)
+[![GitLab CI/CD](https://gitlab.com/ebezault/gobo/badges/master/pipeline.svg?key_text=GitLab+CI/CD&key_width=85)](https://gitlab.com/ebezault/gobo/-/pipelines)
+[![Azure Pipelines](https://dev.azure.com/ericb0733/gobo/_apis/build/status/gobo?branchName=master)](https://dev.azure.com/ericb0733/gobo/_build?definitionId=1&branchName=master)
+
 # Gobo Eiffel Project
 
 One of the main concerns of the *Gobo Eiffel Project* is to provide
@@ -15,7 +19,7 @@ is hosted at
 while the official site (for stable releases) is located at
 [gobosoft.com](http://www.gobosoft.com).
 
-*Gobo Eiffel* already consists of sixteen Eiffel libraries:
+*Gobo Eiffel* already consists of seventeen Eiffel libraries:
 
 * Gobo Eiffel Argument Library
 * Gobo Eiffel Kernel Library
@@ -27,6 +31,7 @@ while the official site (for stable releases) is located at
 * Gobo Eiffel String Library
 * Gobo Eiffel Structure Library
 * Gobo Eiffel Test Library
+* Gobo Eiffel Thread Library
 * Gobo Eiffel Time Library
 * Gobo Eiffel Tools Library
 * Gobo Eiffel Utility Library
@@ -34,16 +39,18 @@ while the official site (for stable releases) is located at
 * Gobo Eiffel XPath Library
 * Gobo Eiffel XSLT Library
 
-and ten utilities:
+and twelve utilities:
 
 * Gobo Eiffel Ant (geant)
 * Gobo Eiffel Compiler (gec)
+* Gobo Eiffel C Compilation (gecc)
+* Gobo Eiffel Cop (gecop)
 * Gobo Eiffel Doc (gedoc)
+* Gobo Eiffel Image (geimage)
 * Gobo Eiffel Lex (gelex)
 * Gobo Eiffel Lint (gelint)
 * Gobo Eiffel Preprocessor (gepp)
 * Gobo Eiffel Test (getest)
-* Gobo Eiffel Xace (gexace)
 * Gobo Eiffel XSLT Processor (gexslt)
 * Gobo Eiffel Yacc (geyacc)
 
@@ -54,16 +61,16 @@ library classes provided in this package.
 
 The supported Eiffel compilers, in alphabetical order, are:
 
-* Gobo Eiffel Compiler (gec) 4.1
-* ISE Eiffel 16.05.9.8969 and 17.01.9.9700 (Classic and .NET)
+* Gobo Eiffel Compiler (gec) 21.01.09.4
+* ISE Eiffel 21.11.10.6046 (Classic and .NET)
 
 For more details about the supported Eiffel compilers, please see the file
-[Release_notes.md](Release_notes.md). 
+[Release_notes.md](./Release_notes.md). 
 This software might work with other Eiffel compilers and/or other compiler
 versions, however no test has been made yet.
 To have a better understanding of the way this software has been designed
 and implemented, you can also have a look at
-[portability issues](http://www.gobosoft.com/eiffel/gobo/library/portability/index.html).
+[portability issues](http://www.gobosoft.com/eiffel/gobo/portability/index.html).
 
 ## Platforms
 
@@ -73,7 +80,7 @@ has only been tested under Windows 10 and Linux.
 Since most Eiffel compilers use the notation `$NAME` for environment
 variables in their ECF files (or equivalent), this convention has been
 used instead of the Windowish `%NAME%`. Likewise, the directory separator
-used through out this distribution is `/`, following Unix/Linux convention
+used throughout this distribution is `/`, following Unix/Linux convention
 instead of the Windows `\` separator.
 
 To install this package, please follow the instructions below:
@@ -123,15 +130,12 @@ appear in this list yet, please
 We will try to provide a bug fix as soon as possible
 (usually within one or two days).
 
-You can also subscribe to the *Gobo Eiffel*
-[mailing list](http://groups.yahoo.com/group/gobo-eiffel/)
-and take part to the discussions or ask your questions there.
-There is another
+There is a
 [mailing list](http://lists.sourceforge.net/lists/listinfo/gobo-eiffel-develop)
 (hosted at SourceForge) for discussions about the features under
 development in the
 [Git repository](https://github.com/gobo-eiffel/gobo)
-on GitHub.
+on GitHub. You can subscribe and take part to the discussions or ask your questions there.
 
 Although the license allows you to do pretty much whatever you want 
 with this software, we would be grateful to get your feedback, 
@@ -148,4 +152,4 @@ are available to help you make the first steps.
 
 ## Authors
 
-Copyright (c) 1997-2017, Eric Bezault and others
+Copyright (c) 1997-2022, Eric Bezault and others

@@ -1,21 +1,19 @@
-note
-	description: "Summary description for {ABSTRACT_ARRAY_PREFERENCE}."
-	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
-
-deferred class
+﻿deferred class
 	ABSTRACT_ARRAY_PREFERENCE [G -> READABLE_STRING_GENERAL]
 
 inherit
 	TYPED_PREFERENCE [ARRAY [G]]
+		undefine
+			is_valid_string_for_selection,
+			select_value_from_string
+		end
 
 	ABSTRACT_CHOICE_PREFERENCE [G]
 
 feature {PREFERENCE_EXPORTER} -- Access
 
 	text_value: STRING_32
-			-- String representation of `value'.				
+			-- String representation of `value'.
 		local
 			index: INTEGER
 		do
@@ -34,7 +32,7 @@ feature {PREFERENCE_EXPORTER} -- Access
 						else
 							Result.append (escaped_string (l_item.to_string_32))
 						end
-						if not (index = l_array.count) then
+						if index /= l_array.count then
 							Result.append_string_general (";")
 						end
 					end
@@ -46,7 +44,7 @@ feature {PREFERENCE_EXPORTER} -- Access
 			end
 		end
 
-feature -- Access		
+feature -- Access
 
 	string_type: STRING
 			-- String description of this preference type.
@@ -55,15 +53,12 @@ feature -- Access
 
 	value_as_list_of_text: LIST [STRING_32]
 		local
-			l_value: like value
+			v: like value
 		do
-			l_value := value
-			create {ARRAYED_LIST [STRING_32]} Result.make (l_value.count)
-			across
-				l_value as c
-			loop
-				Result.force (c.item.to_string_32)
-			end
+			v := value
+			create {ARRAYED_LIST [STRING_32]} Result.make (v.count)
+			Result.compare_objects
+			⟳ s: v ¦ Result.force (s.to_string_32) ⟲
 		end
 
 	selected_value: detachable G
@@ -100,14 +95,9 @@ feature -- Status Setting
 
 	set_selected_index (a_index: INTEGER)
 			-- Set `selected_index'
---		require
---			index_valie: a_index > 0
---			is_choice: is_choice
 		do
 			check is_choice: is_choice end
 			selected_index := a_index
---		ensure
---			index_set: selected_index = a_index
 		end
 
 feature -- Status report
@@ -116,7 +106,7 @@ feature -- Status report
 			-- Is this preference a single choice or the full list?
 
 	valid_value_string (a_string: READABLE_STRING_GENERAL): BOOLEAN
-			-- Is `a_string' valid for this preference type to convert into a value?		
+			-- Is `a_string' valid for this preference type to convert into a value?
 		do
 			Result := True
 		end
@@ -130,11 +120,12 @@ feature {NONE} -- Formatting
 	escaped_characters: LIST [CHARACTER_32]
 			-- Escaped characters to avoid issue with item separator, and selection markers.
 		once
-			create {ARRAYED_LIST [CHARACTER_32]} Result.make (2)
-			Result.extend (item_separator)
-			Result.extend (escape_character)
-			Result.extend ('[')
-			Result.extend (']')
+			create {ARRAYED_LIST [CHARACTER_32]} Result.make_from_array (<<
+					item_separator,
+					escape_character,
+					'[',
+					']'
+				>>)
 		end
 
 feature -- Formatting
@@ -142,7 +133,7 @@ feature -- Formatting
 	escaped_string (s: STRING_32): STRING_32
 			-- Escaped string `s' to avoid issue with `item_separator' (i.e  ';')
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 			l_escaped_characters: like escaped_characters
 		do
@@ -154,11 +145,9 @@ feature -- Formatting
 			until
 				i > n
 			loop
-				c := s[i]
-				if i < n then
-					if l_escaped_characters.has (c) then
-						Result.append_character (escape_character)
-					end
+				c := s [i]
+				if i < n and then l_escaped_characters.has (c) then
+					Result.append_character (escape_character)
 				end
 				Result.append_character (c)
 				i := i + 1
@@ -167,7 +156,7 @@ feature -- Formatting
 
 	unescaped_string (s: STRING_32): STRING_32
 		local
-			i,n: INTEGER
+			i, n: INTEGER
 			c: CHARACTER_32
 		do
 			from
@@ -177,12 +166,10 @@ feature -- Formatting
 			until
 				i > n
 			loop
-				c := s[i]
-				if c = escape_character and i < n then
-					if escaped_characters.has (s[i+1]) then
-						i := i + 1
-						c := s[i]
-					end
+				c := s [i]
+				if c = escape_character and i < n and then escaped_characters.has (s [i + 1]) then
+					i := i + 1
+					c := s [i]
 				end
 				Result.append_character (c)
 				i := i + 1
@@ -221,7 +208,7 @@ feature {NONE} -- Implementation
 			until
 				i > n
 			loop
-				c := s[i]
+				c := s [i]
 				if c = escape_character then -- escape character
 					i := i + 1
 				elseif c = item_separator then
@@ -236,7 +223,9 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -245,4 +234,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

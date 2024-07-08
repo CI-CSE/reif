@@ -36,6 +36,8 @@ inherit
 
 	SHARED_GENERATION
 
+	SHARED_LOCALE
+
 create
 	make
 
@@ -96,7 +98,7 @@ feature -- Access
 					l_inline_agent_table.after
 				loop
 					l_feat := l_inline_agent_table.item_for_iteration
-					if l_feat.enclosing_body_id = body_id then
+					if l_feat.enclosing_body_id_or_creator_position = body_id then
 						if a_removed /= Void then
 								-- for each removed inline-agent feature we save its
 								-- routine id along with its inline_agent_nr
@@ -180,18 +182,13 @@ feature -- Action
 			-- Remove the C generated files when we remove `Current' from system.
 		local
 			retried: BOOLEAN
-			l_types: TYPE_LIST
 		do
-			if not retried and System.makefile_generator /= Void and then has_types then
-				from
-					l_types := types
-					l_types.start
-				until
-					l_types.after
-				loop
-					l_types.item.remove_c_generated_files
-					l_types.forth
-				end
+			if
+				not retried and
+				attached System.makefile_generator and then
+				attached types as ts
+			then
+				⟳ t: ts ¦ t.remove_c_generated_files ⟲
 			end
 		rescue
 			retried := True
@@ -259,20 +256,24 @@ feature -- Action
 				l_options := l_lace_class.options
 				if is_warning_generated then
 					parser.set_has_syntax_warning (l_options.is_warning_enabled (w_syntax))
+					parser.set_warning_as_error (l_options.is_warning_as_error)
 				else
 					parser.set_has_syntax_warning (False)
+					parser.set_warning_as_error (False)
 				end
-				inspect l_options.syntax.index
-				when {CONF_OPTION}.syntax_index_obsolete then
-					parser.set_syntax_version ({EIFFEL_SCANNER}.obsolete_syntax)
-				when {CONF_OPTION}.syntax_index_transitional then
-					parser.set_syntax_version ({EIFFEL_SCANNER}.transitional_syntax)
-				when {CONF_OPTION}.syntax_index_provisional then
-					parser.set_syntax_version ({EIFFEL_SCANNER}.provisional_syntax)
-				else
-					parser.set_syntax_version ({EIFFEL_SCANNER}.ecma_syntax)
-				end
+				parser.set_syntax_version
+					(inspect l_options.syntax.index
+					when {CONF_OPTION}.syntax_index_obsolete then
+						{EIFFEL_SCANNER}.obsolete_syntax
+					when {CONF_OPTION}.syntax_index_transitional then
+						{EIFFEL_SCANNER}.transitional_syntax
+					when {CONF_OPTION}.syntax_index_provisional then
+						{EIFFEL_SCANNER}.provisional_syntax
+					else
+						{EIFFEL_SCANNER}.ecma_syntax
+					end)
 				parser.set_is_ignoring_attachment_marks (lace_class.is_void_unsafe)
+				parser.set_is_explicit_iteration_cursor (lace_class.is_explicit_iteration_cursor)
 				Inst_context.set_group (cluster)
 				parser.parse_class_from_file (file, Current, Void)
 				if l_error_level = error_handler.error_level then
@@ -340,21 +341,21 @@ feature -- Action
 			old_syntactical_suppliers: like syntactical_suppliers
 		do
 				-- Check that routine classes have an expected number of formal generics.
-			if system.routine_class_id = class_id then
-				if not attached ast_b.generics as g or else g.count /= 1 then
-					Error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.routine_case_1, Current))
+			if attached system.routine_class as i and then attached i.compiled_class as c and then c.class_id = class_id then
+				if attached ast_b.generics as g implies g.count /= 1 then
+					error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.routine_case_1, Current))
 				end
-			elseif system.predicate_class_id = class_id then
-				if not attached ast_b.generics as g or else g.count /= 1 then
-					Error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.predicate_case_1, Current))
+			elseif attached system.predicate_class as i and then attached i.compiled_class as c and then c.class_id = class_id then
+				if attached ast_b.generics as g implies g.count /= 1 then
+					error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.predicate_case_1, Current))
 				end
-			elseif system.procedure_class_id = class_id then
-				if not attached ast_b.generics as g or else g.count /= 1 then
-					Error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.procedure_case_1, Current))
+			elseif attached system.procedure_class as i and then attached i.compiled_class as c and then c.class_id = class_id then
+				if attached ast_b.generics as g implies g.count /= 1 then
+					error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.procedure_case_1, Current))
 				end
-			elseif system.function_class_id = class_id then
-				if not attached ast_b.generics as g or else g.count /= 2 then
-					Error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.function_case_1, Current))
+			elseif attached system.function_class as i and then attached i.compiled_class as c and then c.class_id = class_id then
+				if attached ast_b.generics as g implies g.count /= 2 then
+					error_handler.insert_error (create {SPECIAL_ERROR}.make ({SPECIAL_CONST}.function_case_1, Current))
 				end
 			end
 				-- Check suppliers of parsed class represented by `ast_b'.
@@ -1076,7 +1077,7 @@ feature -- Third pass: byte code production and type check
 					until
 						l_constructors.after or l_error
 					loop
-						l_error := not creators.has (l_constructors.item)
+						l_error := not creators.has (names_heap.id_of (l_constructors.item))
 						if not l_error then
 							l_constructors.forth
 						end
@@ -1329,6 +1330,8 @@ feature {NONE} -- Class initialization
 			old_generics: like generics
 			old_is_expanded: BOOLEAN
 			old_is_deferred: BOOLEAN
+			old_is_once: BOOLEAN
+			new_is_frozen: BOOLEAN
 			l_class: CLASS_C
 			is_first_compilation, changed_status: BOOLEAN
 			changed_generics, changed_expanded: BOOLEAN
@@ -1422,17 +1425,25 @@ feature {NONE} -- Class initialization
 				l_is_code_regeneration_needed := True
 			end
 
-				-- Class status
-			if System.il_generation then
-				is_external := is_basic or ast_b.is_external
-			else
-				is_external := ast_b.is_external
+				-- Once mark.
+			old_is_once := is_once
+			set_is_once (ast_b.is_once)
+
+			if not is_first_compilation and old_is_once /= is_once then
+					-- The once status has been changed.
+				Degree_4.set_once_modified (Current)
+				changed_status := True
+				changed_expanded := True
+				l_is_code_regeneration_needed := True
 			end
 
+				-- Class status
+			is_external := (System.il_generation and is_basic) or ast_b.is_external
+
 				-- Process `frozen' mark.
-			changed_status := changed_status or else
-				(not is_first_compilation and is_frozen /= ast_b.is_frozen)
-			is_frozen := ast_b.is_frozen
+			new_is_frozen := ast_b.is_frozen or ast_b.is_once
+			changed_status := changed_status or (not is_first_compilation and new_is_frozen)
+			is_frozen := new_is_frozen
 
 			if changed_status then
 				Degree_4.add_changed_status (Current)
@@ -1574,7 +1585,7 @@ feature {NONE} -- Class initialization
 			i, j, nb: INTEGER
 			duplicate_name: SEARCH_TABLE [like {ID_AS}.name_id]
 			name_id: like {ID_AS}.name_id
-			f_list: EIFFEL_LIST [FEAT_NAME_ID_AS]
+			f_list: EIFFEL_LIST [FEATURE_NAME]
 		do
 			from
 				l_area := generics.area
@@ -1744,7 +1755,10 @@ feature {NONE} -- Class initialization
 			Inst_context.set_group (cluster)
 			across generics as l_formal_generic loop
 				if is_expanded and then l_formal_generic.item.constraints.count > 1 then
-					Error_handler.insert_error (create {NOT_SUPPORTED}.make ("Multiple constraints are not permitted in an expanded generic class"))
+					Error_handler.insert_error (create {NOT_SUPPORTED}.make_from_string
+						(locale.translation_in_context ("Multiple constraints are not permitted in an expanded generic class", "compiler.error"),
+						ast_context,
+						l_formal_generic.item.start_location))
 				else
 					across l_formal_generic.item.constraints as l_constraint loop
 						l_constraint_type := l_constraint.item.type
@@ -2038,7 +2052,7 @@ feature -- Inline agents
 					Result /= Void or else l_inline_agent_table.after
 				loop
 					l_feat := l_inline_agent_table.item_for_iteration
-					if l_feat.enclosing_body_id = a_enclosing_body_id and then l_feat.inline_agent_nr = a_inline_agent_nr then
+					if l_feat.enclosing_body_id_or_creator_position = a_enclosing_body_id and then l_feat.inline_agent_nr = a_inline_agent_nr then
 						Result := l_feat
 					else
 						l_inline_agent_table.forth
@@ -2050,7 +2064,7 @@ feature -- Inline agents
 			end
 		ensure
 			valid_agent_found: Result /= Void implies
-				Result.enclosing_body_id = a_enclosing_body_id and
+				Result.enclosing_body_id_or_creator_position = a_enclosing_body_id and
 				Result.inline_agent_nr = a_inline_agent_nr
 		end
 
@@ -2093,7 +2107,6 @@ feature {NONE} -- Backup implementation
 		local
 			l_dir_name, l_fname: PATH
 			l_dir: DIRECTORY
-			l_over: ARRAYED_LIST [CONF_CLASS]
 			u: GOBO_FILE_UTILITIES
 		do
 				-- create cluster directory if necessary
@@ -2107,25 +2120,20 @@ feature {NONE} -- Backup implementation
 			u.copy_file_path (a_class.full_file_name, l_fname)
 
 				-- if the class does override, also copy the overriden classes
-			if a_class.does_override then
-				from
-					l_over := a_class.overrides
-					l_over.start
-				until
-					l_over.after
+			if attached a_class.overrides as os then
+				across
+					os as o
 				loop
 						-- Compute actual location of cluster where overriden class is located.
-					l_dir_name := workbench.backup_subdirectory.extended (
-						l_over.item.group.target.system.uuid.out)
+					l_dir_name := workbench.backup_subdirectory.extended (o.item.group.target.system.uuid.out)
 					create l_dir.make_with_path (l_dir_name)
 					if not l_dir.exists then
 							-- We need to create the directory.
 						u.create_directory_path (l_dir_name)
 							-- But also to copy the config files.
-						adapt_and_copy_configuration (l_over.item.group.target.system, workbench.backup_subdirectory)
+						adapt_and_copy_configuration (o.item.group.target.system, workbench.backup_subdirectory)
 					end
-					copy_class (l_over.item, l_dir_name)
-					l_over.forth
+					copy_class (o.item, l_dir_name)
 				end
 			end
 		end
@@ -2169,8 +2177,8 @@ invariant
 	inline_agent_table_not_void: inline_agent_table /= Void
 
 note
-	ca_ignore: "CA033", "CA033 — very long class"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	ca_ignore: "CA033", "CA033: very long class"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -43,6 +43,7 @@ feature {NONE} -- Initialization
 			grid_x := default_grid_x
 			grid_y := default_grid_x
 			grid_visible := False
+			is_anti_aliasing_enabled := True
 			full_redraw
 		end
 
@@ -108,6 +109,9 @@ feature -- Access
 			Result := ((a_y + half_grid) // grid) * grid
 		end
 
+	is_anti_aliasing_enabled: BOOLEAN
+			-- Should anti-aliasing be used when drawing pictures?
+
 feature -- Status report
 
 	is_redraw_needed: BOOLEAN
@@ -162,6 +166,22 @@ feature -- Status setting
 			grid_enabled := False
 		ensure
 			grid_disabled: not grid_enabled
+		end
+
+	enable_anti_aliasing
+			-- Set `is_anti_aliasing_enabled` to `True`.
+		do
+			is_anti_aliasing_enabled := True
+		ensure
+			anti_aliasing_enabled: is_anti_aliasing_enabled
+		end
+
+	disable_anti_aliasing
+			-- Set `is_anti_aliasing_enabled` to `False`.
+		do
+			is_anti_aliasing_enabled := False
+		ensure
+			anti_aliasing_disabled: not is_anti_aliasing_enabled
 		end
 
 	full_redraw
@@ -234,23 +254,14 @@ invariant
 	background_color_exists: background_color /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class EV_MODEL_WORLD
-
-
-
-
-
-
+end

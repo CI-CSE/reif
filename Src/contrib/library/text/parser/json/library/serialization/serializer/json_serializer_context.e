@@ -89,12 +89,16 @@ feature -- Status
 						else
 							ctx.force (l_field_ref)
 						end
-						Result := is_recursively_expanded_in_context (l_field_ref, ctx)
+						if obj /= l_field_ref then
+							Result := is_recursively_expanded_in_context (l_field_ref, ctx)
+						end
 					end
 				elseif l_field_type = refl_obj.expanded_type then
 					if l_field_ref /= Void then
 						l_field_ref := refl_obj.expanded_field (i)
-						Result := is_recursively_expanded_in_context (l_field_ref, ctx)
+						if obj /= l_field_ref then
+							Result := is_recursively_expanded_in_context (l_field_ref, ctx)
+						end
 					end
 				end
 				i := i + 1
@@ -187,11 +191,16 @@ feature -- Helpers
 			check is_accepted_object: is_accepted_object (obj) end
 			if attached {READABLE_STRING_GENERAL} obj as str and then attached default_serializer as conv then
 				Result := conv.to_json (obj, Current)
-			elseif
-				attached serializer (obj) as conv and then
-				a_caller_serializer /= conv
-			then
-				Result := conv.to_json (obj, Current)
+			elseif attached serializer (obj) as conv then
+				if
+					a_caller_serializer = conv and then attached {JSON_REFLECTOR_SERIALIZER} a_caller_serializer
+				then
+						-- Stop cycle!
+				else
+					Result := conv.to_json (obj, Current)
+				end
+			elseif attached {READABLE_STRING_GENERAL} obj as str then
+				create {JSON_STRING} Result.make_from_string_general (str)
 			end
 		end
 
@@ -278,6 +287,6 @@ feature {NONE} -- Implementation
 	serializers_cache: detachable HASH_TABLE [JSON_SERIALIZER, TYPE [detachable ANY]]
 
 ;note
-	copyright: "2010-2016, Javier Velilla and others https://github.com/eiffelhub/json."
+	copyright: "2010-2022, Javier Velilla, Jocelyn Fiat, Eiffel Software and others https://github.com/eiffelhub/json."
 	license: "https://github.com/eiffelhub/json/blob/master/License.txt"
 end

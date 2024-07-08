@@ -5,7 +5,7 @@ note
 		"Eiffel feature call handlers: traverse features and report when feature calls are found."
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2008-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2008-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,8 +20,8 @@ inherit
 		end
 
 	ET_AST_NULL_PROCESSOR
-		undefine
-			make
+		rename
+			make as make_ast_processor
 		redefine
 			process_across_expression,
 			process_across_instruction,
@@ -63,9 +63,13 @@ inherit
 			process_dotnet_constant_attribute,
 			process_dotnet_function,
 			process_dotnet_procedure,
+			process_elseif_expression,
+			process_elseif_expression_list,
 			process_elseif_part,
 			process_elseif_part_list,
 			process_equality_expression,
+			process_explicit_convert_from_expression,
+			process_explicit_convert_to_expression,
 			process_expression_address,
 			process_extended_attribute,
 			process_external_function,
@@ -76,9 +80,12 @@ inherit
 			process_formal_argument,
 			process_formal_argument_list,
 			process_hexadecimal_integer_constant,
+			process_identifier,
+			process_if_expression,
 			process_if_instruction,
 			process_infix_cast_expression,
 			process_infix_expression,
+			process_inspect_expression,
 			process_inspect_instruction,
 			process_invariants,
 			process_like_feature,
@@ -112,9 +119,11 @@ inherit
 			process_qualified_call_instruction,
 			process_qualified_like_braced_type,
 			process_qualified_like_type,
+			process_quantifier_expression,
 			process_regular_integer_constant,
 			process_regular_manifest_string,
 			process_regular_real_constant,
+			process_repeat_instruction,
 			process_special_manifest_string,
 			process_static_call_expression,
 			process_static_call_instruction,
@@ -130,6 +139,8 @@ inherit
 			process_unqualified_call_instruction,
 			process_variant,
 			process_verbatim_string,
+			process_when_expression,
+			process_when_expression_list,
 			process_when_part,
 			process_when_part_list
 		end
@@ -140,12 +151,12 @@ create
 
 feature {NONE} -- Initialization
 
-	make
+	make (a_system_processor: like system_processor)
 			-- Create a new feature call handler.
 		do
-			create expression_type_finder.make
+			precursor (a_system_processor)
+			create expression_type_finder.make (a_system_processor)
 			expression_type_finder.set_internal_error_enabled (internal_error_enabled)
-			current_class := tokens.unknown_class
 			current_type := current_class
 			current_feature := dummy_feature
 			current_feature_impl := dummy_feature.implementation_feature
@@ -156,7 +167,7 @@ feature {NONE} -- Initialization
 
 feature -- Processing
 
-	process_feature (a_feature: ET_FEATURE; a_current_type: ET_BASE_TYPE)
+	process_feature (a_feature: ET_STANDALONE_CLOSURE; a_current_type: ET_BASE_TYPE)
 			-- Traverse `a_feature' in `a_current_type' and report when feature calls
 			-- are found using 'report_*'.
 			-- Set `has_fatal_error' if a fatal error occurred.
@@ -171,7 +182,7 @@ feature -- Processing
 			a_current_type_valid: a_current_type.is_valid_context
 			a_current_class_preparsed: a_current_type.base_class.is_preparsed
 		local
-			l_feature_impl: ET_FEATURE
+			l_feature_impl: ET_STANDALONE_CLOSURE
 			l_class_impl: ET_CLASS
 			old_feature: ET_STANDALONE_CLOSURE
 			old_feature_impl: ET_STANDALONE_CLOSURE
@@ -218,12 +229,18 @@ feature -- Status report
 			-- Note that in the current implementation, inherited assertions
 			-- and class invariants are not taken into account even when
 			-- this boolean query is set to True.
+			-- For invariants, one needs to call `process_feature' explicitly
+			-- on the corresponding class invariants.
 
 	debug_instructions_enabled: BOOLEAN
 			-- Should feature calls appearing in debug instructions be reported?
 
 	anchored_types_enabled: BOOLEAN
 			-- Should feature appearing as anchor of an anchored type be reported?
+
+	assigner_queries_enabled: BOOLEAN
+			-- Should the query associated with an assigner instruction be reported?
+			-- For example 'item' in 'a.item := 5'
 
 	internal_error_enabled: BOOLEAN
 			-- Should an internal error be reported even when errors have already
@@ -253,6 +270,14 @@ feature -- Status setting
 			anchored_types_enabled := b
 		ensure
 			anchored_types_enabled_set: anchored_types_enabled = b
+		end
+
+	set_assigner_queries_enabled (b: BOOLEAN)
+			-- Set `assigner_queries_enabled' to `b'.
+		do
+			assigner_queries_enabled := b
+		ensure
+			assigner_queries_enabled_set: assigner_queries_enabled = b
 		end
 
 	set_internal_error_enabled (b: BOOLEAN)
@@ -620,79 +645,15 @@ feature {ET_AST_NODE} -- Processing
 	process_across_expression (an_expression: ET_ACROSS_EXPRESSION)
 			-- Process `an_expression'.
 			-- Set `has_fatal_error' if a fatal error occurred.
-		local
-			had_error: BOOLEAN
 		do
-			reset_fatal_error (False)
-			process_expression (an_expression.iterable_expression)
-			had_error := has_fatal_error
-			if assertions_enabled then
-				if attached an_expression.invariant_part as l_invariant_part then
-					process_loop_invariants (l_invariant_part)
-					had_error := had_error or has_fatal_error
-				end
-			end
-			if attached an_expression.until_conditional as l_conditional then
-				process_expression (l_conditional.expression)
-			end
-			had_error := had_error or has_fatal_error
-			process_expression (an_expression.iteration_conditional.expression)
-			had_error := had_error or has_fatal_error
-			if assertions_enabled then
-				if attached an_expression.variant_part as l_variant_part then
-					process_variant (l_variant_part)
-					had_error := had_error or has_fatal_error
-				end
-			end
-			process_expression (an_expression.new_cursor_expression)
-			had_error := had_error or has_fatal_error
-			process_expression (an_expression.cursor_after_expression)
-			had_error := had_error or has_fatal_error
-			an_expression.cursor_forth_instruction.process (Current)
-			had_error := had_error or has_fatal_error
-			reset_fatal_error (had_error)
+			process_iteration_expression (an_expression)
 		end
 
 	process_across_instruction (an_instruction: ET_ACROSS_INSTRUCTION)
 			-- Process `an_instruction'.
 			-- Set `has_fatal_error' if a fatal error occurred.
-		local
-			had_error: BOOLEAN
 		do
-			reset_fatal_error (False)
-			process_expression (an_instruction.iterable_expression)
-			had_error := has_fatal_error
-			if attached an_instruction.from_compound as l_from_compound then
-				process_compound (l_from_compound)
-				had_error := had_error or has_fatal_error
-			end
-			if assertions_enabled then
-				if attached an_instruction.invariant_part as l_invariant_part then
-					process_loop_invariants (l_invariant_part)
-					had_error := had_error or has_fatal_error
-				end
-			end
-			if attached an_instruction.until_conditional as l_conditional then
-				process_expression (l_conditional.expression)
-			end
-			had_error := had_error or has_fatal_error
-			if attached an_instruction.loop_compound as l_loop_compound then
-				process_compound (l_loop_compound)
-				had_error := had_error or has_fatal_error
-			end
-			if assertions_enabled then
-				if attached an_instruction.variant_part as l_variant_part then
-					process_variant (l_variant_part)
-					had_error := had_error or has_fatal_error
-				end
-			end
-			process_expression (an_instruction.new_cursor_expression)
-			had_error := had_error or has_fatal_error
-			process_expression (an_instruction.cursor_after_expression)
-			had_error := had_error or has_fatal_error
-			an_instruction.cursor_forth_instruction.process (Current)
-			had_error := had_error or has_fatal_error
-			reset_fatal_error (had_error)
+			process_iteration_instruction (an_instruction)
 		end
 
 	process_actual_arguments (a_list: ET_ACTUAL_ARGUMENTS)
@@ -822,8 +783,15 @@ feature {ET_AST_NODE} -- Processing
 	process_assigner_instruction (an_instruction: ET_ASSIGNER_INSTRUCTION)
 			-- Process `an_instruction'.
 			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			l_had_error: BOOLEAN
 		do
 			process_qualified_feature_call_instruction (an_instruction)
+			if assigner_queries_enabled then
+				l_had_error := has_fatal_error
+				process_qualified_feature_call_expression (an_instruction.call)
+				reset_fatal_error (l_had_error or has_fatal_error)
+			end
 		end
 
 	process_assignment (an_instruction: ET_ASSIGNMENT)
@@ -1302,6 +1270,36 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_elseif_expression (an_elseif_part: ET_ELSEIF_EXPRESSION)
+			-- Process `an_elseif_part'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			process_expression (an_elseif_part.conditional_expression)
+			had_error := has_fatal_error
+			process_expression (an_elseif_part.then_expression)
+			reset_fatal_error (had_error or has_fatal_error)
+		end
+
+	process_elseif_expression_list (a_list: ET_ELSEIF_EXPRESSION_LIST)
+			-- Process `a_list'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			i, nb: INTEGER
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				had_error := had_error or has_fatal_error
+				i := i + 1
+			end
+			reset_fatal_error (had_error)
+		end
+
 	process_elseif_part (an_elseif_part: ET_ELSEIF_PART)
 			-- Process `an_elseif_part'.
 			-- Set `has_fatal_error' if a fatal error occurred.
@@ -1345,6 +1343,20 @@ feature {ET_AST_NODE} -- Processing
 			had_error := has_fatal_error
 			process_expression (an_expression.right)
 			reset_fatal_error (had_error or has_fatal_error)
+		end
+
+	process_explicit_convert_from_expression (an_expression: ET_EXPLICIT_CONVERT_FROM_EXPRESSION)
+			-- Process `an_expression'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		do
+			process_creation_expression (an_expression)
+		end
+
+	process_explicit_convert_to_expression (an_expression: ET_EXPLICIT_CONVERT_TO_EXPRESSION)
+			-- Process `an_expression'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		do
+			process_qualified_feature_call_expression (an_expression)
 		end
 
 	process_expression (a_expression: ET_EXPRESSION)
@@ -1547,7 +1559,7 @@ feature {ET_AST_NODE} -- Processing
 				-- Do nothing
 			elseif l_name.is_object_test_local then
 				-- Do nothing
-			elseif l_name.is_across_cursor then
+			elseif l_name.is_iteration_item then
 				-- Do nothing
 			elseif attached current_class.seeded_procedure (l_seed) as l_procedure then
 					-- This is of the form '$procedure_name'.
@@ -1607,6 +1619,61 @@ feature {ET_AST_NODE} -- Processing
 			process_integer_constant (a_constant)
 		end
 
+	process_identifier (a_identifier: ET_IDENTIFIER)
+			-- Process `a_identifier'.
+		local
+			l_seed: INTEGER
+			l_iteration_component: ET_ITERATION_COMPONENT
+		do
+			if a_identifier.is_iteration_item then
+				l_seed := a_identifier.seed
+				if not attached current_closure_impl.iteration_components as l_iteration_components then
+						-- Internal error.
+						-- This error should have already been reported when checking
+						-- `current_feature' (using ET_FEATURE_CHECKER for example).
+					set_fatal_error
+					if internal_error_enabled or not current_class.has_implementation_error then
+						error_handler.report_giaaa_error
+					end
+				elseif l_seed < 1 or l_seed > l_iteration_components.count then
+						-- Internal error.
+						-- This error should have already been reported when checking
+						-- `current_feature' (using ET_FEATURE_CHECKER for example).
+					set_fatal_error
+					if internal_error_enabled or not current_class.has_implementation_error then
+						error_handler.report_giaaa_error
+					end
+				else
+					l_iteration_component := l_iteration_components.iteration_component (l_seed)
+					if a_identifier /= l_iteration_component.unfolded_cursor_name and then not l_iteration_component.has_cursor_name then
+							-- We are not in the case of 'across ... as ...' with
+							-- 'obsolete_iteration_mode' set to True.
+						process_expression (l_iteration_component.cursor_item_expression)
+					end
+				end
+			end
+		end
+
+	process_if_expression (a_expression: ET_IF_EXPRESSION)
+			-- Process `a_expression'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			process_expression (a_expression.conditional_expression)
+			had_error := has_fatal_error
+			process_expression (a_expression.then_expression)
+			had_error := had_error or has_fatal_error
+			if attached a_expression.elseif_parts as l_elseif_parts then
+				process_elseif_expression_list (l_elseif_parts)
+				had_error := had_error or has_fatal_error
+			end
+			process_expression (a_expression.else_expression)
+			had_error := had_error or has_fatal_error
+			reset_fatal_error (had_error)
+		end
+
 	process_if_instruction (an_instruction: ET_IF_INSTRUCTION)
 			-- Process `an_instruction'.
 			-- Set `has_fatal_error' if a fatal error occurred.
@@ -1643,6 +1710,26 @@ feature {ET_AST_NODE} -- Processing
 			-- Set `has_fatal_error' if a fatal error occurred.
 		do
 			process_qualified_feature_call_expression (an_expression)
+		end
+
+	process_inspect_expression (a_expression: ET_INSPECT_EXPRESSION)
+			-- Process `a_expression'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			process_expression (a_expression.expression)
+			had_error := has_fatal_error
+			if attached a_expression.when_parts as l_when_parts then
+				process_when_expression_list (l_when_parts)
+				had_error := had_error or has_fatal_error
+			end
+			if attached a_expression.else_part as l_else_part then
+				process_expression (l_else_part.expression)
+				had_error := had_error or has_fatal_error
+			end
+			reset_fatal_error (had_error)
 		end
 
 	process_inspect_instruction (an_instruction: ET_INSPECT_INSTRUCTION)
@@ -1773,6 +1860,84 @@ feature {ET_AST_NODE} -- Processing
 			process_assertions (a_list)
 		end
 
+	process_iteration_expression (an_expression: ET_ITERATION_EXPRESSION)
+			-- Process `an_expression'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			process_expression (an_expression.iterable_expression)
+			had_error := has_fatal_error
+			if assertions_enabled then
+				if attached an_expression.invariant_part as l_invariant_part then
+					process_loop_invariants (l_invariant_part)
+					had_error := had_error or has_fatal_error
+				end
+			end
+			if attached an_expression.until_conditional as l_conditional then
+				process_expression (l_conditional.expression)
+			end
+			had_error := had_error or has_fatal_error
+			process_expression (an_expression.iteration_expression)
+			had_error := had_error or has_fatal_error
+			if assertions_enabled then
+				if attached an_expression.variant_part as l_variant_part then
+					process_variant (l_variant_part)
+					had_error := had_error or has_fatal_error
+				end
+			end
+			process_expression (an_expression.new_cursor_expression)
+			had_error := had_error or has_fatal_error
+			process_expression (an_expression.cursor_after_expression)
+			had_error := had_error or has_fatal_error
+			an_expression.cursor_forth_instruction.process (Current)
+			had_error := had_error or has_fatal_error
+			reset_fatal_error (had_error)
+		end
+
+	process_iteration_instruction (an_instruction: ET_ITERATION_INSTRUCTION)
+			-- Process `an_instruction'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			process_expression (an_instruction.iterable_expression)
+			had_error := has_fatal_error
+			if attached an_instruction.from_compound as l_from_compound then
+				process_compound (l_from_compound)
+				had_error := had_error or has_fatal_error
+			end
+			if assertions_enabled then
+				if attached an_instruction.invariant_part as l_invariant_part then
+					process_loop_invariants (l_invariant_part)
+					had_error := had_error or has_fatal_error
+				end
+			end
+			if attached an_instruction.until_conditional as l_conditional then
+				process_expression (l_conditional.expression)
+			end
+			had_error := had_error or has_fatal_error
+			if attached an_instruction.loop_compound as l_loop_compound then
+				process_compound (l_loop_compound)
+				had_error := had_error or has_fatal_error
+			end
+			if assertions_enabled then
+				if attached an_instruction.variant_part as l_variant_part then
+					process_variant (l_variant_part)
+					had_error := had_error or has_fatal_error
+				end
+			end
+			process_expression (an_instruction.new_cursor_expression)
+			had_error := had_error or has_fatal_error
+			process_expression (an_instruction.cursor_after_expression)
+			had_error := had_error or has_fatal_error
+			an_instruction.cursor_forth_instruction.process (Current)
+			had_error := had_error or has_fatal_error
+			reset_fatal_error (had_error)
+		end
+
 	process_like_feature (a_type: ET_LIKE_FEATURE)
 			-- Process `a_type'.
 			-- Set `has_fatal_error' if a fatal error occurred.
@@ -1873,8 +2038,18 @@ feature {ET_AST_NODE} -- Processing
 	process_manifest_array (an_expression: ET_MANIFEST_ARRAY)
 			-- Process `an_expression'.
 			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
 		do
+			reset_fatal_error (False)
+			if anchored_types_enabled then
+				if attached an_expression.cast_type as l_type then
+					process_type (l_type.type)
+					had_error := has_fatal_error
+				end
+			end
 			process_expression_list (an_expression)
+			reset_fatal_error (had_error or has_fatal_error)
 		end
 
 	process_manifest_string (a_string: ET_MANIFEST_STRING)
@@ -2386,6 +2561,13 @@ feature {ET_AST_NODE} -- Processing
 			process_qualified_like_identifier (a_type)
 		end
 
+	process_quantifier_expression (a_expression: ET_QUANTIFIER_EXPRESSION)
+			-- Process `a_expression'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		do
+			process_iteration_expression (a_expression)
+		end
+
 	process_real_constant (a_constant: ET_REAL_CONSTANT)
 			-- Process `a_constant'.
 			-- Set `has_fatal_error' if a fatal error occurred.
@@ -2419,6 +2601,13 @@ feature {ET_AST_NODE} -- Processing
 			-- Set `has_fatal_error' if a fatal error occurred.
 		do
 			process_real_constant (a_constant)
+		end
+
+	process_repeat_instruction (a_instruction: ET_REPEAT_INSTRUCTION)
+			-- Process `a_instruction'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		do
+			process_iteration_instruction (a_instruction)
 		end
 
 	process_special_manifest_string (a_string: ET_SPECIAL_MANIFEST_STRING)
@@ -2813,6 +3002,36 @@ feature {ET_AST_NODE} -- Processing
 			-- Set `has_fatal_error' if a fatal error occurred.
 		do
 			process_manifest_string (a_string)
+		end
+
+	process_when_expression (a_when_part: ET_WHEN_EXPRESSION)
+			-- Process `a_when_part'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			process_choice_list (a_when_part.choices)
+			had_error := has_fatal_error
+			process_expression (a_when_part.then_expression)
+			reset_fatal_error (had_error or has_fatal_error)
+		end
+
+	process_when_expression_list (a_list: ET_WHEN_EXPRESSION_LIST)
+			-- Process `a_list'.
+			-- Set `has_fatal_error' if a fatal error occurred.
+		local
+			i, nb: INTEGER
+			had_error: BOOLEAN
+		do
+			reset_fatal_error (False)
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				had_error := had_error or has_fatal_error
+				i := i + 1
+			end
+			reset_fatal_error (had_error)
 		end
 
 	process_when_part (a_when_part: ET_WHEN_PART)

@@ -35,7 +35,7 @@ feature -- View
 			-- Home redirect
 		do
 			if attached req.http_host as l_host then
-				compute_response_redirect (req, res, absolute_host(req,""))
+				compute_response_redirect (req, res, absolute_host (req, ""))
 			end
 		end
 
@@ -57,16 +57,38 @@ feature -- View
 		local
 			l_hp: HTML_REPORT
 		do
-			log.write_information (generator+".problem_reports_guest" )
+			debug
+				log.write_information (generator + ".problem_reports_guest")
+			end
 			if attached req.http_host as l_host then
 				create l_hp.make (absolute_host (req, ""), a_report_view)
 				if attached l_hp.representation as l_report_page then
 					new_response_get (req, res, l_report_page)
 				end
 			end
-			log.write_information (generator+".problem_reports_guest executed" )
+			debug
+				log.write_information (generator + ".problem_reports_guest executed")
+			end
 		end
 
+	problem_closed_reports_guest (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: ESA_REPORT_VIEW)
+			-- <Precursor>
+		local
+			l_hp: HTML_CLOSED_REPORT
+		do
+			debug
+				log.write_information (generator + ".problem_closed_reports_guest")
+			end
+			if attached req.http_host as l_host then
+				create l_hp.make (absolute_host (req, ""), a_report_view)
+				if attached l_hp.representation as l_report_page then
+					new_response_get (req, res, l_report_page)
+				end
+			end
+			debug
+				log.write_information (generator + ".problem_reports_guest executed")
+			end
+		end
 
 	problem_user_reports (req: WSF_REQUEST; res: WSF_RESPONSE; a_view: ESA_REPORT_VIEW)
 			-- <Precursor>
@@ -81,7 +103,7 @@ feature -- View
 			end
 		end
 
-	problem_reports_responsible  (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: ESA_REPORT_VIEW)
+	problem_reports_responsible (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: ESA_REPORT_VIEW)
 			-- <Precursor>
 		local
 			l_hp: HTML_RESPONSIBLE_REPORT
@@ -91,6 +113,25 @@ feature -- View
 				if attached l_hp.representation as l_home_page then
 					new_response_get_cache (req, res, l_home_page)
 				end
+			end
+		end
+
+	problem_reports_responsible_closed (req: WSF_REQUEST; res: WSF_RESPONSE; a_report_view: ESA_REPORT_VIEW)
+			-- <Precursor>
+		local
+			l_hp: HTML_CLOSED_REPORT
+		do
+			debug
+				log.write_information (generator + ".problem_reports_responsible_closed")
+			end
+			if attached req.http_host as l_host then
+				create l_hp.make (absolute_host (req, ""), a_report_view)
+				if attached l_hp.representation as l_report_page then
+					new_response_get (req, res, l_report_page)
+				end
+			end
+			debug
+				log.write_information (generator + ".problem_reports_responsible_closed executed")
 			end
 		end
 
@@ -124,7 +165,7 @@ feature -- View
 			-- Report form confirm redirect
 		do
 			if attached current_user_name (req) as l_user then
-				compute_response_redirect (req, res,absolute_host(req,"/user_reports/"+l_user))
+				compute_response_redirect (req, res, absolute_host (req, "/user_reports/" + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_user)))
 			end
 		end
 
@@ -133,7 +174,6 @@ feature -- View
 		do
 			to_implement ("Implement")
 		end
-
 
 	report_form_error (req: WSF_REQUEST; res: WSF_RESPONSE; a_form: ESA_REPORT_FORM_VIEW)
 			-- Report form error
@@ -148,12 +188,11 @@ feature -- View
 			end
 		end
 
-	update_report_responsible (req: WSF_REQUEST; res: WSF_RESPONSE; a_redirect_uri: READABLE_STRING_32)
+	update_report_responsible (req: WSF_REQUEST; res: WSF_RESPONSE; a_redirect_uri: READABLE_STRING_8)
 			-- Update report responsible
 		do
-			compute_response_redirect (req, res, absolute_host (req, a_redirect_uri) )
+			compute_response_redirect (req, res, absolute_host (req, a_redirect_uri))
 		end
-
 
 	not_found_page (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Home page representation
@@ -205,7 +244,7 @@ feature -- View
 			end
 		end
 
-	bad_request_with_errors_page (req: WSF_REQUEST; res: WSF_RESPONSE; errors: STRING_TABLE[READABLE_STRING_32])
+	bad_request_with_errors_page (req: WSF_REQUEST; res: WSF_RESPONSE; errors: STRING_TABLE [READABLE_STRING_32])
 			-- Bad request with error page
 		local
 			l_hp: HTML_400
@@ -223,7 +262,7 @@ feature -- View
 			l_hp: HTML_401
 		do
 			if attached req.http_host as l_host then
-				create l_hp.make_with_redirect (absolute_host (req, ""),req.request_uri, current_user_name (req) )
+				create l_hp.make_with_redirect (absolute_host (req, ""), req.request_uri, current_user_name (req))
 				if attached l_hp.representation as l_unauthorized then
 					new_response_access_unauthorized (req, res, l_unauthorized)
 				end
@@ -233,7 +272,7 @@ feature -- View
 	internal_server_error (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- internal_server_error
 		local
-				l_hp: HTML_500
+			l_hp: HTML_500
 		do
 			if attached req.http_host as l_host then
 				create l_hp.make (absolute_host (req, ""))
@@ -260,7 +299,7 @@ feature -- View
 			end
 		end
 
-	post_register_page 	(req: WSF_REQUEST; res: WSF_RESPONSE)
+	post_register_page (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Post Register page
 		local
 			l_hp: HTML_POST_REGISTER
@@ -303,33 +342,31 @@ feature -- View
 			end
 		end
 
-
-	status_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST[REPORT_STATUS])
+	status_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST [REPORT_STATUS])
 			-- <Precursor>
 		do
 			to_implement ("Add HTML implementation")
 		end
 
-
-	severity_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST[REPORT_SEVERITY])
+	severity_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST [REPORT_SEVERITY])
 			-- <Precursor>
 		do
 			to_implement ("Add HTML implementation")
 		end
 
-	category_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST[REPORT_CATEGORY])
+	category_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST [REPORT_CATEGORY])
 			-- <Precursor>
 		do
 			to_implement ("Add HTML implementation")
 		end
 
-	priority_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: detachable LIST[REPORT_PRIORITY])
+	priority_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: detachable LIST [REPORT_PRIORITY])
 			-- <Precursor>
 		do
 			to_implement ("Add HTML implementation")
 		end
 
-	responsible_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: detachable LIST[USER])
+	responsible_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: detachable LIST [USER])
 			-- <Precursor>
 		do
 			to_implement ("Add HTML implementation")
@@ -351,7 +388,7 @@ feature -- View
 	interaction_form_confirm (req: WSF_REQUEST; res: WSF_RESPONSE; a_form: ESA_INTERACTION_FORM_VIEW)
 			-- Interaction Form Confirm.
 		local
-				l_hp: HTML_INTERACTION_CONFIRM
+			l_hp: HTML_INTERACTION_CONFIRM
 		do
 			if attached req.http_host as l_host then
 				create l_hp.make (absolute_host (req, ""), a_form, current_user_name (req))
@@ -367,12 +404,11 @@ feature -- View
 			to_implement ("Add HTML implementation")
 		end
 
-
 	interaction_form_confirm_redirect (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Interaction form redirect
 		do
 			if attached current_user_name (req) as l_user then
-				compute_response_redirect (req, res,absolute_host (req, "/reports" ))
+				compute_response_redirect (req, res, absolute_host (req, "/reports"))
 			end
 		end
 
@@ -382,8 +418,7 @@ feature -- View
 			to_implement ("to be implemented")
 		end
 
-
-	reminder_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_error: detachable STRING)
+	reminder_page (req: WSF_REQUEST; res: WSF_RESPONSE; a_error: detachable READABLE_STRING_GENERAL)
 			-- Reminder page
 		local
 			l_hp: HTML_REMINDER
@@ -426,10 +461,9 @@ feature -- View
 			-- <Precursor>
 		do
 			if attached current_user_name (req) as l_user then
-				compute_response_redirect (req, res,absolute_host (req, "/user_reports/"+l_user) )
+				compute_response_redirect (req, res, absolute_host (req, "/user_reports/" + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_user)))
 			end
 		end
-
 
 	change_password (req: WSF_REQUEST; res: WSF_RESPONSE; a_view: ESA_PASSWORD_VIEW)
 			-- <Precursor>
@@ -442,7 +476,7 @@ feature -- View
 					if attached a_view.errors then
 						new_response_get_400 (req, res, l_change_password_page)
 					else
-					    new_response_get (req, res, l_change_password_page)
+						new_response_get (req, res, l_change_password_page)
 					end
 				end
 			end
@@ -459,7 +493,7 @@ feature -- View
 					if attached a_view.errors then
 						new_response_get_400 (req, res, l_change_password_page)
 					else
-					    new_response_get (req, res, l_change_password_page)
+						new_response_get (req, res, l_change_password_page)
 					end
 				end
 			end
@@ -468,12 +502,12 @@ feature -- View
 	post_email_change_page (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- <Precursor>
 		local
-				l_hp: HTML_POST_CHANGE_EMAIL
+			l_hp: HTML_POST_CHANGE_EMAIL
 		do
 			if attached req.http_host as l_host then
 				create l_hp.make (absolute_host (req, ""), current_user_name (req))
 				if attached l_hp.representation as l_change_password_page then
-					    new_response_get (req, res, l_change_password_page)
+					new_response_get (req, res, l_change_password_page)
 				end
 			end
 		end
@@ -489,7 +523,7 @@ feature -- View
 					if attached a_view.errors then
 						new_response_get_400 (req, res, l_change_password_page)
 					else
-					    new_response_get (req, res, l_change_password_page)
+						new_response_get (req, res, l_change_password_page)
 					end
 				end
 			end
@@ -506,7 +540,7 @@ feature -- View
 					if attached a_view.errors then
 						new_response_get_400 (req, res, l_change_password_page)
 					else
-					    new_response_get (req, res, l_change_password_page)
+						new_response_get (req, res, l_change_password_page)
 					end
 				end
 			end
@@ -516,11 +550,11 @@ feature -- View
 			-- <Precursor>
 		do
 			if attached current_user_name (req) as l_user then
-				compute_response_redirect (req, res,absolute_host (req, "/user_reports/"+l_user) )
+				compute_response_redirect (req, res, absolute_host (req, "/user_reports/" + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_user)))
 			end
 		end
 
-	subscribe_to_category (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST [ ESA_CATEGORY_SUBSCRIBER_VIEW ] )
+	subscribe_to_category (req: WSF_REQUEST; res: WSF_RESPONSE; a_list: LIST [ESA_CATEGORY_SUBSCRIBER_VIEW])
 			-- <Precursor>
 		local
 			l_hp: ESA_SUBSCRIBE_TO_CATEGORY
@@ -528,11 +562,10 @@ feature -- View
 			if attached req.http_host as l_host then
 				create l_hp.make (absolute_host (req, ""), current_user_name (req), a_list)
 				if attached l_hp.representation as l_change_password_page then
-					    new_response_get (req, res, l_change_password_page)
+					new_response_get (req, res, l_change_password_page)
 				end
 			end
 		end
-
 
 feature -- Response
 
@@ -586,7 +619,6 @@ feature -- Response
 			res.put_header_text (h.string)
 			res.put_string (output)
 		end
-
 
 	new_response_get_400 (req: WSF_REQUEST; res: WSF_RESPONSE; output: STRING)
 		local
@@ -655,15 +687,16 @@ feature -- Response
 			res.put_string (output)
 		end
 
-	compute_response_redirect (req: WSF_REQUEST; res: WSF_RESPONSE; a_location: READABLE_STRING_32)
+	compute_response_redirect (req: WSF_REQUEST; res: WSF_RESPONSE; a_location: READABLE_STRING_8)
 			-- Redirect to `a_location'
 		local
 			h: HTTP_HEADER
 		do
 			create h.make
+			h.put_content_length (0)
 			h.put_content_type_text_html
 			h.put_current_date
-			h.put_location (a_location.to_string_8)
+			h.put_location (a_location)
 			res.set_status_code ({HTTP_STATUS_CODE}.see_other)
 			res.put_header_text (h.string)
 		end

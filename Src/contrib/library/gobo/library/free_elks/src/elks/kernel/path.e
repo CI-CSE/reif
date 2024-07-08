@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			Objects representing a path, i.e. a way to identify a file or a directory for the
 			current underlying platform. A path is made of two components:
@@ -232,7 +232,7 @@ feature {NONE} -- Internal initialization
 				-- Let's make sure that `nb' is a valid length, any value on Unix, but an even number on Windows
 			nb := nb - nb \\ unit_size
 			create l_cstr.make_shared_from_pointer_and_count (a_path_pointer, nb)
-			storage := l_cstr.substring (1, nb)
+			storage := l_cstr.substring_8 (1, nb)
 				-- Path was created from a non-normalized pointer, we need to normalize it.
 			if not storage.is_empty then
 				normalize
@@ -460,7 +460,7 @@ feature -- Access
 	components: ARRAYED_LIST [PATH]
 			-- Sequence of simple paths making up Current, including `root' if any.
 		local
-			l_storage: STRING
+			l_storage: STRING_8
 			l_previous_pos, l_pos: INTEGER
 		do
 			create Result.make (10)
@@ -626,9 +626,7 @@ feature -- Access
 						l_components.forth
 					end
 				end
-				across l_components as l_component loop
-					internal_path_append_into (l_storage, l_component.item.storage, directory_separator)
-				end
+				⟳ c: l_components ¦ internal_path_append_into (l_storage, c.storage, directory_separator) ⟲
 					-- Everything was built from normalized strings.
 				create Result.make_from_normalized_storage (l_storage)
 			else
@@ -655,11 +653,11 @@ feature -- Access
 			set: Result.raw_string.same_string (storage)
 		end
 
-	unix_separator: CHARACTER = '/'
-	windows_separator: CHARACTER = '\'
+	unix_separator: CHARACTER_8 = '/'
+	windows_separator: CHARACTER_8 = '\'
 			-- Platform specific directory separator.
 
-	directory_separator: CHARACTER
+	directory_separator: CHARACTER_8
 			-- Default directory separator for the current platform.
 		do
 			if {PLATFORM}.is_windows then
@@ -667,6 +665,8 @@ feature -- Access
 			else
 				Result := unix_separator
 			end
+		ensure
+			instance_free: class
 		end
 
 feature -- Status setting
@@ -882,13 +882,17 @@ feature -- Duplication
 
 feature -- Output
 
-	out: STRING_8
-			-- ASCII representation of the underlying filename if representable,
+	out: STRING
+			-- Unicode representation of the underlying filename if representable,
 			-- otherwise a UTF-8 encoded version.
 			-- Use `utf_8_name' to have a printable representation whose format is not going
 			-- to be changed in the future.
 		do
-			Result := utf_8_name
+			if attached {READABLE_STRING} name as n then
+				create Result.make_from_string (n)
+			else
+				Result := utf_8_name
+			end
 		end
 
 	utf_8_name: STRING_8
@@ -896,7 +900,7 @@ feature -- Output
 		local
 			u: UTF_CONVERTER
 		do
-			Result := u.utf_32_string_to_utf_8_string_8 (name)
+			Result := u.escaped_utf_32_string_to_utf_8_string_8 (name)
 		end
 
 	name: IMMUTABLE_STRING_32
@@ -1009,7 +1013,7 @@ feature {PATH} -- Implementation
 						(is_character (l_storage, 1, unix_separator) and (is_character (l_storage, 3, unix_separator) or is_character (l_storage, 3, windows_separator))) or
 						(is_character (l_storage, 1, windows_separator) and (is_character (l_storage, 3, windows_separator) or is_character (l_storage, 3, unix_separator)))
 					then
-						if (not is_character (l_storage, 5, unix_separator) and not is_character (l_storage, 5, windows_separator)) then
+						if not is_character (l_storage, 5, unix_separator) and not is_character (l_storage, 5, windows_separator) then
 								-- Simply "\\a", so we keep the leading redundant directory separator.
 							i := 5
 							l_has_unc := True
@@ -1090,11 +1094,12 @@ feature {PATH} -- Implementation
 			end
 				-- Remove the trailing directory separators when the path is
 				-- not just made of the root.
-			if is_character (l_storage, l_storage.count - unit_size + 1, directory_separator) then
-				if root_end_position < l_storage.count then
-						-- We have a path of the form `root/X/' so we can safely remove the trailing directory separator
-					l_storage.remove_tail (unit_size)
-				end
+			if
+				is_character (l_storage, l_storage.count - unit_size + 1, directory_separator) and then
+				root_end_position < l_storage.count
+			then
+					-- We have a path of the form `root/X/' so we can safely remove the trailing directory separator
+				l_storage.remove_tail (unit_size)
 			end
 		ensure
 			is_normalized: is_normalized
@@ -1242,7 +1247,7 @@ feature {NONE} -- Implementation
 			has_separator: Result > 0 implies is_character (storage, Result, directory_separator)
 		end
 
-	internal_append_into (a_storage: STRING_8; other: READABLE_STRING_GENERAL; a_separator: CHARACTER)
+	internal_append_into (a_storage: STRING_8; other: READABLE_STRING_GENERAL; a_separator: CHARACTER_8)
 			-- Append `a_separator' if different from '%U' and not already present as last character
 			-- in `a_storage', and then `other' to Current.
 		require
@@ -1253,18 +1258,21 @@ feature {NONE} -- Implementation
 		do
 			if not other.is_empty then
 					-- Add a separator if needed.
-				if a_separator /= '%U' and not a_storage.is_empty then
+				if
+					a_separator /= '%U' and
+					not a_storage.is_empty and then
 						-- Only add a terminator if `a_storage' does not already have one at the end, or if `other' does not already
 						-- have one at the beginning.
-					if not is_character (a_storage, a_storage.count - unit_size + 1, a_separator) and other.item (1) /= unix_separator then
-						if {PLATFORM}.is_windows then
-							if other.item (1) /= windows_separator then
-								a_storage.append_character (a_separator)
-								a_storage.append_character ('%U')
-							end
-						else
+					not is_character (a_storage, a_storage.count - unit_size + 1, a_separator) and
+					other.item (1) /= unix_separator
+				then
+					if {PLATFORM}.is_windows then
+						if other.item (1) /= windows_separator then
 							a_storage.append_character (a_separator)
+							a_storage.append_character ('%U')
 						end
+					else
+						a_storage.append_character (a_separator)
 					end
 				end
 					-- Take `other' and add it to `a_storage'.
@@ -1276,30 +1284,30 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	internal_path_append_into (a_storage, other: STRING_8; a_separator: CHARACTER)
+	internal_path_append_into (a_storage, other: STRING_8; a_separator: CHARACTER_8)
 			-- Append `a_separator' if other than '%U' and not already present as last character
 			-- of `a_storage', and then `other' to `a_storage'.
 		require
 			other_not_void: other /= Void
 			other_not_empty: not other.is_empty
 		do
-			if a_separator /= '%U' and not a_storage.is_empty then
+			if
+				a_separator /= '%U' and
+				not a_storage.is_empty and then
+				not is_character (a_storage, a_storage.count - unit_size + 1, a_separator) and
+				not is_character (other, 1, a_separator)
+			then
 					-- Only add a terminator if `a_storage' does not already have one at the end, or if `other' does not already
 					-- have one at the beginning.
-				if
-					not is_character (a_storage, a_storage.count - unit_size + 1, a_separator) and
-					not is_character (other, 1, a_separator)
-				then
-					a_storage.append_character (a_separator)
-					if {PLATFORM}.is_windows then
-						a_storage.append_character ('%U')
-					end
+				a_storage.append_character (a_separator)
+				if {PLATFORM}.is_windows then
+					a_storage.append_character ('%U')
 				end
 			end
 			a_storage.append (other)
 		end
 
-	internal_path_append_substring_into (a_storage, other: STRING_8; other_start_index, other_end_index: INTEGER; a_separator: CHARACTER)
+	internal_path_append_substring_into (a_storage, other: STRING_8; other_start_index, other_end_index: INTEGER; a_separator: CHARACTER_8)
 			-- Append `a_separator' if other than '%U' and not already present as last character
 			-- of `a_storage.substring (other_start_index, other_end_index)', and then `other' to `a_storage'.
 		require
@@ -1307,17 +1315,17 @@ feature {NONE} -- Implementation
 			other_not_empty: not other.is_empty
 			other_has_not_trailing_directory_separator: not is_character (other, other.count - unit_size + 1, directory_separator)
 		do
-			if a_separator /= '%U' and not a_storage.is_empty then
+			if
+				a_separator /= '%U' and
+				not a_storage.is_empty and then
+				not is_character (a_storage, a_storage.count - unit_size + 1, a_separator) and
+				not is_character (other, other_start_index, a_separator)
+			then
 					-- Only add a terminator if `a_storage' does not already have one at the end, or if `other' doest not already
 					-- have one at the beginning.
-				if
-					not is_character (a_storage, a_storage.count - unit_size + 1, a_separator) and
-					not is_character (other, other_start_index, a_separator)
-				then
-					a_storage.append_character (a_separator)
-					if {PLATFORM}.is_windows then
-						a_storage.append_character ('%U')
-					end
+				a_storage.append_character (a_separator)
+				if {PLATFORM}.is_windows then
+					a_storage.append_character ('%U')
 				end
 			end
 			a_storage.append_substring (other, other_start_index, other_end_index)
@@ -1445,7 +1453,7 @@ invariant
 	no_forward_slash_on_windows: {PLATFORM}.is_windows implies not storage.has_substring ("/%U")
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -18,14 +18,18 @@ inherit
 
 	SHARED_ES_CLOUD_SERVICE
 
+	SHARED_LOCALE
+
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make
+	make (a_edition: EIFFEL_EDITION)
 			-- Initialize `Current'.
 		do
+			eiffel_edition := a_edition
+			terms_agreement_required := a_edition.is_branded_edition
 			build_interface
 		end
 
@@ -35,7 +39,7 @@ feature {NONE} -- Initialization
 		local
 			cl: EV_CELL
 		do
-			create dialog.make_with_title ("EiffelStudio Startup")
+			create dialog.make_with_title ("EiffelStudio")
 			dialog.set_icon_pixmap (Pixmaps.icon_pixmaps.general_dialog_icon)
 			dialog.set_icon_name ("Startup")
 			create cl
@@ -48,23 +52,25 @@ feature {NONE} -- Initialization
 feature -- Execution
 
 	start (win: EV_WINDOW)
+		local
+			acc: ES_ACCOUNT
 		do
-			if is_gpl_edition then
-				if not license_accepted then
-					switch_to_gpl_agreement_page
+			if terms_agreement_required or is_cloud_enabled then
+				if terms_agreement_required and not terms_accepted then
+					switch_to_user_agreement_page
 					show_modal_to_window (win)
-				elseif is_cloud_enabled then
+				elseif is_cloud_enabled and then attached es_cloud_s.service as cld then
 					if is_logged_in then
-						if
-							attached es_cloud_s.service as cld and then
-							attached cld.active_account as acc
-						then
-							cld.on_account_logged_in (acc)
-						end
+						acc := cld.active_account
+					end
+					if acc /= Void and then not acc.is_expired then --and then acc.has_active_plan then
+						cld.on_account_signed_in (acc)
 						on_next
-					else
-						switch_to_account_page
+					elseif {ES_IDE_SETTINGS}.cloud_required then
+						switch_to_account_page (cld, if acc /= Void then acc.username else Void end, False)
 						show_modal_to_window (win)
+					else
+						on_next
 					end
 				else
 					on_next
@@ -74,13 +80,13 @@ feature -- Execution
 			end
 		end
 
-	switch_to_gpl_agreement_page
+	switch_to_user_agreement_page
 		local
 			vb: EV_VERTICAL_BOX
 			hb: EV_HORIZONTAL_BOX
+			lab: EV_LABEL
 			txt: EV_TEXT
-			l_agreement_text: STRING
-			lnk: EVS_LINK_LABEL
+			lnk: EV_LINK_LABEL
 			eiffel_image: EV_PIXMAP
 			but: EV_BUTTON
 			l_focus: detachable EV_WIDGET
@@ -94,7 +100,7 @@ feature -- Execution
 			hb.set_padding_width (layout_constants.default_padding_size)
 
 			main_box.replace (hb)
-			if is_gpl_edition then
+			if terms_agreement_required then
 				create vb
 				eiffel_image :=	Pixmaps.bm_About.twin
 				eiffel_image.set_minimum_size (eiffel_image.width, eiffel_image.height)
@@ -111,20 +117,18 @@ feature -- Execution
 				hb.extend (vb)
 				vb.set_padding_width (layout_constants.default_padding_size)
 
+--				if eiffel_edition.is_branded_edition then
+--					create lab.make_with_text (locale.translation_in_context ("To continue using this branded edition of EiffelStudio, you must first agree with the license terms. If you do not agree with the terms, use another EiffelStudio Edition.", "license"))
+--					vb.extend (lab)
+--					vb.disable_item_expand (lab)
+--				end
+
+				create lab.make_with_text (interface_names.l_please_read_and_accept_terms)
+				vb.extend (lab)
+				vb.disable_item_expand (lab)
+
 				create txt
-				l_agreement_text := "[
-About the EiffelStudio GPL license
-
-The terms of the EiffelStudio license appear below; they are those of the Gnu Public License (GPL), with no change. The spirit of the EiffelStudio license is to encourage the production of free Eiffel software, in the spirit of both the GPL and the Eiffel method's promotion of software reuse. As a consequence, users relying on the GPL are expected to make their own software, developed with EiffelStudio, available under the GPL or another open-source  software license.
-
-There are a variety of ways to distribute EiffelStudio-produced software, from Github to BitBucket, SourceForge and others, as well as Eiffel's own Iron repository. You are free to choose whichever medium suits you best. We do request that you make the software known and available to other Eiffel users by providing a link to it. Simply log into your account at http://myprojects.eiffel.org and follow the instructions.
-
-If you prefer to develop proprietary software, or do not agree with the terms of the GPL, other possibilities are available.
-
-We look forward to your contributions
-				]"
-
-				txt.set_text (l_agreement_text)
+				txt.set_text (terms_agreement_text)
 				txt.disable_edit
 				txt.set_background_color (bg)
 				txt.set_foreground_color (fg)
@@ -150,16 +154,18 @@ We look forward to your contributions
 				hb.disable_item_expand (vb)
 
 
-				create but.make_with_text_and_action (interface_names.b_continue, agent on_gpl_usage_accepted)
+				create but.make_with_text_and_action (interface_names.b_continue, agent on_usage_accepted)
 				layout_constants.set_default_size_for_button (but)
 				l_focus := but
-				append_label_and_item_horizontally (interface_names.l_agree_and_continue_with_gpl, but, vb)
+				append_label_and_item_horizontally (interface_names.l_agree_and_continue_with_terms, but, vb)
 
-				create but.make_with_text_and_action (interface_names.b_purchase, agent on_purchase_selected)
-				layout_constants.set_default_size_for_button (but)
-				append_label_and_item_horizontally (interface_names.l_purchase_enterprise_edition, but, vb)
+				if eiffel_edition.is_standard_edition then
+					create but.make_with_text_and_action (interface_names.b_purchase, agent on_purchase_selected)
+					layout_constants.set_default_size_for_button (but)
+					append_label_and_item_horizontally (interface_names.l_purchase_license, but, vb)
+				end
 
-				create but.make_with_text_and_action (interface_names.b_quit, agent on_quit)
+				create but.make_with_text_and_action (interface_names.b_reject_and_quit, agent on_quit)
 				layout_constants.set_default_size_for_button (but)
 				append_label_and_item_horizontally ("", but, vb)
 
@@ -172,7 +178,9 @@ We look forward to your contributions
 			main_box.propagate_background_color
 		end
 
-	switch_to_account_page
+	switch_to_account_page (cld: ES_CLOUD_S; a_username: detachable READABLE_STRING_GENERAL; a_account_optional: BOOLEAN)
+		require
+			is_cloud_enabled: is_cloud_enabled
 		local
 			vb: EV_VERTICAL_BOX
 			hb: EV_HORIZONTAL_BOX
@@ -205,15 +213,27 @@ We look forward to your contributions
 
 			vb.set_padding_width (layout_constants.default_padding_size)
 
-			create wid.make
+			if {ES_IDE_SETTINGS}.cloud_required then
+				create wid.make_cloud_required (cld)
+			else
+				create wid.make (cld)
+			end
+			if a_username /= Void then
+				wid.set_username (a_username)
+			end
 			wid.next_actions.extend (agent on_next)
 			vb.extend (wid)
 			vb.disable_item_expand (wid)
 			vb.extend (create {EV_CELL})
 
-			create but.make_with_text_and_action (interface_names.b_quit, agent on_quit)
+			if a_account_optional then
+				create but.make_with_text_and_action (interface_names.b_close, agent on_close)
+			else
+				create but.make_with_text_and_action (interface_names.b_quit, agent on_quit)
+			end
 			layout_constants.set_default_width_for_button (but)
 			append_label_and_item_horizontally ("", but, vb)
+
 
 			if l_focus /= Void then
 				l_focus.set_focus
@@ -222,17 +242,18 @@ We look forward to your contributions
 			main_box.propagate_background_color
 		end
 
+feature -- Access: edition		
+
+	eiffel_edition: EIFFEL_EDITION
+
 feature -- Status
 
-	is_gpl_edition: BOOLEAN
-			-- Is Current EiffelStudio the GPL edition?
-		do
-			Result := {SYSTEM_CONSTANTS}.version_type_name.is_case_insensitive_equal_general ("GPL Edition")
-		end
+	terms_agreement_required: BOOLEAN
+			-- Is Current EiffelStudio the Standard edition?
 
-	license_accepted: BOOLEAN
+	terms_accepted: BOOLEAN
 		do
-			Result := preferences.misc_data.license_accepted
+			Result := preferences.misc_data.terms_accepted
 		end
 
 	is_cloud_enabled: BOOLEAN
@@ -247,6 +268,27 @@ feature -- Status
 			else
 					-- ES Cloud is not activated!
 				Result := True
+			end
+		end
+
+feature -- Text
+
+	terms_agreement_text: STRING_32
+		do
+			Result := locale.translation_in_context ("To continue using this edition of EiffelStudio, you must first agree with the license terms. If you do not agree with the terms, use another EiffelStudio Edition.", "license")
+			if eiffel_edition.is_branded_edition then
+				if attached eiffel_edition.edition_terms as l_terms_of_use then
+					Result.prepend_character ('%N')
+					Result.prepend_character ('%N')
+					Result.prepend (l_terms_of_use)
+				end
+				Result.prepend_character ('%N')
+				Result.prepend_character ('%N')
+				if attached eiffel_edition.edition_title as l_title then
+					Result.prepend (l_title)
+				else
+					Result.prepend ({STRING_32}"EiffelStudio " + eiffel_edition.edition_name + " edition.")
+				end
 			end
 		end
 
@@ -271,14 +313,16 @@ feature -- Event: license
 			cmd.execute
 		end
 
-	on_gpl_usage_accepted
+	on_usage_accepted
 		do
-			preferences.misc_data.set_license_accepted (True)
-			if is_cloud_enabled then
+			preferences.misc_data.set_terms_accepted (True)
+				-- Save preferences right away.
+			preferences.preferences.save_preferences
+			if is_cloud_enabled and then attached {ES_CLOUD_S} es_cloud_s.service as cld then
 				if is_logged_in then
 					on_next
 				else
-					switch_to_account_page
+					switch_to_account_page (cld, Void, False)
 				end
 			else
 				on_next
@@ -294,9 +338,18 @@ feature -- Event: UI
 
 	on_next
 		do
-			on_close
-			if attached next_action as act then
-				act.call
+			if
+				is_cloud_enabled and then
+				{ES_IDE_SETTINGS}.cloud_required and then
+				attached es_cloud_s.service as cld and then
+				not (cld.is_guest or cld.is_signed_in)
+			then
+				on_quit
+			else
+				on_close
+				if attached next_action as act then
+					act.call
+				end
 			end
 		end
 
@@ -351,17 +404,7 @@ feature {NONE} -- Implementation
 				end (popup, ?, ?, ?, ?, ?, ?, ?, ?))
 			popup.show_relative_to_window (dialog)
 
-			if
-				attached {STRING_32_PREFERENCE} preferences.misc_data.internet_browser_preference as pref and then
-				attached pref.value as l_default_browser and then
-				not l_default_browser.is_empty
-			then
-				is_launched := (create {URI_LAUNCHER}).launch_with_default_app (a_url, l_default_browser)
-			else
-				is_launched := (create {URI_LAUNCHER}).launch (a_url)
-					-- This check is here because it lets us know if the preference wasn't initialized.
-				check internet_browser_preference_set: False end
-			end
+			is_launched := (create {ES_URI_LAUNCHER}).launch (a_url)
 			if is_launched then
 				create t.make_with_interval (5_000) -- 5 seconds
 				t.actions.extend (agent popup.destroy)
@@ -385,7 +428,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

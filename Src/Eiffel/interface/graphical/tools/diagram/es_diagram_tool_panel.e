@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Area in EB_CONTEXT_TOOL notebook designated to view%N%
 		%the context diagram of center class or center cluster."
@@ -483,7 +483,6 @@ feature {NONE} -- Initialization
 			-- Display "View" menu.
 		local
 			view_menu: EV_MENU
-			l_list: LIST [STRING]
 			menu_item: EV_MENU_ITEM
 		do
 			create view_menu
@@ -496,20 +495,16 @@ feature {NONE} -- Initialization
 				delete_view_cmd.disable_sensitive
 			end
 			view_menu.extend (create {EV_MENU_SEPARATOR})
-			from
-				l_list := world.available_views
-				l_list.start
-			until
-				l_list.after
+			across
+				world.available_views as ic
 			loop
-				create menu_item.make_with_text_and_action (l_list.item, agent select_view (l_list.item))
+				create menu_item.make_with_text_and_action (ic.item, agent select_view (ic.item))
 				view_menu.extend (menu_item)
-				l_list.forth
 			end
 			view_menu.show_at (view_menu_button, 0, view_menu_button.height)
 		end
 
-	select_view (a_name: STRING)
+	select_view (a_name: READABLE_STRING_GENERAL)
 			-- Select `a_name' as the current view and switch to that view.
 		do
 			view_selector.set_text (a_name)
@@ -580,16 +575,16 @@ feature -- Access
 	graph: ES_GRAPH
 			-- Current graph.
 
-	class_graph: ES_CLASS_GRAPH
+	class_graph: detachable ES_CLASS_GRAPH
 			-- Current class graph if not Void.
 		do
-			Result ?= graph
+			Result := {ES_CLASS_GRAPH} / graph
 		end
 
-	cluster_graph: ES_CLUSTER_GRAPH
+	cluster_graph: detachable ES_CLUSTER_GRAPH
 			-- Current cluster graph if not Void.
 		do
-			Result ?= graph
+			Result := {ES_CLUSTER_GRAPH} / graph
 		end
 
 	world: EIFFEL_WORLD
@@ -632,13 +627,13 @@ feature -- Access
 	class_view: EIFFEL_CLASS_DIAGRAM
 			-- Class view currently displayed.
 		do
-			Result ?= world
+			Result := {EIFFEL_CLASS_DIAGRAM} / world
 		end
 
 	cluster_view: EIFFEL_CLUSTER_DIAGRAM
 			-- Cluster view currently displayed.
 		do
-			Result ?= world
+			Result := {EIFFEL_CLUSTER_DIAGRAM} / world
 		end
 
 	force_directed_layout: EIFFEL_FORCE_LAYOUT
@@ -754,7 +749,6 @@ feature -- Status settings.
 			-- Enable use of force directed physics.
 		local
 			min_box: EV_RECTANGLE
-			fig: EG_LINKABLE_FIGURE
 		do
 			if timer = Void then
 				create timer.make_with_interval (50)
@@ -764,14 +758,12 @@ feature -- Status settings.
 			timer.actions.extend (agent on_time_out)
 			is_force_directed_used := True
 			if class_graph = Void then
-				fig ?= world.figure_from_model (cluster_graph.center_cluster)
-				if fig /= Void then
+				if attached {EG_LINKABLE_FIGURE} world.figure_from_model (cluster_graph.center_cluster) as fig then
 					min_box := fig.minimum_size
 					force_directed_layout.set_center (min_box.left + min_box.width // 2, min_box.top + min_box.height // 2)
 				end
 			else
-				fig ?= world.figure_from_model (class_graph.center_class)
-				if fig /= Void then
+				if attached {EG_LINKABLE_FIGURE} world.figure_from_model (class_graph.center_class) as fig then
 					force_directed_layout.set_center (fig.port_x, fig.port_y)
 					fig.set_is_fixed (True)
 				end
@@ -862,7 +854,6 @@ feature -- Element change
 			retried: BOOLEAN
 			a_class_graph: ES_CLASS_GRAPH
 			a_class_view: EIFFEL_CLASS_DIAGRAM
-			cf: EIFFEL_CLASS_FIGURE
 			es_class: ES_CLASS
 			was_legend_shown: BOOLEAN
 		do
@@ -949,14 +940,13 @@ feature -- Element change
 					if is_valid_diagram_file (f) then
 						world.load_available_views (f)
 					end
-					world.set_current_view (view_selector.text)
+					world.set_current_view (view_selector.text.to_string_8)
 					if not world.available_views.has (world.current_view) then
 						world.available_views.extend (world.current_view)
 					end
 					layout.layout
 				end
-				cf ?= world.figure_from_model (class_graph.center_class)
-				if cf /= Void then
+				if attached {EIFFEL_CLASS_FIGURE} world.figure_from_model (class_graph.center_class) as cf then
 					cf.set_is_fixed (True)
 				end
 
@@ -1096,7 +1086,7 @@ feature -- Element change
 					if is_valid_diagram_file (f) then
 						world.load_available_views (f)
 					end
-					world.set_current_view (view_selector.text)
+					world.set_current_view (view_selector.text.to_string_8)
 					if not world.available_views.has (world.current_view) then
 						world.available_views.extend (world.current_view)
 					end
@@ -1400,16 +1390,14 @@ feature {ES_DIAGRAM_TOOL_PANEL, EB_CONTEXT_DIAGRAM_COMMAND, EIFFEL_CLASS_FIGURE}
 			-- Launch stone.
 		local
 			l_tool: EB_STONABLE_TOOL
-			fst: FEATURE_STONE
 		do
-			fst ?= a_stone
 			l_tool := decide_tool_to_display (a_stone)
 			if develop_window.is_unified_stone then
 				develop_window.set_stone (a_stone)
 			else
 				l_tool.set_stone (a_stone)
 			end
-			if fst /= Void and then address_manager /= Void then
+			if attached {FEATURE_STONE} a_stone and then address_manager /= Void then
 				address_manager.hide_address_bar
 			end
 		end
@@ -1452,11 +1440,9 @@ feature {EB_DEVELOPMENT_WINDOW_TOOLS, EB_STONE_CHECKER, EB_DEVELOPMENT_WINDOW} -
 			-- If current widget is displayed, the stone is forced.
 			-- Choose default tool to load a feature stone.
 		local
-			fs: FEATURE_STONE
 			cs: CLASSC_STONE
 		do
-			fs ?= new_stone
-			if fs /= Void then
+			if attached {FEATURE_STONE} new_stone as fs then
 				if address_manager /= Void then
 					address_manager.hide_address_bar
 				end
@@ -1490,10 +1476,10 @@ feature {EB_DEVELOPMENT_WINDOW_TOOLS, EB_STONE_CHECKER, EB_DEVELOPMENT_WINDOW} -
 				if last_stone /= Void and then last_stone.is_valid then
 					history_manager.extend (last_stone)
 					stone := last_stone
-					class_stone ?= last_stone
-					cluster_stone ?= last_stone
-					if class_stone /= Void then
-						-- create a new class view
+					if attached {like class_stone} last_stone as cs then
+							-- create a new class view
+						class_stone := cs
+						cluster_stone := Void
 						if
 							is_rebuild_world_needed or else
 							class_graph = Void or else
@@ -1505,20 +1491,20 @@ feature {EB_DEVELOPMENT_WINDOW_TOOLS, EB_STONE_CHECKER, EB_DEVELOPMENT_WINDOW} -
 							create_class_view (class_stone.class_i, True)
 							is_synchronization_needed := False
 						end
-					else
-						if cluster_stone /= Void then
+					elseif attached {like cluster_stone} last_stone as clus then
+						cluster_stone := clus
+						class_stone := Void
 							-- create a cluster view
-							if
-								is_rebuild_world_needed or else
-								cluster_graph = Void or else
-								cluster_graph.center_cluster = Void or else
-								cluster_graph.center_cluster.group /= cluster_stone.group
-							then
-								is_rebuild_world_needed := False
-								store
-								create_cluster_view (cluster_stone.group, True)
-								is_synchronization_needed := False
-							end
+						if
+							is_rebuild_world_needed or else
+							cluster_graph = Void or else
+							cluster_graph.center_cluster = Void or else
+							cluster_graph.center_cluster.group /= cluster_stone.group
+						then
+							is_rebuild_world_needed := False
+							store
+							create_cluster_view (cluster_stone.group, True)
+							is_synchronization_needed := False
 						end
 					end
 						-- Synchronization was not done when invisible.
@@ -1540,11 +1526,8 @@ feature {EB_DEVELOPMENT_WINDOW_TOOLS, EB_STONE_CHECKER, EB_DEVELOPMENT_WINDOW} -
 
 	decide_tool_to_display (a_st: STONE): EB_STONABLE_TOOL
 			-- Decide which tool to display.
-		local
-			fs: FEATURE_STONE
 		do
-			fs ?= a_st
-			if fs /= Void then
+			if attached {FEATURE_STONE} a_st then
 				develop_window.tools.show_default_tool_of_feature
 				Result := develop_window.tools.default_feature_tool
 			else
@@ -1808,14 +1791,14 @@ feature {NONE} -- Events
 	on_zoom_level_select
 			-- User selected a new zoom level.
 		local
-			level_text: STRING
+			level_text: STRING_32
 			level, scale_factor: DOUBLE
 			old_scale: INTEGER
 			new_scale: INTEGER
-			l_str: STRING_GENERAL
+			t: STRING_32
 		do
-			level_text := zoom_selector.selected_item.text.twin
-			level_text.keep_head (level_text.count - 1)
+			t := zoom_selector.selected_item.text
+			level_text := t.head (t.count - 1)
 			check
 				level_text_is_integer: level_text.is_integer
 			end
@@ -1826,12 +1809,8 @@ feature {NONE} -- Events
 			crop_diagram
 			new_scale := (world.scale_factor * 100).rounded
 			restart_force_directed
-			l_str := interface_names.t_diagram_zoom_cmd
-			l_str.append (" ")
-			l_str.append (level_text.out)
-			l_str.append ("%%")
 			history.register_named_undoable (
-				l_str,
+				interface_names.t_diagram_zoom_cmd + " " + level_text + "%%",
 				[<<agent world.scale (scale_factor), agent crop_diagram, agent zoom_selector.show_as_text (new_scale), agent restart_force_directed>>],
 				[<<agent world.scale (1/scale_factor), agent crop_diagram, agent zoom_selector.show_as_text (old_scale), agent restart_force_directed>>])
 		end
@@ -1844,7 +1823,7 @@ feature {NONE} -- Events
 			if not retried then--and not view_selector.is_empty then
 				reset_history
 
-				develop_window.status_bar.display_message ("Loading diagram for " + view_selector.text)
+				develop_window.status_bar.display_message ({STRING_32} "Loading diagram for " + view_selector.text)
 				develop_window.status_bar.reset_progress_bar_with_range (0 |..| 0)
 
 				if is_force_directed_used then
@@ -1855,7 +1834,7 @@ feature {NONE} -- Events
 				world_cell.disable_resize
 				projector.disable_painting
 
-				world.retrieve_view (view_selector.text)
+				world.retrieve_view (view_selector.text.to_string_8)
 
 				projector.enable_painting
 				world_cell.enable_resize
@@ -1927,7 +1906,7 @@ feature {NONE} -- Events
 
 feature {EB_DELETE_VIEW_COMMAND} -- View selector
 
-	remove_view (a_name: STRING)
+	remove_view (a_name: READABLE_STRING_GENERAL)
 			-- Delete view of `a_name'.
 		require
 			a_name_not_void: a_name /= Void
@@ -2477,11 +2456,8 @@ feature {NONE} -- Implementation for mini tool bar
 
 	window: EV_WINDOW
 			-- Window dialogs can refer to.
-		local
-			conv_dev: EB_DEVELOPMENT_WINDOW
 		do
-			conv_dev ?= develop_window
-			if conv_dev /= Void then
+			if attached {EB_DEVELOPMENT_WINDOW} develop_window as conv_dev then
 				Result := conv_dev.window
 			else
 				create Result
@@ -2500,7 +2476,7 @@ invariant
 	shortcut_table_not_void: shortcut_table /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -2531,6 +2507,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_CONTEXT_EDITOR
-
-
+end

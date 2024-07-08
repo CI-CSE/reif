@@ -1,6 +1,4 @@
 note
-	description: "Summary description for {IRON_FS_CATALOG}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -40,7 +38,7 @@ feature {NONE} -- Initialization
 			across
 				repositories as c
 			loop
-				fill_repository (c.item)
+				fill_repository (c)
 			end
 		end
 
@@ -90,8 +88,8 @@ feature -- Access: repository
 			until
 				Result /= Void
 			loop
-				if c.item.is_located_at (a_location) then
-					Result := c.item
+				if c.is_located_at (a_location) then
+					Result := c
 				end
 			end
 		end
@@ -116,9 +114,9 @@ feature -- Acces: package
 				repositories as c
 			loop
 				across
-					c.item.available_packages as p
+					c.available_packages as p
 				loop
-					Result.force (p.item)
+					Result.force (p)
 				end
 			end
 		end
@@ -136,8 +134,8 @@ feature -- Acces: package
 			until
 				repo /= Void
 			loop
-				if s.starts_with (c.item.location_string) then
-					repo := c.item
+				if s.starts_with (c.location_string) then
+					repo := c
 				end
 			end
 			if repo /= Void then
@@ -148,14 +146,14 @@ feature -- Acces: package
 					l_package /= Void
 				loop
 					across
-						p.item.associated_paths as pn
+						p.associated_paths as pn
 					until
 						l_package /= Void
 					loop
-						if s.starts_with (pn.item) then
-							l_package := p.item
+						if s.starts_with (pn) then
+							l_package := p
 							r.wipe_out
-							r.append (s.substring (pn.item.count + 1, s.count))
+							r.append (s.substring (pn.count + 1, s.count))
 						end
 					end
 				end
@@ -177,7 +175,7 @@ feature -- Operation
 			across
 				repositories as c
 			loop
-				update_repository (c.item, False)
+				update_repository (c, False)
 			end
 		end
 
@@ -202,10 +200,10 @@ feature -- Operation
 						across lst as ic loop
 							if not is_silent then
 								print ("- ")
-								print (ic.item.human_identifier)
+								print (ic.human_identifier)
 								print ("%N")
 							end
-							repo.put_package (ic.item)
+							repo.put_package (ic)
 						end
 					elseif not is_silent then
 						if attached remote_node.last_operation_error_message as err then
@@ -216,30 +214,36 @@ feature -- Operation
 					end
 				end
 			elseif attached {IRON_WORKING_COPY_REPOSITORY} repo as l_wc_repo then
-				create dir_vis.make_empty
-				dir_vis.set_default_iron_file_name ("package.iron")
-				dir_vis.exclude_directory_names (<<"EIFGENs", ".svn", ".git">>)
-				dir_vis.stop_on_first_matching_file (True)
-				dir_vis.process_directory (l_wc_repo.path)
-				create l_package_file_factory
-				across
-					dir_vis.list as ic
-				loop
-					pif := l_package_file_factory.new_package_file (ic.item)
-					p := pif.to_package (l_wc_repo)
-					if not is_silent then
-						print ("- ")
-						print (p.human_identifier)
-						print ("%N")
-						if not pif.has_expected_file_name then
-							print ("!Warning: expected file name is %"")
-							print (pif.expected_file_name)
-							print ("%" instead of %"")
-							print (ic.item)
-							print ("%"%N")
+				if l_wc_repo.exists then
+					create dir_vis.make_empty
+					dir_vis.set_default_iron_file_name ("package.iron")
+					dir_vis.exclude_directory_names (<<"EIFGENs", ".svn", ".git">>)
+					dir_vis.stop_on_first_matching_file (True)
+					dir_vis.process_directory (l_wc_repo.path)
+					create l_package_file_factory
+					across
+						dir_vis.list as ic
+					loop
+						pif := l_package_file_factory.new_package_file (ic)
+						p := pif.to_package (l_wc_repo)
+						if not is_silent then
+							print ("- ")
+							print (p.human_identifier)
+							print ("%N")
+							if not pif.has_expected_file_name then
+								print ("!Warning: expected file name is %"")
+								print (pif.expected_file_name)
+								print ("%" instead of %"")
+								print (ic)
+								print ("%"%N")
+							end
 						end
+						repo.put_package (p)
 					end
-					repo.put_package (p)
+				else
+					if not is_silent then
+						print ("ERROR: Repository %"" + l_wc_repo.location_string + "%" does not exist!%N")
+					end
 				end
 			else
 				debug ("refactor_fixme")
@@ -490,18 +494,18 @@ feature -- Package operations
 						across
 							l_operations as ic
 						loop
-							if ic.item.name.is_case_insensitive_equal ("compile_library") then
+							if ic.name.is_case_insensitive_equal ("compile_library") then
 								create cl_code.put (0)
 								if is_silent then
-									execute_command_line (finish_freezing_command_name, ip.extended (ic.item.instruction), agent (s: STRING) do end, cl_code)
+									execute_command_line (finish_freezing_command_name, ip.extended (ic.instruction), agent (s: STRING) do end, cl_code)
 								else
-									execute_command_line (finish_freezing_command_name, ip.extended (ic.item.instruction), agent (s: STRING) do print (s) end, cl_code)
+									execute_command_line (finish_freezing_command_name, ip.extended (ic.instruction), agent (s: STRING) do print (s) end, cl_code)
 								end
 								l_ok := l_ok and cl_code.item = 0
 							else
 								if not is_silent then
 									print (" ##setup %"")
-									print (ic.item)
+									print (ic)
 									print ("%" ignored.##")
 								end
 							end
@@ -509,10 +513,10 @@ feature -- Package operations
 						across
 							envs as ic
 						loop
-							if attached ic.item as v then
-								execution_environment.put (v, ic.key)
+							if attached ic as v then
+								execution_environment.put (v, @ ic.key)
 							else
-								execution_environment.put ("", ic.key) -- FIXME: would be better to use unsetenv but this is not available.
+								execution_environment.put ("", @ ic.key) -- FIXME: would be better to use unsetenv but this is not available.
 							end
 						end
 					end
@@ -592,10 +596,10 @@ feature -- Restricted
 				across
 					lst as p
 				loop
-					repo.put_package (p.item)
+					repo.put_package (p)
 					if not is_silent then
 						print ("- ")
-						print (p.item.human_identifier)
+						print (p.human_identifier)
 						print ("%N")
 					end
 				end
@@ -610,7 +614,7 @@ feature {NONE} -- Helper
 		end
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

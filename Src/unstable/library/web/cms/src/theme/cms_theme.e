@@ -57,6 +57,7 @@ feature -- Element change
 			a_url.ends_with_general ("/")
 		local
 			i,j: INTEGER
+			s: READABLE_STRING_8
 		do
 			base_url := Void
 			if a_url [a_url.count] = '/' then
@@ -69,9 +70,19 @@ feature -- Element change
 			if i > 0 then
 				j := a_url.index_of ('/', i + 3)
 				if j > 0 then
-					create base_url.make_from_string (a_url.substring (j, a_url.count))
+					if a_url [a_url.count] = '/' then
+						s := a_url.substring (j, a_url.count - 1)
+					else
+						s := a_url.substring (j, a_url.count)
+					end
+					if not s.is_empty then
+						create base_url.make_from_string (s)
+					end
 				end
 			end
+		ensure
+			valid_site_url: site_url.ends_with ("/")
+			valid_base_url: attached base_url as e_base_url implies not e_base_url.ends_with ("/")
 		end
 
 feature -- Conversion
@@ -159,6 +170,7 @@ feature {NONE} -- Implementation
 				if lnk.is_expanded then
 					cl.append ("expanded ")
 				end
+				cl := lnk.extended_css_class (cl).to_string_8
 				if cl.is_empty then
 					s.append ("<li>")
 				else
@@ -186,7 +198,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -9,14 +9,17 @@ class
 
 feature -- Access
 
-	installation: detachable READABLE_STRING_8 assign set_installation
+	installation: detachable ES_ACCOUNT_INSTALLATION assign set_installation
 
 	active_account: detachable ES_ACCOUNT assign set_active_account
 			-- Active account if logged in, otherwise Void.
 
 	guest_mode_ending_date: detachable DATE_TIME assign set_guest_mode_ending_date
 
-	guest_mode_loging_count: INTEGER assign set_guest_mode_loging_count
+	guest_mode_signed_in_count: INTEGER assign set_guest_mode_signed_in_count
+
+	session_heartbeat: NATURAL assign set_session_heartbeat
+			-- <Precursor>
 
 feature -- Element change
 
@@ -35,13 +38,18 @@ feature -- Element change
 			guest_mode_ending_date := v
 		end
 
-	set_guest_mode_loging_count (v: like guest_mode_loging_count)
+	set_guest_mode_signed_in_count (v: like guest_mode_signed_in_count)
 		do
-			guest_mode_loging_count := v
+			guest_mode_signed_in_count := v
+		end
+
+	set_session_heartbeat (v: like session_heartbeat)
+		do
+			session_heartbeat := v
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

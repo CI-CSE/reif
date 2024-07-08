@@ -5,7 +5,7 @@ note
 		"Eiffel dynamic type sets to which new types can be added"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2007-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 2007-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -28,7 +28,7 @@ feature -- Status report
 			-- set should also be non-empty. Therefore it is recommended to
 			-- use 'not can_be_void'.)
 
-	has_type (a_type: ET_DYNAMIC_TYPE): BOOLEAN
+	has_type (a_type: ET_DYNAMIC_PRIMARY_TYPE): BOOLEAN
 			-- Do current dynamic types contain `a_type'?
 		local
 			i: INTEGER
@@ -39,7 +39,7 @@ feature -- Status report
 				Result := False
 			elseif l_dynamic_types.count = count  then
 				Result := l_dynamic_types.has_type (a_type)
-			elseif attached {ET_DYNAMIC_TYPE_HASH_LIST} l_dynamic_types as l_hash_list then
+			elseif attached {ET_DYNAMIC_PRIMARY_TYPE_HASH_LIST} l_dynamic_types as l_hash_list then
 				i := l_hash_list.index_of (a_type)
 				if i > 0 and i <= count then
 					Result := True
@@ -62,7 +62,7 @@ feature -- Access
 	static_type: ET_DYNAMIC_TYPE
 			-- Type at compilation time
 
-	dynamic_type (i: INTEGER): ET_DYNAMIC_TYPE
+	dynamic_type (i: INTEGER): ET_DYNAMIC_PRIMARY_TYPE
 			-- Dynamic type at index `i'
 		do
 			check
@@ -73,8 +73,9 @@ feature -- Access
 			end
 		end
 
-	index_of (a_type: ET_DYNAMIC_TYPE): INTEGER
-			-- Index of first occurrence of `a_type'?
+	index_of (a_type: ET_DYNAMIC_PRIMARY_TYPE): INTEGER
+			-- Index of first occurrence of `a_type'.
+			-- 0 if type not found.
 		local
 			i: INTEGER
 			l_dynamic_types: like dynamic_types
@@ -84,7 +85,7 @@ feature -- Access
 				Result := 0
 			elseif l_dynamic_types.count = count  then
 				Result := l_dynamic_types.index_of (a_type)
-			elseif attached {ET_DYNAMIC_TYPE_HASH_LIST} l_dynamic_types as l_hash_list then
+			elseif attached {ET_DYNAMIC_PRIMARY_TYPE_HASH_LIST} l_dynamic_types as l_hash_list then
 				i := l_hash_list.index_of (a_type)
 				if i <= count then
 					Result := i
@@ -101,14 +102,14 @@ feature -- Measurement
 
 feature -- Element change
 
-	put_type (a_type: ET_DYNAMIC_TYPE)
+	put_type (a_type: ET_DYNAMIC_PRIMARY_TYPE)
 			-- Add `a_type' to current set.
 			-- Do not check for type conformance with `static_type' and do not propagate to targets.
 		require
 			a_type_not_void: a_type /= Void
 		local
 			l_dynamic_types: like dynamic_types
-			l_dynamic_type_list: ET_DYNAMIC_TYPE_HASH_LIST
+			l_dynamic_type_list: ET_DYNAMIC_PRIMARY_TYPE_HASH_LIST
 		do
 			l_dynamic_types := dynamic_types
 			if l_dynamic_types = Void then
@@ -129,7 +130,7 @@ feature -- Element change
 				dynamic_types := l_dynamic_type_list
 				is_dynamic_types_readonly := False
 				count := count + 1
-			elseif attached {ET_DYNAMIC_TYPE_HASH_LIST} l_dynamic_types as l_dynamic_type_hash_list then
+			elseif attached {ET_DYNAMIC_PRIMARY_TYPE_HASH_LIST} l_dynamic_types as l_dynamic_type_hash_list then
 				l_dynamic_type_hash_list.force_last (a_type)
 				count := count + 1
 			else
@@ -143,7 +144,7 @@ feature -- Element change
 			has_type: has_type (a_type)
 		end
 
-	put_types (other: ET_DYNAMIC_TYPES)
+	put_types (other: ET_DYNAMIC_PRIMARY_TYPES)
 			-- Add types of `other' to current set.
 			-- Do not check for type conformance with `static_type' and do not propagate to targets.
 		require
@@ -158,13 +159,53 @@ feature -- Element change
 			end
 		end
 
-	put_type_from_type_set (a_type: ET_DYNAMIC_TYPE; a_type_set: ET_DYNAMIC_TYPE_SET; a_system: ET_DYNAMIC_SYSTEM)
+	put_expanded_types (other: ET_DYNAMIC_PRIMARY_TYPES)
+			-- Add expanded types of `other' to current set.
+			-- Do not check for type conformance with `static_type' and do not propagate to targets.
+		require
+			other_not_void: other /= Void
+		local
+			i, nb: INTEGER
+			l_type: ET_DYNAMIC_PRIMARY_TYPE
+		do
+			nb := other.count
+			from i := 1 until i > nb loop
+				l_type := other.dynamic_type (i)
+				if l_type.is_expanded then
+					put_type (l_type)
+				end
+				i := i + 1
+			end
+		end
+
+	put_conforming_expanded_types (other: ET_DYNAMIC_PRIMARY_TYPES)
+			-- Add expanded types of `other' conforming to `static_type' to current set.
+			-- Do not propagate to targets.
+		require
+			other_not_void: other /= Void
+		local
+			i, nb: INTEGER
+			l_type: ET_DYNAMIC_PRIMARY_TYPE
+			l_static_primary_type: ET_DYNAMIC_PRIMARY_TYPE
+		do
+			l_static_primary_type := static_type.primary_type
+			nb := other.count
+			from i := 1 until i > nb loop
+				l_type := other.dynamic_type (i)
+				if l_type.is_expanded and then l_type.conforms_to_primary_type (l_static_primary_type) then
+					put_type (l_type)
+				end
+				i := i + 1
+			end
+		end
+
+	put_type_from_type_set (a_type: ET_DYNAMIC_PRIMARY_TYPE; a_type_set: ET_DYNAMIC_TYPE_SET; a_system: ET_DYNAMIC_SYSTEM)
 			-- Add `a_type' coming from `a_type_set' to current target.
 		local
 			l_dynamic_types: like dynamic_types
-			l_dynamic_type_list: ET_DYNAMIC_TYPE_HASH_LIST
+			l_dynamic_type_list: ET_DYNAMIC_PRIMARY_TYPE_HASH_LIST
 		do
-			if a_type.conforms_to_type (static_type) then
+			if a_type.conforms_to_primary_type (static_type.primary_type) then
 				l_dynamic_types := dynamic_types
 				if not attached a_type_set.dynamic_types as l_other_dynamic_types then
 						-- The precondition says that `a_type_set' contains `a_type'.
@@ -214,7 +255,7 @@ feature -- Element change
 					dynamic_types := l_dynamic_type_list
 					is_dynamic_types_readonly := False
 					count := count + 1
-				elseif attached {ET_DYNAMIC_TYPE_HASH_LIST} l_dynamic_types as l_dynamic_type_hash_list then
+				elseif attached {ET_DYNAMIC_PRIMARY_TYPE_HASH_LIST} l_dynamic_types as l_dynamic_type_hash_list then
 					l_dynamic_type_hash_list.force_last (a_type)
 					count := count + 1
 				else
@@ -237,7 +278,7 @@ feature -- Element change
 
 feature {ET_DYNAMIC_TYPE_SET} -- Implementation
 
-	dynamic_types: detachable ET_DYNAMIC_TYPES
+	dynamic_types: detachable ET_DYNAMIC_PRIMARY_TYPES
 			-- Dynamic types in current set;
 			-- Void if no type in the set
 

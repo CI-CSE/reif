@@ -2,7 +2,7 @@
 
 INIT_DIR=`pwd`
 
-if [ $# -le 1 ]; then 
+if [ $# -le 1 ]; then
 	echo Usage: compile_libraries platform location
 	exit 1
 fi
@@ -19,24 +19,42 @@ if [ -d $2/library/cURL ]; then
 	remtrace cURL
 	cd $2/library/cURL/Clib
 	default_make
-fi 
-remtrace net
-cd $2/library/net/Clib
-default_make
-mac_ranlib $2/library/net/spec/$ISE_PLATFORM/lib/libnet.a
-remtrace vision2
-if [ "$3" = "gtk" ]; then
-	# Compile pixmap loading for GTK 1.2 implementation
+fi
+if [ -d $2/library/net ]; then
+	remtrace net
+	cd $2/library/net/Clib
+	default_make
+	mac_ranlib $2/library/net/spec/$ISE_PLATFORM/lib/libnet.a
+fi
+if [ -d $2/library/vision2 ]; then
+	remtrace vision2
+	# Compile GTK C implementation
 	cd $2/library/vision2/Clib
 	default_make
+
+	if [ ! -z "$INCLUDE_GTK2" ]; then
+		cd $2/library/vision2/implementation/gtk/Clib
+		default_make
+	fi
+	if [ ! -z "$INCLUDE_GTK3" ]; then
+		cd $2/library/vision2/implementation/gtk3/Clib
+		default_make
+	fi
 fi
-cd $2/library/vision2/implementation/gtk/Clib
-default_make
 
 if [ -d $2/examples/base/beep/Clib ]; then
 	remtrace beep example
 	cd $2/examples/base/beep/Clib
 	default_make
+fi
+
+# Compile IL Emitter Clib implementation
+if [ -d $2/framework/dotnet/il_emitter/Clib ]; then
+	remtrace IL Emitter Clib
+	cd $2/framework/dotnet/il_emitter/Clib
+	default_make
+else
+	remtrace IL Emitter Clib: directory not found
 fi
 
 cd $2

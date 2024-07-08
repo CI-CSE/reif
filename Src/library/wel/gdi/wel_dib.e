@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Device independent bitmap which can be created from a file.
 
@@ -19,7 +19,6 @@ inherit
 		rename
 			make as structure_make
 		redefine
-			structure_size,
 			destroy_item
 		end
 
@@ -117,7 +116,7 @@ feature -- Access
 		end
 
 	width: INTEGER
-			-- Dib width
+			-- Dib width.
 		require
 			exists: exists
 		do
@@ -127,7 +126,7 @@ feature -- Access
 		end
 
 	height: INTEGER
-			-- Dib height
+			-- Dib height.
 		require
 			exists: exists
 		do
@@ -180,11 +179,14 @@ feature {NONE} -- Removal
 
 	destroy_item
 			-- Free all GDI resource allocated by Current.
-			-- Should be called by the GC or by the user if i
+			-- Should be called by the GC or by the user.
 		do
 			if palette.reference_tracked then
 				palette.decrement_reference
+			elseif palette.references_count = 0 then
+				palette.delete
 			end
+			info_header.dispose
 			Precursor
 		end
 
@@ -203,7 +205,7 @@ feature {NONE} -- Implementation
 		end
 
 	new_palette: WEL_PALETTE
-			-- Calculates pallete for images regardless of their colordepth
+			-- Calculates pallete for images regardless of their colordepth.
 		require
 			exists: exists
 		local
@@ -228,7 +230,7 @@ feature {NONE} -- Implementation
 		end
 
 	new_palette_all_but_24_bits: WEL_PALETTE
-			-- Calculates pallete for images with all colordepths except 24 bits
+			-- Calculates pallete for images with all colordepths except 24 bits.
 		require
 			exists: exists
 			has_not_24_bits: not has_24_bits
@@ -340,7 +342,7 @@ feature {WEL_BITMAP}
 	info_header: WEL_BITMAP_INFO_HEADER;
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -350,8 +352,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class WEL_DIB
-
+end

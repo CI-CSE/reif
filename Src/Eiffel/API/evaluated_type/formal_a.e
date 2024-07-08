@@ -37,6 +37,7 @@ inherit
 			is_full_named_type,
 			is_initialization_required,
 			is_loose,
+			is_expanded_creation_possible,
 			is_reference,
 			is_separate,
 			make_type_byte_code,
@@ -139,6 +140,12 @@ feature -- Property
 	is_expanded: BOOLEAN
 			-- Is current constrained to be always an expanded?
 
+	is_expanded_creation_possible: BOOLEAN
+			-- <Precursor>
+		do
+			Result := not is_reference
+		end
+
 	is_separate: BOOLEAN
 			-- Is current constrained to be always separate?
 
@@ -171,10 +178,12 @@ feature -- Property
 				-- a mark and if it is which one. When there are no mark at runtime, we will
 				-- use the mark of the actual generic parameter.
 
-			if has_attached_mark then
-				Result := {SHARED_GEN_CONF_LEVEL}.attached_type
-			elseif has_detachable_mark then
-				Result := {SHARED_GEN_CONF_LEVEL}.detachable_type
+			if lace.is_void_safe then
+				if has_attached_mark then
+					Result := {SHARED_GEN_CONF_LEVEL}.attached_type
+				elseif has_detachable_mark then
+					Result := {SHARED_GEN_CONF_LEVEL}.detachable_type
+				end
 			end
 
 			if system.is_scoop and then has_separate_mark then
@@ -608,7 +617,11 @@ feature -- Access
 				l_class := system.class_of_id (written_id)
 				if not l_class.lace_class.is_void_unsafe then
 					l_type_set := l_class.constrained_types (position)
-					if l_type_set.is_attached and then not Result.has_detachable_mark then
+					if
+						l_type_set /= Void and then
+						l_type_set.is_attached and then
+						not Result.has_detachable_mark
+					then
 							-- Promote attachment setting of the current contraint unless the formal has explicit detachable mark.
 						t := Result.duplicate
 						t.set_is_attached
@@ -756,7 +769,7 @@ feature {NONE} -- Status adaptation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,22 +1,15 @@
-note
-	description: "Summary description for {ES_INSTALLATION_ENVIRONMENT}."
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
 	ES_INSTALLATION_ENVIRONMENT
 
+inherit
+	ES_INSTALLATION_ENVIRONMENT_I
+
 create
 	make
-
-feature {NONE} -- Creation
-
-	make (env: EIFFEL_ENV)
-		do
-			eiffel_env := env
-		end
-
-	eiffel_env: EIFFEL_ENV
 
 feature -- Access
 
@@ -76,7 +69,6 @@ feature -- Element change
 			l_lowered_var: READABLE_STRING_GENERAL
 			p: PATH
 			f: PLAIN_TEXT_FILE
-			s: STRING
 			utf: UTF_CONVERTER
 			d: DIRECTORY
 		do
@@ -112,7 +104,7 @@ feature -- Element change
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

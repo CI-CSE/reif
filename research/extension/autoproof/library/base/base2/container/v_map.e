@@ -5,12 +5,13 @@ note
 		Immutable interface.
 		]"
 	author: "Nadia Polikarpova"
+	revised_by: "Alexander Kogtenkov"
 	model: map, lock
 	manual_inv: true
 	false_guards: true
 
 deferred class
-	V_MAP [K, V]
+	V_MAP [K -> ANY, V]
 
 inherit
 	V_CONTAINER [V]
@@ -98,7 +99,6 @@ feature -- Iteration
 		require
 			lock_wrapped: lock.is_wrapped
 			v_locked: lock.locked [k]
-			modify_field (["observers", "closed"], Current)
 		deferred
 		ensure
 			result_fresh: Result.is_fresh
@@ -107,6 +107,7 @@ feature -- Iteration
 			target_definition: Result.target = Current
 			index_definition_found: domain_has (k) implies Result.sequence [Result.index_] = domain_item (k)
 			index_definition_not_found: not domain_has (k) implies Result.index_ = Result.sequence.count + 1
+			modify_field (["observers", "closed"], Current)
 		end
 
 feature -- Specification
@@ -171,7 +172,7 @@ invariant
 	bag_definition: bag ~ bag_from (map)
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

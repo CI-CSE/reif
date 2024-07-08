@@ -18,6 +18,9 @@ feature -- Status report
 
 	has_error: BOOLEAN
 
+	has_incorrect_padding: BOOLEAN
+			-- Decoding reported incorrect padding.
+
 feature -- base64 encoder
 
 	bytes_encoded_string (a_bytes: READABLE_INDEXABLE [NATURAL_8]): STRING_8
@@ -110,11 +113,11 @@ feature -- Decoder
 			bytes: ARRAY [INTEGER]
 			tmp1, tmp2: INTEGER
 			done: BOOLEAN
-			l_map: READABLE_STRING_8
 			c: CHARACTER
 		do
 			has_error := False
-			l_map := character_map
+			has_incorrect_padding := False
+
 			n := v.count
 			from
 				nb_bytes := 4
@@ -144,6 +147,7 @@ feature -- Decoder
 						end
 					else
 							-- Consider as missing padding '='
+						has_incorrect_padding := True
 						bytes[i] := character_to_value (c)
 						byte_count := byte_count + 1
 					end
@@ -172,10 +176,6 @@ feature -- Decoder
 feature {NONE} -- Implementation
 
 	append_triple_encoded_to (i1,i2,i3: INTEGER; a_map: READABLE_STRING_8; a_output: STRING)
-		local
-			i,j,n: INTEGER
-			c: INTEGER
-			t: INTEGER
 		do
 			--| [ 'f'  ][ 'o'  ][ 'o'  ]
 			--| [ 102  ][ 111  ][ 111  ]
@@ -189,7 +189,6 @@ feature {NONE} -- Implementation
 				if i3 >= 0 then
 					a_output.extend (a_map.item (1 + (i2 |<< 2 & 0b111111) + (i3 |>> 6 & 0b111111) ))
 					a_output.extend (a_map.item (1 + (i3 & 0b111111) ))
-					t := t + i3
 				else
 					a_output.extend (a_map.item (1 + (i2 |<< 2 & 0b111111) ))
 					a_output.append_character ('=')
@@ -260,7 +259,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

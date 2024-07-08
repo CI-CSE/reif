@@ -1,9 +1,4 @@
-note
-	description: "Summary description for {E2B_BOOGIE_OUTPUT_PARSER}."
-	date: "$Date$"
-	revision: "$Revision$"
-
-class
+﻿class
 	E2B_BOOGIE_OUTPUT_PARSER
 
 create
@@ -36,7 +31,7 @@ feature -- Basic operations
 
 				-- Parse output
 			across a_boogie_output.split ('%N') as l loop
-				l_line := l.item
+				l_line := l
 				l_line.right_adjust
 				if not (l_line.is_empty or l_line.starts_with ("//")) then
 					parse_line (l_line)
@@ -68,7 +63,7 @@ feature {NONE} -- Implementation
 
 			elseif parsing_regexp.matches (a_line) then
 				-- boogie file name: parsing_regexp.captured_substring (1)
-				fill_boogie_input_lines (parsing_regexp.captured_substring (1))
+				fill_boogie_input_lines (create {PATH}.make_from_string (parsing_regexp.captured_substring (1)))
 				last_result.set_input_text (input_lines)
 
 			elseif finished_regexp.matches (a_line) then
@@ -90,15 +85,22 @@ feature {NONE} -- Implementation
 				-- result (inconclusive/error/verified): verified_regexp.captured_substring (2)
 				check current_procedure_error = Void end
 				check current_procedure_result /= Void end
-				if verified_regexp.captured_substring (2) ~ "verified" then
+				if verified_regexp.captured_substring (3) ~ "verified" then
 					current_procedure_result.set_successful
-				elseif verified_regexp.captured_substring (2) ~ "inconclusive" then
+				elseif verified_regexp.captured_substring (3) ~ "inconclusive" then
 					current_procedure_result.set_inconclusive
 				else
-					check verified_regexp.captured_substring (2).starts_with ("error") end
+					check verified_regexp.captured_substring (3).starts_with ("error") end
 					current_procedure_result.set_error
 				end
-				current_procedure_result.set_time (verified_regexp.captured_substring (1).to_real)
+				if attached verified_regexp.captured_substring (1) as t then
+					if t.has (',') then
+						t.replace_substring_all (",", ".")
+					end
+					if t.is_real_32 then
+						current_procedure_result.set_time (t.to_real_32)
+					end
+				end
 				last_result.procedure_results.extend (current_procedure_result)
 				if not current_procedure_result.is_error then
 					current_procedure_result := Void
@@ -108,19 +110,31 @@ feature {NONE} -- Implementation
 				-- file: boogie_error_regexp.captured_substring (1)
 				-- line: boogie_error_regexp.captured_substring (2).to_integer
 				-- column: boogie_error_regexp.captured_substring (3).to_integer
-				-- message: boogie_error_regexp.captured_substring (4)
-				last_result.boogie_errors.extend (boogie_error_regexp.captured_substring (4))
+				-- error message: boogie_error_regexp.captured_substring (4)
+				check current_procedure_error = Void end
+				check attached current_procedure_result implies current_procedure_result.is_error end
+				l_line := boogie_error_regexp.captured_substring (2).to_integer
+				create current_procedure_error.make (boogie_error_regexp.captured_substring (4))
+				current_procedure_error.set_line (l_line, input_lines.i_th (l_line))
+				if attached current_procedure_result then
+					current_procedure_result.errors.extend (current_procedure_error)
+				else
+					last_result.boogie_errors.extend (current_procedure_error.error_message)
+				end
+				if not current_procedure_error.has_related_location then
+					current_procedure_error := Void
+				end
 
 			elseif error_regexp.matches (a_line) then
 				-- file: error_regexp.captured_substring (1)
 				-- line: error_regexp.captured_substring (2).to_integer
 				-- column: error_regexp.captured_substring (3).to_integer
 				-- error code: error_regexp.captured_substring (4)
-				-- error message: error_regexp.captured_substring (5)
+				-- error message: error_regexp.captured_substring (5)				
 				check current_procedure_error = Void end
 				check current_procedure_result /= Void end
 				l_line := error_regexp.captured_substring (2).to_integer
-				create current_procedure_error.make (error_regexp.captured_substring (4))
+				create current_procedure_error.make (error_regexp.captured_substring (5))
 				current_procedure_error.set_line (l_line, input_lines.i_th (l_line))
 				current_procedure_result.errors.extend (current_procedure_error)
 				if not current_procedure_error.has_related_location then
@@ -140,12 +154,12 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	fill_boogie_input_lines (a_filename: STRING)
+	fill_boogie_input_lines (a_filename: PATH)
 			-- Fill `input_lines' with file `a_filename'.
 		local
 			l_file: PLAIN_TEXT_FILE
 		do
-			create l_file.make (a_filename)
+			create l_file.make_with_path (a_filename)
 			create {ARRAYED_LIST [STRING]} input_lines.make (10_000)
 			from
 				l_file.open_read
@@ -170,12 +184,12 @@ feature {NONE} -- Implementation
 				from
 					j := 1
 				until
-					j > l_sorted_procs.count or else l_sorted_procs [j].time < i.item.time
+					j > l_sorted_procs.count or else l_sorted_procs [j].time < i.time
 				loop
 					j := j + 1
 				end
 				l_sorted_procs.go_i_th (j)
-				l_sorted_procs.put_left (i.item)
+				l_sorted_procs.put_left (i)
 			end
 				-- For each result in the list but last, subtract the time of the next procedure
 			from
@@ -222,7 +236,7 @@ feature {NONE} -- Regular expressions
 			-- Regular expression for verified information line.
 		once
 			create Result.make
-			Result.compile ("^\s*\[([0-9.,]*) s, [0-9]+ proof obligations?\]\s*(\w+)\s*$")
+			Result.compile ("^\s*\[([0-9.,]*) s, (solver resource count: [0-9]+, )?[0-9]+ proof obligations?\]\s*(\w+)\s*$")
 		end
 
 	boogie_error_regexp: RX_PCRE_REGULAR_EXPRESSION
@@ -245,5 +259,29 @@ feature {NONE} -- Regular expressions
 			create Result.make
 			Result.compile ("^(.*)\(([0-9]*),([0-9]*)\): Related location: (.*)$")
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2013-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2021-2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

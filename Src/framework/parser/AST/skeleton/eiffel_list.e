@@ -1,11 +1,11 @@
-note
-	description	: "List used in abstract syntax trees. Version for Bench."
+﻿note
+	description: "List used in abstract syntax trees."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision$"
+	date: "$Date$"
+	revision: "$Revision$"
 
-class EIFFEL_LIST [reference T -> AST_EIFFEL]
+class EIFFEL_LIST [T -> AST_EIFFEL]
 
 inherit
 	AST_EIFFEL
@@ -13,34 +13,44 @@ inherit
 			index as leaf_index
 		undefine
 			copy, is_equal
-		redefine
-			is_equivalent
 		end
 
 	CONSTRUCT_LIST [T]
 		export
 			{ANY} area, do_all_with_index
 		redefine
-			make, make_filled
+			make, make_filled, make_filled_with
 		end
 
 create
-	make, make_filled
+	make,
+	make_filled_with,
+	make_from_iterable
 
 feature {NONE} -- Initialization
 
 	make (n: INTEGER)
-			-- Creation of the list with the comparison set on object
+			-- Creation of the list with the comparison set on object.
 		do
 			Precursor (n)
 			object_comparison := True
 		end
 
 	make_filled (n: INTEGER)
-			-- Creation of the list with the comparison set on object
+			-- <Precursor>
+		obsolete "Use `make` or `make_filled_with` instead. [2021-05-31]"
 		do
 			Precursor (n)
 			object_comparison := True
+		end
+
+	make_filled_with (v: T; n: INTEGER)
+			-- <Precursor>
+		do
+			Precursor (v, n)
+			object_comparison := True
+		ensure then
+			object_comparison
 		end
 
 feature -- Roundtrip
@@ -68,17 +78,20 @@ feature -- Roundtrip
 			end
 		end
 
-	reverse_extend_separator (l_as: LEAF_AS)
-			-- Add `l_as' into `separator_list'.
+	reverse_extend_separator (a: LEAF_AS)
+			-- Put `a` to `separator_list` in reverse order.
+		require
+			capacity > 1
 		local
-			l_sep: like separator_list
+			l: like separator_list
 		do
-			l_sep := separator_list
-			if l_sep = Void then
-				create l_sep.make_filled ((capacity - 1).max (0))
-				separator_list := l_sep
+			l := separator_list
+			if attached l then
+				l.reverse_extend (a.index)
+			else
+				create l.make_filled_with (a.index, capacity - 1)
+				separator_list := l
 			end
-			l_sep.reverse_extend (l_as.index)
 		end
 
 	extend_separator (l: LEAF_AS)
@@ -102,7 +115,7 @@ feature -- Roundtrip
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- Process current element.
 		do
 			v.process_eiffel_list (Current)
 		end
@@ -189,7 +202,7 @@ feature -- Element change
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		local
 			l_area, o_area: SPECIAL [T]
 			i, nb: INTEGER
@@ -210,7 +223,7 @@ feature -- Comparison
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -241,4 +254,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EIFFEL_LIST
+end

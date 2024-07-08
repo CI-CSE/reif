@@ -10,12 +10,12 @@ class CL_TYPE_A
 inherit
 	DEANCHORED_TYPE_A
 		redefine
-			is_expanded, is_reference, valid_generic,
+			is_expanded, is_reference, valid_generic, is_expanded_creation_possible,
 			meta_type, same_as, good_generics, error_generics,
 			has_expanded, internal_is_valid_for_class, convert_to,
 			description, description_with_detachable_type,
 			is_full_named_type, is_external, is_enum, is_conformant_to,
-			hash_code, sk_value, is_optimized_as_frozen, generated_id,
+			sk_value, is_optimized_as_frozen, generated_id,
 			generate_cecil_value, element_type, adapted_in, has_reference,
 			il_type_name, generate_gen_type_il, is_generated_as_single_type,
 			generic_derivation, associated_class_type, has_associated_class_type,
@@ -44,8 +44,13 @@ feature {NONE} -- Initialization
 		do
 			class_id := a_class_id
 			l_class := system.class_of_id (a_class_id)
-			if l_class /= Void and then l_class.is_expanded then
-				set_expanded_class_mark
+			if attached l_class then
+				if l_class.is_expanded then
+					set_expanded_class_mark
+				end
+				if l_class.is_once then
+					set_once_class_mark
+				end
 			end
 		ensure
 			class_id_set: class_id = a_class_id
@@ -105,13 +110,13 @@ feature -- Properties
 			end
 		end
 
-	is_expanded: BOOLEAN
+	is_expanded, is_expanded_creation_possible: BOOLEAN
 			-- Is the type expanded?
 		local
 			l_mark: like declaration_mark
 		do
 			l_mark := declaration_mark
-			Result := l_mark = expanded_mark or else (l_mark = no_mark and then class_declaration_mark = expanded_mark)
+			Result := l_mark = expanded_mark or else (l_mark = no_mark and then class_declaration_mark ⊗ expanded_mark /= 0)
 		end
 
 	is_reference: BOOLEAN
@@ -120,7 +125,7 @@ feature -- Properties
 			l_mark: like declaration_mark
 		do
 			l_mark := declaration_mark
-			Result := l_mark = reference_mark or else (l_mark = no_mark and then class_declaration_mark = no_mark)
+			Result := l_mark = reference_mark or else (l_mark = no_mark and then class_declaration_mark ⊗ expanded_mark = 0)
 		end
 
 	has_reference: BOOLEAN
@@ -201,7 +206,9 @@ feature -- Comparison
 			-- <Precursor>
 		do
 			if attached {CL_TYPE_A} other as l_cl_type then
-				Result := Precursor (l_cl_type) and then declaration_mark = l_cl_type.declaration_mark and then
+				Result :=
+					Precursor (l_cl_type) and then
+					declaration_mark = l_cl_type.declaration_mark and then
 					class_declaration_mark = l_cl_type.class_declaration_mark
 			end
 		end
@@ -322,17 +329,19 @@ feature -- Access
 			-- Has the base class exactly the same number of generic
 			-- parameters in its formal generic declarations ?
 		do
-			Result := base_class.generics = Void
+			if attached base_class as cl then
+				Result := cl.generics = Void
+			end
 		end
 
 	error_generics: VTUG
 		do
 				-- We could avoid having this check but the precondition does not tell us
 				-- we can.
-			if base_class /= Void then
+			if attached base_class as cl then
 				create {VTUG2} Result
 				Result.set_type (Current)
-				Result.set_base_class (base_class)
+				Result.set_base_class (cl)
 			end
 		end
 
@@ -539,7 +548,7 @@ feature {NONE} -- IL code generation
 				-- what our casing conversion routines require to perform
 				-- a good job.
 			Result.to_lower
-			Result := il_casing.type_name (base_class.original_class.actual_namespace, a_prefix, is_separate, Result, System.dotnet_naming_convention)
+			Result := il_casing.type_name (base_class.original_class.actual_namespace, a_prefix, Result, System.dotnet_naming_convention)
 		ensure
 			internal_il_type_name_not_void: Result /= Void
 			internal_il_type_name_not_empty: not Result.is_empty
@@ -655,8 +664,12 @@ feature {TYPE_A} -- Helpers
 				--| Ideally we could also check that if Current base class is expanded
 				--| then it has the class_declaration_mark properly set, but it does not
 				--| currently work when processing TYPED_POINTER which is currently interpreted
-			Result := l_class /= Void and then l_class.is_valid and then l_class.generics = Void and then
-				(l_class.is_expanded = (class_declaration_mark = expanded_mark))
+			Result :=
+				attached l_class and then
+				l_class.is_valid and then
+				not attached l_class.generics and then
+				l_class.is_expanded = (class_declaration_mark ⊗ expanded_mark /= 0) and then
+				l_class.is_once = (class_declaration_mark ⊗ once_mark /= 0)
 		end
 
 	internal_generic_derivation (a_level: INTEGER): like Current
@@ -684,6 +697,14 @@ feature {COMPILER_EXPORTER} -- Settings
 			class_declaration_mark := expanded_mark
 		ensure
 			has_expanded_class_mark: class_declaration_mark = expanded_mark
+		end
+
+	set_once_class_mark
+			-- Mark class declaration as once.
+		do
+			class_declaration_mark := once_mark
+		ensure
+			has_once_class_mark: class_declaration_mark = once_mark
 		end
 
 	set_expanded_mark
@@ -842,7 +863,6 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 			-- in the context of Current
 		local
 			instantiation: TYPE_A
-			gen_type: GEN_TYPE_A
 		do
 			if a_class_id = class_id then
 					-- Feature is written in the class associated to the
@@ -852,11 +872,18 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 				instantiation := find_class_type (System.class_of_id (a_class_id))
 			end
 			Result := type.actual_type
-			if attached instantiation.generics as l_generics and then l_generics.count > 0 then
+			if
+				instantiation /= Void and then
+				attached instantiation.generics as l_generics and then
+				l_generics.count > 0
+			then
 					-- Does not make sense to instantiate if `instantation' is
 					-- a TUPLE with no arguments.
-				gen_type ?= instantiation
-				Result := gen_type.instantiate (Result)
+				if attached {GEN_TYPE_A} instantiation as gen_type then
+					Result := gen_type.instantiate (Result)
+				else
+					check is_generic: False end
+				end
 			end
 		end
 
@@ -872,7 +899,6 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 			i, nb, l_pos: INTEGER
 			l_type_feat: TYPE_FEATURE_I
 			l_result_generics: like generics
-			l_generic_features: HASH_TABLE [TYPE_FEATURE_I, INTEGER]
 			l_quick_positions: NATURAL_64
 			l_slow_positions: PACKED_BOOLEANS
 		do
@@ -894,41 +920,36 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 							-- Descendant is generic but not parent, clearly we have to exclude it.
 						Result := Void
 					else
-						from
-								-- We reset `l_result_generics' to Void since we are using Void as a signaling
-								-- value to duplicate `Result.generics' in case we perform a substitution.
-							l_result_generics := Void
-							l_generic_features := c.generic_features
-							l_generic_features.start
-						until
-							l_generic_features.after
+							-- We reset `l_result_generics' to Void since we are using Void as a signaling
+							-- value to duplicate `Result.generics' in case we perform a substitution.
+						l_result_generics := Void
+						across
+							c.generic_features as g
 						loop
-							l_type_feat := l_generic_features.item_for_iteration
+							l_type_feat := g.item
 								-- When we encounter a formal generic parameter in the descendant,
 								-- we search for it in the ancestor, if none is found, we continue,
 								-- otherwise we replace the descendant formal generic with the parent one.
-							if attached {FORMAL_A} l_type_feat.type as l_formal then
-								if
-									attached l_class.generic_features.item (l_generic_features.key_for_iteration) as l_feat and then
-									attached {FORMAL_A} l_feat.type as l_parent_formal
-								then
-										-- We cannot override `Result' because it is coming from {CLASS_C}.actual_type
-										-- and this is an attribute that is set only once.
-									if l_result_generics = Void then
-										Result := Result.duplicate_for_instantiation
-										l_result_generics := Result.generics
-									end
-									l_pos := l_formal.position
-									l_result_generics.put_i_th (l_parent_generics.i_th (l_parent_formal.position), l_pos)
-										-- Mark that we have done `l_pos'.
-									if nb < 64 then
-										l_quick_positions := l_quick_positions | ({NATURAL_64} 1 |<< l_pos)
-									else
-										l_slow_positions.put (True, l_pos)
-									end
+							if
+								attached {FORMAL_A} l_type_feat.type as l_formal and then
+								attached l_class.generic_features.item (g.key) as l_feat and then
+								attached {FORMAL_A} l_feat.type as l_parent_formal
+							then
+									-- We cannot override `Result' because it is coming from {CLASS_C}.actual_type
+									-- and this is an attribute that is set only once.
+								if l_result_generics = Void then
+									Result := Result.duplicate_for_instantiation
+									l_result_generics := Result.generics
+								end
+								l_pos := l_formal.position
+								l_result_generics.put_i_th (l_parent_generics.i_th (l_parent_formal.position), l_pos)
+									-- Mark that we have done `l_pos'.
+								if nb < 64 then
+									l_quick_positions := l_quick_positions | ({NATURAL_64} 1 |<< l_pos)
+								else
+									l_slow_positions.put (True, l_pos)
 								end
 							end
-							l_generic_features.forth
 						end
 							-- Check now that all the bits are set.
 						if nb < 64 then
@@ -970,7 +991,6 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 			parents: FIXED_LIST [CL_TYPE_A]
 			parent: CL_TYPE_A
 			i, count: INTEGER
-			parent_class_type: CL_TYPE_A
 		do
 			from
 				parents := base_class.parents
@@ -982,10 +1002,13 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 				parent := parents [i]
 				if parent.base_class = c then
 						-- Class `c' is found
-					Result ?= parent_type (parent)
-				else
-					parent_class_type ?= parent_type (parent)
+					if attached {CL_TYPE_A} parent_type (parent) as ta then
+						Result := ta
+					end
+				elseif attached {CL_TYPE_A} parent_type (parent) as parent_class_type then
 					Result := parent_class_type.find_class_type (c)
+				else
+					check parent_type_is_cl_type_a: False end
 				end
 				i := i + 1
 			end
@@ -1042,7 +1065,7 @@ feature {CL_TYPE_A, TUPLE_CLASS_B, CIL_CODE_GENERATOR} --Class type declaration 
 
 	class_declaration_mark: NATURAL_8
 			-- Declaration mark associated with class. Meaning that when this instance was
-			-- created the base class had the same mark (currently only works for expanded).
+			-- created the base class had the same mark (current marks include "expanded" and "once").
 			-- If Current has still the mark and not the base class, it simply means that
 			-- Current is not valid.
 
@@ -1062,21 +1085,27 @@ feature {CL_TYPE_A, TUPLE_CLASS_B, CIL_CODE_GENERATOR} --Class type declaration 
 			-- Empty declaration mark
 
 	expanded_mark: NATURAL_8 = 1
-			-- Expanded declaration mark
+			-- Expanded declaration mark.
 
 	reference_mark: NATURAL_8 = 2
-			-- Reference declaration mark
+			-- Reference declaration mark.
+
+	once_mark: NATURAL_8 = 4
+			-- Once declaration mark.
 
 invariant
 	class_id_positive: class_id > 0
 	valid_declaration_mark:
-		declaration_mark = no_mark or declaration_mark = expanded_mark or
+		declaration_mark = no_mark or
+		declaration_mark = expanded_mark or
 		declaration_mark = reference_mark
 	valid_class_declaration_mark:
-		class_declaration_mark = no_mark or class_declaration_mark = expanded_mark
+		class_declaration_mark = no_mark or
+		class_declaration_mark = expanded_mark or
+		class_declaration_mark = once_mark
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

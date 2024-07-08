@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Object that represents an ordered (either by columns or by rows) EVS_GRID_WRAPPER iterator"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -14,11 +13,13 @@ inherit
 
 	EVS_GRID_SORTER
 
+	ITERATION_CURSOR [detachable EVS_GRID_SEARCHABLE_ITEM]
+
 feature{NONE} -- Initialization
 
 	make (start_column, start_row: INTEGER; a_grid_wrapper: like grid_wrapper)
 			-- Initialize start iteration point at position (`start_column', `start_row').
-			-- If position (`start_column', `start_row') is not valid in `grid_wrapper'.`grid',
+			-- If position (`start_column', `start_row') is not valid in `grid_wrapper.grid`,
 			-- Initialize start iteration point at `default_invalid_coordinate'.
 		require
 			grid_wrapper_attached: a_grid_wrapper /= Void
@@ -135,7 +136,7 @@ feature -- Access
 	item: detachable EVS_GRID_SEARCHABLE_ITEM
 			-- Item at current position
 		do
-			Result ?= grid_wrapper.grid_item (x_internal, y_internal)
+			Result := {like item} / grid_wrapper.grid_item (x_internal, y_internal)
 		end
 
 	item_column_index: INTEGER
@@ -155,7 +156,7 @@ feature -- Access
 		require
 			a_unsortable_list_attached: a_unsortable_list /= Void
 		do
-			create {ARRAYED_LIST [EVS_GRID_COORDINATED]}Result.make (a_unsortable_list.count)
+			create {ARRAYED_LIST [EVS_GRID_COORDINATED]} Result.make (a_unsortable_list.count)
 			from
 				a_unsortable_list.start
 			until
@@ -219,8 +220,8 @@ invariant
 	comparator_attached: comparator /= Void
 
 note
-        copyright:	"Copyright (c) 1984-2006, Eiffel Software"
-        license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+        copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
+        license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
         licensing_options:	"http://www.eiffel.com/licensing"
         copying: "[
                         This file is part of Eiffel Software's Eiffel Development Environment.
@@ -243,10 +244,10 @@ note
                         Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
                 ]"
         source: "[
-                         Eiffel Software
-                         356 Storke Road, Goleta, CA 93117 USA
-                         Telephone 805-685-1006, Fax 805-685-6869
-                         Website http://www.eiffel.com
-                         Customer support http://support.eiffel.com
-                ]"
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end

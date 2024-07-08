@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Handle user files."
 	date: "$Date$"
 	revision: "$Revision$"
@@ -40,6 +40,27 @@ feature -- Query
 			result_not_default: Result /= Void implies not Result.is_equal (create {UUID}.make (0, 0, 0, 0, 0))
 		end
 
+feature -- Element change
+
+	set_mapped_uuid	(a_uuid: UUID; a_file_path: READABLE_STRING_32)
+			-- Set a_uuid as mapped UUID for a given `a_file_path`.
+		require
+			not_mapped: mapped_uuid (a_file_path) = Void
+			a_file_path_attached: a_file_path /= Void
+			not_a_file_path_is_empty: not a_file_path.is_empty
+		local
+			fn: STRING_32
+			l_mapping: like mapping
+		do
+			fn := a_file_path.as_string_32
+			l_mapping := mapping
+			l_mapping.force (a_uuid.string, fn)
+			store_mapping (l_mapping)
+		ensure
+			mapped: attached mapped_uuid (a_file_path) as l_uuid and then
+					a_uuid.string.same_string (l_uuid.string)
+		end
+
 feature -- Store/Retrieve
 
 	store (a_options: USER_OPTIONS)
@@ -50,7 +71,6 @@ feature -- Store/Retrieve
 		local
 			l_file: RAW_FILE
 			l_sed_rw: SED_MEDIUM_READER_WRITER
-			l_sed_facilities: SED_STORABLE_FACILITIES
 			retried: BOOLEAN
 			l_mapping: like mapping
 			l_uuid_str: STRING_32
@@ -74,8 +94,7 @@ feature -- Store/Retrieve
 					if l_file.is_writable then
 						create l_sed_rw.make (l_file)
 						l_sed_rw.set_for_writing
-						create l_sed_facilities
-						l_sed_facilities.store (a_options, l_sed_rw)
+						;(create {SED_STORABLE_FACILITIES}).store (a_options, l_sed_rw)
 						l_file.close
 						successful := True
 					else
@@ -133,7 +152,7 @@ feature -- Store/Retrieve
 			retry
 		end
 
-	remove (a_options: USER_OPTIONS; a_target: STRING)
+	remove (a_options: USER_OPTIONS; a_target: READABLE_STRING_32)
 			-- Remove from `a_options' options related to `a_target'.
 		require
 			a_options_not_void: a_options /= Void
@@ -144,12 +163,11 @@ feature -- Store/Retrieve
 
 feature {NONE} -- Implementation
 
-	mapping: HASH_TABLE [STRING_32, STRING_32]
+	mapping: STRING_TABLE [STRING_32]
 			-- Mapping between path to a config file and its associated user option file.
 		local
 			l_file: RAW_FILE
 			l_sed_rw: SED_MEDIUM_READER_WRITER
-			l_sed_facilities: SED_STORABLE_FACILITIES
 			retried: BOOLEAN
 			l_file_name: PATH
 			r: detachable ANY
@@ -164,8 +182,7 @@ feature {NONE} -- Implementation
 					l_file.open_read
 					create l_sed_rw.make (l_file)
 					l_sed_rw.set_for_reading
-					create l_sed_facilities
-					r := l_sed_facilities.retrieved (l_sed_rw, True)
+					r := (create {SED_STORABLE_FACILITIES}).retrieved (l_sed_rw, True)
 					l_file.close
 				end
 			end
@@ -188,7 +205,6 @@ feature {NONE} -- Implementation
 		local
 			l_file: RAW_FILE
 			l_sed_rw: SED_MEDIUM_READER_WRITER
-			l_sed_facilities: SED_STORABLE_FACILITIES
 			retried: BOOLEAN
 			l_file_name: PATH
 		do
@@ -200,8 +216,7 @@ feature {NONE} -- Implementation
 					if l_file.is_writable then
 						create l_sed_rw.make (l_file)
 						l_sed_rw.set_for_writing
-						create l_sed_facilities
-						l_sed_facilities.store (a_mapping, l_sed_rw)
+						;(create {SED_STORABLE_FACILITIES}).store (a_mapping, l_sed_rw)
 						l_file.close
 						successful := True
 					else
@@ -220,7 +235,7 @@ feature {NONE} -- Implementation
 			-- Name of file where `mapping' is stored.
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

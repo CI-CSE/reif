@@ -1,9 +1,9 @@
-note
-	description	: "Controls execution of debugged application."
+﻿note
+	description: "Controls execution of debugged application."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision $"
+	date: "$Date$"
+	revision: "$Revision$"
 
 deferred class APPLICATION_EXECUTION
 
@@ -72,6 +72,7 @@ feature -- Execution event callbacks
 		require
 			Debugger_manager_not_void: debugger_manager /= Void
 		do
+			status.resume_execution
 			Debugger_manager.on_application_resumed
 		end
 
@@ -93,6 +94,7 @@ feature -- Execution event callbacks
 		require
 			Debugger_manager_not_void: debugger_manager /= Void
 		do
+			status.pause_execution
 			Debugger_manager.on_application_just_stopped
 		end
 
@@ -100,6 +102,7 @@ feature -- Execution event callbacks
 		require
 			Debugger_manager_not_void: debugger_manager /= Void
 		do
+			status.quit_execution
 			Debugger_manager.on_application_quit
 		end
 
@@ -120,6 +123,9 @@ feature -- Properties
 
 	ignoring_breakpoints: BOOLEAN
 			-- Is application ignoring breakpoints ?			
+
+	error_reported: BOOLEAN
+			-- Has error been reported during debugging?
 
 	current_execution_stack_number: INTEGER
 			-- Stack number currently displaying the locals and arguments
@@ -402,6 +408,7 @@ feature -- Execution
 	clear_internals
 			-- Clear internal values
 		do
+			set_error_reported (False)
 			if attached internal_remote_rt_object as rto then
 				rto.recycle
 				internal_remote_rt_object := Void
@@ -620,7 +627,7 @@ feature -- Remote access to Exceptions
 
 feature -- Debuggee: runtime
 
-	debugger_type_string_evaluation (a_value: DUMP_VALUE; error_handler: detachable DBG_ERROR_HANDLER): STRING
+	debugger_type_string_evaluation (a_value: DUMP_VALUE; error_handler: detachable DBG_ERROR_HANDLER): STRING_32
 			-- Get the `generating_type' as STRING by evaluation on the debuggee
 		require
 			a_value_attached: a_value /= Void
@@ -654,8 +661,8 @@ feature -- Debuggee: evaluation
 					attached a_other_value.value as l_other_value
 				then
 					Result := rto.tilda_equal_evaluation (l_value, l_other_value, error_handler)
-				elseif attached error_handler as err then
-					err.notify_error_evaluation_report_to_support (Void)
+				elseif attached error_handler then
+					error_handler.notify_error_evaluation_report_to_support (Void)
 				end
 			end
 		end
@@ -671,8 +678,8 @@ feature -- Debuggee: evaluation
 					attached a_other_value.value as l_other_value
 				then
 					Result := rto.is_equal_evaluation (l_value, l_other_value, error_handler)
-				elseif attached error_handler as err then
-					err.notify_error_evaluation_report_to_support (Void)
+				elseif attached error_handler then
+					error_handler.notify_error_evaluation_report_to_support (Void)
 				end
 			end
 		end
@@ -688,8 +695,8 @@ feature -- Debuggee: evaluation
 					attached a_other_value.value as l_other_value
 				then
 					Result := rto.equal_sign_evaluation (l_value, l_other_value, error_handler)
-				elseif attached error_handler as err then
-					err.notify_error_evaluation_report_to_support (Void)
+				elseif attached error_handler then
+					error_handler.notify_error_evaluation_report_to_support (Void)
 				end
 			end
 		end
@@ -951,7 +958,7 @@ feature {NONE} -- Breakpoints implementation
 				loc := bps.item_for_iteration.location
 				if loc.is_set_for_application then
 					debug ("debugger_trace_breakpoint")
-						print ("REMOVE APPLICATION BP :: " + loc.debug_output + "%N")
+						io.put_string_32 ({STRING_32} "REMOVE APPLICATION BP :: " + loc.debug_output + "%N")
 					end
 					unset_application_breakpoint (loc)
 					-- then next time we go with StopPoint enable ... we'll add them again
@@ -968,14 +975,14 @@ feature {NONE} -- Breakpoints implementation
 				bp_mode
 			when {BREAKPOINT}.breakpoint_to_add then
 				debug("debugger_trace_breakpoint")
-					print ("ADD BP :: " + loc.debug_output + "%N")
+					io.put_string_32 ({STRING_32} "ADD BP :: " + loc.debug_output + "%N")
 				end
 				if loc.is_valid then
 					set_application_breakpoint (loc)
 				end
 			when {BREAKPOINT}.Breakpoint_to_remove then
 				debug ("debugger_trace_breakpoint")
-					print ("DEL BP :: " + loc.debug_output + "%N")
+					io.put_string_32 ({STRING_32} "DEL BP :: " + loc.debug_output + "%N")
 				end
 				unset_application_breakpoint (loc)
 			else
@@ -1031,11 +1038,8 @@ feature -- Assertion change
 
 	disable_assertion_check
 			-- Send a message to the application to disable assertion checking
-		local
-			b: BOOLEAN
 		do
-			b := impl_check_assert (False)
-			last_assertion_check_stack.extend (b)
+			last_assertion_check_stack.extend (impl_check_assert (False))
 		end
 
 	restore_assertion_check
@@ -1128,13 +1132,13 @@ feature -- Query
 		deferred
 		end
 
-	object_internal_info (a_value: DUMP_VALUE): detachable SPECIAL [TUPLE [name: STRING; value: STRING]]
+	object_internal_info (a_value: DUMP_VALUE): detachable SPECIAL [TUPLE [name: STRING_32; value: STRING_32]]
 			-- Get the `generating_type' as STRING by evaluation on the debuggee
 		require
 			a_value_attached: a_value /= Void
 		local
 			i,p: INTEGER
-			s,n,v: STRING
+			s,n,v: STRING_32
 		do
 			if a_value.is_void then
 				Result := Void
@@ -1166,7 +1170,7 @@ feature -- Query
 			result_attached: Result /= Void
 		end
 
-	internal_type_name_of_type (a_type_id: INTEGER): detachable STRING
+	internal_type_name_of_type (a_type_id: INTEGER): detachable STRING_32
 			-- Internal type_name_of_type for `a_type_id'
 			--| note: a_type_id is the runtime type_id (so don't forget to -1 from eiffel type id)
 		require
@@ -1225,6 +1229,16 @@ feature -- Setting
 			execution_mode := exec_mode
 		ensure
 			set: execution_mode = exec_mode
+		end
+
+	report_error
+		do
+			set_error_reported (True)
+		end
+
+	set_error_reported (b: BOOLEAN)
+		do
+			error_reported := b
 		end
 
 	set_current_execution_stack_number (i: INTEGER)
@@ -1354,7 +1368,7 @@ feature {NONE} -- fake
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -5,7 +5,7 @@ note
 		"Eiffel variable attributes with extended syntax"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2009-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 2009-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,10 +20,10 @@ inherit
 			preconditions,
 			reset_preconditions,
 			postconditions,
-			reset_postconditions
+			reset_postconditions,
+			reset_after_interface_checked
 		redefine
 			make,
-			reset_after_interface_checked,
 			obsolete_message,
 			header_break,
 			last_leaf,
@@ -32,11 +32,24 @@ inherit
 			process
 		end
 
+	ET_INTERNAL_FEATURE
+		undefine
+			reset,
+			is_attribute,
+			is_transient_attribute,
+			is_stable_attribute,
+			is_prefixable,
+			type
+		redefine
+			obsolete_message
+		end
+
 	ET_EXTENDED_ATTRIBUTE_CLOSURE
 		rename
 			implementation_closure as implementation_feature
 		undefine
 			arguments,
+			first_indexing,
 			implementation_feature
 		end
 
@@ -53,23 +66,15 @@ feature {NONE} -- Initialization
 			precursor (a_name, a_type, a_class)
 		end
 
-feature -- Initialization
+feature -- Status report
 
-	reset_after_interface_checked
-			-- Reset current attribute as it was just after its interface was last checked.
+	has_self_initializing_code: BOOLEAN
+			-- Has current attribute code for self-initialization?
+			-- If it has just pre- and postconditions, then we consider
+			-- that it is not a declaration for self-initialization.
 		do
-			if validity_checked then
-				if attached locals as l_locals then
-					l_locals.reset
-				end
-				if attached compound as l_compound then
-					l_compound.reset
-				end
-				if attached rescue_clause as l_rescue_clause then
-					l_rescue_clause.reset
-				end
-			end
-			precursor
+			Result := locals /= Void or else rescue_clause /= Void or else
+				attached compound as l_compound and then l_compound.has_non_null_instruction
 		end
 
 feature -- Access
@@ -132,7 +137,7 @@ feature -- Duplication
 			Result.set_feature_clause (feature_clause)
 			Result.set_first_indexing (first_indexing)
 			Result.set_object_tests (object_tests)
-			Result.set_across_components (across_components)
+			Result.set_iteration_components (iteration_components)
 			Result.set_synonym (Current)
 		end
 
@@ -160,7 +165,7 @@ feature -- Conversion
 			Result.set_feature_clause (feature_clause)
 			Result.set_first_indexing (first_indexing)
 			Result.set_object_tests (object_tests)
-			Result.set_across_components (across_components)
+			Result.set_iteration_components (iteration_components)
 			Result.set_first_seed (first_seed)
 			Result.set_other_seeds (other_seeds)
 		end

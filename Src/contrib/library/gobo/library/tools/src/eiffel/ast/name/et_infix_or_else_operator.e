@@ -5,7 +5,7 @@ note
 		"Eiffel binary 'or else' operators"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2002-2014, Eric Bezault and others"
+	copyright: "Copyright (c) 2002-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -36,17 +36,18 @@ feature {NONE} -- Initialization
 feature -- Status report
 
 	is_infix: BOOLEAN = True
-			-- Is current feature name of the form 'infix ...'?
+			-- Is current feature name of the form binary 'alias "..."'?
 
 	is_infix_or_else: BOOLEAN = True
-			-- Is current feature name of the form 'infix "or else"'?
+			-- Is current feature name of the form binary 'alias "or else"'?
 
 feature -- Access
 
 	name: STRING
 			-- Name of feature call
+			-- (using UTF-8 encoding)
 		do
-			Result := tokens.infix_or_else_name
+			Result := tokens.alias_or_else_name
 		end
 
 	or_keyword: ET_TOKEN

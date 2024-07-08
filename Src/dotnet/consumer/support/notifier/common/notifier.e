@@ -5,91 +5,22 @@
 	date: "$Date$"
 	revision: "$Revision$"
 
-frozen class
+deferred class
 	NOTIFIER
 
-inherit
-	SYSTEM_OBJECT
+feature -- Status Report
 
-	IDISPOSABLE
-
-create
-	make
-
-feature {NONE} -- Initialization
-
-	make
-			-- Initialize notifier
-		local
-			l_start: THREAD_START
-			t: SYSTEM_THREAD
-		do
-				-- To make void-safe happy.
-			check attached {SYSTEM_THREAD}.current_thread as l_thread then
-				application_thread := l_thread
-					-- Create the real thread
-				create l_start.make (Current, $on_init)
-				create t.make (l_start)
-				t.priority := {THREAD_PRIORITY}.highest
-				t.name := "Notifer"
-				t.start
-				from
-				until
-					attached notify_form as l_form and then l_form.visible
-				loop
-					l_thread.sleep (10)
-				end
-			end
-		ensure
-			application_thread_attached: application_thread /= Void
-			not_application_thread_is_current_thread: application_thread /= {SYSTEM_THREAD}.current_thread
-		end
-
-	on_init
-			-- Initialize worker application thread.
-		local
-			l_context: WINFORMS_APPLICATION_CONTEXT
-			l_notify_form: like notify_form
-		do
-			create l_notify_form.make
-			notify_form := l_notify_form
-			create l_context.make_from_main_form (l_notify_form)
-			{WINFORMS_APPLICATION}.add_idle (create {EVENT_HANDLER}.make (Current, $on_idle))
-			{WINFORMS_APPLICATION}.run (l_context)
-		end
-
-	on_idle (a_sender: detachable SYSTEM_OBJECT; a_args: detachable EVENT_ARGS)
-			-- Action to be called on idle to refresh the content of the ballon if needed.
-		do
-			if attached notify_form as l_form then
-				l_form.on_idle (a_sender, a_args)
-			end
+	is_zombie: BOOLEAN
+			-- Indicates object has been disposed of
+		deferred
 		end
 
 feature -- Clean Up
 
 	dispose
 			-- Disposes of notifier
-		do
-			if attached notify_form then
-				{WINFORMS_APPLICATION}.exit
-			end
-			if
-				attached {SYSTEM_THREAD}.current_thread as t and then
-				t.managed_thread_id /= application_thread.managed_thread_id and then
-				application_thread.is_alive
-			then
-				application_thread.join
-			end
-			is_zombie := True
-		ensure then
-			is_zombie: is_zombie
+		deferred
 		end
-
-feature -- Status Report
-
-	is_zombie: BOOLEAN
-			-- Indicates object has been disposed of
 
 feature -- Status Setting
 
@@ -98,54 +29,31 @@ feature -- Status Setting
 		require
 			a_message_attached: a_message /= Void
 			not_is_zombie: not is_zombie
-		do
-			if attached notify_form as l_form then
-				l_form.notify_consume (a_message)
-			end
+		deferred
 		end
 
-	notify_info (a_message: STRING)
+	notify_info (a_message: READABLE_STRING_32)
 			-- Notifier user of an event
 		require
 			a_message_attached: a_message /= Void
 			not_a_message_is_empty: not a_message.is_empty
-		do
-			if attached notify_form as l_form then
-				l_form.notify_info (a_message)
-			end
+		deferred
 		end
 
 	restore_last_notification
 			-- Restores last message
-		do
-			if attached notify_form as l_form then
-				l_form.restore_last_notification
-			end
+		deferred
 		end
 
 	clear_notification
 			-- Clears last notification message.
 		require
 			not_is_zombie: not is_zombie
-		do
-			if attached notify_form as l_form then
-				l_form.clear_notification
-			end
+		deferred
 		end
 
-feature -- Implementation
-
-	notify_form: detachable NOTIFY_FORM;
-			-- Windows form used to notify users of consumption
-
-	application_thread: SYSTEM_THREAD
-			-- Nofitier application thread
-
-invariant
-	notify_form_attached: not is_zombie implies notify_form /= Void
-
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -169,11 +77,11 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

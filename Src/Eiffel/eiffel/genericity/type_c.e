@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Mapping of real Eiffel types to underlying machine type."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -86,6 +86,11 @@ feature -- Status Report
 		do
 		end
 
+	is_basic: BOOLEAN
+			-- Is it a built-in basic type?
+		do
+		end
+
 feature -- Byte code generation
 
 	make_default_byte_code (ba: BYTE_ARRAY)
@@ -112,8 +117,7 @@ feature -- C code generation
 		do
 			buffer.put_character ('(')
 			generate (buffer)
-			buffer.put_character (')')
-			buffer.put_character (' ')
+			buffer.put_two_character (')', ' ')
 		end
 
 	generate_access_cast (buffer: GENERATION_BUFFER)
@@ -124,9 +128,7 @@ feature -- C code generation
 		do
 			buffer.put_character ('(')
 			generate (buffer)
-			buffer.put_character (' ')
-			buffer.put_character ('*')
-			buffer.put_character (')')
+			buffer.put_three_character (' ', '*', ')')
 		end
 
 	generate_size (buffer: GENERATION_BUFFER)
@@ -289,7 +291,7 @@ feature -- C code generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

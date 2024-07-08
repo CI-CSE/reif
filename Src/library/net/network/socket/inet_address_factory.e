@@ -1,5 +1,5 @@
-note
-	description: "Factory of INET_ADDRESS"
+﻿note
+	description: "Factory of {INET_ADDRESS}."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -33,20 +33,15 @@ feature
 
 	create_localhost: INET_ADDRESS
 			--
-		local
-			localhostname: STRING
 		do
-			localhostname := impl.local_host_name
-			if attached create_from_name (localhostname) as l_result then
-				Result := l_result
-			else
-				check attached create_from_name ("localhost") as l_result then
-					Result := l_result
-				end
+			Result := create_from_name (impl.local_host_name)
+			if not attached Result then
+				Result := create_from_name ("localhost")
+				check attached Result then end
 			end
 		end
 
-	create_from_name (hostname: STRING): detachable INET_ADDRESS
+	create_from_name (hostname: READABLE_STRING_8): detachable INET_ADDRESS
 			--
 		do
 			if attached get_all_by_name (hostname) as r and then not r.is_empty then
@@ -104,14 +99,14 @@ feature {NONE} -- Implementation
 
 	INT16SZ: INTEGER = 2
 
-    get_all_by_name (a_host: STRING): detachable ARRAYED_LIST [INET_ADDRESS]
+    get_all_by_name (a_host: READABLE_STRING_8): detachable ARRAYED_LIST [INET_ADDRESS]
     	local
     		ipv6_expected: BOOLEAN
-    		host: STRING
+    		host: READABLE_STRING_8
     		addr_array: detachable ARRAY [NATURAL_8]
     		addr: INET_ADDRESS
     		numeric_zone: INTEGER
-    		iface_name: detachable STRING
+    		iface_name: detachable READABLE_STRING_8
     		pos: INTEGER
     		failed: BOOLEAN
 		do
@@ -122,8 +117,8 @@ feature {NONE} -- Implementation
 				Result.extend (impl.loopback_address)
 			else
 				failed := False
-				if host.item (1) = '[' then
-					if host.count > 2 and then host.item(host.count) = ']' then
+				if host [1] = '[' then
+					if host.count > 2 and then host [host.count] = ']' then
 						host := host.substring (2, host.count - 1)
 						ipv6_expected := True;
 					else
@@ -133,14 +128,14 @@ feature {NONE} -- Implementation
 					end
 				end
 				if not failed then
-					if host.item(1).is_hexa_digit or else host.item(1) = ':' then
+					if host [1].is_hexa_digit or else host [1] = ':' then
 						addr_array := text_to_numeric_format_v4 (host)
 						if addr_array = Void then
-							pos :=  host.index_of ('%%', 1)
-							if  pos /= 0 then
+							pos := host.index_of ('%%', 1)
+							if pos /= 0 then
 								numeric_zone := check_numeric_zone (host)
 								if numeric_zone = -1 then
-									iface_name := host.substring (pos+1, host.count)
+									iface_name := host.substring (pos + 1, host.count)
 								end
 							end
 							addr_array := text_to_numeric_format_v6 (host);
@@ -179,7 +174,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-    check_numeric_zone (s: STRING): INTEGER
+    check_numeric_zone (s: READABLE_STRING_8): INTEGER
     		--
     	local
     		percent: INTEGER
@@ -217,11 +212,11 @@ feature {NONE} -- Implementation
 			end
 		end
 
-    text_to_numeric_format_v4 (src: STRING): detachable ARRAY [NATURAL_8]
+    text_to_numeric_format_v4 (src: READABLE_STRING_8): detachable ARRAY [NATURAL_8]
     	require
     		valid_src: src /= Void
     	local
-			splitted: ARRAYED_LIST [STRING]
+			splitted: ARRAYED_LIST [READABLE_STRING_8]
 			val: INTEGER
 			i: INTEGER
     	do
@@ -317,7 +312,7 @@ feature {NONE} -- Implementation
 			end
     	end
 
-    text_to_numeric_format_v6 (src: STRING): detachable ARRAY [NATURAL_8]
+    text_to_numeric_format_v6 (src: READABLE_STRING_8): detachable ARRAY [NATURAL_8]
     	require
     		valid_src: src /= Void
     	local
@@ -327,7 +322,7 @@ feature {NONE} -- Implementation
     		saw_xdigit: BOOLEAN
     		val: INTEGER
     		ch: CHARACTER
-    		ia4: STRING
+    		ia4: READABLE_STRING_8
     		v4addr: detachable ARRAY [NATURAL_8]
     		done: BOOLEAN
     		new_result: detachable ARRAY [NATURAL_8]
@@ -509,12 +504,12 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	split (src: STRING; delimiter: CHARACTER): ARRAYED_LIST [STRING]
+	split (src: READABLE_STRING_8; delimiter: CHARACTER): ARRAYED_LIST [READABLE_STRING_8]
 		require
     		valid_src: src /= Void
     	local
     		i: INTEGER
-    		token: STRING
+    		token: STRING_8
 		do
 			create Result.make (10)
 			if not src.is_empty then
@@ -538,7 +533,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	dot_count (src: STRING): INTEGER
+	dot_count (src: READABLE_STRING_8): INTEGER
 			-- Returns the number of dot ('.') characters found in the given string
 
 		require
@@ -558,7 +553,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	get_all_by_name_0 (host: STRING): detachable ARRAYED_LIST [INET_ADDRESS]
+	get_all_by_name_0 (host: READABLE_STRING_8): detachable ARRAYED_LIST [INET_ADDRESS]
 		local
 			ai: detachable ADDRINFO
 			ia: INET_ADDRESS
@@ -592,7 +587,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	getaddrinfo (host: STRING): detachable ADDRINFO
+	getaddrinfo (host: READABLE_STRING_8): detachable ADDRINFO
 		local
 			ext: C_STRING
 			p: POINTER
@@ -622,7 +617,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

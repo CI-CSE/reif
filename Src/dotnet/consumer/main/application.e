@@ -51,14 +51,18 @@ feature {NONE} -- Initialization
 			l_resolver: CONSUMER_AGUMENTED_RESOLVER
 			l_assemblies: ARRAYED_LIST [IMMUTABLE_STRING_32]
 			l_references: ARRAYED_LIST [IMMUTABLE_STRING_32]
+			l_files: ARRAYED_LIST [READABLE_STRING_32]
+			l_processed: ARRAYED_LIST [READABLE_STRING_32]
 			l_info_only: BOOLEAN
 			l_assembly: READABLE_STRING_32
 			l_verbose: BOOLEAN
 			l_cache_writer: CACHE_WRITER
 			l_writer: like writer
+			l_use_json: BOOLEAN
 			l_error: BOOLEAN
 			l_domain: detachable APP_DOMAIN
 			l_receiver: detachable SYSTEM_OBJECT
+			l_is_silent: BOOLEAN
 		do
 			if a_parser.use_specified_cache then
 				create l_manager.make_with_path (a_parser.cache_path)
@@ -67,6 +71,8 @@ feature {NONE} -- Initialization
 			end
 			l_cache_writer := l_manager.cache_writer
 			l_verbose := a_parser.show_verbose_output
+			l_use_json := a_parser.use_json_storage
+			l_is_silent := a_parser.is_silent
 			if l_verbose then
 				l_cache_writer.set_error_printer (agent display_error)
 				l_cache_writer.set_status_printer (agent display_message_with_new_line)
@@ -74,35 +80,48 @@ feature {NONE} -- Initialization
 
 			l_writer := writer
 
-			if attached {RUNTIME_ENVIRONMENT}.get_runtime_directory as l_runtime_dir then
-				l_writer.put_string ("Using runtime directory: ")
-				l_writer.put_string (l_runtime_dir)
-				l_writer.new_line
-				l_writer.new_line
+			if not l_is_silent then
+				if attached {RUNTIME_ENVIRONMENT}.get_runtime_directory as l_runtime_dir then
+					l_writer.put_string ("Using runtime directory: ")
+					l_writer.put_string (utf32_to_console_encoding (console_encoding, create {STRING_32}.make_from_cil (l_runtime_dir)))
+					l_writer.new_line
+					l_writer.new_line
+				end
+			end
+
+			if l_use_json then
+				{EIFFEL_SERIALIZATION}.set_use_json_storage (True)
+				if not l_is_silent then
+					l_writer.put_string ("Using JSON storage")
+					l_writer.new_line
+					l_writer.new_line
+				end
 			end
 
 			if a_parser.add_assemblies then
 				l_assemblies := a_parser.assemblies
 				l_references := a_parser.reference_paths
+					-- NOTE: For now ignore, a_parser.sdk_paths [2022-12-20]
+
+				create l_files.make (30)
+				if attached {RUNTIME_ENVIRONMENT}.get_runtime_directory as l_runtime_dir then
+					l_files.extend (create {STRING_32}.make_from_cil (l_runtime_dir))
+				end
+				l_files.append (l_assemblies)
+				l_files.append (l_references)
 
 				l_info_only := a_parser.add_information_only
 
-				create l_resolver.make (l_assemblies)
-				if attached {RUNTIME_ENVIRONMENT}.get_runtime_directory as l_runtime_dir then
-					l_resolver.add_resolve_path (create {STRING_32}.make_from_cil (l_runtime_dir))
-				end
-				if not l_references.is_empty then
-					across l_references as l_ref loop
-						l_resolver.add_resolve_path (l_ref.item)
+				create l_resolver.make (l_files)
+				l_domain := {APP_DOMAIN}.current_domain
+				if attached l_domain then
+					resolve_subscriber.subscribe (l_domain, l_resolver)
+				else
+					check
+						from_documentation: False
+					then
 					end
 				end
-				l_domain := {APP_DOMAIN}.current_domain
-				check
-					from_documentation_current_domain_attached: attached l_domain
-				then
-				end
-				resolve_subscriber.subscribe (l_domain, l_resolver)
-				assembly_loader.set_resolver (l_resolver)
 
 					-- Preload assemblies
 				from l_assemblies.start until l_assemblies.after loop
@@ -111,24 +130,34 @@ feature {NONE} -- Initialization
 				end
 
 					-- Consume assemblies
+				create l_processed.make (l_assemblies.count * 3)
+				l_processed.compare_objects
+
 				from l_assemblies.start until l_assemblies.after loop
 					l_assembly := l_assemblies.item
 					{SYSTEM_DLL_TRACE}.write_line ({SYSTEM_STRING}.format ("Requesting consumption of assembly '{0}'.", l_assembly.to_cil), "Info")
 					display_message ({STRING_32} "Requesting consumption of assembly '" + l_assembly + "' into '")
 					display_message_with_new_line (cache_reader.absolute_consume_path.name + "' ...")
-					l_cache_writer.add_assembly (l_assembly, l_info_only)
+					l_resolver.add_resolve_path_from_file_name (l_assembly)
+					assembly_loader.set_resolver (l_resolver)
+					l_cache_writer.add_assembly_ex (l_assembly, l_info_only, l_assemblies, l_processed)
 					if not l_cache_writer.successful then
-						display_error ("   Warning: Assembly '" + l_assembly + "' could not be consumed!")
+						display_error ({STRING_32} "   Warning: Assembly '" + l_assembly + "' could not be consumed!")
 						if l_cache_writer.error_message /= Void then
-							display_error ("   Reason: " + l_cache_writer.error_message)
+							display_error ({STRING_32} "   Reason: " + l_cache_writer.error_message)
 						end
 						{SYSTEM_DLL_TRACE}.write_line ({SYSTEM_STRING}.format ("'{0}' could not be consumed.", l_assembly.to_cil), "Warning")
 						l_error := True
 					end
+					assembly_loader.set_resolver (Void)
+					l_resolver.remove_resolve_path_from_file_name (l_assembly)
+
 					l_assemblies.forth
 				end
 				assembly_loader.set_resolver (Void)
-				resolve_subscriber.unsubscribe (l_domain, l_resolver)
+				if l_domain /= Void then
+					resolve_subscriber.unsubscribe (l_domain, l_resolver)
+				end
 			elseif a_parser.remove_assemblies then
 				l_assemblies := a_parser.assemblies
 
@@ -139,9 +168,9 @@ feature {NONE} -- Initialization
 					display_message_with_new_line (cache_reader.absolute_consume_path.name + "'...")
 					l_cache_writer.unconsume_assembly (create {PATH}.make_from_string (l_assembly))
 					if not l_manager.is_successful then
-						display_error ("   Warning: Assembly '" + l_assembly + "' could not be removed (unconsumed)!")
+						display_error ({STRING_32} "   Warning: Assembly '" + l_assembly + "' could not be removed (unconsumed)!")
 						if l_cache_writer.error_message /= Void then
-							display_error ("   Reason: " + l_cache_writer.error_message)
+							display_error ({STRING_32} "   Reason: " + l_cache_writer.error_message)
 						end
 						{SYSTEM_DLL_TRACE}.write_line ({SYSTEM_STRING}.format ("'{0}' could not be removed (unconsumed).", l_assembly.to_cil), "Warning")
 						l_error := True
@@ -157,7 +186,9 @@ feature {NONE} -- Initialization
 			end
 
 			l_manager.unload
-			display_message_with_new_line ("%NCompleted.%N")
+			if not l_is_silent then
+				display_message_with_new_line ("%NCompleted.%N")
+			end
 
 			if a_parser.wait_for_user_interaction then
 				io.put_string ("Please press enter to exit...")
@@ -189,20 +220,11 @@ feature {NONE} -- Output
 			i: INTEGER
 		do
 			l_assemblies := cache_reader.assemblies
-			if l_assemblies /= Void then
-				if l_assemblies.is_empty then
-					l_assemblies := Void
-				end
-			end
-			if l_assemblies /= Void then
-				if
-					l_assemblies.for_all (agent (a_item: CONSUMED_ASSEMBLY): BOOLEAN
-						do
-							Result := a_item = Void or else not a_item.is_consumed
-						end)
-				then
-					l_assemblies := Void
-				end
+			if
+				attached l_assemblies and then
+				∀ a: l_assemblies ¦ attached a implies not a.is_consumed
+			then
+				l_assemblies := Void
 			end
 
 			l_writer := writer
@@ -213,7 +235,7 @@ feature {NONE} -- Output
 			create l_cp
 			create l_corrupted.make (0)
 
-			if l_assemblies /= Void then
+			if attached l_assemblies then
 				l_count := l_assemblies.count
 
 				create l_sindex.make_filled (' ', (l_count ^ 0.1).truncated_to_integer + 1)
@@ -347,15 +369,8 @@ feature {NONE} -- Output
 			-- Displays a status message
 		require
 			a_msg_attached: a_msg /= Void
-		local
-			l_writer: like writer
 		do
-			l_writer := writer
-			if attached utf32_to_console_encoding (Console_encoding, a_msg) as l_string then
-				l_writer.put_string (l_string)
-			else
-				l_writer.put_string (a_msg.as_string_8)
-			end
+			writer.put_string (utf32_to_console_encoding (Console_encoding, a_msg))
 		end
 
 	display_message_with_new_line (a_msg: READABLE_STRING_GENERAL)
@@ -366,11 +381,7 @@ feature {NONE} -- Output
 			l_writer: like writer
 		do
 			l_writer := writer
-			if attached utf32_to_console_encoding (Console_encoding, a_msg) as l_string then
-				l_writer.put_string (l_string)
-			else
-				l_writer.put_string (a_msg.as_string_8)
-			end
+			l_writer.put_string (utf32_to_console_encoding (Console_encoding, a_msg))
 			l_writer.new_line
 		end
 
@@ -382,11 +393,7 @@ feature {NONE} -- Output
 			l_writer: like error_writer
 		do
 			l_writer := error_writer
-			if attached utf32_to_console_encoding (Console_encoding, a_msg) as l_string then
-				l_writer.put_string (l_string)
-			else
-				l_writer.put_string (a_msg.as_string_8)
-			end
+			l_writer.put_string (utf32_to_console_encoding (Console_encoding, a_msg))
 			l_writer.new_line
 		end
 
@@ -401,6 +408,7 @@ feature {NONE} -- Output
 		once
 			Result := io.error
 		end
+
 feature {NONE} -- Implementation
 
 	cache_reader: CACHE_READER
@@ -409,9 +417,9 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
@@ -433,11 +441,11 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

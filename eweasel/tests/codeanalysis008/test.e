@@ -21,8 +21,8 @@ feature {NONE} -- Initialization
 			l_int: INTEGER
 			l_real: DOUBLE
 		do
-			l_int := +-2
-			l_real := -+4.1 -- Double violation by design
+			l_int := + -2
+			l_real := - +4.1 -- Double violation by design
 			l_real := - -4.2
 			l_int := +(4)
 			l_int := -(-7)

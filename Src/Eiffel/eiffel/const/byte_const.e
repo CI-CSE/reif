@@ -1,7 +1,7 @@
-note
+﻿note
 	description: "[
 		Constant for byte code.
-		Those character values have to match C values defined in "interp.h".
+		Those character values have to match C values defined in "rt_interp.h".
 		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -138,10 +138,13 @@ feature -- Access
 	Bc_not_used_122:	CHARACTER = '%/122/';
 	Bc_not_used_123:	CHARACTER = '%/123/';
 	Bc_not_used_124:	CHARACTER = '%/124/';
-	Bc_not_used_125:	CHARACTER = '%/125/';
-	Bc_not_used_126:	CHARACTER = '%/126/';
-	Bc_not_used_127:	CHARACTER = '%/127/';
-	Bc_not_used_128:	CHARACTER = '%/128/';
+
+		-- Immutable strings
+	Bc_immstring8:			CHARACTER = '%/125/';
+	Bc_immstring32:			CHARACTER = '%/126/';
+	Bc_once_immstring8:		CHARACTER = '%/127/';
+	Bc_once_immstring32:	CHARACTER = '%/128/';
+
 	Bc_object_expr_addr:CHARACTER = '%/129/';
 	Bc_reserve:			CHARACTER = '%/130/';
 	Bc_pop:				CHARACTER = '%/131/';
@@ -154,12 +157,13 @@ feature -- Access
 	bc_builtin_type__has_default: CHARACTER = '%/002/'
 	bc_builtin_type__default: CHARACTER = '%/003/'
 	bc_builtin_type__type_id: CHARACTER = '%/004/'
-	bc_builtin_type__runtime_name: CHARACTER = '%/005/'
+	bc_builtin_type__runtime_name__s1: CHARACTER = '%/005/'
 	bc_builtin_type__generic_parameter_type: CHARACTER = '%/006/'
 	bc_builtin_type__generic_parameter_count: CHARACTER = '%/007/'
 	bc_builtin_type__is_attached: CHARACTER = '%/008/'
 	bc_builtin_type__is_deferred: CHARACTER = '%/009/'
 	bc_builtin_type__is_expanded: CHARACTER = '%/010/'
+	bc_builtin_type__runtime_name__s4: CHARACTER = '%/011/'
 
 
 	Bc_cast_char32:		CHARACTER = '%/135/';
@@ -169,7 +173,7 @@ feature -- Access
 	Bc_basic_operations:	CHARACTER = '%/137/'
 	Bc_max:			CHARACTER = '%/001/'
 	Bc_min:			CHARACTER = '%/002/'
-	Bc_generator:		CHARACTER = '%/003/'
+	Bc_generator__s1:		CHARACTER = '%/003/'
 	Bc_offset:			CHARACTER = '%/004/'
 	Bc_zero:			CHARACTER = '%/005/'
 	Bc_one:			CHARACTER = '%/006/'
@@ -180,6 +184,7 @@ feature -- Access
 	bc_nan:			CHARACTER = '%/011/'
 	bc_negative_infinity:		CHARACTER = '%/012/'
 	bc_positive_infinity:		CHARACTER = '%/013/'
+	Bc_generator__s4:		CHARACTER = '%/014/'
 
 		-- Special instructions for Bit operations
 	Bc_int_bit_op:		CHARACTER = '%/138/'
@@ -268,10 +273,21 @@ feature -- Access
 	Bc_do_rescue_end:	CHARACTER = '%/176/';
 
 		-- Always failing postcondition
-	Bc_postfail: CHARACTER = '%/177/';
+	Bc_postfail: 		CHARACTER = '%/177/';
 
-note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+feature {NONE} -- Access: SCOOP call masks
+
+	scoop_call_mask_none: NATURAL_8 = 0
+			-- The mask of a SCOOP call without any flags set.
+
+	scoop_call_mask_query: NATURAL_8 = 1
+			-- The SCOOP call returns a value.
+
+	scoop_call_mask_active_creation: NATURAL_8 = 2
+			-- An active region has to be created for the object before the call.
+
+;note
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -302,4 +318,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class BYTE_CONST
+end

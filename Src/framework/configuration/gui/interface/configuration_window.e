@@ -110,13 +110,13 @@ feature {NONE}-- Initialization
 				debug_clauses := a_debugs
 			end
 			current_target := a_factory.new_target ({STRING_32} "*", a_system)
-			refresh_current := agent do_nothing
 			selected_target := a_target
 			set_pixmaps (a_pixmaps)
 			conf_system := a_system
 			conf_factory := a_factory
 			external_editor_command := a_editor
 			default_create
+			set_refresh_current (Void)
 			window := Current
 			config_windows.force (Current, conf_system.file_name)
 		ensure
@@ -144,6 +144,8 @@ feature {NONE}-- Initialization
 	create_interface_objects
 		do
 			Precursor
+			create properties
+			create grid
 			create toolbar.make
 			create section_tree
 			create configuration_space
@@ -292,7 +294,19 @@ feature -- Command
 
 feature {NONE} -- Agents
 
-	refresh_current: PROCEDURE
+	set_refresh_current (proc: like refresh_current_procedure)
+		do
+			refresh_current_procedure := proc
+		end
+
+	refresh_current
+		do
+			if attached refresh_current_procedure as proc then
+				proc.call (Void)
+			end
+		end
+
+	refresh_current_procedure: detachable PROCEDURE
 			-- What to call to refresh the current view.
 
 	on_cancel
@@ -316,6 +330,55 @@ feature {CONFIGURATION_SECTION} -- Layout components
 	toolbar: CONFIGURATION_TOOLBAR
 			-- Toolbar for actions.
 
+feature {NONE} -- Layout status
+
+	reset_grid
+		do
+			grid.wipe_out
+				-- Remove grid associated button
+			if attached add_button as but then
+				add_button := Void
+				but.destroy
+			end
+			if attached remove_button as but then
+				remove_button := Void
+				but.destroy
+			end
+			grid_used := False
+		ensure
+			not grid_used
+		end
+
+	reset_properties
+		do
+			properties.reset
+			properties_used := False
+		ensure
+			not properties_used
+		end
+
+	use_properties
+		do
+			reset_grid
+			properties_used := True
+		ensure
+			not grid_used
+			properties_used
+		end
+
+	use_grid
+		do
+			reset_properties
+			grid_used := True
+		ensure
+			not properties_used
+			grid_used
+		end
+
+	properties_used: BOOLEAN
+
+	grid_used: BOOLEAN
+
 feature {NONE} -- Layout components
 
 	ok_button: EV_BUTTON
@@ -327,7 +390,7 @@ feature {NONE} -- Layout components
 	section_tree: EV_TREE
 			-- Tree to select what information to display.
 
-	grid: detachable ES_GRID
+	grid: ES_GRID
 			-- Grid for variables and type mappings.
 
 	add_button: detachable EV_BUTTON
@@ -353,8 +416,11 @@ feature {NONE} -- Element initialization
 			container.extend (l_frame)
 			l_frame.set_style ({EV_FRAME_CONSTANTS}.ev_frame_lowered)
 
-			create p
-			properties := p
+			p := properties
+--			if p = Void then
+--				create p
+--				properties := p
+--			end
 			l_frame.extend (p)
 			p.focus_in_actions.extend (agent
 				do
@@ -374,52 +440,53 @@ feature {NONE} -- Element initialization
 
 				-- Create description container.
 			create l_description_area
-			properties.set_description_field (l_description_area)
+			p.set_description_field (l_description_area)
 			l_description_area.set_minimum_height (description_height)
 			l_description_area.set_minimum_width (100)
 			l_frame.extend (l_description_area)
 		ensure
-			properties_attached: attached properties
+			properties_attached: properties_used
 		end
 
 	initialize_properties
 			-- Prepare `properties'.
 		require
-			not_properties_and_grid: properties = Void or grid = Void
+			not_properties_and_grid: not properties_used or not grid_used
+		local
+			p: like properties
 		do
-			if properties = Void or else attached tabs then
+			if not properties_used or else attached tabs then
 				configuration_space.wipe_out
 
-					-- Remove grid.
-				if grid /= Void then
-					grid.destroy
-					grid := Void
-					add_button.destroy
-					add_button := Void
-					remove_button.destroy
-					remove_button := Void
-				end
+				use_properties
+				p := properties
+				create p
+				properties := p
 
 					-- Remove tabs.
 				if attached tabs as t then
-					tabs.destroy
+					t.destroy
 					tabs := Void
 				end
 
 				initialize_properties_for (configuration_space)
 			else
-				properties.reset
+				if properties.is_destroyed then
+					check not properties_used end
+				else
+					properties.reset
+				end
 			end
 		ensure
-			properties_ok: properties /= Void and then not properties.is_destroyed
-			grid_void: grid = Void
+			properties_ok: properties_used and then not properties.is_destroyed
+			grid_void: not grid_used
 			buttons_void: add_button = Void and remove_button = Void
 		end
 
 	initialize_grid
 			-- Prepare `grid'.
 		require
-			not_properties_and_grid: properties = Void or grid = Void
+			not_properties_and_grid: not properties_used or not grid_used
 		local
 			vb_grid: EV_VERTICAL_BOX
 			hb: EV_HORIZONTAL_BOX
@@ -427,7 +494,8 @@ feature {NONE} -- Element initialization
 			b: EV_BUTTON
 			g: ES_GRID
 		do
-			if grid = Void then
+			g := grid
+			if not grid_used then
 				configuration_space.wipe_out
 
 					-- border
@@ -437,8 +505,11 @@ feature {NONE} -- Element initialization
 				configuration_space.extend (vb_grid)
 
 					-- grid
+				use_grid
+				g := grid
 				create g
 				grid := g
+
 				vb_grid.extend (g)
 				g.set_column_count_to (2)
 				g.column (1).set_width (200)
@@ -471,33 +542,32 @@ feature {NONE} -- Element initialization
 				layout_constants.set_default_width_for_button (b)
 				hb.extend (b)
 				hb.disable_item_expand (b)
-
-					-- remove properties
-				if properties /= Void then
-					properties.destroy
-					properties := Void
-				end
 			else
-				l_column_width1 := grid.column (1).width
-				l_column_width2 := grid.column (2).width
-				grid.wipe_out
-				grid.set_column_count_to (2)
-				grid.column (1).set_width (l_column_width1)
-				grid.column (2).set_width (l_column_width2)
+				l_column_width1 := g.column (1).width
+				l_column_width2 := g.column (2).width
+				g.wipe_out
+				g.set_column_count_to (2)
+				g.column (1).set_width (l_column_width1)
+				g.column (2).set_width (l_column_width2)
 
 					-- clear button actions
-				add_button.select_actions.wipe_out
-				remove_button.select_actions.wipe_out
+				check
+					attached add_button as l_add_button and
+					attached remove_button as l_remove_button
+				then
+					l_add_button.select_actions.wipe_out
+					l_remove_button.select_actions.wipe_out
+				end
 			end
 
-			grid.enable_border
-			grid.enable_last_column_use_all_width
-			grid.enable_single_row_selection
+			g.enable_border
+			g.enable_last_column_use_all_width
+			g.enable_single_row_selection
 		ensure
-			grid_ok: grid /= Void and then not grid.is_destroyed
-			add_button_ok: add_button /= Void and then not add_button.is_destroyed
-			remove_button_ok: remove_button /= Void and then not remove_button.is_destroyed
-			properties_void: properties = Void
+			grid_ok: grid_used and then not grid.is_destroyed
+			add_button_ok: attached add_button as ab and then not ab.is_destroyed
+			remove_button_ok: attached remove_button as rb and then not rb.is_destroyed
+			properties_not_used: not properties_used
 		end
 
 	tabs: detachable EV_NOTEBOOK
@@ -517,7 +587,7 @@ feature {NONE} -- Element initialization
 			description_field: ES_SCROLLABLE_LABEL
 		do
 			notebook := tabs
-			if not attached notebook then
+			if notebook = Void then
 					-- Replace configuration space with tabs.
 				configuration_space.wipe_out
 
@@ -595,7 +665,7 @@ feature {NONE} -- Element initialization
 			description_field.set_minimum_height (80)
 
 			notebook.selection_actions.wipe_out
-			notebook.selection_actions.extend (refresh_current)
+			notebook.selection_actions.extend (agent refresh_current)
 		end
 
 	initialize_section_tree
@@ -608,7 +678,7 @@ feature {NONE} -- Element initialization
 			across
 				top_targets (True) as ic
 			loop
-				add_target_sections (ic.item, section_tree)
+				add_target_sections (ic, section_tree)
 			end
 		ensure
 			section_tree_not_void: section_tree /= Void
@@ -619,7 +689,7 @@ feature -- Access / targets
 	container_has_target (a_container: ITERABLE [CONF_TARGET]; a_target: CONF_TARGET): BOOLEAN
 			-- Is `a_target` in `a_container`?
 		do
-			Result := across a_container as ic some a_target.same_as (ic.item) end
+			Result := across a_container as ic some a_target.same_as (ic) end
 		end
 
 	top_targets (a_remotes_targets_included: BOOLEAN): ARRAYED_LIST [CONF_TARGET]
@@ -632,7 +702,7 @@ feature -- Access / targets
 			across
 				conf_system.target_order as ic
 			loop
-				t := top_parent (ic.item)
+				t := top_parent (ic)
 				if container_has_target (Result, t) then
 						-- Skip
 				else
@@ -640,7 +710,7 @@ feature -- Access / targets
 				end
 			end
 		ensure
-			across Result as ic all (ic.item.extends = Void or is_remote_target (ic.item)) end
+			across Result as ic all (ic.extends = Void or is_remote_target (ic)) end
 		end
 
 	top_parent (a_target: CONF_TARGET): CONF_TARGET
@@ -687,7 +757,7 @@ feature -- Access / targets
 				across
 					conf_system.target_order as ic
 				loop
-					t := ic.item
+					t := ic
 					if a_target.same_as (t.extends) then
 						Result.force (t)
 					elseif attached ordered_parents_until (t, a_target) as lst then
@@ -703,7 +773,7 @@ feature -- Access / targets
 				Result := a_target.child_targets
 			end
 		ensure
-			all_child_of_target: across Result as ic all a_target.same_as (ic.item.extends) end
+			all_child_of_target: across Result as ic all a_target.same_as (ic.extends) end
 		end
 
 	is_remote_target (a_target: CONF_TARGET): BOOLEAN
@@ -729,7 +799,7 @@ feature -- Access / targets
 				Result /= Void
 			loop
 				if
-					attached {REMOTE_TARGET_SECTION} ic.item as l_remote and then
+					attached {REMOTE_TARGET_SECTION} ic as l_remote and then
 					l_remote.target.same_as (a_target)
 				then
 					Result := l_remote
@@ -845,13 +915,13 @@ feature {NONE} -- Choice options
 						-- Erase preference mark.
 					is_default_preference := False
 				elseif attached inherited_option then
-					is_default_capability := inherited_option.index = i.target_index
+					is_default_capability := inherited_option.index = @ i.target_index
 					is_default_preference := is_default_capability
 				else
-					is_default_capability := option.default_index = i.target_index
+					is_default_capability := option.default_index = @ i.target_index
 					is_default_preference := is_default_capability
 				end
-				create check_button.make_with_text (i.item)
+				create check_button.make_with_text (i)
 				property_group.put_at_position (check_button, 2, row, 1, 1)
 					-- Mark current item as enabled default if needed.
 					-- TODO: replace pixmap with pixel buffer and use drawable to avoid cloning.
@@ -864,19 +934,19 @@ feature {NONE} -- Choice options
 						default_capability)
 				end
 					-- Indicate whether an value is checked.
-				if capability.is_capable (i.target_index.as_natural_8) then
+				if capability.is_capable (@ i.target_index.as_natural_8) then
 					check_button.enable_select
 				end
 					-- Last item is always checked.
-				if i.is_last then
+				if @ i.is_last then
 					check_button.disable_sensitive
 				else
 						-- Enable or disable current button depending on the state of a default button.
 					on_toggle (agent check_button.disable_sensitive, agent check_button.enable_sensitive, default_capability)
 						-- Enable or disable other capabilities and preferred buttons depending on the state of the current button.
 					on_toggle
-						(agent select_smaller_capabilities (option, i.target_index.as_natural_8, row, property_group, update_preferred_buttons),
-						agent unselect_larger_capabilities (option, i.target_index.as_natural_8, row, property_group, update_preferred_buttons),
+						(agent select_smaller_capabilities (option, @ i.target_index.as_natural_8, row, property_group, update_preferred_buttons),
+						agent unselect_larger_capabilities (option, @ i.target_index.as_natural_8, row, property_group, update_preferred_buttons),
 						check_button)
 				end
 				check_button.focus_in_actions.extend (update_description)
@@ -884,7 +954,7 @@ feature {NONE} -- Choice options
 				create radio_button -- .make_with_text (i.item)
 				property_group.put_at_position (radio_button, 4, row, 1, 1)
 				radio_button.focus_in_actions.extend (update_description)
-				radio_button.select_actions.extend (agent capability.put_root_index (i.target_index.as_natural_8))
+				radio_button.select_actions.extend (agent capability.put_root_index (@ i.target_index.as_natural_8))
 				row := row + 1
 			end
 				-- Update with current state.
@@ -1168,9 +1238,7 @@ feature {REMOTE_TARGET_SECTION, TARGET_SECTION, SYSTEM_SECTION} -- Target creati
 			across
 				child_targets_of (a_target) as ic
 			loop
-				if not is_remote_target (ic.item) then
-					add_target_sections (ic.item, l_parent)
-				end
+				add_target_sections (ic, l_parent)
 			end
 		end
 
@@ -1197,20 +1265,11 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			end
 
 				-- remove grid
-			if grid /= Void then
-				grid.destroy
-				grid := Void
-				add_button.destroy
-				add_button := Void
-				remove_button.destroy
-				remove_button := Void
-			end
+			reset_grid
 
 				-- Remove properties.
-			if properties /= Void then
-				properties.destroy
-				properties := Void
-			end
+			reset_properties
+
 				-- Remove tabs.
 			if attached tabs as t then
 				t.destroy
@@ -1227,7 +1286,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			not_refreshing: not is_refreshing
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_system
+			set_refresh_current (agent show_properties_system)
 			lock_update
 
 			initialize_properties
@@ -1250,7 +1309,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			is_remote_target: is_remote_target (a_target)
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_remote_target_general (a_target)
+			set_refresh_current (agent show_properties_remote_target_general (a_target))
 			lock_update
 
 			initialize_properties
@@ -1274,7 +1333,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_target_not_void: a_target /= Void
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_general (a_target)
+			set_refresh_current (agent show_properties_target_general (a_target))
 			lock_update
 
 			initialize_properties
@@ -1298,7 +1357,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_target_not_void: a_target /= Void
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_warning (a_target)
+			set_refresh_current (agent show_properties_target_warning (a_target))
 			lock_update
 
 			initialize_properties
@@ -1321,7 +1380,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_target_not_void: a_target /= Void
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_debugs (a_target)
+			set_refresh_current (agent show_properties_target_debugs (a_target))
 			lock_update
 
 			initialize_properties
@@ -1344,7 +1403,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_target_not_void: a_target /= Void
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_assertions (a_target)
+			set_refresh_current (agent show_properties_target_assertions (a_target))
 			lock_update
 
 			initialize_properties
@@ -1368,7 +1427,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_external_not_void: a_external /= Void
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_externals (a_target, a_external)
+			set_refresh_current (agent show_properties_target_externals (a_target, a_external))
 			lock_update
 
 			initialize_properties
@@ -1394,7 +1453,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_type_ok: a_type.is_equal (conf_interface_names.task_pre) or a_type.is_equal (conf_interface_names.task_post)
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_tasks (a_target, a_task, a_type)
+			set_refresh_current (agent show_properties_target_tasks (a_target, a_task, a_type))
 			lock_update
 
 			initialize_properties
@@ -1418,7 +1477,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			a_group_not_void: a_group /= Void
 		do
 			is_refreshing := True
-			refresh_current := agent show_properties_target_groups (a_target, a_group)
+			set_refresh_current (agent show_properties_target_groups (a_target, a_group))
 			lock_update
 
 			initialize_properties
@@ -1447,60 +1506,67 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 		do
 			current_target := a_target
 			is_refreshing := True
-			refresh_current := agent show_properties_target_variables (a_target)
+			set_refresh_current (agent show_properties_target_variables (a_target))
 			lock_update
 
 				-- prepare grid
 			initialize_grid
-			grid.column (1).set_title (conf_interface_names.variables_name)
-			grid.column (2).set_title (conf_interface_names.variables_value)
+			check attached grid as g then
 
-			if current_target.extends /= Void then
-				l_inh_vars := current_target.extends.variables
-			else
-				create l_inh_vars.make_equal (0)
-			end
-			from
-				l_vars := current_target.variables
-				l_vars.start
-			until
-				l_vars.after
-			loop
-				i := grid.row_count
-				create l_item.make ("")
-				l_var_key := l_vars.key_for_iteration
-				l_item.set_value (l_var_key)
-				l_item.pointer_button_press_actions.wipe_out
-				l_item.activate_when_pointer_is_double_pressed
-				l_item.change_value_actions.extend (agent update_variable_key (l_var_key, {READABLE_STRING_32} ?))
-				grid.set_item (1, i + 1, l_item)
-				create l_item.make ("")
-				l_item.set_value (l_vars.item_for_iteration)
-				l_item.pointer_button_press_actions.wipe_out
-				l_item.activate_when_pointer_is_double_pressed
-				l_item.change_value_actions.extend (agent update_variable_value (l_var_key, {READABLE_STRING_32} ?))
-				grid.set_item (2, i + 1, l_item)
-				l_inh_vars.search (l_var_key)
-				if l_inh_vars.found then
-					if l_inh_vars.found_item.is_equal (l_vars.item_for_iteration) then
-						-- inherited
-						grid.row (i + 1).set_background_color (inherit_color)
-					else
-						-- overriden
-						grid.row (i + 1).set_background_color (override_color)
-					end
+				g.column (1).set_title (conf_interface_names.variables_name)
+				g.column (2).set_title (conf_interface_names.variables_value)
+
+				if attached current_target.extends as l_extends then
+					l_inh_vars := l_extends.variables
+				else
+					create l_inh_vars.make_equal (0)
 				end
-				l_vars.forth
+				from
+					l_vars := current_target.variables
+					l_vars.start
+				until
+					l_vars.after
+				loop
+					i := g.row_count
+					create l_item.make ("")
+					l_var_key := l_vars.key_for_iteration
+					l_item.set_value (l_var_key)
+					l_item.pointer_button_press_actions.wipe_out
+					l_item.activate_when_pointer_is_double_pressed
+					l_item.change_value_actions.extend (agent update_variable_key (l_var_key, {READABLE_STRING_32} ?))
+					g.set_item (1, i + 1, l_item)
+					create l_item.make ("")
+					l_item.set_value (l_vars.item_for_iteration)
+					l_item.pointer_button_press_actions.wipe_out
+					l_item.activate_when_pointer_is_double_pressed
+					l_item.change_value_actions.extend (agent update_variable_value (l_var_key, {READABLE_STRING_32} ?))
+					g.set_item (2, i + 1, l_item)
+					l_inh_vars.search (l_var_key)
+					if attached l_inh_vars.found_item as l_found_item then
+						if l_found_item.is_equal (l_vars.item_for_iteration) then
+							-- inherited
+							g.row (i + 1).set_background_color (inherit_color)
+						else
+							-- overriden
+							g.row (i + 1).set_background_color (override_color)
+						end
+					end
+					l_vars.forth
+				end
+				check
+					attached add_button as l_add_button and
+					attached remove_button as l_remove_button
+				then
+					l_add_button.select_actions.extend (agent add_variable)
+					l_remove_button.select_actions.extend (agent remove_variable)
+				end
 			end
-
-			add_button.select_actions.extend (agent add_variable)
-			remove_button.select_actions.extend (agent remove_variable)
 
 			unlock_update
 			is_refreshing := False
 		ensure
 			not_refreshing: not is_refreshing
-			grid_ok: grid /= Void and then not grid.is_destroyed
+			grid_ok: attached grid as el_grid and then not el_grid.is_destroyed
 		end
 
 	show_properties_target_mapping (a_target: CONF_TARGET)
@@ -1516,59 +1582,66 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 		do
 			current_target := a_target
 			is_refreshing := True
-			refresh_current := agent show_properties_target_mapping (a_target)
+			set_refresh_current (agent show_properties_target_mapping (a_target))
 			lock_update
 
-			initialize_grid
-
-			grid.column (1).set_title (conf_interface_names.mapping_old_name)
-			grid.column (2).set_title (conf_interface_names.mapping_new_name)
-			if current_target.extends /= Void then
-				l_inh_vars := current_target.extends.mapping
+			if attached current_target.extends as l_extends then
+				l_inh_vars := l_extends.mapping
 			else
 				create l_inh_vars.make_equal (0)
 			end
-			from
-				l_vars := current_target.mapping
-				l_vars.start
-			until
-				l_vars.after
-			loop
-				i := grid.row_count
-				create l_item.make ("")
-				l_var_key := l_vars.key_for_iteration
-				l_item.set_value (l_var_key)
-				l_item.pointer_button_press_actions.wipe_out
-				l_item.activate_when_pointer_is_double_pressed
-				l_item.change_value_actions.extend (agent update_mapping_key (l_var_key, ?))
-				grid.set_item (1, i + 1, l_item)
-				create l_item.make ("")
-				l_item.set_value (l_vars.item_for_iteration)
-				l_item.pointer_button_press_actions.wipe_out
-				l_item.activate_when_pointer_is_double_pressed
-				l_item.change_value_actions.extend (agent update_mapping_value (l_var_key, ?))
-				grid.set_item (2, i + 1, l_item)
-				l_inh_vars.search (l_var_key)
-				if l_inh_vars.found then
-					if l_inh_vars.found_item.is_equal (l_vars.item_for_iteration) then
-						-- inherited
-						grid.row (i + 1).set_background_color (inherit_color)
-					else
-						-- overriden
-						grid.row (i + 1).set_background_color (override_color)
-					end
-				end
-				l_vars.forth
-			end
 
-			add_button.select_actions.extend (agent add_mapping)
-			remove_button.select_actions.extend (agent remove_mapping)
+			initialize_grid
+			check attached grid as g then
+				g.column (1).set_title (conf_interface_names.mapping_old_name)
+				g.column (2).set_title (conf_interface_names.mapping_new_name)
+
+				from
+					l_vars := current_target.mapping
+					l_vars.start
+				until
+					l_vars.after
+				loop
+					i := g.row_count
+					create l_item.make ("")
+					l_var_key := l_vars.key_for_iteration
+					l_item.set_value (l_var_key)
+					l_item.pointer_button_press_actions.wipe_out
+					l_item.activate_when_pointer_is_double_pressed
+					l_item.change_value_actions.extend (agent update_mapping_key (l_var_key, ?))
+					g.set_item (1, i + 1, l_item)
+					create l_item.make ("")
+					l_item.set_value (l_vars.item_for_iteration)
+					l_item.pointer_button_press_actions.wipe_out
+					l_item.activate_when_pointer_is_double_pressed
+					l_item.change_value_actions.extend (agent update_mapping_value (l_var_key, ?))
+					g.set_item (2, i + 1, l_item)
+					l_inh_vars.search (l_var_key)
+					if attached l_inh_vars.found_item as l_found_item then
+						if l_found_item.is_equal (l_vars.item_for_iteration) then
+							-- inherited
+							g.row (i + 1).set_background_color (inherit_color)
+						else
+							-- overriden
+							g.row (i + 1).set_background_color (override_color)
+						end
+					end
+					l_vars.forth
+				end
+				check
+					attached add_button as l_add_button and
+					attached remove_button as l_remove_button
+				then
+					l_add_button.select_actions.extend (agent add_mapping)
+					l_remove_button.select_actions.extend (agent remove_mapping)
+				end
+			end
 
 			unlock_update
 			is_refreshing := False
 		ensure
 			not_refreshing: not is_refreshing
-			grid_ok: grid /= Void and then not grid.is_destroyed
+			grid_ok: attached grid as el_grid and then not el_grid.is_destroyed
 		end
 
 	show_properties_target_advanced (a_target: CONF_TARGET)
@@ -1580,7 +1653,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 		do
 			current_target := a_target
 			is_refreshing := True
-			refresh_current := agent show_properties_target_advanced (a_target)
+			set_refresh_current (agent show_properties_target_advanced (a_target))
 			lock_update
 
 			initialize_properties
@@ -1619,8 +1692,8 @@ feature {NONE} -- Implementation
 	refresh
 			-- Regenerate currently displayed data.
 		do
-			if refresh_current /= Void then
-				refresh_current.call (Void)
+			if attached refresh_current_procedure as act then
+				act.call (Void)
 				set_focus
 				section_tree.set_focus
 			end
@@ -1708,8 +1781,8 @@ feature {NONE} -- Implementation
 			create l_mls_prop.make (conf_interface_names.system_description_name)
 			l_mls_prop.enable_text_editing
 			l_mls_prop.set_description (conf_interface_names.system_description_description)
-			if conf_system.description /= Void then
-				l_mls_prop.set_value (conf_system.description)
+			if attached conf_system.description as desc then
+				l_mls_prop.set_value (desc)
 			end
 			l_mls_prop.change_value_actions.extend (agent conf_system.set_description ({READABLE_STRING_32}?))
 			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
@@ -1718,8 +1791,8 @@ feature {NONE} -- Implementation
 				-- library target
 			create l_choice_prop.make_with_choices (conf_interface_names.system_library_target_name, l_targets_none)
 			l_choice_prop.set_description (conf_interface_names.system_library_target_description)
-			if conf_system.library_target /= Void then
-				l_choice_prop.set_value (conf_system.library_target.name)
+			if attached conf_system.library_target as l_lib_target then
+				l_choice_prop.set_value (l_lib_target.name)
 			end
 			l_choice_prop.validate_value_actions.extend (agent check_library_target)
 			l_choice_prop.change_value_actions.extend (agent conf_system.set_library_target_by_name)
@@ -1747,7 +1820,9 @@ feature {NONE} -- Implementation
 			l_string_prop.set_value (conf_system.uuid.out)
 			properties.add_property (l_string_prop)
 
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 		end
 
 	initialize_properties_target_externals (an_external: CONF_EXTERNAL)
@@ -1847,7 +1922,9 @@ feature {NONE} -- Implementation
 			l_dial.change_value_actions.extend (agent change_no_argument_wrapper ({CONF_CONDITION_LIST}?, agent handle_value_changes (False)))
 			properties.add_property (l_dial)
 
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 		end
 
 	initialize_properties_target_tasks (a_task: CONF_ACTION; a_type: STRING_GENERAL)
@@ -1933,7 +2010,9 @@ feature {NONE} -- Implementation
 			l_dial.change_value_actions.extend (agent change_no_argument_wrapper ({CONF_CONDITION_LIST}?, agent handle_value_changes (False)))
 			properties.add_property (l_dial)
 
-			properties.current_section.expand
+			if attached properties.current_section as l_current_section then
+				l_current_section.expand
+			end
 		end
 
 feature {NONE} -- Configuration setting
@@ -1955,16 +2034,19 @@ feature {NONE} -- Configuration setting
 			current_target: current_target /= Void
 			variables: grid /= Void
 		do
-			if grid.has_selected_row then
-				if attached {TEXT_PROPERTY [READABLE_STRING_GENERAL]} grid.selected_rows.first.item (1) as l_item then
+			if attached grid as g and then g.has_selected_row then
+				if attached {TEXT_PROPERTY [READABLE_STRING_GENERAL]} g.selected_rows.first.item (1) as l_item then
 					check
-						valid_value: l_item.value /= Void
+						valid_value: attached l_item.value as v
+					then
+						current_target.remove_variable (v)
 					end
-					current_target.remove_variable (l_item.value.as_string_8)
 				else
 					check expected_selected_row_item_type: False end
 				end
 				show_properties_target_variables (current_target)
+			else
+				check has_grid: False end
 			end
 		end
 
@@ -2011,13 +2093,15 @@ feature {NONE} -- Configuration setting
 			current_target: current_target /= Void
 			variables: grid /= Void
 		do
-			if grid.has_selected_row then
-				if attached {TEXT_PROPERTY [READABLE_STRING_GENERAL]} grid.selected_rows.first.item (1) as l_item then
+			if attached grid as g and then g.has_selected_row then
+				if attached {TEXT_PROPERTY [READABLE_STRING_GENERAL]} g.selected_rows.first.item (1) as l_item then
 					current_target.remove_mapping (l_item.text)
 				else
 					check expected_selected_row_item_type: False end
 				end
 				show_properties_target_mapping (current_target)
+			else
+				check has_grid: False end
 			end
 		end
 
@@ -2029,7 +2113,11 @@ feature {NONE} -- Configuration setting
 			an_old_key_valid: current_target.mapping.has (an_old_key)
 		do
 			if (create {EIFFEL_SYNTAX_CHECKER}).is_valid_class_name (a_new_key) then
-				current_target.internal_mapping.replace_key (a_new_key.as_upper, an_old_key)
+				if attached current_target.internal_mapping as m then
+					m.replace_key (a_new_key.as_upper, an_old_key)
+				else
+					check has_internal_mapping: False end
+				end
 			end
 			show_properties_target_mapping (current_target)
 		end
@@ -2058,7 +2146,7 @@ feature {NONE} -- Validation and warning generation
 		do
 			if a_target /= Void and then not a_target.is_empty then
 				l_target := conf_system.targets.item (a_target)
-				if not l_target.overrides.is_empty then
+				if l_target /= Void and then not l_target.overrides.is_empty then
 					(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_error_prompt (conf_interface_names.library_target_override, Current, Void)
 				else
 					Result := True
@@ -2082,8 +2170,8 @@ invariant
 	section_tree: is_initialized implies section_tree /= Void
 	toolbar: is_initialized implies toolbar /= Void
 	split_area: is_initialized implies split_area /= Void
-	grid_implies_add_button: grid /= Void implies add_button /= Void and then not add_button.is_destroyed
-	grid_implies_remove_button: grid /= Void implies remove_button /= Void and then not remove_button.is_destroyed
+	grid_implies_add_button: grid_used implies attached add_button as l_add_button and then not l_add_button.is_destroyed
+	grid_implies_remove_button: grid_used implies attached remove_button as l_remove_button and then not l_remove_button.is_destroyed
 	debug_clauses: debug_clauses /= Void
 	group_section_expanded_status: group_section_expanded_status /= Void
 	conf_system: conf_system /= Void
@@ -2093,7 +2181,7 @@ invariant
 	selected_target_ok: selected_target /= Void and then not selected_target.is_empty
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

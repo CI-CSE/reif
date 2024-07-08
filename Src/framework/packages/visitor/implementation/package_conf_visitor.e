@@ -1,5 +1,4 @@
-note
-	description: "Summary description for {PACKAGE_CONF_VISITOR}."
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -15,7 +14,8 @@ inherit
 			visit_target,
 			visit_library,
 			visit_cluster,
-			visit_class
+			visit_class,
+			reset
 		end
 
 	CONF_ITERATOR
@@ -57,10 +57,12 @@ feature {NONE} -- Initialization
 		do
 			is_any_setting := True
 			is_ignoring_redirection := False
+			is_first_visited_target := True
 
 			is_il_generation := False
 			build := {CONF_CONSTANTS}.Build_workbench
 			concurrency := {CONF_CONSTANTS}.concurrency_multithreaded
+			void_safety := {CONF_CONSTANTS}.void_safety_all
 			has_dynamic_runtime := False
 
 			if {PLATFORM}.is_dotnet then
@@ -94,21 +96,32 @@ feature -- Settings
 
 	concurrency: INTEGER
 
+	void_safety: INTEGER
+
 	is_il_generation: BOOLEAN
 
 	has_dynamic_runtime: BOOLEAN
 
 	is_stopping_at_library: BOOLEAN
 
+	is_stopping_at_readonly_library: BOOLEAN
+
 	is_indexing_class: BOOLEAN
 
 	is_ignoring_redirection: BOOLEAN
+
+	is_visiting_same_ecf_library_once: BOOLEAN
 
 feature -- Settings change
 
 	set_is_stopping_at_library (b: BOOLEAN)
 		do
 			is_stopping_at_library := b
+		end
+
+	set_is_stopping_at_readonly_library (b: BOOLEAN)
+		do
+			is_stopping_at_readonly_library := b
 		end
 
 	set_is_indexing_class (b: BOOLEAN)
@@ -121,6 +134,11 @@ feature -- Settings change
 			is_ignoring_redirection := b
 		end
 
+	set_is_visiting_same_ecf_library_once (b: BOOLEAN)
+		do
+			is_visiting_same_ecf_library_once := b
+		end
+
 feature -- Change
 
 	set_is_any_setting (b: BOOLEAN)
@@ -130,37 +148,27 @@ feature -- Change
 		end
 
 	set_platform (a_platform: detachable READABLE_STRING_GENERAL)
-		local
-			p: READABLE_STRING_8
 		do
-			is_platform_set := True
-			if a_platform = Void then
-				is_platform_set := False
-				platform := {CONF_CONSTANTS}.pf_unix
-			else
+				-- Default to Unix.
+			is_platform_set := False
+			platform := {CONF_CONSTANTS}.pf_unix
+			if attached a_platform then
+				is_platform_set := True
 				is_il_generation := False
-				if a_platform.is_valid_as_string_8 then
-					p := a_platform.as_string_8
-					if p.is_case_insensitive_equal ("dotnet") then
-						platform := {CONF_CONSTANTS}.pf_windows
-						is_il_generation := True
-					elseif p.is_case_insensitive_equal ({CONF_CONSTANTS}.pf_windows_name) then
-						platform := {CONF_CONSTANTS}.pf_windows
-					elseif
-						p.is_case_insensitive_equal ({CONF_CONSTANTS}.pf_unix_name)
-						or p.as_lower.starts_with ("linux")
-					then
-						platform := {CONF_CONSTANTS}.pf_unix
-					elseif p.is_case_insensitive_equal ({CONF_CONSTANTS}.pf_macintosh_name) then
-						platform := {CONF_CONSTANTS}.pf_mac
-					else
-						is_platform_set := False
-						platform := {CONF_CONSTANTS}.pf_unix
-					end
-				else
-						-- Defaulted to unix.
-					is_platform_set := False
+				if a_platform.is_case_insensitive_equal ("dotnet") then
+					platform := {CONF_CONSTANTS}.pf_windows
+					is_il_generation := True
+				elseif a_platform.is_case_insensitive_equal ({CONF_CONSTANTS}.pf_windows_name) then
+					platform := {CONF_CONSTANTS}.pf_windows
+				elseif
+					a_platform.is_case_insensitive_equal ({CONF_CONSTANTS}.pf_unix_name) or else
+					a_platform.same_caseless_characters ("linux", 1, 5, 1)
+				then
 					platform := {CONF_CONSTANTS}.pf_unix
+				elseif a_platform.is_case_insensitive_equal ({CONF_CONSTANTS}.pf_macintosh_name) then
+					platform := {CONF_CONSTANTS}.pf_mac
+				else
+					is_platform_set := False
 				end
 			end
 		end
@@ -182,6 +190,27 @@ feature -- Change
 			end
 		end
 
+	set_void_safety (a_void_safety: detachable READABLE_STRING_GENERAL)
+		do
+			if a_void_safety = Void then
+				void_safety := {CONF_CONSTANTS}.void_safety_all
+			else
+				if a_void_safety.is_case_insensitive_equal ({CONF_CONSTANTS}.void_safety_none_name) then
+					void_safety := {CONF_CONSTANTS}.void_safety_none
+				elseif a_void_safety.is_case_insensitive_equal ({CONF_CONSTANTS}.void_safety_conformance_name) then
+					void_safety := {CONF_CONSTANTS}.void_safety_conformance
+				elseif a_void_safety.is_case_insensitive_equal ({CONF_CONSTANTS}.void_safety_initialization_name) then
+					void_safety := {CONF_CONSTANTS}.void_safety_initialization
+				elseif a_void_safety.is_case_insensitive_equal ({CONF_CONSTANTS}.void_safety_transitional_name) then
+					void_safety := {CONF_CONSTANTS}.void_safety_transitional
+				elseif a_void_safety.is_case_insensitive_equal ({CONF_CONSTANTS}.void_safety_all_name) then
+					void_safety := {CONF_CONSTANTS}.void_safety_all
+				else
+					void_safety := {CONF_CONSTANTS}.void_safety_all
+				end
+			end
+		end
+
 	set_build (a_build: detachable READABLE_STRING_GENERAL)
 		do
 			if a_build = Void then
@@ -197,16 +226,49 @@ feature -- Change
 			end
 		end
 
+feature -- Change
+
+	reset
+		do
+			Precursor
+			visited_library_locations := Void
+			is_first_visited_target := True
+		end
+
+feature {NONE} -- Implementation
+
+	visited_library_locations: detachable ARRAYED_LIST [PATH]
+
+	is_first_visited_target: BOOLEAN
+
 feature -- Visitor
 
 	visit_ecf_file (p: PATH)
 		local
 			f: RAW_FILE
+			libs: like visited_library_locations
 		do
-			create f.make_with_path (p)
-			if f.exists and then f.is_access_readable then
-				if attached configuration_from (p) as cfg then
+			if is_visiting_same_ecf_library_once then
+				libs := visited_library_locations
+				if libs = Void then
+					create libs.make (10)
+					libs.compare_objects
+					visited_library_locations := libs
+				end
+			end
+			if libs = Void or else not libs.has (p) then
+					-- Not yet visited.
+				create f.make_with_path (p)
+				if
+					f.exists and then
+					f.is_access_readable and then
+					attached configuration_from (p) as cfg
+				then
 					visit_system (cfg)
+				end
+				if libs /= Void then
+					check not libs.has (p) end
+					libs.force (p)
 				end
 			end
 		end
@@ -216,7 +278,7 @@ feature -- Visitor
 			across
 				a_system.targets as ic
 			loop
-				visit_target (ic.item)
+				visit_target (ic)
 			end
 			Precursor (a_system)
 		end
@@ -234,22 +296,27 @@ feature -- Visitor
 				last_target := a_target
 
 				if is_any_setting then
-					if is_indexing_class or not is_stopping_at_library then
+					if
+						is_first_visited_target
+						or is_indexing_class
+						or not (is_stopping_at_library or is_stopping_at_readonly_library)
+					then
 						across
 							a_target.clusters as ic
 						loop
-							visit_cluster (ic.item)
+							visit_cluster (ic)
 						end
 						across
 							a_target.overrides as ic
 						loop
-							visit_cluster (ic.item)
+							visit_cluster (ic)
 						end
 					end
+					is_first_visited_target := False
 					across
 						a_target.libraries as ic
 					loop
-						visit_library (ic.item)
+						visit_library (ic)
 					end
 				else
 					l_state := conf_state_from_target (a_target)
@@ -263,20 +330,24 @@ feature -- Visitor
 							across
 								l_last_errors as ic
 							loop
-								print_conf_error (ic.item, "  ")
+								print_conf_error (ic, "  ")
 							end
 						end
 					else
-						if is_indexing_class or not is_stopping_at_library then
+						if
+							is_first_visited_target
+							or is_indexing_class
+							or not (is_stopping_at_library or is_stopping_at_readonly_library)
+						then
 							across
 								a_target.clusters as ic
 							loop
-								visit_cluster (ic.item)
+								visit_cluster (ic)
 							end
 							across
 								a_target.overrides as ic
 							loop
-								visit_cluster (ic.item)
+								visit_cluster (ic)
 							end
 						end
 
@@ -286,7 +357,7 @@ feature -- Visitor
 						across
 							a_target.libraries as ic
 						loop
-							visit_library (ic.item)
+							visit_library (ic)
 						end
 						Precursor (a_target)
 					end
@@ -306,6 +377,8 @@ feature -- Visitor
 		do
 			if is_stopping_at_library then
 					-- Do not visit clusters, ...
+			elseif a_library.is_readonly and is_stopping_at_readonly_library then
+					-- Do not visit clusters of readonly library, ...
 			else
 				Precursor (a_library)
 				l_last_target := last_target
@@ -316,11 +389,11 @@ feature -- Visitor
 
 	visit_cluster (a_cluster: CONF_CLUSTER)
 		do
-			if attached a_cluster.classes as l_classes then
+			if is_indexing_class and then attached a_cluster.classes as l_classes then
 				across
 					l_classes as ic
 				loop
-					visit_class (ic.item)
+					visit_class (ic)
 				end
 			end
 			Precursor (a_cluster)
@@ -333,6 +406,7 @@ feature -- Visitor
 
 	visit_class (a_class: CONF_CLASS)
 		do
+			check is_indexing_class end
 			Precursor (a_class)
 		end
 
@@ -375,7 +449,7 @@ feature {NONE} -- Helper
 			l_text: READABLE_STRING_32
 			s: STRING_32
 			c: CHARACTER_32
-			i,n: INTEGER
+			i, n: INTEGER
 		do
 			l_text := err.text
 			create s.make (l_text.count + 2)
@@ -386,12 +460,10 @@ feature {NONE} -- Helper
 			until
 				i > n
 			loop
-				c := l_text[i]
+				c := l_text [i]
 				s.append_character (c)
-				if c = '%N' then
-					if i < n then
-						s.append_string_general (a_prefix)
-					end
+				if c = '%N' and then i < n then
+					s.append_string_general (a_prefix)
 				end
 				i := i + 1
 			end
@@ -413,20 +485,20 @@ feature {NONE} -- Helper
 			if not retried then
 				l_reader := ecf_reader
 					-- Ignore redirection!
-				l_reader.retrieve_configuration (a_file_name.name)
+				l_reader.retrieve_and_check_configuration (a_file_name.name)
 				if not l_reader.is_error then
 					if not is_ignoring_redirection or else l_reader.last_redirection = Void then
-							-- Ignore redirection if asked. 
+							-- Ignore redirection if asked.
 						Result := l_reader.last_system
 					end
-				else
+--				else
 --					if l_reader.is_invalid_xml then
 --						error_handler.add_error (create {SCIX}.make (a_file_name, 0, Void), False)
 --					else
 --						error_handler.add_error (create {SCLF}.make (a_file_name, 0, Void), False)
 --					end
 				end
-			else
+--			else
 --				error_handler.add_error (create {SCFE}.make (a_file_name, 0, Void), False)
 			end
 		rescue
@@ -445,7 +517,7 @@ feature {NONE} -- Helper
 			create l_version.make (1)
 			create l_conf_version.make_version ({EIFFEL_CONSTANTS}.major_version, {EIFFEL_CONSTANTS}.minor_version, 0, 0)
 			l_version.force (l_conf_version, "compiler")
-			create Result.make (platform, build, concurrency, is_il_generation, has_dynamic_runtime, a_target.variables, l_version)
+			create Result.make (platform, build, concurrency, void_safety, is_il_generation, has_dynamic_runtime, a_target.variables, l_version)
 		end
 
 	current_conf_state: detachable CONF_STATE
@@ -525,7 +597,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -534,4 +606,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

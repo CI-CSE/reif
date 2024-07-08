@@ -1,7 +1,5 @@
-note
+﻿note
 	description: "Helper class to create Boogie code."
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	E2B_BOOGIE_TEXT
@@ -56,32 +54,27 @@ feature -- Basic operations
 			a_text_attached: attached a_text
 		local
 			l_string: STRING
-			l_lines: LIST [STRING]
 		do
 			l_string := a_text.string
 			if not l_string.is_empty then
 				if l_string.ends_with ("%N") then
 					l_string.remove_tail (1)
 				end
-				l_lines := a_text.string.split ('%N')
-				from
-					l_lines.start
-				until
-					l_lines.after
+				across
+					a_text.string.split ('%N') as l
 				loop
-					if l_lines.item.ends_with (":") and indentation_level > 0 then
+					if l.ends_with (":") and indentation_level > 0 then
 						unindent
-						put_line ("  " + l_lines.item)
+						put_line ("  " + l)
 						indent
 					else
-						put_line (l_lines.item)
+						put_line (l)
 					end
-					l_lines.forth
 				end
 			end
 		end
 
-	put (a_string: STRING)
+	put (a_string: READABLE_STRING_8)
 			-- Append `a_string'.
 		require
 			a_string_attached: attached a_string
@@ -89,6 +82,27 @@ feature -- Basic operations
 			internal_string.append (a_string)
 		ensure
 --			a_string_added: string.ends_with (a_string)
+		end
+
+	put_literal_string (s: READABLE_STRING_8)
+			-- Append string `s` making sure it can be read back.
+		require
+			s_attached: attached s
+			only_regular_spaces: across s as c all c.is_space implies c = ' ' end
+		local
+			e: STRING
+		do
+			if s.has (' ') then
+				e := s.to_string_8
+				if e = s then
+					e := e.twin
+				end
+					-- Replace all spaces with no-break space.
+				e.replace_substring_all (" ", "%/194/%/160/")
+				internal_string.append (e)
+			else
+				internal_string.append (s)
+			end
 		end
 
 	put_comment_line (a_comment: STRING)
@@ -197,5 +211,29 @@ feature {NONE} -- Implementation
 
 	internal_string: attached STRING
 			-- String used internally.
+
+;note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

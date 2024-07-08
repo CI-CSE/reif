@@ -3,13 +3,14 @@ note
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
-	names: format_double;
+	names: format_double
 	date: "$Date$"
 	revision: "$Revision$"
 
 class FORMAT_DOUBLE
 
-inherit
+inherit {NONE}
+
 	FORMAT_INTEGER
 		rename
 			make as set_defaults,
@@ -176,13 +177,13 @@ feature -- Status setting
 
 feature -- Conversion
 
-	formatted (d: DOUBLE): STRING
+	formatted (d: REAL_64): STRING
 			-- Format `d'.
 		local
 			sign: INTEGER
-			integral, fraction: DOUBLE
+			integral, fraction: REAL_64
 			ints, fracs: STRING
-			value: DOUBLE
+			value: REAL_64
 		do
 			value := d
 			sign := 1
@@ -231,7 +232,7 @@ feature -- Conversion
 
 feature {NONE} -- Implementation
 
-	pad_fraction (f: DOUBLE): STRING
+	pad_fraction (f: REAL_64): STRING
 			-- Stretch or shrink `f' to length `decimals' .
 		local
 			i: INTEGER
@@ -300,7 +301,7 @@ invariant
 	separate_all: no_separator implies not after_decimal_separate
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

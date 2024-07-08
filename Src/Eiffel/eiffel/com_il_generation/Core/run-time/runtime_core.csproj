@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <AssemblyName>EiffelSoftware.Runtime</AssemblyName>
+    <OutputType>Library</OutputType>
+    <RootNamespace>EiffelSoftware.Runtime</RootNamespace>
+  </PropertyGroup>
+
+</Project>

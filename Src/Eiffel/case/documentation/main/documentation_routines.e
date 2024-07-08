@@ -263,7 +263,7 @@ feature -- Access
 			current_class := class_c
 			a_text_formatter.process_filter_item (f_class_declaration, True)
 			a_text_formatter.process_filter_item (f_menu_bar, True)
-			insert_class_menu_bar (a_text_formatter, class_c.name.as_lower)
+			insert_class_menu_bar (a_text_formatter, {UTF_CONVERTER}.utf_8_string_8_to_string_32 (class_c.name).as_lower)
 			a_text_formatter.process_filter_item (f_menu_bar, False)
 			class_c.append_header (a_text_formatter)
 			a_text_formatter.add_new_line
@@ -294,7 +294,7 @@ feature -- Access
 			append_feature_chart_item (a_text_formatter, commands, "Commands")
 			append_class_constraints (a_text_formatter, class_c)
 			a_text_formatter.process_filter_item (f_menu_bar, True)
-			insert_class_menu_bar (a_text_formatter, class_c.name.as_lower)
+			insert_class_menu_bar (a_text_formatter, {UTF_CONVERTER}.utf_8_string_8_to_string_32 (class_c.name).as_lower)
 			a_text_formatter.process_filter_item (f_menu_bar, False)
 			a_text_formatter.process_filter_item (f_class_declaration, False)
 			current_class := Void
@@ -308,7 +308,7 @@ feature -- Access
 		do
 			a_text_formatter.process_filter_item (f_class_declaration, True)
 			a_text_formatter.process_filter_item (f_menu_bar, True)
-			insert_class_menu_bar (a_text_formatter, class_c.name.as_lower)
+			insert_class_menu_bar (a_text_formatter, {UTF_CONVERTER}.utf_8_string_8_to_string_32 (class_c.name).as_lower)
 			a_text_formatter.process_filter_item (f_menu_bar, False)
 			class_c.append_header (a_text_formatter)
 			a_text_formatter.add_new_line
@@ -317,7 +317,7 @@ feature -- Access
 			append_class_clients (a_text_formatter, class_c)
 			append_class_suppliers (a_text_formatter, class_c)
 			a_text_formatter.process_filter_item (f_menu_bar, True)
-			insert_class_menu_bar (a_text_formatter, class_c.name.as_lower)
+			insert_class_menu_bar (a_text_formatter, {UTF_CONVERTER}.utf_8_string_8_to_string_32 (class_c.name).as_lower)
 			a_text_formatter.process_filter_item (f_menu_bar, False)
 			a_text_formatter.process_filter_item (f_class_declaration, False)
 		end
@@ -349,7 +349,6 @@ feature -- Routines
 	append_general_info (text: TEXT_FORMATTER; class_i: CLASS_I)
 			-- Append "General" item for class charts.
 		local
-			creators: HASH_TABLE [EXPORT_I, STRING]
 			s: STRING_32
 			class_c: CLASS_C
 			l_group: CONF_GROUP
@@ -385,8 +384,7 @@ feature -- Routines
 				add_string_multilined (text, s)
 				text.add_new_line
 			end
-			creators := class_c.creators
-			if creators /= Void and then not creators.is_empty then
+			if attached class_c.creators as cs and then not cs.is_empty then
 				append_info_item (text, "create")
 				append_creators (text, class_c)
 				text.add_new_line
@@ -432,21 +430,18 @@ feature -- Routines
 	append_creators (text: TEXT_FORMATTER; class_c: CLASS_C)
 			-- Append creators list.
 		local
-			cr: HASH_TABLE [EXPORT_I, STRING]
-			f_name: STRING
+			f: E_FEATURE
 		do
-			cr := class_c.creators
-			from
-				cr.start
-			until
-				cr.after
-			loop
-				f_name := cr.key_for_iteration
-				text.add_feature (class_c.feature_with_name (f_name), f_name)
-				cr.forth
-				if not cr.after then
-					text.process_symbol_text (ti_Comma)
-					text.add_space
+			if attached class_c.creators as cs then
+				across
+					cs as c
+				loop
+					f := class_c.feature_with_name_id (c.key)
+					text.add_feature (f, f.name_32)
+					if not c.is_last then
+						text.process_symbol_text (ti_Comma)
+						text.add_space
+					end
 				end
 			end
 		end
@@ -850,17 +845,13 @@ feature {NONE} -- Implementation
 			-- `f' may be any feature. Returns `False' if not a function.
 		require
 			f_not_void: f /= Void
-		local
-			return_class: CLASS_C
 		do
-			if attached f.type as t then
-				if t.has_associated_class then
-					return_class := t.base_class
-					if conf /= Void then
-						Result := return_class.conform_to (conf)
-					end
-				end
-			end
+			Result :=
+				attached f.type as t and then
+				t.has_associated_class and then
+				attached t.base_class as return_class and then
+				attached conf and then
+				return_class.conform_to (conf)
 		end
 
 	Action_sequence_class: CLASS_C
@@ -917,7 +908,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

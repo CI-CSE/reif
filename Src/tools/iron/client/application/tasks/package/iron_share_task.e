@@ -38,6 +38,7 @@ feature -- Execute
 			l_data: like data_from
 			uri: URI
 			tgt: PATH
+			l_remove_iron_archive: BOOLEAN
 			l_package: detachable IRON_PACKAGE
 			err, done: BOOLEAN
 			l_title, l_name, l_id: detachable READABLE_STRING_32
@@ -48,6 +49,7 @@ feature -- Execute
 			l_upload_new_archive: BOOLEAN
 			l_iron_archive: detachable IRON_ARCHIVE
 			l_local_hash: detachable READABLE_STRING_8
+			b: BOOLEAN
 		do
 			err := False
 
@@ -58,13 +60,13 @@ feature -- Execute
 			if attached args.configuration_file as l_cfg then
 				create ini.make_with_path (l_cfg)
 				if u = Void then
-					u := ini.item ("username")
+					u := ini.adjusted_item ("username")
 				end
 				if p = Void then
-					p := ini.item ("password")
+					p := ini.adjusted_item ("password")
 				end
 				if repo_url = Void then
-					repo_url := ini.item ("repository")
+					repo_url := ini.adjusted_item ("repository")
 				end
 			end
 			if
@@ -255,6 +257,7 @@ feature -- Execute
 										if l_iron_archive = Void or else not l_iron_archive.file_exists then
 											print ("[Error] Failure occured during package archive creation!%N")
 										end
+										l_remove_iron_archive := True
 --										if not (create {FILE_UTILITIES}).file_path_exists (l_archive_path) then
 --											print ("[Error] Failure occured during package archive creation!%N")
 --										end
@@ -317,6 +320,10 @@ feature -- Execute
 													end
 												end
 											end
+												-- Clean temp archive file
+											if l_remove_iron_archive then
+												l_iron_archive.delete_file
+											end
 										else
 											print ({STRING_32} "Unable to find package archive %""+ l_iron_archive.path.name +"%"!")
 											print_new_line
@@ -336,7 +343,26 @@ feature -- Execute
 					print_new_line
 				end
 			else
-				print ({STRING_32} "[ERROR] Missing required arguments!")
+				b := False
+				if u = Void then
+					b := True
+					print ({STRING_32} "[ERROR] Missing required argument %"username%"!")
+				end
+				if p = Void then
+					b := True
+					print ({STRING_32} "[ERROR] Missing required argument %"password%"!")
+				end
+				if repo_url = Void then
+					b := True
+					print ({STRING_32} "[ERROR] Missing required argument %"repository%"!")
+				end
+				if args.operation = Void then
+					b := True
+					print ({STRING_32} "[ERROR] Missing required argument %"operation%"!")
+				end
+				if not b then
+					print ({STRING_32} "[ERROR] Missing arguments!")
+				end
 				print_new_line
 			end
 		end
@@ -474,7 +500,7 @@ feature -- Execute
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,13 +1,13 @@
-note
-	description:
-		"Implementation of transfer manager builder"
+﻿note
+	description: "Implementation of transfer manager builder"
 	legal: "See notice at end of class."
-
 	status: "See notice at end of class."
 	date: "$Date$"
 	revision: "$Revision$"
 
-class TRANSFER_MANAGER_BUILDER_IMPL inherit
+class TRANSFER_MANAGER_BUILDER_IMPL
+
+inherit
 
 	DATA_RESOURCE_FACTORY
 		export
@@ -84,10 +84,10 @@ feature -- Status report
 	is_mode_valid (mode: INTEGER): BOOLEAN
 			-- Is `mode' valid?
 		do
-			Result := (Readable <= mode and mode <= Writable)
+			Result := Readable <= mode and mode <= Writable
 		end
 
-	is_address_correct (addr: STRING; mode: INTEGER): BOOLEAN
+	is_address_correct (addr: STRING_8; mode: INTEGER): BOOLEAN
 			-- Is address `addr' correct considering `mode'?
 			-- (`mode' is `Readable' or `Writable')
 		require
@@ -188,7 +188,7 @@ feature -- Status setting
 			timeout_set: attached timeout as l_timeout_var and then l_timeout_var.item = s
 		end
 
-	set_source_proxy (host: STRING; port: INTEGER)
+	set_source_proxy (host: STRING_8; port: INTEGER)
 			-- Set source proxy host to `host' and port to `port'.
 		require
 			host_not_empty: host /= Void and then not host.is_empty
@@ -200,7 +200,7 @@ feature -- Status setting
 			host_port_set: attached source_proxy as l_proxy and then (l_proxy.host = host and l_proxy.port = port)
 		end
 
-	set_target_proxy (host: STRING; port: INTEGER)
+	set_target_proxy (host: STRING_8; port: INTEGER)
 			-- Set target proxy host to `host' and port to `port'.
 		require
 			host_not_empty: host /= Void and then not host.is_empty
@@ -208,11 +208,11 @@ feature -- Status setting
 		do
 			create target_proxy.make (host, port)
 		ensure
-			target_proxy_exists: target_proxy /= Void
-			host_port_set: attached {like source_proxy} target_proxy as l_proxy and then (l_proxy.host = host and l_proxy.port = port)
+			target_proxy_exists: attached target_proxy
+			host_port_set: attached target_proxy as p and then (p.host = host and p.port = port)
 		end
 
-	set_proxies (host: STRING; port: INTEGER)
+	set_proxies (host: STRING_8; port: INTEGER)
 			-- Set source and target proxy host to `host' and
 			-- port to `port'.
 		require
@@ -255,7 +255,7 @@ feature -- Status setting
 
 feature -- Element change
 
-	add_transaction (s, t: STRING)
+	add_transaction (s, t: STRING_8)
 			-- Add transaction from source `s' to target `t'.
 		require
 			source_exists: s /= Void
@@ -263,7 +263,6 @@ feature -- Element change
 		local
 			l_sr: detachable DATA_RESOURCE
 			l_tr: detachable DATA_RESOURCE
-			ta: SINGLE_TRANSACTION
 			l_timeout: like timeout
 		do
 			last_added_source_correct := is_address_correct (s, Readable)
@@ -299,13 +298,11 @@ feature -- Element change
 						Io.error.put_string (" seconds%N")
 					end
 				end
-				create ta.make (l_sr, l_tr)
-				transactions.extend (ta)
+				transactions.extend (create {SINGLE_TRANSACTION}.make (l_sr, l_tr))
 			end
 		ensure
 			one_more_transaction_if_correct:
-				(last_added_source_correct and
-				last_added_target_correct) implies count = old count + 1
+				(last_added_source_correct and last_added_target_correct) implies count = old count + 1
 		end
 
 feature -- Removal
@@ -331,10 +328,10 @@ feature -- Removal
 			transactions.go_i_th (idx)
 		ensure
 			one_less_item: count = count - 1
-			index_unchanged: (old transactions.index < old count)
-				implies (transactions.index = old transactions.index)
-			index_adapted: (old transactions.index = old count)
-				implies (transactions.index = old transactions.index - 1)
+			index_unchanged: old transactions.index < old count
+				implies transactions.index = old transactions.index
+			index_adapted: old transactions.index = old count
+				implies transactions.index = old transactions.index - 1
 		end
 
 	wipe_out
@@ -413,19 +410,12 @@ feature {NONE} -- Implementation
 
 	optimized_count: INTEGER
 			-- Number of optimized transactions
-		local
-			l_optimized_transactions: like optimized_transactions
 		do
-			l_optimized_transactions := optimized_transactions
-			if l_optimized_transactions /= Void and then not l_optimized_transactions.is_empty then
-				from
-					l_optimized_transactions.start
-				until
-					l_optimized_transactions.after
-				loop
-					Result := Result + l_optimized_transactions.item.count
-					l_optimized_transactions.forth
-				end
+			if
+				attached optimized_transactions as l_optimized_transactions and then
+				not l_optimized_transactions.is_empty
+			then
+				⟳ t: l_optimized_transactions ¦ Result := Result + t.count ⟲
 			end
 		end
 
@@ -441,49 +431,42 @@ feature {NONE} -- Implementation
 			l_optimized_transactions: like optimized_transactions
 		do
 			create hash.make (count)
-			from transactions.start until transactions.after loop
-				addr := transactions.item.source.address
+			across transactions as t loop
+				addr := t.source.address
 				if attached hash.item (addr) as lst then
-					lst.extend (transactions.index)
+					lst.extend (@ t.target_index)
 				else
 					create l_list.make
-					l_list.extend (transactions.index)
+					l_list.extend (@ t.target_index)
 					hash.put (l_list, addr)
 				end
-				transactions.forth
 			end
 
 			create l_optimized_transactions.make (count)
 			optimized_transactions := l_optimized_transactions
 
-			from transactions.start until transactions.after loop
-				if attached hash.item (transactions.item.source.address) as lst then
-					lst.start
-					if not (transactions @ lst.item).source.supports_multiple_transactions or lst.count = 1 then
-						from lst.start until lst.after loop
-							l_optimized_transactions.extend (transactions @ lst.item)
-							lst.forth
+			across transactions as t loop
+				if attached hash.item (t.source.address) as lst then
+					if not transactions [lst.first].source.supports_multiple_transactions or lst.count = 1 then
+						across lst as c loop
+							l_optimized_transactions.extend (transactions [c])
 						end
 					else
-						from
-							lst.start
-							create multitrans.make
-						until
-							lst.after
+						create multitrans.make
+						across
+							lst as c
 						loop
-							multitrans.add_transaction (transactions @ lst.item)
-							lst.forth
+							multitrans.add_transaction (transactions [c])
 						end
 						l_optimized_transactions.extend (multitrans)
 					end
-					hash.remove (transactions.item.source.address)
+					hash.remove (t.source.address)
 				end
-				transactions.forth
 			end
 		ensure
 			optimized:
 				attached optimized_transactions as l_optimized_transactions_var and then
-					l_optimized_transactions_var.is_empty
+				l_optimized_transactions_var.is_empty
 		end
 
 	setup_manager
@@ -497,22 +480,15 @@ feature {NONE} -- Implementation
 			create l_manager.make
 			transfer_manager := l_manager
 			if attached optimized_transactions as l_optimized_transactions then
-				from
-					l_optimized_transactions.start
-					l_manager.stop_on_error
-				until
-					l_optimized_transactions.after
-				loop
-					l_manager.add_transaction (l_optimized_transactions.item)
-					l_optimized_transactions.forth
-				end
+				l_manager.stop_on_error
+				⟳ t: l_optimized_transactions ¦ l_manager.add_transaction (t) ⟲
 			end
 		ensure
 			manager_set_up: manager_built
 		end
 
 	add_reference (s: SET [STRING]; r: DATA_RESOURCE;
-				f: FUNCTION [BOOLEAN]): BOOLEAN
+			f: FUNCTION [BOOLEAN]): BOOLEAN
 			-- Add `r' into `s' if `f' is true.
 		require
 			set_exists: s /= Void
@@ -520,7 +496,7 @@ feature {NONE} -- Implementation
 			function_exists: f /= Void
 		do
 			if not s.has (r.location) then
-				Result := f.item (Void)
+				Result := f.item
 				if Result then s.extend (r.location) end
 			else
 				Result := True
@@ -545,15 +521,15 @@ feature {NONE} -- Implementation
 
 invariant
 
-	readable_set_exists: readable_set /= Void
-	writable_set_exists: writable_set /= Void
-	resource_hash: resource_hash /= Void
+	readable_set_exists: attached readable_set
+	writable_set_exists: attached writable_set
+	resource_hash: attached resource_hash
 	success_constraint: transfer_succeeded implies transfer_finished
-	count_equality: (optimized_count > 0) implies (count = optimized_count)
+	count_equality: optimized_count > 0 implies count = optimized_count
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA
@@ -562,8 +538,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class TRANSFER_MANAGER_BUILDER_IMPL
-
+end

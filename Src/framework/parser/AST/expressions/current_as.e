@@ -1,7 +1,5 @@
-note
-	description:
-		"Abstract description to access to `Current'. %
-		%Version for Bench."
+﻿note
+	description: "Abstract description to access to 'Current'."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -10,12 +8,8 @@ note
 class CURRENT_AS
 
 inherit
-	ACCESS_AS
-		undefine
-			text
-		redefine
-			is_equivalent
-		end
+
+	EXPR_AS
 
 	KEYWORD_AS
 		undefine
@@ -29,7 +23,7 @@ create
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- Process current element.
 		do
 			v.process_current_as (Current)
 		end
@@ -37,7 +31,7 @@ feature -- Visitor
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 			Result := True
 		end
@@ -47,12 +41,12 @@ feature -- Properties
 	access_name: STRING = "Current"
 
 	parameters: detachable EIFFEL_LIST [EXPR_AS]
-			-- No parameters for Current
+			-- No parameters for Current.
 		do
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -83,4 +77,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class CURRENT_AS
+end

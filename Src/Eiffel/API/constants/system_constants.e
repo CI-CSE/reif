@@ -189,12 +189,16 @@ feature-- Versioning
 			-- `Major' . `Minor' . `Release' . `Build'.
 		local
 			l_profile: SHARED_COMPILER_PROFILE
+			v: like version_type_name
 		once
 			create Result.make (30)
 			Result.append (compiler_version_number.version)
 			Result.append_character (' ')
-			Result.append_string_general (version_type_name)
-			Result.append_character (' ')
+			v := version_type_name
+			if not v.is_whitespace then
+				Result.append_string_general (version_type_name)
+				Result.append_character (' ')
+			end
 			Result.append_character ('-')
 			Result.append_character (' ')
 			Result.append_string_general (eiffel_layout.eiffel_platform)
@@ -207,9 +211,9 @@ feature-- Versioning
 			end
 		end
 
-	Version_type_name: STRING = "GPL Edition";
-			-- Name of version, e.g. GPL edition, Enterprise Edition,...
-			-- Default: "GPL Edition"
+	Version_type_name: STRING = "";
+			-- Name of version, e.g. no name, Enterprise Edition,...
+			-- Default: empty name ""
 
 feature {AUXILIARY_FILES} -- Versioning
 
@@ -221,7 +225,7 @@ feature {AUXILIARY_FILES} -- Versioning
 			Result := 0000
 		end
 
-	Version_tag: INTEGER = 0x026
+	Version_tag: INTEGER = 0x027
 
 	Version_info: STRING = "";
 			-- Information on the version
@@ -230,7 +234,7 @@ feature {AUXILIARY_FILES} -- Versioning
 			-- displayed on About dialog
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

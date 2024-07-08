@@ -1,11 +1,12 @@
 ﻿note
 	description: "[
-			RULE #2: Unused argument
-			
-			A feature should only have arguments which are actually
-			needed and used in the computation.
-		]"
+		RULE #2: Unused argument
+		
+		A feature should only have arguments which are actually
+		needed and used in the computation.
+	]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -54,7 +55,7 @@ feature -- Properties
 
 	description: STRING_32
 		do
-			Result :=  ca_names.unused_argument_description
+			Result := ca_names.unused_argument_description
 		end
 
 	format_violation_description (a_violation: attached CA_RULE_VIOLATION; a_formatter: attached TEXT_FORMATTER)
@@ -95,7 +96,7 @@ feature {NONE} -- Rule Checking
 		local
 			j: INTEGER
 		do
-			has_arguments := (a_body_as.arguments /= Void)
+			has_arguments := attached a_body_as.arguments
 			create args_used.make (0)
 			n_arguments := 0
 			if
@@ -109,9 +110,9 @@ feature {NONE} -- Rule Checking
 					from
 						j := 1
 					until
-						j > l_args.item.id_list.count
+						j > l_args.id_list.count
 					loop
-						arg_names.extend (l_args.item.item_name (j))
+						arg_names.extend (l_args.item_name (j))
 						args_used.extend (False)
 						n_arguments := n_arguments + 1
 						j := j + 1
@@ -159,11 +160,8 @@ feature {NONE} -- Rule Checking
 			-- Checks if `a_conv' is an argument used in the
 			-- form `$arg'.
 		do
-			if
-				attached {ADDRESS_AS} a_conv.expr as l_address
-				and then attached {FEAT_NAME_ID_AS} l_address.feature_name as l_id
-			then
-				check_arguments (l_id.feature_name.name_32)
+			if attached {ADDRESS_AS} a_conv.expr as l_address then
+				check_arguments (l_address.feature_name.feature_name.name_32)
 			end
 		end
 

@@ -153,7 +153,7 @@ feature -- Basic operation
 			-- Save `Current' to `project_location'.
 		local
 			file_handler: GB_SIMPLE_XML_FILE_HANDLER
-			file_name: FILE_NAME
+			file_name: PATH
 			data: ARRAYED_LIST [TUPLE [STRING, STRING]]
 		do
 			create data.make (0)
@@ -174,9 +174,9 @@ feature -- Basic operation
 			end
 
 			create file_name.make_from_string (project_location)
-			file_name.extend (project_filename)
+			file_name := file_name.extended (project_filename)
 			create file_handler.make_with_components (components)
-			file_handler.create_file ("Project_settings", file_name, data)
+			file_handler.create_file ("Project_settings", file_name.utf_8_name, data)
 		end
 
 	load (a_file_name: STRING; file_handler: GB_SIMPLE_XML_FILE_HANDLER)
@@ -439,10 +439,11 @@ feature {NONE} --Implementation
 	set_string_attribute (a_string: STRING; an_agent: PROCEDURE [STRING])
 			-- Call `an_agent' with `a_string'.
 		require
-			a_string_not_void: a_string /= Void
 			an_agent_not_void: an_agent /= Void
 		do
-			an_agent.call ([a_string])
+			if a_string /= Void then
+				an_agent.call ([a_string])
+			end
 		end
 
 	set_boolean_attribute (a_string: STRING; true_agent, false_agent: PROCEDURE)

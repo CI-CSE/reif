@@ -25,8 +25,7 @@ inherit
 			process_separate_instruction_as,
 			process_tagged_as,
 			process_object_test_as,
-			process_named_expression_as,
-			process_nested_as
+			process_named_expression_as
 		end
 
 	REFACTORING_HELPER
@@ -323,7 +322,7 @@ feature {NONE} -- Element change
 			end
 		end
 
-	register_object_test_local (a_name: ID_AS; a_type: detachable TYPE_AS; a_exp: detachable EXPR_AS)
+	register_object_test_local (a_name: detachable ID_AS; a_type: detachable TYPE_AS; a_exp: detachable EXPR_AS)
 			-- Register object test local info
 		do
 			if attached breakable_feature_info as l_info then
@@ -561,22 +560,10 @@ feature {NONE} -- Iteration
 			Precursor (l_as)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			l_as.target.process (Current)
-			register_nested_breakable (l_as.message)
-			l_as.message.process (Current)
-		end
-
 	process_object_test_as (l_as: OBJECT_TEST_AS)
 			-- Process `l_as'.
-		local
-			l_name: detachable ID_AS
 		do
-			l_name := l_as.name
-			if l_name /= Void then
-				register_object_test_local (l_name, l_as.type, l_as.expression)
-			end
+			register_object_test_local (l_as.name, l_as.type, l_as.expression)
 			Precursor (l_as)
 		end
 
@@ -717,7 +704,7 @@ feature {NONE} -- Implementation: Iteration
 ;note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

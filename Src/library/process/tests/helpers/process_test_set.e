@@ -1,6 +1,4 @@
-note
-	description: "Summary description for {PROCESS_TEST_SET}."
-	author: ""
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -69,11 +67,7 @@ feature {NONE} -- Status setting
 			if a_arg_list /= Void then
 				create l_args.make (a_arg_list.count + 1)
 				l_args.extend ("--nologo")
-				across
-					a_arg_list as c
-				loop
-					l_args.force (c.item)
-				end
+				⟳ c: a_arg_list ¦ l_args.force (c) ⟲
 			end
 			create_process (echo_executable.name, l_args)
 		ensure
@@ -155,7 +149,7 @@ feature {NONE} -- Basic functionality
 			if {PLATFORM}.is_windows then
 				l_output.receive (a_expected.count + a_expected.occurrences ('%N'), a_from_errors)
 				l_received := l_output.last_received
-				s := l_received.twin
+				create s.make_from_string (l_received)
 				s.prune_all ('%R')
 				l_received := s
 			else
@@ -262,8 +256,8 @@ feature {NONE} -- Constants
 			-- Time in milliseconds we wait for process to send new output
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA
@@ -271,4 +265,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

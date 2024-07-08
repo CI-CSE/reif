@@ -11,32 +11,38 @@ inherit
 
 	INLINED_LOCAL_B
 		rename
-			make as make_with_position
+			make as make_with_position,
+			print_checked_target_register as print_register
 		undefine
 			array_descriptor,
 			assigns_to,
-			is_creatable,
+			is_assignable,
 			pre_inlined_code,
 			process,
 			register_name,
 			same
 		redefine
-			print_register, enlarged, type, print_checked_target_register
+			enlarged,
+			print_register,
+			type
 		end
 
 	OBJECT_TEST_LOCAL_B
+		rename
+			print_checked_target_register as print_register
 		undefine
 			analyze,
 			current_register,
 			free_register,
 			generate,
 			is_local,
-			print_register,
 			propagate,
 			set_parent,
 			used
 		redefine
-			print_register, enlarged, type, print_checked_target_register
+			enlarged,
+			print_register,
+			type
 		end
 
 create
@@ -78,17 +84,8 @@ feature -- C code generation
 				(context.object_test_local_position (Current)).print_register
 		end
 
-feature {REGISTRABLE} -- C code generation
-
-	print_checked_target_register
-			-- <Precursor>
-		do
-			System.remover.inliner.inlined_feature.local_regs.item
-				(context.object_test_local_position (Current)).print_checked_target_register
-		end
-
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -36,23 +36,25 @@ feature -- User
 
 feature -- Media Type
 
-	current_media_type (req: WSF_REQUEST): detachable READABLE_STRING_32
+	current_media_type (req: WSF_REQUEST): detachable READABLE_STRING_8
 			-- Current media type or Void if it's not acceptable.
 		do
 			if attached {READABLE_STRING_8} req.execution_variable ("media_type") as l_type then
-				Result := l_type.to_string_32
+				Result := l_type
 			end
 		end
 
 feature -- Absolute Host
 
-	absolute_host (req: WSF_REQUEST; a_path:STRING): STRING
+	absolute_host (req: WSF_REQUEST; a_path: READABLE_STRING_8): STRING_8
 		do
 			Result := req.absolute_script_url (a_path)
 			if Result.last_index_of ('/', Result.count) = Result.count then
 				Result.remove_tail (1)
 			end
-			log.write_debug (generator + ".absolute_host " + Result )
+			debug
+				log.write_debug (generator + ".absolute_host " + Result )
+			end
 		end
 
 feature -- Compression
@@ -89,7 +91,7 @@ feature {NONE} -- Implementations
 							s.append (c.item.generating_type.name_32.to_string_8)
 							s.append_character ('}')
 							s.append_character ('=')
-							s.append (c.item.debug_output.as_string_8)
+							s.append (c.item.debug_output.to_string_8)
 							s.append_character ('%N')
 						end
 					end

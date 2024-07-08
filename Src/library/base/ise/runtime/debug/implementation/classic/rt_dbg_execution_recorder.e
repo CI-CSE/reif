@@ -1,5 +1,5 @@
 ﻿note
-	description: "Execution recorder"
+	description: "Execution recorder."
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
 	date: "$Date$"
@@ -8,7 +8,8 @@
 class
 	RT_DBG_EXECUTION_RECORDER
 
-inherit
+inherit {NONE}
+
 	RT_DBG_COMMON
 
 	RT_DBG_INTERNAL
@@ -59,7 +60,7 @@ feature {RT_EXTENSION} -- Change
 			debug ("RT_DBG_RECORD")
 				print ("Start_recording  (")
 				io.put_string ("ref=")
-				io.put_string (($ref).out)
+				io.put_string_32 (($ref).out)
 				io.put_string (",cid=")
 				io.put_integer (cid)
 				io.put_string (",fid=")
@@ -162,7 +163,7 @@ feature -- Access
 			end
 			debug ("RT_DBG_REPLAY")
 				if Result /= Void then
-					print ("callstack_record (" + dep.out + ") -> Result=" + Result.to_string (0) + "%N")
+					print ({STRING_32} "callstack_record (" + dep.out + ") -> Result=" + Result.to_string (0) + "%N")
 				end
 			end
 		end
@@ -178,7 +179,7 @@ feature -- Access
 			sub_id: detachable STRING
 		do
 			debug ("RT_DBG_REPLAY")
-				print ("callstack_record_by_id (" + a_id + ") -start-%N")
+				print ({STRING_32} "callstack_record_by_id (" + a_id + ") -start-%N")
 			end
 			p := a_id.index_of ('.', 1)
 			if p > 0 then
@@ -194,7 +195,7 @@ feature -- Access
 				Result := r.call_by_id (sub_id)
 			end
 			debug ("RT_DBG_REPLAY")
-				print ("callstack_record_by_id (" + a_id + ") -end-%N")
+				print ({STRING_32} "callstack_record_by_id (" + a_id + ") -end-%N")
 			end
 		end
 
@@ -223,9 +224,9 @@ feature -- Event
 			debug ("RT_DBG_RECORD")
 				dtrace_indent (dep);
 				dtrace ("enter_feature (")
-				dtrace (ref.generating_type.name)
-				dtrace (", " + cid.out + ", " + fid.out + ", " + dep.out + ")");
-				dtrace (" [[" + record_count.out + "]]%N")
+				dtrace (ref.generating_type.name_32)
+				dtrace ({STRING} ", " + cid.out + ", " + fid.out + ", " + dep.out + ")");
+				dtrace ({STRING} " [[" + record_count.out + "]]%N")
 			end
 			monitor_record_count
 			create r.make (Current, ref, cid, fid, dep)
@@ -244,18 +245,18 @@ feature -- Event
 				else
 					debug ("RT_DBG_WARNING")
 						print ("Warning: enter mismatch !!!%N")
-						print (" top: depth=" + r.depth.out + " ->" + r.debug_output + "%N")
-						print (" now: depth=" + dep.out)
-						print (" obj=" + ref.generating_type.name)
-						print (" cid=" + cid.out)
-						print (" fid=" + fid.out)
+						print ({STRING_32} " top: depth=" + r.depth.out + " ->" + r.debug_output + "%N")
+						print ({STRING} " now: depth=" + dep.out)
+						print (" obj=" + ref.generating_type.name_32)
+						print ({STRING} " cid=" + cid.out)
+						print ({STRING} " fid=" + fid.out)
 						print ("%N")
 						print ("%N")
 					end
 					if topr.depth = r.depth then
 						topr.deep_close
 					end
-					if attached {like callstack_record} callstack_record (r.depth - 1) as depr then
+					if attached callstack_record (r.depth - 1) as depr then
 						r.attach_to (depr)
 					else
 						check should_not_occur: False end
@@ -281,9 +282,9 @@ feature -- Event
 			debug ("RT_DBG_RECORD")
 				dtrace_indent (dep);
 				dtrace ("enter_rescue (")
-				dtrace (ref.generating_type.name)
-				dtrace (", " + dep.out + ")");
-				dtrace (" [[" + record_count.out + "]]%N")
+				dtrace (ref.generating_type.name_32)
+				dtrace ({STRING}", " + dep.out + ")");
+				dtrace ({STRING} " [[" + record_count.out + "]]%N")
 			end
 			from
 				r := top_callstack_record
@@ -322,11 +323,11 @@ feature -- Event
 			debug ("RT_DBG_RECORD")
 				dtrace_indent (dep);
 				dtrace ("leave_feature (")
-				dtrace (ref.generating_type.name + " <" + ($ref).out + ">")
-				dtrace (", " + cid.out + ", " + fid.out + ", " + dep.out + "). %N")
+				dtrace (ref.generating_type.name_32 + " <" + ($ref).out + ">")
+				dtrace ({STRING} ", " + cid.out + ", " + fid.out + ", " + dep.out + "). %N")
 			end
 
-			if not attached {like callstack_record} top_callstack_record as r then
+			if not attached top_callstack_record as r then
 				--| This can occurs if the recording started deeper in the call stack.
 				--| in this case, do not record anything until we enter again inside a feature
 				--| In the meantime, just discard the recorded data
@@ -343,11 +344,11 @@ feature -- Event
 					if r.depth > dep then
 						debug ("RT_DBG_WARNING")
 							print ("Warning: leave mismatch !!!%N")
-							print (" top: depth=" + r.depth.out + " ->" + r.debug_output + "%N")
-							print (" now: depth=" + dep.out)
-							print (" obj=" + ref.generating_type.name)
-							print (" cid=" + cid.out)
-							print (" fid=" + fid.out)
+							print ({STRING_32} " top: depth=" + r.depth.out + " ->" + r.debug_output + "%N")
+							print ({STRING} " now: depth=" + dep.out)
+							print (" obj=" + ref.generating_type.name_32)
+							print ({STRING} " cid=" + cid.out)
+							print ({STRING} " fid=" + fid.out)
 							print ("%N")
 							print ("%N")
 						end
@@ -392,12 +393,12 @@ feature -- Event
 		require
 			is_not_replaying: not is_replaying
 		do
-			if attached {like callstack_record} top_callstack_record as r then
+			if attached top_callstack_record as r then
 				if r.depth = dep then
 					r.register_position (bp_i, bp_ni)
 				else
 					debug ("RT_DBG_WARNING")
-						print ("Warning: hook mismatch on depth now=" + dep.out + " top.depth=" + r.depth.out + "%N")
+						print ({STRING_32} "Warning: hook mismatch on depth now=" + dep.out + " top.depth=" + r.depth.out + "%N")
 					end
 				end
 			end
@@ -416,7 +417,7 @@ feature -- Event
 				check same_associated_depth: a_dep = t.depth end
 				if attached {RT_DBG_VALUE_RECORD} object_attribute_record (a_offset, a_type, ref) as l_record then
 					debug ("RT_DBG_RECORD")
-						print ("Att Assign=> " + l_record.debug_output + "%N")
+						print ({STRING_32} "Att Assign=> " + l_record.debug_output + "%N")
 					end
 					t.add_value_record (l_record)
 				end
@@ -439,13 +440,13 @@ feature -- Event
 			if attached top_callstack_record as t then
 				debug ("RT_DBG_WARNING")
 					if a_dep /= t.depth and t.depth /= 0 then
-						print ("Loc Assign: dep=" + a_dep.out + "; pos=" + a_position.out + " -> depth mismatch %N")
+						print ({STRING_32} "Loc Assign: dep=" + a_dep.out + "; pos=" + a_position.out + " -> depth mismatch %N")
 					end
 				end
 				check same_associated_depth: a_dep = t.depth end
 				if attached {RT_DBG_VALUE_RECORD} object_local_record (a_dep, a_position, a_type) as l_record then
 					debug ("RT_DBG_RECORD")
-						print ("Loc Assign=> " + l_record.debug_output + "%N")
+						print ({STRING_32} "Loc Assign=> " + l_record.debug_output + "%N")
 					end
 					t.add_value_record (l_record)
 				end
@@ -543,15 +544,15 @@ feature -- Replay
 			d1,d2: INTEGER
 		do
 			debug ("RT_DBG_REPLAY")
-				print ("replay_to_point (" + a_id + ") -start-%N")
+				print ({STRING_32} "replay_to_point (" + a_id + ") -start-%N")
 			end
 			if
 					--| Current replayed call exists
 				attached replayed_call as l_curr and then
 					--| a_id correspond to an existing call
-				attached {like callstack_record_by_id} callstack_record_by_id (a_id) as l_req and then
+				attached callstack_record_by_id (a_id) as l_req and then
 					--| now find the associated replayable call (with rt_information_available)
-				attached {like callstack_record} l_req.associated_replayable_call as l_next
+				attached l_req.associated_replayable_call as l_next
 			then
 				d1 := l_curr.depth
 				d2 := l_next.depth
@@ -583,7 +584,7 @@ feature -- Replay
 			end
 
 			debug ("RT_DBG_REPLAY")
-				print ("replay_to_point (" + a_id + ") -end- => "+ Result.out +"%N")
+				print ({STRING_32} "replay_to_point (" + a_id + ") -end- => "+ Result.out +"%N")
 			end
 		end
 
@@ -614,7 +615,7 @@ feature -- Replay
 		do
 			if attached replayed_call as r then
 				debug ("RT_DBG_REPLAY")
-					print ("replayed_call_details -> " + r.to_string (0) + "%N")
+					print ({STRING_32} "replayed_call_details -> " + r.to_string (0) + "%N")
 				end
 				Result := r.to_string (0)
 			else
@@ -632,17 +633,17 @@ feature -- Replay
 			is_replaying: is_replaying
 		do
 			debug ("RT_DBG_REPLAY")
-				print ("callstack_record_details (" + a_id + "," + nb.out + ") -start- %N")
+				print ({STRING_32} "callstack_record_details (" + a_id + "," + nb.out + ") -start- %N")
 			end
-			if attached {like callstack_record_by_id} callstack_record_by_id (a_id) as r then
+			if attached callstack_record_by_id (a_id) as r then
 				Result := r.to_string (nb)
 			end
 			debug ("RT_DBG_REPLAY")
-				print ("callstack_record_details (" + a_id + "," + nb.out + ") -end- %N")
+				print ({STRING_32} "callstack_record_details (" + a_id + "," + nb.out + ") -end- %N")
 				if Result = Void then
 					print ("%T -> Not Found")
 				else
-					print ("%T -> Result=" + Result)
+					print ({STRING_32} "%T -> Result=" + Result)
 				end
 				print ("%N")
 			end
@@ -665,7 +666,7 @@ feature -- Monitoring
 					bt := bottom_callstack_record
 					if top_callstack_record /= bt then
 						debug ("RT_DBG_OPTIMIZATION")
-							print ("monitor_record_count[" + ((m - c).abs // m).out + "%%] -> remove oldest: record_count=" + c.out + " (max=" + m.out + ")%N")
+							print ({STRING_32} "monitor_record_count[" + ((m - c).abs // m).out + "%%] -> remove oldest: record_count=" + c.out + " (max=" + m.out + ")%N")
 						end
 						from
 							p := top_callstack_record
@@ -695,7 +696,7 @@ feature -- Monitoring
 							monitor_record_count
 						end
 						debug ("RT_DBG_OPTIMIZATION")
-							print ("monitor_record_count -> count=" + c.out + "%N")
+							print ({STRING_32} "monitor_record_count -> count=" + c.out + "%N")
 						end
 					end
 				end
@@ -760,7 +761,7 @@ feature -- Replay operation
 							l_records.before
 						loop
 							debug ("RT_DBG_REPLAY")
-								print ("replay_back -> " + l_records.item_for_iteration.debug_output + " %N")
+								print ({STRING_32} "replay_back -> " + l_records.item_for_iteration.debug_output + " %N")
 							end
 							if attached l_records.item_for_iteration as ot_rec then
 								if attached ot_rec.current_value_record as val then
@@ -827,7 +828,7 @@ feature -- Replay operation
 							ot_records.before
 						loop
 							debug ("RT_DBG_REPLAY")
-								print ("replay_left -> " + ot_records.item_for_iteration.debug_output + " %N")
+								print ({STRING_32} "replay_left -> " + ot_records.item_for_iteration.debug_output + " %N")
 							end
 							if attached ot_records.item_for_iteration as ot_rec then
 								if attached ot_rec.current_value_record as val then
@@ -922,7 +923,7 @@ feature -- Replay operation
 								ot_chgs.before
 							loop
 								debug ("RT_DBG_REPLAY")
-									print ("replay_forth -> " + ot_chgs.item_for_iteration.record.debug_output + " %N")
+									print ({STRING_32} "replay_forth -> " + ot_chgs.item_for_iteration.record.debug_output + " %N")
 								end
 								if attached {TUPLE [record: RT_DBG_VALUE_RECORD; backup: RT_DBG_VALUE_RECORD]} ot_chgs.item_for_iteration as ch then
 									ch.record.revert (ch.backup)
@@ -992,7 +993,7 @@ feature -- Replay operation
 								ot_chgs.before
 							loop
 								debug ("RT_DBG_REPLAY")
-									print ("replay_right -> " + ot_chgs.index.out + ") " + ot_chgs.item_for_iteration.record.debug_output + " %N")
+									print ({STRING_32} "replay_right -> " + ot_chgs.index.out + ") " + ot_chgs.item_for_iteration.record.debug_output + " %N")
 								end
 								if attached {TUPLE [record: RT_DBG_VALUE_RECORD; backup: RT_DBG_VALUE_RECORD]} ot_chgs.item_for_iteration as ch then
 									ch.record.revert (ch.backup)
@@ -1061,7 +1062,7 @@ feature -- Replay operation
 							ot_chgs.before
 						loop
 							debug ("RT_DBG_REPLAY")
-								print ("revert_replay_stack -> " + ot_chgs.item_for_iteration.record.debug_output + " %N")
+								print ({STRING_32} "revert_replay_stack -> " + ot_chgs.item_for_iteration.record.debug_output + " %N")
 							end
 							if attached {TUPLE [record: RT_DBG_VALUE_RECORD; backup: RT_DBG_VALUE_RECORD]} ot_chgs.item_for_iteration as ch then
 								ch.record.revert (ch.backup)
@@ -1103,12 +1104,12 @@ feature -- Measurement
 	is_call_at_depth (a_call: like replayed_call; d: INTEGER): BOOLEAN
 			-- Call `a_call' has depth `d' ?
 		do
-			Result := attached {like replayed_call} a_call as c and then c.depth = d
+			Result := attached a_call and then a_call.depth = d
 		end
 
 note
 	library:   "EiffelBase: Library of reusable components for Eiffel."
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Abstract node produce by yacc. Version for Bench."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -238,7 +238,11 @@ feature -- Roundtrip/Token
 			first_token_exists: first_token (a_list) /= Void
 			last_token_exists: last_token (a_list) /= Void
 		do
-			if attached first_token (a_list) as l_first and attached last_token (a_list) as l_last then
+			if
+				attached first_token (a_list) as l_first and then
+				attached last_token (a_list) as l_last and then
+				l_first.index <= l_last.index
+			then
 				create Result.make (l_first.index, l_last.index)
 			else
 				create Result.make (1, 1)
@@ -318,7 +322,11 @@ feature -- Roundtrip/Text modification
 			a_list_not_void: a_list /= Void
 		do
 			if first_token (a_list) /= Void and then last_token (a_list) /= Void then
-				Result := a_list.valid_append_region (token_region (a_list))
+				if attached token_region (a_list) as r then
+					Result := a_list.valid_append_region (r)
+				else
+					check has_token_region: False end
+				end
 			end
 		end
 
@@ -328,7 +336,11 @@ feature -- Roundtrip/Text modification
 			a_list_not_void: a_list /= Void
 		do
 			if first_token (a_list) /= Void and then last_token (a_list) /= Void then
-				Result := a_list.valid_prepend_region (token_region (a_list))
+				if attached token_region (a_list) as r then
+					Result := a_list.valid_prepend_region (r)
+				else
+					check has_token_region: False end
+				end
 			end
 		end
 
@@ -338,7 +350,11 @@ feature -- Roundtrip/Text modification
 			a_list_not_void: a_list /= Void
 		do
 			if first_token (a_list) /= Void and then last_token (a_list) /= Void then
-				Result := a_list.valid_replace_region (token_region (a_list))
+				if attached token_region (a_list) as r then
+					Result := a_list.valid_replace_region (r)
+				else
+					check has_token_region: False end
+				end
 			end
 		end
 
@@ -348,7 +364,11 @@ feature -- Roundtrip/Text modification
 			a_list_not_void: a_list /= Void
 		do
 			if first_token (a_list) /= Void and then last_token (a_list) /= Void then
-				Result := a_list.valid_remove_region (token_region (a_list))
+				if attached token_region (a_list) as r then
+					Result := a_list.valid_remove_region (r)
+				else
+					check has_token_region: False end
+				end
 			end
 		end
 
@@ -358,7 +378,11 @@ feature -- Roundtrip/Text modification
 			a_list_not_void: a_list /= Void
 		do
 			if first_token (a_list) /= Void and then last_token (a_list) /= Void then
-				Result := a_list.valid_text_region (token_region (a_list))
+				if attached token_region (a_list) as r then
+					Result := a_list.valid_region (r) and then a_list.valid_text_region (r)
+				else
+					check has_token_region: False end
+				end
 			end
 		end
 
@@ -368,7 +392,11 @@ feature -- Roundtrip/Text modification
 			a_list_not_void: a_list /= Void
 		do
 			if first_token (a_list) /= Void and then last_token (a_list) /= Void then
-				Result :=  a_list.is_text_modified (token_region (a_list))
+				if attached token_region (a_list) as r then
+					Result :=  a_list.is_text_modified (r)
+				else
+					check has_token_region: False end
+				end
 			end
 		end
 
@@ -429,13 +457,16 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Roundtrip/Text modification
 			a_region: ERT_TOKEN_REGION
 		do
 			a_region := token_region (a_list)
-			l_str := a_list.text (a_region)
-			l_text := l_str.string
-			if not is_case_sensitive then
-				l_str.to_lower
-				l_old_str := old_str.as_lower
-			else
+			l_text := a_list.text (a_region)
+			if is_case_sensitive then
+				l_str := l_text.string
 				l_old_str := old_str
+			else
+					-- Convert to lower case taking Unicode into account.
+				l_str := {UTF_CONVERTER}.string_32_to_utf_8_string_8
+					({UTF_CONVERTER}.utf_8_string_8_to_string_32 (l_text).as_lower)
+				l_old_str := {UTF_CONVERTER}.string_32_to_utf_8_string_8
+					({UTF_CONVERTER}.utf_8_string_8_to_string_32 (old_str).as_lower)
 			end
 			l_count := old_str.count
 			from
@@ -542,7 +573,7 @@ feature {NONE} -- Constants
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

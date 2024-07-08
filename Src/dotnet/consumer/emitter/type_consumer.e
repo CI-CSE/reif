@@ -721,7 +721,7 @@ feature {NONE} -- Implementation
 			non_void_constructors: tc /= Void
 		local
 			name: STRING
-			i, j, nb: INTEGER
+			i, nb: INTEGER
 			args: ARRAY [CONSUMED_ARGUMENT]
 			l_reserved: like reserved_names
 		do
@@ -742,10 +742,9 @@ feature {NONE} -- Implementation
 						if args.count = 0 then
 							tc.item.set_name (Creation_routine_name)
 							Result.extend (tc.item.consumed_constructor)
-							j := 2
 							tc.forth
 						else
-							j := 1
+
 						end
 					until
 						tc.after or tc.item.arguments.count > Constructor_overload_resolution
@@ -768,7 +767,6 @@ feature {NONE} -- Implementation
 						name := unique_feature_name (name)
 						tc.item.set_name (name)
 						Result.extend (tc.item.consumed_constructor)
-						j := j + 1
 						tc.forth
 					end
 
@@ -784,7 +782,11 @@ feature {NONE} -- Implementation
 							i := 2
 							nb := args.count
 						until
-							not l_reserved.has (name) or i > nb
+							i > nb
+							-- `or not l_reserved.has (name)`
+							-- FIXME For now, append all argument names.
+							--	see how to improve Eiffel to select feature in inheritance clause
+							--	passing signature, instead of relying on argument names !							
 						loop
 							if i > 1 then
 								name.append ("_and_")
@@ -795,7 +797,6 @@ feature {NONE} -- Implementation
 						name := unique_feature_name (name)
 						tc.item.set_name (name)
 						Result.extend (tc.item.consumed_constructor)
-						j := j + 1
 						tc.forth
 					end
 				end

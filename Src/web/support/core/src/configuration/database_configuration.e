@@ -11,7 +11,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_driver: READABLE_STRING_32; a_connection: READABLE_STRING_32)
+	make (a_driver: READABLE_STRING_8; a_connection: READABLE_STRING_8)
 			-- Create a database configuration setting: `driver' with `a_driver',
 			-- `database_string' with `a_connection'.
 		do
@@ -24,13 +24,13 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	driver: READABLE_STRING_32
+	driver: READABLE_STRING_8
 		--Database driver.
 
-	database_string: READABLE_STRING_32
+	database_string: READABLE_STRING_8
 		-- Database connection.	
 
-	connection_string: READABLE_STRING_32
+	connection_string: READABLE_STRING_8
 			-- Connection string
 		do
 			Result := "Driver={"+driver+"};" + database_string;

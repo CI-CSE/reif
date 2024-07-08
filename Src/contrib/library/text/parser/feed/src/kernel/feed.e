@@ -57,6 +57,12 @@ feature -- Access
 
 feature -- Element change
 
+	set_title (a_title: READABLE_STRING_GENERAL)
+			-- Set `title` to `a_title`.
+		do
+			create title.make_from_string_general (a_title)
+		end
+
 	set_description (a_description: detachable READABLE_STRING_GENERAL; a_description_content_type: like description_content_type)
 			-- Set `description' with `a_description' and optional content type `text:$a_description_content_type'.
 		do
@@ -136,6 +142,18 @@ feature -- Element change
 				Result.extend (ic.item)
 			end
 			Result.sort
+		end
+
+	set_link (a_url: READABLE_STRING_8; rel: detachable READABLE_STRING_GENERAL)
+			-- Set link `a_url` for relation `rel`.
+		local
+			lnk: FEED_LINK
+		do
+			create lnk.make (a_url)
+			if rel /= Void then
+				lnk.set_relation (rel)
+			end
+			links.force (lnk, lnk.relation)
 		end
 
 	sort

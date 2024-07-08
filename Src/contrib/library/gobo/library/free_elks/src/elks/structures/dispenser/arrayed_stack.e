@@ -3,11 +3,11 @@
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: dispenser, array;
-	representation: array;
-	access: fixed, lifo, membership;
-	size: fixed;
-	contents: generic;
+	names: dispenser, array
+	representation: array
+	access: fixed, lifo, membership
+	size: fixed
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -16,8 +16,6 @@ class ARRAYED_STACK [G] inherit
 	STACK [G]
 		undefine
 			copy, is_equal, prune_all, replace, is_inserted
-		redefine
-			linear_representation
 		select
 			remove, extend, put
 		end
@@ -46,14 +44,28 @@ class ARRAYED_STACK [G] inherit
 			readable, writable,
 			append, fill
 		redefine
-			linear_representation
+			linear_representation,
+			make_from_iterable
 		end
 
 create
-	make
+	make,
+	make_from_iterable
 
 create {ARRAYED_STACK}
 	make_filled
+
+convert
+	make_from_iterable ({ARRAY [G]})
+
+feature {NONE} -- Creation
+
+	make_from_iterable (other: ITERABLE [G])
+			-- Create a stack with all items obtained from `other`.
+		do
+			make (estimated_count_of (other))
+			⟳ o: other ¦ extend (o) ⟲
+		end
 
 feature -- Element change
 
@@ -95,7 +107,7 @@ feature -- Conversion
 		end
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

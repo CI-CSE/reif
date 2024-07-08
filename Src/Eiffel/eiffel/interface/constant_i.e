@@ -15,6 +15,7 @@ inherit
 		redefine
 			access_for_feature,
 			assigner_name_id,
+			case_value,
 			extension,
 			generate,
 			generate_il,
@@ -22,8 +23,8 @@ inherit
 			is_constant,
 			is_once,
 			is_target_free,
+			is_valid_case,
 			melt,
-			new_rout_entry,
 			redefinable,
 			set_type,
 			to_generate_in,
@@ -36,6 +37,7 @@ inherit
 		redefine
 			access_for_feature,
 			assigner_name_id,
+			case_value,
 			do_check_types,
 			equiv,
 			extension,
@@ -45,8 +47,8 @@ inherit
 			is_constant,
 			is_once,
 			is_target_free,
+			is_valid_case,
 			melt,
-			new_rout_entry,
 			redefinable,
 			set_type,
 			to_generate_in,
@@ -99,6 +101,14 @@ feature -- Status report
 	is_constant: BOOLEAN = True
 			-- Is the current feature a constant one?
 
+	is_valid_case (c: CLASS_C; t: TYPE_A): BOOLEAN
+			-- <Precursor>
+		do
+			Result :=
+				t.same_as (type) or else
+				(not type.is_enum and then not t.is_enum and then value.valid_type (t))
+		end
+
 	redefinable: BOOLEAN = False
 			-- Is a constant redefinable?
 
@@ -112,6 +122,14 @@ feature -- Status report
 			-- <Precursor>
 		do
 			Result := not has_unqualified_call_in_assertion
+		end
+
+feature -- Access: code generation
+
+	case_value (c: CLASS_C; t: TYPE_A): INTERVAL_VAL_B
+			-- <Precursor>
+		do
+			Result := value.inspect_value (t)
 		end
 
 feature -- Settings
@@ -166,32 +184,6 @@ feature -- Settings
 					Error_handler.insert_error (vqmc)
 				end
 			end
-		end
-
-	new_rout_entry: ROUT_ENTRY
-			-- New routine unit
-		require else
-			has_to_be_generated: generate_in > 0
-		do
-			create Result
-			Result.set_body_index (body_index)
-			Result.set_type_a (type)
-
-			if
-				not byte_context.workbench_mode and then generate_in /= 0
-			then
-				Result.set_written_in (generate_in)
-				Result.set_access_in (generate_in)
-			else
-				if has_replicated_ast then
-					Result.set_access_in (access_in)
-				else
-					Result.set_access_in (written_in)
-				end
-				Result.set_written_in (written_in)
-			end
-			Result.set_pattern_id (pattern_id)
-			Result.set_feature_id (feature_id)
 		end
 
 feature -- Status
@@ -389,7 +381,7 @@ feature -- IL Code generation
 			l_byte_context.set_byte_code (create {STD_BYTE_CODE})
 			l_byte_context.set_current_feature (Current)
 			if is_once then
-				il_generator.generate_once_prologue
+				il_generator.generate_once_prologue (False)
 				value.generate_il
 				il_generator.generate_once_store_result
 				il_generator.generate_once_epilogue
@@ -535,14 +527,14 @@ feature {NONE} -- Implementation
 	new_api_feature: E_CONSTANT
 			-- API feature creation
 		do
-			create Result.make (feature_name_id, alias_name, has_convert_mark, feature_id)
+			create Result.make_with_aliases (feature_name_id, alias_names, has_convert_mark, feature_id)
 			Result.set_type (type, assigner_name)
 			Result.set_value (value.string_value)
 			Result.set_class (is_class)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

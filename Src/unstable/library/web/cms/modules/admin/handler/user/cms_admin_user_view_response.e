@@ -17,7 +17,7 @@ feature -- Query
 	user_id_path_parameter (req: WSF_REQUEST): INTEGER_64
 			-- User id passed as path parameter for request `req'.
 		local
-			s: STRING
+			s: READABLE_STRING_GENERAL
 		do
 			if attached {WSF_STRING} req.path_parameter ("id") as p_nid then
 				s := p_nid.value
@@ -50,6 +50,7 @@ feature -- Execution
 			s: STRING
 			l_role: CMS_USER_ROLE
 			ago: DATE_TIME_AGO_CONVERTER
+			f: CMS_FORM
 		do
 			a_response.set_value (a_user, "user")
 			lnk := api.administration_link (a_response.translation ("View", Void), "user/" + a_user.id.out)
@@ -78,6 +79,9 @@ feature -- Execution
 			create s.make_empty
 			s.append ("<div class=%"info%"> ")
 			s.append ("<h4>Account Information</h4>")
+			s.append ("<p>Account: ")
+			s.append (api.user_html_link (a_user))
+			s.append ("</p>")
 			s.append ("<p>Username: ")
 			s.append (html_encoded (a_user.name))
 			s.append ("</p>")
@@ -97,7 +101,6 @@ feature -- Execution
 				s.append (ago.smart_date_duration (dt))
 				s.append ("</p>")
 			end
-
 			if
 				attached {LIST [CMS_USER_ROLE]} api.user_api.user_roles (a_user) as l_roles and then
 			   	not l_roles.is_empty
@@ -120,8 +123,11 @@ feature -- Execution
 				end
 				s.append ("</ul>%N")
 			end
-
 			s.append ("</div>")
+			create f.make (a_response.request.percent_encoded_path_info, {CMS_ADMIN_MODULE_ADMINISTRATION}.form_admin_user_view_id)
+			f.extend (create {WSF_FORM_HIDDEN_INPUT}.make_with_text ("user-id", a_user.id.out))
+			api.hooks.invoke_form_alter (f, Void, Current)
+			f.append_to_html (wsf_theme, s)
 			a_response.set_title (a_user.name)
 			a_response.set_main_content (s)
 		end

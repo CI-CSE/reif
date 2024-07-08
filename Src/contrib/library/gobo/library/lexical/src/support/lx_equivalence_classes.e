@@ -5,19 +5,12 @@ note
 		"Equivalence classes of integer symbols"
 
 	library: "Gobo Eiffel Lexical Library"
-	copyright: "Copyright (c) 1999-2013, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class LX_EQUIVALENCE_CLASSES
-
-inherit
-
-	ANY
-
-	KL_IMPORTED_ARRAY_ROUTINES
-		export {NONE} all end
 
 create
 
@@ -30,7 +23,8 @@ feature {NONE} -- Initialization
 			-- set of equivalence classes for symbols
 			-- within bounds `min'..`max'.
 		require
-			valid_bounds: min <= max
+			min_large_enough: min >= 0
+			max_large_enough: max >= min
 		local
 			l_cell: DS_BILINKABLE [INTEGER]
 			i: INTEGER
@@ -77,7 +71,7 @@ feature -- Initialization
 				cell.put (i)
 				i := i + 1
 			end
-			count := 0
+			new_upper := new_lower - 1
 		ensure
 			not_built: not built
 		end
@@ -91,6 +85,10 @@ feature -- Access
 			built: built
 		do
 			Result := storage.item (symbol).item
+		ensure
+			equivalence_class_large_enough: Result >= new_lower
+			equivalence_class_small_enough: Result <= new_upper
+			smaller_symbol: Result <= symbol
 		end
 
 	previous_symbol (symbol: INTEGER): INTEGER
@@ -122,13 +120,28 @@ feature -- Access
 			-- Smallest allowed symbol
 		do
 			Result := storage.lower
+		ensure
+			lower_large_enough: Result >= 0
 		end
 
 	upper: INTEGER
 			-- Largest allowed symbol
 		do
 			Result := storage.upper
+		ensure
+			upper_large_enough: Result >= lower
 		end
+
+	new_lower: INTEGER
+			-- Smallest equivalence class
+		do
+			Result := lower
+		ensure
+			same_lower: Result = lower
+		end
+
+	new_upper: INTEGER
+			-- Largest equivalence class
 
 feature -- Status report
 
@@ -153,15 +166,16 @@ feature -- Status report
 			-- Are symbols in `symbol_class' valid?
 		require
 			symbol_class_not_void: symbol_class /= Void
-			symbols_sorted: not symbol_class.sort_needed
 		do
-			Result := symbol_class.is_empty or else (lower <= symbol_class.first and upper >= symbol_class.last)
+			Result := lower <= symbol_class.lower and upper >= symbol_class.upper
 		end
 
 	built: BOOLEAN
 			-- Have the equivalence classes been numbered?
 		do
-			Result := count /= 0
+			Result := new_upper >= new_lower
+		ensure
+			definition: Result = (new_upper >= new_lower)
 		end
 
 feature -- Element change
@@ -176,13 +190,13 @@ feature -- Element change
 			nb := upper
 			from
 				i := lower
+				j := lower
 			until
 				i > nb
 			loop
 				cell := storage.item (i)
 				if cell.left = Void then
 					from
-						j := j + 1
 						cell.put (j)
 						l_right := cell.right
 					until
@@ -191,10 +205,11 @@ feature -- Element change
 						l_right.put (j)
 						l_right := l_right.right
 					end
+					j := j + 1
 				end
 				i := i + 1
 			end
-			count := j
+			new_upper := j - 1
 		ensure
 			built: built
 		end
@@ -229,93 +244,96 @@ feature -- Element change
 		require
 			not_built: not built
 			symbol_class_not_void: symbol_class /= Void
-			symbols_sorted: not symbol_class.sort_needed
 			valid_symbols: valid_symbol_class (symbol_class)
 		local
+			l_min, l_max: INTEGER
 			cell: DS_BILINKABLE [INTEGER]
 			right: detachable DS_BILINKABLE [INTEGER]
 			old_cell: detachable DS_BILINKABLE [INTEGER]
 			new_cell: DS_BILINKABLE [INTEGER]
-			i, j, k, nb: INTEGER
+			i: INTEGER
 			stop, next_ec: BOOLEAN
-			symbol: INTEGER
-			flags: ARRAY [BOOLEAN]
+			l_symbol: INTEGER
+			l_other_symbol: INTEGER
+			flags: DS_HASH_SET [INTEGER]
 		do
-				-- Note that it doesn't matter wether or not the
+				-- Note that it doesn't matter whether or not the
 				-- symbol class is negated. The same results will
 				-- be obtained in either case.
-			nb := symbol_class.count
-			create flags.make_filled (False, lower, upper)
-			from
-				k := 1
-			until
-				k > nb
-			loop
-				cell := storage.item (symbol_class.item (k))
-				old_cell := cell.left
-				new_cell := cell
-				j := k + 1
+			if not symbol_class.is_empty then
+				l_min := symbol_class.lower
+				l_max := symbol_class.upper
+				create flags.make ((l_max - l_min + 1).min (512))
 				from
-					right := cell.right
+					l_symbol := l_min
 				until
-					right = Void
+					l_symbol > l_max
 				loop
-						-- Look for the symbol in the
-						-- symbol class.
-					i := right.item
-					from
-						stop := False
-					until
-						stop or j > nb
-					loop
-						symbol := symbol_class.item (j)
-						if symbol > i then
-							stop := True
-						elseif symbol = i and not flags.item (i) then
-								-- We found an old companion of
-								-- `k'-th symbol in the symbol class.
-								-- Link it into the new equivalence
-								-- class and flag it as having been
-								-- processed.
-							new_cell.put_right (right)
-							new_cell := right
-								-- Set flag so we don't reprocess it.
-							flags.put (True, j)
-								-- Get next equivalence class member.
-							next_ec := True
-							stop := True
-						else
-							j := j + 1
+						-- Find next symbol class member to process.
+					if symbol_class.added (l_symbol) and then not flags.has (l_symbol) then
+						cell := storage.item (l_symbol)
+						old_cell := cell.left
+						new_cell := cell
+						l_other_symbol := l_symbol + 1
+						from
+							right := cell.right
+						until
+							right = Void
+						loop
+								-- Look for the symbol in the
+								-- symbol class.
+							i := right.item
+							from
+								stop := False
+							until
+								stop or l_other_symbol > l_max
+							loop
+								if not symbol_class.added (l_other_symbol) then
+									l_other_symbol := l_other_symbol + 1
+								elseif l_other_symbol > i then
+									stop := True
+								elseif l_other_symbol = i and not flags.has (l_other_symbol) then
+										-- We found an old companion of
+										-- `k'-th symbol in the symbol class.
+										-- Link it into the new equivalence
+										-- class and flag it as having been
+										-- processed.
+									new_cell.put_right (right)
+									new_cell := right
+										-- Set flag so we don't reprocess it.
+									flags.force (l_other_symbol)
+										-- Get next equivalence class member.
+									next_ec := True
+									stop := True
+								else
+									l_other_symbol := l_other_symbol + 1
+								end
+							end
+							if not next_ec then
+									-- Symbol is not in symbol class.
+									-- Put it in the old equivalence class.
+								if old_cell = Void then
+									right.forget_left
+								else
+									old_cell.put_right (right)
+								end
+								old_cell := right
+							else
+								next_ec := False
+							end
+							right := right.right
 						end
-					end
-					if not next_ec then
-							-- Symbol is not in symbol class.
-							-- Put it in the old equivalence class.
-						if old_cell = Void then
-							right.forget_left
-						else
-							old_cell.put_right (right)
+						if cell.left /= Void or else old_cell /= cell.left then
+							cell.forget_left
+							if old_cell /= Void then
+								old_cell.forget_right
+							end
 						end
-						old_cell := right
+						new_cell.forget_right
+						l_symbol := l_symbol + 1
 					else
-						next_ec := False
+						l_symbol := l_symbol + 1
 					end
-					right := right.right
-				end
-				if cell.left /= Void or else old_cell /= cell.left then
-					cell.forget_left
-					if old_cell /= Void then
-						old_cell.forget_right
-					end
-				end
-				new_cell.forget_right
-					-- Find next symbol class member to process.
-				from
-					k := k + 1
-				until
-					k > nb or else not flags.item (k)
-				loop
-					k := k + 1
 				end
 			end
 		end
@@ -381,9 +399,8 @@ feature {NONE} -- Implementation
 invariant
 
 	storage_not_void: storage /= Void
-	no_void_cell: not ANY_ARRAY_.has_void (storage)
+	no_void_cell: not {KL_ARRAY_ROUTINES [DS_BILINKABLE [INTEGER]]}.has_void (storage)
 	valid_bounds: lower <= upper
-	positive_count: count >= 0
-	built_definition: built = (count /= 0)
+	new_upper_small_enough: new_upper <= upper
 
 end

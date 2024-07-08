@@ -36,12 +36,25 @@ class CONSOLE inherit
 				put_natural_8, put_natural_16, put_natural, put_natural_32, put_natural_64,
 				dispose, before, readable, is_closed, extendible, is_open_write
 		redefine
-			make_open_stdin, make_open_stdout, count, is_empty, exists,
-			close, dispose, end_of_file, next_line,
-			read_integer_with_no_type, read_double, readdouble,
-			read_character, readchar,
-			read_line, readline,
-			back
+			initialize_encoding, detect_encoding,
+			back,
+			close,
+			count,
+			dispose,
+			end_of_file,
+			exists,
+			is_empty,
+			make_open_stdin,
+			make_open_stdout,
+			new_cursor,
+			next_line,
+			read_character,
+			read_double,
+			read_integer_with_no_type,
+			read_line,
+			readchar,
+			readdouble,
+			readline
 		end
 
 	ANY
@@ -75,6 +88,21 @@ feature -- Initialization
 			set_write_mode
 		end
 
+	initialize_encoding
+			-- <Precursor/>
+		do
+			Precursor
+			encoding := {SYSTEM_ENCODINGS}.console_encoding
+		end
+
+feature -- Encoding
+
+	detect_encoding
+			-- <Precursor/>
+		do
+			encoding := {SYSTEM_ENCODINGS}.console_encoding
+		end
+
 feature -- Cursor movement
 
 	next_line
@@ -101,13 +129,6 @@ feature -- Status report
 			-- Useless for CONSOLE class.
 			--| `count' is non null not to invalidate invariant clauses.
 
-feature -- Cursor movement
-
-	back
-			-- Not supported on console
-		do
-		end
-
 feature -- Removal
 
 	close
@@ -118,6 +139,25 @@ feature -- Removal
 	dispose
 			-- This is closed by the operating system at completion.
 		do
+		end
+
+feature -- Cursor movement
+
+	back
+			-- Not supported on console
+		do
+		end
+
+feature -- Iteration
+
+	new_cursor: FILE_ITERATION_CURSOR
+			-- <Precursor>
+		do
+			if is_open_read then
+				create Result.make_open_stdin
+			else
+				create Result.make_empty
+			end
 		end
 
 feature -- Input
@@ -247,7 +287,7 @@ feature {NONE} -- Inapplicable
 
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

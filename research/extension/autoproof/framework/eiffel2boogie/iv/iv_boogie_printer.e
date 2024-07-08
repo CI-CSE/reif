@@ -1,9 +1,5 @@
-note
-	description: "[
-		IV-visitor that generates Boogie code.
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
+﻿note
+	description: "IV-visitor that generates Boogie code."
 
 class
 	IV_BOOGIE_PRINTER
@@ -56,10 +52,10 @@ feature -- Universe Visitor
 			output.put (a_function.name)
 			output.put ("(")
 			across a_function.arguments as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				process_entity_declaration (i.item)
+				process_entity_declaration (i)
 			end
 			output.put (") returns (")
 			a_function.type.process (Current)
@@ -125,19 +121,19 @@ feature -- Universe Visitor
 			output.put (a_procedure.name)
 			output.put ("(")
 			across a_procedure.arguments as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				process_entity_declaration (i.item)
+				process_entity_declaration (i)
 			end
 			output.put (")")
 			if not a_procedure.results.is_empty then
 				output.put (" returns (")
 				across a_procedure.results as i loop
-					if i.cursor_index /= 1 then
+					if @ i.cursor_index /= 1 then
 						output.put (", ")
 					end
-					process_entity_declaration (i.item)
+					process_entity_declaration (i)
 				end
 				output.put (")")
 			end
@@ -145,12 +141,12 @@ feature -- Universe Visitor
 			output.put_new_line
 			output.indent
 			across a_procedure.contracts as i loop
-				i.item.process (Current)
+				i.process (Current)
 			end
 			output.unindent
 			output.put_new_line
 			across a_procedure.implementations as i loop
-				i.item.process (Current)
+				i.process (Current)
 			end
 			output.put_new_line
 			output.put_new_line
@@ -163,23 +159,23 @@ feature -- Universe Visitor
 			output.put (a_implementation.procedure.name)
 			output.put ("(")
 			across a_implementation.procedure.arguments as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				output.put (i.item.name)
+				output.put (i.name)
 				output.put (": ")
-				i.item.type.process (Current)
+				i.type.process (Current)
 			end
 			output.put (")")
 			if not a_implementation.procedure.results.is_empty then
 				output.put (" returns (")
 				across a_implementation.procedure.results as i loop
-					if i.cursor_index /= 1 then
+					if @ i.cursor_index /= 1 then
 						output.put (", ")
 					end
-					output.put (i.item.name)
+					output.put (i.name)
 					output.put (": ")
-					i.item.type.process (Current)
+					i.type.process (Current)
 				end
 				output.put (")")
 			end
@@ -191,7 +187,7 @@ feature -- Universe Visitor
 				across a_implementation.locals as i loop
 					output.put_indentation
 					output.put ("var ")
-					process_entity_declaration (i.item)
+					process_entity_declaration (i)
 					output.put (";")
 					output.put_new_line
 				end
@@ -199,20 +195,20 @@ feature -- Universe Visitor
 				output.put_line ("init_locals:")
 				across a_implementation.locals as i loop
 					-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
-					if i.item.type.default_value /= Void then
+					if i.type.default_value /= Void then
 						output.put_indentation
-						output.put (i.item.name)
+						output.put (i.name)
 						output.put (" := ")
-						i.item.type.default_value.process (Current)
+						i.type.default_value.process (Current)
 						output.put (";")
 						output.put_new_line
 					end
 				end
 				across a_implementation.procedure.results as i loop
 					output.put_indentation
-					output.put (i.item.name)
+					output.put (i.name)
 					output.put (" := ")
-					i.item.type.default_value.process (Current)
+					i.type.default_value.process (Current)
 					output.put (";")
 					output.put_new_line
 				end
@@ -267,10 +263,10 @@ feature -- Contract visitor
 			output.put_indentation
 			output.put ("modifies ")
 			across a_modifies.names as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				output.put (i.item)
+				output.put (i)
 			end
 			output.put (";")
 			output.put_new_line
@@ -326,8 +322,8 @@ feature -- Statement Visitor
 				output.put_new_line
 			end
 			across a_block.statements as i loop
-				print_statement_origin_information (i.item)
-				i.item.process (Current)
+				print_statement_origin_information (i)
+				i.process (Current)
 			end
 		end
 
@@ -361,10 +357,10 @@ feature -- Statement Visitor
 			output.put_indentation
 			output.put ("havoc ")
 			across a_havoc.names as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				output.put (i.item)
+				output.put (i)
 			end
 			output.put (";")
 			output.put_new_line
@@ -393,7 +389,7 @@ feature -- Statement Visitor
 			output.indent
 			across a_loop.invariants as i loop
 				output.put_indentation
-				i.item.process (Current)
+				i.process (Current)
 				output.put (";")
 				output.put_new_line
 			end
@@ -409,10 +405,10 @@ feature -- Statement Visitor
 			output.put_indentation
 			output.put ("goto ")
 			across a_goto.blocks as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				output.put (i.item.name)
+				output.put (i.name)
 			end
 			output.put (";")
 			output.put_new_line
@@ -430,10 +426,10 @@ feature -- Statement Visitor
 			output.put (a_call.name)
 			output.put ("(")
 			across a_call.arguments as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				i.item.process (Current)
+				i.process (Current)
 			end
 			output.put (");")
 			print_node_info (a_call.node_info)
@@ -451,12 +447,13 @@ feature -- Statement Visitor
 	print_statement_origin_information (a_statement: IV_STATEMENT)
 			-- Print origin information of `a_statement'.
 		do
-			if attached a_statement.origin_information as l_origin then
-				if attached l_origin.file then
-					output.put_comment_line (l_origin.file + ":" + l_origin.line.out)
-					if l_origin.line > 0 then
-						output.put_comment_line (l_origin.text_of_line)
-					end
+			if
+				attached a_statement.origin_information as l_origin and then
+				attached l_origin.file
+			then
+				output.put_comment_line (l_origin.file.utf_8_name + ":" + l_origin.line.out)
+				if l_origin.line > 0 then
+					output.put_comment_line (l_origin.text_of_line)
 				end
 			end
 		end
@@ -466,16 +463,13 @@ feature -- Statement Visitor
 		do
 			if attached a_info and then attached a_info.attributes as l_attributes then
 				output.put (" //")
-				from
-					l_attributes.start
-				until
-					l_attributes.after
+				across
+					l_attributes as a
 				loop
 					output.put (" ")
-					output.put (l_attributes.key_for_iteration.out)
+					output.put (@ a.key.out)
 					output.put (":")
-					output.put (l_attributes.item_for_iteration)
-					l_attributes.forth
+					output.put_literal_string (a)
 				end
 			end
 		end
@@ -550,10 +544,10 @@ feature -- Expression Visitor
 			output.put (a_call.name)
 			output.put ("(")
 			across a_call.arguments as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				i.item.process (Current)
+				i.process (Current)
 			end
 			output.put (")")
 		end
@@ -564,10 +558,10 @@ feature -- Expression Visitor
 			a_map_access.target.process (Current)
 			output.put ("[")
 			across a_map_access.indexes as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				i.item.process (Current)
+				i.process (Current)
 			end
 			output.put ("]")
 		end
@@ -578,10 +572,10 @@ feature -- Expression Visitor
 			a_map_update.target.process (Current)
 			output.put ("[")
 			across a_map_update.indexes as i loop
-				if i.cursor_index /= 1 then
+				if not @ i.is_first then
 					output.put (", ")
 				end
-				i.item.process (Current)
+				i.process (Current)
 			end
 			output.put (" := ")
 			a_map_update.value.process (Current)
@@ -638,7 +632,7 @@ feature -- Type Visitor
 				a_type.parameters as params
 			loop
 				output.put (" ")
-				params.item.process (Current)
+				params.process (Current)
 			end
 			is_in_type := old_is_in_type
 			if is_in_type then
@@ -665,8 +659,8 @@ feature -- Type Visitor
 				across
 					a_type.type_parameters as tps
 				loop
-					output.put (tps.item)
-					if not tps.is_last then
+					output.put (tps)
+					if not @ tps.is_last then
 						output.put (", ")
 					end
 				end
@@ -676,8 +670,8 @@ feature -- Type Visitor
 			across
 				a_type.domain_types as ds
 			loop
-				ds.item.process (Current)
-				if not ds.is_last then
+				ds.process (Current)
+				if not @ ds.is_last then
 					output.put (", ")
 				end
 			end
@@ -723,26 +717,26 @@ feature -- Other
 				across
 					a_quantifier.type_variables as vars
 				loop
-					if not vars.is_first then
+					if not @ vars.is_first then
 						output.put (", ")
 					end
-					output.put (vars.item)
+					output.put (vars)
 				end
 				output.put (">")
 			end
 			output.put (" ")
 			across a_quantifier.bound_variables as i loop
-				if i.cursor_index /= 1 then
+				if @ i.cursor_index /= 1 then
 					output.put (", ")
 				end
-				process_entity_declaration (i.item)
+				process_entity_declaration (i)
 			end
 			output.put (" :: ")
 			across a_quantifier.triggers as i loop
 				output.put ("{ ")
-				across i.item as j loop
-					j.item.process (Current)
-					if not j.is_last then
+				across i as j loop
+					j.process (Current)
+					if not @ j.is_last then
 						output.put (", ")
 					end
 				end
@@ -754,7 +748,32 @@ feature -- Other
 
 feature {NONE} -- Implementation
 
-	is_in_type: BOOLEAN
+	is_in_type: BOOLEAN;
 			-- Is the printer processing a complex type (i.e. a context where other complex types have to be parenthesized)?
+
+note
+	ca_ignore: "CA033", "CA033: too long class"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

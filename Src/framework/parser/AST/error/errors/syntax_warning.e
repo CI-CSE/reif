@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Generate a warning for an obsolete syntax."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -11,8 +11,7 @@ class
 inherit
 	WARNING
 		redefine
-			file_name, has_associated_file,
-			process
+			has_associated_file
 		end
 
 create
@@ -20,7 +19,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (l, c: INTEGER; f: like file_name; m: STRING)
+	make (l, c: INTEGER; f: like file_name; m: READABLE_STRING_32)
 			-- Create a new SYNTAX_WARNING instance.
 		require
 			f_not_void: f /= Void
@@ -38,25 +37,17 @@ feature {NONE} -- Initialization
 
 feature -- Properties
 
-	warning_message_32: STRING_32
-			-- Specify syntax issue message.
-		do
-			Result := encoding_converter.utf8_to_utf32 (warning_message)
-		end
+	warning_message: READABLE_STRING_32
+			-- Warning description.
 
 	file_name: like {ERROR}.file_name
-			-- Path to file where syntax issue happened
+			-- Path to file where syntax issue happened.
 
 	code: STRING = "Syntax Warning"
-			-- Error code
+			-- Error code.
 
 	has_associated_file: BOOLEAN = True
-			-- Current is associated to a file/class
-
-feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
-
-	warning_message: STRING
-			-- Specify syntax issue message.
+			-- Current is associated to a file/class.
 
 feature -- Visitor
 
@@ -69,7 +60,7 @@ invariant
 	warning_message_not_void: warning_message /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -100,4 +91,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class SYNTAX_WARNING
+end

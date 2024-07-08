@@ -28,7 +28,6 @@ inherit
 			duplicate_for_instantiation, deanchored_form_marks_free
 		redefine
 			base_class,
-			c_type,
 			generic_il_type_name,
 			il_type_name,
 			is_typed_pointer,
@@ -45,6 +44,7 @@ inherit
 			has_reference,
 			instantiated_description,
 			is_basic,
+			is_expanded_creation_possible,
 			is_processor_attachable_to,
 			meta_type,
 			sk_value
@@ -131,8 +131,11 @@ feature {COMPILER_EXPORTER} -- Access
 			-- Reference counterpart of an expanded type.
 		do
 			create Result.make (class_id, duplicate.generics)
-			if class_declaration_mark = expanded_mark then
+			if class_declaration_mark ⊗ expanded_mark /= 0 then
 				Result.set_expanded_class_mark
+			end
+			if class_declaration_mark ⊗ once_mark /= 0 then
+				Result.set_once_class_mark
 			end
 			Result.set_reference_mark
 		end
@@ -144,7 +147,7 @@ feature {COMPILER_EXPORTER} -- Access
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

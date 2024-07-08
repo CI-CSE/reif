@@ -5,7 +5,7 @@ note
 		"Eiffel AST processors"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2002-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2002-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -130,6 +130,13 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
+	process_alias_name_list (a_list: ET_ALIAS_NAME_LIST)
+			-- Process `a_list'.
+		require
+			a_list_not_void: a_list /= Void
+		deferred
+		end
+
 	process_aliased_feature_name (a_name: ET_ALIASED_FEATURE_NAME)
 			-- Process `a_name'.
 		require
@@ -186,14 +193,7 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
-	process_attachment_separate_keywords (a_keywords: ET_ATTACHMENT_SEPARATE_KEYWORDS)
-			-- Process `a_keywords'.
-		require
-			a_keywords_not_void: a_keywords /= Void
-		deferred
-		end
-
-	process_attachment_symbol_separate_keyword (a_keywords: ET_ATTACHMENT_SYMBOL_SEPARATE_KEYWORD)
+	process_attachment_mark_separate_keyword (a_keywords: ET_ATTACHMENT_MARK_SEPARATE_KEYWORD)
 			-- Process `a_keywords'.
 		require
 			a_keywords_not_void: a_keywords /= Void
@@ -211,6 +211,20 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_instruction'.
 		require
 			an_instruction_not_void: an_instruction /= Void
+		deferred
+		end
+
+	process_base_type_constraint_list (a_list: ET_BASE_TYPE_CONSTRAINT_LIST)
+			-- Process `a_list'.
+		require
+			a_list_not_void: a_list /= Void
+		deferred
+		end
+
+	process_base_type_rename_constraint (a_type_rename_constraint: ET_BASE_TYPE_RENAME_CONSTRAINT)
+			-- Process `a_type_rename_constraint'.
+		require
+			a_type_rename_constraint_not_void: a_type_rename_constraint /= Void
 		deferred
 		end
 
@@ -319,6 +333,13 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
+	process_class_assertion (a_assertion: ET_CLASS_ASSERTION)
+			-- Process `a_assertion'.
+		require
+			a_assertion_not_void: a_assertion /= Void
+		deferred
+		end
+
 	process_class_type (a_type: ET_CLASS_TYPE)
 			-- Process `a_type'.
 		require
@@ -376,6 +397,13 @@ feature {ET_AST_NODE} -- Processing
 		end
 
 	process_constraint_creator (a_list: ET_CONSTRAINT_CREATOR)
+			-- Process `a_list'.
+		require
+			a_list_not_void: a_list /= Void
+		deferred
+		end
+
+	process_constraint_rename_list (a_list: ET_CONSTRAINT_RENAME_LIST)
 			-- Process `a_list'.
 		require
 			a_list_not_void: a_list /= Void
@@ -442,6 +470,13 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_instruction'.
 		require
 			an_instruction_not_void: an_instruction /= Void
+		deferred
+		end
+
+	process_creation_region (a_region: ET_CREATION_REGION)
+			-- Process `a_region'.
+		require
+			a_region_not_void: a_region /= Void
 		deferred
 		end
 
@@ -566,6 +601,20 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
+	process_elseif_expression (an_elseif_part: ET_ELSEIF_EXPRESSION)
+			-- Process `an_elseif_part'.
+		require
+			an_elseif_part_not_void: an_elseif_part /= Void
+		deferred
+		end
+
+	process_elseif_expression_list (a_list: ET_ELSEIF_EXPRESSION_LIST)
+			-- Process `a_list'.
+		require
+			a_list_not_void: a_list /= Void
+		deferred
+		end
+
 	process_elseif_part (an_elseif_part: ET_ELSEIF_PART)
 			-- Process `an_elseif_part'.
 		require
@@ -584,6 +633,20 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_expression'.
 		require
 			an_expression_not_void: an_expression /= Void
+		deferred
+		end
+
+	process_explicit_convert_from_expression (a_convert_expression: ET_EXPLICIT_CONVERT_FROM_EXPRESSION)
+			-- Process `a_convert_expression'.
+		require
+			a_convert_expression_not_void: a_convert_expression /= Void
+		deferred
+		end
+
+	process_explicit_convert_to_expression (a_convert_expression: ET_EXPLICIT_CONVERT_TO_EXPRESSION)
+			-- Process `a_convert_expression'.
+		require
+			a_convert_expression_not_void: a_convert_expression /= Void
 		deferred
 		end
 
@@ -785,6 +848,13 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
+	process_if_expression (a_expression: ET_IF_EXPRESSION)
+			-- Process `a_expression'.
+		require
+			a_expression_not_void: a_expression /= Void
+		deferred
+		end
+
 	process_if_instruction (an_instruction: ET_IF_INSTRUCTION)
 			-- Process `an_instruction'.
 		require
@@ -855,24 +925,17 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
-	process_infix_free_name (a_name: ET_INFIX_FREE_NAME)
-			-- Process `a_name'.
-		require
-			a_name_not_void: a_name /= Void
-		deferred
-		end
-
-	process_infix_name (a_name: ET_INFIX_NAME)
-			-- Process `a_name'.
-		require
-			a_name_not_void: a_name /= Void
-		deferred
-		end
-
 	process_infix_or_else_operator (an_operator: ET_INFIX_OR_ELSE_OPERATOR)
 			-- Process `an_operator'.
 		require
 			an_operator_not_void: an_operator /= Void
+		deferred
+		end
+
+	process_inspect_expression (a_expression: ET_INSPECT_EXPRESSION)
+			-- Process `a_expression'.
+		require
+			a_expression_not_void: a_expression /= Void
 		deferred
 		end
 
@@ -887,6 +950,13 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `a_list'.
 		require
 			a_list_not_void: a_list /= Void
+		deferred
+		end
+
+	process_iteration_cursor (a_iteration_cursor: ET_ITERATION_CURSOR)
+			-- Process `a_iteration_cursor'.
+		require
+			a_iteration_cursor_not_void: a_iteration_cursor /= Void
 		deferred
 		end
 
@@ -1221,20 +1291,6 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
-	process_prefix_free_name (a_name: ET_PREFIX_FREE_NAME)
-			-- Process `a_name'.
-		require
-			a_name_not_void: a_name /= Void
-		deferred
-		end
-
-	process_prefix_name (a_name: ET_PREFIX_NAME)
-			-- Process `a_name'.
-		require
-			a_name_not_void: a_name /= Void
-		deferred
-		end
-
 	process_qualified_call (a_call: ET_QUALIFIED_CALL)
 			-- Process `a_call'.
 		require
@@ -1267,6 +1323,13 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `a_type'.
 		require
 			a_type_not_void: a_type /= Void
+		deferred
+		end
+
+	process_quantifier_expression (a_expression: ET_QUANTIFIER_EXPRESSION)
+			-- Process `a_expression'.
+		require
+			a_expression_not_void: a_expression /= Void
 		deferred
 		end
 
@@ -1316,6 +1379,13 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `a_list'.
 		require
 			a_list_not_void: a_list /= Void
+		deferred
+		end
+
+	process_repeat_instruction (a_instruction: ET_REPEAT_INSTRUCTION)
+			-- Process `a_instruction'.
+		require
+			a_instruction_not_void: a_instruction /= Void
 		deferred
 		end
 
@@ -1424,6 +1494,27 @@ feature {ET_AST_NODE} -- Processing
 		deferred
 		end
 
+	process_type_constraint_comma (a_type_constraint_comma: ET_TYPE_CONSTRAINT_COMMA)
+			-- Process `a_type_constraint_comma'.
+		require
+			a_type_constraint_comma_not_void: a_type_constraint_comma /= Void
+		deferred
+		end
+
+	process_type_constraint_list (a_list: ET_TYPE_CONSTRAINT_LIST)
+			-- Process `a_list'.
+		require
+			a_list_not_void: a_list /= Void
+		deferred
+		end
+
+	process_type_rename_constraint (a_type_rename_constraint: ET_TYPE_RENAME_CONSTRAINT)
+			-- Process `a_type_rename_constraint'.
+		require
+			a_type_rename_constraint_not_void: a_type_rename_constraint /= Void
+		deferred
+		end
+
 	process_underscored_integer_constant (a_constant: ET_UNDERSCORED_INTEGER_CONSTANT)
 			-- Process `a_constant'.
 		require
@@ -1498,6 +1589,20 @@ feature {ET_AST_NODE} -- Processing
 			-- Process `an_expression'.
 		require
 			an_expression_not_void: an_expression /= Void
+		deferred
+		end
+
+	process_when_expression (a_when_part: ET_WHEN_EXPRESSION)
+			-- Process `a_when_part'.
+		require
+			a_when_part_not_void: a_when_part /= Void
+		deferred
+		end
+
+	process_when_expression_list (a_list: ET_WHEN_EXPRESSION_LIST)
+			-- Process `a_list'.
+		require
+			a_list_not_void: a_list /= Void
 		deferred
 		end
 

@@ -46,6 +46,7 @@ feature -- Query
 					lst.replace (resolved_expression (lst.item))
 					lst.forth
 				end
+				Result := lst
 			end
 		end
 
@@ -62,8 +63,14 @@ feature -- Query
 					tb.replace (resolved_expression (tb.item_for_iteration), tb.key_for_iteration)
 					tb.forth
 				end
+				Result := tb
 			end
 		end
+
+	utf_8_text_item (k: READABLE_STRING_GENERAL): detachable READABLE_STRING_8
+			-- String item associated with key `k'.	
+		deferred
+		end		
 
 	text_item (k: READABLE_STRING_GENERAL): detachable READABLE_STRING_32
 			-- String item associated with key `k'.

@@ -14,14 +14,14 @@ inherit
 			new_bin_not_tilde_as, new_bin_or_as, new_bin_or_else_as, new_bin_plus_as,
 			new_bin_power_as, new_bin_slash_as, new_bin_star_as, new_bin_tilde_as,
 			new_bin_xor_as, new_built_in_as,
-			new_body_as, new_boolean_as, new_case_as, new_character_as, new_check_as, new_class_as,
+			new_body_as, new_boolean_as, new_case_as, new_case_expression_as, new_character_as, new_check_as, new_class_as,
 			new_class_type_as, new_client_as, new_constant_as, new_constraining_type, new_convert_feat_as, new_create_as,
 			new_current_as, new_custom_attribute_as,
 			new_debug_as, new_deferred_as, new_do_as, new_eiffel_list_atomic_as,
-			new_eiffel_list_case_as, new_eiffel_list_constraining_type_as, new_eiffel_list_convert, new_eiffel_list_create_as,
-			new_eiffel_list_elseif_as, new_eiffel_list_export_item_as, new_eiffel_list_expr_as,
+			new_eiffel_list_case_as, new_eiffel_list_case_expression_as, new_eiffel_list_constraining_type_as, new_eiffel_list_convert, new_eiffel_list_create_as,
+			new_eiffel_list_elseif_as, new_eiffel_list_elseif_expression_as, new_eiffel_list_export_item_as, new_eiffel_list_expr_as,
 			new_eiffel_list_feature_as, new_eiffel_list_feature_clause_as,
-			new_eiffel_list_feature_name, new_eiffel_list_feature_name_id, new_eiffel_list_formal_dec_as, new_eiffel_list_id_as,
+			new_eiffel_list_feature_name, new_eiffel_list_feature_name_id, new_eiffel_list_formal_dec_as,
 			new_indexing_clause_as, new_eiffel_list_instruction_as, new_eiffel_list_interval_as,
 			new_eiffel_list_list_dec_as, new_eiffel_list_named_expression_as,
 			new_eiffel_list_operand_as, new_eiffel_list_parent_as, new_eiffel_list_rename_as,
@@ -30,24 +30,24 @@ inherit
 			new_exit_condition_pair, new_export_item_as, new_expr_address_as, new_expr_call_as, new_external_as,
 			new_external_lang_as, new_feature_as, new_feature_clause_as, new_feature_list_as,
 			new_feature_name_alias_as, new_feature_name_id_as, new_formal_as, new_formal_dec_as, new_filled_id_as,
-			new_guard_as, new_identifier_list, new_if_as, new_if_expression_as, new_index_as, new_infix_as,
-			new_inline_agent_creation_as, new_inspect_as,
+			new_guard_as, new_identifier_list, new_if_as, new_if_expression_as, new_index_as,
+			new_inline_agent_creation_as, new_inspect_as, new_inspect_expression_as,
 			new_instr_call_as, new_integer_as, new_integer_hexa_as, new_integer_octal_as,
 			new_integer_binary_as, new_interval_as, new_invariant_as, new_iteration_as,
 			new_like_id_as, new_like_current_as, new_list_dec_as, new_location_as, new_loop_as, new_loop_expr_as,
-			new_named_expression_as, new_nested_as, new_nested_expr_as, new_none_type_as,
+			new_named_expression_as, new_nested_expr_as, new_none_type_as,
 			new_object_test_as, new_old_syntax_object_test_as, new_once_as, new_operand_as,
-			new_paran_as, new_parent_as, new_precursor_as, new_prefix_as,
+			new_paran_as, new_parent_as, new_precursor_as,
 			new_qualified_anchored_type, new_qualified_anchored_type_with_type,
 			new_real_as, new_rename_as, new_require_as, new_require_else_as,
 			new_result_as, new_retry_as, new_reverse_as, new_routine_as,
-			new_separate_instruction_as, new_static_access_as, new_string_as, new_tagged_as,
+			new_separate_instruction_as, new_static_access_as, new_string_as, new_symbol_id_as, new_tagged_as,
 			new_tuple_as, new_type_dec_as, new_type_expr_as, new_un_free_as, new_un_minus_as,
 			new_un_not_as, new_un_old_as, new_un_plus_as, new_un_strip_as, new_unique_as,
 			new_variant_as, new_verbatim_string_as, new_void_as, new_filled_none_id_as,
 			new_assigner_call_as,
-			new_create_creation_as, new_bang_creation_as,
-			new_create_creation_expr_as,new_bang_creation_expr_as,
+			new_creation_as,
+			new_creation_expr_as,
 			new_bracket_as,
 			new_assigner_mark_as, new_typed_char_as,
 			new_character_value_as, new_integer_value, new_real_value,
@@ -56,14 +56,14 @@ inherit
 			create_match_list,
 			reverse_extend_separator, reverse_extend_identifier, reverse_extend_identifier_separator,
 			new_agent_routine_creation_as,
-			new_constraint_triple, new_alias_triple, new_agent_target_triple,
+			new_constraint_triple, new_alias_name, new_agent_target_triple,
 			new_keyword_instruction_list_pair, new_keyword_string_pair, new_invariant_pair,
 			new_keyword_as, new_keyword_id_as, new_creation_keyword_as, new_end_keyword_as, new_frozen_keyword_as,
-			new_infix_keyword_as, new_precursor_keyword_as, new_prefix_keyword_as, new_once_string_keyword_as,
+			new_precursor_keyword_as, new_once_string_keyword_as,
 			new_symbol_as, new_square_symbol_as,
 			create_break_as, create_break_as_with_data,
 			new_filled_id_as_with_existing_stub,
-			new_feature_keyword_as,
+			new_feature_keyword_as, new_predecessor_as,
 			new_class_list_as, new_local_dec_list_as, new_formal_argu_dec_list_as, new_key_list_as,
 			new_delayed_actual_list_as, new_parameter_list_as,
 			new_rename_clause_as, new_export_clause_as, new_undefine_clause_as, new_redefine_clause_as, new_select_clause_as,
@@ -132,22 +132,12 @@ feature -- Roundtrip: New AST node
 		do
 		end
 
-	new_create_creation_as (is_active: BOOLEAN; tp: detachable TYPE_AS; tg: detachable ACCESS_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATE_CREATION_AS
-			-- New CREATE_CREATION AST node.
+	new_creation_as (is_active: BOOLEAN; tp: detachable TYPE_AS; tg: detachable ACCESS_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATION_AS
+			-- New CREATION AST node.
 		do
 		end
 
-	new_bang_creation_as (tp: detachable TYPE_AS; tg: detachable ACCESS_AS; c: detachable ACCESS_INV_AS; l_as, r_as: detachable SYMBOL_AS): detachable BANG_CREATION_AS
-			-- New CREATE_CREATION AST node.
-		do
-		end
-
-	new_create_creation_expr_as (is_active: BOOLEAN; t: detachable TYPE_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATE_CREATION_EXPR_AS
-			-- New creation expression AST node
-		do
-		end
-
-	new_bang_creation_expr_as (t: detachable TYPE_AS; c: detachable ACCESS_INV_AS; l_as, r_as: detachable SYMBOL_AS): detachable BANG_CREATION_EXPR_AS
+	new_creation_expr_as (is_active: BOOLEAN; t: detachable TYPE_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATION_EXPR_AS
 			-- New creation expression AST node
 		do
 		end
@@ -173,12 +163,12 @@ feature -- Roundtrip: New AST node
 		end
 
 	new_eiffel_list_constraining_type_as (n: INTEGER): detachable CONSTRAINT_LIST_AS
-			-- New empty list of `CONSTRAINING_TYPE_AS'
+			-- <Precursor>
 		do
 		end
 
-	new_alias_triple (k_as: detachable KEYWORD_AS; n_as: detachable STRING_AS; c_as: detachable KEYWORD_AS): detachable ALIAS_TRIPLE
-			-- New ALIST_TRIPLE.
+	new_alias_name (a: detachable KEYWORD_AS; s: detachable STRING_AS; k: like {OPERATOR_KIND}.kind_anchor): detachable FEATURE_ALIAS_NAME
+			-- <Precursor>
 		do
 		end
 
@@ -207,13 +197,13 @@ feature -- Roundtrip: New AST node
 		do
 		end
 
-feature -- Roundtrip
+feature -- Roundtrip: constants
 
 	new_character_value_as (a_psr: EIFFEL_SCANNER_SKELETON; buffer: STRING; roundtrip_buffer: STRING): detachable CHAR_AS
 		do
 		end
 
-	new_integer_value (a_psr: EIFFEL_SCANNER_SKELETON; sign_symbol: CHARACTER; a_type: detachable TYPE_AS; buffer: STRING; s_as: detachable SYMBOL_AS): detachable INTEGER_AS
+	new_integer_value (a_psr: EIFFEL_SCANNER_SKELETON; sign_symbol: CHARACTER; a_type: detachable TYPE_AS; buffer: READABLE_STRING_8; s_as: detachable SYMBOL_AS): detachable INTEGER_AS
 		do
 		end
 
@@ -274,18 +264,8 @@ feature -- Roundtrip: leaf_as
 		do
 		end
 
-	new_infix_keyword_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable KEYWORD_AS
-			-- New KEYWORD AST node for keyword "infix'
-		do
-		end
-
 	new_precursor_keyword_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable KEYWORD_AS
 			-- New KEYWORD AST node for keyword "precursor'
-		do
-		end
-
-	new_prefix_keyword_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable KEYWORD_AS
-			-- New KEYWORD AST node for keyword "prefix'
 		do
 		end
 
@@ -296,6 +276,10 @@ feature -- Roundtrip: leaf_as
 
 	new_symbol_as (a_code: INTEGER; a_scn: EIFFEL_SCANNER_SKELETON): detachable SYMBOL_AS
 			-- New KEYWORD AST node	all Eiffel symbols except "[" and "]"
+		do
+		end
+
+	new_symbol_id_as (c: INTEGER; s: EIFFEL_SCANNER_SKELETON): detachable like symbol_id_type
 		do
 		end
 
@@ -511,6 +495,11 @@ feature -- Access
 		do
 		end
 
+	new_case_expression_as (i: detachable EIFFEL_LIST [INTERVAL_AS]; e: detachable EXPR_AS; w, t: detachable KEYWORD_AS): detachable CASE_EXPRESSION_AS
+			-- <Precursor>
+		do
+		end
+
 	new_character_as (c: CHARACTER_32; l, co, p, n, cc, cp, cs: INTEGER; a_text: STRING): detachable CHAR_AS
 			-- New CHARACTER AST node
 		do
@@ -522,7 +511,7 @@ feature -- Access
 		end
 
 	new_class_as (n: detachable ID_AS; ext_name: detachable STRING_AS;
-			is_d, is_e, is_fc, is_ex, is_par: BOOLEAN;
+			is_d, is_e, is_fc, is_ex, is_par, is_o: BOOLEAN;
 			top_ind, bottom_ind: detachable INDEXING_CLAUSE_AS;
 			g: detachable EIFFEL_LIST [FORMAL_DEC_AS];
 			cp: detachable PARENT_LIST_AS;
@@ -593,38 +582,48 @@ feature -- Access
 		do
 		end
 
-	new_eiffel_list_atomic_as (n: INTEGER): detachable EIFFEL_LIST [ATOMIC_AS]
-			-- New empty list of ATOMIC_AS
+	new_eiffel_list_atomic_as (a: detachable ATOMIC_AS; n: INTEGER): detachable EIFFEL_LIST [ATOMIC_AS]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_case_as (n: INTEGER): detachable EIFFEL_LIST [CASE_AS]
-			-- New empty list of CASE_AS
+	new_eiffel_list_case_as (a: CASE_AS; n: INTEGER): detachable EIFFEL_LIST [CASE_AS]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_convert (n: INTEGER): detachable CONVERT_FEAT_LIST_AS
-			-- New empty list of CONVERT_FEAT_AS
+	new_eiffel_list_case_expression_as (a: CASE_EXPRESSION_AS; n: INTEGER): detachable EIFFEL_LIST [CASE_EXPRESSION_AS]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_create_as (n: INTEGER): detachable EIFFEL_LIST [CREATE_AS]
-			-- New empty list of CREATE_AS
+	new_eiffel_list_convert (a: CONVERT_FEAT_AS; n: INTEGER): detachable CONVERT_FEAT_LIST_AS
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_elseif_as (n: INTEGER): detachable EIFFEL_LIST [ELSIF_AS]
-			-- New empty list of ELSIF_AS
+	new_eiffel_list_create_as (a: CREATE_AS; n: INTEGER): detachable EIFFEL_LIST [CREATE_AS]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_export_item_as (n: INTEGER): detachable EIFFEL_LIST [EXPORT_ITEM_AS]
-			-- New empty list of EXPORT_ITEM_AS
+	new_eiffel_list_elseif_as (a: ELSIF_AS; n: INTEGER): detachable EIFFEL_LIST [ELSIF_AS]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_expr_as (n: INTEGER): detachable EIFFEL_LIST [EXPR_AS]
-			-- New empty list of EXPR_AS
+	new_eiffel_list_elseif_expression_as (a: ELSIF_EXPRESSION_AS; n: INTEGER): detachable EIFFEL_LIST [ELSIF_EXPRESSION_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_export_item_as (a: EXPORT_ITEM_AS; n: INTEGER): detachable EIFFEL_LIST [EXPORT_ITEM_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_expr_as (a: detachable EXPR_AS; n: INTEGER): detachable EIFFEL_LIST [EXPR_AS]
+			-- <Precursor>
 		do
 		end
 
@@ -633,93 +632,88 @@ feature -- Access
 		do
 		end
 
-	new_eiffel_list_feature_as (n: INTEGER): detachable EIFFEL_LIST [FEATURE_AS]
-			-- New empty list of FEATURE_AS
-		do
-		end
-
-	new_eiffel_list_feature_clause_as (n: INTEGER): detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]
-			-- New empty list of FEATURE_CLAUSE_AS
-		do
-		end
-
-	new_eiffel_list_feature_name (n: INTEGER): detachable EIFFEL_LIST [FEATURE_NAME]
-			-- New empty list of FEATURE_NAME
-		do
-		end
-
-	new_eiffel_list_feature_name_id (n: INTEGER): detachable EIFFEL_LIST [FEAT_NAME_ID_AS]
+	new_eiffel_list_feature_as (a: detachable FEATURE_AS; n: INTEGER): detachable EIFFEL_LIST [FEATURE_AS]
 			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_formal_dec_as (n: INTEGER): detachable FORMAL_GENERIC_LIST_AS
-			-- New empty list of FORMAL_DEC_AS
-		do
-		end
-
-	new_eiffel_list_id_as (n: INTEGER): detachable EIFFEL_LIST [ID_AS]
-			-- New empty list of ID_AS
-		do
-		end
-
-	new_indexing_clause_as (n: INTEGER): detachable INDEXING_CLAUSE_AS
-			-- New empty list of INDEX_AS
-		do
-		end
-
-	new_eiffel_list_instruction_as (n: INTEGER): detachable EIFFEL_LIST [INSTRUCTION_AS]
-			-- New empty list of INSTRUCTION_AS
-		do
-		end
-
-	new_eiffel_list_interval_as (n: INTEGER): detachable EIFFEL_LIST [INTERVAL_AS]
-			-- New empty list of INTERVAL_AS
-		do
-		end
-
-	new_eiffel_list_named_expression_as (n: INTEGER): detachable EIFFEL_LIST [NAMED_EXPRESSION_AS]
+	new_eiffel_list_feature_clause_as (a: FEATURE_CLAUSE_AS; n: INTEGER): detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]
 			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_operand_as (n: INTEGER): detachable EIFFEL_LIST [OPERAND_AS]
-			-- New empty list of OPERAND_AS
+	new_eiffel_list_feature_name (a: FEATURE_NAME; n: INTEGER): detachable EIFFEL_LIST [FEATURE_NAME]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_parent_as (n: INTEGER): detachable PARENT_LIST_AS
-			-- New empty list of PARENT_AS
+	new_eiffel_list_feature_name_id (a: FEATURE_NAME; n: INTEGER): detachable EIFFEL_LIST [FEATURE_NAME]
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_rename_as (n: INTEGER): detachable EIFFEL_LIST [RENAME_AS]
-			-- New empty list of RENAME_AS
+	new_eiffel_list_formal_dec_as (a: detachable FORMAL_DEC_AS; n: INTEGER): detachable FORMAL_GENERIC_LIST_AS
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_string_as (n: INTEGER): detachable EIFFEL_LIST [STRING_AS]
-			-- New empty list of STRING_AS
+	new_indexing_clause_as (v: detachable INDEX_AS; n: INTEGER): detachable INDEXING_CLAUSE_AS
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_instruction_as (a: detachable INSTRUCTION_AS; n: INTEGER): detachable EIFFEL_LIST [INSTRUCTION_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_interval_as (a: INTERVAL_AS; n: INTEGER): detachable EIFFEL_LIST [INTERVAL_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_named_expression_as (a: NAMED_EXPRESSION_AS; n: INTEGER): detachable EIFFEL_LIST [NAMED_EXPRESSION_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_operand_as (a: OPERAND_AS; n: INTEGER): detachable EIFFEL_LIST [OPERAND_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_parent_as (a: detachable PARENT_AS; n: INTEGER): detachable PARENT_LIST_AS
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_rename_as (a: RENAME_AS; n: INTEGER): detachable EIFFEL_LIST [RENAME_AS]
+			-- <Precursor>
+		do
+		end
+
+	new_eiffel_list_string_as (a: STRING_AS; n: INTEGER): detachable EIFFEL_LIST [STRING_AS]
+			-- <Precursor>
 		do
 		end
 
 	new_eiffel_list_tagged_as (n: INTEGER): detachable EIFFEL_LIST [TAGGED_AS]
-			-- New empty list of TAGGED_AS
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_type (n: INTEGER): detachable TYPE_LIST_AS
-			-- New empty list of TYPE
+	new_eiffel_list_type (a: detachable TYPE_AS; n: INTEGER): detachable TYPE_LIST_AS
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_list_dec_as (n: INTEGER): detachable LIST_DEC_LIST_AS
-			-- New empty list of LIST_DEC_AS.
+	new_eiffel_list_list_dec_as (a: LIST_DEC_AS; n: INTEGER): detachable LIST_DEC_LIST_AS
+			-- <Precursor>
 		do
 		end
 
-	new_eiffel_list_type_dec_as (n: INTEGER): detachable TYPE_DEC_LIST_AS
-			-- New empty list of TYPE_DEC_AS.
+	new_eiffel_list_type_dec_as (a: detachable TYPE_DEC_AS; n: INTEGER): detachable TYPE_DEC_LIST_AS
+			-- <Precursor>
 		do
 		end
 
@@ -778,12 +772,12 @@ feature -- Access
 		do
 		end
 
-	new_feature_name_alias_as (feature_name: detachable ID_AS; alias_name: detachable STRING_AS; has_convert_mark: BOOLEAN; a_as, c_as: detachable KEYWORD_AS): detachable FEATURE_NAME_ALIAS_AS
+	new_feature_name_alias_as (feature_name: detachable ID_AS; a_alias_list: detachable LIST [FEATURE_ALIAS_NAME]; c_as: detachable KEYWORD_AS): detachable FEATURE_NAME_ALIAS_AS
 			-- New FEATURE_NAME_ALIAS AST node
 		do
 		end
 
-	new_feature_name_id_as (f: detachable ID_AS): detachable FEAT_NAME_ID_AS
+	new_feature_name_id_as (f: detachable ID_AS): detachable FEATURE_NAME
 			-- New FEAT_NAME_ID AST node
 		do
 		end
@@ -793,7 +787,7 @@ feature -- Access
 		do
 		end
 
-	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
+	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEATURE_NAME]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
 			-- New FORMAL_DECLARATION AST node
 		do
 		end
@@ -814,8 +808,8 @@ feature -- Access
 		do
 		end
 
-	new_identifier_list (n: INTEGER): detachable IDENTIFIER_LIST
-			-- New ARRAYED_LIST [INTEGER]
+	new_identifier_list (a: like {ID_AS}.name_id; n: INTEGER): detachable IDENTIFIER_LIST
+			-- <Precursor>
 		do
 		end
 
@@ -838,14 +832,15 @@ feature -- Access
 		do
 		end
 
-	new_infix_as (op: detachable STRING_AS; l: detachable KEYWORD_AS): detachable INFIX_PREFIX_AS
-			-- New INFIX AST node
-		do
-		end
-
 	new_inspect_as (s: detachable EXPR_AS; c: detachable EIFFEL_LIST [CASE_AS];
 			e: detachable EIFFEL_LIST [INSTRUCTION_AS]; end_location, i_as, e_as: detachable  KEYWORD_AS): detachable INSPECT_AS
 			-- New INSPECT AST node
+		do
+		end
+
+	new_inspect_expression_as (s: detachable EXPR_AS; c: detachable EIFFEL_LIST [CASE_EXPRESSION_AS];
+			e: detachable EXPR_AS; end_location, i_as, e_as: detachable  KEYWORD_AS): detachable INSPECT_EXPRESSION_AS
+			-- <Precursor>
 		do
 		end
 
@@ -854,22 +849,22 @@ feature -- Access
 		do
 		end
 
-	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 		end
 
-	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 		end
 
-	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 		end
 
-	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 		end
@@ -905,15 +900,14 @@ feature -- Access
 		end
 
 	new_loop_as (t: detachable ITERATION_AS; f: detachable EIFFEL_LIST [INSTRUCTION_AS]; i: detachable EIFFEL_LIST [TAGGED_AS];
-			v: VARIANT_AS; s: EXPR_AS; c: EIFFEL_LIST [INSTRUCTION_AS];
-			e, f_as, i_as, u_as, l_as: KEYWORD_AS): detachable LOOP_AS
-
-			-- New LOOP AST node
+			v: detachable VARIANT_AS; s: detachable EXPR_AS; c: detachable EIFFEL_LIST [INSTRUCTION_AS];
+			e, f_as, i_as, u_as, l_as: detachable KEYWORD_AS; r, bc: detachable SYMBOL_AS): detachable LOOP_AS
+			-- <Precursor>
 		do
 		end
 
 	new_loop_expr_as (f: detachable ITERATION_AS; w: detachable KEYWORD_AS; i: detachable EIFFEL_LIST [TAGGED_AS];
-			u: detachable KEYWORD_AS; c: detachable EXPR_AS; q: detachable KEYWORD_AS; a: BOOLEAN; e: detachable EXPR_AS; v: detachable VARIANT_AS; k: detachable KEYWORD_AS): detachable LOOP_EXPR_AS
+			u: detachable KEYWORD_AS; c: detachable EXPR_AS; q: detachable KEYWORD_AS; s: detachable SYMBOL_AS; a: BOOLEAN; e: detachable EXPR_AS; v: detachable VARIANT_AS; k: detachable KEYWORD_AS): detachable LOOP_EXPR_AS
 			-- New LOOP expression AST node
 		do
 		end
@@ -923,12 +917,7 @@ feature -- Access
 		do
 		end
 
-	new_nested_as (t: detachable ACCESS_AS; m: detachable CALL_AS; d_as: detachable SYMBOL_AS): detachable NESTED_AS
-			-- New NESTED CALL AST node
-		do
-		end
-
-	new_nested_expr_as (t: detachable EXPR_AS; m: detachable CALL_AS; d_as, l_as, r_as: detachable SYMBOL_AS): detachable NESTED_EXPR_AS
+	new_nested_expr_as (t: detachable EXPR_AS; m: detachable ACCESS_FEAT_AS; d_as: detachable SYMBOL_AS): detachable NESTED_EXPR_AS
 			-- New NESTED_EXPR CALL AST node
 		do
 		end
@@ -953,7 +942,7 @@ feature -- Access
 		do
 		end
 
-	new_operand_as (c: detachable TYPE_AS; t: detachable ACCESS_AS; e: detachable EXPR_AS): detachable OPERAND_AS
+	new_operand_as (c: detachable TYPE_AS; e: detachable EXPR_AS): detachable OPERAND_AS
 			-- New OPERAND AST node
 		do
 		end
@@ -975,11 +964,6 @@ feature -- Access
 		do
 		end
 
-	new_prefix_as (op: detachable STRING_AS; l: detachable KEYWORD_AS): detachable INFIX_PREFIX_AS
-			-- New PREFIX AST node
-		do
-		end
-
 	new_qualified_anchored_type (t: detachable TYPE_AS; d: detachable SYMBOL_AS; f: detachable ID_AS): detachable QUALIFIED_ANCHORED_TYPE_AS
 			-- <Precursor>
 		do
@@ -990,7 +974,12 @@ feature -- Access
 		do
 		end
 
-	new_real_as (t: detachable TYPE_AS; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable REAL_AS
+	new_predecessor_as (n: detachable ID_AS; s: detachable SYMBOL_AS): detachable PREDECESSOR_AS
+			-- <Precursor>
+		do
+		end
+
+	new_real_as (t: detachable TYPE_AS; v: detachable READABLE_STRING_8; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable REAL_AS
 			-- New REAL AST node
 		do
 		end
@@ -1125,8 +1114,8 @@ feature -- Access
 		do
 		end
 
-	new_class_list_as (n: INTEGER): detachable CLASS_LIST_AS
-			-- New empty list of CLASS_LIST AST node
+	new_class_list_as (a: ID_AS; n: INTEGER): detachable CLASS_LIST_AS
+			-- <Precursor>
 		do
 		end
 
@@ -1175,18 +1164,18 @@ feature -- Access
 		do
 		end
 
-	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
+	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEATURE_NAME]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
 			-- New CREATION_CONSTRAIN_TRIPLE object
 		do
 		end
 
 note
 	ca_ignore:
-		"CA011", "CA011 — too many arguments",
-		"CA033", "CA033 — very long class"
+		"CA011", "CA011: too many arguments",
+		"CA033", "CA033: very long class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

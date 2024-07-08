@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Object that represents a class generic item in Eiffel query language"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -13,10 +12,6 @@ inherit
 	QL_CODE_STRUCTURE_ITEM
 		undefine
 			is_equal
-		redefine
-			wrapped_domain,
-			name,
-			ast
 		end
 
 	QL_SHARED_SCOPES
@@ -103,8 +98,8 @@ feature -- Access
 		local
 			l_list: EIFFEL_LIST [FORMAL_DEC_AS]
 			l_ast: like ast
-			l_item_name: STRING
-			l_name: STRING
+			l_item_name: like {ID_AS}.name_32
+			l_name: like name
 		do
 			if internal_ast = Void then
 				l_list := class_c.generics
@@ -131,22 +126,22 @@ feature -- Access
 
 	class_i: CLASS_I
 			-- CLASS_I object associated with current item
-		local
-			l_class: QL_CLASS
 		do
-			l_class ?= parent
-			check l_class /= Void end
-			Result := l_class.class_i
+			if attached {QL_CLASS} parent as l_class then
+				Result := l_class.class_i
+			else
+				check is_class: False end
+			end
 		end
 
 	class_c: CLASS_C
 			-- CLASS_C object associated with current_item
-		local
-			l_class: QL_CLASS
 		do
-			l_class ?= parent
-			check l_class /= Void end
-			Result := l_class.class_c
+			if attached {QL_CLASS} parent as l_class then
+				Result := l_class.class_c
+			else
+				check is_class: False end
+			end
 		end
 
 	written_class: like class_c
@@ -217,12 +212,12 @@ feature -- Status report
 
 	is_visible: BOOLEAN
 			-- Is current visible from source domain level?
-		local
-			l_class: QL_CLASS
 		do
-			l_class ?= parent
-			check l_class /= Void end
-			Result := l_class.is_visible
+			if attached {QL_CLASS} parent as l_class then
+				Result := l_class.is_visible
+			else
+				check is_class: False end
+			end
 		end
 
 feature -- Visit
@@ -254,7 +249,7 @@ invariant
 	parent_valid: parent.is_class and then parent.is_valid_domain_item and then parent.is_compiled
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

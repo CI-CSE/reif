@@ -1,7 +1,4 @@
-note
-	description: "[
-		TODO
-	]"
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -15,6 +12,8 @@ inherit
 	IV_SHARED_FACTORY
 
 	E2B_SHARED_CONTEXT
+
+	INTERNAL_COMPILER_STRING_EXPORTER
 
 create
 	make,
@@ -57,7 +56,7 @@ feature -- Access
 	argument (a_feature: FEATURE_I; a_type: CL_TYPE_A; a_position: INTEGER): IV_EXPRESSION
 			-- Argument of feature `a_feature' at position `a_position'.
 		local
-			l_name: STRING
+			l_name: READABLE_STRING_8
 			l_type: IV_TYPE
 		do
 			if argument_mapping.has_key (a_position) then

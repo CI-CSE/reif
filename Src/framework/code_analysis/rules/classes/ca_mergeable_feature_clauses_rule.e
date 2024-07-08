@@ -1,10 +1,10 @@
 ﻿note
 	description: "[
-			RULE #88: Mergeable feature clauses
-			
-			Feature clauses with the same export status and comment could possibly
-			be merged into one, or their comments could be made more specific.
-		]"
+		RULE #88: Mergeable feature clauses
+		
+		Feature clauses with the same export status and comment could possibly
+		be merged into one, or their comments could be made more specific.
+	]"
 	author: "Paolo Antonucci"
 	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
@@ -14,7 +14,6 @@ class
 	CA_MERGEABLE_FEATURE_CLAUSES_RULE
 
 inherit
-
 	CA_STANDARD_RULE
 
 create
@@ -44,7 +43,7 @@ feature {NONE} -- Rule checking
 	class_pre (a_class_as: CLASS_AS)
 			-- To be run at the beginning of the analysis of a class.
 		do
-			create seen_feature_table.make (32)
+			create seen_feature_table.make_caseless (32)
 		end
 
 	class_post (a_class_as: CLASS_AS)
@@ -81,15 +80,14 @@ feature {NONE} -- Rule checking
 			if not l_comment_text.is_empty and attached seen_feature_table as l_seen_feature_table then
 					-- If the comment is empty, we ignore this feature clause.
 					-- There is another rule in charge of complaining about uncommented feature clauses.
-
-				l_key := l_comment_text.as_lower + stringify_clients (a_feature_clause_as.clients) -- Case insensitive on comments
-				if not l_seen_feature_table.has (l_key) then
-					l_seen_feature_table.put (a_feature_clause_as, l_key)
-				else
+				l_key := stringify_clients (a_feature_clause_as.clients) + "%U" + l_comment_text
+				if l_seen_feature_table.has (l_key) then
 					create l_viol.make_with_rule (Current)
 					l_viol.set_location (a_feature_clause_as.start_location)
 					l_viol.long_description_info.extend (l_comment_text)
 					violations.extend (l_viol)
+				else
+					l_seen_feature_table.put (a_feature_clause_as, l_key)
 				end
 			end
 		end
@@ -108,45 +106,36 @@ feature {NONE} -- Rule checking
 			across
 				a_comments as ic
 			loop
-				l_adjusted_comment := ic.item.content_32
+				l_adjusted_comment := ic.content_32
 				l_adjusted_comment.adjust
 				Result.append_string (l_adjusted_comment)
 			end
 		end
 
-	stringify_clients (a_clients: CLIENT_AS): STRING_GENERAL
+	stringify_clients (a_clients: CLIENT_AS): STRING_32
 			-- Convert `a_clients' to a string representation.
 		local
-			l_inner_clients: CLASS_LIST_AS
-			l_client_list: ARRAYED_LIST [READABLE_STRING_GENERAL]
-			l_string_sorter: QUICK_SORTER [READABLE_STRING_GENERAL]
-			l_current_client: STRING
-			i: INTEGER
+			l_client_list: ARRAYED_LIST [READABLE_STRING_32]
 		do
-			if a_clients = Void or else a_clients.clients = Void then
-				create {STRING_32} Result.make_empty
+			if
+				not attached a_clients or else
+				not attached a_clients.clients as l_inner_clients
+			then
+				create Result.make_empty
 			else
-				l_inner_clients := a_clients.clients
-				create l_client_list.make_filled (l_inner_clients.count)
-				from
-					i := 1
-				until
-					i > l_inner_clients.count
+				create l_client_list.make (l_inner_clients.count)
+				across
+					l_inner_clients as cs
 				loop
-					l_current_client := l_inner_clients [i].name_32
-					check
-						attached l_current_client
-					end
-					l_client_list [i] := l_current_client
-					i := i + 1
+					l_client_list.extend (cs.name_32)
 				end
-				create l_string_sorter.make (create {STRING_COMPARATOR}.make)
-				l_string_sorter.sort (l_client_list)
-				create {STRING_32} Result.make (256) -- Should be more space than enough
+				;(create {QUICK_SORTER [READABLE_STRING_GENERAL]}.make
+					(create {STRING_COMPARATOR}.make)).sort (l_client_list)
+				create Result.make (256) -- Should be more space than enough
 				across
 					l_client_list as ic
 				loop
-					Result.append (ic.item + " ")
+					Result.append (ic + {STRING_32} " ")
 				end
 			end
 		end

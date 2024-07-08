@@ -43,11 +43,10 @@ feature -- Access
 	found: BOOLEAN
 			-- Has last search been successful?
 
-	id_of (s: STRING): INTEGER
+	id_of (s: READABLE_STRING_8): INTEGER
 			-- Id of `s' if inserted, otherwise 0.
 		require
 			s_not_void: s /= Void
-			s_valid_type: s.same_type (string_type)
 		local
 			l_lookup_table: like lookup_table
 		do
@@ -126,14 +125,14 @@ feature -- Status report
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Element change
 
-	put (s: STRING)
-			-- Insert `s' in Current if not present,
-			-- otherwise does nothing.
-			-- In both cases, `found_item' is updated
-			-- to location in Current.
+	put (s: READABLE_STRING_8)
+			-- Insert `s' in Current if not present, otherwise does nothing.
+			-- In both cases, `found_item' is updated to location in Current.
+			-- The string should be encoded in UTF-8.
 		require
 			s_not_void: s /= Void
 			s_valid_type: s.same_type (string_type)
+			s_in_utf_8: {UTF_CONVERTER}.is_valid_utf_8_string_8 (s)
 		local
 			l_lookup_table: like lookup_table
 			l_count: INTEGER
@@ -159,7 +158,15 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Element change
 				l_lookup_table.put (l_count, l_new_entry)
 			end
 		ensure
-			elemented_inserted: equal (item (found_item), s)
+			element_inserted: attached item (found_item) as x and then x.same_string (s)
+		end
+
+	put_32 (s: READABLE_STRING_32)
+			-- Same as `put`, but allows inserting Unicode strings.
+		do
+			put ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (s))
+		ensure
+			element_inserted: attached item_32 (found_item) as x and then x.same_string (s)
 		end
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Convenience
@@ -194,7 +201,7 @@ feature {NONE} -- Implementation: access
 	area: SPECIAL [STRING]
 			-- Store string names indexed by their ID.
 
-	lookup_table: HASH_TABLE [INTEGER, STRING]
+	lookup_table: HASH_TABLE [INTEGER, READABLE_STRING_8]
 			-- Hash-table indexed by string names
 			-- Values are indexes of Current to access corresponding
 			-- key in an efficient manner.
@@ -426,6 +433,49 @@ feature {NONE} -- Implementation: access
 			put ("is_attached") check found_item = is_attached_name_id end
 			put ("is_deferred") check found_item = is_deferred_name_id end
 			put ("is_expanded") check found_item = is_expanded_name_id end
+			put ("minus") check found_item = minus_name_id end
+			put ("ieee_is_equal") check found_item = ieee_is_equal_name_id end
+			put ("ieee_is_greater") check found_item = ieee_is_greater_name_id end
+			put ("ieee_is_greater_equal") check found_item = ieee_is_greater_equal_name_id end
+			put ("ieee_is_less") check found_item = ieee_is_less_name_id end
+			put ("ieee_is_less_equal") check found_item = ieee_is_less_equal_name_id end
+			put ("ieee_maximum_number") check found_item = ieee_maximum_number_name_id end
+			put ("ieee_minimum_number") check found_item = ieee_minimum_number_name_id end
+			put ("make_from_c_byte_array") check found_item = make_from_c_byte_array_name_id end
+			put ("identity") check found_item = identity_name_id end
+			put ("opposite") check found_item = opposite_name_id end
+			put ("product") check found_item = product_name_id end
+			put ("quotient") check found_item = quotient_name_id end
+			put ("integer_quotient") check found_item = integer_quotient_name_id end
+			put ("integer_remainder") check found_item = integer_remainder_name_id end
+			put ("power") check found_item = power_name_id end
+			put ("is_less") check found_item = is_less_name_id end
+			put ("is_less_equal") check found_item = is_less_equal_name_id end
+			put ("is_greater") check found_item = is_greater_name_id end
+			put ("is_greater_equal") check found_item = is_greater_equal_name_id end
+			put ("negated") check found_item = negated_name_id end
+			put ("conjuncted") check found_item = conjuncted_name_id end
+			put ("disjuncted") check found_item = disjuncted_name_id end
+			put ("disjuncted_exclusive") check found_item = disjuncted_exclusive_name_id end
+			put ("inspect") check found_item = inspect_attribute_name_id end
+			put ("-") check found_item = minus_operator_name_id end
+			put ("not") check found_item = not_operator_name_id end
+			put ("+") check found_item = plus_operator_name_id end
+			put ("/") check found_item = slash_operator_name_id end
+			put ("//") check found_item = slash_slash_operator_name_id end
+			put ("\\") check found_item = back_back_operator_name_id end
+			put ("^") check found_item = circumflex_accent_operator_name_id end
+			put ("*") check found_item = asterisk_operator_name_id end
+			put ("and") check found_item = and_operator_name_id end
+			put ("and then") check found_item = and_then_operator_name_id end
+			put ("implies") check found_item = implies_operator_name_id end
+			put ("or") check found_item = or_operator_name_id end
+			put ("or else") check found_item = or_else_operator_name_id end
+			put ("xor") check found_item = xor_operator_name_id end
+			put (">") check found_item = greater_operator_name_id end
+			put (">=") check found_item = greater_equal_operator_name_id end
+			put ("<") check found_item = less_operator_name_id end
+			put ("<=") check found_item = less_equal_operator_name_id end
 		end
 
 invariant
@@ -434,7 +484,7 @@ invariant
 	found_item_positive: found_item >= 0
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

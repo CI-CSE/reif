@@ -51,6 +51,16 @@ inherit
 			{NONE} all
 		end
 
+	SHARED_LOCALE
+		export
+			{NONE} all
+		end
+
+	FORMATTED_MESSAGE
+		export
+			{NONE} all
+		end
+
 create
 	make
 
@@ -118,7 +128,6 @@ feature -- Processing
 			lower_bound: INTERVAL_VAL_B
 			upper_bound: INTERVAL_VAL_B
 			vomb3: VOMB3
-			i: like intervals
 			interval_byte_node: like last_interval_byte_node
 		do
 			is_inherited := a_code_inherited
@@ -134,24 +143,20 @@ feature -- Processing
 			end
 			if lower_bound /= Void and then upper_bound /= Void and then lower_bound <= upper_bound then
 				interval_byte_node := lower_bound.inspect_interval (upper_bound)
-				from
-					i := intervals
-					i.start
-				until
-					i.after
+				across
+					intervals as i
 				loop
 					if not interval_byte_node.disjunction (i.item) then
-							-- Intersecting intervals
-							-- Report error
+							-- Intersecting intervals.
+							-- Report error.
 						create vomb3
 						context.init_error (vomb3)
 						vomb3.set_interval (interval_byte_node.intersection (i.item))
 						vomb3.set_location (interval.end_location)
 						Error_handler.insert_error (vomb3)
 					end
-					i.forth
 				end
-				i.extend (interval_byte_node)
+				intervals.extend (interval_byte_node)
 			end
 			last_interval_byte_node := interval_byte_node
 		end
@@ -160,10 +165,10 @@ feature {STATIC_ACCESS_AS} -- Visitor
 
 	process_static_access_as (l_as: STATIC_ACCESS_AS)
 		local
-			feature_i: FEATURE_I
 			class_c: CLASS_C
 			vuex: VUEX
 			l_old_is_inherited: BOOLEAN
+			is_once: BOOLEAN
 		do
 				-- Use `AST_FEATURE_CHECKER_GENERATOR' to properly type check the type of the static access
 			l_old_is_inherited := feature_checker.is_inherited
@@ -173,7 +178,13 @@ feature {STATIC_ACCESS_AS} -- Visitor
 			if attached feature_checker.last_type as l_last_type then
 				if attached {FORMAL_A} l_last_type.actual_type as l_formal then
 					if l_formal.is_multi_constrained (context.current_class) then
-						error_handler.insert_error (create {NOT_SUPPORTED}.make ("Multiple constraints not supported in static access for when clause"))
+						error_handler.insert_error (create {NOT_SUPPORTED}.make
+							(agent format_elements
+								(?,
+								locale.translation_in_context ("Multiple constraints are not supported in static access for {1} clause.", "compiler.error"),
+								<<agent {TEXT_FORMATTER}.process_keyword_text ({TEXT_FORMATTER}.ti_when_keyword, Void)>>),
+							context,
+							l_as.start_location))
 					else
 						class_c := context.current_class.constrained_type (l_formal.position).base_class
 					end
@@ -182,39 +193,38 @@ feature {STATIC_ACCESS_AS} -- Visitor
 				end
 
 				if class_c /= Void then
-					feature_i := class_c.feature_table.item_id (l_as.feature_name.name_id)
-
-					if feature_i = Void then
+					if not attached class_c.feature_table.item_id (l_as.feature_name.name_id) as feature_i then
 						report_veen (l_as.feature_name)
-					elseif
-						not context.is_ignoring_export and then
-						not feature_i.is_exported_for (context.current_class)
-					then
-						create vuex
-						context.init_error (vuex)
-						vuex.set_static_class (class_c)
-						vuex.set_exported_feature (feature_i)
-						vuex.set_location (l_as.feature_name)
-						error_handler.insert_error (vuex)
-					elseif attached {CONSTANT_I} feature_i as constant_i and then
-						(type.same_as (constant_i.type) or
-							(not constant_i.type.is_enum and then not type.is_enum and then constant_i.value.valid_type (type)))
-					then
-							-- Record dependencies.
-						context.supplier_ids.extend_depend_unit_with_level (class_c.class_id, constant_i, 0)
-							-- Check if this is a unique constant.
-						last_unique_constant ?= constant_i
-							-- Calculate byte node.
-						last_inspect_value := constant_i.value.inspect_value (type)
-						if not is_inherited then
-							feature_checker.set_is_inherited (False)
-							feature_checker.check_obsolescence (feature_i, class_c, l_as.feature_name)
-							feature_checker.set_is_inherited (l_old_is_inherited)
-							feature_checker.set_routine_ids (constant_i.rout_id_set, l_as)
-							l_as.set_class_id (class_c.class_id)
-						end
 					else
-						report_vomb2 (l_as)
+						is_once := feature_i.is_once_creation (class_c)
+						if
+							not context.is_ignoring_export and then
+							not (feature_i.is_exported_for (context.current_class) or else
+							is_once and then class_c.creators [l_as.feature_name.name_id].is_exported_to (context.current_class))
+						then
+							create vuex
+							context.init_error (vuex)
+							vuex.set_static_class (class_c)
+							vuex.set_exported_feature (feature_i)
+							vuex.set_location (l_as.feature_name)
+							error_handler.insert_error (vuex)
+						elseif feature_i.is_valid_case (class_c, type) then
+								-- Record dependencies.
+							context.supplier_ids.extend_depend_unit_with_level (class_c.class_id, feature_i, 0)
+								-- Check if this is a unique constant.
+							last_unique_constant := {UNIQUE_I} / feature_i
+								-- Calculate byte node.
+							last_inspect_value := feature_i.case_value (class_c, type)
+							if not is_inherited then
+								feature_checker.set_is_inherited (False)
+								feature_checker.check_obsolescence (feature_i, class_c, l_as.feature_name)
+								feature_checker.set_is_inherited (l_old_is_inherited)
+								feature_checker.set_routine_ids (feature_i.rout_id_set, l_as)
+								l_as.set_class_id (class_c.class_id)
+							end
+						else
+							report_vomb2 (l_as)
+						end
 					end
 				end
 			end
@@ -239,7 +249,7 @@ feature {ID_AS} -- Visitor
 					-- Record dependencies.
 				context.supplier_ids.extend_depend_unit_with_level (context.current_class.class_id, constant_i, 0)
 					-- Check if this is a unique constant.
-				last_unique_constant ?= constant_i
+				last_unique_constant := if attached {UNIQUE_I} constant_i as c then c else Void end
 					-- Calculate byte node.
 				last_inspect_value := constant_i.value.inspect_value (type)
 			elseif
@@ -368,7 +378,7 @@ invariant
 	intervals_not_void: intervals /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

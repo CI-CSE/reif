@@ -9,8 +9,9 @@ class
 	ES_OBJECTS_GRID
 
 inherit
-	ES_GRID
+	ES_IDE_GRID
 		redefine
+			internal_recycle,
 			initialize, grid_menu, row_type, on_row_expand, on_row_collapse
 		end
 
@@ -25,6 +26,7 @@ inherit
 		undefine
 			default_create, copy
 		redefine
+			internal_recycle,
 			evs_on_pebble_function
 		end
 
@@ -49,37 +51,25 @@ feature {NONE} -- Initialization
 			enable_default_tree_navigation_behavior (True, False, True, True)
 
 			load_preferences
+
+			preferences.development_window_data.grid_preferences.change_actions.extend (agent load_preferences)
+
+			preferences.debugger_data.generating_type_evaluation_enabled_preference.typed_change_actions.extend (agent (b: BOOLEAN)
+					do
+						generating_type_evaluation_enabled := b
+					end
+				)
 		end
 
 	load_preferences
-		local
-			bp: BOOLEAN_PREFERENCE
-			colp: COLOR_PREFERENCE
 		do
-			bp := preferences.debugger_data.generating_type_evaluation_enabled_preference
-			generating_type_evaluation_enabled := bp.value
-			bp.typed_change_actions.extend (agent (b: BOOLEAN)
-					do
-						generating_type_evaluation_enabled := b
-					end)
-
-			colp := preferences.debug_tool_data.grid_background_color_preference
-			set_background_color (colp.value)
-			colp.typed_change_actions.extend (agent (c: EV_COLOR)
-					do
-						set_background_color (c)
-					end)
-			colp := preferences.debug_tool_data.grid_foreground_color_preference
-			set_foreground_color (colp.value)
-			colp.typed_change_actions.extend (agent (c: EV_COLOR)
-					do
-						set_foreground_color (c)
-					end)
+			title_font.set_height (grid_font.height)
+			generating_type_evaluation_enabled := preferences.debugger_data.generating_type_evaluation_enabled_preference.value
 		end
 
 	initialize
 		do
-			Precursor {ES_GRID}
+			Precursor {ES_IDE_GRID}
 			make_with_grid (Current)
 
 			col_pixmap_index := 1
@@ -109,13 +99,21 @@ feature {NONE} -- Initialization
 			create_kept_object_references
 		end
 
+feature {NONE} -- Implementation		
+
+	internal_recycle
+		do
+			Precursor {EB_EDITOR_TOKEN_GRID_SUPPORT}
+			Precursor {ES_IDE_GRID}
+		end
+
 feature {NONE} -- GRID Customization
 
 	row_type: ES_OBJECTS_GRID_ROW do end
 		-- Type used for row objects.
-		-- May be redefined by EV_GRID descendents.		
+		-- May be redefined by EV_GRID descendents.	
 
-feature -- Properties
+feature -- Properties	
 
 	generating_type_evaluation_enabled: BOOLEAN
 			-- Is generating type representation evaluating {ANY}.generating_type ?
@@ -438,7 +436,7 @@ feature -- Change
 
 feature {ES_OBJECTS_TOOL_PANEL, ES_OBJECTS_GRID_MANAGER, ES_OBJECTS_GRID_LINE, ES_OBJECTS_GRID_SLICES_CMD} -- EiffelStudio specific
 
-	attach_debug_value_from_line_to_grid_row (a_row: EV_GRID_ROW; dv: ABSTRACT_DEBUG_VALUE; a_line: ES_OBJECTS_GRID_OBJECT_LINE; a_title: STRING_GENERAL)
+	attach_debug_value_from_line_to_grid_row (a_row: EV_GRID_ROW; dv: ABSTRACT_DEBUG_VALUE; a_line: ES_OBJECTS_GRID_LINE; a_title: STRING_GENERAL)
 		require
 			dv /= Void
 		local
@@ -795,7 +793,7 @@ feature {ES_OBJECTS_GRID_MANAGER} -- Layout managment
 	grid_objects_on_difference_cb (a_row: EV_GRID_ROW; a_val: ANY)
 		do
 			debug ("es_grid_layout")
-				print ("DIFF:: " + grid_objects_id_name_from_row (a_row)
+				print ("DIFF:: " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (grid_objects_id_name_from_row (a_row))
 					+ " => old=[" + a_val.out + "] new=["
 					+ grid_objects_id_value_from_row (a_row, False).out + "]%N")
 			end
@@ -812,13 +810,10 @@ feature {ES_OBJECTS_GRID_MANAGER} -- Layout managment
 		end
 
 	grid_objects_id_name_from_row (a_row: EV_GRID_ROW): STRING_32
-		local
-			lab: EV_GRID_LABEL_ITEM
 		do
 			if a_row.parent /= Void then
 				if Col_name_index <= a_row.count then
-					lab ?= a_row.item (Col_name_index)
-					if lab /= Void then
+					if attached {EV_GRID_LABEL_ITEM} a_row.item (Col_name_index) as lab then
 						Result := lab.text
 					end
 				end
@@ -847,7 +842,7 @@ feature {ES_OBJECTS_GRID_MANAGER} -- Layout managment
 					if Col_value_index <= a_row.count then
 						s := ""
 						if attached {EV_GRID_LABEL_ITEM} a_row.item (Col_value_index) as lab then
-							s.append (lab.text)
+							s.append ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (lab.text))
 						end
 --						if Col_address_index <= a_row.count then
 --							if attached {EV_GRID_LABEL_ITEM} a_row.item (Col_address_index) as lab then
@@ -975,58 +970,74 @@ feature -- Graphical look
 
 	Title_font: EV_FONT
 		once
-			create Result
+			if attached grid_font as ft then
+				Result := ft.twin
+			else
+				create Result
+			end
 			Result.set_shape ({EV_FONT_CONSTANTS}.shape_italic)
 		end
 
-	folder_label_item (s: STRING_GENERAL): EV_GRID_LABEL_ITEM
+	folder_label_item (s: READABLE_STRING_GENERAL): EV_GRID_LABEL_ITEM
 		do
 			create Result
+			Result.set_font (grid_font)
 			grid_cell_set_text (Result, s)
 			Result.set_foreground_color (folder_row_fg_color)
 		end
 
-	name_label_item (s: STRING_GENERAL): EV_GRID_LABEL_ITEM
+	name_label_item (s: READABLE_STRING_GENERAL): EV_GRID_LABEL_ITEM
 		do
 			create Result
+			Result.set_font (grid_font)
 			grid_cell_set_text (Result, s)
+		end
+
+	message_label_item (s: READABLE_STRING_GENERAL): EV_GRID_LABEL_ITEM
+		do
+			create Result
+			Result.set_font (grid_font)
+			grid_cell_set_text (Result, s)
+			Result.set_foreground_color (folder_row_fg_color)
 		end
 
 	folder_row_fg_color: EV_COLOR
 		once
-			create Result.make_with_8_bit_rgb (60,60,190)
+			Result := preferences.debug_tool_data.custom_color_preference ("folder_row_fg_color", create {EV_COLOR}.make_with_8_bit_rgb (60, 60, 190)).value
+		end
+
+	message_row_fg_color: EV_COLOR
+		once
+			Result := preferences.debug_tool_data.custom_color_preference ("message_row_fg_color", create {EV_COLOR}.make_with_8_bit_rgb (255, 106, 0)).value
 		end
 
 	object_folder_row_fg_color: EV_COLOR
 		once
-			create Result.make_with_8_bit_rgb (60,60,190)
+			Result := preferences.debug_tool_data.custom_color_preference ("object_folder_row_fg_color", create {EV_COLOR}.make_with_8_bit_rgb (60, 60, 190)).value
 		end
 
 	slice_row_fg_color: EV_COLOR
 		once
-			create Result.make_with_8_bit_rgb (210, 160, 160)
+			Result := preferences.debug_tool_data.custom_color_preference ("slice_row_fg_color", create {EV_COLOR}.make_with_8_bit_rgb (210, 160, 160)).value
 		end
 
 	disabled_row_fg_color: EV_COLOR
 		once
-			create Result.make_with_8_bit_rgb (190, 190, 190)
+			Result := preferences.debug_tool_data.custom_color_preference ("disabled_row_fg_color", create {EV_COLOR}.make_with_8_bit_rgb (190, 190, 190)).value
 		end
 
 	error_row_fg_color: EV_COLOR
 		once
-			create Result.make_with_8_bit_rgb (190, 130, 130)
+			Result := preferences.debug_tool_data.custom_color_preference ("error_row_fg_color", create {EV_COLOR}.make_with_8_bit_rgb (190, 130, 130)).value
 		end
 
 	Highlight_different_value_bg_color: EV_COLOR
-		local
-			l_colors: ES_COLORS
 		once
-			create l_colors
-			Result := l_colors.grid_different_value_background_color
+			Result := preferences.debug_tool_data.row_highlight_different_value_background_color
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

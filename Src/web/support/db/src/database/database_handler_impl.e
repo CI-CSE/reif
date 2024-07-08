@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Database handler Implementation"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -50,11 +50,13 @@ feature -- Functionality
 					disconnect
 				end
 				set_successful
-				log.write_debug ( generator+".execute_reader Successful")
+				debug
+					log.write_debug ( generator+".execute_reader Successful")
+				end
 			end
 		rescue
 			set_last_error_from_exception ("Store procedure execution")
-			log.write_critical (generator+ ".execute_reader " + last_error_message)
+			log.write_critical (generator+ ".execute_reader " + last_error_message.to_string_8)
 			if is_connected then
 				disconnect
 			end
@@ -85,11 +87,13 @@ feature -- Functionality
 					disconnect
 				end
 				set_successful
-				log.write_debug ( generator+".execute_writer Successful")
+				debug
+					log.write_debug ( generator+".execute_writer Successful")
+				end
 			end
 		rescue
 			set_last_error_from_exception ("Store procedure execution")
-			log.write_critical (generator+ ".execute_writer " + last_error_message)
+			log.write_critical (generator+ ".execute_writer " + last_error_message.to_string_8)
 			if is_connected then
 				disconnect
 			end
@@ -122,7 +126,7 @@ feature -- SQL Queries
 			end
 		rescue
 			set_last_error_from_exception ("execute_query")
-			log.write_critical (generator+ ".execute_query " + last_error_message)
+			log.write_critical (generator+ ".execute_query " + last_error_message.to_string_8)
 			if is_connected then
 				disconnect
 			end
@@ -155,7 +159,7 @@ feature -- SQL Queries
 			end
 		rescue
 			set_last_error_from_exception ("Store procedure execution")
-			log.write_critical (generator+ ".execute_writer " + last_error_message)
+			log.write_critical (generator+ ".execute_writer " + last_error_message.to_string_8)
 			if is_connected then
 				disconnect
 			end
@@ -236,28 +240,24 @@ feature {NONE} -- Implementation
 
 	connect
 			-- Connect to the database.
-		require else
-			db_control_not_void: db_control /= Void
 		do
-			if not is_connected then
-				db_control.connect
+			if attached db_control as d and then not is_connected then
+				d.connect
 			end
 		end
 
 	disconnect
 			-- Disconnect from the database.
-		require else
-			db_control_not_void: db_control /= Void
 		do
-			db_control.disconnect
+			if attached db_control as d then
+				d.disconnect
+			end
 		end
 
 	is_connected: BOOLEAN
 			-- True if connected to the database.
-		require else
-			db_control_not_void: db_control /= Void
 		do
-			Result := db_control.is_connected
+			Result := attached db_control as d and then d.is_connected
 		end
 
 	affected_row_count: INTEGER

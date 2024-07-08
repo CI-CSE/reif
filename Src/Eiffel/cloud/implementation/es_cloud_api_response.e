@@ -14,12 +14,16 @@ create {ES_CLOUD_API_RESPONSE}
 
 feature {NONE} -- Creation
 
-	make (a_resp: HTTP_CLIENT_RESPONSE)
+	make (a_resp: detachable HTTP_CLIENT_RESPONSE)
 		local
 			jp: JSON_PARSER
 		do
-			if a_resp.error_occurred then
+			if a_resp = Void then
+				create error.make ("Not available")
+				has_internal_error := True
+			elseif a_resp.error_occurred then
 				create error.make (a_resp.error_message)
+				has_internal_error := True
 			elseif attached a_resp.body as s then
 				create jp.make_with_string (s)
 				jp.parse_content
@@ -47,6 +51,9 @@ feature {NONE} -- Internal
 	json: detachable JSON_VALUE
 
 feature -- Access
+
+	has_internal_error: BOOLEAN
+			-- Is `error` an internal (network) error?
 
 	has_error: BOOLEAN
 		do
@@ -147,6 +154,19 @@ feature -- Access
 			end
 		end
 
+feature -- Access
+
+	to_json_representation: STRING
+		local
+			pp: JSON_PRETTY_STRING_VISITOR
+		do
+			if attached json as j then
+				create Result.make (1024)
+				create pp.make (Result)
+				j.accept (pp)
+			end
+		end
+
 feature {NONE} -- Initialize
 
 	json_field (j: detachable JSON_VALUE; a_fn: READABLE_STRING_GENERAL): detachable JSON_VALUE
@@ -182,7 +202,7 @@ feature {NONE} -- Initialize
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

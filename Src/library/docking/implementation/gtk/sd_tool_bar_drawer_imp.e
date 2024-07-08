@@ -48,6 +48,7 @@ feature -- Redefine
 			is_start_draw_called := True
 
 			if attached tool_bar as l_tool_bar then
+				l_tool_bar.start_drawing_session
 				from
 					l_items := l_tool_bar.items
 					l_rect := a_rectangle.twin
@@ -73,6 +74,9 @@ feature -- Redefine
 	end_draw
 			-- <Precursor>
 		do
+			if attached tool_bar as l_tool_bar then
+				l_tool_bar.end_drawing_session
+			end
 			is_start_draw_called := False
 		end
 
@@ -95,8 +99,9 @@ feature -- Redefine
 					attached a_arguments.item as l_item -- Implied by precondition
 				then
 					l_rect := l_item.rectangle
+					l_tool_bar_imp.start_drawing_session
 					l_docking_drawable := l_tool_bar_imp.get_drawable
-					if l_docking_drawable /= default_pointer then
+					if not l_docking_drawable.is_default_pointer then
 						if attached {SD_TOOL_BAR_BUTTON} l_item as l_button then
 
 							-- Paint button background
@@ -121,8 +126,8 @@ feature -- Redefine
 								c_gtk_paint_line (l_docking_drawable, button_style, l_rect.top, l_rect.bottom, l_rect.left + l_item.width // 2, True)
 							end
 						end
-						l_tool_bar_imp.release_drawable (l_docking_drawable)
 					end
+					l_tool_bar_imp.end_drawing_session
 				else
 					check valid: False end
 				end
@@ -480,7 +485,7 @@ feature {NONE} -- Externals
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -1,21 +1,11 @@
 note
+	description: "Compiled representation of a parent."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Compiled representation of a parent
 
 class PARENT_C
 
 inherit
-
-	EIFFEL_SYNTAX_CHECKER
-		export
-			{NONE} all
-		end
-
-	PREFIX_INFIX_NAMES
-		export
-			{NONE} all
-		end
 
 	SHARED_WORKBENCH
 	SHARED_SELECTED
@@ -24,25 +14,48 @@ inherit
 	COMPILER_EXPORTER
 	INTERNAL_COMPILER_STRING_EXPORTER
 
-feature
+inherit {NONE}
+
+	PREFIX_INFIX_NAMES
+		export
+			{NONE} all
+		end
+
+create
+	make
+
+feature {NONE} -- Creation
+
+	make (l: like class_name_token)
+			-- Initialize a parent with location `l`.
+		do
+			class_name_token := l
+		end
+
+feature -- Access
+
+	class_name_token: ID_AS
+			-- Location of the parent class name.
 
 	parent_type: CL_TYPE_A
-			-- Actual type of the parent
+			-- Actual type of the parent.
 
 	renaming: HASH_TABLE [RENAMING, INTEGER]
-			-- Rename pairs with alias names (if any)
+			-- Rename pairs with alias names (if any).
 
 	redefining: SEARCH_TABLE [INTEGER]
-			-- Redefinitions
+			-- Redefinitions.
 
 	undefining: SEARCH_TABLE [INTEGER]
-			-- Definitions
+			-- Definitions.
 
 	selecting: SEARCH_TABLE [INTEGER]
-			-- Selections
+			-- Selections.
 
 	exports: EXPORT_ADAPTATION
 			-- Export adaptation
+
+feature
 
 	is_non_conforming: BOOLEAN
 			-- Is `Current' from a non-conforming inheritance branch?
@@ -50,14 +63,19 @@ feature
 --			Result := False
 		end
 
-	new_export_for (feature_name_id: INTEGER): EXPORT_I
-			-- New export status for feature named `feature_name_id'.
-			-- Void if none.
+	new_export_for (feature_name_id: INTEGER; original_export: EXPORT_I): EXPORT_I
+			-- Export status for feature named `feature_name_id` combined with its original export status `original_export`.
 		require
 			good_argument: feature_name_id > 0
 		do
-			if exports /= Void then
-				Result := exports.new_export_for (feature_name_id)
+			if attached exports as e and then attached e.new_export_for (feature_name_id) as n then
+				Result := n
+				if not is_non_conforming then
+						-- The new export status extends the inherited one.
+					Result := Result.concatenation (original_export)
+				end
+			else
+				Result := original_export
 			end
 		end
 
@@ -149,27 +167,22 @@ feature
 
 	is_selecting (feature_name_id: INTEGER): BOOLEAN
 			-- Is the current parent selecting `feature_name_id'?
-		require
-			conforming: not is_non_conforming
 		do
-			Result := selecting /= Void and then selecting.has (feature_name_id)
+			Result := attached selecting as s and then s.has (feature_name_id)
 		end
 
 	check_validity1
-			-- Check validity of renamings
+			-- Check validity of renamings.
 		local
 			parent_table: FEATURE_TABLE
 			vhrc1: VHRC1
-			vhrc4: VHRC4
-			vhrc5: VHRC5
 			vfav: VFAV_VHRC
 			old_name_id: INTEGER
 			old_name: STRING
 			feature_renaming: RENAMING
-			new_name_id: INTEGER
 			new_name: STRING
-			alias_name_id: INTEGER
-			alias_name: STRING
+			alias_name_id: like {NAMES_HEAP}.id_of
+			i, n: like {RENAMING}.alias_name_id.lower
 			f: FEATURE_I
 			local_renaming: like renaming
 		do
@@ -189,9 +202,7 @@ feature
 					old_name_id := local_renaming.key_for_iteration
 					old_name := names_heap.item (old_name_id)
 					feature_renaming := local_renaming.item_for_iteration
-					new_name_id := feature_renaming.feature_name_id
-					new_name := names_heap.item (new_name_id)
-					alias_name_id := feature_renaming.alias_name_id
+					new_name := names_heap.item (feature_renaming.feature_name_id)
 					check_inherited_name (old_name_id, parent_table)
 					if not has_inherited_name then
 						create vhrc1
@@ -199,73 +210,76 @@ feature
 						vhrc1.set_parent (parent)
 						vhrc1.set_feature_name (old_name)
 						Error_handler.insert_error (vhrc1)
-					elseif is_mangled_infix (new_name) then
+					elseif attached feature_renaming.alias_name_id as alias_name_ids then
 						f := inherited_feature
-						if f.argument_count /= 1 or else f.type.is_void then
-							create vhrc5
-							vhrc5.set_class (System.current_class)
-							vhrc5.set_parent (parent)
-							vhrc5.set_feature_name (old_name)
-							Error_handler.insert_error (vhrc5)
-						end;
-					elseif is_mangled_prefix (new_name) then
-						f := inherited_feature
-						if f.argument_count /= 0 or else f.type.is_void then
-							create vhrc4
-							vhrc4.set_class (System.current_class)
-							vhrc4.set_parent (parent)
-							vhrc4.set_feature_name (old_name)
-							Error_handler.insert_error (vhrc4)
-						end
-					elseif alias_name_id > 0 then
-						vfav := Void
-						f := inherited_feature
-						if alias_name_id = {PREDEFINED_NAMES}.bracket_symbol_id then
-							if f.argument_count = 0 or else f.type.is_void then
-									-- Bracket features should have at least one argument and a return type.
-								create {VFAV2_VHRC} vfav
-							elseif feature_renaming.has_convert_mark then
-									-- Bracket alias cannot have convert mark
-								create {VFAV3_VHRC} vfav
-							end
-						elseif alias_name_id = {PREDEFINED_NAMES}.parentheses_symbol_id then
-							if f.argument_count = 0 then
-									-- Parenthesis alias features should have at least one argument.
-								create {VFAV4_VHRC} vfav
-							elseif feature_renaming.has_convert_mark then
-									-- Parenthesis alias cannot have convert mark
-								create {VFAV3_VHRC} vfav
-							end
-						else
-							alias_name := extract_alias_name (names_heap.item (alias_name_id))
-							if
-								not f.type.is_void and then
-								(f.argument_count = 0 and then is_valid_unary_operator (alias_name) or else
-								f.argument_count = 1 and then is_valid_binary_operator (alias_name))
-							then
-								if f.argument_count = 1 then
-										-- Ensure the alias name is in binary form.
-									names_heap.put (infix_feature_name_with_symbol (alias_name))
-									feature_renaming.set_alias_name_id (names_heap.found_item)
-								else
-										-- Ensure the alias name is in unary form.
-									names_heap.put (prefix_feature_name_with_symbol (alias_name))
-									feature_renaming.set_alias_name_id (names_heap.found_item)
-									if feature_renaming.has_convert_mark then
-											-- Unary operator cannot have convert mark
-										create {VFAV3_VHRC} vfav
-									end
+						from
+							i := alias_name_ids.lower
+							n := alias_name_ids.upper
+						until
+							i > n
+						loop
+							alias_name_id := alias_name_ids [i]
+							vfav := Void
+							if alias_name_id = {PREDEFINED_NAMES}.bracket_symbol_id then
+								if f.argument_count = 0 or else f.type.is_void then
+										-- Bracket features should have at least one argument and a return type.
+									create {VFAV2_VHRC} vfav
+								elseif feature_renaming.has_convert_mark then
+										-- Bracket alias cannot have convert mark
+									create {VFAV5_VHRC} vfav
+								end
+							elseif alias_name_id = {PREDEFINED_NAMES}.parentheses_symbol_id then
+								if f.argument_count = 0 then
+										-- Parenthesis alias features should have at least one argument.
+									create {VFAV3_VHRC} vfav
+								elseif feature_renaming.has_convert_mark then
+										-- Parenthesis alias cannot have a convert mark.
+									create {VFAV5_VHRC} vfav
 								end
 							else
-									-- Report wrong argument number or return type for operator alias.
-								create {VFAV1_VHRC} vfav
+								if f.type.is_void then
+										-- Report a wrong return type for the operator alias.
+									create {VFAV1_VHRC} vfav
+								elseif f.argument_count = 0 then
+									if is_valid_unary_alias_id (alias_name_id) then
+											-- Ensure the alias name is in unary form.
+										if feature_renaming.alias_name_id = alias_name_ids then
+												-- Avoid changing the original aliases.
+											feature_renaming.set_alias_name_id (alias_name_ids.twin)
+										end
+										feature_renaming.alias_name_id [i] := unary_alias_id (alias_name_id)
+										if feature_renaming.has_convert_mark then
+												-- Unary operator cannot have a convert mark.
+											create {VFAV5_VHRC} vfav
+										end
+									else
+											-- Report a wrong argument count for the operator alias.
+										create {VFAV1_VHRC} vfav
+									end
+								elseif f.argument_count = 1 then
+									if is_valid_binary_alias_id (alias_name_id) then
+											-- Ensure the alias name is in binary form.
+										if feature_renaming.alias_name_id = alias_name_ids then
+												-- Avoid changing original aliases/
+											feature_renaming.set_alias_name_id (alias_name_ids.twin)
+										end
+										feature_renaming.alias_name_id [i] := binary_alias_id (alias_name_id)
+									else
+											-- Report a wrong argument count for the operator alias.
+										create {VFAV1_VHRC} vfav
+									end
+								else
+										-- Report a wrong argument count for the operator alias.
+									create {VFAV1_VHRC} vfav
+								end
 							end
-						end
-						if vfav /= Void then
-							vfav.set_class (System.current_class)
-							vfav.set_parent (parent)
-							vfav.set_feature_name (old_name)
-							Error_handler.insert_error (vfav)
+							if attached vfav then
+								vfav.set_class (System.current_class)
+								vfav.set_parent (parent)
+								vfav.set_feature_name (old_name)
+								Error_handler.insert_error (vfav)
+							end
+							i := i + 1
 						end
 					end
 						-- Remove it from memory since we do not need it anymore.
@@ -469,13 +483,17 @@ feature -- Debug
 					io.error.put_string (names_heap.item (renaming.key_for_iteration))
 					io.error.put_string (" as ")
 					io.error.put_string (names_heap.item (renaming.item_for_iteration.feature_name_id))
-					if renaming.item_for_iteration.alias_name_id > 0 then
-						io.error.put_string (" alias %"")
-						io.error.put_string (names_heap.item (renaming.item_for_iteration.alias_name_id))
-						io.error.put_string ("%"")
-						if renaming.item_for_iteration.has_convert_mark then
-							io.error.put_string (" convert")
+					if attached renaming.item_for_iteration.alias_name_id as alias_ids then
+						across
+							alias_ids as i
+						loop
+							io.error.put_string (" alias %"")
+							io.error.put_string (names_heap.item (name_id_of_alias_id (i.item)))
+							io.error.put_character ('"')
 						end
+					end
+					if renaming.item_for_iteration.has_convert_mark then
+						io.error.put_string (" convert")
 					end
 					io.error.put_new_line
 					renaming.forth
@@ -497,15 +515,12 @@ feature -- Debug
 
 	trace_list (a_list: SEARCH_TABLE [INTEGER])
 		do
-			from
-				a_list.start
-			until
-				a_list.after
+			across
+				a_list as i
 			loop
 				io.error.put_string ("%T%T")
-				io.error.put_string (names_heap.item (a_list.item_for_iteration))
+				io.error.put_string_32 (names_heap.item_32 (i.item))
 				io.error.put_new_line
-				a_list.forth
 			end
 		end
 
@@ -519,51 +534,19 @@ feature {NONE} -- Implementation
 			-- Void if not found.
 
 	check_inherited_name (a_name_id: INTEGER; a_feat_tbl: FEATURE_TABLE)
-			-- Does `a_name_id' exist in `a_feat_tbl' taken into account
-			-- that if `a_name_id' is a prefix/infix name, and not present
-			-- in the ancestor, we check if there is an alias routine with
-			-- the same operator.
+			-- Does `a_name_id' exist in `a_feat_tbl'?
 			-- Set `has_inherited_name' to True if found, False otherwise.
 			-- Set `inherited_feature' with feature found, Void otherwise.
 		require
 			a_name_id_positive: a_name_id > 0
 			a_feat_tbl_attached: a_feat_tbl /= Void
-		local
-			l_name: STRING
 		do
 			inherited_feature := a_feat_tbl.item_id (a_name_id)
 			has_inherited_name := inherited_feature /= Void
-			if not has_inherited_name then
-				l_name := names_heap.item (a_name_id)
-				if (is_mangled_infix (l_name) or is_mangled_prefix (l_name)) then
-					inherited_feature := a_feat_tbl.item_alias_id (a_name_id)
-					has_inherited_name := inherited_feature /= Void
-					if has_inherited_name then
-							-- Find out if there is already a rename clause for `a_name_id', if one is
-							-- found, we replace its content with the real inherited name (i.e. the alias
-							-- version). If not, we create a new rename entry which uses as old name
-							-- the inherited name and the infix/prefix name as new name.
-						if renaming /= Void then
-							renaming.search (a_name_id)
-						end
-						if renaming /= Void and then renaming.found then
-								-- We replace the exiting renaming `infix "op" as XXX' into
-								-- `yyy alias "op" as XXX'.
-							renaming.replace_key (inherited_feature.feature_name_id, a_name_id)
-						else
-							if renaming = Void then
-								create renaming.make (1)
-							end
-							renaming.put (create {RENAMING}.make (a_name_id, a_name_id,
-								inherited_feature.has_convert_mark), inherited_feature.feature_name_id)
-						end
-					end
-				end
-			end
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

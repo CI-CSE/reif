@@ -43,6 +43,7 @@ feature -- Services
 			-- <Precursor>
 		do
 			Precursor {SERVICE_INITIALIZER} (a_container)
+			a_container.register_with_activator ({IDE_S}, agent new_ide_service, False)
 			a_container.register_with_activator ({CODE_TEMPLATE_CATALOG_S}, agent new_code_template_catalog_service, False)
 			a_container.register_with_activator ({FILE_NOTIFIER_S}, agent new_file_notifier_service, False)
 			a_container.register_with_activator ({HELP_PROVIDERS_S}, agent new_help_providers_service, False)
@@ -51,10 +52,24 @@ feature -- Services
 			a_container.register_with_activator ({BLACKBOARD_S}, agent new_blackboard_service, False)
 			a_container.register_with_activator ({ES_CODE_TEMPLATE_CATALOG_S}, agent new_es_code_template_catalog_service, False)
 			a_container.register_with_activator ({CODE_ANALYZER_S [STONE, CA_RULE_VIOLATION]}, agent new_code_analyzer_service, False)
-			a_container.register_with_activator ({ES_CLOUD_S}, agent new_es_cloud_service, False)
+			a_container.register_with_activator ({PROJECT_SESSION_STATISTICS_S}, agent new_statistics_service, False)
+			a_container.register_with_activator ({ACCESS_CONTROL_S}, agent new_access_control_service, False)
+			if {ES_IDE_SETTINGS}.cloud_enabled then
+				a_container.register_with_activator ({ES_CLOUD_S}, agent new_es_cloud_service, False)
+			end
+			a_container.register_with_activator ({SOURCE_CONTROL_MANAGEMENT_S}, agent new_scm_service, False)
+			a_container.register_with_activator ({NOTIFICATION_S}, agent new_notification_service, False)
 		end
 
 feature {NONE} -- Factory
+
+	new_ide_service: detachable IDE_S
+			-- Creates the ide service.
+		do
+			create {IDE} Result.make
+		ensure
+			result_is_interface_usable: Result /= Void implies Result.is_interface_usable
+		end
 
 	new_code_template_catalog_service: detachable CODE_TEMPLATE_CATALOG_S
 			-- Creates the code templates catalog service.
@@ -156,12 +171,40 @@ feature {NONE} -- Factory
 			result_is_interface_usable: Result.is_interface_usable
 		end
 
+	new_statistics_service: detachable PROJECT_SESSION_STATISTICS_S
+		local
+			ps: PROJECT_SESSION_STATISTICS
+		do
+			create ps.make
+			ps.install
+			Result := ps
+		end
+
+	new_access_control_service: detachable ACCESS_CONTROL_S
+		local
+			s: ES_ACCESS_CONTROL
+		do
+			create s.make
+			Result := S
+		end
+
 	new_es_cloud_service: detachable ES_CLOUD_S
 			-- New EiffelStudio cloud service.
 		do
-			if preferences.misc_data.es_cloud_enabled then
-				Result := (create {ES_CLOUD_FACTORY}).new_es_cloud
-			end
+			Result := (create {ES_CLOUD_FACTORY}).new_es_cloud
+		end
+
+	new_scm_service: detachable SOURCE_CONTROL_MANAGEMENT_S
+		local
+			cfg: SCM_ES_CONFIG
+		do
+			create cfg.make
+			Result := (create {SCM_FACTORY}).new_scm (cfg)
+		end
+
+	new_notification_service: detachable NOTIFICATION_S
+		do
+			Result := (create {ES_NOTIFICATION_FACTORY}).new_notification
 		end
 
 feature {NONE} -- Registering: Code templates
@@ -282,7 +325,7 @@ feature {NONE} -- Internationalization
 	lb_external_compilation: STRING = "External Compilation"
 
 ;note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

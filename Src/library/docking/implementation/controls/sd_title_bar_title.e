@@ -169,8 +169,8 @@ feature {NONE} -- Agents
 		do
 			if attached first_press_position as l_position then
 				l_offset := internal_shared.drag_offset
-				-- Only after user pointer moved `l_offset' pixels, then start calling `drag_actions'.
-				-- Otherwise, it's too sensitive. See bug#13038
+					-- Only after user pointer moved `l_offset' pixels, then start calling `drag_actions'.
+					-- Otherwise, it's too sensitive. See bug#13038
 				if (a_screen_x < l_position.x - l_offset or a_screen_x > l_position.x + l_offset) or
 					(a_screen_y < l_position.y - l_offset or a_screen_y > l_position.y + l_offset) then
 					drag_actions.call ([a_x, a_y, tile_a, tile_b, a_pressure, a_screen_x, a_screen_y])
@@ -212,11 +212,12 @@ feature {NONE} -- Implementation
 			l_helper: SD_COLOR_HELPER
 			l_clipping_width: INTEGER
 		do
+			start_drawing_session
 			create l_helper
 
 			if is_focus_color_enable then
-				-- We set background color here, it's for theme changed actions the background color will not update except
-				-- After called enable_focus_color
+					-- We set background color here, it's for theme changed actions the background color will not update except
+					-- After called enable_focus_color
 
 				if is_focused_color then
 					set_background_color (hightlight_color)
@@ -237,8 +238,8 @@ feature {NONE} -- Implementation
 					draw_ellipsed_text_top_left (internal_shared.highlight_before_width + internal_shared.title_bar_text_start_x, internal_shared.title_bar_text_start_y, title, l_clipping_width)
 				end
 			else
-				-- We set background color here, it's for theme changed actions the background color will not update except
-				-- After called disable_focus_color
+					-- We set background color here, it's for theme changed actions the background color will not update except
+					-- After called disable_focus_color
 				set_background_color (hightlight_gray_color)
 				set_disable_focus_background_color
 
@@ -249,16 +250,17 @@ feature {NONE} -- Implementation
 				end
 
 			end
+			end_drawing_session
 		end
 
 	clear_for_theme
-			-- Clear backgroud with theme data
+			-- Clear background with theme data
 		do
 			internal_shared.setter.clear_background_for_theme (Current, create {EV_RECTANGLE}.make (0, 0, width, height))
 		end
 
 	internal_shared: SD_SHARED
- 		-- All singletons
+ 			-- All singletons
 
 invariant
 	not_void: drag_actions /= Void
@@ -266,7 +268,7 @@ invariant
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

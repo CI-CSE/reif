@@ -5,7 +5,7 @@ note
 		"Eiffel lists of features"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2003-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2003-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -102,7 +102,7 @@ feature -- Access
 			else
 				from i := count - 1 until i < 0 loop
 					a_feature := storage.item (i)
-					if attached a_feature.alias_name as l_alias_name and then l_alias_name.same_call_name (a_name) then
+					if attached a_feature.alias_names as l_alias_names and then l_alias_names.has_call_name (a_name) then
 						Result := a_feature
 						i := -1 -- Jump out of the loop
 					else
@@ -146,7 +146,7 @@ feature -- Access
 				i := count - declared_count
 				from until i > nb loop
 					a_feature := storage.item (i)
-					if attached a_feature.alias_name as l_alias_name and then l_alias_name.same_call_name (a_name) then
+					if attached a_feature.alias_names as l_alias_names and then l_alias_names.has_call_name (a_name) then
 						Result := a_feature
 						i := nb + 1 -- Jump out of the loop.
 					else
@@ -325,10 +325,10 @@ feature -- Basic operations
 			else
 				from i := count - 1 until i < 0 loop
 					l_feature := storage.item (i)
-					if not l_found and then attached l_feature.alias_name as l_alias_name and then l_alias_name.same_call_name (a_name) then
+					if not l_found and then attached l_feature.alias_names as l_alias_names and then l_alias_names.has_call_name (a_name) then
 						a_list.force_last (l_feature)
 						l_found := True
-					elseif attached l_feature.overloaded_alias_name as l_overloaded_alias_name and then l_overloaded_alias_name.same_call_name (a_name) then
+					elseif attached l_feature.overloaded_alias_names as l_overloaded_alias_names and then l_overloaded_alias_names.has_call_name (a_name) then
 						a_list.force_last (l_feature)
 					end
 					i := i - 1
@@ -338,12 +338,15 @@ feature -- Basic operations
 			no_void_item: not a_list.has_void
 		end
 
-	add_features_exported_to (a_client: ET_CLASS; a_list: DS_ARRAYED_LIST [ET_FEATURE])
+	add_features_exported_to (a_client: ET_CLASS; a_list: DS_ARRAYED_LIST [ET_FEATURE]; a_system_processor: ET_SYSTEM_PROCESSOR)
 			-- Add to `a_list' the features which are exported to `a_client'.
+			-- (Note: Use `a_system_processor.ancestor_builder' on the classes
+			-- whose ancestors need to be built in order to check for descendants.)
 		require
 			a_client_not_void: a_client /= Void
 			a_list_not_void: a_list /= Void
 			no_void_feature: not a_list.has_void
+			a_system_processor_not_void: a_system_processor /= Void
 		local
 			i: INTEGER
 			l_feature: ET_FEATURE
@@ -354,7 +357,7 @@ feature -- Basic operations
 				i < 0
 			loop
 				l_feature := storage.item (i)
-				if l_feature.is_exported_to (a_client) then
+				if l_feature.is_exported_to (a_client, a_system_processor) then
 					a_list.force_last (l_feature)
 				end
 				i := i - 1
@@ -363,13 +366,16 @@ feature -- Basic operations
 			no_void_feature: not a_list.has_void
 		end
 
-	add_user_defined_features_exported_to (a_client: ET_CLASS; a_list: DS_ARRAYED_LIST [ET_FEATURE])
+	add_user_defined_features_exported_to (a_client: ET_CLASS; a_list: DS_ARRAYED_LIST [ET_FEATURE]; a_system_processor: ET_SYSTEM_PROCESSOR)
 			-- Add to `a_list' the features which are exported to `a_client',
 			-- unless they are inherited features declared in "ANY".
+			-- (Note: Use `a_system_processor.ancestor_builder' on the classes
+			-- whose ancestors need to be built in order to check for descendants.)
 		require
 			a_client_not_void: a_client /= Void
 			a_list_not_void: a_list /= Void
 			no_void_feature: not a_list.has_void
+			a_system_processor_not_void: a_system_processor /= Void
 		local
 			i, nb: INTEGER
 			l_feature: ET_FEATURE
@@ -381,7 +387,7 @@ feature -- Basic operations
 				i < nb
 			loop
 				l_feature := storage.item (i)
-				if l_feature.is_exported_to (a_client) then
+				if l_feature.is_exported_to (a_client, a_system_processor) then
 					a_list.force_last (l_feature)
 				end
 				i := i - 1
@@ -392,7 +398,7 @@ feature -- Basic operations
 			loop
 				l_feature := storage.item (i)
 				if not l_feature.implementation_class.is_any_class then
-					if l_feature.is_exported_to (a_client) then
+					if l_feature.is_exported_to (a_client, a_system_processor) then
 						a_list.force_last (l_feature)
 					end
 				end
@@ -402,13 +408,16 @@ feature -- Basic operations
 			no_void_feature: not a_list.has_void
 		end
 
-	add_declared_features_exported_to (a_client: ET_CLASS; a_list: DS_ARRAYED_LIST [ET_FEATURE])
+	add_declared_features_exported_to (a_client: ET_CLASS; a_list: DS_ARRAYED_LIST [ET_FEATURE]; a_system_processor: ET_SYSTEM_PROCESSOR)
 			-- Add to `a_list' the features declared in the corresponding class
 			-- which are exported to `a_client'.
+			-- (Note: Use `a_system_processor.ancestor_builder' on the classes
+			-- whose ancestors need to be built in order to check for descendants.)
 		require
 			a_client_not_void: a_client /= Void
 			a_list_not_void: a_list /= Void
 			no_void_feature: not a_list.has_void
+			a_system_processor_not_void: a_system_processor /= Void
 		local
 			i, nb: INTEGER
 			l_feature: ET_FEATURE
@@ -420,7 +429,7 @@ feature -- Basic operations
 				i < nb
 			loop
 				l_feature := storage.item (i)
-				if l_feature.is_exported_to (a_client) then
+				if l_feature.is_exported_to (a_client, a_system_processor) then
 					a_list.force_last (l_feature)
 				end
 				i := i - 1

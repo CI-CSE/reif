@@ -1,5 +1,5 @@
 feature -- Comparison (verified)
-	
+
 	is_equal_ (other: like Current): BOOLEAN
 			-- Is the abstract state of Current equal to that of `other'?
 		note
@@ -19,8 +19,8 @@ feature -- Comparison (verified)
 		require
 			x_void_or_closed: attached x implies x.closed
 			y_void_or_closed: attached y implies y.closed
-			x_subjects_closed: attached x implies across x.subjects as s all s.item.closed end
-			y_subjects_closed: attached y implies across y.subjects as s all s.item.closed end
+			x_subjects_closed: attached x implies across x.subjects as s all s.closed end
+			y_subjects_closed: attached y implies across y.subjects as s all s.closed end
 		do
 			if x = Void then
 				Result := y = Void
@@ -38,11 +38,10 @@ feature -- Output (verified)
 			-- of current object
 		note
 			status: impure, skip
-		require
-			modify ([])
 		do
 			create Result.make_from_string (out)
 		ensure
+			modify ([])
 			out_fresh: Result.is_fresh
 			out_wrapped: Result.is_wrapped
 		end
@@ -292,13 +291,15 @@ feature -- Verification: ownership fields
 			guard: in_observers
 		do
 			check is_executable: False then end
-		ensure
-			instance_free: class
 		end
 
 	frozen set_observers (a: MML_SET [ANY])
 			-- Set observers set of this object.
+		note
+			status: ghost
 		do
+		ensure
+			observers = a
 		end
 
 	in_observers (new_observers: like observers; o: ANY): BOOLEAN
@@ -306,7 +307,7 @@ feature -- Verification: ownership fields
 		note
 			status: functional, ghost
 		do
-			Result := new_observers [o]
+			Result := attached {like observers.any_item} o as x and then new_observers [x]
 		end
 
 	is_closed_with_subjects: BOOLEAN
@@ -314,7 +315,7 @@ feature -- Verification: ownership fields
 		note
 			status: functional, ghost, inv_unfriendly
 		do
-			Result := closed and across subjects as s all s.item.closed end
+			Result := closed and across subjects as s all s.closed end
 		end
 
 feature -- Verification: auxiliary
@@ -335,7 +336,7 @@ feature -- Verification: auxiliary
 			symmetric: Result = other.is_model_equal (Current)
 		end
 
-	lemma_transitive (x: like Current; ys: MML_SET [ANY])
+	lemma_transitive (x: like Current; ys: MML_SET [like Current])
 			-- Property that follows from transitivity of `is_model_equal'.
 			-- ToDo: reformulate once we have call_forall.
 		note
@@ -345,8 +346,8 @@ feature -- Verification: auxiliary
 			ys_exist: ys.non_void
 		do
 		ensure
-			x_in_ys_iff_current_in_ys: across ys as y some is_model_equal (y.item) end =
-				across ys as y some x.is_model_equal (y.item) end
+			x_in_ys_iff_current_in_ys: across ys as y some is_model_equal (y) end =
+				across ys as y some x.is_model_equal (y) end
 		end
 
 	frozen model_equals (x, y: ANY): BOOLEAN

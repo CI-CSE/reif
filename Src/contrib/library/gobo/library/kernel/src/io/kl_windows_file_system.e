@@ -5,7 +5,7 @@ note
 		"Windows-like file systems"
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2001-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2001-2018, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -23,8 +23,7 @@ inherit
 
 create
 
-	make,
-	make_backslash_only
+	make
 
 feature {NONE} -- Initialization
 
@@ -33,14 +32,6 @@ feature {NONE} -- Initialization
 			-- Accept both \ and / directory separators
 			-- as input, and use \ as output.
 		do
-			secondary_directory_separator := '/'
-		end
-
-	make_backslash_only
-			-- Create a new windows file system object.
-			-- Accept only \ as directory separator.
-		do
-			secondary_directory_separator := '\'
 		end
 
 feature -- File handling
@@ -408,7 +399,7 @@ feature -- Pathname handling
 		local
 			nb: INTEGER
 		do
-			Result := STRING_.cloned_string (a_dirname)
+			Result := a_dirname.twin
 			if a_pathname.count > 0 then
 				nb := Result.count
 				if nb > 0 and then not is_directory_separator (Result.item (nb)) then
@@ -449,7 +440,7 @@ feature -- Pathname handling
 			i, nb, k: INTEGER
 			a_pathname: STRING
 		do
-			Result := STRING_.cloned_string (a_dirname)
+			Result := a_dirname.twin
 			i := a_pathnames.lower
 			nb := a_pathnames.upper
 			from
@@ -756,6 +747,7 @@ feature -- Pathname handling
 		do
 			Result := (c = directory_separator or c = secondary_directory_separator)
 		ensure
+			instance_free: class
 			definition: Result = (c = directory_separator or c = secondary_directory_separator)
 		end
 
@@ -764,6 +756,11 @@ feature -- Pathname handling
 
 	secondary_directory_separator: CHARACTER
 			-- Secondary directory separator
+		once
+			Result := '/'
+		ensure
+			instance_free: class
+		end
 
 	current_drive: STRING
 			-- Current drive (include the ':' but not the '\')

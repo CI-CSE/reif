@@ -5,7 +5,7 @@ note
 		"Eiffel dynamic type set builders where types are pushed to supersets"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2004-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2004-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -18,8 +18,8 @@ inherit
 		redefine
 			new_dynamic_type_set,
 			build_dynamic_type_sets,
-			build_tuple_item,
-			build_tuple_put,
+			build_tuple_reference_item,
+			build_tuple_put_reference,
 			build_agent_call,
 			report_manifest_array,
 			report_manifest_tuple,
@@ -28,12 +28,14 @@ inherit
 			propagate_argument_operand_dynamic_types,
 			propagate_assignment_dynamic_types,
 			propagate_assignment_attempt_dynamic_types,
-			propagate_builtin_actual_argument_dynamic_types,
-			propagate_builtin_formal_argument_dynamic_types,
-			propagate_builtin_result_dynamic_types,
+			propagate_builtin_dynamic_types,
 			propagate_call_agent_result_dynamic_types,
+			propagate_cap_dynamic_types,
 			propagate_creation_dynamic_type,
+			propagate_extended_attribute_result_dynamic_types,
+			propagate_if_expression_dynamic_types,
 			propagate_inline_agent_result_dynamic_types,
+			propagate_inspect_expression_dynamic_types,
 			propagate_like_argument_dynamic_types,
 			propagate_manifest_string_area_dynamic_type,
 			propagate_named_object_test_dynamic_types,
@@ -54,14 +56,12 @@ feature -- Factory
 			-- New dynamic type set
 		do
 			if a_type.is_expanded then
-				if a_type.is_generic then
-					create {ET_DYNAMIC_PUSH_TYPE_SET} Result.make (a_type)
-					Result.set_never_void
-				else
-					Result := a_type
-				end
+					-- Note that for expanded types, there is no type other
+					-- than itself that conforms to it.
+				Result := a_type
 			else
 				create {ET_DYNAMIC_PUSH_TYPE_SET} Result.make (a_type)
+				dynamic_type_set_count := dynamic_type_set_count + 1
 			end
 		end
 
@@ -72,14 +72,14 @@ feature -- Generation
 			-- Set `has_fatal_error' if a fatal error occurred.
 		local
 			i, nb: INTEGER
-			l_type: ET_DYNAMIC_TYPE
+			l_type: ET_DYNAMIC_PRIMARY_TYPE
 			j, nb2: INTEGER
 			l_features: ET_DYNAMIC_FEATURE_LIST
 			l_feature: ET_DYNAMIC_FEATURE
 			l_precursor: detachable ET_DYNAMIC_PRECURSOR
 			l_other_precursors: detachable ET_DYNAMIC_PRECURSOR_LIST
 			k, nb3: INTEGER
-			l_dynamic_types: DS_ARRAYED_LIST [ET_DYNAMIC_TYPE]
+			l_dynamic_types: DS_ARRAYED_LIST [ET_DYNAMIC_PRIMARY_TYPE]
 			old_object_id_dynamic_type_set: ET_DYNAMIC_TYPE_SET
 		do
 			has_fatal_error := False
@@ -186,31 +186,36 @@ feature -- Generation
 
 feature {ET_DYNAMIC_TUPLE_TYPE} -- Generation
 
-	build_tuple_item (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; an_item_feature: ET_DYNAMIC_FEATURE)
+	build_tuple_reference_item (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; an_item_feature: ET_DYNAMIC_FEATURE)
 			-- Build type set of result type of `an_item_feature' from `a_tuple_type'.
 		local
 			i, nb: INTEGER
 			l_result_type_set: detachable ET_DYNAMIC_TYPE_SET
 			l_item_type_sets: ET_DYNAMIC_TYPE_SET_LIST
+			l_item_type_set: ET_DYNAMIC_TYPE_SET
 		do
 			l_result_type_set := an_item_feature.result_type_set
 			if l_result_type_set /= Void then
 				l_item_type_sets := a_tuple_type.item_type_sets
 				nb := l_item_type_sets.count
 				from i := 1 until i > nb loop
-					l_item_type_sets.item (i).put_target (l_result_type_set, current_dynamic_system)
+					l_item_type_set := l_item_type_sets.item (i)
+					if not l_item_type_set.static_type.is_basic then
+						l_item_type_set.put_target (l_result_type_set, current_dynamic_system)
+					end
 					i := i + 1
 				end
 			end
 		end
 
-	build_tuple_put (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; a_put_feature: ET_DYNAMIC_FEATURE)
+	build_tuple_put_reference (a_tuple_type: ET_DYNAMIC_TUPLE_TYPE; a_put_feature: ET_DYNAMIC_FEATURE)
 			-- Build type set of argument type of `a_put_feature' from `a_tuple_type'.
 		local
 			i, nb: INTEGER
 			l_argument_type_sets: ET_DYNAMIC_TYPE_SET_LIST
 			l_argument_type_set: ET_DYNAMIC_TYPE_SET
 			l_item_type_sets: ET_DYNAMIC_TYPE_SET_LIST
+			l_item_type_set: ET_DYNAMIC_TYPE_SET
 		do
 			l_argument_type_sets := a_put_feature.dynamic_type_sets
 			if l_argument_type_sets.count > 1 then
@@ -218,7 +223,10 @@ feature {ET_DYNAMIC_TUPLE_TYPE} -- Generation
 				l_item_type_sets := a_tuple_type.item_type_sets
 				nb := l_item_type_sets.count
 				from i := 1 until i > nb loop
-					l_argument_type_set.put_target (l_item_type_sets.item (i), current_dynamic_system)
+					l_item_type_set := l_item_type_sets.item (i)
+					if not l_item_type_set.static_type.is_basic then
+						l_argument_type_set.put_target (l_item_type_set, current_dynamic_system)
+					end
 					i := i + 1
 				end
 			end
@@ -250,6 +258,7 @@ feature {NONE} -- Event handling
 			-- of `a_context' has been processed.
 		local
 			l_type: ET_DYNAMIC_TYPE
+			l_primary_type: ET_DYNAMIC_PRIMARY_TYPE
 			i, nb: INTEGER
 			l_queries: ET_DYNAMIC_FEATURE_LIST
 			l_dynamic_type_set: detachable ET_DYNAMIC_TYPE_SET
@@ -259,24 +268,37 @@ feature {NONE} -- Event handling
 		do
 			if current_type = current_dynamic_type.base_type then
 				l_type := current_dynamic_system.dynamic_type (a_type, a_context)
-				mark_type_alive (l_type)
+				l_primary_type := l_type.primary_type
+				mark_type_alive (l_primary_type)
 				set_dynamic_type_set (l_type, an_expression)
 					-- Make sure that types "SPECIAL [XXX]" (used in feature 'area'), and
 					-- "INTEGER" (used in feature 'lower' and 'upper') are marked as alive.
-				l_queries := l_type.queries
-				if l_queries.count < 3 then
+				l_queries := l_primary_type.queries
+				if
+					current_dynamic_system.array_area_feature = Void or
+					current_dynamic_system.array_lower_feature = Void or
+					current_dynamic_system.array_upper_feature = Void
+				then
 						-- Error already reported in ET_DYNAMIC_SYSTEM.compile_kernel.
 					set_fatal_error
--- TODO: internal error
+				elseif l_queries.count < 3 then
+						-- Internal error: should not happen after the wellformedness
+						-- of the expected attributes in class "ARRAY" has been checked
+						-- in ET_DYNAMIC_SYSTEM.compile_kernel.
+					set_fatal_error
+					error_handler.report_giaaa_error
 				else
 						-- Feature 'area' should be the first in the list of features.
 					l_dynamic_type_set := l_queries.item (1).result_type_set
 					if l_dynamic_type_set = Void then
-							-- Error in feature 'area', already reported in ET_DYNAMIC_SYSTEM.compile_kernel.
+							-- Internal error: should not happen after the wellformedness
+							-- of the expected attributes in class "ARRAY" has been checked
+							-- in ET_DYNAMIC_SYSTEM.compile_kernel.
 						set_fatal_error
-					elseif attached {ET_DYNAMIC_SPECIAL_TYPE} l_dynamic_type_set.static_type as l_special_type then
+						error_handler.report_giaaa_error
+					elseif attached {ET_DYNAMIC_SPECIAL_TYPE} l_dynamic_type_set.static_type.primary_type as l_special_type then
 						mark_type_alive (l_special_type)
-						l_special_type.put_target (l_dynamic_type_set, current_dynamic_system)
+						l_dynamic_type_set.static_type.put_target (l_dynamic_type_set, current_dynamic_system)
 						l_item_type_set := l_special_type.item_type_set
 						nb := an_expression.count
 						from i := 1 until i > nb loop
@@ -299,20 +321,24 @@ feature {NONE} -- Event handling
 						-- Feature 'lower' should be the second in the list of features.
 					l_dynamic_type_set := l_queries.item (2).result_type_set
 					if l_dynamic_type_set = Void then
-							-- Error in feature 'lower', already reported in ET_DYNAMIC_SYSTEM.compile_kernel.
+							-- Internal error: should not happen after the wellformedness
+							-- of the expected attributes in class "ARRAY" has been checked
+							-- in ET_DYNAMIC_SYSTEM.compile_kernel.
 						set_fatal_error
--- TODO: internal error
+						error_handler.report_giaaa_error
 					else
-						mark_type_alive (l_dynamic_type_set.static_type)
+						mark_type_alive (l_dynamic_type_set.static_type.primary_type)
 					end
 						-- Feature 'upper' should be the third in the list of features.
 					l_dynamic_type_set := l_queries.item (3).result_type_set
 					if l_dynamic_type_set = Void then
-							-- Error in feature 'upper', already reported in ET_DYNAMIC_SYSTEM.compile_kernel.
+							-- Internal error: should not happen after the wellformedness
+							-- of the expected attributes in class "ARRAY" has been checked
+							-- in ET_DYNAMIC_SYSTEM.compile_kernel.
 						set_fatal_error
--- TODO: internal error
+						error_handler.report_giaaa_error
 					else
-						mark_type_alive (l_dynamic_type_set.static_type)
+						mark_type_alive (l_dynamic_type_set.static_type.primary_type)
 					end
 				end
 			end
@@ -323,6 +349,7 @@ feature {NONE} -- Event handling
 			-- `a_context' has been processed.
 		local
 			l_type: ET_DYNAMIC_TYPE
+			l_primary_type: ET_DYNAMIC_PRIMARY_TYPE
 			i, nb: INTEGER
 			l_item_type_sets: ET_DYNAMIC_TYPE_SET_LIST
 			l_expression: ET_EXPRESSION
@@ -330,9 +357,10 @@ feature {NONE} -- Event handling
 		do
 			if current_type = current_dynamic_type.base_type then
 				l_type := current_dynamic_system.dynamic_type (a_type, a_context)
-				mark_type_alive (l_type)
+				l_primary_type := l_type.primary_type
+				mark_type_alive (l_primary_type)
 				set_dynamic_type_set (l_type, an_expression)
-				if attached {ET_DYNAMIC_TUPLE_TYPE} l_type as l_tuple_type then
+				if attached {ET_DYNAMIC_TUPLE_TYPE} l_primary_type as l_tuple_type then
 					l_item_type_sets := l_tuple_type.item_type_sets
 					nb := an_expression.count
 					if l_item_type_sets.count /= nb then
@@ -375,6 +403,7 @@ feature {NONE} -- Implementation
 			l_parameters: ET_ACTUAL_PARAMETER_LIST
 			l_dynamic_type_set: detachable ET_DYNAMIC_TYPE_SET
 			l_tuple_type: ET_TUPLE_TYPE
+			l_dynamic_type: ET_DYNAMIC_TYPE
 			l_item_type_sets: ET_DYNAMIC_TYPE_SET_LIST
 			j, nb_items: INTEGER
 		do
@@ -413,12 +442,22 @@ feature {NONE} -- Implementation
 				end
 			end
 			create l_tuple_type.make (tokens.implicit_attached_type_mark, l_parameters, current_universe_impl.tuple_type.named_base_class)
-			if attached {ET_DYNAMIC_TUPLE_TYPE} current_dynamic_system.dynamic_type (l_tuple_type, current_system.any_type) as l_dynamic_tuple_type then
+			l_dynamic_type := current_dynamic_system.dynamic_type (l_tuple_type, current_system.any_type)
+			if attached {ET_DYNAMIC_TUPLE_TYPE} l_dynamic_type.primary_type as l_dynamic_tuple_type then
 				mark_type_alive (l_dynamic_tuple_type)
-				if an_agent_type.attribute_count < 2 then
-						-- Internal error: missing feature 'closed_operands' in the Agent type,
-						-- already reported in ET_DYNAMIC_SYSTEM.compile_kernel.
+				if
+					current_dynamic_system.routine_rout_disp_feature = Void or
+					current_dynamic_system.routine_closed_operands_feature = Void
+				then
+						-- Error already reported in ET_DYNAMIC_SYSTEM.compile_kernel.
 					set_fatal_error
+				elseif an_agent_type.attribute_count < 2 then
+						-- Internal error: should not happen after the wellformedness
+						-- of the expected attributes in class "ROUTINE" has been checked
+						-- in ET_DYNAMIC_SYSTEM.compile_kernel.
+						-- The second attribute is supposed to be 'closed_operands' in the Agent type
+					set_fatal_error
+					error_handler.report_giaaa_error
 				elseif not attached an_agent_type.queries.item (2).result_type_set as l_result_type_set then
 						-- Internal error: an attribute should have a result type set.
 					set_fatal_error
@@ -569,56 +608,11 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	propagate_builtin_actual_argument_dynamic_types (a_source_type_set: ET_DYNAMIC_TYPE_SET; a_formal: INTEGER; a_callee: ET_DYNAMIC_FEATURE)
-			-- Propagate dynamic types of `a_source_type_set' to the dynamic type set
-			-- of the formal argument at index `a_formal' in `a_callee' when involved
+	propagate_builtin_dynamic_types (a_source_type_set, a_target_type_set: ET_DYNAMIC_TYPE_SET)
+			-- Propagate dynamic types of `a_source_type_set' to `a_target_type_set'
 			-- in built-in feature `current_dynamic_feature'.
-		local
-			l_formal_type_set: detachable ET_DYNAMIC_TYPE_SET
 		do
-			l_formal_type_set := a_callee.argument_type_set (a_formal)
-			if l_formal_type_set = Void then
-					-- Internal error: it has already been checked somewhere else
-					-- that there was the same number of actual and formal arguments.
-				set_fatal_error
-				error_handler.report_giaaa_error
-			else
-				a_source_type_set.put_target (l_formal_type_set, current_dynamic_system)
-			end
-		end
-
-	propagate_builtin_formal_argument_dynamic_types (a_formal: INTEGER; a_target_type_set: ET_DYNAMIC_TYPE_SET)
-			-- Propagate dynamic types of the dynamic type set of the formal argument
-			-- at index `a_formal' in built-in feature `current_dynamic_feature'
-			-- to `a_target_type_set'.
-		local
-			l_formal_type_set: detachable ET_DYNAMIC_TYPE_SET
-		do
-			l_formal_type_set := current_dynamic_feature.argument_type_set (a_formal)
-			if l_formal_type_set = Void then
-					-- Internal error: it has already been checked somewhere else
-					-- that the number of formal arguments was as expected.
-				set_fatal_error
-				error_handler.report_giaaa_error
-			else
-				l_formal_type_set.put_target (a_target_type_set, current_dynamic_system)
-			end
-		end
-
-	propagate_builtin_result_dynamic_types (a_source_type_set: ET_DYNAMIC_TYPE_SET; a_query: ET_DYNAMIC_FEATURE)
-			-- Propagate dynamic types of `a_source_type_set' to the dynamic type set
-			-- of the result of the built-in feature `a_query'.
-		local
-			l_result_type_set: detachable ET_DYNAMIC_TYPE_SET
-		do
-			l_result_type_set := a_query.result_type_set
-			if l_result_type_set = Void then
-					-- Internal error: it is expected that `a_query' is a query.
-				set_fatal_error
-				error_handler.report_giaaa_error
-			else
-				a_source_type_set.put_target (l_result_type_set, current_dynamic_system)
-			end
+			a_source_type_set.put_target (a_target_type_set, current_dynamic_system)
 		end
 
 	propagate_call_agent_result_dynamic_types (an_agent: ET_CALL_AGENT; a_query: ET_DYNAMIC_FEATURE; a_result_type_set: ET_DYNAMIC_TYPE_SET)
@@ -638,6 +632,14 @@ feature {NONE} -- Implementation
 			end
 		end
 
+	propagate_cap_dynamic_types (a_expression: ET_EXPRESSION; a_detachable_type_set, a_attached_type_set: ET_DYNAMIC_TYPE_SET)
+			-- Propagate dynamic types of a possibly Void expression to
+			-- the dynamic types of its attached counterpart when it is
+			-- known to be attached with a CAP (Certified Attachment Pattern).
+		do
+			a_detachable_type_set.put_target (a_attached_type_set, current_dynamic_system)
+		end
+
 	propagate_creation_dynamic_type (a_creation_type: ET_DYNAMIC_TYPE; a_creation: ET_CREATION_INSTRUCTION)
 			-- Propagate the creation type `a_creation_type' of `a_creation'
 			-- to the dynamic type set of the target of `a_creation'.
@@ -653,6 +655,24 @@ feature {NONE} -- Implementation
 			else
 				a_creation_type.put_target (l_target_type_set, current_dynamic_system)
 			end
+		end
+
+	propagate_extended_attribute_result_dynamic_types (a_result_type_set, a_attribute_type_set: ET_DYNAMIC_TYPE_SET)
+			-- Propagate dynamic types of `a_result_type_set' (the dynamic type
+			-- set of the entity 'Result' in the body of the extended attribute
+			-- `current_dynamic_feature') to `a_attribute_type_set' (the dynamic
+			-- type set of this attribute when accessed from other routines).
+		do
+			a_result_type_set.put_target (a_attribute_type_set, current_dynamic_system)
+		end
+
+	propagate_if_expression_dynamic_types (a_if_expression: ET_IF_EXPRESSION; a_sub_expression: ET_EXPRESSION; a_source_type_set, a_target_type_set: ET_DYNAMIC_TYPE_SET)
+			-- Propagate dynamic types of `a_source_type_set' (which is the dynamic
+			-- type set of the sub-expressions `a_sub_expression' within `a_if_expression')
+			-- to the dynamic type set `a_target_type_set' (which is the dynamic
+			-- type set of `a_if_expression').
+		do
+			a_source_type_set.put_target (a_target_type_set, current_dynamic_system)
 		end
 
 	propagate_inline_agent_result_dynamic_types (an_agent: ET_INLINE_AGENT; a_result_type_set: ET_DYNAMIC_TYPE_SET)
@@ -680,6 +700,15 @@ feature {NONE} -- Implementation
 					l_dynamic_type_set.put_target (a_result_type_set, current_dynamic_system)
 				end
 			end
+		end
+
+	propagate_inspect_expression_dynamic_types (a_inspect_expression: ET_INSPECT_EXPRESSION; a_sub_expression: ET_EXPRESSION; a_source_type_set, a_target_type_set: ET_DYNAMIC_TYPE_SET)
+			-- Propagate dynamic types of `a_source_type_set' (which is the dynamic
+			-- type set of the sub-expressions `a_sub_expression' within `a_inspect_expression')
+			-- to the dynamic type set `a_target_type_set' (which is the dynamic
+			-- type set of `a_inspect_expression').
+		do
+			a_source_type_set.put_target (a_target_type_set, current_dynamic_system)
 		end
 
 	propagate_like_argument_dynamic_types (a_call: ET_FEATURE_CALL_EXPRESSION; a_formal_type_set, an_actual_type_set: ET_DYNAMIC_TYPE_SET)

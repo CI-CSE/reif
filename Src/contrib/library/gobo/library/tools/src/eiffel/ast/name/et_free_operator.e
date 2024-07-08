@@ -5,7 +5,7 @@ note
 		"Eiffel free operators"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2002-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2002-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -51,6 +51,11 @@ feature {NONE} -- Initialization
 
 	make_infix (a_free_op: like operator_name)
 			-- Create a new infix free operator.
+		require
+			a_free_op_not_void: a_free_op /= Void
+			a_free_op_not_empty: a_free_op.count > 0
+			a_free_op_is_string_8: a_free_op.same_type ({STRING_8} "")
+			valid_utf8_free_op: {UC_UTF8_ROUTINES}.valid_utf8 (a_free_op)
 		do
 			code := tokens.infix_freeop_code
 			make_token (a_free_op)
@@ -61,6 +66,11 @@ feature {NONE} -- Initialization
 
 	make_prefix (a_free_op: like operator_name)
 			-- Create a new prefix free operator.
+		require
+			a_free_op_not_void: a_free_op /= Void
+			a_free_op_not_empty: a_free_op.count > 0
+			a_free_op_is_string_8: a_free_op.same_type ({STRING_8} "")
+			valid_utf8_free_op: {UC_UTF8_ROUTINES}.valid_utf8 (a_free_op)
 		do
 			code := tokens.prefix_freeop_code
 			make_token (a_free_op)
@@ -72,41 +82,37 @@ feature {NONE} -- Initialization
 feature -- Status report
 
 	is_prefix: BOOLEAN
-			-- Is current feature name of the form 'prefix ...'?
+			-- Is current feature name of the form unary 'alias "..."'?
 		do
 			Result := (code = tokens.prefix_freeop_code)
 		end
 
 	is_infix: BOOLEAN
-			-- Is current feature name of the form 'infix ...'?
+			-- Is current feature name of the form binary 'alias "..."'?
 		do
 			Result := (code = tokens.infix_freeop_code)
 		end
 
 	is_prefix_freeop: BOOLEAN
-			-- Is current feature name of the form 'prefix "free-operator"'?
+			-- Is current feature name of the form unary 'alias "free-operator"'?
 		do
 			Result := (code = tokens.prefix_freeop_code)
 		end
 
 	is_infix_freeop: BOOLEAN
-			-- Is current feature name of the form 'infix "free-operator"'?
+			-- Is current feature name of the form binary 'alias "free-operator"'?
 		do
 			Result := (code = tokens.infix_freeop_code)
 		end
 
 feature -- Access
 
-	name: STRING
+	name: STRING_8
 			-- Name of feature
+			-- (using UTF-8 encoding)
 		do
-			if is_infix_freeop then
-				create Result.make (operator_name.count + 8)
-				Result.append_string (infix_double_quote)
-			else
-				create Result.make (operator_name.count + 9)
-				Result.append_string (prefix_double_quote)
-			end
+			create Result.make (operator_name.count + 8)
+			Result.append_string (alias_double_quote)
 			Result.append_string (operator_name)
 			Result.append_character ('%"')
 		end
@@ -144,7 +150,6 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Constants
 
-	prefix_double_quote: STRING = "prefix %""
-	infix_double_quote: STRING = "infix %""
+	alias_double_quote: STRING = "alias %""
 
 end

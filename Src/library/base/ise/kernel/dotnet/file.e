@@ -165,6 +165,39 @@ feature -- Initialization
 			open_append: is_open_append
 		end
 
+	make_open_temporary
+			-- Create a file object with a unique temporary file name,
+			-- with read/write mode.
+		local
+			l_temp: STRING_32
+		do
+			create l_temp.make_from_cil ({SYSTEM_PATH}.get_temp_file_name)
+			create last_string.make_empty
+			set_name (l_temp)
+			open_read_write
+		ensure
+			exists: exists
+			open_read: is_open_read
+			open_write: is_open_write
+		end
+
+	make_open_temporary_with_prefix (a_prefix: READABLE_STRING_GENERAL)
+			-- Create a file object with a unique temporary file name with prefix `a_prefix`,
+			-- with read/write mode.
+		local
+			l_temp: STRING_32
+		do
+			create l_temp.make_from_cil ({SYSTEM_PATH}.get_temp_file_name)
+			create last_string.make_empty
+			l_temp.prepend (a_prefix.to_string_32)
+			set_name (l_temp)
+			open_read_write
+		ensure
+			exists: exists
+			open_read: is_open_read
+			open_write: is_open_write
+		end
+
 feature -- Access
 
 	path: PATH
@@ -331,6 +364,32 @@ feature -- Access
 			Result := (create {BINARY_FORMATTER}.make).deserialize (internal_stream)
 		end
 
+
+	null_path: PATH
+			-- Null device path.
+		note
+			EIS: "name=Null Device", "src=https://en.wikipedia.org/wiki/Null_device", "protocol=uri"
+		do
+			create Result.make_from_string (null_name)
+		ensure
+			instance_free: class
+		end
+
+	null_name: STRING
+			-- Null device name.
+		note
+			EIS: "name=Null Device", "src=https://en.wikipedia.org/wiki/Null_device", "protocol=uri"
+		do
+			if {PLATFORM}.is_windows then
+				Result := "nul"
+			else
+              	-- On Unix or Unix like systems.
+				Result := "/dev/null"
+			end
+		ensure
+			instance_free: class
+		end
+
 feature -- Measurement
 
 	count: INTEGER
@@ -434,16 +493,15 @@ feature -- Status report
 			-- (Uses effective UID to check that parent is writable
 			-- and file does not exist.)
 		local
-			perm: FILE_IO_PERMISSION
+			fs: FILE_STREAM
 			retried: BOOLEAN
 		do
 			if not retried then
 					-- Is the parent directory writable?
 				internal_file.refresh
-				create perm.make_from_access_and_path ({FILE_IO_PERMISSION_ACCESS}.read,
-					internal_file.directory_name)
-				perm.demand
-				Result := not exists or else writable
+				create fs.make (internal_file.full_name, {FILE_MODE}.open, {FILE_ACCESS}.write)
+
+				Result := fs.can_write and then ( not exists or else writable )
 			else
 				Result := False
 			end
@@ -673,7 +731,11 @@ feature -- Status setting
 			is_closed: is_closed
 		do
 			internal_file.refresh
-			internal_stream := internal_file.open_read
+			if internal_name.same_string (null_name) then
+				internal_stream := {SYSTEM_STREAM}.null
+			else
+				internal_stream := internal_file.open_read
+			end
 			mode := Read_file
 		ensure
 			exists: exists
@@ -685,8 +747,11 @@ feature -- Status setting
 			-- create it if it does not exist.
 		do
 			internal_file.refresh
-			internal_stream := internal_file.open_file_mode_file_access (
-				{FILE_MODE}.create_, {FILE_ACCESS}.write)
+			if internal_name.same_string (null_name) then
+				internal_stream := {SYSTEM_STREAM}.null
+			else
+				internal_stream := internal_file.open ({FILE_MODE}.create_, {FILE_ACCESS}.write)
+			end
 			mode := Write_file
 		ensure
 			exists: exists
@@ -700,8 +765,11 @@ feature -- Status setting
 			is_closed: is_closed
 		do
 			internal_file.refresh
-			internal_stream := internal_file.open_file_mode_file_access (
-				{FILE_MODE}.append, {FILE_ACCESS}.write)
+			if internal_name.same_string (null_name) then
+				internal_stream := {SYSTEM_STREAM}.null
+			else
+				internal_stream := internal_file.open ({FILE_MODE}.append, {FILE_ACCESS}.write)
+			end
 			mode := Append_file
 		ensure
 			exists: exists
@@ -714,8 +782,11 @@ feature -- Status setting
 			is_closed: is_closed
 		do
 			internal_file.refresh
-			internal_stream := internal_file.open_file_mode_file_access (
-				{FILE_MODE}.open, {FILE_ACCESS}.read_write)
+			if internal_name.same_string (null_name) then
+				internal_stream := {SYSTEM_STREAM}.null
+			else
+				internal_stream := internal_file.open ({FILE_MODE}.open, {FILE_ACCESS}.read_write)
+			end
 			mode := Read_write_file
 		ensure
 			exists: exists
@@ -730,8 +801,11 @@ feature -- Status setting
 			is_closed: is_closed
 		do
 			internal_file.refresh
-			internal_stream := internal_file.open_file_mode_file_access (
-				{FILE_MODE}.create_, {FILE_ACCESS}.read_write)
+			if internal_name.same_string (null_name) then
+				internal_stream := {SYSTEM_STREAM}.null
+			else
+				internal_stream := internal_file.open ({FILE_MODE}.create_, {FILE_ACCESS}.read_write)
+			end
 			mode := Read_write_file
 		ensure
 			exists: exists
@@ -1021,6 +1095,14 @@ feature -- Cursor movement
 			end
 		end
 
+feature -- Iteration
+
+	new_cursor: FILE_ITERATION_CURSOR
+			-- <Precursor>
+		do
+			create Result.make_open_read (internal_file)
+		end
+
 feature -- Element change
 
 	extend (v: CHARACTER)
@@ -1119,7 +1201,7 @@ feature -- Element change
 		deferred
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write `s' at current position.
 		local
 			i: INTEGER
@@ -1828,7 +1910,7 @@ feature {FILE} -- Implementation
 		local
 			t: SYSTEM_DATE_TIME
 		once
-			t.make_with_year_and_month (1970 ,1 ,1 ,0 ,0 ,0)
+			t.make (1970 ,1 ,1 ,0 ,0 ,0)
 			Result := t.ticks
 		end
 
@@ -1946,7 +2028,7 @@ invariant
 
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

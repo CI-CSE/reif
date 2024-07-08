@@ -16,7 +16,6 @@ inherit
 			is_assembly,
 			class_by_name,
 			name_by_class,
-			options,
 			is_group_equivalent,
 			is_readonly,
 			accessible_groups,
@@ -40,14 +39,11 @@ feature {NONE} -- Initialization
 			an_assembly_key_not_void: an_assembly_key /= Void
 			a_target_not_void: a_target /= Void
 		do
-			target := a_target
-			is_valid := True
-			set_name (a_name.as_lower)
+			make (a_name, create {CONF_FILE_LOCATION}.make ({STRING_32} "", a_target), a_target)
 			assembly_name := an_assembly_name
 			assembly_version := an_assembly_version
 			assembly_culture := an_assembly_culture
 			assembly_public_key_token := an_assembly_key
-			create location.make ({STRING_32} "", a_target)
 			is_non_local_assembly := True
 		ensure
 			is_valid: is_valid
@@ -124,21 +120,14 @@ feature -- Access queries
 			-- Get class by name.
 		local
 			l_dep: CONF_GROUP
-			l_groups: like accessible_groups
 		do
 			Result := Precursor (a_class, a_dependencies)
 			if a_dependencies then
-				l_groups := accessible_groups
-				from
-					l_groups.start
-				until
-					l_groups.after
-				loop
-					l_dep := l_groups.item_for_iteration
+				across accessible_groups as g loop
+					l_dep := g
 					if l_dep.classes_set then
 						Result.append (l_dep.class_by_name (a_class, False))
 					end
-					l_groups.forth
 				end
 			end
 		end
@@ -171,13 +160,25 @@ feature -- Access queries
 	options: CONF_OPTION
 			-- Options of this assembly.
 		once
-				-- assemblies have no options
-			create Result
+				-- Assemblies have no options.
+			Result := {CONF_OPTION}.create_from_namespace_or_latest (latest_namespace)
+		end
+
+	adapted_options: CONF_OPTION
+			-- Options of this assembly adapted to the current project.
+		once
+			Result := options
 		end
 
 	class_options: detachable STRING_TABLE [CONF_OPTION]
 			-- Options of classes in the assembly.
 		do
+		end
+
+	adapted_class_options: detachable STRING_TABLE [CONF_OPTION]
+			-- Options of classes in the assembly adapted to the current project.
+		do
+				-- Classes in assemblies have no options.
 		end
 
 	sub_group_by_name (a_name: READABLE_STRING_GENERAL): detachable CONF_GROUP
@@ -277,7 +278,8 @@ feature -- Visit
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

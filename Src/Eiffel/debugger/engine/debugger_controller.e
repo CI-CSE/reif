@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that control the debugger session"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -75,7 +75,7 @@ feature -- Debug Operation
 				Eiffel_system.system.msil_generation_type.same_string_general ("dll")
 			then
 				warning (debugger_names.m_no_debugging_for_dll_system)
-			elseif (not manager.application_is_executing) then
+			elseif not manager.application_is_executing then
 					--| Application is not running |--
 				if
 					Eiffel_project.initialized and then
@@ -220,7 +220,7 @@ feature -- Attach
 				Eiffel_system.system.msil_generation_type.same_string_general ("dll")
 			then
 				warning (debugger_names.m_no_debugging_for_dll_system)
-			elseif (not manager.application_is_executing) then
+			elseif not manager.application_is_executing then
 					--| Application is not running |--
 				if
 					Eiffel_project.initialized and then
@@ -323,7 +323,6 @@ feature -- Start Operation
 			f: RAW_FILE
 			make_f: RAW_FILE
 			system_name: STRING
-			env8: like environment_variables_to_string_8
 			env32: like environment_variables_updated_with
 			launch_it: BOOLEAN
 		do
@@ -362,16 +361,12 @@ feature -- Start Operation
 					if launch_it then
 						env32 := environment_variables_updated_with (param.environment_variables, False)
 						env32.force (project_location.workbench_path.name, {STRING_32} "MELT_PATH")
-						env8 := environment_variables_to_string_8 (env32)
-						check
-							env8_not_void: env8 /= Void
-						end
 						create cmd_exec
 						cmd_exec.execute_with_args_and_working_directory_and_environment (
 									safe_path (appl_name.name),
 									param.arguments,
 									param.working_directory,
-									env8
+									env32
 								)
 					end
 				end
@@ -385,7 +380,7 @@ feature -- Start Operation
 			f: RAW_FILE
 			make_f: RAW_FILE
 			system_name: STRING
-			env8: like environment_variables_to_string_8
+			env32: like environment_variables_updated_with
 			launch_it: BOOLEAN
 		do
 			if Eiffel_project.initialized and then Eiffel_project.system_defined then
@@ -422,12 +417,12 @@ feature -- Start Operation
 					end
 					if launch_it then
 						create cmd_exec
-						env8 := environment_variables_to_string_8 (environment_variables_updated_with (param.environment_variables, True))
+						env32 := environment_variables_updated_with (param.environment_variables, True)
 						cmd_exec.execute_with_args_and_working_directory_and_environment (
 									safe_path (appl_name.name),
 									param.arguments,
 									param.working_directory,
-									env8
+									env32
 								)
 					end
 				end
@@ -561,11 +556,8 @@ feature {NONE} -- Implementation
 
 	directory_exists (a_dirname: PATH): BOOLEAN
 			-- Is directory named `a_dirname' exists ?
-		local
-			d: DIRECTORY
 		do
-			create d.make_with_path (a_dirname)
-			Result := d.exists
+			Result := (create {DIRECTORY}.make_with_path (a_dirname)).exists
 		end
 
 feature -- Environment related
@@ -648,36 +640,12 @@ feature -- Environment related
 			Result_not_void_unless_unchanged: Result = Void implies (return_void_if_unchanged and (env = Void or else env.is_empty))
 		end
 
-	environment_variables_to_string_8 (env32: HASH_TABLE [STRING_32, STRING_32]): HASH_TABLE [STRING, STRING]
-			-- String representation of the Environment variables
-		local
-			k,v: STRING_32
-		do
-			if env32 /= Void then
-				create Result.make (env32.count)
-				from
-					env32.start
-				until
-					env32.after
-				loop
-					k := env32.key_for_iteration
-					v := env32.item_for_iteration
-					if k /= Void and v /= Void then --| let's be careful ...
-						Result.force (v.as_string_8, k.as_string_8)
-					end
-					env32.forth
-				end
-			end
-		ensure
-			Result = Void implies env32 = Void
-		end
-
 invariant
 
 	manager_not_void: manager /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

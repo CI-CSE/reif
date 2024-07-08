@@ -5,7 +5,7 @@ note
 		"Compilation tasks for ISE Eiffel"
 
 	library: "Gobo Eiffel Ant"
-	copyright: "Copyright (c) 2001-2015, Eric Bezault and others"
+	copyright: "Copyright (c) 2001-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -34,11 +34,32 @@ feature {NONE} -- Initialization
 		do
 			Precursor {GEANT_TASK} (a_project, an_xml_element)
 
+				-- executable:
+			if has_attribute (Executable_attribute_name) then
+				a_value := attribute_value_or_default (Executable_attribute_name, "")
+				if a_value.count > 0 then
+					command.set_executable_filename (a_value)
+				end
+			end
 				-- ace:
 			if has_attribute (Ace_attribute_name) then
 				a_value := attribute_value_or_default (Ace_attribute_name, "")
 				if a_value.count > 0 then
-					command.set_ace_filename (a_value)
+					command.set_ecf_filename (a_value)
+				end
+			end
+				-- ecf:
+			if has_attribute (Ecf_attribute_name) then
+				a_value := attribute_value_or_default (Ecf_attribute_name, "")
+				if a_value.count > 0 then
+					command.set_ecf_filename (a_value)
+				end
+			end
+				-- target:
+			if has_attribute (Target_attribute_name) then
+				a_value := attribute_value_or_default (Target_attribute_name, "")
+				if a_value.count > 0 then
+					command.set_target_name (a_value)
 				end
 			end
 				-- system:
@@ -101,10 +122,37 @@ feature -- Access
 
 feature {NONE} -- Constants
 
+	Executable_attribute_name: STRING
+			-- Name of xml attribute for "executable"
+		once
+			Result := "executable"
+		ensure
+			attribute_name_not_void: Result /= Void
+			atribute_name_not_empty: Result.count > 0
+		end
+
 	Ace_attribute_name: STRING
 			-- Name of xml attribute for "ace"
 		once
 			Result := "ace"
+		ensure
+			attribute_name_not_void: Result /= Void
+			atribute_name_not_empty: Result.count > 0
+		end
+
+	Ecf_attribute_name: STRING
+			-- Name of xml attribute for "ecf"
+		once
+			Result := "ecf"
+		ensure
+			attribute_name_not_void: Result /= Void
+			atribute_name_not_empty: Result.count > 0
+		end
+
+	Target_attribute_name: STRING
+			-- Name of xml attribute for "target"
+		once
+			Result := "target"
 		ensure
 			attribute_name_not_void: Result /= Void
 			atribute_name_not_empty: Result.count > 0

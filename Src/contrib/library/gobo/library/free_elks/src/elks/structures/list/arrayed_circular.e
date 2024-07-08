@@ -1,12 +1,12 @@
-note
+﻿note
 	description: "Circular chains implemented by resizable arrays"
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: arrayed_circular, ring, sequence;
-	representation: array;
-	access: index, cursor, membership;
-	contents: generic;
+	names: arrayed_circular, ring, sequence
+	representation: array
+	access: index, cursor, membership
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -17,35 +17,50 @@ class ARRAYED_CIRCULAR [G] inherit
 			readable, isfirst, writable, is_equal
 		redefine
 			start, islast, wipe_out
-		select
-			remove, go_i_th, after, before, off,
-			prune_all, prune, first, forth
 		end
 
+inherit {NONE}
+
 	LIST [G]
-		rename
-			after as l_after,
-			before as l_before,
-			remove as l_remove,
-			first as l_first,
-			off as l_off,
-			prune as l_prune,
-			prune_all as l_prune_all,
-			go_i_th as l_go_i_th,
-			forth as l_forth
 		export {NONE}
-			l_after, l_before, l_remove, l_first,
-			l_off, l_prune, l_prune_all, l_go_i_th, l_forth
+			after,
+			before,
+			first,
+			forth,
+			go_i_th,
+			off,
+			prune,
+			prune_all,
+			remove
 		undefine
-			last, exhausted, move, valid_cursor_index,
-			isfirst, readable, islast, start, writable
+			after,
+			before,
+			exhausted,
+			first,
+			go_i_th,
+			isfirst,
+			islast,
+			move,
+			last,
+			off,
+			prune,
+			prune_all,
+			readable,
+			remove,
+			start,
+			valid_cursor_index,
+			writable
 		end
 
 create
 
-	make
+	make,
+	make_from_iterable
 
-feature -- Initialization
+convert
+	make_from_iterable ({ARRAY [G]})
+
+feature {NONE} -- Initialization
 
 	make (n: INTEGER)
 			-- Create a circular chain with `n' items.
@@ -53,6 +68,16 @@ feature -- Initialization
 			at_least_one: n >= 1
 		do
 			create list.make (n)
+		end
+
+	make_from_iterable (other: ITERABLE [G])
+			-- Create a circular chain with all items obtained from `other`.
+		local
+			l: like list
+		do
+			create l.make (estimated_count_of (other))
+			list := l
+			⟳ o: other ¦ l.extend (o) ⟲
 		end
 
 feature -- Access
@@ -113,7 +138,7 @@ feature -- Status report
 				if starter = 0 then
 					Result := list.isfirst
 				else
-					Result := (standard_index = starter)
+					Result := standard_index = starter
 				end
 			end
 		end
@@ -122,10 +147,10 @@ feature -- Status report
 			-- Is cursor on last item?
 		do
 			if not is_empty then
-				if (starter = 0) or (starter = 1) then
+				if starter = 0 or starter = 1 then
 					Result := standard_islast
 				else
-					Result := (standard_index = starter - 1)
+					Result := standard_index = starter - 1
 				end
 			end
 		end
@@ -274,6 +299,7 @@ feature {ARRAYED_CIRCULAR} -- Implementation
 			-- A newly created instance of the same type.
 			-- This feature may be redefined in descendants so as to
 			-- produce an adequately allocated and initialized object.
+		obsolete "Use explicit creation instead. See also explanations for `duplicate`. [2018-11-30]"
 		do
 			create Result.make (count)
 		end
@@ -371,7 +397,7 @@ invariant
 	valid_starter: starter >= 0 and starter <= count
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

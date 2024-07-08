@@ -31,32 +31,34 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	problem_reports (a_page_number: INTEGER; a_rows_per_page: INTEGER; a_username: STRING;  a_category: INTEGER; a_status, a_column: READABLE_STRING_32; a_order: INTEGER; a_filter: READABLE_STRING_32; a_content: INTEGER): DATABASE_ITERATION_CURSOR [REPORT]
+	problem_reports (a_page_number: INTEGER; a_rows_per_page: INTEGER; a_username: READABLE_STRING_GENERAL;  a_category: INTEGER; a_status, a_column: READABLE_STRING_32; a_order: INTEGER; a_filter: READABLE_STRING_32; a_content: INTEGER): DATABASE_ITERATION_CURSOR [REPORT]
 			-- Problem reports for user with username `a_username'
 			-- Open reports only if `a_open_only', all reports otherwise.
 		local
 			l_parameters: STRING_TABLE [ANY]
-			l_query: STRING
+			l_query: STRING_32
 			l_encoder: DATABASE_SQL_SERVER_ENCODER
 		do
-			log.write_information (generator + ".problem_reports_2")
+			debug
+				log.write_information (generator + ".problem_reports_2")
+			end
 			create l_parameters.make (6)
 			l_parameters.put (a_rows_per_page, "RowsPerPage")
 			l_parameters.put (a_rows_per_page * a_page_number, "Offset")
-			l_parameters.put (l_encoder.encode (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
+			l_parameters.put (l_encoder.encoded_string (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (a_category, {DATA_PARAMETERS_NAMES}.categoryid_param)
 			if not a_filter.is_empty then
-				l_parameters.put (l_encoder.encode (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+				l_parameters.put (l_encoder.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
 			end
-			create l_query.make_from_string (Select_problem_reports_by_user_template)
+			create l_query.make_from_string_general (Select_problem_reports_by_user_template)
 			if a_order = 1 then
-				l_query.replace_substring_all ("$ORD1", "ASC")
-				l_query.replace_substring_all ("$ORD2", "DESC")
+				l_query.replace_substring_all ({STRING_32} "$ORD1", {STRING_32} "ASC")
+				l_query.replace_substring_all ({STRING_32} "$ORD2", {STRING_32} "DESC")
 			else
-				l_query.replace_substring_all ("$ORD1", "DESC")
-				l_query.replace_substring_all ("$ORD2", "ASC")
+				l_query.replace_substring_all ({STRING_32} "$ORD1", {STRING_32} "DESC")
+				l_query.replace_substring_all ({STRING_32} "$ORD2", {STRING_32} "ASC")
 			end
-			l_query.replace_substring_all ("$Column", l_encoder.encode (string_parameter (a_column, 30)).to_string_8)
+			l_query.replace_substring_all ({STRING_32} "$Column", l_encoder.encoded_string (string_parameter (a_column, 30)))
 
 			-- Filter search.
 			if
@@ -65,18 +67,18 @@ feature -- Access
 			then
 				if a_content = 1 then
 						-- Search by Synopsis, ToReproduce, Descriptions, Interactions.
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", filter_by_content)
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", filter_by_content)
 				else
 						-- Search only by Synopsis
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
 				end
 			else
 					-- No filter
-				l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", "")
+				l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} "")
 			end
 
 				--| Need to be updated to build the set based on user selection.
-			l_query.replace_substring_all ("$StatusSet", "(" + l_encoder.encode (a_status) + ")")
+			l_query.replace_substring_all ({STRING_32} "$StatusSet", {STRING_32} "(" + l_encoder.encoded_string (a_status) + {STRING_32} ")")
 
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
 			db_handler.execute_query
@@ -92,10 +94,12 @@ feature -- Access
 			-- by the default the order by is done on Number.
 		local
 			l_parameters: STRING_TABLE [ANY]
-			l_query: STRING
+			l_query: STRING_32
 			l_encode: DATABASE_SQL_SERVER_ENCODER
 		do
-			log.write_information (generator + ".problem_reports_guest_2")
+			debug
+				log.write_information (generator + ".problem_reports_guest_2")
+			end
 			to_implement ("Improve the way to generate the prepare statement.")
 			create l_parameters.make (4)
 			l_parameters.put (a_rows_per_page, "RowsPerPage")
@@ -103,7 +107,7 @@ feature -- Access
 			l_parameters.put (string_parameter (a_username, 100),{DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (a_category, {DATA_PARAMETERS_NAMES}.Categoryid_param)
 			if attached a_filter then
-				l_parameters.put (l_encode.encode (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
 			end
 			create l_query.make_from_string (Select_problem_reports_template)
 			if a_order = 1 then
@@ -113,7 +117,7 @@ feature -- Access
 				l_query.replace_substring_all ("$ORD1", "DESC")
 				l_query.replace_substring_all ("$ORD2", "ASC")
 			end
-			l_query.replace_substring_all ("$Column", l_encode.encode (string_parameter (a_column.to_string_32, 30)).to_string_8)
+			l_query.replace_substring_all ("$Column", l_encode.encoded_string (string_parameter (a_column.to_string_32, 30)).to_string_8)
 
 				-- Filter search.
 			if
@@ -133,12 +137,51 @@ feature -- Access
 			end
 
 			--| Need to be updated to build the set based on user selection.
-			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encode (a_status.to_string_32) + ")")
+			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encoded_string (a_status).to_string_8 + ")")
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
 			db_handler.execute_query
 			create Result.make (db_handler, agent new_report)
 			post_execution
 		end
+
+	problem_reports_closed_guest (a_page_number: INTEGER; a_rows_per_page: INTEGER; a_column: READABLE_STRING_8; a_order: INTEGER; a_username: READABLE_STRING_32; a_filter:READABLE_STRING_32): DATABASE_ITERATION_CURSOR [REPORT]
+			-- All Problem reports closed or won't fix for guest users for the previous weeks ( the last 7 days)
+			-- Only not confidential reports
+			-- Filtered category `a_category' and status `a_status'
+			-- Order by column `a_column' in a DESC or ASC.
+			-- by the default the order by is done on Number.
+		local
+			l_parameters: STRING_TABLE [ANY]
+			l_query: STRING_32
+			l_encode: DATABASE_SQL_SERVER_ENCODER
+		do
+			debug
+				log.write_information (generator + ".problem_reports_closed_guest")
+			end
+			create l_parameters.make (4)
+			l_parameters.put (a_rows_per_page, "RowsPerPage")
+			l_parameters.put (a_page_number * a_rows_per_page, "Offset")
+			l_parameters.put (string_parameter (a_username, 100),{DATA_PARAMETERS_NAMES}.Username_param)
+			l_parameters.put (0, {DATA_PARAMETERS_NAMES}.Categoryid_param)
+			if attached a_filter then
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+			end
+			create l_query.make_from_string (Select_problem_reports_closed_template)
+			if a_order = 1 then
+				l_query.replace_substring_all ("$ORD1", "ASC")
+				l_query.replace_substring_all ("$ORD2", "DESC")
+			else
+				l_query.replace_substring_all ("$ORD1", "DESC")
+				l_query.replace_substring_all ("$ORD2", "ASC")
+			end
+			l_query.replace_substring_all ("$Column", l_encode.encoded_string (string_parameter (a_column.to_string_32, 30)).to_string_8)
+
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
+			db_handler.execute_query
+			create Result.make (db_handler, agent new_report)
+			post_execution
+		end
+
 
 	problem_reports_responsibles (a_page_number: INTEGER; a_rows_per_page: INTEGER; a_category: INTEGER; a_severity: INTEGER; a_priority: INTEGER; a_responsible: INTEGER; a_column: READABLE_STRING_32; a_order: INTEGER; a_status: READABLE_STRING_32; a_username: READABLE_STRING_32; a_filter: detachable READABLE_STRING_32; a_content: INTEGER_32): DATABASE_ITERATION_CURSOR [REPORT]
 			-- All Problem reports for responsible users
@@ -149,11 +192,13 @@ feature -- Access
 			-- Reports are searched by Username or FirstName or LastName.
 		local
 			l_parameters: STRING_TABLE [ANY]
-			l_query: STRING
+			l_query: STRING_32
 			l_encode: DATABASE_SQL_SERVER_ENCODER
 			l_query_filter: STRING
 		do
-			log.write_information (generator + ".problem_reports_responsibles")
+			debug
+				log.write_information (generator + ".problem_reports_responsibles")
+			end
 			create l_parameters.make (7)
 			l_parameters.put (a_rows_per_page, "RowsPerPage")
 			l_parameters.put (a_rows_per_page * a_page_number, "Offset")
@@ -162,11 +207,11 @@ feature -- Access
 			l_parameters.put (a_priority, {DATA_PARAMETERS_NAMES}.Priorityid_param)
 			l_parameters.put (a_responsible, {DATA_PARAMETERS_NAMES}.Responsibleid_param)
 			if attached a_filter then
-				l_parameters.put (l_encode.encode (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
 			end
 			create l_query.make_from_string (Select_problem_reports_responsibles_template)
 			if not a_username.is_empty then
-				l_parameters.put (l_encode.encode (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
 				l_query.replace_substring_all ("$Submitter", "(Username = :Username or FirstName = :Username or LastName = :Username) AND")
 			else
 				l_query.replace_substring_all ("$Submitter", "")
@@ -208,7 +253,7 @@ feature -- Access
 				l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", "")
 			end
 
-			l_query.replace_substring_all ("$Column", l_encode.encode (string_parameter (a_column, 30)).to_string_8)
+			l_query.replace_substring_all ("$Column", l_encode.encoded_string (string_parameter (a_column, 30)).to_string_8)
 			if a_order = 1 then
 				l_query.replace_substring_all ("$ORD1", "ASC")
 				l_query.replace_substring_all ("$ORD2", "DESC")
@@ -217,7 +262,27 @@ feature -- Access
 				l_query.replace_substring_all ("$ORD2", "ASC")
 			end
 				--| Need to be updated to build the set based on user selection.
-			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encode (a_status) + ")")
+			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encoded_string (a_status).to_string_8 + ")")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
+			db_handler.execute_query
+			create Result.make (db_handler, agent new_report_responsible)
+			post_execution
+		end
+
+	problem_reports_responsibles_closed (a_page_number: INTEGER; a_rows_per_page: INTEGER): DATABASE_ITERATION_CURSOR [REPORT]
+			-- All Problem reports for responsible users closed or won't-fix.
+			-- All reports are visible for responsible users
+		local
+			l_parameters: STRING_TABLE [ANY]
+			l_query: STRING_32
+		do
+			debug
+				log.write_information (generator + ".problem_reports_responsibles")
+			end
+			create l_parameters.make (2)
+			l_parameters.put (a_rows_per_page, "RowsPerPage")
+			l_parameters.put (a_rows_per_page * a_page_number, "Offset")
+			create l_query.make_from_string (Select_problem_reports_responsibles_closed_template)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
 			db_handler.execute_query
 			create Result.make (db_handler, agent new_report_responsible)
@@ -229,7 +294,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".problem_report")
+			debug
+				log.write_information (generator + ".problem_report")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_number, {DATA_PARAMETERS_NAMES}.number_param)
@@ -247,12 +314,14 @@ feature -- Access
 		end
 
 
-	problem_report_category_subscribers (a_category: STRING): DATABASE_ITERATION_CURSOR [STRING]
+	problem_report_category_subscribers (a_category: READABLE_STRING_32): DATABASE_ITERATION_CURSOR [STRING]
 			-- Problem report subscribers emails for category `a_category'
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".problem_report_category_subscribers")
+			debug
+				log.write_information (generator + ".problem_report_category_subscribers")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_category, 50), {DATA_PARAMETERS_NAMES}.Category_synopsis_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportCategorySubscribers", l_parameters))
@@ -261,12 +330,14 @@ feature -- Access
 			post_execution
 		end
 
-	interaction (a_username: STRING; a_interaction_id: INTEGER; a_report: REPORT): detachable REPORT_INTERACTION
+	interaction (a_username: READABLE_STRING_GENERAL; a_interaction_id: INTEGER; a_report: REPORT): detachable REPORT_INTERACTION
 			-- Problem report interaction given `a_username', `a_interaction_id' and report, if any.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".interaction")
+			debug
+				log.write_information (generator + ".interaction")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_interaction_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -291,7 +362,9 @@ feature -- Access
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_list: LIST [INTEGER]
 		do
-			log.write_information (generator + ".interactions")
+			debug
+				log.write_information (generator + ".interactions")
+			end
 			create {ARRAYED_LIST [REPORT_INTERACTION]} Result.make (0)
 			create {ARRAYED_LIST [INTEGER]} l_list.make (0)
 
@@ -329,7 +402,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".interactions_guest")
+			debug
+				log.write_information (generator + ".interactions_guest")
+			end
 			create {ARRAYED_LIST [REPORT_INTERACTION]} Result.make (0)
 
 			create l_parameters.make (1)
@@ -357,7 +432,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".attachment_headers")
+			debug
+				log.write_information (generator + ".attachment_headers")
+			end
 			create {ARRAYED_LIST [REPORT_ATTACHMENT]} Result.make (0)
 
 			create l_parameters.make (1)
@@ -384,7 +461,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".attachment_headers_guest")
+			debug
+				log.write_information (generator + ".attachment_headers_guest")
+			end
 			create {ARRAYED_LIST [REPORT_ATTACHMENT]} Result.make (0)
 
 			create l_parameters.make (1)
@@ -406,12 +485,14 @@ feature -- Access
 			post_execution
 		end
 
-	attachments_content (a_attachment_id: INTEGER): STRING
+	attachments_content (a_attachment_id: INTEGER): STRING_8
 			-- Attachment content of attachment with ID `a_attachment_id'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".attachment_content")
+			debug
+				log.write_information (generator + ".attachment_content")
+			end
 			create Result.make_empty
 
 			create l_parameters.make (1)
@@ -420,7 +501,7 @@ feature -- Access
 			db_handler.execute_reader
 			if not db_handler.after then
 				db_handler.start
-				if attached {DB_TUPLE} db_handler.item as l_item and then attached {STRING} l_item.item (1) as l_item_1 then
+				if attached {DB_TUPLE} db_handler.item as l_item and then attached {STRING_8} l_item.item (1) as l_item_1 then
 					Result := l_item_1
 				end
 			end
@@ -434,7 +515,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".registration_token_from_username")
+			debug
+				log.write_information (generator + ".registration_token_from_username")
+			end
 			create Result.make_empty
 
 			create l_parameters.make (1)
@@ -457,9 +540,11 @@ feature -- Access
 			l_parameters:STRING_TABLE [ANY]
 			l_encoder: DATABASE_SQL_SERVER_ENCODER
 		do
-			log.write_information (generator + ".user_password_salt")
+			debug
+				log.write_information (generator + ".user_password_salt")
+			end
 			create l_parameters.make (1)
-			l_parameters.put (l_encoder.encode (string_parameter(a_username,50)), {DATA_PARAMETERS_NAMES}.username_param)
+			l_parameters.put (l_encoder.encoded_string (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_user_password_salt, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -469,7 +554,7 @@ feature -- Access
 			post_execution
 		end
 
-	add_user (a_first_name, a_last_name, a_email, a_username, a_password, a_answer, a_token: READABLE_STRING_32; a_question_id: INTEGER)
+	add_user (a_first_name, a_last_name: READABLE_STRING_32; a_email: READABLE_STRING_8; a_username, a_password, a_answer, a_token: READABLE_STRING_32; a_question_id: INTEGER)
 			-- Add user with username `a_username', first name `a_first_name' and last name `a_last_name'.
 		require
 			attached_username: a_username /= Void
@@ -480,12 +565,14 @@ feature -- Access
 			l_security: SECURITY_PROVIDER
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".add_user")
+			debug
+				log.write_information (generator + ".add_user")
+			end
 			create l_security
 			l_answer_salt := l_security.salt
-			l_answer_hash := l_security.password_hash (a_answer, l_answer_salt)
+			l_answer_hash := l_security.password_hash (a_answer.to_string_8, l_answer_salt)
 			l_password_salt := l_security.salt
-			l_password_hash := l_security.password_hash (a_password, l_password_salt)
+			l_password_hash := l_security.password_hash (a_password.to_string_8, l_password_salt)
 
 			create l_parameters.make (10)
 			l_parameters.put (string_parameter (a_first_name, 50), {DATA_PARAMETERS_NAMES}.Firstname_param)
@@ -512,7 +599,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".categories")
+			debug
+				log.write_information (generator + ".categories")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportCategories", l_parameters))
@@ -527,7 +616,9 @@ feature -- Access
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_information (generator + ".all_categories")
+			debug
+				log.write_information (generator + ".all_categories")
+			end
 			create l_parameters.make (0)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_categories, l_parameters))
 			db_handler.execute_query
@@ -541,7 +632,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".classes")
+			debug
+				log.write_information (generator + ".classes")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportClasses", l_parameters))
 			db_handler.execute_reader
@@ -555,7 +648,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".severities")
+			debug
+				log.write_information (generator + ".severities")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportSeverities", l_parameters))
 			db_handler.execute_reader
@@ -569,7 +664,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".priorities")
+			debug
+				log.write_information (generator + ".priorities")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportPriorities", l_parameters))
 			db_handler.execute_reader
@@ -583,7 +680,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".status")
+			debug
+				log.write_information (generator + ".status")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportStatus", l_parameters))
 			db_handler.execute_reader
@@ -597,7 +696,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".countries")
+			debug
+				log.write_information (generator + ".countries")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportSeverities", l_parameters))
 			db_handler.execute_reader
@@ -612,7 +713,7 @@ feature -- Access
 	last_interaction_id: INTEGER
 			-- Number of last submitted interaction_id if `commit_interaction' was called successfully.
 
-	temporary_problem_report (a_id: INTEGER): detachable TUPLE [synopsis: detachable STRING; release: detachable STRING; confidential: detachable STRING; environment: detachable STRING; description: detachable STRING; toreproduce: detachable STRING; priority_synopsis: detachable STRING; category_synopsis: detachable STRING; severity_synopsis: detachable STRING; class_synopsis: detachable STRING; user_name: detachable STRING; responsible: detachable STRING]
+	temporary_problem_report (a_id: INTEGER): detachable TUPLE [synopsis: detachable STRING_32; release: detachable STRING; confidential: detachable STRING; environment: detachable STRING; description: detachable STRING_32; toreproduce: detachable STRING_32; priority_synopsis: detachable STRING_32; category_synopsis: detachable STRING; severity_synopsis: detachable STRING; class_synopsis: detachable STRING; user_name: detachable STRING; responsible: detachable STRING]
 			-- Temporary problem report
 			--			Synopsis,
 			--			Release,
@@ -629,7 +730,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".temporary_problem_report")
+			debug
+				log.write_information (generator + ".temporary_problem_report")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_id, {DATA_PARAMETERS_NAMES}.Reportid_param)
@@ -641,7 +744,7 @@ feature -- Access
 				across
 					1 |..| 12 as i
 				loop
-					Result [i.item] := db_handler.read_string (i.item)
+					Result [i.item] := db_handler.read_string_32 (i.item)
 				end
 			end
 
@@ -653,7 +756,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".problem_reports_for_edition")
+			debug
+				log.write_information (generator + ".problem_reports_for_edition")
+			end
 			create l_parameters.make (4)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (string_parameter (a_first_name, 50), {DATA_PARAMETERS_NAMES}.Firstname_param)
@@ -679,7 +784,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".responsibles")
+			debug
+				log.write_information (generator + ".responsibles")
+			end
 			create l_parameters.make (0)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportResponsibles", l_parameters))
 			db_handler.execute_reader
@@ -697,7 +804,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".temporary_interaction_2")
+			debug
+				log.write_information (generator + ".temporary_interaction_2")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -709,9 +818,7 @@ feature -- Access
 				across
 					1 |..| 5 as i
 				loop
-					if attached db_handler.read_string (i.item) as l_item then
-						Result [i.item] := l_item.as_string_32
-					end
+					Result [i.item] := db_handler.read_string_32 (i.item)
 				end
 			end
 
@@ -728,7 +835,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".temporary_interaction_3")
+			debug
+				log.write_information (generator + ".temporary_interaction_3")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -754,7 +863,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".temporary_problem_report_attachments")
+			debug
+				log.write_information (generator + ".temporary_problem_report_attachments")
+			end
 
 			create {ARRAYED_LIST [TUPLE [id: INTEGER_32; length: INTEGER_32; filename: READABLE_STRING_32]]} Result.make (0)
 			create l_parameters.make (1)
@@ -782,7 +893,9 @@ feature -- Access
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".temporary_interation_attachments")
+			debug
+				log.write_information (generator + ".temporary_interation_attachments")
+			end
 
 			create {ARRAYED_LIST [TUPLE [id: INTEGER_32; length: INTEGER_32; filename: READABLE_STRING_32]]} Result.make (0)
 			create l_parameters.make (1)
@@ -805,14 +918,16 @@ feature -- Access
 			post_execution
 		end
 
-	subscribed_categories (a_username: STRING): DATABASE_ITERATION_CURSOR [ TUPLE [categoryId:INTEGER; synopsis:STRING; subscribed:INTEGER] ]
+	subscribed_categories (a_username: READABLE_STRING_GENERAL): DATABASE_ITERATION_CURSOR [ TUPLE [categoryId:INTEGER; synopsis:STRING; subscribed:INTEGER] ]
 			-- Table associating each category with boolean value specifying whether responsible `a_username'
 			-- is subscribed for receiving email notifications when reports or interactions are created in
 			-- category
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".responsibles")
+			debug
+				log.write_information (generator + ".responsibles")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetProblemReportSubscribedCategories2", l_parameters))
@@ -821,22 +936,24 @@ feature -- Access
 			post_execution
 		end
 
-
-	interaction_content (a_id: INTEGER): detachable STRING
+	interaction_content (a_id: INTEGER): detachable STRING_32
 		local
 			l_parameters:STRING_TABLE [ANY]
 		do
-			log.write_information (generator + ".interaction_by_id")
+			debug
+				log.write_information (generator + ".interaction_by_id")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (a_id, "id")
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_interaction_content, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
 				db_handler.start
-				Result := db_handler.read_string (1)
+				Result := db_handler.read_string_32 (1)
 			end
 			post_execution
 		end
+
 feature -- Basic Operations
 
 	new_problem_report_id (a_username: READABLE_STRING_32): INTEGER
@@ -844,7 +961,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".new_problem_report_id")
+			debug
+				log.write_information (generator + ".new_problem_report_id")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_username, {DATA_PARAMETERS_NAMES}.Username_param)
@@ -866,7 +985,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".row_count_problem_report_guest")
+			debug
+				log.write_information (generator + ".row_count_problem_report_guest")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_category, {DATA_PARAMETERS_NAMES}.Categoryid_param)
@@ -890,15 +1011,17 @@ feature -- Basic Operations
 		local
 			l_parameters: STRING_TABLE [ANY]
 			l_encode: DATABASE_SQL_SERVER_ENCODER
-			l_query: STRING
+			l_query: STRING_32
 		do
-			log.write_information (generator + ".row_count_problem_report_guest")
+			debug
+				log.write_information (generator + ".row_count_problem_report_guest")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (a_category, {DATA_PARAMETERS_NAMES}.Categoryid_param)
 			if attached a_filter then
-				l_parameters.put (l_encode.encode (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
 			end
 			create l_query.make_from_string (Select_row_count_problem_reports)
 
@@ -909,18 +1032,50 @@ feature -- Basic Operations
 			then
 				if a_content = 1 then
 						-- Search by Synopsis, ToReproduce, Descriptions, Interactions.
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", filter_by_content)
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", filter_by_content)
 				else
 						-- Search only by Synopsis
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
 				end
 			else
 					-- No filter
-				l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", "")
+				l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} "")
 			end
 
 			--| Need to be updated to build the set based on user selection.
-			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encode (a_status) + ")")
+			l_query.replace_substring_all ({STRING_32} "$StatusSet", {STRING_32} "(" + l_encode.encoded_string (a_status) + {STRING_32} ")")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
+			db_handler.execute_query
+			if not db_handler.after then
+				db_handler.start
+				if attached db_handler.read_integer_32 (1) as l_count then
+					Result := l_count
+				end
+			end
+
+			post_execution
+		end
+
+	row_count_problem_reports_closed (a_username: READABLE_STRING_32; a_filter: READABLE_STRING_32;): INTEGER
+			-- Row count closed or won't fix reports for guest users, for the last week.
+			-- users with role user.
+		local
+			l_parameters: STRING_TABLE [ANY]
+			l_encode: DATABASE_SQL_SERVER_ENCODER
+			l_query: STRING_32
+		do
+			debug
+				log.write_information (generator + ".row_count_problem_reports_closed")
+			end
+
+			create l_parameters.make (2)
+			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
+			l_parameters.put (0, {DATA_PARAMETERS_NAMES}.Categoryid_param)
+			if attached a_filter then
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+			end
+			create l_query.make_from_string (Select_row_count_problem_reports_closed_guest)
+
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -939,25 +1094,27 @@ feature -- Basic Operations
 			-- Updated to search for Username, LastName or FirstName.
 		local
 			l_parameters: STRING_TABLE [ANY]
-			l_query: STRING
+			l_query: STRING_32
 			l_encode: DATABASE_SQL_SERVER_ENCODER
 		do
-			log.write_information (generator + ".row_count_problem_report_responsible")
+			debug
+				log.write_information (generator + ".row_count_problem_report_responsible")
+			end
 
 			create l_parameters.make (6)
 			l_parameters.put (a_category, {DATA_PARAMETERS_NAMES}.Categoryid_param)
 			l_parameters.put (a_severity, {DATA_PARAMETERS_NAMES}.Severityid_param)
 			l_parameters.put (a_priority, {DATA_PARAMETERS_NAMES}.Priorityid_param)
 			l_parameters.put (a_responsible, {DATA_PARAMETERS_NAMES}.Responsibleid_param)
-			l_parameters.put (l_encode.encode (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
+			l_parameters.put (l_encode.encoded_string (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
 			if attached a_filter then
-				l_parameters.put (l_encode.encode (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
 			end
 			create l_query.make_from_string (select_row_count_problem_reports_responsibles)
 			if not a_username.is_empty then
-				l_query.replace_substring_all ("$Submitter", "(Username = :Username or FirstName = :Username or LastName = :Username) AND")
+				l_query.replace_substring_all ({STRING_32} "$Submitter", {STRING_32} "(Username = :Username or FirstName = :Username or LastName = :Username) AND")
 			else
-				l_query.replace_substring_all ("$Submitter", "")
+				l_query.replace_substring_all ({STRING_32} "$Submitter", {STRING_32} "")
 			end
 				-- Filter search.
 			if
@@ -966,17 +1123,17 @@ feature -- Basic Operations
 			then
 				if a_content = 1 then
 						-- Search by Synopsis, ToReproduce, Descriptions, Interactions.
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", filter_by_content)
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", filter_by_content)
 				else
 						-- Search only by Synopsis
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
 				end
 			else
 					-- No filter
-				l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", "")
+				l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} "")
 			end
 				--| Need to be updated to build the set based on user selection.
-			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encode (a_status) + ")")
+			l_query.replace_substring_all ({STRING_32} "$StatusSet", {STRING_32} "(" + l_encode.encoded_string (a_status) + {STRING_32} ")")
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -989,21 +1146,48 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	row_count_problem_report_user (a_username: READABLE_STRING_32; a_category:INTEGER; a_status:READABLE_STRING_8; a_filter: READABLE_STRING_32; a_content: INTEGER_32): INTEGER
+	row_count_problem_report_responsible_closed: INTEGER
+			-- Number of problems reports closed or won't fix visible for responsible users for the last week.
+		local
+			l_parameters: STRING_TABLE [ANY]
+			l_query: STRING_32
+		do
+			debug
+				log.write_information (generator + ".row_count_problem_report_responsible_closed")
+			end
+
+			create l_parameters.make (0)
+			create l_query.make_from_string (select_row_count_problem_reports_responsibles_closed)
+
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
+			db_handler.execute_query
+			if not db_handler.after then
+				db_handler.start
+				if attached db_handler.read_integer_32 (1) as l_count then
+					Result := l_count
+				end
+			end
+
+			post_execution
+		end
+
+	row_count_problem_report_user (a_username: READABLE_STRING_32; a_category:INTEGER; a_status: READABLE_STRING_GENERAL; a_filter: READABLE_STRING_32; a_content: INTEGER_32): INTEGER
 			-- Number of problem reports for user with username `a_username'
 			-- Open reports only if `a_open_only', all reports otherwise, filetred by category and status.
 		local
 			l_parameters: STRING_TABLE [ANY]
 			l_encode: DATABASE_SQL_SERVER_ENCODER
-			l_query: STRING
+			l_query: STRING_32
 		do
-			log.write_information (generator + ".row_count_problem_report_user")
+			debug
+				log.write_information (generator + ".row_count_problem_report_user")
+			end
 
 			create l_parameters.make (4)
-			l_parameters.put (l_encode.encode (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
+			l_parameters.put (l_encode.encoded_string (string_parameter (a_username, 50)), {DATA_PARAMETERS_NAMES}.Username_param)
 			l_parameters.put (a_category, {DATA_PARAMETERS_NAMES}.Categoryid_param)
 			if not a_filter.is_empty then
-				l_parameters.put (l_encode.encode (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
+				l_parameters.put (l_encode.encoded_string (string_parameter (a_filter, 100)), {DATA_PARAMETERS_NAMES}.Filter_param)
 			end
 
 			create l_query.make_from_string (Select_row_count_problem_report_by_user)
@@ -1015,17 +1199,17 @@ feature -- Basic Operations
 			then
 				if a_content = 1 then
 						-- Search by Synopsis, ToReproduce, Descriptions, Interactions.
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", filter_by_content)
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", filter_by_content)
 				else
 						-- Search only by Synopsis
-					l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
+					l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} " AND (( ProblemReports.Synopsis like '%%' + :Filter + '%%'))")
 				end
 			else
 					-- No filter
-				l_query.replace_substring_all ("$SearchBySynopsisAndOrDescription", "")
+				l_query.replace_substring_all ({STRING_32} "$SearchBySynopsisAndOrDescription", {STRING_32} "")
 			end
 				--| Need to be updated to build the set based on user selection.
-			l_query.replace_substring_all ("$StatusSet", "(" + l_encode.encode (a_status.to_string_32) + ")")
+			l_query.replace_substring_all ({STRING_32} "$StatusSet", {STRING_32} "(" + l_encode.encoded_string (a_status) + {STRING_32} ")")
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (l_query, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -1044,7 +1228,9 @@ feature -- Basic Operations
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_int: INTEGER
 		do
-			log.write_information (generator + ".commit_problem_report")
+			debug
+				log.write_information (generator + ".commit_problem_report")
+			end
 			set_last_problem_report_number (l_int)
 
 			create l_parameters.make (1)
@@ -1069,7 +1255,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_temporary_problem_report")
+			debug
+				log.write_information (generator + ".remove_temporary_problem_report")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_report_id, {DATA_PARAMETERS_NAMES}.Reportid_param)
@@ -1099,9 +1287,10 @@ feature -- Basic Operations
 			attached_to_reproduce: a_to_reproduce /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
-			utf: UTF_CONVERTER
 		do
-			log.write_information (generator + ".initialize_problem_report")
+			debug
+				log.write_information (generator + ".initialize_problem_report")
+			end
 
 			create l_parameters.make (11)
 			l_parameters.put (a_report_id, {DATA_PARAMETERS_NAMES}.Reportid_param)
@@ -1113,7 +1302,7 @@ feature -- Basic Operations
 			l_parameters.put (string_parameter (a_synopsis, 100), {DATA_PARAMETERS_NAMES}.Synopsis_param)
 			l_parameters.put (string_parameter (a_release, 50), {DATA_PARAMETERS_NAMES}.Release_param)
 			l_parameters.put (string_parameter (a_environment, 200), {DATA_PARAMETERS_NAMES}.Environment_param)
-			l_parameters.put (utf.escaped_utf_32_string_to_utf_8_string_8 (a_description) , {DATA_PARAMETERS_NAMES}.Description_param)
+			l_parameters.put (a_description , {DATA_PARAMETERS_NAMES}.Description_param)
 			l_parameters.put (a_to_reproduce, {DATA_PARAMETERS_NAMES}.Toreproduce_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("InitializeProblemReport", l_parameters))
 			db_handler.execute_reader
@@ -1143,7 +1332,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".update_problem_report")
+			debug
+				log.write_information (generator + ".update_problem_report")
+			end
 
 			create l_parameters.make (11)
 			l_parameters.put (a_pr, {DATA_PARAMETERS_NAMES}.Number_param)
@@ -1168,7 +1359,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".set_problem_report_responsible")
+			debug
+				log.write_information (generator + ".set_problem_report_responsible")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_number, {DATA_PARAMETERS_NAMES}.Number_param)
@@ -1179,7 +1372,7 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	new_interaction_id (a_username: STRING; a_pr_number: INTEGER): INTEGER
+	new_interaction_id (a_username: READABLE_STRING_GENERAL; a_pr_number: INTEGER): INTEGER
 			-- Id of added interaction by user `a_username' to interactions of pr with number `a_pr_number'.
 		require
 			attached_username: a_username /= Void
@@ -1187,7 +1380,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".new_interaction_id")
+			debug
+				log.write_information (generator + ".new_interaction_id")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
@@ -1204,14 +1399,16 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	initialize_interaction (a_interaction_id: INTEGER; a_category_id: INTEGER; a_content: STRING; a_new_status: INTEGER; a_private: BOOLEAN)
+	initialize_interaction (a_interaction_id: INTEGER; a_category_id: INTEGER; a_content: STRING_32; a_new_status: INTEGER; a_private: BOOLEAN)
 			-- Initialize temporary interaction `a_interaction_id' with content `a_content'.
 		require
 			attached_content: a_content /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".initialize_interaction_2")
+			debug
+				log.write_information (generator + ".initialize_interaction_2")
+			end
 
 			create l_parameters.make (5)
 			l_parameters.put (a_interaction_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -1231,7 +1428,9 @@ feature -- Basic Operations
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_int: INTEGER
 		do
-			log.write_information (generator + ".commit_interaction")
+			debug
+				log.write_information (generator + ".commit_interaction")
+			end
 			set_last_interaction_id (l_int)
 
 			create l_parameters.make (1)
@@ -1254,12 +1453,14 @@ feature -- Basic Operations
 				--			delete_problem_report_temporary_interactions (a_interaction_id)
 		end
 
-	upload_temporary_report_attachment (a_report_id: INTEGER; a_length: INTEGER; a_name: READABLE_STRING_32; a_content: STRING)
+	upload_temporary_report_attachment (a_report_id: INTEGER; a_length: INTEGER; a_name: READABLE_STRING_32; a_content: READABLE_STRING_8)
 			-- Upload attachment in temporary table for temporary report `a_report_id'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".upload_temporary_report_attachment")
+			debug
+				log.write_information (generator + ".upload_temporary_report_attachment")
+			end
 
 			create l_parameters.make (4)
 			l_parameters.put (a_report_id, {DATA_PARAMETERS_NAMES}.Reportid_param)
@@ -1272,12 +1473,14 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	upload_temporary_interaction_attachment (a_interaction_id: INTEGER; a_length: INTEGER; a_name: READABLE_STRING_32; a_content: STRING)
+	upload_temporary_interaction_attachment (a_interaction_id: INTEGER; a_length: INTEGER; a_name: READABLE_STRING_32; a_content: READABLE_STRING_8)
 			-- Upload attachment in temporary table for temporary interaction `a_interaction_id'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".upload_temporary_interaction_attachment")
+			debug
+				log.write_information (generator + ".upload_temporary_interaction_attachment")
+			end
 
 			create l_parameters.make (4)
 			l_parameters.put (a_interaction_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -1290,14 +1493,16 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	remove_temporary_report_attachment (a_report_id: INTEGER; a_filename: STRING)
+	remove_temporary_report_attachment (a_report_id: INTEGER; a_filename: READABLE_STRING_GENERAL)
 			-- Remove a temporary attachment `a_filename' for the report `a_report_id'.
 		require
 			attached_filename: a_filename /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_temporary_report_attachment")
+			debug
+				log.write_information (generator + ".remove_temporary_report_attachment")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_report_id, {DATA_PARAMETERS_NAMES}.Reportid_param)
@@ -1308,14 +1513,16 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	remove_temporary_interaction_attachment (a_interaction_id: INTEGER; a_filename: STRING)
+	remove_temporary_interaction_attachment (a_interaction_id: INTEGER; a_filename: READABLE_STRING_GENERAL)
 			-- Remove all temporary attachment with file name `a_file_name' uploaded by user with username `a_username'.
 		require
 			attached_filename: a_filename /= Void
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_temporary_interaction_attachment")
+			debug
+				log.write_information (generator + ".remove_temporary_interaction_attachment")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_interaction_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -1331,7 +1538,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_all_temporary_report_attachments")
+			debug
+				log.write_information (generator + ".remove_all_temporary_report_attachments")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_report_id, {DATA_PARAMETERS_NAMES}.Reportid_param)
@@ -1346,7 +1555,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".remove_all_temporary_interaction_attachments")
+			debug
+				log.write_information (generator + ".remove_all_temporary_interaction_attachments")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_interaction_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -1364,7 +1575,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".set_problem_report_status")
+			debug
+				log.write_information (generator + ".set_problem_report_status")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_number, {DATA_PARAMETERS_NAMES}.Number_param)
@@ -1383,7 +1596,9 @@ feature -- Basic Operations
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".set_problem_report_category")
+			debug
+				log.write_information (generator + ".set_problem_report_category")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_number, {DATA_PARAMETERS_NAMES}.Number_param)
@@ -1395,14 +1610,16 @@ feature -- Basic Operations
 		end
 
 
-	add_download_interaction (a_username, a_product, a_platform, a_file_name: STRING)
+	add_download_interaction (a_username: READABLE_STRING_32; a_product, a_platform: READABLE_STRING_8; a_file_name: READABLE_STRING_GENERAL)
 			-- Adds a download interaction to the database.
 		local
-				l_parameters: HASH_TABLE [ANY, STRING_32]
-				l_subject: STRING
-				l_notes: STRING
+			l_parameters: HASH_TABLE [ANY, STRING_32]
+			l_subject: STRING_8
+			l_notes: STRING_32
 		do
-			log.write_information (generator + ".add_download_interaction")
+			debug
+				log.write_information (generator + ".add_download_interaction")
+			end
 
 			create l_subject.make (a_product.count + a_platform.count + 40)
 			l_subject.append ("Downloaded ")
@@ -1412,8 +1629,8 @@ feature -- Basic Operations
 			l_subject.append_character (')')
 
 			create l_notes.make (a_file_name.count + 40)
-			l_notes.append ("File downloaded: ")
-			l_notes.append (a_file_name)
+			l_notes.append_string_general ("File downloaded: ")
+			l_notes.append_string_general (a_file_name)
 
 			create l_parameters.make (3)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
@@ -1425,14 +1642,16 @@ feature -- Basic Operations
 		end
 
 
-	add_download_interaction_contact (a_email, a_product, a_platform, a_file_name: STRING)
+	add_download_interaction_contact (a_email, a_product, a_platform: READABLE_STRING_8; a_file_name: READABLE_STRING_GENERAL)
 			-- Adds a download interaction to the database.
 		local
-				l_parameters: HASH_TABLE [ANY, STRING_32]
-				l_subject: STRING
-				l_notes: STRING
+			l_parameters: HASH_TABLE [ANY, STRING_32]
+			l_subject: STRING_8
+			l_notes: STRING_32
 		do
-			log.write_information (generator + ".add_download_interaction_contact")
+			debug
+				log.write_information (generator + ".add_download_interaction_contact")
+			end
 
 			create l_subject.make (a_product.count + a_platform.count + 40)
 			l_subject.append ("Downloaded ")
@@ -1442,8 +1661,8 @@ feature -- Basic Operations
 			l_subject.append_character (')')
 
 			create l_notes.make (a_file_name.count + 40)
-			l_notes.append ("File downloaded: ")
-			l_notes.append (a_file_name)
+			l_notes.append_string_general ("File downloaded: ")
+			l_notes.append_string_general (a_file_name)
 
 			create l_parameters.make (3)
 			l_parameters.put (string_parameter (a_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
@@ -1455,12 +1674,14 @@ feature -- Basic Operations
 		end
 
 
-	initialize_download (a_email: READABLE_STRING_32; a_token: READABLE_STRING_32; a_platform: READABLE_STRING_32; a_company: READABLE_STRING_32; a_first_name: READABLE_STRING_32; a_last_name: READABLE_STRING_32)
+	initialize_download (a_email: READABLE_STRING_8; a_token: READABLE_STRING_32; a_platform: READABLE_STRING_8; a_company: READABLE_STRING_32; a_first_name: READABLE_STRING_32; a_last_name: READABLE_STRING_32)
 			-- Initialize download for a given user with email `a_email' and token `a_token' and platform `a_platform'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".initialize_download")
+			debug
+				log.write_information (generator + ".initialize_download")
+			end
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
 			l_parameters.put (a_token, {DATA_PARAMETERS_NAMES}.Token_param)
@@ -1473,15 +1694,17 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	retrieve_download_details (a_token: READABLE_STRING_32): detachable TUPLE[email: READABLE_STRING_32; platform: READABLE_STRING_32; username: READABLE_STRING_32; org_name: READABLE_STRING_32; phone: READABLE_STRING_32; org_email: READABLE_STRING_32; date: DATE_TIME; company: READABLE_STRING_32;first_name: READABLE_STRING_32; last_name: READABLE_STRING_32]
+	retrieve_download_details (a_token: READABLE_STRING_32): detachable TUPLE [email: READABLE_STRING_8; platform: READABLE_STRING_8; username: READABLE_STRING_32; org_name: READABLE_STRING_32; phone: READABLE_STRING_8; org_email: READABLE_STRING_8; date: DATE_TIME; company: READABLE_STRING_32; first_name: READABLE_STRING_32; last_name: READABLE_STRING_32]
 			-- Retrieve download details as tuple with email and platform for a given token `a_token', if any.
 		local
 			l_parameters: STRING_TABLE [ANY]
 			l_encode: DATABASE_SQL_SERVER_ENCODER
 		do
-			log.write_information (generator + ".retrieve_download_details")
+			debug
+				log.write_information (generator + ".retrieve_download_details")
+			end
 			create l_parameters.make (1)
-			l_parameters.put (l_encode.encode (string_parameter(a_token,50)), {DATA_PARAMETERS_NAMES}.Token_param)
+			l_parameters.put (l_encode.encoded_string (string_parameter(a_token,50)), {DATA_PARAMETERS_NAMES}.Token_param)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_download_details, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -1493,10 +1716,10 @@ feature -- Basic Operations
 				if attached  db_handler.read_string (2) as l_platform then
 					Result.platform := l_platform
 				end
-				if attached  db_handler.read_string (3) as l_username then
+				if attached  db_handler.read_string_32 (3) as l_username then
 					Result.username := l_username
 				end
-				if attached  db_handler.read_string (4) as l_org_name then
+				if attached  db_handler.read_string_32 (4) as l_org_name then
 					Result.org_name := l_org_name
 				end
 				if attached  db_handler.read_string (5) as l_phone then
@@ -1508,31 +1731,33 @@ feature -- Basic Operations
 				if attached  db_handler.read_date_time (7) as l_date then
 					Result.date := l_date
 				end
-				if attached  db_handler.read_string (8) as l_username then
+				if attached  db_handler.read_string_32 (8) as l_username then
 					Result.username := l_username
 				end
-				if attached  db_handler.read_string (9) as l_company then
+				if attached  db_handler.read_string_32 (9) as l_company then
 					Result.company := l_company
 				end
-				if attached  db_handler.read_string (10) as l_first_name then
+				if attached  db_handler.read_string_32 (10) as l_first_name then
 					Result.first_name := l_first_name
 				end
-				if attached  db_handler.read_string (11) as l_last_name then
+				if attached  db_handler.read_string_32 (11) as l_last_name then
 					Result.last_name := l_last_name
 				end
 			end
 			post_execution
 		end
 
-	retrieve_temporary_download_details (a_token: READABLE_STRING_32): detachable TUPLE[email: READABLE_STRING_32; platform: READABLE_STRING_32; username: READABLE_STRING_32; date: DATE_TIME; company: READABLE_STRING_32; first_name: READABLE_STRING_32; last_name: READABLE_STRING_32]
+	retrieve_temporary_download_details (a_token: READABLE_STRING_32): detachable TUPLE [email: READABLE_STRING_8; platform: READABLE_STRING_8; username: READABLE_STRING_32; date: DATE_TIME; company: READABLE_STRING_32; first_name: READABLE_STRING_32; last_name: READABLE_STRING_32]
 			-- Retrieve download details as tuple with email and platform for a given token `a_token', if any.
 		local
 			l_parameters: STRING_TABLE [ANY]
 			l_encode: DATABASE_SQL_SERVER_ENCODER
 		do
-			log.write_information (generator + ".retrieve_download_details")
+			debug
+				log.write_information (generator + ".retrieve_download_details")
+			end
 			create l_parameters.make (1)
-			l_parameters.put (l_encode.encode (string_parameter(a_token,50)), {DATA_PARAMETERS_NAMES}.Token_param)
+			l_parameters.put (l_encode.encoded_string (string_parameter(a_token,50)), {DATA_PARAMETERS_NAMES}.Token_param)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_temporary_download_details, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -1544,19 +1769,19 @@ feature -- Basic Operations
 				if attached  db_handler.read_string (2) as l_platform then
 					Result.platform := l_platform
 				end
-				if attached  db_handler.read_string (3) as l_username then
+				if attached  db_handler.read_string_32 (3) as l_username then
 					Result.username := l_username
 				end
 				if attached  db_handler.read_date_time (4) as l_date then
 					Result.date := l_date
 				end
-				if attached  db_handler.read_string (5) as l_company then
+				if attached  db_handler.read_string_32 (5) as l_company then
 					Result.company := l_company
 				end
-				if attached  db_handler.read_string (6) as l_first_name then
+				if attached  db_handler.read_string_32 (6) as l_first_name then
 					Result.first_name := l_first_name
 				end
-				if attached  db_handler.read_string (7) as l_last_name then
+				if attached  db_handler.read_string_32 (7) as l_last_name then
 					Result.last_name := l_last_name
 				end
 			end
@@ -1564,12 +1789,14 @@ feature -- Basic Operations
 		end
 
 
-	add_contacts_temporary (a_first_name, a_last_name, a_email: READABLE_STRING_32; a_newsletter: INTEGER)
+	add_contacts_temporary (a_first_name, a_last_name: READABLE_STRING_32; a_email: READABLE_STRING_8; a_newsletter: INTEGER)
 			-- Add a contact temporary with first_name `a_first_name', last_name to `a_last_name' and email to `a_email'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".add_contacts_temporary")
+			debug
+				log.write_information (generator + ".add_contacts_temporary")
+			end
 			create l_parameters.make (3)
 			l_parameters.put (string_parameter (a_first_name, 50), {DATA_PARAMETERS_NAMES}.Firstname_param)
 			l_parameters.put (string_parameter (a_last_name, 50), {DATA_PARAMETERS_NAMES}.Lastname_param)
@@ -1581,12 +1808,14 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	add_temporary_contacts_to_contacts ( a_email: READABLE_STRING_32)
+	add_temporary_contacts_to_contacts (a_email: READABLE_STRING_8)
 			-- Add a temporary contact with email  `a_email' to contacts.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".add_temporary_contacts_to_contacts")
+			debug
+				log.write_information (generator + ".add_temporary_contacts_to_contacts")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_writer ("CommitContact", l_parameters))
@@ -1594,12 +1823,14 @@ feature -- Basic Operations
 			post_execution
 		end
 
-	register_newsletter ( a_email: READABLE_STRING_32)
+	register_newsletter (a_email: READABLE_STRING_8)
 			-- Register a contact with email `a_email' to the newsletter.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".register_newsletter")
+			debug
+				log.write_information (generator + ".register_newsletter")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
 
@@ -1616,7 +1847,9 @@ feature -- Status Report
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_res: INTEGER
 		do
-			log.write_information (generator + ".is_report_visible_guest")
+			debug
+				log.write_information (generator + ".is_report_visible_guest")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_number, {DATA_PARAMETERS_NAMES}.number_param)
@@ -1639,7 +1872,9 @@ feature -- Status Report
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_res: INTEGER
 		do
-			log.write_information (generator + ".is_report_visible")
+			debug
+				log.write_information (generator + ".is_report_visible")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (a_username, {DATA_PARAMETERS_NAMES}.Username_param)
@@ -1665,7 +1900,9 @@ feature -- Status Report
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_res: INTEGER
 		do
-			log.write_information (generator + ".interaction_visible")
+			debug
+				log.write_information (generator + ".interaction_visible")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
@@ -1689,7 +1926,9 @@ feature -- Status Report
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_res: INTEGER
 		do
-			log.write_information (generator + ".interaction_visible_guest")
+			debug
+				log.write_information (generator + ".interaction_visible_guest")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_interaction_id, {DATA_PARAMETERS_NAMES}.Interactionid_param)
@@ -1706,7 +1945,7 @@ feature -- Status Report
 			post_execution
 		end
 
-	attachment_visible (a_username: STRING; a_attachment_id: INTEGER): BOOLEAN
+	attachment_visible (a_username: READABLE_STRING_32; a_attachment_id: INTEGER): BOOLEAN
 			-- Can user with username `a_username' see attachment `a_attachment_id'?
 		require
 			attached_username: a_username /= Void
@@ -1714,7 +1953,9 @@ feature -- Status Report
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_res: INTEGER
 		do
-			log.write_information (generator + ".attachment_visible")
+			debug
+				log.write_information (generator + ".attachment_visible")
+			end
 
 			create l_parameters.make (2)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.Username_param)
@@ -1738,7 +1979,9 @@ feature -- Status Report
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 			l_res: INTEGER
 		do
-			log.write_information (generator + ".attachment_visible_guest")
+			debug
+				log.write_information (generator + ".attachment_visible_guest")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_attachment_id, {DATA_PARAMETERS_NAMES}.Attachmentid_param)
@@ -1755,13 +1998,15 @@ feature -- Status Report
 			post_execution
 		end
 
-	register_subscriber (a_username: STRING; a_catID: INTEGER; a_subscribe: BOOLEAN)
+	register_subscriber (a_username: READABLE_STRING_32; a_catID: INTEGER; a_subscribe: BOOLEAN)
 			-- Subscribe responsible `a_username' to category with category ID `a_catID' if `a_subscribe'
 			-- Unsubscribe otherwise.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".register_subscriber")
+			debug
+				log.write_information (generator + ".register_subscriber")
+			end
 			if a_subscribe then
 
 				create l_parameters.make (2)
@@ -1783,11 +2028,13 @@ feature -- Status Report
 			end
 		end
 
-	download_expiration_token_age (a_token: STRING ): INTEGER
+	download_expiration_token_age (a_token: READABLE_STRING_GENERAL): INTEGER
 		local
-			l_parameters: HASH_TABLE[ANY,STRING_32]
+			l_parameters: HASH_TABLE [ANY, STRING_32]
 		do
-			log.write_information (generator + ".download_expiration_token_age")
+			debug
+				log.write_information (generator + ".download_expiration_token_age")
+			end
 			create l_parameters.make (1)
 			l_parameters.put (a_token, {DATA_PARAMETERS_NAMES}.Token_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetDownloadExpirationTokenAge", l_parameters))
@@ -1802,14 +2049,16 @@ feature -- Status Report
 
 	download_expiration_token_age_2 (a_token: STRING ): INTEGER
 		local
-			l_parameters: STRING_TABLE[STRING_32]
+			l_parameters: STRING_TABLE [STRING_32]
 			l_encoder: DATABASE_SQL_SERVER_ENCODER
 		do
 			create l_encoder
 			Result := -1
-			log.write_information (generator + ".download_expiration_token_age_2")
+			debug
+				log.write_information (generator + ".download_expiration_token_age_2")
+			end
 			create l_parameters.make (1)
-			l_parameters.put (l_encoder.encode (string_parameter(a_token,50)), {DATA_PARAMETERS_NAMES}.Token_param)
+			l_parameters.put (l_encoder.encoded_string (string_parameter(a_token,50)), {DATA_PARAMETERS_NAMES}.Token_param)
 			db_handler.set_query (create {DATABASE_QUERY}.data_reader (select_download_expiration, l_parameters))
 			db_handler.execute_query
 			if not db_handler.after then
@@ -1876,8 +2125,6 @@ feature {NONE} -- Implementation
 
 	new_report_detail (a_tuple: DB_TUPLE): REPORT
 			-- Create a new report detail from Database.
-		local
-			utf: UTF_CONVERTER
 		do
 			create Result.make (0, "Null", False)
 
@@ -1886,7 +2133,7 @@ feature {NONE} -- Implementation
 				Result.set_submission_date (l_item_1)
 			end
 				--Synopsis
-			if attached db_handler.read_string (2) as l_item_2 then
+			if attached db_handler.read_string_32 (2) as l_item_2 then
 				Result.set_synopsis (l_item_2)
 			end
 
@@ -1906,12 +2153,13 @@ feature {NONE} -- Implementation
 			end
 
 				--Description
-			if attached db_handler.read_string (6) as l_item_6 then
-				Result.set_description (utf.utf_8_string_8_to_string_32 (l_item_6))
+			if attached db_handler.read_string_32 (6) as l_item_6 then
+				-- Result.set_description (utf.utf_8_string_8_to_string_32 (l_item_6))
+				Result.set_description (l_item_6)
 			end
 
 				--To Reproduce
-			if attached db_handler.read_string (7) as l_item_7 then
+			if attached db_handler.read_string_32 (7) as l_item_7 then
 				Result.set_to_reproduce (l_item_7)
 			end
 
@@ -1963,7 +2211,7 @@ feature {NONE} -- Implementation
 				Result.set_number (l_number)
 			end
 				--Synopsis
-			if attached db_handler.read_string (2) as l_synopsis then
+			if attached db_handler.read_string_32 (2) as l_synopsis then
 				Result.set_synopsis (l_synopsis)
 			end
 				--Submission Date
@@ -2032,17 +2280,16 @@ feature {NONE} -- Implementation
 			end
 
 				--Content
-			if attached {STRING} a_tuple.item (2) as l_item_2 then
+			if attached db_handler.read_string_32 (2) as l_item_2 then
 				Result.set_content (l_item_2)
 			end
 
 				--Username
-			if attached {STRING} a_tuple.item (3) as l_item_3 then
+			if attached db_handler.read_string_32 (3) as l_item_3 then
 				Result.set_contact (create {USER}.make (l_item_3))
 			end
-
 				--Status
-			if attached {STRING} a_tuple.item (6) as l_item_6 then
+			if attached db_handler.read_string (6) as l_item_6 then
 				Result.set_status (l_item_6)
 			end
 
@@ -2063,7 +2310,7 @@ feature {NONE} -- Implementation
 			end
 
 				--Content
-			if attached db_handler.read_string (2) as l_item_2 then
+			if attached db_handler.read_string_32 (2) as l_item_2 then
 				Result.set_content (l_item_2)
 			end
 
@@ -2232,7 +2479,9 @@ feature -- {NONE} Implementation
 		local
 			l_parameters: STRING_TABLE [ANY]
 		do
-			log.write_information (generator + ".delete_problem_report_temporary_interactions")
+			debug
+				log.write_information (generator + ".delete_problem_report_temporary_interactions")
+			end
 
 			create l_parameters.make (1)
 			l_parameters.put (a_interaction, {DATA_PARAMETERS_NAMES}.interactionid_param)
@@ -2270,6 +2519,32 @@ feature -- Queries
 			ORDER BY $Column $ORD1
 		]"
 
+
+	Select_problem_reports_closed_template: STRING = "[
+				SELECT Number, Synopsis, PAG2.CategorySynopsis as CategorySynopsis, SubmissionDate, PAG2.StatusID as statusID, PAG2.StatusSynopsis, PAG2.Username
+			 FROM (
+			    SELECT TOP :RowsPerPage
+				   Number, Synopsis, PAG.CategorySynopsis as CategorySynopsis, SubmissionDate, PAG.StatusID as statusID, PAG.StatusSynopsis, PAG.CategoryID, PAG.Username
+			    FROM (
+				SELECT TOP :Offset
+				Number, Synopsis, ProblemReportCategories.CategorySynopsis as CategorySynopsis, SubmissionDate, ProblemReports.StatusID statusID,
+				ProblemReportStatus.StatusSynopsis, ProblemReports.CategoryID, Memberships.Username
+				FROM ProblemReports
+			    INNER JOIN ProblemReportCategories ON ProblemReportCategories.CategoryID = ProblemReports.CategoryID
+			    INNER JOIN ProblemReportStatus ON ProblemReportStatus.StatusID = ProblemReports.StatusID
+			    LEFT JOIN Memberships ON ProblemReports.ContactID = Memberships.ContactID
+			    WHERE (Confidential = 0 or (Confidential = 1 and ProblemReports.ContactID = (SELECT ContactID FROM Memberships WHERE Username = :Username ) ) ) AND ((ProblemReports.CategoryID = :CategoryID) OR (NOT EXISTS (SELECT CategoryID FROM ProblemReportCategories WHERE CategoryID = :CategoryID)))
+					AND ((ProblemReports.StatusID in (3,5) ))
+					AND ProblemReports.LastActivityDate >= dateadd(day, 1-datepart(dw, getdate()), CONVERT(date,getdate()))
+			        AND ProblemReports.LastActivityDate <  dateadd(day, 8-datepart(dw, getdate()), CONVERT(date,getdate()))
+				ORDER BY $Column $ORD1
+				) AS PAG
+				ORDER BY $Column $ORD2
+			) AS PAG2
+			ORDER BY $Column $ORD1
+		]"
+
+
 	Select_row_count_problem_reports: STRING = "[
 					SELECT COUNT(*)
 					FROM dbo.ProblemReports
@@ -2278,6 +2553,17 @@ feature -- Queries
 					AND ((ProblemReports.StatusID in $StatusSet))
 					$SearchBySynopsisAndOrDescription
 				]"
+
+	Select_row_count_problem_reports_closed_guest: STRING = "[
+					SELECT COUNT(*)
+					FROM dbo.ProblemReports
+					where (Confidential = 0 or (Confidential = 1 and ContactID = (SELECT ContactID FROM Memberships WHERE Username = :Username ) ))
+					and ((ProblemReports.CategoryID = :CategoryID) OR (NOT EXISTS (SELECT CategoryID FROM ProblemReportCategories WHERE CategoryID = :CategoryID)))
+					AND ((ProblemReports.StatusID in (3,5)))
+					AND ProblemReports.LastActivityDate >= dateadd(day, 1-datepart(dw, getdate()), CONVERT(date,getdate()))
+					AND ProblemReports.LastActivityDate <  dateadd(day, 8-datepart(dw, getdate()), CONVERT(date,getdate()))
+				]"
+
 
 
 	Select_problem_reports_responsibles_template: STRING = "[
@@ -2330,6 +2616,53 @@ feature -- Queries
 			   ORDER by $Column $ORD1
 		]"
 
+	Select_problem_reports_responsibles_closed_template: STRING = "[
+			 SELECT   PAG2.Number, PAG2.Synopsis, SubmissionDate,
+					 PAG2.Release, PAG2.PriorityID PriorityID, PAG2.PrioritySynopsis,
+					 PAG2.CategorySynopsis, PAG2.SeverityID SeverityID, PAG2.SeveritySynopsis,
+					 PAG2.StatusID StatusID, PAG2.StatusSynopsis,
+					 PAG2.Username as 'DisplayName',
+					 PAG2.ResponsibleID, PAG2.Username
+				FROM (SELECT TOP :RowsPerPage
+				     PAG.Number, PAG.Synopsis, SubmissionDate,
+					 PAG.Release, PAG.PriorityID PriorityID, PAG.PrioritySynopsis,
+					 PAG.CategorySynopsis, PAG.SeverityID SeverityID, PAG.SeveritySynopsis,
+					 PAG.StatusID StatusID, PAG.StatusSynopsis,
+					 PAG.Username as 'DisplayName',
+					 PAG.ResponsibleID, PAG.Username,
+					 PAG.CategoryID,
+					 PAG.ReportID,
+					 PAG.ContactID
+					FROM (SELECT TOP :Offset
+					     ProblemReports.Number, ProblemReports.Synopsis, SubmissionDate = ProblemReports.LastActivityDate,
+						 ProblemReports.Release, ProblemReports.PriorityID PriorityID, ProblemReportPriorities.PrioritySynopsis,
+						 ProblemReportCategories.CategorySynopsis, ProblemReports.SeverityID SeverityID, ProblemReportSeverities.SeveritySynopsis,
+						 ProblemReports.StatusID StatusID, ProblemReportStatus.StatusSynopsis,
+						 Memberships.Username as 'DisplayName',
+						 ProblemReportResponsibles.ResponsibleID, Memberships.Username,
+						 ProblemReports.CategoryID,
+						 ProblemReports.ReportID,
+						 Memberships.ContactID
+						FROM ProblemReports
+						INNER JOIN ProblemReportCategories ON ProblemReports.CategoryID = ProblemReportCategories.CategoryID
+						INNER JOIN ProblemReportPriorities ON ProblemReports.PriorityID = ProblemReportPriorities.PriorityID
+						INNER JOIN ProblemReportSeverities ON ProblemReports.SeverityID = ProblemReportSeverities.SeverityID
+						INNER JOIN ProblemReportStatus ON ProblemReports.StatusID = ProblemReportStatus.StatusID
+						LEFT JOIN Memberships ON ProblemReports.ContactID = Memberships.ContactID
+						LEFT JOIN Contacts ON Contacts.ContactID = ProblemReports.ContactID
+						LEFT JOIN ProblemReportResponsibles ON ProblemReportResponsibles.ReportResponsibleID =
+																(select max (ReportResponsibleID) as ReportResponsibleID
+										    from ProblemReportResponsibles prr, ProblemReports pr
+										    where prr.ReportID = pr.ReportID and pr.ReportID = ProblemReports.ReportID)
+						LEFT JOIN LastActivityDates ON LastActivityDates.ReportID = ProblemReports.ReportID
+						WHERE
+						ProblemReports.StatusID in (3,5)
+						AND ProblemReports.LastActivityDate >= dateadd(day, 1-datepart(dw, getdate()), CONVERT(date,getdate()))
+						AND ProblemReports.LastActivityDate <  dateadd(day, 8-datepart(dw, getdate()), CONVERT(date,getdate()))
+					) AS PAG
+				 )  as PAG2
+		]"
+
 	Select_row_count_problem_reports_responsibles: STRING = "[
 			SELECT COUNT(DISTINCT(number))
 			FROM ProblemReports
@@ -2346,6 +2679,21 @@ feature -- Queries
 			AND ((ProblemReports.SeverityID = :SeverityID) OR (NOT EXISTS (SELECT SeverityID FROM ProblemReportSeverities WHERE SeverityID = :SeverityID)))
 			AND ((ProblemReportResponsibles.ResponsibleID =  :ResponsibleID) OR (NOT EXISTS (SELECT ResponsibleID FROM ProblemReportResponsibles r WHERE r.ResponsibleID = :ResponsibleID)))
 			$SearchBySynopsisAndOrDescription
+		]"
+
+	Select_row_count_problem_reports_responsibles_closed: STRING = "[
+			SELECT COUNT(DISTINCT(number))
+			FROM ProblemReports
+			INNER JOIN ProblemReportCategories ON ProblemReports.CategoryID = ProblemReportCategories.CategoryID
+			LEFT JOIN Memberships ON ProblemReports.ContactID = Memberships.ContactID
+			LEFT JOIN Contacts ON Contacts.ContactID = ProblemReports.ContactID
+			LEFT JOIN ProblemReportResponsibles ON ProblemReportResponsibles.ReportID = ProblemReports.ReportID
+			LEFT JOIN LastActivityDates ON LastActivityDates.ReportID = ProblemReports.ReportID
+			WHERE
+			StatusID in (3,5)
+			AND ProblemReports.LastActivityDate >= dateadd(day, 1-datepart(dw, getdate()), CONVERT(date,getdate()))
+			AND ProblemReports.LastActivityDate <  dateadd(day, 8-datepart(dw, getdate()), CONVERT(date,getdate()))
+
 		]"
 
 	Select_problem_reports_by_user_template: STRING = "[

@@ -33,7 +33,7 @@ feature {NONE} -- Initialization
 				template.add_value (a_form.id, "id")
 			end
 
-			if attached {STRING_32} a_user as l_user then
+			if attached {READABLE_STRING_32} a_user as l_user then
 				template.add_value (a_user, "user")
 				template.add_value (has_access (l_user, a_form), "has_access")
 			end
@@ -42,7 +42,7 @@ feature {NONE} -- Initialization
 
 feature -- Status Report
 
-	has_access (a_user: STRING; a_form: ESA_INTERACTION_FORM_VIEW): BOOLEAN
+	has_access (a_user: READABLE_STRING_GENERAL; a_form: ESA_INTERACTION_FORM_VIEW): BOOLEAN
 			-- Has the current user access to change category and status?
 		do
 			Result := a_form.is_responsible_or_admin
@@ -50,7 +50,7 @@ feature -- Status Report
 				attached a_form.report as l_report and then
 				attached l_report.contact as l_contact
 			then
-				Result := Result or else a_user.same_string (l_contact.name.to_string_8)
+				Result := Result or else a_user.same_string (l_contact.name)
 			end
 		end
 end

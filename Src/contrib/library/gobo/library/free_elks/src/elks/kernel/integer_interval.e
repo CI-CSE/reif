@@ -11,6 +11,8 @@ class
 
 inherit
 	RESIZABLE [INTEGER]
+		rename
+			has as has alias "∋"
 		undefine
 			changeable_comparison_criterion
 		redefine
@@ -19,6 +21,7 @@ inherit
 
 	INDEXABLE [INTEGER, INTEGER]
 		rename
+			has as has alias "∋",
 			item as item alias "[]",
 			put as indexable_put
 		undefine
@@ -99,7 +102,7 @@ feature -- Access
 			Result := i
 		end
 
-	has, valid_index (v: INTEGER): BOOLEAN
+	has alias "∋", valid_index (v: INTEGER): BOOLEAN
 			-- Does `v' appear in interval?
 		do
 			Result :=
@@ -175,7 +178,7 @@ feature -- Status report
 	all_cleared: BOOLEAN
 			-- Are all items set to default values?
 		do
-			Result := ((lower = 0) and (upper = 0))
+			Result := (lower = 0) and (upper = 0)
 		ensure then
 			iff_at_zero: Result = ((lower = 0) and (upper = 0))
 		end
@@ -285,12 +288,12 @@ feature -- Conversion
 			-- Address of actual sequence of values,
 			-- for passing to external (non-Eiffel) routines.
 		obsolete
-			"No replacement"
+			"No replacement. [2017-05-31]"
 		do
+			Result := Current
 			check
 				False
 			end
-			Result := Current
 		end
 
 	linear_representation: LINEAR [INTEGER]
@@ -357,7 +360,7 @@ feature -- Iteration
 			loop
 				i := i + 1
 			end
-			Result := (i > upper)
+			Result := i > upper
 		ensure
 			consistent_with_count:
 				Result = (hold_count (condition) = count)
@@ -381,7 +384,7 @@ feature -- Iteration
 			loop
 				i := i + 1
 			end
-			Result := (i <= upper)
+			Result := i <= upper
 		ensure
 			consistent_with_count:
 				Result = (hold_count (condition) > 0)
@@ -396,7 +399,7 @@ feature -- Iteration
 			finite: upper_defined and lower_defined
 			condition_not_void: condition /= Void
 		do
-			Result := (hold_count (condition) = 1)
+			Result := hold_count (condition) = 1
 		ensure
 			consistent_with_count:
 				Result = (hold_count (condition) = 1)
@@ -446,7 +449,7 @@ invariant
 	not_infinite: upper_defined and lower_defined
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

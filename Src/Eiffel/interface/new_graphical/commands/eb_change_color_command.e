@@ -26,9 +26,8 @@ feature -- Basic operations
 			-- Perform on every class on the diagram.
 		local
 			class_list: ARRAYED_LIST [BON_CLASS_FIGURE]
-			old_color_table, new_color_table: HASH_TABLE [EV_COLOR, STRING]
+			old_color_table, new_color_table: STRING_TABLE [EV_COLOR]
 			l_nodes: LIST [EG_LINKABLE_FIGURE]
-			bcf: BON_CLASS_FIGURE
 		do
 			create change_color_dialog
 			change_color_dialog.set_color (bon_class_fill_color)
@@ -43,10 +42,9 @@ feature -- Basic operations
 			until
 				l_nodes.after
 			loop
-				bcf ?= l_nodes.item
-				if bcf /= Void then
-					new_color_table.put (change_color_dialog.color, bcf.model.name)
-					old_color_table.put (bcf.background_color, bcf.model.name)
+				if attached {BON_CLASS_FIGURE} l_nodes.item as bcf then
+					new_color_table.put (change_color_dialog.color, bcf.model.name_32)
+					old_color_table.put (bcf.background_color, bcf.model.name_32)
 					class_list.extend (bcf)
 				end
 				l_nodes.forth
@@ -75,9 +73,8 @@ feature {NONE} -- Implementation
 	execute_with_cluster_stone (a_stone: CLUSTER_FIGURE_STONE)
 			-- Colorize all classes in `a_stone'.
 		local
-			cf: BON_CLASS_FIGURE
 			class_list: ARRAYED_LIST [BON_CLASS_FIGURE]
-			old_color_table, new_color_table: HASH_TABLE [EV_COLOR, STRING]
+			old_color_table, new_color_table: STRING_TABLE [EV_COLOR]
 			es_class: ES_CLASS
 			l_nodes: ARRAYED_LIST [ES_CLASS]
 		do
@@ -97,10 +94,9 @@ feature {NONE} -- Implementation
 				l_nodes.after
 			loop
 				es_class := l_nodes.item
-				cf ?= tool.world.figure_from_model (es_class)
-				if cf /= Void then
-					new_color_table.put (change_color_dialog.color, cf.model.name)
-					old_color_table.put (cf.background_color, cf.model.name)
+				if attached {BON_CLASS_FIGURE} tool.world.figure_from_model (es_class) as cf then
+					new_color_table.put (change_color_dialog.color, cf.model.name_32)
+					old_color_table.put (cf.background_color, cf.model.name_32)
 					class_list.extend (cf)
 				end
 				l_nodes.forth
@@ -116,11 +112,8 @@ feature {NONE} -- Implementation
 			-- Create a development window and process `a_stone'.
 		require
 			a_stone_not_void: a_stone /= Void
-		local
-			cf: BON_CLASS_FIGURE
 		do
-			cf ?= a_stone.source
-			if cf /= Void then
+			if attached {BON_CLASS_FIGURE} a_stone.source as cf then
 				create change_color_dialog
 				change_color_dialog.set_color (cf.background_color)
 				change_color_dialog.show_modal_to_window (tool.develop_window.window)
@@ -136,10 +129,9 @@ feature {NONE} -- Implementation
 	execute_with_list (a_list: CLASS_FIGURE_LIST_STONE)
 			-- Colorize all classes in `a_list'.
 		local
-			cf: BON_CLASS_FIGURE
 			class_list: ARRAYED_LIST [BON_CLASS_FIGURE]
 			l_classes: LIST [EIFFEL_CLASS_FIGURE]
-			old_color_table, new_color_table: HASH_TABLE [EV_COLOR, STRING]
+			old_color_table, new_color_table: STRING_TABLE [EV_COLOR]
 		do
 			create change_color_dialog
 			change_color_dialog.set_color (bon_class_fill_color)
@@ -154,10 +146,9 @@ feature {NONE} -- Implementation
 			until
 				l_classes.after
 			loop
-				cf ?= l_classes.item
-				if cf /= Void then
-					new_color_table.put (change_color_dialog.color, cf.model.name)
-					old_color_table.put (cf.background_color, cf.model.name)
+				if attached {BON_CLASS_FIGURE} l_classes.item as cf then
+					new_color_table.put (change_color_dialog.color, cf.model.name_32)
+					old_color_table.put (cf.background_color, cf.model.name_32)
 					class_list.extend (cf)
 				end
 				l_classes.forth
@@ -201,7 +192,7 @@ feature {NONE} -- Implementation
 			tool.projector.project
 		end
 
-	change_color_all (classes: LIST [BON_CLASS_FIGURE]; color_table: HASH_TABLE [EV_COLOR, STRING])
+	change_color_all (classes: LIST [BON_CLASS_FIGURE]; color_table: STRING_TABLE [EV_COLOR])
 			-- Change color of `classes' according to `color_table'.
 		require
 			classes_exist: classes /= Void
@@ -216,7 +207,7 @@ feature {NONE} -- Implementation
 				classes.after
 			loop
 				cf := classes.item
-				c := color_table.item (classes.item.model.name)
+				c := color_table.item (classes.item.model.name_32)
 				if c /= Void then
 --					change_color (cf, c)
 					change_font (classes.item, c)
@@ -267,7 +258,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -280,22 +271,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end -- class EB_CHANGE_COLOR_COMMAND

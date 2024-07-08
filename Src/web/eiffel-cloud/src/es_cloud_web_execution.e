@@ -58,7 +58,10 @@ feature -- CMS modules
 			a_setup.register_module (create {JWT_AUTH_MODULE}.make)
 
 				-- EiffelStudio
+			a_setup.register_module (create {EIFFEL_DOWNLOAD_MODULE}.make)
 			a_setup.register_module (create {ES_CLOUD_MODULE}.make)
+			a_setup.register_module (create {SHOP_MODULE}.make)
+			a_setup.register_module (create {STRIPE_MODULE}.make)
 
 
 				-- User
@@ -69,21 +72,21 @@ feature -- CMS modules
 --			a_setup.register_module (create {CMS_BLOG_MODULE}.make)
 
 				-- Files
---			a_setup.register_module (create {CMS_FILES_MODULE}.make)
+			a_setup.register_module (create {CMS_FILES_MODULE}.make)
 
 				-- Contact
 			a_setup.register_module (create {CMS_CONTACT_MODULE}.make)
 
 				-- Misc
 --			a_setup.register_module (create {CMS_SEO_MODULE}.make)
---			a_setup.register_module (create {CMS_SITEMAP_MODULE}.make)
+			a_setup.register_module (create {CMS_SITEMAP_MODULE}.make)
 --			a_setup.register_module (create {CMS_COMMENTS_MODULE}.make)
 
 				-- Taxonomy
---			a_setup.register_module (create {CMS_TAXONOMY_MODULE}.make)
+			a_setup.register_module (create {CMS_TAXONOMY_MODULE}.make)
 
 				-- Wiki
---			a_setup.register_module (create {WIKITEXT_MODULE}.make)
+			a_setup.register_module (create {WIKITEXT_MODULE}.make)
 			a_setup.register_module (create {EMBEDDED_VIDEO_MODULE}.make)
 
 				-- Recent changes
@@ -102,4 +105,35 @@ feature -- CMS modules
 			a_setup.register_module (create {MASQUERADE_AUTH_MODULE}.make)
 		end
 
+note
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
+	copying: "[
+			This file is part of Eiffel Software's Eiffel Development Environment.
+			
+			Eiffel Software's Eiffel Development Environment is free
+			software; you can redistribute it and/or modify it under
+			the terms of the GNU General Public License as published
+			by the Free Software Foundation, version 2 of the License
+			(available at the URL listed under "license" above).
+			
+			Eiffel Software's Eiffel Development Environment is
+			distributed in the hope that it will be useful, but
+			WITHOUT ANY WARRANTY; without even the implied warranty
+			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+			See the GNU General Public License for more details.
+			
+			You should have received a copy of the GNU General Public
+			License along with Eiffel Software's Eiffel Development
+			Environment; if not, write to the Free Software Foundation,
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+		]"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end

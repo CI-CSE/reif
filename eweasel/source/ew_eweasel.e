@@ -159,15 +159,15 @@ feature  {NONE} -- Implementation
 									output.append_error ("No filter type specified", True)
 								elseif not is_filter_type_known then
 									output.append_error ("Filter type `", False)
-									output.append_error (to_utf_8 (filter_type), False)
+									output.append_error_32 (filter_type, False)
 									output.append_error ("' is not valid", True)
 								elseif filter_count = 0 then
 									output.append_error ("No filter values specified for filter type `", False)
-									output.append_error (to_utf_8 (filter_type), False)
+									output.append_error_32 (filter_type, False)
 									output.append_error ("'", True)
 								elseif filter_count > 1 then
 									output.append_error (filter_count.out + " filter values specified for filter type `", False)
-									output.append_error (to_utf_8 (filter_type), False)
+									output.append_error_32 (filter_type, False)
 									output.append_error ("' - not currently supported", True)
 								end
 								args_ok := False
@@ -190,11 +190,11 @@ feature  {NONE} -- Implementation
 									test_suite_options.set_max_threads (n)
 									k := k + 2
 								else
-									output.append_error ("Invalid maximum thread count " + n.out + " - must be >= -1", True)
+									output.append_error_32 ({STRING_32} "Invalid maximum thread count " + n.out + " - must be >= -1", True)
 									args_ok := False
 								end
 							else
-								output.append_error ("Invalid maximum thread count: " + l_max_threads, True)
+								output.append_error_32 ({STRING_32} "Invalid maximum thread count: " + l_max_threads, True)
 								args_ok := False
 							end
 						else
@@ -209,11 +209,11 @@ feature  {NONE} -- Implementation
 									test_suite_options.set_max_c_processes (n)
 									k := k + 2
 								else
-									output.append_error ("Invalid maximum C processes value " + n.out + " - must be >= -1", True)
+									output.append_error_32 ({STRING_32} "Invalid maximum C processes value " + n.out + " - must be >= -1", True)
 									args_ok := False
 								end
 							else
-								output.append_error ("Invalid maximum C processes value: " + l_max_c_processes, True)
+								output.append_error_32 ({STRING_32} "Invalid maximum C processes value: " + l_max_c_processes, True)
 								args_ok := False
 							end
 						else
@@ -429,7 +429,7 @@ feature  {NONE} -- Implementation
 			revision.remove_head (11)
 				-- Remove trailing " $".
 			revision.remove_tail (2)
-			output.append (" (version 1.3.0." + revision + ")", True)
+			output.append (" (version 1.3.1." + revision + ")", True)
 		end
 
 	new_test_suite (tests: LIST [EW_NAMED_EIFFEL_TEST] opts: EW_TEST_SUITE_OPTIONS): EW_EIFFEL_TEST_SUITE
@@ -461,9 +461,10 @@ feature  {NONE} -- Implementation
 	date: "$Date$"
 	revision: "$Revision$"
 	copyright: "[
-			Copyright (c) 1984-2018, University of Southern California, Eiffel Software and contributors.
+			Copyright (c) 1984-2020, University of Southern California, Eiffel Software and contributors.
 			All rights reserved.
 		]"
+	revised_by: "Alexander Kogtenkov"
 	license: "Your use of this work is governed under the terms of the GNU General Public License version 2"
 	copying: "[
 			This file is part of the EiffelWeasel Eiffel Regression Tester.

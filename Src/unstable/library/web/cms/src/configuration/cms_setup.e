@@ -15,7 +15,7 @@ feature {NONE} -- Initialization
 
 	initialize
 		local
-			l_url: like site_url
+			l_url: READABLE_STRING_8
 			s, l_email: detachable READABLE_STRING_8
 			utf: UTF_CONVERTER
 		do
@@ -33,8 +33,10 @@ feature {NONE} -- Initialization
 				if l_url [l_url.count] /= '/' then
 					l_url := l_url + "/"
 				end
+				site_url := l_url
+			else
+				site_url := Void
 			end
-			site_url := l_url
 
 				-- Site name
 			site_name := text_item_or_default ("site.name", "Your ROC CMS")
@@ -120,7 +122,6 @@ feature {NONE} -- Initialization
 				create webapi_base_path.make_from_string (default_webapi_base_path)
 			end
 
-
 				-- Administration
 			l_url := string_8_item ("administration.base_path")
 			if l_url /= Void and then not l_url.is_empty then
@@ -135,7 +136,6 @@ feature {NONE} -- Initialization
 				create administration_base_path.make_from_string (default_administration_base_path)
 			end
 			administration_theme_name := text_item_or_default ("administration.theme", theme_name) -- TODO: Default to builtin theme?
-
 		end
 
 feature -- Access
@@ -158,14 +158,8 @@ feature {CMS_API} -- API Access
 			l_enabled_modules: CMS_MODULE_COLLECTION
 			l_modules_to_remove: CMS_MODULE_COLLECTION
 			l_module: CMS_MODULE
-			l_core: CMS_CORE_MODULE
 		do
 			l_enabled_modules := api.enabled_modules
-
-				-- Include required CORE module
-			create l_core.make
-			l_core.enable
-			l_enabled_modules.extend (l_core)
 
 				-- Includes other modules.
 			across
@@ -332,10 +326,10 @@ feature -- Access: Site
 	site_email_subject_prefix: detachable READABLE_STRING_8
 			-- Optional prefix for any email sent by Current site.
 
-	site_url: detachable READABLE_STRING_8
+	site_url: detachable IMMUTABLE_STRING_8
 			-- Optional url of current CMS site.
 
-	front_page_path: detachable READABLE_STRING_8
+	front_page_path: detachable IMMUTABLE_STRING_8
 			-- Optional path defining the front page.
 			-- By default "" or "/".
 
@@ -343,10 +337,35 @@ feature -- Access: Site
 			-- Is WebAPI enabled?
 
 	webapi_base_path: IMMUTABLE_STRING_8
-			-- Web API base url, default=`default_webapi_base_path`.
+			-- Web API base path, default=`default_webapi_base_path`.
 
 	administration_base_path: IMMUTABLE_STRING_8
-			-- Administration base url, default=`default_administration_base_path`.
+			-- Administration base path, default=`default_administration_base_path`.
+
+	site_auth_max_age (a_auth: READABLE_STRING_GENERAL): INTEGER
+			-- `Max-Age` for session based authentication.
+		local
+			s_max_age: READABLE_STRING_8
+		do
+			s_max_age := string_8_item ({STRING_32} "auth." + a_auth + {STRING_32} ".max_age")
+			if s_max_age = Void then
+				s_max_age := string_8_item ("auth.max_age")
+			end
+			if s_max_age /= Void and then s_max_age.is_integer then
+				Result := s_max_age.to_integer
+			else
+				Result := 604800 --| 7 days: 7 * 24(h) *60(min) *60(sec)
+			end
+		end
+
+	site_auth_token (a_auth: READABLE_STRING_GENERAL): detachable READABLE_STRING_8
+			-- token for cookie related to session based authentication.
+		do
+			Result := string_8_item ({STRING_32} "auth." + a_auth.to_string_32 + {STRING_32} ".token")
+			if Result = Void then
+				Result := string_8_item ("auth.token")
+			end
+		end
 
 feature {NONE} -- Constants
 
@@ -457,6 +476,32 @@ feature -- Access: directory
 	themes_location: PATH
 			-- Path to themes.
 
+	system_info: STRING_TABLE [READABLE_STRING_32]
+		local
+			s: STRING_32
+		do
+			create Result.make (10)
+			Result["Current direction"] := (create {EXECUTION_ENVIRONMENT}).current_working_path.name
+			Result["Site"] := site_location.name
+			Result["Cache"] := cache_location.name
+			Result["Files"] := files_location.name
+			Result["Temp"] := temp_location.name
+			if attached (create {APPLICATION_JSON_CONFIGURATION_HELPER}).new_database_configuration (environment.application_config_path) as l_database_config then
+				Result["Storage.connection_string"] := l_database_config.connection_string
+			end
+			create s.make (10)
+			across
+				storage_drivers as ic
+			loop
+				if s.count > 1 then
+					s.append_character (',')
+				end
+				s.append_character (' ')
+				s.append_string_general (ic.key)
+			end
+			Result["Storage.availables"] := s
+		end
+
 feature -- Access: theme
 
 	theme_location: PATH
@@ -508,41 +553,53 @@ feature -- Access: storage
 		deferred
 		end
 
+	storage_configuration: detachable DATABASE_CONFIGURATION
+		do
+			Result := (create {APPLICATION_JSON_CONFIGURATION_HELPER}).new_database_configuration (environment.application_config_path)
+		end
+
 	storage (a_error_handler: ERROR_HANDLER): detachable CMS_STORAGE
 			-- CMS Storage object defined according to the configuration or default.
 			-- Use `a_error_handler' to get eventual error information occurred during the storage
 			-- initialization.
 		local
 			retried: BOOLEAN
-			l_message: STRING
+			l_message: STRING_32
 		do
 			if not retried then
-				to_implement ("Refactor database setup")
+				debug
+					to_implement ("Refactor database setup")
+				end
 				if
-					attached (create {APPLICATION_JSON_CONFIGURATION_HELPER}).new_database_configuration (environment.application_config_path) as l_database_config and then
-					attached storage_drivers.item (l_database_config.driver) as l_builder
+					attached storage_configuration as l_db_cfg and then
+					attached storage_drivers.item (l_db_cfg.driver) as l_builder
 				then
-					Result := l_builder.storage (Current, a_error_handler)
+					Result := l_builder.storage (l_db_cfg, Current, a_error_handler)
+					if Result = Void and not a_error_handler.has_error then
+						a_error_handler.add_custom_error (0, "Database storage not found", l_message)
+					end
+				elseif not a_error_handler.has_error then
+					a_error_handler.add_custom_error (0, "Database driver not found", l_message)
 				end
 			else
-				to_implement ("Workaround code, persistence layer does not implement yet this kind of error handling.")
+				debug
+					to_implement ("Workaround code, persistence layer does not implement yet this kind of error handling.")
+				end
 					-- error handling.
 				create l_message.make (1024)
 				if attached (create {EXCEPTION_MANAGER}).last_exception as l_exception then
 					if attached l_exception.description as l_description then
-						l_message.append (l_description.as_string_32)
-						l_message.append ("%N%N")
+						l_message.append (l_description)
 					elseif attached l_exception.trace as l_trace then
 						l_message.append (l_trace)
-						l_message.append ("%N%N")
 					else
-						l_message.append (l_exception.out)
-						l_message.append ("%N%N")
+						l_message.append_string_general (l_exception.out)
 					end
 				else
-					l_message.append ("The application crash without available information")
-					l_message.append ("%N%N")
+					l_message.append_string_general ("The application crash without available information")
 				end
+				l_message.append_character ('%N')
+				l_message.append_character ('%N')
 				a_error_handler.add_custom_error (0, " Database Connection ", l_message)
 			end
 		rescue
@@ -577,6 +634,6 @@ feature -- Element change
 		end
 
 note
-	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

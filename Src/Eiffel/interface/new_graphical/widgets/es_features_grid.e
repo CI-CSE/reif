@@ -9,7 +9,11 @@ class
 	ES_FEATURES_GRID
 
 inherit
-	ES_GRID
+	ES_IDE_GRID
+		redefine
+			internal_recycle,
+			on_zoom
+		end
 
 	EB_EDITOR_TOKEN_GRID_SUPPORT
 		rename
@@ -17,7 +21,8 @@ inherit
 		undefine
 			default_create, is_equal, copy
 		redefine
-			evs_on_pebble_function
+			evs_on_pebble_function,
+			internal_recycle
 		end
 
 	CHARACTER_ROUTINES
@@ -38,13 +43,6 @@ inherit
 		end
 
 	EB_SHARED_WINDOW_MANAGER
-		export
-			{NONE} all
-		undefine
-			default_create, is_equal, copy
-		end
-
-	EB_SHARED_PREFERENCES
 		export
 			{NONE} all
 		undefine
@@ -82,6 +80,11 @@ inherit
 			default_create, is_equal, copy
 		end
 
+	EB_SHARED_WRITER
+		undefine
+			default_create, is_equal, copy
+		end
+
 create
 	make
 
@@ -115,6 +118,14 @@ feature {NONE} -- Initialization
 
 			set_configurable_target_menu_mode
 			set_configurable_target_menu_handler (agent on_menu_handler (?, ?, ?, ?))
+		end
+
+feature {NONE} -- Implementation		
+
+	internal_recycle
+		do
+			Precursor {EB_EDITOR_TOKEN_GRID_SUPPORT}
+			Precursor {ES_IDE_GRID}
 		end
 
 feature -- Status report
@@ -402,7 +413,7 @@ feature -- Tree construction
 		require
 			a_mesg_not_void: a_mesg /= Void
 		do
-			extend_item (create {EV_GRID_LABEL_ITEM}.make_with_text (a_mesg))
+			extend_item (new_grid_label_item (a_mesg))
 		end
 
 	extend_sub_item	(a_row: EV_GRID_ROW; a_grid_item: EV_GRID_ITEM)
@@ -436,13 +447,13 @@ feature -- Tree construction
 				if attached a_class_ast.conforming_parents as l_conforming_parents then
 					l_row := extended_parent_list_row (l_conforming_parents, "Inherit", a_class, l_match_list, expand_tree)
 					if expand_tree and l_row.is_expandable then
-						l_row.expand
+						l_row.collapse
 					end
 				end
 				if attached a_class_ast.non_conforming_parents as l_non_conforming_parents then
 					l_row := extended_parent_list_row (l_non_conforming_parents, "Inherit {NONE}", a_class, l_match_list, expand_tree)
 					if expand_tree and l_row.is_expandable then
-						l_row.expand
+						l_row.collapse
 					end
 				end
 
@@ -570,16 +581,18 @@ feature {NONE} -- Implementation
 		require
 			a_ef_not_void: a_ef /= Void
 		local
-			alias_name: STRING_32
 			assigner_name: STRING_32
 		do
 			Result := a_ef.name_32.twin
-			if is_alias_enabled and then not a_ef.is_prefix and then not a_ef.is_infix then
-				alias_name := a_ef.alias_name_32
-				if alias_name /= Void then
-					Result.append_string (" alias %"")
-					Result.append_string (eiffel_string_32 (a_ef.alias_symbol_32))
-					Result.append_character ('%"')
+			if is_alias_enabled then
+				if attached a_ef.aliases as lst then
+					across
+						lst as ic
+					loop
+						Result.append_string (" alias %"")
+						Result.append_string (eiffel_string_32 (extract_alias_name_32 (ic.item.alias_name_32)))
+						Result.append_character ('%"')
+					end
 				end
 			end
 			if is_signature_enabled then
@@ -764,7 +777,6 @@ feature {NONE} -- Event handler
 		local
 			pix: EV_PIXMAP
 			l_parent: PARENT_AS
-			l_parent_cname: STRING
 			l_parent_text: STRING_32
 			l_parent_class_i: detachable CLASS_I
 			l_row: like extended_new_row
@@ -780,11 +792,16 @@ feature {NONE} -- Event handler
 			loop
 				l_parent := a_parent_list.item
 				l_parent_text := l_parent.type.text_32 (a_match_list)
-
-				l_parent_cname := l_parent.type.class_name.text_32 (a_match_list).as_string_8 -- Class name is ASCII compatible.
-				if Workbench.universe_defined then
-					l_parent_class_i := universe.class_named (l_parent_cname, a_class.group)
+				l_parent_class_i := Void
+				if
+					attached l_parent.type.class_name.text_32 (a_match_list) as l_parent_cname32 and then
+					l_parent_cname32.is_valid_as_string_8
+				then
+					if Workbench.universe_defined then
+						l_parent_class_i := universe.class_named (l_parent_cname32.to_string_8, a_class.group)
+					end
 				end
+
 				l_row := extended_parent_item_subrow (Result, l_parent, l_parent_class_i, l_parent_text, a_class)
 				if a_expanded and l_row.is_expandable then
 					l_row.expand
@@ -862,12 +879,12 @@ feature {NONE} -- Event handler
 					until
 						f_names.after
 					loop
-						f_item_name := f_names.item.internal_name.name_32
+						f_item_name := f_names.item.feature_name.name_32
 						if l_first_item_name = Void then
 							l_first_item_name := f_item_name
 						end
 						if a_class.has_feature_table then
-							ef := a_class.feature_with_name_id (f_names.item.internal_name.name_id)
+							ef := a_class.feature_with_name_id (f_names.item.feature_name.name_id)
 							if ef /= Void and then ef.written_in /= a_class.class_id then
 								ef := Void
 							end
@@ -966,7 +983,7 @@ feature {NONE} -- Tree item factory
 
 	add_tree_item_for_text (a_row: EV_GRID_ROW; a_text: STRING_GENERAL)
 		do
-			a_row.set_item (1, create {EV_GRID_LABEL_ITEM}.make_with_text (a_text))
+			a_row.set_item (1, new_grid_label_item (a_text))
 		end
 
 	update_tree_item_for_e_feature (a_row: EV_GRID_ROW; ef: E_FEATURE)
@@ -974,8 +991,8 @@ feature {NONE} -- Tree item factory
 			if a_row.count > 0 then
 				if is_editor_token_enabled then
 					if not attached {EB_GRID_EDITOR_TOKEN_ITEM} a_row.item (1) then
-						a_row.clear
 						if attached {EV_GRID_LABEL_ITEM} a_row.item (1) as lab then
+							a_row.clear
 							add_tree_item_for_e_feature (a_row, ef, lab.pixmap)
 						else
 							check is_label_item: False end
@@ -987,8 +1004,8 @@ feature {NONE} -- Tree item factory
 					if attached {EV_GRID_LABEL_ITEM} a_row.item (1) as lab then
 						lab.set_text (feature_name (ef))
 					else
-						a_row.clear
 						if attached {EB_GRID_EDITOR_TOKEN_ITEM} a_row.item (1) as gf then
+							a_row.clear
 							add_tree_item_for_e_feature (a_row, ef, gf.pixmap)
 						else
 							check is_editor_item: False end
@@ -998,20 +1015,29 @@ feature {NONE} -- Tree item factory
 			end
 		end
 
+	on_zoom (a_zoom_factor: INTEGER)
+		do
+			Precursor (a_zoom_factor)
+			update_editor_token_font_info
+		end
+
+	update_editor_token_font_info
+		do
+			editor_token_font_info.f := label_font_table
+			editor_token_font_info.h := label_font_height
+		end
+
 	editor_token_font_info: TUPLE [f: SPECIAL [EV_FONT]; h: INTEGER]
 			-- Info for Editor tokens
-		local
-			esw: EB_SHARED_WRITER
 		once
-			create esw
-			Result := [esw.label_font_table, esw.label_font_height]
+			Result := [label_font_table, label_font_height]
 		end
 
 	add_tree_item_for_parent_list (a_row: EV_GRID_ROW; a_parent_list: PARENT_LIST_AS; a_text: STRING_GENERAL; pix: EV_PIXMAP)
 		local
 			lab: EV_GRID_LABEL_ITEM
 		do
-			create lab.make_with_text (a_text)
+			lab := new_grid_label_item (a_text)
 			lab.set_pixmap (pix)
 			lab.set_data (a_parent_list)
 			if is_clickable then
@@ -1025,7 +1051,7 @@ feature {NONE} -- Tree item factory
 		local
 			lab: EV_GRID_LABEL_ITEM
 		do
-			create lab.make_with_text (a_text)
+			lab := new_grid_label_item (a_text)
 			if pix /= Void then
 				lab.set_pixmap (pix)
 			end
@@ -1053,7 +1079,7 @@ feature {NONE} -- Tree item factory
 			l_text := feature_name (ef)
 
 			if is_editor_token_enabled then
-				create gf.make_with_text (l_text.as_string_8)
+				gf := new_grid_editor_token_item (l_text.to_string_8)
 				gf.set_pixmap (pix)
 				gf.set_data (ef)
 
@@ -1063,7 +1089,7 @@ feature {NONE} -- Tree item factory
 
 				i := gf
 			else
-				create lab.make_with_text (l_text)
+				lab := new_grid_label_item (l_text)
 				lab.set_pixmap (pix)
 				lab.set_data (ef)
 				i := lab
@@ -1083,7 +1109,7 @@ feature {NONE} -- Tree item factory
 		local
 			lab: EV_GRID_LABEL_ITEM
 		do
-			create lab.make_with_text (a_text)
+			lab := new_grid_label_item (a_text)
 			lab.set_pixmap (pix)
 			lab.set_data (a_text)
 			if is_clickable and ffn /= Void then
@@ -1100,7 +1126,7 @@ feature {NONE} -- Tree item factory
 		local
 			lab: EV_GRID_LABEL_ITEM
 		do
-			create lab.make_with_text (a_text)
+			lab := new_grid_label_item (a_text)
 			lab.set_pixmap (pix)
 			lab.set_data (fc)
 			if is_clickable then
@@ -1114,15 +1140,27 @@ feature {NONE} -- Tree item factory
 		local
 			lab: EV_GRID_LABEL_ITEM
 		do
-			create lab.make_with_text (a_text)
+			lab := new_grid_label_item (a_text)
 			lab.set_pixmap (pix)
 			lab.set_data (fd)
 			a_row.set_data (fd)
 			a_row.set_item (1, lab)
 		end
 
+feature -- Grid item factory
+
+	new_grid_editor_token_item (a_text: detachable READABLE_STRING_8): EB_GRID_EDITOR_TOKEN_ITEM
+		do
+			if a_text = Void then
+				create Result
+			else
+				create Result.make_with_text (a_text)
+			end
+--			setup_grid_label_item (Result)
+		end
+
 ;note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

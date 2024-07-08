@@ -83,8 +83,7 @@ feature -- Application status
 			params: detachable DEBUGGER_EXECUTION_RESOLVED_PROFILE
 			ctlr: DEBUGGER_CONTROLLER
 			app: APPLICATION_EXECUTION
-			s: STRING
-			s32: STRING_32
+			s32: READABLE_STRING_32
 		do
 			ctlr := dbg.controller
 			app := dbg.application
@@ -112,30 +111,25 @@ feature -- Application status
 				end
 				tf.add_new_line
 				tf.add_comment_text ("  - arguments = ")
-				s := params.arguments
-				if s = Void or else s.is_empty then
+				s32 := params.arguments
+				if s32 = Void or else s32.is_empty then
 					tf.add_string ("<Empty>")
 				else
-					tf.add_quoted_text (s)
+					tf.add_quoted_text (s32)
+				end
+				if attached a_params.environment_variables as l_environment_vars and then not l_environment_vars.is_empty then
+					tf.add_comment_text ("  - environment : ")
+					across
+						l_environment_vars as ic
+					loop
+						tf.add_new_line
+						tf.add_indent
+						tf.add_string (ic.key)
+						tf.add_string ("=")
+						tf.add_manifest_string (ic.item)
+					end
 				end
 			end
-
---| For now useless since the output panel display those info just a few nanoseconds ...
---			if ctlr.environment_vars /= Void and then not ctlr.environment_vars.is_empty then
---				tf.add_comment_text ("  - environment : ")
---				from
---					ctlr.environment_vars.start
---				until
---					ctlr.environment_vars.after
---				loop
---					tf.add_new_line
---					tf.add_indent
---					tf.add_string (ctlr.environment_vars.key_for_iteration)
---					tf.add_string ("=")
---					tf.add_quoted_text (ctlr.environment_vars.item_for_iteration)
---					ctlr.environment_vars.forth
---				end
---			end
 			tf.add_new_line
 		end
 
@@ -191,7 +185,6 @@ feature -- Application status
 			c, oc: CLASS_C
 			f: E_FEATURE
 			cs: CALL_STACK_ELEMENT
-			stack_num: INTEGER
 			ccs: EIFFEL_CALL_STACK
 		do
 			if not appstatus.is_stopped then
@@ -258,8 +251,7 @@ feature -- Application status
 				end
 				ccs := appstatus.current_call_stack
 				if not ccs.is_empty then
-					stack_num := debugger_manager.application.current_execution_stack_number
-					cs := ccs.i_th (stack_num)
+					cs := ccs.i_th (debugger_manager.application.current_execution_stack_number)
 					append_arguments (cs, st)
 					append_locals (cs, st)
 					append_stack (ccs, st)
@@ -357,43 +349,23 @@ feature -- Call stack
 			-- the routine associated with Current call.
 		local
 			resval: ABSTRACT_DEBUG_VALUE
-
-			local_names: SORTED_TWO_WAY_LIST [ABSTRACT_DEBUG_VALUE]
-			local_decl_grps: EIFFEL_LIST [LIST_DEC_AS]
-			locals_list: LIST [ABSTRACT_DEBUG_VALUE]
+			locals_list, ot_locals_list: LIST [ABSTRACT_DEBUG_VALUE]
 		do
 			if attached {EIFFEL_CALL_STACK_ELEMENT} cse as ecse then
 				locals_list := ecse.locals
+				ot_locals_list := ecse.object_test_locals
 				resval := ecse.result_value
 
-				if locals_list /= Void or else resval /= Void then
+				if locals_list /= Void or else ot_locals_list /= Void or else resval /= Void then
 					st.add_new_line
 					st.add_string ("Local entities:")
 					st.add_new_line
 				end
 				if locals_list /= Void then
-					create local_names.make
-					from
-						locals_list.start
-					until
-						locals_list.after
-					loop
-						local_names.put_front (locals_list.item)
-						locals_list.forth
-					end
-					local_names.sort
-					local_decl_grps := ecse.routine.locals
-					if local_decl_grps /= Void then
-						from
-							local_names.start
-						until
-							local_names.after
-						loop
-							st.add_indent
-							append_to (local_names.item, st, 0)
-							local_names.forth
-						end
-					end
+					append_eiffel_locals_list (ecse, locals_list, st)
+				end
+				if ot_locals_list /= Void then
+					append_eiffel_locals_list (ecse, ot_locals_list, st)
 				end
 				if resval /= Void then
 						-- Display the Result entity value.
@@ -401,6 +373,31 @@ feature -- Call stack
 					append_to (resval, st, 0)
 				end
 
+			end
+		end
+
+	append_eiffel_locals_list (ecse: EIFFEL_CALL_STACK_ELEMENT; lst: LIST [ABSTRACT_DEBUG_VALUE]; st: TEXT_FORMATTER)
+			-- Display the local entities and result (if it exists) of
+			-- the routine associated with Current call.
+		local
+			l_names: SORTED_TWO_WAY_LIST [ABSTRACT_DEBUG_VALUE]
+			local_decl_grps: EIFFEL_LIST [LIST_DEC_AS]
+		do
+			create l_names.make
+			across
+				lst as ic
+			loop
+				l_names.put_front (ic.item)
+			end
+			l_names.sort
+			local_decl_grps := ecse.routine.locals
+			if local_decl_grps /= Void then
+				across
+					l_names as ic
+				loop
+					st.add_indent
+					append_to (ic.item, st, 0)
+				end
 			end
 		end
 
@@ -512,7 +509,7 @@ feature {NONE} -- append_to implementation
 			l_items: DEBUG_VALUE_LIST
 			l_cursor: like {DEBUG_VALUE_LIST}.new_cursor
 			dc: CLASS_C
-			n: STRING
+			n: like {ABSTRACT_SPECIAL_VALUE}.name
 			add: DBG_ADDRESS
 		do
 --| fixme : what about character_32 ?
@@ -640,7 +637,6 @@ feature {NONE} -- append_type_and_value implementation
 			v_set: v /= Void
 		local
 			ec: CLASS_C
-			s: STRING_32
 			add: DBG_ADDRESS
 		do
 			if v.is_null then
@@ -657,13 +653,12 @@ feature {NONE} -- append_type_and_value implementation
 						st.add_string (add.as_string)
 					end;
 					st.add_string (Right_address_delim);
-					s := v.string_value
-					if s /= Void then
-						st.add_string (Equal_sign_str);
-						st.add_string (s.as_string_8)
+					if attached v.string_value as s then
+						st.add_string (Equal_sign_str)
+						st.add_string (s)
 					end
 				else
-					Any_class.append_name (st);
+					Any_class.append_name (st)
 					st.add_string (" = Unknown")
 				end
 			end
@@ -732,12 +727,9 @@ feature {NONE} -- append_type_and_value implementation
 	dummy_message_debug_value_append_type_and_value (v: DUMMY_MESSAGE_DEBUG_VALUE; st: TEXT_FORMATTER)
 		require
 			v_set: v /= Void
-		local
-			s: STRING_GENERAL
 		do
-			s := v.display_message
-			if s /= Void then
-				st.add_string (s.as_string_8)
+			if attached v.display_message as s then
+				st.add_string (s)
 			end
 		end
 
@@ -886,7 +878,7 @@ feature {NONE} -- Constants
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

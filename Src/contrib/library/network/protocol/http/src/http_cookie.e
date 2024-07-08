@@ -47,21 +47,21 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	name: STRING_8
+	name: READABLE_STRING_8
 			-- name of the cookie.
 
-	value: STRING_8
+	value: READABLE_STRING_8
 			-- value of the cookie.
 
-	expiration: detachable STRING_8
+	expiration: detachable READABLE_STRING_8
 			-- Value of the Expires attribute.
 
-	path: detachable STRING_8
+	path: detachable READABLE_STRING_8
 			-- Value of the Path attribute.
 			-- Path to which the cookie applies.
 			--| The path "/", specify a cookie that apply to all URLs in your site.
 
-	domain: detachable STRING_8
+	domain: detachable READABLE_STRING_8
 			-- Value of the Domain attribute.
 			-- Domain to which the cookies apply.
 
@@ -196,6 +196,24 @@ feature -- Change Element
 		ensure
 			expiration_set: attached expiration as l_expiration and then l_expiration.same_string (date_to_rfc1123_http_date_format (a_date))
 		end
+
+	set_expiration_from_max_age
+			-- Set `expiration` value from `max_age`.
+		local
+			dt: DATE_TIME
+		do
+			if max_age < 0 then
+				unset_expiration
+			else
+				if max_age = 0 then
+					create dt.make_from_epoch (0)
+				else
+					create dt.make_now_utc
+					dt.second_add (max_age)
+				end
+				set_expiration_date (dt)
+			end
+		end		
 
 	set_path (a_path: READABLE_STRING_8)
 			-- Set `path' to `a_path'.

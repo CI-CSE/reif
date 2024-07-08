@@ -33,7 +33,7 @@ inherit
 
 	SHARED_ERROR_HANDLER
 		export
-			{NONE} all
+			{ANY} error_handler
 		end
 
 	COMPILER_EXPORTER
@@ -363,7 +363,6 @@ feature -- Validity checking
 		local
 			l_cluster: CONF_GROUP
 			l_type: TYPE_AS
-			l_rename_clause: RENAME_CLAUSE_AS
 			l_constraints: like constraints
 			l_constraint_position: INTEGER
 			l_constraining_type: CONSTRAINING_TYPE_AS
@@ -409,14 +408,10 @@ feature -- Validity checking
 					l_compiled_class := l_class_i.compiled_class
 					a_context_class.constraint_classes (Current).put (l_compiled_class, l_constraint_position)
 
-					l_rename_clause := l_constraints.item.renaming
-					if l_rename_clause /= Void then
+					if attached l_constraints.item.renaming as l_rename_clause then
 							-- After this call a RENAMING_A object will be stored into the cache
 							-- if there were no errors.
-						check_rename_clause (a_context_class, l_class_i.compiled_class, l_rename_clause,
-							l_constraint_position)
-					else
-						-- no renaming to check
+						check_rename_clause (a_context_class, l_class_i.compiled_class, l_rename_clause, l_constraint_position)
 					end
 				end
 				l_constraints.forth
@@ -464,12 +459,10 @@ feature -- Validity checking
 			loop
 				l_original_feature_name_id := creation_feature_list.item.feature_name.name_id
 				l_result := l_flat_constraints.feature_i_state_by_name_id (l_original_feature_name_id)
-				if l_result.features_found_count = 1 then
-					-- Ok, we found exactly one feature, this means our constraint is met and we're fine.
-				else
+					-- Exactly one feature means the constraint is met.
+				if l_result.features_found_count /= 1 then
 						-- This is certainly an error: Let's spend some time finding out what exactly is wrong.
 					l_error_info := l_constraints.info_about_feature_by_name_id (l_original_feature_name_id, position, a_context_class)
-
 					create l_vtgc3
 					l_vtgc3.set_constraints (l_constraints)
 					l_vtgc3.set_class (a_context_class)
@@ -573,7 +566,6 @@ feature {NONE} -- Implementation
 			l_content: EIFFEL_LIST [RENAME_AS]
 			l_old_name, l_new_name: ID_AS
 			l_e_feature: E_FEATURE
-			l_alias_name: detachable STRING_AS
 		do
 			a_text_formatter.process_keyword_text (ti_rename_keyword, Void)
 			if a_short then
@@ -586,14 +578,13 @@ feature {NONE} -- Implementation
 				until
 					l_content.after
 				loop
-					l_old_name := l_content.item.old_name.internal_name
-					l_new_name := l_content.item.new_name.internal_name
-					l_alias_name := l_content.item.new_name.alias_name
+					l_old_name := l_content.item.old_name.feature_name
+					l_new_name := l_content.item.new_name.feature_name
 					if a_constraint_class /= Void and then a_constraint_class.has_feature_table then
 						l_e_feature := a_constraint_class.feature_with_id (l_old_name)
 					end
 					if l_e_feature /= Void then
-						a_text_formatter.process_feature_text (l_old_name.name_32, l_e_feature, false)
+						a_text_formatter.process_feature_text (l_old_name.name_32, l_e_feature, False)
 					else
 						a_text_formatter.add (l_old_name.name_32)
 					end
@@ -602,13 +593,17 @@ feature {NONE} -- Implementation
 					a_text_formatter.process_keyword_text (ti_as_keyword, Void)
 					a_text_formatter.add_space
 					a_text_formatter.add (l_new_name.name_32)
-					if l_alias_name /= Void then
-						a_text_formatter.add_space
-						a_text_formatter.process_keyword_text (ti_alias_keyword, Void)
-						a_text_formatter.add_space
-						a_text_formatter.process_symbol_text (ti_double_quote)
-						a_text_formatter.add (l_alias_name.value_32)
-						a_text_formatter.process_symbol_text (ti_double_quote)
+					if attached {FEATURE_NAME_ALIAS_AS} l_content.item.new_name as l_feat_name_alias then
+						across
+							l_feat_name_alias.aliases as ic
+						loop
+							a_text_formatter.add_space
+							a_text_formatter.process_keyword_text (ti_alias_keyword, Void)
+							a_text_formatter.add_space
+							a_text_formatter.process_symbol_text (ti_double_quote)
+							a_text_formatter.add (ic.item.alias_name.value_32)
+							a_text_formatter.process_symbol_text (ti_double_quote)
+						end
 					end
 
 					l_content.forth
@@ -665,7 +660,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

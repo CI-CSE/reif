@@ -11,6 +11,15 @@ class
 inherit
 	WSF_SERVICE_LAUNCHER_OPTIONS
 
+create
+	default_create,
+	make,
+	make_from_array,
+	make_from_iterable
+
+convert
+	make_from_array ({ARRAY [TUPLE [name: READABLE_STRING_GENERAL; value: detachable ANY]]})	
+
 feature -- Status report
 
 	is_secure_connection_supported: BOOLEAN
@@ -69,6 +78,19 @@ feature -- Access: connection
 			-- Listen on socket for at most `max_tcp_clients' connections.	
 		do
 			Result := option_integer_value ("max_tcp_clients", 0)
+		end
+
+	max_bind_attempts: INTEGER assign set_max_bind_attempts
+			-- Maximum binding try before exiting.
+			-- (check every one second)
+		do
+			Result := option_integer_value ("max_bind_attempts", 0)
+		end
+
+	reuse_address_allowed: BOOLEAN assign set_reuse_address_allowed
+			 -- Is reuse address allowed?
+		do
+			Result := option_boolean_value ("allow_reuse_address", False)
 		end
 
 feature -- Access: network
@@ -194,6 +216,18 @@ feature -- Element change
 			-- Set `max_concurrent_connections' with `v'.
 		do
 			set_numeric_option ("max_concurrent_connections", v)
+		end
+
+	set_max_bind_attempts (v: like max_bind_attempts)
+			-- Set `max_bind_attempts' with `v'.
+		do
+			set_numeric_option ("max_bind_attempts", v)
+		end
+
+	set_reuse_address_allowed (b: BOOLEAN)
+			-- Set `reuse_address_allowed' with `b'
+		do
+			set_boolean_option ("reuse_address_allowed", b)
 		end
 
 	set_socket_timeout (a_nb_seconds: like socket_timeout)

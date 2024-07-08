@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Eiffel Vision pixmap. Mswindows implementation for a%N%
 		%simple pixmap (not drawable, not self-displayable)"
@@ -17,7 +17,6 @@ inherit
 		redefine
 			interface,
 			on_parented,
-			set_with_default,
 			set_pebble,
 			set_actual_drop_target_agent,
 			set_pebble_function,
@@ -61,23 +60,20 @@ feature -- Initialization
 
 	init_from_pointer_style (a_pointer_style: EV_POINTER_STYLE)
 			-- Initialize from not void `a_pointer_style'.
-		local
-			l_imp: detachable EV_POINTER_STYLE_IMP
 		do
-			l_imp ?= a_pointer_style.implementation
-			check l_imp /= Void then end
-			set_with_resource (l_imp.wel_cursor)
+			check attached {EV_POINTER_STYLE_IMP} a_pointer_style.implementation as l_imp then
+				set_with_resource (l_imp.wel_cursor)
+			end
 		end
 
 	init_from_pixel_buffer (a_pixel_buffer: EV_PIXEL_BUFFER)
 			-- Redefine
 		local
-			l_pixel_buffer: detachable EV_PIXEL_BUFFER_IMP
 			l_gdip_bitmap: detachable WEL_GDIP_BITMAP
 		do
-			l_pixel_buffer ?= a_pixel_buffer.implementation
-			check not_void: l_pixel_buffer /= Void then end
-			l_gdip_bitmap := l_pixel_buffer.gdip_bitmap
+			check attached {EV_PIXEL_BUFFER_IMP} a_pixel_buffer.implementation as l_pixel_buffer then
+				l_gdip_bitmap := l_pixel_buffer.gdip_bitmap
+			end
 			if l_gdip_bitmap /= Void and then color_depth = 32 then
 					-- We create a 32bit DIB bitmap if possible, so current can have alpha informations.
 					-- Because EV_PIXMAP_IMP_STATE doesn't have `private_bitmap' and `private_mask_bitmap' features,
@@ -92,7 +88,6 @@ feature -- Initialization
 			else
 				Precursor {EV_PIXMAP_IMP_STATE}	(a_pixel_buffer)
 			end
-
 		end
 
 feature -- Event handling
@@ -102,6 +97,10 @@ feature -- Event handling
 		end
 
 	init_resize_actions (a_resize_actions: like resize_actions)
+		do
+		end
+
+	init_dpi_changed_actions (a_dpi_changed_actions: like dpi_changed_actions)
 		do
 		end
 
@@ -125,9 +124,9 @@ feature {EV_ANY_I, EV_STOCK_PIXMAPS_IMP} -- Loading/Saving
 			reset_bitmap_content
 			reset_resource_content
 
-			private_icon ?= a_resource
+			private_icon := {WEL_ICON} / a_resource
 			if private_icon = Void then
-				private_cursor ?= a_resource
+				private_cursor := {WEL_CURSOR} / a_resource
 			end
 			a_resource.increment_reference
 
@@ -176,13 +175,11 @@ feature {EV_ANY_I, EV_STOCK_PIXMAPS_IMP} -- Loading/Saving
 
 	set_mask (a_mask: EV_BITMAP)
 			-- Set mask of `Current' to `a_mask'.
-		local
-			l_bitmap_imp: detachable EV_BITMAP_IMP
 		do
-			l_bitmap_imp ?= a_mask.implementation
-			check l_bitmap_imp /= Void then end
-			private_mask_bitmap := l_bitmap_imp.drawable
-			l_bitmap_imp.drawable.increment_reference
+			check attached {EV_BITMAP_IMP} a_mask.implementation as l_bitmap_imp then
+				private_mask_bitmap := l_bitmap_imp.drawable
+				l_bitmap_imp.drawable.increment_reference
+			end
 		end
 
 feature {NONE} -- Saving
@@ -1180,6 +1177,27 @@ feature {EV_ANY_I} -- Delegated features
 			attached_interface.implementation.set_foreground_color(a_color)
 		end
 
+	reset_minimum_width
+			-- Reset the minimum width.
+		do
+			promote_to_widget
+			attached_interface.implementation.reset_minimum_width
+		end
+
+	reset_minimum_height
+			-- Reset the minimum height.
+		do
+			promote_to_widget
+			attached_interface.implementation.reset_minimum_height
+		end
+
+	reset_minimum_size
+			-- Reset the minimum size (width and height).
+		do
+			promote_to_widget
+			attached_interface.implementation.reset_minimum_size
+		end
+
 	set_minimum_height (a_minimum_height: INTEGER)
 			-- Set the minimum vertical size to `a_minimum_height' in pixels.
 		do
@@ -1254,6 +1272,13 @@ feature {EV_ANY_I} -- Delegated features
 			attached_interface.implementation.on_parented
 		end
 
+	set_anti_aliasing (value: BOOLEAN)
+			-- <Precursor>
+		do
+			promote_to_drawable
+			attached_interface.implementation.set_anti_aliasing (value)
+		end
+
 feature {EV_PIXMAP_I} -- Implementation
 
 	destroy
@@ -1274,15 +1299,12 @@ feature {EV_PIXMAP_I, EV_PIXMAP_IMP_STATE} -- Duplication
 			-- Update `Current' to have same appearence as `other'.
 			-- (So as to satisfy `is_equal'.)
 		local
-			other_simple_imp: detachable EV_PIXMAP_IMP
-			other_imp: detachable EV_PIXMAP_IMP_STATE
 			l_private_bitmap: like private_bitmap
 		do
 			reset_resource_content
 			reset_bitmap_content
 
-			other_simple_imp ?= other_interface.implementation
-			if other_simple_imp /= Void then
+			if attached {EV_PIXMAP_IMP} other_interface.implementation as other_simple_imp then
 				if attached other_simple_imp.pixmap_filename as l_pixmap_filename then
 					pixmap_filename := l_pixmap_filename.twin
 				end
@@ -1312,9 +1334,7 @@ feature {EV_PIXMAP_I, EV_PIXMAP_IMP_STATE} -- Duplication
 				end
 				copy_events_from_other (other_simple_imp)
 				update_needed := other_simple_imp.update_needed
-			else
-				other_imp ?= other_interface.implementation
-				check other_imp /= Void then end
+			elseif attached {EV_PIXMAP_IMP_STATE} other_interface.implementation as other_imp then
 				l_private_bitmap := other_imp.get_bitmap
 				check l_private_bitmap /= Void then end
 				private_bitmap := l_private_bitmap
@@ -1331,6 +1351,8 @@ feature {EV_PIXMAP_I, EV_PIXMAP_IMP_STATE} -- Duplication
 				private_height := l_private_bitmap.height
 				copy_events_from_other (other_imp)
 				update_needed := False
+			else
+				check is_PIXMAP_IMP_or_PIXMAP_IMP_state: False end
 			end
 				-- Update navigation attribute
 			if other_interface.is_tabable_from then
@@ -1940,13 +1962,11 @@ feature {EV_DRAWABLE_IMP} -- Implementation
 
 	sub_pixmap (area: EV_RECTANGLE): EV_PIXMAP
 			-- Pixmap region of `Current' represented by rectangle `area'
-		local
-			a_drawable_pixmap: detachable EV_PIXMAP_IMP_DRAWABLE
 		do
 			promote_to_drawable
-			a_drawable_pixmap ?= attached_interface.implementation
-			check a_drawable_pixmap /= Void then end
-			Result := a_drawable_pixmap.sub_pixmap (area)
+			check attached {EV_PIXMAP_IMP_DRAWABLE} attached_interface.implementation as l_drawable_pixmap then
+				Result := l_drawable_pixmap.sub_pixmap (area)
+			end
 		end
 
 	set_bitmap_and_mask (a_bitmap: WEL_BITMAP; a_mask: detachable WEL_BITMAP; a_bitmap_width, a_bitmap_height: INTEGER)
@@ -1994,8 +2014,8 @@ invariant
 			l_private_cursor.reference_tracked
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA
@@ -2004,4 +2024,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EV_PIXMAP_IMP
+end

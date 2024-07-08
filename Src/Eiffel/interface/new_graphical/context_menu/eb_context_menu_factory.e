@@ -14,7 +14,6 @@ inherit
 	EB_RECYCLABLE
 	EB_SHARED_MANAGERS
 	EB_SHARED_MENU_EXTENDER
-	EB_SHARED_PIXMAPS
 	EB_SHARED_PREFERENCES
 	SHARED_BENCH_NAMES
 
@@ -239,7 +238,7 @@ feature -- Diagram tool
 
 feature -- Feature tree
 
-	uncompiled_feature_item_menu (a_menu: EV_MENU; a_target_list: ARRAYED_LIST [EV_PND_TARGET_DATA]; a_source: EV_PICK_AND_DROPABLE; a_pebble: ANY; a_name: STRING)
+	uncompiled_feature_item_menu (a_menu: EV_MENU; a_target_list: ARRAYED_LIST [EV_PND_TARGET_DATA]; a_source: EV_PICK_AND_DROPABLE; a_pebble: ANY; a_name: READABLE_STRING_GENERAL)
 			-- Uncompiled feature item menu
 		require
 			a_name_not_void: a_name /= Void
@@ -696,6 +695,19 @@ feature {NONE} -- Menu section, Granularity 1.
 				l_menu_item.enable_sensitive
 			else
 				l_menu_item.disable_sensitive
+			end
+
+			if attached dev_window.commands.editor_insert_symbol_cmd as cmd then
+				l_menu_item := cmd.new_menu_item_unmanaged
+				a_menu.extend (l_menu_item)
+				if l_unmanaged_editor then
+					l_menu_item.select_actions.wipe_out
+				end
+				if is_editable then
+					l_menu_item.enable_sensitive
+				else
+					l_menu_item.disable_sensitive
+				end
 			end
 
 			extend_separator (a_menu)
@@ -2044,7 +2056,7 @@ invariant
 	dev_window_not_void: dev_window /= Void
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

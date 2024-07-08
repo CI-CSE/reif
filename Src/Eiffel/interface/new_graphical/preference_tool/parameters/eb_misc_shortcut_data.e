@@ -39,7 +39,7 @@ feature {EB_PREFERENCES} -- Initialization
 
 feature -- Access
 
-	shortcuts: HASH_TABLE [SHORTCUT_PREFERENCE, STRING]
+	shortcuts: STRING_TABLE [SHORTCUT_PREFERENCE]
 			-- Shortcuts
 		once
 			create Result.make (default_shortcut_actions.count)
@@ -144,10 +144,11 @@ feature {NONE} -- Modifiable shortcuts
 			l_hash: HASH_TABLE [TUPLE [BOOLEAN, BOOLEAN, BOOLEAN, STRING], STRING]
 		do
 			create Result.make (1)
-			create l_hash.make (3)
+			create l_hash.make (4)
 			l_hash.put ([False, False, False, key_strings.item (Key_f6).twin.as_string_8], "focus_on_class_address")
 			l_hash.put ([False, True, False, key_strings.item (Key_f4).twin.as_string_8], "close_focusing_docking_tool_or_editor")
 			l_hash.put ([False, False, False, key_strings.item (Key_f1).twin.as_string_8], "show_context_help")
+			l_hash.put ([False, True, False, key_strings.item (Key_r).twin.as_string_8], "reload_current_tab")
 			Result.extend ([l_hash, main_window_group])
 		end
 
@@ -168,6 +169,8 @@ feature {NONE} -- Modifiable shortcuts
 
 	show_tool_shortcuts: like default_shortcut_actions
 			-- Show tool shortcuts. (Alt/Ctrl/Shift/KeyString)
+			-- note: be careful about magic being {ES_TOOL}.shortcut_preference_name
+			--       and {ES_TOOL}.name for ES_*_TOOL class names.
 		local
 			l_hash: HASH_TABLE [TUPLE [BOOLEAN, BOOLEAN, BOOLEAN, STRING], STRING]
 		do
@@ -194,6 +197,7 @@ feature {NONE} -- Modifiable shortcuts
 			l_hash.put ([True, True, False, key_strings.item (key_comma).twin.as_string_8], "show_testing_tool")
 			l_hash.put ([True, True, False, key_strings.item (key_period).twin.as_string_8], "show_testing_results_tool")
 			l_hash.put ([True, True, False, key_strings.item (Key_q).twin.as_string_8], "show_information_tool")
+			l_hash.put ([True, False, True, key_strings.item (Key_s).twin.as_string_8], "show_scm_tool")
 			Result.extend ([l_hash, main_window_group])
 		end
 
@@ -267,7 +271,7 @@ invariant
 	preferences_not_void: preferences /= Void
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

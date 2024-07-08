@@ -5,8 +5,6 @@
 		Can be added to toolbars and menus.
 		Can be executed using stones.
 	]"
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	ES_AUTOPROOF_COMMAND
@@ -164,7 +162,7 @@ feature {NONE} -- Basic operations
 				across eiffel_universe.groups as g loop
 						-- Only load top-level clusters, as they are loaded recursively afterwards.
 					if
-						attached {CLUSTER_I} g.item as c and then
+						attached {CLUSTER_I} g as c and then
 						c.parent_cluster = Void
 					then
 						load_cluster (c)
@@ -191,7 +189,7 @@ feature {NONE} -- Basic operations
 		do
 			event_list.prune_event_items (event_context_cookie)
 			across a_result.verification_results as i loop
-				event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (i.item))
+				event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (i))
 			end
 			show_proof_tool
 			enable_tool_button
@@ -202,7 +200,7 @@ feature {NONE} -- Basic operations
 			-- Process verification result.
 		do
 			across a_result.verification_results as i loop
-				event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (i.item))
+				event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (i))
 			end
 			if autoproof.is_finished then
 				show_proof_tool
@@ -219,52 +217,37 @@ feature {NONE} -- Basic operations
 	proof_tool: detachable ES_AUTOPROOF_TOOL
 			-- Proof tool (if applicable).
 		local
-			l_tool: ES_TOOL [EB_TOOL]
 			l_window: EB_DEVELOPMENT_WINDOW
 		do
 			l_window := window_manager.last_focused_development_window
 			if not l_window.is_recycled and then l_window.is_visible and then l_window = window_manager.last_focused_development_window then
-				l_tool := l_window.shell_tools.tool ({ES_AUTOPROOF_TOOL})
-				if attached {ES_AUTOPROOF_TOOL} l_tool as l_autoproof_tool then
-					Result := l_autoproof_tool
-				else
-					check False end
-				end
+				Result := {ES_AUTOPROOF_TOOL} / l_window.shell_tools.tool ({ES_AUTOPROOF_TOOL})
 			end
 		end
 
 	show_proof_tool
 			-- Shows the proof tool
-		local
-			l_tool: ES_AUTOPROOF_TOOL
 		do
-			l_tool := proof_tool
-			if l_tool /= Void and then not l_tool.is_recycled then
-				l_tool.show (True)
+			if attached proof_tool as t and then not t.is_recycled then
+				t.show (True)
 			end
 		end
 
 	disable_tool_button
 			-- Disable proof button on tool.
-		local
-			l_tool: ES_AUTOPROOF_TOOL
 		do
-			l_tool := proof_tool
-			if l_tool /= Void and then l_tool.is_tool_instantiated then
-				proof_tool.panel.proof_button.disable_sensitive
-				proof_tool.panel.stop_button.enable_sensitive
+			if attached proof_tool as t and then t.is_tool_instantiated then
+				t.panel.proof_button.disable_sensitive
+				t.panel.stop_button.enable_sensitive
 			end
 		end
 
 	enable_tool_button
 			-- Enable proof button on tool.
-		local
-			l_tool: ES_AUTOPROOF_TOOL
 		do
-			l_tool := proof_tool
-			if l_tool /= Void and then l_tool.is_tool_instantiated then
-				proof_tool.panel.proof_button.enable_sensitive
-				proof_tool.panel.stop_button.disable_sensitive
+			if attached proof_tool as t and then t.is_tool_instantiated then
+				t.panel.proof_button.enable_sensitive
+				t.panel.stop_button.disable_sensitive
 			end
 		end
 
@@ -280,50 +263,20 @@ feature {NONE} -- Basic operations
 			end
 		end
 
-	load_cluster (a_cluster: CLUSTER_I)
-			-- Load `a_cluster' for verification.
+	load_cluster (g: CLUSTER_I)
+			-- Load `g` for verification.
 		require
-			a_cluster_not_void: a_cluster /= Void
-		local
-			l_conf_class: CONF_CLASS
+			attached g
 		do
-			from
-				a_cluster.classes.start
-			until
-				a_cluster.classes.after
-			loop
-				l_conf_class := a_cluster.classes.item_for_iteration
-				load_class (eiffel_universe.class_named (l_conf_class.name, a_cluster))
-				a_cluster.classes.forth
-			end
-			if a_cluster.sub_clusters /= Void then
-				from
-					a_cluster.sub_clusters.start
-				until
-					a_cluster.sub_clusters.after
-				loop
-					load_cluster (a_cluster.sub_clusters.item_for_iteration)
-					a_cluster.sub_clusters.forth
-				end
-			end
+			autoproof.add_group (g)
 		end
 
-	load_group (a_group: CONF_GROUP)
-			-- Load `a_group' for verification.
+	load_group (g: CONF_GROUP)
+			-- Load `g` for verification.
 		require
-			a_group_not_void: a_group /= Void
-		local
-			l_conf_class: CONF_CLASS
+			attached g
 		do
-			from
-				a_group.classes.start
-			until
-				a_group.classes.after
-			loop
-				l_conf_class := a_group.classes.item_for_iteration
-				load_class (eiffel_universe.class_named (l_conf_class.name, a_group))
-				a_group.classes.forth
-			end
+			autoproof.add_group (g)
 		end
 
 feature -- Items
@@ -521,34 +474,27 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
-	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options: "http://www.eiffel.com/licensing"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018 Politecnico di Milano",
+		"Copyright (c) 2021-2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful, but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-		]"
-	source: "[
-			Eiffel Software
-			5949 Hollister Ave., Goleta, CA 93117 USA
-			Telephone 805-685-1006, Fax 805-685-6869
-			Website http://www.eiffel.com
-			Customer support http://support.eiffel.com
-		]"
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
+
 end

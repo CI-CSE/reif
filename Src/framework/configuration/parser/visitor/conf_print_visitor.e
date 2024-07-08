@@ -11,14 +11,15 @@ class
 inherit
 	CONF_ITERATOR
 		redefine
+			process_assembly,
+			process_cluster,
+			process_library,
+			process_namespace,
+			process_override,
+			process_precompile,
 			process_redirection,
 			process_system,
-			process_target,
-			process_assembly,
-			process_library,
-			process_precompile,
-			process_cluster,
-			process_override
+			process_target
 		end
 
 	CONF_VALIDITY
@@ -26,6 +27,8 @@ inherit
 	CONF_NAMESPACE_TESTER
 
 	CONF_ACCESS
+
+	CONF_LOAD_PARSE_CALLBACKS_CONSTANTS
 
 create
 	make,
@@ -60,6 +63,14 @@ feature -- Access
 
 	schema: STRING_32
 			-- Schema to use.
+
+feature -- Status report
+
+	is_last_character (c: CHARACTER): BOOLEAN
+			-- Is last character of `text` , the character `c` ?
+		do
+			Result := text [text.count] = c
+		end
 
 feature -- Update
 
@@ -175,19 +186,23 @@ feature -- Visit nodes
 		local
 			l_version: detachable CONF_VERSION
 			l_settings: like {CONF_TARGET}.settings
-			l_sorted_list: ARRAYED_LIST [READABLE_STRING_GENERAL]
+			l_sorted_list: ARRAYED_LIST [attached like known_settings.item]
+			setting_value: like {CONF_TARGET}.settings.item
+			o: CONF_TARGET_OPTION
 		do
 			current_target := a_target
 			append_tag_open ({STRING_32} "target")
 			append_text_attribute (ta_name, a_target.name)
-			if attached a_target.remote_parent as l_remote_parent and then includes_this_or_after (namespace_1_18_0) then
-				if attached l_remote_parent.name as l_remote_parent_name then
-					append_text_attribute (ta_extends, l_remote_parent_name)
+			if attached {CONF_REMOTE_TARGET_REFERENCE} a_target.parent_reference as l_remote and then includes_this_or_after (namespace_1_18_0) then
+				if attached l_remote.name as l_parent_ref_name then
+					append_text_attribute (ta_extends, l_parent_ref_name)
 				end
-				append_text_attribute (ta_extends_location, l_remote_parent.location)
+				append_text_attribute (ta_extends_location, l_remote.location)
 			elseif attached a_target.extends as l_extends then
 					-- Ignore the target if it is a library one (i.e. not explicitly specified in the configuration).
 				append_text_attribute (ta_extends, l_extends.name)
+			elseif attached {CONF_LOCAL_TARGET_REFERENCE} a_target.parent_reference as l_local then
+				append_text_attribute (ta_extends, l_local.name)
 			end
 			if a_target.is_abstract then
 				append_text_attribute (ta_abstract, configuration_value_true)
@@ -220,27 +235,54 @@ feature -- Visit nodes
 				append_tag_close_empty
 			end
 			append_file_rule (a_target.internal_file_rule)
-			append_target_options (a_target.internal_options)
+			o := persistent_target_options (a_target)
+			append_target_options (o)
 
 			l_settings := a_target.internal_settings
-			create l_sorted_list.make_from_array (l_settings.current_keys)
-			;(create {QUICK_SORTER [READABLE_STRING_GENERAL]}.make (create {COMPARABLE_COMPARATOR [READABLE_STRING_GENERAL]})).sort (l_sorted_list)
+			create l_sorted_list.make_from_iterable (known_settings)
+			;(create {QUICK_SORTER [like known_settings.item]}.make (create {COMPARABLE_COMPARATOR [attached like known_settings.item]})).sort (l_sorted_list)
 			across
 				l_sorted_list as s
 			loop
-				if
-					valid_setting (s.item, namespace) and then
-					attached l_settings.item (s.item) as l_setting_item
-				then
-					append_tag_open ({STRING_32} "setting")
-					append_text_attribute ("name", s.item)
-					append_text_attribute ("value", l_setting_item)
-					append_tag_close_empty
+				if valid_setting (s, namespace) then
+					setting_value := l_settings.item (s)
+					if
+						not attached setting_value and then
+						boolean_settings.has (s) and then
+						is_boolean_setting_true (s, if attached namespace as n then n else latest_namespace end) /= is_boolean_setting_true (s, a_target.system.namespace)
+					then
+							-- The setting has a different default value in the current namespace.
+						setting_value := configuration_boolean_value (is_boolean_setting_true (s, a_target.system.namespace))
+					end
+					if attached setting_value then
+						append_tag_open ({STRING_32} "setting")
+						append_text_attribute ("name", s)
+						append_text_attribute ("value", setting_value)
+						append_tag_close_empty
+					end
 				end
+			end
+				-- Add a dead code removal setting.
+			if
+				attached o and then
+				attached o.dead_code as dead_code and then
+				dead_code.is_set
+			then
+				append_tag_open ({STRING_32} "setting")
+				append_text_attribute ("name", s_dead_code_removal)
+				append_text_attribute ("value",
+					if includes_this_or_after (namespace_1_20_0) then
+							-- Enumeration in 19.05 and later.
+						dead_code.item
+					else
+							-- Boolean in 18.11 and earlier.
+						configuration_boolean_value (dead_code.index /= {CONF_TARGET_OPTION}.dead_code_index_none)
+					end)
+				append_tag_close_empty
 			end
 				-- Add a manifest array type setting.
 			if
-				attached a_target.internal_options as o and then
+				attached o and then
 				attached o.array_override as array_override and then
 				array_override.is_set and then
 				includes_this_or_after (namespace_1_18_0)
@@ -251,7 +293,7 @@ feature -- Visit nodes
 				append_tag_close_empty
 			end
 			if
-				attached a_target.internal_options as o and then
+				attached o and then
 				attached o.concurrency_capability as concurrency_capability and then
 				concurrency_capability.is_root_set and then
 				includes_this_or_before (namespace_1_15_0)
@@ -273,9 +315,9 @@ feature -- Visit nodes
 				append_tag_close_empty
 			end
 			if
-				includes_this_or_after (namespace_1_16_0) and then
-				attached a_target.internal_options as o and then
-				o.has_capability
+				attached o and then
+				o.has_capability and then
+				includes_this_or_after (namespace_1_16_0)
 			then
 				append_start_tag (tag_capability)
 					-- Add capabilities in alphabetical order as specified in ECF schema.
@@ -287,6 +329,9 @@ feature -- Visit nodes
 				append_end_tag (tag_capability)
 			end
 			append_mapping (a_target.internal_mapping)
+			if includes_this_or_after (namespace_1_23_0) then
+				process_in_alphabetic_order (a_target.internal_dotnet_renaming)
+			end
 			append_externals (a_target.internal_external_include, {STRING_32} "external_include", "location")
 			append_externals (a_target.internal_external_cflag, {STRING_32} "external_cflag", "value")
 			append_externals (a_target.internal_external_object, {STRING_32} "external_object", "location")
@@ -301,8 +346,8 @@ feature -- Visit nodes
 				a_target.internal_variables as v
 			loop
 				append_tag_open ({STRING_32} "variable")
-				append_text_attribute ("name", v.key)
-				append_text_attribute ("value", v.item)
+				append_text_attribute ("name", @ v.key)
+				append_text_attribute ("value", v)
 				append_tag_close_empty
 			end
 
@@ -344,7 +389,7 @@ feature -- Visit nodes
 					append_text_attribute ("assembly_key", l_str)
 				end
 			end
-			append_val_group (an_assembly)
+			append_val_group (an_assembly, False, False)
 			append_post_group ({STRING_32} "assembly")
 		ensure then
 			indent_back: indent = old indent
@@ -357,7 +402,7 @@ feature -- Visit nodes
 			if namespace /= namespace_1_0_0 and then a_library.use_application_options then
 				append_boolean_attribute ("use_application_options", True)
 			end
-			append_val_group (a_library)
+			append_val_group (a_library, False, False)
 			if attached a_library.visible as l_visible then
 				append_visible (l_visible)
 			end
@@ -373,7 +418,7 @@ feature -- Visit nodes
 			if attached a_precompile.eifgens_location as l_loc then
 				append_text_attribute ("eifgens_location", l_loc.original_path)
 			end
-			append_val_group (a_precompile)
+			append_val_group (a_precompile, False, False)
 			append_post_group ({STRING_32} "precompile")
 		ensure then
 			indent_back: indent = old indent
@@ -390,7 +435,7 @@ feature -- Visit nodes
 				g := if a_cluster.is_test_cluster then {STRING_32} "tests" else {STRING_32} "cluster" end
 				append_pre_group (g, a_cluster)
 				append_attr_cluster (a_cluster)
-				append_val_group (a_cluster)
+				append_val_group (a_cluster, True, True)
 				append_val_cluster (a_cluster)
 				append_post_group (g)
 			end
@@ -400,33 +445,87 @@ feature -- Visit nodes
 
 	process_override (an_override: CONF_OVERRIDE)
 			-- Visit `an_override'.
-		local
-			l_overrides: detachable LIST [CONF_GROUP]
 		do
 				-- ignore subclusters, except if we are handling one.
 			if an_override.parent = Void or current_is_subcluster then
 				current_is_subcluster := False
 				append_pre_group ({STRING_32} "override", an_override)
 				append_attr_cluster (an_override)
-				append_val_group (an_override)
+				append_val_group (an_override, True, False)
 				append_val_cluster (an_override)
-				l_overrides := an_override.override
-				if l_overrides /= Void then
-					from
-						l_overrides.start
-					until
-						l_overrides.after
+				if attached an_override.override as os then
+					across
+						os as o
 					loop
 						append_tag_open ({STRING_32} "overrides")
-						append_text_attribute ("group", l_overrides.item.name)
+						append_text_attribute ("group", o.name)
 						append_tag_close_empty
-						l_overrides.forth
 					end
 				end
 				append_post_group ({STRING_32} "override")
 			end
 		ensure then
 			indent_back: indent = old indent
+		end
+
+	process_namespace (n: CONF_NAMESPACE)
+			-- <Precursor>
+		do
+			append_tag_open ({STRING_32} "namespace")
+			append_text_attribute ("name", n.name)
+			if attached n.name_prefix as p and then not p.is_empty then
+				append_text_attribute ("prefix", p)
+			end
+			if attached n.renaming as l_renamings and then not l_renamings.is_empty then
+				append_tag_close
+				last_count := text.count
+				append_renaming (n.renaming)
+				append_end_tag ({STRING_32} "namespace")
+			else
+				append_tag_close_empty
+			end
+			last_count := text.count
+		ensure then
+			indent_back: indent = old indent
+		end
+
+feature {NONE}
+
+	options: CONF_OPTION
+			-- A new instance of options corresponding to the specified `namespace`.
+		do
+			Result := {CONF_OPTION}.create_from_namespace_or_latest (if attached namespace as n then n else latest_namespace end)
+		end
+
+	persistent_target_options (t: CONF_TARGET): CONF_TARGET_OPTION
+			-- Options of the target `t` that can be saved with the specified `namespace`.
+		do
+				-- Pick the default options for the specified `namespace`.
+			Result := {CONF_TARGET_OPTION}.create_from_namespace_or_latest (if attached namespace as n then n else latest_namespace end)
+				-- Project explicitly set options to the namespace.
+			if attached t.internal_options as o then
+				Result.merge (o)
+			end
+				-- Project default options to the namespace.
+			Result.merge (t.default_options)
+		end
+
+	persistent_options (o: detachable CONF_OPTION; d: CONF_OPTION): CONF_OPTION
+			-- Options `o` adapted for saving with the specified `namespace`.
+			-- `d` is the default options of the item where `o` is defined.
+		do
+				-- Pick the default options for the specified `namespace`.
+			Result := options
+				-- Project explicitly set options to the namespace.
+			if attached o then
+				Result.merge (o)
+			end
+				-- Project default options to the namespace.
+			Result.merge (d)
+		ensure
+			idempotent_for_default: Result ~ persistent_options (Result, d)
+			idempotent_for_current: Result ~ persistent_options (Result, options)
+			idempotent_for_explicit: attached o implies Result ~ persistent_options (Result, o)
 		end
 
 feature {NONE} -- Implementation
@@ -443,24 +542,23 @@ feature {NONE} -- Implementation
 	current_is_subcluster: BOOLEAN
 			-- Is the current cluster/override a subcluster?
 
-	process_in_alphabetic_order (a_groups: STRING_TABLE [CONF_GROUP])
+	last_general_options_has_children: BOOLEAN
+
+	process_in_alphabetic_order (a_groups: STRING_TABLE [CONF_VISITABLE])
 			-- Process `a_groups' in alphabetic order corresponding to their key.
 		require
 			a_groups_not_void: a_groups /= Void
 		local
 			l_sorted_list: ARRAYED_LIST [READABLE_STRING_GENERAL]
 		do
-			from
-				create l_sorted_list.make_from_array (a_groups.current_keys)
-				;(create {QUICK_SORTER [READABLE_STRING_GENERAL]}.make (create {COMPARABLE_COMPARATOR [READABLE_STRING_GENERAL]})).sort (l_sorted_list)
-				l_sorted_list.start
-			until
-				l_sorted_list.after
+			create l_sorted_list.make_from_array (a_groups.current_keys)
+			;(create {QUICK_SORTER [READABLE_STRING_GENERAL]}.make (create {COMPARABLE_COMPARATOR [READABLE_STRING_GENERAL]})).sort (l_sorted_list)
+			across
+				l_sorted_list as i
 			loop
-				if attached a_groups.item (l_sorted_list.item_for_iteration) as l_grp then
+				if attached a_groups.item (i) as l_grp then
 					l_grp.process (Current)
 				end
-				l_sorted_list.forth
 			end
 		end
 
@@ -548,6 +646,23 @@ feature {NONE} -- Implementation
 				i := i - 1
 			end
 			text.append (a_text)
+		end
+
+	remove_last_tag_close
+			-- When `text` ends with a tag close, remove it.
+		local
+			n: INTEGER
+		do
+			n := text.count
+			if
+				n > 1 and then
+				text [n-1] = '>' and then
+				text [n] = '%N'
+			then
+				text.remove_tail (2)
+			end
+		ensure
+			text.count = old (text.count) or text.count = old (text.count) - 2
 		end
 
 	append_text (a_text: READABLE_STRING_8)
@@ -702,12 +817,12 @@ feature {NONE} -- Implementation
 				across
 					v as i
 				loop
-					if not i.is_first then
+					if not @ i.is_first then
 							-- The first item is not preceded with any delimiter.
 							-- The second and next ones are preceded with a space.
 						append_text (once " ")
 					end
-					append_text_escaped (get_name.item ([i.item]).as_lower, False)
+					append_text_escaped (get_name.item ([i]).as_lower, False)
 				end
 				append_text ("%"")
 				append_tag_close_empty
@@ -727,34 +842,49 @@ feature {NONE} -- Implementation
 					-- assembly and only the default rule? => don't print it
 				if is_assembly and then a_conditions.count = 1 then
 					l_condition := a_conditions.first
-					l_done := l_condition.build = Void and l_condition.platform = Void and l_condition.concurrency = Void and l_condition.version.is_empty and l_condition.custom.is_empty
+					l_done :=
+						l_condition.build = Void and
+						l_condition.platform = Void and
+						l_condition.concurrency = Void and
+						l_condition.void_safety = Void and
+						l_condition.version.is_empty and
+						l_condition.custom.is_empty
 				end
 				if not l_done then
-					from
-						a_conditions.start
-					until
-						a_conditions.after
+					across
+						a_conditions as c
 					loop
 						append_tag_open ({STRING_32} "condition")
 						append_tag_close
 
-						l_condition := a_conditions.item
+						l_condition := c
 						if attached l_condition.platform as p then
 							append_condition_list (p, agent get_platform_name, {STRING_32} "platform")
 						end
 						if attached l_condition.build as b then
 							append_condition_list (b, agent get_build_name, {STRING_32} "build")
 						end
-						if attached l_condition.concurrency as c then
+						if attached l_condition.concurrency as concurrency then
 							if includes_this_or_after (namespace_1_8_0) then
 									-- Use "concurrency" condition.
-								append_condition_list (c, agent get_concurrency_name, {STRING_32} "concurrency")
+								append_condition_list (concurrency, agent get_concurrency_name, {STRING_32} "concurrency")
 							else
 									-- Use "multithreaded" condition.
 								append_tag_open ({STRING_32} "multithreaded")
-								append_boolean_attribute ("value", c.value.has (concurrency_none) = c.invert)
+								append_boolean_attribute ("value", concurrency.value.has (concurrency_none) = concurrency.invert)
 								append_tag_close_empty
 							end
+						end
+						if attached l_condition.void_safety as v and then includes_this_or_after (namespace_1_19_0) then
+								-- Add "void_safety" condition.
+							append_condition_list (v, agent get_void_safety_name, {STRING_32} "void_safety")
+						end
+
+							-- Don't print dotnet for assemblies.
+						if not is_assembly and then attached l_condition.dotnet as l_dotnet then
+							append_tag_open ({STRING_32} "dotnet")
+							append_boolean_attribute ("value", l_dotnet.item)
+							append_tag_close_empty
 						end
 
 						if attached l_condition.dynamic_runtime as l_dyn_runtime then
@@ -763,19 +893,12 @@ feature {NONE} -- Implementation
 							append_tag_close_empty
 						end
 
-							-- don't print dotnet for assemblies
-						if not is_assembly and then attached l_condition.dotnet as l_dotnet then
-							append_tag_open ({STRING_32} "dotnet")
-							append_boolean_attribute ("value", l_dotnet.item)
-							append_tag_close_empty
-						end
-
 						across
 							l_condition.version as ic_versons
 						loop
-							l_ver := ic_versons.item
+							l_ver := ic_versons
 							append_tag_open ({STRING_32} "version")
-							append_text_attribute ("type", ic_versons.key)
+							append_text_attribute ("type", @ ic_versons.key)
 							if attached l_ver.min as l_ver_min then
 								append_text_attribute ("min", l_ver_min.version)
 							end
@@ -789,12 +912,12 @@ feature {NONE} -- Implementation
 							l_condition.custom as cc
 						loop
 							across
-								cc.item as value
+								cc as value
 							loop
 								append_tag_open (tag_custom)
-								append_text_attribute (att_name, cc.key)
-								flag := value.item
-								append_text_attribute (if flag.inverted then att_excluded_value else att_value end, value.key)
+								append_text_attribute (att_name, @ cc.key)
+								flag := value
+								append_text_attribute (if flag.inverted then att_excluded_value else att_value end, @ value.key)
 								if flag.is_match_set and then includes_this_or_after (namespace_1_18_0) then
 									append_text_attribute (att_match, match_value (flag.match_kind))
 								end
@@ -803,7 +926,6 @@ feature {NONE} -- Implementation
 						end
 
 						append_end_tag ({STRING_32} "condition")
-						a_conditions.forth
 					end
 				end
 			end
@@ -814,17 +936,29 @@ feature {NONE} -- Implementation
 	append_mapping (a_mapping: detachable STRING_TABLE [READABLE_STRING_32])
 			-- Append `a_mapping'.
 		do
-			if a_mapping /= Void then
-				from
-					a_mapping.start
-				until
-					a_mapping.after
+			if attached a_mapping then
+				across
+					a_mapping as m
 				loop
 					append_tag_open ({STRING_32} "mapping")
-					append_text_attribute ("old_name", a_mapping.key_for_iteration)
-					append_text_attribute ("new_name", a_mapping.item_for_iteration)
+					append_text_attribute ("old_name", @ m.key)
+					append_text_attribute ("new_name", m)
 					append_tag_close_empty
-					a_mapping.forth
+				end
+			end
+		end
+
+	append_renaming (r: detachable STRING_TABLE [READABLE_STRING_32])
+			-- Append renaming `r`.
+		do
+			if attached r then
+				across
+					r as n
+				loop
+					append_tag_open ({STRING_32} "renaming")
+					append_text_attribute ("old_name", @ n.key)
+					append_text_attribute ("new_name", n)
+					append_tag_close_empty
 				end
 			end
 		end
@@ -839,12 +973,10 @@ feature {NONE} -- Implementation
 			l_ext: CONF_EXTERNAL
 		do
 			if not an_externals.is_empty then
-				from
-					an_externals.start
-				until
-					an_externals.after
+				across
+					an_externals as e
 				loop
-					l_ext := an_externals.item
+					l_ext := e
 					append_tag_open (a_name)
 					append_text_attribute (a_value, l_ext.internal_location)
 					append_tag_close
@@ -859,7 +991,6 @@ feature {NONE} -- Implementation
 					else
 						append_end_tag (a_name)
 					end
-					an_externals.forth
 				end
 			end
 		end
@@ -872,12 +1003,10 @@ feature {NONE} -- Implementation
 		local
 			l_action: CONF_ACTION
 		do
-			from
-				an_actions.start
-			until
-				an_actions.after
+			across
+				an_actions as a
 			loop
-				l_action := an_actions.item
+				l_action := a
 				append_tag_open (a_name)
 				if attached l_action.working_directory as l_wdir then
 					append_text_attribute ("working_directory", l_wdir.original_path)
@@ -890,7 +1019,6 @@ feature {NONE} -- Implementation
 				append_description_tag (l_action.description)
 				append_conditionals (l_action.internal_conditions, False)
 				append_end_tag (a_name)
-				an_actions.forth
 			end
 		end
 
@@ -899,144 +1027,191 @@ feature {NONE} -- Implementation
 		local
 			l_rule: CONF_FILE_RULE
 		do
-			from
-				a_file_rules.start
-			until
-				a_file_rules.after
+			across
+				a_file_rules as r
 			loop
-				l_rule := a_file_rules.item
-
+				l_rule := r
 				if not l_rule.is_empty then
 					append_tag_open ({STRING_32} "file_rule")
 					append_tag_close
 					append_description_tag (l_rule.description)
 						-- Save patterns lexicographically ordered.
 					if attached l_rule.ordered_exclude as p then
-						across p as pc loop
-							append_tag ({STRING_32} "exclude", pc.item)
-						end
+						⟳ i: p ¦ append_tag ({STRING_32} "exclude", i) ⟲
 					end
 					if attached l_rule.ordered_include as p then
-						across p as pc loop
-							append_tag ({STRING_32} "include", pc.item)
-						end
+						⟳ i: p ¦ append_tag ({STRING_32} "include", i) ⟲
 					end
 					append_conditionals (l_rule.internal_conditions, False)
 					append_end_tag ({STRING_32} "file_rule")
 				end
-
-				a_file_rules.forth
 			end
 		end
 
-	append_target_options (o: detachable CONF_TARGET_OPTION)
+	append_target_options (o: CONF_TARGET_OPTION)
 			-- Append target options `o' (if any).
 		do
-			append_group_options (o)
+			append_group_options (o, True, True)
 		end
 
-	append_class_options (o: detachable CONF_OPTION; c: READABLE_STRING_GENERAL)
-			-- Append class options `o' (if any) for a calss `c'.
+	append_class_options (o: CONF_OPTION; c: READABLE_STRING_GENERAL; is_own_source, is_own_capability: BOOLEAN)
+			-- Append class options `o' (if any) for a class `c'.
+			--
+			-- • `is_own_source` tells whether the options control the source code (i.e. not a library, a precompile, etc.)
+			-- • `is_own_capability` tells whether the options control the capabilities (i.e. not an override, a library, etc.)
 		do
-			if attached o and then not o.is_empty_for (namespace) then
+			if not o.is_empty_for (namespace) then
 				append_tag_open ({STRING_32} "class_option")
 				append_text_attribute ("class", c)
-				append_general_options (o)
-				append_end_tag ({STRING_32} "class_option")
+				append_general_options (o, is_own_source, is_own_capability)
+				if last_general_options_has_children then
+					append_end_tag ({STRING_32} "class_option")
+				else
+					indent := indent - 1
+					remove_last_tag_close
+					append_tag_close_empty
+				end
 			end
 		end
 
-	append_group_options (o: detachable CONF_OPTION)
+	append_group_options (o: CONF_OPTION; is_own_source, is_own_capability: BOOLEAN)
 			-- Append group options `o' (if any).
+			--
+			-- • `is_own_source` tells whether the options control the source code (i.e. not a library, a precompile, etc.)
+			-- • `is_own_capability` tells whether the options control the capabilities (i.e. not an override, a library, etc.)
 		do
-			if attached o and then not o.is_empty_for (namespace) then
+			if not o.is_empty_for (namespace) then
 				append_tag_open ({STRING_32} "option")
-				append_general_options (o)
-				append_end_tag ({STRING_32} "option")
+				append_general_options (o, is_own_source, is_own_capability)
+				if last_general_options_has_children then
+					append_end_tag ({STRING_32} "option")
+				else
+					indent := indent - 1
+					remove_last_tag_close
+					append_tag_close_empty
+				end
 			end
 		end
 
-	append_general_options (an_options: CONF_OPTION)
+	append_general_options (an_options: CONF_OPTION; is_own_source, is_own_capability: BOOLEAN)
 			-- Append `an_options' in an already open option element.
+			--
+			-- • `is_own_source` tells whether the options control the source code (i.e. not a library, a precompile, etc.)
+			-- • `is_own_capability` tells whether the options control the capabilities (i.e. not an override, a library, etc.)
+			--
+			-- note: update `last_general_options_has_children` to indicate if sub tag was added.
 		local
 			l_str: detachable READABLE_STRING_32
 			l_debugs, l_warnings: detachable STRING_TABLE [BOOLEAN]
 			l_sorted_list: ARRAYED_LIST [READABLE_STRING_GENERAL]
-			l_sorter: QUICK_SORTER [READABLE_STRING_GENERAL]
 			w: READABLE_STRING_GENERAL
+			l_text_count_for_close_open_tag: INTEGER
 		do
 			if an_options.is_trace_configured then
+				check not is_supplier_option (at_trace) end
 				append_boolean_attribute (o_is_trace, an_options.is_trace)
 			end
 			if an_options.is_profile_configured then
+				check not is_supplier_option (at_profile) end
 				append_boolean_attribute (o_is_profile, an_options.is_profile)
 			end
 			if an_options.is_optimize_configured then
+				check not is_supplier_option (at_optimize) end
 				append_boolean_attribute (o_is_optimize, an_options.is_optimize)
 			end
 			if an_options.is_debug_configured then
+				check not is_supplier_option (at_debug) end
 				append_boolean_attribute (o_is_debug, an_options.is_debug)
 			end
-			if an_options.is_warning_configured then
-				append_boolean_attribute (o_is_warning, an_options.is_warning)
+			if an_options.warning.is_set then
+				check not is_supplier_option (at_warning) end
+				if is_after_or_equal (namespace, namespace_1_21_0) then
+						-- The option is an enumeration starting from `namespace_1_21_0`.
+					append_text_attribute (o_warning, an_options.warning.item)
+				else
+						-- The option is a boolean value before `namespace_1_21_0`.
+					append_boolean_attribute (o_warning, an_options.warning.index /= {CONF_OPTION}.warning_index_none)
+				end
 			end
 			if an_options.is_msil_application_optimize_configured then
+				check not is_supplier_option (at_msil_application_optimize) end
 				append_boolean_attribute (o_is_msil_application_optimize, an_options.is_msil_application_optimize)
 			end
-			if an_options.is_full_class_checking_configured then
+			if is_own_source and an_options.is_full_class_checking_configured then
+				check is_supplier_option (at_full_class_checking) end
 				append_boolean_attribute (o_is_full_class_checking, an_options.is_full_class_checking)
 			end
 			if
-				is_before_or_equal (namespace, namespace_1_15_0) and then
-				an_options.catcall_detection.is_set
+				is_own_capability and
+				an_options.catcall_detection.is_set and then
+				is_before_or_equal (namespace, namespace_1_15_0)
 			then
+				check is_supplier_option (at_catcall_detection) end
 					-- Starting from `namespace_1_16_0` the option is treated as capability.
 				append_text_attribute (o_catcall_detection, an_options.catcall_detection.item)
 			end
-			if an_options.is_attached_by_default_configured then
+			if is_own_source and an_options.is_attached_by_default_configured then
+				check is_supplier_option (at_is_attached_by_default) end
 				append_boolean_attribute (o_is_attached_by_default, an_options.is_attached_by_default)
 			end
 			if
+				is_own_source and
+				(an_options.is_obsolete_iteration_configured or an_options.is_obsolete_iteration) and then
+				is_after_or_equal (namespace, namespace_1_22_0)
+			then
+				check is_supplier_option (at_is_obsolete_iteration) end
+				append_boolean_attribute (o_is_obsolete_iteration, an_options.is_obsolete_iteration)
+			end
+			if
+				is_own_source and then
 				(an_options.is_obsolete_routine_type_configured or else an_options.is_obsolete_routine_type) and then
 				is_after_or_equal (namespace, namespace_1_15_0)
 			then
+				check is_supplier_option (at_is_obsolete_routine_type) end
 				append_boolean_attribute (o_is_obsolete_routine_type, an_options.is_obsolete_routine_type)
 			end
 			if
+				is_own_capability and then
 				is_before_or_equal (namespace, namespace_1_15_0) and then
 				an_options.void_safety.is_set
 			then
+				check is_supplier_option (at_is_void_safe) end
+				check is_supplier_option (at_void_safety) end
 					-- Starting from `namespace_1_16_0` the option is treated as capability.
 				if is_after_or_equal (namespace, namespace_1_11_0) then
 						-- Current namespace.
 					l_str := an_options.void_safety.item
 				else
 						-- Earlier namespaces with less void-safety levels.
-					inspect
-						an_options.void_safety.index
-					when {CONF_OPTION}.void_safety_index_none then
-						l_str := {STRING_32} "none"
-					when
-						{CONF_OPTION}.void_safety_index_conformance,
-						{CONF_OPTION}.void_safety_index_initialization
-					then
-						l_str := {STRING_32} "initialization"
-					else
-						l_str := {STRING_32} "all"
-					end
+					l_str :=
+						inspect
+							an_options.void_safety.index
+						when {CONF_OPTION}.void_safety_index_none then
+							{STRING_32} "none"
+						when
+							{CONF_OPTION}.void_safety_index_conformance,
+							{CONF_OPTION}.void_safety_index_initialization
+						then
+							{STRING_32} "initialization"
+						else
+							{STRING_32} "all"
+						end
 					if is_after_or_equal (namespace, namespace_1_9_0) then
 						append_boolean_attribute ("is_void_safe", an_options.void_safety.index = {CONF_OPTION}.void_safety_index_all)
 					end
 				end
 				append_text_attribute (o_void_safety, l_str)
 			end
-			if an_options.syntax.is_set then
+			if is_own_source and an_options.syntax.is_set then
+				check is_supplier_option (at_syntax) end
 				append_text_attribute (o_syntax, an_options.syntax.item)
 			end
 			if
-				is_after_or_equal (namespace, namespace_1_18_0) and then
-				an_options.array.is_set
+				is_own_source and
+				an_options.array.is_set and then
+				is_after_or_equal (namespace, namespace_1_18_0)
 			then
+				check is_supplier_option (at_manifest_array_type) end
 					-- The option is available only starting from `namespace_1_18_0`.
 				append_text_attribute (o_manifest_array_type, an_options.array.item)
 			end
@@ -1044,25 +1219,25 @@ feature {NONE} -- Implementation
 			if l_str /= Void and then not l_str.is_empty then
 				append_text_attribute (o_namespace, l_str)
 			end
+
+				-- End of open tag, attributes
 			append_tag_close
+			l_text_count_for_close_open_tag := text.count
 
 			append_description_tag (an_options.description)
 
 			l_debugs := an_options.debugs
 			if l_debugs /= Void and then not l_debugs.is_empty then
 				create l_sorted_list.make_from_array (l_debugs.current_keys)
-				create l_sorter.make (create {STRING_COMPARATOR}.make)
-				l_sorter.sort (l_sorted_list)
-				from
-					l_sorted_list.start
-				until
-					l_sorted_list.after
+				;(create {QUICK_SORTER [READABLE_STRING_GENERAL]}.make
+					(create {STRING_COMPARATOR}.make)).sort (l_sorted_list)
+				across
+					l_sorted_list as d
 				loop
 					append_tag_open ({STRING_32} "debug")
-					append_text_attribute ("name", l_sorted_list.item_for_iteration)
-					append_boolean_attribute ("enabled", l_debugs.item (l_sorted_list.item_for_iteration))
+					append_text_attribute ("name", d)
+					append_boolean_attribute ("enabled", l_debugs.item (d))
 					append_tag_close_empty
-					l_sorted_list.forth
 				end
 			end
 
@@ -1090,25 +1265,32 @@ feature {NONE} -- Implementation
 			end
 
 			l_warnings := an_options.warnings
-			if l_warnings /= Void and then not l_warnings.is_empty then
-				create l_sorted_list.make_from_array (l_warnings.current_keys)
-				create l_sorter.make (create {STRING_COMPARATOR}.make)
-				l_sorter.sort (l_sorted_list)
-				from
-					l_sorted_list.start
-				until
-					l_sorted_list.after
-				loop
-					w := l_sorted_list.item_for_iteration
-					if valid_warning (w, namespace) then
-						append_tag_open ({STRING_32} "warning")
-						append_text_attribute ("name", w)
-						append_boolean_attribute ("enabled", l_warnings.item (w))
-						append_tag_close_empty
-					end
-					l_sorted_list.forth
+			if not attached l_warnings then
+				create l_warnings.make (0)
+			end
+			if an_options.warning_obsolete_call.is_set then
+				l_warnings.force (an_options.warning_obsolete_call.index /= {CONF_OPTION}.warning_term_index_none, w_obsolete_feature)
+			end
+			create l_sorted_list.make_from_array (l_warnings.current_keys)
+			;(create {QUICK_SORTER [READABLE_STRING_GENERAL]}.make
+				(create {STRING_COMPARATOR}.make)).sort (l_sorted_list)
+			across
+				l_sorted_list as i
+			loop
+				w := i
+				if is_after_or_equal (namespace, namespace_1_21_0) and then w.same_string (w_obsolete_feature) then
+					append_tag_open ({STRING_32} "warning")
+					append_text_attribute (wa_name, w)
+					append_text_attribute (wa_value, an_options.warning_obsolete_call.item)
+					append_tag_close_empty
+				elseif valid_warning (w, namespace) then
+					append_tag_open ({STRING_32} "warning")
+					append_text_attribute (wa_name, w)
+					append_boolean_attribute (wa_enabled, l_warnings.item (w))
+					append_tag_close_empty
 				end
 			end
+			last_general_options_has_children := text.count > l_text_count_for_close_open_tag
 		end
 
 	append_ordered_capability (capability: CONF_ORDERED_CAPABILITY; name: READABLE_STRING_32)
@@ -1136,27 +1318,21 @@ feature {NONE} -- Implementation
 		require
 			a_visible_not_void: a_visible /= Void
 		local
-			l_vis_feat: detachable STRING_TABLE [READABLE_STRING_32]
 			l_class: READABLE_STRING_GENERAL
 			l_feat: detachable READABLE_STRING_GENERAL
 			l_feat_rename, l_class_rename: detachable READABLE_STRING_32
 		do
-			from
-				a_visible.start
-			until
-				a_visible.after
+			across
+				a_visible as v
 			loop
-				l_class := a_visible.key_for_iteration
-				l_class_rename := a_visible.item_for_iteration.class_renamed
-				l_vis_feat := a_visible.item_for_iteration.features
-				if l_vis_feat /= Void then
-					from
-						l_vis_feat.start
-					until
-						l_vis_feat.after
+				l_class := @ v.key
+				l_class_rename := v.class_renamed
+				if attached v.features as l_vis_feat then
+					across
+						l_vis_feat as f
 					loop
-						l_feat := l_vis_feat.key_for_iteration
-						l_feat_rename := l_vis_feat.item_for_iteration
+						l_feat := @ f.key
+						l_feat_rename := f
 						if l_feat.same_string ("*") then
 							l_feat := Void
 						end
@@ -1175,7 +1351,6 @@ feature {NONE} -- Implementation
 							append_text_attribute ("feature_rename", l_feat_rename)
 						end
 						append_tag_close_empty
-						l_vis_feat.forth
 					end
 				else
 					append_tag_open ({STRING_32} "visible")
@@ -1185,9 +1360,7 @@ feature {NONE} -- Implementation
 					end
 					append_tag_close_empty
 				end
-				a_visible.forth
 			end
-
 		end
 
 	append_pre_group (a_tag: READABLE_STRING_32; a_group: CONF_GROUP)
@@ -1218,47 +1391,43 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	append_val_group (a_group: CONF_GROUP)
+	append_val_group (a_group: CONF_GROUP; is_own_source, is_own_capability: BOOLEAN)
 			-- Append the things that come in the value part of `a_group'.
+			--
+			-- • `is_own_source` tells whether the options control the source code (i.e. not a library, a precompile, etc.)
+			-- • `is_own_capability` tells whether the options control the capabilities (i.e. not an override, a library, etc.)
 		require
 			a_group_not_void: a_group /= Void
+		local
+			default_options: CONF_OPTION
 		do
 			append_tag_close
 			last_count := text.count
 			append_note_tag (a_group)
 			append_description_tag (a_group.description)
 			append_conditionals (a_group.internal_conditions, a_group.is_assembly)
-			append_group_options (a_group.internal_options)
-			if
-				attached {CONF_VIRTUAL_GROUP} a_group as l_vg and then
-				attached l_vg.renaming as l_renaming
-			then
-				from
-					l_renaming.start
-				until
-					l_renaming.after
-				loop
-					append_tag_open ({STRING_32} "renaming")
-					append_text_attribute ("old_name", l_renaming.key_for_iteration)
-					append_text_attribute ("new_name", l_renaming.item_for_iteration)
-					append_tag_close_empty
-					l_renaming.forth
-				end
+				-- Skip writing options for assemblies.
+			if not a_group.is_assembly then
+				default_options := a_group.default_options
+				append_group_options (persistent_options (a_group.internal_options, default_options), is_own_source, is_own_capability)
 			end
-			if attached a_group.internal_class_options as l_c_opt then
-				from
-					l_c_opt.start
-				until
-					l_c_opt.after
+			if attached {CONF_VIRTUAL_GROUP} a_group as v then
+				append_renaming (v.renaming)
+			end
+			if
+				attached default_options and then
+				attached a_group.internal_class_options as l_c_opt
+			then
+				across
+					l_c_opt as o
 				loop
-					append_class_options (l_c_opt.item_for_iteration, l_c_opt.key_for_iteration)
-					l_c_opt.forth
+					append_class_options (persistent_options (o, default_options), @ o.key, is_own_source, is_own_capability)
 				end
 			end
 		end
 
 	append_post_group (a_tag: READABLE_STRING_32)
-			-- Finish the the tag for the group.
+			-- Finish the `a_tag` for the group.
 		require
 			a_tag_ok: a_tag /= Void and then not a_tag.is_empty
 		do
@@ -1303,7 +1472,7 @@ feature {NONE} -- Implementation
 					g as gc
 				loop
 					append_tag_open ({STRING_32} "uses")
-					append_text_attribute ("group", gc.item.name)
+					append_text_attribute ("group", gc.name)
 					append_tag_close_empty
 				end
 			end
@@ -1313,14 +1482,11 @@ feature {NONE} -- Implementation
 			end
 				-- process subclusters
 			if attached a_cluster.children as l_clusters then
-				from
-					l_clusters.start
-				until
-					l_clusters.after
+				across
+					l_clusters as c
 				loop
 					current_is_subcluster := True
-					l_clusters.item.process (Current)
-					l_clusters.forth
+					c.process (Current)
 				end
 			end
 		end
@@ -1342,39 +1508,21 @@ feature {NONE} -- Implementation
 			-- Append `a_note' recursively.
 		require
 			a_note_not_void: a_note /= Void
-		local
-			l_name: READABLE_STRING_GENERAL
-			l_value: STRING_32
-			l_attr: like {CONF_NOTE_ELEMENT}.attributes
 		do
 			if not a_note.element_name.is_empty then
 				append_tag_open (a_note.element_name)
-				l_attr := a_note.attributes
-				from
-					l_attr.start
-				until
-					l_attr.after
+				across
+					a_note.attributes as a
 				loop
-					l_name := l_attr.key_for_iteration
-					l_value := l_attr.item_for_iteration
-					if l_value = Void then
-						l_value := once {STRING_32} ""
+					if attached @ a.key as n and then not n.is_empty then
+						append_text_attribute (n, if attached a as v then v else once {STRING_32} "" end)
 					end
-					if l_name /= Void and then not l_name.is_empty then
-						append_text_attribute (l_name, l_value)
-					end
-					l_attr.forth
 				end
-
 				if a_note.is_empty then
 					append_tag_close_empty
 				else
 					append_tag_close
-					across
-						a_note as ic
-					loop
-						append_note_recursive (ic.item)
-					end
+					⟳ i: a_note ¦ append_note_recursive (i) ⟲
 					append_end_tag (a_note.element_name)
 				end
 			end
@@ -1405,7 +1553,7 @@ feature {NONE} -- Match attribute
 
 note
 	ca_ignore: "CA033", "CA033 — very long class"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

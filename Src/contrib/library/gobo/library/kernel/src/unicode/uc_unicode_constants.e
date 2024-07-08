@@ -5,7 +5,7 @@ note
 		"Unicode constants"
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2002-2005, Eric Bezault and others"
+	copyright: "Copyright (c) 2002-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -18,7 +18,22 @@ inherit
 
 feature -- Access
 
+	bom_character: CHARACTER_32
+			-- Byte order mark (BOM) U+FEFF
+			-- See http://en.wikipedia.org/wiki/Byte_order_mark
+		once
+			Result := (0xFEFF).to_character_32
+		ensure
+			instance_free: class
+		end
+
 	minimum_unicode_character_code: INTEGER = 0
+			-- Smallest code for unicode characters
+--		ensure
+--			definition: Result = 0
+--		end
+
+	minimum_unicode_character_natural_32_code: NATURAL_32 = 0
 			-- Smallest code for unicode characters
 --		ensure
 --			definition: Result = 0
@@ -31,7 +46,20 @@ feature -- Access
 --			definition: Result = 1114111
 --		end
 
+	maximum_unicode_character_natural_32_code: NATURAL_32 = 0x10FFFF
+			-- Largest code for unicode characters (10FFFF);
+			-- Includes final two non-characters.
+--		ensure
+--			definition: Result = 1114111
+--		end
+
 	minimum_unicode_surrogate_code: INTEGER = 55296
+			-- Lowest unicode surrogate code-point (0xD800)
+--		ensure
+--			definition: Result = 55296
+--		end
+
+	minimum_unicode_surrogate_natural_32_code: NATURAL_32 = 0xD800
 			-- Lowest unicode surrogate code-point (0xD800)
 --		ensure
 --			definition: Result = 55296
@@ -41,6 +69,18 @@ feature -- Access
 			-- Highest unicode surrogate code-point (0xDFFF)
 --		ensure
 --			definition: Result = 57343
+--		end
+
+	maximum_unicode_surrogate_natural_32_code: NATURAL_32 = 0xDFFF
+			-- Highest unicode surrogate code-point (0xDFFF)
+--		ensure
+--			definition: Result = 57343
+--		end
+
+	unicode_surrogate_count: INTEGER = 2048
+			-- Number of unicode surrogate code-points
+--		ensure
+--			definition: Result = maximum_unicode_surrogate_code - minimum_unicode_surrogate_code + 1
 --		end
 
 	maximum_bmp_character_code: INTEGER = 65535
@@ -63,13 +103,21 @@ feature -- Access
 --			small_enough: Result <= Platform.Maximum_byte_code
 --		end
 
-	minimum_ascii_character: CHARACTER = '%/0/'
+	maximum_ascii_character_natural_32_code: NATURAL_32 = 127
+			-- Largest code for ASCII characters
+			-- (2^7 - 1)
+--		ensure
+--			definition: Result = 127
+--			small_enough: Result <= Platform.Maximum_byte_code
+--		end
+
+	minimum_ascii_character: CHARACTER_8 = '%/0/'
 			-- Smallest ASCII character
 --		ensure
 --			definition: Result.code = minimum_ascii_code
 --		end
 
-	maximum_ascii_character: CHARACTER = '%/127/'
+	maximum_ascii_character: CHARACTER_8 = '%/127/'
 			-- Largest ASCII character
 --		ensure
 --			definition: Result.code = maximum_ascii_code

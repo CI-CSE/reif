@@ -9,6 +9,20 @@ class
 
 inherit
 	JWT_UTILITIES
+		redefine
+			default_create
+		end
+
+feature {NONE} -- Initialization
+
+	default_create
+		do
+			create algorithms
+		end
+
+feature -- Settings
+
+	algorithms: JWT_ALGORITHMS
 
 feature -- Access
 
@@ -18,20 +32,21 @@ feature -- Access
 			-- WARNING: passing Void for `a_alg` is not safe, as the server should know which alg he used for tokens,
 			-- 			leaving the possibility to use the header alg is dangerous as client may use "none" and then bypass verification!
 		require
-			a_valid_alg: a_alg /= Void implies is_supporting_signature_algorithm (a_alg)
+			a_valid_alg: a_alg /= Void implies algorithms.is_supported_algorithm (a_alg)
 		local
 			jws: JWS
 			i,j,n: INTEGER
 			alg, l_enc_payload, l_enc_header, l_signature: READABLE_STRING_8
+			alg_encoder: JWT_ALG
 		do
 			n := a_token_input.count
 			i := a_token_input.index_of ('.', 1)
 			if i > 0 then
 				j := a_token_input.index_of ('.', i + 1)
 				if j > 0 then
-					l_enc_header := a_token_input.substring (1, i - 1)
-					l_enc_payload := a_token_input.substring (i + 1, j - 1)
-					l_signature := a_token_input.substring (j + 1, n)
+					l_enc_header := adjusted_string (a_token_input.substring (1, i - 1))
+					l_enc_payload := adjusted_string (a_token_input.substring (i + 1, j - 1))
+					l_signature := adjusted_string (a_token_input.substring (j + 1, n))
 					create jws.make_with_json_payload (base64url_decode (l_enc_payload))
 					alg := signature_algorithm_from_encoded_header (l_enc_header)
 					if a_alg /= Void then
@@ -43,17 +58,18 @@ feature -- Access
 					else
 						if alg = Void then
 								-- Use default
-							alg := alg_hs256
+							alg := algorithms.default_algorithm.name
 						end
 					end
 					jws.set_algorithm (alg)
 					check alg_set: alg /= Void end
 					if ctx = Void or else not ctx.validation_ignored then
-						if not is_supporting_signature_algorithm (alg) then
+						alg_encoder := algorithms [alg]
+						if alg_encoder = Void then
 							jws.report_unsupported_alg_error (alg)
-							alg := alg_hs256
+							alg_encoder := algorithms.default_algorithm
 						end
-						if not l_signature.same_string (signature (l_enc_header, l_enc_payload, a_verification_key, alg)) then
+						if not l_signature.same_string (signature (l_enc_header, l_enc_payload, a_verification_key, alg_encoder)) then
 							jws.report_unverified_token_error
 						end
 						if
@@ -90,6 +106,23 @@ feature -- Access
 		end
 
 feature {NONE} -- Implementation
+
+	adjusted_string (a_string: READABLE_STRING_8): READABLE_STRING_8
+			-- `a_string` without any space.
+		local
+			s: STRING_8
+		do
+			if 
+				not a_string.is_empty and then
+				(a_string [1].is_space or a_string [a_string.count].is_space)
+			then
+				s := a_string.to_string_8
+				s.adjust
+				Result := s
+			else
+				Result := a_string
+			end
+		end
 
 	signature_algorithm_from_encoded_header (a_enc_header: READABLE_STRING_8): detachable STRING_8
 		local

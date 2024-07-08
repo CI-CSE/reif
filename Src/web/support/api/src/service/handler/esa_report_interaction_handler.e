@@ -76,20 +76,23 @@ feature -- HTTP Methods
 
 feature -- Report Interaction
 
-	process_report_interaction (req: WSF_REQUEST; res: WSF_RESPONSE; a_type: READABLE_STRING_32; a_user: detachable READABLE_STRING_32)
+	process_report_interaction (req: WSF_REQUEST; res: WSF_RESPONSE; a_type: READABLE_STRING_8; a_user: detachable READABLE_STRING_32)
 			-- Compute the report interaction `comment' or `attachment' if any.
 		local
 			l_rhf: ESA_REPRESENTATION_HANDLER_FACTORY
+			utf: UTF_CONVERTER
 		do
 			create l_rhf
 			if
 				attached req.http_host as l_host and then
 				attached req.path_parameter ("id") as l_id and then
-				attached req.path_parameter ("name") as l_name
+				attached {WSF_STRING} req.path_parameter ("name") as l_name
 			then
 				if api_service.is_attachment_visible (a_user, l_id.as_string.integer_value) then
-					log.write_information (generator+".do_get Processing request download file:" + l_name.as_string.value )
-					compute_response_get_txt (req, res, api_service.attachments_content (l_id.as_string.integer_value))
+					debug
+						log.write_information (generator+".do_get Processing request download file:" + utf.utf_32_string_to_utf_8_string_8 (l_name.value))
+					end
+					compute_response_get_file_download (req, res, api_service.attachments_content (l_id.as_string.integer_value), l_name.value)
 				else
 					-- 401
 					l_rhf.new_representation_handler (esa_config, a_type, media_type_variants (req)).new_response_unauthorized (req, res)
@@ -99,8 +102,10 @@ feature -- Report Interaction
 					retrieve_id (l_id) > 0
 			then
 				if api_service.is_interaction_visible (a_user, retrieve_id (l_id) ) then
-					log.write_information (generator+".do_get Processing request download content for interaction :" + l_id.out)
-					compute_response_get_txt (req, res, api_service.interaction_content (retrieve_id (l_id) ))
+					debug
+						log.write_information (generator+".do_get Processing request download content for interaction :" + l_id.out)
+					end
+					compute_response_get_interaction_text (req, res, api_service.interaction_content (retrieve_id (l_id) ))
 				else
 					-- 401
 					l_rhf.new_representation_handler (esa_config, a_type, media_type_variants (req)).new_response_unauthorized (req, res)
@@ -108,27 +113,42 @@ feature -- Report Interaction
 			end
 		end
 
-
 feature -- Response	
 
-	compute_response_get_txt (req: WSF_REQUEST; res: WSF_RESPONSE; output: STRING)
-			--Simple response to download content
+	compute_response_get_file_download (req: WSF_REQUEST; res: WSF_RESPONSE; a_message: READABLE_STRING_8; a_file_name: READABLE_STRING_GENERAL)
+			-- Simple response to download content
 		local
 			h: HTTP_HEADER
-			l_msg: STRING
 		do
-			fixme ("Find a better way to handle this!!!")
 			create h.make
-			create l_msg.make_from_string (output)
-			h.put_header_key_value ("Content-type", "application/octet-stream")
+			h.put_content_type ({HTTP_MIME_TYPES}.application_octet_stream)
+			h.put_cache_control ("no-store, no-cache")
+			h.put_content_length (a_message.count)
+			h.put_current_date
+			res.set_status_code ({HTTP_STATUS_CODE}.ok)
+			res.put_header_text (h)
+			res.put_string (a_message)
+		end
+
+	compute_response_get_interaction_text (req: WSF_REQUEST; res: WSF_RESPONSE; a_interaction_text: READABLE_STRING_32)
+			--Simple response to download interaction text content
+		local
+			h: HTTP_HEADER
+			l_msg: STRING_8
+		do
+			debug ("refactor_fixme")
+				fixme ("Find a better way to handle this!!!")
+			end
+			create h.make
+			create l_msg.make_from_string ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_interaction_text))
+			h.put_content_type_utf_8_text_plain
 			h.put_cache_control ("no-store, no-cache")
 			h.put_content_length (l_msg.count)
 			h.put_current_date
 			res.set_status_code ({HTTP_STATUS_CODE}.ok)
-			res.put_header_text (h.string)
+			res.put_header_text (h)
 			res.put_string (l_msg)
 		end
-
 
 	  retrieve_id (a_id: READABLE_STRING_32):INTEGER
 	  		local

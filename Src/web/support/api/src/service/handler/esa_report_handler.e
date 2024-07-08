@@ -77,14 +77,18 @@ feature -- HTTP Methods
 		local
 			l_role: USER_ROLE
 		do
-			if attached current_user_name (req) as l_user then
-				log.write_information ( generator+".do_get Processing request: user:" + l_user  )
+			if attached {READABLE_STRING_32} current_user_name (req) as l_user then
+				debug
+					log.write_information ( generator + ".do_get Processing request: user:" + l_user.to_string_8  )
+				end
 				l_role := api_service.role (l_user)
 				if l_role.is_user then
 						-- List of reports visible for registered user.
 						-- They are able to see his own reports and also visible reports.
 					user_reports (req, res, l_user)
-					log.write_information (generator+".do_get Executed List of reports for registered users" )
+					debug
+						log.write_information (generator+".do_get Executed List of reports for registered users" )
+					end
 				elseif l_role.is_administrator or else l_role.is_responsible then
 						-- List of reports visible for reponsible and admin users
 					if
@@ -95,7 +99,9 @@ feature -- HTTP Methods
 					else
 						responsible_reports (req, res)
 					end
-					log.write_information (generator+".do_get Executed List of reports for reponsible" )
+					debug
+						log.write_information (generator+".do_get Executed List of reports for reponsible" )
+					end
 				else
 						-- Internal Users?
 				end
@@ -112,7 +118,9 @@ feature -- HTTP Methods
 			l_role: USER_ROLE
 			l_rhf: ESA_REPRESENTATION_HANDLER_FACTORY
 		do
-			log.write_information (generator+".do_post Processing request"  )
+			debug
+				log.write_information (generator+".do_post Processing request"  )
+			end
 			if attached current_user_name (req) as l_user then
 				if attached {WSF_STRING} req.path_parameter ("id") as l_id and then
 				   	l_id.is_integer and then attached extract_data_from_request(req, current_media_type (req)) as l_responsible and then
@@ -129,7 +137,7 @@ feature -- HTTP Methods
 					end
 				else
 					create l_rhf
-					log.write_alert (generator + ".do_get Processing Repor request via the user "+ l_user + " does not have permissions!")
+					log.write_alert (generator + ".do_get Processing Repor request via the user "+ l_user.to_string_8 + " does not have permissions!")
 					l_rhf.new_representation_handler (esa_config, Empty_string, media_type_variants (req)).new_response_authenticate (req, res)
 				end
 			else
@@ -191,6 +199,7 @@ feature -- Implementation
 					l_report_view.set_filter (l_input_validator.filter)
 					l_report_view.set_filter_content (l_input_validator.filter_content)
 					l_report_view.set_direction (l_input_validator.direction)
+					l_report_view.set_has_closed_reports (api_service.has_closed_or_wontfix_responsible_reports)
 					mark_selected_status (list_status, l_input_validator.status)
 
 					l_rhf.new_representation_handler (esa_config, l_type,  media_type_variants (req)).problem_reports_responsible (req, res, l_report_view)
@@ -244,7 +253,9 @@ feature -- Implementation
 			--| At the moment the page size is hardcoded as 10 items per page.
 			--| we can set a defaut and then let the user customize it, but it's not
 			--| critical at the moment.
-			log.write_information ( generator+".user_reports" )
+			debug
+				log.write_information ( generator+".user_reports" )
+			end
 			create l_rhf
 			if attached current_media_type (req) as l_type then
 				create l_input_validator
@@ -268,10 +279,13 @@ feature -- Implementation
 					l_report_view.set_direction (l_input_validator.direction)
 					l_report_view.set_filter (l_input_validator.filter)
 					l_report_view.set_filter_content (l_input_validator.filter_content)
+					l_report_view.set_has_closed_reports (api_service.has_closed_or_wontfix_reports (current_user_name (req)))
 					mark_selected_status (list_status, l_input_validator.status)
 
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).problem_reports_guest (req, res, l_report_view)
-					log.write_information (generator+".user_reports Executed reports guest" )
+					debug
+						log.write_information (generator+".user_reports Executed reports guest" )
+					end
 				else
 						-- Bad request
 					log.write_error (generator + ".user_reports " + l_input_validator.error_message)
@@ -290,13 +304,13 @@ feature -- Implementation
 			create l_rhf
 			if attached current_media_type (req) as l_type then
 				if attached {READABLE_STRING_32} current_user_name (req) as l_user and then api_service.is_active (l_user) then
-					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).update_report_responsible (req, res,build_redirect_uri (req, l_type))
+					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).update_report_responsible (req, res, build_redirect_uri (req, l_type))
 				else
 						-- The user is not active anymore, send response with an error.
-					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).update_report_responsible (req, res,build_redirect_uri (req, l_type))
+					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).update_report_responsible (req, res, build_redirect_uri (req, l_type))
 				end
 			else
-				l_rhf.new_representation_handler (esa_config, Empty_string, media_type_variants (req)).update_report_responsible (req, res,build_redirect_uri (req, ""))
+				l_rhf.new_representation_handler (esa_config, Empty_string, media_type_variants (req)).update_report_responsible (req, res, build_redirect_uri (req, ""))
 			end
 		end
 
@@ -320,7 +334,7 @@ feature -- Implementation
 
 feature {NONE} --Implementation
 
-	extract_data_from_request (req: WSF_REQUEST; a_type: detachable READABLE_STRING_32): detachable STRING
+	extract_data_from_request (req: WSF_REQUEST; a_type: detachable READABLE_STRING_8): detachable STRING_32
 			-- Is the form data populated?
 		do
 
@@ -331,7 +345,7 @@ feature {NONE} --Implementation
 			end
 		end
 
-	extract_data_from_cj (req: WSF_REQUEST): detachable STRING
+	extract_data_from_cj (req: WSF_REQUEST): detachable STRING_32
 			-- Extract request form CJ data and build a object
 			-- password view.
 		local
@@ -350,7 +364,7 @@ feature {NONE} --Implementation
 			end
 		end
 
-	extract_data_from_form (req: WSF_REQUEST): detachable STRING
+	extract_data_from_form (req: WSF_REQUEST): detachable STRING_32
 			-- Extract request form data and build a object email view.
 			-- email, check_email.
 		do
@@ -359,7 +373,7 @@ feature {NONE} --Implementation
 			end
 		end
 
-	build_redirect_uri (req: WSF_REQUEST; a_type: STRING): STRING
+	build_redirect_uri (req: WSF_REQUEST; a_type: READABLE_STRING_8): STRING_8
 					--	<input type="hidden" name="page" value="{$index/}"/>
 					--  <input type="hidden" name="category" value="{$view.selected_category/}"/>
 					--  <input type="hidden" name="severity" value="{$view.selected_severity/}"/>
@@ -370,7 +384,7 @@ feature {NONE} --Implementation
 					--  <input type="hidden" name="dir" value="{$view.dir/}"/>
 		do
 			if a_type.same_string ("application/vnd.collection+json") then
-				Result := req.path_info
+				Result :=(create {URL_ENCODER}).encoded_string (req.path_info)
 			else
 				create Result.make_from_string ("/reports?")
 				if attached {WSF_STRING} req.form_parameter ("page") as l_page then
@@ -434,7 +448,7 @@ feature {NONE} --Implementation
 			end
 		end
 
-	send_responsible_change_email (a_user: STRING; a_report_id: INTEGER; a_url: STRING)
+	send_responsible_change_email (a_user: READABLE_STRING_GENERAL; a_report_id: INTEGER; a_url: STRING)
 			-- Send email to new problem report responsible.
 		do
 			if

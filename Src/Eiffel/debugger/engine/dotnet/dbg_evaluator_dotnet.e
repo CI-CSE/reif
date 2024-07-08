@@ -53,7 +53,7 @@ feature {NONE} -- Implementation
 
 	effective_evaluate_routine (addr: DBG_ADDRESS; a_target: DUMP_VALUE; f, realf: FEATURE_I;
 			ctype: CLASS_TYPE; orig_class: CLASS_C; params: LIST [DUMP_VALUE];
-			is_static_call: BOOLEAN)
+			is_non_object_call: BOOLEAN)
 			-- Evaluate dotnet function
 		local
 			l_params: ARRAY [DUMP_VALUE]
@@ -605,7 +605,7 @@ feature {NONE} -- Parameters operation
 				until
 					l_param_i > a_params.upper or error_occurred
 				loop
-					l_dumpvalue_param := a_params @ l_param_i
+					l_dumpvalue_param := a_params [l_param_i]
 					l_icdv_param := l_dumpvalue_param.value_dotnet
 					if l_icdv_param = Void then
 							--| This means this value has been created by eStudioDbg
@@ -1045,7 +1045,7 @@ feature {NONE} -- Debug purpose only
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

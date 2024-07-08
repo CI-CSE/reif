@@ -63,6 +63,7 @@ feature {NONE} -- Initialization
 			customizable_commands.put (agent find_next, "search_forward")
 			customizable_commands.put (agent find_previous, "search_backward")
 			customizable_commands.put (agent run_if_editable (agent prettify), "prettify")
+			customizable_commands.put (agent run_if_editable (agent toggle_comment_selection), "toggle_comment")
 			customizable_commands.put (agent run_if_editable (agent comment_selection), "comment")
 			customizable_commands.put (agent run_if_editable (agent uncomment_selection), "uncomment")
 			customizable_commands.put (agent run_if_editable (agent set_selection_case (False)), "set_to_uppercase")
@@ -79,11 +80,16 @@ feature -- Access
 
 	search_bar: QUICK_SEARCH_BAR
 
-	search_tool: ES_MULTI_SEARCH_TOOL_PANEL
+	search_tool: detachable ES_MULTI_SEARCH_TOOL_PANEL
 			-- Current search tool.
 		do
-			if dev_window /= Void and then dev_window.shell_tools.is_interface_usable then
-				Result ?= dev_window.shell_tools.tool ({ES_SEARCH_TOOL}).panel
+			if
+				attached dev_window as dwin and then
+				attached dwin.shell_tools as l_shell_tools and then
+				l_shell_tools.is_interface_usable and then
+				attached {ES_SEARCH_TOOL} l_shell_tools.tool ({ES_SEARCH_TOOL}) as l_search_tool
+			then
+				Result := l_search_tool.panel
 			end
 		end
 
@@ -112,9 +118,9 @@ feature -- Quick search bar basic operation
 		local
 			l_string : STRING_32
 		do
-			if search_tool /= Void then
-				if search_tool.is_shown then
-					search_tool.close
+			if attached search_tool as l_search_tool then
+				if l_search_tool.is_shown then
+					l_search_tool.close
 				end
 				show_search_bar
 				if has_selection then
@@ -675,7 +681,6 @@ feature {NONE} -- Implementation
 		do
 			l_replace := a_replace and then (not text_displayed.is_empty and then not text_displayed.selection_is_empty)
 
-			search_tool.notebook.select_item (search_tool.notebook.i_th (1))
 			if l_replace then
 				search_tool.show_and_set_focus_replace
 			else
@@ -753,7 +758,7 @@ feature {NONE} -- Implementation
 			widget := l_widget
 		end
 
-	customizable_commands: HASH_TABLE [PROCEDURE, STRING]
+	customizable_commands: STRING_TABLE [PROCEDURE]
 			-- Hash of customizable commands (agent hashed by shortcut name)
 
 	check_search_bar_visible_procedure: PROCEDURE;
@@ -779,7 +784,9 @@ feature {NONE} -- Implementation
 		do
 			search_bar.trigger_bottom_reached_pixmap (False)
 			search_bar.trigger_first_reached_pixmap (False)
-			search_bar.keyword_field.set_background_color (search_tool.normal_bgcolor)
+			if attached search_tool as l_tool then
+				search_bar.keyword_field.set_background_color (l_tool.normal_bgcolor)
+			end
 		end
 
 feature {NONE} -- Internal implentation cache
@@ -789,7 +796,7 @@ feature {NONE} -- Internal implentation cache
 			-- Note: Do not use directly!
 
 ;note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,6 +1,8 @@
-note
-	description: "An array of BOOLEAN but in a packed forms, saving 7 bits for%
-				%every boolean contained by Current."
+﻿note
+	description: "[
+		An array of BOOLEAN but in a packed form,
+		saving 7 bits for every boolean contained by Current.
+	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -25,7 +27,7 @@ feature -- Initialization
 		require
 			non_negative_argument: n >= 0
 		do
-			create area.make_filled (0, 1 + (n // Integer_size))
+			create area.make_filled (0, 1 + n ⧁ index_shift)
 		ensure
 			allocated: area /= Void
 			enough_entries: count >= n
@@ -38,7 +40,7 @@ feature -- Access
 		require
 			valid_index: valid_index (i)
 		do
-			Result := area.item (i // Integer_size).bit_test (i \\ Integer_size)
+			Result := area.item (i ⧁ index_shift).bit_test (i ⊗ index_mask)
 		end
 
 feature -- Status Report
@@ -46,7 +48,7 @@ feature -- Status Report
 	valid_index (i: INTEGER): BOOLEAN
 			-- Is `i' within bounds?
 		do
-			Result := (lower <= i) and (i <= upper)
+			Result := lower <= i and i <= upper
 		end
 
 feature -- Comparison
@@ -80,7 +82,7 @@ feature -- Measurement
 	count, capacity: INTEGER
 			-- Number of available indices
 		do
-			Result := area.count * Integer_size
+			Result := area.count ⧀ index_shift
 		ensure then
 			consistent_with_bounds: Result = upper - lower + 1
 		end
@@ -88,20 +90,46 @@ feature -- Measurement
 feature -- Element change
 
 	put (v: BOOLEAN; i: INTEGER)
-			-- Insert `v' at `i-th' bit of Current.
+			-- Insert `v' at `i`-th bit of Current.
 		require
 			valid_index: valid_index (i)
 		local
 			index: INTEGER
 		do
-			index := i // Integer_size
-			if v then
-				area.put (area.item (index) | ((1).to_integer_32 |<<  (i \\ Integer_size)), index)
-			else
-				area.put (area.item (index) & ((1).to_integer_32 |<< (i \\ Integer_size)).bit_not, index)
-			end
+			index := i ⧁ index_shift
+			area [index] := area [index].set_bit (v, i ⊗ index_mask)
 		ensure
 			inserted: v = item (i)
+		end
+
+	set (i: INTEGER)
+			-- Put `True` at `i`-th bit of Current.
+		require
+			valid_index: valid_index (i)
+		local
+			index: INTEGER
+			v: like area.item
+		do
+			index := i ⧁ index_shift
+			v := area [index] ⦶ ({INTEGER} 1 ⧀ (i ⊗ index_mask))
+			area [index] := v
+		ensure
+			item (i)
+		end
+
+	clear (i: INTEGER)
+			-- Put `False` at `i`-th bit of Current.
+		require
+			valid_index: valid_index (i)
+		local
+			index: INTEGER
+			v: like area.item
+		do
+			index := i ⧁ index_shift
+			v := area [index] ⊗ ⊝ ({INTEGER} 1 ⧀ (i ⊗ index_mask))
+			area [index] := v
+		ensure
+			¬ item (i)
 		end
 
 	force (v: BOOLEAN; i: INTEGER)
@@ -142,6 +170,14 @@ feature -- Element change
 			end
 		end
 
+	set_all
+			-- Set all items to `True`.
+		do
+			area.fill_with (0xFFFFFFFF, 0, area.upper)
+		ensure
+			all_set: area.filled_with (0xFFFFFFFF, 0, area.upper)
+		end
+
 feature -- Resizing
 
 	resize (n: INTEGER)
@@ -150,7 +186,7 @@ feature -- Resizing
 		local
 			new_count: INTEGER
 		do
-			new_count := 1 + (n // Integer_size)
+			new_count := 1 + n ⧁ index_shift
 			if new_count > area.count then
 				area := area.aliased_resized_area_with_default (0, new_count)
 			end
@@ -180,10 +216,15 @@ feature -- Duplication
 			equal_areas: area ~ other.area
 		end
 
-feature -- Constants
+feature {NONE} -- Constants
 
-	Integer_size: INTEGER = 32
-			-- Size of INTEGER in bits.
+	index_mask: INTEGER = 31
+			-- The mark to extract bit number from the bit index.
+			-- See also: `index_shift`.
+
+	index_shift: INTEGER = 5
+			-- The number of bits to shift bit index to get the index of the integer in `area`.
+			-- See also: `index_mask`.
 
 feature {PACKED_BOOLEANS} -- Implementation
 
@@ -195,7 +236,7 @@ invariant
 	area_not_empty: area.count > 0
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

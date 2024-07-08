@@ -52,13 +52,6 @@ feature -- Commands
 			Result.disable_sensitive
 		end
 
-	Override_scan_cmd: EB_OVERRIDE_SCAN_COMMAND
-			-- Command to check override clusters for changes and recompile.
-		once
-			create Result.make
-			Result.disable_sensitive
-		end
-
 	Discover_melt_cmd: EB_DISCOVER_AND_MELT_COMMAND
 			-- Command to find unreferenced externally added classes and recompile.
 		once
@@ -99,6 +92,13 @@ feature -- Commands
 		once
 			create Result
 			Result.disable_sensitive
+		end
+
+	clean_compile_project_cmd: EB_CLEAN_COMPILE_PROJECT_COMMAND
+			-- Command to compile from scratch a project.
+		once
+			create Result.make
+			Result.enable_sensitive
 		end
 
 	analyze_cmd: ES_CODE_ANALYSIS_COMMAND
@@ -149,6 +149,12 @@ feature -- Commands
 			Result.disable_sensitive
 		end
 
+	Source_control_cmd: SCM_CMD
+		once
+			create Result.make
+			Result.enable_sensitive
+		end
+
 	System_cmd: EB_SYSTEM_CMD
 			-- Project setting command
 		once
@@ -163,10 +169,11 @@ feature -- Commands
 			Result.disable_sensitive
 		end
 
-	show_cloud_account_cmd: EB_SHOW_CLOUD_ACCOUNT_CMD
+	show_cloud_account_cmd: ES_CLOUD_ACCOUNT_CMD
 			-- Display Cloud Account tool.
 		once
 			create Result.make
+			Result.enable_sensitive
 		end
 
 	Show_preferences_cmd: EB_SHOW_PREFERENCES_COMMAND
@@ -196,7 +203,7 @@ feature -- Commands
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

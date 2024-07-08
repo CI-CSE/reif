@@ -5,6 +5,11 @@ class SYSTEM_I
 
 inherit
 	BASIC_SYSTEM_I
+	CLASS_ID_VALIDATOR
+		rename
+			has as has_existing_class_of_id,
+			is_valid as has_class_of_id
+		end
 
 	SYSTEM_SERVER
 		rename
@@ -241,6 +246,9 @@ feature -- Properties
 	successful: BOOLEAN
 			-- Was the last recompilation successful?
 
+	has_warning: BOOLEAN
+			-- Were there warnings during last compilation?
+
 	is_config_changed: BOOLEAN
 			-- Has configuration file changed?
 
@@ -467,6 +475,8 @@ feature -- Properties
 
 			local_workbench.change_class (string_8_class)
 			local_workbench.change_class (string_32_class)
+			local_workbench.change_class (immutable_string_8_class)
+			local_workbench.change_class (immutable_string_32_class)
 
 			local_workbench.change_class (real_64_class)
 			local_workbench.change_class (real_32_class)
@@ -525,6 +535,8 @@ feature -- Properties
 			character_32_class.compiled_class.record_precompiled_class_in_system
 			string_8_class.compiled_class.record_precompiled_class_in_system
 			string_32_class.compiled_class.record_precompiled_class_in_system
+			immutable_string_8_class.compiled_class.record_precompiled_class_in_system
+			immutable_string_32_class.compiled_class.record_precompiled_class_in_system
 			special_class.compiled_class.record_precompiled_class_in_system
 			pointer_class.compiled_class.record_precompiled_class_in_system
 			array_class.compiled_class.record_precompiled_class_in_system
@@ -718,23 +730,22 @@ end
 			locations: ARRAYED_LIST [TUPLE [c: CLASS_C; l: LOCATION_AS]]
 			location: TUPLE [c: CLASS_C; l: LOCATION_AS]
 			l_has_error: BOOLEAN
-			l_agent_sorter: AGENT_EQUALITY_TESTER [VTCT]
 			l_sorter: QUICK_SORTER [VTCT]
 			l_list: ARRAYED_LIST [VTCT]
 		do
-			if missing_classes /= Void then
+			if attached missing_classes as l_missing_classes then
 				from
 						-- `l_list' is used to display errors in alphabetical order
 						-- This is mostly interesting for eweasel as the compiler does
 						-- not always give you the same order depending on the way
 						-- classes are written.
-					create l_list.make (missing_classes.count)
-					missing_classes.start
+					create l_list.make (l_missing_classes.count)
+					l_missing_classes.start
 				until
-					missing_classes.after
+					l_missing_classes.after
 				loop
-					locations := missing_classes.item_for_iteration
-					l_name := names.item (missing_classes.key_for_iteration)
+					locations := l_missing_classes.item_for_iteration
+					l_name := names.item (l_missing_classes.key_for_iteration)
 					from
 						locations.start
 					until
@@ -762,14 +773,13 @@ end
 						end
 						locations.forth
 					end
-					missing_classes.forth
+					l_missing_classes.forth
 				end
 
 				missing_classes := Void
 
 				if l_has_error then
-					create l_agent_sorter.make (agent {VTCT}.less_than)
-					create l_sorter.make (l_agent_sorter)
+					create l_sorter.make (create {AGENT_EQUALITY_TESTER [VTCT]}.make (agent {VTCT}.less_than))
 					l_sorter.sort (l_list)
 					from
 						l_list.start
@@ -793,8 +803,6 @@ end
 			locations: ARRAYED_LIST [TUPLE [c: CLASS_C; l: LOCATION_AS]]
 			location: TUPLE [c: CLASS_C; l: LOCATION_AS]
 			l_has_error: BOOLEAN
-			l_agent_sorter: AGENT_EQUALITY_TESTER [VTCM]
-			l_sorter: QUICK_SORTER [VTCM]
 			l_list: ARRAYED_LIST [VTCM]
 		do
 			if missing_classes_warning /= Void then
@@ -838,16 +846,11 @@ end
 				missing_classes_warning := Void
 
 				if l_has_error then
-					create l_agent_sorter.make (agent {VTCM}.less_than)
-					create l_sorter.make (l_agent_sorter)
-					l_sorter.sort (l_list)
-					from
-						l_list.start
-					until
-						l_list.after
-					loop
-						Error_handler.insert_warning (l_list.item_for_iteration)
-						l_list.forth
+					(create {QUICK_SORTER [VTCM]}.make
+						(create {AGENT_EQUALITY_TESTER [VTCM]}.make
+							(agent {VTCM}.less_than))).sort (l_list)
+					across l_list as w loop
+						error_handler.insert_warning (w.item, w.item.associated_class.is_warning_reported_as_error (w_export_class_missing))
 					end
 				end
 			end
@@ -857,6 +860,12 @@ end
 			-- Is `id' a valid class ID?
 		do
 			Result := classes.valid_index (id)
+		end
+
+	has_existing_class_of_id (class_id: like {CLASS_C}.class_id): BOOLEAN
+			-- Is class of ID `id` in the system?
+		do
+			Result := attached classes [class_id]
 		end
 
 	class_of_id (id: INTEGER): CLASS_C
@@ -899,7 +908,7 @@ end
 			until
 				i > cts.upper or Result /= Void
 			loop
-				Result := cts @ i
+				Result := cts [i]
 				if Result /= Void and then Result.static_type_id /= id then
 					Result := Void
 				end
@@ -943,9 +952,7 @@ end
 			l_conf_class: CONF_CLASS
 			l_class_i: CLASS_I
 			l_errors, l_warnings: LIST [CONF_ERROR]
-			vd71: VD71
 			vd80: VD80
-			vd25: VD25
 			l_target: CONF_TARGET
 			l_file: PLAIN_TEXT_FILE
 			d1, d2: DATE_TIME
@@ -968,8 +975,9 @@ end
 					w.after
 				loop
 					if
-						w.item.generating_type = {VD01} or else
-						w.item.generating_type = {VD80}
+						attached {VD01} w.item or else
+						attached {VD80} w.item or else
+						attached {VD81} w.item
 					then
 						w.remove
 					else
@@ -989,8 +997,7 @@ end
 				-- We need to check that there is a root, otherwise compiler
 				-- would crash later in `update_root_class'. See eweasel test#incr380.
 			if l_target.root = Void then
-				create vd25.make (l_target.name)
-				Error_handler.insert_error (vd25)
+				Error_handler.insert_error (create {VD25}.make (l_target.name))
 				Error_handler.raise_error
 			else
 					-- Check for testing library in current config
@@ -1043,8 +1050,7 @@ end
 					until
 						l_errors.after
 					loop
-						create vd71.make (l_errors.item)
-						Error_handler.insert_error (vd71)
+						Error_handler.insert_error (create {VD71}.make (l_errors.item))
 						l_errors.forth
 					end
 					set_is_force_rebuild (True)
@@ -1058,7 +1064,7 @@ end
 				loop
 					create vd80
 					vd80.set_warning (l_warnings.item)
-					error_handler.insert_warning (vd80)
+					error_handler.insert_warning (vd80, l_target.options.is_warning_as_error)
 					l_warnings.forth
 				end
 
@@ -1125,7 +1131,7 @@ end
 					end
 					l_class_i.compiled_class.recompile_syntactical_clients
 					if automatic_backup then
-						l_file.put_string ("REMOVED: " +
+						l_file.put_string_32 ({STRING_32} "REMOVED: " +
 							l_class_i.name + " " +
 							l_class_i.group.target.system.uuid.out + " " +
 							l_class_i.group.name + "%N")
@@ -1144,7 +1150,7 @@ end
 						l_classes.after
 					loop
 						l_class_i ?= l_classes.item_for_iteration
-						l_file.put_string ("OVERRIDE_REMOVED: " +
+						l_file.put_string_32 ({STRING_32} "OVERRIDE_REMOVED: " +
 							l_class_i.name + " " +
 							l_class_i.group.target.system.uuid.out + " " +
 							l_class_i.group.name + "%N")
@@ -1205,7 +1211,6 @@ end
 			l_classes: SEARCH_TABLE [CLASS_I]
 			l_class: CLASS_I
 			l_name: STRING
-			l_vd87: VD87
 		do
 			from
 				l_classes := universe.all_classes
@@ -1221,8 +1226,7 @@ end
 						l_table.force (l_class, l_name)
 					else
 						set_is_force_rebuild (True)
-						create l_vd87.make (l_table.found_item, l_class)
-						error_handler.insert_error (l_vd87)
+						error_handler.insert_error (create {VD87}.make (l_table.found_item, l_class))
 						error_handler.checksum
 					end
 				end
@@ -1314,9 +1318,6 @@ end
 				else
 						-- Let the configuration system check for compiled classes that have been modified.
 					create l_vis_modified.make (universe.conf_state)
-					if compilation_modes.is_override_scan then
-						l_vis_modified.enable_override_only
-					end
 					l_vis_modified.process_group_observer.extend (agent degree_output.put_process_group)
 					universe.target.process (l_vis_modified)
 
@@ -1365,7 +1366,7 @@ end
 				loop
 					create vd80
 					vd80.set_warning (l_errors.item)
-					Error_handler.insert_warning (vd80)
+					Error_handler.insert_warning (vd80, universe.target.options.is_warning_as_error)
 					l_errors.forth
 				end
 			end
@@ -1398,6 +1399,74 @@ end
 			end
 				-- Update capability settings used during compilation.
 			lace.update_capability_root
+		end
+
+feature -- Modification
+
+	set_dead_code (v: like {CONF_TARGET_OPTION}.dead_code_index_all)
+			-- Set `dead_code` to `v`.
+		do
+			dead_code := v
+			if v = {CONF_TARGET_OPTION}.dead_code_index_none then
+				remover := Void
+			end
+		ensure
+			dead_code_set: dead_code = v
+			remover_set: v = {CONF_TARGET_OPTION}.dead_code_index_none implies not attached remover
+		end
+
+feature -- Final code geneation
+
+	has_trampoline (e: ROUT_ENTRY; p: like {ROUT_ENTRY}.pattern_id; r: like {ROUT_TABLE}.rout_id): BOOLEAN
+			-- Is there a trampoline for a routine entry `e` with the pattern of ID `p`
+			-- associated with a routine ID `r`.
+		do
+			if attached trampoline_table [r] as s then
+				Result := s.has (e.type_id.as_natural_64 |<< 32 + p.as_natural_64)
+			end
+		end
+
+	request_trampoline (e, c: ROUT_ENTRY; r: like {ROUT_TABLE}.rout_id)
+			-- Request generation of a trampoline for a routine entry `e`
+			-- called in the context identified by `c` associated with a routine ID `r`.
+		require
+			e.pattern_id /= c.pattern_id
+		local
+			s: like trampoline_table.item
+		do
+			s := trampoline_table [r]
+			if not attached s then
+				create s.make (1)
+				trampoline_table [r] := s
+			end
+			s.extend (e.type_id.as_natural_64 |<< 32 + c.pattern_id.as_natural_64)
+		ensure
+			has_trampoline (e, c.pattern_id, r)
+		end
+
+	remove_trampoline (e: ROUT_ENTRY; p: like {ROUT_ENTRY}.pattern_id; t: ROUT_TABLE)
+			-- Remove the trampoline for a routine entry `e` with the pattern of ID `p`
+			-- associated with a routine table `t`.
+		require
+			has_trampoline (e, p, t.rout_id)
+		do
+			if attached trampoline_table [t.rout_id] as s then
+				s.prune (e.type_id.as_natural_64 |<< 32 + p.as_natural_64)
+				if s.is_empty then
+					trampoline_table.remove (t.rout_id)
+				end
+			end
+		ensure
+			not has_trampoline (e, p, t.rout_id)
+		end
+
+feature {NONE} -- Final code geneation
+
+	trampoline_table: HASH_TABLE [ARRAYED_SET [NATURAL_64], like {ROUT_TABLE}.rout_id]
+			-- Trampolines to be generated, indexed by routine ID,
+			-- with sets of values built from pairs of type IDs and context pattern IDs.
+		once
+			create Result.make (0)
 		end
 
 feature -- ANY.default_rescue routine id
@@ -1622,29 +1691,28 @@ feature -- Recompilation
 			has_potential_class_name_mismatch_set: has_potential_class_name_mismatch
 		end
 
-	recompile (a_syntax_analysis, a_system_check, a_generate_code: BOOLEAN)
+	recompile (is_for_finalization, a_syntax_analysis, a_system_check, a_generate_code: BOOLEAN)
 			-- Incremetal recompilation of the system.
 		require
 			no_error: not Error_handler.has_error
-		local
-			precomp_r: PRECOMP_R
 		do
 			freezing_occurred := False
 
 			If System.uses_precompiled then
 					-- Validate the precompilation.
-				create precomp_r
-				precomp_r.check_version_number
+				(create {PRECOMP_R}).check_version_number
 			end
 
 			has_been_changed := is_config_changed
 			lace.check_shared_library_definition_stamp
-			do_recompilation (a_syntax_analysis, a_system_check, a_generate_code)
+			do_recompilation (is_for_finalization, a_syntax_analysis, a_system_check, a_generate_code)
 
 			successful := True
+			has_warning := error_handler.has_warning
 		rescue
 			if Rescue_status.is_error_exception then
 				successful := False
+				has_warning := error_handler.has_warning
 			end
 		end
 
@@ -1718,13 +1786,12 @@ feature -- Recompilation
 			missing_classes_void: missing_classes = Void
 		end
 
-	do_recompilation (a_syntax_analysis, a_system_check, a_generate_code: BOOLEAN)
+	do_recompilation (is_for_finalization, a_syntax_analysis, a_system_check, a_generate_code: BOOLEAN)
 			-- Incremental recompilation of the system.
 		require
 			valid_options: (a_generate_code implies a_system_check) and then (a_system_check implies a_syntax_analysis)
 		local
 			d1, d2: DATE_TIME
-			l_il_env: IL_ENVIRONMENT
 			l_needs_code_generation: BOOLEAN
 			l_new_unref_classes_added_to_system, l_old_moved, l_compiled_classes_added, l_compiled_classes_removed, l_missing_classes_added_to_system: BOOLEAN
 		do
@@ -1740,10 +1807,8 @@ feature -- Recompilation
 
 				-- Set ISE_DOTNET_FRAMEWORK environment variable			
 			if il_generation then
-				create l_il_env.make (clr_runtime_version)
-				l_il_env.register_environment_variable
+				(create {IL_ENVIRONMENT}.make (clr_runtime_version)).register_environment_variable
 			end
-
 
 				-- Recompilation initialization
 			init_recompilation
@@ -2061,7 +2126,7 @@ end
 					check_full_class_name_unicity
 				end
 
-				if not il_generation and then freeze then
+				if not il_generation and then freeze and then not is_for_finalization then
 					Degree_output.put_freezing_message
 					freeze_system
 					is_freeze_requested := False
@@ -2303,6 +2368,8 @@ end
 			character_32_class.compiled_class.mark_class (marked_classes)
 			string_8_class.compiled_class.mark_class (marked_classes)
 			string_32_class.compiled_class.mark_class (marked_classes)
+			immutable_string_8_class.compiled_class.mark_class (marked_classes)
+			immutable_string_32_class.compiled_class.mark_class (marked_classes)
 			special_class.compiled_class.mark_class (marked_classes)
 			pointer_class.compiled_class.mark_class (marked_classes)
 			array_class.compiled_class.mark_class (marked_classes)
@@ -2354,7 +2421,6 @@ end
 				i > nb
 			loop
 				a_class := class_array.item (i)
-
 				if
 					a_class /= Void and then a_class.lace_class.config_class.is_always_compile and then
 					not marked_classes.has (a_class.class_id)
@@ -2461,7 +2527,6 @@ end
 			set_or_reset_action_not_void: set_or_reset_action /= Void
 			class_types_not_void: class_types /= Void
 		local
-			l_class_type: CLASS_TYPE
 			l_types: ARRAY [CLASS_TYPE]
 			i, nb: INTEGER
 		do
@@ -2472,9 +2537,8 @@ end
 			until
 				i > nb
 			loop
-				l_class_type := l_types.item (i)
-				if l_class_type /= Void then
-					set_or_reset_action.call ([l_class_type])
+				if attached l_types [i] as class_type then
+					set_or_reset_action (class_type)
 				end
 				i := i + 1
 			end
@@ -2702,9 +2766,8 @@ end
 	make_parent_table_byte_code (file: RAW_FILE)
 			-- Generates parent tables byte code in `file'.
 		local
-			i, nb: INTEGER;
-			cl_type: CLASS_TYPE;
-			to_append: CHARACTER_ARRAY;
+			i, nb: INTEGER
+			to_append: CHARACTER_ARRAY
 		do
 			Byte_array.clear
 
@@ -2718,10 +2781,9 @@ end
 					until
 						i > nb
 					loop
-						cl_type := class_types.item (i)
-						if cl_type /= Void then
+						if attached class_types [i] as class_type then
 								-- Classes could be removed
-							cl_type.make_parent_table_byte_code (Byte_array)
+							class_type.make_parent_table_byte_code (Byte_array)
 						end
 						i := i + 1
 					end
@@ -2742,7 +2804,7 @@ end
 
 				-- Put the parent table in `file'.
 			to_append.store (file)
-		end;
+		end
 
 	make_option_table (file: RAW_FILE)
 			-- Generate byte code for the option table.
@@ -2751,12 +2813,8 @@ end
 			file_is_open_write: file.is_open_write
 		local
 			i, nb: INTEGER
-			cl_type: CLASS_TYPE
 			a_class: CLASS_C
 		do
-debug ("OPTIONS")
-	io.error.put_string ("Making option table%N")
-end
 			Byte_array.clear
 			from
 				i := min_type_id
@@ -2764,16 +2822,10 @@ end
 			until
 				i > nb
 			loop
-				cl_type := class_types.item (i)
-				if cl_type /= Void then
+				if attached class_types [i] as class_type then
 						-- Classes could be removed
-					Byte_array.append_short_integer (cl_type.type_id - 1)
-					a_class := cl_type.associated_class
-debug ("OPTIONS")
-	io.error.put_string ("%TClass ")
-	io.error.put_string (a_class.name)
-	io.error.put_new_line
-end
+					Byte_array.append_short_integer (class_type.type_id - 1)
+					a_class := class_type.associated_class
 					a_class.assertion_level.make_byte_code (Byte_array)
 					a_class.debug_level.make_byte_code (Byte_array)
 					a_class.trace_level.make_byte_code (Byte_array)
@@ -2868,15 +2920,19 @@ feature -- IL code generation
 			il_generation: il_generation
 		local
 			il_generator: CIL_GENERATOR
-			old_remover_off: BOOLEAN
+			old_dead_code: like dead_code
 		do
 			create il_generator.make (Degree_output)
+			if is_il_netcore then
+					-- Force IL emitter for .net core projects
+				;(create {CLI_EMITTER_SERVICE}).force_using_il_emitter
+			end
 			il_generator.generate
 			if (in_final_mode or freeze) and then externals.count > 0 then
 				externals.freeze
 				freezing_occurred := True
-				old_remover_off := remover_off
-				remover_off := True
+				old_dead_code := dead_code
+				set_dead_code ({CONF_TARGET_OPTION}.dead_code_index_none)
 
 				if in_final_mode then
 					create {FINAL_MAKER} makefile_generator.make
@@ -2887,7 +2943,7 @@ feature -- IL code generation
 				externals.generate_il (makefile_generator)
 				close_log_files
 
-				remover_off := old_remover_off
+				set_dead_code (old_dead_code)
 
 				if not in_final_mode then
 					is_freeze_requested := False
@@ -3104,7 +3160,7 @@ feature -- Final mode generation
 		require
 			root_classes_compiled: are_root_classes_compiled
 		local
-			old_remover_off: BOOLEAN
+			old_dead_code: like dead_code
 			old_exception_stack_managed: BOOLEAN
 			old_inlining_on, old_array_optimization_on: BOOLEAN
 			deg_output: DEGREE_OUTPUT
@@ -3115,6 +3171,7 @@ feature -- Final mode generation
 		do
 			eiffel_project.terminate_c_compilation
 			if not retried and then is_finalization_needed then
+				trampoline_table.wipe_out
 				create skeleton_table.make (400)
 				if not il_generation then
 					internal_retrieved_finalized_type_mapping := Void
@@ -3146,10 +3203,10 @@ feature -- Final mode generation
 				set_is_precompile_finalized (is_precompiled)
 
 				if il_generation then
-						-- Build conformance table for CLASS_TYPE instances. This is
+						-- Build binding tables for CLASS_TYPE instances. This is
 						-- needed for proper processing of computation of `is_polymorphic'
 						-- on polymorphic table and computation of expanded descendants.
-					process_conformance_table_for_type (agent {CLASS_TYPE}.build_conformance_table)
+					process_conformance_table_for_type (agent {CLASS_TYPE}.build_binding_table)
 
 					byte_context.clear_system_data
 					byte_context.compute_expanded_descendants
@@ -3174,14 +3231,17 @@ feature -- Final mode generation
 
 						-- Save the value of `remover_off'
 						-- and `exception_stack_managed'
-					old_remover_off := remover_off
+					old_dead_code := dead_code
 					old_exception_stack_managed := exception_stack_managed
 					old_inlining_on := inlining_on
 					old_array_optimization_on := array_optimization_on
 
 						-- Should dead code be removed?
-					if not remover_off then
-						remover_off := keep_assertions
+					if
+						old_dead_code /= {CONF_TARGET_OPTION}.dead_code_index_none and then
+						keep_assertions
+					then
+						set_dead_code ({CONF_TARGET_OPTION}.dead_code_index_none)
 					end
 
 					if not exception_stack_managed then
@@ -3190,8 +3250,13 @@ feature -- Final mode generation
 
 						-- Inlining is disabled when dead code removal is off or when checking
 						-- for catcalls.
-					inlining_on := inlining_on and not remover_off and not check_for_catcall_at_runtime
-					array_optimization_on := array_optimization_on and not remover_off
+					inlining_on :=
+						inlining_on and
+						dead_code /= {CONF_TARGET_OPTION}.dead_code_index_none and
+						not check_for_catcall_at_runtime
+					array_optimization_on :=
+						array_optimization_on and
+						dead_code /= {CONF_TARGET_OPTION}.dead_code_index_none
 
 					byte_context.clear_system_data
 					process_degree_minus_2
@@ -3206,8 +3271,19 @@ feature -- Final mode generation
 
 					address_table.update_ids
 
-						-- Dead code removal
-					if not remover_off then
+						-- Dead code removal.
+					is_class_type_alive_storage.make (class_types.count)
+					is_class_type_reachable_storage.make (class_types.count)
+					if dead_code = {CONF_TARGET_OPTION}.dead_code_index_none then
+						across
+							class_types as t
+						loop
+							is_class_type_alive_storage [t.target_index] :=
+								attached t.item as class_type and then
+								is_type_reachable (class_type.type)
+						end
+						is_class_type_reachable_storage.copy (is_class_type_alive_storage)
+					else
 						deg_output := Degree_output
 						deg_output.put_start_dead_code_removal_message
 						remove_dead_code
@@ -3223,10 +3299,10 @@ feature -- Final mode generation
 					end
 					tmp_opt_byte_server.flush
 
-						-- Build conformance table for CLASS_TYPE instances. This is
+						-- Build binding tables for CLASS_TYPE instances. This is
 						-- needed for proper processing of computation of `is_polymorphic'
 						-- on polymorphic table and computation of expanded descendants.
-					process_conformance_table_for_type (agent {CLASS_TYPE}.build_conformance_table)
+					process_conformance_table_for_type (agent {CLASS_TYPE}.build_binding_table)
 
 						-- Generation of C files associated to the classes of
 						-- the system.
@@ -3250,10 +3326,12 @@ feature -- Final mode generation
 					Tmp_poly_server.clear
 					Tmp_opt_byte_server.clear
 
-						-- Clean conformance table for CLASS_TYPE instances. We don't need
+						-- Clean binding tables for CLASS_TYPE instances. We don't need
 						-- to store them on disk as they are recomputed at each finalization.
-					process_conformance_table_for_type (agent {CLASS_TYPE}.reset_conformance_table)
+					process_conformance_table_for_type (agent {CLASS_TYPE}.reset_binding_table)
 
+					is_class_type_alive_storage.make (0)
+					is_class_type_reachable_storage.make (0)
 					remover := Void
 
 						-- Set `Server_control' not to remove right away extra unused
@@ -3263,7 +3341,7 @@ feature -- Final mode generation
 					Server_controler.set_remove_right_away (False)
 
 						-- Restore previous value
-					remover_off := old_remover_off
+					set_dead_code (old_dead_code)
 					exception_stack_managed := old_exception_stack_managed
 					inlining_on := old_inlining_on
 					array_optimization_on := old_array_optimization_on
@@ -3293,17 +3371,19 @@ feature -- Final mode generation
 			Eiffel_table.wipe_out
 			History_control.wipe_out
 			successful := False
+			has_warning := error_handler.has_warning
 
 				-- Restore previous value.
-			remover_off := old_remover_off
+			set_dead_code (old_dead_code)
 			exception_stack_managed := old_exception_stack_managed
 			inlining_on := old_inlining_on
 			array_optimization_on := old_array_optimization_on
 			skeleton_table := Void
+			remover := Void
 
-				-- Clean conformance table for CLASS_TYPE instances. We don't need
+				-- Clean binding tables for CLASS_TYPE instances. We don't need
 				-- to store them on disk as they are recomputed at each finalization.
-			process_conformance_table_for_type (agent {CLASS_TYPE}.reset_conformance_table)
+			process_conformance_table_for_type (agent {CLASS_TYPE}.reset_binding_table)
 
 				-- Reset `class_types'
 			if l_type_id_mapping /= Void then
@@ -3653,14 +3733,23 @@ feature {NONE} -- Finalization implementation
 
 feature -- Dead code removal
 
+	is_basic_class_alive: BOOLEAN = True
+			-- Is basic class included in the system?
+
+	is_string_class_alive: BOOLEAN = True
+			-- Are string classes for manifest strings included in the system?
+
+	is_array_class_alive: BOOLEAN = True
+			-- Is array class included in the system?
+
+	is_tuple_class_alive: BOOLEAN = True
+			-- Is tuple class included in the system?
+
 	remove_dead_code
 			-- Dead code removal
 		local
-			class_array: ARRAY [CLASS_C]
-			i, nb: INTEGER
-			l_class: CLASS_C
-			ct: CLASS_TYPE
-			l_feature_table: FEATURE_TABLE
+			visible_classes: ARRAYED_LIST [CLASS_C]
+			r: like remover
 		do
 				-- Note: To have dead code removal working when assertions are enabled
 				-- we need to perform two things:
@@ -3668,172 +3757,245 @@ feature -- Dead code removal
 				-- 2 - record all inherited assertions of a routine.
 				-- We currently can do `1' but not `2'.
 
-			create remover.make
+			create r.make
+			remover := r
+
+				-- Mark classes that are known by the run-time.
+			if is_basic_class_alive then
+				r.mark_class_alive (boolean_class.compiled_class.class_id)
+				r.mark_class_alive (character_8_class.compiled_class.class_id)
+				r.mark_class_alive (character_32_class.compiled_class.class_id)
+				r.mark_class_alive (integer_8_class.compiled_class.class_id)
+				r.mark_class_alive (integer_16_class.compiled_class.class_id)
+				r.mark_class_alive (integer_32_class.compiled_class.class_id)
+				r.mark_class_alive (integer_64_class.compiled_class.class_id)
+				r.mark_class_alive (natural_8_class.compiled_class.class_id)
+				r.mark_class_alive (natural_16_class.compiled_class.class_id)
+				r.mark_class_alive (natural_32_class.compiled_class.class_id)
+				r.mark_class_alive (natural_64_class.compiled_class.class_id)
+				r.mark_class_alive (pointer_class.compiled_class.class_id)
+				r.mark_class_alive (real_32_class.compiled_class.class_id)
+				r.mark_class_alive (real_64_class.compiled_class.class_id)
+				r.mark_class_alive (typed_pointer_class.compiled_class.class_id)
+			end
+			if is_string_class_alive then
+				r.mark_class_alive (string_8_id)
+				r.mark_class_alive (string_32_id)
+				r.mark_class_alive (immutable_string_8_id)
+				r.mark_class_alive (immutable_string_32_id)
+			end
+			if is_array_class_alive then
+				r.mark_class_alive (array_id)
+			end
+			if is_tuple_class_alive then
+				r.mark_class_alive (tuple_id)
+			end
+
+			r.mark_class_alive (exception_class_id)
+			r.mark_class_alive (ise_exception_manager_class_id)
 
 			if array_optimization_on then
-				remover.record_array_descendants
+				r.record_array_descendants
+			end
+
+			if dead_code = {CONF_TARGET_OPTION}.dead_code_index_feature then
+					-- Mark all classes as alive.
+				across
+					classes as cc
+				loop
+					if
+						attached cc.item as c and then
+						c.is_valid and then
+						(c.is_precompiled implies c.is_in_system)
+					then
+						if c.is_deferred then
+							r.mark_class_reachable (c.class_id)
+						else
+							r.mark_class_alive (c.class_id)
+						end
+					end
+				end
+			end
+
+				-- It is more efficient to mark classes before marking features.
+			create visible_classes.make (0)
+			across
+				classes as cc
+			loop
+				if
+					attached cc.item as c and then
+					(c.is_precompiled implies c.is_in_system) and then
+					c.visible_level.has_visible
+				then
+					c.mark_visible_class (r)
+					visible_classes.extend (c)
+				end
 			end
 
 				-- First, inspection of the Eiffel code
 			root_creators.do_all (
 				agent (a_root: SYSTEM_ROOT)
 					local
-						l_cl: CLASS_C
-						l_ft: FEATURE_I
+						f: FEATURE_I
+						c: CLASS_C
 					do
 						if not a_root.procedure_name.is_empty and not a_root.is_explicit then
 							check
 								valid_root: a_root.is_class_type_set
 							end
-							l_cl := a_root.class_type.base_class
-							l_ft := l_cl.feature_table.item (a_root.procedure_name)
-							remover.record (l_ft, l_cl)
+							c := a_root.class_type.base_class
+								-- An object of a root class is created automatically.
+							remover.mark_class_alive (c.class_id)
+							f := c.feature_table.item (a_root.procedure_name)
+							if f.argument_count > 0 then
+									-- Arguments are created automatically.
+								remover.mark_class_alive (array_id)
+								remover.mark_class_alive (string_8_id)
+							end
+							remover.register_monomorphic (f, c.class_id)
 						end
 					end)
 
-			remover.mark_dispose
-			remover.mark_copy
-			class_array := classes
-			nb := class_counter.count
-			from i := 1 until i > nb loop
-				l_class := class_array.item (i)
-				if
-					l_class /= Void and then
-					(not l_class.is_precompiled or else l_class.is_in_system)
-				then
-					if l_class.visible_level.has_visible then
-						l_class.mark_visible (remover)
-					end
-				end
-				i := i + 1
+			register_polymorphic ({PREDEFINED_NAMES}.dispose_name_id, disposable_class)
+			register_polymorphic ({PREDEFINED_NAMES}.copy_name_id, any_class)
+			register_polymorphic ({PREDEFINED_NAMES}.is_equal_name_id, any_class)
+
+			across
+				visible_classes as c
+			loop
+				c.item.mark_visible_features (remover)
 			end
 
 			if has_expanded then
-				from
-					i := 1
-					nb := Type_id_counter.value
-				until
-					i > nb
+				across
+					class_types as cc
 				loop
-					ct := class_types.item (i)
-					if ct /= Void then
-						ct.mark_creation_routine (remover)
+					if attached cc.item as c then
+						c.mark_creation_routine (remover)
 					end
-					i := i + 1
 				end
 			end
 
-				-- Protection of `make' from ARRAY
-			l_class := array_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.Make_name_id), l_class)
+				-- Protection of `make' from ARRAY.
+			register_monomorphic ({PREDEFINED_NAMES}.Make_name_id, array_class)
 
-				-- Protection of `to_array' from SPECIAL
-			l_class := special_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.to_array_name_id), l_class)
+				-- Protection of `to_array' from SPECIAL.
+			register_monomorphic ({PREDEFINED_NAMES}.to_array_name_id, special_class)
 
 				-- Protection of feature `make' of class STRING.
-			l_class := string_8_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.Make_name_id), l_class)
+			register_monomorphic ({PREDEFINED_NAMES}.Make_name_id, string_8_class)
 
 				-- Protection of feature `make' of class STRING_32.
-			l_class := string_32_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.Make_name_id), l_class)
+			register_monomorphic ({PREDEFINED_NAMES}.Make_name_id, string_32_class)
 
-				-- Protection of ROUTINE class features
-			l_class := routine_class.compiled_class
-			l_feature_table := l_class.feature_table
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.set_rout_disp_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.set_rout_disp_final_name_id), l_class)
+				-- Protection of feature `make_from_c_byte_array' of class IMMUTABLE_STRING_8.
+			register_monomorphic ({PREDEFINED_NAMES}.make_from_c_byte_array_name_id, immutable_string_8_class)
 
-				-- Protection of ISE_EXCEPTION_MANAGER class features
-			l_class := ise_exception_manager_class.compiled_class
-			l_feature_table := l_class.feature_table
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.last_exception_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.set_last_exception_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.set_exception_data_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.is_code_ignored_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.once_raise_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.init_exception_manager_name_id), l_class)
-			remover.record (l_feature_table.item_id ({PREDEFINED_NAMES}.free_preallocated_trace_name_id), l_class)
+				-- Protection of feature `make_from_c_byte_array' of class IMMUTABLE_STRING_32.
+			register_monomorphic ({PREDEFINED_NAMES}.make_from_c_byte_array_name_id, immutable_string_32_class)
 
-				-- Protection of feature `is_equal' of ANY
-			l_class := any_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.is_equal_name_id), l_class)
+				-- Protection of ROUTINE class features.
+			register_polymorphic ({PREDEFINED_NAMES}.set_rout_disp_final_name_id, routine_class)
 
-				-- Protection of feature `internal_correct_mismatch' of ANY
-			l_class := any_class.compiled_class
-			if attached l_class.feature_table.item_id ({PREDEFINED_NAMES}.Internal_correct_mismatch_name_id) as l_feat then
-				remover.record (l_feat, l_class)
-			end
+				-- Protection of ISE_EXCEPTION_MANAGER class features.
+			register_monomorphic ({PREDEFINED_NAMES}.last_exception_name_id, ise_exception_manager_class)
+			register_monomorphic ({PREDEFINED_NAMES}.set_last_exception_name_id, ise_exception_manager_class)
+			register_monomorphic ({PREDEFINED_NAMES}.set_exception_data_name_id, ise_exception_manager_class)
+			register_monomorphic ({PREDEFINED_NAMES}.is_code_ignored_name_id, ise_exception_manager_class)
+			register_monomorphic ({PREDEFINED_NAMES}.once_raise_name_id, ise_exception_manager_class)
+			register_monomorphic ({PREDEFINED_NAMES}.init_exception_manager_name_id, ise_exception_manager_class)
+			register_monomorphic ({PREDEFINED_NAMES}.free_preallocated_trace_name_id, ise_exception_manager_class)
 
-				-- Protection of feature `twin' of ANY
-			l_class := any_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.twin_name_id), l_class)
+				-- Protection of feature `internal_correct_mismatch' of ANY.
+			register_polymorphic ({PREDEFINED_NAMES}.Internal_correct_mismatch_name_id, any_class)
 
-				-- Protection of feature `set_item' of `reference BOOLEAN'
-			l_class := boolean_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `twin' of ANY.
+			register_polymorphic ({PREDEFINED_NAMES}.twin_name_id, any_class)
 
-				-- Protection of feature `set_item' of `reference CHARACTER'
-			l_class := character_8_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference BOOLEAN'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, boolean_class)
 
-				-- Protection of feature `set_item' of `reference WIDE_CHARACTER'
-			l_class := character_32_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference CHARACTER'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, character_8_class)
 
-				-- Protection of feature `set_item' of `reference POINTER'
-			l_class := pointer_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference WIDE_CHARACTER'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, character_32_class)
 
-				-- Protection of feature `set_item' of `reference TYPED_POINTER_ [G]'
-			l_class := typed_pointer_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference POINTER'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, pointer_class)
 
-				-- Protection of feature `set_item' of `reference REAL'
-			l_class := real_32_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference TYPED_POINTER_ [G]'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, typed_pointer_class)
 
-				-- Protection of feature `set_item' of `reference DOUBLE'
-			l_class := real_64_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference REAL'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, real_32_class)
 
-				-- Protection of feature `set_item' of `reference NATURAL_8'
-			l_class := natural_8_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference DOUBLE'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, real_64_class)
 
-				-- Protection of feature `set_item' of `reference NATURAL_16'
-			l_class := natural_16_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference NATURAL_8'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, natural_8_class)
 
-				-- Protection of feature `set_item' of `reference NATURAL_32'
-			l_class := natural_32_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference NATURAL_16'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, natural_16_class)
 
-				-- Protection of feature `set_item' of `reference NATURAL_64'
-			l_class := natural_64_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference NATURAL_32'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, natural_32_class)
 
-				-- Protection of feature `set_item' of `reference INTEGER_8'
-			l_class := integer_8_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference NATURAL_64'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, natural_64_class)
 
-				-- Protection of feature `set_item' of `reference INTEGER_16'
-			l_class := integer_16_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference INTEGER_8'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, integer_8_class)
 
-				-- Protection of feature `set_item' of `reference INTEGER_32'
-			l_class := integer_32_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference INTEGER_16'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, integer_16_class)
 
-				-- Protection of feature `set_item' of `reference INTEGER_64'
-			l_class := integer_64_class.compiled_class
-			remover.record (l_class.feature_table.item_id ({PREDEFINED_NAMES}.set_item_name_id), l_class)
+				-- Protection of feature `set_item' of `reference INTEGER_32'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, integer_32_class)
 
+				-- Protection of feature `set_item' of `reference INTEGER_64'.
+			register_polymorphic ({PREDEFINED_NAMES}.set_item_name_id, integer_64_class)
+
+			r.analyze
 debug ("DEAD_CODE")
-			remover.dump_alive
-			remover.dump_marked
+			r.dump_alive
 end
+			across
+				class_types as t
+			loop
+				if attached t.item as class_type and then is_type_reachable (class_type.type) then
+					is_class_type_alive_storage [t.target_index] := r.is_class_alive (class_type.type.class_id)
+					is_class_type_reachable_storage [t.target_index] := r.is_class_reachable (class_type.type.class_id)
+				else
+					is_class_type_alive_storage [t.target_index] := False
+					is_class_type_reachable_storage [t.target_index] := False
+				end
+			end
+		end
+
+	register_monomorphic  (n: INTEGER; i: detachable CLASS_I)
+			-- Register a non-polymorphic call to a feature of name `n` on a target of class `i`.
+		do
+			if
+				attached i and then
+				attached i.compiled_class as c and then
+				attached c.feature_table.item_id (n) as f
+			then
+				remover.register_monomorphic (f, c.class_id)
+			end
+		end
+
+	register_polymorphic (n: INTEGER; i: detachable CLASS_I)
+			-- Register a polymorphic call to a feature of name `n` on a target of a type with a base class `i`.
+		do
+			if
+				attached i and then
+				attached i.compiled_class as c and then
+				attached c.feature_table.item_id (n) as f
+			then
+				remover.register_polymorphic (f, c.class_id)
+			end
 		end
 
 	is_used (f: FEATURE_I): BOOLEAN
@@ -3841,7 +4003,70 @@ end
 		require
 			good_argument: f /= Void
 		do
-			Result := remover_off or else remover.is_alive (f.body_index)
+			Result := attached remover as r implies r.is_code_reachable (f.body_index)
+		end
+
+	is_class_reachable (c: CLASS_C): BOOLEAN
+			-- Are features of the class `c` potentially reachable during execution?
+			-- E.g., are there live decendants (including the class itself) or is the class used in a non-object call?
+		require
+			in_final_mode
+		do
+			Result :=
+				if attached remover as r then
+						-- Use reachability information from the remover.
+					r.is_class_reachable (c.class_id)
+				else
+						-- Use general information about class usage.
+					c.is_precompiled implies c.is_in_system
+				end
+		end
+
+	is_class_type_alive (i: like {CLASS_TYPE}.type_id): BOOLEAN
+			-- Is class type of ID `i` alive (i.e., an object of that type can be created) when executing the system?
+		require
+			in_final_mode
+			class_types.valid_index (i)
+		do
+			Result := is_class_type_alive_storage [i]
+		end
+
+	is_class_type_reachable (i: like {CLASS_TYPE}.type_id): BOOLEAN
+			-- Is class type of ID `i` reachable (i.e., code of that type could be executed) when executing the system?
+		require
+			in_final_mode
+			class_types.valid_index (i)
+		do
+			Result := is_class_type_reachable_storage [i]
+		end
+
+feature {NONE} -- Generation
+
+	is_type_reachable (t: TYPE_A): BOOLEAN
+			-- Is type `t` built using only reachable classes?
+		require
+			in_final_mode
+		do
+			Result :=
+				attached t.base_class as c implies
+				(c.is_precompiled implies c.is_in_system) and then
+				(attached t.generics as gs implies across gs as g all is_type_reachable (g.item) end)
+		end
+
+	is_class_type_alive_storage: BOOL_STRING
+			-- Storage for precomputed values of `is_class_type_alive`.
+		require
+			in_final_mode
+		once
+			create Result.make (0)
+		end
+
+	is_class_type_reachable_storage: BOOL_STRING
+			-- Storage for precomputed values of `is_class_type_reachable`.
+		require
+			in_final_mode
+		once
+			create Result.make (0)
 		end
 
 feature -- Generation
@@ -3919,6 +4144,7 @@ feature -- Generation
 			-- Store the mapping between workbench `type_id' and the finalized one.
 			-- This mapping is needed for the profiler wizard when displaying finalized result.
 		require
+			in_final_mode
 			a_backup_not_void: a_backup /= Void
 			a_backup_valid: a_backup.lower >= 0 and a_backup.upper <= static_type_id_counter.count
 		local
@@ -3931,7 +4157,7 @@ feature -- Generation
 			l_facility: SED_STORABLE_FACILITIES
 			l_mapping_file: RAW_FILE
 		do
-				-- Build mapping between the new IDs and the old one.
+				-- Build mapping between the new IDs and the old ones.
 			from
 				class_array := classes
 				nb := class_counter.count
@@ -4073,7 +4299,7 @@ feature -- Generation
 						l_class_is_finalized := not a_class.is_precompiled or else a_class.is_in_system
 							-- If an expanded type is in a precompiled library, then there will always
 							-- be a generic derivation for TYPE [my_expanded_class] due to the presence
-							-- of `generating_type: TYPE [detachable like Current' in ANY. Even if the
+							-- of `generating_type: TYPE [detachable like Current]' in ANY. Even if the
 							-- expanded class is not really used in the system, we need to compile it in
 							-- so that we can generate the generic derivation of `{TYPE}' that includes it.
 							-- This solves many eweasel tests such as test#time002 when
@@ -4119,33 +4345,28 @@ feature -- Generation
 		local
 			i, l_count: INTEGER
 			l_types: like class_types
-			l_type: CLASS_TYPE
 		do
+			l_types := class_types
+			l_count := l_types.count
 			if is_restoring then
-				l_types := class_types
-				l_count := l_types.count
 				from i := 1 until i = l_count loop
-					l_type := l_types[i]
 					if
-						l_type /= Void and then not l_type.is_precompiled and then
-						not l_type.is_external and then l_type.is_generated_as_single_type
+						attached l_types [i] as class_type and then not class_type.is_precompiled and then
+						not class_type.is_external and then class_type.is_generated_as_single_type
 					then
-						l_type.set_implementation_id (a_backup[i])
+						class_type.set_implementation_id (a_backup [i])
 					end
 					i := i + 1
 				end
 			else
-				l_types := class_types
-				l_count := l_types.count
 				from i := 1 until i = l_count loop
-					l_type := l_types[i]
 					if
-						l_type /= Void and then not l_type.is_precompiled and then
-						not l_type.is_external  and then l_type.is_generated_as_single_type
+						attached l_types [i] as class_type and then not class_type.is_precompiled and then
+						not class_type.is_external and then class_type.is_generated_as_single_type
 					then
-						a_backup.put (l_type.implementation_id, i)
+						a_backup.put (class_type.implementation_id, i)
 							-- Set implementation id to static id for .NET types that have been marked a single.
-						l_type.set_implementation_id (l_type.static_type_id)
+						class_type.set_implementation_id (class_type.static_type_id)
 					end
 					i := i + 1
 				end
@@ -4171,7 +4392,6 @@ feature -- Generation
 			table: POLY_TABLE [ENTRY]
 			i, nb: INTEGER
 			used, used_for_routines, used_for_types: PACKED_BOOLEANS
-			l_rout_id: INTEGER
 			l_buf: like generation_buffer
 			l_header_buf: like header_generation_buffer
 			l_table_name: STRING
@@ -4181,6 +4401,7 @@ feature -- Generation
 			l_encoder: like encoder
 			l_processed: HASH_TABLE [BOOLEAN, INTEGER]
 			l_done: BOOLEAN
+			trampoline_code: NATURAL_64
 		do
 			l_buf := generation_buffer
 			l_header_buf := header_generation_buffer
@@ -4188,8 +4409,9 @@ feature -- Generation
 			l_encoder := encoder
 
 				-- Generate tables and their initialization routines.
-			Attr_generator.init (l_buf)
-			Rout_generator.init (l_header_buf)
+			attr_generator.init (l_buf)
+			rout_generator.init (l_header_buf)
+			rout_generator.reset_counter
 
 			used := Eiffel_table.used
 			used_for_types := Eiffel_table.used_for_types
@@ -4231,8 +4453,23 @@ feature -- Generation
 			generate_copy_table
 			generate_is_equal_table
 
-			Attr_generator.finish
-			Rout_generator.finish
+			attr_generator.finish
+			rout_generator.finish
+
+			trampoline_generator.init (l_buf)
+			across
+				trampoline_table.twin as t
+			loop
+				if attached {ROUT_TABLE} l_tmp_poly_server.item (t.key) as r then
+					across
+						t.item.twin as s
+					loop
+						trampoline_code := s.item
+						r.generate_trampoline ((trampoline_code |>> 32).as_integer_32, (trampoline_code & 0xFFFFFFFF).as_integer_32, trampoline_generator)
+					end
+				end
+			end
+			trampoline_generator.finish
 
 				-- Call initialization routines for all tables used in system.
 
@@ -4302,8 +4539,7 @@ feature -- Generation
 			until
 				l_rout_ids.after
 			loop
-				l_rout_id := l_rout_ids.item
-				l_table_name := l_encoder.routine_table_name (l_rout_id)
+				l_table_name := l_encoder.routine_table_name (l_rout_ids.item)
 					-- Declare initialization routine for table
 				l_header_buf.put_new_line
 				l_header_buf.put_string ("extern void ")
@@ -4406,8 +4642,10 @@ feature -- Generation
 
 	generate_reference_table
 			-- Generate the table of reference number per type.
+		require
+			in_final_mode
 		local
-			i, nb, nb_ref, nb_exp: INTEGER
+			i, nb: INTEGER
 			class_type: CLASS_TYPE
 			skeleton: SKELETON
 			reference_file: INDENT_FILE
@@ -4417,7 +4655,6 @@ feature -- Generation
 					-- Clear buffer for current generation
 				buffer := generation_buffer
 				buffer.clear_all
-
 				i := 1
 				nb := type_id_counter.value
 				buffer.put_string ("%Nlong egc_fnbref_init[] = {%N")
@@ -4428,13 +4665,10 @@ feature -- Generation
 
 				if class_type /= Void then
 					skeleton := class_type.skeleton
-					nb_ref := skeleton.nb_reference
-					nb_exp := skeleton.nb_expanded
-					buffer.put_integer (nb_ref + nb_exp)
+					buffer.put_integer (skeleton.nb_reference + skeleton.nb_expanded)
 				else
 					buffer.put_integer (0)
 				end
-
 				buffer.put_string (",%N")
 				i := i + 1
 			end
@@ -4448,11 +4682,11 @@ feature -- Generation
 	generate_parent_tables
 			-- Generates parent tables.
 		local
-			i, nb, cid: INTEGER;
-			cl_type: CLASS_TYPE;
-			parents_file: INDENT_FILE;
-			final_mode: BOOLEAN;
-			max_id: INTEGER;
+			i, nb, cid: INTEGER
+			cl_type: CLASS_TYPE
+			parents_file: INDENT_FILE
+			final_mode: BOOLEAN
+			max_id: INTEGER
 			used_ids: ARRAY [BOOLEAN]
 			buffer: GENERATION_BUFFER
 		do
@@ -4462,7 +4696,9 @@ feature -- Generation
 
 			final_mode := byte_context.final_mode
 
-			buffer.put_string ("#include %"eif_eiffel.h%"")
+			buffer.put_string ("[
+				#include "eif_eiffel.h"
+			]")
 
 			buffer.start_c_specific_code
 
@@ -4488,9 +4724,12 @@ feature -- Generation
 
 			buffer.put_new_line
 			buffer.put_string ("int egc_partab_size_init = ")
-			buffer.put_integer (max_id);
-			buffer.put_string (";%N");
-			buffer.put_string ("struct eif_par_types *egc_partab_init[] = {%N");
+			buffer.put_integer (max_id)
+			buffer.put_string ("[
+				;
+				struct eif_par_types *egc_partab_init[] = {
+
+			]")
 
 			from
 				i := 0
@@ -4498,28 +4737,27 @@ feature -- Generation
 				i > max_id
 			loop
 				if used_ids.item (i) then
-					buffer.put_string ("&par");
-					buffer.put_integer (i);
+					buffer.put_string ("&par")
+					buffer.put_integer (i)
 				else
-					buffer.put_string ("NULL");
-				end;
-				buffer.put_string (",%N");
-				i := i + 1;
-			end;
-			buffer.put_string ("NULL};");
+					buffer.put_string ("NULL")
+				end
+				buffer.put_string (",%N")
+				i := i + 1
+			end
+			buffer.put_string ("NULL};")
 			buffer.end_c_specific_code
 
 			create parents_file.make_c_code_file (gen_file_name (final_mode, Eparents));
 			buffer.put_in_file (parents_file)
-			parents_file.close;
-		end;
+			parents_file.close
+		end
 
 	generate_skeletons
-			-- Generate skeletons of class types
+			-- Generate skeletons of class types.
 		local
 			class_array: ARRAY [CLASS_C]
-			j, i, nb: INTEGER
-			cl_type: CLASS_TYPE
+			i, nb: INTEGER
 			a_class: CLASS_C
 			final_mode: BOOLEAN
 			types: TYPE_LIST
@@ -4545,23 +4783,23 @@ feature -- Generation
 				nb := class_counter.count
 				from i := 1 until i > nb loop
 					a_class := class_array.item (i)
-					if a_class /= Void then
-						j := a_class.class_id
-						if a_class.has_visible then
-							buffer.put_string ("extern const char *cl")
-							buffer.put_integer (j)
+					if
+						attached a_class and then
+						a_class.has_visible
+					then
+						buffer.put_string ("extern const char *cl")
+						buffer.put_integer (a_class.class_id)
+						buffer.put_string ("[];%N")
+						from
+							types := a_class.types
+							types.start
+						until
+							types.after
+						loop
+							buffer.put_string ("extern const uint32 cr")
+							buffer.put_integer (types.item.type_id)
 							buffer.put_string ("[];%N")
-							from
-								types := a_class.types
-								types.start
-							until
-								types.after
-							loop
-								buffer.put_string ("extern const uint32 cr")
-								buffer.put_integer (types.item.type_id)
-								buffer.put_string ("[];%N")
-								types.forth
-							end
+							types.forth
 						end
 					end
 					i := i + 1
@@ -4579,10 +4817,9 @@ feature -- Generation
 				i > nb
 			loop
 				buffer.flush_buffer (skeleton_file)
-				cl_type := class_types.item (i)
 					-- Classes could be removed
-				if cl_type /= Void then
-					cl_type.generate_skeleton1 (buffer)
+				if attached class_types [i] as class_type then
+					class_type.generate_skeleton1 (buffer)
 				end
 				i := i + 1
 			end
@@ -4595,21 +4832,20 @@ feature -- Generation
 				i > nb
 			loop
 				buffer.flush_buffer (skeleton_file)
-				cl_type := class_types.item (i)
-				if cl_type /= Void then
+				if attached class_types [i] as class_type then
 					if final_mode then
 						if
-							not cl_type.associated_class.is_precompiled or else
-							cl_type.associated_class.is_in_system
+							not class_type.associated_class.is_precompiled or else
+							class_type.associated_class.is_in_system
 						then
-							cl_type.generate_skeleton2 (buffer)
+							class_type.generate_skeleton2 (buffer)
 						else
 								-- Type not inserted in system because it was coming
 								-- from a precompiled library.
 							buffer.put_string ("%N{0L, 0L,%"INVALID_TYPE%",NULL,NULL,NULL,NULL,(uint16)0L,NULL,NULL}")
 						end
 					else
-						cl_type.generate_skeleton2 (buffer)
+						class_type.generate_skeleton2 (buffer)
 					end
 				else
 					if final_mode then
@@ -4646,10 +4882,9 @@ feature -- Generation
 				i > nb
 			loop
 				buffer.flush_buffer (skeleton_file)
-				cl_type := class_types.item (i)
 					-- Classes could be removed
-				if cl_type /= Void then
-					cl_type.generate_attribute_names (buffer)
+				if attached class_types [i] as class_type then
+					class_type.generate_attribute_names (buffer)
 				end
 				i := i + 1
 			end
@@ -4665,12 +4900,15 @@ feature -- Generation
 			cl_type: CLASS_TYPE
 			structure_file: INDENT_FILE
 			buffer: GENERATION_BUFFER
+			final_mode: BOOLEAN
 		do
-			if in_final_mode then
-				create structure_file.make_c_code_file (final_file_name (estructure, Dot_x, 1));
-			else
-				create structure_file.make_c_code_file (workbench_file_name (estructure, Dot_h, 1));
-			end
+			final_mode := in_final_mode
+			create structure_file.make_c_code_file
+				(if final_mode then
+					final_file_name (estructure, Dot_x, 1)
+				else
+					workbench_file_name (estructure, Dot_h, 1)
+				end)
 
 			buffer := generation_buffer
 			buffer.clear_all
@@ -4709,7 +4947,6 @@ feature -- Generation
 		local
 			class_array: ARRAY [CLASS_C]
 			i, nb: INTEGER
-			cl_type: CLASS_TYPE
 			a_class: CLASS_C
 			final_mode: BOOLEAN
 			temp: STRING
@@ -4782,9 +5019,8 @@ feature -- Generation
 					until
 						i > nb
 					loop
-						cl_type := class_types.item (i)
-						if cl_type /= Void and then cl_type.associated_class.has_visible then
-							cl_type.generate_cecil (buffer)
+						if attached class_types [i] as class_type and then class_type.associated_class.has_visible then
+							class_type.generate_cecil (buffer)
 						else
 							buffer.put_string (once "%N{(int32) 0, (int) 0, (char **) 0, (char *) 0}")
 						end
@@ -4807,7 +5043,7 @@ feature -- Generation
 		end
 
 	create_cecil_tables
-			-- Prepare cecil tables
+			-- Prepare cecil tables.
 		local
 			class_array: ARRAY [CLASS_C]
 			i, nb: INTEGER
@@ -4830,19 +5066,20 @@ feature -- Generation
 		end
 
 	generate_initialization_table
-			-- Generate table of initialization routines for composite objects
+			-- Generate table of initialization routines for composite objects.
+		require
+			in_final_mode
 		local
 			rout_table: ROUT_TABLE
 			rout_entry: ROUT_ENTRY
 			i, nb: INTEGER
-			class_type: CLASS_TYPE
 			l_void: VOID_A
 			l_c_pattern_id: INTEGER
 			l_arg_types: SPECIAL [TYPE_C]
 		do
-			if remover /= Void then
+			if attached remover as r then
 					-- Ensure that initialization routines are marked `used'.
-				remover.used_table.put (True, body_index_counter.initialization_body_index)
+				r.mark_code_reachable (body_index_counter.initialization_body_index)
 			end
 			i := 1
 			nb := Type_id_counter.value
@@ -4851,9 +5088,8 @@ feature -- Generation
 				create l_arg_types.make_empty (2)
 				l_arg_types.extend (create {REFERENCE_I})
 				l_arg_types.extend (create {REFERENCE_I})
-				l_c_pattern_id := pattern_table.c_pattern_id (
-					create {C_PATTERN}.make (create {VOID_I},
-						l_arg_types))
+				l_c_pattern_id := pattern_table.c_pattern_id
+					(create {C_PATTERN}.make (create {VOID_I}, l_arg_types))
 				from
 					create rout_table.make (routine_id_counter.initialization_rout_id)
 					create l_void
@@ -4861,22 +5097,29 @@ feature -- Generation
 				until
 					i > nb
 				loop
-					class_type := class_types.item (i)
-					if class_type /= Void and then class_type.has_creation_routine then
-						create rout_entry
-						rout_entry.set_type_id (i)
-						rout_entry.set_type (l_void)
-						rout_entry.set_access_type_id (i)
-						rout_entry.set_pattern_id (l_c_pattern_id)
-						rout_entry.set_body_index (body_index_counter.initialization_body_index)
+					if
+						attached class_types.item (i) as class_type
+						and then class_type.has_creation_routine
+					then
+						create rout_entry.make
+							(l_void,
+							i,
+							0,
+							False,
+							body_index_counter.initialization_body_index,
+							l_c_pattern_id,
+							i,
+							class_type.associated_class.class_id,
+							class_type.associated_class.class_id,
+							False,
+							class_type.associated_class.class_id)
 						rout_table.extend (rout_entry)
 					end
 					i := i + 1
 				end
 				rout_table.sort
 			end
-			rout_table.generate_full (routine_id_counter.initialization_rout_id,
-				header_generation_buffer)
+			rout_table.generate_full (routine_id_counter.initialization_rout_id, header_generation_buffer)
 		end
 
 	generate_expanded_creation_table
@@ -4885,42 +5128,31 @@ feature -- Generation
 			rout_table: ROUT_TABLE
 			rout_entry: ROUT_ENTRY
 			i, nb: INTEGER
-			class_type: CLASS_TYPE
 			l_class: CLASS_C
-			l_void: VOID_A
 		do
 			from
 				create rout_table.make (routine_id_counter.creation_rout_id)
-				create l_void
 				i := 1
 				nb := Type_id_counter.value
 				rout_table.create_block (nb)
 			until
 				i > nb
 			loop
-				class_type := class_types.item (i)
-				if class_type /= Void then
+				if attached class_types.item (i) as class_type then
 					l_class := class_type.associated_class
 					if
-						(l_class.is_used_as_expanded and l_class.creation_feature /= Void) and then
-						(l_class.creation_feature.is_external or else not l_class.creation_feature.is_empty)
+						l_class.is_used_as_expanded and then
+						attached l_class.creation_feature as f and then
+						(f.is_external or else not f.is_empty)
 					then
-						create rout_entry
-						rout_entry.set_type_id (i)
-						rout_entry.set_type (l_void)
-						rout_entry.set_access_type_id (
-							class_type.type.implemented_type (l_class.creation_feature.written_in).type_id (Void))
-						rout_entry.set_pattern_id (pattern_table.c_pattern_id_in (l_class.creation_feature.pattern_id,
-							rout_entry.access_class_type))
-						rout_entry.set_body_index (l_class.creation_feature.body_index)
+						rout_entry := l_class.creation_feature.new_rout_entry (class_type, l_class.is_deferred, l_class.class_id)
 						rout_table.extend (rout_entry)
 					end
 				end
 				i := i + 1
 			end
 			rout_table.sort
-			rout_table.generate_full (routine_id_counter.creation_rout_id,
-													header_generation_buffer)
+			rout_table.generate_full (routine_id_counter.creation_rout_id, header_generation_buffer)
 		end
 
 feature -- Dispose routine
@@ -5025,14 +5257,13 @@ feature -- Copy routine
 			-- Copy routine id from class ANY.
 			-- Return 0 if the ANY class has not been compiled
 			-- or has no copy routine.
-		local
-			feature_i: FEATURE_I
 		once
-			if any_class /= Void and any_class.is_compiled then
-				feature_i := any_class.compiled_class.feature_table.item_id (names.copy_name_id)
-				if feature_i /= Void then
-					Result := feature_i.rout_id_set.first
-				end
+			if
+				attached any_class as c and then
+				c.is_compiled and then
+				attached c.compiled_class.feature_table.item_id (names.copy_name_id) as f
+			then
+				Result := f.rout_id_set.first
 			end
 		end
 
@@ -5100,15 +5331,12 @@ feature -- Pattern table generation
 			-- Generation of the main file
 		local
 			final_mode: BOOLEAN
-
 			i, nb: INTEGER
 			initialization_file: INDENT_FILE
 			buffer: GENERATION_BUFFER
-
 			l_empty_array: ARRAY [STRING_8]
 			l_encoder: like encoder
 			cs: CURSOR
-			cl_type: CLASS_TYPE
 			l_root: SYSTEM_ROOT
 			l_root_cl: CLASS_C
 			l_root_ft: FEATURE_I
@@ -5268,9 +5496,8 @@ feature -- Pattern table generation
 				until
 					i > nb
 				loop
-					cl_type := class_types.item (i)
-					if cl_type /= Void then
-						buffer.generate_extern_declaration (once "void", l_encoder.init_name (cl_type.static_type_id), l_empty_array)
+					if attached class_types [i] as class_type then
+						buffer.generate_extern_declaration (once "void", l_encoder.init_name (class_type.static_type_id), l_empty_array)
 					end
 					i := i + 1
 				end
@@ -5286,10 +5513,9 @@ feature -- Pattern table generation
 				until
 					i > nb
 				loop
-					cl_type := class_types.item (i)
-					if cl_type /= Void then
+					if attached class_types [i] as class_type then
 						buffer.put_new_line
-						buffer.put_string (l_encoder.init_name (cl_type.static_type_id))
+						buffer.put_string (l_encoder.init_name (class_type.static_type_id))
 						buffer.put_string (once "();")
 					end
 					i := i + 1
@@ -5328,21 +5554,19 @@ feature -- Pattern table generation
 				-- Module initialization routine 'egc_system_mod_init_init'
 				-- Declarations
 			from
-				i  := 1
+				i := 1
 				nb := type_id_counter.value
 			until
 				i > nb
 			loop
-				cl_type := class_types.item (i)
-
-				if cl_type /= Void and then not makefile_generator.empty_class_types.has (cl_type.static_type_id) then
-					if
-						not final_mode or else
-						(not cl_type.is_precompiled or else cl_type.associated_class.is_in_system)
-					then
-						buffer.generate_extern_declaration (
-									once "void", l_encoder.module_init_name (cl_type.static_type_id), l_empty_array)
-					end
+				if
+					attached class_types [i] as class_type and then
+					(not (final_mode and then makefile_generator.empty_class_types.has (class_type.static_type_id)) and then
+						(class_type.is_precompiled implies class_type.associated_class.is_in_system) or else
+					not (final_mode or else makefile_generator.empty_class_types.has (class_type.static_type_id)))
+				then
+					buffer.generate_extern_declaration
+						(once "void", l_encoder.module_init_name (class_type.static_type_id), l_empty_array)
 				end
 				i := i + 1
 			end
@@ -5377,17 +5601,15 @@ feature -- Pattern table generation
 			until
 				i > nb
 			loop
-				cl_type := class_types.item (i)
-
-				if cl_type /= Void and then not makefile_generator.empty_class_types.has (cl_type.static_type_id) then
-					if
-						not final_mode or else
-						(not cl_type.is_precompiled or else cl_type.associated_class.is_in_system)
-					then
-						buffer.put_new_line
-						buffer.put_string (Encoder.module_init_name (cl_type.static_type_id))
-						buffer.put_string (once "();")
-					end
+				if
+					attached class_types [i] as class_type and then
+					(not (final_mode and then makefile_generator.empty_class_types.has (class_type.static_type_id)) and then
+						(class_type.is_precompiled implies class_type.associated_class.is_in_system) or else
+					not (final_mode or else makefile_generator.empty_class_types.has (class_type.static_type_id)))
+				then
+					buffer.put_new_line
+					buffer.put_string (Encoder.module_init_name (class_type.static_type_id))
+					buffer.put_string (once "();")
 				end
 				i := i + 1
 			end
@@ -5400,7 +5622,7 @@ feature -- Pattern table generation
 
 			buffer.end_c_specific_code
 
-			create initialization_file.make_c_code_file (gen_file_name (final_mode, Einit));
+			create initialization_file.make_c_code_file (gen_file_name (final_mode, Einit))
 			buffer.put_in_file (initialization_file)
 			initialization_file.close
 		end
@@ -5449,9 +5671,8 @@ feature --option file generation
 			class_array := classes
 			nb := class_counter.count
 			from i := 1 until i > nb loop
-				a_class := class_array.item (i)
-				if a_class /= Void then
-					a_class.debug_level.generate_keys (buffer, a_class.class_id)
+				if attached class_array.item (i) as c then
+					c.debug_level.generate_keys (buffer, c.class_id)
 				end
 				i := i + 1
 			end
@@ -5478,8 +5699,7 @@ feature --option file generation
 					buffer.put_string (", ")
 					a_class.debug_level.generate (buffer, a_class.class_id)
 				else
-					buffer.put_string ("(int16) 0, (int16) 0, (int16) 0,%
-						%{(int16) 0, (int16) 0, (char **) 0}")
+					buffer.put_string ("(int16) 0, (int16) 0, (int16) 0, {(int16) 0, (int16) 0, (char **) 0}")
 				end
 				buffer.put_string ("},%N")
 				i := i + 1
@@ -5487,11 +5707,12 @@ feature --option file generation
 			buffer.put_string ("};")
 			buffer.end_c_specific_code
 
-			if is_workbench_mode then
-				create option_file.make_c_code_file (workbench_file_name (Eoption, dot_c, 1));
-			else
-				create option_file.make_c_code_file (final_file_name (Eoption, dot_c, 1));
-			end
+			create option_file.make_c_code_file
+				(if is_workbench_mode then
+					workbench_file_name (Eoption, dot_c, 1)
+				else
+					final_file_name (Eoption, dot_c, 1)
+				end)
 			buffer.put_in_file (option_file)
 			option_file.close
 		end
@@ -5614,7 +5835,7 @@ feature {NONE} -- Access: Root creators
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER, TEST_SYSTEM_I} -- Status report: Root creators
 
-	is_explicit_root (a_class_name, a_feature_name: STRING): BOOLEAN
+	is_explicit_root (a_class_name, a_feature_name: READABLE_STRING_8): BOOLEAN
 			-- Has an explicit root been added for given class and feature name.
 			--
 			-- `a_class_name': Class name in which creation procedure is defined
@@ -5622,9 +5843,9 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER, TEST_SYSTEM_I} -- Status report: Roo
 			-- `Result': True if explicit root exists for class and feature name, False otherwise.
 		do
 			Result := explicit_roots.there_exists (
-				agent (a_tuple: TUPLE [clst: STRING_32; clss: STRING; ft: STRING]; a_cl, a_ft: STRING): BOOLEAN
+				agent (a_tuple: TUPLE [clst: STRING_32; clss: STRING; ft: STRING]; a_cl, a_ft: READABLE_STRING_8): BOOLEAN
 					do
-						Result := a_tuple.clss.is_equal (a_cl) and a_tuple.ft.is_equal (a_ft)
+						Result := a_tuple.clss.same_string (a_cl) and a_tuple.ft.same_string (a_ft)
 					end (?, a_class_name, a_feature_name))
 		end
 
@@ -6101,7 +6322,6 @@ feature -- Statistics
 	display_catcall_statistics
 		local
 			l_str: STRING
-			l_cat_call_summary: CAT_CALL_SUMMARY_WARNING
 		do
 				-- To be used for global statistics on the project.
 			debug ("catcall")
@@ -6118,8 +6338,7 @@ feature -- Statistics
 					l_str.append ("%Tlike-current-features: " + statistics.like_current_feature.out + "%N")
 					l_str.append ("%Tother: " + statistics.other.out)
 					l_str.append ("%N")
-					create l_cat_call_summary.make (l_str)
-					error_handler.insert_warning (l_cat_call_summary)
+					error_handler.insert_warning (create {CAT_CALL_SUMMARY_WARNING}.make (l_str), False)
 				end
 			end
 		end
@@ -6197,7 +6416,6 @@ feature {NONE} -- External features
 			"time"
 		end
 
-
 feature -- Added for Plan Generation
 	plan_generate_class
 		local
@@ -6244,10 +6462,15 @@ feature -- Added for Plan Generation
 				end
 			end
 		end
+
+invariant
+	attached remover implies dead_code /= {CONF_TARGET_OPTION}.dead_code_index_none
+	attached remover implies in_final_mode
+
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

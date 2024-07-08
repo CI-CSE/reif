@@ -95,6 +95,8 @@ feature {NONE} -- Initialization
 			Eiffel_project.manager.load_agents.extend (agent on_project_loaded)
 			Eiffel_project.manager.create_agents.extend (agent on_project_created)
 			Eiffel_project.manager.close_agents.extend (agent on_project_unloaded)
+
+			initialize_prettify_suggestion_detector
 		end
 
 feature -- Basic operations
@@ -376,14 +378,11 @@ feature -- Status report
 	last_focused_window: detachable EB_WINDOW
 			-- Return the window which last had the keyboard focus.
 			-- Return Void if no window is focused.
-		local
-			l_list: ARRAYED_LIST [EB_WINDOW]
 		do
 			if not focused_windows.is_empty then
 				Result := focused_windows.last
 			elseif not managed_windows.is_empty then
-				l_list := managed_windows
-				Result := l_list.last
+				Result := managed_windows.last
 			end
 		end
 
@@ -645,7 +644,6 @@ feature -- Actions on all windows
 			melt_project_cmd.enable_sensitive
 			terminate_c_compilation_cmd.disable_sensitive
 			refactoring_manager.enable_sensitive
-			override_scan_cmd.enable_sensitive
 			discover_melt_cmd.enable_sensitive
 			analyze_cmd.enable_sensitive
 			analyze_editor_cmd.update_sensitive
@@ -653,6 +651,7 @@ feature -- Actions on all windows
 			analyze_target_cmd.update_sensitive
 
 			project_cancel_cmd.disable_sensitive
+			clean_compile_project_cmd.enable_sensitive
 			if process_manager.is_c_compilation_running then
 				on_c_compilation_start
 			else
@@ -921,6 +920,16 @@ feature {NONE} -- Exit implementation
 			end
 		end
 
+feature -- Prettify suggestion
+
+	initialize_prettify_suggestion_detector
+		do
+			create prettify_suggestion_detector
+			prettify_suggestion_detector.install
+		end
+
+	prettify_suggestion_detector: ES_PRETTIFY_SUGGESTION_DETECTOR
+
 feature -- Access: session data
 
 	load_favorites
@@ -1092,7 +1101,6 @@ feature -- Events
 			Finalize_project_cmd.disable_sensitive
 			Precompilation_cmd.disable_sensitive
 			Project_cancel_cmd.enable_sensitive
-			override_scan_cmd.disable_sensitive
 			discover_melt_cmd.disable_sensitive
 			analyze_cmd.disable_sensitive
 			analyze_editor_cmd.disable_sensitive
@@ -1110,7 +1118,6 @@ feature -- Events
 			Freeze_project_cmd.disable_sensitive
 			Finalize_project_cmd.disable_sensitive
 			Precompilation_cmd.disable_sensitive
-			override_scan_cmd.disable_sensitive
 			discover_melt_cmd.disable_sensitive
 			analyze_cmd.disable_sensitive
 			analyze_editor_cmd.disable_sensitive
@@ -1126,7 +1133,6 @@ feature -- Events
 			Freeze_project_cmd.enable_sensitive
 			Finalize_project_cmd.enable_sensitive
 			Precompilation_cmd.enable_sensitive
-			override_scan_cmd.enable_sensitive
 			discover_melt_cmd.enable_sensitive
 			analyze_cmd.enable_sensitive
 			analyze_editor_cmd.update_sensitive
@@ -1168,14 +1174,15 @@ feature -- Events
 			Freeze_project_cmd.enable_sensitive
 			Finalize_project_cmd.enable_sensitive
 			Precompilation_cmd.enable_sensitive
+			clean_compile_project_cmd.enable_sensitive
 			System_cmd.enable_sensitive
 			System_information_cmd.enable_sensitive
-			override_scan_cmd.enable_sensitive
 			discover_melt_cmd.enable_sensitive
 			analyze_cmd.enable_sensitive
 			analyze_editor_cmd.update_sensitive
 			analyze_parent_cmd.update_sensitive
 			analyze_target_cmd.update_sensitive
+			source_control_cmd.update_sensitive
 			for_all (agent create_project_action)
 		end
 
@@ -1191,7 +1198,6 @@ feature -- Events
 					Run_project_cmd.disable_sensitive
 					Run_workbench_cmd.disable_sensitive
 					Run_finalized_cmd.disable_sensitive
-					override_scan_cmd.disable_sensitive
 					discover_melt_cmd.disable_sensitive
 				else
 					Melt_project_cmd.enable_sensitive
@@ -1201,13 +1207,14 @@ feature -- Events
 					Run_project_cmd.enable_sensitive
 					Run_workbench_cmd.enable_sensitive
 					Run_finalized_cmd.enable_sensitive
-					override_scan_cmd.enable_sensitive
 					discover_melt_cmd.enable_sensitive
 				end
 				analyze_cmd.enable_sensitive
 				analyze_editor_cmd.update_sensitive
 				analyze_parent_cmd.update_sensitive
 				analyze_target_cmd.update_sensitive
+				source_control_cmd.update_sensitive
+				clean_compile_project_cmd.enable_sensitive
 				System_cmd.enable_sensitive
 				System_information_cmd.enable_sensitive
 				Export_cmd.enable_sensitive
@@ -1224,12 +1231,12 @@ feature -- Events
 				Run_project_cmd.disable_sensitive
 				Run_workbench_cmd.disable_sensitive
 				Run_finalized_cmd.disable_sensitive
-				override_scan_cmd.disable_sensitive
 				discover_melt_cmd.disable_sensitive
 				analyze_cmd.disable_sensitive
 				analyze_editor_cmd.disable_sensitive
 				analyze_parent_cmd.disable_sensitive
 				analyze_target_cmd.disable_sensitive
+				source_control_cmd.disable_sensitive
 			end
 				-- Recreate window configuration from last session of project if any.
 			load_session
@@ -1253,6 +1260,7 @@ feature -- Events
 			Freeze_project_cmd.disable_sensitive
 			Finalize_project_cmd.disable_sensitive
 			Precompilation_cmd.disable_sensitive
+			clean_compile_project_cmd.disable_sensitive
 			System_cmd.disable_sensitive
 			System_information_cmd.disable_sensitive
 			Export_cmd.disable_sensitive
@@ -1260,12 +1268,12 @@ feature -- Events
 			Run_project_cmd.disable_sensitive
 			Run_workbench_cmd.disable_sensitive
 			Run_finalized_cmd.disable_sensitive
-			override_scan_cmd.disable_sensitive
 			discover_melt_cmd.disable_sensitive
 			analyze_cmd.disable_sensitive
 			analyze_editor_cmd.disable_sensitive
 			analyze_parent_cmd.disable_sensitive
 			analyze_target_cmd.disable_sensitive
+			source_control_cmd.disable_sensitive
 		end
 
 feature {NONE} -- Implementation
@@ -1543,11 +1551,11 @@ feature {EB_DEVELOPMENT_WINDOW} -- Implementation
 			-- Find an empty titled not yet used.
 		local
 			l_index: INTEGER
-			empty_title: STRING_GENERAL
+			empty_title: STRING_32
 			window_titles: ARRAYED_LIST [STRING_GENERAL]
 			i: INTEGER
 			l_found: BOOLEAN
-			l_name, l_target_name: detachable STRING_32
+			l_name, l_target_name: READABLE_STRING_32
 		do
 				-- Remember the title of all windows.
 			create window_titles.make (managed_windows.count)
@@ -1565,29 +1573,26 @@ feature {EB_DEVELOPMENT_WINDOW} -- Implementation
 			managed_windows.go_i_th (l_index)
 
 				-- Look for a title not yet used.
-			if eiffel_project.system_defined then
+			if eiffel_project.system_defined and then attached eiffel_universe.target then
 				l_name := eiffel_system.name
 				l_target_name := eiffel_universe.target_name
-			elseif attached eiffel_project.workbench.lace as l_lace then
-				l_name := l_lace.conf_system.name
+			elseif attached eiffel_project.workbench.lace as l_lace and then attached l_lace.conf_system as s then
+				l_name := s.name
 				l_target_name := l_lace.target_name
 			end
-			if l_name /= Void and l_target_name /= Void then
-				empty_title := Interface_names.l_empty_development_window_header (
-															l_name,
-															l_target_name
-													).string
-			else
-				empty_title := Interface_names.t_Empty_development_window.string
-			end
-			empty_title.append (" #")
+			empty_title :=
+				if l_name /= Void and l_target_name /= Void then
+					interface_names.l_empty_development_window_header (l_name, l_target_name)
+				else
+					interface_names.t_empty_development_window
+				end +
+				{STRING_32} " #"
 			from
 				i := 1
 			until
 				l_found
 			loop
-				Result := empty_title.twin
-				Result.append (i.out)
+				Result := empty_title + i.out
 				if not window_titles.has (Result) then
 					l_found := True
 				end
@@ -1646,7 +1651,7 @@ feature{NONE} -- Implementation
 note
 	ca_ignore:
 		"CA033", "CA033: too long class"
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

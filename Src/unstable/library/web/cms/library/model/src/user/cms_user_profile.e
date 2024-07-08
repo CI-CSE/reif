@@ -1,6 +1,9 @@
 note
 	description: "[
 				User profile used to extend information associated with a {CMS_USER}.
+
+				Any profile item with a key starting by "." will be considered internal,
+				and thus not displayed under the user account view
 			]"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -24,7 +27,7 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	item alias "[]" (k: READABLE_STRING_GENERAL): detachable READABLE_STRING_32
+	item alias "[]" (k: READABLE_STRING_GENERAL): detachable READABLE_STRING_32 assign set_item
 			-- Profile item associated with key `k`.
 		do
 			Result := items.item (k)
@@ -46,12 +49,28 @@ feature -- Access
 			Result := items.is_empty
 		end
 
+	has_visible_items: BOOLEAN
+			-- Has visible items?
+		do
+			Result := not is_empty and then
+					across items as ic some not ic.item.starts_with (".") end
+		end
+
 feature -- Change
 
-	force (v: READABLE_STRING_GENERAL; k: READABLE_STRING_GENERAL)
+	set_item (v: detachable READABLE_STRING_32; k: READABLE_STRING_GENERAL)
+		do
+			force (v, k)
+		end
+
+	force (v: detachable READABLE_STRING_GENERAL; k: READABLE_STRING_GENERAL)
 			-- Associated value `v` with key `k`.
 		do
-			items.force (v.to_string_32, k)
+			if v = Void then
+				items.remove (k)
+			else
+				items.force (v.to_string_32, k)
+			end
 		end
 
 feature -- Access
@@ -67,6 +86,6 @@ feature {NONE} -- Implementation
 	items: STRING_TABLE [READABLE_STRING_32]
 
 ;note
-	copyright: "2011-2014, Javier Velilla, Jocelyn Fiat, Eiffel Software and others"
+	copyright: "2011-2021, Javier Velilla, Jocelyn Fiat, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

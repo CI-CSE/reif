@@ -18,10 +18,12 @@ create
 
 feature {NONE} --Initialization
 
-	make (a_host: READABLE_STRING_GENERAL; a_error: detachable STRING)
+	make (a_host: READABLE_STRING_GENERAL; a_error: detachable READABLE_STRING_GENERAL)
 			-- Initialize `Current'.
 		do
-			log.write_information (generator + ".make render template: reminder.tpl")
+			debug
+				log.write_information (generator + ".make render template: reminder.tpl")
+			end
 				-- Set folder to HTML
 			set_template_folder (html_path)
 				-- Build common template

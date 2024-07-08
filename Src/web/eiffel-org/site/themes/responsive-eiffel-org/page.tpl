@@ -1,22 +1,25 @@
 <!doctype html>
 <html>
 <head>
-	<meta charset="utf-8">
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
 	<title>{if isset="$site_title"}{$site_title/}{/if}</title>
 <link media="all" rel="stylesheet" href="{$theme_path/}css/all.css" />
 <link rel="shortcut icon" href="{$site_url/}favicon.ico"/>
 <link href="https://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:400,700|Titillium+Web" rel="stylesheet" type="text/css" />
 
-<!--[if IE]><script type="text/javascript" src="{$theme_path/}js/ie.js"></script><![endif]-->
+<!--[if IE]><script src="{$theme_path/}js/ie.js"></script><![endif]-->
 
 {if isset="$head"}{$head/}{/if}
 {if isset="$styles"}{$styles/}{/if}
 
-	<script type="text/javascript" src="{$theme_path/}js/jquery-1.8.3.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> 
+
 {if isset="$scripts"}{$scripts/}{/if}
 {if isset="$head_lines"}{$head_lines/}{/if}
 </head>
 <body class="page">
+<div id="page">
 <!-- Header -->
 	{include file="header.tpl"/}
 <!-- Main part -->
@@ -37,14 +40,15 @@
 <!-- Footer -->
 {include file="footer.tpl"/}
 
-	<script type="text/javascript" src="{$theme_path/}js/jquery-1.8.3.min.js"></script>
-	<script type="text/javascript" src="{$theme_path/}js/jquery.main.js"></script>
-	<script type="text/javascript" src="{$theme_path/}js/wdownloads.js"></script>
-	<script type="text/javascript" src="{$theme_path/}js/home.js"></script>
+	<script src="{$theme_path/}js/wdownloads.js"></script>
+	<script src="{$theme_path/}js/home.js"></script>
 
 	<link href="{$theme_path/}js/google-code-prettify-eiffel/styles/lang-eiffel.css" type="text/css" rel="stylesheet" />
-	<script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
-    <script type="text/javascript" src="{$theme_path/}js/google-code-prettify-eiffel/src/lang-eiffel.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+    <script src="{$theme_path/}js/google-code-prettify-eiffel/src/lang-eiffel.js"></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+</div>
 </body>
+
 </html>

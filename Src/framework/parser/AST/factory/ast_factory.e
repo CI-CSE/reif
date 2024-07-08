@@ -143,7 +143,15 @@ feature -- Parser Access
 feature -- Typing
 
 	keyword_id_type: TUPLE [keyword: detachable KEYWORD_AS; id: detachable ID_AS; line, column: INTEGER; filename: like {ERROR}.file_name]
-			-- Type for `new_keyowrd_id_as'.
+			-- Type for `new_keyword_id_as'.
+		do
+			check False then end
+		ensure
+			is_called: False
+		end
+
+	symbol_id_type: TUPLE [symbol: detachable SYMBOL_AS; id: detachable ID_AS; line, column: INTEGER; filename: like {ERROR}.file_name]
+			-- Type for `new_symbol_id_as'.
 		do
 			check False then end
 		ensure
@@ -166,35 +174,19 @@ feature -- Access
 			end
 		end
 
-	new_create_creation_as (is_active: BOOLEAN; tp: detachable TYPE_AS; tg: detachable ACCESS_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATE_CREATION_AS
-			-- New CREATE_CREATION AST node.
+	new_creation_as (is_active: BOOLEAN; tp: detachable TYPE_AS; tg: detachable ACCESS_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATION_AS
+			-- New CREATION AST node.
 		do
 			if tg /= Void then
 				create Result.make (is_active, tp, tg, c, k_as)
 			end
 		end
 
-	new_bang_creation_as (tp: detachable TYPE_AS; tg: detachable ACCESS_AS; c: detachable ACCESS_INV_AS; l_as, r_as: detachable SYMBOL_AS): detachable BANG_CREATION_AS
-			-- New CREATE_CREATION AST node.
-		do
-			if tg /= Void then
-				create Result.make (tp, tg, c, l_as, r_as)
-			end
-		end
-
-	new_create_creation_expr_as (is_active: BOOLEAN; t: detachable TYPE_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATE_CREATION_EXPR_AS
+	new_creation_expr_as (is_active: BOOLEAN; t: detachable TYPE_AS; c: detachable ACCESS_INV_AS; k_as: detachable KEYWORD_AS): detachable CREATION_EXPR_AS
 			-- New creation expression AST node
 		do
 			if t /= Void then
 				create Result.make (is_active, t, c, k_as)
-			end
-		end
-
-	new_bang_creation_expr_as (t: detachable TYPE_AS; c: detachable ACCESS_INV_AS; l_as, r_as: detachable SYMBOL_AS): detachable BANG_CREATION_EXPR_AS
-			-- New creation expression AST node
-		do
-			if t /= Void then
-				create Result.make (t, c, l_as, r_as)
 			end
 		end
 
@@ -236,23 +228,38 @@ feature -- Access
 		end
 
 	new_eiffel_list_constraining_type_as (n: INTEGER): detachable CONSTRAINT_LIST_AS
-			-- New empty list of `CONSTRAINING_TYPE_AS'
+			-- New empty list of `{CONSTRAINING_TYPE_AS}`.
+		require
+			n >= 0
+		do
+			create Result.make (n)
+		ensure
+			attached Result ⇒ Result.capacity = n
+			attached Result ⇒ Result.is_empty
+		end
+
+	new_alias_list (n: INTEGER): CONSTRUCT_LIST [FEATURE_ALIAS_NAME]
+			-- New empty list of FEATURE_ALIAS_NAME
 		require
 			n_non_negative: n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make (n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			list_full: Result /= Void implies Result.capacity = n and Result.is_empty
 		end
 
-	new_alias_triple (k_as: detachable KEYWORD_AS; n_as: detachable STRING_AS; c_as: detachable KEYWORD_AS): detachable ALIAS_TRIPLE
-			-- New ALIAS_TRIPLE.
+	new_alias_name (a: detachable KEYWORD_AS; s: detachable STRING_AS; k: like {OPERATOR_KIND}.kind_anchor): detachable FEATURE_ALIAS_NAME
+			-- New FEATURE_ALIAS_NAME.
+		require
+			attached s implies not s.value_32.is_empty
 		do
-			create Result.make (k_as, n_as, c_as)
+			if attached s then
+				create Result.make (s, a, k)
+			end
 		end
 
 	new_agent_target_triple (l_as, r_as: detachable SYMBOL_AS; o_as: detachable OPERAND_AS): detachable AGENT_TARGET_TRIPLE
-			-- New AGENT_TARGET_TRIPLE.
+			-- New ALIAS_NAME_INFO.
 		do
 			create Result.make (l_as, r_as, o_as)
 		end
@@ -302,7 +309,7 @@ feature -- Access
 			-- New line pragma
 			--| Keep entire line, actual processing will be done later if we need it.
 		do
-			create Result.make (a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count,
+			create Result.make (a_scn.utf8_text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count,
 				a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
 		end
 
@@ -364,11 +371,7 @@ feature -- Value AST creation
 			u: UTF_CONVERTER
 		do
 				-- Would be nice to not have to create a INTEGER_AS to get the character value.
-			backup_match_list_count
-			disable_match_list_extension
-			l_integer := new_integer_value (a_psr, '+', Void, buffer, Void)
-			enable_match_list_extension
-			resume_match_list_count
+			l_integer := new_temporary_integer_value (a_psr, '+', buffer)
 			if l_integer /= Void then
 				if l_integer.natural_64_value <= {NATURAL_32}.Max_value then
 					Result := new_character_as (l_integer.natural_32_value.to_character_32, a_psr.line, a_psr.column, a_psr.position, roundtrip_buffer.count,
@@ -385,7 +388,17 @@ feature -- Value AST creation
 			end
 		end
 
-	new_integer_value (a_psr: EIFFEL_SCANNER_SKELETON; sign_symbol: CHARACTER; a_type: detachable TYPE_AS; buffer: STRING; s_as: detachable SYMBOL_AS): detachable INTEGER_AS
+	new_temporary_integer_value (a_psr: EIFFEL_SCANNER_SKELETON; sign_symbol: CHARACTER; buffer: READABLE_STRING_8): detachable INTEGER_AS
+				-- Useful to create a INTEGER_AS anhd get the associated numeric value.
+		do
+			backup_match_list_count
+			disable_match_list_extension
+			Result := new_integer_value (a_psr, sign_symbol, Void, buffer, Void)
+			enable_match_list_extension
+			resume_match_list_count
+		end
+
+	new_integer_value (a_psr: EIFFEL_SCANNER_SKELETON; sign_symbol: CHARACTER; a_type: detachable TYPE_AS; buffer: READABLE_STRING_8; s_as: detachable SYMBOL_AS): detachable INTEGER_AS
 			-- New integer value.
 		require
 			buffer_not_void: buffer /= Void
@@ -421,8 +434,7 @@ feature -- Value AST creation
 				if Result = Void or else not Result.is_initialized then
 					if sign_symbol = '-' then
 							-- Add `-' for a better reporting.
-						buffer.precede ('-')
-						a_psr.report_integer_too_small_error (a_type, buffer)
+						a_psr.report_integer_too_small_error (a_type, "-" + buffer)
 					else
 						a_psr.report_integer_too_large_error (a_type, buffer)
 					end
@@ -432,30 +444,29 @@ feature -- Value AST creation
 			end
 		end
 
-	new_real_value (a_psr: EIFFEL_SCANNER_SKELETON; is_signed: BOOLEAN; sign_symbol: CHARACTER; a_type: detachable TYPE_AS; buffer: STRING; s_as: detachable SYMBOL_AS): detachable REAL_AS
+	new_real_value (a_psr: EIFFEL_SCANNER_SKELETON; is_signed: BOOLEAN; sign_symbol: CHARACTER; a_type: detachable TYPE_AS; buffer: READABLE_STRING_8; s_as: detachable SYMBOL_AS): detachable REAL_AS
 			-- New real value.
 		require
 			buffer_not_void: buffer /= Void
 			a_psr_not_void: a_psr /= Void
 		local
-			l_buffer: STRING
+			l_buffer: READABLE_STRING_8
 		do
 			validate_integer_real_type (a_psr, a_type, buffer, False)
 			if is_valid_integer_real then
 				if is_signed and sign_symbol = '-' then
-					l_buffer := buffer.string
-					buffer.precede ('-')
+					l_buffer := "-" + buffer
 				else
 					l_buffer := buffer
 				end
-				Result := new_real_as (a_type, buffer, l_buffer, s_as, a_psr.line, a_psr.column, a_psr.position, a_psr.text_count,
+				Result := new_real_as (a_type, l_buffer, buffer, s_as, a_psr.line, a_psr.column, a_psr.position, a_psr.text_count,
 					a_psr.character_column, a_psr.character_position, a_psr.unicode_text_count)
 			end
 		end
 
 feature {NONE} -- Validation
 
-	validate_integer_real_type (a_psr: EIFFEL_SCANNER_SKELETON; a_type: detachable TYPE_AS; buffer: STRING; for_integer: BOOLEAN)
+	validate_integer_real_type (a_psr: EIFFEL_SCANNER_SKELETON; a_type: detachable TYPE_AS; buffer: READABLE_STRING_8; for_integer: BOOLEAN)
 			-- New integer value.
 		require
 			buffer_not_void: buffer /= Void
@@ -546,28 +557,12 @@ feature -- Roundtrip: leaf_as
 			Result := new_keyword_as ({EIFFEL_TOKENS}.te_frozen, a_scn)
 		end
 
-	new_infix_keyword_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable KEYWORD_AS
-			-- New KEYWORD AST node for keyword "infix'
-		require
-			a_scn_not_void: a_scn /= Void
-		do
-			Result := new_keyword_as ({EIFFEL_TOKENS}.te_infix, a_scn)
-		end
-
 	new_precursor_keyword_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable KEYWORD_AS
 			-- New KEYWORD AST node for keyword "precursor'.
 		require
 			a_scn_not_void: a_scn /= Void
 		do
 			Result := new_keyword_as ({EIFFEL_TOKENS}.te_precursor, a_scn)
-		end
-
-	new_prefix_keyword_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable KEYWORD_AS
-			-- New KEYWORD AST node for keyword "prefix'.
-		require
-			a_scn_not_void: a_scn /= Void
-		do
-			Result := new_keyword_as ({EIFFEL_TOKENS}.te_prefix, a_scn)
 		end
 
 	new_once_string_keyword_as (a_text: STRING; l, c, p, n, cc, cp, cn: INTEGER): detachable KEYWORD_AS
@@ -592,6 +587,22 @@ feature -- Roundtrip: leaf_as
 		do
 			create Result.make (a_code, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count,
 				a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
+		end
+
+	new_symbol_id_as (c: INTEGER; s: EIFFEL_SCANNER_SKELETON): detachable like symbol_id_type
+			-- New tuple with a symbol and an id for the current token (free operator).
+		require
+			attached s
+			valid_code:
+				c = {EIFFEL_TOKENS}.te_at or
+				c = {EIFFEL_TOKENS}.te_block_close or
+				c = {EIFFEL_TOKENS}.te_block_open or
+				c = {EIFFEL_TOKENS}.te_exists or
+				c = {EIFFEL_TOKENS}.te_forall or
+				c = {EIFFEL_TOKENS}.te_repeat_open or
+				c = {EIFFEL_TOKENS}.te_repeat_close
+		do
+			Result := [new_symbol_as (c, s), new_filled_id_as (s), s.line, s.column, s.filename]
 		end
 
 	new_square_symbol_as (a_code: INTEGER; a_scn: EIFFEL_SCANNER_SKELETON): detachable SYMBOL_AS
@@ -927,7 +938,15 @@ feature -- Access
 			-- New WHEN AST node
 		do
 			if i /= Void then
-				create Result.initialize (i, c, w_as, t_as)
+				create Result.make (i, c, w_as, t_as)
+			end
+		end
+
+	new_case_expression_as (i: detachable EIFFEL_LIST [INTERVAL_AS]; e: detachable EXPR_AS; w, t: detachable KEYWORD_AS): detachable CASE_EXPRESSION_AS
+			-- New WHEN expression AST node.
+		do
+			if attached i and then attached e then
+				create Result.make (i, e, w, t)
 			end
 		end
 
@@ -954,7 +973,7 @@ feature -- Access
 		end
 
 	new_class_as (n: detachable ID_AS; ext_name: detachable STRING_AS;
-			is_d, is_e, is_fc, is_ex, is_par: BOOLEAN;
+			is_d, is_e, is_fc, is_ex, is_par, is_o: BOOLEAN;
 			top_ind, bottom_ind: detachable INDEXING_CLAUSE_AS;
 			g: detachable EIFFEL_LIST [FORMAL_DEC_AS];
 			cp: detachable PARENT_LIST_AS;
@@ -969,7 +988,7 @@ feature -- Access
 			-- New CLASS AST node.
 		do
 			if n /= Void and s /= Void and (co = Void or else not co.is_empty) and ed /= Void then
-				create Result.initialize (n, ext_name, is_d, is_e, is_fc, is_ex, is_par, top_ind,
+				create Result.initialize (n, ext_name, is_d, is_e, is_fc, is_ex, is_par, is_o, top_ind,
 				bottom_ind, g, cp, ncp, c, co, f, inv, s, o, ed)
 			end
 		end
@@ -1075,84 +1094,115 @@ feature -- Access
 			create Result.make (c, k_as)
 		end
 
-	new_eiffel_list_atomic_as (n: INTEGER): detachable EIFFEL_LIST [ATOMIC_AS]
-			-- New empty list of ATOMIC_AS
+	new_eiffel_list_atomic_as (a: detachable ATOMIC_AS; n: INTEGER): detachable EIFFEL_LIST [ATOMIC_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_case_as (n: INTEGER): detachable EIFFEL_LIST [CASE_AS]
-			-- New empty list of CASE_AS
+	new_eiffel_list_case_as (a: CASE_AS; n: INTEGER): detachable EIFFEL_LIST [CASE_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_convert (n: INTEGER): detachable CONVERT_FEAT_LIST_AS
-			-- New empty list of CONVERT_FEAT_AS
+	new_eiffel_list_case_expression_as (a: CASE_EXPRESSION_AS; n: INTEGER): detachable EIFFEL_LIST [CASE_EXPRESSION_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_create_as (n: INTEGER): detachable EIFFEL_LIST [CREATE_AS]
-			-- New empty list of CREATE_AS
+	new_eiffel_list_convert (a: CONVERT_FEAT_AS; n: INTEGER): detachable CONVERT_FEAT_LIST_AS
+			-- New conversion list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_elseif_as (n: INTEGER): detachable EIFFEL_LIST [ELSIF_AS]
-			-- New empty list of ELSIF_AS
+	new_eiffel_list_create_as (a: CREATE_AS; n: INTEGER): detachable EIFFEL_LIST [CREATE_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_elseif_expression_as (n: INTEGER): detachable EIFFEL_LIST [ELSIF_EXPRESSION_AS]
-			-- New empty list of {ELSIF_EXPRESSION_AS} with capacity `n'.
+	new_eiffel_list_elseif_as (a: ELSIF_AS; n: INTEGER): detachable EIFFEL_LIST [ELSIF_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_export_item_as (n: INTEGER): detachable EIFFEL_LIST [EXPORT_ITEM_AS]
-			-- New empty list of EXPORT_ITEM_AS
+	new_eiffel_list_elseif_expression_as (a: ELSIF_EXPRESSION_AS; n: INTEGER): detachable EIFFEL_LIST [ELSIF_EXPRESSION_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_expr_as (n: INTEGER): detachable EIFFEL_LIST [EXPR_AS]
-			-- New empty list of PARAMETER_LIST_AS
+	new_eiffel_list_export_item_as (a: EXPORT_ITEM_AS; n: INTEGER): detachable EIFFEL_LIST [EXPORT_ITEM_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
+		end
+
+	new_eiffel_list_expr_as (a: detachable EXPR_AS; n: INTEGER): detachable EIFFEL_LIST [EXPR_AS]
+			-- New expression list with `n` elements `a`.
+		require
+			n >= 0
+			n > 0 ⇒ attached a
+		do
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
+		ensure
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
 	new_parameter_list_as (l: detachable EIFFEL_LIST [EXPR_AS]; lp_as, rp_as: detachable SYMBOL_AS): detachable PARAMETER_LIST_AS
@@ -1163,184 +1213,232 @@ feature -- Access
 			end
 		end
 
-	new_eiffel_list_feature_as (n: INTEGER): detachable EIFFEL_LIST [FEATURE_AS]
-			-- New empty list of FEATURE_AS
+	new_eiffel_list_feature_as (a: detachable FEATURE_AS; n: INTEGER): detachable EIFFEL_LIST [FEATURE_AS]
+			-- New feature list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_feature_clause_as (n: INTEGER): detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]
-			-- New empty list of FEATURE_CLAUSE_AS
+	new_eiffel_list_feature_clause_as (a: FEATURE_CLAUSE_AS; n: INTEGER): detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_feature_name (n: INTEGER): detachable EIFFEL_LIST [FEATURE_NAME]
-			-- New empty list of FEATURE_NAME
+	new_eiffel_list_feature_name (a: FEATURE_NAME; n: INTEGER): detachable EIFFEL_LIST [FEATURE_NAME]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_feature_name_id (n: INTEGER): detachable EIFFEL_LIST [FEAT_NAME_ID_AS]
-			-- New empty list of `{FEATURE_NAME_ID_AS}`.
+	new_eiffel_list_feature_name_id (a: FEATURE_NAME; n: INTEGER): detachable EIFFEL_LIST [FEATURE_NAME]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_formal_dec_as (n: INTEGER): detachable FORMAL_GENERIC_LIST_AS
-			-- New empty list of FORMAL_DEC_AS
+	new_eiffel_list_formal_dec_as (a: detachable FORMAL_DEC_AS; n: INTEGER): detachable FORMAL_GENERIC_LIST_AS
+			-- New formal generic list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_id_as (n: INTEGER): detachable EIFFEL_LIST [ID_AS]
-			-- New empty list of ID_AS
+	new_indexing_clause_as (a: detachable INDEX_AS; n: INTEGER): detachable INDEXING_CLAUSE_AS
+			-- New note clause list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_indexing_clause_as (n: INTEGER): detachable INDEXING_CLAUSE_AS
-			-- New empty list of INDEX_AS
+	new_eiffel_list_instruction_as (a: detachable INSTRUCTION_AS; n: INTEGER): detachable EIFFEL_LIST [INSTRUCTION_AS]
+			-- New instruction list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_instruction_as (n: INTEGER): detachable EIFFEL_LIST [INSTRUCTION_AS]
-			-- New empty list of INSTRUCTION_AS
+	new_eiffel_list_interval_as (a: INTERVAL_AS; n: INTEGER): detachable EIFFEL_LIST [INTERVAL_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_interval_as (n: INTEGER): detachable EIFFEL_LIST [INTERVAL_AS]
-			-- New empty list of INTERVAL_AS
+	new_eiffel_list_named_expression_as (a: NAMED_EXPRESSION_AS; n: INTEGER): detachable EIFFEL_LIST [NAMED_EXPRESSION_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_named_expression_as (n: INTEGER): detachable EIFFEL_LIST [NAMED_EXPRESSION_AS]
-			-- New empty list of `{NAMED_EXPRESSION_AS}'.
+	new_eiffel_list_operand_as (a: OPERAND_AS; n: INTEGER): detachable EIFFEL_LIST [OPERAND_AS]
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_operand_as (n: INTEGER): detachable EIFFEL_LIST [OPERAND_AS]
-			-- New empty list of OPERAND_AS
+	new_eiffel_list_parent_as (a: detachable PARENT_AS; n: INTEGER): detachable PARENT_LIST_AS
+			-- New parent list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_parent_as (n: INTEGER): detachable PARENT_LIST_AS
-			-- New empty list of PARENT_AS
+	new_eiffel_list_rename_as (a: RENAME_AS; n: INTEGER): detachable EIFFEL_LIST [RENAME_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_rename_as (n: INTEGER): detachable EIFFEL_LIST [RENAME_AS]
-			-- New empty list of RENAME_AS
+	new_eiffel_list_string_as (a: STRING_AS; n: INTEGER): detachable EIFFEL_LIST [STRING_AS]
+			-- New list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
-		end
-
-	new_eiffel_list_string_as (n: INTEGER): detachable EIFFEL_LIST [STRING_AS]
-			-- New empty list of STRING_AS
-		require
-			n_non_negative: n >= 0
-		do
-			create Result.make_filled (n)
-		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
 	new_eiffel_list_tagged_as (n: INTEGER): detachable EIFFEL_LIST [TAGGED_AS]
-			-- New empty list of TAGGED_AS
+			-- New empty list of `{TAGGED_AS}`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make (n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.capacity = n
+			attached Result ⇒ Result.is_empty
 		end
 
-	new_eiffel_list_type (n: INTEGER): detachable TYPE_LIST_AS
-			-- New empty list of TYPE
+	new_eiffel_list_type (a: detachable TYPE_AS; n: INTEGER): detachable TYPE_LIST_AS
+			-- New type list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_list_dec_as (n: INTEGER): detachable LIST_DEC_LIST_AS
-			-- New empty list of LIST_DEC_AS
+	new_eiffel_list_list_dec_as (a: LIST_DEC_AS; n: INTEGER): detachable LIST_DEC_LIST_AS
+			-- New identifier list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
-	new_eiffel_list_type_dec_as (n: INTEGER): detachable TYPE_DEC_LIST_AS
-			-- New empty list of TYPE_DEC_AS
+	new_eiffel_list_type_dec_as (a: detachable TYPE_DEC_AS; n: INTEGER): detachable TYPE_DEC_LIST_AS
+			-- New variable declaration list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
+			n > 0 ⇒ attached a
 		do
-			create Result.make_filled (n)
+			if attached a then
+				create Result.make_filled_with (a, n)
+			else
+				check from_precondition: n = 0 end
+				create Result.make (0)
+			end
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ∧ attached a ⇒ Result.occurrences (a) = n
 		end
 
 	new_elseif_as (e: detachable EXPR_AS; c: detachable EIFFEL_LIST [INSTRUCTION_AS]; l_as, t_as: detachable KEYWORD_AS): detachable ELSIF_AS
@@ -1437,15 +1535,25 @@ feature -- Access
 			end
 		end
 
-	new_feature_name_alias_as (feature_name: detachable ID_AS; alias_name: detachable STRING_AS; has_convert_mark: BOOLEAN; a_as, c_as: detachable KEYWORD_AS): detachable FEATURE_NAME_ALIAS_AS
+	new_feature_name_alias_as (feature_name: detachable ID_AS; a_alias_list: detachable LIST [FEATURE_ALIAS_NAME]; c_as: detachable KEYWORD_AS): detachable FEATURE_NAME_ALIAS_AS
 			-- New FEATURE_NAME_ALIAS AST node
+		require
+			alias_list_not_empty: attached a_alias_list implies not a_alias_list.is_empty
+			has_alias_name:
+				attached a_alias_list implies
+				across a_alias_list as a all not a.alias_name.value_32.is_empty end
+			no_alias_duplicates:
+				attached a_alias_list implies
+				across a_alias_list as x all across a_alias_list as y all
+					x.alias_name.value_32.same_string (y.alias_name.value_32) implies @ x.target_index = @ y.target_index
+				end end
 		do
-			if feature_name /= Void and then alias_name /= Void then
-				create Result.initialize (feature_name, alias_name, has_convert_mark, a_as, c_as)
+			if feature_name /= Void and then a_alias_list /= Void and then not a_alias_list.is_empty then
+				create Result.initialize_with_list (feature_name, a_alias_list, c_as)
 			end
 		end
 
-	new_feature_name_id_as (f: detachable ID_AS): detachable FEAT_NAME_ID_AS
+	new_feature_name_id_as (f: detachable ID_AS): detachable FEATURE_NAME
 			-- New FEAT_NAME_ID AST node
 		do
 			if f /= Void then
@@ -1461,7 +1569,7 @@ feature -- Access
 			end
 		end
 
-	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
+	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEATURE_NAME]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
 			-- New FORMAL_DECLARATION AST node
 		do
 			if f /= Void then
@@ -1480,7 +1588,7 @@ feature -- Access
 			l_cnt := a_scn.text_count
 			l_str := reusable_string_buffer
 			l_str.wipe_out
-			a_scn.append_text_to_string (l_str)
+			a_scn.append_utf8_text_to_string (l_str)
 			create Result.initialize (l_str)
 			Result.set_position (a_scn.line, a_scn.column, a_scn.position, l_cnt,
 				a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
@@ -1501,12 +1609,15 @@ feature -- Access
 			create Result.initialize (c, a, t, l, e)
 		end
 
-	new_identifier_list (n: INTEGER): detachable IDENTIFIER_LIST
-			-- New ARRAYED_LIST [INTEGER]
+	new_identifier_list (a: like {ID_AS}.name_id; n: INTEGER): detachable IDENTIFIER_LIST
+			-- New identifier list with `n` elements `a`.
 		require
-			n_non_negative: n >= 0
+			n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
+		ensure
+			attached Result ⇒ Result.count = n ∧ Result.full
+			attached Result ⇒ Result.occurrences (a) = n
 		end
 
 	new_if_as (cnd: detachable EXPR_AS; cmp: detachable EIFFEL_LIST [INSTRUCTION_AS];
@@ -1539,21 +1650,22 @@ feature -- Access
 			end
 		end
 
-	new_infix_as (op: detachable STRING_AS; l: detachable KEYWORD_AS): detachable INFIX_PREFIX_AS
-			-- New INFIX AST node
-		do
-			if op /= Void then
-				create Result.initialize (op, True, l)
-			end
-		end
-
 	new_inspect_as (s: detachable EXPR_AS; c: detachable EIFFEL_LIST [CASE_AS];
 			e: detachable EIFFEL_LIST [INSTRUCTION_AS]; end_location, i_as, e_as: detachable  KEYWORD_AS): detachable INSPECT_AS
 
 			-- New INSPECT AST node
 		do
 			if s /= Void and end_location /= Void then
-				create Result.initialize (s, c, e, end_location, i_as, e_as)
+				create Result.make (s, c, e, end_location, i_as, e_as)
+			end
+		end
+
+	new_inspect_expression_as (s: detachable EXPR_AS; c: detachable EIFFEL_LIST [CASE_EXPRESSION_AS];
+			e: detachable EXPR_AS; end_location, i_as, e_as: detachable  KEYWORD_AS): detachable INSPECT_EXPRESSION_AS
+			-- New INSPECT expression AST node
+		do
+			if attached s and attached end_location then
+				create Result.make (s, c, e, end_location, i_as, e_as)
 			end
 		end
 
@@ -1565,7 +1677,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -1574,7 +1686,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -1583,7 +1695,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -1592,7 +1704,7 @@ feature -- Access
 			end
 		end
 
-	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			if v /= Void then
@@ -1623,7 +1735,16 @@ feature -- Access
 			-- 	across expr is x -- when `is_resticted`
 		do
 			if e /= Void and i /= Void then
-				create Result.initialize (a, e, b, i, is_restricted)
+				create Result.make_keyword (a, e, b, i, is_restricted)
+			end
+		end
+
+	new_symbolic_iteration_as (i: detachable ID_AS; a: detachable SYMBOL_AS; e: detachable EXPR_AS; b: detachable SYMBOL_AS): detachable ITERATION_AS
+			-- New ITERATION AST node for an iteration part of a loop in the form
+			-- "`i` ∈ `e` |"
+		do
+			if attached i and attached e then
+				create Result.make_symbolic (i, a, e, b)
 			end
 		end
 
@@ -1656,20 +1777,20 @@ feature -- Access
 
 	new_loop_as (t: detachable ITERATION_AS; f: detachable EIFFEL_LIST [INSTRUCTION_AS]; i: detachable EIFFEL_LIST [TAGGED_AS];
 			v: detachable VARIANT_AS; s: detachable EXPR_AS; c: detachable EIFFEL_LIST [INSTRUCTION_AS];
-			e, f_as, i_as, u_as, l_as: detachable KEYWORD_AS): detachable LOOP_AS
+			e, f_as, i_as, u_as, l_as: detachable KEYWORD_AS; r, bc: detachable SYMBOL_AS): detachable LOOP_AS
 			-- New LOOP AST node
 		do
-			if (t /= Void or s /= Void) and e /= Void then
-				create Result.initialize (t, f, i, v, s, c, e, f_as, i_as, u_as, l_as)
+			if (t /= Void or s /= Void) and (attached e or attached bc) then
+				create Result.initialize (t, f, i, v, s, c, e, f_as, i_as, u_as, l_as, r, bc)
 			end
 		end
 
 	new_loop_expr_as (f: detachable ITERATION_AS; w: detachable KEYWORD_AS; i: detachable EIFFEL_LIST [TAGGED_AS];
-			u: detachable KEYWORD_AS; c: detachable EXPR_AS; q: detachable KEYWORD_AS; a: BOOLEAN; e: detachable EXPR_AS; v: detachable VARIANT_AS; k: detachable KEYWORD_AS): detachable LOOP_EXPR_AS
+			u: detachable KEYWORD_AS; c: detachable EXPR_AS; q: detachable KEYWORD_AS; s: detachable SYMBOL_AS; a: BOOLEAN; e: detachable EXPR_AS; v: detachable VARIANT_AS; k: detachable KEYWORD_AS): detachable LOOP_EXPR_AS
 			-- New LOOP expression AST node
 		do
 			if f /= Void and then e /= Void then
-				create Result.initialize (f, w, i, u, c, q, a, e, v, k)
+				create Result.initialize (f, w, i, u, c, q, s, a, e, v, k)
 			end
 		end
 
@@ -1681,19 +1802,11 @@ feature -- Access
 			end
 		end
 
-	new_nested_as (t: detachable ACCESS_AS; m: detachable CALL_AS; d_as: detachable SYMBOL_AS): detachable NESTED_AS
-			-- New NESTED CALL AST node
-		do
-			if t /= Void and m /= Void then
-				create Result.initialize (t, m, d_as)
-			end
-		end
-
-	new_nested_expr_as (t: detachable EXPR_AS; m: detachable CALL_AS; d_as, l_as, r_as: detachable SYMBOL_AS): detachable NESTED_EXPR_AS
+	new_nested_expr_as (t: detachable EXPR_AS; m: detachable ACCESS_FEAT_AS; d_as: detachable SYMBOL_AS): detachable NESTED_EXPR_AS
 			-- New NESTED_EXPR CALL AST node
 		do
 			if t /= Void and m /= Void then
-				create Result.initialize (t, m, d_as, l_as, r_as)
+				create Result.initialize (t, m, d_as)
 			end
 		end
 
@@ -1727,10 +1840,10 @@ feature -- Access
 			create Result.make (o, k, c)
 		end
 
-	new_operand_as (c: detachable TYPE_AS; t: detachable ACCESS_AS; e: detachable EXPR_AS): detachable OPERAND_AS
+	new_operand_as (c: detachable TYPE_AS; e: detachable EXPR_AS): detachable OPERAND_AS
 			-- New OPERAND AST node
 		do
-			create Result.initialize (c, t, e)
+			create Result.initialize (c, e)
 		end
 
 	new_paran_as (e: detachable EXPR_AS; l_as, r_as: detachable SYMBOL_AS): detachable PARAN_AS
@@ -1760,11 +1873,11 @@ feature -- Access
 			end
 		end
 
-	new_prefix_as (op: detachable STRING_AS; l: detachable KEYWORD_AS): detachable INFIX_PREFIX_AS
-			-- New PREFIX AST node
+	new_predecessor_as (n: detachable ID_AS; s: detachable SYMBOL_AS): detachable PREDECESSOR_AS
+			-- New predecessor AST node from name `n` and symbol `s`.
 		do
-			if op /= Void then
-				create Result.initialize (op, False, l)
+			if attached n then
+				create Result.initialize (n, s)
 			end
 		end
 
@@ -1786,7 +1899,7 @@ feature -- Access
 			end
 		end
 
-	new_real_as (t: detachable TYPE_AS; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable REAL_AS
+	new_real_as (t: detachable TYPE_AS; v: detachable READABLE_STRING_8; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable REAL_AS
 			-- New REAL AST node
 		do
 			if v /= Void then
@@ -2016,14 +2129,14 @@ feature -- Access
 				a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
 		end
 
-	new_class_list_as (n: INTEGER): detachable CLASS_LIST_AS
-			-- New empty list of CLASS_LIST AST node
+	new_class_list_as (a: ID_AS; n: INTEGER): detachable CLASS_LIST_AS
+			-- New list with `n` elements `a`.
 		require
 			n_non_negative: n >= 0
 		do
-			create Result.make_filled (n)
+			create Result.make_filled_with (a, n)
 		ensure
-			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+			list_full: attached Result implies Result.capacity = n and Result.occurrences (a) = n
 		end
 
 	new_local_dec_list_as (l: detachable EIFFEL_LIST [LIST_DEC_AS]; k_as: detachable KEYWORD_AS): detachable LOCAL_DEC_LIST_AS
@@ -2098,13 +2211,19 @@ feature -- Access
 			end
 		end
 
-	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
+	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEATURE_NAME]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
 			-- New CREATION_CONSTRAIN_TRIPLE object
 		do
 			create Result.make (fl, c_as, e_as)
 		end
 
 feature {NONE} -- Implementation
+
+	default_atomic: ATOMIC_AS
+			-- A default atomic node.
+		once
+			create {NONE_ID_AS} Result.make
+		end
 
 	reusable_string_buffer: STRING
 			-- Reusable string buffer to avoid creation of unnecessary string objects
@@ -2114,11 +2233,11 @@ feature {NONE} -- Implementation
 
 note
 	ca_ignore:
-		"CA011", "CA011 — too many arguments",
-		"CA033", "CA033 — very long class"
+		"CA011", "CA011: too many arguments",
+		"CA033", "CA033: very long class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

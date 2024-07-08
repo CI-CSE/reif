@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "AST visitor to extract expression meta which is evaluated later by debugger."
 	date: "$Date$"
 	revision: "$Revision$"
@@ -22,8 +22,8 @@ inherit
 			process_bin_tilde_as,
 			process_bracket_as,
 			process_expr_call_as,
-			process_nested_as,
 			process_address_as,
+			process_predecessor_as,
 			format_feature_name
 		end
 
@@ -200,49 +200,6 @@ feature {NONE} -- Processing
 			end
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		local
-			l_text_formatter_decorator: like text_formatter_decorator
-			l_nested_ex: like nested_expression
-		do
-			if not expr_type_visiting then
-				l_nested_ex := nested_expression
-				if attached expression_meta_from_as (l_as.target) as l_ex then
-					if not l_nested_ex.is_empty then
-						l_nested_ex.append (".")
-					end
-					l_nested_ex.append_string_general (l_ex)
-				end
-				push_expression
-				if not l_nested_ex.is_empty then
-					text_formatter_decorator.set_meta_data (l_nested_ex.twin)
-				else
-					text_formatter_decorator.set_meta_data (Void)
-				end
-			end
-
-				-- Format the target.
-			l_text_formatter_decorator := text_formatter_decorator
-			if not expr_type_visiting then
-				l_text_formatter_decorator.begin
-			end
-			l_as.target.process (Current)
-
-				-- We only analyze the target.
-			if not expr_type_visiting then
-				pop_expression
-			end
-
-				-- Format the message part
-			if not expr_type_visiting then
-				l_text_formatter_decorator.need_dot
-			end
-			l_as.message.process (Current)
-			if not expr_type_visiting then
-				l_text_formatter_decorator.commit
-			end
-		end
-
 	process_address_as (a_as: ADDRESS_AS)
 			-- <Precursor>
 		do
@@ -250,7 +207,20 @@ feature {NONE} -- Processing
 				push_expression
 				text_formatter_decorator.set_meta_data (expression_meta_from_as (a_as))
 			end
-			Precursor {AST_DECORATED_OUTPUT_STRATEGY}(a_as)
+			Precursor (a_as)
+			if not expr_type_visiting then
+				pop_expression
+			end
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
+		do
+			if not expr_type_visiting then
+				push_expression
+				text_formatter_decorator.set_meta_data (expression_meta_from_as (a))
+			end
+			Precursor (a)
 			if not expr_type_visiting then
 				pop_expression
 			end
@@ -318,10 +288,11 @@ feature {NONE} -- Implementaiton
 	expression_meta_from_as (a_as: AST_EIFFEL): detachable READABLE_STRING_GENERAL
 			-- Get expression meta from AST
 		do
-			if attached source_class as l_class then
-				if attached Match_list_server.item (l_class.class_id) as l_list and then a_as.is_text_available (l_list) then
-					Result := a_as.text_32 (l_list)
-				end
+			if
+				attached source_class as l_class and then
+				attached Match_list_server.item (l_class.class_id) as l_list and then a_as.is_text_available (l_list)
+			then
+				Result := a_as.text_32 (l_list)
 			end
 		end
 
@@ -343,7 +314,7 @@ feature {NONE} -- Implementaiton
 			-- Stack to record expression meta info
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

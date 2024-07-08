@@ -1,6 +1,4 @@
 note
-	description: "Summary description for {IRON_CATALOG_API}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -9,6 +7,8 @@ class
 
 inherit
 	IRON_API
+		rename
+			print as log_print -- To prevent unwanted output!
 		redefine
 			initialize
 		end
@@ -45,29 +45,36 @@ feature -- Access: repositories
 			Result := catalog.repositories
 		end
 
-	register_repository (a_repo: IRON_REPOSITORY)
-		do
-			catalog.register_repository (a_repo)
-			catalog.update_repository (a_repo, False)
-		end
 
-	unregister_repository (a_uri: READABLE_STRING_GENERAL)
+	invalid_repositories: detachable LIST [IRON_REPOSITORY]
+			-- Invalid repositories, if any.
+			-- note: an invalid repository is an inexisting one.
 		do
-			if attached repository_at (a_uri) as repo then
-					-- Uninstall any package from the repository.
-				across
-					repo.available_packages as ic
-				loop
-					uninstall_package (ic.item)
+			across
+				repositories as ic
+			loop
+				if
+					attached {IRON_WORKING_COPY_REPOSITORY} ic as wc_repo and then
+					not wc_repo.exists
+				then
+					if Result = Void then
+						create {ARRAYED_LIST [IRON_REPOSITORY]} Result.make (1)
+					end
+					Result.force (wc_repo)
 				end
 			end
-			catalog.unregister_repository (a_uri)
 		end
 
 	repository (a_uri: URI): detachable IRON_REPOSITORY
 			-- Registered repository related to `a_uri'.
 		do
 			Result := catalog.repository (a_uri)
+		end
+
+	has_repository_registered (a_location: READABLE_STRING_GENERAL): BOOLEAN
+			-- Has a repository registered with `a_location'?
+		do
+			Result := repository_at (a_location) /= Void
 		end
 
 	repository_at (a_location: READABLE_STRING_GENERAL): detachable IRON_REPOSITORY
@@ -82,6 +89,29 @@ feature -- Access: repositories
 				if uri.is_valid then
 					Result := catalog.repository (uri)
 				end
+			end
+		end
+
+feature -- Repository registration				
+
+	register_repository (a_repo: IRON_REPOSITORY)
+		do
+			catalog.register_repository (a_repo)
+			catalog.update_repository (a_repo, False)
+		end
+
+	unregister_repository (a_uri: READABLE_STRING_GENERAL)
+		require
+			has_repository_registered: has_repository_registered (a_uri)
+		do
+			if attached repository_at (a_uri) as repo then
+					-- Uninstall any package from the repository.
+				across
+					repo.available_packages as ic
+				loop
+					uninstall_package (ic)
+				end
+				catalog.unregister_repository (a_uri)
 			end
 		end
 
@@ -100,9 +130,9 @@ feature -- Access: package
 				repositories as repo_ic
 			loop
 				across
-					repo_ic.item.available_packages as ic
+					repo_ic.available_packages as ic
 				loop
-					Result.force (ic.item)
+					Result.force (ic)
 				end
 			end
 		end
@@ -177,7 +207,7 @@ feature -- Operations
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

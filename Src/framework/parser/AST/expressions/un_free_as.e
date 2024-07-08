@@ -1,5 +1,5 @@
-note
-	description: "Free unary expression description. Version for Bench."
+﻿note
+	description: "Free unary expression description."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -12,7 +12,7 @@ inherit
 		rename
 			initialize as initialize_unary_as
 		redefine
-			is_equivalent, prefix_feature_name
+			is_equivalent
 		end
 
 	PREFIX_INFIX_NAMES
@@ -28,19 +28,27 @@ feature {NONE} -- Initialization
 			op_not_void: op /= Void
 			e_not_void: e /= Void
 		do
-			make_id_set
 			op_name := op
-			expr := e
+			initialize_unary_as (e, op)
 		ensure
 			op_name_set: op_name = op
 			expr_set: expr = e
 			no_routine_id: routine_ids.is_empty
+			operator_set: operator_index = op.index
 		end
 
-feature -- Attributes
+feature -- Access
 
 	op_name: ID_AS
 			-- Operator name
+
+	operator_id: like alias_id
+			-- <Precursor>
+		do
+			Result := alias_id (op_name.name_id, is_valid_binary_kind_mask ⦶ is_valid_unary_kind_mask ⦶ is_unary_kind_mask)
+		ensure then
+			is_valid_binary_alias_id (Result)
+		end
 
 feature -- Visitor
 
@@ -68,19 +76,13 @@ feature -- Comparison
 	is_equivalent (other: like Current): BOOLEAN
 			-- Is `other' equivalent to the current object ?
 		do
-			Result := equivalent (op_name, other.op_name) and then
+			Result :=
+				equivalent (op_name, other.op_name) and then
 				equivalent (expr, other.expr)
 		end
 
-feature {UNARY_AS}	-- Replication
-
-	set_prefix_feature_name (p: like prefix_feature_name)
-		do
-			create op_name.initialize (extract_symbol_from_prefix (p))
-		end
-
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -111,4 +113,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class UN_FREE_AS
+end

@@ -114,7 +114,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	output (s: STRING)
+	output (s: READABLE_STRING_8)
 		local
 			buf: like buffer
 		do
@@ -141,7 +141,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	append_html_escaped_to (s: STRING; a_output: STRING)
+	append_html_escaped_to (s: READABLE_STRING_8; a_output: STRING_8)
 		local
 			i,n: INTEGER
 			c: CHARACTER
@@ -241,13 +241,13 @@ feature -- status: pre block
 
 feature -- Helper
 
-	page_title (a_page: WIKI_PAGE): STRING_8
+	page_title (a_page: WIKI_PAGE): READABLE_STRING_8
 			-- Title for page `a_page'.
 		do
 			Result := a_page.title
 		end
 
-	book_title (a_book: WIKI_BOOK): STRING_8
+	book_title (a_book: WIKI_BOOK): READABLE_STRING_8
 			-- Title for book `a_book'.
 		do
 			Result := a_book.name
@@ -336,13 +336,14 @@ feature -- Processing
 					if is_auto_toc then
 						l_css_class.append (" wiki-toc-auto")
 					end
-					output ("%N<" + l_list_tag + " class=%"" + l_css_class + "%"")
+					output ("%N<div class=%""+ l_css_class + "%">")
+					output ("%N<" + l_list_tag)
 					if attached it.style as l_css_style then
 						output (" style=%"" + l_css_style + "%"")
 					end
 					output (">")
 					if is_auto_toc or not it.has_auto_generated_toc then
-						output ("<a name=%"toc%"></a>")
+						output ("<a id=%"toc%"></a>")
 					end
 					output ("<span class=%"title%">Contents</span>%N")
 					curr := 1
@@ -355,11 +356,12 @@ feature -- Processing
 						end
 					end
 					output ("</" + l_list_tag + ">%N")
+					output ("</div>%N")
 				end
 			end
 		end
 
-	output_section_node (a_node: WIKI_SECTION_NODE; a_list_tag: STRING)
+	output_section_node (a_node: WIKI_SECTION_NODE; a_list_tag: READABLE_STRING_8)
 		do
 			if
 				a_node.section = Void and then
@@ -418,7 +420,7 @@ feature -- Processing
 				unset_next_output_require_newline
 				output ("%N")
 				if attached a_section.text as l_text then
-					output ("<a name=%"")
+					output ("<a id=%"")
 					output (anchor_name (l_text.text, True))
 					output ("%"></a>")
 				end
@@ -636,7 +638,7 @@ feature -- Strings
 		local
 			s: STRING
 		do
-			s := a_raw_string.text.twin
+			create s.make_from_string (a_raw_string.text)
 			s.replace_substring_all ("&", "&amp;")
 			s.replace_substring_all ("<", "&lt;")
 			s.replace_substring_all (">", "&gt;")
@@ -725,6 +727,7 @@ feature -- Tag
 			l_tag: STRING
 			b: BOOLEAN
 		do
+			-- FIXME jfiat [2020/03/17] : convert lang="foo" into class="lang-foo" or class="language-foo"
 			if a_code.is_open_close_tag then
 					-- Ignore
 			else

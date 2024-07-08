@@ -221,6 +221,26 @@ feature -- Element change
 			dashed_line_style_disabled: not dashed_line_style
 		end
 
+feature -- Session
+
+	start_drawing_session
+			-- Start a drawing session.
+			-- Used for optimization, to group sequence of drawings.
+			-- note: as a drawing session can be inside another drawing session
+			-- `end_drawing_session` has to be called as many time as `start_drawing_session` was called.
+		do
+			implementation.start_drawing_session
+		end
+
+	end_drawing_session
+			-- End a drawing session.
+			-- Used for optimization, to group sequence of drawings.
+			-- note: as a drawing session can be inside another drawing session
+			-- `end_drawing_session` has to be called as many time as `start_drawing_session` was called.
+		do
+			implementation.end_drawing_session
+		end
+
 feature -- Clearing operations
 
 	clear
@@ -530,6 +550,12 @@ feature -- Drawing mode setting
 			drawing_mode_assigned: drawing_mode = drawing_mode_or
 		end
 
+	set_anti_aliasing (value: BOOLEAN)
+			-- Enable (if `value`) or disable (if `not value`) anti-aliasing (if supported) when drawing.
+		do
+			implementation.set_anti_aliasing (value)
+		end
+
 feature {NONE} -- Contract support
 
 	is_in_default_state: BOOLEAN
@@ -552,7 +578,7 @@ invariant
 	drawing_mode_valid: is_usable implies valid_drawing_mode (drawing_mode)
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -562,15 +588,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EV_DRAWABLE
-
-
-
-
-
-
-
-
-
-
-
+end

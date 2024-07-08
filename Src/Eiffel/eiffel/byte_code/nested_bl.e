@@ -8,10 +8,23 @@ class NESTED_BL
 inherit
 	NESTED_B
 		redefine
-			print_register, free_register, print_checked_target_register,
-			stored_register, has_call, has_gcable_variable, c_type,
-			set_register, register, set_parent, parent, propagate,
-			unanalyze, generate, analyze, allocates_memory
+			allocates_memory,
+			analyze,
+			c_type,
+			free_register,
+			generate,
+			has_call,
+			has_gcable_variable,
+			is_temporary,
+			parent,
+			print_checked_target_register,
+			print_register,
+			propagate,
+			register,
+			set_parent,
+			set_register,
+			stored_register,
+			unanalyze
 		end
 
 	SHARED_TYPE_I
@@ -94,12 +107,14 @@ feature
 					-- We never grab temporary registers in the middle of a
 					-- multidot expression.
 				if not (r.is_temporary or used (r)) then
-					if local_type.c_type.same_class_type (r.c_type) then
+					if
+						local_type.c_type.same_class_type (r.c_type) and then
+						register = Void and
+						not context.has_invariant
+					then
 							-- Don't bother calling set_propagated, because we
 							-- know it'll be done at the end of the call anyway.
-						if register = Void and not context.has_invariant then
-							register := r
-						end
+						register := r
 					end
 						-- We may safely propagate register to our target only
 						-- when that register is not used further in the call.
@@ -144,22 +159,23 @@ feature
 			-- See  also `print_checked_target_register'.
 		do
 			if message.target = message then
-					-- We reached the last call
-				if register /= No_register then
+					-- We reached the last call.
+				if register = No_register then
+						-- There is no register, which means the call has not
+						-- been generated yet.
+					message.target.generate_on
+						(if parent = Void then
+								-- This is the first call.
+							target
+						else
+								-- This is part of a dot call. Generate a call on
+								-- the entity stored in the parent's register.
+							parent.register
+						end)
+				else
 						-- There is a register, hence the call has already
 						-- been generated and the result is in the register.
 					register.print_register
-				else
-						-- There is no register, which means the call has not
-						-- been generated yet.
-					if parent = Void then
-							-- This is the first call.
-						message.target.generate_on (target)
-					else
-							-- This is part of a dot call. Generate a call on
-							-- the entity stored in the parent's register.
-						message.target.generate_on (parent.register)
-					end
 				end
 			else
 					-- Simply propagate the request (it is impossible for a
@@ -243,7 +259,7 @@ feature
 						-- polymorphic one...
 						-- Check also that target is not a parenthesized expression
 						-- that could enclose an attribute, a polymorphic call, etc.
-					message.target.parameters = Void and then
+					msg_target.parameters = Void and then
 						-- This test leads to an optimization for t.f (ref).
 						-- The generated_code was E_f (E_t (l[0]), ref)
 						-- Possible problems for the GC depending on the order
@@ -253,7 +269,13 @@ feature
 						-- The optimization can still be done for calls like t.f:
 						-- E_f (E_t (l[0])) is valid and does not need a register
 						-- Xavier
-					not (target.is_attribute or target.is_polymorphic or attached {ACCESS_EXPR_B} target or msg_target.is_polymorphic)
+					not
+						(target.is_attribute or else
+						target.is_polymorphic or else
+						msg_target.is_polymorphic or else
+							-- If assertions are kept, calls cannot be arguments of each other
+							-- because the flag indicating a nested call ("nstcall") should be set separately for each of them.
+						message.has_call and then target.has_call and then system.keep_assertions)
 				then
 					context.init_propagation
 					target.propagate (No_register)
@@ -280,7 +302,7 @@ feature
 				get_register
 			end
 			if register /= No_register then
-				if (parent = Void) then
+				if parent = Void then
 						-- First call. Otherwise, target is freed by parent.
 					target.free_register
 				else
@@ -360,6 +382,16 @@ feature
 				message.allocates_memory
 		end
 
+	is_temporary: BOOLEAN
+			-- <Precursor>
+		do
+			if message.target /= message then
+				Result := message.is_temporary
+			elseif register /= No_register then
+				Result := register.is_temporary
+			end
+		end
+
 feature {REGISTRABLE} -- C code generation
 
 	print_checked_target_register
@@ -367,15 +399,15 @@ feature {REGISTRABLE} -- C code generation
 		do
 			if message.target = message then
 					-- We reached the last call
-				if register /= No_register then
-						-- There is a register, hence the call has already
-						-- been generated and the result is in the register.
-					register.print_checked_target_register
-				else
+				if register = No_register then
 						-- There is no register, which means the call has not
 						-- been generated yet.
 						-- General case.
 					Precursor
+				else
+						-- There is a register, hence the call has already
+						-- been generated and the result is in the register.
+					register.print_checked_target_register
 				end
 			else
 					-- Simply propagate the request (it is impossible for a
@@ -386,7 +418,7 @@ feature {REGISTRABLE} -- C code generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

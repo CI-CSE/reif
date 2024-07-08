@@ -36,6 +36,12 @@ feature {NONE} -- Initialization
 			s: READABLE_STRING_8
 		do
 			s := request.percent_encoded_path_info
+			if
+				attached base_url as l_base_url and then
+				s.starts_with (l_base_url)
+			then
+				s := s.substring (l_base_url.count + 1, s.count)
+			end
 			if not s.is_empty and then s[1] = '/' then
 				create location.make_from_string (s.substring (2, s.count))
 			else
@@ -309,6 +315,13 @@ feature -- Hooks
 
 feature -- Internationalization (i18n)
 
+	html_translation (a_text: READABLE_STRING_GENERAL; opts: detachable CMS_API_OPTIONS): STRING_8
+			-- Translated HTML text `a_text' according to expected context (lang, ...)
+			-- and adapt according to options eventually set by `opts'.
+		do
+			Result := html_encoded (api.translation (a_text, opts))
+		end
+
 	translation (a_text: READABLE_STRING_GENERAL; opts: detachable CMS_API_OPTIONS): STRING_32
 			-- Translated text `a_text' according to expected context (lang, ...)
 			-- and adapt according to options eventually set by `opts'.
@@ -398,6 +411,14 @@ feature -- Helpers: URLs
 			Result := url ("/module/" + a_module.name + a_path, opts)
 		end
 
+	module_name_resource_url (a_module_name: READABLE_STRING_8; a_path: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING_8
+			-- Url for resource `a_path` associated with module `a_module_name`.
+		require
+			a_valid_valid: a_path.is_empty or else a_path.starts_with ("/")
+		do
+			Result := url ("/module/" + a_module_name + a_path, opts)
+		end
+
 	user_url (u: CMS_USER): like url
 		require
 			u_with_id: u.has_id
@@ -412,6 +433,6 @@ feature -- Execution
 		end
 
 note
-	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

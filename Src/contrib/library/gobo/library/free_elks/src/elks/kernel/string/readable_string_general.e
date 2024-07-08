@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Common ancestors to all STRING classes. Read-only interface."
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -28,6 +28,9 @@ inherit
 		undefine
 			is_equal
 		end
+
+convert
+	as_string_32: {READABLE_STRING_32, STRING_32}
 
 feature {NONE} -- Initialization
 
@@ -293,7 +296,7 @@ feature -- Status report
 				loop
 					i := i + 1
 				end
-				Result := (i <= nb)
+				Result := i <= nb
 			end
 		ensure then
 			false_if_empty: count = 0 implies not Result
@@ -316,7 +319,7 @@ feature -- Status report
 				loop
 					i := i + 1
 				end
-				Result := (i <= nb)
+				Result := i <= nb
 			end
 		ensure then
 			false_if_empty: count = 0 implies not Result
@@ -401,7 +404,7 @@ feature -- Status report
 				--
 				-- 2. The numerical value represented by 'Current'
 				--	is within the range that can be represented
-				--	by an instance of type REAL.
+				--	by an instance of type REAL_32.
 		end
 
 	is_double, is_real_64: BOOLEAN
@@ -433,7 +436,7 @@ feature -- Status report
 				--
 				-- 2. The numerical value represented by 'Current'
 				--	is within the range that can be represented
-				--	by an instance of type DOUBLE.
+				--	by an instance of type REAL_64.
 		end
 
 	is_boolean: BOOLEAN
@@ -798,8 +801,25 @@ feature -- Conversion
 			-- Convert `Current' as a STRING_8.
 		require
 			is_valid_as_string_8: is_valid_as_string_8
+		local
+			i, nb: INTEGER
 		do
-			Result := as_string_8
+			if attached {STRING_8} Current as s then
+				Result := s
+			else
+				nb := count
+				create Result.make (nb)
+				Result.set_count (nb)
+				from
+					i := 1
+				until
+					i > nb
+				loop
+					check from_precondition: Result.valid_code (code (i)) end
+					Result.put_code (code (i), i)
+					i := i + 1
+				end
+			end
 		ensure
 			as_string_8_not_void: Result /= Void
 			identity: (conforms_to ("") and Result = Current) or (not conforms_to ("") and Result /= Current)
@@ -812,15 +832,17 @@ feature -- Conversion
 			-- the time yet to address the target recipient of the string to be
 			-- a READABLE_STRING_32 or descendants.
 		obsolete
-			"Update recipient of call to use READABLE_STRING_32 and descendants instead."
+			"Update recipient of call to use READABLE_STRING_32 and descendants instead. [2017-05-31]"
 		do
 			Result := as_string_8
 		end
 
 	as_readable_string_8: READABLE_STRING_8
-			--
+			-- Convert `Current` as a READABLE_STRING_8. If a code of `Current` is
+			-- not a valid code for a READABLE_STRING_8 it is replaced with the null
+			-- character.
 		obsolete
-			"Use explicit conversion `to_string_8' instead."
+			"Use explicit conversion `to_string_8' with a test that the string is made of ASCII characters only. [2017-05-31]"
 		do
 			Result := as_string_8
 		end
@@ -829,6 +851,15 @@ feature -- Conversion
 			-- Convert `Current' as a STRING_8. If a code of `Current' is
 			-- not a valid code for a STRING_8 it is replaced with the null
 			-- character.
+		obsolete
+			"[
+				For 32-bit strings:
+					- use explicit conversion `to_string_8` with a test that the string is made of ASCII characters only.
+				For 8-bit strings:
+					- consider changing the type of reattachmanet target to READABLE_STRING_8 or
+					- use explicit conversion `to_string_8` to avoid implicit performance penalty.
+				[2019-11-30]
+			]"
 		local
 			i, nb: INTEGER
 			l_code: like code
@@ -865,15 +896,15 @@ feature -- Conversion
 			-- the time yet to address the source of the string to be
 			-- a READABLE_STRING_32 or descendants.
 		obsolete
-			"Update target of call to use READABLE_STRING_32 and descendants instead."
+			"Update target of call to use READABLE_STRING_32 and descendants instead. [2017-05-31]"
 		do
 			Result := as_string_32
 		end
 
 	as_readable_string_32: READABLE_STRING_32
-			--
+			-- Equivalent to `as_string_32` with a different name.
 		obsolete
-			"Use explicit conversion `to_string_32' instead."
+			"Use explicit conversion `to_string_32`, or, better use READABLE_STRING_32 and descendants instead. [2017-05-31]"
 		do
 			Result := as_string_32
 		end
@@ -1019,7 +1050,7 @@ feature -- Conversion
 			Result := l_convertor.parsed_natural_64
 		end
 
-	to_real, to_real_32: REAL
+	to_real, to_real_32: REAL_32
 			-- Real value;
 			-- for example, when applied to "123.0", will yield 123.0
 		require
@@ -1028,7 +1059,7 @@ feature -- Conversion
 			Result := to_double.truncated_to_real
 		end
 
-	to_double, to_real_64: DOUBLE
+	to_double, to_real_64: REAL_64
 			-- "Double" value;
 			-- for example, when applied to "123.0", will yield 123.0 (double)
 		require
@@ -1057,13 +1088,10 @@ feature -- Conversion
 				(not Result = as_lower.same_string (false_constant))
 		end
 
-feature -- Conversion
-
 	split (a_separator: CHARACTER_32): LIST [like Current]
 			-- Split on `a_separator'.
 		local
 			l_list: ARRAYED_LIST [like Current]
-			part: like Current
 			i, j, c: INTEGER
 		do
 			c := count
@@ -1082,8 +1110,7 @@ feature -- Conversion
 							-- Current in it.
 						j := c + 1
 					end
-					part := substring (i, j - 1)
-					l_list.extend (part)
+					l_list.extend (substring (i, j - 1))
 					i := j + 1
 				end
 				if j = c then
@@ -1108,6 +1135,8 @@ feature -- Conversion
 feature -- Element change
 
 	plus alias "+" (s: READABLE_STRING_GENERAL): like Current
+			-- Concatenation of the current string with `s`.
+		obsolete "Use `plus` on sized variants of string classes. [2020-05-31]"
 		require
 			argument_not_void: s /= Void
 			compatible_strings: is_string_8 implies s.is_valid_as_string_8
@@ -1144,7 +1173,7 @@ feature -- Duplication
 				Result := substring (1, n)
 			end
 		ensure
-			same_count: count = old (count)
+			same_count: count = old count
 			new_count: Result.count = n.min (count)
 		end
 
@@ -1159,7 +1188,7 @@ feature -- Duplication
 				Result := substring (count - n + 1, count)
 			end
 		ensure
-			same_count: count = old (count)
+			same_count: count = old count
 			new_count: Result.count = n.min (count)
 		end
 
@@ -1264,7 +1293,7 @@ feature -- Access: Cursor
 		end
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

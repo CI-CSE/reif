@@ -1,11 +1,4 @@
-note
-	description: "[
-		TODO
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
-
-class
+﻿class
 	IV_UNIVERSE
 
 create
@@ -26,10 +19,10 @@ feature -- Access
 	declarations: LINKED_LIST [IV_DECLARATION]
 			-- List of top-level declarations.
 
-	dependencies: LINKED_LIST [FILE_NAME]
+	dependencies: LINKED_LIST [PATH]
 			-- List of file dependencies.
 
-	procedure_named (a_name: STRING): detachable IV_PROCEDURE
+	procedure_named (a_name: READABLE_STRING_8): detachable IV_PROCEDURE
 			-- Boogie procedure with name `a_name'.
 		do
 			from
@@ -37,14 +30,14 @@ feature -- Access
 			until
 				declarations.after or Result /= Void
 			loop
-				if attached {IV_PROCEDURE} declarations.item as l_proc and then l_proc.name ~ a_name then
+				if attached {IV_PROCEDURE} declarations.item as l_proc and then l_proc.name.same_string (a_name) then
 					Result := l_proc
 				end
 				declarations.forth
 			end
 		end
 
-	constant_named (a_name: STRING): detachable IV_CONSTANT
+	constant_named (a_name: READABLE_STRING_8): detachable IV_CONSTANT
 			-- Boogie constant with name `a_name'.
 		do
 			from
@@ -52,14 +45,14 @@ feature -- Access
 			until
 				declarations.after or Result /= Void
 			loop
-				if attached {IV_CONSTANT} declarations.item as l_const and then l_const.name ~ a_name then
+				if attached {IV_CONSTANT} declarations.item as l_const and then l_const.name.same_string (a_name) then
 					Result := l_const
 				end
 				declarations.forth
 			end
 		end
 
-	function_named (a_name: STRING): detachable IV_FUNCTION
+	function_named (a_name: READABLE_STRING_8): detachable IV_FUNCTION
 			-- Boogie function with name `a_name'.
 		do
 			from
@@ -67,7 +60,7 @@ feature -- Access
 			until
 				declarations.after or Result /= Void
 			loop
-				if attached {IV_FUNCTION} declarations.item as l_fun and then l_fun.name ~ a_name then
+				if attached {IV_FUNCTION} declarations.item as l_fun and then l_fun.name.same_string (a_name) then
 					Result := l_fun
 				end
 				declarations.forth
@@ -86,7 +79,7 @@ feature -- Element change
 			a_declaration_added: declarations.last = a_declaration
 		end
 
-	add_dependency (a_file_name: FILE_NAME)
+	add_dependency (a_file_name: PATH)
 			-- Add a file to `dependencies'.
 		require
 			a_file_name_attached: attached a_file_name
@@ -104,7 +97,7 @@ feature -- Visitor
 			-- Process universe with `a_visitor'.
 		do
 			across declarations as i loop
-				i.item.process (a_visitor)
+				i.process (a_visitor)
 			end
 		end
 
@@ -112,10 +105,34 @@ feature -- Visitor
 			-- Process declarations that are not built-in with `a_visitor'.
 		do
 			across declarations as i loop
-				if not i.item.is_built_in then
-					i.item.process (a_visitor)
+				if not i.is_built_in then
+					i.process (a_visitor)
 				end
 			end
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

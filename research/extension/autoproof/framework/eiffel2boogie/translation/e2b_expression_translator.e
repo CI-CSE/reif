@@ -1,11 +1,4 @@
-note
-	description: "[
-		TODO
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
-
-deferred class
+﻿deferred class
 	E2B_EXPRESSION_TRANSLATOR
 
 inherit
@@ -54,6 +47,7 @@ inherit
 			process_nat64_val_b,
 			process_nat_val_b,
 			process_nested_b,
+			process_null_conversion_b,
 			process_object_test_b,
 			process_object_test_local_b,
 			process_parameter_b,
@@ -155,7 +149,7 @@ feature -- Convenience
 			context_type_attached: attached context_type
 			context_feature_attached: attached context_feature
 		do
-			Result := helper.class_type_in_context (a_type, context_type.base_class, context_feature, context_type)
+			Result := helper.class_type_in_context (a_type, context_feature.written_class, context_feature, context_type)
 		end
 
 	feature_class_type (a_feature: FEATURE_I): CL_TYPE_A
@@ -164,7 +158,7 @@ feature -- Convenience
 			a_feature_attached: attached a_feature
 			current_target_type_attached: attached current_target_type
 		do
-			Result := helper.class_type_in_context (a_feature.type, current_target_type.base_class, a_feature, current_target_type)
+			Result := helper.class_type_in_context (a_feature.type, context_type.base_class, a_feature, context_type)
 		end
 
 	expression_class_type (a_node: EXPR_B): CL_TYPE_A
@@ -228,6 +222,14 @@ feature -- Basic operations
 			context_feature := a_feature
 			context_type := a_type
 			current_target_type := a_type
+			if
+				attached {IV_ENTITY} entity_mapping.current_expression as e and then
+				attached types.for_class_type (a_type) as t and then
+				e.type /~ t
+			then
+					-- A fix for a target of a mapped MML type.
+				entity_mapping.set_current (create {IV_ENTITY}.make (e.name, t))
+			end
 			current_target := entity_mapping.current_expression
 			if a_feature /= Void and then a_feature.has_return_value then
 				entity_mapping.set_default_result (feature_class_type (a_feature))
@@ -302,7 +304,7 @@ feature -- Visitors
 	process_array_const_b (a_node: ARRAY_CONST_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, "Manifest array in contract not supported.", context_line_number)
+			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest array in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -576,8 +578,6 @@ feature -- Visitors
 
 	process_current_b (a_node: CURRENT_B)
 			-- <Precursor>
-		local
-			l_type: LIKE_CURRENT
 		do
 			last_expression := entity_mapping.current_expression
 		end
@@ -596,23 +596,12 @@ feature -- Visitors
 
 	process_constant_b (a_node: CONSTANT_B)
 			-- <Precursor>
-		local
-			l_bool: BOOL_VALUE_I
-			l_char: CHAR_VALUE_I
 		do
-			if a_node.value.is_boolean then
-				l_bool ?= a_node.value
-				check l_bool /= Void end
-				if l_bool.boolean_value then
-					last_expression := factory.true_
-				else
-					last_expression := factory.false_
-				end
+			if attached {BOOL_VALUE_I} a_node.value as l_bool then
+				last_expression := if l_bool.boolean_value then factory.true_ else factory.false_ end
 			elseif a_node.value.is_integer or a_node.value.is_numeric then
 				create {IV_VALUE} last_expression.make (a_node.value.string_value, types.int)
-			elseif a_node.value.is_character then
-				l_char ?= a_node.value
-				check l_char /= Void end
+			elseif attached {CHAR_VALUE_I} a_node.value as l_char then
 				last_expression := factory.int_value (l_char.character_value.code)
 			elseif a_node.value.is_real then
 				last_expression := dummy_node (a_node.type)
@@ -624,7 +613,7 @@ feature -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, "Creation expression in contract not supported.", context_line_number)
+			helper.add_unsupported_error (context_feature, {STRING_32} "Creation expression in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -656,7 +645,6 @@ feature -- Visitors
 			-- <Precursor>
 		local
 			l_feature: FEATURE_I
-			l_constant: CONSTANT_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
@@ -669,9 +657,11 @@ feature -- Visitors
 				if l_feature.is_attribute then
 					process_attribute_call (l_feature)
 				elseif l_feature.is_constant then
-					l_constant ?= l_feature
-					check l_constant /= Void end
-					process_constant_call (l_constant)
+					check
+						from_condition: attached {CONSTANT_I} l_feature as l_constant
+					then
+						process_constant_call (l_constant)
+					end
 				elseif l_feature.is_routine then
 					process_routine_call (l_feature, a_node.parameters, False)
 				else
@@ -730,41 +720,27 @@ feature -- Visitors
 
 	process_loop_expr_b (a_node: LOOP_EXPR_B)
 			-- <Precursor>
-		local
-			l_assign: ASSIGN_B
-			l_object_test_local: OBJECT_TEST_LOCAL_B
-			l_nested: NESTED_B
-			l_access: ACCESS_EXPR_B
-			l_bin_free: BIN_FREE_B
-			l_class: CLASS_C
-			l_across_handler: E2B_ACROSS_HANDLER
 		do
-			l_assign ?= a_node.iteration_code.first
-			check l_assign /= Void end
-			l_object_test_local ?= l_assign.target
-			check l_object_test_local /= Void end
-			l_nested ?= l_assign.source
-			check l_nested /= Void end
-			l_class := l_nested.target.type.base_class
-
-			l_across_handler := translation_mapping.handler_for_across (a_node, Current)
-
-			is_in_quantifier := True
-
-			if attached l_across_handler then
-				current_target := entity_mapping.current_expression
-				current_target_type := context_type
-				last_expression := Void
-
-				across_handler_map.put (l_across_handler, l_object_test_local.position)
-				l_across_handler.handle_across_expression
-				across_handler_map.remove (l_object_test_local.position)
-			else
-				last_expression := dummy_node (a_node.type)
-				helper.add_semantic_error (context_feature, "Across over type " + l_class.name_in_upper + " not supported", context_line_number)
+			if
+				attached {ASSIGN_B} a_node.iteration_code.first as l_assign and then
+				attached {OBJECT_TEST_LOCAL_B} l_assign.target as l_object_test_local and then
+				attached {NESTED_B} l_assign.source as l_nested and then
+				attached l_nested.target.type.base_class as l_class
+			then
+				is_in_quantifier := True
+				if attached translation_mapping.handler_for_across (a_node, Current) as l_across_handler then
+					current_target := entity_mapping.current_expression
+					current_target_type := context_type
+					last_expression := Void
+					across_handler_map.put (l_across_handler, l_object_test_local.position)
+					l_across_handler.handle_across_expression
+					across_handler_map.remove (l_object_test_local.position)
+				else
+					last_expression := dummy_node (a_node.type)
+					helper.add_semantic_error (context_feature, {STRING_32} "Across over type " + l_class.name_in_upper + " not supported", context_line_number)
+				end
+				is_in_quantifier := False
 			end
-
-			is_in_quantifier := False
 		end
 
 	process_nat64_val_b (a_node: NAT64_VAL_B)
@@ -784,44 +760,37 @@ feature -- Visitors
 		local
 			l_temp_expression: IV_EXPRESSION
 			l_target: IV_EXPRESSION
-			l_target_name: STRING
 			l_target_type: CL_TYPE_A
-			l_formal: FORMAL_A
 
-			l_object_test_local: OBJECT_TEST_LOCAL_B
-			l_across_handler: E2B_ACROSS_HANDLER
-			l_feature: FEATURE_B
-			l_nested: NESTED_B
-			l_call: IV_FUNCTION_CALL
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
 		do
 			l_handler := translation_mapping.handler_for_nested (a_node)
-			l_object_test_local ?= a_node.target
-			if l_object_test_local /= Void and then across_handler_map.has (l_object_test_local.position) then
+			if
+				attached {OBJECT_TEST_LOCAL_B} a_node.target as l_object_test_local and then
+				attached across_handler_map.item (l_object_test_local.position) as l_across_handler and then
+				attached {FEATURE_B} if attached {NESTED_B} a_node.message as l_nested then
+						l_nested.target
+					else
+						a_node.message
+					end
+				as l_feature
+			then
 					-- Special mapping of object test local in across loop
-				l_across_handler := across_handler_map.item (l_object_test_local.position)
-				l_nested ?= a_node.message
-				if l_nested /= Void then
-					l_feature ?= l_nested.target
-				else
-					l_feature ?= a_node.message
-				end
-				check l_feature /= Void end
 				l_name := l_feature.feature_name.as_lower
-				if l_name ~ "item" then
+				if l_name.same_string ("item") then
 					l_across_handler.handle_call_item (Void)
-				elseif l_name ~ "index" or l_name ~ "cursor_index" then
+				elseif l_name.same_string ("index") or l_name.same_string ("cursor_index") then
 					l_across_handler.handle_call_cursor_index (Void)
-				elseif l_name ~ "after" then
+				elseif l_name.same_string ("after") then
 					l_across_handler.handle_call_after (Void)
-				elseif l_name ~ "is_wrapped" or l_name ~ "is_open" then
+				elseif l_name.same_string ("is_wrapped") or l_name.same_string ("is_open") then
 					last_expression := dummy_node (a_node.type)
 				else
 					check False end
 					last_expression := dummy_node (a_node.type)
 				end
-				if l_nested /= Void then
+				if attached {NESTED_B} a_node.message as l_nested then
 					l_target := current_target
 					l_target_type := current_target_type
 
@@ -890,15 +859,38 @@ feature -- Visitors
 			end
 		end
 
+	process_null_conversion_b (b: NULL_CONVERSION_B)
+		do
+			safe_process (b.expr)
+		end
+
 	process_object_test_b (a_node: OBJECT_TEST_B)
 			-- <Precursor>
 		local
 			l_type: CL_TYPE_A
-			l_type_check: IV_BINARY_OPERATION
 			l_type_expr, l_expr: IV_EXPRESSION
+			object_test_local: like last_local
 		do
 			safe_process (a_node.expression)
 			l_expr := last_expression
+			l_type := class_type_in_current_context
+				(if a_node.is_void_check then
+					a_node.expression.type
+				else
+					a_node.target.type
+				end)
+			if
+				attached a_node.target as t and then
+				attached context_implementation and then
+				attached {LIST [IV_STATEMENT]} side_effect as effect
+			then
+					-- TODO: handle the case when `context_implementation` is not attached and `side_effect` does not hold `IV_STATEMENT`.
+				translation_pool.add_type (l_type)
+				create_local (l_type)
+				object_test_local := last_local
+				effect.extend (create {IV_ASSIGNMENT}.make (object_test_local, l_expr))
+				l_expr := object_test_local
+			end
 			if a_node.is_void_check then
 				last_expression := factory.not_equal (l_expr, factory.void_)
 			else
@@ -938,7 +930,6 @@ feature -- Visitors
 	process_parameter_b (a_node: PARAMETER_B)
 			-- <Precursor>
 		local
-			l_context_type: CL_TYPE_A
 			l_target: IV_EXPRESSION
 			l_target_type: CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
@@ -983,14 +974,14 @@ feature -- Visitors
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, "Agents in contract not supported.", context_line_number)
+			helper.add_unsupported_error (context_feature, {STRING_32} "Agents in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, "Manifest string not supported.", context_line_number)
+			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest string not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -1007,7 +998,7 @@ feature -- Visitors
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		do
-			helper.add_unsupported_error (context_feature, "Manifest tuple in contract not supported.", context_line_number)
+			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest tuple in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
 
@@ -1185,7 +1176,6 @@ feature -- Translation
 	process_argument_expression (a_expr: EXPR_B): IV_EXPRESSION
 			-- Process `a_expr' in the context of the routine.
 		local
-			l_context_type: CL_TYPE_A
 			l_target: IV_EXPRESSION
 			l_target_type: CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
@@ -1216,19 +1206,25 @@ feature -- Translation
 			l_expr_type: CL_TYPE_A
 			l_class: CLASS_C
 			l_feature: FEATURE_I
-			l_conversion: STRING
+			l_conversion: READABLE_STRING_8
+			t: CL_TYPE_A
 		do
 			safe_process (a_expr)
 
 			l_expr_type := class_type_in_current_context (a_expr.type)
 			l_class := l_expr_type.base_class
-			l_feature := l_class.feature_named_32 ("new_cursor")
+			l_feature := l_class.feature_named ("new_cursor")
 			l_conversion := helper.function_for_logical (l_feature)
 			if l_conversion = Void then
 				helper.add_semantic_error (l_class, messages.logical_no_across_conversion, -1)
 			else
-				check attached {CL_TYPE_A} helper.class_type_in_context (l_feature.type, l_feature.written_class, l_feature, l_expr_type).generics.first as t then
-					last_set_content_type := t
+				t := helper.class_type_in_context (l_feature.type, l_feature.written_class, l_feature, l_expr_type)
+				if attached {CL_TYPE_A} t.generics.first as c then
+					last_set_content_type := c
+				elseif attached {CL_TYPE_A} t.base_class.single_constraint (1) as c then
+					last_set_content_type := c
+				else
+					check class_type_constraint: False then end
 				end
 				if not l_conversion.is_empty then
 					last_expression := factory.function_call (l_conversion, << last_expression >>, types.set (a_content_type))
@@ -1260,7 +1256,7 @@ feature -- Translation
 	add_function_precondition_check (a_feature: FEATURE_I; a_fcall: IV_FUNCTION_CALL)
 			-- Check the precondition of the function call `a_fcall' of `a_feature'.
 		local
-			l_fname: STRING
+			l_fname: READABLE_STRING_8
 			l_pre_call: IV_FUNCTION_CALL
 		do
 			l_fname := name_translator.boogie_function_for_feature (a_feature, current_target_type, False)
@@ -1269,7 +1265,7 @@ feature -- Translation
 			if helper.has_flat_precondition (a_feature) then
 				create l_pre_call.make (name_translator.boogie_function_precondition (l_fname), types.bool)
 				across a_fcall.arguments as args loop
-					l_pre_call.add_argument (args.item)
+					l_pre_call.add_argument (args)
 				end
 				add_safety_check_with_subsumption (l_pre_call, "check", "function_precondition", context_line_number)
 				last_safety_check.node_info.set_attribute ("cid", current_target_type.base_class.class_id.out)
@@ -1434,8 +1430,6 @@ feature -- Implementation
 
 	create_iterator (a_type: IV_TYPE)
 			-- Create new unbound iterator.
-		local
-			l_name: STRING
 		do
 			create last_local.make (helper.unique_identifier ("i"), a_type)
 		end
@@ -1451,15 +1445,53 @@ feature -- Implementation
 
 	process_semistrict (a_condition: IV_EXPRESSION; a_expr: EXPR_B)
 			-- Add `a_condition' to the safety check, then process `a_expr'.
-		local
-			l_fcall: IV_FUNCTION_CALL
-			l_fname: STRING
 		do
 			safety_check_condition.extend (factory.and_clean (safety_check_condition.item, a_condition))
 			safe_process (a_expr)
 			safety_check_condition.remove
 		end
 
+feature {E2B_CUSTOM_OWNERSHIP_HANDLER, E2B_CUSTOM_AGENT_CALL_HANDLER, E2B_CUSTOM_STRING_HANDLER} -- Access
+
+	context_implementation: detachable IV_IMPLEMENTATION
+			-- Context of expression.
+
+feature {E2B_CUSTOM_OWNERSHIP_HANDLER, E2B_CUSTOM_AGENT_CALL_HANDLER, E2B_CUSTOM_STRING_HANDLER} -- Modification
+
+	create_local (t: CL_TYPE_A)
+			-- Create a new local with type `t`.
+		require
+			attached context_implementation
+		do
+			create last_local.make (helper.unique_identifier ("temp"), types.for_class_type (t))
+			context_implementation.add_local (last_local.name, last_local.type)
+		end
+
 invariant
 	has_safety_check_condition: not safety_check_condition.is_empty
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2015 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2021-2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
+
 end

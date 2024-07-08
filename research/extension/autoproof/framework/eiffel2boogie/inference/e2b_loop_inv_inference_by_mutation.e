@@ -1,12 +1,9 @@
-note
+﻿note
 	description: "[
 		This class is used as follows: 
 		it is called on an IV_IMPLEMENTATION which contains at least one loop and tries to generate invariants for the loop by mutating the postcondition expression. 
 		The results are stored in output.
 	]"
-	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	E2B_LOOP_INV_INFERENCE_BY_MUTATION
@@ -58,7 +55,7 @@ feature -- Semi Access
 	universe: IV_UNIVERSE
 		--the complete universe that the AST for this implementation was taken from.
 
-feature {IV_MUTATOR}
+feature {NONE} -- {IV_MUTATOR}
 
 	reset
 			-- Reset universe visitor.
@@ -87,7 +84,7 @@ feature -- Basic operations
 				across outer_loops as loops loop
 					-- compute all mutations of post
 					-- according to chosen strategies
-					mutations := mutate(post.item, loops.item)
+					mutations := mutate(post, loops)
 
 					if is_debugging_enabled then --print out all mutations to console.
 						print("%Nmutations: ")
@@ -95,16 +92,16 @@ feature -- Basic operations
 						print("%N")
 						across mutations as ms loop
 							tester.reset
-							ms.item.process (tester)
+							ms.process (tester)
 							print(tester.output)
 							print("%N")
 						end
 					end
 
 					across mutations as ms loop
-						formula:= ms.item
+						formula:= ms
 						across all_loops as al loop
-							any_loop := al.item
+							any_loop := al
 							if is_invariant(formula, any_loop) then
 								res.force (formula)
 							end
@@ -148,7 +145,7 @@ feature -- Basic operations
 			Result.force(replace_all (a_post, a_constant, a_variable))
 			all_aged_variables := aging (a_variable, a_loop)--line6
 			across all_aged_variables as av loop--line6
-					Result.force (replace_all (a_post, a_constant, av.item))--lines7,8
+					Result.force (replace_all (a_post, a_constant, av))--lines7,8
 			end
 		end
 
@@ -172,7 +169,7 @@ feature -- Basic operations
 				Result.force (expression_replaced)
 				aged_variables := aging (a_variable, a_loop)
 				across aged_variables as av loop
-					Result.force (replace_nth (a_post, a_constant, av.item, index, a_loop))
+					Result.force (replace_nth (a_post, a_constant, av, index, a_loop))
 				end
 				index := index + 1
 			end
@@ -272,7 +269,7 @@ feature -- Basic operations
 							print("%N!!WARNING!! invariant wasn't attached to any loop.")
 						end
 					end
-					if (not (attacher.attached_to_procedure = Void)) and then (attacher.attached_to_procedure.name.is_equal (verified_procs.item.procedure_name)) then
+					if (not (attacher.attached_to_procedure = Void)) and then (attacher.attached_to_procedure.name.is_equal (verified_procs.procedure_name)) then
 						Result := True
 						if is_debugging_enabled then
 							print("%NInvariant found!")
@@ -290,25 +287,25 @@ feature -- Basic operations
 			if (not Result) and not (res.failed_count = 0 and res.verified_count = 0) then -- until now it was only added if the whole feature didn't have any errors. So if a postcondition couldn't be proven, it wasn't added. Add check here to see if no invariant was found to be false.
 				Result := true --set to true, then see if it needs to be set to false.
 				across res.verification_errors as ver_errors loop
-					across ver_errors.item.errors as errs loop
+					across ver_errors.errors as errs loop
 --						if errs.item.code ~ "BP5001" or errs.item.code ~ "BP5004" or errs.item.code ~ "BP5005" or errs.item.code ~ "BP5001loop_inv" then
-						if errs.item.code ~ "BP5004" or errs.item.code ~ "BP5005" or errs.item.code ~ "BP5001loop_inv" then
+						if errs.code ~ "BP5004" or errs.code ~ "BP5005" or errs.code ~ "BP5001loop_inv" then
 							--codes are taken from E2B_OUTPUT_PARSER.create_error
 							if is_debugging_enabled then
 								print("%NBoogie message: ")
-								print(errs.item.boogie_message)
+								print(errs.boogie_message)
 								print(", code: ")
-								print(errs.item.code)
-								if errs.item.has_tag then
+								print(errs.code)
+								if errs.has_tag then
 									print(", tag: ")
-									print(errs.item.tag)
+									print(errs.tag)
 								end
 							end
 							Result := false
-						elseif errs.item.boogie_message.has_substring ("invariant") then
+						elseif errs.boogie_message.has_substring ("invariant") then
 							if is_debugging_enabled then
 								print("%NBoogie message: ")
-								print(errs.item.boogie_message)
+								print(errs.boogie_message)
 							end
 							Result := false
 						end
@@ -324,13 +321,13 @@ feature -- Basic operations
 						print(printer.output)
 						print("%NErrors: %N")
 						across res.verification_errors as ver_errors loop
-							across ver_errors.item.errors as errs loop
-								print(errs.item.boogie_message)
+							across ver_errors.errors as errs loop
+								print(errs.boogie_message)
 								print(", code: ")
-								print(errs.item.code)
-								if errs.item.has_tag then
+								print(errs.code)
+								if errs.has_tag then
 									print(", tag: ")
-									print(errs.item.tag)
+									print(errs.tag)
 								end
 								print("%N")
 							end
@@ -397,7 +394,7 @@ feature -- Basic operations
 
 				is_target := False
 				across targets_l as ts loop
-					if are_equal (ts.item, subs.item) then
+					if are_equal (ts, subs) then
 
 						is_target := True
 					------------------------------
@@ -432,7 +429,7 @@ feature -- Basic operations
 					end
 				end
 				if not is_target then
-					constants_l.force (subs.item)
+					constants_l.force (subs)
 				end
 			end
 
@@ -442,19 +439,19 @@ feature -- Basic operations
 				print("%NAll subexpressions(without duplicates): ")
 				across remove_duplicates (all_subexpressions) as  subs loop
 					create tester.make
-					subs.item.process (tester)
+					subs.process (tester)
 					print("%N")
 					print(tester.output)
 					if tester.output.has_substring ("Heap") then
 						print(", generator: ")
-						print(subs.item.generator)
+						print(subs.generator)
 					end
 				end
 
 				print("%NAll targets(without duplicates): ")
 				across  remove_duplicates (targets_l) as  ts loop
 					create tester.make
-					ts.item.process (tester)
+					ts.process (tester)
 					print("%N")
 					print(tester.output)
 				end
@@ -462,7 +459,7 @@ feature -- Basic operations
 				print("%NAll constants(without duplicates): ")
 				across remove_duplicates (constants_l) as  cs loop
 					create tester.make
-					cs.item.process (tester)
+					cs.process (tester)
 					print("%N")
 					print(tester.output)
 				end
@@ -476,10 +473,10 @@ feature -- Basic operations
 			--line 8
 --			across  constants_l as cs loop -- FIXME
 			across remove_duplicates (constants_l)  as cs loop
-				constant := cs.item
+				constant := cs
 --				across targets_l as ts loop --line 9
 				across  remove_duplicates (targets_l) as ts loop
-					variable := ts.item
+					variable := ts
 
 					--lines 10,11,12
 					if options.is_coupled_mutations_enabled then
@@ -738,14 +735,14 @@ feature --Expression visitor
 
 feature --assisting operations
 
-	get_postconditions(): LINKED_LIST [IV_POSTCONDITION]
+	get_postconditions: LINKED_LIST [IV_POSTCONDITION]
 		--this only works if contracts list has already been filled in.
 		require
 			contracts /= Void
 		do
 			create Result.make
 			across contracts as cs loop
-				if attached {IV_POSTCONDITION} cs.item as a_postcondition then
+				if attached {IV_POSTCONDITION} cs as a_postcondition then
 					if a_postcondition.information.type.has_substring ("post") then
 						Result.force (a_postcondition)
 					end
@@ -757,33 +754,27 @@ feature --assisting operations
 
 	get_outer_loops(the_block:IV_BLOCK): LINKED_LIST[ARRAY[IV_BLOCK]]
 		-- fill the list outer_loops with the outer loops of a_implementation.
-		-- IMPORTANT: this only works, if a loop is stored as loop_head_X, loop_body_(X+1), loop_end_(X+2) after eachother in the statements. Otherwise the implementation needs to be adjusted.
+		-- IMPORTANT: this only works, if a loop is stored as loop_head_X, loop_body_(X+1), loop_end_(X+2) after each other in the statements. Otherwise the implementation needs to be adjusted.
 		require
 			body_set: the_block /= Void
 		local
 			temp_array: ARRAY[IV_BLOCK]
-			a_block: IV_BLOCK
 			i: INTEGER
 		do
 			create Result.make
 			across the_block.statements as st loop
-				if attached {IV_BLOCK} st.item as possible_loop_block then
+				if attached {IV_BLOCK} st as possible_loop_block then
 					if possible_loop_block.name.has_substring ("loop_head") then
-
-						temp_array := Void
 						create temp_array.make_filled (possible_loop_block, 1, 3)
-
-						temp_array.put (possible_loop_block, 1)--this is probably unnecessary, since the array is filled with this item.
-
-						a_block ?= the_block.statements.i_th (st.cursor_index+1)
-						temp_array.put (a_block, 2)
-						a_block ?= the_block.statements.i_th (st.cursor_index+2)
-						temp_array.put (a_block, 3)
-
+						if attached {IV_BLOCK} the_block.statements [@ st.cursor_index + 1] as b then
+							temp_array [2] := b
+						end
+						if attached {IV_BLOCK} the_block.statements [@ st.cursor_index + 2] as b then
+							temp_array [3] := b
+						end
 						Result.force (temp_array)
-
 					end
-				elseif attached {IV_CONDITIONAL} st.item as cond then
+				elseif attached {IV_CONDITIONAL} st as cond then
 					Result.append (get_outer_loops (cond.then_block))
 					Result.append (get_outer_loops (cond.else_block))
 				end
@@ -799,7 +790,6 @@ feature --assisting operations
 			body_set: body /= Void
 		local
 			temp_array: ARRAY[IV_BLOCK]
-			a_block: IV_BLOCK
 			i,j: INTEGER
 			loop_head_index: INTEGER -- is 7 for loop_head_7
 			loop_body_index: INTEGER
@@ -813,41 +803,31 @@ feature --assisting operations
 			end
 
 			across the_block.statements as st loop
-				if attached {IV_BLOCK} st.item as possible_loop_block then
+				if attached {IV_BLOCK} st as possible_loop_block then
 					if possible_loop_block.name.has_substring ("loop_head") then
 
 						loop_head_index := possible_loop_block.name.substring (possible_loop_block.name.count, possible_loop_block.name.count).to_integer
 						temp_array := Void
 						create temp_array.make_filled (possible_loop_block, 1, 3)
-
-						temp_array.put (possible_loop_block, 1)--this is probably unnecessary, since the array is filled with this item.
-
-
-
-						a_block ?= the_block.statements.i_th (st.cursor_index+1)--this is the body block, call function recursively on it.
-
-						if is_debugging_enabled then
-							if a_block = Void then
-								print("%Nproblem, a_block is void. statements array size: ")
-								print(body.statements.count)
-								print(", cursor_index+1: ")
-								print(st.cursor_index+1)
-								print(", last loop_head index: ")
-								print(loop_head_index)
-	--							print(" code: ")
-	--							print(possible_loop_block.name.item (possible_loop_block.name.count).code)
-	--							print(possible_loop_block.name.substring (possible_loop_block.name.count, possible_loop_block.name.count).to_integer)
-							end
+						if attached {IV_BLOCK} the_block.statements [@ st.cursor_index + 1] as b then
+								-- This is the body block, call function recursively on it.
+								-- Get the loops of the body block.
+							Result.append (get_all_loops (b))
+							temp_array [2] := b
+						elseif is_debugging_enabled then
+							print("%Nproblem, a_block is void. statements array size: ")
+							print(body.statements.count)
+							print(", cursor_index+1: ")
+							print(@ st.cursor_index+1)
+							print(", last loop_head index: ")
+							print(loop_head_index)
 						end
-						if a_block /= Void then -- get the loops of the body block
-							Result.append (get_all_loops (a_block))
+						if attached {IV_BLOCK} the_block.statements [@ st.cursor_index + 2] as b then
+							temp_array [3] := b
 						end
-						temp_array.put (a_block, 2)
-						a_block ?= the_block.statements.i_th (st.cursor_index+2)
-						temp_array.put (a_block, 3)
 						Result.force (temp_array)
 					end
-				elseif attached {IV_CONDITIONAL} st.item as cnd then
+				elseif attached {IV_CONDITIONAL} st as cnd then
 					Result.append (get_all_loops (cnd.then_block))
 					Result.append (get_all_loops (cnd.else_block))
 				end
@@ -863,19 +843,19 @@ feature --assisting operations
 --			a_body := a_loop.item (2)
 			a_body := a_block
 			across a_body.statements as st loop
-				if attached {IV_ASSIGNMENT} st.item as ass then
+				if attached {IV_ASSIGNMENT} st as ass then
 					Result.force(ass.target)
 
 				end
-				if attached {IV_FORALL} st.item as forall then
+				if attached {IV_FORALL} st as forall then
 					Result.force (forall.bound_variables.i_th (1).entity)
 				end
-				if attached {IV_CONDITIONAL} st.item as cond then
+				if attached {IV_CONDITIONAL} st as cond then
 					Result.append(targets (cond.then_block))
 					Result.append(targets (cond.else_block))
 				end
 
-				if attached {IV_BLOCK} st.item as bl then
+				if attached {IV_BLOCK} st as bl then
 					Result.append(targets (bl))
 				end
 			end
@@ -892,11 +872,11 @@ feature --assisting operations
 			create Result.make
 			across a_list as al loop
 
-				curr := al.item
+				curr := al
 				contains := False
 				across Result as res loop
 --					if curr.is_deep_equal(res.item) then
-					if are_equal (curr, res.item) then
+					if are_equal (curr, res) then
 						contains := True
 					end
 				end
@@ -906,7 +886,7 @@ feature --assisting operations
 			end
 		ensure
 			Result.count <= a_list.count
-			across Result as res all a_list.has (res.item) end
+			across Result as res all a_list.has (res) end
 		end
 
 feature
@@ -925,6 +905,31 @@ feature
 		end
 
 feature {NONE}
+
 	is_debugging_enabled: BOOLEAN = False
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2013-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

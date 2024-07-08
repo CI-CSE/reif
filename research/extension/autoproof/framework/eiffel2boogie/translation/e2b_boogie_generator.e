@@ -1,7 +1,5 @@
-note
+﻿note
 	description: "Generate Boogie code from IV universe."
-	date: "$Date$"
-	revision: "$Revision$"
 
 class
 	E2B_BOOGIE_GENERATOR
@@ -33,7 +31,6 @@ feature -- Basic operations
 			-- Generate verifier input for `boogie_universe'.
 		local
 			l_printer: IV_BOOGIE_PRINTER
-			l_filename: FILE_NAME
 		do
 			create last_generated_verifier_input.make
 
@@ -41,49 +38,53 @@ feature -- Basic operations
 			across
 				boogie_universe.dependencies as deps
 			loop
-				last_generated_verifier_input.add_boogie_file (deps.item)
+				last_generated_verifier_input.add_boogie_file (deps)
 			end
 
 				-- Add background theory
-			create l_filename.make
-			l_filename.set_directory (theory_directory)
-			l_filename.set_file_name ("base_theory.bpl")
-			last_generated_verifier_input.add_boogie_file (l_filename)
+			last_generated_verifier_input.add_boogie_file (theory_directory.extended ("base_theory.bpl"))
 
 			create l_printer.make
 			boogie_universe.process (l_printer)
 			last_generated_verifier_input.add_custom_content (l_printer.output.out)
 		end
 
-feature {NONE} -- Implementation
+feature {E2B_CUSTOM_AGENT_CALL_HANDLER} -- Implementation
 
-	theory_directory: DIRECTORY_NAME
+	theory_directory: PATH
 			-- Directory containing theory files.
-		local
-			l_ee: EXECUTION_ENVIRONMENT
-			l_ise_eiffel, l_eiffel_src: STRING
-			l_path: DIRECTORY_NAME
-			l_dir: DIRECTORY
 		once
-			create l_ee
-
-				-- 1. Delivery of installation
-			create l_path.make_from_string (l_ee.get ("ISE_EIFFEL"))
-			l_path.extend ("studio")
-			l_path.extend ("tools")
-			l_path.extend ("autoproof")
-			create l_dir.make (l_path)
-
-				-- 2. Delivery of development version
-			if not l_dir.exists then
-				create l_path.make_from_string (l_ee.get ("EIFFEL_SRC"))
-				l_path.extend ("Delivery")
-				l_path.extend ("studio")
-				l_path.extend ("tools")
-				l_path.extend ("autoproof")
+			if {EIFFEL_LAYOUT}.is_eiffel_layout_defined then
+				Result := {EIFFEL_LAYOUT}.eiffel_layout.tools_path.extended ("autoproof")
+			else
+				create Result.make_current
 			end
-
-			Result := l_path
+		ensure
+			instance_free: class
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

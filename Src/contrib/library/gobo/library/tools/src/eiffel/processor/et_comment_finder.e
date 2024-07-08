@@ -5,7 +5,7 @@ note
 		"Eiffel AST comment finders"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2007-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2007-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -29,6 +29,7 @@ inherit
 			process_agent_typed_open_argument,
 			process_alias_free_name,
 			process_alias_name,
+			process_alias_name_list,
 			process_aliased_feature_name,
 			process_all_export,
 			process_assertion_semicolon,
@@ -36,10 +37,11 @@ inherit
 			process_assigner_instruction,
 			process_assignment,
 			process_assignment_attempt,
-			process_attachment_separate_keywords,
-			process_attachment_symbol_separate_keyword,
+			process_attachment_mark_separate_keyword,
 			process_attribute,
 			process_bang_instruction,
+			process_base_type_constraint_list,
+			process_base_type_rename_constraint,
 			process_binary_integer_constant,
 			process_braced_class_name,
 			process_braced_type,
@@ -55,6 +57,7 @@ inherit
 			process_choice_list,
 			process_choice_range,
 			process_class,
+			process_class_assertion,
 			process_class_type,
 			process_client,
 			process_client_comma,
@@ -64,6 +67,7 @@ inherit
 			process_constant_attribute,
 			process_constrained_formal_parameter,
 			process_constraint_creator,
+			process_constraint_rename_list,
 			process_convert_builtin_expression,
 			process_convert_feature_comma,
 			process_convert_feature_list,
@@ -73,6 +77,7 @@ inherit
 			process_convert_to_expression,
 			process_create_expression,
 			process_create_instruction,
+			process_creation_region,
 			process_creator,
 			process_creator_list,
 			process_current_address,
@@ -87,9 +92,13 @@ inherit
 			process_dot_feature_name,
 			process_dotnet_function,
 			process_dotnet_procedure,
+			process_elseif_expression,
+			process_elseif_expression_list,
 			process_elseif_part,
 			process_elseif_part_list,
 			process_equality_expression,
+			process_explicit_convert_from_expression,
+			process_explicit_convert_to_expression,
 			process_export_list,
 			process_expression_address,
 			process_expression_comma,
@@ -116,6 +125,7 @@ inherit
 			process_hexadecimal_integer_constant,
 			process_identifier_colon,
 			process_identifier_comma,
+			process_if_expression,
 			process_if_instruction,
 			process_indexing,
 			process_indexing_semicolon,
@@ -125,8 +135,8 @@ inherit
 			process_infix_cast_expression,
 			process_infix_and_then_operator,
 			process_infix_expression,
-			process_infix_name,
 			process_infix_or_else_operator,
+			process_inspect_expression,
 			process_inspect_instruction,
 			process_invariants,
 			process_keyword_expression,
@@ -171,18 +181,19 @@ inherit
 			process_precursor_expression,
 			process_precursor_instruction,
 			process_prefix_expression,
-			process_prefix_name,
 			process_qualified_call,
 			process_qualified_call_expression,
 			process_qualified_call_instruction,
 			process_qualified_like_braced_type,
 			process_qualified_like_type,
+			process_quantifier_expression,
 			process_regular_integer_constant,
 			process_regular_manifest_string,
 			process_regular_real_constant,
 			process_rename,
 			process_rename_comma,
 			process_rename_list,
+			process_repeat_instruction,
 			process_result_address,
 			process_special_manifest_string,
 			process_static_call_expression,
@@ -194,6 +205,9 @@ inherit
 			process_token,
 			process_tuple_type,
 			process_type_comma,
+			process_type_constraint_comma,
+			process_type_constraint_list,
+			process_type_rename_constraint,
 			process_underscored_integer_constant,
 			process_underscored_real_constant,
 			process_unfolded_empty_tuple_actual_parameters,
@@ -204,6 +218,8 @@ inherit
 			process_unqualified_call_instruction,
 			process_variant,
 			process_verbatim_string,
+			process_when_expression,
+			process_when_expression_list,
 			process_when_part,
 			process_when_part_list
 		end
@@ -381,6 +397,14 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_alias_name_list (a_list: ET_ALIAS_NAME_LIST)
+			-- Process `a_list'.
+		do
+			if not excluded_nodes.has (a_list) then
+				precursor (a_list)
+			end
+		end
+
 	process_aliased_feature_name (a_name: ET_ALIASED_FEATURE_NAME)
 			-- Process `a_name'.
 		do
@@ -437,15 +461,7 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
-	process_attachment_separate_keywords (a_keywords: ET_ATTACHMENT_SEPARATE_KEYWORDS)
-			-- Process `a_keywords'.
-		do
-			if not excluded_nodes.has (a_keywords) then
-				precursor (a_keywords)
-			end
-		end
-
-	process_attachment_symbol_separate_keyword (a_keywords: ET_ATTACHMENT_SYMBOL_SEPARATE_KEYWORD)
+	process_attachment_mark_separate_keyword (a_keywords: ET_ATTACHMENT_MARK_SEPARATE_KEYWORD)
 			-- Process `a_keywords'.
 		do
 			if not excluded_nodes.has (a_keywords) then
@@ -466,6 +482,22 @@ feature {ET_AST_NODE} -- Processing
 		do
 			if not excluded_nodes.has (an_instruction) then
 				precursor (an_instruction)
+			end
+		end
+
+	process_base_type_constraint_list (a_list: ET_BASE_TYPE_CONSTRAINT_LIST)
+			-- Process `a_list'.
+		do
+			if not excluded_nodes.has (a_list) then
+				precursor (a_list)
+			end
+		end
+
+	process_base_type_rename_constraint (a_type_rename_constraint: ET_BASE_TYPE_RENAME_CONSTRAINT)
+			-- Process `a_type_rename_constraint'.
+		do
+			if not excluded_nodes.has (a_type_rename_constraint) then
+				precursor (a_type_rename_constraint)
 			end
 		end
 
@@ -593,6 +625,14 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_class_assertion (a_assertion: ET_CLASS_ASSERTION)
+			-- Process `a_assertion'.
+		do
+			if not excluded_nodes.has (a_assertion) then
+				precursor (a_assertion)
+			end
+		end
+
 	process_class_type (a_type: ET_CLASS_TYPE)
 			-- Process `a_type'.
 		do
@@ -658,6 +698,14 @@ feature {ET_AST_NODE} -- Processing
 		end
 
 	process_constraint_creator (a_list: ET_CONSTRAINT_CREATOR)
+			-- Process `a_list'.
+		do
+			if not excluded_nodes.has (a_list) then
+				precursor (a_list)
+			end
+		end
+
+	process_constraint_rename_list (a_list: ET_CONSTRAINT_RENAME_LIST)
 			-- Process `a_list'.
 		do
 			if not excluded_nodes.has (a_list) then
@@ -734,6 +782,14 @@ feature {ET_AST_NODE} -- Processing
 		do
 			if not excluded_nodes.has (an_instruction) then
 				precursor (an_instruction)
+			end
+		end
+
+	process_creation_region (a_region: ET_CREATION_REGION)
+			-- Process `a_region'.
+		do
+			if not excluded_nodes.has (a_region) then
+				precursor (a_region)
 			end
 		end
 
@@ -849,6 +905,22 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_elseif_expression (an_elseif_part: ET_ELSEIF_EXPRESSION)
+			-- Process `an_elseif_part'.
+		do
+			if not excluded_nodes.has (an_elseif_part) then
+				precursor (an_elseif_part)
+			end
+		end
+
+	process_elseif_expression_list (a_list: ET_ELSEIF_EXPRESSION_LIST)
+			-- Process `a_list'.
+		do
+			if not excluded_nodes.has (a_list) then
+				precursor (a_list)
+			end
+		end
+
 	process_elseif_part (an_elseif_part: ET_ELSEIF_PART)
 			-- Process `an_elseif_part'.
 		do
@@ -870,6 +942,22 @@ feature {ET_AST_NODE} -- Processing
 		do
 			if not excluded_nodes.has (an_expression) then
 				precursor (an_expression)
+			end
+		end
+
+	process_explicit_convert_from_expression (a_convert_expression: ET_EXPLICIT_CONVERT_FROM_EXPRESSION)
+			-- Process `a_convert_expression'.
+		do
+			if not excluded_nodes.has (a_convert_expression) then
+				precursor (a_convert_expression)
+			end
+		end
+
+	process_explicit_convert_to_expression (a_convert_expression: ET_EXPLICIT_CONVERT_TO_EXPRESSION)
+			-- Process `a_convert_expression'.
+		do
+			if not excluded_nodes.has (a_convert_expression) then
+				precursor (a_convert_expression)
 			end
 		end
 
@@ -1084,6 +1172,14 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_if_expression (a_expression: ET_IF_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			if not excluded_nodes.has (a_expression) then
+				precursor (a_expression)
+			end
+		end
+
 	process_if_instruction (an_instruction: ET_IF_INSTRUCTION)
 			-- Process `an_instruction'.
 		do
@@ -1156,19 +1252,19 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
-	process_infix_name (a_name: ET_INFIX_NAME)
-			-- Process `a_name'.
-		do
-			if not excluded_nodes.has (a_name) then
-				precursor (a_name)
-			end
-		end
-
 	process_infix_or_else_operator (an_operator: ET_INFIX_OR_ELSE_OPERATOR)
 			-- Process `an_operator'.
 		do
 			if not excluded_nodes.has (an_operator) then
 				precursor (an_operator)
+			end
+		end
+
+	process_inspect_expression (a_expression: ET_INSPECT_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			if not excluded_nodes.has (a_expression) then
+				precursor (a_expression)
 			end
 		end
 
@@ -1535,14 +1631,6 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
-	process_prefix_name (a_name: ET_PREFIX_NAME)
-			-- Process `a_name'.
-		do
-			if not excluded_nodes.has (a_name) then
-				precursor (a_name)
-			end
-		end
-
 	process_qualified_call (a_call: ET_QUALIFIED_CALL)
 			-- Process `a_call'.
 		do
@@ -1580,6 +1668,14 @@ feature {ET_AST_NODE} -- Processing
 		do
 			if not excluded_nodes.has (a_type) then
 				precursor (a_type)
+			end
+		end
+
+	process_quantifier_expression (a_expression: ET_QUANTIFIER_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			if not excluded_nodes.has (a_expression) then
+				precursor (a_expression)
 			end
 		end
 
@@ -1631,6 +1727,14 @@ feature {ET_AST_NODE} -- Processing
 		do
 			if not excluded_nodes.has (a_list) then
 				precursor (a_list)
+			end
+		end
+
+	process_repeat_instruction (a_instruction: ET_REPEAT_INSTRUCTION)
+			-- Process `a_instruction'.
+		do
+			if not excluded_nodes.has (a_instruction) then
+				precursor (a_instruction)
 			end
 		end
 
@@ -1719,6 +1823,30 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_type_constraint_comma (a_type_constraint_comma: ET_TYPE_CONSTRAINT_COMMA)
+			-- Process `a_type_constraint_comma'.
+		do
+			if not excluded_nodes.has (a_type_constraint_comma) then
+				precursor (a_type_constraint_comma)
+			end
+		end
+
+	process_type_constraint_list (a_list: ET_TYPE_CONSTRAINT_LIST)
+			-- Process `a_list'.
+		do
+			if not excluded_nodes.has (a_list) then
+				precursor (a_list)
+			end
+		end
+
+	process_type_rename_constraint (a_type_rename_constraint: ET_TYPE_RENAME_CONSTRAINT)
+			-- Process `a_type_rename_constraint'.
+		do
+			if not excluded_nodes.has (a_type_rename_constraint) then
+				precursor (a_type_rename_constraint)
+			end
+		end
+
 	process_underscored_integer_constant (a_constant: ET_UNDERSCORED_INTEGER_CONSTANT)
 			-- Process `a_constant'.
 		do
@@ -1799,6 +1927,22 @@ feature {ET_AST_NODE} -- Processing
 			if not excluded_nodes.has (a_string) then
 				precursor (a_string)
 				process_break (a_string.break)
+			end
+		end
+
+	process_when_expression (a_when_part: ET_WHEN_EXPRESSION)
+			-- Process `a_when_part'.
+		do
+			if not excluded_nodes.has (a_when_part) then
+				precursor (a_when_part)
+			end
+		end
+
+	process_when_expression_list (a_list: ET_WHEN_EXPRESSION_LIST)
+			-- Process `a_list'.
+		do
+			if not excluded_nodes.has (a_list) then
+				precursor (a_list)
 			end
 		end
 

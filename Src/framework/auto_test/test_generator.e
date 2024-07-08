@@ -1,6 +1,5 @@
-note
+﻿note
 	description: "Test creator representing AutoTest"
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -83,7 +82,7 @@ feature -- Access
 			if attached {ETEST_MELT_TASK} sub_task then
 				Result := {REAL_32} 0.1
 			elseif attached {ETEST_GENERATION_TESTING} sub_task as l_task then
-				Result := {REAL_32} 0.1 + l_task.progress * ({REAL_32} 0.85)
+				Result := {REAL_32} 0.1 + l_task.progress * {REAL_32} 0.85
 			else
 				Result := {REAL_32} 0.95
 			end
@@ -647,7 +646,7 @@ feature -- Status setting
 			output_dirname_set: output_dirname.same_string (a_dirname)
 		end
 
-	add_class_name (a_class_name: STRING_8)
+	add_class_name (a_class_name: READABLE_STRING_32)
 			-- Add given name to `class_names'.
 			--
 			-- `a_class_name': New class name to test.
@@ -657,7 +656,7 @@ feature -- Status setting
 		do
 			class_names.force_last (a_class_name.as_string_8)
 		ensure
-			added: class_names.there_exists (agent {STRING_8}.same_string (a_class_name))
+			added: across class_names as ic some a_class_name.same_string_general (ic.item) end
 		end
 
 	set_time_out (a_time_out: NATURAL)
@@ -1231,7 +1230,7 @@ feature {NONE} -- Implementation: preparation
 	prepare
 			-- Prepare test generation
 		local
-			l_file_name: FILE_NAME
+			l_file_name: PATH
 			l_file: KL_TEXT_OUTPUT_FILE_32
 			l_error_handler: AUT_ERROR_HANDLER
 		do
@@ -1241,10 +1240,8 @@ feature {NONE} -- Implementation: preparation
 			l_error_handler := error_handler
 
 			create l_file_name.make_from_string (output_dirname)
-			l_file_name.extend ("log")
-			l_file_name.set_file_name ("error")
-			l_file_name.add_extension ("log")
-			create l_file.make (l_file_name)
+			l_file_name := l_file_name.extended ("log").extended ("error").appended_with_extension("log")
+			create l_file.make_with_path (l_file_name)
 			l_file.recursive_open_write
 			if l_file.is_open_write then
 				output_file := l_file
@@ -1278,12 +1275,12 @@ feature {NONE} -- Implementation: preparation
 
 feature{NONE} -- Test result analyizing
 
-	print_new_class (a_file: KL_TEXT_OUTPUT_FILE_32; a_class_name: STRING)
+	print_new_class (a_file: KL_TEXT_OUTPUT_FILE_32; a_class_name: READABLE_STRING_32)
 			-- <Precursor>
 		local
 			l_system: like system
 			l_count: NATURAL
-			l_test_name: IMMUTABLE_STRING_8
+			l_test_name: IMMUTABLE_STRING_32
 		do
 			l_system := system
 			check l_system /= Void end
@@ -1295,7 +1292,7 @@ feature{NONE} -- Test result analyizing
 			loop
 				source_writer.print_test_routine (current_results.last)
 				current_results.remove_last
-				create l_test_name.make_from_string (a_class_name + "." + source_writer.last_test_routine_name)
+				create l_test_name.make_from_string (a_class_name + {STRING_32} "." + source_writer.last_test_routine_name)
 				publish_test_creation (l_test_name)
 			end
 			source_writer.finish
@@ -1678,7 +1675,7 @@ feature -- Option caches
 			-- inferred implications.
 
 ;note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

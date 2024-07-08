@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Argument parser for all classes compilation tool."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -33,11 +33,8 @@ feature {NONE} -- Factory
 	new_argument_source: ARGUMENT_SOURCE
 			-- Creates a new default argument source object for the parser,
 			-- in order to include value from potential `ISE_COMPILE_ALL_FLAGS` environment variable.
-		local
-			args: COMPILE_ALL_ARGUMENTS
 		do
-			create args
-			create {ENVIRONMENT_ARGUMENTS_SOURCE} Result.make (args)
+			create {ENVIRONMENT_ARGUMENTS_SOURCE} Result.make (create {COMPILE_ALL_ARGUMENTS})
 		end
 
 feature {NONE} -- Access
@@ -68,7 +65,7 @@ feature {NONE} -- Access
 			Result.extend (create {ARGUMENT_DIRECTORY_SWITCH}.make (compdir_switch, "Directory where projects will be compiled.", True, False, "directory", "A directory where the projects will be compiled", False))
 			Result.extend (create {ARGUMENT_DIRECTORY_SWITCH}.make (eifgen_switch, "Obsolete: see %"" + compdir_switch  + "%" option.", True, False, "directory", "...", False))
 			Result.extend (create {ARGUMENT_DIRECTORY_SWITCH}.make (logdir_switch, "Directory where logs will be stored (if verbose logging is enabled).", True, False, "directory", "A directory where the logs will be stored", False))
-			Result.extend (create {ARGUMENT_FILE_SWITCH}.make (ignore_switch, "Ignore file with files/targets to ignore.", True, False, "ignore.ini", "INI file with the ignores.", False))
+			Result.extend (create {ARGUMENT_VALUE_SWITCH}.make (ignore_switch, "Ignore file with files/targets to ignore.", True, False, "ignore.ini", "INI file with the ignores.", False))
 			Result.extend (create {ARGUMENT_SWITCH}.make (log_verbose_switch, "Verbose logging of actions?", True, False))
 			Result.extend (create {ARGUMENT_SWITCH}.make (list_failures_switch, "Display a list of failed compilation(s) with associated log filename if available.", True, False))
 			Result.extend (create {ARGUMENT_SWITCH}.make (ecb_switch, "Use ecb instead of ec?", True, False))
@@ -91,14 +88,9 @@ feature {NONE} -- Access
 feature -- Status Report
 
 	use_directory_location: BOOLEAN
-			-- Indicates if `location' represents a directory
-		local
-			l_file: RAW_FILE
+			-- Indicates if `location' represents a directory.
 		once
-			create l_file.make_with_path (location)
-			Result := l_file.is_directory
-		ensure
-			result_not_directory: Result /= (create {DIRECTORY}.make_with_path (location)).exists
+			Result := (create {RAW_FILE}.make_with_path (location)).is_directory
 		end
 
 feature -- Access
@@ -106,15 +98,14 @@ feature -- Access
 	location: PATH
 			-- Location of files to use
 		once
-			if has_option (location_switch) then
-				create Result.make_from_string (option_of_name (location_switch).value)
+			if attached option_of_name (location_switch) as o then
+				create Result.make_from_string (o.value)
 			else
-				Result := (create {EXECUTION_ENVIRONMENT}).current_working_path
+				Result := {EXECUTION_ENVIRONMENT}.current_working_path
 			end
 		ensure
 			location_not_void: Result /= Void
 			location_not_empty: not Result.is_empty
-			result_exists: (create {RAW_FILE}.make_with_path (Result)).exists or (create {DIRECTORY}.make_with_path (Result)).exists
 		end
 
 	compilation_dir: detachable PATH
@@ -138,11 +129,9 @@ feature -- Access
 	ignore: detachable IMMUTABLE_STRING_32
 			-- File with the ignores.
 		once
-			if has_option (ignore_switch) then
-				Result := option_of_name (ignore_switch).value
+			if attached option_of_name (ignore_switch) as o then
+				Result := o.value
 			end
-		ensure
-			Result_ok: Result /= Void implies not Result.is_empty and then (create {RAW_FILE}.make_with_name (Result)).exists or (create {DIRECTORY}.make (Result)).exists
 		end
 
 	is_ecb: BOOLEAN
@@ -192,29 +181,27 @@ feature -- Access
 	has_keep_all: BOOLEAN
 			-- Keep EIFGENs after any compilation?
 		once
-			if has_option (keep_switch) then
-				if attached option_of_name (keep_switch).value as v and then not v.is_empty then
-				 	Result := v.is_case_insensitive_equal ("all")
-				else
-					Result := True
-				end
-			end
+			Result :=
+				attached option_of_name (keep_switch) as o and then
+				((attached o.value as v and then not v.is_empty) implies v.is_case_insensitive_equal ("all"))
 		end
 
 	has_keep_failed: BOOLEAN
 			-- Keep EIFGENs after Failed compilation?
 		once
-			if has_option (keep_switch) then
-				Result := attached option_of_name (keep_switch).value as v and then v.is_case_insensitive_equal ("failed")
-			end
+			Result :=
+				attached option_of_name (keep_switch) as o and then
+				attached o.value as v and then
+				v.is_case_insensitive_equal ("failed")
 		end
 
 	has_keep_passed: BOOLEAN
 			-- Keep EIFGENs after Passed compilation?
 		once
-			if has_option (keep_switch) then
-				Result := attached option_of_name (keep_switch).value as v and then v.is_case_insensitive_equal ("passed")
-			end
+			Result :=
+				attached option_of_name (keep_switch) as o and then
+				attached o.value as v and then
+				v.is_case_insensitive_equal ("passed")
 		end
 
 	is_c_compile: BOOLEAN
@@ -252,18 +239,15 @@ feature -- Access: -interface
 	interface_output_action_template: detachable IMMUTABLE_STRING_32
 			-- Template for output action
 		once
-			if attached interface_item ("template") as s then
-				Result := s
-			end
+			Result := interface_item ("template")
 		end
 
-	interface_text (m: READABLE_STRING_GENERAL): IMMUTABLE_STRING_32
+	interface_text (m: READABLE_STRING_32): IMMUTABLE_STRING_32
 			-- Value for -options text.`m'=value
 		do
-			if attached interface_item ("text." + m) as s then
-				Result := s
-			else
-				create Result.make_from_string_general (m)
+			Result := interface_item ({STRING_32} "text." + m)
+			if not attached Result then
+				create Result.make_from_string (m)
 			end
 		end
 
@@ -278,14 +262,11 @@ feature -- Access: -options
 	platform_option: IMMUTABLE_STRING_32
 			-- `platform' compiler option for any action.
 		once
-			if attached options_item ("platform") as l_opt then
-				if not l_opt.is_empty and then l_opt.item (l_opt.count) = '!' then
-					Result := l_opt.head (l_opt.count - 1)
-				else
-					Result := l_opt
-				end
-			else
+			Result := options_item ("platform")
+			if not attached Result then
 				create Result.make_empty
+			elseif not Result.is_empty and then Result.item (Result.count) = '!' then
+				Result := Result.head (Result.count - 1)
 			end
 		end
 
@@ -300,9 +281,8 @@ feature -- Access: -options
 	ec_options: IMMUTABLE_STRING_32
 			-- 'ec' compiler option for any action
 		once
-			if attached options_item ("ec") as l_opt then
-				Result := l_opt
-			else
+			Result := options_item ("ec")
+			if not attached Result then
 				create Result.make_empty
 			end
 		end
@@ -310,9 +290,8 @@ feature -- Access: -options
 	melt_ec_options: IMMUTABLE_STRING_32
 			-- 'ec' compiler option when melting
 		once
-			if attached options_item ("ec.melt") as l_opt then
-				Result := l_opt
-			else
+			Result := options_item ("ec.melt")
+			if not attached Result then
 				create Result.make_empty
 			end
 		end
@@ -320,9 +299,8 @@ feature -- Access: -options
 	freeze_ec_options: IMMUTABLE_STRING_32
 			-- 'ec' compiler option when freezing
 		once
-			if attached options_item ("ec.freeze") as l_opt then
-				Result := l_opt
-			else
+			Result := options_item ("ec.freeze")
+			if not attached Result then
 				create Result.make_empty
 			end
 		end
@@ -330,9 +308,8 @@ feature -- Access: -options
 	finalize_ec_options: IMMUTABLE_STRING_32
 			-- 'ec' compiler option when finalizing
 		once
-			if attached options_item ("ec.finalize") as l_opt then
-				Result := l_opt
-			else
+			Result := options_item ("ec.finalize")
+			if not attached Result then
 				create Result.make_empty
 			end
 		end
@@ -386,7 +363,8 @@ feature {NONE} -- Concatenated value for multiple switch
 		do
 			if
 				has_option (a_switch) and then
-			 	attached options_of_name (a_switch) as lst and then not lst.is_empty
+			 	attached options_of_name (a_switch) as lst and then
+			 	not lst.is_empty
 			then
 				create Result.make_caseless (lst.count)
 				Result.compare_objects
@@ -456,7 +434,7 @@ feature {NONE} -- Switch names
 	;
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

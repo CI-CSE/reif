@@ -12,40 +12,120 @@ inherit
 	CONF_VALIDITY
 		redefine
 			copy,
-			default_create,
 			is_equal
 		end
 
 	CONF_ACCESS
 		redefine
 			copy,
-			default_create,
 			is_equal
 		end
 
 	CONF_FILE_CONSTANTS
 		redefine
 			copy,
-			default_create,
 			is_equal
 		end
 
-create
-	default_create,
-	make_6_3,
-	make_6_4,
-	make_7_0,
-	make_7_3,
-	make_14_05,
-	make_15_11,
-	make_18_01
+create {CONF_OPTION}
+	make_from_namespace
+
+feature -- Creation
+
+	create_from_namespace (n: attached like latest_namespace): detachable like Current
+			-- Create options with the defaults associated with namespace `n` if it is known.
+			-- Return `Void` if the namespace is unknown.
+			-- See also: `create_from_namespace_or_latest`.
+		do
+			if is_namespace_known (n) then
+				create Result.make_from_namespace (n)
+			end
+		ensure
+			class
+			is_namespace_known (n) ⇒ attached Result
+		end
+
+	create_from_namespace_or_latest (n: attached like latest_namespace): like Current
+			-- Create options with the defaults associated with namespace `n` if it is known.
+			-- Create options with the defaults associated with `latest_namespace` otherwise.
+			-- See also: `create_from_namespace`.
+		do
+			create Result.make_from_namespace (if is_namespace_known (n) then n else latest_namespace end)
+		ensure
+			class
+		end
 
 feature {NONE} -- Creation
 
-	default_create
-			-- Initialize options to the defaults of the current version.
+	make_from_namespace (n: attached like latest_namespace)
+			-- Initialize options to the defaults associated with namespace `n`.
+		require
+			is_namespace_known (n)
 		do
-			make_18_01
+			if
+				n.same_string (namespace_1_23_0) or else
+				n.same_string (namespace_1_22_0)
+			then
+					-- Use the defaults of ES 21.05.
+				make_21_05
+			elseif n.same_string (namespace_1_21_0) then
+					-- Use the defaults of ES 19.11.
+				make_19_11
+			elseif n.same_string (namespace_1_20_0) then
+					-- Use the defaults of ES 19.05.
+				make_19_05
+			elseif
+				n.same_string (namespace_1_19_0) or else
+				n.same_string (namespace_1_18_0)
+			then
+					-- Use the defaults of ES 18.01.
+				make_18_01
+			elseif
+				n.same_string (namespace_1_17_0) or else
+				n.same_string (namespace_1_16_0)
+			then
+					-- Use the defaults of ES 16.11.
+				make_16_11
+			elseif n.same_string (namespace_1_15_0) then
+					-- Use the defaults of ES 15.11.
+				make_15_11
+			elseif
+				n.same_string (namespace_1_14_0) or else
+				n.same_string (namespace_1_13_0)
+			then
+					-- Use the defaults of ES 14.05.
+				make_14_05
+			elseif
+				n.same_string (namespace_1_12_0) or else
+				n.same_string (namespace_1_11_0)
+			then
+					-- Use the defaults of ES 7.3.
+				make_7_3
+			elseif
+				n.same_string (namespace_1_10_0) or else
+				n.same_string (namespace_1_9_0)
+			then
+					-- Use the defaults of ES 7.0.
+				make_7_0
+			elseif
+				n.same_string (namespace_1_8_0) or else
+				n.same_string (namespace_1_7_0) or else
+				n.same_string (namespace_1_6_0) or else
+				n.same_string (namespace_1_5_0)
+			then
+					-- Use the defaults of ES 6.4.
+				make_6_4
+			elseif
+				n.same_string (namespace_1_4_0) or else
+				n.same_string (namespace_1_3_0) or else
+				n.same_string (namespace_1_2_0) or else
+				n.same_string (namespace_1_0_0)
+			then
+					-- Use the defaults of ES 6.3 and below.
+				make_6_3
+			else
+				check from_precondition: False then end
+			end
 		end
 
 	make_6_3
@@ -57,6 +137,9 @@ feature {NONE} -- Creation
 			create void_safety.make (void_safety_name, void_safety_index_none)
 			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
 			is_obsolete_routine_type := True
+			is_obsolete_iteration := True
+			create warning.make (warning_name, warning_index_none)
+			create warning_obsolete_call.make (warning_term_name, warning_term_index_current)
 		end
 
 	make_6_4
@@ -78,7 +161,7 @@ feature {NONE} -- Creation
 
 	make_7_3
 			-- Initialize options to the defaults of 7.3.
-			-- Difference fom `make_7_0': transitional void-safety, full class checking.
+			-- Difference fom `make_7_0': transitional void safety, full class checking.
 		do
 			make_7_0
 			void_safety.put_default_index (void_safety_index_transitional)
@@ -87,7 +170,7 @@ feature {NONE} -- Creation
 
 	make_14_05
 			-- Initialize options to the defaults of 14.05.
-			-- Difference from `make_7_3': complete void-safety.
+			-- Difference from `make_7_3': complete void safety.
 		do
 			make_7_3
 			void_safety.put_default_index (void_safety_index_all)
@@ -116,6 +199,29 @@ feature {NONE} -- Creation
 			array.put_default_index (array_index_standard)
 		end
 
+	make_19_05
+			-- Initialize options to the defaults of 19.05.
+			-- Difference from `make_18_01`: none. See `{CONF_TARGET_OPTION}`.
+		do
+			make_18_01
+		end
+
+	make_19_11
+			-- Initialize options to the defaults of 19.11.
+			-- Difference from `make_19_05`: warnings are reported.
+		do
+			make_19_05
+			warning.put_default_index (warning_index_warning)
+		end
+
+	make_21_05
+			-- Initialize options to the defaults of 21.05.
+			-- Difference from `make_19_11`: loops without "is" keyword.
+		do
+			make_19_11
+			is_obsolete_iteration := False
+		end
+
 feature -- Status
 
 	is_profile_configured: BOOLEAN
@@ -130,9 +236,6 @@ feature -- Status
 	is_debug_configured: BOOLEAN
 			-- Is `is_debug' configured?
 
-	is_warning_configured: BOOLEAN
-			-- Is `is_warning' configured?
-
 	is_msil_application_optimize_configured: BOOLEAN
 			-- Is `is_msil_application_optimize' configured?
 
@@ -145,6 +248,9 @@ feature -- Status
 	is_obsolete_routine_type_configured: BOOLEAN
 			-- Is `is_obsolete_routine_type' configured?
 
+	is_obsolete_iteration_configured: BOOLEAN
+			-- Is `is_obsolete_iteration` configured?
+
 	is_empty: BOOLEAN
 			-- Is `Current' empty? No settings are set?
 		do
@@ -153,19 +259,21 @@ feature -- Status
 				is_trace_configured or
 				is_optimize_configured or
 				is_debug_configured or
-				is_warning_configured or
 				is_msil_application_optimize_configured or
 				is_full_class_checking_configured or
 				catcall_detection.is_set or
 				is_attached_by_default_configured or
 				is_obsolete_routine_type_configured or
+				is_obsolete_iteration_configured or
 				void_safety.is_set or
 				assertions /= Void or
 				local_namespace /= Void or
 				warnings /= Void or
 				debugs /= Void or
 				syntax.is_set or
-				array.is_set)
+				array.is_set or
+				warning.is_set or
+				warning_obsolete_call.is_set)
 		end
 
 	is_empty_for (n: detachable READABLE_STRING_32): BOOLEAN
@@ -176,17 +284,19 @@ feature -- Status
 				is_trace_configured or
 				is_optimize_configured or
 				is_debug_configured or
-				is_warning_configured or
 				is_msil_application_optimize_configured or
 				is_full_class_checking_configured or
 				is_attached_by_default_configured or
 				is_obsolete_routine_type_configured or
+				is_obsolete_iteration_configured or
 				assertions /= Void or
 				local_namespace /= Void or
 				warnings /= Void or
 				debugs /= Void or
 				syntax.is_set or
 				array.is_set or
+				warning.is_set or
+				warning_obsolete_call.is_set or
 					-- Void safety and catcall detection options are used only before `namespace_1_15_0`.
 				(is_before_or_equal (n, namespace_1_15_0) and then
 					(catcall_detection.is_set or
@@ -223,13 +333,6 @@ feature -- Status update
 			is_debug := False
 		end
 
-	unset_warning
-			-- Unset warning.
-		do
-			is_warning_configured := False
-			is_warning := False
-		end
-
 	unset_msil_application_optimize
 			-- Unset .NET application optimizations
 		do
@@ -251,20 +354,30 @@ feature -- Status update
 			is_attached_by_default := False
 		end
 
+	unset_is_obsolete_iteration
+			-- Unset `unset_is_obsolete_iteration`.
+		do
+			is_obsolete_iteration_configured := False
+			is_obsolete_iteration := False
+		ensure
+			not is_obsolete_iteration_configured
+			not is_obsolete_iteration
+		end
+
 	unset_is_obsolete_routine_type
-			-- Unset `is_obsolete_routine_type'.
+			-- Unset `is_obsolete_routine_type`.
 		do
 			is_obsolete_routine_type_configured := False
 			is_obsolete_routine_type := False
+		ensure
+			not is_obsolete_routine_type_configured
+			not is_obsolete_routine_type
 		end
 
 feature -- Access, stored in configuration file
 
 	assertions: detachable CONF_ASSERTIONS
 			-- The assertion settings.
-
-	namespace: detachable READABLE_STRING_32
-			-- .NET namespace that is computed on demand.
 
 	local_namespace: detachable READABLE_STRING_32
 			-- .NET namespace set in configuration file
@@ -281,9 +394,6 @@ feature -- Access, stored in configuration file
 	is_debug: BOOLEAN
 			-- Do debug?
 
-	is_warning: BOOLEAN
-			-- Show warnings?
-
 	is_msil_application_optimize: BOOLEAN
 			-- Do .NET specific application optimizations?
 
@@ -292,6 +402,16 @@ feature -- Access, stored in configuration file
 
 	is_attached_by_default: BOOLEAN
 			-- Is type declaration considered attached by default?
+
+	is_obsolete_iteration: BOOLEAN
+			-- Is an obsolete iteration syntax used?
+			-- Obsolete iteration syntax uses "is" with direct access to the iteration item,
+			-- or uses "as" with direct access to the iteration cursor.
+			-- Obsolete:
+			-- 		across foo as x loop ... x.item ... x.key ... end
+			-- 		across foo is x loop ... x ... @x.key ... end
+			-- Contemporary:
+			-- 		across foo as x loop ... x ... @x.key ... end
 
 	is_obsolete_routine_type: BOOLEAN
 			-- Is an obsolete routine type declaration used?
@@ -340,14 +460,129 @@ feature -- Access: manifest array type
 	array_index_standard: NATURAL_8 = 3
 			-- Option index for standard syntax
 
-feature {NONE} -- Access: syntax
+feature {NONE} -- Access: manifest array type
 
 	array_name: ARRAY [READABLE_STRING_32]
-			-- Available values for `manifest_array_type` option.
+			-- Available values for `array` option.
 		once
 			Result := <<{STRING_32} "mismatch_error", {STRING_32} "mismatch_warning", {STRING_32} "standard">>
 		ensure
 			result_attached: Result /= Void
+		end
+
+feature -- Warning: access
+
+	warning: CONF_VALUE_CHOICE
+			-- Expected way to report warnings.
+
+	warning_index_none: NATURAL_8 = 1
+			-- Option index to suppress warnings.
+
+	warning_index_warning: NATURAL_8 = 2
+			-- Option index to report warnings as warnings.
+
+	warning_index_error: NATURAL_8 = 3
+			-- Option index to report warnings as errors.
+
+	warnings: detachable STRING_TABLE [BOOLEAN]
+			-- Warning settings.
+
+	warning_obsolete_call: CONF_VALUE_CHOICE
+			-- Expected way to detect calls to obsolete features.
+			-- Associated indexes are:
+			-- • `warning_term_index_none`
+			-- • `warning_term_index_current`
+			-- • `warning_term_index_all`
+			-- Associated names are `warning_term_name`.
+
+	warning_term_index_none: NATURAL_8 = 1
+			-- Option index to suppress warnings.
+			-- Associated names are `warning_term_name`.
+
+	warning_term_index_current: NATURAL_8 = 2
+			-- Option index to report warnings relevant now.
+			-- Associated names are `warning_term_name`.
+
+	warning_term_index_all: NATURAL_8 = 3
+			-- Option index to report all warnings.
+			-- Associated names are `warning_term_name`.
+
+feature -- Warning: status report
+
+	is_valid_warning_term_index (i: like warning_term_index_none): BOOLEAN
+			-- Does `i` represent a valid index of a term warning (such as `warning_obsolete_call`)?
+		do
+			inspect i
+			when
+				warning_term_index_none,
+				warning_term_index_current,
+				warning_term_index_all
+			then
+				Result := True
+			else
+					-- False by default.
+			end
+		ensure
+			class
+			definition: Result = (<<warning_term_index_none, warning_term_index_current, warning_term_index_all>>).has (i)
+		end
+
+	is_warning_enabled (a_warning: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is `a_warning` enabled?
+		require
+			a_warning_valid: is_warning_known (a_warning) and then not a_warning.is_case_insensitive_equal (w_obsolete_feature)
+		do
+			Result := warning.index /= warning_index_none and then (attached warnings as w implies (w.has_key (a_warning) implies w.found_item))
+		end
+
+	is_warning_as_error: BOOLEAN
+			-- Should a warning be reported as an error?
+		do
+			Result := warning.index = warning_index_error
+		end
+
+feature {NONE} -- Warning: access
+
+	warning_name: ARRAY [READABLE_STRING_32]
+			-- Available values for `warning` option.
+		once
+			Result := <<{STRING_32} "none", {STRING_32} "warning", {STRING_32} "error">>
+		ensure
+			result_attached: Result /= Void
+		end
+
+	warning_term_name: ARRAY [READABLE_STRING_32]
+			-- Available values for `warning_obsolete_call` option.
+			-- Associated indexes are:
+			-- • `warning_term_index_none`
+			-- • `warning_term_index_current`
+			-- • `warning_term_index_all`
+		once
+			Result := <<{STRING_32} "none", {STRING_32} "current", {STRING_32} "all">>
+		ensure
+			result_attached: Result /= Void
+		end
+
+feature -- Warning: modification
+
+	add_warning (a_name: READABLE_STRING_GENERAL; an_enabled: BOOLEAN)
+			-- Add a warning.
+		require
+			a_name_ok: a_name /= Void and then not a_name.is_empty
+			a_name_lower: a_name.same_string (a_name.as_lower)
+			known_warning: is_warning_known (a_name) and then not a_name.is_case_insensitive_equal (w_obsolete_feature)
+		local
+			w: like warnings
+		do
+			w := warnings
+			if w = Void then
+				create w.make_equal (1)
+				warnings := w
+			end
+			w.force (an_enabled, a_name)
+		ensure
+			warnings_set: attached warnings as el_warnings
+			added: el_warnings.has (a_name) and then el_warnings.item (a_name) = an_enabled
 		end
 
 feature -- Access: catcall
@@ -399,7 +634,13 @@ feature {NONE} -- Access: void safety
 	void_safety_name: ARRAY [READABLE_STRING_32]
 			-- Available values for `void_safety' option.
 		once
-			Result := <<{STRING_32} "none", {STRING_32} "conformance", {STRING_32} "initialization", {STRING_32} "transitional", {STRING_32} "all">>
+			Result := <<
+					{CONF_CONSTANTS}.void_safety_none_name.as_string_32,
+					{CONF_CONSTANTS}.void_safety_conformance_name.as_string_32,
+					{CONF_CONSTANTS}.void_safety_initialization_name.as_string_32,
+					{CONF_CONSTANTS}.void_safety_transitional_name.as_string_32,
+					{CONF_CONSTANTS}.void_safety_all_name.as_string_32
+				>>
 		ensure
 			result_attached: Result /= Void
 		end
@@ -409,9 +650,6 @@ feature -- Access, stored in configuration file.
 	debugs: detachable STRING_TABLE [BOOLEAN]
 			-- Debug settings.
 
-	warnings: detachable STRING_TABLE [BOOLEAN]
-			-- Warning settings.
-
 feature -- Access queries
 
 	is_debug_enabled (a_debug: STRING): BOOLEAN
@@ -419,14 +657,6 @@ feature -- Access queries
 		do
 			Result := is_debug and then
 					attached debugs as l_debugs and then l_debugs.item (a_debug)
-		end
-
-	is_warning_enabled (a_warning: READABLE_STRING_GENERAL): BOOLEAN
-			-- Is `a_warning' enabled?
-		require
-			a_warning_valid: is_warning_known (a_warning)
-		do
-			Result := is_warning and then (not attached warnings as w or else (not w.has_key (a_warning) or else w.found_item))
 		end
 
 feature {CONF_ACCESS} -- Update, stored in configuration file.
@@ -458,26 +688,6 @@ feature {CONF_ACCESS} -- Update, stored in configuration file.
 			added: el_debugs.has (a_name) and then el_debugs.item (a_name) = an_enabled
 		end
 
-	add_warning (a_name: READABLE_STRING_GENERAL; an_enabled: BOOLEAN)
-			-- Add a warning.
-		require
-			a_name_ok: a_name /= Void and then not a_name.is_empty
-			a_name_lower: a_name.same_string (a_name.as_lower)
-			known_warning: is_warning_known (a_name)
-		local
-			w: like warnings
-		do
-			w := warnings
-			if w = Void then
-				create w.make_equal (1)
-				warnings := w
-			end
-			w.force (an_enabled, a_name)
-		ensure
-			warnings_set: attached warnings as el_warnings
-			added: el_warnings.has (a_name) and then el_warnings.item (a_name) = an_enabled
-		end
-
 	set_local_namespace (a_namespace: like local_namespace)
 			-- Set `local_namespace' from `a_namepace' and reset `namespace'.
 		do
@@ -486,13 +696,11 @@ feature {CONF_ACCESS} -- Update, stored in configuration file.
 			else
 				local_namespace := a_namespace
 			end
-			namespace := Void
 		ensure
 			local_namespace_set:
 				a_namespace = Void or else not a_namespace.is_empty implies local_namespace = a_namespace
 			local_namespace_reset:
 				a_namespace /= Void and then a_namespace.is_empty implies local_namespace = Void
-			namespace_reset: namespace = Void
 		end
 
 	set_profile (a_enabled: BOOLEAN)
@@ -536,17 +744,6 @@ feature {CONF_ACCESS} -- Update, stored in configuration file.
 			is_debug_configured: is_debug_configured
 		end
 
-	set_warning (a_enabled: BOOLEAN)
-			-- Set `is_warning' to `a_enabled'.
-			-- Enables/disables warning clauses in general.
-		do
-			is_warning_configured := True
-			is_warning := a_enabled
-		ensure
-			is_warning_set: is_warning = a_enabled
-			is_warning_configured: is_warning_configured
-		end
-
 	set_msil_application_optimize (a_enabled: BOOLEAN)
 			-- Set `is_msil_application_optimize' to `a_enable'.
 			-- Enabled/disables .NET application optimizations in general.
@@ -576,6 +773,17 @@ feature {CONF_ACCESS} -- Update, stored in configuration file.
 		ensure
 			is_attached_by_default_set: is_attached_by_default = v
 			is_attached_by_default_configured: is_attached_by_default_configured
+		end
+
+	set_is_obsolete_iteration (v: BOOLEAN)
+			-- Set `is_obsolete_iteration` to `v`.
+			-- See also: `unset_is_obsolete_iteration`.
+		do
+			is_obsolete_iteration_configured := True
+			is_obsolete_iteration := v
+		ensure
+			is_obsolete_iteration = v
+			is_obsolete_iteration_configured
 		end
 
 	set_is_obsolete_routine_type (v: BOOLEAN)
@@ -616,13 +824,11 @@ feature -- Duplication
 				if attached other.local_namespace as l then
 					local_namespace := l.twin
 				end
-				if attached other.namespace as n then
-					namespace := n.twin
-				end
 				void_safety := other.void_safety.twin
 				catcall_detection := other.catcall_detection.twin
 				syntax := other.syntax.twin
 				array := other.array.twin
+				warning := other.warning.twin
 				if attached other.warnings as w then
 					warnings := w.twin
 				end
@@ -633,56 +839,58 @@ feature -- Comparison
 
 	is_equal (other: like Current): BOOLEAN
 		do
-			if equal (assertions, other.assertions)
-			and then equal (debugs, other.debugs)
-			and then equal (description, other.description)
-			and then is_attached_by_default = other.is_attached_by_default
-			and then is_attached_by_default_configured = other.is_attached_by_default_configured
-			and then is_obsolete_routine_type = other.is_obsolete_routine_type
-			and then is_obsolete_routine_type_configured = other.is_obsolete_routine_type_configured
-			and then catcall_detection.is_equal (other.catcall_detection)
-			and then is_debug = other.is_debug
-			and then is_debug_configured = other.is_debug_configured
-			and then is_full_class_checking = other.is_full_class_checking
-			and then is_full_class_checking_configured = other.is_full_class_checking_configured
-			and then is_msil_application_optimize = other.is_msil_application_optimize
-			and then is_msil_application_optimize_configured = other.is_msil_application_optimize_configured
-			and then is_optimize = other.is_optimize
-			and then is_optimize_configured = other.is_optimize_configured
-			and then is_profile = other.is_profile
-			and then is_profile_configured = other.is_profile_configured
-			and then is_trace = other.is_trace
-			and then is_trace_configured = other.is_trace_configured
-			and then is_warning = other.is_warning
-			and then is_warning_configured = other.is_warning_configured
-			and then equal (local_namespace, other.local_namespace)
-			and then equal (namespace, other.namespace)
-			and then void_safety.is_equal (other.void_safety)
-			and then syntax.is_equal (other.syntax)
-			and then array.is_equal (other.array)
-			and then equal (warnings, other.warnings)
-			then
-				Result := True
-			end
+			Result :=
+				assertions ~ other.assertions ∧…
+				debugs ~ other.debugs ∧…
+				description ~ other.description ∧…
+				is_attached_by_default = other.is_attached_by_default ∧…
+				is_attached_by_default_configured = other.is_attached_by_default_configured ∧…
+				is_obsolete_iteration = other.is_obsolete_iteration ∧…
+				is_obsolete_iteration_configured = other.is_obsolete_iteration_configured ∧…
+				is_obsolete_routine_type = other.is_obsolete_routine_type ∧…
+				is_obsolete_routine_type_configured = other.is_obsolete_routine_type_configured ∧…
+				catcall_detection ~ other.catcall_detection ∧…
+				is_debug = other.is_debug ∧…
+				is_debug_configured = other.is_debug_configured ∧…
+				is_full_class_checking = other.is_full_class_checking ∧…
+				is_full_class_checking_configured = other.is_full_class_checking_configured ∧…
+				is_msil_application_optimize = other.is_msil_application_optimize ∧…
+				is_msil_application_optimize_configured = other.is_msil_application_optimize_configured ∧…
+				is_optimize = other.is_optimize ∧…
+				is_optimize_configured = other.is_optimize_configured ∧…
+				is_profile = other.is_profile ∧…
+				is_profile_configured = other.is_profile_configured ∧…
+				is_trace = other.is_trace ∧…
+				is_trace_configured = other.is_trace_configured ∧…
+				local_namespace ~ other.local_namespace ∧…
+				void_safety ~ other.void_safety ∧…
+				syntax ~ other.syntax ∧…
+				array ~ other.array ∧…
+				warning ~ other.warning ∧…
+				warning_obsolete_call ~ other.warning_obsolete_call ∧…
+				warnings ~ other.warnings
 		end
 
 	is_equal_options (other: like Current): BOOLEAN
 			-- Are `current' and `other' equal considering the options that are in the compiled result?
 		do
-			Result := equal (assertions, other.assertions) and
+			Result :=
+				assertions ~ other.assertions and
 				is_debug = other.is_debug and
 				is_optimize = other.is_optimize and
 				is_profile = other.is_profile and
 				is_full_class_checking = other.is_full_class_checking and
 				catcall_detection.index = other.catcall_detection.index and
 				is_attached_by_default = other.is_attached_by_default and
+				is_obsolete_iteration = other.is_obsolete_iteration and
 				is_obsolete_routine_type = other.is_obsolete_routine_type and
 				is_trace = other.is_trace and
 				void_safety.index = other.void_safety.index and
 				syntax.index = other.syntax.index and
 				array.index = other.array.index and
-				equal(local_namespace, other.local_namespace) and
-				equal (debugs, other.debugs)
+				warning.index = other.warning.index and
+				local_namespace ~ other.local_namespace and
+				debugs ~ other.debugs
 		end
 
 	is_void_safety_supported (other: CONF_OPTION): BOOLEAN
@@ -737,106 +945,89 @@ feature -- Merging
 			l_warnings: like warnings
 			l_debugs: like debugs
 		do
-			if other /= Void then
-				if assertions = Void then
-					assertions := other.assertions
-				end
-				l_debugs := debugs
-				if l_debugs = Void then
-					l_debugs := other.debugs
-					debugs := l_debugs
-				elseif attached other.debugs as l_other_debugs then
-					l_tmp := l_other_debugs.twin
-					l_tmp.merge (l_debugs)
-					debugs := l_tmp
-				end
-				l_warnings := warnings
-				if l_warnings = Void then
-					l_warnings := other.warnings
-					warnings := l_warnings
-				elseif attached other.warnings as l_other_warnings then
-					l_warnings := l_other_warnings.twin
-					l_warnings.merge (l_warnings)
-					warnings := l_warnings
-				end
-				if not is_profile_configured then
-					is_profile_configured := other.is_profile_configured or else is_profile /~ other.is_profile
-					is_profile := other.is_profile
-				end
-				if not is_trace_configured then
-					is_trace_configured := other.is_trace_configured or else is_trace /~ other.is_trace
-					is_trace := other.is_trace
-				end
-				if not is_optimize_configured then
-					is_optimize_configured := other.is_optimize_configured or else is_optimize /~ other.is_optimize
-					is_optimize := other.is_optimize
-				end
-				if not is_debug_configured then
-					is_debug_configured := other.is_debug_configured or else is_debug /~ other.is_debug
-					is_debug := other.is_debug
-				end
-				if not is_warning_configured then
-					is_warning_configured := other.is_warning_configured or else is_warning /~ other.is_warning
-					is_warning := other.is_warning
-				end
-				if not is_msil_application_optimize_configured then
-					is_msil_application_optimize_configured := other.is_msil_application_optimize_configured or else is_msil_application_optimize /~ other.is_msil_application_optimize
-					is_msil_application_optimize := other.is_msil_application_optimize
-				end
+			if assertions = Void then
+				assertions := other.assertions
+			end
+			l_debugs := debugs
+			if l_debugs = Void then
+				l_debugs := other.debugs
+				debugs := l_debugs
+			elseif attached other.debugs as l_other_debugs then
+				l_tmp := l_other_debugs.twin
+				l_tmp.merge (l_debugs)
+				debugs := l_tmp
+			end
+			l_warnings := warnings
+			if l_warnings = Void then
+				l_warnings := other.warnings
+				warnings := l_warnings
+			elseif attached other.warnings as l_other_warnings then
+				l_warnings := l_other_warnings.twin
+				l_warnings.merge (l_warnings)
+				warnings := l_warnings
+			end
+			if not is_profile_configured then
+				is_profile_configured := other.is_profile_configured or else is_profile /~ other.is_profile
+				is_profile := other.is_profile
+			end
+			if not is_trace_configured then
+				is_trace_configured := other.is_trace_configured or else is_trace /~ other.is_trace
+				is_trace := other.is_trace
+			end
+			if not is_optimize_configured then
+				is_optimize_configured := other.is_optimize_configured or else is_optimize /~ other.is_optimize
+				is_optimize := other.is_optimize
+			end
+			if not is_debug_configured then
+				is_debug_configured := other.is_debug_configured or else is_debug /~ other.is_debug
+				is_debug := other.is_debug
+			end
+			warning.set_safely (other.warning)
+			warning_obsolete_call.set_safely (other.warning_obsolete_call)
+			if not is_msil_application_optimize_configured then
+				is_msil_application_optimize_configured := other.is_msil_application_optimize_configured or else is_msil_application_optimize /~ other.is_msil_application_optimize
+				is_msil_application_optimize := other.is_msil_application_optimize
 			end
 		end
 
 	merge (other: like Current)
 			-- Merge with other, if the values aren't defined in `Current' take the values of `other'.
 			-- Apply this to all options.
-		local
-			l_namespace: like local_namespace
 		do
-			if other /= Void then
-				merge_client (other)
-					-- Computation of `namespace' by using values in `other'.
-				if attached other.namespace as l_other_namespace then
-					l_namespace := l_other_namespace
+			merge_client (other)
+				-- Propagate `local_namespace` from `other` if necessary and possible.
+			if not attached local_namespace and then attached other.local_namespace as n then
+				set_local_namespace (n)
+			end
+			if not is_full_class_checking_configured then
+				is_full_class_checking_configured := other.is_full_class_checking_configured or else is_full_class_checking /~ other.is_full_class_checking
+				is_full_class_checking := other.is_full_class_checking
+			end
+			catcall_detection.set_safely (other.catcall_detection)
+			if not is_obsolete_iteration_configured then
+				is_obsolete_iteration_configured := other.is_obsolete_iteration_configured or else is_obsolete_iteration /~ other.is_obsolete_iteration
+				is_obsolete_iteration := other.is_obsolete_iteration
+			end
+			if not is_obsolete_routine_type_configured then
+				is_obsolete_routine_type_configured := other.is_obsolete_routine_type_configured or else is_obsolete_routine_type /~ other.is_obsolete_routine_type
+				is_obsolete_routine_type := other.is_obsolete_routine_type
+			end
+			syntax.set_safely (other.syntax)
+			array.set_safely (other.array)
+			warning.set_safely (other.warning)
+			void_safety.set_safely (other.void_safety)
+				-- The merge for `is_attached_by_default' should happen after merging `void_safety'
+				-- because the latter is used to default to `True' if the resulting project is not Void-safe.
+			if not is_attached_by_default_configured then
+				if not other.is_attached_by_default_configured and then void_safety.index = void_safety_index_none then
+						-- Default attached-by-default to True, so that if a user decides to switch the option,
+						-- he get's attached-by-default automatically.
+					is_attached_by_default_configured := not other.is_attached_by_default
+					is_attached_by_default := True
 				else
-					l_namespace := other.local_namespace
-				end
-				if attached local_namespace as l_local_namespace then
-					if l_namespace /= Void then
-						namespace := l_namespace + "." + l_local_namespace
-					else
-						namespace := l_local_namespace.twin
-					end
-				elseif l_namespace /= Void then
-					namespace := l_namespace.twin
-				else
-					namespace := Void
-				end
-
-				if not is_full_class_checking_configured then
-					is_full_class_checking_configured := other.is_full_class_checking_configured or else is_full_class_checking /~ other.is_full_class_checking
-					is_full_class_checking := other.is_full_class_checking
-				end
-				catcall_detection.set_safely (other.catcall_detection)
-				if not is_obsolete_routine_type_configured then
-					is_obsolete_routine_type_configured := other.is_obsolete_routine_type_configured or else is_obsolete_routine_type /~ other.is_obsolete_routine_type
-					is_obsolete_routine_type := other.is_obsolete_routine_type
-				end
-				syntax.set_safely (other.syntax)
-				array.set_safely (other.array)
-				void_safety.set_safely (other.void_safety)
-					-- The merge for `is_attached_by_default' should happen after merging `void_safety'
-					-- because the latter is used to default to `True' if the resulting project is not Void-safe.
-				if not is_attached_by_default_configured then
-					if not other.is_attached_by_default_configured and then void_safety.index = void_safety_index_none then
-							-- Default attached-by-default to True, so that if a user decides to switch the option,
-							-- he get's attached-by-default automatically.
-						is_attached_by_default_configured := not other.is_attached_by_default
-						is_attached_by_default := True
-					else
-							-- Use general merging scheme.
-						is_attached_by_default_configured := other.is_attached_by_default_configured or else is_attached_by_default /~ other.is_attached_by_default
-						is_attached_by_default := other.is_attached_by_default
-					end
+						-- Use general merging scheme.
+					is_attached_by_default_configured := other.is_attached_by_default_configured or else is_attached_by_default /~ other.is_attached_by_default
+					is_attached_by_default := other.is_attached_by_default
 				end
 			end
 		end
@@ -858,7 +1049,8 @@ invariant
 	debugs_compare_objects: attached debugs as l_d implies l_d.object_comparison
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	ca_ignore: "CA093", "CA093: manifest array type mismatch"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

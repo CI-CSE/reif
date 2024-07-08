@@ -172,13 +172,16 @@ feature -- Initialization
 			last_rsqure.wipe_out
 			current_class := Void
 			is_ignoring_attachment_marks := False
+			is_explicit_iteration_cursor := False
 			is_frozen_class := False
 			is_external_class := False
 			is_partial_class := False
 			is_deferred := False
 			is_expanded := False
+			is_once := False
 			deferred_keyword := Void
 			expanded_keyword := Void
+			once_keyword := Void
 			external_keyword := Void
 			frozen_keyword := Void
 				-- Add a frame for a top-level feature.
@@ -222,11 +225,22 @@ feature -- Status report
 			Result := syntax_version /= provisional_syntax
 		end
 
+	is_explicit_iteration_cursor: BOOLEAN
+			-- Does iteration use an explicit cursor?
+			-- If yes, the iteration item is accessed via an explicit call "c.item".
+			-- Otherwise, it is accessed without a call ("c"), but other accesser use a predecessor ("@c.key").
+
 	is_type_inference_supported: BOOLEAN
 			-- Is type inference supported so that some type declarations are optional?
 		do
 			Result := True
 		end
+
+feature -- Access
+
+	expression_parser_prefix: STRING_32 = "check "
+			-- A prefix of the string for parsing with `expression_parser`.
+			-- The expression text should be placed after the prefix.
 
 feature -- Parsing (Unknown encoding)
 
@@ -418,7 +432,7 @@ feature -- Parsing (Known encoding)
 			reset
 		end
 
-	parse_from_utf8_string (a_string: STRING; a_class: detachable ABSTRACT_CLASS_C)
+	parse_from_utf8_string (a_string: STRING_8; a_class: detachable ABSTRACT_CLASS_C)
 			-- Parse Eiffel class text in UTF-8 `a_string'.
 			-- Make result available in appropriate result node.
 			-- An exception is raised if a syntax error is found.
@@ -426,11 +440,11 @@ feature -- Parsing (Known encoding)
 			a_string_not_void: a_string /= Void
 		local
 			l_ast_factory: like ast_factory
-			l_input_buffer: YY_BUFFER
+			l_input_buffer: YY_UNICODE_BUFFER
 		do
 			reset_nodes
 
-			create l_input_buffer.make (a_string)
+			create l_input_buffer.make_from_utf8_string (a_string)
 			input_buffer := l_input_buffer
 
 			detected_encoding := utf8
@@ -638,6 +652,14 @@ feature -- Settings
 			is_ignoring_attachment_marks_set: is_ignoring_attachment_marks = v
 		end
 
+	set_is_explicit_iteration_cursor (v: like is_explicit_iteration_cursor)
+			-- Set `is_explicit_iteration_cursor` to `v`.
+		do
+			is_explicit_iteration_cursor := v
+		ensure
+			is_explicit_iteration_cursor = v
+		end
+
 feature -- Modification
 
 	insert_supplier (name: STRING; location: detachable LOCATION_AS)
@@ -669,6 +691,9 @@ feature {NONE} -- Scopes
 
 	scopes: ARRAYED_STACK [like {ARRAYED_STACK [TUPLE]}.count]
 			-- The number of elements in `scope_identifiers` before entering current scope.
+
+	scope_kind_unknown: NATURAL_8 = 0
+			-- Skope kind for an unknown entity name.
 
 	scope_kind_argument: NATURAL_8 = 1
 			-- Scope kind for a formal argument.
@@ -725,7 +750,7 @@ feature {NONE} -- Scopes
 			across
 				identifiers as identifier
 			loop
-				scope_identifiers.put (identifier.item, scope_kind_argument)
+				scope_identifiers.put (identifier, scope_kind_argument)
 			end
 		end
 
@@ -735,7 +760,7 @@ feature {NONE} -- Scopes
 			across
 				identifiers as identifier
 			loop
-				scope_identifiers.put (identifier.item, scope_kind_local)
+				scope_identifiers.put (identifier, scope_kind_local)
 			end
 		end
 
@@ -760,6 +785,25 @@ feature {NONE} -- Scopes
 		do
 			if attached identifier then
 				scope_identifiers.put (identifier.name_id, scope_kind_test)
+			end
+		end
+
+	identifier_kind (identifier: detachable ID_AS): like scope_kind_argument
+		local
+			i: like {ID_AS}.name_id
+		do
+			Result := scope_kind_unknown
+			if attached identifier then
+				i := identifier.name_id
+				across
+					scope_identifiers as s
+				until
+					Result /= scope_kind_unknown
+				loop
+					if s.identifier = i then
+						Result := s.identifier_kind
+					end
+				end
 			end
 		end
 
@@ -946,6 +990,9 @@ feature {NONE} -- Implementation
 	is_expanded: BOOLEAN
 			-- Boolean mark for expanded class
 
+	is_once: BOOLEAN
+			-- Boolean mark for once class
+
 	is_frozen_class: BOOLEAN
 			-- Boolean mark for sealed/frozen class, ie not
 			-- inheritable by other classes.
@@ -978,6 +1025,7 @@ feature {NONE} -- Implementation
 	frozen_keyword,
 	expanded_keyword,
 	deferred_keyword,
+	once_keyword,
 	external_keyword: detachable KEYWORD_AS
 			-- Keywords that may appear in header mark of a class
 
@@ -1136,7 +1184,7 @@ feature {NONE} -- Counters
 feature {NONE} -- Actions
 
 	new_class_description (n: detachable ID_AS; n2: detachable STRING_AS;
-		is_d, is_e, is_fc, is_ex, is_par: BOOLEAN;
+		is_d, is_e, is_fc, is_ex, is_par, is_o: BOOLEAN;
 		first_ind, last_ind: detachable INDEXING_CLAUSE_AS; g: detachable EIFFEL_LIST [FORMAL_DEC_AS];
 		a_parent_list_1: detachable PARENT_LIST_AS; a_parent_list_2: detachable PARENT_LIST_AS; c: detachable EIFFEL_LIST [CREATE_AS]; co: detachable CONVERT_FEAT_LIST_AS;
 		f: detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]; inv: detachable INVARIANT_AS;
@@ -1165,7 +1213,7 @@ feature {NONE} -- Actions
 				l_non_conforming_parents := a_parent_list_2
 			end
 
-			Result := ast_factory.new_class_as (n, ext_name, is_d, is_e, is_fc, is_ex, is_par, first_ind,
+			Result := ast_factory.new_class_as (n, ext_name, is_d, is_e, is_fc, is_ex, is_par, is_o, first_ind,
 				last_ind, g, l_conforming_parents, l_non_conforming_parents, c, co, f, inv, s, o, ed)
 		end
 
@@ -1185,11 +1233,27 @@ feature {NONE} -- Actions
 					-- Report syntax error when we are compiling for ECMA.
 				if syntax_version = ecma_syntax or else syntax_version = provisional_syntax then
 					report_one_error (create {SYNTAX_ERROR}.make (a_keyword_id.line, a_keyword_id.column, a_keyword_id.filename,
-						"Using keyword as identifier."))
+						locale.translation_in_context ("Using keyword as identifier.", once "parser.eiffel.error")))
 				elseif has_syntax_warning then
 					report_one_warning (create {SYNTAX_WARNING}.make (a_keyword_id.line, a_keyword_id.column, a_keyword_id.filename,
-						"Using keyword as identifier."))
+						locale.translation_in_context ("Using keyword as identifier.", once "parser.eiffel.warning")))
 				end
+			end
+		end
+
+	extract_symbol (v: like last_symbol_id_value): detachable SYMBOL_AS
+			-- Extract symbol entry from `v` if present. Void otherwise.
+		do
+			if attached v then
+				Result := v.symbol
+			end
+		end
+
+	extract_id_from_symbol (v: like last_symbol_id_value): detachable ID_AS
+			-- Extract ID entry from `v` if present. Void otherwise.
+		do
+			if attached v then
+				Result := v.id
 			end
 		end
 
@@ -1198,7 +1262,7 @@ feature {NONE} -- Actions
 		do
 			if a_expr /= Void and then not a_expr.is_detachable_expression then
 				report_one_error (create {SYNTAX_ERROR}.make (token_line (a_expr), token_column (a_expr), filename,
-					"Expression used in object test should be `Detachable_expression'."))
+					locale.translation_in_context ("Expression used in object test should be %"Detachable_expression%".", once "parser.eiffel.error")))
 			end
 		end
 
@@ -1364,11 +1428,11 @@ invariant
 
 note
 	ca_ignore:
-		"CA011", "CA011 — too many arguments",
-		"CA033", "CA033 — very long class"
+		"CA011", "CA011: too many arguments",
+		"CA033", "CA033: very long class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

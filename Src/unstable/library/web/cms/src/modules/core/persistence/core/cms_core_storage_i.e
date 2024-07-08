@@ -59,10 +59,23 @@ feature -- Logs
 		deferred
 		end
 
-	logs (a_category: detachable READABLE_STRING_GENERAL; a_lower: INTEGER; a_count: INTEGER): LIST [CMS_LOG]
-			-- List of recent logs from `a_lower' to `a_lower+a_count'.
+	logs (a_category: detachable READABLE_STRING_GENERAL; a_level: INTEGER; a_offset: INTEGER; a_count: INTEGER): LIST [CMS_LOG]
+			-- List of recent logs from `1 + a_offset' to `a_offset + a_count'.
 			-- If `a_category' is set, filter to return only associated logs.
+			-- If `a_level > 0', filter to return only associated logs for that level.
 			-- If `a_count' <= 0 then, return all logs.
+		deferred
+		end
+
+feature -- Emails
+
+	save_mail (a_mail: CMS_EMAIL)
+		require
+			not a_mail.has_id
+		deferred
+		end
+
+	mails_to (a_user: detachable CMS_USER; a_offset: INTEGER; a_count: INTEGER): detachable LIST [CMS_EMAIL]
 		deferred
 		end
 
@@ -89,6 +102,6 @@ feature -- Misc
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2021, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

@@ -1,0 +1,79 @@
+{
+	"mirror": "https://enterprise:udeief5w9mydgg9di5xy@ftp.eiffel.com/enterprise/",
+	"products": [
+		{
+			"id": "eiffelstudio-ent", "name": "EiffelStudio",
+			"version": "22.05 Enterprise Evaluation Edition",
+			"number": "22.05",
+			"build": "106302",
+			"download_link_pattern": "${mirror}${name}/${number}/${build}/${filename}",
+			"release": "Official Release",
+			"date": "05/2022",
+			"sub_directory": "22.05",
+			"icon": "eiffelstudio_ent.png",
+			"public": "true",
+			"for_evaluation": "true",
+			"mirrors": "private",
+			"license": { "name": "Enterprise", "url": "enterprise.html" },
+			"blerb": "<h2>EiffelStudio: A Contract for Success</h2>\n<p>\nTake full advantage of the power of Object Technology ... and more\n<p>\nEiffelStudio is more than just an IDE. With EiffelStudio you can model your\nsystem as you think - capturing your requirements and your thought processes in\nEiffel. Then, when you are ready to design, you build upon the model you just\ncreated, still with EiffelStudio. And then you implement, in EiffelStudio. You\nnever need to throw anything out and start over. You don't need extra tools to\nbe able to go back and make changes in architecture safely. Roundtrip\nengineering? It's built in by design. Testing, metrics and productivity tools?\nThey're built in. What about debugging? EiffelStudio native Design by Contract(c)\nmechanism prevents 90% of the bugs from ever occurring - and what bugs remain\nare easily traced and fixed. If you are using other languages and tools chances\nare that EiffelStudio will interface with the code you already have.\n<p>\nWe thank you for downloading EiffelStudio. If you have questions please post\nthem to our <a href=\"https://groups.eiffel.com\">user mailing-list</a>.\n<p>\nEnjoy EiffelStudio and if you do let your friends know!\n<p>",
+			"download": [
+				{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-win64.msi",
+					"platform": "win64",
+					"size": "159322112",
+					"hash": "7bdb9949b5fb426bec6173ef29e5dfde7a4b098e2aac799d9ed1c68b08d84445"
+				}
+				,{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-win64.7z",
+					"platform": "win64",
+					"size": "95296672",
+					"hash": "06551240b87996f9b74765f3001e55741bd1ad26384afee6135ad7d4cf813108"
+				}
+				,{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-windows.msi",
+					"platform": "windows",
+					"size": "140894208",
+					"hash": "8fc326829deea7da6440bc88d80d7c6078cc164224a8c49dac7c3e9192a964b4" 
+				}
+				,{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-windows.7z",
+					"platform": "windows",
+					"size": "83374386",
+					"hash": "8a04a754a10619ac7f44e45209184f7fa113e193cafd9c385ad7224a24bb0b58" 
+				}
+				,{					
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-linux-x86-64.tar.bz2",
+					"platform": "linux-x86-64",
+					"size": "118468503",
+					"hash": "cc550f7c4c1d201f717875afcf3235ccca15930458b044492f075f5851730619"
+				}
+				,{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-macosx-x86-64.tar.bz2",
+					"platform": "macosx-x86-64",
+					"size": "100295803",
+					"hash": "62f57198a47ddd5d6e0bbe1e8ee3c563253615463fce9d4b63f487d936d259a6"
+				}
+				,{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-linux-armv7.tar.bz2",
+					"platform": "linux-armv7",
+					"size": "105471390",
+					"hash": "07605836882664dfab4707e34d53c11016c9275222bd585738926b5339857e86"
+				}
+				,{
+        "cdkey": "11288-55317-91217-27221-92171-81501",
+					"filename": "Eiffel_22.05_ent_106302-freebsd-x86-64.tar.bz2",
+					"platform": "freebsd-x86-64",
+					"size": "109497840",
+					"hash": "1be90a28547e723828050a73092fd02572bb938e64f9a048a3a573c3fb2fc5d0"
+				}
+			]
+		}
+	]
+}

@@ -1,9 +1,9 @@
-note
+﻿note
 	description	: "Command to update the Eiffel project."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	EB_MELT_PROJECT_COMMAND
@@ -157,16 +157,17 @@ feature {NONE} -- Compilation implementation
 	display_eiffel_compilation_status
 			-- Display status of eiffel compilation.
 		do
-			if Workbench.successful then
-				degree_output.put_new_line
-				degree_output.put_string (Interface_names.e_compilation_succeeded)
-				degree_output.put_new_line
-			else
-					-- Need extra break because failure is unexpected.
-				degree_output.put_new_line
-				degree_output.put_string (Interface_names.e_compilation_failed)
-				degree_output.put_new_line
-			end
+			degree_output.put_new_line
+			degree_output.put_string
+				(inspect workbench.compilation_status
+				when {WORKBENCH_I}.compilation_status_without_complaint then
+					Interface_names.e_compilation_succeeded
+				when {WORKBENCH_I}.compilation_status_with_warning then
+					Interface_names.e_compilation_succeeded_with_warning
+				else
+					Interface_names.e_compilation_failed
+				end)
+			degree_output.put_new_line
 		end
 
 	tool_resynchronization
@@ -190,11 +191,16 @@ feature {NONE} -- Compilation implementation
 
 			window_manager.display_message_and_percentage (Interface_names.d_Resynchronizing_tools, 0)
 			window_manager.synchronize_all
-			if Workbench.successful then
+			inspect workbench.compilation_status
+			when {WORKBENCH_I}.compilation_status_without_complaint then
 				if not process_manager.is_c_compilation_running then
 					window_manager.display_message (Interface_names.e_compilation_succeeded)
 				end
-			else
+			when {WORKBENCH_I}.compilation_status_with_warning then
+				if not process_manager.is_c_compilation_running then
+					window_manager.display_message (Interface_names.e_compilation_succeeded_with_warning)
+				end
+			when {WORKBENCH_I}.compilation_status_with_error then
 				window_manager.display_message (Interface_names.e_compilation_failed)
 			end
 			Eb_debugger_manager.on_compile_stop
@@ -419,7 +425,7 @@ feature {NONE} -- Execution
 
 feature -- Access
 
-	name: STRING
+	name: STRING_GENERAL
 			-- <Precursor>
 		do
 			Result := command_name
@@ -451,10 +457,6 @@ feature {NONE} -- Implementation
 			Result.extend (l_item)
 
 			l_item := discover_melt_cmd.new_menu_item
-			a_cmd.auto_recycle (l_item)
-			Result.extend (l_item)
-
-			l_item := override_scan_cmd.new_menu_item
 			a_cmd.auto_recycle (l_item)
 			Result.extend (l_item)
 
@@ -525,7 +527,7 @@ feature {NONE} -- Implementation
 			-- Number of compilations done in a certain mode so far.
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -556,4 +558,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_MELT_PROJECT_COMMAND
+end

@@ -30,10 +30,12 @@ feature -- Basic operations
 				l_rhf: ESA_REPRESENTATION_HANDLER_FACTORY
 		do
 			if esa_config.is_successful and then esa_config.api_service.successful then
-				log.write_information (generator + ".execute")
+				debug
+					log.write_information (generator + ".execute")
+				end
 				execute_next (req, res)
 			else
-				log.write_critical (generator + ".execute" + esa_config.api_service.last_error_message )
+				log.write_critical (generator + ".execute" + esa_config.api_service.last_error_message.to_string_8 )
 				create l_rhf
 				media_variants := media_type_variants (req)
 				if media_variants.is_acceptable then

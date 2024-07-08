@@ -28,7 +28,7 @@ feature -- Access
 			end
 		end
 
-	aggregations: HASH_TABLE [FEED_AGGREGATION, STRING]
+	aggregations: STRING_TABLE [FEED_AGGREGATION]
 			-- List of feed aggregations.
 		local
 			agg: FEED_AGGREGATION
@@ -43,7 +43,7 @@ feature -- Access
 			if l_table /= Void then
 				Result := l_table
 			else
-				create Result.make (0)
+				create Result.make_caseless (0)
 				internal_aggregations := Result
 				if attached cms_api.module_configuration_by_name ({FEED_AGGREGATOR_MODULE}.name, "feeds") as cfg then
 					if attached cfg.text_list_item ("ids") as l_ids then
@@ -91,6 +91,9 @@ feature -- Access
 								if attached cfg.text_item ({STRING_32} "feeds." + l_feed_id + ".option_description") as l_description_opt then
 									agg.set_description_enabled (not l_description_opt.is_case_insensitive_equal_general ("disabled"))
 								end
+								if attached cfg.text_item ({STRING_32} "feeds." + l_feed_id + ".description") as l_description then
+									agg.set_description (l_description)
+								end
 								across
 									l_locations as loc_ic
 								loop
@@ -109,7 +112,7 @@ feature -- Access
 								loop
 									loc_name := locs_ic.key
 									loc := locs_ic.item
-									if attached cfg.text_list_item ({STRING_32} "feeds." + l_feed_id + {STRING_32} ".categories." + loc_name.as_string_32) as l_loc_cats then
+									if attached cfg.text_list_item ({STRING_32} "feeds." + l_feed_id + {STRING_32} ".categories." + loc_name.to_string_32) as l_loc_cats then
 										across
 											l_loc_cats as cats_ic
 										loop
@@ -127,7 +130,7 @@ feature -- Access
 	aggregation (a_name: READABLE_STRING_GENERAL): detachable FEED_AGGREGATION
 		do
 			if attached a_name.is_valid_as_string_8 then
-				Result := aggregations.item (a_name.as_string_8)
+				Result := aggregations.item (a_name.to_string_8)
 			end
 		end
 
@@ -213,6 +216,13 @@ feature -- Operation
 			end
 			if Result /= Void then
 				Result.set_date (create {DATE_TIME}.make_now_utc)
+				if attached agg.description as d then
+					Result.set_description (d, Void)
+				else
+						-- Use `title` computed by FEED.extended (...) function.
+					Result.set_description (Result.title, Void)
+				end
+				Result.set_title (agg.name)
 			end
 		end
 

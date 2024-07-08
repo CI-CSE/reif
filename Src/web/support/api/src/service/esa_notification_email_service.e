@@ -12,58 +12,87 @@ inherit
 	SHARED_ERROR
 
 create
-	make
+	make,
+	make_sendmail,
+	make_with_sendmail_location
 
 feature {NONE} -- Initialization
 
-	make (a_smtp_server: READABLE_STRING_32)
-			-- Create an instance of {ESA_EMAIL_SERVICE} with an smtp_server `a_smtp_server'.
-			-- Using "noreplies@eiffel.com" as admin email.
-		local
+	make (a_smtp_server: READABLE_STRING_8; a_admin, a_webmaster: READABLE_STRING_8)
+			-- Create an instance of {ESA_NOTIFICATION_EMAIL_SERVICE} with an smtp_server `a_smtp_server'.
+			-- Using `a_admin` as admin email.
 		do
+			admin_email := a_admin
+			webmaster_email := a_webmaster
+
 					-- Get local host name needed in creation of SMTP_PROTOCOL.
-			create {NOTIFICATION_SMTP_MAILER} smtp_protocol.make (a_smtp_server.to_string_8)
+			create {NOTIFICATION_SMTP_MAILER} mailer.make (a_smtp_server)
 			set_successful
 		end
 
+	make_sendmail (a_admin, a_webmaster: READABLE_STRING_8)
+		do
+			admin_email := a_admin
+			webmaster_email := a_webmaster
+
+			create {NOTIFICATION_SENDMAIL_MAILER} mailer
+			set_successful
+		end
+
+	make_with_sendmail_location (a_sendmail_location: READABLE_STRING_GENERAL; a_admin, a_webmaster: READABLE_STRING_8)
+		do
+			admin_email := a_admin
+			webmaster_email := a_webmaster
+
+			create {NOTIFICATION_SENDMAIL_MAILER} mailer.make_with_location (a_sendmail_location)
+			set_successful
+		end
+
+feature -- Access
+
 	admin_email: IMMUTABLE_STRING_8
 			-- Administrator email.
-		once
-			Result := "noreplies@eiffel.com"
-		end
 
 	webmaster_email: IMMUTABLE_STRING_8
 			-- Webmaster email.
-		once
-			Result := "webmaster@eiffel.com"
-		end
 
-	smtp_protocol: NOTIFICATION_MAILER
-			-- SMTP protocol.
+	reply_to_email_pattern: detachable IMMUTABLE_STRING_8
+
+	mailer: NOTIFICATION_MAILER
+			-- Mailer.
+
+feature -- Element change
+
+	set_reply_to_email_pattern (e: detachable READABLE_STRING_8)
+		do
+			if e = Void then
+				reply_to_email_pattern := Void
+			else
+				reply_to_email_pattern := e
+			end
+		end
 
 feature -- Basic Operations
 
-	send_post_registration_email (a_to, a_token, a_host: STRING)
+	send_post_registration_email (a_to, a_token, a_host: READABLE_STRING_GENERAL)
 			-- Send successful registration message containing activation code `a_token' to `a_to'.
 		require
 			attached_to: a_to /= Void
 			attached_token: a_token /= Void
 			attached_host: a_host /= Void
 		local
-			l_content: STRING
+			l_content: STRING_8
 			l_url: URL_ENCODER
- 			l_path: PATH
-			l_html: HTML_ENCODER
+ 			l_html: HTML_ENCODER
 			l_email: ESA_NOTIFICATION_EMAIL
 		do
 			if successful then
-				log.write_information (generator + ".send_post_registration_email to [" + a_to + "]" )
-				create l_path.make_current
+				log.write_information (generator + ".send_post_registration_email to [" + a_to.to_string_8 + "]" )
 				create l_url
 				create l_html
 				create l_content.make (1024)
 				l_content.append ("Thank you for registering at eiffel.com.%N%NTo complete your registration, please click on this link to activate your account:%N%N")
-				l_content.append (a_host)
+				l_content.append (a_host.to_string_8)
 				l_content.append ("/activation?code=")
 				l_content.append (l_url.encoded_string (a_token))
 				l_content.append ("&email=")
@@ -76,12 +105,12 @@ feature -- Basic Operations
 				l_content.append ("%N%NThank you for joining us.%N%NEiffel Software.")
 				l_content.append (Disclaimer)
 					-- Create our message.
-				create l_email.make (admin_email, a_to, "Eiffel Support Site: Account Activation", l_content)
-				smtp_protocol.safe_process_email (l_email)
+				create l_email.make (admin_email, a_to.to_string_8, "Eiffel Support Site: Account Activation", l_content)
+				mailer.safe_process_email (l_email)
 			end
 		end
 
-	send_email_change_email (a_new_email, a_token, a_host: STRING)
+	send_email_change_email (a_new_email, a_token, a_host: READABLE_STRING_8)
 			-- Send confirmation email for email address change.
 		require
 			attached_new_email: a_new_email /= Void
@@ -96,7 +125,7 @@ feature -- Basic Operations
 			l_message.append ("Please confirm your new email address by clicking on the link below:%N%N")
 			l_message.append (a_host)
 			l_message.append ("/confirm_email?token=")
-			l_message.append (l_url.encoded_string (a_token))
+			l_message.append (l_url.general_encoded_string (a_token))
 			l_message.append ("%N%NIf you are unable to click on the above link, please type the address into your Web browser:%N%N")
 			l_message.append ("Once there, please enter the following information and then click the %"Confirm Email%" button.%N%N")
 			l_message.append ("%NYour confirmation code: ")
@@ -106,10 +135,10 @@ feature -- Basic Operations
 
 				-- Create our message.
 			create l_email.make (admin_email, a_new_email, "Eiffel Support Site: Email Activation", l_message)
-			smtp_protocol.safe_process_email (l_email)
+			mailer.safe_process_email (l_email)
 		end
 
-	send_new_email_confirmed_email (a_old_email, a_new_email: STRING)
+	send_new_email_confirmed_email (a_old_email, a_new_email: READABLE_STRING_8)
 			-- Send email to old email address confirming address change.
 		local
 			l_message: STRING
@@ -117,35 +146,55 @@ feature -- Basic Operations
 			create l_message.make (1024)
 			l_message.append ("Your account information on eiffel.com has been updated and your new email address is now ")
 			l_message.append (a_new_email)
-			l_message.append (". Please contact us by phone 805-685-1006 or by fax 805-685-6869 as soon as possible if you haven't requested this change.%N%NThank you for using eiffel.com.%N%NEiffel Software.%N%N------------------------------------------------------------%N")
+			l_message.append (". Please contact us at https://www.eiffel.com/ as soon as possible if you haven't requested this change.%N%NThank you for using eiffel.com.%N%NEiffel Software.%N%N------------------------------------------------------------%N")
 --			l_message.append (Disclaimer)
 --			send_email (from_address (Void), a_old_email, Void, "Eiffel Software - Email Address Updated", l_message)
 		end
 
 
-	send_password_reset (a_to, a_message : STRING)
+	send_password_reset (a_to: READABLE_STRING_8; a_message : READABLE_STRING_32)
 			-- Send password reset email `a_token' to `a_to'.
 		local
 			l_email: ESA_NOTIFICATION_EMAIL
+			l_message: STRING_32
 		do
 			if successful then
 				log.write_information (generator + ".send_password_reset to [" + a_to + "]" )
-				a_message.append (disclaimer)
-				create l_email.make (admin_email, a_to, "Eiffel Support Site: Password Reset" , a_message)
+				create l_message.make_from_string (a_message)
+				l_message.append (disclaimer)
+				create l_email.make (admin_email, a_to, "Eiffel Support Site: Password Reset" , {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_message))
 				l_email.add_header_line ("MIME-Version: 1.0")
 				l_email.add_header_line ("Content-Type: text/plain; charset=UTF-8")
-				smtp_protocol.safe_process_email (l_email)
+				mailer.safe_process_email (l_email)
 			end
 		end
 
-	send_new_report_email (a_name: STRING; a_report: REPORT; a_email: STRING; a_subscribers: LIST [STRING]; a_url: STRING)
+	add_esa_report_id_header (a_report: REPORT; a_email: ESA_NOTIFICATION_EMAIL)
+		local
+			s: STRING
+			l_int_nb: INTEGER
+		do
+			create s.make (8)
+			s.append_integer (a_report.number)
+			if attached a_report.interactions as lst and then not lst.is_empty then
+				l_int_nb := lst.count
+				s.append_character ('-')
+				s.append_integer (l_int_nb)
+			end
+			a_email.add_header_line ("X-ESA-report-id: " + s)
+			if attached reply_to_mail (a_report.number.out, l_int_nb.out) as l_reply_to then
+				a_email.set_reply_to_address (l_reply_to)
+			end
+		end
+
+	send_new_report_email (a_name: READABLE_STRING_GENERAL; a_report: REPORT; a_email: READABLE_STRING_8; a_subscribers: LIST [STRING]; a_url: STRING; a_user_role: USER_ROLE)
 			-- Send report creation confirmation email to interested parties.
 		local
 			l_email: ESA_NOTIFICATION_EMAIL
 			l_etable: STRING_TABLE [STRING]
 		do
 			if successful then
-				create l_email.make (user_mail (a_name), a_email, report_email_subject (a_report, 0), new_report_email_message (a_report, a_url))
+				create l_email.make (user_mail (a_name), a_email, report_email_subject (a_report, 0), new_report_email_message (a_report, a_url, a_user_role))
 				if not a_subscribers.is_empty then
 					create l_etable.make_caseless (1)
 					l_etable.force ("", a_email)
@@ -153,21 +202,22 @@ feature -- Basic Operations
 						l_email.add_bcc_address (ic.item)
 					end
 				end
+				add_esa_report_id_header (a_report, l_email)
 				l_email.add_header_line ("MIME-Version: 1.0")
 				l_email.add_header_line ("Content-Type: text/plain; charset=UTF-8")
-				smtp_protocol.safe_process_email (l_email)
+				mailer.safe_process_email (l_email)
 			else
-				log.write_error (generator + ".send_new_report_email " + a_report.number.out + " " + last_error_message)
+				log.write_error (generator + ".send_new_report_email " + a_report.number.out + " " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (last_error_message))
 			end
 		end
 
-	send_new_interaction_email (a_user: USER_INFORMATION; a_report: REPORT; a_subscribers: LIST [STRING]; a_old_report: REPORT; a_url: STRING; a_user_role: USER_ROLE; a_submitter_email: STRING)
+	send_new_interaction_email (a_user: USER_INFORMATION; a_report: REPORT; a_subscribers: LIST [STRING]; a_old_report: REPORT; a_url: STRING; a_user_role: USER_ROLE; a_submitter_email: READABLE_STRING_8)
 			-- Send report creation confirmation email to interested parties.
 		local
 			l_email: ESA_NOTIFICATION_EMAIL
 			l_message: STRING
 			l_etable: STRING_TABLE [STRING]
-			l_array: ARRAY [STRING]
+			l_array: ARRAY [READABLE_STRING_8]
 		do
 			if
 				attached a_report.interactions as l_interactions and then
@@ -178,7 +228,7 @@ feature -- Basic Operations
 				then
 
 					create l_message.make_empty
-					l_message.append (new_interaction_email_message(a_user,l_report_interaction, a_report, a_old_report,a_url))
+					l_message.append (new_interaction_email_message(a_user,l_report_interaction, a_report, a_old_report,a_url, a_user_role))
 
 
 					if a_user_role.is_administrator or else a_user_role.is_responsible then
@@ -187,6 +237,9 @@ feature -- Basic Operations
 						create l_email.make (user_mail (a_user.displayed_name), ll_email, report_email_subject (a_report, l_interactions.count), l_message)
 
 					end
+					add_esa_report_id_header (a_report, l_email)
+					l_email.add_header_line ("MIME-Version: 1.0")
+					l_email.add_header_line ("Content-Type: text/plain; charset=UTF-8")
 
 					if not a_subscribers.is_empty then
 						create  l_etable.make_caseless (2)
@@ -198,12 +251,12 @@ feature -- Basic Operations
 							l_email.add_bcc_address (ic.item)
 						end
 					end
-					smtp_protocol.safe_process_email (l_email)
+					mailer.safe_process_email (l_email)
 				else
-					log.write_error (generator + ".send_new_interaction_email " + a_report.number.out + " " + last_error_message)
+					log.write_error (generator + ".send_new_interaction_email " + a_report.number.out + " " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (last_error_message))
 				end
 			else
-				log.write_error (generator + ".send_new_interaction_email " + a_report.number.out + " " + last_error_message)
+				log.write_error (generator + ".send_new_interaction_email " + a_report.number.out + " " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (last_error_message))
 			end
 		end
 
@@ -224,9 +277,9 @@ feature -- Basic Operations
 				l_content.append ( report_email_links (a_url + "/report_detail", a_report.number))
 
 				create l_email.make (user_mail (a_user.displayed_name), ll_email, report_email_subject (a_report, 0), l_content)
-				smtp_protocol.safe_process_email (l_email)
+				mailer.safe_process_email (l_email)
 			else
-				log.write_error (generator + ".send_responsible_change_email " + a_report.number.out + " " + last_error_message)
+				log.write_error (generator + ".send_responsible_change_email " + a_report.number.out + " " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (last_error_message))
 			end
 		end
 
@@ -237,26 +290,104 @@ feature -- Basic Operations
 			l_content: STRING
 		do
 			create l_content.make (2048)
-			l_content.append (a_message.as_string_32)
+			l_content.append ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_message))
 
 			create l_email.make (admin_email, webmaster_email, "ESA API exception", l_content)
-			smtp_protocol.safe_process_email (l_email)
+			mailer.safe_process_email (l_email)
 		end
 
 feature {NONE} -- Implementation
 
-	user_mail (a_name: STRING): STRING
+	user_mail (a_name: READABLE_STRING_GENERAL): STRING
 			-- Construct the from email of a user `a_name' as "a_name <admin_mail>".
+		local
+			l_email: like admin_email
+			i,j: INTEGER
 		do
-			create Result.make (a_name.count + 3 + admin_email.count)
-			Result.append (a_name)
+			l_email := admin_email
+			j := l_email.last_index_of ('>', l_email.count)
+			if j > 0 and j = l_email.count then
+				i := l_email.last_index_of ('<', j - 1)
+				if i > 0 and j > i then
+					l_email := l_email.substring (i + 1, j - 1)
+				end
+			end
+			create Result.make (a_name.count + 3 + l_email.count)
+			Result.append_string_general (a_name)
 			Result.append_character ('<')
-			Result.append (admin_email)
+			Result.append (l_email)
 			Result.append_character ('>')
+		end
+
+	reply_to_mail (a_report_id, a_interaction: detachable READABLE_STRING_8): detachable STRING_8
+		local
+			i,j,n: INTEGER
+			l_name: READABLE_STRING_8
+			err: BOOLEAN
+		do
+			if attached reply_to_email_pattern as pat then
+				i := pat.index_of ('$', 1)
+				if i > 0 then
+					create Result.make (pat.count)
+					from
+						n := pat.count
+						i := 1
+					until
+						i > n or err
+					loop
+						j := pat.index_of ('$', i)
+						if j > 0  and j < n then
+							Result.append (pat.substring (i, j - 1))
+							l_name := Void
+							i := j
+							if pat [i + 1] = '{' then
+								j := pat.index_of ('}', i + 2)
+								if j > i then
+									l_name := pat.substring (i + 2, j - 1)
+								else
+									err := True
+								end
+							else
+								from
+								until
+									j > n or not pat [j].is_alpha
+								loop
+									j := j + 1
+								end
+								if j > n then
+									l_name := pat.substring (i + 1, n)
+								end
+							end
+							if not err and l_name /= Void then
+								if
+									l_name.is_case_insensitive_equal ("id") and then
+									a_report_id /= Void
+								then
+									Result.append (a_report_id)
+								elseif
+									l_name.is_case_insensitive_equal ("interaction") and then
+									a_interaction /= Void
+								then
+									Result.append (a_interaction)
+								end
+							end
+							i := j + 1
+						else
+							i := n + 1
+							Result.append (pat.substring (i, n))
+						end
+					end
+				else
+					Result := pat.to_string_8
+				end
+			end
 		end
 
 	report_email_subject (a_report: REPORT; a_interactions_count: INTEGER): STRING
 			-- Subject of email related to report `a_report'
+		local
+			utf_encoder: UTF_CONVERTER
+			base64: BASE64
 		do
 			create Result.make (1024)
 			Result.append_character ('[')
@@ -270,10 +401,18 @@ feature {NONE} -- Implementation
 				Result.append_integer (a_interactions_count)
 			end
 			Result.append ("] ")
-			Result.append (a_report.synopsis.to_string_8)
+			if a_report.synopsis.is_valid_as_string_8 then
+				Result.append (a_report.synopsis.to_string_8)
+			else
+				create base64
+				Result.append ("=?utf-8?B?")
+				Result.append (base64.encoded_string (utf_encoder.string_32_to_utf_8_string_8 (a_report.synopsis)))
+				Result.append ("?=")
+			end
+
 		end
 
-	recipients_to_array (a_recipients: LIST [STRING]; a_emails: STRING_TABLE[STRING]): ARRAY [STRING]
+	recipients_to_array (a_recipients: LIST [READABLE_STRING_8]; a_emails: STRING_TABLE [READABLE_STRING_8]): ARRAY [READABLE_STRING_8]
 			-- Convert list of recipients to 'To' array of strings.
 		require
 			valid_recipients: not a_recipients.is_empty
@@ -303,7 +442,7 @@ feature {NONE} -- Implementation
 			attached_string: Result /= Void
 		end
 
-	report_email_links (a_url:STRING; a_report_number: INTEGER): STRING
+	report_email_links (a_url: STRING; a_report_number: INTEGER): STRING
 			-- Links to report with number `a_report_number'
 		do
 			create Result.make (1024)
@@ -318,8 +457,7 @@ feature {NONE} -- Implementation
 			Result.append ("/interaction_form")
 		end
 
-
-	new_report_email_message (a_report: REPORT; a_url: STRING): STRING
+	new_report_email_message (a_report: REPORT; a_url: STRING; a_user_role: USER_ROLE): STRING
 			-- New report message
 		local
 			utf: UTF_CONVERTER
@@ -385,11 +523,13 @@ feature {NONE} -- Implementation
 
 			Result.append (report_email_links (a_url + "/report_detail", a_report.number))
 			Result.append ("%N%N")
-			Result.append (signature (Void))
+			Result.append (signature (Void, a_user_role))
 		end
 
-	new_interaction_email_message (a_user: USER_INFORMATION; a_report_interaction: REPORT_INTERACTION; a_report: REPORT; a_old_report: REPORT; a_url: STRING): STRING
+	new_interaction_email_message (a_user: USER_INFORMATION; a_report_interaction: REPORT_INTERACTION; a_report: REPORT; a_old_report: REPORT; a_url: STRING; a_user_role: USER_ROLE): STRING
 			-- New interaction message.
+		local
+			utf: UTF_CONVERTER
 		do
 			create Result.make (4096)
 
@@ -401,23 +541,23 @@ feature {NONE} -- Implementation
 			then
 				Result.append ("%N")
 				if not l_old_status.synopsis.is_case_insensitive_equal_general (l_status.synopsis) then
-					Result.append ("Status changed to '" + l_status.synopsis)
+					Result.append ("Status changed to '" + utf.utf_32_string_to_utf_8_string_8 (l_status.synopsis))
 
 					if not l_old_category.synopsis.is_case_insensitive_equal_general (l_category.synopsis) then
-						Result.append ("', category changed to '" + l_category.synopsis + "'")
+						Result.append ("', category changed to '" + utf.utf_32_string_to_utf_8_string_8 (l_category.synopsis) + "'")
 					else
 						Result.append ("'")
 					end
 				else
 					if not l_old_category.synopsis.is_case_insensitive_equal_general (l_category.synopsis) then
-						Result.append ("Category changed to '" + l_category.synopsis + "'")
+						Result.append ("Category changed to '" + utf.utf_32_string_to_utf_8_string_8 (l_category.synopsis) + "'")
 					end
 				end
 				Result.append ("%N%N")
 			end
 
 			if attached a_report_interaction.content as l_content then
-				Result.append ((create{UTF8_ENCODER}).decoded_string (l_content.to_string_8))
+				utf.escaped_utf_32_string_into_utf_8_string_8 (l_content, Result)
 				Result.append ("%N%N")
 			end
 
@@ -430,7 +570,7 @@ feature {NONE} -- Implementation
 
 			Result.append (report_email_links (a_url + "/report_detail", a_report.number))
 			Result.append ("%N%N")
-			Result.append (signature (a_user))
+			Result.append (signature (a_user, a_user_role))
 		end
 
 	attachments_text (a_attachments: LIST [REPORT_ATTACHMENT]; a_url: READABLE_STRING_8): STRING
@@ -473,21 +613,23 @@ feature {NONE} -- Implementation
 		end
 
 
-	signature (a_user: detachable USER_INFORMATION): STRING
+	signature (a_user: detachable USER_INFORMATION; a_user_role: USER_ROLE): STRING
 			-- Email signature for user `a_user'.
 		do
 			create Result.make (256)
-			Result.append ("--%NWith best regards,%NThe Customer Support Team.%N")
+			if a_user_role.is_administrator or a_user_role.is_responsible then
+				Result.append ("--%NWith best regards,%NThe Customer Support Team.%N")
+			end
 			if a_user /= Void then
 				Result.append ("%N------------------------------------------------------------%N")
 				Result.append ("Message prepared by: ")
-				Result.append (a_user.displayed_name)
+				Result.append (a_user.displayed_name.to_string_8)
 				Result.append ("%N%N")
 				Result.append (Disclaimer)
 			end
 		end
 
-	Disclaimer: STRING = "This email is generated automatically, and the address is not monitored for responses. If you try contacting us by using %"reply%", you will not receive an answer."
+	Disclaimer: STRING = "This email is generated automatically, and the address is not monitored for responses. If you need to contact us further, please go through the support site."
 		-- Email not monitored disclaimer.
 
 end

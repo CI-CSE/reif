@@ -130,7 +130,9 @@ feature {NONE} -- Search by name
 			valid_n: names_heap.has (n)
 			c_attached: attached c
 		do
-			Result := c.feature_of_name_id (n)
+			if c.has_feature_table then
+				Result := c.feature_of_name_id (n)
+			end
 		end
 
 	find_in_renamed_type_a_by_name (n: like {FEATURE_I}.feature_name_id; t: RENAMED_TYPE_A)
@@ -194,11 +196,12 @@ feature -- Search
 				(s.base_class.feature_of_name_id (n) ~ f or else True) -- Feature can be renamed in formal constraints
 		end
 
-	find_by_alias (n: like {FEATURE_I}.alias_name_id; t: TYPE_A; c: CLASS_C)
+	find_by_alias (n: INTEGER; t: TYPE_A; c: CLASS_C)
 			-- Find feature of alias name ID `n' called on type `t' and make it available in `found_feature'
 			-- assuming that the code is written in `c'.
 		require
-			valid_n: names_heap.has (n)
+			{OPERATOR_KIND}.is_alias_id (n)
+			{OPERATOR_KIND}.is_fixed_alias_id (n)
 			attached_t: attached t
 			attached_c: attached c
 			valid_t: is_type_valid_for_class (t, c)
@@ -206,13 +209,19 @@ feature -- Search
 			found_features.wipe_out
 			context_class := c
 			formal_generics := Void
-			feature_in_class := agent {CLASS_C}.feature_of_alias_id (n)
+			feature_in_class := agent (name: INTEGER; lookup: CLASS_C): detachable FEATURE_I
+				do
+					if lookup.has_feature_table then
+						Result := lookup.feature_table.item_alias_id (name)
+					end
+				end (n, ?)
+					-- TODO: add a feature to find by alias ID.
 			find_in_renamed_type_a := agent find_in_renamed_type_a_by_name (n, ?)
 			t.process (Current)
 		ensure
 			same_name:
 				attached found_feature as f implies
-				(f.alias_name_id = n or else True) -- Feature can be renamed in formal constraints
+				(f.has_alias_name_id (n) or else True) -- Feature can be renamed in formal constraints
 			valid_site:
 				attached found_feature as f implies attached found_site
 			feature_from_class:
@@ -238,7 +247,9 @@ feature -- Search
 					valid_f: f > 0 -- and then system.routine_id_counter.is_feature_routine_id (f)
 					s_attached: attached s
 				do
-					Result := s.feature_of_rout_id (f)
+					if s.has_feature_table then
+						Result := s.feature_of_rout_id (f)
+					end
 				end
 				(r, ?)
 			find_in_renamed_type_a := agent (renamed_type: RENAMED_TYPE_A)
@@ -279,8 +290,8 @@ feature {TYPE_A} -- Visitor
 		do
 			if
 				attached t.base_class as c and then
-				attached feature_in_class.item ([c]) as f and then
-				(not attached found_feature as h or else
+				attached feature_in_class.item (c) as f and then
+				(attached found_feature as h implies
 					h.code_id /= f.code_id or else not h.rout_id_set.intersect (f.rout_id_set))
 			then
 					-- Found next feature.
@@ -457,7 +468,7 @@ feature {TYPE_A} -- Visitor
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

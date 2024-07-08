@@ -1,5 +1,4 @@
-note
-	description: "Summary description for {TARGET_INDEXER}."
+﻿note
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -16,8 +15,7 @@ inherit
 
 	PACKAGE_CONF_VISITOR
 		rename
-			make as make_visitor,
-			reset as reset_visitor
+			make as make_visitor
 		export
 			{NONE} all;
 			{ANY} set_is_stopping_at_library, set_is_indexing_class, set_is_ignoring_redirection,
@@ -26,7 +24,8 @@ inherit
 			visit_target,
 			visit_library,
 			visit_cluster,
-			visit_class
+			visit_class,
+			reset
 		end
 
 create
@@ -43,7 +42,7 @@ feature {NONE} -- Initialization
 				set_build (opts.item ("build"))
 				set_is_any_setting (attached opts.item ("is_any") as s and then s.is_case_insensitive_equal ("true"))
 				is_il_generation := attached opts.item ("is_il_generation") as s and then s.is_case_insensitive_equal ("True")
-					-- FIXME: missing void-safety !!!
+					-- FIXME: missing void safety !!!
 			end
 
 			make_observers (0)
@@ -53,7 +52,7 @@ feature -- Change
 
 	reset
 		do
-			reset_visitor
+			Precursor
 		end
 
 feature -- Execution
@@ -61,7 +60,7 @@ feature -- Execution
 	visit_target (a_target: CONF_TARGET)
 		do
 			on_target (a_target)
-			Precursor {PACKAGE_CONF_VISITOR}(a_target)
+			Precursor {PACKAGE_CONF_VISITOR} (a_target)
 		end
 
 	visit_library (a_library: CONF_LIBRARY)
@@ -77,8 +76,10 @@ feature -- Execution
 				a_library.is_enabled (l_state)
 			then
 				on_library (a_library)
-				if not is_stopping_at_library then
-					Precursor {PACKAGE_CONF_VISITOR}(a_library)
+				if is_stopping_at_library then
+				elseif a_library.is_readonly and is_stopping_at_readonly_library then
+				else
+					Precursor {PACKAGE_CONF_VISITOR} (a_library)
 				end
 			end
 		end
@@ -88,7 +89,6 @@ feature -- Execution
 			p: PATH
 			dir_name, l_name: STRING_32
 			fac: LIBRARY_INDEXER_CONF_FACTORY
-			cl: CONF_CLASS
 			l_scan: LIBRARY_EIFFEL_CLASS_SCANNER
 		do
 			check not is_stopping_at_library end
@@ -100,6 +100,7 @@ feature -- Execution
 				if is_any_setting then
 					update_conditions_to_any_setting (a_cluster.internal_conditions)
 					if
+						is_indexing_class and then
 						attached current_conf_state as l_state and then
 						a_cluster.is_enabled (l_state)
 					then
@@ -111,19 +112,18 @@ feature -- Execution
 						across
 							l_scan.items as ic
 						loop
-							p := ic.item
+							p := ic
 							if attached p.entry as l_eiffel_file_name then
 								l_name := p.parent.name
 								if l_name.starts_with_general (dir_name) then
 									l_name.remove_head (dir_name.count + 1)
 								end
-								cl := fac.new_class (l_eiffel_file_name.name, a_cluster, l_name, Void)
-								visit_class (cl)
+								visit_class (fac.new_class (l_eiffel_file_name.name, a_cluster, l_name, Void))
 							end
 						end
 					end
 				else
-					Precursor {PACKAGE_CONF_VISITOR}(a_cluster)
+					Precursor {PACKAGE_CONF_VISITOR} (a_cluster)
 				end
 			end
 		end
@@ -144,7 +144,7 @@ feature -- Execution
 				across
 					lst as ic
 				loop
-					update_condition_to_any_setting (ic.item)
+					update_condition_to_any_setting (ic)
 				end
 			end
 		end
@@ -152,12 +152,13 @@ feature -- Execution
 	visit_class (a_class: CONF_CLASS)
 		do
 			check not is_stopping_at_library end
+			check is_indexing_class end
 			on_class (a_class)
-			Precursor {PACKAGE_CONF_VISITOR}(a_class)
+			Precursor {PACKAGE_CONF_VISITOR} (a_class)
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -166,4 +167,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

@@ -11,6 +11,8 @@ class
 inherit
 	DEBUG_OUTPUT
 
+inherit {NONE}
+
 	RT_DBG_INTERNAL
 		export
 			{NONE} all
@@ -26,7 +28,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (rec: like recorder; ref: ANY; cid,fid: INTEGER; dep: INTEGER)
+	make (rec: like recorder; ref: ANY; cid, fid: INTEGER; dep: INTEGER)
 			-- Make as call `{cid}.fid' for object `ref' and depth `dep'
 		require
 			rec_attached: rec /= Void
@@ -92,7 +94,7 @@ feature -- Properties
 			is_flat: is_flat
 		do
 			if attached value_records as vals then
-				Result := across vals as c some c.item.is_local_record end
+				Result := ∃ c: vals ¦ c.is_local_record
 			end
 		end
 
@@ -132,7 +134,7 @@ feature -- Change
 				n := n + 1
 				object := Void
 			end
-			recorder.increment_records_count (-n)
+			recorder.increment_records_count (- n)
 		end
 
 	set_breakable_info (v: like breakable_info)
@@ -150,7 +152,7 @@ feature -- Change
 			last_position.line := a_line
 			last_position.nested := a_nested
 			debug ("RT_DBG_RECORD")
-				dtrace_indent (depth); dtrace ("BP_INFO (" + a_line.out + ", " + a_nested.out + ")%N")
+				dtrace_indent (depth); dtrace ({STRING_32} "BP_INFO (" + a_line.out + ", " + a_nested.out + ")%N")
 			end
 		end
 
@@ -171,7 +173,7 @@ feature -- Status
 			is_not_closed: not is_closed
 		do
 			if attached call_records as l_calls then
-				Result := across l_calls.new_cursor.reversed as c all c.item.is_closed end
+				Result := ∀ c: l_calls.new_cursor.reversed ¦ c.is_closed
 			else
 				Result := True
 			end
@@ -292,12 +294,12 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 
 			debug ("RT_DBG_RECORD")
 				if attached {like value_records} rs as ot_rs then
-					dtrace_indent (depth); dtrace ("record_fields -> " + ot_rs.count.out + " value(s).%N")
-					ot_rs.do_all (agent (r: RT_DBG_VALUE_RECORD)
+					dtrace_indent (depth); dtrace ({STRING_32} "record_fields -> " + ot_rs.count.out + " value(s).%N")
+					ot_rs.do_all (agent  (r: RT_DBG_VALUE_RECORD)
 						require
 							r_attached: r /= Void
 						do
-							dtrace (" -> " + r.position.out + ") " + r.to_string + "%N")
+							dtrace ({STRING_32} " -> " + r.position.out + ") " + r.to_string + "%N")
 						end)
 				else
 					dtrace_indent (depth); dtrace ("record_fields -> None.%N")
@@ -316,7 +318,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 				across
 					l_calls.new_cursor.reversed as i
 				loop
-					c := i.item
+					c := i
 					if not c.is_closed then
 						c.deep_close
 					end
@@ -382,7 +384,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 			not_flat: not is_flat
 		do
 			debug ("RT_DBG_OPTIMIZATION")
-				dtrace_indent (depth); dtrace ("flatten_value_records (depth=" + depth.out + ") -start-%N")
+				dtrace_indent (depth); dtrace ({STRING_32} "flatten_value_records (depth=" + depth.out + ") -start-%N")
 			end
 			if value_records = Void then
 				create value_records.make (0)
@@ -396,7 +398,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 
 			is_flat := True
 			debug ("RT_DBG_OPTIMIZATION")
-				dtrace_indent (depth); dtrace ("flatten_value_records (depth=" + depth.out + ") -end-%N")
+				dtrace_indent (depth); dtrace ({STRING_32} "flatten_value_records (depth=" + depth.out + ") -end-%N")
 			end
 		ensure
 			is_flat: is_flat
@@ -427,8 +429,8 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 			else
 				if vrecs /= Void then
 					if vrecs = vals then --| i.e: rec = flattening call record
-						-- Remove local records, since the stack won't be accessible anymore
-						-- thus we won't be able to access those locals anymore
+							-- Remove local records, since the stack won't be accessible anymore
+							-- thus we won't be able to access those locals anymore
 						from
 							vals.start
 						until
@@ -443,8 +445,8 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 							end
 						end
 					else
-						--| Should not occurs, but in case it is not a closed call record
-						--| let's keep this code.
+							--| Should not occurs, but in case it is not a closed call record
+							--| let's keep this code.
 						c := vrecs.cursor
 						from
 							vrecs.start
@@ -535,7 +537,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 									create orcds.make (10)
 									ort.force (orcds, oi)
 								end
-							--else-- use previous values (ie: index)
+									--else-- use previous values (ie: index)
 							end
 							check
 								oi_positive: oi > 0
@@ -563,8 +565,8 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 								end
 							end
 						else
-							--| this is not an attribute(or field) record
-							--| thus forget about them, not kept for optimized flat fields
+								--| this is not an attribute(or field) record
+								--| thus forget about them, not kept for optimized flat fields
 						end
 
 						vals.forth
@@ -595,9 +597,9 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Change
 					end
 				end
 				debug ("RT_DBG_OPTIMIZATION")
-					dtrace_indent (depth); dtrace ("optimize_flat_value_records (depth=" + depth.out + "): to " + vals.count.out + " (-" + n.out + ")%N")
+					dtrace_indent (depth); dtrace ({STRING_32} "optimize_flat_value_records (depth=" + depth.out + "): to " + vals.count.out + " (-" + n.out + ")%N")
 				end
-				recorder.increment_records_count (-n)
+				recorder.increment_records_count (- n)
 			end
 		rescue
 			dtrace ("Error: optimize_flat_field_records : rescued%N")
@@ -676,12 +678,12 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Query
 			sub_id: detachable STRING
 		do
 			debug ("RT_DBG_REPLAY")
-				dtrace_indent (depth); dtrace ("call_by_id (" + a_id + ")%N")
+				dtrace_indent (depth); dtrace ({STRING_32} "call_by_id (" + a_id + ")%N")
 			end
 			p := a_id.index_of ('.', 1)
 			if p > 0 then
 				sub_id := a_id.substring (p + 1, a_id.count)
-				i := a_id.substring (1, p-1).to_integer_32
+				i := a_id.substring (1, p - 1).to_integer_32
 			else
 				i := a_id.to_integer_32
 			end
@@ -697,11 +699,11 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Query
 				end
 			end
 			debug ("RT_DBG_REPLAY")
-				dtrace_indent (depth); dtrace ("call_by_id (" + a_id + ") -> Result=")
+				dtrace_indent (depth); dtrace ({STRING_32} "call_by_id (" + a_id + ") -> Result=")
 				if Result = Void then
 					dtrace ("Void")
 				else
-					dtrace (Result.to_string(0))
+					dtrace (Result.to_string (0))
 				end
 				dtrace ("%N")
 			end
@@ -737,7 +739,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Query
 			i: INTEGER
 			val_cursor: detachable CURSOR
 			call_cursor: detachable CURSOR
-			c,v: INTEGER
+			c, v: INTEGER
 			l_calls: like call_records
 			l_values: like value_records
 		do
@@ -752,7 +754,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Query
 			Result.append_integer (feature_rout_id)
 			Result.append_character ('.')
 			if attached breakable_info as bi then
-				Result.append_integer (bi.line)  -- bp slot index
+				Result.append_integer (bi.line) -- bp slot index
 				Result.append_character ('.')
 				Result.append_integer (bi.nested) -- bp slot nested index
 			else
@@ -762,7 +764,7 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Query
 			end
 			if is_replaying and then attached replayed_position as rbi then
 				Result.append_character ('.')
-				Result.append_integer (rbi.line)  -- bp slot index
+				Result.append_integer (rbi.line) -- bp slot index
 				Result.append_character ('.')
 				Result.append_integer (rbi.nested) -- bp slot nested index
 			end
@@ -803,21 +805,21 @@ feature {RT_DBG_EXECUTION_RECORDER, RT_DBG_CALL_RECORD} -- Query
 						l_steps.after
 					loop
 						if l_steps.item then
-							if False then --| Do not include assignments
-								if l_values = Void then
-									--| l_values can be Void if `is_flat' is True
-								else
---| Keep comment, if ever we want to show in the debugger, one entry by assignment step.
---									if l_steps.index = i then
---										subs.append_character ('!')
---									end
-									l_values.move (1)
-								end
-							end
+								--							if False then --| Do not include assignments
+								--								if l_values = Void then
+								--									--| l_values can be Void if `is_flat' is True
+								--								else
+								----| Keep comment, if ever we want to show in the debugger, one entry by assignment step.
+								----									if l_steps.index = i then
+								----										subs.append_character ('!')
+								----									end
+								--									l_values.move (1)
+								--								end
+								--							end
 							v := v + 1
 						else
 							if l_calls = Void then
-								--| l_calls can be Void if we don't keep call records on close
+									--| l_calls can be Void if we don't keep call records on close
 							else
 								if l_steps.index = i then
 									at_subs.append_character ('!')
@@ -917,7 +919,7 @@ feature {RT_DBG_EXECUTION_RECORDER} -- Steps
 
 			debug ("RT_DBG_REPLAY")
 				dtrace_indent (depth); dtrace ("left_step -> ")
-				dtrace ("["+ l_steps.index.out +"/"+ l_steps.count.out +"]: ")
+				dtrace ({STRING_32} "[" + l_steps.index.out + "/" + l_steps.count.out + "]: ")
 			end
 			if not l_steps.before then
 				if l_steps.item then --| Value
@@ -929,7 +931,7 @@ feature {RT_DBG_EXECUTION_RECORDER} -- Steps
 						Result.force (vrecs.item)
 						debug ("RT_DBG_REPLAY")
 							dtrace ("VALUE ")
-							dtrace (vrecs.index.out + "/" + vrecs.count.out )
+							dtrace (vrecs.index.out + "/" + vrecs.count.out)
 						end
 					end
 				else --| call
@@ -938,7 +940,7 @@ feature {RT_DBG_EXECUTION_RECORDER} -- Steps
 						crecs.move (-1)
 						debug ("RT_DBG_REPLAY")
 							dtrace ("CALL ")
-							dtrace (crecs.index.out + "/" + crecs.count.out )
+							dtrace (crecs.index.out + "/" + crecs.count.out)
 						end
 						check call_records_not_before: not crecs.before end
 						Result := changes_between (crecs.item, Void)
@@ -949,16 +951,16 @@ feature {RT_DBG_EXECUTION_RECORDER} -- Steps
 				if Result = Void then
 					dtrace ("=> Void %N")
 				else
-					dtrace ("=> " + Result.count.out + " %N")
+					dtrace ({STRING_32} "=> " + Result.count.out + " %N")
 				end
 			end
 		ensure
 			value_records_cursor_valid: attached value_records as vrecs2 implies not vrecs2.before
-			call_records_cursor_valid:  attached call_records as crecs2   implies not crecs2.before
+			call_records_cursor_valid: attached call_records as crecs2 implies not crecs2.before
 			steps_before_implies_record_first: steps.before implies (
-						(not attached value_records as vrecs3 or else vrecs3.isfirst) and
-						(not attached call_records as crecs3   or else crecs3.isfirst)
-					)
+					(not attached value_records as vrecs3 or else vrecs3.isfirst) and
+					(not attached call_records as crecs3 or else crecs3.isfirst)
+				)
 		end
 
 	revert_left_step
@@ -999,7 +1001,7 @@ feature {RT_DBG_EXECUTION_RECORDER} -- Steps
 			end
 		ensure
 			steps.after implies (attached call_records as crecs2 implies crecs2.after) and
-							(attached value_records as vrecs2  implies vrecs2.after)
+				(attached value_records as vrecs2 implies vrecs2.after)
 		end
 
 feature {NONE} -- Steps implementation
@@ -1054,7 +1056,7 @@ feature -- debug
 		local
 			l_steps: like steps
 			i: INTEGER
-			v,c: INTEGER
+			v, c: INTEGER
 			val_cursor: detachable CURSOR
 			call_cursor: detachable CURSOR
 			l_values: like value_records
@@ -1070,17 +1072,17 @@ feature -- debug
 					c := 0
 					l_steps.start
 
-					print ("steps: " + i.out + " out of " + l_steps.count.out + "%N")
+					print ({STRING} "steps: " + i.out + " out of " + l_steps.count.out + "%N")
 					if l_values /= Void then
 						val_cursor := l_values.cursor
-						print ("%Tvalues: " + l_values.index.out + " out of " + l_values.count.out + "%N")
+						print ({STRING} "%Tvalues: " + l_values.index.out + " out of " + l_values.count.out + "%N")
 						l_values.start
 					else
 						print ("%Tvalues: None %N")
 					end
 					if l_calls /= Void then
 						call_cursor := l_calls.cursor
-						print ("%Tcalls: " + l_calls.index.out + " out of " + l_calls.count.out + "%N")
+						print ({STRING} "%Tcalls: " + l_calls.index.out + " out of " + l_calls.count.out + "%N")
 						l_calls.start
 					else
 						print ("%Tcalls: None %N")
@@ -1088,10 +1090,10 @@ feature -- debug
 				until
 					l_steps.after
 				loop
-					print ("%T" + l_steps.index.out + "=" )
+					print ({STRING} "%T" + l_steps.index.out + "=")
 					if l_steps.item then
 						v := v + 1
-						print ("VALUE#" + v.out + ": ")
+						print ({STRING} "VALUE#" + v.out + ": ")
 						if l_values = Void then
 							print ("None")
 						else
@@ -1100,7 +1102,7 @@ feature -- debug
 						end
 					else
 						c := c + 1
-						print ("CALL#" + c.out + ": ")
+						print ({STRING} "CALL#" + c.out + ": ")
 						if l_calls = Void then
 							print ("None")
 						else
@@ -1124,13 +1126,13 @@ feature -- debug
 			end
 		end
 
-	debug_output: STRING
+	debug_output: STRING_32
 			-- Debug output as string representation.
 		local
-			tn: STRING
+			tn: READABLE_STRING_32
 		do
 			tn := reflector.type_name_of_type (class_type_id)
-			if attached object as o and then attached {STRING} o.generating_type as otn then
+			if attached object as o and then attached o.generating_type.name_32 as otn then
 				if tn = Void then
 					tn := otn
 				elseif otn /~ tn then
@@ -1141,12 +1143,12 @@ feature -- debug
 				tn := "_"
 			end
 
-			Result := "{" + tn + "}."
+			Result := {STRING_32} "{" + tn + "}."
 			Result.append (feature_rout_id.out + " <" + depth.out + ">")
 			if attached breakable_info as bi then
 				Result.append_character (' ')
 				Result.append_character ('(')
-				Result.append_integer (bi.line)  -- bp slot index
+				Result.append_integer (bi.line) -- bp slot index
 				Result.append_character (',')
 				Result.append_integer (bi.nested) -- bp slot nested index
 				Result.append_character (')')
@@ -1157,7 +1159,7 @@ feature -- debug
 			end
 
 			if attached object as obj and then rt_dynamic_type (obj) /= class_type_id then
-				Result.append_string (" -> ERROR Dtype(obj):" + rt_dynamic_type (obj).out + " /= " + class_type_id.out)
+				Result.append_string ({STRING_32} " -> ERROR Dtype(obj):" + rt_dynamic_type (obj).out + " /= " + class_type_id.out)
 			end
 		end
 
@@ -1169,9 +1171,9 @@ invariant
 	value_records_not_void_if_flat: is_flat implies value_records /= Void
 
 note
-	library:   "EiffelBase: Library of reusable components for Eiffel."
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	library: "EiffelBase: Library of reusable components for Eiffel."
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

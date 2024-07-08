@@ -164,7 +164,7 @@ feature -- Hook
 		        a_response.add_additional_head_line ("<meta name=%"description%" content=%"" + api.html_encoded (l_desc) + "%" />", False)
 	        end
 	        if attached a_response.keywords as l_keywords then
-        		a_response.add_additional_head_line ("<meta name=%"keywords%" content=%"" + api.list_to_csv_string (l_keywords) + "%" />", False)
+        		a_response.add_additional_head_line ("<meta name=%"keywords%" content=%"" + api.html_encoded (api.list_to_csv_string (l_keywords)) + "%" />", False)
         	end
 
 				-- Meta properties
@@ -175,7 +175,7 @@ feature -- Hook
 	        	across
 	        		l_props as ic
 	        	loop
-        			a_response.add_additional_head_line ("<meta property=%"" + ic.item.key + "%" content=%"" + api.html_encoded (ic.item.value) + "%" />", False)
+        			a_response.add_additional_head_line ("<meta property=%"" + html_encoded (ic.item.key) + "%" content=%"" + api.html_encoded (ic.item.value) + "%" />", False)
 	        	end
 			end
 			a_response.add_additional_head_line ("<link rel='canonical' href='" + l_siteurl + "' />", False)

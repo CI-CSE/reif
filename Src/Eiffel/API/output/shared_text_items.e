@@ -1,9 +1,9 @@
-note
-	description	: "Shared text format items."
+﻿note
+	description: "Shared text format items."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision $"
+	date: "$Date$"
+	revision: "$Revision $"
 
 class SHARED_TEXT_ITEMS
 
@@ -249,16 +249,22 @@ feature -- Symbol names
 			-- "--" characters
 
 	ti_Dollar: STRING = "$"
-			-- "$" character
+			-- "$" character.
+
+	ti_at: STRING = "@"
+			-- "@" character.
 
 	ti_Dot: STRING = "."
-			-- "." character
+			-- "." character.
 
 	ti_Dotdot: STRING = ".."
 			-- ".." characters
 
 	ti_Double_quote: STRING = "%""
 			-- '"' character
+
+	ti_backquote: STRING = "`"
+			-- '`' character
 
 	ti_Empty: STRING = ""
 			-- Empty character
@@ -296,7 +302,7 @@ feature -- Symbol names
 	ti_Question: STRING = "?"
 			-- "'" characters
 
-	ti_Quote: STRING = "%'"
+	ti_Quote: STRING = "'"
 			-- "'" characters
 
 	ti_R_array: STRING = ">>"
@@ -319,6 +325,15 @@ feature -- Symbol names
 
 	ti_Tilda: STRING = "~"
 			-- "~" character
+
+	ti_For_all: STRING_32 = "∀"
+			-- "∀" symbol.
+
+	ti_There_exists: STRING_32 = "∃"
+			-- "∃" symbol.
+
+	ti_Broken_bar: STRING_32 = "¦"
+			-- "¦" symbol.
 
 feature -- Basic text
 
@@ -379,15 +394,10 @@ feature -- Standard classes
 	ti_None_class: STRING = "NONE"
 			-- `NONE' class.
 
-	ti_Bit_class: STRING = "BIT";
-			-- `BIT' class.
-
-	ti_quantification_sperator: STRING = "::";
-
-note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+;note
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
@@ -416,4 +426,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class SHARED_TEXT_ITEMS
+end

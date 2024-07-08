@@ -517,7 +517,7 @@ feature -- Misc
 		end
 	remove_remote_target (a_target, a_location: READABLE_STRING_GENERAL): STRING_32
 		do
-			Result := locale.formatted_string (locale.translation ("Are you sure you want to remove remote $1 ($2)?"), [a_target, a_location])
+			Result := locale.formatted_string (locale.translation ("Are you sure you want to remove (remote) parent $1 ($2)?"), [a_target, a_location])
 		end
 
 	target_remove_group (a_group: READABLE_STRING_GENERAL): STRING_32
@@ -547,6 +547,10 @@ feature -- Condition dialog
 	dial_cond_concurrency: STRING_32 do Result := locale.translation ("Concurrency")	end
 	dial_cond_concurrency_exclude: STRING_32 do Result := locale.translation ("Exclude value(s)")	end
 	dial_cond_concurrency_value (value: READABLE_STRING_GENERAL): STRING_32 do Result := locale.translation (value)	end
+	dial_cond_void_safety: STRING_32 do Result := locale.translation ("Void safety")	end
+	dial_cond_void_safety_exclude: STRING_32 do Result := locale.translation ("Exclude value(s)")	end
+	dial_cond_void_safety_value (value: READABLE_STRING_GENERAL): STRING_32 do Result := locale.translation (value)	end
+
 	dial_cond_dynamic_runtime: STRING_32 do Result := locale.translation ("Dynamic runtime")	end
 	dial_cond_version: STRING_32 do Result := locale.translation ("Version")	end
 	dial_cond_version_compiler: STRING_32 do Result := locale.translation ("<= compiler version <= ")	end
@@ -648,14 +652,12 @@ feature -- Create library dialog
 				Result := locale.formatted_string (locale.translation ("[
 Search paths for libraries are specified in the configuration file:
    $1
-
-and could be overwridden by user configuration file:
+and could be overridden by user configuration file:
    $2
 
 Search paths for precompiled libraries are specified in the configuration file:
    $3
-
-and could be overwridden by user configuration file:
+and could be overridden by user configuration file:
    $4
 						]"),
 						[a_lib_cfg, a_user_lib_cfg, a_pre_cfg, a_user_pre_cfg]
@@ -716,7 +718,7 @@ feature -- Iron packages box
 				s.append_character (' ')
 				s.append_character ('-')
 				s.append_character (' ')
-				s.append (a_folder.extended_path (ic.item).name)
+				s.append (a_folder.extended_path (ic).name)
 				s.append_character ('%N')
 			end
 			Result := locale.formatted_string (locale.translation ("[
@@ -1032,6 +1034,8 @@ feature -- Parse errors
 			Result := locale.formatted_string (locale.translation ("Invalid override tag there is already a group with the name $1."), [a_group])
 		end
 
+	e_parse_incorrect_namespace_no_name: STRING_32 do Result := locale.translation ("No name for the namespace element.") end
+
 	e_parse_incorrect_debug_no_name: STRING_32 do Result := locale.translation ("Invalid debug tag.") end
 	e_parse_incorrect_debug (a_debug: READABLE_STRING_GENERAL): STRING_32
 		do
@@ -1109,6 +1113,10 @@ feature -- Parse errors
 		do
 			Result := locale.formatted_string (locale.translation ("Invalid concurrency condition $1."), [a_concurrency])
 		end
+	e_parse_incorrect_void_safety (a_void_safety: READABLE_STRING_GENERAL): STRING_32
+		do
+			Result := locale.formatted_string (locale.translation ("Invalid void_safety condition $1."), [a_void_safety])
+		end
 	e_parse_incorrect_dotnet: STRING_32 do Result := locale.translation ("No valid value specified in .NET condition.") end
 	e_parse_incorrect_dynamic_runtime: STRING_32 do Result := locale.translation ("No valid value specified in dynamic runtime condition.") end
 
@@ -1179,58 +1187,52 @@ feature -- Parse errors
 feature -- String parse errors
 
 	e_parse_string_missing_name (option: READABLE_STRING_GENERAL): READABLE_STRING_32
-			-- An error for a missing configuration name.
+			-- An error for a missing setting name.
 		do
-			Result := locale.formatted_string (locale.translation ("Missing name for configuration option %"$1%""), [option])
+			Result := locale.formatted_string (locale.translation ("Missing name in the setting %"$1%""), [option])
 		end
 
 	e_parse_string_missing_value (option: READABLE_STRING_GENERAL): READABLE_STRING_32
-			-- An error for a missing configuration value.
+			-- An error for a missing setting value.
 		do
-			Result := locale.formatted_string (locale.translation ("Missing value for configuration option %"$1%""), [option])
+			Result := locale.formatted_string (locale.translation ("Missing value in the setting %"$1%""), [option])
 		end
 
-	e_parse_string_unknown_name (option_name: READABLE_STRING_GENERAL; a_available_options: detachable ITERABLE [READABLE_STRING_GENERAL]): READABLE_STRING_32
-			-- An error for a unknown configuration name.
+	e_parse_string_unknown_name (option_name: READABLE_STRING_GENERAL; known_names: ITERABLE [READABLE_STRING_GENERAL]): READABLE_STRING_32
+			-- An error for an unknown setting name.
 		local
+			d: STRING_32
 			s: STRING_32
 		do
-			if a_available_options /= Void then
-				create s.make_empty
-				across
-					a_available_options as ic
-				loop
-					if not s.is_empty then
-						s.append ({STRING_32} ", ")
-					end
-					s.append_string_general (ic.item)
-				end
-				Result := locale.formatted_string (locale.translation ("Unknown configuration option %"$1%" (Available options: $2)"), [option_name, s])
-			else
-				Result := locale.formatted_string (locale.translation ("Unknown configuration option %"$1%""), [option_name])
+			create s.make_empty
+			d := s
+			across
+				known_names as ic
+			loop
+				s.append (d)
+				d := once {STRING_32} ", "
+				s.append_string_general (ic)
 			end
+			Result := locale.formatted_string (locale.translation ("Unknown setting %"$1%" (Available settings: $2)"), [option_name, s])
 		end
 
 	e_parse_string_invalid_value (option_name, option_value: READABLE_STRING_GENERAL;
-		expected_values: detachable ITERABLE [READABLE_STRING_GENERAL]): READABLE_STRING_32
+		expected_values: ITERABLE [READABLE_STRING_GENERAL]): READABLE_STRING_32
 			-- An error for an invalid option value `option_value' of an option `option_name'.
 		local
+			d: STRING_32
 			e: STRING_32
 		do
-			if attached expected_values then
-				create e.make_empty
-				across
-					expected_values as c
-				loop
-					if not e.is_empty then
-						e.append ({STRING_32} ", ")
-					end
-					e.append_string_general (c.item)
-				end
-				Result := locale.formatted_string (locale.translation ("Invalid value for configuration option %"$1%": %"$2%" (Expected values: $3)"), [option_name, option_value, e])
-			else
-				Result := locale.formatted_string (locale.translation ("Invalid value for configuration option %"$1%": %"$2%""), [option_name, option_value])
+			create e.make_empty
+			d := e
+			across
+				expected_values as c
+			loop
+				e.append (d)
+				d := once {STRING_32} ", "
+				e.append_string_general (c)
 			end
+			Result := locale.formatted_string (locale.translation ("Invalid value for setting %"$1%": %"$2%" (Expected values: $3)"), [option_name, option_value, e])
 		end
 
 feature -- Capability errors
@@ -1260,7 +1262,7 @@ feature -- Capability errors
 		do
 			Result := locale.formatted_string (locale.translation_in_context
 				("[
-					Group option "$1" has value "$2" insufficient for value "$4" of a target containing this group.
+					Group option "$1" has value "$2" insufficient for value "$4" of the target containing this group.
 						Group: $3
 						Target: $5
 						System: $6
@@ -1279,7 +1281,7 @@ feature -- Capability errors
 		do
 			Result := locale.formatted_string (locale.translation_in_context
 				("[
-					Capability "$1" of supplier target has value "$2" insuffient for client value "$6".
+					Capability "$1" of supplier target has value "$2" insufficient for client value "$6".
 					Client/child target
 						Name: $7
 						System: $8
@@ -1357,7 +1359,7 @@ feature -- Boolean values
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

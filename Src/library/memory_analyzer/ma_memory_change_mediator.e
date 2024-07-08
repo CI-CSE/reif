@@ -106,8 +106,11 @@ feature -- Command
 	adjust_column_width (a_column_index: INTEGER; a_grid: EV_GRID; x, y, b: INTEGER_32; x_tilt, y_tilt, p: REAL_64; screen_x, screen_y: INTEGER_32)
 			-- Adjust a column width to fix the max width of the item its contain.
 		do
-			if a_grid.row_count > 0 then
-				a_grid.column (a_column_index).set_width (a_grid.column (a_column_index).required_width_of_item_span (1, a_grid.row_count))
+			if 
+				a_grid.row_count > 0 and then
+				attached a_grid.column (a_column_index) as col
+			then
+				col.set_width (col.required_width_of_item_span (1, a_grid.row_count).max (col.minimum_width))
 			end
 		end
 
@@ -296,7 +299,7 @@ feature {NONE} -- Implemention
 			-- User pick a item from grid to filter.
 		do
 			if a_item /= Void and then a_item.column.index = 1 then
-				create {MA_CLASS_STONE} Result.make (a_item.text)
+				create {MA_CLASS_STONE} Result.make ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (a_item.text))
 			end
 		end
 
@@ -398,7 +401,7 @@ invariant
 	grid_increased_not_void: grid_changed /= Void
 	grid_data_not_void: grid_data /= Void
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

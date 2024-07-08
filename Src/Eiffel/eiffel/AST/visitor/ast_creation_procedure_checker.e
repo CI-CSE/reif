@@ -13,10 +13,12 @@ inherit
 			process_access_inv_as,
 			process_address_current_as,
 			process_assign_as,
+			process_assigner_call_as,
 			process_bin_eq_as,
 			process_bin_ne_as,
 			process_binary_as,
 			process_case_as,
+			process_case_expression_as,
 			process_converted_expr_as,
 			process_creation_as,
 			process_creation_expr_as,
@@ -30,12 +32,12 @@ inherit
 			process_if_expression_as,
 			process_inline_agent_creation_as,
 			process_inspect_as,
+			process_inspect_expression_as,
 			process_iteration_as,
 			process_like_cur_as,
 			process_loop_as,
 			process_named_expression_as,
 			process_nested_expr_as,
-			process_nested_as,
 			process_once_as,
 			process_precursor_as,
 			process_result_as,
@@ -301,12 +303,15 @@ feature {AST_EIFFEL} -- Visitor: routine body
 	process_once_as (a: ONCE_AS)
 			-- <Precursor>
 		do
-			if a.has_key_object then
-					-- Because this is once-per-object and a creation of the object is processed,
+			if
+				a.has_key_object or else
+				context.current_feature = creation_procedure and then context.current_feature.is_once_creation (context.current_class)
+			then
+					-- Because this is once-per-object or a current creation procedure of a once class,
 					-- it should be safe to process the routine as a normal one.
 				Precursor (a)
 			else
-					-- Attributes set by the once feature are not initialized,
+					-- Attributes set by the once feature are not considered as initialized,
 					-- because the next call to it will not execute the body.
 				keeper.enter_realm
 				Precursor (a)
@@ -341,6 +346,7 @@ feature {AST_EIFFEL} -- Visitor: access to features
 			f: FEATURE_I
 			i: INTEGER
 		do
+			process_assigner_source
 			safe_process (a.internal_parameters)
 			if not a.is_local and then not a.is_argument then
 				if not is_qualified then
@@ -668,6 +674,14 @@ feature {AST_EIFFEL} -- Visitor: compound
 			keeper.save_sibling
 		end
 
+	process_case_expression_as (a: CASE_EXPRESSION_AS)
+			-- <Precursor>
+		do
+			a.interval.process (Current)
+			a.content.process (Current)
+			keeper.save_sibling
+		end
+
 	process_debug_as (a: DEBUG_AS)
 			-- <Precursor>
 		do
@@ -742,6 +756,19 @@ feature {AST_EIFFEL} -- Visitor: compound
 			safe_process (a.case_list)
 			if attached a.else_part as e then
 				process_compound (e)
+				keeper.save_sibling
+			end
+			keeper.leave_realm
+		end
+
+	process_inspect_expression_as (a: INSPECT_EXPRESSION_AS)
+			-- <Precursor>
+		do
+			a.switch.process (Current)
+			keeper.enter_realm
+			safe_process (a.case_list)
+			if attached a.else_part as e then
+				e.process (Current)
 				keeper.save_sibling
 			end
 			keeper.leave_realm
@@ -843,6 +870,14 @@ feature {AST_EIFFEL} -- Visitor: compound
 
 feature {AST_EIFFEL} -- Visitor: nested call
 
+	process_assigner_call_as (a: ASSIGNER_CALL_AS)
+			-- <Precursor>
+		do
+			assigner_source := a.source
+			a.target.process (Current)
+			assigner_source := Void
+		end
+
 	process_bin_eq_as (a: BIN_EQ_AS)
 			-- <Precursor>
 		do
@@ -861,9 +896,11 @@ feature {AST_EIFFEL} -- Visitor: nested call
 			-- <Precursor>
 		do
 			debug ("to_implement") -- TODO
-				(create {REFACTORING_HELPER}).to_implement ("Exclude expanded and separate types from qualified calls.")
+				(create {REFACTORING_HELPER}).to_implement ("Exclude expanded types from qualified calls if they do not involve references.")
 			end
-			Precursor (a)
+			a.left.process (Current)
+			process_assigner_source
+			a.right.process (Current)
 			record_qualified_call (a)
 		end
 
@@ -894,29 +931,16 @@ feature {AST_EIFFEL} -- Visitor: nested call
 		local
 			q: BOOLEAN
 			c: BOOLEAN
+			s: like assigner_source
 		do
 			q := is_qualified
 			c := is_creation
+			s := assigner_source
+			assigner_source := Void
 			a.target.process (Current)
 			is_qualified := True
 			is_creation := False
-			a.message.process (Current)
-			is_creation := c
-			is_qualified := q
-			record_qualified_call (a)
-		end
-
-	process_nested_as (a: NESTED_AS)
-			-- <Precursor>
-		local
-			q: BOOLEAN
-			c: BOOLEAN
-		do
-			q := is_qualified
-			c := is_creation
-			a.target.process (Current)
-			is_qualified := True
-			is_creation := False
+			assigner_source := s
 			a.message.process (Current)
 			is_creation := c
 			is_qualified := q
@@ -937,6 +961,7 @@ feature {AST_EIFFEL} -- Visitor: nested call
 				(create {REFACTORING_HELPER}).to_implement ("Exclude expanded and separate types from qualified calls.")
 			end
 			Precursor (a)
+			process_assigner_source
 			record_qualified_call (a)
 		end
 
@@ -953,6 +978,24 @@ feature {AST_EIFFEL} -- Visitor: nested call
 			Precursor (a)
 			is_creation := c
 			is_qualified := q
+		end
+
+	process_assigner_source
+			-- Process assigner source (if available).
+		local
+			q: BOOLEAN
+			c: BOOLEAN
+		do
+			if attached assigner_source as s then
+				assigner_source := Void
+				q := is_qualified
+				is_qualified := False
+				c := is_creation
+				is_creation := False
+				s.process (Current)
+				is_creation := c
+				is_qualified := q
+			end
 		end
 
 feature {NONE} -- Visitor: qualified calls
@@ -989,6 +1032,9 @@ feature {NONE} -- Status report
 			-- Is there a qualified call?
 
 feature {NONE} -- Access
+
+	assigner_source: detachable EXPR_AS
+			-- A source of an assigner command (if any).
 
 	is_unset: BOOLEAN
 			-- Is attribute passed to `check_attribute' unset?
@@ -1034,9 +1080,10 @@ feature {NONE} -- Access
 			-- Bodies that are being processed.
 
 ;note
+	ca_ignore: "CA033", "CA033: too large class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

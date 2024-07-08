@@ -1,5 +1,5 @@
 ﻿note
-	description:	"Command names for menu entries."
+	description: "Command names for menu entries."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -143,6 +143,8 @@ feature {NONE}
 
 	pretty_cmd_name: STRING = "pretty"
 
+	preference_cmd_name: STRING = "preference"
+
 	finalized_precompile_cmd_name: STRING = "finalize_precompile"
 
 	Profile_cmd_name: STRING = "profile"
@@ -160,6 +162,8 @@ feature {NONE}
 	reactivate_subquery_cmd_name: STRING = "reactivate"
 
 	inactivate_subquery_cmd_name: STRING = "inactivate"
+
+	reset_ide_layout_cmd_name: STRING = "reset_ide_layout"
 
 	routines_cmd_name: STRING = "routines"
 
@@ -218,7 +222,7 @@ feature {NONE}
 	gc_stats_cmd_name: STRING = "gc_stats";
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

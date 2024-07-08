@@ -55,12 +55,12 @@ feature {NONE} -- Initialization
 			esgrid.enable_multiple_row_selection
 			esgrid.set_column_count_to (6)
 			esgrid.set_default_columns_layout (<<
-						[esgrid.col_name_id, True, False, 150, interface_names.l_Expression, interface_names.to_expression],
-						[esgrid.col_value_id, True, False, 150, interface_names.l_value, interface_names.to_value],
-						[esgrid.col_type_id, True, False, 100, interface_names.l_type, interface_names.to_type],
-						[esgrid.col_address_id, True, False, 80, interface_names.l_address, interface_names.to_address],
-						[esgrid.col_scoop_pid_id, True, False,   30, interface_names.l_scoop_pid, interface_names.to_scoop_pid],
-						[esgrid.col_context_id, True, False, 200, interface_names.l_Context, interface_names.to_context]
+						[esgrid.col_name_id, True, False, {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (150), interface_names.l_Expression, interface_names.to_expression],
+						[esgrid.col_value_id, True, False, {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (150), interface_names.l_value, interface_names.to_value],
+						[esgrid.col_type_id, True, False, {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (100), interface_names.l_type, interface_names.to_type],
+						[esgrid.col_address_id, True, False, {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (80), interface_names.l_address, interface_names.to_address],
+						[esgrid.col_scoop_pid_id, True, False,   {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (30), interface_names.l_scoop_pid, interface_names.to_scoop_pid],
+						[esgrid.col_context_id, True, False, {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (200), interface_names.l_Context, interface_names.to_context]
 					>>
 				)
 			esgrid.set_columns_layout (1, esgrid.default_columns_layout)
@@ -467,6 +467,7 @@ feature {NONE} -- add new expression from the grid
 			then
 				new_expression_row := watches_grid.extended_new_row
 				create glab.make_with_text ("...")
+				glab.set_font (watches_grid.grid_font)
 				grid_cell_set_tooltip (glab, interface_names.f_add_new_expression)
 
 				new_expression_row.set_item (1, glab)
@@ -524,55 +525,64 @@ feature {EB_CONTEXT_MENU_FACTORY, ES_WATCH_TOOL} -- Context menu
 		local
 			obj_st: detachable OBJECT_STONE
 			dlg: detachable EB_EXPRESSION_DEFINITION_DIALOG
-			oname: STRING
+			oname: STRING_32
 			cl: detachable CLASS_C
-			add: detachable DBG_ADDRESS
 			ctrl_pressed: BOOLEAN
 		do
 			ctrl_pressed := ev_application.ctrl_pressed
 			show
-			if attached {FEATURE_ON_OBJECT_STONE} s as fost then
-				oname := fost.feature_name
-				add := fost.object_address
+			if attached {FEATURE_STONE} s as fst then
+				oname := fst.feature_name
+				cl := fst.e_class
 				if ctrl_pressed then
-					obj_st := fost.object_stone
-					cl := fost.e_class
-					if
-						obj_st = Void and then
-						add /= Void and then
-						cl /= Void
-					then
-						create obj_st.make (add, oname, cl)
+					if attached {FEATURE_ON_OBJECT_STONE} s as fost then
+						obj_st := fost.object_stone
+						if
+							obj_st = Void and then
+							attached fost.object_address as add and then
+							cl /= Void
+						then
+							create obj_st.make (add, oname, cl)
+						end
+					elseif attached {ACCESS_ID_FEATURE_STONE} s as afst then
+						if attached afst.associated_text as txt then
+							oname := txt
+						else
+							oname := ""
+						end
+						obj_st := Void
 					end
 					if obj_st /= Void then
 						on_element_drop (obj_st)
+					else
+						add_new_expression_for_context (oname)
 					end
 				else
-					create dlg.make_with_expression_on_object (add, oname)
-				end
-			else
-				if attached {FEATURE_STONE} s as fst then
-					oname := fst.feature_name
-					cl := fst.e_class
-					if ctrl_pressed then
-						add_new_expression_for_context (oname)
+					if attached {FEATURE_ON_OBJECT_STONE} s as fost then
+						create dlg.make_with_expression_on_object (fost.object_address, oname)
+					elseif attached {ACCESS_ID_FEATURE_STONE} s as afst then
+						if attached afst.associated_text as txt then
+							create dlg.make_with_expression_text (txt)
+						else
+--							oname := ""
+						end
 					else
 						create dlg.make_with_expression_text (oname)
-						if cl /= Void then
-							dlg.set_class_text (cl)
-						end
 					end
-				elseif attached {OBJECT_STONE} s as ost then
-					oname := ost.name + ": " + ost.object_address.output
-					cl := ost.dynamic_class
-					if ctrl_pressed then
-						add_object (ost, oname)
-					else
-						create dlg.make_with_named_object (ost.object_address, oname, cl)
+					if cl /= Void and not dlg.has_class_text then
+						dlg.set_class_text (cl)
 					end
-				elseif s /= Void then
-					create dlg.make_with_class (s.e_class)
 				end
+			elseif attached {OBJECT_STONE} s as ost then
+				oname := ost.name + ": " + ost.object_address.output
+				cl := ost.dynamic_class
+				if ctrl_pressed then
+					add_object (ost, oname)
+				else
+					create dlg.make_with_named_object (ost.object_address, oname, cl)
+				end
+			elseif s /= Void then
+				create dlg.make_with_class (s.e_class)
 			end
 			if dlg /= Void then
 				dlg.set_callback (agent add_expression_with_dialog (dlg))
@@ -1093,7 +1103,7 @@ feature {NONE} -- Event handling
 			add_expression (l_expr, False)
 		end
 
-	add_object (ost: OBJECT_STONE; oname: STRING)
+	add_object (ost: OBJECT_STONE; oname: READABLE_STRING_GENERAL)
 		require
 			ost_ot_void: ost /= Void
 			oname /= Void
@@ -1103,7 +1113,8 @@ feature {NONE} -- Event handling
 		do
 			debugger_manager.application_status.keep_object (ost.object_address)
 			create expr.make_as_object (ost.dynamic_class , ost.object_address)
-			expr.set_name (oname)
+				-- FIXME: better Unicode support
+			expr.set_name ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (oname))
 			add_expression (expr, False)
 		end
 
@@ -1518,7 +1529,7 @@ feature -- Expressions storage management
 					create f.make_with_path (fn)
 					if not f.exists or else f.is_writable then
 						f.open_write
-						f.put_string (s)
+						f.put_string ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (s))
 						f.close
 					end
 				end
@@ -1823,11 +1834,11 @@ feature {NONE} -- Auto-completion
 
 feature {NONE} -- Implementation
 
-	standard_grid_label (s: STRING): EV_GRID_LABEL_ITEM
-		do
-			create Result
-			Result.set_text (s)
-		end
+--	standard_grid_label (s: STRING): EV_GRID_LABEL_ITEM
+--		do
+--			create Result
+--			Result.set_text (s)
+--		end
 
 	new_watched_item_from_expression_evaluation (evl: DBG_EXPRESSION_EVALUATION; a_grid: ES_OBJECTS_GRID): like watched_item_from
 		require
@@ -1959,7 +1970,7 @@ invariant
 note
 	ca_ignore:
 		"CA093", "CA093: manifest array type mismatch"
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

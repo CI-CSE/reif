@@ -65,6 +65,7 @@ feature -- Access
 				create control_tool_internal.make (4)
 				control_tool_internal.extend (create{SD_TOOL_BAR_SEPARATOR}.make)
 				control_tool_internal.extend (display_path_button)
+				control_tool_internal.extend (display_description_button)
 				if is_flat_view_enabled then
 					control_tool_internal.extend (normal_referenced_button)
 					control_tool_internal.extend (syntactical_button)
@@ -141,17 +142,14 @@ feature -- Actions
 
 	on_pointer_double_click (a_x: INTEGER; a_y: INTEGER; a_button: INTEGER; a_x_tilt: DOUBLE; a_y_tilt: DOUBLE; a_pressure: DOUBLE; a_screen_x: INTEGER; a_screen_y: INTEGER)
 			-- Action to be performed when mouse is double clicked in `grid'
-		local
-			l_grid_item: EV_GRID_ITEM
-			l_row: EB_CLASS_BROWSER_TREE_ROW
 		do
 			if a_button = {EV_POINTER_CONSTANTS}.left then
-				l_grid_item := grid_item_at_position (grid, a_x, a_y)
-				if l_grid_item /= Void then
-					l_row ?= l_grid_item.row.data
-					if l_row /= Void and then l_row.is_collapsed then
-						l_row := first_occurrence (l_row)
-						ensure_visible (l_row.class_grid_item, True)
+				if attached grid_item_at_position (grid, a_x, a_y) as l_grid_item then
+					if
+						attached {EB_CLASS_BROWSER_TREE_ROW} l_grid_item.row.data as l_row and then
+						l_row.is_collapsed
+					then
+						ensure_visible (first_occurrence (l_row).class_grid_item, True)
 					end
 				end
 			end
@@ -244,6 +242,17 @@ feature -- Actions
 			grid_sorting_setting_correct: is_sorting_setting_valid
 		end
 
+	on_show_description_changed
+			-- Action to be performed when selection status of `display_description_button' changes
+		do
+			is_up_to_date := False
+			if data /= Void then
+				bind_grid
+			end
+		ensure
+			grid_sorting_setting_correct: is_sorting_setting_valid
+		end
+
 	on_refresh_for_flat_view
 			-- Refresh data for flat view.
 		do
@@ -317,14 +326,15 @@ feature -- Sorting
 			row_a_valid: row_a /= Void
 			row_b_valid: row_b /= Void
 		local
-			l_class_a_name: STRING
-			l_class_b_name: STRING
+			l_class_a_name: READABLE_STRING_GENERAL
+			l_class_b_name: READABLE_STRING_GENERAL
 		do
-			l_class_a_name := row_a.class_item.name
-			l_class_b_name := row_b.class_item.name
 			if a_order = topology_order then
 				Result := row_a.class_item.class_c.topological_id < row_b.class_item.class_c.topological_id
 			else
+				l_class_a_name := row_a.class_item.name
+				l_class_b_name := row_b.class_item.name
+
 				if l_class_a_name.is_equal (l_class_b_name) then
 					Result := not row_a.is_collapsed and then row_b.is_collapsed
 				else
@@ -343,17 +353,19 @@ feature -- Sorting
 			class_a_valid: class_a /= Void
 			class_b_valid: class_b /= Void
 		local
-			l_class_a_name: STRING
-			l_class_b_name: STRING
+			l_class_a_name: READABLE_STRING_GENERAL
+			l_class_b_name: READABLE_STRING_GENERAL
 		do
-			l_class_a_name := class_a.name
-			l_class_b_name := class_b.name
 			if current_class_sort_order = topology_order then
 				Result := class_a.class_c.topological_id < class_b.class_c.topological_id
-			elseif current_class_sort_order = ascending_order then
-				Result := l_class_a_name < l_class_b_name
 			else
-				Result := l_class_a_name > l_class_b_name
+				l_class_a_name := class_a.name
+				l_class_b_name := class_b.name
+				if current_class_sort_order = ascending_order then
+					Result := l_class_a_name < l_class_b_name
+				else
+					Result := l_class_a_name > l_class_b_name
+				end
 			end
 		end
 
@@ -398,22 +410,20 @@ feature{NONE} -- Implementation
 	default_ensure_visible_action (a_item: EVS_GRID_SEARCHABLE_ITEM; a_selected: BOOLEAN)
 			-- Ensure that `a_item' is visible.
 			-- If `a_selected' is True, make sure that `a_item' is in its selected status.
-		local
-			l_grid_item: EV_GRID_ITEM
-			l_grid_row: EV_GRID_ROW
-			l_row: EB_CLASS_BROWSER_TREE_ROW
 		do
-			l_grid_item := a_item.grid_item
-			check l_grid_item /= Void end
-			l_grid_row := l_grid_item.row
-			check l_grid_row /= Void end
-			l_row ?= l_grid_row.data
-			check l_row /= Void end
-			l_row.expand_parent_row_recursively (l_row.grid_row)
-			grid.remove_selection
-			l_grid_row.ensure_visible
-			if a_selected then
-				l_grid_row.enable_select
+			if
+				attached a_item.grid_item as l_grid_item and then
+				attached l_grid_item.row as l_grid_row and then
+				attached {EB_CLASS_BROWSER_TREE_ROW} l_grid_row.data as l_row
+			then
+				l_row.expand_parent_row_recursively (l_row.grid_row)
+				grid.remove_selection
+				l_grid_row.ensure_visible
+				if a_selected then
+					l_grid_row.enable_select
+				end
+			else
+				check False end
 			end
 		end
 
@@ -474,13 +484,14 @@ feature{NONE} -- Implementation
 			l_processed_classes: like processed_classes
 			l_class: QL_CLASS
 			any_class_id: INTEGER
-			l_list2: ARRAYED_LIST [QL_CLASS]
 			l_agent_sorter: AGENT_BASED_EQUALITY_TESTER [QL_CLASS]
 			l_sorter: DS_QUICK_SORTER [QL_CLASS]
 		do
 			l_class := class_table.item (a_row.class_item.class_c.class_id)
-			l_list2 ?= l_class.data
-			if l_list2 /= Void and then not l_list2.is_empty then
+			if
+				attached {ARRAYED_LIST [QL_CLASS]} l_class.data as l_list2 and then
+				not l_list2.is_empty
+			then
 				l_processed_classes := processed_classes
 				any_class_id := system.any_id
 				create l_list.make (l_list2.count)
@@ -496,8 +507,10 @@ feature{NONE} -- Implementation
 				loop
 					l_class := l_list.item_for_iteration
 					if l_processed_classes.has (l_class) then
-						l_list2 ?= l_class.data
-						if l_list2 /= Void and then not l_list2.is_empty then
+						if
+							attached {ARRAYED_LIST [QL_CLASS]} l_class.data and then
+							not l_list2.is_empty
+						then
 							create l_row.make (Current, l_class, True)
 						else
 							create l_row.make (Current, l_class, False)
@@ -506,7 +519,10 @@ feature{NONE} -- Implementation
 					else
 						create l_row.make (Current, l_class, False)
 						a_row.add_child (l_row)
-						if l_class.class_c.class_id /= any_class_id then
+						if
+							attached l_class.class_c as cl_c and then
+							cl_c.class_id /= any_class_id
+						then
 							if l_processed_classes.count = l_processed_classes.capacity then
 								l_processed_classes.resize (l_processed_classes.capacity + 50)
 							end
@@ -522,11 +538,12 @@ feature{NONE} -- Implementation
 	processed_classes: DS_HASH_SET [QL_CLASS]
 			-- Processed classes
 		do
-			if processed_classes_internal = Void then
-				create processed_classes_internal.make (100)
-				processed_classes_internal.set_equality_tester (create {AGENT_BASED_EQUALITY_TESTER [QL_CLASS]}.make(agent is_class_equal))
-			end
 			Result := processed_classes_internal
+			if Result = Void then
+				create Result.make (100)
+				processed_classes_internal := Result
+				Result.set_equality_tester (create {AGENT_BASED_EQUALITY_TESTER [QL_CLASS]}.make (agent is_class_equal))
+			end
 		ensure
 			result_attached: Result /= Void
 		end
@@ -541,6 +558,7 @@ feature{NONE} -- Implementation
 			l_rows: like rows
 			l_bg_color: EV_COLOR
 			l_is_path_displayed: BOOLEAN
+			l_is_class_description_displayed: BOOLEAN
 		do
 			l_bg_color := even_line_color
 			if grid.row_count > 0 then
@@ -549,6 +567,7 @@ feature{NONE} -- Implementation
 			grid.hide_tree_node_connectors
 			grid.set_row_height (default_row_height)
 			l_is_path_displayed := display_path_button.is_selected
+			l_is_class_description_displayed := display_description_button.is_selected
 			from
 				l_rows := rows
 				l_rows.start
@@ -556,7 +575,7 @@ feature{NONE} -- Implementation
 				l_rows.after
 			loop
 				l_row := rows.item_for_iteration
-				l_row.bind_row (Void, grid, l_bg_color, 0, l_is_path_displayed)
+				l_row.bind_row (Void, grid, l_bg_color, 0, l_is_path_displayed, l_is_class_description_displayed)
 				l_rows.forth
 			end
 			try_auto_resize_grid (<<[500, 800, 1]>>, False)
@@ -568,12 +587,14 @@ feature{NONE} -- Implementation
 		require
 			a_row_attached: a_row /= Void
 			a_row_is_collapsed: a_row.is_collapsed
-		local
-			l_row: EB_CLASS_BROWSER_TREE_ROW
 		do
-			l_row ?= grid.row (1).data
-			check l_row /= Void end
-			Result := first_occurrence_internal (l_row, a_row)
+			if attached {EB_CLASS_BROWSER_TREE_ROW} grid.row (1).data as l_row then
+				Result := first_occurrence_internal (l_row, a_row)
+			else
+				check is_tree_row: False end
+				-- FIXME: should not occur, but if it does find better solution.
+				Result := a_row
+			end
 		ensure
 			result_attached: Result /= Void
 			good_result: not Result.is_collapsed
@@ -587,7 +608,6 @@ feature{NONE} -- Implementation
 		local
 			l_row_index: INTEGER
 			l_row_count: INTEGER
-			l_row: EB_CLASS_BROWSER_TREE_ROW
 		do
 			if a_start_row.class_item.conf_class = a_source_row.class_item.conf_class then
 				Result := a_start_row
@@ -599,8 +619,7 @@ feature{NONE} -- Implementation
 					until
 						l_row_index > l_row_count or Result /= Void
 					loop
-						l_row ?= a_start_row.grid_row.subrow (l_row_index).data
-						if l_row /= Void then
+						if attached {EB_CLASS_BROWSER_TREE_ROW} a_start_row.grid_row.subrow (l_row_index).data as l_row then
 							Result := first_occurrence_internal (l_row, a_source_row)
 						end
 						l_row_index := l_row_index + 1
@@ -653,11 +672,33 @@ feature{NONE} -- Implementation
 			result_attached: Result /= Void
 		end
 
+	display_description_button: EB_PREFERENCED_SD_TOOL_BAR_TOGGLE_BUTTON
+			-- Toggle button to turn on/off item description display
+		local
+			but: like display_description_button_internal
+		do
+			but := display_description_button_internal
+			if but = Void then
+				create but.make (preferences.class_browser_data.show_item_description_preference)
+				display_description_button_internal := but
+				but.set_pixel_buffer (pixmaps.icon_pixmaps.general_information_icon_buffer)
+				but.set_pixmap (pixmaps.icon_pixmaps.general_information_icon)
+				but.set_tooltip (interface_names.h_show_item_description)
+				but.select_actions.extend (agent on_show_description_changed)
+			end
+			Result := but
+		ensure
+			result_attached: Result /= Void
+		end
+
 	syntactical_button_internal: like syntactical_button
 			-- Implementation of `syntactical_button'
 
 	display_path_button_internal: like display_path_button
 			-- Implementation of `display_path_button'
+
+	display_description_button_internal: like display_description_button
+			-- Implementation of `display_description_button`.
 
 	normal_referenced_button_internal: like normal_referenced_button
 			-- Implementation of `normal_referenced_button'
@@ -667,6 +708,9 @@ feature{NONE} -- Implementation
 		do
 			if display_path_button_internal /= Void then
 				display_path_button.recycle
+			end
+			if attached display_description_button_internal as but then
+				but.recycle
 			end
 			if syntactical_button_internal /= Void then
 				syntactical_button.recycle
@@ -714,10 +758,11 @@ feature{NONE} -- Initialization
 			-- Build `grid'.
 		do
 			create grid
-			grid.set_column_count_to (2)
+			grid.set_column_count_to (3)
 			grid.enable_selection_on_single_button_click
 			grid.header.i_th (class_name_column_index).set_text (interface_names.l_class_browser_classes)
 			grid.header.i_th (location_column_index).set_text (interface_names.l_location)
+			grid.header.i_th (description_column_index).set_text (interface_names.l_description)
 			grid.enable_single_row_selection
 			grid.enable_tree
 			grid.set_row_height (default_row_height)
@@ -765,6 +810,9 @@ feature{NONE} -- Initialization
 	location_column_index: INTEGER = 2;
 			-- Index of location column
 
+	description_column_index: INTEGER = 3;
+			-- Index of description column
+
 feature{NONE} -- Implementation/Stone
 
 	item_to_put_in_editor: EV_GRID_ITEM
@@ -775,7 +823,7 @@ feature{NONE} -- Implementation/Stone
 		end
 
 note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

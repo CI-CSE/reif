@@ -87,10 +87,10 @@ feature -- Basic operations
 					else
 						create l_fact
 						create l_load.make (l_fact)
-						l_load.retrieve_configuration (l_config)
+						l_load.retrieve_and_check_configuration (l_config)
 						if l_load.is_error then
 							(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_error_prompt (l_load.last_error.text, Void, Void)
-								else
+						else
 								-- display warnings
 							if l_load.is_warning then
 								(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_warning_prompt (l_load.last_warning_messages, Void, Void)
@@ -292,7 +292,7 @@ feature {NONE} -- Implementation
 			l_item.select_actions.extend (agent execute)
 			Result.extend (l_item)
 
-			create l_item.make_with_text (interface_names.m_Eidt_in_external_editor)
+			create l_item.make_with_text (interface_names.m_Edit_in_external_editor)
 			l_item.select_actions.extend (agent button_right_click_action (0, 0, {EV_POINTER_CONSTANTS}.right, 0, 0, 0 ,0 ,0))
 			Result.extend (l_item)
 		ensure
@@ -300,7 +300,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

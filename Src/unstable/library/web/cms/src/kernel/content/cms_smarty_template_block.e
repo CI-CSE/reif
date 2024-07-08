@@ -105,6 +105,32 @@ feature -- Element change
 
 feature -- Conversion
 
+	informations: detachable TUPLE [location: PATH; utf_8_code: STRING_8; is_writable: BOOLEAN]
+		local
+			p: like location
+			s: STRING_8
+			f: PLAIN_TEXT_FILE
+			l_is_writabe: BOOLEAN
+		do
+				-- Process html generation
+			p := template_root_path.extended_path (location)
+			create f.make_with_path (p)
+			if f.exists then
+				l_is_writabe := f.is_access_writable
+				create s.make (f.count)
+				f.open_read
+				from
+				until
+					f.exhausted or f.end_of_file
+				loop
+					f.read_stream_thread_aware (1024)
+					s.append (f.last_string)
+				end
+				f.close
+				Result := [p, s, l_is_writabe]
+			end
+		end
+
 	to_html (a_theme: CMS_THEME): STRING_8
 			-- <Precursor>
 		local
@@ -182,7 +208,7 @@ feature -- Debug
 				values.after
 			loop
 				Result.append ("%NKey:")
-				Result.append (values.key_for_iteration.as_string_8)
+				Result.append (utf.string_32_to_utf_8_string_8 (values.key_for_iteration))
 				Result.append (" - Value:")
 				if attached values.item_for_iteration as l_item then
 					Result.append (l_item.out)
@@ -192,6 +218,6 @@ feature -- Debug
 			Result.append ("%N}")
 		end
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2020, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

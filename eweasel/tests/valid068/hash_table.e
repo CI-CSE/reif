@@ -85,7 +85,7 @@ class HASH_TABLE [G, H -> HASHABLE] inherit
 		rename
 			has as has_item
 		redefine
-			has_item, copy, is_equal
+			copy, is_equal
 		end
 
 	TABLE [G, H]
@@ -96,7 +96,7 @@ class HASH_TABLE [G, H -> HASHABLE] inherit
 		export
 			{NONE} prune_all
 		redefine
-			copy, is_equal, clear_all, has_item
+			copy, is_equal
 		end
 
 create
@@ -188,7 +188,7 @@ feature -- Access
 	found_item: G
 			-- Item, if any, yielded by last search operation
 
-	item, infix "@" (key: H): G is
+	item alias "@" (key: H): G is
 			-- Item associated with `key', if present
 			-- otherwise default value of type `G'
 		local

@@ -109,7 +109,7 @@ feature -- Project file/directory warnings
 					s.append_character (',')
 					s.append_character (' ')
 				end
-				s.append (ic.item)
+				s.append (ic)
 			end
 			Result := locale.formatted_string (
 							locale.translation (
@@ -547,6 +547,8 @@ feature -- Cluster tree warnings
 
 	w_Cannot_delete_need_recompile: STRING_32 do Result := locale.translation ("Compiled configuration is not up to date, please recompile.") end
 
+	w_configuration_not_up_to_date_need_recompile: STRING_32 do Result := locale.translation ("Compiled configuration is not up to date, please recompile.") end
+
 	w_Could_not_locate (cl_name: READABLE_STRING_GENERAL): STRING_32
 			-- Class/cluster could not be found in the cluster tree.
 		do
@@ -957,7 +959,10 @@ feature -- Warning messages
 				"[
 					Applying selected fixes causes changes to the source code that cannot be undone automatically.
 					
-					Click OK to apply fixes.
+					Classes can be open in the editor before applying fixes.
+					
+					Click Yes to open classes in the editor and apply fixes.
+					Click No to apply fixes without opening classes.
 					Click Cancel to abort.
 				]", "fix")
 		end
@@ -1001,6 +1006,13 @@ feature -- Warning messages
 		end
 
 	w_MakefileSH_more_recent: STRING_32 do Result := locale.translation ("The Makefile.SH is more recent than the system.") end
+
+	w_Must_save_before_reloading (class_name: READABLE_STRING_GENERAL): STRING_32
+		require
+			class_name_not_void: class_name /= Void
+		do
+			Result := locale.formatted_string (locale.translation ("You must save your changes before reloading class $1.%N%NWould you like to continue?"), [class_name])
+		end
 
 	w_Must_save_before_prettifying (class_name: READABLE_STRING_GENERAL): STRING_32
 		require
@@ -1169,9 +1181,8 @@ feature -- Warning messages
 			Result := locale.formatted_string (locale.translation ("The selected file '$1' is not a valid .NET assembly."), [a_file])
 		end
 
-
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

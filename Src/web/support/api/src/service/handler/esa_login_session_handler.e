@@ -62,9 +62,10 @@ feature -- HTTP Methods
 				attached {WSF_STRING} req.form_parameter ("remember_me") as l_remember_me
 			then
 				if
-					api_service.login_valid (l_username.value, l_password.value) and then
-					api_service.is_active (l_username.value) and then
-					attached api_service.user_from_username (l_username.value) as l_user
+--					api_service.login_valid (l_username.value, l_password.value) and then
+--					api_service.is_active (l_username.value) and then
+--					attached api_service.user_from_username (l_username.value) as l_user
+					attached api_service.user_login_valid (l_username.value, l_password.value) as l_user
 				then
 					l_token := generate_token
 					create l_cookie.make (esa_session_token, l_token)
@@ -87,10 +88,12 @@ feature -- HTTP Methods
 			create l_rhf
 			if attached current_media_type (req) as l_type then
 				if attached {READABLE_STRING_32} current_user_name (req) as l_user and then api_service.is_active (l_user) then
-					log.write_information (generator + ".do_get Processing Login request using media_type: "+ l_type +" User: " + l_user)
+					debug
+						log.write_information (generator + ".do_get Processing Login request using media_type: "+ l_type +" User: " + l_user.to_string_8)
+					end
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).login_page (req, res)
 				else
-					log.write_alert (generator + ".do_get Processing Login request using media_type: "+ l_type + " Could not login, the use does not exist or is not active!")
+					log.write_alert (generator + ".do_get Processing Login request using media_type: "+ l_type + " Could not login, the user does not exist or is not active!")
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).new_response_unauthorized (req, res)
 				end
 			else

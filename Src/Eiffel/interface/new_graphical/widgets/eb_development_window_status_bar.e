@@ -45,6 +45,8 @@ inherit
 
 	EB_SHARED_INTERFACE_TOOLS
 
+	SHARED_NOTIFICATION_SERVICE
+
 create
 	make
 
@@ -90,6 +92,11 @@ feature {NONE} -- Initialization
 
 			compiling_icon_index := 1
 			running_icon_index := 1
+
+			if attached notification_s.service as l_notif_service then
+				create notification_manager.make (Current)
+				l_notif_service.register_observer (notification_manager)
+			end
 		end
 
 	build_interface
@@ -98,7 +105,10 @@ feature {NONE} -- Initialization
 			vp: EV_VIEWPORT
 			f: EV_FRAME
 			cel: EV_CELL
+
+			l_icon_size: INTEGER
 		do
+			l_icon_size := {EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (16)
 				-- Create all widgets.
 			create widget
 			create label
@@ -107,10 +117,11 @@ feature {NONE} -- Initialization
 			create progress_bar
 			create project_label
 			create coordinate_label
-			create compilation_icon.make_with_size (16, 16)
+			create compilation_icon.make_with_size (l_icon_size, l_icon_size)
 			create debugger_cell
-			create debugger_icon.make_with_size (16, 16)
-			create edition_icon.make_with_size (16, 16)
+			create debugger_icon.make_with_size (l_icon_size, l_icon_size)
+			create edition_icon.make_with_size (l_icon_size, l_icon_size)
+			create notifications_icon.make_with_size (l_icon_size, l_icon_size)
 
 				-- Set widget properties.
 			project_label.align_text_center
@@ -122,10 +133,11 @@ feature {NONE} -- Initialization
 			project_label.set_tooltip (Interface_names.e_Project_name)
 			coordinate_label.set_tooltip (Interface_names.e_Cursor_position)
 			debugger_icon.clear
+			notifications_icon.clear
 
 			create vp
 			vp.extend (label)
-			vp.set_offset (-1, -(16 - label.height) // 2)
+			vp.set_offset (-1, -(l_icon_size - label.height) // 2)
 
 			create f
 			f.set_style ({EV_FRAME_CONSTANTS}.Ev_frame_lowered)
@@ -154,8 +166,8 @@ feature {NONE} -- Initialization
 			create cel
 			cel.extend (edition_icon)
 				-- 16: Size of the icons.
-			cel.set_minimum_width (16)
-			cel.set_minimum_height (16)
+			cel.set_minimum_width (l_icon_size)
+			cel.set_minimum_height (l_icon_size)
 			f.extend (cel)
 			widget.extend (f)
 			widget.disable_item_expand (f)
@@ -165,7 +177,7 @@ feature {NONE} -- Initialization
 			cel.extend (compilation_icon)
 				-- We cannot set the minimum width on the frame directly because
 				-- the width of the frame includes its border.
-			cel.set_minimum_width (16)
+			cel.set_minimum_width (l_icon_size)
 			f.extend (cel)
 			widget.extend (f)
 			widget.disable_item_expand (f)
@@ -173,10 +185,22 @@ feature {NONE} -- Initialization
 			f.set_style ({EV_FRAME_CONSTANTS}.Ev_frame_lowered)
 			create debugger_cell
 			debugger_cell.extend (debugger_icon)
-			debugger_cell.set_minimum_width (16)
+			debugger_cell.set_minimum_width (l_icon_size)
 			f.extend (debugger_cell)
 			widget.extend (f)
 			widget.disable_item_expand (f)
+
+			if attached notification_s.service as l_notif_service then
+				create f
+				f.set_style ({EV_FRAME_CONSTANTS}.Ev_frame_lowered)
+				create cel
+				notifications_cell := cel
+				cel.extend (notifications_icon)
+				cel.set_minimum_width (l_icon_size)
+				f.extend (cel)
+				widget.extend (f)
+				widget.disable_item_expand (f)
+			end
 
 				-- Initialize timers.
 			create running_timer.make_with_interval (0)
@@ -298,6 +322,8 @@ feature -- Access
 	widget: EV_STATUS_BAR
 			-- Widget representing `Current'.
 
+	notification_manager: detachable ES_NOTIFICATION_MANAGER
+
 feature -- Access
 
 	current_progress_value: INTEGER
@@ -362,10 +388,18 @@ feature {NONE} -- Implementation: widgets
 			-- Pixmap that represents the current debugger status.
 
 	edition_icon: EV_PIXMAP
-			-- Cell that contains the icon giving the current edition status of the project.
+			-- Pixmap that represents the current edition status of the project.
 
 	debugger_cell: EV_CELL
-			-- Cell that contains the debugger_icon.
+			-- Cell that contains the `debugger_icon`.
+
+feature {ES_NOTIFICATION_MANAGER} -- Implementation: widgets			
+
+	notifications_icon: EV_PIXMAP
+			-- Pixmap that represents the notification messages.
+
+	notifications_cell: EV_CELL
+			-- Cell that contains the `notifications_icon`.
 
 feature {NONE} -- Implementation: event handling
 
@@ -443,7 +477,7 @@ feature {NONE} -- Implementation: event handling
 					on_application_exited (dbg)
 				end
 				if not eiffel_project.workbench.is_compiling then
-					on_project_compiled (eiffel_project.workbench.successful)
+					on_project_compiled (eiffel_project.workbench.compilation_status)
 				end
 			end
 		end
@@ -479,20 +513,27 @@ feature {NONE} -- Implementation: event handling
 			end
 		end
 
-	on_project_compiled (is_successful: BOOLEAN)
+	on_project_compiled (s: like {WORKBENCH_I}.compilation_status)
 			-- The project has finished compiling.
+		require
+			{WORKBENCH_I}.is_compilation_status (s)
 		local
 			p: EV_PIXMAP
 		do
 			set_project_name (current_project_name)
 			compiling_timer.set_interval (0)
-			if is_successful then
+			inspect s
+			when {WORKBENCH_I}.compilation_status_without_complaint then
 				p := pixmaps.icon_pixmaps.compile_success_icon
-				compilation_icon.set_tooltip (Interface_names.E_compilation_succeeded)
+				compilation_icon.set_tooltip (interface_names.e_compilation_succeeded)
+				on_project_updated
+			when {WORKBENCH_I}.compilation_status_with_warning then
+				p := pixmaps.icon_pixmaps.compile_warning_icon
+				compilation_icon.set_tooltip (interface_names.e_compilation_succeeded_with_warning)
 				on_project_updated
 			else
 				p := pixmaps.icon_pixmaps.compile_error_icon
-				compilation_icon.set_tooltip (Interface_names.E_compilation_failed)
+				compilation_icon.set_tooltip (interface_names.e_compilation_failed)
 			end
 			compilation_icon.set_background_color (debugger_cell.background_color)
 			compilation_icon.clear
@@ -523,7 +564,7 @@ feature {NONE} -- Implementation: event handling
 	compile_start_agent: PROCEDURE
 			-- Agent called when the project is compiled.
 
-	compile_stop_agent: PROCEDURE [BOOLEAN]
+	compile_stop_agent: PROCEDURE [like {WORKBENCH_I}.compilation_status]
 			-- Agent called when the project's compilation is over.
 
 feature {NONE} -- Implementation
@@ -619,7 +660,7 @@ invariant
 	running_icon_index_positive: running_icon_index > 0
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Special optimization on calls where target is a basic type."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -58,7 +58,7 @@ feature -- Access
 					type_of (target_type)
 				when
 					boolean_type_id, character_type_id, integer_type_id, real_32_type_id,
-					real_64_type_id, pointed_type_id
+					real_64_type_id, pointer_type_id
 				then
 					Result := basic_type_table.has_key (feature_name_id)
 					function_type := basic_type_table.found_item
@@ -112,7 +112,7 @@ feature -- Status
 
 feature -- IL code generation
 
-	generate_il (a_generator: IL_NODE_GENERATOR; feat: CALL_ACCESS_B; type: CL_TYPE_A; parameters: BYTE_LIST [EXPR_B])
+	generate_il (a_generator: IL_NODE_GENERATOR; feat: CALL_ACCESS_B; type: CL_TYPE_A; parameters: BYTE_LIST [PARAMETER_B])
 			-- Generate IL code sequence that will be used with basic types.
 		require
 			a_generator_not_void: a_generator /= Void
@@ -122,13 +122,16 @@ feature -- IL code generation
 			type_not_void: type /= Void
 		local
 			f_type: INTEGER
-			long: INTEGER_A
-			nat: NATURAL_A
-			typed_pointer_i: TYPED_POINTER_A
+			operator: like il_eq
 		do
 			f_type := function_type
 			inspect f_type
 			when
+				plus_type,
+				minus_type,
+				product_type,
+				integer_quotient_type,
+				integer_remainder_type,
 				bit_and_type,
 				bit_or_type,
 				bit_xor_type,
@@ -140,20 +143,27 @@ feature -- IL code generation
 				end
 				generate_il_operation_code (f_type, type.is_natural)
 
+			when quotient_type then
+				il_generator.convert_to_real_64
+				if parameters /= Void then
+					parameters.process (a_generator)
+				end
+				il_generator.convert_to_real_64
+				il_generator.generate_binary_operator (il_slash, False)
+
+			when power_type then
+				generate_power (parameters [1], type, a_generator)
+
 			when bit_shift_left_type then
 				if parameters /= Void then
 					parameters.process (a_generator)
 				end
 				generate_il_operation_code (bit_shift_left_type, type.is_natural)
-				long ?= feat.real_type (feat.type)
-				if long /= Void and then long.size < 32 then
+				if attached {INTEGER_A} feat.real_type (feat.type) as long and then long.size < 32 then
 						-- IL extended "int8" and "int16" to "int32" which has to be converted back
 					il_generator.convert_to (long)
-				else
-					nat ?= feat.real_type (feat.type)
-					if nat /= Void and then nat.size < 32 then
-						il_generator.convert_to (nat)
-					end
+				elseif attached {NATURAL_A} feat.real_type (feat.type) as nat and then nat.size < 32 then
+					il_generator.convert_to (nat)
 				end
 
 			when bit_test_type then
@@ -185,12 +195,36 @@ feature -- IL code generation
 				end
 				generate_set_bit_with_mask (a_generator, type, parameters)
 
-			when is_equal_type then
+			when
+				is_equal_type,
+				is_less_type,
+				is_less_equal_type,
+				is_greater_type,
+				is_greater_equal_type
+			then
 				check
 					parameters_not_void: parameters /= Void
 				end
 				parameters.process (a_generator)
-				il_generator.generate_binary_operator (il_eq, type.is_natural)
+				operator := inspect f_type
+					when is_equal_type then il_eq
+					when is_less_type then il_lt
+					when is_less_equal_type then il_le
+					when is_greater_type then il_gt
+					when is_greater_equal_type then il_ge
+					end
+				if system.total_order_on_reals and then (type.is_real_32 or else type.is_real_64) then
+					il_generator.generate_real_comparison_routine (operator, type.is_real_32, boolean_type)
+				else
+						-- Generate unsigned comparison for natural numbers.
+					il_generator.generate_binary_operator (operator, type.is_natural)
+				end
+
+			when negated_type then
+				il_generator.generate_unary_operator (il_not)
+
+			when opposite_type then
+				il_generator.generate_unary_operator (il_uminus)
 
 			when zero_type, default_type then
 					-- No need to keep pushed value as we are going
@@ -309,12 +343,12 @@ feature -- IL code generation
 
 			when generator_type then
 				il_generator.pop
-				typed_pointer_i ?= type
-				if typed_pointer_i /= Void then
-					il_generator.put_manifest_string ("POINTER")
-				else
-					il_generator.put_manifest_string (type.dump)
-				end
+				il_generator.put_manifest_string
+					(if attached {TYPED_POINTER_A} type as typed_pointer_i then
+						"POINTER"
+					else
+						type.dump
+					end)
 
 			when from_integer_to_enum_type then
 					-- Argument value becomes the enum value, we discard
@@ -343,7 +377,7 @@ feature -- IL code generation
 			when upper_type then
 				il_generator.generate_upper_lower (True)
 
-			when twin_type, as_attached_type then
+			when identity_type, twin_type, as_attached_type then
 					-- Nothing to do, top of the stack has correct value
 
 			when is_nan_type then
@@ -394,6 +428,40 @@ feature -- IL code generation
 				il_generator.put_default_value (type)
 				il_generator.generate_binary_operator (il_eq, True)
 
+			when ieee_is_equal_type then
+				parameters.process (a_generator)
+				il_generator.generate_binary_operator (il_eq, False)
+
+			when ieee_is_greater_type then
+				parameters.process (a_generator)
+				il_generator.generate_binary_operator (il_gt, False)
+
+			when ieee_is_greater_equal_type then
+				parameters.process (a_generator)
+				il_generator.generate_binary_operator (il_ge, True)
+
+			when ieee_is_less_type then
+				parameters.process (a_generator)
+				il_generator.generate_binary_operator (il_lt, False)
+
+			when ieee_is_less_equal_type then
+				parameters.process (a_generator)
+				il_generator.generate_binary_operator (il_le, True)
+
+			when ieee_maximum_number_type then
+				check
+					parameters_not_void: parameters /= Void
+					valid_count: parameters.count = 1
+				end
+				generate_extremum_number ({MD_OPCODES}.bge_un, parameters [1], type, a_generator)
+
+			when ieee_minimum_number_type then
+				check
+					parameters_not_void: parameters /= Void
+					valid_count: parameters.count = 1
+				end
+				generate_extremum_number ({MD_OPCODES}.ble_un, parameters [1], type, a_generator)
+
 			else
 
 			end
@@ -404,8 +472,13 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 	basic_type_table: HASH_TABLE [INTEGER, INTEGER]
 		once
 			create Result.make (100)
+			Result.put (is_equal_type, is_deep_equal_name_id)
 			Result.put (is_equal_type, is_equal_name_id)
 			Result.put (is_equal_type, standard_is_equal_name_id)
+			Result.put (is_less_type, is_less_name_id)
+			Result.put (is_less_equal_type, is_less_equal_name_id)
+			Result.put (is_greater_type, is_greater_name_id)
+			Result.put (is_greater_equal_type, is_greater_equal_name_id)
 			Result.put (zero_type, zero_name_id)
 			Result.put (one_type, one_name_id)
 			Result.put (as_integer_8_type, as_integer_8_name_id)
@@ -428,6 +501,16 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 			Result.put (to_natural_16_type, to_natural_16_name_id)
 			Result.put (to_natural_32_type, to_natural_32_name_id)
 			Result.put (to_natural_64_type, to_natural_64_name_id)
+			Result.put (identity_type, identity_name_id)
+			Result.put (opposite_type, opposite_name_id)
+			Result.put (plus_type, plus_name_id)
+			Result.put (minus_type, minus_name_id)
+			Result.put (product_type, product_name_id)
+			Result.put (quotient_type, quotient_name_id)
+			Result.put (integer_quotient_type, integer_quotient_name_id)
+			Result.put (integer_remainder_type, integer_remainder_name_id)
+			Result.put (power_type, power_name_id)
+			Result.put (negated_type, negated_name_id)
 			Result.put (bit_and_type, bit_and_name_id)
 			Result.put (bit_and_type, infix_bit_and_name_id)
 			Result.put (bit_or_type, bit_or_name_id)
@@ -486,6 +569,13 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 			Result.put (positive_infinity_type, positive_infinity_name_id)
 			Result.put (do_nothing_type, do_nothing_name_id)
 			Result.put (is_default_pointer_type, is_default_pointer_name_id)
+			Result.put (ieee_is_equal_type, ieee_is_equal_name_id)
+			Result.put (ieee_is_greater_type, ieee_is_greater_name_id)
+			Result.put (ieee_is_greater_equal_type, ieee_is_greater_equal_name_id)
+			Result.put (ieee_is_less_type, ieee_is_less_name_id)
+			Result.put (ieee_is_less_equal_type, ieee_is_less_equal_name_id)
+			Result.put (ieee_maximum_number_type, ieee_maximum_number_name_id)
+			Result.put (ieee_minimum_number_type, ieee_minimum_number_name_id)
 
 -- FIXME: Manu 10/24/2001. Not yet implemented.
 -- 			Result.put (memory_copy, memory_copy_name_id)
@@ -561,7 +651,35 @@ feature -- Fast access to feature name
 	positive_infinity_type: INTEGER = 63
 	do_nothing_type: INTEGER = 64
 	is_default_pointer_type: INTEGER = 65
-	max_type_id: INTEGER = 65
+	ieee_is_equal_type: INTEGER = 66
+	ieee_is_greater_type: INTEGER = 67
+	ieee_is_greater_equal_type: INTEGER = 68
+	ieee_is_less_type: INTEGER = 69
+	ieee_is_less_equal_type: INTEGER = 70
+	ieee_maximum_number_type: INTEGER = 71
+	ieee_minimum_number_type: INTEGER = 72
+	identity_type: INTEGER = 73
+	opposite_type: INTEGER = 74
+	plus_type: INTEGER = 75
+	minus_type: INTEGER = 76
+	product_type: INTEGER = 77
+	quotient_type: INTEGER = 78
+	integer_quotient_type: INTEGER = 79
+	integer_remainder_type: INTEGER = 80
+	power_type: INTEGER = 81
+	is_less_type: INTEGER = 82
+	is_less_equal_type: INTEGER = 83
+	is_greater_type: INTEGER = 84
+	is_greater_equal_type: INTEGER = 85
+	negated_type: INTEGER = 86
+	conjuncted_type: INTEGER = 86
+	conjuncted_semistrict_type: INTEGER = 87
+	disjuncted_type: INTEGER = 88
+	disjuncted_semistrict_type: INTEGER = 89
+	disjuncted_exclusive_type: INTEGER = 90
+	implication_type: INTEGER = 91
+
+	max_type_id: INTEGER = 91
 
 feature {NONE} -- IL code generation
 
@@ -570,6 +688,16 @@ feature {NONE} -- IL code generation
 		do
  			inspect
  				op
+ 			when plus_type then
+ 				il_generator.generate_binary_operator (il_plus, is_natural)
+ 			when minus_type then
+ 				il_generator.generate_binary_operator (il_minus, is_natural)
+ 			when product_type then
+ 				il_generator.generate_binary_operator (il_star, is_natural)
+ 			when integer_quotient_type then
+ 				il_generator.generate_binary_operator (il_div, is_natural)
+ 			when integer_remainder_type then
+ 				il_generator.generate_binary_operator (il_mod, is_natural)
  			when bit_and_type then
 				il_generator.generate_binary_operator (il_and, is_natural)
  			when bit_or_type then
@@ -586,6 +714,39 @@ feature {NONE} -- IL code generation
 				check
 					not_implemented_yet: False
 				end
+			end
+		end
+
+	generate_power (p: PARAMETER_B; t: CL_TYPE_A; g: IL_NODE_GENERATOR)
+			-- Generate code to raise stack top to the value specified by `p` of type `t` using generator `g`.
+		local
+			power_value: REAL_64
+		do
+			il_generator.convert_to_real_64
+			if attached {REAL_CONST_B} p.expression as power_nb then
+				power_value := power_nb.value.to_real_64
+				if power_value = 0.0 then
+					il_generator.pop
+					il_generator.put_real_64_constant (1.0)
+				elseif power_value = 1.0 then
+						-- Nothing to be done.
+				elseif power_value = 2.0 then
+					il_generator.duplicate_top
+					il_generator.generate_binary_operator (il_star, False)
+				elseif power_value = 3.0 then
+					il_generator.duplicate_top
+					il_generator.duplicate_top
+					il_generator.generate_binary_operator (il_star, False)
+					il_generator.generate_binary_operator (il_star, False)
+				else
+					p.process (g)
+					il_generator.convert_to_real_64
+					il_generator.generate_binary_operator (il_power, False)
+				end
+			else
+				p.process (g)
+				il_generator.convert_to_real_64
+				il_generator.generate_binary_operator (il_power, False)
 			end
 		end
 
@@ -619,6 +780,54 @@ feature {NONE} -- IL code generation
 					-- proper computation to get a positive hash-code.
 				il_generator.generate_hash_code
 			end
+		end
+
+	generate_extremum_number (c: like {MD_OPCODES}.ble; e: PARAMETER_B; t: CL_TYPE_A; g: IL_NODE_GENERATOR)
+			-- Generate code for "ieee_maximum_number" (when `c = {MD_OPCODES}.bge_un`) or "ieee_minimum_number" (when `c = {MD_OPCODES}.ble_un`)
+			-- for the value on stack and the value of `e` of type `t` using generator `g`.
+		require
+			valid_comparison_opcode: c = {MD_OPCODES}.bge_un or c = {MD_OPCODES}.ble_un
+			valid_generator: g.is_valid
+		local
+			other_variable_number: INTEGER
+			elseif_label, end_label: IL_LABEL
+		do
+				-- Generate code for "ieee_minimum_number" like
+				--    if Current > other then
+				--       other
+				--    elseif Current /= Current then
+				--       other
+				--    else
+				--       Current
+				--    end
+				--
+				-- Initialize labels for branching.
+				-- Because "Current" in the "else" part is already on the stack, no code or label for the "else" part is required.
+			elseif_label := il_generator.create_label
+			end_label := il_generator.create_label
+				-- Compute and save operands.
+			il_generator.duplicate_top
+			e.process (g)
+			il_generator.duplicate_top
+			context.add_local (t)
+			other_variable_number := context.local_list.count
+			il_generator.put_dummy_local_info (t, other_variable_number)
+			il_generator.generate_local_assignment (other_variable_number)
+				-- Generate "if Current > other then other".
+			il_generator.branch_on_condition (c, elseif_label)
+			il_generator.pop
+			il_generator.generate_local (other_variable_number)
+			il_generator.branch_to (end_label)
+				-- Generate "elseif Current /= Current then other".
+			il_generator.mark_label (elseif_label)
+			il_generator.duplicate_top
+			il_generator.duplicate_top
+			il_generator.branch_on_condition ({MD_OPCODES}.beq, end_label)
+			il_generator.pop
+			il_generator.generate_local (other_variable_number)
+				-- Generate "else Current": the result is already on the top of the stack, nothing to do.
+				-- Generate end label.
+			il_generator.mark_label (end_label)
 		end
 
 	generate_three_way_comparison (a_generator: IL_NODE_GENERATOR; a_type: CL_TYPE_A; a_expr: EXPR_B)
@@ -695,7 +904,6 @@ feature {NONE} -- IL code generation
 		local
 			l_parent: NESTED_B
 			l_access: ACCESS_B
-			l_arg: ARGUMENT_B
 		do
 			l_parent := feat.parent
 			if l_parent /= Void then
@@ -713,9 +921,8 @@ feature {NONE} -- IL code generation
 					if l_access.is_local or l_access.is_result then
 						parameters.process (a_generator)
 						a_generator.generate_il_assignment (l_access, type)
-					elseif l_access.is_argument then
+					elseif l_access.is_argument and then attached {ARGUMENT_B} l_access as l_arg then
 						parameters.process (a_generator)
-						l_arg ?= l_access
 						il_generator.generate_argument_assignment (l_arg.position)
 					end
 				end
@@ -840,7 +1047,7 @@ feature {NONE} -- Type information
 	boolean_type_id: INTEGER = 1
 	character_type_id: INTEGER = 2
 	integer_type_id: INTEGER = 3
-	pointed_type_id: INTEGER = 4
+	pointer_type_id: INTEGER = 4
 	real_32_type_id: INTEGER = 5
 	real_64_type_id: INTEGER = 6
 	any_type_id: INTEGER = 7
@@ -858,35 +1065,28 @@ feature {NONE} -- Type information
 			-- Returns corresponding type constants to `t'.
 		require
 			t_not_void: t /= Void
-		local
-			l_typed_pointer: TYPED_POINTER_A
 		do
 			inspect
 				t.sk_value (Void)
 			when {SK_CONST}.sk_char8, {SK_CONST}.sk_char32 then
 				Result := character_type_id
-			when {SK_CONST}.sk_bool then Result := boolean_type_id
-			when
-				{SK_CONST}.sk_int8, {SK_CONST}.sk_int16,
-				{SK_CONST}.sk_int32, {SK_CONST}.sk_int64
-			then
+			when {SK_CONST}.sk_bool then
+				Result := boolean_type_id
+			when {SK_CONST}.sk_int8, {SK_CONST}.sk_int16, {SK_CONST}.sk_int32, {SK_CONST}.sk_int64 then
 				Result := integer_type_id
 				is_signed_integer := True
-
-			when
-				{SK_CONST}.sk_uint8, {SK_CONST}.sk_uint16,
-				{SK_CONST}.sk_uint32, {SK_CONST}.sk_uint64
-			then
+			when {SK_CONST}.sk_uint8, {SK_CONST}.sk_uint16, {SK_CONST}.sk_uint32, {SK_CONST}.sk_uint64 then
 				Result := integer_type_id
 				is_signed_integer := False
-
-			when {SK_CONST}.sk_real32 then Result := real_32_type_id
-			when {SK_CONST}.sk_real64 then Result := real_64_type_id
-			when {SK_CONST}.sk_pointer then Result := pointed_type_id
+			when {SK_CONST}.sk_real32 then
+				Result := real_32_type_id
+			when {SK_CONST}.sk_real64 then
+				Result := real_64_type_id
+			when {SK_CONST}.sk_pointer then
+				Result := pointer_type_id
 			else
-				l_typed_pointer ?= t
-				if l_typed_pointer /= Void then
-					Result := pointed_type_id
+				if attached {TYPED_POINTER_A} t then
+					Result := pointer_type_id
 				elseif t.base_class.is_class_any then
 					Result := any_type_id
 				else
@@ -895,7 +1095,7 @@ feature {NONE} -- Type information
 			end
 		ensure
 			valid_type: Result = boolean_type_id or else Result = character_type_id or else
-						Result = integer_type_id or else Result = pointed_type_id or else
+						Result = integer_type_id or else Result = pointer_type_id or else
 						Result = real_32_type_id or else Result = real_64_type_id or else
 						Result = any_type_id or else Result = unknown_type_id
 		end
@@ -904,7 +1104,7 @@ invariant
 	il_generation: System.il_generation
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

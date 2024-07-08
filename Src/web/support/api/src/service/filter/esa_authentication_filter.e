@@ -29,19 +29,21 @@ feature -- Basic operations
 		do
 				-- Basic Authentication
 			if attached req.http_authorization then
-				log.write_debug (generator + ".execute " )
+				debug
+					log.write_debug (generator + ".execute " )
+				end
 				create l_auth.make (req.http_authorization)
 				if attached req.raw_header_data as l_raw_data then
-				   log.write_debug (generator + ".execute " + l_raw_data )
+				   log.write_debug (generator + ".execute " + l_raw_data.to_string_8 )
 				end
 					-- A valid user
 				if (attached l_auth.type as l_auth_type and then l_auth_type.is_case_insensitive_equal ("basic")) and then
 					attached l_auth.login as l_auth_login and then attached l_auth.password as l_auth_password then
-					if api_service.login_valid (l_auth_login, l_auth_password) then
-						req.set_execution_variable ("user", create {USER}.make (l_auth_login))
+					if attached {USER} api_service.user_login_valid (l_auth_login, l_auth_password) as l_user then
+						req.set_execution_variable ("user", l_user)
 						execute_next (req, res)
 					else
-						log.write_error (generator + ".execute login_valid failed for: " + l_auth_login )
+						log.write_error (generator + ".execute login_valid failed for: " + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_auth_login))
 						execute_next (req, res)
 					end
 				else

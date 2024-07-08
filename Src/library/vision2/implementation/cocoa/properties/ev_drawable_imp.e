@@ -1,7 +1,8 @@
-note
+﻿note
 	description: "EiffelVision drawable. Cocoa implementation."
 	author: "Daniel Furrer <daniel.furrer@gmail.com>"
-	keywords: "figures, primitives, drawing, line, point, ellipse"
+	revised_by: "Alexander Kogtenkov"
+	keywords: figures, primitives, drawing, line, point, ellipse
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -193,6 +194,12 @@ feature -- Element change
 			internal_dashed_line_style := false
 		end
 
+	set_anti_aliasing (value: BOOLEAN)
+			-- <Precursor>
+		do
+				-- TODO: provide implementation.
+		end
+
 feature -- Clearing operations
 
 	clear
@@ -337,7 +344,7 @@ feature -- Drawing operations
 			-- Draw `area' of `a_pixel_buffer' with upper-left corner on (`x', `y').
 		local
 			pixel_buffer_imp: detachable EV_PIXEL_BUFFER_IMP
-			source_rect, destination_rect: NS_RECT
+			source_rect: NS_RECT
 			trans: NS_AFFINE_TRANSFORM
 			l_point: NS_POINT
 		do
@@ -350,14 +357,12 @@ feature -- Drawing operations
 			trans.scale_x_by__y_by_ (1, -1)
 			app_kit_additions.concat (trans)
 
-			destination_rect := create {NS_RECT}.make_with_coordinates (0, 0, a_area.height, a_area.width)
-			source_rect := create {NS_RECT}.make_with_coordinates (a_area.x, a_pixel_buffer.height - a_area.height - a_area.y, a_area.width, a_area.height)
-			create l_point.make
-			l_point.set_x (0)
-			l_point.set_y (0)
-			-- NSCompositeSourceOver = 2
-			pixel_buffer_imp.image.composite_to_point__from_rect__operation_ (l_point, source_rect, 2)
---			pixel_buffer_imp.image.draw_in_rect (create {NS_RECT}.make_rect (a_x, a_y, a_area.width, a_area.height), create {NS_RECT}.make_rect (a_area.x, y_cocoa, a_area.width, a_area.height), 2, 1)
+			source_rect := create {NS_RECT}.make_rect (a_area.x, a_pixel_buffer.height - a_area.height - a_area.y, a_area.width, a_area.height)
+			pixel_buffer_imp.image.composite_to_point_from_rect_operation (create {NS_POINT}.make_point(0,0), source_rect, {NS_IMAGE}.composite_source_over)
+--			pixel_buffer_imp.image.draw_in_rect (
+--				create {NS_RECT}.make_rect (a_x, a_y, a_area.width, a_area.height),
+--				create {NS_RECT}.make_rect (a_area.x, y_cocoa, a_area.width, a_area.height),
+--				{NS_IMAGE}.composite_source_over, 1)
 
 			finish_drawing
 		end
@@ -366,7 +371,8 @@ feature -- Drawing operations
 			-- Draw `a_pixmap' with upper-left corner on (`x', `y').
 		local
 			pixmap_imp: detachable EV_PIXMAP_IMP
-			source_rect, destination_rect: NS_RECT
+			source_rect: NS_RECT
+			-- destination_rect: NS_RECT
 			trans: NS_AFFINE_TRANSFORM
 			l_point: NS_POINT
 		do
@@ -380,14 +386,10 @@ feature -- Drawing operations
 			trans.scale_x_by__y_by_ (1, -1)
 			app_kit_additions.concat (trans)
 
-			destination_rect := create {NS_RECT}.make_with_coordinates (0, 0, a_pixmap.height, a_pixmap.width)
-			source_rect := create {NS_RECT}.make_with_coordinates (0, 0, a_pixmap.width, a_pixmap.height)
---			pixmap_imp.image.draw_in_rect (destination_rect, source_rect, {NS_IMAGE}.composite_source_over, 1) -- did not work correctly for SD_NOTEBOOK_TAB_DRAWER_I.end_draw
-			create l_point.make
-			l_point.set_x (0)
-			l_point.set_y (0)
-			-- NSCompositeSourceOver
-			pixmap_imp.image.draw_at_point__from_rect__operation__fraction_ (l_point, source_rect, 2, 1)
+			-- destination_rect := create {NS_RECT}.make_rect (0, 0, a_pixmap.height, a_pixmap.width)
+			source_rect := create {NS_RECT}.make_rect (0, 0, a_pixmap.width, a_pixmap.height)
+			-- pixmap_imp.image.draw_in_rect (destination_rect, source_rect, {NS_IMAGE}.composite_source_over, 1) -- did not work correctly for SD_NOTEBOOK_TAB_DRAWER_I.end_draw
+			pixmap_imp.image.draw_at_point (create {NS_POINT}.make_point (0, 0), source_rect, {NS_IMAGE}.composite_source_over, 1)
 			finish_drawing
 		end
 
@@ -415,8 +417,8 @@ feature -- Drawing operations
 --			color: NS_COLOR
 --			path: NS_BEZIER_PATH
 			trans: NS_AFFINE_TRANSFORM
-			source_rect, destination_rect: NS_RECT
-			l_point: NS_POINT
+			source_rect: NS_RECT
+			-- destination_rect: NS_RECT
 		do
 			pixmap_imp ?= a_pixmap.implementation
 			check pixmap_imp /= void then end
@@ -428,15 +430,11 @@ feature -- Drawing operations
 			trans.scale_x_by__y_by_ (1, -1)
 			app_kit_additions.concat (trans)
 
-			destination_rect := create {NS_RECT}.make_with_coordinates (0, 0, a_area.height, a_area.width)
-			source_rect := create {NS_RECT}.make_with_coordinates (a_area.x, a_pixmap.height - a_area.height - a_area.y, a_area.width, a_area.height)
---			pixmap_imp.image.draw_in_rect (destination_rect, source_rect, {NS_IMAGE}.composite_source_over, 1)
---			pixmap_imp.image.draw_at_point (create {NS_POINT}.make_point(0,0), source_rect, {NS_IMAGE}.composite_source_over, 1)
-			create l_point.make
-			l_point.set_x (0)
-			l_point.set_y (0)
-			-- NSCompositeSourceOver = 2
-			pixmap_imp.image.composite_to_point__from_rect__operation_ (l_point, source_rect, 2)
+			-- destination_rect := create {NS_RECT}.make_rect (0, 0, a_area.height, a_area.width)
+			source_rect := create {NS_RECT}.make_rect (a_area.x, a_pixmap.height - a_area.height - a_area.y, a_area.width, a_area.height)
+			-- pixmap_imp.image.draw_in_rect (destination_rect, source_rect, {NS_IMAGE}.composite_source_over, 1)
+			-- pixmap_imp.image.draw_at_point (create {NS_POINT}.make_point(0,0), source_rect, {NS_IMAGE}.composite_source_over, 1)
+			pixmap_imp.image.composite_to_point_from_rect_operation (create {NS_POINT}.make_point(0,0), source_rect, {NS_IMAGE}.composite_source_over)
 
 --			create color.blue_color
 --			color.color_with_alpha_component ({REAL_32}0.5).set
@@ -708,10 +706,10 @@ feature {EV_ANY_HANDLER} -- Implementation
 
 feature {EV_ANY, EV_ANY_I} -- Implementation
 
-	interface: detachable EV_DRAWABLE note option: stable attribute end;
+	interface: detachable EV_DRAWABLE note option: stable attribute end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -720,4 +718,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-end -- class EV_DRAWABLE_IMP
+
+end

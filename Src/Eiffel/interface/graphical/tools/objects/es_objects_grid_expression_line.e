@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Objects that represent an expression line"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -322,7 +321,7 @@ feature -- Query
 			Result := last_dump_value.output_for_debugger
 		end
 
-	object_type_representation: STRING
+	object_type_representation: STRING_32
 			-- Full ouput representation for related object
 		require
 			last_dump_value /= Void
@@ -347,6 +346,7 @@ feature -- Graphical changes
 	new_cell_expression: ES_OBJECTS_GRID_EXPRESSION_CELL
 		do
 			create Result
+			Result.set_font (parent_grid.grid_font)
 		end
 
 	set_expression_text (v: STRING_32)
@@ -567,7 +567,7 @@ feature -- Graphical changes
 			l_tooltip: STRING_32
 			glab: EV_GRID_LABEL_ITEM
 			add: DBG_ADDRESS
-			typ: STRING
+			typ: STRING_32
 			res: STRING_32
 			scp_pid: NATURAL_16
 			l_title: STRING_32
@@ -707,7 +707,7 @@ feature -- Graphical changes
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

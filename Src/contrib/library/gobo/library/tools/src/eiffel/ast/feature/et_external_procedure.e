@@ -5,7 +5,7 @@ note
 		"Eiffel external-procedures"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 1999-2012, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -18,7 +18,8 @@ inherit
 		rename
 			make as make_procedure
 		undefine
-			is_external
+			is_external,
+			is_static
 		end
 
 	ET_EXTERNAL_ROUTINE
@@ -45,7 +46,8 @@ feature {NONE} -- Initialization
 			clients := tokens.empty_clients
 			implementation_class := a_class
 			implementation_feature := Current
-			builtin_code := tokens.builtin_not_builtin
+			builtin_class_code := tokens.builtin_not_builtin
+			builtin_feature_code := tokens.builtin_not_builtin
 		ensure
 			extended_name_set: extended_name = a_name
 			arguments_set: arguments = args
@@ -71,13 +73,13 @@ feature -- Duplication
 			Result.set_feature_clause (feature_clause)
 			Result.set_first_indexing (first_indexing)
 			Result.set_object_tests (object_tests)
-			Result.set_across_components (across_components)
+			Result.set_iteration_components (iteration_components)
 			Result.set_synonym (Current)
 			if is_builtin then
 					-- Reset the built-in marker because they are
 					-- two different features with different names,
 					-- and hence are not the same built-in feature.
-				Result.set_builtin_code (tokens.builtin_unknown)
+				Result.set_builtin_code (tokens.builtin_unknown, tokens.builtin_unknown)
 			end
 		end
 
@@ -103,10 +105,10 @@ feature -- Conversion
 			Result.set_feature_clause (feature_clause)
 			Result.set_first_indexing (first_indexing)
 			Result.set_object_tests (object_tests)
-			Result.set_across_components (across_components)
+			Result.set_iteration_components (iteration_components)
 			Result.set_first_seed (first_seed)
 			Result.set_other_seeds (other_seeds)
-			Result.set_builtin_code (builtin_code)
+			Result.set_builtin_code (builtin_class_code, builtin_feature_code)
 		end
 
 feature -- Processing

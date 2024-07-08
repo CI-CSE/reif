@@ -120,10 +120,6 @@ feature {NONE} -- Initialization
 
 			replace_all_click_button.select_actions.extend (agent confirm_and_replace_all)
 
-			notebook.drop_actions.set_veto_pebble_function (agent notebook_veto_pebble)
-			notebook.drop_actions.extend (agent on_drop_notebook)
-			notebook.selection_actions.extend (agent on_notebook_selected)
-
 			current_editor_button.key_press_actions.extend (agent key_pressed (?, True))
 			current_editor_button.select_actions.extend (agent toggle_scope_detail (current_editor_button))
 			current_editor_button.select_actions.extend (agent force_new_search)
@@ -211,20 +207,15 @@ feature -- Status report
 
 	item_selected (a_editor: EB_EDITOR): BOOLEAN
 			-- If item in report is selected in a_editor.
-		local
-			l_text_item: MSR_TEXT_ITEM
 		do
 			if multi_search_performer.is_search_launched and not multi_search_performer.off then
-				l_text_item ?= multi_search_performer.item
-				if
-					l_text_item /= Void and then
+				if not attached {MSR_TEXT_ITEM} multi_search_performer.item as l_text_item then
+					Result := True
+				elseif
 					(is_current_editor_searched implies old_editor = editor) and
 					(a_editor.text_displayed.selection_start.pos_in_text = l_text_item.start_index) and
 					(a_editor.text_displayed.selection_end.pos_in_text = l_text_item.end_index + 1)
 				then
-					Result := True
-				end
-				if l_text_item = Void then
 					Result := True
 				end
 			end
@@ -285,9 +276,6 @@ feature -- Status setting
 	set_focus
 			-- Give the focus to the pattern field
 		do
-			if notebook.selected_item_index /= 1 then
-				notebook.select_item (notebook.i_th (1))
-			end
 			set_focus_if_possible (keyword_field)
 		end
 
@@ -295,9 +283,6 @@ feature -- Status setting
 			-- Give the focus to replace field.
 		do
 			show
-			if notebook.selected_item_index /= 1 then
-				notebook.select_item (notebook.i_th (1))
-			end
 			set_focus_if_possible (replace_combo_box)
 		end
 
@@ -338,10 +323,8 @@ feature -- Action
 	replace_current
 			-- Replace current match.
 		local
-			l_item: MSR_TEXT_ITEM
 			l_start: INTEGER
 			l_end: INTEGER
-			l_class_i : CLASS_I
 			l_check: BOOLEAN
 			l_replaced: BOOLEAN
 		do
@@ -349,8 +332,7 @@ feature -- Action
 			l_end := 1
 			check_class_succeed := True
 			if multi_search_performer.is_search_launched and then not multi_search_performer.off then
-				l_item ?= multi_search_performer.item
-				if l_item /= Void then
+				if attached {MSR_TEXT_ITEM} multi_search_performer.item as l_item then
 					l_start := l_item.start_index
 					l_end := l_item.end_index + 1
 				end
@@ -368,8 +350,7 @@ feature -- Action
 				new_search_or_go_next
 			end
 			if multi_search_performer.is_search_launched and then not multi_search_performer.off then
-				 l_class_i ?= multi_search_performer.item.data
-				 if l_class_i /= Void then
+				 if attached {CLASS_I} multi_search_performer.item.data as l_class_i then
 				 	 if not is_class_i_editing (l_class_i) then
 				 	 	l_check := True
 				 	 end
@@ -378,8 +359,7 @@ feature -- Action
 			if is_editor_ready and then editor.number_of_lines /= 0 then
 				if editor.is_editable then
 					if not multi_search_performer.off and not multi_search_performer.is_empty then
-						l_item ?= multi_search_performer.item
-						if l_item /= Void and then not is_item_source_changed (l_item) then
+						if attached {MSR_TEXT_ITEM} multi_search_performer.item as l_item and then not is_item_source_changed (l_item) then
 							if l_check then
 								check_class_file_and_do (agent replace_current_perform)
 							else
@@ -387,7 +367,9 @@ feature -- Action
 							end
 							l_replaced := True
 							go_to_next_found
-							search_report_grid.redraw_grid
+							if attached search_report_grid as g then
+								g.redraw_grid
+							end
 							select_current_row
 							force_not_changed
 							put_replace_report (False)
@@ -429,11 +411,8 @@ feature -- Action
 
 	prepare_search
 			-- Show the search tool and set focus to the search text field and fill the search field with selection.
-		local
-			l_clickable_editor: EB_CLICKABLE_EDITOR
 		do
-			l_clickable_editor ?= editor
-			if l_clickable_editor /= Void then
+			if attached {EB_CLICKABLE_EDITOR} editor as l_clickable_editor then
 				l_clickable_editor.search
 			else
 				show_and_set_focus
@@ -444,8 +423,6 @@ feature -- Action
 			-- Rebuild scope list, validate existing items in it.
 		local
 			l_item: EV_LIST_ITEM
-			l_class: CLASS_I
-			l_group: CONF_GROUP
 			l_items_tbr: ARRAYED_LIST [EV_LIST_ITEM]
 		do
 			create l_items_tbr.make (3)
@@ -455,16 +432,14 @@ feature -- Action
 				scope_list.after
 			loop
 				l_item := scope_list.item
-				l_class ?= l_item.data
-				l_group ?= l_item.data
-				if l_class /= Void then
+				if attached {CLASS_I} scope_list.item as l_class then
 					if not l_class.is_valid then
 						l_items_tbr.extend (l_item)
 					else
 						l_item.set_text (l_class.name)
 						l_item.set_tooltip (group_name_presentation (".", "", l_class.group))
 					end
-				elseif l_group /= Void then
+				elseif attached {CONF_GROUP} l_item.data as l_group then
 					if not l_group.is_valid then
 						l_items_tbr.extend (l_item)
 					else
@@ -502,12 +477,9 @@ feature {MSR_REPLACE_IN_ESTUDIO_STRATEGY, EB_CUSTOM_WIDGETTED_EDITOR, EB_SEARCH_
 			-- Source in a_item changed?
 		require
 			a_item_attached: a_item /= Void
-		local
-			l_class_i: CLASS_I
 		do
-			l_class_i ?= a_item.data
 			if old_editor = Void or else old_editor.is_recycled or else old_editor = editor then
-				if l_class_i /= Void then
+				if attached {CLASS_I} a_item.data as l_class_i then
 					if is_current_editor_searched then
 						Result := is_text_changed_in_editor
 					else
@@ -557,7 +529,6 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Build interface
 --			content.set_floating_width (527)
 --			content.set_floating_height (189)
 --			content.close_request_actions.extend (agent close)
---			content.drop_actions.extend (agent on_drop_notebook)
 --			content.focus_in_actions.extend (agent show)
 --		end
 
@@ -632,16 +603,18 @@ feature {NONE} -- Shortcut button actions
 			i: INTEGER
 			l_row: EV_GRID_ROW
 		do
-			from
-				i := 1
-			until
-				i > search_report_grid.row_count
-			loop
-				l_row := search_report_grid.row (i)
-				if l_row.is_expandable then
-					l_row.expand
+			if attached search_report_grid as g then
+				from
+					i := 1
+				until
+					i > g.row_count
+				loop
+					l_row := g.row (i)
+					if l_row.is_expandable then
+						l_row.expand
+					end
+					i := i + 1
 				end
-				i := i + 1
 			end
 		end
 
@@ -651,14 +624,16 @@ feature {NONE} -- Shortcut button actions
 			i: INTEGER
 			l_row: EV_GRID_ROW
 		do
-			from
-				i := 1
-			until
-				i > search_report_grid.row_count
-			loop
-				l_row := search_report_grid.row (i)
-				l_row.collapse
-				i := i + 1
+			if attached search_report_grid as g then
+				from
+					i := 1
+				until
+					i > g.row_count
+				loop
+					l_row := g.row (i)
+					l_row.collapse
+					i := i + 1
+				end
 			end
 		end
 
@@ -761,8 +736,6 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR, EB_CONTEXT_MENU_FACTORY} -- Actions handler
 
 	toggle_scope_detail (a_button: EV_RADIO_BUTTON)
 			-- Show and hide the scope detail according to the scope box's selection.
-		local
-			l_str: STRING_GENERAL
 		do
 			if is_customized then
 				scope.enable_sensitive
@@ -773,17 +746,6 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR, EB_CONTEXT_MENU_FACTORY} -- Actions handler
 				search_compiled_class_button.enable_sensitive
 			else
 				search_compiled_class_button.disable_sensitive
-			end
-			if notebook /= Void then
-				if a_button = current_editor_button then
-					if widget /= Void and then is_shown then
-						set_focus
-					end
-				end
-				l_str := interface_names.l_scope.twin
-				l_str.append (": ")
-				l_str.append (a_button.text)
-				notebook.item_tab (notebook.i_th (2)).set_text (l_str)
 			end
 		end
 
@@ -816,65 +778,43 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR, EB_CONTEXT_MENU_FACTORY} -- Actions handler
 		require
 			a_any_not_void: a_any /= Void
 		local
-			l_classi_stone: CLASSI_STONE
-			l_cluster_stone: CLUSTER_STONE
 			l_folder: EB_FOLDER
-			l_cluster: CONF_CLUSTER
-			l_data: DATA_STONE
-			l_groups: LIST [CONF_GROUP]
-			l_cursor: CURSOR
 		do
-			l_classi_stone ?= a_any
-			l_cluster_stone ?= a_any
-			l_data ?= a_any
-			if l_classi_stone /= Void then
+			if attached {CLASSI_STONE} a_any as l_classi_stone then
 				add_class_item (l_classi_stone.class_i)
-			elseif l_cluster_stone /= Void then
+			elseif attached {CLUSTER_STONE} a_any as l_cluster_stone then
 				if not l_cluster_stone.path.is_empty and l_cluster_stone.folder_name /= Void then
-					l_cluster ?= l_cluster_stone.group
-					check
-						l_cluster_not_void: l_cluster /= Void
+					if attached {CONF_CLUSTER} l_cluster_stone.group as l_cluster then
+						create l_folder.make_with_name (l_cluster, l_cluster_stone.path, l_cluster_stone.folder_name)
+						add_folder_item (l_folder)
+					else
+						check is_cluster: False end
 					end
-					create l_folder.make_with_name (l_cluster, l_cluster_stone.path, l_cluster_stone.folder_name)
-					add_folder_item (l_folder)
 				else
 					add_cluster_item (l_cluster_stone.group)
 				end
-			elseif l_data /= Void then
-				l_groups ?= l_data.data
-				if l_groups /= Void then
-					l_cursor := l_groups.cursor
-					from
-						l_groups.start
-					until
-						l_groups.after
+			elseif attached {DATA_STONE} a_any as l_data then
+				if attached {LIST [CONF_GROUP]} l_data.data as l_groups then
+					across
+						l_groups as ic
 					loop
-						if l_groups.item /= Void then
-							add_cluster_item (l_groups.item)
+						if attached ic.item as g then
+							add_cluster_item (g)
 						end
-						l_groups.forth
 					end
-					l_groups.go_to (l_cursor)
 				end
 			end
 		end
 
 	veto_pebble_function (a_any: ANY): BOOLEAN
 			-- Veto pebble function
-		local
-			l_classi_stone: CLASSI_STONE
-			l_cluster_stone: CLUSTER_STONE
-			l_feature_stone: FEATURE_STONE
-			l_data: DATA_STONE
 		do
 				-- We reject FEATURE_STONE.
-			l_feature_stone ?= a_any
-			if l_feature_stone = Void then
+			if not attached {FEATURE_STONE} a_any then
 					-- Check validity of the stone.
-				l_classi_stone ?= a_any
-				l_cluster_stone ?= a_any
-				l_data ?= a_any
-				Result := l_cluster_stone /= Void or l_classi_stone /= Void or l_data /= Void
+				Result := attached {CLASSI_STONE} a_any
+							or attached {CLUSTER_STONE} a_any
+							or attached {DATA_STONE} a_any
 			end
 		end
 
@@ -883,23 +823,18 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR, EB_CONTEXT_MENU_FACTORY} -- Actions handler
 		require
 			a_any_not_void: a_any /= Void
 		local
-			l_classi_stone: CLASSI_STONE
-			l_cluster_stone: CLUSTER_STONE
 			l_folder: EB_FOLDER
-			l_cluster: CONF_CLUSTER
 		do
-			l_classi_stone ?= a_any
-			l_cluster_stone ?= a_any
-			if l_classi_stone /= Void then
+			if attached {CLASSI_STONE} a_any as l_classi_stone then
 				remove_class_item (l_classi_stone.class_i)
-			elseif l_cluster_stone /= Void then
+			elseif attached {CLUSTER_STONE} a_any as l_cluster_stone then
 				if not l_cluster_stone.path.is_empty and l_cluster_stone.folder_name /= Void then
-					l_cluster ?= l_cluster_stone.group
-					check
-						l_cluster_not_void: l_cluster /= Void
+					if attached {CONF_CLUSTER} l_cluster_stone.group as l_cluster then
+						create l_folder.make_with_name (l_cluster, l_cluster_stone.path, l_cluster_stone.folder_name)
+						remove_folder_item (l_folder)
+					else
+						check is_cluster: False end
 					end
-					create l_folder.make_with_name (l_cluster, l_cluster_stone.path, l_cluster_stone.folder_name)
-					remove_folder_item (l_folder)
 				else
 					remove_cluster_item (l_cluster_stone.group)
 				end
@@ -916,14 +851,14 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR, EB_CONTEXT_MENU_FACTORY} -- Actions handler
 			-- Notify observers that some text has been modified.
 			-- If `directly_edited', the user has modified the text in the editor,
 			-- not via another tool or wizard.
-		local
-			l_class_stone: CLASSI_STONE
 		do
 			force_new_search
 			is_text_changed_in_editor := True
-			if is_text_new_loaded and then multi_search_performer.is_search_launched and then not multi_search_performer.is_empty then
-				l_class_stone ?= develop_window.stone
-				if l_class_stone /= Void and not changed_by_replace then
+			if
+				is_text_new_loaded and then multi_search_performer.is_search_launched and then
+				not multi_search_performer.is_empty
+			then
+				if attached {CLASSI_STONE} develop_window.stone as l_class_stone and not changed_by_replace then
 					class_changed (l_class_stone.class_i)
 				end
 				is_text_new_loaded := False
@@ -978,56 +913,6 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR, EB_CONTEXT_MENU_FACTORY} -- Actions handler
 				editor.text_displayed.cursor.go_to_position (incremental_search_start_pos)
 				editor.check_cursor_position
 				editor.refresh_now
-			end
-		end
-
-	on_drop_notebook (a_stone: STONE)
-			-- When dropping on tabs of notebook.
-		local
-			l_filed_stone: FILED_STONE
-		do
-			inspect notebook.pointed_tab_index
-			when 1 then
-				notebook.select_item (notebook.i_th (1))
-				l_filed_stone ?= a_stone
-				if l_filed_stone /= Void then
-					display_stone_signature (keyword_field, l_filed_stone)
-				end
-			else
-				notebook.select_item (notebook.i_th (2))
-				on_drop_custom_button (a_stone)
-				content.set_focus
-			end
-		end
-
-	notebook_veto_pebble (a_stone: ANY) : BOOLEAN
-			-- Notebook veto pebble
-		local
-			l_classi_stone: CLASSI_STONE
-			l_cluster_stone: CLUSTER_STONE
-		do
-			if notebook /= Void and then not notebook.is_destroyed then
-				inspect notebook.pointed_tab_index
-				when 1 then
-					Result := True
-				when 2 then
-					l_classi_stone ?= a_stone
-					l_cluster_stone ?= a_stone
-					if l_classi_stone /= Void or else l_cluster_stone /= Void then
-						Result := True
-					end
-				else
-				end
-			end
-		end
-
-	on_notebook_selected
-			-- On notebook selected.
-		do
-			if notebook.pointed_tab_index = 1 then
-				if widget /= Void and is_shown then
-					set_focus
-				end
 			end
 		end
 
@@ -1191,8 +1076,11 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR} -- Search perform
 		do
 			develop_window.window.set_pointer_style (default_pixmaps.wait_cursor)
 			currently_searched := keyword_field.text
-			if is_editor_ready then
-				class_stone ?= editor.stone
+			if
+				is_editor_ready and then
+				attached {CLASSI_STONE} editor.stone as cl_st
+			then
+				class_stone := cl_st
 			end
 			if class_stone /= Void then
 				class_i := class_stone.class_i
@@ -1245,8 +1133,11 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR} -- Search perform
 					-- search is possible but the search box is not shown
 					-- default options
 				currently_searched := keyword_field.text
-				if is_editor_ready then
-					class_stone ?= editor.stone
+				if
+					is_editor_ready and then
+					attached {CLASSI_STONE} editor.stone as cl_st
+				then
+					class_stone := cl_st
 				end
 				if class_stone /= Void then
 					class_i := class_stone.class_i
@@ -1340,7 +1231,9 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR} -- Search perform
 			if multi_search_performer.is_search_launched then
 				old_search_key_value := currently_searched
 				old_editor := editor
-				search_report_grid.redraw_grid
+				if attached search_report_grid as g then
+					g.redraw_grid
+				end
 				if
 					not is_current_editor_searched and then
 					not multi_search_performer.is_empty and then
@@ -1362,7 +1255,9 @@ feature {EB_CUSTOM_WIDGETTED_EDITOR} -- Search report
 	select_current_row
 			-- Select current row in the report.
 		do
-			search_report_grid.select_current_row
+			if attached search_report_grid as g then
+				g.select_current_row
+			end
 		end
 
 	has_result: BOOLEAN
@@ -1486,7 +1381,9 @@ feature {NONE} -- Replacement Implementation
 				multi_search_performer.set_replace_string (currently_replacing)
 				multi_search_performer.replace_all
 				update_combo_box_specific (replace_combo_box, currently_replacing)
-				search_report_grid.redraw_grid
+				if attached search_report_grid as g then
+					g.redraw_grid
+				end
 				put_replace_report (False)
 			else
 				put_replace_report (True)
@@ -1644,20 +1541,13 @@ feature -- Custom search scope
 
 	scope_pebble_function (a_data: ANY; a_pnd_mode: BOOLEAN) : STONE
 			-- Scope pebble function
-		local
-			l_class_i: CLASS_I
-			l_cluster_i: CONF_GROUP
-			l_folder: EB_FOLDER
 		do
 			if not a_pnd_mode or else not ev_application.ctrl_pressed then
-				l_class_i ?= a_data
-				l_cluster_i ?= a_data
-				l_folder ?= a_data
-				if l_class_i /= Void then
+				if attached {CLASS_I} a_data as l_class_i then
 					Result := stone_from_class_i (l_class_i)
-				elseif l_folder /= Void then
+				elseif attached {EB_FOLDER} a_data as l_folder then
 					create {CLUSTER_STONE} Result.make_subfolder (l_folder.cluster, l_folder.path, l_folder.name)
-				elseif l_cluster_i /= Void then
+				elseif attached {CONF_GROUP} a_data as l_cluster_i then
 					create {CLUSTER_STONE} Result.make (l_cluster_i)
 				end
 			end
@@ -1749,11 +1639,9 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 			l_text: EDITABLE_TEXT
 			l_text_item: MSR_TEXT_ITEM
 			l_selected: BOOLEAN
-			l_class_stone: CLASSI_STONE
 		do
 			if multi_search_performer.is_search_launched and then not multi_search_performer.item_matched.is_empty then
-				l_class_stone ?= develop_window.stone
-				if l_class_stone /= Void then
+				if attached {CLASSI_STONE} develop_window.stone as l_class_stone then
 					l_class_i := l_class_stone.class_i
 				end
 				if is_editor_ready then
@@ -1770,7 +1658,11 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 				end
 
 				if not multi_search_performer.off then
-					l_text_item ?= multi_search_performer.item
+					if attached {MSR_TEXT_ITEM} multi_search_performer.item as txt then
+						l_text_item := txt
+					else
+						l_text_item := Void
+					end
 					if l_text_item /= Void and then ((old_editor = Void or old_editor = editor) implies is_item_source_changed (l_text_item)) then
 						multi_search_performer.go_to_next_text_item (b)
 						select_current_row
@@ -1808,23 +1700,19 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 		local
 			l_item: MSR_ITEM
 			l_stone, l_new_stone: STONE
-			l_class_i: CLASS_I
 		do
 			check_class_succeed := True
 			if not multi_search_performer.off then
 				l_stone := develop_window.stone
 				l_item := multi_search_performer.item
-				l_class_i ?= l_item.data
-				if l_class_i /= Void then
+				if attached {CLASS_I} l_item.data as l_class_i then
 					l_new_stone := stone_from_class_i (l_class_i)
-					if attached develop_window.class_name as l_class_name implies (not l_class_name.is_equal (l_item.class_name)) then
-						if l_class_i /= Void then
-							develop_window.set_stone (l_new_stone)
-							if l_stone /= develop_window.stone then
-								is_text_changed_in_editor := False
-							else
-								check_class_succeed := False
-							end
+					if attached develop_window.class_name as l_class_name implies (not l_class_name.same_string (l_item.class_name)) then
+						develop_window.set_stone (l_new_stone)
+						if l_stone /= develop_window.stone then
+							is_text_changed_in_editor := False
+						else
+							check_class_succeed := False
 						end
 					elseif not is_current_editor_searched then
 						develop_window.set_stone (l_new_stone)
@@ -1952,7 +1840,6 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 	select_in_current_editor_perform
 			-- Do actual `select_in_current_editor'.
 		local
-			l_text_item: MSR_TEXT_ITEM
 			l_editor: EB_EDITOR
 			l_start, l_end: INTEGER
 		do
@@ -1962,8 +1849,7 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 				l_editor := editor
 			end
 			if l_editor /= Void and then multi_search_performer.is_search_launched and then not multi_search_performer.off then
-				l_text_item ?= multi_search_performer.item
-				if l_text_item /= Void then
+				if attached {MSR_TEXT_ITEM} multi_search_performer.item as l_text_item then
 					l_start := l_text_item.start_index
 					l_end := l_text_item.end_index + 1
 					if l_end > l_start then
@@ -2036,30 +1922,31 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 			box.change_actions.resume
 		end
 
-
 	display_stone_signature (textable: EV_TEXTABLE; a_stone: FILED_STONE)
 			-- Display signature name of `a_stone' in `textable'.
 		require
 			textable_not_void: textable /= Void
 			a_stone_not_void: a_stone /= Void
 		local
-			stone_signature: STRING
+			l_stone_signature: READABLE_STRING_GENERAL
+			i: INTEGER
 		do
-			if a_stone.stone_signature /= Void then
+			l_stone_signature := a_stone.stone_signature
+			if l_stone_signature /= Void then
 					-- FIXME Protected against Void, as there is no postcondition
 					-- on `stone_signature', although it appears it should never be Void,
 					-- it must be protected for now. Julian 07/22/03
 
-				stone_signature := a_stone.stone_signature
-				if stone_signature.has (' ') then
+				i := l_stone_signature.index_of (' ', 1)
+				if i > 0 then
 						-- Generic classes, and features with arguments have their arguments
 						-- included, so we strip everything except the name.
-					stone_signature := stone_signature.substring (1, stone_signature.index_of (' ', 1) - 1)
+					l_stone_signature := l_stone_signature.head (i - 1)
 				end
-				textable.set_text (stone_signature)
+				textable.set_text (l_stone_signature)
 			end
 		ensure
-			text_set: a_stone /= Void implies textable.text.is_equal (a_stone.stone_signature)
+			text_set: a_stone /= Void and then attached a_stone.stone_signature as el_signature implies textable.text.same_string (el_signature)
 		end
 
 	no_result_bgcolor: EV_COLOR
@@ -2095,11 +1982,19 @@ feature {EB_SEARCH_REPORT_GRID, EB_CUSTOM_WIDGETTED_EDITOR} -- Implementation
 			saved_cursor := multi_search_performer.index
 		end
 
+feature {NONE} -- Implementation
+
+	default_pixmaps: EV_STOCK_PIXMAPS
+			-- Default pixmaps and cursors.
+		once
+			create Result
+		end
+
 invariant
 	multi_search_performer_not_void: multi_search_performer /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

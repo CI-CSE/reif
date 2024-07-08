@@ -1,6 +1,5 @@
-note
+﻿note
 	description: "Fake AST node assembler for flatting."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -59,38 +58,50 @@ feature -- Assembler
 		local
 			new_feature_as: FEATURE_AS
 			f_name: FEATURE_NAME
+			f_name_alias_as: FEATURE_NAME_ALIAS_AS
 			eiffel_list: EIFFEL_LIST [FEATURE_NAME]
 			l_op: STRING_AS
 			l_id: ID_AS
 			l_frozen_keyword: KEYWORD_AS
+			l_aliases: ARRAYED_LIST [FEATURE_ALIAS_NAME]
 		do
 			f_name := a_name
 			new_feature_as := a_ast
 			l_frozen_keyword := f_name.frozen_keyword
-			if target_feature.is_infix then
-				create l_op.initialize (extract_symbol_from_infix (target_feature.feature_name), 0, 0, 0, 0, 0, 0, 0)
-				l_op.set_index (f_name.internal_name.index)
-				create {INFIX_PREFIX_AS} f_name.initialize (l_op, True, Void)
-			elseif target_feature.is_prefix then
-				create l_op.initialize (extract_symbol_from_prefix (target_feature.feature_name), 0, 0, 0, 0, 0, 0, 0)
-				l_op.set_index (f_name.internal_name.index)
-				create {INFIX_PREFIX_AS} f_name.initialize (l_op, False, Void)
-			elseif target_feature.alias_name /= Void then
-				create l_op.initialize (extract_alias_name (target_feature.alias_name), 0, 0, 0, 0, 0, 0, 0)
-				l_op.set_index (f_name.internal_name.index)
+			if
+				target_feature.has_alias and then
+				attached target_feature.alias_name_ids as alias_ids and then
+				alias_ids.count > 0
+			then
+				create l_op.initialize ({SHARED_NAMES_HEAP}.names_heap.item (name_id_of_alias_id (alias_ids [alias_ids.lower])), 0, 0, 0, 0, 0, 0, 0)
+				l_op.set_index (f_name.feature_name.index)
 				create l_id.initialize (target_feature.feature_name)
-				l_id.set_index (f_name.internal_name.index)
-				create {FEATURE_NAME_ALIAS_AS} f_name.initialize (
-					l_id, l_op, target_feature.has_convert_mark, Void, Void)
+				l_id.set_index (f_name.feature_name.index)
+				l_aliases := <<create {FEATURE_ALIAS_NAME}.make (l_op, Void,
+					inspect target_feature.alias_name_ids [0]
+					when {PREDEFINED_NAMES}.bracket_symbol_id then
+						{OPERATOR_KIND}.is_bracket_kind_mask
+					when {PREDEFINED_NAMES}.parentheses_symbol_id then
+						{OPERATOR_KIND}.is_parentheses_kind_mask
+					else
+						if target_feature.is_binary then
+							{OPERATOR_KIND}.is_valid_binary_kind_mask ⦶ {OPERATOR_KIND}.is_binary_kind_mask
+						else
+							{OPERATOR_KIND}.is_valid_unary_kind_mask ⦶ {OPERATOR_KIND}.is_unary_kind_mask
+						end
+					end)>>
+				create f_name_alias_as.initialize_with_list (l_id, l_aliases, Void)
+				f_name_alias_as.has_convert_mark := target_feature.has_convert_mark
 				if target_feature.is_binary then
-					f_name.set_is_binary
+					f_name_alias_as.set_is_binary
 				elseif target_feature.is_unary then
-					f_name.set_is_unary
+					f_name_alias_as.set_is_unary
 				end
+				f_name := f_name_alias_as
 			else
 				create l_id.initialize (target_feature.feature_name)
-				l_id.set_index (f_name.internal_name.index)
-				create {FEAT_NAME_ID_AS} f_name.initialize (l_id)
+				l_id.set_index (f_name.feature_name.index)
+				create {FEATURE_NAME} f_name.initialize (l_id)
 			end
 			f_name.set_frozen_keyword (l_frozen_keyword)
 			create eiffel_list.make (1);
@@ -116,20 +127,16 @@ feature {NONE} -- Implementation
 		end
 
 	deferred_content_with_index (a_index: INTEGER): ROUT_BODY_AS
-			-- Deffered content with index of the first token set.
-		local
-			l_deferred: DEFERRED_AS
+			-- Deferred content with index of the first token set.
 		do
-			l_deferred ?= deferred_content.twin
-			check
-				l_deferred_not_void: l_deferred /= Void
+			check is_deferred_as: attached {DEFERRED_AS} deferred_content.twin as l_deferred then
+				l_deferred.set_index (a_index)
+				Result := l_deferred
 			end
-			l_deferred.set_index (a_index)
-			Result := l_deferred
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

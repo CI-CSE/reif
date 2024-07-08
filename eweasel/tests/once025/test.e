@@ -1,22 +1,13 @@
-
-class TEST
+﻿class TEST
 
 create
 	make
 
-feature {NONE} -- Initialization
+feature
 
 	make
-			-- Run application.
-	local
-		w: WORKER [TASK]
-		t1, t2: TASK
-	do
-		create w
-		t1 := w.new_task
-		t2 := w.new_task
-		check
-			same_value: t1 = t2
+		do
+			⟳ d: {WEEK_DAYS}.instances ¦ io.put_string (d.greeting); io.put_new_line ⟲
 		end
-	end
+
 end

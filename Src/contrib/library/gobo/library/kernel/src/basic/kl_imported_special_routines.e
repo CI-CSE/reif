@@ -7,7 +7,7 @@ note
 		%equipped with features `put', `item' and `count'."
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2003, Eric Bezault and others"
+	copyright: "Copyright (c) 2003-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -21,6 +21,7 @@ feature -- Access
 		once
 			create Result
 		ensure
+			instance_free: class
 			special_any_routines_not_void: Result /= Void
 		end
 
@@ -29,6 +30,7 @@ feature -- Access
 		once
 			create Result
 		ensure
+			instance_free: class
 			special_boolean_routines_not_void: Result /= Void
 		end
 
@@ -37,6 +39,7 @@ feature -- Access
 		once
 			create Result
 		ensure
+			instance_free: class
 			special_character_routines_not_void: Result /= Void
 		end
 
@@ -45,7 +48,17 @@ feature -- Access
 		once
 			create Result
 		ensure
+			instance_free: class
 			special_integer_routines_not_void: Result /= Void
+		end
+
+	SPECIAL_NATURAL_32_: KL_SPECIAL_ROUTINES [NATURAL_32]
+			-- Routines that ought to be in class SPECIAL
+		once
+			create Result
+		ensure
+			instance_free: class
+			special_inatural_32_routines_not_void: Result /= Void
 		end
 
 	SPECIAL_STRING_: KL_SPECIAL_ROUTINES [STRING]
@@ -53,6 +66,7 @@ feature -- Access
 		once
 			create Result
 		ensure
+			instance_free: class
 			special_string_routines_not_void: Result /= Void
 		end
 

@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "[
 		Objects that print source code for extracted test sets.
 	]"
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -12,7 +11,6 @@ class
 inherit
 	TEST_CLASS_SOURCE_WRITER
 		redefine
-			root_feature_name,
 			ancestor_names,
 			put_indexing
 		end
@@ -31,7 +29,8 @@ inherit
 			on_object_capture
 		end
 
-	UT_STRING_FORMATTER
+	CHARACTER_ROUTINES
+--	UT_STRING_FORMATTER
 		export
 			{NONE} all
 		end
@@ -44,13 +43,13 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize `Current'.
 		do
-			create class_name.make_empty
+			create {STRING_32} class_name.make_empty
 			create used_routine_names.make (10)
 		end
 
 feature -- Access
 
-	class_name: STRING
+	class_name: READABLE_STRING_32
 			-- <Precursor>
 
 	ancestor_names: ARRAY [STRING]
@@ -95,7 +94,7 @@ feature {TEST_CAPTURER} -- Status report
 
 feature -- Status setting
 
-	prepare (a_file: KI_TEXT_OUTPUT_STREAM; a_class_name: STRING)
+	prepare (a_file: KI_TEXT_OUTPUT_STREAM; a_class_name: READABLE_STRING_32)
 			-- Prepare printing a new axtracted application state to `a_file'.
 		require
 			not_writing: not is_writing
@@ -109,106 +108,10 @@ feature -- Status setting
 
 feature {NONE} -- Query
 
-	test_routine_name (a_feature: E_FEATURE): STRING
+	test_routine_name (a_feature: E_FEATURE): STRING_32
 			-- Valid test routine name for feature in `a_stack_element'.
-		local
-			i: INTEGER_32
-			l_custom_symbol: STRING_8
-			l_symbol: STRING
 		do
-			if a_feature.is_prefix then
-				Result := "prefix_"
-				if a_feature.prefix_symbol_32.as_string_8.is_equal ("+") then
-					Result.append ("plus")
-				elseif a_feature.prefix_symbol_32.as_string_8.is_equal ("-") then
-					Result.append ("minus")
-				else
-						-- Replace all non-alpha-numeric characters with valid representations.
-					from
-						create l_custom_symbol.make_empty
-						l_symbol := a_feature.prefix_symbol_32.as_string_8
-						i := 1
-					until
-						i > l_symbol.count
-					loop
-						if l_symbol.item (i).is_alpha_numeric then
-							l_custom_symbol.append_character (l_symbol.item (i))
-						else
-							inspect l_symbol.item (i)
-							when '#' then
-								l_custom_symbol.append_string ("_symb_number_")
-							when '|' then
-								l_custom_symbol.append_string ("_symb_vertbar_")
-							when '@' then
-								l_custom_symbol.append_string ("_symb_at_")
-							when '&' then
-								l_custom_symbol.append_string ("_symb_amp_")
-							else
-								l_custom_symbol.append_string ("_symb_" + l_symbol.item (i).code.out + "_")
-							end
-						end
-						i := i + 1
-					end
-					Result.append (l_custom_symbol)
-				end
-			elseif a_feature.is_infix then
-    			Result := "infix_"
-    			l_symbol := a_feature.infix_symbol_32.as_string_8
-				if l_symbol.is_equal ("+") then
-					Result.append ("plus")
-				elseif l_symbol.is_equal ("-") then
-					Result.append ("minus")
-				elseif l_symbol.is_equal ("*") then
-					Result.append ("multiply")
-				elseif l_symbol.is_equal ("/") then
-					Result.append ("division")
-				elseif l_symbol.is_equal ("<") then
-					Result.append ("less")
-				elseif l_symbol.is_equal (">") then
-					Result.append ("greater")
-				elseif l_symbol.is_equal ("<=") then
-					Result.append ("less_or_equal")
-				elseif l_symbol.is_equal (">=") then
-					Result.append ("greater_or_equal")
-				elseif l_symbol.is_equal ("//") then
-					Result.append ("integer_division")
-				elseif l_symbol.is_equal ("\\") then
-					Result.append ("modulo")
-				elseif l_symbol.is_equal ("^") then
-					Result.append ("power")
-				else
-						-- Replace all non-alpha-numeric characters with valid representations.
-					from
-						create l_custom_symbol.make_empty
-						l_symbol := a_feature.infix_symbol_32.as_string_8
-						i := 1
-					until
-						i > l_symbol.count
-					loop
-						if l_symbol.item (i).is_alpha_numeric then
-							l_custom_symbol.append_character (l_symbol.item (i))
-						else
-							inspect l_symbol.item (i)
-							when '#' then
-								l_custom_symbol.append_string ("_symb_number_")
-							when '|' then
-								l_custom_symbol.append_string ("_symb_vertbar_")
-							when '@' then
-								l_custom_symbol.append_string ("_symb_at_")
-							when '&' then
-								l_custom_symbol.append_string ("_symb_amp_")
-							else
-								l_custom_symbol.append_character ('_')
-							end
-						end
-						i := i + 1
-					end
-					Result.append (l_custom_symbol)
-				end
-			else
-					-- |FIXME: Unicode encoding handling.
-				create Result.make_from_string (a_feature.name_32.as_string_8)
-			end
+			create Result.make_from_string (a_feature.name_32)
 		ensure
 			result_not_empty: not Result.is_empty
 		end
@@ -219,9 +122,9 @@ feature {TEST_CAPTURER} -- Events
 			-- <Precursor>
 		local
 			l_feat: E_FEATURE
-			l_name: STRING
+			l_name: READABLE_STRING_32
 			l_count: NATURAL
-			l_list: LIST [STRING]
+			l_list: LIST [STRING_32]
 			i: INTEGER
 		do
 			l_feat := a_stack_element.called_feature
@@ -235,7 +138,7 @@ feature {TEST_CAPTURER} -- Events
 
 			stream.indent
 			stream.put_string ("test_")
-			stream.put_string (l_name)
+			stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_name))
 			if l_count > 1 then
 				stream.put_character ('_')
 				stream.put_line (l_count.out)
@@ -250,15 +153,15 @@ feature {TEST_CAPTURER} -- Events
 			stream.put_string ("testing: %"covers/{")
 			stream.put_string (a_stack_element.called_feature.associated_class.name)
 			stream.put_string ("}.")
-			stream.put_string (l_name)
+			stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_name))
 			stream.put_line ("%"")
 			stream.dedent
 
 			stream.put_line ("do")
 			stream.indent
 			stream.put_string ("run_extracted_test (agent ")
-			if a_stack_element.is_creation_procedure or a_stack_element.is_xfix then
-				if l_feat.argument_count > 0 or a_stack_element.is_xfix then
+			if a_stack_element.is_creation_procedure then
+				if l_feat.argument_count > 0 then
 					stream.put_string ("(")
 					from
 						l_list := a_stack_element.types
@@ -270,7 +173,7 @@ feature {TEST_CAPTURER} -- Events
 						stream.put_string ("an_arg")
 						stream.put_integer (i)
 						stream.put_string (": ")
-						stream.put_string (l_list.item_for_iteration)
+						stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_list.item_for_iteration))
 						l_list.forth
 						i := i + 1
 						if not l_list.after then
@@ -282,7 +185,7 @@ feature {TEST_CAPTURER} -- Events
 					stream.put_line ("")
 				end
 				stream.indent
-				if a_stack_element.is_creation_procedure or a_stack_element.is_xfix then
+				if a_stack_element.is_creation_procedure then
 					stream.put_line ("local")
 					stream.indent
 					stream.put_line ("l_result: ANY")
@@ -291,36 +194,26 @@ feature {TEST_CAPTURER} -- Events
 				stream.put_line ("do")
 				stream.indent
 				stream.put_string ("l_result := ")
-				if l_feat.is_prefix then
-					stream.put_string (l_feat.prefix_symbol_32.as_string_8)
-					stream.put_line (" an_arg1")
-				elseif l_feat.is_infix then
-					stream.put_string ("an_arg1 ")
-					stream.put_string (l_feat.infix_symbol_32.as_string_8)
-					stream.put_line (" an_arg2")
-				else
-					stream.put_string ("create {")
-					stream.put_string (a_stack_element.type)
-					stream.put_string ("}.")
-						-- |FIXME: Handle encoding
-					stream.put_string (l_feat.name_32.as_string_8)
-					if a_stack_element.operands.count > 0 then
-						stream.put_character ('(')
-						from
-							i := 1
-						until
-							i > l_feat.argument_count
-						loop
-							stream.put_string ("an_arg" + i.out)
-							if i < l_feat.argument_count then
-								stream.put_string (", ")
-							end
-							i := i + 1
+				stream.put_string ("create {")
+				stream.put_string (a_stack_element.type)
+				stream.put_string ("}.")
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_feat.name_32))
+				if a_stack_element.operands.count > 0 then
+					stream.put_character ('(')
+					from
+						i := 1
+					until
+						i > l_feat.argument_count
+					loop
+						stream.put_string ("an_arg" + i.out)
+						if i < l_feat.argument_count then
+							stream.put_string (", ")
 						end
-						stream.put_character (')')
+						i := i + 1
 					end
-					stream.put_line ("")
+					stream.put_character (')')
 				end
+				stream.put_line ("")
 				stream.dedent
 				stream.put_string ("end")
 				stream.dedent
@@ -330,7 +223,7 @@ feature {TEST_CAPTURER} -- Events
 				stream.put_character ('}')
 				stream.put_character ('.')
 					-- |FIXME: Unicode encoding
-				stream.put_string (l_feat.name_32.as_string_8)
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_feat.name_32))
 			end
 			stream.put_string (", [")
 			from
@@ -365,7 +258,7 @@ feature {TEST_CAPTURER} -- Events
 				stream.put_line (",")
 			end
 			stream.put_string ("[{")
-			stream.put_string (a_object.type)
+			stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (a_object.type))
 
 			l_long_string := a_object.is_string and then a_object.string.count > max_string_length
 			if l_long_string then
@@ -380,7 +273,7 @@ feature {TEST_CAPTURER} -- Events
 				put_manifest_string (a_object.string)
 			elseif a_object.is_string then
 				stream.put_character ('"')
-				put_eiffel_string (stream.output_stream, a_object.string)
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (eiffel_string_32 (a_object.string)))
 				stream.put_character ('"')
 				stream.put_line ("")
 			elseif a_object.has_attributes then
@@ -454,7 +347,7 @@ feature {NONE} -- Output
 			stream.put_line ("")
 		end
 
-	put_manifest_string (a_string: STRING)
+	put_manifest_string (a_string: STRING_32)
 		local
 			i: INTEGER
 		do
@@ -464,13 +357,14 @@ feature {NONE} -- Output
 				i > a_string.count
 			loop
 				stream.put_character ('%%')
-				put_eiffel_string (stream.output_stream, a_string.substring (i, (i + max_string_length - 1).min (a_string.count)))
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8
+					(eiffel_string_32 (a_string.substring (i, (i + max_string_length - 1).min (a_string.count)))))
 				stream.put_line ("%%")
 				i := i + max_string_length
 			end
 		end
 
-	put_attributes (a_table: HASH_TABLE [STRING, STRING])
+	put_attributes (a_table: HASH_TABLE [STRING, STRING_32])
 		do
 			from
 				a_table.start
@@ -478,7 +372,7 @@ feature {NONE} -- Output
 				a_table.after
 			loop
 				stream.put_character ('"')
-				stream.put_string (a_table.key_for_iteration)
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (a_table.key_for_iteration))
 				stream.put_string ("%",  ")
 				put_value (a_table.item_for_iteration)
 				a_table.forth
@@ -515,15 +409,15 @@ feature {NONE} -- Output
 			end
 		end
 
-	put_value (a_value: STRING)
+	put_value (a_value: STRING_32)
 		do
 			if a_value.is_natural then
 				stream.put_character ('"')
 				stream.put_character ('#')
-				stream.put_string (a_value)
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (a_value))
 				stream.put_character ('"')
 			else
-				stream.put_string (a_value)
+				stream.put_string ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (a_value))
 			end
 		end
 
@@ -534,7 +428,7 @@ feature {NONE} -- Constants
 	extracted_ancestor_name: STRING = "EQA_EXTRACTED_TEST_SET"
 
 ;note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

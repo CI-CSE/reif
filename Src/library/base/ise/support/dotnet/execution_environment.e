@@ -157,7 +157,10 @@ feature -- Access
 		obsolete
 			"Use starting_environment which support unicode. [2017-05-31]"
 		do
-			if attached {IDICTIONARY} {ENVIRONMENT}.get_environment_variables as l_dic and then attached {IENUMERATOR} l_dic.get_enumerator_2 as l_enumerator then
+			if 
+				attached {IDICTIONARY} {ENVIRONMENT}.get_environment_variables as l_dic and then
+				attached {IENUMERATOR} l_dic.get_enumerator as l_enumerator 
+			then
 				create Result.make (l_dic.count)
 				from
 				until
@@ -180,7 +183,10 @@ feature -- Access
 			-- Table of environment variables associated with current process,
 			-- indexed by variable name
 		do
-			if attached {IDICTIONARY} {ENVIRONMENT}.get_environment_variables as l_dic and then attached {IENUMERATOR} l_dic.get_enumerator_2 as l_enumerator then
+			if 
+				attached {IDICTIONARY} {ENVIRONMENT}.get_environment_variables as l_dic and then
+				attached {IENUMERATOR} l_dic.get_enumerator as l_enumerator 
+			then
 				create Result.make (l_dic.count)
 				from
 				until
@@ -294,7 +300,7 @@ feature {NONE} -- Implementation
 			l_si: SYSTEM_DLL_PROCESS_START_INFO
 			l_pos: INTEGER
 		do
-			if (current_working_path.name @ 2) = ':' then -- assume a volume
+			if current_working_path.name [2] = ':' then -- assume a volume
 				internal_launch_from_local_volume (s, should_wait)
 			else
 				l_pos := s.index_of (' ', 1)

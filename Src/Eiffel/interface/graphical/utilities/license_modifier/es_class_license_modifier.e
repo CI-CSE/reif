@@ -14,7 +14,31 @@ inherit
 	INTERNAL_COMPILER_STRING_EXPORTER
 
 create
-	make
+	make,
+	make_with_text
+
+feature {NONE} -- Initialization
+
+	make_with_text (a_class_text: STRING_32; a_class: like context_class )
+			-- Initialize a class text modifier using a context class.
+			--
+			-- `a_class_text`: Class text to modify.
+			-- `a_class': Associated context class to modify class text for.
+
+		require
+			a_class_attached: attached a_class
+			a_class_text_attached: attached a_class_text
+		local
+			l_text: detachable STRING_32
+		do
+			make (a_class)
+			l_text := a_class_text
+			original_text := l_text
+			modified_data := new_modified_data_with_text (l_text)
+		ensure
+			context_class_set: context_class = a_class
+			not_is_dirty: not is_dirty
+		end
 
 feature -- Access
 
@@ -35,7 +59,7 @@ feature -- Access
 				if l_list /= Void and then not l_list.is_empty then
 						-- Take the first index value, ignore all others, in case of a typo on the user's part.
 					if attached {STRING_AS} l_list.first as l_string then
-						l_result := l_string.value.as_string_32
+						l_result := l_string.value_32
 						if not l_result.is_empty then
 							Result := l_result
 						end
@@ -139,7 +163,7 @@ feature -- Element change
 			is_dirty: ((a_name = Void and old ast_license_name /= Void) implies is_dirty)
 		end
 
-	set_license (a_license: detachable STRING_GENERAL)
+	set_license (a_license: detachable READABLE_STRING_GENERAL)
 			-- Sets the licenses text for the current class.
 			--
 			-- `a_license': The license indexing text to set, or Void to remove.
@@ -156,7 +180,6 @@ feature -- Element change
 			l_parser: like indexing_parser
 			l_wrapper: like eiffel_parser_wrapper
 			l_options: CONF_OPTION
-			l_indexing_ast: detachable INDEXING_CLAUSE_AS
 			l_match_list: like ast_match_list
 			l_start_position: INTEGER
 			l_new_license, l_current_license: STRING_32
@@ -178,11 +201,10 @@ feature -- Element change
 					l_new_license.replace_substring_all ("%N", "%R%N")
 				end
 
-				if not l_new_license.is_equal (l_current_license) then
+				if not l_new_license.same_string (l_current_license) then
 						-- The license is different from the class license, so change it.
-					l_indexing_ast ?= ast_license
 					l_match_list := ast_match_list
-					if l_indexing_ast /= Void and then l_match_list /= Void then
+					if attached {INDEXING_CLAUSE_AS} ast_license as l_indexing_ast and then l_match_list /= Void then
 						merge_license_code (l_indexing_ast, l_match_list, l_new_license)
 					else
 							-- There is no indexing AST clause, so insert just above the class end keyword.
@@ -334,9 +356,9 @@ feature {NONE} -- Basic operations: Modifications
 								l_atoms := l_old_index.index_list
 								replace_code (l_atoms.complete_character_start_position (a_match_list),
 											l_atoms.complete_character_end_position (a_match_list),
-											l_index.index_list.text (l_match_list))
+											l_index.index_list.text_32 (l_match_list))
 							else
-								insert_code (a_ast.complete_character_end_position (a_match_list) + 1, "%N%T" + l_index.text (l_match_list))
+								insert_code (a_ast.complete_character_end_position (a_match_list) + 1, {STRING_32} "%N%T" + l_index.text_32 (l_match_list))
 							end
 							l_indexing.forth
 						end
@@ -373,6 +395,19 @@ feature -- Constants
 	default_license_name: STRING = "default"
 			-- Default license name.
 
+feature {NONE} -- Implementation
+
+	new_modified_data_with_text (a_class_text: STRING_32): like modified_data
+			-- Creates a new class modifier data object based on Current's state
+			-- and `a_class_text`.
+		local
+			l_class: like context_class
+		do
+			l_class := context_class
+			create Result.make (l_class, a_class_text)
+		end
+
+
 feature {NONE} -- Implementation: Internal cache
 
 	internal_license: detachable like license
@@ -380,7 +415,7 @@ feature {NONE} -- Implementation: Internal cache
 			-- Note: Do not use directly!
 
 ;note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

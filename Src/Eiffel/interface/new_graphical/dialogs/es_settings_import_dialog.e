@@ -1,8 +1,5 @@
-note
-	description:
-		"[
-			Popup dialog to import settings from previous installations.
-		]"
+﻿note
+	description: "Popup dialog to import settings from previous installations."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -36,6 +33,13 @@ inherit
 		end
 
 	EIFFEL_LAYOUT
+		export
+			{NONE} all
+		undefine
+			default_create, is_equal, copy
+		end
+
+	SHARED_ES_CLOUD_SERVICE
 		export
 			{NONE} all
 		undefine
@@ -184,6 +188,19 @@ feature {NONE} -- Initialization
 			create tf; tf.disable_edit; hb.extend (tf)
 			ini_files_tf := tf
 
+				-- Cloud account data
+			create hb
+			hb.set_padding_width (layout_constants.tiny_padding_size)
+			l_advanced_box.extend (hb); l_advanced_box.disable_item_expand (hb)
+			create but_check.make_with_text ("Cloud account data")
+			but_check.set_tooltip ("Cloud account data such as credential.")
+			but_check.enable_select
+			align_lst.extend (but_check)
+			hb.extend (but_check); hb.disable_item_expand (but_check)
+			cloud_account_cb := but_check
+			create tf; tf.disable_edit; hb.extend (tf)
+			cloud_account_tf := tf
+
 				-- Custom Edit
 			create hb
 			hb.set_padding_width (layout_constants.tiny_padding_size)
@@ -264,14 +281,16 @@ feature -- Access
 	ui_layout_tf,
 	templates_tf,
 	studio_config_tf,
-	ini_files_tf: EV_TEXT_FIELD
+	ini_files_tf,
+	cloud_account_tf: EV_TEXT_FIELD
 
 
 	preferences_cb,
 	ui_layout_cb,
 	studio_config_cb,
 	templates_cb,
-	ini_files_cb: EV_CHECK_BUTTON
+	ini_files_cb,
+	cloud_account_cb: EV_CHECK_BUTTON
 
 	advanced_button: EV_CHECK_BUTTON
 	advanced_box: EV_BOX
@@ -315,6 +334,9 @@ feature -- Event
 				ini_files_cb.enable_sensitive
 				ini_files_tf.enable_edit
 
+				cloud_account_cb.enable_sensitive
+				cloud_account_tf.enable_edit
+
 				import_button.hide
 			else
 				but.set_text (interface_names.b_edit_settings)
@@ -327,6 +349,8 @@ feature -- Event
 				templates_tf.disable_edit
 
 				ini_files_tf.disable_edit
+
+				cloud_account_tf.disable_edit
 
 				update_choices_status
 				import_button.show
@@ -343,115 +367,159 @@ feature -- Event
 			text_widget: detachable EV_TEXT
 			vb: EV_VERTICAL_BOX
 			lab: EV_LABEL
+			retried: BOOLEAN
 		do
-			import_button.hide
-			back_button.show
-			main_cell.wipe_out
-			create vb
-			progress_bar.set_value (1)
-
-			vb.extend (progress_bar)
-			vb.disable_item_expand (progress_bar)
-			create lab
-			lab.set_text ({STRING_32} "Importing from " + selected_version_name.as_string_32)
-			vb.extend (lab)
-			vb.disable_item_expand (lab)
-
-			if advanced_button.is_selected then
-				create text_widget
-				text_widget.set_text ({STRING_32} "Importing from " + selected_version_name.as_string_32 + " ...%N")
-				vb.extend (text_widget)
+			if retried then
+				back_button.show
+				main_cell.wipe_out
+				create lab
+				lab.set_text ("Import failed (exception)!")
+				main_cell.extend (lab)
+				lab.refresh_now
 			else
-				text_widget := Void
-			end
-			main_cell.replace (vb)
+				import_button.hide
+				back_button.show
+				main_cell.wipe_out
+				create vb
+				progress_bar.set_value (1)
 
-			is_verbose := True
-			lab.refresh_now
+				vb.extend (progress_bar)
+				vb.disable_item_expand (progress_bar)
+				create lab
+				lab.set_text ({STRING_32} "Importing from " + selected_version_name.as_string_32)
+				vb.extend (lab)
+				vb.disable_item_expand (lab)
 
-			if preferences_cb.is_sensitive and then preferences_cb.is_selected then
-				if text_widget /= Void then
-					text_widget.append_text ("- Preferences from %"")
-					text_widget.append_text (preferences_tf.text)
-					text_widget.append_text ("%"%N")
+				if advanced_button.is_selected then
+					create text_widget
+					text_widget.set_text ({STRING_32} "Importing from " + selected_version_name.as_string_32 + " ...%N")
+					vb.extend (text_widget)
+				else
+					text_widget := Void
 				end
+				main_cell.replace (vb)
 
-				create l_prefs_versions
-				create l_prefs.make_with_location_and_version (preferences_tf.text, l_prefs_versions.version_2_0)
+				is_verbose := True
+				lab.refresh_now
 
-				if is_verbose then
-					l_prefs_import_callback := agent (itxt: detachable EV_TEXT; ith: INTEGER_32; total: INTEGER_32; name, value: READABLE_STRING_GENERAL)
-								do
-									progress_bar.set_value ((100 * ith) // total)
-									progress_bar.refresh_now
-									if itxt /= Void then
-										itxt.append_text (" [" + ith.out + "/" + total.out + "] ")
-										itxt.append_text (name)
-										itxt.append_text (": ")
-										itxt.append_text (value)
-										itxt.append_text ("%N")
-									end
-								end(text_widget, ?,?,?,?)
-				end
-				if attached preferences as prefs then
-					prefs.preferences.import_from_storage_with_callback_and_exclusion (l_prefs,
-							True, -- Ignore hidden preferences
-							l_prefs_import_callback,
-							agent (itxt: detachable EV_TEXT; ith: INTEGER; total: INTEGER; k, v: READABLE_STRING_GENERAL): BOOLEAN
-								do
-									progress_bar.set_value ((100 * ith) // total)
-									progress_bar.refresh_now
-									Result := is_excluded_preference (k, v)
-									if Result and itxt /= Void then
-										itxt.append_text (" [" + ith.out + "/" + total.out + "] ")
-										itxt.append_text (k)
-										itxt.append_text (": Excluded!%N")
-									end
-								end(text_widget, ?,?,?,?)
-						)
-						-- Save imported preferences!
-					prefs.preferences.save_preferences
-				end
-			end
-			if ui_layout_cb.is_sensitive and then ui_layout_cb.is_selected then
-				if text_widget /= Void then
-					text_widget.append_text ("- UI layout settings.%N")
-				end
-				safe_copy_directory_content_into (create {PATH}.make_from_string (ui_layout_tf.text), eiffel_layout.docking_data_path, text_widget)
-				reload_docking_layout (text_widget)
-			end
-			if studio_config_cb.is_sensitive and then studio_config_cb.is_selected then
-				if text_widget /= Void then
-					text_widget.append_text ("- Configuration file.%N")
-				end
-				safe_copy_directory_content_into (create {PATH}.make_from_string (studio_config_tf.text), eiffel_layout.user_files_path.extended ("studio"), text_widget)
-			end
-			if templates_cb.is_sensitive and then templates_cb.is_selected then
-				if text_widget /= Void then
-					text_widget.append_text ("- Templates.%N")
-				end
-				safe_copy_directory_content_into (create {PATH}.make_from_string (templates_tf.text), eiffel_layout.user_templates_path, text_widget)
-			end
-			if ini_files_cb.is_sensitive and then ini_files_cb.is_selected then
-				if text_widget /= Void then
-					text_widget.append_text ("- *.ini files.%N")
-				end
-				create d.make_with_name (ini_files_tf.text)
-				across
-					d.entries as ic
-				loop
-					if ic.item.is_current_symbol or ic.item.is_parent_symbol then
-					elseif attached ic.item.extension as ext and then ext.same_string ("ini") then
-						safe_copy_file_to (create {RAW_FILE}.make_with_path (d.path.extended_path (ic.item)),
-								create {RAW_FILE}.make_with_path (eiffel_layout.user_templates_path.extended_path (ic.item)), text_widget)
+				if preferences_cb.is_sensitive and then preferences_cb.is_selected then
+					if text_widget /= Void then
+						text_widget.append_text ("- Preferences from %"")
+						text_widget.append_text (preferences_tf.text)
+						text_widget.append_text ("%"%N")
+					end
+
+					create l_prefs_versions
+					create l_prefs.make_with_location_and_version (preferences_tf.text, l_prefs_versions.version_2_0)
+
+					if is_verbose then
+						l_prefs_import_callback := agent (itxt: detachable EV_TEXT; ith: INTEGER_32; total: INTEGER_32; name, value: READABLE_STRING_GENERAL)
+									do
+										progress_bar.set_value ((100 * ith) // total)
+										progress_bar.refresh_now
+										if itxt /= Void then
+											itxt.append_text (" [" + ith.out + "/" + total.out + "] ")
+											itxt.append_text (name)
+											itxt.append_text (": ")
+											itxt.append_text (value)
+											itxt.append_text ("%N")
+										end
+									end(text_widget, ?,?,?,?)
+					end
+					if attached preferences as prefs then
+						prefs.preferences.import_from_storage_with_callback_and_exclusion (l_prefs,
+								True, -- Ignore hidden preferences
+								l_prefs_import_callback,
+								agent (itxt: detachable EV_TEXT; ith: INTEGER; total: INTEGER; k, v: READABLE_STRING_GENERAL): BOOLEAN
+									do
+										progress_bar.set_value ((100 * ith) // total)
+										progress_bar.refresh_now
+										Result := is_excluded_preference (k, v)
+										if Result and itxt /= Void then
+											itxt.append_text (" [" + ith.out + "/" + total.out + "] ")
+											itxt.append_text (k)
+											itxt.append_text (": Excluded!%N")
+										end
+									end(text_widget, ?,?,?,?)
+							)
+							-- Save imported preferences!
+						prefs.preferences.save_preferences
 					end
 				end
+				if ui_layout_cb.is_sensitive and then ui_layout_cb.is_selected then
+					if text_widget /= Void then
+						text_widget.append_text ("- UI layout settings.%N")
+					end
+					safe_copy_directory_content_into (create {PATH}.make_from_string (ui_layout_tf.text), eiffel_layout.docking_data_path, text_widget, Void)
+					reload_docking_layout (text_widget)
+				end
+				if studio_config_cb.is_sensitive and then studio_config_cb.is_selected then
+					if text_widget /= Void then
+						text_widget.append_text ("- Configuration file.%N")
+					end
+					safe_copy_directory_content_into (create {PATH}.make_from_string (studio_config_tf.text), eiffel_layout.user_files_path.extended ("studio"), text_widget, <<"code_analysis.xml">>)
+				end
+				if templates_cb.is_sensitive and then templates_cb.is_selected then
+					if text_widget /= Void then
+						text_widget.append_text ("- Templates.%N")
+					end
+					safe_copy_directory_content_into (create {PATH}.make_from_string (templates_tf.text), eiffel_layout.user_templates_path, text_widget, Void)
+				end
+				if ini_files_cb.is_sensitive and then ini_files_cb.is_selected then
+					if text_widget /= Void then
+						text_widget.append_text ("- *.ini files.%N")
+					end
+					create d.make_with_name (ini_files_tf.text)
+					across
+						d.entries as ic
+					loop
+						if ic.item.is_current_symbol or ic.item.is_parent_symbol then
+						elseif attached ic.item.extension as ext and then ext.same_string ("ini") then
+							safe_copy_file_to (
+									create {RAW_FILE}.make_with_path (d.path.extended_path (ic.item)),
+									create {RAW_FILE}.make_with_path (eiffel_layout.user_files_path.extended_path (ic.item)),
+									text_widget
+								)
+						end
+					end
+						-- Update external commands
+					if
+						attached dev_window as w and then
+						attached w.commands.edit_external_commands_cmd as c
+					then
+						c.update_commands_from_ini_file
+						c.update_menus_from_outside
+					end
+				end
+				if cloud_account_cb.is_sensitive and then cloud_account_cb.is_selected then
+					if text_widget /= Void then
+						text_widget.append_text ("- Cloud account data.%N")
+					end
+					if attached es_cloud_s.service as cld then
+						create d.make_with_name (cloud_account_tf.text)
+						across
+							d.entries as ic
+						loop
+							if ic.item.is_current_symbol or ic.item.is_parent_symbol then
+							elseif ic.item.name.ends_with ("-credential.dat") then
+								if attached cld.kept_credential_from_file (d.path.extended_path (ic.item)) as l_acc then
+									if cld.kept_credential = Void then
+										cld.keep_credential (l_acc.username, l_acc.password)
+									end
+								end
+							end
+						end
+					end
+				end
+				progress_bar.set_value (100)
+				progress_bar.refresh_now;
+				(create {EXECUTION_ENVIRONMENT}).sleep (1_000_000_000)
+				lab.set_text ("Import completed!")
+				lab.refresh_now
 			end
-			progress_bar.set_value (100)
-			progress_bar.refresh_now;
-			(create {EXECUTION_ENVIRONMENT}).sleep (1_000_000_000)
-			lab.set_text ("Importation completed!")
-			lab.refresh_now
+		rescue
+			retried := True
+			retry
 		end
 
 	is_excluded_preference (a_name, a_value: READABLE_STRING_GENERAL): BOOLEAN
@@ -480,7 +548,7 @@ feature -- Event
 
 			selected_version_name := Void
 			if is_eiffel_layout_defined then
-				l_curr_version := eiffel_layout.version_name
+				l_curr_version := current_version_name
 				versions_combo.enable_edit
 				versions_combo.wipe_out
 				across
@@ -501,6 +569,14 @@ feature -- Event
 					l_prev_version_list_item.enable_select
 				end
 				versions_combo.disable_edit
+			end
+		end
+
+	current_version_name: READABLE_STRING_32
+		do
+			Result := eiffel_layout.version_name
+			if eiffel_layout.is_workbench then
+				Result := Result + {STRING_32} "_" + eiffel_layout.wkbench_suffix
 			end
 		end
 
@@ -550,12 +626,22 @@ feature -- Event
 			cb.set_tooltip (ufp.name + "  *.ini files")
 			tf.set_text (ufp.name)
 
-				-- Update choices
+				-- Cloud account data
+				--| See {ES_CLOUD}.make_with_url
+			p := eiffel_layout.hidden_files_path_for_version (v, False).extended ("accounts")
+			if eiffel_layout.is_workbench then
+				p := p.extended ("workbench")
+			end
+			cb := cloud_account_cb
+			tf := cloud_account_tf
+			cb.set_tooltip (p.name + "  Cloud accout data")
+			tf.set_text (p.name)
 
+				-- Update choices
 			update_choices_status
 
 				-- Button Import
-			if eiffel_layout.version_name.same_string_general (v) then
+			if current_version_name.same_string (v) then
 				import_button.disable_sensitive
 			else
 				import_button.enable_sensitive
@@ -603,6 +689,16 @@ feature -- Event
 			else
 				cb.disable_sensitive
 			end
+
+				-- Cloud account data
+			p := cloud_account_tf.text
+			cb := cloud_account_cb
+			if ut.directory_exists (p) then
+				cb.enable_sensitive
+			else
+				cb.disable_sensitive
+			end
+
 		end
 
 feature {NONE} -- Implementation
@@ -627,9 +723,10 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	safe_copy_directory_content_into (a_dirname: PATH; a_target_dirname: PATH; a_txt: detachable EV_TEXT)
+	safe_copy_directory_content_into (a_dirname: PATH; a_target_dirname: PATH; a_txt: detachable EV_TEXT; a_excludes: detachable ITERABLE [READABLE_STRING_GENERAL])
 		local
 			p,tgt: PATH
+			p_name: READABLE_STRING_GENERAL
 			d_src, d_tgt: DIRECTORY
 			f_src: RAW_FILE
 		do
@@ -649,13 +746,19 @@ feature {NONE} -- Implementation
 						d_src.entries as ic
 					loop
 						p := ic.item
+						p_name := p.name
 						if p.is_current_symbol or p.is_parent_symbol then
 								-- Skip
+						elseif
+							a_excludes /= Void and then
+							across a_excludes as ex_ic some p_name.same_string (ex_ic.item) end
+						then
+								-- Ignored/excluded.
 						else
 							create f_src.make_with_path (d_src.path.extended_path (p))
 							tgt := a_target_dirname.extended_path (p)
 							if f_src.is_directory then
-								safe_copy_directory_content_into (f_src.path, tgt, a_txt)
+								safe_copy_directory_content_into (f_src.path, tgt, a_txt, a_excludes)
 							else
 								safe_copy_file_to (f_src, create {RAW_FILE}.make_with_path (tgt), a_txt)
 							end
@@ -762,7 +865,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -793,4 +896,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_ARGUMENT_DIALOG
+end

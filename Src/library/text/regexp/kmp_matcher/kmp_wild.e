@@ -1,11 +1,11 @@
-note
-	description: "Pattern match algorithm to match a pattern%
-			% containing wild cards.%
-			% Done through the Knuth, Morris, Pratt%
-			% algorithm."
-	legal: "See notice at end of class.";
-	status: "See notice at end of class.";
-	date: "$Date$";
+﻿note
+	description: "[
+		Pattern match algorithm to match a pattern containing wild cards.
+		Done through the Knuth, Morris, Pratt algorithm.
+	]"
+	legal: "See notice at end of class."
+	status: "See notice at end of class."
+	date: "$Date$"
 	revision: "$Revision$"
 
 class KMP_WILD
@@ -116,7 +116,7 @@ feature -- Search
 		do
 			if
 				search_for_pattern and then
-				(found_at = 1 or else pattern @ 1 = string_representation)
+				(found_at = 1 or else pattern [1] = string_representation)
 			then
 				txt := text
 				ls := string_list
@@ -132,7 +132,7 @@ feature -- Search
 							-- Implied by invariant
 						lsi_not_empty: not lsi.is_empty
 					end
-					c := lsi @ 1
+					c := lsi [1]
 					if c = string_representation then
 						as_star := True
 					elseif c = character_representation then
@@ -259,7 +259,7 @@ feature -- Search
 		local
 			ls: like string_list
 			lsi: STRING_32
-			fa, i, tc, pc, tcmpc: INTEGER
+			fa, i, tc, tcmpc: INTEGER
 			sr, cr: STRING_32
 			found_one: BOOLEAN
 			kmp_matcher: KMP_MATCHER
@@ -288,8 +288,7 @@ feature -- Search
 			create cr.make (1)
 			cr.extend (character_representation)
 			tc := text.count
-			pc := pattern.count
-			tcmpc := tc - pc
+			tcmpc := tc - pattern.count
 			create kmp_matcher.make (pattern, text)
 			str_without_wild := pattern.twin
 			str_without_wild.prune_all (string_representation)
@@ -333,7 +332,7 @@ feature -- Search
 									kmp_matcher.set_pattern (lsi)
 									kmp_matcher.start_at (i)
 									if kmp_matcher.search_for_pattern then
-										found_one := (not is_star implies kmp_matcher.found_at = i)
+										found_one := not is_star implies kmp_matcher.found_at = i
 										if found_one then
 											i := kmp_matcher.found_at + lsi.count
 											if fa = - 1 then
@@ -373,6 +372,13 @@ feature -- Search
 		ensure then
 			created: lengths /= Void
 		end
+
+feature {NONE} -- Attributes
+
+	string_list: LINKED_LIST [STRING_32]
+			-- List of strings.
+			--| Parts not containing `string_representation' and
+			--| `character_representation' are held as items
 
 feature {NONE} -- Implementation
 
@@ -443,13 +449,13 @@ feature {NONE} -- Implementation
 						i := 0
 						ls.finish
 					until
-						ls.before or else ls.item @ 1 /= character_representation
+						ls.before or else ls.item [1] /= character_representation
 					loop
 						i := i + 1
 						ls.back
 					end
 					lsi := ls.item
-					if ls.before or else lsi @ 1 = string_representation then
+					if ls.before or else lsi [1] = string_representation then
 						Result := True
 					else
 						Result := imp_same_substring (txt, txt_count - lsi.count - i + 1, txt_count - i, lsi)
@@ -457,15 +463,6 @@ feature {NONE} -- Implementation
 				end
  			end
 		end
-
-feature {NONE} -- Attributes
-
-	string_list: LINKED_LIST [STRING_32]
-			-- List of strings.
-			--| Parts not containing `string_representation' and
-			--| `character_representation' are held as items
-
-feature {NONE} -- Implementation
 
 	imp_same_substring (a_text: STRING_32; a_text_start, a_text_end: INTEGER; a_string: STRING_32): BOOLEAN
 			-- Optimized code for `a_text.substring (a_text_start, a_text_end).is_equal (a_string)'?
@@ -509,7 +506,7 @@ invariant
 	different_character_and_string_representation: string_representation /= character_representation
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

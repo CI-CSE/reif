@@ -1,6 +1,7 @@
-note
+﻿note
 	description: "Cocoa implementation of EV_POINTER_STYLE_I."
 	author: "Daniel Furrer"
+	revised_by: "Alexander Kogtenkov"
 	keywords: "mouse, pointer, cursor, arrow"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -156,11 +157,11 @@ feature {EV_ANY_HANDLER, EV_ANY_I} -- Implementation
 
 feature {EV_ANY, EV_ANY_I} -- Implementation
 
-	interface: detachable EV_POINTER_STYLE note option: stable attribute end;
-			-- Interface
+	interface: detachable EV_POINTER_STYLE note option: stable attribute end
+			-- Interface.
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -169,4 +170,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
+
 end

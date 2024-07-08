@@ -251,8 +251,8 @@ feature {NONE} -- Implementation
 		require
 			valid_args: cluster_n /= Void
 		do
-			if target.stone /= Void then
-				cluster_list.show_stone (target.stone)
+			if attached target.stone as st then
+				cluster_list.show_stone (st)
 			end
 			cluster_entry.set_text (cluster_n.as_lower)
 			show_modal_to_window (target.window)
@@ -305,19 +305,17 @@ feature {NONE} -- Implementation
 			-- Set `group' to selected cluster/library from tree.
 		local
 			l_folder: EB_CLASSES_TREE_FOLDER_ITEM
-			l_hdr: EB_CLASSES_TREE_HEADER_ITEM
 			clu: EB_SORTED_CLUSTER
 		do
 			is_top_level := False
 			if cluster_list.selected_item /= Void then
-				l_hdr ?= cluster_list.selected_item
-				if l_hdr /= Void then
+				if attached {EB_CLASSES_TREE_HEADER_ITEM} cluster_list.selected_item as l_hdr then
 					aok := True
 					is_top_level := True
 				else
-					l_folder ?= cluster_list.selected_item
+					l_folder := {EB_CLASSES_TREE_FOLDER_ITEM} / cluster_list.selected_item
 					if l_folder = Void then
-						l_folder ?= cluster_list.selected_item.parent
+						l_folder := {EB_CLASSES_TREE_FOLDER_ITEM} / cluster_list.selected_item.parent
 					end
 					if l_folder /= Void then
 						clu := l_folder.data
@@ -347,9 +345,8 @@ feature {NONE} -- Implementation
 		local
 			dir: DIRECTORY
 			test_file: RAW_FILE
-			base_name: STRING
+			base_name: READABLE_STRING_GENERAL
 			in_recursive: BOOLEAN
-			l_clu: CONF_CLUSTER
 		do
 			aok := True
 			if aok then
@@ -376,8 +373,7 @@ feature {NONE} -- Implementation
 				if not is_top_level then
 					check group_not_void: group /= Void end
 					if group.is_cluster then
-						l_clu ?= group
-						in_recursive := l_clu /= Void and then l_clu.is_recursive and then (original_path = Void or else original_path.is_empty)
+						in_recursive := attached {CONF_CLUSTER} group as l_clu and then l_clu.is_recursive
 						if group.is_test_cluster and not tests_cluster_box.is_selected then
 							prompts.show_error_prompt (warning_messages.w_cannot_create_cluster_in_tests_cluster, Current, Void)
 							aok := False
@@ -391,7 +387,7 @@ feature {NONE} -- Implementation
 						aok := not group.target.system.date_has_changed
 					end
 					if not aok then
-						prompts.show_error_prompt (warning_messages.w_cannot_delete_need_recompile, Current, Void)
+						prompts.show_error_prompt (warning_messages.w_configuration_not_up_to_date_need_recompile, Current, Void)
 					end
 				end
 				if aok then
@@ -414,7 +410,12 @@ feature {NONE} -- Implementation
 					else
 							-- if we are in a recursive cluster we don't need to do anything except refreshing
 						if in_recursive then
-							manager.refresh
+							if not chosen_dir.canonical_path.name.starts_with (group.location.evaluated_directory.canonical_path.name) then
+									-- Case: Add Cluster inside a recursive cluster, but with a location out the parent recursive cluster.
+								real_create_cluster (base_name)
+							else
+								manager.refresh
+							end
 						else
 							real_create_cluster (base_name)
 						end
@@ -424,7 +425,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	real_create_cluster (name: STRING)
+	real_create_cluster (name: READABLE_STRING_GENERAL)
 			-- Really create the cluster.
 			-- `name': name of the new cluster.
 		require
@@ -433,7 +434,11 @@ feature {NONE} -- Implementation
 			l_is_tests_cluster: BOOLEAN
 		do
 			l_is_tests_cluster := tests_cluster_box.is_selected
-			manager.add_cluster (name, group, original_path, l_is_tests_cluster)
+			if is_top_level then
+				manager.add_cluster (name, Void, original_path, l_is_tests_cluster)
+			else
+				manager.add_cluster (name, group, original_path, l_is_tests_cluster)
+			end
 			manager.last_added_cluster.set_recursive (recursive_box.is_selected)
 		end
 
@@ -459,7 +464,7 @@ feature {NONE} -- Implementation
 		require
 			current_state_is_valid: aok
 		local
-			cn: STRING
+			cn: READABLE_STRING_GENERAL
 		do
 			cn := cluster_name
 			aok := not cn.is_empty and then (create {EIFFEL_SYNTAX_CHECKER}).is_valid_group_name (cn)
@@ -477,19 +482,27 @@ feature {NONE} -- Implementation
 			cp: PATH
 			icp: PATH
 			l_loc: CONF_DIRECTORY_LOCATION
+--			l_cp_name: STRING_32
 		do
 			create cp.make_from_string (folder_entry.text)
 				-- top level clusters need a path
 			if is_top_level and cp.is_empty then
 				aok := False
 				prompts.show_error_prompt (warning_messages.w_cluster_path_not_valid, target.window, Void)
-			elseif cp.is_empty then
+			elseif cp.is_empty or cp.name.same_string (cluster_name) then
+					-- Either no path were set, or same as the cluster_name, so let's consider it is subfolder.
 				chosen_dir := group.location.build_path (path, "").extended (cluster_name)
 				original_path := chosen_dir
 			else
+--				l_cp_name := cp.name
 				create l_loc.make (cp.name, Eiffel_universe.target)
 				if not is_top_level and then group.is_cluster then
-					l_loc.set_parent (group.location)
+					if not path.is_empty then
+							-- Case: add new folder into sub folder or recursive cluster
+						l_loc.set_parent (create {CONF_DIRECTORY_LOCATION}.make ({STRING_32} "$|" + group.location.build_path (path, "").name, Eiffel_universe.target))
+					else
+						l_loc.set_parent (group.location)
+					end
 				end
 				icp := l_loc.evaluated_directory
 				aok := Eiffel_universe.cluster_of_location (icp).is_empty
@@ -642,7 +655,7 @@ invariant
 	group_implies_path: group /= Void implies path /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

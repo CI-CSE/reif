@@ -1,9 +1,9 @@
-note
+﻿note
 	description: "Class for an staticed type on a feature."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
-	revision: "$Revision $"
+	revision: "$Revision$"
 
 class
 	LIKE_FEATURE
@@ -14,8 +14,10 @@ inherit
 			dispatch_anchors,
 			evaluated_type_in_descendant,
 			initialize_info,
+			is_expanded_creation_possible,
 			is_explicit,
 			is_syntactically_equal,
+			recomputed_in,
 			update_dependance
 		end
 
@@ -86,11 +88,17 @@ feature -- Status Report
 			-- Is type fixed at compile time without anchors or formals?
 		do
 			if system.in_final_mode then
-				initialize_info (shared_create_info)
+				initialize_info
 				Result := shared_create_info.is_explicit
 			else
 				Result := False
 			end
+		end
+
+	is_expanded_creation_possible: BOOLEAN
+			-- <Precursor>
+		do
+			Result := attached actual_type as a and then a.is_expanded implies a.is_expanded_creation_possible
 		end
 
 feature {COMPILER_EXPORTER} -- Implementation: Access
@@ -139,10 +147,9 @@ feature -- Access
 
 feature -- Generic conformance
 
-	initialize_info (an_info: like shared_create_info)
+	initialize_info
 		do
-				-- FIXME: Should we use `make' or just `set_info'?
-			an_info.make (feature_id, routine_id)
+			shared_create_info.make (feature_id, routine_id)
 		end
 
 	create_info: CREATE_FEAT
@@ -212,14 +219,34 @@ feature -- Primitives
 		local
 			l_anchor: FEATURE_I
 		do
-			if a_ancestor /= a_descendant then
+			if a_ancestor = a_descendant then
+				Result := Current
+			else
 				l_anchor := a_descendant.feature_of_rout_id (routine_id)
 				check l_anchor_not_void: l_anchor /= Void end
 				create Result.make (l_anchor, a_descendant.class_id)
 				Result.set_actual_type (l_anchor.type.actual_type)
 				Result.set_marks_from (Current)
+			end
+		end
+
+	recomputed_in (target_type: TYPE_A; context_id: INTEGER; constraint: TYPE_A; written_id: INTEGER): TYPE_A
+			-- <Precursor>
+		local
+			a: TYPE_A
+			t: QUALIFIED_ANCHORED_TYPE_A
+		do
+			if target_type.is_like_current then
+				Result := Precursor (target_type, context_id, constraint, written_id)
 			else
-				Result := Current
+				create t.make (target_type, (<<feature_name_id>>).area, written_id)
+				a := actual_type.recomputed_in (target_type, context_id, constraint, written_id)
+				t.set_actual_type (a)
+				t.set_routine_id ((<<routine_id>>).area)
+				Result := t
+					.to_other_attachment (a)
+					.to_other_separateness (a)
+					.to_other_variant (a)
 			end
 		end
 
@@ -244,7 +271,9 @@ feature -- Comparison
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	ca_ignore:
+		"CA013", "CA013: exported creation procedure"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

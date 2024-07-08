@@ -13,6 +13,21 @@ inherit
 
 	SHARED_EIFFEL_PROJECT
 
+	SHARED_NOTIFICATION_SERVICE
+		export
+			{NONE} all
+		end
+
+	SHARED_ES_CLOUD_SERVICE
+		export
+			{NONE} all
+		end
+
+	EV_SHARED_APPLICATION
+		export
+			{NONE} all
+		end
+
 	ES_ARGUMENTS
 
 	EB_SHARED_PREFERENCES
@@ -45,9 +60,18 @@ inherit
 			{NONE} all
 		end
 
+	SHARED_EIFFEL_EDITION
+
+	EIFFEL_EDITION
+
 	PREFERENCES_VERSIONS
 
 feature {NONE} -- Initialization
+
+	make
+		do
+			set_eiffel_edition (Current)
+		end
 
 	initialize_services
 			-- Initializes graphical services.
@@ -131,14 +155,15 @@ feature {NONE} -- Initialization
 			eiffel_layout_not_void: eiffel_layout /= Void
 		end
 
-	initialize_account
+	initialize_cloud
 			-- Initialization for the account system.
 		local
 			ctlr: ES_CLOUD_CONTROLLER
 		do
-			create ctlr
+			create ctlr.make
 			if attached ctlr.es_cloud_s.service as s then
 				s.register_observer (ctlr)
+				s.set_eiffel_edition (Current)
 			end
 		end
 
@@ -146,6 +171,37 @@ feature {NONE} -- Initialization
 			-- Various initialization of the debugger
 		do
 			(create {EB_DEBUGGER_MANAGER}.make).register
+		end
+
+	initialize_notifications
+		do
+-- Add global notifications if needed here.
+--			if attached notification_s.service as l_notif_service then
+--
+--			end
+		end
+
+feature -- Edition access
+
+	edition_name: STRING
+		deferred
+		end
+
+	is_standard_edition: BOOLEAN
+			-- Is Standard edition?
+		do
+			Result := edition_name.is_whitespace
+		end
+
+	is_enterprise_edition: BOOLEAN
+			-- Is Enterprise edition?
+		do
+			Result := edition_name.is_case_insensitive_equal ("enterprise")
+		end
+
+	is_branded_edition: BOOLEAN
+		do
+			Result := not (is_standard_edition or is_enterprise_edition)
 		end
 
 feature {NONE} -- Access
@@ -177,9 +233,11 @@ feature {NONE} -- Implementation (preparation of all widgets)
 			initialize_services
 			compiler_initialization
 
-			initialize_account
+			initialize_cloud
 
 			initialize_debugger
+
+			initialize_notifications
 
 				-- Create a development window
 			window_manager.create_window
@@ -201,13 +259,54 @@ feature {NONE} -- Implementation (preparation of all widgets)
 	launch_interface
 		do
 			if preferences.dialog_data.show_first_launching_dialog then
-				display_first_launching_dialog (agent display_startup_page)
+				display_first_launching_dialog (agent display_launching_page)
+			else
+				display_launching_page
+			end
+		end
+
+feature {NONE} -- Welcome dialog
+
+	display_launching_page
+		do
+			if is_standard_edition and preferences.dialog_data.show_update_manager_dialog then
+				display_version_updater_check (agent display_startup_page)
 			else
 				display_startup_page
 			end
 		end
 
-feature {NONE} -- Welcome dialog
+	display_version_updater_check (cb: PROCEDURE)
+		local
+			up_checker: ES_RELEASE_UPDATE_CHECKER
+		do
+			if is_eiffel_layout_defined then
+				create up_checker.make (preferences.misc_data.update_channel, eiffel_layout.eiffel_platform, eiffel_layout.version_name)
+				up_checker.async_check_for_update (agent (a_rel: detachable ES_UPDATE_RELEASE)
+						local
+							m: NOTIFICATION_MESSAGE_WITH_ACTIONS
+						do
+							if a_rel /= Void then
+								if attached notification_s.service as s_notif then
+									create m.make ({STRING_32} "Update is available: " + a_rel.filename, "version_check")
+									m.register_action (agent (i_link: READABLE_STRING_GENERAL)
+											local
+												b: BOOLEAN
+											do
+												b := (create {ES_URI_LAUNCHER}).launch (i_link)
+											end(a_rel.link)
+										, "Try it now!")
+									s_notif.notify (m)
+								end
+								ev_application.add_idle_action_kamikaze (agent display_update_manager_dialog (a_rel, Void))
+							end
+						end(?)
+					)
+				cb.call (Void)
+			else
+				cb.call (Void)
+			end
+		end
 
 	display_startup_page
 		local
@@ -221,10 +320,10 @@ feature {NONE} -- Welcome dialog
 			end
 			win := first_window.window
 
-			create pg.make
-			pg.set_quit_action (agent do (create {EXCEPTIONS}).die (0) end)
+			create pg.make (Current)
+			pg.set_quit_action (agent do (create {EB_EXIT_APPLICATION_COMMAND}).execute_with_confirmation (False) end)
 			pg.set_next_action (agent load_interface)
-			pg.dialog.set_size (100, 100)
+			pg.dialog.set_size (first_window.scaled_size (300), first_window.scaled_size (100))
 			pg.dialog.show_actions.extend_kamikaze (agent (i_dlg: EV_DIALOG; i_win: EV_WINDOW)
 					do
 						i_dlg.set_position (
@@ -248,8 +347,8 @@ feature {NONE} -- Implementation: interface loading
 			across
 				window_manager.development_windows as ic
 			loop
-				if attached ic.item.menus.cloud_account_menu as cld_menu then
-					cld_menu.update
+				if attached ic.item.show_cloud_account_cmd as l_cmd then
+					l_cmd.refresh
 				end
 			end
 
@@ -300,6 +399,8 @@ feature {NONE} -- Implementation: interface loading
 			debug ("to_implement")
 				(create {REFACTORING_HELPER}).to_implement ("Handle (multiple) -config_option values and pass them to project loader.")
 			end
+-- TODO: why not using the absolute pate?
+--			l_loader.open_project_file (l_config.absolute_path.canonical_path, l_target, l_project_path, index_of_word_option ("clean") /= 0, Void)
 			l_loader.open_project_file (l_config, l_target, l_project_path, index_of_word_option ("clean") /= 0, Void)
 			if
 				not l_loader.has_error and then
@@ -346,8 +447,7 @@ feature {NONE} -- Implementation: interface loading
 		end
 
 	display_first_launching_dialog (cb: detachable PROCEDURE [TUPLE])
-			-- Show the starting dialog letting the user choose where
-			-- his project is (or will be).
+			-- Show the starting dialog , when EiffelStudio is launched for the first time
 			-- And call `cb` when dialog is closed (cancelled or not).
 		local
 			dlg: ES_FIRST_LAUNCHING_DIALOG
@@ -363,6 +463,33 @@ feature {NONE} -- Implementation: interface loading
 				end
 
 				create dlg.make (eiffel_layout.version_name)
+				if cb /= Void then
+					dlg.next_actions.extend (cb)
+				end
+				dlg.show_on_active_window
+			elseif cb /= Void then
+				cb.call (Void)
+			end
+		end
+
+	display_update_manager_dialog (a_release: ES_UPDATE_RELEASE; cb: detachable PROCEDURE [TUPLE])
+			-- Show the starting dialog letting the user choose where
+			-- his project is (or will be).
+			-- And call `cb` when dialog is closed (cancelled or not).
+		local
+			dlg: ES_UPDATE_MANAGER_DIALOG
+			first_window: EB_DEVELOPMENT_WINDOW
+		do
+			if
+				is_eiffel_layout_defined and then
+				eiffel_layout.installed_version_names.count > 1
+			then
+				first_window := window_manager.last_created_window
+				check
+					first_window_not_void: first_window /= Void
+				end
+
+				create dlg.make (a_release)
 				if cb /= Void then
 					dlg.next_actions.extend (cb)
 				end
@@ -464,8 +591,13 @@ feature {NONE} -- Factory
 			result_attached: Result /= Void
 		end
 
+invariant
+
+		unique_edition: is_standard_edition xor is_enterprise_edition xor is_branded_edition
+		valid_branded_edition: is_branded_edition implies not edition_name.is_whitespace
+
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2022, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

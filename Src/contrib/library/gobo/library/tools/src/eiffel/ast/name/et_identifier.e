@@ -5,7 +5,7 @@ note
 		"Eiffel identifiers"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 1999-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -31,8 +31,8 @@ inherit
 			argument_name,
 			object_test_local_name,
 			is_object_test_local,
-			across_cursor_name,
-			is_across_cursor
+			iteration_item_name,
+			is_iteration_item
 		end
 
 	ET_CLASS_NAME
@@ -52,6 +52,7 @@ inherit
 			is_equal,
 			break
 		redefine
+			is_instance_free,
 			is_never_void
 		end
 
@@ -63,6 +64,7 @@ inherit
 			is_equal,
 			break
 		redefine
+			is_instance_free,
 			is_never_void
 		end
 
@@ -72,8 +74,10 @@ inherit
 			last_position,
 			reset,
 			is_equal,
-			is_never_void,
 			break
+		redefine
+			is_instance_free,
+			is_never_void
 		end
 
 	ET_LABEL
@@ -98,8 +102,10 @@ inherit
 			last_position,
 			reset,
 			is_equal,
-			is_never_void,
 			break
+		redefine
+			is_instance_free,
+			is_never_void
 		end
 
 	ET_CHOICE_CONSTANT
@@ -108,8 +114,10 @@ inherit
 			last_position,
 			reset,
 			is_equal,
-			is_never_void,
 			break
+		redefine
+			is_instance_free,
+			is_never_void
 		end
 
 	ET_INDEXING_TERM
@@ -140,8 +148,10 @@ inherit
 			is_tuple_label,
 			reset,
 			is_equal,
-			is_never_void,
 			break
+		redefine
+			is_instance_free,
+			is_never_void
 		end
 
 	ET_UNQUALIFIED_FEATURE_CALL_INSTRUCTION
@@ -155,6 +165,8 @@ inherit
 			reset,
 			is_equal,
 			break
+		redefine
+			is_instance_free
 		end
 
 	KL_IMPORTED_STRING_ROUTINES
@@ -217,6 +229,7 @@ feature -- Access
 
 	lower_name: STRING
 			-- Lower-name of identifier
+			-- (using UTF-8 encoding)
 			-- (May return the same object as `name' if already in lower case,
 			-- otherwise return a new object at each call.)
 		local
@@ -238,6 +251,7 @@ feature -- Access
 
 	upper_name: STRING
 			-- Upper-name of identifer
+			-- (using UTF-8 encoding)
 			-- (May return the same object as `name' if already in upper case,
 			-- otherwise return a new object at each call.)
 		local
@@ -273,6 +287,12 @@ feature -- Access
 			Result := Current
 		end
 
+	indexing_term_value: STRING
+			-- Value of current indexing term
+		do
+			Result := name
+		end
+
 feature -- Status report
 
 	is_identifier: BOOLEAN = True
@@ -296,10 +316,11 @@ feature -- Status report
 			Result := (status_code = object_test_local_code)
 		end
 
-	is_across_cursor: BOOLEAN
-			-- Is current identifier actually an across cursor name?
+	is_iteration_item: BOOLEAN
+			-- Is current identifier actually an iteration item name
+			-- (or an iteration cursor name when using some obsolete syntax)?
 		do
-			Result := (status_code = across_cursor_code)
+			Result := (status_code = iteration_item_code)
 		end
 
 	is_temporary: BOOLEAN
@@ -337,6 +358,35 @@ feature -- Status report
 			-- Can current expression never be void?
 		do
 			Result := is_object_test_local
+		end
+
+	is_instance_free: BOOLEAN
+			-- Does current expression not depend on 'Current' or its attributes?
+			-- Note that we do not consider unqualified calls and Precursors as
+			-- instance-free because it's not always possible syntactically
+			-- to determine whether the feature being called is a class feature
+			-- or not.
+		do
+			Result := status_code /= no_code and
+				not is_feature_name and not is_tuple_label
+		end
+
+	has_indexing_term_value (a_value: STRING): BOOLEAN
+			-- Does current indexing term have value `a_value'?
+			-- (case-insensitive comparison)
+		do
+			Result := STRING_.same_case_insensitive (name, a_value)
+		end
+
+	valid_name (a_name: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is `a_name' a valid value for `name'?
+		require
+			a_name_not_void: a_name /= Void
+		do
+			Result := {RX_PCRE_ROUTINES}.regexp (name_regexp).recognizes (a_name)
+		ensure
+			instance_free: class
+			definition: Result = {RX_PCRE_ROUTINES}.regexp (name_regexp).recognizes (a_name)
 		end
 
 feature -- Status setting
@@ -377,16 +427,16 @@ feature -- Status setting
 			object_test_local_set: is_object_test_local = b
 		end
 
-	set_across_cursor (b: BOOLEAN)
-			-- Set `is_across_cursor' to `b'.
+	set_iteration_item (b: BOOLEAN)
+			-- Set `is_iteration_item' to `b'.
 		do
 			if b then
-				status_code := across_cursor_code
+				status_code := iteration_item_code
 			else
 				status_code := no_code
 			end
 		ensure
-			across_local_set: is_across_cursor = b
+			iteration_item_set: is_iteration_item = b
 		end
 
 	set_temporary (b: BOOLEAN)
@@ -568,8 +618,8 @@ feature -- Conversion
 			Result := Current
 		end
 
-	across_cursor_name: ET_IDENTIFIER
-			-- Current name viewed as an across cursor name
+	iteration_item_name: ET_IDENTIFIER
+			-- Current name viewed as an iteration item name
 		do
 			Result := Current
 		end
@@ -606,11 +656,15 @@ feature {NONE} -- Implementation
 			new_hash_code_not_negatige: Result >= 0
 		end
 
+
+	name_regexp: STRING = "[a-zA-Z][a-zA-Z0-9_]*"
+			-- Regular expression for `name'
+
 	status_code: CHARACTER
 	feature_name_code: CHARACTER = 'f'
 	local_code: CHARACTER = 'l'
 	object_test_local_code: CHARACTER = 'm'
-	across_cursor_code: CHARACTER = 'u'
+	iteration_item_code: CHARACTER = 'i'
 	argument_code: CHARACTER = 'a'
 	temporary_code: CHARACTER = 'v'
 	tuple_label_code: CHARACTER = 't'

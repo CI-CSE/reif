@@ -1,65 +1,68 @@
-note
+﻿note
 
-	description:
-		"Abstract class for an Eiffel feature name: id or %
-		%infix/prefix notation."
+	description: "An AST node for an Eiffel feature name."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
 	revision: "$Revision$"
 
-deferred class FEATURE_NAME
+class FEATURE_NAME
 
 inherit
 	AST_EIFFEL
-		undefine
+		redefine
 			is_equal
 		end
 
 	COMPARABLE
+		redefine
+			is_equal
+		end
 
 	CLICKABLE_AST
-		rename
-			feature_name as internal_name
-		undefine
-			is_equal, internal_name
 		redefine
+			feature_name,
+			is_equal,
 			is_feature
-		end
-
-	EIFFEL_SYNTAX_CHECKER
-		export
-			{NONE} all
-			{ANY} is_valid_binary_operator, is_valid_unary_operator
-		undefine
-			is_equal
-		end
-
-	PREFIX_INFIX_NAMES
-		export
-			{NONE} all
-		undefine
-			is_equal
 		end
 
 	SHARED_NAMES_HEAP
 		export
 			{NONE} all
-		undefine
+		redefine
 			is_equal
 		end
 
--- Undefined is_equal of AST_EIFFEL and CLICKABLE_AST because these are
--- not consistent with infix < operator
--- < is defined by the terms of < of feature name and is_equal
--- (from ANY is c_standard_is_equal)
+inherit {NONE}
+
+	PREFIX_INFIX_NAMES
+		export
+			{NONE} all
+			{ANY}
+				extract_alias_name_32
+		redefine
+			is_equal
+		end
+
+create
+	initialize
+
+feature {NONE} -- Initialization
+
+	initialize (f: like feature_name)
+			-- Create a new FEATURE_NAME AST node.
+		require
+			attached f
+		do
+			feature_name := f
+		ensure
+			feature_name = f
+		end
 
 feature -- Stoning
 
-	internal_name: ID_AS
-			-- Internal name used by the compiler.
-		deferred
-		end
+	feature_name: ID_AS
+			-- Feature name.
 
 feature -- Status report
 
@@ -69,22 +72,12 @@ feature -- Status report
 			Result := frozen_keyword /= Void
 		end
 
-	is_infix: BOOLEAN
-			-- Is the feature name an infixed notation?
-		do
-		end
-
-	is_prefix: BOOLEAN
-			-- Is the feature name a prefixed notation?
-		do
-		end
-
-	is_bracket: BOOLEAN
+	has_bracket_alias: BOOLEAN
 			-- Is feature alias (if any) bracket?
 		do
 		end
 
-	is_parentheses: BOOLEAN
+	has_parentheses_alias: BOOLEAN
 			-- Is feature alias (if any) parentheses?
 		do
 		end
@@ -102,48 +95,7 @@ feature -- Status report
 	is_feature: BOOLEAN = True
 			-- Does the Current AST represent a feature?
 
-	internal_alias_name_id: INTEGER
-			-- `internal_alias_name' ID in NAMES_HEAP
-		do
-			if attached internal_alias_name as l_alias then
-				Result := l_alias.name_id
-			end
-		ensure
-			has_alias: alias_name /= Void implies Result > 0
-			has_no_alias: alias_name = Void implies Result = 0
-		end
-
-	internal_alias_name: detachable ID_AS
-			-- Operator associated with the feature (if any)
-			-- augmented with information about its arity
-		deferred
-		ensure
-			consistent_result: (Result /= Void) = (alias_name /= Void)
-		end
-
-	alias_name: detachable STRING_AS
-			-- Operator name associated with the feature (if any)
-		deferred
-		end
-
-	has_convert_mark: BOOLEAN
-			-- Is operator marked with "convert"?
-		do
-		end
-
-	is_valid_unary: BOOLEAN
-			-- Is the value of the feature name valid unary operator?
-		do
-			Result := attached alias_name as l_name and then is_valid_unary_operator (l_name.value)
-		end
-
-	is_valid_binary: BOOLEAN
-			-- Is the value of the feature name valid unary operator?
-		do
-			Result := attached alias_name as l_name and then is_valid_binary_operator (l_name.value)
-		end
-
-feature -- Status report
+feature -- Access
 
 	visual_name_32: detachable STRING_32
 			-- Named used in Eiffel code
@@ -160,38 +112,12 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Status report
 	visual_name: STRING
 			-- Named used in Eiffel code
 		do
-			Result := internal_name.name
+			Result := feature_name.name
 		ensure
 			result_not_void: Result /= Void
 		end
 
 feature -- Status setting
-
-	set_is_binary
-			-- Mark alias operator as binary.
-		require
-			has_alias: alias_name /= Void
-			not_is_bracket: not is_bracket
-			not_is_parentheses: not is_parentheses
-			not_is_prefix: not is_prefix
-			is_valid_binary: is_valid_binary
-		do
-		ensure
-			is_binary: is_binary
-		end
-
-	set_is_unary
-			-- Mark alias operator as unary.
-		require
-			has_alias: alias_name /= Void
-			not_is_bracket: not is_bracket
-			not_is_parentheses: not is_parentheses
-			not_is_infix: not is_infix
-			is_valid_unary: is_valid_unary
-		do
-		ensure
-			is_unary: is_unary
-		end
 
 	set_frozen_keyword (l: like frozen_keyword)
 			-- Set location of the associated "frozen" keyword to `l'.
@@ -203,8 +129,32 @@ feature -- Status setting
 
 feature -- Comparison
 
+	is_equivalent (other: like Current): BOOLEAN
+			-- Is `other' equivalent to the current object ?
+		do
+			Result := is_frozen = other.is_frozen and then
+				equivalent (feature_name, other.feature_name)
+		end
+
+	is_equal (other: like Current): BOOLEAN
+			-- <Precursor>
+		do
+				-- The implementation should be consistent with the implementation of `is_less`.
+			Result := feature_name.name_id = other.feature_name.name_id
+		end
+
 	is_less alias "<" (other: FEATURE_NAME): BOOLEAN
-		deferred
+			-- <Precursor>
+		do
+			Result := feature_name.name < other.feature_name.name
+		end
+
+feature -- Visitor
+
+	process (v: AST_VISITOR)
+			-- process current element.
+		do
+			v.process_feature_name (Current)
 		end
 
 feature -- Location
@@ -212,18 +162,42 @@ feature -- Location
 	frozen_keyword: detachable KEYWORD_AS
 			-- Keyword "frozen" (if any)
 
+feature -- Roundtrip
+
+	index: INTEGER
+			-- <Precursor>
+		do
+			Result := feature_name.index
+		end
+
+feature -- Roundtrip/Token
+
+	first_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
+			-- <Precursor>
+		do
+			Result := frozen_keyword
+			if Result = Void or else Result.is_null then
+				Result := feature_name.first_token (a_list)
+			end
+		end
+
+	last_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
+			-- <Precursor>
+		do
+			Result := feature_name.last_token (a_list)
+		end
+
 invariant
 	consistent_operator_status:
-		not (is_bracket and is_binary) and
-		not (is_bracket and is_unary) and
-		not (is_bracket and is_parentheses) and
-		not (is_parentheses and is_binary) and
-		not (is_parentheses and is_unary) and
+		not (has_bracket_alias and is_binary) and
+		not (has_bracket_alias and is_unary) and
+		not (has_bracket_alias and has_parentheses_alias) and
+		not (has_parentheses_alias and is_binary) and
+		not (has_parentheses_alias and is_unary) and
 		not (is_binary and is_unary)
-	consistent_operator_name: (is_bracket or is_parentheses or is_binary or is_unary) = (alias_name /= Void)
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -254,4 +228,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class FEATURE_NAME
+end

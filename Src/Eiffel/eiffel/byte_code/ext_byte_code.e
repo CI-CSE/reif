@@ -47,7 +47,7 @@ feature -- Access
 			if arguments /= Void then
 				from
 					count := arguments.count
-					create Result.make (1, count)
+					create Result.make_filled ("", 1, count)
 					j := 1
 					i := 1
 				until
@@ -63,7 +63,7 @@ feature -- Access
 					j := j + 1
 				end
 			else
-				create Result.make (1, 0)
+				create Result.make_empty
 			end
 		ensure
 			argument_types_not_void: Result /= Void
@@ -78,10 +78,10 @@ feature -- Access
 			if Result.count > 1 then
 				l_lower := Result.lower
 				l_upper := Result.upper
-				create Result.make (1, l_upper - l_lower)
+				create Result.make_filled ("", 1, l_upper - l_lower)
 				Result.subcopy (std_argument_names, l_lower + 1, l_upper, 1)
 			else
-				create Result.make (1, 0)
+				create Result.make_empty
 			end
 		end
 
@@ -131,7 +131,19 @@ feature -- Byte code generation
 					when {PREDEFINED_NAMES}.type_id_name_id then
 						ba.append (bc_builtin_type__type_id)
 					when {PREDEFINED_NAMES}.runtime_name_name_id then
-						ba.append (bc_builtin_type__runtime_name)
+						if
+							attached context.current_feature.type.actual_type as t and then
+							t.has_associated_class and then
+							attached system.string_32_class as s and then
+							s.is_compiled and then
+							t.base_class.class_id = s.compiled_class.class_id
+						then
+								-- Result is of type STRING_32.
+							ba.append (bc_builtin_type__runtime_name__s4)
+						else
+								-- Result is of type STRING_8.
+							ba.append (bc_builtin_type__runtime_name__s1)
+						end
 					when {PREDEFINED_NAMES}.generic_parameter_type_name_id then
 						ba.append (bc_builtin_type__generic_parameter_type)
 					when {PREDEFINED_NAMES}.generic_parameter_count_name_id then
@@ -285,11 +297,10 @@ feature -- C code generation
 			end
 		end
 
-	generate_return_exp
-			-- Generate the return expression
+	generate_return_exp (type_c: TYPE_C)
+			-- Generate the return expression for a function with return type `type_c`.
 		local
 			l_type: TYPE_A
-			l_type_c: TYPE_C
 			buf: GENERATION_BUFFER
 			l_name: STRING
 			l_class_type: CLASS_TYPE
@@ -309,17 +320,16 @@ feature -- C code generation
 
 				buf.put_new_line
 				if Context.workbench_mode then
-					l_type_c := l_type.c_type
 					buf.put_string (once "{ EIF_TYPED_VALUE r; r.")
-					l_type_c.generate_typed_tag (buf)
+					type_c.generate_typed_tag (buf)
 					buf.put_string (once "; r.")
-					l_type_c.generate_typed_field (buf)
+					type_c.generate_typed_field (buf)
 					buf.put_string (once " = Result; return r; }")
 				else
 					buf.put_string ("return Result;")
 				end
 			else
-				Precursor
+				Precursor (type_c)
 			end
 		end
 
@@ -408,7 +418,7 @@ invariant
 	external_name_id_positive: external_name_id > 0
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -110,13 +110,13 @@ feature -- Basic operations
 			l_expr: IV_EXPRESSION
 			i: INTEGER
 		do
-			l_creator := v_string_class.feature_named_32 ("init")
+			l_creator := v_string_class.feature_named ("init")
 			l_cl_type := v_string_class.actual_type
 
 			translation_pool.add_referenced_feature (l_creator, l_cl_type)
 
 				-- Build sequence argument
-			create l_seq_type.make ("Seq", << types.int >>)
+			create l_seq_type.make ("Seq", create {ARRAYED_LIST [IV_TYPE]}.make_from_array (<<types.int>>))
 			if a_node.value.is_empty then
 				l_expr := factory.function_call ("Seq#Empty", Void, l_seq_type)
 			else

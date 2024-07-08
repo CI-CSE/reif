@@ -21,21 +21,33 @@ feature -- Core
 		deferred
 		end
 
-	based_path (p: STRING): STRING
+	based_path (p: READABLE_STRING_8): STRING_8
 			-- Path `p' in the context of the `base_url'
 		do
-			if attached base_url as l_base_url then
-				create Result.make_from_string (l_base_url)
-				if p.is_empty then
+			if attached base_url as l_base_url and then not l_base_url.is_empty then
+				if p.starts_with (l_base_url) then
+						-- In case `p` is already based on base_url.
+					check starts_with_slash: p.starts_with ("/") end
+					Result := p.to_string_8
 				else
-					if p[1] = '/' then
-						Result.append (p.substring (2, p.count))
+					create Result.make_from_string (l_base_url)
+					if p.is_empty then
 					else
+						if p[1] /= '/' then
+							Result.extend ('/')
+						end
 						Result.append (p)
 					end
 				end
 			else
-				Result := p
+				if p.is_empty then
+					Result := "/"
+				elseif p[1] /= '/' then
+					create Result.make_from_string (p)
+					Result.precede ('/')
+				else
+					Result := p.to_string_8
+				end
 			end
 		end
 
@@ -49,12 +61,32 @@ feature -- Link
 			append_link_to_html (a_text, a_path, opts, Result)
 		end
 
+	absolute_link (a_text: detachable READABLE_STRING_GENERAL; a_path: READABLE_STRING_8; a_opts: detachable CMS_API_OPTIONS): STRING
+			-- HTML link with title `a_text' and href `a_path'.
+			-- `opts' is used for additional settings.
+		local
+			opts: CMS_API_OPTIONS
+		do
+			create opts.make (1)
+			if a_opts /= Void then
+				opts.import (a_opts)
+			end
+			opts.force (True, "absolute")
+			create Result.make (32)
+			append_link_to_html (a_text, a_path, opts, Result)
+		end
+
 	link_with_raw_text (a_raw_text: detachable READABLE_STRING_8; a_path: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING
 			-- HTML link with title the html code `a_raw_text' and href `a_path'.
 			-- `opts' is used for additional settings.	
 		do
 			create Result.make (32)
 			append_link_with_raw_text_to_html (a_raw_text, a_path, opts, Result)
+		end
+
+	append_cms_link_to_html (lnk: CMS_LINK; opts: detachable CMS_API_OPTIONS; a_html: STRING_8)
+		do
+			append_link_to_html (lnk.title, lnk.location, opts, a_html)
 		end
 
 	append_link_to_html (a_text: detachable READABLE_STRING_GENERAL; a_path: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS; a_html: STRING_8)
@@ -101,7 +133,7 @@ feature -- Link
 
 feature -- Url
 
-	absolute_url (a_path: STRING; opts: detachable CMS_API_OPTIONS): STRING
+	absolute_url (a_path: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING_8
 		local
 			l_opts: detachable CMS_API_OPTIONS
 		do
@@ -113,14 +145,16 @@ feature -- Url
 			Result := url (a_path, l_opts)
 		end
 
-	url (a_path: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING
+	url (a_path: READABLE_STRING_8; opts: detachable CMS_API_OPTIONS): STRING_8
 			-- URL for path `a_path' and optional parameters from `opts'.
+			-- Caller can also use specific CMS_API_URL_OPTIONS (descendant of CMS_API_OPTIONS)
 			--| Options `opts' could be
 			--|  - absolute: True|False	=> return absolute url
 			--|  - query: string		=> append "?query"
 			--|  - fragment: string		=> append "#fragment"
 		local
-			q,f: detachable STRING_8
+			q: detachable STRING_8
+			f: detachable READABLE_STRING_8
 			l_abs: BOOLEAN
 		do
 			l_abs := False
@@ -129,7 +163,7 @@ feature -- Url
 				l_abs := opts.boolean_item ("absolute", l_abs)
 				if attached opts.item ("query") as l_query then
 					if attached {READABLE_STRING_8} l_query as s_value then
-						q := s_value
+						q := s_value.to_string_8
 					elseif attached {ITERABLE [TUPLE [key, value: READABLE_STRING_GENERAL]]} l_query as lst then
 						create q.make_empty
 						across
@@ -168,16 +202,18 @@ feature -- Url
 						end
 					end
 				else
-					Result := a_path
+					Result := a_path.to_string_8
 				end
 			else
 				Result := based_path (a_path)
 			end
 			if q /= Void then
-				Result.append ("?" + q)
+				Result.append_character ('?')
+				Result.append (q)
 			end
 			if f /= Void then
-				Result.append ("#" + f)
+				Result.append_character ('#')
+				Result.append (f)
 			end
 		end
 
@@ -193,6 +229,6 @@ feature -- Url
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

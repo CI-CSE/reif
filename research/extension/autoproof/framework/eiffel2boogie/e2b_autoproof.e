@@ -1,12 +1,11 @@
-note
-	description: "[
-		Interface to launch AutoProof.
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
+﻿note
+	description: "Interface to launch AutoProof."
 
 class
 	E2B_AUTOPROOF
+
+inherit
+	SHARED_WORKBENCH
 
 create
 	make
@@ -43,8 +42,19 @@ feature -- Element change
 	add_input (a_input: E2B_TRANSLATOR_INPUT)
 			-- Add all classes and features from `a_input' to `input'.
 		do
-			across a_input.class_list as c loop add_class (c.item) end
-			across a_input.feature_list as c loop add_feature (c.item) end
+			across a_input.class_list as c loop add_class (c) end
+			across a_input.feature_list as c loop add_feature (c) end
+		end
+
+	add_group (g: CONF_GROUP)
+			-- Add all compiled classes of group `g`to the set of classes to verify.
+		do
+			if attached workbench.universe as u and then attached g.classes as cs then
+				⟳ i: cs ¦ if attached u.class_named (i.name, g).compiled_class as c then add_class (c) end ⟲
+				if attached {CONF_CLUSTER} g as i and then attached i.children as s then
+					⟳ c: s ¦ add_group (c) ⟲
+				end
+			end
 		end
 
 	add_class (a_class: CLASS_C)
@@ -77,8 +87,6 @@ feature -- Basic operations
 
 	reset
 			-- Reset AutoProof.
-		local
-			l_context: E2B_SHARED_CONTEXT
 		do
 			create input.make
 			create notification_agents.make
@@ -92,9 +100,6 @@ feature -- Basic operations
 			-- Verify input.
 		require
 			not_running: not is_running
-		local
-			l_notify_task: E2B_NOTIFY_TASK
-			l_context: E2B_SHARED_CONTEXT
 		do
 			create {E2B_BULK_VERIFICATION_TASK} verify_task.make (input)
 			start_verify_task
@@ -106,8 +111,6 @@ feature -- Basic operations
 			-- Verify input.
 		require
 			not_running: not is_running
-		local
-			l_notify_task: E2B_NOTIFY_TASK
 		do
 			create {E2B_FORK_VERIFICATION_TASK} verify_task.make (input)
 			start_verify_task
@@ -133,11 +136,11 @@ feature {NONE} -- Implementation
 		require
 			verify_task_not_void: verify_task /= Void
 		do
-			if attached rota as l_rota then
+			if attached rota as r then
 				verify_task.reset_global_state
 				verify_task.add_notification_agents (notification_agents)
-				if not rota.has_task (verify_task) then
-					rota.run_task (verify_task)
+				if not r.has_task (verify_task) then
+					r.run_task (verify_task)
 				end
 			end
 		end
@@ -146,14 +149,36 @@ feature {NONE} -- Implementation
 			-- List of notification agents.
 
 	frozen rota: detachable ROTA_S
-			-- Access to rota service
-		local
-			l_service_consumer: SERVICE_CONSUMER [ROTA_S]
+			-- Access to rota service.
 		do
-			create l_service_consumer
-			if l_service_consumer.is_service_available and then l_service_consumer.service.is_interface_usable then
-				Result := l_service_consumer.service
+			Result := (create {SERVICE_CONSUMER [ROTA_S]}).service
+			if attached Result and then not Result.is_interface_usable then
+				Result := Void
 			end
 		end
+
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2014 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2021-2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

@@ -31,14 +31,17 @@ feature {NONE} -- Intialization
 				if proc.exists then
 					if proc.text_32 /= Void then
 						debug
-							io.put_string ( generator + ".data_reader: " + proc.text_32)
+							io.put_string (generator + ".data_reader: ")
+							io.put_string_32 (proc.text_32)
 						end
 					end
 				else
 					has_error := True
 					error_message := proc.error_message_32
 					error_code := proc.error_code
-					io.put_string (generator + ".data_reader message:" + proc.error_message_32 + " code:" + proc.error_code.out)
+					io.put_string (generator + ".data_reader message:")
+					io.put_string_32 (proc.error_message_32)
+					io.put_string (" code:" + proc.error_code.out)
 				end
 			else
 				stored_procedure := a_sp
@@ -47,7 +50,8 @@ feature {NONE} -- Intialization
 			end
 		rescue
 			if attached error_message as l_message then
-				io.put_string (generator+ ".data_reader " + l_message)
+				io.put_string (generator + ".data_reader ")
+				io.put_string_32 (l_message)
 			end
 			l_retried := True
 			retry
@@ -71,14 +75,17 @@ feature {NONE} -- Intialization
 				if proc.exists then
 					if proc.text_32 /= Void then
 						debug
-							io.put_string ( generator + ".data_writer: " + proc.text_32)
+							io.put_string (generator + ".data_writer: ")
+							io.put_string_32 (proc.text_32)
 						end
 					end
 				else
 					has_error := True
 					error_message := proc.error_message_32
 					error_code := proc.error_code
-					io.put_string (generator + ".data_witer message:" + proc.error_message_32 + " code:" + proc.error_code.out)
+					io.put_string (generator + ".data_witer message:")
+					io.put_string_32 (proc.error_message_32)
+					io.put_string (" code:" + proc.error_code.out)
 				end
 			else
 				stored_procedure := a_sp
@@ -87,7 +94,8 @@ feature {NONE} -- Intialization
 			end
 		rescue
 			if attached error_message as l_message then
-				io.put_string (generator+ ".data_writer " + l_message)
+				io.put_string (generator + ".data_writer ")
+				io.put_string_32 (l_message)
 			end
 			l_retried := True
 			retry
@@ -223,7 +231,7 @@ feature {NONE} -- Implementation
 				a_parameters.after
 			loop
 				Result.append ("name:")
-				Result.append (a_parameters.key_for_iteration)
+				Result.append ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (a_parameters.key_for_iteration))
 				Result.append (", value:")
 				if
 					a_parameters.key_for_iteration.has_substring ("Password") or else
@@ -231,8 +239,12 @@ feature {NONE} -- Implementation
 				then
 					-- Data to exclude
 				else
-					if attached a_parameters.item_for_iteration as l_item  then
-						Result.append (l_item.out)
+					if attached a_parameters.item_for_iteration as l_item then
+						if attached {READABLE_STRING_GENERAL} l_item as s then
+							Result.append ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (s))
+						else
+							Result.append (l_item.out)
+						end
 					end
 				end
 				Result.append ("%N")
@@ -241,4 +253,3 @@ feature {NONE} -- Implementation
 		end
 
 end
-

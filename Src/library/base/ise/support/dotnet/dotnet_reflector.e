@@ -310,7 +310,7 @@ feature -- Status report
 				loop
 					l_field := l_members.i_th (k)
 					l_provider := l_field
-					l_attributes := l_provider.get_custom_attributes_type ({NON_SERIALIZED_ATTRIBUTE}, False)
+					l_attributes := l_provider.get_custom_attributes ({NON_SERIALIZED_ATTRIBUTE}, False)
 					if l_attributes /= Void and then l_attributes.count > 0 then
 						check
 							valid_number_of_custom_attributes: l_attributes.count = 1
@@ -369,7 +369,7 @@ feature -- Access
 		require
 			object_not_void: object /= Void
 		do
-			Result := object.generating_type.name
+			Result := {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (object.generating_type.name_32)
 		end
 
 	type_name_32 (object: ANY): STRING_32
@@ -382,6 +382,22 @@ feature -- Access
 		end
 
 	type_name_of_type (type_id: INTEGER): STRING
+			-- Name of `type_id''s generating type (type of which `type_id'
+			-- is a direct instance).
+		require
+			type_id_nonnegative: type_id >= 0
+		do
+			if
+				attached pure_implementation_type (type_id) as l_rt_class_type and then
+				attached l_rt_class_type.type_name as l_name
+			then
+				Result := l_name
+			else
+				Result := "Unknown Type"
+			end
+		end
+
+	type_name_8_of_type (type_id: INTEGER): STRING_8
 			-- Name of `type_id''s generating type (type of which `type_id'
 			-- is a direct instance).
 		require
@@ -549,7 +565,7 @@ feature -- Access
 					attached {SYSTEM_TYPE}.get_type_from_handle (l_rt_class_type.type) as l_current_type
 				then
 							-- Get storable version.
-					l_cas := l_current_type.get_custom_attributes_type ({EIFFEL_VERSION_ATTRIBUTE}, False)
+					l_cas := l_current_type.get_custom_attributes ({EIFFEL_VERSION_ATTRIBUTE}, False)
 					if
 						l_cas /= Void and then l_cas.count > 0 and then
 						attached {EIFFEL_VERSION_ATTRIBUTE} l_cas.item (0) as l_version and then
@@ -631,7 +647,62 @@ feature -- Access
 				loop
 					l_field := l_members.i_th (k)
 					l_provider := l_field
-					l_attributes := l_provider.get_custom_attributes_type ({EIFFEL_NAME_ATTRIBUTE}, False)
+					l_attributes := l_provider.get_custom_attributes ({EIFFEL_NAME_ATTRIBUTE}, False)
+					if l_attributes /= Void and then l_attributes.count > 0 then
+						check
+							valid_number_of_custom_attributes: l_attributes.count = 1
+						end
+						if attached {EIFFEL_NAME_ATTRIBUTE} l_attributes.item (0) as l_eiffel_name then
+							l_name := l_eiffel_name.name
+						else
+							l_name := l_field.name
+						end
+					else
+						l_name := l_field.name
+					end
+					if l_name /= Void then
+						l_names.extend (l_name)
+					else
+						l_names.extend ("Invalid field name")
+					end
+					k := k + 1
+				end
+				id_to_fields_name.put (l_names, type_id)
+				Result := l_names.i_th (i)
+			end
+		ensure
+			field_name_of_type_not_void: Result /= Void
+		end
+
+	field_name_8_of_type (i: INTEGER; type_id: INTEGER): STRING_8
+			-- Name of `i'-th field of dynamic type `type_id'.
+		require
+			type_id_nonnegative: type_id >= 0
+			index_large_enough: i >= 1
+			index_small_enought: i <= field_count_of_type (type_id)
+		local
+			l_names: ARRAYED_LIST [STRING_8]
+			l_members: like get_members
+			l_name: detachable SYSTEM_STRING
+			k, nb: INTEGER
+			l_attributes: detachable NATIVE_ARRAY [detachable SYSTEM_OBJECT]
+			l_field: FIELD_INFO
+			l_provider: ICUSTOM_ATTRIBUTE_PROVIDER
+		do
+			if attached id_to_fields_name.item (type_id) as l_result then
+				Result := l_result.i_th (i)
+			else
+				from
+					l_members := get_members (type_id)
+					k := 1
+					nb := l_members.count
+					create l_names.make (nb)
+				until
+					k > nb
+				loop
+					l_field := l_members.i_th (k)
+					l_provider := l_field
+					l_attributes := l_provider.get_custom_attributes ({EIFFEL_NAME_ATTRIBUTE}, False)
 					if l_attributes /= Void and then l_attributes.count > 0 then
 						check
 							valid_number_of_custom_attributes: l_attributes.count = 1
@@ -755,7 +826,7 @@ feature -- Access
 						l_dtype := -1
 						l_field := l_members.i_th (k)
 						l_provider := l_field
-						l_attributes := l_provider.get_custom_attributes_type ({TYPE_FEATURE_ATTRIBUTE}, False)
+						l_attributes := l_provider.get_custom_attributes ({TYPE_FEATURE_ATTRIBUTE}, False)
 						if
 							l_attributes /= Void and then l_attributes.count = 1 and then
 							attached {TYPE_FEATURE_ATTRIBUTE} l_attributes.item (0) as l_type_feature_name
@@ -788,7 +859,7 @@ feature -- Access
 								else
 										-- Normal case, we handle a non-generic class type.
 									create l_class_type.make
-									l_attributes := l_field.get_custom_attributes_type ({RT_INTERFACE_TYPE_ATTRIBUTE}, False)
+									l_attributes := l_field.get_custom_attributes ({RT_INTERFACE_TYPE_ATTRIBUTE}, False)
 									if
 										l_attributes /= Void and then l_attributes.count > 0 and then
 										attached {RT_INTERFACE_TYPE_ATTRIBUTE} l_attributes.item (0) as l_type_attr
@@ -1357,7 +1428,7 @@ feature {TYPE, REFLECTOR, REFLECTED_OBJECT} -- Implementation
 				l_provider := a_type
 					-- To avoid exceptions, we do not load types that have a & in them.
 				if attached a_type.name as l_type_name and then not l_type_name.ends_with (invalid_type_name_ending) then
-					l_cas := l_provider.get_custom_attributes_type ({EIFFEL_NAME_ATTRIBUTE}, False)
+					l_cas := l_provider.get_custom_attributes ({EIFFEL_NAME_ATTRIBUTE}, False)
 				end
 				l_eiffel_type_info := {EIFFEL_TYPE_INFO}
 				if
@@ -1798,6 +1869,7 @@ feature {TYPE, REFLECTOR, REFLECTED_OBJECT} -- Implementation
 			create Result.put (internal_chunk_size)
 		ensure
 			array_upper_cell: Result /= Void
+			instance_free: class
 		end
 
 	internal_empty_string: IMMUTABLE_STRING_8
@@ -1845,7 +1917,7 @@ feature {TYPE, REFLECTOR, REFLECTED_OBJECT} -- Implementation
 
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

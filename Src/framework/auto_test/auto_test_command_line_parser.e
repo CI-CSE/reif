@@ -122,7 +122,7 @@ feature{NONE} -- Initialization
 			l_file: RAW_FILE
 			l_is_ok: BOOLEAN
 		do
-			create parser.make_empty
+			create parser.make
 			parser.set_application_description ("auto_test is a contract-based automated testing tool for Eiffel systems.")
 			parser.set_parameters_description ("class-name+")
 
@@ -1479,7 +1479,7 @@ invariant
 	minimization_is_either_slicing_or_ddmin: is_minimization_enabled implies (is_slicing_enabled xor is_ddmin_enabled)
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

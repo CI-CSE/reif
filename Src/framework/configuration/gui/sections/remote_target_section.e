@@ -77,37 +77,44 @@ feature -- Basic operations
 			l_config: READABLE_STRING_32
 			l_load: CONF_LOAD
 			l_conf_window: CONFIGURATION_WINDOW
+			t: detachable CONF_TARGET
 		do
 			l_config := resolver.resolved_location_path (location)
 
 				-- see if we already have a window for this configuration and reuse it
 			config_windows.search (l_config)
-			if config_windows.found and then config_windows.found_item.is_show_requested then
-				l_conf_window := config_windows.found_item
+			if attached config_windows.found_item as win and then win.is_show_requested then
+				l_conf_window := win
 				l_conf_window.raise
 			else
 				create l_load.make (configuration_window.conf_factory)
-				l_load.retrieve_configuration (l_config)
+				l_load.retrieve_and_check_configuration (l_config)
 				if l_load.is_error or else not attached l_load.last_system as l_last_system then
-					(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_error_prompt (l_load.last_error.text, configuration_window, Void)
-				elseif l_last_system.library_target = Void then
-					(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_error_prompt ((create {CONF_ERROR_NOLIB}.make (name)).text, configuration_window, Void)
+					(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_error_prompt (if attached l_load.last_error as err then err.text else {STRING_32} "Error ..." end, configuration_window, Void)
 				else
-					if
-						l_load.is_warning and then
-						attached l_load.last_warning_messages as l_last_warning_messages
-					then
-							-- add warnings
-						(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_warning_prompt (l_last_warning_messages, configuration_window, Void)
+					t := l_last_system.target (target.name)
+					if t = Void then
+						t := l_last_system.library_target
 					end
+					if t = Void then
+						(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_error_prompt ((create {CONF_ERROR_NOLIB}.make (name)).text, configuration_window, Void)
+					else
+						if
+							l_load.is_warning and then
+							attached l_load.last_warning_messages as l_last_warning_messages
+						then
+								-- add warnings
+							(create {ES_SHARED_PROMPT_PROVIDER}).prompts.show_warning_prompt (l_last_warning_messages, configuration_window, Void)
+						end
 
-					create l_conf_window.make_for_target (l_last_system, l_last_system.library_target.name, configuration_window.conf_factory, create {ARRAYED_LIST [STRING]}.make (0), conf_pixmaps, configuration_window.external_editor_command)
+						create l_conf_window.make_for_target (l_last_system, t.name, configuration_window.conf_factory, create {ARRAYED_LIST [STRING]}.make (0), conf_pixmaps, configuration_window.external_editor_command)
 
-					l_conf_window.set_size (configuration_window.width, configuration_window.height)
-					l_conf_window.set_position (configuration_window.x_position, configuration_window.y_position)
-					l_conf_window.set_split_position (configuration_window.split_position)
+						l_conf_window.set_size (configuration_window.width, configuration_window.height)
+						l_conf_window.set_position (configuration_window.x_position, configuration_window.y_position)
+						l_conf_window.set_split_position (configuration_window.split_position)
 
-					l_conf_window.show
+						l_conf_window.show
+					end
 				end
 			end
 		end
@@ -123,7 +130,7 @@ feature {NONE} -- File name processing
 feature -- Element update
 
 	add_target
-			-- Add a new target that inherits from this one.
+			-- Add a new target that extends this one.
 		local
 			l_target: CONF_TARGET
 			l_system: CONF_SYSTEM
@@ -138,13 +145,13 @@ feature -- Element update
 			until
 				not l_system.targets.has (l_name)
 			loop
-				l_name := "new_"+i.out
+				l_name := "new_" + i.out
 				i := i + 1
 			end
 				-- add it to the configuration
 			l_target := configuration_window.conf_factory.new_target (l_name, l_system)
-			l_target.set_parent (target)
-			l_target.set_remote_parent (create {CONF_REMOTE_TARGET}.make (target.name, location))
+			l_target.reference_parent (create {CONF_REMOTE_TARGET_REFERENCE}.make (target.name, location))
+			l_target.set_remote_parent (target)
 			l_system.add_target (l_target)
 
 				-- add and display the section
@@ -185,24 +192,24 @@ feature {NONE} -- Implementation
 				across
 					l_targets as ic
 				loop
-					ic.item.remove_parent
+					ic.remove_parent
 				end
 			end
 			l_parent_tree := parent_tree
-			l_parent.start
-			l_parent.prune (Current)
-			if l_targets /= Void and then not l_targets.is_empty then
-				if l_parent /= Void then
+			if l_parent /= Void then
+				l_parent.start
+				l_parent.prune (Current)
+				if l_targets /= Void and then not l_targets.is_empty then
 					across
 						l_targets as ic
 					loop
-						configuration_window.add_target_sections (ic.item, l_parent)
+						configuration_window.add_target_sections (ic, l_parent)
 					end
 				end
 			end
 			if attached {EV_TREE_NODE} l_parent as l_par_node then
 				l_par_node.enable_select
-			else
+			elseif l_parent_tree /= Void then
 				l_parent_tree.first.enable_select
 			end
 		end
@@ -218,7 +225,7 @@ feature {NONE} -- Implementation
 			Result.extend (l_item)
 			l_item.set_pixmap (conf_pixmaps.new_target_icon)
 
-			create l_item.make_with_text_and_action (conf_interface_names.target_remove_library_target, agent remove_target)
+			create l_item.make_with_text_and_action (conf_interface_names.remove_remote_target (target.name, location), agent remove_target)
 			Result.extend (l_item)
 			l_item.set_pixmap (conf_pixmaps.general_remove_icon)
 		end
@@ -247,7 +254,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

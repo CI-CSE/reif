@@ -48,10 +48,13 @@ feature {NONE} -- Initialization
 			l_setup := initial_cms_setup
 			setup_storage (l_setup)
 			setup_modules (l_setup)
-			create api.make (l_setup, request)
+			create api.make (l_setup, request, response)
 			if api.has_error then
 				response.put_error ("ROC: Error during API initialization!")
 				response.put_error (api.utf_8_encoded (api.string_representation_of_errors))
+			elseif attached api.storage.error_handler.as_single_error as err then
+				response.put_error ("ROC: Error during Storage initialization!")
+				response.put_error (api.utf_8_encoded (err.string_representation))
 			end
 			modules := api.enabled_modules
 
@@ -139,9 +142,9 @@ feature -- Settings: router
 			l_module: CMS_MODULE
 		do
 			l_api := api
-			l_api.logger.put_debug (generator + ".setup_router", Void)
-
 			l_router := router
+
+			l_router.set_base_url (l_api.base_url)
 
 				-- Configure root of api handler.
 			configure_api_root (l_router)
@@ -169,10 +172,9 @@ feature -- Settings: router
 			l_api := api
 			l_router := router
 
-			l_api.logger.put_debug (generator + ".setup_router_for_webapi", Void)
-
 				-- Configure root of api handler.
-			l_router.set_base_url (l_api.webapi_path (Void))
+--			l_router.set_base_url (l_api.webapi_path (Void))
+			l_router.set_base_url (l_api.webapi_base_url)
 
 				-- Find insertion location for new filter
 				-- i.e just before the CMS_EXECUTION filter.
@@ -224,10 +226,9 @@ feature -- Settings: router
 			l_api := api
 			l_router := router
 
-			l_api.logger.put_debug (generator + ".setup_router_and_filter_for_administration", Void)
-
 				-- Configure root of api handler.
-			l_router.set_base_url (l_api.administration_path (Void))
+--			l_router.set_base_url (l_api.administration_path (Void))
+			l_router.set_base_url (l_api.administration_base_url)
 
 				-- Apply normal filters
 			setup_filter
@@ -285,7 +286,6 @@ feature -- Settings: router
 			l_root_handler: CMS_ROOT_HANDLER
 			l_methods: WSF_REQUEST_METHODS
 		do
-			api.logger.put_debug (generator + ".configure_api_root", Void)
 			create l_root_handler.make (api)
 			create l_methods
 			l_methods.enable_get
@@ -300,8 +300,6 @@ feature -- Settings: router
 			themehdl: CMS_THEME_FILE_SYSTEM_HANDLER
 			l_not_found_handler_agent: PROCEDURE [READABLE_STRING_8, WSF_REQUEST, WSF_RESPONSE]
 		do
-			api.logger.put_information (generator + ".configure_api_file_handler", Void)
-
 			l_not_found_handler_agent := agent (ia_uri: READABLE_STRING_8; ia_req: WSF_REQUEST; ia_res: WSF_RESPONSE)
 				do
 					execute_default (ia_req, ia_res)
@@ -373,6 +371,13 @@ feature -- Request execution
 		do
 			initialize_execution
 			Precursor
+				-- Clean execution...
+			if
+				attached api.storage as l_storage and then
+				not l_storage.is_reuseable
+			then
+				l_storage.close
+			end
 		end
 
 	filter_execute (req: WSF_REQUEST; res: WSF_RESPONSE)
@@ -394,7 +399,6 @@ feature -- Filters
 			fut: FILE_UTILITIES
 		do
 			l_api := api
-			l_api.logger.put_debug (generator + ".create_filter", Void)
 			l_filter := Void
 
 				-- Maintenance
@@ -491,7 +495,7 @@ feature -- Execution
 					do
 						execute_default (ia_req, ia_res)
 					end)
-				fhdl.execute_starts_with ("/module/" + l_mod_name.url_encoded_value + "/files/", req, res)
+				fhdl.execute_starts_with (api.based_path ("/module/" + l_mod_name.url_encoded_value + "/files/"), req, res)
 			else
 				api.response_api.send_not_found (Void, req, res)
 			end
@@ -505,7 +509,7 @@ feature -- Execution
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

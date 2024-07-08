@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "[
 		Sets of tests which make use of an extracted application state to reproduce a failure.
 	]"
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -109,7 +108,7 @@ feature {NONE} -- Query
 		do
 			Result := a_id.substring (2, a_id.count).to_natural
 		ensure
-			result_valid: ("#" + Result.out).is_equal (a_id)
+			result_valid: ({STRING} "#" + Result.out).same_string_general (a_id)
 		end
 
 	object_for_id (a_id: STRING): detachable ANY
@@ -238,8 +237,11 @@ feature {NONE} -- Basic operations
 			a_routine_attached: a_routine /= Void
 			a_operands_attached: a_operands /= Void
 		do
-			if a_routine.valid_operands (a_operands) then
-				a_routine.flexible_call (a_operands)
+			if
+				attached resolved_attributes (a_operands) as ops and then
+				a_routine.valid_operands (ops)
+			then
+				a_routine.flexible_call (ops)
 			else
 				assert_32 ("Correct operands for a feature call", False)
 			end
@@ -278,7 +280,7 @@ feature {NONE} -- Object initialization
 						if attached {ANY} new_instance_of (l_gtype) as l_any then
 							l_object := l_any
 						else
-							assert_32 ("objects of type " + type_name_of_type (l_gtype) + " are not supported", False)
+							assert_32 ({STRING_32} "objects of type " + type_name_of_type (l_gtype) + " are not supported", False)
 						end
 					end
 					check l_object /= Void end
@@ -497,6 +499,46 @@ feature {NONE} -- Object initialization
 				i := i + 1
 			end
 		end
+
+	resolved_attributes (an_attributes: TUPLE): detachable TUPLE
+			-- New TUPLE object with object id string values from `an_attribute_list' replaced by the associated object.
+		require
+			an_attributes_attached: an_attributes /= Void
+		local
+			i: INTEGER
+			l_values: SPECIAL [detachable separate ANY]
+			l_reflector: REFLECTOR
+			l_type: STRING_8
+			--l_type_id: INTEGER
+		do
+			create l_reflector
+			l_type := "TUPLE ["
+			create l_values.make_filled (Void, an_attributes.count)
+			from
+				i := 0
+			until
+				i = an_attributes.count
+			loop
+		         if
+					an_attributes.is_reference_item (i + 1) and then
+					attached {STRING} an_attributes.reference_item (i + 1) as l_id and then
+					is_existing_id (l_id)
+				then
+					l_values.put (object_for_id (l_id), i)
+				else
+					l_values.put (an_attributes.item (i + 1), i)
+				end
+				l_type.append ("separate ANY")
+				i := i + 1
+				if i < an_attributes.count then
+					l_type.append (", ")
+				else
+					l_type.append (" ]")
+				end
+			end
+			Result := l_reflector.new_tuple_from_special (l_reflector.dynamic_type_from_string (l_type), l_values)
+		end
+
 
 	set_tuple_attributes (a_tuple: TUPLE; an_attributes: TUPLE; a_offset: NATURAL)
 			-- Set items of `a_tuple' with values from `an_attribute_list'.
@@ -750,7 +792,7 @@ feature {NONE} -- Constants
 	dynamic_string_32_type: INTEGER once Result := ({STRING_32}).type_id end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

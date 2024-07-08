@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Display information about ROC CMS installation."
 	date: "$Date$"
 	revision: "$Revision$"
@@ -8,7 +8,6 @@ class
 
 inherit
 	CMS_HANDLER
-
 	WSF_URI_HANDLER
 
 create
@@ -41,38 +40,33 @@ feature -- Execution
 
 	append_system_info_to (s: STRING)
 		local
-			n: INTEGER
+			l_mailer: NOTIFICATION_MAILER
+--			l_previous_mailer: NOTIFICATION_MAILER
 		do
 			s.append ("<ul>")
-			s.append ("<li><strong>Current direction:</strong> ")
-			s.append (html_encoded ((create {EXECUTION_ENVIRONMENT}).current_working_path.name))
-			s.append ("</li>")
-			s.append ("<li><strong>Site:</strong> ")
-			s.append (html_encoded (api.setup.site_location.name))
-			s.append ("</li>")
-			s.append ("<li><strong>Cache:</strong> ")
-			s.append (html_encoded (api.setup.cache_location.name))
-			s.append ("</li>")
-			s.append ("<li><strong>Files:</strong> ")
-			s.append (html_encoded (api.setup.files_location.name))
-			s.append ("</li>")
-			s.append ("<li><strong>Temp:</strong> ")
-			s.append (html_encoded (api.setup.temp_location.name))
-			s.append ("</li>")
-			s.append ("<li><strong>Storage:</strong>")
-			n := s.count
 			across
-				api.setup.storage_drivers as ic
+				api.setup.system_info as ic
 			loop
-				if s.count > n then
-					s.append (", ")
-				else
-					s.append (" ")
-				end
-				s.append (html_encoded (ic.key))
+				s.append ("<li><strong>"+ html_encoded (ic.key) +":</strong> ")
+				s.append (html_encoded (ic.item))
+				s.append ("</li>")
 			end
+			s.append ("<li><strong>Storage:</strong> ")
 			s.append (" -&gt; ")
 			s.append (api.storage.generator)
+			s.append ("</li>")
+
+			s.append ("<li><strong>Mailer:</strong> ")
+			l_mailer := api.setup.mailer
+			from until l_mailer = Void loop
+				s.append (" -&gt; ")
+				s.append (l_mailer.generator)
+				if attached {NOTIFICATION_CHAIN_MAILER} l_mailer as l_chain_mailer then
+					l_mailer := l_chain_mailer.next
+				else
+					l_mailer := Void
+				end
+			end
 			s.append ("</li>")
 			s.append ("</ul>")
 		end

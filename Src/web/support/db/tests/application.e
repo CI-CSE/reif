@@ -216,11 +216,11 @@ feature {NONE} -- Initialization
 	test_user_from_email
 		local
 			l_db: LOGIN_DATA_PROVIDER
-			l_tuple: detachable TUPLE[STRING,STRING,STRING]
+			l_tuple: detachable TUPLE [first_name: READABLE_STRING_32; last_name: READABLE_STRING_32; user_name: READABLE_STRING_32]
 		do
 			create l_db.make (connection)
 			l_db.connect
-			l_tuple := l_db.user_from_email ("javier.hector@gmail.com")
+			l_tuple := l_db.user_from_email ("test@test.com")
 			print (l_tuple.at (1).out +"%N")
 			print (l_tuple.at (2).out +"%N")
 			print (l_tuple.at (3).out +"%N")
@@ -301,19 +301,18 @@ feature {NONE} -- Initialization
 	 test_temporary_problem_report
 	 	local
 			l_db: REPORT_DATA_PROVIDER
-			l_tuple: detachable TUPLE[synopsis : detachable STRING;
-															   release: detachable STRING;
-															   confidential: detachable STRING;
-															   environment: detachable STRING;
-															   description: detachable STRING;
-															   toreproduce: detachable STRING;
-															   priority_synopsis: detachable STRING;
-															   category_synopsis: detachable STRING;
-															   severity_synopsis: detachable STRING;
-															   class_synopsis: detachable STRING;
-															   user_name: detachable STRING;
-															   responsible: detachable STRING
-															   ]
+			l_tuple: detachable TUPLE [synopsis: detachable STRING_32;
+										release: detachable STRING;
+										confidential: detachable STRING;
+										environment: detachable STRING;
+										description: detachable STRING_32;
+										toreproduce: detachable STRING_32;
+										priority_synopsis: detachable STRING_32;
+										category_synopsis: detachable STRING;
+										severity_synopsis: detachable STRING;
+										class_synopsis: detachable STRING;
+										user_name: detachable STRING;
+										responsible: detachable STRING]
 			l_report_number: INTEGER
 		do
 			create l_db.make (connection)
@@ -486,9 +485,6 @@ feature -- Implementation
 
 
 	current_dir: STRING
-		local
-			l_path: PATH
-			l_env: EXECUTION_ENVIRONMENT
 		do
 			Result := (create {EXECUTION_ENVIRONMENT}).current_working_directory
 			Result.append_character ((create {OPERATING_ENVIRONMENT}).directory_separator)

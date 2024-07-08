@@ -1,13 +1,12 @@
-note
+﻿note
 	description: "[
-					Roundtrip AST factory
+			Roundtrip AST factory
 
-					It will setup all indexes used by roundtrip and also, it will generate `match_list'.
-					Call `match_list' after parsing to get the list.
-					]"
+			It will setup all indexes used by roundtrip and also, it will generate `match_list'.
+			Call `match_list' after parsing to get the list.
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -21,6 +20,7 @@ inherit
 			new_keyword_as,
 			new_keyword_id_as,
 			new_symbol_as,
+			new_symbol_id_as,
 			new_current_as,
 			new_deferred_as,
 			new_boolean_as,
@@ -52,18 +52,18 @@ inherit
 
 feature -- Buffer operation
 
-	set_buffer (a_buf: STRING; a_scn: YY_SCANNER_SKELETON)
+	set_buffer (a_buf: STRING_8; a_scn: YY_SCANNER_SKELETON)
 		do
 			a_buf.wipe_out
-			a_buf.append (a_scn.text)
+			a_buf.append (a_scn.utf8_text)
 		ensure then
-			a_buf_set: a_buf.is_equal (a_scn.text)
+			a_buf_set: a_buf.same_string (a_scn.utf8_text)
 		end
 
 	append_text_to_buffer (a_buf: STRING; a_scn: YY_SCANNER_SKELETON)
 			-- Append `a_scn'.text to end of buffer `a_buf'.
 		do
-			a_scn.append_text_to_string (a_buf)
+			a_scn.append_utf8_text_to_string (a_buf)
 		end
 
 	append_character_to_buffer (a_buf: STRING; c: CHARACTER)
@@ -135,7 +135,7 @@ feature -- Leaf Nodes
 			end
 		end
 
-	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_as (t: detachable TYPE_AS; s: BOOLEAN; v: detachable STRING; buf: detachable READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			Result := Precursor (t, s, v, buf, s_as, l, c, p, n, cc, cp, cn)
@@ -144,7 +144,7 @@ feature -- Leaf Nodes
 			end
 		end
 
-	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_hexa_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			Result := Precursor (t, s, v, buf, s_as, l, c, p, n, cc, cp, cn)
@@ -153,7 +153,7 @@ feature -- Leaf Nodes
 			end
 		end
 
-	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_octal_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			Result := Precursor (t, s, v, buf, s_as, l, c, p, n, cc, cp, cn)
@@ -162,7 +162,7 @@ feature -- Leaf Nodes
 			end
 		end
 
-	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
+	new_integer_binary_as (t: detachable TYPE_AS; s: CHARACTER; v: detachable STRING; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable INTEGER_AS
 			-- New INTEGER_AS node
 		do
 			Result := Precursor (t, s, v, buf, s_as, l, c, p, n, cc, cp, cn)
@@ -171,7 +171,7 @@ feature -- Leaf Nodes
 			end
 		end
 
-	new_real_as (t: detachable TYPE_AS; v: detachable STRING; buf: STRING; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable REAL_AS
+	new_real_as (t: detachable TYPE_AS; v: detachable READABLE_STRING_8; buf: READABLE_STRING_8; s_as: detachable SYMBOL_AS; l, c, p, n, cc, cp, cn: INTEGER): detachable REAL_AS
 			-- New REAL AST node
 		do
 			Result := Precursor (t, v, buf, s_as, l, c, p, n, cc, cp, cn)
@@ -183,7 +183,7 @@ feature -- Leaf Nodes
 	new_filled_id_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable ID_AS
 		do
 			Result := Precursor (a_scn)
-			extend_match_list_with_stub (create {LEAF_STUB_AS}.make (a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count))
+			extend_match_list_with_stub (create {LEAF_STUB_AS}.make (a_scn.utf8_text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count))
 		end
 
 	new_void_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable VOID_AS
@@ -213,13 +213,9 @@ feature -- Leaf Nodes
 	new_boolean_as (b: BOOLEAN; a_scn: EIFFEL_SCANNER_SKELETON): detachable BOOL_AS
 		do
 			Result := Precursor (b, a_scn)
-			if b then
-				extend_match_list_with_stub (create{KEYWORD_STUB_AS}.make (
-					{EIFFEL_TOKENS}.te_true, a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count))
-			else
-				extend_match_list_with_stub (create{KEYWORD_STUB_AS}.make (
-					{EIFFEL_TOKENS}.te_false, a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count))
-			end
+			extend_match_list_with_stub (create{KEYWORD_STUB_AS}.make
+				(if b then {EIFFEL_TOKENS}.te_true else {EIFFEL_TOKENS}.te_false end,
+				a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count))
 		end
 
 	new_current_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable CURRENT_AS
@@ -263,13 +259,21 @@ feature -- Leaf Nodes
 			extend_match_list_with_stub (create{SYMBOL_STUB_AS}.make (a_code, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count))
 		end
 
+	new_symbol_id_as (c: INTEGER_32; s: EIFFEL_SCANNER_SKELETON): detachable like symbol_id_type
+		do
+			Result := Precursor (c, s)
+				-- It is ok to create a SYMBOL_STUB_AS because it inherits from LEAF_STUB_AS and thus
+ 				-- when the keyword is actually used as an identifier it should be just fine.
+ 			extend_match_list_with_stub (create {SYMBOL_STUB_AS}.make (c, s.line, s.column, s.position, s.text_count, s.character_column, s.character_position, s.unicode_text_count))
+		end
+
 	create_break_as (a_scn: EIFFEL_SCANNER_SKELETON)
 			-- NEw BREAK_AS node
 		local
 			b_as: BREAK_AS
 		do
 			increase_match_list_count
-			create b_as.make (a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
+			create b_as.make (a_scn.utf8_text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
 			b_as.set_index (match_list_count)
 			extend_match_list (b_as)
 		end
@@ -286,7 +290,8 @@ feature -- Leaf Nodes
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

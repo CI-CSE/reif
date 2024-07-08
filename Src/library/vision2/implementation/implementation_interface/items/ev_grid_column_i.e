@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Column of an EV_GRID, containing EV_GRID_ITEMs."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -178,6 +178,17 @@ feature -- Access
 			end
 		ensure
 			Result_non_negative: Result >= 0
+		end
+
+	minimum_width: INTEGER
+			-- Minimum width of current column.
+		do
+			if
+				attached parent_i as l_parent and then
+				l_parent.is_header_displayed
+			then
+				Result := header_item.minimum_width
+			end
 		end
 
 	virtual_x_position: INTEGER
@@ -372,7 +383,7 @@ feature -- Status setting
 			-- row index `start_row', `end_row' that are not hidden (i.e. `is_show_requested' is True).
 		require
 			parented: attached parent as l_parent
-			valid_rows: start_row >= 1 and end_row <= l_parent.row_count and start_row <= end_row
+			valid_rows: start_row >= 1 and end_row <= l_parent.row_count and start_row - 1 <= end_row
 		local
 			item_counter: INTEGER
 			parent_row_count: INTEGER
@@ -556,6 +567,7 @@ feature -- Element change
 			-- Assign `a_width' to `width'.
 		require
 			width_non_negative: a_width >= 0
+			a_width_greater_or_equal_minimum: a_width >= minimum_width
 			is_parented: parent /= Void
 		local
 			l_width: INTEGER
@@ -801,7 +813,7 @@ invariant
 	physical_index_set: parent /= Void implies physical_index >= 0
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

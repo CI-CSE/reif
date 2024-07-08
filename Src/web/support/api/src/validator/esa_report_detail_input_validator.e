@@ -61,7 +61,7 @@ feature -- Validation
 			if not l_current_keys.is_empty then
 				across l_current_keys as l_keys loop
 					if not acceptable_query_parameters.has (l_keys.item.to_string_8) then
-						errors.force ("The parameter [" + l_keys.item + "] is not valid", l_keys.item)
+						errors.force ("The parameter [" + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8  (l_keys.item) + "] is not valid", l_keys.item)
 					end
 				end
 			end
@@ -84,7 +84,7 @@ feature {NONE} -- Validations
 					not l_page.is_integer or else
 					(l_page.is_integer and then l_page.integer_value <= 0)
 				then
-					errors.force ("The parameter value for search should be > 0, the value [" + l_page.value + "] is not valid", "page")
+					errors.force ({STRING_32}"The parameter value for search should be > 0, the value [" + l_page.value + {STRING_32}"] is not valid", "page")
 				else
 					set_search (l_page.integer_value)
 				end

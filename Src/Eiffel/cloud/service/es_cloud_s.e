@@ -26,6 +26,45 @@ feature -- Status report
 		deferred
 		end
 
+feature -- Settings
+
+	is_debug_enabled: BOOLEAN
+		deferred
+		end
+
+	is_offline_allowed: BOOLEAN
+		deferred
+		end
+
+	is_verbose (a_level: INTEGER): BOOLEAN
+			-- has Verbose output for level `a_level` ?
+			-- (mostly for debugging).
+		deferred
+		end
+
+feature -- Access: edition
+
+	eiffel_edition: detachable EIFFEL_EDITION
+		deferred
+		end
+
+	is_standard_edition: BOOLEAN
+			-- Is associated with standard edition of EiffelStudio.
+		deferred
+		end
+
+	is_enterprise_edition: BOOLEAN
+		deferred
+		end
+
+	is_branded_edition: BOOLEAN
+		deferred
+		end
+
+	edition_brand_name: detachable IMMUTABLE_STRING_8
+		deferred
+		end
+
 feature -- Access
 
 	server_url: READABLE_STRING_8
@@ -38,19 +77,70 @@ feature -- Access
 		deferred
 		end
 
+	view_account_website_url: READABLE_STRING_8
+		do
+				-- TODO: get a magic login link, if supported.
+			Result := associated_website_url
+		end
+
+	new_account_website_url: READABLE_STRING_8
+		do
+			Result := associated_website_url + "/new_account"
+		end
+
 	is_guest: BOOLEAN
 			-- Is guest?
 		deferred
 		end
 
-	is_logged_in: BOOLEAN
+	is_signed_in: BOOLEAN
 		do
 			Result := active_account /= Void or else is_guest
 		end
 
 	active_account: detachable ES_ACCOUNT
-			-- Active account if logged in, otherwise Void.
+			-- Active account if signed in, otherwise Void.
 		deferred
+		end
+
+	active_license: detachable ES_ACCOUNT_LICENSE
+		do
+			if attached installation as inst and then attached inst.associated_license as l_license then
+				Result := l_license
+			end
+		end
+
+	active_license_name: detachable READABLE_STRING_8
+		do
+			if attached active_license as lic then
+				Result := lic.plan_name
+			end
+		end
+
+	account_licenses (acc: ES_ACCOUNT): LIST [ES_ACCOUNT_LICENSE]
+		require
+			acc /= Void and then not acc.access_token.is_expired
+		deferred
+		end
+
+	account_installations (acc: ES_ACCOUNT): LIST [ES_ACCOUNT_INSTALLATION]
+		require
+			acc /= Void and then not acc.access_token.is_expired
+		deferred
+		end
+
+	active_session: detachable ES_ACCOUNT_SESSION
+			-- Active session, if signed in, otherwise Void.
+		deferred
+		end
+
+	check_for_new_license
+		do
+			if
+				attached active_account as acc
+			then
+				update_account (acc)
+			end
 		end
 
 	installation: ES_ACCOUNT_INSTALLATION
@@ -63,36 +153,91 @@ feature -- Access
 		deferred
 		end
 
-	guest_mode_loging_count: INTEGER
-			-- Number of loging as guest.
+	guest_mode_signed_in_count: INTEGER
+			-- Number of signed in in as guest.
+		deferred
+		end
+
+	session_heartbeat: NATURAL_32
+			-- Delay between two session ping (heartbeat), in seconds.
+		deferred
+		end
+
+feature -- Remember credentials
+
+	kept_credential: detachable TUPLE [username: READABLE_STRING_32; password: detachable READABLE_STRING_32]
+		deferred
+		end
+
+	kept_credential_from_file (fn: PATH): like kept_credential
+		deferred
+		end
+
+	keep_credential (u,p: detachable READABLE_STRING_32)
 		deferred
 		end
 
 feature -- Sign in
 
-	login_as_guest
+	continue_as_guest
 			-- Sign as guest with limitation.
 		deferred
 		end
 
-	login_with_credential (a_username: READABLE_STRING_GENERAL; a_password: READABLE_STRING_GENERAL)
-			-- Login with `a_username:a_password`, on success set the associated `active_account`.
+	sign_in_with_credential (a_username: READABLE_STRING_GENERAL; a_password: READABLE_STRING_GENERAL)
+			-- Connect with `a_username:a_password`, on success set the associated `active_account`.
 		deferred
 		end
 
-	login_with_access_token (a_username: READABLE_STRING_GENERAL; tok: READABLE_STRING_8)
-			-- Login as `a_username` with token `tok`, on success set the associated `active_account`.
+	sign_in_with_access_token (a_username: READABLE_STRING_GENERAL; tok: READABLE_STRING_8)
+			-- Connect as `a_username` with token `tok`, on success set the associated `active_account`.
 		deferred
 		end
 
-	logout
-			-- Logout current session.
+	sign_out
+			-- Sign out current session.
+		deferred
+		end
+
+	quit
+		-- Quit session (could be quit EiffelStudio).
 		deferred
 		end
 
 feature -- Update
 
-	ping_installation (a_account: ES_ACCOUNT)
+	resume_active_session
+		do
+			if attached active_session as sess then
+				resume_session (sess.account, sess)
+			end
+		end
+
+	async_check_availability (a_force_operation: BOOLEAN)
+		deferred
+		end
+
+	async_ping_installation (a_account: ES_ACCOUNT; a_session: ES_ACCOUNT_SESSION)
+		deferred
+		end
+
+	ping_installation (a_account: ES_ACCOUNT; a_session: ES_ACCOUNT_SESSION)
+		deferred
+		end
+
+	end_session (a_account: ES_ACCOUNT; a_session: ES_ACCOUNT_SESSION)
+		deferred
+		end
+
+	pause_session (a_account: ES_ACCOUNT; a_session: ES_ACCOUNT_SESSION)
+		deferred
+		end
+
+	resume_session (a_account: ES_ACCOUNT; a_session: ES_ACCOUNT_SESSION)
+		deferred
+		end
+
+	update_session (sess: ES_ACCOUNT_SESSION)
 		deferred
 		end
 
@@ -122,6 +267,25 @@ feature -- Registration
 		deferred
 		end
 
+	set_eiffel_edition (ed: EIFFEL_EDITION)
+			--Set the `eiffel_edition` to `ed`.
+		deferred
+		end
+
+	set_verbose_level (a_level: INTEGER)
+		deferred
+		end
+
+feature -- Settings
+
+	set_connection_timeout (a_secs: INTEGER)
+		deferred
+		end
+
+	set_timeout (a_secs: INTEGER)
+		deferred
+		end
+
 feature -- Connection checking
 
 	check_cloud_availability
@@ -130,38 +294,84 @@ feature -- Connection checking
 
 feature -- Events
 
-	on_cloud_available (a_is_connected: BOOLEAN)
+	on_session_state_changed (sess: ES_ACCOUNT_SESSION)
 		do
+			update_session (sess)
 			if attached observers as lst then
 				across
 					lst as ic
 				loop
-					ic.item.on_cloud_available (a_is_connected)
+					ic.item.on_session_state_changed (sess)
 				end
 			end
 		end
 
-	on_account_logged_in (acc: ES_ACCOUNT)
+	on_session_heartbeat_updated (a_heartbeat: NATURAL)
 		do
 			if attached observers as lst then
 				across
 					lst as ic
 				loop
-					ic.item.on_account_logged_in (acc)
+					ic.item.on_session_heartbeat_updated (a_heartbeat)
 				end
 			end
 		end
 
-	on_account_logged_out
+	on_cloud_available (a_is_available: BOOLEAN)
+		do
+			debug ("es_cloud")
+				print (generator + ".on_cloud_available (" + a_is_available.out + ")%N")
+			end
+			if attached observers as lst then
+				across
+					lst as ic
+				loop
+					ic.item.on_cloud_available (a_is_available)
+				end
+			end
+		end
+
+	on_account_signed_in (acc: ES_ACCOUNT)
 		do
 			if attached observers as lst then
 				across
 					lst as ic
 				loop
-					ic.item.on_account_logged_out
+					ic.item.on_account_signed_in (acc)
+				end
+			end
+			if account_signed_in_event.is_interface_usable then
+				account_signed_in_event.publish (acc)
+			end
+		end
+
+	on_account_signed_out (a_previous_acc: detachable ES_ACCOUNT)
+		do
+			if attached installation as inst then
+				inst.set_associated_license (Void)
+			end
+			if attached observers as lst then
+				across
+					lst as ic
+				loop
+					ic.item.on_account_signed_out (a_previous_acc)
 				end
 			end
 				-- FIXME: if gpl edition, quit EiffelStudio?
+			if account_signed_out_event.is_interface_usable then
+				account_signed_out_event.publish (a_previous_acc)
+			end
+		end
+
+	on_account_license_issue (a_issue: ES_ACCOUNT_LICENSE_ISSUE)
+		do
+			if attached observers as lst then
+				across
+					lst as ic
+				loop
+					ic.item.on_account_license_issue (a_issue)
+				end
+			end
 		end
 
 	on_account_updated (acc: detachable ES_ACCOUNT)
@@ -202,6 +412,34 @@ feature -- Observer
 			end
 		end
 
+feature -- Events: Connection point
+
+	es_cloud_connection: EVENT_CONNECTION_I [ES_CLOUD_OBSERVER, ES_CLOUD_S]
+			-- Connection point.
+		require
+			is_interface_usable: is_interface_usable
+		deferred
+		ensure
+			result_attached: Result /= Void
+			result_is_interface_usable: Result.is_interface_usable
+		end
+
+feature -- Events
+
+	account_signed_in_event: EVENT_TYPE [TUPLE [acc: detachable ES_ACCOUNT]]
+			-- Events called when an account is signed in.
+		require
+			is_interface_usable: is_interface_usable
+		deferred
+		end
+
+	account_signed_out_event: EVENT_TYPE [TUPLE [acc: detachable ES_ACCOUNT]]
+			-- Events called when an account is signed out.
+		require
+			is_interface_usable: is_interface_usable
+		deferred
+		end
+
 feature {NONE} -- Implementation
 
 	observers: detachable ARRAYED_LIST [ES_CLOUD_OBSERVER]
@@ -209,7 +447,7 @@ feature {NONE} -- Implementation
 invariant
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

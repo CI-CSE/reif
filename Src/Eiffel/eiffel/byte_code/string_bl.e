@@ -87,24 +87,18 @@ feature
 		local
 			buf: GENERATION_BUFFER
 			l_value: STRING_8
-			l_value_32: STRING_32
 		do
-				-- RTMS_EX is the macro used to create Eiffel strings from C ones
-				-- RTMS32_EX_H is the macro used to create STRING_32 from C ones
 			buf := buffer
 			if is_string_32 then
-				buf.put_string ("RTMS32_EX_H(")
-				l_value_32 := value_32
-
-				buf.put_string_literal (encoding_converter.string_32_to_stream (l_value_32))
-				buf.put_character(',')
-
-				buf.put_integer(l_value_32.count)
-				buf.put_character(',')
-				buf.put_integer (l_value_32.hash_code)
-				buf.put_character(')')
+				buf.generate_manifest_string_32 (value_32, is_immutable)
 			else
-				buf.put_string ("RTMS_EX_H(")
+					-- RTMS_EX is the macro used to create Eiffel strings from C ones
+					-- RTMS32_EX_H is the macro used to create STRING_32 from C ones
+				if is_immutable then
+					buf.put_string ("RTMIS8_EX_H(")
+				else
+					buf.put_string ("RTMS_EX_H(")
+				end
 				l_value := value_8
 
 				buf.put_string_literal (l_value)
@@ -115,10 +109,13 @@ feature
 				buf.put_integer (l_value.hash_code)
 				buf.put_character(')')
 			end
+			if is_immutable then
+				buf.put_string ("/* IMMUTABLE */")
+			end
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

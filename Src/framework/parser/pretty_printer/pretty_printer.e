@@ -6,10 +6,15 @@ class
 
 inherit
 	AST_ROUNDTRIP_ITERATOR
+		rename
+			internal_match_list as match_list
 		redefine
+			match_list,
+			reset,
+
 			process_leading_leaves,
 
-			-- Leafs
+				-- Leaves
 			process_keyword_as,
 			process_symbol_as,
 			process_break_as,
@@ -27,15 +32,15 @@ inherit
 			process_real_as,
 			process_id_as,
 
-			-- Declarations
+				-- Declarations
 			process_class_as,
 			process_invariant_as,
 
-			-- Indexing
+				-- Indexing
 			process_indexing_clause_as,
 			process_index_as,
 
-			-- Inheritance
+				-- Inheritance
 			process_parent_list_as,
 			process_parent_as,
 			process_rename_clause_as,
@@ -47,22 +52,21 @@ inherit
 			process_undefine_clause_as,
 			process_redefine_clause_as,
 			process_select_clause_as,
-			process_infix_prefix_as,
-			process_feat_name_id_as,
+			process_feature_name,
 			process_feature_name_alias_as,
 
-			-- Generics
+				-- Generics
 			process_formal_generic_list_as,
 			process_formal_dec_as,
 
-			-- Creators
+				-- Creators
 			process_create_as,
 
-			-- Converters
+				-- Converters
 			process_convert_feat_list_as,
 			process_convert_feat_as,
 
-			-- Features
+				-- Features
 			process_feature_clause_as,
 			process_feature_as,
 			process_body_as,
@@ -71,7 +75,7 @@ inherit
 			process_type_dec_as,
 			process_constant_as,
 
-			-- Routine
+				-- Routine
 			process_routine_as,
 			process_require_as,
 			process_require_else_as,
@@ -86,13 +90,12 @@ inherit
 			process_ensure_as,
 			process_ensure_then_as,
 
-			-- Instructions
+				-- Instructions
 			process_assigner_call_as,
 			process_assign_as,
 			process_reverse_as,
 			process_check_as,
-			process_bang_creation_as,
-			process_create_creation_as,
+			process_creation_as,
 			process_debug_as,
 			process_guard_as,
 			process_if_as,
@@ -107,36 +110,45 @@ inherit
 			process_retry_as,
 			process_separate_instruction_as,
 
-			-- Expressions
+				-- Expressions
 			process_typed_char_as,
 			process_custom_attribute_as,
 			process_binary_as,
 			process_bin_and_then_as,
+			process_bin_eq_as,
+			process_bin_ne_as,
+			process_bin_not_tilde_as,
 			process_bin_or_else_as,
+			process_bin_tilde_as,
 			process_bracket_as,
 			process_agent_routine_creation_as,
 			process_inline_agent_creation_as,
 			process_delayed_actual_list_as,
+			process_predecessor_as,
 			process_tuple_as,
 			process_unary_as,
 			process_un_free_as,
 			process_un_strip_as,
 			process_if_expression_as,
 			process_elseif_expression_as,
+			process_inspect_expression_as,
+			process_case_expression_as,
 			process_loop_expr_as,
 			process_object_test_as,
+			process_paran_as,
 			process_array_as,
 
-			-- Calls
+				-- Calls
 			process_access_feat_as,
-			process_parameter_list_as,
-			process_access_inv_as,
 			process_access_id_as,
-			process_static_access_as,
+			process_access_inv_as,
+			process_creation_expr_as,
+			process_nested_expr_as,
+			process_parameter_list_as,
 			process_precursor_as,
-			process_create_creation_expr_as,
+			process_static_access_as,
 
-			-- Types
+				-- Types
 			process_class_type_as,
 			process_generic_class_type_as,
 			process_formal_as,
@@ -150,23 +162,35 @@ inherit
 
 	INTERNAL_COMPILER_STRING_EXPORTER
 
+	CHARACTER_PROPERTY
+		rename
+			make as make_character_property
+		end
+
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (a_out_stream: like out_stream)
+	make (a_out_stream: like out_stream; r: attached like parsed_class; m: like match_list)
 			-- Initialization.
 		require
 			out_stream_ready: a_out_stream /= Void
 		do
+			make_character_property
 			out_stream := a_out_stream
 			indent := ""
 			set_will_process_leading_leaves (True)
 			last_index := 0
 			last_printed := '%U'
 			new_line_count := 0
+			set_parsed_class (r)
+			set_match_list (m)
+			create loop_cursors.make (4)
 			change_indent := agent do_nothing
+			set_loop_expression_style (loop_expression_style_default)
+			set_line_processing (line_processing_default)
+			set_is_unindented_comment_kept (is_unindented_comment_kept_default)
 		end
 
 feature -- Access
@@ -177,7 +201,118 @@ feature -- Access
 	indent: STRING_32
 			-- Indentation string.
 
-feature {NONE} -- Internal access
+feature -- Output format: access
+
+	loop_expression_keep: like loop_expression_style = 1
+			-- Should source code form of a loop expression be preserved?
+
+	loop_expression_keyword: like loop_expression_style = 2
+			-- Should keyword-based form of a loop expression be used for output?
+
+	loop_expression_symbol: like loop_expression_style = 3
+			-- Should symbol-based form of a loop expression be used for output?
+
+	loop_expression_style: NATURAL_8
+			-- What format of a loop expression should be used for output?
+
+	loop_expression_style_default: NATURAL_8 = 1
+			-- A default value of `loop_expression_style`.
+
+	line_keep: like line_processing = 1
+			-- Should new lines be preserved?
+
+	line_wrap: like line_processing = 2
+			-- Should new lines be added to wrap expressions?
+
+	line_inline: like line_processing = 3
+			-- Should new lines be removed in expressions?
+
+	line_processing: NATURAL_8
+			-- How new lines should be processed?
+
+	line_processing_default: NATURAL_8 = 3
+			-- A default value of `line_processing`.
+
+	is_unindented_comment_kept: BOOLEAN
+			-- Should an indented comment be left alone (not indented)?
+
+	is_unindented_comment_kept_default: BOOLEAN = True
+
+feature -- Output format: status
+
+	is_loop_expression_style (s: like loop_expression_style): BOOLEAN
+			-- Does `s` represent a valid style to format a loop expression?
+		do
+			inspect s
+			when
+				loop_expression_keep,
+				loop_expression_keyword,
+				loop_expression_symbol
+			then
+				Result := True
+			else
+					-- False otherwise.
+			end
+		ensure
+			class
+			definition: Result =
+					(<<loop_expression_keep,
+							loop_expression_keyword,
+							loop_expression_symbol>>).has (s)
+		end
+
+	is_line_processing (s: like line_processing): BOOLEAN
+			-- Does `s` represent a valid way to handle new lines?
+		do
+			inspect s
+			when
+				line_keep,
+				line_wrap,
+				line_inline
+			then
+				Result := True
+			else
+					-- False otherwise.
+			end
+		ensure
+			class
+			definition: Result = (<<line_keep, line_wrap, line_inline>>).has (s)
+		end
+
+feature -- Output format: modification
+
+	set_loop_expression_style (s: like loop_expression_style)
+			-- Set `loop_expression_style` to `s`.
+		require
+			is_loop_expression_style (s)
+		do
+			loop_expression_style := s
+		ensure
+			loop_expression_style = s
+		end
+
+	set_line_processing (s: like line_processing)
+			-- Set `line_processing` to `s`.
+		require
+			is_line_processing (s)
+		do
+			line_processing := s
+		ensure
+			line_processing = s
+		end
+
+	set_is_unindented_comment_kept (s: BOOLEAN)
+			-- Set `is_unindented_comment_kept` to `s`.
+		do
+			is_unindented_comment_kept := s
+		ensure
+			is_unindented_comment_kept = s
+		end
+
+feature {NONE} -- Access
+
+	match_list: like {AST_ROUNDTRIP_ITERATOR}.match_list
+			-- <Precursor>
 
 	last_printed: CHARACTER_32
 			-- Last printed character.
@@ -187,6 +322,19 @@ feature {NONE} -- Internal access
 
 	new_line_count: INTEGER
 			-- Number of consequitive new line characters.
+
+	is_qualified: BOOLEAN
+			-- Is current call qualified, i.e. being performed on an explicit target?
+
+	loop_cursors: ARRAYED_STACK [like {NAMES_HEAP}.id_of]
+			-- Names of loop cursors.
+
+feature -- Setting
+
+	reset
+			-- Unused.
+		do
+		end
 
 feature {NONE} -- Output
 
@@ -255,11 +403,16 @@ feature {NONE} -- Output
 		do
 			if attached a then
 				process_leading_leaves_of_token (a.first_token (match_list))
-				if last_printed /= '%N' and last_printed /= '%T' then
-					print_new_line
-				end
-				if last_printed /= '%T' then
+				if new_line_chars.has (last_printed) then
+						-- New line has been started, add indentation.
 					print_indent
+				elseif last_printed /= '%T' and then line_processing /= line_keep then
+						-- There is no preceeding new line, put it.
+					print_new_line
+					print_indent
+				elseif not is_white_space (last_printed) then
+						-- New line cannot be inserted, put a space instead.
+					print_space_separator
 				end
 				a.process (Current)
 			end
@@ -268,11 +421,13 @@ feature {NONE} -- Output
 	print_on_new_line_indented (a: detachable AST_EIFFEL)
 			-- Same as `print_on_new_line', but adds one indentation level.
 		do
-			if attached a then
-				increase_indent
+			increase_indent
+			if line_processing = line_keep then
+				print_inline_unindented (a)
+			elseif attached a then
 				print_on_new_line (a)
-				decrease_indent
 			end
+			decrease_indent
 		end
 
 	print_on_new_line_separated (a: detachable AST_EIFFEL)
@@ -289,7 +444,7 @@ feature {NONE} -- Output
 	print_space_separator
 			-- Print a space character if there is currently none white space character printed before.
 		do
-			if not white_space_chars.has (last_printed) then
+			if not is_white_space (last_printed) then
 				print_string (" ")
 			end
 		end
@@ -344,17 +499,22 @@ feature {NONE} -- List processing
 			n: INTEGER
 			m: INTEGER
 			a: AST_EIFFEL
+			s: like list_separator_blank_line
 		do
 			if l_as /= Void then
 				n := l_as.count
 				if n > 0 then
 					process_leading_leaves_of_token (l_as.first_token (match_list))
-
+					s := list_separator
+					if (s = list_separator_blank_line or s = list_separator_new_line) and then line_processing = line_keep then
+							-- Avoid adding new lines.
+						s := list_separator_leading_space
+					end
 					from
 						l_as.start
 						i := 1
-						if attached l_as.separator_list as s then
-							m := s.count
+						if attached l_as.separator_list as l then
+							m := l.count
 						end
 					until
 						i > n
@@ -364,7 +524,7 @@ feature {NONE} -- List processing
 						process_leading_leaves_of_token (a.first_token (match_list))
 							-- Leading leaves may include optional delimiters such as semicolons,
 							-- so any separators should be printed after them.
-						inspect list_separator
+						inspect s
 						when list_separator_blank_line then
 							print_new_line
 							print_new_line
@@ -375,9 +535,15 @@ feature {NONE} -- List processing
 							end
 							print_indent
 						when list_separator_leading_space then
-							print_space_separator
+							if new_line_chars.has (last_printed) then
+								print_indent
+							else
+								print_space_separator
+							end
 						when list_separator_delimiting_space then
-							if i > 1 then
+							if new_line_chars.has (last_printed) then
+								print_indent
+							elseif i > 1 then
 								print_space_separator
 							end
 						end
@@ -408,18 +574,16 @@ feature {NONE} -- List processing
 			if l_as /= Void then
 				l_ids := l_as.id_list
 				if l_ids /= Void and then l_ids.count > 0 then
-					from
-						l_ids.start
-						i := 1
-							-- Temporary/reused objects to print identifiers.
-						create l_id_as.initialize_from_id (1)
-						if attached l_as.separator_list as s then
-							l_count := s.count
-						end
-					until
-						l_ids.after
+						-- Temporary/reused objects to print identifiers.
+					create l_id_as.initialize_from_id (1)
+					if attached l_as.separator_list as s then
+						l_count := s.count
+					end
+					i := 1
+					across
+						l_ids as x
 					loop
-						l_index := l_ids.item
+						l_index := x
 						if match_list.valid_index (l_index) then
 							l_leaf := match_list.i_th (l_index)
 								-- Note that we do not set the `name_id' for `l_id_as' since it will require
@@ -428,16 +592,16 @@ feature {NONE} -- List processing
 							l_id_as.set_position (l_leaf.line, l_leaf.column, l_leaf.position, l_leaf.location_count,
 								l_leaf.character_column, l_leaf.character_position, l_leaf.character_count)
 							l_id_as.set_index (l_index)
-							safe_process (l_id_as)
+							if new_line_chars.has (last_printed) then
+								print_indent
+							elseif i > 1 then
+								print_space_separator
+							end
+							print_inline (l_id_as)
 						end
 						if i <= l_count then
 							safe_process (l_as.separator_list_i_th (i, match_list))
 							i := i + 1
-						end
-						l_ids.forth
-
-						if not l_ids.after then
-							print_string (" ")
 						end
 					end
 				end
@@ -460,11 +624,13 @@ feature {NONE} -- List processing
 			if attached t then
 				prepare_inline_indented (t.first_token (match_list))
 				print_space_separator
+				increase_indent
 				t.process (Current)
+				decrease_indent
 			end
 		end
 
-	print_inline_unindented  (t: detachable AST_EIFFEL)
+	print_inline_unindented (t: detachable AST_EIFFEL)
 			-- Print `t' that is usually formatted inline with a leading blank.
 			-- Use current indentation if it cannot be formatted inline.
 		do
@@ -522,7 +688,7 @@ feature {NONE} -- List processing
 				until
 					i >= index
 				loop
-					safe_process (match_list.i_th (i))
+					safe_process (match_list [i])
 					i := i + 1
 				end
 			end
@@ -556,6 +722,15 @@ feature {CLASS_AS} -- Process leafs
 			l_text := l_as.text_32 (match_list)
 			if l_text.has_substring ("--") then
 				print_comment (l_text)
+			elseif line_processing = line_keep then
+					-- Handle as many new lines as there are in the source code.
+				across
+					l_text as c
+				loop
+					if c = {CHARACTER_32} '%N' then
+						print_new_line
+					end
+				end
 			end
 		end
 
@@ -615,16 +790,31 @@ feature {CLASS_AS} -- Process leafs
 			process_keyword_as (l_as)
 		end
 
-	process_string_as (l_as: STRING_AS)
-			-- Process `l_as'.
+	process_string_as (a: STRING_AS)
+			-- <Precursor>
+		local
+			i: BOOLEAN
 		do
-			if l_as.is_once_string then
-				safe_process_and_print (l_as.once_string_keyword (match_list), "", " ")
+			if a.is_once_string then
+				print_inline (a.once_string_keyword (match_list))
+				i := True
 			end
-			safe_process_and_print (l_as.type, "", " ")
-			prepare_inline_indented (l_as)
-			last_index := l_as.index
-			print_string (l_as.string_value_32)
+			if attached a.type as t then
+				if i then
+					print_inline_indented (t)
+				else
+					print_inline (t)
+					i := True
+				end
+			end
+			if i then
+				prepare_inline_indented (a)
+				print_space_separator
+			else
+				prepare_inline (a)
+			end
+			last_index := a.index
+			print_string (a.string_value_32)
 		end
 
 	process_verbatim_string_as (l_as: VERBATIM_STRING_AS)
@@ -696,8 +886,8 @@ feature {CLASS_AS} -- Process leafs
 			-- Process `l_as'.
 		do
 			last_index := l_as.index
-			-- process_leading_leaves (l_as.index)
-			-- last_index := l_as.index
+				-- process_leading_leaves (l_as.index)
+				-- last_index := l_as.index
 			print_string (l_as.text_32 (match_list))
 		end
 
@@ -714,61 +904,62 @@ feature {CLASS_AS} -- Class Declarations
 	process_class_as (l_as: CLASS_AS)
 			-- Process class declaration `l_as'.
 		do
-			-- Indexing
+				-- Indexing
 			indent := ""
 			safe_process_and_print (l_as.internal_top_indexes, "", "%N%N")
 
-			-- Keywords
+				-- Keywords
 			safe_process_and_print (l_as.frozen_keyword (match_list), "", " ")
 			safe_process_and_print (l_as.deferred_keyword (match_list), "", " ")
 			safe_process_and_print (l_as.expanded_keyword (match_list), "", " ")
+			safe_process_and_print (l_as.once_keyword (match_list), "", " ")
 			safe_process_and_print (l_as.external_keyword (match_list), "", " ")
 
 			safe_process_and_print (l_as.class_keyword (match_list), "", "")
 
-			-- Class name
+				-- Class name
 			print_on_new_line_indented (l_as.class_name)
 
-			-- Generics
+				-- Generics
 			safe_process_and_print (l_as.internal_generics, " ", "")
 
-			-- External
+				-- External
 			print_on_new_line_indented (l_as.alias_keyword (match_list))
 			safe_process_and_print (l_as.external_class_name, " ", "")
 
-			-- Obsolete
+				-- Obsolete
 			print_on_new_line_separated (l_as.obsolete_keyword (match_list))
 			print_on_new_line_indented (l_as.obsolete_message)
 
-			-- Conforming inheritance
+				-- Conforming inheritance
 			print_on_new_line_separated (l_as.internal_conforming_parents)
 
-			-- Non-conforming inheritance
+				-- Non-conforming inheritance
 			print_on_new_line_separated (l_as.internal_non_conforming_parents)
 
-			-- Creators
+				-- Creators
 			process_and_print_eiffel_list (l_as.creators, list_separator_blank_line)
 
-			-- Convertors
+				-- Convertors
 			print_on_new_line_separated (l_as.convertors)
 
-			-- Features
+				-- Features
 			process_and_print_eiffel_list (l_as.features, list_separator_blank_line)
 
-			-- Invariant
+				-- Invariant
 			indent := ""
 			print_on_new_line_separated (l_as.internal_invariant)
 
-			-- Indexes
+				-- Indexes
 			print_on_new_line_separated (l_as.internal_bottom_indexes)
 
-			-- End keyword
+				-- End keyword
 			print_on_new_line_separated (l_as.end_keyword)
 
-			-- Ending comments
+				-- Ending comments
 			if l_as.end_keyword.index < match_list.count then
-				end_index := match_list.count+1
-				process_leading_leaves (match_list.count+1)
+				end_index := match_list.count + 1
+				process_leading_leaves (match_list.count + 1)
 			end
 			if last_printed /= '%N' then
 				print_new_line
@@ -795,9 +986,11 @@ feature {CLASS_AS} -- Indexing
 	process_index_as (l_as: INDEX_AS)
 			-- Process index `l_as'
 		do
-			safe_process (l_as.tag)
-			safe_process (l_as.colon_symbol (match_list))
+			print_inline (l_as.tag)
+			print_inline (l_as.colon_symbol (match_list))
+			increase_indent
 			process_and_print_eiffel_list (l_as.index_list, list_separator_leading_space)
+			decrease_indent
 		end
 
 feature {CLASS_AS} -- Inheritance
@@ -851,13 +1044,33 @@ feature {CLASS_AS} -- Inheritance
 	process_export_clause_as (l_as: EXPORT_CLAUSE_AS)
 			-- Process `l_as'.
 		do
-			process_inherit_clause_as (l_as)
+			if
+				line_processing = line_keep and then
+				attached l_as.content as c and then
+				c.count = 1 and then
+				attached l_as.export_keyword (match_list) as e and then
+				attached c [1].first_token (match_list) as l and then
+				e.line = l.line
+			then
+					-- Use specific processing scheme.
+				e.process (Current)
+				process_and_print_eiffel_list (c, List_separator_new_line)
+			else
+					-- Use general processing scheme.
+				process_inherit_clause_as (l_as)
+			end
 		end
 
 	process_export_item_as (l_as: EXPORT_ITEM_AS)
 		do
 			safe_process (l_as.clients)
-			safe_process_and_print (l_as.features, " ", "")
+			if attached {FEATURE_LIST_AS} l_as.features as fs then
+				increase_indent
+				process_and_print_eiffel_list (fs.features, list_separator_leading_space)
+				decrease_indent
+			else
+				print_inline_indented (l_as.features)
+			end
 		end
 
 	process_class_list_as (l_as: CLASS_LIST_AS)
@@ -891,14 +1104,7 @@ feature {CLASS_AS} -- Inheritance
 			process_inherit_clause_as (l_as)
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-			safe_process_and_print (l_as.frozen_keyword, "", " ")
-			safe_process_and_print (l_as.infix_prefix_keyword, "", " ")
-			safe_process (l_as.alias_name)
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
 			safe_process_and_print (l_as.frozen_keyword, "", " ")
 			safe_process (l_as.feature_name)
@@ -908,13 +1114,16 @@ feature {CLASS_AS} -- Inheritance
 		do
 			safe_process_and_print (l_as.frozen_keyword, "", " ")
 			safe_process (l_as.feature_name)
-			if l_as.alias_name /= Void then
-				safe_process_and_print (l_as.alias_keyword (match_list), " ", " ")
-				safe_process (l_as.alias_name)
-				if l_as.has_convert_mark then
-					safe_process_and_print (l_as.convert_keyword (match_list), " ", "")
-				end
+			across
+				l_as.aliases as ic
+			loop
+				safe_process_and_print (l_as.keyword_at (match_list, ic.alias_keyword_index), " ", " ")
+				safe_process (ic.alias_name)
 			end
+			if l_as.convert_keyword_index > 0 then
+				safe_process_and_print (l_as.convert_keyword (match_list), " ", "")
+			end
+
 		end
 
 feature {CLASS_AS} -- Generics
@@ -1005,11 +1214,13 @@ feature {CLASS_AS} -- Features
 	process_body_as (l_as: BODY_AS)
 			-- Process feature body `l_as'.
 		do
-			safe_process_and_print (l_as.internal_arguments, " ", "")
-			safe_process_and_print (l_as.colon_symbol (match_list), "", " ")
-			safe_process (l_as.type)
-			safe_process_and_print (l_as.assign_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.assigner, " ", "")
+			print_inline_indented (l_as.internal_arguments)
+			increase_indent
+			print_inline (l_as.colon_symbol (match_list))
+			decrease_indent
+			print_inline_indented (l_as.type)
+			print_inline_indented (l_as.assign_keyword (match_list))
+			print_inline_indented (l_as.assigner)
 
 			if attached {CONSTANT_AS} l_as.content as c then
 					-- Note clause is printed after body.
@@ -1023,12 +1234,10 @@ feature {CLASS_AS} -- Features
 			end
 		end
 
-	process_formal_argu_dec_list_as (l_as: FORMAL_ARGU_DEC_LIST_AS)
-			-- Process argument declaration list `l_as'.
+	process_formal_argu_dec_list_as (a: FORMAL_ARGU_DEC_LIST_AS)
+			-- <Precursor>
 		do
-			safe_process (l_as.lparan_symbol (match_list))
-			print_list_inline (l_as.arguments)
-			safe_process (l_as.rparan_symbol (match_list))
+			process_paran_list_as (a)
 		end
 
 	process_list_dec_as (l_as: LIST_DEC_AS)
@@ -1085,11 +1294,20 @@ feature {CLASS_AS} -- Routine
 
 	process_tagged_as (l_as: TAGGED_AS)
 			-- Process tagged `l_as'.
+		local
+			t: like {TAGGED_AS}.tag
 		do
-			print_inline (l_as.tag)
-			print_inline (l_as.colon_symbol (match_list))
-			print_inline_indented (l_as.class_keyword (match_list))
-			print_inline_indented (l_as.expr)
+			t := l_as.tag
+			if attached t then
+				print_inline (t)
+				print_inline (l_as.colon_symbol (match_list))
+				increase_indent
+			end
+			print_inline_unindented (l_as.class_keyword (match_list))
+			print_inline_unindented (l_as.expr)
+			if attached t then
+				decrease_indent
+			end
 		end
 
 	process_local_dec_list_as (l_as: LOCAL_DEC_LIST_AS)
@@ -1131,7 +1349,7 @@ feature {CLASS_AS} -- Routine
 			-- Process do routine `l_as'.
 		do
 			print_on_new_line (l_as.do_keyword (match_list))
-			print_compound(l_as.compound)
+			print_compound (l_as.compound)
 		end
 
 	process_once_as (l_as: ONCE_AS)
@@ -1142,12 +1360,10 @@ feature {CLASS_AS} -- Routine
 			print_compound (l_as.compound)
 		end
 
-	process_key_list_as (l_as: KEY_LIST_AS)
-			-- Process key list `l_as'.
+	process_key_list_as (a: KEY_LIST_AS)
+			-- <Precursor>
 		do
-			safe_process (l_as.lparan_symbol (match_list))
-			print_list_inline (l_as.keys)
-			safe_process (l_as.rparan_symbol (match_list))
+			process_paran_list_as (a)
 		end
 
 	process_ensure_as (l_as: ENSURE_AS)
@@ -1172,7 +1388,7 @@ feature {CLASS_AS} -- Instructions
 		do
 			print_on_new_line (l_as.target)
 			safe_process_and_print (l_as.assignment_symbol (match_list), " ", " ")
-			safe_process (l_as.source)
+			print_inline_indented (l_as.source)
 		end
 
 	process_assigner_call_as (l_as: ASSIGNER_CALL_AS)
@@ -1180,7 +1396,7 @@ feature {CLASS_AS} -- Instructions
 		do
 			print_on_new_line (l_as.target)
 			safe_process_and_print (l_as.assignment_symbol, " ", " ")
-			safe_process (l_as.source)
+			print_inline_indented (l_as.source)
 		end
 
 	process_reverse_as (l_as: REVERSE_AS)
@@ -1197,17 +1413,7 @@ feature {CLASS_AS} -- Instructions
 			print_on_new_line (l_as.end_keyword)
 		end
 
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process bang creation instruction `l_as'.
-		do
-			print_on_new_line (l_as.lbang_symbol)
-			safe_process (l_as.type)
-			safe_process (l_as.rbang_symbol)
-			safe_process (l_as.target)
-			safe_process (l_as.call)
-		end
-
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 			-- Process create creation instruction `l_as'.
 		do
 			print_on_new_line (l_as.create_keyword (match_list))
@@ -1249,8 +1455,8 @@ feature {CLASS_AS} -- Instructions
 				not match_list.has_comment (create {ERT_TOKEN_REGION}.make (last_index, t.index))
 			then
 					-- Use "if" style of output for the condition.
-				safe_process_and_print (e, " ", "")
-				safe_process_and_print (t, " ", "")
+				print_inline_indented (e)
+				print_inline_unindented (t)
 			else
 					-- Use multiline output.
 				print_list_indented (check_list)
@@ -1269,7 +1475,9 @@ feature {CLASS_AS} -- Instructions
 			print_on_new_line (l_as.if_keyword (match_list))
 			t := l_as.then_keyword (match_list)
 			n := has_new_line (t)
-			print_inline_indented (l_as.condition)
+			increase_indent
+			print_inline_unindented (l_as.condition)
+			decrease_indent
 			if n then
 				print_on_new_line (t)
 			else
@@ -1291,7 +1499,9 @@ feature {CLASS_AS} -- Instructions
 			print_on_new_line (l_as.elseif_keyword (match_list))
 			t := l_as.then_keyword (match_list)
 			n := has_new_line (t)
-			print_inline_indented (l_as.expr)
+			increase_indent
+			print_inline_unindented (l_as.expr)
+			decrease_indent
 			if n then
 				print_on_new_line (t)
 			else
@@ -1300,24 +1510,26 @@ feature {CLASS_AS} -- Instructions
 			print_compound (l_as.compound)
 		end
 
-	process_inspect_as (l_as: INSPECT_AS)
-			-- Process inspect instruction `l_as'.
+	process_inspect_as (a: INSPECT_AS)
+			-- <Precursor>
 		do
-			print_on_new_line (l_as.inspect_keyword (match_list))
-			safe_process_and_print (l_as.switch, " ", "")
-			safe_process (l_as.case_list)
-			print_on_new_line (l_as.else_keyword (match_list))
-			print_compound (l_as.else_part)
-			print_on_new_line (l_as.end_keyword)
+			print_on_new_line (a.inspect_keyword (match_list))
+			print_inline_indented (a.switch)
+			safe_process (a.case_list)
+			print_on_new_line (a.else_keyword (match_list))
+			print_compound (a.else_part)
+			print_on_new_line (a.end_keyword)
 		end
 
-	process_case_as (l_as: CASE_AS)
-			-- Process inspect case `l_as'
+	process_case_as (a: CASE_AS)
+			-- <Precursor>
 		do
-			print_on_new_line (l_as.when_keyword (match_list))
-			process_and_print_eiffel_list (l_as.interval, list_separator_leading_space)
-			safe_process_and_print (l_as.then_keyword (match_list), " ", "")
-			print_compound (l_as.compound)
+			print_on_new_line (a.when_keyword (match_list))
+			increase_indent
+			process_and_print_eiffel_list (a.interval, list_separator_leading_space)
+			decrease_indent
+			print_inline_unindented (a.then_keyword (match_list))
+			print_compound (a.compound)
 		end
 
 	process_instr_call_as (l_as: INSTR_CALL_AS)
@@ -1332,55 +1544,63 @@ feature {CLASS_AS} -- Instructions
 			l_variant_processing_after: BOOLEAN
 		do
 			is_expr_iteration := False
-			print_on_new_line (l_as.iteration)
-
-			print_on_new_line (l_as.from_keyword (match_list))
-			print_compound (l_as.from_part)
-
-			print_on_new_line (l_as.invariant_keyword (match_list))
-			print_list_indented (l_as.full_invariant_list)
-
-			if attached l_as.until_keyword (match_list) as l_until then
-					-- Special code to handle the old or new ordering of the `variant'
-					-- clause in a loop.
-				if attached l_as.variant_part as l_variant then
-					if l_variant.start_position > l_until.start_position then
-						l_variant_processing_after := True
+			if attached l_as.iteration as i and then i.is_symbolic then
+				print_on_new_line (l_as.repeat_symbol (match_list))
+				safe_process_and_print (i, "", "")
+				print_compound (l_as.compound)
+				print_on_new_line (l_as.end_symbol)
+			else
+				print_on_new_line (l_as.iteration)
+				print_on_new_line (l_as.from_keyword (match_list))
+				print_compound (l_as.from_part)
+				print_on_new_line (l_as.invariant_keyword (match_list))
+				print_list_indented (l_as.full_invariant_list)
+				if attached l_as.until_keyword (match_list) as l_until then
+						-- Special code to handle the old or new ordering of the `variant'
+						-- clause in a loop.
+					if attached l_as.variant_part as l_variant then
+						if l_variant.start_position > l_until.start_position then
+							l_variant_processing_after := True
+						else
+							print_on_new_line (l_as.variant_part)
+						end
 					else
 						print_on_new_line (l_as.variant_part)
 					end
-				else
+					print_on_new_line (l_until)
+				end
+				print_on_new_line_indented (l_as.stop)
+				print_on_new_line (l_as.loop_keyword (match_list))
+				print_compound (l_as.compound)
+				if l_variant_processing_after then
 					print_on_new_line (l_as.variant_part)
 				end
-				print_on_new_line (l_until)
+				print_on_new_line (l_as.end_keyword)
 			end
-
-			print_on_new_line_indented (l_as.stop)
-
-			print_on_new_line (l_as.loop_keyword (match_list))
-			print_compound (l_as.compound)
-
-			if l_variant_processing_after then
-				print_on_new_line (l_as.variant_part)
-			end
-
-			print_on_new_line (l_as.end_keyword)
 		end
 
 	process_iteration_as (l_as: ITERATION_AS)
 		do
-			safe_process (l_as.across_keyword (match_list))
-
-				-- If used in a loop statement, we want the expression on a new line.
-				-- If used in an expression, it should appear on the same line.
-			if is_expr_iteration then
-				safe_process_and_print (l_as.expression, " ", "")
+			if l_as.is_symbolic then
+					-- The iteration part is of the form
+					--  variable `:` expression
+				safe_process_and_print (l_as.identifier, " ", "")
+				safe_process_and_print (l_as.in_symbol (match_list), "", " ")
+				safe_process_and_print (l_as.expression, "", " ")
 			else
-				print_on_new_line_indented (l_as.expression)
+					-- The iteration part is of the form
+					--  `across` expression `as` variable
+				safe_process (l_as.across_keyword (match_list))
+					-- If used in a loop statement, we want the expression on a new line.
+					-- If used in an expression, it should appear on the same line.
+				if is_expr_iteration then
+					safe_process_and_print (l_as.expression, " ", "")
+				else
+					print_on_new_line_indented (l_as.expression)
+				end
+				safe_process_and_print (l_as.as_keyword (match_list), " ", "")
+				safe_process_and_print (l_as.identifier, " ", "")
 			end
-
-			safe_process_and_print (l_as.as_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.identifier, " ", "")
 		end
 
 	process_variant_as (l_as: VARIANT_AS)
@@ -1440,71 +1660,105 @@ feature {AST_VISITOR} -- Expressions
 			safe_process_and_print (l_as.end_keyword (match_list), " ", "")
 		end
 
-	process_binary_as (l_as: BINARY_AS)
-			-- Process binary expression `l_as'.
+	process_binary_as (a: BINARY_AS)
+			-- <Precursor>
 		do
-			print_inline (l_as.left)
-			print_inline_indented (l_as.operator (match_list))
-			print_inline_indented (l_as.right)
+			process_binary_as_unindented (a)
 		end
 
 	process_bin_and_then_as (l_as: BIN_AND_THEN_AS)
 			-- Process 'and then' expression `l_as'.
 		do
 			print_inline (l_as.left)
-			print_inline_indented (l_as.and_keyword (match_list))
-			print_inline_indented (l_as.then_keyword (match_list))
-			print_inline_indented (l_as.right)
+			print_inline_unindented (l_as.and_keyword (match_list))
+			print_inline_unindented (l_as.then_keyword (match_list))
+			print_inline_unindented (l_as.right)
+		end
+
+	process_bin_eq_as (a: BIN_EQ_AS)
+			-- <Precursor>
+		do
+			process_binary_as_indented (a)
+		end
+
+	process_bin_ne_as (a: BIN_NE_AS)
+			-- <Precursor>
+		do
+			process_binary_as_indented (a)
+		end
+
+	process_bin_not_tilde_as (a: BIN_NOT_TILDE_AS)
+			-- <Precursor>
+		do
+			process_binary_as_indented (a)
+		end
+
+	process_bin_tilde_as (a: BIN_TILDE_AS)
+			-- <Precursor>
+		do
+			process_binary_as_indented (a)
 		end
 
 	process_bin_or_else_as (l_as: BIN_OR_ELSE_AS)
 			-- Process 'or else' expression `l_as'.
 		do
 			print_inline (l_as.left)
-			print_inline_indented (l_as.or_keyword (match_list))
-			print_inline_indented (l_as.else_keyword (match_list))
-			print_inline_indented (l_as.right)
+			print_inline_unindented (l_as.or_keyword (match_list))
+			print_inline_unindented (l_as.else_keyword (match_list))
+			print_inline_unindented (l_as.right)
 		end
 
 	process_bracket_as (l_as: BRACKET_AS)
 			-- Process bracket expression `l_as'.
 		do
 			print_inline (l_as.target)
-			print_inline_indented (l_as.lbracket_symbol)
+			increase_indent
+			print_inline_unindented (l_as.lbracket_symbol)
 			print_list_inline (l_as.operands)
 			print_inline (l_as.rbracket_symbol)
+			decrease_indent
 		end
 
 	process_agent_routine_creation_as (l_as: AGENT_ROUTINE_CREATION_AS)
 			-- Process agent expression `l_as'.
 		do
-			safe_process_and_print (l_as.agent_keyword (match_list), "", " ")
+			print_inline (l_as.agent_keyword (match_list))
+			print_space_separator
 			if attached l_as.target as t then
-				safe_process (l_as.lparan_symbol (match_list))
-				t.process (Current)
-				safe_process (l_as.rparan_symbol (match_list))
-				safe_process (l_as.dot_symbol (match_list))
+				increase_indent
+				print_inline (l_as.lparan_symbol (match_list))
+				increase_indent
+				print_inline (t)
+				decrease_indent
+				print_inline (l_as.rparan_symbol (match_list))
+				print_inline (l_as.dot_symbol (match_list))
+				decrease_indent
 			end
-			safe_process (l_as.feature_name)
-			safe_process (l_as.internal_operands)
+			print_inline (l_as.feature_name)
+			print_inline_indented (l_as.internal_operands)
 		end
 
 	process_inline_agent_creation_as (l_as: INLINE_AGENT_CREATION_AS)
 			-- Process inline agent expression `l_as'.
 		do
-			safe_process_and_print (l_as.agent_keyword (match_list), "", " ")
+			print_inline (l_as.agent_keyword (match_list))
 			increase_indent
 			safe_process (l_as.body)
 			decrease_indent
-			safe_process_and_print (l_as.internal_operands, " ", "")
+			print_inline_indented (l_as.internal_operands)
 		end
 
-	process_delayed_actual_list_as (l_as: DELAYED_ACTUAL_LIST_AS)
-			-- Process delayed parameter list `l_as'.
+	process_delayed_actual_list_as (a: DELAYED_ACTUAL_LIST_AS)
+			-- <Precursor>
 		do
-			safe_process (l_as.lparan_symbol (match_list))
-			print_list_inline (l_as.operands)
-			safe_process (l_as.rparan_symbol (match_list))
+			process_paran_list_as (a)
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
+		do
+			safe_process (a.predecessor_symbol (match_list))
+			print_inline_indented (a.name)
 		end
 
 	process_tuple_as (l_as: TUPLE_AS)
@@ -1515,18 +1769,17 @@ feature {AST_VISITOR} -- Expressions
 			safe_process (l_as.rbracket_symbol (match_list))
 		end
 
-	process_unary_as (l_as: UNARY_AS)
-			-- Process unary expression `l_as'.
+	process_unary_as (a: UNARY_AS)
+			-- <Precursor>
 		do
-			safe_process_and_print (l_as.operator (match_list), "", " ")
-			safe_process (l_as.expr)
+			print_inline (a.operator (match_list))
+			print_inline_indented (a.expr)
 		end
 
-	process_un_free_as (l_as: UN_FREE_AS)
-			-- Process free unary expression `l_as'.
+	process_un_free_as (a: UN_FREE_AS)
+			-- <Precursor>
 		do
-			safe_process_and_print (l_as.op_name, "", " ")
-			safe_process (l_as.expr)
+			process_unary_as (a)
 		end
 
 	process_un_strip_as (l_as: UN_STRIP_AS)
@@ -1541,38 +1794,115 @@ feature {AST_VISITOR} -- Expressions
 	process_if_expression_as (l_as: IF_EXPRESSION_AS)
 			-- <Precursor>
 		do
-			safe_process_and_print (l_as.if_keyword (match_list), "", "")
-			safe_process_and_print (l_as.condition, " ", "")
-			safe_process_and_print (l_as.then_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.then_expression, " ", "")
+			print_inline (l_as.if_keyword (match_list))
+			print_inline_indented (l_as.condition)
+			print_inline_unindented (l_as.then_keyword (match_list))
+			print_inline_indented (l_as.then_expression)
 			safe_process (l_as.elsif_list)
-			safe_process_and_print (l_as.else_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.else_expression, " ", "")
-			safe_process_and_print (l_as.end_keyword, " ", "")
+			print_inline_unindented (l_as.else_keyword (match_list))
+			print_inline_indented (l_as.else_expression)
+			print_inline_unindented (l_as.end_keyword)
 		end
 
 	process_elseif_expression_as (l_as: ELSIF_EXPRESSION_AS)
 			-- <Precursor>
 		do
-			safe_process_and_print (l_as.elseif_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.condition, " ", "")
-			safe_process_and_print (l_as.then_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.expression, " ", "")
+			print_inline_unindented (l_as.elseif_keyword (match_list))
+			print_inline_indented (l_as.condition)
+			print_inline_unindented (l_as.then_keyword (match_list))
+			print_inline_indented (l_as.expression)
+		end
+
+	process_inspect_expression_as (a: INSPECT_EXPRESSION_AS)
+			-- <Precursor>
+		do
+			print_inline (a.inspect_keyword (match_list))
+			print_inline_indented (a.switch)
+			safe_process (a.case_list)
+			print_inline_unindented (a.else_keyword (match_list))
+			print_inline_indented (a.else_part)
+			print_inline_unindented (a.end_keyword)
+		end
+
+	process_case_expression_as (a: CASE_EXPRESSION_AS)
+			-- <Precursor>
+		do
+			print_inline_unindented (a.when_keyword (match_list))
+			process_and_print_eiffel_list (a.interval, list_separator_leading_space)
+			print_inline_unindented (a.then_keyword (match_list))
+			print_inline_indented (a.content)
 		end
 
 	process_loop_expr_as (l_as: LOOP_EXPR_AS)
 			-- Process the loop expression `l_as'.
+		local
+			is_symbolic: BOOLEAN
 		do
 			is_expr_iteration := True
-			safe_process (l_as.iteration)
-			safe_process_and_print (l_as.invariant_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.full_invariant_list, " ", "")
-			safe_process_and_print (l_as.until_keyword (match_list), " ", "")
-			safe_process_and_print (l_as.exit_condition, " ", "")
-			safe_process_and_print (l_as.qualifier_keyword (match_list), " ", " ")
-			safe_process (l_as.expression)
-			safe_process_and_print (l_as.variant_part, " ", "")
-			safe_process_and_print (l_as.end_keyword, " ", "")
+			if
+				attached l_as.iteration as i and then
+				not attached l_as.invariant_part and then
+				not attached l_as.exit_condition and then
+				not attached l_as.variant_part
+			then
+				if
+					loop_expression_style /= loop_expression_keyword and then
+					i.is_symbolic
+				then
+						-- Keep symbolic representation.
+					print_inline (l_as.qualifier_symbol (match_list))
+					i.process (Current)
+					print_inline_indented (i.bar_symbol (match_list))
+					print_inline_indented (l_as.expression)
+					is_symbolic := True
+				elseif
+						-- Is symbolic representation requested?
+					loop_expression_style = loop_expression_symbol and then
+						-- Can the loop be written with a symbolic form?
+					can_loop_expression_be_symbolic (l_as.expression, i.identifier, i.is_restricted) and then
+						-- Are there any comments that can be lost due to transformation?
+					not match_list.has_comment (create {ERT_TOKEN_REGION}.make (i.across_keyword_or_bar_symbol_index, l_as.qualifier_index))
+				then
+						-- Use symbolic representation.
+					if attached i.across_keyword (match_list) as k then
+						process_leading_leaves_of_token (k)
+					end
+					print_string (if l_as.is_all then {STRING_32} "∀ " else {STRING_32} "∃ " end)
+					last_index := i.identifier.index - 1
+					process_id_as (i.identifier)
+					print_string (":")
+					if attached i.expression.first_token (match_list) as t then
+						last_index := t.index - 1
+					end
+					print_inline_indented (i.expression)
+					print_string (" ¦")
+					last_index := l_as.qualifier_index
+					if not i.is_restricted then
+						loop_cursors.put (i.identifier.name_id)
+					end
+					print_inline_indented (l_as.expression)
+					if not i.is_restricted then
+						loop_cursors.remove
+					end
+					if attached l_as.end_keyword as k then
+						print_comments (k.index)
+						last_index := k.index
+					end
+					is_symbolic := True
+				end
+			end
+			if not is_symbolic then
+					-- Use keyword representation.
+				safe_process (l_as.iteration)
+				safe_process_and_print (l_as.invariant_keyword (match_list), " ", "")
+				safe_process_and_print (l_as.full_invariant_list, " ", "")
+				safe_process_and_print (l_as.until_keyword (match_list), " ", "")
+				safe_process_and_print (l_as.exit_condition, " ", "")
+				safe_process_and_print (l_as.qualifier_keyword (match_list), " ", " ")
+				safe_process (l_as.expression)
+				safe_process_and_print (l_as.variant_part, " ", "")
+				safe_process_and_print (l_as.end_keyword, " ", "")
+			end
 		end
 
 	process_object_test_as (l_as: OBJECT_TEST_AS)
@@ -1592,13 +1922,96 @@ feature {AST_VISITOR} -- Expressions
 			end
 		end
 
+	process_paran_as (l_as: PARAN_AS)
+			-- <Precursor>
+		do
+			safe_process (l_as.lparan_symbol (match_list))
+			increase_indent
+			l_as.expr.process (Current)
+			decrease_indent
+			safe_process (l_as.rparan_symbol (match_list))
+		end
+
 	process_array_as (l_as: ARRAY_AS)
 			-- Process array expression `l_as'.
 		do
-			safe_process_and_print (l_as.type, "", " ")
-			safe_process (l_as.larray_symbol (match_list))
+			print_inline (l_as.type)
+			if attached l_as.type then
+					-- Make sure there is a space between the type and array open symbol.
+				print_inline_unindented (l_as.larray_symbol (match_list))
+			else
+					-- No space is required.
+				print_inline (l_as.larray_symbol (match_list))
+			end
+			increase_indent
 			print_list_inline (l_as.expressions)
-			safe_process (l_as.rarray_symbol (match_list))
+			decrease_indent
+			print_inline (l_as.rarray_symbol (match_list))
+		end
+
+feature {NONE} -- Expressions
+
+	process_binary_as_unindented (a: BINARY_AS)
+			-- Handle a binary operation `a` without indenting right operator.
+		do
+			print_inline (a.left)
+			print_inline_unindented (a.operator (match_list))
+			print_inline_unindented (a.right)
+		end
+
+	process_binary_as_indented (a: BINARY_AS)
+			-- <Precursor>
+		do
+			print_inline (a.left)
+			increase_indent
+			print_inline_unindented (a.operator (match_list))
+			print_inline_unindented (a.right)
+			decrease_indent
+		end
+
+	can_loop_expression_be_symbolic (expression: EXPR_AS; cursor: ID_AS; is_restricted: BOOLEAN): BOOLEAN
+			-- Can a loop expression `e` be represented with a symbolic form?
+		local
+			t: PRETTY_PRINTER_LOOP_TESTER
+		do
+			if is_restricted then
+					-- There is nothing to check.
+				Result := True
+			else
+				create t.make (cursor, match_list)
+				t.process (expression)
+				Result := t.can_be_symbolic
+			end
+		end
+
+feature {NONE} -- Lists in parentheses
+
+	process_paran_list_as (a: PARAN_LIST_AS [EIFFEL_LIST [AST_EIFFEL]])
+			-- Process parenthesized list `a`.
+		local
+			old_is_qualified: BOOLEAN
+			p: SYMBOL_AS
+			i: BOOLEAN
+		do
+			old_is_qualified := is_qualified
+			is_qualified := False
+			print_inline_unindented (a.lparan_symbol (match_list))
+			p := a.rparan_symbol (match_list)
+			if
+				attached a.content.last_token (match_list) as t and then
+				attached p and then
+				t.line /= p.line
+			then
+					-- Indent arguments when the closing parethesis is hanging.
+				i := True
+				increase_indent
+			end
+			print_list_inline (a.content)
+			if i then
+				decrease_indent
+			end
+			print_inline (p)
+			is_qualified := old_is_qualified
 		end
 
 feature {CLASS_AS} -- Calls
@@ -1606,19 +2019,14 @@ feature {CLASS_AS} -- Calls
 	process_access_feat_as (l_as: ACCESS_FEAT_AS)
 			-- Process feature access `l_as'.
 		do
-			safe_process (l_as.feature_name)
-			safe_process_and_print (l_as.internal_parameters, " ", "")
+			print_inline (l_as.feature_name)
+			print_inline_indented (l_as.internal_parameters)
 		end
 
-	process_parameter_list_as (l_as: PARAMETER_LIST_AS)
-			-- Process parameter list `l_as'.
+	process_parameter_list_as (a: PARAMETER_LIST_AS)
+			-- <Precursor>
 		do
-			safe_process (l_as.lparan_symbol (match_list))
-			if attached l_as.parameters.first_token (match_list) as t then
-				last_index := t.index
-			end
-			print_list_inline (l_as.parameters)
-			safe_process (l_as.rparan_symbol (match_list))
+			process_paran_list_as (a)
 		end
 
 	process_named_expression_as (a: NAMED_EXPRESSION_AS)
@@ -1631,17 +2039,24 @@ feature {CLASS_AS} -- Calls
 
 	process_access_inv_as (l_as: ACCESS_INV_AS)
 			-- Process feature access in an invariant `l_as'.
+		local
+			i: BOOLEAN
 		do
 			safe_process (l_as.dot_symbol (match_list))
-			safe_process (l_as.feature_name)
-			safe_process_and_print (l_as.internal_parameters, " ", "")
+			if has_new_line (l_as.feature_name) then
+				i := True
+				increase_indent
+			end
+			process_access_feat_as (l_as)
+			if i then
+				decrease_indent
+			end
 		end
 
 	process_access_id_as (l_as: ACCESS_ID_AS)
 			-- Process a (local, argument or feature) access `l_as'.
 		do
-			safe_process (l_as.feature_name)
-			safe_process_and_print (l_as.internal_parameters, " ", "")
+			process_access_feat_as (l_as)
 		end
 
 	process_static_access_as (l_as: STATIC_ACCESS_AS)
@@ -1650,26 +2065,65 @@ feature {CLASS_AS} -- Calls
 			safe_process_and_print (l_as.feature_keyword (match_list), "", " ")
 			safe_process (l_as.class_type)
 			safe_process (l_as.dot_symbol (match_list))
-			safe_process (l_as.feature_name)
-			safe_process_and_print (l_as.internal_parameters, " ", "")
+			process_access_feat_as (l_as)
 		end
 
 	process_precursor_as (l_as: PRECURSOR_AS)
 			-- Process precursor access `l_as'.
 		do
 			safe_process (l_as.precursor_keyword)
-			safe_process_and_print (l_as.parent_base_class, " ", "")
-			safe_process_and_print (l_as.internal_parameters, " ", "")
+			if attached l_as.parent_base_class as c then
+				print_inline_indented (c)
+			end
+			print_inline_indented (l_as.internal_parameters)
 		end
 
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
+	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 			-- Process create creation expression `l_as'.
 		do
-			safe_process_and_print (l_as.create_keyword (match_list), "", " ")
-			process_leading_leaves_of_token (l_as.type.first_token (match_list))
+			safe_process (l_as.create_keyword (match_list))
+			increase_indent
+			if not l_as.is_active then
+				print_space_separator
+				prepare_inline (l_as.type.first_token (match_list))
+			end
 			print_space_separator
-			l_as.type.process (Current)
+			print_inline (l_as.type)
+			decrease_indent
 			safe_process (l_as.call)
+		end
+
+	process_nested_expr_as (a: NESTED_EXPR_AS)
+			-- <Precursor>
+		local
+			old_is_qualified: like is_qualified
+		do
+			old_is_qualified := is_qualified
+			safe_process (a.target)
+			if
+				not old_is_qualified and then
+				not loop_cursors.is_empty and then
+				attached {EXPR_CALL_AS} a.target as c and then
+				attached {ACCESS_FEAT_AS} c.call as f and then
+				attached f.feature_name as n and then
+				loop_cursors.has (n.name_id)
+			then
+					-- This must be a call on to feature "item" on the loop cursor, remove it.
+				check
+					is_feature_call: attached a.message as m
+					has_name: attached m.feature_name as q
+					is_item: q.name_id = {PREDEFINED_NAMES}.item_name_id
+				end
+				process_leading_leaves (a.dot_symbol_index)
+				last_index := a.dot_symbol_index
+				process_leading_leaves_of_token (a.message.first_token (match_list))
+				last_index := a.message.index
+			else
+				safe_process (a.dot_symbol (match_list))
+				is_qualified := True
+				safe_process (a.message)
+				is_qualified := old_is_qualified
+			end
 		end
 
 feature {CLASS_AS} -- Types
@@ -1786,10 +2240,10 @@ feature {NONE} -- Modification
 			-- Add one space element to `indent' and process breaks (if any).
 		do
 			change_indent := agent
-				do
-					indent.append_character ('%T')
-					change_indent := agent do_nothing
-				end
+					do
+						indent.append_character ('%T')
+						change_indent := agent do_nothing
+					end
 			process_trailing_breaks
 			change_indent.apply
 		ensure
@@ -1810,10 +2264,10 @@ feature {NONE} -- Modification
 			valid_indent: not indent.is_empty
 		do
 			change_indent := agent
-				do
-					indent.remove_tail (1)
-					change_indent := agent do_nothing
-				end
+					do
+						indent.remove_tail (1)
+						change_indent := agent do_nothing
+					end
 			process_trailing_breaks
 			change_indent.apply
 		end
@@ -1825,7 +2279,7 @@ feature {NONE} -- New lines
 		do
 			if attached t and then attached t.first_token (match_list) as f then
 				Result := match_list.has_comment
-					(create {ERT_TOKEN_REGION}.make (last_index, f.index))
+						(create {ERT_TOKEN_REGION}.make (last_index, f.index))
 			end
 		end
 
@@ -1857,6 +2311,33 @@ feature {NONE} -- Comments
 	change_indent: PROCEDURE
 			-- Procedure to change `indent'.
 
+	print_comments (index: INTEGER_32)
+			-- Process all not-processed leading leaves in match_list before index `index` ignoring the last new line if any.
+			-- Same as `process_leading_leaves` except for last new line processing rules.
+		require
+			valid_index: index >= start_index and then index <= end_index
+		local
+			i: INTEGER_32
+			old_line_processing: like line_processing
+		do
+			if will_process_leading_leaves then
+				from
+					i := last_index + 1
+				until
+					i >= index
+				loop
+					if i + 1 = index then
+							-- Ignore last new line.
+						old_line_processing := line_processing
+						line_processing := line_inline
+					end
+					safe_process (match_list.i_th (i))
+					line_processing := old_line_processing
+					i := i + 1
+				end
+			end
+		end
+
 	print_comment (s: READABLE_STRING_32)
 			-- Print the comment string `s'.
 		require
@@ -1868,6 +2349,7 @@ feature {NONE} -- Comments
 			inline_comment: BOOLEAN
 			c: CHARACTER_32
 			line: STRING_32
+			is_indented: BOOLEAN
 		do
 				-- The string can hold multiple comments, starting with '--'.
 				-- Remove all '%N' and '%R' characters before and after each comment line.
@@ -1890,6 +2372,9 @@ feature {NONE} -- Comments
 					if s [i] = '%N' then
 						print_new_line
 						inline_comment := False
+						is_indented := False
+					elseif is_white_space (s [i]) then
+						is_indented := True
 					end
 					i := i + 1
 				end
@@ -1898,18 +2383,18 @@ feature {NONE} -- Comments
 						-- It may use different indentation.
 					change_indent.apply
 				end
-				if not inline_comment then
-						-- The comment starts on a new line.
-					line := "%T" + indent
-				elseif not white_space_chars.has (last_printed) then
-						-- The inline comment should be separated
-						-- from the previous token by a white space.
+				if inline_comment and not is_white_space (last_printed) then
+						-- The inline comment should be separated from the previous token by a white space.
 					line := " "
+				elseif not inline_comment and (is_indented or not is_unindented_comment_kept) then
+						-- The comment starts on a new line with computed indentation.
+						-- The comment is originally indended or all comments are requested to be indented.
+					line := {STRING_32} "%T" + indent
 				else
 						-- The inline comment is already separated by a white space.
+						-- The non-inline comment is unindented and kept unindended by request.
 					line := ""
 				end
-
 					-- Look for end of line.
 				from
 				until
@@ -1922,7 +2407,7 @@ feature {NONE} -- Comments
 					-- Remove trailing white spaces.
 				from
 				until
-					line.is_empty or else not white_space_chars.has (line [line.count])
+					line.is_empty or else not is_white_space (line [line.count])
 				loop
 					line.remove_tail (1)
 				end
@@ -1938,6 +2423,7 @@ feature {NONE} -- Comments
 				if l_start_idx = 0 then
 					l_start_idx := n
 				end
+				is_indented := False
 
 					-- Check if the comments are separated with additional new lines.
 				if i < l_start_idx then
@@ -1957,10 +2443,15 @@ feature {NONE} -- Comments
 								-- There are multiple new lines.
 								-- Collapse them into one empty new line.
 							print_new_line
-							i := l_start_idx
-						else
-							i := i + 1
+							is_indented := False
+								-- Make sure this branch is never taken again.
+							c := c.max_value.to_character_32
+						elseif is_white_space (s [i]) then
+							is_indented := True
+						elseif new_line_chars.has (s [i]) then
+							is_indented := False
 						end
+						i := i + 1
 					end
 				end
 
@@ -1972,21 +2463,31 @@ feature {NONE} -- Comments
 			end
 		end
 
-	white_space_chars: STRING_32 = " %T"
-			-- Characters that can be safely removed when they appear at end of a line.
-
 	new_line_chars: STRING_32 = "%N%R"
 			-- Characters that denote an end of a line.
+
+feature {NONE} -- Status report
+
+	is_white_space (c: CHARACTER_32): BOOLEAN
+			-- Is `c` a white space character?
+			-- If yes, such a character can be safely removed when it appears at the end of a line.
+		do
+			Result := is_space (c) and then not new_line_chars.has (c)
+		end
 
 invariant
 	out_stream_attached: out_stream /= Void
 	indent_attached: attached indent
 
+	is_loop_expression_style (loop_expression_style)
+	is_line_processing (line_processing)
+
 note
+	ca_ignore: "CA033", "CA033: very large class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
-	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

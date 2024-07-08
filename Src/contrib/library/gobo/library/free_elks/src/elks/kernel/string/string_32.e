@@ -24,19 +24,33 @@ inherit
 		rename
 			append as append_string_general,
 			append_substring as append_substring_general,
+			ends_with as ends_with_general,
+			is_case_insensitive_equal as is_case_insensitive_equal_general,
+			plus as plus_general,
 			prepend as prepend_string_general,
 			prepend_substring as prepend_substring_general,
-			same_string as same_string_general,
-			same_characters as same_characters_general,
 			same_caseless_characters as same_caseless_characters_general,
-			starts_with as starts_with_general,
-			ends_with as ends_with_general,
-			is_case_insensitive_equal as is_case_insensitive_equal_general
+			same_characters as same_characters_general,
+			same_string as same_string_general,
+			starts_with as starts_with_general
 		undefine
 			copy, is_equal, out, has, index_of, last_index_of, occurrences
 		redefine
 			append_string_general,
 			prepend_string_general
+		end
+
+	DYNAMIC_TABLE [CHARACTER_32, INTEGER]
+		rename
+			force as put,
+			valid_key as valid_index
+		undefine
+			copy,
+			is_equal,
+			out
+		redefine
+			prune_all,
+			changeable_comparison_criterion
 		end
 
 	INDEXABLE [CHARACTER_32, INTEGER]
@@ -81,6 +95,7 @@ create
 	make_from_string_general,
 	make_from_c,
 	make_from_c_pointer,
+	make_from_c_byte_array,
 	make_from_cil,
 	make_from_separate
 
@@ -177,7 +192,7 @@ feature -- Initialization
 	remake (n: INTEGER)
 			-- Allocate space for at least `n' characters.
 		obsolete
-			"Use `make' instead"
+			"Use `make' instead. [2017-05-31]"
 		require
 			non_negative_size: n >= 0
 		do
@@ -204,7 +219,7 @@ feature -- Access
 	item_code (i: INTEGER): INTEGER
 			-- Character at position `i'
 		obsolete
-			"Due to potential truncation it is recommended to use `code (i)' instead."
+			"Due to potential truncation it is recommended to use `code (i)' instead. [2017-05-31]"
 		do
 			Result := area.item (i - 1).natural_32_code.as_integer_32
 		end
@@ -216,12 +231,6 @@ feature -- Status report
 
 	extendible: BOOLEAN = True
 			-- May new items be added? (Answer: yes.)
-
-	prunable: BOOLEAN
-			-- May items be removed? (Answer: yes.)
-		do
-			Result := True
-		end
 
 	changeable_comparison_criterion: BOOLEAN = False
 
@@ -250,20 +259,20 @@ feature -- Element change
 			other_not_void: other /= Void
 			valid_start_pos: other.valid_index (start_pos)
 			valid_end_pos: other.valid_index (end_pos)
-			valid_bounds: (start_pos <= end_pos) or (start_pos = end_pos + 1)
+			valid_bounds: start_pos <= end_pos or start_pos = end_pos + 1
 			valid_index_pos: valid_index (index_pos)
-			enough_space: (count - index_pos) >= (end_pos - start_pos)
+			enough_space: count - index_pos >= end_pos - start_pos
 		local
 			l_other_area, l_area: like area
 		do
 			if end_pos >= start_pos then
 				l_other_area := other.area
 				l_area := area
-				if l_area /= l_other_area then
-					l_area.copy_data (l_other_area, start_pos - 1, index_pos - 1,
+				if l_area = l_other_area then
+					l_area.overlapping_move (start_pos - 1, index_pos - 1,
 						end_pos - start_pos + 1)
 				else
-					l_area.overlapping_move (start_pos - 1, index_pos - 1,
+					l_area.copy_data (l_other_area, start_pos - 1, index_pos - 1,
 						end_pos - start_pos + 1)
 				end
 				reset_hash_codes
@@ -470,7 +479,7 @@ feature -- Element change
 	replace_character (c: CHARACTER_32)
 			-- Replace every character with `c'.
 		obsolete
-			"ELKS 2001: use `fill_with' instead'"
+			"ELKS 2001: use `fill_with' instead'. [2017-05-31]"
 		do
 			fill_with (c)
 		ensure
@@ -682,7 +691,7 @@ feature -- Element change
 			prepend_string_general (b.out)
 		end
 
-	prepend_double (d: DOUBLE)
+	prepend_double (d: REAL_64)
 			-- Prepend the string representation of `d' at front.
 		do
 			prepend_string_general (d.out)
@@ -694,7 +703,7 @@ feature -- Element change
 			prepend_string_general (i.out)
 		end
 
-	prepend_real (r: REAL)
+	prepend_real (r: REAL_32)
 			-- Prepend the string representation of `r' at front.
 		do
 			prepend_string_general (r.out)
@@ -767,14 +776,6 @@ feature -- Element change
 			appended: elks_checking implies same_string (old (Current + s.substring (start_index, end_index)))
 		end
 
-	plus alias "+" (s: READABLE_STRING_GENERAL): like Current
-			-- <Precursor>
-		do
-			Result := new_string (count + s.count)
-			Result.append (Current)
-			Result.append_string_general (s)
-		end
-
 	append_string (s: detachable READABLE_STRING_32)
 			-- Append a copy of `s', if not void, at end.
 		do
@@ -817,7 +818,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -868,7 +869,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -919,7 +920,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -970,7 +971,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -1008,7 +1009,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -1046,7 +1047,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10+ 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -1084,7 +1085,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -1122,7 +1123,7 @@ feature -- Element change
 				until
 					l_value = 0
 				loop
-					append_character (((l_value \\ 10)+ 48).to_character_32)
+					append_character ((l_value \\ 10 + 48).to_character_32)
 					l_value := l_value // 10
 				end
 
@@ -1142,13 +1143,13 @@ feature -- Element change
 			end
 		end
 
-	append_real (r: REAL)
+	append_real (r: REAL_32)
 			-- Append the string representation of `r' at end.
 		do
 			append_string_general (r.out)
 		end
 
-	append_double (d: DOUBLE)
+	append_double (d: REAL_64)
 			-- Append the string representation of `d' at end.
 		do
 			append_string_general (d.out)
@@ -1181,7 +1182,7 @@ feature -- Element change
 	insert (s: READABLE_STRING_32; i: INTEGER)
 			-- Add `s' to left of position `i' in current string.
 		obsolete
-			"ELKS 2001: use `insert_string' instead"
+			"ELKS 2001: use `insert_string' instead. [2017-05-31]"
 		require
 			string_exists: s /= Void
 			index_small_enough: i <= count + 1
@@ -1264,6 +1265,24 @@ feature -- Element change
 			stable_after_i: elks_checking implies substring (i + 1, count) ~ (old substring (i, count))
 		end
 
+feature -- Basic operations
+
+	plus alias "+" (s: READABLE_STRING_32): like Current
+			-- <Precursor>
+		do
+			Result := new_string (count + s.count)
+			Result.append (Current)
+			Result.append (s)
+		end
+
+	plus_general (s: READABLE_STRING_GENERAL): like Current
+			-- <Precursor>
+		do
+			Result := new_string (count + s.count)
+			Result.append (Current)
+			Result.append_string_general (s)
+		end
+
 feature -- Removal
 
 	remove (i: INTEGER)
@@ -1282,8 +1301,6 @@ feature -- Removal
 	remove_head (n: INTEGER)
 			-- Remove first `n' characters;
 			-- if `n' > `count', remove all.
-		require
-			n_non_negative: n >= 0
 		do
 			if n > count then
 				count := 0
@@ -1291,17 +1308,11 @@ feature -- Removal
 			else
 				keep_tail (count - n)
 			end
-		ensure
-			removed: elks_checking implies Current ~ (old substring (n.min (count) + 1, count))
 		end
 
 	remove_substring (start_index, end_index: INTEGER)
 			-- Remove all characters from `start_index'
 			-- to `end_index' inclusive.
-		require
-			valid_start_index: 1 <= start_index
-			valid_end_index: end_index <= count
-			meaningful_interval: start_index <= end_index + 1
 		local
 			l_count, nb_removed: INTEGER
 		do
@@ -1312,15 +1323,11 @@ feature -- Removal
 				count := l_count - nb_removed
 				reset_hash_codes
 			end
-		ensure
-			removed: elks_checking implies Current ~ (old substring (1, start_index - 1) + old substring (end_index + 1, count))
 		end
 
 	remove_tail (n: INTEGER)
 			-- Remove last `n' characters;
 			-- if `n' > `count', remove all.
-		require
-			n_non_negative: n >= 0
 		local
 			l_count: INTEGER
 		do
@@ -1331,8 +1338,6 @@ feature -- Removal
 			else
 				keep_head (l_count - n)
 			end
-		ensure
-			removed: elks_checking implies Current ~ (old substring (1, count - n.min (count)))
 		end
 
 	prune (c: CHARACTER_32)
@@ -1412,15 +1417,12 @@ feature -- Removal
 		do
 			count := 0
 			reset_hash_codes
-		ensure then
-			is_empty: count = 0
-			same_capacity: capacity = old capacity
 		end
 
 	clear_all
 			-- Reset all characters.
 		obsolete
-			"Use `wipe_out' instead."
+			"Use `wipe_out' instead. [2017-05-31]"
 		do
 			count := 0
 			reset_hash_codes
@@ -1806,7 +1808,7 @@ invariant
 	compare_character: not object_comparison
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

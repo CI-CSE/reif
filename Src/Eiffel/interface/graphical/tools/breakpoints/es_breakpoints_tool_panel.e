@@ -104,7 +104,6 @@ feature {NONE} -- Initialization
 			g.set_configurable_target_menu_mode
 			g.set_configurable_target_menu_handler (agent (develop_window.menus.context_menu_factory).standard_compiler_item_menu)
 
-			load_preferences
 		end
 
 	create_filter_bar (a_widget: EV_BOX)
@@ -185,36 +184,14 @@ feature {NONE} -- Initialization
 			enable_sorting
 
 				-- Set button states based on session data
-			if attached develop_window_session_data as w_session_data then
-				if attached {STRING} w_session_data.value (columns_sorting_data_session_id) as s then
-					grid_wrapper.set_sorting_status (grid_wrapper.sorted_columns_from_string (s))
-				end
+			if
+				attached develop_window_session_data as w_session_data and then
+				attached {STRING} w_session_data.value (columns_sorting_data_session_id) as s
+			then
+				grid_wrapper.set_sorting_status (grid_wrapper.sorted_columns_from_string (s))
 			end
 
 			update
-		end
-
-	load_preferences
-			-- Load preferences
-		require
-			grid_attached: grid /= Void
-		local
-			colp: COLOR_PREFERENCE
-		do
-			colp := preferences.debug_tool_data.grid_background_color_preference
-			grid.set_background_color (colp.value)
-			register_action (colp.typed_change_actions, agent (c: EV_COLOR)
-					do
-						grid.set_background_color (c)
-					end
-				)
-			colp := preferences.debug_tool_data.grid_foreground_color_preference
-			grid.set_foreground_color (colp.value)
-			register_action (colp.typed_change_actions, agent (c: EV_COLOR)
-					do
-						grid.set_foreground_color (c)
-					end
-				)
 		end
 
 feature -- Access: Help
@@ -255,7 +232,7 @@ feature -- Widgets
 	filter_bar: EV_HORIZONTAL_BOX
 			-- Filter bar
 
-	grid: ES_GRID
+	grid: ES_IDE_GRID
 			-- Grid containing the breakpoints list.
 
 	grid_wrapper: EVS_GRID_WRAPPER [EV_GRID_ROW]
@@ -715,7 +692,6 @@ feature {NONE} -- Impl filling
 		require
 			not grid.is_tree_enabled
 		local
-			bp: BREAKPOINT
 			r: INTEGER
 		do
 			from
@@ -725,8 +701,7 @@ feature {NONE} -- Impl filling
 			until
 				bps.after
 			loop
-				bp := bps.item_for_iteration
-				grid.row (r).set_data (bp)
+				grid.row (r).set_data (bps.item_for_iteration)
 				r := r + 1
 				bps.forth
 			end
@@ -746,9 +721,7 @@ feature {NONE} -- Impl filling
 			stwl: PART_SORTED_TWO_WAY_LIST [E_FEATURE]
 			f: E_FEATURE
 			c: CLASS_C
-			bp_list: LIST [INTEGER]
 			has_bp: BOOLEAN
-			cs: CLASSC_STONE
 			bpm: BREAKPOINTS_MANAGER
 		do
 				--| Prepare data .. mainly sorting
@@ -788,8 +761,7 @@ feature {NONE} -- Impl filling
 				loop
 					f := stwl.item
 					if bpm.is_feature_breakable (f) then
-						bp_list := bpm.breakpoints_set_for (f, False)
-						has_bp := not bp_list.is_empty
+						has_bp := not bpm.breakpoints_set_for (f, False).is_empty
 					end
 					stwl.forth
 				end
@@ -797,8 +769,7 @@ feature {NONE} -- Impl filling
 				if has_bp then
 					create lab.make_with_text (c.name_in_upper)
 					lab.set_foreground_color (class_color)
-					create cs.make (c)
-					lab.set_data (cs)
+					lab.set_data (create {CLASSC_STONE}.make (c))
 
 					r := grid.row_count + 1
 					grid.insert_new_row (r)
@@ -840,7 +811,6 @@ feature {NONE} -- Impl filling
 			lab: EV_GRID_LABEL_ITEM
 			first_bp: BOOLEAN
 			i: INTEGER
-			fs: FEATURE_STONE
 			bp: BREAKPOINT
 			bpm: BREAKPOINTS_MANAGER
 			loc: BREAKPOINT_LOCATION
@@ -855,8 +825,7 @@ feature {NONE} -- Impl filling
 
 				create lab.make_with_text (f.name_32)
 				lab.set_foreground_color (feature_color)
-				create fs.make (f)
-				lab.set_data (fs)
+				lab.set_data (create {FEATURE_STONE}.make (f))
 
 				if filter_enabled then
 					l_filter := filter
@@ -923,15 +892,13 @@ feature {NONE} -- Impl filling
 
 	insert_metrics
 		local
-			bpm: BREAKPOINTS_MANAGER
 			t: TUPLE [total: INTEGER; not_set: INTEGER; enabled: INTEGER; hidden_enabled: INTEGER; disabled: INTEGER; hidden_disabled: INTEGER]
 			splab: EV_GRID_SPAN_LABEL_ITEM
 			s: STRING
 			i: INTEGER
 		do
 			debug("breakpoint")
-				bpm := breakpoints_manager
-				t := bpm.metrics
+				t := breakpoints_manager.metrics
 				if t /= Void then
 					s := ""
 					s.append_string ("total=" + t.total.out)
@@ -971,7 +938,7 @@ feature {NONE} -- Impl filling
 				print ("breakpoints.count=" + breakpoints_manager.breakpoints.count.out + "%N")
 				breakpoints_manager.breakpoints.linear_representation.do_all (agent (abp: BREAKPOINT)
 						do
-							print (abp.string_representation (True) + "%N")
+							localized_print (abp.string_representation (True) + "%N")
 						end
 					)
 			end
@@ -1083,7 +1050,7 @@ feature {NONE} -- Dynamic item filling
 					if bp.has_tags then
 						t.append_character ('%N')
 						t.append_string_general ("Tags: ")
-						bp.tags.do_all (agent (atag: STRING_32; astr: STRING)
+						bp.tags.do_all (agent (atag: STRING_32; astr: STRING_32)
 								do
 									if atag /= Void then
 										astr.append (atag + ", ")
@@ -1099,7 +1066,8 @@ feature {NONE} -- Dynamic item filling
 					if bp.has_condition then
 						t.append_character ('%N')
 						t.append_string_general (interface_names.l_condition)
-						t.append_string (": " + bp.condition.text)
+						t.append_string_general (": ")
+						t.append_string (bp.condition.text)
 					end
 					if bp.has_when_hits_action then
 						t.append_character ('%N')
@@ -1370,13 +1338,14 @@ feature {NONE} -- Implementation, cosmetic
 	Disabled_conditional_bp_symbol: STRING = "*-"
 			-- Disable conditional breakpoint symbol.
 
-	Breakable_icons: ES_PIXMAPS_12X12
+	Breakable_icons: ES_SMALL_ICONS
 			-- Breakable icons.
-		local
-			l_shared: EB_SHARED_PIXMAPS
-		once
-			create l_shared
-			Result := l_shared.small_pixmaps
+		do
+				-- TODO review
+				-- update once feature to load pixmaps based monitor dpi.
+				-- using object-less call
+				-- Date: 05/24/2019
+			Result := {EB_SHARED_PIXMAPS}.small_pixmaps
 		ensure
 			result_attached: Result /= Void
 		end
@@ -1413,7 +1382,7 @@ feature {NONE} -- Implementation, cosmetic
 			-- Row highlight background color.
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

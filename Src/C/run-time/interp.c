@@ -2,7 +2,7 @@
 	description: "The byte code interpreter."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2016, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2020, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -208,7 +208,8 @@ rt_private void eif_interp_eq (EIF_TYPED_VALUE *f, EIF_TYPED_VALUE *s);			/* == 
 rt_private void eif_three_way_comparison (void);	/* Execute `three_way_comparison'. */
 rt_private void eif_interp_min_max (int code);	/* Execute `min' or `max' depending
 														   on value of `type' */
-rt_private void eif_interp_generator (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top);	/* generate the name of the basic type */
+rt_private void eif_interp_generator__s1 (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top);	/* generate the 8-bit name of the basic type */
+rt_private void eif_interp_generator__s4 (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top);	/* generate the 32-bit name of the basic type */
 rt_private void eif_interp_offset (void);	/* execute `offset' on character and pointer type */
 rt_private void eif_interp_bit_operations (void);	/* execute bit operations on integers */
 rt_private void eif_interp_builtins (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top); /* execute basic operations on basic types */
@@ -1535,7 +1536,7 @@ rt_private void interpret(int flag, int where)
 		dprintf(2)("BC_RASSIGN\n");
 #endif
 
-		RTDBGA_LOCAL(icurrent->it_ref,0,rtype,0,1);
+		RTDBGA_LOCAL(0,rtype,0,1);
 		memcpy (iresult, eif_opstack_pop_address(&op_stack), ITEM_SZ);
 		/* Register once function if needed. This has to be done constantly
 		 * whenever the Result is changed, in case the once calls another
@@ -1559,7 +1560,7 @@ rt_private void interpret(int flag, int where)
 			if (ref == NULL)
 				xraise(EN_VEXP);	/* Void assigned to expanded */
 
-			RTDBGA_LOCAL(icurrent->it_ref,0,rtype,1,1);
+			RTDBGA_LOCAL(0,rtype,1,1);
 			eif_std_ref_copy(ref, iresult->it_ref);
 			if (is_process_or_thread_relative_once) {
 				last = iresult;
@@ -1583,7 +1584,7 @@ rt_private void interpret(int flag, int where)
 		dprintf(2)("BC_LASSIGN\n");
 #endif
 		code = get_int16(&IC);		/* Get the local number (from 1 to locnum) */
-		RTDBGA_LOCAL(icurrent->it_ref,code,loc (code)->type,0,1);
+		RTDBGA_LOCAL(code,loc (code)->type,0,1);
 		memcpy (loc (code) , eif_opstack_pop_address(&op_stack), ITEM_SZ);
 		break;
 
@@ -1600,7 +1601,7 @@ rt_private void interpret(int flag, int where)
 				xraise(EN_VEXP);	/* Void assigned to expanded */
 			}
 			code = get_int16(&IC);		/* Get the local # (from 1 to locnum) */
-			RTDBGA_LOCAL(icurrent->it_ref,code,loc(code)->type,1,1);
+			RTDBGA_LOCAL(code,loc(code)->type,1,1);
 			eif_std_ref_copy(ref, loc(code)->it_ref);		/* Copy */
 		}
 		break;
@@ -2435,7 +2436,7 @@ rt_private void interpret(int flag, int where)
 #endif
 	 			get_uint16 (&IC);    /* Number of arguments.  */
 #ifdef EIF_THREADS
-	 		EIF_BOOLEAN q =
+	 		EIF_NATURAL_8 scoop_call_flags =
 #endif
 	 			get_bool (&IC); /* Indicator of a query or of an active region creation. */
 
@@ -2552,7 +2553,7 @@ rt_private void interpret(int flag, int where)
 					/* Check if this is indeed a separate call. */
 				if (code == BC_CREATION) {
 						/* Associate new region with the target of a call. */
-					if (q) {
+					if (scoop_call_flags & SCOOP_CALL_MASK_ACTIVE_CREATION) {
 							/* Create a new active region. */
 						RTS_PA (target -> it_ref);
 					}
@@ -2586,27 +2587,23 @@ rt_private void interpret(int flag, int where)
 				case BC_EXTERN_INV:
 				case BC_FEATURE_INV:
 					string = get_string8(&IC, -1); /* Get the feature name. */
-					routine_id = get_int32(&IC);   /* Get the routine_id. */
-					GET_PTYPE;                     /* Get precursor type. */
-					OLD_IC = IC;
-					if (q) {
-						last = eif_opstack_push_empty(&op_stack);    /* Allocate a cell to store result of a call. */
-						last -> type = SK_POINTER;                  /* Avoid GC on result until it is ready.      */
-						RTS_CALL (routine_id, SK_POINTER);           /* Make a separate call to a function. */
-						*last = l_scoop_result;
-					} else {
-						RTS_CALL (routine_id, SK_VOID);  /* Make a separate call to a procedure. */
-					}
 					break;
 				case BC_CREATION:
-					routine_id = get_int32(&IC);       /* Get the feature id. */
-					GET_PTYPE;                         /* Get precursor type. */
-					OLD_IC = IC;
-					RTS_CALL (routine_id, SK_VOID);    /* Make a separate call to a creation procedure. */
 					break;
 				default:
 					OLD_IC  = IC;
 					eif_panic(MTC "illegal separate opcode");
+				}
+				routine_id = get_int32(&IC); /* Get the routine_id. */
+				GET_PTYPE;                   /* Get precursor type. */
+				OLD_IC = IC;
+				if (scoop_call_flags & SCOOP_CALL_MASK_QUERY) {
+					last = eif_opstack_push_empty(&op_stack);   /* Allocate a cell to store result of a call. */
+					last -> type = SK_POINTER;                  /* Avoid GC on result until it is ready.      */
+					RTS_CALL (routine_id, SK_POINTER);          /* Make a separate call to a function. */
+					*last = l_scoop_result;
+				} else {
+					RTS_CALL (routine_id, SK_VOID);  /* Make a separate call to a procedure. */
 				}
 				if (tagval != stagval)		/* Interpreted function called */
 					sync_registers(MTC scur, stop);
@@ -3606,6 +3603,72 @@ rt_private void interpret(int flag, int where)
 		}
 
 	/*
+	 * Once manifest IMMUTABLE_STRING_8 .
+	 */
+	case BC_ONCE_IMMSTRING8:
+#ifdef DEBUG
+		dprintf(2)("BC_ONCE_IMMSTRING8\n");
+#endif
+		{
+			unsigned long stagval;
+			unsigned char *OLD_IC;
+			int32 body_index;	/* routine body index */
+			int32 number;	/* number of the once manifest string in routine body */
+			int32 length;	/* nubmer of bytes of once manifest string */
+
+			stagval = tagval;
+			body_index = get_int32(&IC);	/* Get routine body index */
+			number = get_int32(&IC);	/* Get number of the once manifest string in the routine body */
+			length = get_int32(&IC);
+			string = get_string8(&IC, length);	/* Get string of specified length. */
+
+			last = eif_opstack_push_empty(&op_stack);
+			last->type = SK_REF;
+
+			OLD_IC = IC;
+			RTCOMIS8 (last->it_ref, body_index, number, (char *) string, length, 0);
+			IC = OLD_IC;
+
+			if (tagval != stagval) {
+				sync_registers(MTC scur,stop);
+			}
+			break;
+		}
+
+	/*
+	 * Once manifest IMMUTABLE_STRING_32.
+	 */
+	case BC_ONCE_IMMSTRING32:
+#ifdef DEBUG
+		dprintf(2)("BC_ONCE_IMMSTRING32\n");
+#endif
+		{
+			unsigned long stagval;
+			unsigned char *OLD_IC;
+			int32 body_index;	/* routine body index */
+			int32 number;	/* number of the once manifest string in routine body */
+			int32 length;	/* nubmer of bytes of once manifest string */
+
+			stagval = tagval;
+			body_index = get_int32(&IC);	/* Get routine body index */
+			number = get_int32(&IC);	/* Get number of the once manifest string in the routine body */
+			length = get_int32(&IC);
+			string = get_string8(&IC, length);	/* Get string of specified length. */
+
+			last = eif_opstack_push_empty(&op_stack);
+			last->type = SK_REF;
+
+			OLD_IC = IC;
+			RTCOMIS32 (last->it_ref, body_index, number, (char *) string, length / sizeof (EIF_CHARACTER_32), 0);
+			IC = OLD_IC;
+
+			if (tagval != stagval) {
+				sync_registers(MTC scur,stop);
+			}
+			break;
+		}
+
+	/*
 	 * Allocate space to store once manifest strings.
 	 */
 	case BC_ALLOCATE_ONCE_STRINGS:
@@ -3691,6 +3754,77 @@ rt_private void interpret(int flag, int where)
 
 			OLD_IC = IC;
 			str_obj = RTMS32_EX((char *) string, length / sizeof (EIF_CHARACTER_32));
+			IC = OLD_IC;
+
+			last->type = SK_REF;
+			last->it_ref = str_obj;
+			if (tagval != stagval)
+				sync_registers(MTC scur,stop);
+			break;
+		}
+
+	/*
+	 * Manifest IMMUTABLE_STRING_8.
+	 */
+	case BC_IMMSTRING8:
+#ifdef DEBUG
+		dprintf(2)("BC_IMMSTRING8\n");
+#endif
+		{
+			EIF_REFERENCE str_obj;			  /* String object created */
+			unsigned long stagval;
+			unsigned char *OLD_IC;
+			int32 length;						/* number of bytes of the manifest string */
+
+			stagval = tagval;
+
+			length = get_int32(&IC);
+			string = get_string8(&IC, length);	/* Get string of specified length. */
+			last = eif_opstack_push_empty(&op_stack);
+			last->type = SK_INT32;		/* Protect empty cell from GC */
+
+			/* We have to use the str_obj temporary variable instead of doing
+			 * the assignment directly into last->it_ref because the GC might
+			 * run a cycle when makestr() is called...
+			 */
+
+			OLD_IC = IC;
+			str_obj = RTMIS8_EX((char *) string, length);
+			IC = OLD_IC;
+
+			last->type = SK_REF;
+			last->it_ref = str_obj;
+			if (tagval != stagval)
+				sync_registers(MTC scur,stop);
+			break;
+		}		
+	/*
+	 * Manifest IMMUTABLE_STRING_32.
+	 */
+	case BC_IMMSTRING32:
+#ifdef DEBUG
+		dprintf(2)("BC_IMMSTRING32\n");
+#endif
+		{
+			EIF_REFERENCE str_obj;			  /* String object created */
+			unsigned long stagval;
+			unsigned char *OLD_IC;
+			int32 length;						/* number of bytes of the manifest string */
+
+			stagval = tagval;
+
+			length = get_int32(&IC);
+			string = get_string8(&IC, length);	/* Get string of specified length. */
+			last = eif_opstack_push_empty(&op_stack);
+			last->type = SK_INT32;		/* Protect empty cell from GC */
+
+			/* We have to use the str_obj temporary variable instead of doing
+			 * the assignment directly into last->it_ref because the GC might
+			 * run a cycle when makestr() is called...
+			 */
+
+			OLD_IC = IC;
+			str_obj = RTMIS32_EX((char *) string, length / sizeof (EIF_CHARACTER_32));
 			IC = OLD_IC;
 
 			last->type = SK_REF;
@@ -4288,14 +4422,14 @@ rt_private void diadic_op(int code)
 
 	/* Minus operation. */
 	case BC_MINUS: {
-		uint32 sk_type = s->type & SK_HEAD;
+		uint32 sk_type = f->type & SK_HEAD;
 			/* Special case for `-' from CHARACTER_8 and CHARACTER_32 class. */
-		if ((f->type & SK_HEAD) == SK_CHAR8) {
-			CHECK ("right operand is INTEGER_32", sk_type == SK_INT32);
+		if (sk_type == SK_CHAR8) {
+			CHECK ("right operand is INTEGER_32", (s->type & SK_HEAD) == SK_INT32);
 			f->it_char = f->it_char - (EIF_CHARACTER_8) s->it_int32;
-		} else if ((f->type & SK_HEAD) == SK_CHAR32) {
-			CHECK ("right operand is INTEGER_32", sk_type == SK_INT32);
-			f->it_wchar = f->it_wchar - s->it_int32;
+		} else if (sk_type == SK_CHAR32) {
+			CHECK ("right operand is NATURAL_32", (s->type & SK_HEAD) == SK_UINT32);
+			f->it_wchar = f->it_wchar - s->it_uint32;
 		} else {
 				/* Normal case of substraction between numeric types. */
 			CHECK ("same_type", (f->type & SK_HEAD) == (s->type & SK_HEAD));
@@ -4318,13 +4452,13 @@ rt_private void diadic_op(int code)
 
 	/* Plus operator. */
 	case BC_PLUS: {
-		uint32 sk_type = s->type & SK_HEAD;
+		uint32 sk_type = f->type & SK_HEAD;
 			/* Special case for `+' from CHARACTER_8 and CHARACTER_32 class. */
-		if ((f->type & SK_HEAD) == SK_CHAR8) {
-			CHECK ("right operand is INTEGER_32", sk_type == SK_INT32);
+		if (sk_type == SK_CHAR8) {
+			CHECK ("right operand is INTEGER_32", (s->type & SK_HEAD) == SK_INT32);
 			f->it_char = f->it_char + (EIF_CHARACTER_8) s->it_int32;
-		} else if ((f->type & SK_HEAD) == SK_CHAR32) {
-			CHECK ("right operand is NATURAL_32", sk_type == SK_UINT32);
+		} else if (sk_type == SK_CHAR32) {
+			CHECK ("right operand is NATURAL_32", (s->type & SK_HEAD) == SK_UINT32);
 			f->it_wchar = f->it_wchar + s->it_uint32;
 		} else {
 				/* Normal case of addition between numeric types. */
@@ -4615,7 +4749,7 @@ rt_private void eif_interp_eq (EIF_TYPED_VALUE *f, EIF_TYPED_VALUE *s) {
 	f->type = SK_BOOL;		/* Result is a boolean */
 }
 
-rt_private void eif_interp_generator (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top)
+rt_private void eif_interp_generator__s1 (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top)
 {
 	/* Execute the `generator' or `generating_type' function call for basic types
 	 * in melted code
@@ -4645,6 +4779,47 @@ rt_private void eif_interp_generator (struct stopchunk *stack_cur, EIF_TYPED_VAL
 		case SK_REAL32: first->it_ref = RTMS_EX("REAL_32", 7); break;
 		case SK_REAL64: first->it_ref = RTMS_EX("REAL_64", 7); break;
 		case SK_POINTER: first->it_ref = RTMS_EX("POINTER", 7); break;
+		default: eif_panic(MTC RT_BOTCHED_MSG);
+	}
+	first->type = SK_REF;
+
+	IC = OLD_IC;
+	if (tagval != stagval) {		/* previous call can call malloc which may call the interpreter for
+								   creation routines. */
+		sync_registers(stack_cur, stack_top);
+	}
+}
+
+rt_private void eif_interp_generator__s4 (struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top)
+{
+	/* Execute the `generator' or `generating_type' function call for basic types
+	 * in melted code
+	 */
+	EIF_GET_CONTEXT
+	RT_GET_CONTEXT
+	EIF_TYPED_VALUE *first;			/* First operand */
+	unsigned char *OLD_IC = IC;
+	unsigned long stagval = tagval;	/* Tag value backup */
+
+	OLD_IC = IC;
+
+	first = EIF_STACK_TOP_ADDRESS(op_stack);				/* First operand will be replace by result */
+	CHECK("first not null", first);
+	switch (first->type & SK_HEAD) {
+		case SK_BOOL:    first->it_ref = RTMS32_EX("B\0\0\0O\0\0\0O\0\0\0L\0\0\0E\0\0\0A\0\0\0N\0\0\0", 7); break;
+		case SK_CHAR8:   first->it_ref = RTMS32_EX("C\0\0\0H\0\0\0A\0\0\0R\0\0\0A\0\0\0C\0\0\0T\0\0\0E\0\0\0R\0\0\0_\0\0\0" "8\0\0\0", 11); break;
+		case SK_CHAR32:  first->it_ref = RTMS32_EX("C\0\0\0H\0\0\0A\0\0\0R\0\0\0A\0\0\0C\0\0\0T\0\0\0E\0\0\0R\0\0\0_\0\0\0" "3\0\0\0" "2\0\0\0", 12); break;
+		case SK_UINT8:   first->it_ref = RTMS32_EX("N\0\0\0A\0\0\0T\0\0\0U\0\0\0R\0\0\0A\0\0\0L\0\0\0_\0\0\0" "8\0\0\0", 9); break;
+		case SK_UINT16:  first->it_ref = RTMS32_EX("N\0\0\0A\0\0\0T\0\0\0U\0\0\0R\0\0\0A\0\0\0L\0\0\0_\0\0\0" "1\0\0\0" "6\0\0\0", 10); break;
+		case SK_UINT32:  first->it_ref = RTMS32_EX("N\0\0\0A\0\0\0T\0\0\0U\0\0\0R\0\0\0A\0\0\0L\0\0\0_\0\0\0" "3\0\0\0" "2\0\0\0", 10); break;
+		case SK_UINT64:  first->it_ref = RTMS32_EX("N\0\0\0A\0\0\0T\0\0\0U\0\0\0R\0\0\0A\0\0\0L\0\0\0_\0\0\0" "6\0\0\0" "4\0\0\0", 10); break;
+		case SK_INT8:    first->it_ref = RTMS32_EX("I\0\0\0N\0\0\0T\0\0\0E\0\0\0G\0\0\0E\0\0\0R\0\0\0_\0\0\0" "8\0\0\0", 9); break;
+		case SK_INT16:   first->it_ref = RTMS32_EX("I\0\0\0N\0\0\0T\0\0\0E\0\0\0G\0\0\0E\0\0\0R\0\0\0_\0\0\0" "1\0\0\0" "6\0\0\0", 10); break;
+		case SK_INT32:   first->it_ref = RTMS32_EX("I\0\0\0N\0\0\0T\0\0\0E\0\0\0G\0\0\0E\0\0\0R\0\0\0_\0\0\0" "3\0\0\0" "2\0\0\0", 10); break;
+		case SK_INT64:   first->it_ref = RTMS32_EX("I\0\0\0N\0\0\0T\0\0\0E\0\0\0G\0\0\0E\0\0\0R\0\0\0_\0\0\0" "6\0\0\0" "4\0\0\0", 10); break;
+		case SK_REAL32:  first->it_ref = RTMS32_EX("R\0\0\0E\0\0\0A\0\0\0L\0\0\0_\0\0\0" "3\0\0\0" "2\0\0\0", 7); break;
+		case SK_REAL64:  first->it_ref = RTMS32_EX("R\0\0\0E\0\0\0A\0\0\0L\0\0\0_\0\0\0" "6\0\0\0" "4\0\0\0", 7); break;
+		case SK_POINTER: first->it_ref = RTMS32_EX("P\0\0\0O\0\0\0I\0\0\0N\0\0\0T\0\0\0E\0\0\0R\0\0\0", 7); break;
 		default: eif_panic(MTC RT_BOTCHED_MSG);
 	}
 	first->type = SK_REF;
@@ -4865,9 +5040,14 @@ rt_private void eif_interp_builtins (struct stopchunk *stack_cur, EIF_TYPED_VALU
 			iresult->it_int32 = eif_builtin_TYPE_type_id(icurrent->it_ref);
 			break;
 
-		case BC_BUILTIN_TYPE__RUNTIME_NAME:
+		case BC_BUILTIN_TYPE__RUNTIME_NAME__S1:
 			iresult->type = SK_REF;
-			iresult->it_ref = eif_builtin_TYPE_runtime_name(icurrent->it_ref);
+			iresult->it_ref = eif_builtin_TYPE_runtime_name__s1(icurrent->it_ref);
+			break;
+
+		case BC_BUILTIN_TYPE__RUNTIME_NAME__S4:
+			iresult->type = SK_REF;
+			iresult->it_ref = eif_builtin_TYPE_runtime_name__s4(icurrent->it_ref);
 			break;
 
 		case BC_BUILTIN_TYPE__GENERIC_PARAMETER_TYPE:
@@ -4931,8 +5111,13 @@ rt_private void eif_interp_basic_operations (struct stopchunk *stack_cur, EIF_TY
 			break;
 
 			/* `generator' and `generating_type' function calls */
-		case BC_GENERATOR:
-			eif_interp_generator (stack_cur, stack_top);
+		case BC_GENERATOR__S1:
+			eif_interp_generator__s1 (stack_cur, stack_top);
+			break;
+
+			/* `generator' and `generating_type' function calls */
+		case BC_GENERATOR__S4:
+			eif_interp_generator__s4 (stack_cur, stack_top);
 			break;
 
 			/* Offset operation on CHARACTER_8 and POINTER */

@@ -32,6 +32,7 @@ class CONSOLE inherit
 				put_natural, put_natural_8, put_natural_16, put_natural_32, put_natural_64,
 				read_natural, read_natural_8, read_natural_16, read_natural_32, read_natural_64
 		redefine
+			default_encoding, detect_encoding,
 			make_open_stdin, make_open_stdout, count, is_empty, exists,
 			read_real, read_double, read_character,
 			read_line, read_stream, read_word, next_line,
@@ -42,7 +43,8 @@ class CONSOLE inherit
 			dispose, read_to_string, back, read_line_thread_aware,
 			read_stream_thread_aware, read_word_thread_aware,
 			read_integer_with_no_type,
-			ctoi_convertor
+			ctoi_convertor,
+			new_cursor
 		end
 
 	ANY
@@ -76,6 +78,20 @@ feature -- Initialization
 			set_write_mode
 		end
 
+feature -- Encoding
+
+	default_encoding: ENCODING
+			-- <Precursor/>
+		once
+			Result := {SYSTEM_ENCODINGS}.console_encoding
+		end
+		
+	detect_encoding
+			-- <Precursor/>
+		do
+			set_encoding ({SYSTEM_ENCODINGS}.console_encoding)
+		end
+
 feature -- Status report
 
 	end_of_file: BOOLEAN
@@ -107,6 +123,18 @@ feature {NONE} -- Cursor movement
 	back
 			-- Not supported on console
 		do
+		end
+
+feature -- Iteration
+
+	new_cursor: FILE_ITERATION_CURSOR
+			-- <Precursor>
+		do
+			if is_open_read then
+				create Result.make_open_stdin
+			else
+				create Result.make_empty
+			end
 		end
 
 feature -- Input
@@ -241,30 +269,32 @@ feature -- Input
 
 feature -- Output
 
-	put_character, putchar (c: CHARACTER)
+	put_character, putchar (c: CHARACTER_8)
 			-- Write `c' at end of default output.
 		do
 			console_pc (file_pointer, c)
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write `s' at end of default output.
 		local
+			n: like {READABLE_STRING_8}.count
 			external_s: ANY
 		do
-			if s.count /= 0 then
+			n := s.count
+			if n > 0 then
 				external_s := s.area
-				console_ps (file_pointer, $external_s, s.count)
+				console_ps (file_pointer, $external_s, n)
 			end
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal (r: REAL_32)
 			-- Write `r' at end of default output.
 		do
 			console_pr (file_pointer, r)
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble (d: REAL_64)
 			-- Write `d' at end of default output.
 		do
 			console_pd (file_pointer, d)
@@ -291,6 +321,15 @@ feature {NONE} -- Inapplicable
 	is_empty: BOOLEAN = False
 			-- Useless for CONSOLE class.
 			--| `empty' is false not to invalidate invariant clauses.
+
+feature {FILE_ITERATION_CURSOR} -- Iteration
+
+	console_def (number: INTEGER): POINTER
+			-- Convert `number' to the corresponding
+			-- file descriptor.
+		external
+			"C use %"eif_console.h%""
+		end
 
 feature {NONE} -- Implementation
 
@@ -325,7 +364,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	read_to_string (a_string: STRING; pos, nb: INTEGER): INTEGER
+	read_to_string (a_string: STRING_8; pos, nb: INTEGER): INTEGER
 			-- Fill `a_string', starting at position `pos' with at
 			-- most `nb' characters read from current file.
 			-- Return the number of characters actually read.
@@ -333,13 +372,6 @@ feature {NONE} -- Implementation
 			Result := file_gss (file_pointer, a_string.area.item_address (pos - 1), nb)
 				-- `a_string' was externally modified, we need to reset its `hash_code'.
 			a_string.reset_hash_codes
-		end
-
-	console_def (number: INTEGER): POINTER
-			-- Convert `number' to the corresponding
-			-- file descriptor.
-		external
-			"C use %"eif_console.h%""
 		end
 
 	console_eof (file: POINTER): BOOLEAN
@@ -359,7 +391,7 @@ feature {NONE} -- Implementation
 			"C signature (FILE *, char *, EIF_INTEGER) use %"eif_console.h%""
 		end
 
-	console_pr (file: POINTER; r: REAL)
+	console_pr (file: POINTER; r: REAL_32)
 			-- Write real `r' at end of `file'
 		external
 			"C signature (FILE *, EIF_REAL) use %"eif_console.h%""
@@ -371,7 +403,7 @@ feature {NONE} -- Implementation
 			"C signature (FILE *, EIF_CHARACTER) use %"eif_console.h%""
 		end
 
-	console_pd (file: POINTER; d: DOUBLE)
+	console_pd (file: POINTER; d: REAL_64)
 			-- Write double `d' at end of `file'
 		external
 			"C signature (FILE *, EIF_DOUBLE) use %"eif_console.h%""
@@ -389,13 +421,13 @@ feature {NONE} -- Implementation
 			"C signature (FILE *) use %"eif_console.h%""
 		end
 
-	console_readreal (file: POINTER): REAL
+	console_readreal (file: POINTER): REAL_32
 			-- Read a real number from the console
 		external
 			"C blocking signature (FILE *): EIF_REAL use %"eif_console.h%""
 		end
 
-	console_readchar (file: POINTER): CHARACTER
+	console_readchar (file: POINTER): CHARACTER_8
 			-- Read a character from the console
 		external
 			"C blocking signature (FILE *): EIF_CHARACTER use %"eif_console.h%""
@@ -407,7 +439,7 @@ feature {NONE} -- Implementation
 			"C blocking signature (FILE *): EIF_INTEGER use %"eif_console.h%""
 		end
 
-	console_readdouble (file: POINTER): DOUBLE
+	console_readdouble (file: POINTER): REAL_64
 			-- Read a double from the console
 		external
 			"C blocking signature (FILE *): EIF_DOUBLE use %"eif_console.h%""
@@ -451,7 +483,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

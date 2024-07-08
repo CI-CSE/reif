@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Sequential files, viewed as persistent sequences of characters"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -8,9 +8,9 @@ note
 
 deferred class FILE inherit
 
-	UNBOUNDED [CHARACTER]
+	UNBOUNDED [CHARACTER_8]
 
-	SEQUENCE [CHARACTER]
+	SEQUENCE [CHARACTER_8]
 		undefine
 			prune
 		redefine
@@ -33,7 +33,7 @@ feature -- Initialization
 	make (fn: STRING_8)
 			-- Create file object with `fn' as file name.
 		obsolete
-			"Use any of the `make_...' routines instead to benefit from Unicode file names."
+			"Use any of the `make_...' routines instead to benefit from Unicode file names. [2017-05-31]"
 		require
 			string_exists: fn /= Void
 			string_not_empty: not fn.is_empty
@@ -171,6 +171,35 @@ feature -- Initialization
 			open_append: is_open_append
 		end
 
+	make_open_temporary
+			-- Create a file object with a unique temporary file name,
+			-- with read/write mode.
+		do
+			make_open_temporary_with_prefix ("eiftmp")
+		ensure
+			exists: exists
+			open_read: is_open_read
+			open_write: is_open_write
+		end
+
+	make_open_temporary_with_prefix (a_prefix: READABLE_STRING_GENERAL)
+			-- Create a file object with a unique temporary file name with prefix `a_prefix`,
+			-- with read/write mode.
+		note
+			EIS:"name=mkstemp", "src=http://man7.org/linux/man-pages/man3/mkstemp.3.html", "protocol=uri"
+		local
+			l_fd: INTEGER
+		do
+			set_name (a_prefix.as_string_32 + {STRING_32} "XXXXXX")
+			l_fd := eif_temp_file (internal_name_pointer.item, is_plain_text)
+			make_with_name (buffered_file_info.pointer_to_file_name_32 (internal_name_pointer.item))
+			fd_open_read_write (l_fd)
+		ensure
+			exists: exists
+			open_read: is_open_read
+			open_write: is_open_write
+		end
+
 feature -- Access
 
 	path: PATH
@@ -185,14 +214,14 @@ feature -- Access
 			-- File name as a STRING_8 instance. The value might be truncated
 			-- from the original name used to create the current FILE instance.
 		obsolete
-			"Use `path.name' to ensure that Unicode filenames are not truncated."
+			"Use `path.name' to ensure that Unicode filenames are not truncated. [2017-05-31]"
 		do
 			Result := internal_name.as_string_8
 		ensure then
 			name_not_empty: not Result.is_empty
 		end
 
-	item: CHARACTER
+	item: CHARACTER_8
 			-- Current item
 		do
 			read_character
@@ -311,6 +340,35 @@ feature -- Access
 		do
 			(create {MISMATCH_CORRECTOR}).mismatch_information.do_nothing
 			Result := c_retrieved (descriptor)
+		end
+
+	null_path: PATH
+			-- Null device path.
+		note
+			EIS: "name=Null Device", "src=https://en.wikipedia.org/wiki/Null_device", "protocol=uri"
+		do
+			create Result.make_from_string (null_name)
+		ensure
+			instance_free: class
+		end
+
+	null_name: STRING
+			-- Null device name.
+		note
+			EIS: "name=Null Device", "src=https://en.wikipedia.org/wiki/Null_device", "protocol=uri"
+		do
+			if {PLATFORM}.is_windows then
+				Result := "nul"
+			elseif {PLATFORM}.is_vms then
+				Result := "NL:"
+			elseif {PLATFORM}.is_vxworks  then
+				Result := "/null"
+			else
+					-- On Unix or Unix like systems.
+				Result := "/dev/null"
+			end
+		ensure
+			instance_free: class
 		end
 
 feature -- Measurement
@@ -630,7 +688,7 @@ feature -- Status report
 	file_prunable: BOOLEAN
 			-- May items be removed?
 		obsolete
-			"Use `prunable' instead."
+			"Use `prunable' instead. [2017-05-31]"
 		do
 		end
 
@@ -962,9 +1020,17 @@ feature -- Cursor movement
 			file_tnil (file_pointer)
 		end
 
+feature -- Iteration
+
+	new_cursor: FILE_ITERATION_CURSOR
+			-- <Precursor>
+		do
+			create Result.make_open_read (internal_name_pointer)
+		end
+
 feature -- Element change
 
-	extend (v: CHARACTER)
+	extend (v: like item)
 			-- Include `v' at end.
 		do
 			put_character (v)
@@ -1025,24 +1091,26 @@ feature -- Element change
 		deferred
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal (r: REAL_32)
 			-- Write `r' at current position.
 		deferred
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble (d: REAL_64)
 			-- Write `d' at current position.
 		deferred
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write `s' at current position.
 		local
+			n: like {READABLE_STRING_8}.count
 			ext_s: ANY
 		do
-			if s.count /= 0 then
+			n := s.count
+			if n > 0 then
 				ext_s := s.area
-				file_ps (file_pointer, $ext_s, s.count)
+				file_ps (file_pointer, $ext_s, n)
 			end
 		end
 
@@ -1053,7 +1121,7 @@ feature -- Element change
 			file_ps (file_pointer, p.item + start_pos, nb_bytes)
 		end
 
-	put_character, putchar (c: CHARACTER)
+	put_character, putchar (c: CHARACTER_8)
 			-- Write `c' at current position.
 		do
 			file_pc (file_pointer, c)
@@ -1100,7 +1168,7 @@ feature -- Element change
 	change_name (new_name: STRING)
 			-- Change file name to `new_name'.
 		obsolete
-			"Use `rename_file' instead."
+			"Use `rename_file' instead. [2017-05-31]"
 		require
 			new_name_not_void: new_name /= Void
 			new_name_not_empty: not new_name.is_empty
@@ -1316,7 +1384,7 @@ feature -- Removal
 
 feature -- Input
 
-	read_real, readreal
+	read_real, readreal, read_real_32
 			-- Read a new real.
 			-- Make result available in `last_real'.
 		require else
@@ -1324,7 +1392,7 @@ feature -- Input
 		deferred
 		end
 
-	read_double, readdouble
+	read_double, readdouble, read_real_64
 			-- Read a new double.
 			-- Make result available in `last_double'.
 		require else
@@ -1429,15 +1497,13 @@ feature -- Input
 		require else
 			is_readable: file_readable
 		local
-			new_count: INTEGER
 			str_area: ANY
 			l: like last_string
 		do
 			l := last_string
 			l.grow (nb_char)
 			str_area := l.area
-			new_count := file_gss (file_pointer, $str_area, nb_char)
-			l.set_count (new_count)
+			l.set_count (file_gss (file_pointer, $str_area, nb_char))
 		end
 
 	read_stream_thread_aware (nb_char: INTEGER)
@@ -1470,7 +1536,7 @@ feature -- Input
 			bytes_read := file_gss (file_pointer, p.item + start_pos, nb_bytes)
 		end
 
-	read_to_string (a_string: STRING; pos, nb: INTEGER): INTEGER
+	read_to_string (a_string: STRING_8; pos, nb: INTEGER): INTEGER
 			-- Fill `a_string', starting at position `pos' with at
 			-- most `nb' characters read from current file.
 			-- Return the number of characters actually read.
@@ -1609,6 +1675,24 @@ feature -- Convenience
 			last_string := l_old_last_string
 		end
 
+feature {FILE_ITERATION_CURSOR} -- Iteration
+
+	file_open (fname: POINTER; how: INTEGER): POINTER
+			-- File pointer for file `fname', in mode `how'.
+		external
+			"C signature (EIF_FILENAME, int): EIF_POINTER use %"eif_file.h%""
+		alias
+			"eif_file_open"
+		end
+
+	file_close (file: POINTER)
+			-- Close `file'.
+		external
+			"C signature (FILE *) use %"eif_file.h%""
+		alias
+			"eif_file_close"
+		end
+
 feature {NONE} -- Implementation
 
 	internal_name: READABLE_STRING_GENERAL
@@ -1661,7 +1745,7 @@ feature {NONE} -- Implementation
 			-- Create new instance of `last_string' with a least `a_min_size'
 			-- as capacity.
 		obsolete
-			"Implementors should create `last_string' directly."
+			"Implementors should create `last_string' directly. [2017-05-31]"
 		require
 			last_string_void: last_string = Void
 			a_min_size_non_negative: a_min_size >= 0
@@ -1725,14 +1809,6 @@ feature {NONE} -- Implementation
 			"eif_file_unlink"
 		end
 
-	file_open (fname: POINTER; how: INTEGER): POINTER
-			-- File pointer for file `fname', in mode `how'.
-		external
-			"C signature (EIF_FILENAME, int): EIF_POINTER use %"eif_file.h%""
-		alias
-			"eif_file_open"
-		end
-
 	file_dopen (fd, how: INTEGER): POINTER
 			-- File pointer for file of descriptor `fd' in mode `how'
 			-- (which must fit the way `fd' was obtained).
@@ -1751,14 +1827,6 @@ feature {NONE} -- Implementation
 			"eif_file_reopen"
 		end
 
-	file_close (file: POINTER)
-			-- Close `file'.
-		external
-			"C signature (FILE *) use %"eif_file.h%""
-		alias
-			"eif_file_close"
-		end
-
 	file_flush (file: POINTER)
 			-- Flush `file'.
 		external
@@ -1775,7 +1843,7 @@ feature {NONE} -- Implementation
 			"eif_file_fd"
 		end
 
-	file_gc (file: POINTER): CHARACTER
+	file_gc (file: POINTER): CHARACTER_8
 			-- Access the next character
 		external
 			"C blocking signature (FILE *): EIF_CHARACTER use %"eif_file.h%""
@@ -1940,7 +2008,7 @@ feature {NONE} -- Implementation
 	file_tnwl (file: POINTER)
 			-- Print a new-line to `file'.
 		external
-			"C signature (FILE *) use %"eif_file.h%""
+			"C blocking signature (FILE *) use %"eif_file.h%""
 		alias
 			"eif_file_tnwl"
 		end
@@ -1948,7 +2016,7 @@ feature {NONE} -- Implementation
 	file_append (file, from_file: POINTER; length: INTEGER)
 			-- Append a copy of `from_file' to `file'
 		external
-			"C signature (FILE *, FILE *, EIF_INTEGER) use %"eif_file.h%""
+			"C blocking signature (FILE *, FILE *, EIF_INTEGER) use %"eif_file.h%""
 		alias
 			"eif_file_append"
 		end
@@ -1956,7 +2024,7 @@ feature {NONE} -- Implementation
 	file_ps (file: POINTER; a_string: POINTER; length: INTEGER)
 			-- Print `a_string' to `file'.
 		external
-			"C signature (FILE *, char *, EIF_INTEGER) use %"eif_file.h%""
+			"C blocking signature (FILE *, char *, EIF_INTEGER) use %"eif_file.h%""
 		alias
 			"eif_file_ps"
 		end
@@ -2085,6 +2153,17 @@ feature {NONE} -- Implementation
 			"eif_file_access_date"
 		end
 
+	eif_temp_file (a_name_template: POINTER; a_text_mode: BOOLEAN): INTEGER
+			-- Generate a temporary file and return an file descriptor to the file.
+			-- `a_name_template`: pattern used to create the temporary file.
+			-- `a_text_mode`:, if text mode is True, the temporary file is created in text mode,
+			-- otherwise in binary mode.
+		external
+			"C signature (EIF_FILENAME, EIF_BOOLEAN): EIF_INTEGER use %"eif_file.h%""
+		alias
+			"eif_file_mkstemp"
+		end
+
 feature {NONE} -- Inapplicable
 
 	go_to (r: CURSOR)
@@ -2133,12 +2212,6 @@ feature {FILE} -- Implementation
 			mode := Write_file
 		end
 
-	platform_indicator: PLATFORM
-			-- Platform indicator
-		once
-			create Result
-		end
-
 invariant
 
 	valid_mode: Closed_file <= mode and mode <= Append_read_file
@@ -2146,7 +2219,7 @@ invariant
 	name_not_empty: not internal_name.is_empty
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

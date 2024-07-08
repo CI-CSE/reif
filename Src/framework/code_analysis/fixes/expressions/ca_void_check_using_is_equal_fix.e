@@ -11,12 +11,14 @@ inherit
 		redefine
 			execute
 		end
+	INTERNAL_COMPILER_STRING_EXPORTER
 
 create
 	make_with_nested
 
 feature {NONE} -- Initialization
-	make_with_nested (a_class: attached CLASS_C; a_nested: attached NESTED_AS)
+
+	make_with_nested (a_class: attached CLASS_C; a_nested: attached NESTED_EXPR_AS)
 			-- Initializes `Current' with class `a_class'. `a_nested' is the nested call which is to be changed.
 		do
 			make (ca_names.void_check_using_is_equal_fix, a_class)
@@ -25,24 +27,15 @@ feature {NONE} -- Initialization
 
 feature {NONE} -- Implementation
 
-	nested_to_change: NESTED_AS
-		-- The creation procedure this fix will change.
+	nested_to_change: NESTED_EXPR_AS
+			-- The creation procedure this fix will change.
 
 feature {NONE} -- Visitor
 
 	execute
 			-- <Precursor>
-		local
-			l_new_text: STRING_32
 		do
-			create l_new_text.make_empty
-
-			l_new_text.append ("(")
-			l_new_text.append (nested_to_change.target.access_name_32)
-			l_new_text.append (" = Void")
-			l_new_text.append (")")
-
-			nested_to_change.replace_text (l_new_text, match_list)
+			nested_to_change.replace_text ("not attached " + nested_to_change.target.text (match_list), match_list)
 		end
 
 end

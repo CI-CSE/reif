@@ -5,7 +5,7 @@ note
 		"Eiffel alias 'free-operator' feature names"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2005-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2005-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -22,26 +22,33 @@ inherit
 			is_bracket,
 			is_parenthesis,
 			is_infix_and,
+			is_infix_and_symbol,
 			is_infix_and_then,
+			is_infix_and_then_symbol,
 			is_infix_div,
 			is_infix_divide,
 			is_infix_ge,
 			is_infix_gt,
 			is_infix_implies,
+			is_infix_implies_symbol,
 			is_infix_le,
 			is_infix_lt,
 			is_infix_minus,
 			is_infix_mod,
 			is_infix_or,
+			is_infix_or_symbol,
 			is_infix_or_else,
+			is_infix_or_else_symbol,
 			is_infix_plus,
 			is_infix_power,
 			is_infix_times,
 			is_infix_xor,
+			is_infix_xor_symbol,
 			is_infix_dotdot,
 			is_prefix_minus,
 			is_prefix_plus,
 			is_prefix_not,
+			is_prefix_not_symbol,
 			operator_lower_name
 		redefine
 			alias_name, alias_lower_name,
@@ -99,25 +106,25 @@ feature {NONE} -- Initialization
 feature -- Status report
 
 	is_prefix: BOOLEAN
-			-- Is current feature name of the form 'prefix ...'?
+			-- Is current feature name of the form unary 'alias "..."'?
 		do
 			Result := (code = tokens.prefix_freeop_code)
 		end
 
 	is_infix: BOOLEAN
-			-- Is current feature name of the form 'infix ...'?
+			-- Is current feature name of the form binary 'alias "..."'?
 		do
 			Result := (code = tokens.infix_freeop_code)
 		end
 
 	is_prefix_freeop: BOOLEAN
-			-- Is current feature name of the form 'prefix "free-operator"'?
+			-- Is current feature name of the form unary 'alias "free-operator"'?
 		do
 			Result := (code = tokens.prefix_freeop_code)
 		end
 
 	is_infix_freeop: BOOLEAN
-			-- Is current feature name of the form 'infix "free-operator"'?
+			-- Is current feature name of the form binary 'alias "free-operator"'?
 		do
 			Result := (code = tokens.infix_freeop_code)
 		end
@@ -138,6 +145,7 @@ feature -- Access
 
 	alias_name: STRING
 			-- Name of alias
+			-- (using UTF-8 encoding)
 		do
 			create Result.make (operator_name.count + 8)
 			Result.append_string (alias_double_quote)
@@ -147,6 +155,7 @@ feature -- Access
 
 	alias_lower_name: STRING
 			-- Lower-name of alias
+			-- (using UTF-8 encoding)
 			-- (May return the same object as `alias_name' if already in lower case.)
 		local
 			i, nb: INTEGER
@@ -167,6 +176,7 @@ feature -- Access
 
 	operator_name: STRING
 			-- Name of free operator
+			-- (using UTF-8 encoding)
 		do
 			Result := alias_string.value
 		end

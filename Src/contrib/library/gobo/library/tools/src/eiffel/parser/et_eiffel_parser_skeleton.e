@@ -1,11 +1,11 @@
-note
+﻿note
 
 	description:
 
 		"Eiffel parser skeletons"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 1999-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -26,7 +26,8 @@ inherit
 		rename
 			make as make_eiffel_scanner
 		redefine
-			reset, set_syntax_error
+			reset, set_syntax_error,
+			system_processor
 		end
 
 	ET_CLASS_PROCESSOR
@@ -38,17 +39,17 @@ inherit
 		undefine
 			error_handler, current_universe, current_system
 		redefine
-			make
+			make,
+			system_processor
 		end
 
 	ET_AST_NULL_PROCESSOR
 		rename
+			make as make_ast_processor,
 			process_identifier as process_ast_identifier,
 			process_c1_character_constant as process_ast_c1_character_constant,
 			process_c2_character_constant as process_ast_c2_character_constant,
 			process_regular_manifest_string as process_ast_regular_manifest_string
-		undefine
-			make
 		redefine
 			process_class, process_cluster
 		end
@@ -61,10 +62,10 @@ inherit
 
 feature {NONE} -- Initialization
 
-	make
+	make (a_system_processor: like system_processor)
 			-- Create a new Eiffel parser.
 		do
-			precursor {ET_CLASS_PROCESSOR}
+			precursor (a_system_processor)
 			create eiffel_buffer.make_with_size (std.input, Initial_eiffel_buffer_size)
 			create counters.make (Initial_counters_capacity)
 			create last_formal_arguments_stack.make (Initial_last_formal_arguments_stack_capacity)
@@ -73,15 +74,17 @@ feature {NONE} -- Initialization
 			create last_symbols.make (Initial_last_symbols_capacity)
 			create last_object_tests_stack.make (Initial_last_object_tests_capacity)
 			create last_object_tests_pool.make (Initial_last_object_tests_capacity)
-			create last_across_components_stack.make (Initial_last_across_components_capacity)
-			create last_across_components_pool.make (Initial_last_across_components_capacity)
+			create last_iteration_components_stack.make (Initial_last_iteration_components_capacity)
+			create last_iteration_components_pool.make (Initial_last_iteration_components_capacity)
 			create assertions.make (Initial_assertions_capacity)
 			create assertion_counters.make (Initial_assertion_counters_capacity)
+			create assertion_kinds.make (Initial_assertion_counters_capacity)
+			assertion_kind := assertion_kind_none
 			create queries.make (Initial_queries_capacity)
 			create procedures.make (Initial_procedures_capacity)
 			create constraints.make (Initial_constraints_capacity)
 			create providers.make (Initial_providers_capacity)
-			make_eiffel_scanner ("unknown file")
+			make_eiffel_scanner ("unknown file", a_system_processor)
 			make_parser_skeleton
 		end
 
@@ -96,12 +99,14 @@ feature -- Initialization
 			wipe_out_last_formal_arguments_stack
 			wipe_out_last_local_variables_stack
 			wipe_out_last_object_tests_stack
-			wipe_out_last_across_components_stack
+			wipe_out_last_iteration_components_stack
 			last_keywords.wipe_out
 			last_symbols.wipe_out
 			providers.wipe_out
 			assertions.wipe_out
 			assertion_counters.wipe_out
+			assertion_kinds.wipe_out
+			assertion_kind := assertion_kind_none
 			queries.wipe_out
 			procedures.wipe_out
 			constraints.wipe_out
@@ -116,12 +121,15 @@ feature -- Access
 	time_stamp: INTEGER
 			-- Time stamp of file being parsed
 
+	system_processor: ET_SYSTEM_PROCESSOR
+			-- System processor currently used
+
 feature -- Status report
 
 	providers_enabled: BOOLEAN
 			-- Should providers be built when parsing a class?
 		do
-			Result := current_system.providers_enabled
+			Result := system_processor.providers_enabled
 		end
 
 feature -- Parsing
@@ -156,6 +164,13 @@ feature -- Parsing
 			eiffel_buffer.set_file (a_file)
 			yy_load_input_buffer
 			yyparse
+			if attached last_class as l_last_class then
+				l_last_class.set_has_utf8_bom (eiffel_buffer.has_utf8_bom)
+				if l_last_class /= current_class then
+					l_last_class.processing_mutex.unlock
+					last_class := Void
+				end
+			end
 			reset
 			group := old_group
 		rescue
@@ -195,7 +210,7 @@ feature -- Parsing
 				std.error.put_string (a_cluster.full_pathname)
 				std.error.put_line ("%'")
 			end
-			if not a_cluster.is_abstract and then (not l_already_preparsed or else ((current_system.preparse_readonly_mode or else not a_cluster.is_read_only) and then (current_system.preparse_override_mode implies a_cluster.is_override))) then
+			if not a_cluster.is_abstract and then (not l_already_preparsed or else ((system_processor.preparse_readonly_mode or else not a_cluster.is_read_only) and then (system_processor.preparse_override_mode implies a_cluster.is_override))) then
 				dir_name := Execution_environment.interpreted_string (a_cluster.full_pathname)
 				dir_name := file_system.canonical_pathname (dir_name)
 				dir := tmp_directory
@@ -298,8 +313,8 @@ feature -- Parsing
 			l_override_mode: BOOLEAN
 			l_dir_name: STRING
 		do
-			l_readonly_mode := current_system.preparse_readonly_mode
-			l_override_mode := current_system.preparse_override_mode
+			l_readonly_mode := system_processor.preparse_readonly_mode
+			l_override_mode := system_processor.preparse_override_mode
 			l_clusters := a_clusters.clusters
 			nb := l_clusters.count
 			from i := 1 until i > nb loop
@@ -331,18 +346,14 @@ feature -- AST processing
 			-- The queries `current_system.preparse_*_mode' govern the way
 			-- parsing works. Read the header comments of these features
 			-- for more details.
-		local
-			a_time_stamp: INTEGER
-			a_cluster: ET_CLUSTER
-			a_file: KL_TEXT_INPUT_FILE
-			old_class: ET_CLASS
-			old_group: ET_PRIMARY_GROUP
-			l_class_text: KL_STRING_INPUT_STREAM
-			a_text_filename: STRING
-			l_class_filename: detachable STRING
+			--
+			-- Note that in multi-threaded mode, when several system processors
+			-- are processing a Eiffel system together, the AST of `a_class' may
+			-- still not be parsed at the end of this routine if it is currently
+			-- being processed by another system processor.
 		do
 			if a_class.is_none then
-				a_class.set_parsed
+				process_none_class (a_class)
 			elseif not current_class.is_unknown then
 					-- Internal error (recursive call)
 					-- This internal error is fatal.
@@ -351,92 +362,10 @@ feature -- AST processing
 			elseif not a_class.is_preparsed then
 				set_fatal_error (a_class)
 			else
-				old_class := current_class
-				current_class := a_class
-				old_group := group
-				group := current_class.group
-				if not current_class.is_parsed then
-					if current_class.is_in_cluster and then attached current_class.filename as a_filename then
-						a_cluster := current_class.group.cluster
-						current_class.reset_after_preparsed
-						a_file := tmp_file
-						a_file.reset (a_filename)
-						a_time_stamp := a_file.time_stamp
-						a_file.open_read
-						if a_file.is_open_read then
-								-- Note that `parse_file' may change the value of `current_class'
-								-- if `a_file' contains a class other than `a_class'.
-							parse_file (a_file, a_filename, a_time_stamp, a_cluster)
-							a_file.close
-							if not a_class.is_preparsed then
-									-- Make sure that `current_class' is as it was
-									-- after it was last preparsed when the file
-									-- does not contain this class anymore.
-								a_class.set_filename (a_filename)
-								a_class.set_group (a_cluster)
-							end
-							if not a_class.is_parsed then
-								if not syntax_error and current_system.preparse_multiple_mode then
-										-- The file contains other classes, but not `current_class'.
-									set_fatal_error (a_class)
-									error_handler.report_gvscn1b_error (a_class, a_filename)
-								end
-							end
-						else
-								-- Make sure that `current_class' is as it was
-								-- after it was last preparsed when the file
-								-- cannot be read.
-							current_class.set_filename (a_filename)
-							current_class.set_group (a_cluster)
-							set_fatal_error (current_class)
-							error_handler.report_gcaab_error (a_cluster, a_filename)
-						end
-					elseif current_class.is_in_dotnet_assembly then
-						current_system.dotnet_assembly_consumer.consume_class (current_class)
-					elseif attached {ET_TEXT_GROUP} current_class.group as l_text_group then
-						l_class_filename := current_class.filename
-						if l_class_filename /= Void and then not l_class_filename.is_empty then
-							a_text_filename := l_class_filename
-						else
-							a_text_filename := current_class.lower_name + ".e"
-						end
-						current_class.reset_after_preparsed
-						if attached l_text_group.class_text (current_class) as l_text then
-							create l_class_text.make (l_text)
-						else
-							create l_class_text.make ("")
-						end
-							-- Note that `parse_file' may change the value of `current_class'
-							-- if `l_class_text' contains a class other than `a_class'.
-						parse_file (l_class_text, a_text_filename, -1, l_text_group)
-						if not a_class.is_preparsed then
-								-- Make sure that `current_class' is as it was
-								-- after it was last preparsed when the file
-								-- does not contain this class anymore.
-							if l_class_filename /= Void and then not l_class_filename.is_empty then
-								a_class.set_filename (l_class_filename)
-							else
-								a_class.reset_preparsed
-							end
-							a_class.set_group (l_text_group)
-						end
-						if not a_class.is_parsed then
-							if not syntax_error and current_system.preparse_multiple_mode then
-									-- The class text contains other classes, but not `current_class'.
-								set_fatal_error (a_class)
-								error_handler.report_gvscn1b_error (a_class, a_text_filename)
-							end
-						end
-					end
-					if not a_class.is_parsed then
-						set_fatal_error (a_class)
-					end
-				end
-				current_class := old_class
-				group := old_group
+				internal_process_class (a_class)
 			end
 		ensure then
-			is_parsed: a_class.is_parsed
+			is_parsed: not {PLATFORM}.is_thread_capable implies a_class.is_parsed
 		end
 
 	process_cluster (a_cluster: ET_CLUSTER)
@@ -450,35 +379,166 @@ feature -- AST processing
 			parse_cluster (a_cluster)
 		end
 
+feature {NONE} -- AST processing
+
+	internal_process_class (a_class: ET_CLASS)
+			-- Parse `a_class'.
+			-- The class may end up with a syntax error status if its
+			-- `filename' didn't contain this class after all (i.e.
+			-- if the preparsing phase gave errouneous result).
+			--
+			-- The queries `current_system.preparse_*_mode' govern the way
+			-- parsing works. Read the header comments of these features
+			-- for more details.
+			--
+			-- Note that in multi-threaded mode, when several system processors
+			-- are processing a Eiffel system together, the AST of `a_class' may
+			-- still not be parsed at the end of this routine if it is currently
+			-- being processed by another system processor.
+		require
+			a_class_not_void: a_class /= Void
+			a_class_preparsed: a_class.is_preparsed
+		local
+			a_time_stamp: INTEGER
+			a_cluster: ET_CLUSTER
+			a_file: KL_TEXT_INPUT_FILE
+			old_class: ET_CLASS
+			old_group: ET_PRIMARY_GROUP
+			l_class_text: KL_STRING_INPUT_STREAM
+			a_text_filename: STRING
+			l_class_filename: detachable STRING
+		do
+			old_class := current_class
+			current_class := a_class
+			old_group := group
+			group := current_class.group
+			if not {PLATFORM}.is_thread_capable or else current_class.processing_mutex.try_lock then
+				if not current_class.is_parsed then
+					if current_class.is_in_cluster and then attached current_class.filename as a_filename then
+						a_cluster := current_class.group.cluster
+						current_class.reset_after_preparsed
+						a_file := tmp_file
+						a_file.reset (a_filename)
+						a_time_stamp := a_file.time_stamp
+						a_file.open_read
+						if a_file.is_open_read then
+							parse_file (a_file, a_filename, a_time_stamp, a_cluster)
+							a_file.close
+							if not current_class.is_preparsed then
+									-- Make sure that `current_class' is as it was
+									-- after it was last preparsed when the file
+									-- does not contain this class anymore.
+								current_class.set_filename (a_filename)
+								current_class.set_group (a_cluster)
+							end
+							if not current_class.is_parsed then
+								if not syntax_error and system_processor.preparse_multiple_mode then
+										-- The file contains other classes, but not `current_class'.
+									set_fatal_error (current_class)
+									error_handler.report_gvscn1b_error (current_class, a_filename)
+								end
+							end
+						else
+								-- Make sure that `current_class' is as it was
+								-- after it was last preparsed when the file
+								-- cannot be read.
+							current_class.set_filename (a_filename)
+							current_class.set_group (a_cluster)
+							set_fatal_error (current_class)
+							error_handler.report_gcaab_error (a_cluster, a_filename)
+						end
+					elseif current_class.is_in_dotnet_assembly then
+						system_processor.dotnet_assembly_consumer.consume_class (current_class)
+					elseif attached {ET_TEXT_GROUP} current_class.group as l_text_group then
+						l_class_filename := current_class.filename
+						if l_class_filename /= Void and then not l_class_filename.is_empty then
+							a_text_filename := l_class_filename
+						else
+							a_text_filename := current_class.lower_name + ".e"
+						end
+						current_class.reset_after_preparsed
+						if attached l_text_group.class_text (current_class) as l_text then
+							create l_class_text.make (l_text)
+						else
+							create l_class_text.make ("")
+						end
+						parse_file (l_class_text, a_text_filename, -1, l_text_group)
+						if not current_class.is_preparsed then
+								-- Make sure that `current_class' is as it was
+								-- after it was last preparsed when the file
+								-- does not contain this class anymore.
+							if l_class_filename /= Void and then not l_class_filename.is_empty then
+								current_class.set_filename (l_class_filename)
+							else
+								current_class.reset_preparsed
+							end
+							current_class.set_group (l_text_group)
+						end
+						if not current_class.is_parsed then
+							if not syntax_error and system_processor.preparse_multiple_mode then
+									-- The class text contains other classes, but not `current_class'.
+								set_fatal_error (current_class)
+								error_handler.report_gvscn1b_error (current_class, a_text_filename)
+							end
+						end
+					end
+					if not current_class.is_parsed then
+						set_fatal_error (current_class)
+					end
+					system_processor.report_class_processed (current_class)
+				end
+				current_class.processing_mutex.unlock
+			end
+			current_class := old_class
+			group := old_group
+		ensure
+			is_parsed: not {PLATFORM}.is_thread_capable implies a_class.is_parsed
+		end
+
+	process_none_class (a_class: ET_CLASS)
+			-- Process class "NONE".
+		require
+			a_class_not_void: a_class /= Void
+			a_class_is_none: a_class.is_none
+		do
+			if not {PLATFORM}.is_thread_capable or else a_class.processing_mutex.try_lock then
+				if not a_class.is_parsed then
+					a_class.set_parsed
+					system_processor.report_class_processed (a_class)
+				end
+				a_class.processing_mutex.unlock
+			end
+		ensure
+			is_parsed: not {PLATFORM}.is_thread_capable implies a_class.is_parsed
+		end
+
 feature {NONE} -- Basic operations
 
 	register_query (a_query: detachable ET_QUERY)
 			-- Register `a_query' in `last_class'.
 		do
 			if a_query /= Void then
-				current_system.register_feature (a_query)
 				queries.force_last (a_query)
 				queries.finish
 				if attached last_object_tests as l_last_object_tests then
 					a_query.set_object_tests (l_last_object_tests.cloned_object_test_list)
 				end
-				if attached last_across_components as l_last_across_components then
-					a_query.set_across_components (l_last_across_components.cloned_across_component_list)
+				if attached last_iteration_components as l_last_iteration_components then
+					a_query.set_iteration_components (l_last_iteration_components.cloned_iteration_component_list)
 				end
 			end
 				-- Reset local variables, formal arguments, object-tests
-				-- and across components before reading the next feature.
+				-- and iteration components before reading the next feature.
 			wipe_out_last_formal_arguments_stack
 			wipe_out_last_local_variables_stack
 			wipe_out_last_object_tests_stack
-			wipe_out_last_across_components_stack
+			wipe_out_last_iteration_components_stack
 		end
 
 	register_query_synonym (a_query: detachable ET_QUERY)
 			-- Register `a_query' in `last_class'.
 		do
 			if a_query /= Void then
-				current_system.register_feature (a_query)
 				if queries.before then
 					queries.forth
 				end
@@ -491,29 +551,27 @@ feature {NONE} -- Basic operations
 			-- Register `a_procedure' in `last_class'.
 		do
 			if a_procedure /= Void then
-				current_system.register_feature (a_procedure)
 				procedures.force_last (a_procedure)
 				procedures.finish
 				if attached last_object_tests as l_last_object_tests then
 					a_procedure.set_object_tests (l_last_object_tests.cloned_object_test_list)
 				end
-				if attached last_across_components as l_last_across_components then
-					a_procedure.set_across_components (l_last_across_components.cloned_across_component_list)
+				if attached last_iteration_components as l_last_iteration_components then
+					a_procedure.set_iteration_components (l_last_iteration_components.cloned_iteration_component_list)
 				end
 			end
 				-- Reset local variables, formal arguments, object-tests
-				-- and across components before reading the next feature.
+				-- and iteration components before reading the next feature.
 			wipe_out_last_formal_arguments_stack
 			wipe_out_last_local_variables_stack
 			wipe_out_last_object_tests_stack
-			wipe_out_last_across_components_stack
+			wipe_out_last_iteration_components_stack
 		end
 
 	register_procedure_synonym (a_procedure: detachable ET_PROCEDURE)
 			-- Register `a_procedure' in `last_class'.
 		do
 			if a_procedure /= Void then
-				current_system.register_feature (a_procedure)
 				if procedures.before then
 					procedures.forth
 				end
@@ -529,8 +587,8 @@ feature {NONE} -- Basic operations
 				if attached last_object_tests as l_last_object_tests then
 					a_inline_agent.set_object_tests (l_last_object_tests.cloned_object_test_list)
 				end
-				if attached last_across_components as l_last_across_components then
-					a_inline_agent.set_across_components (l_last_across_components.cloned_across_component_list)
+				if attached last_iteration_components as l_last_iteration_components then
+					a_inline_agent.set_iteration_components (l_last_iteration_components.cloned_iteration_component_list)
 				end
 					-- Clean up after the inline agent has been parsed.
 				set_end_closure
@@ -559,31 +617,90 @@ feature {NONE} -- Basic operations
 
 	set_formal_parameters (a_parameters: detachable ET_FORMAL_PARAMETER_LIST)
 			-- Set formal generic parameters of `last_class'.
-		require
-			no_constraint: a_parameters = Void implies constraints.is_empty
-			same_count: a_parameters /= Void implies constraints.count = a_parameters.count
 		local
 			a_class: like last_class
-			a_constraint: detachable ET_CONSTRAINT_TYPE
-			a_type: detachable  ET_TYPE
-			i, nb: INTEGER
+			a_type: detachable ET_TYPE
+			l_constraint: ET_CONSTRAINT
+			l_type_constraint_item: ET_TYPE_CONSTRAINT_ITEM
+			i, j, k: INTEGER
 		do
 			if a_parameters /= Void then
 				a_class := last_class
 				if a_class /= Void then
-					nb := a_parameters.count
-					from i := nb until i < 1 loop
+					from
+						i := a_parameters.count
+						j := constraints.count
+					until
+						i < 1
+					loop
 						if attached {ET_CONSTRAINED_FORMAL_PARAMETER} a_parameters.formal_parameter (i) as a_constrained_formal then
-							a_constraint := constraints.item (i)
-							if a_constraint /= Void then
-								a_type := a_constraint.resolved_syntactical_constraint (a_parameters, a_class, Current)
+							l_constraint := a_constrained_formal.constraint
+							if attached {ET_TYPE_RENAME_CONSTRAINT} l_constraint as l_type_constraint then
+								if j > 0 and then attached constraints.item (j) as l_constraint_type then
+									a_type := l_constraint_type.resolved_syntactical_constraint (a_parameters, a_class, Current)
+								else
+									a_type := Void
+								end
+								j := j - 1
+								if a_type /= Void then
+									l_type_constraint.set_type (a_type)
+								else
+									a_parameters.remove (i)
+								end
+							elseif attached {ET_TYPE_CONSTRAINT} l_constraint as l_type_constraint then
+								if j > 0 and then attached constraints.item (j) as l_constraint_type then
+									a_type := l_constraint_type.resolved_syntactical_constraint (a_parameters, a_class, Current)
+								else
+									a_type := Void
+								end
+								j := j - 1
 								if a_type /= Void then
 									a_constrained_formal.set_constraint (a_type)
 								else
 									a_parameters.remove (i)
 								end
-							else
-								a_parameters.remove (i)
+							elseif attached {ET_TYPE_CONSTRAINT_LIST} l_constraint as l_type_constraint_list then
+								from
+									k := l_type_constraint_list.count
+								until
+									k < 1
+								loop
+									if j > 0 and then attached constraints.item (j) as l_constraint_type then
+										a_type := l_constraint_type.resolved_syntactical_constraint (a_parameters, a_class, Current)
+									else
+										a_type := Void
+									end
+									j := j - 1
+									l_type_constraint_item := l_type_constraint_list.item (k)
+									if attached {ET_TYPE_CONSTRAINT_COMMA} l_type_constraint_item as l_type_constraint_comma then
+										if attached {ET_TYPE_RENAME_CONSTRAINT} l_type_constraint_comma.type_constraint as l_type_constraint then
+											if a_type /= Void then
+												l_type_constraint.set_type (a_type)
+											else
+												l_type_constraint_list.remove (k)
+											end
+										else
+											if a_type /= Void then
+												l_type_constraint_comma.set_type_constraint (a_type)
+											else
+												l_type_constraint_list.remove (k)
+											end
+										end
+									elseif attached {ET_TYPE_RENAME_CONSTRAINT} l_type_constraint_item as l_type_constraint then
+										if a_type /= Void then
+											l_type_constraint.set_type (a_type)
+										else
+											l_type_constraint_list.remove (k)
+										end
+									else
+										if a_type /= Void then
+											l_type_constraint_list.put (a_type, k)
+										else
+											l_type_constraint_list.remove (k)
+										end
+									end
+									k := k - 1
+								end
 							end
 						end
 						i := i - 1
@@ -599,7 +716,9 @@ feature {NONE} -- Basic operations
 		local
 			a_class: like last_class
 			l_queries: ET_QUERY_LIST
+			l_query: ET_QUERY
 			l_procedures: ET_PROCEDURE_LIST
+			l_procedure: ET_PROCEDURE
 			i, nb: INTEGER
 		do
 			a_class := last_class
@@ -610,12 +729,25 @@ feature {NONE} -- Basic operations
 					l_queries.put_first (queries.item (i))
 					i := i - 1
 				end
+					-- Register the queries in the order they have
+					-- been written in `a_class' so that unique attribute
+					-- synonyms get their values in the right order.
+				from i := 1 until i > nb loop
+					l_query := queries.item (i)
+					a_class.register_feature (l_query)
+					if attached {ET_UNIQUE_ATTRIBUTE} l_query as l_unique_attribute then
+						l_unique_attribute.constant.set_value (l_unique_attribute.id.to_natural_64)
+					end
+					i := i + 1
+				end
 				l_queries.set_declared_count (nb)
 				a_class.set_queries (l_queries)
 				nb := procedures.count
 				create l_procedures.make_with_capacity (nb)
 				from i := nb until i < 1 loop
-					l_procedures.put_first (procedures.item (i))
+					l_procedure := procedures.item (i)
+					l_procedures.put_first (l_procedure)
+					a_class.register_feature (l_procedure)
 					i := i - 1
 				end
 				l_procedures.set_declared_count (nb)
@@ -662,6 +794,7 @@ feature {NONE} -- Basic operations
 				if an_end /= Void then
 					a_class.set_end_keyword (an_end)
 				end
+				a_class.set_parsed
 			end
 		end
 
@@ -676,6 +809,20 @@ feature {NONE} -- Basic operations
 	add_expression_assertion (an_expression: detachable ET_EXPRESSION; a_semicolon: detachable ET_SYMBOL)
 			-- Add `an_expression' assertion, optionally followed
 			-- by `a_semicolon', to `assertions'.
+		do
+			add_untagged_assertion (an_expression, a_semicolon)
+		end
+
+	add_class_assertion (a_class_assertion: detachable ET_CLASS_ASSERTION; a_semicolon: detachable ET_SYMBOL)
+			-- Add `a_class_assertion' assertion, optionally followed
+			-- by `a_semicolon', to `assertions'.
+		do
+			add_untagged_assertion (a_class_assertion, a_semicolon)
+		end
+
+	add_untagged_assertion (a_untagged_assertion: detachable ET_UNTAGGED_ASSERTION; a_semicolon: detachable ET_SYMBOL)
+			-- Add `a_untagged_assertion' assertion, optionally followed
+			-- by `a_semicolon', to `assertions'.
 		local
 			l_old_count: INTEGER
 			an_assertion: detachable ET_ASSERTION_ITEM
@@ -685,9 +832,9 @@ feature {NONE} -- Basic operations
 				l_old_count := assertion_counters.last
 			end
 			if assertions.count > l_old_count then
-				if attached {ET_TAGGED_ASSERTION} assertions.last as l_tagged and then l_tagged.expression = Void then
-					if an_expression /= Void then
-						l_tagged.set_expression (an_expression)
+				if attached {ET_TAGGED_ASSERTION} assertions.last as l_tagged and then l_tagged.untagged_assertion = Void then
+					if a_untagged_assertion /= Void then
+						l_tagged.set_untagged_assertion (a_untagged_assertion)
 						if a_semicolon /= Void then
 							an_assertion := ast_factory.new_assertion_semicolon (l_tagged, a_semicolon)
 							if an_assertion /= Void then
@@ -704,9 +851,9 @@ feature {NONE} -- Basic operations
 			end
 			if not done then
 				if a_semicolon /= Void then
-					an_assertion := ast_factory.new_assertion_semicolon (an_expression, a_semicolon)
+					an_assertion := ast_factory.new_assertion_semicolon (a_untagged_assertion, a_semicolon)
 				else
-					an_assertion := an_expression
+					an_assertion := a_untagged_assertion
 				end
 				if an_assertion /= Void then
 					assertions.force_last (an_assertion)
@@ -724,7 +871,7 @@ feature {NONE} -- Basic operations
 			l_file_position: ET_FILE_POSITION
 			l_old_count: INTEGER
 		do
-			if current_system.is_ise then
+			if system_processor.is_ise then
 					-- ISE does not accept assertions of the form:
 					--      a_tag: -- a comment assertion
 					-- when followed by another tagged assertion.
@@ -732,7 +879,7 @@ feature {NONE} -- Basic operations
 					l_old_count := assertion_counters.last
 				end
 				if assertions.count > l_old_count then
-					if attached {ET_TAGGED_ASSERTION} assertions.last as l_tagged and then l_tagged.expression = Void then
+					if attached {ET_TAGGED_ASSERTION} assertions.last as l_tagged and then l_tagged.untagged_assertion = Void then
 						if a_tag = Void then
 							l_position := current_position
 						else
@@ -780,7 +927,7 @@ feature {NONE} -- Basic operations
 			-- new closure (i.e. feature, invariant or inline agent).
 			-- Keep track of the values of `last_formal_arguments',
 			-- `last_local_variables', `last_object_tests' and
-			-- `last_across_components' for the enclosing closure.
+			-- `last_iteration_components' for the enclosing closure.
 			-- They will be restored when we reach the end of the
 			-- closure by `set_end_closure'.
 		do
@@ -790,15 +937,15 @@ feature {NONE} -- Basic operations
 			last_local_variables := Void
 			last_object_tests_stack.force (last_object_tests)
 			last_object_tests := Void
-			last_across_components_stack.force (last_across_components)
-			last_across_components := Void
+			last_iteration_components_stack.force (last_iteration_components)
+			last_iteration_components := Void
 		end
 
 	set_end_closure
 			-- Indicate that the end of the closure (i.e. feature, invariant
 			-- or inline agent) being parsed has been reached. Restore
 			-- `last_formal_arguments', `last_local_variables',
-			-- `last_object_tests' and `last_across_components'
+			-- `last_object_tests' and `last_iteration_components'
 			-- for the enclosing closure if any.
 		do
 			if not last_formal_arguments_stack.is_empty then
@@ -823,22 +970,66 @@ feature {NONE} -- Basic operations
 			else
 				last_object_tests := Void
 			end
-			if attached last_across_components as l_last_across_components then
-				l_last_across_components.wipe_out
-				last_across_components_pool.force (l_last_across_components)
+			if attached last_iteration_components as l_last_iteration_components then
+				l_last_iteration_components.wipe_out
+				last_iteration_components_pool.force (l_last_iteration_components)
 			end
-			if not last_across_components_stack.is_empty then
-				last_across_components := last_across_components_stack.item
-				last_across_components_stack.remove
+			if not last_iteration_components_stack.is_empty then
+				last_iteration_components := last_iteration_components_stack.item
+				last_iteration_components_stack.remove
 			else
-				last_across_components := Void
+				last_iteration_components := Void
 			end
 		end
 
-	start_assertions
-			-- Indicate that we start parsing a list of assertions.
+	start_precondition
+			-- Indicate that we start parsing a precondition.
+		do
+			start_assertions (assertion_kind_precondition)
+		ensure
+			assertion_kind_set: assertion_kind = assertion_kind_precondition
+		end
+
+	start_postcondition
+			-- Indicate that we start parsing a postcondition.
+		do
+			start_assertions (assertion_kind_postcondition)
+		ensure
+			assertion_kind_set: assertion_kind = assertion_kind_postcondition
+		end
+
+	start_invariant
+			-- Indicate that we start parsing an invariant.
+		do
+			start_assertions (assertion_kind_invariant)
+		ensure
+			assertion_kind_set: assertion_kind = assertion_kind_invariant
+		end
+
+	start_loop_invariant
+			-- Indicate that we start parsing a loop invariant.
+		do
+			start_assertions (assertion_kind_loop_invariant)
+		ensure
+			assertion_kind_set: assertion_kind = assertion_kind_loop_invariant
+		end
+
+	start_check_instruction
+			-- Indicate that we start parsing a check instruction.
+		do
+			start_assertions (assertion_kind_check_instruction)
+		ensure
+			assertion_kind_set: assertion_kind = assertion_kind_check_instruction
+		end
+
+	start_assertions (a_assertion_kind: INTEGER)
+			-- Indicate that we start parsing a list of assertions of `a_assertion_kind'.
 		do
 			assertion_counters.force_last (assertions.count)
+			assertion_kinds.force_last (assertion_kind)
+			assertion_kind := a_assertion_kind
+		ensure
+			assertion_kind_set: assertion_kind = a_assertion_kind
 		end
 
 feature {ET_CONSTRAINT_ACTUAL_PARAMETER_ITEM, ET_CONSTRAINT_ACTUAL_PARAMETER_LIST} -- Generic constraints
@@ -879,16 +1070,17 @@ feature {ET_CONSTRAINT_ACTUAL_PARAMETER_ITEM, ET_CONSTRAINT_ACTUAL_PARAMETER_LIS
 				if providers_enabled then
 					providers.force_last (a_base_class)
 				end
-				a_base_class.set_in_system (True)
+				a_base_class.set_marked (True)
 				l_type_mark := a_type_mark
 				if l_type_mark = Void then
 					l_type_mark := current_universe.implicit_attachment_type_mark
+				elseif attached {ET_KEYWORD} l_type_mark as l_keyword and then l_keyword.is_separate then
+					l_type_mark := ast_factory.new_attachment_mark_separate_keyword (current_universe.implicit_attachment_type_mark, l_keyword)
 				end
 				if a_base_class.name.same_class_name (tokens.tuple_class_name) then
-					if a_type_mark /= Void and then not a_type_mark.is_attachment_mark then
-							-- A TUPLE type is not a class type. It cannot
-							-- be prefixed by 'expanded' or 'reference'.
-							-- But it can be prefixed by 'attached', 'detachable', '!' or '?'.
+					if a_type_mark /= Void and then a_type_mark.is_expandedness_mark then
+							-- A TUPLE type is not a class type. It cannot be prefixed by 'expanded'.
+							-- But it can be prefixed by 'attached', 'detachable', '!', '?' or 'separate'.
 						report_syntax_error (a_type_mark.position)
 						Result := ast_factory.new_tuple_type (Void, a_name, Void, a_base_class)
 					else
@@ -924,9 +1116,8 @@ feature {ET_CONSTRAINT_ACTUAL_PARAMETER_ITEM, ET_CONSTRAINT_ACTUAL_PARAMETER_LIS
 			a_formal := a_formals.formal_parameter_by_name (a_name)
 			if a_formal /= Void then
 				if a_type_mark /= Void and then not a_type_mark.is_attachment_mark then
-						-- A formal parameter type is not a class type.
-						-- It cannot be prefixed by 'expanded' or 'reference'.
-						-- But it can be prefixed by 'attached', 'detachable', '!' or '?'.
+						-- A TUPLE type is not a class type. It cannot be prefixed by 'expanded'.
+						-- But it can be prefixed by 'attached', 'detachable', '!', '?' or 'separate'.
 					report_syntax_error (a_type_mark.position)
 				end
 					-- A formal parameter cannot have actual generic parameters.
@@ -939,16 +1130,18 @@ feature {ET_CONSTRAINT_ACTUAL_PARAMETER_ITEM, ET_CONSTRAINT_ACTUAL_PARAMETER_LIS
 					if providers_enabled then
 						providers.force_last (a_base_class)
 					end
-					a_base_class.set_in_system (True)
+					a_base_class.set_marked (True)
 					l_type_mark := a_type_mark
 					if l_type_mark = Void then
 						l_type_mark := current_universe.implicit_attachment_type_mark
+					elseif attached {ET_KEYWORD} l_type_mark as l_keyword and then l_keyword.is_separate then
+						l_type_mark := ast_factory.new_attachment_mark_separate_keyword (current_universe.implicit_attachment_type_mark, l_keyword)
 					end
 					if a_base_class.name.same_class_name (tokens.tuple_class_name) then
-						if a_type_mark /= Void and then not a_type_mark.is_attachment_mark then
+						if a_type_mark /= Void and then a_type_mark.is_expandedness_mark then
 								-- A TUPLE type is not a class type. It cannot
 								-- be prefixed by 'expanded' or 'reference'.
-								-- But it can be prefixed by 'attached', 'detachable', '!' or '?'.
+								-- But it can be prefixed by 'attached', 'detachable', '!', '?' or separate.
 							report_syntax_error (a_type_mark.position)
 							Result := ast_factory.new_tuple_type (Void, a_name, a_parameters, a_base_class)
 						else
@@ -1044,46 +1237,50 @@ feature {ET_CONSTRAINT_ACTUAL_PARAMETER_ITEM, ET_CONSTRAINT_ACTUAL_PARAMETER_LIS
 feature {NONE} -- AST factory
 
 	new_across_all_expression (a_across_header: detachable ET_ACROSS_EXPRESSION; an_invariant: detachable ET_LOOP_INVARIANTS;
-			an_until_conditional: detachable ET_CONDITIONAL; a_all_conditional: detachable ET_CONDITIONAL;
-			a_variant: detachable ET_VARIANT; an_end: detachable ET_KEYWORD): detachable ET_ACROSS_EXPRESSION
-				-- New across all expression
-			do
-				if a_across_header /= Void and a_all_conditional /= Void then
-					Result := a_across_header
-					Result.set_until_conditional (an_until_conditional)
-					Result.set_iteration_conditional (a_all_conditional)
-					Result.set_all (True)
-					Result.set_invariant_part (an_invariant)
-					Result.set_variant_part (a_variant)
-					if an_end /= Void then
-						Result.set_end_keyword (an_end)
-					end
-						-- We set 'cursor_name.is_across_cursor' to False when
-						-- parsing within its scope.
-					Result.cursor_name.set_across_cursor (True)
+		an_until_conditional: detachable ET_CONDITIONAL; a_all_conditional: detachable ET_CONDITIONAL;
+		a_variant: detachable ET_VARIANT; an_end: detachable ET_KEYWORD): detachable ET_ACROSS_EXPRESSION
+			-- New across all expression
+		do
+			if a_across_header /= Void and a_all_conditional /= Void then
+				Result := a_across_header
+				Result.set_until_conditional (an_until_conditional)
+				Result.set_iteration_conditional (a_all_conditional)
+				Result.set_all (True)
+				Result.set_invariant_part (an_invariant)
+				Result.set_variant_part (a_variant)
+				if an_end /= Void then
+					Result.set_end_keyword (an_end)
 				end
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				Result.item_name.set_iteration_item (True)
 			end
+		end
 
 	new_across_expression_header (a_across: detachable ET_KEYWORD; a_iterable_expression: detachable ET_EXPRESSION;
-		a_as: detachable ET_KEYWORD; a_cursor_name: detachable ET_IDENTIFIER): detachable ET_ACROSS_EXPRESSION
-				-- New across expression header
+		a_as: detachable ET_KEYWORD; a_item_name: detachable ET_IDENTIFIER): detachable ET_ACROSS_EXPRESSION
+			-- New across expression header
 		local
-			l_last_across_components: like last_across_components
-			l_cursor_name: ET_IDENTIFIER
+			l_last_iteration_components: like last_iteration_components
+			l_name: ET_IDENTIFIER
 		do
-			Result := ast_factory.new_across_all_expression (a_across, a_iterable_expression, a_as, a_cursor_name, Void, Void, tokens.true_keyword, Void, Void)
+			Result := ast_factory.new_across_all_expression (a_across, a_iterable_expression, a_as, a_item_name, Void, Void, tokens.true_keyword, Void, Void)
 			if Result /= Void then
-				l_last_across_components := last_across_components
-				if l_last_across_components = Void then
-					l_last_across_components := new_across_component_list
-					last_across_components := l_last_across_components
+				Result.set_has_cursor_name (current_universe.obsolete_iteration_mode and then Result.as_keyword.is_as)
+				l_last_iteration_components := last_iteration_components
+				if l_last_iteration_components = Void then
+					l_last_iteration_components := new_iteration_component_list
+					last_iteration_components := l_last_iteration_components
 				end
-				l_last_across_components.force_last (Result)
-					-- We set 'cursor_name.is_across_cursor' to False when
+				l_last_iteration_components.force_last (Result)
+					-- We set 'item_name.is_iteration_item' to False when
 					-- parsing within its scope.
-				l_cursor_name := Result.cursor_name
-				l_cursor_name.set_across_cursor (False)
-				l_cursor_name.set_seed (l_last_across_components.count)
+				l_name := Result.item_name
+				l_name.set_iteration_item (False)
+				l_name.set_seed (l_last_iteration_components.count)
+				l_name := Result.unfolded_cursor_name
+				l_name.set_iteration_item (True)
+				l_name.set_seed (l_last_iteration_components.count)
 			end
 		end
 
@@ -1103,59 +1300,63 @@ feature {NONE} -- AST factory
 				if an_end /= Void then
 					Result.set_end_keyword (an_end)
 				end
-					-- We set 'cursor_name.is_across_cursor' to False when
+					-- We set 'item_name.is_iteration_item' to False when
 					-- parsing within its scope.
-				Result.cursor_name.set_across_cursor (True)
+				Result.item_name.set_iteration_item (True)
 			end
 		end
 
 	new_across_instruction_header (a_across: detachable ET_KEYWORD;
 		a_iterable_expression: detachable ET_EXPRESSION; a_as: detachable ET_KEYWORD;
-		a_cursor_name: detachable ET_IDENTIFIER): detachable ET_ACROSS_INSTRUCTION
+		a_item_name: detachable ET_IDENTIFIER): detachable ET_ACROSS_INSTRUCTION
 			-- New across instruction header
 		local
-			l_last_across_components: like last_across_components
-			l_cursor_name: ET_IDENTIFIER
+			l_last_iteration_components: like last_iteration_components
+			l_name: ET_IDENTIFIER
 		do
-			Result := ast_factory.new_across_instruction (a_across, a_iterable_expression, a_as, a_cursor_name, Void, Void, Void, Void, Void, Void)
+			Result := ast_factory.new_across_instruction (a_across, a_iterable_expression, a_as, a_item_name, Void, Void, Void, Void, Void, Void)
 			if Result /= Void then
-				l_last_across_components := last_across_components
-				if l_last_across_components = Void then
-					l_last_across_components := new_across_component_list
-					last_across_components := l_last_across_components
+				Result.set_has_cursor_name (current_universe.obsolete_iteration_mode and then Result.as_keyword.is_as)
+				l_last_iteration_components := last_iteration_components
+				if l_last_iteration_components = Void then
+					l_last_iteration_components := new_iteration_component_list
+					last_iteration_components := l_last_iteration_components
 				end
-				l_last_across_components.force_last (Result)
-					-- We set 'cursor_name.is_across_cursor' to False when
+				l_last_iteration_components.force_last (Result)
+					-- We set 'item_name.is_iteration_item' to False when
 					-- parsing within its scope.
-				l_cursor_name := Result.cursor_name
-				l_cursor_name.set_across_cursor (False)
-				l_cursor_name.set_seed (l_last_across_components.count)
+				l_name := Result.item_name
+				l_name.set_iteration_item (False)
+				l_name.set_seed (l_last_iteration_components.count)
+				l_name := Result.unfolded_cursor_name
+				l_name.set_iteration_item (True)
+				l_name.set_seed (l_last_iteration_components.count)
 			end
 		end
 
 	new_across_some_expression (a_across_header: detachable ET_ACROSS_EXPRESSION;
 		an_invariant: detachable ET_LOOP_INVARIANTS;
-			an_until_conditional: detachable ET_CONDITIONAL;
-			a_some_conditional: detachable ET_CONDITIONAL;
-			a_variant: detachable ET_VARIANT;
-			an_end: detachable ET_KEYWORD): detachable ET_ACROSS_EXPRESSION
-				-- New across some expression
-			do
-				if a_across_header /= Void and a_some_conditional /= Void then
-					Result := a_across_header
-					Result.set_until_conditional (an_until_conditional)
-					Result.set_iteration_conditional (a_some_conditional)
-					Result.set_some (True)
-					Result.set_invariant_part (an_invariant)
-					Result.set_variant_part (a_variant)
-					if an_end /= Void then
-						Result.set_end_keyword (an_end)
-					end
-						-- We set 'cursor_name.is_across_cursor' to False when
-						-- parsing within its scope.
-					Result.cursor_name.set_across_cursor (True)
+		an_until_conditional: detachable ET_CONDITIONAL;
+		a_some_conditional: detachable ET_CONDITIONAL;
+		a_variant: detachable ET_VARIANT;
+		an_end: detachable ET_KEYWORD): detachable ET_ACROSS_EXPRESSION
+			-- New across some expression
+		do
+			if a_across_header /= Void and a_some_conditional /= Void then
+				Result := a_across_header
+				Result.set_until_conditional (an_until_conditional)
+				Result.set_iteration_conditional (a_some_conditional)
+				Result.set_some (True)
+				Result.set_invariant_part (an_invariant)
+				Result.set_variant_part (a_variant)
+				if an_end /= Void then
+					Result.set_end_keyword (an_end)
 				end
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				Result.item_name.set_iteration_item (True)
 			end
+		end
 
 	new_agent_identifier_target (an_identifier: detachable ET_IDENTIFIER): detachable ET_EXPRESSION
 			-- New agent identifier target
@@ -1179,10 +1380,10 @@ feature {NONE} -- AST factory
 						l_last_local_variables.local_variable (a_seed).set_used (True)
 					end
 				end
-				if a_seed = 0 and then attached last_across_components as l_last_across_components then
-					a_seed := l_last_across_components.index_of_name (an_identifier)
+				if a_seed = 0 and then attached last_iteration_components as l_last_iteration_components then
+					a_seed := l_last_iteration_components.index_of_name (an_identifier)
 					if a_seed /= 0 then
-						an_identifier.set_across_cursor (True)
+						an_identifier.set_iteration_item (True)
 					end
 				end
 				if a_seed = 0 and then attached last_object_tests as l_last_object_tests then
@@ -1201,17 +1402,17 @@ feature {NONE} -- AST factory
 		end
 
 	new_alias_free_name (an_alias: detachable ET_KEYWORD;
-		a_string: detachable ET_MANIFEST_STRING): detachable ET_ALIAS_FREE_NAME
+		a_string: detachable ET_MANIFEST_STRING; a_convert: detachable ET_KEYWORD): detachable ET_ALIAS_FREE_NAME
 			-- New alias free feature name
 		do
 			if a_string /= Void then
 				if a_string.value.count > 0 then
-					Result := ast_factory.new_alias_free_name (an_alias, a_string)
+					Result := ast_factory.new_alias_free_name (an_alias, a_string, a_convert)
 				else
 					-- TODO: error.
 				end
 			else
-				Result := ast_factory.new_alias_free_name (an_alias, a_string)
+				Result := ast_factory.new_alias_free_name (an_alias, a_string, a_convert)
 			end
 		end
 
@@ -1270,6 +1471,12 @@ feature {NONE} -- AST factory
 					end
 				end
 			end
+			if not assertion_kinds.is_empty then
+				assertion_kind := assertion_kinds.last
+				assertion_kinds.remove_last
+			else
+				assertion_kind := assertion_kind_none
+			end
 		end
 
 	new_choice_attribute_constant (a_name: detachable ET_IDENTIFIER): detachable ET_CHOICE_CONSTANT
@@ -1295,10 +1502,10 @@ feature {NONE} -- AST factory
 						l_last_local_variables.local_variable (a_seed).set_used (True)
 					end
 				end
-				if a_seed = 0 and then attached last_across_components as l_last_across_components then
-					a_seed := l_last_across_components.index_of_name (a_name)
+				if a_seed = 0 and then attached last_iteration_components as l_last_iteration_components then
+					a_seed := l_last_iteration_components.index_of_name (a_name)
 					if a_seed /= 0 then
-						a_name.set_across_cursor (True)
+						a_name.set_iteration_item (True)
 					end
 				end
 				if a_seed = 0 and then attached last_object_tests as l_last_object_tests then
@@ -1411,10 +1618,10 @@ feature {NONE} -- AST factory
 						l_last_local_variables.local_variable (l_seed).set_used (True)
 					end
 				end
-				if l_seed = 0 and then attached last_across_components as l_last_across_components then
-					l_seed := l_last_across_components.index_of_name (l_identifier)
+				if l_seed = 0 and then attached last_iteration_components as l_last_iteration_components then
+					l_seed := l_last_iteration_components.index_of_name (l_identifier)
 					if l_seed /= 0 then
-						l_identifier.set_across_cursor (True)
+						l_identifier.set_iteration_item (True)
 					end
 				end
 				if l_seed = 0 and then attached last_object_tests as l_last_object_tests then
@@ -1430,6 +1637,33 @@ feature {NONE} -- AST factory
 			Result := ast_factory.new_feature_address (d, a_name)
 		end
 
+	new_for_all_quantifier_expression_header (a_quantifier_symbol: detachable ET_SYMBOL;
+		a_item_name: detachable ET_IDENTIFIER; a_colon_symbol: detachable ET_SYMBOL;
+		a_iterable_expression: detachable ET_EXPRESSION; a_bar_symbol: detachable ET_SYMBOL): detachable ET_QUANTIFIER_EXPRESSION
+		 	-- New quantifier expression header of the form '∀'
+		local
+			l_last_iteration_components: like last_iteration_components
+			l_name: ET_IDENTIFIER
+		do
+			Result := ast_factory.new_for_all_quantifier_expression (a_quantifier_symbol, a_item_name, a_colon_symbol, a_iterable_expression, a_bar_symbol, tokens.true_keyword)
+			if Result /= Void then
+				l_last_iteration_components := last_iteration_components
+				if l_last_iteration_components = Void then
+					l_last_iteration_components := new_iteration_component_list
+					last_iteration_components := l_last_iteration_components
+				end
+				l_last_iteration_components.force_last (Result)
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				l_name := Result.item_name
+				l_name.set_iteration_item (False)
+				l_name.set_seed (l_last_iteration_components.count)
+				l_name := Result.unfolded_cursor_name
+				l_name.set_iteration_item (True)
+				l_name.set_seed (l_last_iteration_components.count)
+			end
+		end
+
 	new_formal_arguments (a_left, a_right: detachable ET_SYMBOL; nb: INTEGER): detachable ET_FORMAL_ARGUMENT_LIST
 			-- New formal argument list with given capacity
 		require
@@ -1438,39 +1672,20 @@ feature {NONE} -- AST factory
 			Result := ast_factory.new_formal_arguments (a_left, a_right, nb)
 		end
 
-	new_invalid_alias_name (an_alias: detachable ET_KEYWORD; a_string: detachable ET_MANIFEST_STRING): detachable ET_ALIAS_FREE_NAME
+	new_invalid_alias_name (an_alias: detachable ET_KEYWORD; a_string: detachable ET_MANIFEST_STRING; a_convert: detachable ET_KEYWORD): detachable ET_ALIAS_FREE_NAME
 			-- New invalid alias feature name
+		local
+			l_position: ET_POSITION
 		do
--- ERROR
-			Result := new_alias_free_name (an_alias, a_string)
-		end
-
-	new_invalid_infix_name (an_infix: detachable ET_KEYWORD; an_operator: detachable ET_MANIFEST_STRING): detachable ET_INFIX_FREE_NAME
-			-- New invalid infix feature name
-		do
--- ERROR
-			Result := new_infix_free_name (an_infix, an_operator)
-		end
-
-	new_invalid_prefix_name (a_prefix: detachable ET_KEYWORD; an_operator: detachable ET_MANIFEST_STRING): detachable ET_PREFIX_FREE_NAME
-			-- New invalid prefix feature name
-		do
--- ERROR
-			Result := new_prefix_free_name (a_prefix, an_operator)
-		end
-
-	new_infix_free_name (an_infix: detachable ET_KEYWORD; an_operator: detachable ET_MANIFEST_STRING): detachable ET_INFIX_FREE_NAME
-			-- New infix free feature name
-		do
-			if an_operator /= Void then
-				if an_operator.value.count > 0 then
-					Result := ast_factory.new_infix_free_name (an_infix, an_operator)
-				else
-					-- TODO: error.
-				end
+				-- Do not mark this error as a fatal error.
+				-- It will be a fatal error when using this free operator.
+			if a_string /= Void then
+				create {ET_FILE_POSITION} l_position.make (filename, a_string.position.line, a_string.position.column)
 			else
-				Result := ast_factory.new_infix_free_name (an_infix, an_operator)
+				l_position := current_position
 			end
+			error_handler.report_syntax_error (filename, l_position)
+			Result := new_alias_free_name (an_alias, a_string, a_convert)
 		end
 
 	new_invariants (an_invariant: detachable ET_KEYWORD): detachable ET_INVARIANTS
@@ -1505,12 +1720,18 @@ feature {NONE} -- AST factory
 					end
 				end
 			end
+			if not assertion_kinds.is_empty then
+				assertion_kind := assertion_kinds.last
+				assertion_kinds.remove_last
+			else
+				assertion_kind := assertion_kind_none
+			end
 			if Result /= Void then
 				if attached last_object_tests as l_last_object_tests then
 					Result.set_object_tests (l_last_object_tests.cloned_object_test_list)
 				end
-				if attached last_across_components as l_last_across_components then
-					Result.set_across_components (l_last_across_components.cloned_across_component_list)
+				if attached last_iteration_components as l_last_iteration_components then
+					Result.set_iteration_components (l_last_iteration_components.cloned_iteration_component_list)
 				end
 			end
 				-- Reset local variables, formal arguments, object-tests
@@ -1518,7 +1739,23 @@ feature {NONE} -- AST factory
 			wipe_out_last_formal_arguments_stack
 			wipe_out_last_local_variables_stack
 			wipe_out_last_object_tests_stack
-			wipe_out_last_across_components_stack
+			wipe_out_last_iteration_components_stack
+		end
+
+	new_iteration_cursor (a_at_symbol: detachable ET_SYMBOL; a_identifier: detachable ET_IDENTIFIER): detachable ET_ITERATION_CURSOR
+			-- New iteration cursor '@i' expression
+		local
+			l_seed: INTEGER
+		do
+			if a_identifier /= Void then
+				if attached last_iteration_components as l_last_iteration_components then
+					l_seed := l_last_iteration_components.index_of_name (a_identifier)
+					if l_seed /= 0 then
+						a_identifier.set_iteration_item (True)
+					end
+				end
+				Result := ast_factory.new_iteration_cursor (a_at_symbol, a_identifier)
+			end
 		end
 
 	new_like_feature (a_type_mark: detachable ET_TYPE_MARK; a_like: detachable ET_KEYWORD;
@@ -1572,6 +1809,12 @@ feature {NONE} -- AST factory
 					end
 				end
 			end
+			if not assertion_kinds.is_empty then
+				assertion_kind := assertion_kinds.last
+				assertion_kinds.remove_last
+			else
+				assertion_kind := assertion_kind_none
+			end
 		end
 
 	new_named_object_test (a_attached: detachable ET_KEYWORD; a_type: detachable ET_TARGET_TYPE;
@@ -1600,15 +1843,13 @@ feature {NONE} -- AST factory
 		a_generics: detachable ET_ACTUAL_PARAMETER_LIST): detachable ET_TYPE
 			-- New Eiffel class type or formal generic paramater
 		local
-			a_parameter: detachable ET_FORMAL_PARAMETER
 			a_last_class: like last_class
 			l_class: ET_MASTER_CLASS
 			l_type_mark: detachable ET_TYPE_MARK
 		do
-			a_last_class := last_class
-			if a_last_class /= Void and a_name /= Void then
-				a_parameter := a_last_class.formal_parameter (a_name)
-				if a_parameter /= Void then
+			if a_name /= Void then
+				a_last_class := last_class
+				if a_last_class /= Void and then attached a_last_class.formal_parameter (a_name) as a_parameter then
 					if a_generics /= Void then
 						-- TODO: Error
 					end
@@ -1621,10 +1862,12 @@ feature {NONE} -- AST factory
 					if providers_enabled then
 						providers.force_last (l_class)
 					end
-					l_class.set_in_system (True)
+					l_class.set_marked (True)
 					l_type_mark := a_type_mark
 					if l_type_mark = Void then
 						l_type_mark := current_universe.implicit_attachment_type_mark
+					elseif attached {ET_KEYWORD} l_type_mark as l_keyword and then l_keyword.is_separate then
+						l_type_mark := ast_factory.new_attachment_mark_separate_keyword (current_universe.implicit_attachment_type_mark, l_keyword)
 					end
 					if a_generics /= Void then
 						Result := ast_factory.new_generic_class_type (l_type_mark, a_name, a_generics, l_class)
@@ -1662,7 +1905,7 @@ feature {NONE} -- AST factory
 		do
 			Result := ast_factory.new_once_manifest_string (a_once, a_string)
 			if Result /= Void then
-				current_system.register_inline_constant (Result)
+				current_class.register_inline_constant (Result)
 			end
 		end
 
@@ -1684,7 +1927,7 @@ feature {NONE} -- AST factory
 				if providers_enabled then
 					providers.force_last (l_class)
 				end
-				l_class.set_in_system (True)
+				l_class.set_marked (True)
 				if a_generic_parameters /= Void then
 					a_type := ast_factory.new_generic_class_type (Void, a_name, a_generic_parameters, l_class)
 				else
@@ -1727,6 +1970,12 @@ feature {NONE} -- AST factory
 					end
 				end
 			end
+			if not assertion_kinds.is_empty then
+				assertion_kind := assertion_kinds.last
+				assertion_kinds.remove_last
+			else
+				assertion_kind := assertion_kind_none
+			end
 		end
 
 	new_preconditions (a_require: detachable ET_KEYWORD; an_else: detachable ET_KEYWORD): detachable ET_PRECONDITIONS
@@ -1761,19 +2010,11 @@ feature {NONE} -- AST factory
 					end
 				end
 			end
-		end
-
-	new_prefix_free_name (a_prefix: detachable ET_KEYWORD; an_operator: detachable ET_MANIFEST_STRING): detachable ET_PREFIX_FREE_NAME
-			-- New prefix free feature name
-		do
-			if an_operator /= Void then
-				if an_operator.value.count > 0 then
-					Result := ast_factory.new_prefix_free_name (a_prefix, an_operator)
-				else
-					-- TODO: error.
-				end
+			if not assertion_kinds.is_empty then
+				assertion_kind := assertion_kinds.last
+				assertion_kinds.remove_last
 			else
-				Result := ast_factory.new_prefix_free_name (a_prefix, an_operator)
+				assertion_kind := assertion_kind_none
 			end
 		end
 
@@ -1819,11 +2060,95 @@ feature {NONE} -- AST factory
 			end
 		end
 
+	new_quantifier_expression (a_quantifier_expression_header: detachable ET_QUANTIFIER_EXPRESSION;
+		a_iteration_expression: detachable ET_EXPRESSION): detachable ET_QUANTIFIER_EXPRESSION
+			-- New quantifier expression of the form '∀' or '∃'
+		do
+			if a_quantifier_expression_header /= Void and a_iteration_expression /= Void then
+				Result := a_quantifier_expression_header
+				Result.set_iteration_expression (a_iteration_expression)
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				Result.item_name.set_iteration_item (True)
+			end
+		end
+
+	new_repeat_instruction (a_repeat_instruction_header: detachable ET_REPEAT_INSTRUCTION;
+		a_loop_compound: detachable ET_COMPOUND; a_close_repeat_symbol: detachable ET_SYMBOL): detachable ET_REPEAT_INSTRUCTION
+			-- New repeat instruction of the form '⟳ ... ⟲'
+		do
+			if a_repeat_instruction_header /= Void then
+				Result := a_repeat_instruction_header
+				Result.set_loop_compound (a_loop_compound)
+				if a_close_repeat_symbol /= Void then
+					Result.set_close_repeat_symbol (a_close_repeat_symbol)
+				end
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				Result.item_name.set_iteration_item (True)
+			end
+		end
+
+	new_repeat_instruction_header (a_open_repeat_symbol: detachable ET_SYMBOL;
+		a_item_name: detachable ET_IDENTIFIER; a_colon_symbol: detachable ET_SYMBOL;
+		a_iterable_expression: detachable ET_EXPRESSION;
+		a_bar_symbol: detachable ET_SYMBOL): detachable ET_REPEAT_INSTRUCTION
+			-- New repeat instruction header of the form '⟳ ... ⟲'
+		local
+			l_last_iteration_components: like last_iteration_components
+			l_name: ET_IDENTIFIER
+		do
+			Result := ast_factory.new_repeat_instruction (a_open_repeat_symbol, a_item_name, a_colon_symbol, a_iterable_expression, a_bar_symbol, Void, Void)
+			if Result /= Void then
+				l_last_iteration_components := last_iteration_components
+				if l_last_iteration_components = Void then
+					l_last_iteration_components := new_iteration_component_list
+					last_iteration_components := l_last_iteration_components
+				end
+				l_last_iteration_components.force_last (Result)
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				l_name := Result.item_name
+				l_name.set_iteration_item (False)
+				l_name.set_seed (l_last_iteration_components.count)
+				l_name := Result.unfolded_cursor_name
+				l_name.set_iteration_item (True)
+				l_name.set_seed (l_last_iteration_components.count)
+			end
+		end
+
+	new_there_exists_quantifier_expression_header (a_quantifier_symbol: detachable ET_SYMBOL;
+		a_item_name: detachable ET_IDENTIFIER; a_colon_symbol: detachable ET_SYMBOL;
+		a_iterable_expression: detachable ET_EXPRESSION; a_bar_symbol: detachable ET_SYMBOL): detachable ET_QUANTIFIER_EXPRESSION
+		 	-- New quantifier expression header of the form '∃'
+		local
+			l_last_iteration_components: like last_iteration_components
+			l_name: ET_IDENTIFIER
+		do
+			Result := ast_factory.new_there_exists_quantifier_expression (a_quantifier_symbol, a_item_name, a_colon_symbol, a_iterable_expression, a_bar_symbol, tokens.true_keyword)
+			if Result /= Void then
+				l_last_iteration_components := last_iteration_components
+				if l_last_iteration_components = Void then
+					l_last_iteration_components := new_iteration_component_list
+					last_iteration_components := l_last_iteration_components
+				end
+				l_last_iteration_components.force_last (Result)
+					-- We set 'item_name.is_iteration_item' to False when
+					-- parsing within its scope.
+				l_name := Result.item_name
+				l_name.set_iteration_item (False)
+				l_name.set_seed (l_last_iteration_components.count)
+				l_name := Result.unfolded_cursor_name
+				l_name.set_iteration_item (True)
+				l_name.set_seed (l_last_iteration_components.count)
+			end
+		end
+
 	new_tuple_type (a_type_mark: detachable ET_TYPE_MARK; a_tuple: detachable ET_IDENTIFIER;
 		a_generics: detachable ET_ACTUAL_PARAMETER_LIST): detachable ET_TUPLE_TYPE
 			-- New 'TUPLE' type
 		local
-			a_class: ET_NAMED_CLASS
+			a_class: ET_MASTER_CLASS
 			l_type_mark: detachable ET_TYPE_MARK
 		do
 			if a_tuple /= Void then
@@ -1831,10 +2156,12 @@ feature {NONE} -- AST factory
 				if providers_enabled then
 					providers.force_last (a_class)
 				end
-				a_class.set_in_system (True)
+				a_class.set_marked (True)
 				l_type_mark := a_type_mark
 				if l_type_mark = Void then
 					l_type_mark := current_universe.implicit_attachment_type_mark
+				elseif attached {ET_KEYWORD} l_type_mark as l_keyword and then l_keyword.is_separate then
+					l_type_mark := ast_factory.new_attachment_mark_separate_keyword (current_universe.implicit_attachment_type_mark, l_keyword)
 				end
 				Result := ast_factory.new_tuple_type (l_type_mark, a_tuple, a_generics, a_class)
 			end
@@ -1862,10 +2189,10 @@ feature {NONE} -- AST factory
 						l_last_local_variables.local_variable (a_seed).set_used (True)
 					end
 				end
-				if a_seed = 0 and then attached last_across_components as l_last_across_components then
-					a_seed := l_last_across_components.index_of_name (a_name)
+				if a_seed = 0 and then attached last_iteration_components as l_last_iteration_components then
+					a_seed := l_last_iteration_components.index_of_name (a_name)
 					if a_seed /= 0 then
-						a_name.set_across_cursor (True)
+						a_name.set_iteration_item (True)
 					end
 				end
 				if a_seed = 0 and then attached last_object_tests as l_last_object_tests then
@@ -1907,10 +2234,10 @@ feature {NONE} -- AST factory
 						l_last_local_variables.local_variable (a_seed).set_used (True)
 					end
 				end
-				if a_seed = 0 and then attached last_across_components as l_last_across_components then
-					a_seed := l_last_across_components.index_of_name (a_name)
+				if a_seed = 0 and then attached last_iteration_components as l_last_iteration_components then
+					a_seed := l_last_iteration_components.index_of_name (a_name)
 					if a_seed /= 0 then
-						a_name.set_across_cursor (True)
+						a_name.set_iteration_item (True)
 					end
 				end
 				if a_seed = 0 and then attached last_object_tests as l_last_object_tests then
@@ -1933,19 +2260,39 @@ feature {NONE} -- AST factory
 	new_writable (a_name: detachable ET_IDENTIFIER): detachable ET_WRITABLE
 			-- New writable
 		local
-			a_seed: INTEGER
+			l_seed: INTEGER
 		do
 			if a_name /= Void then
 				Result := a_name
 				if attached last_local_variables as l_last_local_variables then
-					a_seed := l_last_local_variables.index_of (a_name)
-					if a_seed /= 0 then
-						a_name.set_seed (a_seed)
+					l_seed := l_last_local_variables.index_of (a_name)
+					if l_seed /= 0 then
+						a_name.set_seed (l_seed)
 						a_name.set_local (True)
-						l_last_local_variables.local_variable (a_seed).set_used (True)
+						l_last_local_variables.local_variable (l_seed).set_used (True)
 					end
 				end
-				if a_seed = 0 then
+				if l_seed = 0 and then attached last_formal_arguments as l_last_formal_arguments then
+					l_seed := l_last_formal_arguments.index_of (a_name)
+					if l_seed /= 0 then
+						a_name.set_seed (l_seed)
+						a_name.set_argument (True)
+						l_last_formal_arguments.formal_argument (l_seed).set_used (True)
+					end
+				end
+				if l_seed = 0 and then attached last_iteration_components as l_last_iteration_components then
+					l_seed := l_last_iteration_components.index_of_name (a_name)
+					if l_seed /= 0 then
+						a_name.set_iteration_item (True)
+					end
+				end
+				if l_seed = 0 and then attached last_object_tests as l_last_object_tests then
+					l_seed := l_last_object_tests.index_of_name (a_name)
+					if l_seed /= 0 then
+						a_name.set_object_test_local (True)
+					end
+				end
+				if l_seed = 0 then
 					a_name.set_feature_name (True)
 				end
 			end
@@ -1954,14 +2301,19 @@ feature {NONE} -- AST factory
 	new_class (a_name: detachable ET_IDENTIFIER): detachable ET_CLASS
 			-- New Eiffel class
 		local
-			old_current_class: ET_CLASS
 			l_basename: STRING
 			l_class_name: ET_IDENTIFIER
 			l_master_class: ET_MASTER_CLASS
 			l_new_class: ET_CLASS
+			l_reset_needed: BOOLEAN
 		do
+			if attached last_class as l_last_class and then l_last_class /= current_class then
+				l_last_class.processing_mutex.unlock
+				last_class := Void
+			end
 			if a_name /= Void then
 				l_master_class := current_universe.master_class (a_name)
+				l_master_class.processing_mutex.lock
 				if current_class.name.same_class_name (a_name) then
 					Result := current_class
 				elseif l_master_class.has_local_class (current_class) then
@@ -1971,13 +2323,13 @@ feature {NONE} -- AST factory
 				else
 					Result := tokens.unknown_class
 				end
-				if not current_system.preparse_multiple_mode and then not current_class.is_unknown and then Result /= current_class then
+				if not system_processor.preparse_multiple_mode and then not current_class.is_unknown and then Result /= current_class then
 						-- We are parsing another class than the one we want to parse.
 					set_fatal_error (current_class)
 					error_handler.report_gvscn1a_error (current_class, a_name, filename)
 						-- Stop the parsing.
 					accept
-				elseif current_system.preparse_shallow_mode and then current_class.is_unknown and then not file_system.basename (filename).as_lower.same_string (a_name.lower_name + ".e") then
+				elseif system_processor.preparse_shallow_mode and then current_class.is_unknown and then not file_system.basename (filename).as_lower.same_string (a_name.lower_name + ".e") then
 						-- The file does not contain the expected class
 						-- (whose name is supposed to match the filename).
 					l_basename := file_system.basename (filename).as_lower
@@ -2000,30 +2352,45 @@ feature {NONE} -- AST factory
 							if Result = l_master_class.actual_class then
 								l_master_class.set_modified (True)
 							end
-							Result.reset
+							l_reset_needed := True
 						end
-						Result.set_name (a_name)
-						Result.set_group (group)
+						if Result /= current_class then
+							if {PLATFORM}.is_thread_capable and then not Result.processing_mutex.try_lock then
+									-- 'Result' already processed by another thread.
+									-- Continue the parsing but do not build the AST.
+								Result := Void
+							end
+						end
+						if Result /= Void then
+							if l_reset_needed then
+								Result.reset
+							end
+							Result.set_name (a_name)
+							Result.set_group (group)
+						end
 					else
 						create Result.make (a_name)
+						Result.processing_mutex.lock
 						current_system.register_class (Result)
 						Result.set_group (group)
 						if group.is_cluster then
 							l_master_class.add_last_local_class (Result)
 						end
 					end
-					Result.set_filename (filename)
-					Result.set_parsed
-					Result.set_time_stamp (time_stamp)
-					Result.set_in_system (True)
-					old_current_class := current_class
-					current_class := Result
-					error_handler.report_compilation_status (Current, current_class)
-					current_class := old_current_class
-					queries.wipe_out
-					procedures.wipe_out
+					if Result /= Void then
+						Result.set_filename (filename)
+						Result.set_time_stamp (time_stamp)
+						Result.set_marked (True)
+						error_handler.report_compilation_status (Current, Result, system_processor)
+						if Result /= current_class then
+							system_processor.report_class_processed (Result)
+						end
+					end
 				end
+				l_master_class.processing_mutex.unlock
 			end
+			queries.wipe_out
+			procedures.wipe_out
 		end
 
 	new_query_synonym (a_name: detachable ET_EXTENDED_FEATURE_NAME; a_query: detachable ET_QUERY): detachable ET_QUERY
@@ -2063,7 +2430,6 @@ feature -- Error handling
 		require
 			a_class_not_void: a_class /= Void
 		do
-			a_class.set_parsed
 			a_class.set_syntax_error
 		ensure
 			is_parsed: a_class.is_parsed
@@ -2089,6 +2455,12 @@ feature {NONE} -- Access
 
 	assertion_counters: DS_ARRAYED_LIST [INTEGER]
 			-- List of counters when we start parsing assertions
+
+	assertion_kinds: DS_ARRAYED_LIST [INTEGER]
+			-- List of kinds of assertions when we start parsing assertions
+
+	assertion_kind: INTEGER
+			-- Kind of assertions currently parsed
 
 	queries: DS_ARRAYED_LIST [ET_QUERY]
 			-- List of queries currently being parsed
@@ -2180,60 +2552,60 @@ feature {NONE} -- Object-tests
 			last_object_tests_void: last_object_tests = Void
 		end
 
-feature {NONE} -- Across components
+feature {NONE} -- Iteration components
 
-	last_across_components: detachable ET_ACROSS_COMPONENT_LIST
-			-- Across components already found in the closure (i.e. feature,
+	last_iteration_components: detachable ET_ITERATION_COMPONENT_LIST
+			-- Iteration components already found in the closure (i.e. feature,
 			-- invariant or inline agent) being parsed
 
-	last_across_components_stack: DS_ARRAYED_STACK [detachable ET_ACROSS_COMPONENT_LIST]
-			-- Stack of across components already found in the enclosing
+	last_iteration_components_stack: DS_ARRAYED_STACK [detachable ET_ITERATION_COMPONENT_LIST]
+			-- Stack of iteration components already found in the enclosing
 			-- closures (i.e. feature, invariant or inline agents)
 			-- of the closure being parsed
 
-	last_across_components_pool: DS_ARRAYED_STACK [ET_ACROSS_COMPONENT_LIST]
-			-- Pool of across component lists available for usage
+	last_iteration_components_pool: DS_ARRAYED_STACK [ET_ITERATION_COMPONENT_LIST]
+			-- Pool of iteration component lists available for usage
 			-- whenever needed
 
-	new_across_component_list: ET_ACROSS_COMPONENT_LIST
-			-- New across component list;
-			-- Reuse items from `last_across_components_pool' if available.
+	new_iteration_component_list: ET_ITERATION_COMPONENT_LIST
+			-- New iteration component list;
+			-- Reuse items from `last_iteration_components_pool' if available.
 		do
-			if not last_across_components_pool.is_empty then
-				Result := last_across_components_pool.item
-				last_across_components_pool.remove
+			if not last_iteration_components_pool.is_empty then
+				Result := last_iteration_components_pool.item
+				last_iteration_components_pool.remove
 			else
-				create Result.make_with_capacity (Initial_last_across_components_capacity)
+				create Result.make_with_capacity (Initial_last_iteration_components_capacity)
 			end
 		ensure
-			new_across_component_list_not_void: Result /= Void
+			new_iteration_component_list_not_void: Result /= Void
 		end
 
-	wipe_out_last_across_components_stack
-			-- Wipe out `last_across_components_stack' and
-			-- set `last_across_components' to Void.
+	wipe_out_last_iteration_components_stack
+			-- Wipe out `last_iteration_components_stack' and
+			-- set `last_iteration_components' to Void.
 		local
-			l_across_component_list: detachable ET_ACROSS_COMPONENT_LIST
+			l_iteration_component_list: detachable ET_ITERATION_COMPONENT_LIST
 			i, nb: INTEGER
 		do
-			if attached last_across_components as l_last_across_components then
-				l_last_across_components.wipe_out
-				last_across_components_pool.force (l_last_across_components)
-				last_across_components := Void
+			if attached last_iteration_components as l_last_iteration_components then
+				l_last_iteration_components.wipe_out
+				last_iteration_components_pool.force (l_last_iteration_components)
+				last_iteration_components := Void
 			end
-			nb := last_across_components_stack.count
+			nb := last_iteration_components_stack.count
 			from i := 1 until i > nb loop
-				l_across_component_list := last_across_components_stack.i_th (i)
-				if l_across_component_list /= Void then
-					l_across_component_list.wipe_out
-					last_across_components_pool.force (l_across_component_list)
+				l_iteration_component_list := last_iteration_components_stack.i_th (i)
+				if l_iteration_component_list /= Void then
+					l_iteration_component_list.wipe_out
+					last_iteration_components_pool.force (l_iteration_component_list)
 				end
 				i := i + 1
 			end
-			last_across_components_stack.wipe_out
+			last_iteration_components_stack.wipe_out
 		ensure
-			last_across_components_stack_wiped_out: last_across_components_stack.is_empty
-			last_across_components_void: last_across_components = Void
+			last_iteration_components_stack_wiped_out: last_iteration_components_stack.is_empty
+			last_iteration_components_void: last_iteration_components = Void
 		end
 
 feature {NONE} -- Formal arguments
@@ -2373,7 +2745,7 @@ feature {NONE} -- Counters
 
 feature {NONE} -- Input buffer
 
-	eiffel_buffer: YY_FILE_BUFFER
+	eiffel_buffer: YY_UNICODE_FILE_BUFFER
 			-- Eiffel file input buffer
 
 feature {NONE} -- Constants
@@ -2399,14 +2771,14 @@ feature {NONE} -- Constants
 	Initial_last_object_tests_capacity: INTEGER = 50
 			-- Initial capacity for `last_object_tests'
 
-	Initial_last_across_components_capacity: INTEGER = 50
-			-- Initial capacity for `last_across_components'
+	Initial_last_iteration_components_capacity: INTEGER = 50
+			-- Initial capacity for `last_iteration_components'
 
 	Initial_assertions_capacity: INTEGER = 20
 			-- Initial capacity for `assertions'
 
 	Initial_assertion_counters_capacity: INTEGER = 10
-			-- Initial capacity for `assertion_counters'
+			-- Initial capacity for `assertion_counters' and `assertion_kinds'
 
 	Initial_queries_capacity: INTEGER = 100
 			-- Initial capacity for `queries'
@@ -2419,6 +2791,24 @@ feature {NONE} -- Constants
 
 	Initial_providers_capacity: INTEGER = 100
 			-- Initial capacity for `providers'
+
+	assertion_kind_none: INTEGER = 0
+			-- No assertion being parsed
+
+	assertion_kind_precondition: INTEGER = 1
+			-- Precondition being parsed
+
+	assertion_kind_postcondition: INTEGER = 2
+			-- Postcondition being parsed
+
+	assertion_kind_invariant: INTEGER = 3
+			-- Invariant being parsed
+
+	assertion_kind_check_instruction: INTEGER = 4
+			-- Check instruction being parsed
+
+	assertion_kind_loop_invariant: INTEGER = 5
+			-- Loop invariant being parsed
 
 	dummy_type: ET_TYPE
 			-- Dummy type
@@ -2460,6 +2850,7 @@ invariant
 	assertions_not_void: assertions /= Void
 	no_void_assertion: not assertions.has_void
 	assertion_counters_not_void: assertion_counters /= Void
+	assertion_kinds_not_void: assertion_kinds /= Void
 	queries_not_void: queries /= Void
 	no_void_query: not queries.has_void
 	-- queries_registered: forall f in queries, f.is_registered
@@ -2473,10 +2864,10 @@ invariant
 	last_object_tests_stack_not_void: last_object_tests_stack /= Void
 	last_object_tests_pool_not_void: last_object_tests_pool /= Void
 	no_void_last_object_tests_in_pool: not last_object_tests_pool.has_void
-		-- Across components.
-	last_across_components_stack_not_void: last_across_components_stack /= Void
-	last_across_components_pool_not_void: last_across_components_pool /= Void
-	no_void_last_across_components_in_pool: not last_across_components_pool.has_void
+		-- Iteration components.
+	last_iteration_components_stack_not_void: last_iteration_components_stack /= Void
+	last_iteration_components_pool_not_void: last_iteration_components_pool /= Void
+	no_void_last_iteration_components_in_pool: not last_iteration_components_pool.has_void
 		-- Input buffer.
 	eiffel_buffer_not_void: eiffel_buffer /= Void
 

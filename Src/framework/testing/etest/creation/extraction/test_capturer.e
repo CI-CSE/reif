@@ -1,10 +1,9 @@
-note
+﻿note
 	description: "[
 		Objects retrieving the application state for given call stack elements. Each object referenced by
-		    the given call stack elements will be reported to `observers' in form of a
-		    {TEST_CAPTURED_OBJECT}.
+	    the given call stack elements will be reported to `observers' in form of a
+	    {TEST_CAPTURED_OBJECT}.
 	]"
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -99,11 +98,11 @@ feature -- Query
 			--           1) not represent a call to an external feature
 			--           2) not be a call to an inline agent
 			--           3) exported to any or be a creation procedure
-		local
-			l_feature: detachable E_FEATURE
 		do
-			l_feature := a_cse.routine
-			if l_feature /= Void and attached {EIFFEL_CLASS_C} a_cse.dynamic_class as l_class then
+			if
+				attached a_cse.routine as l_feature and
+				attached {EIFFEL_CLASS_C} a_cse.dynamic_class as l_class
+			then
 				if not (l_feature.is_external or l_feature.is_inline_agent) then
 					Result := l_feature.export_status.is_all or else
 						l_class.creation_feature = l_feature.associated_feature_i or else
@@ -186,21 +185,18 @@ feature -- Basic operations
 			l_element: TEST_CAPTURED_STACK_ELEMENT
 			i: INTEGER
 			l_abort: BOOLEAN
-			l_type, l_value: STRING
-			l_feature: detachable E_FEATURE
-			l_dbg_value: detachable ABSTRACT_DEBUG_VALUE
+			l_type: STRING_32
 		do
-			l_feature := a_cse.routine
-			if l_feature /= Void then
+			if attached a_cse.routine as l_feature then
 				create l_type.make_from_string (a_cse.current_object_value.dump_value.generating_type_representation (True))
-				create l_element.make (l_feature, l_type)
+				create l_element.make (l_feature, {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_type))
 				if not l_element.is_creation_procedure then
-					l_dbg_value := a_cse.current_object_value
-					if l_dbg_value /= Void then
+					if attached a_cse.current_object_value as l_dbg_value then
 						compute_string_representation (l_dbg_value, 0)
-						l_value := last_value
-						if l_value /= Void then
-							l_element.add_operand (l_value, l_type)
+						if attached last_value as l_last_value then
+							l_element.add_operand
+								({UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_last_value),
+								{UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_type))
 						else
 							l_abort := True
 						end
@@ -212,14 +208,11 @@ feature -- Basic operations
 					i > l_feature.argument_count or l_abort
 				loop
 					l_abort := True
-					l_dbg_value := a_cse.argument (i)
-
-					if l_dbg_value /= Void then
+					if attached a_cse.argument (i) as l_dbg_value then
 						compute_string_representation (l_dbg_value, 0)
-						l_value := last_value
-						if l_value /= Void then
+						if attached last_value as l_last_value then
 							create l_type.make_from_string (l_dbg_value.dump_value.generating_type_representation (True))
-							l_element.add_operand (l_value, l_type)
+							l_element.add_operand (l_last_value, l_type)
 							l_abort := False
 						end
 					end
@@ -299,7 +292,7 @@ feature {NONE} -- Basic operations
 						last_value.append (char_text (l_char_value.value))
 						last_value.append_character ('%'')
 					else
-						l_manifest := l_value.dump_value.output_value (False)
+						l_manifest := l_value.dump_value.output_value (False).to_string_8
 						if attached {DEBUG_BASIC_VALUE [REAL_32]} l_value or attached {DEBUG_BASIC_VALUE [REAL_64]} l_value then
 							if not l_manifest.has ('.') then
 								l_manifest.append (".0")
@@ -323,9 +316,8 @@ feature {NONE} -- Basic operations
 			l_id, l_depth: NATURAL
 			l_system: SYSTEM_I
 			l_classi: EIFFEL_CLASS_I
-			l_type, l_dump: STRING
+			l_type, l_dump: STRING_32
 			l_object: TEST_CAPTURED_OBJECT
-			l_children: detachable ARRAY [ABSTRACT_DEBUG_VALUE]
 		do
 			l_adv := object_queue.item.object
 			l_depth := object_queue.item.depth
@@ -338,9 +330,12 @@ feature {NONE} -- Basic operations
 				l_classi := l_class.original_class
 				l_system := l_class.system
 				if l_system.string_32_class = l_classi or l_system.string_8_class = l_classi then
-					l_dump := l_adv.dump_value.attached_truncated_string_representation (0, -1).to_string_8
-					check l_dump /= Void end
-					create {TEST_CAPTURED_STRING_OBJECT} l_object.make (l_id, l_type, l_dump)
+					l_dump := l_adv.dump_value.attached_truncated_string_representation (0, -1)
+					if l_dump /= Void then
+						create {TEST_CAPTURED_STRING_OBJECT} l_object.make (l_id, l_type, l_dump)
+					else
+						check has_dump: False end
+					end
 
 					-- TODO: Store agents in a way they can restored again later (this is currently not possible).
 --				elseif l_system.routine_class = l_classi or l_system.predicate_class = l_classi or l_system.procedure_class = l_classi then
@@ -352,9 +347,8 @@ feature {NONE} -- Basic operations
 					else
 						create {TEST_CAPTURED_ATTRIBUTE_OBJECT} l_object.make (l_id, l_type, l_adv.children.count)
 					end
-					l_children := l_adv.children.to_array
-					if l_children /= Void then
-						fill_object (l_object, l_children, l_depth)
+					if attached l_adv.children as l_children then
+						fill_object (l_object, l_children.to_array, l_depth)
 					end
 				end
 			end
@@ -370,9 +364,6 @@ feature {NONE} -- Basic operations
 		require
 			a_object_has_items_or_attributes: a_object.has_attributes or a_object.has_items
 		local
-			l_dbg_value: ABSTRACT_DEBUG_VALUE
-			l_value: like last_value
-			l_name: STRING
 			i: INTEGER
 		do
 			from
@@ -380,11 +371,10 @@ feature {NONE} -- Basic operations
 			until
 				i > a_list.upper
 			loop
-				l_dbg_value := a_list.item (i)
-				if l_dbg_value /= Void then
+				if attached a_list.item (i) as l_dbg_value then
 					if
 						attached l_dbg_value.dump_value.generating_type_representation (True) as l_type and then
-						not a_object.type.is_equal (l_type)
+						not a_object.type.same_string_general (l_type)
 					then
 							-- If the content referes to the same type, we do not increase the depth. That prevents
 							-- datastructures like linked list not to be cut off after `max_reference_depth' elements.
@@ -392,14 +382,15 @@ feature {NONE} -- Basic operations
 					else
 						compute_string_representation (l_dbg_value, a_depth + 1)
 					end
-					l_value := last_value
-					if l_value /= Void then
+					if attached last_value as l_value then
 						if a_object.has_items then
 							a_object.items.force (l_value)
 						else
-							l_name := l_dbg_value.name
-							check l_name /= Void end
-							a_object.attributes.force (l_value, l_name)
+							if attached l_dbg_value.name as l_name then
+								a_object.attributes.force (l_value, l_name)
+							else
+								check has_name: False end
+							end
 						end
 					end
 				end
@@ -457,7 +448,7 @@ invariant
 	capturing_equals_object_queue_attached: is_capturing = (object_queue /= Void)
 
 note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

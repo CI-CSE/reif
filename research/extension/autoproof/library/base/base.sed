@@ -1,5 +1,5 @@
 s/6D7FF712-BBA5-4AC0-AABF-2D9880493A01/671C2BBD-94C8-4F69-A171-E00B512CA01D/
-s/\(<option warning="true"\)/\1 full_class_checking="false"/
+s/<option warning="error"/<option warning="warning"/
 /dotnet_naming_convention/{
 	a\	\	<capability>
 	a\	\	\	<concurrency support="none"/>
@@ -31,10 +31,13 @@ b2
 	a\	\	\	<file_rule>
 	a\	\	\	\	<description>Classes with additional or different code for AutoProof.</description>
 	a\	\	\	\	<exclude>/any.e</exclude>
+	a\	\	\	\	<exclude>/arguments.e</exclude>
+	a\	\	\	\	<exclude>/arguments_32.e</exclude>
 	a\	\	\	\	<exclude>/array.e</exclude>
+	a\	\	\	\	<exclude>/fibonacci.e</exclude>
 	a\	\	\	\	<exclude>/iterable.e</exclude>
 	a\	\	\	\	<exclude>/iteration_cursor.e</exclude>
+	a\	\	\	\	<exclude>/primes.e</exclude>
 	a\	\	\	\	<exclude>/std_files.e</exclude>
-	a\	\	\	\	<exclude>/tuple.e</exclude>
 	a\	\	\	</file_rule>
 :2

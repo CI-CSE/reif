@@ -15,8 +15,7 @@ inherit
 			process_assertion_tag_text, process_indexing_tag_text,
 			process_generic_text, process_character_text, process_local_text,
 			process_number_text, process_reserved_word_text,
-			process_feature_error, process_feature_dec_item, add_new_line, add_string, add,
-			process_target_name_text
+			process_feature_error, process_feature_dec_item, add_new_line, add_string, add
 		end
 
 	EV_SHARED_APPLICATION
@@ -360,7 +359,7 @@ feature -- Text processing
 			addr: DBG_ADDRESS
 		do
 			create tok.make (a_address.as_string_32)
-			create addr.make_from_string (a_address.as_string_32)
+			create addr.make_from_string (a_address)
 			create stone.make (addr, a_name.as_string_32, a_class)
 			tok.set_pebble (stone)
 			append_token (tok)
@@ -719,7 +718,7 @@ feature {NONE} -- Initialisations and File status
 		end
 
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -749,4 +748,4 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-end -- class EDITOR_TOKEN_WRITER
+end

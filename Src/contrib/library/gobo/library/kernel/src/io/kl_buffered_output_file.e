@@ -8,7 +8,7 @@ note
 	]"
 
 	library: "Gobo Eiffel Kernel Library"
-	copyright: "Copyright (c) 2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2017-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -71,7 +71,7 @@ feature {NONE} -- Initialization
 			a_name_not_void: a_name /= Void
 			a_buffer_size_not_negative: a_buffer_size >= 0
 		local
-			l_buffer: STRING
+			l_buffer: STRING_8
 		do
 			create l_buffer.make (a_buffer_size)
 			make_with_buffer (a_name, l_buffer)
@@ -81,7 +81,7 @@ feature {NONE} -- Initialization
 			is_closed: is_closed
 		end
 
-	make_with_buffer (a_name: like name; a_buffer: STRING)
+	make_with_buffer (a_name: like name; a_buffer: STRING_8)
 			-- Create a new file named `a_name'.
 			-- (`a_name' should follow the pathname convention
 			-- of the underlying platform. For pathname conversion
@@ -101,7 +101,7 @@ feature {NONE} -- Initialization
 
 feature -- Initialization
 
-	reset (a_name: STRING)
+	reset (a_name: like name)
 			-- Reuse current Eiffel object memory to
 			-- represent a new file system entry.
 			-- (`a_name' should follow the pathname convention
@@ -113,7 +113,7 @@ feature -- Initialization
 
 feature -- Output
 
-	put_character (c: CHARACTER)
+	put_character (c: CHARACTER_8)
 			-- Write `c' to output file, or to its buffer if not full yet.
 		local
 			l_buffer: like buffer
@@ -132,19 +132,19 @@ feature -- Output
 			end
 		end
 
-	put_string (a_string: STRING)
+	put_string (a_string: READABLE_STRING_8)
 			-- Write `a_string' to output file, or to its buffer if not full yet.
 			-- Note: If `a_string' is a UC_STRING or descendant, then
 			-- write the bytes of its associated UTF unicode encoding.
 		local
-			l_string: STRING
+			l_string: READABLE_STRING_8
 			l_buffer: like buffer
 			l_capacity: INTEGER
 			l_string_count: INTEGER
 		do
 			l_buffer := buffer
 			l_capacity := l_buffer.capacity
-			l_string := STRING_.as_string (a_string)
+			l_string := STRING_.as_readable_string_8_no_uc_string (a_string)
 			l_string_count := l_string.count
 			if l_capacity < l_buffer.count + l_string_count then
 				old_put_string (l_buffer)
@@ -153,7 +153,7 @@ feature -- Output
 			if l_string_count < l_capacity then
 				l_buffer.append_string (l_string)
 			else
-				old_put_string (l_string)
+				old_put_string (l_string.to_string_8)
 			end
 		end
 
@@ -228,7 +228,7 @@ feature -- Basic operations
 
 feature {NONE} -- Implementation
 
-	buffer: STRING
+	buffer: STRING_8
 			-- Buffer
 
 	default_buffer_capacity: INTEGER = 10_000

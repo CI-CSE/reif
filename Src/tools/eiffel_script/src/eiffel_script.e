@@ -65,7 +65,14 @@ feature {NONE} -- Creation
 
 			initialize_environment
 
-			if params = Void or else params.has_error then
+			if params = Void then
+				display_usage
+			elseif params.has_error then
+				if attached params.error_message as err then
+					print ("ERROR: ")
+					print (err)
+					print ("%N")
+				end
 				display_usage
 			else
 				is_verbose := params.is_verbose
@@ -94,6 +101,9 @@ feature {NONE} -- Creation
 				else
 					display_usage
 				end
+			end
+			if has_error then
+				{EXCEPTIONS}.die (-1)
 			end
 		end
 
@@ -147,6 +157,9 @@ feature -- Access
 
 	is_verbose: BOOLEAN
 
+	has_error: BOOLEAN
+			-- Error occurred.
+
 	is_build_forced: BOOLEAN
 
 	check_level: NATURAL_8
@@ -167,18 +180,35 @@ feature -- Execution
 			is_ecf: a_ecf.ends_with (".ecf")
 		local
 			p_ecf: PATH
+			err: STRING_32
 		do
 			if a_ecf.starts_with ("iron:") then
 				report_error ("iron locations are not yet supported!%N")
 			else
 				p_ecf := (create {PATH}.make_from_string (a_ecf)).absolute_path.canonical_path
-				if
-					attached ecf_system (p_ecf) as sys and then
-					attached ecf_target (sys, a_target_name) as tgt
-				then
-					launch_system (sys, tgt, args)
+				if attached ecf_system (p_ecf) as sys then
+					if attached ecf_targets (sys, a_target_name) as tgts then
+						if tgts.count > 1 then
+							create err.make_empty
+							across
+								tgts as ic
+							loop
+								if not err.is_empty then
+									err.append_string_general (", ")
+								end
+								err.append (ic.item.name)
+							end
+							report_error ({STRING_32} "Multiple targets, select one: " + err + " ...%N")
+						elseif attached tgts.first as tgt then
+							launch_system (sys, tgt, args)
+						else
+							report_error ("Missing ecf target!%N")
+						end
+					else
+						report_error ("Missing ecf target!%N")
+					end
 				else
-					report_error ("Invalid ecf file or missing target!%N")
+					report_error ("Invalid ecf file!%N")
 				end
 			end
 		end
@@ -188,7 +218,10 @@ feature -- Execution
 			is_ecf: a_ecf.ends_with (".ecf")
 		local
 			p_ecf, p: PATH
+			p_output_dir_location, p_output_file_location: PATH
 			s: STRING_32
+			err: STRING_32
+			ut: FILE_UTILITIES
 		do
 			if a_ecf.starts_with ("iron:") then
 				report_error ("iron locations are not yet supported!%N")
@@ -204,26 +237,55 @@ feature -- Execution
 				end
 				s.append_string_general (" and save generated executable")
 				if a_exec_output_path /= Void then
-					s.append_string_general (" as ")
-					s.append (a_exec_output_path.name)
+						-- TODO: check if path is folder or executable name.
+					if ut.directory_path_exists (a_exec_output_path) then
+						p_output_dir_location := a_exec_output_path
+						s.append_string_general (" in ")
+						s.append (p_output_dir_location.name)
+					else
+						p_output_file_location := a_exec_output_path
+						s.append_string_general (" as ")
+						s.append (p_output_file_location.name)
+					end
 				else
 					s.append_string_general (" in current folder")
 				end
-				s.append_string_general (".%N")
+				s.append_string_general (" .%N")
 				print (s)
-				if
-					attached ecf_system (p_ecf) as sys and then
-					attached ecf_target (sys, a_target_name) as tgt
-				then
-					if a_exec_output_path /= Void then
-						p := a_exec_output_path
+				if attached ecf_system (p_ecf) as sys then
+					if attached ecf_targets (sys, a_target_name) as tgts then
+						if tgts.count > 1 then
+							create err.make_empty
+							across
+								tgts as ic
+							loop
+								if not err.is_empty then
+									err.append_string_general (", ")
+								end
+								err.append (ic.item.name)
+							end
+							report_error ({STRING_32} "Multiple targets, select one: " + err + " ...%N")
+						elseif attached tgts.first as tgt then
+							if p_output_file_location /= Void then
+								p := p_output_file_location
+							else
+								p := executable_name (sys, tgt)
+								if p_output_dir_location /= Void then
+									p := p_output_dir_location.extended_path (p)
+								end
+							end
+							build_executable (sys, tgt, a_resources, p)
+							if not has_error then
+								print ({STRING_32} "Executable generated as " + p.name + " .%N")
+							end
+						else
+							report_error ("Missing target!%N")
+						end
 					else
-						p := executable_name (sys, tgt)
+						report_error ("Missing target!%N")
 					end
-					build_executable (sys, tgt, a_resources, p)
-					print ({STRING_32} "Executable generated as " + p.name + ".%N")
 				else
-					report_error ("Invalid ecf file or missing target!%N")
+					report_error ("Invalid ecf file!%N")
 				end
 			end
 		end
@@ -251,6 +313,8 @@ feature {NONE} -- Execution
 		end
 
 	build_executable (a_system: CONF_SYSTEM; a_target: CONF_TARGET; a_resources: detachable ITERABLE [PATH]; a_executable_target_location: PATH)
+		require
+			target_location_not_a_directory: not (create {FILE_UTILITIES}).directory_path_exists (a_executable_target_location)
 		local
 			l_comp_loc: PATH
 			proc: BASE_PROCESS
@@ -259,6 +323,7 @@ feature {NONE} -- Execution
 			ecb_cmd: PATH
 			l_compiled_executable: PATH
 			t: CONF_TARGET
+			l_old_ise_ec_flags: detachable READABLE_STRING_GENERAL
 		do
 			l_comp_loc := compilation_location (a_system, a_target.name)
 			ut.create_directory_path (l_comp_loc)
@@ -294,6 +359,21 @@ feature {NONE} -- Execution
 				proc.redirect_output_to_file (l_comp_loc.extended ("build.log").name)
 				proc.redirect_error_to_same_as_output
 			end
+			l_old_ise_ec_flags := execution_environment.item ("ISE_EC_FLAGS")
+			if l_old_ise_ec_flags /= Void then
+					-- unset any ISE_EC_FLAGS as it may conflict with the current build process.
+				execution_environment.put ("", "ISE_EC_FLAGS")
+			end
+			if attached execution_environment.item ("EIFFEL_EC_FLAGS") as l_eiffel_ec_flags then
+				if is_verbose then
+					log ("Set the ISE_EC_FLAGS variable using EIFFEL_EC_FLAGS variable value.%N")
+					log ({STRING_32} " - ISE_EC_FLAGS=" + l_eiffel_ec_flags + "%N")
+				end
+				execution_environment.put (l_eiffel_ec_flags, "ISE_EC_FLAGS")
+			elseif l_old_ise_ec_flags/= Void and is_verbose then
+				log ("Unset existing ISE_EC_FLAGS to avoid conflict (use EIFFEL_EC_FLAGS if really needed).%N")
+			end
+
 			proc.launch
 			if proc.launched then
 				log ("Building executable...%N")
@@ -307,15 +387,18 @@ feature {NONE} -- Execution
 					ut.copy_file_path (l_compiled_executable, a_executable_target_location)
 					ensure_build_is_executable (a_executable_target_location)
 
-					log ("Build succeed!!!%N")
+					log ("Build succeed.%N")
 					rmdir (l_comp_loc)
 
 					build_compilation_index (a_system, a_target)
 				else
-					report_error ("Build failed!")
+					report_error ("Build failed! (user verbose option to get additional information)")
 				end
 			else
 				report_error ("Unable to start building the executable!")
+			end
+			if l_old_ise_ec_flags /= Void then
+				execution_environment.put (l_old_ise_ec_flags, "ISE_EC_FLAGS")
 			end
 		end
 
@@ -366,33 +449,94 @@ feature -- Query
 			Result := loader.last_system
 		end
 
-	ecf_target (sys: CONF_SYSTEM; a_target_name: detachable READABLE_STRING_GENERAL): detachable CONF_TARGET
+	ecf_targets (sys: CONF_SYSTEM; a_target_name: detachable READABLE_STRING_GENERAL): detachable LIST [CONF_TARGET]
+		local
+			nb: INTEGER
+			tgt: CONF_TARGET
 		do
 			if a_target_name /= Void then
+				create {ARRAYED_LIST [CONF_TARGET]} Result.make (1)
 				across
-					sys.compilable_targets as ic
+					sys.targets as ic
 				until
-					Result /= Void
+					tgt /= Void
 				loop
-					Result := ic.item
-					if not a_target_name.is_case_insensitive_equal (Result.name) then
-						Result := Void
+					tgt := ic.item
+					if
+						not a_target_name.is_case_insensitive_equal (tgt.name)
+						or else not is_application_target (tgt)
+					then
+						tgt := Void
 					end
 				end
-			end
-			if Result = Void then
-				Result := sys.application_target
-				if Result = Void then
-					Result := sys.library_target
-					if Result = Void then
+				if tgt /= Void then
+					Result.extend (tgt)
+				end
+			else
+				tgt := sys.application_target
+				if tgt = Void then
+					tgt := sys.library_target
+					if tgt /= Void and then not is_application_target (tgt) then
+						tgt := Void
+					end
+					if
+						tgt = Void and then
+						attached sys.targets as l_targets
+					then
+						create {ARRAYED_LIST [CONF_TARGET]} Result.make (l_targets.count)
 						across
-							sys.compilable_targets as ic
-						until
-							Result /= Void
+							l_targets as ic
 						loop
-							Result := ic.item
+							if is_application_target (ic.item) then
+								Result.extend (ic.item)
+							end
 						end
 					end
+				end
+				if tgt /= Void then
+					if Result = Void then
+						create {ARRAYED_LIST [CONF_TARGET]} Result.make (1)
+					end
+					Result.extend (tgt)
+				end
+			end
+			if Result /= Void and then Result.is_empty then
+				Result := Void
+			end
+		end
+
+	is_application_target (tgt: CONF_TARGET): BOOLEAN
+		do
+			if attached {CONF_REMOTE_TARGET_REFERENCE} tgt.parent_reference as l_remote_target then
+				Result := True -- For now, let's consider are compilable app target.
+			else
+				Result := not tgt.is_abstract and then
+							attached tgt.root as l_root and then
+							not l_root.is_all_root
+			end
+		end
+
+	ecf_target (sys: CONF_SYSTEM; a_target_name: detachable READABLE_STRING_GENERAL): detachable CONF_TARGET
+		local
+			nb: INTEGER
+			err: STRING_32
+		do
+			if attached ecf_targets (sys, a_target_name) as lst and then not lst.is_empty then
+				if lst.count = 1 then
+					Result := lst.first
+				else
+					create err.make_empty
+					across
+						lst as ic
+					loop
+						if not err.is_empty then
+							err.append (", ")
+						end
+						err.append (ic.item.name)
+					end
+					err.prepend ({STRING_32} "Multiple targets: ")
+					err.extend ('%N')
+					print_error (err)
 				end
 			end
 		end
@@ -400,13 +544,23 @@ feature -- Query
 	executable_location (a_system: CONF_SYSTEM; a_target: detachable CONF_TARGET): PATH
 		local
 			l_app_id: STRING_32
+			tgt: detachable CONF_TARGET
 		do
 			create l_app_id.make_from_string_general (a_system.name)
+			if a_target /= Void then
+				tgt := a_target
+			else
+				tgt := ecf_target (a_system, Void)
+			end
+			if tgt /= Void then
+				l_app_id.append_character ('.')
+				l_app_id.append (tgt.name)
+			end
 			if not a_system.is_generated_uuid then
 				l_app_id.append_character ('.')
 				l_app_id.append_string_general (a_system.uuid.out)
 			end
-			Result := appcache_location.extended (l_app_id).extended_path (executable_name (a_system, a_target))
+			Result := appcache_location.extended (l_app_id).extended_path (executable_name (a_system, tgt))
 		end
 
 	index_location (a_system: CONF_SYSTEM; a_target: detachable CONF_TARGET): PATH
@@ -507,6 +661,7 @@ feature {NONE} -- Implementation
 
 	report_error (err: READABLE_STRING_GENERAL)
 		do
+			has_error := True
 			print_error (err)
 			print_error ("%N")
 		end
@@ -561,7 +716,9 @@ feature -- Usage
 			print ("[
 COMMANDS:
   <project.ecf> ...   : build once and launch <project.ecf> execution.
-  build               : build project and save executable as <output_executable_path>.
+  build               : build project and save executable as <output_executable_path>
+  						(no argument should be before the 'build' word!).
+
 
 OPTIONS:
   --target <ecf-target-name>    : optional target name.
@@ -584,8 +741,9 @@ OPTIONS:
 Note: you can overwrite default value, using
   EIFFEL_SCRIPT_DIR       : root directory for eiffel script app (default under Eiffel user files/.apps) 
   EIFFEL_SCRIPT_CACHE_DIR : directory caching the compiled executables ($EIFFEL_SCRIPT_DIR/cache) 
-  EIFFEL_SCRIPT_COMP_DIR : directory caching the EIFGENs compilation ($EIFFEL_SCRIPT_DIR/comp) 
-  
+  EIFFEL_SCRIPT_COMP_DIR  : directory caching the EIFGENs compilation ($EIFFEL_SCRIPT_DIR/comp)
+  EIFFEL_EC_FLAGS         : use that value to force ISE_EC_FLAGS value (see compiler documentation).
+
 ]")
 
 		end

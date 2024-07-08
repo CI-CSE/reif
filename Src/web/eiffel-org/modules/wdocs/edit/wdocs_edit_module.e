@@ -19,6 +19,8 @@ inherit
 
 	CMS_HOOK_MENU_SYSTEM_ALTER
 
+	CMS_HOOK_BLOCK
+
 	WDOCS_MODULE_HELPER
 		undefine
 			percent_encoder
@@ -62,19 +64,13 @@ feature -- Router
 			a_router.handle ("/doc/version/{version_id}/{bookid}/{wikipageid}/source", h, a_router.methods_get)
 
 			create h.make (agent handle_wikipage_editing (a_api, ?, ?))
---			a_router.handle ("/doc/{bookid}/{wikipageid}/edit", h, a_router.methods_get_post)
 			a_router.handle ("/doc/version/{version_id}/{bookid}/{wikipageid}/edit", h, a_router.methods_get_post)
-
---			create h.make (agent handle_wikipage_editing (a_api, ?, ?))
---			a_router.handle ("/doc/{bookid}/{wikipageid}/add-child", h, a_router.methods_get_post)
 			a_router.handle ("/doc/version/{version_id}/{bookid}/{wikipageid}/add-child", h, a_router.methods_get_post)
 
 			create h.make (agent handle_wikipage_deletion (a_api, ?, ?))
---			a_router.handle ("/doc/{bookid}/{wikipageid}/delete", h, a_router.methods_get_post)
 			a_router.handle ("/doc/version/{version_id}/{bookid}/{wikipageid}/delete", h, a_router.methods_get_post)
 
 			create h.make (agent handle_wikipage_html_preview (a_api, ?, ?))
---			a_router.handle ("/doc/{bookid}/{wikipageid}/preview", h, a_router.methods_post)
 			a_router.handle ("/doc/version/{version_id}/{bookid}/{wikipageid}/preview", h, a_router.methods_post)
 		end
 
@@ -88,6 +84,7 @@ feature -- Access
 			Result.force (perm_edit_wdocs_page)
 			Result.force (perm_create_wdocs_page)
 			Result.force (perm_delete_wdocs_page)
+--			Result.force (perm_modify_non_default_wdocs_page)
 
 			Result.force ("edit any wdocs page")
 			Result.force ("delete any wdocs page")
@@ -100,6 +97,7 @@ feature -- Access
 	perm_edit_wdocs_page: STRING = "edit wdocs page"
 	perm_create_wdocs_page: STRING = "create wdocs page"
 	perm_delete_wdocs_page: STRING = "delete wdocs page"
+--	perm_modify_non_default_wdocs_page: STRING = "modify non-default wdocs page"
 
 feature -- Helper
 
@@ -235,7 +233,7 @@ feature -- Handlers
 					attached pg.path as l_path --and then
 --					attached wiki_text (l_path) as l_wiki_text
 				then
-					l_xhtml := wiki_to_xhtml (wdocs_api, pg.title, p_source.value, pg, l_manager)
+					l_xhtml := wiki_to_xhtml (wdocs_api, "", p_source.value, pg, l_manager) -- Empty title, to skip title
 					res.header.put_content_type_text_html
 					res.header.put_content_length (l_xhtml.count)
 					res.put_string (l_xhtml)
@@ -306,7 +304,55 @@ feature -- Hooks configuration
 
 	response_alter (a_response: CMS_RESPONSE)
 		do
+			if attached {WDOCS_EDIT_FORM_RESPONSE} a_response then
+				if a_response.has_permission (perm_edit_wdocs_page) then
+					a_response.add_javascript_url (a_response.module_resource_url (Current, "/files/js/wdocs_edit.js", Void))
+				end
+			end
+		end
 
+	block_list: ITERABLE [like {CMS_BLOCK}.name]
+		do
+			Result := <<"?wdocs-howto-edit">>
+		end
+
+	get_block_view (a_block_id: READABLE_STRING_8; a_response: CMS_RESPONSE)
+		local
+			l_content: STRING
+			l_content_block: CMS_CONTENT_BLOCK
+			vid: STRING
+			l_map: STRING
+		do
+			if
+				attached {READABLE_STRING_GENERAL} a_response.optional_content_type as l_type and then
+				l_type.is_case_insensitive_equal ({WDOCS_MODULE}.documentation_content_type) and then
+				a_block_id.same_string_general ("wdocs-howto-edit")
+			then
+				if attached wdocs_api as l_wdocs_api then
+					create l_content.make_empty
+					if
+						attached l_wdocs_api.settings.interwiki_mapping as l_interwiki_mapping and then
+						not l_interwiki_mapping.is_empty
+					then
+						l_content.append ("<h3>Interwiki mapping</h3>")
+						l_content.append ("Use link with [key:value title]:<ul>")
+						vid := percent_encoder.percent_encoded_string (manager (Void).version_id)
+						across
+							l_interwiki_mapping as ic
+						loop
+							l_map := ic.item.to_string_8
+							l_map.replace_substring_all ("$version", vid)
+							l_content.append ("<li><strong>")
+							l_content.append (html_encoded (ic.key))
+							l_content.append ("</strong> -> ")
+							l_content.append (html_encoded (l_map))
+							l_content.append ("</li>")
+						end
+						l_content.append ("</ul>")
+					end
+					create l_content_block.make (a_block_id, Void, l_content, a_response.formats.filtered_html)
+				end
+			end
 		end
 
 end

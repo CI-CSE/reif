@@ -1,6 +1,5 @@
 note
-	description: "Summary description for {EWF_WIZARD}."
-	author: ""
+	description: "Wizard for EiffelWeb projects."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -17,6 +16,8 @@ feature -- Access
 
 	title: STRING_32 = "Web Application Wizard"
 
+	default_project_name: STRING_32 = "new_app"
+
 feature -- Factory	
 
 	wizard_generator : EWF_WIZARD_GENERATOR
@@ -30,19 +31,25 @@ feature -- Pages
 		once
 			Result := new_page ("first")
 			Result.set_title ("Web Application Wizard")
-			Result.set_subtitle ("Based on the EWF libraries...")
-			Result.add_section_text ("Create Web server application with EWF.")
+			Result.set_subtitle ("Based on the EiffelWeb framework...")
+			Result.add_section_text ("Create Web server application with EiffelWeb (Framework).")
 			Result.add_text ("[
 		
-Using the Eiffel Web Framework (EWF), the generated application
-will run on any platforms.
-Depending on the connector(s), you may need to use a 
-third-party httpd server (such as apache, nginx, ...)
+Using the EiffelWeb Framework (EWF), build server application for any platforms.
+Depending on the connector(s), there are dependencies on third-party httpd server.
+(For instance libfcgi requires to setup apache, ...)
+
+More information at:
+  - http://www.eiffelweb.org/
+  - https://www.eiffel.org/projects/eiffel-web .
 
 			]")
 		end
 
 	project_page: WIZARD_PAGE
+		local
+			q_str: WIZARD_STRING_QUESTION
+			q_dir: WIZARD_DIRECTORY_QUESTION
 		once
 			Result := new_page ("project")
 			Result.set_title ("Project Name and Project Location")
@@ -52,11 +59,37 @@ Please fill in:
 	The name of the project (without space).
 	The directory where you want the eiffel classes to be generated.
 	]")
-			Result.extend (Result.new_string_question ("Project name:", "name", "ASCII name, without space"))
-			Result.add_directory_question ("Project location:", "location", "Valid directory path, it will be created if missing")
+			q_str := Result.new_string_question ("Project name:", "name", "ASCII name, without space")
+			Result.extend (q_str)
+			q_dir := Result.new_directory_question ("Project location:", "location", "Valid directory path, it will be created if missing")
+			Result.extend (q_dir)
+			q_str.value_change_actions.extend (agent (i_str: WIZARD_STRING_QUESTION; i_dir: WIZARD_DIRECTORY_QUESTION)
+					local
+						s, v: READABLE_STRING_GENERAL
+						p: PATH
+					do
+						v := i_str.value
+						create p.make_from_string (i_dir.text)
+						if
+							i_dir.text.ends_with_general ("/")
+							or i_dir.text.ends_with_general ("\")
+						then
+								-- Keep current dir
+						else
+							p := p.parent
+						end
 
-			Result.data.force ("ewf_app", "name")
-			Result.data.force (application.available_directory_path ("ewf_app", application.layout.default_projects_location.extended ("ewf")).name, "location")
+						if v = Void then
+							s := application.available_directory_path (default_project_name, p).name
+							i_dir.set_text (s)
+						elseif not v.is_whitespace then
+							s := application.available_directory_path (v, p).name
+							i_dir.set_text (s)
+						end
+					end(?,q_dir)
+				)
+			Result.data.force (default_project_name, "name")
+			Result.data.force (application.available_directory_path (default_project_name, application.layout.default_projects_location.extended ("eiffelweb")).name, "location")
 
 			Result.set_validation (agent (a_page: WIZARD_PAGE)
 				do
@@ -84,8 +117,8 @@ Web application runs on top of connectors
 Select connectors you want to support:
 	]")
 			Result.add_boolean_question ("Standalone", "use_standalone", "Using the standalone Eiffel Web server")
-			Result.add_boolean_question ("CGI", "use_cgi", "Require a httpd server")
-			Result.add_boolean_question ("libFCGI", "use_libfcgi", "Require a httpd server")
+			Result.add_boolean_question ("CGI", "use_cgi", "Require to setup associated httpd server")
+			Result.add_boolean_question ("libFCGI", "use_libfcgi", "Require to setup associated httpd server, and have libfcgi dynamic libraries in the path")
 
 			Result.data.force ("yes", "use_standalone")
 			Result.data.force ("yes", "use_cgi")
@@ -97,10 +130,10 @@ Select connectors you want to support:
 			Result := new_page ("standalone_connector")
 			Result.set_title ("Standalone connector")
 			Result.set_subtitle ("Set options .")
-			Result.add_integer_question ("Port number", "port", "It happens port 80 is already taken, thus choose another one.")
+			Result.add_integer_question ("Port number", "port", "If port 8080 is already taken, then choose another one.")
 			Result.add_boolean_question ("Verbose", "verbose", "Verbose output")
 
-			Result.data.force ("80", "port")
+			Result.data.force ("8080", "port")
 			Result.data.force ("no", "verbose")
 		end
 

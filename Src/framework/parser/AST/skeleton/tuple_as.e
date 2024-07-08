@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "AST representation of manifest tuple."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,7 +10,7 @@ class TUPLE_AS
 inherit
 	EXPR_AS
 		redefine
-			is_equivalent
+			is_detachable_expression
 		end
 
 create
@@ -37,10 +37,22 @@ feature {NONE} -- Initialization
 			rbracket_symbol_set: r_as /= Void implies rbracket_symbol_index = r_as.index
 		end
 
+feature -- Status report
+
+	is_detachable_expression: BOOLEAN = True
+			-- <Precursor>
+			-- Although the expression is always attached, its computation might be costly.
+			-- Treating it as detachable allows for reusing the same manifest tuple if needed:
+			--    check
+			--       attached [compute_x, compute_y] as point
+			--       has_property_1 (point)
+			--       has_property_2 (point)
+			--    end
+
 feature -- Attributes
 
 	expressions: EIFFEL_LIST [EXPR_AS]
-			-- Expression list symbolizing the manifest tuple
+			-- Expression list symbolizing the manifest tuple.
 
 feature -- Roundtrip/Token
 
@@ -64,7 +76,7 @@ feature -- Roundtrip/Token
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- Process current element.
 		do
 			v.process_tuple_as (Current)
 		end
@@ -72,13 +84,13 @@ feature -- Visitor
 feature -- Roundtrip
 
 	lbracket_symbol_index: INTEGER
-			-- Index of symbol "[" associated with this structure
+			-- Index of symbol "[" associated with this structure.
 
 	rbracket_symbol_index: INTEGER
-			-- Index of symbol "]" associated with this structure
+			-- Index of symbol "]" associated with this structure.
 
 	lbracket_symbol (a_list: detachable LEAF_AS_LIST): detachable SYMBOL_AS
-			-- Symbol "[" associated with this structure
+			-- Symbol "[" associated with this structure.
 		local
 			i: INTEGER
 		do
@@ -94,7 +106,7 @@ feature -- Roundtrip
 		end
 
 	rbracket_symbol (a_list: LEAF_AS_LIST): detachable SYMBOL_AS
-			-- Symbol "]" associated with this structure
+			-- Symbol "]" associated with this structure.
 		require
 			a_list_not_void: a_list /= Void
 		local
@@ -115,7 +127,7 @@ feature -- Roundtrip
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
+			-- Is `other' equivalent to the current object?
 		do
 			Result := equivalent (expressions, other.expressions)
 		end
@@ -127,14 +139,14 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Output
 feature {NONE} -- Implementation
 
 	internal_lbracket_symbol: detachable SYMBOL_AS
-			-- Symbol "[" associated with this structure
+			-- Symbol "[" associated with this structure.
 			--| It is an attribute for accurate error messages.
 
 invariant
 	expressions_not_void: expressions /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -165,5 +177,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class TUPLE_AS
-
+end

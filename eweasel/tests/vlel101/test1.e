@@ -1,5 +1,5 @@
 
---| Copyright (c) 1993-2006 University of Southern California and contributors.
+--| Copyright (c) 1993-2021 University of Southern California, Eiffel Software and contributors.
 --| All rights reserved.
 --| Your use of this work is governed under the terms of the GNU General
 --| Public License version 2.
@@ -11,19 +11,19 @@ feature
 		do
 		end
 
-	prefix "+": INTEGER is
+	p1 alias "+": INTEGER is
 		do
 		end
 
-	prefix "@weasel": INTEGER is
+	p2 alias "#weasel": INTEGER is
 		do
 		end
 
-	infix "+" (n: INTEGER): INTEGER is
+	i1 alias "+" (n: INTEGER): INTEGER is
 		do
 		end
 
-	infix "@weasel" (n: INTEGER): INTEGER is
+	i2 alias "#weasel" (n: INTEGER): INTEGER is
 		do
 		end
 

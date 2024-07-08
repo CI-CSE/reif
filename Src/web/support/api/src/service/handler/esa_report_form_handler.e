@@ -71,11 +71,15 @@ feature -- HTTP Methods
 		do
 			if attached req.path_parameter ("id") then
 					-- Edit a Report Problem
-				log.write_information (generator+".do_get Processing request edit_report_problem")
+				debug
+					log.write_information (generator+".do_get Processing request edit_report_problem")
+				end
 				edit_report_problem (req, res)
 			else
 					-- New Report Problem
-				log.write_information (generator+".do_get Processing request new_report_problem")
+				debug
+					log.write_information (generator+".do_get Processing request new_report_problem")
+				end
 				new_report_problem (req, res)
 			end
 		end
@@ -86,11 +90,15 @@ feature -- HTTP Methods
 		do
 			if attached req.path_parameter ("id") then
 					-- Update a Report Problem
-				log.write_information (generator+".do_post Processing request update_report_problem")
+				debug
+					log.write_information (generator+".do_post Processing request update_report_problem")
+				end
 				update_report_problem (req, res)
 			else
 					-- Initialize Report Problem
-				log.write_information (generator+".do_post Processing request initialize_report_problem")
+				debug
+					log.write_information (generator+".do_post Processing request initialize_report_problem")
+				end
 				initialize_report_problem (req, res)
 			end
 		end
@@ -133,7 +141,18 @@ feature {NONE} -- Edit Report Problem
 		do
 			create Result.make (api_service.all_categories, api_service.severities, api_service.classes, api_service.priorities)
 			Result.set_id (a_report_id)
-			if attached api_service.temporary_problem_report (a_report_id) as l_row then
+			if attached {TUPLE [synopsis: detachable STRING_32;
+							release: detachable STRING;
+							confidential: detachable STRING;
+							environment: detachable STRING;
+							description: detachable STRING_32;
+							toreproduce: detachable STRING_32;
+							priority_synopsis: detachable STRING_32;
+							category_synopsis: detachable STRING;
+							severity_synopsis: detachable STRING;
+							class_synopsis: detachable STRING;
+							user_name: detachable STRING;
+							responsible: detachable STRING]} api_service.temporary_problem_report (a_report_id) as l_row then
 				if attached l_row.synopsis as l_synopsis then
 					Result.set_synopsis (l_synopsis)
 				end
@@ -245,7 +264,7 @@ feature {NONE} -- Update Report Problem
 		end
 
 
-	update_report_problem_internal (req: WSF_REQUEST; a_form: ESA_REPORT_FORM_VIEW; a_type: READABLE_STRING_32)
+	update_report_problem_internal (req: WSF_REQUEST; a_form: ESA_REPORT_FORM_VIEW; a_type: READABLE_STRING_8)
 			-- Update problem report.
 		local
 			l_reproduce: STRING_32
@@ -343,7 +362,7 @@ feature -- Initialize Report Problem
 feature {NONE} -- Implementation
 
 
-	extract_form_data (req: WSF_REQUEST; a_type: READABLE_STRING_32): ESA_REPORT_FORM_VIEW
+	extract_form_data (req: WSF_REQUEST; a_type: READABLE_STRING_8): ESA_REPORT_FORM_VIEW
 			-- Example form parameters
 			--"category=5"
 			--"severity=1"
@@ -601,7 +620,7 @@ feature {NONE} -- Implementation
 					else
 						-- Not accepted file too big.
 						to_implement("Add the name of the file as a list of rejected files.")
-						log.write_alert (generator + ".upload_temporary_files_html File " + c.item.name + " rejected, too big." )
+						log.write_alert (generator + ".upload_temporary_files_html File " + c.item.name.to_string_8 + " rejected, too big." )
 					end
 				end
 			end

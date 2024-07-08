@@ -1,35 +1,132 @@
 remtrace Compiling .NET components
+
 REM Should be called by `make_exes.btm'
 cdd %EIFFEL_SRC
 
 remtrace Compiling .NET runtime
-cd %EIFFEL_SRC\Eiffel\eiffel\com_il_generation\core\run-time
-espawn -u:%ISE_C_COMPILER_VER% "%COMSPEC% /c nmake msbuild_20"
-copy EiffelSoftware.Runtime.dll %STUDIO_DIR\studio\spec\%ISE_PLATFORM\lib
-copy EiffelSoftware.Runtime.dll %STUDIO_DIR\studio\spec\%ISE_PLATFORM\bin
-copy EiffelSoftware.Runtime.dll %STUDIO_DIR\tools\spec\%ISE_PLATFORM\bin
+mkdir %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\lib\netcore
 
-remtrace Compiling Eiffel Assembly Cache
-cdd %EIFFEL_SRC\dotnet\consumer
-finalize consumer.ecf consumer_20
-cleanup_dotnet_eiffel consumer_20 EiffelSoftware.MetadataConsumer.dll
-iff not exist libEiffelSoftware.MetadataConsumer.dll then
-	remtrace Could not compile EiffelSoftware.MetadataConsumer.dll
-	CANCEL
+cd %EIFFEL_SRC%\Eiffel\eiffel\com_il_generation\core\run-time
+remtrace Compiling .NET CORE runtime
+espawn "geant clobber" >>& %INSTALL_LOG%
+espawn "geant install_netcore" >>& %INSTALL_LOG%
+iff exist netcore\EiffelSoftware.Runtime.dll then
+::	For now, just as experiment
+	safe_copy netcore\EiffelSoftware.Runtime.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\lib\netcore\EiffelSoftware.Runtime.dll
+else
+	remerror Could not compile .NET CORE runtime
+::	IGNORE this error
 endiff
-copy EiffelSoftware.MetadataConsumer.dll %STUDIO_DIR\studio\spec\%ISE_PLATFORM\bin
-copy libEiffelSoftware.MetadataConsumer.dll %STUDIO_DIR\studio\spec\%ISE_PLATFORM\bin
 
-remtrace Compiling Eiffel Metadata Cosumer Executable
-cdd %EIFFEL_SRC\dotnet\consumer
-finalize consumer.ecf emdc
-cleanup_dotnet_eiffel emdc emdc.exe
-iff not exist libemdc.dll then
-	remtrace Could not compile emdc.exe
-	CANCEL
+remtrace Compiling .NET framework runtime
+mkdir %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\lib\netframework
+
+espawn "geant clobber" >>& %INSTALL_LOG%
+sed -e "s/msbuild runtime.sln/msbuild runtime.sln \/p:Platform=\"Any CPU\" \/p:Configuration=Release /" Makefile > Makefile-release
+
+set TMP_ISE_C_COMPILER_VER=%ISE_C_COMPILER_VER%
+iff "%ISE_C_COMPILER%" EQ "msc_vc140" then
+	iff "%HAS_VC_MSC_VC140%" == "True" then
+		set TMP_ISE_C_COMPILER_VER=vc140
+	elseiff "%HAS_VC_MSC_VC170%" == "True" then
+		set TMP_ISE_C_COMPILER_VER=vc170
+	endiff
 endiff
-copy emdc.exe %STUDIO_DIR\tools\spec\%ISE_PLATFORM\bin
-copy libemdc.dll %STUDIO_DIR\tools\spec\%ISE_PLATFORM\bin
+iff "%USE_NET20%" EQ "True" then
+	espawn -u:%TMP_ISE_C_COMPILER_VER% "%COMSPEC% /c nmake -f Makefile-release msbuild_20"
+else
+	espawn -u:%TMP_ISE_C_COMPILER_VER% "%COMSPEC% /c nmake -f Makefile-release msbuild_40"
+endiff
+iff exist EiffelSoftware.Runtime.dll then
+:: 	For backward comptability keep .Net framework (v4.0) EiffelSoftware.Runtime.dll also directly in lib directory.
+	safe_copy EiffelSoftware.Runtime.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\lib
+	safe_copy EiffelSoftware.Runtime.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\lib\netframework
+	safe_copy EiffelSoftware.Runtime.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+	safe_copy EiffelSoftware.Runtime.dll %STUDIO_DIR%\tools\spec\%ISE_PLATFORM%\bin
+else
+	remerror Could not compile .NET runtime
+	CANCEL_ON_ERROR
+endiff
 
+remtrace Compiling Eiffel Assembly Cache EiffelSoftware.MetadataConsumer.dll
+iff exist %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\EiffelSoftware.MetadataConsumer.dll then
+	remtrace EiffelSoftware.MetadataConsumer.dll is already built
+else
+	cdd %EIFFEL_SRC%\dotnet\consumer
+	iff "%USE_NET20%" EQ "True" then
+		finalize consumer.ecf consumer_20
+		cleanup_dotnet_eiffel consumer_20 EiffelSoftware.MetadataConsumer.dll
+	else
+		finalize consumer.ecf consumer_40
+		cleanup_dotnet_eiffel consumer_40 EiffelSoftware.MetadataConsumer.dll
+	endiff
+	iff exist libEiffelSoftware.MetadataConsumer.dll then
+		safe_copy EiffelSoftware.MetadataConsumer.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+		safe_copy libEiffelSoftware.MetadataConsumer.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+	else
+		iff "%USE_NET20%" EQ "True" then
+			remerror Could not compile EiffelSoftware.MetadataConsumer.dll (consumer_20)
+		else
+			remerror Could not compile EiffelSoftware.MetadataConsumer.dll (consumer_40)
+		endiff
+		iff defined REUSE_MDCONSUMER then
+			remtrace REUSE installation MetadataConsumer dlls...
+			safe_copy %ISE_EIFFEL%\studio\spec\%ISE_PLATFORM%\bin\EiffelSoftware.MetadataConsumer.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+			safe_copy %ISE_EIFFEL%\studio\spec\%ISE_PLATFORM%\bin\libEiffelSoftware.MetadataConsumer.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+		else
+			REM CANCEL_ON_ERROR
+		endiff
+	endiff
+endiff
+
+remtrace Compiling Eiffel Metadata Consumer Executable emdc.exe
+iff exist %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\emdc.exe then
+	remtrace emdc tool is already built
+else
+	cdd %EIFFEL_SRC%\dotnet\consumer
+	iff "%USE_NET20%" EQ "True" then
+		finalize consumer.ecf emdc_20
+		cleanup_dotnet_eiffel emdc_20 emdc.exe
+	else
+		finalize consumer.ecf emdc_40
+		cleanup_dotnet_eiffel emdc_40 emdc.exe
+	endiff
+	iff exist libemdc.dll then
+		safe_copy emdc.exe %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+		safe_copy libemdc.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+	else
+		remerror Could not compile emdc.exe
+		iff defined REUSE_MDCONSUMER then
+			remtrace REUSE installation MetadataConsumer
+			safe_copy %ISE_EIFFEL%\studio\spec\%ISE_PLATFORM%\bin\emdc.exe %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+			safe_copy %ISE_EIFFEL%\studio\spec\%ISE_PLATFORM%\bin\libemdc.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin
+		else
+			CANCEL_ON_ERROR
+		endiff
+	endiff
+endiff
+
+remtrace Compiling Netcore Eiffel Metadata Consumer Executable nemdc.exe
+iff exist %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\netcore\nemdc.exe then
+	remtrace nemdc tool is already built
+else
+	cdd %EIFFEL_SRC%\dotnet\consumer_netcore
+	espawn "geant clobber" >>& %INSTALL_LOG%
+	espawn "geant install" >>& %INSTALL_LOG%
+	mkdir %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\netcore
+	iff exist spec\%ISE_PLATFORM%\bin\nemdc.exe then
+		safe_copy spec\%ISE_PLATFORM%\bin\nemdc.exe %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\netcore
+		safe_copy spec\%ISE_PLATFORM%\bin\*.dll %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\netcore
+		safe_copy spec\%ISE_PLATFORM%\bin\*.json %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\netcore
+	else
+		remerror Could not compile nemdc.exe
+		iff defined REUSE_NETCORE_MDCONSUMER then
+			remtrace REUSE installation Netcore MetadataConsumer
+			safe_copy %ISE_EIFFEL%\studio\spec\%ISE_PLATFORM%\bin\netcore\* %STUDIO_DIR%\studio\spec\%ISE_PLATFORM%\bin\netcore
+		else
+::			CANCEL_ON_ERROR
+		endiff
+	endiff
+endiff
 
 cdd %EIFFEL_SRC

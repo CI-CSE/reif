@@ -9,6 +9,20 @@ deferred class
 inherit
 	WEBAPI_RESPONSE
 
+feature -- Status report
+
+	has_field (a_name: READABLE_STRING_GENERAL): BOOLEAN
+		deferred
+		end
+
+	has_self_link: BOOLEAN
+		deferred
+		end
+
+	has_link (rel: READABLE_STRING_GENERAL): BOOLEAN
+		deferred
+		end
+
 feature -- Element change
 
 	add_self (a_href: READABLE_STRING_8)
@@ -35,17 +49,17 @@ feature -- Element change
 		deferred
 		end
 
-	add_link (rel: READABLE_STRING_8; a_attname: detachable READABLE_STRING_8; a_att_href: READABLE_STRING_8)
+	add_link (rel: READABLE_STRING_GENERAL; a_attname: detachable READABLE_STRING_8; a_att_href: READABLE_STRING_8)
 		deferred
 		end
 
-	add_templated_link (rel: READABLE_STRING_8; a_attname: detachable READABLE_STRING_8; a_att_href: READABLE_STRING_8)
+	add_templated_link (rel: READABLE_STRING_GENERAL; a_attname: detachable READABLE_STRING_8; a_att_href: READABLE_STRING_8)
 		deferred
 		end
 
 invariant
 
 note
-	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

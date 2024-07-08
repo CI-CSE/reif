@@ -173,21 +173,21 @@ feature -- Basic operations
 			Result.set_item (item + other.item)
 		end
 
-	minus alias "-" (other: like Current): like Current
+	minus alias "-" alias "−" (other: like Current): like Current
 			-- Result of subtracting `other'.
 		do
 			create Result
 			Result.set_item (item - other.item)
 		end
 
-	product alias "*" (other: like Current): like Current
+	product alias "*" alias "×" (other: like Current): like Current
 			-- Product by `other'.
 		do
 			create Result
 			Result.set_item (item * other.item)
 		end
 
-	quotient alias "/" (other: like Current): REAL_64
+	quotient alias "/" alias "÷" (other: like Current): REAL_64
 			-- Division by `other'.
 		require
 			other_exists: other /= Void
@@ -383,16 +383,81 @@ feature -- Conversion
 			Result := item.to_real_64
 		end
 
-	to_hex_string: STRING
+	to_binary_string: STRING_8
+			-- Convert `item' into a binary string.
+		local
+			i: INTEGER
+			val: NATURAL_32
+		do
+			from
+				i := {PLATFORM}.natural_32_bits
+				create Result.make_filled ('0', i)
+				val := item
+			until
+				i = 0
+			loop
+				Result.put ((val & 0x1).to_binary_character, i)
+				val := val |>> 1
+				i := i - 1
+			end
+		ensure
+			result_not_void: Result /= Void
+			result_valid_count: Result.count = {PLATFORM}.natural_32_bits
+			binary: ∀ c: Result ¦ ("01").has (c)
+		end
+
+	to_binary_character: CHARACTER_8
+			-- Convert `item' into a binary character.
+		require
+			in_bounds: 0 <= item and item <= 1
+		do
+			Result := '0' + item.to_integer_32
+		ensure
+			valid_character: ("01").has (Result)
+		end
+
+	to_octal_string: STRING_8
+			-- Convert `item' into an octal string.
+		local
+			i: INTEGER
+			val: NATURAL_32
+		do
+			from
+				i := ({PLATFORM}.natural_32_bits / 3).ceiling_real_64.truncated_to_integer
+				create Result.make_filled ('0', i)
+				val := item
+			until
+				i = 0
+			loop
+				Result.put ((val & 0x7).to_octal_character, i)
+				val := val |>> 3
+				i := i - 1
+			end
+		ensure
+			result_not_void: Result /= Void
+			result_valid_count: Result.count = ({PLATFORM}.natural_32_bits / 3).ceiling_real_64.truncated_to_integer
+			octal: ∀ c: Result ¦ ("01234567").has (c)
+		end
+
+	to_octal_character: CHARACTER_8
+			-- Convert `item' into an octal character.
+		require
+			in_bounds: 0 <= item and item <= 7
+		do
+			Result := '0' + item.to_integer_32
+		ensure
+			valid_character: ("01234567").has (Result)
+		end
+
+	to_hex_string: STRING_8
 			-- `item' converted into a hexadecimal string.
 		local
 			i: INTEGER
 			val: NATURAL_32
 		do
 			from
-				i := {PLATFORM}.Integer_32_bits // 4
-				create Result.make (i)
-				Result.fill_blank
+				i := {PLATFORM}.natural_32_bits // 4
+				create Result.make_filled ('0', i)
 				val := item
 			until
 				i = 0
@@ -402,23 +467,20 @@ feature -- Conversion
 				i := i - 1
 			end
 		ensure
-			Result_not_void: Result /= Void
-			Result_valid_count: Result.count = {PLATFORM}.Integer_32_bits // 4
+			result_not_void: Result /= Void
+			result_valid_count: Result.count = {PLATFORM}.natural_32_bits // 4
+			hexadecimal: ∀ c: Result ¦ ("0123456789ABCDEF").has (c)
 		end
 
-	to_hex_character: CHARACTER
+	to_hex_character: CHARACTER_8
 			-- `item' converted into a hexadecimal character.
 		require
 			in_bounds: 0 <= item and item <= 15
 		local
-			tmp: INTEGER
+			i: INTEGER_32
 		do
-			tmp := item.to_integer_32
-			if tmp <= 9 then
-				Result := (tmp + ('0').code).to_character_8
-			else
-				Result := (('A').code + (tmp - 10)).to_character_8
-			end
+			i := item.to_integer_32
+			Result := if i <= 9 then '0' else 'A' - 10 end + i
 		ensure
 			valid_character: ("0123456789ABCDEF").has (Result)
 		end
@@ -451,7 +513,7 @@ feature -- Conversion
 
 feature -- Bit operations
 
-	bit_and alias "&" (i: like Current): like Current
+	bit_and alias "&" alias "⊗" (i: like Current): like Current
 			-- Bitwise "and" between `Current' and `i'.
 		require
 			i_not_void: i /= Void
@@ -462,7 +524,7 @@ feature -- Bit operations
 			bitwise_and_not_void: Result /= Void
 		end
 
-	bit_or alias "|" (i: like Current): like Current
+	bit_or alias "|" alias "⦶" (i: like Current): like Current
 			-- Bitwise "or" between `Current' and `i'.
 		require
 			i_not_void: i /= Void
@@ -473,7 +535,7 @@ feature -- Bit operations
 			bitwise_or_not_void: Result /= Void
 		end
 
-	bit_xor (i: like Current): like Current
+	bit_xor alias "⊕" (i: like Current): like Current
 			-- Bitwise "xor" between `Current' and `i'.
 		require
 			i_not_void: i /= Void
@@ -484,7 +546,7 @@ feature -- Bit operations
 			bitwise_xor_not_void: Result /= Void
 		end
 
-	bit_not: like Current
+	bit_not alias "⊝": like Current
 			-- One's complement of `Current'.
 		do
 			create Result
@@ -497,8 +559,8 @@ feature -- Bit operations
 			-- `Current' shifted from `n' position to right if `n' positive,
 			-- to left otherwise.
 		require
-			n_less_or_equal_to_32: n <= 32
-			n_greater_or_equal_to_minus_32: n >= -32
+			n_less_than_32: n < 32
+			n_greater_than_minus_32: n > -32
 		do
 			if n > 0 then
 				Result := bit_shift_right (n).item
@@ -507,11 +569,11 @@ feature -- Bit operations
 			end
 		end
 
-	bit_shift_left alias "|<<" (n: INTEGER): like Current
+	bit_shift_left alias "|<<" alias "⧀" (n: INTEGER): like Current
 			-- `Current' shifted from `n' position to left.
 		require
 			n_nonnegative: n >= 0
-			n_less_or_equal_to_32: n <= 32
+			n_less_than_32: n < 32
 		do
 			create Result
 			Result.set_item (item.bit_shift_left (n))
@@ -519,11 +581,11 @@ feature -- Bit operations
 			bit_shift_left_not_void: Result /= Void
 		end
 
-	bit_shift_right alias "|>>" (n: INTEGER): like Current
+	bit_shift_right alias "|>>" alias "⧁" (n: INTEGER): like Current
 			-- `Current' shifted from `n' position to right.
 		require
 			n_nonnegative: n >= 0
-			n_less_or_equal_to_32: n <= 32
+			n_less_than_32: n < 32
 		do
 			create Result
 			Result.set_item (item.bit_shift_right (n))
@@ -537,7 +599,7 @@ feature -- Bit operations
 			n_nonnegative: n >= 0
 			n_less_than_32: n < 32
 		do
-			Result := item & ((1).to_natural_32 |<< n) /= 0
+			Result := item & ({NATURAL_32} 1 |<< n) /= 0
 		end
 
 	frozen set_bit (b: BOOLEAN; n: INTEGER): NATURAL_32
@@ -548,9 +610,9 @@ feature -- Bit operations
 			n_less_than_32: n < 32
 		do
 			if b then
-				Result := item | ((1).to_natural_32 |<< n)
+				Result := item | ({NATURAL_32} 1 |<< n)
 			else
-				Result := item & ((1).to_natural_32 |<< n).bit_not
+				Result := item & ({NATURAL_32} 1 |<< n).bit_not
 			end
 		end
 
@@ -575,7 +637,7 @@ feature -- Output
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

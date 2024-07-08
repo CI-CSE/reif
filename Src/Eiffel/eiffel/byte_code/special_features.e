@@ -12,9 +12,8 @@ class SPECIAL_FEATURES
 
 inherit
 	BYTE_CONST
-
 	SHARED_INCLUDE
-
+	SHARED_TYPES
 	SHARED_WORKBENCH
 
 feature -- Access
@@ -29,10 +28,10 @@ feature -- Access
 				if c_type_table.found then
 					function_type := c_type_table.found_item
 					if target_type.is_character_32 then
-							-- Do not inline `out', `lower', `upper' on CHARACTER 32 because the code is only
-							-- provided in the Eiffel code.
+							-- Do not inline "lower", "upper", "is_space" on CHARACTER_32
+							-- because the code is not generated inline.
 						inspect function_type
-						when out_type, lower_type, upper_type then
+						when lower_type, upper_type, is_space_type then
 						else
 							Result := True
 						end
@@ -67,7 +66,7 @@ feature -- Status
 
 feature -- Byte code special generation
 
-	make_byte_code (ba: BYTE_ARRAY; basic_type: BASIC_A)
+	make_byte_code (ba: BYTE_ARRAY; basic_type: BASIC_A; result_type: TYPE_A)
 			-- Generate byte code sequence that will be used with basic types.
 		require
 			basic_type_not_void: basic_type /= Void
@@ -76,6 +75,14 @@ feature -- Byte code special generation
 			inspect function_type
 			when is_equal_type then
 				ba.append (Bc_eq)
+			when is_less_type then
+				ba.append (bc_lt)
+			when is_less_equal_type then
+				ba.append (bc_le)
+			when is_greater_type then
+				ba.append (bc_gt)
+			when is_greater_equal_type then
+				ba.append (bc_ge)
 			when to_character_8_type then
 				check
 					valid_type: type_of (basic_type) = integer_type_id or
@@ -154,14 +161,44 @@ feature -- Byte code special generation
 				ba.append (Bc_min)
 			when generator_type then
 				ba.append (Bc_basic_operations)
-				ba.append (Bc_generator)
-			when offset_type then
+				if
+					attached result_type.actual_type as t and then
+					t.has_associated_class and then
+					attached system.string_32_class as s and then
+					s.is_compiled and then
+					t.base_class.class_id = s.compiled_class.class_id
+				then
+						-- Result is of type STRING_32.
+					ba.append (bc_generator__s4)
+				else
+						-- Result is of type STRING_8.
+					ba.append (bc_generator__s1)
+				end
+			when plus_type then
 				if type_of (basic_type) = pointer_type_id then
 					ba.append (Bc_basic_operations)
 					ba.append (Bc_offset)
 				else
 					ba.append (Bc_plus)
 				end
+			when minus_type then
+				if type_of (basic_type) = pointer_type_id then
+					ba.append (bc_uminus)
+					ba.append (Bc_basic_operations)
+					ba.append (Bc_offset)
+				else
+					ba.append (Bc_minus)
+				end
+			when product_type then
+				ba.append (bc_star)
+			when quotient_type then
+				ba.append (bc_slash)
+			when integer_quotient_type then
+				ba.append (bc_div)
+			when integer_remainder_type then
+				ba.append (bc_mod)
+			when power_type then
+				ba.append (bc_power)
 			when zero_type then
 				ba.append (Bc_basic_operations)
 				ba.append (Bc_zero)
@@ -174,27 +211,27 @@ feature -- Byte code special generation
 				ba.append (bc_pop)
 				ba.append_uint32_integer (1)
 				basic_type.c_type.make_default_byte_code (ba)
+			when negated_type then
+				ba.append (bc_not)
+			when opposite_type then
+				ba.append (bc_uminus)
 			when bit_and_type..bit_test_type, set_bit_with_mask_type, set_bit_type then
 				check integer_type: type_of (basic_type) = integer_type_id end
 				make_bit_operation_code (ba, function_type)
 			when three_way_comparison_type then
 				ba.append (bc_basic_operations)
 				ba.append (bc_three_way_comparison)
-
-			when twin_type, as_attached_type then
+			when identity_type, twin_type, as_attached_type then
 					-- Nothing to do, top of the stack has correct value
-
 			when do_nothing_type then
 					-- We simply pop the top of the stack.
 				ba.append (bc_pop)
 				ba.append_uint32_integer (1)
-
 			when is_default_pointer_type then
 					-- We have the pointer on the stack, we load the default pointer
 					-- type and then compare them for equality.
 				basic_type.c_type.make_default_byte_code (ba)
 				ba.append (bc_eq)
-
 			when is_character_8_type then
 					-- Check that the character code value is less than 255.
 				check
@@ -208,7 +245,7 @@ feature -- Byte code special generation
 
 feature -- C special code generation
 
-	generate (buffer: GENERATION_BUFFER; basic_type: BASIC_A; target: REGISTRABLE; parameters: BYTE_LIST [PARAMETER_B])
+	generate (basic_type: BASIC_A; target: REGISTRABLE; parameters: BYTE_LIST [PARAMETER_B]; result_type: TYPE_A; buffer: GENERATION_BUFFER)
 		require
 			valid_output_buffer: buffer /= Void
 			valid_target: target /= Void
@@ -216,10 +253,10 @@ feature -- C special code generation
 		local
 			parameter: PARAMETER_BL
 		do
-			if parameters /= Void then
-				parameter ?= parameters.first
+			if attached parameters then
+				parameter := {PARAMETER_BL} / parameters.first
 				check
-					paramater_attached: parameter /= Void
+					paramater_attached: attached parameter
 				end
 			end
 			inspect function_type
@@ -229,8 +266,14 @@ feature -- C special code generation
 				generate_is_space (buffer, basic_type, target)
 			when is_digit_type then
 				generate_is_digit (buffer, basic_type, target)
-			when is_equal_type then
-				generate_equal (buffer, target, parameter)
+			when
+				is_equal_type,
+				is_less_type,
+				is_less_equal_type,
+				is_greater_type,
+				is_greater_equal_type
+			then
+				generate_comparison (buffer, basic_type, target, parameter)
 			when to_character_8_type then
 				buffer.put_string ("(EIF_CHARACTER_8) ")
 				target.print_register
@@ -331,10 +374,34 @@ feature -- C special code generation
 					-- Add `eif_helpers.h' for C declaration of `floor'.
 				shared_include_queue_put ({PREDEFINED_NAMES}.eif_helpers_header_name_id)
 
-			when offset_type then
-				generate_offset (buffer, type_of (basic_type), target, parameter)
+			when plus_type then
+				generate_plus (buffer, type_of (basic_type), target, parameter, False)
+			when minus_type then
+				generate_plus (buffer, type_of (basic_type), target, parameter, True)
+			when product_type then
+				buffer.put_character ('(')
+				target.print_register
+				buffer.put_three_character (' ', '*', ' ')
+				parameter.print_immediate_register
+				buffer.put_character (')')
+			when quotient_type then
+				generate_real_division (basic_type, target, parameter, result_type, buffer)
+			when integer_quotient_type then
+				buffer.put_character ('(')
+				target.print_register
+				buffer.put_three_character (' ', '/', ' ')
+				parameter.print_immediate_register
+				buffer.put_character (')')
+			when integer_remainder_type then
+				buffer.put_character ('(')
+				target.print_register
+				buffer.put_three_character (' ', '%%', ' ')
+				parameter.print_immediate_register
+				buffer.put_character (')')
+			when power_type then
+				generate_power (basic_type, target, parameter, result_type, buffer)
 			when out_type then
-				generate_out (buffer, type_of (basic_type), target)
+				generate_out (buffer, basic_type, target, result_type)
 			when hash_code_type then
 				generate_hashcode (buffer, type_of (basic_type), target)
 			when hash_code_64_type then
@@ -348,9 +415,26 @@ feature -- C special code generation
 			when abs_type then
 				generate_abs (buffer, type_of (basic_type), target)
 			when generator_type then
-				generate_generator (buffer, type_of (basic_type))
+				if
+					attached result_type.actual_type as t and then
+					t.has_associated_class and then
+					attached system.string_32_class as s and then
+					s.is_compiled and then
+					t.base_class.class_id = s.compiled_class.class_id
+				then
+					generate_generator__s4 (buffer, type_of (basic_type))
+				else
+					generate_generator__s1 (buffer, type_of (basic_type))
+				end
 			when default_type then
 				basic_type.c_type.generate_default_value (buffer)
+			when negated_type then
+				buffer.put_string ("(EIF_BOOLEAN) !")
+				target.print_register
+			when opposite_type then
+				basic_type.c_type.generate_cast (buffer)
+				buffer.put_character ('-')
+				target.print_register
 			when bit_and_type..bit_test_type then
 				check
 					integer_type: type_of (basic_type) = integer_type_id
@@ -375,7 +459,7 @@ feature -- C special code generation
 			when memory_move, memory_copy, memory_set, memory_alloc, memory_free, memory_calloc then
 				check pointer_type: type_of (basic_type) = pointer_type_id end
 				generate_memory_routine (buffer, function_type, target, parameters)
-			when twin_type, as_attached_type then
+			when identity_type, twin_type, as_attached_type then
 					-- There is nothing to do, just print the previous value.
 				target.print_register
 			when do_nothing_type then
@@ -409,8 +493,13 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 	c_type_table: HASH_TABLE [INTEGER, INTEGER]
 		once
 			create Result.make (100)
+			Result.put (is_equal_type, {PREDEFINED_NAMES}.is_deep_equal_name_id)
 			Result.put (is_equal_type, {PREDEFINED_NAMES}.is_equal_name_id)
 			Result.put (is_equal_type, {PREDEFINED_NAMES}.standard_is_equal_name_id)
+			Result.put (is_less_type, {PREDEFINED_NAMES}.is_less_name_id)
+			Result.put (is_less_equal_type, {PREDEFINED_NAMES}.is_less_equal_name_id)
+			Result.put (is_greater_type, {PREDEFINED_NAMES}.is_greater_name_id)
+			Result.put (is_greater_equal_type, {PREDEFINED_NAMES}.is_greater_equal_name_id)
 			Result.put (out_type, {PREDEFINED_NAMES}.out_name_id)
 			Result.put (hash_code_64_type, {PREDEFINED_NAMES}.hash_code_64_name_id)
 			Result.put (hash_code_type, {PREDEFINED_NAMES}.hash_code_name_id)
@@ -450,8 +539,23 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 			Result.put (to_real_64_type, {PREDEFINED_NAMES}.to_double_name_id)
 			Result.put (to_real_32_type, {PREDEFINED_NAMES}.to_real_name_id)
 			Result.put (to_real_32_type, {PREDEFINED_NAMES}.truncated_to_real_name_id)
-			Result.put (offset_type, {PREDEFINED_NAMES}.plus_name_id)
-			Result.put (offset_type, {PREDEFINED_NAMES}.infix_plus_name_id)
+			Result.put (identity_type, {PREDEFINED_NAMES}.identity_name_id)
+			Result.put (opposite_type, {PREDEFINED_NAMES}.opposite_name_id)
+			Result.put (plus_type, {PREDEFINED_NAMES}.plus_name_id)
+			Result.put (plus_type, {PREDEFINED_NAMES}.infix_plus_name_id)
+			Result.put (minus_type, {PREDEFINED_NAMES}.minus_name_id)
+			Result.put (product_type, {PREDEFINED_NAMES}.product_name_id)
+			Result.put (quotient_type, {PREDEFINED_NAMES}.quotient_name_id)
+			Result.put (integer_quotient_type, {PREDEFINED_NAMES}.integer_quotient_name_id)
+			Result.put (integer_remainder_type, {PREDEFINED_NAMES}.integer_remainder_name_id)
+			Result.put (power_type, {PREDEFINED_NAMES}.power_name_id)
+			Result.put (negated_type, {PREDEFINED_NAMES}.negated_name_id)
+--			Result.put (conjuncted_type, {PREDEFINED_NAMES}.conjuncted_name_id)
+--			Result.put (conjuncted_semistrict_type, {PREDEFINED_NAMES}.conjuncted_semistrict_name_id)
+--			Result.put (disjuncted_type, {PREDEFINED_NAMES}.disjuncted_name_id)
+--			Result.put (disjuncted_semistrict_type, {PREDEFINED_NAMES}.disjuncted_semistrict_name_id)
+--			Result.put (disjuncted_exclusive_type, {PREDEFINED_NAMES}.disjuncted_exclusive_name_id)
+--			Result.put (implication_type, {PREDEFINED_NAMES}.implication_name_id)
 			Result.put (default_type, {PREDEFINED_NAMES}.default_name_id)
 			Result.put (bit_and_type, {PREDEFINED_NAMES}.bit_and_name_id)
 			Result.put (bit_and_type, {PREDEFINED_NAMES}.infix_bit_and_name_id)
@@ -505,16 +609,36 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 	byte_type_table: HASH_TABLE [INTEGER, INTEGER]
 		once
 			create Result.make (100)
+			Result.put (is_equal_type, {PREDEFINED_NAMES}.is_deep_equal_name_id)
 			Result.put (is_equal_type, {PREDEFINED_NAMES}.is_equal_name_id)
 			Result.put (is_equal_type, {PREDEFINED_NAMES}.standard_is_equal_name_id)
+			Result.put (is_less_type, {PREDEFINED_NAMES}.is_less_name_id)
+			Result.put (is_less_equal_type, {PREDEFINED_NAMES}.is_less_equal_name_id)
+			Result.put (is_greater_type, {PREDEFINED_NAMES}.is_greater_name_id)
+			Result.put (is_greater_equal_type, {PREDEFINED_NAMES}.is_greater_equal_name_id)
 			Result.put (max_type, {PREDEFINED_NAMES}.max_name_id)
 			Result.put (min_type, {PREDEFINED_NAMES}.min_name_id)
 			Result.put (generator_type, {PREDEFINED_NAMES}.generator_name_id)
-			Result.put (offset_type, {PREDEFINED_NAMES}.plus_name_id)
-			Result.put (offset_type, {PREDEFINED_NAMES}.infix_plus_name_id)
+			Result.put (identity_type, {PREDEFINED_NAMES}.identity_name_id)
+			Result.put (opposite_type, {PREDEFINED_NAMES}.opposite_name_id)
+			Result.put (plus_type, {PREDEFINED_NAMES}.plus_name_id)
+			Result.put (plus_type, {PREDEFINED_NAMES}.infix_plus_name_id)
+			Result.put (minus_type, {PREDEFINED_NAMES}.minus_name_id)
+			Result.put (product_type, {PREDEFINED_NAMES}.product_name_id)
+			Result.put (quotient_type, {PREDEFINED_NAMES}.quotient_name_id)
+			Result.put (integer_quotient_type, {PREDEFINED_NAMES}.integer_quotient_name_id)
+			Result.put (integer_remainder_type, {PREDEFINED_NAMES}.integer_remainder_name_id)
+			Result.put (power_type, {PREDEFINED_NAMES}.power_name_id)
+			Result.put (negated_type, {PREDEFINED_NAMES}.negated_name_id)
+--			Result.put (conjuncted_type, {PREDEFINED_NAMES}.conjuncted_name_id)
+--			Result.put (conjuncted_semistrict_type, {PREDEFINED_NAMES}.conjuncted_semistrict_name_id)
+--			Result.put (disjuncted_type, {PREDEFINED_NAMES}.disjuncted_name_id)
+--			Result.put (disjuncted_semistrict_type, {PREDEFINED_NAMES}.disjuncted_semistrict_name_id)
+--			Result.put (disjuncted_exclusive_type, {PREDEFINED_NAMES}.disjuncted_exclusive_name_id)
+--			Result.put (implication_type, {PREDEFINED_NAMES}.implication_name_id)
+			Result.put (default_type, {PREDEFINED_NAMES}.default_name_id)
 			Result.put (zero_type, {PREDEFINED_NAMES}.zero_name_id)
 			Result.put (one_type, {PREDEFINED_NAMES}.one_name_id)
-			Result.put (default_type, {PREDEFINED_NAMES}.default_name_id)
 			Result.put (bit_and_type, {PREDEFINED_NAMES}.bit_and_name_id)
 			Result.put (bit_and_type, {PREDEFINED_NAMES}.infix_bit_and_name_id)
 			Result.put (bit_or_type, {PREDEFINED_NAMES}.bit_or_name_id)
@@ -581,6 +705,7 @@ feature {NONE} -- C and Byte code corresponding Eiffel function calls
 feature {NONE} -- Fast access to feature name
 
 	min_type_id: INTEGER = 1
+
 	is_equal_type: INTEGER = 1
 	set_item_type: INTEGER = 2
 	out_type: INTEGER = 3
@@ -590,7 +715,7 @@ feature {NONE} -- Fast access to feature name
 	abs_type: INTEGER = 7
 	generator_type: INTEGER = 8
 	to_integer_32_type: INTEGER = 9
-	offset_type: INTEGER = 10
+	plus_type: INTEGER = 10
 	default_type: INTEGER = 11
 	bit_and_type: INTEGER = 12
 	bit_or_type: INTEGER = 13
@@ -647,7 +772,27 @@ feature {NONE} -- Fast access to feature name
 	is_default_pointer_type: INTEGER = 64
 	is_character_8_type: INTEGER = 65
 	hash_code_64_type: INTEGER = 66
-	max_type_id: INTEGER = 66
+	identity_type: INTEGER = 67
+	opposite_type: INTEGER = 68
+	minus_type: INTEGER = 69
+	product_type: INTEGER = 70
+	quotient_type: INTEGER = 71
+	integer_quotient_type: INTEGER = 72
+	integer_remainder_type: INTEGER = 73
+	power_type: INTEGER = 74
+	is_less_type: INTEGER = 75
+	is_less_equal_type: INTEGER = 76
+	is_greater_type: INTEGER = 77
+	is_greater_equal_type: INTEGER = 78
+	negated_type: INTEGER = 79
+	conjuncted_type: INTEGER = 80
+	conjuncted_semistrict_type: INTEGER = 81
+	disjuncted_type: INTEGER = 82
+	disjuncted_semistrict_type: INTEGER = 83
+	disjuncted_exclusive_type: INTEGER = 84
+	implication_type: INTEGER = 85
+
+	max_type_id: INTEGER = 85
 
 feature {NONE} -- Byte code generation
 
@@ -684,7 +829,6 @@ feature {NONE} -- C code generation
 
 	generate_lower_upper (buffer: GENERATION_BUFFER;
 			basic_type: BASIC_A; f_type: INTEGER; target: REGISTRABLE)
-
 			-- Generate fast wrapper for call on `upper' and `lower' of CHARACTER.
 		require
 			buffer_not_void: buffer /= Void
@@ -692,16 +836,21 @@ feature {NONE} -- C code generation
 			character_type: type_of (basic_type) = character_type_id
 			valid_function_type: f_type = lower_type or f_type = upper_type
 		do
-			if function_type = lower_type then
-				buffer.put_string ("(EIF_CHARACTER_8) tolower(")
-			else
-				buffer.put_string ("(EIF_CHARACTER_8) toupper(")
-			end
+			buffer.put_string
+				(if function_type = lower_type then
+					"eif_builtin_CHARACTER_8_as_lower__"
+				else
+					"eif_builtin_CHARACTER_8_as_upper__"
+				end)
+			{BUILT_IN_EXTENSION_I}.append_type_name (basic_type, system.byte_context.context_class_type, buffer)
+			buffer.put_character ('_')
+			{BUILT_IN_EXTENSION_I}.append_type_name (basic_type, system.byte_context.context_class_type, buffer)
+			buffer.put_character ('(')
 			target.print_register
 			buffer.put_character (')')
 
-				-- Add `ctype.h' for C compilation where `tolower' and `toupper' are declared.
-			shared_include_queue_put ({PREDEFINED_NAMES}.ctype_header_name_id)
+				-- Add "eif_built_in.h" for C compilation where all output functions are declared.
+			shared_include_queue_put ({PREDEFINED_NAMES}.eif_built_in_header_name_id)
 		end
 
 	generate_is_digit (buffer: GENERATION_BUFFER;
@@ -724,39 +873,82 @@ feature {NONE} -- C code generation
 
 	generate_is_space (buffer: GENERATION_BUFFER;
 			basic_type: BASIC_A; target: REGISTRABLE)
-
 			-- Generate fast wrapper for call on `is_space' of CHARACTER.
 		require
 			buffer_not_void: buffer /= Void
 			target_not_void: target /= Void
 			character_type: type_of (basic_type) = character_type_id
 		do
-			buffer.put_string ("EIF_TEST(isspace(")
+			buffer.put_string ("eif_builtin_CHARACTER_8_is_space__")
+			{BUILT_IN_EXTENSION_I}.append_type_name (basic_type, system.byte_context.context_class_type, buffer)
+			buffer.put_character ('_')
+			{BUILT_IN_EXTENSION_I}.append_type_name (boolean_type, system.byte_context.context_class_type, buffer)
+			buffer.put_character ('(')
 			target.print_register
 			buffer.put_character (')')
-			buffer.put_character (')')
-
-				-- Add `ctype.h' for C compilation where `isspace' is declared.
-			shared_include_queue_put ({PREDEFINED_NAMES}.ctype_header_name_id)
+				-- Add "eif_built_in.h" for C compilation where all output functions are declared.
+			shared_include_queue_put ({PREDEFINED_NAMES}.eif_built_in_header_name_id)
 		end
 
-	generate_equal (buffer: GENERATION_BUFFER; target: REGISTRABLE; parameter: PARAMETER_BL)
-			-- Generate fast wrapper for call on `equal' where target and parameter
+	generate_comparison (buffer: GENERATION_BUFFER; basic_type: BASIC_A; target: REGISTRABLE; parameter: PARAMETER_BL)
+			-- Generate a call to "is_equal", "<", "<=", ">", ">=" where target and parameter
 			-- are both basic types.
 		require
 			buffer_not_void: buffer /= Void
 			target_not_void: target /= Void
 			parameter_not_void: parameter /= Void
+			valid_function_type:
+				(<<is_equal_type, is_less_type, is_less_equal_type, is_greater_type, is_greater_equal_type>>).has (function_type)
 		do
-			target.print_register
-			buffer.put_character (' ')
-			buffer.put_character ('=')
-			buffer.put_character ('=')
-			buffer.put_character (' ')
-			parameter.print_immediate_register
+			if (basic_type.is_real_32 or else basic_type.is_real_64) and then system.total_order_on_reals then
+				shared_include_queue_put ({PREDEFINED_NAMES}.eif_helpers_header_name_id)
+				buffer.put_string
+					(inspect function_type
+					when is_equal_type then
+						"eif_is_equal_real_"
+					when is_less_type then
+						"eif_is_less_real_"
+					when is_less_equal_type then
+						"eif_is_less_equal_real_"
+					when is_greater_type then
+						"eif_is_greater_real_"
+					when is_greater_equal_type then
+						"eif_is_greater_equal_real_"
+					end)
+				if basic_type.is_real_32 then
+					buffer.put_two_character ('3', '2')
+				else
+					buffer.put_two_character ('6', '4')
+				end
+				buffer.put_two_character (' ', '(')
+				target.print_register
+				buffer.put_two_character (',', ' ')
+				parameter.print_immediate_register
+				buffer.put_character (')')
+			else
+				target.print_register
+				buffer.put_character (' ')
+				inspect function_type
+				when is_equal_type then
+					buffer.put_character ('=')
+					buffer.put_character ('=')
+				when is_less_type then
+					buffer.put_character ('<')
+				when is_less_equal_type then
+					buffer.put_character ('<')
+					buffer.put_character ('=')
+				when is_greater_type then
+					buffer.put_character ('>')
+				when is_greater_equal_type then
+					buffer.put_character ('>')
+					buffer.put_character ('=')
+				end
+				buffer.put_character (' ')
+				parameter.print_immediate_register
+			end
 		end
 
-	generate_offset (buffer: GENERATION_BUFFER; type_of_basic: INTEGER; target: REGISTRABLE; parameter: PARAMETER_BL)
+	generate_plus (buffer: GENERATION_BUFFER; type_of_basic: INTEGER; target: REGISTRABLE; parameter: PARAMETER_BL; is_minus: BOOLEAN)
 			-- Generate fast wrapper for call on `+' where target and parameter
 			-- are both basic types. Only `POINTER' and `CHARACTER' are handled, the
 			-- other basic types have their own handling by the compiler.
@@ -771,70 +963,130 @@ feature {NONE} -- C code generation
 				buffer.put_string ("RTPOF(")
 				target.print_register
 				buffer.put_character (',')
+				if is_minus then
+					buffer.put_three_character (' ', '-', '(')
+				end
 			when character_type_id then
 				if is_wide then
-					buffer.put_string ("(EIF_CHARACTER_32) (((EIF_INTEGER_32) ")
+					buffer.put_string ("(EIF_CHARACTER_32) (((EIF_NATURAL_32) ")
 				else
 					buffer.put_string ("(EIF_CHARACTER_8) (((EIF_INTEGER_32) ")
 				end
 				target.print_register
-				buffer.put_string (") + ")
+				buffer.put_four_character (')', ' ', if is_minus then '-' else '+' end,' ')
 			else
 				buffer.put_character ('(')
 				target.print_register
-				buffer.put_string (" + ")
+				buffer.put_three_character (' ', if is_minus then '-' else '+' end,' ')
 			end
 			parameter.print_immediate_register
+			if is_minus and then type_of_basic = pointer_type_id then
+				buffer.put_character (')')
+			end
 			buffer.put_character (')')
 		end
 
-	generate_out (buffer: GENERATION_BUFFER; type_of_basic: INTEGER; target: REGISTRABLE)
+	generate_real_division (basic_type: BASIC_A; target: REGISTRABLE; parameter: PARAMETER_BL; result_type: TYPE_A; buffer: GENERATION_BUFFER)
+			-- Generate real division (quotient), usually for operator "/" for `target` and ` `basic_type`, in buffer `buffer`
+		do
+			workbench.system.byte_context.real_type (result_type).c_type.generate_cast (buffer)
+			buffer.put_character ('(')
+			basic_type.c_type.generate_conversion_to_real_64 (buffer)
+			target.print_register
+			buffer.put_four_character (')', ' ', '/', ' ')
+			basic_type.c_type.generate_conversion_to_real_64 (buffer)
+			parameter.print_immediate_register
+			buffer.put_character (')')
+			buffer.put_character (')')
+		end
+
+	generate_power (basic_type: BASIC_A; target: REGISTRABLE; parameter: PARAMETER_BL; result_type: TYPE_A; buffer: GENERATION_BUFFER)
+		local
+			power_value: REAL_64
+			done: BOOLEAN
+		do
+			if attached {REAL_CONST_B} parameter.expression as power_nb then
+				power_value := power_nb.value.to_real_64
+				if power_value = 0.0 then
+					done := True
+					buffer.put_string ("(EIF_REAL_64) 1")
+				elseif power_value = 1.0 then
+					done := True
+					basic_type.c_type.generate_conversion_to_real_64 (buffer)
+					target.print_register
+					buffer.put_character (')')
+				elseif power_value = 2.0 or power_value = 3.0 then
+					done := True
+					buffer.put_string ("(EIF_REAL_64) (")
+					basic_type.c_type.generate_conversion_to_real_64 (buffer)
+					target.print_register
+					buffer.put_string (") * ")
+					basic_type.c_type.generate_conversion_to_real_64 (buffer)
+					target.print_register
+					if power_value = 3.0 then
+						buffer.put_string (") * ")
+						basic_type.c_type.generate_conversion_to_real_64 (buffer)
+						target.print_register
+					end
+					buffer.put_two_character (')', ')')
+				end
+			end
+			if not done then
+					-- No optimization could have been done, so we generate the
+					-- call to `pow'.
+				shared_include_queue_put ({PREDEFINED_NAMES}.math_header_name_id)
+				buffer.put_string ("(EIF_REAL_64) pow (")
+				basic_type.c_type.generate_conversion_to_real_64 (buffer)
+				target.print_register
+				buffer.put_string ("), ")
+				workbench.system.byte_context.real_type (parameter.type).c_type.generate_conversion_to_real_64 (buffer)
+				parameter.print_immediate_register
+				buffer.put_two_character (')', ')')
+			end
+		end
+
+	generate_out (buffer: GENERATION_BUFFER; basic_type: BASIC_A; target: REGISTRABLE; result_type: TYPE_A)
 			-- Generate fast wrapper for call on `out' where target
 			-- is a basic type.
 		require
 			buffer_not_void: buffer /= Void
 			target_not_void: target /= Void
+		local
+			is_string_32: BOOLEAN
 		do
-			if type_of_basic = boolean_type_id then
-				buffer.put_character ('(');
+			if
+				attached result_type.actual_type as t and then
+				t.has_associated_class and then
+				attached system.string_32_class as s and then
+				s.is_compiled and then
+				t.base_class.class_id = s.compiled_class.class_id
+			then
+				is_string_32 := True
+			end
+			if basic_type.is_boolean then
+				buffer.put_character ('(')
 				target.print_register
-				buffer.put_string (" ? makestr (%"True%", 4) : makestr (%"False%", 5))")
-
-					-- Add `eif_plug.h' for C compilation where `makestr' is -- declared
-				shared_include_queue_put ({PREDEFINED_NAMES}.eif_plug_header_name_id)
-			else
-				inspect
-					type_of_basic
-				when character_type_id then
-					check
-						not_is_wide: not is_wide
-					end
-					buffer.put_string ("c_outc(")
-				when integer_type_id then
-					if is_signed_integer then
-						inspect
-							integer_size
-						when 8, 16, 32 then buffer.put_string ("c_outi(")
-						when 64 then buffer.put_string ("c_outi64(")
-						end
-					else
-						inspect
-							integer_size
-						when 8, 16, 32 then buffer.put_string ("c_outu(")
-						when 64 then buffer.put_string ("c_outu64(")
-						end
-					end
-				when pointer_type_id then
-					buffer.put_string ("c_outp(")
-				when real_32_type_id then
-					buffer.put_string ("c_outr32(")
-				when real_64_type_id then
-					buffer.put_string ("c_outr64(")
+				if is_string_32 then
+					buffer.put_three_character (' ', '?', ' ')
+					buffer.generate_manifest_string_32 ("True", False)
+					buffer.put_three_character (' ', ':', ' ')
+					buffer.generate_manifest_string_32 ("False", False)
+					buffer.put_character (')')
+				else
+					buffer.put_string (" ? makestr (%"True%", 4) : makestr (%"False%", 5))")
+						-- Add `eif_plug.h' for C compilation where `makestr' is -- declared
+					shared_include_queue_put ({PREDEFINED_NAMES}.eif_plug_header_name_id)
 				end
+			else
+				buffer.put_string ("eif_out__")
+				{BUILT_IN_EXTENSION_I}.append_type_name (basic_type, system.byte_context.context_class_type, buffer)
+				buffer.put_character ('_')
+				{BUILT_IN_EXTENSION_I}.append_type_name (result_type, system.byte_context.context_class_type, buffer)
+				buffer.put_character ('(')
 				target.print_register
 				buffer.put_character (')')
 
-					-- Add `eif_out.h' for C compilation where all output functions are declared.
+					-- Add "eif_out.h" for C compilation where all output functions are declared.
 				shared_include_queue_put ({PREDEFINED_NAMES}.eif_out_header_name_id)
 			end
 		end
@@ -887,7 +1139,7 @@ feature {NONE} -- C code generation
 			end
 		end
 
-	generate_generator (buffer: GENERATION_BUFFER; type_of_basic: INTEGER)
+	generate_generator__s1 (buffer: GENERATION_BUFFER; type_of_basic: INTEGER)
 			-- Generate fast wrapper for call on `generator' where target
 			-- is a basic type.
 		require
@@ -930,6 +1182,50 @@ feature {NONE} -- C code generation
 			when real_64_type_id then
 				buffer.put_string (" RTMS_EX(%"REAL_64%", 7)")
 			end
+		end
+
+	generate_generator__s4 (buffer: GENERATION_BUFFER; type_of_basic: INTEGER)
+			-- Generate fast wrapper for call on `generator' where target
+			-- is a basic type.
+		require
+			buffer_not_void: buffer /= Void
+		do
+			buffer.generate_manifest_string_32
+				(inspect type_of_basic
+				when boolean_type_id then
+					{STRING_32} "BOOLEAN"
+				when character_type_id then
+					if is_wide then
+						{STRING_32} "CHARACTER_32"
+					else
+						{STRING_32} "CHARACTER_8"
+					end
+				when integer_type_id then
+					if is_signed_integer then
+						inspect
+							integer_size
+						when 8 then {STRING_32} "INTEGER_8"
+						when 16 then {STRING_32} "INTEGER_16"
+						when 32 then {STRING_32} "INTEGER_32"
+						when 64 then {STRING_32} "INTEGER_64"
+						end
+					else
+						inspect
+							integer_size
+						when 8 then {STRING_32} "NATURAL_8"
+						when 16 then {STRING_32} "NATURAL_16"
+						when 32 then {STRING_32} "NATURAL_32"
+						when 64 then {STRING_32} "NATURAL_64"
+						end
+					end
+				when pointer_type_id then
+					{STRING_32} "POINTER"
+				when real_32_type_id then
+					{STRING_32} "REAL_32"
+				when real_64_type_id then
+					{STRING_32} "REAL_64"
+				end,
+				False)
 		end
 
 	generate_max (buffer: GENERATION_BUFFER; type_of_basic: INTEGER; target: REGISTRABLE; parameter: PARAMETER_BL)
@@ -1106,11 +1402,8 @@ feature {NONE} -- C code generation
 				f_type = memory_move or f_type = memory_copy or
 				f_type = memory_set or f_type = memory_free or
 				f_type = memory_alloc or f_type = memory_calloc
-		local
-			parameter: PARAMETER_BL
 		do
 			shared_include_queue_put ({PREDEFINED_NAMES}.string_header_name_id)
-
 			inspect
 				f_type
 			when memory_move then
@@ -1126,11 +1419,9 @@ feature {NONE} -- C code generation
 			when memory_free then
 				buffer.put_string ("free(")
 			end
-
 			if f_type /= memory_alloc and f_type /= memory_calloc then
 				target.print_register
 			end
-
 			inspect
 				f_type
 			when memory_free, memory_alloc, memory_calloc then
@@ -1139,27 +1430,28 @@ feature {NONE} -- C code generation
 			else
 				buffer.put_string (", (const void *) ")
 			end
-
 			inspect
 				f_type
 			when memory_move, memory_set, memory_copy, memory_calloc then
 				check
 					valid_parameters: parameters.count = 2
 				end
-				parameter ?= parameters.i_th (1)
-				parameter.print_immediate_register
+				if attached {PARAMETER_BL} parameters [1] as parameter then
+					parameter.print_immediate_register
+				end
 				buffer.put_string (", (size_t) ")
-				parameter ?= parameters.i_th (2)
-				parameter.print_immediate_register
+				if attached {PARAMETER_BL} parameters [2] as parameter then
+					parameter.print_immediate_register
+				end
 			when memory_alloc then
 				check
 					valid_paramters: parameters.count = 1
 				end
-				parameter ?= parameters.i_th (1)
-				parameter.print_immediate_register
+				if attached {PARAMETER_BL} parameters [1] as parameter then
+					parameter.print_immediate_register
+				end
 			else
 			end
-
 			buffer.put_string (")")
 		end
 
@@ -1210,21 +1502,20 @@ feature {NONE} -- C code generation
 			target_not_void: target /= Void
 			parameters_not_void: parameters /= Void
 			valid_parameters: parameters.count = 2
-		local
-			parameter: PARAMETER_BL
 		do
 			buffer.put_string ("eif_set_bit(")
 			target.c_type.generate (buffer)
 			buffer.put_character (',')
 			target.print_register
 			buffer.put_character (',')
-			parameter ?= parameters.i_th (1)
-			parameter.print_immediate_register
+			if attached {PARAMETER_BL} parameters [1] as parameter then
+				parameter.print_immediate_register
+			end
 			buffer.put_character (',')
-			parameter ?= parameters.i_th (2)
-			parameter.print_immediate_register
+			if attached {PARAMETER_BL} parameters [2] as parameter then
+				parameter.print_immediate_register
+			end
 			buffer.put_character (')')
-
 				-- Add `eif_misc.h' for C compilation where all bit functions are declared.
 			shared_include_queue_put ({PREDEFINED_NAMES}.eif_misc_header_name_id)
 		end
@@ -1237,19 +1528,18 @@ feature {NONE} -- C code generation
 			target_not_void: target /= Void
 			parameters_not_void: parameters /= Void
 			valid_parameters: parameters.count = 2
-		local
-			parameter: PARAMETER_BL
 		do
 			buffer.put_string ("eif_set_bit_with_mask(")
 			target.print_register
 			buffer.put_character (',')
-			parameter ?= parameters.i_th (1)
-			parameter.print_immediate_register
+			if attached {PARAMETER_BL} parameters [1] as parameter then
+				parameter.print_immediate_register
+			end
 			buffer.put_character (',')
-			parameter ?= parameters.i_th (2)
-			parameter.print_immediate_register
+			if attached {PARAMETER_BL} parameters [2] as parameter then
+				parameter.print_immediate_register
+			end
 			buffer.put_character (')')
-
 				-- Add `eif_misc.h' for C compilation where all bit functions are declared.
 			shared_include_queue_put ({PREDEFINED_NAMES}.eif_misc_header_name_id)
 		end
@@ -1300,7 +1590,7 @@ feature {NONE} -- Type information
 	real_64_type_id: INTEGER = 6
 			-- Constant defining type
 
-	integer_size: INTEGER
+	integer_size: like {NATURAL_A}.size
 			-- Size of datatype when `type_of' returns `integer_type_id'.
 
 	is_signed_integer: BOOLEAN
@@ -1314,10 +1604,6 @@ feature {NONE} -- Type information
 			-- Returns corresponding type constants to `b'.
 		require
 			b_not_void: b /= Void
-		local
-			l_int: INTEGER_A
-			l_nat: NATURAL_A
-			t: TYPED_POINTER_A
 		do
 			inspect b.sk_value (Void)
 			when {SK_CONST}.sk_bool then Result := boolean_type_id
@@ -1335,8 +1621,7 @@ feature {NONE} -- Type information
 			then
 				Result := integer_type_id
 				is_signed_integer := False
-				l_nat ?= b
-				integer_size := l_nat.size
+				integer_size := if attached {NATURAL_A} b as t then t.size else integer_size.zero end
 
 			when
 				{SK_CONST}.sk_int8, {SK_CONST}.sk_int16,
@@ -1344,16 +1629,14 @@ feature {NONE} -- Type information
 			then
 				Result := integer_type_id
 				is_signed_integer := True
-				l_int ?= b
-				integer_size := l_int.size
+				integer_size := if attached {INTEGER_A} b as t then t.size else integer_size.zero end
 
 			when {SK_CONST}.sk_pointer then Result := pointer_type_id
 			when {SK_CONST}.sk_real32 then Result := real_32_type_id
 			when {SK_CONST}.sk_real64 then Result := real_64_type_id
 
 			else
-				t ?= b
-				if t /= Void then
+				if attached {TYPED_POINTER_A} b as t then
 					Result := pointer_type_id
 				end
 			end
@@ -1364,7 +1647,7 @@ feature {NONE} -- Type information
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

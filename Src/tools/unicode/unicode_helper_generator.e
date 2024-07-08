@@ -16,28 +16,77 @@ feature {NONE} -- Initialization
 
 	make
 			-- Run application.
+		local
+			categories: like {UNICODE_CHARACTER_DATA}.category
 		do
+				-- Valid Unicode code points range from `0` to `0x10FFFF`.
+			create unicode_filter.make (maximum_code_point.as_integer_32 + 1)
+			create group.make (0)
 			create argument_parser.make
 			argument_parser.execute (agent do_nothing)
 			if argument_parser.is_successful and then attached argument_parser.input_file as l_file then
 				density := argument_parser.density
 				read_unicode_data (l_file)
-				if attached unicode_data as l_unicode_data then
+				if has_error then
+					io.error.put_string_32 (l_file + ": error occured!%N")
+				elseif attached unicode_data as l_unicode_data implies l_unicode_data.is_empty then
+					io.error.put_string_32 (l_file + " has no unicode character data in it.%N")
+				elseif attached argument_parser.filter_file as f then
+					read_properties (f,
+						agent (l, h: NATURAL_32; p: ITERABLE [STRING_8])
+							do
+									-- Mark all code points between `l` and `h`.
+								⟳ i: l.as_integer_32 |..| h.as_integer_32 ¦ unicode_filter.set (i) ⟲
+							end)
+					if has_error then
+						io.error.put_string_32 (l_file + ": cannot read!%N")
+					else
+						if attached argument_parser.group_file as g then
+							read_properties (g,
+								agent (l, h: NATURAL_32; p: ITERABLE [STRING_8])
+									do
+											-- Record groups.
+										⟳ n: p ¦  group.extend (l, h, n) ⟲
+									end)
+						end
+						output_filtered_data (l_unicode_data)
+					end
+				elseif not argument_parser.has_range then
 					process_properties (argument_parser.property_template, l_unicode_data)
-				elseif has_error then
-					io.error.put_string (l_file + ": error occured!%N")
+				elseif argument_parser.categories.is_empty then
+					io.error.put_string_32 ("No categories have been specified.%N")
 				else
-					io.error.put_string (l_file + " has no unicode character data in it.%N")
+					across
+						argument_parser.categories as c
+					loop
+						if
+							attached {UNICODE_CHARACTER_DATA}.category_mask [c.item] as category and then
+							category /= 0
+						then
+							categories := categories ⦶ category
+						else
+							io.error.put_string_32 ({STRING_32} "Unknown category: " + c.item + ". Ignoring it.")
+						end
+					end
+					report_ranges (l_unicode_data, categories)
 				end
 			end
 		end
+
+feature {NONE} -- Query
+
+	maximum_code_point: NATURAL_32 = 0x10_FFFF
+			-- Maximum value of a Unicode code point.
 
 feature {NONE} -- Access
 
 	density: REAL_64
 			-- Density of the table we generate.
 
-	output_path: detachable STRING_32
+	group: ARRAYED_LIST [TUPLE [min, max: NATURAL_32; name: STRING]]
+			-- A list of named character intervals.
+
+	output_path: READABLE_STRING_32
 			-- Path where files will be generated.
 		require
 			is_successful: argument_parser.is_successful
@@ -50,6 +99,11 @@ feature {NONE} -- Access
 
 	unicode_table: detachable HASH_TABLE [UNICODE_CHARACTER_DATA, NATURAL_32] note option: stable attribute end
 			-- Same as `unicode_data' but indexed by the Unicode code.
+
+	unicode_filter: PACKED_BOOLEANS
+			-- Filter for `unicode_data`.
+			-- `True` indicates that the entry should be preserved.
+			-- `False` indicates that the entry should be discarded.
 
 	unicode_version: READABLE_STRING_32
 			-- Version of Unicode data.
@@ -72,7 +126,7 @@ feature {NONE} -- Status Report
 	has_error: BOOLEAN
 			-- Did we encounter an error of some sort?
 
-feature -- Basic operations
+feature {NONE} -- Basic operations
 
 	read_unicode_data (a_file: READABLE_STRING_32)
 			-- Read the Unicode data `a_file' and store it into `unicode_data` and `unicode_table`.
@@ -198,6 +252,7 @@ feature -- Basic operations
 			end
 			l_output.open_write
 
+			l_class.replace_substring_all (generator_marker, argument_parser.name + " " + argument_parser.version)
 			l_class.replace_substring_all (unicode_version_marker, unicode_version.to_string_8)
 
 			l_class.replace_substring_all (tables_marker, l_tables)
@@ -211,9 +266,9 @@ feature -- Basic operations
 			l_class.replace_substring_all (to_upper_helper_marker, l_filter)
 
 				-- Special cases for `title' case where if there are not too many
-				-- differences we simply generate an override.it de
+				-- differences we simply generate an override.
+			create l_filter.make (10)
 			if l_diffs /= Void then
-				create l_filter.make (10)
 				l_simplified_diffs := title_fix_up (l_diffs)
 				if l_simplified_diffs = l_diffs then
 					generate_override (l_filter, l_diffs, "l_code", 4)
@@ -221,7 +276,6 @@ feature -- Basic operations
 					generate_override (l_filter, l_simplified_diffs, "Result.natural_32_code", 4)
 				end
 			else
-				create l_filter.make (10)
 				generate_filter (l_filter, l_titles, to_title_table_name, 4, True)
 			end
 			l_class.replace_substring_all (to_title_helper_marker, l_filter)
@@ -229,8 +283,8 @@ feature -- Basic operations
 			create l_filter.make (10)
 			generate_filter (l_filter, l_properties, property_table_name, 3, False)
 			l_class.replace_substring_all (property_helper_marker, l_filter)
-			l_output.put_string (l_class)
 
+			l_output.put_string (l_class)
 			l_output.close
 		end
 
@@ -397,8 +451,8 @@ feature -- Basic operations
 				l_output := table_template.twin
 				l_output.replace_substring_all ("$table_name", a_table_name + i.out)
 				l_output.replace_substring_all ("$data_type", l_data_type)
-				l_output.replace_substring_all ("$low", l_range.item.first.key.to_hex_string)
-				l_output.replace_substring_all ("$high", l_range.item.last.key.to_hex_string)
+				l_output.replace_substring_all ("$low", {UNICODE_CHARACTER_DATA}.hexadecimal_code_point (l_range.item.first.key))
+				l_output.replace_substring_all ("$high", {UNICODE_CHARACTER_DATA}.hexadecimal_code_point (l_range.item.last.key))
 
 					-- Approximation of the size of the string needed to store all the values
 				create l_values.make ((l_range.item.last.key - l_range.item.first.key).to_integer_32 * 5)
@@ -551,8 +605,10 @@ feature -- Basic operations
 		end
 
 	generate_override (a_output: STRING; a_diffs: attached like mismatches; a_variable: STRING; a_nb_tab: INTEGER)
-			-- Generate code in `a_output' to select the new values
+			-- Generate code in `a_output` to select the new values.
 		do
+			write_tab (a_output, a_nb_tab)
+			a_output.append ("Result := to_upper (Result)%N")
 			write_tab (a_output, a_nb_tab)
 			a_output.append ("inspect ")
 			a_output.append (a_variable)
@@ -579,6 +635,166 @@ feature -- Basic operations
 			a_output.append ("end")
 		end
 
+	read_properties (filter_file_name: READABLE_STRING_32; handle: PROCEDURE [NATURAL_32, NATURAL_32, ITERABLE [STRING_8]])
+			-- Read character properties from file `filter_file_name` and report them by calling `handle`
+			-- with lower and upper code point of the range as well as the associated properties.
+		local
+			f: PLAIN_TEXT_FILE
+			code: like {PLAIN_TEXT_FILE}.last_string
+			line: like {PLAIN_TEXT_FILE}.last_string
+			i, j: INTEGER
+			n, m: NATURAL_32
+			properties: ARRAYED_LIST [STRING_8]
+			empty_properties: ARRAYED_LIST [STRING_8]
+			property: like {PLAIN_TEXT_FILE}.last_string
+		do
+			if not has_error then
+				if filter_file_name.is_empty then
+					f := io.input
+				else
+					create f.make_open_read (filter_file_name)
+				end
+				create empty_properties.make (0)
+				from
+				until
+					f.after
+				loop
+					f.read_line
+					line := f.last_string
+					line.left_adjust
+					if not line.is_empty and then line [1] /= '#' then
+						i := line.index_of (';', 1)
+						if i > 0 then
+							code := line.substring (1, i - 1)
+							create properties.make (1)
+							from
+							until
+								i > line.count
+							loop
+								j := line.index_of (';', i + 1)
+								if j = 0 then
+									j := line.count + 1
+								end
+								property := line.substring (i + 1, j - 1)
+								property.adjust
+								properties.extend (property)
+								i := j
+							end
+						else
+							code := line
+							properties := empty_properties
+						end
+							-- Read first code point.
+						i := 1
+						from
+							n := 0
+						until
+							i > code.count or else not code [i].is_hexa_digit
+						loop
+							n := n ⧀ 4 + code [i].to_hexa_digit
+							i := i + 1
+						end
+						if i <= 0 or i > 6 or n > maximum_code_point then
+							has_error := True
+							io.error.put_string ("Invalid entry format: " + f.last_string + "%N")
+						end
+						if i > code.count then
+								-- There is only one code point.
+							handle (n, n, properties)
+						elseif code [i].is_space then
+								-- There is only one code point followed by a sequence of white space characters.
+							handle (n, n, properties)
+							from
+							until
+								i > code.count or else not code [i].is_space
+							loop
+								i := i + 1
+							end
+							if i < code.count then
+								has_error := True
+								io.error.put_string ("Invalid entry format: " + f.last_string + "%N")
+							end
+						elseif i + 1 >= code.count or else code [i] /= '.' or else code [i + 1] /= '.' then
+							handle (n, n, properties)
+							has_error := True
+							io.error.put_string ("Invalid entry format: " + f.last_string)
+						else
+								-- There should be another number after "..".
+							i := i + 2
+							j := i
+							from
+								m := 0
+							until
+								i > code.count or else not code [i].is_hexa_digit
+							loop
+								m := m ⧀ 4 + code [i].to_hexa_digit
+								i := i + 1
+							end
+							if i <= j or i - j > 6 or m > maximum_code_point then
+								has_error := True
+								io.error.put_string ("Invalid entry format: " + f.last_string + "%N")
+							end
+							from
+							until
+								i > code.count or else not code [i].is_space
+							loop
+								i := i + 1
+							end
+							if i <= code.count then
+								has_error := True
+								io.error.put_string ("Invalid entry format: " + f.last_string + "%N")
+							end
+							handle (n, m, properties)
+						end
+					end
+				end
+				if f /= io.input then
+					f.close
+				end
+			end
+		rescue
+			has_error := True
+			retry
+		end
+
+	output_filtered_data (d: attached like unicode_data)
+			-- Output Unicode data `d` filtered using `unicode_filter` to the standard output.
+		local
+			n: BOOLEAN
+			is_printed: BOOLEAN
+		do
+			n := argument_parser.is_negated
+			across
+				d as i
+			loop
+				if unicode_filter [i.item.code.as_integer_32] xor n then
+					is_printed := False
+					across
+						group as g
+					loop
+						if g.item.min <= i.item.code and then i.item.code <= g.item.max then
+								-- The code point is in group `g.item`, print it together with the group name.
+							io.put_string (i.item.hexadecimal_code)
+							io.put_character (';')
+							io.put_string (i.item.name)
+							io.put_character (';')
+							io.put_string (g.item.name)
+							io.put_new_line
+							is_printed := True
+						end
+					end
+					if not is_printed then
+							-- Print the code point without any group name.
+						io.put_string (i.item.hexadecimal_code)
+						io.put_character (';')
+						io.put_string (i.item.name)
+						io.put_character (';')
+						io.put_new_line
+					end
+				end
+			end
+		end
+
 feature {NONE} -- Helpers
 
 	title_fix_up (a_table: attached like mismatches): attached like mismatches
@@ -603,7 +819,6 @@ feature {NONE} -- Helpers
 						l_upper_char := l_char.code
 					end
 				end
-				l_same := True
 				across l_entry.item as l_codes until not l_same loop
 					if attached unicode_table as l_unicode_table and then attached l_unicode_table.item (l_codes.item) as l_char then
 						if l_char.has_upper_code then
@@ -620,7 +835,7 @@ feature {NONE} -- Helpers
 					l_list.extend (l_upper_char)
 					Result.extend (l_list, l_entry.key)
 				else
-						-- We could not optimized, keep the original set.
+						-- We could not optimize, keep the original set.
 					Result.extend (l_entry.item, l_entry.key)
 				end
 			end
@@ -629,14 +844,17 @@ feature {NONE} -- Helpers
 	mismatches (l_table1, l_table2: like extract_case_ranges): detachable HASH_TABLE [ARRAYED_LIST [NATURAL_32], NATURAL_32]
 			-- Compute the differences between two sets `l_table1' and `l_table2', and return the necessary information
 			-- required to patch `l_table1' to get to `l_table2'.
-			-- If blocks are different we return nothing as they are too many differences
+			-- If blocks are different we return nothing as there are too many differences.
 		local
 			l_diffs: detachable HASH_TABLE [NATURAL_32, NATURAL_32]
 			l_matches: detachable ARRAYED_LIST [NATURAL_32]
 		do
-				-- We use `l_diffs' to collect all the mismatches between the two lists.
-			create l_diffs.make (1)
+				-- The range 10D0..10FF in Unicode 11.0.0 has different upper case, but the same title case.
+				-- If this were taken into account, the patch could still be computed. The algorithm below should be modified to accomplish this though.
+				-- TODO: Update the algorithm to deal with ranges present in one table and absent in the other one.
 			if l_table1.count = l_table2.count then
+					-- We use `l_diffs' to collect all the mismatches between the two lists.
+				create l_diffs.make (1)
 				from
 					l_table1.start
 					l_table2.start
@@ -669,7 +887,7 @@ feature {NONE} -- Helpers
 				end
 			end
 				-- Now that we have the list, we are going to merge the values with the same output
-				-- in `l_table2' to create a list that will more compact.
+				-- in `l_table2' to create a list that will be more compact.
 			if l_diffs /= Void then
 				create Result.make (l_diffs.count)
 				across l_diffs as l_entry loop
@@ -723,11 +941,85 @@ feature {NONE} -- Helpers
 	to_title_helper_marker: STRING = "--$TO_TITLE_HELPER"
 	property_helper_marker: STRING = "--$PROPERTY_HELPER"
 	unicode_version_marker: STRING = "$UNICODE_VERSION"
+	generator_marker: STRING = "$GENERATOR"
 			-- Various marker in the template file that will be replaced.
+
+feature {NONE} -- Ranges
+
+	report_ranges (data: attached like unicode_data; categories: like {UNICODE_CHARACTER_DATA}.category)
+			-- Collect and report ranges of code points that belong to categories.
+		require
+			not data.is_empty
+		local
+			last: like {UNICODE_CHARACTER_DATA}.code
+			is_in_interval: BOOLEAN
+			is_last_printed: BOOLEAN
+		do
+			;(create {BUBBLE_SORTER [UNICODE_CHARACTER_DATA]}.make
+				(create {PREDICATE_COMPARATOR [UNICODE_CHARACTER_DATA]}.make
+					(agent (u, v: UNICODE_CHARACTER_DATA): BOOLEAN
+						do
+							Result := u.code < v.code
+						end))).sort (data)
+			is_last_printed := True
+			across
+				data as p
+			loop
+				if p.item.category ⊗ categories = 0 then
+						-- The code point does not match the criteria.
+						-- Print last entry in the range if not done yet.
+					if is_in_interval then
+						if not is_last_printed then
+							io.put_character ('-')
+							put_code_point (last)
+							is_last_printed := True
+						end
+						io.put_new_line
+						is_in_interval := False
+					end
+				elseif not is_in_interval then
+						-- This is the first item in the interval.
+					last := p.item.code
+					put_code_point (last)
+					is_in_interval := True
+					is_last_printed := True
+				elseif last + 1 = p.item.code then
+						-- This is the next item in the interval, simply record it.
+					last := last + 1
+					is_last_printed := False
+				else
+						-- The interval is over, and the new one has to be started.
+					if not is_last_printed then
+						io.put_character ('-')
+						put_code_point (last)
+					end
+					io.put_new_line
+					last := p.item.code
+					put_code_point (last)
+					is_in_interval := True
+					is_last_printed := True
+				end
+			end
+			if is_in_interval then
+				if not is_last_printed then
+					io.put_character ('-')
+					put_code_point (last)
+				end
+				io.put_new_line
+			end
+		end
+
+	put_code_point (n: like {UNICODE_CHARACTER_DATA}.code)
+			-- Print code point `n` as 4 or more hexadecimal digits.
+		do
+			io.put_string_32 ({UNICODE_CHARACTER_DATA}.hexadecimal_code_point (n))
+		end
 
 feature {NONE} -- Command line processing
 
-	argument_parser: ARGUMENT_PARSER
+	argument_parser: ARGUMENT_PARSER;
 			-- Parser of command line arguments.
 
+note
+	ca_ignore: "CA011", "CA011: too many arguments"
 end

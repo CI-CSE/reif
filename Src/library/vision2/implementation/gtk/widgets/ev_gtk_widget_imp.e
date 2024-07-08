@@ -29,6 +29,7 @@ feature {EV_INTERMEDIARY_ROUTINES} -- Implementation
 				| {GTK}.GDK_FOCUS_CHANGE_MASK_ENUM
 				| {GTK}.GDK_VISIBILITY_NOTIFY_MASK_ENUM
 				| {GTK}.GDK_POINTER_MOTION_HINT_MASK_ENUM
+				| {GTK}.GDK_ALL_EVENTS_MASK_ENUM
 		end
 
 feature {NONE} -- Implementation
@@ -277,6 +278,9 @@ feature {EV_ANY_I, EV_INTERMEDIARY_ROUTINES} -- Implementation
 				end
 			end
 			{GTK}.gtk_window_set_focus (l_window, l_widget)
+			if not {GTK}.gtk_widget_is_focus (l_widget) then
+				{GTK}.gtk_widget_grab_focus (l_widget)
+			end
 		end
 
 	has_focus: BOOLEAN
@@ -418,7 +422,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

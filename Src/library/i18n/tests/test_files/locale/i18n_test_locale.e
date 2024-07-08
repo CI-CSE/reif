@@ -172,8 +172,8 @@ feature {NONE} -- Implementation
 				--save_cache_to_file (generated_result_file_name (l_locale.info.id.name))
 				if not l_locale.info.id.name.is_empty then
 					if attached cached_output as l_output then
-						assert ("Output did not match when testing locale '" + l_locale.info.id.name + "'",
-							has_same_content_as_string (result_file_name (l_locale.info.id.name, {PLATFORM}.is_windows), utf32_to_utf8 (l_output)))
+						assert ({STRING_32} "Output did not match when testing locale '" + l_locale.info.id.name + "'",
+							has_same_content_as_string (result_file_name (l_locale.info.id.name, {PLATFORM}.is_windows), {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (l_output)))
 					else
 						assert ("No output", False)
 					end
@@ -181,7 +181,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	result_file_name (a_locale_name: STRING; a_windows: BOOLEAN): STRING_32
+	result_file_name (a_locale_name: READABLE_STRING_GENERAL; a_windows: BOOLEAN): STRING_32
 			-- This is a hack, since no such facility found in the testing framework, for a file name located in the source class directory.
 		do
 			if attached env.item ("ISE_LIBRARY") as l_env then
@@ -205,7 +205,7 @@ feature {NONE} -- Implementation
 					Result.append ("unix")
 				end
 				Result.append_character (Operating_environment.directory_separator)
-				Result.append (a_locale_name)
+				Result.append_string_general (a_locale_name)
 			else
 				assert ("ISE_LIBRARY not defined", False)
 				create Result.make_empty
@@ -310,7 +310,7 @@ feature {NONE} -- Implementation
 
 note
 	library:   "Internationalization library"
-	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

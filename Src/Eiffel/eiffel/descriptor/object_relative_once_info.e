@@ -475,13 +475,14 @@ feature -- Element change
 			l_att_i.set_origin_class_id (routine.origin_class_id)
 			l_att_i.set_feature_id (called_feature_id)
 			l_att_i.set_origin_feature_id (called_feature_id)
-			l_att_i.set_feature_name_id (called_name_id, 0)
+			l_att_i.set_feature_name_id (called_name_id, Void)
 			l_att_i.set_is_transient (routine.is_transient)
 			l_att_i.set_is_hidden (True)
 
 			create l_feat_depend.make
 			l_feat_depend.set_feature_name_id (called_name_id)
 			routine.record_suppliers (l_feat_depend)
+				-- TODO: Save computed dependencies.
 
 			create l_id_set.make
 			l_id_set.extend (called_routine_id)
@@ -489,6 +490,7 @@ feature -- Element change
 
 			l_att_i.process_pattern
 			called_attribute_i := l_att_i
+				-- TODO: Record that `routine` depends on `called_attribute_i`.
 		end
 
 	get_exception_attribute_i
@@ -506,13 +508,14 @@ feature -- Element change
 			l_att_i.set_origin_class_id (routine.origin_class_id)
 			l_att_i.set_feature_id (exception_feature_id)
 			l_att_i.set_origin_feature_id (exception_feature_id)
-			l_att_i.set_feature_name_id (exception_name_id, 0)
+			l_att_i.set_feature_name_id (exception_name_id, Void)
 			l_att_i.set_is_transient (routine.is_transient)
 			l_att_i.set_is_hidden (True)
 
 			create l_feat_depend.make
 			l_feat_depend.set_feature_name_id (exception_name_id)
 			routine.record_suppliers (l_feat_depend)
+				-- TODO: Save computed dependencies.
 
 			create l_id_set.make
 			l_id_set.extend (exception_routine_id)
@@ -520,6 +523,7 @@ feature -- Element change
 
 			l_att_i.process_pattern
 			exception_attribute_i := l_att_i
+				-- TODO: Record that `routine` depends on `exception_attribute_i`.
 		end
 
 
@@ -540,14 +544,14 @@ feature -- Element change
 			l_att_i.set_origin_class_id (routine.origin_class_id)
 			l_att_i.set_feature_id (result_feature_id)
 			l_att_i.set_origin_feature_id (result_feature_id)
-			l_att_i.set_feature_name_id (result_name_id, 0)
+			l_att_i.set_feature_name_id (result_name_id, Void)
 			l_att_i.set_is_transient (routine.is_transient)
 			l_att_i.set_is_hidden (True)
 
 			create l_feat_depend.make
 			l_feat_depend.set_feature_name_id (result_name_id)
 			routine.record_suppliers (l_feat_depend)
-
+				-- TODO: Save computed dependencies.
 
 			create l_id_set.make
 			l_id_set.extend (result_routine_id)
@@ -555,6 +559,7 @@ feature -- Element change
 
 			l_att_i.process_pattern
 			result_attribute_i := l_att_i
+				-- TODO: Record that `routine` depends on `result_attribute_i`.
 		end
 
 feature -- Access: called
@@ -786,7 +791,7 @@ invariant
 	rout_id_set_attached: rout_id_set /= Void
 
 ;note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

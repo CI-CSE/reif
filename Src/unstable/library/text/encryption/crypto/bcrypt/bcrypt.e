@@ -23,7 +23,6 @@
 class
 	BCRYPT
 
-
 create
 	make,
 	make_with_salt_generator
@@ -139,13 +138,12 @@ feature -- Hash password
 			valid_salt_length: salt.count > 28
 			valid_salt_version: is_valid_salt_version (salt)
 		local
-			real_salt: STRING_8
+			real_salt: READABLE_STRING_8
 			l_password, l_salt, l_hashed: SPECIAL [NATURAL_8]
 			rounds, off: INTEGER
 			minor: CHARACTER_8
-			utf: UTF_CONVERTER
 			pwd: STRING_8
-			l_substring: STRING_8
+			l_substring: READABLE_STRING_8
 			i,n: INTEGER
 			l_bcrypt: BCRYPT
 		do
@@ -270,9 +268,7 @@ feature -- Generate Salt
 		end
 
 	is_valid_password_unicode (plaintext: READABLE_STRING_32; hashed: READABLE_STRING_32): BOOLEAN
-			-- Unicode version of is_valid_password.
-		local
-			h: READABLE_STRING_8			
+			-- Unicode version of is_valid_password.			
 		do
 			Result := hashed.same_string_general (hashed_password_unicode (plaintext, hashed))
 		end
@@ -580,7 +576,6 @@ feature {NONE} -- Implementations
 			-- the next word of material from data.
 		local
 			i: INTEGER
-			word: INTEGER
 			off: INTEGER
 		do
 			off := offp [0]
@@ -878,7 +873,7 @@ feature -- bcrypt modified version of base64 encoding
 			end
 		end
 
-	decoded_base64_array (str: STRING_8; maxolen: INTEGER): SPECIAL [NATURAL_8]
+	decoded_base64_array (str: READABLE_STRING_8; maxolen: INTEGER): SPECIAL [NATURAL_8]
 			-- Decode a string encoded using bcrypt's base64 scheme to a byte array.
 			-- Note that this is *not* compatible with standard MIME-base64 encoding.
 		require

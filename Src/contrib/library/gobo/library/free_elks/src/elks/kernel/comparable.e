@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Objects that may be compared according to a total order relation
 
@@ -29,7 +29,7 @@ feature -- Comparison
 			asymmetric: Result implies not (other < Current)
 		end
 
-	is_less_equal alias "<=" (other: like Current): BOOLEAN
+	is_less_equal alias "<=" alias "≤" (other: like Current): BOOLEAN
 			-- Is current object less than or equal to `other'?
 		do
 			Result := not (other < Current)
@@ -45,7 +45,7 @@ feature -- Comparison
 			definition: Result = (other < Current)
 		end
 
-	is_greater_equal alias ">=" (other: like Current): BOOLEAN
+	is_greater_equal alias ">=" alias "≥" (other: like Current): BOOLEAN
 			-- Is current object greater than or equal to `other'?
 		do
 			Result := not (Current < other)
@@ -57,12 +57,12 @@ feature -- Comparison
 			-- Is `other' attached to an object of the same type
 			-- as current object and identical to it?
 		do
-			Result := (not (Current < other) and not (other < Current))
+			Result := not (Current < other) and not (other < Current)
 		ensure then
 			trichotomy: Result = (not (Current < other) and not (other < Current))
 		end
 
-	three_way_comparison (other: like Current): INTEGER
+	three_way_comparison alias "⋚" (other: like Current): INTEGER
 			-- If current object equal to `other', 0;
 			-- if smaller, -1; if greater, 1
 		require
@@ -79,7 +79,7 @@ feature -- Comparison
 			greater_positive: (Result = 1) = (Current > other)
 		end
 
-	max (other: like Current): like Current
+	max alias "∨" (other: like Current): like Current
 			-- The greater of current object and `other'
 		require
 			other_exists: other /= Void
@@ -94,7 +94,7 @@ feature -- Comparison
 			other_if_smaller: Current < other implies Result = other
 		end
 
-	min (other: like Current): like Current
+	min alias "∧" (other: like Current): like Current
 			-- The smaller of current object and `other'
 		require
 			other_exists: other /= Void
@@ -114,7 +114,10 @@ invariant
 	irreflexive_comparison: not (Current < Current)
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	ca_ignore:
+		"CA057", "CA057: simplifiable boolean expression",
+		"CA071", "CA071: self-comparison"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

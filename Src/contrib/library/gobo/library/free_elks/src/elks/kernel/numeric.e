@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
 		Objects to which numerical operations are applicable
 		Note: The model is that of a commutative ring.
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -47,7 +47,7 @@ feature -- Status report
 	exponentiable (other: NUMERIC): BOOLEAN
 			-- May current object be elevated to the power `other'?
 		obsolete
-			"[2008_04_01] Will be removed since not used."
+			"Will be removed since not used. [2017-05-31]"
 		require
 			other_exists: other /= Void
 		deferred
@@ -65,7 +65,7 @@ feature -- Basic operations
 			commutative: Result ~ (other + Current)
 		end
 
-	minus alias "-" (other: like Current): like Current
+	minus alias "-" alias "−" (other: like Current): like Current
 			-- Result of subtracting `other'
 		require
 			other_exists: other /= Void
@@ -74,7 +74,7 @@ feature -- Basic operations
 			result_exists: Result /= Void
 		end
 
-	product alias "*" (other: like Current): like Current
+	product alias "*" alias "×" (other: like Current): like Current
 			-- Product by `other'
 		require
 			other_exists: other /= Void
@@ -83,7 +83,7 @@ feature -- Basic operations
 			result_exists: Result /= Void
 		end
 
-	quotient alias "/" (other: like Current): like Current
+	quotient alias "/" alias "÷" (other: like Current): like Current
 			-- Division by `other'
 		require
 			other_exists: other /= Void
@@ -100,7 +100,7 @@ feature -- Basic operations
 			result_exists: Result /= Void
 		end
 
-	opposite alias "-": like Current
+	opposite alias "-" alias "−": like Current
 			-- Unary minus
 		deferred
 		ensure
@@ -115,7 +115,7 @@ invariant
 --	self_division: divisible (Current) implies equal (Current / Current, one)
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -16,9 +16,6 @@ class
 
 inherit
 	TEXT_PANEL_IMP
-		rename
-			file_name as const_file_name,
-			initialized_cell as constants_initialized_cell
 		redefine
 			default_create
 		end
@@ -73,7 +70,7 @@ inherit
 
 	ENCODING_DETECTOR
 		rename
-			detected_encoding as system_encoding
+			detected_encoding as default_encoding
 		export
 			{NONE} all
 		undefine
@@ -86,11 +83,19 @@ feature -- Initialization
 			-- Default creation
 		do
 			create widget
+
 				-- Initialize with unexecutable agent.
 			update_scroll_agent := agent do check False end end
 			refresh_line_number_agent := agent do check False end end
+
 			initialize
 			is_initialized := True
+		end
+
+	initialize_buffer_settings
+		do
+				-- Buffer settings
+			set_buffered_drawable_size (default_buffered_drawable_width, default_buffered_drawable_height)
 		end
 
 feature {NONE} -- Initialization
@@ -104,6 +109,8 @@ feature {NONE} -- Initialization
 		local
 			l_margin: like margin
 		do
+			initialize_buffer_settings
+
 				-- Create the buffered line.
 			create buffered_line.make_with_size (buffered_drawable_width, line_height)
 
@@ -140,9 +147,11 @@ feature {NONE} -- Initialization
 				-- Viewport Events
 			editor_drawing_area.expose_actions.extend (agent on_repaint)
 			editor_drawing_area.resize_actions.extend (agent on_size)
+			editor_drawing_area.dpi_changed_actions.extend (agent on_dpi_change)
 			editor_drawing_area.mouse_wheel_actions.extend (agent on_mouse_wheel)
 			editor_drawing_area.focus_in_actions.extend (agent on_focus)
 			editor_viewport.resize_actions.extend (agent on_viewport_size)
+			editor_viewport.dpi_changed_actions.extend (agent on_dpi_change_viewport_size)
 
 				-- Scrollbar Events		
 			vertical_scrollbar.change_actions.extend (agent on_vertical_scroll)
@@ -795,7 +804,7 @@ feature -- Basic Operations
 			l_text_displayed: like text_displayed
 			n: INTEGER
 		do
-				-- Recompute token information for for loaded text.
+				-- Recompute token information for loaded text.
 			from
 				l_text_displayed := text_displayed
 				n := l_text_displayed.number_of_lines
@@ -841,8 +850,8 @@ feature -- Basic Operations
 					create actions.make_from_array (<<agent reload, agent continue_editing>>)
 					actions.rebase (1)
 					dialog.set_buttons_and_actions (button_labels, actions)
-					dialog.set_default_push_button (dialog.button (button_labels @ 1))
-					dialog.set_default_cancel_button (dialog.button (button_labels @ 2))
+					dialog.set_default_push_button (dialog.button (button_labels [1]))
+					dialog.set_default_cancel_button (dialog.button (button_labels [2]))
 					dialog.set_title ("External edition")
 					if attached reference_window as l_window then
 						dialog.show_modal_to_window (l_window)
@@ -1000,6 +1009,7 @@ feature -- Status Setting
 			if horizontal_scrollbar.is_show_requested then
 				horizontal_scrollbar.set_value (offset.min (horizontal_scrollbar.value_range.upper))
 			end
+			on_offset_changed
 		end
 
 feature {NONE} -- Scroll bars Management
@@ -1299,6 +1309,14 @@ feature {NONE} -- Display functions
 			update_horizontal_scrollbar
 		end
 
+	on_dpi_change (a_dpi: NATURAL_32; a_x, a_y: INTEGER; a_width, a_height: INTEGER)
+			-- Refresh the panel after it has been resized (and moved) to new coordinates (`a_x', `a_y') and
+			-- new size (`a_width', `a_height').
+			--| Note: This feature is called during the creation of the window
+		do
+			on_size (a_x, a_y, a_width, a_height)
+		end
+
 	on_viewport_size (a_x, a_y: INTEGER; a_width, a_height: INTEGER)
 			-- Viewport was resized.
 		local
@@ -1311,6 +1329,11 @@ feature {NONE} -- Display functions
 				end
 				update_vertical_scrollbar
 				update_horizontal_scrollbar
+
+					-- Note: this call is to process the platform dependent
+					-- operations.
+				on_visible_area_resized (a_width, a_height)
+
 				update_viewport_after_resize
 				last_viewport_height := a_height
 				l_int_v := vertical_scrollbar.value
@@ -1324,6 +1347,12 @@ feature {NONE} -- Display functions
 					on_vertical_scroll (first_line_displayed.min (maximum_top_line_index))
 				end
 			end
+		end
+
+	on_dpi_change_viewport_size (a_dpi: NATURAL_32; a_x, a_y: INTEGER; a_width, a_height: INTEGER)
+			-- Viewport was resized.
+		do
+			on_viewport_size (a_x, a_y, a_width, a_height)
 		end
 
 	last_viewport_height: INTEGER
@@ -1415,7 +1444,7 @@ feature {NONE} -- Display functions
 	 			until
 	 				curr_line > last or else l_text.after
 	 			loop
-	 				y_offset := l_editor_viewport.y_offset + ((curr_line - first_line_displayed) * line_height)
+	 				y_offset := l_editor_viewport.y_offset + (curr_line - first_line_displayed) * line_height
 
 					if buffered then
 	 		--			draw_line_to_buffered_line (curr_line, l_text.current_line)
@@ -1734,12 +1763,18 @@ feature -- Implementation
 	buffered_line: EV_PIXMAP
 			-- Buffer large enough to hold line information.
 
-	buffered_drawable_width: INTEGER = 15000
-
-	buffered_drawable_height: INTEGER = 15000
+	buffered_drawable_width: INTEGER
 		-- Default size of `drawable' used for scrolling purposes.
-		--| This value used to be 32000 but on gtk post 2.10.6 there seems to be some sort of 'fix' that gives odd results
-		--| with the line number code that means that they do not get displayed correctly
+
+	buffered_drawable_height: INTEGER
+		-- Default size of `drawable' used for scrolling purposes.
+
+	set_buffered_drawable_size (a_width, a_height: INTEGER)
+			-- Set `buffered_drawable_width` and `buffered_drawable_height` to `a_width` and `a_height`.
+		do
+			buffered_drawable_width := a_width
+			buffered_drawable_height := a_height
+		end
 
 	last_vertical_scroll_bar_value: INTEGER
 		-- Last value of `vertical_scroll_bar' used within `vertical_scroll_bar_changed'. See
@@ -1846,16 +1881,22 @@ feature {NONE} -- Implementation
 
 	line_type: EDITOR_LINE
 			-- Type of a line.
+		require
+			False
 		do
-			check False end -- Not called.
-			Result := line_type
+			check from_precondition: False then end
+		ensure
+			False
 		end
 
 	cursor_type: TEXT_CURSOR
 			-- Type of a cursor.
+		require
+			False
 		do
-			check False end -- Not called.
-			Result := cursor_type
+			check from_precondition: False then end
+		ensure
+			False
 		end
 
 feature {NONE} -- Encoding conversion
@@ -1896,11 +1937,14 @@ feature {NONE} -- Encoding conversion
 					l_str := l_encoding.last_converted_string
 				end
 			end
-			if l_str = Void then
-				Result := a_string.as_string_8
-			else
-				Result := l_str.as_string_8
-			end
+			Result :=
+				if attached l_str then
+					l_str.to_string_8
+				elseif attached {READABLE_STRING_8} a_string as s then
+					s.string
+				else
+					{UTF_CONVERTER}.string_32_to_utf_8_string_8 (a_string.as_string_32)
+				end
 		ensure
 			Result_not_void: Result /= Void
 		end
@@ -1920,11 +1964,17 @@ feature {NONE} -- Encoding detector
 			encoding_detector_not_void: Result /= Void
 		end
 
+	default_encoding: ENCODING
+			-- <Precursor>
+		once
+			Result := system_encoding
+		end
+
 	detect (a_string: READABLE_STRING_GENERAL)
-			-- <precursor>
-			-- Current is used as simple encoding detector.
-			-- Only `system_encoding' is simply returned.
-			-- So `last_detection_successful' is always true.
+			-- <Precursor>
+			-- Current is used as a simple encoding detector
+			-- that returns `system_encoding`.
+			-- So, `last_detection_successful` is always true.
 		do
 			last_detection_successful := True
 		end
@@ -1934,7 +1984,7 @@ invariant
 	buffered_line_not_void: is_initialized implies buffered_line /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

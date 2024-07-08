@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "CMS module bringing support for feed aggregation."
 	date: "$Date$"
 	revision: "$Revision$"
@@ -57,7 +57,7 @@ feature {CMS_API} -- Module Initialization
 			create feed_aggregator_api.make (api)
 		end
 
-feature {CMS_API, CMS_MODULE} -- Access: API
+feature {CMS_API, CMS_MODULE_API, CMS_MODULE} -- Access: API
 
 	feed_aggregator_api: detachable FEED_AGGREGATOR_API
 			-- Eventual module api.
@@ -96,7 +96,7 @@ feature -- Handle
 					then
 						if attached feed_to_html (p_feed_id.value, nb, True, create {GENERIC_VIEW_CMS_RESPONSE}.make (req, res, a_api)) as l_html then
 							create m.make_with_body (l_html)
-							m.header.put_content_type_text_html
+							m.header.put_content_type_utf_8_text_html
 							res.send (m)
 						else
 							a_api.response_api.send_not_found (Void, req, res)
@@ -136,7 +136,7 @@ feature -- Handle
 						end
 						if attached l_agg.description as l_desc and then l_desc.is_valid_as_string_8 then
 							s.append ("<div class=%"description%">")
-							s.append (l_desc.as_string_8)
+							s.append (l_desc.to_string_8)
 							s.append ("</div>")
 						end
 						s.append ("<ul>")
@@ -200,7 +200,7 @@ feature -- Handle
 						if attached ic.item.description as l_desc then
 							if l_desc.is_valid_as_string_8 then
 								s.append ("<div class=%"description%">")
-								s.append (l_desc.as_string_8)
+								s.append (l_desc.to_string_8)
 								s.append ("</div>")
 							end
 						end
@@ -296,6 +296,7 @@ feature -- Hook
 				nb := a_count
 			end
 			if attached a_feed_api.aggregation_feed (a_feed_agg) as l_feed then
+				l_feed.set_link (a_feed_api.cms_api.site_url, Void)
 				if attached l_feed.items as lst then
 					if a_feed_agg.has_category_filter then
 						from
@@ -352,10 +353,7 @@ feature -- Hook
 	feed_to_html (a_feed_id: READABLE_STRING_GENERAL; a_count: INTEGER; with_feed_info: BOOLEAN; a_response: CMS_RESPONSE): detachable STRING
 		local
 			nb: INTEGER
-			i: INTEGER
-			e: FEED_ITEM
 			l_cache: CMS_FILE_STRING_8_CACHE
-			lnk: detachable FEED_LINK
 			vis: FEED_TO_XHTML_VISITOR
 			s: STRING
 		do
@@ -363,7 +361,7 @@ feature -- Hook
 				attached feed_aggregator_api as l_feed_api and then
 				attached l_feed_api.aggregation (a_feed_id) as l_agg
 			then
-				create l_cache.make (l_feed_api.cms_api.cache_location.extended (name).extended ("feed__" + a_feed_id + "__" + a_count.out + "_" + with_feed_info.out))
+				create l_cache.make (l_feed_api.cms_api.cache_location.extended (name).extended ({STRING_32} "feed__" + a_feed_id.to_string_32 + "__" + a_count.out + "_" + with_feed_info.out))
 				Result := l_cache.item
 				if Result = Void or l_cache.expired (Void, l_agg.expiration) then
 					if attached to_adapted_feed (l_feed_api, l_agg, a_count) as l_feed then
@@ -410,18 +408,14 @@ feature -- Hook
 
 	feed_to_atom (a_feed_id: READABLE_STRING_GENERAL; a_count: INTEGER): detachable STRING
 		local
-			nb: INTEGER
-			i: INTEGER
-			e: FEED_ITEM
 			vis: ATOM_FEED_GENERATOR
-			s: STRING
 			l_cache: CMS_FILE_STRING_8_CACHE
 		do
 			if
 				attached feed_aggregator_api as l_feed_api and then
 				attached l_feed_api.aggregation (a_feed_id) as l_agg
 			then
-				create l_cache.make (l_feed_api.cms_api.cache_location.extended (name).extended ("feed__" + a_feed_id + "__" + a_count.out + ".atom"))
+				create l_cache.make (l_feed_api.cms_api.cache_location.extended (name).extended ({STRING_32} "feed__" + a_feed_id.to_string_32 + "__" + a_count.out + ".atom"))
 				Result := l_cache.item
 				if Result = Void or l_cache.expired (Void, l_agg.expiration) then
 					if attached to_adapted_feed (l_feed_api, l_agg, a_count) as l_feed then
@@ -446,7 +440,7 @@ feature -- Hook
 				attached feed_aggregator_api as l_feed_api and then
 				attached l_feed_api.aggregation (a_feed_id) as l_agg
 			then
-				create l_cache.make (l_feed_api.cms_api.cache_location.extended (name).extended ("feed__" + a_feed_id + "__" + a_count.out + ".rss"))
+				create l_cache.make (l_feed_api.cms_api.cache_location.extended (name).extended ({STRING_32} "feed__" + a_feed_id.to_string_32 + "__" + a_count.out + ".rss"))
 				Result := l_cache.item
 				if Result = Void or l_cache.expired (Void, l_agg.expiration) then
 					if attached to_adapted_feed (l_feed_api, l_agg, a_count) as l_feed then

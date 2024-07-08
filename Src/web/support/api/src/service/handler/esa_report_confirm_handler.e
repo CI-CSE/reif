@@ -72,7 +72,9 @@ feature -- HTTP Methods
 			if attached {READABLE_STRING_32} current_user_name (req) as l_user and then
 			   attached {WSF_STRING} req.path_parameter("id") as l_id and then l_id.is_integer then
 				if attached current_media_type (req) as l_type then
-					log.write_information (generator + ".do_get Processing request: User:" + l_user + " Id:" + l_id.value)
+					debug
+						log.write_information (generator + ".do_get Processing request: User:" + l_user.to_string_8 + " Id:" + l_id.value.to_string_8)
+					end
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).report_form_confirm_page (req, res, l_id.integer_value)
 				else
 					log.write_alert (generator + ".do_get Processing request not acceptable")
@@ -89,6 +91,7 @@ feature -- HTTP Methods
 			end
 		end
 
+
 	do_post (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- <Precursor>
 		local
@@ -98,7 +101,9 @@ feature -- HTTP Methods
 			if attached {READABLE_STRING_32} current_user_name (req) as l_user then
 				if attached current_media_type (req) as l_type then
 					api_service.commit_problem_report (extract_form_data(req, l_type))
-					log.write_information (generator +"do_post Send email to report number:" + api_service.last_problem_report_number.out)
+					debug
+						log.write_information (generator +"do_post Send email to report number:" + api_service.last_problem_report_number.out)
+					end
 					send_new_report_email (l_user, absolute_host (req,""))
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).report_form_confirm_redirect (req, res)
 				else
@@ -115,7 +120,7 @@ feature -- HTTP Methods
 
 feature -- Implementation
 
-	extract_form_data (req: WSF_REQUEST; a_type: READABLE_STRING_32): INTEGER
+	extract_form_data (req: WSF_REQUEST; a_type: READABLE_STRING_8): INTEGER
 			-- Extract confirmation numnber.
 		local
 			l_parser: JSON_PARSER
@@ -142,7 +147,7 @@ feature -- Implementation
 			end
 		end
 
-	send_new_report_email (a_user: STRING; a_url: STRING)
+	send_new_report_email (a_user: READABLE_STRING_32; a_url: STRING)
 			-- Send report creation confirmation email to interested parties.	
 		local
 			l_subscribers: LIST [STRING]
@@ -155,10 +160,10 @@ feature -- Implementation
 			then
 				l_subscribers := api_service.problem_report_category_subscribers (l_synopsis)
 --				email_service.send_new_report_email (api_service.user_account_information (a_user).displayed_name, l_report, l_email, l_subscribers, a_url)
-				email_notification_service.send_new_report_email (api_service.user_account_information (a_user).displayed_name, l_report, l_email, l_subscribers, a_url)
+				email_notification_service.send_new_report_email (api_service.user_account_information (a_user).displayed_name, l_report, l_email, l_subscribers, a_url, api_service.user_role (a_user))
 			else
 					-- Not expected.
-				log.write_critical (generator + ".send_new_report_email Unexpected behavior user [" + a_user +"]" + "does not has email, or the report does not exist or does not has synopsis")
+				log.write_critical (generator + ".send_new_report_email Unexpected behavior user [" + a_user.to_string_8 +"]" + "does not has email, or the report does not exist or does not has synopsis")
 			end
 		end
 end

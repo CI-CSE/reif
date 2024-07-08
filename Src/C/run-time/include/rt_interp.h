@@ -2,7 +2,7 @@
 	description: "Interpreter declarations and definitions."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2018, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2020, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -59,6 +59,11 @@ extern "C" {
 #define ONCE_MARK_OBJECT_RELATIVE  3	/* Object-relative once routine */
 #define ONCE_MARK_ATTRIBUTE        4	/* Attribute */
 
+/* Masks of SCOOP calls variants */
+#define SCOOP_CALL_MASK_NONE            0 /* An empty mask of the call */
+#define SCOOP_CALL_MASK_QUERY           1 /* The call returns a value */
+#define SCOOP_CALL_MASK_ACTIVE_CREATION 2 /* An active region has to be created for the object before the call */
+
 /*
  * Byte-code tokens
  */
@@ -90,7 +95,7 @@ extern "C" {
 #define BC_LASSIGN			24
 #define BC_ASSIGN			25
 #define BC_CREATE			26
-#define BC_START_SEPARATE		27
+#define BC_START_SEPARATE	27
 #define	BC_END_SEPARATE		28
 #define BC_NOTUSED_29		29
 #define BC_NOTUSED_30		30
@@ -189,10 +194,13 @@ extern "C" {
 #define BC_NOTUSED_122		122
 #define BC_NOTUSED_123		123
 #define BC_NOTUSED_124		124
-#define BC_NOTUSED_125		125
-#define BC_NOTUSED_126		126
-#define BC_NOTUSED_127		127
-#define BC_NOTUSED_128		(unsigned char) 128
+
+/* Immutable Strings */
+#define BC_IMMSTRING8	(unsigned char) 125
+#define BC_IMMSTRING32	(unsigned char) 126
+#define BC_ONCE_IMMSTRING8	(unsigned char) 127
+#define BC_ONCE_IMMSTRING32	(unsigned char) 128
+
 #define BC_OBJECT_EXPR_ADDR	(unsigned char) 129
 #define BC_RESERVE			(unsigned char) 130
 #define BC_POP				(unsigned char) 131
@@ -202,16 +210,17 @@ extern "C" {
 
 /* Byte code for builtins */
 #define BC_BUILTIN	(unsigned char) 134
-#define BC_BUILTIN_UNKNOWN	(unsigned char) 1
-#define BC_BUILTIN_TYPE__HAS_DEFAULT	(unsigned char) 2
-#define BC_BUILTIN_TYPE__DEFAULT	(unsigned char) 3
-#define BC_BUILTIN_TYPE__TYPE_ID	(unsigned char) 4
-#define BC_BUILTIN_TYPE__RUNTIME_NAME	(unsigned char) 5
+#define BC_BUILTIN_UNKNOWN		(unsigned char) 1
+#define BC_BUILTIN_TYPE__HAS_DEFAULT		(unsigned char) 2
+#define BC_BUILTIN_TYPE__DEFAULT		(unsigned char) 3
+#define BC_BUILTIN_TYPE__TYPE_ID		(unsigned char) 4
+#define BC_BUILTIN_TYPE__RUNTIME_NAME__S1	(unsigned char) 5
 #define BC_BUILTIN_TYPE__GENERIC_PARAMETER_TYPE	(unsigned char) 6
 #define BC_BUILTIN_TYPE__GENERIC_PARAMETER_COUNT	(unsigned char) 7
-#define BC_BUILTIN_TYPE__IS_ATTACHED	(unsigned char) 8
-#define BC_BUILTIN_TYPE__IS_DEFERRED	(unsigned char) 9
-#define BC_BUILTIN_TYPE__IS_EXPANDED	(unsigned char) 10
+#define BC_BUILTIN_TYPE__IS_ATTACHED		(unsigned char) 8
+#define BC_BUILTIN_TYPE__IS_DEFERRED		(unsigned char) 9
+#define BC_BUILTIN_TYPE__IS_EXPANDED		(unsigned char) 10
+#define BC_BUILTIN_TYPE__RUNTIME_NAME__S4	(unsigned char) 11
 
 /* Byte code for expression creation */
 #define BC_CAST_CHAR32		(unsigned char) 135
@@ -219,7 +228,7 @@ extern "C" {
 #define BC_BASIC_OPERATIONS	(unsigned char) 137
 #define BC_MAX				(unsigned char) 1
 #define BC_MIN				(unsigned char) 2
-#define BC_GENERATOR		(unsigned char) 3
+#define BC_GENERATOR__S1		(unsigned char) 3
 #define BC_OFFSET			(unsigned char) 4
 #define BC_ZERO				(unsigned char) 5
 #define BC_ONE				(unsigned char) 6
@@ -230,6 +239,7 @@ extern "C" {
 #define BC_NAN			(unsigned char) 11
 #define BC_NEGATIVE_INFINITY	(unsigned char) 12
 #define BC_POSITIVE_INFINITY	(unsigned char) 13
+#define BC_GENERATOR__S4		(unsigned char) 14
 #define BC_INT_BIT_OP		(unsigned char) 138
 #define BC_INT_BIT_AND		(unsigned char) 1
 #define BC_INT_BIT_OR		(unsigned char) 2

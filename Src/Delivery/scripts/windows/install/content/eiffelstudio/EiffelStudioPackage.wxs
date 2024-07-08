@@ -62,30 +62,30 @@
 					</RegistryKey>
 				</RegistryKey>
 				<RegistryKey Id="Reg.VS" Root="HKLM" Key="SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\[ProductName]" Action="createAndRemoveOnUninstall">
-					<RegistryValue Id="RegVal.VS" Value="[INSTALLDIR]\studio\spec\$(var.IsePlatform)\lib\" Type="string"/>
+					<RegistryValue Id="RegVal.VS" Value="[INSTALLDIR]studio\spec\$(var.IsePlatform)\lib\" Type="string"/>
 				</RegistryKey>
 					<!-- Registry settings for eiffel protocol -->
 				<RegistryKey Id="Reg.eiffel_protocol" Root="HKCR" Key="eiffel" Action="createAndRemoveOnUninstall">
 					<RegistryValue Id="RegVal.eiffel_protocol.default" Value="URL:Eiffel Protocol" Type="string"/>
 					<RegistryValue Id="RegVal.eiffel_protocol.url" Name="URL Protocol" Value="" Type="string"/>
 					<RegistryKey Id="Reg.eiffel_protocol.defaulticon" Key="DefaultIcon" Action="createAndRemoveOnUninstall">
-						<RegistryValue Id="RegVal.eiffel_protocol.defaulticon.default" Value="[INSTALLDIR]\studio\spec\$(var.IsePlatform)\bin\estudio.exe" Type="string"/>
+						<RegistryValue Id="RegVal.eiffel_protocol.defaulticon.default" Value="[INSTALLDIR]studio\spec\$(var.IsePlatform)\bin\estudio.exe" Type="string"/>
 					</RegistryKey>
 					<RegistryKey Id="Reg.eiffel_protocol.shell" Key="shell\open\command" Action="createAndRemoveOnUninstall">
-						<RegistryValue Id="RegVal.eiffel_protocol.shell.default" Value="&quot;[INSTALLDIR]\studio\spec\$(var.IsePlatform)\bin\estudio.exe&quot; /ec_action eisi:&quot;%1&quot;" Type="string"/>
+						<RegistryValue Id="RegVal.eiffel_protocol.shell.default" Value="&quot;[INSTALLDIR]studio\spec\$(var.IsePlatform)\bin\estudio.exe&quot; /ec_action eisi:&quot;%1&quot;" Type="string"/>
 					</RegistryKey>
 				</RegistryKey>
 			</Component>
 			<Directory Id="Dir.gcc" Name="gcc"/>
 			<Directory Id="Dir.Core.examples" Name="examples"/>
-			<Directory Id="Dir.Core.library" Name="library">
-				<Directory Id="Dir.Core.library.gobo" Name="gobo"/>
-			</Directory>
-			<Directory Id="Dir.Core.experimental" Name="experimental">
-				<Directory Id="Dir.Core.experimental.library" Name="library">
-					<Directory Id="Dir.Core.experimental.library.gobo" Name="gobo"/>
+			<Directory Id="Dir.Core.contrib" Name="contrib">
+				<Directory Id="Dir.Core.contrib.library" Name="library">
+					<Directory Id="Dir.Core.contrib.library.gobo" Name="gobo"/>
 				</Directory>
 			</Directory>
+			<Directory Id="Dir.Core.library" Name="library"/>
+			<Directory Id="Dir.Core.unstable" Name="unstable"/>
+			<Directory Id="Dir.Core.tools" Name="tools"/>
 			<!-- To comment when building complete delivery -->
 			<!--
 			<Directory Id="Dir.Core.esbuilder.spec.$(var.IsePlatform).bin" Name="testing1"/>
@@ -94,7 +94,23 @@
 		</DirectoryRef>
 
 		<DirectoryRef Id="TARGETDIR">
-			<Directory Id="DesktopFolder" Name="." />
+    		<Directory Id="DesktopFolder" Name="Desktop">
+        		<Component Id="ApplicationShortcutDesktop" Guid="D14CE80C-7D36-4C61-B555-7897D385A17D">
+            		<Shortcut Id="estudioDesktopShortcut"
+                		Name="EiffelStudio $(var.ProductVersion) ($(var.Platform))"
+                		Description="Launch EiffelStudio $(var.ProductVersion)"
+    					Target="[INSTALLDIR]studio\spec\$(var.IsePlatform)\bin\estudio.exe"
+                		/>
+            		<RemoveFolder Id="DesktopFolder" On="uninstall"/>
+            		<RegistryValue
+                		Root="HKCU"
+    					Key="Software\ISE\$(var.ProductKey)"
+                		Name="installed_$(var.IsePlatform)"
+                		Type="integer"
+                		Value="1"
+                		KeyPath="yes"/>
+        		</Component>
+    		</Directory>
 			<Directory Id="ProgramMenuFolder" Name=".">
 				<Directory Id="EiffelStudio" Name="$(var.Product) $(var.ProductVersion) ($(var.Platform))">
 					<Directory Id="EiffelStudio.Documentation" Name="Documentation"/>
@@ -146,19 +162,14 @@
 				<RemoveFolder Id="RemoveEiffelStudio" Directory="EiffelStudio" On="uninstall" />
 				<RemoveFolder Id="RemoveEiffelStudio.Documentation" Directory="EiffelStudio.Documentation" On="uninstall" />
 				<RemoveFolder Id="RemoveEiffelStudio.Tools" Directory="EiffelStudio.Tools" On="uninstall" />
-				<RegistryValue Id="Id.shortcuts" Root="HKCU" Key="Software\ISE\$(var.ProductKey)" Name="InstalledShortcuts" Type="integer" Value="1" KeyPath="yes"/>
+				<RegistryValue Id="Id.shortcuts" Root="HKCU" Key="Software\ISE\$(var.ProductKey)" Name="InstalledShortcuts_$(var.IsePlatform)" Type="integer" Value="1" KeyPath="yes"/>
 				<Shortcut Id="esbuilder.exe" Name="EiffelBuild"
 					Description="GUI Builder using EiffelVision2" Show="normal" Directory="EiffelStudio"
 					Target="[INSTALLDIR]esbuilder\spec\$(var.IsePlatform)\bin\esbuilder.exe"
 					/>
-				<Shortcut Id="estudio.exe" Name="$(var.Product) $(var.ProductVersion)"
-					Description="EiffelStudio development environment" Show="normal" Directory="EiffelStudio"
+				<Shortcut Id="estudio.exe" Name="$(var.Product) $(var.ProductVersion) ($(var.Platform))"
+					Description="EiffelStudio development environment" Show="normal" Directory="ProgramMenuFolder"
 					Target="[INSTALLDIR]studio\spec\$(var.IsePlatform)\bin\estudio.exe"
-					/>
-				<Shortcut Id="estudio.exe1" Name="$(var.Product) $(var.ProductVersion) (Experimental mode)"
-					Description="EiffelStudio development environment using compatibility facilities of EiffelStudio" Show="normal"
-					Target="[INSTALLDIR]studio\spec\$(var.IsePlatform)\bin\estudio.exe" Directory="EiffelStudio"
-					Arguments="-experiment"
 					/>
 				<Shortcut Id="esvars.bat" Name="$(var.Product) $(var.ProductVersion) Command Prompt"
 					Description="EiffelStudio Command Prompt" Show="normal" Directory="EiffelStudio"
@@ -173,10 +184,6 @@
 				<util:InternetShortcut Id="EiffelStudio.Documentation.General" Name="Eiffel Developer Help Center" Target="http://docs.eiffel.com/" Directory="EiffelStudio.Documentation"/>
 				<util:InternetShortcut Id="EiffelStudio.Documentation.COM" Name="EiffelCOM Wizard Documentation" Target="http://docs.eiffel.com/book/platform-specifics/eiffelcom-wizard" Directory="EiffelStudio.Documentation"/>
 				<util:InternetShortcut Id="EiffelStudio.Documentation.ResourceBench" Name="ResourceBench Documentation" Target="http://docs.eiffel.com/book/platform-specifics/resourcebench" Directory="EiffelStudio.Documentation"/>
-				<Shortcut Id="vision2_demo.exe" Name="EiffelVision2 Demo"
-					Description="EiffelVision2 overview presentation" Show="normal" Directory="EiffelStudio.Documentation"
-					Target="[INSTALLDIR]vision2_demo\spec\$(var.IsePlatform)\bin\vision2_demo.exe"
-					/>
 				<Shortcut Id="com_wizard.exe" Name="EiffelCOM Wizard" 
 					Description="A wizard that helps you use and create COM components with Eiffel" Show="normal"
 					Target="[INSTALLDIR]wizards\com\com_wizard_launcher.exe" Directory="EiffelStudio.Tools"
@@ -198,14 +205,19 @@
 			<Feature Id="MainProgram" Title="Program" TypicalDefault="install" Level="1" Display="hidden">
 				<ComponentRef Id="Comp.studio_registries" />
 				<ComponentRef Id="Comp.studio_shortcuts" />
+				<ComponentRef Id="ApplicationShortcutDesktop" />
 				<ComponentRef Id="Comp.Core.esbuilder.spec.$(var.IsePlatform).bin.esbuilder.exe" />
 				<ComponentRef Id="Comp.Core.studio.spec.$(var.IsePlatform).bin.estudio.exe" />
 				<ComponentGroupRef Id="Core"/>
 				<?ifdef Enterprise ?>
 					<ComponentGroupRef Id="enterprise_ec"/>
 				<?else?>
-					<ComponentGroupRef Id="gpl_ec"/>
-				<?endif?>
+					<?ifdef Branded ?>
+						<ComponentGroupRef Id="branded_ec"/>
+					<?else?>
+						<ComponentGroupRef Id="standard_ec"/>
+					<?endif?>
+				<?endif?>						
 			</Feature>
 
 			<Feature Id="Examples_feature" Title="Examples" TypicalDefault="install" Level="1" Display="hidden">
@@ -216,16 +228,24 @@
 				<ComponentGroupRef Id="Core.library"/>
 			</Feature>
 
-			<Feature Id="Gobo_feature" Title="Gobo" TypicalDefault="install" Level="1" Display="hidden">
-				<ComponentGroupRef Id="Core.library.gobo"/>
+			<Feature Id="Contrib_feature" Title="Contrib" TypicalDefault="install" Level="1" Display="hidden">
+				<ComponentGroupRef Id="Core.contrib"/>
 			</Feature>
 
-			<Feature Id="Experimental_feature" Title="Experimental" TypicalDefault="install" Level="1" Display="hidden">
-				<ComponentGroupRef Id="Core.experimental.library"/>
+			<Feature Id="Contrib_library_feature" Title="Contrib_library" TypicalDefault="install" Level="1" Display="hidden">
+				<ComponentGroupRef Id="Core.contrib.library"/>
 			</Feature>
 
-			<Feature Id="Gobo_experimental_feature" Title="Gobo Experimental" TypicalDefault="install" Level="1" Display="hidden">
-				<ComponentGroupRef Id="Core.experimental.library.gobo"/>
+			<Feature Id="Contrib_library_gobo_feature" Title="Gobo" TypicalDefault="install" Level="1" Display="hidden">
+				<ComponentGroupRef Id="Core.contrib.library.gobo"/>
+			</Feature>
+
+			<Feature Id="Unstable_feature" Title="Unstable" TypicalDefault="install" Level="1" Display="hidden">
+				<ComponentGroupRef Id="Core.unstable"/>
+			</Feature>
+
+			<Feature Id="Tools_feature" Title="Tools" TypicalDefault="install" Level="1" Display="hidden">
+				<ComponentGroupRef Id="Core.tools"/>
 			</Feature>
 
 			<Feature Id="gdiplus_feature" Title="GDI+" TypicalDefault="install" Level="1" Display="hidden">

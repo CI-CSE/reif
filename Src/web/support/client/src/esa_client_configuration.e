@@ -7,7 +7,6 @@ class
 	ESA_CLIENT_CONFIGURATION
 
 inherit
-
 	SHARED_EXECUTION_ENVIRONMENT
 
 create
@@ -16,7 +15,7 @@ create
 
 feature {NONE} -- Implemention
 
-	make (a_uri: STRING_8)
+	make (a_uri: READABLE_STRING_8)
 			-- Create a Client configuration with
 			-- service uri set to `a_uri' and default
 			-- timeout.
@@ -58,7 +57,7 @@ feature -- Access
 			end
 		end
 
-	service_root: STRING_8
+	service_root: READABLE_STRING_8
 			-- Root uri to drive the interaction.
 		do
 			if config_mode and then attached json_configuration as cfg then
@@ -68,7 +67,7 @@ feature -- Access
 			end
 		end
 
-	media_type: STRING
+	media_type: READABLE_STRING_8
 			-- Type of the representation of a resource.
 			-- used in the interaction (client/server)
 			-- A representation is selected through content negotiation with the Accept header
@@ -78,7 +77,7 @@ feature -- Access
 
 feature {NONE} -- Implementation
 
-	implementation_service_root: STRING
+	implementation_service_root: READABLE_STRING_8
 			-- Root uri to drive the interaction.
 
 	default_timeout: INTEGER = 30

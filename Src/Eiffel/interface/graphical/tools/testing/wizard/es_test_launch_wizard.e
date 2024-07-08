@@ -25,6 +25,8 @@ inherit
 
 	CONF_ACCESS
 
+	CONF_FILE_CONSTANTS
+
 	EB_SHARED_GRAPHICAL_COMMANDS
 
 create
@@ -264,14 +266,7 @@ feature {NONE} -- Implementation
 		do
 			l_target := a_project.universe.target
 			create l_factory
-			if
-				l_target.options.void_safety.index = {CONF_OPTION}.void_safety_index_transitional or else
-				l_target.options.void_safety.index = {CONF_OPTION}.void_safety_index_all
-			then
-				l_location := testing_library_path_safe
-			else
-				l_location := testing_library_path
-			end
+			l_location := testing_library_path
 			if a_project.universe.group_of_name (testing_library_name) /= Void then
 				l_name := testing_library_name + "_library"
 			else
@@ -279,7 +274,7 @@ feature {NONE} -- Implementation
 			end
 			l_library := l_factory.new_library (l_name, l_location, l_target)
 			l_library.set_classes (create {STRING_TABLE [CONF_CLASS]}.make (0))
-			l_system := l_factory.new_system_generate_uuid_with_file_name ("dummy-system-file-name.ecf", "temp")
+			l_system := l_factory.new_system_generate_uuid_with_file_name ("dummy-system-file-name.ecf", "temp", latest_namespace)
 			l_system.set_application_target (l_target)
 			l_library.set_library_target (l_factory.new_target ("temp", l_system))
 			l_target.add_library (l_library)
@@ -342,7 +337,7 @@ feature {NONE} -- Internationalization
 	cancel_text: STRING = "Cancel"
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

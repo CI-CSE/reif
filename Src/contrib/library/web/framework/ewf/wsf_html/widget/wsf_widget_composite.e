@@ -166,6 +166,19 @@ feature -- Change
 			end
 		end
 
+	remove (i: WSF_WIDGET)
+			-- Remove widget `i` from Current, recursively.
+		do
+			items.prune_all (i)
+			across
+				items as ic
+			loop
+				if attached {WSF_WIDGET_COMPOSITE} ic.item as l_comp then
+					l_comp.remove (i)
+				end
+			end
+		end
+
 	extend (i: WSF_WIDGET)
 		do
 			items.force (i)
@@ -192,6 +205,12 @@ feature -- Change
 			-- Extend a widget encapsulating html encoded text `t'
 		do
 			extend (create {WSF_WIDGET_RAW_TEXT}.make_with_text (t))
+		end
+
+	extend_hidden_input (a_name: READABLE_STRING_8; a_value: READABLE_STRING_GENERAL)
+			-- Extend a hidden input field.
+		do
+			extend (create {WSF_FORM_HIDDEN_INPUT}.make_with_text (a_name, a_value))
 		end
 
 feature {NONE} -- Implementation: Items

@@ -63,12 +63,44 @@ feature -- Concurrency
 	concurrency_multithreaded_name: STRING = "thread"
 	concurrency_scoop_name: STRING = "scoop"
 
+feature -- Void safety
+
+	void_safety_none: INTEGER = 0x1100
+	void_safety_conformance: INTEGER = 0x1200
+	void_safety_initialization: INTEGER = 0x1300
+	void_safety_transitional: INTEGER = 0x1400
+	void_safety_all: INTEGER = 0x1500
+
+		-- Names
+	void_safety_none_name: STRING = "none"
+	void_safety_conformance_name: STRING = "conformance"
+	void_safety_initialization_name: STRING = "initialization"
+	void_safety_transitional_name: STRING = "transitional"
+	void_safety_all_name: STRING = "all"
+
+feature -- Dead code removal
+
+	sv_dead_code_none: STRING_32 = "none"
+	sv_dead_code_feature: STRING_32 = "feature"
+	sv_dead_code_all: STRING_32 = "all"
+
 feature -- Version types
 
 	v_compiler: STRING = "compiler"
 	v_msil_clr: STRING = "msil_clr"
 
-feature -- Warnings
+feature -- Warning: attributes
+
+	wa_name: STRING = "name"
+			-- Name of attribute "name".
+
+	wa_enabled: STRING = "enabled"
+			-- Name of attribute "enabled".
+
+	wa_value: STRING = "value"
+			-- Name of attribute "value".
+
+feature -- Warning: names
 
 	w_unused_local: STRING = "unused_local"
 	w_vwab: STRING = "vwab"
@@ -98,6 +130,7 @@ feature -- Settings
 	s_check_vape: STRING = "check_vape"
 	s_cls_compliant: STRING = "cls_compliant"
 	s_concurrency: STRING = "concurrency"
+	s_void_safety: STRING = "void_safety"
 	s_console_application: STRING = "console_application"
 	s_dead_code_removal: STRING = "dead_code_removal"
 	s_dotnet_naming_convention: STRING = "dotnet_naming_convention"
@@ -162,11 +195,12 @@ feature -- Option names
 	o_is_debug: STRING_32 = "debug"
 	o_is_full_class_checking: STRING_32 = "full_class_checking"
 	o_is_msil_application_optimize: STRING_32 = "msil_application_optimize"
+	o_is_obsolete_iteration: STRING_32 = "is_obsolete_iteration"
 	o_is_obsolete_routine_type: STRING_32 = "is_obsolete_routine_type"
 	o_is_optimize: STRING_32 = "optimize"
 	o_is_profile: STRING_32 = "profile"
 	o_is_trace: STRING_32 = "trace"
-	o_is_warning: STRING_32 = "warning"
+	o_warning: STRING_32 = "warning"
 
 	o_manifest_array_type: STRING_32 = "manifest_array_type"
 	o_namespace: STRING_32 = "namespace"
@@ -256,7 +290,7 @@ feature -- Extension
 			-- File extension for an Eiffel source file without the dot
 
 ;note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

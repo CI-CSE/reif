@@ -1,13 +1,13 @@
-note
+﻿note
 	description: "Stacks with a bounded physical size, implemented by arrays"
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	names: dispenser, array;
-	representation: array;
-	access: fixed, lifo, membership;
-	size: fixed;
-	contents: generic;
+	names: dispenser, array
+	representation: array
+	access: fixed, lifo, membership
+	size: fixed
+	contents: generic
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -24,7 +24,11 @@ class BOUNDED_STACK [G] inherit
 		end
 
 create
-	make
+	make,
+	make_from_iterable
+
+convert
+	make_from_iterable ({ARRAY [G]})
 
 feature -- Status report
 
@@ -70,7 +74,7 @@ invariant
 	count_small_enough: count <= capacity
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -79,6 +83,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
 
 end

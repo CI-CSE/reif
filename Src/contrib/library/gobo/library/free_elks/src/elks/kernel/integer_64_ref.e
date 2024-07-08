@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "References to objects containing an integer value coded on 64 bits"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -72,7 +72,7 @@ feature -- Access
 	ascii_char: CHARACTER_8
 			-- Returns corresponding ASCII character to `item' value.
 		obsolete
-			"Use to_character_8 instead"
+			"Use to_character_8 instead. [2017-05-31]"
 		require
 			valid_character_code: is_valid_character_8_code
 		do
@@ -143,7 +143,7 @@ feature -- Status report
 	is_valid_character_code: BOOLEAN
 			-- Does current object represent a CHARACTER_8?
 		obsolete
-			"Use `is_valid_character_8_code' instead."
+			"Use `is_valid_character_8_code' instead. [2017-05-31]"
 		do
 			Result := is_valid_character_8_code
 		end
@@ -184,21 +184,21 @@ feature -- Basic operations
 			Result.set_item (item + other.item)
 		end
 
-	minus alias "-" (other: like Current): like Current
+	minus alias "-" alias "−" (other: like Current): like Current
 			-- Result of subtracting `other'
 		do
 			create Result
 			Result.set_item (item - other.item)
 		end
 
-	product alias "*" (other: like Current): like Current
+	product alias "*" alias "×" (other: like Current): like Current
 			-- Product by `other'
 		do
 			create Result
 			Result.set_item (item * other.item)
 		end
 
-	quotient alias "/" (other: like Current): REAL_64
+	quotient alias "/" alias "÷" (other: like Current): REAL_64
 			-- Division by `other'
 		require
 			other_exists: other /= Void
@@ -214,7 +214,7 @@ feature -- Basic operations
 			Result.set_item (+ item)
 		end
 
-	opposite alias "-": like Current
+	opposite alias "-" alias "−": like Current
 			-- Unary minus
 		do
 			create Result
@@ -408,39 +408,32 @@ feature -- Conversion
 		local
 			i: INTEGER
 			val: INTEGER_64
-			a_digit: INTEGER
 		do
 			from
-				i := (create {PLATFORM}).Integer_64_bits // 4
-				create Result.make (i)
-				Result.fill_blank
+				i := {PLATFORM}.integer_64_bits // 4
+				create Result.make_filled ('0', i)
 				val := item
 			until
 				i = 0
 			loop
-				a_digit := (val & 0x0F).to_integer
-				Result.put (a_digit.to_hex_character, i)
+				Result.put ((val & 0xF).to_hex_character, i)
 				val := val |>> 4
 				i := i - 1
 			end
 		ensure
 			Result_not_void: Result /= Void
-			Result_valid_count: Result.count = (create {PLATFORM}).Integer_64_bits // 4
+			Result_valid_count: Result.count = {PLATFORM}.Integer_64_bits // 4
 		end
 
-	to_hex_character: CHARACTER
+	to_hex_character: CHARACTER_8
 			-- Convert `item' into an hexadecimal character.
 		require
 			in_bounds: 0 <= item and item <= 15
 		local
-			tmp: INTEGER
+			i: INTEGER_32
 		do
-			tmp := item.to_integer
-			if tmp <= 9 then
-				Result := (tmp + ('0').code).to_character_8
-			else
-				Result := (('A').code + (tmp - 10)).to_character_8
-			end
+			i := item.to_integer_32
+			Result := if i <= 9 then '0' else 'A' - 10 end + i
 		ensure
 			valid_character: ("0123456789ABCDEF").has (Result)
 		end
@@ -448,7 +441,7 @@ feature -- Conversion
 	to_character: CHARACTER
 			-- Returns corresponding ASCII character to `item' value.
 		obsolete
-			"Use `to_character_8' instead."
+			"Use `to_character_8' instead. [2017-05-31]"
 		require
 			valid_character: is_valid_character_8_code
 		do
@@ -473,7 +466,7 @@ feature -- Conversion
 
 feature -- Bit operations
 
-	bit_and alias "&" (i: like Current): like Current
+	bit_and alias "&" alias "⊗" (i: like Current): like Current
 			-- Bitwise and between Current' and `i'.
 		require
 			i_not_void: i /= Void
@@ -484,7 +477,7 @@ feature -- Bit operations
 			bitwise_and_not_void: Result /= Void
 		end
 
-	bit_or alias "|" (i: like Current): like Current
+	bit_or alias "|" alias "⦶" (i: like Current): like Current
 			-- Bitwise or between Current' and `i'.
 		require
 			i_not_void: i /= Void
@@ -495,7 +488,7 @@ feature -- Bit operations
 			bitwise_or_not_void: Result /= Void
 		end
 
-	bit_xor (i: like Current): like Current
+	bit_xor alias "⊕" (i: like Current): like Current
 			-- Bitwise xor between Current' and `i'.
 		require
 			i_not_void: i /= Void
@@ -506,7 +499,7 @@ feature -- Bit operations
 			bitwise_xor_not_void: Result /= Void
 		end
 
-	bit_not: like Current
+	bit_not alias "⊝": like Current
 			-- One's complement of Current.
 		do
 			create Result
@@ -519,8 +512,8 @@ feature -- Bit operations
 			-- Shift Current from `n' position to right if `n' positive,
 			-- to left otherwise.
 		require
-			n_less_or_equal_to_64: n <= 64
-			n_greater_or_equal_to_minus_64: n >= -64
+			n_less_than_64: n < 64
+			n_greater_than_minus_64: n > -64
 		do
 			if n > 0 then
 				Result := bit_shift_right (n).item
@@ -529,11 +522,11 @@ feature -- Bit operations
 			end
 		end
 
-	bit_shift_left alias "|<<" (n: INTEGER): like Current
+	bit_shift_left alias "|<<" alias "⧀" (n: INTEGER): like Current
 			-- Shift Current from `n' position to left.
 		require
 			n_nonnegative: n >= 0
-			n_less_or_equal_to_64: n <= 64
+			n_less_than_64: n < 64
 		do
 			create Result
 			Result.set_item (item.bit_shift_left (n))
@@ -541,11 +534,11 @@ feature -- Bit operations
 			bit_shift_left_not_void: Result /= Void
 		end
 
-	bit_shift_right alias "|>>" (n: INTEGER): like Current
+	bit_shift_right alias "|>>" alias "⧁" (n: INTEGER): like Current
 			-- Shift Current from `n' position to right.
 		require
 			n_nonnegative: n >= 0
-			n_less_or_equal_to_64: n <= 64
+			n_less_than_64: n < 64
 		do
 			create Result
 			Result.set_item (item.bit_shift_right (n))
@@ -570,9 +563,9 @@ feature -- Bit operations
 			n_less_than_64: n < 64
 		do
 			if b then
-				Result := item | ((1).to_integer_64 |<< n)
+				Result := item | ({INTEGER_64} 1 |<< n)
 			else
-				Result := item & ((1).to_integer_64 |<< n).bit_not
+				Result := item & ({INTEGER_64} 1 |<< n).bit_not
 			end
 		end
 
@@ -616,7 +609,7 @@ invariant
 	sign_times_abs: sign * abs = item
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

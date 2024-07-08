@@ -5,7 +5,7 @@ note
 		"Eiffel class feature flatteners"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2001-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2001-2021, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,8 +20,8 @@ inherit
 		end
 
 	ET_AST_NULL_PROCESSOR
-		undefine
-			make
+		rename
+			make as make_ast_processor
 		redefine
 			process_class
 		end
@@ -35,16 +35,19 @@ inherit
 	ET_SHARED_CLASS_NAME_TESTER
 		export {NONE} all end
 
+	UT_SHARED_ISE_VERSIONS
+		export {NONE} all end
+
 create
 
 	make
 
 feature {NONE} -- Initialization
 
-	make
+	make (a_system_processor: like system_processor)
 			-- Create a new feature flattener for given classes.
 		do
-			precursor {ET_CLASS_PROCESSOR}
+			precursor (a_system_processor)
 			create named_features.make_map (400)
 			named_features.set_key_equality_tester (feature_name_tester)
 			create queries.make (400)
@@ -53,16 +56,16 @@ feature {NONE} -- Initialization
 			aliased_features.set_key_equality_tester (alias_name_tester)
 			create clients_list.make (20)
 			create client_classes.make_map (20)
-			create feature_adaptation_resolver.make
-			create dotnet_feature_adaptation_resolver.make
-			create identifier_type_resolver.make
-			create unfolded_tuple_actual_parameters_resolver.make
-			create anchored_type_checker.make
-			create signature_checker.make
-			create parent_checker.make
-			create formal_parameter_checker.make
-			create builtin_feature_checker.make
-			create precursor_checker.make
+			create feature_adaptation_resolver.make (a_system_processor)
+			create dotnet_feature_adaptation_resolver.make (a_system_processor)
+			create identifier_type_resolver.make (a_system_processor)
+			create unfolded_tuple_actual_parameters_resolver.make (a_system_processor)
+			create anchored_type_checker.make (a_system_processor)
+			create signature_checker.make (a_system_processor)
+			create parent_checker.make (a_system_processor)
+			create formal_parameter_checker.make (a_system_processor)
+			create builtin_feature_checker.make (a_system_processor)
+			create precursor_checker.make (a_system_processor)
 			create precursors.make_map (20)
 		end
 
@@ -73,7 +76,6 @@ feature -- Error handling
 		require
 			a_class_not_void: a_class /= Void
 		do
-			a_class.set_features_flattened
 			a_class.set_flattening_error
 		ensure
 			features_flattened: a_class.features_flattened
@@ -97,7 +99,7 @@ feature -- Processing
 					-- Internal error (recursive call)
 					-- This internal error is not fatal.
 				error_handler.report_giaaa_error
-				create a_processor.make
+				create a_processor.make (system_processor)
 				a_processor.process_class (a_class)
 			elseif a_class.is_unknown then
 				set_fatal_error (a_class)
@@ -133,8 +135,8 @@ feature {NONE} -- Processing
 			current_class := a_class
 			if not current_class.features_flattened then
 					-- Build ancestors of `current_class' if not already done.
-				current_class.process (current_system.ancestor_builder)
-				if current_class.ancestors_built and then not current_class.has_ancestors_error then
+				current_class.process (system_processor.ancestor_builder)
+				if current_class.ancestors_built_successfully then
 					current_class.set_features_flattened
 						-- Process parents first.
 					nb1 := current_class.parents_count
@@ -160,7 +162,7 @@ feature {NONE} -- Processing
 						i1 := i1 + 1
 					end
 					if not current_class.has_flattening_error then
-						error_handler.report_compilation_status (Current, current_class)
+						error_handler.report_compilation_status (Current, current_class, system_processor)
 							-- Check validity rules of the parents and of formal
 							-- generic parameters of `current_class'.
 						if not current_class.is_dotnet then
@@ -235,6 +237,7 @@ feature {NONE} -- Feature flattening
 			a_type: ET_TYPE
 			l_feature_name: ET_FEATURE_NAME
 			l_other_feature: ET_FLATTENED_FEATURE
+			l_other_alias_name: ET_ALIAS_NAME
 			l_parent_feature: ET_PARENT_FEATURE
 			l_other_parent_feature: ET_PARENT_FEATURE
 			l_queries: ET_QUERY_LIST
@@ -243,6 +246,9 @@ feature {NONE} -- Feature flattening
 			l_declared_procedure_count: INTEGER
 			l_query: ET_QUERY
 			l_procedure: ET_PROCEDURE
+			l_alias_name: ET_ALIAS_NAME
+			l_alias_names: detachable ET_ALIAS_NAME_LIST
+			j, l_alias_names_count: INTEGER
 		do
 			has_signature_error := False
 			resolve_feature_adaptations
@@ -320,76 +326,116 @@ feature {NONE} -- Feature flattening
 						set_fatal_error (current_class)
 						error_handler.report_vffd4a_error (current_class, l_query)
 					end
-						-- Check validity of 'infix "..."', 'prefix "..."'
-						-- and 'alias "..."' names.
+						-- Check validity of 'alias "..."' names.
 					l_feature_name := l_query.name
-					if l_feature_name.is_prefix then
-						if not l_query.is_prefixable then
-								-- A feature with a Prefix name should be either
-								-- an attribute or a function with no argument.
-							set_fatal_error (current_class)
-							error_handler.report_vffd5a_error (current_class, l_query)
-						end
-					elseif l_feature_name.is_infix then
-						if not l_query.is_infixable then
-								-- A feature with a Infix name should be
-								-- a function with exactly one argument.
-							set_fatal_error (current_class)
-							error_handler.report_vffd6a_error (current_class, l_query)
-						end
-					else
-						if attached l_query.alias_name as l_alias_name then
+					l_alias_names := l_query.alias_names
+					if l_alias_names /= Void then
+						l_alias_names_count := l_alias_names.count
+						from j := 1 until j > l_alias_names_count loop
+							l_alias_name := l_alias_names.item (j)
 							if l_alias_name.is_bracket then
-								if not l_query.is_bracketable then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4a_error (current_class, l_query, l_alias_name)
+								elseif not l_query.is_bracketable then
 										-- A feature with a Bracket alias should be
 										-- a function with one or more arguments.
 									set_fatal_error (current_class)
-									error_handler.report_vfav2a_error (current_class, l_query)
+									error_handler.report_vfav2a_error (current_class, l_query, l_alias_name)
 								end
 							elseif l_alias_name.is_parenthesis then
-								if not l_query.is_parenthesisable then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4b_error (current_class, l_query, l_alias_name)
+								elseif not l_query.is_parenthesisable then
 										-- A feature with a Parenthesis alias should be
 										-- a feature with one or more arguments.
 									set_fatal_error (current_class)
-									error_handler.report_vfav4a_error (current_class, l_query)
+									error_handler.report_vfav3a_error (current_class, l_query, l_alias_name)
 								end
 							elseif l_query.is_prefixable then
 								if l_alias_name.is_prefixable then
 									l_alias_name.set_prefix
-								else
-										-- A feature with a binary Operator alias should be
-										-- a function with exactly one argument.
+								end
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
 									set_fatal_error (current_class)
-									error_handler.report_vfav1a_error (current_class, l_query)
+									error_handler.report_vfav4c_error (current_class, l_query, l_alias_name)
+								elseif not l_alias_name.is_prefixable then
+										-- A feature with a binary Operator alias should be
+										-- a query with exactly one argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1a_error (current_class, l_query, l_alias_name)
 								end
 							elseif l_query.is_infixable then
 								if l_alias_name.is_infixable then
 									l_alias_name.set_infix
+								end
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4d_error (current_class, l_query, l_alias_name)
+								elseif not l_alias_name.is_infixable then
+										-- A feature with a unary Operator alias should be
+										-- a query with no argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1b_error (current_class, l_query, l_alias_name)
+								end
+							elseif l_alias_name.is_infixable and l_alias_name.is_prefixable then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4d_error (current_class, l_query, l_alias_name)
+								else
+										-- A feature with an Operator alias which can be either unary
+										-- or binary should be a query with no argument or exactly
+										-- one argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1k_error (current_class, l_query, l_alias_name)
+								end
+							elseif l_alias_name.is_infix then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4d_error (current_class, l_query, l_alias_name)
+								else
+										-- A feature with a binary Operator alias should be
+										-- a query with exactly one argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1a_error (current_class, l_query, l_alias_name)
+								end
+							elseif l_alias_name.is_prefix then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_query'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4c_error (current_class, l_query, l_alias_name)
 								else
 										-- A feature with a unary Operator alias should be
 										-- a query with no argument.
 									set_fatal_error (current_class)
-									error_handler.report_vfav1b_error (current_class, l_query)
+									error_handler.report_vfav1b_error (current_class, l_query, l_alias_name)
 								end
-							elseif l_alias_name.is_infix then
-									-- A feature with a binary Operator alias should be
-									-- a function with exactly one argument.
-								set_fatal_error (current_class)
-								error_handler.report_vfav1a_error (current_class, l_query)
 							else
-								check is_prefix: l_alias_name.is_prefix end
-									-- A feature with a unary Operator alias should be
-									-- a query with no argument.
+									-- Internal error: no other kind of alias name.
 								set_fatal_error (current_class)
-								error_handler.report_vfav1b_error (current_class, l_query)
+								error_handler.report_giaaa_error
 							end
+							if l_alias_name.convert_keyword /= Void and then not l_alias_name.is_infix then
+									-- When the 'convert' mark is specified, the alias
+									-- should be a binary operator alias.
+								set_fatal_error (current_class)
+								error_handler.report_vfav5a_error (current_class, l_alias_name)
+							end
+							j := j + 1
 						end
 					end
-					if l_query.is_once then
+					if l_query.is_once and then not l_query.is_once_per_object then
 						a_type := l_query.type
 							-- The type of a once function should not contain
 							-- a formal generic parameter or an anchored type.
-						if a_type.has_anchored_type then
+						if a_type.has_unqualified_anchored_type then
 							set_fatal_error (current_class)
 							error_handler.report_vffd7a_error (current_class, l_query)
 						elseif a_type.has_formal_types (current_class) then
@@ -416,45 +462,81 @@ feature {NONE} -- Feature flattening
 						set_fatal_error (current_class)
 						error_handler.report_vffd4a_error (current_class, l_procedure)
 					end
-						-- Check validity of 'infix "..."', 'prefix "..."'
-						-- and 'alias "..."' names.
+						-- Check validity of 'alias "..."' names.
 					l_feature_name := l_procedure.name
-					if l_feature_name.is_prefix then
-							-- A feature with a Prefix name should be either
-							-- an attribute or a function with no argument.
-						set_fatal_error (current_class)
-						error_handler.report_vffd5a_error (current_class, l_procedure)
-					elseif l_feature_name.is_infix then
-							-- A feature with a Infix name should be
-							-- a function with exactly one argument.
-						set_fatal_error (current_class)
-						error_handler.report_vffd6a_error (current_class, l_procedure)
-					else
-						if attached l_procedure.alias_name as l_alias_name then
+					l_alias_names := l_procedure.alias_names
+					if l_alias_names /= Void then
+						l_alias_names_count := l_alias_names.count
+						from j := 1 until j > l_alias_names_count loop
+							l_alias_name := l_alias_names.item (j)
 							if l_alias_name.is_bracket then
-									-- A feature with a Bracket alias should be
-									-- a function with one or more arguments.
-								set_fatal_error (current_class)
-								error_handler.report_vfav2a_error (current_class, l_procedure)
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_procedure'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4a_error (current_class, l_procedure, l_alias_name)
+								else
+										-- A feature with a Bracket alias should be
+										-- a function with one or more arguments.
+									set_fatal_error (current_class)
+									error_handler.report_vfav2a_error (current_class, l_procedure, l_alias_name)
+								end
 							elseif l_alias_name.is_parenthesis then
-								if not l_procedure.is_parenthesisable then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_procedure'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4b_error (current_class, l_procedure, l_alias_name)
+								elseif not l_procedure.is_parenthesisable then
 										-- A feature with a Parenthesis alias should be
 										-- a feature with one or more arguments.
 									set_fatal_error (current_class)
-									error_handler.report_vfav4a_error (current_class, l_procedure)
+									error_handler.report_vfav3a_error (current_class, l_procedure, l_alias_name)
+								end
+							elseif l_alias_name.is_infixable and l_alias_name.is_prefixable then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_procedure'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4d_error (current_class, l_procedure, l_alias_name)
+								else
+										-- A feature with an Operator alias which can be either unary
+										-- or binary should be a query with no argument or exactly
+										-- one argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1k_error (current_class, l_procedure, l_alias_name)
 								end
 							elseif l_alias_name.is_infix then
-									-- A feature with a binary Operator alias should be
-									-- a function with exactly one argument.
-								set_fatal_error (current_class)
-								error_handler.report_vfav1a_error (current_class, l_procedure)
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_procedure'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4d_error (current_class, l_procedure, l_alias_name)
+								else
+										-- A feature with a binary Operator alias should be
+										-- a function with exactly one argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1a_error (current_class, l_procedure, l_alias_name)
+								end
+							elseif l_alias_name.is_prefix then
+								if l_alias_names.head_has_alias_name (l_alias_name, j - 1) then
+										-- Alias name `l_alias_name' appears twice in the name of `l_procedure'.
+									set_fatal_error (current_class)
+									error_handler.report_vfav4c_error (current_class, l_procedure, l_alias_name)
+								else
+										-- A feature with a unary Operator alias should be
+										-- a query with no argument.
+									set_fatal_error (current_class)
+									error_handler.report_vfav1b_error (current_class, l_procedure, l_alias_name)
+								end
 							else
-								check is_prefix: l_alias_name.is_prefix end
-									-- A feature with a unary Operator alias should be
-									-- a query with no argument.
+									-- Internal error: no other kind of alias name.
 								set_fatal_error (current_class)
-								error_handler.report_vfav1b_error (current_class, l_procedure)
+								error_handler.report_giaaa_error
 							end
+							if l_alias_name.convert_keyword /= Void and then not l_alias_name.is_infix then
+									-- When the 'convert' mark is specified, the alias
+									-- should be a binary operator alias.
+								set_fatal_error (current_class)
+								error_handler.report_vfav5a_error (current_class, l_alias_name)
+							end
+							j := j + 1
 						end
 					end
 					i := i + 1
@@ -465,66 +547,82 @@ feature {NONE} -- Feature flattening
 					a_named_feature := named_features.item_for_iteration
 						-- Check that two features have not the same alias. Take into account
 						-- the infix and prefix properties to differentiate two alias names.
-						-- See VFAV-1 and VFAV-2, ECMA p.42.
-						-- See also VFAV-4 from ISE.
 					a_feature := a_named_feature.flattened_feature
-					if attached a_feature.alias_name as l_alias_name then
-						aliased_features.search (l_alias_name)
-						if aliased_features.found then
-							set_fatal_error (current_class)
-							l_other_feature := aliased_features.found_item
-							if l_other_feature.is_inherited then
-								l_other_parent_feature := l_other_feature.inherited_feature.flattened_parent
-								if a_named_feature.is_inherited then
-										-- Both features are inherited with no redeclaration in current class.
+					l_alias_names := a_feature.alias_names
+					if l_alias_names /= Void then
+						l_alias_names_count := l_alias_names.count
+						from j := 1 until j > l_alias_names_count loop
+							l_alias_name := l_alias_names.item (j)
+							aliased_features.search (l_alias_name)
+							if aliased_features.found and then aliased_features.found_item /= a_named_feature then
+								set_fatal_error (current_class)
+								l_other_feature := aliased_features.found_item
+								l_other_alias_name := aliased_features.found_key
+								if l_other_feature.is_inherited then
+									l_other_parent_feature := l_other_feature.inherited_feature.flattened_parent
+									if a_named_feature.is_inherited then
+											-- Both features are inherited with no redeclaration in current class.
+										l_parent_feature := a_named_feature.inherited_feature.flattened_parent
+										if l_alias_name.is_bracket then
+											error_handler.report_vfav2d_error (current_class, l_parent_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										elseif l_alias_name.is_parenthesis then
+											error_handler.report_vfav3d_error (current_class, l_parent_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										elseif l_alias_name.is_prefix then
+											error_handler.report_vfav1e_error (current_class, l_parent_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										elseif l_alias_name.is_infix then
+											error_handler.report_vfav1h_error (current_class, l_parent_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										else
+												-- Internal error: no other kind of alias name.
+											error_handler.report_giaaa_error
+										end
+									else
+											-- Only `l_other_feature' is inherited with no redeclaration in current class.
+										if l_alias_name.is_bracket then
+											error_handler.report_vfav2c_error (current_class, a_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										elseif l_alias_name.is_parenthesis then
+											error_handler.report_vfav3c_error (current_class, a_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										elseif l_alias_name.is_prefix then
+											error_handler.report_vfav1d_error (current_class, a_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										elseif l_alias_name.is_infix then
+											error_handler.report_vfav1g_error (current_class, a_feature, l_alias_name, l_other_parent_feature, l_other_alias_name)
+										else
+												-- Internal error: no other kind of alias name.
+											error_handler.report_giaaa_error
+										end
+									end
+								elseif a_named_feature.is_inherited then
+										-- Only `a_named_feature' is inherited with no redeclaration in current class.
 									l_parent_feature := a_named_feature.inherited_feature.flattened_parent
 									if l_alias_name.is_bracket then
-										error_handler.report_vfav2d_error (current_class, l_parent_feature, l_other_parent_feature)
+										error_handler.report_vfav2c_error (current_class, l_other_feature.flattened_feature, l_other_alias_name, l_parent_feature, l_alias_name)
 									elseif l_alias_name.is_parenthesis then
-										error_handler.report_vfav4d_error (current_class, l_parent_feature, l_other_parent_feature)
+										error_handler.report_vfav3c_error (current_class, l_other_feature.flattened_feature, l_other_alias_name, l_parent_feature, l_alias_name)
 									elseif l_alias_name.is_prefix then
-										error_handler.report_vfav1e_error (current_class, l_parent_feature, l_other_parent_feature)
+										error_handler.report_vfav1d_error (current_class, l_other_feature.flattened_feature, l_other_alias_name, l_parent_feature, l_alias_name)
+									elseif l_alias_name.is_infix then
+										error_handler.report_vfav1g_error (current_class, l_other_feature.flattened_feature, l_other_alias_name, l_parent_feature, l_alias_name)
 									else
-										error_handler.report_vfav1h_error (current_class, l_parent_feature, l_other_parent_feature)
+											-- Internal error: no other kind of alias name.
+										error_handler.report_giaaa_error
 									end
 								else
-										-- Only `l_other_feature' is inherited with no redeclaration in current class.
+										-- Both features are either immediate or redeclared in current class.
 									if l_alias_name.is_bracket then
-										error_handler.report_vfav2c_error (current_class, a_feature, l_other_parent_feature)
+										error_handler.report_vfav2b_error (current_class, a_feature, l_alias_name, l_other_feature.flattened_feature, l_other_alias_name)
 									elseif l_alias_name.is_parenthesis then
-										error_handler.report_vfav4c_error (current_class, a_feature, l_other_parent_feature)
+										error_handler.report_vfav3b_error (current_class, a_feature, l_alias_name, l_other_feature.flattened_feature, l_other_alias_name)
 									elseif l_alias_name.is_prefix then
-										error_handler.report_vfav1d_error (current_class, a_feature, l_other_parent_feature)
+										error_handler.report_vfav1c_error (current_class, a_feature, l_alias_name, l_other_feature.flattened_feature, l_other_alias_name)
+									elseif l_alias_name.is_infix then
+										error_handler.report_vfav1f_error (current_class, a_feature, l_alias_name, l_other_feature.flattened_feature, l_other_alias_name)
 									else
-										error_handler.report_vfav1g_error (current_class, a_feature, l_other_parent_feature)
+											-- Internal error: no other kind of alias name.
+										error_handler.report_giaaa_error
 									end
-								end
-							elseif a_named_feature.is_inherited then
-									-- Only `a_named_feature' is inherited with no redeclaration in current class.
-								l_parent_feature := a_named_feature.inherited_feature.flattened_parent
-								if l_alias_name.is_bracket then
-									error_handler.report_vfav2c_error (current_class, l_other_feature.flattened_feature, l_parent_feature)
-								elseif l_alias_name.is_parenthesis then
-									error_handler.report_vfav4c_error (current_class, l_other_feature.flattened_feature, l_parent_feature)
-								elseif l_alias_name.is_prefix then
-									error_handler.report_vfav1d_error (current_class, l_other_feature.flattened_feature, l_parent_feature)
-								else
-									error_handler.report_vfav1g_error (current_class, l_other_feature.flattened_feature, l_parent_feature)
-								end
-							else
-									-- Both features are either immediate or redeclared in current class.
-								if l_alias_name.is_bracket then
-									error_handler.report_vfav2b_error (current_class, a_feature, l_other_feature.flattened_feature)
-								elseif l_alias_name.is_parenthesis then
-									error_handler.report_vfav4b_error (current_class, a_feature, l_other_feature.flattened_feature)
-								elseif l_alias_name.is_prefix then
-									error_handler.report_vfav1c_error (current_class, a_feature, l_other_feature.flattened_feature)
-								else
-									error_handler.report_vfav1f_error (current_class, a_feature, l_other_feature.flattened_feature)
 								end
 							end
-						else
 							aliased_features.force_last_new (a_named_feature, l_alias_name)
+							j := j + 1
 						end
 					end
 					if a_deferred_feature = Void then
@@ -715,6 +813,7 @@ feature {NONE} -- Feature processing
 			end
 			l_flattened_feature.set_first_precursor (l_first_precursor)
 			l_flattened_feature.set_other_precursors (l_other_precursors)
+			l_flattened_feature.set_clients (redeclared_clients (a_feature))
 			if not l_dotnet then
 				l_preconditions := l_flattened_feature.preconditions
 				if l_preconditions /= Void and then not l_preconditions.is_require_else then
@@ -744,8 +843,8 @@ feature {NONE} -- Feature processing
 			l_other_seeds: detachable ET_FEATURE_IDS
 			l_keep_same_version: BOOLEAN
 			l_duplication_needed: BOOLEAN
-			l_alias_name: detachable ET_ALIAS_NAME
-			l_parent_alias_name: detachable ET_ALIAS_NAME
+			l_alias_names: detachable ET_ALIAS_NAME_LIST
+			l_parent_alias_names: detachable ET_ALIAS_NAME_LIST
 			l_feature_found: BOOLEAN
 			l_duplicated: BOOLEAN
 			l_clients: ET_CLIENT_LIST
@@ -911,10 +1010,10 @@ feature {NONE} -- Feature processing
 			if attached l_parent_feature.undefine_name as l_undefine_name then
 				check has_undefine: l_parent_feature.has_undefine end
 				l_extended_name := l_undefine_name
-				l_alias_name := l_parent_feature.alias_name
-				if l_alias_name /= Void then
+				l_alias_names := l_parent_feature.alias_names
+				if l_alias_names /= Void and then not l_alias_names.is_empty then
 					if attached {ET_IDENTIFIER} l_parent_feature.undefine_name as l_identifier then
-						create {ET_ALIASED_FEATURE_NAME} l_extended_name.make (l_identifier, l_alias_name)
+						create {ET_ALIASED_FEATURE_NAME} l_extended_name.make (l_identifier, l_alias_names)
 					end
 				end
 				l_flattened_feature := l_flattened_feature.undefined_feature (l_extended_name)
@@ -941,7 +1040,7 @@ feature {NONE} -- Feature processing
 				l_duplicated := True
 			end
 			if l_duplicated then
-				current_system.register_feature (l_flattened_feature)
+				current_class.register_feature (l_flattened_feature)
 				if l_keep_same_version then
 					l_flattened_feature.set_version (l_parent_feature.precursor_feature.version)
 				else
@@ -961,14 +1060,14 @@ feature {NONE} -- Feature processing
 					-- Joining/Merging or Sharing.
 				from
 					l_parent_feature := a_feature.parent_feature
-					l_alias_name := l_parent_feature.alias_name
+					l_alias_names := l_parent_feature.alias_names
 					l_parent_feature := l_parent_feature.merged_feature
 				until
 					l_parent_feature = Void
 				loop
-					l_parent_alias_name := l_parent_feature.alias_name
-					if l_alias_name = Void then
-						if l_parent_alias_name /= Void then
+					l_parent_alias_names := l_parent_feature.alias_names
+					if l_alias_names = Void or else l_alias_names.is_empty then
+						if l_parent_alias_names /= Void and then not l_parent_alias_names.is_empty then
 							set_fatal_error (current_class)
 							if l_other_precursors = Void then
 									-- Sharing.
@@ -978,7 +1077,7 @@ feature {NONE} -- Feature processing
 								error_handler.report_vdjr2a_error (current_class, l_parent_feature, a_feature.parent_feature)
 							end
 						end
-					elseif l_parent_alias_name = Void then
+					elseif l_parent_alias_names = Void or else l_parent_alias_names.is_empty then
 						set_fatal_error (current_class)
 						if l_other_precursors = Void then
 								-- Sharing.
@@ -987,7 +1086,7 @@ feature {NONE} -- Feature processing
 								-- Joining/Merging.
 							error_handler.report_vdjr2a_error (current_class, a_feature.parent_feature, l_parent_feature)
 						end
-					elseif not l_alias_name.same_alias_name (l_parent_alias_name) then
+					elseif not l_alias_names.same_alias_names (l_parent_alias_names) then
 						set_fatal_error (current_class)
 						if l_other_precursors = Void then
 								-- Sharing.
@@ -1098,27 +1197,50 @@ feature {NONE} -- Clients
 			-- Clients inherited by the non-redeclared feature `a_feature'.
 		require
 			a_feature_not_void: a_feature /= Void
+		do
+			add_inherited_clients_to_list (a_feature, clients_list)
+			Result := aggregated_clients (clients_list)
+			clients_list.wipe_out
+		ensure
+			inherited_clients_not_void: Result /= Void
+		end
+
+	redeclared_clients (a_feature: ET_REDECLARED_FEATURE): ET_CLIENT_LIST
+			-- Clients of redeclared feature `a_feature'.
+		require
+			a_feature_not_void: a_feature /= Void
+		do
+			clients_list.force_last (a_feature.flattened_feature.clients)
+			add_inherited_clients_to_list (a_feature, clients_list)
+			Result := aggregated_clients (clients_list)
+			clients_list.wipe_out
+		ensure
+			redeclared_clients_not_void: Result /= Void
+		end
+
+	add_inherited_clients_to_list (a_feature: ET_ADAPTED_FEATURE; a_list: DS_ARRAYED_LIST [ET_CLIENT_LIST])
+			-- Add to `a_list' the clients inherited by feature `a_feature'.
+		require
+			a_feature_not_void: a_feature /= Void
+			a_list_not_void: a_list /= Void
+			no_void_client_list: not a_list.has_void
 		local
 			l_parent_feature: detachable ET_PARENT_FEATURE
-			l_clients: ET_CLIENT_LIST
-			l_client: ET_CLIENT
 			l_parent: ET_PARENT
 			l_export: ET_EXPORT
 			l_name: ET_FEATURE_NAME
-			l_overridden: BOOLEAN
 			l_ise: BOOLEAN
 			l_has_all: BOOLEAN
+			l_has_feature_name: BOOLEAN
 			i, nb: INTEGER
-			j, nb2: INTEGER
-			l_largest_clients: detachable ET_CLIENT_LIST
 		do
-			l_ise := current_system.is_ise
+			l_ise := system_processor.is_ise
 			from
 				l_parent_feature := a_feature.parent_feature
 			until
 				l_parent_feature = Void
 			loop
-				l_overridden := False
+				clients_list.force_last (l_parent_feature.precursor_feature.clients)
 				l_name := l_parent_feature.name
 				l_parent := l_parent_feature.parent
 				if attached l_parent.exports as l_exports then
@@ -1127,6 +1249,8 @@ feature {NONE} -- Clients
 							-- The ISE semantics follows what is described in ETL2:
 							-- 'export {CLIENT} all' are not taken into account if
 							-- the feature name appears in another export clause.
+						l_has_feature_name := False
+						l_has_all := False
 						from i := 1 until i > nb loop
 							l_export := l_exports.item (i)
 							if l_export.is_all then
@@ -1134,17 +1258,16 @@ feature {NONE} -- Clients
 							else
 								if l_export.has_feature_name (l_name) then
 									clients_list.force_last (l_export.clients (l_name))
-									l_overridden := True
+									l_has_feature_name := True
 								end
 							end
 							i := i + 1
 						end
-						if not l_overridden and l_has_all then
+						if not l_has_feature_name and l_has_all then
 							from i := 1 until i > nb loop
 								l_export := l_exports.item (i)
 								if l_export.is_all then
 									clients_list.force_last (l_export.clients (l_name))
-									l_overridden := True
 								end
 								i := i + 1
 							end
@@ -1154,66 +1277,72 @@ feature {NONE} -- Clients
 							l_export := l_exports.item (i)
 							if l_export.has_feature_name (l_name) then
 								clients_list.force_last (l_export.clients (l_name))
-								l_overridden := True
 							end
 							i := i + 1
 						end
 					end
 				end
-				if not l_overridden then
-					clients_list.force_last (l_parent_feature.precursor_feature.clients)
-				end
 				l_parent_feature := l_parent_feature.merged_feature
 			end
-			Result := clients_list.first
-			nb := clients_list.count
-			from i := 1 until i > nb loop
-				l_clients := clients_list.item (i)
-				if l_clients.is_none then
-					clients_list.remove (i)
-					nb := nb - 1
-				else
-					nb2 := l_clients.count
-					from j := 1 until j > nb2 loop
-						l_client := l_clients.client (j)
-						client_classes.force (l_client, l_client.base_class)
-						j := j + 1
+		ensure
+			a_list_not_empty: not a_list.is_empty
+			no_void_client_list: not a_list.has_void
+		end
+
+	aggregated_clients (a_list: DS_ARRAYED_LIST [ET_CLIENT_LIST]): ET_CLIENT_LIST
+			-- Client list made up of all classes contained in `a_list'
+		require
+			a_list_not_void: a_list /= Void
+			a_list_not_empty: not a_list.is_empty
+			no_void_client_list: not a_list.has_void
+		local
+			l_clients: ET_CLIENT_LIST
+			l_client: ET_CLIENT
+			i, nb: INTEGER
+			j, nb2: INTEGER
+			l_nb_not_none: INTEGER
+			l_largest_clients: detachable ET_CLIENT_LIST
+		do
+			nb := a_list.count
+			if nb = 1 then
+				Result := a_list.first
+			else
+				from i := 1 until i > nb loop
+					l_clients := a_list.item (i)
+					if not l_clients.is_none then
+						l_nb_not_none := l_nb_not_none + 1
+						nb2 := l_clients.count
+						from j := 1 until j > nb2 loop
+							l_client := l_clients.client (j)
+							client_classes.force (l_client, l_client.base_class)
+							j := j + 1
+						end
+							-- Find the largest client clause.
+						if l_largest_clients = Void or else l_largest_clients.count < nb2 then
+							l_largest_clients := l_clients
+						end
 					end
 					i := i + 1
 				end
-			end
-			if clients_list.is_empty then
-				-- Keep `Result'.
-			elseif clients_list.count = 1 then
-				Result := clients_list.first
-			else
-					-- Find the largest client clause which
-					-- contains all client classes if any.
-				nb2 := client_classes.count
-				nb := clients_list.count
-				from i := 1 until i > nb loop
-					l_clients := clients_list.item (i)
-					if l_clients.count >= nb2 then
-						l_largest_clients := l_clients
-						i := nb + 1 -- Jump out of the loop.
-					else
-						i := i + 1
-					end
-				end
-				if l_largest_clients /= Void and then client_classes.keys.for_all (agent l_largest_clients.has_class) then
+				if l_largest_clients = Void then
+						-- "{NONE}"
+					Result := a_list.first
+				elseif l_nb_not_none = 1 then
+					Result := l_largest_clients
+				elseif l_largest_clients.count >= client_classes.count and then client_classes.keys.for_all (agent l_largest_clients.has_class) then
+						-- The largest client clause contains all client classes.
 					Result := l_largest_clients
 				else
-					create Result.make_with_capacity (nb2)
+					create Result.make_with_capacity (client_classes.count)
 					from client_classes.finish until client_classes.before loop
 						Result.put_first (client_classes.item_for_iteration)
 						client_classes.back
 					end
 				end
+				client_classes.wipe_out
 			end
-			client_classes.wipe_out
-			clients_list.wipe_out
 		ensure
-			inherited_clients_not_void: Result /= Void
+			aggregated_clients_not_void: Result /= Void
 		end
 
 feature {NONE} -- Feature adaptation validity
@@ -1230,40 +1359,47 @@ feature {NONE} -- Feature adaptation validity
 			a_redeclared_feature_not_void: a_redeclared_feature /= Void
 		local
 			l_precursor_feature: ET_FEATURE
-			l_parent_alias_name: detachable ET_ALIAS_NAME
-			l_alias_name: detachable ET_ALIAS_NAME
+			l_parent_alias_names: detachable ET_ALIAS_NAME_LIST
+			l_alias_names: detachable ET_ALIAS_NAME_LIST
 		do
 			check_rename_clause_validity (a_parent_feature)
 			check_undefine_clause_validity (a_parent_feature)
 			check_redefine_clause_validity (a_parent_feature)
 				-- Check VDRD-7, ECMA p.68.
-			l_alias_name := a_redeclared_feature.alias_name
-			l_parent_alias_name := a_parent_feature.alias_name
-			if l_alias_name = Void then
-				if l_parent_alias_name /= Void then
+			l_alias_names := a_redeclared_feature.alias_names
+			l_parent_alias_names := a_parent_feature.alias_names
+			if l_alias_names = Void or else l_alias_names.is_empty then
+				if l_parent_alias_names /= Void and then not l_parent_alias_names.is_empty then
 					set_fatal_error (current_class)
 					error_handler.report_vdrd7b_error (current_class, a_parent_feature, a_redeclared_feature)
 				end
-			elseif l_parent_alias_name = Void then
+			elseif l_parent_alias_names = Void or else l_parent_alias_names.is_empty then
 				set_fatal_error (current_class)
 				error_handler.report_vdrd7a_error (current_class, a_parent_feature, a_redeclared_feature)
-			elseif not l_alias_name.same_alias_name (l_parent_alias_name) then
+			elseif not l_alias_names.same_alias_names (l_parent_alias_names) then
 				set_fatal_error (current_class)
 				error_handler.report_vdrd7c_error (current_class, a_parent_feature, a_redeclared_feature)
 			end
 			if a_parent_feature.has_redefine then
 				if a_redeclared_feature.is_deferred /= a_parent_feature.is_deferred then
 					if a_redeclared_feature.is_deferred then
-							-- Error: Used 'redefine' instead of 'undefine'.
-							-- Need to use 'undefine' to redeclare an
-							-- effective feature to a deferred feature.
-							-- (Not considered as a fatal error by gelint.)
-						error_handler.report_vdrd5a_error (current_class, a_parent_feature, a_redeclared_feature)
+						if not a_parent_feature.has_other_deferred then
+								-- Error: Used 'redefine' instead of 'undefine'.
+								-- Need to use 'undefine' to redeclare an
+								-- effective feature to a deferred feature.
+								-- (Not considered as a fatal error by gelint.)
+							error_handler.report_vdrd5a_error (current_class, a_parent_feature, a_redeclared_feature)
+						end
 					else
-							-- Error: No need to 'redefine' to redeclare
-							-- a deferred feature to an effective feature.
-							-- (Not considered as a fatal error by gelint.)
-						error_handler.report_vdrs4b_error (current_class, a_parent_feature, a_redeclared_feature)
+						if not a_parent_feature.has_other_effective then
+								-- Error: No need to 'redefine' to redeclare
+								-- a deferred feature to an effective feature.
+								-- (Not considered as a fatal error by gelint.)
+							if not system_processor.older_ise_version (ise_19_01_0) then
+									-- ISE Eiffel did not report this error before 19.01.
+								error_handler.report_vdrs4b_error (current_class, a_parent_feature, a_redeclared_feature)
+							end
+						end
 					end
 				end
 			elseif a_redeclared_feature.is_deferred then
@@ -1323,71 +1459,122 @@ feature {NONE} -- Feature adaptation validity
 			l_precursor_feature: ET_FEATURE
 			l_extended_name: ET_EXTENDED_FEATURE_NAME
 			l_name: ET_FEATURE_NAME
-			l_alias_name: detachable ET_ALIAS_NAME
+			l_alias_names: detachable ET_ALIAS_NAME_LIST
+			l_alias_name: ET_ALIAS_NAME
+			i, nb: INTEGER
 		do
 			if attached a_parent_feature.new_name as l_new_name then
 				check has_rename: a_parent_feature.has_rename end
 				l_precursor_feature := a_parent_feature.precursor_feature
 				l_extended_name := l_new_name.new_name
 				l_name := l_extended_name.feature_name
-				if l_name.is_infix then
-					if not l_precursor_feature.is_infixable then
-						set_fatal_error (current_class)
-						error_handler.report_vhrc5a_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
-					end
-				elseif l_name.is_prefix then
-					if not l_precursor_feature.is_prefixable then
-						set_fatal_error (current_class)
-						error_handler.report_vhrc4a_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
-					end
-				else
-					l_alias_name := l_extended_name.alias_name
-					if l_alias_name /= Void then
-							-- Check VHRC-4, ECMA p. 46.
+				l_alias_names := l_extended_name.alias_names
+				if l_alias_names /= Void then
+					nb := l_alias_names.count
+					from i := 1 until i > nb loop
+						l_alias_name := l_alias_names.item (i)
 						if l_alias_name.is_bracket then
-							if not l_precursor_feature.is_bracketable then
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of the rename pair `l_new_name'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4e_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
+							elseif not l_precursor_feature.is_bracketable then
 									-- A feature with a Bracket alias should be
 									-- a function with one or more arguments.
 								set_fatal_error (current_class)
-								error_handler.report_vhrc4b_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
+								error_handler.report_vfav2e_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
 							end
 						elseif l_alias_name.is_parenthesis then
-							if not l_precursor_feature.is_parenthesisable then
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of the rename pair `l_new_name'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4f_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
+							elseif not l_precursor_feature.is_parenthesisable then
 									-- A feature with a Parenthesis alias should be
 									-- a function with one or more arguments.
 								set_fatal_error (current_class)
-								error_handler.report_vfav4e_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
+								error_handler.report_vfav3e_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
 							end
 						elseif l_precursor_feature.is_prefixable then
 							if l_alias_name.is_prefixable then
 								l_alias_name.set_prefix
-							else
+							end
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of the rename pair `l_new_name'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4g_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
+							elseif not l_alias_name.is_prefixable then
 									-- A feature with a binary Operator alias should be
 									-- a function with exactly one argument.
 								set_fatal_error (current_class)
-								error_handler.report_vhrc4c_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
+								error_handler.report_vfav1m_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
 							end
 						elseif l_precursor_feature.is_infixable then
 							if l_alias_name.is_infixable then
 								l_alias_name.set_infix
+							end
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of the rename pair `l_new_name'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4h_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
+							elseif not l_alias_name.is_infixable then
+									-- A feature with a unary Operator alias should be
+									-- a query with no argument.
+								set_fatal_error (current_class)
+								error_handler.report_vfav1n_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
+							end
+						elseif l_alias_name.is_infixable and l_alias_name.is_prefixable then
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of `l_rename_pair'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4h_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
+							else
+									-- A feature with an Operator alias which can be either unary or binary
+									-- should be a query with no argument or exactly one argument.
+								set_fatal_error (current_class)
+								error_handler.report_vfav1p_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
+							end
+						elseif l_alias_name.is_infix then
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of the rename pair `l_new_name'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4h_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
+							else
+									-- A feature with a binary Operator alias should be
+									-- a function with exactly one argument.
+								set_fatal_error (current_class)
+								error_handler.report_vfav1m_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
+							end
+						elseif l_alias_name.is_prefix then
+							if l_alias_names.head_has_alias_name (l_alias_name, i - 1) then
+									-- Alias name `l_alias_name' appears twice on the
+									-- right-hand-side of the rename pair `l_new_name'.
+								set_fatal_error (current_class)
+								error_handler.report_vfav4g_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name)
 							else
 									-- A feature with a unary Operator alias should be
 									-- a query with no argument.
 								set_fatal_error (current_class)
-								error_handler.report_vhrc4d_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
+								error_handler.report_vfav1n_error (current_class, a_parent_feature.parent.type, l_new_name, l_alias_name, l_precursor_feature)
 							end
-						elseif l_alias_name.is_infix then
-								-- A feature with a binary Operator alias should be
-								-- a function with exactly one argument.
-							set_fatal_error (current_class)
-							error_handler.report_vhrc4c_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
 						else
-							check is_prefix: l_alias_name.is_prefix end
-								-- A feature with a unary Operator alias should be
-								-- a query with no argument.
+								-- Internal error: no other kind of alias name.
 							set_fatal_error (current_class)
-							error_handler.report_vhrc4d_error (current_class, a_parent_feature.parent, l_new_name, l_precursor_feature)
+							error_handler.report_giaaa_error
 						end
+						if l_alias_name.convert_keyword /= Void and then not l_alias_name.is_infix then
+								-- When the 'convert' mark is specified, the alias
+								-- should be a binary operator alias.
+							set_fatal_error (current_class)
+							error_handler.report_vfav5a_error (current_class, l_alias_name)
+						end
+						i := i + 1
 					end
 				end
 			end
@@ -1633,7 +1820,7 @@ feature {NONE} -- Built-in feature validity
 		require
 			a_feature_not_void: a_feature /= Void
 		do
-			builtin_feature_checker.check_builtin_feature_validity (a_feature)
+			builtin_feature_checker.check_feature_validity (a_feature)
 			if builtin_feature_checker.has_fatal_error then
 				set_fatal_error (current_class)
 			end
@@ -1684,6 +1871,22 @@ feature {NONE} -- Kernel feature validity
 					set_fatal_error (l_class)
 					error_handler.report_gvkfe1a_error (l_class, tokens.copy_feature_name)
 					current_system.set_copy_seed (0)
+				end
+					-- ANY.twin.
+				named_features.search (tokens.twin_feature_name)
+				if named_features.found then
+					l_feature := named_features.found_item.flattened_feature
+					if l_feature.is_query then
+						current_system.set_twin_seed (l_feature.first_seed)
+					else
+						set_fatal_error (l_class)
+						error_handler.report_gvkfe5a_error (l_class, l_feature)
+						current_system.set_twin_seed (0)
+					end
+				else
+					set_fatal_error (l_class)
+					error_handler.report_gvkfe1a_error (l_class, tokens.copy_feature_name)
+					current_system.set_twin_seed (0)
 				end
 					-- ANY.is_equal.
 				named_features.search (tokens.is_equal_feature_name)
@@ -1754,6 +1957,18 @@ feature {NONE} -- Kernel feature validity
 					current_system.set_iterable_new_cursor_seed (0)
 				end
 			elseif l_class.is_iteration_cursor_class then
+					-- ITERATION_CUREOR.item.
+				named_features.search (tokens.item_feature_name)
+				if named_features.found then
+					l_feature := named_features.found_item.flattened_feature
+					if l_feature.is_query then
+						current_system.set_iteration_cursor_item_seed (l_feature.first_seed)
+					else
+						current_system.set_iteration_cursor_item_seed (0)
+					end
+				else
+					current_system.set_iteration_cursor_item_seed (0)
+				end
 					-- ITERATION_CUREOR.after.
 				named_features.search (tokens.after_feature_name)
 				if named_features.found then
@@ -1777,6 +1992,19 @@ feature {NONE} -- Kernel feature validity
 					end
 				else
 					current_system.set_iteration_cursor_forth_seed (0)
+				end
+			elseif l_class.is_special_class then
+					-- SPECIAL.item.
+				named_features.search (tokens.item_feature_name)
+				if named_features.found then
+					l_feature := named_features.found_item.flattened_feature
+					if l_feature.is_query then
+						current_system.set_special_item_seed (l_feature.first_seed)
+					else
+						current_system.set_special_item_seed (0)
+					end
+				else
+					current_system.set_special_item_seed (0)
 				end
 			end
 		end
@@ -1971,14 +2199,14 @@ feature -- Assigner validity
 									l_other_type := l_procedure_arguments.formal_argument (1).type
 									l_arg_offset := 1
 								end
-								if current_system.is_ise then
+								if system_processor.is_ise then
 										-- ECMA 367-2 says that the type of the query and of the first formal argument
 										-- of the assigner procedure should have the same deanchored form.
 										-- But EiffelStudio 6.8.8.6542 actually only checks that the type of the
 										-- formal argument of the assigner procedure conforms to the type of the query.
 										-- The conformance in the other direction is checked in the client code,
 										-- which is not what ECMA 367-2 suggests (see rules VFAC-3 and VBAC-1).
-									if not l_other_type.conforms_to_type (l_type, current_class, current_class) then
+									if not l_other_type.conforms_to_type (l_type, current_class, current_class, system_processor) then
 										set_fatal_error (current_class)
 										error_handler.report_vfac3a_error (current_class, l_query.implementation_class, l_feature_name, l_query, l_procedure)
 									end
@@ -2062,14 +2290,14 @@ feature -- Assigner validity
 									l_other_type := l_procedure_arguments.formal_argument (1).type
 									l_arg_offset := 1
 								end
-								if current_system.is_ise then
+								if system_processor.is_ise then
 										-- ECMA 367-2 says that the type of the query and of the first formal argument
 										-- of the assigner procedure should have the same deanchored form.
 										-- But EiffelStudio 6.8.8.6542 actually only checks that the type of the
 										-- formal argument of the assigner procedure conforms to the type of the query.
 										-- The conformance in the other direction is checked in the client code,
 										-- which is not what ECMA 367-2 suggests (see rules VFAC-3 and VBAC-1).
-									if not l_other_type.conforms_to_type (l_type, current_class, current_class) then
+									if not l_other_type.conforms_to_type (l_type, current_class, current_class, system_processor) then
 										set_fatal_error (current_class)
 										error_handler.report_vfac3a_error (current_class, l_query.implementation_class, l_feature_name, l_query, l_procedure)
 									end

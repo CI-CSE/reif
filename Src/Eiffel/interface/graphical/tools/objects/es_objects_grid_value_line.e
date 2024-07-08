@@ -91,20 +91,18 @@ feature {NONE} -- Object stone
 			cl: detachable CLASS_C
 			fst: FEATURE_STONE
 			fost: FEATURE_ON_OBJECT_STONE
-			ostn: detachable STRING
 			feat: E_FEATURE
 			t: like internal_item_stone_data_i_th
 		do
 			Precursor
-			if related_line /= Void then
-				ostn := object_name
-				if ostn /= Void then
-					cl := related_line.object_dynamic_class
+			if attached {ES_OBJECTS_GRID_OBJECT_LINE} related_line as l_rel_obj_line then
+				if attached object_name as ostn then
+					cl := l_rel_obj_line.object_dynamic_class
 					if cl /= Void then
-						feat := cl.feature_with_name (ostn)
+						feat := cl.feature_with_name_32 (ostn)
 						if feat /= Void then
-								--| Note: `related_line.object_address' can be Void
-							create fost.make (related_line.object_address, feat)
+								--| Note: `l_rel_obj_line.object_address' can be Void
+							create fost.make (l_rel_obj_line.object_address, feat)
 							t := internal_item_stone_data_i_th (0)
 							if t /= Void then
 								if attached {OBJECT_STONE} t.pebble as objst then
@@ -121,7 +119,37 @@ feature {NONE} -- Object stone
 							if internal_items_stone_data [0] = Void then
 								internal_items_stone_data [0] := t
 							end
+						else
+							-- TODO: look for local variable!
 						end
+					end
+				end
+			elseif attached {ES_OBJECTS_GRID_LOCALS_LINE} related_line as l_rel_loc_line then
+				if
+					attached object_name as ostn and then
+					attached l_rel_loc_line.local_ast_stone (ostn) as l_ast_st
+				then
+					create t
+					t.pebble := l_ast_st
+					t.accept_cursor := l_ast_st.stone_cursor
+					t.deny_cursor := l_ast_st.X_stone_cursor
+					internal_items_stone_data[col_name_index] := t
+					if internal_items_stone_data [0] = Void then
+						internal_items_stone_data [0] := t
+					end
+				end
+			elseif attached {ES_OBJECTS_GRID_ARGUMENTS_LINE} related_line as l_rel_arg_line then
+				if
+					attached object_name as ostn and then
+					attached l_rel_arg_line.argument_ast_stone (ostn) as l_ast_st
+				then
+					create t
+					t.pebble := l_ast_st
+					t.accept_cursor := l_ast_st.stone_cursor
+					t.deny_cursor := l_ast_st.X_stone_cursor
+					internal_items_stone_data[col_name_index] := t
+					if internal_items_stone_data [0] = Void then
+						internal_items_stone_data [0] := t
 					end
 				end
 			end
@@ -134,7 +162,7 @@ feature -- Related line if precised
 			related_line := v
 		end
 
-	related_line: ES_OBJECTS_GRID_OBJECT_LINE
+	related_line: ES_OBJECTS_GRID_LINE
 
 feature -- Query
 
@@ -204,7 +232,7 @@ feature -- Graphical changes
 					set_type (Void)
 					set_address (Void)
 					set_scoop_pid_value (0)
-					set_pixmap (Icons @ ({VALUE_TYPES}.Void_value))
+					set_pixmap (Icons [{VALUE_TYPES}.Void_value])
 				else --| dv /= Void |--
 					if title /= Void then
 						set_name (title)
@@ -227,7 +255,7 @@ feature -- Graphical changes
 						if attached  {DUMMY_MESSAGE_DEBUG_VALUE} dv as dmdv then
 							set_value (dmdv.display_message)
 							set_type (debugger_names.l_no_information)
-							set_pixmap (Icons @ (dmdv.display_kind))
+							set_pixmap (Icons [dmdv.display_kind])
 						else
 							check is_error_message_value: False end
 						end
@@ -240,7 +268,7 @@ feature -- Graphical changes
 								gi.pointer_double_press_actions.extend (agent (i_excdv: EXCEPTION_DEBUG_VALUE; i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do show_exception_dialog (i_excdv) end (excdv, ?,?,?,?,?,?,?,?))
 							end
 							set_type (debugger_names.l_exception_data)
-							set_pixmap (Icons @ (dv.kind))
+							set_pixmap (Icons [dv.kind])
 							if excdv.has_value then
 								attach_debug_value_to_grid_row (grid_extended_new_subrow (row), excdv.debug_value, Void)
 							end
@@ -251,13 +279,13 @@ feature -- Graphical changes
 --					when {VALUE_TYPES}.Procedure_return_message_value then
 --						set_value (interface_names.l_called)
 --						set_type (once "")
---						set_pixmap (Icons @ (dv.kind))
+--						set_pixmap (Icons [dv.kind])
 					else
 						last_dump_value := dv.dump_value
 						set_value (last_dump_value.output_for_debugger)
 						set_type (last_dump_value.generating_type_representation (generating_type_evaluation_enabled))
 
-						set_pixmap (Icons @ (dv.kind))
+						set_pixmap (Icons [dv.kind])
 						if dv.expandable then
 							row.ensure_expandable
 							set_expand_action (agent on_row_expand)
@@ -287,7 +315,7 @@ invariant
 	object_not_void: object /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

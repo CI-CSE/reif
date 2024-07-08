@@ -1,4 +1,3 @@
-
 %{
 note
 
@@ -21,24 +20,26 @@ create
 
 %start		Eiffel_parser
 
-%nonassoc	TE_ASSIGNMENT
+%nonassoc	TE_ASSIGNMENT TE_REPEAT_OPEN TE_REPEAT_CLOSE
+%left		TE_FORALL TE_EXISTS
 %nonassoc	TE_DOTDOT
-%left		TE_IMPLIES
-%left		TE_OR
-%left		TE_XOR
-%left		TE_AND
+%left		TE_IMPLIES TE_FREE_IMPLIES
+%left		TE_OR TE_FREE_OR TE_FREE_OR_ELSE
+%left		TE_XOR TE_FREE_XOR
+%left		TE_AND TE_FREE_AND TE_FREE_AND_THEN
 %left 		TE_TILDE TE_NOT_TILDE TE_NE TE_EQ TE_LT TE_GT TE_LE TE_GE
 %left		TE_PLUS TE_MINUS
 %left		TE_STAR TE_SLASH TE_MOD TE_DIV
 %right		TE_POWER
-%left		TE_FREE
-%right		TE_NOT
+%left		TE_FREE TE_AT
+%right		TE_NOT TE_FREE_NOT
 %nonassoc	TE_STRIP
 %left		TE_OLD
 %left		TE_DOT
-%right		TE_LPARAN
+%left		PREDECESSOR_OPERATOR
+%right		TE_LPARAN TE_BLOCK_OPEN
 
-%token <detachable ID_AS> TE_FREE TE_ID TE_TUPLE
+%token <detachable ID_AS> TE_FREE TE_FREE_AND TE_FREE_AND_THEN TE_FREE_IMPLIES TE_FREE_NOT TE_FREE_OR TE_FREE_OR_ELSE TE_FREE_XOR TE_ID TE_TUPLE
 %token TE_INTEGER
 %token TE_REAL
 %token <detachable CHAR_AS>		TE_CHAR
@@ -47,13 +48,15 @@ create
 %token <detachable SYMBOL_AS>		TE_ACCEPT TE_ADDRESS TE_ASSIGNMENT
 %token <detachable SYMBOL_AS>		TE_LARRAY TE_RARRAY TE_RPARAN TE_LPARAN
 %token <detachable SYMBOL_AS>		TE_LCURLY TE_RCURLY
-%token <detachable SYMBOL_AS> 		TE_BANG TE_SEMICOLON
-%token <detachable SYMBOL_AS>		TE_COLON TE_COMMA
+%token <detachable SYMBOL_AS> 		TE_SEMICOLON
+%token <detachable SYMBOL_AS>		TE_COLON TE_COMMA TE_BAR
 %token <detachable SYMBOL_AS>		TE_CONSTRAIN TE_QUESTION
 %token <detachable SYMBOL_AS> 		TE_DOTDOT TE_DOT
 %token <detachable SYMBOL_AS> 		TE_TILDE TE_NOT_TILDE TE_EQ TE_LT TE_GT TE_LE TE_GE TE_NE
 %token <detachable SYMBOL_AS> 		TE_PLUS TE_MINUS TE_STAR TE_SLASH TE_POWER
 %token <detachable SYMBOL_AS> 		TE_DIV TE_MOD
+	-- Special type for symbols that are either symbols or free operators.
+%token <detachable like {AST_FACTORY}.symbol_id_type as symbol_id>		TE_AT TE_BLOCK_CLOSE TE_BLOCK_OPEN TE_EXISTS TE_FORALL TE_REPEAT_CLOSE TE_REPEAT_OPEN
 
 %token <detachable BOOL_AS> TE_FALSE TE_TRUE
 %token <detachable RESULT_AS> TE_RESULT
@@ -66,10 +69,8 @@ create
 %token <detachable KEYWORD_AS> TE_END
 %token <detachable KEYWORD_AS> TE_FROZEN
 %token <detachable KEYWORD_AS> TE_PARTIAL_CLASS	
-%token <detachable KEYWORD_AS> TE_INFIX
 %token <detachable KEYWORD_AS> TE_CREATION
 %token <detachable KEYWORD_AS> TE_PRECURSOR
-%token <detachable KEYWORD_AS> TE_PREFIX
 
 %token <detachable KEYWORD_AS> TE_AGENT TE_ALIAS TE_ALL TE_AND TE_AS
 %token <detachable KEYWORD_AS> TE_CHECK TE_CLASS TE_CONVERT
@@ -94,7 +95,8 @@ create
 
 %type <detachable SYMBOL_AS>ASemi
 %type <detachable KEYWORD_AS> Alias_mark Is_keyword
-%type <detachable ALIAS_TRIPLE>Alias
+%type <detachable FEATURE_ALIAS_NAME>Alias
+%type <detachable CONSTRUCT_LIST [FEATURE_ALIAS_NAME]> Alias_list
 %type <detachable PAIR[KEYWORD_AS, EIFFEL_LIST [INSTRUCTION_AS]]> Rescue
 
 %type <detachable PAIR[KEYWORD_AS, ID_AS]> Assigner_mark_opt
@@ -114,8 +116,9 @@ create
 %type <detachable BODY_AS>				Declaration_body
 %type <detachable BOOL_AS>				Boolean_constant
 %type <BOOLEAN>					Creation_region
-%type <detachable CALL_AS>				Call Remote_call Qualified_call
+%type <detachable CALL_AS>				Call
 %type <detachable CASE_AS>				When_part
+%type <detachable CASE_EXPRESSION_AS>				When_expression_part
 %type <detachable CHAR_AS>				Character_constant
 %type <detachable CHECK_AS>			Check
 %type <detachable KEYWORD_AS>			Class_mark
@@ -130,7 +133,7 @@ create
 %type <detachable ELSIF_EXPRESSION_AS>		Elseif_part_expression
 %type <detachable ENSURE_AS>			Postcondition
 %type <detachable EXPORT_ITEM_AS>		New_export_item
-%type <detachable EXPR_AS>				Bracket_target Expression Factor Qualified_factor Typed_expression Actual_parameter 
+%type <detachable EXPR_AS>				Actual_parameter Bracket_target Expression Factor Predecessor Typed_expression
 %type <detachable BRACKET_AS>			Bracket_expression Call_bracket_expression
 %type <detachable EXTERNAL_AS>			External
 %type <detachable EXTERNAL_LANG_AS>	External_language
@@ -140,11 +143,12 @@ create
 %type <detachable FORMAL_AS>			Formal_parameter
 %type <detachable FORMAL_DEC_AS>		Formal_generic
 %type <detachable GUARD_AS>			Guard
-%type <detachable ID_AS>				Class_or_tuple_identifier Class_identifier Tuple_identifier Identifier_as_lower Free_operator Feature_name_for_call
+%type <detachable ID_AS>				Class_or_tuple_identifier Class_identifier Tuple_identifier Identifier_as_lower
 %type <detachable IF_AS>				Conditional
 %type <detachable IF_EXPRESSION_AS>			Conditional_expression
 %type <detachable INDEX_AS>			Index_clause Index_clause_impl Note_entry Note_entry_impl
 %type <detachable INSPECT_AS>			Multi_branch
+%type <detachable INSPECT_EXPRESSION_AS>		Multi_branch_expression
 %type <detachable INSTRUCTION_AS>		Instruction Instruction_impl
 %type <detachable INTEGER_AS>	Integer_constant Signed_integer Nosigned_integer Typed_integer Typed_nosigned_integer Typed_signed_integer
 %type <detachable INTERNAL_AS>			Internal
@@ -153,7 +157,7 @@ create
 %type <detachable LOOP_EXPR_AS>			Loop_expression
 %type <detachable LOOP_AS>				Loop_instruction
 %type <detachable NAMED_EXPRESSION_AS>		Separate_argument
-%type <detachable NESTED_AS>			Call_on_feature_access
+%type <detachable NESTED_EXPR_AS>		Qualified_call
 %type <detachable OPERAND_AS>			Delayed_actual
 %type <detachable PARENT_AS>			Parent Parent_clause
 %type <detachable PRECURSOR_AS>		A_precursor
@@ -165,21 +169,22 @@ create
 %type <detachable ROUT_BODY_AS>		Routine_body
 %type <detachable ROUTINE_AS>			Routine
 %type <detachable ROUTINE_CREATION_AS>	Agent
-%type <detachable STRING_AS>			Manifest_string Non_empty_string Default_manifest_string Typed_manifest_string Infix_operator Prefix_operator Alias_name
+%type <detachable STRING_AS>			Manifest_string Non_empty_string Default_manifest_string Typed_manifest_string Binary_unary_operator Binary_operator
 %type <detachable SEPARATE_INSTRUCTION_AS>	Separate_instruction
 %type <detachable TAGGED_AS>			Assertion_clause
 %type <detachable TUPLE_AS>			Manifest_tuple
 %type <detachable TYPE_AS>				Type Anchored_type Typed Class_or_tuple_type Unmarked_class_type Unmarked_tuple_type Unmarked_anchored_type Unmarked_class_or_tuple_type Unmarked_unqualified_anchored_type Constraint_type
-%type <detachable TYPE_AS>				Obsolete_creation_type Obsolete_type Obsolete_class_or_tuple_type
+%type <detachable TYPE_AS>				Obsolete_type
 %type <detachable QUALIFIED_ANCHORED_TYPE_AS>	Unmarked_qualified_anchored_type
 %type <detachable CLASS_TYPE_AS>		Parent_class_type
 %type <detachable TYPE_DEC_AS>			Entity_declaration_group
 %type <detachable LIST_DEC_AS>			Local_declaration_group
 %type <detachable VARIANT_AS>			Variant Variant_opt
-%type <detachable FEATURE_NAME>		Infix Prefix Feature_name Extended_feature_name New_feature
+%type <detachable FEATURE_NAME>			Feature_name Extended_feature_name New_feature
 
 %type <detachable EIFFEL_LIST [ATOMIC_AS]>			Index_terms Note_values
 %type <detachable EIFFEL_LIST [CASE_AS]>			When_part_list_opt When_part_list
+%type <detachable EIFFEL_LIST [CASE_EXPRESSION_AS]>			When_expression_part_list_opt When_expression_part_list
 %type <detachable CONVERT_FEAT_LIST_AS>			Convert_list Convert_clause
 %type <detachable EIFFEL_LIST [CREATE_AS]>			Creators Creation_clause_list
 %type <detachable EIFFEL_LIST [ELSIF_AS]>			Elseif_list Elseif_part_list
@@ -190,8 +195,7 @@ create
 %type <detachable PARAMETER_LIST_AS> 	Parameters
 %type <detachable EIFFEL_LIST [FEATURE_AS]>		Feature_declaration_list
 %type <detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]>	Features Feature_clause_list
-%type <detachable EIFFEL_LIST [FEATURE_NAME]>		Feature_list Feature_list_impl New_feature_list
-%type <detachable EIFFEL_LIST [FEAT_NAME_ID_AS]>		Creation_list Creation_list_impl
+%type <detachable EIFFEL_LIST [FEATURE_NAME]>		Creation_list Creation_list_impl Feature_list Feature_list_impl New_feature_list
 %type <detachable EIFFEL_LIST [NAMED_EXPRESSION_AS]>	Separate_argument_list
 %type <detachable CREATION_CONSTRAIN_TRIPLE>	Creation_constraint
 %type <detachable UNDEFINE_CLAUSE_AS>	Undefine Undefine_opt
@@ -221,7 +225,7 @@ create
 %type <detachable CONSTRAINT_LIST_AS> Multiple_constraint_list
 %type <detachable CONSTRAINING_TYPE_AS> Single_constraint
 
-%expect 368
+%expect 435
 
 %%
 
@@ -331,7 +335,7 @@ Class_declaration:
 				end
 				
 				root_node := new_class_description ($4, temp_string_as1,
-					is_deferred, is_expanded, is_frozen_class, is_external_class, is_partial_class,
+					is_deferred, is_expanded, is_frozen_class, is_external_class, is_partial_class, is_once,
 					$1, $18, $5, $9, $11, $13, $14, $15, $17, suppliers, temp_string_as2, $19)
 				if attached root_node as l_root_node then
 					l_root_node.set_text_positions (
@@ -350,7 +354,7 @@ Class_declaration:
 					if attached $7 as l_obsolete then
 						l_root_node.set_obsolete_keyword (l_obsolete.first)
 					end
-					l_root_node.set_header_mark (frozen_keyword, expanded_keyword, deferred_keyword, external_keyword)
+					l_root_node.set_header_mark (frozen_keyword, expanded_keyword, deferred_keyword, once_keyword, external_keyword)
 					l_root_node.set_class_keyword ($3)
 				end
 			}
@@ -372,7 +376,7 @@ Indexing: -- Empty
 			}
 	|	TE_INDEXING
 			{
-				if attached ast_factory.new_indexing_clause_as (0) as l_list then
+				if attached ast_factory.new_indexing_clause_as (Void, 0) as l_list then
 					$$ := l_list
 					l_list.set_indexing_keyword (extract_keyword ($1))
 				end
@@ -386,7 +390,7 @@ Indexing: -- Empty
 			}
 	|	TE_NOTE
 			{
-				if attached ast_factory.new_indexing_clause_as (0) as l_list then
+				if attached ast_factory.new_indexing_clause_as (Void, 0) as l_list then
 					$$ := l_list
 					l_list.set_indexing_keyword (extract_keyword ($1))
 				end
@@ -397,15 +401,15 @@ Dotnet_indexing: -- Empty
 			-- { $$ := Void }
 	|	TE_INDEXING TE_END
 		{
-				if attached ast_factory.new_indexing_clause_as (0) as l_list then
+				if attached ast_factory.new_indexing_clause_as (Void, 0) as l_list then
 						$$ := l_list
 						l_list.set_indexing_keyword (extract_keyword ($1))
 						l_list.set_end_keyword ($2)
 				end		
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($2), token_column ($2), filename,
-						once "Missing `attribute' keyword before `end' keyword."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($2), token_column ($2), filename,
+						locale.translation_in_context (once "Missing `attribute` keyword before `end` keyword.", once "parser.eiffel.warning")))
 				end
 		}
 	|	TE_INDEXING Add_indexing_counter Index_list Remove_counter TE_END
@@ -420,41 +424,39 @@ Dotnet_indexing: -- Empty
 					end
 				end				
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($5), token_column ($5), filename,
-						once "Missing `attribute' keyword before `end' keyword."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($5), token_column ($5), filename,
+						locale.translation_in_context (once "Missing `attribute` keyword before `end` keyword.", once "parser.eiffel.warning")))
 				end
 			}
 	;
 
 Index_list: Index_clause
 			{
-				$$ := ast_factory.new_indexing_clause_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_indexing_clause_as (v, counter_value + 1)
 				end
 			}
 	|	Index_clause Increment_counter Index_list
 			{
 				$$ := $3
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $$ as l_list and then attached $1 as v then
+					l_list.reverse_extend (v)
 				end
 			}
 	;
 
 Note_list: Note_entry
 			{
-				$$ := ast_factory.new_indexing_clause_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_indexing_clause_as (v, counter_value + 1)
 				end
 			}
 	|	Note_entry ASemi Increment_counter Note_list
 			{
 				$$ := $4
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $$ as l_list and then attached $1 as v then
+					l_list.reverse_extend (v)
 				end
 			}
 	;
@@ -475,9 +477,9 @@ Index_clause_impl: Identifier_as_lower TE_COLON Index_terms ASemi
 			{
 				$$ := ast_factory.new_index_as (Void, $1, Void)
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Missing `Index' part of `Index_clause'."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Missing Index part of Index_clause.", once "parser.eiffel.warning")))
 				end
 			}
 	;
@@ -490,9 +492,8 @@ Note_entry_impl: Identifier_as_lower TE_COLON Note_values
 
 Index_terms: Index_value
 			{
-				$$ := ast_factory.new_eiffel_list_atomic_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_atomic_as (v, counter_value + 1)
 				end
 			}
 	|	Index_value TE_COMMA Increment_counter Index_terms
@@ -506,22 +507,21 @@ Index_terms: Index_value
 	|	TE_SEMICOLON
 			{
 -- TO DO: remove this TE_SEMICOLON (see: INDEX_AS.index_list /= Void)
-				$$ := ast_factory.new_eiffel_list_atomic_as (0)
+				$$ := ast_factory.new_eiffel_list_atomic_as (Void, 0)
 			}
 	;
 
 Note_values: Index_value
 			{
-				$$ := ast_factory.new_eiffel_list_atomic_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_atomic_as (v, counter_value + 1)
 				end
 			}
 	|	Index_value TE_COMMA Increment_counter Note_values
 			{
 				$$ := $4
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $$ as l_list and then attached $1 as v then
+					l_list.reverse_extend (v)
 					ast_factory.reverse_extend_separator (l_list, $2)
 				end
 			}
@@ -575,6 +575,11 @@ Header_mark: Frozen_mark External_mark
 			{
 				is_expanded := True
 				expanded_keyword := $2
+			}
+	|	Frozen_mark TE_ONCE External_mark
+			{
+				is_once := True
+				once_keyword := $2
 			}
 	;
 
@@ -643,9 +648,8 @@ Features: -- Empty
 
 Feature_clause_list: Feature_clause
 			{
-				$$ := ast_factory.new_eiffel_list_feature_clause_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_feature_clause_as (v, counter_value + 1)
 				end
 			}
 	|	Feature_clause Increment_counter Feature_clause_list
@@ -659,7 +663,7 @@ Feature_clause_list: Feature_clause
 
 Feature_clause: Feature_client_clause End_feature_clause_pos
 			{ $$ := ast_factory.new_feature_clause_as ($1,
-				ast_factory.new_eiffel_list_feature_as (0), fclause_pos, feature_clause_end_position) }
+				ast_factory.new_eiffel_list_feature_as (Void, 0), fclause_pos, feature_clause_end_position) }
 	|	Feature_client_clause Add_counter Feature_declaration_list Remove_counter End_feature_clause_pos
 			{ $$ := ast_factory.new_feature_clause_as ($1, $3, fclause_pos, feature_clause_end_position) }
 	;
@@ -692,15 +696,16 @@ Client_list: TE_LCURLY TE_RCURLY
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply consider as {NONE}.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-							once "Empty Client_list is not allowed and will be assumed to be {NONE}."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty Client_list is not allowed and will be assumed to be {NONE}.", once "parser.eiffel.warning")))
 				end
-				$$ := ast_factory.new_class_list_as (1)
-				if attached $$ as l_list and then attached new_none_id as l_none_id then
-					l_list.reverse_extend (l_none_id)
-					l_list.set_lcurly_symbol ($1)
-					l_list.set_rcurly_symbol ($2)
+				if attached new_none_id as l_none_id then
+					$$ := ast_factory.new_class_list_as (l_none_id, 1)
+					if attached $$ as l_list then
+						l_list.set_lcurly_symbol ($1)
+						l_list.set_rcurly_symbol ($2)
+					end
 				end
 			}
 	|	TE_LCURLY Add_counter Class_list Remove_counter TE_RCURLY
@@ -715,10 +720,9 @@ Client_list: TE_LCURLY TE_RCURLY
 
 Class_list: Class_or_tuple_identifier
 			{
-				$$ := ast_factory.new_class_list_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
-					suppliers.insert_light_supplier_id (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_class_list_as (v, counter_value + 1)
+					suppliers.insert_light_supplier_id (v)
 				end
 			}
 	|	Class_or_tuple_identifier TE_COMMA Increment_counter Class_list
@@ -734,9 +738,8 @@ Class_list: Class_or_tuple_identifier
 
 Feature_declaration_list: Feature_declaration
 			{
-				$$ := ast_factory.new_eiffel_list_feature_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_feature_as (v, counter_value + 1)
 				end
 			}
 	|	Feature_declaration Increment_counter Feature_declaration_list
@@ -758,9 +761,9 @@ Feature_declaration: Add_counter New_feature_list Remove_counter {enter_scope} D
 				if has_syntax_warning then
 					if attached feature_indexes as fi and then fi.has_global_once then
 						if attached fi.once_status_index_as as fi_tok then
-							report_one_warning (
-								create {SYNTAX_WARNING}.make (token_line (fi_tok), token_column (fi_tok), filename,
-								once "Specifying once_status in indexing note is Obsolete, please use once (%"PROCESS%")."))
+							report_one_warning
+								(create {SYNTAX_WARNING}.make (token_line (fi_tok), token_column (fi_tok), filename,
+								locale.translation_in_context (once "Specifying once_status in indexing note is Obsolete, please use once (%"PROCESS%").", once "parser.eiffel.warning")))
 						else
 							check indexes_has_once_status_index: False end
 						end
@@ -787,9 +790,8 @@ Feature_declaration: Add_counter New_feature_list Remove_counter {enter_scope} D
 
 New_feature_list: New_feature
 			{
-				$$ := ast_factory.new_eiffel_list_feature_name (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_feature_name (v, counter_value + 1)
 				end
 			}
 	|	New_feature TE_COMMA Increment_counter New_feature_list
@@ -815,62 +817,137 @@ New_feature: Extended_feature_name
 
 Extended_feature_name: Feature_name
 			{ $$ := $1 }
-	|	Identifier_as_lower Alias
+	|	Identifier_as_lower Add_counter Alias_list Remove_counter Alias_mark
 			{
-				if attached $2 as l_alias then
-					$$ := ast_factory.new_feature_name_alias_as ($1, l_alias.alias_name, has_convert_mark, l_alias.alias_keyword, l_alias.convert_keyword)
-				else
-					$$ := ast_factory.new_feature_name_alias_as ($1, Void, has_convert_mark, Void, Void)
+				if attached $3 as l_aliases and then not l_aliases.is_empty then
+					$$ := ast_factory.new_feature_name_alias_as ($1, l_aliases, $5)
 				end
-				
 			}
 	;
 
 Feature_name: Identifier_as_lower
 			{ $$ := ast_factory.new_feature_name_id_as ($1) }
-	|	Infix
-			{ $$ := $1 }
-	|	Prefix
-			{ $$ := $1 }
 	;
 
-Infix: TE_INFIX Infix_operator
+Alias_list: Alias
 			{
-				$$ := ast_factory.new_infix_as ($2, $1)
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use the alias form of the infix routine."))
+				$$ := ast_factory.new_alias_list (counter_value + 1)
+				if attached $$ as l_list and then attached $1 as l_val then
+					l_list.extend (l_val)
+				end
+			}
+	|	Alias Increment_counter Alias_list
+			{
+				$$ := $3
+				if attached $$ as l_list and then attached $1 as l_val then
+					l_list.put_front (l_val)
 				end
 			}
 	;
 
-
-Prefix: TE_PREFIX Prefix_operator
+Alias: TE_ALIAS Binary_operator
 			{
-				$$ := ast_factory.new_prefix_as ($2, $1)
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use the alias form of the prefix routine."))
+				$$ := ast_factory.new_alias_name ($1, $2, {OPERATOR_KIND}.is_valid_binary_kind_mask)
+			}
+	|	TE_ALIAS Binary_unary_operator
+			{
+				$$ := ast_factory.new_alias_name ($1, $2, {OPERATOR_KIND}.is_valid_binary_kind_mask + {OPERATOR_KIND}.is_valid_unary_kind_mask)
+			}
+	|	TE_ALIAS TE_STR_BRACKET
+			{
+				$$ := ast_factory.new_alias_name ($1, $2, {OPERATOR_KIND}.is_bracket_kind_mask)
+			}
+	|	TE_ALIAS TE_STR_PARENTHESES
+			{
+				$$ := ast_factory.new_alias_name ($1, $2, {OPERATOR_KIND}.is_parentheses_kind_mask)
+			}
+	|	TE_ALIAS TE_STR_NOT
+			{
+				$$ := ast_factory.new_alias_name ($1, $2, {OPERATOR_KIND}.is_valid_unary_kind_mask)
+			}
+	;
+
+Binary_unary_operator:
+	|	TE_STR_MINUS
+			{ $$ := $1 }
+	|	TE_STR_PLUS
+			{ $$ := $1 }
+	|	TE_STR_FREE
+			{
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_free then
+					l_str_free.value_to_lower
+					$$ := l_str_free
 				end
 			}
 	;
 
-Alias: TE_ALIAS Alias_name Alias_mark
+Binary_operator: TE_STR_LT
+			{ $$ := $1 }
+	|	TE_STR_LE
+			{ $$ := $1 }
+	|	TE_STR_GT
+			{ $$ := $1 }
+	|	TE_STR_GE
+			{ $$ := $1 }
+	|	TE_STR_STAR
+			{ $$ := $1 }
+	|	TE_STR_SLASH
+			{ $$ := $1 }
+	|	TE_STR_MOD
+			{ $$ := $1 }
+	|	TE_STR_DIV
+			{ $$ := $1 }
+	|	TE_STR_POWER
+			{ $$ := $1 }
+	|	TE_STR_AND
 			{
-				$$ := ast_factory.new_alias_triple ($1, $2, $3)
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_and then
+					l_str_and.value_to_lower
+					$$ := l_str_and
+				end
 			}
-	;
-
-Alias_name: Infix_operator
-			{ $$ := $1 }
-	|	TE_STR_NOT
-			{ $$ := $1 }
-	|	TE_STR_BRACKET
-			{ $$ := $1 }
-	|	TE_STR_PARENTHESES
-			{ $$ := $1 }
+	|	TE_STR_AND_THEN
+			{
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_and_then then
+					l_str_and_then.value_to_lower
+					$$ := l_str_and_then
+				end
+			}
+	|	TE_STR_IMPLIES
+			{
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_implies then 
+					l_str_implies.value_to_lower
+					$$ := l_str_implies
+				end
+			}
+	|	TE_STR_OR
+			{
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_or then
+					l_str_or.value_to_lower
+					$$ := l_str_or
+				end
+			}
+	|	TE_STR_OR_ELSE
+			{
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_or_else then
+					l_str_or_else.value_to_lower
+					$$ := l_str_or_else
+				end
+			}
+	|	TE_STR_XOR
+			{
+					-- Alias names should always be taken in their lower case version
+				if attached $1 as l_str_xor then
+					l_str_xor.value_to_lower
+					$$ := l_str_xor
+				end
+			}
 	;
 
 Alias_mark: -- Empty
@@ -995,20 +1072,22 @@ Inheritance: -- Empty
 				if not conforming_inheritance_flag then
 						-- Conforming inheritance
 					if has_syntax_warning then
-						report_one_warning (
-							create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-							once "Use `inherit ANY' or do not specify an empty inherit clause"))
+						report_one_warning
+							(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+							locale.translation_in_context (once "Use `inherit ANY` or do not specify an empty inherit clause", once "parser.eiffel.warning")))
 					end
-					$$ := ast_factory.new_eiffel_list_parent_as (0)
+					$$ := ast_factory.new_eiffel_list_parent_as (Void, 0)
 					if attached $$ as l_inheritance then
 						l_inheritance.set_inheritance_tokens ($1, Void, Void, Void)
 					end
 				else
 						-- Raise error as conforming inheritance has already been specified
 					if non_conforming_inheritance_flag then
-						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename, "Conforming inheritance clause must come before non conforming inheritance clause"))
+						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+							locale.translation_in_context ("Conforming inheritance clause must come before non conforming inheritance clause.", once "parser.eiffel.error")))
 					else
-						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename, "Only one conforming inheritance clause allowed per class"))
+						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+							locale.translation_in_context ("Only one conforming inheritance clause allowed per class.", once "parser.eiffel.error")))
 					end
 				end
 			}
@@ -1023,9 +1102,11 @@ Inheritance: -- Empty
 				else
 						-- Raise error as conforming inheritance has already been specified
 					if non_conforming_inheritance_flag then
-						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename, "Conforming inheritance clause must come before non conforming inheritance clause"))
+						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+							locale.translation_in_context ("Conforming inheritance clause must come before non conforming inheritance clause", once "parser.eiffel.error")))
 					else
-						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename, "Only one conforming inheritance clause allowed per class"))
+						report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+							locale.translation_in_context ("Only one conforming inheritance clause allowed per class", once "parser.eiffel.error")))
 					end
 				end
 			}
@@ -1042,7 +1123,8 @@ Inheritance: -- Empty
 					non_conforming_inheritance_flag := True
 				else
 						-- Raise error as non conforming inheritance has already been specified
-					report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename, "Only one non-conforming inheritance clause allowed per class"))
+					report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context ("Only one non-conforming inheritance clause allowed per class", once "parser.eiffel.error")))
 				end
 			}
 		Add_counter Parent_list Remove_counter
@@ -1057,9 +1139,8 @@ Inheritance: -- Empty
 			
 Parent_list: Parent
 			{
-				$$ := ast_factory.new_eiffel_list_parent_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_parent_as (v, counter_value + 1)
 				end
 			}
 	|	Parent Increment_counter Parent_list
@@ -1097,13 +1178,13 @@ Rename: TE_RENAME
 			{
 				$$ := ast_factory.new_rename_clause_as (Void, $1)
 				if is_constraint_renaming then
-					report_one_error (
-						create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
-						"Empty rename clause."))
+					report_one_error
+						(create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context ("Empty rename clause.", once "parser.eiffel.error")))
 				else
-					report_one_warning (
-							create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-							"Remove empty rename clauses."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context ("Remove empty rename clauses.", once "parser.eiffel.warning")))
 				end
 			}
 	|	TE_RENAME Add_counter Rename_list Remove_counter
@@ -1112,9 +1193,8 @@ Rename: TE_RENAME
 
 Rename_list: Rename_pair
 			{
-				$$ := ast_factory.new_eiffel_list_rename_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_rename_as (v, counter_value + 1)
 				end
 			}
 	|	Rename_pair TE_COMMA Increment_counter Rename_list
@@ -1145,9 +1225,8 @@ New_exports: TE_EXPORT Add_counter New_export_list Remove_counter
 
 New_export_list: New_export_item
 			{
-				$$ := ast_factory.new_eiffel_list_export_item_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_export_item_as (v, counter_value + 1)
 				end
 			}
 	|	New_export_item Increment_counter New_export_list
@@ -1165,9 +1244,9 @@ New_export_item: Client_list Feature_set ASemi
 						-- Per ECMA, this should be rejected. For now we only raise
 						-- a warning. And on the compiler side, we will simply ignore them altogether.
 					if has_syntax_warning then
-						report_one_warning (
-							create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-								once "Empty Feature_set is not allowed and will be discarded."))
+						report_one_warning
+							(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+							locale.translation_in_context (once "Empty Feature_set is not allowed and will be discarded.", once "parser.eiffel.warning")))
 					end
 				end
 				$$ := ast_factory.new_export_item_as (ast_factory.new_client_as ($1), $2)
@@ -1195,9 +1274,8 @@ Convert_clause: -- Empty
 
 Convert_list: Convert_feature
 		{
-			$$ := ast_factory.new_eiffel_list_convert (counter_value + 1)
-			if attached $$ as l_list and then attached $1 as l_val then
-				l_list.reverse_extend (l_val)
+			if attached $1 as v then
+				$$ := ast_factory.new_eiffel_list_convert (v, counter_value + 1)
 			end
 		}
 	|	Convert_feature TE_COMMA Increment_counter Convert_list
@@ -1231,13 +1309,11 @@ Creation_list: Add_counter Creation_list_impl Remove_counter
 
 Creation_list_impl: Identifier_as_lower
 			{
-				$$ := ast_factory.new_eiffel_list_feature_name_id (counter_value + 1)
 				if
-					attached $$ as l_list and then
 					attached $1 as l_val and then
 					attached ast_factory.new_feature_name_id_as (l_val) as l_id
 				then
-					l_list.reverse_extend (l_id)
+					$$ := ast_factory.new_eiffel_list_feature_name_id (l_id, counter_value + 1)
 				end
 			}
 	|	Identifier_as_lower TE_COMMA Increment_counter Creation_list_impl
@@ -1260,9 +1336,8 @@ Feature_list: Add_counter Feature_list_impl Remove_counter
 
 Feature_list_impl: Feature_name
 			{
-				$$ := ast_factory.new_eiffel_list_feature_name (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_feature_name (v, counter_value + 1)
 				end
 			}
 	|	Feature_name TE_COMMA Increment_counter Feature_list_impl
@@ -1316,20 +1391,11 @@ Select_opt: -- Empty
 	;
 
 Select: TE_SELECT
-			--- { $$ := Void }
 			{
-				if non_conforming_inheritance_flag then
-					report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1),
-						filename, "Non-conforming inheritance may not use select clause"))
-				end
 				$$ := ast_factory.new_select_clause_as (Void, $1)
 			}
 	|	TE_SELECT Feature_list
 			{
-				if non_conforming_inheritance_flag and attached $1 as l_keyword then
-					report_one_error (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1),
-						filename, "Non-conforming inheritance may not use select clause"))
-				end
 				$$ := ast_factory.new_select_clause_as ($2, $1)
 			}
 	;
@@ -1343,9 +1409,9 @@ Formal_arguments:	TE_LPARAN TE_RPARAN
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Empty formal argument list is not allowed"))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty formal argument list is not allowed", once "parser.eiffel.warning")))
 				end
 				$$ := ast_factory.new_formal_argu_dec_list_as (Void, $1, $2)
 			}
@@ -1355,9 +1421,8 @@ Formal_arguments:	TE_LPARAN TE_RPARAN
 
 Entity_declaration_list: Entity_declaration_group
 			{
-				$$ := ast_factory.new_eiffel_list_type_dec_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_type_dec_as (v, counter_value + 1)
 				end
 			}
 	|	Entity_declaration_group Increment_counter Entity_declaration_list
@@ -1380,9 +1445,8 @@ Entity_declaration_group: Add_counter Identifier_list Remove_counter TE_COLON Ty
 
 Local_declaration_list: Local_declaration_group
 			{
-				$$ := ast_factory.new_eiffel_list_list_dec_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_list_dec_as (v, counter_value + 1)
 				end
 			}
 	|	Local_declaration_group Increment_counter Local_declaration_list
@@ -1416,10 +1480,12 @@ Local_declaration_group:
 
 Identifier_list: Identifier_as_lower
 			{
-				$$ := ast_factory.new_identifier_list (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val.name_id)
-					ast_factory.reverse_extend_identifier (l_list, l_val)
+				
+				if attached $1 as v then
+					$$ := ast_factory.new_identifier_list (v.name_id, counter_value + 1)
+					if attached $$ as l_list then
+						ast_factory.reverse_extend_identifier (l_list, v)
+					end
 				end
 			}
 	|	Identifier_as_lower TE_COMMA Increment_counter Identifier_list 
@@ -1434,7 +1500,7 @@ Identifier_list: Identifier_as_lower
 	;
 
 Strip_identifier_list: -- Empty
-			{ $$ := ast_factory.new_identifier_list (0) }
+			{ $$ := ast_factory.new_identifier_list (0, 0) }
 	|	Add_counter Identifier_list Remove_counter
 			{ $$ := $2 }
 	;
@@ -1521,7 +1587,7 @@ Internal: TE_DO Compound
 Local_declarations: -- Empty
 			-- { $$ := Void }
 	|	TE_LOCAL
-			{ $$ := ast_factory.new_local_dec_list_as (ast_factory.new_eiffel_list_type_dec_as (0), $1) }
+			{ $$ := ast_factory.new_local_dec_list_as (ast_factory.new_eiffel_list_type_dec_as (Void, 0), $1) }
 	|	TE_LOCAL Add_counter Local_declaration_list Remove_counter
 			{ $$ := ast_factory.new_local_dec_list_as ($3, $1) }
 	;
@@ -1534,9 +1600,8 @@ Compound: Optional_semicolons
 
 Instruction_list: Instruction
 			{
-				$$ := ast_factory.new_eiffel_list_instruction_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_instruction_as (v, counter_value + 1)
 				end
 			}
 	|	Instruction Increment_counter Instruction_list
@@ -1648,11 +1713,11 @@ Assertion: -- Empty
 Assertion_list: Assertion_clause
 			{
 					-- Special list treatment here as we do not want Void
-					-- element in `Assertion_list'.
+					-- element in Assertion_list.
 				if attached $1 as l_val then
 					$$ := ast_factory.new_eiffel_list_tagged_as (counter_value + 1)
 					if attached $$ as l_list then
-						l_list.reverse_extend (l_val)
+						l_list.back_extend (l_val)
 					end
 				else
 					$$ := ast_factory.new_eiffel_list_tagged_as (counter_value)
@@ -1669,7 +1734,7 @@ Assertion_list: Assertion_clause
 			{
 				$$ := $3
 				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+					l_list.back_extend (l_val)
 				end
 			}
 	;
@@ -1706,7 +1771,7 @@ Assertion_clause:
 	;
 
 -- Type
--- Note that only `Type' should be used in other constructs. If something else is used, please make
+-- Note that only Type should be used in other constructs. If something else is used, please make
 -- sure to put a note (e.g. 'Class_or_tuple_type' being used in 'Constraint_type'.
 
 Type: Class_or_tuple_type
@@ -1714,8 +1779,6 @@ Type: Class_or_tuple_type
 	|	Anchored_type
 			{ $$ := $1 }
 	|	Obsolete_type
-			{ $$ := $1 }
-	|	Obsolete_class_or_tuple_type
 			{ $$ := $1 }
 	;
 
@@ -2103,76 +2166,15 @@ Unmarked_qualified_anchored_type:
 			}
 	;
 
--- This is also used in the obsolete syntax for 'Creation' and 'Creation_expression'.
-Obsolete_creation_type: Unmarked_class_or_tuple_type
-			{ $$ := $1 }
-	|	Unmarked_anchored_type
-			{ $$ := $1 }
-	|	Obsolete_type
-			{ $$ := $1 }
-	;
-
--- This is also used in 'Constraint_type' as constraint should also support old syntax.
-Obsolete_class_or_tuple_type:
-	TE_BANG Unmarked_class_or_tuple_type
-			{
-				$$ := $2
-				if not is_ignoring_attachment_marks and then attached $$ as l_type then
-					l_type.set_attachment_mark ($1, True, False)
-				end
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use the `attached' keyword instead of !."))
-				end
-		}
-	| TE_QUESTION Unmarked_class_or_tuple_type
-			{
-				$$ := $2
-				if not is_ignoring_attachment_marks and then attached $$ as l_type then
-					l_type.set_attachment_mark ($1, False, True)
-				end
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use the `detachable' keyword instead of ?."))
-				end
-		}
-	;
-
 -- 'Obsolete_type' represent types that we used to accept but will disallow in the future.
 Obsolete_type: TE_EXPANDED Unmarked_class_type
 			{
 				$$ := $2
 				ast_factory.set_expanded_class_type ($$, True, $1)
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Make an expanded version of the base class associated with this type."))
-				end
-			}
-	|	TE_BANG Unmarked_unqualified_anchored_type
-			{
-				$$ := $2
-				if not is_ignoring_attachment_marks and then attached $$ as l_type then
-					l_type.set_attachment_mark ($1, True, False)
-				end
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use the `attached' keyword instead of !."))
-				end
-			}
-	|	TE_QUESTION Unmarked_unqualified_anchored_type
-			{
-				$$ := $2
-				if not is_ignoring_attachment_marks and then attached $$ as l_type then
-					l_type.set_attachment_mark ($1, False, True)
-				end
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use the `detachable' keyword instead of ?."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Make an expanded version of the base class associated with this type.", once "parser.eiffel.warning")))
 				end
 			}
 	;
@@ -2197,11 +2199,11 @@ Generics:	TE_LSQURE Type_list TE_RSQURE
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-							once "Empty Type_list is not allowed and will be discarded."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty Type_list is not allowed and will be discarded.", once "parser.eiffel.warning")))
 				end
-				if attached ast_factory.new_eiffel_list_type (0) as l_list then
+				if attached ast_factory.new_eiffel_list_type (Void, 0) as l_list then
 					$$ := l_list
 					l_list.set_positions ($1, $2)
 				end	
@@ -2214,9 +2216,8 @@ Type_list: Add_counter Type_list_impl Remove_counter
 
 Type_list_impl: Type
 			{
-				$$ := ast_factory.new_eiffel_list_type (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_type (v, counter_value + 1)
 				end
 			}
 	|	Type TE_COMMA Increment_counter Type_list_impl
@@ -2236,11 +2237,11 @@ Unmarked_tuple_type: Tuple_identifier
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($4), token_column ($4), filename,
-							once "Empty Type_list is not allowed and will be discarded."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($4), token_column ($4), filename,
+						locale.translation_in_context (once "Empty Type_list is not allowed and will be discarded.", once "parser.eiffel.warning")))
 				end
-				if attached ast_factory.new_eiffel_list_type (0) as l_type_list then
+				if attached ast_factory.new_eiffel_list_type (Void, 0) as l_type_list then
 					l_type_list.set_positions ($4, $5)
 					$$ := ast_factory.new_class_type_as ($1, l_type_list)
 				else
@@ -2271,9 +2272,8 @@ Unmarked_tuple_type: Tuple_identifier
 
 Actual_parameter_list:	Type TE_RSQURE				
 			{
-				$$ := ast_factory.new_eiffel_list_type (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_type (v, counter_value + 1)
 				end
 				last_rsqure.force ($2)
 			}
@@ -2301,16 +2301,15 @@ Actual_parameter_list:	Type TE_RSQURE
 	
 Named_parameter_list: TE_ID TE_COLON Type TE_RSQURE
 			{
-				$$ := ast_factory.new_eiffel_list_type_dec_as (counter2_value + 1)
-				if
-					attached $$ as l_named_list and then attached $1 as l_name and then
-					attached ast_factory.new_identifier_list (counter_value + 1) as l_list and then
-					attached ast_factory.new_type_dec_as (l_list, $3, $2) as l_type_dec_as
-				then
-					l_name.to_lower		
-					l_list.reverse_extend (l_name.name_id)
-					ast_factory.reverse_extend_identifier (l_list, l_name)
-					l_named_list.reverse_extend (l_type_dec_as)
+				if attached $1 as l_name then
+					l_name.to_lower
+					if
+						attached ast_factory.new_identifier_list (l_name.name_id, counter_value + 1) as l_list and then
+						attached ast_factory.new_type_dec_as (l_list, $3, $2) as l_type_dec_as
+					then
+						ast_factory.reverse_extend_identifier (l_list, l_name)
+						$$ := ast_factory.new_eiffel_list_type_dec_as (l_type_dec_as, counter2_value + 1)
+					end
 				end
 				last_rsqure.force ($4)
 			}
@@ -2333,15 +2332,15 @@ Named_parameter_list: TE_ID TE_COLON Type TE_RSQURE
 			{
 				remove_counter
 				$$ := $7
-				if
-					attached $$ as l_named_list and then attached $1 as l_name and then $3 /= Void and then
-					attached ast_factory.new_identifier_list (counter_value + 1) as l_list and then
-					attached ast_factory.new_type_dec_as (l_list, $3, $2) as l_type_dec_as
-				then
-					l_name.to_lower		
-					l_list.reverse_extend (l_name.name_id)
-					ast_factory.reverse_extend_identifier (l_list, l_name)
-					l_named_list.reverse_extend (l_type_dec_as)
+				if attached $$ as l_named_list and then attached $1 as l_name and then attached $3 then
+					l_name.to_lower
+					if
+						attached ast_factory.new_identifier_list (l_name.name_id, counter_value + 1) as l_list and then
+						attached ast_factory.new_type_dec_as (l_list, $3, $2) as l_type_dec_as
+					then
+						ast_factory.reverse_extend_identifier (l_list, l_name)
+						l_named_list.reverse_extend (l_type_dec_as)
+					end
 				end
 			}
 	;
@@ -2359,14 +2358,22 @@ Formal_generics:
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-							once "Empty Formal_generic_list is not allowed and will be discarded."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty Formal_generic_list is not allowed and will be discarded.", once "parser.eiffel.warning")))
 				end
 				set_formal_generics_end_positions (True)
-				$$ := ast_factory.new_eiffel_list_formal_dec_as (0)
+				$$ := ast_factory.new_eiffel_list_formal_dec_as (Void, 0)
 				if attached $$ as l_formals then
 					l_formals.set_squre_symbols ($1, $2)
+				end
+				if
+					is_once and then
+					attached (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context ("A once class may not have formal generic parameters.", "compiler.parser"))) as e
+				then
+					e.set_associated_class (current_class)
+					error_handler.insert_error (e)
 				end
 			}
 	|	TE_LSQURE Add_counter Disable_supplier_recording Formal_generic_list Enable_supplier_recording Remove_counter TE_RSQURE
@@ -2377,14 +2384,21 @@ Formal_generics:
 					l_formals.transform_class_types_to_formals_and_record_suppliers (ast_factory, suppliers, formal_parameters)
 					l_formals.set_squre_symbols ($1, $7)
 				end
+				if
+					is_once and then
+					attached (create {SYNTAX_ERROR}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context ("A once class may not have formal generic parameters.", "compiler.parser"))) as e
+				then
+					e.set_associated_class (current_class)
+					error_handler.insert_error (e)
+				end
 			}
 	;
 
 Formal_generic_list: Formal_generic
 			{
-				$$ := ast_factory.new_eiffel_list_formal_dec_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_formal_dec_as (v, counter_value + 1)
 				end
 			}
 	|	Formal_generic TE_COMMA Increment_counter Formal_generic_list
@@ -2402,10 +2416,10 @@ Formal_parameter: TE_REFERENCE Class_identifier
 				if attached $2 as l_id and then {PREDEFINED_NAMES}.none_class_name_id = l_id.name_id then
 						-- Trigger an error when constraint is NONE.
 						-- Needs to be done manually since current test for
-						-- checking that `$2' is not a class name
+						-- checking that "$2" is not a class name
 						-- will fail for NONE, whereas before there were some
-						-- syntactic conflict since `NONE' was a keyword and
-						-- therefore not part of `TE_ID'.
+						-- syntactic conflict since "NONE" was a keyword and
+						-- therefore not part of TE_ID.
 					raise_error
 				else
 					$$ := ast_factory.new_formal_as ($2, True, False, False, $1)
@@ -2416,10 +2430,10 @@ Formal_parameter: TE_REFERENCE Class_identifier
 				if attached $2 as l_id and then {PREDEFINED_NAMES}.none_class_name_id = l_id.name_id then
 						-- Trigger an error when constraint is NONE.
 						-- Needs to be done manually since current test for
-						-- checking that `$2' is not a class name
+						-- checking that "$2" is not a class name
 						-- will fail for NONE, whereas before there were some
-						-- syntactic conflict since `NONE' was a keyword and
-						-- therefore not part of `TE_ID'.
+						-- syntactic conflict since "NONE" was a keyword and
+						-- therefore not part of TE_ID.
 					raise_error
 				else
 					$$ := ast_factory.new_formal_as ($2, False, True, False, $1)
@@ -2431,10 +2445,10 @@ Formal_parameter: TE_REFERENCE Class_identifier
 				if attached $2 as l_id and then {PREDEFINED_NAMES}.none_class_name_id = l_id.name_id then
 						-- Trigger an error when constraint is NONE.
 						-- Needs to be done manually since current test for
-						-- checking that `$1' is not a class name
+						-- checking that "$1" is not a class name
 						-- will fail for NONE, whereas before there were some
-						-- syntactic conflict since `NONE' was a keyword and
-						-- therefore not part of `TE_ID'.
+						-- syntactic conflict since "NONE" was a keyword and
+						-- therefore not part of TE_ID.
 					raise_error
 				else
 					$$ := ast_factory.new_formal_as ($2, False, False, True, $1)
@@ -2446,10 +2460,10 @@ Formal_parameter: TE_REFERENCE Class_identifier
 				if attached $1 as l_id and then {PREDEFINED_NAMES}.none_class_name_id = l_id.name_id then
 						-- Trigger an error when constraint is NONE.
 						-- Needs to be done manually since current test for
-						-- checking that `$1' is not a class name
+						-- checking that "$1" is not a class name
 						-- will fail for NONE, whereas before there were some
-						-- syntactic conflict since `NONE' was a keyword and
-						-- therefore not part of `TE_ID'.
+						-- syntactic conflict since "NONE" was a keyword and
+						-- therefore not part of TE_ID.
 					raise_error
 				else
 					$$ := ast_factory.new_formal_as ($1, False, False, False, Void)
@@ -2490,7 +2504,7 @@ Constraint: -- Empty
 					attached $2 as l_val and then
 					attached ast_factory.new_eiffel_list_constraining_type_as (1) as l_list
 				then
-					l_list.reverse_extend (l_val)
+					l_list.back_extend (l_val)
 					$$ := ast_factory.new_constraint_triple ($1, l_list, $3)
 				else
 					$$ := ast_factory.new_constraint_triple ($1, Void, $3)
@@ -2522,13 +2536,6 @@ Constraint_type:
 					report_one_error (ast_factory.new_vtgc1_error (token_line (l_type), token_column (l_type), filename, l_type))
 				end
 			}
-	|	Obsolete_class_or_tuple_type
-			{
-				$$ := $1
-				if attached $1 as l_type and then l_type.has_anchor then
-					report_one_error (ast_factory.new_vtgc1_error (token_line (l_type), token_column (l_type), filename, l_type))
-				end
-			}
 	|	Anchored_type
 			{
 				if attached $1 as l_type then
@@ -2540,11 +2547,11 @@ Constraint_type:
 Multiple_constraint_list:	Single_constraint
 			{
 					-- Special list treatment here as we do not want Void
-					-- element in `Assertion_list'.
+					-- element in Assertion_list.
 				if attached $1 as l_val then
 					$$ := ast_factory.new_eiffel_list_constraining_type_as (counter_value + 1)
 					if attached $$ as l_list then
-						l_list.reverse_extend (l_val)
+						l_list.back_extend (l_val)
 					end
 				else
 					$$ := ast_factory.new_eiffel_list_constraining_type_as (counter_value)
@@ -2561,7 +2568,7 @@ Multiple_constraint_list:	Single_constraint
 			{
 				$$ := $4
 				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+					l_list.back_extend (l_val)
 					ast_factory.reverse_extend_separator (l_list, $2)
 				end
 			}
@@ -2595,9 +2602,8 @@ Elseif_list: Add_counter Elseif_part_list Remove_counter
 
 Elseif_part_list: Elseif_part
 			{
-				$$ := ast_factory.new_eiffel_list_elseif_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_elseif_as (v, counter_value + 1)
 				end
 			}
 	|	Elseif_part Increment_counter Elseif_part_list
@@ -2621,7 +2627,7 @@ Multi_branch: TE_INSPECT Expression When_part_list_opt TE_END
 					$$ := ast_factory.new_inspect_as ($2, $3, $5, $6, $1, $4)
 				else
 					$$ := ast_factory.new_inspect_as ($2, $3,
-						ast_factory.new_eiffel_list_instruction_as (0), $6, $1, $4)
+						ast_factory.new_eiffel_list_instruction_as (Void, 0), $6, $1, $4)
 				end
 			}
 	;
@@ -2634,9 +2640,8 @@ When_part_list_opt: -- Empty
 
 When_part_list: When_part
 			{
-				$$ := ast_factory.new_eiffel_list_case_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_case_as (v, counter_value + 1)
 				end
 			}
 	|	When_part Increment_counter When_part_list
@@ -2654,9 +2659,8 @@ When_part: TE_WHEN Add_counter Choices Remove_counter TE_THEN Compound
 
 Choices: Choice
 			{
-				$$ := ast_factory.new_eiffel_list_interval_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_interval_as (v, counter_value + 1)
 				end
 			}
 	|	Choice TE_COMMA Increment_counter Choices
@@ -2712,37 +2716,37 @@ Loop_instruction:
 	TE_FROM Compound Invariant Variant TE_UNTIL Expression TE_LOOP Compound TE_END
 			{
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($4), token_column ($4), filename,
-						once "Loop variant should appear just before the end keyword of the loop."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($4), token_column ($4), filename,
+						locale.translation_in_context (once "Loop variant should appear just before the end keyword of the loop.", once "parser.eiffel.warning")))
 				end
 				if attached $3 as l_invariant_pair then
-					$$ := ast_factory.new_loop_as (Void, $2, l_invariant_pair.second, $4, $6, $8, $9, $1, l_invariant_pair.first, $5, $7)
+					$$ := ast_factory.new_loop_as (Void, $2, l_invariant_pair.second, $4, $6, $8, $9, $1, l_invariant_pair.first, $5, $7, Void, Void)
 				else
-					$$ := ast_factory.new_loop_as (Void, $2, Void, $4, $6, $8, $9, $1, Void, $5, $7)
+					$$ := ast_factory.new_loop_as (Void, $2, Void, $4, $6, $8, $9, $1, Void, $5, $7, Void, Void)
 				end
 			}
 	| TE_FROM Compound Invariant TE_UNTIL Expression TE_LOOP Compound Variant_opt TE_END
 			{
 				if attached $3 as l_invariant_pair then
-					$$ := ast_factory.new_loop_as (Void, $2, l_invariant_pair.second, $8, $5, $7, $9, $1, l_invariant_pair.first, $4, $6)
+					$$ := ast_factory.new_loop_as (Void, $2, l_invariant_pair.second, $8, $5, $7, $9, $1, l_invariant_pair.first, $4, $6, Void, Void)
 				else
-					$$ := ast_factory.new_loop_as (Void, $2, Void, $8, $5, $7, $9, $1, Void, $4, $6)
+					$$ := ast_factory.new_loop_as (Void, $2, Void, $8, $5, $7, $9, $1, Void, $4, $6, Void, Void)
 				end
 			}
 	| Iteration TE_FROM Compound Invariant Exit_condition_opt TE_LOOP Compound Variant_opt TE_END
 			{
 				if attached $4 as l_invariant_pair then
 					if attached $5 as l_until_pair then
-						$$ := ast_factory.new_loop_as ($1, $3, l_invariant_pair.second, $8, l_until_pair.second, $7, $9, $2, l_invariant_pair.first, l_until_pair.first, $6)
+						$$ := ast_factory.new_loop_as ($1, $3, l_invariant_pair.second, $8, l_until_pair.second, $7, $9, $2, l_invariant_pair.first, l_until_pair.first, $6, Void, Void)
 					else
-						$$ := ast_factory.new_loop_as ($1, $3, l_invariant_pair.second, $8, Void, $7, $9, $2, l_invariant_pair.first, Void, $6)
+						$$ := ast_factory.new_loop_as ($1, $3, l_invariant_pair.second, $8, Void, $7, $9, $2, l_invariant_pair.first, Void, $6, Void, Void)
 					end
 				else
 					if attached $5 as l_until_pair then
-						$$ := ast_factory.new_loop_as ($1, $3, Void, $8, l_until_pair.second, $7, $9, $2, Void, l_until_pair.first, $6)
+						$$ := ast_factory.new_loop_as ($1, $3, Void, $8, l_until_pair.second, $7, $9, $2, Void, l_until_pair.first, $6, Void, Void)
 					else
-						$$ := ast_factory.new_loop_as ($1, $3, Void, $8, Void, $7, $9, $2, Void, Void, $6)
+						$$ := ast_factory.new_loop_as ($1, $3, Void, $8, Void, $7, $9, $2, Void, Void, $6, Void, Void)
 					end
 				end
 				leave_scope
@@ -2751,17 +2755,24 @@ Loop_instruction:
 			{
 				if attached $2 as l_invariant_pair then
 					if attached $3 as l_until_pair then
-						$$ := ast_factory.new_loop_as ($1, Void, l_invariant_pair.second, $6, l_until_pair.second, $5, $7, Void, l_invariant_pair.first, l_until_pair.first, $4)
+						$$ := ast_factory.new_loop_as ($1, Void, l_invariant_pair.second, $6, l_until_pair.second, $5, $7, Void, l_invariant_pair.first, l_until_pair.first, $4, Void, Void)
 					else
-						$$ := ast_factory.new_loop_as ($1, Void, l_invariant_pair.second, $6, Void, $5, $7, Void, l_invariant_pair.first, Void, $4)
+						$$ := ast_factory.new_loop_as ($1, Void, l_invariant_pair.second, $6, Void, $5, $7, Void, l_invariant_pair.first, Void, $4, Void, Void)
 					end
 				else
 					if attached $3 as l_until_pair then
-						$$ := ast_factory.new_loop_as ($1, Void, Void, $6, l_until_pair.second, $5, $7, Void, Void, l_until_pair.first, $4)
+						$$ := ast_factory.new_loop_as ($1, Void, Void, $6, l_until_pair.second, $5, $7, Void, Void, l_until_pair.first, $4, Void, Void)
 					else
-						$$ := ast_factory.new_loop_as ($1, Void, Void, $6, Void, $5, $7, Void, Void, Void, $4)
+						$$ := ast_factory.new_loop_as ($1, Void, Void, $6, Void, $5, $7, Void, Void, Void, $4, Void, Void)
 					end
 				end
+				leave_scope
+			}
+	| TE_REPEAT_OPEN Identifier_as_lower TE_COLON Expression TE_BAR {enter_scope; add_scope_iteration ($2)} Compound TE_REPEAT_CLOSE
+			{
+				insert_supplier ("ITERABLE", $2)
+				insert_supplier ("ITERATION_CURSOR", $2)
+				$$ := ast_factory.new_loop_as (ast_factory.new_symbolic_iteration_as ($2, $3, $4, $5), Void, Void, Void, Void, $7, Void, Void, Void, Void, Void, extract_symbol ($1), extract_symbol ($8))
 				leave_scope
 			}
 	;
@@ -2771,15 +2782,15 @@ Loop_expression:
 			{
 				if attached $2 as l_invariant_pair then
 					if attached $3 as l_until_pair then
-						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, l_until_pair.first, l_until_pair.second, $4, True, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, l_until_pair.first, l_until_pair.second, $4, Void, True, $5, $6, $7)
 					else
-						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, Void, Void, $4, True, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, Void, Void, $4, Void, True, $5, $6, $7)
 					end
 				else
 					if attached $3 as l_until_pair then
-						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, l_until_pair.first, l_until_pair.second, $4, True, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, l_until_pair.first, l_until_pair.second, $4, Void, True, $5, $6, $7)
 					else
-						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, Void, Void, $4, True, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, Void, Void, $4, Void, True, $5, $6, $7)
 					end
 				end
 				leave_scope
@@ -2788,27 +2799,43 @@ Loop_expression:
 			{
 				if attached $2 as l_invariant_pair then
 					if attached $3 as l_until_pair then
-						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, l_until_pair.first, l_until_pair.second, extract_keyword ($4), False, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, l_until_pair.first, l_until_pair.second, extract_keyword ($4), Void, False, $5, $6, $7)
 					else
-						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, Void, Void, extract_keyword ($4), False, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, l_invariant_pair.first, l_invariant_pair.second, Void, Void, extract_keyword ($4), Void, False, $5, $6, $7)
 					end
 				else
 					if attached $3 as l_until_pair then
-						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, l_until_pair.first, l_until_pair.second, extract_keyword ($4), False, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, l_until_pair.first, l_until_pair.second, extract_keyword ($4), Void, False, $5, $6, $7)
 					else
-						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, Void, Void, extract_keyword ($4), False, $5, $6, $7)
+						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, Void, Void, extract_keyword ($4), Void, False, $5, $6, $7)
 					end
 				end
 				leave_scope
 			}
-	;
+	| TE_FORALL Identifier_as_lower TE_COLON Expression TE_BAR {enter_scope; add_scope_iteration ($2)} Expression
+			{
+				insert_supplier ("ITERABLE", $2)
+				insert_supplier ("ITERATION_CURSOR", $2)
+				$$ := ast_factory.new_loop_expr_as
+					(ast_factory.new_symbolic_iteration_as ($2, $3, $4, $5), Void, Void, Void, Void, Void, extract_symbol ($1), True, $7, Void, Void)
+				leave_scope
+			}
+	| TE_EXISTS Identifier_as_lower TE_COLON Expression TE_BAR {enter_scope; add_scope_iteration ($2)} Expression
+			{
+				insert_supplier ("ITERABLE", $2)
+				insert_supplier ("ITERATION_CURSOR", $2)
+				$$ := ast_factory.new_loop_expr_as
+					(ast_factory.new_symbolic_iteration_as ($2, $3, $4, $5), Void, Void, Void, Void, Void, extract_symbol ($1), False, $7, Void, Void)
+				leave_scope
+			}
+	;                                
 
 Iteration:
 	TE_ACROSS Expression TE_AS Identifier_as_lower
 			{
 				insert_supplier ("ITERABLE", $4)
 				insert_supplier ("ITERATION_CURSOR", $4)
-				$$ := ast_factory.new_iteration_as (extract_keyword ($1), $2, $3, $4, False)
+				$$ := ast_factory.new_iteration_as (extract_keyword ($1), $2, $3, $4, not is_explicit_iteration_cursor)
 				enter_scope
 				add_scope_iteration ($4)
 			}
@@ -2817,6 +2844,7 @@ Iteration:
 				insert_supplier ("ITERABLE", $4)
 				insert_supplier ("ITERATION_CURSOR", $4)
 				$$ := ast_factory.new_iteration_as (extract_keyword ($1), $2, extract_keyword ($3), $4, True)
+				report_deprecated_use_of_keyword_is (extract_keyword ($3))
 				enter_scope
 				add_scope_iteration ($4)
 			}
@@ -2871,9 +2899,9 @@ Key_list: -- Empty
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Empty key list is not allowed"))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty key list is not allowed", once "parser.eiffel.warning")))
 				end
 				$$ := ast_factory.new_key_list_as (Void, $1, $2)
 			}
@@ -2883,9 +2911,8 @@ Key_list: -- Empty
 
 String_list: Non_empty_string
 			{
-				$$ := ast_factory.new_eiffel_list_string_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_string_as (v, counter_value + 1)
 				end
 			}
 	|	Non_empty_string TE_COMMA Increment_counter String_list
@@ -2903,7 +2930,7 @@ Rescue: -- Empty
 	|	TE_RESCUE Compound
 			{
 				if $2 = Void then
-					$$ := ast_factory.new_keyword_instruction_list_pair ($1, ast_factory.new_eiffel_list_instruction_as (0))
+					$$ := ast_factory.new_keyword_instruction_list_pair ($1, ast_factory.new_eiffel_list_instruction_as (Void, 0))
 				else
 					$$ := ast_factory.new_keyword_instruction_list_pair ($1, $2)
 				end
@@ -2930,9 +2957,8 @@ Creators: -- Empty
 
 Creation_clause_list: Creation_clause
 			{
-				$$ := ast_factory.new_eiffel_list_create_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_create_as (v, counter_value + 1)
 				end
 			}
 	|	Creation_clause Increment_counter Creation_clause_list
@@ -2961,27 +2987,27 @@ Creation_clause:
 			{
 				$$ := ast_factory.new_create_as (Void, Void, $1)
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use keyword `create' instead."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Use keyword `create` instead.", once "parser.eiffel.warning")))
 				end
 			}
 	|	TE_CREATION Clients Feature_list
 			{
 				$$ := ast_factory.new_create_as ($2, $3, $1)
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use keyword `create' instead."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Use keyword `create` instead.", once "parser.eiffel.warning")))
 				end
 			}
 	|	TE_CREATION Client_list
 			{
 				$$ := ast_factory.new_create_as (ast_factory.new_client_as ($2), Void, $1)
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Use keyword `create' instead."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Use keyword `create` instead.", once "parser.eiffel.warning")))
 				end
 			}
 	;
@@ -3007,7 +3033,7 @@ Agent:
 			$$ := ast_factory.new_inline_agent_creation_as (
 				ast_factory.new_body_as ($2, $4, Void, $6, $3, Void, Void, Void), $8, $1)
 		}
-	|	TE_AGENT Feature_name_for_call Delayed_actuals
+	|	TE_AGENT Identifier_as_lower Delayed_actuals
 		{
 			inspect id_level when Precondition_level, Postcondition_level then
 				set_has_unqualified_call_in_assertion (True)
@@ -3017,7 +3043,7 @@ Agent:
 			$$ := ast_factory.new_agent_routine_creation_as (
 				Void, $2, $3, False, $1, Void)
 		}
-	|	TE_AGENT Agent_target TE_DOT Feature_name_for_call Delayed_actuals
+	|	TE_AGENT Agent_target TE_DOT Identifier_as_lower Delayed_actuals
 		{
 			if attached $2 as l_target then
 				$$ := ast_factory.new_agent_routine_creation_as (l_target.operand, $4, $5, True, $1, $3)
@@ -3046,12 +3072,12 @@ Agent_target: Identifier_as_lower
 			else
 				-- Nothing to do.
 			end
-			$$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, ast_factory.new_access_id_as ($1, Void), Void))
+			$$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, ast_factory.new_expr_call_as (ast_factory.new_access_id_as ($1, Void))))
 		}
 	|	TE_LPARAN Add_counter Add_counter Expression Remove_counter Remove_counter TE_RPARAN
-		{ $$ := ast_factory.new_agent_target_triple ($1, $7, ast_factory.new_operand_as (Void, Void, $4)) }	
+		{ $$ := ast_factory.new_agent_target_triple ($1, $7, ast_factory.new_operand_as (Void, $4)) }	
 	|	TE_RESULT
-		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1, Void)) }
+		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1)) }
 	|	TE_CURRENT
 		{
 			inspect id_level when Precondition_level, Postcondition_level then
@@ -3059,13 +3085,13 @@ Agent_target: Identifier_as_lower
 			else
 				-- Nothing to do.
 			end
-			$$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1, Void))
+			$$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1))
 		}
 	|	Typed
-		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as ($1, Void, Void))}
+		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as ($1, Void))}
 	|	TE_QUESTION
 		{
-			if attached ast_factory.new_operand_as (Void, Void, Void) as l_temp_operand_as then
+			if attached ast_factory.new_operand_as (Void, Void) as l_temp_operand_as then
 				l_temp_operand_as.set_question_mark_symbol ($1)
 				$$ := ast_factory.new_agent_target_triple (Void, Void, l_temp_operand_as)
 			else
@@ -3081,9 +3107,9 @@ Delayed_actuals: -- Empty
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Empty agent actual list is not allowed"))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty agent actual list is not allowed", once "parser.eiffel.warning")))
 				end
 				$$ := ast_factory.new_delayed_actual_list_as (Void, $1, $2)
 			}
@@ -3093,9 +3119,8 @@ Delayed_actuals: -- Empty
 
 Delayed_actual_list: Delayed_actual
 			{
-				$$ := ast_factory.new_eiffel_list_operand_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_operand_as (v, counter_value + 1)
 				end
 			}
 	|	Delayed_actual TE_COMMA Increment_counter Delayed_actual_list
@@ -3109,7 +3134,7 @@ Delayed_actual_list: Delayed_actual
 	;
 
 Delayed_actual: TE_QUESTION
-			{ $$ := ast_factory.new_operand_as (Void, Void, Void)
+			{ $$ := ast_factory.new_operand_as (Void, Void)
 				if attached $$ as l_actual then
 					l_actual.set_question_mark_symbol ($1)
 				end
@@ -3119,50 +3144,23 @@ Delayed_actual: TE_QUESTION
 -- To preserve this feature in case it is needed by some of our customers
 -- we have invented the new syntax Typed ?.
 	|	Typed TE_QUESTION
-			{ $$ := ast_factory.new_operand_as ($1, Void, Void)
+			{ $$ := ast_factory.new_operand_as ($1, Void)
 				if attached $$ as l_actual then
 					l_actual.set_question_mark_symbol ($2)
 				end
 			}
 	|	Expression
-			{ $$ := ast_factory.new_operand_as (Void, Void, $1) }
+			{ $$ := ast_factory.new_operand_as (Void, $1) }
 	;
 
-Creation: TE_BANG TE_BANG Creation_target Creation_call
-			{
-				$$ := ast_factory.new_bang_creation_as (Void, $3, $4, $1, $2)
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1),
-						filename, "Use keyword `create' instead."))
-				end
-			}
-	|	TE_BANG Obsolete_creation_type TE_BANG Creation_target Creation_call
-			{
-				$$ := ast_factory.new_bang_creation_as ($2, $4, $5, $1, $3)
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1),
-						filename, "Use keyword `create' instead."))
-				end
-			}
-	|	TE_CREATE Creation_region Creation_target Creation_call
-			{ $$ := ast_factory.new_create_creation_as ($2, Void, $3, $4, $1) }
+Creation:	TE_CREATE Creation_region Creation_target Creation_call
+			{ $$ := ast_factory.new_creation_as ($2, Void, $3, $4, $1) }
 	|	TE_CREATE Creation_region Typed Creation_target Creation_call
-			{ $$ := ast_factory.new_create_creation_as ($2, $3, $4, $5, $1) }
+			{ $$ := ast_factory.new_creation_as ($2, $3, $4, $5, $1) }
 	;
 
 Creation_expression: TE_CREATE Creation_region Typed Creation_call
-			{ $$ := ast_factory.new_create_creation_expr_as ($2, $3, $4, $1) }
-	|	TE_BANG Obsolete_creation_type TE_BANG Creation_call
-			{
-				$$ := ast_factory.new_bang_creation_expr_as ($2, $4, $1, $3)
-				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1),
-						filename, "Use keyword `create' instead."))
-				end
-			}
+			{ $$ := ast_factory.new_creation_expr_as ($2, $3, $4, $1) }
 	;
 
 Creation_region: -- Empty
@@ -3174,7 +3172,8 @@ Creation_region: -- Empty
 					if {PREDEFINED_NAMES}.none_class_name_id = l_id.name_id then
 						$$ := False
 					else
-						report_one_error (create {SYNTAX_ERROR}.make (token_line ($2), token_column ($2), filename, "Passive regions should use type specifier %"NONE%"."))
+						report_one_error (create {SYNTAX_ERROR}.make (token_line ($2), token_column ($2), filename,
+							locale.translation_in_context ("Passive regions should use type specifier %"NONE%".", once "parser.eiffel.error")))
 					end
 				end
 			}
@@ -3205,6 +3204,23 @@ Call: A_feature
 			{ $$ := $1 }
 	;
 
+-- Predecessor
+
+Predecessor:	TE_AT Identifier_as_lower %prec PREDECESSOR_OPERATOR
+			{
+				if syntax_version = obsolete_syntax then
+					$$ := ast_factory.new_un_free_as (extract_id_from_symbol ($1), ast_factory.new_expr_call_as (ast_factory.new_access_id_as ($2, Void)))
+					if has_syntax_warning then
+						report_one_warning
+							(create {SYNTAX_WARNING}.make (token_line (extract_id_from_symbol ($1)), token_column (extract_id_from_symbol ($1)), filename,
+							locale.translation_in_context (once "Obsolete operator notation `@` is used. Replace it with a contemporary operator (if available) or an unfolded form of feature call.", once "parser.eiffel.warning")))
+					end
+				else
+					$$ := ast_factory.new_predecessor_as ($2, extract_symbol ($1))
+				end
+			}
+	;
+
 -- Check instruction
 
 Check: TE_CHECK Assertion TE_END
@@ -3233,9 +3249,8 @@ Separate_argument: Expression TE_AS Identifier_as_lower
 
 Separate_argument_list: Separate_argument
 			{
-				$$ := ast_factory.new_eiffel_list_named_expression_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_named_expression_as (v, counter_value + 1)
 				end
 			}
 	|	Separate_argument TE_COMMA Increment_counter Separate_argument_list
@@ -3294,7 +3309,6 @@ Expression:
 					l_type.set_lcurly_symbol ($2)
 					l_type.set_rcurly_symbol ($4)
 				end
-				check_object_test_expression ($5)
 				$$ := ast_factory.new_object_test_as (extract_keyword ($1), $3, $5, Void, Void)
 			}
 	|	TE_ATTACHED TE_LCURLY Type TE_RCURLY Expression TE_AS Identifier_as_lower
@@ -3303,7 +3317,6 @@ Expression:
 					l_type.set_lcurly_symbol ($2)
 					l_type.set_rcurly_symbol ($4)
 				end
-				check_object_test_expression ($5)
 				$$ := ast_factory.new_object_test_as (extract_keyword ($1), $3, $5, $6, $7)
 				if attached $7 as l_name and attached $3 as l_type then
 					insert_object_test_locals ([l_name, l_type])
@@ -3312,15 +3325,14 @@ Expression:
 			}
 	|	TE_LCURLY Identifier_as_lower TE_COLON Type TE_RCURLY Expression %prec TE_NOT
 			{
-				check_object_test_expression ($6)
 				$$ := ast_factory.new_old_syntax_object_test_as ($1, $2, $4, $6)
 				if attached $2 as l_name and attached $4 as l_type then
 					insert_object_test_locals ([l_name, l_type])
 				end
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1),
-							filename, once "Use the new syntax for object test `attached {T} exp as x'."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Use the following syntax for object test: `attached {T} exp as x`.", once "parser.eiffel.warning")))
 
 				end
 			}
@@ -3343,16 +3355,28 @@ Qualified_binary_expression:
 			{ $$ := ast_factory.new_bin_power_as ($1, $3, $2) }
 	|	Expression TE_AND Expression
 			{ $$ := ast_factory.new_bin_and_as ($1, $3, $2) }
+	|	Expression TE_FREE_AND Expression
+			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
 	|	Expression TE_AND TE_THEN Expression %prec TE_AND
 			{ $$ := ast_factory.new_bin_and_then_as ($1, $4, $2, $3) }
+	|	Expression TE_FREE_AND_THEN Expression
+			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
 	|	Expression TE_OR Expression
 			{ $$ := ast_factory.new_bin_or_as ($1, $3, $2) }
+	|	Expression TE_FREE_OR Expression
+			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
 	|	Expression TE_OR TE_ELSE Expression %prec TE_OR
 			{ $$ := ast_factory.new_bin_or_else_as ($1, $4,$2, $3) }
+	|	Expression TE_FREE_OR_ELSE Expression
+			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
 	|	Expression TE_IMPLIES Expression
 			{ $$ := ast_factory.new_bin_implies_as ($1, $3, $2) }
+	|	Expression TE_FREE_IMPLIES Expression
+			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
 	|	Expression TE_XOR Expression
 			{ $$ := ast_factory.new_bin_xor_as ($1, $3, $2) }
+	|	Expression TE_FREE_XOR Expression
+			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
 	|	Expression TE_GE Expression
 			{ $$ := ast_factory.new_bin_ge_as ($1, $3, $2) }
 	|	Expression TE_GT Expression
@@ -3361,8 +3385,27 @@ Qualified_binary_expression:
 			{ $$ := ast_factory.new_bin_le_as ($1, $3, $2) }
 	|	Expression TE_LT Expression
 			{ $$ := ast_factory.new_bin_lt_as ($1, $3, $2) }
-	|	Expression Free_operator Expression %prec TE_FREE
-			{ $$ := ast_factory.new_bin_free_as ($1, $2, $3) }
+	|	Expression TE_FREE Expression
+			{
+				if attached $2 as l_free then
+					l_free.to_lower
+				end
+				$$ := ast_factory.new_bin_free_as ($1, $2, $3)
+			}
+	|	Expression TE_AT Expression
+			{
+				if attached extract_id_from_symbol ($2) as operator then
+					if
+						syntax_version /= obsolete_syntax and then
+						has_syntax_warning
+					then
+						report_one_warning
+							(create {SYNTAX_WARNING}.make (token_line (operator), token_column (operator), filename,
+							locale.translation_in_context (once "Obsolete operator notation `@` is used. Replace it with a contemporary operator (if available) or an unfolded form of feature call.", once "parser.eiffel.warning")))
+					end
+					$$ := ast_factory.new_bin_free_as ($1, operator, $3)
+				end
+			}
 	;
 
 Factor: TE_VOID
@@ -3399,14 +3442,7 @@ Factor: TE_VOID
 			{ $$ := $1 }
 	|	Call
 			{ $$ := ast_factory.new_expr_call_as ($1) }
-	|	Qualified_factor
-			{ $$ := $1 }
-	|	Conditional_expression
-			{ $$ := $1 }
-	;
-
-Qualified_factor:
-		Bracket_expression 
+	|	Bracket_expression 
 			{ $$ := $1 }
 	|	Call_bracket_expression 
 			{ $$ := $1 }
@@ -3416,8 +3452,19 @@ Qualified_factor:
 			{ $$ := ast_factory.new_un_plus_as ($2, $1) }
 	|	TE_NOT Expression
 			{ $$ := ast_factory.new_un_not_as ($2, $1) }
-	|	Free_operator Expression %prec TE_NOT
+	|	TE_FREE_NOT Expression
 			{ $$ := ast_factory.new_un_free_as ($1, $2) }
+	|	TE_FREE Expression %prec TE_NOT
+			{
+				if attached $1 as l_free then
+					l_free.to_lower
+				end
+				$$ := ast_factory.new_un_free_as ($1, $2)
+			}
+	|	Conditional_expression
+			{ $$ := $1 }
+	|	Multi_branch_expression
+			{ $$ := $1 }
 	;
 
 Typed_expression:	Typed			
@@ -3428,56 +3475,51 @@ Typed_expression:	Typed
 			{ $$ := $1 }
 	;
 
-Free_operator: TE_FREE
-			{
-				if attached $1 as l_free then
-					l_free.to_lower
-				end
-				$$ := $1
-			}
-	;
-
 -- Bracket expression
 Bracket_expression:
 	  	Bracket_target TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
-			{		$$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
+			{ $$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
 	| 	Bracket_expression TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
-			{		$$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
+			{ $$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
 	;      
 
 Call_bracket_expression:
 		Call TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
 			{ $$ := ast_factory.new_bracket_as (ast_factory.new_expr_call_as ($1), $4, $2, $6) }
 	| 	Call_bracket_expression TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
-			{		$$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
+			{ $$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
 	;      
 
 -- Expression call
 
 Qualified_call:
-		TE_CURRENT TE_DOT Remote_call
+		Qualified_call TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as (ast_factory.new_expr_call_as ($1), $3, $2) }
+	|	TE_CURRENT TE_DOT Feature_access
 			{
 				inspect id_level when Precondition_level, Postcondition_level then
 					set_has_unqualified_call_in_assertion (True)
 				else
 					-- Nothing to do.
 				end
-				$$ := ast_factory.new_nested_as ($1, $3, $2)
+				$$ := ast_factory.new_nested_expr_as ($1, $3, $2)
 			}
-	|	TE_RESULT TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
-	|	A_feature TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
-	|	TE_LPARAN Expression TE_RPARAN TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_expr_as ($2, $5, $4, $1, $3) }
-	|	Bracket_expression TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2, Void, Void) }
-	|	Call_bracket_expression TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2, Void, Void) }
-	|	A_precursor TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
-	|	A_static_call TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
+	|	TE_RESULT TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2) }
+	|	TE_LPARAN Expression TE_RPARAN TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as (ast_factory.new_paran_as ($2, $1, $3), $5, $4) }
+	|	A_feature TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as (ast_factory.new_expr_call_as ($1), $3, $2) }
+	|	A_precursor TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as (ast_factory.new_expr_call_as ($1), $3, $2) }
+	|	A_static_call TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2) }
+	|	Bracket_expression TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2) }
+	|	Call_bracket_expression TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2) }
+	|	Predecessor TE_DOT Feature_access
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2) }
 	;
 
 A_precursor: TE_PRECURSOR Parameters
@@ -3538,42 +3580,14 @@ Old_a_static_call:
 			{
 				$$ := ast_factory.new_static_access_as ($2, $4, $5, $1, $3);
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1),
-							filename, once "Remove the `feature' keyword."))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Remove the `feature` keyword.", once "parser.eiffel.warning")))
 				end
 			}
 	;
 
-Remote_call: Call_on_feature_access
-			{ $$ := $1 }
-	|	Feature_access
-			{ $$ := $1 }
-	;
-
-Call_on_feature_access: Feature_access TE_DOT Feature_access
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
-	|	Feature_access TE_DOT Call_on_feature_access
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
-	;
-
-Feature_name_for_call: Identifier_as_lower
-			{ $$ := $1}
-	|	Infix
-			{
-				if attached $1 as l_infix then
-					$$ := l_infix.internal_name
-				end
-			}
-	|	Prefix
-			{
-				if attached $1 as l_prefix then
-					$$ := l_prefix.internal_name
-				end
-			}
-	;
-
-A_feature: Feature_name_for_call Parameters
+A_feature: Identifier_as_lower Parameters
 			{
 				inspect id_level
 				when Normal_level then
@@ -3587,7 +3601,7 @@ A_feature: Feature_name_for_call Parameters
 			}
 	;
 
-Feature_access: Feature_name_for_call Parameters
+Feature_access: Identifier_as_lower Parameters
 			{ $$ := ast_factory.new_access_feat_as ($1, $2) }
 	;
 
@@ -3605,16 +3619,18 @@ Bracket_target:
 				else
 					-- Nothing to do.
 				end
-				$$ := ast_factory.new_expr_call_as ($1)
+				$$ := $1
 			}
 	|	TE_RESULT
-			{ $$ := ast_factory.new_expr_call_as ($1) }
-	|	Creation_expression
-			{ $$ := ast_factory.new_expr_call_as ($1) }
-	|	Loop_expression
 			{ $$ := $1 }
 	|	TE_LPARAN Expression TE_RPARAN
 			{ $$ := ast_factory.new_paran_as ($2, $1, $3) }
+	|	Creation_expression
+			{ $$ := $1 }
+	|	Loop_expression
+			{ $$ := $1 }
+	|	Predecessor
+			{ $$ := $1 }
 	;
 
 Parameters: -- Empty
@@ -3624,9 +3640,9 @@ Parameters: -- Empty
 					-- Per ECMA, this should be rejected. For now we only raise
 					-- a warning. And on the compiler side, we will simply ignore them altogether.
 				if has_syntax_warning then
-					report_one_warning (
-						create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
-						once "Empty parameter list are not allowed"))
+					report_one_warning
+						(create {SYNTAX_WARNING}.make (token_line ($1), token_column ($1), filename,
+						locale.translation_in_context (once "Empty parameter list are not allowed", once "parser.eiffel.warning")))
 				end
 				$$ := ast_factory.new_parameter_list_as (Void, $1, $2)
 			}
@@ -3642,9 +3658,8 @@ Actual_parameter: Expression
 
 Parameter_list: Actual_parameter
 			{
-				$$ := ast_factory.new_eiffel_list_expr_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_expr_as (v, counter_value + 1)
 				end
 			}
 	|	Actual_parameter TE_COMMA Increment_counter Parameter_list
@@ -3659,9 +3674,8 @@ Parameter_list: Actual_parameter
 
 Expression_list: Expression
 			{
-				$$ := ast_factory.new_eiffel_list_expr_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_expr_as (v, counter_value + 1)
 				end
 			}
 	|	Expression TE_COMMA Increment_counter Expression_list
@@ -3783,9 +3797,8 @@ Elseif_list_expression: Add_counter Elseif_part_list_expression Remove_counter
 
 Elseif_part_list_expression: Elseif_part_expression
 			{
-				$$ := ast_factory.new_eiffel_list_elseif_expression_as (counter_value + 1)
-				if attached $$ as l_list and then attached $1 as l_val then
-					l_list.reverse_extend (l_val)
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_elseif_expression_as (v, counter_value + 1)
 				end
 			}
 	|	Elseif_part_expression Increment_counter Elseif_part_list_expression
@@ -3800,6 +3813,40 @@ Elseif_part_list_expression: Elseif_part_expression
 Elseif_part_expression: TE_ELSEIF Expression TE_THEN Expression
 			{ $$ := ast_factory.new_elseif_expression_as ($2, $4, $1, $3) }
 	;
+
+-- Multi-branch expression
+
+Multi_branch_expression: TE_INSPECT Expression When_expression_part_list_opt TE_END
+			{ $$ := ast_factory.new_inspect_expression_as ($2, $3, Void, $4, $1, Void) }
+	|	TE_INSPECT Expression When_expression_part_list_opt TE_ELSE Expression TE_END
+			{ $$ := ast_factory.new_inspect_expression_as ($2, $3, $5, $6, $1, $4) }
+	;
+
+When_expression_part_list_opt: -- Empty
+			-- { $$ := Void }
+	|	Add_counter When_expression_part_list Remove_counter
+			{ $$ := $2 }
+	;
+
+When_expression_part_list: When_expression_part
+			{
+				if attached $1 as v then
+					$$ := ast_factory.new_eiffel_list_case_expression_as (v, counter_value + 1)
+				end
+			}
+	|	When_expression_part Increment_counter When_expression_part_list
+			{
+				$$ := $3
+				if attached $$ as l_list and then attached $1 as l_val then
+					l_list.reverse_extend (l_val)
+				end
+			}
+	;
+
+When_expression_part: TE_WHEN Add_counter Choices Remove_counter TE_THEN Expression
+			{ $$ := ast_factory.new_case_expression_as ($3, $6, $1, $5) }
+	;
+
 
 -- Constant value without any type qualifier.
 Manifest_value: Boolean_constant
@@ -4045,114 +4092,13 @@ Non_empty_string: TE_STRING
 			{ $$ := $1 }
 	;
 
-Prefix_operator: TE_STR_MINUS
-			{ $$ := $1 }
-	|	TE_STR_PLUS
-			{ $$ := $1 }
-	|	TE_STR_NOT
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_not then
-					l_str_not.value.to_lower
-					$$ := l_str_not
-				end
-			}
-	|	TE_STR_FREE
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_free then
-					l_str_free.value.to_lower
-					$$ := l_str_free
-				end
-			}
-	;
-
-Infix_operator: TE_STR_LT
-			{ $$ := $1 }
-	|	TE_STR_LE
-			{ $$ := $1 }
-	|	TE_STR_GT
-			{ $$ := $1 }
-	|	TE_STR_GE
-			{ $$ := $1 }
-	|	TE_STR_MINUS
-			{ $$ := $1 }
-	|	TE_STR_PLUS
-			{ $$ := $1 }
-	|	TE_STR_STAR
-			{ $$ := $1 }
-	|	TE_STR_SLASH
-			{ $$ := $1 }
-	|	TE_STR_MOD
-			{ $$ := $1 }
-	|	TE_STR_DIV
-			{ $$ := $1 }
-	|	TE_STR_POWER
-			{ $$ := $1 }
-	|	TE_STR_AND
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_and then
-					l_str_and.value.to_lower
-					$$ := l_str_and
-				end
-			}
-	|	TE_STR_AND_THEN
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_and_then then
-					l_str_and_then.value.to_lower
-					$$ := l_str_and_then
-				end
-			}
-	|	TE_STR_IMPLIES
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_implies then 
-					l_str_implies.value.to_lower
-					$$ := l_str_implies
-				end
-			}
-	|	TE_STR_OR
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_or then
-					l_str_or.value.to_lower
-					$$ := l_str_or
-				end
-			}
-	|	TE_STR_OR_ELSE
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_or_else then
-					l_str_or_else.value.to_lower
-					$$ := l_str_or_else
-				end
-			}
-	|	TE_STR_XOR
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_xor then
-					l_str_xor.value.to_lower
-					$$ := l_str_xor
-				end
-			}
-	|	TE_STR_FREE
-			{
-					-- Alias names should always be taken in their lower case version
-				if attached $1 as l_str_free then
-					l_str_free.value.to_lower
-					$$ := l_str_free
-				end
-			}
-	;
 
 Manifest_array:
 	TE_LARRAY TE_RARRAY
-			{ $$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (0), $1, $2) }
+			{ $$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (Void, 0), $1, $2) }
 	|	Typed TE_LARRAY TE_RARRAY
 			{
-				$$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (0), $2, $3)
+				$$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (Void, 0), $2, $3)
 				if attached $$ as a then
 					a.set_type ($1)
 				end
@@ -4169,7 +4115,7 @@ Manifest_array:
 	;
 
 Manifest_tuple: TE_LSQURE TE_RSQURE
-			{ $$ := ast_factory.new_tuple_as (ast_factory.new_eiffel_list_expr_as (0), $1, $2) }
+			{ $$ := ast_factory.new_tuple_as (ast_factory.new_eiffel_list_expr_as (Void, 0), $1, $2) }
 	|	TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
 			{ $$ := ast_factory.new_tuple_as ($3, $1, $5) }
 	;
@@ -4199,7 +4145,7 @@ Remove_counter: { remove_counter }
 %%
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

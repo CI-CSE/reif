@@ -1,5 +1,5 @@
 ﻿note
-	description: "Abstract record for execution recording mechanism"
+	description: "Abstract record for execution recording mechanism."
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
 	date: "$Date$"
@@ -33,9 +33,9 @@ feature -- Access
 		deferred
 		end
 
-	debug_output: STRING
+	debug_output: STRING_32
 		do
-			Result := generating_type.name + ": #" + position.out + " = " + to_string
+			Result := generating_type.name_32 + ": #" + position.out + " = " + to_string
 		end
 
 	associated_object: detachable ANY
@@ -97,7 +97,7 @@ feature -- Runtime
 
 note
 	library:   "EiffelBase: Library of reusable components for Eiffel."
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -1,8 +1,8 @@
 ﻿note
 	description: "[
-			Access to internal object properties.
-			This class may be used as ancestor by classes needing its facilities.
-		]"
+		Access to internal object properties.
+		This class may be used as ancestor by classes needing its facilities.
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -86,29 +86,28 @@ feature -- Creation
 			not_special_type: not is_special_type (type_id)
 			not_deferred: not type_of_type (type_id).is_deferred
 		do
-			Result := c_new_instance_of (type_id)
+			Result := {ISE_RUNTIME}.new_instance_of (type_id)
 		ensure
 			instance_free: class
 			not_special_type: not attached {SPECIAL [detachable ANY]} Result
 			dynamic_type_set: attached_type (Result.generating_type.type_id) = attached_type (type_id)
 		end
 
-	new_special_any_instance (type_id, count: INTEGER): SPECIAL [detachable ANY]
+	new_special_any_instance (type_id, a_capacity: INTEGER): SPECIAL [detachable ANY]
 			-- New instance of dynamic `type_id' that represents
-			-- a SPECIAL with `count' element. To create a SPECIAL of
-			-- basic type, use `SPECIAL'.
+			-- a SPECIAL which can contain `a_capacity' elements of reference type.
+			-- To create a SPECIAL of basic type, use class SPECIAL directly.
 		require
-			count_valid: count >= 0
+			a_capacity_valid: a_capacity >= 0
 			type_id_nonnegative: type_id >= 0
 			special_type: is_special_any_type (type_id)
 		do
-			create Result.make_empty (count)
-			c_set_dynamic_type (Result, type_id)
+			Result := {ISE_RUNTIME}.new_special_of_reference_instance_of (type_id, a_capacity)
 		ensure
 			instance_free: class
 			dynamic_type_set: Result.generating_type.type_id = type_id
 			count_set: Result.count = 0
-			capacity_set: Result.capacity = count
+			capacity_set: Result.capacity = a_capacity
 		end
 
 	new_tuple_from_special (type_id: INTEGER; values: SPECIAL [detachable separate ANY]): detachable TUPLE
@@ -123,7 +122,7 @@ feature -- Creation
 			i: INTEGER
 			v: detachable separate ANY
 		do
-			Result := c_new_tuple_instance_of (type_id)
+			Result := {ISE_RUNTIME}.new_tuple_instance_of (type_id)
 			i := Result.count
 			if i <= values.count then
 				from
@@ -147,7 +146,7 @@ feature -- Creation
 		ensure
 			instance_free: class
 			dynamic_type_set: attached Result implies Result.generating_type.type_id = type_id
-			values_set: attached Result implies across 1 |..| Result.count as k all Result.item (k.item) = values [k.item - 1] end
+			values_set: attached Result implies ∀ k: 1 |..| Result.count ¦ Result.item (k) = values [k - 1]
 		end
 
 	new_tuple_from_tuple (type_id: INTEGER; source: separate TUPLE): detachable TUPLE
@@ -162,7 +161,7 @@ feature -- Creation
 			i: INTEGER
 			v: detachable separate ANY
 		do
-			Result := c_new_tuple_instance_of (type_id)
+			Result := {ISE_RUNTIME}.new_tuple_instance_of (type_id)
 			i := Result.count
 			if i <= source.count then
 				if source.object_comparison then
@@ -190,7 +189,7 @@ feature -- Creation
 			instance_free: class
 			dynamic_type_set: attached Result implies Result.generating_type.type_id = type_id
 			object_comparison_set: attached Result implies Result.object_comparison = source.object_comparison
-			values_set: attached Result implies across 1 |..| Result.count as k all Result.item (k.item) = source [k.item] end
+			values_set: attached Result implies ∀ k: 1 |..| Result.count ¦ Result.item (k) = source [k]
 		end
 
 	type_of_type (type_id: INTEGER): TYPE [detachable ANY]
@@ -198,7 +197,7 @@ feature -- Creation
 		require
 			type_id_nonnegative: type_id >= 0
 		do
-			Result := c_new_type_instance_of (type_id)
+			Result := {ISE_RUNTIME}.new_type_instance_of (type_id)
 		ensure
 			instance_free: class
 			result_not_void: Result /= Void
@@ -211,10 +210,8 @@ feature -- Status report
 			-- a SPECIAL [XX] where XX is a reference type.
 		require
 			type_id_nonnegative: type_id >= 0
-		external
-			"C signature (EIF_INTEGER): EIF_BOOLEAN use %"eif_internal.h%""
-		alias
-			"eif_special_any_type"
+		do
+			Result := {ISE_RUNTIME}.is_special_of_reference_type (type_id)
 		ensure
 			instance_free: class
 		end
@@ -222,13 +219,12 @@ feature -- Status report
 	is_special_type (type_id: INTEGER): BOOLEAN
 			-- Is type represented by `type_id' represent
 			-- a SPECIAL [XX] where XX is a reference type
-			-- or a basic type.
+			-- or a basic expanded type (note that user-defined
+			-- expanded types are excluded).
 		require
 			type_id_nonnegative: type_id >= 0
-		external
-			"C signature (EIF_INTEGER): BOOLEAN use %"eif_internal.h%""
-		alias
-			"eif_is_special_type"
+		do
+			Result := {ISE_RUNTIME}.is_special_of_reference_or_basic_type (type_id)
 		ensure
 			instance_free: class
 		end
@@ -237,10 +233,8 @@ feature -- Status report
 			-- Is type represented by `type_id' represent a TUPLE?
 		require
 			type_id_nonnegative: type_id >= 0
-		external
-			"C signature (EIF_INTEGER): BOOLEAN use %"eif_internal.h%""
-		alias
-			"eif_is_tuple_type"
+		do
+			Result := {ISE_RUNTIME}.is_tuple_type (type_id)
 		ensure
 			instance_free: class
 		end
@@ -292,6 +286,16 @@ feature -- Access
 			instance_free: class
 		end
 
+	class_name_8_of_type (type_id: INTEGER): STRING_8
+			-- Name of class associated with dynamic type `type_id'.
+		require
+			type_id_nonnegative: type_id >= 0
+		do
+			Result := {ISE_RUNTIME}.generator_8_of_type (type_id)
+		ensure
+			instance_free: class
+		end
+
 	type_name_of_type (type_id: INTEGER): STRING
 			-- Name of `type_id''s generating type (type of which `type_id'
 			-- is a direct instance).
@@ -299,6 +303,17 @@ feature -- Access
 			type_id_nonnegative: type_id >= 0
 		do
 			Result := {ISE_RUNTIME}.generating_type_of_type (type_id)
+		ensure
+			instance_free: class
+		end
+
+	type_name_8_of_type (type_id: INTEGER): STRING_8
+			-- Name of `type_id''s generating type (type of which `type_id'
+			-- is a direct instance).
+		require
+			type_id_nonnegative: type_id >= 0
+		do
+			Result := {ISE_RUNTIME}.generating_type_8_of_type (type_id)
 		ensure
 			instance_free: class
 		end
@@ -381,6 +396,18 @@ feature -- Access
 			instance_free: class
 		end
 
+	field_name_8_of_type (i: INTEGER; type_id: INTEGER): STRING_8
+			-- Name of `i'-th field of dynamic type `type_id'.
+		require
+			type_id_nonnegative: type_id >= 0
+			index_large_enough: i >= 1
+			index_small_enought: i <= field_count_of_type (type_id)
+		do
+			create Result.make_from_c ({ISE_RUNTIME}.field_name_of_type (i, type_id))
+		ensure
+			instance_free: class
+		end
+
 	field_type_of_type (i: INTEGER; type_id: INTEGER): INTEGER
 			-- Abstract type of `i'-th field of dynamic type `type_id'
 		require
@@ -422,10 +449,8 @@ feature -- Measurement
 			-- Number of logical fields in dynamic type `type_id'.
 		require
 			type_id_nonnegative: type_id >= 0
-		external
-			"C macro signature (EIF_INTEGER): EIF_INTEGER use %"eif_internal.h%""
-		alias
-			"ei_count_field_of_type"
+		do
+			Result := {ISE_RUNTIME}.field_count_of_type (type_id)
 		ensure
 			instance_free: class
 		end
@@ -460,53 +485,9 @@ feature {NONE} -- Implementation
 			id_to_storable_version_not_void: Result /= Void
 		end
 
-	c_new_instance_of (type_id: INTEGER): ANY
-			-- New instance of dynamic `type_id'.
-			-- Note: returned object is not initialized and may
-			-- hence violate its invariant.
-			-- `type_id' cannot represent a SPECIAL type, use
-			-- `new_special_any_instance' instead.	
-		external
-			"C inline use %"eif_macros.h%""
-		alias
-			"return RTLNSMART(eif_decoded_type($type_id).id);"
-		ensure
-			instance_free: class
-		end
-
-	c_new_tuple_instance_of (type_id: INTEGER): TUPLE
-			-- New instance of tuple of type `type_id'.
-			-- Note: returned object is not initialized and may
-			-- hence violate its invariant.
-		external
-			"C inline use %"eif_macros.h%""
-		alias
-			"return RTLNT(eif_decoded_type($type_id).id);"
-		ensure
-			instance_free: class
-		end
-
-	c_new_type_instance_of (type_id: INTEGER): TYPE [detachable ANY]
-			-- New instance of TYPE for object of type `type_id'.
-		external
-			"C inline use %"eif_macros.h%""
-		alias
-			"return eif_type_malloc(eif_decoded_type($type_id), 0);"
-		ensure
-			instance_free: class
-		end
-
-	c_set_dynamic_type (obj: SPECIAL [detachable ANY]; dtype: INTEGER)
-			-- Set `obj' dynamic type to `dtype'.
-		external
-			"built_in static"
-		ensure
-			instance_free: class
-		end
-
 note
-	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

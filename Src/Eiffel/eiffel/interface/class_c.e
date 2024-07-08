@@ -344,8 +344,7 @@ feature -- Access
 	has_creator_of_name_id (a_id: INTEGER): BOOLEAN
 			-- Has creator with the same name as `a_feat'?
 		do
-			Result := attached creators as l_creators and then
-						attached names_heap.item (a_id) as l_name and then l_creators.has (l_name)
+			Result := attached creators as cs and then cs.has (a_id)
 		end
 
 	creator_of_name_id (a_id: INTEGER): EXPORT_I
@@ -353,15 +352,15 @@ feature -- Access
 		require
 			has_creator_of_name_id: has_creator_of_name_id (a_id)
 		do
-			Result := creators.item (names_heap.item (a_id))
+			Result := creators.item (a_id)
 		ensure
 			Result_not_void: Result /= Void
 		end
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 
-	creators: HASH_TABLE [EXPORT_I, STRING]
-			-- Creation procedure names
+	creators: HASH_TABLE [EXPORT_I, like {FEATURE_I}.feature_name_id]
+			-- Creation procedure export status and position in the list of creators indexed by feature name ID.
 
 feature -- Access: Convertibility
 
@@ -384,6 +383,27 @@ feature -- Status report
 			a_warning_not_void: a_warning /= Void
 		do
 			Result := lace_class.options.is_warning_enabled (a_warning)
+		end
+
+	is_warning_reported_as_error (w: STRING): BOOLEAN
+			-- Should warning `w` be reported as an error?
+		require
+			is_warning_enabled (w) or else w.same_string ({CONF_CONSTANTS}.w_obsolete_feature)
+		do
+			Result := lace_class.options.is_warning_as_error
+		end
+
+	obsolete_call_warning_index: like {CONF_OPTION}.warning_term_index_none
+			-- Index of current value of an obsolete feature call warning.
+		do
+			Result :=
+				if lace_class.options.warning.index = {CONF_OPTION}.warning_index_none then
+					{CONF_OPTION}.warning_term_index_none
+				else
+					lace_class.options.warning_obsolete_call.index
+				end
+		ensure
+			{CONF_OPTION}.is_valid_warning_term_index (Result)
 		end
 
 	apply_msil_application_optimizations: BOOLEAN
@@ -1047,7 +1067,7 @@ feature {NONE} -- Private access
 	any_parent: PARENT_C
 			-- Default compiled parent.
 		once
-			create Result
+			create Result.make (create {ID_AS}.initialize_from_id (names_heap.any_name_id))
 			Result.set_parent_type (Any_type)
 		ensure
 			any_parent_not_void: Result /= Void
@@ -1565,7 +1585,7 @@ feature -- Parent checking
 
 				if
 					l_parent_class.is_frozen and then
-					(l_parent_class.is_external or else (non_conforming_parents_classes = Void or else conforming_parents_classes.has (l_parent_class)))
+					(l_parent_class.is_external or else i < if attached conforming_parents as p then p.count else 0 end)
 						-- We cannot inherit frozen external classes or frozen conforming classes.
 				then
 					create vifi1.make (Current)
@@ -1602,15 +1622,8 @@ feature -- Parent checking
 					-- We have to reset its `types' so that they are recomputed and
 					-- we have to remove existing types from `System.class_types'
 				remove_types
-					-- Force recompilation of all clients, as the code to create objects might have changed
-				from
-					clients.start
-				until
-					clients.after
-				loop
-					clients.item.melt_all
-					clients.forth
-				end
+					-- Force recompilation of all clients, as the code to create objects might have changed.
+				⟳ c: clients ¦ c.melt_all ⟲
 			end
 			if error_handler.error_level /= l_error_level then
 				Error_handler.raise_error
@@ -1663,17 +1676,14 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Supplier checking
 			l_vd27: VD27
 			l_feat_tbl: like feature_table
 		do
-			if creators /= Void and then not a_creator.is_empty then
+			if attached creators as cs then
 				l_feat_tbl := feature_table
-				from
-					creators.start
-				until
-					creators.after
+				across
+					cs as c
 				loop
-					if a_creator.same_string (creators.key_for_iteration) then
+					if a_creator.same_string (names_heap.item (c.key)) then
 							-- `creators.key_for_iteration' contains the creation_name
-						l_creation_proc := l_feat_tbl.item (creators.key_for_iteration)
-
+						l_creation_proc := l_feat_tbl.item_id (c.key)
 						inspect
 							l_creation_proc.argument_count
 						when 0 then
@@ -1699,20 +1709,18 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Supplier checking
 							error_handler.insert_error (create {VSRP3}.make (Current, a_type, l_creation_proc.instantiation_in (a_type)))
 						end
 					end
-					creators.forth
 				end
 			end
 
 			if not a_creator.is_empty and creators = Void then
 					-- Check default create
-				l_creation_proc := default_create_feature
-				if not l_creation_proc.feature_name.is_equal (a_creator) then
+				if not default_create_feature.feature_name.is_equal (a_creator) then
 					create l_vd27
 					l_vd27.set_creation_routine (a_creator)
 					l_vd27.set_root_class (Current)
 					Error_handler.insert_error (l_vd27)
 				end
-			elseif not a_creator.is_empty and not creators.has (a_creator) then
+			elseif not a_creator.is_empty and not creators.has (names_heap.id_of (a_creator)) then
 				create l_vd27
 				l_vd27.set_creation_routine (a_creator)
 				l_vd27.set_root_class (Current)
@@ -1830,17 +1838,11 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Order relation for inheritance an
 			-- Is `fn' a valid creation procedure ?
 		require
 			good_argument: fn /= Void
-		local
-			dcr_feat : FEATURE_I
 		do
-			if creators /= Void then
-				Result := creators.has (fn)
-			else
-				dcr_feat := default_create_feature
-
-				if dcr_feat /= Void then
-					Result := fn.is_equal (dcr_feat.feature_name)
-				end
+			if attached creators as c then
+				Result := c.has (names_heap.id_of (fn))
+			elseif attached default_create_feature as f then
+				Result := fn.is_equal (f.feature_name)
 			end
 		end
 
@@ -2271,8 +2273,7 @@ feature {TYPE_AS, AST_TYPE_A_GENERATOR, AST_FEATURE_CHECKER_GENERATOR} -- Actual
 							new_actuals.forth
 						end
 							-- Avoid changing original list of arguments.
-						new_actuals.start
-						new_actuals := new_actuals.duplicate (actual_count)
+						create new_actuals.make_from_iterable (new_actuals)
 							-- Replace extra arguments with a tuple.
 						create tuple_actual.make (system.tuple_id, wrapped_actuals)
 						if not lace_class.is_void_unsafe then
@@ -2322,6 +2323,9 @@ feature {TYPE_AS, AST_TYPE_A_GENERATOR, AST_FEATURE_CHECKER_GENERATOR} -- Actual
 			end
 			if is_expanded then
 				Result.set_expanded_class_mark
+			end
+			if is_once then
+				Result.set_once_class_mark
 			end
 		ensure
 			actual_type_not_void: Result /= Void
@@ -2835,7 +2839,14 @@ feature {CLASS_C} -- Incrementality
 		local
 			class_filters: like filters
 			class_filters_cursor: INTEGER
+			base_type: CL_TYPE_A
 		do
+				-- Use the basic type of the supplied class type for instantiation if available.
+			base_type := new_class_type.basic_type
+			if not attached base_type then
+					-- Otherwise, use the regular type of the supplied class type.
+				base_type := new_class_type.type
+			end
 			class_filters := filters
 			from
 				class_filters.start
@@ -2848,7 +2859,10 @@ feature {CLASS_C} -- Incrementality
 					-- we are going to traverse recursively the `filters' list.
 				class_filters_cursor := class_filters.cursor
 					-- Instantiation of the filter with `new_class_type'.
-				if attached {CL_TYPE_A} class_filters.item_for_iteration.instantiation_in (new_class_type.type, class_id) as filter and then not filter.has_formal_generic then
+				if
+					attached {CL_TYPE_A} class_filters.item_for_iteration.instantiation_in (base_type, class_id) as filter and then
+					not filter.has_formal_generic
+				then
 					check
 						has_associated_class: filter.has_associated_class
 					end
@@ -2917,7 +2931,8 @@ feature -- Validity class
 					not l_feature.is_routine or l_feature.argument_count > 0
 				then
 					error_handler.insert_warning (
-						create {SPECIAL_ERROR}.make ("Class ANY must have a procedure `internal_correct_mismatch' with no arguments for recoverable storable to work properly", Current))
+						create {SPECIAL_ERROR}.make ("Class ANY must have a procedure `internal_correct_mismatch' with no arguments for recoverable storable to work properly", Current),
+						original_class.options.is_warning_as_error)
 				end
 				l_feature := feature_table.item_id (names_heap.is_equal_name_id)
 				if
@@ -3038,23 +3053,31 @@ feature -- default_create routine
 			-- created with 'default_create'?
 		require
 			has_feature_table: has_feature_table
-		local
-			dcr_feat : FEATURE_I
 		do
-				-- Answer is NO if class is deferred
-			if not is_deferred then
-				dcr_feat := default_create_feature
-					-- Answer is NO if the class has no
-					-- 'default_create'
-				Result := dcr_feat /= Void and then (
-					(creators = Void) or else (not creators.is_empty and then creators.has (dcr_feat.feature_name)))
-			end
+			Result :=
+					-- Answer is NO if class is deferred
+				not is_deferred and then
+					-- Answer is NO if the class has no "default_create".
+				attached default_create_feature as f and then
+					(attached creators as cs implies cs.has (f.feature_name_id))
 		end
 
 feature -- Dead code removal
 
-	mark_visible (remover: REMOVER)
-			-- Dead code removal from the visible features.
+	mark_visible_class (remover: REMOVER)
+			-- Mark class as visible for dead code removal.
+		require
+			visible_level.has_visible
+		do
+			if is_deferred then
+				remover.mark_class_reachable (class_id)
+			else
+				remover.mark_class_alive (class_id)
+			end
+		end
+
+	mark_visible_features (remover: REMOVER)
+			-- Mark features as visible for dead code removal.
 		require
 			visible_level.has_visible
 		do
@@ -3250,22 +3273,18 @@ feature -- Properties
 			-- Parent class types
 			-- List containing both conforming and non-conforming parent class types of `Current'.
 		local
-			l_conforming_parents: like conforming_parents
-			l_non_conforming_parents: like non_conforming_parents
+			c: like conforming_parents
 		do
 			Result := conforming_parents
-			l_non_conforming_parents := non_conforming_parents
-			if Result /= Void then
-				if l_non_conforming_parents /= Void then
-						-- We cannot just append `l_non_conforming_parents' to a clone
-						-- of Result, because its size is fixed and cannot be increased.
-					l_conforming_parents := Result
-					create Result.make (l_conforming_parents.count + l_non_conforming_parents.count)
-					Result.append (l_conforming_parents)
-					Result.append (l_non_conforming_parents)
-				end
-			else
-				Result := l_non_conforming_parents
+			if not attached Result then
+				Result := non_conforming_parents
+			elseif attached non_conforming_parents as n then
+					-- We cannot just append `n` to a clone of `Result`
+					-- because its size is fixed and cannot be increased.
+				c := Result
+				create Result.make (c.count + n.count)
+				Result.append (c)
+				Result.append (n)
 			end
 		end
 
@@ -3387,6 +3406,9 @@ feature -- Properties
 	is_expanded: BOOLEAN
 			-- Is class expanded?
 
+	is_once: BOOLEAN
+			-- Is class once?
+
 	is_enum: BOOLEAN
 			-- Is class an IL enum type?
 			-- Useful to perform call optimization on enum type in FEATURE_B.
@@ -3456,7 +3478,7 @@ feature -- Properties
 			end
 		end
 
-	constraint_classes (a_formal_dec: FORMAL_DEC_AS) : ARRAY [CLASS_C]
+	constraint_classes (a_formal_dec: FORMAL_DEC_AS) : ARRAY [detachable CLASS_C]
 			-- Computed constraint classes for every formal of the current class.
 			-- Only class types are put into this cache so every item in the cache is error free.
 			-- All other positions are void especially those of formals.
@@ -3483,19 +3505,19 @@ feature -- Properties
 					-- Check if it is Void (case where `constraint_renaming'
 					-- was already called for `a_formal_dec').
 				if Result = Void then
-					create Result.make (1, a_formal_dec.constraints.count)
+					create Result.make_filled (Void, 1, a_formal_dec.constraints.count)
 					l_formal_cache.constraint_classes := Result
 				end
 			else
 					-- Insert `a_formal_dec'.
-				create Result.make (1, a_formal_dec.constraints.count)
+				create Result.make_filled (Void, 1, a_formal_dec.constraints.count)
 				l_cache.put ([Result, l_default_array], l_pos)
 			end
 		ensure
 			constraint_classes_not_void: Result /= Void
 		end
 
-	constraint_renaming (a_formal_dec: FORMAL_DEC_AS): ARRAY [RENAMING_A]
+	constraint_renaming (a_formal_dec: FORMAL_DEC_AS): ARRAY [detachable RENAMING_A]
 			-- Computed renamings for every formal of the current class.
 			-- Only sane renamings are put into this cache so every item in the cache is error free.
 			-- All other positions are void especially those of formal constraints as they are not allowed to have renamings.
@@ -3521,12 +3543,12 @@ feature -- Properties
 					-- Check if it is Void (case where `constraint_classes'
 					-- was already called for `a_formal_dec').
 				if Result = Void then
-					create Result.make (1, a_formal_dec.constraints.count)
+					create Result.make_filled (Void, 1, a_formal_dec.constraints.count)
 					l_formal_cache.constraint_renaming := Result
 				end
 			else
 					-- Insert `a_formal_dec'.
-				create Result.make (1, a_formal_dec.constraints.count)
+				create Result.make_filled (Void, 1, a_formal_dec.constraints.count)
 				l_cache.put ([l_default_array, Result], l_pos)
 			end
 		ensure
@@ -3600,7 +3622,7 @@ feature -- IL code generation
 				class_name := name.as_lower
 				use_dotnet_naming := System.dotnet_naming_convention
 			end
-			Result := il_casing.type_name (namespace, data_prefix, False, class_name, use_dotnet_naming)
+			Result := il_casing.type_name (namespace, data_prefix, class_name, use_dotnet_naming)
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -3613,7 +3635,7 @@ feature -- IL code generation
 		do
 			is_dotnet_naming := System.dotnet_naming_convention
 			precompiled_namespace := original_class.actual_namespace.twin
-			precompiled_class_name := il_casing.type_name (Void, Void, False, name.as_lower, is_dotnet_naming)
+			precompiled_class_name := il_casing.type_name (Void, Void, name.as_lower, is_dotnet_naming)
 		end
 
 	is_dotnet_naming: BOOLEAN
@@ -3997,6 +4019,8 @@ feature -- Access
 		require
 			a_alias_name_id: a_alias_name_id > 0
 			has_feature_table: has_feature_table
+			{OPERATOR_KIND}.is_alias_id (a_alias_name_id)
+			{OPERATOR_KIND}.is_fixed_alias_id (a_alias_name_id)
 		do
 			Result := feature_table.item_alias_id (a_alias_name_id)
 		end
@@ -4201,6 +4225,10 @@ feature -- Output
 				a_text_formatter.process_keyword_text (ti_Deferred_keyword, Void)
 				a_text_formatter.add_space
 			end
+			if is_once then
+				a_text_formatter.process_keyword_text (ti_once_keyword, Void)
+				a_text_formatter.add_space
+			end
 			a_text_formatter.process_keyword_text (ti_Class_keyword, Void)
 			a_text_formatter.add_new_line
 			a_text_formatter.add_indent
@@ -4280,6 +4308,14 @@ feature {COMPILER_EXPORTER} -- Setting
 			is_expanded := b
 		ensure
 			is_expanded_set: is_expanded = b
+		end
+
+	set_is_once (b: BOOLEAN)
+			-- Assign `b` to `is_once`.
+		do
+			is_once := b
+		ensure
+			is_once_set: is_once = b
 		end
 
 	set_is_enum (b: BOOLEAN)
@@ -4714,7 +4750,7 @@ feature -- Anchored types
 						l_previous_anchor := l_inherited_features.item (l_rout_id)
 						l_anchor.set_origin_class_id (l_previous_anchor.origin_class_id)
 						l_anchor.set_origin_feature_id (l_previous_anchor.origin_feature_id)
-						l_anchor.set_feature_name_id (l_previous_anchor.feature_name_id, 0)
+						l_anchor.set_feature_name_id (l_previous_anchor.feature_name_id, Void)
 						l_anchor.set_is_origin (False)
 					else
 						l_anchor.set_is_origin (True)
@@ -4789,7 +4825,7 @@ feature -- Implementation
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Querry
 
-	feature_named (n: STRING): FEATURE_I
+	feature_named (n: READABLE_STRING_8): FEATURE_I
 			-- Feature whose internal name is `n'
 		require
 			n_not_void: n /= Void
@@ -4938,6 +4974,7 @@ feature {DEGREE_4, NAMED_TUPLE_TYPE_A, TYPE_A_CHECKER} -- Degree 4
 			degree_4_processed := False
 			expanded_modified := False
 			deferred_modified := False
+			once_modified := False
 			supplier_status_modified := False
 		ensure
 			removed: not degree_4_needed
@@ -4982,6 +5019,14 @@ feature {DEGREE_4, NAMED_TUPLE_TYPE_A, TYPE_A_CHECKER} -- Degree 4
 			deferred_modified_set: deferred_modified
 		end
 
+	set_once_modified
+			-- Set `once_modified` to `True`.
+		do
+			once_modified := True
+		ensure
+			once_modified
+		end
+
 	set_supplier_status_modified
 			-- Set `supplier_status_modified' to True.
 		do
@@ -5005,6 +5050,9 @@ feature {DEGREE_4, INHERIT_TABLE} -- Degree 4
 	deferred_modified: BOOLEAN
 			-- Has the deferred status of current
 			-- class been modified?
+
+	once_modified: BOOLEAN
+			-- Has once status of the class been modified?
 
 feature {DEGREE_4, DEGREE_3} -- Used by degree 4 and 3 to compute new assertions
 
@@ -5329,7 +5377,7 @@ invariant
 	-- has_ast: has_ast
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

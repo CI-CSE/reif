@@ -1,6 +1,5 @@
-note
+﻿note
 	description: "Fast parser that only recognizes the old constructs"
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -10,14 +9,15 @@ class
 inherit
 	AST_NULL_FACTORY
 		redefine
+			new_class_type_as,
 			new_creation_keyword_as,
+			new_filled_id_as,
+			new_iteration_as,
 			new_keyword_as,
 			new_keyword_id_as,
 			new_old_syntax_object_test_as,
 			new_static_access_as,
-			new_symbol_as,
-			new_class_type_as,
-			new_filled_id_as
+			new_temporary_integer_value
 		end
 
 feature -- Access
@@ -29,6 +29,10 @@ feature -- Access
 			-- Are we updating agents to drop the first actual generic parameter
 			-- and replacing TUPLE with nothing, i.e. PROCEDURE [ANY, TUPLE [STRING]]
 			-- becoming PROCEDURE [STRING].
+
+	is_updating_iteration: BOOLEAN
+			-- Is it requested to update iteration by replacing "is" with "as" or
+			-- by removing ".item" when iteration uses "as"?
 
 feature -- Status setting
 
@@ -47,72 +51,65 @@ feature -- Status setting
 			is_updating_agents_set: is_updating_agents = v
 		end
 
+	set_is_updating_iteration (v: like is_updating_iteration)
+			-- Set `is_updating_iteration` to `v`.
+		do
+			is_updating_iteration := v
+		ensure
+			is_updating_iteration = v
+		end
+
 feature -- Processing
 
-	new_creation_keyword_as (a_scn: EIFFEL_SCANNER): KEYWORD_AS
+	new_creation_keyword_as (a_scn: EIFFEL_SCANNER): detachable KEYWORD_AS
 		do
 			has_obsolete_constructs := True
 		end
 
-	new_keyword_as (a_code: INTEGER_32; a_scn: EIFFEL_SCANNER): KEYWORD_AS
+	new_iteration_as (a: detachable KEYWORD_AS; e: detachable EXPR_AS; b: detachable KEYWORD_AS; i: detachable ID_AS; is_restricted: BOOLEAN): detachable ITERATION_AS
+			-- <Precursor>
+		do
+			has_obsolete_constructs := is_updating_iteration
+		end
+
+	new_keyword_as (a_code: INTEGER_32; a_scn: EIFFEL_SCANNER): detachable KEYWORD_AS
 			-- New KEYWORD_AS only for `feature' and `creation'.
 		do
 			inspect a_code
 			when {EIFFEL_TOKENS}.te_feature  then
 				create Result.make (a_code, a_scn.text, a_scn.line, a_scn.column, a_scn.position, a_scn.text_count, a_scn.character_column, a_scn.character_position, a_scn.unicode_text_count)
-
 			when {EIFFEL_TOKENS}.te_is, {EIFFEL_TOKENS}.te_indexing then
 				has_obsolete_constructs := True
-
 			else
-
 			end
 		end
 
-	new_keyword_id_as (a_code: INTEGER_32; a_scn: EIFFEL_SCANNER_SKELETON): like keyword_id_type
+	new_keyword_id_as (a_code: INTEGER_32; a_scn: EIFFEL_SCANNER_SKELETON): detachable like keyword_id_type
 			-- New KEYWORD AST node
 		do
 			inspect a_code
 			when {EIFFEL_TOKENS}.te_is, {EIFFEL_TOKENS}.te_indexing then
 				has_obsolete_constructs := True
-
 			else
-
 			end
 		end
 
-	new_old_syntax_object_test_as (start: SYMBOL_AS; name: ID_AS; type: TYPE_AS; expression: EXPR_AS): OBJECT_TEST_AS
+	new_old_syntax_object_test_as (start: detachable SYMBOL_AS; name: detachable ID_AS; type: detachable TYPE_AS; expression: detachable EXPR_AS): detachable OBJECT_TEST_AS
 		do
 			has_obsolete_constructs := True
 		end
 
-	new_old_routine_creation_as (l: AST_EIFFEL; t: OPERAND_AS; f: ID_AS; o: DELAYED_ACTUAL_LIST_AS; is_qualified: BOOLEAN; a_as: SYMBOL_AS): PAIR [ROUTINE_CREATION_AS, LOCATION_AS]
-		do
-			has_obsolete_constructs := True
-		end
+--	new_old_routine_creation_as (l: AST_EIFFEL; t: OPERAND_AS; f: ID_AS; o: DELAYED_ACTUAL_LIST_AS; is_qualified: BOOLEAN; a_as: SYMBOL_AS): PAIR [ROUTINE_CREATION_AS, LOCATION_AS]
+--		do
+--			has_obsolete_constructs := True
+--		end
 
-	new_static_access_as (c: TYPE_AS; f: ID_AS; p: PARAMETER_LIST_AS; f_as: KEYWORD_AS; d_as: SYMBOL_AS): STATIC_ACCESS_AS
+	new_static_access_as (c: detachable TYPE_AS; f: detachable ID_AS; p: detachable PARAMETER_LIST_AS; f_as: detachable KEYWORD_AS; d_as: detachable SYMBOL_AS): detachable STATIC_ACCESS_AS
 		do
 			has_obsolete_constructs := has_obsolete_constructs or else f_as /= Void
 		end
 
-	new_symbol_as (a_code: INTEGER_32; a_scn: EIFFEL_SCANNER): SYMBOL_AS
-		do
-			inspect
-				a_code
-			when {EIFFEL_TOKENS}.te_bang then
-				has_obsolete_constructs := True
-
-			when {EIFFEL_TOKENS}.te_question  then
-					-- We might trigger some false alarm since ? is also used for open agent arguments, but it
-					-- is easier to do it that way than redefining all the factory routines that creates a TYPE_AS or descendants.
-				has_obsolete_constructs := True
-			else
-
-			end
-		end
-
-	new_filled_id_as (a_scn: EIFFEL_SCANNER_SKELETON): ID_AS
+	new_filled_id_as (a_scn: EIFFEL_SCANNER_SKELETON): detachable ID_AS
 		local
 			l_cnt: INTEGER_32
 			l_str: STRING_8
@@ -121,10 +118,10 @@ feature -- Processing
 				-- do we check that they are not just identifier, but class types.
 			if
 				not has_obsolete_constructs and then is_updating_agents and then
-				(a_scn.is_text_case_insensitve_equal_to (routine_class_name) or
-				a_scn.is_text_case_insensitve_equal_to (procedure_class_name) or
-				a_scn.is_text_case_insensitve_equal_to (function_class_name) or
-				a_scn.is_text_case_insensitve_equal_to (predicate_class_name))
+				(a_scn.utf8_text.is_case_insensitive_equal (routine_class_name) or
+				a_scn.utf8_text.is_case_insensitive_equal (procedure_class_name) or
+				a_scn.utf8_text.is_case_insensitive_equal (function_class_name) or
+				a_scn.utf8_text.is_case_insensitive_equal (predicate_class_name))
 			then
 				l_cnt := a_scn.text_count
 				l_str := Reusable_string_buffer
@@ -135,10 +132,10 @@ feature -- Processing
 			end
 		end
 
-	new_class_type_as (n: ID_AS; g: TYPE_LIST_AS): CLASS_TYPE_AS
+	new_class_type_as (n: detachable ID_AS; g: detachable TYPE_LIST_AS): detachable CLASS_TYPE_AS
 			-- <Precursor>
 		do
-			if n /= Void then
+			if attached n then
 				check
 					is_not_empty: not n.name_32.is_empty
 					is_agent_name:
@@ -151,7 +148,14 @@ feature -- Processing
 			end
 		end
 
-feature {NONE} -- Implementation
+	new_temporary_integer_value (scanner: EIFFEL_SCANNER_SKELETON; sign: CHARACTER_8; buffer: READABLE_STRING_8): detachable INTEGER_AS
+			-- <Precursor>
+		do
+				-- Return regular value because it is used to check characters and strings using characters codes.
+			Result := standard_factory.new_temporary_integer_value (scanner, sign, buffer)
+		end
+
+feature {NONE} -- Routine classes
 
 	routine_class_name: STRING_8 = "ROUTINE"
 	procedure_class_name: STRING_8 = "PROCEDURE"
@@ -159,8 +163,17 @@ feature {NONE} -- Implementation
 	predicate_class_name: STRING_8 = "PREDICATE"
 			-- Name of agent types being in use.
 
+feature {NONE} -- Routine classes
+
+	standard_factory: AST_FACTORY
+			-- A standard factory.
+		once
+			create Result
+		end
+
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

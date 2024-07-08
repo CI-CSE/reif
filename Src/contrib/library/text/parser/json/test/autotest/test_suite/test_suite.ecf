@@ -13,6 +13,14 @@
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
 		<library name="json" location="..\..\..\library\json.ecf" readonly="false"/>
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
-		<cluster name="test_suite" location=".\" recursive="true"/>
+		<library name="time" location="$ISE_LIBRARY\library\time\time.ecf"/>
+		<cluster name="test_suite" location=".\" recursive="true">
+			<file_rule>
+				<exclude>/obsolete$</exclude>
+			</file_rule>
+		</cluster>
+	</target>
+	<target name="obsolete_json_test_suite" extends="json_test_suite">
+		<cluster name="obs_test_suite" location=".\obsolete" recursive="true"/>
 	</target>
 </system>

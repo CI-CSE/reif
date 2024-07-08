@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Internal representation of a class. Instance of CLASS_I represent%
 		%non-compiled classes, but instance of CLASS_C already compiled%
@@ -6,7 +6,7 @@ note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
-	revision: "$Revision $"
+	revision: "$Revision$"
 
 class
 	EIFFEL_CLASS_I
@@ -134,6 +134,12 @@ feature -- Access
 				elseif Current = local_system.string_32_class then
 					create {STRING_CLASS_B} Result.make (Current, True)
 
+				elseif Current = local_system.immutable_string_8_class then
+					create {STRING_CLASS_B} Result.make_immutable (Current, False)
+
+				elseif Current = local_system.immutable_string_32_class then
+					create {STRING_CLASS_B} Result.make_immutable (Current, True)
+
 				elseif Current = local_system.array_class then
 					create {ARRAY_CLASS_B} Result.make (Current)
 
@@ -230,7 +236,8 @@ feature {COMPILER_EXPORTER} -- Setting
 					end
 					if
 						new_options.void_safety.index /= old_options.void_safety.index or else
-						new_options.catcall_detection.index /= old_options.catcall_detection.index
+						new_options.catcall_detection.index /= old_options.catcall_detection.index or else
+						new_options.is_obsolete_iteration /= old_options.is_obsolete_iteration
 					then
 							-- Class should be reparsed and rechecked for validity of interface and code.
 						is_modified := True
@@ -241,7 +248,8 @@ feature {COMPILER_EXPORTER} -- Setting
 					end
 					if
 						(new_options.is_full_class_checking and then not old_options.is_full_class_checking or else
-						new_options.array.index /= old_options.array.index) and then
+						new_options.array.index /= old_options.array.index or else
+						new_options.warning.index /= old_options.warning.index) and then
 						attached c
 					then
 							-- Class should be rechecked.
@@ -291,7 +299,7 @@ invariant
 	name_in_upper: name.as_upper.is_equal (name)
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -322,4 +330,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class CLASS_I
+end

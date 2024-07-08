@@ -1,128 +1,28 @@
-note
-	description	: "Abstract description of a multi_branch instruction, %
-				  %Version for Bench."
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision$"
+﻿note
+	description: "Abstract description of a multi_branch instruction."
 
 class INSPECT_AS
 
 inherit
 	INSTRUCTION_AS
+	INSPECT_ABSTRACTION_AS [CASE_AS, detachable EIFFEL_LIST [INSTRUCTION_AS]]
 
 create
-	initialize
-
-feature {NONE} -- Initialization
-
-	initialize (s: like switch; c: like case_list; e: like else_part; el: like end_keyword; i_as, e_as: detachable KEYWORD_AS)
-			-- Create a new INSPECT AST node.
-		require
-			s_not_void: s /= Void
-			el_not_void: el /= Void
-		do
-			switch := s
-			case_list := c
-			else_part := e
-			end_keyword := el
-			if i_as /= Void then
-				inspect_keyword_index := i_as.index
-			end
-			if e_as /= Void then
-				else_keyword_index := e_as.index
-			end
-		ensure
-			switch_set: switch = s
-			case_list_set: case_list = c
-			else_part_set: else_part = e
-			end_keyword_set: end_keyword = el
-			inspect_keyword_set: i_as /= Void implies inspect_keyword_index = i_as.index
-			else_keyword_set: e_as /= Void implies else_keyword_index = e_as.index
-		end
+	make
 
 feature -- Visitor
 
 	process (v: AST_VISITOR)
-			-- process current element.
+			-- <Precursor>
 		do
 			v.process_inspect_as (Current)
 		end
 
-feature -- Roundtrip
-
-	inspect_keyword_index, else_keyword_index: INTEGER
-			-- Index of keyword "inspect" and "else" associated with this structure
-
-	inspect_keyword (a_list: LEAF_AS_LIST): detachable KEYWORD_AS
-			-- Keyword "inspect" associated with this structure
-		require
-			a_list_not_void: a_list /= Void
-		do
-			Result := keyword_from_index (a_list, inspect_keyword_index)
-		end
-
-	else_keyword (a_list: LEAF_AS_LIST): detachable KEYWORD_AS
-			-- Keyword "else" associated with this structure
-		require
-			a_list_not_void: a_list /= Void
-		do
-			Result := keyword_from_index (a_list, else_keyword_index)
-		end
-
-	index: INTEGER
-			-- <Precursor>
-		do
-			Result := inspect_keyword_index
-		end
-
-feature -- Attributes
-
-	switch: EXPR_AS
-			-- Expression to inspect
-
-	case_list: detachable EIFFEL_LIST [CASE_AS]
-			-- Alternatives
-
-	else_part: detachable EIFFEL_LIST [INSTRUCTION_AS]
-			-- Else part
-
-	end_keyword: KEYWORD_AS
-			-- Line number where `end' keyword is located
-
-feature -- Roundtrip/Token
-
-	first_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
-		do
-			if a_list /= Void and inspect_keyword_index /= 0 then
-				Result := inspect_keyword (a_list)
-			else
-				Result := switch.first_token (a_list)
-			end
-		end
-
-	last_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
-		do
-			Result := end_keyword.last_token (a_list)
-		end
-
-feature -- Comparison
-
-	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
-		do
-			Result := equivalent (case_list, other.case_list) and then
-				equivalent (else_part, other.else_part) and then
-				equivalent (switch, other.switch)
-		end
-
-invariant
-	switch_not_void: switch /= Void
-	end_keyword_not_void: end_keyword /= Void
-
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	date: "$Date$"
+	revision: "$Revision$"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
@@ -152,4 +52,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class INSPECT_AS
+end

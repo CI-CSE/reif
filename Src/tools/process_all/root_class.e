@@ -1,5 +1,5 @@
-note
-	description	: "System's root class"
+﻿note
+	description: "System's root class."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -17,13 +17,12 @@ inherit
 	EIFFEL_LAYOUT
 
 	OUTPUT_HANDLER
-		redefine
-			finish_report
-		end
 
 	INPUT_HANDLER
 
 	HELPER
+
+	SHARED_EXECUTION_ENVIRONMENT
 
 create
 	make
@@ -34,7 +33,7 @@ feature {NONE} -- Initialization
 			-- Creation procedure.
 		do
 				-- setup env
-			set_eiffel_layout (create {CAT_EIFFEL_ENV})
+			set_eiffel_layout (create {PAT_EIFFEL_ENV})
 			eiffel_layout.check_environment_variable
 
 			initialize_interface_texts
@@ -70,21 +69,21 @@ feature {NONE} -- Implementation
 
 	path_regexp_ignored (p: READABLE_STRING_32): BOOLEAN
 			-- Is path ignored in relation with `regexp_ignores'?
+		local
+			utf8_pattern: STRING_8
 		do
-			if
-				attached regexp_ignores as l_regexp_ignores
-			then
-				from
-					l_regexp_ignores.start
+			if attached regexp_ignores as l_regexp_ignores then
+				utf8_pattern := {UTF_CONVERTER}.string_32_to_utf_8_string_8 (p)
+				across
+					l_regexp_ignores as r
 				until
-					l_regexp_ignores.after or Result
+					Result
 				loop
-					if attached l_regexp_ignores.item as rexp then
-						rexp.match (p)
+					if attached r.item as rexp then
+						rexp.match (utf8_pattern)
 						Result := rexp.has_matched
 						rexp.wipe_out
 					end
-					l_regexp_ignores.forth
 				end
 			end
 		end
@@ -95,14 +94,12 @@ feature {NONE} -- Implementation
 			arguments_attached: arguments /= Void
 		local
 			loc: PATH
-			l_env: EXECUTION_ENVIRONMENT
 		do
 			if attached arguments.ignore as l_ignore then
 				load_ignores (l_ignore)
 			end
 			if arguments.is_ecb then
-				create l_env
-				l_env.put ("ecb", "EC_NAME")
+				(create {EXECUTION_ENVIRONMENT}).put ("ecb", "EC_NAME")
 			end
 			set_interface_texts_from_argument (arguments)
 			loc := arguments.location
@@ -144,7 +141,6 @@ feature {NONE} -- Implementation
 		local
 			l_ini_loader: INI_DOCUMENT_READER
 			l_file: PLAIN_TEXT_FILE
-			l_ini_file: INI_DOCUMENT
 			l_ignored_files: ARRAYED_LIST [INI_SECTION]
 			l_ini_section: INI_SECTION
 			l_ignored_targets: ARRAYED_LIST [INI_LITERAL]
@@ -155,7 +151,7 @@ feature {NONE} -- Implementation
 		do
 			create l_file.make_with_name (a_file)
 			if not l_file.exists or else not l_file.is_readable then
-				display_error ("Could not open ignore file "+a_file)
+				display_error ({STRING_32} "Could not open ignore file " + a_file.to_string_32)
 			else
 				l_file.open_read
 				create l_ini_loader.make
@@ -167,18 +163,15 @@ feature {NONE} -- Implementation
 							display_error (a_error.message)
 						end)
 				else
-					l_ini_file := l_ini_loader.read_document
-					from
-						l_ignored_files := l_ini_file.sections
-						create ignores.make (l_ignored_files.count)
-						create directory_ignores.make (l_ignored_files.count)
-						create regexp_ignores.make (l_ignored_files.count)
-						l_ignored_files.start
-					until
-						l_ignored_files.after
+					l_ignored_files := l_ini_loader.read_document.sections
+					create ignores.make (l_ignored_files.count)
+					create directory_ignores.make (l_ignored_files.count)
+					create regexp_ignores.make (l_ignored_files.count)
+					across
+						l_ignored_files as s
 					loop
 							-- every section represents one configuration file
-						l_ini_section := l_ignored_files.item
+						l_ini_section := s.item
 						l_label := l_ini_section.label
 						if l_label.starts_with ("regexp=") then
 							create rexp
@@ -199,20 +192,16 @@ feature {NONE} -- Implementation
 								directory_ignores.force (l_actual_path, l_actual_path)
 							else
 									-- no literals implies the whole configuration file is ignored, else each literal represents an ignored target
-								from
-									l_ignored_targets := l_ini_section.literals
-									create l_ig_target.make_caseless (l_ignored_targets.count)
-									l_ignored_targets.start
-								until
-									l_ignored_targets.after
+								l_ignored_targets := l_ini_section.literals
+								create l_ig_target.make_caseless (l_ignored_targets.count)
+								across
+									l_ignored_targets as t
 								loop
-									l_ig_target.force (True, l_ignored_targets.item.name)
-									l_ignored_targets.forth
+									l_ig_target.force (True, t.item.name)
 								end
 								ignores.force (l_ig_target, l_actual_path)
 							end
 						end
-						l_ignored_files.forth
 					end
 				end
 			end
@@ -259,8 +248,6 @@ feature {NONE} -- Implementation
 		local
 			l_loader: CONF_LOAD
 			l_ignored_targets: STRING_TABLE [BOOLEAN]
-			l_skip_dotnet: BOOLEAN
-			l_target: CONF_TARGET
 		do
 			if attached ignores as l_ignores then
 				l_ignored_targets := l_ignores.item (a_file.name)
@@ -272,10 +259,8 @@ feature {NONE} -- Implementation
 				if l_loader.is_error then
 					display_error ({STRING_32} "Could not retrieve configuration "+a_file.name+"!")
 				else
-					l_skip_dotnet := arguments.skip_dotnet
 					across l_loader.last_system.compilable_targets as l_cursor loop
-						l_target := l_cursor.item
-						process_target (l_target, a_dir)
+						process_target (l_cursor.item, a_dir)
 					end
 				end
 			end
@@ -305,11 +290,8 @@ feature {NONE} -- Implementation
 
 	schedule_process (a_clean: BOOLEAN; a_target: CONF_TARGET; a_dir: PATH)
 			-- Schedule process
-		local
-			l_worker: separate PROCESS_WORKER
 		do
-			create l_worker.make (Current, Current)
-			run_process (l_worker, a_clean, a_target, a_dir)
+			run_process (create {separate PROCESS_WORKER}.make (Current, Current), a_clean, a_target, a_dir)
 		end
 
 	finish_report (a_worker_id: INTEGER_32)
@@ -323,13 +305,14 @@ feature {NONE} -- Implementation
 					report_summary
 				end
 			end
-			if attached non_reported_workers as l_workers implies l_workers.count < max_processes then
-				if not waiting_tasks.is_empty then
-					l_item := waiting_tasks.first
-					waiting_tasks.start
-					waiting_tasks.remove
-					l_item.apply
-				end
+			if
+				(attached non_reported_workers as l_workers implies l_workers.count < max_processes) and then
+				not waiting_tasks.is_empty
+			then
+				l_item := waiting_tasks.first
+				waiting_tasks.start
+				waiting_tasks.remove
+				l_item.apply
 			end
 		end
 
@@ -368,19 +351,16 @@ feature {NONE} -- Implementation
 			l_state: CONF_STATE
 			l_vis: CONF_PARSE_VISITOR
 			l_version: STRING_TABLE [CONF_VERSION]
-			l_system, l_target: STRING_32
 			l_file: PLAIN_TEXT_FILE
 		do
 				-- create state for conditioning
 			create l_version.make (1)
 			l_version.force (create {CONF_VERSION}.make_version ({EIFFEL_CONSTANTS}.major_version, {EIFFEL_CONSTANTS}.minor_version, 0, 0), v_compiler)
-			create l_state.make (pf_windows, build_workbench, a_target.concurrency_mode, a_target.setting_msil_generation, a_target.setting_dynamic_runtime, a_target.variables, l_version)
+			create l_state.make (pf_windows, build_workbench, a_target.concurrency_mode, a_target.void_safety_mode, a_target.setting_msil_generation, a_target.setting_dynamic_runtime, a_target.variables, l_version)
 
 				-- setup ISE_PRECOMP
 			eiffel_layout.set_precompile (a_target.setting_msil_generation)
 
-			l_system := a_target.system.name
-			l_target := a_target.name
 			output_action (interface_text_parsing, a_target, 0)
 
 			create l_vis.make_build (l_state, a_target, create {CONF_PARSE_FACTORY})
@@ -407,40 +387,8 @@ feature {NONE} -- Implementation
 
 	frozen available_cpus: NATURAL_32
 			--| FIXME: Copied from ISE_SCOOP_MANAGER. Remove it when available in base.
-		external
-			"C inline use %"eif_scoop.h%""
-		alias
-			"[
-				//#ifdef _WIN32
-				//#include <windows.h>
-				//#elif MACOS
-				//#include <sys/param.h>
-				//#include <sys/sysctl.h>
-				//#else
-				//#include <unistd.h>
-				//#endif
-				#ifdef EIF_WINDOWS
-				    SYSTEM_INFO sysinfo;
-				    GetSystemInfo(&sysinfo);
-				    return sysinfo.dwNumberOfProcessors;
-				#elif EIF_MACOSX
-				    int nm[2];
-				    size_t len = 4;
-				    uint32_t count;
-
-				    nm[0] = CTL_HW; nm[1] = HW_AVAILCPU;
-				    sysctl(nm, 2, &count, &len, NULL, 0);
-
-				    if(count < 1) {
-				        nm[1] = HW_NCPU;
-				        sysctl(nm, 2, &count, &len, NULL, 0);
-				        if(count < 1) { count = 1; }
-				    }
-				    return count;
-				#else
-				    return sysconf(_SC_NPROCESSORS_ONLN);
-				#endif
-			]"
+		do
+			Result := execution_environment.available_cpu_count
 		end
 
 feature {NONE} -- Error handling
@@ -484,7 +432,7 @@ feature {NONE} -- Directory manipulation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

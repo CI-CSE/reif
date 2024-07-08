@@ -8,7 +8,7 @@
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
-	revision: "$Revision: \$"
+	revision: "$Revision$"
 
 deferred class
 	ES_DIALOG
@@ -111,7 +111,8 @@ feature {NONE} -- Initialization
 --	       						-- Ensure dialog is not off-screen
 --	       					dialog.set_position (l_sp_info.x, l_sp_info.y)
 --	       				end
-       				dialog.set_size (l_sp_info.width, l_sp_info.height)
+						-- WARNING: do not adapt to the DPI value, as the recorded value is the actual size!
+					dialog.set_size (l_sp_info.width, l_sp_info.height)
        			end
 
        				-- Hook up close action to store session size/position data
@@ -145,12 +146,12 @@ feature {NONE} -- User interface initialization
 			l_main_container.set_border_width (0)
 
 			create l_container
-			l_container.set_border_width (dialog_border_width)
+			l_container.set_border_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (dialog_border_width))
 			l_main_container.extend (l_container)
 			build_dialog_interface (l_container)
 
  			create l_container
-			l_container.set_border_width (dialog_button_border_width)
+			l_container.set_border_width ({EV_MONITOR_DPI_DETECTOR_IMP}.scaled_size (dialog_button_border_width))
 			l_main_container.extend (l_container)
 			l_main_container.disable_item_expand (l_container)
 			l_container.extend (create_dialog_button_ribbon)
@@ -390,6 +391,31 @@ feature -- Element change
 			end
 		ensure
 			button_text_set: dialog_window_buttons.item (a_id).text.is_equal (a_text)
+		end
+
+	set_button_tooltip (a_id: INTEGER; a_tooltip: READABLE_STRING_32)
+			-- Sets a buttons tooltip.
+			--
+			-- `a_id': A button id corresponding to an actual dialog button.
+			--         Use {ES_DIALOG_BUTTONS} or `dialog_buttons' to determine the id's correspondance.
+			-- `a_tooltip': Text to change button tooltip to.
+		require
+			is_interface_usable: is_interface_usable
+			a_id_is_valid_button_id: dialog_buttons.is_valid_button_id (a_id)
+			a_tooltip_attached: a_tooltip /= Void
+			not_a_tooltip_is_empty: not a_tooltip.is_empty
+			not_is_shown: not is_shown
+		local
+			l_old_tooltip: STRING_32
+			l_button: EV_BUTTON
+		do
+			l_button := dialog_window_buttons.item (a_id)
+			l_old_tooltip := l_button.tooltip
+			if l_old_tooltip = Void or else not l_old_tooltip.same_string (a_tooltip) then
+				l_button.set_tooltip (a_tooltip)
+			end
+		ensure
+			button_tooltip_set: dialog_window_buttons.item (a_id).tooltip.same_string (a_tooltip)
 		end
 
 	set_button_icon (a_id: INTEGER; a_icon: EV_PIXMAP)
@@ -1108,7 +1134,7 @@ invariant
 	button_actions_attached: button_actions /= Void
 
 ;note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

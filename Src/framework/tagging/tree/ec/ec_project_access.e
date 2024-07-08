@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "[
 		Objects that provide an Eiffel project to {ES_TAG_TREE_NODE}.
 	]"
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -20,16 +19,11 @@ feature {NONE} -- Initialization
 			-- `a_project': An Eiffel project.
 		local
 			l_manager: EB_PROJECT_MANAGER
-			l_agent: PROCEDURE
 		do
 			project := a_project
 			l_manager := project.manager
-			l_agent := agent
-				do
-					increase_build
-				end
-			l_manager.load_agents.extend (l_agent)
-			l_manager.compile_stop_agents.extend (l_agent)
+			l_manager.load_agents.extend (agent increase_build)
+			l_manager.compile_stop_agents.extend (agent (s: like {WORKBENCH_I}.compilation_status) do increase_build end)
 		end
 
 feature -- Access
@@ -64,7 +58,7 @@ feature -- Status setting
 
 feature -- Element retrival
 
-	class_from_name (a_name: STRING; a_group: detachable CONF_GROUP): detachable CLASS_I
+	class_from_name (a_name: READABLE_STRING_32; a_group: detachable CONF_GROUP): detachable CLASS_I
 			-- Try to retrieve {CLASS_I} instance for given class name, optionally the cluster in which the
 			-- class exists can be provided.
 			--
@@ -108,7 +102,7 @@ feature -- Element retrival
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

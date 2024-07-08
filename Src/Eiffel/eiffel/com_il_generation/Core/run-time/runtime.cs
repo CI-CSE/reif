@@ -714,10 +714,10 @@ feature -- Builtin implementations for Eiffel classes, see Eiffel classes for co
 		return System.Double.PositiveInfinity;
 	}
 
-	public static int builtin_WEL_IDENTIFIED_eif_current_object_id(object Current){
+	public static int builtin_IDENTIFIED_ROUTINES_eif_current_object_id(object Current){
 		return builtin_IDENTIFIED_ROUTINES_eif_object_id (Current, Current);
 	}
-	public static bool builtin_WEL_IDENTIFIED_eif_is_object_id_of_current(object Current, int an_id) {
+	public static bool builtin_IDENTIFIED_ROUTINES_eif_is_object_id_of_current(object Current, int an_id) {
 		return builtin_IDENTIFIED_ROUTINES_eif_id_object(Current, an_id) == Current;
 	}
 

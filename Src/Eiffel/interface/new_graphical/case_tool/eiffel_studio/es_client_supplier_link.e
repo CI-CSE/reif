@@ -99,19 +99,19 @@ feature -- Element change
 	set_name_from_feature_as_list (a_feature_as_list: LIST [FEATURE_AS])
 			-- Set full name for `Current' based on `a_feature_as_list'.
 		local
-			a_name: STRING
+			a_name: STRING_32
 		do
 			a_name := full_name (a_feature_as_list.first)
-			a_name.replace_substring_all ("[", "[ ")
-			a_name.replace_substring_all (" " + supplier.class_i.name, " ...")
-			if a_name.substring (a_name.count - 4, a_name.count).is_equal (": ...") then
-				a_name.replace_substring_all (": ...", "")
+			a_name.replace_substring_all ({STRING_32} "[", {STRING_32} "[ ")
+			a_name.replace_substring_all ({STRING_32} " " + supplier.class_i.name, {STRING_32} " ...")
+			if a_name.substring (a_name.count - 4, a_name.count).same_string ({STRING_32} ": ...") then
+				a_name.replace_substring_all ({STRING_32} ": ...", {STRING_32} "")
 			end
 			if a_feature_as_list.count > 1 then
-				a_name.append (", ...")
+				a_name.append_string_general (", ...")
 			end
-			a_name.replace_substring_all ("[ ", "[")
-			set_name (a_name)
+			a_name.replace_substring_all ({STRING_32} "[ ", {STRING_32} "[")
+			set_name_32 (a_name)
 			is_aggregated := is_expanded (a_feature_as_list.first)
 		end
 
@@ -120,16 +120,16 @@ feature {NONE} -- Implementation
 	is_expanded (a_feature: FEATURE_AS): BOOLEAN
 			-- Is `a_feature' declared `expanded'?
 		local
-			ct: CLASS_TYPE_AS
 			type_as_class: CLASS_I
 		do
-			ct ?= a_feature.body.type
-			Result := ct /= Void and then ct.is_expanded
-			if not Result and then ct /= Void then
-				fixme ("Remove usage of `System.any_class' to search for ct's base class.")
-				type_as_class := clickable_info.associated_eiffel_class (System.any_class, ct)
-				if type_as_class /= Void and then type_as_class.is_compiled then
-					Result := type_as_class.compiled_class.is_expanded
+			if attached {CLASS_TYPE_AS} a_feature.body.type as ct then
+				Result := ct.is_expanded
+				if not Result then
+					fixme ("Remove usage of `System.any_class' to search for ct's base class.")
+					type_as_class := clickable_info.associated_eiffel_class (System.any_class, ct)
+					if type_as_class /= Void and then type_as_class.is_compiled then
+						Result := type_as_class.compiled_class.is_expanded
+					end
 				end
 			end
 		end
@@ -138,7 +138,7 @@ invariant
 	features_not_void: features /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

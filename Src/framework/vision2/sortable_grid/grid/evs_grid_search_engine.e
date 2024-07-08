@@ -1,8 +1,7 @@
-note
-	description: "Object that represents a search engine used in EVS_GRID_WRAPPER"
+﻿note
+	description: "Object that represents a search engine used in EVS_GRID_WRAPPER."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -118,7 +117,7 @@ feature -- Setting
 			only_search_in_selected_items_disabled: not only_search_in_selected_item
 		end
 
-	set_keyword (a_keyword: STRING)
+	set_keyword (a_keyword: like keyword)
 			-- Set `keyword' with `a_keyword'.
 		require
 			a_keyword_attached: a_keyword /= Void
@@ -127,16 +126,16 @@ feature -- Setting
 			if keyword = Void then
 				create keyword.make_from_string (a_keyword)
 			else
-				keyword.clear_all
+				keyword.wipe_out
 				keyword.append (a_keyword)
 			end
 		ensure
-			keyword_set: keyword /= Void and then keyword.is_equal (a_keyword)
+			keyword_set: attached keyword as k and then k.same_string (a_keyword)
 		end
 
 feature -- Access
 
-	keyword: STRING
+	keyword: STRING_32
 			-- Keyword used in `search'
 
 feature -- Status report
@@ -165,8 +164,8 @@ invariant
 	last_result_attached: last_result /= Void
 
 note
-        copyright:	"Copyright (c) 1984-2006, Eiffel Software"
-        license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+        copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
+        license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
         licensing_options:	"http://www.eiffel.com/licensing"
         copying: "[
                         This file is part of Eiffel Software's Eiffel Development Environment.
@@ -189,11 +188,11 @@ note
                         Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
                 ]"
         source: "[
-                         Eiffel Software
-                         356 Storke Road, Goleta, CA 93117 USA
-                         Telephone 805-685-1006, Fax 805-685-6869
-                         Website http://www.eiffel.com
-                         Customer support http://support.eiffel.com
-                ]"
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 
 end

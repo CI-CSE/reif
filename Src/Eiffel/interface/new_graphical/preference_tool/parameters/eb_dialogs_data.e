@@ -1,12 +1,15 @@
 note
-	description	: "All shared attributes specific to dialogs."
+	description: "All shared attributes specific to dialogs."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	EB_DIALOGS_DATA
+
+inherit
+	ES_SHARED_FONTS_AND_COLORS
 
 create
 	make
@@ -83,6 +86,13 @@ feature {EB_SHARED_PREFERENCES} -- Value
 			-- a dialog?
 		do
 			Result := confirm_save_before_compile_preference.value
+		end
+
+	confirm_save_before_reloading: BOOLEAN
+			-- Should file be saved before reloading without displaying
+			-- a dialog?
+		do
+			Result := confirm_save_before_reloading_preference.value
 		end
 
 	confirm_save_before_prettifying: BOOLEAN
@@ -170,6 +180,12 @@ feature {EB_SHARED_PREFERENCES} -- Value
 			--
 		do
 			Result := show_first_launching_dialog_preference.value
+		end
+
+	show_update_manager_dialog: BOOLEAN
+			-- Should we display available release update?
+		do
+			Result := show_update_manager_dialog_preference.value
 		end
 
 	show_starting_dialog: BOOLEAN
@@ -273,6 +289,43 @@ feature {EB_SHARED_PREFERENCES} -- Value
 			end
 		end
 
+feature {EB_SHARED_PREFERENCES} -- Notification/Value
+
+	notification_autoclose_delay_ms: INTEGER
+		do
+			Result := notification_autoclose_delay_ms_preference.value
+		end
+
+	notification_title_font: EV_FONT
+		do
+			Result := notification_title_font_preference.value
+		end
+
+	notification_text_font: EV_FONT
+		do
+			Result := notification_text_font_preference.value
+		end
+
+	notification_title_background_color: EV_COLOR
+		do
+			Result := notification_title_background_color_preference.value
+		end
+
+	notification_title_foreground_color: EV_COLOR
+		do
+			Result := notification_title_foreground_color_preference.value
+		end
+
+	notification_text_background_color: EV_COLOR
+		do
+			Result := notification_text_background_color_preference.value
+		end
+
+	notification_text_foreground_color: EV_COLOR
+		do
+			Result := notification_text_foreground_color_preference.value
+		end
+
 feature {EB_SHARED_PREFERENCES, EB_TOOL} -- Preference
 
 	confirm_on_terminate_freezing_preference: BOOLEAN_PREFERENCE
@@ -305,6 +358,10 @@ feature {EB_SHARED_PREFERENCES, EB_TOOL} -- Preference
 
 	confirm_save_before_compile_preference: BOOLEAN_PREFERENCE
 			-- Should all files be saved before compiling without displaying
+			-- a dialog?
+
+	confirm_save_before_reloading_preference: BOOLEAN_PREFERENCE
+			-- Should a file be saved before reloading without displaying
 			-- a dialog?
 
 	confirm_save_before_prettifying_preference: BOOLEAN_PREFERENCE
@@ -357,6 +414,9 @@ feature {EB_SHARED_PREFERENCES, EB_TOOL} -- Preference
 	confirm_save_metric_preference: BOOLEAN_PREFERENCE
 			-- Should we save requested metric?
 
+	open_class_on_fix_preference: BOOLEAN_PREFERENCE
+			-- A preference to open an editor for a class to be fixed.
+
 	confirm_fix_without_undo_preference: BOOLEAN_PREFERENCE
 			-- A preference to discard a fix undo warning.
 
@@ -375,6 +435,7 @@ feature {EB_SHARED_PREFERENCES, EB_TOOL} -- Preference
 	confirm_reload_execution_profile_preference: BOOLEAN_PREFERENCE
 	already_editing_class_preference: BOOLEAN_PREFERENCE
 	executing_command_preference: BOOLEAN_PREFERENCE
+	show_update_manager_dialog_preference: BOOLEAN_PREFERENCE
 
 	last_opened_project_directory_preference: PATH_PREFERENCE
 	last_opened_dynamic_lib_directory_preference: PATH_PREFERENCE
@@ -406,6 +467,14 @@ feature {EB_SHARED_PREFERENCES, EB_TOOL} -- Preference
 	last_opened_object_directory_in_ebbro: PATH_PREFERENCE
 	last_saved_basic_project_directory_preference: PATH_PREFERENCE
 
+	notification_autoclose_delay_ms_preference: INTEGER_PREFERENCE
+	notification_title_font_preference: FONT_PREFERENCE
+	notification_text_font_preference: FONT_PREFERENCE
+	notification_title_background_color_preference: COLOR_PREFERENCE
+	notification_title_foreground_color_preference: COLOR_PREFERENCE
+	notification_text_background_color_preference: COLOR_PREFERENCE
+	notification_text_foreground_color_preference: COLOR_PREFERENCE
+
 feature -- Preference strings
 
 	confirm_on_terminate_freezing_string: STRING = "interface.dialogs.confirm_on_terminate_freezing"
@@ -417,6 +486,7 @@ feature -- Preference strings
 	confirm_finalize_string: STRING = "interface.dialogs.confirm_finalize"
 	confirm_freeze_string: STRING = "interface.dialogs.confirm_freeze"
 	confirm_save_before_compile_string: STRING = "interface.dialogs.confirm_save_before_compile"
+	confirm_save_before_reloading_string: STRING = "interface.dialogs.confirm_save_before_reloading"
 	confirm_save_before_prettifying_string: STRING = "interface.dialogs.confirm_save_before_prettifying"
 	confirm_finalize_assertions_string: STRING = "interface.dialogs.confirm_finalize_assertions"
 	confirm_clear_breakpoints_string: STRING = "interface.dialogs.confirm_clear_breakpoints"
@@ -433,11 +503,13 @@ feature -- Preference strings
 	confirm_replace_all_string: STRING = "interface.dialogs.confirm_replace_all"
 	confirm_remove_metric_string: STRING = "interface.dialogs.confirm_remove_metric"
 	confirm_save_metric_string: STRING = "interface.dialogs.confirm_save_metric"
+	open_class_on_fix_string: STRING = "interface.dialogs.open_class_on_fix"
 	confirm_fix_without_undo_string: STRING = "interface.dialogs.confirm_fix_without_undo"
 	acknowledge_not_loaded_string: STRING = "interface.dialogs.acknowledge_not_loaded"
 	confirm_finalize_precompile_string: STRING = "interface.dialogs.confirm_finalize_precompile"
 	show_starting_dialog_string: STRING = "interface.dialogs.show_starting_dialog"
 	show_first_launching_dialog_string: STRING = "interface.dialogs.show_first_launching_dialog"
+	show_update_manager_dialog_string: STRING = "interface.dialogs.show_update_manager_dialog"
 	confirm_change_resource_need_restart_string: STRING = "interface.dialogs.confirm_resource_change_needs_restart"
 	generate_homonyms_string: STRING = "interface.dialogs.generate_homonyms"
 	stop_execution_when_compiling_string: STRING = "interface.dialogs.stop_execution_when_compiling"
@@ -478,6 +550,14 @@ feature -- Preference strings
 	last_opened_object_directory_in_ebbro_string: STRING = "interface.dialogs.last_opened_object_directory_in_ebbro"
 	last_saved_basic_project_directory_string: STRING = "interface.dialogs.last_saved_basic_project_directory"
 
+	notification_autoclose_delay_ms_string: STRING = "interface.dialogs.notification_autoclose_delay_ms"
+	notification_title_font_string: STRING = "interface.dialogs.notification_title_font"
+	notification_text_font_string: STRING = "interface.dialogs.notification_text_font"
+	notification_title_background_color_string: STRING = "interface.dialogs.notification_title_background_color"
+	notification_title_foreground_color_string: STRING = "interface.dialogs.notification_title_foreground_color"
+	notification_text_background_color_string: STRING = "interface.dialogs.notification_text_background_color"
+	notification_text_foreground_color_string: STRING = "interface.dialogs.notification_text_foreground_color"
+
 feature {NONE} -- Implementation
 
 	initialize_preferences
@@ -494,6 +574,7 @@ feature {NONE} -- Implementation
 			confirm_finalize_preference := l_manager.new_boolean_preference_value (l_manager, confirm_finalize_string, True)
 			confirm_freeze_preference := l_manager.new_boolean_preference_value (l_manager, confirm_freeze_string, True)
 			confirm_save_before_compile_preference := l_manager.new_boolean_preference_value (l_manager, confirm_save_before_compile_string,True)
+			confirm_save_before_reloading_preference := l_manager.new_boolean_preference_value (l_manager, confirm_save_before_reloading_string,True)
 			confirm_save_before_prettifying_preference := l_manager.new_boolean_preference_value (l_manager, confirm_save_before_prettifying_string, True)
 			confirm_finalize_assertions_preference := l_manager.new_boolean_preference_value (l_manager, confirm_finalize_assertions_string, True)
 			confirm_clear_breakpoints_preference := l_manager.new_boolean_preference_value (l_manager, confirm_clear_breakpoints_string, True)
@@ -508,12 +589,15 @@ feature {NONE} -- Implementation
 			confirm_acknowledge_eis_affected_items_preference := l_manager.new_boolean_preference_value (l_manager, confirm_acknowledge_eis_affected_items_string, True)
 			confirm_remove_metric_preference := l_manager.new_boolean_preference_value (l_manager, confirm_remove_metric_string, True)
 			confirm_save_metric_preference := l_manager.new_boolean_preference_value (l_manager, confirm_save_metric_string, True)
+			open_class_on_fix_preference :=  l_manager.new_boolean_preference_value (l_manager, open_class_on_fix_string, True)
 			confirm_fix_without_undo_preference := l_manager.new_boolean_preference_value (l_manager, confirm_fix_without_undo_string, True)
 			acknowledge_not_loaded_preference := l_manager.new_boolean_preference_value (l_manager, acknowledge_not_loaded_string, True)
 			confirm_finalize_precompile_preference := l_manager.new_boolean_preference_value (l_manager, confirm_finalize_precompile_string, True)
 			show_starting_dialog_preference := l_manager.new_boolean_preference_value (l_manager, show_starting_dialog_string, True)
 			show_first_launching_dialog_preference := l_manager.new_boolean_preference_value (l_manager, show_first_launching_dialog_string, True)
 			show_first_launching_dialog_preference.set_hidden (True)
+			show_update_manager_dialog_preference := l_manager.new_boolean_preference_value (l_manager, show_update_manager_dialog_string, True)
+			show_update_manager_dialog_preference.set_hidden (True)
 			confirm_change_resource_need_restart_preference := l_manager.new_boolean_preference_value (l_manager, confirm_change_resource_need_restart_string, True)
 			generate_homonyms_preference := l_manager.new_boolean_preference_value (l_manager, generate_homonyms_string, True)
 			stop_execution_when_compiling_preference := l_manager.new_boolean_preference_value (l_manager, stop_execution_when_compiling_string, True)
@@ -552,6 +636,15 @@ feature {NONE} -- Implementation
 
 			last_opened_object_directory_in_ebbro := l_manager.new_path_preference_value (l_manager, last_opened_object_directory_in_ebbro_string, create {PATH}.make_empty)
 			last_saved_basic_project_directory_preference := l_manager.new_path_preference_value (l_manager, last_saved_basic_project_directory_string, create {PATH}.make_empty)
+
+
+			notification_autoclose_delay_ms_preference := l_manager.new_integer_preference_value (l_manager, notification_autoclose_delay_ms_string, 45_000) -- 45 seconds
+			notification_title_font_preference := l_manager.new_font_preference_value (l_manager, notification_title_font_string, fonts.highlighted_label_font)
+			notification_text_font_preference := l_manager.new_font_preference_value (l_manager, notification_text_font_string, fonts.standard_label_font)
+			notification_title_background_color_preference := l_manager.new_color_preference_value (l_manager, notification_title_background_color_string, colors.stock_colors.color_dialog)
+			notification_title_foreground_color_preference := l_manager.new_color_preference_value (l_manager, notification_title_foreground_color_string, colors.stock_colors.default_foreground_color)
+			notification_text_background_color_preference := l_manager.new_color_preference_value (l_manager, notification_text_background_color_string, colors.stock_colors.default_background_color)
+			notification_text_foreground_color_preference := l_manager.new_color_preference_value (l_manager, notification_text_foreground_color_string, colors.stock_colors.default_foreground_color)
 		end
 
 	preferences: PREFERENCES
@@ -563,6 +656,7 @@ invariant
 	confirm_finalize_preference_not_void: confirm_finalize_preference /= Void
 	confirm_freeze_preference_not_void: confirm_freeze_preference /= Void
 	confirm_save_before_compile_preference_not_void: confirm_save_before_compile_preference /= Void
+	confirm_save_before_reloading_preference_not_void: confirm_save_before_reloading_preference /= Void
 	confirm_save_before_prettifying_preference_not_void: confirm_save_before_prettifying_preference /= Void
 	confirm_finalize_assertions_preference_not_void: confirm_finalize_assertions_preference /= Void
 	confirm_clear_breakpoints_preference_not_void: confirm_clear_breakpoints_preference /= Void
@@ -576,11 +670,13 @@ invariant
 	confirm_build_precompile_preference_not_void: confirm_build_precompile_preference /= Void
 	confirm_iron_packages_installation_preference_not_void: confirm_iron_packages_installation_preference /= Void
 	confirm_delete_eis_entries_preference_not_void: confirm_delete_eis_entries_preference /= Void
+	confirm_fix_open_preference_attached: attached open_class_on_fix_preference
 	confirm_fix_undo_preference_attached: attached confirm_fix_without_undo_preference
 	acknowledge_not_loaded_preference_not_void: acknowledge_not_loaded_preference /= Void
 	confirm_finalize_precompile_preference_not_void: confirm_finalize_precompile_preference /= Void
 	show_starting_dialog_preference_not_void: show_starting_dialog_preference /= Void
 	show_first_launching_dialog_preference_not_void: show_first_launching_dialog_preference /= Void
+	show_update_manager_dialog_preference_not_void: show_update_manager_dialog_preference /= Void
 	confirm_change_resource_need_restart_preference_not_void: confirm_change_resource_need_restart_preference /= Void
 	generate_homonyms_preference_not_void: generate_homonyms_preference /= Void
 	stop_execution_when_compiling_preference_not_void: stop_execution_when_compiling_preference /= Void
@@ -600,10 +696,18 @@ invariant
 
 	last_saved_basic_project_directory_preference_not_void: last_saved_basic_project_directory_preference /= Void
 
+	notification_autoclose_delay_ms_preference_not_void: notification_autoclose_delay_ms_preference /= Void
+	notification_title_font_preference_not_void: notification_title_font_preference /= Void
+	notification_text_font_preference_not_void: notification_text_font_preference /= Void
+	notification_title_background_color_preference_not_void: notification_title_background_color_preference /= Void
+	notification_title_foreground_color_preference_not_void: notification_title_foreground_color_preference /= Void
+	notification_text_background_color_preference_not_void: notification_text_background_color_preference /= Void
+	notification_text_foreground_color_preference_not_void: notification_text_foreground_color_preference /= Void
+
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+	copyright: "Copyright (c) 1984-2019, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
@@ -632,4 +736,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_DIALOGS_DATA
+end

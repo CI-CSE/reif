@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "AST visitor to retrieve auto expressions."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -16,9 +16,8 @@ inherit
 			process_array_as,
 			process_assign_as,
 			process_assigner_call_as,
-			process_bang_creation_as,
 			process_case_as,
-			process_create_creation_as,
+			process_creation_as,
 			process_creation_expr_as,
 			process_eiffel_list,
 			process_expr_call_as,
@@ -27,7 +26,6 @@ inherit
 			process_interval_as,
 			process_loop_as,
 			process_named_expression_as,
-			process_nested_as,
 			process_parameter_list_as,
 			process_reverse_as,
 			process_separate_instruction_as,
@@ -218,24 +216,6 @@ feature -- Processing
 			a_as.source.process (Current)
 		end
 
-	process_bang_creation_as (a_as: BANG_CREATION_AS)
-			-- Process old !! creation.
-			--
-			-- `a_as': Abstract syntax node to process.
-		local
-			l_call: ACCESS_INV_AS
-		do
-			reset_auto_spans
-			set_is_expression_instruction (True)
-			a_as.target.process (Current)
-
-			l_call := a_as.call
-			if l_call /= Void then
-				set_can_add_auto_span (False)
-				l_call.process (Current)
-			end
-		end
-
 	process_case_as (a_as: CASE_AS)
 			-- Process an inspect's when case.
 			--
@@ -250,7 +230,7 @@ feature -- Processing
 			a_as.compound.process (Current)
 		end
 
-	process_create_creation_as (a_as: CREATE_CREATION_AS)
+	process_creation_as (a_as: CREATION_AS)
 			-- Processes a creation expression
 			--
 			-- `a_as': Abstract syntax node to process.
@@ -378,24 +358,6 @@ feature -- Processing
 			add_auto_span (a_as.name)
 		end
 
-	process_nested_as (a_as: NESTED_AS)
-			-- Processes a nested instruction/expression 'a.b.c'.
-			--
-			-- `a_as': Abstract syntax node to process.
-		local
-			a_assign: like is_expression_instruction
-		do
-			a_assign := is_expression_instruction
-			if not a_assign then
-				set_is_expression_instruction (True)
-			end
-			a_as.target.process (Current)
-			if not a_assign then
-				set_is_expression_instruction (False)
-			end
-			a_as.message.process (Current)
-		end
-
 	process_parameter_list_as (a_as: PARAMETER_LIST_AS)
 			-- Processes a list of parameters
 			--
@@ -467,19 +429,12 @@ feature {NONE} -- Generic Node Processing
 			-- `a_as': Abstract syntax node to process.
 		require
 			a_as_attached: a_as /= Void
-		local
-			l_static: STATIC_ACCESS_AS
-			l_id: ID_AS
 		do
-			l_id ?= a_as
-			if l_id /= Void then
+			if attached {ID_AS} a_as as l_id then
 				add_auto_span (l_id)
-			else
-				l_static ?= a_as
-				if l_static /= Void then
-					set_is_expression_instruction (True)
-					process_static_access_as (l_static)
-				end
+			elseif attached {STATIC_ACCESS_AS} a_as as l_static then
+				set_is_expression_instruction (True)
+				process_static_access_as (l_static)
 			end
 		end
 
@@ -611,7 +566,7 @@ feature {NONE} -- Auto Span Declaration
 			l_end_loc: LOCATION_AS
 
 			l_start_token, l_end_token: LEAF_AS
-			l_id_as: ID_AS
+
 			reg: ERT_TOKEN_REGION
 		do
 			l_start := start_as
@@ -629,8 +584,7 @@ feature {NONE} -- Auto Span Declaration
 			l_end_token := a_as.last_token (leaf_as_list)
 			if l_start_token /= Void and l_end_token /= Void then
 				if l_start_token = l_end_token then
-					l_id_as ?= l_start_token
-					if l_id_as /= Void then
+					if attached {ID_AS} l_start_token as l_id_as then
 						l_span.i_text := l_id_as.name
 					else
 						l_span.i_text := l_start_token.text (leaf_as_list)
@@ -717,8 +671,8 @@ feature -- {NONE} -- Autos Heap
 			l_list.extend (a_span)
 		ensure
 			autos_span_heap_has_a_line: autos_span_heap[a_line] /= Void
-			not_autos_span_heap_item_is_empty: not (autos_span_heap[a_line]).is_empty
-			autos_span_heap_has_a_span: (autos_span_heap[a_line]).last.is_equal (a_span)
+			not_autos_span_heap_item_is_empty: not autos_span_heap [a_line].is_empty
+			autos_span_heap_has_a_span: autos_span_heap [a_line].last.is_equal (a_span)
 		end
 
 feature {NONE} -- Internal Implementation Cache
@@ -768,7 +722,8 @@ feature {NONE} -- Implementation
 	leaf_as_list: LEAF_AS_LIST;
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -27,7 +27,7 @@ feature {NONE} -- Initialization
 			elseif b2 then
 			end
 				-- Conditional expression.
-			(if b3 then "" elseif b4 then "" else "" end).do_nothing
+			;(if b3 then "" elseif b4 then "" else "" end).do_nothing
 				-- Next constructs are protected from execution
 				-- because they either raise an exception or never terminate.
 			if False then
@@ -44,18 +44,18 @@ feature {NONE} -- Initialization
 				end
 			end
 				-- Loop expression.
-			(across "" as c invariant b9 until b10 all b11 end).do_nothing
+			;(across "" as c invariant b9 until b10 all b11 end).do_nothing
 		end
 
 feature {NONE} -- Output
 
-	report (test: INTEGER; value: STRING)
+	report (test: INTEGER; value: TYPE [detachable separate ANY])
 			-- Output `value' for test `test' on a new line.
 		do
 			io.put_string ("Test #")
 			io.put_integer (test)
 			io.put_string (": ")
-			io.put_string (value)
+			io.put_string (value.out)
 			io.put_new_line
 		end
 

@@ -20,7 +20,8 @@ inherit
 			initialize_preferences,
 			update,
 			init_colors,
-			init_fonts
+			init_fonts,
+			update_font
 		end
 
 	EB_SHORTCUTS_DATA
@@ -247,6 +248,12 @@ feature -- Value
 			Result := show_completion_signature_preference.value
 		end
 
+	show_completion_target_class: BOOLEAN
+			-- Should target class be shown in completion dialog?
+		do
+			Result := show_completion_target_class_preference.value
+		end
+
 	show_completion_type: BOOLEAN
 			-- Should feature type be shown in completion list?
 		do
@@ -257,6 +264,12 @@ feature -- Value
 			-- Should disambiguated name be shown in completion list?
 		do
 			Result := show_completion_disambiguated_name_preference.value
+		end
+
+	show_completion_unicode_symbols: BOOLEAN
+			-- Should unicode symbols be shown in feature completion list?
+		do
+			Result := show_completion_unicode_symbols_preference.value
 		end
 
 	show_completion_obsolete_items: BOOLEAN
@@ -425,11 +438,17 @@ feature -- Preference
 	show_completion_signature_preference: BOOLEAN_PREFERENCE
 			-- Should feature signature be shown in completion list?
 
+	show_completion_target_class_preference: BOOLEAN_PREFERENCE
+			-- Should target class be shown in completion dialog?
+
 	show_completion_type_preference: BOOLEAN_PREFERENCE
 			-- Should feature type be shown in completion list?
 
 	show_completion_disambiguated_name_preference: BOOLEAN_PREFERENCE
 			-- Should disambiguated name be shown in completion list?
+
+	show_completion_unicode_symbols_preference: BOOLEAN_PREFERENCE
+			-- Should unicode symbols be shown in feature completion list?
 
 	show_completion_obsolete_items_preference: BOOLEAN_PREFERENCE
 			-- Should obsolete items be shown in completion list?
@@ -439,6 +458,9 @@ feature -- Preference
 
 	syntax_complete_enabled_preference: BOOLEAN_PREFERENCE
 			-- should main keywords be completed ?
+
+	minimum_count_for_unicode_symbols_completion_preference: INTEGER_PREFERENCE
+			-- Minimum number of character before showing unicode symbols in completion list.
 
 	customized_string_1_preference: STRING_PREFERENCE
 	customized_string_2_preference: STRING_PREFERENCE
@@ -528,11 +550,17 @@ feature {NONE} -- Preference Strings
 	show_completion_signature_string: STRING = "editor.eiffel.show_completion_signature"
 			-- Should feature signature be shown in completion list?
 
+	show_completion_target_class_string: STRING = "editor.eiffel.show_completion_target_class"
+			-- Should target class be shown in completion dialog?
+
 	show_completion_type_string: STRING = "editor.eiffel.show_completion_type"
 			-- Should feature type be shown in completion list?
 
 	show_completion_disambiguated_name_string: STRING = "editor.eiffel.show_completion_disambiguated_name"
 			-- Should disambiguated name be shown in completion list?
+
+	show_completion_unicode_symbols_string: STRING = "editor.eiffel.show_completion_unicode_symbols"
+			-- Should unicode symbols be shown in feature completion list?
 
 	show_completion_obsolete_items_string: STRING = "editor.eiffel.show_obsolete_items"
 			-- Should obsolete items be shown in completion list?
@@ -542,6 +570,8 @@ feature {NONE} -- Preference Strings
 
 	syntax_complete_enabled_string: STRING = "editor.eiffel.syntax_complete_enabled"
 			-- should main keywords be completed ?
+
+	minimum_count_for_unicode_symbols_completion_preference_string: STRING = "editor.eiffel.minimum_count_for_unicode_symbols_completion"
 
 	customized_string_1_string: STRING = "editor.eiffel.customized_string_1"
 	customized_string_2_string: STRING = "editor.eiffel.customized_string_2"
@@ -600,6 +630,19 @@ feature {NONE} -- Init colors and fonts.
 	init_fonts
 			-- <Precursor>
 		do
+			Precursor
+		end
+
+	update_font
+			-- Font was changed, must redraw tokens due to possible width change.
+		do
+				-- FIXME: change to event handling ... "service"?
+			if
+				attached {IDE_S} (create {SERVICE_CONSUMER [IDE_S]}).service as l_ide_service
+			then
+				l_ide_service.on_zoom (font_zoom_factor_preference.value)
+			end
+
 			Precursor
 		end
 
@@ -674,10 +717,13 @@ feature {NONE} -- Initialization
 			filter_completion_list_preference := l_manager.new_boolean_preference_value (l_manager, filter_completion_list_string, True)
 			highlight_matching_braces_preference := l_manager.new_boolean_preference_value (l_manager, highlight_matching_braces_string, True)
 			show_completion_signature_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_signature_string, True)
+			show_completion_target_class_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_target_class_string, True)
 			show_completion_type_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_type_string, True)
 			show_completion_disambiguated_name_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_disambiguated_name_string, False)
+			show_completion_unicode_symbols_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_unicode_symbols_string, True)
 			show_completion_obsolete_items_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_obsolete_items_string, False)
 			show_completion_tooltip_preference := l_manager.new_boolean_preference_value (l_manager, show_completion_tooltip_string, True)
+			minimum_count_for_unicode_symbols_completion_preference := l_manager.new_integer_preference_value (l_manager, minimum_count_for_unicode_symbols_completion_preference_string, 3)
 			customized_string_1_preference := l_manager.new_string_preference_value (l_manager, customized_string_1_string, "")
 			customized_strings.extend (customized_string_1_preference)
 			customized_string_2_preference := l_manager.new_string_preference_value (l_manager, customized_string_2_string, "")
@@ -755,8 +801,10 @@ feature {NONE} -- Initialization
 			auto_remove_trailing_blank_when_saving_preference.change_actions.extend (agent update)
 			filter_completion_list_preference.change_actions.extend (agent update)
 			show_completion_signature_preference.change_actions.extend (agent update)
+			show_completion_target_class_preference.change_actions.extend (agent update)
 			show_completion_type_preference.change_actions.extend (agent update)
 			show_completion_disambiguated_name_preference.change_actions.extend (agent update)
+			show_completion_unicode_symbols_preference.change_actions.extend (agent update)
 			show_completion_obsolete_items_preference.change_actions.extend (agent update)
 			show_completion_tooltip_preference.change_actions.extend (agent update)
 			customized_string_1_preference.change_actions.extend (agent update)
@@ -1097,11 +1145,11 @@ feature -- Syntax Completion Customization
 			-- should the corresponding keyword in `completed_keywords' be completed ?
 		once
 			create Result.make (35)
-			Result.put (class_completed_keywords, complete_keywords_names_keys @ 1)
-			Result.put (feature_completed_keywords, complete_keywords_names_keys @ 2)
-			Result.put (inherit_completed_keywords, complete_keywords_names_keys @ 3)
-			Result.put (control_completed_keywords, complete_keywords_names_keys @ 4)
-			Result.put (other_completed_keywords, complete_keywords_names_keys @ 5)
+			Result.put (class_completed_keywords, complete_keywords_names_keys [1])
+			Result.put (feature_completed_keywords, complete_keywords_names_keys [2])
+			Result.put (inherit_completed_keywords, complete_keywords_names_keys [3])
+			Result.put (control_completed_keywords, complete_keywords_names_keys [4])
+			Result.put (other_completed_keywords, complete_keywords_names_keys [5])
 		end
 
 	complete_keywords_names_keys: ARRAYED_LIST [STRING]
@@ -1156,25 +1204,25 @@ feature -- Keybord shortcuts Customization
 			create Result.make (3)
 		end
 
-	shortcuts: HASH_TABLE [SHORTCUT_PREFERENCE, STRING]
+	shortcuts: STRING_TABLE [SHORTCUT_PREFERENCE]
 			-- Shortcuts
 		once
 			create Result.make (default_shortcut_actions.count)
 		end
 
-	default_shortcut_actions: ARRAYED_LIST [TUPLE [actions: HASH_TABLE [TUPLE [BOOLEAN, BOOLEAN, BOOLEAN, STRING_8], STRING_8]; group: MANAGED_SHORTCUT_GROUP]]
+	default_shortcut_actions: ARRAYED_LIST [TUPLE [actions: HASH_TABLE [TUPLE [alt: BOOLEAN; ctrl: BOOLEAN; shift: BOOLEAN; key: STRING_8], STRING_8]; group: MANAGED_SHORTCUT_GROUP]]
 			-- Array of shortcut defaults (Alt/Ctrl/Shift/KeyString)
 
-	editor_shortcut_actions: ARRAYED_LIST [TUPLE [HASH_TABLE [TUPLE [BOOLEAN, BOOLEAN, BOOLEAN, STRING_8], STRING_8], MANAGED_SHORTCUT_GROUP]]
+	editor_shortcut_actions: ARRAYED_LIST [TUPLE [HASH_TABLE [TUPLE [alt: BOOLEAN; ctrl: BOOLEAN; shift: BOOLEAN; key: STRING_8], STRING_8], MANAGED_SHORTCUT_GROUP]]
 			-- Array for shortcut defaults
 			-- in tuple, the four elements are: (Alt/Ctrl/Shift/KeyString)
 		local
-			l_hash: HASH_TABLE [TUPLE [BOOLEAN, BOOLEAN, BOOLEAN, STRING_8], STRING_8]
+			l_hash: HASH_TABLE [TUPLE [alt: BOOLEAN; ctrl: BOOLEAN; shift: BOOLEAN; key: STRING_8], STRING_8]
 		once
 			create Result.make (1)
 
 				-- Shortcuts for main window group
-			create l_hash.make (15)
+			create l_hash.make (16)
 			l_hash.put ([False, False, False, key_strings.item (Key_F2).twin.as_string_8], "customized_insertion_1")
 			l_hash.put ([False,  True, False, key_strings.item (Key_F2).twin.as_string_8], "customized_insertion_2")
 			l_hash.put ([False, False,  True, key_strings.item (Key_F2).twin.as_string_8], "customized_insertion_3")
@@ -1185,6 +1233,7 @@ feature -- Keybord shortcuts Customization
 
 			l_hash.put ([False,  True, False, key_strings.item (Key_f).twin.as_string_8], "show_quick_search_bar")
 			l_hash.put ([False,  True, False, key_strings.item (Key_h).twin.as_string_8], "show_search_and_replace_panel")
+			l_hash.put ([False,  True, False, key_strings.item (key_slash).twin.as_string_8], "toggle_comment")
 			l_hash.put ([False,  True, False, key_strings.item (Key_k).twin.as_string_8], "comment")
 			l_hash.put ([False,  True, True, key_strings.item (Key_k).twin.as_string_8], "uncomment")
 			l_hash.put ([False,  True, True, key_strings.item (Key_p).twin.as_string_8], "prettify")
@@ -1212,6 +1261,8 @@ feature -- Keybord shortcuts Customization
 			l_hash.put ([False,  True, False, key_strings.item (key_0).twin.as_string_8], "zoom_reset")
 			l_hash.put ([False,  True, False, key_strings.item (key_numpad_0).twin.as_string_8], "zoom_reset_numpad")
 
+			l_hash.put ([True,  True, False, key_strings.item (key_space).twin.as_string_8], "insert_symbol")
+
 			Result.extend ([l_hash, main_window_group])
 		end
 
@@ -1227,16 +1278,29 @@ feature -- Keybord shortcuts Customization
 			Result.extend ([l_hash, main_window_group])
 
 				-- Shortcuts for completion window group
-			create l_hash.make (5)
-			l_hash.put ([False, False, False, key_strings.item (Key_F1).twin.as_string_8], "toggle_filter")
-			l_hash.put ([False, False, False, key_strings.item (Key_F2).twin.as_string_8], "toggle_show_type")
-			l_hash.put ([False, False, False, key_strings.item (Key_F3).twin.as_string_8], "toggle_show_signature")
-			l_hash.put ([False, False, False, key_strings.item (Key_F4).twin.as_string_8], "toggle_show_disambiguated_name")
-			l_hash.put ([False, False, False, key_strings.item (Key_F5).twin.as_string_8], "toggle_show_obsolete_items")
-			l_hash.put ([False, False, False, key_strings.item (Key_F6).twin.as_string_8], "toggle_show_tooltip")
-			l_hash.put ([False, False, False, key_strings.item (Key_F7).twin.as_string_8], "toggle_remember_size")
+			create l_hash.make (9)
+			l_hash.put ([False, False, False, key_strings.item (Key_F1).twin.as_string_8], completion_shortcut_toggle_filter)
+			l_hash.put ([False, False, False, key_strings.item (Key_F2).twin.as_string_8], completion_shortcut_toggle_show_type)
+			l_hash.put ([False, False, False, key_strings.item (Key_F3).twin.as_string_8], completion_shortcut_toggle_show_signature)
+			l_hash.put ([False, False, False, key_strings.item (Key_F4).twin.as_string_8], completion_shortcut_toggle_show_disambiguated_name)
+			l_hash.put ([False, False, False, key_strings.item (Key_F8).twin.as_string_8], completion_shortcut_toggle_show_unicode_symbols)
+			l_hash.put ([False, False, False, key_strings.item (Key_F5).twin.as_string_8], completion_shortcut_toggle_show_obsolete_items)
+			l_hash.put ([False, False, False, key_strings.item (Key_F6).twin.as_string_8], completion_shortcut_toggle_show_tooltip)
+			l_hash.put ([False, False, False, key_strings.item (Key_F7).twin.as_string_8], completion_shortcut_toggle_remember_size)
+			l_hash.put ([False, True, False, key_strings.item (key_space).twin.as_string_8], completion_shortcut_next_completion_panel)
 			Result.extend ([l_hash, completion_window_group])
 		end
+
+	completion_shortcut_toggle_filter: STRING = "toggle_filter"
+	completion_shortcut_toggle_show_type: STRING = "toggle_show_type"
+	completion_shortcut_toggle_show_signature: STRING = "toggle_show_signature"
+	completion_shortcut_toggle_show_disambiguated_name: STRING = "toggle_show_disambiguated_name"
+	completion_shortcut_toggle_show_unicode_symbols: STRING = "toggle_show_unicode_symbols"
+	completion_shortcut_toggle_show_obsolete_items: STRING = "toggle_show_obsolete_items"
+	completion_shortcut_toggle_show_tooltip: STRING = "toggle_show_tooltip"
+	completion_shortcut_toggle_remember_size: STRING = "toggle_remember_size"
+	completion_shortcut_next_completion_panel: STRING = "next_completion_panel"
+
 
 invariant
 	preferences_not_void: preferences /= Void
@@ -1291,10 +1355,13 @@ invariant
 	auto_remove_trailing_blank_when_saving_preference_not_void: auto_remove_trailing_blank_when_saving_preference /= Void
 	filter_completion_list_preference_not_void: filter_completion_list_preference /= Void
 	show_completion_signature_preference_not_void: show_completion_signature_preference /= Void
+	show_completion_target_class_preference_not_void: show_completion_target_class_preference /= Void
 	show_completion_type_preference_not_void: show_completion_type_preference /= Void
 	show_completion_disambiguated_name_preference_not_void: show_completion_disambiguated_name_preference /= Void
+	show_completion_unicode_symbols_preference_not_void: show_completion_unicode_symbols_preference /= Void
 	show_completion_obsolete_items_preference_not_void: show_completion_obsolete_items_preference /= Void
 	show_completion_tooltip_string_attached: show_completion_tooltip_string /= Void
+	minimum_count_for_unicode_symbols_completion_preference_not_void: minimum_count_for_unicode_symbols_completion_preference /= Void
 	syntax_complete_enabled_preference_not_void: syntax_complete_enabled_preference /= Void
 	customized_string_1_preference_not_void: customized_string_1_preference /= Void
 	customized_string_2_preference_not_void: customized_string_2_preference /= Void
@@ -1309,7 +1376,7 @@ invariant
 
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that represents a enhanced GRID"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -60,7 +60,11 @@ feature {NONE} -- Initialization
 			set_separator_color (color_separator)
 			set_tree_node_connector_color (color_tree_node_connector)
 			header.item_pointer_button_press_actions.extend (agent on_header_item_clicked)
-			header.pointer_double_press_actions.force_extend (agent on_header_auto_width_resize)
+			header.pointer_double_press_actions.extend
+				(agent (x, y, b: INTEGER_32; x_tilt, y_tilt, p: REAL_64; s_x, s_y: INTEGER_32)
+					do
+						on_header_auto_width_resize
+					end)
 
 			header.item_resize_start_actions.extend (agent on_header_resize_start)
 			header.item_resize_end_actions.extend (agent on_header_resize_end)
@@ -76,6 +80,7 @@ feature {NONE} -- Initialization
 			build_delayed_last_column_auto_resizing
 
 			resize_actions.extend (agent on_resize_events)
+			dpi_changed_actions.extend (agent on_dpi_resize_events)
 			virtual_size_changed_actions.extend (agent on_resize_events (0,0, ?,?))
 			last_column_use_all_width_enabled := True
 
@@ -416,12 +421,12 @@ feature -- Resizing
 				if w < col.width and col.index = column_count then
 					--| Do not resize smaller if it is last column
 				else
-					col.set_width (w)
+					col.set_width (w.max (col.minimum_width))
 				end
 			end
 		end
 
-	safe_resize_column_to_content (col: EV_GRID_COLUMN; include_header_text, only_visible_part: BOOLEAN)
+	safe_resize_column_to_content (col: detachable EV_GRID_COLUMN; include_header_text, only_visible_part: BOOLEAN)
 			-- similar to resize_column_to_content but check input first
 		do
 			if col /= Void and row_count > 0 then
@@ -694,7 +699,7 @@ feature {NONE} -- column resizing impl
 										if manually_resized_columns.has (l_index) implies l_col.required_width_of_item_span (1, row_count) < l_new_width then
 											resize_actions.block
 											virtual_size_changed_actions.block
-											l_col.set_width (l_new_width)
+											l_col.set_width (l_new_width.max (l_col.minimum_width))
 											virtual_size_changed_actions.resume
 											resize_actions.resume
 										end
@@ -838,7 +843,7 @@ feature {NONE} -- column resizing impl
 								if w < col.width and col.index = column_count then
 									--| Do not resize smaller if it is last column
 								else
-									col.set_width (w)
+									col.set_width (w.max (col.minimum_width))
 								end
 							end
 						end
@@ -859,7 +864,7 @@ feature {NONE} -- column resizing impl
 	auto_resized_columns: LINKED_LIST [INTEGER]
 
 	manually_resized_columns: ARRAYED_LIST [INTEGER]
-			-- Record of all manually rezied columns
+			-- Record of all manually resized columns
 
 	header_resize_started: BOOLEAN
 			-- Header resize started?
@@ -925,6 +930,11 @@ feature {NONE} -- Auto Events
 					d.request_call
 				end
 			end
+		end
+
+	on_dpi_resize_events (a_dpi: NATURAL_32; ax, ay, aw, ah: INTEGER)
+		do
+			on_resize_events (ax, ay, aw, ah)
 		end
 
 feature -- Grid helpers
@@ -1389,7 +1399,7 @@ invariant
 	selected_rows_agent_attached: selected_rows_function /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2022, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

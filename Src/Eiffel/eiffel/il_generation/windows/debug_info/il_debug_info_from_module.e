@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Managing data used to interpret debugger info
 		we are dealing for a module identified by `module_filename' :
@@ -106,7 +106,7 @@ feature -- Properties
 
 feature -- Queries Class
 
-	class_type_for_token (a_class_token: NATURAL_32): CLASS_TYPE
+	class_type_for_token (a_class_token: NATURAL_32): detachable CLASS_TYPE
 			-- CLASS_TYPE associated with `a_class_token'
 		require
 			class_token_valid: a_class_token /= 0
@@ -115,7 +115,7 @@ feature -- Queries Class
 		do
 			l_class_type_id := list_class_type_id.item (a_class_token)
 			if l_class_type_id /= 0 then
-				Result := Il_debug_info.class_types @ l_class_type_id
+				Result := Il_debug_info.class_types [l_class_type_id]
 			end
 		ensure
 			Result /= Void implies list_class_type_id.has (a_class_token)
@@ -227,19 +227,15 @@ feature -- Recording Operation
 			feature_i_not_void: a_feature_i /= Void
 			feature_token_valid: a_feature_token > 0
 		local
-			l_class_id: INTEGER
-			l_name_id: INTEGER
 			l_entry: TUPLE [INTEGER, INTEGER]
 		do
-			l_class_id := a_class_type.associated_class.class_id
-			l_name_id  := a_feature_i.feature_name_id
-			l_entry := [l_class_id, l_name_id]
+			l_entry := [a_class_type.associated_class.class_id, a_feature_i.feature_name_id]
 
 			if not list_feature_info.has (a_feature_token) then
 				list_feature_info.put (l_entry , a_feature_token)
 			else
 				debug ("il_info_trace")
-					io.error.put_string (">> CONFLICT record_feature_i : "+a_class_type.associated_class.name_in_upper
+					io.error.put_string_32 ({STRING_32} ">> CONFLICT record_feature_i : "+a_class_type.associated_class.name_in_upper
 							+"."+a_feature_i.feature_name_32
 							+" <<%N")
 					io.error.put_string ("  - key : feature_token =" + a_feature_token.to_hex_string + "%N")
@@ -279,21 +275,17 @@ feature
 			--
 		do
 			io.put_string ("************************************************************%N")
-			io.put_string ("* Module=" + module_filename.as_string_8 + "%N")
+			io.put_string ("* Module=" + {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (module_filename) + "%N")
 			io.put_string ("************************************************************%N")
 			io.put_string ("%N Class Token  => static_class_type %N%N")
 
-			from
-				list_class_type_id.start
-			until
-				list_class_type_id.after
+			across
+				list_class_type_id as c
 			loop
-				io.put_string (" - 0x" + list_class_type_id.key_for_iteration.to_hex_string)
-				io.put_string (" => " +	list_class_type_id.item_for_iteration.out)
-				io.put_string (" :: " + (Il_debug_info.class_types @ list_class_type_id.item_for_iteration).associated_class.name_in_upper)
+				io.put_string (" - 0x" + c.key.to_hex_string)
+				io.put_string (" => " +	c.item.out)
+				io.put_string (" :: " + (Il_debug_info.class_types [c.item]).associated_class.name_in_upper)
 				io.put_new_line
-
-				list_class_type_id.forth
 			end
 		end
 
@@ -302,7 +294,7 @@ invariant
 	module_filename_not_void: module_filename /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -44,7 +44,7 @@ DOC_DIR=$BASE_PATH/share/doc/$PRODUCT
 SRC_BIN_DIR=$ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin
 TOOLS_BIN_DIR=$ISE_EIFFEL/tools/spec/$ISE_PLATFORM/bin
 
-TOOLS_BINS="compile_all eiffel eiffel_echo eimgemb syntax_updater iron ace2ecf"
+TOOLS_BINS="compile_all eiffel wrap_c eiffel_echo eimgemb syntax_updater iron ace2ecf"
 MAIN_BINS="estudio ec ecb finish_freezing"
 LIB_BINS="ecdbgd prelink quick_finalize x2c make_precompiled_libraries"
 
@@ -64,19 +64,14 @@ cp -r $ISE_EIFFEL/studio/spec/$ISE_PLATFORM/lib/* $LIB_DIR
 
 # Copy libraries
 cp -r $ISE_EIFFEL/library $LIB_DIR
-cp -r $ISE_EIFFEL/experimental $LIB_DIR
 cp -r $ISE_EIFFEL/contrib $LIB_DIR
 cp -r $ISE_EIFFEL/unstable $LIB_DIR
+cp -r $ISE_EIFFEL/C_library $LIB_DIR
 
 # Copy precompile without EIFGENs and remove WEL files
 mkdir -p $SHARE_DIR/precomp/spec/$UNIX_PLATFORM
 cp $ISE_EIFFEL/precomp/spec/$ISE_PLATFORM/*.ecf $SHARE_DIR/precomp/spec/$UNIX_PLATFORM/
 rm -f $SHARE_DIR/precomp/spec/$UNIX_PLATFORM/wel*
-if test -d "$ISE_EIFFEL/experimental/precomp/spec/$ISE_PLATFORM"; then
-	mkdir -p $SHARE_DIR/experimental/precomp/spec/$UNIX_PLATFORM
-	cp $ISE_EIFFEL/experimental/precomp/spec/$ISE_PLATFORM/*.ecf $SHARE_DIR/experimental/precomp/spec/$UNIX_PLATFORM/
-	rm -f $SHARE_DIR/experimental/precomp/spec/$UNIX_PLATFORM/wel*
-fi
 
 # Copy documentation
 cp $ISE_EIFFEL/VERSION $DOC_DIR
@@ -140,6 +135,8 @@ done
 if [ $ISE_PLATFORM != "unix" ]; then
 	mv $LIB_BIN_DIR/wizards/new_projects/vision2/spec/$ISE_PLATFORM $LIB_BIN_DIR/wizards/new_projects/vision2/spec/unix
 	mv $LIB_BIN_DIR/wizards/new_projects/ewf/spec/$ISE_PLATFORM $LIB_BIN_DIR/wizards/new_projects/ewf/spec/unix
+	mv $LIB_BIN_DIR/wizards/new_projects/library/spec/$ISE_PLATFORM $LIB_BIN_DIR/wizards/new_projects/library/spec/unix
+	mv $LIB_BIN_DIR/wizards/new_projects/wrapc/spec/$ISE_PLATFORM $LIB_BIN_DIR/wizards/new_projects/wrapc/spec/unix
 	mv $LIB_BIN_DIR/wizards/others/precompile/spec/$ISE_PLATFORM $LIB_BIN_DIR/wizards/others/precompile/spec/unix
 	mv $LIB_DIR/library/gobo/spec/$ISE_PLATFORM $LIB_DIR/library/gobo/spec/unix
 	mv $LIB_DIR/library/vision2/spec/$ISE_PLATFORM $LIB_DIR/library/vision2/spec/unix

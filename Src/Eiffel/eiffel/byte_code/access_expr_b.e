@@ -17,8 +17,13 @@ inherit
 			generate,
 			has_call,
 			has_gcable_variable,
+			inlined_byte_code,
+			is_attribute,
+			is_feature,
 			is_hector,
+			is_polymorphic,
 			is_predefined,
+			is_result,
 			is_temporary,
 			is_type_fixed,
 			is_unsafe,
@@ -27,9 +32,23 @@ inherit
 			print_checked_target_register,
 			print_register,
 			propagate,
+			register,
 			register_name,
 			unanalyze,
 			used
+		end
+
+create
+	make
+
+feature {NONE} -- Creation
+
+	make (e: EXPR_B)
+			-- Initialize with expression `e`.
+		do
+			expr := e
+		ensure
+			expr = e
 		end
 
 feature -- Visitor
@@ -54,7 +73,29 @@ feature -- Status report
 			Result := expr.is_type_fixed
 		end
 
-feature -- Status
+	is_result: BOOLEAN
+			-- <Precursor>
+		do
+			Result := expr.is_result
+		end
+
+	is_attribute: BOOLEAN
+			-- <Precursor>
+		do
+			Result := expr.is_attribute
+		end
+
+	is_feature: BOOLEAN
+			-- <Precursor>
+		do
+			Result := expr.is_feature
+		end
+
+	is_polymorphic: BOOLEAN
+			-- <Precursor>
+		do
+			Result := attached {ACCESS_B} expr as a and then a.is_polymorphic
+		end
 
 	is_hector: BOOLEAN
 			-- Is the current expression an hector one ?
@@ -65,17 +106,13 @@ feature -- Status
 			Result := expr.is_hector
 		end
 
-	set_expr (e: EXPR_B)
-			-- Set `expr' to `e'ю
-		do
-			expr := e
-		end
+feature -- Status
 
 	type: TYPE_A
 			-- Expression type
 		do
 			Result := expr.type
-		end;
+		end
 
 	enlarged: like Current
 			-- Enlarge the expressionю
@@ -112,11 +149,13 @@ feature -- C code generation
 	propagate (r: REGISTRABLE)
 			-- Propagate a register in expression.
 		do
-			if r = No_register or not used (r) then
-				if not context.propagated or r = No_register then
-					expr.propagate (r)
-				end
-			end
+			expr.propagate (r)
+		end
+
+	register: REGISTRABLE
+			-- <Precursor>
+		do
+			Result := expr.register
 		end
 
 	free_register
@@ -180,7 +219,7 @@ feature -- Array optimization
 
 	optimized_byte_node: like Current
 		do
-			Result := Current;
+			Result := Current
 			expr := expr.optimized_byte_node
 		end
 
@@ -188,7 +227,7 @@ feature -- Inlining
 
 	size: INTEGER
 		do
-			Result := 1 + expr.size
+			Result := expr.size
 		end
 
 	pre_inlined_code: like Current
@@ -198,7 +237,7 @@ feature -- Inlining
 		end
 
 	is_temporary: BOOLEAN
-			-- Is register a temporary one ?
+			-- Is register a temporary one?
 		do
 			Result := expr.is_temporary
 		end
@@ -215,6 +254,13 @@ feature -- Inlining
 			Result := expr.register_name
 		end
 
+	inlined_byte_code: ACCESS_B
+			-- Redefined for type check
+		do
+			Result := Current
+			expr := expr.inlined_byte_code
+		end
+
 feature {REGISTRABLE} -- C code generation
 
 	print_checked_target_register
@@ -224,7 +270,7 @@ feature {REGISTRABLE} -- C code generation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

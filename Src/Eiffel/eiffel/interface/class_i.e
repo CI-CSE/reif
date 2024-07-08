@@ -1,8 +1,8 @@
 ﻿note
 	description:"[
-				Abstract class that is used for the internal representation
-				of a class.
-			]"
+			Abstract class that is used for the internal representation
+			of a class.
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -152,28 +152,23 @@ feature -- Access
 	debug_level: DEBUG_I
 			-- Debug level
 		local
-			l_d: STRING_TABLE [BOOLEAN]
 			l_options: like options
 			u: UTF_CONVERTER
 		do
 			l_options := options
-			l_d := l_options.debugs
-			if l_options.is_debug and then l_d /= Void and then not l_d.is_empty then
+			if l_options.is_debug and then attached l_options.debugs as debugs and then not debugs.is_empty then
 				create Result
-				from
-					l_d.start
-				until
-					l_d.after
+				across
+					debugs as d
 				loop
-					if l_d.item_for_iteration then
-						if l_d.key_for_iteration.same_string (unnamed_debug) then
+					if d.item then
+						if d.key.same_string (unnamed_debug) then
 							Result.enable_unnamed
 						else
 								-- We encode Unicode keys into UTF-8 since that's what the compiler parse.
-							Result.enable_tag (u.utf_32_string_to_utf_8_string_8 (l_d.key_for_iteration))
+							Result.enable_tag (u.utf_32_string_to_utf_8_string_8 (d.key))
 						end
 					end
-					l_d.forth
 				end
 			else
 				Result := no_debug
@@ -183,44 +178,32 @@ feature -- Access
 	visible_level: VISIBLE_I
 			-- Visible level
 		local
-			l_vis: STRING_TABLE [READABLE_STRING_32]
 			l_sel: VISIBLE_SELEC_I
 			l_ren: HASH_TABLE [STRING, STRING]
 			l_vis_feat: SEARCH_TABLE [STRING]
-			l_feat, l_ren_feat: STRING
+			l_feat: STRING
 			u: UTF_CONVERTER
 		do
-			if visible /= Void then
-				l_vis := visible.features
-				if l_vis = Void then
-					Result := create {VISIBLE_EXPORT_I}
-				else
-					from
-						create l_ren.make (l_vis.count)
-						create l_vis_feat.make (l_vis.count)
-						l_vis.start
-					until
-						l_vis.after
-					loop
-							-- We encode Unicode feature names into UTF-8 since that's what the compiler parse.
-						l_feat := u.utf_32_string_to_utf_8_string_8 (l_vis.key_for_iteration)
-						if l_feat /= Void then
-								-- We encode Unicode feature names into UTF-8 since that's what the compiler parse.							
-							l_ren_feat := u.utf_32_string_to_utf_8_string_8 (l_vis.item_for_iteration)
-							if l_ren_feat /= Void then
-								l_ren.force (l_ren_feat, l_feat)
-							end
-							l_vis_feat.force (l_feat)
-						end
-						l_vis.forth
-					end
-					l_sel := create {VISIBLE_SELEC_I}
-					l_sel.set_visible_features (l_vis_feat)
-					Result := l_sel
-					Result.set_renamings (l_ren)
-				end
-			else
+			if not attached visible as visible_features then
 				create Result
+			elseif not attached visible_features.features as l_vis then
+				create {VISIBLE_EXPORT_I} Result
+			else
+				create l_ren.make (l_vis.count)
+				create l_vis_feat.make (l_vis.count)
+				across
+					l_vis as v
+				loop
+						-- We encode Unicode feature names into UTF-8 since that's what the compiler parse.
+					l_feat := u.utf_32_string_to_utf_8_string_8 (v.key)
+						-- We encode Unicode feature names into UTF-8 since that's what the compiler parse.							
+					l_ren.force (u.utf_32_string_to_utf_8_string_8 (v.item), l_feat)
+					l_vis_feat.force (l_feat)
+				end
+				create l_sel
+				l_sel.set_visible_features (l_vis_feat)
+				Result := l_sel
+				Result.set_renamings (l_ren)
 			end
 		end
 
@@ -330,6 +313,14 @@ feature -- Access
 				Result := True
 			else
 			end
+		end
+
+	is_explicit_iteration_cursor: BOOLEAN
+			-- Does iteration use an explicit cursor?
+			-- If yes, the iteration item is accessed via an explicit call "c.item".
+			-- Otherwise, it is accessed without a call ("c"), but other accesser use a predecessor ("@c.key").
+		do
+			Result := options.is_obsolete_iteration
 		end
 
 	is_manifest_array_type_standard: BOOLEAN
@@ -461,8 +452,6 @@ feature -- Access
 				Result := compiled_class
 			end
 		end
-
-feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 
 	visible: detachable TUPLE [class_renamed: READABLE_STRING_32; features: detachable STRING_TABLE [READABLE_STRING_32]]
 			-- The visible features.
@@ -731,7 +720,7 @@ invariant
 	compiled_class_connection: is_compiled implies compiled_class.original_class = Current
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -32,12 +32,14 @@ inherit
 
 	WIKI_STRING_ITEM
 
+	WIKI_ANALYZER_HELPER
+
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (s: STRING)
+	make (s: READABLE_STRING_8)
 		require
 			starts_with_curly_bracket_and_pipe: s.starts_with ("{|")
 			ends_with_pipe_and_curly_bracket: s.ends_with ("|}")
@@ -69,9 +71,9 @@ feature -- Status report
 
 feature -- Change
 
-	set_text (t: STRING)
+	set_text (t: READABLE_STRING_8)
 		local
-			i,n,p,q: INTEGER
+			i,j,k,n,p,q: INTEGER
 			r: detachable WIKI_TABLE_ROW
 			cl: detachable WIKI_TABLE_CELL
 			s,tmp: STRING
@@ -152,6 +154,44 @@ feature -- Change
 					s.extend (t[i])
 					i := i + 1
 					s.extend (t[i])
+				elseif safe_character (t, i) = '`' then
+					if safe_character (t, i + 1) = '`' and then safe_character (t, i + 2) = '`' then
+						j := t.substring_index ("```", i + 3)
+						if j > 0 then
+							s.append_substring (t, i, j)
+							i := j
+						else
+							s.append ("```")
+							i := i + 2
+						end
+					else
+						j := t.index_of ('`', i + 1)
+						if j > 0 then
+							k := index_of_end_of_line (t, i)
+							if k = 0 or else j <= k then
+								s.append_substring (t, i, j)
+								i := j
+							else
+								s.extend (t[i])
+							end
+						else
+							s.extend (t[i])
+						end
+					end
+				elseif safe_character (t, i) = '<' then
+--					l_stack.force ("tag")
+					j := next_end_of_tag_character (t, i + 1)
+					if j > i and then attached tag_name_from (t.substring (i, j)) as l_tag_name then
+						j := next_closing_tag (t, l_tag_name, j + 1)
+						if j > i then
+							s.append_substring (t, i, j)
+							i := j
+						else
+							s.extend (t[i])
+						end
+					else
+						s.extend (t[i])
+					end
 				elseif safe_character (t, i) = '|' and safe_character (t, i + 1) = '+' then
 						-- There should not be any row for now!
 					check r = Void end
@@ -159,7 +199,7 @@ feature -- Change
 					if p > 0 then
 						q := t.index_of ('|', i + 1)
 						if q > i + 1 and q < p  then
-							tmp := t.substring (i + 2, q - 1)
+							tmp := t.substring (i + 2, q - 1).to_string_8
 							tmp.left_adjust
 							tmp.right_adjust
 							caption_style := tmp
@@ -167,7 +207,7 @@ feature -- Change
 							q := i + 1
 						end
 						if l_caption = Void then
-							l_caption := t.substring (q + 1, p - 1)
+							l_caption := t.substring (q + 1, p - 1).to_string_8
 							l_caption.left_adjust
 						else
 							l_caption.append (t.substring (q + 1, p - 1))
@@ -210,7 +250,7 @@ feature -- Change
 						create r.make
 						p := t.index_of ('%N', i + 1)
 						if p > 0 then
-							tmp := t.substring (i + 2, p - 1)
+							tmp := t.substring (i + 2, p - 1).to_string_8
 							tmp.left_adjust
 							tmp.right_adjust
 							r.set_style (tmp)
@@ -306,7 +346,7 @@ feature -- Visitor
 		end
 
 note
-	copyright: "2011-2017, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2019, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

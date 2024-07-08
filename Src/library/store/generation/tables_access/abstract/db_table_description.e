@@ -85,6 +85,14 @@ feature -- Access (table description)
 
 	id_name: STRING
 			-- Table ID attribute name.
+		obsolete
+			"Use `id_name_32` instead [2020-05-31]."
+		do
+			Result := {UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (id_name_32)
+		end
+
+	id_name_32: STRING_32
+			-- Table ID attribute name.
 		do
 			Result := description_list.i_th (Id_code)
 		end
@@ -161,14 +169,7 @@ feature -- Access (table row values)
 			-- Table row attribute values.
 		do
 			create Result.make (Attribute_number)
-			from
-				attribute_code_list.start
-			until
-				attribute_code_list.after
-			loop
-				Result.extend (attribute_value (attribute_code_list.item))
-				attribute_code_list.forth
-			end
+			⟳ a: attribute_code_list ¦ Result.extend (attribute_value (a)) ⟲
 		ensure
 			not_void: Result /= Void
 		end
@@ -177,14 +178,7 @@ feature -- Access (table row values)
 			-- Table row attribute string values.
 		do
 			create Result.make (Attribute_number)
-			from
-				attribute_code_list.start
-			until
-				attribute_code_list.after
-			loop
-				Result.extend (printable_attribute (attribute_code_list.item))
-				attribute_code_list.forth
-			end
+			⟳ a: attribute_code_list ¦ Result.extend (printable_attribute (a)) ⟲
 		ensure
 			not_void: Result /= Void
 		end
@@ -195,14 +189,7 @@ feature -- Access (table row values)
 			not_void: list /= Void
 		do
 			create Result.make (list.count)
-			from
-				list.start
-			until
-				list.after
-			loop
-				Result.extend (attribute_value (list.item))
-				list.forth
-			end
+			⟳ l: list ¦ Result.extend (attribute_value (l)) ⟲
 		ensure
 			not_void: Result /= Void
 		end
@@ -213,14 +200,7 @@ feature -- Access (table row values)
 			not_void: list /= Void
 		do
 			create Result.make (list.count)
-			from
-				list.start
-			until
-				list.after
-			loop
-				Result.extend (printable_attribute (list.item))
-				list.forth
-			end
+			⟳ l: list ¦ Result.extend (printable_attribute (l)) ⟲
 		ensure
 			not_void: Result /= Void
 		end
@@ -230,19 +210,9 @@ feature -- Access (table row values)
 			-- This can be useful to create tags or parameter names.
 		require
 			action_not_void: action /= Void
-		local
-			l_result: detachable STRING
 		do
 			create Result.make (Attribute_number)
-			from
-				description_list.start
-			until
-				description_list.after
-			loop
-				l_result := action.item ([description_list.item.twin])
-				Result.extend (l_result)
-				description_list.forth
-			end
+			⟳ d: description_list ¦ Result.extend (action (d.twin)) ⟲
 		end
 
 feature -- Status report
@@ -274,8 +244,8 @@ feature -- Basic operations
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
-	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

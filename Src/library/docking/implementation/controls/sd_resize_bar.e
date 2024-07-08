@@ -11,6 +11,8 @@ class
 inherit
 	EV_DRAWING_AREA
 
+	EV_BUILDER
+
 create
 	make
 
@@ -44,7 +46,7 @@ feature {NONE} -- Initialization
 			end
 
 			expose_actions.extend (agent on_expose_action)
-			set_background_color ((create {EV_GRID}).non_focused_selection_color)
+			set_background_color ((create {SD_SYSTEM_COLOR_IMP}.make).non_focused_selection_color)
 		ensure
 			a_direction_set: a_direction = direction
 		end
@@ -76,12 +78,14 @@ feature {NONE} -- Agents
 			if a_button = {EV_POINTER_CONSTANTS}.left then
 				if not resizing then
 					resizing := True
+
 					create l_screen_boundary
 					screen_boundary := l_screen_boundary
 					if attached resize_source as s then
 						s.start_resize_operation (Current, l_screen_boundary)
 					end
 					debug ("docking")
+						io.put_string ("%N screen_boundary " + l_screen_boundary.out + "%N")
 						io.put_string ("%N start position: " + a_screen_x.out + ", " + a_screen_y.out)
 					end
 					internal_shared.feedback.draw_line_area (screen_x, screen_y, width, height)
@@ -104,6 +108,7 @@ feature {NONE} -- Agents
 		local
 			l_stock_colors: EV_STOCK_COLORS
 		do
+			start_drawing_session
 			clear
 			create l_stock_colors
 			if direction = {SD_ENUMERATION}.left or direction = {SD_ENUMERATION}.right then
@@ -117,6 +122,7 @@ feature {NONE} -- Agents
 				set_foreground_color (l_stock_colors.black)
 				draw_segment (0, height - 1, width - 1, height - 1)
 			end
+			end_drawing_session
 		end
 
 	on_pointer_motion (a_x, a_y: INTEGER; a_x_tilt, a_y_tilt, a_pressure: DOUBLE; a_screen_x, a_screen_y: INTEGER)
@@ -125,8 +131,7 @@ feature {NONE} -- Agents
 			l_left, l_right, l_top, l_bottom: INTEGER
 		do
 			if resizing and then attached screen_boundary as l_scr_boundary then
-				-- Clear the graph last drawn
-
+					-- Clear the graph last drawn
 				clear_graph_last_drawn
 
 				if direction = {SD_ENUMERATION}.left or direction = {SD_ENUMERATION}.right then
@@ -217,7 +222,7 @@ invariant
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -30,10 +30,7 @@ inherit
 			system
 		end
 
---	SHARED_STATELESS_VISITOR
---		rename
---			type_output_strategy as ast_type_output_strategy
---		end
+	SHARED_NAMES_HEAP
 
 feature -- Access
 
@@ -92,16 +89,12 @@ feature -- Access
 			a_system_attached: a_system /= Void
 		local
 			l_any_class: CLASS_C
-			l_creator_tbl: HASH_TABLE [EXPORT_I, STRING]
 		do
 			create Result.make
-			l_creator_tbl := a_class.creators
 			l_any_class := a_system.any_class.compiled_representation
-			if l_creator_tbl /= Void then
-				from
-					l_creator_tbl.start
-				until
-					l_creator_tbl.after
+			if attached a_class.creators as l_creator_tbl then
+				across
+					l_creator_tbl as c
 				loop
 						-- When a class has no exported creation procedure, e.g. XXX_CURSOR classes,
 						-- test engine may end up in an infinite loop.
@@ -115,7 +108,6 @@ feature -- Access
 					l_creator_tbl.forth
 				end
 			end
-
 			if a_class.allows_default_creation then
 				Result.extend (a_class.default_create_feature.feature_name)
 			end
@@ -196,9 +188,12 @@ feature {NONE} -- Parsing class types
 				type_parser.set_syntax_version (type_parser.provisional_syntax)
 				type_parser.parse_from_string_32 ("type " + l_name, Void)
 				l_type_as := type_parser.type_node
-
-					-- Generate TYPE_A object from type AST node.
-				Result := evaluated_base_type (l_type_as)
+				if l_type_as /= Void then
+						-- Generate TYPE_A object from type AST node.
+					Result := evaluated_base_type (l_type_as)
+				else
+					Result := none_type
+				end
 			end
 		end
 
@@ -447,7 +442,7 @@ feature -- Types
 		end
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

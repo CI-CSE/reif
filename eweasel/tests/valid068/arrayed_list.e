@@ -17,7 +17,7 @@ class ARRAYED_LIST [G] inherit
 	ARRAY [G]
 		rename
 			force as force_i_th,
-			item as i_th,
+			item as i_th alias "@",
 			make as array_make,
 			put as put_i_th,
 			count as array_count,
@@ -43,13 +43,12 @@ class ARRAYED_LIST [G] inherit
 
 	DYNAMIC_LIST [G]
 		undefine
-			valid_index, infix "@", i_th, put_i_th,
+			valid_index, i_th, put_i_th,
 			force, is_inserted, copy
 		redefine
 			first, last, swap, wipe_out,
 			go_i_th, move, prunable, start, finish,
-			count, prune, remove,
-			put_left, merge_left,
+			prune, put_left, merge_left,
 			merge_right, duplicate, prune_all, has, search
 		select
 			count, index_set

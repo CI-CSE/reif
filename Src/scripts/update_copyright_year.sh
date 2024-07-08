@@ -6,6 +6,8 @@ function do_sed {
 	echo sed -i -e "$1" "$2" 
 	sed -i -e "$1" "$2" 
 	svn diff "$2"
+	echo $2 >> file_for_year_changes.log
+	echo $2 \\ >> commit_year_changes.sh
 }
 
 function doall_sed {
@@ -13,6 +15,8 @@ function doall_sed {
 		echo sed -i -e "$1" "$filename" 
 		sed -i -e "$1" "$filename" 
 		svn diff "$filename"
+		echo $filename >> file_for_year_changes.log
+		echo $filename \\ >> commit_year_changes.sh
 	done
 }
 function do_update_copyright_eiffel_software {
@@ -23,6 +27,10 @@ if [ -z "$EIFFEL_SRC" ]; then export EIFFEL_SRC=$(readlink -n -q -m `pwd`/..) ; 
 
 echo Update copyright year to $curr_year.
 echo EIFFEL_SRC=$EIFFEL_SRC
+echo  > file_for_year_changes.log
+echo  echo Update to year $curr_year > commit_year_changes.sh
+echo  export EIFFEL_SRC=#EIFFEL_SRC >> commit_year_changes.sh
+echo  svn commit \\ >> commit_year_changes.sh
 
 # $EIFFEL_SRC/framework/environment/interface/eiffel_env.e
 do_sed "s/\(copyright_year: STRING = \"\)[0-9][0-9][0-9][0-9]/\1$curr_year/g" $EIFFEL_SRC/framework/environment/interface/eiffel_env.e
@@ -55,10 +63,6 @@ do_update_copyright_eiffel_software $EIFFEL_SRC/tools/visitor_factory/main/argum
 do_update_copyright_eiffel_software $EIFFEL_SRC/tools/vsafeconv/main/argument_parser.e
 
 
-
-
-
-
 # $EIFFEL_SRC/web/eiffel-org/modules/eiffel_community/site/templates/block_eiffel_copyright.tpl
 do_sed "s/\(Copyright \)[0-9][0-9][0-9][0-9]/\1$curr_year/g" $EIFFEL_SRC/web/eiffel-org/modules/eiffel_community/site/templates/block_eiffel_copyright.tpl
 do_sed "s/\(Copyright \)[0-9][0-9][0-9][0-9]/\1$curr_year/g" $EIFFEL_SRC/web/eiffel-org/site/modules/eiffel_community/templates/block_eiffel_copyright.tpl
@@ -84,4 +88,18 @@ do_sed "s/\(Copyright (C) [0-9][0-9][0-9][0-9]-\)[0-9][0-9][0-9][0-9]/\1$curr_ye
 
 # dotnet consumer
 do_update_copyright_eiffel_software $EIFFEL_SRC/dotnet/consumer/main/argument_parser.e
+
+# finish_freezing
+do_sed "s/\(Copyright Eiffel Software [0-9][0-9][0-9][0-9]-\)[0-9][0-9][0-9][0-9]/\1$curr_year/g" $EIFFEL_SRC/Delivery/studio/spec/unix/finish_freezing
+
+sort -u file_for_year_changes.log -o file_for_year_changes.log
+sed -i -e  "s~$EIFFEL_SRC~\$EIFFEL_SRC~g" file_for_year_changes.log
+
+echo  -m \"chore: Updated to year $curr_year .\"  >> commit_year_changes.sh
+
+sed -i -e  "s~$EIFFEL_SRC~  \$EIFFEL_SRC~g" commit_year_changes.sh
+sed -i -e  "s~#EIFFEL_SRC~$EIFFEL_SRC~g" commit_year_changes.sh
+
+echo "Files to commit (in file_for_year_changes.log):"
+cat file_for_year_changes.log
 

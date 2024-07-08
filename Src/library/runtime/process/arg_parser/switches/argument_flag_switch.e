@@ -41,8 +41,8 @@ feature {NONE} -- Initialization
 			a_arg_desc_attached: a_arg_desc /= Void
 			not_a_arg_desc_is_empty: not a_arg_desc.is_empty
 			not_a_flags_is_empty: not a_flags.is_empty
-			a_flags_contains_attached_items: across a_flags as c all not c.item.is_empty end
-			a_flags_contains_printable_items: across a_flags as c all is_character_printable (c.key) end
+			a_flags_contains_attached_items: ∀ c: a_flags ¦ not c.is_empty
+			a_flags_contains_printable_items: ∀ c: a_flags ¦ is_character_printable (@ c.key)
 		do
 			make_value_base (a_id, a_desc, a_optional, a_allow_mutliple, a_arg_name, full_arg_description (a_arg_desc, a_flags), a_val_optional)
 			flag_descriptions := a_flags
@@ -71,8 +71,8 @@ feature {NONE} -- Initialization
 			a_arg_name_attached: a_arg_name /= Void
 			not_a_arg_name_is_empty: not a_arg_name.is_empty
 			not_a_flags_is_empty: not a_flags.is_empty
-			a_flags_contains_attached_items: across a_flags as c all not c.item.is_empty end
-			a_flags_contains_printable_items: across a_flags as c all is_character_printable (c.key) end
+			a_flags_contains_attached_items: ∀ c: a_flags ¦ not c.is_empty
+			a_flags_contains_printable_items: ∀ c: a_flags ¦ is_character_printable (@ c.key)
 		do
 			make (a_id, internal_switch_description, a_optional, a_allow_mutliple, a_arg_name, internal_argument_description, a_val_optional, a_flags, a_cs_flags)
 			is_hidden := True
@@ -105,7 +105,7 @@ feature -- Access
 			result_attached: Result /= Void
 			result_consistent: Result ~ flags
 			not_result_is_empty: not Result.is_empty
-			result_contains_printable_characters: across Result as l_c all is_character_printable (l_c.item) end
+			result_contains_printable_characters: ∀ l_c: Result ¦ is_character_printable (l_c)
 		end
 
 	flag_descriptions: HASH_TABLE [IMMUTABLE_STRING_32, CHARACTER_32]
@@ -188,7 +188,7 @@ feature {NONE} -- Usage
 			across
 				l_list as i
 			loop
-				c := i.item
+				c := i
 				Result.append (once "   ")
 				Result.append_character (c)
 				Result.append (once ": ")
@@ -212,12 +212,12 @@ feature {NONE} -- Internal implementation cache
 invariant
 	flag_descriptions_attached: flag_descriptions /= Void
 	not_flag_description_is_empty: not flag_descriptions.is_empty
-	flag_descriptions_contains_attached_items: across flag_descriptions as l_desc all not l_desc.item.is_empty end
-	flag_descriptions_contains_printable_items: across flag_descriptions as l_desc all is_character_printable (l_desc.key) end
+	flag_descriptions_contains_attached_items: ∀ l_desc: flag_descriptions ¦ not l_desc.is_empty
+	flag_descriptions_contains_printable_items: ∀ l_desc: flag_descriptions ¦ is_character_printable (@ l_desc.key)
 
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
-	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.

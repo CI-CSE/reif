@@ -4,8 +4,8 @@
 	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
-	date: "$date$";
-	revision: "$revision$"
+	date: "$Date$";
+	revision: "$Revision$"
 
 class
 	ES_SHOW_TOOL_COMMAND
@@ -23,7 +23,6 @@ inherit
 			new_sd_toolbar_item,
 			tooltext,
 			is_tooltext_important,
-			pixel_buffer,
 			mini_pixmap,
 			mini_pixel_buffer
 		end
@@ -95,10 +94,10 @@ feature -- Access
 			Result := tool.title
 		end
 
-	name: STRING
+	name: STRING_32
 			-- Name to be displayed.
 		do
-			Result := (create {INTERNAL}).type_name (tool)
+			Result := (create {INTERNAL}).type_name_32 (tool)
 			if tool.edition > 1 then
 				Result.append (":" + tool.edition.out)
 			end
@@ -241,7 +240,7 @@ invariant
 	tool_attached: not is_recycled implies tool /= Void
 
 ;note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

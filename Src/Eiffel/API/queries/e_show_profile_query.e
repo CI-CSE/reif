@@ -1,11 +1,9 @@
-note
-
-	description:
-		"Class to show the output of the profile query."
+﻿note
+	description: "Class to show the output of the profile query."
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	date: "$Date$";
-	revision: "Revision: $"
+	status: "See notice at end of class."
+	date: "$Date$"
+	revision: "$Revision$"
 
 class E_SHOW_PROFILE_QUERY
 
@@ -124,7 +122,11 @@ feature {NONE} -- Implementation
 					create profile_file.make_with_name (current_item)
 					if profile_file.exists and then profile_file.is_readable then
 						profile_file.open_read
-						profile_information ?= profile_file.retrieved
+						if attached {like profile_information} profile_file.retrieved as pi then
+							profile_information := pi
+						else
+							profile_information := Void
+						end
 						profile_file.close
 					end
 					if profile_information /= Void then
@@ -137,7 +139,6 @@ feature {NONE} -- Implementation
 							text_formatter.add_new_line;
 							text_formatter.add_new_line
 						end
-					else
 					end
 				else
 					if text_formatter /= Void then
@@ -424,11 +425,7 @@ end;
 			-- CALLS_FILTER (true) or not (false).
 			-- Index of value is `i'.
 		local
-			real_ref: REAL_64_REF;
-			int_ref: INTEGER_REF;
 			lower, upper, origin: STRING;
-			lower_ref_int, upper_ref_int: INTEGER_REF;
-			lower_ref_real, upper_ref_real: REAL_64_REF
 		do
 			Result := filter;
 			origin := prof_query.subquery_at (i).value;
@@ -436,23 +433,40 @@ end;
 				if origin.has ('-') then
 					lower := origin.substring (1, origin.index_of ('-', 1) - 1);
 					upper := origin.substring (origin.index_of ('-', 1) + 1, origin.count);
-					lower_ref_int ?= single_value (lower, calls, i);
-					upper_ref_int ?= single_value (upper, calls, i);
-					Result.set_value_range (lower_ref_int, upper_ref_int)
+					if
+						attached {INTEGER_REF} single_value (lower, calls, i) as lower_ref_int and then
+						attached {INTEGER_REF} single_value (upper, calls, i) as upper_ref_int
+					then
+						Result.set_value_range (lower_ref_int, upper_ref_int)
+					else
+						check has_lower_and_upper_integer_values: False end
+					end
 				else
-					int_ref ?= single_value (origin, calls, i);
-					Result.set_value (int_ref)
+					if attached {INTEGER_REF} single_value (origin, calls, i) as int_ref then
+						Result.set_value (int_ref)
+					else
+						check has_origin_integer_value: False end
+					end
 				end
 			else
 				if origin.has ('-') then
 					lower := origin.substring (1, origin.index_of ('-', 1) - 1);
 					upper := origin.substring (origin.index_of ('-', 1) + 1, origin.count);
-					lower_ref_real ?= single_value (lower, calls, i);
-					upper_ref_real ?= single_value (upper, calls, i);
-					Result.set_value_range (lower_ref_real, upper_ref_real)
+
+					if
+						attached {REAL_64_REF} single_value (lower, calls, i) as lower_ref_real and then
+						attached {REAL_64_REF} single_value (upper, calls, i) as upper_ref_real
+					then
+						Result.set_value_range (lower_ref_real, upper_ref_real)
+					else
+						check has_lower_and_upper_real_values: False end
+					end
 				else
-					real_ref ?= single_value (origin, calls, i);
-					Result.set_value (real_ref)
+					if attached {REAL_64_REF} single_value (origin, calls, i) as real_ref then;
+						Result.set_value (real_ref)
+					else
+						check has_origin_real_value: False end
+					end
 				end
 			end
 		end;
@@ -467,7 +481,7 @@ end;
 		do
 			if calls then
 				create int_ref;
-				if val.is_equal (profiler_min) then
+				if val.same_string (profiler_min) then
 					if prof_options.language_names.item (1).is_equal (profiler_eiffel) then
 						int_ref.set_item (profile_information.profile_data.calls_min_eiffel)
 					elseif prof_options.language_names.item (1).is_equal (profiler_c) then
@@ -475,7 +489,7 @@ end;
 					elseif prof_options.language_names.item (1).is_equal (profiler_cycle) then
 						int_ref.set_item (profile_information.profile_data.calls_min_cycle)
 					end
-				elseif val.is_equal (profiler_max) then
+				elseif val.same_string (profiler_max) then
 					if prof_options.language_names.item (1).is_equal (profiler_eiffel) then
 						int_ref.set_item (profile_information.profile_data.calls_max_eiffel)
 					elseif prof_options.language_names.item (1).is_equal (profiler_c) then
@@ -483,7 +497,7 @@ end;
 					elseif prof_options.language_names.item (1).is_equal (profiler_cycle) then
 						int_ref.set_item (profile_information.profile_data.calls_max_cycle)
 					end
-				elseif val.is_equal (profiler_avg) then
+				elseif val.same_string (profiler_avg) then
 					if prof_options.language_names.item (1).is_equal (profiler_eiffel) then
 						int_ref.set_item (profile_information.profile_data.calls_avg_eiffel
 									// profile_information.profile_data.number_of_eiffel_features)
@@ -627,53 +641,51 @@ end;
 				end;
 				Result := real_ref
 			end
-		end;
+		end
 
 	extend_with_languages
 			-- Creates extra language filters
 		local
-			lang_filt: PROFILE_FILTER;
-			new_ff: PROFILE_FILTER;
+			lang_filt: PROFILE_FILTER
+			new_ff: PROFILE_FILTER
 			i: INTEGER
 		do
 			if prof_options.language_names.count > 1 then
 				from
-					create {OR_FILTER} lang_filt.make;
+					create {OR_FILTER} lang_filt.make
 					i := 1
 				until
 					i > prof_options.language_names.count
 				loop
-					lang_filt.extend (generate_language_filter (i));
+					lang_filt.extend (generate_language_filter (i))
 					i := i + 1
 				end
-				create {AND_FILTER} new_ff.make;
-				new_ff.extend (lang_filt);
-				new_ff.extend (first_filter);
+				create {AND_FILTER} new_ff.make
+				new_ff.extend (lang_filt)
+				new_ff.extend (first_filter)
 				first_filter := new_ff
 			elseif prof_options.language_names.count = 1 then
-				create {AND_FILTER} new_ff.make;
-				new_ff.extend (generate_language_filter (1));
-				new_ff.extend (first_filter);
+				create {AND_FILTER} new_ff.make
+				new_ff.extend (generate_language_filter (1))
+				new_ff.extend (first_filter)
 				first_filter := new_ff
 			end
-		end;
+		end
 
 	generate_language_filter (i: INTEGER): PROFILE_FILTER
-			-- Generates a filter for a specified
-			-- language
+			-- Generates a filter for a specified language.
 		local
 			lang_name: STRING
 		do
-			lang_name := prof_options.language_names.item (i);
-			lang_name.to_lower;
-			if lang_name.is_equal (profiler_eiffel) then
+			lang_name := prof_options.language_names [i]
+			if lang_name.is_case_insensitive_equal (profiler_eiffel) then
 				create {EIFFEL_FILTER} Result.make
-			elseif lang_name.is_equal (profiler_c) then
+			elseif lang_name.is_case_insensitive_equal (profiler_c) then
 				create {C_FILTER} Result.make
-			elseif lang_name.is_equal (profiler_cycle) then
+			elseif lang_name.is_case_insensitive_equal (profiler_cycle) then
 				create {CYCLE_FILTER} Result.make
 			end
-		end;
+		end
 
 	print_columns (item: PROFILE_DATA)
 			-- Prints the values from the columns the user wanted
@@ -743,7 +755,7 @@ feature {NONE} -- Attributes
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -774,4 +786,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class E_SHOW_PROFILE_QUERY
+end

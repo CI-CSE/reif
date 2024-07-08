@@ -3,7 +3,7 @@
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
-	revision: "$Revision $"
+	revision: "$Revision$"
 
 deferred class
 	BASIC_A
@@ -27,6 +27,7 @@ inherit
 			internal_is_valid_for_class,
 			internal_same_generic_derivation_as,
 			is_basic,
+			is_expanded_creation_possible,
 			is_processor_attachable_to,
 			make,
 			meta_type,
@@ -63,6 +64,12 @@ feature -- Status Report
 
 	has_reference: BOOLEAN = False
 			-- <Precursor>
+
+	is_expanded_creation_possible: BOOLEAN
+			-- <Precursor>
+		do
+			Result := not {SYSTEM_I}.is_basic_class_alive
+		end
 
 feature -- Access
 
@@ -195,13 +202,11 @@ feature {TYPE_A} -- Helpers
 			-- <Precursor>
 		do
 			if a_level = 0 and not system.il_generation then
-				if attached {CL_TYPE_A} other as l_type then
-					Result := class_id = l_type.class_id and then
-						(l_type.declaration_mark /= declaration_mark implies
-							(l_type.is_expanded = is_expanded and then
-							l_type.is_separate = is_separate)) and then
-						l_type.generics = Void
-				end
+				Result :=
+					attached {CL_TYPE_A} other as l_type and then
+					l_type.class_id = class_id and then
+					(l_type.declaration_mark /= declaration_mark implies l_type.is_expanded = is_expanded) and then
+					not attached l_type.generics
 			else
 				Result := same_as (other)
 			end
@@ -234,10 +239,10 @@ feature {COMPILER_EXPORTER} -- Instantiation of a type in the context of a desce
 invariant
 	is_basic: is_basic
 	is_expanded: is_expanded
-	is_base_class_expanded: class_declaration_mark = expanded_mark
+	is_base_class_expanded: class_declaration_mark ⊗ expanded_mark /= 0
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

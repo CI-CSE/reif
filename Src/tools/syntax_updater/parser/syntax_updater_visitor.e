@@ -1,4 +1,4 @@
-note
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -9,26 +9,41 @@ class
 
 inherit
 	AST_ROUNDTRIP_PRINTER_VISITOR
+		rename
+			make as make_roundtrip,
+			make_with_default_context as make
 		redefine
-			process_bang_creation_as,
-			process_bang_creation_expr_as,
+			context,
+			make,
 			process_body_as,
 			process_create_as,
+			process_class_type_as,
+			process_formal_as,
+			process_generic_class_type_as,
 			process_indexing_clause_as,
+			process_iteration_as,
+			process_like_cur_as,
+			process_like_id_as,
+			process_loop_as,
+			process_loop_expr_as,
+			process_named_tuple_type_as,
+			process_nested_expr_as,
 			process_object_test_as,
 			process_static_access_as,
-			process_like_id_as,
-			process_like_cur_as,
-			process_formal_as,
-			process_class_type_as,
-			process_generic_class_type_as,
-			process_named_tuple_type_as,
-			context,
 			reset
 		end
 
 create
-	make_with_default_context
+	make
+
+feature {NONE} -- Creation
+
+	make
+			-- <Precursor>
+		do
+			Precursor
+			create iteration_cursors.make (1)
+		end
 
 feature -- Status report
 
@@ -40,6 +55,10 @@ feature -- Status report
 			-- and replacing TUPLE with nothing, i.e. PROCEDURE [ANY, TUPLE [STRING]]
 			-- becoming PROCEDURE [STRING].
 
+	is_updating_iteration: BOOLEAN
+			-- Is it requested to update iteration by replacing "is" with "as" or
+			-- by removing ".item" when iteration uses "as"?
+
 feature -- Status setting
 
 	set_is_updating_agents (v: like is_updating_agents)
@@ -48,6 +67,14 @@ feature -- Status setting
 			is_updating_agents := v
 		ensure
 			is_updating_agents_set: is_updating_agents = v
+		end
+
+	set_is_updating_iteration (v: like is_updating_iteration)
+			-- Set `is_updating_iteration` to `v`.
+		do
+			is_updating_iteration := v
+		ensure
+			is_updating_iteration = v
 		end
 
 feature -- Reset
@@ -60,63 +87,6 @@ feature -- Reset
 		end
 
 feature -- AST visiting
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process `l_as'.
-		do
-			is_updated := True
-			if l_as.lbang_symbol /= Void then
-					-- If previous token is a text, we need to insert a space.
-				add_white_space_if_necessary
-					-- Process the previous white spaces if any and ignore the !
-				process_leading_leaves (l_as.lbang_symbol.index)
-				last_index := l_as.lbang_symbol.index
-			end
-			if l_as.type /= Void then
-				context.add_string ("create {")
-					-- Remove all white spaces between the first ! and the type.
-				remove_following_spaces
-				l_as.type.process (Current)
-				context.add_string  ("}" )
-			else
-				context.add_string ("create")
-			end
-			if l_as.rbang_symbol /= Void then
-					-- Remove spaces between the type and the second !.
-				remove_following_spaces
-				process_leading_leaves (l_as.rbang_symbol.index)
-				last_index := l_as.rbang_symbol.index
-			end
-				-- Ensure that there is at most one space before `target'.
-			context.add_string (" ")
-			remove_following_spaces
-			safe_process (l_as.target)
-			safe_process (l_as.call)
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			is_updated := True
-			if l_as.lbang_symbol /= Void then
-					-- Process the previous white spaces and ignore the !
-				process_leading_leaves (l_as.lbang_symbol.index)
-				last_index := l_as.lbang_symbol.index
-			end
-			context.add_string ("create {")
-				-- Remove all white spaces between the first ! and the type.
-			remove_following_spaces
-			l_as.type.process (Current)
-			context.add_string  ("}" )
-			if l_as.rbang_symbol /= Void then
-					-- Remove spaces between the type and the second !.
-				remove_following_spaces
-				process_leading_leaves (l_as.rbang_symbol.index)
-				last_index := l_as.rbang_symbol.index
-			end
-				-- Ensure that there is at most one space before `target'.
-			safe_process (l_as.call)
-		end
 
 	process_body_as (l_as: BODY_AS)
 			-- <Precursor>
@@ -144,7 +114,7 @@ feature -- AST visiting
 				end
 			end
 			if l_has_constant then
-				l_as.content.process (Current)
+				safe_process (l_as.content)
 				safe_process (l_as.indexing_clause)
 			else
 				safe_process (l_as.indexing_clause)
@@ -191,6 +161,114 @@ feature -- AST visiting
 			safe_process (l_as.end_keyword (match_list))
 		end
 
+	process_iteration_as (a: ITERATION_AS)
+			-- <Precursor>
+		do
+			if
+				is_updating_iteration and then
+				not a.is_symbolic and then
+				a.is_restricted and then
+				attached a.as_keyword (match_list) as k and then
+				k.is_is_keyword
+			then
+					-- Replace "is" with "as".
+				is_updated := True
+				safe_process (a.across_keyword (match_list))
+				a.expression.process (Current)
+				process_leading_leaves (k.index)
+				last_index := k.index
+				context.add_string ("as")
+				a.identifier.process (Current)
+			else
+					-- Do not change the iteration.
+				Precursor (a)
+			end
+		end
+
+	process_loop_as (a: LOOP_AS)
+			-- <Precursor>
+		do
+			if
+				is_updating_iteration and then
+				attached a.iteration as i and then
+				not i.is_symbolic and then
+				not i.is_restricted
+			then
+					-- Put the cursor name to the cursor name stack.
+				iteration_cursors.extend (i.identifier.name_id)
+					-- Update the loop.
+				Precursor (a)
+					-- Remove the cursor name from the stack.
+				iteration_cursors.remove
+			else
+					-- Do not change the loop.
+				Precursor (a)
+			end
+		end
+
+	process_loop_expr_as (a: LOOP_EXPR_AS)
+			-- <Precursor>
+		local
+			i: ITERATION_AS
+		do
+			i := a.iteration
+			if
+				is_updating_iteration and then
+				not i.is_symbolic and then
+				not i.is_restricted
+			then
+					-- Put the cursor name to the cursor name stack.
+				iteration_cursors.extend (i.identifier.name_id)
+					-- Update the loop.
+				Precursor (a)
+					-- Remove the cursor name from the stack.
+				iteration_cursors.remove
+			else
+					-- Do not change the loop.
+				Precursor (a)
+			end
+		end
+
+	process_nested_expr_as (a: NESTED_EXPR_AS)
+			-- <Precursor>
+		do
+			if
+				attached {EXPR_CALL_AS} a.target as c and then
+				attached {ACCESS_INV_AS} c.call as f and then
+				attached f.feature_name as n and then
+				iteration_cursors.has (n.name_id)
+			then
+					-- This is a call to feature on the iteration cursor.
+				is_updated := True
+				if
+					attached a.message as m and then
+					attached m.feature_name as q and then
+					q.name_id = {PREDEFINED_NAMES}.item_name_id
+				then
+						-- This is call to the feature "item", remove it:
+						-- "c.item" becomes "c".
+					safe_process (a.target)
+					process_leading_leaves (a.dot_symbol_index)
+					last_index := a.dot_symbol_index
+					process_leading_leaves (q.index)
+					last_index := a.message.index
+				else
+						-- This is call to a feature other than "item", add a predecessor:
+						-- "c.key" becomes "@ c.key".
+					process_leading_leaves (n.index)
+					last_index := n.index
+					context.add_string ("@ ")
+					context.add_string (n.text (match_list))
+					safe_process (a.dot_symbol (match_list))
+					safe_process (a.message)
+				end
+			else
+				safe_process (a.target)
+				safe_process (a.dot_symbol (match_list))
+				safe_process (a.message)
+			end
+		end
+
 	process_object_test_as (l_as: OBJECT_TEST_AS)
 		local
 			l_index: INTEGER
@@ -211,25 +289,31 @@ feature -- AST visiting
 					context.add_string ("attached ")
 				else
 					context.add_string ("attached {")
-					if attached {LEAF_AS} l_as.type.first_token (match_list) as l_leaf then
+					if
+						attached l_as.type as t and then
+						attached t.first_token (match_list) as l_leaf
+					then
 						l_index := l_leaf.index
 						last_index := l_index
-						l_as.type.process (Current)
+						t.process (Current)
 					end
 					context.add_string ("} ")
 				end
-				if attached {LEAF_AS} l_as.expression.first_token (match_list) as l_leaf then
+				if attached l_as.expression.first_token (match_list) as l_leaf then
 					l_index := l_leaf.index
 					last_index := l_index
 					l_as.expression.process (Current)
 				end
 				context.add_string (" as ")
-				if attached {LEAF_AS} l_as.name.first_token (match_list) as l_leaf then
+				if
+					attached l_as.name as n and then
+					attached n.first_token (match_list) as l_leaf
+				then
 					l_index := l_leaf.index
 					last_index := l_index
-					l_as.name.process (Current)
+					n.process (Current)
 				end
-				if attached {LEAF_AS} l_as.last_token (match_list) as l_leaf then
+				if attached l_as.last_token (match_list) as l_leaf then
 					last_index := l_leaf.index
 				end
 			end
@@ -252,6 +336,11 @@ feature -- AST visiting
 			safe_process (l_as.feature_name)
 			safe_process (l_as.internal_parameters)
 		end
+
+feature {NONE} -- Iteration
+
+	iteration_cursors: ARRAYED_STACK [like {ID_AS}.name_id]
+			-- Iteration cursor name IDs for loops being processed.
 
 feature -- Types
 
@@ -328,10 +417,11 @@ feature {NONE} -- Access
 			l_index: INTEGER
 		do
 			l_index := last_index
-			if match_list.valid_index (l_index) then
-				if not attached {BREAK_AS} match_list.i_th (l_index) then
-					context.add_string (" ")
-				end
+			if
+				match_list.valid_index (l_index) and then
+				not attached {BREAK_AS} match_list.i_th (l_index)
+			then
+				context.add_string (" ")
 			end
 		end
 
@@ -343,29 +433,30 @@ feature {NONE} -- Access
 			l_done: BOOLEAN
 		do
 			l_index := last_index + 1
-			if match_list.valid_index (l_index) then
-				if attached {BREAK_AS} match_list.i_th (last_index + 1) as l_break_as then
-					l_string := l_break_as.literal_text (match_list)
-					if l_string /= Void then
-						l_string := l_string.twin
-						from
-						until
-							l_done
-						loop
-							if not l_string.is_empty then
-								inspect
-									l_string.item (1)
-								when ' ', '%T' then l_string.remove (1)
-								else
-									l_done := True
-								end
+			if
+				match_list.valid_index (l_index) and then
+				attached {BREAK_AS} match_list.i_th (last_index + 1) as l_break_as
+			then
+				l_string := l_break_as.literal_text (match_list)
+				if l_string /= Void then
+					l_string := l_string.twin
+					from
+					until
+						l_done
+					loop
+						if not l_string.is_empty then
+							inspect
+								l_string.item (1)
+							when ' ', '%T' then l_string.remove (1)
 							else
 								l_done := True
 							end
+						else
+							l_done := True
 						end
-						context.add_string (l_string)
-						last_index := l_index
 					end
+					context.add_string (l_string)
+					last_index := l_index
 				end
 			end
 		end
@@ -399,25 +490,8 @@ feature {NONE} -- Access
 			-- Update ? and ! types to detachable and attached ones.
 		require
 			a_type_not_void: a_type /= Void
-		local
-			l_mark: SYMBOL_AS
 		do
-			l_mark := a_type.attachment_symbol (match_list)
-			if l_mark /= Void then
-				if l_mark.code = {EIFFEL_TOKENS}.te_bang then
-					is_updated := True
-					process_leading_leaves (a_type.attachment_mark_index)
-					last_index := a_type.attachment_mark_index
-					context.add_string ("attached ")
-				elseif l_mark.code = {EIFFEL_TOKENS}.te_question then
-					is_updated := True
-					process_leading_leaves (a_type.attachment_mark_index)
-					last_index := a_type.attachment_mark_index
-					context.add_string ("detachable ")
-				else
-					l_mark.process (Current)
-				end
-			elseif attached a_type.attachment_keyword (match_list) as l_keyword then
+			if attached a_type.attachment_mark (match_list) as l_keyword then
 				l_keyword.process (Current)
 			end
 		end
@@ -516,38 +590,48 @@ feature {NONE} -- Implementation
 			else
 				is_updated := True
 				if l_has_two_parameter then
-					if l_tuple /= Void and then attached l_tuple.generics as l_generics then
+					if
+						attached l_tuple and then
+						attached l_tuple.generics as l_generics
+					then
 							-- Case of a tuple with actual generic parameters
 						process_leading_leaves (l_as.opening_bracket_as_index)
-						last_index := l_tuple.generics.opening_bracket_as_index
+						last_index := l_generics.opening_bracket_as_index
 						safe_process (l_generics)
 						last_index := l_as.closing_bracket_as_index
 					elseif l_keep_as_tuple_type /= Void then
 							-- Case of a named tuple or formal constrained to TUPLE, we leave it as is.
 						safe_process (l_as.opening_bracket_as (match_list))
-						last_index := l_keep_as_tuple_type.first_token (match_list).index
+						if attached l_keep_as_tuple_type.first_token (match_list) as t then
+							last_index := t.index
+						end
 						safe_process (l_keep_as_tuple_type)
 						safe_process (l_as.closing_bracket_as (match_list))
-					else
+					elseif attached l_as.closing_bracket_as (match_list) as t then
 							-- Case of an agent of the form PROCEDURE [ANY, TUPLE],
 							-- the new declaration is simply PROCEDURE.
 							-- We drop everything between the brackets, including them.
-						last_index := l_as.closing_bracket_as (match_list).index
+						last_index := t.index
 					end
 				else
-					if l_tuple /= Void and then attached l_tuple.generics as l_generics then
+					if
+						attached l_tuple and then
+						attached l_tuple.generics as l_generics
+					then
 						safe_process (l_as.opening_bracket_as (match_list))
-						last_index := l_tuple.generics.opening_bracket_as_index
+						last_index := l_generics.opening_bracket_as_index
 						across l_generics as l_gen loop
 							safe_process (l_gen.item)
 						end
-						last_index := l_tuple.generics.closing_bracket_as_index
+						last_index := l_generics.closing_bracket_as_index
 						safe_process (l_as.i_th (3))
 						safe_process (l_as.closing_bracket_as (match_list))
 					elseif l_keep_as_tuple_type /= Void then
 							-- Case of a named tuple with actual generic parameters, we leave it as is.
 						safe_process (l_as.opening_bracket_as (match_list))
-						last_index := l_keep_as_tuple_type.first_token (match_list).index
+						if attached l_keep_as_tuple_type.first_token (match_list) as t then
+							last_index := t.index
+						end
 						safe_process (l_keep_as_tuple_type)
 						safe_process (l_as.i_th (3))
 						safe_process (l_as.closing_bracket_as (match_list))
@@ -556,7 +640,9 @@ feature {NONE} -- Implementation
 							-- the new declaration is FUNCTION [STRING].
 						safe_process (l_as.opening_bracket_as (match_list))
 							-- Dropping the first generic parameter, and keeping the one from the tuple.
-						last_index := l_as.i_th (3).first_token (match_list).index
+						if attached l_as.i_th (3).first_token (match_list) as t then
+							last_index := t.index
+						end
 						safe_process (l_as.i_th (3))
 						safe_process (l_as.closing_bracket_as (match_list))
 					end
@@ -570,15 +656,17 @@ feature {NONE} -- Implementation
 			if attached {NAMED_TUPLE_TYPE_AS} a_type then
 				Result := True
 			elseif attached {CLASS_TYPE_AS} a_type as l_class then
-				if l_class.class_name.name_32.is_case_insensitive_equal (tuple_class_name) then
-					Result := True
-				end
+				Result := l_class.class_name.name_32.is_case_insensitive_equal (tuple_class_name)
 			elseif attached {FORMAL_AS} a_type as l_formal then
 					-- Check if we are handling a formal who is constraint to TUPLE
-				if parsed_class.generics.i_th (l_formal.position).constraints.count = 1 then
-					if is_tuple_type (parsed_class.generics.i_th (l_formal.position).constraint.type) then
-						Result := true
-					end
+				if
+					attached parsed_class as c and then
+					attached c.generics as g and then
+					g [l_formal.position].constraints.count = 1 and then
+					attached g [l_formal.position].constraint as t and then
+					is_tuple_type (t.type)
+				then
+					Result := True
 				end
 			else
 					-- We do not have enough context to be sure it is not a TUPLE type,
@@ -595,7 +683,7 @@ feature {NONE} -- Implementation
 			-- Name of agent types being in use.
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Implementation of the STORABLE mechanism with streams."
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -32,11 +32,6 @@ feature -- Initialization
 			create last_string.make_empty
 		end
 
-feature -- Status report
-
-	support_storable: BOOLEAN = True
-			-- Can medium be used to store an Eiffel structure?
-
 feature -- Access
 
 	item: POINTER
@@ -48,7 +43,7 @@ feature -- Access
 	buffer: POINTER
 			-- C buffer correspond to the Eiffel STREAM
 		obsolete
-			"Use `item' instead to directly access stored/retrieved data"
+			"Use `item' instead to directly access stored/retrieved data. [2017-05-31]"
 		do
 			Result := internal_buffer_access
 		end
@@ -197,6 +192,9 @@ feature {NONE} -- Implementation
 
 feature -- Status report
 
+	support_storable: BOOLEAN = True
+			-- Can medium be used to store an Eiffel structure?
+
 	exists: BOOLEAN = True
 			-- Stream exists in any cases.
 
@@ -251,17 +249,17 @@ feature -- Output
 			put_character ('%N')
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write `s' to medium.
 		do
 		end
 
-	put_character, putchar (c: CHARACTER)
+	put_character, putchar (c: CHARACTER_8)
 			-- Write `c' to medium.
 		do
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal, put_real_32 (r: REAL_32)
 			-- Write `r' to medium.
 		do
 		end
@@ -311,7 +309,7 @@ feature -- Output
 		do
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble, put_real_64 (d: REAL_64)
 			-- Write `d' to medium.
 		do
 		end
@@ -324,13 +322,13 @@ feature -- Output
 
 feature -- Input
 
-	read_real, readreal
+	read_real, readreal, read_real_32
 			-- Read a new real.
 			-- Make result available in `last_real'.
 		do
 		end
 
-	read_double, readdouble
+	read_double, readdouble, read_real_64
 			-- Read a new double.
 			-- Make result available in `last_double'.
 		do
@@ -429,7 +427,7 @@ feature {NONE} -- Not exported
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -102,6 +102,84 @@ feature -- Validation
 
 feature -- Query
 
+	custom_user_name (a_user: CMS_USER; a_inc_profile_name, a_inc_username, a_inc_email: BOOLEAN): STRING_32
+			-- Custom  name for user `u` and its username.
+			-- various possibilities:
+			-- 	"$profilename ($username) <$email>"
+			-- 	"$profilename ($username)"
+			-- 	"$username"
+			-- 	"$username <$email>"
+			-- 	"$profilename <$email>"
+			-- 	"$profilename"
+			-- 	"$email"
+		local
+			l_id: READABLE_STRING_32
+			l_user: CMS_USER
+		do
+			if a_inc_profile_name or a_inc_email or a_inc_username then
+				if
+					attached {CMS_PARTIAL_USER} a_user as l_partial and then
+					attached user_by_id (l_partial.id) as u
+				then
+					l_user := u
+				else
+					l_user := a_user
+				end
+			else
+				l_user := a_user
+			end
+			if not l_user.name.is_whitespace then
+				l_id := l_user.name
+			else
+				l_id := {STRING_32} "user#" + l_user.id.out
+			end
+			check valid_l_id: not l_id.is_whitespace end
+
+			create Result.make (10)
+			if
+				a_inc_profile_name and then
+				attached l_user.profile_name as pn and then not pn.is_whitespace
+			then
+				Result.append (pn)
+			end
+			if a_inc_username then
+				if Result.is_empty then
+					Result.append (l_id)
+				elseif not Result.same_string (l_id) then
+					if Result.is_empty then
+						Result.append (l_id)
+					else
+						Result.append_character (' ')
+						Result.append_character ('(')
+						Result.append (l_id)
+						Result.append_character (')')
+					end
+				end
+			end
+			if
+				a_inc_email and then
+				attached l_user.email as l_email
+			then
+				if Result.is_empty then
+					Result.append_string_general (l_email)
+				else
+					if Result.is_empty then
+						Result.append_string_general (l_email)
+					else
+						Result.append_character (' ')
+						Result.append_character ('<')
+						Result.append_string_general (l_email)
+						Result.append_character ('>')
+					end
+				end
+			end
+			if Result.is_empty then
+				Result.append (l_id)
+			end
+		ensure
+			valid_name: not Result.is_whitespace
+		end
+
 	user_display_name (u: CMS_USER): READABLE_STRING_32
 			-- Display name for user `u`.
 		do
@@ -126,6 +204,20 @@ feature -- Query
 				Result := user_display_name (u)
 			end
 		end
+
+	user_email (u: CMS_USER): detachable READABLE_STRING_8
+			-- Email for user `u`.
+		do
+			if
+				attached {CMS_PARTIAL_USER} u as l_partial and then
+				attached user_by_id (l_partial.id) as l_user
+			then
+				Result := l_user.email
+			else
+				Result := u.email
+			end
+		end
+
 
 feature -- Access: user
 
@@ -155,6 +247,12 @@ feature -- Access: user
 			-- User by email `a_email', if any.
 		do
 			Result := user_storage.user_by_email (a_email)
+		end
+
+	users_by_profile_name (a_profile_name: READABLE_STRING_GENERAL): detachable LIST [CMS_USER]
+			-- Users by profile_name `a_profile_name', if any.
+		do
+			Result := user_storage.users_by_profile_name (a_profile_name)
 		end
 
 	user_by_activation_token (a_token: READABLE_STRING_32): detachable CMS_USER
@@ -194,20 +292,37 @@ feature -- Access: user
 
 feature -- Change User
 
+	new_active_user (a_username: READABLE_STRING_GENERAL; a_email: READABLE_STRING_8; a_password: detachable READABLE_STRING_GENERAL): CMS_USER
+		local
+		do
+			create Result.make (a_username)
+			Result.set_email (a_email)
+			if a_password = Void then
+				Result.set_password (new_random_user_password (Result))
+			else
+				Result.set_password (a_password)
+			end
+			Result.mark_active
+			new_user (Result)
+		end
+
 	new_user (a_user: CMS_USER)
-			-- Add a new user `a_user'.
+			-- Add a new user `a_user`.
 		require
 			no_id: not a_user.has_id
+			has_password: a_user.password /= Void
 			no_hashed_password: a_user.hashed_password = Void
 		do
 			reset_error
-			if
-				attached a_user.email as l_email
-			then
+			if attached a_user.password then
 				user_storage.new_user (a_user)
 				error_handler.append (user_storage.error_handler)
 			else
-				error_handler.add_custom_error (0, "bad new user request", "Missing password or email to create new user!")
+				error_handler.add_custom_error (0, "bad new user request", "Missing password to create new user!")
+			end
+			if not has_error then
+				cms_api.log ("users", "New user " + utf_8_encoded (cms_api.real_user_display_name (a_user)), {CMS_LOG}.level_info, cms_api.user_local_link (a_user, Void))
+				cms_api.hooks.invoke_new_user (a_user)
 			end
 		end
 
@@ -243,6 +358,27 @@ feature -- Change User
 			error_handler.append (user_storage.error_handler)
 		end
 
+feature -- Password helper
+
+	new_random_user_password (a_user: CMS_USER): STRING
+			-- Generate a new token activation token
+		local
+			l_token: STRING
+			l_security: SECURITY_PROVIDER
+			l_encode: URL_ENCODER
+		do
+			create l_security
+			l_token := l_security.token
+			create l_encode
+			from until l_token.same_string (l_encode.encoded_string (l_token)) loop
+				-- Loop ensure that we have a security token that does not contain characters that need encoding.
+			    -- We cannot simply to an encode-decode because the email sent to the user will contain an encoded token
+				-- but the user will need to use an unencoded token if activation has to be done manually.
+				l_token := l_security.token
+			end
+			Result := l_token + url_encoded (a_user.name) + a_user.creation_date.out
+		end
+
 feature -- Credential validation
 
 	register_credential_validation (a_validation: CMS_USER_CREDENTIAL_VALIDATION)
@@ -254,6 +390,18 @@ feature -- Credential validation
 			-- Credential validation items, used by `user_validating_credential`.
 
 feature -- Status report
+
+	active_user_with_credential (a_user_identifier, a_password: READABLE_STRING_GENERAL): detachable CMS_USER
+			-- User validating the credential `a_user_identifier` and `a_password`, if any.
+			-- note: can be used to check if credentials are valid.
+		do
+			Result := user_with_credential (a_user_identifier, a_password)
+			if Result /= Void and then not Result.is_active then
+				Result := Void
+			end
+		ensure
+			Result /= Void implies Result.is_active
+		end
 
 	user_with_credential (a_user_identifier, a_password: READABLE_STRING_GENERAL): detachable CMS_USER
 			-- User validating the credential `a_user_identifier` and `a_password`, if any.
@@ -297,7 +445,7 @@ feature -- Status report
 
 	is_admin_user (u: CMS_USER): BOOLEAN
 		do
-			Result := u.id = 1
+			Result := u.is_active and then u.id = 1
 		end
 
 	user_roles (a_user: CMS_USER): LIST [CMS_USER_ROLE]
@@ -307,8 +455,11 @@ feature -- Status report
 			l_roles := a_user.roles
 			if l_roles = Void then
 					-- Fill user with its roles.
-				create {ARRAYED_LIST [CMS_USER_ROLE]} l_roles.make (0)
-				l_roles := user_storage.user_roles_for (a_user)
+				if a_user.is_active then
+					l_roles := user_storage.user_roles_for (a_user)
+				else
+					create {ARRAYED_LIST [CMS_USER_ROLE]} l_roles.make (0)
+				end
 			end
 			Result := l_roles
 		end
@@ -329,7 +480,7 @@ feature -- User roles.
 			if attached user_role_by_id (2) as l_authenticated then
 				Result := l_authenticated
 			else
-				create Result.make ("authenticated")
+				create Result.make ({STRING_32} "authenticated")
 			end
 		end
 
@@ -350,12 +501,12 @@ feature -- User roles.
 			Result := user_storage.user_role_by_name (a_name)
 		end
 
-	role_permissions: HASH_TABLE [LIST [READABLE_STRING_8], STRING_8]
+	role_permissions: STRING_TABLE [LIST [READABLE_STRING_8]]
 			-- Possible known permissions indexed by modules.
 		local
 			lst, l_full_lst, l_used_permissions: LIST [READABLE_STRING_8]
 		do
-			create Result.make (cms_api.enabled_modules.count + 1)
+			create Result.make_caseless (cms_api.enabled_modules.count + 1)
 
 			l_used_permissions := user_storage.role_permissions
 			across
@@ -578,7 +729,7 @@ feature -- Access - Temp User
 			Result := user_storage.temp_recent_users (params.offset.to_integer_32, params.size.to_integer_32)
 		end
 
-	token_by_temp_user_id (a_id: like {CMS_USER}.id): detachable STRING
+	token_by_temp_user_id (a_id: like {CMS_USER}.id): detachable READABLE_STRING_8
 		do
 			Result := user_storage.token_by_temp_user_id (a_id)
 		end
@@ -667,6 +818,6 @@ feature -- Change Temp User
 --		end
 
 note
-	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2021, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

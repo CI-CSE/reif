@@ -29,7 +29,6 @@ inherit
 			location: LOCATION_AS]]
 
 	CA_STANDARD_RULE
-	DATE_VALIDITY_CHECKER
 	INTERNAL_COMPILER_STRING_EXPORTER
 
 create
@@ -122,13 +121,7 @@ feature {NONE} -- Rule Checking
 	process_access (a: ACCESS_FEAT_AS)
 			-- Check if `a` is an obsolete call and report violation accordingly.
 		do
-			if
-				not checker.is_assign and then
-				not a.is_tuple_access and then
-				not a.is_argument and then
-				not a.is_local and then
-				not a.is_object_test_local
-			then
+			if not checker.is_assign and then a.is_feature then
 				process_call (a.routine_ids.first, a.class_id, a)
 			end
 		end
@@ -217,7 +210,7 @@ feature {NONE} -- Rule Checking
 					end
 				end
 				if attached f and attached m then
-					process (m, True, f.e_feature, c, feature_names, current_context.checking_class, call.first_token (current_context.matchlist), Current)
+					process (m, {CONF_OPTION}.warning_term_index_all, f.e_feature, c, feature_names, current_context.checking_class, call.first_token (current_context.matchlist), Current)
 				end
 			end
 		end
@@ -307,7 +300,8 @@ feature {NONE} -- Reporting
 		end
 
 note
-	copyright:	"Copyright (c) 2017, Eiffel Software"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright:	"Copyright (c) 2017-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

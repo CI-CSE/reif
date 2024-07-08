@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Group of intervals with high density or a single interval with low density."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -223,7 +223,7 @@ feature -- Element change
 
 feature -- IL code generation
 
-	generate_il (a_generator: IL_NODE_GENERATOR; min, max: like lower; is_min_included, is_max_included: BOOLEAN; labels: ARRAY [detachable IL_LABEL]; instruction: INSPECT_B)
+	generate_il (a_generator: IL_NODE_GENERATOR; min, max: like lower; is_min_included, is_max_included: BOOLEAN; labels: ARRAY [detachable IL_LABEL]; multi_branch: ABSTRACT_INSPECT_B [ABSTRACT_CASE_B [BYTE_NODE], BYTE_NODE])
 			-- Generate code for group of intervals in `instruction' assuming that inspect value is in range `min'..`max'
 			-- where bounds are included in interval according to values of `is_min_included' and `is_max_included'.
 			-- Use `labels' to branch to the corresponding code.
@@ -238,12 +238,12 @@ feature -- IL code generation
 			case_label: IL_LABEL
 			cases: LINKED_LIST [INTEGER]
 		do
-					-- Generate switch instruction for all intervals and gaps in group
+				-- Generate switch instruction for all intervals and gaps in group
 			from
 				i := lower
 				is_included := is_lower_included
 				interval := lower_interval
-				a_generator.generate_il_load_value (instruction)
+				a_generator.generate_il_load_value (multi_branch)
 				i.generate_il_subtract (is_included)
 				switch_count := i.distance (upper).truncated_to_integer - 1
 				if is_included then
@@ -279,27 +279,20 @@ feature -- IL code generation
 			upper_interval.item.upper.do_all (false, upper, is_upper_included, generate_default_label)
 			if
 				(is_min_included and then min = lower or else
-				not is_min_included and then min.is_next (lower)) and then
+					not is_min_included and then min.is_next (lower)) and then
 				(is_max_included and then max = upper or else
-				not is_max_included and then upper.is_next (max))
+					not is_max_included and then upper.is_next (max))
 			then
-					-- All cases are handled by switch
+					-- All cases are handled by switch.
 			else
-					-- There are cases for Else_part
+					-- There are cases for Else_part.
 				il_generator.branch_to (labels.item (0))
 			end
-				-- Generate code for referenced When_part's
-			from
-				cases.start
-			until
-				cases.after
-			loop
-				a_generator.generate_il_when_part (instruction, cases.item, labels)
-				cases.forth
-			end
+				-- Generate code for referenced When_part's.
+			⟳ c: cases ¦ a_generator.generate_il_when_part (multi_branch, c, labels) ⟲
 		end
 
-feature {NONE} -- Status report
+feature {NONE} -- Measurement
 
 	density: DOUBLE = 0.25
 			-- Minimum number of distinct elements (intervals and gaps) per their range of values
@@ -401,9 +394,10 @@ invariant
 	density_in_range: 0 <= density and density <= 1
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
@@ -414,22 +408,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

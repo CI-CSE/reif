@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Class for an staticed type on a feature."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -26,6 +26,7 @@ inherit
 			formal_instantiated_in,
 			instantiated_in,
 			instantiation_in,
+			is_expanded_creation_possible,
 			is_explicit,
 			is_loose,
 			is_syntactically_equal,
@@ -107,7 +108,7 @@ feature -- Status Report
 			-- Is type fixed at compile time without anchors or formals?
 		do
 			if system.in_final_mode then
-				initialize_info (shared_create_info)
+				initialize_info
 				Result := shared_create_info.is_explicit
 			else
 				Result := False
@@ -124,6 +125,14 @@ feature -- Status Report
 			-- <Precursor>
 		do
 			Result := qualifier.has_like
+		end
+
+	is_expanded_creation_possible: BOOLEAN
+			-- <Precursor>
+		do
+			Result :=
+				qualifier.is_loose and then (attached actual_type as a and then a.is_expanded implies a.is_expanded_creation_possible) or else
+				attached actual_type as a and then a.is_expanded_creation_possible
 		end
 
 feature -- Comparison
@@ -148,6 +157,28 @@ feature -- Comparison
 				else
 					Result := not attached o.actual_type
 				end
+			end
+		end
+
+	is_equivalent (other: like Current): BOOLEAN
+			-- Is `other' equivalent to the current object ?
+		do
+			Result :=
+				equivalent (qualifier, other.qualifier) and then
+				chain ~ other.chain and then
+				has_same_marks (other)
+		end
+
+	is_syntactically_equal (other: TYPE_A): BOOLEAN
+			-- <Precursor>
+		do
+			if attached {like Current} other then
+				Result := same_as (other)
+			elseif attached {UNEVALUATED_QUALIFIED_ANCHORED_TYPE} other as o then
+				Result :=
+					qualifier.is_syntactically_equal (o.qualifier) and then
+					chain ~ o.chain and then
+					has_same_marks (o)
 			end
 		end
 
@@ -190,7 +221,7 @@ feature -- Code generation
 		do
 			generate_cid_prefix (buffer, Void)
 			if use_info then
-				initialize_info (shared_create_info)
+				initialize_info
 				shared_create_info.generate_cid (buffer, final_mode)
 			elseif attached buffer then
 					-- Traverse the feature chain generate qualified anchored types, so that for
@@ -222,7 +253,7 @@ feature -- Code generation
 		do
 			generate_cid_prefix (buffer, idx_cnt)
 			if use_info then
-				initialize_info (shared_create_info)
+				initialize_info
 				shared_create_info.generate_cid_array (buffer, final_mode, idx_cnt)
 			else
 					-- Traverse the feature chain generate qualified anchored types, so that for
@@ -255,7 +286,7 @@ feature -- Code generation
 		do
 			generate_cid_prefix (Void, idx_cnt)
 			if use_info then
-				initialize_info (shared_create_info)
+				initialize_info
 				shared_create_info.generate_cid_init (buffer, final_mode, idx_cnt, a_level)
 			else
 					-- Traverse the feature chain generate qualified anchored types, so that for
@@ -274,7 +305,7 @@ feature -- Code generation
 		do
 			make_type_prefix_byte_code (ba)
 			if use_info then
-				initialize_info (shared_create_info)
+				initialize_info
 				shared_create_info.make_type_byte_code (ba)
 			else
 					-- Traverse the feature chain generate qualified anchored types, so that for
@@ -374,7 +405,7 @@ feature {TYPE_A_CHECKER, QUALIFIED_ANCHORED_TYPE_A} -- Modification
 			class_id_set: class_id = c.class_id
 		end
 
-feature {TYPE_A_CHECKER, QUALIFIED_ANCHORED_TYPE_A} -- Modification
+feature {TYPE_A_CHECKER, QUALIFIED_ANCHORED_TYPE_A, LIKE_FEATURE} -- Modification
 
 	set_routine_id (r: like routine_id)
 			-- Set `routine_id' to `r'.
@@ -389,9 +420,9 @@ feature {TYPE_A_CHECKER, QUALIFIED_ANCHORED_TYPE_A} -- Modification
 
 feature -- Generic conformance
 
-	initialize_info (an_info: like shared_create_info)
+	initialize_info
 		do
-			an_info.make (Current, system.class_of_id (class_id))
+			shared_create_info.make (Current, system.class_of_id (class_id))
 		end
 
 	shared_create_info, create_info: CREATE_QUALIFIED
@@ -399,7 +430,7 @@ feature -- Generic conformance
 		do
 				--| Unlike its precursor, we cannot use a shared structure because unlike traditional
 				--| anchors, qualified anchors can be nested, therefore we cannot reuse the same object
-				--| as its value would be overridden while processing the nested definitions.
+				--| as its value would be overridden while processing nested definitions.
 				--| See eweasel test#anchor042 and test#anchor051 for test cases.
 			create Result.make (Current, system.class_of_id (class_id))
 		end
@@ -543,10 +574,10 @@ feature -- Primitives
 	evaluated_type_in_descendant (a_ancestor, a_descendant: CLASS_C; a_feature: FEATURE_I): QUALIFIED_ANCHORED_TYPE_A
 			-- <Precursor>
 		do
-			if a_ancestor /= a_descendant then
-				Result := recompute (qualifier.evaluated_type_in_descendant (a_ancestor, a_descendant, a_feature), a_descendant.class_id)
-			else
+			if a_ancestor = a_descendant then
 				Result := Current
+			else
+				Result := recompute (qualifier.evaluated_type_in_descendant (a_ancestor, a_descendant, a_feature), a_descendant.class_id)
 			end
 		end
 
@@ -608,30 +639,6 @@ feature {NONE} -- Recomputation in a different context
 			end
 		end
 
-feature -- Comparison
-
-	is_equivalent (other: like Current): BOOLEAN
-			-- Is `other' equivalent to the current object ?
-		do
-			Result :=
-				equivalent (qualifier, other.qualifier) and then
-				chain ~ other.chain and then
-				has_same_marks (other)
-		end
-
-	is_syntactically_equal (other: TYPE_A): BOOLEAN
-			-- <Precursor>
-		do
-			if attached {like Current} other then
-				Result := same_as (other)
-			elseif attached {UNEVALUATED_QUALIFIED_ANCHORED_TYPE} other as o then
-				Result :=
-					qualifier.is_syntactically_equal (o.qualifier) and then
-					chain ~ o.chain and then
-					has_same_marks (o)
-			end
-		end
-
 feature {NONE} -- Lookup
 
 	feature_finder: TYPE_A_FEATURE_FINDER
@@ -643,7 +650,8 @@ feature {NONE} -- Lookup
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
+	ca_ignore: "CA011", "CA011: too many arguments"
+	copyright:	"Copyright (c) 1984-2019, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

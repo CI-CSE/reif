@@ -1,11 +1,4 @@
-note
-	description: "[
-		TODO
-	]"
-	date: "$Date$"
-	revision: "$Revision$"
-
-class
+﻿class
 	E2B_BODY_EXPRESSION_TRANSLATOR
 
 inherit
@@ -23,11 +16,6 @@ inherit
 
 create
 	make
-
-feature -- Access
-
-	context_implementation: IV_IMPLEMENTATION
-			-- Context of expression.
 
 feature -- Basic operations
 
@@ -52,7 +40,6 @@ feature -- Visitors
 		local
 			i, n: INTEGER
 			l_type: CL_TYPE_A
-			l_expr: EXPR_B
 			l_target: IV_EXPRESSION
 			l_pcall: IV_PROCEDURE_CALL
 			l_assign: IV_ASSIGNMENT
@@ -93,13 +80,12 @@ feature -- Visitors
 			until
 				i > n
 			loop
-				l_expr ?= a_node.expressions.i_th (i)
-				check l_expr /= Void end
-				create l_assign.make (
-					factory.array_access (entity_mapping.heap, l_target, factory.int_value (i), l_content_type),
-					process_argument_expression (l_expr))
-				l_block.add_statement (l_assign)
-
+				if attached {EXPR_B} a_node.expressions [i] as e then
+					create l_assign.make (
+						factory.array_access (entity_mapping.heap, l_target, factory.int_value (i), l_content_type),
+						process_argument_expression (e))
+					l_block.add_statement (l_assign)
+				end
 				i := i + 1
 			end
 			last_expression := l_target
@@ -115,13 +101,7 @@ feature -- Visitors
 			l_target_type: CL_TYPE_A
 
 			l_local: IV_ENTITY
-			l_havoc: IV_HAVOC
-			l_allocated: IV_ENTITY
-			l_binop: IV_BINARY_OPERATION
-			l_heap_access: IV_MAP_ACCESS
-			l_call: IV_FUNCTION_CALL
 			l_proc_call: IV_PROCEDURE_CALL
-			l_type_value: IV_VALUE
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
 			l_type := class_type_in_current_context (a_node.type)
@@ -174,7 +154,7 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			if a_node.is_inline_agent then
-				helper.add_unsupported_error (context_feature, "Inline agents are not supported", context_line_number)
+				helper.add_unsupported_error (context_feature, {STRING_32} "Inline agents are not supported", context_line_number)
 				last_expression := dummy_node (a_node.type)
 			else
 				(create {E2B_CUSTOM_AGENT_CALL_HANDLER}).handle_agent_creation (Current, a_node)
@@ -234,7 +214,7 @@ feature -- Visitors
 			create l_proc_call.make (name_translator.boogie_procedure_for_tuple_creation (l_type))
 			l_proc_call.add_argument (l_local)
 			across a_node.expressions as i loop
-				l_proc_call.add_argument (process_argument_expression (i.item))
+				l_proc_call.add_argument (process_argument_expression (i))
 			end
 			l_block.add_statement (l_proc_call)
 
@@ -323,7 +303,7 @@ feature -- Translation
 				if helper.is_setter (context_feature) and
 					not a_feature.has_return_value  and not helper.is_setter (a_feature) then
 						-- Setter calling a non-setter procedure: unsound framing
-					helper.add_semantic_error (context_feature, messages.nonsetter_call_from_setter (a_feature.feature_name), context_line_number)
+					helper.add_semantic_error (context_feature, messages.nonsetter_call_from_setter (a_feature.feature_name_32), context_line_number)
 				end
 
 				if a_for_creator or
@@ -336,7 +316,7 @@ feature -- Translation
 					create l_pcall.make (name_translator.boogie_procedure_for_feature (a_feature, current_target_type))
 					if helper.is_creator (a_feature) then
 						-- A feature specified to be creator-only, but called as a regular procedure
-						helper.add_semantic_error (context_feature, messages.creator_call_as_procedure (a_feature.feature_name), context_line_number)
+						helper.add_semantic_error (context_feature, messages.creator_call_as_procedure (a_feature.feature_name_32), context_line_number)
 					end
 				end
 
@@ -405,7 +385,6 @@ feature -- Translation
 			a_feature.has_return_value
 		local
 			l_call: IV_FUNCTION_CALL
-			l_pcall: IV_PROCEDURE_CALL
 		do
 			create l_call.make (a_builtin_name, types.for_class_type (feature_class_type (a_feature)))
 			l_call.add_argument (entity_mapping.heap)
@@ -434,13 +413,9 @@ feature -- Translation
 	process_inlined_routine_call (a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- Process feature call.
 		local
-			l_target: IV_EXPRESSION
-			l_target_type: TYPE_A
-			l_call: IV_PROCEDURE_CALL
 			l_translator: E2B_INSTRUCTION_TRANSLATOR
 			l_block: IV_BLOCK
 			l_entity_mapping: E2B_ENTITY_MAPPING
-			l_features: LIST [FEATURE_I]
 		do
 				-- TODO: look for all possible descendant-implementations for feature
 				-- and add a nondeterministic goto that selects between all of those
@@ -474,7 +449,7 @@ feature -- Translation
 			l_entity_mapping.set_current (current_target)
 				-- Map arguments
 			across last_parameters as l_args loop
-				l_entity_mapping.set_argument (l_args.cursor_index, l_args.item)
+				l_entity_mapping.set_argument (@ l_args.cursor_index, l_args)
 			end
 				-- Map `Result'
 			if a_feature.has_return_value then
@@ -483,8 +458,7 @@ feature -- Translation
 			end
 
 			create l_block.make
-			create l_translator.make
-			l_translator.set_context (context_implementation, a_feature, current_target_type)
+			create l_translator.make (context_implementation, a_feature, current_target_type)
 			l_translator.set_current_block (l_block)
 			l_translator.set_entity_mapping (l_entity_mapping)
 
@@ -530,13 +504,28 @@ feature -- Translation
 			side_effect.extend (l_if)
 		end
 
-feature -- Implementation
+note
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:
+		"Copyright (c) 2012-2015 ETH Zurich",
+		"Copyright (c) 2018-2019 Politecnico di Milano",
+		"Copyright (c) 2022 Schaffhausen Institute of Technology"
+	author: "Julian Tschannen", "Nadia Polikarpova", "Alexander Kogtenkov"
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
 
-	create_local (a_type: CL_TYPE_A)
-			-- Create new local.
-		do
-			create last_local.make (helper.unique_identifier ("temp"), types.for_class_type (a_type))
-			context_implementation.add_local (last_local.name, last_local.type)
-		end
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 
 end

@@ -1,9 +1,9 @@
-note
+﻿note
 	description: "[
 		Project-wide universal properties.
 		This class is an ancestor to all developer-written classes.
 		ANY may be customized for individual projects or teams.
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -72,7 +72,7 @@ feature -- Comparison
 			consistent: standard_is_equal (other) implies Result
 		end
 
-	frozen standard_is_equal (other: like Current): BOOLEAN
+	frozen standard_is_equal alias "≜" (other: like Current): BOOLEAN
 			-- Is `other' attached to an object of the same type
 			-- as current object, and field-by-field identical to it?
 		require
@@ -95,6 +95,7 @@ feature -- Comparison
 							a.is_equal (b)
 			end
 		ensure
+			instance_free: class
 			definition: Result = (a = Void and b = Void) or else
 						((a /= Void and b /= Void) and then
 						a.is_equal (b))
@@ -112,12 +113,13 @@ feature -- Comparison
 							a.standard_is_equal (b)
 			end
 		ensure
+			instance_free: class
 			definition: Result = (a = Void and b = Void) or else
 						((a /= Void and b /= Void) and then
 						a.standard_is_equal (b))
 		end
 
-	frozen is_deep_equal (other: like Current): BOOLEAN
+	frozen is_deep_equal alias "≡≡≡" (other: like Current): BOOLEAN
 			-- Are `Current' and `other' attached to isomorphic object structures?
 		require
 			other_not_void: other /= Void
@@ -139,6 +141,7 @@ feature -- Comparison
 				Result := b /= Void and then a.is_deep_equal (b)
 			end
 		ensure
+			instance_free: class
 			shallow_implies_deep: standard_equal (a, b) implies Result
 			both_or_none_void: (a = Void) implies (Result = (b = Void))
 			same_type: (Result and (a /= Void)) implies (b /= Void and then a.same_type (b))
@@ -188,12 +191,13 @@ feature -- Duplication
 			-- For non-void `other', `clone' calls `copy';
 		 	-- to change copying/cloning semantics, redefine `copy'.
 		obsolete
-			"Use `twin' instead."
+			"Use `twin' instead. [2017-05-31]"
 		do
 			if other /= Void then
 				Result := other.twin
 			end
 		ensure
+			instance_free: class
 			equal: Result ~ other
 		end
 
@@ -202,12 +206,13 @@ feature -- Duplication
 			-- field-by-field identical to `other'.
 			-- Always uses default copying semantics.
 		obsolete
-			"Use `standard_twin' instead."
+			"Use `standard_twin' instead. [2017-05-31]"
 		do
 			if other /= Void then
 				Result := other.standard_twin
 			end
 		ensure
+			instance_free: class
 			equal: standard_equal (Result, other)
 		end
 
@@ -234,12 +239,13 @@ feature -- Duplication
 			-- Void if `other' is void: otherwise, new object structure
 			-- recursively duplicated from the one attached to `other'
 		obsolete
-			"Use `deep_twin' instead."
+			"Use `deep_twin' instead. [2017-05-31]"
 		do
 			if other /= Void then
 				Result := other.deep_twin
 			end
 		ensure
+			instance_free: class
 			deep_equal: deep_equal (other, Result)
 		end
 
@@ -260,7 +266,7 @@ feature {NONE} -- Retrieval
 			-- Called from runtime to perform a proper dynamic dispatch on `correct_mismatch'
 			-- from MISMATCH_CORRECTOR.
 		local
-			l_msg: STRING
+			l_msg: STRING_32
 			l_exc: EXCEPTIONS
 		do
 			if attached {MISMATCH_CORRECTOR} Current as l_corrector then
@@ -268,7 +274,7 @@ feature {NONE} -- Retrieval
 			else
 				create l_msg.make_from_string ("Mismatch: ")
 				create l_exc
-				l_msg.append (generating_type.name)
+				l_msg.append (generating_type.name_32)
 				l_exc.raise_retrieval_exception (l_msg)
 			end
 		end
@@ -281,6 +287,7 @@ feature -- Output
 			create Result
 			Result.set_output_default
 		ensure
+			instance_free: class
 			io_not_void: Result /= Void
 		end
 
@@ -305,10 +312,21 @@ feature -- Output
 	print (o: detachable ANY)
 			-- Write terse external representation of `o'
 			-- on standard output.
+		local
+			s: READABLE_STRING
 		do
-			if o /= Void then
-				io.put_string (o.out)
+			if attached o then
+				s := o.out
+				if attached {READABLE_STRING_32} s as s32 then
+					io.put_string_32 (s32)
+				elseif attached {READABLE_STRING_8} s as s8 then
+					io.put_string (s8)
+				else
+					io.put_string_32 (s.as_string_32)
+				end
 			end
+		ensure
+			instance_free: class
 		end
 
 feature -- Platform
@@ -318,6 +336,7 @@ feature -- Platform
 		once
 			create Result
 		ensure
+			instance_free: class
 			operating_environment_not_void: Result /= Void
 		end
 
@@ -340,6 +359,8 @@ feature -- Basic operations
 	frozen do_nothing
 			-- Execute a null action.
 		do
+		ensure
+			instance_free: class
 		end
 
 	frozen default: detachable like Current
@@ -353,6 +374,7 @@ feature -- Basic operations
 			-- some `p' of type `POINTER'.)
 		do
 		ensure
+			instance_free: class
 			-- Result = Result.default
 		end
 
@@ -360,7 +382,7 @@ feature -- Basic operations
 			-- Attached version of Current.
 			-- (Can be used during transitional period to convert
 			-- non-void-safe classes to void-safe ones.)
-		obsolete "Remove calls to this feature as soon as its client is void-safe."
+		obsolete "Remove calls to this feature. [2017-05-31]"
 		do
 			Result := Current
 		end
@@ -370,7 +392,7 @@ invariant
 	reflexive_conformance: conforms_to (Current)
 
 note
-	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

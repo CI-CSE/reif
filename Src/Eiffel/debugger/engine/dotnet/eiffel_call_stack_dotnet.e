@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Eiffel call stack for the stopped application."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -130,7 +130,7 @@ feature {APPLICATION_STATUS} -- Restricted access
 			l_module: ICOR_DEBUG_MODULE
 			l_class_token: NATURAL_32
 			l_feature_token: NATURAL_32
-			l_module_name: STRING
+			l_module_name: STRING_32
 
 			l_class_type: CLASS_TYPE
 
@@ -141,7 +141,7 @@ feature {APPLICATION_STATUS} -- Restricted access
 			l_stack_object: ICOR_DEBUG_VALUE
 			l_stack_adv: EIFNET_ABSTRACT_DEBUG_VALUE
 			l_stack_drv: EIFNET_DEBUG_REFERENCE_VALUE
-			l_extra_info: STRING
+			l_extra_info: STRING_32
 			addr: DBG_ADDRESS
 			tid: like thread_id
 		do
@@ -173,7 +173,7 @@ feature {APPLICATION_STATUS} -- Restricted access
 								until
 									i > l_frames.upper or else (n > 0 and level > n)
 								loop
-									l_frame := l_frames @ i
+									l_frame := l_frames [i]
 									l_frame_il := l_frame.query_interface_icor_debug_il_frame
 									if l_frame.last_call_succeed and then l_frame_il /= Void then
 											--| AT THIS POINT WE HAVE A VALID CALL STACK ELEMENT
@@ -262,8 +262,8 @@ feature {APPLICATION_STATUS} -- Restricted access
 												else
 													create addr.make_void
 												end
-												if l_module_name /= Void then
-													l_extra_info := "Module : " + l_module_name
+												if attached l_module_name then
+													l_extra_info := {STRING_32} "Module : " + l_module_name
 												else
 													l_extra_info := "no debug information"
 												end
@@ -326,7 +326,7 @@ feature -- cleaning
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -357,4 +357,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EIFFEL_CALL_STACK_DOTNET
+end

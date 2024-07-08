@@ -5,7 +5,7 @@ note
 		"Eiffel precursor validity checkers"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2003-2016, Eric Bezault and others"
+	copyright: "Copyright (c) 2003-2020, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,8 +20,8 @@ inherit
 		end
 
 	ET_AST_NULL_PROCESSOR
-		undefine
-			make
+		rename
+			make as make_ast_processor
 		redefine
 			process_across_expression,
 			process_across_instruction,
@@ -45,14 +45,20 @@ inherit
 			process_do_function_inline_agent,
 			process_do_procedure,
 			process_do_procedure_inline_agent,
+			process_elseif_expression,
+			process_elseif_expression_list,
 			process_elseif_part,
 			process_elseif_part_list,
 			process_equality_expression,
+			process_explicit_convert_from_expression,
+			process_explicit_convert_to_expression,
 			process_expression_address,
 			process_external_function_inline_agent,
 			process_external_procedure_inline_agent,
+			process_if_expression,
 			process_if_instruction,
 			process_infix_expression,
+			process_inspect_expression,
 			process_inspect_instruction,
 			process_loop_instruction,
 			process_loop_invariants,
@@ -74,12 +80,16 @@ inherit
 			process_prefix_expression,
 			process_qualified_call_expression,
 			process_qualified_call_instruction,
+			process_quantifier_expression,
+			process_repeat_instruction,
 			process_static_call_expression,
 			process_static_call_instruction,
 			process_tagged_assertion,
 			process_unfolded_tuple_actual_argument_list,
 			process_unqualified_call_expression,
 			process_unqualified_call_instruction,
+			process_when_expression,
+			process_when_expression_list,
 			process_when_part,
 			process_when_part_list
 		end
@@ -90,10 +100,10 @@ create
 
 feature {NONE} -- Initialization
 
-	make
+	make (a_system_processor: like system_processor)
 			-- Create a new precursor validity checker.
 		do
-			precursor {ET_CLASS_SUBPROCESSOR}
+			precursor (a_system_processor)
 			current_feature := dummy_feature
 		end
 
@@ -351,7 +361,7 @@ feature {ET_AST_NODE} -- Processing
 			if attached an_expression.until_conditional as a_conditional then
 				a_conditional.expression.process (Current)
 			end
-			an_expression.iteration_conditional.expression.process (Current)
+			an_expression.iteration_expression.process (Current)
 			if attached an_expression.variant_part as a_variant_part then
 				a_variant_part.expression.process (Current)
 			end
@@ -557,6 +567,25 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_elseif_expression (an_elseif_part: ET_ELSEIF_EXPRESSION)
+			-- Process `an_elseif_part'.
+		do
+			an_elseif_part.conditional_expression.process (Current)
+			an_elseif_part.then_expression.process (Current)
+		end
+
+	process_elseif_expression_list (a_list: ET_ELSEIF_EXPRESSION_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				a_list.item (i).process (Current)
+				i := i + 1
+			end
+		end
+
 	process_elseif_part (an_elseif_part: ET_ELSEIF_PART)
 			-- Process `an_elseif_part'.
 		do
@@ -585,6 +614,18 @@ feature {ET_AST_NODE} -- Processing
 			an_expression.right.process (Current)
 		end
 
+	process_explicit_convert_from_expression (a_convert_expression: ET_EXPLICIT_CONVERT_FROM_EXPRESSION)
+			-- Process `a_convert_expression'.
+		do
+			a_convert_expression.expression.process (Current)
+		end
+
+	process_explicit_convert_to_expression (a_convert_expression: ET_EXPLICIT_CONVERT_TO_EXPRESSION)
+			-- Process `a_convert_expression'.
+		do
+			a_convert_expression.expression.process (Current)
+		end
+
 	process_expression_address (an_expression: ET_EXPRESSION_ADDRESS)
 			-- Process `an_expression'.
 		do
@@ -607,6 +648,17 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_if_expression (a_expression: ET_IF_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			a_expression.conditional_expression.process (Current)
+			a_expression.then_expression.process (Current)
+			if attached a_expression.elseif_parts as an_elseif_parts then
+				process_elseif_expression_list (an_elseif_parts)
+			end
+			a_expression.else_expression.process (Current)
+		end
+
 	process_if_instruction (an_instruction: ET_IF_INSTRUCTION)
 			-- Process `an_instruction'.
 		do
@@ -627,6 +679,18 @@ feature {ET_AST_NODE} -- Processing
 		do
 			an_expression.left.process (Current)
 			an_expression.right.process (Current)
+		end
+
+	process_inspect_expression (a_expression: ET_INSPECT_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			a_expression.expression.process (Current)
+			if attached a_expression.when_parts as l_when_parts then
+				process_when_expression_list (l_when_parts)
+			end
+			if attached a_expression.else_part as l_else_part then
+				l_else_part.expression.process (Current)
+			end
 		end
 
 	process_inspect_instruction (an_instruction: ET_INSPECT_INSTRUCTION)
@@ -816,6 +880,22 @@ feature {ET_AST_NODE} -- Processing
 			end
 		end
 
+	process_quantifier_expression (a_expression: ET_QUANTIFIER_EXPRESSION)
+			-- Process `a_expression'.
+		do
+			a_expression.iterable_expression.process (Current)
+			a_expression.iteration_expression.process (Current)
+		end
+
+	process_repeat_instruction (a_instruction: ET_REPEAT_INSTRUCTION)
+			-- Process `a_instruction'.
+		do
+			a_instruction.iterable_expression.process (Current)
+			if attached a_instruction.loop_compound as l_loop_compound then
+				process_compound (l_loop_compound)
+			end
+		end
+
 	process_static_call_expression (an_expression: ET_STATIC_CALL_EXPRESSION)
 			-- Process `an_expression'.
 		do
@@ -861,6 +941,24 @@ feature {ET_AST_NODE} -- Processing
 		do
 			if attached an_instruction.arguments as an_arguments then
 				process_actual_argument_list (an_arguments)
+			end
+		end
+
+	process_when_expression (a_when_part: ET_WHEN_EXPRESSION)
+			-- Process `a_when_part'.
+		do
+			a_when_part.then_expression.process (Current)
+		end
+
+	process_when_expression_list (a_list: ET_WHEN_EXPRESSION_LIST)
+			-- Process `a_list'.
+		local
+			i, nb: INTEGER
+		do
+			nb := a_list.count
+			from i := 1 until i > nb loop
+				process_when_expression (a_list.item (i))
+				i := i + 1
 			end
 		end
 

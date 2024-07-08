@@ -28,6 +28,8 @@ feature {EV_ANY} -- Initialization
 			Precursor {EV_GRID_LABEL_ITEM_I}
 			is_sensitive := True
 			create checked_changed_actions
+			check_figure_size := 13 -- Default value
+			update_check_figure_size
 		end
 
 feature {EV_GRID_CHECKABLE_LABEL_ITEM} -- Status
@@ -63,10 +65,27 @@ feature {EV_GRID_LABEL_ITEM} -- Status Report
 			-- Width in pixels required to fully display contents, based
 			-- on current settings.
 		do
-			Result := Precursor + {EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_size + attached_interface.spacing
+			Result := Precursor + attached_interface.check_figure_size + attached_interface.spacing
 		end
 
 feature {EV_GRID_CHECKABLE_LABEL_ITEM} -- Access
+
+	check_figure_size: INTEGER
+			-- The width/height of the check box.
+
+	update_check_figure_size
+			-- Update the `check_figure_size`
+		local
+			ft: EV_FONT
+		do
+			if attached interface as l_interface then
+				ft := l_interface.font
+			end
+			if ft = Void then
+				ft := internal_default_font
+			end
+			check_figure_size := ft.string_width (once "__")
+		end
 
 	checked_changed_actions: EV_LITE_ACTION_SEQUENCE [TUPLE [like attached_interface]]
 			-- Actions when user checked the item.
@@ -95,51 +114,97 @@ feature {NONE} -- Implementation
 	draw_additional (a_drawable: EV_DRAWABLE; a_layout: EV_GRID_LABEL_ITEM_LAYOUT; an_indent: INTEGER)
 			-- Draw the associated checkbox.
 		local
-			l_data: like section_data
-			l_coord: EV_COORDINATE
 			l_start_x, l_start_y: INTEGER
-			lw: INTEGER
+			l_old_lw, lw: INTEGER
+			l_size: INTEGER
+			l_check_figure_size: INTEGER
 		do
 				-- Calculate when the checkbox should be drawn.
 			l_start_x := a_layout.checkbox_x + an_indent
 			l_start_y := a_layout.checkbox_y
-			lw := a_drawable.line_width
-			a_drawable.set_line_width ({EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_line_width)
-			a_drawable.draw_rectangle (l_start_x, l_start_y, {EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_size, {EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_size)
-			a_drawable.draw_rectangle (l_start_x + 1, l_start_y + 1, {EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_size - 2, {EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_size - 2)
-			if attached_interface.is_checked then
-				l_start_x := l_start_x + 1
-				l_start_y := l_start_y + 1
-				from
-					l_data := section_data
-					l_data.start
-				until
-					l_data.after
-				loop
-					l_coord := l_data.item
-					a_drawable.draw_segment (
-							l_start_x + l_coord.x, l_start_y + l_coord.y,
-							l_start_x + l_coord.x, l_start_y + l_coord.y + 2)
-					l_data.forth
+			l_check_figure_size := attached_interface.check_figure_size
+			l_old_lw := a_drawable.line_width
+			lw := {EV_GRID_CHECKABLE_LABEL_ITEM}.check_figure_line_width
+			a_drawable.set_line_width (lw)
+			a_drawable.draw_rectangle (l_start_x, l_start_y, l_check_figure_size, l_check_figure_size)
+			a_drawable.draw_rectangle (l_start_x + 1, l_start_y + 1, l_check_figure_size - 2, l_check_figure_size - 2)
+			if attached attached_interface as l_interface then
+				if l_interface.is_checked then
+					l_start_x := l_start_x + 2 * lw
+					l_start_y := l_start_y + 2 * lw
+					l_size := l_check_figure_size - 5 * lw
+					if l_size > 12 then
+						l_size := l_size - 2
+						l_start_x := l_start_x + 1
+						l_start_y := l_start_y + 1
+					end
+					if l_interface.is_indeterminate then
+						draw_indeterminate_sign_at (a_drawable, l_size, l_start_x, l_start_y)
+					else
+						draw_check_sign_at (a_drawable, l_size, l_start_x, l_start_y)
+					end
 				end
 			end
 				-- Restore the line width.
-			a_drawable.set_line_width (lw)
+			a_drawable.set_line_width (l_old_lw)
 		end
 
-	section_data: ARRAYED_LIST [EV_COORDINATE]
-			-- Coordinate used to draw a check
-		once
-			create Result.make (7)
-			Result.extend (create{EV_COORDINATE}.make (2, 4))
-			Result.extend (create{EV_COORDINATE}.make (3, 5))
-			Result.extend (create{EV_COORDINATE}.make (4, 6))
-			Result.extend (create{EV_COORDINATE}.make (5, 5))
-			Result.extend (create{EV_COORDINATE}.make (6, 4))
-			Result.extend (create{EV_COORDINATE}.make (7, 3))
-			Result.extend (create{EV_COORDINATE}.make (8, 2))
-		ensure
-			result_attached: Result /= Void
+	draw_check_sign_at (a_drawable: EV_DRAWABLE; a_size: INTEGER; a_start_x, a_start_y: INTEGER)
+			-- Draw the check sign, with size `a_size` at position (a_start_x, a_start_y) on `a_drawable`.
+		local
+			l_check_figure: ARRAY [EV_COORDINATE]
+			x1,x2,x3,y1,y2,y3,y4: INTEGER
+			st: INTEGER
+		do
+
+			st := a_size // 3
+			x1 := 0
+			x2 := x1 + st
+			x3 := a_size
+
+			y1 := 0
+			y2 := y1 + st
+			y3 := y2 + st
+			y4 := a_size
+
+--			x1 := 1
+--			x2 := (a_size * 0.4).rounded
+--			x3 := a_size - 1
+--			y1 := 1
+--			y2 := (a_size * 0.4).rounded
+--			y3 := (a_size * 0.8).rounded
+--			y4 := a_size - 1
+
+			create l_check_figure.make_filled (create {EV_COORDINATE}.make (a_start_x + x1, a_start_y + y2), 1, 6)
+--			l_check_figure[1] := create {EV_COORDINATE}.make (a_start_x + x1, a_start_y + y2)  -- 0    , 1/3
+			l_check_figure[2] := create {EV_COORDINATE}.make (a_start_x + x2, a_start_y + y3)  -- 4/10 , 2/3
+			l_check_figure[3] := create {EV_COORDINATE}.make (a_start_x + x3, a_start_y + y1)  -- width, 0
+			l_check_figure[4] := create {EV_COORDINATE}.make (a_start_x + x3, a_start_y + y2)  -- width, 1/3
+			l_check_figure[5] := create {EV_COORDINATE}.make (a_start_x + x2, a_start_y + y4)  -- 4/10 , height
+			l_check_figure[6] := create {EV_COORDINATE}.make (a_start_x + x1, a_start_y + y3)  -- 0    , 2/3
+
+				--_________________________
+				--| _ _ _ _ _ _ _ _ _ 3 | 1  y1
+				--| _ _ _ _ _ _ _ _ # # | 2
+				--| _ _ _ _ _ _ _ # # # | 3
+				--| 1 _ _ _ _ _ # # # 4 | 4  y2
+				--| # # _ _ _ # # # # _ | 5
+				--| # # # _ # # # # _ _ | 6
+				--| 6 # # 2 # # # _ _ _ | 7  y3
+				--| _ # # # # # _ _ _ _ | 8
+				--| _ _ # # # _ _ _ _ _ | 9
+				--| _ _ _ 5 _ _ _ _ _ _ | 0  y4
+				--|---------------------|
+				--| 1 2 3 4 5 6 7 8 9 0
+				--|x2    x2          x3
+
+			a_drawable.fill_polygon (l_check_figure)
+		end
+
+	draw_indeterminate_sign_at (a_drawable: EV_DRAWABLE; a_size: INTEGER; a_start_x, a_start_y: INTEGER)
+			-- Draw the check sign, with size `a_size` at position (a_start_x, a_start_y) on `a_drawable`.
+		do
+			a_drawable.fill_rectangle (a_start_x + 1, a_start_y + 1, a_size - 1, a_size - 1)
 		end
 
 feature {EV_ANY, EV_ANY_I} -- Implementation
@@ -149,14 +214,14 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 			-- functionality implemented by `Current'
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

@@ -7,10 +7,10 @@ class
 	CMS_CORE_MODULE
 
 inherit
-	CMS_MODULE
+	CMS_MODULE_WITH_SQL_STORAGE
 		redefine
-			initialize,
 			setup_hooks,
+			initialize,
 			install,
 			permissions
 		end
@@ -28,7 +28,7 @@ feature {NONE} -- Initialization
 
 	make
 		do
-			version := "1.0.0.1"
+			version := "1.1.0.1"
 			description := "Core"
 			package := "core"
 		end
@@ -63,9 +63,9 @@ feature {CMS_API} -- Module management
 				end
 
 				if l_sql_storage.has_error then
-					a_api.logger.put_error ("Could not initialize database for module [" + name + "]", generating_type)
+					a_api.report_error ("[" + name + "]: installation failed!", l_sql_storage.error_handler.as_string_representation)
 				else
-					Precursor {CMS_MODULE} (a_api)
+					Precursor (a_api)
 				end
 			end
 
@@ -139,7 +139,7 @@ feature -- Security
 			Result.force ("admin path_alias")
 			Result.force ("edit path_alias")
 			Result.force ("use access_token")
-			Result.force ("view users")
+			Result.force (perm_view_users)
 			if attached cms_api as l_cms_api then
 				across
 					l_cms_api.formats as ic
@@ -153,6 +153,9 @@ feature -- Security
 		do
 			Result := "use format " + a_format.name
 		end
+
+	perm_admin_users: STRING = "admin users" -- See {CMS_ADMIN_MODULE_ADMINISTRATION}.perm_admin_users
+	perm_view_users: STRING = "view users" -- See  {CMS_AUTHENTICATION_MODULE}.perm_view_users
 
 feature {CMS_EXECUTION} -- Administration
 
@@ -181,28 +184,33 @@ feature -- Hook
 				attached a_form.id as fid and then
 				fid.same_string ("roccms-user-view") -- Check {CMS_AUTHENTICATION_MODULE}.view_account_form_id
 			then
-				if
-					attached a_response.user as u and then
-					attached a_response.api.user_api as l_user_profile_api and then
-					attached l_user_profile_api.user_profile (u) as l_profile and then
-					not l_profile.is_empty
-				then
-					create fset.make
-					fset.set_legend ("User-Profile")
-					a_form.extend (fset)
-					across
-						l_profile as ic
-					loop
-						create tf.make_with_text (ic.key.to_string_32, ic.item)
-						tf.set_label (ic.key.to_string_32)
-						a_form.extend (tf)
+				if attached a_response.user as u then
+					if
+						attached a_response.api.user_api as l_user_profile_api and then
+						attached l_user_profile_api.user_profile (u) as l_profile and then
+						l_profile.has_visible_items
+					then
+						create fset.make
+						fset.set_legend ("User-Profile")
+						across
+							l_profile as ic
+						loop
+							if not ic.key.starts_with (".") then
+								create tf.make_with_text (ic.key.to_string_8, ic.item) -- TODO: the key should be basic string 8, check if this is true.
+								tf.set_label (html_encoded (ic.key.to_string_32))
+								a_form.extend (tf)
+							end
+						end
+						if not fset.is_empty then
+							a_form.extend (fset)
+						end
 					end
 				end
 			end
 		end
 
 note
-	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2022, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

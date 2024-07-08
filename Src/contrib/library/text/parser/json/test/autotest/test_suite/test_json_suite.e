@@ -16,6 +16,11 @@ inherit
 			on_prepare
 		end
 
+	TEST_JSON_I
+		rename
+			new_parser as new_json_parser
+		end
+
 feature {NONE} -- Events
 
 	on_prepare
@@ -65,7 +70,6 @@ feature -- Tests Pass
 	test_json_and_special_character
 		local
 			parse_json: like new_json_parser
-			utf: UTF_CONVERTER
 			s: READABLE_STRING_8
 		do
 			s := "{ %"null_char%": %"null%Uchar%" }"
@@ -566,15 +570,10 @@ feature -- JSON_FROM_FILE
  			assert ("File contains json data", Result /= Void)
  		end
 
-
-	new_json_parser (a_string: STRING): JSON_PARSER
-		do
-			create Result.make_with_string (a_string)
-		end
-
 invariant
 	file_reader /= Void
 
 end
+
 
 

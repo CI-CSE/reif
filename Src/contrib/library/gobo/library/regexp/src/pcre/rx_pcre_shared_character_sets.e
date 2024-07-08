@@ -11,7 +11,7 @@ note
 		changes will be shared by all regexp compilers.
 		]"
 	library: "Gobo Eiffel Regexp Library"
-	copyright: "Copyright (c) 2001-2002, Harald Erdbruegger and others"
+	copyright: "Copyright (c) 2001-2019, Harald Erdbruegger and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -21,18 +21,22 @@ class RX_PCRE_SHARED_CHARACTER_SETS
 feature -- Defaults
 
 	default_character_case_mapping: RX_CASE_MAPPING
-			-- Default character lower- and upper-case mapping
+			-- Default character lower- and upper-case mapping.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
 		ensure
+			instance_free: class
 			default_character_case_mapping_not_void: Result /= Void
 		end
 
 	default_word_set: RX_CHARACTER_SET
-			-- Set of characters making up words
+			-- Set of characters making up words.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")
 		ensure
+			instance_free: class
 			default_word_set_not_void: Result /= Void
 			default_word_set_not_empty: not Result.is_empty
 		end
@@ -40,67 +44,80 @@ feature -- Defaults
 feature -- Character sets
 
 	upper_set: RX_CHARACTER_SET
-			-- Upper character set
+			-- Upper character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 		ensure
+			instance_free: class
 			upper_set_not_void: Result /= Void
 			upper_set_not_empty: not Result.is_empty
 		end
 
 	lower_set: RX_CHARACTER_SET
-			-- Lower character set
+			-- Lower character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("abcdefghijklmnopqrstuvwxyz")
 		ensure
+			instance_free: class
 			lower_set_not_void: Result /= Void
 			lower_set_not_empty: not Result.is_empty
 		end
 
 	alpha_set: RX_CHARACTER_SET
-			-- Alphabetical character set
+			-- Alphabetical character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make_empty
 			Result.add_set (lower_set)
 			Result.add_set (upper_set)
 		ensure
+			instance_free: class
 			alpha_set_not_void: Result /= Void
 			alpha_set_not_empty: not Result.is_empty
 		end
 
 	digit_set: RX_CHARACTER_SET
-			-- Digit character set
+			-- Digit character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("0123456789")
 		ensure
+			instance_free: class
 			digit_set_not_void: Result /= Void
 			digit_set_not_empty: not Result.is_empty
 		end
 
 	alnum_set: RX_CHARACTER_SET
-			-- Alphanumeric character set
+			-- Alphanumeric character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make_empty
 			Result.add_set (alpha_set)
 			Result.add_set (digit_set)
 		ensure
+			instance_free: class
 			alnum_set_not_void: Result /= Void
 			alnum_set_not_empty: not Result.is_empty
 		end
 
 	xdigit_set: RX_CHARACTER_SET
-			-- Hexadecimal digit character set
+			-- Hexadecimal digit character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("0123456789abcdefABCDEF")
 		ensure
+			instance_free: class
 			xdigit_set_not_void: Result /= Void
 			xdigit_set_not_empty: not Result.is_empty
 		end
 
 	cntrl_set: RX_CHARACTER_SET
-			-- Control character set
+			-- Control character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		local
-			i: INTEGER
+			i: NATURAL_32
 		once
 			create Result.make_empty
 			from
@@ -113,41 +130,48 @@ feature -- Character sets
 			end
 			Result.add_character (127)
 		ensure
+			instance_free: class
 			cntrl_set_not_void: Result /= Void
 			cntrl_set_not_empty: not Result.is_empty
 		end
 
 	graph_set: RX_CHARACTER_SET
-			-- Graph character set
+			-- Graph character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("!%"#$%%&%'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~")
 		ensure
+			instance_free: class
 			graph_set_not_void: Result /= Void
 			graph_set_not_empty: not Result.is_empty
 		end
 
 	print_set: RX_CHARACTER_SET
-			-- Printable character set
+			-- Printable character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make (" !%"#$%%&%'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~")
 		ensure
+			instance_free: class
 			print_set_not_void: Result /= Void
 			print_set_not_empty: not Result.is_empty
 		end
 
 	punct_set: RX_CHARACTER_SET
-			-- Punctuation character set
+			-- Punctuation character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("!%"#$%%&%'()*+,-./:;<=>?@[\]^_`{|}~")
 		ensure
+			instance_free: class
 			punct_set_not_void: Result /= Void
 			punct_set_not_empty: not Result.is_empty
 		end
 
 	ascii_set: RX_CHARACTER_SET
-			-- Ascii character set
+			-- Ascii character set.
 		local
-			i: INTEGER
+			i: NATURAL_32
 		once
 			create Result.make_empty
 			from
@@ -159,24 +183,29 @@ feature -- Character sets
 				i := i + 1
 			end
 		ensure
+			instance_free: class
 			ascii_set_not_void: Result /= Void
 			ascii_set_not_empty: not Result.is_empty
 		end
 
 	space_set: RX_CHARACTER_SET
-			-- Space character set
+			-- Space character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("%T%N%F%R%/11/ ")
 		ensure
+			instance_free: class
 			space_set_not_void: Result /= Void
 			space_set_not_empty: not Result.is_empty
 		end
 
 	meta_set: RX_CHARACTER_SET
-			-- Meta character set
+			-- Meta character set.
+			-- This is only taking in account ASCII characters (with code <= 127).
 		once
 			create Result.make ("*+?{^.$|()[")
 		ensure
+			instance_free: class
 			meta_set_not_void: Result /= Void
 			meta_set_not_empty: not Result.is_empty
 		end
@@ -190,14 +219,19 @@ feature {NONE} -- Implementation
 			Result := <<"alpha", "lower", "upper",
 				"alnum", "ascii", "cntrl", "digit", "graph",
 				"print", "punct", "space", "word", "xdigit">>
+		ensure
+			instance_free: class
+			class_names_not_void: Result /= Void
 		end
 
 	class_sets: ARRAY [RX_CHARACTER_SET]
 			-- Must correspond to the list `class_names' above
 		once
 			Result := <<alpha_set, lower_set, upper_set, alnum_set, ascii_set, cntrl_set,
---				digit_set, graph_set, print_set, punct_set, space_set, word_set, xdigit_set>>
 				digit_set, graph_set, print_set, punct_set, space_set, default_word_set, xdigit_set>>
+		ensure
+			instance_free: class
+			class_sets_not_void: Result /= Void
 		end
 
 end

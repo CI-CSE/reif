@@ -6,17 +6,11 @@ note
 class
 	ES_INSTALLATION_ENVIRONMENT
 
+inherit
+	ES_INSTALLATION_ENVIRONMENT_I
+
 create
 	make
-
-feature {NONE} -- Creation
-
-	make (env: EIFFEL_ENV)
-		do
-			eiffel_env := env
-		end
-
-	eiffel_env: EIFFEL_ENV
 
 feature -- Access
 
@@ -33,11 +27,7 @@ feature -- Access
 			l_lowered_var: READABLE_STRING_GENERAL
 		do
 			l_lowered_var := a_var.as_lower
-			if a_version /= Void then
-				l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + a_version
-			else
-				l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + eiffel_env.version_name
-			end
+			l_eiffel := eiffel_root_key_name (a_version)
 			create l_reg
 
 			if a_app /= Void then
@@ -67,13 +57,8 @@ feature -- Element change
 			kn: STRING_32
 		do
 			l_lowered_var := a_var.as_lower
-			if a_version /= Void then
-				l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + a_version
-			else
-				l_eiffel := {STRING_32} "\SOFTWARE\ISE\Eiffel_" + eiffel_env.version_name
-			end
+			l_eiffel := eiffel_root_key_name (a_version)
 			create l_reg
-
 
 			create kn.make_from_string_general ("HKEY_CURRENT_USER")
 			kn.append (l_eiffel)
@@ -92,8 +77,24 @@ feature -- Element change
 			end
 		end
 
+feature {NONE} -- Implementation
+
+	eiffel_root_key_name (a_version: detachable STRING): STRING_32
+		do
+			Result := {STRING_32} "\SOFTWARE\ISE"
+			if eiffel_env.is_workbench then
+				Result.append_character ('\')
+				Result.append_string_general (eiffel_env.wkbench_suffix)
+			end
+			if a_version /= Void then
+				Result.append_string_general ("\Eiffel_" + a_version)
+			else
+				Result.append_string_general ("\Eiffel_" + eiffel_env.version_name)
+			end
+		end
+
 note
-	copyright: "Copyright (c) 1984-2017, Eiffel Software"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

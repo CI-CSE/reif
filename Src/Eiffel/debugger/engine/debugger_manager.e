@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that represents a debugger"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -21,9 +21,6 @@ inherit
 	EXECUTION_ENVIRONMENT
 
 	SHARED_BENCH_NAMES
-
---create
---	make
 
 feature {NONE} -- Initialization
 
@@ -177,6 +174,15 @@ feature -- Output helpers
 			debugger_status_message (m)
 		end
 
+	debugger_output_message_with_timestamp (m: READABLE_STRING_GENERAL)
+			-- Display debugger message `m` on the output
+			-- and include the timestamp information.
+		require
+			m_not_void: m /= Void
+		do
+			debugger_output_message (m)
+		end
+
 	debugger_output_message (m: READABLE_STRING_GENERAL)
 			-- Display debugger message `m' on the output
 		require
@@ -296,14 +302,17 @@ feature -- Debugger data change
 		end
 
 	load_exceptions_handler_data
-			-- Load exceptions_handler data
+			-- Load exceptions_handler data.
 		local
 			loading_rescued: BOOLEAN
 		do
-			if not loading_rescued then
-				internal_exceptions_handler := dbg_storage.exceptions_handler_data_from_storage
-			else
-				-- Issue !
+				-- Avoid changing already computed exception handler if an old one does not exist or cannot be loaded.
+				-- Already computed exception handler is initialized using expected defaults.
+			if
+				not loading_rescued and then
+				attached dbg_storage.exceptions_handler_data_from_storage as h
+			then
+				internal_exceptions_handler := h
 			end
 		rescue
 			loading_rescued := True
@@ -503,7 +512,7 @@ feature -- Breakpoints management
 				create evl.make (expr)
 				evl.evaluate
 				if evl.error_occurred then
-					debugger_message ("Conditional breakpoint failed to evaluate %"" + expr.text + "%".")
+					debugger_message ({STRING_32} "Conditional breakpoint failed to evaluate %"" + expr.text + "%".")
 				end
 				bp_reached := bp.condition_respected (evl) --| evaluator.final_result_is_true_boolean_value
 				evl.destroy
@@ -537,21 +546,21 @@ feature -- Breakpoints management
 			Result := bp_reached and not bp_continue
 		end
 
-	computed_breakpoint_message (bp: BREAKPOINT; a_msg: STRING): STRING
+	computed_breakpoint_message (bp: BREAKPOINT; a_msg: STRING_32): STRING_32
 			-- Computed message from breakpoint message `bp.message'.
 		require
 			bp_not_void: bp /= Void
 			bp_message_not_void: a_msg /= Void
 		local
-			m: STRING
-			m_area: SPECIAL [CHARACTER]
+			m: STRING_32
+			m_area: SPECIAL [CHARACTER_32]
 			m_max: INTEGER
 			cse: CALL_STACK_ELEMENT
 			dv: DUMP_VALUE
 			i: INTEGER
-			c: CHARACTER
-			s: STRING
-			v: STRING
+			c: CHARACTER_32
+			s: STRING_32
+			v: STRING_32
 			is_escaped,
 			in_expression,
 			in_keyword: BOOLEAN
@@ -561,7 +570,7 @@ feature -- Breakpoints management
 				m := a_msg
 				from
 					i := 0 --| iterate on SPECIAL
-					s := character_routines.unescaped_string (m)
+					s := character_routines.unescaped_string_32 (m)
 					if not character_routines.last_unescaping_raised_error then
 						m := s
 					end
@@ -614,7 +623,7 @@ feature -- Breakpoints management
 								elseif v.is_case_insensitive_equal ("TIMESTAMP") then
 									s.append_string ((create {DATE_TIME}.make_now).out)
 								else
-									s.append ("$" + v.as_upper)
+									s.append ({STRING_32} "$" + v.as_upper)
 								end
 							end
 							if not in_keyword then
@@ -888,14 +897,11 @@ feature -- Exception handling
 			-- Exception catched ?
 		require
 			application_is_executing and then application_status.exception_occurred
-		local
-			l_name: STRING
 		do
 			Result := True
 			if exceptions_handler.enabled then
 				application_status.update_on_pre_stopped_state
-				l_name := application_status.exception_type_name
-				if l_name /= Void then
+				if attached application_status.exception_type_name as l_name then
 					Result := exceptions_handler.exception_catched_by_name (l_name)
 					if not Result then
 						debugger_message ("Ignoring exception class name: " + l_name.out)
@@ -1127,27 +1133,17 @@ feature -- Access
 		end
 
 	sorted_comparable_string32_keys_from (env: like environment_variables_table): LIST [STRING_32]
-		local
-			k: STRING_32
-			l_comp: COMPARABLE_COMPARATOR [STRING_32]
-			l_sorter: SORTER [STRING_32]
 		do
 			if env /= Void and then not env.is_empty then
-				from
-					create {ARRAYED_LIST [STRING_32]} Result.make (env.count)
-					env.start
-				until
-					env.after
+				create {ARRAYED_LIST [STRING_32]} Result.make (env.count)
+				across
+					env as e
 				loop
-					k := env.key_for_iteration
-					if k /= Void and then not k.is_empty then
+					if attached e.key as k and then not k.is_empty then
 						Result.force (k)
 					end
-					env.forth
 				end
-				create l_comp
-				create {QUICK_SORTER [STRING_32]} l_sorter.make (l_comp)
-				l_sorter.sort (Result)
+				;(create {QUICK_SORTER [STRING_32]}.make (create {COMPARABLE_COMPARATOR [STRING_32]})).sort (Result)
 			end
 		ensure
 			(env /= Void and then not env.is_empty) implies Result /= Void
@@ -1172,7 +1168,7 @@ feature -- Expression evaluation
 			attached_result: Result /= Void
 		end
 
-	expression_evaluation (a_expr: STRING): DUMP_VALUE
+	expression_evaluation (a_expr: STRING_32): DUMP_VALUE
 			-- Expression evaluation's result for `a_expr' in current context
 			-- (note: Result = Void implies an error occurred)
 		require
@@ -1458,16 +1454,12 @@ feature -- Application change
 		end
 
 	set_catcall_detection_mode (a_console, a_dbg: BOOLEAN)
+		local
+			h: like exceptions_handler
 		do
-			if attached exceptions_handler as exc_hld then
-				if exc_hld.catcall_console_warning_disabled /= not a_console then
-					exc_hld.set_catcall_console_warning_disabled (not a_console)
-				end
-				if exc_hld.catcall_debugger_warning_disabled /= not a_dbg then
-					exc_hld.set_catcall_debugger_warning_disabled (not a_dbg)
-				end
-			end
-
+			h := exceptions_handler
+			h.set_catcall_console_warning_disabled (not a_console)
+			h.set_catcall_debugger_warning_disabled (not a_dbg)
 			if application_initialized then
 				safe_update_catcall_detection_mode
 			end
@@ -1496,10 +1488,11 @@ feature -- Application change
 			-- pdate catcall detection mode
 		require
 			safe_application_is_stopped: safe_application_is_stopped
+		local
+			h: like exceptions_handler
 		do
-			if attached exceptions_handler as exc_hld then
-				application.set_catcall_detection_mode (not exc_hld.catcall_console_warning_disabled, not exc_hld.catcall_debugger_warning_disabled)
-			end
+			h := exceptions_handler
+			application.set_catcall_detection_mode (not h.catcall_console_warning_disabled, not h.catcall_debugger_warning_disabled)
 		end
 
 	disable_assertion_checking
@@ -1545,9 +1538,9 @@ feature -- Application change
 
 feature -- Compilation events
 
-	on_project_recompiled (is_successful: BOOLEAN)
+	on_project_recompiled (s: like {WORKBENCH_I}.compilation_status)
 		do
-			if is_successful then
+			if s /= {WORKBENCH_I}.compilation_status_with_error then
 				if attached breakpoints_manager as bp then
 					if bp.has_breakpoint then
 						Degree_output.put_resynchronizing_breakpoints_message
@@ -1661,7 +1654,7 @@ feature -- Debugging events
 				s.append (debugger_names.t_space_application_ignoring_breakpoints)
 			end
 			debugger_status_message (s)
-			debugger_output_message (s)
+			debugger_output_message_with_timestamp (s)
 
 				--| Observers
 			observers.do_all (agent {DEBUGGER_MANAGER_OBSERVER}.on_application_launched (Current))
@@ -1706,6 +1699,7 @@ feature -- Debugging events
 		do
 			incremente_debugging_operation_id
 			debugger_status_message (debugger_names.t_Paused)
+			debugger_output_message_with_timestamp (debugger_names.t_Paused)
 
 				--| Reset current stack number to 1 (top level)
 			application.set_current_execution_stack_number (1)
@@ -1753,7 +1747,7 @@ feature -- Debugging events
 
 			was_executing := application_is_executing
 			if was_executing then
-				debugger_output_message (debugger_names.t_Application_exited)
+				debugger_output_message_with_timestamp (debugger_names.t_Application_exited)
 				debugger_status_message (debugger_names.t_Application_exited)
 
 					--| Observers
@@ -1900,7 +1894,7 @@ invariant
 	application_associated_to_current: application /= Void implies application.debugger_manager = Current
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

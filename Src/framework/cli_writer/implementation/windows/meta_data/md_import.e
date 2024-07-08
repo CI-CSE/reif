@@ -428,11 +428,8 @@ feature -- Status
 			-- [The method checks the token type is one of those in the CorTokenType
 			-- enumeration in CorHdr.h, and then that its RID is less than or equal
 			-- to the current count of those token types]
-		local
-			r: INTEGER
 		do
-			r := cpp_is_valid_token (item, a_tok)
-			Result := r /= 0 --| TRUE = 1 , FALSE = 0
+			Result := cpp_is_valid_token (item, a_tok) /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
 		end
@@ -478,7 +475,6 @@ feature -- Queries
 			l_t_upper: INTEGER
 			l_tokens_count: INTEGER
 			l_enum_hdl: POINTER
-			l_token: NATURAL_32
 		do
 				--| Get inherited "direct" entry
 			create l_tokens.make (5)
@@ -487,7 +483,7 @@ feature -- Queries
 			l_tp := $l_enum_hdl --| BUG: ... TUPLE with typed_pointer !!!
 			l_tokens_array := enum_agent.item ([l_tp, a_class_token, 10])
 			l_tokens_count := count_enum (l_enum_hdl)
-			if l_tokens_count > 0 then
+			if l_tokens_array /= Void and l_tokens_count > 0 then
 				if l_tokens_count > l_tokens.capacity - l_tokens.count then
 					l_tokens.resize (l_tokens.count + l_tokens_count)
 				end
@@ -504,16 +500,16 @@ feature -- Queries
 						-- We need to retrieve the rest of the data
 
 					l_tokens_array := enum_agent.item ([l_tp, a_class_token, l_tokens_count - 10])
-
-					from
-						l_t_upper := l_tokens_array.upper
-						l_t_index := l_tokens_array.lower
-					until
-						l_t_index > l_t_upper
-					loop
-						l_token := l_tokens_array.item (l_t_index)
-						l_tokens.force (l_token)
-						l_t_index := l_t_index + 1
+					check l_tokens_array /= Void then
+						from
+							l_t_upper := l_tokens_array.upper
+							l_t_index := l_tokens_array.lower
+						until
+							l_t_index > l_t_upper
+						loop
+							l_tokens.force (l_tokens_array.item (l_t_index))
+							l_t_index := l_t_index + 1
+						end
 					end
 				end
 			end
@@ -881,7 +877,6 @@ feature {NONE} -- Implementation
 			element_size_valid: a_elt_size > 0
 			not_empty: a_count > 0
 		local
-			l_mdtypedef_value: NATURAL_32
 			i: INTEGER
 		do
 			from
@@ -890,8 +885,7 @@ feature {NONE} -- Implementation
 			until
 				i > a_count
 			loop
-				l_mdtypedef_value := a_mp.read_natural_32 ((i - 1) * a_elt_size)
-				Result.put (l_mdtypedef_value, i)
+				Result.put (a_mp.read_natural_32 ((i - 1) * a_elt_size), i)
 				i := i + 1
 			end
 		ensure
@@ -919,7 +913,7 @@ feature {NONE} -- Implementation : helper
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

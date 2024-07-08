@@ -1,7 +1,5 @@
-note
-	description: "[
-		Ancestor of all exception classes.
-		]"
+﻿note
+	description: "Ancestor of all exception classes."
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -26,7 +24,7 @@ feature {NONE} -- Initialization
 	make_with_tag_and_trace (a_tag, a_trace_string: STRING)
 			-- Make `Current' with `description' set to `a_tag'.
 		obsolete
-			"Use `default_create' and `set_description' instead."
+			"Use `default_create' and `set_description' instead. [2017-05-31]"
 		require
 			tag_not_void: a_tag /= Void
 			trace_string_not_void: a_trace_string /= Void
@@ -51,7 +49,7 @@ feature -- Access
 	meaning: STRING
 			-- A short message describing what current exception is
 		obsolete
-			"Use `tag' instead."
+			"Use `tag' instead. [2017-05-31]"
 		do
 			Result := tag.as_string_8
 		end
@@ -65,31 +63,30 @@ feature -- Access
 	message: detachable STRING
 			-- Message of current exception
 		obsolete
-			"Use `description' instead."
+			"Use `description' instead. [2017-05-31]"
 		do
 			if attached c_description as l_m then
 				Result := l_m.substring (1, l_m.count)
 			end
 		end
 
-	description: detachable READABLE_STRING_GENERAL
-			-- Detailed description of current exception
+	description: detachable READABLE_STRING_32
+			-- Detailed description of current exception.
 		local
-			u: UTF_CONVERTER
 			l_res: STRING_32
 		do
-			if attached c_description as l_m then
+			if attached c_description as d then
 					-- Description is encoded in UTF-8 by the runtime.
-				create l_res.make (l_m.count)
-				u.utf_8_0_subpointer_into_escaped_string_32 (l_m.managed_data, 0, l_m.count - 1, False, l_res)
+				create l_res.make (d.count)
+				{UTF_CONVERTER}.utf_8_0_subpointer_into_escaped_string_32 (d.managed_data, 0, d.count - 1, False, l_res)
 				Result := l_res
 			end
 		end
 
-	exception_trace: detachable STRING
+	exception_trace: detachable STRING_8
 			-- String representation of current exception trace
 		obsolete
-			"Use `trace' instead."
+			"Use `trace' instead. [2017-05-31]"
 		do
 			Result := internal_trace
 		end
@@ -100,7 +97,7 @@ feature -- Access
 			u: UTF_CONVERTER
 		do
 			if attached internal_trace as l_trace then
-				Result := u.utf_8_string_8_to_string_32 (l_trace)
+				Result := u.utf_8_string_8_to_escaped_string_32 (l_trace)
 			end
 		end
 
@@ -138,11 +135,11 @@ feature -- Access
 			cause_not_void: Result /= Void
 		end
 
-	frozen recipient_name: detachable STRING
+	frozen recipient_name: detachable STRING_8
 			-- Name of the routine whose execution was
 			-- interrupted by current exception
 
-	frozen type_name: detachable STRING
+	frozen type_name: detachable STRING_8
 			-- Name of the class that includes the recipient
 			-- of original form of current exception
 
@@ -154,9 +151,11 @@ feature -- Access obselete
 	trace_as_string: detachable STRING
 			-- Exception trace represented as a string
 		obsolete
-			"Use `trace' instead."
+			"Use `trace' instead. [2017-05-31]"
 		do
-			Result := exception_trace
+			if attached exception_trace as t then
+				Result := t
+			end
 		end
 
 feature -- Status settings
@@ -164,7 +163,7 @@ feature -- Status settings
 	set_message (a_message: like message)
 			-- Set `message' with `a_message'.
 		obsolete
-			"Use `set_description' instead."
+			"Use `set_description' instead. [2017-05-31]"
 		do
 			set_description (a_message)
 		ensure
@@ -188,7 +187,7 @@ feature -- Status settings
 				c_description := Void
 			end
 		ensure
-			description_set: (attached a_description as a_des and then attached description as l_des and then l_des.same_string (l_des)) or else
+			description_set: (attached a_description as a_des and then attached description as l_des and then a_des.same_string (l_des)) or else
 							(a_description = Void and then description = Void)
 		end
 
@@ -229,14 +228,17 @@ feature -- Output
 	out: STRING
 			-- New string containing terse printable representation
 			-- of current object
-		local
-			t: detachable STRING_32
 		do
-			Result := generating_type
-			t := trace
-			if t /= Void then
+			Result := generating_type.out
+			if attached trace as t then
 				Result.append_character ('%N')
-				Result.append_string (t.as_string_8)
+				if attached {READABLE_STRING} t as r then
+					Result.append (r)
+				elseif attached {STRING_8} Result as s then
+					{UTF_CONVERTER}.escaped_utf_32_string_into_utf_8_string_8 (t, s)
+				elseif attached {STRING_32} Result as s then
+					s.append_string_general (t)
+				end
 			end
 		end
 
@@ -295,11 +297,11 @@ feature {EXCEPTION_MANAGER} -- Implementation
 			internal_trace := a_trace
 		end
 
-	internal_trace: detachable STRING;
+	internal_trace: detachable STRING_8
 			-- String representation of the exception trace
 
-note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+;note
+	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -308,5 +310,4 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
 end

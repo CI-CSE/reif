@@ -75,14 +75,11 @@ feature -- Access
 			-- Button to remove `Current' from its container.
 			-- Does nothing until `set_remove_procedure' gets called.
 
-	code: STRING
+	code: STRING_32
 			-- Generated code.
-		local
-			t: STRING
 		do
-			t := name_field.text
 			create Result.make (10)
-			if not t.is_empty then
+			if attached name_field.text as t and then not t.is_empty then
 				Result.append (t)
 				Result.append (": ")
 				Result.append (type_selector.code)
@@ -95,11 +92,8 @@ feature -- Status report
 
 	valid_content: BOOLEAN
 			-- Is user input valid for code generation?
-		local
-			t: STRING
 		do
-			t := name_field.text
-			Result := t /= Void and then not t.is_empty
+			Result := attached name_field.text as t and then not t.is_empty
 		end
 
 feature -- Status setting
@@ -113,11 +107,8 @@ feature -- Status setting
 
 	remove_semicolon
 			-- Remove the semicolon label at the end of `Current'.
-		local
-			lbl: EV_LABEL
 		do
-			lbl ?= last
-			if lbl /= Void then
+			if attached {EV_LABEL} last as lbl then
 				prune (lbl)
 			end
 		end
@@ -152,7 +143,7 @@ feature {EV_ANY} -- Contract support
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

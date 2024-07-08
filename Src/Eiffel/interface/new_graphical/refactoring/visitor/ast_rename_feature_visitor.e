@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Visitor that changes all occurrences of a feature name to a new name."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -20,7 +20,7 @@ inherit
 			process_like_id_as,
 			process_qualified_anchored_type_as,
 			process_feature_id_as,
-			process_feat_name_id_as, process_infix_prefix_as,
+			process_feature_name,
 			process_feature_as, process_body_as,
 			process_access_feat_as,
 			process_access_id_as,
@@ -28,7 +28,9 @@ inherit
 			process_access_inv_as,
 			process_static_access_as,
 			process_break_as,
-			process_string_as, process_verbatim_string_as
+			process_string_as,
+			process_verbatim_string_as,
+			process_predecessor_as
 		end
 
 	REFACTORING_HELPER
@@ -57,7 +59,7 @@ feature {NONE} -- Initialization
 		do
 			feature_i := a_feature
 			rout_id_set := feature_i.rout_id_set
-			old_feature_name := a_feature.feature_name.as_lower
+			old_feature_name := {UTF_CONVERTER}.string_32_to_utf_8_string_8 ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (a_feature.feature_name).as_lower)
 			new_feature_name := a_new_feature_name
 			change_comments := a_change_comments
 			change_strings := a_change_strings
@@ -79,16 +81,15 @@ feature {NONE} -- Visitor implementation
 			-- Process `l_as'.
 		do
 			safe_process (l_as.target)
-			if recursive_descendants.has (l_as.class_id) then
-					-- check if it is the right feature (correct has old routine_id and old name)
-				if
-					l_as.routine_ids /= Void and then
-					l_as.routine_ids.has (feature_i.rout_id_set.first) and then
-					old_feature_name.is_case_insensitive_equal (l_as.feature_name.name)
-				then
-					l_as.feature_name.replace_text (new_feature_name, match_list)
-					has_modified := True
-				end
+				-- Check if it is the right feature (correct has old routine_id and old name).
+			if
+				recursive_descendants.has (l_as.class_id) and then
+				l_as.routine_ids /= Void and then
+				l_as.routine_ids.has (feature_i.rout_id_set.first) and then
+				old_feature_name.is_case_insensitive_equal (l_as.feature_name.name)
+			then
+				l_as.feature_name.replace_text (new_feature_name, match_list)
+				has_modified := True
 			end
 			safe_process (l_as.internal_operands)
 		end
@@ -150,7 +151,7 @@ feature {NONE} -- Visitor implementation
 						loop
 							l_rename := l_renamings.item
 								-- if the feature we change was renamed
-							if l_rename.old_name.internal_name.name_id = feature_i.feature_name_id then
+							if l_rename.old_name.feature_name.name_id = feature_i.feature_name_id then
 								is_renaming := True
 									-- did we rename into the new name?
 								if l_rename.new_name.visual_name.is_case_insensitive_equal (new_feature_name) then
@@ -202,7 +203,7 @@ feature {NONE} -- Visitor implementation
 							loop
 								l_rename := l_renamings.item
 									-- if there is already a renaming, update it
-								l_name_id := l_rename.old_name.internal_name.name_id
+								l_name_id := l_rename.old_name.feature_name.name_id
 								if l_parent_features.has (l_name_id) then
 									l_rename.new_name.replace_text (new_feature_name, match_list)
 									l_parent_features.remove (l_name_id)
@@ -245,11 +246,13 @@ feature {NONE} -- Visitor implementation
 	process_like_id_as (l_as: LIKE_ID_AS)
 			-- Process like statements.
 		do
-			if is_descendant and then not is_renaming then
-				if old_feature_name.is_case_insensitive_equal (l_as.anchor.name) then
-					l_as.anchor.replace_text (new_feature_name, match_list)
-					has_modified := True
-				end
+			if
+				is_descendant and then
+				not is_renaming and then
+				old_feature_name.is_case_insensitive_equal (l_as.anchor.name)
+			then
+				l_as.anchor.replace_text (new_feature_name, match_list)
+				has_modified := True
 			end
 		end
 
@@ -263,33 +266,24 @@ feature {NONE} -- Visitor implementation
 	process_feature_id_as (l_as: FEATURE_ID_AS)
 			-- Process `l_as'.
 		do
-			if recursive_descendants.has (l_as.class_id) then
-					-- check if it is the right feature (correct has old routine_id and old name)
-				if
-					attached l_as.routine_ids as routine_ids and then
-					routine_ids.has (feature_i.rout_id_set.first) and then
-					old_feature_name.is_case_insensitive_equal (l_as.name.name)
-				then
-					l_as.name.replace_text (new_feature_name, match_list)
-					has_modified := True
-				end
-			end
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
-			-- Process feature name.
-		do
-			if old_feature_name.is_case_insensitive_equal (l_as.feature_name.name) then
-				l_as.feature_name.replace_text (new_feature_name, match_list)
+				-- Check if it is the right feature (correct has old routine_id and old name).
+			if
+				l_as.class_id > 0 and then
+				recursive_descendants.has (l_as.class_id) and then
+				attached l_as.routine_ids as routine_ids and then
+				routine_ids.has (feature_i.rout_id_set.first) and then
+				old_feature_name.is_case_insensitive_equal (l_as.name.name)
+			then
+				l_as.name.replace_text (new_feature_name, match_list)
 				has_modified := True
 			end
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-			-- Process prefix / infix.
+	process_feature_name (l_as: FEATURE_NAME)
+			-- Process feature name.
 		do
-			if old_feature_name.is_case_insensitive_equal (l_as.internal_name.name) then
-				l_as.replace_text (new_feature_name, match_list)
+			if old_feature_name.is_case_insensitive_equal (l_as.feature_name.name) then
+				l_as.feature_name.replace_text (new_feature_name, match_list)
 				has_modified := True
 			end
 		end
@@ -365,16 +359,30 @@ feature {NONE} -- Visitor implementation
 	process_address_as (l_as: ADDRESS_AS)
 			-- Process `l_as'.
 		do
-			if recursive_descendants.has (l_as.class_id) then
-					-- check if it is the right feature (correct has old routine_id and old name)
-				if
-					l_as.routine_ids /= Void and then
-					l_as.routine_ids.has (feature_i.rout_id_set.first) and then
-					old_feature_name.is_case_insensitive_equal (l_as.feature_name.visual_name)
-				then
-					l_as.feature_name.replace_text (new_feature_name, match_list)
-					has_modified := True
-				end
+				-- Check if it is the right feature (correct has old routine_id and old name).
+			if
+				recursive_descendants.has (l_as.class_id) and then
+				l_as.routine_ids /= Void and then
+				l_as.routine_ids.has (feature_i.rout_id_set.first) and then
+				old_feature_name.is_case_insensitive_equal (l_as.feature_name.visual_name)
+			then
+				l_as.feature_name.replace_text (new_feature_name, match_list)
+				has_modified := True
+			end
+		end
+
+	process_predecessor_as (a: PREDECESSOR_AS)
+			-- <Precursor>
+		do
+				-- Check if it is the right feature (correct has old routine_id and old name).
+			if
+				recursive_descendants.has (a.class_id) and then
+				a.routine_ids /= Void and then
+				a.routine_ids.has (feature_i.rout_id_set.first) and then
+				old_feature_name.is_case_insensitive_equal (a.name.name)
+			then
+				a.name.replace_text (new_feature_name, match_list)
+				has_modified := True
 			end
 		end
 
@@ -443,13 +451,13 @@ invariant
 	feature_i_not_void: feature_i /= Void
 	rout_id_set_not_void: rout_id_set /= Void
 	old_feature_name_ok: old_feature_name /= Void and not old_feature_name.is_empty
-	old_feature_name_lower: old_feature_name.as_lower.is_equal (old_feature_name)
+	old_feature_name_lower: {UTF_CONVERTER}.utf_8_string_8_to_string_32 (old_feature_name).as_lower.is_equal ({UTF_CONVERTER}.utf_8_string_8_to_string_32 (old_feature_name))
 	new_feature_name_ok: new_feature_name /= Void and not new_feature_name.is_empty
 	recursive_descendants_not_void: recursive_descendants /= Void
 	type_a_generator_not_void: type_a_generator /= Void
 
 note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2021, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

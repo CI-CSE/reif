@@ -1,19 +1,18 @@
-
-class TEST
+﻿class TEST
 
 create
 	make
 
-feature {NONE} -- Initialization
+feature
 
 	make
-			-- Run application.
 		do
-			check
-				diff_obj_A: create {A}.make /= create {A}.make
-				same_obj_b: create {B}.make /= create {B}.make
-				diff_obj_c: create {C}.make /= create {C}.make
-				same_obj_d: create {D}.make /= create {D}.make
-			end		
+			{B}.make.do_nothing
+			{B}.make_default.do_nothing
+			{B}.make_object.do_nothing
+			{B}.make_thread.do_nothing
+			{B}.make_process.do_nothing
+			{B}.make_do.do_nothing
 		end
+
 end

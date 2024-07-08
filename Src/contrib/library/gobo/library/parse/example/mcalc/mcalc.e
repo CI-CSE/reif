@@ -4,7 +4,7 @@ note
 
 		"Calculator with memory"
 
-	copyright: "Copyright (c) 1999-2006, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2019, Eric Bezault and others"
 	license: "MIT License"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -17,8 +17,6 @@ inherit
 		rename
 			make as make_parser_skeleton
 		end
-
-	KL_IMPORTED_STRING_ROUTINES
 
 create
 
@@ -210,9 +208,9 @@ feature {NONE} -- Semantic actions
 		do
 				inspect yy_act
 when 1 then
---|#line 43 "mcalc.y"
+--|#line 41 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 43")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 41")
 end
 
 
@@ -229,9 +227,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines1.force (yyvs1, yyval1, yyvsp1)
 end
 when 2 then
---|#line 44 "mcalc.y"
+--|#line 42 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 44")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 42")
 end
 
 
@@ -241,9 +239,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines1.force (yyvs1, yyval1, yyvsp1)
 end
 when 3 then
---|#line 47 "mcalc.y"
+--|#line 45 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 47")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 45")
 end
 
 
@@ -252,21 +250,21 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines1.force (yyvs1, yyval1, yyvsp1)
 end
 when 4 then
---|#line 48 "mcalc.y"
+--|#line 46 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 48")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 46")
 end
 
-print (yyvs2.item (yyvsp2).out); print ("%N") 
+print (yyvs2.item (yyvsp2)); print ("%N") 
 if yy_parsing_status >= yyContinue then
 	yyssp := yyssp - 2
 	yyvsp2 := yyvsp2 -1
 	yyspecial_routines1.force (yyvs1, yyval1, yyvsp1)
 end
 when 5 then
---|#line 49 "mcalc.y"
+--|#line 47 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 49")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 47")
 end
 
 recover 
@@ -276,9 +274,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines1.force (yyvs1, yyval1, yyvsp1)
 end
 when 6 then
---|#line 52 "mcalc.y"
+--|#line 50 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 52")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 50")
 end
 
 yyval2 := yyvs2.item (yyvsp2) 
@@ -287,9 +285,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 7 then
---|#line 53 "mcalc.y"
+--|#line 51 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 53")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 51")
 end
 
 yyval2 := memory_value (yyvs3.item (yyvsp3)) 
@@ -307,9 +305,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 8 then
---|#line 54 "mcalc.y"
+--|#line 52 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 54")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 52")
 end
 
 yyval2 := yyvs2.item (yyvsp2); set_memory_value (yyval2, yyvs3.item (yyvsp3)) 
@@ -320,9 +318,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 9 then
---|#line 55 "mcalc.y"
+--|#line 53 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 55")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 53")
 end
 
 yyval2 := yyvs2.item (yyvsp2 - 1) + yyvs2.item (yyvsp2) 
@@ -333,9 +331,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 10 then
---|#line 56 "mcalc.y"
+--|#line 54 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 56")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 54")
 end
 
 yyval2 := yyvs2.item (yyvsp2 - 1) - yyvs2.item (yyvsp2) 
@@ -346,9 +344,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 11 then
---|#line 57 "mcalc.y"
+--|#line 55 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 57")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 55")
 end
 
 yyval2 := yyvs2.item (yyvsp2 - 1) * yyvs2.item (yyvsp2) 
@@ -359,9 +357,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 12 then
---|#line 58 "mcalc.y"
+--|#line 56 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 58")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 56")
 end
 
 yyval2 := yyvs2.item (yyvsp2 - 1) / yyvs2.item (yyvsp2) 
@@ -372,9 +370,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 13 then
---|#line 59 "mcalc.y"
+--|#line 57 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 59")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 57")
 end
 
 yyval2 := -yyvs2.item (yyvsp2) 
@@ -384,9 +382,9 @@ if yy_parsing_status >= yyContinue then
 	yyspecial_routines2.force (yyvs2, yyval2, yyvsp2)
 end
 when 14 then
---|#line 60 "mcalc.y"
+--|#line 58 "mcalc.y"
 debug ("GEYACC")
-	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 60")
+	std.error.put_line ("Executing parser user-code from file 'mcalc.y' at line 58")
 end
 
 yyval2 := yyvs2.item (yyvsp2) 
@@ -622,6 +620,7 @@ feature {NONE} -- Initialization
 			-- Create a new calculator with memory.
 		do
 			make_parser_skeleton
+			last_string_value := ""
 			create memory_values.make (10)
 		end
 
@@ -662,7 +661,7 @@ feature {NONE} -- Scanner
 	read_token
 			-- Lexical analyzer returns a double floating point
 			-- number on the stack and the token NUM, a STRING and
-			-- and the token VAR, a token ASSIGNMENT, or the ASCII
+			-- and the token VAR, a token ASSIGNMENT, or the
 			-- character read if not a number. Skips all blanks
 			-- and tabs, returns 0 for EOF.
 		local

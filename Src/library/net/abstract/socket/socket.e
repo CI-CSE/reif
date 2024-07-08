@@ -1,11 +1,9 @@
-note
+﻿note
 
-	description:
-		"Generic sockets"
+	description: "Generic sockets"
 	legal: "See notice at end of class."
-
-	status: "See notice at end of class.";
-	date: "$Date$";
+	status: "See notice at end of class."
+	date: "$Date$"
 	revision: "$Revision$"
 
 deferred class
@@ -277,7 +275,7 @@ feature -- Output
 			put_character ('%N')
 		end
 
-	put_string, putstring (s: STRING)
+	put_string, putstring (s: READABLE_STRING_8)
 			-- Write string `s' to socket.
 		local
 			ext: C_STRING
@@ -305,21 +303,21 @@ feature -- Output
 			put_pointer_content (a_pointer.item, start_pos, a_byte_count)
 		end
 
-	put_character, putchar (c: CHARACTER)
+	put_character, putchar (c: CHARACTER_8)
 			-- Write character `c' to socket.
 		do
 			put_socket_buffer.put_character (c, 0)
 			put_managed_pointer (put_socket_buffer, 0, character_8_bytes)
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal, put_real_32 (r: REAL_32)
 			-- Write real `r' to socket.
 		do
 			put_socket_buffer.put_real_32_be (r, 0)
 			put_managed_pointer (put_socket_buffer, 0, real_32_bytes)
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble, put_real_64 (d: REAL_64)
 			-- Write double `d' to socket.
 		do
 			put_socket_buffer.put_real_64_be (d, 0)
@@ -488,7 +486,7 @@ feature -- Output
 
 feature -- Input
 
-	read_real, readreal
+	read_real, readreal, read_real_32
 			-- Read a new real.
 			-- Make result available in `last_real'.
 		do
@@ -501,7 +499,7 @@ feature -- Input
 			end
 		end
 
-	read_double, readdouble
+	read_double, readdouble, read_real_64
 			-- Read a new double.
 			-- Make result available in `last_double'.
 		do
@@ -654,13 +652,16 @@ feature -- Input
 		local
 			ext: C_STRING
 			return_val: INTEGER
+			s: like last_string
 		do
 			create ext.make_empty (nb_char + 1)
 			return_val := c_read_stream (descriptor, nb_char, ext.item)
 			bytes_read := return_val
-			if return_val >= 0 then
-				ext.set_count (return_val)
-				last_string := ext.substring (1, return_val)
+			if return_val > 0 then
+				s := last_string
+				s.grow (return_val)
+				s.set_count (return_val)
+				ext.copy_to_string (s, 1, 1, return_val)
 			else
 				last_string.wipe_out
 			end
@@ -728,7 +729,7 @@ feature -- Input
 				i := i + 1
 			end
 			if not was_error and last_character /= '%N' then
-				socket_error := "End of line not reached after " + n.out + " read characters"
+				socket_error := {STRING} "End of line not reached after " + n.out + " read characters"
 			end
 			last_string := l_last_string
 		ensure
@@ -1223,7 +1224,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2020, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -1233,4 +1234,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- Class SOCKET
+end

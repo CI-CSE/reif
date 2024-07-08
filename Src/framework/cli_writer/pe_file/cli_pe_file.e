@@ -9,7 +9,9 @@ class
 	CLI_PE_FILE
 
 inherit
-	CLI_UTILITIES
+	CLI_PE_FILE_I
+
+	MD_UTILITIES
 		export
 			{NONE} padding, file_alignment
 		end
@@ -70,11 +72,28 @@ feature {NONE} -- Initialization
 			create entry_data.make
 
 			create reloc_section.make
+
+			debug ("cli_writer_dbg")
+				write_debug
+			end
 		ensure
 			file_name_set: file_name = a_name
 			is_valid_set: is_valid
 			is_console_set: is_console = console_app
 			is_dll_set: is_dll = dll_app
+		end
+
+	write_debug
+		do
+			pe_header.debug_header ("pe_header_com")
+			optional_header.debug_header ("optional_header_com")
+			text_section_header.debug_header ("text_section_header_com")
+			reloc_section_header.debug_header ("reloc_section_header_com")
+			iat.debug_header ("iat_com")
+			import_table.debug_header("import_table_com")
+			cli_header.debug_header ("cli_header_com")
+			entry_data.debug_header ("entry_data_com")
+			reloc_section.debug_header ("reloc_section_com")
 		end
 
 feature -- Status
@@ -91,11 +110,17 @@ feature -- Status
 	is_32bits: BOOLEAN
 			-- Is current application a 32bit application?
 
-	file_name: READABLE_STRING_GENERAL
+	file_name: READABLE_STRING_32
 			-- Name of current PE file on disk.
 
 	has_strong_name: BOOLEAN
 			-- Does current have a strong name signature?
+
+	cli_header_has_flag_strong_name_signed: BOOLEAN
+			-- Has CLI Header flag "strong_name_signed" ?
+		do
+			Result := (cli_header.flags & {CLI_HEADER}.strong_name_signed) = {CLI_HEADER}.strong_name_signed
+		end
 
 	has_resources: BOOLEAN
 			-- Does current have some resources attached?
@@ -137,7 +162,7 @@ feature -- Access
 	method_writer: detachable MD_METHOD_WRITER
 			-- To hold IL code.
 
-	emitter: MD_EMIT
+	emitter: MD_EMIT_I
 			-- Meta data emitter, needed for RVA update.
 
 	import_table: CLI_IMPORT_TABLE
@@ -152,18 +177,12 @@ feature -- Settings
 
 	set_method_writer (m: like method_writer)
 			-- Set `method_writer' to `m'.
-		require
-			m_not_void: m /= Void
 		do
 			method_writer := m
-		ensure
-			method_writer_set: method_writer = m
 		end
 
 	set_entry_point_token (token: INTEGER)
 			-- Set `token' as entry point of current CLI image.
-		require
-			token_not_null: token /= 0
 		do
 			cli_header.set_entry_point_token (token)
 		end
@@ -173,44 +192,24 @@ feature -- Settings
 
 			-- Set `debug_directory' to `a_cli_debug_directory' and `debug_info'
 			-- to `a_debug_info'.
-		require
-			a_cli_debug_directory_not_void: a_cli_debug_directory /= Void
-			a_debug_info_not_void: a_debug_info /= Void
 		do
 			debug_directory := a_cli_debug_directory
 			debug_info := a_debug_info
-		ensure
-			debug_directory_set: debug_directory = a_cli_debug_directory
-			debug_info_set: debug_info = a_debug_info
 		end
 
 	set_public_key (a_key: like public_key; a_signing: like signing)
 			-- Set `public_key' to `a_key'.
-		require
-			key_not_void: a_key /= Void
-			key_valid: a_key.item.count > 0
-			a_signing_not_void: a_signing /= Void
-			a_signing_exists: a_signing.exists
 		do
 			public_key := a_key
 			has_strong_name := True
 			cli_header.add_flags ({CLI_HEADER}.strong_name_signed)
 			signing := a_signing
-		ensure
-			public_key_set: public_key = a_key
-			has_strong_name_set: has_strong_name
-			signing_set: signing = a_signing
-			cli_header_flags_set: (cli_header.flags & {CLI_HEADER}.strong_name_signed) = {CLI_HEADER}.strong_name_signed
 		end
 
 	set_resources (r: like resources)
 			-- Set `resources' with `r'
-		require
-			r_not_void: r /= Void
 		do
 			resources := r
-		ensure
-			resources_set: resources = r
 		end
 
 feature -- Saving
@@ -221,7 +220,7 @@ feature -- Saving
 			l_pe_file, l_meta_data_file: RAW_FILE
 			l_padding, l_signature: MANAGED_POINTER
 			l_strong_name_location, l_size: INTEGER
-			l_uni_string: UNI_STRING
+			l_uni_string: CLI_STRING
 			l_meta_data_file_name: like file_name
 		do
 				-- First compute size of PE file headers and sections.
@@ -248,12 +247,12 @@ feature -- Saving
 				-- Store .text section
 			l_pe_file.put_managed_pointer (iat, 0, iat.count)
 			l_pe_file.put_managed_pointer (cli_header, 0, cli_header.count)
-			if method_writer /= Void then
+			if attached method_writer as l_method_writer then
 					-- No need for padding as it is correctly aligned of 4 bytes
 				check
 					correctly_aligned: (iat.count + cli_header.count) \\ 4 = 0
 				end
-				l_pe_file.put_managed_pointer (method_writer.item, 0, code_size)
+				l_pe_file.put_managed_pointer (l_method_writer.item, 0, code_size)
 			end
 
 			if
@@ -279,7 +278,7 @@ feature -- Saving
 					-- Store `resources.item' since otherwise no one will be referencing
 					-- it and thus ready for GC.
 				l_pe_file.put_managed_pointer (p, 0, resources_size)
- 			end
+			end
 
 				-- Save the metadata to `l_pe_file'. We cannot use `MD_EMIT.assembly_memory'
 				-- because on some platforms the amount of required memory cannot be allocated
@@ -288,7 +287,7 @@ feature -- Saving
 				-- but we cannot use the stream version of the API since we do not have a way
 				-- to make an IStream from an Eiffel FILE.
 			l_meta_data_file_name := file_name + ".pe"
-			emitter.save (create {UNI_STRING}.make (l_meta_data_file_name))
+			emitter.save (create {CLI_STRING}.make (l_meta_data_file_name))
 			create l_meta_data_file.make_with_name (l_meta_data_file_name)
 			l_meta_data_file.open_read
 			check valid_size: l_meta_data_file.count = meta_data_size end
@@ -317,7 +316,11 @@ feature -- Saving
 			l_pe_file.close
 			is_valid := False
 
-			if has_strong_name then
+			if
+				has_strong_name and
+				attached signing as l_signing and
+				attached public_key as l_public_key
+			then
 				create l_pe_file.make_with_name (file_name)
 				l_pe_file.open_read
 				create l_padding.make (l_pe_file.count)
@@ -325,7 +328,7 @@ feature -- Saving
 				l_pe_file.close
 
 				create l_uni_string.make (file_name)
-				l_signature := signing.assembly_signature (l_uni_string, public_key.key_pair)
+				l_signature := l_signing.assembly_signature (l_uni_string, l_public_key.key_pair)
 				(l_padding.item + l_strong_name_location).memory_copy (l_signature.item,
 					l_signature.count)
 
@@ -334,9 +337,6 @@ feature -- Saving
 				l_pe_file.put_managed_pointer (l_padding, 0, l_padding.count)
 				l_pe_file.close
 			end
-
-		ensure
-			not_is_valid: not is_valid
 		end
 
 feature {NONE} -- Saving
@@ -348,8 +348,8 @@ feature {NONE} -- Saving
 				-- Size of meta data and code.
 			meta_data_size := emitter.save_size
 
-			if method_writer /= Void then
-				code_size := method_writer.count
+			if attached method_writer as l_method_writer then
+				code_size := l_method_writer.count
 			else
 				code_size := 0
 			end
@@ -363,14 +363,18 @@ feature {NONE} -- Saving
 				debug_size := 0
 			end
 
-			if has_strong_name then
-				strong_name_size := signing.assembly_signature_size (public_key.item)
+			if
+				has_strong_name and
+				attached signing as l_signing and then
+				attached public_key as l_public_key
+			then
+				strong_name_size := l_signing.assembly_signature_size (l_public_key.item)
 			else
 				strong_name_size := 0
 			end
 
-			if has_resources then
-				resources_size := resources.count
+			if has_resources and attached resources as l_resources then
+				resources_size := l_resources.count
 			else
 				resources_size := 0
 			end
@@ -381,9 +385,9 @@ feature {NONE} -- Saving
 				reloc_section_header.count
 
 			import_table_padding := pad_up (iat.count + cli_header.count + code_size +
-				debug_size + strong_name_size + resources_size + meta_data_size, 16) -
+					debug_size + strong_name_size + resources_size + meta_data_size, 16) -
 				(iat.count + cli_header.count + code_size + debug_size +
-				strong_name_size + resources_size + meta_data_size)
+					strong_name_size + resources_size + meta_data_size)
 
 			text_size := iat.count + cli_header.count + code_size + debug_size +
 				strong_name_size + resources_size + meta_data_size +
@@ -425,12 +429,12 @@ feature {NONE} -- Saving
 			optional_header.set_headers_size (pad_up (headers_size, file_alignment))
 
 			import_directory := optional_header.directory (
-				{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_import)
+					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_import)
 			import_directory.set_rva (import_directory_rva)
 			import_directory.set_data_size (import_table.count - 1)
 
 			reloc_directory := optional_header.directory (
-				{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_basereloc)
+					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_basereloc)
 			reloc_directory.set_rva (reloc_rva)
 			reloc_directory.set_data_size (reloc_size)
 
@@ -439,7 +443,7 @@ feature {NONE} -- Saving
 				attached debug_info as i
 			then
 				l_debug_directory := optional_header.directory (
-					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_debug)
+						{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_debug)
 				l_debug_directory.set_rva (text_rva + iat.count + cli_header.count + code_size)
 				l_debug_directory.set_data_size (d.count)
 
@@ -451,12 +455,12 @@ feature {NONE} -- Saving
 			end
 
 			iat_directory := optional_header.directory (
-				{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_iat)
+					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_iat)
 			iat_directory.set_rva (text_rva)
 			iat_directory.set_data_size (iat.count)
 
 			cli_directory := optional_header.directory (
-				{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_cli_descriptor)
+					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_cli_descriptor)
 			cli_directory.set_rva (text_rva + iat.count)
 			cli_directory.set_data_size (cli_header.count)
 
@@ -512,8 +516,8 @@ feature {NONE} -- Saving
 				entry_data.jump_size)
 
 				-- Set method RVAs now.
-			if method_writer /= Void then
-				method_writer.update_rvas (emitter, code_rva)
+			if attached method_writer as l_method_writer then
+				l_method_writer.update_rvas (emitter, code_rva)
 			end
 		end
 
@@ -523,24 +527,24 @@ feature {NONE} -- Implementation
 			-- DOS header.
 		once
 			create Result.make_from_array ({ARRAY [NATURAL_8]} <<
-				0x4D, 0x5A, 0x90, 0x0, 0x3, 0x0, 0x0, 0x0,
-				0x4, 0x0, 0x0, 0x0, 0xFF, 0xFF, 0x0, 0x0,
-				0xB8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-				0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-				0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-				0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-				0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-				0x0, 0x0, 0x0, 0x0, 0x80, 0x0, 0x0, 0x0,
-				0xE, 0x1F, 0xBA, 0xE, 0x0, 0xB4, 0x9, 0xCD,
-				0x21, 0xB8, 0x1, 0x4C, 0xCD, 0x21, 0x54, 0x68,
-				0x69, 0x73, 0x20, 0x70, 0x72, 0x6F, 0x67, 0x72,
-				0x61, 0x6D, 0x20, 0x63, 0x61, 0x6E, 0x6E, 0x6F,
-				0x74, 0x20, 0x62, 0x65, 0x20, 0x72, 0x75, 0x6E,
-				0x20, 0x69, 0x6E, 0x20, 0x44, 0x4F, 0x53, 0x20,
-				0x6D, 0x6F, 0x64, 0x65, 0x2E, 0xD, 0xD, 0xA,
-				0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-				0x50, 0x45, 0x0, 0x0
-			>>)
+					0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00,
+					0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
+					0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+					0x0E, 0x1F, 0xBA, 0x0E, 0x00, 0xB4, 0x09, 0xCD,
+					0x21, 0xB8, 0x01, 0x4C, 0xCD, 0x21, 0x54, 0x68,
+					0x69, 0x73, 0x20, 0x70, 0x72, 0x6F, 0x67, 0x72,
+					0x61, 0x6D, 0x20, 0x63, 0x61, 0x6E, 0x6E, 0x6F,
+					0x74, 0x20, 0x62, 0x65, 0x20, 0x72, 0x75, 0x6E,
+					0x20, 0x69, 0x6E, 0x20, 0x44, 0x4F, 0x53, 0x20,
+					0x6D, 0x6F, 0x64, 0x65, 0x2E, 0x0D, 0x0D, 0x0A,
+					0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x50, 0x45, 0x00, 0x00
+				>>)
 		ensure
 			valid_size: dos_header.count = 132
 		end
@@ -566,9 +570,9 @@ invariant
 	public_key_not_void: (is_valid and has_strong_name) implies public_key /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
+	copyright: "Copyright (c) 1984-2023, Eiffel Software"
+	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
+	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Eiffel Development Environment.
 			
