@@ -59,19 +59,19 @@
 								</div>
 								<div class="col-xs-4">
 									<label class="label label-primary-api-default" has-success has-feedback itemprop="release">Release:</label>
-									<span>{$release/}</span>
+									<span>{htmlentities}{$release/}{/htmlentities}</span>
 								</div>
 							</div>
 							<div class="row">
 								<div class="col-xs-12">
 									<label class="label label-primary-api-default" itemprop="environment">Environment:</label>
-									<span>{$environment/}</span>
+									<span>{htmlentities}{$environment/}{/htmlentities}</span>
 								</div>
 							</div>
 							<div class="row">
 								<div class="col-xs-12">
 									<label class="label label-primary-api-default" has-success has-feedback itemprop="synopsis">Synopsis:</label>
-									<span>{$synopsis/}</span>
+									<span>{htmlentities}{$synopsis/}{/htmlentities}</span>
 								</div>
 							</div>
 							{if isset="$attachments"}
@@ -92,19 +92,19 @@
 								</div>
 							</div>
 							<div class="row">
-								<div class="col-xs-12">
-									<textarea class="form-control input-xlarge" style="border: none ;background-color:white;"  disabled="True" rows="17">{$description/}</textarea>
+								<div class="col-xs-12" id="textarea_17">
+									<pre>{htmlentities}{$description/}{/htmlentities}</pre>
 								</div>
 							</div>
 							{if isset="$to_reproduce"}
 							<div class="row">
 								<div class="col-xs-4">
-									<label class="control-label" itemprop="to_reproduce">To Reproduce:</label>
+									<label class="label label-primary-api-default" itemprop="to_reproduce">To Reproduce:</label>
 								</div>
 							</div>
 							<div class="row">
-								<div class="col-xs-12">
-									<textarea class="form-control input-xlarge" style="border: none ;background-color:white;"  disabled="True" rows="7">{$to_reproduce/}</textarea>
+								<div class="col-xs-12" id="textarea_17">
+								    <pre>{htmlentities}{$to_reproduce/}{/htmlentities}</pre>
 								</div>
 							</div>
 							{/if}

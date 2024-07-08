@@ -9,25 +9,19 @@ class
 	CMS_OPENID_MODULE
 
 inherit
-	CMS_MODULE
+	CMS_AUTH_MODULE_I
 		rename
-			module_api as user_openid_api
+			module_api as openid_api
 		redefine
+			make,
 			filters,
 			setup_hooks,
 			initialize,
 			install,
-			user_openid_api
+			openid_api
 		end
 
-
 	CMS_HOOK_BLOCK
-
-	CMS_HOOK_AUTO_REGISTER
-
-	CMS_HOOK_MENU_SYSTEM_ALTER
-
-	CMS_HOOK_VALUE_TABLE_ALTER
 
 	SHARED_EXECUTION_ENVIRONMENT
 		export
@@ -35,11 +29,6 @@ inherit
 		end
 
 	REFACTORING_HELPER
-
-	SHARED_LOGGER
-
-	CMS_REQUEST_UTIL
-
 
 create
 	make
@@ -49,10 +38,9 @@ feature {NONE} -- Initialization
 	make
 			-- Create current module
 		do
+			Precursor
 			version := "1.0"
 			description := "Openid module"
-			package := "authentication"
-			add_dependency ({CMS_AUTHENTICATION_MODULE})
 
 			create root_dir.make_current
 			cache_duration := 0
@@ -68,7 +56,7 @@ feature {CMS_API} -- Module Initialization
 	initialize (a_api: CMS_API)
 			-- <Precursor>
 		local
-			l_openid_api: like user_openid_api
+			l_openid_api: like openid_api
 			l_openid_storage: CMS_OPENID_STORAGE_I
 		do
 			Precursor (a_api)
@@ -83,9 +71,9 @@ feature {CMS_API} -- Module Initialization
 
 				-- API initialization
 			create l_openid_api.make_with_storage (a_api, l_openid_storage)
-			user_openid_api := l_openid_api
+			openid_api := l_openid_api
 		ensure then
-			user_opend_api_set: user_openid_api /= Void
+			user_opend_api_set: openid_api /= Void
 		end
 
 feature {CMS_API} -- Module management
@@ -94,30 +82,33 @@ feature {CMS_API} -- Module management
 		do
 				-- Schema
 			if attached api.storage.as_sql_storage as l_sql_storage then
-				if not l_sql_storage.sql_table_exists ("openid_consumers") then
 					--| Schema
-					l_sql_storage.sql_execute_file_script (api.module_resource_location (Current, (create {PATH}.make_from_string ("scripts")).extended ("openid_consumers.sql")), Void)
+				l_sql_storage.sql_execute_file_script (api.module_resource_location (Current, (create {PATH}.make_from_string ("scripts")).extended ("openid_consumers.sql")), Void)
 
-					if l_sql_storage.has_error then
-						api.logger.put_error ("Could not initialize database for openid module", generating_type)
-					end
+				if l_sql_storage.has_error then
+					api.logger.put_error ("Could not initialize database for module [" + name + "]", generating_type)
+				else
 						-- TODO workaround.
 					l_sql_storage.sql_execute_file_script (api.module_resource_location (Current, (create {PATH}.make_from_string ("scripts")).extended ("openid_consumers_initialize.sql")), Void)
-				end
 
-					-- TODO workaround, until we have an admin module
-				if l_sql_storage.has_error then
-					api.logger.put_error ("Could not initialize database for different consumers", generating_type)
-				else
-					l_sql_storage.sql_execute_file_script (api.module_resource_location (Current, (create {PATH}.make_from_string ("scripts")).extended ("openid_items.sql")),Void)
+						-- TODO workaround, until we have an admin module
+					if l_sql_storage.has_error then
+						api.logger.put_error ("Could not initialize openid consumer table for module [" + name + "]", generating_type)
+					else
+						l_sql_storage.sql_execute_file_script (api.module_resource_location (Current, (create {PATH}.make_from_string ("scripts")).extended ("openid_items.sql")),Void)
+						if l_sql_storage.has_error then
+							api.logger.put_error ("Could not initialize openid items for module [" + name + "]", generating_type)
+						else
+							Precursor {CMS_AUTH_MODULE_I}(api) -- Mark it installed.
+						end
+					end
 				end
-				Precursor {CMS_MODULE}(api)
 			end
 		end
 
 feature {CMS_API} -- Access: API
 
-	user_openid_api: detachable CMS_OPENID_API
+	openid_api: detachable CMS_OPENID_API
 			-- <Precursor>		
 
 feature -- Filters
@@ -125,9 +116,9 @@ feature -- Filters
 	filters (a_api: CMS_API): detachable LIST [WSF_FILTER]
 			-- Possibly list of Filter's module.
 		do
-			if attached user_openid_api as l_user_openid_api then
+			if attached openid_api as l_openid_api then
 				create {ARRAYED_LIST [WSF_FILTER]} Result.make (1)
-				Result.extend (create {CMS_OPENID_FILTER}.make (a_api, l_user_openid_api))
+				Result.extend (create {CMS_OPENID_FILTER}.make (a_api, l_openid_api))
 			end
 		end
 
@@ -146,155 +137,122 @@ feature -- Access: docs
 			Result := cache_duration = 0
 		end
 
+feature -- Access: auth strategy
+
+	login_title: STRING = "OpenID"
+			-- Module specific login title.
+
+	login_location: STRING = "account/auth/roc-openid-login"
+
+	logout_location: STRING = "account/auth/roc-openid-logout"
+
+	is_authenticating (a_response: CMS_RESPONSE): BOOLEAN
+			-- <Precursor>
+		do
+			if
+				a_response.is_authenticated and then
+				attached openid_api as l_openid_api and then
+				attached {WSF_STRING} a_response.request.cookie (l_openid_api.session_token)
+			then
+				Result := True
+			end
+		end
+
 feature -- Router
 
 	setup_router (a_router: WSF_ROUTER; a_api: CMS_API)
 			-- <Precursor>
 		do
-			if attached user_openid_api as l_user_openid_api then
-				configure_web (a_api, l_user_openid_api, a_router)
+			if attached openid_api as l_openid_api then
+				a_router.handle ("/" + login_location,
+						create {WSF_URI_AGENT_HANDLER}.make (agent handle_login (a_api, ?, ?)),
+						a_router.methods_get_post)
+				a_router.handle ("/" + logout_location,
+						create {WSF_URI_AGENT_HANDLER}.make (agent handle_logout (a_api, l_openid_api, ?, ?)),
+						a_router.methods_get_post)
+				a_router.handle ("/account/auth/login-with-openid/{" + openid_consumer_path_parameter + "}",
+						create {WSF_URI_TEMPLATE_AGENT_HANDLER}.make (agent handle_login_with_openid (a_api, l_openid_api, ?, ?)),
+						a_router.methods_get_post)
+				a_router.handle ("/account/auth/openid-callback",
+						create {WSF_URI_AGENT_HANDLER}.make (agent handle_callback_openid (a_api, l_openid_api, ?, ?)),
+						a_router.methods_get_post)
 			end
 		end
 
-	configure_web (a_api: CMS_API; a_user_openid_api: CMS_OPENID_API; a_router: WSF_ROUTER)
-		do
-			a_router.handle ("/account/roc-openid-login", create {WSF_URI_AGENT_HANDLER}.make (agent handle_openid_login (a_api, ?, ?)), a_router.methods_get_post)
-			a_router.handle ("/account/roc-openid-logout", create {WSF_URI_AGENT_HANDLER}.make (agent handle_logout (a_api, ?, ?)), a_router.methods_get_post)
-			a_router.handle ("/account/login-with-openid/{consumer}", create {WSF_URI_TEMPLATE_AGENT_HANDLER}.make (agent handle_login_with_openid (a_api,a_user_openid_api, ?, ?)), a_router.methods_get_post)
-			a_router.handle ("/account/openid-callback", create {WSF_URI_AGENT_HANDLER}.make (agent handle_callback_openid (a_api, a_user_openid_api, ?, ?)), a_router.methods_get_post)
-		end
+	openid_consumer_path_parameter: STRING = "consumer"
+			-- Consumer path parameter name.
 
 feature -- Hooks configuration
 
 	setup_hooks (a_hooks: CMS_HOOK_CORE_MANAGER)
 			-- Module hooks configuration.
 		do
-			auto_subscribe_to_hooks (a_hooks)
+			Precursor (a_hooks)
 			a_hooks.subscribe_to_block_hook (Current)
-			a_hooks.subscribe_to_value_table_alter_hook (Current)
 		end
 
 feature -- Hooks
 
-	value_table_alter (a_value: CMS_VALUE_TABLE; a_response: CMS_RESPONSE)
-			-- <Precursor>
-		do
-			if
-				attached a_response.user as u and then
-				attached {WSF_STRING} a_response.request.cookie ({CMS_OPENID_CONSTANTS}.openid_session)
-			then
-				a_value.force ("account/roc-openid-logout", "auth_login_strategy")
-			end
-		end
-
-	menu_system_alter (a_menu_system: CMS_MENU_SYSTEM; a_response: CMS_RESPONSE)
-			-- Hook execution on collection of menu contained by `a_menu_system'
-			-- for related response `a_response'.
-		local
-			lnk: CMS_LOCAL_LINK
-			lnk2: detachable CMS_LINK
-		do
-			if
-				attached a_response.user as u and then
-				attached {WSF_STRING} a_response.request.cookie ({CMS_OPENID_CONSTANTS}.openid_session) as l_roc_auth_session_token
-			then
-				across
-					a_menu_system.primary_menu.items as ic
-				until
-					lnk2 /= Void
-				loop
-					if
-						ic.item.location.same_string ("account/roc-logout") or else
-						ic.item.location.same_string ("basic_auth_logoff")
-					then
-						lnk2 := ic.item
-					end
-				end
-				if lnk2 /= Void then
-					a_menu_system.primary_menu.remove (lnk2)
-				end
-				create lnk.make ("Logout", "account/roc-openid-logout" )
-				a_menu_system.primary_menu.extend (lnk)
-			else
-				if a_response.location.starts_with ("account/") then
-					create lnk.make ("Openid", "account/roc-openid-login")
-					a_response.add_to_primary_tabs (lnk)
-				end
-			end
-
-		end
-
 	block_list: ITERABLE [like {CMS_BLOCK}.name]
-		local
-			l_string: STRING
 		do
 			Result := <<"login">>
-			debug ("roc")
-				create l_string.make_empty
-				across
-					Result as ic
-				loop
-					l_string.append (ic.item)
-					l_string.append_character (' ')
-				end
-				write_debug_log (generator + ".block_list:" + l_string )
-			end
 		end
 
 	get_block_view (a_block_id: READABLE_STRING_8; a_response: CMS_RESPONSE)
 		do
 			if
 				a_block_id.is_case_insensitive_equal_general ("login") and then
-				a_response.location.starts_with ("account/roc-openid-login")
+				a_response.location.starts_with (login_location)
 			then
 				get_block_view_login (a_block_id, a_response)
 			end
 		end
 
-	handle_openid_login (api: CMS_API; req: WSF_REQUEST; res: WSF_RESPONSE)
+	handle_login (api: CMS_API; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			r: CMS_RESPONSE
 			o: OPENID_CONSUMER
 			s: STRING
 		do
 			create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
-			if req.is_get_request_method then
-				r.set_value ("Login", "optional_content_type")
-				r.execute
+			if api.user_is_authenticated then
+				r.add_error_message ("You are already signed in!")
+			elseif req.is_get_request_method then
+				r.set_optional_content_type ("Login")
 			elseif req.is_post_request_method then
 				create s.make_empty
 				if attached req.string_item ("openid") as p_openid then
 					s.append ("Check openID: " + p_openid)
-					create o.make (req.absolute_script_url ("/account/login-with-openid"))
+					create o.make (req.absolute_script_url ("/account/auth/login-with-openid"))
 					o.ask_email (True)
 					o.ask_all_info (False)
-					if attached o.auth_url (p_openid) as l_url then
+					if p_openid.is_valid_as_string_8 and then attached o.auth_url (p_openid.to_string_8) as l_url then
 						r.set_redirection (l_url)
 					else
 						s.append (" Failure")
 						r.set_status_code ({HTTP_CONSTANTS}.bad_request)
 						r.values.force (s, "error")
-						r.execute
 					end
 				end
 			end
+			r.execute
 		end
 
-	handle_logout (api: CMS_API; req: WSF_REQUEST; res: WSF_RESPONSE)
+	handle_logout (api: CMS_API; a_openid_api: CMS_OPENID_API; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			r: CMS_RESPONSE
 			l_cookie: WSF_COOKIE
 		do
 			if
-				attached {WSF_STRING} req.cookie ({CMS_OPENID_CONSTANTS}.openid_session) as l_cookie_token and then
-				attached {CMS_USER} current_user (req) as l_user
+				attached {CMS_USER} api.user as l_user and then
+				attached {WSF_STRING} req.cookie (a_openid_api.session_token) as l_cookie_token
 			then
 					-- Logout OAuth
-				create l_cookie.make ({CMS_OPENID_CONSTANTS}.openid_session, l_cookie_token.value)
+				create l_cookie.make (a_openid_api.session_token, l_cookie_token.url_encoded_value)
 				l_cookie.set_path ("/")
 				l_cookie.set_max_age (-1)
 				res.add_cookie (l_cookie)
-				unset_current_user (req)
+				api.unset_current_user (req)
 				create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
 				r.set_status_code ({HTTP_CONSTANTS}.found)
 				r.set_redirection (req.absolute_script_url (""))
@@ -304,42 +262,23 @@ feature -- Hooks
 			end
 		end
 
-feature {NONE} -- Helpers
-
-	template_block (a_block_id: READABLE_STRING_8; a_response: CMS_RESPONSE): detachable CMS_SMARTY_TEMPLATE_BLOCK
-			-- Smarty content block for `a_block_id'
-		local
-			p: detachable PATH
-		do
-			create p.make_from_string ("templates")
-			p := p.extended ("block_").appended (a_block_id).appended_with_extension ("tpl")
-			p := a_response.api.module_theme_resource_location (Current, p)
-			if p /= Void then
-				if attached p.entry as e then
-					create Result.make (a_block_id, Void, p.parent, e)
-				else
-					create Result.make (a_block_id, Void, p.parent, p)
-				end
-			end
-		end
-
 feature {NONE} -- Block views
 
 	get_block_view_login (a_block_id: READABLE_STRING_8; a_response: CMS_RESPONSE)
 		local
 			vals: CMS_VALUE_TABLE
 		do
-			if attached template_block (a_block_id, a_response) as l_tpl_block then
+			if attached smarty_template_block (Current, a_block_id, a_response.api) as l_tpl_block then
 				create vals.make (1)
 					-- add the variable to the block
-				value_table_alter (vals, a_response)
+				a_response.api.hooks.invoke_value_table_alter (vals, a_response)
 				across
 					vals as ic
 				loop
 					l_tpl_block.set_value (ic.item, ic.key)
 				end
 				if
-					attached user_openid_api as l_openid_api and then
+					attached openid_api as l_openid_api and then
 					attached l_openid_api.openid_consumers as l_list
 				then
 					l_tpl_block.set_value (l_list, "openid_consumers")
@@ -356,18 +295,20 @@ feature {NONE} -- Block views
 
 feature -- Openid Login
 
-	handle_login_with_openid (api: CMS_API; a_oauth_api: CMS_OPENID_API; req: WSF_REQUEST; res: WSF_RESPONSE)
+	handle_login_with_openid (api: CMS_API; a_openid_api: CMS_OPENID_API; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			r: CMS_RESPONSE
 			b: STRING
 			o: OPENID_CONSUMER
 		do
-			if attached {WSF_STRING} req.path_parameter ({CMS_OPENID_CONSTANTS}.consumer) as p_openid and then
-				attached {CMS_OPENID_CONSUMER} a_oauth_api.openid_consumer_by_name (p_openid.value) as l_oc then
+			if
+				attached {WSF_STRING} req.path_parameter (openid_consumer_path_parameter) as p_openid and then
+				attached {CMS_OPENID_CONSUMER} a_openid_api.openid_consumer_by_name (p_openid.value) as l_oc
+			then
 				create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
 				create b.make_empty
 				b.append ("Check openID: " + p_openid.value)
-				create o.make (req.absolute_script_url ("/account/openid-callback"))
+				create o.make (req.absolute_script_url ("/account/auth/openid-callback"))
 				o.ask_email (True)
 				o.ask_all_info (False)
 				if attached o.auth_url (l_oc.endpoint) as l_url then
@@ -383,17 +324,18 @@ feature -- Openid Login
 			end
 		end
 
-	handle_callback_openid (api: CMS_API; a_user_openid_api: CMS_OPENID_API; req: WSF_REQUEST; res: WSF_RESPONSE)
+	handle_callback_openid (api: CMS_API; a_openid_api: CMS_OPENID_API; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			r: CMS_RESPONSE
 			l_user_api: CMS_USER_API
 			l_user: CMS_USER
 			l_roles: LIST [CMS_USER_ROLE]
 			l_cookie: WSF_COOKIE
-			es: CMS_AUTHENTICATON_EMAIL_SERVICE
+			es: CMS_AUTHENTICATION_EMAIL_SERVICE
 			b: STRING
 			o: OPENID_CONSUMER
 			v: OPENID_CONSUMER_VALIDATION
+			l_email: STRING_8
 		do
 			create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
 			create b.make_empty
@@ -405,28 +347,30 @@ feature -- Openid Login
 				v.validate
 				if v.is_valid then
 					if attached v.identity as l_identity and then
-					    attached v.email_attribute as l_email
+					    attached v.email_attribute as l_email_attrib
 					then
+						l_email := api.utf_8_encoded (l_email_attrib)
 						l_user_api := api.user_api
 						if attached l_user_api.user_by_email (l_email) as p_user then
 								-- User with email exist
-							if	attached a_user_openid_api.user_openid_by_userid_identity (p_user.id, l_identity)	then
+							if attached a_openid_api.user_openid_by_userid_identity (p_user.id, l_identity)	then
 									-- Update openid entry?
 							else
 									-- create a oauth entry
-								a_user_openid_api.new_user_openid (l_identity,p_user)
+								a_openid_api.new_user_openid (l_identity, p_user)
 							end
-							create l_cookie.make ({CMS_OPENID_CONSTANTS}.openid_session, l_identity)
-							l_cookie.set_max_age (3600)
+							create l_cookie.make (a_openid_api.session_token, l_identity)
+							l_cookie.set_max_age (a_openid_api.session_max_age)
 							l_cookie.set_path ("/")
 							res.add_cookie (l_cookie)
+							api.record_user_login (p_user)
 						else
 
 							create {ARRAYED_LIST [CMS_USER_ROLE]} l_roles.make (1)
 							l_roles.force (l_user_api.authenticated_user_role)
 
 								-- Create a new user and oauth entry
-							create l_user.make (l_email)
+							create l_user.make (l_email_attrib)
 							l_user.set_email (l_email)
 							l_user.set_password (new_token) -- generate a random password.
 							l_user.set_roles (l_roles)
@@ -434,16 +378,16 @@ feature -- Openid Login
 							l_user_api.new_user (l_user)
 
 								-- Add oauth entry
-							a_user_openid_api.new_user_openid (l_identity, l_user )
-							create l_cookie.make ({CMS_OPENID_CONSTANTS}.openid_session, l_identity)
-							l_cookie.set_max_age (3600)
+							a_openid_api.new_user_openid (l_identity, l_user )
+							create l_cookie.make (a_openid_api.session_token, l_identity)
+							l_cookie.set_max_age (a_openid_api.session_max_age)
 							l_cookie.set_path ("/")
 							res.add_cookie (l_cookie)
 
 									-- Send Email
 							create es.make (create {CMS_AUTHENTICATION_EMAIL_SERVICE_PARAMETERS}.make (api))
 							write_debug_log (generator + ".handle_callback_openid: send_contact_welcome_email")
-							es.send_contact_welcome_email (l_email, "")
+							es.send_contact_welcome_email (l_email, l_user, req.absolute_script_url (""))
 						end
 					end
 					r.set_redirection (r.front_page_url)
@@ -474,37 +418,6 @@ feature {NONE} -- Token Generation
 			end
 			Result := l_token
 		end
-
-feature {NONE} -- Implementation: date and time
-
-	http_date_format_to_date (s: READABLE_STRING_8): detachable DATE_TIME
-		local
-			d: HTTP_DATE
-		do
-			create d.make_from_string (s)
-			if not d.has_error then
-				Result := d.date_time
-			end
-		end
-
-	file_date (p: PATH): DATE_TIME
-		require
-			path_exists: (create {FILE_UTILITIES}).file_path_exists (p)
-		local
-			f: RAW_FILE
-		do
-			create f.make_with_path (p)
-			Result := timestamp_to_date (f.date)
-		end
-
-	timestamp_to_date (n: INTEGER): DATE_TIME
-		local
-			d: HTTP_DATE
-		do
-			create d.make_from_timestamp (n)
-			Result := d.date_time
-		end
-
 
 note
 	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"

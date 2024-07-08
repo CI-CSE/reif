@@ -37,7 +37,7 @@ feature -- Status report
 	text: STRING
 			-- SQL statement attached to stored procedure
 		obsolete
-			"Use `text_32' instead."
+			"Use `text_32' instead [2017-11-30]."
 		do
 			Result := text_32.as_string_8
 		end
@@ -97,7 +97,7 @@ feature -- Status report
 	arguments_name: detachable ARRAY [STRING]
 			-- Argument names of stored procedure
 		obsolete
-			"Use `arguments_name_32' instead."
+			"Use `arguments_name_32' instead  [2017-11-30]."
 		local
 			i, l_upper: INTEGER_32
 		do
@@ -118,7 +118,7 @@ feature -- Status report
 	arguments_name_32: detachable ARRAY [STRING_32]
 			-- Argument names of stored procedure
 
-	arguments_type: detachable ARRAY [ANY]
+	arguments_type: detachable ARRAY [detachable ANY]
 			-- Argument types of stored procedure
 
 feature -- Basic operations
@@ -240,7 +240,7 @@ feature -- Element change
 			-- names and a variable list of argument
 			-- types, respectively.
 		obsolete
-			"Use `set_arguments_32' instead."
+			"Use `set_arguments_32' instead  [2017-11-30]."
 		require
 			args_name_not_void: args_name /= Void
 			args_type_not_void: args_type /= Void
@@ -418,6 +418,8 @@ feature {NONE} -- Implementation
 						s.append_string_general (", ")
 						s.append_string_general (default_decimal_scale.out)
 						s.append_string_general (")")
+					elseif l_obj = Void then
+							-- Argument type should not be Void.
 					else
 						if l_all_types.is_registered (l_obj) then
 							s.append_string_general (l_all_types.db_type (l_obj).sql_name)
@@ -529,7 +531,7 @@ feature {NONE} -- Status report
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

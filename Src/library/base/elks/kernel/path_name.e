@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Path name abstraction"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -135,7 +135,7 @@ feature -- Status setting
 	extend_from_array (directories: ARRAY [STRING])
 			-- Append the subdirectories from `directories' to the path name.
 		require
-			array_exists: directories /= Void and then not (directories.is_empty)
+			array_exists: directories /= Void and then not directories.is_empty
 		local
 			i, nb: INTEGER
 		do
@@ -197,7 +197,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

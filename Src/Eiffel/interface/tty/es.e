@@ -1,12 +1,15 @@
 ﻿note
-
-	description: "Batch compiler without invoking the -loop. This is the root%
-		%class for the personal version (which does allow c compilation)."
-
+	description: "[
+			Batch compiler without invoking the -loop.
+			This is the root class for the personal version (which does allow c compilation).
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
 	revision: "$Revision$"
+	ca_ignore:
+		"CA032", "CA032 — very long feature",
+		"CA033", "CA033 — very long class"
 
 class
 	ES
@@ -48,8 +51,6 @@ inherit
 
 	SYSTEM_CONSTANTS
 
-	EIFFEL_LAYOUT
-
 	SHARED_BATCH_NAMES
 
 	SHARED_COMPILER_PROFILE
@@ -61,7 +62,7 @@ inherit
 create
 	make
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
 	make
 			-- Initialization
@@ -69,10 +70,20 @@ feature -- Initialization
 			l_layout: ES_EIFFEL_LAYOUT
 			l_eifgen_init: INIT_SERVERS
 			l_preference_access: PREFERENCES
-			new_resources: TTY_RESOURCES
-			l_ec_preferences: EC_PREFERENCES
-			l_compiler_setting: SETTABLE_COMPILER_OBJECTS
 		do
+				-- Code analysis command state is kept in a separate object
+				-- that accumulates the corresponding requests.
+			create code_analysis_command.make
+				-- A parser to process configutation options specified in the command line.
+			create configuration_option_parser.make
+				(agent: ITERABLE [READABLE_STRING_32]
+					do
+							-- agent eiffel_layout.default_il_environment.installed_runtimes
+							-- would work, but it would cause computation of CLR run-times
+							-- immediately though it might never required.
+							-- Therefore we are using the inline agent instead.
+						Result := eiffel_layout.default_il_environment.installed_runtimes
+					end)
 				-- Check that environment variables
 				-- are properly set.
 			if not is_eiffel_layout_defined then
@@ -93,15 +104,13 @@ feature -- Initialization
 			create l_eifgen_init.make
 
 				-- Initialization of compiler resources
-			create new_resources.initialize
+			;(create {TTY_RESOURCES}.initialize).do_nothing
 
 				-- Initialization of compiler resources.
 
 			create l_preference_access.make_with_defaults_and_location_and_version (
 				<<eiffel_layout.general_preferences.name, eiffel_layout.platform_preferences.name>>, eiffel_layout.eiffel_preferences, version_2_0)
-			create l_ec_preferences.make (l_preference_access)
-			create l_compiler_setting
-			l_compiler_setting.set_preferences (l_ec_preferences)
+			;(create {SETTABLE_COMPILER_OBJECTS}).set_preferences (create {EC_PREFERENCES}.make (l_preference_access))
 
 				-- Remaining initialization			
 			initialize
@@ -117,6 +126,8 @@ feature -- Initialization
 		do
 				-- Initialize compiler encoding converter.
 			(create {SHARED_ENCODING_CONVERTER}).set_encoding_converter (create {EC_ENCODING_CONVERTER}.make)
+				-- Install code analyzer processor for obsolete calls.
+			;(create {CA_CODE_ANALYZER}.make).install_obsolete_call_processor
 		end
 
 	execute
@@ -125,9 +136,7 @@ feature -- Initialization
 		local
 			temp: STRING
 			new_resources: TTY_RESOURCES
-			file_degree_output: FILE_DEGREE_OUTPUT
 			compilation: EWB_COMP
-			e_displayer: DEFAULT_ERROR_DISPLAYER
 			l_loader: EC_PROJECT_LOADER
 			l_generated_name: PATH
 			u: FILE_UTILITIES
@@ -139,14 +148,17 @@ feature -- Initialization
 				if not new_resources.error_occurred then
 						-- Reset errors
 					option_error_message := Void
+					option_warning_messages := Void
 					analyze_options
 					if has_error then
 						print_option_error
+						print_option_warnings
 					elseif help_only then
 						print_help
 					elseif version_only then
 						print_version
 					elseif not file_error then
+						print_option_warnings
 						if output_window = Void then
 							command.set_output_window (Error_window)
 						else
@@ -154,11 +166,9 @@ feature -- Initialization
 						end
 
 							--| Initialization of the display
-						create e_displayer.make (Error_window);
-						Eiffel_project.set_error_displayer (e_displayer)
+						Eiffel_project.set_error_displayer (create {DEFAULT_ERROR_DISPLAYER}.make (Error_window))
 						if output_file_option then
-							create file_degree_output.make (output_file_name)
-							Eiffel_project.set_degree_output (file_degree_output)
+							Eiffel_project.set_degree_output (create {FILE_DEGREE_OUTPUT}.make (output_file_name))
 						end
 						degree_output.is_verbose := verbose_option
 
@@ -172,15 +182,15 @@ feature -- Initialization
 							l_loader.set_ignore_user_configuration_file (not is_user_settings_requested)
 							l_loader.set_has_library_conversion (not has_no_library_conversion)
 							if is_single_file_compilation then
-								l_loader.open_single_file_compilation_project (single_file_compilation_filename, single_file_compilation_libraries, project_path, is_clean_requested)
+								l_loader.open_single_file_compilation_project (single_file_compilation_filename, single_file_compilation_libraries, project_path, is_clean_requested, configuration_settings)
 							elseif attached old_project_file as l_old_project_file then
-								l_loader.open_project_file (l_old_project_file, Void, project_path, is_clean_requested)
+								l_loader.open_project_file (l_old_project_file, Void, project_path, is_clean_requested, configuration_settings)
 							elseif attached old_ace_file as l_old_ace_file then
-								l_loader.open_project_file (l_old_ace_file, Void, project_path, is_clean_requested)
+								l_loader.open_project_file (l_old_ace_file, Void, project_path, is_clean_requested, configuration_settings)
 							elseif config_file_name /= Void then
-								l_loader.open_project_file (config_file_name.absolute_path.canonical_path, target_name, project_path, is_clean_requested)
+								l_loader.open_project_file (config_file_name.absolute_path.canonical_path, target_name, project_path, is_clean_requested, configuration_settings)
 							else
-								l_loader.open_project_file (Void, target_name, project_path, is_clean_requested)
+								l_loader.open_project_file (Void, target_name, project_path, is_clean_requested, configuration_settings)
 							end
 
 							if not error_occurred and not l_loader.has_error then
@@ -199,7 +209,7 @@ feature -- Initialization
 									compilation.set_is_finish_freezing_called (is_finish_freezing_called)
 									compilation.execute
 
-									if command /= compilation and then system.successful then
+									if command /= compilation and then workbench.system_defined and then system.successful then
 											-- Case where we forced a quick melt. In the event we also have the `-tests'
 											-- flag and no executable is present, we force a C compilation.
 										if is_finish_freezing_for_test_needed then
@@ -312,6 +322,9 @@ feature -- Properties
 	option_error_message: detachable STRING_32
 			-- Error message when an error occurred.
 
+	option_warning_messages: detachable ARRAYED_LIST [READABLE_STRING_32]
+			-- Warning messages about using options (if any).
+
 	current_option: INTEGER
 			-- Current index in the option list
 
@@ -371,14 +384,14 @@ feature -- Properties
 	is_experimental_flag_set, is_compatible_flag_set: BOOLEAN
 			-- Did use specify one of `-experiment' or `-compat' argument?
 
-	help_messages: HASH_TABLE [STRING_GENERAL, STRING]
+	help_messages: HASH_TABLE [READABLE_STRING_GENERAL, STRING]
 			-- Help message table
 		once
 			create Result.make (35)
-			Result.put (ace_help, ace_cmd_name)
 			Result.put (ancestors_help, ancestors_cmd_name)
 			Result.put (aversions_help, aversions_cmd_name)
 			Result.put (config_help, config_cmd_name)
+			Result.put (config_option_help, config_option_cmd_name)
 			Result.put (callers_help, callers_cmd_name)
 			Result.put (callees_help, callees_cmd_name)
 			Result.put (clients_help, clients_cmd_name)
@@ -414,6 +427,10 @@ feature -- Properties
 			Result.put (compat_help, compat_cmd_name)
 			Result.put (experiment_help, experiment_cmd_name)
 			Result.put (full_help, full_class_checking_cmd_name)
+			Result.put (ca_class_help, ca_class_cmd_name)
+			Result.put (ca_default_help, ca_default_cmd_name)
+			Result.put (ca_rule_help, ca_rule_cmd_name)
+			Result.put (ca_setting_help, ca_setting_cmd_name)
 			add_help_special_cmds
 		end
 
@@ -443,10 +460,10 @@ feature -- Setting
 			end
 		end
 
-feature -- Output
+feature {NONE} -- Output
 
 	print_option_error
-			-- Print the correct usage of ewb.
+			-- Print the incorrect usage of ewb.
 		do
 			print_version
 			localized_print ("%N")
@@ -455,6 +472,32 @@ feature -- Output
 			localized_print ("%N")
 			localized_print (option_error_message)
 			localized_print ("%N")
+		end
+
+	add_option_warning (m: READABLE_STRING_32)
+			-- Add message `m' to the list of option warning messages.
+		local
+			ms: like option_warning_messages
+		do
+			ms := option_warning_messages
+			if not attached ms then
+				create ms.make (1)
+				option_warning_messages := ms
+			end
+			ms.extend (m)
+		ensure
+			added: attached option_warning_messages as w and then w.last = m
+		end
+
+	print_option_warnings
+			-- Print the incorrect usage of ewb.
+		do
+			if attached option_warning_messages as m then
+				across m as mc loop
+					localized_print (mc.item)
+					localized_print ("%N")
+				end
+			end
 		end
 
 	print_usage
@@ -484,12 +527,11 @@ feature -- Output
 				%%T-callers [-filter filtername] [-show_all] [-assigners | -creators] class feature |%N%
 				%%T-callees [-filter filtername] [-show_all] [-assignees | -creators] class feature |%N")
 			io.put_string ("%
-				%%T[[-config config.ecf] [-target target] |%N%
-				%%T%T-ace Ace (obsolete) | -project Project_file_name (obsolete)] |%N%
+				%%T[[-config config.ecf] [-target target] [-config_option option]|%N%
 				%%T[class_file.e [-library library_name]] |%N%
 				%%T-stop | -no_library |%N%
 				%%T-project_path Project_directory_path | -file File |%N%
-				%%T-code-analysis [-cadefaults | -caloadprefs pref_file | -caclasses class ...] | %N%
+				%%T-ca_class (-all | class) | -ca_default | -ca_rule rule | -ca_setting file |%N%
 				%%T-gc_stats]%N")
 		end
 
@@ -503,37 +545,27 @@ feature -- Output
 			-- Print the help.
 		local
 			command_list: SORTED_TWO_WAY_LIST [STRING]
-			keys: ARRAY [STRING]
-			i, nb: INTEGER
 			cmd_name: STRING
 		do
 			print_usage
-			localized_print (ewb_names.options);
+			localized_print (ewb_names.options)
 			localized_print (ewb_names.default_quick_melt_the_system)
 
 			create command_list.make
-			keys := help_messages.current_keys
-			from
-				i := keys.lower
-				nb := keys.upper
-			until
-				i > nb
+			across
+				help_messages.current_keys as k
 			loop
-				command_list.extend (keys @ i)
-				i := i + 1
+				command_list.extend (k.item)
 			end
-			from
-				command_list.start
-			until
-				command_list.after
+			across
+				command_list as c
 			loop
-				cmd_name := command_list.item
+				cmd_name := c.item
 				print_one_help (cmd_name, help_messages.item (cmd_name))
-				command_list.forth
 			end
 		end
 
-	print_one_help (opt: STRING; txt: STRING_GENERAL)
+	print_one_help (opt: STRING; txt: READABLE_STRING_GENERAL)
 		do
 			io.put_string ("%T-")
 			io.put_string (opt)
@@ -614,7 +646,7 @@ feature -- Output
 			end
 		end
 
-feature -- Update
+feature {NONE} -- Update
 
 	add_help_special_cmds
 		do
@@ -650,6 +682,15 @@ feature -- Update
 			end
 		end
 
+	code_analysis_command: EWB_CODE_ANALYSIS
+			-- Code analysis command.
+
+	configuration_settings: detachable CONF_TARGET_SETTINGS
+			-- Configuration settings (if any) specified in the command-line.
+
+	configuration_option_parser: CONF_STRING_PARSER
+			-- A parser of configuration options.
+
 	analyze_one_option
 			-- Analyze current option.
 		local
@@ -663,6 +704,7 @@ feature -- Update
 			l_arg: STRING_32
 			l_at_args: LINKED_LIST [STRING_8]
 			in_filename, out_filename: STRING_32
+			l_configuration_settings: like configuration_settings
 		do
 			filter_name := ""
 			option := argument (current_option);
@@ -703,8 +745,9 @@ feature -- Update
 				end
 
 			elseif
-				(option.same_string_general ("-dversions") or option.same_string_general ("-aversions") or
-				option.same_string_general ("-implementers"))
+				option.same_string_general ("-dversions") or
+				option.same_string_general ("-aversions") or
+				option.same_string_general ("-implementers")
 			then
 				if command /= Void then
 					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
@@ -886,26 +929,13 @@ feature -- Update
 				else
 					option_error_message := locale.translation ("Missing class and feature name for option -callees")
 				end
---			elseif option.same_string_general ("-dependents") then
---				if current_option < (argument_count - 1) then
---					if command /= Void then
---						option_error := True
---					else
---						current_option := current_option + 1
---						cn := argument (current_option)
---						current_option := current_option + 1
---						fn := argument (current_option)
---						!EWB_DEPEND!command.make (cn, fn, filter_name)
---					end
---				else
---					option_error := True
---				end
 			elseif option.same_string_general ("-c_compile") then
 				is_finish_freezing_called := True
 
 			elseif
-				(option.same_string_general ("-flat") or option.same_string_general ("-short") or
-				option.same_string_general ("-flatshort"))
+				option.same_string_general ("-flat") or
+				option.same_string_general ("-short") or
+				option.same_string_general ("-flatshort")
 			then
 				if command /= Void then
 					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
@@ -1010,8 +1040,10 @@ feature -- Update
 					option_error_message := locale.translation ("Missing filter name for option -filter.")
 				end
 			elseif
-				(option.same_string_general ("-ancestors") or option.same_string_general ("-clients") or
-				option.same_string_general ("-suppliers") or option.same_string_general ("-descendants"))
+				option.same_string_general ("-ancestors") or
+				option.same_string_general ("-clients") or
+				option.same_string_general ("-suppliers") or
+				option.same_string_general ("-descendants")
 			then
 				if command /= Void then
 					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
@@ -1051,6 +1083,7 @@ feature -- Update
 				end
 
 			elseif option.same_string_general ("-project") then
+				add_option_warning (messages.w_obsolete_command_line_option (option))
 				if is_single_file_compilation then
 						-- In single file compilation mode no ace file may be specified
 					option_error_message := locale.translation ("Cannot mix -project, -config or -target when compiling a system using an Eiffel class as argument")
@@ -1082,6 +1115,7 @@ feature -- Update
 					option_error_message := locale.translation ("Missing project path for option -project_path.")
 				end
 			elseif option.same_string_general ("-ace") then
+				add_option_warning (messages.w_obsolete_command_line_option (option))
 				if is_single_file_compilation then
 						-- In single file compilation mode no ace file may be specified
 					option_error_message := locale.translation ("Cannot mix -config or -target when compiling a system using an Eiffel class as argument")
@@ -1100,6 +1134,25 @@ feature -- Update
 					create config_file_name.make_from_string (argument (current_option))
 				else
 					option_error_message := locale.translation ("Missing config name for option -config.")
+				end
+			elseif option.same_string_general ("-config_option") then
+				if current_option < argument_count then
+					current_option := current_option + 1
+					l_configuration_settings := configuration_settings
+					if not attached l_configuration_settings then
+						create l_configuration_settings.make
+						configuration_settings := l_configuration_settings
+					end
+					configuration_option_parser.parse_target_settings (argument (current_option), l_configuration_settings)
+					if attached configuration_option_parser.error as e then
+							-- Add option name to the error message.
+						option_error_message := locale.formatted_string (locale.translation_in_context
+							("Error in command-line option %"-config_option%": $1", once "compiler"), e)
+							-- Reset configuration settings.
+						configuration_settings := Void
+					end
+				else
+					option_error_message := locale.translation ("Missing configuration option for option -config_option.")
 				end
 			elseif option.same_string_general ("-target") then
 				if is_single_file_compilation then
@@ -1269,6 +1322,27 @@ feature -- Update
 					option_error_message := locale.translation ("Platform option requires a platform name.")
 				end
 
+			elseif option.same_string_general (compiler_profile.capabilty_option) then
+					-- This options specifies how capabilities are processed.
+				if current_option < argument_count then
+					current_option := current_option + 1
+					if compiler_profile.is_capability_valid (argument (current_option)) then
+						compiler_profile.set_capability (argument (current_option))
+					else
+						option_error_message :=
+							locale.formatted_string (
+								locale.translation ("Capability option value should be one of %"$1%", %"$2%", %"$3%"."),
+								compiler_profile.capability_value_warning,
+								compiler_profile.capability_value_error,
+								compiler_profile.capability_value_strict
+							)
+
+					end
+				else
+					option_error_message := locale.translation ("Capability option requires a value.")
+				end
+
+
 			elseif option.same_string_general ("-auto_test") then
 					-- FIXME: This only works if `-auto_test' is the last argument, as otherwise it will
 					-- override the compilation option that was previously set.
@@ -1314,18 +1388,67 @@ feature -- Update
 				l_at_args := arguments_in_range (current_option + 1, argument_count)
 				current_option := argument_count + 1
 				create {EWB_AUTOTEACH} command.make_with_arguments (l_at_args)
-			elseif option.is_equal ("-code-analysis") then
-			elseif option.same_string_general ("-code-analysis") then
-					-- FIXME: This only works if `-code-analysis' is the last argument.
-				create {EWB_CODE_ANALYSIS} command.make_with_arguments
-					(arguments_in_range (current_option + 1, argument_count))
-				current_option := argument_count + 1
 			elseif option.is_equal ("-js_compile") then
 				create {EWB_JAVASCRIPT_COMPILATION} command
 			elseif option.is_equal ("-dead_plan") then
 				workbench.set_planned_class_and_feature_name (argument (current_option + 1).twin.as_string_8,
 				                                              argument (current_option + 2).twin.as_string_8)
-				current_option := argument_count + 2
+				current_option := argument_count + 2			
+			elseif option.same_string_general ("-code-analysis") then
+					-- FIXME: This only works if `-code-analysis' is the last argument.
+				add_option_warning (messages.w_obsolete_command_line_option (option))
+				if attached command then
+					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
+				else
+					code_analysis_command.parse_arguments (arguments_in_range (current_option + 1, argument_count))
+					current_option := argument_count + 1
+					if attached code_analysis_command.argument_error as e then
+						option_error_message := e
+					else
+						command := code_analysis_command
+					end
+				end
+			
+			elseif option.same_string_general ("-ca_default") then
+				code_analysis_command.set_defaults
+
+			elseif option.same_string_general ("-ca_setting") then
+				if current_option < argument_count then
+					current_option := current_option + 1
+					code_analysis_command.set_preference_file (argument (current_option))
+				else
+					option_error_message := code_analysis_command.ca_messages.missing_file_name ("-ca_setting")
+				end
+
+			elseif option.same_string_general ("-ca_class") then
+					-- Check if a command is already set to something different from `code_analysis_command'.
+				if attached command and then command /= code_analysis_command then
+					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
+				elseif current_option < argument_count then
+						-- Read a class name or "-all" for all classes.
+					current_option := current_option + 1
+					l_arg := argument (current_option)
+					if l_arg.same_string_general ("-all") then
+						code_analysis_command.set_all_classes
+					else
+						code_analysis_command.add_class (l_arg)
+					end
+					command := code_analysis_command
+				else
+					option_error_message := code_analysis_command.ca_messages.missing_class ("-ca_class")
+				end
+
+			elseif option.same_string_general ("-ca_rule") then
+				if current_option < argument_count then
+					current_option := current_option + 1
+					code_analysis_command.add_rule (argument (current_option))
+					if attached code_analysis_command.argument_error as e then
+							-- Add option name to the error message.
+						option_error_message := code_analysis_command.ca_messages.rule_argument_error ("-ca_rule", e)
+					end
+				else
+					option_error_message := code_analysis_command.ca_messages.missing_rule ("-ca_rule")
+				end
 
 			elseif option.same_string_general ("-tests") then
 					-- FIXME: This only works if `-tests' is the last argument, as otherwise it will
@@ -1369,11 +1492,12 @@ feature -- Update
 				if command /= Void then
 					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
 				else
-					if current_option < argument_count then
-						if argument (current_option + 1).same_string_general ("-keep") then
-							current_option := current_option + 1
-							keep := True
-						end
+					if
+						current_option < argument_count and then
+						argument (current_option + 1).same_string_general ("-keep")
+					then
+						current_option := current_option + 1
+						keep := True
 					end
 					if is_precompiling then
 						create {EWB_FINALIZE_PRECOMP} command.make (keep)
@@ -1426,7 +1550,6 @@ feature {NONE} -- Implementation
 		local
 			l_real_64: REAL_64
 			l_unit: STRING
-			l_formatter: FORMAT_DOUBLE
 		do
 			if a_value > (1024 ^ 3) then
 					-- Display in GB
@@ -1445,8 +1568,7 @@ feature {NONE} -- Implementation
 				l_unit := "   "
 			end
 
-			create l_formatter.make (6, 2)
-			io.put_string (l_formatter.formatted (l_real_64))
+			io.put_string ((create {FORMAT_DOUBLE}.make (6, 2)).formatted (l_real_64))
 			io.put_string (l_unit)
 		end
 
@@ -1501,7 +1623,7 @@ feature{NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

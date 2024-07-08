@@ -1,6 +1,7 @@
-note
+﻿note
 	description: "Represents a fix for a rule violation."
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -8,11 +9,11 @@ class
 	CA_FIX
 
 inherit
+	FIX_CLASS
+
 	AST_ROUNDTRIP_ITERATOR
 
 	CA_SHARED_NAMES
-
-	SHARED_SERVER
 
 	INTERNAL_COMPILER_STRING_EXPORTER
 
@@ -29,25 +30,32 @@ feature {NONE} -- Implementation
 			class_to_change := a_class
 		end
 
-	matchlist: detachable LEAF_AS_LIST
-			-- The matchlist of the class the fix will change.
+feature -- Access
+
+	source_class: CLASS_I
+			-- <Precursor>
 		do
-			Result := Match_list_server.item (class_to_change.class_id)
+			Result := class_to_change.lace_class
 		end
 
 feature -- Basic Operations
 
-	execute (a_class: attached CLASS_AS)
+	apply (s: CLASS_AS; l: LEAF_AS_LIST)
+			-- Attempt to apply the fix to the source AST `s' with tokens `l'.
 		do
-			process_ast_node (a_class)
+			setup (s, l, False, True)
+			execute
 		end
 
-feature -- Setting properties
+feature {NONE} -- Basic Operations
 
-	set_applied (a_applied: BOOLEAN)
-			-- Marks this fix as applied.
+	execute
+			-- Apply the fix.
+		require
+			is_valid: is_valid
 		do
-			applied := a_applied
+			process_ast_node (parsed_class)
+			process_all_break_as
 		end
 
 feature -- Properties
@@ -58,7 +66,22 @@ feature -- Properties
 	class_to_change: CLASS_C
 			-- Class this fix will change.
 
-	applied: BOOLEAN
-			-- Has the fix already been applied?
+feature -- Output
+
+	append_name (t: TEXT_FORMATTER)
+			-- <Precursor>
+		do
+				-- TODO: Implement  in descendants with clickable and remove this feature from this class.
+			t.add (ca_messages.fix)
+			t.add (caption)
+		end
+
+	append_description (t: TEXT_FORMATTER)
+			-- <Precursor>
+		do
+				-- TODO: Implement  in descendants with clickable and remove this feature from this class.
+			t.add (ca_messages.fix)
+			t.add (caption)
+		end
 
 end

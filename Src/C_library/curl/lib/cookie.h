@@ -1,5 +1,5 @@
-#ifndef __COOKIE_H
-#define __COOKIE_H
+#ifndef HEADER_CURL_COOKIE_H
+#define HEADER_CURL_COOKIE_H
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -7,11 +7,11 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2006, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * are also available at https://curl.haxx.se/docs/copyright.html.
  *
  * You may opt to use, copy, modify, merge, publish, distribute and/or sell
  * copies of the Software, and permit persons to whom the Software is
@@ -20,17 +20,8 @@
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
- * $Id$
  ***************************************************************************/
-
-#include <stdio.h>
-#if defined(WIN32)
-#include <time.h>
-#else
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-#endif
+#include "curl_setup.h"
 
 #include <curl/curl.h>
 
@@ -38,7 +29,8 @@ struct Cookie {
   struct Cookie *next; /* next in the chain */
   char *name;        /* <this> = value */
   char *value;       /* name = <this> */
-  char *path;         /* path = <this> */
+  char *path;         /* path = <this> which is in Set-Cookie: */
+  char *spath;        /* sanitized cookie path */
   char *domain;      /* domain = <this> */
   curl_off_t expires;  /* expires = <this> */
   char *expirestr;   /* the plain text version */
@@ -50,6 +42,7 @@ struct Cookie {
 
   bool secure;       /* whether the 'secure' keyword was used */
   bool livecookie;   /* updated from a server, not a stored file */
+  bool httponly;     /* true if the httponly directive is present */
 };
 
 struct CookieInfo {
@@ -69,40 +62,46 @@ struct CookieInfo {
    that comprise the cookie non-terminal in the syntax description of the
    Set-Cookie header)"
 
+   We allow max 5000 bytes cookie header. Max 4095 bytes length per cookie
+   name and value. Name + value may not exceed 4096 bytes.
+
 */
 #define MAX_COOKIE_LINE 5000
 #define MAX_COOKIE_LINE_TXT "4999"
 
-/* This is the maximum length of a cookie name we deal with: */
-#define MAX_NAME 1024
-#define MAX_NAME_TXT "1023"
+/* This is the maximum length of a cookie name or content we deal with: */
+#define MAX_NAME 4096
+#define MAX_NAME_TXT "4095"
 
-struct SessionHandle;
+struct Curl_easy;
 /*
  * Add a cookie to the internal list of cookies. The domain and path arguments
  * are only used if the header boolean is TRUE.
  */
 
-struct Cookie *Curl_cookie_add(struct SessionHandle *data,
+struct Cookie *Curl_cookie_add(struct Curl_easy *data,
                                struct CookieInfo *, bool header, char *lineptr,
                                const char *domain, const char *path);
 
-struct CookieInfo *Curl_cookie_init(struct SessionHandle *data,
-                                    const char *, struct CookieInfo *, bool);
 struct Cookie *Curl_cookie_getlist(struct CookieInfo *, const char *,
-		                   const char *, bool);
-void Curl_cookie_freelist(struct Cookie *);
+                                   const char *, bool);
+void Curl_cookie_freelist(struct Cookie *cookies);
 void Curl_cookie_clearall(struct CookieInfo *cookies);
 void Curl_cookie_clearsess(struct CookieInfo *cookies);
-void Curl_cookie_cleanup(struct CookieInfo *);
-int Curl_cookie_output(struct CookieInfo *, const char *);
 
 #if defined(CURL_DISABLE_HTTP) || defined(CURL_DISABLE_COOKIES)
 #define Curl_cookie_list(x) NULL
-#define Curl_cookie_loadfiles(x) do { } while (0)
+#define Curl_cookie_loadfiles(x) Curl_nop_stmt
+#define Curl_cookie_init(x,y,z,w) NULL
+#define Curl_cookie_cleanup(x) Curl_nop_stmt
+#define Curl_flush_cookies(x,y) Curl_nop_stmt
 #else
-struct curl_slist *Curl_cookie_list(struct SessionHandle *data);
-void Curl_cookie_loadfiles(struct SessionHandle *data);
+void Curl_flush_cookies(struct Curl_easy *data, int cleanup);
+void Curl_cookie_cleanup(struct CookieInfo *);
+struct CookieInfo *Curl_cookie_init(struct Curl_easy *data,
+                                    const char *, struct CookieInfo *, bool);
+struct curl_slist *Curl_cookie_list(struct Curl_easy *data);
+void Curl_cookie_loadfiles(struct Curl_easy *data);
 #endif
 
-#endif
+#endif /* HEADER_CURL_COOKIE_H */

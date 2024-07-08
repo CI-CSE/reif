@@ -19,18 +19,14 @@ feature -- Command
 			-- Setup the environment for generating the code for using a ribbon code.
 			-- If not available then nothing can be done.
 		local
-			l_c_compiler_env: VS_SETUP
+			l_setup: COMPILER_SETUP
 			l_layout: ER_ENVIRONMENT_LAYOUT
-		do
+		once
 			create l_layout
 			set_eiffel_layout (l_layout)
 
-				-- We try first the SDK and then VS.
-			if is_winsdk70_available (not {PLATFORM_CONSTANTS}.is_64_bits) or else is_vc8_available (not {PLATFORM_CONSTANTS}.is_64_bits) then
-					-- Setup C compiler enviroment			
-				create l_c_compiler_env.make (void, not {PLATFORM_CONSTANTS}.is_64_bits)
-				Result := True
-			end
+			create l_setup.initialize (True, not {PLATFORM}.is_64_bits)
+			Result := l_setup.found_c_config /= Void
 		end
 
 	compile (a_index: INTEGER)
@@ -144,7 +140,7 @@ feature -- Command
 			l_list.extend ("/VERBOSE")
 			l_list.extend ("/NOENTRY")
 			l_list.extend ("/DLL")
-			if {PLATFORM_CONSTANTS}.is_64_bits then
+			if {PLATFORM}.is_64_bits then
 				l_list.extend ("/MACHINE:X64")
 			else
 				l_list.extend ("/MACHINE:X86")
@@ -197,12 +193,12 @@ feature -- Command
 			l_singleton: ER_SHARED_TOOLS
 		do
 			create l_singleton
-			if attached l_singleton.main_window_cell.item as l_main_window then
+			if attached l_singleton.output_tool as t then
 				if a_is_tabbed then
 					a_string.replace_substring_all ({STRING_32} "%R", {STRING_32} "")
 					a_string.replace_substring_all ({STRING_32} "%N", {STRING_32} "%N%T")
 				end
-				l_main_window.output_tool.append_output (a_string)
+				t.append_output (a_string)
 			end
 		end
 
@@ -250,78 +246,8 @@ feature {NONE} -- Implementation
 	chcp_name: STRING_32 = "chcp"
 			-- Name of the various tools used to generate the ribbon code.
 
-feature -- C compiler
-
-	is_vc8_available (a_for_32bits: BOOLEAN): BOOLEAN
-			-- Is VisualStudio 2008 or greater available?
-		local
-			l_manager: C_CONFIG_MANAGER
-			l_codes: LIST [C_CONFIG]
-			l_code, l_ver: STRING_32
-		do
-			on_output ("Checking available C/C++ compilers:%N%N", False)
-			create l_manager.make (a_for_32bits)
-			l_codes := l_manager.applicable_configs
-
-			if l_codes.is_empty then
-				on_output ("   No applicable compilers could be found.%N", False)
-			else
-				from
-					l_codes.start
-				until
-					l_codes.after or Result
-				loop
-					if attached {VS_CONFIG} l_codes.item as l_config then
-						l_code := l_config.code
-						if l_code.starts_with ("VC") and l_code.count > 2 then
-								-- Check if greater or equal 90
-							l_ver := l_code.substring (3, l_code.count)
-							Result := l_ver.to_integer >= 90
-						end
-					end
-					l_codes.forth
-				end
-			end
-		end
-
-	is_winsdk70_available (a_for_32bits: BOOLEAN): BOOLEAN
-			-- Is Windows SDK v7.0 or greater available?
-		local
-			l_manager: C_CONFIG_MANAGER
-			l_codes: LIST [C_CONFIG]
-			l_code, l_ver: STRING_32
-		do
-			on_output ("Checking available C/C++ compilers:%N%N", False)
-			create l_manager.make (a_for_32bits)
-
-			l_codes := l_manager.applicable_configs
-
-			if l_codes.is_empty then
-				on_output ("No applicable compilers could be found.%N", False)
-			else
-				from
-					l_codes.start
-				until
-					l_codes.after or Result
-				loop
-					if attached {WSDK_CONFIG} l_codes.item as l_config then
-						l_code := l_config.code
-						if l_code.starts_with ("WSDK") and l_code.count > 4 then
-								-- Check if greater or equal 70
-							l_ver := l_code.substring (5, l_code.count)
-							Result := l_ver.to_integer >= 70
-							if Result then
-								on_output ("Using " + l_code + "installed at: " + l_config.install_path + "%N", False)
-							end
-						end
-					end
-					l_codes.forth
-				end
-			end
-		end
-
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

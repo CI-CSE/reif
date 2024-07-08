@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "Object to generate a project."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: "Arnaud PICHERY [aranud@mail.dotcom.fr]"
+	author: "Arnaud PICHERY [aranud@mail.dotcom.fr]", "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -11,6 +11,9 @@ class
 
 inherit
 	BENCH_WIZARD_PROJECT_GENERATOR
+		redefine
+			generate_code
+		end
 
 create
 	make
@@ -26,6 +29,7 @@ feature -- Basic Operations
 			a_string: STRING
 			a_string2: STRING
 		do
+			Precursor
 				-- cached variables
 			project_name_lowercase := wizard_information.project_name.as_lower
 			project_location := wizard_information.project_location
@@ -80,11 +84,15 @@ feature -- Basic Operations
 				map_list.force ({STRING_32} "", "${FL_ABOUTDIALOG_INIT}")
 			end
 
-			from_template_to_project (wizard_resources_path, "template_main_window.e", 	project_location, "main_window.e", map_list)
-			from_template_to_project (wizard_resources_path, "interface_names.e", 		project_location, "interface_names.e", map_list)
-			from_template_to_project (wizard_resources_path, "about_dialog.e",	 		project_location, "about_dialog.e", map_list)
-			from_template_to_project (wizard_resources_path, "template_config.ecf", 		project_location, project_name_lowercase + ".ecf", map_list)
-			from_template_to_project (wizard_resources_path, "application.e",			project_location, "application.e", map_list)
+			from_template_to_project (wizard_resources_path, "template_main_window.e", project_location, "main_window.e", map_list)
+			from_template_to_project (wizard_resources_path, "interface_names.e", project_location, "interface_names.e", map_list)
+			from_template_to_project (wizard_resources_path, "about_dialog.e", project_location, "about_dialog.e", map_list)
+			if wizard_information.is_scoop then
+				from_template_to_project (wizard_resources_path, "template_config-scoop.ecf", project_location, project_name_lowercase + ".ecf", map_list)
+			else
+				from_template_to_project (wizard_resources_path, "template_config.ecf", project_location, project_name_lowercase + ".ecf", map_list)
+			end
+			from_template_to_project (wizard_resources_path, "application.e", project_location, "application.e", map_list)
 
 			if wizard_information.has_tool_bar then
 				copy_file ("new.png", project_location)
@@ -131,7 +139,7 @@ feature {NONE} -- Access
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -155,11 +163,10 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
-
 end

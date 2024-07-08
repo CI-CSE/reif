@@ -1,11 +1,9 @@
-note
-	description: "[
-		Access to a development window's collection of tools.
-	]"
+﻿note
+	description: "Access to a development window's collection of tools."
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	date: "$date$";
-	revision: "$revision$"
+	status: "See notice at end of class."
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	ES_SHELL_TOOLS
@@ -81,7 +79,7 @@ feature {NONE} -- Clean up
 			l_tool: ES_TOOL [EB_TOOL]
 			l_count, i: INTEGER
 			l_remove_indexes: DS_ARRAYED_LIST [INTEGER]
-			l_remove_keys: DS_ARRAYED_LIST [STRING_8]
+			l_remove_keys: DS_ARRAYED_LIST [like requested_tools.key_for_iteration]
 			l_new_tools: ARRAY [ES_TOOL [EB_TOOL]]
 			l_index: INTEGER
 		do
@@ -163,13 +161,11 @@ feature -- Access
 		require
 			is_interface_usable: is_interface_usable
 		local
-			l_types: like tool_types
 			l_cursor: DS_BILINEAR_CURSOR [TYPE [ES_TOOL [EB_TOOL]]]
 		do
 			Result := internal_all_tools
 			if Result = Void then
-				l_types := tool_types
-				l_cursor := l_types.new_cursor
+				l_cursor := tool_types.new_cursor
 				create Result.make_default
 				from l_cursor.start until l_cursor.after loop
 					Result.append_last (tools (l_cursor.item))
@@ -241,6 +237,10 @@ feature {NONE} -- Access
 			l_tools.put_last ({ES_TESTING_RESULTS_TOOL})
 			l_tools.put_last ({ES_WEB_BROWSER_TOOL})
 
+				-- ES Cloud tools
+			l_tools.put_last ({ES_CLOUD_ACCOUNT_TOOL})
+
+
 				-- Custom formatter tools
 				-- FIXME: Custom formatter tools have been tricking to adapt for 6.1. Given the time-frame
 				--        optimizations will be deferred for a later release, hopefully 6.2.
@@ -261,7 +261,7 @@ feature {NONE} -- Access
 			result_contains_attached_items: not Result.has (Void)
 		end
 
-	requested_tools: HASH_TABLE [ARRAY [ES_TOOL [EB_TOOL]], STRING_8]
+	requested_tools: HASH_TABLE [ARRAY [ES_TOOL [EB_TOOL]], READABLE_STRING_32]
 			-- Table of requested, and therefore created, tools.
 		do
 			if not is_recycled then
@@ -302,7 +302,7 @@ feature {NONE} -- Helpers
 
 feature -- Query
 
-	dynamic_tool_type (a_type: STRING_8): TYPE [ES_TOOL [EB_TOOL]]
+	dynamic_tool_type (a_type: READABLE_STRING_GENERAL): TYPE [ES_TOOL [EB_TOOL]]
 			-- Retrieves a type object dynamically from a string representation of the type.
 			--
 			-- `a_type': A string representation of a type that implemented {ES_TOOL}. e.g. "MY_TOOL" => TYPE [MY_TOOL]
@@ -315,7 +315,7 @@ feature -- Query
 			if l_internal.is_valid_type_string (a_type) then
 				l_id := l_internal.dynamic_type_from_string (a_type)
 				if l_id > 0 then
-					Result ?= l_internal.type_of_type (l_id)
+					Result := {TYPE [ES_TOOL [EB_TOOL]]} / l_internal.type_of_type (l_id)
 				end
 			end
 		end
@@ -527,7 +527,7 @@ feature -- Query
 
 feature {NONE} -- Query
 
-	tool_id (a_type: TYPE [ES_TOOL [EB_TOOL]]): STRING_8
+	tool_id (a_type: TYPE [ES_TOOL [EB_TOOL]]): READABLE_STRING_32
 			-- Retrieve tool identifier for a given type.
 			--
 			-- `a_type': Tool type to retrieve a ID for.
@@ -535,25 +535,22 @@ feature {NONE} -- Query
 		require
 			a_type_attached: a_type /= Void
 		do
-			Result := a_type.generating_type
+			Result := a_type.name_32
 		ensure
 			result_attached: Result /= Void
 			not_result_is_empty: not Result.is_empty
 			result_consistent: Result.is_equal (tool_id (a_type))
 		end
 
-	tool_id_from_tool (a_tool: ES_TOOL [EB_TOOL]): STRING_8
+	tool_id_from_tool (a_tool: ES_TOOL [EB_TOOL]): READABLE_STRING_32
 			-- Retrieve tool identifier for a given tool.
 			--
 			-- `a_tool': Tool to retrieve a ID for.
 			-- `Result': A string identifier identifying the tool type supplied.
 		require
 			a_tool_attached: a_tool /= Void
-		local
-			l_type: TYPE [ES_TOOL [EB_TOOL]]
 		do
-			l_type ?= internal.type_of (a_tool)
-			Result := tool_id (l_type)
+			Result := tool_id (a_tool.generating_type)
 		ensure
 			result_attached: Result /= Void
 			not_result_is_empty: not Result.is_empty
@@ -589,11 +586,8 @@ feature -- Basic operation
 			a_type_is_multi_edition_tool: a_edition > 1 implies is_multiple_edition_tool (a_type)
 			a_edition_positive: a_edition > 0
 			a_edition_small_enough: a_edition <= editions_of_tool (a_type, False) + 1
-		local
-			l_tool: detachable like tool
 		do
-			l_tool := tool_edition (a_type, a_edition)
-			l_tool.show (a_activate)
+			tool_edition (a_type, a_edition).show (a_activate)
 		ensure
 			tool_is_instatiated: tool_edition (a_type, a_edition).is_tool_instantiated
 			tool_is_shown: tool_edition (a_type, a_edition).panel.is_visible
@@ -608,11 +602,8 @@ feature -- Basic operation
 		require
 			is_interface_usable: is_interface_usable
 			a_type_attached: a_type /= Void
-		local
-			l_tool: detachable like tool
 		do
-			l_tool := tool_next_available_edition (a_type, a_reuse)
-			l_tool.show (a_activate)
+			tool_next_available_edition (a_type, a_reuse).show (a_activate)
 		ensure
 			tool_is_instatiated: (old tool_next_available_edition (a_type, a_reuse)).is_tool_instantiated
 			tool_is_shown: (old tool_next_available_edition (a_type, a_reuse)).panel.is_visible
@@ -659,7 +650,7 @@ feature {NONE} -- Factory
 			l_internal: like internal
 		do
 			l_internal := internal
-			Result ?= l_internal.new_instance_of (l_internal.generic_dynamic_type (a_type, 1))
+			Result := {ES_TOOL [EB_TOOL]} / l_internal.new_instance_of (l_internal.generic_dynamic_type (a_type, 1))
 			check
 				result_attached: Result /= Void
 				result_is_multiple_edition: a_edition > 1 implies Result.is_multiple_edition
@@ -689,7 +680,7 @@ invariant
 	internal_requested_tools_contains_attached_items: not is_recycled implies not internal_requested_tools.has_item (Void)
 
 ;note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

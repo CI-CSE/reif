@@ -60,27 +60,37 @@ feature -- Access
 
 	url (a_path: READABLE_STRING_8; ctx: detachable HTTP_CLIENT_REQUEST_CONTEXT): STRING_8
 			-- Url computed from Current and `ctx' data.
-		local
-			s: STRING_8
-			url_encoder: URL_ENCODER
 		do
-			Result := base_url + a_path
+			if is_absolute_url (a_path) then
+					-- Is Absolute url
+				Result := a_path
+			else
+				Result := base_url + a_path
+			end
 			if ctx /= Void then
-				create s.make_empty
-				create url_encoder
-				across
-					ctx.query_parameters as q
-				loop
-					if not s.is_empty then
-						s.append_character ('&')
+				ctx.append_query_parameters_to_url (Result)
+			end
+		end
+
+	is_absolute_url (s: READABLE_STRING_GENERAL): BOOLEAN
+			-- Does `s` represent an absolute url?
+		local
+			i, pos: INTEGER
+			sch: READABLE_STRING_GENERAL
+		do
+			pos := s.substring_index ("://", 1)
+			if pos > 0 then
+				sch := s.head (pos - 1)
+				if not sch.is_whitespace then
+					from
+						i := 1
+						Result := True
+					until
+						not Result or i > sch.count
+					loop
+						Result := sch[i].is_alpha_numeric
+						i := i + 1
 					end
-					s.append (url_encoder.encoded_string (q.key))
-					s.append_character ('=')
-					s.append (url_encoder.encoded_string (q.item))
-				end
-				if not s.is_empty then
-					Result.append_character ('?')
-					Result.append (s)
 				end
 			end
 		end
@@ -243,9 +253,13 @@ feature -- Settings
 	ignore_content_length: BOOLEAN
 			-- Does this session ignore Content-Size headers?
 
-	buffer_size: NATURAL
+	buffer_size: NATURAL assign set_buffer_size
 			-- Set the buffer size for request. This option will
-			-- only be set if buffer_size is positive
+			-- only be set if buffer_size > 0.
+
+	chunk_size: NATURAL assign set_chunk_size
+			-- Set the chunk size for request, when "Transfer-Encoding: chunked".
+			-- This option will only be set if chunk_size > 0.
 
 	default_response_charset: detachable READABLE_STRING_8
 			-- Default encoding of responses. Used if no charset is provided by the host.
@@ -285,6 +299,14 @@ feature -- Authentication
 	credentials: detachable READABLE_STRING_32
 			-- Associated optional credentials value.
 			-- Computed as `username':`password'.
+
+	ciphers_setting: detachable READABLE_STRING_8
+			-- SSL cipher preference lists
+			-- examples: DEFAULT, ALL, TLSv1
+			-- check https://www.openssl.org/docs/man1.1.0/apps/ciphers.html
+			-- Warning: At the moment only used for LIB_CURL_HTTP_CLIENT
+			--			Net implementation set all the ciphers using the OpenSSL at
+			--			initialization time.
 
 feature -- Status setting
 
@@ -405,8 +427,26 @@ feature -- Element change
 			end
 		end
 
+	set_buffer_size (a_size: like buffer_size)
+		do
+			buffer_size := a_size
+		end
+
+	set_chunk_size (a_size: like chunk_size)
+		do
+			chunk_size := a_size
+		end
+
+	set_ciphers_setting (a_ciphers_setting: READABLE_STRING_8)
+			-- Set 'ciphers_setting' with 'a_ciphers_setting'.
+		do
+			create {STRING_8} ciphers_setting.make_from_string (a_ciphers_setting)
+		ensure
+			ciphers_setting_set: attached ciphers_setting as c_setting and then c_setting.same_string (a_ciphers_setting)
+		end
+
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

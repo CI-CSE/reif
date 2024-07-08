@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Objects that lets user select a color."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -33,9 +32,8 @@ feature {NONE} -- Initialization
 		local
 			v_box: EV_VERTICAL_BOX
 			table: EV_TABLE
-			button: EV_TOGGLE_BUTTON
+			button: EV_LABEL
 			choose: EV_BUTTON
-			pixmap: EV_PIXMAP
 			i: INTEGER
 		do
 			Precursor {EV_FRAME} (a_text)
@@ -57,7 +55,7 @@ feature {NONE} -- Initialization
 								button.set_background_color (l_color)
 							end
 							button.set_minimum_size (button_size, button_size)
-							button.select_actions.extend (agent on_button_select (i))
+							button.pointer_button_release_actions.extend (agent on_button_select (button, ?, ?, ?, ?, ?, ?, ?, ?))
 
 						table.add (button, ((i-1) \\ 3) + 1, ((i - 1) // 3)  + 1, 1, 1)
 						button_list.extend (button)
@@ -67,20 +65,13 @@ feature {NONE} -- Initialization
 					end
 
 					create button
-						create pixmap.make_with_size (button_size, button_size)
-						pixmap.set_with_named_file ("nocolor.png")
-						button.set_pixmap (pixmap)
-						button.enable_select
-						button.select_actions.extend (agent on_button_select (9))
+					button.pointer_button_release_actions.extend (agent on_button_select (button, ?, ?, ?, ?, ?, ?, ?, ?))
 					table.add (button, 3, 3, 1, 1)
 					button_list.extend (button)
 
 					create button
-						create pixmap.make_with_size (button_size, button_size)
-						pixmap.set_with_named_file ("nocolor.png")
-						button.set_pixmap (pixmap)
-						button.set_minimum_size (button_size, button_size)
-						button.select_actions.extend (agent on_button_select (10))
+					button.set_minimum_size (button_size, button_size)
+					button.pointer_button_release_actions.extend (agent on_button_select (button, ?, ?, ?, ?, ?, ?, ?, ?))
 					table.add (button, 1, 4, 1, 1)
 					button_list.extend (button)
 
@@ -111,14 +102,11 @@ feature -- Element change
 			-- Set `color' to `a_color'
 		do
 			color := a_color
-
 			last_choosen_color := a_color
-
-			button_list.last.remove_pixmap
 			button_list.last.set_background_color (a_color)
-			button_list.last.enable_select
+			on_button_select (button_list.last, 0, 0, 0, 0, 0, 0, 0, 0)
 		ensure
-			set: color = a_color
+			set: color ~ a_color
 		end
 
 feature -- Status
@@ -164,52 +152,33 @@ feature {NONE} -- Implementation
 			-- The applications window `Current' is part of.
 		local
 			cursor: detachable EV_CONTAINER
-			l_result: detachable EV_WINDOW
 		do
 			from
 				cursor := parent
 			invariant
 				cursor /= Void
 			until
-				attached {EV_WINDOW} cursor
+				Result /= Void
 			loop
 				check cursor /= Void end
 				cursor := cursor.parent
+				if attached {EV_WINDOW} cursor as l_window then
+					Result := l_window
+				end
 			end
-			l_result ?= cursor
-			check l_result /= Void end
-			Result := l_result
 		end
 
-	button_list: ARRAYED_LIST [EV_TOGGLE_BUTTON]
+	button_list: ARRAYED_LIST [EV_LABEL]
 			-- All the toggle buttons
 
 	button_size: INTEGER = 20
 			-- The size of the colored pixmaps on the buttons
 
-	on_button_select (button_nr: INTEGER)
+	on_button_select (l_button: EV_LABEL; x, y, b: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; s_x, s_y: INTEGER_32)
 			-- Button with `button_nr' in `button_list' was selected.
-		local
-			i: INTEGER
 		do
-			if button_list.i_th (button_nr).is_selected then
-				from
-					button_list.start
-					i := 1
-				until
-					button_list.after
-				loop
-					if i /= button_nr then
-						button_list.item.select_actions.block
-						button_list.item.disable_select
-						button_list.item.select_actions.resume
-					end
-					button_list.forth
-					i := i + 1
-				end
-				color := get_color (button_nr)
-				color_change_actions.call (Void)
-			end
+			color := l_button.background_color
+			color_change_actions.call (Void)
 		end
 
 	get_color (nr: INTEGER): detachable EV_COLOR
@@ -242,14 +211,14 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	last_choosen_color: EV_COLOR;
+	last_choosen_color: EV_COLOR
 			-- Last color selected over color dialog by user.
 
 invariant
 	button_list_proper_count: button_list.count = 10
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			 Eiffel Software
@@ -259,5 +228,4 @@ note
 			 Customer support http://support.eiffel.com
 		]"
 
-
-end -- class COLOR_CHOOSER
+end

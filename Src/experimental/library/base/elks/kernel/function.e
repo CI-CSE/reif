@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Objects representing delayed calls to a function,
 		with some arguments possibly still open.
@@ -14,10 +14,10 @@ note
 	revision: "$Revision$"
 
 class
-	FUNCTION [BASE_TYPE -> detachable ANY, OPEN_ARGS -> detachable TUPLE create default_create end, RESULT_TYPE]
+	FUNCTION [OPEN_ARGS -> detachable TUPLE create default_create end, RESULT_TYPE]
 
 inherit
-	ROUTINE [BASE_TYPE, OPEN_ARGS]
+	ROUTINE [OPEN_ARGS]
 		redefine
 			is_equal, copy
 		end
@@ -83,7 +83,7 @@ feature -- Obsolete
 	eval (args: detachable OPEN_ARGS): RESULT_TYPE
 			-- Result of evaluating function for `args'.
 		obsolete
-			"Please use `item' instead"
+			"Please use `item' instead. [2017-05-31]"
 		require
 			valid_operands: valid_operands (args)
 		do
@@ -157,7 +157,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

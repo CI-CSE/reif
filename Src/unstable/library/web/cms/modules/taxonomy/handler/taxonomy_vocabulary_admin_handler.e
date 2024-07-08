@@ -72,7 +72,7 @@ feature -- HTTP Methods
 			l_typename: READABLE_STRING_GENERAL
 			s: STRING
 		do
-			if not api.user_has_permission (current_user (req), "admin taxonomy") then
+			if not api.has_permission ("admin taxonomy") then
 				send_access_denied (req, res)
 			else
 				if attached {WSF_STRING} req.form_parameter ("op") as p_op then
@@ -88,7 +88,7 @@ feature -- HTTP Methods
 								l_page.add_error_message ("Vocabulary creation failed!")
 							else
 								l_page.add_success_message ("Vocabulary creation succeed!")
-								l_page.set_redirection ("admin/taxonomy/vocabulary/" + voc.id.out)
+								l_page.set_redirection (api.administration_path_location ("taxonomy/vocabulary/" + voc.id.out))
 							end
 						else
 							create {BAD_REQUEST_ERROR_CMS_RESPONSE} l_page.make (req, res, api)
@@ -143,7 +143,7 @@ feature -- HTTP Methods
 							end
 						end
 						if not taxonomy_api.has_error then
-							l_page.add_notice_message (l_page.link ({STRING_32} "Back to vocabulary %"" + l_vocabulary.name + "%"", "admin/taxonomy/vocabulary/" + l_vocabulary.id.out, Void))
+							l_page.add_notice_message (l_page.link ({STRING_32} "Back to vocabulary %"" + l_vocabulary.name + "%"", api.administration_path_location ("taxonomy/vocabulary/" + l_vocabulary.id.out), Void))
 						end
 						l_page.set_main_content (s)
 					else
@@ -161,7 +161,7 @@ feature -- HTTP Methods
 		local
 			tid: INTEGER_64
 		do
-			if not api.user_has_permission (current_user (req), "admin taxonomy") then
+			if not api.has_permission ("admin taxonomy") then
 				send_access_denied (req, res)
 			else
 				if attached {WSF_STRING} req.path_parameter ("vocid") as p_vocid then
@@ -239,7 +239,7 @@ feature -- HTTP Methods
 					create wtb_row.make (3)
 					wtb.add_row (wtb_row)
 
-					create wtb_item.make_with_text (l_page.link (ic.item.text, "admin/taxonomy/term/" + l_term.id.out, Void))
+					create wtb_item.make_with_text (l_page.link (ic.item.text, api.administration_path_location ("taxonomy/term/" + l_term.id.out), Void))
 					wtb_row.set_item (wtb_item, 1)
 					if attached ic.item.description as l_desc then
 						create wtb_item.make_with_text (api.html_encoded (l_desc))
@@ -277,13 +277,13 @@ feature -- HTTP Methods
 
 					l_typename := ic.item.name
 					create w_cb.make_with_value ("typenames[]", api.html_encoded (l_typename))
-					w_cb.set_title (ic.item.name)
+					w_cb.set_title (ic.item.name.to_string_32)
 					wtb_row.set_item (create {WSF_WIDGET_TABLE_ITEM}.make_with_content (w_cb), 1)
 
 					v := Void
 					if
 						l_typenames /= Void and then
-						across l_typenames as tn_ic some l_typename.is_case_insensitive_equal (tn_ic.item) end
+						across l_typenames as tn_ic some l_typename.is_case_insensitive_equal_general (tn_ic.item) end
 					then
 						w_cb.set_checked (True)
 						if attached taxonomy_api.vocabularies_for_type (l_typename) as v_list then
@@ -319,11 +319,11 @@ feature -- HTTP Methods
 				create s.make_empty
 				f.append_to_html (l_page.wsf_theme, s)
 				l_page.set_main_content (s)
+				l_page.execute
 			else
 					-- Responding with `main_content_html (l_page)'.
-				create {NOT_FOUND_ERROR_CMS_RESPONSE} l_page.make (req, res, api)
+				send_not_found (req, res)
 			end
-			l_page.execute
 		end
 
 	do_get_vocabularies (req: WSF_REQUEST; res: WSF_RESPONSE)
@@ -362,7 +362,7 @@ feature -- HTTP Methods
 					create wtb_row.make (3)
 					wtb.add_row (wtb_row)
 
-					create wtb_item.make_with_text (l_page.link (ic.item.name, "admin/taxonomy/vocabulary/" + ic.item.id.out, Void))
+					create wtb_item.make_with_text (l_page.link (ic.item.name, api.administration_path_location ("taxonomy/vocabulary/" + ic.item.id.out), Void))
 --						if attached ic.item.description as l_desc then
 --							s.append (" : <em>")
 --							s.append (api.html_encoded (l_desc))
@@ -385,7 +385,7 @@ feature -- HTTP Methods
 						wtb_row.set_item (wtb_item, 2)
 					end
 
-					s := l_page.link ("edit", "admin/taxonomy/vocabulary/" + voc.id.out, Void)
+					s := l_page.link ("edit", api.administration_path_location ("taxonomy/vocabulary/" + voc.id.out), Void)
 					create wtb_item.make_with_text (s)
 					wtb_row.set_item (wtb_item, 3)
 				end

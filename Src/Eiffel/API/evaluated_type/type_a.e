@@ -1,6 +1,6 @@
-note
+﻿note
 	description: "Actual type description."
-	code_review: "http://docs.google.com/Doc?id=dd7kn5vj_93ng9v6cg"
+	EIS: "name=code_review", "src=http://docs.google.com/Doc?id=dd7kn5vj_93ng9v6cg", "tag=review, type"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -67,7 +67,7 @@ feature -- Generic conformance
 		do
 				-- Only if a type is not expanded do we need to generate the
 				-- attached annotation since by default expanded implies attached.
-			if is_attached and not is_expanded then
+			if lace.is_void_safe and then is_attached and then not is_expanded then
 				Result := {SHARED_GEN_CONF_LEVEL}.attached_type
 			end
 
@@ -490,11 +490,6 @@ feature -- Properties
 			-- Do nothing
 		end
 
-	is_ephemeral: BOOLEAN
-			-- Is the current actual type base class ephemeral?
-		do
-		end
-
 	is_enum: BOOLEAN
 			-- Is the current actual type an external enum one?
 		do
@@ -505,6 +500,13 @@ feature -- Properties
 			-- Is current actual type a reference one?
 		do
 			Result := not is_expanded
+		end
+
+	has_reference: BOOLEAN
+			-- Can values of this type reference other objects?
+		do
+				-- It is safe to assume there is a reference.
+			Result := True
 		end
 
 	is_true_expanded: BOOLEAN
@@ -637,8 +639,6 @@ feature -- Properties
 			-- Does type depend on formal generic parameters and/or anchors?
 		do
 			-- Do nothing
-		ensure
-			definition: Result = (has_like or has_formal_generic)
 		end
 
 	is_explicit: BOOLEAN
@@ -1140,6 +1140,7 @@ feature -- Duplication
 
 	frozen as_attached_in (c: CLASS_C): like Current
 			-- Attached or implicitly attached variant of current type depending on the void safety status of contextual class `c'.
+			-- Consider using `as_normally_attached` instead.
 		require
 			c_attached: c /= Void
 		do
@@ -1155,6 +1156,36 @@ feature -- Duplication
 			result_attached: Result /= Void
 			result_is_attached: not is_none implies (c.lace_class.is_void_safe_conformance implies Result.is_attached)
 			result_is_implicitly_attached: not is_none implies (Result.is_attached or else Result.is_implicitly_attached)
+		end
+
+	frozen as_normally_attached (c: CLASS_C): like Current
+			-- Attached or implicitly attached variant of current type depending on the void safety status of contextual class `c'.
+			-- Same as `as_attached_in` except that it does not add an explicit attachment mark to the type
+		require
+			c_attached: c /= Void
+		do
+			if is_attached then
+				Result := Current
+			elseif c.lace_class.is_void_safe_conformance then
+				if c.lace_class.is_attached_by_default then
+						-- Mark the type as attached without adding an explicit attachment mark.
+					Result := as_attachment_mark_free
+					Result.set_is_attached
+				else
+						-- Mark the type as attached with an explicit attachment mark.
+					Result := as_attached_type
+				end
+			elseif not is_implicitly_attached then
+					-- Mark the type as implicitly attached in void-unsafe mode.
+				if has_detachable_mark then
+					Result := as_attachment_mark_free
+					Result.set_is_implicitly_attached
+				else
+					Result := as_implicitly_attached
+				end
+			else
+				Result:= Current
+			end
 		end
 
 	frozen as_implicitly_detachable: like Current
@@ -1173,7 +1204,7 @@ feature -- Duplication
 	frozen as_detachable_type: like Current
 			-- Detachable type.
 		do
-			if not has_detachable_mark then
+			if not has_detachable_mark and then not is_expanded then
 				Result := duplicate
 				Result.set_detachable_mark
 			else
@@ -1600,7 +1631,6 @@ feature -- Access
 			i_non_negative: i > 0
 		local
 			l_vtcg7: VTCG7
-			l_formal_a: FORMAL_A
 			l_target_type: TYPE_A
 		do
 			if a_target_type.is_formal then
@@ -1612,9 +1642,11 @@ feature -- Access
 					-- 			`a_target_type' is H
 					-- Note: We loop over all constraints of `G' an call `check_const_gen_conformance'.
 					-- We replace `H' with `COMPARABLE' and check whether `STRING' conforms to `COMPARABLE'.					
-				l_formal_a ?= a_target_type
-				check indeed_a_formal_a: l_formal_a /= Void end
-				l_target_type := a_gen_type.generics.i_th (l_formal_a.position)
+				if attached {FORMAL_A} a_target_type as l_formal_a then
+					l_target_type := a_gen_type.generics.i_th (l_formal_a.position)
+				else
+					check indeed_a_formal_a: False end
+				end
 			else
 				l_target_type := a_target_type
 			end
@@ -2143,7 +2175,7 @@ invariant
 	separate_mark_consistency: not is_expanded implies (has_separate_mark implies is_separate)
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -2174,4 +2206,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class TYPE_A
+end

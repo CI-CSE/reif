@@ -44,7 +44,7 @@ DOC_DIR=$BASE_PATH/share/doc/$PRODUCT
 SRC_BIN_DIR=$ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin
 TOOLS_BIN_DIR=$ISE_EIFFEL/tools/spec/$ISE_PLATFORM/bin
 
-TOOLS_BINS="compile_all eiffel_echo eimgemb syntax_updater iron ace2ecf"
+TOOLS_BINS="compile_all eiffel eiffel_echo eimgemb syntax_updater iron ace2ecf"
 MAIN_BINS="estudio ec ecb finish_freezing"
 LIB_BINS="ecdbgd prelink quick_finalize x2c make_precompiled_libraries"
 
@@ -145,7 +145,6 @@ if [ $ISE_PLATFORM != "unix" ]; then
 	mv $LIB_DIR/library/vision2/spec/$ISE_PLATFORM $LIB_DIR/library/vision2/spec/unix
 	mv $LIB_DIR/library/cURL/spec/$ISE_PLATFORM $LIB_DIR/library/cURL/spec/unix
 	mv $LIB_DIR/library/net/spec/$ISE_PLATFORM $LIB_DIR/library/net/spec/unix
-	mv $LIB_DIR/library/obsolete/net/spec/$ISE_PLATFORM $LIB_DIR/library/obsolete/net/spec/unix
 	mv $LIB_DIR/unstable/library/persistency/database/sqlite3/spec/$ISE_PLATFORM $LIB_DIR/unstable/library/persistency/database/sqlite3/spec/unix
 	mv $SHARE_DIR/studio/config/$ISE_PLATFORM $SHARE_DIR/studio/config/unix
 	mv $SHARE_DIR/tools/iron/spec/$ISE_PLATFORM $SHARE_DIR/studio/config/unix

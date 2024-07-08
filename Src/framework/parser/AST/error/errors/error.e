@@ -39,7 +39,7 @@ feature -- Access
 			file_name_not_void: Result /= Void
 		end
 
-	associated_class: detachable ABSTRACT_CLASS_C
+	associated_class: like associated_class_type
 			-- Associate class, if any
 
 	help_file_name: STRING
@@ -48,6 +48,17 @@ feature -- Access
 			Result := code
 		ensure
 			help_file_name_not_void: Result /= Void
+		end
+
+feature {NONE} -- Typing
+
+	associated_class_type: detachable ABSTRACT_CLASS_C
+			-- An anchor to be used for `associated_class`.
+		require
+			callable: False
+		do
+		ensure
+			not_called: False
 		end
 
 feature {NONE} -- Access: File source caching
@@ -152,7 +163,7 @@ feature {ERROR_VISITOR} -- Compute surrounding text around error
 			l_file := cached_file.item
 			if l_file = Void or else l_fn /~ l_file.file_name then
 					-- No file, or it has changed/
-				create l_file.make (l_fn.as_attached)
+				create l_file.make (l_fn)
 				l_file.set_is_contents_auto_refreshed (True)
 				cached_file.put (l_file)
 			end
@@ -279,7 +290,7 @@ invariant
 	non_void_help_file_name: help_file_name /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Tool bar items for SD_TOOL_BAR"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -100,15 +100,12 @@ feature -- Query
 
 	drop_actions: EV_PND_ACTION_SEQUENCE
 			-- <Precursor>
-		local
-			l_drop_actions: like internal_drop_actions
 		do
-			l_drop_actions := internal_drop_actions
-			if l_drop_actions = Void then
-				create l_drop_actions
-				internal_drop_actions := l_drop_actions
+			Result := internal_drop_actions
+			if not attached Result then
+				create Result
+				internal_drop_actions := Result
 			end
-			Result := l_drop_actions
 		end
 
 	pebble_function: detachable FUNCTION [detachable ANY]
@@ -208,9 +205,9 @@ feature -- Properties
 			set: pixel_buffer = a_pixel_buffer
 		end
 
-	name: STRING_32
-			-- Name which is used for save/open docking layout configuration
-			-- This name should not changed in all locales
+	name: READABLE_STRING_32
+			-- Name which is used for save/open docking layout configuration.
+			-- This name should not change in all locales.
 
 	set_name (a_name: READABLE_STRING_GENERAL)
 			-- Set `name'
@@ -319,7 +316,7 @@ invariant
 
 note
 	library:	"SmartDocking: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -328,7 +325,6 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
 
 end
 

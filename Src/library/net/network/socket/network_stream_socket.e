@@ -33,7 +33,9 @@ inherit
 		end
 
 create
-	make, make_empty, make_client_by_port, make_client_by_address_and_port, make_server_by_port, make_loopback_server_by_port
+	make, make_empty,
+	make_client_by_port, make_client_by_address_and_port,
+	make_server_by_port, make_server_by_address_and_port, make_loopback_server_by_port
 
 create {NETWORK_STREAM_SOCKET}
 	make_from_descriptor_and_address, create_from_descriptor
@@ -49,9 +51,9 @@ feature {NONE} -- Initialization
 			family := af_inet
 			type := sock_stream;
 			create last_string.make_empty
-			timeout := default_timeout
+			timeout_ns := one_second_in_nanoseconds * default_timeout.to_natural_64
 		ensure
-			timeout_set_to_default: timeout = default_timeout
+			timeout_set_to_default: timeout_ns = one_second_in_nanoseconds * default_timeout.to_natural_64
 			no_socket_created: not is_created
 		end
 
@@ -63,7 +65,7 @@ feature -- Initialization
 			make_empty
 			make_socket
 		ensure
-			timeout_set_to_default: timeout = default_timeout
+			timeout_set_to_default: timeout_ns = one_second_in_nanoseconds * default_timeout.to_natural_64
 			socket_created: is_created
 		end
 
@@ -79,30 +81,30 @@ feature -- Initialization
 			end
 		end
 
+	make_server_by_address_and_port (a_address: INET_ADDRESS; a_port: INTEGER)
+			-- Create server socket on `a_address' and `a_port'.
+		require
+			valid_port: a_port >= 0
+		do
+			make
+			create address.make_from_address_and_port (a_address, a_port)
+			bind
+		end
+
 	make_server_by_port (a_port: INTEGER)
 			-- Create server socket on `a_port' and on any incoming address.
 		require
 			valid_port: a_port >= 0
-		local
-			addr: INET_ADDRESS
 		do
-			make;
-			addr := create_any_local
-			create address.make_from_address_and_port (addr, a_port)
-			bind
+			make_server_by_address_and_port (create_any_local, a_port)
 		end
 
 	make_loopback_server_by_port (a_port: INTEGER)
 			-- Create server socket on `a_port' that listen only for loopback interface peer.
 		require
 			valid_port: a_port >= 0
-		local
-			addr: INET_ADDRESS
 		do
-			make;
-			addr := create_loopback
-			create address.make_from_address_and_port (addr, a_port)
-			bind
+			make_server_by_address_and_port (create_loopback, a_port)
 		end
 
 	make_client_by_address_and_port (a_peer_address: INET_ADDRESS; a_peer_port: INTEGER)
@@ -140,7 +142,7 @@ feature {NETWORK_STREAM_SOCKET} -- Initialization
 			is_created := True
 			is_open_read := True
 			is_open_write := True
-			timeout := default_timeout
+			timeout_ns := one_second_in_nanoseconds * default_timeout.to_natural_64
 			create last_string.make_empty
 		ensure
 			address_set: address ~ a_address
@@ -164,21 +166,21 @@ feature {NETWORK_STREAM_SOCKET} -- Initialization
 feature
 
 	connect_timeout: INTEGER
-		-- The connect timeout in milliseconds
+			-- The connect timeout in milliseconds
 
-	set_connect_timeout (a_timeout: INTEGER)
+	set_connect_timeout (a_timeout_ms: INTEGER)
 			--  Sets the connect timeout in milliseconds
 		do
-			connect_timeout := a_timeout
+			connect_timeout := a_timeout_ms
 		end
 
 	accept_timeout: INTEGER
-		-- The connect timeout in milliseconds
+			-- The connect timeout in milliseconds
 
-	set_accept_timeout (a_timeout: INTEGER)
+	set_accept_timeout (a_timeout_ms: INTEGER)
 			--  Sets the accept timeout in milliseconds
 		do
-			accept_timeout := a_timeout
+			accept_timeout := a_timeout_ms
 		end
 
 	listen (queue: INTEGER)
@@ -242,7 +244,7 @@ feature -- Status report
 	maxium_seg_size: INTEGER
 			-- Maximum segment size
 		obsolete
-			"Use `maximum_seg_size' instead."
+			"Use `maximum_seg_size' instead [2017-05-31]."
 		require
 			socket_exists: exists
 		do
@@ -306,7 +308,7 @@ feature -- Status setting
 		end;
 
 	set_linger (flag: BOOLEAN; time: INTEGER)
-		obsolete "Use `set_linger_on'/`set_linger_off' instead."
+		obsolete "Use `set_linger_on'/`set_linger_off' instead [2017-05-31]."
 			-- Switch lingering on/off (depending on `flag') and set linger
 			-- time to `time'.
 		require
@@ -359,26 +361,36 @@ feature {NONE} -- Implementation
 		local
 			l_fd, l_fd1, l_port: INTEGER
 		do
-			l_fd := fd
-			l_fd1 := fd1
-			l_port := internal_port
-			c_connect ($l_fd, $l_fd1, $l_port, a_peer_address.socket_address.item, connect_timeout, is_blocking)
-			fd := l_fd
-			fd1 := l_fd1
-			internal_port := l_port
+			if a_peer_address /= Void then
+				l_fd := fd
+				l_fd1 := fd1
+				l_port := internal_port
+				c_connect ($l_fd, $l_fd1, $l_port, a_peer_address.socket_address.item, connect_timeout, is_blocking)
+				fd := l_fd
+				fd1 := l_fd1
+				internal_port := l_port
+			else
+					-- Per precondition
+				check has_peer_address: False end
+			end
 		end
 
 	do_bind (a_address: like address)
 		local
 			l_fd, l_fd1, l_port: INTEGER
 		do
-			l_fd := fd
-			l_fd1 := fd1
-			l_port := internal_port
-			c_bind ($l_fd, $l_fd1, $l_port, a_address.socket_address.item)
-			fd := l_fd
-			fd1 := l_fd1
-			internal_port := l_port
+			if a_address /= Void then
+				l_fd := fd
+				l_fd1 := fd1
+				l_port := internal_port
+				c_bind ($l_fd, $l_fd1, $l_port, a_address.socket_address.item)
+				fd := l_fd
+				fd1 := l_fd1
+				internal_port := l_port
+			else
+					-- Per precondition
+				check has_address: False end
+			end
 		end
 
 	do_create
@@ -487,7 +499,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

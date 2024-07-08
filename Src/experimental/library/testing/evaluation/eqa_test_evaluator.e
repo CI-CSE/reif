@@ -33,7 +33,7 @@ feature {NONE} -- Access
 
 feature -- Execution
 
-	frozen execute (a_routine: PROCEDURE [ANY, TUPLE [EQA_TEST_SET]]): EQA_PARTIAL_RESULT
+	frozen execute (a_routine: PROCEDURE [EQA_TEST_SET]): EQA_PARTIAL_RESULT
 			-- Run full test sequence for given test set and test procedure. This includes invoking `set_up'
 			-- on the {TEST_SET} instance, then calling the procedure providing the test set as an operand
 			-- and finally invoking `tear_down' on the test set.
@@ -47,11 +47,10 @@ feature -- Execution
 			-- `a_routine': Agent which invokes actual test routine.
 		local
 			l_start_date: DATE_TIME
-			l_creator: FUNCTION [like Current, TUPLE, EQA_TEST_SET]
+			l_creator: FUNCTION [EQA_TEST_SET]
 			l_prepare, l_test, l_clean: like execute_test_stage
 			l_old: detachable PLAIN_TEXT_FILE
 			l_old_work_dir: PATH
-			l_operands: TUPLE [EQA_TEST_SET]
 		do
 			l_old_work_dir := current_working_path
 			l_old := io.default_output
@@ -64,13 +63,11 @@ feature -- Execution
 			if not l_prepare.is_exceptional and then attached l_creator.last_result as l_test_set then
 
 					-- Call test routine
-				l_operands := a_routine.empty_operands
 				check
-					valid_operand_count: l_operands.count = 1
-					valid_operand: l_operands.valid_type_for_index (l_test_set, 1)
+					valid_operand_count: a_routine.open_count = 1
+					valid_operand: a_routine.valid_operands ([l_test_set])
 				end
-				l_operands.put (l_test_set, 1)
-				l_test := execute_test_stage (agent a_routine.call (l_operands))
+				l_test := execute_test_stage (agent a_routine.call ([l_test_set]))
 
 					-- Call {EQA_TEST_SET}.clean
 				l_clean := execute_test_stage (agent l_test_set.clean (l_test.is_exceptional))
@@ -91,7 +88,7 @@ feature -- Execution
 
 feature {NONE} -- Implementation
 
-	execute_test_stage (a_procedure: ROUTINE [ANY, TUPLE]): EQA_TEST_INVOCATION_RESPONSE
+	execute_test_stage (a_procedure: ROUTINE): EQA_TEST_INVOCATION_RESPONSE
 			-- Execute one stage of a test execution and return the corresponding invocation response.
 			--
 			-- `a_procedure': Procedure to call.
@@ -119,7 +116,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

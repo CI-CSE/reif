@@ -74,16 +74,16 @@ feature -- Element change
 
 	mark_motion_category
 		do
-			type := "motion category"
+			type.append (" category")
 		ensure
-			type_set: type.same_string("motion category")
+			type_set: type.ends_with (" category")
 		end
 
 	mark_wish_status
 		do
-			type := "motion status"
+			type.append (" status")
 		ensure
-			type_set: type.same_string("motion status")
+			type_set: type.ends_with (" status")
 		end
 
 	set_id (a_id: like id)
@@ -152,6 +152,14 @@ feature -- Element change
 			votes := a_vote
 		ensure
 			vote_set: votes = a_vote
+		end
+
+	set_type (v: like type)
+			-- Set `type' to `v'.
+		do
+			type := v
+		ensure
+			type_set: type = v
 		end
 
 feature -- Filled data

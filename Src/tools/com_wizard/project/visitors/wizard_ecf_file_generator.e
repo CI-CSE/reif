@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "ECF configuration file generator."
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
@@ -32,8 +32,6 @@ feature -- Basic Operations
 
 	generate (a_dummy: STRING)
 			-- Generate configuration file.
-		local
-			a_text: STRING
 		do
 			generate_configuration
 		end
@@ -64,12 +62,17 @@ feature {NONE} -- Implementation
 			end
 			create l_dest_dir.make_from_string (environment.destination_folder.substring (1, environment.destination_folder.count - 1))
 
+			create l_fn.make_from_string (environment.destination_folder)
+			l_fn := l_fn.extended (l_name).extended_path (environment.ecf_file_name)
+
 				-- system, target, root, settings
-			if environment.is_client then
-				l_system := new_system (environment.project_name + "_client")
-			else
-				l_system := new_system (environment.project_name)
-			end
+			l_system := new_system
+				(if environment.is_client then
+					environment.project_name + "_client"
+				else
+					environment.project_name
+				end,
+				l_fn)
 			if environment.is_eiffel_interface then
 				l_target := l_system.targets.item (environment.eiffel_target)
 				l_target.set_name ("default")
@@ -147,8 +150,6 @@ feature {NONE} -- Implementation
 			add_libs (l_target, server, True)
 
 				-- store it
-			create l_fn.make_from_string (environment.destination_folder)
-			l_fn := l_fn.extended (l_name).extended_path (environment.ecf_file_name)
 			l_system.set_file_name (l_fn.name)
 			l_system.store
 		end
@@ -185,7 +186,7 @@ feature {NONE} -- Implementation
 			a_target_not_void: a_target /= Void
 			a_folder_not_void: a_folder /= Void and then a_folder.is_equal (client) or a_folder.is_equal (server)
 		local
-			l_dir: STRING
+			l_dir: STRING_32
 			l_ex_obj: CONF_EXTERNAL_OBJECT
 			l_cond: CONF_CONDITION
 			l_lib_name: STRING
@@ -221,8 +222,8 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	new_system (a_name: STRING): CONF_SYSTEM
-			-- Create a new configuration system with `a_name'.
+	new_system (a_name: STRING; p: PATH): CONF_SYSTEM
+			-- Create a new configuration system with `a_name' and path `p`.
 			-- If we are building from an eiffel interface, use the old project as source.
 		local
 			l_load: CONF_LOAD
@@ -230,19 +231,18 @@ feature {NONE} -- Implementation
 			if environment.is_eiffel_interface then
 				create l_load.make (conf_factory)
 				l_load.retrieve_configuration (environment.source_ecf_file_name)
-				if l_load.is_error then
-					Result := conf_factory.new_system_generate_uuid (a_name)
-				else
+				if not l_load.is_error then
 					Result := l_load.last_system
 					Result.set_name (a_name)
 					Result.set_uuid (conf_factory.uuid_generator.generate_uuid)
 				end
-			else
-				Result := conf_factory.new_system_generate_uuid (a_name)
+			end
+			if not attached Result then
+				Result := conf_factory.new_system_generate_uuid_with_file_name (p.name, a_name)
 			end
 		end
 
-	user_def_file_name: STRING
+	user_def_file_name: STRING_32
 			-- ".def" file name used for DLL compilation
 		do
 			create Result.make (100)
@@ -250,15 +250,12 @@ feature {NONE} -- Implementation
 			Result.append (Def_file_extension)
 		end
 
-	is_empty_clib_folder (a_folder: STRING): BOOLEAN
+	is_empty_clib_folder (a_folder: READABLE_STRING_32): BOOLEAN
 			-- Is folder `a_folder' is_empty?
 		local
 			l_directory: DIRECTORY
-			l_dn: DIRECTORY_NAME
 		do
-			create l_dn.make_from_string (environment.destination_folder)
-			l_dn.extend_from_array (<<a_folder, clib>>)
-			create l_directory.make_open_read (l_dn)
+			create l_directory.make_with_path ((create {PATH}.make_from_string (environment.destination_folder)).extended (a_folder).extended (clib))
 			Result := l_directory.is_empty
 		end
 
@@ -301,7 +298,7 @@ feature {NONE} -- Onces
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

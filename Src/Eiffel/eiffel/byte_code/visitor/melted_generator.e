@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Visitor for BYTE_NODE objects which generates the Eiffel melted code."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -69,12 +69,12 @@ feature -- Initialize
 			ba := a_ba
 			a_node.expr.process (Current)
 				-- Write the end of last old expression evaluation.
-			ba.write_forward
-			ba.append (bc_old)
-			ba.append_short_integer (a_node.position)
-			ba.append_short_integer (a_node.exception_position)
+			a_ba.write_forward
+			a_ba.append (bc_old)
+			a_ba.append_short_integer (a_node.position)
+			a_ba.append_short_integer (a_node.exception_position)
 				-- Mark start of next old expression evaluation.
-			ba.mark_forward
+			a_ba.mark_forward
 			ba := Void
 		end
 
@@ -509,7 +509,6 @@ feature {NONE} -- Visitors
 			-- Process `a_node'.
 		local
 			l_lt, l_rt: TYPE_A
-			l_flag: BOOLEAN
 		do
 			l_lt := context.real_type (a_node.left.type)
 			l_rt := context.real_type (a_node.right.type)
@@ -538,14 +537,12 @@ feature {NONE} -- Visitors
 				ba.append_boolean (False)
 			else
 				a_node.left.process (Current)
-				if (l_lt.is_basic and then l_rt.is_reference) then
+				if l_lt.is_basic and then l_rt.is_reference then
 					ba.append (Bc_metamorphose)
-					l_flag := True
 				end
 				a_node.right.process (Current)
-				if (l_lt.is_reference and then l_rt.is_basic) then
+				if l_lt.is_reference and then l_rt.is_basic then
 					ba.append (Bc_metamorphose)
-					l_flag := True
 				end
 					-- FIXME: This call assumes that `is_equal' from ANY always takes
 					-- `like Current' as argument, but actually it could be different.
@@ -652,15 +649,13 @@ feature {NONE} -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- Process `a_node'.
 		local
-			l_basic_type: BASIC_A
 			l_special_type: TYPE_A
 			l_class_type: SPECIAL_CLASS_TYPE
-			l_call: CALL_ACCESS_B
+			l_call: ROUTINE_B
 			l_nested: NESTED_B
 			l_is_make_filled: BOOLEAN
 		do
-			l_basic_type ?= context.real_type (a_node.type)
-			if l_basic_type /= Void then
+			if attached {BASIC_A} context.real_type (a_node.type) as l_basic_type then
 					-- Special cases for basic types where nothing needs to be created, we
 					-- simply need to push a default value as their creation procedure
 					-- is `default_create' and it does nothing.
@@ -809,6 +804,28 @@ feature {NONE} -- Visitors
 			ba.write_forward
 		end
 
+	process_elsif_expression_b_for_type (a_node: ELSIF_EXPRESSION_B; t: TYPE_A)
+			-- Same as `process_elsif_expression_b`, but converts result value to type `t`.
+		do
+				-- Generate hook for the condition test.
+			generate_melted_debugger_hook (ba)
+
+				-- Generate byte code for condition.
+			a_node.condition.process (Current)
+
+				-- Test if False.
+			ba.append (Bc_jmp_f)
+			ba.mark_forward
+
+				-- Generate hook for Then_part.
+			generate_melted_debugger_hook (ba)
+				-- Generate alternative expression byte code.
+			make_expression_byte_code_for_type (a_node.expression, t)
+			ba.append (Bc_jmp)
+			ba.mark_forward2
+			ba.write_forward
+		end
+
 	process_expr_address_b (a_node: EXPR_ADDRESS_B)
 			-- Process `a_node'.
 			--| Generation is exactly the same as in `process_hector_b'.
@@ -834,8 +851,6 @@ feature {NONE} -- Visitors
 			i: INTEGER
 			l_has_hector: BOOLEAN
 			l_parameter_b: PARAMETER_B
-			l_hector_b: HECTOR_B
-			l_expr_address_b: EXPR_ADDRESS_B
 			l_nb_expr_address: INTEGER
 			l_pos: INTEGER
 			l_is_in_creation_call: like is_in_creation_call
@@ -852,11 +867,13 @@ feature {NONE} -- Visitors
 				until
 					a_node.parameters.after
 				loop
-					l_parameter_b ?= a_node.parameters.item
+					l_parameter_b := a_node.parameters.item
 					if l_parameter_b /= Void and then l_parameter_b.is_hector then
 						l_has_hector := True
-						l_expr_address_b ?= l_parameter_b.expression
-						if l_expr_address_b /= Void and then l_expr_address_b.is_protected then
+						if
+							attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b
+							and then l_expr_address_b.is_protected
+						then
 							l_expr_address_b.expr.process (Current)
 							l_nb_expr_address := l_nb_expr_address + 1
 						end
@@ -881,20 +898,18 @@ feature {NONE} -- Visitors
 					a_node.parameters.after
 				loop
 					l_pos := l_pos + 1
-					l_parameter_b ?= a_node.parameters.item
+					l_parameter_b := a_node.parameters.item
 					if l_parameter_b /= Void and then l_parameter_b.is_hector then
-						l_hector_b ?= l_parameter_b.expression
-						if l_hector_b /= Void then
+						if attached {HECTOR_B} l_parameter_b.expression as l_hector_b then
 							make_protected_byte_code (l_hector_b, a_node.parameters.count - l_pos)
-						else
-								-- Cannot be Void
-							l_expr_address_b ?= l_parameter_b.expression
-							if l_expr_address_b.is_protected then
-								i := i + 1
-								l_expr_address_b.make_protected_byte_code (ba,
-									a_node.parameters.count - l_pos,
-									a_node.parameters.count + l_nb_expr_address - i)
-							end
+						elseif
+							attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+							l_expr_address_b.is_protected
+						then
+							i := i + 1
+							l_expr_address_b.make_protected_byte_code (ba,
+								a_node.parameters.count - l_pos,
+								a_node.parameters.count + l_nb_expr_address - i)
 						end
 					end
 					a_node.parameters.forth
@@ -927,8 +942,6 @@ feature {NONE} -- Visitors
 			i, l_pos, l_nb_expr_address: INTEGER
 			l_has_hector: BOOLEAN
 			l_parameter_b: PARAMETER_B
-			l_hector_b: HECTOR_B
-			l_expr_address_b: EXPR_ADDRESS_B
 			l_access_expression_b: ACCESS_EXPR_B
 			l_is_in_creation_call: like is_in_creation_call
 			l_is_active_region: like is_active_region
@@ -944,11 +957,13 @@ feature {NONE} -- Visitors
 				until
 					a_node.parameters.after
 				loop
-					l_parameter_b ?= a_node.parameters.item
+					l_parameter_b := a_node.parameters.item
 					if l_parameter_b /= Void and then l_parameter_b.is_hector then
 						l_has_hector := True
-						l_expr_address_b ?= l_parameter_b.expression
-						if l_expr_address_b /= Void and then l_expr_address_b.is_protected then
+						if
+							attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+							l_expr_address_b.is_protected
+						then
 							l_expr_address_b.expr.process (Current)
 							l_nb_expr_address := l_nb_expr_address + 1
 						end
@@ -970,7 +985,7 @@ feature {NONE} -- Visitors
 			end
 
 			if l_has_hector then
-				if (a_node.parent /= Void and then a_node.parent.target.is_hector) then
+				if a_node.parent /= Void and then a_node.parent.target.is_hector then
 						-- We are in the case of a nested calls which have
 						-- a target using the `$' operator. It can only be the case
 						-- of `($a).f (..)'. where `($a)' represents an
@@ -980,20 +995,16 @@ feature {NONE} -- Visitors
 					check
 						has_access_expression: l_access_expression_b /= Void
 					end
-					l_hector_b ?= l_access_expression_b.expr
-					if l_hector_b /= Void then
+					if attached {HECTOR_B} l_access_expression_b.expr as l_hector_b then
 						make_protected_byte_code (l_hector_b, a_node.parameters.count)
-					else
-						l_expr_address_b ?= l_parameter_b.expression
-						check
-							expr_address_b_not_void: l_expr_address_b /= Void
-						end
-						if l_expr_address_b.is_protected then
-							i := i + 1
-							l_expr_address_b.make_protected_byte_code (ba,
-								a_node.parameters.count,
-								a_node.parameters.count + l_nb_expr_address - i)
-						end
+					elseif
+						attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+						l_expr_address_b.is_protected
+					then
+						i := i + 1
+						l_expr_address_b.make_protected_byte_code (ba,
+							a_node.parameters.count,
+							a_node.parameters.count + l_nb_expr_address - i)
 					end
 				end
 				from
@@ -1002,20 +1013,18 @@ feature {NONE} -- Visitors
 					a_node.parameters.after
 				loop
 					l_pos := l_pos + 1
-					l_parameter_b ?= a_node.parameters.item
+					l_parameter_b := a_node.parameters.item
 					if l_parameter_b /= Void and then l_parameter_b.is_hector then
-						l_hector_b ?= l_parameter_b.expression
-						if l_hector_b /= Void then
+						if attached {HECTOR_B} l_parameter_b.expression as l_hector_b then
 							make_protected_byte_code (l_hector_b, a_node.parameters.count - l_pos)
-						else
-								-- Cannot be Void
-							l_expr_address_b ?= l_parameter_b.expression
-							if l_expr_address_b.is_protected then
-								i := i + 1
-								l_expr_address_b.make_protected_byte_code (ba,
-									a_node.parameters.count - l_pos,
-									a_node.parameters.count + l_nb_expr_address - i)
-							end
+						elseif
+							attached {EXPR_ADDRESS_B} l_parameter_b.expression as l_expr_address_b and then
+							l_expr_address_b.is_protected
+						then
+							i := i + 1
+							l_expr_address_b.make_protected_byte_code (ba,
+								a_node.parameters.count - l_pos,
+								a_node.parameters.count + l_nb_expr_address - i)
 						end
 					end
 					a_node.parameters.forth
@@ -1165,7 +1174,10 @@ feature {NONE} -- Visitors
 			-- <Precursor>
 		local
 			nb_jumps: INTEGER
+			t: TYPE_A
 		do
+			t := context.real_type (a_node.type)
+
 				-- Generate byte code for condition.
 			a_node.condition.process (Current)
 
@@ -1178,7 +1190,7 @@ feature {NONE} -- Visitors
 				-- Generate hook for Then_part.
 			generate_melted_debugger_hook (ba)
 				-- Generate expression for Then_part.
-			a_node.then_expression.process (Current)
+			make_expression_byte_code_for_type (a_node.then_expression, t)
 
 			ba.append (Bc_jmp)
 			ba.mark_forward2
@@ -1192,7 +1204,7 @@ feature {NONE} -- Visitors
 				across
 					l as c
 				loop
-					c.item.process (Current)
+					process_elsif_expression_b_for_type (c.item, t)
 				end
 				nb_jumps := nb_jumps + l.count
 			end
@@ -1200,7 +1212,7 @@ feature {NONE} -- Visitors
 				-- Generate hook for Else_part.
 			generate_melted_debugger_hook (ba)
 				-- Generate expression for Else_part.
-			a_node.else_expression.process (Current)
+			make_expression_byte_code_for_type (a_node.else_expression, t)
 
 			from
 					-- Generate jump values for unconditional jumps
@@ -1704,10 +1716,10 @@ feature {NONE} -- Visitors
 				when {SK_CONST}.sk_int16 then ba.append (bc_cast_integer) ba.append_integer (16)
 				when {SK_CONST}.sk_int32 then ba.append (bc_cast_integer) ba.append_integer (32)
 				when {SK_CONST}.sk_int64 then ba.append (bc_cast_integer) ba.append_integer (64)
-				when {SK_CONST}.sk_uint8 then ba.append (bc_cast_integer) ba.append_integer (8)
-				when {SK_CONST}.sk_uint16 then ba.append (bc_cast_integer) ba.append_integer (16)
-				when {SK_CONST}.sk_uint32 then ba.append (bc_cast_integer) ba.append_integer (32)
-				when {SK_CONST}.sk_uint64 then ba.append (bc_cast_integer) ba.append_integer (64)
+				when {SK_CONST}.sk_uint8 then ba.append (bc_cast_natural) ba.append_integer (8)
+				when {SK_CONST}.sk_uint16 then ba.append (bc_cast_natural) ba.append_integer (16)
+				when {SK_CONST}.sk_uint32 then ba.append (bc_cast_natural) ba.append_integer (32)
+				when {SK_CONST}.sk_uint64 then ba.append (bc_cast_natural) ba.append_integer (64)
 				when {SK_CONST}.sk_real32 then ba.append (bc_cast_real32)
 				when {SK_CONST}.sk_real64 then ba.append (bc_cast_real64)
 				else
@@ -1720,8 +1732,6 @@ feature {NONE} -- Visitors
 		local
 			l_source_type: TYPE_A
 			l_target_type: TYPE_A
-			l_source_class_type: CL_TYPE_A
-			l_target_class_type: CL_TYPE_A
 		do
 				-- Generate expression byte code
 			l_source_type := context.real_type (a_node.expression.type)
@@ -1738,10 +1748,9 @@ feature {NONE} -- Visitors
 				ba.append_boolean (False)
 			elseif l_target_type.is_expanded and then l_source_type.is_expanded then
 					-- NOOP if classes are different or normal assignment otherwise.
-				l_source_class_type ?= l_source_type
-				l_target_class_type ?= l_target_type
 				if
-					l_target_class_type /= Void and then l_source_class_type /= Void and then
+					attached {CL_TYPE_A} l_source_type as l_source_class_type and then
+					attached {CL_TYPE_A} l_target_type as l_target_class_type and then
 					l_target_class_type.class_id = l_source_class_type.class_id
 				then
 						-- Do normal assignment.
@@ -1806,7 +1815,7 @@ feature {NONE} -- Visitors
 				ba.append_integer (l_value_32.count * 4)
 				ba.append_raw_string_32 (l_value_32)
 			else
-				l_value := a_node.value
+				l_value := a_node.value_8
 					-- Bytes to read
 				ba.append_integer (l_value.count)
 				ba.append_raw_string (l_value)
@@ -1873,8 +1882,6 @@ feature {NONE} -- Visitors
 		local
 			l_source_type: TYPE_A
 			l_target_type: TYPE_A
-			l_source_class_type: CL_TYPE_A
-			l_target_class_type: CL_TYPE_A
 		do
 			generate_melted_debugger_hook (ba)
 
@@ -1888,10 +1895,9 @@ feature {NONE} -- Visitors
 				ba.append (Bc_none_assign)
 			elseif l_target_type.is_expanded and then l_source_type.is_expanded then
 					-- NOOP if classes are different or normal assignment otherwise.
-				l_source_class_type ?= l_source_type
-				l_target_class_type ?= l_target_type
 				if
-					l_target_class_type /= Void and then l_source_class_type /= Void and then
+					attached {CL_TYPE_A} l_source_type as l_source_class_type and then
+					attached {CL_TYPE_A} l_target_type as l_target_class_type and then
 					l_target_class_type.class_id = l_source_class_type.class_id
 				then
 						-- Do normal assignment.
@@ -2096,7 +2102,7 @@ feature {NONE} -- Visitors
 			until
 				a_node.expressions.before
 			loop
-				l_expr ?= a_node.expressions.item
+				l_expr := a_node.expressions.item
 				check l_expr_not_void: l_expr /= Void end
 				l_expr.process (Current)
 				if l_expr.is_hector then
@@ -2121,11 +2127,9 @@ feature {NONE} -- Visitors
 			end
 		end
 
-
 	process_type_expr_b (a_node: TYPE_EXPR_B)
 			-- Process `a_node'.
 		local
-			l_type_creator: CREATE_INFO
 			l_type_type: TYPE_A
 		do
 			ba.append (Bc_create_type)
@@ -2133,8 +2137,7 @@ feature {NONE} -- Visitors
 			ba.append_boolean (False)
 
 			l_type_type := context.descendant_type (a_node.type_type)
-			l_type_creator := l_type_type.create_info
-			l_type_creator.make_byte_code (ba)
+			l_type_type.create_info.make_byte_code (ba)
 			ba.append_natural_16 ({SHARED_GEN_CONF_LEVEL}.terminator_type)
 
 				-- Add annotations, if any, of the declaration of the manifest type.
@@ -2171,9 +2174,14 @@ feature {NONE} -- Visitors
 	process_un_old_b (a_node: UN_OLD_B)
 			-- Process `a_node'.
 		do
-			ba.append (Bc_retrieve_old)
-			ba.append_short_integer (a_node.position)
-			ba.append_short_integer (a_node.exception_position)
+			if a_node.is_exception_block_needed then
+				ba.append (Bc_retrieve_old)
+				ba.append_short_integer (a_node.position)
+				ba.append_short_integer (a_node.exception_position)
+			else
+				ba.append (bc_local)
+				ba.append_short_integer (a_node.position)
+			end
 		end
 
 	process_un_plus_b (a_node: UN_PLUS_B)
@@ -2409,13 +2417,13 @@ feature {NONE} -- Implementation
 			l_rt := context.real_type (a_node.right.type)
 
 			a_node.left.process (Current)
-			if (l_lt.is_basic and then l_rt.is_reference) then
+			if l_lt.is_basic and then l_rt.is_reference then
 				ba.append (Bc_metamorphose)
 				l_flag := True
 			end
 
 			a_node.right.process (Current)
-			if (l_lt.is_reference and then l_rt.is_basic) then
+			if l_lt.is_reference and then l_rt.is_basic then
 				ba.append (Bc_metamorphose)
 				l_flag := True
 			end
@@ -2485,7 +2493,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	make_call_access_b (a_node: CALL_ACCESS_B; code_first, code_next: CHARACTER; is_creation: BOOLEAN; is_active: BOOLEAN)
+	make_call_access_b (a_node: ROUTINE_B; code_first, code_next: CHARACTER; is_creation: BOOLEAN; is_active: BOOLEAN)
 			-- Generate call to EXTERNAL_B/FEATURE_B.
 			-- Generate byte code for a feature call.
 			-- `is_creation' indicates if this is a call to a creation procedure and `is_active' tells that an active region is to be created in case of a separate target type.
@@ -2497,6 +2505,7 @@ feature {NONE} -- Implementation
 			l_basic_type: BASIC_A
 			l_inst_cont_type: TYPE_A
 			l_finish_byte_code: BOOLEAN
+			creation_expression: CREATION_EXPR_B
 		do
 			l_inst_cont_type := a_node.context_type
 			if system.is_scoop and then l_inst_cont_type.is_separate then
@@ -2533,7 +2542,19 @@ feature {NONE} -- Implementation
 				if a_node.is_first then
 						--! Cannot melt basic calls hence is_first
 						--! is not used in the above if meta statement.
-					ba.append (Bc_current)
+					if a_node.is_class_target_needed then
+							-- Generate an empty object to be used as a target of the call.
+						check
+							instance_free_call_has_precursor_type: attached a_node.precursor_type as p
+						then
+							create creation_expression
+							creation_expression.set_info (p.create_info)
+							creation_expression.set_type (p)
+							process_creation_expr_b (creation_expression)
+						end
+					else
+						ba.append (Bc_current)
+					end
 				else
 					if a_node.parameters /= Void then
 						ba.append (Bc_rotate)
@@ -2556,12 +2577,12 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	make_precursor_byte_code (a_node: CALL_ACCESS_B)
+	make_precursor_byte_code (a_node: ROUTINE_B)
 			-- Generate precursor byte code if needed.
 		local
 			l_type: TYPE_A
 		do
-			if a_node.precursor_type /= Void then
+			if a_node.is_target_type_fixed then
 				l_type := context.real_type (a_node.precursor_type)
 				if l_type.is_multi_constrained then
 					check
@@ -2586,14 +2607,16 @@ feature {BYTE_NODE} -- Debugger hook
 			ctx: like context
 		do
 			ctx := context
-			if not ctx.is_inside_hidden_code then
-				if attached ctx.current_feature as cf and then cf.supports_step_in then
-					lnr := ctx.get_next_breakpoint_slot
-					check
-						valid_line: lnr > 0
-					end
-					a_ba.generate_melted_debugger_hook (lnr)
+			if
+				not ctx.is_inside_hidden_code and then
+				attached ctx.current_feature as cf and then
+				cf.supports_step_in
+			then
+				lnr := ctx.get_next_breakpoint_slot
+				check
+					valid_line: lnr > 0
 				end
+				a_ba.generate_melted_debugger_hook (lnr)
 			end
 		end
 
@@ -2604,16 +2627,18 @@ feature {BYTE_NODE} -- Debugger hook
 			ctx: like context
 		do
 			ctx := context
-			if not ctx.is_inside_hidden_code then
-				if attached ctx.current_feature as cf and then cf.supports_step_in then
-					l_line := ctx.get_breakpoint_slot
-					if l_line > 0 then
-							-- Generate a hook when there is really need for one.
-							-- (E.g. we do not need a hook for the code generation
-							-- of an invariant).
-						l_nested := ctx.get_next_breakpoint_nested_slot
-						ba.generate_melted_debugger_hook_nested (l_line, l_nested)
-					end
+			if
+				not ctx.is_inside_hidden_code and then
+				attached ctx.current_feature as cf and then
+				cf.supports_step_in
+			then
+				l_line := ctx.get_breakpoint_slot
+				if l_line > 0 then
+						-- Generate a hook when there is really need for one.
+						-- (E.g. we do not need a hook for the code generation
+						-- of an invariant).
+					l_nested := ctx.get_next_breakpoint_nested_slot
+					ba.generate_melted_debugger_hook_nested (l_line, l_nested)
 				end
 			end
 		end
@@ -2654,7 +2679,7 @@ feature {NONE} -- SCOOP
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

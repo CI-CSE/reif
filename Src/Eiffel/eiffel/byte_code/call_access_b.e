@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Eiffel Call and Access"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -35,6 +35,9 @@ inherit
 
 feature -- Access
 
+	type: TYPE_A
+			-- Result type of the call.
+
 	feature_id: INTEGER
 			-- Feature id of the called feature.
 
@@ -64,6 +67,14 @@ feature -- Access
 			Result := enlarged
 		end
 
+feature -- Status report
+
+	is_target_type_fixed: BOOLEAN
+			-- Is target type known at compile time?
+		do
+			Result := attached precursor_type
+		end
+
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 
 	feature_name: STRING
@@ -78,6 +89,14 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 		end
 
 feature -- Setting
+
+	set_type (t: like type)
+			-- Assign `t' to `type'.
+		do
+			type := t
+		ensure
+			type_set: type = t
+		end
 
 	set_precursor_type (p_type : like precursor_type)
 			-- Assign `p_type' to `precursor_type'.
@@ -96,51 +115,6 @@ feature -- Byte code generation
 			-- Make byte code for special calls.
 		do
 			special_routines.make_byte_code (ba, basic_type)
-		end
-
-	real_feature_id (a_context_type: CL_TYPE_A): INTEGER
-			-- The feature ID in INTEGER is not necessarily the same as
-			-- in the INTEGER_REF class. And likewise for other simple types.
-			-- But also for generic derivation which contains an expanded type
-			-- as a generic parameter.
-		require
-			a_context_type_not_void: a_context_type /= Void
-			a_context_type_has_class: a_context_type.has_associated_class
-		local
-			gen: GEN_TYPE_A
-		do
-			if precursor_type = Void then
-				if a_context_type.is_basic then
-						-- We perform a non-optimized call on a basic type.
-						-- Process the feature id of `feature_name' in the
-						-- associated reference type
-					Result := a_context_type.reference_type.base_class.feature_of_name_id (feature_name_id).feature_id
-				else
-						-- A generic parameter of current class has been derived
-						-- into an expanded type, so we need to find the `feature_id'
-						-- of the feature we want to call in the context of the
-						-- expanded class.
-						-- FIXME: Manu 01/24/2000
-						-- We do the search even for a generic class which do not
-						-- have a generic parameter who has been derived into an expanded type
-						-- We could maybe find a way for not performing the check in the
-						-- above case.
-					gen ?= context.current_type
-					if gen /= Void and then a_context_type.is_true_expanded then
-						Result := a_context_type.base_class.feature_of_rout_id (routine_id).feature_id
-					end
-				end
-			end
-				-- No feature ID was computed, so let's compute it.
-			if Result = 0 then
-				if context.current_type.class_id = a_context_type.class_id then
-						-- Code is processed in the context where it is written
-					Result := feature_id
-				else
-						-- Code is processed in the context different from the one where it is written
-					Result := a_context_type.base_class.feature_of_rout_id (routine_id).feature_id
-				end
-			end
 		end
 
 	basic_register: REGISTRABLE
@@ -164,8 +138,6 @@ feature -- Byte code generation
 			-- inlining
 		local
 			type_i: TYPE_A
-			class_type: CL_TYPE_A
-			basic_type: BASIC_A
 			buf: GENERATION_BUFFER
 		do
 			Precursor (reg)
@@ -176,17 +148,18 @@ feature -- Byte code generation
 				-- that we are currently performing a static access call on a feature
 				-- from a basic class. Assuming otherwise is not correct as you
 				-- cannot seriously inherit from a basic class.
-			if type_i.is_basic and then precursor_type = Void then
-				basic_type ?= type_i
-				if not is_feature_special (True, basic_type) then
-					buf := buffer
-					class_type := basic_type.reference_type
-						-- If an invariant is to be checked however, the
-						-- metamorphosis was already made by the invariant
-						-- checking routine.
-					basic_type.metamorphose (basic_register, reg, buf)
-					buf.put_character (';')
-				end
+			if
+				type_i.is_basic and then
+				precursor_type = Void and then
+				attached {BASIC_A} type_i as basic_type and then
+				not is_feature_special (True, basic_type)
+			then
+				buf := buffer
+					-- If an invariant is to be checked however, the
+					-- metamorphosis was already made by the invariant
+					-- checking routine.
+				basic_type.metamorphose (basic_register, reg, buf)
+				buf.put_character (';')
 			end
 		end
 
@@ -276,7 +249,6 @@ feature -- Byte code generation
 		local
 			type_i: TYPE_A
 			class_type: CL_TYPE_A
-			basic_type: BASIC_A
 			buf: GENERATION_BUFFER
 		do
 			type_i := context_type
@@ -287,22 +259,26 @@ feature -- Byte code generation
 				-- from a basic class. Assuming otherwise is not correct as you
 				-- cannot seriously inherit from a basic class.
 			if type_i.is_basic and then precursor_type = Void then
-				basic_type ?= type_i
-				if is_feature_special (True, basic_type) then
-					generate_special_feature (reg, basic_type)
-				else
-					buf := buffer
-						-- Generation of metamorphosis is enclosed between (), and
-						-- the expressions are separated with ',' which means the C
-						-- keeps only the last expression, i.e. the function call.
-						-- That way, statements like "s := i.out" are correctly
-						-- generated with a minimum of temporaries.
-					class_type := basic_type.reference_type
-						-- If an invariant is to be checked however, the
-						-- metamorphosis was already made by the invariant
-						-- checking routine.
-					generate_metamorphose_end (basic_register, reg,
-									class_type, basic_type, buf)
+				check attached {BASIC_A} type_i as basic_type then
+					if is_feature_special (True, basic_type) then
+						generate_special_feature (reg, basic_type)
+					elseif is_attribute then
+							-- The attribute is a value of a basic type.
+						generate_end (reg, basic_type)
+					else
+						buf := buffer
+							-- Generation of metamorphosis is enclosed between (), and
+							-- the expressions are separated with ',' which means the C
+							-- keeps only the last expression, i.e. the function call.
+							-- That way, statements like "s := i.out" are correctly
+							-- generated with a minimum of temporaries.
+						class_type := basic_type.reference_type
+							-- If an invariant is to be checked however, the
+							-- metamorphosis was already made by the invariant
+							-- checking routine.
+						generate_metamorphose_end (basic_register, reg,
+										class_type, basic_type, buf)
+					end
 				end
 			else
 				check attached {CL_TYPE_A} type_i as c then
@@ -365,7 +341,7 @@ feature -- Byte code generation
 				buffer.put_character ('*')
 				basic_type.c_type.generate_access_cast (buf)
 			end
-			generate_end (basic_register, class_type)
+			generate_end (gen_reg, class_type)
 		end
 
 feature {NONE} -- C code generation
@@ -428,7 +404,10 @@ feature {NONE} -- C code generation
 		do
 			is_nested := not is_first
 			buf := buffer
-			if attached precursor_type as p then
+			if
+				attached precursor_type as p and then
+				is_target_type_fixed
+			then
 				l_type := context.real_type (p)
 				if l_type.is_multi_constrained then
 					check
@@ -459,12 +438,17 @@ feature {NONE} -- C code generation
 			buf.put_integer (routine_id)
 			buf.put_two_character (',', ' ')
 			if not is_nested then
-				if precursor_type /= Void then
+				if not attached precursor_type then
+					context.generate_current_dtype
+				elseif is_target_type_fixed then
 						-- Use dynamic type of parent instead
 						-- of dynamic type of Current.
 					buf.put_static_type_id (cl_type_i.static_type_id (context.context_class_type.type))
 				else
-					context.generate_current_dtype
+					buf.put_string ({C_CONST}.dtype)
+					buf.put_character ('(')
+					t.print_register
+					buf.put_character (')')
 				end
 			elseif call_kind = call_kind_qualified then
 					-- Feature name is used to report a call on a void target.
@@ -473,7 +457,7 @@ feature {NONE} -- C code generation
 				buf.put_two_character (',', ' ')
 				t.print_register
 			else
-				buf.put_string ({C_CONST}.dtype);
+				buf.put_string ({C_CONST}.dtype)
 				buf.put_character ('(')
 				t.print_register
 				buf.put_character (')')
@@ -504,19 +488,17 @@ feature {NONE} -- Separate call
 			buf: GENERATION_BUFFER
 			array_index: INTEGER_32
 			target_type: TYPE_A
-			rout_table: ROUT_TABLE
 			name: STRING
 			is_optimized_result: BOOLEAN
 		do
 				-- Generate the feature name.
-
 			buf := buffer
 			target_type := context_type
 			array_index := Eiffel_table.is_polymorphic (routine_id, target_type, Context.context_class_type, True)
 			if array_index = -2 then
 					-- Call to a deferred feature without implementation
 				buf.put_string ("NULL")
-			elseif precursor_type = Void and then array_index >= 0 then
+			elseif array_index >= 0 and then not is_target_type_fixed then
 					-- The call is polymorphic, so generate access to the
 					-- routine table.
 					-- Feature may return a reference that needs to be used as a basic one.
@@ -542,13 +524,12 @@ feature {NONE} -- Separate call
 				Eiffel_table.mark_used (routine_id)
 					-- Remember extern declaration
 				Extern_declarations.add_routine_table (name)
-			else
+			elseif attached {ROUT_TABLE} Eiffel_table.poly_table (routine_id) as rout_table then
 					-- The call is not polymorphic in the given context,
 					-- so the name can be hardwired, unless we access a
 					-- deferred feature in which case we have to be careful
 					-- and get the routine name of the first entry in the
 					-- routine table.
-				rout_table ?= Eiffel_table.poly_table (routine_id)
 				rout_table.goto_implemented (target_type, context.context_class_type)
 				if rout_table.is_implemented then
 					name := rout_table.feature_name
@@ -637,7 +618,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -668,4 +649,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class CALL_ACCESS_B
+end

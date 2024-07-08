@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Serialize and deserialize objects to and from SED_READER_WRITER instances."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -50,7 +50,7 @@ feature -- Serialization routines
 			-- Serialization of `an_object' using `a_writer'.
 			-- Object stored can only be retrieved by programs having the same set of types.
 		obsolete
-			"Use `store' instead."
+			"Use `store' instead. [2017-05-31]"
 		require
 			an_object_not_void: an_object /= Void
 			a_writer_not_void: a_writer /= Void
@@ -91,6 +91,7 @@ feature -- Serialization routines
 			an_object_not_void: an_object /= Void
 			a_medium_not_void: a_medium /= Void
 			a_medium_writable: a_medium.is_open_write
+			a_medium_support_storable: a_medium.support_storable
 		do
 			store (an_object, create {SED_MEDIUM_READER_WRITER}.make_for_writing (a_medium))
 		end
@@ -103,16 +104,24 @@ feature -- Serialization routines
 			a_reader_ready: a_reader.is_ready_for_reading
 		local
 			l_deserializer: detachable SED_SESSION_DESERIALIZER
+			l_retrieved_errors: like retrieved_errors
 		do
 			a_reader.read_header
 			inspect
 				a_reader.read_natural_32
 			when eiffel_session_store then l_deserializer := session_deserializer (a_reader)
 			when eiffel_basic_store then l_deserializer := basic_deserializer (a_reader)
-			when eiffel_independent_store then l_deserializer := independent_deserializer (a_reader)
 			when eiffel_recoverable_store then l_deserializer := recoverable_deserializer (a_reader)
+			when eiffel_independent_store then
+					-- Obsolete type.
+				create l_retrieved_errors.make (1)
+				l_retrieved_errors.extend ((create {SED_ERROR_FACTORY}).new_obsolete_storable_type)
+				retrieved_errors := l_retrieved_errors
 			else
-				-- Incorrect type
+					-- Unknown type.
+				create l_retrieved_errors.make (1)
+				l_retrieved_errors.extend ((create {SED_ERROR_FACTORY}).new_unknown_storable_type)
+				retrieved_errors := l_retrieved_errors
 			end
 
 			if l_deserializer /= Void then
@@ -130,6 +139,7 @@ feature -- Serialization routines
 		require
 			a_medium_not_void: a_medium /= Void
 			a_medium_open_for_reading: a_medium.is_open_read
+			a_medium_support_storable: a_medium.support_storable
 		do
 			Result := retrieved (create {SED_MEDIUM_READER_WRITER}.make_for_reading (a_medium), False)
 		end
@@ -137,7 +147,7 @@ feature -- Serialization routines
 	retrieved_error: detachable SED_ERROR
 			-- Error set from last call to `retrieved'.
 		obsolete
-			"Use `retrieved_errors' directly."
+			"Use `retrieved_errors' directly. [2017-05-31]"
 		do
 			if attached retrieved_errors as l_errors and then not l_errors.is_empty then
 				Result := l_errors.last
@@ -253,29 +263,6 @@ feature {NONE} -- Data
 			basic_deserializer_not_void: Result /= Void
 		end
 
-	independent_deserializer (a_reader: SED_READER_WRITER): SED_INDEPENDENT_DESERIALIZER
-			-- New instance of `session' based on `a_reader'.
-		require
-			a_reader_not_void: a_reader /= Void
-			a_reader_ready: a_reader.is_ready_for_reading
-		do
-			Result := internal_independent_deserializer (a_reader)
-			Result.set_deserializer (a_reader)
-		ensure
-			independent_deserializer_not_void: Result /= Void
-		end
-
-	internal_independent_deserializer (a_reader: SED_READER_WRITER): SED_INDEPENDENT_DESERIALIZER
-			-- New instance of `session' based on `a_reader'.
-		require
-			a_reader_not_void: a_reader /= Void
-			a_reader_ready: a_reader.is_ready_for_reading
-		once
-			create Result.make (a_reader)
-		ensure
-			independent_deserializer_not_void: Result /= Void
-		end
-
 	internal_recoverable_deserializer (a_reader: SED_READER_WRITER): SED_RECOVERABLE_DESERIALIZER
 			-- New instance of `session' based on `a_reader'.
 		require
@@ -322,7 +309,7 @@ feature {NONE} -- Data
 
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

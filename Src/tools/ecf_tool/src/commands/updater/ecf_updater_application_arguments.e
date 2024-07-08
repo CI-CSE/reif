@@ -43,6 +43,23 @@ feature -- Access
 		end
 
 	root_directory: detachable PATH
+			-- Root directory, mainly used to resolve ISE_LIBRARY env variable and similar.
+		deferred
+		end
+
+	included_directories: detachable LIST [PATH]
+			-- Directories to scan for libraries ecf.
+		deferred
+		end
+
+	avoided_directories: detachable LIST [PATH]
+			-- When updater has multiple choice for new ecf location,
+			-- the one inside avoided directories has lower priority.
+		deferred
+		end
+
+	excluded_directories: detachable LIST [PATH]
+			-- Excluded directories from known ecf.
 		deferred
 		end
 
@@ -55,7 +72,7 @@ feature -- Access
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2016, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

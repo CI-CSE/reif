@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Load configuration from the old lace format."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -162,7 +162,7 @@ feature {NONE} -- Implementation of data retrieval
 
 	current_cluster: CONF_CLUSTER
 
-	current_options: CONF_OPTION
+	current_options: CONF_TARGET_OPTION
 
 	current_overrides: SEARCH_TABLE [STRING]
 
@@ -395,11 +395,11 @@ feature {NONE} -- Implementation of data retrieval
 					until
 						l_excludes.after
 					loop
-						l_str := "/"+l_excludes.item.file__name+"$"
-						if valid_regexp (l_str) then
-							l_fr.add_exclude (l_str)
+						l_str := "/" + l_excludes.item.file__name + "$"
+						if attached regexp_error (l_str) as e then
+							set_error (create {CONF_ERROR_REGEXP}.make (l_str, e.message, e.position))
 						else
-							set_error (create {CONF_ERROR_REGEXP}.make (l_str))
+							l_fr.add_exclude (l_str)
 						end
 						l_excludes.forth
 					end
@@ -522,6 +522,7 @@ feature {NONE} -- Implementation of data retrieval
 			l_loader: CONF_LOAD
 			l_libs: STRING_TABLE [CONF_LIBRARY]
 			l_pre_lib: CONF_LIBRARY
+			l_lib_name: STRING_32
 		do
 			if a_defaults /= Void then
 				from
@@ -649,7 +650,9 @@ feature {NONE} -- Implementation of data retrieval
 										l_libs.after
 									loop
 										l_pre_lib := l_libs.item_for_iteration
-										l_pre_lib.name.prepend ("pre_")
+										create l_lib_name.make_from_string_general (l_pre_lib.name)
+										l_lib_name.prepend ("pre_")
+										l_pre_lib.set_name (l_lib_name)
 										current_target.add_library (l_pre_lib)
 										l_libs.forth
 									end
@@ -734,11 +737,11 @@ feature {NONE} -- Implementation of data retrieval
 								-- Use "concurrency" setting instead.
 							l_str := l_value.value.as_lower
 							if l_str ~ "true" or else l_str ~ "yes" then
-								current_target.immediate_setting_concurrency.put_index ({CONF_TARGET}.setting_concurrency_index_thread)
+								current_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_thread)
 							elseif l_str ~ "false" or else l_str ~ "no" then
-								current_target.immediate_setting_concurrency.put_index ({CONF_TARGET}.setting_concurrency_index_none)
+								current_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_none)
 							end
-						elseif valid_setting (l_name) and l_value /= Void then
+						elseif is_setting_known (l_name) and l_value /= Void then
 							current_target.add_setting (l_name, l_value.value.as_string_32)
 						end
 					end
@@ -923,7 +926,7 @@ invariant
 	extension_name_not_empty: not extension_name.is_empty
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

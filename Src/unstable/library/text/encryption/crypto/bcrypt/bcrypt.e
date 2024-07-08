@@ -1,10 +1,10 @@
-note
+﻿note
 	description: "[
 				BCrypt implements OpenBSD-style Blowfish password hashing using
 				the scheme described in "A Future-Adaptable Password Scheme" by
 				Niels Provos and David Mazieres.
 				A bcrypt password should look like this
-				
+
 				$2a$12$D4G5f18o7aMMfwasBL7GpuQWuP3pkrZrOAnqP.bmezbMng.QwJ/pG
 				2a identifies the bcrypt algorithm version that was used.
 				12 is the cost factor; 2^12 iterations of the key derivation function are used.It's recommend a cost of 12 or more.
@@ -96,7 +96,7 @@ feature -- Hash password
 						end
 					end
 				end
-				Result :=  Result and then
+				Result := Result and then
 							(a_salt.count - off >= 25) and then
 							(a_salt [off + 3] <= '$')
 			end
@@ -107,10 +107,10 @@ feature -- Hash password
 	hashed_password_general (a_password: READABLE_STRING_GENERAL; a_salt: READABLE_STRING_GENERAL): STRING_8
 			-- General version of hashed_password.
 		do
-			if a_password.is_string_32 then
-				Result := hashed_password_unicode (a_password.as_string_32, a_salt.as_string_32)
+			if a_password.is_valid_as_string_8 and a_salt.is_valid_as_string_8 then
+				Result := hashed_password (a_password.to_string_8, a_salt.to_string_8)
 			else
-				Result := hashed_password (a_password.as_string_8, a_salt.as_string_8)
+				Result := hashed_password_unicode (a_password.to_string_32, a_salt.to_string_32)
 			end
 		end
 
@@ -119,23 +119,29 @@ feature -- Hash password
 			-- We encode unicode passwords and salts using utf-8 before execute them through bcrypt.
 		local
 			l_utf: UTF_CONVERTER
+			l_utf_8_salt: READABLE_STRING_8
 		do
-			Result := hashed_password (l_utf.string_32_to_utf_8_string_8 (a_password), l_utf.string_32_to_utf_8_string_8 (a_salt))
+			l_utf_8_salt := l_utf.string_32_to_utf_8_string_8 (a_salt)
+			if is_valid_salt_version (l_utf_8_salt) then
+				Result := hashed_password (l_utf.string_32_to_utf_8_string_8 (a_password), l_utf_8_salt)
+			else
+				create Result.make_empty
+				report_error ("Not `valid_salt_length` or `valid_salt_version` calling `hashed_password`.")
+			end
 		end
 
 	hashed_password (password: READABLE_STRING_8; salt: READABLE_STRING_8): STRING_8
-			-- Hash a password using the OpenBSD bcrypt scheme
-			-- password  the password to hash
-			-- salt  the salt to hash with (perhaps generated using BRCRYPT.new_salt)
-			-- Result the hased password.
+			-- Hashed `password` with salt `salt` using OpenBSD bcrypt scheme.
+			-- Note:
+			--		`password` and `salt` are UTF-8 string values.
+			-- 		`salt` could be generated using BRCRYPT.new_salt
 		require
-			valid_salt_leng: salt.count > 28
+			valid_salt_length: salt.count > 28
 			valid_salt_version: is_valid_salt_version (salt)
 		local
 			real_salt: STRING_8
 			l_password, l_salt, l_hashed: SPECIAL [NATURAL_8]
 			rounds, off: INTEGER
-			salt_lenght: INTEGER
 			minor: CHARACTER_8
 			utf: UTF_CONVERTER
 			pwd: STRING_8
@@ -144,8 +150,6 @@ feature -- Hash password
 			l_bcrypt: BCRYPT
 		do
 			rounds := 0
-			off := 0
-			salt_lenght := salt.count
 			if salt [3] = '$' then
 				minor := '%U'
 				off := 3
@@ -158,11 +162,10 @@ feature -- Hash password
 				rounds := l_substring.to_integer
 			end
 			real_salt := salt.substring (off + 4, off + 25)
-			pwd := password
+			create pwd.make_from_string (password)
 			if minor >= 'a' then
 				pwd.append_character ('%U')
 			end
-			pwd := utf.string_32_to_utf_8_string_8 (password)
 			create l_password.make_filled (0, pwd.count)
 			from
 				i := 0
@@ -170,26 +173,33 @@ feature -- Hash password
 			until
 				i = n
 			loop
-				l_password.put ((pwd [i+1].code.as_natural_8),i)
+				l_password.put (pwd [i + 1].code.as_natural_8, i)
 				i := i + 1
 			end
-			l_salt := decoded_base64_array (real_salt, bcrypt_salt_len)
-			create l_bcrypt.make_with_salt_generator (Current.salt_generator)
-			l_hashed := l_bcrypt.crypt_raw (l_password, l_salt, rounds)
-
 			create Result.make_empty
-			Result.append ("$2")
-			if minor >= 'a' then
-				Result.append_character (minor)
+			if is_valid_log_round (rounds) then
+				l_salt := decoded_base64_array (real_salt, bcrypt_salt_len)
+				create l_bcrypt.make_with_salt_generator (salt_generator)
+				l_hashed := l_bcrypt.crypt_raw (l_password, l_salt, rounds)
+				if l_bcrypt.has_error then
+					report_error (l_bcrypt.error_description)
+				else
+					Result.append ("$2")
+					if minor >= 'a' then
+						Result.append_character (minor)
+					end
+					Result.append_character ('$')
+					if rounds < 10 then
+						Result.append_integer (0)
+					end
+					Result.append_integer (rounds)
+					Result.append_character ('$')
+					append_encoded_base64_to (l_salt, l_salt.count, Result)
+					append_encoded_base64_to (l_hashed, bf_crypt_ciphertext.count * 4 - 1, Result)
+				end
+			else
+				report_error ("Invalid `rounds` to call `crypt_raw`.")
 			end
-			Result.append_character ('$')
-			if rounds < 10 then
-				Result.append_integer (0)
-			end
-			Result.append_integer (rounds)
-			Result.append_character ('$')
-			append_encoded_base64_to (l_salt, l_salt.count, Result)
-			append_encoded_base64_to (l_hashed, bf_crypt_ciphertext.count * 4 - 1, Result)
 		end
 
 feature -- helper
@@ -198,7 +208,7 @@ feature -- helper
 		require
 			valid_round_number: is_valid_log_round (a_log_rounds)
 		do
-			Result := ({INTEGER_64} 1) |<< a_log_rounds
+			Result := {INTEGER_64} 1 |<< a_log_rounds
 		end
 
 feature -- Generate Salt
@@ -211,6 +221,8 @@ feature -- Generate Salt
 			--  Result an encoded salt value.
 		require
 			valid_rounds: is_valid_log_round (a_log_rounds)
+		local
+			l_sequence: SPECIAL [NATURAL_8]
 		do
 			create Result.make_empty
 			Result.append ("$2a$")
@@ -219,7 +231,15 @@ feature -- Generate Salt
 			end
 			Result.append_integer (a_log_rounds)
 			Result.append_character ('$')
-			append_encoded_base64_to (salt_generator.new_sequence, Bcrypt_salt_len, Result)
+
+			l_sequence := salt_generator.new_sequence
+			if
+				Bcrypt_salt_len <= l_sequence.count
+			then
+				append_encoded_base64_to (l_sequence, Bcrypt_salt_len, Result)
+			else
+				report_error ("Invalid `bcrypt_salt_len` to call `append_encoded_base64_to`.")
+			end
 		ensure
 			is_valid_salt_version: is_valid_salt_version (Result)
 		end
@@ -230,6 +250,11 @@ feature -- Generate Salt
 			-- rounds to apply
 			-- Result an encoded salt value.
 		do
+				-- `gensalt_default_log2_rounds' is a valid log round
+				-- so no need to check precondition ``valid_rounds` of `new_salt`.
+			check
+				valid_log_round: is_valid_log_round (gensalt_default_log2_rounds)
+			end
 			Result := new_salt (gensalt_default_log2_rounds)
 		ensure
 			is_valid_salt_version: is_valid_salt_version (Result)
@@ -246,8 +271,10 @@ feature -- Generate Salt
 
 	is_valid_password_unicode (plaintext: READABLE_STRING_32; hashed: READABLE_STRING_32): BOOLEAN
 			-- Unicode version of is_valid_password.
+		local
+			h: READABLE_STRING_8			
 		do
-			Result := hashed.same_string (hashed_password_unicode (plaintext, hashed))
+			Result := hashed.same_string_general (hashed_password_unicode (plaintext, hashed))
 		end
 
 	is_valid_password_general (plaintext: READABLE_STRING_GENERAL; hashed: READABLE_STRING_GENERAL): BOOLEAN
@@ -256,6 +283,29 @@ feature -- Generate Salt
 			Result := hashed.same_string (hashed_password_general (plaintext, hashed))
 		end
 
+feature -- Error Report
+
+	has_error: BOOLEAN
+			-- There was an error?
+		do
+			Result := attached error_description
+		end
+
+	error_description: detachable IMMUTABLE_STRING_8
+			-- Last error description.
+
+	reset_error
+			-- Clean up error description
+		do
+			error_description := Void
+		end
+
+	report_error (a_description: detachable READABLE_STRING_8)
+		do
+			if a_description /= Void then
+				create error_description.make_from_string (a_description)
+			end
+		end
 
 feature {NONE} -- Bcrypt Parameters
 
@@ -282,7 +332,7 @@ feature {NONE} -- Initial contents of key schedule
 		local
 			l_array: ARRAY [INTEGER_32]
 		do
-			l_array := <<
+			l_array := {ARRAY [INTEGER_32]} <<
 					0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344, 0xa4093822, 0x299f31d0,
 					0x082efa98, 0xec4e6c89, 0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
 					0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917, 0x9216d5d9, 0x8979fb1b
@@ -295,7 +345,7 @@ feature {NONE} -- Initial contents of key schedule
 		local
 			l_array: ARRAY [INTEGER_32]
 		do
-			l_array := <<0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7, 0xb8e1afed,
+			l_array := {ARRAY [INTEGER_32]} <<0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7, 0xb8e1afed,
 			0x6a267e96, 0xba7c9045, 0xf12c7f99, 0x24a19947, 0xb3916cf7, 0x0801f2e2,
 			0x858efc16, 0x636920d8, 0x71574e69, 0xa458fea3, 0xf4933d7e, 0x0d95748f,
 			0x728eb658, 0x718bcd58, 0x82154aee, 0x7b54a41d, 0xc25a59b5, 0x9c30d539,
@@ -502,18 +552,18 @@ feature {NONE} -- Implementations
 				i > Blowfish_num_rounds - 2
 			loop
 					-- Feistel substitution on left word
-				n := l_s_boxes [((l |>> 24) & 0xff)]
-				n := n + l_s_boxes [(0x100 | ((l |>> 16) & 0xff))]
-				n := n.bit_xor (l_s_boxes [(0x200 | ((l |>> 8) & 0xff))])
-				n := n + l_s_boxes [(0x300 | (l & 0xff))]
+				n := l_s_boxes [(l |>> 24) & 0xff]
+				n := n + l_s_boxes [0x100 | ((l |>> 16) & 0xff)]
+				n := n.bit_xor (l_s_boxes [0x200 | ((l |>> 8) & 0xff)])
+				n := n + l_s_boxes [0x300 | (l & 0xff)]
 				i := i + 1
 				r := r.bit_xor (n.bit_xor (l_p_array [i]))
 
 					-- Feistel substitution on right word
-				n := l_s_boxes [((r |>> 24) & 0xff)]
-				n := n + l_s_boxes [(0x100 | ((r |>> 16) & 0xff))]
-				n := n.bit_xor (l_s_boxes [(0x200 | ((r |>> 8) & 0xff))])
-				n := n + l_s_boxes [(0x300 | (r & 0xff))]
+				n := l_s_boxes [(r |>> 24) & 0xff]
+				n := n + l_s_boxes [0x100 | ((r |>> 16) & 0xff)]
+				n := n.bit_xor (l_s_boxes [0x200 | ((r |>> 8) & 0xff)])
+				n := n + l_s_boxes [0x300 | (r & 0xff)]
 				i := i + 1
 				l := l.bit_xor (n.bit_xor (l_p_array [i]))
 
@@ -533,19 +583,17 @@ feature {NONE} -- Implementations
 			word: INTEGER
 			off: INTEGER
 		do
-			word := 0
 			off := offp [0]
 			from
 				i := 0
 			until
 				i = 4
 			loop
-				word := (word |<< 8) | (data [off] & 0xff)
+				Result := (Result |<< 8) | (data [off] & 0xff)
 				off := (off + 1) \\ data.count
 				i := i + 1
 			end
 			offp [0] := off
-			Result := word
 		end
 
 	init_key
@@ -669,12 +717,14 @@ feature {NONE} -- Implementations
 
 feature {BCRYPT} -- Implementation
 
-	crypt_raw (password: SPECIAL [NATURAL_8]; salt: SPECIAL [NATURAL_8]; log_rounds: INTEGER): SPECIAL [NATURAL_8]
+	crypt_raw (a_password: SPECIAL [NATURAL_8]; a_salt: SPECIAL [NATURAL_8]; a_log_rounds: INTEGER): SPECIAL [NATURAL_8]
 			-- Perform the central password hashing step in the bcrypt scheme.
-			-- `password'  the password to hash.
-			-- `salt'  the binary salt to hash with the password.
-			-- `log_rounds' the binary logarithm of the number of rounds of hashing to apply.
+			-- `a_password'  the password to hash.
+			-- `a_salt'  the binary salt to hash with the password.
+			-- `a_log_rounds' the binary logarithm of the number of rounds of hashing to apply.
 			-- Result an array containing the binary hashed password.
+		require
+			is_valid_log_rounds: is_valid_log_round (a_log_rounds)
 		local
 			cdata: SPECIAL [INTEGER]
 			clen: INTEGER
@@ -685,30 +735,22 @@ feature {BCRYPT} -- Implementation
 		do
 			cdata := bf_crypt_ciphertext.twin
 			clen := cdata.count
-			rounds := rounds_for_log_rounds (log_rounds)
-			create Result.make_filled (0,clen * 4)
+			rounds := rounds_for_log_rounds (a_log_rounds)
+			create Result.make_filled (0, clen * 4)
 			init_key
-			eks_key (salt, password)
+			eks_key (a_salt, a_password)
 			from
 				i64 := 0
 			until
 				i64 = rounds
 			loop
-				build_key (password)
-				build_key (salt)
+				build_key (a_password)
+				build_key (a_salt)
 				i64 := i64 + 1
 			end
 
-			from
-				i := 0
-			until
-				i = 64
-			loop
-				from
-					j := 0
-				until
-					j = (clen |>> 1)
-				loop
+			from i := 0 until i = 64 loop
+				from j := 0 until j = (clen |>> 1) loop
 					encipher (cdata, j |<< 1)
 					j := j + 1
 				end
@@ -724,7 +766,7 @@ feature {BCRYPT} -- Implementation
 				Result [j] := ((cdata [i] |>> 24) & 0xff).to_natural_8
 				Result [j+1] := ((cdata [i] |>> 16) & 0xff).to_natural_8
 				Result [j+2] := ((cdata [i] |>> 8) & 0xff).to_natural_8
-				Result [j+3] := ((cdata [i]) & 0xff).to_natural_8
+				Result [j+3] := (cdata [i] & 0xff).to_natural_8
 				j := j + 4
 				i := i + 1
 			end
@@ -733,13 +775,13 @@ feature {BCRYPT} -- Implementation
 feature {NONE} -- bcrypt modified version of base64 encoding: Constants
 
 	Base64_code: SPECIAL [CHARACTER_8]
-			-- Table for Base64 encoding.
+			-- Table for Bcrypt-base64 encoding.
 		once
 			Result := ("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789").area
 		end
 
 	char64_at (str: READABLE_STRING_GENERAL; i: INTEGER): INTEGER_8
-			-- Look up the 3 bits base64-encoded by the specified character `str[i]',
+			-- Look up the 3 bits bcrypt-base64-encoded by the specified character `str[i]',
 			-- range-checking against conversion table.
 		local
 			c: NATURAL_32
@@ -787,7 +829,6 @@ feature {NONE} -- bcrypt modified version of base64 encoding: Constants
 				Result := {INTEGER_8} -1
 			end
 		end
-
 
 feature -- bcrypt modified version of base64 encoding
 
@@ -843,7 +884,6 @@ feature -- bcrypt modified version of base64 encoding
 		require
 			valid_lengh: maxolen > 0
 		local
-			l_out: STRING
 			l_off: INTEGER
 			l_len: INTEGER
 			l_olen: INTEGER
@@ -851,9 +891,7 @@ feature -- bcrypt modified version of base64 encoding
 			flag : BOOLEAN
 			res : ARRAYED_LIST [NATURAL_8]
 		do
-
 			create res.make (maxolen)
-			create l_out.make_empty
 			l_off := 0
 			l_len := str.count
 			l_olen := 0
@@ -869,7 +907,7 @@ feature -- bcrypt modified version of base64 encoding
 				if c1 = -1 or else c2 = -1 then
 					flag := True
 				else
-					o := (c1 |<< 2)
+					o := c1 |<< 2
 					o := o | ((c2 & 0x30) |>> 4)
 					res.force (o.to_natural_8)
 					l_olen := l_olen + 1
@@ -881,7 +919,7 @@ feature -- bcrypt modified version of base64 encoding
 						if c3 = -1 then
 							flag := True
 						else
-							o := ((c2 & 0x0f) |<< 4)
+							o := (c2 & 0x0f) |<< 4
 							o := o | ((c3 & 0x3c) |>> 2)
 							res.force (o.to_natural_8)
 							l_olen := l_olen + 1
@@ -890,7 +928,7 @@ feature -- bcrypt modified version of base64 encoding
 							else
 								c4 := char64_at (str ,l_off)
 								l_off := l_off + 1
-								o := (((c3 & 0x03) |<< 6))
+								o := (c3 & 0x03) |<< 6
 								o := o | c4
 								res.force (o.to_natural_8)
 								l_olen := l_olen + 1
@@ -903,7 +941,7 @@ feature -- bcrypt modified version of base64 encoding
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

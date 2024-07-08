@@ -89,8 +89,8 @@ feature {EV_ANY_I, EV_APPLICATION_IMP} -- Event handling
 	real_signal_connect (
 		a_c_object: like c_object;
 		a_signal_name: STRING_8;
-		an_agent: PROCEDURE [ANY, TUPLE];
-		translate: detachable FUNCTION [ANY, TUPLE [INTEGER, POINTER], TUPLE];
+		an_agent: PROCEDURE;
+		translate: detachable FUNCTION [INTEGER, POINTER, TUPLE];
 		)
 				-- Connect `an_agent' to `a_signal_name' of `a_c_object'.
 		require
@@ -108,8 +108,8 @@ feature {EV_ANY_I, EV_APPLICATION_IMP} -- Event handling
 	real_signal_connect_after (
 		a_c_object: like c_object;
 		a_signal_name: STRING_8;
-		an_agent: PROCEDURE [ANY, TUPLE];
-		translate: detachable FUNCTION [ANY, TUPLE [INTEGER, POINTER], TUPLE];
+		an_agent: PROCEDURE;
+		translate: detachable FUNCTION [INTEGER, POINTER, TUPLE];
 		)
 				-- Connect `an_agent' to `a_signal_name' of `a_c_object'.
 				-- 'an_agent' called after default gtk signal handler for `a_signal_name'
@@ -218,7 +218,7 @@ feature {EV_ANY_I, EV_INTERMEDIARY_ROUTINES} -- Access
 	eif_current_object_id: INTEGER
 			-- New identifier for Current
 		obsolete
-			"Use `eif_object_id (Current)' instead."
+			"Use `eif_object_id (Current)' instead. [2017-05-31]"
 		external
 			"built_in"
 		ensure
@@ -249,7 +249,7 @@ feature -- Measurement
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

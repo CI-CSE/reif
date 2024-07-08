@@ -21,11 +21,11 @@ inherit
 			reset, report_one_error
 		end
 
-	SHARED_PARSER_FILE_BUFFER
-		export {NONE} all end
-
 	SHARED_ENCODING_CONVERTER
 		export {ANY} encoding_converter end
+
+	SHARED_LOCALE
+		export {NONE} all end
 
 	INTERNAL_COMPILER_STRING_EXPORTER
 		export {NONE} all end
@@ -34,11 +34,8 @@ feature {NONE} -- Initialization
 
 	make
 			-- Create a new pure Eiffel parser.
-		local
-			l_factory: AST_FACTORY
 		do
-			create l_factory
-			make_with_factory (l_factory)
+			make_with_factory (create {AST_FACTORY})
 		end
 
 	make_with_factory (a_factory: AST_FACTORY)
@@ -53,13 +50,15 @@ feature {NONE} -- Initialization
 			create suppliers
 			create formal_parameters.make (Initial_formal_parameters_capacity)
 
+			create scopes.make (10)
+			create scope_identifiers.make (10)
+
 			make_parser_skeleton
 			make_eiffel_scanner_with_factory (a_factory)
 
 			formal_parameters.compare_objects
 			is_supplier_recorded := True
-				-- Keep one element in it.
-			once_manifest_string_counters.force (0)
+
 			add_feature_frame
 		end
 
@@ -162,13 +161,14 @@ feature -- Initialization
 			Precursor
 			create suppliers
 			feature_stack.wipe_out
-			add_feature_frame
+			scopes.wipe_out
+			scope_identifiers.wipe_out
 			is_supplier_recorded := True
 			is_constraint_renaming := False
 			object_test_locals := Void
 			counters.wipe_out
 			counters2.wipe_out
-			reset_once_manifest_string_counter
+			once_manifest_string_counters.wipe_out
 			last_rsqure.wipe_out
 			current_class := Void
 			is_ignoring_attachment_marks := False
@@ -181,6 +181,8 @@ feature -- Initialization
 			expanded_keyword := Void
 			external_keyword := Void
 			frozen_keyword := Void
+				-- Add a frame for a top-level feature.
+			add_feature_frame
 		end
 
 feature -- Status report
@@ -215,7 +217,7 @@ feature -- Status report
 	is_ignoring_variance_mark: BOOLEAN
 			-- Are frozen/variant annotations kept in the parsed AST?
 		do
-				-- If the syntax is not provisional, we accept the 
+				-- If the syntax is not provisional, we accept the
 				-- frozen/variant annotations but won't record them.
 			Result := syntax_version /= provisional_syntax
 		end
@@ -293,8 +295,8 @@ feature -- Parsing (Unknown encoding)
 				detected_encoding := encoding_converter.detected_encoding
 				detected_bom := encoding_converter.last_bom
 			end
-			if attached a_class as l_class then
-				l_class.set_encoding_and_bom (detected_encoding, detected_bom)
+			if attached a_class then
+				a_class.set_encoding_and_bom (detected_encoding, detected_bom)
 			end
 					-- Only if we can get a buffer can we parse, otherwise it is an error
 			if attached l_input_buffer then
@@ -348,8 +350,8 @@ feature -- Parsing (Unknown encoding)
 				detected_encoding := encoding_converter.detected_encoding
 				detected_bom := encoding_converter.last_bom
 			end
-			if attached a_class as l_class then
-				l_class.set_encoding_and_bom (detected_encoding, detected_bom)
+			if attached a_class then
+				a_class.set_encoding_and_bom (detected_encoding, detected_bom)
 			end
 			if l_input_buffer /= Void then
 				input_buffer := l_input_buffer
@@ -394,8 +396,8 @@ feature -- Parsing (Known encoding)
 			input_buffer := l_input_buffer
 			detected_encoding := encoding_converter.detected_encoding
 			detected_bom := encoding_converter.last_bom
-			if attached a_class as l_class then
-				l_class.set_encoding_and_bom (detected_encoding, detected_bom)
+			if attached a_class then
+				a_class.set_encoding_and_bom (detected_encoding, detected_bom)
 			end
 
 				-- Abstracted from 'yy_load_input_buffer' to reuse local
@@ -433,8 +435,8 @@ feature -- Parsing (Known encoding)
 
 			detected_encoding := utf8
 			detected_bom := Void
-			if attached a_class as l_class then
-				l_class.set_encoding_and_bom (detected_encoding, detected_bom)
+			if attached a_class then
+				a_class.set_encoding_and_bom (detected_encoding, detected_bom)
 			end
 
 				-- Abstracted from 'yy_load_input_buffer' to reuse local
@@ -655,23 +657,209 @@ feature -- Modification
 			end
 		end
 
+feature {NONE} -- Scopes
+
+	scope_identifiers: ARRAYED_STACK [TUPLE [identifier: like {ID_AS}.name_id; identifier_kind: NATURAL_8]]
+			-- Identifiers with scopes placed according to their nesting with associated kind:
+			-- • formal argument;
+			-- • local variable;
+			-- • object test local;
+			-- • iteration cursor;
+			-- • separate variable.
+
+	scopes: ARRAYED_STACK [like {ARRAYED_STACK [TUPLE]}.count]
+			-- The number of elements in `scope_identifiers` before entering current scope.
+
+	scope_kind_argument: NATURAL_8 = 1
+			-- Scope kind for a formal argument.
+
+	scope_kind_local: NATURAL_8 = 2
+			-- Scope kind for a local variable.
+
+	scope_kind_test: NATURAL_8 = 3
+			-- Scope kind for an object test local.
+
+	scope_kind_iteration: NATURAL_8 = 4
+			-- Scope kind for an iteration cursor.
+
+	scope_kind_separate: NATURAL_8 = 5
+			-- Scope kind for a separate variable.
+
+	enter_scope
+			-- Enter a new scope of identifiers.
+		do
+			scopes.put (scope_identifiers.count)
+		ensure
+			is_scope_added: scopes.count = old scopes.count + 1
+			is_scope_nested: scopes.item >= old if scopes.is_empty then 0 else scopes.item end
+			is_scope_consistent: scopes.item = scope_identifiers.count
+		end
+
+	leave_scope
+			-- Leave the current scope of identifiers.
+		require
+			has_scopes: not scopes.is_empty
+			is_scope_consistent: scopes.item <= scope_identifiers.count
+		local
+			count: like scopes.item
+		do
+			from
+				scopes.remove
+				count := scope_identifiers.count - if scopes.is_empty then 0 else scopes.item end
+			invariant
+				count = scope_identifiers.count - if scopes.is_empty then 0 else scopes.item end
+			until
+				count <= 0
+			loop
+				scope_identifiers.remove
+				count := count - 1
+			end
+		ensure
+			is_scope_removed: scopes.count + 1 = old scopes.count
+			is_scope_consistent: scope_identifiers.count = if scopes.is_empty then 0 else scopes.item end
+		end
+
+	add_scope_arguments (identifiers: ARRAYED_LIST [like {ID_AS}.name_id])
+			-- Add scopes of formal arguments `ids`.
+		do
+			across
+				identifiers as identifier
+			loop
+				scope_identifiers.put (identifier.item, scope_kind_argument)
+			end
+		end
+
+	add_scope_locals (identifiers: ARRAYED_LIST [like {ID_AS}.name_id])
+			-- Add scopes of local variables `ids`.
+		do
+			across
+				identifiers as identifier
+			loop
+				scope_identifiers.put (identifier.item, scope_kind_local)
+			end
+		end
+
+	add_scope_iteration (identifier: detachable ID_AS)
+			-- Add a scope of an iteration cursor `identifier`.
+		do
+			if attached identifier then
+				scope_identifiers.put (identifier.name_id, scope_kind_iteration)
+			end
+		end
+
+	add_scope_separate (identifier: detachable ID_AS)
+			-- Add a scope of a separate variable `identifier`.
+		do
+			if attached identifier then
+				scope_identifiers.put (identifier.name_id, scope_kind_separate)
+			end
+		end
+
+	add_scope_test (identifier: detachable ID_AS)
+			-- Add a scope of an object test local `identifier`.
+		do
+			if attached identifier then
+				scope_identifiers.put (identifier.name_id, scope_kind_test)
+			end
+		end
+
+feature {NONE} -- Feature status
+
+	is_class_feature: BOOLEAN
+			-- Is current feature a class feature, i.e. has a class postcondition?
+		require
+			not feature_stack.is_empty
+		do
+			Result := feature_stack.item.is_class
+		end
+
+	has_non_object_call: BOOLEAN
+			-- Is there a non-object call in the current feature?
+		require
+			not feature_stack.is_empty
+		do
+			Result := feature_stack.item.has_non_object_call
+		end
+
+	has_non_object_call_in_assertion: BOOLEAN
+			-- Is there a non-object call in the current feature precondition or postcondition?
+		require
+			not feature_stack.is_empty
+		do
+			Result := feature_stack.item.has_non_object_call_in_assertion
+		end
+
+	has_unqualified_call_in_assertion: BOOLEAN
+			-- Is there an unqualified object call in the current feature precondition or postcondition?
+		require
+			not feature_stack.is_empty
+		do
+			Result := feature_stack.item.has_unqualified_call_in_assertion
+		end
+
+feature {NONE} -- Feature status modification
+
+	set_is_class_feature (value: BOOLEAN)
+			-- Set `is_class_feature` to `value`.
+		require
+			not feature_stack.is_empty
+		do
+			feature_stack.item.is_class := value
+		ensure
+			is_class_feature_set: is_class_feature = value
+		end
+
+	set_has_non_object_call (value: BOOLEAN)
+			-- Set `has_non_object_call` to `value`.
+		require
+			not feature_stack.is_empty
+		do
+			feature_stack.item.has_non_object_call := value
+		ensure
+			has_non_object_call_set: has_non_object_call = value
+		end
+
+	set_has_non_object_call_in_assertion (value: BOOLEAN)
+			-- Set `has_non_object_call_in_assertion` to `value`.
+		require
+			not feature_stack.is_empty
+		do
+			feature_stack.item.has_non_object_call_in_assertion := value
+		ensure
+			has_non_object_call_in_assertion_set: has_non_object_call_in_assertion = value
+		end
+
+	set_has_unqualified_call_in_assertion (value: BOOLEAN)
+			-- Set `has_unqualified_call_in_assertion` to `value`.
+		require
+			not feature_stack.is_empty
+		do
+			feature_stack.item.has_unqualified_call_in_assertion := value
+		ensure
+			has_unqualified_call_in_assertion_set: has_unqualified_call_in_assertion = value
+		end
+
 feature {NONE} -- Implementation
 
 	id_level: INTEGER
-			-- Boolean for controlling the semantic
-			-- action of rule `A_feature'
+			-- Boolean for controlling the semantic action of rule `A_feature'.
 		require
 			not feature_stack.is_empty
 		do
 			Result := feature_stack.item.id_level
+		ensure
+			is_valid_id_level: is_valid_id_level (Result)
 		end
 
 	set_id_level (a_id_level: INTEGER)
-			-- Sets the current id_level to `a_id_level'
+			-- Set the current id_level to `a_id_level'.
 		require
 			not feature_stack.is_empty
+			is_valid_id_level: is_valid_id_level (a_id_level)
 		do
 			feature_stack.item.id_level := a_id_level
+		ensure
+			id_level_set: id_level = a_id_level
 		end
 
 	fbody_pos: INTEGER
@@ -689,23 +877,67 @@ feature {NONE} -- Implementation
 			feature_stack.item.fbody_pos := a_fbody_pos
 		end
 
-	feature_stack: ARRAYED_STACK [TUPLE [id_level, fbody_pos: INTEGER]]
+	feature_stack: ARRAYED_STACK [TUPLE [id_level, fbody_pos: INTEGER;
+			is_class: BOOLEAN;
+			has_non_object_call: BOOLEAN;
+			has_non_object_call_in_assertion: BOOLEAN;
+			has_unqualified_call_in_assertion: BOOLEAN
+		]]
 			-- id_level and fbody_pos are needed per feature body. Since there are inline agents
 			-- we need a stack of them. It may be, that there is no feature at all when its used
 			-- for an invariant. We never remove the first element of the stack.
 
 	add_feature_frame
+			-- Add a new frame to process a feature.
 		do
-			feature_stack.force ([Normal_level, 0])
+			feature_stack.force ([Normal_level, 0, False, False, False, False])
 			add_once_manifest_string_counter
+		ensure
+			feature_stack_allocated: feature_stack.count = old feature_stack.count + 1
+			default_id_level: id_level = normal_level
+			default_fbody_pos: fbody_pos = 0
+			default_is_class_feature: not is_class_feature
+			default_has_non_object_call: not has_non_object_call
+			default_has_non_object_call_in_assertion: not has_non_object_call_in_assertion
+			default_has_unqualified_call_in_assertion: not has_unqualified_call_in_assertion
+			once_manifest_string_counters_allocated: once_manifest_string_counters.count = old once_manifest_string_counters.count + 1
+			default_once_manifest_string_counter_value: once_manifest_string_counter_value = 0
 		end
 
 	remove_feature_frame
+			-- Add a frame to process a feature.
 		require
 			feature_stack.count > 1
+			once_manifest_string_counters.count > 1
 		do
 			feature_stack.remove
 			remove_once_manifest_string_counter
+		ensure
+			feature_stack_descreased: feature_stack.count = old feature_stack.count - 1
+			once_manifest_string_counters_descreased: once_manifest_string_counters.count = old once_manifest_string_counters.count - 1
+		end
+
+	reset_feature_frame
+			-- Reset a top-level frame to the default state.
+			-- This has to be done before processing a new top-level feature.
+		require
+			feature_stack_allocated: not feature_stack.is_empty
+			default_id_level: id_level = normal_level
+			once_manifest_string_counters_allocated: not once_manifest_string_counters.is_empty
+		do
+			once_manifest_string_counters.replace (0)
+			set_is_class_feature (False)
+			set_has_non_object_call (False)
+			set_has_non_object_call_in_assertion (False)
+			set_has_unqualified_call_in_assertion (False)
+		ensure
+			feature_stack_unchanged: feature_stack.count = old feature_stack.count
+			default_is_class_feature: not is_class_feature
+			default_has_non_object_call: not has_non_object_call
+			default_has_non_object_call_in_assertion: not has_non_object_call_in_assertion
+			default_has_unqualified_call_in_assertion: not has_unqualified_call_in_assertion
+			once_manifest_string_counters_unchanged: once_manifest_string_counters.count = old once_manifest_string_counters.count
+			default_once_manifest_string_counter_value: once_manifest_string_counter_value = 0
 		end
 
 	is_deferred: BOOLEAN
@@ -828,14 +1060,6 @@ feature {NONE} -- Counters
 			value_zero: once_manifest_string_counter_value = 0
 		end
 
-	reset_once_manifest_string_counter
-			-- Reset the value of `once_manifest_string_counter_value'
-		do
-			once_manifest_string_counters.replace (0)
-		ensure
-			value_zero: once_manifest_string_counter_value = 0
-		end
-
 	remove_counter
 			-- Unregister last registered counter.
 		require
@@ -870,11 +1094,8 @@ feature {NONE} -- Counters
 			-- Increment `counter_value'.
 		require
 			counters_not_empty: not counters.is_empty
-		local
-			a_value: INTEGER
 		do
-			a_value := counters.item
-			counters.replace (a_value + 1)
+			counters.replace (counters.item + 1)
 		ensure
 			same_counters_count: counters.count = old counters.count
 			one_more: counter_value = old counter_value + 1
@@ -884,11 +1105,8 @@ feature {NONE} -- Counters
 			-- Increment `counter2_value'.
 		require
 			counters2_not_empty: not counters2.is_empty
-		local
-			a_value: INTEGER
 		do
-			a_value := counters2.item
-			counters2.replace (a_value + 1)
+			counters2.replace (counters2.item + 1)
 		ensure
 			same_counters2_count: counters2.count = old counters2.count
 			one_more: counter2_value = old counter2_value + 1
@@ -898,11 +1116,8 @@ feature {NONE} -- Counters
 			-- Increment `once_manifest_string_counter_value'.
 		require
 			once_manifest_string_counters_not_empty: not once_manifest_string_counters.is_empty
-		local
-			a_value: INTEGER
 		do
-			a_value := once_manifest_string_counters.item
-			once_manifest_string_counters.replace (a_value + 1)
+			once_manifest_string_counters.replace (once_manifest_string_counters.item + 1)
 		ensure
 			same_once_manifest_string_counters_count: once_manifest_string_counters.count = old once_manifest_string_counters.count
 			one_more: once_manifest_string_counter_value = old once_manifest_string_counter_value + 1
@@ -1055,11 +1270,8 @@ feature {AST_FACTORY} -- Error handling
 
 	report_basic_generic_type_error
 			-- Basic types cannot have generic devivation.
-		local
-			an_error: BASIC_GEN_TYPE_ERR
 		do
-			create an_error.make (line, column, filename, "")
-			report_one_error (an_error)
+			report_one_error (create {BASIC_GEN_TYPE_ERR}.make (line, column, filename, ""))
 		end
 
 	report_one_error (a_error: ERROR)
@@ -1078,6 +1290,26 @@ feature {AST_FACTORY} -- Error handling
 			report_one_error (create {SYNTAX_ERROR}.make (line, column, filename, ""))
 		end
 
+	report_deprecated_use_of_keyword_is (token: detachable KEYWORD_AS)
+			-- Report that the use of the keyword "is" corresponding to `token` is deprecated.
+		local
+			l: like line
+			c: like column
+		do
+			if has_syntax_warning and then syntax_version /= obsolete_syntax then
+				if attached token then
+					l := token_line (token)
+					c := token_column (token)
+				else
+					l := line
+					c := column
+				end
+				report_one_warning
+					(create {SYNTAX_WARNING}.make (l, c, filename,
+						locale.translation_in_context (once "Deprecated use of keyword `is`.", once "parser.eiffel.warning")))
+			end
+		end
+
 feature{NONE} -- Roundtrip
 
 	temp_string_as1: detachable STRING_AS
@@ -1085,6 +1317,27 @@ feature{NONE} -- Roundtrip
 	temp_keyword_as: detachable KEYWORD_AS
 	temp_address_current_as: detachable ADDRESS_CURRENT_AS
 	temp_address_result_as: detachable ADDRESS_RESULT_AS
+
+feature {NONE} -- Status report
+
+	is_valid_id_level (l: like id_level): BOOLEAN
+			-- Is ID level `l` valid?
+		do
+			inspect l
+			when
+				Normal_level,
+				Precondition_level,
+				Postcondition_level,
+				Invariant_level
+			then
+				Result := True
+			else
+					-- Result := False
+			end
+		ensure
+			definition: Result =
+				(<<Normal_level, Precondition_level, Postcondition_level, Invariant_level>>).has (l)
+		end
 
 feature {NONE} -- Constants
 
@@ -1096,23 +1349,26 @@ feature {NONE} -- Constants
 				-- (See `eif_rtlimits.h')
 
 	Normal_level: INTEGER = 0
-	Assert_level: INTEGER = 1
-	Invariant_level: INTEGER = 2
+	Precondition_level: INTEGER = 1
+	Postcondition_level: INTEGER = 2
+	Invariant_level: INTEGER = 3
 
 invariant
 
 	suppliers_not_void: suppliers /= Void
 	formal_parameters_not_void: formal_parameters /= Void
-	valid_id_level: (id_level = Normal_level) or
-		(id_level = Assert_level) or (id_level = Invariant_level)
+	valid_id_level: is_valid_id_level (id_level)
 	is_external_class_not_set: not il_parser implies not is_external_class
 	is_partial_class_not_set: not il_parser implies not is_partial_class
 	once_manifest_string_counters_not_empty: not once_manifest_string_counters.is_empty
 
 note
+	ca_ignore:
+		"CA011", "CA011 — too many arguments",
+		"CA033", "CA033 — very long class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

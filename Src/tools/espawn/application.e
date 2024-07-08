@@ -76,26 +76,24 @@ feature -- Basic operations
 			if not a_options.manual then
 					-- Configure environment
 				create l_manager.make (a_options.for_32bit)
-				if l_manager.has_applicable_config then
-					if a_options.use_specific_compiler then
-						l_config := l_manager.config_from_code (a_options.specific_compiler_code, True)
-					else
-						l_config := l_manager.best_configuration
-					end
-					if l_config = Void then
-						print ("Warning: No environment were set up, no C/C++ compiler found!%N")
-					else
-						print ("Using C/C++ compiler from " + l_config.description + "%N")
-						merge_variable (path_var_name, l_config.path_var, a_env)
-						merge_variable (include_var_name, l_config.include_var, a_env)
-						merge_variable (lib_var_name, l_config.lib_var, a_env)
+				if a_options.use_specific_compiler then
+					l_config := l_manager.config_from_code (a_options.specific_compiler_code, True)
+				else
+					l_config := l_manager.best_configuration (Void)
+				end
+				if l_config = Void then
+					print ("Warning: No environment were set up, no C/C++ compiler found!%N")
+				else
+					print ("Using C/C++ compiler from " + l_config.description + "%N")
+					merge_variable (path_var_name, l_config.path_var, a_env)
+					merge_variable (include_var_name, l_config.include_var, a_env)
+					merge_variable (lib_var_name, l_config.lib_var, a_env)
 
-							-- Set platform name
-						if not {PLATFORM_CONSTANTS}.is_64_bits or else a_options.for_32bit then
-							a_env.set_environment ("windows", ise_platform_var_name)
-						else
-							a_env.set_environment ("win64", ise_platform_var_name)
-						end
+						-- Set platform name
+					if not {PLATFORM}.is_64_bits or else a_options.for_32bit then
+						a_env.set_environment ("windows", ise_platform_var_name)
+					else
+						a_env.set_environment ("win64", ise_platform_var_name)
 					end
 				end
 			end
@@ -211,7 +209,7 @@ feature {NONE} -- Basic operations
 		end
 
 ;note
-	copyright:	"Copyright (c) 1984-2007, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -224,22 +222,22 @@ feature {NONE} -- Basic operations
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

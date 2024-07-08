@@ -5,9 +5,9 @@ INDIR= .
 CC = $cc
 OUTPUT_CMD = $output_cmd
 CFLAGS = -I"$rt_include" -I. -D_UNICODE -DUNICODE
-JCFLAGS = $(CFLAGS) $ccflags $optimize
-JMTCFLAGS = $(CFLAGS) $mtccflags $optimize
-JILCFLAGS = $(CFLAGS) $mtccflags $optimize -DEIF_IL_DLL
+JCFLAGS = $(CFLAGS) $optimize $ccflags 
+JMTCFLAGS = $(CFLAGS) $optimize $mtccflags 
+JILCFLAGS = $(CFLAGS) $optimize $mtccflags  -DEIF_IL_DLL
 LN = copy
 MV = $mv
 RM = $del
@@ -28,7 +28,6 @@ clean:
 	$(RM) *.lib
 	$(RM) *.dll
 	$(RM) *.RES
-	$(RM) *.BAK
 	$(RM) *.bin
 
 eif_eventlog_messages.dll: eif_eventlog_messages.mc

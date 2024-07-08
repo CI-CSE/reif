@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		The configuration system. Every configuration file corresponds to one CONF_SYSTEM object.
 		It can be loaded from a configuration file by using CONF_LOAD and stored to a configuration file
@@ -26,14 +26,15 @@ create {CONF_PARSE_FACTORY}
 
 feature {NONE} -- Initialization
 
-	make_with_uuid (a_file_name: like file_name; a_name: like name; a_uuid: UUID)
+	make_with_uuid (a_file_name: READABLE_STRING_GENERAL; a_name: like name; a_uuid: UUID)
 			-- Creation with `a_name' and `a_uuid'.
 		require
 			a_file_name_valid: a_file_name /= Void and then not a_file_name.is_empty
 			a_name_ok: a_name /= Void and not a_name.is_empty
 			a_uuid_ok: a_uuid /= Void
 		do
-			create targets.make (1)
+				-- TODO: remove case conversion when working with keys of `targets`.
+			create targets.make_caseless (1)
 			create target_order.make (1)
 			create all_libraries.make_equal (0)
 			name := a_name.as_lower
@@ -42,12 +43,18 @@ feature {NONE} -- Initialization
 			is_readonly := True
 		ensure
 			name_set: name /= Void and then name.is_equal (a_name.as_lower)
-			file_name_set: file_name ~ a_file_name
+			file_name_set: a_file_name.same_string (file_name)
 			uuid_set: uuid = a_uuid
 			is_readonly: is_readonly
 		end
 
 feature -- Status
+
+	same_as (cfg: CONF_SYSTEM): BOOLEAN
+			-- Are `Current` and `cfg` same system?
+		do
+			Result := (Current = cfg) or else (uuid ~ cfg.uuid)
+		end
 
 	is_fully_parsed: BOOLEAN
 			-- Has the complete system (incl. all libraries) been parsed?
@@ -73,10 +80,10 @@ feature -- Status
 
 feature -- Access, stored in configuration file
 
-	name: STRING_32
+	name: READABLE_STRING_32
 			-- Name of the system.
 
-	description: detachable STRING_32
+	description: detachable READABLE_STRING_32
 			-- A description about the system.
 
 	uuid: UUID
@@ -91,6 +98,12 @@ feature -- Access, stored in configuration file
 
 	targets: STRING_TABLE [CONF_TARGET]
 			-- The configuration targets.
+
+	target (a_name: READABLE_STRING_GENERAL): detachable CONF_TARGET
+			-- Configuration target named `a_name`, if any.
+		do
+			Result := targets.item (a_name.as_lower)
+		end
 
 	library_target: detachable CONF_TARGET
 			-- The target to use if this is used as a library.
@@ -354,7 +367,7 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 		do
 			name := a_name.as_lower
 		ensure
-			name_set: name.is_case_insensitive_equal (a_name)
+			name_set: name.is_case_insensitive_equal_general (a_name)
 		end
 
 	set_readonly (a_readonly: like is_readonly)
@@ -417,7 +430,7 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 			library_target := a_target
 		end
 
-	set_library_target_by_name (a_target: detachable STRING_32)
+	set_library_target_by_name (a_target: detachable READABLE_STRING_32)
 			-- Set `library_target' to `a_target'.
 		require
 			a_target_valid: a_target /= Void and then not a_target.is_empty implies targets.has (a_target)
@@ -514,7 +527,7 @@ invariant
 	valid_level: valid_level
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

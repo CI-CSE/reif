@@ -189,7 +189,7 @@ feature -- Execute
 			ref: PATH
 		do
 			io.error.put_string ("IRON::Updating ecf ")
-			io.error.put_string (a_ecf)
+			localized_print_error (a_ecf)
 			io.error.put_string ("%N")
 
 			create cfg_factory
@@ -220,16 +220,6 @@ feature -- Execute
 						if attached iron_updated_directory_location (clu.location, tgt, ref, pif) as l_new_loc then
 							clu.set_location (l_new_loc)
 						end
-					end
-
-					debug ("update_ecf")
-	--					Result := "abc${ISE_LIBRARY}\bar/spec/$(ISE_PLATFORM)/lib"
-	--					text_mapping (Result, str_exp.expand_string_32 (Result, True))
-	--					print (ironized_text ("abc${ISE_LIBRARY}\library\store\bar/spec/$(ISE_PLATFORM)/lib and abc${ISE_LIBRARY}\library\store\bar/spec/$(ISE_PLATFORM)/spec", ref, pif))
-	--					print (ironized_text ("$(ISE_LIBRARY)\library\store\spec\$(ISE_C_COMPILER)\$(ISE_PLATFORM)\lib\il_odbc_store.lib", ref, pif))
-						print (ironized_text ("$(ISE_LIBRARY)/library/cURL/spec/$(ISE_PLATFORM)/lib/eiffel_curl.o", ref, pif))
-						print ("%N")
-						(create {EXCEPTIONS}).die (-1)
 					end
 
 					across
@@ -473,6 +463,9 @@ feature -- Execute
 								cj := l_base[j]
 								if ci.as_lower = cj.as_lower then
 									l_same_char := True
+									if sep = '%U' and (ci = '/' or ci = '\') then
+										sep := ci
+									end
 								elseif (ci = '/' and cj = '\') or (ci = '\' and cj = '/') then
 									l_same_char := True
 									if sep = '%U' then
@@ -719,7 +712,7 @@ feature -- Execute
 			else
 				p := a_loc.evaluated_path
 				debug
-					io.error.put_string (p.name.as_string_8) -- FIXME: unicode
+					localized_print_error (p.name)
 					io.error.put_string ("%N")
 				end
 
@@ -750,7 +743,7 @@ feature -- Execute
 								io.error.put_string ("  - ")
 								io.error.put_string (l_uri.string)
 								io.error.put_string ("  (")
-								io.error.put_string (a_loc.evaluated_path.name.as_string_8) -- FIXME: unicode
+								localized_print_error (a_loc.evaluated_path.name)
 								io.error.put_string (")%N")
 								create Result.make (l_uri.string, a_target)
 							end
@@ -779,7 +772,7 @@ feature -- Execute
 			else
 				p := a_loc.evaluated_path
 				debug
-					io.error.put_string (p.name.as_string_8) -- FIXME: unicode
+					localized_print_error (p.name)
 					io.error.put_string ("%N")
 				end
 
@@ -802,7 +795,7 @@ feature -- Execute
 							if attached pif.to_iron_uri_location (create {PATH}.make_from_string (s_ecf)) as l_uri then
 								io.error.put_string (l_uri.string)
 								io.error.put_string ("  (")
-								io.error.put_string (a_loc.evaluated_path.name.as_string_8) -- FIXME: unicode
+								localized_print_error (a_loc.evaluated_path.name)
 								io.error.put_string (")%N")
 								create Result.make (l_uri.string, a_target)
 							end
@@ -892,32 +885,36 @@ feature -- Execute
 			pif: IRON_PACKAGE_FILE
 		do
 			create d.make_with_path (p)
-			create Result.make (0)
-			create pif_fac
-			across
-				d.entries as ic
-			loop
-				if ic.item.is_current_symbol or ic.item.is_parent_symbol then
-				else
-					ip := p.extended_path (ic.item)
-					if attached ip.extension as ext and then ext.is_case_insensitive_equal ("iron") then
-						create f.make_with_path (ip)
-						if f.exists then
-							pif := pif_fac.new_package_file (ip)
-							if not pif.has_error then
-								Result.force (pif)
+			if d.exists then
+				create Result.make (0)
+				create pif_fac
+				across
+					d.entries as ic
+				loop
+					if ic.item.is_current_symbol or ic.item.is_parent_symbol then
+					else
+						ip := p.extended_path (ic.item)
+						if attached ip.extension as ext and then ext.is_case_insensitive_equal ("iron") then
+							create f.make_with_path (ip)
+							if f.exists then
+								pif := pif_fac.new_package_file (ip)
+								if not pif.has_error then
+									Result.force (pif)
+								end
 							end
 						end
 					end
 				end
-			end
-			if Result.is_empty then
+				if Result.is_empty then
+					Result := Void
+				end
+			else
 				Result := Void
 			end
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2016, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

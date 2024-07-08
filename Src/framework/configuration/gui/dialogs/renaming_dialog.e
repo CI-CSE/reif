@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Dialog to configure class renamings."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -9,7 +9,7 @@ class
 	RENAMING_DIALOG
 
 inherit
-	PROPERTY_DIALOG [STRING_TABLE [STRING_32]]
+	PROPERTY_DIALOG [STRING_TABLE [READABLE_STRING_32]]
 		redefine
 			initialize,
 			dialog_key_press_action
@@ -114,18 +114,16 @@ feature {NONE} -- Agents
 		end
 
 	on_remove
-			-- Called if we remove a renaminge.
+			-- Called if we remove a renaming.
 		require
 			initialized: is_initialized
-		local
-			l_item: TEXT_PROPERTY [STRING_GENERAL]
 		do
-			if grid.single_selected_row /= Void then
-				l_item ?= grid.single_selected_row.item (Old_name_column)
-				value.remove (l_item.value)
-				if value.is_empty then
-					value := Void
-				end
+			if
+				grid.single_selected_row /= Void and then
+				attached {STRING_PROPERTY} grid.single_selected_row.item (Old_name_column) as l_item and then
+				attached l_item.value as v
+			then
+				value.remove (v)
 				refresh
 			end
 		end
@@ -170,7 +168,7 @@ feature {NONE} -- Agents
 
 feature {NONE} -- Implementation
 
-	update_key (an_old_key: READABLE_STRING_GENERAL; a_new_key: STRING_32)
+	update_key (an_old_key: READABLE_STRING_GENERAL; a_new_key: READABLE_STRING_32)
 			-- Update `an_old_key' with `a_new_key'.
 		require
 			an_old_key_ok: value /= Void and then value.has (an_old_key)
@@ -207,7 +205,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	update_value (a_key: READABLE_STRING_GENERAL; a_new_value: STRING_32)
+	update_value (a_key: READABLE_STRING_GENERAL; a_new_value: READABLE_STRING_32)
 			-- Update value of `a_key' to `a_new_value'
 		require
 			a_key_ok: value /= Void and then value.has (a_key)
@@ -230,31 +228,35 @@ feature {NONE} -- Implementation
 			i: INTEGER
 		do
 			grid.clear
-			if value /= Void then
+			if attached value as v then
 				from
-					value.start
+					v.start
 					i := 1
 				until
-					value.after
+					v.after
 				loop
 					create l_tp.make ("")
 					l_tp.pointer_button_press_actions.wipe_out
-					l_tp.pointer_double_press_actions.force_extend (agent l_tp.activate)
+					l_tp.pointer_double_press_actions.extend
+						(agent (x, y, b: INTEGER_32; xt, yt, p: REAL_64; sx, sy: INTEGER_32; tp: STRING_PROPERTY) do tp.activate end
+							(?, ?, ?, ?, ?, ?, ?, ?, l_tp))
 					l_tp.activate_actions.extend (agent on_item_activated (?, i, Old_name_column))
 					l_tp.set_value (value.key_for_iteration)
-					l_tp.change_value_actions.extend (agent update_key (value.key_for_iteration, ?))
+					l_tp.change_value_actions.extend (agent update_key (v.key_for_iteration, ?))
 					grid.set_item (Old_name_column, i, l_tp)
 
 					create l_tp.make ("")
 					l_tp.pointer_button_press_actions.wipe_out
-					l_tp.pointer_double_press_actions.force_extend (agent l_tp.activate)
+					l_tp.pointer_double_press_actions.extend
+						(agent (x, y, b: INTEGER_32; xt, yt, p: REAL_64; sx, sy: INTEGER_32; tp: STRING_PROPERTY) do tp.activate end
+							(?, ?, ?, ?, ?, ?, ?, ?, l_tp))
 					l_tp.activate_actions.extend (agent on_item_activated (?, i, New_name_column))
 					l_tp.set_value (value.item_for_iteration)
-					l_tp.change_value_actions.extend (agent update_value (value.key_for_iteration, ?))
+					l_tp.change_value_actions.extend (agent update_value (v.key_for_iteration, ?))
 					grid.set_item (New_name_column, i, l_tp)
 
 					i := i + 1
-					value.forth
+					v.forth
 				end
 			end
 		end
@@ -284,7 +286,7 @@ invariant
 	elements: is_initialized implies grid /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

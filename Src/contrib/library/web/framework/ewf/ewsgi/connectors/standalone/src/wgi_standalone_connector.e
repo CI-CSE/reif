@@ -1,6 +1,6 @@
 note
 	description: "[
-			Standalone Web Server connector
+			Standalone Web Server connector.
 		]"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -20,25 +20,25 @@ feature {NONE} -- Initialization
 	make
 			-- Create current standalone connector.
 		local
-			fac: separate WGI_HTTPD_REQUEST_HANDLER_FACTORY [G]
+			fac: like request_handler_factory
 		do
 				-- Callbacks
 			create on_launched_actions
 
 				-- Server
-			create fac
+			create <NONE> fac
+			request_handler_factory := fac
 			create server.make (fac)
-			create observer
+			create <NONE> observer
 			configuration := server_configuration (server)
 			controller := server_controller (server)
-			set_factory_connector (Current, fac)
 			initialize_server (server)
 		end
 
-	make_with_base (a_base: like base)
+	make_with_base (a_base: detachable separate READABLE_STRING_8)
 			-- Create current standalone connector with base url `a_base'
 		require
-			a_base_starts_with_slash: (a_base /= Void and then not a_base.is_empty) implies a_base.starts_with ("/")
+			a_base_starts_with_slash: (a_base /= Void and then not a_base.is_empty) implies is_valid_base (a_base)
 		do
 			make
 			set_base (a_base)
@@ -51,9 +51,9 @@ feature {NONE} -- Separate helper
 			a_server.set_observer (observer)
 		end
 
-	set_factory_connector (conn: detachable separate WGI_STANDALONE_CONNECTOR [G]; fac: separate WGI_HTTPD_REQUEST_HANDLER_FACTORY [G])
+	update_factory (conn: detachable separate WGI_STANDALONE_CONNECTOR [G]; fac: separate WGI_HTTPD_REQUEST_HANDLER_FACTORY [G]; a_conf: like configuration)
 		do
-			fac.set_connector (conn)
+			fac.update_with (conn, a_conf)
 		end
 
 	server_configuration (a_server: like server): like configuration
@@ -63,16 +63,25 @@ feature {NONE} -- Separate helper
 
 feature -- Access
 
-	name: STRING_8 = "httpd"
+	name: STRING_8
 			-- Name of Current connector
+		once
+			Result := "httpd"
+		end
 
-	version: STRING_8 = "0.1"
+	version: STRING_8
 			-- Version of Current connector
+		once
+			Result := "1.0"
+		end
 
 feature -- Access
 
 	server: separate HTTPD_SERVER
 			-- HTTPd server object.
+
+	request_handler_factory: separate WGI_HTTPD_REQUEST_HANDLER_FACTORY [G]
+			-- Factory for request handlers.
 
 	controller: separate HTTPD_CONTROLLER
 			-- Controller used to shutdown server.
@@ -97,13 +106,11 @@ feature -- Status report
 			-- Listening port.
 			--| 0: not launched
 
-	is_verbose: BOOLEAN
-			-- Is verbose?
-
 feature -- Callbacks
 
 	on_launched_actions: ACTION_SEQUENCE [TUPLE [WGI_STANDALONE_CONNECTOR [WGI_EXECUTION]]]
-			-- Actions triggered when launched
+			-- Actions triggered when launched.
+			-- WARNING: only supported for now with SCOOP concurrency mode. [2016-10-07]
 
 feature -- Event
 
@@ -117,14 +124,23 @@ feature -- Event
 
 feature -- Element change
 
-	set_base (v: like base)
+	set_base (v: detachable separate READABLE_STRING_8)
 			-- Set base url `base' to `v'.
 		require
-			b_starts_with_slash: (v /= Void and then not v.is_empty) implies v.starts_with ("/")
+			b_starts_with_slash: (v /= Void and then not v.is_empty) implies is_valid_base (v)
 		do
-			base := v
+			if v = Void then
+				base := Void
+			else
+				create {STRING_8} base.make_from_separate (v)
+			end
 		ensure
 			valid_base: (attached base as l_base and then not l_base.is_empty) implies l_base.starts_with ("/")
+		end
+
+	is_valid_base (v: separate READABLE_STRING_8): BOOLEAN
+		do
+			Result := not v.is_whitespace and then v[1] = '/'
 		end
 
 	set_port_number (a_port_number: INTEGER)
@@ -133,6 +149,13 @@ feature -- Element change
 			a_port_number_positive_or_zero: a_port_number >= 0
 		do
 			set_port_on_configuration (a_port_number, configuration)
+		end
+
+	set_socket_recv_timeout (a_nb_seconds: INTEGER)
+		require
+			a_nb_seconds_positive_or_zero: a_nb_seconds >= 0
+		do
+			set_socket_recv_timeout_on_configuration (a_nb_seconds, configuration)
 		end
 
 	set_max_concurrent_connections (nb: INTEGER)
@@ -149,8 +172,21 @@ feature -- Element change
 			set_is_verbose_on_configuration (b, configuration)
 		end
 
+	set_is_secure (b: BOOLEAN)
+			-- Set is_secure connection mode.
+			-- i.e: using SSL.
+		do
+			set_is_secure_on_configuration (b, configuration)
+		end
 
 feature -- Server
+
+	launch_on_port (a_port_number: INTEGER)
+			-- Launch server listening on port `a_port_number'.
+		do
+			set_port_number (a_port_number)
+			launch
+		end
 
 	launch
 			-- Launch web server listening.
@@ -165,7 +201,7 @@ feature -- Server
 			-- Shutdown web server listening.
 		do
 			if launched then
-					-- FIXME jfiat [2015/03/27] : prevent multiple calls (otherwise it hangs)
+					-- FIXME: prevent multiple calls (otherwise it hangs) [2015-03-27]
 				separate_shutdown_server_on_controller (controller)
 			end
 		end
@@ -177,11 +213,11 @@ feature -- Events
 		require
 			obs.started -- SCOOP wait condition.
 		do
+				-- FIXME: this works only with SCOOP concurrency mode. [2016-10-07]
 			if obs.port > 0 then
 				on_launched (obs.port)
 			end
 		end
-
 
 feature {NONE} -- Implementation
 
@@ -190,18 +226,22 @@ feature {NONE} -- Implementation
 			Result := a_server.controller
 		end
 
-	configure_server (a_configuration: like configuration)
+	apply_configuration (a_configuration: like configuration)
+		local
+			v: BOOLEAN
 		do
-			if a_configuration.is_verbose then
-				if attached base as l_base then
+			v := a_configuration.is_verbose
+			if v then
+				if attached base as l_base and then not l_base.is_whitespace then
 					io.error.put_string ("Base=" + l_base + "%N")
 				end
 			end
+			update_factory (Current, request_handler_factory, a_configuration)
 		end
 
 	launch_server (a_server: like server)
 		do
-			configure_server (a_server.configuration)
+			apply_configuration (a_server.configuration)
 			a_server.launch
 		end
 
@@ -222,6 +262,11 @@ feature {NONE} -- Implementation: element change
 			cfg.set_http_server_port (a_port_number)
 		end
 
+	set_socket_recv_timeout_on_configuration (a_nb_seconds: INTEGER; cfg: like configuration)
+		do
+			cfg.set_socket_recv_timeout (a_nb_seconds)
+		end
+
 	set_max_concurrent_connections_on_configuration (nb: INTEGER; cfg: like configuration)
 		do
 			cfg.set_max_concurrent_connections (nb)
@@ -229,13 +274,16 @@ feature {NONE} -- Implementation: element change
 
 	set_is_verbose_on_configuration (b: BOOLEAN; cfg: like configuration)
 		do
-			is_verbose := b
 			cfg.set_is_verbose (b)
 		end
 
+	set_is_secure_on_configuration (b: BOOLEAN; cfg: like configuration)
+		do
+			cfg.set_is_secure (b)
+		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

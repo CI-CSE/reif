@@ -1,7 +1,7 @@
-note
+﻿note
+	description: "Access to an argument."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Access to an argument
 
 class ARGUMENT_B
 
@@ -11,7 +11,7 @@ inherit
 		redefine
 			enlarged, type, is_argument, is_local, is_creatable,
 			register_name, array_descriptor,
-			pre_inlined_code, print_register,
+			pre_inlined_code, print_register, print_checked_target_register,
 			is_fast_as_local, is_predefined
 		end;
 
@@ -57,14 +57,11 @@ feature
 
 	same (other: ACCESS_B): BOOLEAN
 			-- Is `other' the same access as Current ?
-		local
-			argument_b: ARGUMENT_B;
 		do
-			argument_b ?= other;
-			if argument_b /= Void then
-				Result := position = argument_b.position;
-			end;
-		end;
+			if attached {ARGUMENT_B} other as argument_b then
+				Result := position = argument_b.position
+			end
+		end
 
 	enlarged: ARGUMENT_B
 			-- Enlarge current node
@@ -95,6 +92,25 @@ feature
 			buffer.put_string (register_name)
 		end
 
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		local
+			buf: like {BYTE_CONTEXT}.buffer
+		do
+			buf := context.buffer
+			if context.real_type (type).is_true_expanded then
+					-- Expanded argument are copied into
+					-- a local variable `earg'.
+				buf.put_string ({C_CONST}.rtcw_earg)
+			else
+				buf.put_string ({C_CONST}.rtcw_arg)
+			end
+			buf.put_integer (position)
+			buf.put_character (')')
+		end
+
 feature -- IL code generation
 
 	is_fast_as_local: BOOLEAN = true
@@ -116,7 +132,7 @@ feature -- Inlining
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -129,22 +145,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

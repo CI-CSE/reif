@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Test objects for serialization, filled in with attributes of the following types:
 		ARRAY [FLAT_CLASS_1], ARRAY2 [FLAT_CLASS_1], SPECIAL [FLAT_CLASS_1],
@@ -28,7 +28,6 @@ feature -- Initialization
 			-- Initialization for `Current'.
 		local
 			i: NATURAL
-			s: STRING
 		do
 			create array_1.make_filled (create {FLAT_CLASS_1}.make, 1, 10)
 			create array_2.make_filled (create {FLAT_CLASS_1}.make, 5, 5)
@@ -90,7 +89,7 @@ feature -- Status Report
 	out: STRING
 			-- Convenient STRING representation of Current.
 		do
-			Result := "Object of class " + Current.generating_type + " string representation:%N"
+			Result := "Object of class " + Current.generating_type.name_32 + " string representation:%N"
 			Result.append ("array_1:%N " + array_1.out)
 			Result.append ("array_2:%N " + array_2.out)
 			Result.append ("arrayed_list_1:%N " + arrayed_list_1.out)

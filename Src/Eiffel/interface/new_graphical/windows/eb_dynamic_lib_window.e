@@ -1,9 +1,9 @@
-note
-	description	: "Window to create dynamic libraries"
+﻿note
+	description: "Window to create dynamic libraries"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	EB_DYNAMIC_LIB_WINDOW
@@ -32,7 +32,10 @@ inherit
 			{NONE} all
 		end
 
-	PLATFORM_CONSTANTS
+	PLATFORM
+		export
+			{NONE} all
+		end
 
 	EB_FILE_DIALOG_CONSTANTS
 		export
@@ -605,35 +608,30 @@ feature {NONE} -- Implementation: Feature operations
 
 	edit_selected_feature
 			-- Modify the exportation properties of the selected feature.
-		local
-			sel: EV_MULTI_COLUMN_LIST_ROW
 		do
-			sel := exports_list.selected_item
-			if sel /= Void then
-				modified_exported_feature ?= sel.data
-				if modified_exported_feature /= Void then
+			if attached exports_list.selected_item as sel then
+				if attached {DYNAMIC_LIB_EXPORT_FEATURE} sel.data as f then
+					modified_exported_feature := f
 					create_properties_dialog (True)
 					initialize_modification_dialog
 					properties_dialog.show_modal_to_window (window)
+				else
+					modified_exported_feature := Void
 				end
 			end
 		end
 
 	remove_selected_feature
 			-- Remove the selected feature from the exported features.
-		local
-			sel: EV_MULTI_COLUMN_LIST_ROW
-			f: DYNAMIC_LIB_EXPORT_FEATURE
 		do
-			sel := exports_list.selected_item
-			if sel /= Void then
-				f ?= sel.data
-				if f /= Void then
-					changed := True
-					exports.start
-					exports.prune_all (f)
-					refresh_list
-				end
+			if
+				attached exports_list.selected_item as sel and then
+				attached {DYNAMIC_LIB_EXPORT_FEATURE} sel.data as f
+			then
+				changed := True
+				exports.start
+				exports.prune_all (f)
+				refresh_list
 			end
 		end
 
@@ -827,37 +825,30 @@ feature {NONE} -- Implementation: Creation routine selection
 		end
 
 	valid_creation_routines (cl:CLASS_C): LIST [E_FEATURE]
-			-- Calculate the list of valid creation procedure.
+			-- Calculate the list of valid creation procedures.
 		require
 			valid_class_c: cl /= Void and then cl.has_feature_table
 		local
-			list_creators: ARRAY [STRING]
-			tmp_creation: E_FEATURE
-			dfcr: FEATURE_I
 			i, max: INTEGER
 		do
 			create {ARRAYED_LIST [E_FEATURE]} Result.make (5)
 			if cl.creators /= Void then
-				list_creators ?= cl.creators.current_keys
-				if list_creators /= Void then
+					-- TODO: Replace the following iteration on keys with the direct iteration on hash table with an across loop.
+				if attached cl.creators.current_keys as list_creators then
 					max := list_creators.upper
 					from
 						i := list_creators.lower
 					until
 						i > max
 					loop
-						tmp_creation := cl.feature_with_name (list_creators @ i)
-						if tmp_creation /= Void and then not tmp_creation.has_arguments then
+						if attached cl.feature_with_name (list_creators [i]) as tmp_creation and then not tmp_creation.has_arguments then
 							Result.extend (tmp_creation)
 						end
 						i := i + 1
 					end
 				end
-			else
-				dfcr := cl.default_create_feature
-				if dfcr /= Void then
-					Result.extend (dfcr.api_feature (cl.class_id))
-				end
+			elseif attached cl.default_create_feature as default_create_feature then
+				Result.extend (default_create_feature.api_feature (cl.class_id))
 			end
 		ensure
 			not_void_result: Result /= Void
@@ -1066,7 +1057,7 @@ feature {NONE} -- Implementation: Low_level dialog, file operations
 				create {EB_FILE_SAVE_DIALOG} dd.make_with_preference (l_pref)
 			end
 			dd.set_start_path (Eiffel_project.project_directory.path)
-			set_dialog_filters_and_add_all (dd, <<definition_files_filter>>)
+			set_dialog_filters_and_add_all (dd, {ARRAY [STRING_32]} <<definition_files_filter>>)
 			dd.ok_actions.extend (agent file_was_chosen (dd))
 			dd.show_modal_to_window (window)
 		end
@@ -1805,7 +1796,9 @@ invariant
 	graphical_synchronization_ok: exports_list.count = exports.count
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	ca_ignore:
+		"CA093", "CA093: manifest array type mismatch"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -1836,4 +1829,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_DYNAMIC_LIB_WINDOW
+end

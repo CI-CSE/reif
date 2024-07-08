@@ -1,6 +1,6 @@
 note
 	description: "[
-			Generic CMS Response.
+			Generic CMS Web Response.
 			It builds the content to get process to render the output.
 		]"
 	date: "$Date$"
@@ -10,119 +10,46 @@ deferred class
 	CMS_RESPONSE
 
 inherit
-	CMS_URL_UTILITIES
+	CMS_RESPONSE_I
+		redefine
+			make, initialize
+		end
 
-	REFACTORING_HELPER
+	CMS_URL_UTILITIES
 
 feature {NONE} -- Initialization
 
 	make (req: WSF_REQUEST; res: WSF_RESPONSE; a_api: like api)
 		do
-			status_code := {HTTP_STATUS_CODE}.ok
-			api := a_api
-			request := req
-			response := res
-			create header.make
 			create values.make (3)
-			initialize
+			Precursor (req, res, a_api)
 		end
 
 	initialize
 		do
-			initialize_site_url
+			Precursor
 			get_theme
 			create menu_system.make
 			initialize_block_region_settings
-			obsolete_register_hooks
-		end
-
-	initialize_site_url
-				-- Initialize site and base url.
-		local
-			l_url: detachable STRING_8
-			i,j: INTEGER
-		do
-				--| WARNING: do not use `absolute_url' and `url', since it relies on site_url and base_url.
-			if attached setup.site_url as l_site_url and then not l_site_url.is_empty then
-				create l_url.make_from_string (l_site_url)
-			else
-				l_url := request.absolute_script_url ("/")
-			end
-			check is_not_empty: not l_url.is_empty end
-			if l_url [l_url.count] /= '/' then
-				l_url.append_character ('/')
-			end
-			site_url := l_url
-			i := l_url.substring_index ("://", 1)
-			if i > 0 then
-				j := l_url.index_of ('/', i + 3)
-				if j > 0 then
-					base_url := l_url.substring (j, l_url.count)
-				end
-			end
-		ensure
-			site_url_set: site_url /= Void
-			site_url_ends_with_slash: site_url.ends_with_general ("/")
-		end
-
-	obsolete_register_hooks
-			-- Obsolete code to initialize hooks.
-			-- Dangerous, since those hooks would be available only under CMS_RESPONSE context.
-		local
-			l_module: CMS_MODULE
-			l_enabled_modules: CMS_MODULE_COLLECTION
-		do
-			l_enabled_modules := api.enabled_modules
-			across
-				l_enabled_modules as ic
-			loop
-				l_module := ic.item
-				l_module.register_hooks (Current)
-			end
 		end
 
 feature -- Access
 
-	request: WSF_REQUEST
+	main_content: detachable STRING_8
 
-	response: WSF_RESPONSE
-
-	status_code: INTEGER
-
-	header: WSF_HEADER
+feature -- Access: metadata
 
 	title: detachable READABLE_STRING_32
 
 	page_title: detachable READABLE_STRING_32
 			-- Page title
 
-	main_content: detachable STRING_8
+	description: detachable READABLE_STRING_32
 
 	additional_page_head_lines: detachable LIST [READABLE_STRING_8]
 			-- HTML>head>...extra lines
 
-	redirection: detachable READABLE_STRING_8
-			-- Location for eventual redirection.
-
-	location: STRING_8
-			-- Associated cms local location.
-		do
-			create Result.make_from_string (request.percent_encoded_path_info)
-			if not Result.is_empty and then Result[1] = '/' then
-				Result.remove_head (1)
-			end
-		end
-
 feature -- API
-
-	api: CMS_API
-			-- Current CMS API.
-
-	setup: CMS_SETUP
-			-- Current setup
-		do
-			Result := api.setup
-		end
 
 	formats: CMS_FORMATS
 			-- Available content formats.
@@ -130,103 +57,16 @@ feature -- API
 			Result := api.formats
 		end
 
-feature -- URL utilities
-
-	is_front: BOOLEAN
-			-- Is current response related to "front" page?
-		local
-			l_path_info: READABLE_STRING_8
-		do
-			l_path_info := request.percent_encoded_path_info
-			if attached setup.front_page_path as l_front_page_path then
-				Result := l_front_page_path.same_string (l_path_info)
-			else
-				if attached base_url as l_base_url then
-					Result := l_path_info.same_string (l_base_url)
-				else
-					Result := l_path_info.is_empty or else l_path_info.same_string ("/")
-				end
-			end
-		end
-
-	site_url: IMMUTABLE_STRING_8
-			-- Absolute site url.
-
-	base_url: detachable IMMUTABLE_STRING_8
-			-- Base url if any.
-			--| Usually it is Void, but it could be
-			--|  /project/demo/
-
 feature -- Access: CMS
-
-	site_name: STRING_32
-		do
-			Result := setup.site_name
-		end
-
-	front_page_url: READABLE_STRING_8
-		do
-			Result := absolute_url ("/", Void)
-		end
 
 	values: CMS_VALUE_TABLE
 			-- Associated values indexed by string name.
 
-feature -- User access
+feature -- Specific values
 
-	is_authenticated: BOOLEAN
-			-- Is user authenticated?
+	optional_content_type: detachable ANY
 		do
-			Result := user /= Void
-		end
-
-	user: detachable CMS_USER
-		do
-			Result := current_user (request)
-		end
-
-feature -- Permission
-
-	has_permission_on_link (a_link: CMS_LINK): BOOLEAN
-			-- Does current user has permission to access link `a_link'?
-		do
-			Result := True
-			if
-				attached {CMS_LOCAL_LINK} a_link as lnk and then
-				attached lnk.permission_arguments as l_perms
-			then
-				Result := has_permissions (l_perms)
-			end
-		end
-
-	has_permission (a_permission: READABLE_STRING_GENERAL): BOOLEAN
-			-- Does current user has permission `a_permission' ?
-		do
-			Result := user_has_permission (user, a_permission)
-		end
-
-	has_permissions (a_permission_list: ITERABLE [READABLE_STRING_GENERAL]): BOOLEAN
-			-- Does current user has any of the permissions `a_permission_list' ?
-		do
-			Result := user_has_permissions (user, a_permission_list)
-		end
-
-	user_has_permission (a_user: detachable CMS_USER; a_permission: READABLE_STRING_GENERAL): BOOLEAN
-			-- Does `a_user' has permission `a_permission' ?
-		do
-			Result := api.user_has_permission (a_user, a_permission)
-		end
-
-	user_has_permissions (a_user: detachable CMS_USER; a_permission_list: ITERABLE [READABLE_STRING_GENERAL]): BOOLEAN
-			-- Does `a_user' has any of the permissions `a_permission_list' ?
-		do
-			across
-				a_permission_list as ic
-			until
-				Result
-			loop
-				Result := user_has_permission (a_user, ic.item)
-			end
+			Result := values.item ("optional_content_type")
 		end
 
 feature -- Head customization
@@ -249,7 +89,9 @@ feature -- Head customization
 		local
 			s: STRING_8
 		do
-			s := "<link rel=%"stylesheet%" href=%""+ a_href + "%" type=%"text/css%""
+			create s.make_from_string ("<link rel=%"stylesheet%" href=%"")
+			s.append (a_href)
+			s.append ("%" type=%"text/css%"")
 			if a_media /= Void then
 				s.append (" media=%""+ a_media + "%"")
 			end
@@ -257,11 +99,24 @@ feature -- Head customization
 			add_additional_head_line (s, False)
 		end
 
+	add_style_content (a_style_content: STRING)
+			-- Add style content `a_style_content' in the head, using <style> tag.
+		local
+			s: STRING_8
+		do
+			create s.make_from_string ("<style>%N")
+			s.append (a_style_content)
+			s.append ("%N</style>")
+			add_additional_head_line (s, True)
+		end
+
 	add_javascript_url (a_src: STRING)
 		local
 			s: STRING_8
 		do
-			s := "<script type=%"text/javascript%" src=%"" + a_src + "%"></script>"
+			create s.make_from_string ("<script type=%"text/javascript%" src=%"")
+			s.append (a_src)
+			s.append ("%"></script>")
 			add_additional_head_line (s, False)
 		end
 
@@ -269,7 +124,9 @@ feature -- Head customization
 		local
 			s: STRING_8
 		do
-			s := "<script type=%"text/javascript%">%N" + a_script + "%N</script>"
+			create s.make_from_string ("<script type=%"text/javascript%">%N")
+			s.append (a_script)
+			s.append ("%N</script>")
 			add_additional_head_line (s, True)
 		end
 
@@ -286,15 +143,19 @@ feature -- Element change
 			page_title := t
 		end
 
+	set_description (d: like description)
+		do
+			description := d
+		end
+
 	set_main_content (s: like main_content)
 		do
 			main_content := s
 		end
 
-	add_variable (a_element: ANY; a_key:READABLE_STRING_32)
-		obsolete "Use `set_value' [Aug/2015]"
+	set_optional_content_type (a_content_type: detachable ANY)
 		do
-			set_value (a_element, a_key)
+			set_value (a_content_type, "optional_content_type")
 		end
 
 	set_value (v: detachable ANY; k: READABLE_STRING_GENERAL)
@@ -309,36 +170,13 @@ feature -- Element change
 			values.remove (k)
 		end
 
-	set_redirection (a_location: READABLE_STRING_8)
-			-- Set `redirection' to `a_location'.
-		do
-			redirection := a_location
-		end
-
-feature -- Logging
-
-	log	(a_category: READABLE_STRING_8; a_message: READABLE_STRING_8; a_level: INTEGER; a_link: detachable CMS_LINK)
-		local
---			l_log: CMS_LOG
-		do
-			debug
-				to_implement ("Add implementation")
-			end
---			create l_log.make (a_category, a_message, a_level, Void)
---			if a_link /= Void then
---				l_log.set_link (a_link)
---			end
---			l_log.set_info (request.http_user_agent)
---			service.storage.save_log (l_log)
-		end
-
 feature -- Menu
 
 	menu_system: CMS_MENU_SYSTEM
 
 	main_menu: CMS_MENU
 		obsolete
-			"Use `primary_menu' [Nov/2014]"
+			"Use `primary_menu' [2017-05-31]"
 		do
 			Result := primary_menu
 		end
@@ -399,7 +237,7 @@ feature -- Blocks initialization
 	block_region_preference (a_block_id: READABLE_STRING_8; a_default_region: READABLE_STRING_8): READABLE_STRING_8
 			-- Region associated with `a_block_id' in configuration, if any.
 		do
-			Result := setup.text_item_or_default ("blocks." + a_block_id + ".region", a_default_region)
+			Result := setup.string_8_item_or_default ("blocks." + a_block_id + ".region", a_default_region)
 		end
 
 feature -- Block management
@@ -472,7 +310,7 @@ feature -- Block management
 				nb_secs.is_integer
 			then
 				if attached block_region_preference (a_block_id, "none") as l_region and then not l_region.same_string_general ("none") then
-					create l_cache.make (api.files_location.extended (".cache").extended ("blocks").extended (a_block_id).appended_with_extension ("html"))
+					create l_cache.make (api.cache_location.extended ("_blocks").extended (a_block_id).appended_with_extension ("html"))
 					if
 						l_cache.exists and then
 						not l_cache.expired (Void, nb_secs.to_integer)
@@ -493,7 +331,7 @@ feature -- Block management
 			dir: DIRECTORY
 			l_cache: CMS_FILE_STRING_8_CACHE
 		do
-			p := api.files_location.extended (".cache").extended ("blocks")
+			p := api.cache_location.extended ("_blocks")
 			if a_block_id_list /= Void then
 				across
 					a_block_id_list as ic
@@ -511,6 +349,7 @@ feature -- Block management
 				create dir.make_with_path (p)
 				dir.recursive_delete
 			end
+			add_notice_message ("Blocks cache cleared.")
 		end
 
 feature {CMS_HOOK_CORE_MANAGER} -- Block management: internal
@@ -842,21 +681,11 @@ feature -- Blocks
 			Result.set_is_raw (True)
 		end
 
-feature -- Hooks
-
-	hooks: CMS_HOOK_CORE_MANAGER
-			-- Manager handling hook subscriptions.
-		obsolete
-			"Use api.hooks [dec/2015]"
-		do
-			Result := api.hooks
-		end
-
 feature -- Menu: change
 
 	add_to_main_menu (lnk: CMS_LINK)
 		obsolete
-			"use add_to_primary_menu [Nov/2014]"
+			"use add_to_primary_menu [2017-05-31]"
 		do
 			add_to_primary_menu (lnk)
 		end
@@ -876,22 +705,6 @@ feature -- Menu: change
 			m.extend (lnk)
 		end
 
-feature -- Internationalization (i18n)
-
-	translation (a_text: READABLE_STRING_GENERAL; opts: detachable CMS_API_OPTIONS): STRING_32
-			-- Translated text `a_text' according to expected context (lang, ...)
-			-- and adapt according to options eventually set by `opts'.
-		do
-			Result := api.translation (a_text, opts)
-		end
-
-	formatted_string (a_text: READABLE_STRING_GENERAL; args: TUPLE): STRING_32
-			-- Format `a_text' using arguments `args'.
-			--| ex: formatted_string ("hello $1, see page $title.", ["bob", "contact"] -> "hello bob, see page contact"
-		do
-			Result := api.formatted_string (a_text, args)
-		end
-
 feature -- Message
 
 	add_message (a_msg: READABLE_STRING_8; a_category: detachable READABLE_STRING_8)
@@ -909,6 +722,13 @@ feature -- Message
 				m.append ("<li>")
 			end
 			m.append (a_msg + "</li>")
+		end
+
+	add_debug_message (a_msg: READABLE_STRING_8)
+		do
+			if api.is_debug then
+				add_message (a_msg, "debug")
+			end
 		end
 
 	add_notice_message (a_msg: READABLE_STRING_8)
@@ -971,9 +791,9 @@ feature -- Theme
 				create l_info.make_default
 			end
 			if l_info.engine.is_case_insensitive_equal_general ("smarty") then
-				create {SMARTY_CMS_THEME} theme.make (setup, l_info, site_url)
+				create {SMARTY_CMS_THEME} theme.make (api, l_info, site_url)
 			else
-				create {MISSING_CMS_THEME} theme.make (setup, l_info, site_url)
+				create {MISSING_CMS_THEME} theme.make (api, l_info, site_url)
 				status_code := {HTTP_STATUS_CODE}.service_unavailable
 				to_implement ("Check how to add the Retry-after, http://tools.ietf.org/html/rfc7231#section-6.6.4 and http://tools.ietf.org/html/rfc7231#section-7.1.3")
 			end
@@ -999,19 +819,6 @@ feature {NONE} -- Theme helpers
 	internal_wsf_theme: detachable WSF_THEME
 			-- Once per object for `wsf_theme'.
 
-feature -- Element Change
-
-	set_status_code (a_status: INTEGER)
-			-- Set `status_code' with `a_status'.
-		note
-			EIS: "src=eiffel:?class=HTTP_STATUS_CODE"
-		do
-			to_implement ("Feature to test if a_status is a valid status code!!!.")
-			status_code := a_status
-		ensure
-			status_code_set: status_code = a_status
-		end
-
 feature -- Cache managment
 
 	clear_cache (a_cache_id_list: detachable ITERABLE [READABLE_STRING_GENERAL])
@@ -1021,6 +828,17 @@ feature -- Cache managment
 			if has_permissions (<<"clear blocks cache", "admin core caches">>) then
 				clear_block_caches (a_cache_id_list)
 			end
+		end
+
+feature -- Response builtin variables
+
+	builtin_variables: STRING_TABLE [detachable ANY]
+			-- builtin variables value indexed by name.
+		do
+			Result := api.builtin_variables
+			Result ["site_url"] := site_url
+			Result ["host"] := site_url -- FIXME: check and remove if unused.
+			Result ["is_https"] := request.is_https
 		end
 
 feature -- Generation
@@ -1039,8 +857,14 @@ feature -- Generation
 			add_to_primary_menu (lnk)
 			api.hooks.invoke_menu_system_alter (menu_system, Current)
 
-			if api.enabled_modules.count = 0 then
-				add_to_primary_menu (create {CMS_LOCAL_LINK}.make ("Install", "admin/install"))
+			if api.enabled_modules.count <= 1 then
+					-- It is the required CMS_CORE_MODULE!
+				lnk := api.administration_link ("Install", "install")
+				if lnk.location.same_string (location) then
+						-- We are on the Install page!
+				else
+					add_to_primary_menu (lnk)
+				end
 			end
 
 				-- Blocks
@@ -1167,18 +991,29 @@ feature -- Generation
 				end
 			end
 
+				-- Fill with CMS builtin variables.
+			across
+				builtin_variables as ic
+			loop
+				page.register_variable (ic.item, ic.key)
+			end
+
 				-- Variables
 			page.register_variable (absolute_url ("", Void), "site_url")
+			page.register_variable (base_path, "base_path")
 			page.register_variable (absolute_url ("", Void), "host") -- Same as `site_url'.
 			page.register_variable (request.is_https, "is_https")
-			if attached current_user_name (request) as l_user then
-				page.register_variable (l_user, "user")
+			if attached title as l_title then
+				page.register_variable (l_title, "site_title")
+			else
+				page.register_variable (site_name, "site_title")
 			end
-			page.register_variable (title, "site_title")
 			page.set_is_front (is_front)
 			page.set_is_https (request.is_https)
 
 				-- Variables/Misc
+			page.register_variable (is_administration_mode, "is_administration_mode")
+			page.register_variable (api.theme_path, "theme_path")
 
 -- FIXME: logo .. could be a settings of theme, managed by admin front-end/database.
 --			if attached logo_location as l_logo then
@@ -1269,32 +1104,13 @@ feature -- Generation
 			a_lnk.set_is_forbidden (not has_permission_on_link (a_lnk))
 		end
 
-feature -- Helpers: cms link
+feature -- Helpers: html links
 
-	local_link (a_title: READABLE_STRING_GENERAL; a_location: READABLE_STRING_8): CMS_LOCAL_LINK
-		do
-			create Result.make (a_title, a_location)
-		end
-
-	user_local_link (u: CMS_USER; a_opt_title: detachable READABLE_STRING_GENERAL): CMS_LOCAL_LINK
-		do
-			if a_opt_title /= Void then
-				create Result.make (a_opt_title, user_url (u))
-			else
-				create Result.make (u.name, user_url (u))
-			end
-		end
-
-	user_html_link (u: CMS_USER): like link
-		do
-			Result := link (u.name, "user/" + u.id.out, Void)
-		end
-
-	user_url (u: CMS_USER): like url
+	user_html_link (u: CMS_USER): STRING
 		require
-			u_with_id: u.has_id
+			u_with_name: not u.name.is_whitespace
 		do
-			Result := url ("user/" + u.id.out, Void)
+			Result := api.user_html_link (u)
 		end
 
 feature -- Execution
@@ -1320,12 +1136,25 @@ feature {NONE} -- Execution
 		local
 			cms_page: CMS_HTML_PAGE
 			page: CMS_HTML_PAGE_RESPONSE
-			utf: UTF_CONVERTER
 			h: HTTP_HEADER
-			l_new_location: READABLE_STRING_8
+			l_new_location: detachable READABLE_STRING_8
+			l_redirection_delay: like redirection_delay
 		do
-			if attached {READABLE_STRING_GENERAL} values.item ("optional_content_type") as l_type then
-				create cms_page.make_typed (utf.utf_32_string_to_utf_8_string_8 (l_type))
+			if attached redirection as l_location then
+					-- FIXME: find out if this is safe or not.
+				if l_location.has_substring ("://") then
+					l_new_location := l_location
+				else
+					l_new_location := location_absolute_url (l_location, Void)
+				end
+				l_redirection_delay := redirection_delay
+				if l_redirection_delay > 0 then
+					add_additional_head_line ("<meta http-equiv=%"refresh%" content=%"" + l_redirection_delay.out + ";url=" + l_new_location + "%" />", True)
+				end
+			end
+
+			if attached {READABLE_STRING_GENERAL} optional_content_type as l_type then
+				create cms_page.make_typed (api.utf_8_encoded (l_type))
 			else
 				create cms_page.make
 			end
@@ -1335,14 +1164,7 @@ feature {NONE} -- Execution
 			h := page.header
 			h.put_content_length (page.html.count)
 			h.put_current_date
-			if attached redirection as l_location then
-					-- FIXME: find out if this is safe or not.
-				if l_location.has_substring ("://") then
-					l_new_location := l_location
-				else
-					l_new_location := absolute_url (l_location, Void)
-				end
---				h.put_location (l_new_location)
+			if l_new_location /= Void and l_redirection_delay = 0 then
 				response.redirect_now (l_new_location)
 			else
 				h.put_header_object (header)
@@ -1354,10 +1176,9 @@ feature {NONE} -- Execution
 
 	on_terminated
 		do
-
 		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

@@ -22,6 +22,7 @@ feature {NONE} -- Initialization
 		local
 			i,j: INTEGER
 		do
+			original_text_has_new_line := s.has ('%N')
 			tag := a_tag
 			tag_name := tag_name_from (a_tag)
 
@@ -45,9 +46,10 @@ feature {NONE} -- Initialization
 		require
 			valid_code_string: s.starts_with_general ("<") and s.ends_with_general (">")
 		local
-			i,j,e: INTEGER
-			t,l_content: detachable STRING
+			i,j,k,e: INTEGER
+			l_end_tag, t,l_content: detachable STRING
 		do
+			original_text_has_new_line := s.has ('%N')
 			i := s.index_of ('<', 1)
 			e := s.index_of ('>', i + 1)
 			if i = 0 or e = 0 then
@@ -72,7 +74,20 @@ feature {NONE} -- Initialization
 				if s[e-1] = '/' then
 					create text.make ("")
 				else
-					j := s.substring_index ("</"+ t +">", j + 1)
+					l_end_tag := "</"+ t +">"
+					j := s.substring_index (l_end_tag, j + 1)
+					k := j
+					from
+					until
+						j = 0
+					loop
+						j := s.substring_index (l_end_tag, k + 1)
+						if j > 0 then
+							k := j
+						end
+					end
+					j := k
+
 					if j > 0 then
 						l_content := s.substring (e + 1, j - 1)
 					else
@@ -101,6 +116,10 @@ feature -- Access
 	tag_name: STRING
 
 	text: WIKI_STRING
+
+	original_text_has_new_line: BOOLEAN
+			-- Original tag content had new line?
+			-- Could be used by visitor.
 
 	default_tag_name: STRING
 		do
@@ -161,7 +180,7 @@ feature -- Status report
 		end
 
 note
-	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2016, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

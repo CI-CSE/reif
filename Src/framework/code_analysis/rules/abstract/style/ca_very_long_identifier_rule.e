@@ -6,6 +6,7 @@
 			local variable that is very long is bad for code readability.
 		]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -26,7 +27,7 @@ feature {NONE} -- Initialization
 			make_with_defaults
 			is_enabled_by_default := False
 			default_severity_score := 40
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 			initialize_options (a_pref_manager)
 		end
 
@@ -192,7 +193,7 @@ feature -- Properties
 
 	format_violation_description (a_violation: CA_RULE_VIOLATION; a_formatter: TEXT_FORMATTER)
 		do
-			if attached {STRING} a_violation.long_description_info.first as l_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_name then
 				a_formatter.add (ca_messages.very_long_identifier_violation_1)
 				a_formatter.add_local (l_name)
 				a_formatter.add (ca_messages.very_long_identifier_violation_2)

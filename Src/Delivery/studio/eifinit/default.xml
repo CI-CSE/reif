@@ -52,6 +52,8 @@
 	<PREF NAME="debugger.grid_column_layout_watches" DESCRIPTION="Configuration of the watches objects grid. %NCheck grid_column_layout_stack_objects for full description." RESTART="True"><STRING>1;True;False;150;Expression;2;True;False;150;Value;3;True;False;100;Type;4;True;False;80;Address;5;True;False;200;Context</STRING></PREF>
 	<PREF NAME="debugger.objects_tool_layout" HIDDEN="true" DESCRIPTION="Location of main objects tool's items &lt;&lt;'Current object', 'Stack information', 'Argument(s)', 'Local(s)', 'Result', 'Dropped references'&gt;&gt;. The left grid is represented by '#1' and the right grid by '#2'"><LIST>#1;1;2;3;4;5;6;#2</LIST></PREF>
 	<PREF NAME="debugger.watch_tools_layout" HIDDEN="true" DESCRIPTION="Layout of watch tools."><LIST></LIST></PREF>	
+	<PREF NAME="debugger.parameters.auto_import" HIDDEN="true" DESCRIPTION="Automatically import debugger parameters files if none is set. It expects the file to be located in the same directory as the .ecf project file, and named '$target_name.$system_name.dbg.profiles.xml'."><BOOLEAN>True</BOOLEAN></PREF>	
+	<PREF NAME="debugger.parameters.auto_export" HIDDEN="false" DESCRIPTION="Automatically export debugger parameters to file '$target_name.$system_name.dbg.profiles.xml' in the same directory as the .ecf project file."><BOOLEAN>False</BOOLEAN></PREF>	
 	<PREF NAME="tools.diagram_tool.diagram_background_color" DESCRIPTION="Background Color for Diagram Tool"><COLOR>255;255;255</COLOR></PREF>
 	<PREF NAME="tools.diagram_tool.bon.bon_class_name_font" DESCRIPTION="Font for class names in BON class figures."><FONT>Arial-r-regular-10-sans</FONT></PREF>
 	<PREF NAME="tools.diagram_tool.bon.bon_class_name_color" DESCRIPTION="Color for class names in BON class figures."><COLOR>17;3;80</COLOR></PREF>
@@ -149,10 +151,16 @@
 	<PREF NAME="tools.class_browser.dependency_view_sorting_order" DESCRIPTION="Sorting order of clients/suppliers of class in dependency tool." HIDDEN="True"><STRING>1:1</STRING></PREF>
 	<PREF NAME="tools.class_browser.feature_view_sorting_order" DESCRIPTION="Sorting order of features with respect to their class of origin in feature tool." HIDDEN="True"><STRING>2:1</STRING></PREF>
 
+	<PREF NAME="tools.error_list.color.error_background" DESCRIPTION="Background color for errors."><COLOR>255;230;230</COLOR></PREF>
+	<PREF NAME="tools.error_list.color.hint_background" DESCRIPTION="Background color for hints."><COLOR>230;244;255</COLOR></PREF>
+	<PREF NAME="tools.error_list.color.success_background" DESCRIPTION="Background color for hints."><COLOR>230;255;230</COLOR></PREF>
+	<PREF NAME="tools.error_list.color.warning_background" DESCRIPTION="Background color for warnings."><COLOR>255;255;216</COLOR></PREF>
 	<PREF NAME="tools.error_list.expand_errors" DESCRIPTION="Specifies if errors in the Error List tool should be expanded automatically, to show the verbose error information."><BOOLEAN>False</BOOLEAN></PREF>
-	<PREF NAME="tools.error_list.show_tooltip" DESCRIPTION="Specifies if rich tooltip window should be shown automatically in the Error List tool."><BOOLEAN>True</BOOLEAN></PREF>
+	<PREF NAME="tools.error_list.expand_n_errors" DESCRIPTION="Specifies if errors in the Error List tool should be expanded automatically, to show the verbose error information. <0: auto expand all, 0: disabled, and >0: enabled ... expand N first errors."><INTEGER>1</INTEGER></PREF>
 	<PREF NAME="tools.error_list.report_c_compiler_errors" DESCRIPTION="Specifies what level of error/warning report to perform on C compiler output."><LIST>none;[errors];errors_and_warnings</LIST></PREF>	
-        <PREF NAME="tools.testing_tool.execution.processes" DESCRIPTION="Specifies the number of tests being executed simultaneously."><INTEGER>4</INTEGER></PREF>
+	<PREF NAME="tools.error_list.show_tooltip" DESCRIPTION="Specifies if rich tooltip window should be shown automatically in the Error List tool."><BOOLEAN>True</BOOLEAN></PREF>
+
+	<PREF NAME="tools.testing_tool.execution.processes" DESCRIPTION="Specifies the number of tests being executed simultaneously."><INTEGER>4</INTEGER></PREF>
 	<PREF NAME="tools.testing_tool.new_tests.prepare_routine" DESCRIPTION="Should new manual tests redefine the preparation routine?"><BOOLEAN>False</BOOLEAN></PREF>
 	<PREF NAME="tools.testing_tool.new_tests.clean_routine" DESCRIPTION="Should new manual tests redefine the clean routine?"><BOOLEAN>False</BOOLEAN></PREF>
 	<PREF NAME="tools.testing_tool.autotest.duration" DESCRIPTION="Number of minutes AutoTest executes generated tests."><INTEGER>3</INTEGER></PREF>
@@ -161,6 +169,7 @@
 	<PREF NAME="tools.testing_tool.autotest.use_ddmin" DESCRIPTION="Should ddmin algorithm be used for minimizing found failures?"><BOOLEAN>False</BOOLEAN></PREF>
 	<PREF NAME="tools.testing_tool.autotest.use_slicing" DESCRIPTION="Should slicing be used for minimizing found failures?"><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="tools.testing_tool.autotest.html_statistics" DESCRIPTION="Should AutoTest generate HTML statistics?"><BOOLEAN>True</BOOLEAN></PREF>
+
 	<PREF NAME="interface.dialogs.confirm_acknowledge_eis_affected_items" DESCRIPTION="Display confirmation dialog for acknowledging affected items in Info tool."><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.confirm_always_compile_before_executing" DESCRIPTION="Display confirmation dialog on execution."><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.confirm_always_apply_debugger_profiles_before_closing" DESCRIPTION="Display confirmation dialog to apply profile when closing execution parameters dialog."><BOOLEAN>True</BOOLEAN></PREF>
@@ -186,6 +195,7 @@
 	<PREF NAME="interface.dialogs.confirm_on_terminate_finalizing" DESCRIPTION="Display confirmation dialog for terminating the C compilation of a finalize."><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.confirm_on_terminate_process" DESCRIPTION="Display confirmation dialog for terminating an ongoing C compilation while exiting EiffelStudio."><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.confirm_on_terminate_external_command" DESCRIPTION="Display confirmation dialog for terminating an external command."><BOOLEAN>True</BOOLEAN></PREF>
+	<PREF NAME="interface.dialogs.show_first_launching_dialog" DESCRIPTION="Display First launching dialog at startup." HIDDEN="True"><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.show_starting_dialog" DESCRIPTION="Display New/Open project dialog at startup."><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.confirm_resource_change_needs_restart" DESCRIPTION="Display warning dialog when changing resources that require you to restart EiffeStudio before they become effective." HIDDEN="True"><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="interface.dialogs.generate_homonyms" DESCRIPTION="Display dialog that warns that homonym format can take a long time."><BOOLEAN>True</BOOLEAN></PREF>
@@ -208,6 +218,7 @@
 	<PREF NAME="interface.dialogs.last_saved_exception_directory" DESCRIPTION="Directory of last exception saved." HIDDEN="True"><STRING></STRING></PREF>
 	<PREF NAME="interface.dialogs.last_saved_save_file_as_directory" DESCRIPTION="Directory of last save file as saved." HIDDEN="True"><STRING></STRING></PREF>
 	<PREF NAME="interface.dialogs.last_saved_profile_result_directory" DESCRIPTION="Directory of last profile result saved." HIDDEN="True"><STRING></STRING></PREF>
+	<PREF NAME="interface.dialogs.last_saved_basic_project_directory" DESCRIPTION="Directory rememberd to be reused for the next basic project creation." HIDDEN="True"><STRING></STRING></PREF>
 	<PREF NAME="interface.dialogs.last_imported_metric_definition_directory" DESCRIPTION="Directory of last imported metric definition." HIDDEN="True"><STRING></STRING></PREF>
 	<PREF NAME="interface.dialogs.project_settings_width" DESCRIPTION="Width of the project settings dialog." HIDDEN="True"><INTEGER>700</INTEGER></PREF>
 	<PREF NAME="interface.dialogs.project_settings_height" DESCRIPTION="Height of the project settings dialog." HIDDEN="True"><INTEGER>600</INTEGER></PREF>
@@ -285,6 +296,7 @@
 	<PREF NAME="editor.eiffel.underscore_is_separator" DESCRIPTION="Is underscore `_' used as a word separator?"><BOOLEAN>False</BOOLEAN></PREF>
 	<PREF NAME="editor.eiffel.highlight_matching_braces" DESCRIPTION="Should the editor highlight matching braces when the caret is placed next to a (, ), {, }, [, ], &lt;&lt; or &gt;&gt;?"><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="editor.eiffel.auto_show_feature_contract_tooltip" DESCRIPTION="Should a feature's contract tool tip be automatically popped up in the editor when the mouse cursor is over the feature name?"><BOOLEAN>True</BOOLEAN></PREF>
+
 
 	<PREF NAME="editor.eiffel.colors.breakpoint_background_color" DESCRIPTION="Color for breakable marks and breakpoints."><COLOR>212;208;200</COLOR></PREF>
 	<PREF NAME="editor.eiffel.colors.assertion_tag_text_color" DESCRIPTION="Foreground color for assertion tags."><COLOR>64;0;0</COLOR></PREF>
@@ -671,6 +683,9 @@
 	<PREF NAME="editor.general.smart_home" DESCRIPTION="Indicates if editor should go to the beginning on the first non-whitespace character, on a line, when the HOME key is pressed."><BOOLEAN>True</BOOLEAN></PREF>
 	<PREF NAME="editor.general.new_tab_at_left" DESCRIPTION="Place new editor tab at left side of editor's area?"><BOOLEAN>False</BOOLEAN></PREF>
 
+	<PREF NAME="editor.eiffel.linked_token_editing_enabled" DESCRIPTION="(Experimental) Is linked editing possible from editor? (Activated by Ctrl+DoubleClick on text token)." HIDDEN="True"><BOOLEAN>False</BOOLEAN></PREF>
+	<PREF NAME="editor.eiffel.colors.linked_token_background_color" DESCRIPTION="Background color for linked tokens (if related experimental function is enabled)." HIDDEN="True"><COLOR>210;255;210</COLOR></PREF>
+
 	<PREF NAME="general.acrobat_reader" DESCRIPTION="Command to read Adobe Acrobat files."><STRING>acrobat</STRING></PREF>
 	<PREF NAME="general.internet_browser" DESCRIPTION="Internet browser."><STRING>iexplore.exe $url</STRING></PREF>
 
@@ -769,6 +784,7 @@
 	<PREF NAME="shortcuts.external_commands.shortcut_9" DESCRIPTION="Tenth external command shortcut."><SHORTCUT Alt="True">9</SHORTCUT></PREF>
 	
 	<PREF NAME="shortcuts.file.new_tab" DESCRIPTION="Shortcut to create a new tabbed editor."><SHORTCUT Ctrl="True">T</SHORTCUT></PREF>
+	<PREF NAME="shortcuts.file.restore_tab" DESCRIPTION="Shortcut to restore last closed tab."><SHORTCUT Ctrl="True" Shift="True">T</SHORTCUT></PREF>
 	<PREF NAME="shortcuts.file.new_window" DESCRIPTION="Shortcut to create a new development window."><SHORTCUT Ctrl="True">N</SHORTCUT></PREF>
 	<PREF NAME="shortcuts.file.save" DESCRIPTION="Shortcut to save current editing file."><SHORTCUT Ctrl="True">S</SHORTCUT></PREF>
 	<PREF NAME="shortcuts.file.save_all" DESCRIPTION="Shortcut to save all files."><SHORTCUT Ctrl="True" Shift="True">S</SHORTCUT></PREF>
@@ -799,7 +815,7 @@
 	
 	<PREF NAME="shortcuts.view.send_to_context" DESCRIPTION="Shortcut to send Class/Feature to tools."><SHORTCUT Alt="True">Down</SHORTCUT></PREF>
 	
-	<PREF NAME="shortcuts.view.basic_text_view" DESCRIPTION="Shortcut to display basic text view."><SHORTCUT Ctrl="True" Shift="True">T</SHORTCUT></PREF>
+	<PREF NAME="shortcuts.view.basic_text_view" DESCRIPTION="Shortcut to display basic text view."><SHORTCUT Ctrl="True" Shift="True">B</SHORTCUT></PREF>
 	<PREF NAME="shortcuts.view.clickable_text_view" DESCRIPTION="Shortcut to display clickable text view."><SHORTCUT Ctrl="True" Shift="True">C</SHORTCUT></PREF>
 	<PREF NAME="shortcuts.view.flat_view" DESCRIPTION="Shortcut to display flat view."><SHORTCUT Ctrl="True" Shift="True">F</SHORTCUT></PREF>
 	<PREF NAME="shortcuts.view.contract_view" DESCRIPTION="Shortcut to display contract view."><SHORTCUT Ctrl="True" Shift="True">O</SHORTCUT></PREF>

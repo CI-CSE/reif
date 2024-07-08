@@ -9,7 +9,6 @@ class
 	CMS_USER
 
 inherit
-
 	DEBUG_OUTPUT
 
 create
@@ -18,15 +17,19 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_name: READABLE_STRING_32)
+	make (a_name: READABLE_STRING_GENERAL)
 			-- Create an object with name `a_name'.
 		require
 			a_name_not_empty: not a_name.is_whitespace
 		do
-			name := a_name
+			if attached {READABLE_STRING_32} a_name as n32 then
+				name := n32
+			else
+				name := a_name.to_string_32
+			end
 			initialize
 		ensure
-			name_set: name = a_name
+			name_set: name.same_string_general (a_name)
 			status_not_active: status = not_active
 		end
 
@@ -56,17 +59,17 @@ feature -- Access
 	name: READABLE_STRING_32
 			-- User name.
 
+	profile_name: detachable READABLE_STRING_32
+			-- Optional profile name.
+
 	password: detachable READABLE_STRING_32
 			-- User password (plain text password).
 
 	hashed_password: detachable READABLE_STRING_8
 			-- Hashed user password.
 
-	email: detachable READABLE_STRING_32
+	email: detachable READABLE_STRING_8
 			-- User email.
-
-	profile: detachable CMS_USER_PROFILE
-			-- User profile.
 
 	creation_date: DATE_TIME
 			-- Creation date.
@@ -79,7 +82,6 @@ feature -- Access
 			-- default:	not_active
 			--			active
 			--			trashed
-
 
 feature -- Access: helper
 
@@ -95,19 +97,6 @@ feature -- Roles
 
 	roles: detachable LIST [CMS_USER_ROLE]
 			-- If set, list of roles for current user.			
-
-feature -- Access: data			
-
-	data: detachable STRING_TABLE [detachable ANY]
-			-- Additional data.
-
-	data_item (k: READABLE_STRING_GENERAL): detachable ANY
-			-- Additional item data associated with key `k'.
-		do
-			if attached data as l_data then
-				Result := l_data.item (k)
-			end
-		end
 
 feature -- Status report
 
@@ -162,6 +151,14 @@ feature -- Change element
 			name_set: name = n
 		end
 
+	set_profile_name (pn: like profile_name)
+			-- Set `profile_name' with `pn'.
+		do
+			profile_name := pn
+		ensure
+			profile_name_set: profile_name = pn
+		end
+
 	set_password (a_password: like password)
 			-- Set `password' with `a_password'.
 		do
@@ -190,24 +187,9 @@ feature -- Change element
 			email_set: email = a_email
 		end
 
-	set_profile (prof: like profile)
-			-- Set `profile' with `prof'.
+	set_creation_date (dt: like creation_date)
 		do
-			profile := prof
-		ensure
-			profile_set: profile = prof
-		end
-
-	set_profile_item (k: READABLE_STRING_8; v: READABLE_STRING_8)
-		local
-			prof: like profile
-		do
-			prof := profile
-			if prof = Void then
-				create prof.make
-				profile := prof
-			end
-			prof.force (v, k)
+			creation_date := dt
 		end
 
 	set_last_login_date (dt: like last_login_date)
@@ -226,29 +208,6 @@ feature -- Element change: roles
 			-- Set `roles' to `lst'.
 		do
 			roles := lst
-		end
-
-feature -- Change element: data		
-
-	set_data_item (k: READABLE_STRING_GENERAL; d: like data_item)
-			-- Associate data item `d' with key `k'.
-		local
-			l_data: like data
-		do
-			l_data := data
-			if l_data = Void then
-				create l_data.make (1)
-				data := l_data
-			end
-			l_data.force (d, k)
-		end
-
-	remove_data_item (k: READABLE_STRING_GENERAL)
-			-- Remove data item associated with key `k'.	
-		do
-			if attached data as l_data then
-				l_data.remove (k)
-			end
 		end
 
 feature -- Status change		
@@ -285,7 +244,6 @@ feature -- Status change
 			status_set:  status = a_status
 		end
 
-
 feature -- User status
 
 	not_active: INTEGER = 0
@@ -302,6 +260,6 @@ invariant
 	id_or_name_set: id > 0 or else not name.is_whitespace
 
 note
-	copyright: "2011-2015, Javier Velilla, Jocelyn Fiat, Eiffel Software and others"
+	copyright: "2011-2017, Javier Velilla, Jocelyn Fiat, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

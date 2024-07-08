@@ -1,4 +1,4 @@
-note
+﻿note
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -102,14 +102,9 @@ feature -- Access
 			-- Go before if unsuccessful.
 			-- The 'fuzzy' parameter is the maximum allowed number
 			-- of mismatches within the pattern. A 0 means an exact match.
-		local
-			str_mirrored: like Current
-			s_mirrored: STRING
 		do
 			if not off then
-				str_mirrored := mirrored
-				s_mirrored := s.mirrored
-				index := count - str_mirrored.fuzzy_index (s_mirrored, count - index, fuzzy) + 1
+				index := count - mirrored.fuzzy_index (s.mirrored, count - index, fuzzy) + 1
 				if index = count + 1 then
 					index := 0
 				else
@@ -141,15 +136,15 @@ feature -- Access
 						occur := 1
 					end
 				until
-					(Result = 0) or else (occur = i)
+					Result = 0 or else occur = i
 				loop
-					if Result /= count then
+					if Result = count then
+						Result := 0
+					else
 						Result := index_of (c, Result + 1)
 						if Result /= 0 then
 							occur := occur + 1
 						end
-					else
-						Result := 0
 					end
 				end
 			end
@@ -163,7 +158,7 @@ feature -- Access
 			-- Does string include `c'?
 		do
 			if not is_empty then
-				Result := (index_of (c, 1) /= 0)
+				Result := index_of (c, 1) /= 0
 			end
 		end
 
@@ -276,7 +271,7 @@ feature -- Removal
 
 feature -- Iteration
 
-	do_all (action: PROCEDURE [ANY, TUPLE [CHARACTER]])
+	do_all (action: PROCEDURE [CHARACTER])
 			-- Apply `action' to every item, from first to last.
 			-- Semantics not guaranteed if `action' changes the structure;
 			-- in such a case, apply iterator to clone of structure instead.
@@ -284,7 +279,7 @@ feature -- Iteration
 			area.do_all_in_bounds (action, 0, area.count - 1)
 		end
 
-	do_if (action: PROCEDURE [ANY, TUPLE [CHARACTER]]; test: FUNCTION [ANY, TUPLE [CHARACTER], BOOLEAN])
+	do_if (action: PROCEDURE [CHARACTER]; test: FUNCTION [CHARACTER, BOOLEAN])
 			-- Apply `action' to every item that satisfies `test', from first to last.
 			-- Semantics not guaranteed if `action' or `test' changes the structure;
 			-- in such a case, apply iterator to clone of structure instead.
@@ -292,13 +287,13 @@ feature -- Iteration
 			area.do_if_in_bounds (action, test, 0, area.count - 1)
 		end
 
-	there_exists (test: FUNCTION [ANY, TUPLE [CHARACTER], BOOLEAN]): BOOLEAN
+	there_exists (test: FUNCTION [CHARACTER, BOOLEAN]): BOOLEAN
 			-- Is `test' true for at least one item?
 		do
 			Result := area.there_exists_in_bounds (test, 0, area.count - 1)
 		end
 
-	for_all (test: FUNCTION [ANY, TUPLE [CHARACTER], BOOLEAN]): BOOLEAN
+	for_all (test: FUNCTION [CHARACTER, BOOLEAN]): BOOLEAN
 			-- Is `test' true for all items?
 		do
 			Result := area.for_all_in_bounds (test, 0, area.count - 1)
@@ -352,7 +347,7 @@ feature {NONE} -- Inapplicable
 		end
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

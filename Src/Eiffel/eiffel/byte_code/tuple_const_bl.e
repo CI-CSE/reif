@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Enlarged byte code for manifest tuples"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,10 +10,15 @@ class TUPLE_CONST_BL
 inherit
 	TUPLE_CONST_B
 		redefine
-			analyze, generate,
-			register, set_register,
-			free_register, unanalyze
-		end;
+			analyze,
+			free_register,
+			generate,
+			print_checked_target_register,
+			register,
+			set_register,
+			unanalyze
+		end
+
 	SHARED_TABLE
 	SHARED_DECLARATIONS
 
@@ -42,7 +47,6 @@ feature
 	analyze
 			-- Analyze expression
 		local
-			real_ty: TUPLE_TYPE_A
 			expr_type: TYPE_A
 			expr: EXPR_B
 			i: INTEGER
@@ -51,8 +55,6 @@ feature
 			info := info.updated_info
 			info.analyze
 
-			real_ty ?= context.real_type (type)
-
 			get_register
 			from
 				i := 0
@@ -60,7 +62,7 @@ feature
 			until
 				expressions.after
 			loop
-				expr ?= expressions.item
+				expr := expressions.item
 				expr_type := context.real_type (expr.type)
 
 				if expr_type.is_true_expanded then
@@ -78,8 +80,6 @@ feature
 
 	unanalyze
 			-- Unanalyze expression
-		local
-			expr: EXPR_B
 		do
 			metamorphose_reg := Void
 			set_register (Void)
@@ -88,8 +88,7 @@ feature
 			until
 				expressions.after
 			loop
-				expr ?= expressions.item
-				expr.unanalyze
+				expressions.item.unanalyze
 				expressions.forth
 			end
 		end
@@ -105,13 +104,8 @@ feature
 
 	generate
 			-- Generate expression
-		local
-			real_ty: TUPLE_TYPE_A
-			workbench_mode: BOOLEAN
 		do
-			real_ty ?= context.real_type (type)
-			workbench_mode := context.workbench_mode
-			generate_tuple_creation (workbench_mode)
+			generate_tuple_creation (context.workbench_mode)
 			fill_tuple
 		end
 
@@ -152,7 +146,7 @@ feature {NONE} -- C code generation
 				expressions.after
 			loop
 				metamorphosed := False
-				expr ?= expressions.item
+				expr := expressions.item
 				actual_type := context.real_type (expr.type)
 					-- If `actual_type' is NONE, it means we are handling `Void'
 					-- and therefore nothing has to be done.
@@ -188,7 +182,7 @@ feature {NONE} -- C code generation
 						-- since the array contains references
 					if not actual_type.is_basic then
 						buf.put_new_line
-						buf.put_string ("RTAR(")
+						buf.put_string ({C_CONST}.rtar_open)
 						print_register
 						buf.put_character (',')
 						if metamorphosed then
@@ -205,8 +199,16 @@ feature {NONE} -- C code generation
 			end
 		end
 
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		do
+			print_register
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

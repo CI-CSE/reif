@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #31: Explicit inheritance from ANY
 			
@@ -71,13 +71,13 @@ feature {NONE} -- Rule checking
 						Result or l_parents.after
 					loop
 						-- Set parameters for checking the changes to parents
-						current_class := current_context.system.find_class (l_parents.item.type.class_name.name_32)
+						current_class := current_context.universe.class_named (l_parents.item.type.class_name.name_8, current_context.checking_class.group).compiled_class
 						set_renamed_features (l_parents.item)
 
 						Result := (attached l_parents.item.renaming and then l_parents.item.renaming.there_exists (agent is_rename_written_by_any))
 							or (attached l_parents.item.undefining and then l_parents.item.undefining.there_exists (agent is_feature_written_by_any))
 							or (attached l_parents.item.redefining and then l_parents.item.redefining.there_exists (agent is_feature_written_by_any))
-							or has_adaptations_to_any (current_context.system.find_class (l_parents.item.type.class_name.name_32).ast)
+							or has_adaptations_to_any (current_context.universe.class_named (l_parents.item.type.class_name.name_8, current_context.checking_class.group).compiled_class.ast)
 						l_parents.forth
 					end
 				end
@@ -132,6 +132,9 @@ feature {NONE} -- Rule checking
 
 feature -- Properties
 
+	name: STRING = "inheritance_from_any"
+			-- <Precursor>
+
 	current_class: CLASS_C
 
 	title: STRING_32
@@ -151,9 +154,9 @@ feature -- Properties
 		do
 			a_formatter.add (ca_messages.inherit_from_any_violation_1)
 			check
-				attached {STRING} a_violation.long_description_info.first
+				attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first
 			end
-			if attached {STRING} a_violation.long_description_info.first as l_class_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_class_name then
 				a_formatter.add (l_class_name)
 			end
 			a_formatter.add (ca_messages.inherit_from_any_violation_2)

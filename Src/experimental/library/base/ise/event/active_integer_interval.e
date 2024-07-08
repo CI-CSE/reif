@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
 		Contiguous integer interval that calls an action sequence
 		when it changes.
-		]"
+	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	keywords: "event, action, linked, list"
@@ -49,7 +49,7 @@ feature -- Element change
 		local
 			l_change: BOOLEAN
 		do
-			l_change := v < lower_internal or else v > upper_internal
+			l_change := v < lower or else v > upper
 			Precursor (v)
 			if l_change then
 				on_change
@@ -65,7 +65,7 @@ feature -- Resizing
 		local
 			l_change: BOOLEAN
 		do
-			l_change := lower_internal /= min_index or else upper_internal /= max_index
+			l_change := lower /= min_index or else upper /= max_index
 			Precursor (min_index, max_index)
 			if l_change then
 				on_change
@@ -78,7 +78,7 @@ feature -- Resizing
 		local
 			l_change: BOOLEAN
 		do
-			l_change := lower_internal /= min_index or else upper_internal /= max_index
+			l_change := lower /= min_index or else upper /= max_index
 			Precursor (min_index, max_index)
 			if l_change then
 				on_change
@@ -100,15 +100,12 @@ feature -- Event handling
 
 	change_actions: ACTION_SEQUENCE [TUPLE]
 			-- Actions performed when interval changes.
-		local
-			r: detachable ACTION_SEQUENCE [TUPLE]
 		do
-			r := opo_change_actions
-			if r = Void then
-				create r
-				opo_change_actions := r
+			Result := opo_change_actions
+			if Result = Void then
+				create Result
+				opo_change_actions := Result
 			end
-			Result := r
 		ensure
 			not_void: Result /= Void
 		end
@@ -117,12 +114,9 @@ feature {NONE} -- Implementation
 
 	on_change
 			-- Called when interval changes.
-		local
-			a: detachable ACTION_SEQUENCE [TUPLE]
 		do
-			a := opo_change_actions
-			if a /= Void then
-				a.call (Void)
+			if attached opo_change_actions as a then
+				a.call
 			end
 		end
 
@@ -131,15 +125,14 @@ feature {NONE} -- Implementation
 
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2008, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
-end -- class ACTIVE_INTEGER_INTERVAL
-
+end

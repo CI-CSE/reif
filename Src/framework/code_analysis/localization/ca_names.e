@@ -294,7 +294,7 @@ feature -- Rules
 		do Result := translation_in_context ("Minimum NPath threshold", once "code_analyzer") end
 
 	empty_if_title: STRING_32
-		do Result := translation_in_context ("Empty if instruction", once "code_analyzer") end
+		do Result := translation_in_context ("Empty branch in conditional instruction", once "code_analyzer") end
 
 	empty_if_description: STRING_32
 		do Result := translation_in_context ("An empty conditional instruction is useless and should be removed.", once "code_analyzer") end
@@ -722,6 +722,23 @@ feature -- Rules
 	explicit_redundant_inheritance_description: STRING_32
 		do Result := locale.translation ("Explicitly duplicated inheritance links are redundant if there is no renaming, redefining, or change of export status. One should be removed.") end
 
+	obsolete_feature_call_title: STRING_32
+		do Result := locale.translation_in_context ("Obsolete feature call",  once "code_analyzer") end
+
+	obsolete_feature_call_description: STRING_32
+		do Result := locale.translation_in_context ("The code calls an obsolete feature that is going to be removed in the future. The code should be updated to avoid calling this feature.",  once "code_analyzer") end
+
+	obsolete_feature_title: STRING_32
+		do Result := locale.translation_in_context ("Obsolete feature",  once "code_analyzer") end
+
+	obsolete_feature_description: STRING_32
+		do Result := locale.translation_in_context ("Obsolete feature should be removed.",  once "code_analyzer") end
+
+	manifest_array_type_mismatch_title: STRING_32
+		do Result := translation_in_context ("Manifest array type mismatch", once "code_analyzer") end
+
+	manifest_array_type_mismatch_description: STRING_32
+		do Result := translation_in_context ("An implicit type of a manifest array involved in a reattachment is different from a type of the target of the reattachment.", once "code_analyzer") end
 
 feature -- Preferences
 
@@ -740,10 +757,28 @@ feature -- GUI
 		do Result := translation_in_context ("Analyze whole system.", once "code_analyzer.toolbar.item.tooltip") end
 
 	analyze_item: STRING_32
-		do Result := translation_in_context ("Analyze Item", once "code_analyzer.toolbar.item") end
+		do Result := translation_in_context ("Analyze", once "code_analyzer.toolbar.item") end
 
 	analyze_item_tooltip: STRING_32
-		do Result := translation_in_context ("Click to analyze the current item. Drop a stone to analyze any class, cluster, or configuration group.", once "code_analyzer.toolbar.item.tooltip") end
+		do Result := translation_in_context ("Click to analyze last item again. Drop a stone to analyze a class, cluster, current target or configuration group.", once "code_analyzer.toolbar.item.tooltip") end
+
+	analyze_editor_tool_text: STRING_32
+		do Result := translation_in_context ("Analyze Code from Editor", once "code_analyzer.toolbar.item") end
+
+	analyze_editor_tooltip: STRING_32
+		do Result := translation_in_context ("Click to analyze code from editor window.", once "code_analyzer.toolbar.item.tooltip") end
+
+	analyze_parent_tool_text: STRING_32
+		do Result := translation_in_context ("Analyze Parent Cluster", once "code_analyzer.toolbar.item") end
+
+	analyze_parent_tooltip: STRING_32
+		do Result := translation_in_context ("Click to analyze parent cluster of recently analyzed item.", once "code_analyzer.toolbar.item.tooltip") end
+
+	analyze_target_tool_text: STRING_32
+		do Result := translation_in_context ("Analyze Target", once "code_analyzer.toolbar.item") end
+
+	analyze_target_tooltip: STRING_32
+		do Result := translation_in_context ("Click to analyze current target.", once "code_analyzer.toolbar.item.tooltip") end
 
 	tool_errors (n: INTEGER_32): STRING_32
 			-- Label of an error selector for `n' messages.
@@ -765,7 +800,10 @@ feature -- GUI
 		do Result := translation_in_context ("Filter: ", once "code_analyzer.toolbar.item") end
 
 	analysis_not_run: STRING_32
-		do Result := translation_in_context ("(Eiffel Inspector has not run yet.)", once "code_analyzer.toolbar.item") end
+		do Result := translation_in_context ("not run yet", once "code_analyzer.toolbar.item") end
+
+	last_analyzed: STRING_32
+		do Result := translation_in_context ("Last analyzed:", once "code_analyzer.toolbar.item") end
 
 	go_to_previous_tooltip: STRING_32
 		do Result := translation_in_context ("Go to previous rule violation", once "code_analyzer.toolbar.item.tooltip") end
@@ -797,13 +835,13 @@ feature -- GUI
 feature -- GUI: Show Preferences Command
 
 	pref_menu_name: STRING_32
-		do Result := translation_in_context ("Eiffel Inspector Preferences...", once "code_analyzer") end
+		do Result := translation_in_context ("Analyzer Preferences...", once "code_analyzer") end
 
 	pref_tooltext: STRING_32
 		do Result := translation_in_context ("Preferences", once "code_analyzer.toolbar.item") end
 
 	pref_tooltip: STRING_32
-		do Result := translation_in_context ("Show Dialog for Eiffel Inspector Preferences", once "code_analyzer.toolbar.item.tooltip") end
+		do Result := translation_in_context ("Show Dialog for Analyzer Preferences", once "code_analyzer.toolbar.item.tooltip") end
 
 feature {NONE} -- Translation
 

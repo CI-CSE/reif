@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Text formatter for all text output formatting."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -97,7 +97,7 @@ feature -- Process
 			process_basic_text (text)
 		end
 
-	process_local_text (text: READABLE_STRING_GENERAL)
+	process_local_text (a_ast: detachable AST_EIFFEL; text: READABLE_STRING_GENERAL)
 			-- Process string text `t'.
 		require
 			text_not_void: text /= Void
@@ -176,11 +176,11 @@ feature -- Process
 		deferred
 		end
 
-	process_cluster_name_text (text: READABLE_STRING_GENERAL; a_cluster: CONF_GROUP; a_quote: BOOLEAN)
-			-- Process cluster name of `a_cluster'.
+	process_cluster_name_text (text: READABLE_STRING_GENERAL; a_group: CONF_GROUP; a_quote: BOOLEAN)
+			-- Process cluster name of `a_group'.
 		require
 			text_not_void: text /= Void
-			a_cluster_not_void: a_cluster /= Void
+			a_group_not_void: a_group /= Void
 		deferred
 		end
 
@@ -378,7 +378,7 @@ feature {NONE} -- Implementation
 			create Result.make (text.count + 2)
 			Result.append_character ('`')
 			Result.append_string_general (text)
-			Result.append_character ('%'')
+			Result.append_character ('`')
 		ensure
 			text_quoted_not_void: Result /= Void
 		end
@@ -409,11 +409,8 @@ feature -- Text operator
 
 	add_char (c: CHARACTER_32)
 			-- Add `c'.
-		local
-			l_s: STRING_32
 		do
-			create l_s.make_filled (c, 1)
-			process_character_text (l_s)
+			process_character_text (create {STRING_32}.make_filled (c, 1))
 		end
 
 	add_new_line
@@ -431,7 +428,7 @@ feature -- Text operator
 	add_local (s: READABLE_STRING_GENERAL)
 			-- Add `s' as a local.
 		do
-			process_local_text (s)
+			process_local_text (Void, s)
 		end
 
 	add_natural_32 (i: NATURAL_32)
@@ -446,11 +443,11 @@ feature -- Text operator
 			process_number_text (i.out)
 		end
 
-	add_group (e_cluster: CONF_GROUP; str: READABLE_STRING_GENERAL)
-			-- Put `e_cluster' with string representation
+	add_group (a_group: CONF_GROUP; str: READABLE_STRING_GENERAL)
+			-- Put `a_group' with string representation
 			-- `str' at current position.
 		do
-			process_cluster_name_text (str, e_cluster, false)
+			process_cluster_name_text (str, a_group, False)
 		end
 
 	add_before_class (e_class: CLASS_C)
@@ -477,10 +474,13 @@ feature -- Text operator
 		local
 			l_name: READABLE_STRING_GENERAL
 		do
-			if context_group /= Void and then class_i.is_valid then
-				if attached context_group.name_by_class (class_i.config_class, True) as l_list and then not l_list.is_empty then
-					l_name := l_list.first
-				end
+			if
+				context_group /= Void and then
+				class_i.is_valid and then
+				attached context_group.name_by_class (class_i.config_class, True) as l_list and then
+				not l_list.is_empty
+			then
+				l_name := l_list.first
 			end
 			if l_name = Void then
 				l_name := class_i.name
@@ -519,16 +519,13 @@ feature -- Text operator
 			-- Put feature name of `e_feature', taking reserved words into consideration.
 		local
 			l_is_prefix_infix: BOOLEAN
-			l_keyword: STRING
 			l_prefix_infix: STRING_32
 		do
 				-- Prepare prefix/infix text.
 			if e_feature.is_prefix then
-				l_keyword := ti_prefix_keyword
 				l_prefix_infix := e_feature.prefix_symbol_32
 				l_is_prefix_infix := True
 			elseif e_feature.is_infix then
-				l_keyword := ti_infix_keyword
 				l_prefix_infix := e_feature.infix_symbol_32
 				l_is_prefix_infix := True
 			end
@@ -586,10 +583,10 @@ feature -- Text operator
 			process_column_text (column_num)
 		end
 
-	add_feature_error (feat: E_FEATURE; str: READABLE_STRING_GENERAL; a_line: INTEGER)
-			-- Put error of feature `feat', named `str' and located at `a_line'.
+	add_feature_error (f: E_FEATURE; n: READABLE_STRING_GENERAL; a_line: INTEGER)
+			-- <Precursor>
 		do
-			process_feature_error (str, feat, a_line)
+			process_feature_error (n, f, a_line)
 		end
 
 	add_eis_source (s: READABLE_STRING_GENERAL)
@@ -634,26 +631,19 @@ feature {NONE} -- Implementation
 			-- Add comment `p' and wipe out `p'.
 		require
 			p_not_void: p /= Void
-		local
-			l_s: STRING
-			l_s32: STRING_32
 		do
 			if for_comment then
 				process_comment_text (p.twin, Void)
 			else
 				process_string_text (p.twin, Void)
 			end
-			l_s ?= p
-			if l_s /= Void then
+			if attached {STRING} p as l_s then
 				l_s.wipe_out
+			elseif attached {STRING_32} p as l_s32 then
+				l_s32.wipe_out
 			else
-				l_s32 ?= p
-				if l_s32 /= Void then
-					l_s32.wipe_out
-				else
-					check
-						error: False
-					end
+				check
+					error: False
 				end
 			end
 		end
@@ -668,7 +658,7 @@ feature {NONE} -- Implementation
 			-- Internal context group
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -699,4 +689,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class TEXT_FORMATTER
+end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Representation of a compiled class."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -418,23 +418,6 @@ feature -- Status report
 			end
 		end
 
-	has_stable_attribute: BOOLEAN
-			-- Does class contain any stable attribute?
-		do
-			Result :=
-				attached skeleton as s and then
-				s.there_exists (
-					agent (a: ATTR_DESC): BOOLEAN
-						local
-							f: FEATURE_I
-						do
-							f := feature_of_rout_id (a.rout_id)
-							check f /= Void end
-							Result := f.is_attribute and then f.is_stable
-						end
-				)
-		end
-
 feature -- Action
 
 	record_precompiled_class_in_system
@@ -599,6 +582,20 @@ feature -- Building conformance table
 			end
 		end
 
+feature -- Type checking
+
+	check_instance_free_usage (c: AST_INSTANCE_FREE_CHECKER)
+			-- Check if features declared as class ones as well as those used in instance-free calls
+			-- are instance-free using instance-free checker `c`.
+		require
+			absent_explicit_assertion: system.absent_explicit_assertion
+			system_defined: workbench.system_defined
+			has_feature_table: has_feature_table
+			not_precompiled: not is_precompiled
+		do
+				-- Nothing here.
+		end
+
 feature -- Expanded rules validity
 
 	check_expanded
@@ -607,9 +604,7 @@ feature -- Expanded rules validity
 			-- (the creators must be up to date)
 		local
 			l_constraint_types: TYPE_SET_A
-			l_formals: like generic_features
-			l_cursor: CURSOR
-			l_formal_dec: FORMAL_CONSTRAINT_AS
+			l_actual_type: TYPE_A
 		do
 debug ("CHECK_EXPANDED")
 io.error.put_string ("Checking expanded for: ")
@@ -620,18 +615,12 @@ end
 
 				-- Check validity of all formal generic parameters instantiated
 				-- as expanded types.
-			l_formals := generic_features
-			if l_formals /= Void then
-				from
-					l_cursor := l_formals.cursor
-					l_formals.start
-				until
-					l_formals.after
+			if attached generic_features as fs then
+				across
+					fs as f
 				loop
-					l_formals.item_for_iteration.check_expanded (Current)
-					l_formals.forth
+					f.item.check_expanded (Current)
 				end
-				l_formals.go_to (l_cursor)
 				Error_handler.checksum
 			end
 
@@ -641,18 +630,21 @@ end
 				until
 					generics.after
 				loop
-					l_formal_dec ?= generics.item
-					check l_formal_dec_not_void: l_formal_dec /= Void end
-					l_constraint_types := l_formal_dec.constraint_types (Current)
-					from
-						l_constraint_types.start
-					until
-						l_constraint_types.after
-					loop
-						if l_constraint_types.item.type.has_generics then
-							System.expanded_checker.check_actual_type (l_constraint_types.item.type)
+					if attached {FORMAL_CONSTRAINT_AS} generics.item as l_formal_dec then
+						l_constraint_types := l_formal_dec.constraint_types (Current)
+						from
+							l_constraint_types.start
+						until
+							l_constraint_types.after
+						loop
+							l_actual_type := l_constraint_types.item.type
+							if l_actual_type.has_generics then
+								System.expanded_checker.check_actual_type (l_actual_type)
+							end
+							l_constraint_types.forth
 						end
-						l_constraint_types.forth
+					else
+						check is_formal_constraint: False end
 					end
 					generics.forth
 				end
@@ -662,19 +654,19 @@ end
 feature -- Access: object relative once
 
 	create_object_relative_once_infos (n: INTEGER)
-			-- Create a new `object_relative_once_infos' table
+			-- Create a new `object_relative_once_infos' table.
 		do
 			create object_relative_once_infos.make (n)
 		end
 
 	reset_object_relative_once_infos
-			-- Reset `object_relative_once_infos' to Void .
+			-- Reset `object_relative_once_infos' to Void.
 		do
 			object_relative_once_infos := Void
 		end
 
 	object_relative_once_infos: detachable OBJECT_RELATIVE_ONCE_INFO_TABLE
-			-- List of info about object relative onces associated with Current
+			-- List of info about object relative onces associated with Current.
 
 	object_relative_once_dependances (a_body_index: INTEGER): detachable FEATURE_DEPENDANCE
 			-- feature dependances related to once per object associated with `a_body_index'.
@@ -689,7 +681,7 @@ feature -- Access: object relative once
 		end
 
 	object_relative_once_attribute_with_body_index (a_body_index: INTEGER):	detachable ATTRIBUTE_I
-			-- Info about object relative once associated with Current and an item of `a_body_index'
+			-- Info about object relative once associated with Current and an item of `a_body_index'.
 		require
 			a_body_index_valid: a_body_index /= 0
 		do
@@ -699,7 +691,7 @@ feature -- Access: object relative once
 		end
 
 	object_relative_once_info_of_rout_id_set (a_rout_id_set: ROUT_ID_SET): detachable OBJECT_RELATIVE_ONCE_INFO
-			-- Info about object relative once associated with Current and an item of `a_rout_id_set'
+			-- Info about object relative once associated with Current and an item of `a_rout_id_set'.
 		require
 			a_rout_id_set_not_void: a_rout_id_set /= Void
 		do
@@ -709,7 +701,7 @@ feature -- Access: object relative once
 		end
 
 	object_relative_once_info (a_once_routine_id: INTEGER): detachable OBJECT_RELATIVE_ONCE_INFO
-			-- Info about object relative once associated with Current and `a_once_routine_id'
+			-- Info about object relative once associated with Current and `a_once_routine_id'.
 		do
 			if attached object_relative_once_infos as l_infos then
 				Result := l_infos.item_of_rout_id (a_once_routine_id)
@@ -799,7 +791,7 @@ feature -- Generation
 
 	pass4
 			-- Generation of C files for each type associated to the current
-			-- class
+			-- class.
 			--|Don't forget to modify also `generate_workbench_files' when modifying
 			--|this function
 		do
@@ -1035,16 +1027,16 @@ feature -- Class initialization
 
 feature {NONE} -- Private access
 
-	Any_type: CL_TYPE_A
-			-- Default parent type
+	any_type: CL_TYPE_A
+			-- Default parent type.
 		once
 			create Result.make (System.any_id)
 		ensure
 			any_type_not_void: Result /= Void
 		end
 
-	Any_type_attached: CL_TYPE_A
-			-- Default parent type when it is attached by default
+	any_type_attached: CL_TYPE_A
+			-- Default parent type when it is attached by default.
 		once
 			create Result.make (System.any_id)
 			Result.set_is_attached
@@ -1052,8 +1044,8 @@ feature {NONE} -- Private access
 			any_type_not_void: Result /= Void
 		end
 
-	Any_parent: PARENT_C
-			-- Default compiled parent
+	any_parent: PARENT_C
+			-- Default compiled parent.
 		once
 			create Result
 			Result.set_parent_type (Any_type)
@@ -1065,7 +1057,7 @@ feature
 
 	update_syntactical_relations (old_syntactical_suppliers: like syntactical_suppliers)
 			-- Remove syntactical client/supplier relations and take
-			-- care of possible removed classes
+			-- care of possible removed classes.
 		local
 			a_class: CLASS_C
 			supplier_clients: like syntactical_clients
@@ -1133,7 +1125,7 @@ feature
 		end
 
 	remove_parent_relations
-			-- Remove parent/descendant relations of the Current class
+			-- Remove parent/descendant relations of the Current class.
 		require
 			parents_exists: parents_classes /= Void
 		local
@@ -1165,8 +1157,8 @@ feature
 
 	mark_class (marked_classes: SEARCH_TABLE [INTEGER])
 			-- Mark the class as used in the system
-			-- and propagate to the suppliers
-			-- Used by remove_useless_classes in SYSTEM_I
+			-- and propagate to the suppliers.
+			-- Used by remove_useless_classes in SYSTEM_I.
 		local
 			l_syntactical_suppliers: like syntactical_suppliers
 		do
@@ -1210,21 +1202,21 @@ feature
 		end
 
 	check_types_in_constraints
-			-- Check validity of constraint genericity
+			-- Check validity of constraint genericity.
 		require
 			generics_exists: is_generic
 		do
 		end
 
 	check_constraint_genericity
-			-- Check validity of constraint genericity
+			-- Check validity of constraint genericity.
 		require
 			generics_exists: is_generic
 		do
 		end
 
 	check_constraint_renaming
-			-- Check validity of renaming
+			-- Check validity of renaming.
 			-- Requires feature tables!!
 		do
 		end
@@ -1282,7 +1274,7 @@ feature -- Parent checking
 						-- If we have a parents_as list then we must have a non-empty parents list.
 				end
 				if class_id = l_any_id then
-						-- Throw a VHPR1 error is ANY contains any custom inheritance clauses.
+						-- Throw a VHPR1 error if ANY contains any custom inheritance clauses.
 					create l_vhpr1
 					l_vhpr1.set_associated_class (Current)
 					create l_dummy_list.make
@@ -1409,7 +1401,7 @@ feature -- Parent checking
 									then
 											-- Different generic derivations are used in Parent parts.
 										error_handler.insert_error (create {VHPR5_ECMA}.make
-											(Current, l_parent_type, parents.i_th (l_parents_classes.index), l_parent_as.start_location))
+											(Current, l_parent_type, Current, parents.i_th (l_parents_classes.index), Current, l_parent_as.start_location))
 									end
 									l_parents_classes.forth
 								end
@@ -1490,6 +1482,10 @@ feature -- Parent checking
 				end
 			else
 					-- First compilation of the class
+					-- Set `changed3a` to ensure the descendants are recompiled if something goes wrong at the first compilation.
+					-- See test#valid255.
+				set_changed (True)
+				set_changed3a (True)
 				System.set_update_sort (True)
 			end
 		ensure
@@ -1664,18 +1660,17 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Supplier checking
 		local
 			l_creation_proc: FEATURE_I
 			l_error: BOOLEAN
-			l_arg_type: TYPE_A
 			l_vd27: VD27
 			l_feat_tbl: like feature_table
 		do
-			if creators /= Void and not a_creator.is_empty then
+			if creators /= Void and then not a_creator.is_empty then
 				l_feat_tbl := feature_table
 				from
 					creators.start
 				until
 					creators.after
 				loop
-					if a_creator.is_equal (creators.key_for_iteration) then
+					if a_creator.same_string (creators.key_for_iteration) then
 							-- `creators.key_for_iteration' contains the creation_name
 						l_creation_proc := l_feat_tbl.item (creators.key_for_iteration)
 
@@ -1684,9 +1679,12 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Supplier checking
 						when 0 then
 							l_error := False
 						when 1 then
-							l_arg_type ?= l_creation_proc.arguments.first
-							l_arg_type := l_arg_type.instantiation_in (a_type, class_id).actual_type
-							l_error := not array_of_string.conform_to (Current, l_arg_type)
+							if attached l_creation_proc.arguments.first as l_arg_type then
+								l_error := not array_of_string.conform_to (Current, l_arg_type.instantiation_in (a_type, class_id).actual_type)
+							else
+								check has_one_argument: False end
+								l_error := True
+							end
 						else
 							l_error := True
 						end
@@ -1936,7 +1934,7 @@ feature -- Status Settings
 		end
 
 	set_has_unique
-			-- Set `has_unique' to True
+			-- Set `has_unique' to `True`.
 		do
 			has_unique := True
 		ensure
@@ -1944,7 +1942,7 @@ feature -- Status Settings
 		end
 
 	set_has_expanded
-			-- Set `has_expanded' to True
+			-- Set `has_expanded' to `True`.
 		do
 			has_expanded := True
 		ensure
@@ -2009,7 +2007,7 @@ feature -- Status Settings
 		end
 
 	set_visible_table_size (i: INTEGER)
-			-- Assign `i' to `visible_table_size'
+			-- Assign `i' to `visible_table_size'.
 		require
 			i_positive: i >= 0
 		do
@@ -2019,7 +2017,7 @@ feature -- Status Settings
 		end
 
 	set_is_single (v: BOOLEAN)
-			-- Set `is_single' with `v'
+			-- Set `is_single' with `v'.
 		do
 			is_single := v
 		ensure
@@ -2027,7 +2025,7 @@ feature -- Status Settings
 		end
 
 	set_storable_version (v: like storable_version)
-			-- Set `storable_version' with `v'
+			-- Set `storable_version' with `v'.
 		do
 			storable_version := v
 		ensure
@@ -2037,7 +2035,7 @@ feature -- Status Settings
 feature -- Convenience features
 
 	add_descendant (c: CLASS_C)
-			-- Insert class `c' into the descendant list
+			-- Insert class `c' into the descendant list.
 		require
 			good_argument: c /= Void
 		local
@@ -2052,15 +2050,15 @@ feature -- Convenience features
 		end
 
 	external_name: STRING
-			-- External name
+			-- External name.
 		local
-			l_vis: EQUALITY_TUPLE [TUPLE [class_renamed: STRING_32; features: STRING_TABLE [STRING_32]]]
+			l_vis: TUPLE [class_renamed: READABLE_STRING_32; features: STRING_TABLE [READABLE_STRING_32]]
 			u: UTF_CONVERTER
 		do
 			l_vis := lace_class.visible
 			if l_vis /= Void then
 					-- Compile keeps its internal data in UTF-8.
-				Result := u.utf_32_string_to_utf_8_string_8 (l_vis.item.class_renamed)
+				Result := u.utf_32_string_to_utf_8_string_8 (l_vis.class_renamed)
 			else
 				Result := name
 			end
@@ -2070,7 +2068,7 @@ feature -- Convenience features
 		end
 
 	assertion_level: ASSERTION_I
-			-- Assertion level of the class
+			-- Assertion level of the class.
 		do
 			if System.in_final_mode then
 					-- In final mode we do not generate assertions
@@ -2088,31 +2086,31 @@ feature -- Convenience features
 		end
 
 	trace_level: OPTION_I
-			-- Trace level of the class
+			-- Trace level of the class.
 		do
 			Result := lace_class.trace_level
 		end
 
 	profile_level: OPTION_I
-			-- Profile level of the class
+			-- Profile level of the class.
 		do
 			Result := lace_class.profile_level
 		end
 
 	optimize_level: OPTIMIZE_I
-			-- Optimization level
+			-- Optimization level.
 		do
 			Result := lace_class.optimize_level
 		end
 
 	debug_level: DEBUG_I
-			-- Debug level
+			-- Debug level.
 		do
 			Result := lace_class.debug_level
 		end
 
 	visible_level: VISIBLE_I
-			-- Visible level
+			-- Visible level.
 		do
 			Result := lace_class.visible_level
 		end
@@ -2186,7 +2184,7 @@ feature {EXTERNAL_CLASS_C} -- Initialization
 				a := create_generic_type (t)
 			end
 				-- Associated actual type is always attached in a Void-safe class.
-			actual_type := a.as_attached_in (Current)
+			actual_type := a.as_normally_attached (Current)
 		end
 
 	create_generic_type (g: ARRAYED_LIST [TYPE_A]): GEN_TYPE_A
@@ -2415,51 +2413,52 @@ end
 		end
 
 	constraint (i: INTEGER): TYPE_A
-			-- I-th constraint of the class
+			-- `i`-th constraint of the class.
 		require
 			generics_exists: is_generic
 			valid_index: generics.valid_index (i)
 			not_is_multi_constraint: not generics.i_th (i).has_multi_constraints
-		local
-			l_formal_dec: FORMAL_CONSTRAINT_AS
 		do
-			l_formal_dec ?= generics.i_th (i)
-			check l_formal_dec_not_void: l_formal_dec /= Void end
-			Result := l_formal_dec.constraint_type (Current).type
+			if attached {FORMAL_CONSTRAINT_AS} generics.i_th (i) as l_formal_dec then
+				Result := l_formal_dec.constraint_type (Current).type
+			else
+				check is_formal_constraint: False end
+			end
 		ensure
 			constraint_not_void: Result /= Void
 		end
 
 	constraint_if_possible (i: INTEGER): TYPE_A
-			-- I-th constraint of the class
+			-- `i`-th constraint of the class.
 		require
 			generics_exists: is_generic
 			valid_index: generics.valid_index (i)
 			not_is_multi_constraint: not generics.i_th (i).has_multi_constraints
 		local
-			l_formal_dec: FORMAL_CONSTRAINT_AS
-			l_result: RENAMED_TYPE_A
+			l_result: detachable RENAMED_TYPE_A
 		do
-			l_formal_dec ?= generics.i_th (i)
-			check l_formal_dec_not_void: l_formal_dec /= Void end
-			l_result := l_formal_dec.constraint_type_if_possible (Current)
-			if l_result /= Void then
-				Result := l_result.type
+			if attached {FORMAL_CONSTRAINT_AS} generics.i_th (i) as l_formal_dec then
+				l_result := l_formal_dec.constraint_type_if_possible (Current)
+				if l_result /= Void then
+					Result := l_result.type
+				end
+			else
+				check is_formal_constraint: False end
 			end
 		end
 
 	constraints (i: INTEGER): TYPE_SET_A
-			-- I-th constraint set of the class
+			-- `i`-th constraint set of the class.
 		require
 			generics_exists: is_generic
 			valid_index: generics.valid_index (i)
-		local
-			l_formal_dec: FORMAL_CONSTRAINT_AS
 		do
 				-- Fixme: Should we store computation of `constraint_types'?
-			l_formal_dec ?= generics.i_th (i)
-			check l_formal_dec_not_void: l_formal_dec /= Void end
-			Result := l_formal_dec.constraint_types (Current)
+			if attached {FORMAL_CONSTRAINT_AS} generics.i_th (i) as l_formal_dec then
+				Result := l_formal_dec.constraint_types (Current)
+			else
+				check is_formal_constraint: False end
+			end
 		ensure
 			constraint_not_void: Result /= Void
 		end
@@ -2492,13 +2491,13 @@ end
 		require
 			generics_exists: is_generic
 			valid_index: generics.valid_index (i)
-		local
-			l_formal_dec: FORMAL_CONSTRAINT_AS
 		do
 				-- Fixme: Should we store computation of `constraint_types_if_possible'?
-			l_formal_dec ?= generics.i_th (i)
-			check l_formal_dec_not_void: l_formal_dec /= Void end
-			Result := l_formal_dec.constraint_types_if_possible (Current)
+			if attached {FORMAL_CONSTRAINT_AS} generics.i_th (i) as l_formal_dec then
+				Result := l_formal_dec.constraint_types_if_possible (Current)
+			else
+				check is_formal_constraint: False end
+			end
 		ensure
 			constraint_not_void: Result /= Void
 		end
@@ -2513,7 +2512,6 @@ end
 			valid_formal_position: is_valid_formal_position (a_formal_position)
 			not_multi_constraint: not generics [a_formal_position].is_multi_constrained (generics)
 		local
-			l_formal_type: FORMAL_A
 			l_recursion_break: SPECIAL [BOOLEAN]
 			l_break: BOOLEAN
 			l_formal_type_position: INTEGER
@@ -2526,13 +2524,15 @@ end
 				until
 					not Result.is_formal or l_break
 				loop
-					l_formal_type ?= Result
-					check l_formal_type_not_void: l_formal_type /= Void end
-					l_formal_type_position := l_formal_type.position
-					check valid_formal_position: is_valid_formal_position (l_formal_type_position) end
-					l_break := l_recursion_break [l_formal_type_position]
-					l_recursion_break [l_formal_type_position] := True
-					Result := constraint (l_formal_type_position)
+					if attached {FORMAL_A} Result as l_formal_type then
+						l_formal_type_position := l_formal_type.position
+						check valid_formal_position: is_valid_formal_position (l_formal_type_position) end
+						l_break := l_recursion_break [l_formal_type_position]
+						l_recursion_break [l_formal_type_position] := True
+						Result := constraint (l_formal_type_position)
+					else
+						check is_formal_type: False end
+					end
 				end
 				if l_break then
 					Result := any_type
@@ -2685,13 +2685,14 @@ feature {NONE} -- Incrementality
 			-- return the associated class type.
 		require
 			data_not_void: data /= Void
-		local
-			g: GEN_TYPE_A
 		do
 			if data.generics /= Void then
 					-- Register this generic type and other required types.
-				g ?= data
-				Result := register_generic_type (g, g.generics.count)
+				if attached {GEN_TYPE_A} data as g then
+					Result := register_generic_type (g, g.generics.count)
+				else
+					check data_is_gen_type_a: False end
+				end
 			elseif types.has_type (Void, data) then
 				Result := types.found_item
 			else
@@ -2738,43 +2739,42 @@ end
 			g: GEN_TYPE_A
 			t: ARRAYED_LIST [TYPE_A]
 			p: TYPE_A
-			c: CL_TYPE_A
 			i: INTEGER
-			a: NATIVE_ARRAY_TYPE_A
-			r: GEN_TYPE_A
 		do
 			if types.has_type (Void, data) then
 				Result := types.found_item
 			else
 					-- Found a new type for the class
 				Result := register_new_type (data)
-				r ?= Result.type
-				check
-					r_attached: r /= Void
-				end
-				a ?= r
-					-- TODO: see GEN_TYPE_A.enumerate_interfaces
-				if a = Void and then system.is_precompiled then
-						-- Register all types where expanded parameters are replaced with reference ones.
-					t := r.generics
-					from
-						i := n
-					until
-						i <= 0
-					loop
-						p := t [i]
-						if p.is_expanded then
-							g := r.duplicate
-							c ?= p
-							check
-								c_attached: c /= Void
+				if attached {GEN_TYPE_A} Result.type as r then
+						-- TODO: see GEN_TYPE_A.enumerate_interfaces
+					if
+						not attached {NATIVE_ARRAY_TYPE_A} r and then
+						system.is_precompiled
+					then
+							-- Register all types where expanded parameters are replaced with reference ones.
+						t := r.generics
+						from
+							i := n
+						until
+							i <= 0
+						loop
+							p := t [i]
+							if p.is_expanded then
+								g := r.duplicate
+								if attached {CL_TYPE_A} p as c then
+									g.generics [i] := c.reference_type
+									register_generic_type (g, i - 1).do_nothing
+									update_types (g)
+								else
+									check is_cl_type_a: False end
+								end
 							end
-							g.generics [i] := c.reference_type
-							register_generic_type (g, i - 1).do_nothing
-							update_types (g)
+							i := i - 1
 						end
-						i := i - 1
 					end
+				else
+					check is_gen_type_a: False end
 				end
 			end
 		end
@@ -2834,7 +2834,6 @@ feature {CLASS_C} -- Incrementality
 			conformance: new_class_type.associated_class.inherits_from (Current)
 		local
 			class_filters: like filters
-			filter: CL_TYPE_A
 			class_filters_cursor: INTEGER
 		do
 			class_filters := filters
@@ -2848,9 +2847,8 @@ feature {CLASS_C} -- Incrementality
 					-- and that this class has some `like Current' then
 					-- we are going to traverse recursively the `filters' list.
 				class_filters_cursor := class_filters.cursor
-					-- Instantiation of the filter with `new_class_type'
-				filter ?= class_filters.item_for_iteration.instantiation_in (new_class_type.type, class_id)
-				if filter /= Void and then not filter.has_formal_generic then
+					-- Instantiation of the filter with `new_class_type'.
+				if attached {CL_TYPE_A} class_filters.item_for_iteration.instantiation_in (new_class_type.type, class_id) as filter and then not filter.has_formal_generic then
 					check
 						has_associated_class: filter.has_associated_class
 					end
@@ -2888,14 +2886,17 @@ feature -- Meta-type
 					-- General instantiation of the actual class type where
 					-- the feature is written in the context of the actual
 					-- type of the base class of `class_type'.
-				written_actual_type ?= actual_type.instantiation_in
-											(actual_class_type, class_id)
-				if written_actual_type.is_expanded then
-						-- Ancestors are always reference types.
-					written_actual_type := written_actual_type.reference_type
+				if attached {CL_TYPE_A} actual_type.instantiation_in (actual_class_type, class_id) as l_cl_type_a then
+					written_actual_type := l_cl_type_a
+					if written_actual_type.is_expanded then
+							-- Ancestors are always reference types.
+						written_actual_type := written_actual_type.reference_type
+					end
+						-- Ask for the meta-type
+					Result := written_actual_type.associated_class_type (class_type.type)
+				else
+					check is_cl_type_a: False end
 				end
-					-- Ask for the meta-type
-				Result := written_actual_type.associated_class_type (class_type.type)
 			end
 		ensure
 			meta_type_not_void: Result /= Void
@@ -3053,7 +3054,7 @@ feature -- default_create routine
 feature -- Dead code removal
 
 	mark_visible (remover: REMOVER)
-			-- Dead code removal from the visible features
+			-- Dead code removal from the visible features.
 		require
 			visible_level.has_visible
 		do
@@ -3061,7 +3062,7 @@ feature -- Dead code removal
 		end
 
 	has_visible: BOOLEAN
-			-- Has the class some visible features
+			-- Has the class some visible features?
 		do
 			Result := visible_level.has_visible
 		end
@@ -3072,7 +3073,7 @@ feature -- Dead code removal
 feature -- Cecil
 
 	generate_cecil (generated_wrappers: SEARCH_TABLE [STRING])
-			-- Generate cecil table for a class having visible features
+			-- Generate cecil table for a class having visible features.
 		require
 			has_visible: has_visible
 			generated_wrappers_attached: generated_wrappers /= Void
@@ -3086,7 +3087,7 @@ feature -- Cecil
 feature -- Invariant feature
 
 	has_invariant: BOOLEAN
-			-- Has the current class an invariant clause ?
+			-- Has the current class an invariant clause?
 		do
 			Result := invariant_feature /= Void
 		end
@@ -3107,7 +3108,7 @@ feature -- Process the creation feature
 		end
 
 	insert_changed_assertion (a_feature: FEATURE_I)
-			-- Insert `a_feature' in the melted set
+			-- Insert `a_feature' in the melted set.
 		do
 			add_feature_to_melted_set (a_feature)
 			Degree_1.insert_class (Current)
@@ -3163,12 +3164,12 @@ feature -- Initialization
 feature -- Properties
 
 	original_class: CLASS_I
-			-- Original lace class
+			-- Original lace class.
 			--
 			-- See `lace_class' for example.
 
 	lace_class: like original_class
-			-- Lace class (takes overriding into account)
+			-- Lace class (takes overriding into account).
 			--
 			-- e.g. Class in cluster c1 and in override o1
 			--
@@ -3338,14 +3339,14 @@ feature -- Properties
 		end
 
 	clients: ARRAYED_LIST [CLASS_C]
-			-- Clients of the class
+			-- Clients of the class.
 
 	suppliers: SUPPLIER_LIST
 			-- Suppliers of the class in terms of calls
 			-- [Useful for incremental type check].
 
 	generics: EIFFEL_LIST [FORMAL_DEC_AS]
-			-- Formal generical parameters
+			-- Formal generical parameters.
 
 	generic_features: HASH_TABLE [TYPE_FEATURE_I, INTEGER]
 			-- Collect all possible generic derivations inherited or current.
@@ -3378,7 +3379,7 @@ feature -- Properties
 			-- sort on classes.
 
 	is_deferred: BOOLEAN
-			-- Is class deferred ?
+			-- Is class deferred?
 
 	is_interface: BOOLEAN
 			-- Is class an interface for IL code generation?
@@ -3415,14 +3416,6 @@ feature -- Properties
 			-- Is class an external one?
 			-- If yes, we do not generate it.
 
-	is_ephemeral: BOOLEAN
-			-- Is class ephemeral?
-			--| Currently there is no real definition for it. It can be a class with a
-			--| special qualifier, or an expanded class without attribute.
-		do
-			-- Not implemented yet
-		end
-
 	is_true_external: BOOLEAN
 			-- Is class an instance of EXTERNAL_CLASS_C?
 			-- If yes, we do not generate it.
@@ -3433,7 +3426,7 @@ feature -- Properties
 			-- Is class's features hidden in debugger call stack tool?
 
 	obsolete_message_32: STRING_32
-			-- Obsolete message
+			-- Obsolete message.
 			-- (Void if Current is not obsolete)
 		do
 			if attached obsolete_message as l_m then
@@ -3448,7 +3441,7 @@ feature -- Properties
 			-- Associated custom attributes for assembly if any.
 
 	name: STRING
-			-- Class name
+			-- Class name.
 		do
 			Result := lace_class.name
 		end
@@ -3543,7 +3536,7 @@ feature -- Properties
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 
 	text: detachable STRING_8
-			-- Class text
+			-- Class text.
 		do
 			Result := lace_class.text
 		end
@@ -3551,19 +3544,19 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 feature -- Access: Encoding
 
 	encoding: detachable ENCODING
-			-- Encoding detected when reading `text'
+			-- Encoding detected when reading `text'.
 		do
 			Result := lace_class.encoding
 		end
 
 	bom: detachable STRING
-			-- Bom of the encoding detected when reading `text'
+			-- Bom of the encoding detected when reading `text'.
 		do
 			Result := lace_class.bom
 		end
 
 	obsolete_message: STRING
-			-- Obsolete message
+			-- Obsolete message.
 			-- (Void if Current is not obsolete)
 
 feature {NONE} -- Implementation: Properties
@@ -3580,17 +3573,17 @@ feature {NONE} -- Implementation: Properties
 		end
 
 	constrained_type_cache: SPECIAL [detachable TYPE_A]
-			-- Constraining type for each given formal, if there exists one
+			-- Constraining type for each given formal, if there exists one.
 
 	constrained_types_cache: SPECIAL [detachable TYPE_SET_A]
-			-- Constraining types for each given formal
+			-- Constraining types for each given formal.
 			--| In case someone requests a type set for a single constraint this is just fine.
 			--| That is why we have two caches.
 
 feature -- IL code generation
 
 	il_data_name: STRING
-			-- IL class name of class data
+			-- IL class name of class data.
 		require
 			not_is_external: not is_external
 		local
@@ -3629,13 +3622,13 @@ feature -- IL code generation
 feature {NONE} -- IL code generation
 
 	precompiled_namespace: STRING
-			-- Namespace of this class when it is precompiled
+			-- Namespace of this class when it is precompiled.
 
 	precompiled_class_name: STRING
-			-- Name of this class when it is precompiled
+			-- Name of this class when it is precompiled.
 
 	data_prefix: STRING = "Data"
-			-- Prefix in a name of class data
+			-- Prefix in a name of class data.
 
 feature -- status
 
@@ -3665,12 +3658,12 @@ feature -- Access
 			-- Does i-th generic parameter have multiple constraints?
 		require
 			has_generics: generics /= Void
-		local
-			l_formal_dec: FORMAL_CONSTRAINT_AS
 		do
-			l_formal_dec ?= generics.i_th (i)
-			check l_formal_dec_not_void: l_formal_dec /= Void end
-			Result := l_formal_dec.has_multi_constraints
+			if attached {FORMAL_CONSTRAINT_AS} generics.i_th (i) as l_formal_dec then
+				Result := l_formal_dec.has_multi_constraints
+			else
+				check is_formal_constraint: False end
+			end
 		end
 
 	is_fully_deferred: BOOLEAN
@@ -3719,7 +3712,7 @@ feature -- Access
 		end
 
 	name_in_upper: STRING
-			-- Class name in upper case
+			-- Class name in upper case.
 		do
 			Result := name
 		ensure
@@ -3727,7 +3720,7 @@ feature -- Access
 		end
 
 	ast: CLASS_AS
-			-- Associated AST structure
+			-- Associated AST structure.
 		do
 			if Tmp_ast_server.has (class_id) then
 				Result := Tmp_ast_server.item (class_id)
@@ -3739,7 +3732,7 @@ feature -- Access
 		end
 
 	invariant_ast: INVARIANT_AS
-			-- Associated invariant AST structure
+			-- Associated invariant AST structure.
 		do
 			if invariant_feature /= Void then
 				Result := Inv_ast_server.item (class_id)
@@ -3760,7 +3753,7 @@ feature -- Access
 		end
 
 	frozen feature_with_name_id (a_feature_name_id: INTEGER): E_FEATURE
-			-- Feature whose internal name is `n'
+			-- Feature whose internal name is `n'.
 		require
 			valid_a_feature_name_id: a_feature_name_id > 0
 			has_feature_table: has_feature_table
@@ -3774,7 +3767,7 @@ feature -- Access
 		end
 
 	frozen feature_with_id (a_feature_id: ID_AS): E_FEATURE
-			-- Feature whose internal name is `n'
+			-- Feature whose internal name is `n'.
 		require
 			valid_a_feature_id: a_feature_id /= Void
 			has_feature_table: has_feature_table
@@ -3788,7 +3781,7 @@ feature -- Access
 		end
 
 	frozen feature_with_name_32 (n: STRING_32): E_FEATURE
-			-- Feature whose internal name is `n'
+			-- Feature whose internal name is `n'.
 		require
 			valid_n: n /= Void
 			has_feature_table: has_feature_table
@@ -3805,6 +3798,20 @@ feature -- Access
 			feat: FEATURE_I
 		do
 			feat := feature_of_rout_id (rout_id)
+			if feat /= Void then
+				Result := feat.api_feature (class_id)
+			end
+		end
+
+	frozen feature_with_rout_id_set (rout_id_set: ROUT_ID_SET): E_FEATURE
+			-- Feature with routine ID in `rout_id_set'.
+		require
+			rout_id_set_not_void: rout_id_set /= Void
+			has_feature_table: has_feature_table
+		local
+			feat: FEATURE_I
+		do
+			feat := feature_of_rout_id_set (rout_id_set)
 			if feat /= Void then
 				Result := feat.api_feature (class_id)
 			end
@@ -4073,7 +4080,7 @@ feature -- Access
 		end
 
 	written_in_features: LIST [E_FEATURE]
-			-- List of features defined in current class
+			-- List of features defined in current class.
 		require
 			has_feature_table: has_feature_table
 		do
@@ -4121,7 +4128,7 @@ feature -- Server Access
 		end
 
 	group: CONF_GROUP
-			-- Cluster to which the class belongs to
+			-- Cluster to which the class belongs to.
 		do
 			Result := lace_class.group
 		ensure
@@ -4129,7 +4136,7 @@ feature -- Server Access
 		end
 
 	file_name: IMMUTABLE_STRING_32
-			-- File name of the class
+			-- File name of the class.
 		do
 			Result := lace_class.file_name.name
 		end
@@ -4146,7 +4153,7 @@ feature -- Server Access
 feature -- Comparison
 
 	is_less alias "<" (other: like Current): BOOLEAN
-			-- Order relation on classes
+			-- Order relation on classes.
 		do
 			Result := topological_id < other.topological_id
 		end
@@ -4154,7 +4161,7 @@ feature -- Comparison
 feature -- Output
 
 	class_signature: STRING
-			-- Signature of class
+			-- Signature of class.
 		local
 			old_group: CONF_GROUP
 			gens: like generics
@@ -4223,7 +4230,7 @@ feature -- Output
 		end
 
 	append_name (a_text_formatter: TEXT_FORMATTER)
-			-- Append the name ot the current class in `a_text_formatter'
+			-- Append the name ot the current class in `a_text_formatter'.
 		require
 			non_void_st: a_text_formatter /= Void
 		do
@@ -4305,25 +4312,15 @@ feature {COMPILER_EXPORTER} -- Setting
 			generics_set: generics = g
 		end
 
-	set_generic_features (f: like generic_features)
-			-- Set `generic_features' to `f'.
-		require
-			f_not_void: f /= Void
-		do
-			generic_features := f
-		ensure
-			generic_features_set: generic_features = f
-		end
-
 	set_encoding_and_bom (a_encoding: like ENCODING; a_bom: like bom)
-			-- Set `encoding' with `a_encoding'
-			-- Set `bom' with `a_bom'
+			-- Set `encoding' with `a_encoding'.
+			-- Set `bom' with `a_bom'.
 		do
 			lace_class.set_encoding_and_bom (a_encoding, a_bom)
 		end
 
 	set_is_hidden_in_debugger_call_stack (v: BOOLEAN)
-			-- Set `is_hidden_in_debugger_call_stack' with `v'
+			-- Set `is_hidden_in_debugger_call_stack' with `v'.
 		do
 			is_hidden_in_debugger_call_stack := v
 		ensure
@@ -4343,7 +4340,7 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Setting
 feature -- Genericity
 
 	invalidate_caches_related_to_generics
-			-- Invalidates the cache which stores computed renamings
+			-- Invalidates the cache which stores computed renamings.
 		do
 			constraint_cache := Void
 		ensure
@@ -4356,28 +4353,20 @@ feature -- Genericity
 		require
 			has_formal: is_generic
 			generic_features_computed: generic_features /= Void
-		local
-			l_formals: like generic_features
-			l_formal: FORMAL_A
-			l_cursor: CURSOR
 		do
-			from
-				l_formals := generic_features
-				l_cursor := l_formals.cursor
-				l_formals.start
+			across
+				generic_features as g
 			until
-				l_formals.after or Result /= Void
+				attached Result
 			loop
-				l_formal ?= l_formals.item_for_iteration.type
 				if
-					l_formal /= Void and then l_formal.position = n and then
+					attached {FORMAL_A} g.item.type as l_formal and then
+					l_formal.position = n and then
 					(not l_formal.has_detachable_mark and not l_formal.has_attached_mark)
 				then
-					Result := l_formals.item_for_iteration
+					Result := g.item
 				end
-				l_formals.forth
 			end
-			l_formals.go_to (l_cursor)
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -4387,29 +4376,20 @@ feature -- Genericity
 		require
 			has_formal: is_generic
 			generic_features_computed: generic_features /= Void
-		local
-			l_formals: like generic_features
-			l_formal: FORMAL_A
-			l_cursor: CURSOR
 		do
+			across
+				generic_features as g
 			from
-				l_formals := generic_features
-				l_cursor := l_formals.cursor
-				l_formals.start
 				create Result.make
-			until
-				l_formals.after
 			loop
-				l_formal ?= l_formals.item_for_iteration.type
 				if
-					l_formal /= Void and then l_formal.position = n and then
+					attached {FORMAL_A} g.item.type as l_formal and then
+					l_formal.position = n and then
 					(not l_formal.has_detachable_mark and not l_formal.has_attached_mark)
 				then
-					Result.merge (l_formals.item_for_iteration.rout_id_set)
+					Result.merge (g.item.rout_id_set)
 				end
-				l_formals.forth
 			end
-			l_formals.go_to (l_cursor)
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -4421,13 +4401,13 @@ feature -- Genericity
 		local
 			l_parents: like parents
 			l_formal, l_parent_formal: TYPE_FEATURE_I
-			l_formal_type: FORMAL_A
 			l_generic_features, l_old: like generic_features
 			l_inherited_formals: SEARCH_TABLE [INTEGER]
 			l_rout_id_set: ROUT_ID_SET
 			i, nb: INTEGER
 			l_formal_dec: FORMAL_DEC_AS
 			l_formals: SPECIAL [detachable TYPE_FEATURE_I]
+			l_formal_type: FORMAL_A
 		do
 				-- Clean previously stored information.
 			l_old := generic_features
@@ -4446,17 +4426,18 @@ feature -- Genericity
 						-- We check that the previous formal was written in the Current class and that
 						-- it is still makes sense. A case where it does not make sense is when the Current
 						-- class has less generics than before.
-					l_formal_type ?= l_old.item_for_iteration.type
 					if
-						l_formal_type /= Void and then
-						(not l_formal_type.has_attached_mark and not l_formal_type.has_detachable_mark and
-						l_old.item_for_iteration.origin_class_id = class_id and
-						l_formals.valid_index (l_formal_type.position))
+						attached {FORMAL_A} l_old.item_for_iteration.type as l_item_formal_type and then
+						(
+							not l_item_formal_type.has_attached_mark and not l_item_formal_type.has_detachable_mark and
+							l_old.item_for_iteration.origin_class_id = class_id and
+							l_formals.valid_index (l_item_formal_type.position)
+						)
 					then
 						check
-							not_inserted: l_formals.item (l_formal_type.position) = Void
+							not_inserted: l_formals.item (l_item_formal_type.position) = Void
 						end
-						l_formals.put (l_old.item_for_iteration, l_formal_type.position)
+						l_formals.put (l_old.item_for_iteration, l_item_formal_type.position)
 					end
 					l_old.forth
 				end
@@ -4484,8 +4465,7 @@ feature -- Genericity
 						l_formal.set_type (l_formal.type.instantiated_in (l_parents.item), 0)
 						l_formal.set_is_origin (False)
 						if l_old /= Void and then l_old.has (l_formal.rout_id_set.first) then
-							l_formal.set_feature_id (
-								l_old.item (l_formal.rout_id_set.first).feature_id)
+							l_formal.set_feature_id (l_old.item (l_formal.rout_id_set.first).feature_id)
 						else
 							l_formal.set_feature_id (feature_id_counter.next)
 						end
@@ -4524,9 +4504,15 @@ feature -- Genericity
 					loop
 						l_formal := l_generic_features.item_for_iteration
 						if l_formal.is_formal then
-							l_formal_type ?= l_formal.type
-							if not l_formal_type.has_attached_mark and not l_formal_type.has_detachable_mark then
-								l_inherited_formals.put (l_formal_type.position)
+							if attached {FORMAL_A} l_formal.type as l_item_formal_type then
+								if
+									not l_item_formal_type.has_attached_mark and not
+									l_item_formal_type.has_detachable_mark
+								then
+									l_inherited_formals.put (l_item_formal_type.position)
+								end
+							else
+								check is_formal_a: False end
 							end
 						end
 						l_generic_features.forth
@@ -4541,8 +4527,7 @@ feature -- Genericity
 				loop
 					if not l_inherited_formals.has (i) then
 						l_formal_dec := generics.i_th (i)
-						create l_formal_type.make (l_formal_dec.is_reference,
-							l_formal_dec.is_expanded, i)
+						create l_formal_type.make (l_formal_dec.is_reference, l_formal_dec.is_expanded, i)
 
 						create l_formal
 						l_formal.set_feature_name ("_" + name + "_Formal#" + i.out)
@@ -4595,6 +4580,7 @@ feature {NONE} -- Genericity
 			l_generic_features: like generic_features
 			l_rout_id_set: ROUT_ID_SET
 			l_rout_id, i, nb: INTEGER
+			g1, g2: ARRAYED_LIST [TYPE_A]
 		do
 			l_generic_features := generic_features
 			if l_generic_features = Void then
@@ -4610,12 +4596,26 @@ feature {NONE} -- Genericity
 				i > nb
 			loop
 				l_rout_id := l_rout_id_set.item (i)
-				if not l_generic_features.has (l_rout_id) then
+				if not attached l_generic_features [l_rout_id] as other_actual then
 					l_generic_features.put (an_item, l_rout_id)
-				else
-						-- Should we report an error in this case, as it is not
-						-- well implemented by compiler? Meaning that we have
-						-- some repeated inheritance of generic parameters.
+				elseif not other_actual.same_signature (an_item) then
+						-- Two ancestors are different generic derivations of the same class.
+					if
+						attached system.class_of_id (an_item.origin_class_id) as c and then
+						attached c.generics as g
+					then
+						create g1.make_from_array (create {ARRAY [TYPE_A]}.make_filled (create {UNKNOWN_TYPE_A}, 1, g.count))
+						g2 := g1.twin
+						g1 [an_item.position] := an_item.type
+						g2 [an_item.position] := other_actual.type
+						error_handler.insert_error (create {VHPR5_ECMA}.make
+							(Current,
+							create {GEN_TYPE_A}.make (an_item.origin_class_id, g1),
+							an_item.written_class,
+							create {GEN_TYPE_A}.make (an_item.origin_class_id, g2),
+							other_actual.written_class,
+							Void))
+					end
 				end
 
 				i := i + 1
@@ -4943,14 +4943,6 @@ feature {DEGREE_4, NAMED_TUPLE_TYPE_A, TYPE_A_CHECKER} -- Degree 4
 			removed: not degree_4_needed
 		end
 
-	degree_4_needed: BOOLEAN
-			-- Does current class need to be
-			-- processed in Degree 4?
-
-	degree_4_processed: BOOLEAN
-			-- Has current class been processed in
-			-- first pass of Degree 4?
-
 	expanded_modified: BOOLEAN
 			-- Has the expanded status of current
 			-- class been modified?
@@ -4998,6 +4990,16 @@ feature {DEGREE_4, NAMED_TUPLE_TYPE_A, TYPE_A_CHECKER} -- Degree 4
 			supplier_status_modified_set: supplier_status_modified
 		end
 
+feature {DEGREE_4, NAMED_TUPLE_TYPE_A, TYPE_A_CHECKER, AST_CONTEXT} -- Degree 4
+
+	degree_4_needed: BOOLEAN
+			-- Does current class need to be
+			-- processed in Degree 4?
+
+	degree_4_processed: BOOLEAN
+			-- Has current class been processed in
+			-- first pass of Degree 4?
+
 feature {DEGREE_4, INHERIT_TABLE} -- Degree 4
 
 	deferred_modified: BOOLEAN
@@ -5023,7 +5025,7 @@ feature {DEGREE_4, ORIGIN_TABLE, AST_FEATURE_REPLICATION_GENERATOR, CLASS_C} -- 
 			-- List of routine ids that are replicated in `Current'.
 
 	set_replicated_features_list (l: like replicated_features_list)
-			-- Set `replicated_featurs_list' to `l'
+			-- Set `replicated_featurs_list' to `l'.
 		do
 			replicated_features_list := l
 		ensure
@@ -5276,7 +5278,6 @@ feature {NONE} -- Implementation
 		require
 			non_void_st: a_text_formatter /= Void
 		local
-			formal_dec: FORMAL_CONSTRAINT_AS
 			old_group: CONF_GROUP
 			gens: like generics
 		do
@@ -5295,9 +5296,11 @@ feature {NONE} -- Implementation
 				until
 					gens.after
 				loop
-					formal_dec ?= gens.item
-					check formal_dec_not_void: formal_dec /= Void end
-					formal_dec.append_signature (a_text_formatter, a_short, Current)
+					if attached {FORMAL_CONSTRAINT_AS} gens.item as l_formal_dec then
+						l_formal_dec.append_signature (a_text_formatter, a_short, Current)
+					else
+						check is_formal_constraint: False end
+					end
 					gens.forth
 					if not gens.after then
 						a_text_formatter.process_symbol_text (ti_Comma)
@@ -5326,7 +5329,7 @@ invariant
 	-- has_ast: has_ast
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -5357,4 +5360,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class CLASS_C
+end

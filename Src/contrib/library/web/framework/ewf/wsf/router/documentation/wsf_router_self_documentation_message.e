@@ -147,8 +147,11 @@ feature {WSF_RESPONSE} -- Output
 				l_description.append ("</ul>")
 			end
 
-			if doc_url_supported and then attached {WSF_STRING} request.query_parameter ("api") as l_api then
-				l_api_resource := l_api.value
+			if
+				doc_url_supported and then attached {WSF_STRING} request.query_parameter ("api") as l_api and then
+				l_api.value.is_valid_as_string_8
+			then
+				l_api_resource := l_api.value.to_string_8
 				if l_api_resource.is_empty then
 					l_api_resource := Void
 				end
@@ -218,17 +221,19 @@ feature {WSF_RESPONSE} -- Output
 
 				l_url := Void
 				s.append ("<li>")
-				s.append ("<code>")
-				if doc_url_supported then
-					s.append ("<a class=%"mappingresource%" href=%"")
-					s.append (doc_url (m.associated_resource))
-					s.append ("%">")
-					s.append (m.associated_resource)
-					s.append ("</a>")
-				else
-					s.append (m.associated_resource)
+				if attached m.associated_resource as l_associated_resource then
+					s.append ("<code>")
+					if doc_url_supported then
+						s.append ("<a class=%"mappingresource%" href=%"")
+						s.append (doc_url (l_associated_resource))
+						s.append ("%">")
+						s.append (l_associated_resource)
+						s.append ("</a>")
+					else
+						s.append (l_associated_resource)
+					end
+					s.append ("</code>")
 				end
-				s.append ("</code>")
 
 				if meths /= Void then
 					s.append (" [")
@@ -288,7 +293,11 @@ feature {WSF_RESPONSE} -- Output
 				s.append ("</li>%N")
 			else
 				debug
-					s.append ("<li>" + m.associated_resource + " is HIDDEN</li>%N")
+					if attached m.associated_resource as l_associated_resource then
+						s.append ("<li>" + l_associated_resource + " is HIDDEN</li>%N")
+					else
+						s.append ("<li>HIDDEN</li>%N")
+					end
 				end
 			end
 		end
@@ -324,7 +333,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "2011-2014, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

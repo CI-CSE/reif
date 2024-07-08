@@ -12,8 +12,10 @@ inherit
 		redefine
 			make,
 			page_title,
+			visit_page,
 			visit_link,
-			visit_missing_link
+			visit_missing_link,
+			is_newline_required_after_code_block
 		end
 
 create
@@ -25,6 +27,7 @@ feature {NONE} -- Initialization
 		do
 			Precursor (b)
 			create interwiki_mappings.make (0)
+			set_is_auto_toc_enabled (True)
 		end
 
 feature -- Setting
@@ -50,6 +53,30 @@ feature -- Page processing
 			visit_page (a_page)
 			overridden_title := Void
 		end
+
+	visit_page (a_page: WIKI_PAGE)
+		local
+			b: like is_html_encoded_output
+		do
+			current_page := a_page
+			if attached a_page.structure as st then
+				output ("<div class=%"wikipage%">")
+
+				output ("<h1 class=%"wikititle%">")
+				b := is_html_encoded_output
+				set_html_encoded_output (True)
+				output (page_title (a_page))
+				set_html_encoded_output (b)
+				output ("</h1>%N")
+
+				if is_auto_toc_enabled then
+					output_toc (Void, True)
+				end
+				st.process (Current)
+				output ("</div>%N")
+			end
+			current_page := Void
+		end		
 
 	visit_link (a_link: WIKI_LINK)
 			-- <Precursor>
@@ -95,6 +122,12 @@ feature -- Page processing
 		do
 			Precursor (a_link)
 		end
+
+feature -- Settings
+
+	is_newline_required_after_code_block: BOOLEAN = False
+		-- <Precursor>
+		-- should be handled by css style.
 
 feature -- Helper
 

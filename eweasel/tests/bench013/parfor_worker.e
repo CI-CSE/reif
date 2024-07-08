@@ -31,7 +31,7 @@ feature
     local
       i, j: INTEGER
     do
-      create Result.make (final - start + 1, ncols)
+      create Result.make_filled (0, final - start + 1, ncols)
 
       from i := start
       until i > final
@@ -51,7 +51,7 @@ feature
       i, j: INTEGER
       res: INTEGER
     do
-      create to_array.make (final - start + 1, ncols)
+      create to_array.make_filled (0, final - start + 1, ncols)
 
       from i := start
       until i > final
@@ -79,7 +79,7 @@ feature
   
 feature {NONE}
   ncols: INTEGER
-  to_array: ARRAY2 [INTEGER]
+  to_array: detachable ARRAY2 [INTEGER]
 
   from_array: separate ARRAY2[INTEGER]
   threshold: INTEGER

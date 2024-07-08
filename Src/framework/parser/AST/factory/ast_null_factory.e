@@ -21,7 +21,7 @@ inherit
 			new_eiffel_list_case_as, new_eiffel_list_constraining_type_as, new_eiffel_list_convert, new_eiffel_list_create_as,
 			new_eiffel_list_elseif_as, new_eiffel_list_export_item_as, new_eiffel_list_expr_as,
 			new_eiffel_list_feature_as, new_eiffel_list_feature_clause_as,
-			new_eiffel_list_feature_name, new_eiffel_list_formal_dec_as, new_eiffel_list_id_as,
+			new_eiffel_list_feature_name, new_eiffel_list_feature_name_id, new_eiffel_list_formal_dec_as, new_eiffel_list_id_as,
 			new_indexing_clause_as, new_eiffel_list_instruction_as, new_eiffel_list_interval_as,
 			new_eiffel_list_list_dec_as, new_eiffel_list_named_expression_as,
 			new_eiffel_list_operand_as, new_eiffel_list_parent_as, new_eiffel_list_rename_as,
@@ -648,6 +648,11 @@ feature -- Access
 		do
 		end
 
+	new_eiffel_list_feature_name_id (n: INTEGER): detachable EIFFEL_LIST [FEAT_NAME_ID_AS]
+			-- <Precursor>
+		do
+		end
+
 	new_eiffel_list_formal_dec_as (n: INTEGER): detachable FORMAL_GENERIC_LIST_AS
 			-- New empty list of FORMAL_DEC_AS
 		do
@@ -723,12 +728,12 @@ feature -- Access
 		do
 		end
 
-	new_ensure_as (a: detachable EIFFEL_LIST [TAGGED_AS]; k_as: detachable KEYWORD_AS): detachable ENSURE_AS
+	new_ensure_as (a: detachable EIFFEL_LIST [TAGGED_AS]; c: BOOLEAN; k_as: detachable KEYWORD_AS): detachable ENSURE_AS
 			-- New ENSURE AST node
 		do
 		end
 
-	new_ensure_then_as (a: detachable EIFFEL_LIST [TAGGED_AS]; k_as, l_as: detachable KEYWORD_AS): detachable ENSURE_THEN_AS
+	new_ensure_then_as (a: detachable EIFFEL_LIST [TAGGED_AS]; c: BOOLEAN; k_as, l_as: detachable KEYWORD_AS): detachable ENSURE_THEN_AS
 			-- New ENSURE THEN AST node
 		do
 		end
@@ -788,7 +793,7 @@ feature -- Access
 		do
 		end
 
-	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEATURE_NAME]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
+	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
 			-- New FORMAL_DECLARATION AST node
 		do
 		end
@@ -879,7 +884,7 @@ feature -- Access
 		do
 		end
 
-	new_iteration_as (a: detachable KEYWORD_AS; e: detachable EXPR_AS; b: detachable KEYWORD_AS; i: detachable ID_AS): detachable ITERATION_AS
+	new_iteration_as (a: detachable KEYWORD_AS; e: detachable EXPR_AS; b: detachable KEYWORD_AS; i: detachable ID_AS; is_restricted: BOOLEAN): detachable ITERATION_AS
 			-- <Precursor>
 		do
 		end
@@ -1024,8 +1029,9 @@ feature -- Access
 			l: detachable LOCAL_DEC_LIST_AS; b: detachable ROUT_BODY_AS; po: detachable ENSURE_AS;
 			r: detachable EIFFEL_LIST [INSTRUCTION_AS]; end_loc: detachable KEYWORD_AS;
 			oms_count, a_pos: INTEGER; k_as, r_as: detachable KEYWORD_AS;
-			object_test_locals: detachable ARRAYED_LIST [TUPLE [ID_AS, TYPE_AS]]): detachable ROUTINE_AS
-			-- New ROUTINE AST node
+			object_test_locals: detachable ARRAYED_LIST [TUPLE [ID_AS, TYPE_AS]];
+			n, a, u: BOOLEAN): detachable ROUTINE_AS
+			-- <Precursor>
 		do
 		end
 
@@ -1044,7 +1050,7 @@ feature -- Access
 		do
 		end
 
-	new_tagged_as (t: detachable ID_AS; e: detachable EXPR_AS; s_as: detachable SYMBOL_AS): detachable TAGGED_AS
+	new_tagged_as (t: detachable ID_AS; e: detachable EXPR_AS; c: detachable KEYWORD_AS; s_as: detachable SYMBOL_AS): detachable TAGGED_AS
 			-- New TAGGED AST node
 		do
 		end
@@ -1169,15 +1175,18 @@ feature -- Access
 		do
 		end
 
-	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEATURE_NAME]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
+	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
 			-- New CREATION_CONSTRAIN_TRIPLE object
 		do
 		end
 
 note
+	ca_ignore:
+		"CA011", "CA011 — too many arguments",
+		"CA033", "CA033 — very long class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

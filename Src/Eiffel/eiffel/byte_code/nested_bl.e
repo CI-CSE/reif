@@ -1,14 +1,14 @@
-note
+﻿note
+	description: "Enlarged byte code for nested call."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Enlarged byte code for nested call
 
 class NESTED_BL
 
 inherit
 	NESTED_B
 		redefine
-			print_register, free_register,
+			print_register, free_register, print_checked_target_register,
 			stored_register, has_call, has_gcable_variable, c_type,
 			set_register, register, set_parent, parent, propagate,
 			unanalyze, generate, analyze, allocates_memory
@@ -141,6 +141,7 @@ feature
 			-- register is No_register, the call is not meant to be put in
 			-- a temporary register, which means we have to expand the call
 			-- itself.
+			-- See  also `print_checked_target_register'.
 		do
 			if message.target = message then
 					-- We reached the last call
@@ -226,11 +227,9 @@ feature
 			-- Analyze expression
 		local
 			msg_target: ACCESS_B
-			access_expr_b: ACCESS_EXPR_B
 		do
 			msg_target := message.target
 			if parent = Void then
-				access_expr_b ?= target
 					-- If we are at the top of the tree hierarchy, then
 					-- this has never been analyzed. If the access has
 					-- no parameters, then it will be expanded in-line.
@@ -254,7 +253,7 @@ feature
 						-- The optimization can still be done for calls like t.f:
 						-- E_f (E_t (l[0])) is valid and does not need a register
 						-- Xavier
-					not (target.is_attribute or target.is_polymorphic or access_expr_b /= Void or msg_target.is_polymorphic)
+					not (target.is_attribute or target.is_polymorphic or attached {ACCESS_EXPR_B} target or msg_target.is_polymorphic)
 				then
 					context.init_propagation
 					target.propagate (No_register)
@@ -344,17 +343,50 @@ feature
 					-- generated directly by a call to `print_register'.
 					-- Otherwise, we have to generate it now.
 				l_type := real_type (target.type)
-				message_target.generate_call (system.is_scoop and then l_type.is_separate, False, register, reg)
+				message_target.generate_call (system.is_scoop and then l_type.is_separate, False, False, register, reg)
 			end
 		end
 
 	has_call: BOOLEAN = True
 			-- The expression has at least one call
 
-	allocates_memory: BOOLEAN = True;
+	allocates_memory: BOOLEAN
+			-- <Precursor>
+		do
+			Result :=
+				context.has_invariant or else
+				target.allocates_memory or else
+				message.target.allocates_memory or else
+				message.allocates_memory
+		end
+
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		do
+			if message.target = message then
+					-- We reached the last call
+				if register /= No_register then
+						-- There is a register, hence the call has already
+						-- been generated and the result is in the register.
+					register.print_checked_target_register
+				else
+						-- There is no register, which means the call has not
+						-- been generated yet.
+						-- General case.
+					Precursor
+				end
+			else
+					-- Simply propagate the request (it is impossible for a
+					-- call which is part of a multidot expression to have
+					-- its register set to No_register).
+				message.print_checked_target_register
+			end
+		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

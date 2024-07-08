@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Miscellaneous preferences.  Please remove this class and put the preferences in the sensible places."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -170,10 +169,25 @@ feature -- Value
 			Result := eis_path_preference.value
 		end
 
-	support_url: STRING_32
-			-- Support service url
+	license_accepted: BOOLEAN
+			-- License is accepted?
 		do
-			Result := support_url_preference.value
+			Result := license_accepted_preference.value
+		end
+
+	es_cloud_enabled: BOOLEAN
+			-- EiffelStudio enabled?
+		do
+			Result := es_cloud_enabled_preference.value
+		end
+
+feature -- Element change
+
+	set_license_accepted (b: BOOLEAN)
+			-- Set License accepted to `b`.
+			-- Hidden.
+		do
+			license_accepted_preference.set_value (b)
 		end
 
 feature -- Preference
@@ -193,7 +207,8 @@ feature -- Preference
 	pnd_preference: BOOLEAN_PREFERENCE
 	eis_path_preference: STRING_32_PREFERENCE
 	use_postscript_preference: BOOLEAN_PREFERENCE
-	support_url_preference: STRING_32_PREFERENCE
+	license_accepted_preference: BOOLEAN_PREFERENCE
+	es_cloud_enabled_preference: BOOLEAN_PREFERENCE
 
 feature {NONE} -- Preference Strings
 
@@ -212,7 +227,8 @@ feature {NONE} -- Preference Strings
 	pnd_preference_string: STRING = "general.pick_and_drop_(pnd)_mode"
 	eis_path_preference_string: STRING = "general.eis_path"
 	use_postscript_preference_string: STRING = "general.use_postscript"
-	support_url_preference_string: STRING = "general.support_url"
+	license_accepted_preference_string: STRING = "general.license_accepted"
+	es_cloud_enabled_preference_string: STRING = "general.es_cloud_enabled"
 
 feature {NONE} -- Implementation
 
@@ -220,21 +236,19 @@ feature {NONE} -- Implementation
 			-- Initialize preference values.
 		local
 			l_manager: EC_PREFERENCE_MANAGER
-			l_platform: PLATFORM_CONSTANTS
 			l_eis_path: STRING_32
 		do
-			create l_platform
 			create l_manager.make (preferences, "misc")
 
 			acrobat_reader_preference := l_manager.new_string_preference_value (l_manager, acrobat_reader_string, "acrobat")
-			text_mode_is_windows_preference := l_manager.new_boolean_preference_value (l_manager, text_mode_is_windows_string, l_platform.is_windows)
+			text_mode_is_windows_preference := l_manager.new_boolean_preference_value (l_manager, text_mode_is_windows_string, {PLATFORM}.is_windows)
 			internet_browser_preference := l_manager.new_string_32_preference_value (l_manager, internet_browser_string, {STRING_32} "netscape $url")
 			dyn_lib_window_height_preference := l_manager.new_integer_preference_value (l_manager, dyn_lib_window_height_string, 200)
 			dyn_lib_window_width_preference := l_manager.new_integer_preference_value (l_manager, dyn_lib_window_width_string, 400)
 			preference_window_height_preference := l_manager.new_integer_preference_value (l_manager, preference_window_height_string, 200)
 			preference_window_width_preference := l_manager.new_integer_preference_value (l_manager, preference_window_width_string, 400)
 			show_hidden_preferences_preference := l_manager.new_boolean_preference_value (l_manager, show_hidden_preferences_string, False)
-			if l_platform.is_windows then
+			if {PLATFORM}.is_windows then
 				console_shell_command_preference := l_manager.new_string_preference_value (l_manager, console_shell_command_string, "cmd")
 				external_editor_command_preference := l_manager.new_string_preference_value (l_manager, external_editor_command_string, "notepad $target")
 				file_browser_command_preference := l_manager.new_string_32_preference_value (l_manager, file_browser_command_string, {STRING_32} "explorer $target")
@@ -247,9 +261,8 @@ feature {NONE} -- Implementation
 			locale_id_preference := l_manager.new_array_preference_value (l_manager, locale_id_preference_string, <<"Unselected">>)
 			locale_id_preference.set_is_choice (True)
 			init_locale
-
 				-- Set the exact value, otherwise the preference detected default will be removed.
-			locale_id_preference.set_default_value ("de_DE;[en_US];fr_FR;ru_RU;zh_CN;Unselected")
+			locale_id_preference.set_default_value ("de_DE;[en_US];es_ES;fr_FR;ru_RU;zh_CN;Unselected")
 
 			pnd_preference := l_manager.new_boolean_preference_value (l_manager, pnd_preference_string, False)
 
@@ -261,9 +274,12 @@ feature {NONE} -- Implementation
 
 			use_postscript_preference := l_manager.new_boolean_preference_value (l_manager, use_postscript_preference_string, False)
 
-			support_url_preference := l_manager.new_string_32_preference_value (l_manager, support_url_preference_string, {STRING_32} "https://www2.eiffel.com/support")
-			support_url_preference.set_hidden (True)
+			license_accepted_preference := l_manager.new_boolean_preference_value (l_manager, license_accepted_preference_string, False)
+			license_accepted_preference.set_hidden (True)
 
+			es_cloud_enabled_preference := l_manager.new_boolean_preference_value (l_manager, es_cloud_enabled_preference_string, False)
+			es_cloud_enabled_preference.set_hidden (True)
+			es_cloud_enabled_preference.set_restart_required (True)
 		end
 
 	preferences: PREFERENCES
@@ -323,9 +339,6 @@ feature {NONE} -- Implementation
 						end
 						l_str := l_available_locales.item.name.as_string_8
 						if not l_added_pre.has (l_str) then
-							if not l_added_pre.is_empty then
-								l_available_lang.extend (';')
-							end
 							l_added_pre.force (l_str, l_str)
 							if l_available_locales.item.is_equal (l_id) and then not l_is_unselected then
 									-- Set this item selected.
@@ -335,12 +348,10 @@ feature {NONE} -- Implementation
 								l_found := True
 							end
 							l_available_lang.append (l_str)
+							l_available_lang.extend (';')
 						end
 					end
 					l_available_locales.forth
-				end
-				if not l_available_lang.is_empty then
-					l_available_lang.extend (';')
 				end
 				if not l_found then
 						-- If previous selected locale is not found anymore,
@@ -393,11 +404,11 @@ invariant
 	pnd_preference_not_void: pnd_preference /= Void
 	eis_preference_not_void: eis_path_preference /= Void
 	use_postscript_preference_not_void: use_postscript_preference /= Void
-	support_url_preference_not_void:  support_url_preference /= Void
-
+	license_accepted_preference_not_void: license_accepted_preference /= Void
+	es_cloud_enabled_preference_not_void: es_cloud_enabled_preference /= Void
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -428,4 +439,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_MISC_DATA
+end

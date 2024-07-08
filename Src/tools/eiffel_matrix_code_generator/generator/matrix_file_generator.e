@@ -1,7 +1,5 @@
-note
-	description: "[
-		A base matrix configuration INI file processor.
-	]"
+﻿note
+	description: "A base matrix configuration INI file processor."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -19,7 +17,7 @@ inherit
 			reset as reset_error_manager
 		export
 			{NONE} all
-			{ANY} successful, trace_errors, trace_warnings, errors, warnings, has_errors, has_warnings
+			{ANY} is_successful, trace_errors, trace_warnings, errors, warnings, has_errors, has_warnings
 		end
 
 feature {NONE} -- Initialization
@@ -56,7 +54,7 @@ feature {NONE} -- Access
 	current_y: NATURAL
 			-- Current Y position in matrix file
 
-	suffix: STRING
+	suffix: detachable STRING
 			-- Generated icon name suffix
 
 feature -- Status report
@@ -95,37 +93,35 @@ feature {NONE} -- Query
 		end
 
 	icon_prefix (a_literal: INI_LITERAL): attached STRING
-			-- Retrieves a icon prefix for `a_literal'
+			-- Retrieves a icon prefix for `a_literal'.
 		require
 			a_literal_attached: a_literal /= Void
 		local
-			l_section: INI_SECTION
 			l_label: STRING
 		do
-			l_section ?= a_literal.container
-			check
-				l_section_attached: l_section /= Void
+			if attached {INI_SECTION} a_literal.container as l_section then
+				l_label := section_label (l_section)
+				create Result.make (l_label.count + 1)
+				Result.append (l_label)
+				Result.prune_all_trailing ('_')
+				Result.append_character ('_')
+			else
+				create Result.make_empty
 			end
-			l_label := section_label (l_section)
-			create Result.make (l_label.count + 1)
-			Result.append (l_label)
-			Result.prune_all_trailing ('_')
-			Result.append_character ('_')
 		end
 
 	icon_suffix: attached STRING
 			-- Retrieves icon name suffix
 		do
-			if attached {STRING} suffix as l_suffix then
-				Result := l_suffix
-			else
+			Result := suffix
+			if not attached Result then
 				Result := default_icon_suffix
 			end
 		end
 
 feature -- Basic Operations
 
-	process (a_doc: INI_DOCUMENT; a_post_validate: PROCEDURE; a_post_process: PROCEDURE)
+	process (a_doc: INI_DOCUMENT; a_post_validate: detachable PROCEDURE; a_post_process: detachable PROCEDURE)
 			-- Processes INI document `a_doc' and executes `a_post_validate' to do other initalization once the basics have been validated
 			-- and `a_post_validate' on post processing
 		require
@@ -137,14 +133,14 @@ feature -- Basic Operations
 
 			process_properties (a_doc.properties)
 			validate_properties (a_doc)
-			if successful then
+			if is_successful then
 				if a_post_validate /= Void then
-					a_post_validate.call ([])
+					a_post_validate.call
 				end
-				if successful then
+				if is_successful then
 					process_sections (a_doc.sections)
-					if a_post_process /= Void and then successful then
-						a_post_process.call ([])
+					if a_post_process /= Void and then is_successful then
+						a_post_process.call
 					end
 				end
 			end
@@ -185,15 +181,12 @@ feature {NONE} -- Processing
 			-- Process document properties
 		require
 			a_properties_attached: a_properties /= Void
-		local
-			l_cursor: CURSOR
 		do
-			l_cursor := a_properties.cursor
-			from a_properties.start until a_properties.after loop
-				process_property (a_properties.item).do_nothing
-				a_properties.forth
+			across
+				a_properties as p
+			loop
+				process_property (p.item).do_nothing
 			end
-			a_properties.go_to (l_cursor)
 		ensure
 			a_properties_unmoved: a_properties.cursor.is_equal (old a_properties.cursor)
 		end
@@ -207,7 +200,7 @@ feature {NONE} -- Processing
 			l_value: STRING
 		do
 			Result := True
-			l_name := a_property.name.as_lower
+			l_name := if attached a_property.name as n then n.as_lower else "" end
 			l_value := a_property.value
 			if l_name.is_equal (pixel_width_property) then
 				if l_value.is_natural then
@@ -241,7 +234,7 @@ feature {NONE} -- Processing
 	process_sections (a_sections: LIST [INI_SECTION])
 			-- Process a section in an INI file.
 		require
-			successful: successful
+			is_successful: is_successful
 			a_sections_attached: a_sections /= Void
 		local
 			l_cursor: CURSOR
@@ -251,7 +244,7 @@ feature {NONE} -- Processing
 		do
 			l_height := height
 			l_cursor := a_sections.cursor
-			from a_sections.start until a_sections.after or not successful loop
+			from a_sections.start until a_sections.after or not is_successful loop
 				l_item := a_sections.item
 				y := current_y
 				if y = 0 or else not is_continuation_section (l_item) then
@@ -274,7 +267,7 @@ feature {NONE} -- Processing
 	process_section (a_section: INI_SECTION)
 			-- Process a section in an INI file.
 		require
-			successful: successful
+			is_successful: is_successful
 			a_section_attached: a_section /= Void
 		local
 			l_literals: LIST [INI_LITERAL]
@@ -292,7 +285,7 @@ feature {NONE} -- Processing
 				y := current_y
 
 				l_cursor := l_literals.cursor
-				from l_literals.start until l_literals.after or not successful loop
+				from l_literals.start until l_literals.after or not is_successful loop
 					x := x + 1
 					if x > l_width then
 						y := y + 1
@@ -317,7 +310,7 @@ feature {NONE} -- Processing
 	process_literal_item (a_item: INI_LITERAL; a_x: NATURAL; a_y: NATURAL)
 			-- Processes a literal from an INI matrix file.
 		require
-			successful: successful
+			is_successful: is_successful
 			a_item_attached: a_item /= Void
 			a_x_positive: a_x > 0
 			a_x_small_enough: a_x <= width
@@ -402,10 +395,10 @@ feature {NONE} -- Constants: Property Names
 			-- Character mark on sections to indication a continuation
 
 invariant
-	not_suffix_is_empty: suffix /= Void implies not suffix.is_empty
+	not_suffix_is_empty: attached suffix as s implies not s.is_empty
 
 note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -436,4 +429,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class {MATRIX_FILE_GENERATOR}
+end

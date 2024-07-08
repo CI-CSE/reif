@@ -65,24 +65,22 @@ feature -- Basic operations
 		require
 			a_current_token_not_void: a_current_token /= Void
 		local
-			token				: EDITOR_TOKEN
-			line                : EDITOR_LINE
-			feat_table			: E_FEATURE_TABLE
-			feat_i_table		: FEATURE_TABLE
-			feat				: E_FEATURE
-			l_class_list		: LIST[CLASS_C]
-			cls_c				: CLASS_C
-			crtrs				: HASH_TABLE [EXPORT_I, STRING]
-			externals			: ARRAYED_LIST [E_FEATURE]
-			show_any_features	: BOOLEAN
-			l_current_class_c	: CLASS_C
-			l_class_as          : CLASS_AS
-			l_named_tuple_type	: NAMED_TUPLE_TYPE_A
-			l_has_renaming		: BOOLEAN
-			l_constraints		: TYPE_SET_A
+			token: EDITOR_TOKEN
+			line: EDITOR_LINE
+			feat_table: E_FEATURE_TABLE
+			feat_i_table: FEATURE_TABLE
+			feat: E_FEATURE
+			l_class_list: LIST[CLASS_C]
+			cls_c: CLASS_C
+			crtrs: HASH_TABLE [EXPORT_I, STRING]
+			show_any_features: BOOLEAN
+			l_current_class_c: CLASS_C
+			l_class_as: CLASS_AS
+			l_has_renaming: BOOLEAN
+			l_constraints: TYPE_SET_A
 		do
 			if is_ok_for_completion then
-				create insertion.put ("")
+				create insertion.put ({STRING_32} "")
 				is_create := False
 				is_static := False
 				last_type := Void
@@ -135,8 +133,7 @@ feature -- Basic operations
 
 									-- Add named tuple generics.
 									-- A class c should have been found.
-								l_named_tuple_type ?= last_type
-								if l_named_tuple_type /= Void then
+								if attached {NAMED_TUPLE_TYPE_A} last_type as l_named_tuple_type then
 									add_named_tuple_generics (l_named_tuple_type)
 								end
 
@@ -176,33 +173,27 @@ feature -- Basic operations
 										end
 									end
 								elseif is_static then
-										-- Externals
-									externals := external_features (cls_c)
-									show_any_features := 	preferences.editor_data.show_any_features
-																or else
-															cls_c.name_in_upper.is_equal (Any_name)
-									if externals /= Void then
-										from
-											externals.start
-										 until
-											externals.after
+										-- Non-object call.
+									if attached class_features (cls_c) as fs then
+										show_any_features := preferences.editor_data.show_any_features or else cls_c.is_class_any
+										across
+											fs as f
 										loop
-										feat := externals.item
-										if
-											(exploring_current_class or else feat.is_exported_to (l_current_class_c)) and then
-											(show_any_features or else not feat.written_class.name_in_upper.is_equal (Any_name))
-										then
-											if l_has_renaming then
-												add_renaming_to_completion_possibilities (feat, l_constraints, cls_c)
-											else
-												add_feature_to_completion_possibilities	(feat)
+											feat := f.item
+											if
+												(exploring_current_class or else feat.is_exported_to (l_current_class_c)) and then
+												(show_any_features or else not feat.written_class.is_class_any)
+											then
+												if l_has_renaming then
+													add_renaming_to_completion_possibilities (feat, l_constraints, cls_c)
+												else
+													add_feature_to_completion_possibilities	(feat)
+												end
 											end
-										end
-											externals.forth
 										end
 									end
 								else
-									show_any_features := preferences.editor_data.show_any_features or else cls_c.name_in_upper.is_equal (Any_name)
+									show_any_features := preferences.editor_data.show_any_features or else cls_c.is_class_any
 									from
 										feat_table.start
 									until
@@ -211,7 +202,7 @@ feature -- Basic operations
 										feat := feat_table.item_for_iteration
 										if
 											(exploring_current_class or else feat.is_exported_to (l_current_class_c)) and then
-											(show_any_features or else not feat.written_class.name_in_upper.is_equal (Any_name)) and then
+											(show_any_features or else not feat.written_class.is_class_any) and then
 											(not feat.is_infix and not feat.is_prefix)
 										then
 											if l_has_renaming then
@@ -231,8 +222,9 @@ feature -- Basic operations
 						end
 					end
 						-- Reset and sort matches
+						--| TODO check if we can return completion_possibilities as an empty array.
 					if cp_index = 1 then
-						completion_possibilities := Void
+						reset_completion_list
 					else
 						completion_possibilities := completion_possibilities.subarray (1, cp_index - 1)
 						completion_possibilities.sort
@@ -247,8 +239,6 @@ feature -- Internal access
 	inserted_feature_table: HASH_TABLE [E_FEATURE, INTEGER]
 
 	cp_index: INTEGER
-
-	Any_name: STRING = "ANY";
 
 	current_pos_in_token: INTEGER
 			--
@@ -280,8 +270,6 @@ feature {NONE} -- Private Status
 
 	extend_types_has_renaming (a_type_set: TYPE_SET_A): BOOLEAN
 			-- Do renamings exist in `a_type_set'?
-		local
-			l_renamed_type: RENAMED_TYPE_A
 		do
 			if a_type_set /= Void then
 				from
@@ -289,8 +277,7 @@ feature {NONE} -- Private Status
 				until
 					a_type_set.after or Result
 				loop
-					l_renamed_type := a_type_set.item
-					if l_renamed_type.renaming /= Void then
+					if a_type_set.item.renaming /= Void then
 						Result := True
 					end
 					a_type_set.forth
@@ -358,7 +345,6 @@ feature -- Class names completion
 			class_name			: EB_CLASS_FOR_COMPLETION
 			name_name			: EB_NAME_FOR_COMPLETION
 			cnt, i				: INTEGER
-			l_class_i			: CLASS_I
 		do
 			create insertion.put ("")
 			is_create := False
@@ -385,30 +371,30 @@ feature -- Class names completion
 			until
 				classes.after
 			loop
-				l_class_i ?= classes.item_for_iteration
-				if show_all then
-					create class_name.make (l_class_i, classes.key_for_iteration)
-				 	class_list.extend (class_name)
-				else
-					if matches (classes.key_for_iteration, cname) then
+				if attached {CLASS_I} classes.item_for_iteration as l_class_i then
+					if show_all then
 						create class_name.make (l_class_i, classes.key_for_iteration)
-					 	class_list.extend (class_name)
+						class_list.extend (class_name)
+					else
+						if matches (classes.key_for_iteration, cname) then
+							create class_name.make (l_class_i, classes.key_for_iteration)
+							class_list.extend (class_name)
+						end
 					end
+				else
+					check is_class_i: False end
 				end
 				classes.forth
 			end
 
 			cnt := class_list.count
-			if current_class_as /= Void and then current_class_as.generics /= Void then
-				create class_completion_possibilities.make (1, current_class_as.generics.count + cnt)
-				from
-					current_class_as.generics.start
-				until
-					current_class_as.generics.after
+			if current_class_as /= Void and then attached current_class_as.generics as l_curr_class_as_generics then
+				create class_completion_possibilities.make (1, l_curr_class_as_generics.count + cnt)
+				across
+					l_curr_class_as_generics as ic
 				loop
-					create name_name.make (current_class_as.generics.item.name.name_32)
+					create name_name.make (ic.item.name.name_32)
 					class_list.put_front (name_name)
-					current_class_as.generics.forth
 				end
 			end
 
@@ -439,8 +425,7 @@ feature -- Class names completion
 		require
 			a_group_not_void: a_group /= Void
 		local
-			l_mapping_names: STRING_TABLE [STRING_32]
-			l_item: STRING
+			l_mapping_names: STRING_TABLE [READABLE_STRING_32]
 		do
 			Result := group.accessible_classes
 			l_mapping_names := group.accessible_mapping
@@ -449,8 +434,7 @@ feature -- Class names completion
 			until
 				l_mapping_names.after
 			loop
-				l_item := l_mapping_names.item_for_iteration
-				Result.search (l_item)
+				Result.search (l_mapping_names.item_for_iteration)
 				if Result.found then
 					Result.force (Result.found_item, l_mapping_names.key_for_iteration)
 				end
@@ -480,7 +464,6 @@ feature {NONE} -- Implementation
 		local
 			prev_token: EDITOR_TOKEN
 			type: TYPE_A
-			gone_back_two: BOOLEAN
 			token: like a_token
 			l_swapped: BOOLEAN
 			l_create_token: EDITOR_TOKEN
@@ -514,7 +497,6 @@ feature {NONE} -- Implementation
 						elseif token_image_is_in_array (prev_token, Feature_call_separators) then
 							Result := class_c_to_complete_from (prev_token, a_line, 1, a_compiled_class, True, two_back)
 						elseif prev_token.is_text and not two_back then
-							gone_back_two := True
 							Result := class_c_to_complete_from (prev_token, a_line, 1, a_compiled_class, True, True)
 						else
 							exploring_current_class := True
@@ -656,7 +638,7 @@ feature {NONE} -- Implementation
 					if not l_result.current_frame.is_empty then
 						l_locals := l_result.current_frame.all_locals
 						from l_locals.start until l_locals.after loop
-							l_name := l_locals.key_for_iteration.as_attached
+							l_name := l_locals.key_for_iteration
 							l_type := l_locals.item_for_iteration
 							if l_type /= Void and then l_type.is_valid_for_class (l_class) then
 									-- The type is valid for the given class
@@ -682,10 +664,9 @@ feature {NONE} -- Implementation
 			a_feature_attached: a_feature /= Void
 			a_class_attached: a_class /= Void
 		local
-			l_basic: EB_NAME_FOR_COMPLETION
 			l_typed_basic: EB_NAME_WITH_TYPE_FOR_COMPLETION
-			l_name: attached STRING_32
-			l_type: detachable TYPE_A
+			l_name: STRING_32
+			l_type: TYPE_A
 		do
 			if attached locals_from_local_entities_finder as l_locals then
 				from
@@ -693,7 +674,7 @@ feature {NONE} -- Implementation
 				until
 					l_locals.after
 				loop
-					l_name := l_locals.key_for_iteration.as_attached
+					l_name := l_locals.key_for_iteration
 					l_type := l_locals.item_for_iteration
 					if l_type /= Void and then l_type.is_valid_for_class (a_class) then
 							-- The type is valid for the given class
@@ -701,8 +682,7 @@ feature {NONE} -- Implementation
 						insert_in_completion_possibilities (l_typed_basic)
 					else
 							-- The local type is not valid, so use the raw text.
-						create l_basic.make (l_name)
-						insert_in_completion_possibilities (l_basic)
+						insert_in_completion_possibilities (create {EB_NAME_FOR_COMPLETION}.make (l_name))
 					end
 					l_locals.forth
 				end
@@ -855,7 +835,7 @@ feature {NONE} -- Implementation
 				until
 					i > minc or not Result
 				loop
-					Result := (pat.item (i)) = (str.item (i))
+					Result := pat.item (i) = str.item (i)
 					i := i + 1
 				end
 			end
@@ -863,8 +843,8 @@ feature {NONE} -- Implementation
 			Result = str.substring (1, pat.count).same_string (pat)
 		end
 
-	external_features (cl: CLASS_C): ARRAYED_LIST [E_FEATURE]
-			-- List of the external features of `cl'.
+	class_features (cl: CLASS_C): ARRAYED_LIST [E_FEATURE]
+			-- List of class features of `cl'.
 		require
 			valid_class: cl /= Void
 		local
@@ -880,7 +860,7 @@ feature {NONE} -- Implementation
 					ft.after
 				loop
 					feat := ft.item_for_iteration
-					if feat.has_static_access then
+					if feat.is_class then
 						Result.extend (feat.api_feature (ft.feat_tbl_id))
 					end
 					ft.forth
@@ -896,7 +876,6 @@ feature {NONE} -- Implementation
 			l_overloaded_names: HASH_TABLE [ARRAYED_LIST [INTEGER], INTEGER]
 			l_features: ARRAYED_LIST [INTEGER]
 			l_new_group: BOOLEAN
-			feat: E_FEATURE
 			l_feature: EB_FEATURE_FOR_COMPLETION
 			l_father: EB_NAME_FOR_COMPLETION
 			l_father_name: STRING
@@ -946,14 +925,10 @@ feature {NONE} -- Implementation
 					l_overloaded_names.forth
 				end
 					-- Insert all remaining features from inserted_feature_table into completion_possibilities.
-				from
-					inserted_feature_table.start
-				until
-					inserted_feature_table.after
+				across
+					inserted_feature_table as ic
 				loop
-					feat := inserted_feature_table.item_for_iteration
-					internal_add_feature (feat)
-					inserted_feature_table.forth
+					internal_add_feature (ic.item)
 				end
 			end
 		end
@@ -962,11 +937,20 @@ feature {NONE} -- Implementation
 			--
 		require
 			name /= Void
+		local
+			l_possibilities: like completion_possibilities
 		do
-			if completion_possibilities.capacity < cp_index then
-				completion_possibilities.grow (cp_index + 50)
+			l_possibilities := completion_possibilities
+			if l_possibilities = Void then
+				check has_completion_possibilities: False end
+				create l_possibilities.make_empty
+				completion_possibilities := l_possibilities
+				cp_index := 1
 			end
-			completion_possibilities.put (name, cp_index)
+			if l_possibilities.capacity < cp_index then
+				l_possibilities.grow (cp_index + 50)
+			end
+			l_possibilities.put (name, cp_index)
 			cp_index := cp_index + 1
 		end
 
@@ -978,7 +962,7 @@ feature {NONE} -- Implementation
 		local
 			token: EDITOR_TOKEN
 			line: EDITOR_LINE
-			tfs, tfs2: EDITOR_TOKEN_FEATURE_START
+			tfs: detachable EDITOR_TOKEN_FEATURE_START
 			index: INTEGER
 			l_done: BOOLEAN
 			l_end_position: INTEGER
@@ -992,18 +976,20 @@ feature {NONE} -- Implementation
 				current_token = Void or l_done
 			loop
 				go_to_previous_token
-				tfs ?= current_token
-				if tfs /= Void then
-					if tfs.start_position < a_token.pos_in_text and a_token.pos_in_text < tfs.end_position then
+				if attached {EDITOR_TOKEN_FEATURE_START} current_token as l_tfs then
+					tfs := l_tfs
+					if l_tfs.start_position < a_token.pos_in_text and a_token.pos_in_text < tfs.end_position then
 						l_done := True
 					else
 						if l_end_position = 0 then
-							l_end_position := tfs.end_position
-						elseif l_end_position /= tfs.end_position then
+							l_end_position := l_tfs.end_position
+						elseif l_end_position /= l_tfs.end_position then
 							l_done := True
 							tfs := Void
 						end
 					end
+				else
+					tfs := Void
 				end
 			end
 
@@ -1017,12 +1003,11 @@ feature {NONE} -- Implementation
 			until
 				(current_token = Void or else current_token.next = Void) or l_done
 			loop
-				if current_token.is_feature_start then
-					tfs2 ?= current_token
-					check tfs2_not_void : tfs2 /= Void end
+				if attached {EDITOR_TOKEN_FEATURE_START} current_token as tfs2 then
+					check token_is_feature_start: current_token.is_feature_start end
 						-- If we are completely out of the current feature start, then no need to look further,
 						-- the `tfs' we found earlier is the right one.
-					l_done := (tfs2.start_position > a_token.pos_in_text or a_token.pos_in_text > tfs2.end_position)
+					l_done := tfs2.start_position > a_token.pos_in_text or a_token.pos_in_text > tfs2.end_position
 					if not l_done then
 						tfs := tfs2
 					end
@@ -1097,14 +1082,11 @@ feature {NONE} -- Implementation
 			-- Is feature call made on parenthesized expression?  If so determine type of parenthesized expression and put in
 			-- `found_class'.  If cannot evaluate expression `found_class' will be Void.
 		local
-			line: EDITOR_LINE
 			token,
 			par_token: EDITOR_TOKEN
 			par_cnt: INTEGER
-			blnk: EDITOR_TOKEN_BLANK
 			type: TYPE_A
 		do
-			line := current_line
 			token := a_token
 			if token_image_is_same_as_word (token, closing_parenthesis) then
 				Result := True
@@ -1124,12 +1106,10 @@ feature {NONE} -- Implementation
 	 			if token /= Void then -- token = "("
 	 				par_token := token
 	 				from
-						blnk ?= token.previous
 					until
-						blnk = Void
+						not attached {EDITOR_TOKEN_BLANK} token.previous as blnk
 					loop
 						token := blnk
-						blnk ?= token.previous
 					end
 						-- token.previous is not blank : either feature name or line or expression beginning
 					if is_beginning_of_expression (token.previous) then
@@ -1162,7 +1142,6 @@ feature {NONE} -- Implementation
 			l_parents: PARENT_LIST_AS
 			l_parent: PARENT_AS
 			l_redefining: EIFFEL_LIST [FEATURE_NAME]
-			l_feat_name: FEATURE_NAME
 			l_arguments: EIFFEL_LIST [TYPE_DEC_AS]
 			l_type_dec: TYPE_DEC_AS
 			l_cursor: INTEGER
@@ -1174,8 +1153,6 @@ feature {NONE} -- Implementation
 			l_class_from: ARRAYED_LIST [EDITOR_TOKEN]
 			l_args: ARRAYED_LIST [EDITOR_TOKEN]
 			l_type: ARRAYED_LIST [EDITOR_TOKEN]
-			l_class_name: STRING
-			l_class_token: EDITOR_TOKEN_CLASS
 			l_type_a: TYPE_A
 			l_feature_i: FEATURE_I
 			l_error: BOOLEAN
@@ -1202,8 +1179,7 @@ feature {NONE} -- Implementation
 							until
 								l_redefining.after or l_continue
 							loop
-								l_feat_name := l_redefining.item
-								l_continue := l_name.is_case_insensitive_equal (l_feat_name.visual_name_32)
+								l_continue := l_name.is_case_insensitive_equal (l_redefining.item.visual_name_32)
 								if l_continue then
 											-- Found a precursor match
 									if l_parent.type /= Void then
@@ -1211,9 +1187,7 @@ feature {NONE} -- Implementation
 										create l_class_from.make (20)
 										l_class_from.extend (create {EDITOR_TOKEN_SPACE}.make (1))
 										l_class_from.extend (create {EDITOR_TOKEN_OPERATOR}.make (ti_l_curly))
-										l_class_name := l_parent.type.class_name.name_8
-										l_class_token := class_token_of_name (l_class_name)
-										l_class_from.extend (l_class_token)
+										l_class_from.extend (class_token_of_name (l_parent.type.class_name.name_8))
 										l_class_from.extend (create {EDITOR_TOKEN_OPERATOR}.make (ti_r_curly))
 										if current_class_c /= Void then
 											if current_class_c.has_feature_table then
@@ -1482,18 +1456,15 @@ feature {NONE} -- Implementation
 		require
 			a_name_not_void: a_name /= Void
 		local
-			l_class_i: CLASS_I
-			l_class_c: CLASS_C
 			l_list: LINKED_SET [CONF_CLASS]
 		do
 			create Result.make (a_name)
 			l_list := current_class_c.group.class_by_name (a_name, True)
-			if not l_list.is_empty then
-				l_class_i ?= l_list.first
-			end
-			if l_class_i /= Void then
-				l_class_c ?= l_class_i.compiled_representation
-				if l_class_c /= Void then
+			if
+				not l_list.is_empty and then
+				attached {CLASS_I} l_list.first as l_class_i
+			then
+				if attached {CLASS_C} l_class_i.compiled_representation as l_class_c then
 					Result.set_pebble (create {CLASSC_STONE}.make (l_class_c))
 				else
 					Result.set_pebble (create {CLASSI_STONE}.make (l_class_i))
@@ -1543,11 +1514,11 @@ feature {NONE} -- Implementation
 							-- Now we check that under this (possibly renamed) name the feature occurs only once.
 						l_features_found_count := l_type_set.e_feature_state_by_name_id (l_new_name_id).features_found_count
 						if l_features_found_count = 1 then
-							if l_new_name_id /= l_name_id then
+							if l_new_name_id = l_name_id then
+								add_feature_to_completion_possibilities (a_feat)
+							else
 								create l_name_for_completion.make (a_feat, names_heap.item_32 (l_new_name_id), False, is_upper_required (a_feat))
 								insert_in_completion_possibilities (l_name_for_completion)
-							else
-								add_feature_to_completion_possibilities (a_feat)
 							end
 						else
 								-- The feature occurs more than once, we do not want to add it.
@@ -1573,7 +1544,7 @@ feature {NONE} -- Implementation
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

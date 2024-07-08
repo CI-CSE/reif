@@ -12,7 +12,6 @@ inherit
 	CONF_CONSTANTS
 		export
 			{NONE} all
-			{ANY} prefix_separator
 		end
 
 	CONF_FILE_CONSTANTS
@@ -51,19 +50,16 @@ feature -- Basic validity queries
 		require
 			a_warning_not_void: a_warning /= Void
 			a_warning_lower: a_warning.same_string (a_warning.as_lower)
-		local
-			w: like valid_warnings_default
 		do
-			if is_after_or_equal (a_namespace, namespace_1_10_0) then
-				w := valid_warnings_1_10_0
-			else
-				w := valid_warnings_default
-			end
-			Result := w.has (a_warning)
+			Result :=
+				is_after_or_equal (a_namespace, namespace_1_18_0) and then valid_warnings_1_18_0.has (a_warning) or else
+				is_between_or_equal (a_namespace, namespace_1_17_0, namespace_1_17_0) and then valid_warnings_1_17_0.has (a_warning) or else
+				is_between_or_equal (a_namespace, namespace_1_10_0, namespace_1_16_0) and then valid_warnings_1_10_0.has (a_warning) or else
+				is_before_or_equal (a_namespace, namespace_1_9_0) and then valid_warnings_default.has (a_warning)
 		end
 
 	valid_regexp (a_regexp: READABLE_STRING_GENERAL): BOOLEAN
-			-- is `a_regexp' a valid regular expression?
+			-- Is `a_regexp' a valid regular expression?
 		local
 			l_regexp: REGULAR_EXPRESSION
 			u: UTF_CONVERTER
@@ -76,10 +72,49 @@ feature -- Basic validity queries
 			end
 		end
 
-	valid_setting (a_setting: READABLE_STRING_GENERAL): BOOLEAN
-			-- Is `a_setting' a valid setting?
+	regexp_error (a_regexp: READABLE_STRING_GENERAL):
+			detachable TUPLE [message: READABLE_STRING_GENERAL; position: INTEGER]
+			-- Is `a_regexp' a valid regular expression?
+		local
+			r: REGULAR_EXPRESSION
+			u: UTF_CONVERTER
 		do
-			Result := a_setting /= Void and then (a_setting.is_valid_as_string_8 and then valid_settings.has (a_setting.to_string_8))
+			if a_regexp /= Void then
+				create r
+					-- FIXME: We currently perform the match on the UTF-8 version of the string.
+				r.compile (u.utf_32_string_to_utf_8_string_8 (a_regexp))
+				if not r.is_compiled then
+					Result := [r.error_message, r.error_position]
+				end
+			end
+		ensure
+			valid_regexp: not attached Result implies valid_regexp (a_regexp)
+		end
+
+	is_setting_known (s: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is setting `s` known?
+		do
+			Result := attached s and then s.is_valid_as_string_8 and then known_settings.has (s.to_string_8)
+		end
+
+	is_boolean_setting_known (s: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is setting `s` known?
+		do
+			Result := attached s and then s.is_valid_as_string_8 and then boolean_settings.has (s.to_string_8)
+		end
+
+	valid_setting (s: READABLE_STRING_GENERAL; n: detachable like latest_namespace): BOOLEAN
+			-- Is `s` a valid setting in the namespace `n`?
+		local
+			v: STRING_8
+		do
+			if attached s and then s.is_valid_as_string_8 then
+				v := s.to_string_8
+				Result :=
+					is_after_or_equal (n, namespace_1_18_0) and then valid_settings_1_18_0.has (v) or else
+					is_between_or_equal (n, namespace_1_17_0, namespace_1_17_0) and then valid_settings_1_17_0.has (v) or else
+					is_before_or_equal (n, namespace_1_16_0) and then valid_settings.has (v)
+			end
 		end
 
 	valid_version_type (a_version_type: STRING_32): BOOLEAN
@@ -267,12 +302,70 @@ feature {NONE} -- Onces
 			Result_not_void: Result /= Void
 		end
 
+	msil_generation_type_values: ARRAYED_LIST [READABLE_STRING_32]
+			-- Valid values for setting named `s_msil_generation_type'.
+		do
+			create Result.make_from_array (<<{STRING_32} "dll", {STRING_32} "exe">>)
+		end
+
+	msil_generation_type_value (string: READABLE_STRING_32; start_index, end_index: INTEGER): detachable READABLE_STRING_32
+			-- A value of a valid msil_generation_type setting (if any) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		local
+			n: INTEGER
+		do
+			n := end_index + 1 - start_index
+			across
+				msil_generation_type_values as c
+			until
+				attached Result
+			loop
+				if
+					c.item.count = n and then
+					c.item.same_caseless_characters (string, start_index, end_index, 1)
+				then
+					Result := c.item
+				end
+			end
+		ensure
+			valid_value: attached Result implies across msil_generation_type_values as c some c.item.same_caseless_characters (Result, 1, Result.count, 1)  end
+		end
+
+	msil_classes_per_module_value (string: READABLE_STRING_32; start_index, end_index: INTEGER): detachable READABLE_STRING_32
+			-- A value of a msil_classes_per_module setting (if valid) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		do
+			Result := string.substring (start_index, end_index)
+			if not Result.is_natural_16 or else Result.to_natural_16 = 0 then
+				Result := Void
+			end
+		end
+
+	inlining_size_value (string: READABLE_STRING_32; start_index, end_index: INTEGER): detachable READABLE_STRING_32
+			-- A value of a inlining_size setting (if valid) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		do
+			Result := string.substring (start_index, end_index)
+			if not Result.is_natural_8 or else Result.to_natural_8 > 100 then
+				Result := Void
+			end
+		end
+
 feature {NONE} -- Implementation
 
 	known_warnings: STRING_TABLE [BOOLEAN]
 			-- The codes of known warnings.
 		once
-			Result := valid_warnings_1_10_0
+			Result := valid_warnings_1_18_0
 		end
 
 	valid_warnings_default: STRING_TABLE [BOOLEAN]
@@ -297,10 +390,28 @@ feature {NONE} -- Implementation
 		end
 
 	valid_warnings_1_10_0: STRING_TABLE [BOOLEAN]
-			-- The codes of valid warnings in `namespace_1_10_0' and above.
+			-- The codes of valid warnings in between `namespace_1_10_0` and `namespace_1_17_0`.
 		once
 			Result := valid_warnings_default.twin
 			Result.force (True, w_vwab)
+		ensure
+			Result_not_void: Result /= Void
+		end
+
+	valid_warnings_1_17_0: STRING_TABLE [BOOLEAN]
+			-- The codes of valid warnings in `namespace_1_17_0` and above.
+		once
+			Result := valid_warnings_1_10_0.twin
+			Result.force (True, w_manifest_array_type)
+		ensure
+			Result_not_void: Result /= Void
+		end
+
+	valid_warnings_1_18_0: STRING_TABLE [BOOLEAN]
+			-- The codes of valid warnings in `namespace_1_18_0` and above.
+		once
+			Result := valid_warnings_1_17_0.twin
+			Result.force (False, w_manifest_array_type)
 		ensure
 			Result_not_void: Result /= Void
 		end
@@ -315,8 +426,19 @@ feature {NONE} -- Implementation
 			Result_not_void: Result /= Void
 		end
 
+	known_settings: SEARCH_TABLE [STRING]
+			-- The names of known settings.
+		once
+			Result := valid_settings_1_17_0
+		ensure
+			known_settings_old: across valid_settings as s all Result.has (s.item) end
+			known_settings_1_17_0: across valid_settings_1_17_0 as s all Result.has (s.item) end
+			known_settings_1_18_0: across valid_settings_1_18_0 as s all Result.has (s.item) end
+			known_settings_valid: across Result as s all valid_settings.has (s.item) or else valid_settings_1_17_0.has (s.item) or else valid_settings_1_18_0.has (s.item) end
+		end
+
 	valid_settings: SEARCH_TABLE [STRING]
-			-- The codes of valid settings.
+			-- The codes of valid settings in the namespace below `namespace_1_17_0`.
 		once
 			create Result.make (40)
 			Result.force (s_address_expression)
@@ -366,34 +488,53 @@ feature {NONE} -- Implementation
 			Result_not_void: Result /= Void
 		end
 
+	valid_settings_1_17_0: SEARCH_TABLE [STRING]
+			-- The codes of valid settings in `namespace_1_17_0`.
+		once
+			Result := valid_settings.twin
+			Result.force (s_absent_explicit_assertion)
+		end
+
+	valid_settings_1_18_0: SEARCH_TABLE [STRING]
+			-- The codes of valid settings in `namespace_1_18_0` and above.
+		once
+			Result := valid_settings_1_17_0.twin
+			Result.remove (s_msil_assembly_compatibility)
+			Result.force (s_manifest_array_type)
+		end
+
 	boolean_settings: STRING_TABLE [BOOLEAN]
 			-- Settings that have a boolean value.
 		once
-			create Result.make (23)
-			Result.force (True, s_dead_code_removal)
+			create Result.make (28)
+			Result.force (True, s_address_expression)
 			Result.force (True, s_array_optimization)
-			Result.force (True, s_inlining)
-			Result.force (True, s_check_for_void_target)
+			Result.force (True, s_automatic_backup)
+			Result.force (True, s_absent_explicit_assertion)
 			Result.force (True, s_check_for_catcall_at_runtime)
+			Result.force (True, s_check_for_void_target)
 			Result.force (True, s_check_generic_creation_constraint)
 			Result.force (True, s_check_vape)
-			Result.force (True, s_enforce_unique_class_names)
-			Result.force (True, s_exception_trace)
-			Result.force (True, s_address_expression)
-			Result.force (True, s_java_generation)
-			Result.force (True, s_msil_generation)
-			Result.force (True, s_msil_use_optimized_precompile)
-			Result.force (True, s_line_generation)
 			Result.force (True, s_cls_compliant)
+			Result.force (True, s_console_application)
+			Result.force (True, s_dead_code_removal)
 			Result.force (True, s_dotnet_naming_convention)
 			Result.force (True, s_dynamic_runtime)
-			Result.force (True, s_old_verbatim_strings)
-			Result.force (True, s_console_application)
+			Result.force (True, s_enforce_unique_class_names)
+			Result.force (True, s_exception_trace)
 			Result.force (True, s_force_32bits)
-			Result.force (True, s_multithreaded)
 			Result.force (True, s_il_verifiable)
-			Result.force (True, s_use_cluster_name_as_namespace)
+			Result.force (True, s_inlining)
+			Result.force (True, s_java_generation)
+			Result.force (True, s_line_generation)
+			Result.force (True, s_msil_generation)
+			Result.force (True, s_msil_use_optimized_precompile)
+			Result.force (True, s_multithreaded)
+			Result.force (True, s_old_feature_replication)
+			Result.force (True, s_old_verbatim_strings)
+			Result.force (True, s_total_order_on_reals)
 			Result.force (True, s_use_all_cluster_name_as_namespace)
+			Result.force (True, s_use_cluster_name_as_namespace)
 		ensure
 			Result_not_void: Result /= Void
 		end
@@ -416,8 +557,124 @@ feature {NONE} -- Implementation
 			Result_not_void: Result /= Void
 		end
 
+	setting_name (string: READABLE_STRING_32; start_index, end_index: INTEGER): detachable READABLE_STRING_32
+			-- A name of a valid setting (if any) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		do
+			Result := key_name (string, start_index, end_index, known_settings)
+		ensure
+			valid_setting: attached Result implies is_setting_known (Result)
+		end
+
+	key_name (string: READABLE_STRING_32; start_index, end_index: INTEGER; keys: ITERABLE [READABLE_STRING_GENERAL]): detachable READABLE_STRING_32
+			-- A key from `keys' (if any) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		local
+			n: INTEGER
+		do
+			n := end_index + 1 - start_index
+			across
+				keys as c
+			until
+				attached Result
+			loop
+				if
+					c.item.count = n and then
+					c.item.same_characters (string, start_index, end_index, 1)
+				then
+					Result := c.item.as_string_32
+				end
+			end
+		ensure
+			valid_key: attached Result implies across keys as c some c.item.same_string (Result)  end
+		end
+
+	boolean_setting_name (string: READABLE_STRING_32; start_index, end_index: INTEGER): detachable READABLE_STRING_32
+			-- A name of a valid boolean setting (if any) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		local
+			n: INTEGER
+		do
+			n := end_index + 1 - start_index
+			across
+				boolean_settings as c
+			until
+				attached Result
+			loop
+				if
+					c.key.count = n and then
+					c.key.same_characters (string, start_index, end_index, 1)
+				then
+					Result := c.key.as_string_32
+				end
+			end
+		ensure
+			valid_boolean_setting: attached Result implies boolean_settings [Result]
+		end
+
+	concurrency_setting_name (string: READABLE_STRING_32; start_index, end_index: INTEGER): detachable READABLE_STRING_32
+			-- A name of a valid concurrency setting (if any) starting at `start_index' and ending at `end_index' of a string `string'.
+		require
+			valid_start_index: string.valid_index (start_index)
+			valid_end_index: string.valid_index (end_index)
+			valid_start_index_end_index: start_index <= end_index
+		do
+			if
+				s_concurrency.count = end_index + 1 - start_index and then
+				s_concurrency.same_characters_general (string, start_index, end_index, 1)
+			then
+				Result := s_concurrency
+			end
+		ensure
+			valid_concurrency_setting: attached Result implies Result.same_string_general (s_concurrency)
+		end
+
+feature {NONE} -- Option names
+
+	boolean_options: SEARCH_TABLE [READABLE_STRING_32]
+			-- Names of options that have a boolean value.
+		once
+			create Result.make (15)
+			Result.force (o_assertions_precondition)
+			Result.force (o_assertions_postcondition)
+			Result.force (o_assertions_check)
+			Result.force (o_assertions_invariant)
+			Result.force (o_assertions_loop)
+			Result.force (o_assertions_supplier_precondition)
+			Result.force (o_is_attached_by_default)
+			Result.force (o_is_debug)
+			Result.force (o_is_full_class_checking)
+			Result.force (o_is_msil_application_optimize)
+			Result.force (o_is_obsolete_routine_type)
+			Result.force (o_is_optimize)
+			Result.force (o_is_profile)
+			Result.force (o_is_trace)
+			Result.force (o_is_warning)
+		end
+
+	valid_options: SEARCH_TABLE [READABLE_STRING_32]
+			-- Names of all known options except for those that are placed in a container (debug and warning).
+		once
+			Result := boolean_options.twin
+			Result.force (o_catcall_detection)
+			Result.force (o_description)
+			Result.force (o_manifest_array_type)
+			Result.force (o_namespace)
+			Result.force (o_syntax)
+			Result.force (o_void_safety)
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

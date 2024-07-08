@@ -54,7 +54,7 @@ inherit
 
 feature -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 				-- Create `Current' with interface `an_interface'.
 		do
 			assign_interface (an_interface)
@@ -398,7 +398,7 @@ feature -- from EV_INVISIBLE_CONTAINER_IMP FIXME!!!
 			Result := ev_children.has (a_child)
 		end
 
-	reversed_sizing_agents: detachable ARRAYED_LIST [PROCEDURE [ANY, TUPLE]]
+	reversed_sizing_agents: detachable ARRAYED_LIST [PROCEDURE]
 			-- When a box is getting larger, we do not want the items on the left or on the top
 			-- to overlap the items next to them as it causes Window to misbehave and the drawing
 			-- is not proper.
@@ -418,7 +418,7 @@ feature {EV_ANY, EV_ANY_I} -- Interface
 	interface: detachable EV_BOX note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

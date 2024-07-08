@@ -1068,6 +1068,10 @@ rt_public EIF_REFERENCE eif_check_call_on_void_target (EIF_REFERENCE Current) {
 	}
 }
 
+rt_public void eif_raise_call_on_void_target (void) {
+	eraise(NULL,EN_VOID);
+}
+
 
 /*
 doc:	<routine name="eif_check_catcall" export="public">
@@ -4221,7 +4225,7 @@ rt_public void init_emnger (void)
 #endif
 	eif_disable_tracing(); /* Disable tracing to not clobber the output. */
 	(egc_init_exception_manager)(except_mnger);
-	if (!tr_status) {
+	if (tr_status) {
 			/* Resume tracing if it was previously enabled. */
 		eif_enable_tracing();
 	}

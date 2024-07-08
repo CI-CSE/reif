@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #15: Double negation
 	
@@ -7,6 +7,7 @@ note
 			negation and the instruction is erroneous.
 		]"
 	author: "Samuel Schmid"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -25,7 +26,7 @@ feature {NONE} -- Initialization
 			-- Initialization.
 		do
 			make_with_defaults
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -36,6 +37,9 @@ feature {NONE} -- Activation
 		end
 
 feature -- Properties
+
+	name: STRING = "double_negation"
+			-- <Precursor>
 
 	title: STRING_32
 		do

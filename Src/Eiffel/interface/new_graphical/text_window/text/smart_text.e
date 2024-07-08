@@ -7,7 +7,6 @@ note
 	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: "Etienne Amodeo"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -19,6 +18,7 @@ inherit
 		export
 			{EB_SMART_EDITOR} on_text_edited
 		redefine
+			insert_string, insert_char, delete_char, back_delete_char,
 			restore_tokens_properties,
 			restore_tokens_properties_one_line,
 			reset_text,
@@ -66,6 +66,37 @@ feature -- Access
 
 	click_tool: EB_CLICK_AND_COMPLETE_TOOL
 			-- Tool that finds types and stones from text tokens.
+
+feature -- Edit linking mode
+
+	enable_linked_editing (a_editor: EDITABLE_TEXT_PANEL; a_pos_in_text: INTEGER; a_regions: LIST [TUPLE [start_pos,end_pos: INTEGER]]; a_token_texts: detachable ITERABLE [READABLE_STRING_GENERAL])
+			-- Activate linked edit at position `a_pos_in_text' if set, otherwise at cursor.
+			-- And if `a_regions' is not empty, limit the impact token in those regions.
+		require
+			a_regions /= Void and then not a_regions.is_empty
+		local
+			lst: like linked_editing
+		do
+			disable_linked_editing
+			lst := linked_editing
+			if lst = Void then
+				create lst.make (Current)
+				linked_editing := lst
+			end
+			lst.prepare (a_editor, a_pos_in_text, a_regions, a_token_texts)
+		end
+
+	disable_linked_editing
+			-- Disable any active linked editing session.
+		do
+			if attached linked_editing as m then
+				m.clean
+				linked_editing := Void
+			end
+		end
+
+	linked_editing: detachable ES_CODE_EDITOR_LINKED_EDITING_MANAGER
+			-- Active linked tokens editing sessions.
 
 feature -- Element Change
 
@@ -328,6 +359,7 @@ feature -- Search
 			Precursor {CLICKABLE_TEXT}
 			disable_click_tool
 			click_tool.reset
+			disable_linked_editing
 		end
 
 feature -- History operation
@@ -346,14 +378,19 @@ feature -- History operation
 
 feature -- Pick and drop
 
-	stone_at (cursr: like cursor): STONE
+	stone_at (cursr: like cursor): detachable STONE
 			-- Stone corresponding to word at `cursor' position.
 		do
 			if not Workbench.is_compiling then
+				-- CHECK: almost same code as Precursor!!
 				if click_and_complete_is_active and then click_tool.is_ready then
 					Result := click_tool.stone_at_position (cursr)
-					if Result = Void and then cursr.token /= Void and then cursr.token.pebble /= Void then
-						Result ?= cursr.token.pebble.twin
+					if
+						Result = Void and then
+					 	attached cursr.token as tok and then
+					 	attached {like stone_at} tok.pebble as l_pebble_stone
+					 then
+						Result := l_pebble_stone.twin
 					end
 				else
 					Result := Precursor {CLICKABLE_TEXT}(cursr)
@@ -452,7 +489,10 @@ feature -- Completion-clickable initialization / update
 			end
 
 			click_tool.build_completion_list (cursor)
-			if click_tool.completion_possibilities /= Void then
+			if
+				attached click_tool.completion_possibilities as l_completion_possibilities and then
+				not l_completion_possibilities.is_empty
+			then
 				auto_complete_possible := True
 			elseif add_point then
 					-- We should have added a point.
@@ -719,6 +759,118 @@ feature -- Syntax completion
 			end
 		end
 
+	insert_string (txt: READABLE_STRING_GENERAL)
+			-- <Precursor>.
+		local
+			l_diff: INTEGER
+		do
+			if
+				attached linked_editing as lnk
+			then
+				if is_word (txt) then
+					l_diff := txt.count
+					if not selection_is_empty then
+						l_diff := l_diff - (selected_wide_string.count)
+					end
+					Precursor (txt)
+					lnk.on_editor_insertion (cursor, l_diff)
+				else
+					disable_linked_editing
+					Precursor (txt)
+				end
+			else
+				Precursor (txt)
+			end
+		end
+
+	insert_char (c: CHARACTER_32)
+			-- <Precursor>.
+		local
+			l_diff: INTEGER
+		do
+			if
+				attached linked_editing as lnk
+			then
+				inspect c
+				when 'a'..'z', 'A'..'Z', '0'..'9', '_' then
+					l_diff := +1
+					if not selection_is_empty then
+						l_diff := l_diff - (selected_wide_string.count)
+					end
+					Precursor (c)
+					lnk.on_editor_insertion (cursor, l_diff)
+				else
+					disable_linked_editing
+					Precursor (c)
+				end
+			else
+				Precursor (c)
+			end
+		end
+
+	delete_char
+			-- <Precursor>.
+		local
+			l_diff: INTEGER
+		do
+			if
+				attached linked_editing as lnk
+			then
+				if selection_is_empty then
+					l_diff := -1
+				else
+					l_diff := l_diff - (selected_wide_string.count)
+				end
+				Precursor
+				lnk.on_editor_deletion (cursor, l_diff)
+			else
+				Precursor
+			end
+		end
+
+	back_delete_char
+			-- <Precursor>.
+		local
+			l_diff: INTEGER
+		do
+			if
+				attached linked_editing as lnk
+			then
+				if selection_is_empty then
+					l_diff := -1
+				else
+					l_diff := l_diff - (selected_wide_string.count)
+				end
+				Precursor
+				lnk.on_editor_deletion (cursor, l_diff)
+			else
+				Precursor
+			end
+		end
+
+feature {NONE} -- Helpers
+
+	is_word (a_text: READABLE_STRING_GENERAL): BOOLEAN
+			-- Is `a_text' composed of word character?
+		local
+			i,n: INTEGER
+		do
+			from
+				Result := True
+				i := 1
+				n := a_text.count
+			until
+				i > n or False
+			loop
+				inspect a_text[i]
+				when 'a'..'z', 'A'..'Z', '0'..'9', '_' then
+				else
+					Result := False
+				end
+				i := i + 1
+			end
+		end
+
 feature {NONE} -- Possiblilities provider
 
 	insertion: STRING_32
@@ -778,16 +930,16 @@ feature {NONE} -- Possiblilities provider
 			end
 		end
 
-feature {NONE}-- click information update
+feature {NONE} -- click information update
 
 	restore_tokens_properties (begin_line, end_line: like line)
 			-- Restore some token properties (position, beginning of a feature)
-			-- using lists crated by `record...modified_line' procedures.
+			-- using lists created by `record...modified_line' procedures.
 		local
 			tok: EDITOR_TOKEN
 			tfs: EDITOR_TOKEN_FEATURE_START
+			l_begin_line_token, l_end_line_token: EDITOR_TOKEN
 			stop: BOOLEAN
-			tc: EDITOR_TOKEN_COMMENT
 		do
 			from
 				tok := begin_line.first_token
@@ -795,30 +947,34 @@ feature {NONE}-- click information update
 			until
 				begin_line_tokens.after or else tok = Void or else stop
 			loop
-				if begin_line_tokens.item.wide_image.is_equal (tok.wide_image) then
-					tok.set_is_fake (begin_line_tokens.item.is_fake)
-					tc ?= tok
+				l_begin_line_token := begin_line_tokens.item
+				if l_begin_line_token.wide_image.is_equal (tok.wide_image) then
+					tok.set_is_fake (l_begin_line_token.is_fake)
 						-- skip token if commented
-					if tc = Void then
-						if begin_line_tokens.item.is_feature_start then
-							tfs ?= begin_line_tokens.item.twin
+					if not attached {EDITOR_TOKEN_COMMENT} tok then
+						if
+							l_begin_line_token.is_feature_start and then
+							attached {EDITOR_TOKEN_FEATURE_START} l_begin_line_token as l_feat_tok
+						then
+							tfs := l_feat_tok.twin
+
 							tfs.set_next_token (Void)
 							tok.previous.set_next_token (tfs)
 							tfs.set_previous_token (tok.previous)
 							tfs.update_position
-							if tok.next /= Void then
-								tfs.set_next_token (tok.next)
-								tok.next.set_previous_token (tfs)
+							if attached tok.next as l_next_tok then
+								tfs.set_next_token (l_next_tok)
+								l_next_tok.set_previous_token (tfs)
 							end
 							tok := tfs
 						end
-						tok.set_pos_in_text (begin_line_tokens.item.pos_in_text)
+						tok.set_pos_in_text (l_begin_line_token.pos_in_text)
 					end
 					tok := tok.next
 					begin_line_tokens.forth
 				else
-					if begin_line_tokens.item.is_blank and then tok.is_blank then
-						tok.set_is_fake (begin_line_tokens.item.is_fake)
+					if l_begin_line_token.is_blank and then tok.is_blank then
+						tok.set_is_fake (l_begin_line_token.is_fake)
 					end
 					stop := True
 				end
@@ -830,30 +986,33 @@ feature {NONE}-- click information update
 			until
 				end_line_tokens.after or else tok = Void or else stop
 			loop
-				if end_line_tokens.item.wide_image.is_equal (tok.wide_image) then
-					tok.set_is_fake (end_line_tokens.item.is_fake)
-					tc ?= tok
+				l_end_line_token := end_line_tokens.item
+				if l_end_line_token.wide_image.is_equal (tok.wide_image) then
+					tok.set_is_fake (l_end_line_token.is_fake)
 						-- skip token if commented
-					if tc = Void then
-						if end_line_tokens.item.is_feature_start then
-							tfs ?= end_line_tokens.item.twin
+					if not attached {EDITOR_TOKEN_COMMENT} tok then
+						if
+							l_end_line_token.is_feature_start and then
+							attached {EDITOR_TOKEN_FEATURE_START} l_end_line_token as l_feat_tok
+						then
+							tfs := l_feat_tok.twin
 							tfs.set_next_token (Void)
 							tok.previous.set_next_token (tfs)
 							tfs.set_previous_token (tok.previous)
 							tfs.update_position
-							if tok.next /= Void then
-								tfs.set_next_token (tok.next)
-								tok.next.set_previous_token (tfs)
+							if attached tok.next as l_next_tok then
+								tfs.set_next_token (l_next_tok)
+								l_next_tok.set_previous_token (tfs)
 							end
 							tok := tfs
 						end
-						tok.set_pos_in_text (end_line_tokens.item.pos_in_text)
+						tok.set_pos_in_text (l_end_line_token.pos_in_text)
 					end
 					tok := tok.previous
 					end_line_tokens.forth
 				else
-					if end_line_tokens.item.is_blank and then tok.is_blank then
-						tok.set_is_fake (end_line_tokens.item.is_fake)
+					if l_end_line_token.is_blank and then tok.is_blank then
+						tok.set_is_fake (l_end_line_token.is_fake)
 					end
 					stop := True
 				end
@@ -889,7 +1048,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -9,45 +9,42 @@ class
 	CMS_SESSION_AUTH_FILTER
 
 inherit
-	WSF_URI_TEMPLATE_HANDLER
-
-	CMS_HANDLER
+	CMS_AUTH_STRATEGY_FILTER
 		rename
-			make as make_handler
+			make as make_filter
 		end
-
-	WSF_FILTER
 
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (a_api: CMS_API; a_session_oauth_api: CMS_SESSION_API)
+	make (a_api: CMS_API; a_session_api: CMS_SESSION_API)
 		do
-			make_handler (a_api)
-			session_oauth_api := a_session_oauth_api
+			make_filter (a_api)
+			session_api := a_session_api
 		end
 
-	session_oauth_api: CMS_SESSION_API
+	session_api: CMS_SESSION_API
 
 feature -- Basic operations
 
-	execute (req: WSF_REQUEST; res: WSF_RESPONSE)
-			-- Execute the filter.
+	auth_strategy: STRING
 		do
-			api.logger.put_debug (generator + ".execute ", Void)
-				-- A valid user
+			Result := {CMS_SESSION_AUTH_MODULE}.logout_location
+		end
+
+	execute (req: WSF_REQUEST; res: WSF_RESPONSE)
+			-- <Precursor>.
+		do
 			if
-				attached {WSF_STRING} req.cookie ({CMS_SESSION_CONSTANTS}.session_auth_token) as l_roc_auth_session_token
+				attached {WSF_STRING} req.cookie (session_api.session_token) as l_roc_auth_session_token
 			then
-				if attached session_oauth_api.user_by_session_token (l_roc_auth_session_token.value) as l_user then
-					set_current_user (req, l_user)
+				if attached session_api.user_by_session_token (l_roc_auth_session_token.value) as l_user then
+					set_current_user (l_user)
 				else
 					api.logger.put_error (generator + ".execute login_valid failed for: " + l_roc_auth_session_token.value , Void)
 				end
-			else
-				api.logger.put_debug (generator + ".execute without authentication", Void)
 			end
 			execute_next (req, res)
 		end

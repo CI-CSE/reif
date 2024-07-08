@@ -21,14 +21,15 @@ inherit
 		end
 
 create {NONE}
-	set_rout_disp
+	set_rout_disp,
+	set_rout_disp_final
 
 feature -- Access
 
 	last_result: detachable RESULT_TYPE
 			-- Result of last call, if any.
 
-	item (args: detachable OPEN_ARGS): RESULT_TYPE
+	item alias "()" (args: detachable OPEN_ARGS): RESULT_TYPE
 			-- Result of calling function with `args' as operands.
 		require
 			valid_operands: valid_operands (args)
@@ -86,7 +87,7 @@ feature -- Obsolete
 	eval (args: detachable OPEN_ARGS): RESULT_TYPE
 			-- Result of evaluating function for `args'.
 		obsolete
-			"Please use `item' instead"
+			"Please use `item' instead. [2017-05-31]"
 		require
 			valid_operands: valid_operands (args)
 			callable: callable
@@ -104,9 +105,30 @@ feature -- Removal
 			last_result := l_result
 		end
 
+feature -- Extended operations
+
+	flexible_item (a: detachable separate TUPLE): RESULT_TYPE
+			-- Result of calling function with `a' as arguments.
+			-- Compared to `item' the type of `a' may be different from `{OPEN_ARGS}'.
+		require
+			valid_operands: valid_operands (a)
+		local
+			default_arguments: detachable OPEN_ARGS
+		do
+			if not attached a then
+				Result := item (default_arguments)
+			else
+				check
+					from_precondition: attached {OPEN_ARGS} new_tuple_from_tuple (({OPEN_ARGS}).type_id, a) as x
+				then
+					Result := item (x)
+				end
+			end
+		end
+
 note
 	library:	"EiffelBase: Library of reusable components for Eiffel."
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -116,4 +138,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class FUNCTION
+end

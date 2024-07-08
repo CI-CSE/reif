@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Access to an object-test local in C code."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -11,7 +11,8 @@ inherit
 
 	LOCAL_BL
 		rename
-			make as make_local
+			make as make_local,
+			print_checked_target_register as print_register -- Object test locals are always attached.
 		undefine
 			array_descriptor,
 			assigns_to,
@@ -25,10 +26,13 @@ inherit
 		redefine
 			analyze,
 			parent,
+			print_register,
 			type
 		end
 
 	OBJECT_TEST_LOCAL_B
+		rename
+			print_checked_target_register as print_register -- Object test locals are always attached.
 		undefine
 			free_register,
 			generate,
@@ -37,6 +41,7 @@ inherit
 		redefine
 			analyze,
 			parent,
+			print_register,
 			used,
 			type
 		end
@@ -96,8 +101,22 @@ feature -- Code generation
 			end
 		end
 
+feature {REGISTRABLE} -- C code generation
+
+	print_register
+			-- <Precursor>
+		local
+			ctx: BYTE_CONTEXT
+			buf: like {BYTE_CONTEXT}.buffer
+		do
+			ctx := context
+			buf := ctx.buffer
+			buf.put_string ({C_CONST}.local_name)
+			buf.put_integer (ctx.object_test_local_position (Current))
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

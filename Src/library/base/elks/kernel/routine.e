@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
 		Objects representing delayed calls to a routine,
 		with some operands possibly still open
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -23,6 +23,13 @@ inherit
 		export
 			{NONE} all
 		redefine
+			copy,
+			is_equal
+		end
+
+	MISMATCH_CORRECTOR
+		redefine
+			correct_mismatch,
 			copy,
 			is_equal
 		end
@@ -53,7 +60,7 @@ feature -- Access
 	frozen operands: detachable OPEN_ARGS
 
 	target: detachable ANY
-			-- Target of call
+			-- Target of call, if already known
 		local
 			c: like closed_operands
 		do
@@ -93,7 +100,7 @@ feature -- Access
 
 	empty_operands: attached OPEN_ARGS
 			-- Empty tuple matching open operands.
-		obsolete "This function will be removed as non-void-safe. [22.07.2013]"
+		obsolete "This function will be removed as non-void-safe. [2017-05-31]"
 		do
 			create Result
 		ensure
@@ -125,26 +132,52 @@ feature -- Status report
 		local
 			i, arg_type_code: INTEGER
 			arg: like {TUPLE}.item
-			open_type_codes: STRING
 			l_type: INTEGER
 		do
 			if args = Void then
 					-- Void operands are only allowed
 					-- if object has no open operands.
-				Result := (open_count = 0)
+				Result := open_count = 0
 			elseif args.count >= open_count then
 				from
 					Result := True
-					open_type_codes := eif_gen_typecode_str ($Current)
 					i := 1
 				until
 					i > open_count or not Result
 				loop
 					arg_type_code := args.item_code (i)
-					Result := arg_type_code = open_type_codes.item (i).code
-					if Result and then arg_type_code = {TUPLE}.reference_code then
+					l_type := open_operand_type (i)
+					inspect arg_type_code
+					when {TUPLE}.boolean_code then
+						Result := l_type = ({BOOLEAN}).type_id
+					when {TUPLE}.character_8_code then
+						Result := l_type = ({CHARACTER_8}).type_id
+					when {TUPLE}.character_32_code then
+						Result := l_type = ({CHARACTER_32}).type_id
+					when {TUPLE}.integer_8_code then
+						Result := l_type = ({INTEGER_8}).type_id
+					when {TUPLE}.integer_16_code then
+						Result := l_type = ({INTEGER_16}).type_id
+					when {TUPLE}.integer_32_code then
+						Result := l_type = ({INTEGER_32}).type_id
+					when {TUPLE}.integer_64_code then
+						Result := l_type = ({INTEGER_64}).type_id
+					when {TUPLE}.natural_8_code then
+						Result := l_type = ({NATURAL_8}).type_id
+					when {TUPLE}.natural_16_code then
+						Result := l_type = ({NATURAL_16}).type_id
+					when {TUPLE}.natural_32_code then
+						Result := l_type = ({NATURAL_32}).type_id
+					when {TUPLE}.natural_64_code then
+						Result := l_type = ({NATURAL_64}).type_id
+					when {TUPLE}.pointer_code then
+						Result := l_type = ({POINTER}).type_id
+					when {TUPLE}.real_32_code then
+						Result := l_type = ({REAL_32}).type_id
+					when {TUPLE}.real_64_code then
+						Result := l_type = ({REAL_64}).type_id
+					when {TUPLE}.reference_code then
 						arg := args.item (i)
-						l_type := open_operand_type (i)
 							-- If expected type is attached, then we need to verify that the actual
 							-- is indeed attached.
 						if is_attached_type (l_type) then
@@ -154,12 +187,14 @@ feature -- Status report
 							Result := arg = Void or else
 								field_conforms_to ({ISE_RUNTIME}.dynamic_type (arg), l_type)
 						end
+					else
+						Result := False
 					end
 					i := i + 1
 				end
 			end
-			if Result and then not is_target_closed and then args /= Void then
-				Result := args.item (1) /= Void
+			if Result and then not is_target_closed then
+				Result := args /= Void and then not args.is_empty and then args.item (1) /= Void
 			end
 		end
 
@@ -266,17 +301,17 @@ feature -- Extended operations
 			end
 		end
 
-feature -- Obsolete
+feature -- Correction
 
-	adapt_from (other: like Current)
-			-- Adapt from `other'. Useful in descendants.
-		obsolete
-			"Please use `adapt' instead (it's also a creation procedure)"
-		require
-			other_exists: other /= Void
-			conforming: conforms_to (other)
+	correct_mismatch
+			-- <Precursor>
 		do
-			adapt (other)
+			-- For the time being, even if the schema of agents changes, we will still retrieve them (without
+			-- properly initializing all the fields.) This is acceptable as agents without schema change can
+			-- be retrieved and are also invalid objects.
+
+			-- Note: This implementation of `correct_mismath` should have been introduced in 14.05, but it was
+			-- missed and introduced in 17.05 to help retrieve storables made by 13.11 and older.
 		end
 
 feature {ROUTINE} -- Implementation
@@ -317,8 +352,9 @@ feature {ROUTINE} -- Implementation
 						  a_routine_id: INTEGER; a_open_map: like open_map;
 						  a_is_basic, a_is_target_closed: BOOLEAN; a_written_type_id_inline_agent: INTEGER;
 						  a_closed_operands: TUPLE; a_open_count: INTEGER)
-			-- Initialize object.
+			-- Initialize object in workbench mode.
 		require
+			a_routine_id_valid: a_routine_id > -1
 			target_valid: a_is_target_closed implies valid_target (a_closed_operands)
 		do
 			set_rout_disp_int (a_rout_disp, a_encaps_rout_disp, a_calc_rout_addr, a_routine_id,
@@ -328,7 +364,9 @@ feature {ROUTINE} -- Implementation
 
 	frozen set_rout_disp_final (a_rout_disp, a_encaps_rout_disp, a_calc_rout_addr: POINTER
 						  		a_closed_operands: TUPLE; a_is_target_closed: BOOLEAN; a_open_count: INTEGER)
-			-- Initialize object.
+			-- Initialize object in finalized mode.
+		require
+			target_valid: a_is_target_closed implies valid_target (a_closed_operands)
 		do
 			rout_disp := a_rout_disp
 			encaps_rout_disp := a_encaps_rout_disp
@@ -342,9 +380,10 @@ feature {ROUTINE} -- Implementation
 						  	  a_routine_id: INTEGER; a_open_map: like open_map;
 	 						  a_is_basic, a_is_target_closed: BOOLEAN; a_written_type_id_inline_agent: INTEGER;
 							  a_closed_operands: TUPLE; a_open_count: INTEGER)
-			-- Initialize object.
+			-- Initialize object in workbench mode.
 		require
 			a_routine_id_valid: a_routine_id > -1
+			target_valid: a_is_target_closed implies valid_target (a_closed_operands)
 		do
 			rout_disp := a_rout_disp
 			encaps_rout_disp := a_encaps_rout_disp
@@ -405,39 +444,42 @@ feature {NONE} -- Implementation
 			Result := a.generating_type.type_id
 		end
 
-feature {NONE} -- Externals
-
-	eif_gen_typecode_str (obj: POINTER): STRING
-			-- Code name for generic parameter `pos' in `obj'.
-		external
-			"C signature (EIF_REFERENCE): EIF_REFERENCE use %"eif_gen_conf.h%""
-		end
-
 feature -- Obsolete
+
+	adapt_from (other: like Current)
+			-- Adapt from `other'. Useful in descendants.
+		obsolete
+			"Please use `adapt' instead (it's also a creation procedure).  [2017-05-31]"
+		require
+			other_exists: other /= Void
+			conforming: conforms_to (other)
+		do
+			adapt (other)
+		end
 
 	arguments: detachable OPEN_ARGS
 		obsolete
-			"use operands"
+			"Use `operands`. [2017-05-31]"
 		do
 			Result := operands
 		end
 
 	set_arguments (args: detachable OPEN_ARGS)
 		obsolete
-			"use set_operands"
+			"Use `set_operands`. [2017-05-31]"
 		do
 			set_operands (args)
 		end
 
 	valid_arguments (args: detachable OPEN_ARGS): BOOLEAN
 		obsolete
-			"use valid_operands"
+			"Use `valid_operands`. [2017-05-31]"
 		do
 			Result := valid_operands (args)
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

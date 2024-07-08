@@ -1,7 +1,5 @@
-note
-	description: "[
-					EiffelVision web browser. Mswindows implementation.
-																				]"
+﻿note
+	description: "EiffelVision web browser. MS Windows implementation."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	keywords: "application, accelerator, event loop"
@@ -108,7 +106,7 @@ feature {NONE} -- Initialization
 			Precursor
 		end
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 			-- Create underlying native toolkit objects.
 			-- Every descendant should exactly one a creation procedure `make'.
 			-- Must call `base_make'.
@@ -328,10 +326,8 @@ feature {NONE} -- Implementation
 
 	cwin_get_next_dlgtabitem (hdlg, hctl: POINTER; previous: BOOLEAN): POINTER
 			-- <Precursor>
-		external
-			"C [macro <wel.h>] (HWND, HWND, BOOL): HWND"
-		alias
-			"GetNextDlgTabItem"
+		do
+			Result := {WEL_CONTROL}.c_cwin_get_next_dlgtabitem (hdlg, hctl, previous)
 		end
 
 	default_process_message (msg: INTEGER_32; wparam, lparam: POINTER)
@@ -347,7 +343,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -357,7 +353,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class EV_WEB_BROWSER_IMP
+end

@@ -10,6 +10,8 @@ class
 inherit
 	CONTENT_FORMAT
 
+	DEBUG_OUTPUT
+
 create
 	make,
 	make_from_format
@@ -52,6 +54,39 @@ feature -- Access
 				if a_name.is_case_insensitive_equal (ic.item.name) then
 					Result := ic.item
 				end
+			end
+		end
+
+feature -- Status report
+
+	has_filter_by_name (f_name: READABLE_STRING_GENERAL): BOOLEAN
+			-- Has filter named `f_name`?
+		do
+			across
+				filters as ic
+			until
+				Result
+			loop
+				Result := f_name.is_case_insensitive_equal (ic.item.name)
+			end
+		end
+
+	debug_output: STRING
+			-- String that should be displayed in debugger to represent `Current'.
+		do
+			create Result.make_from_string (name)
+			if not title.same_string (name) then
+				Result.append_character (' ')
+				Result.append_character ('"')
+				Result.append (title)
+				Result.append_character ('"')
+			end
+			Result.append_character (' ')
+			across
+				filters as ic
+			loop
+				Result.append_character ('+')
+				Result.append (ic.item.name)
 			end
 		end
 
@@ -108,6 +143,6 @@ feature -- Element change
 
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

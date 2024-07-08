@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Abstract representation of a routine"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,10 +10,17 @@ deferred class PROCEDURE_I
 inherit
 	FEATURE_I
 		redefine
-			transfer_to, transfer_from, duplicate,
-			is_routine, arguments,
-			obsolete_message, assert_id_set, set_assert_id_set,
-			check_local_names, duplicate_arguments, set_arguments
+			arguments,
+			assert_id_set,
+			duplicate,
+			duplicate_arguments,
+			has_code,
+			is_routine,
+			obsolete_message,
+			set_arguments,
+			set_assert_id_set,
+			transfer_from,
+			transfer_to
 		end
 
 feature -- Access
@@ -41,6 +48,9 @@ feature -- Status report
 	is_routine: BOOLEAN = True
 			-- Current is a procedure.
 
+	has_code: BOOLEAN = True
+			-- <Precursor>
+
 feature -- Settings
 
 	set_assert_id_set (set: like assert_id_set)
@@ -65,10 +75,10 @@ feature -- Settings
 			obsolete_message_id_set: obsolete_message_id = v
 		end
 
-feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Status report
+feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Modification
 
 	set_obsolete_message (s: STRING)
-			-- Assign `s' to `obsolete_message'
+			-- Assign `s' to `obsolete_message'.
 		require
 			s_not_void: s /= Void
 		local
@@ -179,15 +189,6 @@ feature -- Initialization
 			assert_id_set := other.assert_id_set
 		end
 
-	check_local_names (a_body: BODY_AS)
-			-- Check the conflicts between local names and feature names
-			-- for an unchanged feature
-		do
-			if not is_replicated then
-				feature_checker.check_local_names (Current, a_body)
-			end
-		end
-
 -- Note: `require else' can be used even if the feature has no
 -- precursor. There is no problem to raise an error in the normal case,
 -- the only case  where we cannot do anything is when aliases are used
@@ -253,10 +254,11 @@ feature {NONE} -- Implementation
 			f.set_has_precondition (has_precondition)
 			f.set_has_postcondition (has_postcondition)
 			f.set_obsolete_message (obsolete_message)
+			f.set_class (is_class)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

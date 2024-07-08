@@ -102,6 +102,7 @@
 					<input type="hidden" name="status" id="status_pe" value="{htmlentities}{$status_query/}{/htmlentities}"/>
 					<input type="hidden" name="filter" id="filter_pe" value="{$view.filter/}"/>
 					<input type="hidden" name="filter_content" id="filter_content_pe" value="{$view.filter_content/}"/>
+					<input type="hidden" name="count_bugs" id="count_bugs_pe" value="{$view.count_bugs/}"/>
 						<div class="col-xs-1">
 							<label class="control-label-api" itemprop="report_number" data-original-title="The number of reports you want to see.">Current page {$index/} of {$pages/}
 							</label>	
@@ -114,6 +115,12 @@
 						</div>
 						<div class="col-xs-1">
 							<button type="submit" class="btn btn-default">Resize</button>
+						</div>
+						<div class="col-xs-1">
+							<label class="control-label-api" itemprop="count_bugs" data-original-title="Total number of bugs reports"># of Bugs</label>
+						</div>
+						<div class="col-xs-1">
+							{$view.count_bugs/}
 						</div>
 				</form>
 			</div>			
@@ -220,7 +227,8 @@
 							<a href="{$host/}/user_reports/{$user/}?category=0&amp;status={$item.status.id/}" rel="filter"><img src="{$host/}/static/images/status_{$item.status.id/}.gif" class="img-rounded" data-original-title="{$item.status.synopsis/}"/></a>
 					</td>
 
-					<td itemprop="synopsis">{$item.synopsis/}</td>
+					<td itemprop="synopsis">
+						<a href="{$host/}/report_detail/{$item.number/}" itemprop="report_interaction" rel="report_interaction">{htmlentities}{$item.synopsis/}{/htmlentities}</a></td>
 					<td itemprop="submission_date">{$item.submission_date_output/}</td>
 					<td itemprop="category"> {$item.category.synopsis/}</td> 
 				</tr>

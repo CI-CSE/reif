@@ -63,7 +63,7 @@ feature -- HTTP Methods
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).new_response_unauthorized (req, res)
 				end
 			else
-				l_rhf.new_representation_handler (esa_config, "", media_type_variants (req)).change_email (req, res, Void)
+				l_rhf.new_representation_handler (esa_config, Empty_string, media_type_variants (req)).change_email (req, res, Void)
 			end
 		end
 
@@ -75,21 +75,27 @@ feature -- HTTP Methods
 			l_token: STRING
 		do
 			create l_rhf
-			if attached current_media_type (req) as l_type then
-				if attached current_user_name (req) as l_user then
+			if
+				attached current_media_type (req) as l_type
+			then
+				if
+					attached current_user_name (req) as l_user
+				then
 					l_email := extract_data_from_request (req, l_type)
-					if l_email.is_valid_form and then
-					   attached l_email.email as l_new_email and then
-					   attached api_service.user_account_information (l_user).email as ll_email and then
-					   api_service.user_from_email (l_new_email) = Void then
+					if
+						l_email.is_valid_form and then
+					   	attached l_email.email as l_new_email and then
+					   	attached api_service.user_account_information (l_user).email as ll_email and then
+					  	api_service.user_from_email (l_new_email) = Void
+					 then
 					   	l_token := (create {SECURITY_PROVIDER}).token
 					   	api_service.change_user_email (l_user, l_new_email, l_token)
 					   	if api_service.successful then
-						  	email_service.send_email_change_email (ll_email, l_token, req.absolute_script_url (""))
-						  	if email_service.successful then
+							email_notification_service.send_email_change_email (ll_email, l_token, req.absolute_script_url (""))
+						  	if email_notification_service.successful then
 							  	l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).post_email_change_page (req, res)
 							else
-								l_email.add_error ("Send Email", email_service.last_error_message)
+								l_email.add_error ("Send Email", email_notification_service.last_error_message)
 								l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).change_email (req, res, l_email)
 							end
 						else
@@ -106,7 +112,7 @@ feature -- HTTP Methods
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).new_response_unauthorized (req, res)
 				end
 			else
-				l_rhf.new_representation_handler (esa_config, "", media_type_variants (req)).change_email (req, res, Void)
+				l_rhf.new_representation_handler (esa_config, Empty_string, media_type_variants (req)).change_email (req, res, Void)
 			end
 		end
 
@@ -130,8 +136,9 @@ feature -- Implementation
 			l_parser: JSON_PARSER
 		do
 			create Result
-			create l_parser.make_parser (retrieve_data (req))
-			if attached {JSON_OBJECT} l_parser.parse as jv and then l_parser.is_parsed and then
+			create l_parser.make_with_string (retrieve_data (req))
+			l_parser.parse_content
+			if attached {JSON_OBJECT} l_parser.parsed_json_object as jv and then l_parser.is_parsed and then
 			   attached {JSON_OBJECT} jv.item ("template") as l_template and then
 			   attached {JSON_ARRAY}l_template.item ("data") as l_data then
 					--  <"name": "email", "prompt": "Password", "value": "{$form.email/}">,
@@ -152,10 +159,10 @@ feature -- Implementation
 			-- email, check_email.
 		do
 			create Result
-			if attached {WSF_STRING}req.form_parameter ("email") as l_email then
+			if attached {WSF_STRING} req.form_parameter ("email") as l_email then
 				Result.set_email (l_email.value)
 			end
-			if attached {WSF_STRING}req.form_parameter ("check_email") as l_check_email then
+			if attached {WSF_STRING} req.form_parameter ("check_email") as l_check_email then
 				Result.set_check_email (l_check_email.value)
 			end
 

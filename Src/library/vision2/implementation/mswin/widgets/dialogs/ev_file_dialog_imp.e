@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Eiffel Vision file dialog. Mswindows implementation."
 	legal: "See notice at end of class."
@@ -19,7 +19,7 @@ inherit
 
 feature {NONE} -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 			-- Create `Current' with interface `an_interface'.
 		do
 			assign_interface (an_interface)
@@ -88,7 +88,7 @@ feature -- Element change
 			if a_filter.same_string ("*.*") then
 				wel_set_filter (<<"All files">>, <<"*.*">>)
 			else
-				wel_set_filter (<<filter_name, "All files">>, <<a_filter, "*.*">>)
+				wel_set_filter ({ARRAY [READABLE_STRING_GENERAL]} <<filter_name, "All files">>, <<a_filter, "*.*">>)
 			end
 			wel_set_filter_index (0)
 		end
@@ -202,7 +202,7 @@ feature -- Deferred
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -212,12 +212,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class EV_FILE_DIALOG_IMP
-
-
-
-
-
+end

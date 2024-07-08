@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Contains information about character formatting in a %
 		%rich edit control."
 	legal: "See notice at end of class."
@@ -83,7 +83,7 @@ feature -- Access
 
 	height: INTEGER
 			-- Character height
-		obsolete "Use height in twips instead."
+		obsolete "Use height in twips instead [2017-05-31]."
 		require
 			exists: exists
 		do
@@ -245,7 +245,7 @@ feature -- Element change
 
 	set_height (a_height: INTEGER)
 			-- Set `height' with `a_height' (height specified in points).
-		Obsolete "Use `set_height_in_points' instead"
+		Obsolete "Use `set_height_in_points' instead [2017-05-31]."
 		require
 			exists: exists
 		do
@@ -520,14 +520,20 @@ feature -- Status report
 feature -- Measurement
 
 	structure_size: INTEGER
-			-- Size to allocate (in bytes)
+			-- <Precursor>
+		do
+			Result := c_structure_size
+		end
+
+feature {NONE} -- Externals
+
+	c_structure_size: INTEGER
+			-- Implementation of `structure_size`.
 		external
 			"C [macro <charfmt.h>]"
 		alias
 			"sizeof (CHARFORMAT)"
 		end
-
-feature {NONE} -- Externals
 
 	cwel_charformat_set_cbsize (ptr: POINTER; value: INTEGER)
 		external
@@ -622,7 +628,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2011, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

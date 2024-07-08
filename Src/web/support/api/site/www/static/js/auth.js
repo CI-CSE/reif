@@ -1,5 +1,6 @@
-var loginURL = "/login";
-var logoutURL = "/logoff";
+var loginURL = "/login_session";
+var logoutURL = "/logoff_session";
+var logout = "logoff"
 var userAgent = navigator.userAgent.toLowerCase();
 var firstLogIn = true;
  
@@ -7,8 +8,17 @@ var login = function() {
     var form = document.forms[0];
     var username = form.username.value;
     var password = form.password.value;
-	var host = form.host.value;
-  	var _login = function(){
+    var remember_me = form.remember_me.checked;
+  	var host = form.host.value;
+  	var path_name = window.location.pathname;
+    
+    var reshost = host.split("/");
+    var res = path_name.split("/");
+    if (reshost[reshost.length - 1] === res[1]) {
+      path_name = path_name.replace("/"+res[1], "");
+    }
+
+    var _login = function(){
 
  
     $("#imgProgress").show();  
@@ -30,14 +40,17 @@ var login = function() {
          
           //Instantiate HTTP Request
           var request = ((window.XMLHttpRequest) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP"));
-    	    request.open("GET", host.concat(loginURL), true, username, password);
-	        request.send(null);
+    	    //request.open("GET", host + loginURL, true, username, password);
+	        //request.send(null);
+          request.open("POST", host + loginURL, true);
+          request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+          request.send("username="+username+"&password="+password+"&remember_me="+remember_me);
     
           //Process Response
           request.onreadystatechange = function(){
-             if (request.readyState == 4) {
+             if (request.readyState == 2) {
                  if (request.status==200) {
-                           window.location=host.concat("/");
+                           window.location=host.concat(path_name);
                 }
                 else{
                   if (navigator.userAgent.toLowerCase().indexOf("firefox") != -1){                       
@@ -71,13 +84,21 @@ var login = function() {
 
 
 var login_with_redirect = function() {
-    var form = document.forms[2];
+    var form = document.forms[0];
     var username = form.username.value;
     var password = form.password.value;
+    var remember_me = form.remember_me.checked;
+
     var host = form.host.value;
     var _login = function(){
 
     var redirectURL = form.redirect && form.redirect.value || "";   
+
+    var reshost = host.split("/");
+    var res = redirectURL.split("/");
+    if (reshost[reshost.length - 1] === res[1]) {
+      redirectURL = redirectURL.replace("/"+res[1], "");
+    }
 
 
     $("#imgProgressRedirect").show();  
@@ -99,12 +120,16 @@ var login_with_redirect = function() {
          
           //Instantiate HTTP Request
           var request = ((window.XMLHttpRequest) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP"));
-            request.open("GET", host.concat(loginURL), true, username, password);
-            request.send(null);
+          //request.open("GET", host.concat(loginURL), true, username, password);
+          //request.send(null);
+    
+          request.open("POST", host + loginURL, true);
+          request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+          request.send("username="+username+"&password="+password+"&remember_me="+remember_me);
     
           //Process Response
           request.onreadystatechange = function(){
-             if (request.readyState == 4) {
+             if (request.readyState == 2) {
                  if (request.status==200) {
                      if (redirectURL === "") {   
                         window.location=host.concat("/");
@@ -143,8 +168,7 @@ var login_with_redirect = function() {
     if (firstLogIn) firstLogIn = false;
 };
 
- 
- 
+
 var logoff = function(callback){
 	   var form = document.forms[0];
      var host = form.host.value;
@@ -201,6 +225,11 @@ $("#password").pressEnter( function() {
 
      login();
 }); 
+
+$("#password_redirect").pressEnter( function() {
+     login_with_redirect();
+}); 
+
 
 
 $(document).ready(function() {
@@ -261,6 +290,8 @@ var progressive_guest_page_resize = function () {
           var filter_content =  $('#filter_content_pe').val();
           var pages = $('#pages_pe').val();
           var size  = $('#size_pe').val();
+          var count_bugs = $('#count_bugs_pe').val();
+
 
           console.log (host);
           console.log (index);
@@ -303,7 +334,12 @@ var progressive_guest_page_resize = function () {
           elem = elem.concat ('<img src="');
           elem = elem.concat (host);
           elem = elem.concat ('/static/images/ajax-loader.gif" alt="Loading..." style="display: none;" id="pageLoad" /> ');
-          elem = elem.concat ('</div> </div>' ); 
+          elem = elem.concat ('</div>' ); 
+          elem = elem.concat('<div class="col-xs-1"><label class="control-label-api" itemprop="report_number" data-original-title="The number of reports you want to see."># of Bugs</label></div>') ; 
+          elem = elem.concat('<div class="col-xs-1">');
+          elem = elem.concat (count_bugs); 
+          elem = elem.concat ('</div></div>' ); 
+ 
           console.log (elem);
 
           $('#guest_reports_page_size').after(elem).remove();
@@ -324,6 +360,7 @@ var progressive_user_page_resize = function () {
           var filter_content =  $('#filter_content_pe').val();
           var pages = $('#pages_pe').val();
           var size  = $('#size_pe').val();
+          var count_bugs = $('#count_bugs_pe').val();
 
           console.log (host);
           console.log (index);
@@ -368,7 +405,12 @@ var progressive_user_page_resize = function () {
           elem = elem.concat ('<img src="');
           elem = elem.concat (host);
           elem = elem.concat ('/static/images/ajax-loader.gif" alt="Loading..." style="display: none;" id="pageLoad" /> ');
-          elem = elem.concat ('</div> </div>' ); 
+          elem = elem.concat ('</div>' ); 
+          elem = elem.concat('<div class="col-xs-1"><label class="control-label-api" itemprop="report_number" data-original-title="The number of reports you want to see."># of Bugs</label></div>') ; 
+          elem = elem.concat('<div class="col-xs-1">');
+          elem = elem.concat (count_bugs); 
+          elem = elem.concat ('</div></div>' ); 
+ 
           console.log (elem);
 
           $('#user_reports_page_size').after(elem).remove();
@@ -393,6 +435,7 @@ var progressive_responsible_page_resize = function () {
           var severity  = $('#severity_pe').val();
           var priority  = $('#priority_pe').val();
           var responsible  = $('#responsible_pe').val();
+          var count_bugs = $('#count_bugs_pe').val();
 
           console.log (host);
           console.log (index);
@@ -443,7 +486,12 @@ var progressive_responsible_page_resize = function () {
           elem = elem.concat ('<img src="');
           elem = elem.concat (host);
           elem = elem.concat ('/static/images/ajax-loader.gif" alt="Loading..." style="display: none;" id="pageLoad" /> ');
-          elem = elem.concat ('</div> </div>' ); 
+          elem = elem.concat ('</div>' ); 
+          
+          elem = elem.concat('<div class="col-xs-1"><label class="control-label-api" itemprop="report_number" data-original-title="The number of reports you want to see."># of Bugs</label></div>') ; 
+          elem = elem.concat('<div class="col-xs-1">');
+          elem = elem.concat (count_bugs); 
+          elem = elem.concat ('</div></div>' ); 
           console.log (elem);
 
           $('#responsible_reports_page_size').after(elem).remove();

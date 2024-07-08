@@ -1,9 +1,9 @@
 note
 	description: "Used to evaluate environment configuration files that set environment variables."
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	date: "$date$";
-	revision: "$revision$"
+	status: "See notice at end of class."
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	ENV_PARSER
@@ -22,11 +22,11 @@ create
 feature {NONE} -- Initialization
 
 	make (a_batch_file: like batch_file_name; a_args: like batch_arguments; a_options: like batch_options)
-			-- Initialize parser from source batch file `a_batch_file'
+			-- Initialize parser from source batch file `a_batch_file'.
 		require
 			a_batch_file_attached: a_batch_file /= Void
 			not_a_batch_file_is_empty: not a_batch_file.is_empty
-			a_batch_file_exists: (create {PLAIN_TEXT_FILE}.make_with_name (a_batch_file)).exists
+			a_batch_file_exists: (create {PLAIN_TEXT_FILE}.make_with_path (a_batch_file)).exists
 			not_a_args_is_empty: a_args /= Void implies not a_args.is_empty
 			a_options_not_void: a_options /= Void
 		do
@@ -50,7 +50,7 @@ feature -- Access
 		end
 
 	include: STRING_32
-			-- INCLUDE environment variable
+			-- INCLUDE environment variable.
 		do
 			Result := variable_for_name (include_var_name)
 		ensure
@@ -58,7 +58,7 @@ feature -- Access
 		end
 
 	lib: STRING_32
-			-- LIBS environment variable
+			-- LIBS environment variable.
 		do
 			Result := variable_for_name (lib_var_name)
 		ensure
@@ -67,7 +67,7 @@ feature -- Access
 
 feature {NONE} -- Access
 
-	batch_file_name: STRING_32
+	batch_file_name: PATH
 			-- Location of a configuration batch script.
 
 	batch_arguments: detachable STRING_32
@@ -77,7 +77,7 @@ feature {NONE} -- Access
 			-- Option to the COMSPEC DOS prompt.
 
 	environment: EXECUTION_ENVIRONMENT
-			-- Access to environment information
+			-- Access to environment information.
 		once
 			create Result
 		ensure
@@ -87,17 +87,13 @@ feature {NONE} -- Access
 feature {NONE} -- Basic operations
 
 	variable_for_name (a_name: STRING_32): STRING_32
-			-- Retrieves varaible for name `a_name'
+			-- Retrieves varaible for name `a_name'.
 		require
 			a_name_attached: a_name /= Void
 			not_a_name_is_empty: not a_name.is_empty
-		local
-			l_result: detachable STRING_32
 		do
-			l_result := variables_via_evaluation.item (a_name)
-			if l_result /= Void then
-				Result := l_result
-			else
+			Result := variables_via_evaluation.item (a_name)
+			if not attached Result then
 				create Result.make_empty
 			end
 		ensure
@@ -106,17 +102,19 @@ feature {NONE} -- Basic operations
 
 	variables_via_evaluation: HASH_TABLE [STRING_32, STRING_32]
 			-- Retrieves a list of name/value environment variable pairs from evaluating the current environment
-			-- Using a batch file provided by `vsvars_batch_file'
+			-- Using a batch file provided by `vsvars_batch_file'.
 		local
 			l_result: like internal_variables_via_evaluation
 			l_eval_file_name: STRING
 			l_file: detachable PLAIN_TEXT_FILE
 			l_com_spec: detachable STRING_32
 			l_cmd: STRING_32
-			l_launcher: WEL_PROCESS_LAUNCHER
+			l_process_factory: BASE_PROCESS_FACTORY
+			l_launcher: BASE_PROCESS
 			l_pair: like parse_variable_name_value_pair
 			l_appliable: like applicable_variables
 			retry_count: INTEGER
+			l_table: HASH_TABLE [STRING_32, STRING_32]
 		do
 			l_result := internal_variables_via_evaluation
 			if l_result /= Void then
@@ -146,51 +144,65 @@ feature {NONE} -- Basic operations
 						l_cmd.append ({STRING_32} " /c ")
 						l_cmd.append (save_variables_command (l_eval_file_name))
 
-						create l_launcher
-						l_launcher.run_hidden
-						l_launcher.launch (l_cmd, Void, Void)
+						create l_process_factory
+						l_launcher := l_process_factory.process_launcher_with_command_line (l_cmd, Void)
 
-						if l_launcher.last_process_result = 0 then
-							create l_file.make_with_name (l_eval_file_name)
-							if l_file.exists then
-								l_file.open_read
-								if l_file.count > 0 then
-									l_appliable := applicable_variables
-									from l_file.start until l_file.end_of_file loop
-										debug
-											;(create {REFACTORING_HELPER}).fixme ("Support reading unicode strings from the generated file.")
-										end
-										l_file.read_line
-										if
-											attached l_file.last_string as l_line_8 and then
-											attached l_line_8.as_string_32 as l_line and then
-											is_valid_variable_name_value_pair_string (l_line)
-										then
-											l_pair := parse_variable_name_value_pair (l_line)
+							-- Some Microsoft scripts reuse the value of VSINSTALLDIR instead of starting fresh.
+							-- We make sure to remove this before executing our scripts.
+						l_table := (create {EXECUTION_ENVIRONMENT}).starting_environment
+						if l_table.has ("VSINSTALLDIR") then
+							l_table.remove ("VSINSTALLDIR")
+						end
+						l_launcher.set_environment_variable_table (l_table)
+						l_launcher.set_hidden (True)
+						l_launcher.set_separate_console (True)
+						l_launcher.launch
+						if l_launcher.launched then
+							l_launcher.wait_for_exit
+							if l_launcher.exit_code = 0 then
+								create l_file.make_with_name (l_eval_file_name)
+								if l_file.exists then
+									l_file.open_read
+									if l_file.count > 0 then
+										l_appliable := applicable_variables
+										from l_file.start until l_file.end_of_file loop
+											debug
+												;(create {REFACTORING_HELPER}).fixme ("Support reading unicode strings from the generated file.")
+											end
+											l_file.read_line
 											if
-												l_pair /= Void and then
-												(
-													l_pair.value /= Void and
-													(l_pair.name /= Void and then l_appliable.has (l_pair.name.as_upper))
-												)
+												attached l_file.last_string as l_line_8 and then
+												attached l_line_8.as_string_32 as l_line and then
+												is_valid_variable_name_value_pair_string (l_line)
 											then
-												l_result.extend (l_pair.value, l_pair.name.as_upper)
+												l_pair := parse_variable_name_value_pair (l_line)
+												if
+													l_pair /= Void and then
+													(
+														l_pair.value /= Void and
+														(l_pair.name /= Void and then l_appliable.has (l_pair.name.as_upper))
+													)
+												then
+													l_result.extend (l_pair.value, l_pair.name.as_upper)
+												end
 											end
 										end
 									end
-								end
 
-								l_file.close
-								l_file.delete
+									l_file.close
+									l_file.delete
+								end
+							else
+								(create {EXCEPTIONS}).raise ("Process has terminated with an error.")
 							end
 						else
-							(create {EXCEPTIONS}).raise ("Unable to launch process")
+							(create {EXCEPTIONS}).raise ("Unable to launch process.")
 						end
 					end
 				end
 
 				if l_file /= Void then
-						-- Resource clean up
+						-- Resource clean up.
 					if l_file.exists then
 						if not l_file.is_closed then
 							l_file.close
@@ -248,7 +260,7 @@ feature {NONE} -- Basic operations
 		do
 			create Result.make (256)
 			Result.append ({STRING_32} "%"CALL %"")
-			Result.append (batch_file_name)
+			Result.append (batch_file_name.name)
 			Result.append ({STRING_32} "%" ")
 			if attached batch_arguments as l_args then
 				Result.append (l_args)
@@ -387,18 +399,18 @@ feature {NONE} -- Externals
 feature {NONE} -- Implementation: Internal cache
 
 	internal_variables_via_evaluation: detachable like variables_via_evaluation
-			-- Cached version of `variables_via_evaluation'
+			-- Cached version of `variables_via_evaluation'.
 			-- Note: Do not use directly!
 
 invariant
 	batch_file_name_attached: batch_file_name /= Void
 	not_batch_file_name_is_empty: not batch_file_name.is_empty
-	batch_file_name_exists: (create {RAW_FILE}.make_with_name (batch_file_name)).exists
+	batch_file_name_exists: (create {RAW_FILE}.make_with_path (batch_file_name)).exists
 	not_batch_arguments_is_empty: attached batch_arguments as l_args implies not l_args.is_empty
 	batch_options_attached: batch_options /= Void
 
 ;note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

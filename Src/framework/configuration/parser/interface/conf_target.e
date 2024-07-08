@@ -18,11 +18,17 @@ inherit
 			{NONE} all
 		end
 
-	CONF_VALIDITY
-
 	DEBUG_OUTPUT
 
 	CONF_NOTABLE
+
+	CONF_TARGET_SETTINGS
+		rename
+			make as make_settings
+		redefine
+			options,
+			settings
+		end
 
 	HASHABLE
 
@@ -31,12 +37,13 @@ create {CONF_PARSE_FACTORY}
 
 feature {NONE} -- Initialization
 
-	make (a_name: STRING_32; a_system: CONF_SYSTEM)
+	make (a_name: READABLE_STRING_32; a_system: CONF_SYSTEM)
 			-- Create with `a_name'.
 		require
 			a_name_ok: a_name /= Void and not a_name.is_empty
 			a_system_not_void: a_system /= Void
 		do
+			make_settings
 			name := a_name.as_lower
 			create internal_libraries.make (1)
 			create internal_overrides.make (0)
@@ -57,24 +64,31 @@ feature {NONE} -- Initialization
 			create internal_post_compile_action.make (1)
 			create internal_variables.make_equal_caseless (1)
 			create environ_variables.make (1)
-			create internal_settings.make (1)
 			system := a_system
-			create immediate_setting_concurrency.make (setting_concurrency_name, setting_concurrency_index_none)
 		ensure
-			name_set: name /= Void and then name.is_equal (a_name.as_lower)
+			name_set: name /= Void and then name.is_case_insensitive_equal_general (a_name)
 			system_set: system = a_system
 		end
 
 feature -- Access, stored in configuration file
 
-	name: STRING_32
+	name: READABLE_STRING_32
 			-- Name of the target.
 
-	description: detachable STRING_32
+	description: detachable READABLE_STRING_32
 			-- A description about the target.
 
 	extends: detachable CONF_TARGET
 			-- If we extend another target, this is the other target.
+
+	remote_parent: detachable CONF_REMOTE_TARGET
+			-- Optional remote target as parent.
+
+	is_library_parent: BOOLEAN
+			-- Does `extends` refer to a library target corresponding to `parent_target_location` rather than to a specific target?
+		do
+			Result := attached remote_parent as p and then p.name = Void
+		end
 
 	system: CONF_SYSTEM
 			-- The associated system
@@ -87,22 +101,24 @@ feature -- Access, in compiled only, not stored to configuration file
 	environ_variables: STRING_TABLE [READABLE_STRING_32]
 			-- Saved environment variables.
 
+	record_environ_variable (a_value: READABLE_STRING_32; a_key: READABLE_STRING_GENERAL)
+		require
+			a_value_set: a_value /= Void
+			a_key_set: a_key /= Void and then not a_key.is_whitespace
+		do
+			environ_variables.put (a_value, a_key)
+		end
+
 	library_root: detachable PATH
 			-- Root location to use for relative paths, defaults to the location of the configuration file.
 			--| note: it is also use to replace $ECF_CONFIG_PATH value.
 		require
 			location_set: system.is_location_set
-		local
-			l_fac: CONF_PARSE_FACTORY
-			l_target: CONF_TARGET
-			l_dir: CONF_DIRECTORY_LOCATION
 		do
 			if attached settings.item (s_library_root) as l_item then
 					-- create a new target instead of using Current because we could end in an infinite recursion otherwise.
-				create l_fac
-				l_target := l_fac.new_target ("dummy", system)
-				create l_dir.make (l_item, l_target)
-				Result := l_dir.evaluated_path
+				Result := (create {CONF_DIRECTORY_LOCATION}.make
+					(l_item, (create {CONF_PARSE_FACTORY}).new_target ({STRING_32} "dummy", system))).evaluated_path
 			else
 				Result := system.directory
 			end
@@ -115,21 +131,16 @@ feature -- Access queries
 	child_targets: LIST [CONF_TARGET]
 			-- Targets that extend this target.
 		local
-			l_targets: STRING_TABLE [CONF_TARGET]
 			l_target: CONF_TARGET
 		do
-			create {ARRAYED_LIST [CONF_TARGET]}Result.make (5)
-			from
-				l_targets := system.targets
-				l_targets.start
-			until
-				l_targets.after
+			create {ARRAYED_LIST [CONF_TARGET]} Result.make (5)
+			across
+				system.targets as t
 			loop
-				l_target := l_targets.item_for_iteration
+				l_target := t.item
 				if l_target.extends = Current then
 					Result.force (l_target)
 				end
-				l_targets.forth
 			end
 		ensure
 			Result_not_void: Result /= Void
@@ -249,30 +260,31 @@ feature -- Access queries
 			Result_not_void: Result /= Void
 		end
 
-	options: CONF_OPTION
+	options: CONF_TARGET_OPTION
 			-- Options (Debuglevel, assertions, ...)
 		do
-			if attached internal_options as l_internal_options then
-				Result := l_internal_options.twin
-			else
-				create Result
-			end
-			if attached extends as l_extends then
+			if not attached extends as l_extends then
+					-- Top-level target: use its options directly.
+				Result := Precursor.twin
+			elseif attached internal_options as o then
+					-- A parented target with its own options: update options from parent.
+				Result := Precursor.twin
 				Result.merge (l_extends.options)
+			else
+					-- A parented target without its own options: take options from parent.
+				Result := l_extends.options
 			end
 		end
 
-	settings: HASH_TABLE [STRING_32, STRING_32]
+	settings: STRING_TABLE [READABLE_STRING_32]
 			-- Settings.
 		do
 			if attached extends as l_extends then
 				Result := l_extends.settings.twin
-				Result.merge (internal_settings)
+				Result.merge (Precursor)
 			else
-				Result := internal_settings
+				Result := Precursor
 			end
-		ensure
-			Result_not_void: Result /= Void
 		end
 
 	external_include: ARRAYED_LIST [CONF_EXTERNAL_INCLUDE]
@@ -395,7 +407,7 @@ feature -- Access queries
 			Result_not_void: Result /= Void
 		end
 
-	mapping: STRING_TABLE [STRING_32]
+	mapping: STRING_TABLE [READABLE_STRING_32]
 			-- Special classes name mapping (eg. STRING => STRING_32)
 		do
 			if attached extends as l_extends then
@@ -414,408 +426,20 @@ feature -- Access queries
 			Result_not_void: Result /= Void
 		end
 
-feature -- Access queries for settings
-
-	setting_boolean (a_name: STRING): BOOLEAN
-			-- Get value of boolean setting with `a_name'.
-		require
-			a_name_valid: valid_setting (a_name)
-		local
-			l_settings: like settings
-		do
-			l_settings := settings
-			if attached l_settings.item (a_name) as l_found_item then
-				check l_found_item.is_boolean end
-				if not a_name.is_equal (s_array_optimization) then
-					Result := l_found_item.to_boolean
-				end
-			else
-				Result := true_boolean_settings.has (a_name)
-			end
-		end
-
-	setting_address_expression: BOOLEAN
-			-- Value of the address_expression setting.
-		do
-			Result := setting_boolean (s_address_expression)
-		end
-
-	setting_array_optimization: BOOLEAN
-			-- Value of the array_optimization setting.
-		do
-			Result := setting_boolean (s_array_optimization)
-		end
-
-	setting_check_for_void_target: BOOLEAN
-			-- Value for the `check_for_void_target' setting.
-		do
-			Result := setting_boolean (s_check_for_void_target)
-		end
-
-	setting_check_for_catcall_at_runtime: BOOLEAN
-			-- Value for the `check_for_catcall_at_runtime' setting.
-		do
-			Result := setting_boolean (s_check_for_catcall_at_runtime)
-		end
-
-	setting_check_generic_creation_constraint: BOOLEAN
-			-- Value of the check_generic_creation_constraint setting.
-		do
-			Result := setting_boolean (s_check_generic_creation_constraint)
-		end
-
-	setting_check_vape: BOOLEAN
-			-- Value for the check_vape setting.
-		do
-			Result := setting_boolean (s_check_vape)
-		end
-
-	setting_console_application: BOOLEAN
-			-- Value for the console_application setting.
-		do
-			Result := setting_boolean (s_console_application)
-		end
-
-	setting_cls_compliant: BOOLEAN
-			-- Value for the cls_compliant setting.
-		do
-			Result := setting_boolean (s_cls_compliant)
-		end
-
-	setting_dead_code_removal: BOOLEAN
-			-- Value for the dead_code_removal setting.
-		do
-			Result := setting_boolean (s_dead_code_removal)
-		end
-
-	setting_dotnet_naming_convention: BOOLEAN
-			-- Value for the dotnet_naming_convention setting.
-		do
-			Result := setting_boolean (s_dotnet_naming_convention)
-		end
-
-	setting_dynamic_runtime: BOOLEAN
-			-- Value for the dynamic_runtime setting.
-		do
-			Result := setting_boolean (s_dynamic_runtime)
-		end
-
-	setting_executable_name: STRING_32
-			-- Value for the executable_name setting.
-		do
-			if attached settings.item (s_executable_name) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_enforce_unique_class_names: BOOLEAN
-			-- Valeu for the enforce_unique_class_names setting.
-		do
-			Result := setting_boolean (s_enforce_unique_class_names)
-		end
-
-	setting_exception_trace: BOOLEAN
-			-- Value for the exception_trace setting.
-		do
-			Result := setting_boolean (s_exception_trace)
-		end
-
-	setting_force_32bits: BOOLEAN
-			-- Value for the force_32bits setting.
-		do
-			Result := setting_boolean (s_force_32bits)
-		end
-
-	setting_il_verifiable: BOOLEAN
-			-- Value for the console_application setting.
-		do
-			Result := setting_boolean (s_il_verifiable)
-		end
-
-	setting_inlining: BOOLEAN
-			-- Value for the inlining setting.
-		do
-			Result := setting_boolean (s_inlining)
-		end
-
-	setting_inlining_size: NATURAL_8
-			-- Value for the inlining_size setting.
-		do
-			if attached settings.item (s_inlining_size) as l_found_item then
-				check l_found_item.is_natural_8 and then l_found_item.to_natural_8 <= 100 end
-				Result := l_found_item.to_natural_8
-			else
-				Result := 4
-			end
-		end
-
-	setting_java_generation: BOOLEAN
-			-- Value for the java_generation setting.
-		do
-			Result := setting_boolean (s_java_generation)
-		end
-
-	setting_line_generation: BOOLEAN
-			-- Value for the line_generation setting.
-		do
-			Result := setting_boolean (s_line_generation)
-		end
-
-	setting_metadata_cache_path: STRING_32
-			-- Value for the metadata_cache_path setting.
-		do
-			if attached settings.item (s_metadata_cache_path) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_msil_assembly_compatibility: STRING_32
-			-- Value for the msil_assembly_compatibility setting.
-		do
-			if attached settings.item (s_msil_assembly_compatibility) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_msil_classes_per_module: NATURAL_16
-			-- Value for the msil_classes_per_module setting.
-		do
-			if attached settings.item (s_msil_classes_per_module) as l_found_item then
-				check l_found_item.is_natural_16 and then l_found_item.to_natural_16 > 0 end
-				Result := l_found_item.to_natural_16
-			else
-				Result := 0
-			end
-		end
-
-	setting_msil_clr_version: STRING_32
-			-- Value for the msil_clr_version setting.
-		do
-			if attached settings.item (s_msil_clr_version) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_msil_culture: STRING_32
-			-- Value for the msil_culture setting.
-		do
-			if attached settings.item (s_msil_culture) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_msil_generation: BOOLEAN
-			-- Value for the msil_generation setting.
-		do
-			Result := setting_boolean (s_msil_generation)
-		end
-
-	setting_msil_generation_type: STRING_32
-			-- Value for the msil_generation_type setting.
-		do
-			if attached settings.item (s_msil_generation_type) as l_found_item then
-				check l_found_item.is_case_insensitive_equal_general ("exe") or l_found_item.is_case_insensitive_equal_general ("dll") end
-				Result := l_found_item
-			else
-				Result := "exe"
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_msil_key_file_name: STRING_32
-			-- Value for the msil_key_file_name setting.
-		do
-			if attached settings.item (s_msil_key_file_name) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_msil_use_optimized_precompile: BOOLEAN
-			-- Value for the msil_use_optimized_precompile setting.
-		do
-			Result := setting_boolean (s_msil_use_optimized_precompile)
-		end
-
-	setting_platform: STRING_32
-			-- Value for the platform setting.
-		do
-			if attached settings.item (s_platform) as l_found_item then
-				check get_platform (l_found_item) /= 0 end
-				Result := l_found_item.as_lower
-			else
-				Result := ""
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_external_runtime: STRING_32
-			-- Value for the external_runtime setting.
-		do
-			if attached settings.item (s_external_runtime) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_scoop_profile: BOOLEAN
-			-- Value for the scoop_profile setting.
-			-- Added for SCOOP, by trosim on 2010-03-31
-		do
-			Result := setting_boolean (s_scoop_profile)
-		end
-
-	setting_scoop_profile_buffer_enabled: BOOLEAN
-			-- Is scoop_profile_buffer enabled?
-			-- Added for SCOOP, by trosim on 2010-04-15
-		local
-			l_settings: like settings
-		do
-			l_settings := settings
-			l_settings.search (s_scoop_profile_buffer)
-			Result := l_settings.found and then l_settings.found_item.is_integer and then l_settings.found_item.to_integer >= 0
-		end
-
-	setting_scoop_profile_buffer: INTEGER
-			-- Value for the scoop profile buffer.
-			-- Added for SCOOP, by trosim on 2010-04-15
-		local
-			l_settings: like settings
-		do
-			l_settings := settings
-			l_settings.search (s_scoop_profile_buffer)
-			if l_settings.found then
-				check l_settings.found_item.is_integer and then l_settings.found_item.to_integer >= 0 end
-				Result := l_settings.found_item.to_integer
-			end
-		end
-		
-	setting_shared_library_definition: STRING_32
-			-- Value for the shared_library_definition setting.
-		do
-			if attached settings.item (s_shared_library_definition) as l_item then
-				Result := l_item
-			else
-				create Result.make_empty
-			end
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	setting_total_order_on_reals: BOOLEAN
-			-- Value for the total_order_on_reals setting.
-		do
-			Result := setting_boolean (s_total_order_on_reals)
-		end
-
-	setting_use_cluster_name_as_namespace: BOOLEAN
-			-- Value for the use_cluster_name_as_namespace setting.
-		do
-			Result := setting_boolean (s_use_cluster_name_as_namespace)
-		end
-
-	setting_use_all_cluster_name_as_namespace: BOOLEAN
-			-- Value for the use_all_cluster_name_as_namespace setting.
-		do
-			Result := setting_boolean (s_use_all_cluster_name_as_namespace)
-		end
-
-	setting_automatic_backup: BOOLEAN
-			-- Value for the automatic_backup setting.
-		do
-			Result := setting_boolean (s_automatic_backup)
-		end
-
-feature -- Access: concurrency setting
-
-	setting_concurrency: CONF_VALUE_CHOICE
-			-- Value of the "concurrency" setting
-			-- calculated using both immediate and inherited data.
-		do
-			if attached extends as e then
-				Result := immediate_setting_concurrency.twin
-				Result.set_safely (e.setting_concurrency)
-			else
-				Result := immediate_setting_concurrency
-			end
-		ensure
-			result_attached: attached Result
-		end
-
 	concurrency_mode: like {CONF_STATE}.concurrency
-			-- Concurrency mode corresponding to `setting_concurrency'.
+			-- Concurrency mode to set `{CONF_STATE}.concurrency'
+			-- in the tools that process ECF.
 		do
-			inspect setting_concurrency.index
-			when setting_concurrency_index_none   then Result := concurrency_none
-			when setting_concurrency_index_thread then Result := concurrency_multithreaded
-			when setting_concurrency_index_scoop  then Result := concurrency_scoop
+			inspect options.concurrency_capability.root_index
+			when {CONF_TARGET_OPTION}.concurrency_index_none then Result := concurrency_none
+			when {CONF_TARGET_OPTION}.concurrency_index_thread then Result := concurrency_multithreaded
+			when {CONF_TARGET_OPTION}.concurrency_index_scoop then Result := concurrency_scoop
 			end
 		ensure
 			definition:
-				setting_concurrency.index = setting_concurrency_index_none   and then Result = concurrency_none or else
-				setting_concurrency.index = setting_concurrency_index_thread and then Result = concurrency_multithreaded or else
-				setting_concurrency.index = setting_concurrency_index_scoop  and then Result = concurrency_scoop
-		end
-
-	setting_concurrency_index_none: NATURAL_8 = 1
-			-- Option index for no concurrency
-
-	setting_concurrency_index_thread: NATURAL_8 = 2
-			-- Option index for thread-based concurrency
-
-	setting_concurrency_index_scoop: NATURAL_8 = 3
-			-- Option index for SCOOP concurrency
-
-	immediate_setting_concurrency: like setting_concurrency
-			-- Value of the "concurrency" setting specified for this target.
-
-	set_immediate_setting_concurrency (v: like setting_concurrency)
-			-- Set value of the "concurrency" setting specified for this target.
-			-- Inherited setting (if any) overrides this one.
-		require
-			v_attached: attached v
-		do
-			immediate_setting_concurrency := v
-		ensure
-			immediate_setting_concurrency_set: immediate_setting_concurrency = v
-		end
-
-feature {NONE} -- Access: concurrency setting
-
-	setting_concurrency_name: ARRAY [READABLE_STRING_32]
-			-- Available values for `setting_concurrency'.
-		once
-			Result := <<concurrency_none_name.as_string_32, concurrency_multithreaded_name.as_string_32, concurrency_scoop_name.as_string_32>>
-		ensure
-			result_attached: Result /= Void
+				options.concurrency_capability.root_index = {CONF_TARGET_OPTION}.concurrency_index_none  and then Result = concurrency_none or else
+				options.concurrency_capability.root_index = {CONF_TARGET_OPTION}.concurrency_index_thread and then Result = concurrency_multithreaded or else
+				options.concurrency_capability.root_index = {CONF_TARGET_OPTION}.concurrency_index_scoop and then Result = concurrency_scoop
 		end
 
 feature {CONF_ACCESS} -- Update, stored in configuration file
@@ -824,11 +448,14 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 			-- Set `name' to `a_name'.
 		require
 			a_name_ok: a_name /= Void and then not a_name.is_empty
+		local
+			l_lowered_name: like name
 		do
+			l_lowered_name := a_name.as_lower
 			if attached system as l_system then
-				l_system.targets.replace_key (a_name.as_lower, name)
+				l_system.targets.replace_key (l_lowered_name, name)
 			end
-			name := a_name.as_lower
+			name := l_lowered_name
 		ensure
 			name_set: name.is_case_insensitive_equal (a_name) and name.is_equal (name.as_lower)
 		end
@@ -851,23 +478,36 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 			parent_set: extends = a_target
 		end
 
+	set_remote_parent (a_remote: like remote_parent)
+		do
+			remote_parent := a_remote
+		end
+
 	set_parent_by_name (a_target: STRING)
 			-- Set `parent' to `a_target'.
 		require
 			system: system /= Void
 			a_target_ok: a_target /= Void and then not a_target.is_empty implies system.targets.has (a_target)
 		do
-			if a_target /= Void and then not a_target.is_empty then
-				set_parent (system.targets.item (a_target))
+			if
+				a_target /= Void and then
+				not a_target.is_empty and then
+				attached system.target (a_target) as par
+			then
+				set_parent (par)
 			else
 				extends := Void
 			end
 		end
 
 	remove_parent
-			-- Remove the parent target.
+			-- Remove the parent of the target (if any).
 		do
 			extends := Void
+			remote_parent := Void
+		ensure
+			extends_unset: extends = Void
+			remote_parent_unset: remote_parent = Void
 		end
 
 	set_version (a_version: like version)
@@ -878,7 +518,7 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 			version_set: internal_version = a_version
 		end
 
-	set_precompile (a_precompile: CONF_PRECOMPILE)
+	set_precompile (a_precompile: like precompile)
 			-- Set `a_precompile'.
 		do
 			internal_precompile := a_precompile
@@ -1001,52 +641,6 @@ feature {CONF_ACCESS} -- Update, stored in configuration file
 			internal_file_rule.force (a_file_rule)
 		ensure
 			file_rule_added: internal_file_rule.has (a_file_rule)
-		end
-
-	set_options (an_option: like options)
-			-- Set `an_option'.
-		require
-			an_option_not_void: an_option /= Void
-		do
-			internal_options := an_option
-		ensure
-			option_set: internal_options = an_option
-		end
-
-	set_settings (a_settings: like settings)
-			-- Set `a_settings'.
-		require
-			a_settings_not_void: a_settings /= Void
-		do
-			internal_settings := a_settings
-		ensure
-			settings_set: internal_settings = a_settings
-		end
-
-	add_setting (a_name, a_value: STRING_32)
-			-- Add a new setting.
-		require
-			a_name_ok: a_name /= Void and then not a_name.is_empty
-			a_value_not_void: a_value /= Void
-		do
-			internal_settings.force (a_value, a_name)
-		ensure
-			added: internal_settings.item (a_name) = a_value
-		end
-
-	update_setting (a_name, a_value: STRING_32)
-			-- Update/add/remove a setting.
-		require
-			a_name_valid: a_name /= Void and then valid_setting (a_name)
-		do
-			if a_value = Void or else a_value.is_empty then
-				internal_settings.remove (a_name)
-			else
-				add_setting (a_name, a_value)
-			end
-		ensure
-			updated_removed: a_value = Void or else a_value.is_empty implies not internal_settings.has (a_name)
-			updated_added_set: a_value /= Void and then not a_value.is_empty implies internal_settings.item (a_name) = a_value
 		end
 
 	set_external_includes (an_includes: like external_include)
@@ -1407,6 +1001,23 @@ feature {CONF_ACCESS} -- Update, in compiled only, not stored to configuration f
 
 feature -- Equality
 
+	same_as (a_target: detachable CONF_TARGET): BOOLEAN
+			-- Do `a_target` and `Current` represent the same target?
+		do
+			if a_target /= Void then
+				if a_target = Current then
+					Result := True
+				elseif a_target.name.is_case_insensitive_equal_general (name) then
+					if attached system as s1 and attached a_target.system as s2 then
+						Result := (s1 = s2) or (s1.uuid ~ s2.uuid)
+					else
+							-- Assume this is target of same system
+						Result := True
+					end
+				end
+			end
+		end
+
 	is_group_equivalent (other: like Current): BOOLEAN
 			-- Is `other' and `Current' the same with respect to the group layout?
 		local
@@ -1525,7 +1136,7 @@ feature {CONF_VISITOR, CONF_ACCESS} -- Implementation, attributes that are store
 	internal_version: detachable CONF_VERSION
 			-- The version of this target itself.
 
-	internal_precompile: detachable like precompile
+	internal_precompile: like precompile
 			-- Precompile of this target itself.
 
 	internal_libraries: like libraries
@@ -1543,29 +1154,8 @@ feature {CONF_VISITOR, CONF_ACCESS} -- Implementation, attributes that are store
 	internal_file_rule: like file_rule
 			-- Rules for files to be included or excluded of this target itself.
 
-	internal_options: detachable like options
-			-- Options (Debuglevel, assertions, ...) of this target itself.
-
 	internal_mapping: detachable like mapping
 			-- Special classes name mapping (eg. STRING => STRING_32) of this target itself.
-
-	changeable_internal_options: like internal_options
-			-- A possibility to change settings without knowing if we have some options already set.
-		local
-			l_internal_options: like internal_options
-		do
-			l_internal_options := internal_options
-			if l_internal_options = Void then
-				create l_internal_options
-				internal_options := l_internal_options
-			end
-			Result := l_internal_options
-		ensure
-			Result_not_void: Result /= Void
-		end
-
-	internal_settings: like settings
-			-- Settings of this target itself.
 
 	internal_external_include: like external_include
 			-- Global external include files of this target itself.
@@ -1635,12 +1225,10 @@ invariant
 	internal_pre_compile_not_void: internal_pre_compile_action /= Void
 	internal_post_compile_not_void: internal_post_compile_action /= Void
 	internal_variables_not_void: internal_variables /= Void
-	internal_settings_not_void: internal_settings /= Void
 	environ_variables_not_void: environ_variables /= Void
-	internal_setting_concurrency_attached: attached immediate_setting_concurrency
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

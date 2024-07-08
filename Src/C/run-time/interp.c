@@ -2,7 +2,7 @@
 	description: "The byte code interpreter."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2013, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2016, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -251,7 +251,8 @@ rt_private void init_registers(void);			/* Intialize registers in callee */
 rt_private void allocate_registers(void);		/* Allocate the register array */
 rt_shared void sync_registers(struct stopchunk *stack_cur, EIF_TYPED_VALUE *stack_top); /* Resynchronize the register array */
 rt_private void pop_registers(void);						/* Remove local vars and arguments */
-rt_private void create_expanded_locals (struct stopchunk * scur, EIF_TYPED_VALUE * stop, int create_result); /* Initialize expanded locals and result (if required) */
+rt_private void create_expanded_locals (struct stopchunk * scur, EIF_TYPED_VALUE * stop); /* Initialize expanded locals */
+rt_private void create_expanded_result (struct stopchunk * scur, EIF_TYPED_VALUE * stop); /* Initialize expanded result */
 
 /* Operational stack handling routines */
 #ifdef DEBUG
@@ -856,6 +857,9 @@ rt_private void interpret(int flag, int where)
 		}
 #endif
 
+			/* Locals need to be allocated before any precondition checks
+			 * in case they are used in the preconditions. */
+		create_expanded_locals (scur, stop);
 		if ((*IC != BC_PRECOND) && (*IC != BC_START_CATCALL)) {
 			goto enter_body; /* Start execution of a routine body. */
 		}
@@ -2427,7 +2431,7 @@ rt_private void interpret(int flag, int where)
 	 			/* Variables are not used in non-SCOOP context */
 #ifdef EIF_THREADS
 			EIF_TYPED_VALUE * target;
-	 		uint32 n =
+	 		uint16 n =
 #endif
 	 			get_uint16 (&IC);    /* Number of arguments.  */
 #ifdef EIF_THREADS
@@ -2472,7 +2476,7 @@ rt_private void interpret(int flag, int where)
 			}
 			else if (code == BC_TUPLE_ACCESS) {
 					/* Check that this is not an access on void target. */
-				(void) RTCV (target -> it_ref);
+				(void) RTCW (target -> it_ref);
 					/* Proceed normally if the access is not separate. */
 				if (RTS_OS (icurrent->it_ref, target->it_ref)) {
 						/* This is a separate access. */
@@ -2501,7 +2505,7 @@ rt_private void interpret(int flag, int where)
 			}
 			else if (code == BC_TUPLE_ASSIGN) {
 					/* Check that this is not an access on void target. */
-				(void) RTCV (target -> it_ref);
+				(void) RTCW (target -> it_ref);
 					/* Proceed normally if the access is not separate. */
 				if (RTS_OS (icurrent->it_ref, target->it_ref)) {
 						/* This is a separate access. */
@@ -3300,7 +3304,7 @@ rt_private void interpret(int flag, int where)
 
 			l_last = EIF_STACK_TOP_ADDRESS(op_stack);
 			CHECK("last not null", l_last);
-			(void) RTCV(l_last->it_ref); /* Check that TUPLE is not Void. */
+			(void) RTCW(l_last->it_ref); /* Check that TUPLE is not Void. */
 			l_last->type = l_type;         /* Stored type of accessed tuple element. */
 			eif_tuple_access (l_last->it_ref, pos, l_last);
 		}
@@ -3313,7 +3317,7 @@ rt_private void interpret(int flag, int where)
 
 			source = eif_opstack_pop_address(&op_stack);
 			last = eif_opstack_pop_address(&op_stack);
-			(void) RTCV(last->it_ref); /* Check that TUPLE is not Void. */
+			(void) RTCW(last->it_ref); /* Check that TUPLE is not Void. */
 			eif_tuple_assign (last->it_ref, pos, source);
 		}
 
@@ -3986,7 +3990,10 @@ enter_body:
 					MTOE(OResult, RTOC(0));
 
 				}
-				create_expanded_locals (scur, stop, create_result);
+				create_expanded_locals (scur, stop);
+				if (create_result) {
+					create_expanded_result (scur, stop);
+				}
 				if (is_process_or_thread_relative_once) {
 						/* Initialize permanent storage */
 					put_once_result (iresult, rtype, OResult);
@@ -4016,8 +4023,10 @@ enter_body:
 			}
 		}
 	} else {
-			/* Initialize expanded locals */
-		create_expanded_locals (scur, stop, create_result);
+			/* Initialize expanded result */
+		if (create_result) {
+			create_expanded_result (scur, stop);
+		}
 			/* Register rescue handler (if any). */
 		CHECK("exvect not null", exvect);
 		SET_RESCUE(rescue,exenv);
@@ -4103,8 +4112,11 @@ rt_private void irecursive_chkinv(EIF_TYPE_INDEX dtype, EIF_REFERENCE obj, struc
 		}
 	}
 
-	/* Invariant check */
-	{
+		/* Invariant check.
+		 * Skip this step for an expanded object because the corresponding reference class is in the set of its parents.
+		 * See test#exec091.
+		 */
+	if (!EIF_IS_EXPANDED_TYPE(System(dtype))) {
 		BODY_INDEX body_id;
 		EIF_TYPED_VALUE *last;
 
@@ -4867,6 +4879,23 @@ rt_private void eif_interp_builtins (struct stopchunk *stack_cur, EIF_TYPED_VALU
 			iresult->type = SK_INT32;
 			iresult->it_int32 = eif_builtin_TYPE_generic_parameter_count(icurrent->it_ref);
 			break;
+
+		case BC_BUILTIN_TYPE__IS_ATTACHED:
+			iresult->type = SK_BOOL;
+			iresult->it_char = eif_builtin_TYPE_is_attached(icurrent->it_ref);
+			break;
+
+		case BC_BUILTIN_TYPE__IS_DEFERRED:
+			iresult->type = SK_BOOL;
+			iresult->it_char = eif_builtin_TYPE_is_deferred(icurrent->it_ref);
+			break;
+
+		case BC_BUILTIN_TYPE__IS_EXPANDED:
+			iresult->type = SK_BOOL;
+			iresult->it_char = eif_builtin_TYPE_is_expanded(icurrent->it_ref);
+			break;
+
+
 
 		default: eif_panic (RT_BOTCHED_MSG);
 	}
@@ -5942,11 +5971,10 @@ rt_private void pop_registers(void)
 }
 
 
-/* Initialize expanded locals and result (if required) */
+/* Initialize expanded locals */
 rt_private void create_expanded_locals (
 	struct stopchunk * scur,		/* Current chunk (stack context) */
-	EIF_TYPED_VALUE * stop,			/* To save stack context */
-	int create_result		/* Should result be created? */
+	EIF_TYPED_VALUE * stop			/* To save stack context */
 )
 {
 	RT_GET_CONTEXT
@@ -5973,19 +6001,34 @@ rt_private void create_expanded_locals (
 			break;
 		}
 	}
-	if (create_result) {
-		last = iresult;
-		type = last->type;
-		switch (type & SK_HEAD) {
-		case SK_EXP:
-			stagval = tagval;
-			last->type = SK_POINTER;		/* For GC */
-			last->it_ref = RTLX((EIF_TYPE_INDEX) (type & SK_DTYPE));
-			last->type = SK_EXP;
-			if (tagval != stagval)
-				sync_registers(MTC scur, stop);
-			break;
-		}
+}
+
+/* Initialize expanded result (if required) */
+rt_private void create_expanded_result (
+	struct stopchunk * scur,		/* Current chunk (stack context) */
+	EIF_TYPED_VALUE * stop			/* To save stack context */
+)
+{
+	RT_GET_CONTEXT
+	EIF_TYPED_VALUE * last;	/* Last pushed value */
+	uint32 type;
+	unsigned long stagval;
+
+		/* After expanded local entities creation, registers may have
+		 * to be resynchronized because RTLN could call the interpreter
+		 * through creation procedure of expanded attributes.
+		 */
+	last = iresult;
+	type = last->type;
+	switch (type & SK_HEAD) {
+	case SK_EXP:
+		stagval = tagval;
+		last->type = SK_POINTER;		/* For GC */
+		last->it_ref = RTLX((EIF_TYPE_INDEX) (type & SK_DTYPE));
+		last->type = SK_EXP;
+		if (tagval != stagval)
+			sync_registers(MTC scur, stop);
+		break;
 	}
 }
 

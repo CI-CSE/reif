@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Constants for the file format."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -148,16 +148,43 @@ feature {NONE} -- Constants
 			Result := namespace_1_15_0 + {STRING_32} " http://www.eiffel.com/developers/xml/configuration-1-15-0.xsd"
 		end
 
+	namespace_1_16_0: STRING_32 = "http://www.eiffel.com/developers/xml/configuration-1-16-0"
+			-- Namespace of the 16.11 release.
+
+	schema_1_16_0: STRING_32
+			-- Schema of the 16.11 release.
+		once
+			Result := namespace_1_16_0 + {STRING_32} " http://www.eiffel.com/developers/xml/configuration-1-16-0.xsd"
+		end
+
+	namespace_1_17_0: STRING_32 = "http://www.eiffel.com/developers/xml/configuration-1-17-0"
+			-- Namespace of the 18.01 release.
+
+	schema_1_17_0: STRING_32
+			-- Schema of the 18.01 release.
+		once
+			Result := namespace_1_17_0 + {STRING_32} " http://www.eiffel.com/developers/xml/configuration-1-17-0.xsd"
+		end
+
+	namespace_1_18_0: STRING_32 = "http://www.eiffel.com/developers/xml/configuration-1-18-0"
+			-- Namespace of the 18.05 release.
+
+	schema_1_18_0: STRING_32
+			-- Schema of the 18.05 release.
+		once
+			Result := namespace_1_18_0 + {STRING_32} " http://www.eiffel.com/developers/xml/configuration-1-18-0.xsd"
+		end
+
 	Latest_namespace: READABLE_STRING_32
 			-- Latest configuration namespace.
 		once
-			Result := namespace_1_15_0
+			Result := namespace_1_18_0
 		end
 
 	Latest_schema: STRING_32
 			-- Latest schema location.
 		once
-			Result := schema_1_15_0
+			Result := schema_1_18_0
 		end
 
 feature -- Status report
@@ -195,6 +222,9 @@ feature -- Normalization
 			elseif n.same_string (namespace_1_13_0) then Result := namespace_1_13_0
 			elseif n.same_string (namespace_1_14_0) then Result := namespace_1_14_0
 			elseif n.same_string (namespace_1_15_0) then Result := namespace_1_15_0
+			elseif n.same_string (namespace_1_16_0) then Result := namespace_1_16_0
+			elseif n.same_string (namespace_1_17_0) then Result := namespace_1_17_0
+			elseif n.same_string (namespace_1_18_0) then Result := namespace_1_18_0
 			elseif n.same_string (latest_namespace) then Result := latest_namespace
 			else
 					-- Unknown namespace.
@@ -232,12 +262,31 @@ feature -- Comparison
 			definition: Result = (not attached a or else not namespace_order.has (a) or else namespace_order.item (a) >= namespace_order.item (b))
 		end
 
+	is_between_or_equal (a: detachable like latest_namespace; b: like latest_namespace; c: like latest_namespace): BOOLEAN
+			-- Is namespace `a' less or equal to `b` and greater or equal to `c'?
+			-- (False if `a' is unknown.)
+		require
+			b_attached: attached b
+			b_known: is_namespace_known (b)
+			c_attached: attached c
+			c_known: is_namespace_known (c)
+		do
+				-- Namespace strings cannot be compared directly because they are not lexicographically ordered.
+			if attached a and then attached namespace_order.item (a) as o then
+				Result := o >= namespace_order.item (b) and then o <= namespace_order.item (c)
+			end
+		ensure
+			definition: Result = (attached a and then namespace_order.item (a) >= namespace_order.item (b) and then namespace_order.item (a) <= namespace_order.item (c))
+			is_after_or_equal: Result implies is_after_or_equal (a, b)
+			is_before_or_equal: Result implies is_before_or_equal (a, c)
+		end
+
 feature {NONE} -- Ordering
 
 	namespace_order: STRING_TABLE [NATURAL]
 			-- Order numbers associated with namespaces.
 		once
-			create Result.make (13)
+			create Result.make (18)
 			Result.compare_objects
 			Result.extend (1, namespace_1_0_0)
 			Result.extend (2, namespace_1_2_0)
@@ -254,11 +303,14 @@ feature {NONE} -- Ordering
 			Result.extend (13, namespace_1_13_0)
 			Result.extend (14, namespace_1_14_0)
 			Result.extend (15, namespace_1_15_0)
+			Result.extend (16, namespace_1_16_0)
+			Result.extend (17, namespace_1_17_0)
+			Result.extend (18, namespace_1_18_0)
 				-- When adding a new namespace, do not forget to increment the counter index too!
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

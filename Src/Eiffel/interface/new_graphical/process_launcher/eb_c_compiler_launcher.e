@@ -20,8 +20,6 @@ inherit
 
 	EB_SHARED_MANAGERS
 
-	SHARED_PLATFORM_CONSTANTS
-
 	PROJECT_CONTEXT
 
 	EB_CONSTANTS
@@ -282,7 +280,7 @@ feature{NONE}  -- Actions
 					display_message_on_main_output (c_compilation_failed_msg, True)
 					if attached event_list.service as l_service then
 						create l_error.make (locale_formatter.translation (e_see_output))
-						l_service.put_event_item (c_compiler_context, create {EVENT_LIST_ERROR_ITEM}.make ({ENVIRONMENT_CATEGORIES}.compilation, l_error.message, l_error))
+						l_service.put_event_item (c_compiler_context, create {EVENT_LIST_ERROR_ITEM}.make ({ENVIRONMENT_CATEGORIES}.compilation, l_error.description, l_error))
 					end
 				else
 					window_manager.display_message (Interface_names.e_c_compilation_succeeded)
@@ -310,7 +308,7 @@ feature{NONE}  -- Actions
 			display_message_on_main_output (c_compilation_launch_failed_msg, True)
 			if attached event_list.service as l_service then
 				create l_error.make (locale_formatter.translation (e_could_not_launch))
-				l_service.put_event_item (c_compiler_context, create {EVENT_LIST_ERROR_ITEM}.make ({ENVIRONMENT_CATEGORIES}.compilation, l_error.message, l_error))
+				l_service.put_event_item (c_compiler_context, create {EVENT_LIST_ERROR_ITEM}.make ({ENVIRONMENT_CATEGORIES}.compilation, l_error.description, l_error))
 			end
 			launch_failed_actions.call (Void)
 			finished_actions.call (Void)
@@ -447,7 +445,7 @@ feature {NONE} -- Internationalization
 	e_could_not_launch: STRING = "Could not launch C/C++ compiler."
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

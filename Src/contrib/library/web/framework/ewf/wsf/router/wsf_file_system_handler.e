@@ -39,6 +39,8 @@ feature {NONE} -- Initialization
 
 	make_with_path (d: like document_root)
 		do
+			initialize
+			max_age := -1
 			if d.is_empty then
 				document_root := execution_environment.current_working_path
 			else
@@ -72,6 +74,11 @@ feature {NONE} -- Initialization
 	is_hidden: BOOLEAN
 			-- Current mapped handler should be hidden from self documentation		
 
+	initialize
+			-- Initialize Current handler.
+		do
+		end
+
 feature -- Documentation
 
 	mapping_documentation (m: WSF_ROUTER_MAPPING; a_request_methods: detachable WSF_REQUEST_METHODS): WSF_ROUTER_MAPPING_DOCUMENTATION
@@ -87,6 +94,7 @@ feature -- Access
 	document_root: PATH
 
 	max_age: INTEGER
+			-- Max age, initialized at -1 by default.	
 
 	index_disabled: BOOLEAN
 			-- Index disabled?
@@ -95,7 +103,7 @@ feature -- Access
 			-- Function to evaluate if a path is ignored or not during autoindex.
 			-- If `index_ignores' is Void and `index_ignores_function' is Void, use default ignore rules.
 
-	directory_index: detachable ARRAY [READABLE_STRING_8]
+	directory_index: detachable ITERABLE [READABLE_STRING_GENERAL]
 			-- File serve if a directory index is requested.
 
 	not_found_handler: detachable PROCEDURE [TUPLE [uri: READABLE_STRING_8; req: WSF_REQUEST; res: WSF_RESPONSE]]
@@ -122,7 +130,7 @@ feature -- Element change
 	set_directory_index (idx: like directory_index)
 			-- Set `directory_index' as `idx'
 		do
-			if idx = Void or else idx.is_empty then
+			if idx = Void then
 				directory_index := Void
 			else
 				directory_index := idx
@@ -185,9 +193,9 @@ feature -- Execution
 
 	execute (a_start_path: READABLE_STRING_8; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
-			p: STRING_32
+			p: STRING_8
 		do
-			create p.make_from_string (req.path_info)
+			create p.make_from_string (req.percent_encoded_path_info)
 			if p.starts_with_general (a_start_path) then
 				p.remove_head (a_start_path.count)
 			else
@@ -201,7 +209,7 @@ feature -- Execution
 			execute (a_start_path, req, res)
 		end
 
-	process_uri (uri: READABLE_STRING_32; req: WSF_REQUEST; res: WSF_RESPONSE)
+	process_uri (uri: READABLE_STRING_8; req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			f: RAW_FILE
 			fn: like resource_filename
@@ -209,7 +217,7 @@ feature -- Execution
 			fn := resource_filename (uri)
 			create f.make_with_path (fn)
 			if f.exists then
-				if f.is_readable then
+				if f.is_access_readable then
 					if f.is_directory then
 						if index_disabled then
 							process_directory_index_disabled (uri, req, res)
@@ -339,6 +347,24 @@ feature -- Execution
 		end
 
 	process_file (f: FILE; req: WSF_REQUEST; res: WSF_RESPONSE)
+		require
+			f_valid: f.exists and then f.is_access_readable
+		do
+			if
+				attached req.meta_string_variable ("HTTP_IF_MODIFIED_SINCE") as s_if_modified_since and then
+				attached http_date_format_to_date (s_if_modified_since) as l_if_modified_since_date and then
+				attached file_date (f) as f_date and then
+				f_date <= l_if_modified_since_date
+			then
+				process_not_modified (f_date, req, res)
+			else
+				process_transfert (f, req, res)
+			end
+		end
+
+	process_transfert (f: FILE; req: WSF_REQUEST; res: WSF_RESPONSE)
+		require
+			f_valid: f.exists and then f.is_access_readable
 		local
 			ext: READABLE_STRING_32
 			ct: detachable READABLE_STRING_8
@@ -350,30 +376,23 @@ feature -- Execution
 			if ct = Void then
 				ct := {HTTP_MIME_TYPES}.application_force_download
 			end
-			if
-				attached req.meta_string_variable ("HTTP_IF_MODIFIED_SINCE") as s_if_modified_since and then
-				attached http_date_format_to_date (s_if_modified_since) as l_if_modified_since_date and then
-				attached file_date (f) as f_date and then
-				f_date <= l_if_modified_since_date
-			then
-				process_not_modified (f_date, req, res)
-			else
-				create fres.make_with_content_type (ct, f.path.name)
-				fres.set_status_code ({HTTP_STATUS_CODE}.ok)
+			create fres.make_with_content_type_and_path (ct, f.path)
+			fres.set_status_code ({HTTP_STATUS_CODE}.ok)
 
 				-- cache control
-				create dt.make_now_utc
-				fres.header.put_cache_control ("private, max-age=" + max_age.out)
-				fres.header.put_utc_date (dt)
+			create dt.make_now_utc
+			fres.header.put_utc_date (dt)
+			if max_age >= 0 then
+				fres.set_max_age (max_age)
 				if max_age > 0 then
 					dt := dt.twin
 					dt.second_add (max_age)
 				end
-				fres.header.put_expires_date (dt)
-
-				fres.set_answer_head_request_method (req.request_method.same_string ({HTTP_REQUEST_METHODS}.method_head))
-				res.send (fres)
+				fres.set_expires_date (dt)
 			end
+
+			fres.set_answer_head_request_method (req.request_method.same_string ({HTTP_REQUEST_METHODS}.method_head))
+			res.send (fres)
 		end
 
 	process_not_modified (a_utc_date: detachable DATE_TIME; req: WSF_REQUEST; res: WSF_RESPONSE)
@@ -383,14 +402,15 @@ feature -- Execution
 		do
 			create dt.make_now_utc
 			create h.make
-			h.put_cache_control ("private, max-age=" + max_age.out)
 			h.put_utc_date (dt)
-			if max_age > 0 then
-				dt := dt.twin
-				dt.second_add (max_age)
+			if max_age >= 0 then
+				h.put_cache_control ("max-age=" + max_age.out)
+				if max_age > 0 then
+					dt := dt.twin
+					dt.second_add (max_age)
+				end
+				h.put_expires_date (dt)
 			end
-			h.put_expires_date (dt)
-
 			if a_utc_date /= Void then
 				h.put_last_modified (a_utc_date)
 			end
@@ -450,7 +470,7 @@ feature -- Execution
 				create h.make
 				h.put_content_type_text_plain
 				create s.make_empty
-				s.append ("Directory index: Access denied%N")
+				s.append ("Directory index %"" + uri + "%": Access denied%N")
 				res.set_status_code ({HTTP_STATUS_CODE}.forbidden)
 				h.put_content_length (s.count)
 				res.put_header_lines (h)
@@ -487,7 +507,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	resource_filename (uri: READABLE_STRING_32): PATH
+	resource_filename (uri: READABLE_STRING_GENERAL): PATH
 		local
 			s: like uri_path_to_filename
 		do
@@ -534,7 +554,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	uri_path_to_filename (fn: READABLE_STRING_32): STRING_32
+	uri_path_to_filename (fn: READABLE_STRING_GENERAL): STRING_32
 			-- Real filename from url-path `fn'
 			--| Find a better design for this piece of code
 			--| Eventually in a spec/$ISE_PLATFORM/ specific cluster
@@ -542,7 +562,7 @@ feature {NONE} -- Implementation
 			n: INTEGER
 		do
 			n := fn.count
-			create Result.make_from_string (fn)
+			create Result.make_from_string_general (fn)
 			if n > 0 and then Result.item (Result.count) = {CHARACTER_32} '/' then
 				Result.remove_tail (1)
 				n := n - 1
@@ -585,7 +605,7 @@ feature {NONE} -- implementation: date time
 			Result := timestamp_to_date (f.date)
 		end
 
-	http_date_format_to_date (s: READABLE_STRING_8): detachable DATE_TIME
+	http_date_format_to_date (s: READABLE_STRING_GENERAL): detachable DATE_TIME
 			-- String representation of `dt' using the RFC 1123
 			--       HTTP-date    = rfc1123-date | rfc850-date | asctime-date
 			--       rfc1123-date = wkday "," SP date1 SP time SP "GMT"
@@ -632,7 +652,7 @@ feature {NONE} -- implementation: date time
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

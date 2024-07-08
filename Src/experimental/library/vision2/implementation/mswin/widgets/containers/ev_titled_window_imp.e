@@ -31,8 +31,6 @@ inherit
 			on_size,
 			title,
 			set_title,
-			compute_minimum_height,
-			compute_minimum_size,
 			interface,
 			class_name,
 			is_displayed,
@@ -42,8 +40,6 @@ inherit
 			title_name
 		end
 
-	EV_TITLED_WINDOW_ACTION_SEQUENCES_IMP
-
 	EV_ID_IMP
 
 create
@@ -51,7 +47,7 @@ create
 
 feature -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 			-- Create `Current' with interface `an_interface'.
 		do
 			assign_interface (an_interface)
@@ -288,71 +284,6 @@ feature {EV_ANY_I} -- Implementation
 	internal_icon_name: STRING_32
 			-- Name given by the user. internal representation.
 
-	compute_minimum_height (a_is_size_forced: BOOLEAN)
-			-- Recompute the minimum height of `Current'.
-		local
-			mh: INTEGER
-		do
-			if exists then
-				mh := extra_minimum_height
-				if attached item_imp as l_item_imp and then l_item_imp.is_show_requested then
-					mh := mh + l_item_imp.minimum_height
-				end
-				ev_set_minimum_height (mh, a_is_size_forced)
-			end
-		end
-
-	compute_minimum_size (a_is_size_forced: BOOLEAN)
-			-- Recompute the minimum size of `Current'.
-		local
-			mw, mh: INTEGER
-		do
-			if exists then
-				mw := extra_minimum_width
-				mh := extra_minimum_height
-				if attached item_imp as l_item_imp and then l_item_imp.is_show_requested then
-					mw := mw + l_item_imp.minimum_width
-					mh := mh + l_item_imp.minimum_height
-				end
-				ev_set_minimum_size (mw, mh, a_is_size_forced)
-			end
-		end
-
-	extra_minimum_width: INTEGER
-			-- Compute extra minimum width that does not count `item'.
-		require
-			exists: exists
-		do
-			Result := 2 * frame_width
-			Result := Result.max (upper_bar.minimum_width).max
-				(lower_bar.minimum_width)
-		end
-
-	extra_minimum_height: INTEGER
-			-- Compute extra minimum height that does not count `item'.
-		require
-			exists: exists
-		local
-			menu_bar_imp: detachable EV_MENU_BAR_IMP
-		do
-			Result := title_bar_height + 2 * frame_height
-			if attached menu_bar as l_menu_bar then
-				menu_bar_imp ?= l_menu_bar.implementation
-				check
-					menu_imp_not_void: menu_bar_imp /= Void then
-				end
-				if not menu_bar_imp.wel_count_empty then
-					Result := Result + menu_bar_height
-				end
-			end
-			if not upper_bar.is_empty then
-				Result := Result + upper_bar.minimum_height
-			end
-			if not lower_bar.is_empty then
-				Result := Result + lower_bar.minimum_height
-			end
-		end
-
 feature {NONE} -- WEL Implementation
 
 	default_style: INTEGER
@@ -369,6 +300,8 @@ feature {NONE} -- WEL Implementation
 			-- When `Current' receives the on_show message,
 			-- it resizes to the size of the child and sends
 			-- a message to the child.
+		local
+			l_rect: WEL_RECT
 		do
 				-- We check if there is a menu
 			if has_menu then
@@ -394,9 +327,10 @@ feature {NONE} -- WEL Implementation
 						-- When there is an item that is bigger than minimum_size
 						-- we try to stretch window as much as we can (ie not bigger
 						-- than the maximum size).
+					l_rect := extra_minimum_rect
 					wel_resize (
-						(l_item_imp.width + extra_minimum_width).min (maximum_width),
-						(l_item_imp.height + extra_minimum_height).min (maximum_height))
+						(l_item_imp.width + l_rect.width).min (maximum_width),
+						(l_item_imp.height + l_rect.height).min (maximum_height))
 				end
 			end
 		end
@@ -515,7 +449,7 @@ feature {NONE} -- Constants
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

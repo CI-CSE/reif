@@ -1,4 +1,4 @@
-note
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -17,6 +17,7 @@ inherit
 			error as error_parser,
 			parse as parse_parser
 		end
+	LOCALIZED_PRINTER
 
 create
 	make
@@ -35,7 +36,7 @@ feature {NONE}
 
 	numeric_info: DECIMAL_INFO
 
-feature
+feature {NONE} -- Creation
 
 	make
 		local
@@ -115,14 +116,14 @@ feature {NONE}
 			create l_proc.make (Proc_name)
 			proc := l_proc
 			l_proc.load
-			l_proc.set_arguments (
-				<<"decimal", "int_16", "int_32", "int_64", "real_32", "real_64">>,
+			l_proc.set_arguments_32 (
+				{ARRAY [STRING_32]} <<"decimal", "int_16", "int_32", "int_64", "real_32", "real_64">>,
 				<<l_decimal, l_int_16, l_int_32, l_int_64, l_real_32, l_real_64>>)
 
 			if l_proc.exists then
-				if l_proc.text /= Void then
+				if l_proc.text_32 /= Void then
 					io.putstring ("Stored procedure text: ")
-					io.putstring (l_proc.text)
+					localized_print(l_proc.text_32)
 					io.new_line
 				end
 			else
@@ -153,7 +154,6 @@ feature -- Decimal Callbacks
 	create_decimal (a_digits: STRING_8; a_sign, a_precision, a_scale: INTEGER): ANY
 			-- Create decimal
 		local
-			l_d: DECIMAL
 			l_s: STRING_8
 		do
 			create l_s.make (a_precision + 2)
@@ -172,15 +172,14 @@ feature -- Decimal Callbacks
 				else
 						-- 0.1234
 					l_s.append ("0.")
-					append_characters (l_s, '0', (a_scale - a_digits.count))
+					append_characters (l_s, '0', a_scale - a_digits.count)
 					l_s.append (a_digits)
 				end
 			else
 				l_s.append (a_digits)
-				append_characters (l_s, '0', (-a_scale))
+				append_characters (l_s, '0', - a_scale)
 			end
-			create l_d.make_from_string (l_s)
-			Result := l_d
+			create {DECIMAL} Result.make_from_string (l_s)
 		end
 
 	append_characters (a_str: STRING_8; a_c: CHARACTER; a_n: INTEGER)
@@ -251,7 +250,7 @@ feature {NONE}
 	Proc_name: STRING = "DB_DECIMAL_PROC";
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			 Eiffel Software

@@ -49,9 +49,9 @@ feature -- Initialization
 			make_socket;
 			is_open_write := True;
 			is_open_read := True
-			timeout := default_timeout
+			set_default_timeout
 		ensure then
-			timeout_set_to_default: timeout = default_timeout
+			timeout_set_to_default: is_default_timeout
 		end
 
 	make_bound (a_port: INTEGER)
@@ -65,9 +65,9 @@ feature -- Initialization
 			addr := create_any_local
 			create an_address.make_from_address_and_port (addr, a_port)
 			make_bound_to_address (an_address)
-			timeout := default_timeout
+			set_default_timeout
 		ensure
-			timeout_set_to_default: timeout = default_timeout
+			timeout_set_to_default: is_default_timeout
 		end
 
 	make_loopback_bound (a_port: INTEGER)
@@ -81,9 +81,9 @@ feature -- Initialization
 			addr := create_loopback
 			create an_address.make_from_address_and_port (addr, a_port)
 			make_bound_to_address (an_address)
-			timeout := default_timeout
+			set_default_timeout
 		ensure
-			timeout_set_to_default: timeout = default_timeout
+			timeout_set_to_default: is_default_timeout
 		end
 
 	make_targeted (a_hostname: STRING; a_peer_port: INTEGER)
@@ -95,9 +95,8 @@ feature -- Initialization
 			c_reset_error
 			create an_address.make_from_hostname_and_port (a_hostname, a_peer_port);
 			make_connected_to_peer (an_address)
-			timeout := default_timeout
 		ensure
-			timeout_set_to_default: timeout = default_timeout
+			timeout_set_to_default: is_default_timeout
 		end
 
 feature -- Status report
@@ -119,7 +118,12 @@ feature
 			-- Target socket to `a_peer_address'.
 		do
 			set_peer_address (a_peer_address)
-			c_connect (fd, fd1, a_peer_address.socket_address.item)
+			if a_peer_address /= Void then
+				c_connect (fd, fd1, a_peer_address.socket_address.item)
+			else
+					-- Per precondition
+				check has_peer_address: False end
+			end
 		end
 
 feature -- Status setting
@@ -215,13 +219,18 @@ feature {NONE} -- Implementation
 		local
 			l_fd, l_fd1, l_port: INTEGER
 		do
-			l_fd := fd
-			l_fd1 := fd1
-			l_port := internal_port
-			c_bind ($l_fd, $l_fd1, $l_port, a_address.socket_address.item)
-			fd := l_fd
-			fd1 := l_fd1
-			internal_port := l_port
+			if a_address /= Void then
+				l_fd := fd
+				l_fd1 := fd1
+				l_port := internal_port
+				c_bind ($l_fd, $l_fd1, $l_port, a_address.socket_address.item)
+				fd := l_fd
+				fd1 := l_fd1
+				internal_port := l_port
+			else
+					-- Per precondition
+				check has_address: False end
+			end
 		end
 
 feature {NONE} -- Externals
@@ -262,7 +271,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

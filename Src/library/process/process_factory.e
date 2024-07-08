@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "A factory to generate proper process launcher on different platforms."
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -7,6 +7,13 @@ note
 
 class
 	PROCESS_FACTORY
+
+inherit
+	BASE_PROCESS_FACTORY
+		rename
+			process_launcher as base_process_launcher,
+			process_launcher_with_command_line as base_process_launcher_with_command_line
+		end
 
 feature -- Access
 
@@ -21,6 +28,7 @@ feature -- Access
 		do
 			create {PROCESS_IMP} Result.make (a_file_name, args, a_working_directory)
 		ensure
+			instance_free: class
 			process_launched_created: Result /= Void
 		end
 
@@ -34,19 +42,12 @@ feature -- Access
 		do
 			create {PROCESS_IMP} Result.make_with_command_line (a_cmd_line, a_working_directory)
 		ensure
+			instance_free: class
 			process_launched_created: Result /= Void
 		end
 
-	current_process_info: PROCESS_INFO
-			-- Return an object representation of current process information
-		do
-			create {PROCESS_INFO_IMP} Result
-		ensure
-			result_attached: Result /= Void
-		end
-
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

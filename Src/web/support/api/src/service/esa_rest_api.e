@@ -43,12 +43,15 @@ feature -- Initialization
 			configure_api_priority
 			configure_api_responsible
 			configure_api_reminder
+			configure_api_password_reset
 			configure_api_logger
 			configure_api_user_account
 			configure_api_user_password
 			configure_api_user_email
 			configure_api_user_confirm_email
 			configure_api_subscribe_to_category
+			configure_api_login_session
+			configure_api_logoff_session
 
 			create fhdl.make_hidden_with_path (layout.www_path)
 			fhdl.disable_index
@@ -56,7 +59,7 @@ feature -- Initialization
 				do
 					execute_default (ia_req, ia_res)
 				end)
-			router.handle_with_request_methods ("/", fhdl, router.methods_GET)
+			router.handle ("/", fhdl, router.methods_GET)
 		end
 
 feature -- Configure Resources Routes
@@ -69,7 +72,8 @@ feature -- Configure Resources Routes
 			create l_root_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/", l_root_handler, l_methods)
+			router.handle ("", l_root_handler, l_methods)
+			router.handle ("/", l_root_handler, l_methods)
 		end
 
 	configure_api_report
@@ -80,13 +84,13 @@ feature -- Configure Resources Routes
 			create l_report_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/reports", l_report_handler, l_methods)
+			router.handle ("/reports", l_report_handler, l_methods)
 
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
 
-			router.handle_with_request_methods ("/reports/{id}", l_report_handler, l_methods)
+			router.handle ("/reports/{id}", l_report_handler, l_methods)
 		end
 
 	configure_api_reports_user
@@ -97,8 +101,8 @@ feature -- Configure Resources Routes
 			create l_user_report_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/user_reports/{user}", l_user_report_handler, l_methods)
-			router.handle_with_request_methods ("/user_reports/{user}/{id}", l_user_report_handler, l_methods)
+			router.handle ("/user_reports/{user}", l_user_report_handler, l_methods)
+			router.handle ("/user_reports/{user}/{id}", l_user_report_handler, l_methods)
 		end
 
 	configure_api_report_detail
@@ -109,8 +113,8 @@ feature -- Configure Resources Routes
 			create l_report_detail_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/report_detail/{id}", l_report_detail_handler, l_methods)
-			router.handle_with_request_methods ("/report_detail/{?search}", l_report_detail_handler, l_methods)
+			router.handle ("/report_detail/{id}", l_report_detail_handler, l_methods)
+			router.handle ("/report_detail/{?search}", l_report_detail_handler, l_methods)
 		end
 
 	configure_api_report_interaction
@@ -121,7 +125,9 @@ feature -- Configure Resources Routes
 			create l_report_interaction_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/report_interaction/{id}/{name}", l_report_interaction_handler, l_methods)
+		 	router.handle ("/report_interaction/{id}/{name}", l_report_interaction_handler, l_methods)
+		 	router.handle ("/report_interaction/{id}", l_report_interaction_handler, l_methods)
+
 		end
 
 	configure_api_login
@@ -132,7 +138,7 @@ feature -- Configure Resources Routes
 			create l_login_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/login", l_login_handler, l_methods)
+			router.handle ("/login", l_login_handler, l_methods)
 		end
 
 	configure_api_logoff
@@ -143,7 +149,29 @@ feature -- Configure Resources Routes
 			create l_logoff_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/logoff", l_logoff_handler, l_methods)
+			router.handle ("/logoff", l_logoff_handler, l_methods)
+		end
+
+	configure_api_login_session
+		local
+			l_logoff_handler: ESA_LOGIN_SESSION_HANDLER
+			l_methods: WSF_REQUEST_METHODS
+		do
+			create l_logoff_handler.make (esa_config)
+			create l_methods
+			l_methods.enable_post
+			router.handle ("/login_session", l_logoff_handler, l_methods)
+		end
+
+	configure_api_logoff_session
+		local
+			l_logoff_handler: ESA_LOGOFF_SESSION_HANDLER
+			l_methods: WSF_REQUEST_METHODS
+		do
+			create l_logoff_handler.make (esa_config)
+			create l_methods
+			l_methods.enable_get
+			router.handle ("/logoff_session", l_logoff_handler, l_methods)
 		end
 
 	configure_api_report_form
@@ -155,8 +183,8 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/report_form", l_form_handler, l_methods)
-			router.handle_with_request_methods ("/report_form/{id}", l_form_handler, l_methods)
+			router.handle ("/report_form", l_form_handler, l_methods)
+			router.handle ("/report_form/{id}", l_form_handler, l_methods)
 		end
 
 	configure_api_report_confirm
@@ -167,11 +195,11 @@ feature -- Configure Resources Routes
 			create l_confirm_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_post
-			router.handle_with_request_methods ("/report_confirm", l_confirm_handler, l_methods)
+			router.handle ("/report_confirm", l_confirm_handler, l_methods)
 
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/report_confirm/{id}", l_confirm_handler, l_methods)
+			router.handle ("/report_confirm/{id}", l_confirm_handler, l_methods)
 		end
 
 	configure_api_register
@@ -183,7 +211,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/register", l_register_handler, l_methods)
+			router.handle ("/register", l_register_handler, l_methods)
 		end
 
 	configure_api_activation
@@ -195,7 +223,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/activation", l_activation_handler, l_methods)
+			router.handle ("/activation", l_activation_handler, l_methods)
 		end
 
 	configure_api_status
@@ -206,7 +234,7 @@ feature -- Configure Resources Routes
 			create l_status_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/status", l_status_handler, l_methods)
+			router.handle ("/status", l_status_handler, l_methods)
 		end
 
 	configure_api_severity
@@ -217,7 +245,7 @@ feature -- Configure Resources Routes
 			create l_severity_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/severity", l_severity_handler, l_methods)
+			router.handle ("/severity", l_severity_handler, l_methods)
 		end
 
 	configure_api_category
@@ -228,7 +256,7 @@ feature -- Configure Resources Routes
 			create l_category_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/category", l_category_handler, l_methods)
+			router.handle ("/category", l_category_handler, l_methods)
 		end
 
 	configure_api_priority
@@ -239,7 +267,7 @@ feature -- Configure Resources Routes
 			create l_priority_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/priority", l_priority_handler, l_methods)
+			router.handle ("/priority", l_priority_handler, l_methods)
 		end
 
 	configure_api_responsible
@@ -250,7 +278,7 @@ feature -- Configure Resources Routes
 			create l_responsible_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/responsible", l_responsible_handler, l_methods)
+			router.handle ("/responsible", l_responsible_handler, l_methods)
 		end
 
 	configure_api_interaction_report
@@ -263,8 +291,8 @@ feature -- Configure Resources Routes
 			l_methods.enable_get
 			l_methods.enable_put
 			l_methods.enable_post
-			router.handle_with_request_methods ("/report_detail/{report_id}/interaction_form", l_interaction_handler, l_methods)
-			router.handle_with_request_methods ("/report_detail/{report_id}/interaction_form/{id}", l_interaction_handler, l_methods)
+			router.handle ("/report_detail/{report_id}/interaction_form", l_interaction_handler, l_methods)
+			router.handle ("/report_detail/{report_id}/interaction_form/{id}", l_interaction_handler, l_methods)
 		end
 
 	configure_api_interaction_confirm
@@ -275,24 +303,24 @@ feature -- Configure Resources Routes
 			create l_interaction_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
-			router.handle_with_request_methods ("/report_detail/{report_id}/interaction_confirm/{id}", l_interaction_handler, l_methods)
+			router.handle ("/report_detail/{report_id}/interaction_confirm/{id}", l_interaction_handler, l_methods)
 
 			create l_methods
 			l_methods.enable_post
-			router.handle_with_request_methods ("/report_detail/{report_id}/interaction_confirm", l_interaction_handler, l_methods)
+			router.handle ("/report_detail/{report_id}/interaction_confirm", l_interaction_handler, l_methods)
 		end
 
 
 	configure_api_reminder
 		local
-			l_reminder_handler: ESA_REMINDER_HANDLER
+			l_reminder_handler: ESA_PASSWORD_REMINDER_HANDLER
 			l_methods: WSF_REQUEST_METHODS
 		do
 			create l_reminder_handler.make (esa_config)
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/reminder", l_reminder_handler, l_methods)
+			router.handle ("/reminder", l_reminder_handler, l_methods)
 		end
 
 
@@ -305,7 +333,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/logger", l_logger_handler, l_methods)
+			router.handle ("/logger", l_logger_handler, l_methods)
 		end
 
 
@@ -318,7 +346,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/account", l_account_handler, l_methods)
+			router.handle ("/account", l_account_handler, l_methods)
 		end
 
 	configure_api_user_password
@@ -330,7 +358,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/password", l_password_handler, l_methods)
+			router.handle ("/password", l_password_handler, l_methods)
 		end
 
 	configure_api_user_email
@@ -342,7 +370,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/email", l_email_handler, l_methods)
+			router.handle ("/email", l_email_handler, l_methods)
 		end
 
 
@@ -355,8 +383,21 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/confirm_email", l_confirm_email_handler, l_methods)
+			router.handle ("/confirm_email", l_confirm_email_handler, l_methods)
 		end
+
+	configure_api_password_reset
+		local
+			l_password_reset_handler: ESA_PASSWORD_RESET_HANDLER
+			l_methods: WSF_REQUEST_METHODS
+		do
+			create l_password_reset_handler.make (esa_config)
+			create l_methods
+			l_methods.enable_get
+			l_methods.enable_post
+			router.handle ("/password-reset", l_password_reset_handler, l_methods)
+		end
+
 
 	configure_api_subscribe_to_category
 		local
@@ -367,7 +408,7 @@ feature -- Configure Resources Routes
 			create l_methods
 			l_methods.enable_get
 			l_methods.enable_post
-			router.handle_with_request_methods ("/subscribe_to_category", l_register_subscriber_handler, l_methods)
+			router.handle ("/subscribe_to_category", l_register_subscriber_handler, l_methods)
 		end
 
 

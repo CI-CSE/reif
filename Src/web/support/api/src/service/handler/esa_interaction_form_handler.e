@@ -1,5 +1,8 @@
 note
-	description: "Summary description for {ESA_INTERACTION_FORM}."
+	description: "[
+					Handle interaction, add a new interaction as a temporary interaction report problem.
+				    Also handle update a temporary interaction  report problem after completing the first step.
+	]"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -66,12 +69,19 @@ feature -- HTTP Methods
 
 	do_get (req: WSF_REQUEST; res: WSF_RESPONSE)
 		do
-			if attached {WSF_STRING} req.path_parameter ("report_id") as l_report_id and then l_report_id.is_integer and then attached {WSF_STRING} req.path_parameter ("id") as l_interaction_id and then
-				l_interaction_id.is_integer then
+			if
+				attached {WSF_STRING} req.path_parameter ("report_id") as l_report_id and then
+				l_report_id.is_integer and then
+				attached {WSF_STRING} req.path_parameter ("id") as l_interaction_id and then
+				l_interaction_id.is_integer
+			then
 					-- Edit a Report Interaction
 				log.write_information (generator + ".do_get Processing edit_report_interaction")
 				edit_report_interaction (req, res, l_report_id.integer_value, l_interaction_id.integer_value)
-			elseif attached {WSF_STRING} req.path_parameter ("report_id") as l_report_id and then l_report_id.is_integer then
+			elseif
+				attached {WSF_STRING} req.path_parameter ("report_id") as l_report_id and then
+				l_report_id.is_integer
+			then
 					-- New Report Interaction
 				log.write_information (generator + ".do_get Processing new_report_interaction")
 				new_report_interaction (req, res, l_report_id.integer_value)
@@ -105,7 +115,7 @@ feature -- Edit Report Problem
 			l_rhf: ESA_REPRESENTATION_HANDLER_FACTORY
 		do
 			create l_rhf
-			if attached {STRING_32} current_user_name (req) as l_user then
+			if attached {READABLE_STRING_32} current_user_name (req) as l_user then
 					-- Logged in user
 				if attached current_media_type (req) as l_type then
 					l_rhf.new_representation_handler (esa_config, l_type, media_type_variants (req)).add_interaction_form (req, res, edit_form (a_report_id, a_interaction_id, l_user))
@@ -121,7 +131,7 @@ feature -- Edit Report Problem
 			end
 		end
 
-	edit_form (a_report_id, a_interaction_id: INTEGER; a_user: STRING): ESA_INTERACTION_FORM_VIEW
+	edit_form (a_report_id, a_interaction_id: INTEGER; a_user: READABLE_STRING_32): ESA_INTERACTION_FORM_VIEW
 		local
 			l_tuple: detachable TUPLE[content : detachable READABLE_STRING_32;
 									   username: detachable READABLE_STRING_32;
@@ -174,7 +184,7 @@ feature -- New Report Problem
 			create l_rhf
 			media_variants := media_type_variants (req)
 			if
-				attached {STRING_32} current_user_name (req) as l_user and then
+				attached {READABLE_STRING_32} current_user_name (req) as l_user and then
 			 	api_service.is_report_visible (l_user, a_report_id)
 			then
 					-- Logged in user with access to the given report id.
@@ -256,11 +266,11 @@ feature -- Update Report Problem
 
 		end
 
-	update_report_problem_internal (req: WSF_REQUEST; a_form: ESA_INTERACTION_FORM_VIEW; a_type: STRING)
+	update_report_problem_internal (req: WSF_REQUEST; a_form: ESA_INTERACTION_FORM_VIEW; a_type: READABLE_STRING_32)
 			-- Update problem report.
 		do
 			if attached a_form.description as l_description then
-				api_service.initialize_interaction_2 (a_form.id, a_form.category, l_description, a_form.selected_status, a_form.private)
+				api_service.initialize_interaction (a_form.id, a_form.category, l_description, a_form.selected_status, a_form.private)
 			end
 				-- Update temporary files
 			if a_type.same_string ("application/vnd.collection+json") then
@@ -278,14 +288,20 @@ feature -- Initialize Report Problem
 			l_rhf: ESA_REPRESENTATION_HANDLER_FACTORY
 			l_temp_interaction_id: INTEGER
 			l_form: ESA_INTERACTION_FORM_VIEW
+			l_role: USER_ROLE
 		do
 			create l_rhf
-			if attached {STRING_32} current_user_name (req) as l_user then
+			if attached {READABLE_STRING_32} current_user_name (req) as l_user then
 					-- Logged in user
 				l_temp_interaction_id := api_service.new_interaction_id (l_user, a_report_id)
 				if attached current_media_type (req) as l_type then
 					if attached api_service.problem_report_details_guest (a_report_id) as l_report then
 						l_form := extract_form_data (req, l_type)
+						l_role := api_service.user_role (l_user)
+						if l_role.is_administrator or else l_role.is_responsible then
+								l_form.set_responsible_or_admin (True)
+						end
+
 						l_form.set_id (l_temp_interaction_id)
 						l_form.set_report (l_report)
 						l_form.confirm_changes
@@ -316,7 +332,7 @@ feature -- Initialize Report Problem
 			is_valid: a_form.is_valid_form
 		do
 			if attached a_form.description as l_description then
-				api_service.initialize_interaction_2 (a_form.id, a_form.category, l_description, a_form.selected_status, a_form.private)
+				api_service.initialize_interaction (a_form.id, a_form.category, l_description, a_form.selected_status, a_form.private)
 			end
 			if attached a_form.uploaded_files as l_files then
 				across l_files as c loop
@@ -372,7 +388,7 @@ feature {NONE} -- Implementation
 			end
 				--Description
 			if attached {WSF_STRING} req.form_parameter ("description") as l_description then
-				Result.set_description (l_description.url_encoded_value)
+				Result.set_description (l_description.value)
 			end
 			if req.has_uploaded_file then
 				create {ARRAYED_LIST[ESA_FILE_VIEW]} l_list.make (0)
@@ -391,13 +407,14 @@ feature {NONE} -- Implementation
 			-- Extract data from Collection+JSON template.
 		local
 			l_parser: JSON_PARSER
-			l_list: LIST[ESA_FILE_VIEW]
+			l_list: LIST [ESA_FILE_VIEW]
 			l_content: STRING
 			i: INTEGER
 		do
 			create Result.make (api_service.status, api_service.all_categories)
-			create l_parser.make_parser (retrieve_data (req))
-			if attached {JSON_OBJECT} l_parser.parse as jv and then l_parser.is_parsed and then
+			create l_parser.make_with_string (retrieve_data (req))
+			l_parser.parse_content
+			if attached {JSON_OBJECT} l_parser.parsed_json_object as jv and then l_parser.is_parsed and then
 			   attached {JSON_OBJECT} jv.item ("template") as l_template and then attached {JSON_ARRAY} l_template.item ("data") as l_data then
 					--		description
 					--    	category *
@@ -426,7 +443,7 @@ feature {NONE} -- Implementation
 				if attached {JSON_OBJECT} l_data.i_th (i) as l_form_data and then attached {JSON_STRING} l_form_data.item ("name") as l_name and then
 					l_name.item.same_string ("private") then
 					if attached {JSON_STRING} l_form_data.item ("value") as l_value and then l_value.item.is_integer then
-						if l_value.item = 0 then
+						if l_value.item.to_integer = 0 then
 							Result.set_private (False)
 						else
 							Result.set_private (True)
@@ -437,7 +454,7 @@ feature {NONE} -- Implementation
 				end
 
 				if attached {JSON_OBJECT} l_data.i_th (i) as l_form_data and then attached {JSON_ARRAY} l_form_data.item ("files") as l_files  then
-					create {ARRAYED_LIST[ESA_FILE_VIEW]} l_list.make (0)
+					create {ARRAYED_LIST [ESA_FILE_VIEW]} l_list.make (0)
 					across l_files as c  loop
 						if attached {JSON_OBJECT} c.item as jo and then attached {JSON_STRING} jo.item("name") as l_key and then
 							attached {JSON_STRING} jo.item("value") as ll_content then
@@ -449,7 +466,6 @@ feature {NONE} -- Implementation
 				end
 			end
 		end
-
 
 	upload_temporary_files_cj (a_form: ESA_INTERACTION_FORM_VIEW)
 			-- Handle temporary and uploaded files from an CJ template with attachment extensions.

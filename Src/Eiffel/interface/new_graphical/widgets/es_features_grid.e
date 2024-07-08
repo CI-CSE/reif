@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Tree enabled Grid representing the features of the class currently opened"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -312,10 +312,11 @@ feature {NONE} -- Basic operations
 		require
 			a_row_attached: a_row /= Void
 		do
-			if a_row.count > 0 then
-				if attached {E_FEATURE} data_from_row (a_row) as l_ef then
-					update_tree_item_for_e_feature (a_row, l_ef)
-				end
+			if
+				a_row.count > 0 and then
+				attached {E_FEATURE} data_from_row (a_row) as l_ef
+			then
+				update_tree_item_for_e_feature (a_row, l_ef)
 			end
 		end
 
@@ -461,6 +462,9 @@ feature -- Tree construction
 								cname.right_adjust
 							end
 							name := cname
+						else
+								-- There is no feature clause comment.
+							name := Void
 						end
 						if name = Void or else name.is_empty then
 							name := Interface_names.l_no_feature_group_clause
@@ -510,11 +514,12 @@ feature -- Tree construction
 
 				expand_tree := preferences.feature_tool_data.expand_feature_tree
 				l_dev_win := Window_manager.last_focused_development_window
-				if l_dev_win /= Void then
-					if consumed_types.has (last_class.name) then
-						create l_class.make (consumed_types.item (last_class.name), True, last_class)
-						l_clauses := l_class.features
-					end
+				if
+					l_dev_win /= Void and then
+					consumed_types.has (last_class.name)
+				then
+					create l_class.make (consumed_types.item (last_class.name), True, last_class)
+					l_clauses := l_class.features
 				end
 				if l_clauses = Void then
 					extend_message_item (Interface_names.l_compile_first)
@@ -621,12 +626,15 @@ feature {NONE} -- Event handler
 		local
 			st: FEATURE_STONE
 		do
-			if ab = {EV_POINTER_CONSTANTS}.right and ev_application.ctrl_pressed then
-				if a_item /= Void and then attached {E_FEATURE} data_from_item (a_item) as fe then
-					create st.make (fe)
-					if st.is_valid then
-						(create {EB_CONTROL_PICK_HANDLER}).launch_stone (st)
-					end
+			if
+				ab = {EV_POINTER_CONSTANTS}.right and
+				ev_application.ctrl_pressed and then
+				a_item /= Void and then
+				attached {E_FEATURE} data_from_item (a_item) as fe
+			then
+				create st.make (fe)
+				if st.is_valid then
+					(create {EB_CONTROL_PICK_HANDLER}).launch_stone (st)
 				end
 			end
 		end
@@ -646,21 +654,21 @@ feature {NONE} -- Event handler
 		local
 			d: like data_from_item
 		do
-			if not ev_application.ctrl_pressed then
-				if attached {EB_GRID_EDITOR_TOKEN_ITEM} a_item as gf then
-				else
-					d := data_from_item (a_item)
-					if attached {E_FEATURE} d as ef  then
-						create {FEATURE_STONE} Result.make (ef)
-					elseif attached {CLASS_I} d as ci then
-						if ci.is_compiled then
-							create {CLASSC_STONE} Result.make (ci.compiled_class)
-						else
-							create {CLASSI_STONE} Result.make (ci)
-						end
-					elseif attached {CLASS_C} d as cl then
-						create {CLASSC_STONE} Result.make (cl)
+			if
+				not ev_application.ctrl_pressed and then
+				not attached {EB_GRID_EDITOR_TOKEN_ITEM} a_item
+			then
+				d := data_from_item (a_item)
+				if attached {E_FEATURE} d as ef  then
+					create {FEATURE_STONE} Result.make (ef)
+				elseif attached {CLASS_I} d as ci then
+					if ci.is_compiled then
+						create {CLASSC_STONE} Result.make (ci.compiled_class)
+					else
+						create {CLASSI_STONE} Result.make (ci)
 					end
+				elseif attached {CLASS_C} d as cl then
+					create {CLASSC_STONE} Result.make (cl)
 				end
 			end
 		end
@@ -797,7 +805,7 @@ feature {NONE} -- Event handler
 		do
 			Result := extended_new_subrow (a_row)
 			if a_parent_class_i /= Void then
-				pix := pixel_buffer_from_class_i (a_parent_class_i)
+				pix := pixmap_from_class_i (a_parent_class_i)
 			end
 			add_tree_item_for_parent (Result, a_parent, a_parent_class_i, s, pix)
 		ensure
@@ -907,19 +915,20 @@ feature {NONE} -- Event handler
 					l_row := extended_new_subrow (Result)
 					add_tree_item_for_text (l_row, warning_messages.w_short_internal_error ("Void feature"))
 				else
-					if is_clickable then
-						if a_class.has_feature_table then
+					if
+						is_clickable and then
+						a_class.has_feature_table
+					then
+						ef := a_class.feature_with_name_32 (
+							fl.item.eiffel_name)
+						if ef = Void then
+								-- Check for infix feature
 							ef := a_class.feature_with_name_32 (
-								fl.item.eiffel_name)
+								"infix %"" + fl.item.eiffel_name + "%"")
 							if ef = Void then
-									-- Check for infix feature
+									-- Check for prefix feature
 								ef := a_class.feature_with_name_32 (
-									"infix %"" + fl.item.eiffel_name + "%"")
-								if ef = Void then
-										-- Check for prefix feature
-									ef := a_class.feature_with_name_32 (
-										"prefix %"" + fl.item.eiffel_name + "%"")
-								end
+									"prefix %"" + fl.item.eiffel_name + "%"")
 							end
 						end
 					end
@@ -956,37 +965,34 @@ feature {NONE} -- Tree item factory
 		end
 
 	add_tree_item_for_text (a_row: EV_GRID_ROW; a_text: STRING_GENERAL)
-		local
-			lab: EV_GRID_LABEL_ITEM
 		do
-			create lab.make_with_text (a_text)
-			a_row.set_item (1, lab)
+			a_row.set_item (1, create {EV_GRID_LABEL_ITEM}.make_with_text (a_text))
 		end
 
 	update_tree_item_for_e_feature (a_row: EV_GRID_ROW; ef: E_FEATURE)
-			--
-		local
-			lab: EV_GRID_LABEL_ITEM
-			gf: EB_GRID_EDITOR_TOKEN_ITEM
 		do
 			if a_row.count > 0 then
-				gf ?= a_row.item (1)
-				lab ?= a_row.item (1)
 				if is_editor_token_enabled then
-					if gf = Void then
-						check lab /= Void end
+					if not attached {EB_GRID_EDITOR_TOKEN_ITEM} a_row.item (1) then
 						a_row.clear
-						add_tree_item_for_e_feature (a_row, ef, lab.pixmap)
+						if attached {EV_GRID_LABEL_ITEM} a_row.item (1) as lab then
+							add_tree_item_for_e_feature (a_row, ef, lab.pixmap)
+						else
+							check is_label_item: False end
+						end
 					else
 						-- nothing to change
 					end
 				else
-					if lab /= Void then
+					if attached {EV_GRID_LABEL_ITEM} a_row.item (1) as lab then
 						lab.set_text (feature_name (ef))
 					else
-						check gf /= Void end
 						a_row.clear
-						add_tree_item_for_e_feature (a_row, ef, gf.pixmap)
+						if attached {EB_GRID_EDITOR_TOKEN_ITEM} a_row.item (1) as gf then
+							add_tree_item_for_e_feature (a_row, ef, gf.pixmap)
+						else
+							check is_editor_item: False end
+						end
 					end
 				end
 			end
@@ -1042,7 +1048,6 @@ feature {NONE} -- Tree item factory
 			l_text: STRING_GENERAL
 			i: EV_GRID_ITEM
 			gf: EB_GRID_EDITOR_TOKEN_ITEM
-			f: EV_FONT
 		do
 			a_row.set_data (ef)
 			l_text := feature_name (ef)
@@ -1052,7 +1057,6 @@ feature {NONE} -- Tree item factory
 				gf.set_pixmap (pix)
 				gf.set_data (ef)
 
-				create f
 				gf.set_overriden_fonts (editor_token_font_info.f, editor_token_font_info.h)
 				Grid_feature_style.set_e_feature (ef)
 				gf.set_text_with_tokens (Grid_feature_style.text)
@@ -1083,7 +1087,11 @@ feature {NONE} -- Tree item factory
 			lab.set_pixmap (pix)
 			lab.set_data (a_text)
 			if is_clickable and ffn /= Void then
-				lab.pointer_button_press_actions.force_extend (agent navigate_to_feature_by_name (ffn))
+				lab.pointer_button_press_actions.extend (agent (i_ffn: STRING_32; i_x, i_y, i_button: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER)
+						do
+							navigate_to_feature_by_name (i_ffn)
+						end (ffn, ?,?,?,?,?,?,?,?)
+					)
 			end
 			a_row.set_item (1, lab)
 		end
@@ -1109,15 +1117,12 @@ feature {NONE} -- Tree item factory
 			create lab.make_with_text (a_text)
 			lab.set_pixmap (pix)
 			lab.set_data (fd)
-			if is_clickable then
-				--| To implemente ... maybe
-			end
 			a_row.set_data (fd)
 			a_row.set_item (1, lab)
 		end
 
 ;note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -1148,6 +1153,4 @@ feature {NONE} -- Tree item factory
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class ES_FEATURES_GRID
-
-
+end

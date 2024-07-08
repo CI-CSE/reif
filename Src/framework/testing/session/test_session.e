@@ -1,8 +1,5 @@
-note
-	description: "[
-		Base implementation of {TEST_SESSION_I}.
-	]"
-	author: ""
+﻿note
+	description: "Base implementation of {TEST_SESSION_I}."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -48,7 +45,7 @@ feature -- Access
 				l_result := create {EVENT_CONNECTION [TEST_SESSION_OBSERVER, TEST_SESSION_I]}.make (
 					agent (an_observer: TEST_SESSION_OBSERVER): ARRAY [TUPLE[ EVENT_TYPE [TUPLE], PROCEDURE]]
 						do
-							Result := <<
+							Result := {ARRAY [TUPLE [EVENT_TYPE, PROCEDURE]]} <<
 									[proceeded_event, agent an_observer.on_proceeded],
 									[error_event, agent an_observer.on_error]
 								>>
@@ -89,24 +86,13 @@ feature {NONE} -- Basic operations
 			--             (make sure testing output window is visible).
 		require
 			a_procedure_attached: a_procedure /= Void
-		local
-			l_formatter: TEXT_FORMATTER
-			l_tuple: TUPLE [TEXT_FORMATTER]
 		do
 			if attached test_suite.output (Current) as l_output then
 				if a_activate then
 					l_output.activate (True)
 				end
 				l_output.lock
-				l_formatter := l_output.formatter
-				l_tuple := a_procedure.empty_operands
-				check
-					valid_operands: l_tuple.count = 1 and then
-						l_tuple.is_reference_item (1) and then
-						l_tuple.valid_type_for_index (l_formatter, 1)
-				end
-				l_tuple.put (l_formatter, 1)
-				a_procedure.call (l_tuple)
+				a_procedure (l_output.formatter)
 				l_output.unlock
 			end
 		end
@@ -120,7 +106,7 @@ feature {NONE} -- Events
 			-- <Precursor>
 
 ;note
-	copyright: "Copyright (c) 1984-2011, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

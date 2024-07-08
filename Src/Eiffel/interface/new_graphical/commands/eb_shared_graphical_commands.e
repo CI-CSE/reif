@@ -1,8 +1,8 @@
-note
-	description	: "Shared Commands for all $EiffelGraphicalCompiler$ windows and tools."
+﻿note
+	description: "Shared Commands for all windows and tools."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
+	date: "$Date$"
 	revision	: "$Revision$"
 
 class
@@ -101,6 +101,40 @@ feature -- Commands
 			Result.disable_sensitive
 		end
 
+	analyze_cmd: ES_CODE_ANALYSIS_COMMAND
+			-- Command to analyze last item.
+		once
+			create Result.make
+			Result.disable_sensitive
+		end
+
+	analyze_editor_cmd: ES_CODE_ANALYSIS_ANALYZE_EDITOR_COMMAND
+			-- Command to analyze editor item.
+		once
+			create Result.make
+			Result.disable_sensitive
+		end
+
+	analyze_parent_cmd: ES_CODE_ANALYSIS_ANALYZE_PARENT_COMMAND
+			-- Command to analyze parent cluster.
+		once
+			create Result.make
+			Result.disable_sensitive
+		end
+
+	analyze_target_cmd: ES_CODE_ANALYSIS_ANALYZE_TARGET_COMMAND
+			-- Command to analyze current target.
+		once
+			create Result.make
+			Result.disable_sensitive
+		end
+
+	analyzer_preferences_cmd: ES_CA_SHOW_PREFERENCES_COMMAND
+			-- Command to set analyzer preferences.
+		once
+			create Result.make
+		end
+
 	Document_cmd: EB_DOCUMENTATION_WIZARD_COMMAND
 			-- Command to generate the HTML documentation
 		once
@@ -129,8 +163,20 @@ feature -- Commands
 			Result.disable_sensitive
 		end
 
+	show_cloud_account_cmd: EB_SHOW_CLOUD_ACCOUNT_CMD
+			-- Display Cloud Account tool.
+		once
+			create Result.make
+		end
+
 	Show_preferences_cmd: EB_SHOW_PREFERENCES_COMMAND
 			-- Command to Display the User Preferences Editor.
+		once
+			create Result.make
+			Result.enable_sensitive
+		end
+
+	Show_settings_import_cmd: ES_SETTINGS_IMPORT_CMD
 		once
 			create Result.make
 			Result.enable_sensitive
@@ -150,7 +196,7 @@ feature -- Commands
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -181,4 +227,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_SHARED_GRAPHICAL_COMMANDS
+end

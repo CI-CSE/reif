@@ -52,6 +52,7 @@ feature -- Access: router
 		do
 			a_router.handle ("/recent_changes/", create {WSF_URI_AGENT_HANDLER}.make (agent handle_recent_changes (a_api, ?, ?)), a_router.methods_head_get)
 			a_router.handle ("/recent_changes/feed", create {WSF_URI_AGENT_HANDLER}.make (agent handle_recent_changes_feed (a_api, ?, ?)), a_router.methods_head_get)
+			a_router.handle ("/recent_changes/feed.{format}", create {WSF_URI_TEMPLATE_AGENT_HANDLER}.make (agent handle_recent_changes_feed (a_api, ?, ?)), a_router.methods_head_get)
 		end
 
 feature -- Hook		
@@ -104,9 +105,11 @@ feature -- Hook
 			ch: CMS_RECENT_CHANGE_ITEM
 			l_user: detachable CMS_USER
 			l_feed: FEED
+			l_feed_name: STRING_32
 			l_feed_item: FEED_ITEM
 			lnk: FEED_LINK
 			nb: NATURAL_32
+			s: STRING_32
 		do
 			l_user := Void -- Public access for the feed!
 			create l_changes.make (a_size, create {DATE_TIME}.make_now_utc, a_source)
@@ -126,7 +129,10 @@ feature -- Hook
 					end
 				end
 			end
-			create l_feed.make ("CMS Recent changes")
+			create l_feed_name.make_from_string (a_response.api.setup.site_name)
+			l_feed_name.append_string ({STRING_32} " : recent changes")
+			create l_feed.make (l_feed_name)
+			l_feed.set_id (a_response.api.absolute_url (a_response.request.path_info, Void))
 			l_feed.set_date (create {DATE_TIME}.make_now_utc)
 			nb := a_size
 			across
@@ -137,8 +143,31 @@ feature -- Hook
 				ch := ic.item
 				create l_feed_item.make (ch.link.title)
 				l_feed_item.set_date (ch.date)
-				l_feed_item.set_description (ch.information)
-				l_feed_item.set_category (ch.source)
+				if attached ch.id as l_ch_id then
+					l_feed_item.set_id (l_ch_id)
+				end
+				if attached ch.author as l_author then
+					l_feed_item.set_author (create {FEED_AUTHOR}.make (a_response.api.real_user_display_name (l_author)))
+				end
+
+				create s.make_empty
+				if attached ch.information as l_information then
+					s.append_string_general (l_information)
+				end
+				if attached ch.summary as sum then
+					if not s.is_empty then
+						s.append ("%N%N")
+					end
+					s.append (sum)
+				end
+				l_feed_item.set_description (s)
+				if attached ch.categories as lst then
+					across
+						lst as cats_ic
+					loop
+						l_feed_item.set_category (cats_ic.item)
+					end
+				end
 				create lnk.make (a_response.absolute_url (ch.link.location, Void))
 				l_feed_item.links.force (lnk, "")
 				l_feed.extend (l_feed_item)
@@ -179,10 +208,22 @@ feature -- Handler
 				l_size := 25
 			end
 
+			create mesg.make ({HTTP_STATUS_CODE}.ok)
+
 			create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
 			create l_content.make (1024)
-			recent_changes_feed (r, l_size, l_filter_source).accept (create {ATOM_FEED_GENERATOR}.make (l_content))
-			create mesg.make ({HTTP_STATUS_CODE}.ok)
+			if
+				attached {WSF_STRING} req.path_parameter ("format") as p_format and then
+				p_format.same_string ("rss")
+			then
+				mesg.header.put_content_type ("application/rss+xml")
+
+				recent_changes_feed (r, l_size, l_filter_source).accept (create {RSS_2_FEED_GENERATOR}.make (l_content))
+			else
+				mesg.header.put_content_type ("application/atom+xml")
+
+				recent_changes_feed (r, l_size, l_filter_source).accept (create {ATOM_FEED_GENERATOR}.make (l_content))
+			end
 			mesg.set_payload (l_content)
 			res.send (mesg)
 		end
@@ -230,9 +271,9 @@ feature -- Handler
 				l_size := 25
 			end
 
-			create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
-			if r.has_permission ("view recent changes") then
-				l_user := r.user
+			if api.has_permission ("view recent changes") then
+				create {GENERIC_VIEW_CMS_RESPONSE} r.make (req, res, api)
+				l_user := api.user
 				create l_changes.make (l_size, l_until_date, l_filter_source)
 
 				create l_content.make (1024)
@@ -328,7 +369,7 @@ feature -- Handler
 					l_content.append ("</td>")
 					l_content.append ("<td class=%"user%">")
 					if attached ch.author as u then
-						l_content.append (r.link (u.name, "user/" + u.id.out, Void))
+						l_content.append (r.link (r.user_profile_name (u), "user/" + u.id.out, Void))
 					elseif attached ch.author_name as un then
 						l_content.append (r.html_encoded (un))
 					end
@@ -362,7 +403,7 @@ feature -- Handler
 				if ch /= Void then
 					if l_until_date /= Void then
 						l_content.append (" <a href=%"")
-						l_content.append (r.url (r.location, Void))
+						l_content.append (r.request_url (Void))
 						l_content.append ("?size=" + l_size.out + "%">&lt;&lt;</a> ")
 					end
 
@@ -376,7 +417,7 @@ feature -- Handler
 							l_query.append (l_filter_source)
 						end
 						l_content.append ("<a href=%"")
-						l_content.append (r.url (r.location, create {CMS_API_OPTIONS}.make_from_manifest (<<["query", l_query]>>)))
+						l_content.append (r.request_url (create {CMS_API_OPTIONS}.make_from_manifest (<<["query", l_query]>>)))
 						l_content.append ("%">See more ...</a>")
 					end
 				end
@@ -388,11 +429,10 @@ feature -- Handler
 					create htdate.make_from_date_time (l_until_date)
 					r.set_title ("Recent changes before " + htdate.string)
 				end
+				r.execute
 			else
-				create {FORBIDDEN_ERROR_CMS_RESPONSE} r.make (req, res, api)
+				api.response_api.send_permissions_access_denied (Void, <<"view recent changes">>, req, res)
 			end
-
-			r.execute
 		end
 
 feature -- Hooks configuration

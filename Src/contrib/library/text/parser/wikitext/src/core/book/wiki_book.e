@@ -119,7 +119,7 @@ feature -- Access
 			end
 		end
 
-	top_pages: ARRAYED_LIST [WIKI_BOOK_PAGE]
+	top_pages: LIST [WIKI_BOOK_PAGE]
 			-- Top pages of the book, or the immediate children of the root_page.
 			-- The root_page is not a top page.
 		local
@@ -129,7 +129,7 @@ feature -- Access
 			l_index_page,l_book_page: detachable WIKI_BOOK_PAGE
 		do
 			if attached root_page as rp and then attached rp.pages as rp_pages then
-				create Result.make (rp_pages.count)
+				create {ARRAYED_LIST [WIKI_BOOK_PAGE]} Result.make (rp_pages.count)
 				across
 					rp_pages as ic
 				loop
@@ -137,7 +137,7 @@ feature -- Access
 				end
 			else
 				l_book_name := name
-				create Result.make (0)
+				create {ARRAYED_LIST [WIKI_BOOK_PAGE]} Result.make (0)
 				across
 					pages as ic
 				loop
@@ -181,12 +181,19 @@ feature -- Access
 			loop
 				Result := ic.item
 				if attached Result.metadata (a_metadata_name) as md then
-					if is_caseless and a_metadata_value.same_string (md) then
-							-- Found
-					elseif not is_caseless and a_metadata_value.is_case_insensitive_equal (md) then
+					if is_caseless then
+						if a_metadata_value.is_case_insensitive_equal (md) then
 							-- Found caseless
+						else
+							Result := Void
+						end
 					else
-						Result := Void
+						check is_not_caseless: not is_caseless end
+						if a_metadata_value.same_string (md) then
+							-- Found case sensitive.
+						else
+							Result := Void
+						end
 					end
 				else
 					Result := Void
@@ -205,8 +212,8 @@ feature -- Access
 				Result := ic.item
 				if not Result.key.is_case_insensitive_equal_general (a_key) then
 					if
-						Result.is_index_page and then 
-						Result.parent_key.is_case_insensitive_equal_general (a_key) 
+						Result.is_index_page and then
+						Result.parent_key.is_case_insensitive_equal_general (a_key)
 					then
 							-- Find it.
 					else
@@ -269,7 +276,7 @@ feature -- Status report
 		end
 
 note
-	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2018, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

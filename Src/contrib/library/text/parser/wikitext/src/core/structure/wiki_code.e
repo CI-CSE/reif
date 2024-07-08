@@ -20,6 +20,8 @@ create
 	make,
 	make_from_source,
 	make_from_3backticks_source,
+	make_from_single_backtick_source,
+	make_from_double_backtick_source,
 	make_from_tag
 
 feature {NONE} -- Initialization
@@ -28,14 +30,14 @@ feature {NONE} -- Initialization
 			-- <Precursor>
 		do
 			Precursor (a_tag, s)
-			set_is_inline (text.is_single_line and not s.has ('%N'))
+			set_is_inline (text.is_single_line and not original_text_has_new_line)
 		end
 
 	make_from_source (s: STRING)
 			-- <Precursor>
 		do
 			Precursor (s)
-			set_is_inline (text.is_single_line and not s.has ('%N'))
+			set_is_inline (text.is_single_line and not original_text_has_new_line)
 		end
 
 	make_from_tag (a_tag: WIKI_TAG)
@@ -60,7 +62,7 @@ feature {NONE} -- Initialization
 				l_lang.left_adjust
 				l_lang.right_adjust
 				create l_source.make (s.count + 15) -- = (14 - 3) + (7 - 3)
-				create l_source.make_from_string ("<code lang=%"" + l_lang + "%">%N")
+				l_source.append ("<code lang=%"" + l_lang + "%">%N")
 				i := j + 1
 			else
 				create l_source.make (s.count + 4) -- = 7 - 3
@@ -69,6 +71,39 @@ feature {NONE} -- Initialization
 			l_source.append ("</code>")
 			make_from_source (l_source)
 		end
+
+	make_from_single_backtick_source (s: STRING)
+			-- Create wiki code from `s' using the single backtick syntax.
+			-- ie: "`....`%N"
+		require
+			has_expected_backticks: s.starts_with_general ("`") and s.ends_with_general ("`")
+			is_inline: not s.has ('%N')
+		local
+			l_source: STRING
+		do
+			create l_source.make_from_string ("<code>")
+			l_source.append_substring (s, 2, s.count - 1)
+			l_source.append ("</code>")
+			make_from_source (l_source)
+			set_is_inline (True)
+		end
+
+	make_from_double_backtick_source (s: STRING)
+			-- Create wiki code from `s' using the single backtick syntax.
+			-- ie: "`` ....``%N", usually this is to escape single backtick.
+		require
+			has_expected_backticks: s.starts_with_general ("``") and s.ends_with_general ("``")
+			is_inline: not s.has ('%N')
+		local
+			l_source: STRING
+		do
+			create l_source.make_from_string ("<code>")
+			l_source.append_substring (s, 3, s.count - 2)
+			l_source.append ("</code>")
+			make_from_source (l_source)
+			set_is_inline (True)
+		end
+
 
 feature -- Access
 
@@ -97,7 +132,7 @@ feature -- Visitor
 		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2016, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

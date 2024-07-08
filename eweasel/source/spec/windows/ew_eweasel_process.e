@@ -1,9 +1,8 @@
-note
-	description: "An independent process used by EiffelWeasel"
+﻿note
+	description: "An independent process used by EiffelWeasel."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	keywords: "Eiffel test"
-	date: "October 14, 1997"
 
 class EW_EWEASEL_PROCESS
 
@@ -32,7 +31,7 @@ inherit
 
 feature -- Creation
 
-	make (cmd: STRING; args: LIST [STRING]; a_env_vars: HASH_TABLE [STRING, STRING]; inf, outf, savef: STRING)
+	make (cmd: READABLE_STRING_32; args: LIST [READABLE_STRING_32]; a_env_vars: like {EW_TEST_ENVIRONMENT}.environment_variables; inf, outf, savef: READABLE_STRING_32)
 			-- Start a new process to run command `cmd'
 			-- with arguments `args'.  The new process
 			-- will gets its input from file `inf' and
@@ -51,23 +50,18 @@ feature -- Creation
 			command_not_void: cmd /= Void
 			arguments_not_void: args /= Void
 		local
-			cmd_line: STRING
-			k: INTEGER
-			l_success: BOOLEAN
+			cmd_line: STRING_32
 		do
 			debug
 				output.append_new_line
 				output.append ("Start: ", False)
-				output.append (cmd, False)
+				output.append_32 (cmd, False)
 				output.append (" ", False)
-				from
-					args.start
-				until
-					args.after
+				across
+					args as a
 				loop
-					output.append (args.item, False)
+					output.append_32 (a.item, False)
 					output.append (" ", False)
-					args.forth
 				end
 				output.append ("End", False)
 				output.append_new_line
@@ -76,16 +70,11 @@ feature -- Creation
 			set_environment_variables (a_env_vars)
 			create cmd_line.make (1024)
 			cmd_line.append (cmd)
-			cmd_line.append_character (' ')
-			from
-				args.start
-				k := 1
-			until
-				args.after
+			across
+				args as argument
 			loop
-				cmd_line.append (args.item)
 				cmd_line.append_character (' ')
-				args.forth
+				append_command_line_argument (argument.item, cmd_line)
 			end
 			input_file_name := inf
 			output_file_name := outf
@@ -93,8 +82,8 @@ feature -- Creation
 			output_pipe_needed := outf = Void
 			run_hidden
 			spawn_with_console (cmd_line, current_working_path.name)
-			l_success := file_handle.close (child_input)
-			l_success := file_handle.close (child_output)
+			file_handle.close (child_input).do_nothing
+			file_handle.close (child_output).do_nothing
 
 			if savef /= Void then
 				create savefile.make_open_write (savef)
@@ -116,80 +105,47 @@ feature -- Control
 			-- Send characters in `s' to process
 		require
 			string_not_void: s /= Void
-		local
-			l_file_handle: EW_WEL_FILE_HANDLE
 		do
 			if input_pipe_needed then
-				create l_file_handle
-				l_file_handle.put_string (std_input, s)
+				(create {EW_WEL_FILE_HANDLE}).put_string (std_input, s)
 			end
 		end
 
 	terminate
 			-- Terminate independent process - wait for
-			-- it to exit and get its status
-		local
-			a_boolean: BOOLEAN
-			l_handle: POINTER
+			-- it to exit and get its status.
 		do
 			close
-			a_boolean := {WEL_API}.get_exit_code_process (process_info.process_handle, $last_process_result)
-			if a_boolean and then last_process_result = {WEL_API}.still_active then
-					-- Process is most likely active, we just wait until it has actually finished.
-				from
-				until
-					last_process_result /= {WEL_API}.still_active or not a_boolean
-				loop
-						-- Check every seconds.
-					sleep (1_000_000)
-					a_boolean := {WEL_API}.get_exit_code_process (process_info.process_handle, $last_process_result)
-				end
+				-- Process is most likely active, we just wait until it has actually finished.
+			from
+			until
+				not {WEL_API}.get_exit_code_process (process_handle.item, $last_process_result) or else
+				last_process_result /= {WEL_API}.still_active
+			loop
+					-- Check every second.
+				sleep (1_000_000)
 			end
-			l_handle := process_info.thread_handle
-			if l_handle /= default_pointer then
-				process_info.set_thread_handle (default_pointer)
-				if {WEL_API}.close_handle (l_handle) = 0 then
-					check close_thread_handle_success: False end
-				end
-			end
-			l_handle := process_info.process_handle
-			if l_handle /= default_pointer then
-				process_info.set_process_handle (default_pointer)
-				if {WEL_API}.close_handle (l_handle) = 0 then
-					check close_thread_handle_success: False end
-				end
-			end
+			thread_handle.close
+			process_handle.close
 			suspended := False
 		end
 
 	abort
 			-- Abort independent process, forcibly killing
 			-- it if it is still running
-		local
-			a_boolean: BOOLEAN
-			terminated: BOOLEAN
-			l_handle: POINTER
 		do
 			close
-			if process_info.process_handle /= default_pointer then
-				a_boolean := {WEL_API}.get_exit_code_process (process_info.process_handle, $last_process_result)
-				if a_boolean and then last_process_result = {WEL_API}.still_active then
-					terminated := {WEL_API}.terminate_process (process_info.process_handle, 0)
+			if process_handle.is_open then
+				if
+					{WEL_API}.get_exit_code_process (process_handle.item, $last_process_result) and then
+					last_process_result = {WEL_API}.still_active
+				then
+					{WEL_API}.terminate_process (process_handle.item, 0).do_nothing
 				end
-				l_handle := process_info.thread_handle
-				if l_handle /= default_pointer then
-					process_info.set_thread_handle (default_pointer)
-					if {WEL_API}.close_handle (l_handle) = 0 then
-						check close_thread_handle_success: False end
-					end
+				if thread_handle.is_open then
+					thread_handle.close
 				end
-				l_handle := process_info.process_handle
-				if l_handle /= default_pointer then
-					process_info.set_process_handle (default_pointer)
-					if {WEL_API}.close_handle (l_handle) = 0 then
-						check close_thread_handle_succes: False end
-					end
-				end
+				process_handle.close
 			end
 			suspended := False
 		end
@@ -234,17 +190,17 @@ feature {NONE} -- Implementation
 	output_pipe_needed: BOOLEAN
 			-- Is a pipe needed to read output from current process?
 
-	input_file_name: STRING
+	input_file_name: READABLE_STRING_32
 			-- Name if any of input file
 
-	output_file_name: STRING
+	output_file_name: READABLE_STRING_32
 			-- Name if any of output file
 
 	savefile: RAW_FILE
 			-- File to which output read from process is written,
 			-- if not void
 
-	savefile_name: STRING
+	savefile_name: READABLE_STRING_32
 			-- Name of file to which output read from process
 			-- is written, if not Void
 
@@ -390,11 +346,85 @@ feature {NONE} -- Implementation
 			file_handle_not_void: Result /= Void
 		end
 
-note
+feature {NONE} -- Command-line
+
+	append_command_line_argument (argument: READABLE_STRING_32; line: STRING_32)
+			-- Append `argument' to command line `line' using Windows command-line escaping convention
+			-- used by Windows API call "CommandLineToArgvW".
+			-- The feature does not add any space before argument, this has to be done by the caller to separate arguments.
+		note
+			EIS:
+				"name=Everyone quotes command line arguments the wrong way",
+				"protocol=URI",
+				"src=https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/"
+		local
+			backslask_count: NATURAL
+		do
+			if argument.is_empty or else across argument as c some control_characters.has (c.item) end then
+					-- The argument needs to be escaped.
+					-- Add opening double quotation mark.
+				line.append_character ('"')
+				across
+					argument as c
+				loop
+					from
+						backslask_count := 0
+					until
+						c.after or else c.item /= '\'
+					loop
+						line.append_character ('\')
+						backslask_count := backslask_count + 1
+					end
+					if c.after then
+							-- Escape all backslashes, but let the terminating double quotation mark
+							-- we add below be interpreted as a metacharacter.
+						from
+						until
+							backslask_count > 0
+						loop
+							line.append_character ('\')
+							backslask_count := backslask_count - 1
+						end
+					elseif c.item = '"' then
+							-- Escape all backslashes and the following double quotation mark.
+						from
+							backslask_count := backslask_count + 1
+						until
+							backslask_count > 0
+						loop
+							line.append_character ('\')
+							backslask_count := backslask_count - 1
+						end
+						line.append_character ('"')
+					else
+							-- Backslashes aren't special here.
+						line.append_character (c.item)
+					end
+				end
+					-- Add closing double quotation mark.
+				line.append_character ('"')
+			else
+					-- The argument can be appended "as is"
+				line.append (argument)
+			end
+		end
+
+	control_characters: STRING_32 = " %T%N%/11/%""
+			-- Characters that need escaping:
+			-- - space
+			-- - hotizontal tab
+			-- - new line
+			-- - vertical tab
+			-- - double quote
+
+;note
+	ca_ignore: "CA011", "CA011 — too many arguments"
+	date: "$Date$"
+	revision: "$Revision$"
 	copyright: "[
-			Copyright (c) 1984-2007, University of Southern California and contributors.
+			Copyright (c) 1984-2018, University of Southern California, Eiffel Software and contributors.
 			All rights reserved.
-			]"
+		]"
 	license:   "Your use of this work is governed under the terms of the GNU General Public License version 2"
 	copying: "[
 			This file is part of the EiffelWeasel Eiffel Regression Tester.
@@ -415,6 +445,5 @@ note
 			if not, write to the Free Software Foundation,
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA
 		]"
-
 
 end

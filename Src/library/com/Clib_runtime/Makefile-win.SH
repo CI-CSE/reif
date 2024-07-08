@@ -5,9 +5,9 @@ INDIR= .
 CC = $cc
 OUTPUT_CMD = $output_cmd
 CFLAGS = -I"$rt_include" -I..$(DIR)spec$(DIR)windows$(DIR)include -I. -I..$(DIR)spec$(DIR)windows$(DIR)include  -D_WIN32_DCOM
-JCFLAGS = $(CFLAGS) $ccflags $optimize
-JMTCFLAGS = $(CFLAGS) $mtccflags $optimize
-JILCFLAGS = $(CFLAGS) $mtccflags $optimize -DEIF_IL_DLL
+JCFLAGS = $(CFLAGS) $optimize $ccflags 
+JMTCFLAGS = $(CFLAGS) $optimize $mtccflags 
+JILCFLAGS = $(CFLAGS) $optimize $mtccflags  -DEIF_IL_DLL
 LN = copy
 MV = $mv
 RM = $del
@@ -34,7 +34,6 @@ mtstandard:: mtcom_runtime.lib
 clean:
 	$(RM) *.$obj
 	$(RM) *.lib
-	$(RM) *.BAK
 
 com_runtime.lib: $(OBJECTS)
 	$alib_line

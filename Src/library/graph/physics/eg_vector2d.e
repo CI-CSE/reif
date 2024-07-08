@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that is a two dimensional vector."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -13,8 +13,7 @@ inherit
 	EG_VECTOR [G]
 
 create
-	make,
-	default_create
+	make
 
 feature -- Initialization
 
@@ -29,46 +28,23 @@ feature -- Initialization
 
 feature -- Access
 
-	x: detachable G
+	x: G
 			-- X position of `Current'.
 
-	y: detachable G
+	y: G
 			-- Y position of `Current'.
 
-	attached_x: G
-			-- Attached `x'
-		require
-			set: attached x
-		local
-			l_x: like x
-		do
-			l_x := x
-			check l_x /= Void end -- Implied by precondition `set'
-			Result := l_x
-		end
-
-	attached_y: G
-			-- Attached `y'
-		require
-			set: attached y
-		local
-			l_y: like y
-		do
-			l_y := y
-			check l_y /= Void end -- Implied by precondition `set'
-			Result := l_y
-		end
 
 	one: like Current
 			-- Neutral element for "*" and "/"
 		do
-			create Result.make (attached_x.one, attached_y.one)
+			create Result.make (x.one, y.one)
 		end
 
 	zero: like Current
 			-- Neutral element for "+" and "-"
 		do
-			create Result.make (attached_x.zero, attached_y.zero)
+			create Result.make (x.zero, y.zero)
 		end
 
 feature -- Status report
@@ -96,57 +72,51 @@ feature -- Basic operations
 	plus alias "+" (other: like Current): like Current
 			-- Sum with `other' (commutative).
 		do
-			create Result.make (attached_x + other.attached_x, attached_y + other.attached_y)
+			create Result.make (x + other.x, y + other.y)
 		end
 
 	minus alias "-" (other: like Current): like Current
 			-- Result of subtracting `other'
 		do
-			create Result.make (attached_x - other.attached_x, attached_y - other.attached_y)
+			create Result.make (x - other.x, y - other.y)
 		end
 
 	product alias "*" (other: like Current): like Current
 			-- Product by `other'
-		local
-			l_result: detachable like product
 		do
-			check
-				implement: False
-			end
-			check l_result /= Void end -- Satisfy void-safe compiler
-			Result := l_result
+			check is_implemented: False then end
+		ensure then
+			is_implemented: False
 		end
 
 	quotient alias "/" (other: like Current): like Current
 			-- Division by `other'
-		local
-			l_result: detachable like quotient
 		do
-			check implement: False end
-			check l_result /= Void end -- Satisfy void-safe compiler
-			Result := l_result
+			check is_implemented: False then end
+		ensure then
+			is_implemented: False
 		end
 
 	identity alias "+": like Current
 			-- Unary plus
 		do
-			create Result.make (attached_x, attached_y)
+			create Result.make (x, y)
 		end
 
 	opposite alias "-": like Current
 			-- Unary minus
 		do
-			create Result.make (-attached_x, -attached_y)
+			create Result.make (-x, -y)
 		end
 
 	scalar_product alias "|*" (other: G): like Current
 			-- Scalar product between `Current' and other.
 		do
-			create Result.make (attached_x * other, attached_y * other)
+			create Result.make (x * other, y * other)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -156,8 +126,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class EG_VECTOR2D
-
+end

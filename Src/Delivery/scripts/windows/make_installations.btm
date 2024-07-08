@@ -1,3 +1,5 @@
+@echo off
+
 iff not defined INSTALL_DIR then 
 	echo INSTALL_DIR not defined
 	CANCEL
@@ -5,6 +7,11 @@ endiff
 iff not defined INIT_DIR then
 	set INIT_DIR=%@EXECSTR[cd]
 endiff
+iff not defined INSTALL_LOG then
+	set INSTALL_LOG=%INIT_DIR%\install.log
+endiff
+
+call %INIT_DIR%\set_simple_aliases.btm
 
 set SVN_VERSION=%@EXECSTR[bash -o igncr set_version.sh %EIFFEL_SRC]
 
@@ -88,10 +95,20 @@ ren EiffelStudio %STUDIO_NAME%
 
 copy %INSTALL_DIR\releases\gpl_version\ec.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
 copy %INSTALL_DIR\releases\gpl_version\ecb.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+iff exist %INSTALL_DIR\releases\gpl_version\LICENSE then
+	copy %INSTALL_DIR\releases\gpl_version\LICENSE %INSTALL_DIR\%STUDIO_NAME%\LICENSE
+else
+	remtrace Missing GPL license text
+endiff
 7z a -t7z %INSTALL_DIR\setups\gpl\%STUDIO_NAME%_gpl_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% -mx9 >>& %INSTALL_LOG
 
 copy %INSTALL_DIR\releases\enterprise_version\ec.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
 copy %INSTALL_DIR\releases\enterprise_version\ecb.exe %INSTALL_DIR\%STUDIO_NAME%\studio\spec\%ISE_PLATFORM%\bin
+iff exist %INSTALL_DIR\releases\enterprise_version\LICENSE then
+	copy %INSTALL_DIR\releases\enterprise_version\LICENSE %INSTALL_DIR\%STUDIO_NAME%\LICENSE
+else
+	remtrace Missing Enterprise license text
+endiff
 7z a -t7z %INSTALL_DIR\setups\enterprise\%STUDIO_NAME%_ent_%SVN_VERSION-%ISE_PLATFORM%.7z %STUDIO_NAME% -mx9 >>& %INSTALL_LOG
 
 remtrace Restoring the layout to its original state

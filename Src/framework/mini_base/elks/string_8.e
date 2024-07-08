@@ -27,11 +27,13 @@ inherit
 
 create
 	make,
+	make_empty,
 	make_from_cil
 
 convert
 	to_cil: {SYSTEM_STRING},
-	make_from_cil ({SYSTEM_STRING})
+	make_from_cil ({SYSTEM_STRING}),
+	as_string_32: {STRING_32}
 
 feature {NONE} -- Initialization
 
@@ -40,6 +42,11 @@ feature {NONE} -- Initialization
 			count := 0
 			internal_hash_code := 0
 			create area.make_filled ('%/000/', n + 1)
+		end
+
+	make_empty
+		do
+			make (0)
 		end
 
 	make_from_cil (a_system_string: detachable SYSTEM_STRING)
@@ -53,6 +60,12 @@ feature -- Access
 			-- <Precursor>
 		do
 			create Result.make
+		end
+
+	as_string_32: STRING_32
+			-- Convert `Current' as a STRING_32.
+		do
+			create Result.make (0)
 		end
 
 feature -- Comparison

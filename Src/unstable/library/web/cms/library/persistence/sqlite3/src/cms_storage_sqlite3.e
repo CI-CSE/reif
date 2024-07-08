@@ -73,14 +73,25 @@ feature -- Execution
 
 	sql_begin_transaction
 			-- Start a database transtaction.
+		local
+			retried: BOOLEAN
 		do
-			if transaction_depth = 0 then
-				sqlite.begin_transaction (False)
+			if retried then
+					-- Issue .. db locked?
+				sql_rollback_transaction
+				error_handler.add_custom_error (-1, "db error", "Unable to begin transaction..")
+			else
+				if transaction_depth = 0 then
+					sqlite.begin_transaction (False)
+				end
+				transaction_depth := transaction_depth + 1
+				debug ("roc_storage")
+					print ("# sql_begin_transaction (depth="+ transaction_depth.out +").%N")
+				end
 			end
-			transaction_depth := transaction_depth + 1
-			debug ("roc_storage")
-				print ("# sql_begin_transaction (depth="+ transaction_depth.out +").%N")
-			end
+		rescue
+			retried := True
+			retry
 		end
 
 	sql_rollback_transaction
@@ -145,7 +156,11 @@ feature -- Operation
 					last_sqlite_result_cursor := st.execute_new
 				end
 			else
-				error_handler.add_custom_error (1, "invalid query", "query compilation failed!")
+				if attached st.last_exception as e then
+					error_handler.add_custom_error (1, "invalid query", {STRING_32} "query compilation failed! [" + e.tag + "]")
+				else
+					error_handler.add_custom_error (1, "invalid query", "query compilation failed!")
+				end
 			end
 			debug ("roc_storage")
 				print ("< sql_query (" +a_sql_statement + ").%N")
@@ -224,6 +239,12 @@ feature -- Operation
 			debug ("roc_storage")
 				print ("< sql_modify (" +a_sql_statement + ").%N")
 			end
+		end
+
+	sql_delete (a_sql_statement: STRING; a_params: detachable STRING_TABLE [detachable ANY])
+			-- <Precursor>
+		do
+			sql_modify (a_sql_statement, a_params)
 		end
 
 	sqlite_arguments (a_params: STRING_TABLE [detachable ANY]): ARRAYED_LIST [SQLITE_BIND_ARG [ANY]]
@@ -436,12 +457,12 @@ feature -- Conversion
 			until
 				i = 0
 			loop
-				i := a_statement.substring_index ("AUTO_INCREMENT", i)
+				i := a_statement.substring_index ("KEY AUTO_INCREMENT", i)
 				if i > 0 then
 					if Result = a_statement then
 						create Result.make_from_string (a_statement)
 					end
-					Result.remove (i + 4)
+					Result.remove (i + 8)
 					i := i + 14
 				end
 			end

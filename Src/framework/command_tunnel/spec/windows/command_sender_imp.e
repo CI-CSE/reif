@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Command sender implementation"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -34,7 +34,7 @@ feature -- Operation
 				create l_wel_string.make (l_string_to_send)
 				l_copydata := c_new_copydatastruct (l_wel_string.item, l_wel_string.bytes_count)
 				last_copydata := l_copydata
-				if l_copydata /= Void then
+				if not l_copydata.is_default_pointer then
 					cwel_enum_windows_procedure (Current, $enum_windows_proc)
 				end
 				l_copydata.memory_free
@@ -60,7 +60,7 @@ feature -- Operation
 				l_copydata := c_new_copydatastruct (l_wel_string.item, l_wel_string.bytes_count)
 				last_copydata := l_copydata
 				last_process := a_process_id
-				if l_copydata /= Void then
+				if not l_copydata.is_default_pointer then
 					cwel_enum_windows_procedure (Current, $enum_windows_proc_process)
 				end
 				l_copydata.memory_free
@@ -76,7 +76,7 @@ feature {NONE} -- Access
 	last_command_reached: BOOLEAN
 			-- <precursor>
 
-	last_key: STRING
+	last_key: detachable STRING
 
 	last_copydata: POINTER
 
@@ -92,7 +92,6 @@ feature {NONE} -- Implementation
 			l_length: INTEGER
 			nb: INTEGER
 			l_string: STRING
-			l_result: BOOLEAN
 		do
 			Result := True
 			l_length := cwin_get_window_text_length (hwnd)
@@ -120,7 +119,6 @@ feature {NONE} -- Implementation
 			l_length: INTEGER
 			nb: INTEGER
 			l_string: STRING
-			l_result: BOOLEAN
 			l_hwnd_process_id: INTEGER
 			l_thread_id: INTEGER
 		do
@@ -198,7 +196,7 @@ feature {NONE} -- C functions
 		end
 
 note
-	copyright: "Copyright (c) 1984-2007, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -222,11 +220,11 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

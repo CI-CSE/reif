@@ -16,33 +16,32 @@ feature -- Access
 			-- indicate that the form shouldn’t be validated when submitted.
 			-- it's only applicable to input type=submit or image.
 
-	formaction: detachable READABLE_STRING_32
+	formaction: detachable READABLE_STRING_8
 			-- formaction specifies the file or application that will submit the form.
 			-- It has the same effect as the action attribute on the form element and
 			-- can only be used with a submit or image button (type="submit" or type="image").
 			-- When the form is submitted, the browser first checks for a formaction attribute;
 			-- if that isn’t present, it proceeds to look for an action attribute on the form.
 
-	formenctype: detachable READABLE_STRING_32
+	formenctype: detachable READABLE_STRING_8
 			-- formenctype details how the form data is encoded with the POST method type.
 			-- It has the same effect as the enctype attribute on the form element and
 			-- can only be used with a submit or image button (type="submit" or type="image").
 			-- The default value if not included is application/x-www-formurlencoded.
 			--! At the moment the value is not validated.
 
-	formmethod: detachable READABLE_STRING_32
+	formmethod: detachable READABLE_STRING_8
 			-- formmethod specifies which HTTP method (GET, POST, PUT, DELETE) will be used to submit the form data.
 			-- It has the same effect as the method attribute on the form element and can only be used with a
 			-- submit or image button (type="submit" or type="image").
 			--!At the moment the value is not validated.
 
-	formtarget: detachable READABLE_STRING_32
+	formtarget: detachable READABLE_STRING_8
 			-- formtarget specifies the target window for the form results.
 			--  It has the same effect as the target attribute on the form element and can only be used with a submit or image button (type="submit" or type="image").
 
 
 feature -- Element Change
-
 
 	set_formnovalidate
 			-- Set formnovalidate to True.
@@ -60,41 +59,69 @@ feature -- Element Change
 			formnovalidate_false: not formnovalidate
 		end
 
-	set_formaction (a_action: READABLE_STRING_32)
+	set_formaction (a_action: detachable READABLE_STRING_GENERAL)
 			-- Set `formaction' with `a_action'.
 			-- Example:<input type="submit" value="Submit" formaction="/users">
+		require
+			is_valid_as_string_8: a_action /= Void implies a_action.is_valid_as_string_8
 		do
-			formaction := a_action
+			if a_action = Void then
+				formaction := Void
+			else
+				formaction := a_action.to_string_8
+			end
 		ensure
-			formaction_set: attached formaction as l_action implies l_action = a_action
+			formaction_set: (a_action = Void implies formaction = Void)
+				or (a_action /= Void implies (attached formaction as l_action and then a_action.same_string (l_action)))
 		end
 
-	set_formenctype (a_enctype: READABLE_STRING_32)
+	set_formenctype (a_enctype: detachable READABLE_STRING_GENERAL)
 			-- Set `formenctype' with `a_enctype'.
 			-- Example: <input type="submit" value="Submit" formenctype="application/x-www-form-urlencoded">
+		require
+			is_valid_as_string_8: a_enctype /= Void implies a_enctype.is_valid_as_string_8
 		do
-			formenctype := a_enctype
+			if a_enctype = Void then
+				formenctype := Void
+			else
+				formenctype := a_enctype.to_string_8
+			end
 		ensure
-			formenctype_set: attached formenctype as l_enctype implies l_enctype = a_enctype
+			formenctype_set: (a_enctype = Void implies formenctype = Void)
+				or (a_enctype /= Void implies (attached formenctype as l_enctype and then a_enctype.same_string (l_enctype)))
 		end
 
-	set_formmethod (a_method: READABLE_STRING_32)
+	set_formmethod (a_method: detachable READABLE_STRING_GENERAL)
 			-- Set `formmethod' with `a_method'.
 			-- Example: <input type="submit" value="Submit" formmethod="POST">
 			--! require is_valid_method: [PUT, POST, DELETE, GET, ...]
+		require
+			is_valid_as_string_8: a_method /= Void implies a_method.is_valid_as_string_8
 		do
-			formmethod := a_method
+			if a_method = Void then
+				formmethod := Void
+			else
+				formmethod := a_method.to_string_8
+			end
 		ensure
-			formmethod_set: attached formmethod as l_method implies l_method = a_method
+			formmethod_set: (a_method = Void implies formmethod = Void)
+				or (a_method /= Void implies (attached formmethod as l_method and then a_method.same_string (l_method)))
 		end
 
-	set_formtarget (a_target: READABLE_STRING_32)
+	set_formtarget (a_target: detachable READABLE_STRING_GENERAL)
 			-- Set `formtarget' with `a_target'.
 			-- Example: <input type="submit" value="Submit" formtarget="_self">
+		require
+			is_valid_as_string_8: a_target /= Void implies a_target.is_valid_as_string_8
 		do
-			formtarget := a_target
+			if a_target = Void then
+				formtarget := Void
+			else
+				formtarget := a_target.to_string_8
+			end
 		ensure
-			formtarget_set: attached formtarget as l_target implies l_target = a_target
+			formtarget_set: (a_target = Void implies formtarget = Void)
+			 	or (a_target /= Void implies (attached formtarget as l_target and then a_target.same_string (l_target)))
 		end
 
 

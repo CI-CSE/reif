@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Class containing features for retrieving pixmaps for Clusters, Classes and Features"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -112,7 +112,9 @@ feature -- Query (Pixmap)
 			a_feature_not_void: a_feature /= Void
 		local
 			l_name: STRING_32
+			l_is_instance_free: BOOLEAN
 		do
+			l_is_instance_free := a_feature.is_class
 			l_name := a_feature.assigner_name_32
 			if l_name = Void or else l_name.is_empty then
 				if a_feature.is_attribute then
@@ -125,24 +127,56 @@ feature -- Query (Pixmap)
 					end
 				elseif a_feature.is_deferred then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_deferred_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_deferred_icon
 					end
-				elseif a_feature.is_once or else a_feature.is_constant then
+				elseif a_feature.is_once then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_once_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon
+						end
 					elseif a_feature.is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_once_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_once_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_once_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_once_icon
+					end
+				elseif a_feature.is_constant then
+					if a_feature.is_obsolete then
+						Result := pixmaps.icon_pixmaps.feature_obsolete_constant_icon
+					else
+						Result := pixmaps.icon_pixmaps.feature_constant_icon
 					end
 				elseif a_feature.is_external then
 					if a_feature.associated_class = Void or else not a_feature.associated_class.is_true_external then
 						if a_feature.is_obsolete then
-							Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_external_icon
+							else
+								Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon
+							end
 						elseif a_feature.is_frozen then
-							Result := pixmaps.icon_pixmaps.feature_frozen_external_icon
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_external_icon
+							else
+								Result := pixmaps.icon_pixmaps.feature_frozen_external_icon
+							end
+						elseif l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_instance_free_external_icon
 						else
 							Result := pixmaps.icon_pixmaps.feature_external_icon
 						end
@@ -150,9 +184,19 @@ feature -- Query (Pixmap)
 				end
 				if Result = Void then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_routine_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon
+						end
 					elseif a_feature.is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_routine_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_routine_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_routine_icon
 					end
@@ -160,7 +204,13 @@ feature -- Query (Pixmap)
 			else
 				if a_feature.is_deferred then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_deferred_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_deferred_icon
 					end
@@ -174,6 +224,9 @@ feature -- Query (Pixmap)
 					end
 				end
 			end
+--			if l_is_instance_free then
+--				Result := pixmaps.icon_pixmaps.instance_free_icon (Result)
+--			end
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -191,6 +244,7 @@ feature -- Query (Pixmap)
 			l_is_obsolete: BOOLEAN
 			l_is_frozen: BOOLEAN
 			l_assinger: BOOLEAN
+			l_is_instance_free: BOOLEAN
 		do
 			a_name := a_feature_as.feature_names.i_th (a_name_pos)
 			a_body := a_feature_as.body
@@ -198,6 +252,7 @@ feature -- Query (Pixmap)
 			a_routine ?= a_body.content
 			l_is_obsolete := (a_routine /= Void and then a_routine.obsolete_message /= Void)
 			l_is_frozen := a_name.is_frozen
+			l_is_instance_free := (a_routine /= Void and then a_routine.has_class_postcondition)
 
 			if not l_assinger then
 				if a_feature_as.is_attribute then
@@ -210,24 +265,56 @@ feature -- Query (Pixmap)
 					end
 				elseif a_feature_as.is_deferred then
 					if l_is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_deferred_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_deferred_icon
 					end
-				elseif (a_routine /= Void and then a_routine.is_once) or else a_feature_as.is_constant then
+				elseif a_routine /= Void and then a_routine.is_once then
 					if l_is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_once_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon
+						end
 					elseif l_is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_once_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_once_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_once_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_once_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_once_icon
+					end
+				elseif a_feature_as.is_constant then
+					if l_is_obsolete then
+						Result := pixmaps.icon_pixmaps.feature_obsolete_constant_icon
+					else
+						Result := pixmaps.icon_pixmaps.feature_constant_icon
 					end
 				elseif not is_class_external then
 					if a_routine /= Void and then a_routine.is_external then
 						if l_is_obsolete then
-							Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_external_icon
+							else
+								Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon
+							end
 						elseif l_is_frozen then
-							Result := pixmaps.icon_pixmaps.feature_frozen_external_icon
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_external_icon
+							else
+								Result := pixmaps.icon_pixmaps.feature_frozen_external_icon
+							end
+						elseif l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_instance_free_external_icon
 						else
 							Result := pixmaps.icon_pixmaps.feature_external_icon
 						end
@@ -235,9 +322,19 @@ feature -- Query (Pixmap)
 				end
 				if Result = Void then
 					if l_is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_routine_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon
+						end
 					elseif l_is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_routine_icon
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_routine_icon
 					else
 						Result := pixmaps.icon_pixmaps.feature_routine_icon
 					end
@@ -251,11 +348,14 @@ feature -- Query (Pixmap)
 					Result := pixmaps.icon_pixmaps.feature_assigner_icon
 				end
 			end
+--			if a_feature_as.is_constant or l_is_instance_free then
+--				Result := pixmaps.icon_pixmaps.instance_free_icon (Result)
+--			end
 		ensure
 			result_not_void: Result /= Void
 		end
 
-	pixmap_for_query_lanaguage_item (a_item: QL_ITEM): EV_PIXMAP
+	pixmap_for_query_language_item (a_item: QL_ITEM): EV_PIXMAP
 			-- Pixmap for `a_item'
 		require
 			a_item_attached: a_item /= Void
@@ -416,7 +516,9 @@ feature -- Query (Pixel buffer)
 			a_feature_not_void: a_feature /= Void
 		local
 			l_name: STRING_32
+			l_is_instance_free: BOOLEAN
 		do
+			l_is_instance_free := a_feature.is_class
 			l_name := a_feature.assigner_name_32
 			if l_name = Void or else l_name.is_empty then
 				if a_feature.is_attribute then
@@ -429,24 +531,56 @@ feature -- Query (Pixel buffer)
 					end
 				elseif a_feature.is_deferred then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_deferred_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_deferred_icon_buffer
 					end
-				elseif a_feature.is_once or else a_feature.is_constant then
+				elseif a_feature.is_once then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_once_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon_buffer
+						end
 					elseif a_feature.is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_once_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_once_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_once_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_once_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_once_icon_buffer
+					end
+				elseif a_feature.is_constant then
+					if a_feature.is_obsolete then
+						Result := pixmaps.icon_pixmaps.feature_obsolete_constant_icon_buffer
+					else
+						Result := pixmaps.icon_pixmaps.feature_constant_icon_buffer
 					end
 				elseif a_feature.is_external then
 					if a_feature.associated_class = Void or else not a_feature.associated_class.is_true_external then
 						if a_feature.is_obsolete then
-							Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon_buffer
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_external_icon_buffer
+							else
+								Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon_buffer
+							end
 						elseif a_feature.is_frozen then
-							Result := pixmaps.icon_pixmaps.feature_frozen_external_icon_buffer
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_external_icon_buffer
+							else
+								Result := pixmaps.icon_pixmaps.feature_frozen_external_icon_buffer
+							end
+						elseif l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_instance_free_external_icon_buffer
 						else
 							Result := pixmaps.icon_pixmaps.feature_external_icon_buffer
 						end
@@ -454,9 +588,19 @@ feature -- Query (Pixel buffer)
 				end
 				if Result = Void then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_routine_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon_buffer
+						end
 					elseif a_feature.is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_routine_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_routine_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_routine_icon_buffer
 					end
@@ -464,7 +608,13 @@ feature -- Query (Pixel buffer)
 			else
 				if a_feature.is_deferred then
 					if a_feature.is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_deferred_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_deferred_icon_buffer
 					end
@@ -478,6 +628,9 @@ feature -- Query (Pixel buffer)
 					end
 				end
 			end
+--			if l_is_instance_free then
+--				Result := pixmaps.icon_pixmaps.instance_free_icon_buffer (Result)
+--			end
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -495,6 +648,7 @@ feature -- Query (Pixel buffer)
 			l_is_obsolete: BOOLEAN
 			l_is_frozen: BOOLEAN
 			l_assinger: BOOLEAN
+			l_is_instance_free: BOOLEAN
 		do
 			a_name := a_feature_as.feature_names.i_th (a_name_pos)
 			a_body := a_feature_as.body
@@ -502,6 +656,7 @@ feature -- Query (Pixel buffer)
 			a_routine ?= a_body.content
 			l_is_obsolete := (a_routine /= Void and then a_routine.obsolete_message /= Void)
 			l_is_frozen := a_name.is_frozen
+			l_is_instance_free := (a_routine /= Void and then a_routine.has_class_postcondition)
 
 			if not l_assinger then
 				if a_feature_as.is_attribute then
@@ -514,24 +669,56 @@ feature -- Query (Pixel buffer)
 					end
 				elseif a_feature_as.is_deferred then
 					if l_is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_deferred_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_deferred_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_deferred_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_deferred_icon_buffer
 					end
-				elseif (a_routine /= Void and then a_routine.is_once) or else a_feature_as.is_constant then
+				elseif a_routine /= Void and then a_routine.is_once then
 					if l_is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_once_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_once_icon_buffer
+						end
 					elseif l_is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_once_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_once_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_once_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_once_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_once_icon_buffer
+					end
+				elseif a_feature_as.is_constant then
+					if l_is_obsolete then
+						Result := pixmaps.icon_pixmaps.feature_obsolete_constant_icon_buffer
+					else
+						Result := pixmaps.icon_pixmaps.feature_constant_icon_buffer
 					end
 				elseif not is_class_external then
 					if a_routine /= Void and then a_routine.is_external then
 						if l_is_obsolete then
-							Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon_buffer
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_external_icon_buffer
+							else
+								Result := pixmaps.icon_pixmaps.feature_obsolete_external_icon_buffer
+							end
 						elseif l_is_frozen then
-							Result := pixmaps.icon_pixmaps.feature_frozen_external_icon_buffer
+							if l_is_instance_free then
+								Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_external_icon_buffer
+							else
+								Result := pixmaps.icon_pixmaps.feature_frozen_external_icon_buffer
+							end
+						elseif l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_instance_free_external_icon_buffer
 						else
 							Result := pixmaps.icon_pixmaps.feature_external_icon_buffer
 						end
@@ -539,9 +726,19 @@ feature -- Query (Pixel buffer)
 				end
 				if Result = Void then
 					if l_is_obsolete then
-						Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_obsolete_instance_free_routine_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_obsolete_routine_icon_buffer
+						end
 					elseif l_is_frozen then
-						Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon_buffer
+						if l_is_instance_free then
+							Result := pixmaps.icon_pixmaps.feature_frozen_instance_free_routine_icon_buffer
+						else
+							Result := pixmaps.icon_pixmaps.feature_frozen_routine_icon_buffer
+						end
+					elseif l_is_instance_free then
+						Result := pixmaps.icon_pixmaps.feature_instance_free_routine_icon_buffer
 					else
 						Result := pixmaps.icon_pixmaps.feature_routine_icon_buffer
 					end
@@ -555,6 +752,9 @@ feature -- Query (Pixel buffer)
 					Result := pixmaps.icon_pixmaps.feature_assigner_icon_buffer
 				end
 			end
+--			if a_feature_as.is_constant or l_is_instance_free then
+--				Result := pixmaps.icon_pixmaps.instance_free_icon_buffer (Result)
+--			end
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -688,7 +888,7 @@ feature {NONE} -- Implementation
 		-- Class icon state flags		
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

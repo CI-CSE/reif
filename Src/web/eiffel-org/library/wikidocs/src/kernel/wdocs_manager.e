@@ -9,7 +9,10 @@ class
 inherit
 	WIKI_LINK_RESOLVER
 		rename
-			wiki_url as link_to_wiki_url
+			wiki_url as link_to_wiki_url,
+			missing_wiki_url as link_to_missing_wiki_url
+		redefine
+			link_to_missing_wiki_url
 		end
 
 	WIKI_IMAGE_RESOLVER
@@ -22,6 +25,10 @@ inherit
 		rename
 			content as template_content
 		end
+
+	WIKI_PAGE_TITLE_NORMALIZER
+
+	WDOCS_HELPER
 
 	WIKI_FILE_RESOLVER
 
@@ -92,6 +99,11 @@ feature -- Persistency
 
 feature -- Data access
 
+	file_path (a_filename: READABLE_STRING_GENERAL; a_book_name: detachable READABLE_STRING_GENERAL): detachable PATH
+		do
+			Result := storage.file_path (a_filename, a_book_name)
+		end
+
 	image_path (a_title: READABLE_STRING_GENERAL; a_book_name: detachable READABLE_STRING_GENERAL): detachable PATH
 		do
 			Result := storage.image_path (a_title, a_book_name)
@@ -132,6 +144,18 @@ feature -- Access
 			Result := storage.books_with_root_page
 		end
 
+	has_book_named (a_bookid: READABLE_STRING_GENERAL): BOOLEAN
+			-- Has book named `a_bookid' ?
+		do
+			across
+				book_names as ic
+			until
+				Result
+			loop
+				Result := a_bookid.same_string (ic.item)
+			end
+		end
+
 	book (a_bookid: READABLE_STRING_GENERAL): detachable WIKI_BOOK
 			-- Book named `a_bookid' if any.
 		do
@@ -169,13 +193,10 @@ feature -- Access
 
 			p := wiki_database_path.extended (a_bookid).extended ("book.index")
 			if ut.file_path_exists (p) then
-				create wi.make (a_bookid.as_string_8, wiki_database_path.extended (a_bookid).extended ("book.index"))
+				create wi.make (a_bookid.as_string_8, p)
 				pg := wi.page_by_id (n)
-			elseif attached book (a_bookid) as wb then
-				pg := wb.page (n)
-				if pg = Void then
-					pg := wb.page_by_key (n)
-				end
+			else
+				pg := storage.page (n, a_bookid)
 			end
 			if attached {WIKI_BOOK_PAGE} pg as l_book_page then
 				p := wiki_database_path.extended (l_book_page.src)
@@ -209,7 +230,7 @@ feature -- Access
 			Result := storage.page_by_title (a_page_title, a_bookid)
 			if Result = Void and a_bookid /= Void then
 					-- Find in other books.
-				Result := page_by_title (a_page_title, Void)
+				Result := storage.page_by_title (a_page_title, Void)
 			end
 		end
 
@@ -223,7 +244,8 @@ feature -- Access
 		do
 			Result := storage.page_by_metadata (a_metadataname, a_metadata_value, a_bookid, is_caseless)
 			if Result = Void and a_bookid /= Void then
-				Result := page_by_metadata (a_metadataname, a_metadata_value, Void, True)
+					-- Check in all books.
+				Result := page_by_metadata (a_metadataname, a_metadata_value, Void, is_caseless)
 			end
 		end
 
@@ -245,6 +267,18 @@ feature -- Access
 	wiki_text (p: WIKI_PAGE): detachable READABLE_STRING_8
 		do
 			Result := storage.wiki_text (p)
+		end
+
+feature -- Normalized title
+
+	normalized_title (a_title: READABLE_STRING_GENERAL): STRING_32
+		do
+			Result := normalized_fs_text (a_title)
+		end
+
+	url_friendly_wiki_name (wn: READABLE_STRING_GENERAL): STRING_32
+		do
+			Result := normalized_title (wn)
 		end
 
 feature -- Access: link
@@ -307,6 +341,12 @@ feature -- Access: link
 			end
 		end
 
+	link_to_missing_wiki_url (a_link: WIKI_LINK; a_page: detachable WIKI_PAGE): detachable STRING
+			-- URL accessing the missing wiki link `a_link' in the context of `a_page'.
+		do
+			Result := url_friendly_wiki_name (a_link.name)
+		end
+
 	wiki_page_uri_path (pg: WIKI_PAGE; a_book_name: detachable READABLE_STRING_GENERAL; a_version_id: detachable READABLE_STRING_GENERAL): STRING
 		local
 			utf: UTF_CONVERTER
@@ -328,8 +368,8 @@ feature -- Access: link
 					l_book_name := book_name (pg)
 				end
 				if l_book_name /= Void then
-					Result.append ("/" + wiki_name_to_url_encoded_string (l_book_name))
-					Result.append ("/" + wiki_name_to_url_encoded_string (pg.title))
+					Result.append ("/" + wiki_name_to_url_encoded_string (url_friendly_wiki_name (l_book_name)))
+					Result.append ("/" + wiki_name_to_url_encoded_string (url_friendly_wiki_name (pg.title)))
 				elseif attached {WIKI_BOOK_PAGE} pg as l_book_pg then
 					Result.append ("/" + l_book_pg.src)
 				else
@@ -402,27 +442,36 @@ feature -- Access: File
 	file_to_url (a_file: WIKI_FILE_LINK; a_page: detachable WIKI_PAGE): detachable STRING
 			-- URL accessing the file `a_file'.
 		do
-			create Result.make_from_string ("/doc-file")
-			if not is_default_version then
-				Result.prepend ("/version/" + percent_encoder.percent_encoded_string (version_id))
+			if not a_file.name.has ('/') then
+				create Result.make_from_string ("/doc-file")
+				if not is_default_version then
+					Result.append ("/version/" + percent_encoder.percent_encoded_string (version_id))
+				end
+				Result.append_character ('/')
+				if a_page /= Void and then attached book_name (a_page) as l_book_name then
+					Result.append (percent_encoder.percent_encoded_string (l_book_name))
+				elseif
+					attached file_path (a_file.name, Void) as p and then
+					attached p.parent.parent.entry as l_book_entry
+				then
+					Result.append (percent_encoder.percent_encoded_string (l_book_entry.name))
+				end
+				Result.append ("/" + a_file.name)
 			end
-			if a_page /= Void and then attached book_name (a_page) as l_book_name then
-				Result.append ("/" + l_book_name)
-			end
-			Result.append ("/" + a_file.name)
 		end
 
 feature -- Access: Image		
 
 	image_to_wiki_url (a_link: WIKI_IMAGE_LINK; a_page: detachable WIKI_PAGE): detachable STRING
 		do
-			create Result.make_from_string ("/doc-image")
-			if not is_default_version then
-				Result.prepend ("/version/" + percent_encoder.percent_encoded_string (version_id))
+			if not a_link.name.has ('/') then
+				create Result.make_from_string ("/doc-image")
+				if not is_default_version then
+					Result.append ("/version/" + percent_encoder.percent_encoded_string (version_id))
+				end
+
+				Result.append ("/" + a_link.name)
 			end
-
-			Result.append ("/" + a_link.name)
-
 		end
 
 	image_to_url (a_link: WIKI_IMAGE_LINK; a_page: detachable WIKI_PAGE): detachable STRING
@@ -435,110 +484,112 @@ feature -- Access: Image
 			l_image_path: detachable PATH
 			bak: INTEGER
 		do
-			if a_page /= Void then
-				l_book_name := book_name (a_page)
-			end
-				-- `l_book_name' could be Void
-			l_image_path := image_path (a_link.name, l_book_name)
-			if l_image_path /= Void then
-				s0 := l_image_path.parent.parent.name
-				if l_book_name = Void then
-					if attached l_image_path.parent.parent.entry as l_book_entry then
-						l_book_name := l_book_entry.name
-					else
-						check has_book_name: False end
-						l_book_name := {WDOCS_PAGES_DATA}.common_book_name
-					end
-				end
-			else
-				db := wiki_database_path
+			if not a_link.name.has ('/') then
 				if a_page /= Void then
-					p := a_page.path
+					l_book_name := book_name (a_page)
 				end
-				if p = Void then
-					p := db
+					-- `l_book_name' could be Void
+				l_image_path := image_path (a_link.name, l_book_name)
+				if l_image_path /= Void then
+					s0 := l_image_path.parent.parent.name
+					if l_book_name = Void then
+						if attached l_image_path.parent.parent.entry as l_book_entry then
+							l_book_name := l_book_entry.name
+						else
+							check has_book_name: False end
+							l_book_name := {WDOCS_PAGES_DATA}.common_book_name
+						end
+					end
 				else
-					p := p.parent
-				end
-				from
-					pp := p
-					img := pp.extended ("_images")
-					create d.make_with_path (img)
-				until
-					d.exists or pp.same_as (db) or pp.is_current_symbol
-				loop
-					bak := bak + 1
-					pp := pp.parent
-					img := pp.extended ("_images")
-					create d.make_with_path (img)
-				end
-				s0 := pp.name
-				if d.exists then
-					if attached d.path.parent.entry as l_book_entry then
-						l_book_name := l_book_entry.name
-					else
-						check has_book_name: False end
-						l_book_name := {WDOCS_PAGES_DATA}.common_book_name
-					end
-					l_image_path := image_path (a_link.name, l_book_name)
-					if l_image_path = Void then
-						p := d.path.extended (a_link.name).appended_with_extension ("png")
-						create f.make_with_path (p)
-						if f.exists then
-							storage.save_image_path (p, a_link.name, l_book_name)
-							l_image_path := p
-						end
-					end
-				end
-			end
-
-			if l_image_path /= Void and l_book_name /= Void then
-				create f.make_with_path (l_image_path)
-				if f.exists then
-					s2 := l_image_path.name
-					if s2.starts_with (s0) then
-						s2 := s2.substring (s0.count + 1 + 1, s2.count)
-						create p.make_from_string (s2)
-					else
-						p := f.path
-						bak := 0
-					end
-					create Result.make_from_string ("/doc-image")
-					if not is_default_version then
-						Result.prepend ("/version/" + percent_encoder.percent_encoded_string (version_id))
-					end
+					db := wiki_database_path
 					if a_page /= Void then
-						Result.append ("/" + percent_encoder.percent_encoded_string (l_book_name))
-						across
-							p.components as ic
-						loop
-							if not Result.is_empty then
-								Result.append_character ('/')
-							end
-							Result.append (percent_encoder.percent_encoded_string (ic.item.name))
-						end
+						p := a_page.path
+					end
+					if p = Void then
+						p := db
 					else
-						Result.append ("/" + a_link.name)
---	This commented code was used to try to compute relative path, give another try later.
---						create Result.make (p.name.count)
---						from
---						until
---							bak <= 1
---						loop
---							if not Result.is_empty then
---								Result.append_character ('/')
---							end
---							Result.append ("..")
---							bak := bak - 1
---						end
---						across
---							p.components as ic
---						loop
---							if not Result.is_empty then
---								Result.append_character ('/')
---							end
---							Result.append (percent_encoder.percent_encoded_string (ic.item.name))
---						end							
+						p := p.parent
+					end
+					from
+						pp := p
+						img := pp.extended ("_images")
+						create d.make_with_path (img)
+					until
+						d.exists or pp.same_as (db) or pp.is_current_symbol
+					loop
+						bak := bak + 1
+						pp := pp.parent
+						img := pp.extended ("_images")
+						create d.make_with_path (img)
+					end
+					s0 := pp.name
+					if d.exists then
+						if attached d.path.parent.entry as l_book_entry then
+							l_book_name := l_book_entry.name
+						else
+							check has_book_name: False end
+							l_book_name := {WDOCS_PAGES_DATA}.common_book_name
+						end
+						l_image_path := image_path (a_link.name, l_book_name)
+						if l_image_path = Void then
+							p := d.path.extended (a_link.name).appended_with_extension ("png")
+							create f.make_with_path (p)
+							if f.exists then
+								storage.save_image_path (p, a_link.name, l_book_name)
+								l_image_path := p
+							end
+						end
+					end
+				end
+
+				if l_image_path /= Void and l_book_name /= Void then
+					create f.make_with_path (l_image_path)
+					if f.exists then
+						s2 := l_image_path.name
+						if s2.starts_with (s0) then
+							s2 := s2.substring (s0.count + 1 + 1, s2.count)
+							create p.make_from_string (s2)
+						else
+							p := f.path
+							bak := 0
+						end
+						create Result.make_from_string ("/doc-image")
+						if not is_default_version then
+							Result.append ("/version/" + percent_encoder.percent_encoded_string (version_id))
+						end
+						if a_page /= Void then
+							Result.append ("/" + percent_encoder.percent_encoded_string (l_book_name))
+							across
+								p.components as ic
+							loop
+								if not Result.is_empty then
+									Result.append_character ('/')
+								end
+								Result.append (percent_encoder.percent_encoded_string (ic.item.name))
+							end
+						else
+							Result.append ("/" + a_link.name)
+	--	This commented code was used to try to compute relative path, give another try later.
+	--						create Result.make (p.name.count)
+	--						from
+	--						until
+	--							bak <= 1
+	--						loop
+	--							if not Result.is_empty then
+	--								Result.append_character ('/')
+	--							end
+	--							Result.append ("..")
+	--							bak := bak - 1
+	--						end
+	--						across
+	--							p.components as ic
+	--						loop
+	--							if not Result.is_empty then
+	--								Result.append_character ('/')
+	--							end
+	--							Result.append (percent_encoder.percent_encoded_string (ic.item.name))
+	--						end							
+						end
 					end
 				end
 			end

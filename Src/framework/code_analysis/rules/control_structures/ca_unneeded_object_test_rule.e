@@ -7,6 +7,7 @@
 			that the variable is tested for.
 		]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -26,7 +27,7 @@ feature {NONE} -- Initialization
 		do
 			make_with_defaults
 			default_severity_score := 40
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -62,7 +63,7 @@ feature -- Properties
 			l_info := a_violation.long_description_info
 
 			a_formatter.add (ca_messages.unneeded_object_test_violation_1)
-			if attached {STRING_32} l_info.first as l_var then
+			if attached {READABLE_STRING_GENERAL} l_info.first as l_var then
 				a_formatter.add_local (l_var)
 			end
 			a_formatter.add (ca_messages.unneeded_object_test_violation_2)

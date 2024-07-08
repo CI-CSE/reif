@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #7: Object test always failing
 	
@@ -89,6 +89,11 @@ feature {NONE} -- Implementation
 		do
 			a_formatter.add (ca_messages.object_test_failing_violation_1)
 		end
+
+feature -- Properties
+
+	name: STRING = "nonconforming_object_test"
+			-- <Precursor>
 
 	title: STRING_32
 		do

@@ -1,6 +1,7 @@
-note
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
+
 class UN_OLD_B
 
 inherit
@@ -10,7 +11,7 @@ inherit
 			type, enlarged,
 			is_unsafe, optimized_byte_node,
 			pre_inlined_code, inlined_byte_code
-		end;
+		end
 
 feature -- Visitor
 
@@ -22,7 +23,7 @@ feature -- Visitor
 
 feature
 
-	position: INTEGER;
+	position: INTEGER
 			-- Position of old in local declaration.
 			--| The old expression will be held in the local
 			--| registers of the interpreter, that is, the old
@@ -35,7 +36,7 @@ feature
 			-- Assign `i' to position
 		do
 			position := i
-		end;
+		end
 
 	exception_position: INTEGER
 			-- Position of saved exception object in local declaration.
@@ -49,7 +50,7 @@ feature
 	type: TYPE_A
 			-- Type of the expression
 		do
-			Result := expr.type;
+			Result := expr.type
 		end
 
 	exception_type: TYPE_A
@@ -65,14 +66,21 @@ feature
 	enlarged: UN_OLD_BL
 		require else
 			valid_old_exprs: Context.byte_code.old_expressions /= Void
-		local
-			old_expr: LINKED_LIST [UN_OLD_B]
 		do
-			create Result;
-			Result.set_expr (expr.enlarged);
-			old_expr := Context.byte_code.old_expressions;
-			old_expr.extend (Result);
-		end;
+			create Result
+			Result.set_expr (expr.enlarged)
+			Context.byte_code.old_expressions.extend (Result)
+		end
+
+feature -- Optimization for old expressions
+
+	is_exception_block_needed: BOOLEAN
+			-- Is exception block needed?
+			-- An old expression can raise an exception, then an exception block is used to catch and to record it for future use.
+			-- However if exceptions cannot be raised by the particular expression, there is no need to do that.
+		do
+			Result := expr.is_exception_possible or else expr.allocates_memory_for_type (context.real_type (type))
+		end
 
 feature -- Array optimization
 
@@ -92,7 +100,7 @@ feature -- Inlining
 	pre_inlined_code: like Current
 		do
 			Result := Current
-			expr ?= expr.pre_inlined_code
+			expr := expr.pre_inlined_code
 		end
 
 	inlined_byte_code: like Current
@@ -102,7 +110,9 @@ feature -- Inlining
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -115,22 +125,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

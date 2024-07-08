@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Lets the user inspect the vision2 widget layout of the current application"
 	author: "Daniel Furrer"
 	date: "$Date$"
@@ -52,7 +52,7 @@ feature -- Console View
 				p := $a_widget
 				create ident_str.make_filled (' ', ident*2)
 				str :=
-					"Type: " + w.generating_type + "%N" + ident_str +
+					"Type: " + w.generating_type.name_32 + "%N" + ident_str +
 					"Address: " + p.out + "%N" + ident_str +
 					"Relative Position: " + a_widget.x_position.out + "x" + a_widget.y_position.out + "%N" + ident_str +
 					"Screen Position: " + a_widget.screen_x.out + "x" + a_widget.screen_y.out + "%N" + ident_str +
@@ -195,7 +195,7 @@ feature {NONE} -- Graphical view
 			node: EV_TREE_ITEM
 		do
 			if attached a_element then
-				create node.make_with_text (a_element.generating_type)
+				create node.make_with_text (a_element.generating_type.name_32)
 				node.set_data (a_element)
 				a_parent.extend (node)
 				node.select_actions.extend (agent show_info (a_element))
@@ -291,13 +291,9 @@ feature {NONE} -- Graphical view
 			if a_widget = Void then
 				-- Do nothing. no children to add to a_node
 			elseif attached {EV_WINDOW} a_widget as l_window then
-				node := add_element (l_window.upper_bar, a_node)
-				add_recursive (node, l_window.upper_bar, a_depth+1)
 				node := add_element (l_window.item, a_node)
 				add_recursive (node, l_window.item, a_depth+1)
 --			elseif attached {EV_ITEM_LIST} a_widget as l_list then
---				node := add_element (l_window.upper_bar, a_node)
---				add_recursive (node, l_window.upper_bar)
 --				node := add_element (l_window.item, a_node)
 --				add_recursive (node, l_window.item)
 			elseif attached {EV_GRID} a_widget as l_grid then
@@ -358,7 +354,7 @@ feature {NONE} -- Graphical view
 			-- Show the information for a_widget on the right side
 		local
 			ptr, parent_ptr: POINTER
-			str: STRING
+			str: STRING_32
 		do
 			selected_widget := a_widget
 			ptr := $a_widget
@@ -366,7 +362,7 @@ feature {NONE} -- Graphical view
 				parent_ptr := $c
 			end
 			str :=
-				a_widget.generating_type + "%N" +
+				a_widget.generating_type.name_32 + "%N" +
 				"Address: " + ptr.out + "%N" +
 				"Parent: " + parent_ptr.out + "%N" +
 				"%N" +
@@ -505,8 +501,9 @@ feature {NONE} -- Implementation
 	debug_button: EV_BUTTON
 
 	info_label: EV_LABEL
+
 ;note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

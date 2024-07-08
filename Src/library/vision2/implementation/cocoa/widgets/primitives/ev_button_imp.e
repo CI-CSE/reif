@@ -52,11 +52,6 @@ inherit
 			make
 		end
 
-	EV_BUTTON_ACTION_SEQUENCES_IMP
-		redefine
-			interface
-		end
-
 	NS_BUTTON
 		rename
 			font as cocoa_font,
@@ -93,7 +88,6 @@ feature {NONE} -- Initialization
 
 			enable_tabable_to
 			enable_tabable_from
-			initialize_events
 			pixmapable_imp_initialize
 
 			set_title_ (create {NS_STRING}.make_with_eiffel_string(""))
@@ -280,4 +274,14 @@ feature {EV_ANY, EV_ANY_I} -- implementation
 			-- Provides a common user interface to platform dependent
 			-- functionality implemented by `Current'
 
+note
+	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
 end -- class EV_BUTTON_IMP

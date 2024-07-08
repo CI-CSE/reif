@@ -37,6 +37,7 @@ feature {NONE} -- Initialization
 			test_grow
 			test_has
 			test_has_substring
+			test_hash_code
 			test_index_of
 			test_insert_character
 			test_insert_string
@@ -414,12 +415,12 @@ feature {NONE} -- Implementation
 			s: STRING_8
 		do
 			s := "abcdef"
-			create l_ptr.make_from_array (<< 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			s.from_c (l_ptr.item)
 			check_boolean ("from_c", s.is_equal ("0123456"))
 			
 			s := "abcdef"
-			create l_ptr.make_from_array (<< 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			s.from_c (l_ptr.item)
 			check_boolean ("from_c", s.is_empty)
 		end
@@ -429,7 +430,7 @@ feature {NONE} -- Implementation
 			l_ptr: MANAGED_POINTER
 			s: STRING_8
 		do
-			create l_ptr.make_from_array (<<65,66,67,68>>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} <<65,66,67,68>>)
 			create s.make (2)
 
 			s.from_c_substring (l_ptr.item, 3, 3)
@@ -523,6 +524,22 @@ feature {NONE} -- Implementation
 			check_boolean ("has_substring", ("").has_substring (""))
 			check_boolean ("has_substring", ("foobar").has_substring ("oo"))
 			check_boolean ("has_substring", not ("foobar").has_substring ("abo"))
+		end
+
+	test_hash_code is
+			-- We do not enforce consistent hashcode values, so we only check
+			-- that it is updated properly. See bug#19258.
+		local
+			s: STRING_8
+			h1, h2: INTEGER
+		do
+			s := "1234c"
+			h1 := s.hash_code
+			h2 := s.case_insensitive_hash_code
+
+			s.append_string ("1234")
+			check_boolean ("hash_code", s.hash_code /= h1)
+			check_boolean ("case_insensitive_hash_code", s.case_insensitive_hash_code /= h2)
 		end
 		
 	test_index_of is
@@ -1197,21 +1214,21 @@ feature {NONE} -- Implementation
 			l_ptr: MANAGED_POINTER
 			s: STRING_8
 		do
-			create l_ptr.make_from_array (<< 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			create s.make_from_c (l_ptr.item)
 			check_boolean ("make_from_c", s.is_equal ("0123456"))
 
-			create l_ptr.make_from_array (<< 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			create s.make_from_c (l_ptr.item)
 			check_boolean ("make_from_c", s.is_empty)
 			
 			s := "abcdef"
-			create l_ptr.make_from_array (<< 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			s.make_from_c (l_ptr.item)
 			check_boolean ("make_from_c", s.is_equal ("0123456"))
 			
 			s := "abcdef"
-			create l_ptr.make_from_array (<< 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			s.make_from_c (l_ptr.item)
 			check_boolean ("make_from_c", s.is_empty)
 		end

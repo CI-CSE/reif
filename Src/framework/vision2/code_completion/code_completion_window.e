@@ -43,9 +43,13 @@ feature {NONE} -- Initialization
 		do
 			create sorted_names.make_empty
 			create option_bar_box
+			create option_bar_box_tpl
 			create choice_list
 			create full_list.make_empty
 			create matches.make_empty
+			create option_template_feature
+			create code_template_label
+
 			choice_list.set_default_key_processing_handler (agent (a_key: EV_KEY): BOOLEAN
 				do
 					Result := not a_key.is_arrow and not (a_key.code = {EV_KEY_CONSTANTS}.key_tab)
@@ -65,13 +69,20 @@ feature {NONE} -- Initialization
 			docking_make
 
 			create vbox
+			vbox.extend (option_template_feature)
+			vbox.disable_item_expand (option_template_feature)
 			vbox.extend (choice_list)
 			vbox.extend (option_bar_box)
 			vbox.disable_item_expand (option_bar_box)
+			vbox.extend (option_bar_box_tpl)
+			vbox.disable_item_expand (option_bar_box_tpl)
 			extend (vbox)
 			choice_list.focus_out_actions.extend (agent on_lose_focus)
 			focus_out_actions.extend (agent on_lose_focus)
-			resize_actions.force_extend (agent resize_column_to_window_width)
+			resize_actions.extend (agent (i_x, i_y, i_width, i_height: INTEGER)
+					do
+						resize_column_to_window_width
+					end)
 		end
 
 feature -- Initialization
@@ -84,7 +95,7 @@ feature -- Initialization
 		do
 			code_completable := an_editor
 			remainder := a_remainder
-			sorted_names := a_completion_possibilities
+			initialize_completion_possibilities (a_completion_possibilities)
 			user_completion := a_complete_word
 			if a_name /= Void then
 				before_complete := a_name
@@ -112,6 +123,12 @@ feature -- Initialization
 			end
 		end
 
+	initialize_completion_possibilities (a_completion_possibilities: like sorted_names)
+			-- Initialize `sorted_names'  to completion possiblities
+		do
+			sorted_names := a_completion_possibilities
+		end
+
 feature -- Access
 
 	code_completable: detachable CODE_COMPLETABLE note option: stable attribute end
@@ -123,14 +140,29 @@ feature -- Access
 	option_bar_box: EV_VERTICAL_BOX
 			-- Option bar box
 
+	option_bar_box_tpl: EV_VERTICAL_BOX
+			-- Option bar box for templates
+
+	option_template_feature: EV_VERTICAL_BOX
+			-- Widget to show template/feature CTRL +SPACE
+
 	sorted_names: SORTABLE_ARRAY [like name_type]
-			-- list of possible names sorted alphabetically
+			-- list of possible names sorted alphabetically.
 
 	before_complete: detachable STRING_32 note option: stable attribute end
 			-- Insertion string
 
 	remainder: INTEGER
-			-- Number chars to remove on completion
+			-- Number chars to remove on completion	
+
+	code_template_label: EVS_LINK_LABEL
+			-- Label code  template.
+
+feature -- Settings
+
+	show_bypassed_for_single_choice: BOOLEAN assign set_show_bypassed_for_single_choice
+			-- For single choice case, bypass the window? (i.e not shown).
+			-- note: by default, the Window is shown even for single choice.
 
 feature -- Status report
 
@@ -171,6 +203,11 @@ feature -- Status Setting
 			choice_list.set_focus
 			select_closest_match
 			ev_application.do_once_on_idle (agent resize_column_to_window_width)
+		end
+
+	set_show_bypassed_for_single_choice (b: BOOLEAN)
+		do
+			show_bypassed_for_single_choice := b
 		end
 
 feature -- Query
@@ -808,10 +845,13 @@ feature {NONE} -- Implementation
 			l_names: like sorted_names
 			l_list: like full_list
 		do
+				-- Ensure we show the option_bar_box in full_list
+			option_bar_box_tpl.hide
+			option_bar_box.show
 			l_list := full_list
 			l_names := sorted_names
 			if not has_child_node then
-				full_list := l_names
+				l_list := l_names
 			else
 				create l_list.make (1, calculate_full_count)
 				start_pos := 1
@@ -826,14 +866,18 @@ feature {NONE} -- Implementation
 					i := i + 1
 				end
 				l_list.sort
-				full_list := l_list
 			end
+			if l_list = Void then
+				create l_list.make_empty
+			end
+			full_list := l_list
 		ensure
 			full_list_not_void: full_list /= Void
 		end
 
 	full_list: like sorted_names
 			-- Sorted full list of name.
+
 
 	has_child_node: BOOLEAN
 			-- Any child node?
@@ -842,15 +886,19 @@ feature {NONE} -- Implementation
 			l_upper: INTEGER
 			l_name: like name_type
 		do
-			from
-				i := sorted_names.lower
-				l_upper := sorted_names.upper
-			until
-				i > l_upper or Result
-			loop
-				l_name := sorted_names.item (i)
-				Result := l_name.has_child
-				i := i + 1
+			if attached sorted_names as l_sorted_names then
+				from
+					i := l_sorted_names.lower
+					l_upper := l_sorted_names.upper
+				until
+					i > l_upper or Result
+				loop
+					l_name := l_sorted_names.item (i)
+					Result := l_name.has_child
+					i := i + 1
+				end
+			else
+				check has_sorted_names: False end
 			end
 		end
 
@@ -1120,7 +1168,7 @@ feature {NONE} -- Implementation
 								if l_list.row (1).is_expandable and then l_list.row (1).subrow_count > 1 then
 									show_needed := True
 								else
-									show_needed := False
+									show_needed := not show_bypassed_for_single_choice
 								end
 							elseif l_list.row_count = 2 then
 								if l_list.row (1).is_expandable and then l_list.row (2).is_selected then
@@ -1153,7 +1201,7 @@ feature {NONE} -- Implementation
 						-- then there is no need to show list.
 					show_needed := not user_completion
 				else
-						-- Mulitple items are avialable so show completion list
+						-- Multiple items are available so show completion list
 					show_needed := True
 				end
 			end
@@ -1209,12 +1257,14 @@ feature {NONE} -- String matching
 		end
 
 	pos_of_first_greater (table: like full_list; a_name: like name_type): INTEGER
+		require
+			not_empty: not table.is_empty
 		local
 			low, up, mid: INTEGER
 		do
-			if table.item (table.lower) >= a_name then
+			if table.item (table.lower).sort_name >= a_name.sort_name then
 				Result := table.lower
-			elseif table.item (table.upper) <= a_name then
+			elseif table.item (table.upper).sort_name <= a_name.sort_name then
 				Result := table.upper
 			else
 				from
@@ -1225,7 +1275,7 @@ feature {NONE} -- String matching
 					up - low <= 1
 				loop
 					mid := (up + low) // 2
-					if table.item (mid) >= a_name then
+					if table.item (mid).sort_name >= a_name.sort_name then
 						up := mid
 					else
 						low := mid
@@ -1234,12 +1284,12 @@ feature {NONE} -- String matching
 				Result := up
 			end
 		ensure
-			table.item (table.lower) >= a_name
+			table.item (table.lower).sort_name >= a_name.sort_name
 				or else
-			table.item (table.upper) <= a_name
+			table.item (table.upper).sort_name <= a_name.sort_name
 				or else
-			(table.item (Result - 1) < a_name and
-				table.item (Result) >= a_name)
+			(table.item (Result - 1).sort_name < a_name.sort_name and
+				table.item (Result).sort_name >= a_name.sort_name)
 		end
 
 	current_index: INTEGER
@@ -1349,7 +1399,10 @@ feature {NONE} -- String matching
 			l_index_offset: INTEGER
 		do
 			l_full_list := full_list
-			if a_name /= Void and then not a_name.is_empty then
+			if
+				not l_full_list.is_empty and then
+				a_name /= Void and then not a_name.is_empty
+			then
 				create for_search.make (a_name)
 				if for_search.is_binary_searchable then
 					create Result.make (2, 1)
@@ -1451,7 +1504,7 @@ invariant
 	choice_list_attached: choice_list /= Void
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

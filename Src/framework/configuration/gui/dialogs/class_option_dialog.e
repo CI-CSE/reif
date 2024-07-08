@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Dialog for class options."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -32,15 +32,18 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_factory: like conf_factory)
+	make (a_factory: like conf_factory; o: like group_options)
 			-- Create.
 		require
 			a_factory_not_void: a_factory /= Void
 		do
 			conf_factory := a_factory
+			group_options := o
+			create debug_clauses.make (0)
 			default_create
 		ensure
 			factory_set: conf_factory = a_factory
+			group_options_set: group_options = o
 		end
 
 	initialize
@@ -50,7 +53,9 @@ feature {NONE} -- Initialization
 			vb, vb2: EV_VERTICAL_BOX
 			l_btn: EV_BUTTON
 			l_label: ES_LABEL
+			l_description: ES_SCROLLABLE_LABEL
 			l_frame: EV_FRAME
+			p: like properties
 		do
 			Precursor {PROPERTY_DIALOG}
 
@@ -68,7 +73,6 @@ feature {NONE} -- Initialization
 			vb.extend (class_list)
 
 			create l_label
-			l_label.set_and_wrap_text (conf_interface_names.dialog_class_option_class_name)
 			l_label.align_text_left
 			vb.extend (l_label)
 			vb.disable_item_expand (l_label)
@@ -100,37 +104,22 @@ feature {NONE} -- Initialization
 			vb2.set_padding (layout_constants.default_padding_size)
 			vb2.set_border_width (layout_constants.default_border_size)
 
-			create properties
-			vb2.extend (properties)
+			create p
+			properties := p
+			vb2.extend (p)
 
-			create l_label
-			properties.set_description_field (l_label)
-			l_label.align_text_left
-			create vb
-			vb.set_minimum_height (50)
-			vb.extend (l_label)
-			vb.disable_item_expand (l_label)
-			vb.extend (create {EV_CELL})
+			create l_description
+			properties.set_description_field (l_description)
+			l_description.set_minimum_height (50)
 			create l_frame
 			l_frame.set_style ({EV_FRAME_CONSTANTS}.ev_frame_lowered)
-			l_frame.extend (vb)
+			l_frame.set_border_width (4)
+			l_frame.extend (l_description)
 			vb2.extend (l_frame)
 			vb2.disable_item_expand (l_frame)
 
 			set_size (700, 700)
 			show_actions.extend (agent on_show)
-		end
-
-feature -- Update
-
-	set_group_options (an_option: like group_options)
-			-- Set `group_options' to `an_option'.
-		require
-			an_option_not_void: an_option /= Void
-		do
-			group_options := an_option
-		ensure
-			group_options_set: group_options = an_option
 		end
 
 feature {NONE} -- Gui elements
@@ -170,8 +159,8 @@ feature {NONE} -- Agents
 	remove_class
 			-- Remove a class.
 		do
-			if current_class /= Void then
-				value.remove (current_class)
+			if attached current_class as c then
+				value.remove (c)
 				current_class := Void
 				refresh
 			end
@@ -219,7 +208,7 @@ feature {NONE} -- Implementation
 	group_options: CONF_OPTION
 			-- Options of the group this classes belong to.
 
-	current_class: READABLE_STRING_GENERAL
+	current_class: detachable READABLE_STRING_GENERAL
 			-- Currently selected class.
 
 	refresh
@@ -277,7 +266,7 @@ invariant
 	elements: is_initialized implies class_list /= Void and new_class /= Void
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

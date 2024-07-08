@@ -1,12 +1,10 @@
-note
+﻿note
 	description:"[
 				Abstract class that is used for the internal representation
-				of a class. Descendants of `ABSTRACT_CLASS' represent
-				non compiled classes.
+				of a class.
 			]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -114,7 +112,9 @@ feature -- Access
 	assertion_level: ASSERTION_I
 			-- Assertion checking level
 		do
-			Result ?= options.assertions
+			check attached {ASSERTION_I} options.assertions as l_assertion_i then
+				Result := l_assertion_i
+			end
 		ensure
 			Result_not_void: Result /= Void
 		end
@@ -183,7 +183,7 @@ feature -- Access
 	visible_level: VISIBLE_I
 			-- Visible level
 		local
-			l_vis: STRING_TABLE [STRING_32]
+			l_vis: STRING_TABLE [READABLE_STRING_32]
 			l_sel: VISIBLE_SELEC_I
 			l_ren: HASH_TABLE [STRING, STRING]
 			l_vis_feat: SEARCH_TABLE [STRING]
@@ -191,7 +191,7 @@ feature -- Access
 			u: UTF_CONVERTER
 		do
 			if visible /= Void then
-				l_vis := visible.item.features
+				l_vis := visible.features
 				if l_vis = Void then
 					Result := create {VISIBLE_EXPORT_I}
 				else
@@ -248,15 +248,6 @@ feature -- Access
 			Result := options.catcall_detection.index = {CONF_OPTION}.catcall_detection_index_all
 		end
 
-	is_attached_by_default: BOOLEAN
-			-- Is class type without an explicit attachment mark
-			-- considered as an attached one?
-		do
-				-- It only makes sense if we are in non-void-safe mode regardless
-				-- of the user setting.
-			Result := not is_void_unsafe and options.is_attached_by_default
-		end
-
 	is_obsolete_routine_type: BOOLEAN
 			-- Is obsolete routine type declaration (i.e., "ROUTINE [BASE_TYPE, OPEN_ARGS]" instead of "ROUTINE [OPEN_ARGS]") used?
 		do
@@ -277,18 +268,24 @@ feature -- Access
 
 	is_void_safe_initialization: BOOLEAN
 			-- Should attached entities be property set before use?
+		local
+			i: like {CONF_OPTION}.void_safety_index_none
 		do
+			i := options.void_safety.index
 			Result :=
-				options.void_safety.index /= {CONF_OPTION}.void_safety_index_none and then
-				options.void_safety.index /= {CONF_OPTION}.void_safety_index_conformance
+				i /= {CONF_OPTION}.void_safety_index_none and then
+				i /= {CONF_OPTION}.void_safety_index_conformance
 		end
 
 	is_void_safe_call: BOOLEAN
 			-- Should feature call target be attached?
+		local
+			i: like {CONF_OPTION}.void_safety_index_none
 		do
+			i := options.void_safety.index
 			Result :=
-				options.void_safety.index = {CONF_OPTION}.void_safety_index_transitional or else
-				options.void_safety.index = {CONF_OPTION}.void_safety_index_all
+				i = {CONF_OPTION}.void_safety_index_transitional or else
+				i = {CONF_OPTION}.void_safety_index_all
 		end
 
 	is_void_safe_construct: BOOLEAN
@@ -297,18 +294,13 @@ feature -- Access
 			Result := options.void_safety.index = {CONF_OPTION}.void_safety_index_all
 		end
 
-	is_void_safety_supported (other: CLASS_I): BOOLEAN
-			-- Does class provide the same or better void-safety level than `other'?
+	is_attached_by_default: BOOLEAN
+			-- Is class type without an explicit attachment mark
+			-- considered as an attached one?
 		do
-			Result := options.is_void_safety_supported (other.options)
-		end
-
-	is_void_safety_sufficient (other: CLASS_I): BOOLEAN
-			-- Does class provide the void-safety level than is sufficient to be used by the client `other'?
-		do
-			Result := options.is_void_safety_sufficient (other.options)
-		ensure
-			sufficient_if_supported: is_void_safety_supported (other) implies Result
+				-- It only makes sense if we are in non-void-safe mode regardless
+				-- of the user setting.
+			Result := not is_void_unsafe and then options.is_attached_by_default
 		end
 
 	is_syntax_obsolete: BOOLEAN
@@ -326,7 +318,7 @@ feature -- Access
 		end
 
 	is_syntax_standard: BOOLEAN
-			-- Is obsolete syntax used in the source code?
+			-- Is standard syntax used in the source code?
 		do
 			inspect
 				options.syntax.index
@@ -337,6 +329,69 @@ feature -- Access
 			then
 				Result := True
 			else
+			end
+		end
+
+	is_manifest_array_type_standard: BOOLEAN
+			-- Is standard manifest array typing used?
+		local
+			current_index: like {CONF_OPTION}.array_index_standard
+			override_index: like {CONF_TARGET_OPTION}.array_override_index_default
+		do
+			current_index := options.array.index
+			override_index := target.system.application_target.options.array_override.index
+			if current_index = {CONF_OPTION}.array_index_standard then
+					-- Ignore override if the current option is set to `standard`.
+				Result := True
+			elseif override_index = {CONF_TARGET_OPTION}.array_override_index_default then
+					-- Use current option when the override is not requested.
+				Result := False
+			else
+					-- Use override when it is requested.
+				Result := override_index = {CONF_TARGET_OPTION}.array_override_index_standard
+			end
+		ensure
+			not_warning: Result implies not is_manifest_array_type_mismatch_warning
+			not_error: Result implies not is_manifest_array_type_mismatch_error
+		end
+
+	is_manifest_array_type_mismatch_warning: BOOLEAN
+			-- Should manifest array type mismatch be reported as a warning?
+		local
+			current_index: like {CONF_OPTION}.array_index_standard
+			override_index: like {CONF_TARGET_OPTION}.array_override_index_default
+		do
+			current_index := options.array.index
+			override_index := target.system.application_target.options.array_override.index
+			if current_index = {CONF_OPTION}.array_index_standard then
+					-- Ignore override if the current option is set to `standard`.
+				Result := False
+			elseif override_index = {CONF_TARGET_OPTION}.array_override_index_default then
+					-- Use current option when the override is not requested.
+				Result := current_index = {CONF_OPTION}.array_index_mismatch_warning
+			else
+					-- Use override when it is requested.
+				Result := override_index = {CONF_TARGET_OPTION}.array_override_index_mismatch_warning
+			end
+		end
+
+	is_manifest_array_type_mismatch_error: BOOLEAN
+			-- Should manifest array type mismatch be reported as an error?
+		local
+			current_index: like {CONF_OPTION}.array_index_standard
+			override_index: like {CONF_TARGET_OPTION}.array_override_index_default
+		do
+			current_index := options.array.index
+			override_index := target.system.application_target.options.array_override.index
+			if current_index = {CONF_OPTION}.array_index_standard then
+					-- Ignore override if the current option is set to `standard`.
+				Result := False
+			elseif override_index = {CONF_TARGET_OPTION}.array_override_index_default then
+					-- Use current option when the override is not requested.
+				Result := current_index = {CONF_OPTION}.array_index_mismatch_error
+			else
+					-- Use override when it is requested.
+				Result := override_index = {CONF_TARGET_OPTION}.array_override_index_mismatch_error
 			end
 		end
 
@@ -374,13 +429,12 @@ feature -- Access
 			file_date_valid: Result >= -1
 		end
 
-	compiled_representation: CLASS_C
+	compiled_representation: detachable CLASS_C
 			-- Compiled representation of `Current'
 			-- same as `compiled_class' for normal classes
 			-- Void for classes that are overriden
 			-- The first compiled class of an override if it is an overrider.
 		local
-			l_classi: CLASS_I
 			l_classc: CLASS_C
 			l_overrides: ARRAYED_LIST [CONF_CLASS]
 		do
@@ -394,11 +448,11 @@ feature -- Access
 					l_classc /= Void or l_overrides.after
 				loop
 					if l_overrides.item.is_compiled then
-						l_classi ?= l_overrides.item
-						check
-							class_i: l_classi /= Void
+						if attached {CLASS_I} l_overrides.item as l_classi then
+							l_classc := l_classi.compiled_class
+						else
+							check is_class_i: False end
 						end
-						l_classc := l_classi.compiled_class
 					end
 					l_overrides.forth
 				end
@@ -410,7 +464,7 @@ feature -- Access
 
 feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Access
 
-	visible: detachable EQUALITY_TUPLE [TUPLE [class_renamed: STRING_32; features: detachable STRING_TABLE [STRING_32]]]
+	visible: detachable TUPLE [class_renamed: READABLE_STRING_32; features: detachable STRING_TABLE [READABLE_STRING_32]]
 			-- The visible features.
 		deferred
 		end
@@ -432,13 +486,11 @@ feature -- Status report
 			compiled_class: is_compiled
 		local
 			l_path: like path
-			l_cluster: CLUSTER_I
 		do
 			if compiled_class.is_precompiled then
 				Result := internal_namespace
 			else
-				l_cluster ?= group
-				if l_cluster /= Void then
+				if attached {CLUSTER_I} group as l_cluster then
 					Result := l_cluster.actual_namespace.twin
 				end
 
@@ -679,7 +731,7 @@ invariant
 	compiled_class_connection: is_compiled implies compiled_class.original_class = Current
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

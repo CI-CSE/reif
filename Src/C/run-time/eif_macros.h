@@ -2,7 +2,7 @@
 	description: "Macros used by C code at run time."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2015, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2017, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -209,7 +209,7 @@ RT_LNK void eif_exit_eiffel_code(void);
  *  RTCCL(c) same as RTRCL, but first checks if `x' is expanded
  */
 #define RTCL(x)		rtclone(x)
-#define RTCCL(x)	((x && eif_is_expanded(HEADER(x)->ov_flags))? RTRCL(x): (x))
+#define RTCCL(x)	(((x) && eif_is_expanded(HEADER(x)->ov_flags))? RTRCL(x): (x))
 #ifdef WORKBENCH
 #	define RTRCL(x)	((egc_twin(x)).it_r)
 #else
@@ -926,11 +926,15 @@ RT_LNK void eif_exit_eiffel_code(void);
 #define RTCFDD			EIF_TYPE_INDEX EIF_VOLATILE dftype
 
 /* If call on void target are detected, we use RTCV to perform the check. Unlike the workbench
- * mode, we won't know the message of the call as it would require too much data to be generated. */
+ * mode, we won't know the message of the call as it would require too much data to be generated.
+ * RTCW is a more efficient version of RTCV, but may recompute its argument multiple times.
+ */
 #if defined(WORKBENCH) || !defined(EIF_NO_RTCV)
 #define RTCV(x) eif_check_call_on_void_target(x)
+#define RTCW(x) (((x)? (void) 0: eif_raise_call_on_void_target ()), (x))
 #else
 #define RTCV(x)	(x)
+#define RTCW(x)	(x)
 #endif
 
 /* Detect catcall at runtime for argument 'o' at position 'i' for feature 'f' in dtype 'd'
@@ -1396,12 +1400,13 @@ RT_LNK void eif_exit_eiffel_code(void);
 
 /*
  * Separate call arguments:
- * RTS_AC(n,t,a) - allocate container a that can hold n arguments for target t
- * RTS_AA(v,f,t,n,a) - register argument v corresponding to field f of type t at position n
+ * RTS_AC(n,t) - allocate a container that can hold n arguments for target t
+ * RTS_AA(v,f,t,n) - register argument v corresponding to field f of type t at position n
  */
 #define RTS_AC(n,t) \
 	{ \
 		l_scoop_call_data = malloc (sizeof (struct eif_scoop_call_data) + sizeof (EIF_TYPED_VALUE) * (size_t) (n) - sizeof (EIF_TYPED_VALUE)); \
+		l_scoop_call_data -> is_assertion = in_assertion; \
 		l_scoop_call_data -> target = (t); \
 		l_scoop_call_data -> count = (n); \
 		l_scoop_call_data -> is_synchronous = EIF_FALSE; \
@@ -1492,11 +1497,11 @@ RT_LNK void eif_exit_eiffel_code(void);
 #define RTLT		int EIF_VOLATILE current_call_level	/* Declare local trave variable */
 #define RTLP \
 		struct stpchunk * EIF_VOLATILE saved_prof_chunk;	/* Declare local profiler variable */ \
-		struct prof_info * EIF_VOLATILE l_saved_prof_top;
+		struct prof_info * EIF_VOLATILE l_saved_prof_top
 
 #define RTPI \
 		saved_prof_chunk = prof_stack.st_cur;	/* Create local profile stack during rescue clause */ \
-		l_saved_prof_top = (saved_prof_chunk ? saved_prof_chunk->sk_top : NULL);
+		l_saved_prof_top = (saved_prof_chunk ? saved_prof_chunk->sk_top : NULL)
 
 #define RTTI		current_call_level = trace_call_level	/* Save the tracer call level */
 #endif

@@ -1,10 +1,11 @@
-note
+﻿note
 	description: "[
 		RULE #51: Empty and uncommented feature
 		
 		A routine which does not contain any instructions and has no comment too indicates that the implementation might be missing.
 	]"
 	author: "Paolo Antonucci"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -24,7 +25,7 @@ feature {NONE} -- Initialization
 			-- Initialization for `Current'.
 		do
 			make_with_defaults
-			create {CA_HINT} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -126,6 +127,9 @@ feature {NONE} -- Rule checking
 
 feature -- Properties
 
+	name: STRING = "empty_feature"
+			-- <Precursor>
+
 	title: STRING_32
 			-- <Precursor>
 		do
@@ -146,9 +150,9 @@ feature -- Properties
 		do
 			a_formatter.add (ca_messages.empty_uncommented_routine_violation_1)
 			check
-				attached {STRING_32} a_violation.long_description_info.first
+				attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first
 			end
-			if attached {STRING_32} a_violation.long_description_info.first as l_feature_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_feature_name then
 				a_formatter.add_feature_name (l_feature_name, a_violation.affected_class)
 			end
 			a_formatter.add (ca_messages.empty_uncommented_routine_violation_2)

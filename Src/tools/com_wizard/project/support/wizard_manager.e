@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Code generation manager."
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
@@ -151,24 +151,24 @@ feature {NONE} -- Implementation
 	setup_environment
 			-- Setup environment variables for compilation
 		local
-			l_vs_setup: VS_SETUP
-			l_path, l_platform: STRING_32
+			l_setup: COMPILER_SETUP
+			l_path: STRING_32
+			l_layout: WIZARD_EIFFEL_LAYOUT
 		do
 			l_path := env.item ("PATH")
 			l_path.append (";")
+			if not is_eiffel_layout_defined then
+				create l_layout
+				l_layout.check_environment_variable
+				set_eiffel_layout (l_layout)
+			end
 			l_path.append (eiffel_layout.bin_path.name)
 			env.put (l_path, "PATH")
-			if smart_checking then
-				if attached eiffel_layout.eiffel_c_compiler_version as l_version and then not l_version.is_empty then
-					create l_vs_setup.make (l_version, False)
-				else
-					create l_vs_setup.make (Void, False)
-				end
+			create l_setup.initialize (smart_checking, not {PLATFORM}.is_64_bits)
+			if l_setup.found_c_config = Void then
 					-- patrickr 09/25/2006 Don't abort as they user may have setup the path already,
 					-- a warning would be nice
---				if not l_vs_setup.valid_vcvars then
---					Environment.set_abort (No_c_compiler)
---				end
+--				Environment.set_abort (No_c_compiler)
 			end
 		end
 
@@ -208,7 +208,7 @@ feature {NONE} -- Implementation
 			-- Agent used to raise events
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -238,5 +238,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-end -- class WIZARD_MANAGER
 
+end

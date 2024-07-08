@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Process redefined features. Formulate the assertion id set for a feature."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -67,10 +67,13 @@ feature {NONE} -- Implementation
 		local
 			feat: FEATURE_I
 			feat_body_index: INTEGER
-			info: INH_ASSERT_INFO
 			new_assert_id_set: ASSERT_ID_SET
 			has_precondition: BOOLEAN
+			has_postcondition: BOOLEAN
+			has_class_postcondition: BOOLEAN
 			has_false_postcondition: BOOLEAN
+			has_non_object_call: BOOLEAN
+			has_unqualified_call: BOOLEAN
 			feat_assert_id_set: ASSERT_ID_SET
 			processed_features: ARRAYED_LIST [INTEGER]
 		do
@@ -84,8 +87,20 @@ feature {NONE} -- Implementation
 				-- By default, we suppose that the feature defines preconditions.
 			has_precondition := True
 
+				-- By default there is a postcondition if the feature defines it.
+			has_postcondition := new_feat.has_postcondition
+
+				-- By default there is no class postcondition.
+			-- has_class_postcondition := False
+
 				-- By default there is no false postcondition.
 			-- has_false_postcondition := False
+
+				-- By default there are non-object calls if the feature makes them.
+			has_non_object_call := new_feat.has_immediate_non_object_call_in_assertion
+
+				-- By default there are unqualified calls if the feature makes them.
+			has_unqualified_call := new_feat.has_immediate_unqualified_call_in_assertion
 
 				-- We will loop twice on the list of features.
 				-- First we will add the inherited assertions of each feature.
@@ -119,11 +134,35 @@ feature {NONE} -- Implementation
 					(feat_assert_id_set /= Void and then feat_assert_id_set.has_precondition)
 				)
 
+					-- A feature has a postcondition if it or any ancestor
+					-- has a postcondition.
+				has_postcondition := has_postcondition or else
+					feat.has_postcondition or else
+					(attached feat_assert_id_set and then feat_assert_id_set.has_postcondition)
+
+					-- A feature has a class postcondition if it or any ancestor
+					-- has a class postcondition.
+				has_class_postcondition := has_class_postcondition or else
+					feat.has_immediate_class_postcondition or else
+					(attached feat_assert_id_set and then feat_assert_id_set.has_class_postcondition)
+
 					-- A feature has a false postcondition if it or any ancestor
 					-- has a false postcondition.
 				has_false_postcondition := has_false_postcondition or else
 					feat.has_false_postcondition or else
-					(attached feat_assert_id_set as s and then s.has_false_postcondition)
+					(attached feat_assert_id_set and then feat_assert_id_set.has_false_postcondition)
+
+					-- A feature makes a non-object call if it or any ancestor
+					-- makes such a call.
+				has_non_object_call := has_non_object_call or else
+					feat.has_immediate_non_object_call_in_assertion or else
+					(attached feat_assert_id_set and then feat_assert_id_set.has_non_object_call)
+
+					-- A feature makes an unqualified call if it or any ancestor
+					-- makes such a call.
+				has_unqualified_call := has_unqualified_call or else
+					feat.has_immediate_unqualified_call_in_assertion or else
+					(attached feat_assert_id_set and then feat_assert_id_set.has_unqualified_call)
 
 					-- Prepare next iteration.
 				features.forth
@@ -132,8 +171,20 @@ feature {NONE} -- Implementation
 				-- Set the calculated precondition status.
 			new_assert_id_set.set_has_precondition (has_precondition)
 
+				-- Set the calculated postcondition status.
+			new_assert_id_set.set_has_postcondition (has_postcondition)
+
+				-- Set the calculated class postcondition status.
+			new_assert_id_set.set_has_class_postcondition (has_class_postcondition)
+
 				-- Set the calculated false postcondition status.
 			new_assert_id_set.set_has_false_postcondition (has_false_postcondition)
+
+				-- Set the calculated non-object call status.
+			new_assert_id_set.set_has_non_object_call (has_non_object_call)
+
+				-- Set the calculated non-object call status.
+			new_assert_id_set.set_has_unqualified_call (has_unqualified_call)
 
 				-- Second loop: Add the inner assertions.
 			from
@@ -147,8 +198,7 @@ feature {NONE} -- Implementation
 
 				if not processed_features.has(feat_body_index) then
 						-- Add assert info of feat.
-					create info.make (feat)
-					new_assert_id_set.force (info)
+					new_assert_id_set.force (create {INH_ASSERT_INFO}.make (feat))
 					processed_features.extend (feat_body_index)
 				end
 
@@ -160,7 +210,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

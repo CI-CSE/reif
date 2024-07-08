@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Lists implemented by resizable arrays"
 	library: "Free implementation of ELKS library"
 	legal: "See notice at end of class."
@@ -36,7 +36,7 @@ class ARRAYED_LIST [G] inherit
 		redefine
 			first, last, swap, wipe_out, i_th, at,
 			go_i_th, move, prunable, start, finish,
-			count, prune, remove,
+			count, prune, remove, new_cursor,
 			put_left, merge_left,
 			merge_right, duplicate, prune_all, has, search,
 			append, valid_index, is_equal, copy,
@@ -181,9 +181,15 @@ feature -- Access
 			shared_area: Result.area = area
 		end
 
+	new_cursor: ARRAYED_LIST_ITERATION_CURSOR [G]
+			-- <Precursor>
+		do
+			create Result.make (Current)
+		end
+
 feature -- Iteration
 
-	do_all (action: PROCEDURE [ANY, TUPLE [G]])
+	do_all (action: PROCEDURE [G])
 			-- Apply `action' to every item, from first to last.
 			-- Semantics not guaranteed if `action' changes the structure;
 			-- in such a case, apply iterator to clone of structure instead.
@@ -191,7 +197,7 @@ feature -- Iteration
 			area_v2.do_all_in_bounds (action, 0, area_v2.count - 1)
 		end
 
-	do_if (action: PROCEDURE [ANY, TUPLE [G]]; test: FUNCTION [ANY, TUPLE [G], BOOLEAN])
+	do_if (action: PROCEDURE [G]; test: FUNCTION [G, BOOLEAN])
 			-- Apply `action' to every item that satisfies `test', from first to last.
 			-- Semantics not guaranteed if `action' or `test' changes the structure;
 			-- in such a case, apply iterator to clone of structure instead.
@@ -199,19 +205,19 @@ feature -- Iteration
 			area_v2.do_if_in_bounds (action, test, 0, area_v2.count - 1)
 		end
 
-	there_exists (test: FUNCTION [ANY, TUPLE [G], BOOLEAN]): BOOLEAN
+	there_exists (test: FUNCTION [G, BOOLEAN]): BOOLEAN
 			-- Is `test' true for at least one item?
 		do
 			Result := area_v2.there_exists_in_bounds (test, 0, area_v2.count - 1)
 		end
 
-	for_all (test: FUNCTION [ANY, TUPLE [G], BOOLEAN]): BOOLEAN
+	for_all (test: FUNCTION [G, BOOLEAN]): BOOLEAN
 			-- Is `test' true for all items?
 		do
 			Result := area_v2.for_all_in_bounds (test, 0, area_v2.count - 1)
 		end
 
-	do_all_with_index (action: PROCEDURE [ANY, TUPLE [G, INTEGER]])
+	do_all_with_index (action: PROCEDURE [G, INTEGER])
 			-- Apply `action' to every item, from first to last.
 			-- `action' receives item and its index.
 			-- Semantics not guaranteed if `action' changes the structure;
@@ -236,7 +242,7 @@ feature -- Iteration
 			end
 		end
 
-	do_if_with_index (action: PROCEDURE [ANY, TUPLE [G, INTEGER]]; test: FUNCTION [ANY, TUPLE [G, INTEGER], BOOLEAN])
+	do_if_with_index (action: PROCEDURE [G, INTEGER]; test: FUNCTION [G, INTEGER, BOOLEAN])
 			-- Apply `action' to every item that satisfies `test', from first to last.
 			-- `action' and `test' receive the item and its index.
 			-- Semantics not guaranteed if `action' or `test' changes the structure;
@@ -266,17 +272,8 @@ feature -- Iteration
 
 feature -- Measurement
 
-	lower: INTEGER = 1
-			-- Lower bound for accessing list items via indexes
-
-	upper: INTEGER
-			-- Upper bound for accessing list items via indexes
-		do
-			Result := area_v2.count
-		end
-
 	count: INTEGER
-			-- Number of items
+			-- Number of items.
 		do
 			Result := area_v2.count
 		end
@@ -284,6 +281,15 @@ feature -- Measurement
 	capacity: INTEGER
 		do
 			Result := area_v2.capacity
+		end
+
+	upper: INTEGER
+			-- Maximum index.
+			-- Use `count' instead.
+		do
+			Result := area_v2.count
+		ensure
+			definition: Result = count
 		end
 
 feature -- Comparison
@@ -357,9 +363,9 @@ feature -- Cursor movement
 			-- Move cursor `i' positions.
 		do
 			index := index + i
-			if (index > count + 1) then
+			if index > count + 1 then
 				index := count + 1
-			elseif (index < 0) then
+			elseif index < 0 then
 				index := 0
 			end
 		end
@@ -534,11 +540,10 @@ feature -- Element change
 	merge_right (other: ARRAYED_LIST [G])
 			-- Merge `other' into current structure after cursor.
 		local
-			l_new_count, l_old_count: INTEGER
+			l_new_count: INTEGER
 		do
 			if not other.is_empty then
-				l_old_count := count
-				l_new_count := l_old_count + other.count
+				l_new_count := count + other.count
 				if l_new_count > area_v2.capacity then
 					area_v2 := area_v2.aliased_resized_area (l_new_count)
 				end
@@ -615,6 +620,21 @@ feature -- Duplication
 			end
 		ensure then
 			equal_areas: area_v2 ~ other.area_v2
+		end
+
+	duplicate (n: INTEGER): like Current
+			-- Copy of sub-list beginning at current position
+			-- and having min (`n', `count' - `index' + 1) items.
+		local
+			end_pos: INTEGER
+		do
+			if after then
+				Result := new_filled_list (0)
+			else
+				end_pos := count.min (index + n - 1)
+				Result := new_filled_list (end_pos - index + 1)
+				Result.area_v2.copy_data (area_v2, index - 1, 0, end_pos - index + 1)
+			end
 		end
 
 feature -- Removal
@@ -770,23 +790,6 @@ feature -- Retrieval
 			end
 		end
 
-feature -- Duplication
-
-	duplicate (n: INTEGER): like Current
-			-- Copy of sub-list beginning at current position
-			-- and having min (`n', `count' - `index' + 1) items.
-		local
-			end_pos: INTEGER
-		do
-			if after then
-				Result := new_filled_list (0)
-			else
-				end_pos := count.min (index + n - 1)
-				Result := new_filled_list (end_pos - index + 1)
-				Result.area_v2.copy_data (area_v2, index - 1, 0, end_pos - index + 1)
-			end
-		end
-
 feature {NONE} -- Inapplicable
 
 	new_chain: like Current
@@ -831,7 +834,7 @@ feature {NONE} -- Implementation
 			create Result.make (n)
 		ensure
 			new_filled_list_not_void: Result /= Void
-			new_filled_list_count_set: Result.count = 0
+			new_filled_list_count_set: Result.is_empty
 			new_filled_list_before: Result.before
 		end
 
@@ -840,7 +843,7 @@ invariant
 	starts_from_one: lower = 1
 
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -11,22 +11,9 @@ deferred class
 inherit
 	EV_PICK_AND_DROPABLE_I
 
-	EV_PICK_AND_DROPABLE_ACTION_SEQUENCES_IMP
-		redefine
-			create_drop_actions
-		end
-
 	EV_SHARED_TRANSPORT_IMP
 
 	WEL_WINDOWS_ROUTINES
-
-feature {NONE} -- Initialization
-
-	create_drop_actions: EV_PND_ACTION_SEQUENCE
-			-- Create a drop action sequence.
-		do
-			Result := Precursor
-		end
 
 feature -- Access
 
@@ -167,7 +154,7 @@ feature {EV_ANY_I} -- Implementation
 		a_pressure: DOUBLE; a_screen_x, a_screen_y: INTEGER; a_menu_only: BOOLEAN)
 			-- Initialize the pick/drag and drop mechanism.
 		local
-			l_configure_agent: detachable PROCEDURE [ANY, TUPLE]
+			l_configure_agent: detachable PROCEDURE
 			l_pebble: like pebble
 		do
 			application_imp.clear_transport_just_ended
@@ -431,7 +418,7 @@ feature {EV_ANY_I} -- Implementation
 		local
 			rpt: like real_pointed_target
 			widget_target: detachable EV_WIDGET
-			a: detachable FUNCTION [ANY, TUPLE [INTEGER, INTEGER], detachable EV_ABSTRACT_PICK_AND_DROPABLE]
+			a: detachable FUNCTION [INTEGER, INTEGER, detachable EV_ABSTRACT_PICK_AND_DROPABLE]
 			widget_x, widget_y: INTEGER
 			l_point: WEL_POINT
 		do

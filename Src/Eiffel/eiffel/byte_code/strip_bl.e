@@ -1,7 +1,7 @@
-note
+﻿note
+	description: "Byte code for strip expression"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Byte code for strip expression
 
 class STRIP_BL
 
@@ -10,9 +10,9 @@ inherit
 	STRIP_B
 		redefine
 			analyze, generate,
-			register, set_register,
+			register, set_register, print_checked_target_register,
 			unanalyze, allocates_memory
-		end;
+		end
 
 feature
 
@@ -113,12 +113,20 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Generation
 			buf.put_new_line;
 		end;
 
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		do
+			print_register
+		end
+
 invariant
 
 	set_exists: feature_ids /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,20 +1,20 @@
-note
+﻿note
 	description: "[
 		A shim for EiffelStudio tools, providing access to information required without having to actually initialize the tool.
 		
 		Note: Descendant shim implementation are created dynamically as such:
-              (A) No creation routine should be used, so please mark `default_create' as a non exported creation routine.
-              (B) All initialization of the shim should be done by redefining `initialize', where `window' will be available
-                  as an attached entity carrying the hosted development window, as will the `edition' number.
-              (C) Recycle memory management is handled automatically so there is no need to call `recycle' on this shim or on
-                  the created tool panel.
-                  
-       (See: ES_SHELL_TOOLS.new_tool ... to see how tool is instantiated.)
+			(A) No creation routine should be used, so please mark `default_create' as a non exported creation routine.
+			(B) All initialization of the shim should be done by redefining `initialize', where `window' will be available
+			    as an attached entity carrying the hosted development window, as will the `edition' number.
+			(C) Recycle memory management is handled automatically so there is no need to call `recycle' on this shim or on
+			    the created tool panel.
+		
+		(See: ES_SHELL_TOOLS.new_tool ... to see how tool is instantiated.)
 	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
-	date: "$date$";
-	revision: "$revision$"
+	date: "$Date$";
+	revision: "$Revision$"
 
 deferred class
 	ES_TOOL [G -> EB_TOOL]
@@ -114,7 +114,7 @@ feature {NONE} -- Clean up
 
 feature -- Access
 
-	name: attached STRING
+	name: attached READABLE_STRING_32
 			-- The tool's associated name, used for modularizing development of a tool.
 			-- Note: the name should be edition independent!
 		require
@@ -168,24 +168,27 @@ feature -- Access
 				Result.append (title)
 				Result.append (" #" + edition.out)
 			else
-				Result := title.as_attached
+				Result := title
 			end
 		ensure
 			not_result_is_empty: not Result.is_empty
 			result_consistent: Result ~ edition_title
 		end
 
-	shortcut_preference_name: detachable STRING
+	shortcut_preference_name: READABLE_STRING_32
 			-- An optional shortcut preference name, for automatic preference binding.
 			-- Note: The preference should be registered in the default.xml file
 			--       as well as in the {EB_MISC_SHORTCUT_DATA} class.
 		require
 			is_interface_usable: is_interface_usable
+		local
+			s: STRING_32
 		do
-			create Result.make (20)
-			Result.append (once "show_")
-			Result.append (name)
-			Result.append (once "_tool")
+			create s.make (20)
+			s.append (once {STRING_32} "show_")
+			s.append (name)
+			s.append (once {STRING_32} "_tool")
+			Result := s
 		ensure
 			not_result_is_empty: Result /= Void implies not Result.is_empty
 			result_consistent: Result ~ shortcut_preference_name
@@ -354,7 +357,7 @@ feature -- Access: User interface
 			l_result := internal_docking_content
 			if l_result = Void then
 				if is_tool_instantiated then
-					create Result.make_with_widget (panel.widget, content_id)
+					create Result.make_with_widget (panel.widget, content_id, window.docking_manager)
 				else
 					create l_label.make_with_text ("Uh Oh!")
 						-- Note: This action is a mild hack for cases where Uh Oh! is not replaced. When shown the
@@ -369,7 +372,7 @@ feature -- Access: User interface
 						end)
 
 					l_label.set_font ((create {ES_SHARED_FONTS_AND_COLORS}).fonts.prompt_sub_title_font)
-					create Result.make_with_widget (l_label, content_id)
+					create Result.make_with_widget (l_label, content_id, window.docking_manager)
 				end
 				Result.set_long_title (edition_title)
 				Result.set_short_title (edition_title)
@@ -725,7 +728,7 @@ invariant
 		internal_docking_content.user_widget /= Void
 
 ;note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

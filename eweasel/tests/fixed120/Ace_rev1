@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ISO-8859-1"?> <system xmlns="http://www.eiffel.com/developers/xml/configuration-1-0-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-0-0 http://www.eiffel.com/developers/xml/configuration-1-0-0.xsd" name="test" uuid="62619080-e080-4167-9a5c-6ae46dd6dd3d">
+<?xml version="1.0" encoding="ISO-8859-1"?> <system xmlns="http://www.eiffel.com/developers/xml/configuration-1-15-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-15-0 http://www.eiffel.com/developers/xml/configuration-1-15-0.xsd" name="test" uuid="62619080-e080-4167-9a5c-6ae46dd6dd3d">
 	<target name="test">
 		<description>--| Copyright (c) 1993-2006 University of Southern California and contributors.
 --| All rights reserved.
@@ -6,7 +6,7 @@
 --| Public License version 2.
 </description>
 		<root cluster="root_cluster" class="test" feature="make"/>
-		<option syntax_level="1">
+		<option full_class_checking="false" is_attached_by_default="false" void_safety="none" syntax="transitional">
 			<assertions precondition="true" postcondition="false" check="false" invariant="false" loop="false"/>
 		</option>
 		<mapping old_name="STRING" new_name="STRING_8"/>
@@ -21,6 +21,7 @@
 		<mapping old_name="WIDE_CHARACTER_REF" new_name="CHARACTER_32_REF" />
 		<mapping old_name="REAL_REF" new_name="REAL_32_REF" />
 		<mapping old_name="DOUBLE_REF" new_name="REAL_64_REF" />
+		<setting name="console_application" value="true"/>
 		$EWEASEL_DOTNET_SETTING
 		<assembly name="mscorlib" location="$ISE_DOTNET_FRAMEWORK\mscorlib.dll"/>
 		<assembly name="system_" location="$ISE_DOTNET_FRAMEWORK\System.dll" prefix="SYSTEM_DLL_"/>

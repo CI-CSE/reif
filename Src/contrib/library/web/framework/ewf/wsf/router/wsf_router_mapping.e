@@ -11,16 +11,6 @@ deferred class
 inherit
 	DEBUG_OUTPUT
 
-feature {NONE} -- Initialization
-
-	make (a_resource: READABLE_STRING_8; h: like handler)
-			-- Create mapping based on resource `a_resource' and handler `h'.
-		require
-			a_resource_attached: a_resource /= Void
-			h_attached: h /= Void
-		deferred
-		end
-
 feature -- Access
 
 	associated_resource: READABLE_STRING_8
@@ -50,8 +40,14 @@ feature -- Status report
 
 	debug_output: READABLE_STRING_GENERAL
 			-- String that should be displayed in debugger to represent `Current'.
+		local
+			s: STRING_32
 		do
-			Result := description + {STRING_32} " : " + associated_resource.to_string_32
+			create s.make_empty
+			s.append (description)
+			s.append_string_general (" : ")
+			s.append_string_general (associated_resource)
+			Result := s
 		end
 
 feature -- Status
@@ -78,7 +74,7 @@ feature -- Status
 		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

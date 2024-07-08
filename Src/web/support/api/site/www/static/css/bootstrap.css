@@ -713,7 +713,7 @@ pre {
   font-size: 13px;
   line-height: 1.428571429;
   color: #333;
-  word-break: break-all;
+  /*word-break: break-all;*/
   word-wrap: break-word;
   background-color: #f5f5f5;
   border: 1px solid #ccc;
@@ -5847,3 +5847,30 @@ td.visible-print {
 }
 
 /*# sourceMappingURL=bootstrap.css.map */
+
+
+#textarea_17 {
+    -moz-appearance: textfield-multiline;
+    -webkit-appearance: textarea;
+    border: 1px solid gray;
+    font: medium -moz-fixed;
+    font: -webkit-small-control;
+    overflow: auto;
+    padding: 2px;
+    resize: both;
+    width: 400px;
+    display: inline-block;
+}
+
+#textarea_7 {
+    -moz-appearance: textfield-multiline;
+    -webkit-appearance: textarea;
+    border: 1px solid gray;
+    font: medium -moz-fixed;
+    font: -webkit-small-control;
+    overflow: auto;
+    padding: 2px;
+    resize: both;
+    width: 400px;
+    display: inline-block;
+}

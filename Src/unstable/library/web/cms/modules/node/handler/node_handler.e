@@ -75,6 +75,14 @@ feature -- Query
 			end
 		end
 
+feature -- Permissions
+
+	view_unpublished_permissions (a_node: CMS_NODE): ITERABLE [READABLE_STRING_8]
+			-- Permissions to view unpublished node `a_node`.
+		do
+			Result := <<"view unpublished " + a_node.content_type>>
+		end
+
 feature -- HTTP Methods
 
 	do_get (req: WSF_REQUEST; res: WSF_RESPONSE)
@@ -84,6 +92,8 @@ feature -- HTTP Methods
 			l_nid, l_rev: INTEGER_64
 			edit_response: NODE_FORM_RESPONSE
 			view_response: NODE_VIEW_RESPONSE
+			l_is_published: BOOLEAN
+			l_is_denied: BOOLEAN
 		do
 			if req.percent_encoded_path_info.ends_with ("/edit") then
 				check valid_url: req.percent_encoded_path_info.starts_with ("/node/") end
@@ -119,27 +129,35 @@ feature -- HTTP Methods
 						l_rev := p_rev.value.to_integer_64
 					end
 					l_node := node_api.node (l_nid)
-					if
-						l_node /= Void and then
-						l_rev > 0 and then
-						node_api.has_permission_for_action_on_node ("view revisions", l_node, current_user (req))
-					then
-						l_node := node_api.revision_node (l_nid, l_rev)
+					if l_node /= Void then
+						l_is_published := l_node.is_published
+						if
+							l_rev > 0 and then
+							l_rev < l_node.revision
+						then
+							if node_api.has_permission_for_action_on_node ("view revisions", l_node, api.user) then
+								l_node := node_api.revision_node (l_nid, l_rev)
+							else
+								l_is_denied := True
+							end
+						end
 					end
-					if l_node = Void then
+					if l_is_denied then
+						send_access_denied (req, res)
+					elseif l_node = Void then
 						send_not_found (req, res)
 					else
-						if
-							l_rev > 0 or else l_node.is_published
-						then
+						if l_is_published then
 							create view_response.make (req, res, api, node_api)
 							view_response.set_node (l_node)
 							view_response.set_revision (l_rev)
 							view_response.execute
 						elseif
-							attached current_user (req) as l_user and then
+							attached api.user as l_user and then
 							(	node_api.is_author_of_node (l_user, l_node)
-								or else api.user_api.user_has_permission (l_user, "view unpublished " + l_node.content_type)
+								or else (
+									api.user_has_permissions (l_user, view_unpublished_permissions (l_node))
+								)
 							)
 						then
 							create view_response.make (req, res, api, node_api)
@@ -147,7 +165,7 @@ feature -- HTTP Methods
 							view_response.set_revision (l_rev)
 							view_response.execute
 						else
-							send_access_denied (req, res)
+							send_access_denied_to_unpublished_node (req, res, l_node)
 						end
 					end
 				else
@@ -173,18 +191,20 @@ feature -- HTTP Methods
 					l_op.value.same_string ("Delete")
 				then
 					do_delete (req, res)
-				elseif
-					attached {WSF_STRING} req.form_parameter ("op") as l_op and then
-					l_op.value.same_string ("Restore")
-				then
-					do_restore (req, res)
+				else
+					send_bad_request (req, res)
 				end
 			elseif req.percent_encoded_path_info.ends_with ("/trash") then
-				if
-					attached {WSF_STRING} req.form_parameter ("op") as l_op and then
-					l_op.value.same_string ("Trash")
-				then
-					do_trash (req, res)
+				if attached {WSF_STRING} req.form_parameter ("op") as l_op then
+					if l_op.is_case_insensitive_equal ("Trash") then
+						do_trash (req, res)
+					elseif l_op.is_case_insensitive_equal ("Restore") then
+						do_restore (req, res)
+					else
+						send_bad_request (req, res)
+					end
+				else
+					send_bad_request (req, res)
 				end
 			elseif req.percent_encoded_path_info.starts_with ("/node/add/") then
 				create edit_response.make (req, res, api, node_api)
@@ -205,16 +225,24 @@ feature -- HTTP Methods
 			send_not_implemented ("REST API not yet implemented", req, res)
 		end
 
+	process_node_creation (req: WSF_REQUEST; res: WSF_RESPONSE; a_user: CMS_USER)
+		do
+			to_implement ("REST API")
+			send_not_implemented ("REST API not yet implemented", req, res)
+		end
+
+feature {NONE} -- Trash:Restore
+
 	do_trash (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Trash a node, soft delete.
 		do
-			if attached current_user (req) as l_user then
+			if attached api.user as l_user then
 				if attached {WSF_STRING} req.path_parameter ("id") as l_id then
 					if
 						l_id.is_integer and then
 						attached node_api.node (l_id.integer_value) as l_node
 					then
-						if node_api.has_permission_for_action_on_node ("trash", l_node, current_user (req)) then
+						if node_api.has_permission_for_action_on_node ("trash", l_node, l_user) then
 							node_api.trash_node (l_node)
 							res.send (create {CMS_REDIRECTION_RESPONSE_MESSAGE}.make (req.absolute_script_url ("")))
 						else
@@ -232,26 +260,18 @@ feature -- HTTP Methods
 			end
 		end
 
-	process_node_creation (req: WSF_REQUEST; res: WSF_RESPONSE; a_user: CMS_USER)
-		do
-			to_implement ("REST API")
-			send_not_implemented ("REST API not yet implemented", req, res)
-		end
-
-feature {NONE} -- Trash:Restore
-
 	do_delete (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Delete a node from the database.
 		local
 			l_source: STRING
 		do
-			if attached current_user (req) as l_user then
+			if attached api.user as l_user then
 				if attached {WSF_STRING} req.path_parameter ("id") as l_id then
 					if
 						l_id.is_integer and then
 						attached {CMS_NODE} node_api.node (l_id.integer_value) as l_node
 					then
-						if node_api.has_permission_for_action_on_node ("delete", l_node, current_user (req)) then
+						if node_api.has_permission_for_action_on_node ("delete", l_node, l_user) then
 							node_api.delete_node (l_node)
 							l_source := node_api.node_path (l_node)
 							api.unset_path_alias (l_source, api.location_alias (l_source))
@@ -274,15 +294,15 @@ feature {NONE} -- Trash:Restore
 	do_restore (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Restore a node: From {CMS_NODE_API}.trashed to {CMS_NODE_API}.not_published.
 		do
-			if attached current_user (req) as l_user then
+			if attached api.user as l_user then
 				if attached {WSF_STRING} req.path_parameter ("id") as l_id then
 					if
 						l_id.is_integer and then
 						attached node_api.node (l_id.integer_value) as l_node
 					then
-						if node_api.has_permission_for_action_on_node ("restore", l_node, current_user (req)) then
+						if node_api.has_permission_for_action_on_node ("restore", l_node, l_user) then
 							node_api.restore_node (l_node)
-							res.send (create {CMS_REDIRECTION_RESPONSE_MESSAGE}.make (req.absolute_script_url ("")))
+							res.send (create {CMS_REDIRECTION_RESPONSE_MESSAGE}.make (req.absolute_script_url ("/" + node_api.node_path (l_node))))
 						else
 							send_access_denied (req, res)
 								-- send_not_authorized ?
@@ -310,7 +330,7 @@ feature {NONE} -- Trash:Restore
 					l_id.is_integer and then
 					attached node_api.node (l_id.integer_value) as l_node
 				then
-					if node_api.has_permission_for_action_on_node ("view revisions", l_node, current_user (req)) then
+					if node_api.has_permission_for_action_on_node ("view revisions", l_node, api.user) then
 						create r.make (req, res, api)
 						create b.make_empty
 						b.append ("<ul>")
@@ -322,14 +342,33 @@ feature {NONE} -- Trash:Restore
 							b.append ("<a href=%"")
 							b.append (r.url (node_api.node_path (n) + "?revision=" + n.revision.out, Void))
 							b.append ("%">")
-
+							if n.revision = l_node.revision then
+								b.append ("Current ")
+							else
+								b.append ("Revision")
+							end
+							b.append (" #")
 							b.append (n.revision.out)
 							b.append (" : ")
-							b.append (n.modification_date.out)
+							b.append (api.formatted_date_time_yyyy_mm_dd__hh_min_ss (n.modification_date))
 							b.append ("</a>")
-							if attached n.author as l_author then
-								b.append (" by ")
-								b.append (r.link (l_author.name, "user/" + l_author.id.out, Void))
+							if attached n.editor as l_editor then
+								if n.revision = 1 then
+									b.append (" created by ")
+								else
+									b.append (" edited by ")
+								end
+								b.append (r.link (r.user_profile_name (l_editor), "user/" + l_editor.id.out, Void))
+							end
+							if attached n.author as l_author and then not l_author.same_as (n.editor) then
+								b.append (" (owner: ")
+								b.append (r.link (r.user_profile_name (l_author), "user/" + l_author.id.out, Void))
+								b.append (")")
+							end
+							if node_api.has_permission_for_action_on_node ("edit revisions", l_node, api.user) then
+								b.append (" (<a href=%"")
+								b.append (r.url (node_api.node_path (n) + "/edit?revision=" + n.revision.out, Void))
+								b.append ("%">edit</a>)")
 							end
 							b.append ("</li>")
 						end
@@ -368,6 +407,12 @@ feature -- Error
 				l_page.set_status_code (400)
 			end
 			l_page.execute
+		end
+
+	send_access_denied_to_unpublished_node (req: WSF_REQUEST; res: WSF_RESPONSE; a_node: CMS_NODE)
+			-- Forbidden response.
+		do
+			send_custom_access_denied ("This content is NOT published!", view_unpublished_permissions (a_node), req, res)
 		end
 
 feature {NONE} -- Node

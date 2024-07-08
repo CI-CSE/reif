@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Instance of an Eiffel feature: for every inherited feature there is%N%
 		%an instance of FEATURE_I with its final name, the class name where it%N%
 		%is written, the body id of its content and the routine table ids to%N%
@@ -27,8 +27,6 @@ inherit
 	SHARED_ERROR_HANDLER
 
 	SHARED_TYPES
-
-	SHARED_EVALUATOR
 
 	SHARED_TABLE
 
@@ -378,56 +376,6 @@ feature -- Access
 			end
 		end
 
-	generic_fingerprint: STRING
-			-- Fingerprint of the feature signature that distinguishes
-			-- between formal generic and non-formal-generic types.
-		local
-			digit: NATURAL_8
-			a: like arguments
-			i: NATURAL_8
-			z: INTEGER
-		do
-			create Result.make_empty
-				-- It is pretty important that we use `actual_type.is_formal' and not
-				-- just `is_formal' because otherwise if you have `like x' and `x: G'
-				-- then we would fail to detect that.
-			if type.actual_type.is_formal then
-				digit := 1
-			end
-			a := arguments
-			if a /= Void then
-				from
-					i := 2
-					a.start
-				until
-					a.after
-				loop
-					if a.item.actual_type.is_formal then
-						digit := digit + i
-					end
-					i := i |<< 1
-					if i >= 16 then
-							-- Add a digit to the result.
-						Result.append_character (digit.to_hex_character)
-						if digit = 0 then
-							z := z + 1
-						else
-							z := 0
-						end
-						digit := 0
-						i := 1
-					end
-					a.forth
-				end
-			end
-			if digit /= 0 then
-				Result.append_character (digit.to_hex_character)
-			elseif z > 0 then
-					-- Remove trailing zeroes.
-				Result.remove_tail (z)
-			end
-		end
-
 	extension: EXTERNAL_EXT_I
 			-- Encapsulation of the external extension
 		do
@@ -594,15 +542,12 @@ feature -- Debugger access
 			--| of the inherited routines has an empty precondition    |
 			--| clause.                                                |
 			--|---------------------------------------------------------
-		local
-			l_body: like real_body
-			l_routine: ROUTINE_AS
 		do
-			l_body := real_body
-
-			if l_body /= Void then
-				l_routine ?= l_body.content
-				Result := l_routine.number_of_breakpoint_slots
+			if
+				attached real_body as b and then
+				attached {ROUTINE_AS} b.content as r
+			then
+				Result := r.number_of_breakpoint_slots
 			end
 			Result := Result.max (1)
 		end
@@ -610,25 +555,18 @@ feature -- Debugger access
 	first_breakpoint_slot_index: INTEGER
 			-- Index of the first breakpoint-slot of the body
 			-- Take into account inherited and inner assertions
-		local
-			l_body: like real_body
-			l_routine: ROUTINE_AS
-			l_internal: INTERNAL_AS
 		do
-			l_body := real_body
-			if l_body /= Void then
-				l_routine ?= l_body.content
-				if l_routine /= Void then
-					l_internal ?= l_routine.routine_body
-					if l_internal /= Void then
-						if l_internal.is_empty then
-								--| in this case, the first bp of the body
-								--| is the last breakable point
-							Result := number_of_breakpoint_slots
-						else
-							Result := l_internal.first_breakpoint_slot_index
-						end
-					end
+			if
+				attached real_body as b and then
+				attached {ROUTINE_AS} b.content as r and then
+				attached {INTERNAL_AS} r.routine_body as i
+			then
+				if i.is_empty then
+						--| in this case, the first bp of the body
+						--| is the last breakable point
+					Result := number_of_breakpoint_slots
+				else
+					Result := i.first_breakpoint_slot_index
 				end
 			end
 			Result := Result.max (1)
@@ -647,16 +585,15 @@ feature -- Status
 				Result := not has_precondition
 			elseif a.has_precondition then
 					-- There are inherited features that are not precondition-free.
-				if has_precondition then
+				if
+					has_precondition and then
 						-- Current feature has precondition, that might be True.
-					if
-						attached body as fb and then attached fb.body as b and then
-						attached {ROUTINE_AS} b.content as r and then attached {BOOL_AS} r.precondition.assertions.first.expr as v
-					then
-							-- The precondition has the first expression in the form of a boolean constant.
-							-- If it is true, the feature is precondition-free
-						Result := v.value
-					end
+					attached body as fb and then attached fb.body as b and then
+					attached {ROUTINE_AS} b.content as r and then attached {BOOL_AS} r.precondition.assertions.first.expr as v
+				then
+						-- The precondition has the first expression in the form of a boolean constant.
+						-- If it is true, the feature is precondition-free
+					Result := v.value
 				end
 			else
 					-- There are inherited precondition-free precursors.
@@ -1019,6 +956,38 @@ feature -- Setting
 			is_stable_set: is_stable = v
 		end
 
+	set_has_immediate_class_postcondition (v: BOOLEAN)
+			-- Set `has_immediate_class_postcondition` to `v`.
+		do
+			feature_flags := feature_flags.set_bit_with_mask (v, has_class_postcondition_mask)
+		ensure
+			has_immediate_class_postcondition_set: has_immediate_class_postcondition = v
+		end
+
+	set_has_immediate_non_object_call (v: BOOLEAN)
+			-- Set `has_immediate_non_object_call` to `v`.
+		do
+			feature_flags := feature_flags.set_bit_with_mask (v, has_non_object_call_mask)
+		ensure
+			has_immediate_non_object_call_set: has_immediate_non_object_call = v
+		end
+
+	set_has_immediate_non_object_call_in_assertion (v: BOOLEAN)
+			-- Set `has_immediate_non_object_call_in_assertion` to `v`.
+		do
+			feature_flags := feature_flags.set_bit_with_mask (v, has_non_object_call_in_assertion_mask)
+		ensure
+			has_immediate_non_object_call_in_assertion_set: has_immediate_non_object_call_in_assertion = v
+		end
+
+	set_has_immediate_unqualified_call_in_assertion (v: BOOLEAN)
+			-- Set `has_immediate_unqualified_call_in_assertion` to `v`.
+		do
+			feature_flags := feature_flags.set_bit_with_mask (v, has_unqualified_call_in_assertion_mask)
+		ensure
+			has_immediate_unqualified_call_in_assertion_set: has_immediate_unqualified_call_in_assertion = v
+		end
+
 	set_is_hidden_in_debugger_call_stack (v: BOOLEAN)
 			-- Set `is_hidden_in_debugger_call_stack' to `v'.
 		do
@@ -1121,6 +1090,7 @@ feature -- Incrementality
 				and then has_precondition = other.has_precondition
 				and then has_postcondition = other.has_postcondition
 				and then has_false_postcondition = other.has_false_postcondition
+				and then has_immediate_class_postcondition = other.has_immediate_class_postcondition
 				and then is_once = other.is_once
 				and then is_process_relative = other.is_process_relative
 				and then is_object_relative_once = other.is_object_relative_once
@@ -1258,10 +1228,13 @@ end
 						is_process_relative = other.is_process_relative and then
 						is_object_relative_once = other.is_object_relative_once
 
-				-- Of the same stability
+				-- Of the same stability.
 			Result := Result and then is_stable = other.is_stable
 
-				-- Of the same volatility
+				-- Of the same use of current object.
+			Result := Result and then is_class = other.is_class
+
+				-- Of the same volatility.
 			Result := Result and then is_transient = other.is_transient
 		end
 
@@ -1418,31 +1391,26 @@ feature -- Conveniences
 			validity: Result implies (is_constant or is_attribute or is_function)
 		end
 
+	has_code: BOOLEAN
+			-- Does the feature has its own or inherited code (in the form of assertions or body)?
+		do
+				-- False by default.
+		end
+
 	frozen is_il_external: BOOLEAN
 			-- Is current feature a C external one?
-		local
-			ext: IL_EXTENSION_I
-			l_const: CONSTANT_I
 		do
-			ext ?= extension
-			Result := ext /= Void
-			if not Result then
-				l_const ?= Current
-				if l_const /= Void then
-					Result := l_const.written_class.is_external
-				end
-			end
+			Result :=
+				attached {IL_EXTENSION_I} extension or else
+				attached {CONSTANT_I} Current as c and then c.written_class.is_external
 		ensure
 			not_is_c_external: Result implies not is_c_external
 		end
 
 	frozen is_c_external: BOOLEAN
 			-- Is current feature a C external one?
-		local
-			ext: EXTERNAL_EXT_I
 		do
-			ext := extension
-			Result := ext /= Void and then (not ext.is_il and not ext.is_built_in)
+			Result := attached extension as e and then (not e.is_il and not e.is_built_in)
 		ensure
 			not_is_il_external: Result implies not is_il_external
 		end
@@ -1486,24 +1454,86 @@ feature -- Conveniences
 			-- False by default
 		end
 
-	has_static_access: BOOLEAN
-			-- Can Current be access in a static manner?
-		local
-			l_ext: IL_EXTENSION_I
+	has_non_object_call: BOOLEAN
+			-- Is there a non-object call in the feature?
+			-- See also: `has_immediate_non_object_call`, `has_immediate_non_object_call_in_assertion`.
 		do
-			Result := is_constant
-			if not Result then
-				if System.il_generation then
-					l_ext ?= extension
-						 -- Static access only if it is a C external (l_ext = Void)
-						 -- or if IL external does not need an object.
-					Result :=
-						(l_ext = Void and (is_external and not has_assertion)) or
-						(l_ext /= Void and then not l_ext.need_current (l_ext.type))
-				else
-					Result := is_external and not has_assertion
-				end
-			end
+			Result :=
+				has_immediate_non_object_call or else
+				attached assert_id_set as a and then a.has_non_object_call
+		end
+
+	has_immediate_non_object_call: BOOLEAN
+			-- Is there a non-object call in the feature without taking inherited assertions into account?
+			-- See also: `set_immediate_has_non_object_call`, `has_immediate_non_object_call_in_assertion`.
+		do
+			Result := feature_flags & has_non_object_call_mask /= 0
+		end
+
+	has_immediate_non_object_call_in_assertion: BOOLEAN
+			-- Is there a non-object call in the immediate routine precondition or postcondition?
+			-- See also: `set_immediate_has_non_object_call_in_assertion`, `has_immediate_non_object_call`.
+		do
+			Result := feature_flags & has_non_object_call_in_assertion_mask /= 0
+		end
+
+	has_unqualified_call_in_assertion: BOOLEAN
+			-- Is there an unqualified call in the feature assertion?
+			-- See also: `has_immediate_unqualified_call_in_assertion`.
+		do
+			Result :=
+				has_immediate_unqualified_call_in_assertion or else
+				attached assert_id_set as a and then a.has_unqualified_call
+		end
+
+	has_immediate_unqualified_call_in_assertion: BOOLEAN
+			-- Is there an unqualfiied object call in the immediate routine precondition or postcondition?
+			-- See also: `set_has_immediate_unqualified_call_in_assertion`, `has_immediate_non_object_call_in_assertion`.
+		do
+			Result := feature_flags & has_unqualified_call_in_assertion_mask /= 0
+		end
+
+	has_immediate_class_postcondition: BOOLEAN
+			-- Does feature have an immediate class postcondition?
+			-- (There could also be inherited class postconditions not reported by this query.)
+			-- See also: `set_has_immediate_class_postcondition`, `has_class_postcondition`.
+		do
+			Result := feature_flags & has_class_postcondition_mask /= 0
+		end
+
+	has_class_postcondition: BOOLEAN
+			-- Does feature have a (immediate or inherited) class postcondition?
+			-- See also: `has_immediate_class_postcondition`, `is_class`.
+		do
+			Result :=
+				has_immediate_class_postcondition or else
+				attached assert_id_set as a and then a.has_class_postcondition or else
+				attached extension as e and then e.is_static and then not has_unqualified_call_in_assertion
+		end
+
+	frozen is_class: BOOLEAN
+			-- Is feature declared as a class one?
+			-- See also: `has_class_postcondition`, `is_target_free`.
+		do
+				-- A feature is a class one if it has a class postcondition.
+			Result := has_class_postcondition
+		ensure
+			true_if_has_immediate_class_postcondition: has_immediate_class_postcondition implies Result
+			true_if_has_inherited_class_postcondition: attached assert_id_set as a and then a.has_class_postcondition implies Result
+			true_if_safe_constant: is_constant and then not has_unqualified_call_in_assertion implies Result
+			true_if_safe_static_external: attached extension as e and then e.is_static and not has_unqualified_call_in_assertion implies Result
+		end
+
+	is_target_free: BOOLEAN
+			-- Does the feature depend on the target type of the call?
+			-- (It can be a class feature, but depend on the target type.)
+			-- See also: `is_class`.
+		do
+				-- IL externals have no unqualified calls if they do not need current object.
+			Result := attached extension as e and then e.is_static and then not has_unqualified_call_in_assertion
+		ensure
+			true_if_safe_constant: is_constant and then not has_unqualified_call_in_assertion implies Result
+			true_if_safe_static_external: attached extension as e and then e.is_static and not has_unqualified_call_in_assertion implies Result
 		end
 
 	frozen has_precondition: BOOLEAN
@@ -1532,10 +1562,18 @@ feature -- Conveniences
 				(attached assert_id_set as a and then a.has_false_postcondition)
 		end
 
-	has_assertion: BOOLEAN
-			-- Is feature declaring some pre or post conditions ?
+	has_printable_assertion: BOOLEAN
+			-- Is feature declaring some pre or post conditions that can be output?
 		do
-			Result := has_postcondition or else has_precondition
+			Result := has_postcondition or else has_precondition or else has_immediate_class_postcondition
+		end
+
+	has_combined_assertion: BOOLEAN
+			-- Does feature have combined precondition or combined postcondition?
+		do
+			Result :=has_precondition or else has_postcondition or else
+				attached assert_id_set as a and then
+					(a.has_precondition or else a.has_postcondition)
 		end
 
 	frozen is_require_else: BOOLEAN
@@ -1740,25 +1778,21 @@ feature -- Export checking
 		local
 			type_a: TYPE_A
 		do
-				-- Create the supplier set for the feature
-			type_a := type
-			if type_a /= Void then
-				if type_a.has_associated_class then
-					feat_depend.add_supplier (type_a.base_class)
+				-- Create the supplier set for the feature.
+			if attached type as t then
+				if t.has_associated_class then
+					feat_depend.add_supplier (t.base_class)
 				end
-				type_a.update_dependance (feat_depend)
+				t.update_dependance (feat_depend)
 			end
-			if has_arguments then
-				from
-					arguments.start
-				until
-					arguments.after
+			if attached arguments as a then
+				across
+					a as argument
 				loop
-					type_a := arguments.item
+					type_a := argument.item
 					if type_a.has_associated_class then
 						feat_depend.add_supplier (type_a.base_class)
 					end
-					arguments.forth
 				end
 			end
 		end
@@ -1840,12 +1874,6 @@ feature -- Check
 --		do
 --		end
 
-	check_local_names (a_body: BODY_AS)
-			-- Check conflicts between local names and feature names
-			-- for an unchanged feature
-		do
-		end
-
 feature -- IL code generation
 
 	generate_il
@@ -1864,40 +1892,43 @@ feature -- IL code generation
 
 	custom_attributes: BYTE_LIST [BYTE_NODE]
 			-- Custom attributes of Current if any.
-		local
-			byte_code: BYTE_CODE
 		do
-			if not is_attribute and not is_c_external and not is_il_external then
-				if Byte_server.has (body_index) then
-					byte_code := Byte_server.item (body_index)
-					Result := byte_code.custom_attributes
-				end
+			if
+				not is_attribute and
+				not is_c_external and
+				not is_il_external and then
+				Byte_server.has (body_index) and then
+				attached Byte_server.item (body_index) as byte_code
+			then
+				Result := byte_code.custom_attributes
 			end
 		end
 
 	class_custom_attributes: BYTE_LIST [BYTE_NODE]
 			-- Class custom attributes of Current if any.
-		local
-			byte_code: BYTE_CODE
 		do
-			if not is_attribute and then not is_external and then not is_il_external then
-				if Byte_server.has (body_index) then
-					byte_code := Byte_server.item (body_index)
-					Result := byte_code.class_custom_attributes
-				end
+			if
+				not is_attribute and then
+				not is_external and then
+				not is_il_external and then
+				Byte_server.has (body_index) and then
+				attached Byte_server.item (body_index) as byte_code
+			then
+				Result := byte_code.class_custom_attributes
 			end
 		end
 
 	interface_custom_attributes: BYTE_LIST [BYTE_NODE]
 			-- Interface custom attributes of Current if any.
-		local
-			byte_code: BYTE_CODE
 		do
-			if not is_attribute and then not is_external and then not is_il_external then
-				if Byte_server.has (body_index) then
-					byte_code := Byte_server.item (body_index)
-					Result := byte_code.interface_custom_attributes
-				end
+			if
+				not is_attribute and then
+				not is_external and then
+				not is_il_external and then
+				Byte_server.has (body_index) and then
+				attached Byte_server.item (body_index) as byte_code
+			then
+				Result := byte_code.interface_custom_attributes
 			end
 		end
 
@@ -2171,29 +2202,36 @@ feature -- Signature checking
 					-- We do `i + 1' for the start index because we need to go
 					-- one step further (+ 1)
 				if args.argument_position_id (arg_id, i + 1) /= 0 then
-						-- Two arguments with the same name
+						-- Two arguments with the same name.
 					create vreg
 					vreg.set_class (written_class)
 					vreg.set_feature (Current)
 					vreg.set_entity_name (Names_heap.item (arg_id))
+					if attached argument_ast (args.argument_position_id (arg_id, i + 1)) as location then
+						vreg.set_location (location)
+					end
 					Error_handler.insert_error (vreg)
 				end
-				feat_table.search_id (arg_id)
-				if feat_table.found then
-						-- An argument name is a feature name of the feature
-						-- table.
+				if feat_table.has_id (arg_id) then
+						-- An argument name is a feature name of the feature table.
 					create vrfa
 					vrfa.set_class (written_class)
 					vrfa.set_feature (Current)
 					vrfa.set_other_feature (feat_table.found_item)
+					if attached argument_ast (i) as location then
+						vrfa.set_location (location)
+					end
 					Error_handler.insert_error (vrfa)
 				end
 				if context.is_name_used (arg_id) then
-						-- An argument name is an argument name of an enclosing feature
+						-- An argument name is an argument name of an enclosing feature.
 					create vpir
 					vpir.set_entity_name (arg_id)
 					vpir.set_class (written_class)
 					vpir.set_feature (Current)
+					if attached argument_ast (i) as location then
+						vpir.set_location (location)
+					end
 					Error_handler.insert_error (vpir)
 				end
 
@@ -2223,117 +2261,6 @@ feature -- Signature checking
 				)
 			end
 		end
-
-feature {NONE} -- Signature checking
-
-	do_check_types (feat_table: FEATURE_TABLE; is_delayed: BOOLEAN)
-			-- Check type and arguments types. The objective is
-			-- to deal with anchored types and genericity. All anchored
-			-- types are interpreted here and generic parameter
-			-- instantiated if possible. `is_delayed' tells if type
-			-- checking may be delayed because not all feature tables
-			-- are computed.
-			-- Make sure that `context' is already initialized for `feat_table' before calling.
-		require
-			feat_table_attached: attached feat_table
-			is_context_initialized_for_feat_table:
-				context.current_class = feat_table.associated_class
-		local
-			vffd5: VFFD5
-			vffd6: VFFD6
-			vffd7: VFFD7
-			l_class: CLASS_C
-			l_error_level: NATURAL_32
-			is_immediate: BOOLEAN
-			l_area: SPECIAL [TYPE_A]
-			nb, i: INTEGER
-		do
-			l_class := feat_table.associated_class
-			context.set_current_feature (Current)
-				-- Process an actual type for the feature interpret
-				-- anchored types.
-			type_a_checker.init_with_feature_table (Current, feat_table, error_handler)
-			type_a_checker.set_is_delayed (is_delayed)
-			set_is_type_evaluation_delayed (False)
-
-			l_error_level := error_handler.error_level
-			if attached type_a_checker.check_and_solved (type, Void) as solved_type then
-				set_type (solved_type, assigner_name_id)
-					-- Instantitate the feature type in the context of the
-					-- actual type of the class associated to `feat_table'.
-
-				if
-					(is_once and then not is_object_relative_once and not is_constant) and then
-					not solved_type.is_standalone
-				then
-						-- A (non-object-relative) once function cannot have a type with formal generics
-						-- and/or (flexible) anchors.
-					create vffd7
-					vffd7.set_class (written_class)
-					vffd7.set_feature_name (feature_name)
-					Error_handler.insert_error (vffd7)
-				end
-
-				if is_once and then system.is_scoop and then is_process_relative and then not solved_type.is_void and then not solved_type.is_separate and then not solved_type.is_expanded then
-					Error_handler.insert_error (create {VFFD8}.make (Current))
-				end
-
-				if
-					is_infix and then
-					((argument_count /= 1) or else (solved_type.is_void))
-				then
-						-- Infixed features should have only one argument
-						-- and must have a return type.
-					create vffd6
-					vffd6.set_class (written_class)
-					vffd6.set_feature_name (feature_name)
-					Error_handler.insert_error (vffd6)
-				end
-				if
-					is_prefix and then
-					((argument_count /= 0) or else (solved_type.is_void))
-				then
-						-- Prefixed features shouldn't have any argument
-						-- and must have a return type.
-					create vffd5
-					vffd5.set_class (written_class)
-					vffd5.set_feature_name (feature_name)
-					Error_handler.insert_error (vffd5)
-				end
-
-				if l_class.class_id = written_in then
-					is_immediate := True
-					type_a_checker.check_type_validity (solved_type, Void)
-					solved_type.check_for_obsolete_class (l_class, Current)
-				end
-			elseif is_delayed then
-				set_is_type_evaluation_delayed (l_error_level = error_handler.error_level)
-			end
-			if attached arguments as a then
-					-- Check types of arguments.
-				from
-					l_area := a.area
-					nb := a.count
-				until
-					i = nb
-				loop
-						-- Process type of an argument.
-					l_error_level := error_handler.error_level
-					if attached type_a_checker.check_and_solved (l_area.item (i), Void) as t then
-						l_area.put (t, i)
-						if is_immediate then
-							type_a_checker.check_type_validity (t, Void)
-							t.check_for_obsolete_class (l_class, Current)
-						end
-					elseif is_delayed then
-						set_is_type_evaluation_delayed (l_error_level = error_handler.error_level)
-					end
-					i := i + 1
-				end
-			end
-		end
-
-feature -- Signature checking
 
 	nested_check_types (c: CLASS_C)
 			--
@@ -2434,7 +2361,7 @@ end
 
 					-- `set_type' has been called in `check_types' so
 					-- the reverse assignment is valid.
-				solved_type ?= type.actual_type
+				solved_type := type.actual_type
 				if solved_type.has_expanded then
 					if solved_type.expanded_deferred then
 						create {VTEC1} vtec
@@ -2681,10 +2608,10 @@ end
 				-- `old_type' is the instantiated inherited type in the
 				-- context of the class where the join takes place:
 				-- i.e the class relative to `access_in'.
-			old_type ?= old_feature.type
+			old_type := old_feature.type
 				-- `new_type' is the actual type of the join already
 				-- instantiated
-			new_type ?= type
+			new_type := type
 			if not new_type.is_safe_equivalent (old_type) then
 				create vdjr1
 				vdjr1.init (old_feature, Current)
@@ -2703,8 +2630,8 @@ end
 				until
 					i > arg_count
 				loop
-					old_type ?= old_arguments.i_th (i)
-					new_type ?= arguments.i_th (i)
+					old_type := old_arguments.i_th (i)
+					new_type := arguments.i_th (i)
 					if not new_type.is_safe_equivalent (old_type) then
 						create vdjr2
 						vdjr2.init (old_feature, Current)
@@ -2758,7 +2685,7 @@ end
 			i, arg_count: INTEGER
 			old_arguments: like arguments
 		do
-			old_type ?= old_feature.type
+			old_type := old_feature.type
 			old_type := old_type.actual_argument_type (special_arguments).
 				instantiation_in (a_written_type, a_written_type.class_id).actual_type
 
@@ -2775,7 +2702,7 @@ end
 			until
 				i > arg_count
 			loop
-				old_type ?= old_arguments.i_th (i)
+				old_type := old_arguments.i_th (i)
 				old_type := old_type.actual_argument_type (special_arguments).
 					instantiation_in (a_written_type, a_written_type.class_id).actual_type
 
@@ -2792,12 +2719,25 @@ end
 			-- | Take care of possible anchored types
 		local
 			l_solved_type: TYPE_A
+			l_area: SPECIAL [TYPE_A]
+			i, nb: INTEGER
 		do
-			l_solved_type := Result_evaluator.evaluated_type (type, feat_tbl, Current)
+			type_a_checker.init_with_feature_table (Current, feat_tbl, error_handler)
+			l_solved_type := type_a_checker.check_and_solved (type, Void)
 			check l_solved_type_not_void: l_solved_type /= Void end
 			set_type (l_solved_type, assigner_name_id)
-			if arguments /= Void then
-				arguments.solve_types (feat_tbl, Current)
+			if attached arguments as a then
+				from
+					l_area := a.area
+					nb := a.count
+				until
+					i = nb
+				loop
+					l_solved_type := type_a_checker.check_and_solved (l_area [i], Void)
+					check l_solved_type_not_void: l_solved_type /= Void end
+					l_area.put (l_solved_type, i)
+					i := i + 1
+				end
 			end
 		end
 
@@ -2809,17 +2749,17 @@ end
 		local
 			i, nb: INTEGER
 		do
-			Result := type.is_safe_equivalent (other.type)
-			from
-				nb := argument_count
-				Result := Result and then nb = other.argument_count
-				nb := argument_count
-				i := 1
-			until
-				i > nb or else not Result
-			loop
-				Result := arguments.i_th (i).is_safe_equivalent (other.arguments.i_th (i))
-				i := i + 1
+			if type.is_safe_equivalent (other.type) then
+				from
+					nb := argument_count
+					Result := nb = other.argument_count
+					i := 1
+				until
+					i > nb or else not Result
+				loop
+					Result := arguments.i_th (i).is_safe_equivalent (other.arguments.i_th (i))
+					i := i + 1
+				end
 			end
 		end
 
@@ -2990,6 +2930,130 @@ end
 			end
 		end
 
+feature {NONE} -- Signature checking
+
+	do_check_types (feat_table: FEATURE_TABLE; is_delayed: BOOLEAN)
+			-- Check type and arguments types. The objective is
+			-- to deal with anchored types and genericity. All anchored
+			-- types are interpreted here and generic parameter
+			-- instantiated if possible. `is_delayed' tells if type
+			-- checking may be delayed because not all feature tables
+			-- are computed.
+			-- Make sure that `context' is already initialized for `feat_table' before calling.
+		require
+			feat_table_attached: attached feat_table
+			is_context_initialized_for_feat_table:
+				context.current_class = feat_table.associated_class
+		local
+			vffd5: VFFD5
+			vffd6: VFFD6
+			vffd7: VFFD7
+			l_class: CLASS_C
+			l_error_level: NATURAL_32
+			is_immediate: BOOLEAN
+			l_area: SPECIAL [TYPE_A]
+			nb, i: INTEGER
+		do
+			l_class := feat_table.associated_class
+			context.set_current_feature (Current)
+				-- Process an actual type for the feature interpret
+				-- anchored types.
+			type_a_checker.init_with_feature_table (Current, feat_table, error_handler)
+			type_a_checker.set_is_delayed (is_delayed)
+			set_is_type_evaluation_delayed (False)
+
+			l_error_level := error_handler.error_level
+			if attached type_a_checker.check_and_solved (type, Void) as solved_type then
+				set_type (solved_type, assigner_name_id)
+					-- Instantitate the feature type in the context of the
+					-- actual type of the class associated to `feat_table'.
+
+				if
+					(is_once and then not is_object_relative_once and not is_constant) and then
+					not solved_type.is_standalone
+				then
+						-- A (non-object-relative) once function cannot have a type with formal generics
+						-- and/or (flexible) anchors.
+					create vffd7
+					vffd7.set_class (written_class)
+					vffd7.set_feature_name (feature_name)
+					Error_handler.insert_error (vffd7)
+				end
+
+				if is_once and then system.is_scoop and then is_process_relative and then not solved_type.is_void and then not solved_type.is_separate and then not solved_type.is_expanded then
+					Error_handler.insert_error (create {VFFD8}.make (Current))
+				end
+
+				if
+					is_infix and then
+					((argument_count /= 1) or else (solved_type.is_void))
+				then
+						-- Infixed features should have only one argument
+						-- and must have a return type.
+					create vffd6
+					vffd6.set_class (written_class)
+					vffd6.set_feature_name (feature_name)
+					Error_handler.insert_error (vffd6)
+				end
+				if
+					is_prefix and then
+					((argument_count /= 0) or else (solved_type.is_void))
+				then
+						-- Prefixed features shouldn't have any argument
+						-- and must have a return type.
+					create vffd5
+					vffd5.set_class (written_class)
+					vffd5.set_feature_name (feature_name)
+					Error_handler.insert_error (vffd5)
+				end
+
+				if l_class.class_id = written_in then
+					is_immediate := True
+					type_a_checker.check_type_validity (solved_type, Void)
+					solved_type.check_for_obsolete_class (l_class, Current)
+				end
+			elseif is_delayed then
+				set_is_type_evaluation_delayed (l_error_level = error_handler.error_level)
+			end
+			if attached arguments as a then
+					-- Check types of arguments.
+				from
+					l_area := a.area
+					nb := a.count
+				until
+					i = nb
+				loop
+						-- Process type of an argument.
+					l_error_level := error_handler.error_level
+					if attached type_a_checker.check_and_solved (l_area.item (i), Void) as t then
+						l_area.put (t, i)
+						if is_immediate then
+							type_a_checker.check_type_validity (t, Void)
+							t.check_for_obsolete_class (l_class, Current)
+						end
+					elseif is_delayed then
+						set_is_type_evaluation_delayed (l_error_level = error_handler.error_level)
+					end
+					i := i + 1
+				end
+			end
+		end
+
+feature {NONE} -- AST evaluation
+
+	argument_ast (n: INTEGER): detachable LEAF_AS
+			-- AST node of an argument of number `n` if available, `Void` otherwise.
+		do
+			if
+				attached match_list_server.item (written_in) as match_list and then
+				attached real_body as body_ast and then
+				attached body_ast.argument_index (n) as argument_index and then
+				match_list.valid_index (argument_index)
+			then
+				Result := match_list [argument_index]
+			end
+		end
+
 feature -- Undefinition
 
 	new_deferred_anchor: DEF_PROC_I
@@ -3027,7 +3091,11 @@ feature -- Undefinition
 			Result.set_body_index (body_index)
 			Result.set_has_precondition (has_precondition)
 			Result.set_has_postcondition (has_postcondition)
+			Result.set_has_immediate_class_postcondition (has_immediate_class_postcondition)
 			Result.set_has_false_postcondition (has_false_postcondition)
+			Result.set_has_immediate_non_object_call (has_immediate_non_object_call)
+			Result.set_has_immediate_non_object_call_in_assertion (has_immediate_non_object_call_in_assertion)
+			Result.set_has_immediate_unqualified_call_in_assertion (has_immediate_unqualified_call_in_assertion)
 			Result.set_is_bracket (is_bracket)
 			Result.set_is_parentheses (is_parentheses)
 			Result.set_is_binary (is_binary)
@@ -3152,6 +3220,10 @@ feature -- Replication
 			other.set_has_convert_mark (has_convert_mark)
 			other.set_has_replicated_ast (has_replicated_ast)
 			other.set_is_stable (is_stable)
+			other.set_has_immediate_class_postcondition (has_immediate_class_postcondition)
+			other.set_has_immediate_non_object_call (has_immediate_non_object_call)
+			other.set_has_immediate_non_object_call_in_assertion (has_immediate_non_object_call_in_assertion)
+			other.set_has_immediate_unqualified_call_in_assertion (has_immediate_unqualified_call_in_assertion)
 			other.set_is_hidden_in_debugger_call_stack (is_hidden_in_debugger_call_stack)
 			other.set_body_index (body_index)
 			other.set_is_type_evaluation_delayed (is_type_evaluation_delayed)
@@ -3267,7 +3339,7 @@ feature -- Byte code access
 		require
 			access_type_not_void: access_type /= Void
 		do
-			Result := access_for_feature (access_type, Void, is_qualified, is_separate)
+			Result := access_for_feature (access_type, Void, is_qualified, is_separate, False)
 		ensure
 			Result_exists: Result /= Void
 		end
@@ -3286,12 +3358,14 @@ feature -- Byte code access
 			Result_exists: Result /= Void
 		end
 
-	access_for_feature (access_type: TYPE_A; static_type: TYPE_A; is_qualified: BOOLEAN; is_separate: BOOLEAN): ACCESS_B
+	access_for_feature (access_type: TYPE_A; static_type: TYPE_A; is_qualified: BOOLEAN; is_separate: BOOLEAN; is_free: BOOLEAN): ACCESS_B
 			-- Byte code access for current feature. Dynamic binding if
 			-- `static_type' is Void, otherwise static binding on `static_type'.
+			-- • is_free – Is the access instance-free?
 		require
 			access_type_not_void: access_type /= Void
-			is_separate_meaningful: -- is_separate implies (is_qualified or is_creation) -- Creation calls are not marked as qualified.
+			-- is_separate_meaningful: is_separate implies (is_qualified or is_creation) -- Creation calls are not marked as qualified.
+			valid_is_instance_free_call: is_free implies (is_class or else system.absent_explicit_assertion)
 		local
 			is_in_op: BOOLEAN
 			l_type: TYPE_A
@@ -3318,9 +3392,9 @@ feature -- Byte code access
 			if Result = Void then
 				if written_in = System.any_id then
 						-- Feature written in ANY.
-					create {ANY_FEATURE_B} Result.make (Current, l_type, static_type)
+					create {ANY_FEATURE_B} Result.make (Current, l_type, static_type, is_free)
 				else
-					create {FEATURE_B} Result.make (Current, l_type, static_type)
+					create {FEATURE_B} Result.make (Current, l_type, static_type, is_free)
 				end
 			end
 		ensure
@@ -3486,8 +3560,6 @@ feature -- Api creation
 			-- API representation of Current
 		require
 			a_class_id_positive: a_class_id > 0
-		local
-			e_routine: E_ROUTINE
 		do
 			Result := new_api_feature
 			Result.set_written_feature_id (written_feature_id)
@@ -3502,15 +3574,60 @@ feature -- Api creation
 			Result.set_rout_id_set (rout_id_set)
 			Result.set_is_il_external (is_il_external)
 			if is_inline_agent then
-				e_routine ?= Result
-				e_routine.set_enclosing_body_id (enclosing_body_id)
-				e_routine.set_inline_agent_nr (inline_agent_nr)
+				if attached {E_ROUTINE} Result as r then
+					r.set_enclosing_body_id (enclosing_body_id)
+					r.set_inline_agent_nr (inline_agent_nr)
+				else
+					check
+						correct_result: False
+					end
+				end
 			end
 		end
 
+feature {FEATURE_I} -- Feature flags
+
+	is_frozen_mask: NATURAL_64 =					0x0000_0001
+	is_origin_mask: NATURAL_64 =					0x0000_0002
+	is_empty_mask: NATURAL_64 =						0x0000_0004
+	is_infix_mask: NATURAL_64 =						0x0000_0008
+	is_prefix_mask: NATURAL_64 =					0x0000_0010
+	is_require_else_mask: NATURAL_64 =				0x0000_0020
+	is_ensure_then_mask: NATURAL_64 =				0x0000_0040
+	has_precondition_mask: NATURAL_64 =				0x0000_0080
+	has_postcondition_mask: NATURAL_64 =			0x0000_0100
+	is_bracket_mask: NATURAL_64 =					0x0000_0200
+	is_binary_mask: NATURAL_64 =					0x0000_0400
+	is_unary_mask: NATURAL_64 =						0x0000_0800
+	has_convert_mark_mask: NATURAL_64 =				0x0000_1000
+	has_property_mask: NATURAL_64 =					0x0000_2000
+	has_property_getter_mask: NATURAL_64 =			0x0000_4000
+	has_property_setter_mask: NATURAL_64 =			0x0000_8000
+	is_fake_inline_agent_mask: NATURAL_64 =			0x0001_0000
+	has_rescue_clause_mask: NATURAL_64 =			0x0002_0000
+	is_export_status_none_mask: NATURAL_64 =		0x0004_0000
+	has_function_origin_mask: NATURAL_64 =			0x0008_0000 -- Used in ATTRIBUTE_I
+	has_replicated_ast_mask: NATURAL_64 =			0x0010_0000
+	has_body_mask: NATURAL_64 =						0x0020_0000 -- Used in ATTRIBUTE_I
+	is_replicated_directly_mask: NATURAL_64 = 		0x0040_0000
+	from_non_conforming_parent_mask: NATURAL_64 = 	0x0080_0000
+	is_selected_mask: NATURAL_64 = 					0x0100_0000
+	is_stable_mask: NATURAL_64 = 					0x0200_0000 -- Used in ATTRIBUTE_I
+	is_transient_mask: NATURAL_64 = 				0x0400_0000 -- Used in ATTRIBUTE_I
+	is_hidden_mask: NATURAL_64 = 					0x0800_0000 -- Used in ATTRIBUTE_I
+	is_type_evaluation_delayed_mask: NATURAL_64 =	0x1000_0000
+	has_false_postcondition_mask: NATURAL_64 =      0x2000_0000
+	is_hidden_in_debugger_call_stack_mask: NATURAL_64 = 0x4000_0000
+	is_parentheses_mask: NATURAL_64 =					0x8000_0000
+	has_class_postcondition_mask: NATURAL_64 =				0x0001_0000_0000
+	has_non_object_call_mask: NATURAL_64 =				0x0002_0000_0000
+	has_non_object_call_in_assertion_mask: NATURAL_64 =				0x0004_0000_0000
+	has_unqualified_call_in_assertion_mask: NATURAL_64 =				0x0008_0000_0000
+			-- Mask used for each feature property.
+
 feature {FEATURE_I} -- Implementation
 
-	feature_flags: NATURAL_32
+	feature_flags: NATURAL_64
 			-- Property of Current feature, i.e. frozen,
 			-- infix, origin, prefix, selected...
 
@@ -3520,40 +3637,6 @@ feature {FEATURE_I} -- Implementation
 		ensure
 			non_void_result: Result /= Void
 		end
-
-	is_frozen_mask: NATURAL_32 =					0x0000_0001
-	is_origin_mask: NATURAL_32 =					0x0000_0002
-	is_empty_mask: NATURAL_32 =						0x0000_0004
-	is_infix_mask: NATURAL_32 =						0x0000_0008
-	is_prefix_mask: NATURAL_32 =					0x0000_0010
-	is_require_else_mask: NATURAL_32 =				0x0000_0020
-	is_ensure_then_mask: NATURAL_32 =				0x0000_0040
-	has_precondition_mask: NATURAL_32 =				0x0000_0080
-	has_postcondition_mask: NATURAL_32 =			0x0000_0100
-	is_bracket_mask: NATURAL_32 =					0x0000_0200
-	is_binary_mask: NATURAL_32 =					0x0000_0400
-	is_unary_mask: NATURAL_32 =						0x0000_0800
-	has_convert_mark_mask: NATURAL_32 =				0x0000_1000
-	has_property_mask: NATURAL_32 =					0x0000_2000
-	has_property_getter_mask: NATURAL_32 =			0x0000_4000
-	has_property_setter_mask: NATURAL_32 =			0x0000_8000
-	is_fake_inline_agent_mask: NATURAL_32 =			0x0001_0000
-	has_rescue_clause_mask: NATURAL_32 =			0x0002_0000
-	is_export_status_none_mask: NATURAL_32 =		0x0004_0000
-	has_function_origin_mask: NATURAL_32 =			0x0008_0000 -- Used in ATTRIBUTE_I
-	has_replicated_ast_mask: NATURAL_32 =			0x0010_0000
-	has_body_mask: NATURAL_32 =						0x0020_0000 -- Used in ATTRIBUTE_I
-	is_replicated_directly_mask: NATURAL_32 = 		0x0040_0000
-	from_non_conforming_parent_mask: NATURAL_32 = 	0x0080_0000
-	is_selected_mask: NATURAL_32 = 					0x0100_0000
-	is_stable_mask: NATURAL_32 = 					0x0200_0000 -- Used in ATTRIBUTE_I
-	is_transient_mask: NATURAL_32 = 				0x0400_0000 -- Used in ATTRIBUTE_I
-	is_hidden_mask: NATURAL_32 = 					0x0800_0000 -- Used in ATTRIBUTE_I
-	is_type_evaluation_delayed_mask: NATURAL_32 =	0x1000_0000
-	has_false_postcondition_mask: NATURAL_32 =      0x2000_0000
-	is_hidden_in_debugger_call_stack_mask: NATURAL_32 = 0x4000_0000
-	is_parentheses_mask: NATURAL_32 =					0x8000_0000
-			-- Mask used for each feature property.
 
 	internal_export_status: like export_status
 			-- Internal export status object. When it is ANY or NONE
@@ -3606,7 +3689,10 @@ invariant
 	valid_inline_agent_nr: is_inline_agent implies inline_agent_nr > 0 or is_fake_inline_agent
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	ca_ignore:
+		"CA033", "CA033 — very long class",
+		"CA082", "CA082 — missing redeclaration of `is_equal`"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

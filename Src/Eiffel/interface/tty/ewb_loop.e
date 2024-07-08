@@ -1,4 +1,4 @@
-note
+﻿note
 
 	description:
 		"Batch compiler invoked by the -loop option.%
@@ -185,18 +185,18 @@ feature -- Initialization
 			c_menu_not_void: Result /= Void
 		end
 
-	menu_commands: ARRAY [EWB_MENU]
+	menu_commands: ARRAYED_LIST [EWB_MENU]
 			-- Menu commands
 		once
-			create Result.make (1, 8)
-			Result.put (main_menu, 1)
-			Result.put (system_menu, 2)
-			Result.put (class_menu, 3)
-			Result.put (feature_menu, 4)
-			Result.put (compile_menu, 5)
-			Result.put (profile_menu, 6)
-			Result.put (documentation_menu, 7)
-			Result.put (switches_menu, 8)
+			create Result.make (8)
+			Result.force (main_menu)
+			Result.force (system_menu)
+			Result.force (class_menu)
+			Result.force (feature_menu)
+			Result.force (compile_menu)
+			Result.force (profile_menu)
+			Result.force (documentation_menu)
+			Result.force (switches_menu)
 		ensure
 			menu_commands_not_void: menu_commands /= Void
 		end
@@ -320,7 +320,6 @@ feature -- Update
 			next_cmd: EWB_CMD
 			menu, option : STRING
 			dot_place: INTEGER
-			main_menu_option: EWB_STRING
 			menu_abb : CHARACTER
 		do
 			last_request_cmd := Void
@@ -342,13 +341,7 @@ feature -- Update
 			 	end
 				option := req.substring (dot_place+1, req.count)
 				next_cmd := main_menu.option_item (menu)
-				if next_cmd /= Void then
-					main_menu_option ?= next_cmd
-					menu_command_list := main_menu_option.sub_menu
-					if not option.is_empty then
-						process_request (option)
-					end
-				else
+				if not attached next_cmd then
 					if menu.is_equal (quit_cmd_name) or menu_abb = quit_abb then
 						last_request_abb := quit_abb
 					elseif menu.is_equal (yank_cmd_name) or menu_abb = yank_abb then
@@ -370,6 +363,11 @@ feature -- Update
 					else
 						localized_print (ewb_names.unknow_menu (menu))
 					end
+				elseif attached {EWB_STRING} next_cmd as main_menu_option then
+					menu_command_list := main_menu_option.sub_menu
+					if not option.is_empty then
+						process_request (option)
+					end
 				end
 			else
 				next_cmd := menu_command_list.option_item(req)
@@ -377,12 +375,9 @@ feature -- Update
 					menu_abb := req.item(1)
 				end
 				if next_cmd /= Void then
-					main_menu_option ?= next_cmd
-					if main_menu_option /= Void then
-
+					if attached {EWB_STRING} next_cmd as main_menu_option then
 							-- Since {EWB_STRING} are also commands, we execute them before displaying the menu.
 						main_menu_option.loop_action
-
 						menu_command_list := main_menu_option.sub_menu
 						display_commands
 					else
@@ -435,8 +430,7 @@ feature -- Command loop
 				-- Set the output window to yank_window
 			set_output_window (yank_window)
 			from
-				if menu_commands = Void then end
-				menu_command_list := menu_commands.item (1)
+				menu_command_list := menu_commands.first
 				display_header
 				display_commands
 			until
@@ -453,7 +447,7 @@ feature -- Command loop
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -484,4 +478,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EWB_LOOP
+end

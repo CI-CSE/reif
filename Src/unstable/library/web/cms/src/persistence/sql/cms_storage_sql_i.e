@@ -138,6 +138,36 @@ feature -- Operation
 		deferred
 		end
 
+	sql_delete (a_sql_statement: STRING; a_params: detachable STRING_TABLE [detachable ANY])
+			-- Execute sql delete `a_sql_statement' with optional parameters `a_params'.
+		deferred
+		end
+
+	sql_finalize_query (a_sql_statement: STRING)
+		do
+			sql_finalize_statement (a_sql_statement)
+		end
+
+	sql_finalize_insert (a_sql_statement: STRING)
+		do
+			sql_finalize_statement (a_sql_statement)
+		end
+
+	sql_finalize_modify (a_sql_statement: STRING)
+		do
+			sql_finalize_statement (a_sql_statement)
+		end
+
+	sql_finalize_delete (a_sql_statement: STRING)
+		do
+			sql_finalize_statement (a_sql_statement)
+		end
+
+	sql_finalize_statement (a_sql_statement: STRING)
+		do
+			sql_finalize
+		end
+
 feature -- Helper
 
 	sql_script_content (a_path: PATH): detachable STRING
@@ -175,7 +205,9 @@ feature -- Helper
 		local
 			i: INTEGER
 			err: BOOLEAN
+			err_msg: STRING_32
 			cl: CELL [INTEGER]
+			l_sql: STRING
 		do
 			reset_error
 			sql_begin_transaction
@@ -189,12 +221,23 @@ feature -- Helper
 			loop
 				if attached next_sql_statement (a_sql_script, i, cl) as s then
 					if not s.is_whitespace then
+						l_sql := sql_statement (s)
 						if s.starts_with ("INSERT") then
-							sql_insert (sql_statement (s), a_params)
+							sql_insert (l_sql, a_params)
+							sql_finalize_insert (l_sql)
 						else
-							sql_modify (sql_statement (s), a_params)
+							sql_modify (l_sql, a_params)
+							sql_finalize_modify (l_sql)
 						end
-						err := err or has_error
+						if has_error then
+							if err_msg = Void then
+								create err_msg.make_empty
+							else
+								err_msg.append_character ('%N')
+							end
+							err_msg.append (error_handler.as_string_representation)
+							err := True
+						end
 						reset_error
 					end
 					i := i + cl.item
@@ -204,35 +247,41 @@ feature -- Helper
 			end
 			if err then
 				sql_rollback_transaction
+				error_handler.add_custom_error (-1, "execute_sql_script error", err_msg)
 			else
 				sql_commit_transaction
 			end
-			sql_finalize
 		end
 
 	sql_table_exists (a_table_name: READABLE_STRING_8): BOOLEAN
 			-- Does table `a_table_name' exists?
+		local
+			l_sql: STRING
 		do
 			reset_error
-			sql_query ("SELECT count(*) FROM " + a_table_name + " ;", Void)
+			l_sql := "SELECT count(*) FROM " + a_table_name + " ;"
+			sql_query (l_sql, Void)
 			Result := not has_error
 				-- FIXME: find better solution
-			sql_finalize
+			sql_finalize_query (l_sql)
 			reset_error
 		end
 
 	sql_table_items_count (a_table_name: READABLE_STRING_8): INTEGER_64
 			-- Number of items in table `a_table_name'?
+		local
+			l_sql: STRING
 		do
 			reset_error
-			sql_query ("SELECT count(*) FROM " + a_table_name + " ;", Void)
+			l_sql := "SELECT count(*) FROM " + a_table_name + " ;"
+			sql_query (l_sql, Void)
 			if not has_error then
 				Result := sql_read_integer_64 (1)
 			end
-			sql_finalize
+			sql_finalize_query (l_sql)
 		end
 
-feature -- Access		
+feature -- Access
 
 	sql_start
 			-- Set the cursor on first element.
@@ -242,7 +291,7 @@ feature -- Access
 		end
 
 	sql_after: BOOLEAN
-			-- Are there no more items to iterate over?	
+			-- Are there no more items to iterate over?
 		require
 			no_error: not has_error
 		deferred
@@ -462,6 +511,6 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

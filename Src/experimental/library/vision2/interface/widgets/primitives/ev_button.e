@@ -46,9 +46,6 @@ inherit
 		end
 
 	EV_BUTTON_ACTION_SEQUENCES
-		redefine
-			implementation
-		end
 
 create
 	default_create,
@@ -58,7 +55,7 @@ create
 feature {NONE} -- Initialization
 
 	make_with_text_and_action
-		(a_text: READABLE_STRING_GENERAL; an_action: PROCEDURE [ANY, TUPLE])
+		(a_text: READABLE_STRING_GENERAL; an_action: PROCEDURE)
 			-- Create with 'a_text' as `text' and `an_action' in `select_actions'.
 		require
 			text_not_void: a_text /= Void
@@ -144,14 +141,14 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2014, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 

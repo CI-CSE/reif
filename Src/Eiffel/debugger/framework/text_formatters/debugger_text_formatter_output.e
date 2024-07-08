@@ -331,11 +331,9 @@ feature -- Call stack
 			-- Display the arguments passed to the routine
 			-- associated with Current call.
 		local
-			ecse: EIFFEL_CALL_STACK_ELEMENT
 			args_list: LIST [ABSTRACT_DEBUG_VALUE]
 		do
-			ecse ?= cse
-			if ecse /= Void then
+			if attached {EIFFEL_CALL_STACK_ELEMENT} cse as ecse then
 				args_list := ecse.arguments
 				if args_list /= Void then
 					from
@@ -358,15 +356,13 @@ feature -- Call stack
 			-- Display the local entities and result (if it exists) of
 			-- the routine associated with Current call.
 		local
-			ecse: EIFFEL_CALL_STACK_ELEMENT
 			resval: ABSTRACT_DEBUG_VALUE
 
 			local_names: SORTED_TWO_WAY_LIST [ABSTRACT_DEBUG_VALUE]
 			local_decl_grps: EIFFEL_LIST [LIST_DEC_AS]
 			locals_list: LIST [ABSTRACT_DEBUG_VALUE]
 		do
-			ecse ?= cse
-			if ecse /= Void then
+			if attached {EIFFEL_CALL_STACK_ELEMENT} cse as ecse then
 				locals_list := ecse.locals
 				resval := ecse.result_value
 
@@ -411,17 +407,17 @@ feature -- Call stack
 	append_feature (cse: CALL_STACK_ELEMENT; st: TEXT_FORMATTER)
 			-- Display information about associated routine.
 		local
-			ecse: EIFFEL_CALL_STACK_ELEMENT
-			c, oc	: CLASS_C
+			ecse: detachable EIFFEL_CALL_STACK_ELEMENT
+			c, oc: CLASS_C
 			last_pos: INTEGER
 			oaddr: STRING
 			s: STRING
 		do
 			oaddr := cse.object_address_to_string
-			ecse ?= cse
-			if ecse /= Void then
-				c := ecse.dynamic_class
-				oc := ecse.written_class
+			if attached {EIFFEL_CALL_STACK_ELEMENT} cse as l_ecse then
+				ecse := l_ecse
+				c := l_ecse.dynamic_class
+				oc := l_ecse.written_class
 			end
 
 				-- Print object address (14 characters)
@@ -446,9 +442,9 @@ feature -- Call stack
 				c.append_name (st)
 				st.add_string (" ")
 				last_pos := c.name.count + 14
-			elseif cse.class_name /= Void then
-				st.add_string (cse.class_name)
-				last_pos := cse.class_name.count + 14
+			elseif attached cse.class_name as l_class_name then
+				st.add_string (l_class_name)
+				last_pos := l_class_name.count + 14
 			else
 				st.add_string ("NOT FOUND ")
 				last_pos := 9 + 14
@@ -550,8 +546,13 @@ feature {NONE} -- append_to implementation
 				l_cursor := l_items.new_cursor
 				if l_items.count /= 0 then
 					l_cursor.start
-					char_value ?= l_cursor.item
-					is_special_of_char := char_value /= Void
+					if attached {CHARACTER_VALUE} l_cursor.item as cv then
+						char_value := cv
+						is_special_of_char := True
+					else
+						char_value := Void
+						is_special_of_char := False
+					end
 				end
 				if not is_special_of_char then
 					from
@@ -569,10 +570,12 @@ feature {NONE} -- append_to implementation
 					until
 						l_cursor.after
 					loop
-						char_value ?= l_cursor.item
-						check
-							valid_character_element: char_value /= Void
+						if attached {CHARACTER_VALUE} l_cursor.item as cv then
+							char_value := cv
+						else
+							char_value := Void
 						end
+						check valid_character_element: char_value /= Void end
 						st.add_char (char_value.value)
 						l_cursor.forth
 					end;
@@ -627,10 +630,14 @@ feature {NONE} -- append_to implementation
 feature {NONE} -- append_type_and_value implementation
 
 	abstract_debug_value_append_type_and_value (v: ABSTRACT_DEBUG_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 		end
 
 	abstract_reference_append_type_and_value (v: ABSTRACT_REFERENCE_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		local
 			ec: CLASS_C
 			s: STRING_32
@@ -663,6 +670,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	expanded_value_append_type_and_value (v: EXPANDED_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		local
 			ec: CLASS_C;
 		do
@@ -673,6 +682,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	abstract_special_value_append_type_and_value (v: ABSTRACT_SPECIAL_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		local
 			ec: CLASS_C
 		do
@@ -697,6 +708,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	character_value_append_type_and_value (v: CHARACTER_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 			v.dynamic_class.append_name (st)
 			st.add_string (Equal_sign_str);
@@ -706,6 +719,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	character_32_value_append_type_and_value (v: CHARACTER_32_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 			v.dynamic_class.append_name (st)
 			st.add_string (Equal_sign_str);
@@ -715,6 +730,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	dummy_message_debug_value_append_type_and_value (v: DUMMY_MESSAGE_DEBUG_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		local
 			s: STRING_GENERAL
 		do
@@ -725,6 +742,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	debug_basic_value_append_type_and_value (v: ABSTRACT_DEBUG_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 			v.dynamic_class.append_name (st)
 			st.add_string (Equal_sign_str);
@@ -732,11 +751,15 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	exception_debug_value_append_type_and_value (v: EXCEPTION_DEBUG_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 			st.add_string (v.short_description)
 		end
 
 	eifnet_debug_unknown_type_value_append_type_and_value (v: EIFNET_DEBUG_UNKNOWN_TYPE_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 			st.add_string ("ERROR: Unknown type")
 			st.add_string (Equal_sign_str);
@@ -744,6 +767,8 @@ feature {NONE} -- append_type_and_value implementation
 		end
 
 	eifnet_debug_native_array_value_append_type_and_value (v: EIFNET_DEBUG_NATIVE_ARRAY_VALUE; st: TEXT_FORMATTER)
+		require
+			v_set: v /= Void
 		do
 			st.add_string (v.type_and_value)
 		end
@@ -751,40 +776,84 @@ feature {NONE} -- append_type_and_value implementation
 feature {NONE} -- Conversion
 
 	abstract_reference_value (v: ABSTRACT_DEBUG_VALUE): ABSTRACT_REFERENCE_VALUE
+		require
+			is_abstract_reference_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.abstract_reference_value_id
 		do
-			Result ?= v
+			check is_abstract_reference_value: attached {ABSTRACT_REFERENCE_VALUE} v as rf then
+				Result := rf
+			end
 		end
+
 	expanded_value (v: ABSTRACT_DEBUG_VALUE): EXPANDED_VALUE
+		require
+			is_expanded_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.expanded_value_id
 		do
-			Result ?= v
+			check is_expanded_value: attached {EXPANDED_VALUE} v as ev then
+				Result := ev
+			end
 		end
+
 	abstract_special_value (v: ABSTRACT_DEBUG_VALUE): ABSTRACT_SPECIAL_VALUE
+		require
+			is_abstract_special_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.abstract_special_value_id
 		do
-			Result ?= v
+			check is_abstract_special_value: attached {ABSTRACT_SPECIAL_VALUE} v as sv then
+				Result := sv
+			end
 		end
+
 	character_value (v: ABSTRACT_DEBUG_VALUE): CHARACTER_VALUE
+		require
+			is_character_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.character_value_id
 		do
-			Result ?= v
+			check is_character_value: attached {CHARACTER_VALUE} v as cv then
+				Result := cv
+			end
 		end
+
 	character_32_value (v: ABSTRACT_DEBUG_VALUE): CHARACTER_32_VALUE
+		require
+			is_character_32_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.character_32_value_id
 		do
-			Result ?= v
+			check is_character_32_value: attached {CHARACTER_32_VALUE} v as l_value then
+				Result := l_value
+			end
 		end
+
 	dummy_message_debug_value (v: ABSTRACT_DEBUG_VALUE): DUMMY_MESSAGE_DEBUG_VALUE
+		require
+			is_dummy_message_debug_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.dummy_message_debug_value_id
 		do
-			Result ?= v
+			check is_dummy_message_debug_value: attached {DUMMY_MESSAGE_DEBUG_VALUE} v as l_value then
+				Result := l_value
+			end
 		end
+
 	exception_debug_value (v: ABSTRACT_DEBUG_VALUE): EXCEPTION_DEBUG_VALUE
+		require
+			is_exception_debug_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.exception_debug_value_id
 		do
-			Result ?= v
+			check is_exception_debug_value: attached {EXCEPTION_DEBUG_VALUE} v as l_value then
+				Result := l_value
+			end
 		end
+
 	eifnet_debug_unknown_type_value (v: ABSTRACT_DEBUG_VALUE): EIFNET_DEBUG_UNKNOWN_TYPE_VALUE
+		require
+			is_eifnet_debug_unknown_type_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.eifnet_debug_unknown_type_value_id
 		do
-			Result ?= v
+			check is_eifnet_debug_unknown_type_value: attached {EIFNET_DEBUG_UNKNOWN_TYPE_VALUE} v as l_value then
+				Result := l_value
+			end
 		end
+
 	eifnet_debug_native_array_value (v: ABSTRACT_DEBUG_VALUE): EIFNET_DEBUG_NATIVE_ARRAY_VALUE
+		require
+			is_eifnet_debug_native_array_value: v.debug_value_type_id = {ABSTRACT_DEBUG_VALUE_CONSTANTS}.eifnet_debug_native_array_value_id
 		do
-			Result ?= v
+			check is_eifnet_debug_native_array_value: attached {EIFNET_DEBUG_NATIVE_ARRAY_VALUE} v as l_value then
+				Result := l_value
+			end
 		end
 
 feature {NONE} -- Implementation
@@ -817,7 +886,7 @@ feature {NONE} -- Constants
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

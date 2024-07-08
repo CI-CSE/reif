@@ -21,6 +21,7 @@ feature
       i, j: INTEGER
     do
       file_name := separate_character_option_value ('i')
+      check attached file_name then end
       is_bench := index_of_word_option ("bench") > 0
 
       create in.make_open_read (file_name)      
@@ -182,7 +183,7 @@ feature
   get_vector (nrows, ncols: INTEGER;
               workers: LIST [separate PARFOR_WORKER]): ARRAY2 [INTEGER]
     do
-      create Result.make (nrows, ncols)
+      create Result.make_filled (0, nrows, ncols)
       across workers as wc loop
         get_sub_vector (nrows, ncols, Result, wc.item)
       end

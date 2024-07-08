@@ -12,7 +12,7 @@ note
 class
 	PREFERENCES_WINDOW
 
-obsolete "[090514] You should use PREFERENCES_GRID_DIALOG or PREFERENCES_GRID_CONTROL to embed pref into existing UI"
+obsolete "Use PREFERENCES_GRID_DIALOG or PREFERENCES_GRID_CONTROL to embed pref into existing UI [2017-05-31]"
 
 inherit
 	PREFERENCES_WINDOW_IMP
@@ -843,7 +843,7 @@ feature {NONE} -- Private attributes
 	default_row_height: INTEGER
 		-- Default row height
 
-	display_update_agent: PROCEDURE [ANY, TUPLE [PREFERENCE]]
+	display_update_agent: PROCEDURE [PREFERENCE]
 			-- Agent to be called when preference is changed outside	
 
 	resized_columns_list: ARRAY [BOOLEAN]

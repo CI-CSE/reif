@@ -5,9 +5,9 @@ INDIR= .
 CC = $cc
 OUTPUT_CMD = $output_cmd
 CFLAGS = -I"$rt_include" -I. -D_UNICODE -DUNICODE
-JCFLAGS = $(CFLAGS) $ccflags $optimize
-JMTCFLAGS = $(CFLAGS) $mtccflags $optimize
-JILCFLAGS = $(CFLAGS) $mtccflags $optimize -DEIF_IL_DLL
+JCFLAGS = $(CFLAGS) $optimize $ccflags 
+JMTCFLAGS = $(CFLAGS) $optimize $mtccflags 
+JILCFLAGS = $(CFLAGS) $optimize $mtccflags  -DEIF_IL_DLL
 OPT_CFLAGS = 
 #OPT_CFLAGS = -DASSERTIONS 
 #OPT_CFLAGS = -DASSERTIONS -DDBGTRACE_ENABLED
@@ -34,7 +34,6 @@ all:: cli_writer.lib
 clean:
 	$(RM) *.$obj
 	$(RM) *.lib
-	$(RM) *.BAK
 
 cli_writer.lib: $(OBJECTS)
 	$alib_line

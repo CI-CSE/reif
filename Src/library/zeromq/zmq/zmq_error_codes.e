@@ -14,45 +14,55 @@ feature -- Access
 	eagain: INTEGER
 			-- Value of EAGAIN constant.
 		external
-			"C inline use <errno.h>"
+			"C inline use %"zmq.h%""
 		alias
 			"return EAGAIN;"
+		ensure
+			is_class: class
 		end
 
 	efault: INTEGER
 			-- Value of EFAULT constant.
 		external
-			"C inline use <errno.h>"
+			"C inline use %"zmq.h%""
 		alias
 			"return EFAULT;"
+		ensure
+			is_class: class
 		end
 
 	eintr: INTEGER
 			-- Value of EINTR constant.
 		external
-			"C inline use <errno.h>"
+			"C inline use %"zmq.h%""
 		alias
 			"return EINTR;"
+		ensure
+			is_class: class
 		end
 
 	enotsock: INTEGER
 			-- Value of ENOTSOCK constant.
 		external
-			"C inline use <errno.h>"
+			"C inline use %"zmq.h%""
 		alias
 			"return ENOTSOCK;"
+		ensure
+			is_class: class
 		end
 
 	eterm: INTEGER
 			-- Value of ETERM constant.
 		external
-			"C inline use <errno.h>"
+			"C inline use %"zmq.h%""
 		alias
 			"return ETERM;"
+		ensure
+			is_class: class
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

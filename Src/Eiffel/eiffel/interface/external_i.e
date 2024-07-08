@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Representation of an external procedure"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,11 +10,19 @@ class EXTERNAL_I
 inherit
 	PROCEDURE_I
 		redefine
-			transfer_to, transfer_from, equiv, update_api,
-			generate, duplicate, extension,
-			access_for_feature, is_external,
-			set_renamed_name_id, external_name_id,
-			init_arg, new_deferred
+			access_for_feature,
+			duplicate,
+			equiv,
+			extension,
+			external_name_id,
+			generate,
+			init_arg,
+			is_external,
+			new_deferred,
+			set_renamed_name_id,
+			transfer_from,
+			transfer_to,
+			update_api
 		end
 
 create
@@ -24,20 +32,19 @@ feature -- Initialization
 
 	init_arg (argument_as: EIFFEL_LIST [TYPE_DEC_AS]; a_context_class: CLASS_C)
 			-- Initialization of arguments.
-		local
-			l_inline_ext: INLINE_EXTENSION_I
 		do
 			Precursor {PROCEDURE_I} (argument_as, a_context_class)
 			if has_arguments and extension.is_inline then
 					-- In order to replace arguments specified in external `alias' part of
 					-- inline clause, we need to initialize `extension' with argument
 					-- names.
-				l_inline_ext ?= extension
-				check
-					l_inline_ext_not_void: l_inline_ext /= Void
+				if attached {INLINE_EXTENSION_I} extension as l_inline_ext then
+					l_inline_ext.set_argument_names (arguments.argument_names)
+				else
+					check
+						extension_is_inline_extension_i: False
+					end
 				end
-
-				l_inline_ext.set_argument_names (arguments.argument_names)
 			end
 		end
 
@@ -71,11 +78,8 @@ feature -- Incrementality
 
 	freezing_equiv (other: FEATURE_I): BOOLEAN
 			-- is `Current' equivalent to `other' as far as freezing is concerned?
-		local
-			other_ext: EXTERNAL_I
 		do
-			other_ext ?= other
-			if other_ext /= Void then
+			if attached {EXTERNAL_I} other as other_ext then
 					-- To be equivalent means having a similar signature, same name,
 					-- same encapsulation and same extension (i.e. specification)
 				Result := pattern_id = other.pattern_id and then
@@ -129,18 +133,15 @@ feature
 				-- system unless we use the same scheme as for the `standard'
 				-- externals.
 			--if b then
-				--System.set_freeze (True);
-			--end;
-		end;
+				--System.set_freeze (True)
+			--end
+		end
 
-	is_external: BOOLEAN
-			-- Is the feature an external one ?
-		do
-			Result := True;
-		end;
+	is_external: BOOLEAN = True
+			-- Is the feature an external one?
 
 	external_name_id: INTEGER
-			-- External_name ID
+			-- External_name ID.
 		do
 			Result := external_alias_name_id
 			if Result = 0 then
@@ -148,7 +149,7 @@ feature
 			end
 		end
 
-	access_for_feature (access_type: TYPE_A; static_type: TYPE_A; is_qualified: BOOLEAN; is_separate: BOOLEAN): ACCESS_B
+	access_for_feature (access_type: TYPE_A; static_type: TYPE_A; is_qualified: BOOLEAN; is_separate: BOOLEAN; is_free: BOOLEAN): ACCESS_B
 			-- Byte code access for current feature
 		local
 			external_b: EXTERNAL_B;
@@ -156,7 +157,7 @@ feature
 		do
 			if system.il_generation and then extension.is_built_in and static_type = Void then
 					-- Builtins that are accessed via an object call in .NET code generation
-				Result := Precursor (access_type, static_type, is_qualified, is_separate)
+				Result := Precursor (access_type, static_type, is_qualified, is_separate, is_free)
 			else
 				if is_qualified then
 						-- To fix eweasel test#term155 we remove all anchors from
@@ -174,6 +175,9 @@ feature
 				external_b.set_external_name_id (external_name_id)
 				external_b.set_encapsulated (encapsulated)
 				external_b.set_extension (extension)
+				if is_free then
+					external_b.enable_instance_free
+				end
 
 				Result := external_b
 			end
@@ -284,7 +288,7 @@ invariant
 	extension_not_void: extension /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

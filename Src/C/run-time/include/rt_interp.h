@@ -2,7 +2,7 @@
 	description: "Interpreter declarations and definitions."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2013, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2018, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -44,10 +44,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifndef EIF_THREADS
-extern struct opstack op_stack;               /* Operational stack */
 #endif
 
 /* Requesting values via ivalue() */
@@ -213,6 +209,9 @@ extern struct opstack op_stack;               /* Operational stack */
 #define BC_BUILTIN_TYPE__RUNTIME_NAME	(unsigned char) 5
 #define BC_BUILTIN_TYPE__GENERIC_PARAMETER_TYPE	(unsigned char) 6
 #define BC_BUILTIN_TYPE__GENERIC_PARAMETER_COUNT	(unsigned char) 7
+#define BC_BUILTIN_TYPE__IS_ATTACHED	(unsigned char) 8
+#define BC_BUILTIN_TYPE__IS_DEFERRED	(unsigned char) 9
+#define BC_BUILTIN_TYPE__IS_EXPANDED	(unsigned char) 10
 
 /* Byte code for expression creation */
 #define BC_CAST_CHAR32		(unsigned char) 135

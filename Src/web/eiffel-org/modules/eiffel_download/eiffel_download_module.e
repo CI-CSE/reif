@@ -8,9 +8,15 @@ class
 
 inherit
 	CMS_MODULE
+		rename
+			module_api as eiffel_download_api
 		redefine
-			setup_hooks
+			initialize,
+			setup_hooks,
+			eiffel_download_api
 		end
+
+	CMS_WITH_WEBAPI
 
 	CMS_HOOK_VALUE_TABLE_ALTER
 
@@ -31,6 +37,10 @@ inherit
 
 	SHARED_LOGGER
 
+	CMS_HOOK_RESPONSE_ALTER
+
+	CMS_ADMINISTRABLE
+
 create
 	make
 
@@ -47,6 +57,36 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	name: STRING = "eiffel_download"
+
+feature {CMS_EXECUTION} -- Administration
+
+	administration: EIFFEL_DOWNLOAD_MODULE_ADMINISTRATION
+		do
+			create Result.make (Current)
+		end
+
+feature {CMS_API} -- Module Initialization			
+
+	initialize (api: CMS_API)
+			-- <Precursor>
+		do
+			Precursor (api)
+			create eiffel_download_api.make (api)
+		end
+
+
+feature {CMS_EXECUTION} -- Administration
+
+	webapi: EIFFEL_DOWNLOAD_WEBAPI
+		do
+			create Result.make (Current)
+		end
+
+
+feature {CMS_API, CMS_MODULE} -- Access: API
+
+	eiffel_download_api: detachable EIFFEL_DOWNLOAD_API
+			-- Eventual module api.
 
 feature -- Router
 
@@ -67,57 +107,21 @@ feature -- Hooks configuration
 			a_hooks.subscribe_to_block_hook (Current)
 		end
 
-feature -- Access: config
-
-	download_configuration: detachable DOWNLOAD_CONFIGURATION
-			-- Configuration for eiffel download.
-
-	get_download_configuration (api: CMS_API)
-			-- Get `download_configuration' value.
-		do
-			write_debug_log (generator + ".get_download_configuration")
-			if download_configuration = Void then
-				download_configuration := (create {DOWNLOAD_JSON_CONFIGURATION}).new_download_configuration (api.module_resource_location (Current, create {PATH}.make_from_string ("downloads_configuration.json")))
-			end
-		end
-
-	retrieve_mirror_gpl (cfg: DOWNLOAD_CONFIGURATION): detachable READABLE_STRING_32
-			-- Get mirror.
-		do
-			if attached cfg.mirror as l_mirror then
-				Result := l_mirror
-			end
-		end
-
-	retrieve_product_gpl (cfg: DOWNLOAD_CONFIGURATION): detachable DOWNLOAD_PRODUCT
-			-- Get product.
-		do
-			if attached cfg.products as l_products then
-				Result := l_products.at (1)
-			end
-		end
-
-	retrieve_products (cfg: DOWNLOAD_CONFIGURATION): detachable LIST[DOWNLOAD_PRODUCT]
-		do
-			if attached cfg.products as l_products then
-				Result := l_products
-			end
-		end
-
-
 feature -- Hooks
 
 	value_table_alter (a_value: CMS_VALUE_TABLE; a_response: CMS_RESPONSE)
+			-- <Precursor>
 		local
 			l_ua: CMS_USER_AGENT
 		do
-			get_download_configuration (a_response.api)
-			if attached download_configuration as cfg then
+			if
+				attached eiffel_download_api as l_api and then
+				attached l_api.download_configuration as cfg then
 				if
-					attached retrieve_product_gpl (cfg) as l_product and then
+					attached l_api.retrieve_product_gpl (cfg) as l_product and then
 					attached l_product.name as l_name and then
 					attached l_product.version  as l_version and then
-					attached retrieve_mirror_gpl (cfg) as l_mirror
+					attached l_api.retrieve_mirror_gpl (cfg) as l_mirror
 				then
 					a_value.force (l_name +" " + l_version, "last_release")
 					a_value.force (l_mirror, "mirror")
@@ -128,8 +132,8 @@ feature -- Hooks
 				create l_ua.make_from_string (a_response.request.http_user_agent)
 				a_value.force (get_platform (l_ua), "platform")
 
-				if attached retrieve_product_gpl (cfg) as l_product then
-					if attached selected_platform (l_product.downloads, get_platform (l_ua)) as l_selected then
+				if attached l_api.retrieve_product_gpl (cfg) as l_product then
+					if attached l_api.selected_platform (l_product.downloads, get_platform (l_ua)) as l_selected then
 						a_value.force (l_selected.filename, "filename")
 					end
 				end
@@ -241,12 +245,13 @@ feature {NONE} -- Block view implementation
 					l_tpl_block.set_value (ic.item, ic.key)
 				end
 
-				get_download_configuration (a_response.api)
-
-				if attached download_configuration as cfg then
-					vals.force (retrieve_product_gpl (cfg), "product")
-					vals.force (retrieve_products (cfg), "products")
-					vals.force (retrieve_mirror_gpl (cfg), "mirror")
+				if
+					attached eiffel_download_api as l_api and then
+					attached l_api.download_configuration as cfg
+				then
+					vals.force (l_api.retrieve_product_gpl (cfg), "product")
+					vals.force (l_api.retrieve_products (cfg), "products")
+					vals.force (l_api.retrieve_mirror_gpl (cfg), "mirror")
 
 					across
 						vals as ic
@@ -286,16 +291,18 @@ feature -- Handler
 			done: BOOLEAN
 		do
 			write_debug_log (generator + ".handle_download")
-			get_download_configuration (api)
-			if attached download_configuration as cfg then
+			if
+				attached eiffel_download_api as l_api and then
+				attached l_api.download_configuration as cfg
+			then
 				create l_ua.make_from_string (req.http_user_agent)
 				write_debug_log (generator + ".handle_download [ User_agent: " + l_ua.user_agent  + " ]")
 
-				if attached retrieve_product_gpl (cfg) as l_product and then
+				if attached l_api.retrieve_product_gpl (cfg) as l_product and then
 				   attached l_product.build as l_build and then
 				   attached l_product.name as l_name and then
 				   attached l_product.number as l_number and then
-				   attached retrieve_mirror_gpl (cfg) as l_mirror
+				   attached l_api.retrieve_mirror_gpl (cfg) as l_mirror
 				then
 				    l_link := l_mirror
 				    l_link.append (l_name)
@@ -305,7 +312,7 @@ feature -- Handler
 				    l_link.append (l_build)
 				    l_link.append_character ('/')
 				    write_debug_log (generator + ".handle_download [ Link: " + l_link  + " ]")
-					if attached selected_platform (l_product.downloads, get_platform (l_ua)) as l_selected then
+					if attached l_api.selected_platform (l_product.downloads, get_platform (l_ua)) as l_selected then
 						if attached l_selected.filename as l_filename then
 							write_debug_log (generator + ".handle_download [ Filename: " + l_filename  + " ]")
 							l_link.append (l_filename)
@@ -338,26 +345,6 @@ feature -- Handler
 		end
 
 feature {NONE}  -- Helper
-
-	selected_platform (a_downloads: detachable LIST[DOWNLOAD_PRODUCT_OPTIONS]; a_platform: READABLE_STRING_32): detachable DOWNLOAD_PRODUCT_OPTIONS
-		local
-			l_found: BOOLEAN
-		do
-			if
-				attached a_downloads
-			then
-				from
-					a_downloads.start
-				until
-					a_downloads.after or l_found
-				loop
-					if a_downloads.item.platform ~ a_platform then
-						Result := a_downloads.item
-					end
-					a_downloads.forth
-				end
-			end
-		end
 
 	get_platform (a_user_agent: CMS_USER_AGENT)	: READABLE_STRING_32
 				-- Set by default win64
@@ -394,6 +381,13 @@ feature {NONE}  -- Helper
 			end
 			write_debug_log (generator + ".get_platform [ platform inferred "+  Result  + " ]")
 		end
+
+feature -- Hook
+
+	response_alter (a_response: CMS_RESPONSE)
+		do
+		end
+
 
 note
 	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"

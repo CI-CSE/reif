@@ -1,4 +1,4 @@
-note
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -8,6 +8,8 @@ class RUNNER_MYSQL
 
 inherit
 	RDB_HANDLE
+
+	LOCALIZED_PRINTER
 
 create
 	make
@@ -26,7 +28,7 @@ feature {NONE}
 
 	book: BOOK2
 
-feature
+feature {NONE} -- Creation
 
 	make
 		local
@@ -73,7 +75,7 @@ feature
 					session_control.commit
 					session_control.disconnect
 				else
-					io.putstring ("Table not found!");
+					io.putstring ("Table not found!")
 				end
 			end
 		end
@@ -95,12 +97,12 @@ feature {NONE}
 			create l_proc.make (Proc_name)
 			proc := l_proc
 			l_proc.load
-			l_proc.set_arguments (<<"new_author", "new_price", "new_date">>,
+			l_proc.set_arguments_32 ({ARRAY [STRING_32]} <<"new_author", "new_price", "new_date">>,
 						<<author, price, pub_date >>)
 
 			if l_proc.exists then
 				io.putstring ("Stored procedure text: ")
-				io.putstring (l_proc.text)
+				localized_print (l_proc.text_32)
 				io.new_line
 			else
 				l_proc.store (Select_text)
@@ -112,7 +114,7 @@ feature {NONE}
 				io.putstring ("Author? ('exit' to terminate):")
 				io.readline
 			until
-				io.laststring ~ ("exit")
+				io.laststring ~ "exit"
 			loop
 				l_laststring := io.laststring
 				check l_laststring /= Void end -- implied by `readline' postcondition
@@ -147,7 +149,7 @@ feature {NONE}
 	Proc_name: STRING = "DB_BOOK_PROC";
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			 Eiffel Software

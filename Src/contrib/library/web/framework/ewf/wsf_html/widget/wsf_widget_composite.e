@@ -1,8 +1,7 @@
 note
-	description : "Objects that ..."
-	author      : "$Author$"
-	date        : "$Date$"
-	revision    : "$Revision$"
+	description : "Objects containing WSF_WIDGET objects."
+	date: "$Date$"
+	revision: "$Revision$"
 
 deferred class
 	WSF_WIDGET_COMPOSITE
@@ -184,7 +183,7 @@ feature -- Change
 		end
 
 	extend_text (t: READABLE_STRING_8)
-		obsolete "Use extend_html_text (..) 2013-Sept-06"
+		obsolete "Use extend_html_text (..) [2017-05-31]"
 		do
 			extend_html_text (t)
 		end

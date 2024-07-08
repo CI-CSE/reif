@@ -1,10 +1,9 @@
 note
 	description : "[
-			Component representing an email
+			Email message handled by notification mailer.
 			]"
-	author      : "$Author$"
-	date        : "$Date$"
-	revision    : "$Revision$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	NOTIFICATION_EMAIL
@@ -18,7 +17,7 @@ feature {NONE} -- Initialization
 			-- Initialize `Current'.
 		require
 			well_formed_from_address: is_valid_address (a_from)
-			well_formed_to_address: a_to_address.has ('@')
+			well_formed_to_address: is_valid_address (a_to_address)
 		do
 			initialize
 			from_address := a_from
@@ -56,7 +55,7 @@ feature -- Access
 
 	body: like content
 		obsolete
-			"Use `content' [June/2015]"
+			"Use `content'. [2017-05-31]"
 		do
 			Result := body
 		end
@@ -68,6 +67,19 @@ feature -- Status report
 		do
 			Result := 	is_valid_address (from_address) and
 						across to_addresses as ic all is_valid_address (ic.item) end
+		end
+
+	has_header (a_header_name: READABLE_STRING_8): BOOLEAN
+			-- Has additional header `a_header_name'?
+			-- Warning: it checks only `additional_header_lines'!
+		local
+			h_colon: STRING
+		do
+			if attached additional_header_lines as lst then
+				create h_colon.make_from_string (a_header_name)
+				h_colon.append_character (':')
+				Result := across lst as ic some ic.item.starts_with (h_colon) end
+			end
 		end
 
 feature -- Change	
@@ -91,14 +103,21 @@ feature -- Change
 
 	set_from_address (add: READABLE_STRING_8)
 		require
-			well_formed_address: add.has ('@')
+			well_formed_address: is_valid_address (add)
 		do
 			from_address := add
 		end
 
+	set_reply_to_address (add: like reply_to_address)
+		require
+			well_formed_address: add = Void or else is_valid_address (add)
+		do
+			reply_to_address := add
+		end
+
 	add_cc_address (add: READABLE_STRING_8)
 		require
-			well_formed_address: add.has ('@')
+			well_formed_address: is_valid_address (add)
 		local
 			lst: like cc_addresses
 		do
@@ -112,7 +131,7 @@ feature -- Change
 
 	add_bcc_address (add: READABLE_STRING_8)
 		require
-			well_formed_address: add.has ('@')
+			well_formed_address: is_valid_address (add)
 		local
 			lst: like bcc_addresses
 		do
@@ -123,6 +142,20 @@ feature -- Change
 			end
 			lst.force (add)
 		end
+
+	reset_cc_addresses
+			-- Clear Cc: addresses.
+		do
+			cc_addresses := Void
+		end
+
+	reset_bcc_addresses
+			-- Clear Bcc: addresses.
+		do
+			bcc_addresses := Void
+		end
+
+feature -- Header manipulation		
 
 	add_header_line (a_line: READABLE_STRING_8)
 		require
@@ -157,17 +190,23 @@ feature -- Reset
 feature -- Conversion
 
 	message: STRING_8
+		local
+			l_content: like content
 		do
 			Result := header
 			Result.append_character ('%N')
-			Result.append (content)
-			Result.append_character ('%N')
-			Result.append_character ('%N')
+			l_content := content
+			if l_content.is_empty then
+				Result.append_character ('%N')
+			else
+				Result.append (l_content)
+				if l_content[l_content.count] /= '%N' then
+					Result.append_character ('%N')
+				end
+			end
 		end
 
 	header: STRING_8
-		local
-			hdate: HTTP_DATE
 		do
 			create Result.make (20)
 			if attached reply_to_address as l_reply_to then
@@ -216,8 +255,7 @@ feature -- Conversion
 			Result.append (subject)
 			Result.append_character ('%N')
 			Result.append ("Date: ")
-			create hdate.make_from_date_time (date)
-			hdate.append_to_rfc1123_string (Result)
+			;(create {HTTP_DATE}.make_from_date_time (date)).append_to_rfc1123_string (Result)
 			Result.append_character ('%N')
 			if attached additional_header_lines as l_lines and then
 				not l_lines.is_empty
@@ -242,11 +280,8 @@ feature -- Helpers
 			Result := add.has ('@')
 		end
 
-invariant
---	invariant_clause: True
-
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

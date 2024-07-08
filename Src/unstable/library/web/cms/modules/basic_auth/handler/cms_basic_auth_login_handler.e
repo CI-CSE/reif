@@ -15,9 +15,6 @@ inherit
 			new_mapping as new_uri_mapping
 		end
 
-	WSF_FILTER
-
-
 	WSF_RESOURCE_HANDLER_HELPER
 		redefine
 			do_get
@@ -34,7 +31,6 @@ feature -- execute
 			-- Execute request handler.
 		do
 			execute_methods (req, res)
-			execute_next (req, res)
 		end
 
 	uri_execute (req: WSF_REQUEST; res: WSF_RESPONSE)
@@ -49,9 +45,9 @@ feature -- HTTP Methods
 			-- <Precursor>
 		do
 			api.logger.put_information (generator + ".do_get Processing basic auth login", Void)
-			if attached {STRING_32} current_user_name (req) as l_user then
+			if api.user_is_authenticated then
 				if attached {WSF_STRING} req.query_parameter ("destination") as l_uri then
-					 redirect_to (req.absolute_script_url (l_uri.url_encoded_value), res)
+					redirect_to (req.absolute_script_url (l_uri.url_encoded_value), res)
 				else
 					redirect_to (req.absolute_script_url ("/"), res)
 				end

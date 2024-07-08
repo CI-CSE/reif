@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that represents the display of stack and debugged objects"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -75,10 +75,10 @@ feature {NONE} -- Initialization
 			debugged_objects_grid := objects_grid (second_grid_id)
 
 			create split
-			split.pointer_double_press_actions.force_extend (agent (a_split: EV_SPLIT_AREA)
+			split.pointer_double_press_actions.extend (agent (i_split: EV_SPLIT_AREA; i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER)
 					do
-						a_split.set_proportion ({REAL_32} 0.5)
-					end(split)
+						i_split.set_proportion ({REAL_32} 0.5)
+					end(split, ?,?,?,?,?,?,?,?)
 				)
 
 				-- The `stack_objects_grid' and `debugged_objects_grid' are
@@ -1432,15 +1432,15 @@ feature {NONE} -- Debugged objects grid Implementation
 		do
 			inspect a_id
 			when position_stack then
-				create Result.make_as_stack
+				create {ES_OBJECTS_GRID_STACK_LINE} Result.make
 			when position_current then
-				create Result.make_as_current_object
+				create {ES_OBJECTS_GRID_CURRENT_LINE} Result.make
 			when position_arguments then
-				create Result.make_as_arguments
+				create {ES_OBJECTS_GRID_ARGUMENTS_LINE} Result.make
 			when position_locals then
-				create Result.make_as_locals
+				create {ES_OBJECTS_GRID_LOCALS_LINE} Result.make
 			when position_result then
-				create Result.make_as_result
+				create {ES_OBJECTS_GRID_RESULT_LINE} Result.make
 			when position_dropped then
 --				create Result.make_as_dropped
 			else
@@ -1530,14 +1530,16 @@ feature {NONE} -- Debugged objects grid Implementation
 feature {NONE} -- Constants
 
 	Left_address_delim: STRING = " <"
-	Right_address_delim: STRING = ">";
+	Right_address_delim: STRING = ">"
 
 invariant
 	debugger_manager_not_void: debugger_manager /= Void
 	objects_grids_not_void: (is_initialized and is_interface_usable) implies objects_grids /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	ca_ignore:
+		"CA093", "CA093: manifest array type mismatch"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

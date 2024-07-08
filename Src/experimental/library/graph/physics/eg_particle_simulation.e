@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		In an EG_PARTICLE_SIMULATION any number of EG_PARTICLEs are interacting with each
 		other in a way that is defined by the implementer of `n_body_force'. The force
@@ -43,7 +43,10 @@ feature -- Access
 	force (a_particle: like particle_type): G
 			-- The force affecting `a_particle'.
 		do
-			Result := external_force (a_particle) + nearest_neighbor_force (a_particle) + n_body_force_solver (a_particle)
+			Result := external_force (a_particle) + nearest_neighbor_force (a_particle)
+			if attached n_body_force_solver (a_particle) as v then
+				Result := Result + v
+			end
 		ensure
 			Result_exists: Result /= Void
 		end
@@ -89,23 +92,21 @@ feature {NONE}
 			Result_exists: Result /= Void
 		end
 
-	n_body_force_solver (a_particle: EG_PARTICLE): G
+	n_body_force_solver (a_particle: EG_PARTICLE): detachable G
 			-- Solve n_nody_force for `a_particle'.
 		deferred
-		ensure
-			Result_exists: Result /= Void
 		end
 
 feature {NONE} -- Implementation
 
 	particle_type: EG_PARTICLE
-			-- Type of particles
-		local
-			l_result: detachable like particle_type
+			-- Type of particles.
+		require
+			is_used_as_type_anchor: False
 		do
-			check anchor_type_only: False end
-			check l_result /= Void end -- Satisfy void safe compiler
-			Result := l_result
+			check is_used_as_type_anchor: False then end
+		ensure
+			is_used_as_type_anchor: False
 		end
 
 invariant
@@ -113,7 +114,7 @@ invariant
 	particles_not_empty: not particles.is_empty
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -122,9 +123,4 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
-
-
-
-end -- class EG_PARTICLE_SIMULATION
-
+end

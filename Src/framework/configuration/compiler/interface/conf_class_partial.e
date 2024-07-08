@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Classes that where built from partial classes."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -44,6 +44,9 @@ feature {NONE} -- Initialization
 				a_partial_classes.forth
 			end
 
+			name := ""
+			path := ""
+			file_name := ""
 			check_changed
 			if is_modified then
 				build_partial
@@ -51,9 +54,9 @@ feature {NONE} -- Initialization
 
 			if
 				attached {CONF_CLUSTER} a_group as l_cluster and then
-				l_cluster.visible /= Void
+				attached l_cluster.visible as v
 			then
-				visible := l_cluster.visible.item (name)
+				visible := v.item (name)
 			end
 			is_valid := True
 			factory := a_factory
@@ -119,9 +122,9 @@ feature {CONF_ACCESS} -- Update, in compiled only
 
 			if
 				attached {CONF_CLUSTER} a_group as l_cluster and then
- 				l_cluster.visible /= Void
+ 				attached l_cluster.visible as v
  			then
-				visible := l_cluster.visible.item (name)
+				visible := v.item (name)
 			end
 		end
 
@@ -170,9 +173,6 @@ feature {NONE} -- Implementation
 					else
 						last_error := create {CONF_ERROR_PARTIAL}.make ("Unknown error in merging partial classes.")
 					end
-					name := ""
-					path := ""
-					file_name := ""
 				else
 					path := group.target.system.uuid.out + "/" + group.name
 
@@ -206,7 +206,6 @@ feature {NONE} -- Implementation
 			else
 				last_error := create {CONF_ERROR_PARTIAL}.make ("Unknown error during merging of partial classes.")
 			end
-
 			retry
 		end
 
@@ -219,7 +218,7 @@ feature {NONE} -- Shared instances
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

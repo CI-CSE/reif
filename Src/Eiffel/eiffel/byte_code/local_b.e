@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Info about access to a local variable of a feature"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -13,11 +13,26 @@ inherit
 		redefine
 			enlarged, read_only, is_local, is_creatable,
 			register_name,
-			print_register,
+			print_register, print_checked_target_register,
 			assign_code, expanded_assign_code, reverse_code,
 			assigns_to, array_descriptor,
 			pre_inlined_code,
 			is_fast_as_local, is_predefined
+		end
+
+create
+	make
+
+feature {NONE} -- Creation
+
+	make (p: INTEGER)
+			-- Initialialize a local variable descriptor with `position' set to `p`.
+		require
+			valid_position: p > 0
+		do
+			position := p
+		ensure
+			position_set: position = p
 		end
 
 feature -- Visitor
@@ -61,11 +76,8 @@ feature
 
 	same (other: ACCESS_B): BOOLEAN
 			-- Is `other' the same access as Current ?
-		local
-			local_b: LOCAL_B
 		do
-			local_b ?= other
-			if local_b /= Void then
+			if attached {LOCAL_B} other as local_b then
 				Result := position = local_b.position
 			end
 		end
@@ -88,6 +100,19 @@ feature
 			-- Print local
 		do
 			buffer.put_string (register_name)
+		end
+
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		local
+			buf: like {BYTE_CONTEXT}.buffer
+		do
+			buf := context.buffer
+			buf.put_string ({C_CONST}.rtcw_loc)
+			buf.put_integer (position)
+			buf.put_character (')')
 		end
 
 feature -- IL code generation
@@ -148,7 +173,7 @@ feature -- Setting
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

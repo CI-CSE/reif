@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Access to Result"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -26,44 +26,42 @@ feature -- Visitor
 
 feature
 
-	read_only: BOOLEAN = False;
-			-- Is Result a read-only entity ?
+	read_only: BOOLEAN = False
+			-- Is Result a read-only entity?
 
 	type: TYPE_A
-			-- Result type
+			-- <Precursor>
 		do
-			Result := context.byte_code.result_type;
-		end;
+				-- Result is treated as detachable (like locals).
+			Result := context.byte_code.result_type.as_detachable_type
+		end
 
 	is_predefined: BOOLEAN = True
 			-- Predefined as results is store in a register.
 
 	is_result: BOOLEAN
-			-- Access is result
+			-- <Precursor>
 		do
 			Result := True
 		end
 
-	is_creatable: BOOLEAN = true;
-			-- Can an access to Result be a target for a creation ?
+	is_creatable: BOOLEAN = True
+			-- Can an access to Result be a target for a creation?
 
 	same (other: ACCESS_B): BOOLEAN
-			-- Is `other' the same access as Current ?
-		local
-			result_b: RESULT_B;
+			-- Is `other' the same access as Current?
 		do
-			result_b ?= other;
-			Result := result_b /= Void
-		end;
+			Result := attached {RESULT_B} other
+		end
 
 	enlarged: RESULT_B
-			-- Enlarges the result node
+			-- Enlarges the result node.
 		do
 			create {RESULT_BL} Result.make (type)
 		end
 
 	register_name: STRING = "Result"
-			-- The "Result" string
+			-- The "Result" string.
 
 feature -- IL code generation
 
@@ -74,19 +72,19 @@ feature -- IL code generation
 feature -- Byte code generation
 
 	assign_code: CHARACTER
-			-- Assignment code
+			-- Assignment code.
 		once
 			Result := {BYTE_CONST}.bc_rassign
 		end
 
 	expanded_assign_code: CHARACTER
-			-- Expanded assignment code
+			-- Expanded assignment code.
 		once
 			Result := {BYTE_CONST}.bc_rexp_assign
 		end
 
 	reverse_code: CHARACTER
-			-- Reverse assignment code
+			-- Reverse assignment code.
 		once
 			Result := {BYTE_CONST}.bc_rreverse
 		end
@@ -94,20 +92,22 @@ feature -- Byte code generation
 feature -- Array optimization
 
 	assigns_to (i: INTEGER): BOOLEAN
+			-- <Precursor>
 		do
 			Result := i = 0
-		end;
+		end
 
 feature -- Inlining
 
 	pre_inlined_code: INLINED_RESULT_B
+			-- <Precursor>
 		do
 			create Result
 			Result.set_parent (parent)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2008, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -120,22 +120,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

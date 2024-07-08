@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Constants for command names, etc."
 	legal: "See notice at end of class."
@@ -50,6 +50,7 @@ feature -- Button texts
 	b_alphabetical_cluster_list: STRING_32 		do Result := locale.translation("Alphabetical cluster list")	end
 	b_And: STRING_32								do Result := locale.translation("And")	end
 	b_Apply: STRING_32							do Result := locale.translation("Apply")	end
+	b_Advanced: STRING_32							do Result := locale.translation("Advanced")	end
 	b_Browse: STRING_32							do Result := locale.translation("Browse...")	end
 	b_C_functions: STRING_32						do Result := locale.translation("C Functions")	end
 	b_change: STRING_32 							do Result := locale.translation ("Change")	end
@@ -77,6 +78,7 @@ feature -- Button texts
 	b_Down_text: STRING_32 						do Result := locale.translation("Down")	end
 	b_Edit_ace: STRING_32						do Result := locale.translation("Edit")	end
 	b_Edit_command: STRING_32					do Result := locale.translation("Edit...")	end
+	b_Edit_settings: STRING_32					do Result := locale.translation("Edit")	end
 	b_Eiffel_features: STRING_32					do Result := locale.translation("Eiffel Features")	end
 
 	b_Force_execution_mode: STRING_32				do Result := locale.translation("Force Execution Mode")	end
@@ -105,6 +107,9 @@ feature -- Button texts
 	b_put_handle_right: STRING_32				do Result := locale.translation("Put handle right")	end
 	b_put_two_handle_right: STRING_32			do Result := locale.translation("Put two handles right")	end
 	b_put_two_handle_left: STRING_32				do Result := locale.translation("Put two handles left")	end
+	b_remind_me_later: STRING_32				do Result := locale.translation("Remind me later")	end
+
+	b_Restore_tab: STRING_32 						do Result := locale.translation("Restore Tab")	end
 
 	b_Replace: STRING_32							do Result := locale.translation("Replace")	end
 	b_Replace_all: STRING_32						do Result := locale.translation("Replace all")	end
@@ -128,6 +133,7 @@ feature -- Button texts
 	b_Compile: STRING_32							do Result := locale.translation("Compile")	end
 	b_Launch: STRING_32							do Result := locale.translation("Start")	end
 	b_Restart: STRING_32							do Result := locale.translation("Restart") end
+	b_Restart_now: STRING_32						do Result := locale.translation("Restart Now") end
 	b_Break: STRING_32							do Result := locale.translation("Break")	end
 	b_Continue: STRING_32						do Result := locale.translation("Continue")	end
 	b_Finalize: STRING_32						do Result := locale.translation("Finalize")	end
@@ -152,7 +158,7 @@ feature -- Button texts
 	b_Redo: STRING_32							do Result := locale.translation("Redo")	end
 	b_Create_new_cluster: STRING_32				do Result := locale.translation("Add Cluster")	end
 	b_Create_new_library: STRING_32				do Result := locale.translation("Add Library")	end
-	b_Create_new_assembly: STRING_32				do Result := locale.translation("Add Assembly")	end
+	b_Create_new_assembly: STRING_32			do Result := locale.translation("Add Assembly")	end
 	b_Create_new_precompile: STRING_32			do Result := locale.translation("Add Precompile")	end
 	b_Create_new_class: STRING_32				do Result := locale.translation("New Class")	end
 	b_Create_new_feature: STRING_32				do Result := locale.translation("New Feature")	end
@@ -160,7 +166,9 @@ feature -- Button texts
 	b_Display_error_help: STRING_32				do Result := locale.translation("Help Tool")	end
 	b_Project_settings: STRING_32				do Result := locale.translation("Project Settings")	end
 	b_previous: STRING_32 						do Result := locale.translation ("Previous") end
-	b_System_info: STRING_32						do Result := locale.translation("System Info")	end
+	b_purchase: STRING_32 						do Result := locale.translation ("Purchase") end
+	b_quit: STRING_32 							do Result := locale.translation ("Quit") end
+	b_System_info: STRING_32					do Result := locale.translation("System Info")	end
 	b_arrow_back: STRING_32						do Result := locale.translation ("< Back") end
 	b_arrow_next: STRING_32						do Result := locale.translation ("Next >") end
 	b_Bkpt_info: STRING_32						do Result := locale.translation("Breakpoint Info")	end
@@ -208,13 +216,26 @@ feature -- Button texts
 	b_overwrite: STRING_32						do Result := locale.translation("Overwrite") end
 	b_append: STRING_32							do Result := locale.translation("Append") end
 	b_ignore: STRING_32							do Result := locale.translation("Ignore") end
+	b_import: STRING_32							do Result := locale.translation ("Import") end
+
 	b_force_exit: STRING_32						do Result := locale.translation("Force Exit") end
 
-	b_error: STRING_32							do Result := locale.translation("Error") end
-	b_errors: STRING_32							do Result := locale.translation("Errors") end
-	b_warning: STRING_32							do Result := locale.translation("Warning") end
-	b_warnings: STRING_32						do Result := locale.translation("Warnings") end
-	b_apply_fix: STRING_32						do Result := locale.translation("Fix") end
+	b_error_toggle_error (n: NATURAL_32): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.plural_translation_in_context
+				(once "$1 error", once "$1 errors", once "tool.error", n.as_integer_32), n)
+		end
+	b_error_toggle_warning (n: NATURAL_32): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.plural_translation_in_context
+				(once "$1 warning", once "$1 warnings", once "tool.error", n.as_integer_32), n)
+		end
+	b_error_toggle_hint (n: NATURAL_32): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.plural_translation_in_context
+				(once "$1 hint", once "$1 hints", once "tool.error", n.as_integer_32), n)
+		end
+	b_apply_fix: STRING_32 do Result := locale.translation_in_context (once"Fix", once "tool.error") end
 
 	b_Activate_execution_recording: STRING_32 	do Result := locale.translation("Record Execution")	end
 	b_Deactivate_execution_recording: STRING_32 	do Result := locale.translation("Disable Execution Recording")	end
@@ -250,6 +271,7 @@ feature -- Button texts
 	b_Ignore_external_exception: STRING_32		do Result := locale.translation ("Ignore External Exception?") end
 	b_Disable_catcall_console_warnings: STRING_32	do Result := locale.translation ("Disable Catcall Console Warning?") end
 	b_Disable_catcall_debugger_warnings: STRING_32	do Result := locale.translation ("Disable Catcall Debugger Warning?") end
+	b_import_settings: STRING_32	do Result := locale.translation ("Import Settings") end
 
 -- SCOOP REPLAY
 	b_Activate_SCOOP_execution_recording_mode: STRING_32 do Result := locale.translation("Activate SCOOP Execution Recording") end
@@ -465,7 +487,7 @@ feature -- Accelerator, focus label and menu name
 
 	f_Create_new_cluster: STRING_32		do Result := locale.translation("Add a cluster")	end
 	f_Create_new_library: STRING_32		do Result := locale.translation("Add a library")	end
-	f_Create_new_assembly: STRING_32		do Result := locale.translation("Add an assembly")	end
+	f_Create_new_assembly: STRING_32	do Result := locale.translation("Add an assembly")	end
 	f_Create_new_precompile: STRING_32 	do Result := locale.translation("Add a precompile")	end
 	f_Create_new_class: STRING_32		do Result := locale.translation("Add a new class")	end
 	f_Create_new_feature: STRING_32		do Result := locale.translation("Add a new feature")	end
@@ -477,6 +499,14 @@ feature -- Accelerator, focus label and menu name
 	f_expand_all: STRING_32				do Result := locale.translation ("Expand all rows in grid") end
 	f_export_watch_tool_expressions_to_file: STRING_32	do Result := locale.translation ("Export Expressions To File") end
 	f_import_watch_tool_expressions_from_file: STRING_32	do Result := locale.translation ("Import Expressions From File") end
+	m_import_debugger_profiles: STRING_32	do Result := locale.translation ("Import parameters ...") end
+	m_export_debugger_profiles: STRING_32	do Result := locale.translation ("Export parameters ...") end
+	m_auto_import_debugger_profiles: STRING_32	do Result := locale.translation ("Auto import parameters") end
+	m_auto_export_debugger_profiles: STRING_32	do Result := locale.translation ("Auto export parameters") end
+
+	t_import_debugger_profiles_from_file: STRING_32	do Result := locale.translation ("Import parameters from file ..") end
+	t_export_debugger_profiles_to_file: STRING_32	do Result := locale.translation ("Export parameters into file ..") end
+
 
 	m_Dbg_assertion_checking_disable: STRING_32	do Result := locale.translation("Disable Assertion Checking")	end
 	m_Dbg_assertion_checking_restore: STRING_32	do Result := locale.translation("Restore Assertion Checking")	end
@@ -625,6 +655,7 @@ feature -- Accelerator, focus label and menu name
 	f_History_back: STRING_32			do Result := locale.translation("Go back")	end
 	m_How_to_s: STRING_32				do Result := locale.translation("&How to's")	end
 	m_If_block: STRING_32				do Result := locale.translation("&Embed in %"if...%"%TCtrl+I")	end
+	m_import_settings: STRING_32 			do Result := locale.translation_in_context ("Import Settings", "menu.tools") end
 	m_Indent: STRING_32					do Result := locale.translation("&Indent Selection%TTab")	end
 	m_keep_grid_layout: STRING_32		do Result := locale.translation("Keep grid layout")	end
 	m_Line_numbers: STRING_32			do Result := locale.translation("Toggle &Line Numbers")	end
@@ -691,6 +722,8 @@ feature -- Accelerator, focus label and menu name
 	l_replace_comments: STRING_32		do Result := locale.translation("Replace Name in Comments")	end
 	l_replace_strings: STRING_32			do Result := locale.translation("Replace Name in Strings")	end
 	l_allow_duplicate_name: STRING_32	do Result := locale.translation ("Reuse existing name") end
+	f_allow_duplicate_feature_name: STRING_32	do Result := locale.translation ("Allow two or more features with same name during refactoring%N(this option could be used to help merging two features).") end
+	f_allow_duplicate_class_name: STRING_32		do Result := locale.translation ("Allow two or more classes with same name during refactoring%N(this option could be used to help merging two classes).") end
 	m_Recent_project: STRING_32			do Result := locale.translation("&Recent Projects")	end
 	m_Redo: STRING_32					do Result := locale.translation("Re&do%TCtrl+Y")	end
 	f_Redo: STRING_32					do Result := locale.translation("Redo (Ctrl+Y)")	end
@@ -742,6 +775,7 @@ feature -- Accelerator, focus label and menu name
 	m_Showindexing: STRING_32			do Result := locale.translation("&Indexing clauses")	end
 	m_show_invariants: STRING_32			do Result := locale.translation("In&variants")	end
 	m_Showonces: STRING_32				do Result := locale.translation("O&nce/Constants")	end
+	m_Show_instance_free: STRING_32		do Result := locale.translation("Instance-free")	end
 	m_Showpast: STRING_32				do Result := locale.translation("&Ancestor Versions")	end
 	m_Showroutines: STRING_32			do Result := locale.translation("&Routines")	end
 	m_Showshort: STRING_32				do Result := locale.translation("C&ontract")	end
@@ -768,6 +802,7 @@ feature -- Accelerator, focus label and menu name
 	m_Zoom_reset: STRING_32 				do Result := locale.translation("Reset")	end
 	m_use_current_environment_variables: STRING_32 		do Result := locale.translation("Use current environment variables")	end
 	m_use_current_environment_value: STRING_32 		do Result := locale.translation("Use current environment value")	end
+	m_update_debugging_profile_title_with_suggestion: STRING_32 do Result := locale.translation("Update title with suggestion") end
 	f_Wizard_precompile: STRING_32		do Result := locale.translation("Wizard to precompile libraries")	end
 	f_go_to_first_occurrence: STRING_32	do Result := locale.translation("Double click to go to first occurrence")	end
 	f_show: STRING_32 do Result := locale.translation ("Show ") end
@@ -863,7 +898,21 @@ feature -- Menu entries
 
 feature -- Tool tips
 
-	f_apply_fix: STRING_32 do Result := locale.translation ("Apply selected fixes to source code") end
+	f_error_clear_text_filter: READABLE_STRING_32 do Result := locale.translation_in_context (once "Clear text filter", once "tool.error")  end
+	f_apply_fix: STRING_32 do Result := locale.translation_in_context (once "Apply selected fixes to source code",  once "tool.error") end
+	f_error_text_filter: READABLE_STRING_32 do Result := locale.translation_in_context (once  "Text to filter messages", once "tool.error") end
+	f_error_toggle_error (n: NATURAL_32): READABLE_STRING_32
+		do
+			Result := locale.translation_in_context (once "Toggle this button to show/hide errors.", once "tool.error")
+		end
+	f_error_toggle_warning (n: NATURAL_32): READABLE_STRING_32
+		do
+			Result := locale.translation_in_context (once "Toggle this button to show/hide warnings.", once "tool.error")
+		end
+	f_error_toggle_hint (n: NATURAL_32): READABLE_STRING_32
+		do
+			Result := locale.translation_in_context (once "Toggle this button to show/hide hints.", once "tool.error")
+		end
 
 	f_go_to_next_error: STRING_32 				do Result := locale.translation ("Navigates to the next error or the first error found if the end of the list is reached") end
 	f_go_to_previous_error: STRING_32 			do Result := locale.translation ("Navigates to the previous error or the last error found if the start of the list is reached") end
@@ -926,6 +975,7 @@ feature -- Formatter displayer names
 	l_remove_stone_handler: STRING_32 do Result := locale.translation ("Remove selected stone handler") end
 	l_stone_handler: STRING_32 do Result := locale.translation ("Stone handler") end
 	l_stone_handler_help: STRING_32 do Result := locale.translation ("Specify default tools for specific stones") end
+	l_advanced_options: STRING_32 do Result := locale.translation ("Advanced options") end
 
 feature -- Toggles
 
@@ -936,7 +986,7 @@ feature -- Toggles
 	f_show_assigner: STRING_32		do Result := locale.translation("Show Assigner Command Name")	end
 	f_show_signature: STRING_32		do Result := locale.translation("Show Signature")	end
 	l_toggle_alias: STRING_32		do Result := locale.translation("Toggle visibility of feature alias name")	end
-	l_toggle_assigner: STRING_32		do Result := locale.translation("Toggle visibility of assigner command name")	end
+	l_toggle_assigner: STRING_32	do Result := locale.translation("Toggle visibility of assigner command name")	end
 	l_toggle_signature: STRING_32	do Result := locale.translation("Toggle visibility of feature signature")	end
 
 feature -- Menu mnenomics
@@ -950,13 +1000,13 @@ feature -- Menu mnenomics
 	m_Create_new_cluster: STRING_32		do Result := locale.translation("Add C&luster...")	end
 	m_Create_new_library: STRING_32		do Result := locale.translation("Add L&ibrary...")	end
 	m_Create_new_precompile: STRING_32	do Result := locale.translation("Add &Precompile")	end
-	m_Create_new_assembly: STRING_32		do Result := locale.translation("Add &Assembly...")	end
+	m_Create_new_assembly: STRING_32	do Result := locale.translation("Add &Assembly...")	end
 	m_Create_new_class: STRING_32		do Result := locale.translation("&New Class...")	end
 	m_Create_new_feature: STRING_32		do Result := locale.translation("New Fea&ture...")	end
 	m_Debug: STRING_32					do Result := locale.translation("E&xecution")	end
 	m_Disable_this_bkpt: STRING_32		do Result := locale.translation("&Disable This Breakpoint")	end
 	m_Display_error_help: STRING_32		do Result := locale.translation("Compilation Error &Wizard...")	end
-	m_Display_system_info: STRING_32		do Result := locale.translation("S&ystem Info")	end
+	m_Display_system_info: STRING_32	do Result := locale.translation("S&ystem Info")	end
 	m_Edit: STRING_32					do Result := locale.translation("&Edit")	end
 	m_Edit_condition: STRING_32			do Result := locale.translation("E&dit Condition")	end
 	m_Edit_exported_feature: STRING_32	do Result := locale.translation("&Edit...")	end
@@ -965,7 +1015,7 @@ feature -- Menu mnenomics
 	m_Favorites: STRING_32				do Result := locale.translation("Fav&orites")	end
 	m_Feature_info: STRING_32			do Result := locale.translation("Feat&ure Views")	end
 	m_File: STRING_32					do Result := locale.translation("&File")	end
-	m_Formats: STRING_32					do Result := locale.translation("F&ormat")	end
+	m_Formats: STRING_32				do Result := locale.translation("F&ormat")	end
 	m_Formatter_separators: ARRAY [STRING_32]
 		do
 			Result := << locale.translation("Text Generators"), locale.translation("Class Relations"),
@@ -1011,6 +1061,9 @@ feature -- Menu mnenomics
 	m_Tools_layout: STRING_32			do Result := locale.translation("&Tools Layout")	end
 	m_Unify_stone: STRING_32				do Result := locale.translation("Lin&k Context Tool")	end
 
+	f_Restore_tab: STRING_32 				do Result := locale.translation("Open last closed tab")	end
+	m_Restore_tab: STRING_32					do Result := locale.translation("Open last closed tab")	end
+
 	m_When_hits: STRING_32				do Result := locale.translation("When Hits ...")	end
 
 	m_Window: STRING_32					do Result := locale.translation("&Window")	end
@@ -1050,6 +1103,7 @@ feature -- Context menu
 	m_import_metrics_from_file: STRING_32 do Result := locale.translation("Import/Export metrics from file") end
 	m_input_domain: STRING_32			do Result := locale.translation("&Input domain") end
 	m_library: STRING_32					do Result := locale.translation ("Library") end
+	m_license: STRING_32					do Result := locale.translation ("License") end
 	m_move_down: STRING_32				do Result := locale.translation ("Move down") end
 	m_move_up: STRING_32					do Result := locale.translation ("Move up") end
 	m_new_metric: STRING_32				do Result := locale.translation ("New metric") end
@@ -1230,6 +1284,7 @@ feature -- Label texts
 	l_compile: STRING_32					do Result := locale.translation("Compile")	end
 	l_Compile_first: STRING_32			do Result := locale.translation("Compile to have information")	end
 	l_Compile_project: STRING_32			do Result := locale.translation("Compile project")	end
+	l_concurrency: STRING_32				do Result := locale.translation("Concurrency:")	end
 	l_Condition: STRING_32				do Result := locale.translation("Condition")	end
 	l_confirm_acknowledge_selected_items: STRING_32	do Result := locale.translation ("Acknowledgement is not reversible. Are you sure you want to acknowledge selected items?") end
 	l_Confirm_kill: STRING_32			do Result := locale.translation("Are you sure you want to stop the execution?")	end
@@ -1554,10 +1609,13 @@ feature -- Label texts
 	l_On_object: STRING_32				do Result := locale.translation("On object")	end
 	l_As_object: STRING_32				do Result := locale.translation("As object")	end
 	l_Onces: STRING_32					do Result := locale.translation("Once routines and constants")	end
+	l_Instance_free_routines: STRING_32					do Result := locale.translation("Instance-free features")	end
 	l_Once_routines: STRING_32			do Result := locale.translation("Once routines")	end
 	l_Constant_features: STRING_32		do Result := locale.translation("Constants")	end
 	l_only_classes_in_same_cluster: STRING_32			do Result := locale.translation("Only classes in same cluster")	end
 	l_only_eiffel_class_file_allowed: STRING_32			do Result := locale.translation("Only Eiffel class file allowed")	end
+	l_no_suitable_classes_for_files: STRING_32 do Result := locale.translation_in_context ("No classes matching specified files are found.", "editor") end
+	l_dropping_files_without_project: STRING_32 do Result := locale.translation_in_context ("Dropping Eiffel files to the editor works for open projects only.", "editor") end
 	l_open: STRING_32					do Result := locale.translation("Open")	end
 	l_Open_a_project: STRING_32			do Result := locale.translation("Open a project")	end
 	l_Open_project: STRING_32 			do Result := locale.translation("Open project")	end
@@ -1601,6 +1659,8 @@ feature -- Label texts
 	l_profile: STRING_32					do Result := locale.translation("profile")	end
 	l_profile_no: STRING_32				do Result := locale.translation("profile #")	end
 	l_Project_location: STRING_32		do Result := locale.translation("The project location is the place where compilation%Nfiles will be generated by the compiler")	end
+	l_remember_project_location: STRING_32		do Result := locale.translation("Remember location") end
+	f_remember_project_location_tooltip: STRING_32		do Result := locale.translation("Restart from this directory the next time you create a project") end
 	l_protocol: STRING_32				do Result := locale.translation("Protocol")	end
 	l_Public_key_token: STRING_32		do Result := locale.translation ("PublicKeyToken") end
 	l_Put_text_right_text: STRING_32 	do Result := locale.translation("Show selective text on the right of buttons")	end
@@ -1638,6 +1698,7 @@ feature -- Label texts
 	l_Routine_descendants: STRING_32		do Result := locale.translation("Descendant versions")	end
 	l_Routine_flat: STRING_32			do Result := locale.translation("flat view")	end
 	l_Routines: STRING_32				do Result := locale.translation("Routines")	end
+	l_rule_code: STRING_32 			do Result := locale.translation_in_context (once "Rule", once "tool.error") end
 	l_Runtime_information_record: STRING_32 do Result := locale.translation("Run-time information record")	end
 	l_Runs: STRING_32					do Result := locale.translation("Runs")	end
 	l_run_after_all: STRING_32			do Result := "run_after_all" end
@@ -1656,6 +1717,7 @@ feature -- Label texts
 	l_Set_slice_limits: STRING_32		do Result := locale.translation ("Slice limits") end
 	l_Set_slice_limits_desc: STRING_32	do Result := locale.translation("Set which values are shown in special objects")	end
 	l_settings: STRING_32				do Result := locale.translation ("Settings") end
+	l_severity: STRING_32				do Result := locale.translation_in_context (once "Severity", once "tool.error") end
 	l_Short: STRING_32					do Result := locale.translation("Contract view")	end
 	l_Short_name: STRING_32				do Result := locale.translation("Short Name")	end
 	l_Show_all_call_stack: STRING_32		do Result := locale.translation("Show all stack elements")	end
@@ -1796,6 +1858,7 @@ feature -- Label texts
 	t_viewer_object_internal_title: STRING_32 do Result := locale.translation ("Object Internal") end
 	l_viewer_drop_object_here: STRING_32 do Result := locale.translation ("<< Drop object here >>") end
 	t_viewer_xml_display_title: STRING_32 do Result := locale.translation ("XML display") end
+	t_viewer_json_display_title: STRING_32 do Result := locale.translation ("JSON display") end
 	l_select_viewer: STRING_32 do Result := locale.translation ("Select Viewer") end
 
 	l_When_breakpoint_is_hit: STRING_32	do Result := locale.translation("When the breakpoint is hit:")	end
@@ -2218,6 +2281,24 @@ feature -- Label texts
 			Result := locale.formatted_string ("(must conform to $1)", [a_type])
 		end
 
+	l_installed_versions: STRING_32 do Result := locale.translation ("Installed Versions") end
+	l_settings_management: STRING_32 do Result := locale.translation ("Settings Management") end
+	l_edit_custom_settings: STRING_32 do Result := locale.translation ("edit to set custom values ...") end
+
+	l_first_time_import_settings_help (a_version_name: READABLE_STRING_GENERAL): STRING_32
+		do
+			Result := locale.formatted_string (locale.translation ("[
+					You are using EiffelStudio $1 for the first time.
+					Do you want to import settings from a previous installation?
+					
+					(Note: It is always possible to import settings using the menu Tools > Import Settings)
+					]"), [a_version_name])
+		end
+
+
+	l_show_features: STRING_32 	do Result := locale.translation ("Show Features (Ctrl+Space)") end
+	l_show_templates: STRING_32 do Result := locale.translation ("Show Templates (Ctrl+Space)") end
+
 feature -- Label text, no translation (for the editor)
 
 	le_version_from_message: STRING = " (version from)"
@@ -2238,6 +2319,7 @@ feature -- Stone names
 	s_Class_stone: STRING_32				do Result := locale.translation("Class ")	end
 	s_Cluster_stone: STRING_32			do Result := locale.translation("Cluster ")	end
 	s_Feature_stone: STRING_32			do Result := locale.translation("Feature ")	end
+	s_Local_stone: STRING_32			do Result := locale.translation("Local ")	end
 	s_Assembly_stone: STRING_32			do Result := locale.translation("Assembly ")	end
 	s_folder_stone: STRING_32			do Result := locale.translation("Folder ")	end
 	s_library_stone: STRING_32			do Result := locale.translation("Library ")	end
@@ -2263,6 +2345,11 @@ feature -- Title part
 		once
 			Result := locale.formatted_string (locale.translation ("About $1"), [workbench_name])
 		end
+	t_License: STRING_32
+		once
+			Result := locale.formatted_string (locale.translation ("License for $1"), [workbench_name])
+		end
+
 	t_acknowledge_change: STRING_32				do Result := locale.translation("Acknowledge selected affected items.") end
 	t_Add_eis_entry: STRING_32					do Result := locale.translation("Add a new entry in the list.")	end
 	t_Add_search_scope: STRING_32				do Result := locale.translation("Add Search Scope")	end
@@ -2570,6 +2657,7 @@ feature -- Title part
 	t_Search_Report_tool: STRING_32				do Result := locale.translation ("Search Report")	end
 	t_See_failure_trace: STRING_32				do Result := locale.translation ("See failure trace")	end
 	t_Windows_tool: STRING_32					do Result := locale.translation ("Windows")	end
+	t_Welcome: STRING_32	do Result := locale.translation ("Welcome")	end
 	t_Welcome_to_new_unit_test_wizard: STRING_32	do Result := locale.translation ("New Unit Test Wizard")	end
 	t_Watch_tool: STRING_32						do Result := locale.translation ("Watch")	end
 	t_watch_tool_error_message: STRING_32		do Result := locale.translation ("Watch tool :: error message")	end
@@ -2646,6 +2734,38 @@ feature -- Sub titles
 	st_unsaved_changed: STRING_32		do Result := locale.translation ("You have unsaved changes") end
 	st_cleaning_project: STRING_32		do Result := locale.translation ("Cleaning project...") end
 	st_unicode_cannot_save: STRING_32	do Result := locale.translation ("Unicode characters could not be saved.") end
+
+feature -- Startup pages
+
+	l_read_license_text: STRING_32 do Result := locale.translation ("Read License Text") end
+	l_agree_and_continue_with_gpl: STRING_32 do Result := locale.translation ("I agree and continue with GPL Edition") end
+	l_purchase_enterprise_edition: STRING_32 do Result := locale.translation ("Purchase Enterprise edition") end
+	l_login_with_credentials: STRING_32 do Result := locale.translation ("Login with credentials") end
+
+	l_user_name: STRING_32 do Result := locale.translation ("User Name") end
+	l_first_name: STRING_32 do Result := locale.translation ("First Name") end
+	l_last_name: STRING_32 do Result := locale.translation ("Last Name") end
+	l_password: STRING_32 do Result := locale.translation ("Password") end
+	l_email: STRING_32 do Result := locale.translation ("Email") end
+
+	b_login: STRING_32 do Result := locale.translation ("Login") end
+	b_register: STRING_32 do Result := locale.translation ("Register") end
+	b_skip: STRING_32 do Result := locale.translation ("Skip") end
+	b_guest: STRING_32 do Result := locale.translation ("Guest") end
+
+	l_open_eiffelstudio_account_web_site: STRING_32 do Result := locale.translation ("Open EiffelStudio account website in web browser.") end
+	l_register_new_account: STRING_32 do Result := locale.translation ("Register a new account.") end
+	l_login_with_existing_account: STRING_32 do Result := locale.translation ("You already have an account? Login >>") end
+
+	l_can_login_as_guest_for_n_days (nb_days: INTEGER): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.plural_translation_in_context
+			(once "This is the last day you can still login as guest", once "You can still login as guest for $1 more days", once "eiffel.account", nb_days), nb_days)
+		end
+
+feature -- Account related
+
+	m_account: STRING_32				do Result := locale.translation ("Account") end
 
 feature -- Titles translation needless (Title Original) for preference strings.
 
@@ -2990,7 +3110,7 @@ feature -- String escape
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -3021,4 +3141,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class INTERFACE_NAMES
+end

@@ -38,8 +38,6 @@ inherit
 
 	EV_ID_IMP
 
-	EV_MENU_ITEM_ACTION_SEQUENCES_IMP
-
 	WEL_WINDOWS_ROUTINES
 		export
 			{NONE} all
@@ -80,7 +78,7 @@ create
 
 feature -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 			-- Create the menu item.
 		do
 			assign_interface (an_interface)
@@ -152,11 +150,7 @@ feature -- Element change
 	set_parent_imp (a_parent_imp: like parent_imp)
 			-- Make `a_parent_imp' the parent of `Current'.
 		do
-			if a_parent_imp /= Void then
-				parent_imp := a_parent_imp
-			else
-				parent_imp := Void
-			end
+			parent_imp := a_parent_imp
 		end
 
 feature -- Measurement
@@ -987,7 +981,7 @@ feature {NONE} -- Constants
 			-- Space between the text and the pixmap in a menu bar item
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -997,19 +991,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class EV_MENU_ITEM_IMP
-
-
-
-
-
-
-
-
-
-
-
-
+end

@@ -37,11 +37,26 @@ feature -- Process
 			b: STRING_8
 			uid: INTEGER_64
 			user_api: CMS_USER_API
+			lnk: CMS_LINK
 		do
 			user_api := api.user_api
 			create b.make_empty
 			uid := role_id_path_parameter (request)
 			if uid > 0 and then attached user_api.user_role_by_id (uid.to_integer) as l_role then
+				if l_role.has_id then
+					lnk := api.administration_link (translation ("View", Void), "role/" + l_role.id.out)
+					lnk.set_weight (1)
+					add_to_primary_tabs (lnk)
+					lnk := api.administration_link (translation ("Edit", Void), "role/" + l_role.id.out + "/edit")
+					lnk.set_weight (2)
+					add_to_primary_tabs (lnk)
+
+					lnk := api.administration_link (translation ("Delete", Void), "role/" + l_role.id.out + "/delete")
+					lnk.set_weight (3)
+					add_to_primary_tabs (lnk)
+
+				end
+
 				fixme ("Issues with  WSD_FORM_DATA.apply_to_associated_form")
 					-- if we have a WSF_FORM_CHECKBOK_INPUT, cheked inputs, are not preserverd in case of error.
 				if location.ends_with_general ("/edit") then
@@ -52,6 +67,10 @@ feature -- Process
 			else
 				new_form
 			end
+			lnk := api.administration_link (translation ("<< Roles", Void), "roles")
+			lnk.set_weight (10)
+			add_to_primary_tabs (lnk)
+
 		end
 
 feature -- Process Edit
@@ -63,7 +82,7 @@ feature -- Process Edit
 			fd: detachable WSF_FORM_DATA
 		do
 			create b.make_empty
-			f := new_edit_form (a_role, url (request.percent_encoded_path_info, Void), "edit-user")
+			f := new_edit_form (a_role, request_url (Void), "edit-user-role")
 			api.hooks.invoke_form_alter (f, fd, Current)
 			if request.is_post_request_method then
 				f.validation_actions.extend (agent edit_form_validate(?,a_role, b))
@@ -71,11 +90,7 @@ feature -- Process Edit
 				f.process (Current)
 				fd := f.last_data
 			end
-			if a_role.has_id then
-				add_to_menu (create {CMS_LOCAL_LINK}.make (translation ("View", Void), "admin/role/" + a_role.id.out), primary_tabs)
-				add_to_menu (create {CMS_LOCAL_LINK}.make (translation ("Edit", Void), "admin/role/" + a_role.id.out + "/edit"), primary_tabs)
-				add_to_menu (create {CMS_LOCAL_LINK}.make (translation ("Delete", Void), "admin/role/" + a_role.id.out + "/delete"), primary_tabs)
-			end
+
 			if attached redirection as l_location then
 					-- FIXME: Hack for now
 				set_title (a_role.name)
@@ -96,17 +111,13 @@ feature -- Process Delete
 			fd: detachable WSF_FORM_DATA
 		do
 			create b.make_empty
-			f := new_delete_form (a_role, url (request.percent_encoded_path_info, Void), "edit-user")
+			f := new_delete_form (a_role, request_url (Void), "delete-user-role")
 			api.hooks.invoke_form_alter (f, fd, Current)
 			if request.is_post_request_method then
 				f.process (Current)
 				fd := f.last_data
 			end
-			if a_role.has_id then
-				add_to_menu (create {CMS_LOCAL_LINK}.make (translation ("View", Void), "admin/role/" + a_role.id.out), primary_tabs)
-				add_to_menu (create {CMS_LOCAL_LINK}.make (translation ("Edit", Void), "admin/role/" + a_role.id.out + "/edit"), primary_tabs)
-				add_to_menu (create {CMS_LOCAL_LINK}.make (translation ("Delete", Void), "admin/role/" + a_role.id.out + "/delete"), primary_tabs)
-			end
+
 			if attached redirection as l_location then
 					-- FIXME: Hack for now
 				set_title (a_role.name)
@@ -128,7 +139,7 @@ feature -- Process New
 			l_role: detachable CMS_USER_ROLE
 		do
 			create b.make_empty
-			f := new_edit_form (l_role, url (request.percent_encoded_path_info, Void), "create-role")
+			f := new_edit_form (l_role, request_url (Void), "create-role")
 			api.hooks.invoke_form_alter (f, fd, Current)
 			if request.is_post_request_method then
 				f.validation_actions.extend (agent new_form_validate(?, b))
@@ -283,7 +294,7 @@ feature -- Form
 				create ts.make ("op")
 				ts.set_default_value ("Cancel")
 				ts.set_formmethod ("GET")
-				ts.set_formaction ("/admin/role/" + a_role.id.out)
+				ts.set_formaction (api.administration_path ("/role/" + a_role.id.out))
 				f.extend (ts)
 			end
 			Result := f
@@ -348,9 +359,9 @@ feature -- Form
 							fs.extend (lab)
 							string_sorter.sort (l_permissions)
 							across l_permissions as ic loop
-								create cb.make_with_value ("cms_permissions", ic.item)
+								create cb.make_with_value ("cms_permissions", ic.item.to_string_32)
 								cb.set_checked (across l_role_permissions as rp_ic some rp_ic.item.is_case_insensitive_equal (ic.item) end)
-								cb.set_title (ic.item)
+								cb.set_title (ic.item.to_string_32)
 								fs.extend (cb)
 							end
 						end
@@ -389,7 +400,7 @@ feature -- Form
 	update_role (a_form_data: WSF_FORM_DATA; a_role: CMS_USER_ROLE)
 			-- Update node `a_node' with form_data `a_form_data' for the given content type `a_content_type'.
 		local
-			l_perm: READABLE_STRING_8
+			l_perm: READABLE_STRING_GENERAL
 		do
 			if attached a_form_data.string_item ("op") as f_op then
 				if f_op.is_case_insensitive_equal_general ("Update role") then
@@ -400,16 +411,16 @@ feature -- Form
 					then
 						if attached {WSF_STRING} a_form_data.item ("cms_permissions") as u_role then
 							a_role.permissions.wipe_out
-							a_role.add_permission (u_role.value)
+							a_role.add_permission (api.utf_8_encoded (u_role.value)) -- TODO: utf-8 or require valid string 8?
 						elseif attached {WSF_MULTIPLE_STRING} a_form_data.item ("cms_permissions") as u_permissions then
 							a_role.permissions.wipe_out
 								-- Enable checked permissions.
 							across
 								u_permissions as ic
 							loop
-								l_perm := ic.item.value.as_string_8
+								l_perm := ic.item.value
 								if not l_perm.is_whitespace then
-									a_role.add_permission (l_perm)
+									a_role.add_permission (api.utf_8_encoded (l_perm)) -- TODO: utf-8 or require valid string 8?
 								end
 							end
 						else
@@ -421,9 +432,9 @@ feature -- Form
 								l_cms_perms.values as ic
 							loop
 								if attached {WSF_STRING} ic.item as p then
-									l_perm := p.value.as_string_8
+									l_perm := p.value
 									if not l_perm.is_whitespace then
-										a_role.add_permission (l_perm)
+										a_role.add_permission (api.utf_8_encoded (l_perm))
 									end
 								end
 							end
@@ -434,7 +445,7 @@ feature -- Form
 							api.user_api.save_user_role (a_role)
 							if not api.user_api.has_error then
 								add_success_message ("Permissions updated")
-								set_redirection (absolute_url ("admin/role/" + a_role.id.out, Void))
+								set_redirection (absolute_url (api.administration_path_location ("role/" + a_role.id.out), Void))
 							else
 								add_error_message ("Error during permissions update operation.")
 							end
@@ -458,8 +469,8 @@ feature -- Form
 						if api.user_api.has_error then
 								-- handle error
 						else
-							add_success_message ("Created Role " + link (l_role, "admin/role/" + u.id.out, Void))
-							set_redirection (absolute_url ("admin/role/" + u.id.out, Void))
+							add_success_message ("Created Role " + link (l_role, api.administration_path_location ("role/" + u.id.out), Void))
+							set_redirection (absolute_url (api.administration_path_location ("role/" + u.id.out), Void))
 						end
 					else
 						a_form_data.report_invalid_field ("username", "Missing role!")

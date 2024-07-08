@@ -36,23 +36,24 @@ feature -- Checking
 			old_feat: FEATURE_I
 			info: INHERIT_INFO
 			feature_with_assigner: FEATURE_I
+			f: FEATURE_I
 		do
 				-- The signature of the chosen feature in the
-				-- context of `feat_tbl' has ben already evluated by
+				-- context of `feat_tbl' has ben already evaluated by
 				-- feature `check_types' of FEATURE_TABLE. (See class
 				-- INHERIT_TABLE).
+			f := new_feature
 			from
 				deferred_features := old_features.deferred_features
-					-- The first deferred feature is skipped since it is
-					-- `new_feature'
+					-- The first deferred feature is skipped since it is `new_feature'.
 				check
-					deferred_features.first.a_feature = new_feature
+					deferred_features.first.a_feature = f
 				end
-				if new_feature.assigner_name_id /= 0 then
-						-- Record assigner command for comparison with other features
-					feature_with_assigner := new_feature
+				if f.assigner_name_id /= 0 then
+						-- Record assigner command for comparison with other features.
+					feature_with_assigner := f
 				end
-					-- Go to the second item in the list
+					-- Go to the second item in the list.
 				deferred_features.start
 				deferred_features.forth
 			until
@@ -65,7 +66,7 @@ feature -- Checking
 				old_feat := info.internal_a_feature
 
 					-- Check that the signature of redeclaration is the same.
-				new_feature.delayed_check_same_signature (old_feat, feat_tbl)
+				f.delayed_check_same_signature (old_feat, feat_tbl)
 
 					-- Check assigner procedure.
 				if old_feat.assigner_name_id /= 0 then
@@ -78,13 +79,12 @@ feature -- Checking
 							(create {VDJR3_NEW}.make (system.current_class, feature_with_assigner, old_feat))
 					end
 				end
-
 				deferred_features.forth
 			end
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

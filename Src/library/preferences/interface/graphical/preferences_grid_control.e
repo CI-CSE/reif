@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			A widget containing a tree/grid view of application preferences.  Provides a
 			list to view preference information and ability to edit the preferences using popup floating widgets.  Also allows
@@ -182,8 +182,9 @@ feature {NONE} -- Initialization
 			grid.pointer_double_press_item_actions.extend (agent on_grid_item_double_pressed)
 			grid.key_press_actions.extend (agent on_grid_key_pressed)
 
-			grid.header.pointer_double_press_actions.force_extend (agent on_header_double_clicked)
-			grid.header.item_resize_end_actions.force_extend (agent on_header_item_resize)
+			grid.header.pointer_double_press_actions.extend
+				(agent (x, y, b: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32) do on_header_double_clicked end)
+			grid.header.item_resize_end_actions.extend (agent on_header_item_resize)
 			grid.header.item_pointer_button_press_actions.extend (agent on_header_item_single_clicked)
 
 			restore_button.select_actions.extend (agent on_restore)
@@ -193,7 +194,7 @@ feature {NONE} -- Initialization
 			apply_or_close_button.select_actions.extend (agent on_apply_or_close)
 			description_location.key_press_actions.extend (agent on_description_key_pressed)
 			description_text.key_press_actions.extend (agent on_description_key_pressed)
-			l_box.resize_actions.force_extend (agent on_resize)
+			l_box.resize_actions.extend (agent (x, y, w, h: INTEGER_32) do on_resize end)
 			view_toggle_button.select_actions.extend (agent toggle_view)
 
 				--| Filter
@@ -248,7 +249,7 @@ feature -- Access
 feature -- Obsolete
 
 	register_preference_widget (a_pref_widget: PREFERENCE_WIDGET)
-			obsolete "[090514] do not use, this had no effect at all, so this was removed"
+		obsolete "do not use, this had no effect at all, so this was removed [2017-05-31]."
 		do
 		end
 
@@ -481,6 +482,10 @@ feature {NONE} -- Events
 			s: detachable STRING_32
 			stor: PREFERENCES_STORAGE_XML
 			p: detachable EV_WINDOW
+			popup: detachable EV_POPUP_WINDOW
+			bb,vb: EV_VERTICAL_BOX
+			lab: EV_LABEL
+			l_style: detachable EV_POINTER_STYLE
 		do
 			p := parent_window
 			if p = Void then
@@ -492,7 +497,44 @@ feature {NONE} -- Events
 				s := dlg.file_name
 				if s /= Void then
 					create stor.make_with_location_and_version (s, preferences.version)
-					preferences.import_from_storage (stor)
+
+						-- Busy style
+					l_style := p.pointer_style
+					p.set_pointer_style (create {EV_POINTER_STYLE}.make_predefined ({EV_POINTER_STYLE_CONSTANTS}.busy_cursor))
+
+						-- Popup dialog
+					create popup.make_with_shadow
+					create bb
+					bb.set_border_width (1)
+					create vb
+					bb.extend (vb)
+					vb.set_border_width (10)
+					create lab.make_with_text (l_importing_preferences)
+					lab.align_text_left
+					vb.extend (lab)
+
+					create lab.make_with_text ("...")
+					lab.align_text_left
+					vb.extend (lab)
+
+					popup.extend (bb)
+					popup.set_background_color ((create {EV_STOCK_COLORS}).white)
+					popup.propagate_background_color
+					bb.set_background_color ((create {EV_STOCK_COLORS}).blue)
+					popup.set_width ((9 * p.width) // 10)
+					popup.set_position (p.x_position + (p.width - popup.width) // 2, p.y_position + (p.height - popup.height) // 2)
+					popup.show_relative_to_window (p)
+					popup.refresh_now
+
+					preferences.import_from_storage_with_callback (stor, agent (ia_txt: EV_LABEL; ia_i, ia_count: INTEGER; ia_name, ia_value: READABLE_STRING_GENERAL)
+							do
+								ia_txt.set_text ("[" + ia_i.out + "/" + ia_count.out + "] " + ia_name.out + "%N")
+								ia_txt.refresh_now
+							end (lab, ?, ?, ?, ?))
+					popup.destroy
+					if l_style /= Void then
+						p.set_pointer_style (l_style)
+					end
 					rebuild
 				end
 			end
@@ -687,7 +729,7 @@ feature {NONE} -- Events
 			end
 		end
 
-	on_header_item_resize
+	on_header_item_resize (h: EV_HEADER_ITEM)
 			-- Header was double-clicked.
 		local
 			div_index: INTEGER
@@ -1700,7 +1742,7 @@ invariant
 	has_preferences: preferences /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -1710,5 +1752,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class PREFERENCES_GRID_CONTROL
-
+end

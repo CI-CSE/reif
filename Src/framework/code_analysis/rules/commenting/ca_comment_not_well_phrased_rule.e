@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #73: Comment not well phrased
 			
@@ -38,46 +38,71 @@ feature {NONE} -- Activation
 feature {NONE} -- Implementation
 
 	check_feature_comments (a_feature: attached FEATURE_AS)
-		-- Checks for not well phrased feature comments in `a_feature'.
+			-- Checks for not well phrased feature comments in `a_feature'.
 		local
-			l_violation_found, l_first, l_done: BOOLEAN
-			l_comments: EIFFEL_COMMENTS
+			done: BOOLEAN
+			comments: EIFFEL_COMMENTS
+			comment: EIFFEL_COMMENT_LINE
+			line: READABLE_STRING_32
+			first_comment: EIFFEL_COMMENT_LINE
 		do
-			l_comments := a_feature.comment (current_context.matchlist)
-
-			from
-				l_comments.start
-				l_violation_found := False
-				l_first := True
-				l_done := l_comments.is_empty
+			comments := a_feature.comment (current_context.matchlist)
+			across
+				comments as c
 			until
-				l_comments.after or l_violation_found or l_done
+				done
 			loop
-				if not is_empty_comment (l_comments.item.content_32) and l_first then
-					l_first := False
-					l_violation_found := not starts_with_upper (l_comments.item.content_32)
-				else
-					if is_empty_comment (l_comments.item.content_32) then
-							-- The line above the empty line did not end with punctuation -> violation.
-						l_violation_found := True
+				comment := c.item
+				line := comment.content_32
+				if
+					not attached first_comment and then
+					not is_empty_comment (line)
+				then
+							-- There is no content before this comment.
+					if starts_with_upper (line) then
+						first_comment := comment
 					else
-							-- We only check until we found the first sentence.
-						l_done := ends_with_punctuation (l_comments.item.content_32)
+						create_violation (comment)
+						done := True
 					end
 				end
-				l_comments.forth
+				if attached first_comment then
+					if is_empty_comment (line) then
+							-- The line above the empty line did not end with punctuation -> violation.
+						create_violation (first_comment)
+						done := True
+					elseif ends_with_punctuation (line) then
+							-- We only check until we found the first sentence.
+						done := True
+					elseif is_special_line (line) then
+							-- This is a special comment like "-- <Precursor>".
+							-- It is OK to have it as the first comment.
+						if comment /= first_comment then
+								-- The first comment should have ended with a puncuation.
+							create_violation (first_comment)
+						end
+						done := True
+					end
+				end
 			end
 
-			if l_violation_found or not l_done then
-				create_violation (l_comments.first)
+			if not done then
+					-- The comment did not end well or there was no comment at all.
+					-- If there are no comments, no errors are reported about their well-formedness.
+				if attached first_comment then
+						-- There is a non-empty comment.
+					create_violation (first_comment)
+				elseif not comments.is_empty then
+						-- All comment lines are empty.
+					create_violation (comments.first)
+				end
 			end
 		end
 
 	check_feature_clause_comments (a_class: attached CLASS_AS)
-		-- Checks for not well phrased feature clause comments in `a_class'.
+			-- Checks for not well phrased feature clause comments in `a_class'.
 		local
 			l_comment: EIFFEL_COMMENT_LINE
-			test: FEATURE_CLAUSE_AS
 		do
 			if attached a_class.features as l_features then
 				across l_features as l_feature loop
@@ -125,7 +150,9 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	starts_with_upper (a_comment: STRING): BOOLEAN
+	starts_with_upper (a_comment: READABLE_STRING_32): BOOLEAN
+		require
+			not_is_empty: not is_empty_comment (a_comment)
 		local
 			i: INTEGER
 		do
@@ -136,35 +163,33 @@ feature {NONE} -- Implementation
 			loop
 				i := i + 1
 			end
-
 			Result := a_comment.at (i).is_upper or not a_comment.at (i).is_alpha
 		end
 
-	ends_with_punctuation (a_comment: STRING): BOOLEAN
+	ends_with_punctuation (a_comment: READABLE_STRING_32): BOOLEAN
+		require
+			not_is_empty: not is_empty_comment (a_comment)
 		local
 			i: INTEGER
 		do
-			if a_comment.is_empty then
-				Result := False
-			else
-				from
-					i := a_comment.count
-				until
-					i <= 1 or not a_comment.at (i).is_space
-				loop
-					i := i - 1
-				end
-
-				Result := a_comment.at (i).is_equal ('.') or a_comment.at (i).is_equal ('?') or a_comment.at (i).is_equal (':')
+			from
+				i := a_comment.count
+			until
+				i <= 1 or not a_comment [i].is_space
+			loop
+				i := i - 1
 			end
+			Result := i >= 1 and then ending_punctuation.has (a_comment [i])
 		end
 
-	is_empty_comment (a_comment: STRING): BOOLEAN
+	ending_punctuation: STRING_32 = ".?!:"
+			-- Symbols that can be used to indicate end of a sentense.
+
+	is_empty_comment (a_comment: READABLE_STRING_32): BOOLEAN
 		local
 			i: INTEGER
 		do
 			Result := True
-
 			from
 				i := 1
 			until
@@ -174,6 +199,44 @@ feature {NONE} -- Implementation
 				i := i + 1
 			end
 		end
+
+	is_special_line (c: READABLE_STRING_32): BOOLEAN
+			-- Does comment `c` represent a special comment line
+			-- that is complete, e.g. "-- <Precursor>"?
+		local
+			i, n: INTEGER
+		do
+			i := c.index_of (special_line [1], 1)
+			n := special_line.count
+			if i > 0 and then c.same_caseless_characters (special_line, 1, n, i) then
+					-- Position to the first space character.
+				i := i - 1
+					-- Record where special line ends.
+				n := i + n
+					-- Test if all leading characters are spaces.
+				from
+				until
+					i <= 0 or else not c [i].is_space
+				loop
+					i := i - 1
+				end
+				if i = 0 then
+						-- All leading characters are spaces.
+						-- Test if all trailing characters are spaces.
+					from
+						i := c.count
+					until
+						i <= n or else not c [i].is_space
+					loop
+						i := i - 1
+					end
+					Result := i = n
+				end
+			end
+		end
+
+	special_line: STRING_32 = "<Precursor>"
+			-- A complete self-contained feature comment.
 
 	create_violation (a_comment: EIFFEL_COMMENT_LINE)
 		local
@@ -186,6 +249,9 @@ feature {NONE} -- Implementation
 		end
 
 feature -- Properties
+
+	name: STRING = "comment_style"
+			-- <Precursor>
 
 	title: STRING_32
 		do
@@ -201,8 +267,9 @@ feature -- Properties
 
 	format_violation_description (a_violation: attached CA_RULE_VIOLATION; a_formatter: attached TEXT_FORMATTER)
 		do
-			if attached {STRING_32} a_violation.long_description_info.first as l_comment_text then
-				a_formatter.add_string ("Starting at: %"" + l_comment_text + "%"")
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_comment_text then
+				a_formatter.add_string ({STRING_32} "Starting at: %"" + l_comment_text + "%"")
 			end
 		end
+
 end

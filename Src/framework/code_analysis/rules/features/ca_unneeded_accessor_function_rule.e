@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		RULE #79: Unneeded accessor function
 		
@@ -7,6 +7,7 @@ note
 		and the accessor may be removed.
 	]"
 	author: "Paolo Antonucci"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -26,7 +27,7 @@ feature {NONE} -- Initialization
 			-- Initialization for `Current'.
 		do
 			make_with_defaults
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -94,6 +95,9 @@ feature {NONE} -- Rule checking
 
 feature -- Properties
 
+	name: STRING = "unnecessay_accessor"
+			-- <Precursor>
+
 	title: STRING_32
 			-- <Precursor>
 		do
@@ -115,17 +119,17 @@ feature -- Properties
 			a_formatter.add (ca_messages.unneeded_accessor_function_violation_1)
 			a_violation.long_description_info.start
 			check
-				attached {STRING_32} a_violation.long_description_info.item
+				attached {READABLE_STRING_GENERAL} a_violation.long_description_info.item
 			end
-			if attached {STRING_32} a_violation.long_description_info.item as l_feature_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.item as l_feature_name then
 				a_formatter.add (l_feature_name)
 				a_violation.long_description_info.forth
 			end
 			a_formatter.add (ca_messages.unneeded_accessor_function_violation_2)
 			check
-				attached {STRING_32} a_violation.long_description_info.item
+				attached {READABLE_STRING_GENERAL} a_violation.long_description_info.item
 			end
-			if attached {STRING_32} a_violation.long_description_info.item as l_attribute_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.item as l_attribute_name then
 				a_formatter.add (l_attribute_name)
 			end
 			a_formatter.add (ca_messages.unneeded_accessor_function_violation_3)

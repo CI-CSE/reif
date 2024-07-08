@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Refactoring that fixes a rule violation that has been found by the Code Analysis tool."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,12 +10,9 @@ class
 
 inherit
 
-	ERF_CLASS_TEXT_MODIFICATION
-
-	EB_SHARED_WINDOW_MANAGER
-		undefine
-			is_equal,
-			copy
+	ES_FIX
+		redefine
+			item
 		end
 
 	SHARED_EIFFEL_PROJECT
@@ -23,7 +20,8 @@ inherit
 	ES_CODE_ANALYSIS_BENCH_HELPER
 
 create
-	make_with_fix
+	make_with_fix,
+	make
 
 feature {NONE} -- Initialization
 
@@ -40,9 +38,10 @@ feature {NONE} -- Initialization
 			make (fix.class_to_change.original_class)
 		end
 
+
 feature {NONE} -- Implementation
 
-	fix: CA_FIX
+	item: CA_FIX
 			-- The fix to apply.
 
 	ui_row: EV_GRID_ROW
@@ -129,6 +128,14 @@ feature -- Fixing
 			logger.refactoring_class (class_i)
 		end
 
+feature -- Fixing
+
+	apply_to (m: ES_CLASS_TEXT_AST_MODIFIER)
+			-- <Precursor>
+		do
+			item.apply (m.ast, m.ast_match_list)
+		end
+
 	undo_fix
 		require
 			fix_applied: is_fix_applied
@@ -146,7 +153,7 @@ feature -- Fixing
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

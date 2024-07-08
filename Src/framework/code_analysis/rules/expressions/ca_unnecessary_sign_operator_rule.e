@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 					RULE #30: Unnecessary sign operator
 		
@@ -6,6 +6,7 @@ note
 				They should be removed or the instruction should be checked for errors.
 	]"
 	author: "Paolo Antonucci"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -25,7 +26,7 @@ feature {NONE} -- Initialization
 			-- Initialization for `Current'.
 		do
 			make_with_defaults
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -138,7 +139,7 @@ feature {NONE} -- Rule checking
 				--	-0
 
 			if attached a_integer.sign_symbol (current_context.matchlist) as l_sign then
-				if l_sign.is_plus or a_integer.natural_64_value = 0 then
+				if l_sign.is_plus or a_integer.is_zero then
 					add_violation (l_sign.start_location, a_integer.text_32 (current_context.matchlist))
 				end
 			end
@@ -172,6 +173,9 @@ feature {NONE} -- Rule checking
 		end
 
 feature -- Properties
+
+	name: STRING = "unnecessary_sign"
+			-- <Precursor>
 
 	title: STRING_32
 			-- <Precursor>

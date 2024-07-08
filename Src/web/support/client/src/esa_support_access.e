@@ -24,13 +24,18 @@ feature {NONE} -- Initialization
 			client := (create {DEFAULT_HTTP_CLIENT}).new_session (service_url)
 			client.set_timeout (config.connection_timeout)
 			client.set_is_insecure (True)
+			client.set_ciphers_setting ("TLSv1")
 			client.set_any_auth_type
+			client.set_ciphers_setting ("TLSv1")
 		end
 
 	config: ESA_CLIENT_CONFIGURATION
 			-- client configuration.
 
 feature -- Access
+
+	last_error: detachable READABLE_STRING_32
+			-- last error detail, if any.
 
 	client: HTTP_CLIENT_SESSION
 			-- Http client session.
@@ -56,6 +61,10 @@ feature -- Access
 				l_http_response.append ("Status: " + g_response.status.out + "%N")
 				l_http_response.append (g_response.raw_header)
 				l_status := g_response.status
+				if attached g_response.error_message as l_message then
+					l_http_response.append (" ")
+					l_http_response.append (l_message)
+				end
 				if attached g_response.body as l_body then
 					l_http_response.append ("%N%N")
 					l_http_response.append (l_body)
@@ -117,45 +126,16 @@ feature -- Status report
 			support_accessible: Result implies client.is_available
 		end
 
-feature {NONE} -- Implementation
-
-	shared_ejson: SHARED_EJSON
-			-- Json configuration
-		once
-			fixme ("Refactor code: update class to remove the use of obsolete code.")
-			create Result
-		end
-
-	initialize_json_converters
-			-- json converters initialization.
-		once
-			fixme ("Refactor code: update class to remove the use of obsolete code.")
-			if attached shared_ejson.json as j then
-				j.add_converter (create {CJ_COLLECTION_JSON_CONVERTER}.make)
-				j.add_converter (create {CJ_DATA_JSON_CONVERTER}.make)
-				j.add_converter (create {CJ_ERROR_JSON_CONVERTER}.make)
-				j.add_converter (create {CJ_ITEM_JSON_CONVERTER}.make)
-				j.add_converter (create {CJ_QUERY_JSON_CONVERTER}.make)
-				j.add_converter (create {CJ_TEMPLATE_JSON_CONVERTER}.make)
-				j.add_converter (create {CJ_LINK_JSON_CONVERTER}.make)
-				if j.converter_for (create {ARRAYED_LIST [detachable ANY]}.make (0)) = Void then
-					j.add_converter (create {CJ_ARRAYED_LIST_JSON_CONVERTER}.make)
-				end
-			end
-		end
-
 feature -- Access
 
 	cj_collection (j: JSON_VALUE): detachable CJ_COLLECTION
 			-- collection json represenation.
 		local
-			conv: CJ_COLLECTION_JSON_CONVERTER
+			factory: CJ_COLLECTION_FACTORY
 		do
-			fixme ("Refactor code: update class to remove the use of obsolete code.")
 			if attached {JSON_OBJECT} j as jo then
-				initialize_json_converters
-				create conv.make
-				Result := conv.from_json (jo)
+				create factory
+				Result := factory.to_collection (jo)
 			end
 		end
 
@@ -164,24 +144,81 @@ feature -- Access
 			p: JSON_PARSER
 		do
 			create p.make_with_string (s)
-			if attached p.parse as v and then p.is_parsed then
+			p.parse_content
+			if p.is_valid and then attached p.parsed_json_value as v then
 				Result := v
 			end
 		end
 
 	cj_template_to_json (tpl: CJ_TEMPLATE): detachable JSON_VALUE
 		local
-			conv: CJ_TEMPLATE_JSON_CONVERTER
+			factory: CJ_COLLECTION_FACTORY
 		do
-			initialize_json_converters
-			create conv.make
-			Result := conv.to_json (tpl)
+			create factory
+			Result := factory.template_to_json (tpl)
 		end
 
 feature {NONE} -- Constants
 
 	service_url: STRING = ""
 			-- service url setup.
+
+
+
+feature {NONE} -- Retrieve URL
+
+	retrieve_url (a_rel: STRING_8; a_prompt: STRING_8): detachable STRING_8
+			-- Retrieve an Href value from CJ response if any, in other case
+			-- and empty String.
+		local
+			l_resp: ESA_SUPPORT_RESPONSE
+			lnk: CJ_LINK
+			ctx: HTTP_CLIENT_REQUEST_CONTEXT
+			l_found: BOOLEAN
+		do
+			create ctx.make
+			initialize_context_header (ctx)
+
+
+			l_resp := get (config.service_root, ctx)
+			if l_resp.status /= 200 then
+				if attached l_resp.http_response as l_message then
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP " + l_message)
+				else
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP Status" + l_resp.status.out)
+				end
+			else
+				if attached l_resp.collection as l_col and then attached l_col.links as l_links then
+					across
+						l_links as ic
+					until
+						l_found
+					loop
+						lnk := ic.item
+						if lnk.rel.same_string (a_rel) then
+							if
+								a_prompt /= Void and then
+							 	attached lnk.prompt as lnk_prompt and then
+							 	lnk_prompt.same_string (a_prompt)
+							then
+								l_found := True
+								create Result.make_from_string (lnk.href)
+							end
+						end
+					end
+					if Result = Void then
+						create Result.make_empty
+					end
+				else
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP Status " + l_resp.status.out)
+				end
+			end
+		end
+
+	initialize_context_header (ctx: HTTP_CLIENT_REQUEST_CONTEXT)
+			-- Intialize context `ctx`.
+		do
+		end
 
 note
 	copyright: "Copyright (c) 1984-2015, Eiffel Software"

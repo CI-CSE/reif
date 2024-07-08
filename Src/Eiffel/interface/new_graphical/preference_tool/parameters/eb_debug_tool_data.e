@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "All shared attributes specific to the debugger"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -15,6 +15,10 @@ inherit
 		export
 			{NONE} all
 		end
+
+	EB_SHARED_GRAPHICAL_COMMANDS
+
+	SHARED_DEBUGGER_MANAGER
 
 create
 	make
@@ -49,14 +53,44 @@ feature {EB_SHARED_PREFERENCES, ES_DOCKABLE_TOOL_PANEL} -- Value
 			end
 		end
 
-	project_toolbar_layout: ARRAY [STRING]
-			-- Toolbar organization
+	project_toolbar_layout: ARRAY [STRING_GENERAL]
+			-- Toolbar organization.
 		do
-			Result := <<"System_tool__visible", "Melt_project__visible", "Open_help_tool__visible", "System_info__visible", "Force_debug_mode__visible",
-				"Separator", "Enable_bkpt__visible", "Disable_bkpt__visible", "Clear_bkpt__visible", "Bkpt_info__visible", "Separator", "Ignore_breakpoints_cmd__hidden",
-				"Exec_debug__visible", "Exec_restart_debug__hidden", "Exec_stop__hidden", "Exec_quit__hidden", {EB_EXEC_DETACH_CMD}.name + "__hidden", {EB_EXEC_ATTACH_CMD}.name + "__hidden", "Separator", "Exec_step__visible", "Exec_into__visible",
-				"Exec_out__visible", "Exec_no_stop__hidden", "Assertion_checking_handler__hidden", "Run_final__hidden", "Freeze_project__hidden", "Finalize_project__hidden",
-				"Override_scan__hidden", "Discover_melt__hidden">>
+			Result := <<
+				visible_toolbar_item_name ({EB_SYSTEM_CMD}.name),
+				visible_toolbar_item_name ({EB_MELT_PROJECT_COMMAND}.command_name),
+				visible_toolbar_item_name ({EB_ERROR_INFORMATION_CMD}.name),
+				visible_toolbar_item_name ({EB_SYSTEM_INFORMATION_CMD}.name),
+				visible_toolbar_item_name ({ES_CODE_ANALYSIS_COMMAND}.command_name),
+				hidden_toolbar_item_name ({ES_CODE_ANALYSIS_ANALYZE_EDITOR_COMMAND}.name),
+				hidden_toolbar_item_name ({ES_CODE_ANALYSIS_ANALYZE_PARENT_COMMAND}.name),
+				hidden_toolbar_item_name ({ES_CODE_ANALYSIS_ANALYZE_TARGET_COMMAND}.name),
+				hidden_toolbar_item_name ({ES_CA_SHOW_PREFERENCES_COMMAND}.name),
+				visible_toolbar_item_name ({EB_FORCE_EXECUTION_MODE_CMD}.name),
+				"Separator",
+				visible_toolbar_item_name ({EB_DEBUG_STOPIN_HOLE_COMMAND}.name),
+				visible_toolbar_item_name ({EB_DISABLE_STOP_POINTS_COMMAND}.name),
+				visible_toolbar_item_name ({EB_CLEAR_STOP_POINTS_COMMAND}.name),
+				visible_toolbar_item_name ("Bkpt_info"),
+				"Separator",
+				hidden_toolbar_item_name ({EB_DBG_IGNORE_BREAKPOINTS_CMD}.name),
+				visible_toolbar_item_name ({EB_EXEC_DEBUG_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_RESTART_DEBUG_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_STOP_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_QUIT_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_DETACH_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_ATTACH_CMD}.name),
+				"Separator",
+				visible_toolbar_item_name ({EB_EXEC_STEP_CMD}.name),
+				visible_toolbar_item_name ({EB_EXEC_INTO_CMD}.name),
+				visible_toolbar_item_name ({EB_EXEC_OUT_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_NO_STOP_CMD}.name),
+				hidden_toolbar_item_name ({EB_ASSERTION_CHECKING_HANDLER_CMD}.name),
+				hidden_toolbar_item_name ({EB_EXEC_FINALIZED_CMD}.name),
+				hidden_toolbar_item_name ({EB_FREEZE_PROJECT_COMMAND}.name),
+				hidden_toolbar_item_name ({EB_FINALIZE_PROJECT_COMMAND}.name),
+				hidden_toolbar_item_name ({EB_OVERRIDE_SCAN_COMMAND}.name),
+				hidden_toolbar_item_name ({EB_DISCOVER_AND_MELT_COMMAND}.name)>>
 		end
 
 	local_vs_object_proportion: REAL
@@ -181,12 +215,25 @@ feature {EB_SHARED_PREFERENCES, ES_DOCKABLE_TOOL_PANEL} -- Value
 			Result := new_shortcut ({EV_KEY_CONSTANTS}.key_end, True, False, False)
 		end
 
+	auto_import_debugger_profiles_enabled: BOOLEAN
+		do
+			Result := auto_import_debugger_profiles_enabled_preference.value
+		end
+
+	auto_export_debugger_profiles_enabled: BOOLEAN
+		do
+			Result := auto_export_debugger_profiles_enabled_preference.value
+		end
+
 feature -- Preference
 
 	edit_bp_here_shortcut_preference: SHORTCUT_PREFERENCE
 	enable_remove_bp_here_shortcut_preference: SHORTCUT_PREFERENCE
 	enable_disable_bp_here_shortcut_preference: SHORTCUT_PREFERENCE
 	run_to_this_point_shortcut_preference: SHORTCUT_PREFERENCE
+
+	auto_import_debugger_profiles_enabled_preference: BOOLEAN_PREFERENCE
+	auto_export_debugger_profiles_enabled_preference: BOOLEAN_PREFERENCE
 
 feature {EB_SHARED_PREFERENCES, ES_DOCKABLE_TOOL_PANEL} -- Preference
 
@@ -309,6 +356,22 @@ feature -- Preference Strings
 	enable_remove_here_shortcut_string: STRING = "debugger.shortcuts.enable_remove_here"
 	enable_disable_bp_here_shortcut_string: STRING = "debugger.shortcuts.enable_disable_bp_here"
 	run_to_this_point_shortcut_string: STRING = "debugger.shortcuts.run_to_this_point"
+	auto_import_debugger_profiles_enabled_string: STRING = "debugger.parameters.auto_import"
+	auto_export_debugger_profiles_enabled_string: STRING = "debugger.parameters.auto_export"
+
+feature {NONE} -- Visibility control
+
+	visible_toolbar_item_name (command_name: STRING_GENERAL): STRING_GENERAL
+			-- Preference name of a toolbar item of name `command_name` corresponding to its visible status.
+		do
+			Result := command_name + "__visible"
+		end
+
+	hidden_toolbar_item_name (command_name: STRING_GENERAL): STRING_GENERAL
+			-- Preference name of a toolbar item of name `command_name` corresponding to its hidden status.
+		do
+			Result := command_name + "__hidden"
+		end
 
 feature {NONE} -- Implementation
 
@@ -364,6 +427,9 @@ feature {NONE} -- Implementation
 			enable_remove_bp_here_shortcut_preference := l_manager.new_shortcut_preference_value (l_manager, enable_remove_here_shortcut_string,  [False, False, False, "F9"])
 			enable_disable_bp_here_shortcut_preference := l_manager.new_shortcut_preference_value (l_manager, enable_disable_bp_here_shortcut_string,  [False, False, True, "F9"])
 			run_to_this_point_shortcut_preference := l_manager.new_shortcut_preference_value (l_manager, run_to_this_point_shortcut_string,  [False, True, False, "F10"])
+
+			auto_import_debugger_profiles_enabled_preference := l_manager.new_boolean_preference_value (l_manager, auto_import_debugger_profiles_enabled_string, True)
+			auto_export_debugger_profiles_enabled_preference := l_manager.new_boolean_preference_value (l_manager, auto_export_debugger_profiles_enabled_string, False)
 		end
 
 	new_shortcut (a_key: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN): ES_KEY_SHORTCUT
@@ -403,9 +469,13 @@ invariant
 	run_to_this_point_shortcut_preference_not_void: run_to_this_point_shortcut_preference /= Void
 	display_agent_details_preference_not_void: display_agent_details_preference /= Void
 	always_show_callstack_tool_when_stopping_preference_not_void: always_show_callstack_tool_when_stopping_preference /= Void
+	auto_import_debugger_profiles_enabled_preference_not_void: auto_import_debugger_profiles_enabled_preference /= Void
+	auto_export_debugger_profiles_enabled_preference_not_void: auto_export_debugger_profiles_enabled_preference /= Void
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	ca_ignore:
+		"CA093", "CA093: manifest array type mismatch"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -436,4 +506,5 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_DEBUG_TOOL_DATA
+end
+

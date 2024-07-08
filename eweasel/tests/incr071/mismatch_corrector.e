@@ -1,4 +1,4 @@
-indexing
+note
 	description: "[
 		Ancestor of all classes that need facility to retrieve an older version of an instance of current
 		class through storable.
@@ -13,7 +13,7 @@ class
 	
 feature -- Correction
 
-	correct_mismatch is
+	correct_mismatch
 			-- Attempt to correct object mismatch using `mismatch_information'.
 		local
 			l_msg: STRING
@@ -22,11 +22,11 @@ feature -- Correction
 				-- If it is not redefined then we raise an exception.
 			create l_msg.make_from_string ("Mismatch: ")
 			create l_exc
-			l_msg.append (generating_type)
+			l_msg.append (generating_type.name)
 			l_exc.raise_retrieval_exception (l_msg)
 		end
 
-	mismatch_information: MISMATCH_INFORMATION is
+	mismatch_information: MISMATCH_INFORMATION
 			-- Original attribute values of mismatched object
 		once
 			create Result

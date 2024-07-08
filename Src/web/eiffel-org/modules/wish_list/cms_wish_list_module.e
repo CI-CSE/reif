@@ -11,7 +11,6 @@ inherit
 		rename
 			module_api as wish_list_api
 		redefine
-			filters,
 			setup_hooks,
 			initialize,
 			install,
@@ -103,14 +102,6 @@ feature {CMS_API} -- Access: API
 
 	wish_list_api: detachable CMS_MOTION_API
 			-- <Precursor>		
-
-feature -- Filters
-
-	filters (a_api: CMS_API): detachable LIST [WSF_FILTER]
-			-- Possibly list of Filter's module.
-		do
-			create {ARRAYED_LIST [WSF_FILTER]} Result.make (1)
-		end
 
 feature -- Access: docs
 
@@ -211,6 +202,7 @@ feature -- Security
 			Result.force ("delete own wish")
 			Result.force ("delete any wish")
 			Result.force ("update any wish status")
+			Result.force ("update own wish status")
 			Result.force ("update any wish category")
 			Result.force ("update own wish category")
 			Result.force ("admin wish category")
@@ -227,8 +219,10 @@ feature -- Hooks configuration
 	response_alter (a_response: CMS_RESPONSE)
 			-- <Precursor>
 		do
-			a_response.add_style (a_response.url ("/module/" + name + "/files/css/wish_list.css", Void), Void)
-			a_response.add_javascript_url (a_response.url ("/module/" + name + "/files/js/jquery.tooltipster.min.js", Void))
+			if a_response.location.starts_with_general ("resources/wish") then
+				a_response.add_style (a_response.module_resource_url (Current, "/files/css/wish_list.css", Void), Void)
+				a_response.add_javascript_url (a_response.module_resource_url (Current, "/files/js/jquery.tooltipster.min.js", Void))
+			end
 		end
 
 note

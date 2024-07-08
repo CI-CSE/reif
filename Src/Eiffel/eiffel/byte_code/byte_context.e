@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Context variables for code generation and utilities."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -33,17 +33,18 @@ inherit
 	REFACTORING_HELPER
 	INTERNAL_COMPILER_STRING_EXPORTER
 	SHARED_ENCODING_CONVERTER
+	SHARED_TYPES
 
 create
 	make, make_from_context
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
 	make
 			-- Initialization
 		do
 			create register_server.make (c_nb_types * 2)
-			create local_vars.make (1, 50)
+			create local_vars.make_filled (False, 1, 50)
 			create local_index_table.make (10)
 			create associated_register_table.make (10)
 			create local_list.make (10)
@@ -53,6 +54,9 @@ feature -- Initialization
 			create once_manifest_string_count_table.make (100)
 			create once_manifest_string_table.make (100)
 			create class_type_stack.make (10)
+			create inlined_feature_stack.make (1)
+			create byte_code_stack.make (1)
+			inline_peek_depth := 0
 			create generated_inlines.make (5)
 			create generic_wrappers.make (0)
 			create precondition_object_test_local_offset.make (0)
@@ -675,7 +679,7 @@ feature {NONE} -- Access: once manifest strings
 			-- Number of once manifest strings to be allocated for the given routine body index;
 			-- actual for the whole system
 
-	once_manifest_string_table: HASH_TABLE [ARRAY [like once_manifest_string_value], INTEGER]
+	once_manifest_string_table: HASH_TABLE [ARRAY [detachable like once_manifest_string_value], INTEGER]
 			-- Once manifest strings to be created for the given routine body index;
 			-- actual for the current class
 
@@ -828,6 +832,7 @@ feature -- Access: once manifest strings
 			i: INTEGER
 			value: like once_manifest_string_value
 			value_32: STRING_32
+			value_8: STRING_8
 		do
 			buf := buffer
 			class_once_manifest_strings := once_manifest_string_table
@@ -858,23 +863,25 @@ feature -- Access: once manifest strings
 						buf.put_character (',')
 						buf.put_integer (i - 1)
 						buf.put_character (',')
+						value_32 := encoding_converter.utf8_to_utf32 (value.value)
 						if value.is_string_32 then
-							value_32 := encoding_converter.utf8_to_utf32 (value.value)
 							buf.put_string_literal (encoding_converter.string_32_to_stream (value_32))
 						else
-							buf.put_string_literal (value.value)
+								-- This is an ASCII string, so it is safe to perform the `as_string_8` conversion.
+							value_8 := value_32.as_string_8
+							buf.put_string_literal (value_8)
 						end
 						buf.put_character (',')
 						if value.is_string_32 then
 							buf.put_integer (value_32.count)
 						else
-							buf.put_integer (value.value.count)
+							buf.put_integer (value_8.count)
 						end
 						buf.put_character(',')
 						if value.is_string_32 then
 							buf.put_integer (value_32.hash_code)
 						else
-							buf.put_integer (value.value.hash_code)
+							buf.put_integer (value_8.hash_code)
 						end
 						buf.put_character (')')
 						buf.put_character (';')
@@ -903,13 +910,13 @@ feature -- Access: once manifest strings
 			index := original_body_index
 			routine_once_manifest_strings := once_manifest_string_table.item (index)
 			if routine_once_manifest_strings = Void then
-				create routine_once_manifest_strings.make (1, once_manifest_string_count)
+				create routine_once_manifest_strings.make_filled (Void, 1, once_manifest_string_count)
 				once_manifest_string_table.force (routine_once_manifest_strings, index)
 			end
 			routine_once_manifest_strings.put ([value, is_string_32], number)
 		ensure
-			registered: (once_manifest_string_value (number).value = value and then
-						once_manifest_string_value (number).is_string_32 = is_string_32)
+			registered: once_manifest_string_value (number).value = value and then
+						once_manifest_string_value (number).is_string_32 = is_string_32
 
 		end
 
@@ -1043,7 +1050,7 @@ feature -- Registers
 				-- the print_register function on Result_register,
 				-- and this has been carefully patched in RESULT_BL to handle
 				-- the once cases.
-			create {RESULT_BL} Result.make (create {NONE_A})
+			create {RESULT_BL} Result.make (detachable_none_type)
 		end
 
 	get_argument_register (t: TYPE_C): REGISTER
@@ -1196,7 +1203,7 @@ feature {NONE} -- Registers: implementation
 	register_sk_values: ARRAY [STRING]
 			-- SK values of registers indexed by their level
 		once
-			create Result.make (1, c_nb_types * 2)
+			create Result.make_filled ("SK_REF",  1, c_nb_types * 2)
 			Result.put ("SK_INT8", c_int8)
 			Result.put ("SK_INT16", c_int16)
 			Result.put ("SK_INT32", c_int32)
@@ -1211,7 +1218,7 @@ feature {NONE} -- Registers: implementation
 			Result.put ("SK_CHAR8", c_char)
 			Result.put ("SK_CHAR32", c_wide_char)
 			Result.put ("SK_POINTER", c_pointer)
-			Result.put ("SK_REF", c_ref)
+			-- Result.put ("SK_REF", c_ref) -- Used to initialize the array
 				-- Registers for passing typed arguments.
 			Result.put ("SK_INT8", c_nb_types + c_int8)
 			Result.put ("SK_INT16", c_nb_types + c_int16)
@@ -1227,7 +1234,7 @@ feature {NONE} -- Registers: implementation
 			Result.put ("SK_CHAR8", c_nb_types + c_char)
 			Result.put ("SK_CHAR32", c_nb_types + c_wide_char)
 			Result.put ("SK_POINTER", c_nb_types + c_pointer)
-			Result.put ("SK_REF", c_nb_types + c_ref)
+			-- Result.put ("SK_REF", c_nb_types + c_ref) -- Used to initialize the array
 		end
 
 feature -- Access
@@ -1349,28 +1356,26 @@ feature -- Access
 			class_type_not_void: class_type /= Void
 			context_class_type_not_void: current_type /= Void
 		do
-				-- If code is inherited, we first find out the type.
-			if class_type /= context_class_type then
-				if system.il_generation then
-						-- Currently our .NET code generation does things in a strange way and sometime
-						-- we already have resolved a type for the descendant class but the resolved type
-						-- does not make sense for the ancestor version (case where descendant is generic
-						-- but not the ancestor (See eweasel test#exec055, test#melt069 on .NET).
-					if type.is_valid_for_class (class_type.associated_class) then
-						Result := type.evaluated_type_in_descendant (class_type.associated_class,
-							context_class_type.associated_class, current_feature)
-					else
-						check
-							generating_expanded: context_class_type.is_expanded
-						end
-						Result := type
-					end
-				else
+				-- If code is inherited, we find out the type.
+			if class_type = context_class_type then
+				Result := type
+			elseif system.il_generation then
+					-- Currently our .NET code generation does things in a strange way and sometime
+					-- we already have resolved a type for the descendant class but the resolved type
+					-- does not make sense for the ancestor version (case where descendant is generic
+					-- but not the ancestor (See eweasel test#exec055, test#melt069 on .NET).
+				if type.is_valid_for_class (class_type.associated_class) then
 					Result := type.evaluated_type_in_descendant (class_type.associated_class,
 						context_class_type.associated_class, current_feature)
+				else
+					check
+						generating_expanded: context_class_type.is_expanded
+					end
+					Result := type
 				end
 			else
-				Result := type
+				Result := type.evaluated_type_in_descendant (class_type.associated_class,
+					context_class_type.associated_class, current_feature)
 			end
 				-- And then we instantiate it in the context of `context_cl_type'.
 			Result := real_type_in (Result, context_cl_type)
@@ -1400,12 +1405,12 @@ feature -- Access
 			class_type_not_void: class_type /= Void
 			context_class_type_not_void: context_class_type /= Void
 		do
-				-- If code is inherited, we first find out the type.
-			if class_type /= context_class_type then
+			if class_type = context_class_type then
+				Result := type
+			else
+					-- If code is inherited, we find out the type.
 				Result := type.evaluated_type_in_descendant (class_type.associated_class,
 					context_class_type.associated_class, current_feature)
-			else
-				Result := type
 			end
 		end
 
@@ -1418,6 +1423,109 @@ feature -- Access
 			initialize_request_chain_macros
 		end
 
+	put_inline_context (f: INLINED_FEAT_B;
+		new_context_class_type: CLASS_TYPE; new_context_cl_type: CL_TYPE_A;
+		new_written_class_type: CLASS_TYPE; new_written_cl_type: CL_TYPE_A)
+			-- Switch current context to inline feature `f'.
+			-- Use `remove_inline_context' to restore context.
+		require
+			has_byte_code: attached byte_code
+		local
+			local_inliner: INLINER
+		do
+			local_inliner := system.remover.inliner
+			inlined_feature_stack.extend (local_inliner.inlined_feature)
+			local_inliner.set_inlined_feature (f)
+			byte_code_stack.extend (byte_code)
+			byte_code := f.byte_code
+			change_class_type_context (new_context_class_type, new_context_cl_type, new_written_class_type, new_written_cl_type)
+		end
+
+	remove_inline_context
+			-- Restore context prio to the previous call to `put_inline_context'.
+		require
+			has_inline_context: has_inline_context
+		do
+			restore_class_type_context
+			byte_code := byte_code_stack.last
+			byte_code_stack.finish
+			byte_code_stack.remove
+			system.remover.inliner.set_inlined_feature (inlined_feature_stack.last)
+			inlined_feature_stack.finish
+			inlined_feature_stack.remove
+		end
+
+	suspend_inline_context
+			-- Stop using current inline context and temporary switch to the calling context.
+			-- Use `resume_inline_context' to restore current inline context.
+		require
+			has_inline_context: has_inline_context
+			is_inline_context_suspendable: is_inline_context_suspendable
+		local
+			caller_context: like context_stack_type
+		do
+			if inline_peek_depth = 0 then
+					-- Store most nested context at the top of the stack.
+				put_inline_context (system.remover.inliner.inlined_feature, context_class_type, context_cl_type, class_type, current_type)
+			end
+				-- Increase peek level.
+			inline_peek_depth := inline_peek_depth + 1
+			byte_code := byte_code_stack [byte_code_stack.count - inline_peek_depth]
+			system.remover.inliner.set_inlined_feature (inlined_feature_stack [inlined_feature_stack.count - inline_peek_depth])
+			caller_context := class_type_stack [class_type_stack.count - inline_peek_depth]
+			context_class_type := caller_context.context_type
+			context_cl_type := caller_context.cl_type
+			set_class_type (caller_context.written_type)
+			current_type := caller_context.written_cl_type
+		ensure
+			has_inline_context: has_inline_context
+		end
+
+	resume_inline_context
+			-- Restore inline context temporary overrriden by `suspend_inline_context'.
+		require
+			has_inline_context: has_inline_context
+		local
+			caller_context: like context_stack_type
+		do
+			inline_peek_depth := inline_peek_depth - 1
+			if inline_peek_depth = 0 then
+				remove_inline_context
+			else
+				byte_code := byte_code_stack [byte_code_stack.count - inline_peek_depth]
+				system.remover.inliner.set_inlined_feature (inlined_feature_stack [inlined_feature_stack.count - inline_peek_depth])
+				caller_context := class_type_stack [class_type_stack.count - inline_peek_depth]
+				context_class_type := caller_context.context_type
+				context_cl_type := caller_context.cl_type
+				set_class_type (caller_context.written_type)
+				current_type := caller_context.written_cl_type
+			end
+		end
+
+	has_inline_context: BOOLEAN
+			-- Is there an inline context?
+		do
+			Result := not byte_code_stack.is_empty
+		ensure
+			definition: Result = not byte_code_stack.is_empty
+		end
+
+	is_inline_context_suspendable: BOOLEAN
+			-- Can current inline context be suspended and replaced with a context of a caller?
+		do
+			Result := inline_peek_depth + 1 <= byte_code_stack.count
+		ensure
+			definition: Result = (inline_peek_depth + 1 <= byte_code_stack.count)
+		end
+
+	is_inline_context_resumable: BOOLEAN
+			-- Can inline context be resumed from a previously suspended one?
+		do
+			Result := inline_peek_depth > 0
+		ensure
+			definition: Result = (inline_peek_depth > 0)
+		end
+
 	init (t: CLASS_TYPE)
 			-- Initialize byte context with `t'.
 		require
@@ -1426,7 +1534,7 @@ feature -- Access
 			f: FEATURE_I
 			feature_table: FEATURE_TABLE
 		do
-			class_type_stack.wipe_out
+			clear_inline_data
 			original_class_type := t
 			context_class_type := t
 			context_cl_type := t.type
@@ -1508,7 +1616,7 @@ feature -- Access
 			class_type_not_void: class_type /= Void
 			is_ancestor: -- new_context_cl_type.type_a.is_conformant_to (new_written_class_type.type.type_a)
 		do
-			class_type_stack.put ([context_class_type, context_cl_type, class_type, current_type])
+			class_type_stack.extend ([context_class_type, context_cl_type, class_type, current_type])
 			context_class_type := new_context_class_type
 			context_cl_type := new_context_cl_type
 			set_class_type (new_written_class_type)
@@ -1528,17 +1636,18 @@ feature -- Access
 			previous_context: like context_stack_type
 		do
 				-- Remove stack item before calling `set_class_type'
-			previous_context := class_type_stack.item
+			previous_context := class_type_stack.last
+			class_type_stack.finish
 			class_type_stack.remove
 			context_class_type := previous_context.context_type
 			context_cl_type := previous_context.cl_type
 			set_class_type (previous_context.written_type)
 			current_type := previous_context.written_cl_type
 		ensure
-			context_class_type_set: context_class_type = old class_type_stack.item.context_type
-			context_cl_type_set: context_cl_type = old class_type_stack.item.cl_type
-			class_type_set: class_type = old class_type_stack.item.written_type
-			current_type_set: current_type = old class_type_stack.item.written_cl_type
+			context_class_type_set: context_class_type = old class_type_stack.last.context_type
+			context_cl_type_set: context_cl_type = old class_type_stack.last.cl_type
+			class_type_set: class_type = old class_type_stack.last.written_type
+			current_type_set: current_type = old class_type_stack.last.written_cl_type
 		end
 
 	set_current_feature (f: FEATURE_I)
@@ -1772,15 +1881,8 @@ feature -- Access
 			-- Set `need_gc_hook' for current instance of BYTE_CODE
 			-- If `has_assertions_checking_enabled', `need_gc_hook' is set to True.
 		local
-			l_assign: ASSIGN_BL
-			reverse_b: REVERSE_BL
-			call: CALL_B
-			expr_b: EXPR_B
-			creation_expr: CREATION_EXPR_B
-			instruction_call: INSTR_CALL_B
-			attribute_b: ATTRIBUTE_B
-			compound: BYTE_LIST [BYTE_NODE]
 			byte_node: BYTE_NODE
+			expr_b: EXPR_B
 			tmp: BOOLEAN
 		do
 				-- We won't need any RTLI if the only statement is an expanded
@@ -1800,24 +1902,23 @@ feature -- Access
 			if not tmp and then assertion_type /= In_invariant then
 				tmp := True
 					-- Not in an invariant generation
-				compound := byte_code.compound
-				if compound /= Void and then compound.count = 1 then
+				if attached byte_code.compound as compound and then compound.count = 1 then
 					byte_node := compound.first
-					l_assign ?= byte_node
-					if l_assign /= Void then
+					if attached {ASSIGN_BL} byte_node as l_assign then
 						if l_assign.expand_return then
 								-- Assignment in Result is expanded in a return instruction
 							tmp := False
 						elseif not l_assign.source.allocates_memory_for_type (real_type (l_assign.target.type)) then
-							reverse_b ?= l_assign
 								-- FIXME: Manu 05/31/2002: we should try to optimize
 								-- so that not all reverse assignment prevent the optimization
 								-- to be made.
-							call ?= l_assign.source
-							if call /= Void and then call.is_single and then reverse_b = Void then
+							if
+								attached {CALL_B} l_assign.source as call and then
+								call.is_single and then
+								not attached {REVERSE_BL} l_assign
+							then
 									-- Simple assignment of a single call
-								creation_expr ?= call
-								if creation_expr /= Void or has_invariant then
+								if attached {CREATION_EXPR_B} call as creation_expr or has_invariant then
 										-- We do not optimize if we are handling a creation expression or
 										-- if invariant checking is enabled.
 									tmp := True
@@ -1834,8 +1935,7 @@ feature -- Access
 											real_type (call.type).is_basic
 
 										if not tmp then
-											attribute_b ?= call
-											if attribute_b /= Void then
+											if attached {ATTRIBUTE_B} call then
 													-- An attribute access is always safe
 												tmp := False
 											else
@@ -1849,23 +1949,26 @@ feature -- Access
 									end
 								end
 							else
-								expr_b ?= l_assign.source
+								expr_b := l_assign.source
 								tmp := expr_b.has_call or expr_b.allocates_memory or else expr_b.allocates_memory_for_type (real_type (l_assign.target.type))
 							end
 						end
-					else
-						instruction_call ?= byte_node
-						if instruction_call /= Void then
-							if instruction_call.call.is_single then
-									-- A single instruction call
-								tmp := has_invariant
-							end
-						end
+					elseif
+						attached {INSTR_CALL_B} byte_node as instruction_call and then
+						instruction_call.call.is_single and then
+						(not attached {NESTED_B} instruction_call.call as nested or else
+						not nested.target.is_result or else
+						not real_type (nested.target.type).is_true_expanded)
+					then
+							-- A single instruction call on a non-expanded Result.
+						tmp := has_invariant
 					end
 				end
 			end
 			need_gc_hook := tmp
 		end
+
+feature {NONE} -- Nesting: initialization
 
 	make_from_context (other: like Current)
 			-- Save context for later restoration. This makes the
@@ -1876,6 +1979,8 @@ feature -- Access
 			local_index_table := other.local_index_table.twin
 			associated_register_table := other.associated_register_table.twin
 		end
+
+feature -- Nesting
 
 	restore (saved_context: like Current)
 			-- Restore the saved context after an analyze followed by an
@@ -1897,6 +2002,8 @@ feature -- Access
 			precondition_object_test_local_offset := saved_context.precondition_object_test_local_offset
 			postcondition_object_test_local_offset := saved_context.postcondition_object_test_local_offset
 		end
+
+feature -- Code generation
 
 	generate_dtype_declaration (is_process_or_thread_relative_once: BOOLEAN)
 			-- Declare the 'dtype' variable which holds the pre-computed
@@ -2401,7 +2508,6 @@ feature -- C code generation: locals
 			wkb_mode: BOOLEAN
 			used_upper: INTEGER
 			l_loc_name: STRING
-			l_type: CL_TYPE_A
 			l_class_type: CLASS_TYPE
 			local_types: LIST [TYPE_A]
 			modifier: STRING
@@ -2439,13 +2545,15 @@ feature -- C code generation: locals
 						create l_loc_name.make (6)
 						l_loc_name.append ("sloc")
 						l_loc_name.append_integer (i)
-						l_type ?= type_i
-						check
-								-- Only a CL_TYPE_A could be an expanded
-							l_type_not_void: l_type /= Void
+						if attached {CL_TYPE_A} type_i as l_type then
+							l_class_type := l_type.associated_class_type (context_class_type.type)
+							l_class_type.generate_expanded_structure_declaration (buf, l_loc_name)
+						else
+							check
+									-- Only a CL_TYPE_A could be an expanded
+								expected_type: False
+							end
 						end
-						l_class_type := l_type.associated_class_type (context_class_type.type)
-						l_class_type.generate_expanded_structure_declaration (buf, l_loc_name)
 					end
 					buf.put_new_line
 					type_i.c_type.generate (buf)
@@ -2459,8 +2567,7 @@ feature -- C code generation: locals
 					if type_i.is_true_expanded then
 						type_i.c_type.generate_cast (buf)
 						buf.put_string (l_loc_name)
-						buf.put_string (".data")
-						buf.put_character (';')
+						buf.put_string (".data;")
 					else
 						type_i.c_type.generate_cast (buf)
 						buf.put_two_character ('0', ';')
@@ -2748,7 +2855,7 @@ feature -- Clearing
 		do
 			class_type := Void
 			byte_code := Void
-			class_type_stack.wipe_out
+			clear_inline_data
 		end
 
 	clear_feature_data
@@ -2794,7 +2901,7 @@ feature -- Clearing
 			end
 				-- Wipe out once manifest strings records.
 			once_manifest_string_table.wipe_out
-			class_type_stack.wipe_out
+			clear_inline_data
 			generated_inlines.wipe_out
 		ensure
 			global_onces_is_empty: workbench_mode implies global_onces.is_empty
@@ -2809,7 +2916,7 @@ feature -- Clearing
 			global_onces.wipe_out
 			onces.wipe_out
 			once_manifest_string_count_table.wipe_out
-			class_type_stack.wipe_out
+			clear_inline_data
 			generic_wrappers.wipe_out
 			expanded_descendants := Void
 		ensure
@@ -2818,6 +2925,17 @@ feature -- Clearing
 			once_manifest_string_count_table_is_empty: once_manifest_string_count_table.is_empty
 			generic_wrappers_is_empty: generic_wrappers.is_empty
 			has_no_expanded_descendants_information: not has_expanded_descendants_information
+		end
+
+feature {NONE} -- Cleanup
+
+	clear_inline_data
+			-- Clean any data used for inlining.
+		do
+			class_type_stack.wipe_out
+			byte_code_stack.wipe_out
+			inlined_feature_stack.wipe_out
+			inline_peek_depth := 0
 		end
 
 feature -- Debugger
@@ -2996,14 +3114,26 @@ feature {NONE} -- Generic code generation
 			-- Set of routine IDs identified by the body index
 			-- for which a wrapper has to be generated
 
-feature {NONE} -- Implementation
+feature {NONE} -- Context storage
 
-	class_type_stack: ARRAYED_STACK [like context_stack_type]
+	class_type_stack: ARRAYED_LIST [like context_stack_type]
 			-- Class types saved due to the context change by `change_class_type_context'
 
 	context_stack_type: TUPLE [context_type: CLASS_TYPE; cl_type: CL_TYPE_A; written_type: CLASS_TYPE; written_cl_type: CL_TYPE_A]
 		do
 		end
+
+	inlined_feature_stack: ARRAYED_LIST [detachable INLINED_FEAT_B]
+			-- Inlined features saved by the calls to `put_inline_context'.
+
+	byte_code_stack: ARRAYED_LIST [BYTE_CODE]
+			-- Byte code saved by the calls to `put_inline_context'.
+
+	inline_peek_depth: INTEGER
+			-- Current "peek" depth in inline context stacks.
+			-- Allows to temporary switch to callers contexts.
+
+feature {NONE} -- Implementation
 
 	expanded_descendants: PACKED_BOOLEANS
 			-- Marks for class types whether they have an expanded descendant or not
@@ -3017,9 +3147,15 @@ invariant
 	class_type_stack_not_void: class_type_stack /= Void
 	precondition_object_test_local_offset_attached: precondition_object_test_local_offset /= Void
 	postconditionobject_test_local_offset_attached: postcondition_object_test_local_offset /= Void
+	attached_byte_code_stack: attached byte_code_stack
+	attached_inlined_feature_stack: attached inlined_feature_stack
+	consistent_inline_stacks: byte_code_stack.count = inlined_feature_stack.count
+	valid_inline_peek_depth: 0 <= inline_peek_depth and inline_peek_depth <= byte_code_stack.count
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	date: "$Date$"
+	revision: "$Revision$"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

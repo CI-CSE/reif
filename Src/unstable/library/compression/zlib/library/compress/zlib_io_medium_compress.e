@@ -13,9 +13,10 @@ inherit
 	ZLIB_COMPRESS
 
 create
-	io_medium_stream
+	io_medium_stream,
+	io_medium_stream_size
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
 	io_medium_stream (a_medium: IO_MEDIUM)
 		require
@@ -24,6 +25,20 @@ feature -- Initialization
 			medium_open_read_write: a_medium.is_open_read and then a_medium.is_open_write
 		do
 			make
+			intialize
+			io_medium := a_medium
+		ensure
+			medium_set: attached io_medium
+		end
+
+	io_medium_stream_size (a_medium: IO_MEDIUM; a_size: INTEGER)
+		require
+			not_connected: not is_connected
+			non_void_medium: a_medium /= Void
+			medium_open_read_write: a_medium.is_open_read and then a_medium.is_open_write
+			valid_size: a_size > 0
+		do
+			make_with_chunk_size (a_size)
 			intialize
 			io_medium := a_medium
 		ensure
@@ -56,19 +71,19 @@ feature -- Access
 
 feature {NONE} -- Deflate implementation		
 
-	read: INTEGER
+	read
 			-- <Precursor>
 		do
 			if attached user_input_io_medium as l_input_medium then
-				Result := io_medium_read (l_input_medium)
+				last_read_elements := io_medium_read (l_input_medium)
 			end
 		end
 
-	write (a_amount: INTEGER): INTEGER
+	write (a_amount: INTEGER)
 			-- <Precursor>
 		do
 			if attached io_medium as l_medium then
-				Result := io_medium_write (output_buffer,a_amount,l_medium)
+				last_write_elements := io_medium_write (output_buffer,a_amount,l_medium)
 			end
 		end
 
@@ -87,7 +102,7 @@ feature {NONE} -- Deflate implementation
 			l_index: INTEGER
 			l_string: STRING
 		do
-			a_medium.read_stream (Chunk)
+			a_medium.read_stream (chunk_size)
 			l_string := a_medium.last_string
 			from
 				l_index := 1
@@ -97,7 +112,7 @@ feature {NONE} -- Deflate implementation
 				input_buffer.put_character (l_string.at (l_index), l_index - 1)
 				l_index := l_index + 1
 			end
-			if l_string.count < Chunk then
+			if l_string.count < chunk_size then
 				end_of_input := True
 			end
 			Result := l_index - 1

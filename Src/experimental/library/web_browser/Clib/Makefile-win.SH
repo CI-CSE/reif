@@ -5,7 +5,9 @@ INDIR= .
 CC = $cc
 OUTPUT_CMD = $output_cmd
 CFLAGS = -I"$rt_include" -I. -D_UNICODE -DUNICODE
-JCFLAGS = $(CFLAGS) $ccflags $optimize
+JCFLAGS = $(CFLAGS) $optimize $ccflags
+JMTCFLAGS = $(CFLAGS) $optimize $mtccflags 
+JILCFLAGS = $(CFLAGS) $optimize $mtccflags  -DEIF_IL_DLL
 LN = copy
 MV = $mv
 RM = $del
@@ -25,7 +27,6 @@ mtstandard:: ole_ie.lib
 clean:
 	$(RM) *.$obj
 	$(RM) *.lib
-	$(RM) *.BAK
 
 ole_ie.lib: $(OBJECTS)
 	$alib_line

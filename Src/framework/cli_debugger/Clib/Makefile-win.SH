@@ -9,9 +9,9 @@ OPT_CFLAGS =
 #OPT_CFLAGS = -Zi -D_DEBUG -DISE_USE_ASSERT
 #OPT_CFLAGS = -Zi -D_DEBUG -DISE_USE_ASSERT -DDBGTRACE_ENABLED
 CFLAGS = $(OPT_CFLAGS) -I"$rt_include" -I. -D_UNICODE -DUNICODE
-JCFLAGS = $(CFLAGS) $ccflags $optimize
-JMTCFLAGS = $(CFLAGS) $mtccflags $optimize
-JILCFLAGS = $(CFLAGS) $mtccflags $optimize -DEIF_IL_DLL
+JCFLAGS = $(CFLAGS) $optimize $ccflags 
+JMTCFLAGS = $(CFLAGS) $optimize $mtccflags 
+JILCFLAGS = $(CFLAGS) $optimize $mtccflags  -DEIF_IL_DLL
 LN = copy
 MV = $mv
 RM = $del
@@ -34,7 +34,6 @@ all:: cli_debugger.lib
 clean:
 	$(RM) *.$obj
 	$(RM) *.lib
-	$(RM) *.BAK
 
 cli_debugger.lib: $(OBJECTS)
 	$alib_line

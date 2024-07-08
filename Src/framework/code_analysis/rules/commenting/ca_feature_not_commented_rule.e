@@ -7,6 +7,7 @@
 			the programmer, feature comments will appear as tooltip documentation.
 		]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -27,7 +28,7 @@ feature {NONE} -- Initialization
 			make_with_defaults
 			is_enabled_by_default := False
 			default_severity_score := 20
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -74,7 +75,7 @@ feature -- Properties
 	format_violation_description (a_violation: attached CA_RULE_VIOLATION; a_formatter: attached TEXT_FORMATTER)
 		do
 			a_formatter.add (ca_messages.feature_not_commented_violation_1)
-			if attached {STRING_32} a_violation.long_description_info.first as l_feature_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_feature_name then
 				a_formatter.add_feature_name (l_feature_name, a_violation.affected_class)
 			end
 			a_formatter.add (ca_messages.feature_not_commented_violation_2)

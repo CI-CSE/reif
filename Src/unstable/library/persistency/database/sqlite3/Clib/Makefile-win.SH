@@ -5,9 +5,9 @@ INDIR= .
 CC = $cc
 OUTPUT_CMD = $output_cmd
 CFLAGS = -I"$rt_include" -I..$(DIR)spec$(DIR)include -I.
-JCFLAGS = $(CFLAGS) $ccflags $optimize -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION=1
-JMTCFLAGS = $(CFLAGS) $mtccflags $optimize -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION=1
-JILCFLAGS = $(CFLAGS) $mtccflags $optimize -DEIF_IL_DLL -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION=1
+JCFLAGS = $(CFLAGS) $optimize $ccflags -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION=1
+JMTCFLAGS = $(CFLAGS) $optimize $mtccflags -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION=1
+JILCFLAGS = $(CFLAGS) $optimize $mtccflags  -DEIF_IL_DLL -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION=1
 LN = copy
 MV = $mv
 RM = $del
@@ -16,9 +16,9 @@ MKDIR = $mkdir
 LINK = $link32
 DLL_FLAGS = $dll_flags
 DLL_LIBS = $dll_libs
-OBJECTS = esqlite.$obj sqlite3.obj
-MT_OBJECTS = MTesqlite.$obj MTsqlite3.obj
-IL_OBJECTS = ILesqlite.$obj ILsqlite3.obj
+OBJECTS = esqlite.$obj sqlite3.$obj
+MT_OBJECTS = MTesqlite.$obj MTsqlite3.$obj
+IL_OBJECTS = ILesqlite.$obj ILsqlite3.$obj
 
 .c.$obj:
 	$(CC) -c $(JCFLAGS) $<

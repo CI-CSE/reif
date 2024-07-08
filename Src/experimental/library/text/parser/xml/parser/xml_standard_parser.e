@@ -644,7 +644,7 @@ feature {NONE} -- Implementation: parse
 							end_of_input or done or parsing_stopped
 						loop
 								-- In this loop body, no check on end_of_input
-								-- at worst it reports a "No more characters" error
+								-- at worst it reports a "No more characters" error.					
 							if last_character = ']' then
 								read_character
 								if last_character = ']' then
@@ -652,7 +652,8 @@ feature {NONE} -- Implementation: parse
 									c := last_character
 									if c = '>' then
 										done := True
-									elseif c = '-' then
+									elseif c = ']' then
+											-- Could be ]]]
 										s.append_character (']')
 										rewind_character
 									else
@@ -925,10 +926,7 @@ feature {NONE} -- Error reporting
 			a_message_attached: a_message /= Void
 		local
 			s: STRING_32
-			p: like position
 		do
-			p := position
-
 			create s.make (a_message.count)
 			s.append_string_general (a_message)
 
@@ -1876,7 +1874,7 @@ feature {NONE} -- Factory: cache
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -1,8 +1,9 @@
 ﻿note
 	description: "Message strings for the Code Analyzer"
-	author: "Stefan Zurfluh"
+	author: "Stefan Zurfluh", "Eiffel Software"
 	date: "$Date$"
 	revision: "$Revision$"
+	ca_ignore: "CA033", "CA033 — very long class"
 
 frozen class
 	CA_MESSAGES
@@ -24,20 +25,20 @@ feature -- GUI
 		do Result := translation_in_context ("No issues.", once "code_analyzer.message") end
 
 	class_context_menu_caption (a_class_name: attached READABLE_STRING_GENERAL): STRING_32
-		do Result := locale.formatted_string (translation_in_context ("Run Eiffel Inspector on Class '$1'", once "code_analyzer"), [a_class_name]) end
+		do Result := locale.formatted_string (translation_in_context ("Analyze '$1'", once "code_analyzer.menu"), [a_class_name]) end
 
-	cluster_context_menu_caption: STRING_32
-		do Result := translation_in_context ("Run Eiffel Inspector on cluster", once "code_analyzer") end
+	cluster_context_menu_caption (a_cluster_name: attached READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Analyze '$1'", once "code_analyzer.menu"), [a_cluster_name]) end
 
-	already_running: STRING_32
-		do Result := translation_in_context (" (already running)", once "code_analyzer") end
+	already_running_menu_suffix: STRING_32
+		do Result := translation_in_context (" (already running)", once "code_analyzer.menu") end
 
 	already_running_long: STRING_32
-		do Result := translation_in_context	("Eiffel Inspector is already running.%N%
-				%Please wait until the current analysis has finished.", once "code_analyzer") end
+		do Result := translation_in_context	("Code analysis is already running.%N%
+				%Please wait until it has finished.", once "code_analyzer") end
 
 	status_bar_running: STRING_32
-		do Result := translation_in_context ("Eiffel Inspector running...", once "code_analyzer") end
+		do Result := translation_in_context ("Analyzing code...", once "code_analyzer") end
 
 	system_scope: STRING_32
 		do Result := translation_in_context ("System", once "code_analyzer") end
@@ -55,25 +56,61 @@ feature -- GUI
 		do Result := translation_in_context ("Configuration group that has been analyzed recently.", once "code_analyzer.tooltip") end
 
 	status_bar_terminated: STRING_32
-		do Result := translation_in_context ("Eiffel Inspector has terminated.", once "code_analyzer") end
+		do Result := translation_in_context ("Code analysis has finished.", once "code_analyzer") end
 
-	analyze_whole_system: STRING_32
-		do Result := translation_in_context ("Analyze whole system", once "code_analyzer.tooltip") end
+	analyze_last_menu (s: detachable READABLE_STRING_32): STRING_32
+		do
+			Result := if attached s then
+				locale.formatted_string (translation_in_context ("Analyze '$1' again", once "code_analyzer.menu"), s)
+			else
+				translation_in_context ("Analyze Last Item Again", once "code_analyzer.menu")
+			end
+		end
 
-	analyze_current_item: STRING_32
-		do Result := translation_in_context ("Analyze current item", once "code_analyzer.tooltip") end
+	analyze_editor_menu (s: detachable READABLE_STRING_32): STRING_32
+		do
+			Result := if attached s then
+				locale.formatted_string (translation_in_context ("Analyze '$1'", once "code_analyzer.menu"), s)
+			else
+				translation_in_context ("Analize Editor Item", once "code_analyzer.menu")
+			end
+		end
 
-	analyze_parent_cluster: STRING_32
-		do Result := translation_in_context ("Analyze parent cluster of current item", once "code_analyzer.tooltip") end
+	analyze_parent_menu (s: detachable READABLE_STRING_32): STRING_32
+		do
+			Result := if attached s then
+				locale.formatted_string (translation_in_context ("Analyze Cluster '$1'", once "code_analyzer.menu"), s)
+			else
+				translation_in_context ("Analyze Parent Cluster of Last Item", once "code_analyzer.menu")
+			end
+		end
 
-	run_code_analysis: STRING_32
-		do Result := translation_in_context ("Run Eiffel Inspector", once "code_analyzer") end
+	analyze_target_menu (s: detachable READABLE_STRING_32): STRING_32
+		do
+			Result := if attached s then
+				locale.formatted_string (translation_in_context ("Analyze System Target '$1'", once "code_analyzer.menu"), s)
+			else
+				translation_in_context ("Analyze System Target", once "code_analyzer.menu")
+			end
+		end
+
+	analyze_again_description: STRING_32
+		do Result := translation_in_context ("Analyze", once "code_analyzer") end
+
+	analyze_editor_description: STRING_32
+		do Result := translation_in_context ("Analyze Code from Editor", once "code_analyzer") end
+
+	analyze_parent_description: STRING_32
+		do Result := translation_in_context ("Analyze Parent Cluster", once "code_analyzer") end
+
+	analyze_target_description: STRING_32
+		do Result := translation_in_context ("Analyze Whole Target", once "code_analyzer") end
 
 	no_trace: STRING_32
 		do Result := translation_in_context ("No trace available.", once "code_analyzer") end
 
 	the_following_exception: STRING_32
-		do Result := translation_in_context ("The following exception has occurred while Eiffel Inspector was running:", once "code_analyzer") end
+		do Result := translation_in_context ("The following exception has occurred during code analysis:", once "code_analyzer") end
 
 	exception_trace: STRING_32
 		do Result := translation_in_context ("Exception Trace", once "code_analyzer") end
@@ -82,7 +119,10 @@ feature -- GUI
 		do Result := translation_in_context ("Close", once "code_analyzer") end
 
 	inspector_eiffel_exception: STRING_32
-		do Result := translation_in_context ("Eiffel Inspector Exception: ", once "code_analyzer") end
+		do Result := translation_in_context ("Code Analyzer Exception: ", once "code_analyzer") end
+
+	preferences_description: STRING_32
+		do Result := translation_in_context ("Code Analyzer Preferences", once "code_analyzer") end
 
 feature -- Messages for both GUI and command line mode
 
@@ -270,8 +310,17 @@ feature -- Rule Violations
 			% argument, or an%Nobject test local. Thus the object test is not in %
 			%need of the object test%Nlocal '", once "code_analyzer.violation") end
 
-	empty_if_violation_1: STRING_32
-		do Result := translation_in_context ("An empty if instruction is useless and should be removed.", once "code_analyzer.violation") end
+	empty_if_violation_if: STRING_32
+		do Result := translation_in_context ("A conditional instruction without any compound part can be removed.", once "code_analyzer.violation") end
+
+	empty_if_violation_if_else: STRING_32
+		do Result := translation_in_context ("A condition of the branch without compound can be inverted and the empty branch can be removed.", once "code_analyzer.violation") end
+
+	empty_if_violation_elseif: STRING_32
+		do Result := translation_in_context ("A branch without compound part and subsequent branches can be removed.", once "code_analyzer.violation") end
+
+	empty_if_violation_else: STRING_32
+		do Result := translation_in_context ("An empty alternative branch can be removed.", once "code_analyzer.violation") end
 
 	nested_complexity_violation_1: STRING_32
 		do Result := translation_in_context ("In routine '", once "code_analyzer.violation") end
@@ -386,12 +435,6 @@ feature -- Rule Violations
 		do Result := translation_in_context ("This negated boolean expression can be%
 			% simplified by removing the negation and%Nusing the inverse comparison operator.", once "code_analyzer.violation") end
 
-	self_comparison_violation_1: STRING_32
-		do Result := translation_in_context ("' compared to itself always evaluates to the same boolean value.", once "code_analyzer.violation") end
-
-	self_comparison_violation_2: STRING_32
-		do Result := translation_in_context (" Here, since it is the loop stop condition the loop will not terminate.", once "code_analyzer.violation") end
-
 	wrong_loop_iteration_violation_1: STRING_32
 		do Result := translation_in_context ("Wrong comparison suspected in loop stop condition.", once "code_analyzer.violation") end
 
@@ -421,7 +464,7 @@ feature -- Rule Violations
 			%within a%Ndeferred class it should be considered to be declared as deferred.", once "code_analyzer.violation") end
 
 	if_else_not_equal_violation: STRING_32
-		do Result := translation_in_context ("Condition of if-else instruction checks for inequality rather than equality.", once "code_analyzer.violation") end
+		do Result := translation_in_context ("Conditional instruction or expression with 2 branches checks for inequality rather than equality.", once "code_analyzer.violation") end
 
 	short_circuit_if_violation: STRING_32
 		do Result := translation_in_context ("These two nested if instructions may be %
@@ -523,6 +566,49 @@ feature -- Rule Violations
 	explicit_redundant_inheritance_violation_3: STRING_32
 			do Result := locale.translation ("', with no renaming, redefining or change of export status. This is redundant, and the duplicate links should be removed.") end
 
+	obsolete_feature_call_title: STRING_32
+		do
+			Result := locale.translation_in_context ("Call to obsolete feature {1}: {2}", "code_analyzer.violation")
+		end
+
+	obsolete_feature_call_violation: STRING_32
+		do
+			Result := locale.translation_in_context ("Obsolete feature {1} of class {2} is called from {3} of class {4}:{5}", "code_analyzer.violation")
+		end
+
+	obsolete_feature_invalid_date_title (feature_count: INTEGER): STRING_32
+		do
+			Result := locale.plural_translation_in_context
+				("Obsolete message date for feature {1} is absent or unreadable.",
+				"Obsolete message date for features {1} is absent or unreadable.",
+				once "code_analyzer.violation",
+				feature_count)
+		end
+
+	obsolete_feature_invalid_date_violation: STRING_32
+		do
+			Result := locale.translation_in_context ("Obsolete message date should appear at the end of the message in brackets. The default value [{1}] is used.", once "code_analyzer.violation")
+		end
+
+	obsolete_feature_call_expires_in (n: INTEGER): STRING_32
+		do
+			Result := locale.plural_translation_in_context ("The obsolete feature call has to be removed in a day.", "The obsolete feature call has to be removed in {1} days.",  once "code_analyzer.violation", n)
+		end
+
+	obsolete_feature_title (feature_count: INTEGER): STRING_32
+		do
+			Result := locale.plural_translation_in_context
+				("A feature {1} is obsolete.",
+				"Features {1} are obsolete.",
+				once "code_analyzer.violation",
+				feature_count)
+		end
+
+	obsolete_feature_violation: STRING_32
+		do
+			Result := locale.translation_in_context ("Obsolete features should be removed.", "code_analyzer.violation")
+		end
+
 	error: STRING_32
 		do Result := translation_in_context ("An error occurred when analyzing this class.", once "code_analyzer.violation") end
 
@@ -550,6 +636,27 @@ feature -- Command Line
 
 	unknown_argument (a_argument_name: attached READABLE_STRING_GENERAL): STRING_32
 		do Result := locale.formatted_string (translation_in_context ("Warning: argument $1 is not recognized or could not be parsed, ignoring it.", once "code_analyzer"), [a_argument_name]) end
+
+	missing_file_name (a_option: attached READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Missing file name after command-line option %"$1%".", once "code_analyzer"), [a_option]) end
+
+	missing_rule (a_option: attached READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Missing rule name (with optional settings) after command-line option %"$1%".", once "code_analyzer"), [a_option]) end
+
+	missing_class (a_option: attached READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Missing class name after command-line option %"$1%".", once "code_analyzer"), [a_option]) end
+
+	rule_argument_error (a_option: attached READABLE_STRING_GENERAL; a_message: attached READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Error in command-line option %"$1%": $2.", once "code_analyzer"), a_option, a_message) end
+
+	invalid_rule_name: STRING_32
+		do Result := translation_in_context ("Invalid rule name", once "code_analyzer") end
+
+	invalid_rule_setting (a_rule_name: READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Invalid settings for rule %"$1%"", once "code_analyzer"), a_rule_name) end
+
+	missing_closing_parenthesis (a_rule_name: READABLE_STRING_GENERAL): STRING_32
+		do Result := locale.formatted_string (translation_in_context ("Missing closing parenthesis for rule %"$1%"", once "code_analyzer"), a_rule_name) end
 
 feature {NONE} -- Translation
 

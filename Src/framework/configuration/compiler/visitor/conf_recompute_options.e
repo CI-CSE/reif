@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Recompute options."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -39,7 +39,6 @@ feature -- Visit nodes
 		require else
 			new_target_group_equivalent: new_target.is_group_equivalent (a_target)
 		local
-			l_pre, l_old_pre: detachable CONF_PRECOMPILE
 			l_new_target: like new_target
 		do
 			if not is_error then
@@ -61,7 +60,6 @@ feature -- Visit nodes
 				a_target.system.set_description (l_new_target.system.description)
 				a_target.set_version (l_new_target.internal_version)
 				a_target.set_settings (l_new_target.internal_settings)
-				a_target.set_immediate_setting_concurrency (l_new_target.immediate_setting_concurrency)
 				if attached l_new_target.internal_options as l_new_internal_options then
 					a_target.set_options (l_new_internal_options)
 				end
@@ -78,12 +76,10 @@ feature -- Visit nodes
 				a_target.set_post_compile (l_new_target.internal_post_compile_action)
 				a_target.set_file_rules (l_new_target.internal_file_rule)
 
-				l_pre := a_target.precompile
-				if l_pre /= Void then
-					l_old_pre := l_new_target.precompile
-					check
-						l_old_pre_not_void: l_old_pre /= Void
-					end
+				if
+					attached a_target.precompile as l_pre and then
+					attached l_new_target.precompile as l_old_pre
+				then
 					l_pre.set_options (l_old_pre.internal_options)
 					l_pre.set_class_options (l_old_pre.internal_class_options)
 				end
@@ -167,7 +163,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

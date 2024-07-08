@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "View of list of EIS details"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -296,10 +296,10 @@ feature -- Query
 			Result := Precursor {HELP_CONTEXT_I} and then eis_grid.has_selected_row
 		end
 
-	same_view (a_view: like Current): BOOLEAN
+	same_view (a_view: ES_EIS_COMPONENT_VIEW [detachable ANY]): BOOLEAN
 			-- Is current view focusing the same component as `a_view'?
 		do
-			if attached a_view then
+			if a_view /= Void then
 				Result := component ~ a_view.component
 			end
 		end
@@ -417,8 +417,8 @@ feature {NONE} -- Events
 			l_column: INTEGER
 			l_descend_order: BOOLEAN
 		do
-			if session_manager.is_service_available then
-				l_session := session_manager.service.retrieve (False)
+			if attached session_manager.service as l_session_service then
+				l_session := l_session_service.retrieve (False)
 				l_column := sorting_column
 				l_descend_order := descend_order
 				if l_column = a_column_index then
@@ -553,7 +553,7 @@ feature {NONE} -- Item callbacks
 		do
 		end
 
-	on_source_changed (a_value: STRING_32; a_item: EV_GRID_ITEM)
+	on_source_changed (a_value: READABLE_STRING_32; a_item: EV_GRID_ITEM)
 			-- On source changed
 		do
 		end
@@ -598,8 +598,8 @@ feature {NONE} -- Access
 		local
 			l_session: SESSION_I
 		do
-			if session_manager.is_service_available then
-				l_session := session_manager.service.retrieve (False)
+			if attached session_manager.service as l_session_service then
+				l_session := l_session_service.retrieve (False)
 				if attached {INTEGER_REF} l_session.value_or_default (eis_entry_grid_sorting_column_session_id, False) as lt_column then
 					Result := lt_column.item
 				end
@@ -616,8 +616,8 @@ feature {NONE} -- Access
 		local
 			l_session: SESSION_I
 		do
-			if session_manager.is_service_available then
-				l_session := session_manager.service.retrieve (False)
+			if attached session_manager.service as l_session_service then
+				l_session := l_session_service.retrieve (False)
 				if attached {BOOLEAN_REF} l_session.value_or_default (eis_entry_grid_sorting_order_session_id, False) as lt_order then
 					Result := lt_order.item
 				end
@@ -868,7 +868,7 @@ feature {NONE} -- Grid items
 
 				l_editable_item.set_item_components (l_list)
 				Result := l_editable_item
-				if l_editable_item.item_components /= Void and then l_editable_item.item_components.index_set.count > 1 then
+				if attached l_editable_item.item_components as c and then c.upper > c.lower then
 					l_editable_item.pointer_button_press_actions.force_extend (agent activate_item (l_editable_item))
 					l_editable_item.set_selection_changing_action (agent on_protocol_changed (?, l_editable_item))
 				end
@@ -1035,7 +1035,7 @@ feature {NONE} -- Target token
 				Result := l_editable_item
 				l_line := token_writer.last_line
 				create l_e_com.make (l_line.content, 0)
-				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array (<<target_pixmap_component, l_e_com>>))
+				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array ({ARRAY [ES_GRID_ITEM_COMPONENT]} <<target_pixmap_component, l_e_com>>))
 				l_item_item.set_data (a_item)
 				l_editable_item.set_list_item (l_item_item)
 				l_editable_item.set_choice_list_key_press_action (agent tab_to_next)
@@ -1060,7 +1060,7 @@ feature {NONE} -- Target token
 				l_editable_item := new_listable_item
 				l_line := token_writer.last_line
 				create l_e_com.make (l_line.content, 0)
-				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array (<<group_pixmap_component (a_item), l_e_com>>))
+				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array ({ARRAY [ES_GRID_ITEM_COMPONENT]} <<group_pixmap_component (a_item), l_e_com>>))
 				l_item_item.set_data (a_item)
 				l_editable_item.set_list_item (l_item_item)
 				l_editable_item.set_choice_list_key_press_action (agent tab_to_next)
@@ -1089,7 +1089,7 @@ feature {NONE} -- Target token
 				Result := l_editable_item
 				l_line := token_writer.last_line
 				create l_e_com.make (l_line.content, 0)
-				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array (<<folder_pixmap_component, l_e_com>>))
+				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array ({ARRAY [ES_GRID_ITEM_COMPONENT]} <<folder_pixmap_component, l_e_com>>))
 				l_item_item.set_data (a_item)
 				l_editable_item.set_list_item (l_item_item)
 				l_editable_item.set_choice_list_key_press_action (agent tab_to_next)
@@ -1114,7 +1114,7 @@ feature {NONE} -- Target token
 				l_editable_item := new_listable_item
 				l_line := token_writer.last_line
 				create l_e_com.make (l_line.content, 0)
-				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array (<<class_pixmap_component (a_item), l_e_com>>))
+				create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array ({ARRAY [ES_GRID_ITEM_COMPONENT]} <<class_pixmap_component (a_item), l_e_com>>))
 				l_item_item.set_data (a_item)
 				l_editable_item.set_list_item (l_item_item)
 				l_editable_item.set_choice_list_key_press_action (agent tab_to_next)
@@ -1153,7 +1153,7 @@ feature {NONE} -- Target token
 			l_editable_item := new_listable_item
 			l_line := token_writer.last_line
 			create l_e_com.make (l_line.content, 0)
-			create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array (<<l_component, l_e_com>>))
+			create l_item_item.make (create {ARRAYED_LIST [ES_GRID_ITEM_COMPONENT]}.make_from_array ({ARRAY [ES_GRID_ITEM_COMPONENT]} <<l_component, l_e_com>>))
 			l_item_item.set_data (a_item)
 			l_editable_item.set_list_item (l_item_item)
 			l_editable_item.set_choice_list_key_press_action (agent tab_to_next)
@@ -1264,7 +1264,7 @@ invariant
 	eis_grid_not_void: eis_grid /= Void
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -1294,8 +1294,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
-
-
 
 end

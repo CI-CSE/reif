@@ -1,6 +1,7 @@
-note
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
+
 class
 	MAKEFILE_TRANSLATOR
 
@@ -12,7 +13,7 @@ inherit
 			{NONE} all
 		end
 
-	PROCESS_FACTORY
+	BASE_PROCESS_FACTORY
 		export
 			{NONE} all
 		end
@@ -58,16 +59,20 @@ feature {NONE} -- Initialization
 			lib_extension := options.get_string_or_default ("intermediate_file_ext", "lib").twin
 			lib_extension.prepend_character ('.')
 
+				-- Initialize the C compiler environment.
+			create l_c_setup.initialize (options.get_boolean ("smart_checking", True), a_force_32bit)
+			if attached l_c_setup.found_c_config as l_config then
+				io.put_string ("Preparing C compilation using " + l_config.description + "...%N")
+			else
+				io.put_string ("Preparing C compilation using already configured " + eiffel_layout.eiffel_c_compiler + " C compiler...%N")
+			end
+			io.standard_default.flush
+
 			check_for_il
 			quick_compilation := options.get_boolean ("quick_compilation", True)
 			if quick_compilation and not is_il_code then
-				io.put_string ("Preparing C compilation...%N")
-				io.standard_default.flush
 				launch_quick_compilation
 			end
-
-				-- Initialize the C compiler environment.
-			create l_c_setup.initialize (options, a_force_32bit)
 		ensure
 			processor_count_set: processor_count = a_processor_count
 			force_32bit_set: force_32bit = a_force_32bit
@@ -165,7 +170,7 @@ feature -- Execution
 		local
 			command: STRING
 			l_make_flags: STRING_32
-			l_process: PROCESS
+			l_process: BASE_PROCESS
 			l_success: BOOLEAN
 			l_flags: detachable LIST [STRING_32]
 			l_file: RAW_FILE
@@ -1626,7 +1631,7 @@ feature {NONE} -- Implementation
 				io.put_string("%Tget_replacement%N")
 			end
 
-			if ({PLATFORM_CONSTANTS}.is_64_bits and force_32bit) and then word.is_case_insensitive_equal (once "ISE_PLATFORM") then
+			if ({PLATFORM}.is_64_bits and force_32bit) and then word.is_case_insensitive_equal (once "ISE_PLATFORM") then
 					-- Replace ISE_PLAFORM to 32bit builds on x64 platforms
 				Result := once "windows"
 			else
@@ -1866,7 +1871,7 @@ invariant
 	empty_string_empty: empty_string.is_empty
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

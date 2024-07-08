@@ -1,7 +1,7 @@
-note
+﻿note
+	description: "Access to Current"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Access to Current
 
 class CURRENT_B
 
@@ -9,9 +9,13 @@ inherit
 
 	ACCESS_B
 		redefine
-			enlarged, is_current,
-			register_name, pre_inlined_code, print_register,
-			is_fast_as_local
+			enlarged,
+			is_current,
+			is_fast_as_local,
+			pre_inlined_code,
+			print_checked_target_register,
+			print_register,
+			register_name
 		end
 
 feature -- Visitor
@@ -42,12 +46,9 @@ feature
 
 	same (other: ACCESS_B): BOOLEAN
 			-- Is `other' the same access as Current ?
-		local
-			current_b: CURRENT_B;
 		do
-			current_b ?= other;
-			Result := current_b /= Void
-		end;
+			Result := attached {CURRENT_B} other
+		end
 
 	enlarged: CURRENT_B
 			-- Enlarges the tree to get more attributes and returns the
@@ -60,13 +61,22 @@ feature
 	register_name: STRING
 			-- The "Current" string
 		once
-			Result := "Current";
-		end;
+			Result := {C_CONST}.current_name
+		end
 
 	print_register
 			-- Print "Current" register
 		do
-			context.buffer.put_string (register_name)
+			context.buffer.put_string ({C_CONST}.current_name)
+		end
+
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		do
+				-- Current is always attached, no need to check for void.
+			context.buffer.put_string ({C_CONST}.current_name)
 		end
 
 feature -- IL code generation
@@ -82,7 +92,7 @@ feature -- Inlining
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

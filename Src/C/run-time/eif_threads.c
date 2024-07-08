@@ -2,7 +2,7 @@
 	description: "Thread management routines."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2012, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2018, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -40,6 +40,8 @@ doc:<file name="eif_thread.c" header="eif_thread.h" version="$Id$" summary="Thre
 
 #include "eif_portable.h"
 #include "eif_eiffel.h"
+#include "eif_macros.h"
+#include "eif_globals.h"
 #include "rt_threads.h"
 #include "eif_posix_threads.h"
 #include "rt_lmalloc.h"
@@ -65,6 +67,7 @@ doc:<file name="eif_thread.c" header="eif_thread.h" version="$Id$" summary="Thre
 #include "rt_cecil.h"
 #include "rt_debug.h"
 #include "rt_main.h"
+#include "rt_scoop.h"
 #include "eif_error.h"
 #ifdef BOEHM_GC
 #include "rt_boehm.h"
@@ -86,8 +89,8 @@ rt_public void eif_thr_init_root(void);
 rt_public void eif_thr_register(int is_external);
 rt_public int eif_thr_is_initialized(void);
 
-rt_public void eif_thr_create_with_attr(EIF_OBJECT, EIF_PROCEDURE, EIF_THR_ATTR_TYPE *);
-rt_public void eif_thr_create_with_attr_new(EIF_OBJECT, EIF_PROCEDURE, EIF_INTEGER_32, EIF_BOOLEAN, EIF_THR_ATTR_TYPE *);
+rt_public void eif_thr_create_with_attr(EIF_OBJECT, EIF_PROCEDURE, EIF_PROCEDURE, EIF_THR_ATTR_TYPE *);
+rt_public void eif_thr_create_with_attr_new(EIF_OBJECT, EIF_PROCEDURE, EIF_PROCEDURE, EIF_INTEGER_32, EIF_BOOLEAN, EIF_THR_ATTR_TYPE *);
 rt_public void eif_thr_exit(void);
 
 rt_public EIF_POINTER eif_thr_mutex_create(void);
@@ -740,13 +743,15 @@ rt_private void eif_free_context (rt_global_context_t *rt_globals)
 
 rt_public void eif_thr_create_with_attr (EIF_OBJECT thr_root_obj, 
 										 EIF_PROCEDURE init_func,
+										 EIF_PROCEDURE set_terminated_func,
 										 EIF_THR_ATTR_TYPE *attr)
 {
-	eif_thr_create_with_attr_new (thr_root_obj, init_func, RTS_PID(eif_access(thr_root_obj)), EIF_FALSE, attr);
+	eif_thr_create_with_attr_new (thr_root_obj, init_func, set_terminated_func, RTS_PID(eif_access(thr_root_obj)), EIF_FALSE, attr);
 }
 
 rt_public void eif_thr_create_with_attr_new (EIF_OBJECT thr_root_obj, 
 										 EIF_PROCEDURE init_func,
+										 EIF_PROCEDURE set_terminated_func,
 										 EIF_INTEGER_32 thr_logical_id,
 										 EIF_BOOLEAN is_processor,
 										 EIF_THR_ATTR_TYPE *attr)
@@ -757,6 +762,7 @@ rt_public void eif_thr_create_with_attr_new (EIF_OBJECT thr_root_obj,
 	 * - the object (whose class inherits from THREAD) a clone of which
 	 *   will become the root object of the new thread
 	 * - the Eiffel routine it will execute
+	 * - the procedure to set `terminated' to True in `eif_thr_exit'.
 	 * - the priority, the stack size.
 	 *
 	 * These arguments are part of the routine context that will be
@@ -787,6 +793,7 @@ rt_public void eif_thr_create_with_attr_new (EIF_OBJECT thr_root_obj,
 		}
 
 		routine_ctxt->routine = init_func;
+		routine_ctxt->set_terminated_func = set_terminated_func;
 		routine_ctxt->thread_id = (EIF_THR_TYPE) 0;
 #if defined(EIF_ASSERTIONS) && defined(EIF_WINDOWS)
 		routine_ctxt->win_thread_id = (DWORD) 0;
@@ -833,6 +840,88 @@ rt_public void eif_thr_create_with_attr_new (EIF_OBJECT thr_root_obj,
 }
 
 /*
+doc:	<routine name="rt_thread_initialize_thread_data" return_type="rt_global_context_t*" export="private">
+doc:		<summary>Initialize a new Eiffel thread context and launch execution for an active processor/thread.</summary>
+doc:		<param name="is_passive" type="int">A flag that indicates whether the data is to be initialized for a passive processor.</param>
+doc:		<param name="thr_context" type="rt_thr_context*">Context of the thread to be initialized.</param>
+doc:		<return>The private data of the new thread context.</return>
+doc:		<thread_safety>Safe.</thread_safety>
+doc:		<synchronization>None.</synchronization>
+doc:	</routine>
+*/
+rt_private rt_inline rt_global_context_t* rt_thread_initialize_thread_data (int is_passive, rt_thr_context* thr_context)
+{
+	eif_thr_register (is_passive);
+	{
+		RT_GET_CONTEXT
+		EIF_GET_CONTEXT
+
+		struct ex_vect *exvect;
+		jmp_buf exenv;
+		
+		eif_thr_context = thr_context;
+
+			/* Set the processor and region ID. */
+		eif_globals->scoop_processor_id = thr_context->logical_id;
+		eif_globals->scoop_region_id = thr_context->logical_id;
+
+			/* Initialize some stacks and the exception manager. */
+		initsig();
+		initstk();
+		if (!is_passive) {
+			if (egc_prof_enabled) {
+				initprf();
+			}
+		}
+		exvect = new_exset((char *) 0, 0, (char *) 0, 0, 0, 0);
+		exvect->ex_jbuf = &exenv;
+
+#ifdef _CRAY
+		if (setjmp(exenv)) {
+			failure();
+		}
+#else
+		if ((echval = setjmp(exenv))) {
+			failure();
+		}
+#endif
+
+#ifdef WORKBENCH
+		xinitint();
+		if (is_passive) {
+			/* TODO: Tell debugger that a new passive processor is allocated. */
+			/* TODO: Tell debugger when this passive processor disappears. */
+		}
+		else {
+				/* Call the `execute' routine of the thread. */
+			dnotify_create_thread(thr_context->thread_id);
+			if (thr_context->is_processor) {
+				dnotify_register_scoop_processor (thr_context->thread_id, thr_context->logical_id);
+			}
+		}
+#endif
+			 /* Initialize objects held by exception manager. */
+		init_emnger();
+		if (!is_passive) {
+				/* Start execution for an active processor/thread. */
+			if (thr_context->is_processor) {
+					/* New SCOOP threads have a special entry point defined in the SCOOP runtime. */
+				(FUNCTION_CAST(void,(EIF_REFERENCE, EIF_INTEGER_32)) thr_context->routine) (NULL, thr_context->logical_id);
+			} else {
+				CHECK ("has_root_object", thr_context->current);
+				(FUNCTION_CAST(void,(EIF_REFERENCE)) thr_context->routine) (eif_access (thr_context->current));
+			}
+		}
+
+			/* TODO: check if this is safe for `is_passive`. */
+		exok ();
+
+			/* Return newly allocated context. */
+		return rt_globals;
+	}
+}
+
+/*
 doc:	<routine name="rt_thread_new_passive_region" return_type="rt_global_context_t*" export="shared">
 doc:		<summary> Create a new Eiffel thread context for the passive region 'region_id'. </summary>
 doc:		<param name="region_id" type="EIF_SCP_PID"> The region ID for the new passive region. </param>
@@ -875,43 +964,11 @@ rt_shared rt_global_context_t* rt_thread_new_passive_region (EIF_SCP_PID region_
 			/* The next statement allocates the eif_globals and rt_globals structures for the new context,
 			 * registers the new context with the garbage collector, and unfortunately also overwrites
 			 * our own thread-local variables. */
-		eif_thr_register (1);
-
-		{
-			RT_GET_CONTEXT
-			EIF_GET_CONTEXT
-			struct ex_vect *exvect;
-			jmp_buf exenv;
-
-				/*  We're not done yet... Set the processor and region ID. */
-			eif_thr_context = l_thread_context;
-			rt_globals->eif_globals->scoop_processor_id = eif_thr_context->logical_id;
-			rt_globals->eif_globals->scoop_region_id = eif_thr_context->logical_id;
-
-				/* Now we need to initialize some stacks and the exception manager. */
-			initsig();
-			initstk();
-			exvect = exset((char *) 0, 0, (char *) 0);
-			(exvect->ex_jbuf) = &exenv;
-			if ((echval) = setjmp(exenv)) {
-					failure();
-			}
-
-#ifdef WORKBENCH
-			xinitint();
-#endif
-			init_emnger();
-
-
-			/* TODO: Is this safe?*/
-			exok();
-
-			/* As a last step, we signal the GC that the new "thread" is always blocked so it never has to synchronize. */
-			EIF_ENTER_C;
-
-			l_result = rt_globals;
-		}
-			/* Almost done. Now we need to restore the context of the current thread. */
+		l_result = rt_thread_initialize_thread_data (1, l_thread_context);
+			/* Signal the GC that the new "thread" is always blocked so it never has to synchronize. */
+			/* Note that `l_result` is changed here, but the context of the caller's thread is left intact. */
+		EIF_ENTER_C;
+			/* Restore the context of the current thread. */
 		EIF_TSD_SET(rt_global_key, l_stored_globals, "Couldn't bind private context to TSD.");
 		EIF_TSD_SET(eif_global_key, l_stored_globals->eif_globals, "Couldn't bind private context to TSD.");
 		EIF_EXIT_C;
@@ -970,57 +1027,7 @@ rt_private void eif_thr_entry (void *arg)
 		 * safely later on */
 	LAUNCH_MUTEX_LOCK;
 	LAUNCH_MUTEX_UNLOCK;
-	eif_thr_register(0);
-	{
-		RT_GET_CONTEXT
-		EIF_GET_CONTEXT
-
-		struct ex_vect *exvect;
-		jmp_buf exenv;
-
-		eif_thr_context = routine_ctxt;
-
-			/* Set the processor and region ID. */
-		eif_globals->scoop_processor_id = eif_thr_context->logical_id;
-		eif_globals->scoop_region_id = eif_thr_context->logical_id;
-
-		initsig();
-		initstk();
-		if (egc_prof_enabled) {
-			initprf();
-		}
-		exvect = new_exset((char *) 0, 0, (char *) 0, 0, 0, 0);
-		exvect->ex_jbuf = &exenv;
-
-#ifdef _CRAY
-		if (setjmp(exenv)) {
-			failure();
-		}
-#else
-		if ((echval = setjmp(exenv))) {
-			failure();
-		}
-#endif
-
-#ifdef WORKBENCH
-		xinitint();
-			/* Call the `execute' routine of the thread */
-		dnotify_create_thread(eif_thr_context->thread_id);
-		if (eif_thr_context->is_processor) {
-			dnotify_register_scoop_processor (eif_thr_context->thread_id, eif_thr_context->logical_id);
-		}
-#endif
-		init_emnger(); /* Initialize objects hold by exception manager */
-		if (eif_thr_context->is_processor) {
-				/* New SCOOP threads have a special entry point defined in the SCOOP runtime. */
-			(FUNCTION_CAST(void,(EIF_REFERENCE, EIF_INTEGER_32)) eif_thr_context->routine) (NULL, eif_thr_context->logical_id);
-		} else {
-			CHECK ("has_root_object", routine_ctxt->current);
-			(FUNCTION_CAST(void,(EIF_REFERENCE)) eif_thr_context->routine)(eif_access(routine_ctxt->current));
-		}
-
-		exok();
-	}
+	rt_thread_initialize_thread_data (0, routine_ctxt);
 	eif_thr_exit ();
 	return;
 }
@@ -1038,8 +1045,6 @@ rt_public void eif_thr_exit(void)
 	if (!thread_exiting) {
 		int destroy_mutex; /* If non null, we'll destroy the 'join' mutex */
 		int l_has_parent_thread, l_is_external_thread;
-		int ret;	/* Return Status of "eifaddr_offset". */
-		EIF_INTEGER offset;	/* Location of `terminated' in `eif_thr_context->current' */
 		EIF_MUTEX_TYPE *l_children_mutex, *l_parent_children_mutex;
 		EIF_THR_TYPE l_thread_id = eif_thr_context->thread_id;
 
@@ -1060,11 +1065,10 @@ rt_public void eif_thr_exit(void)
 
 			if (eif_thr_context->is_processor == EIF_FALSE) {
 					/* Set {THREAD}.terminated to True, not applicable to SCOOP Processors. */
-				offset = eifaddr_offset (eif_access(eif_thr_context->current), "terminated", &ret);
-				if (ret == EIF_CECIL_OK) {
+				if (eif_thr_context->set_terminated_func) {
 						/* Set the `terminated' field of the thread object to True so that
 						 * it knows the thread is terminated */
-					*(EIF_BOOLEAN *) (eif_access(eif_thr_context->current) + offset) = EIF_TRUE;
+					eif_thr_context->set_terminated_func(eif_access(eif_thr_context->current), EIF_TRUE);
 				}
 			}
 				
@@ -1687,7 +1691,7 @@ rt_public void eif_thr_join_all(void)
 	}
 }
 
-rt_public void eif_thr_wait (EIF_OBJECT Current)
+rt_public void eif_thr_wait (EIF_OBJECT Current, EIF_BOOLEAN_FUNCTION get_terminated_func)
 {
 	/*
 	 * Waits until a thread sets `terminated' from `Current' to True, which means it
@@ -1699,8 +1703,6 @@ rt_public void eif_thr_wait (EIF_OBJECT Current)
 	RT_GET_CONTEXT
 	EIF_GET_CONTEXT
 
-	int ret;	/* Return Status of "eifaddr". */
-	EIF_INTEGER offset;	/* location of `terminated' in Current */
 	EIF_REFERENCE thread_object = NULL;
 
 		/* We need to protect thread_object, because the protected
@@ -1708,8 +1710,6 @@ rt_public void eif_thr_wait (EIF_OBJECT Current)
 		 * Current thread exit. */
 	RT_GC_PROTECT(thread_object);
 	thread_object = eif_access(Current);
-	offset = eifaddr_offset (thread_object, "terminated", &ret);
-	CHECK("terminated attribute exists", ret == EIF_CECIL_OK);
 
 		/* If no thread has been launched, the mutex isn't initialized */
 	if (eif_thr_context->children_mutex) {
@@ -1717,7 +1717,7 @@ rt_public void eif_thr_wait (EIF_OBJECT Current)
 		EIF_ASYNC_SAFE_MUTEX_LOCK(eif_thr_context->children_mutex);
 		EIF_EXIT_C;
 		RTGC;
-		while (*(EIF_BOOLEAN *) (thread_object + offset) == EIF_FALSE) {
+		while (get_terminated_func(thread_object) == EIF_FALSE) {
 			EIF_ENTER_C;
 			RT_TRACE(eif_pthread_cond_wait(eif_thr_context->children_cond, eif_thr_context->children_mutex));
 			EIF_EXIT_C;
@@ -1728,7 +1728,7 @@ rt_public void eif_thr_wait (EIF_OBJECT Current)
 	RT_GC_WEAN(thread_object);
 }
 
-rt_public EIF_BOOLEAN eif_thr_wait_with_timeout (EIF_OBJECT Current, EIF_NATURAL_64 a_timeout_ms)
+rt_public EIF_BOOLEAN eif_thr_wait_with_timeout (EIF_OBJECT Current, EIF_BOOLEAN_FUNCTION get_terminated_func, EIF_NATURAL_64 a_timeout_ms)
 {
 	/*
 	 * Waits until a thread sets `terminated' from `Current' to True or reaching `a_timeout_ms'.
@@ -1739,7 +1739,6 @@ rt_public EIF_BOOLEAN eif_thr_wait_with_timeout (EIF_OBJECT Current, EIF_NATURAL
 	EIF_GET_CONTEXT
 
 	int res;
-	EIF_INTEGER offset;	/* location of `terminated' in Current */
 	EIF_REFERENCE thread_object = NULL;
 
 		/* We need to protect thread_object, because the protected
@@ -1747,8 +1746,6 @@ rt_public EIF_BOOLEAN eif_thr_wait_with_timeout (EIF_OBJECT Current, EIF_NATURAL
 		 * Current thread exit. */
 	RT_GC_PROTECT(thread_object);
 	thread_object = eif_access(Current);
-	offset = eifaddr_offset (thread_object, "terminated", &res);
-	CHECK("terminated attribute exists", res == EIF_CECIL_OK);
 
 		/* If no thread has been launched, the mutex isn't initialized */
 	res = T_OK;
@@ -1757,7 +1754,7 @@ rt_public EIF_BOOLEAN eif_thr_wait_with_timeout (EIF_OBJECT Current, EIF_NATURAL
 		EIF_ASYNC_SAFE_MUTEX_LOCK(eif_thr_context->children_mutex);
 		EIF_EXIT_C;
 		RTGC;
-		while ((*(EIF_BOOLEAN *) (thread_object + offset) == EIF_FALSE) && (res == T_OK)) {
+		while ((get_terminated_func(thread_object) == EIF_FALSE) && (res == T_OK)) {
 			EIF_ENTER_C;
 				/* We do not use `RT_TRACE_KEEP' because we might get T_TIMEDOUT.
 				 * We will trace the error after. */
@@ -1827,6 +1824,31 @@ rt_public EIF_POINTER eif_thr_last_thread(void) {
 	return (EIF_POINTER) last_child;
 }
 
+#ifdef EIF_WINDOWS
+/*
+ * Support for Windows GUI that requires that all GUI operations are performed in the same thread.
+ *
+ * Allocate new structure of the given size `size', assign it to `wel_per_thread_data' and
+ * to the corresponding field of SCOOP run-time part.
+ *
+ * Return newly allocated memory block. It will be freed automatically on thread termination.
+ */
+rt_public void* eif_thr_create_wel_per_thread_data (size_t size) {
+	
+	void * result;
+
+	EIF_GET_CONTEXT
+
+	result = eif_calloc(1, size);
+	if (!result) {
+		eif_thr_panic("No more memory for thread context");
+	}
+	eif_globals->wel_per_thread_data = result;
+	rt_scoop_set_wel_per_thread_data (result, eif_globals -> scoop_processor_id);
+
+	return result;
+}
+#endif
 
 /*
  * Functions for mutex management:

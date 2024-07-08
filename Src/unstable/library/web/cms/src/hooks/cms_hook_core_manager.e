@@ -60,6 +60,28 @@ feature -- Hook: response
 			end
 		end
 
+feature -- Hook: webapi response
+
+	subscribe_to_webapi_response_alter_hook (h: CMS_HOOK_WEBAPI_RESPONSE_ALTER)
+			-- Add `h' as subscriber of response alter hooks CMS_HOOK_WEBAPI_RESPONSE_ALTER.		
+		do
+			subscribe_to_hook (h, {CMS_HOOK_WEBAPI_RESPONSE_ALTER})
+		end
+
+	invoke_webapi_response_alter (a_response: WEBAPI_RESPONSE)
+			-- Invoke response alter hook for response `a_response'.		
+		do
+			if attached subscribers ({CMS_HOOK_WEBAPI_RESPONSE_ALTER}) as lst then
+				across
+					lst as ic
+				loop
+					if attached {CMS_HOOK_WEBAPI_RESPONSE_ALTER} ic.item as h then
+						h.webapi_response_alter (a_response)
+					end
+				end
+			end
+		end
+
 feature -- Hook: menu_system_alter
 
 	subscribe_to_menu_system_alter_hook (h: CMS_HOOK_MENU_SYSTEM_ALTER)
@@ -110,7 +132,7 @@ feature -- Hook: form_alter
 			-- Add `h' as subscriber of form alter hooks CMS_HOOK_FORM_ALTER,
 			-- and response `a_response'.
 		do
-			subscribe_to_hook (h, {CMS_HOOK_MENU_ALTER})
+			subscribe_to_hook (h, {CMS_HOOK_FORM_ALTER})
 		end
 
 	invoke_form_alter (a_form: CMS_FORM; a_form_data: detachable WSF_FORM_DATA; a_response: CMS_RESPONSE)
@@ -150,9 +172,12 @@ feature -- Hook: block
 				across
 					lst as c
 				loop
-					if attached {CMS_HOOK_BLOCK} c.item as h then
+					if
+						attached {CMS_HOOK_BLOCK} c.item as h and then
+						attached h.block_identifiers (a_response) as l_names
+					then
 						across
-							h.block_list as blst
+							l_names as blst
 						loop
 							bl := blst.item
 							bl_optional := bl.count > 0 and bl[1] = '?'
@@ -209,18 +234,46 @@ feature -- Hook: cache
 
 	invoke_clear_cache (a_cache_id_list: detachable ITERABLE [READABLE_STRING_GENERAL]; a_response: CMS_RESPONSE)
 			-- Invoke cache hook for identifiers `a_cache_id_list'.
+		local
+			retried: BOOLEAN
 		do
-			if attached subscribers ({CMS_HOOK_CACHE}) as lst then
-				across
-					lst as c
-				loop
-					if attached {CMS_HOOK_CACHE} c.item as h then
-						h.clear_cache (a_cache_id_list, a_response)
+			if not retried then
+				if attached subscribers ({CMS_HOOK_CACHE}) as lst then
+					across
+						lst as c
+					loop
+						if attached {CMS_HOOK_CACHE} c.item as h then
+							safe_call_clear_cache_on_hook (h, a_cache_id_list, a_response)
+						end
 					end
+					a_response.clear_cache (a_cache_id_list)
 				end
-
-				a_response.clear_cache (a_cache_id_list)
+			else
+				a_response.add_error_message ("Error occurred while clearing cache.")
 			end
+		rescue
+			retried := True
+			retry
+		end
+
+feature {NONE} -- Hook: cache		
+
+	safe_call_clear_cache_on_hook (a_hook: CMS_HOOK_CACHE; a_cache_id_list: detachable ITERABLE [READABLE_STRING_GENERAL]; a_response: CMS_RESPONSE)
+		local
+			retried: BOOLEAN
+		do
+			if not retried then
+				a_hook.clear_cache (a_cache_id_list, a_response)
+			else
+				if attached {CMS_MODULE} a_hook as mod then
+					a_response.add_error_message ("Exception occurred for `clear_cache` [" + mod.name + "]")
+				else
+					a_response.add_error_message ("Exception occurred for `clear_cache`")
+				end
+			end
+		rescue
+			retried := True
+			retry
 		end
 
 feature -- Hook: export
@@ -231,7 +284,7 @@ feature -- Hook: export
 			subscribe_to_hook (h, {CMS_HOOK_EXPORT})
 		end
 
-	invoke_export_to (a_export_id_list: detachable ITERABLE [READABLE_STRING_GENERAL]; a_export_parameters: CMS_EXPORT_PARAMETERS; a_response: CMS_RESPONSE)
+	invoke_export_to (a_export_id_list: detachable ITERABLE [READABLE_STRING_GENERAL]; a_export_parameters: CMS_EXPORT_CONTEXT; a_response: CMS_RESPONSE)
 			-- Invoke response alter hook for response `a_response'.		
 		local
 			d: DIRECTORY
@@ -251,7 +304,36 @@ feature -- Hook: export
 			end
 		end
 
+feature -- Hook: import
+
+	subscribe_to_import_hook (h: CMS_HOOK_IMPORT)
+			-- Add `h' as subscriber of import hooks CMS_HOOK_IMPORT.		
+		do
+			subscribe_to_hook (h, {CMS_HOOK_IMPORT})
+		end
+
+	invoke_import_from (a_import_id_list: detachable ITERABLE [READABLE_STRING_GENERAL]; a_import_ctx: CMS_IMPORT_CONTEXT; a_response: CMS_RESPONSE)
+			-- Invoke response alter hook for response `a_response'.		
+		local
+			d: DIRECTORY
+		do
+			if attached subscribers ({CMS_HOOK_IMPORT}) as lst then
+				create d.make_with_path (a_import_ctx.location)
+				if not d.exists then
+					d.recursive_create_dir
+				end
+				across
+					lst as ic
+				loop
+					if attached {CMS_HOOK_IMPORT} ic.item as h then
+						h.import_from (a_import_id_list, a_import_ctx, a_response)
+					end
+				end
+			end
+		end
+
+
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

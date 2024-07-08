@@ -1,6 +1,7 @@
 note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
+
 class ASSERT_ID_SET
 
 inherit
@@ -36,19 +37,7 @@ feature -- Access
 	Chunk: INTEGER = 5
 			-- Array chunk
 
-	first: INH_ASSERT_INFO
-			-- First routine id
-		do
-			Result := item (1)
-		end
-
 feature -- Element change
-
-	set_count (i: INTEGER)
-			-- Assign `i' to `count'.
-		do
-			count := i
-		end
 
 	wipe_out
 			-- Clear the structure.
@@ -59,29 +48,19 @@ feature -- Element change
 
 feature -- Status report
 
-	full: BOOLEAN
-			-- Is the set full ?
-		do
-			Result := count = array_count
-		end
-
-	empty: BOOLEAN
-			-- Is the set empty ?
-		do
-			Result := count = 0
-		end
-
 	has (assert: INH_ASSERT_INFO): BOOLEAN
-			-- Is the body id `body_index' present in the set ?
+			-- Is the body id `body_index' present in the set?
 		local
 			i: INTEGER
+			b: like {INH_ASSERT_INFO}.body_index
 		do
 			from
+				b := assert.body_index
 				i := 1
 			until
 				i > count or else Result
 			loop
-				Result := item (i).body_index = assert.body_index
+				Result := item (i).body_index = b
 				i := i + 1
 			end
 		end
@@ -101,13 +80,23 @@ feature -- Status report
 			end
 		end
 
-feature -- Status Report
-
 	has_precondition: BOOLEAN
 			-- Has the set any precondition (inner or inherited)?
 
+	has_postcondition: BOOLEAN
+			-- Has the set any postcondition (inner or inherited)?
+
+	has_class_postcondition: BOOLEAN
+			-- Has the set any class postcondition (inner or inherited)?
+
 	has_false_postcondition: BOOLEAN
 			-- Has the set any false postcondition (inner or inherited)?
+
+	has_non_object_call: BOOLEAN
+			-- Are there non-object calls in preconditions or postconditions (inner or inherited)?
+
+	has_unqualified_call: BOOLEAN
+			-- Are there unqualified object calls in preconditions or postconditions (inner or inherited)?
 
 feature -- Status Setting
 
@@ -119,6 +108,22 @@ feature -- Status Setting
 			has_precondition_set: has_precondition = b
 		end
 
+	set_has_postcondition (b: BOOLEAN)
+			-- Set `has_postcondition' to `b'.
+		do
+			has_postcondition := b
+		ensure
+			has_postcondition_set: has_postcondition = b
+		end
+
+	set_has_class_postcondition (b: BOOLEAN)
+			-- Set `has_class_postcondition' to `b'.
+		do
+			has_class_postcondition := b
+		ensure
+			has_class_postcondition_set: has_class_postcondition = b
+		end
+
 	set_has_false_postcondition (b: BOOLEAN)
 			-- Set `has_false_postcondition' to `b'.
 		do
@@ -127,20 +132,23 @@ feature -- Status Setting
 			has_false_postcondition_set: has_false_postcondition = b
 		end
 
-feature -- Basic operations
-
-	put (assert: INH_ASSERT_INFO)
-			-- Insert routine id `rout_id' in the set if not already
-			-- present.
-		require
-			not_full: not full
+	set_has_non_object_call (b: BOOLEAN)
+			-- Set `has_non_object_call' to `b'.
 		do
-			if not has (assert) then
-					-- Body index `body_index' is not present in the set
-				count := count + 1
-				array_put (assert, count)
-			end
+			has_non_object_call := b
+		ensure
+			has_non_object_call_set: has_non_object_call = b
 		end
+
+	set_has_unqualified_call (b: BOOLEAN)
+			-- Set `has_unqualified_call' to `b'.
+		do
+			has_unqualified_call := b
+		ensure
+			has_unqualified_call_set: has_unqualified_call = b
+		end
+
+feature -- Basic operations
 
 	force (assert: INH_ASSERT_INFO)
 			-- Insert body index `body_index' in the set if not already
@@ -181,17 +189,15 @@ feature -- Comparison
 			-- Has `other' the same content than Current ?
 		local
 			i: INTEGER
-			local_copy: like Current
 		do
-			if (other /= Void) and then count = other.count then
+			if other /= Void and then count = other.count then
 				from
-					local_copy := Current
 					i := 1
 					Result := True
 				until
 					i > count or else not Result
 				loop
-					Result := other.has_assert (local_copy.item (i))
+					Result := other.has_assert (item (i))
 					i := i + 1
 				end
 			end
@@ -208,7 +214,7 @@ feature -- Comparison
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

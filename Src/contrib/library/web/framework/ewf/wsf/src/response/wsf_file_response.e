@@ -1,8 +1,7 @@
 note
-	description : "Objects that ..."
-	author      : "$Author$"
-	date        : "$Date$"
-	revision    : "$Revision$"
+	description: "Response to send a file back to the client"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	WSF_FILE_RESPONSE
@@ -105,14 +104,46 @@ feature {NONE} -- Initialization
 
 feature -- Element change
 
-	set_expires_in_seconds (sec: INTEGER)
+	set_content_type (a_content_type: detachable like content_type)
 		do
-			set_expires (sec.out)
+			if a_content_type = Void then
+				get_content_type
+			else
+				content_type := a_content_type
+			end
+		end
+
+	set_max_age (sec: INTEGER)
+		do
+			header.put_cache_control ("max-age=" + sec.out)
+		end
+
+	set_public_max_age (sec: INTEGER)
+		do
+			header.put_cache_control ("public, max-age=" + sec.out)
+		end
+
+	set_private_max_age (sec: INTEGER)
+		do
+			header.put_cache_control ("private, max-age=" + sec.out)
+		end
+
+	set_expires_in_seconds (sec: INTEGER)
+			-- Set Expires and Cache-control: max-age... to value related `sec' seconds.
+		do
+			header.put_expires (sec)
 		end
 
 	set_expires (s: STRING)
+			-- Set Expires header value to `s'.
 		do
 			header.put_expires_string (s)
+		end
+
+	set_expires_date (dt: DATE_TIME)
+			-- Set Expires header value to date time `dt'.
+		do
+			header.put_expires_date (dt)
 		end
 
 	set_no_cache
@@ -121,6 +152,7 @@ feature -- Element change
 		do
 			h := header
 			h.put_expires (0)
+			h.put_cache_control ("max-age=0")
 			h.put_cache_control ("no-cache, must-revalidate")
 			h.put_pragma_no_cache
 		end
@@ -142,7 +174,7 @@ feature -- Access
 
 	file_name: READABLE_STRING_8
 		obsolete
-			"Use `file_path.name' for unicode support [2013-may]"
+			"Use `file_path.name' for unicode support [2017-05-31]"
 		do
 			Result := file_path.utf_8_name
 		end
@@ -204,6 +236,7 @@ feature {WSF_RESPONSE} -- Output
 		do
 			res.set_status_code (status_code)
 			if status_code = {HTTP_STATUS_CODE}.not_found then
+					-- File not found, then no more data.
 			else
 				res.put_header_text (header.string)
 				s := head
@@ -250,7 +283,7 @@ feature {NONE} -- Implementation: file system helper
 			f: RAW_FILE
 		do
 			create f.make_with_path (file_path)
-			create Result.make_from_epoch (f.change_date)
+			create Result.make_from_epoch (f.date)
 		end
 
 	file_extension (fn: PATH): STRING_32
@@ -293,19 +326,11 @@ feature {NONE} -- Implementation: output
 			create f.make_with_path (fn)
 			check f.is_readable end
 
-			f.open_read
-			from
-			until
-				f.exhausted
-			loop
-				f.read_stream (4_096)
-				res.put_string (f.last_string)
-			end
-			f.close
+			res.put_file_content (f, 0, f.count)
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

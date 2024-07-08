@@ -1,8 +1,7 @@
-note
+﻿note
 	description: "Builds an attribute editor for modification of objects of type EV_COLORIZABLE."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -71,7 +70,7 @@ feature -- Access
 			horizontal_box.extend (button)
 			horizontal_box.disable_item_expand (button)
 			horizontal_box.disable_item_expand (frame)
-			b_area.expose_actions.force_extend (agent b_area.clear)
+			b_area.expose_actions.extend (agent (x, y, w, h: INTEGER_32) do b_area.clear end)
 			button.select_actions.extend (agent update_background_color)
 			create horizontal_box
 			horizontal_box.set_border_width (2)
@@ -111,7 +110,7 @@ feature -- Access
 			horizontal_box.extend (button)
 			horizontal_box.disable_item_expand (button)
 			horizontal_box.disable_item_expand (frame)
-			f_area.expose_actions.force_extend (agent f_area.clear)
+			f_area.expose_actions.extend (agent (x, y, w, h: INTEGER_32) do f_area.clear end)
 			button.select_actions.extend (agent update_foreground_color)
 			create horizontal_box
 			horizontal_box.set_border_width (2)
@@ -208,10 +207,10 @@ feature {NONE} -- Implementation
 			-- Update `background_color' of objects through an EV_COLOR_DIALOG.
 		do
 			color_dialog.set_color (background_color)
+				-- We reuse the same dialog over and over, so we need to remove the previous actions
+			color_dialog.ok_actions.wipe_out
+			color_dialog.ok_actions.extend (agent do actually_set_background_color (color_dialog.color) end)
 			color_dialog.show_modal_to_window (parent_window (parent_editor))
-			if color_dialog.selected_button.is_equal ((create {EV_DIALOG_CONSTANTS}).ev_ok) then
-				actually_set_background_color (color_dialog.color)
-			end
 		end
 
 	actually_set_background_color (color: EV_COLOR)
@@ -252,10 +251,10 @@ feature {NONE} -- Implementation
 			-- Update `foreground_color' of objects through an EV_COLOR_DIALOG.
 		do
 			color_dialog.set_color (foreground_color)
+				-- We reuse the same dialog over and over, so we need to remove the previous actions
+			color_dialog.ok_actions.wipe_out
+			color_dialog.ok_actions.extend (agent do actually_set_foreground_color (color_dialog.color) end)
 			color_dialog.show_modal_to_window (parent_window (parent_editor))
-			if color_dialog.selected_button.is_equal ((create {EV_DIALOG_CONSTANTS}).ev_ok) then
-				actually_set_foreground_color (color_dialog.color)
-			end
 		end
 
 	actually_set_foreground_color (color: EV_COLOR)
@@ -334,7 +333,7 @@ feature {NONE} -- Implementation
 	color_dialog: EV_COLOR_DIALOG;
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			 Eiffel Software
@@ -344,5 +343,4 @@ note
 			 Customer support http://support.eiffel.com
 		]"
 
-
-end -- class GB_EV_COLORIZABLE_EDITOR_CONSTRUCTOR
+end

@@ -342,7 +342,7 @@ feature {DBG_EXPRESSION, DBG_EXPRESSION_EVALUATION, DBG_EXPRESSION_EVALUATOR, AS
 					if not has_syntax_error then
 						en := p.expression_node
 						if en /= Void then
-							ast ?= p.expression_node
+							ast := p.expression_node
 							check
 								ast /= Void
 							end

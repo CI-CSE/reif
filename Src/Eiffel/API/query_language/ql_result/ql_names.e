@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "Name constants used in Eiffel query language"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -110,6 +110,7 @@ feature -- Criterion names
 	ql_cri_has_comment: STRING = "has_comment"
 	ql_cri_has_local: STRING = "has_local"
 	ql_cri_has_postcondition: STRING = "has_postcondition"
+	ql_cri_has_class_postcondition: STRING = "has_class_postcondition"
 	ql_cri_has_precondition: STRING = "has_precondition"
 	ql_cri_has_rescue: STRING = "has_rescue"
 	ql_cri_is_attribute: STRING = "is_attribute"
@@ -120,6 +121,7 @@ feature -- Criterion names
 	ql_cri_is_implementor: STRING = "is_implementor_of"
 	ql_cri_is_infix: STRING = "is_infix"
 	ql_cri_is_once: STRING = "is_once"
+	ql_cri_is_class: STRING = "is_class"
 	ql_cri_is_origin: STRING = "is_origin"
 	ql_cri_is_prefix: STRING = "is_prefix"
 	ql_cri_is_procedure: STRING = "is_procedure"
@@ -571,7 +573,7 @@ feature -- Access
 	ql_no_tag: STRING_32 = "no tag";
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -63,23 +63,21 @@ feature -- Basic operations
 							launch_command (l_str)
 						end
 					else
-							-- URL is the default solution.
-						append_acrobat_url_arguments (lt_src, lt_entry)
-						launch_uri (lt_src)
+						if attached acrobat_version_from_settings as l_acrobat then
+							create l_str.make (10)
+							append_acrobat_command_arguments_2 (l_acrobat, lt_src, lt_entry)
+							l_str.prepend (lt_src)
+							launch_command_with_cmd (l_str)
+						else
+								-- URL is the default solution.
+							if {PLATFORM}.is_windows then
+								lt_src.prepend (windows_file_protocol)
+							end
+							append_acrobat_url_arguments (lt_src, lt_entry)
+							launch_uri (lt_src)
+						end
 					end
 				end
-			end
-		end
-
-	append_acrobat_url_arguments (a_string: STRING_32; a_entry: EIS_ENTRY)
-			-- Append acrobat url arguments to `a_string'.
-		require
-			a_string_not_void: a_string /= Void
-			a_entry_not_void: a_entry /= Void
-		do
-			if attached pdf_arguments_from_entry (a_entry) as l_args then
-				a_string.append (acrobat_url_sep)
-				a_string.append (l_args)
 			end
 		end
 
@@ -95,6 +93,35 @@ feature -- Basic operations
 				a_string.append (quoted_string (l_args))
 				a_string.append_character (' ')
 			end
+		end
+
+	append_acrobat_url_arguments (a_string: STRING_32; a_entry: EIS_ENTRY)
+			-- Append acrobat url arguments to `a_string'.
+		require
+			a_string_not_void: a_string /= Void
+			a_entry_not_void: a_entry /= Void
+		do
+			if attached pdf_arguments_from_entry (a_entry) as l_args then
+				a_string.append (acrobat_url_sep)
+				a_string.append (l_args)
+			end
+		end
+
+	append_acrobat_command_arguments_2 (a_acrobat: STRING_32; a_string: STRING_32; a_entry: EIS_ENTRY)
+			-- Append acrobat command arguments to `a_string'.
+		require
+			a_string_not_void: a_string /= Void
+			a_entry_not_void: a_entry /= Void
+		local
+			l_string: STRING_32
+		do
+			create l_string.make_from_string (a_acrobat)
+			if attached pdf_arguments_from_entry (a_entry) as l_args then
+				l_string.append (acrobat_action_string)
+				l_string.append (quoted_string (l_args))
+				l_string.append_character (' ')
+			end
+			a_string.prepend (l_string)
 		end
 
 	pdf_arguments_from_entry (a_entry: EIS_ENTRY): detachable STRING_32
@@ -153,6 +180,29 @@ feature -- Basic operations
 			end
 		end
 
+	launch_command_with_cmd (a_command: READABLE_STRING_32)
+			-- Launches a commdand
+		require
+			a_command_not_void: a_command /= Void
+		do
+			if attached (create {PROCESS_FACTORY}).process_launcher_with_command_line (a_command, Void) as l_process then
+				l_process.set_hidden (True)
+				l_process.launch
+			end
+		end
+
+
+feature {NONE} -- Implementation
+
+	acrobat_version_from_settings : detachable STRING_32
+			-- Programmatically determine whether Reader or Acrobat is installed and return the path to it, if any.
+		local
+			l_pdf_engine_helper: PDF_ENGINE_HELPER
+		do
+			create {PDF_ENGINE_HELPER_IMP} l_pdf_engine_helper
+			Result := l_pdf_engine_helper.acrobat_version_from_settings
+		end
+
 feature {NONE} -- Constants
 
 	pdf_type_string: STRING_32 = "type"
@@ -176,7 +226,7 @@ feature {NONE} -- Constants
 	acrobat_nameddest: STRING_32 = "nameddest";
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

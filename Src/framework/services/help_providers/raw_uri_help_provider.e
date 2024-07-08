@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Help provider to launch raw URI"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -53,6 +53,7 @@ feature {NONE} -- Access
 			else
 					-- No other variables
 				create Result.make (0)
+				internal_context_variables := Result
 			end
 		end
 
@@ -99,15 +100,14 @@ feature {NONE} -- Helpers
 
 	environment: SERVICE_CONSUMER [ENVIRONMENT_S]
 			-- Access to the environment service
-		require
-			is_sited: is_sited or attached internal_environment
 		do
 			if attached internal_environment as l_result then
 				Result := l_result
 			elseif
-				(attached {SITE [SERVICE_PROVIDER_I]} site as l_site) and then
+					-- The object test is required to access the feature `{SITE}.is_sited` that is not exported by the descendant.
+				attached {SITE [SERVICE_PROVIDER_I]} site as l_site and then
 				l_site.is_sited and then
-				(attached l_site.site as l_provider)
+				attached l_site.site as l_provider
 			then
 					-- Use the localized service provider.
 				create Result.make_with_provider (l_provider)
@@ -139,16 +139,15 @@ feature {NONE} -- Basic operations
 			a_uri_attached: a_uri /= Void
 			not_a_url_is_empty: not a_uri.is_empty
 		local
-			l_url: URI_LAUNCHER
-			l_default_browser: like default_uri_browser
+			uri_launcher: URI_LAUNCHER
+			l_path_uri: STRING_32
 		do
-			create l_url
-			l_default_browser := default_uri_browser --preferences.misc_data.internet_browser_preference.string_value
-			if l_default_browser /= Void and then not l_default_browser.is_empty then
-				is_launched := l_url.launch_with_default_app (a_uri, l_default_browser)
+			l_path_uri := a_uri
+			create uri_launcher
+			if attached default_uri_browser as l_default_browser and then not l_default_browser.is_empty then
+				is_launched := uri_launcher.launch_with_default_app (l_path_uri, l_default_browser)
 			else
-				is_launched := l_url.launch (a_uri)
-
+				is_launched := uri_launcher.launch (l_path_uri)
 					-- This check is here because it lets us know if the preference wasn't initialized.
 				check False end
 			end
@@ -165,12 +164,10 @@ feature {NONE} -- Variable expansion
 			a_uris_contains_valid_items: not a_uri.is_empty
 		local
 			l_uri: STRING_32
-			l_expander: STRING_AGENT_EXPANDER
 		do
 				-- Escape '%%' before processing
 			a_uri.replace_substring_all ("%%", "%%%%")
-			create l_expander
-			l_uri := l_expander.expand_string_32 (a_uri, agent variable, False, True)
+			l_uri := (create {STRING_AGENT_EXPANDER}).expand_string_32 (a_uri, agent variable, False, True)
 			a_uri.wipe_out
 			a_uri.append (l_uri)
 		end
@@ -183,17 +180,16 @@ feature {NONE} -- Variable expansion
 		require
 			a_name_attached: a_name /= Void
 			not_a_name_is_empty: not a_name.is_empty
-		local
-			l_vars: like context_variables
 		do
-			l_vars := context_variables
-			if attached l_vars.item (a_name) as l_result then
+				-- Check the environment service
+				-- then context variables!
+			if
+				attached environment.service as l_service and then l_service.is_interface_usable and then
+				attached l_service.variable (a_name) as l_result
+			then
 				Result := l_result
-			else
-					-- Check the environment service
-				if attached environment.service as l_service and then l_service.is_interface_usable then
-					Result := l_service.variable (a_name)
-				end
+			elseif attached context_variables.item (a_name) as l_result then
+				Result := l_result
 			end
 		end
 
@@ -208,7 +204,7 @@ feature {NONE} -- Implementation: Internal cache
 			-- Note: Do not use directly!
 
 ;note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

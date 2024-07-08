@@ -1,5 +1,9 @@
-note
-	description: "Stone representing a cluster"
+﻿note
+	description: "[
+		Stone representing a group.
+		
+		Warning: it could be a cluster, a library, ...
+		]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	author: "Christophe Bonnard"
@@ -68,7 +72,13 @@ feature -- Access
 		require
 			is_cluster: is_cluster
 		do
-			Result ?= group
+			if attached {CLUSTER_I} group as r then
+				Result := r
+			else
+				check
+					from_precondition: False
+				end
+			end
 		ensure
 			cluster_i_not_void: Result /= Void
 		end
@@ -84,7 +94,7 @@ feature -- Access
 
 	stone_signature: STRING_32
 		do
-			Result := group.name.twin
+			create Result.make_from_string (group.name)
 		end
 
 	header: STRING_GENERAL
@@ -98,7 +108,7 @@ feature -- Access
 	history_name: STRING_32
 			-- What represents `Current' in the history.
 		do
-			Result := "[" + stone_signature + "]"
+			Result := {STRING_32} "[" + stone_signature + {STRING_32} "]"
 		end
 
 	stone_cursor: EV_POINTER_STYLE
@@ -107,7 +117,7 @@ feature -- Access
 		do
 			Result := Cursors.cur_Cluster
 			if group.is_cluster then
-				Result := cursors.cur_cluster
+				-- Already set.
 			elseif group.is_library then
 				Result := cursors.cur_library
 			elseif group.is_assembly then
@@ -121,9 +131,9 @@ feature -- Access
 			-- Cursor associated with Current stone during transport
 			-- when widget at cursor position is not compatible with Current stone
 		do
-			Result := Cursors.cur_Cluster
+			Result := Cursors.cur_x_cluster
 			if group.is_cluster then
-				Result := cursors.cur_x_cluster
+				-- Already set.
 			elseif group.is_library then
 				Result := cursors.cur_x_library
 			elseif group.is_assembly then
@@ -133,7 +143,7 @@ feature -- Access
 			result_attached: Result /= Void
 		end
 
- 	synchronized_stone: STONE
+ 	synchronized_stone: detachable STONE
  			-- Return a valid stone representing the same object after a recompilation.
  		local
  			l_group: like group
@@ -158,17 +168,18 @@ feature -- Access
  			end
  		end
 
-	stone_name: READABLE_STRING_GENERAL
-			-- Name of Current stone
+	stone_name: READABLE_STRING_32
+			-- Name of Current stone.
 		do
 			if is_valid then
-				if not path.is_empty then
-						-- For a folder
-					Result := folder_name.twin
-				else
-						-- For a group
-					Result := group.name.twin
-				end
+				create {STRING_32} Result.make_from_string
+					(if not path.is_empty and then attached folder_name as n then
+							-- For a folder.
+						n
+					else
+							-- For a group.
+						group.name
+					end)
 			else
 				Result := Precursor
 			end
@@ -184,11 +195,8 @@ feature -- Status report
 
 	is_cluster: BOOLEAN
 			-- Does current represent an instance of CLUSTER_I?
-		local
-			l_clus: CLUSTER_I
 		do
-			l_clus ?= group
-			Result := l_clus /= Void
+			Result := attached {CLUSTER_I} group
 		end
 
  	is_valid: BOOLEAN
@@ -205,12 +213,9 @@ feature {NONE} -- Implementation
 			-- Is `a_grp' a recursive cluster?
 		require
 			a_group_not_void: a_group /= Void
-		local
-			l_cl: CONF_CLUSTER
 		do
-			if a_group.is_cluster then
-				l_cl ?= a_group
-				Result := l_cl.is_recursive
+			if attached {CONF_CLUSTER} a_group as c then
+				Result := c.is_recursive
 			end
 		end
 
@@ -219,7 +224,7 @@ invariant
 	path_not_void: path /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -250,4 +255,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class CLUSTER_STONE
+end

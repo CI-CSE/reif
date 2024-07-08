@@ -73,13 +73,13 @@ feature {NONE} -- Output
 		do
 			print_error_code (t)
 			t.add_new_line
-			message.format (t, locale.translation_in_context
+			format (t, locale.translation_in_context
 					("[
 						No type is specified for the local declaration list:
 						  {1}
 					]",
 					"eiffel.error"),
-				<<message.list (locals)>>
+				<<element_list (locals)>>
 			)
 				-- Make sure any other information about the error comes at a new line.
 			t.add_new_line
@@ -89,26 +89,20 @@ feature {NONE} -- Output
 	print_single_line_error_message (t: TEXT_FORMATTER)
 			-- <Precursor>
 		do
-			message.format (t, locale.translation_in_context ("Missing type in local declaration list: {1}", "eiffel.error"), <<message.list (locals)>>)
+			format (t, locale.translation_in_context ("Missing type in local declaration list: {1}", "eiffel.error"), <<element_list (locals)>>)
 		end
 
 feature {NONE} -- Formatting
 
-	locals: like message.listable
+	locals: like listable
 			-- Collection of formatters to add local variable names.
 		do
-			create {ITERABLE_FUNCTION [PROCEDURE[TEXT_FORMATTER], INTEGER_32]} Result.make
+			create {ITERABLE_MAP [INTEGER_32, PROCEDURE[TEXT_FORMATTER]]} Result.make
 				(agent (local_name: INTEGER_32): PROCEDURE[TEXT_FORMATTER]
 					do
 						Result := agent {TEXT_FORMATTER}.add_local (names_heap.item_32 (local_name))
 					end,
 				identifiers)
-		end
-
-	message: FORMATTED_MESSAGE
-			-- A message formatter.
-		once
-			create Result
 		end
 
 feature {TYPE_A} -- Type visitor
@@ -308,6 +302,12 @@ feature {TYPE_A} -- Type visitor
 			suggested_type := a_type
 		end
 
+	process_unknown (t: UNKNOWN_TYPE_A)
+			-- <Precursor>
+		do
+			suggested_type := t
+		end
+
 	process_void_a (a_type: VOID_A)
 			-- <Precursor>
 		do
@@ -317,7 +317,7 @@ feature {TYPE_A} -- Type visitor
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

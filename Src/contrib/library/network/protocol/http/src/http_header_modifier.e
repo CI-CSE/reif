@@ -118,7 +118,7 @@ feature -- Access
 	header_named_value (a_name: READABLE_STRING_8): like item
 			-- First header item found for `a_name' if any	
 		obsolete
-			"Use `item' [2014-03]"
+			"Use `item' [2017-05-31]"
 		do
 			Result := item (a_name)
 		end
@@ -265,25 +265,25 @@ feature -- Content related header
 	put_content_type_with_charset (a_content_type: READABLE_STRING_8; a_charset: READABLE_STRING_8)
 			-- Put content type `a_content_type' with `a_charset' as "charset" parameter.
 		do
-			put_content_type_with_parameters (a_content_type, <<["charset", a_charset]>>)
+			put_content_type_with_parameters (a_content_type, {ARRAY [TUPLE [name: READABLE_STRING_8; value: READABLE_STRING_8]]} <<["charset", a_charset]>>)
 		end
 
 	add_content_type_with_charset (a_content_type: READABLE_STRING_8; a_charset: READABLE_STRING_8)
 			-- Same as `put_content_type_with_charset', but allow multiple definition of "Content-Type".
 		do
-			add_content_type_with_parameters (a_content_type, <<["charset", a_charset]>>)
+			add_content_type_with_parameters (a_content_type, {ARRAY [TUPLE [name: READABLE_STRING_8; value: READABLE_STRING_8]]} <<["charset", a_charset]>>)
 		end
 
 	put_content_type_with_name (a_content_type: READABLE_STRING_8; a_name: READABLE_STRING_8)
 			-- Put content type `a_content_type' with `a_name' as "name" parameter.	
 		do
-			put_content_type_with_parameters (a_content_type, <<["name", a_name]>>)
+			put_content_type_with_parameters (a_content_type, {ARRAY [TUPLE [name: READABLE_STRING_8; value: READABLE_STRING_8]]} <<["name", a_name]>>)
 		end
 
 	add_content_type_with_name (a_content_type: READABLE_STRING_8; a_name: READABLE_STRING_8)
 			-- same as `put_content_type_with_name', but allow multiple definition of "Content-Type"	
 		do
-			add_content_type_with_parameters (a_content_type, <<["name", a_name]>>)
+			add_content_type_with_parameters (a_content_type, {ARRAY [TUPLE [name: READABLE_STRING_8; value: READABLE_STRING_8]]} <<["name", a_name]>>)
 		end
 
 	put_content_length (a_length: INTEGER)
@@ -374,6 +374,7 @@ feature -- Content-type helpers
 	put_content_type_text_css				do put_content_type ({HTTP_MIME_TYPES}.text_css) end
 	put_content_type_text_csv				do put_content_type ({HTTP_MIME_TYPES}.text_csv) end
 	put_content_type_text_html				do put_content_type ({HTTP_MIME_TYPES}.text_html) end
+	put_content_type_utf_8_text_html		do put_content_type_with_charset ({HTTP_MIME_TYPES}.text_html, "utf-8") end
 	put_content_type_text_javascript		do put_content_type ({HTTP_MIME_TYPES}.text_javascript) end
 	put_content_type_text_json				do put_content_type ({HTTP_MIME_TYPES}.text_json) end
 	put_content_type_text_plain				do put_content_type ({HTTP_MIME_TYPES}.text_plain) end
@@ -508,8 +509,15 @@ feature -- Others
 
 	put_expires (a_seconds: INTEGER)
 			-- Put "Expires" header to `a_seconds' seconds
+			-- and also "Cache-Control: max-age=.." .
+			-- To be supported by most browser.
+		local
+			dt: DATE_TIME
 		do
-			put_expires_string (a_seconds.out)
+			create dt.make_now_utc
+			dt.second_add (a_seconds)
+			put_expires_date (dt)
+			put_cache_control ("max-age=" + a_seconds.out)
 		end
 
 	put_expires_string (a_expires: STRING)
@@ -542,6 +550,26 @@ feature -- Others
 			-- Put "Pragma" header with "no-cache" a_pragma
 		do
 			put_pragma ("no-cache")
+		end
+
+feature -- Connection		
+
+	put_connection (a_conn: READABLE_STRING_8)
+			-- Put "Connection" header with `a_conn' value.
+		do
+			put_header_key_value ({HTTP_HEADER_NAMES}.header_connection, a_conn)
+		end
+
+	put_connection_keep_alive
+			-- Put "Connection" header with "keep-alive".
+		do
+			put_connection ("keep-alive")
+		end
+
+	put_connection_close
+			-- Put "Connection" header with "close".
+		do
+			put_connection ("close")
 		end
 
 feature -- Redirection
@@ -655,7 +683,7 @@ feature {NONE} -- Constants
 		end
 
 note
-	copyright: "2011-2014, Jocelyn Fiat, Eiffel Software and others"
+	copyright: "2011-2018, Jocelyn Fiat, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

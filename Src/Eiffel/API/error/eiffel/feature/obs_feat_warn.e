@@ -1,10 +1,8 @@
-note
-
-	description:
-		"Warning for obsolete features."
+﻿note
+	description: "Warning for obsolete features."
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	date: "$Date$";
+	status: "See notice at end of class."
+	date: "$Date$"
 	revision: "$Revision $"
 
 class OBS_FEAT_WARN
@@ -13,26 +11,26 @@ inherit
 
 	OBS_CLASS_WARN
 		redefine
-			trace_primary_context, build_explain, code, help_file_name, is_defined,
-			print_single_line_error_message_extended
-		end;
+			build_explain,
+			code,
+			help_file_name,
+			is_defined,
+			print_single_line_error_message_extended,
+			trace_primary_context
+		end
 
 create
 	make_with_class
 
 feature -- Properties
 
-	code: STRING
-		do
-			Result := "Obsolete Call"
-		end;
+	code: STRING = "Obsolete Call"
+			-- <Precursor>
 
-	help_file_name: STRING
-		do
-			Result := "OBS_CALL"
-		end;
+	help_file_name: STRING = "OBS_CALL"
+			-- <Precursor>
 
-	obsolete_feature: E_FEATURE;
+	obsolete_feature: E_FEATURE
 			-- feature name
 
 feature -- Access
@@ -89,7 +87,7 @@ feature -- Output
 			then
 				print_context_feature (a_text_formatter, l_feature, l_class)
 			else
-				Precursor (a_text_formatter)
+				Precursor {OBS_CLASS_WARN} (a_text_formatter)
 			end
 		end
 
@@ -122,10 +120,10 @@ feature -- Setting
 			valid_f: f /= Void
 		do
 			obsolete_feature := f.api_feature (f.written_in)
-		end;
+		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -156,4 +154,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class OBS_FEAT_WARN
+end

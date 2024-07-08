@@ -8,8 +8,27 @@
 class
 	CONF_CONSTANTS
 
-inherit
-	XML_MARKUP_CONSTANTS
+feature -- Boolean values
+
+	configuration_value_true: STRING_32 = "true"
+			-- String representation of a configuration value "true".
+
+	configuration_value_false: STRING_32 = "false"
+			-- String representation of a configuration value "false".
+
+	configuration_boolean_values: ARRAYED_LIST [READABLE_STRING_32]
+			-- All possible configuration boolean values.
+		once
+			create Result.make (2)
+			Result.extend (configuration_value_false)
+			Result.extend (configuration_value_true)
+		end
+
+	configuration_boolean_value (v: BOOLEAN): READABLE_STRING_32
+			-- A string representation of the value `v`.
+		do
+			Result := if v then configuration_value_true else configuration_value_false end
+		end
 
 feature -- Platforms
 
@@ -55,6 +74,7 @@ feature -- Warnings
 	w_vwab: STRING = "vwab"
 	w_obsolete_class: STRING = "obsolete_class"
 	w_obsolete_feature: STRING = "obsolete_feature"
+	w_manifest_array_type: STRING = "manifest_array_type"
 	w_once_in_generic: STRING = "once_in_generic"
 	w_syntax: STRING = "syntax"
 	w_old_verbatim_strings: STRING = "old_verbatim_strings"
@@ -71,6 +91,7 @@ feature -- Settings
 	s_address_expression: STRING = "address_expression"
 	s_array_optimization: STRING = "array_optimization"
 	s_automatic_backup: STRING = "automatic_backup"
+	s_absent_explicit_assertion: STRING = "absent_explicit_assertion"
 	s_check_for_void_target: STRING = "check_for_void_target"
 	s_check_for_catcall_at_runtime: STRING = "check_for_catcall_at_runtime"
 	s_check_generic_creation_constraint: STRING = "check_generic_creation_constraint"
@@ -92,6 +113,7 @@ feature -- Settings
 	s_java_generation: STRING = "java_generation"
 	s_library_root: STRING = "library_root"
 	s_line_generation: STRING = "line_generation"
+	s_manifest_array_type: STRING = "manifest_array_type"
 	s_metadata_cache_path: STRING = "metadata_cache_path"
 	s_msil_assembly_compatibility: STRING = "msil_assembly_compatibility"
 	s_msil_classes_per_module: STRING = "msil_classes_per_module"
@@ -115,6 +137,84 @@ feature -- Settings
 	s_use_cluster_name_as_namespace: STRING = "use_cluster_name_as_namespace"
 	s_use_all_cluster_name_as_namespace: STRING = "use_all_cluster_name_as_namespace"
 
+feature -- Setting values: manifest array type
+
+	sv_array_default: STRING_32 = "default"
+	sv_array_standard: STRING_32 = "standard"
+	sv_array_mismatch_warning: STRING_32 = "mismatch_warning"
+	sv_array_mismatch_error: STRING_32 = "mismatch_error"
+
+feature -- Option names
+
+	o_assertions: STRING_32 = "assertions"
+	o_assertions_precondition: STRING_32 = "precondition"
+	o_assertions_postcondition: STRING_32 = "postcondition"
+	o_assertions_check: STRING_32 = "check"
+	o_assertions_invariant: STRING_32 = "invariant"
+	o_assertions_loop: STRING_32 = "loop"
+	o_assertions_supplier_precondition: STRING_32 = "supplier_precondition"
+
+	o_catcall_detection: STRING_32 = "cat_call_detection"
+	o_debug_container: STRING_32 = "debug"
+	o_description: STRING_32 = "description"
+
+	o_is_attached_by_default: STRING_32 = "is_attached_by_default"
+	o_is_debug: STRING_32 = "debug"
+	o_is_full_class_checking: STRING_32 = "full_class_checking"
+	o_is_msil_application_optimize: STRING_32 = "msil_application_optimize"
+	o_is_obsolete_routine_type: STRING_32 = "is_obsolete_routine_type"
+	o_is_optimize: STRING_32 = "optimize"
+	o_is_profile: STRING_32 = "profile"
+	o_is_trace: STRING_32 = "trace"
+	o_is_warning: STRING_32 = "warning"
+
+	o_manifest_array_type: STRING_32 = "manifest_array_type"
+	o_namespace: STRING_32 = "namespace"
+	o_syntax: STRING_32 = "syntax"
+	o_void_safety: STRING_32 = "void_safety"
+	o_warning_container: STRING_32 = "warning"
+
+feature -- Capability names
+
+	tag_capability: STRING_32 = "capability"
+			-- A container element name for capabilities.
+
+	tag_capability_catcall_detection: STRING_32 = "catcall_detection"
+	tag_capability_code: STRING_32 = "code"
+	tag_capability_concurrency: STRING_32 = "concurrency"
+	tag_capability_platform: STRING_32 = "platform"
+	tag_capability_void_safety: STRING_32 = "void_safety"
+
+feature -- Capability attribute names
+
+	ca_support: STRING_32 = "support"
+	ca_use: STRING_32 = "use"
+
+feature -- Target attribute names
+
+	ta_abstract: STRING_32 = "abstract"
+	ta_extends: STRING_32 = "extends"
+	ta_extends_location: STRING_32 = "extends_location"
+	ta_name: STRING_32 = "name"
+
+feature -- Custom condition names
+
+	tag_custom: STRING_32 = "custom"
+
+feature -- Custom condition attribute names
+
+	att_name: STRING_32 = "name"
+	att_value: STRING_32 = "value"
+	att_excluded_value: STRING_32 = "excluded_value"
+	att_match: STRING_32 = "match"
+
+feature -- Custom condition attribute values
+
+	val_match_case_sensitive: STRING_32 = "case-sensitive"
+	val_match_case_insensitive: STRING_32 = "case-insensitive"
+	val_match_regexp: STRING_32 = "regexp"
+	val_match_wildcard: STRING_32 = "wildcard"
+
 feature -- Debug
 
 	unnamed_debug: STRING = "__unnamed_debug__"
@@ -129,25 +229,25 @@ feature -- XML parsing/printing
 	Lt_string: STRING_32
 		once
 			create Result.make (1)
-			Result.append_character (lt_char)
+			Result.append_character ({XML_MARKUP_CONSTANTS}.lt_char)
 		end
 
 	Gt_string: STRING_32
 		once
 			create Result.make (1)
-			Result.append_character (gt_char)
+			Result.append_character ({XML_MARKUP_CONSTANTS}.gt_char)
 		end
 
 	Amp_string: STRING_32
 		once
 			create Result.make (1)
-			Result.append_character (amp_char)
+			Result.append_character ({XML_MARKUP_CONSTANTS}.amp_char)
 		end
 
 	Quot_string: STRING_32
 		once
 			create Result.make (1)
-			Result.append_character (quot_char)
+			Result.append_character ({XML_MARKUP_CONSTANTS}.quot_char)
 		end
 
 feature -- Extension
@@ -155,10 +255,8 @@ feature -- Extension
 	eiffel_file_extension: STRING = "e"
 			-- File extension for an Eiffel source file without the dot
 
-invariant
-
-note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+;note
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -390,7 +390,7 @@ end
 							-- In this case, we don't want a failure here, we want a failure when we actually
 							-- try to use `l_value'.
 						b := {ISE_RUNTIME}.check_assert (False)
-						l_generating_type := l_value.generating_type
+						l_type.append (l_value.generating_type.name)
 						b := {ISE_RUNTIME}.check_assert (b)
 					end
 					l_type.append (l_generating_type)
@@ -1840,7 +1840,7 @@ invariant
 	socket_attached: socket /= Void
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

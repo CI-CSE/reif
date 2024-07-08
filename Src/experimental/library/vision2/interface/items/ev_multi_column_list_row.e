@@ -41,11 +41,6 @@ inherit
 		end
 
 	EV_MULTI_COLUMN_LIST_ROW_ACTION_SEQUENCES
-		undefine
-			copy, is_equal
-		redefine
-			implementation
-		end
 
 create
 	default_create
@@ -77,7 +72,7 @@ feature -- Element change
 			-- The representations of `other' and current structure
 			-- need not be the same.
 		obsolete
-			"Use `fill_with_strings_8' for Unicode support."
+			"Use `fill' for Unicode support. [2017-05-31]"
 		local
 			lin_rep: LINEAR [STRING]
 			l_cursor: CURSOR
@@ -131,14 +126,14 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 

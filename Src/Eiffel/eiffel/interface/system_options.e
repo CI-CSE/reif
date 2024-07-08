@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Options of the system as there are specified in the ace file"
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
@@ -15,6 +15,9 @@ feature -- Access
 
 	remover_off: BOOLEAN
 			-- Is the remover off (by specifying the Ace option)
+
+	absent_explicit_assertion: BOOLEAN
+			-- Can assertions be derived from the code rather than taken solely from the assertion clauses?
 
 	array_optimization_on: BOOLEAN
 			-- Is array optimization on?
@@ -44,7 +47,7 @@ feature -- Access
 	automatic_backup: BOOLEAN
 			-- Automatic backup generation?
 
-	concurrency_index: like {CONF_TARGET}.setting_concurrency_index_none
+	concurrency_index: like {CONF_TARGET_OPTION}.concurrency_index_none
 			-- Current concurrency index.
 
 	has_multithreaded: BOOLEAN
@@ -54,8 +57,8 @@ feature -- Access
 			if not il_generation then
 				inspect concurrency_index
 				when
-					{CONF_TARGET}.setting_concurrency_index_thread,
-					{CONF_TARGET}.setting_concurrency_index_scoop
+					{CONF_TARGET_OPTION}.concurrency_index_thread,
+					{CONF_TARGET_OPTION}.concurrency_index_scoop
 				then
 					Result := True
 				else
@@ -67,7 +70,7 @@ feature -- Access
 	is_scoop: BOOLEAN
 			-- Does the system follow SCOOP model?
 		do
-			Result := concurrency_index = {CONF_TARGET}.setting_concurrency_index_scoop
+			Result := concurrency_index = {CONF_TARGET_OPTION}.concurrency_index_scoop
 		end
 
 	has_old_verbatim_strings: BOOLEAN
@@ -120,6 +123,10 @@ feature -- Access
 			-- comparing NaN with another NaN will yield True and not False as usually
 			-- done in IEEE arithmetic.
 
+	array_override: like {CONF_TARGET_OPTION}.array_override.index
+			-- An index of an option that controls whether a system overrides manifest array type checks for code that does not use standard manifest array semantics.
+			-- See `{CONF_TARGET_OPTION}.array_override`.
+
 feature -- Access: IL code generation
 
 	use_cluster_as_namespace, use_all_cluster_as_namespace: BOOLEAN
@@ -144,7 +151,7 @@ feature -- Access: IL code generation
 	metadata_cache_path: STRING_32
 			-- Alternative EAC metadata path
 
-	msil_generation_type: STRING_32
+	msil_generation_type: READABLE_STRING_32
 			-- Type of IL generation?
 
 	msil_culture: STRING_32
@@ -164,9 +171,6 @@ feature -- Access: IL code generation
 	msil_version: STRING_32
 			-- Version of current assembly.
 
-	msil_assembly_compatibility: STRING_32
-			-- Compatibility of current assembly with other assemblies.
-
 	msil_key_file_name: PATH
 			-- Location of key pair used to sign current generated assembly.
 
@@ -182,6 +186,14 @@ feature -- Access: IL code generation
 			-- Should compiler take optimized precompile assembly?
 
 feature -- Update
+
+	set_absent_explicit_assertion (v: BOOLEAN)
+			-- Set `absent_explicit_assertion` to `v`.
+		do
+			absent_explicit_assertion := v
+		ensure
+			absent_explicit_assertion_set: absent_explicit_assertion = v
+		end
 
 	set_use_cluster_as_namespace (v: BOOLEAN)
 			-- Set `use_cluster_as_namespace' to `v'.
@@ -310,17 +322,6 @@ feature -- Update
 			msil_version_set: msil_version = vers
 		end
 
-	set_msil_assembly_compatibility (comp: like msil_assembly_compatibility)
-			-- Set `msil_assembly_compatibility' with `comp'.
-		require
-			comp_not_void: comp /= Void
-			comp_not_empty: not comp.is_empty
-		do
-			msil_assembly_compatibility := comp
-		ensure
-			msil_assembly_compatibility_set: msil_assembly_compatibility = comp
-		end
-
 	set_msil_key_file_name (a_file_name: like msil_key_file_name)
 			-- Set `msil_key_file_name' with `a_file_name'.
 		do
@@ -421,7 +422,7 @@ feature -- Update
 		do
 			has_expanded := True
 		ensure
-			has_expanded_set: has_expanded = True
+			has_expanded_set: has_expanded
 		end
 
 	set_line_generation (b: BOOLEAN)
@@ -588,6 +589,20 @@ feature -- Update
 			total_order_on_reals_set: total_order_on_reals = v
 		end
 
+	set_array_override (v: like array_override)
+			-- Set `array_override` to `v`.
+		require
+			valid_value:
+				v = {CONF_TARGET_OPTION}.array_override_index_default or
+				v = {CONF_TARGET_OPTION}.array_override_index_standard or
+				v = {CONF_TARGET_OPTION}.array_override_index_mismatch_warning or
+				v = {CONF_TARGET_OPTION}.array_override_index_mismatch_error
+		do
+			array_override := v
+		ensure
+			array_override_set: array_override = v
+		end
+
 feature -- Status report
 
 	is_freeze_requested: BOOLEAN
@@ -611,7 +626,7 @@ feature {SYSTEM_I} -- Implementation
 			-- Is the system a multithreaded one?
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -642,4 +657,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class SYSTEM_OPTIONS
+end

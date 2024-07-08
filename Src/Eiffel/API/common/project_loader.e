@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Handler loading of projects. It also takes care of converting old Project format (.ace and .epr) to new format."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -70,8 +70,9 @@ inherit
 
 feature -- Loading
 
-	open_project_file (a_file_name: PATH; a_target_name: STRING_32; a_project_path: PATH; from_scratch: BOOLEAN)
+	open_project_file (a_file_name: PATH; a_target_name: STRING_32; a_project_path: PATH; from_scratch: BOOLEAN; settings: detachable CONF_TARGET_SETTINGS)
 			-- Initialize current project using `a_file_name'.
+			-- Is specified, use `settings' to override options for the selected target.
 		local
 			l_default_file_name: PATH
 			l_load_config: CONF_LOAD
@@ -139,6 +140,8 @@ feature -- Loading
 					find_target_name (a_target_name, l_load_config.last_system)
 					if not has_error then
 						if not is_project_creation_or_opening_not_requested then
+								-- Use specified settings for further processing.
+							lace.set_settings (settings)
 							lace.set_conf_system (l_load_config.last_system)
 							lace.set_target_name (target_name)
 							compiler_project_location.set_target (target_name)
@@ -192,7 +195,7 @@ feature -- Loading
 			end
 		end
 
-	open_single_file_compilation_project (a_class_filename: PATH; a_libraries: ARRAYED_LIST [PATH]; a_project_path: PATH; from_scratch: BOOLEAN)
+	open_single_file_compilation_project (a_class_filename: PATH; a_libraries: ARRAYED_LIST [PATH]; a_project_path: PATH; from_scratch: BOOLEAN; settings: CONF_TARGET_SETTINGS)
 			-- Open project for a single file compilation.
 			--
 			-- `a_class_filename': Filename of Eiffel class which acts as root
@@ -244,7 +247,7 @@ feature -- Loading
 
 							-- Check console application flag
 						if l_target.libraries.current_keys.there_exists (agent is_gui_library (?)) then
-							l_target.update_setting ("console_application", "false")
+							l_target.update_setting ({CONF_CONSTANTS}.s_console_application, "false")
 						end
 					else
 							-- Target does not exist yet, create it
@@ -268,7 +271,7 @@ feature -- Loading
 			end
 
 				-- Now that an ecf exists, call the normal project loading with the new ecf.
-			open_project_file (l_config_file_name, l_target_name, a_project_path, from_scratch)
+			open_project_file (l_config_file_name, l_target_name, a_project_path, from_scratch, settings)
 		end
 
 feature -- Access
@@ -1029,46 +1032,46 @@ feature {NONE} -- Implementation
 			l_target: CONF_TARGET
 			l_root: CONF_ROOT
 			l_directory_location: CONF_DIRECTORY_LOCATION
-			l_cluster: CONF_CLUSTER
-			l_library: CONF_LIBRARY
-			l_precompile: CONF_PRECOMPILE
 		do
 			create l_factory
 
-				-- Configuration target
+				-- Configuration target.
 			l_target := l_factory.new_target (a_target_name, a_system)
 			a_system.add_target (l_target)
 
-				-- Root class and feature
+				-- Root class and feature.
 			l_root := l_factory.new_root (Void, a_root_class_name, a_root_feature_name, False)
 			l_target.set_root (l_root)
 
-				-- Default to console application
-			l_target.update_setting ("console_application", "true")
+				-- Default to SCOOP application.
+				-- Set only capability part, root setting will default to it.
+			if l_target.changeable_internal_options.concurrency_capability.value.index /= {CONF_TARGET_OPTION}.concurrency_index_scoop then
+				l_target.changeable_internal_options.concurrency_capability.value.put_index ({CONF_TARGET_OPTION}.concurrency_index_scoop)
+			end
 
-				-- Add libraries to target
+				-- Add libraries to target.
 			if a_libraries /= Void then
 				a_libraries.do_all (agent add_library_to_target (?, l_target))
 			end
 
-				-- Check if there are any gui libraries and set flag accordingly
+				-- Check if there are any gui libraries and set flag accordingly.
 			if l_target.libraries.current_keys.there_exists (agent is_gui_library (?)) then
-				l_target.update_setting ("console_application", "false")
+				l_target.update_setting ({CONF_CONSTANTS}.s_console_application, "false")
+			else
+					-- Default to console application.
+				l_target.update_setting ({CONF_CONSTANTS}.s_console_application, "true")
 			end
 
-				-- Add 'current directory' as root cluster
+				-- Add 'current directory' as root cluster.
 			l_directory_location := l_factory.new_location_from_path ("./", l_target)
-			l_cluster := l_factory.new_cluster (a_target_name, l_directory_location, l_target)
-			l_target.add_cluster (l_cluster)
+			l_target.add_cluster (l_factory.new_cluster (a_target_name, l_directory_location, l_target))
 
-				-- Add base library
-			l_library := l_factory.new_library ("base", "$ISE_LIBRARY/library/base/base-safe.ecf", l_target)
-			l_target.add_library (l_library)
+				-- Add base library.
+			l_target.add_library (l_factory.new_library ("base", "$ISE_LIBRARY/library/base/base.ecf", l_target))
 
 			if l_target.precompile = Void then
-					-- No precompile is set, add base as precompile
-				l_precompile := l_factory.new_precompile ("base_pre", "$ISE_PRECOMP/base-safe.ecf", l_target)
-				l_target.set_precompile (l_precompile)
+					-- No precompile is set, add base as precompile.
+				l_target.set_precompile (l_factory.new_precompile ("base_pre", "$ISE_PRECOMP/base-scoop-safe.ecf", l_target))
 			end
 		ensure
 			target_exists: a_system.targets.has (a_target_name)
@@ -1137,7 +1140,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

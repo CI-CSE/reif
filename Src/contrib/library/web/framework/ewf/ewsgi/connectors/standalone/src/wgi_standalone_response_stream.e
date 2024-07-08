@@ -108,10 +108,11 @@ feature -- Header output operation
 					l_connection := s.substring (i + 12, j - 1)
 					l_connection.adjust
 					if
-						not is_http_version_1_0 and
 						not l_connection.is_case_insensitive_equal_general ("close")
 					then
-						s.replace_substring ("Connection: close", i + 1, j - 1)
+						if not l_connection.is_case_insensitive_equal_general ("upgrade") then
+							s.replace_substring ("Connection: close", i + 1, j - 1)
+						end
 					end
 				elseif not is_http_version_1_0 then
 						-- HTTP/1.1: always return "close" since persistent connection is not supported.

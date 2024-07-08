@@ -2,8 +2,8 @@
 	description:	"Helper functions used by the SCOOP runtime."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 2010-2015, Eiffel Software.",
-				"Copyright (c) 2014 Scott West <scott.gregory.west@gmail.com>"
+	copyright:	"Copyright (c) 2010-2017, Eiffel Software.",
+			"Copyright (c) 2014 Scott West <scott.gregory.west@gmail.com>"
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -132,11 +132,12 @@ rt_private void execute_scoop_call (struct eif_scoop_call_data* a_call)
 doc:	<routine name="rt_try_execute_scoop_call" return_type="EIF_BOOLEAN" export="shared">
 doc:		<summary> Try to apply the feature in 'call', and catch any exceptions that may occur. </summary>
 doc:		<param name="call" type="struct eif_scoop_call_data*"> The feature to apply. Must not be NULL. </param>
+doc:		<param name="nstcall" type="int"> The value of nstcall to use for the call. </param>
 doc:		<thread_safety> Not safe. </thread_safety>
 doc:		<synchronization> None </synchronization>
 doc:	</routine>
 */
-rt_shared EIF_BOOLEAN rt_try_execute_scoop_call (struct eif_scoop_call_data *call)
+rt_shared EIF_BOOLEAN rt_try_execute_scoop_call (struct eif_scoop_call_data *call, int nstcall_value)
 {
 		/* NOTE: It is vitally important that this function does not trigger
 		 * garbage collection until the stack frame of the Eiffel function described
@@ -159,6 +160,10 @@ rt_shared EIF_BOOLEAN rt_try_execute_scoop_call (struct eif_scoop_call_data *cal
 	excatch(&exenv);
 
 	if (!setjmp(exenv)) {
+			/* Initialize `in_assertion` variable. */
+		in_assertion = call -> is_assertion;
+			/* Mark the call as a creation or as a regular qualified one. */
+		nstcall = nstcall_value;
 			/* Execute the Eiffel function. */
 		execute_scoop_call (call);
 
@@ -325,6 +330,29 @@ rt_public void rt_scoop_reclaim (void)
 	rt_processor_registry_deinit();
 }
 
+#ifdef EIF_WINDOWS
+/*
+doc:	<routine name="rt_scoop_set_wel_per_thread_data" return_type="void" export="shared">
+doc:		<summary>Set 'stored_wel_per_thread_data' associated with the processor of ID 'pid' to the specified value. </summary>
+doc:		<param name="data" type="void*">The new value of 'stored_wel_per_thread_data'</param>
+doc:		<param name="pid" type="EIF_SCP_PID">The processor to update the data.</param>
+doc:		<thread_safety>Safe.</thread_safety>
+doc:	</routine>
+*/
+rt_shared void rt_scoop_set_wel_per_thread_data (void * data, EIF_SCP_PID pid)
+{
+	/*
+	 * Making sure WEL data is per-thread is required only on Windows.
+	 */
+		/*
+		 * It is possible that the application runs in non-SCOOP mode.
+		 * Avoid writing data in that case because the required structures might be missing.
+		 */
+	if (egc_is_scoop_capable) {
+		rt_get_processor (pid) -> stored_wel_per_thread_data = data;
+	}
+}
+#endif
 
 #ifdef __cplusplus
 }

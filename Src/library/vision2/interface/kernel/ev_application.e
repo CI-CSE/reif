@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Eiffel Vision Application.%N%
 		%To start an Eiffel Vision application: create exactly one%
@@ -21,9 +21,6 @@ inherit
 		end
 
 	EV_APPLICATION_ACTION_SEQUENCES
-		redefine
-			implementation
-		end
 
 feature {NONE} -- Initialization is
 
@@ -368,6 +365,52 @@ feature -- Event handling
 			implementation.remove_idle_action (a_idle_action)
 		end
 
+feature {EV_WINDOW} -- Window registry
+
+	register_window (w: EV_WINDOW)
+			-- Register a window `w' to prevent it from being garbage-collected
+			-- in case there is no reference to it in the system
+			-- but the associated window is visible.
+			-- Because of the last condition the recommended way to use the feature is
+			-- to call it after the window is shown using `show' or similar feature
+			-- to make sure after the call to it the window is still open.
+			-- (The window may become closed as a result of processing of user interaction,
+			-- e.g. this may happen with dialogs).
+			-- See also: `unregister_window'.
+		do
+			if
+				not registered_windows.has (w) and then
+				not w.is_destroyed and then
+				w.is_show_requested
+			then
+				registered_windows.extend (w)
+			end
+		ensure
+			is_registered: (not w.is_destroyed and then w.is_show_requested) implies registered_windows.has (w)
+		end
+
+	unregister_window (w: EV_WINDOW)
+			-- Unregister a window `w' to allow it for being garbage-collected
+			-- if the corresponding window is hidden.
+			-- Because of the last condition the recommended way to use the feature is
+			-- to call it after the window is hidden using `hide' or similar feature
+			-- to make sure after the call to it the window is closed.
+			-- (The window may stay open as a result of processing of user interaction.)
+			-- See also: `register_window'.
+		do
+			if w.is_destroyed or else not w.is_show_requested then
+				registered_windows.start
+				registered_windows.prune (w)
+			end
+		ensure
+			is_unregistered: (w.is_destroyed or else not w.is_show_requested) implies not registered_windows.has (w)
+		end
+
+feature {NONE} -- Window registry
+
+	registered_windows: ARRAYED_LIST [EV_WINDOW]
+			-- A list of registered windows.
+
 feature {EV_ANY, EV_ANY_I, EV_ABSTRACT_PICK_AND_DROPABLE, EV_SHARED_TRANSPORT_I, EXCEPTIONS, EV_ANY_HANDLER} -- Implementation
 
 	implementation: EV_APPLICATION_I
@@ -389,6 +432,7 @@ feature {NONE} -- Implementation
 				-- Set the application implementation object from the shared one in EV_ENVIRONMENT.
 			create l_environment
 			implementation := l_environment.implementation.application_i
+			create registered_windows.make (1)
 		end
 
 	internal_launch_application (a_handler: separate EV_APPLICATION_HANDLER)
@@ -407,7 +451,7 @@ invariant
 	tooltip_delay_not_negative: tooltip_delay >= 0
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -417,4 +461,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EV_APPLICATION
+end

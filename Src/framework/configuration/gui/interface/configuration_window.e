@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Project configuration window."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -13,7 +13,9 @@ inherit
 		export
 			{ANY} is_initialized
 		redefine
-			initialize, is_in_default_state,
+			create_interface_objects,
+			initialize,
+			is_in_default_state,
 			destroy
 		end
 
@@ -54,7 +56,7 @@ inherit
 
 	TARGET_PROPERTIES
 		export
-			{ANY} conf_system
+			{ANY} conf_system, current_target
 		undefine
 			default_create, copy
 		redefine
@@ -107,13 +109,15 @@ feature {NONE}-- Initialization
 			else
 				debug_clauses := a_debugs
 			end
-			window := Current
+			current_target := a_factory.new_target ({STRING_32} "*", a_system)
+			refresh_current := agent do_nothing
 			selected_target := a_target
 			set_pixmaps (a_pixmaps)
 			conf_system := a_system
 			conf_factory := a_factory
 			external_editor_command := a_editor
 			default_create
+			window := Current
 			config_windows.force (Current, conf_system.file_name)
 		ensure
 			system_set: conf_system = a_system
@@ -135,6 +139,16 @@ feature {NONE}-- Initialization
 			system_set: conf_system = a_system
 			factory_set: conf_factory = a_factory
 			debug_clauses_set: a_debugs /= Void implies debug_clauses = a_debugs
+		end
+
+	create_interface_objects
+		do
+			Precursor
+			create toolbar.make
+			create section_tree
+			create configuration_space
+			create split_area
+			create ok_button.make_with_text (names.b_ok)
 		end
 
 	initialize
@@ -165,24 +179,20 @@ feature {NONE}-- Initialization
 			vb.set_border_width (layout_constants.default_border_size)
 
 				-- toolbar
-			create toolbar.make
 			vb.extend (toolbar)
 			vb.disable_item_expand (toolbar)
 			toolbar.edit_manually_button.select_actions.extend (agent open_text_editor)
 			toolbar.edit_manually_button.enable_sensitive
 			accelerators.append (toolbar.accelerators)
 
-			create split_area
 			vb.extend (split_area)
 
 					-- section tree
-			create section_tree
 			section_tree.set_minimum_size (220, 230)
 			initialize_section_tree
 			split_area.set_first (section_tree)
 
 				-- configuration space_g
-			create configuration_space
 			split_area.set_second (configuration_space)
 			configuration_space.set_padding (layout_constants.default_padding_size)
 
@@ -194,7 +204,7 @@ feature {NONE}-- Initialization
 			hb.extend (create {EV_CELL})
 			hb.set_padding (layout_constants.default_padding_size)
 
-			create ok_button.make_with_text_and_action (names.b_ok, agent on_ok)
+			ok_button.select_actions.extend (agent on_ok)
 			layout_constants.set_default_width_for_button (ok_button)
 			hb.extend (ok_button)
 			hb.disable_item_expand (ok_button)
@@ -211,14 +221,12 @@ feature {NONE}-- Initialization
 				-- add accelerator for opening the context menu
 			create l_accel.make_with_key_combination (create {EV_KEY}.make_with_code ({EV_KEY_CONSTANTS}.key_menu), False, False, False)
 			l_accel.actions.extend (agent
-				local
-					l_section: CONFIGURATION_SECTION
 				do
-					l_section ?= section_tree.selected_item
-					check
-						configuration_section: l_section /= Void
+					if attached {CONFIGURATION_SECTION} section_tree.selected_item as l_section then
+						l_section.show_context_menu
+					else
+						check expected_selected_item_type: False end
 					end
-					l_section.show_context_menu
 				end)
 			accelerators.extend (l_accel)
 		end
@@ -319,73 +327,70 @@ feature {NONE} -- Layout components
 	section_tree: EV_TREE
 			-- Tree to select what information to display.
 
-	grid: ES_GRID
+	grid: detachable ES_GRID
 			-- Grid for variables and type mappings.
 
-	add_button: EV_BUTTON
+	add_button: detachable EV_BUTTON
 			-- Button to add an item to `grid'.
 
-	remove_button: EV_BUTTON
+	remove_button: detachable EV_BUTTON
 			-- Button to remove an item from `grid'.
 
 	configuration_space: EV_VERTICAL_BOX
 			-- Space to put configuration.
 
-	target_configuration_space: EV_VERTICAL_BOX
-			-- Space to put configuration for `current_target'.
-
 feature {NONE} -- Element initialization
+
+	initialize_properties_for (container: EV_VERTICAL_BOX)
+			-- Prepare `properties' to be used in `container'.
+		local
+			l_frame: EV_FRAME
+			l_description_area: ES_SCROLLABLE_LABEL
+			p: like properties
+		do
+				-- Property grid.
+			create l_frame
+			container.extend (l_frame)
+			l_frame.set_style ({EV_FRAME_CONSTANTS}.ev_frame_lowered)
+
+			create p
+			properties := p
+			l_frame.extend (p)
+			p.focus_in_actions.extend (agent
+				do
+					if default_push_button /= Void then
+						remove_default_push_button
+					end
+				end)
+			p.focus_out_actions.extend (agent set_default_push_button (ok_button))
+
+				-- property grid description field
+			create l_frame
+			container.extend (l_frame)
+			container.disable_item_expand (l_frame)
+			l_frame.set_style ({EV_FRAME_CONSTANTS}.ev_frame_lowered)
+				-- Set padding.
+			l_frame.set_border_width (4)
+
+				-- Create description container.
+			create l_description_area
+			properties.set_description_field (l_description_area)
+			l_description_area.set_minimum_height (description_height)
+			l_description_area.set_minimum_width (100)
+			l_frame.extend (l_description_area)
+		ensure
+			properties_attached: attached properties
+		end
 
 	initialize_properties
 			-- Prepare `properties'.
 		require
 			not_properties_and_grid: properties = Void or grid = Void
-		local
-			l_frame: EV_FRAME
-			l_vbox: EV_VERTICAL_BOX
-			l_text: ES_LABEL
 		do
-			if properties = Void then
+			if properties = Void or else attached tabs then
 				configuration_space.wipe_out
 
-					-- property grid
-				create l_frame
-				configuration_space.extend (l_frame)
-				l_frame.set_style ({EV_FRAME_CONSTANTS}.ev_frame_lowered)
-
-				create properties
-				l_frame.extend (properties)
-				properties.focus_in_actions.extend (agent
-					do
-						if default_push_button /= Void then
-							remove_default_push_button
-						end
-					end)
-				properties.focus_out_actions.extend (agent set_default_push_button (ok_button))
-
-					-- property grid description field
-				create l_frame
-				configuration_space.extend (l_frame)
-				configuration_space.disable_item_expand (l_frame)
-				l_frame.set_style ({EV_FRAME_CONSTANTS}.ev_frame_lowered)
-
-				create l_text
-				properties.set_description_field (l_text)
-				l_text.set_minimum_width (100)
-				l_text.set_and_wrap_text ("")
-				l_text.align_text_left
-
-					-- Create description container and padding
-				create l_vbox
-				l_vbox.set_border_width (4)
-				l_vbox.extend (l_text)
-				l_vbox.disable_item_expand (l_text)
-				l_vbox.extend (create {EV_CELL})
-				l_vbox.set_minimum_height (description_height)
-
-				l_frame.extend (l_vbox)
-
-					-- remove grid
+					-- Remove grid.
 				if grid /= Void then
 					grid.destroy
 					grid := Void
@@ -394,6 +399,14 @@ feature {NONE} -- Element initialization
 					remove_button.destroy
 					remove_button := Void
 				end
+
+					-- Remove tabs.
+				if attached tabs as t then
+					tabs.destroy
+					tabs := Void
+				end
+
+				initialize_properties_for (configuration_space)
 			else
 				properties.reset
 			end
@@ -411,6 +424,8 @@ feature {NONE} -- Element initialization
 			vb_grid: EV_VERTICAL_BOX
 			hb: EV_HORIZONTAL_BOX
 			l_column_width1, l_column_width2: INTEGER_32
+			b: EV_BUTTON
+			g: ES_GRID
 		do
 			if grid = Void then
 				configuration_space.wipe_out
@@ -422,18 +437,19 @@ feature {NONE} -- Element initialization
 				configuration_space.extend (vb_grid)
 
 					-- grid
-				create grid
-				vb_grid.extend (grid)
-				grid.set_column_count_to (2)
-				grid.column (1).set_width (200)
-				grid.column (2).set_width (200)
-				grid.focus_in_actions.extend (agent
+				create g
+				grid := g
+				vb_grid.extend (g)
+				g.set_column_count_to (2)
+				g.column (1).set_width (200)
+				g.column (2).set_width (200)
+				g.focus_in_actions.extend (agent
 					do
 						if default_push_button /= Void then
 							remove_default_push_button
 						end
 					end)
-				grid.focus_out_actions.extend (agent set_default_push_button (ok_button))
+				g.focus_out_actions.extend (agent set_default_push_button (ok_button))
 
 					-- add add and remove buttons
 				create hb
@@ -441,16 +457,20 @@ feature {NONE} -- Element initialization
 				configuration_space.extend (hb)
 				configuration_space.disable_item_expand (hb)
 				hb.extend (create {EV_CELL})
-				create add_button.make_with_text (conf_interface_names.general_add)
-				add_button.set_pixmap (conf_pixmaps.general_add_icon)
-				layout_constants.set_default_width_for_button (add_button)
-				hb.extend (add_button)
-				hb.disable_item_expand (add_button)
-				create remove_button.make_with_text (conf_interface_names.general_remove)
-				remove_button.set_pixmap (conf_pixmaps.general_remove_icon)
-				layout_constants.set_default_width_for_button (remove_button)
-				hb.extend (remove_button)
-				hb.disable_item_expand (remove_button)
+
+				create b.make_with_text (conf_interface_names.general_add)
+				add_button := b
+				b.set_pixmap (conf_pixmaps.general_add_icon)
+				layout_constants.set_default_width_for_button (b)
+				hb.extend (b)
+				hb.disable_item_expand (b)
+
+				create b.make_with_text (conf_interface_names.general_remove)
+				remove_button := b
+				b.set_pixmap (conf_pixmaps.general_remove_icon)
+				layout_constants.set_default_width_for_button (b)
+				hb.extend (b)
+				hb.disable_item_expand (b)
 
 					-- remove properties
 				if properties /= Void then
@@ -480,6 +500,104 @@ feature {NONE} -- Element initialization
 			properties_void: properties = Void
 		end
 
+	tabs: detachable EV_NOTEBOOK
+
+	initialize_tabs (t: CONF_TARGET)
+			-- Initialize tabs for target `t'.
+		local
+			notebook: like tabs
+			properties_tab: EV_VERTICAL_BOX
+			language_tab: EV_VERTICAL_BOX
+			options: CONF_TARGET_OPTION
+			inherited_options: CONF_TARGET_OPTION
+			inherited_void_safety: CONF_ORDERED_CAPABILITY
+			inherited_catcall_detection: CONF_ORDERED_CAPABILITY
+			inherited_concurrency: CONF_ORDERED_CAPABILITY
+			description_frame: EV_FRAME
+			description_field: ES_SCROLLABLE_LABEL
+		do
+			notebook := tabs
+			if not attached notebook then
+					-- Replace configuration space with tabs.
+				configuration_space.wipe_out
+
+				create notebook
+				tabs := notebook
+				configuration_space.extend (notebook)
+
+					-- Fill properties tab.
+				create properties_tab
+				notebook.extend (properties_tab)
+				notebook.set_item_text (properties_tab, conf_interface_names.tab_properties_name)
+				initialize_properties_for (properties_tab)
+
+					-- Fill language tab.
+				create language_tab
+				notebook.extend (language_tab)
+				notebook.set_item_text (language_tab, conf_interface_names.tab_language_name)
+			else
+				check
+					is_initialized_language_tab: attached {EV_VERTICAL_BOX} notebook.i_th (2) as l
+				then
+					language_tab := l
+					l.wipe_out
+				end
+			end
+
+			debug ("to_implement")
+				(create {REFACTORING_HELPER}).to_implement ("Avoid creation of the property page from scratch")
+			end
+			options := t.changeable_internal_options
+			if attached t.extends as inherited_target then
+				inherited_options := inherited_target.options
+				inherited_void_safety := inherited_options.void_safety_capability
+				inherited_catcall_detection := inherited_options.catcall_safety_capability
+				inherited_concurrency := inherited_options.concurrency_capability
+			end
+
+			create description_field
+
+			add_choice_value (
+				conf_interface_names.option_void_safety_name,
+				conf_interface_names.option_void_safety_description,
+				conf_interface_names.option_void_safety_value,
+				options.void_safety_capability,
+				inherited_void_safety,
+				description_field,
+				language_tab
+			)
+
+			add_choice_value (
+				conf_interface_names.option_catcall_detection_name,
+				conf_interface_names.option_catcall_detection_description,
+				conf_interface_names.option_catcall_detection_value,
+				options.catcall_safety_capability,
+				inherited_catcall_detection,
+				description_field,
+				language_tab
+			)
+
+			add_choice_value (
+				conf_interface_names.option_concurrency_name,
+				conf_interface_names.option_concurrency_description,
+				conf_interface_names.option_concurrency_value,
+				options.concurrency_capability,
+				inherited_concurrency,
+				description_field,
+				language_tab
+			)
+
+			create description_frame
+			language_tab.extend (description_frame)
+			description_frame.extend (description_field)
+			description_field.set_minimum_height (description_height)
+			description_field.set_minimum_width (100)
+			description_field.set_minimum_height (80)
+
+			notebook.selection_actions.wipe_out
+			notebook.selection_actions.extend (refresh_current)
+		end
+
 	initialize_section_tree
 			-- Initialize `section_tree'.
 		do
@@ -487,16 +605,480 @@ feature {NONE} -- Element initialization
 			section_tree.extend (create {SYSTEM_SECTION}.make (conf_system, Current))
 
 				-- recursively add targets
-			conf_system.target_order.do_if (agent add_target_sections (?, section_tree), agent (a_target: CONF_TARGET): BOOLEAN
-				do
-					Result := a_target.extends = Void
-				end
-			)
+			across
+				top_targets (True) as ic
+			loop
+				add_target_sections (ic.item, section_tree)
+			end
 		ensure
 			section_tree_not_void: section_tree /= Void
 		end
 
-feature {TARGET_SECTION, SYSTEM_SECTION} -- Target creation
+feature -- Access / targets
+
+	container_has_target (a_container: ITERABLE [CONF_TARGET]; a_target: CONF_TARGET): BOOLEAN
+			-- Is `a_target` in `a_container`?
+		do
+			Result := across a_container as ic some a_target.same_as (ic.item) end
+		end
+
+	top_targets (a_remotes_targets_included: BOOLEAN): ARRAYED_LIST [CONF_TARGET]
+			-- Top target in the chain or parent target.
+			-- Include one level of remote target if any.
+		local
+			t: CONF_TARGET
+		do
+			create Result.make (0)
+			across
+				conf_system.target_order as ic
+			loop
+				t := top_parent (ic.item)
+				if container_has_target (Result, t) then
+						-- Skip
+				else
+					Result.force (t)
+				end
+			end
+		ensure
+			across Result as ic all (ic.item.extends = Void or is_remote_target (ic.item)) end
+		end
+
+	top_parent (a_target: CONF_TARGET): CONF_TARGET
+			-- Top parent, and at most one level of remote target (i.e outside current system).
+		do
+			if is_remote_target (a_target) then
+				Result := a_target
+			elseif attached a_target.extends as l_parent then
+				Result := top_parent (l_parent)
+			else
+				Result := a_target
+			end
+		end
+
+	ordered_parents_until (a_target, a_top_parent: CONF_TARGET): detachable LIST [CONF_TARGET]
+			-- Ordered list of parent for `a_target, until `a_top_parent`.
+		require
+			not_same_targets: not a_target.same_as (a_top_parent)
+		local
+			t: detachable CONF_TARGET
+		do
+			create {ARRAYED_LIST [CONF_TARGET]} Result.make (0)
+			from
+				t := a_target.extends
+			until
+				t = Void or a_top_parent.same_as (t)
+			loop
+				Result.extend (t)
+				t := t.extends
+			end
+			if Result.is_empty or not a_top_parent.same_as (t) then
+				Result := Void
+			end
+		end
+
+	child_targets_of (a_target: CONF_TARGET): LIST [CONF_TARGET]
+			-- Child target of `a_target`.
+		local
+			t: CONF_TARGET
+		do
+			if is_remote_target (a_target) then
+					-- This is a remote target, i.e from another conf system.
+				create {ARRAYED_LIST [CONF_TARGET]} Result.make (0)
+				across
+					conf_system.target_order as ic
+				loop
+					t := ic.item
+					if a_target.same_as (t.extends) then
+						Result.force (t)
+					elseif attached ordered_parents_until (t, a_target) as lst then
+						t := lst.last
+						if container_has_target (Result, t) then
+								-- Already included
+						else
+							Result.force (t)
+						end
+					end
+				end
+			else
+				Result := a_target.child_targets
+			end
+		ensure
+			all_child_of_target: across Result as ic all a_target.same_as (ic.item.extends) end
+		end
+
+	is_remote_target (a_target: CONF_TARGET): BOOLEAN
+			-- Is `a_target` outside current `conf_system`?
+		do
+			if attached a_target.system as sys then
+				if sys = conf_system then
+					Result := False
+				else
+					Result := not (sys.name.is_case_insensitive_equal (conf_system.name) and then (sys.uuid ~ conf_system.uuid))
+				end
+			else
+				Result := conf_system /= Void
+			end
+		end
+
+	remote_target_section_from (a_target: CONF_TARGET; a_root: EV_TREE_NODE_LIST): detachable REMOTE_TARGET_SECTION
+			-- Section associated with `a_target` if any.
+		do
+			across
+				a_root as ic
+			until
+				Result /= Void
+			loop
+				if
+					attached {REMOTE_TARGET_SECTION} ic.item as l_remote and then
+					l_remote.target.same_as (a_target)
+				then
+					Result := l_remote
+				end
+			end
+		end
+
+feature {NONE} -- Choice options
+
+	heading_rows: INTEGER = 2
+			-- Number of rows before buttons to set non-default option values.
+
+	add_choice_value	(
+			name, description: STRING_32;
+			items: ARRAYED_LIST [STRING_32];
+			capability: CONF_ORDERED_CAPABILITY;
+			inherited_capability: detachable CONF_ORDERED_CAPABILITY;
+			description_field: ES_SCROLLABLE_LABEL;
+			container: EV_BOX
+		)
+			-- Add choice value `option' with specified `name', `description' and item names `items' to the given `container'
+			-- with optionally inherited value `inherited_option'.
+		require
+			container_not_destroyed: not container.is_destroyed
+			container_extendible: container.extendible
+			consitent_items: items.count = capability.value.count
+			consistent_inherited_option: attached inherited_capability implies inherited_capability.same_kind (capability)
+		local
+			property_frame: EV_FRAME
+			property_inner_frame: EV_VERTICAL_BOX
+			check_button: EV_CHECK_BUTTON
+			radio_button: EV_RADIO_BUTTON
+			property_group: EV_TABLE
+			column_name: EV_LABEL
+			default_capability: EV_CHECK_BUTTON
+			default_preference: EV_CHECK_BUTTON
+			row: INTEGER
+			is_default_capability: BOOLEAN
+			is_default_preference: BOOLEAN
+			update_preferred_buttons: PROCEDURE
+			update_description: PROCEDURE
+			option: CONF_VALUE_CHOICE
+			inherited_option: CONF_VALUE_CHOICE
+		do
+			update_description := agent description_field.set_text (description)
+			create property_frame.make_with_text (name)
+			property_frame.set_border_width (layout_constants.default_border_size)
+			container.extend (property_frame)
+			container.disable_item_expand (property_frame)
+			create property_inner_frame
+			property_inner_frame.set_padding_width (layout_constants.default_padding_size)
+			property_frame.extend (property_inner_frame)
+
+			create property_group
+			property_inner_frame.extend (property_group)
+
+				-- In addition to `items' there are header and default value.
+			property_group.resize (4, items.count + heading_rows)
+			property_group.disable_homogeneous
+			create column_name.make_with_text (conf_interface_names.capability_header_capable_of_name)
+			column_name.align_text_left
+			property_group.put_at_position (column_name, 1, 1, 2, 1)
+			create column_name.make_with_text (conf_interface_names.capability_header_if_root_name)
+			column_name.align_text_left
+			property_group.put_at_position (column_name, 3, 1, 2, 1)
+			option := capability.value
+			if attached inherited_capability then
+				inherited_option := inherited_capability.value
+			end
+			if attached inherited_option then
+				create default_capability.make_with_text (conf_interface_names.capability_toggle_inherited_name)
+			else
+				create default_capability.make_with_text (conf_interface_names.capability_toggle_default_name)
+			end
+				-- Make sure default capability button is properly initialized before registering any actions.
+			if option.is_set then
+				default_capability.disable_select
+			else
+				default_capability.enable_select
+			end
+			on_toggle (agent option.unset, agent set_capability (option, property_group), default_capability)
+			default_capability.focus_in_actions.extend (update_description)
+			property_group.put_at_position (default_capability, 1, 2, 2, 1)
+			if attached inherited_option then
+				create default_preference.make_with_text (conf_interface_names.capability_toggle_inherited_name)
+					-- TODO: provide implementation.
+			else
+				create default_preference.make_with_text (conf_interface_names.capability_toggle_default_name)
+			end
+				-- Make sure default preference button is properly initialized before registering any actions.
+			if capability.is_root_set then
+				default_preference.disable_select
+			else
+				default_preference.enable_select
+			end
+			on_toggle
+				(agent disable_custom_root_option (capability, property_group),
+				agent enable_custom_root_option (capability, property_group),
+				default_preference)
+			update_preferred_buttons := agent (default_preference.select_actions).call ([])
+			default_preference.focus_in_actions.extend (update_description)
+			property_group.put_at_position (default_preference, 3, 2, 2, 1)
+			default_capability.select_actions.extend (update_preferred_buttons)
+			across
+				items.new_cursor.reversed as i
+			from
+				row := heading_rows + 1
+			loop
+					-- Test if option index has reached inherited index or default index.
+					-- After that it will have a check mark.
+				if is_default_capability then
+						-- Keep capablity mark for next iterations.
+						-- Erase preference mark.
+					is_default_preference := False
+				elseif attached inherited_option then
+					is_default_capability := inherited_option.index = i.target_index
+					is_default_preference := is_default_capability
+				else
+					is_default_capability := option.default_index = i.target_index
+					is_default_preference := is_default_capability
+				end
+				create check_button.make_with_text (i.item)
+				property_group.put_at_position (check_button, 2, row, 1, 1)
+					-- Mark current item as enabled default if needed.
+					-- TODO: replace pixmap with pixel buffer and use drawable to avoid cloning.
+				if is_default_capability then
+					property_group.put_at_position (conf_pixmaps.project_settings_default_icon.twin, 1, row, 1, 1)
+						-- Update default icon depending on the state of a default button.
+					on_toggle
+						(agent property_group.put_at_position (conf_pixmaps.project_settings_default_highlighted_icon.twin, 1, row, 1, 1),
+						agent property_group.put_at_position (conf_pixmaps.project_settings_default_icon.twin, 1, row, 1, 1),
+						default_capability)
+				end
+					-- Indicate whether an value is checked.
+				if capability.is_capable (i.target_index.as_natural_8) then
+					check_button.enable_select
+				end
+					-- Last item is always checked.
+				if i.is_last then
+					check_button.disable_sensitive
+				else
+						-- Enable or disable current button depending on the state of a default button.
+					on_toggle (agent check_button.disable_sensitive, agent check_button.enable_sensitive, default_capability)
+						-- Enable or disable other capabilities and preferred buttons depending on the state of the current button.
+					on_toggle
+						(agent select_smaller_capabilities (option, i.target_index.as_natural_8, row, property_group, update_preferred_buttons),
+						agent unselect_larger_capabilities (option, i.target_index.as_natural_8, row, property_group, update_preferred_buttons),
+						check_button)
+				end
+				check_button.focus_in_actions.extend (update_description)
+				check_button.set_tooltip (description)
+				create radio_button -- .make_with_text (i.item)
+				property_group.put_at_position (radio_button, 4, row, 1, 1)
+				radio_button.focus_in_actions.extend (update_description)
+				radio_button.select_actions.extend (agent capability.put_root_index (i.target_index.as_natural_8))
+				row := row + 1
+			end
+				-- Update with current state.
+				-- Update capability buttons.
+			if attached {EV_CHECK_BUTTON} property_group.item_at_position (2, property_group.rows - option.index + 1) as b then
+				b.enable_select
+			end
+				-- Refresh all capability-dependent buttons.
+			default_capability.select_actions.call
+				-- Refresh all preference-dependent buttons.
+			default_preference.select_actions.call
+		end
+
+	on_toggle (select_action, unselect_action: PROCEDURE; button: EV_CHECK_BUTTON)
+			-- Register actions `select_action' and `unselect_action' to be performed
+			-- when `button' becomes selected and unselected respectively.
+		do
+			button.select_actions.extend
+				(agent (s, u: PROCEDURE; b: EV_CHECK_BUTTON)
+					do
+						if b.is_selected then
+							s.call
+						else
+							u.call
+						end
+					end
+				(select_action, unselect_action, button))
+		end
+
+	set_capability (o: CONF_VALUE_CHOICE; group: EV_TABLE)
+			-- Set capability option `o' from the current state of associated group `group'.
+		local
+			r: INTEGER
+			index: NATURAL_8
+		do
+			from
+					-- Last item is always selected, skip it.
+				r := group.rows - 1
+					-- `index' corresponds to a knowingly selected item.
+				index := 1
+			until
+				r <= heading_rows or else
+				index >= o.count or else
+				not attached {EV_CHECK_BUTTON} group.item_at_position (2, r) as b or else
+				not b.is_selected
+			loop
+				index := index + 1
+				r := r - 1
+			variant
+				r
+			end
+			o.put_index (index)
+		end
+
+	enable_custom_root_option (o: CONF_ORDERED_CAPABILITY; group: EV_TABLE)
+			-- Enable custom root option for `o' associated with group `group'.
+		local
+			r: INTEGER
+			index: NATURAL_8
+		do
+				-- Update current root index if required.
+			if o.is_root_set and then not o.is_capable (o.custom_root_index) then
+					-- Custom root index is no longer valid, update it.
+				o.put_root_index (o.root_index)
+			end
+				-- Update default marks.
+			show_default_root_option (False, o, group)
+				-- Enable or disable radio buttons depending on whether the corresponding capability is supported.
+				-- Mark a current root option.
+			from
+				index := o.value.count
+				r := group.rows - o.value.count + 1
+			until
+				index <= 0
+			loop
+				if attached {EV_RADIO_BUTTON} group.item_at_position (4, r) as b then
+					if o.is_capable (index) then
+							-- Enable allowed option value.
+						b.enable_sensitive
+						if o.root_index = index then
+								-- Mark currently selected option value.
+							b.enable_select
+						end
+					else
+							-- Disable non-supported option value.
+						b.disable_sensitive
+					end
+				end
+				r := r + 1
+				index := index - 1
+			variant
+				index.as_integer_32
+			end
+		end
+
+	disable_custom_root_option (o: CONF_ORDERED_CAPABILITY; group: EV_TABLE)
+			-- Disable custom root option for `o' associated with group `group'.
+		local
+			r: INTEGER
+		do
+				-- Update current root index.
+			o.unset_root
+				-- Update default marks.
+			show_default_root_option (True, o, group)
+				-- Disable all radio-buttons.
+			from
+				r := group.rows
+			until
+				r <= heading_rows
+			loop
+				if attached {EV_RADIO_BUTTON} group.item_at_position (4, r) as b then
+						-- Disable non-supported option value.
+					b.disable_sensitive
+				end
+				r := r - 1
+			variant
+				r
+			end
+		end
+
+	show_default_root_option (is_highlighted: BOOLEAN; o: CONF_ORDERED_CAPABILITY; group: EV_TABLE)
+			-- Update a mark that indicates a default root option of `o' in associated group `group'.
+		local
+			r: INTEGER
+			index: NATURAL_8
+			default_row: INTEGER
+		do
+				-- Compute a row that is a default one.
+			default_row := group.rows - o.default_root_index + 1
+			from
+				index := o.value.count
+				r := group.rows - o.value.count + 1
+			until
+				index <= 0
+			loop
+					-- We cannot put anything to a cell if it contains an item.
+				if attached group.item_at_position (3, r) as m then
+						-- Remove only non-default mark.
+						-- TODO: replace pixmap with pixel buffer and use drawable to avoid cloning.
+					group.prune (m)
+				end
+				if r = default_row then
+						-- Put a default mark.
+						-- TODO: replace pixmap with pixel buffer and use drawable to avoid cloning.
+					group.put_at_position (
+						(if is_highlighted then
+							conf_pixmaps.project_settings_default_highlighted_icon
+						else
+							conf_pixmaps.project_settings_default_icon
+						end).twin,
+						3, r, 1, 1)
+				end
+				r := r + 1
+				index := index - 1
+			variant
+				index.as_integer_32
+			end
+		end
+
+	select_smaller_capabilities (o: CONF_VALUE_CHOICE; index: like {CONF_VALUE_CHOICE}.index; line: INTEGER; group: EV_TABLE; update_action: PROCEDURE)
+			-- Select all capabilities smaller than this one.
+		do
+				-- Update options, but avoid setting a lower index.
+			if o.index < index then
+				o.put_index (index)
+			end
+				-- It is sufficient to toggle only a next button, it will trigger the rest.
+			if
+				line < group.rows and then
+				attached {EV_CHECK_BUTTON}  group.item_at_position (2, line + 1) as b
+			then
+				b.enable_select
+			end
+			update_action.call
+		end
+
+	unselect_larger_capabilities (o: CONF_VALUE_CHOICE; index: like {CONF_VALUE_CHOICE}.index; line: INTEGER; group: EV_TABLE; update_action: PROCEDURE)
+			-- Unselect all capabilities larger than this one.
+			-- It is sufficient to toggle only a next one, it will trigger the rest.
+		do
+				-- Update options, but avoid setting a higher index.
+			if o.index >= index then
+				o.put_index (index - 1)
+			end
+			if
+				line > heading_rows + 1 and then
+				attached {EV_CHECK_BUTTON} group.item_at_position (2, line - 1) as b
+			then
+				b.disable_select
+			end
+			update_action.call
+		end
+
+feature {REMOTE_TARGET_SECTION, TARGET_SECTION, SYSTEM_SECTION} -- Target creation
 
 	add_target_sections (a_target: CONF_TARGET; a_root: EV_TREE_NODE_LIST)
 			-- Add sections for `a_target' under `a_root'.
@@ -504,76 +1086,92 @@ feature {TARGET_SECTION, SYSTEM_SECTION} -- Target creation
 			a_target_not_void: a_target /= Void
 			a_root_ok: a_root /= Void and then not a_root.is_destroyed and a_root.extendible
 		local
+			l_parent: EV_TREE_NODE_LIST
+			l_remote_target: REMOTE_TARGET_SECTION
 			l_target: TARGET_SECTION
 			l_target_tasks: TARGET_TASKS_SECTION
 			l_target_externals: TARGET_EXTERNALS_SECTION
 			l_target_advanced: TARGET_ADVANCED_SECTION
 			l_target_groups: TARGET_GROUPS_SECTION
-			l_node: EV_TREE_NODE
+			l_list: EV_TREE_NODE_LIST
 		do
-				-- target
-			create l_target.make (a_target, Current)
-			a_root.extend (l_target)
+			if is_remote_target (a_target) then
+					-- target
+				create l_remote_target.make (a_target, Void, Current)
+				a_root.extend (l_remote_target)
 
-				-- assertions section
-			l_target.extend (create {TARGET_ASSERTIONS_SECTION}.make (a_target, Current))
+				l_parent := l_remote_target
+			else
+					-- target
+				create l_target.make (a_target, Current)
+				a_root.extend (l_target)
 
-				-- groups section
-			create l_target_groups.make (a_target, Current)
-			l_target.extend (l_target_groups)
-			l_target_groups.set_clusters (a_target.internal_clusters)
-			l_target_groups.set_overrides (a_target.internal_overrides)
-			l_target_groups.set_assemblies (a_target.internal_assemblies)
-			l_target_groups.set_libraries (a_target.internal_libraries)
-			l_target_groups.set_precompile (a_target.internal_precompile)
+					-- assertions section
+				l_target.extend (create {TARGET_ASSERTIONS_SECTION}.make (a_target, Current))
 
-				-- advanced section
-			create l_target_advanced.make (a_target, Current)
-			l_target.extend (l_target_advanced)
+					-- groups section
+				create l_target_groups.make (a_target, Current)
+				l_target.extend (l_target_groups)
+				l_target_groups.set_clusters (a_target.internal_clusters)
+				l_target_groups.set_overrides (a_target.internal_overrides)
+				l_target_groups.set_assemblies (a_target.internal_assemblies)
+				l_target_groups.set_libraries (a_target.internal_libraries)
+				l_target_groups.set_precompile (a_target.internal_precompile)
 
-				-- advanced warning section
-			l_target_advanced.extend (create {TARGET_WARNINGS_SECTION}.make (a_target, Current))
+					-- advanced section
+				create l_target_advanced.make (a_target, Current)
+				l_target.extend (l_target_advanced)
 
-				-- advanced debug section
-			l_target_advanced.extend (create {TARGET_DEBUG_SECTION}.make (a_target, Current))
+					-- advanced warning section
+				l_target_advanced.extend (create {TARGET_WARNINGS_SECTION}.make (a_target, Current))
 
-				-- advanced external section
-			create l_target_externals.make (a_target, Current)
-			l_target_advanced.extend (l_target_externals)
-			l_target_externals.set_includes (a_target.internal_external_include)
-			l_target_externals.set_cflag (a_target.internal_external_cflag)
-			l_target_externals.set_objects (a_target.internal_external_object)
-			l_target_externals.set_libraries (a_target.internal_external_library)
-			l_target_externals.set_resources (a_target.internal_external_resource)
-			l_target_externals.set_linker_flag (a_target.internal_external_linker_flag)
-			l_target_externals.set_makefiles (a_target.internal_external_make)
+					-- advanced debug section
+				l_target_advanced.extend (create {TARGET_DEBUG_SECTION}.make (a_target, Current))
 
-				-- advanced tasks section
-			create l_target_tasks.make (a_target, Current)
-			l_target_advanced.extend (l_target_tasks)
-			l_target_tasks.set_pre_compilation (a_target.internal_pre_compile_action)
-			l_target_tasks.set_post_compilation (a_target.internal_post_compile_action)
+					-- advanced external section
+				create l_target_externals.make (a_target, Current)
+				l_target_advanced.extend (l_target_externals)
+				l_target_externals.set_includes (a_target.internal_external_include)
+				l_target_externals.set_cflag (a_target.internal_external_cflag)
+				l_target_externals.set_objects (a_target.internal_external_object)
+				l_target_externals.set_libraries (a_target.internal_external_library)
+				l_target_externals.set_resources (a_target.internal_external_resource)
+				l_target_externals.set_linker_flag (a_target.internal_external_linker_flag)
+				l_target_externals.set_makefiles (a_target.internal_external_make)
 
-				-- advanced variables section
-			l_target_advanced.extend (create {TARGET_VARIABLES_SECTION}.make (a_target, Current))
+					-- advanced tasks section
+				create l_target_tasks.make (a_target, Current)
+				l_target_advanced.extend (l_target_tasks)
+				l_target_tasks.set_pre_compilation (a_target.internal_pre_compile_action)
+				l_target_tasks.set_post_compilation (a_target.internal_post_compile_action)
 
-				-- advanced mapping section
-			l_target_advanced.extend (create {TARGET_MAPPING_SECTION}.make (a_target, Current))
+					-- advanced variables section
+				l_target_advanced.extend (create {TARGET_VARIABLES_SECTION}.make (a_target, Current))
 
-				-- expand if this is the selected target
-			if a_target.name.is_equal (selected_target) then
-				from
-					l_node := l_target
-				until
-					l_node = Void
-				loop
-					l_node.expand
-					l_node ?= l_node.parent
+					-- advanced mapping section
+				l_target_advanced.extend (create {TARGET_MAPPING_SECTION}.make (a_target, Current))
+
+					-- expand if this is the selected target
+				if a_target.name.is_case_insensitive_equal_general (selected_target) then
+					from
+						l_list := l_target
+					until
+						not attached {EV_TREE_NODE} l_list as l_node
+					loop
+						l_node.expand
+						l_list := l_node.parent
+					end
+				end
+				l_parent := l_target
+			end
+				-- add child targets
+			across
+				child_targets_of (a_target) as ic
+			loop
+				if not is_remote_target (ic.item) then
+					add_target_sections (ic.item, l_parent)
 				end
 			end
-
-				-- add child targets
-			a_target.child_targets.do_all (agent add_target_sections (?, l_target))
 		end
 
 feature {CONFIGURATION_SECTION} -- Section tree selection agents
@@ -591,11 +1189,9 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			if a_message /= Void and then not a_message.is_empty then
 				configuration_space.extend (create {EV_CELL})
 
-				create l_label
-
+				create l_label.make (a_message)
 				configuration_space.extend (l_label)
 				configuration_space.disable_item_expand (l_label)
-				l_label.set_and_wrap_text (a_message)
 
 				configuration_space.extend (create {EV_CELL})
 			end
@@ -610,10 +1206,15 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 				remove_button := Void
 			end
 
-				-- remove properties
+				-- Remove properties.
 			if properties /= Void then
 				properties.destroy
 				properties := Void
+			end
+				-- Remove tabs.
+			if attached tabs as t then
+				t.destroy
+				tabs := Void
 			end
 
 			unlock_update
@@ -640,6 +1241,31 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			not_refreshing: not is_refreshing
 		end
 
+	show_properties_remote_target_general (a_target: CONF_TARGET)
+			-- Show general properties for `a_target'.
+		require
+			is_initialized: is_initialized
+			not_refreshing: not is_refreshing
+			a_target_not_void: a_target /= Void
+			is_remote_target: is_remote_target (a_target)
+		do
+			is_refreshing := True
+			refresh_current := agent show_properties_remote_target_general (a_target)
+			lock_update
+
+			initialize_properties
+
+			current_target := a_target
+
+			add_remote_target_properties
+
+			unlock_update
+			is_refreshing := False
+		ensure
+			properties_ok: properties /= Void and then not properties.is_destroyed
+			not_refreshing: not is_refreshing
+		end
+
 	show_properties_target_general (a_target: CONF_TARGET)
 			-- Show general properties for `a_target'.
 		require
@@ -654,6 +1280,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			initialize_properties
 
 			current_target := a_target
+
 			add_general_properties
 
 			unlock_update
@@ -844,14 +1471,14 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 				l_var_key := l_vars.key_for_iteration
 				l_item.set_value (l_var_key)
 				l_item.pointer_button_press_actions.wipe_out
-				l_item.pointer_double_press_actions.force_extend (agent l_item.activate)
-				l_item.change_value_actions.extend (agent update_variable_key (l_var_key, {STRING_32} ?))
+				l_item.activate_when_pointer_is_double_pressed
+				l_item.change_value_actions.extend (agent update_variable_key (l_var_key, {READABLE_STRING_32} ?))
 				grid.set_item (1, i + 1, l_item)
 				create l_item.make ("")
 				l_item.set_value (l_vars.item_for_iteration)
 				l_item.pointer_button_press_actions.wipe_out
-				l_item.pointer_double_press_actions.force_extend (agent l_item.activate)
-				l_item.change_value_actions.extend (agent update_variable_value (l_var_key, {STRING_32} ?))
+				l_item.activate_when_pointer_is_double_pressed
+				l_item.change_value_actions.extend (agent update_variable_value (l_var_key, {READABLE_STRING_32} ?))
 				grid.set_item (2, i + 1, l_item)
 				l_inh_vars.search (l_var_key)
 				if l_inh_vars.found then
@@ -882,7 +1509,7 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 			is_initialized: is_initialized
 			not_refreshing: not is_refreshing
 		local
-			l_vars, l_inh_vars: STRING_TABLE [STRING_32]
+			l_vars, l_inh_vars: STRING_TABLE [READABLE_STRING_32]
 			i: INTEGER
 			l_item: STRING_PROPERTY
 			l_var_key: READABLE_STRING_GENERAL
@@ -912,13 +1539,13 @@ feature {CONFIGURATION_SECTION} -- Section tree selection agents
 				l_var_key := l_vars.key_for_iteration
 				l_item.set_value (l_var_key)
 				l_item.pointer_button_press_actions.wipe_out
-				l_item.pointer_double_press_actions.force_extend (agent l_item.activate)
+				l_item.activate_when_pointer_is_double_pressed
 				l_item.change_value_actions.extend (agent update_mapping_key (l_var_key, ?))
 				grid.set_item (1, i + 1, l_item)
 				create l_item.make ("")
 				l_item.set_value (l_vars.item_for_iteration)
 				l_item.pointer_button_press_actions.wipe_out
-				l_item.pointer_double_press_actions.force_extend (agent l_item.activate)
+				l_item.activate_when_pointer_is_double_pressed
 				l_item.change_value_actions.extend (agent update_mapping_value (l_var_key, ?))
 				grid.set_item (2, i + 1, l_item)
 				l_inh_vars.search (l_var_key)
@@ -1001,23 +1628,14 @@ feature {NONE} -- Implementation
 
 	handle_value_changes (a_has_group_changed: BOOLEAN)
 			-- Store changes to disk.
-		local
-			l_section: CONFIGURATION_SECTION
-			l_lib_grp: GROUP_SECTION
 		do
 				-- check if the name of the current selected section has changed and update
-			if section_tree.selected_item /= Void then
-				l_section ?= section_tree.selected_item
-				check
-					section: l_section /= Void
-				end
-				if not l_section.name.as_string_32.is_equal (l_section.text.as_string_32) then
+			if attached {CONFIGURATION_SECTION} section_tree.selected_item as l_section then
+				if not l_section.name.same_string (l_section.text) then
 					l_section.set_text (l_section.name)
 				end
-
 					-- for groups, update the pixmap
-				l_lib_grp ?= l_section
-				if l_lib_grp /= Void then
+				if attached {GROUP_SECTION} l_section as l_lib_grp then
 					l_lib_grp.update_pixmap
 				end
 			end
@@ -1027,7 +1645,6 @@ feature {NONE} -- Implementation
 			-- Open editor to edit the configuration file by hand.
 		local
 			l_cmd_string: like external_editor_command.item
-			l_env: EXECUTION_ENVIRONMENT
 		do
 			l_cmd_string := external_editor_command.item ([conf_system.file_name, 1])
 			if l_cmd_string /= Void and then not l_cmd_string.is_empty then
@@ -1035,8 +1652,7 @@ feature {NONE} -- Implementation
 				if conf_system /= Void then
 					commit_changes
 				end
-				create l_env
-				l_env.launch (l_cmd_string)
+				(create {EXECUTION_ENVIRONMENT}).launch (l_cmd_string)
 			end
 		end
 
@@ -1072,20 +1688,20 @@ feature {NONE} -- Implementation
 			create l_string_prop.make (conf_interface_names.system_name_name)
 			l_string_prop.set_description (conf_interface_names.system_name_description)
 			l_string_prop.set_value (conf_system.name)
-			l_string_prop.validate_value_actions.extend (agent (s: STRING_32): BOOLEAN
+			l_string_prop.validate_value_actions.extend (agent (s: READABLE_STRING_32): BOOLEAN
 				require
 					s_not_void: s /= Void
 				do
 					Result := (create {EIFFEL_SYNTAX_CHECKER}).is_valid_system_name (s)
 				end)
 			l_string_prop.change_value_actions.extend (agent conf_system.set_name)
-			l_string_prop.change_value_actions.extend (agent (s: STRING_32)
+			l_string_prop.change_value_actions.extend (agent (s: READABLE_STRING_32)
 				require
 					s_not_void: s /= Void
 				do
 					set_title (conf_interface_names.configuration_title (s))
 				end)
-			l_string_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32} ?, agent handle_value_changes (False)))
+			l_string_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32} ?, agent handle_value_changes (False)))
 			properties.add_property (l_string_prop)
 
 				-- description
@@ -1095,8 +1711,8 @@ feature {NONE} -- Implementation
 			if conf_system.description /= Void then
 				l_mls_prop.set_value (conf_system.description)
 			end
-			l_mls_prop.change_value_actions.extend (agent conf_system.set_description)
-			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+			l_mls_prop.change_value_actions.extend (agent conf_system.set_description ({READABLE_STRING_32}?))
+			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 			properties.add_property (l_mls_prop)
 
 				-- library target
@@ -1107,7 +1723,7 @@ feature {NONE} -- Implementation
 			end
 			l_choice_prop.validate_value_actions.extend (agent check_library_target)
 			l_choice_prop.change_value_actions.extend (agent conf_system.set_library_target_by_name)
-			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 			properties.add_property (l_choice_prop)
 
 				-- readonly
@@ -1177,16 +1793,22 @@ feature {NONE} -- Implementation
 				l_dir_prop.set_description (conf_interface_names.external_location_description)
 				l_dir_prop.enable_text_editing
 				l_dir_prop.set_value (an_external.location)
-				l_dir_prop.change_value_actions.extend (agent an_external.set_location)
-				l_dir_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+				l_dir_prop.change_value_actions.extend (agent (v: detachable READABLE_STRING_32; ian_external: CONF_EXTERNAL)
+							do
+								if v /= Void then
+									ian_external.set_location (v)
+								end
+							end(?, an_external)
+						)
+				l_dir_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 				properties.add_property (l_dir_prop)
 			elseif an_external.is_cflag or else an_external.is_linker_flag then
 					-- Value is a string.
 				create l_prop.make (conf_interface_names.external_value_name)
 				l_prop.set_description (conf_interface_names.external_value_description)
 				l_prop.set_value (an_external.location)
-				l_prop.change_value_actions.extend (agent an_external.set_location )
-				l_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+				l_prop.change_value_actions.extend (agent an_external.set_location)
+				l_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 				properties.add_property (l_prop)
 			else
 					-- Value is a file name.
@@ -1195,7 +1817,7 @@ feature {NONE} -- Implementation
 				l_file_prop.enable_text_editing
 				l_file_prop.set_value (an_external.location)
 				l_file_prop.change_value_actions.extend ( agent an_external.set_location)
-				l_file_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+				l_file_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 				if an_external.is_resource then
 					l_file_prop.add_filters (text_files_filter, text_files_description)
 					l_file_prop.add_filters (resx_files_filter, resx_files_description)
@@ -1212,7 +1834,7 @@ feature {NONE} -- Implementation
 				l_mls_prop.set_value (an_external.description)
 			end
 			l_mls_prop.change_value_actions.extend (agent an_external.set_description)
-			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 			properties.add_property (l_mls_prop)
 
 				-- Condition.
@@ -1254,14 +1876,14 @@ feature {NONE} -- Implementation
 			create l_prop.make (conf_interface_names.task_command_name)
 			l_prop.set_description (conf_interface_names.task_command_description)
 			l_prop.set_value (a_task.command)
-			l_prop.validate_value_actions.extend (agent (a_name: STRING_32): BOOLEAN
+			l_prop.validate_value_actions.extend (agent (a_name: READABLE_STRING_32): BOOLEAN
 					require
 						a_name_not_void: a_name /= Void
 					do
 						Result := not a_name.is_empty
 					end)
 			l_prop.change_value_actions.extend (agent a_task.set_command)
-			l_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+			l_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 			properties.add_property (l_prop)
 
 				-- description
@@ -1272,18 +1894,17 @@ feature {NONE} -- Implementation
 				l_mls_prop.set_value (a_task.description)
 			end
 			l_mls_prop.change_value_actions.extend (agent a_task.set_description)
-			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+			l_mls_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 			properties.add_property (l_mls_prop)
 
 				-- working directory
-			create l_dir_prop.make (conf_interface_names.task_working_directory_name)
-			l_dir_prop.set_target (current_target)
+			create l_dir_prop.make (conf_interface_names.task_working_directory_name, current_target)
 			l_dir_prop.set_description (conf_interface_names.task_working_directory_description)
-			if a_task.working_directory /= Void then
-				l_dir_prop.set_value (a_task.working_directory.original_path)
+			if attached a_task.working_directory as wd then
+				l_dir_prop.set_value (wd.original_path)
 			end
 			l_dir_prop.enable_text_editing
-			l_dir_prop.change_value_actions.extend (agent (a_dir: STRING_32; ia_task: CONF_ACTION)
+			l_dir_prop.change_value_actions.extend (agent (a_dir: detachable READABLE_STRING_32; ia_task: CONF_ACTION)
 				do
 					if a_dir = Void or else a_dir.is_empty then
 						ia_task.set_working_directory (Void)
@@ -1292,7 +1913,7 @@ feature {NONE} -- Implementation
 					end
 				end (?, a_task)
 			)
-			l_dir_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
+			l_dir_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
 			properties.add_property (l_dir_prop)
 
 				-- must succeed
@@ -1333,16 +1954,16 @@ feature {NONE} -- Configuration setting
 		require
 			current_target: current_target /= Void
 			variables: grid /= Void
-		local
-			l_item: TEXT_PROPERTY [STRING_GENERAL]
 		do
 			if grid.has_selected_row then
-				l_item ?= grid.selected_rows.first.item (1)
-				check
-					valid_item: l_item /= Void
-					valid_value: l_item.value /= Void
+				if attached {TEXT_PROPERTY [READABLE_STRING_GENERAL]} grid.selected_rows.first.item (1) as l_item then
+					check
+						valid_value: l_item.value /= Void
+					end
+					current_target.remove_variable (l_item.value.as_string_8)
+				else
+					check expected_selected_row_item_type: False end
 				end
-				current_target.remove_variable (l_item.value.as_string_8)
 				show_properties_target_variables (current_target)
 			end
 		end
@@ -1389,20 +2010,18 @@ feature {NONE} -- Configuration setting
 		require
 			current_target: current_target /= Void
 			variables: grid /= Void
-		local
-			l_item: TEXT_PROPERTY [STRING_GENERAL]
 		do
 			if grid.has_selected_row then
-				l_item ?= grid.selected_rows.first.item (1)
-				check
-					valid_item: l_item /= Void
+				if attached {TEXT_PROPERTY [READABLE_STRING_GENERAL]} grid.selected_rows.first.item (1) as l_item then
+					current_target.remove_mapping (l_item.text)
+				else
+					check expected_selected_row_item_type: False end
 				end
-				current_target.remove_mapping (l_item.text)
 				show_properties_target_mapping (current_target)
 			end
 		end
 
-	update_mapping_key (an_old_key: READABLE_STRING_GENERAL; a_new_key: STRING_32)
+	update_mapping_key (an_old_key: READABLE_STRING_GENERAL; a_new_key: READABLE_STRING_32)
 			-- Update key part of a mapping.
 		require
 			current_target: current_target /= Void
@@ -1415,7 +2034,7 @@ feature {NONE} -- Configuration setting
 			show_properties_target_mapping (current_target)
 		end
 
-	update_mapping_value (a_key: READABLE_STRING_GENERAL; a_value: STRING_32)
+	update_mapping_value (a_key: READABLE_STRING_GENERAL; a_value: READABLE_STRING_32)
 			-- Update value part of a mapping.
 		require
 			current_target: current_target /= Void
@@ -1430,7 +2049,7 @@ feature {NONE} -- Configuration setting
 
 feature {NONE} -- Validation and warning generation
 
-	check_library_target (a_target: STRING_32): BOOLEAN
+	check_library_target (a_target: READABLE_STRING_32): BOOLEAN
 			-- Is `a_target' a valid library target?
 		require
 			target_of_system: a_target /= Void and then not a_target.is_empty implies conf_system.targets.has (a_target)
@@ -1474,7 +2093,7 @@ invariant
 	selected_target_ok: selected_target /= Void and then not selected_target.is_empty
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

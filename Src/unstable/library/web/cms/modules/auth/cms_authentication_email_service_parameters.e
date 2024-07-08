@@ -6,9 +6,6 @@ note
 class
 	CMS_AUTHENTICATION_EMAIL_SERVICE_PARAMETERS
 
-inherit
-	EMAIL_SERVICE_PARAMETERS
-
 create
 	make
 
@@ -16,56 +13,50 @@ feature {NONE} -- Initialization
 
 	make (a_cms_api: CMS_API)
 		local
-			utf: UTF_CONVERTER
-			l_site_name: READABLE_STRING_8
 			s: detachable READABLE_STRING_32
+			l_utf8_site_name: IMMUTABLE_STRING_8
 			l_contact_email, l_subject_register, l_subject_activate, l_subject_password, l_subject_oauth: detachable READABLE_STRING_8
 		do
 			cms_api := a_cms_api
-				-- Use global smtp setting if any, otherwise "localhost"
-			smtp_server := utf.escaped_utf_32_string_to_utf_8_string_8 (a_cms_api.setup.text_item_or_default ("smtp", "localhost"))
-			l_site_name := utf.escaped_utf_32_string_to_utf_8_string_8 (a_cms_api.setup.site_name)
-			admin_email := a_cms_api.setup.site_email
+			create l_utf8_site_name.make_from_string (a_cms_api.setup.utf_8_site_name)
+			utf_8_site_name := l_utf8_site_name
+			notif_email_address := a_cms_api.setup.site_notification_email
+			sender_email_address := a_cms_api.setup.site_email
 
-			if not admin_email.has ('<') then
-				admin_email := l_site_name + " <" + admin_email +">"
+			if not notif_email_address.has ('<') then
+				notif_email_address := l_utf8_site_name + " <" + notif_email_address + ">"
 			end
 
-			if attached {CONFIG_READER} a_cms_api.module_configuration_by_name ({CMS_AUTHENTICATION_MODULE}.name, Void) as cfg then
-				if attached cfg.text_item ("smtp") as l_smtp then
-						-- Overwrite global smtp setting if any.
-					smtp_server := utf.utf_32_string_to_utf_8_string_8 (l_smtp)
-				end
+			if attached a_cms_api.module_configuration_by_name ({CMS_AUTHENTICATION_MODULE}.name, Void) as cfg then
 				s := cfg.text_item ("email")
 				if s /= Void then
-					l_contact_email := utf.utf_32_string_to_utf_8_string_8 (s)
+					l_contact_email := cms_api.utf_8_encoded (s)
 				end
 				s := cfg.text_item ("subject_register")
 				if s /= Void then
-					l_subject_register := utf.utf_32_string_to_utf_8_string_8 (s)
+					l_subject_register := cms_api.utf_8_encoded (s)
 				end
 				s := cfg.text_item ("subject_activate")
 				if s /= Void then
-					l_subject_register := utf.utf_32_string_to_utf_8_string_8 (s)
+					l_subject_register := cms_api.utf_8_encoded (s)
 				end
 				s := cfg.text_item ("subject_password")
 				if s /= Void then
-					l_subject_register := utf.utf_32_string_to_utf_8_string_8 (s)
+					l_subject_register := cms_api.utf_8_encoded (s)
 				end
 				s := cfg.text_item ("subject_oauth")
 				if s /= Void then
-					l_subject_oauth := utf.utf_32_string_to_utf_8_string_8 (s)
+					l_subject_oauth := cms_api.utf_8_encoded (s)
 				end
+			end
+			if l_contact_email = Void then
+				l_contact_email := notif_email_address
+			end
+			if not l_contact_email.has ('<') then
+				l_contact_email := l_utf8_site_name + " <" + l_contact_email + ">"
+			end
+			contact_email_address := l_contact_email
 
-			end
-			if l_contact_email /= Void then
-				if not l_contact_email.has ('<') then
-					l_contact_email := l_site_name + " <" + l_contact_email + ">"
-				end
-				contact_email := l_contact_email
-			else
-				contact_email := admin_email
-			end
 			if l_subject_register /= Void then
 				contact_subject_register := l_subject_register
 			else
@@ -88,23 +79,40 @@ feature {NONE} -- Initialization
 				contact_subject_oauth := "Welcome."
 			end
 
+			contact_subject_account_evaluation := "New register, account evalution."
+			contact_subject_rejected := "Your account was rejected."
+			contact_subject_activated := "Your account was activated."
 		end
+
+
 
 feature	-- Access
 
 	cms_api: CMS_API
 
-	smtp_server: IMMUTABLE_STRING_8
+	notif_email_address: IMMUTABLE_STRING_8
 
-	admin_email: IMMUTABLE_STRING_8
+	sender_email_address: IMMUTABLE_STRING_8
 
-	contact_email: IMMUTABLE_STRING_8
+	contact_email_address: IMMUTABLE_STRING_8
 			-- Contact email.
 
+	utf_8_site_name: IMMUTABLE_STRING_8
+			-- UTF-8 encoded Site name.
+
+	contact_subject_account_evaluation: IMMUTABLE_STRING_8
 	contact_subject_register: IMMUTABLE_STRING_8
 	contact_subject_activate: IMMUTABLE_STRING_8
 	contact_subject_password: IMMUTABLE_STRING_8
 	contact_subject_oauth: IMMUTABLE_STRING_8
+	contact_subject_rejected: IMMUTABLE_STRING_8
+	contact_subject_activated: IMMUTABLE_STRING_8
+
+	admin_account_evaluation: STRING
+			-- Account evaluation template email message.
+		do
+			Result := template_string ("admin_account_evaluation.html", default_template_account_evaluation)
+		end
 
 	account_activation: STRING
 			-- Account activation template email message.
@@ -112,10 +120,28 @@ feature	-- Access
 			Result := template_string ("account_activation.html", default_template_account_activation)
 		end
 
+	account_email_verification: STRING
+			-- Account activation confirmation template email message.
+		do
+			Result := template_string ("account_email_verification.html", default_template_account_activation_confirmation)
+		end
+
+	account_activation_confirmation: STRING
+			-- Account activation confirmation template email message.
+		do
+			Result := template_string ("account_activation_confirmation.html", default_template_account_activation_confirmation)
+		end
+
 	account_re_activation: STRING
 			-- Account re_activation template email message.
 		do
-			Result := template_string ("accunt_re_activation.html", default_template_account_re_activation)
+			Result := template_string ("account_re_activation.html", default_template_account_re_activation)
+		end
+
+	account_rejected: STRING
+			-- Account rejected template email message.
+		do
+			Result := template_string ("account_rejected.html", default_template_account_rejected)
 		end
 
 	account_password: STRING
@@ -146,7 +172,7 @@ feature {NONE} -- Implementation: Template
 		local
 			p: PATH
 		do
-			p := template_path ("account_activation.html")
+			p := template_path (a_name)
 			if attached read_template_file (p) as l_content then
 				Result := l_content
 			else
@@ -177,6 +203,36 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Message email
 
+	default_template_account_evaluation: STRING = "[
+		<!doctype html>
+		<html lang="en">
+		<head>
+		  <meta charset="utf-8">
+		  <title>Account Evaluation</title>
+		  <meta name="description" content="Account Evaluation">
+		  <meta name="author" content="$sitename">
+		</head>
+
+		<body>
+		    <h2> Account Evaluation </h2>
+			<p>The user $user ($email) wants to register to the site  <a href="$host">$sitename</a></p>
+
+			<blockquote><p>This is his/her application.</p>
+  				<p>$application</p>
+			</blockquote>
+
+			<p>To complete the registration, please click on the following link to activate the user account:<p>
+
+			<p><a href="$activation_url">$activation_url</a></p>
+
+			<p>To reject the registration, please click on the following link <p>
+
+			<p><a href="$rejection_url">$rejection_url</a></p>
+		</body>
+		</html>
+	]"
+
+
 	default_template_account_activation: STRING = "[
 		<!doctype html>
 		<html lang="en">
@@ -184,20 +240,52 @@ feature {NONE} -- Message email
 		  <meta charset="utf-8">
 		  <title>Activation</title>
 		  <meta name="description" content="Activation">
-		  <meta name="author" content="ROC CMS">
+		  <meta name="author" content="$sitename">
 		</head>
 
 		<body>
-			<p>Thank you for registering at <a href="...">ROC CMS</a></p>
+			<p>Thank you for applying to  <a href="$host">$sitename</a> $user</p>
 
-			<p>To complete your registration, please click on the following link to activate your account:<p>
-
-			<p><a href="$link">$link</a></p>
+			<p>We will review your application and send you an email<p>
 			<p>Thank you for joining us.</p>
 		</body>
 		</html>
 	]"
 
+
+	default_template_account_activation_confirmation: STRING = "[
+		<!doctype html>
+		<html lang="en">
+		<head>
+		  <meta charset="utf-8">
+		  <title>Activation</title>
+		  <meta name="description" content="Activation Confirmation">
+		  <meta name="author" content="$sitename">
+		</head>
+
+		<body>
+			<p>Your account has been confirmed  <a href="$host">$sitename</a> $email</p>
+
+			<p>Thank you for joining us.</p>
+		</body>
+		</html>
+	]"
+
+	default_template_account_rejected:  STRING = "[
+		<!doctype html>
+		<html lang="en">
+		<head>
+		  <meta charset="utf-8">
+		  <title>Application Rejected</title>
+		  <meta name="description" content="Application Rejected">
+		  <meta name="author" content="$sitename">
+		</head>
+
+		<body>
+			<p>Your account application is rejected, it does not conform our rules <a href="$host">$sitename</a></p>
+		</body>
+		</html>
+	]"
 
 	default_template_account_re_activation: STRING = "[
 		<!doctype html>
@@ -206,11 +294,11 @@ feature {NONE} -- Message email
 		  <meta charset="utf-8">
 		  <title>New Activation</title>
 		  <meta name="description" content="New Activation token">
-		  <meta name="author" content="ROC CMS">
+		  <meta name="author" content="$sitename">
 		</head>
 
 		<body>
-			<p>You have requested a new activation token at <a href="...">ROC CMS</a></p>
+			<p>You have requested a new activation token at <a href="$host">$sitename</a></p>
 
 			<p>To complete your registration, please click on the following link to activate your account:<p>
 
@@ -229,11 +317,11 @@ feature {NONE} -- Message email
 		  <meta charset="utf-8">
 		  <title>New Password</title>
 		  <meta name="description" content="New Password">
-		  <meta name="author" content="ROC CMS">
+		  <meta name="author" content="$sitename">
 		</head>
 
 		<body>
-			<p>You have required a new password at <a href="...">ROC CMS</a></p>
+			<p>You have requested a new password at <a href="$host">$sitename</a></p>
 
 			<p>To complete your request, please click on this link to generate a new password:<p>
 
@@ -250,11 +338,11 @@ feature {NONE} -- Message email
 		  <meta charset="utf-8">
 		  <title>Welcome</title>
 		  <meta name="description" content="Welcome">
-		  <meta name="author" content="ROC CMS">
+		  <meta name="author" content="$sitename">
 		</head>
 
 		<body>
-			<p>Welcome to<a href="...">ROC CMS</a></p>
+			<p>Welcome to <a href="$host">$sitename</a>.</p>
 			<p>Thank you for joining us.</p>
 		</body>
 		</html>

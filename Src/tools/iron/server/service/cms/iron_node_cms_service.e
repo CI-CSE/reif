@@ -17,7 +17,7 @@ feature -- Initialization
 	setup_router
 			-- Setup `router'
 		local
-			h_access: ACCESS_HANDLER
+			h_access: HOME_HANDLER
 			h_account: ACCOUNT_HANDLER
 			h_user: USER_HANDLER
 			h_search: SEARCH_PACKAGE_HANDLER
@@ -27,9 +27,9 @@ feature -- Initialization
 			h_package_map: PACKAGE_MAP_HANDLER
 			h_archive_package: ARCHIVE_PACKAGE_HANDLER
 			h_package_fetcher: FETCH_PACKAGE_HANDLER
-			--			h_fs: WSF_FILE_SYSTEM_HANDLER
 			l_layout: IRON_NODE_LAYOUT
 			l_iron: like iron
+			h_doc: WSF_FILE_SYSTEM_HANDLER
 		do
 				--| Optional
 			router.handle ("/debug/", create {WSF_DEBUG_HANDLER}.make_hidden, Void)
@@ -42,7 +42,10 @@ feature -- Initialization
 			end
 			router.handle (l_iron.cms_page ("/html/"), create {WSF_FILE_SYSTEM_HANDLER}.make_hidden (l_layout.www_path.name), router.methods_get)
 			if l_iron.is_documentation_available then
-				router.handle (l_iron.cms_page ("/doc/"), create {WSF_FILE_SYSTEM_HANDLER}.make_hidden (l_layout.documentation_path.name), router.methods_get)
+				create h_doc.make_hidden (l_layout.documentation_path.name)
+				h_doc.set_directory_index (<<"index.html">>)
+				h_doc.enable_index
+				router.handle (l_iron.cms_page ("/doc/"), h_doc, router.methods_get)
 			end
 
 				--| User
@@ -58,7 +61,7 @@ feature -- Initialization
 
 				--| Access
 			create h_access.make (l_iron)
-			map_uri (l_iron.cms_page ("/"), h_access, router.methods_get) -- Admin::home
+			map_uri (l_iron.cms_page ("/"), h_access, router.methods_get_post) -- Admin::home
 			map_uri_template (l_iron.cms_page ("/{version}/"), h_access, router.methods_get) -- Admin::home
 
 			create h_create.make (l_iron)
@@ -141,15 +144,10 @@ feature -- handler
 			l_iron := iron
 			create r.make (req, l_iron)
 			create s.make_empty
-			s.append ("<ul>")
-			s.append ("<li><a href=%"" + req.script_url (l_iron.cms_page ("")) + "%">Home</a></li>")
---			s.append ("<li><a href=%"" + req.script_url (l_iron.package_list_web_page) + "%">Any version</a></li>")
-			across
-				l_iron.database.versions as c_version
-			loop
-				s.append ("<li><a href=%"" + req.script_url (l_iron.package_version_list_web_page (c_version.item)) + "%">Version " + c_version.item.value + "</a></li>")
-			end
-			s.append ("</ul>")
+			s.append ("<div id=%"enter-box%">")
+			s.append ("<a href=%"" + req.script_url (l_iron.cms_page ("")) + "%">ENTER the IRON repository</a>")
+			s.append ("</div>")
+			r.set_location (iron.cms_page (""))
 			r.set_body (s)
 			res.send (r)
 		end
@@ -167,7 +165,7 @@ feature -- Factory
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2016, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

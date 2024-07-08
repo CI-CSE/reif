@@ -27,8 +27,6 @@ inherit
 			count as wel_count
 		end
 
-	EV_MENU_ITEM_LIST_ACTION_SEQUENCES_IMP
-
 	WEL_WORD_OPERATIONS
 		export
 			{NONE} all
@@ -36,7 +34,7 @@ inherit
 
 feature -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 		do
 			assign_interface (an_interface)
 		end
@@ -476,7 +474,7 @@ feature {EV_ANY_I, EV_POPUP_MENU_HANDLER} -- Implementation
 			a_menu_not_void: a_menu /= Void
 		local
 			l_menu_item: detachable EV_MENU_ITEM_IMP
-			l_comparator: PREDICATE [ANY, TUPLE [EV_MENU_ITEM_IMP]]
+			l_comparator: PREDICATE [EV_MENU_ITEM_IMP]
 		do
 			l_comparator := agent (a_menu_item: EV_MENU_ITEM_IMP; a_wel_menu: WEL_MENU): BOOLEAN
 				local
@@ -497,7 +495,7 @@ feature {EV_ANY_I, EV_POPUP_MENU_HANDLER} -- Implementation
 			-- Call `on_activate' for menu item with `a_id'.
 		local
 			l_menu_item: detachable EV_MENU_ITEM_IMP
-			l_comparator: PREDICATE [ANY, TUPLE [EV_MENU_ITEM_IMP]]
+			l_comparator: PREDICATE [EV_MENU_ITEM_IMP]
 		do
 			l_comparator := agent (a_menu_item: EV_MENU_ITEM_IMP; a_item_id: INTEGER): BOOLEAN
 				do
@@ -512,7 +510,7 @@ feature {EV_ANY_I, EV_POPUP_MENU_HANDLER} -- Implementation
 			end
 		end
 
-	menu_item_from_comparator (a_comparator: PREDICATE [ANY, TUPLE [EV_MENU_ITEM_IMP]]): detachable EV_MENU_ITEM_IMP
+	menu_item_from_comparator (a_comparator: PREDICATE [EV_MENU_ITEM_IMP]): detachable EV_MENU_ITEM_IMP
 			-- Retrieve menu item using comparator predicate `a_comparator'.
 		require
 			a_comparator_not_void: a_comparator /= Void
@@ -547,7 +545,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_MENU_ITEM_LIST note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

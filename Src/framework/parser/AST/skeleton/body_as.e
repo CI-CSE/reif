@@ -1,8 +1,8 @@
-note
+﻿note
 	description	: "Abstract description of the body of an Eiffel feature."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
+	date: "$Date$"
 	revision	: "$Revision$"
 
 class BODY_AS
@@ -94,6 +94,20 @@ feature -- Roundtrip
 			Result := keyword_from_index (a_list, assign_keyword_index)
 		end
 
+	internal_arguments: detachable FORMAL_ARGU_DEC_LIST_AS
+			-- Internal list (of list) of arguments, in which "(" and ")" are stored
+
+	indexing_clause: detachable INDEXING_CLAUSE_AS
+			-- Indexing clause in this structure
+
+	index: INTEGER
+			-- <Precursor>
+		do
+			if attached content as l_content then
+				Result := l_content.index
+			end
+		end
+
 feature -- Attributes
 
 	arguments: detachable EIFFEL_LIST [TYPE_DEC_AS]
@@ -129,22 +143,6 @@ feature -- Attributes
 		do
 			if attached {CONSTANT_AS} content as l_constant then
 				Result := l_constant
-			end
-		end
-
-feature -- Roundtrip
-
-	internal_arguments: detachable FORMAL_ARGU_DEC_LIST_AS
-			-- Internal list (of list) of arguments, in which "(" and ")" are stored
-
-	indexing_clause: detachable INDEXING_CLAUSE_AS
-			-- Indexing clause in this structure
-
-	index: INTEGER
-			-- <Precursor>
-		do
-			if attached content as l_content then
-				Result := l_content.index
 			end
 		end
 
@@ -240,6 +238,37 @@ feature -- Access
 			end
 		end
 
+	argument_index (n: INTEGER): INTEGER
+			-- AST index of an argument number `n`if found, `0` otherwise.
+		require
+			valid_argument_number: n > 0
+		local
+			id_list: IDENTIFIER_LIST
+			distance: INTEGER
+		do
+			if attached arguments as a then
+				distance := n
+				across
+					a as type_declaration
+				until
+					distance <= 0
+				loop
+					id_list := type_declaration.item.id_list
+					if distance > id_list.count then
+							-- There are more declaration lists to go, skip this one.
+						distance := distance - id_list.count
+					else
+							-- The argument should be in this declaration list.
+						if attached id_list.id_list as argument_indexes then
+							Result := argument_indexes [distance]
+						end
+							-- Exit the loop.
+						distance := 0
+					end
+				end
+			end
+		end
+
 feature -- empty body
 
 	is_empty : BOOLEAN
@@ -296,7 +325,7 @@ feature -- New feature description
 					equivalent (arguments, other.arguments)
 			if Result then
 				if attached content as l_content and attached other.content as l_other_content then
-					if (l_content.is_constant = l_other_content.is_constant) then
+					if l_content.is_constant = l_other_content.is_constant then
 							-- The two objects are of the same type.
 							-- There is no global typing problem.
 						Result := l_content.is_body_equiv (l_other_content)
@@ -355,7 +384,7 @@ feature {BODY_AS, FEATURE_AS} -- Replication
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -386,4 +415,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class BODY_AS
+end

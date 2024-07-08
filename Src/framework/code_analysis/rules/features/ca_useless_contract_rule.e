@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #9: Useless contract with void-safety
 	
@@ -100,25 +100,25 @@ feature {NONE} -- Implementation
 		end
 
 	process_bin_ne_as (a_bin: BIN_NE_AS)
+		local
+			operand: detachable EXPR_AS
 		do
 			if checking_tagged then
+				if attached {VOID_AS} a_bin.right then
+					operand := a_bin.left
+				elseif attached {VOID_AS} a_bin.left then
+					operand := a_bin.right
+				end
 				if
-					attached {VOID_AS} a_bin.right
-					and then attached {EXPR_CALL_AS} a_bin.left as l_expr_call
+					attached {EXPR_CALL_AS} operand as l_expr_call
 					and then attached {ACCESS_ASSERT_AS} l_expr_call.call as l_access_assert
-					and then attached {ID_AS} l_access_assert.feature_name as l_id_left
+					and then attached {ID_AS} l_access_assert.feature_name as l_id
 				then
-					void_checking_contracts.extend (current_tagged, l_id_left.name_id)
-				elseif
-					attached {VOID_AS} a_bin.left
-					and then attached {EXPR_CALL_AS} a_bin.right as l_expr_call
-					and then attached {ACCESS_ASSERT_AS} l_expr_call.call as l_access_assert
-					and then attached {ID_AS} l_access_assert.feature_name as l_id_right
-				then
-					void_checking_contracts.extend (current_tagged, l_id_right.name_id)
+						-- It is sufficient to report one issues per argument.
+						-- The first one is kept only.
+					void_checking_contracts.put (current_tagged, l_id.name_id)
 				end
 			end
-
 			Precursor (a_bin)
 		end
 
@@ -143,7 +143,7 @@ feature {NONE} -- Implementation
 		do
 			a_formatter.add (ca_messages.useless_contract_violation_1)
 
-			if attached {STRING_32} a_violation.long_description_info.first as l_feature_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_feature_name then
 				a_formatter.add (l_feature_name)
 			end
 
@@ -165,6 +165,11 @@ feature {NONE} -- Implementation
 			l_conf := current_context.universe.target.options
 			Result := (l_conf.void_safety.index = l_conf.void_safety_index_all)
 		end
+
+feature -- Properties
+
+	name: STRING = "useless_attachment_check"
+			-- <Precursor>
 
 	title: STRING_32
 		do

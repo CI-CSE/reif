@@ -46,12 +46,38 @@ feature -- Test routines
 	test_rfc_4231_2_ascii
 		local
 			hmac: HMAC_SHA256
-			expected: STRING
+			e1, e2, e3, expected: STRING
 		do
+			create hmac.make_ascii_key ("secret-shared-key-goes")
+			hmac.update_from_string ("first and last")
+			e1 := hmac.digest_as_string
+
+			create hmac.make_ascii_key ("secret-shared-key-goes")
+			hmac.update_from_string ("first")
+			hmac.update_from_string (" and last")
+			e2 := hmac.digest_as_string
+
+			create hmac.make_ascii_key ("secret-shared-key-goes")
+			hmac.update_from_string ("first")
+			e3 := hmac.digest_as_string
+
+			hmac.update_from_string (" and last")
+			e3 := hmac.digest_as_string
+
+			assert("e1=e2=e3", e1.same_string (e2) and e2.same_string (e3))
+
+
 			create hmac.make_ascii_key ("Jefe")
+			hmac.reset
 			hmac.update_from_string ("what do ya want for nothing?")
 			expected := "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
 			assert ("test_rfc_4231_2", hmac.digest_as_string.is_case_insensitive_equal (expected))
+
+			hmac.reset
+			hmac.update_from_string ("what do ya want for nothing?")
+			expected := "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+			assert ("test_rfc_4231_2", hmac.digest_as_string.is_case_insensitive_equal (expected))
+
 		end
 
 	test_rfc_4231_3
@@ -99,7 +125,7 @@ feature -- Test routines
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

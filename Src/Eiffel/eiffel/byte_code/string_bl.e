@@ -1,12 +1,14 @@
-note
+﻿note
+	description: "Enlarged byte code for Eiffel string (allocated each time)."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
--- Enlarged byte code for Eiffel string (allocated each time).
 
 class STRING_BL
 
 inherit
 	STRING_B
+		rename
+			print_checked_target_register as print_register
 		redefine
 			register, set_register,
 			analyze, generate,
@@ -116,7 +118,7 @@ feature
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

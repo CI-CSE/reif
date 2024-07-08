@@ -2,7 +2,7 @@
 	description: "Declarations for `built_in' externals."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2013, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2018, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -70,15 +70,15 @@ extern "C" {
 #define eif_builtin_ANY_deep_twin(object)				edclone ((object))
 
 /* ARGUMENTS class */
-#define eif_builtin_ARGUMENTS_32_i_th_argument_pointer(some,i)	(eif_arg_item(i))
-#define eif_builtin_ARGUMENTS_32_argument_count(some)		(eif_arg_count() - 1)
+#define eif_builtin_ARGUMENTS_32_i_th_argument_pointer(i)	(eif_arg_item(i))
+#define eif_builtin_ARGUMENTS_32_argument_count			(eif_arg_count() - 1)
 
 /* EV_ANY_IMP class */
 #define eif_builtin_EV_ANY_IMP_eif_current_object_id(object)	eif_reference_id(object)
 #define eif_builtin_EV_ANY_IMP_eif_is_object_id_of_current(object,id) EIF_TEST(eif_id_object(id) == object)
 
 /* EXCEPTION_MANAGER class */
-#define eif_builtin_ISE_EXCEPTION_MANAGER_developer_raise(object, code, meaning, message)			draise(code, meaning, message)
+#define eif_builtin_ISE_EXCEPTION_MANAGER_developer_raise(code, meaning, message)			draise(code, meaning, message)
 
 /* IDENTIFIED_CONTROLLER class */
 #define eif_builtin_IDENTIFIED_CONTROLLER_object_id_stack_size(obj)			eif_object_id_stack_size();
@@ -217,6 +217,7 @@ rt_private rt_inline EIF_BOOLEAN rt_is_special_copy_semantics_item (EIF_INTEGER_
 #else
 #define eif_builtin_PLATFORM_is_dotnet					EIF_FALSE
 #endif
+#define eif_builtin_PLATFORM_is_64_bits					EIF_IS_64_BITS
 #define eif_builtin_PLATFORM_boolean_bytes 				sizeof(EIF_BOOLEAN)
 #define eif_builtin_PLATFORM_character_bytes 			sizeof(EIF_CHARACTER_8)
 #define eif_builtin_PLATFORM_wide_character_bytes 		sizeof(EIF_CHARACTER_32)
@@ -243,8 +244,9 @@ rt_private rt_inline EIF_BOOLEAN rt_is_special_copy_semantics_item (EIF_INTEGER_
 
 /* TYPE class */
 #define eif_builtin_TYPE_has_default(obj)					eif_gen_has_default(eif_gen_param(Dftype(obj), 1))	
-#define eif_builtin_TYPE_is_expanded(obj)					eif_gen_is_expanded(eif_gen_param(Dftype(obj), 1).id)
 #define eif_builtin_TYPE_is_attached(obj)					eif_is_attached_type2(eif_gen_param(Dftype(obj), 1))
+#define eif_builtin_TYPE_is_deferred(obj)					eif_gen_is_deferred(eif_gen_param(Dftype(obj), 1).id)
+#define eif_builtin_TYPE_is_expanded(obj)					eif_gen_is_expanded(eif_gen_param(Dftype(obj), 1).id)
 #define eif_builtin_TYPE_type_id(obj)						eif_encoded_type(eif_gen_param(Dftype(obj), 1))
 #define eif_builtin_TYPE_runtime_name(obj)					eif_typename_of_type(eif_gen_param(Dftype(obj), 1))
 /* Second argument is 0, because we use the annotations from the type itself. */
@@ -252,7 +254,40 @@ rt_private rt_inline EIF_BOOLEAN rt_is_special_copy_semantics_item (EIF_INTEGER_
 #define eif_builtin_TYPE_generic_parameter_count(obj)		eif_gen_count_with_dftype(eif_gen_param(Dftype(obj), 1).id)
 
 /* TUPLE class */
+#define eif_builtin_TUPLE_boolean_item(obj,i)				eif_boolean_item((obj), (i))
+#define eif_builtin_TUPLE_character_8_item(obj,i)			eif_character_8_item((obj), (i))
+#define eif_builtin_TUPLE_character_32_item(obj,i)			eif_character_32_item((obj), (i))
 #define eif_builtin_TUPLE_count(area)						(RT_SPECIAL_COUNT(area) - 1) /* - 1 because first argument is for object_comparison */
+#define eif_builtin_TUPLE_integer_8_item(obj,i)				eif_integer_8_item((obj), (i))
+#define eif_builtin_TUPLE_integer_16_item(obj,i)			eif_integer_16_item((obj), (i))
+#define eif_builtin_TUPLE_integer_32_item(obj,i)			eif_integer_32_item((obj), (i))
+#define eif_builtin_TUPLE_integer_64_item(obj,i)			eif_integer_64_item((obj), (i))
+#define eif_builtin_TUPLE_item_code(obj,i)					eif_item_type((obj), (i))
+#define eif_builtin_TUPLE_natural_8_item(obj,i)				eif_natural_8_item((obj), (i))
+#define eif_builtin_TUPLE_natural_16_item(obj,i)			eif_natural_16_item((obj), (i))
+#define eif_builtin_TUPLE_natural_32_item(obj,i)			eif_natural_32_item((obj), (i))
+#define eif_builtin_TUPLE_natural_64_item(obj,i)			eif_natural_64_item((obj), (i))
+#define eif_builtin_TUPLE_object_comparison(obj)			eif_boolean_item((obj), 0)
+#define eif_builtin_TUPLE_pointer_item(obj,i)				eif_pointer_item((obj), (i))
+#define eif_builtin_TUPLE_put_boolean(obj,v,i)				eif_put_boolean_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_character_8(obj,v,i)			eif_put_character_8_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_character_32(obj,v,i)			eif_put_character_32_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_integer_8(obj,v,i)			eif_put_integer_8_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_integer_16(obj,v,i)			eif_put_integer_16_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_integer_32(obj,v,i)			eif_put_integer_32_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_integer_64(obj,v,i)			eif_put_integer_64_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_natural_8(obj,v,i)			eif_put_natural_8_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_natural_16(obj,v,i)			eif_put_natural_16_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_natural_32(obj,v,i)			eif_put_natural_32_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_natural_64(obj,v,i)			eif_put_natural_64_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_pointer(obj,v,i)				eif_put_pointer_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_real_32(obj,v,i)				eif_put_real_32_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_real_64(obj,v,i)				eif_put_real_64_item((obj), (i), (v))
+#define eif_builtin_TUPLE_put_reference(obj,v,i)			eif_put_reference_item((obj), (i), (v))
+#define eif_builtin_TUPLE_real_32_item(obj,i)				eif_real_32_item((obj), (i))
+#define eif_builtin_TUPLE_real_64_item(obj,i)				eif_real_64_item((obj), (i))
+#define eif_builtin_TUPLE_reference_item(obj,i)				eif_reference_item((obj), (i))
+#define eif_builtin_TUPLE_set_object_comparison(obj,b)		eif_put_boolean_item((obj), 0, (b))
 
 /* WEL_IDENTIFIED class */
 #define eif_builtin_WEL_IDENTIFIED_eif_current_object_id(object)	eif_reference_id(object)

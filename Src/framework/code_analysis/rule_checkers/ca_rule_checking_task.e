@@ -1,6 +1,6 @@
-note
+﻿note
 	description: "Asynchronous task that checks a set of classes using a list of rules."
-	author: "Stefan Zurfluh"
+	author: "Stefan Zurfluh", "Eiffel Software"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -8,18 +8,16 @@ class
 	CA_RULE_CHECKING_TASK
 
 inherit
-	ROTA_TIMED_TASK_I
-
 	CA_SHARED_NAMES
-
 	EXCEPTION_MANAGER_FACTORY
+	ROTA_TIMED_TASK_I
 
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (a_rules_checker: attached CA_ALL_RULES_CHECKER; a_rules: attached LINKED_LIST [attached CA_RULE]; a_classes: attached LINKED_SET [CLASS_C]; a_completed_action: attached PROCEDURE [ITERABLE [TUPLE [detachable EXCEPTION, CLASS_C]]])
+	make (a_rules_checker: CA_ALL_RULES_CHECKER; a_rules: LINKED_LIST [CA_RULE]; a_classes: LINKED_SET [CLASS_C]; a_completed_action: PROCEDURE [detachable ITERABLE [TUPLE [detachable EXCEPTION, CLASS_C]]])
 			-- Initializes `Current'. `a_rules_checker' will be used for checking standard rules. All classes from `a_classes'
 			-- will be analyzed by all rules from `a_rules'. `a_completed_action' will be called as soon as the analysis is done.
 		do
@@ -27,7 +25,7 @@ feature {NONE} -- Initialization
 			if a_classes.is_empty then
 					-- Make sure `completed_action' is called even when no classes
 					-- have been added.
-				a_completed_action.call ([Void])
+				a_completed_action ([Void])
 			else -- Initialization.
 				rules_checker := a_rules_checker
 				rules := a_rules
@@ -91,48 +89,59 @@ feature -- From ROTA
 
 	step
 			-- <Precursor>
+		local
+			is_retried: BOOLEAN
+			c: CLASS_C
 		do
-				-- Gather type information
-			type_recorder.clear
-			type_recorder.analyze_class (classes.item)
-			context.set_node_types (type_recorder.node_types)
-			context.set_checking_class (classes.item)
+			if not is_retried then
+					-- Gather type information
+				type_recorder.clear
+				c := classes.item
+				type_recorder.analyze_class (c)
+				context.set_node_types (type_recorder.node_types)
+				context.set_checking_class (c)
 
-			across rules as l_rules loop
-					-- If rule is non-standard then it will not be checked by l_rules_checker.
-					-- We will have the rule check the current class here:
-				if
-					l_rules.item.is_enabled.value
-					and then attached {CA_CFG_RULE} l_rules.item as l_cfg_rule
-				then
-					l_cfg_rule.check_class (classes.item)
+				across rules as l_rules loop
+						-- If rule is non-standard then it will not be checked by l_rules_checker.
+						-- We will have the rule check the current class here:
+					if
+						l_rules.item.is_enabled.value
+						and then attached {CA_CFG_RULE} l_rules.item as l_cfg_rule
+					then
+						l_cfg_rule.check_class (c)
+					end
+				end
+
+					-- Status output.
+				if output_actions /= Void then
+					output_actions.call ([ca_messages.analyzing_class (c.name)])
+				end
+
+				rules_checker.run_on_class (c)
+
+				classes.forth
+				has_next_step := not classes.after
+				if not has_next_step then
+					completed_action (exceptions)
 				end
 			end
-
-				-- Status output.
-			if output_actions /= Void then
-				output_actions.call ([ca_messages.analyzing_class (classes.item.name)])
-			end
-
-			rules_checker.run_on_class (classes.item)
-
-			classes.forth
-			has_next_step := not classes.after
-			if not has_next_step then
-				completed_action.call ([exceptions])
-			end
 		rescue
-				-- Instant error output.
-			if output_actions /= Void then
-				output_actions.call ([ca_messages.error_on_class (classes.item.name)])
+			if attached c then
+					-- Instant error output.
+				if output_actions /= Void then
+					output_actions.call ([ca_messages.error_on_class (c.name)])
+				end
+				exceptions.extend ([exception_manager.last_exception, c])
 			end
-			exceptions.extend ([exception_manager.last_exception, classes.item])
-				-- Jump to the next class.
-			classes.forth
+			if not classes.after then
+					-- Jump to the next class.
+				classes.forth
+			end
 			has_next_step := not classes.after
 			if not has_next_step then
-				completed_action.call ([exceptions])
+				completed_action (exceptions)
 			end
+			is_retried := True
 			retry
 		end
 

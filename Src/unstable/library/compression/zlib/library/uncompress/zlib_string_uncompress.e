@@ -14,7 +14,8 @@ inherit
 	ZLIB_UNCOMPRESS
 
 create
-	string_stream
+	string_stream,
+	string_stream_with_size
 
 feature {NONE} -- Initialization
 
@@ -30,12 +31,36 @@ feature {NONE} -- Initialization
 			string_set: attached string
 		end
 
+	string_stream_with_size (a_string: READABLE_STRING_32; a_size: INTEGER)
+		require
+			not_connected: not is_connected
+			non_void_file: a_string /= Void
+			valid_size: a_size > 0
+		do
+			make_with_chunk_size (a_size)
+			intialize
+			create string.make_from_string (a_string.as_string_8)
+		ensure
+			string_set: attached string
+		end
+
 feature -- Access
 
 	is_connected: BOOLEAN
 		do
 			Result := attached string
 		end
+
+feature -- Change Element
+
+	set_string (a_string: READABLE_STRING_32)
+		do
+			create string.make_from_string (a_string.as_string_8)
+		ensure
+			string_set: attached string
+		end
+
+
 
 feature -- Inflate
 
@@ -50,22 +75,32 @@ feature -- Inflate
 			close
 		end
 
+	to_string_with_options (a_windows_bits: INTEGER): STRING
+		do
+			create Result.make_empty
+			create user_output_string.make_empty
+			inflate_with_options (a_windows_bits)
+			if attached user_output_string as l_string then
+				Result := l_string
+			end
+			close
+		end
+
 feature	{NONE} -- Inflate Implementation
 
-	read: INTEGER
+	read
 			-- <Precursor>
 		do
 			if attached string as l_input_string then
-				Result := string_read (l_input_string)
+				last_read_elements := string_read (l_input_string)
 			end
 		end
 
-	write (a_amount: INTEGER): INTEGER
-			-- Write the `a_amount' of elements to the user_output_file or
-			-- user_output_buffer.
+	write (a_amount: INTEGER)
+			-- <Precursor>
 		do
 			if attached user_output_string as l_string then
-				Result := string_write (output_buffer,a_amount, l_string)
+				last_write_elements := string_write (output_buffer,a_amount, l_string)
 			end
 		end
 
@@ -86,7 +121,7 @@ feature	{NONE} -- Inflate Implementation
 			from
 				l_index := 1
 			until
-				l_index > a_string.count or else l_index > chunk
+				l_index > a_string.count or else l_index > chunk_size
 			loop
 				input_buffer.put_character (a_string.at (l_index), l_index - 1)
 				l_index := l_index + 1
@@ -94,7 +129,7 @@ feature	{NONE} -- Inflate Implementation
 			if l_index > a_string.count then
 				end_of_input := True
 			else
-				if attached user_output_string as l_string then
+				if attached string as l_string then
 				   string := l_string.substring (l_index, l_string.count)
 				end
 			end

@@ -1,9 +1,9 @@
-note
+﻿note
 	description: "Permits argument-based formatting of {STRING} instances."
-	legal      : "See notice at end of class."
-	status     : "See notice at end of class."
-	date       : "$Date$"
-	revision   : "$Revision$"
+	legal: "See notice at end of class."
+	status: "See notice at end of class."
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	STRING_FORMATTER
@@ -40,7 +40,7 @@ feature -- Formatting
 			a_args_attached: a_args /= Void
 			not_a_args_is_empty: not a_args.is_empty
 		do
-			Result := format_unicode (a_str, a_args).as_string_8.as_attached
+			Result := format_unicode (a_str, a_args).as_string_8
 		ensure
 			result_not_void: Result /= Void
 			not_result_is_empty: not Result.is_empty
@@ -69,7 +69,6 @@ feature -- Formatting
 			not_a_args_is_empty: not a_args.is_empty
 		local
 			l_str: STRING_32
-			l_arg: detachable separate ANY
 			l_count: INTEGER
 			l_arg_count: INTEGER
 			l_match: BOOLEAN
@@ -108,21 +107,29 @@ feature -- Formatting
 					end
 				elseif c = cl then
 					l_skip := False
-					if i < l_count then
-						if n = cl then
-							Result.append_character (n)
-							i := i + 1
-							l_skip := True
-						end
+					if
+						i < l_count and then
+						n = cl
+					then
+						Result.append_character (n)
+						i := i + 1
+						l_skip := True
 					end
 					if l_match and not l_skip then
 						l_match := False
 						if l_digit.is_integer then
 							l_index := l_digit.to_integer
-							if l_index > 0 and l_index <= l_arg_count then
-								l_arg := a_args[l_index]
-								if l_arg /= Void then
-									Result.append (l_arg.out)
+							if	l_index > 0 and l_index <= l_arg_count and then
+								attached a_args [l_index] as l_arg
+							then
+								if attached {READABLE_STRING_GENERAL} l_arg as s then
+									Result.append_string_general (s)
+								elseif attached {separate READABLE_STRING_GENERAL} l_arg as s then
+									Result.append (create {STRING_32}.make_from_separate (s))
+								else
+									separate l_arg as a do
+										Result.append (a.out)
+									end
 								end
 							end
 						end
@@ -141,7 +148,7 @@ feature -- Formatting
 		end
 
 	ellipse (a_str: READABLE_STRING_GENERAL; a_max_len: INTEGER): STRING_8
-			-- Prunes string an adds ',,,' if the supplied string length is greater than the threadshold.
+			-- Prunes string an adds "..." if the supplied string length is greater than the threadshold.
 			--
 			-- `a_str': The string to ellipse.
 			-- `a_max_len': A string's maximum length, after which ellipsing will be performed.
@@ -167,7 +174,7 @@ feature -- Formatting
 		end
 
 	ellipse_unicode (a_str: READABLE_STRING_GENERAL; a_max_len: INTEGER): STRING_32
-			-- Prunes string an adds ',,,' if the supplied string length is greater than the threadshold.
+			-- Prunes string an adds "..." if the supplied string length is greater than the threadshold.
 			--
 			-- `a_str': The string to ellipse.
 			-- `a_max_len': A string's maximum length, after which ellipsing will be performed.
@@ -192,8 +199,6 @@ feature -- Formatting
 			result_not_is_a_str: Result /= a_str
 		end
 
-feature -- Formatting
-
 	tabbify (a_str: READABLE_STRING_GENERAL; a_tab_chars: INTEGER): STRING_8
 			-- Tabbifies a string by replacing spaces with tabs.
 			--
@@ -205,7 +210,7 @@ feature -- Formatting
 			not_a_str_is_empty: not a_str.is_empty
 			a_tab_chars_positive: a_tab_chars > 0
 		do
-			Result := tabbify_unicode (a_str, a_tab_chars).as_string_8.as_attached
+			Result := tabbify_unicode (a_str, a_tab_chars).as_string_8
 		ensure
 			result_attached: Result /= Void
 			not_result_is_empty: not Result.is_empty
@@ -271,7 +276,7 @@ feature {NONE} -- Symbols
 			-- Index close character
 
 ;note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -302,4 +307,4 @@ feature {NONE} -- Symbols
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class {STRING_FORMATTER}
+end

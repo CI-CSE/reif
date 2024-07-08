@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Eiffel Vision Environment. Cocoa implementation."
 	author: "Daniel Furrer"
 	keywords: "environment, global, system"
@@ -21,7 +21,7 @@ create
 
 feature {NONE} -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 			-- Pass `an_interface' to base make.
 		do
 			assign_interface (an_interface)
@@ -40,7 +40,7 @@ feature -- Access
 			-- on current platform, in the form of their three letter extension.
 			-- e.g. PNG, BMP, ICO
 		once
-			Result := create {ARRAYED_LIST [STRING_32]}.make_from_array (<<"PNG">>)
+			Result := create {ARRAYED_LIST [STRING_32]}.make_from_array (<<{STRING_32} "PNG">>)
 			Result.compare_objects
 		end
 
@@ -100,4 +100,14 @@ feature -- Access
 			Result := l_font_list
 		end
 
-end -- class EV_ENVIRONMENT_IMP
+note
+	copyright: "Copyright (c) 1984-2018, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
+		]"
+end

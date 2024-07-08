@@ -1,7 +1,5 @@
-note
-	description: "[
-		The contract editor tool graphical panel.
-	]"
+﻿note
+	description: "The contract editor tool graphical panel."
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
 	date: "$Date$";
@@ -99,7 +97,7 @@ feature {NONE} -- Initialization
 								ia_item.row.enable_select
 								contract_editor.widget.enable_selection_on_click
 							end
-							on_row_selected_in_contract_editor (ia_item.row.as_attached, ia_x, ia_y + contract_editor.widget.header.height, ia_button)
+							on_row_selected_in_contract_editor (ia_item.row, ia_x, ia_y + contract_editor.widget.header.height, ia_button)
 						end
 					end
 				end)
@@ -128,15 +126,15 @@ feature {NONE} -- Initialization
 			Precursor {ES_DOCKABLE_STONABLE_TOOL_PANEL}
 			propagate_drop_actions (Void)
 
-			if session_manager.is_service_available then
+			if attached session_manager.service then
 					-- Connect session observer.
 				project_window_session_data.session_connection.connect_events (Current)
 			end
 
 
-			if code_template_catalog.is_service_available then
+			if attached code_template_catalog.service as s then
 					-- Connect code template catalog observer, to receive change notifications.
-				code_template_catalog.service.code_template_catalog_connection.connect_events (Current)
+				s.code_template_catalog_connection.connect_events (Current)
 
 					-- Update the menu
 				update_code_template_list
@@ -166,10 +164,9 @@ feature {NONE} -- Clean up
 			-- Note: It's recommended that you do not detach objects here.
 		local
 			l_session: SESSION_I
-			l_catalog: CODE_TEMPLATE_CATALOG_S
 		do
 			if is_initialized then
-				if session_manager.is_service_available then
+				if attached session_manager.service then
 					l_session := project_window_session_data
 					if l_session.session_connection.is_connected (Current) then
 							-- Disconnect session value change observer.
@@ -177,11 +174,10 @@ feature {NONE} -- Clean up
 					end
 				end
 
-				if code_template_catalog.is_service_available then
-					l_catalog := code_template_catalog.service
-					if l_catalog.code_template_catalog_connection.is_connected (Current) then
+				if attached code_template_catalog.service as s then
+					if s.code_template_catalog_connection.is_connected (Current) then
 							-- Disconnect catalog change observer.
-						l_catalog.code_template_catalog_connection.disconnect_events (Current)
+						s.code_template_catalog_connection.disconnect_events (Current)
 					end
 				end
 			end
@@ -196,7 +192,7 @@ feature {NONE} -- Access
 			-- Contract edition mode.
 			-- See {ES_CONTRACT_TOOL_EDIT_MODE} for applicable modes.
 		do
-			if session_manager.is_service_available then
+			if attached session_manager.service then
 				if attached {NATURAL_8_REF} project_window_session_data.value (contract_mode_session_id) as l_mode and then (create {ES_CONTRACT_TOOL_EDIT_MODE}).is_valid_mode (l_mode.item) then
 					Result := l_mode.item
 				else
@@ -213,7 +209,7 @@ feature {NONE} -- Access
 			has_stone: has_stone
 		do
 			check contract_editor_has_context: contract_editor.has_context end
-			Result := contract_editor.context.as_attached
+			Result := contract_editor.context
 		end
 
 	contract_code_templates: attached DS_BILINEAR [attached CODE_TEMPLATE_DEFINITION]
@@ -222,7 +218,7 @@ feature {NONE} -- Access
 			is_interface_usable: is_interface_usable
 			is_initialized: is_initialized
 			has_stone: has_stone
-			code_template_catalog_is_service_available: code_template_catalog.is_service_available
+			code_template_catalog_is_service_available: attached code_template_catalog.service
 		local
 			l_categories: DS_ARRAYED_LIST [attached STRING]
 		do
@@ -261,7 +257,7 @@ feature {NONE} -- Element change
 				invaraints_menu_item.enable_select
 			end
 
-			if session_manager.is_service_available then
+			if attached session_manager.service then
 				project_window_session_data.value_changed_event.perform_suspended_action (agent (ia_mode: like contract_mode)
 					do
 						project_window_session_data.set_value (ia_mode, contract_mode_session_id)
@@ -285,8 +281,8 @@ feature {NONE} -- Status report
 		require
 			is_interface_usable: is_interface_usable
 		do
-			if session_manager.is_service_available then
-				if attached {BOOLEAN_REF} window_session_data.value (show_all_lines_session_id) as l_value then
+			if attached develop_window_session_data as w_session_data then
+				if attached {BOOLEAN_REF} w_session_data.value (show_all_lines_session_id) as l_value then
 					Result := l_value.item
 				end
 			end
@@ -327,8 +323,8 @@ feature {NONE} -- Status setting
 
 			contract_editor.is_showing_all_rows := a_show
 
-			if session_manager.is_service_available then
-				window_session_data.set_value (a_show, show_all_lines_session_id)
+			if attached develop_window_session_data as w_session_data then
+				w_session_data.set_value (a_show, show_all_lines_session_id)
 			end
 		ensure
 			is_showing_all_rows_set: is_showing_all_rows = a_show
@@ -475,11 +471,11 @@ feature {NONE} -- Basic operations
 		do
 			if has_stone and then context.has_stone then
 				if
-					file_notifier.is_service_available and then
+					attached file_notifier.service as s and then
 					attached context.context_class.file_name as l_file_name
 				then
 						-- Poll for modifications, which will call `on_file_modified' if have occurred.
-					file_notifier.service.poll_modifications (l_file_name).do_nothing
+					s.poll_modifications (l_file_name).do_nothing
 				end
 
 				if not is_dirty then
@@ -676,7 +672,7 @@ feature {NONE} -- User interface manipulation
 		require
 			is_interface_usable: is_interface_usable
 			is_initialized: is_initialized
-			code_template_catalog_is_service_available: code_template_catalog.is_service_available
+			code_template_catalog_is_service_available: attached code_template_catalog.service
 		local
 			l_templates: like contract_code_templates
 			l_cursor: DS_BILINEAR_CURSOR [attached CODE_TEMPLATE_DEFINITION]
@@ -808,20 +804,17 @@ feature {NONE} -- Tool action handlers
 
 	on_stone_changed (a_old_stone: detachable like stone)
 			-- <Precursor>
-		local
-			l_service: FILE_NOTIFIER_S
 		do
-			if file_notifier.is_service_available then
-				l_service := file_notifier.service
+			if attached file_notifier.service as l_service then
 				if a_old_stone /= Void and then attached {CLASSI_STONE} a_old_stone as l_old_cs and then attached l_old_cs.class_i.file_name as l_old_fn then
-						-- Remove old monitor
+						-- Remove old monitor.
 					if l_service.is_monitoring (l_old_fn) then
 						l_service.uncheck_modifications_with_callback (l_old_fn, agent on_file_modified)
 					end
 				end
 
 				if stone /= Void and then attached {CLASSI_STONE} stone as l_new_cs and then attached l_new_cs.class_i.file_name as l_new_fn then
-						-- Add monitor
+						-- Add monitor.
 					l_service.check_modifications_with_callback (l_new_fn, agent on_file_modified)
 				end
 			end
@@ -832,13 +825,11 @@ feature {NONE} -- Tool action handlers
 						-- Calling `set_contract_mode' will call `update'
 					set_contract_mode ({ES_CONTRACT_TOOL_EDIT_MODE}.preconditions)
 				end
-			else
-				if attached {CLASSI_STONE} stone as l_cs then
-					if contract_mode /= {ES_CONTRACT_TOOL_EDIT_MODE}.invariants then
-							-- A feature was dropped so we should switch to a feature contract mode.
-							-- Calling `set_contract_mode' will call `update'
-						set_contract_mode ({ES_CONTRACT_TOOL_EDIT_MODE}.invariants)
-					end
+			elseif attached {CLASSI_STONE} stone as l_cs then
+				if contract_mode /= {ES_CONTRACT_TOOL_EDIT_MODE}.invariants then
+						-- A class was dropped so we should switch to a class contract mode.
+						-- Calling `set_contract_mode' will call `update'
+					set_contract_mode ({ES_CONTRACT_TOOL_EDIT_MODE}.invariants)
 				end
 			end
 
@@ -847,7 +838,7 @@ feature {NONE} -- Tool action handlers
 
 				-- Update session.
 				-- This is done here because it only needs to be persisted when there is a stone change.
-			if session_manager.is_service_available then
+			if attached session_manager.service then
 				project_window_session_data.set_value (contract_mode, contract_mode_session_id)
 			end
 		end
@@ -1078,18 +1069,18 @@ feature {NONE} -- Action handlers
 				if attached {ES_FEATURE_CONTRACT_EDITOR_CONTEXT} context as l_fc then
 					if l_symbol_table.has_id (feature_name_symbol_id) then
 						l_value := l_symbol_table.item (feature_name_symbol_id)
-						l_value.set_value (l_fc.context_feature.name_32.as_attached)
+						l_value.set_value (l_fc.context_feature.name_32)
 					else
-						create l_value.make (l_fc.context_feature.name_32.as_attached)
+						create l_value.make (l_fc.context_feature.name_32)
 						l_symbol_table.put (l_value, feature_name_symbol_id)
 					end
 				end
 				if attached {ES_CLASS_CONTRACT_EDITOR_CONTEXT} context as l_cc then
 					if l_symbol_table.has_id (feature_name_symbol_id) then
 						l_value := l_symbol_table.item (class_name_symbol_id)
-						l_value.set_value (l_cc.context_class.name.as_string_32.as_attached)
+						l_value.set_value (l_cc.context_class.name.as_string_32)
 					else
-						create l_value.make (l_cc.context_class.name.as_string_32.as_attached)
+						create l_value.make (l_cc.context_class.name.as_string_32)
 						l_symbol_table.put (l_value, class_name_symbol_id)
 					end
 				end
@@ -1352,15 +1343,18 @@ feature {NONE} -- Action handlers
 			a_x_non_negative: a_x >= 0
 			a_y_non_negative: a_y >= 0
 		do
-			if a_button = 3 then
-				if has_stone and then contract_editor.selected_source /= Void and then contract_editor.selected_source.is_editable then
-					if contract_editor.selected_line = Void then
-							-- The contract item is select, show the add menu.
-						add_menu.show_at (a_row.parent, a_x, a_y)
-					else
-							-- The contract is select, show the edit menu.
-						edit_menu.show_at (a_row.parent, a_x, a_y)
-					end
+			if
+				a_button = 3 and then
+				has_stone and then
+				contract_editor.selected_source /= Void and then
+				contract_editor.selected_source.is_editable
+			then
+				if contract_editor.selected_line = Void then
+						-- The contract item is select, show the add menu.
+					add_menu.show_at (a_row.parent, a_x, a_y)
+				else
+						-- The contract is select, show the edit menu.
+					edit_menu.show_at (a_row.parent, a_x, a_y)
 				end
 			end
 		end
@@ -1588,7 +1582,7 @@ invariant
 	contract_editor_attached: (is_initialized and is_interface_usable) implies contract_editor /= Void
 
 ;note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

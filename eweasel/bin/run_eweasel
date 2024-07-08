@@ -10,9 +10,8 @@ cd $EWEASEL/..
 cd $ISE_EIFFEL/library
 svn up base time thread store 
 
-if [ -z "$ISE_PRECOMP" ]; then
-	export ISE_PRECOMP=$ISE_EIFFEL/precomp/spec/$ISE_PLATFORM
-fi
+cp -rf $EWEASEL/compilation/precomp/neutral/*.ecf $ISE_PRECOMP
+
 #Performing non-void safe precompilations
 cd $ISE_PRECOMP
 $ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin/ec -config base.ecf -precompile -c_compile $2
@@ -28,7 +27,7 @@ cd $EWEASEL/..
 
 if [ -n "$1" ]; then
 	if [ "$1" != "no" ]; then
-		eweasel-mt $EWEASEL_ARGS -order -keep failed -catalog $EWEASEL/control/catalog > $1
+		$EWEASEL/spec/$ISE_PLATFORM/bin/eweasel-mt $EWEASEL_ARGS -order -keep failed -catalog $EWEASEL/control/catalog > $1
 	else
 		echo Eweasel not launched per user request
 	fi

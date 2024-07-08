@@ -9,7 +9,7 @@
 			]"
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2012, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2016, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -583,7 +583,7 @@ rt_private int update_entry (struct rt_type *type_entry)
 				l_result = T_INVALID_ANNOTATIONS;
 			}
 		} else if ((l_count >= 2) && (l_str[0] == '!')) {
-			if (!RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(type_entry->annotations)) {
+			if (!RT_CONF_HAS_ATTACHMENT_MARK_FLAG(type_entry->annotations)) {
 				l_str[0] = ' ';
 				eif_remove_surrounding_white_spaces (type_entry->type_name);
 				type_entry->annotations |= ATTACHED_FLAG;
@@ -591,7 +591,7 @@ rt_private int update_entry (struct rt_type *type_entry)
 				l_result = T_INVALID_ANNOTATIONS;
 			}
 		} else if ((l_count >= 8) && (strncmp ("attached", l_str, 8) == 0)) {
-			if (!RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(type_entry->annotations)) {
+			if (!RT_CONF_HAS_ATTACHMENT_MARK_FLAG(type_entry->annotations)) {
 				memset(type_entry->type_name, (int) ' ', 8);
 				eif_remove_surrounding_white_spaces (type_entry->type_name);
 				type_entry->annotations |= ATTACHED_FLAG;
@@ -599,7 +599,7 @@ rt_private int update_entry (struct rt_type *type_entry)
 				l_result = T_INVALID_ANNOTATIONS;
 			}
 		} else if ((l_count >=2) && (l_str[0] == '?')) {
-			if (!RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(type_entry->annotations)) {
+			if (!RT_CONF_HAS_ATTACHMENT_MARK_FLAG(type_entry->annotations)) {
 				l_str[0] = ' ';
 				eif_remove_surrounding_white_spaces (type_entry->type_name);
 					/* No need to update `annotations' since by default types are detachable
@@ -608,7 +608,7 @@ rt_private int update_entry (struct rt_type *type_entry)
 				l_result = T_INVALID_ANNOTATIONS;
 			}
 		} else if ((l_count >= 10) && (strncmp ("detachable", l_str, 10) == 0)) {
-			if (!RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(type_entry->annotations)) {
+			if (!RT_CONF_HAS_ATTACHMENT_MARK_FLAG(type_entry->annotations)) {
 				memset(type_entry->type_name, (int) ' ', 10);
 				eif_remove_surrounding_white_spaces (type_entry->type_name);
 					/* No need to update `annotations' since by default types are detachable
@@ -616,7 +616,7 @@ rt_private int update_entry (struct rt_type *type_entry)
 			} else {
 				l_result = T_INVALID_ANNOTATIONS;
 			}
-		} else if ((l_count >= 8) && (strncmp ("separate", l_str, 10) == 0)) {
+		} else if ((l_count >= 8) && (strncmp ("separate", l_str, 8) == 0)) {
 			if (!RT_CONF_IS_SEPARATE_FLAG(type_entry->annotations)) {
 				memset(type_entry->type_name, (int) ' ', 8);
 				eif_remove_surrounding_white_spaces (type_entry->type_name);
@@ -635,7 +635,7 @@ rt_private int update_entry (struct rt_type *type_entry)
 	}
 
 	if (l_result == T_OK) {
-		if (!RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(type_entry->annotations)) {
+		if (!RT_CONF_HAS_ATTACHMENT_MARK_FLAG(type_entry->annotations)) {
 				/* No attachment mark was found. */
 			if (egc_is_experimental) {
 					/* In experimental mode, the absence of annotations means attached. */

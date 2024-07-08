@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Save memory states at differents point and analyze the difference."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -15,19 +15,22 @@ inherit
 		export
 			{NONE} all
 		end
+
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (a_memory_spot_1, a_memory_spot_2, a_increased_object_result: EV_GRID)
+	make (a_memory_spot_1, a_memory_spot_2, a_increased_object_result: EV_GRID; a_main_window: like main_window)
 			-- Initialize `Current'.
 		require
 			not_void: attached a_memory_spot_1
 			not_void: attached a_memory_spot_2
 			not_void: attached a_increased_object_result
 		do
-			create states.make (10)
+			main_window := a_main_window
+
+			create states.make (10, a_main_window)
 			grid_from_state := a_memory_spot_1
 			grid_to_state := a_memory_spot_2
 			grid_from_state.enable_single_row_selection
@@ -40,6 +43,9 @@ feature {NONE} -- Initialization
 			grid_changed.set_accept_cursor (accept_node_class)
 			grid_changed.set_deny_cursor (deny_node_class)
 		end
+
+	main_window: MA_WINDOW
+			-- Main Window.		
 
 feature -- Command
 
@@ -87,12 +93,17 @@ feature -- Command
 
 	adjust_split_horizontal
 			-- Adjust the split area (which ia at the bottom area)'s position.
+		local
+			l_memory_spot_1: EV_GRID
 		do
-			main_window.split_incre_horizontal.set_split_position (main_window.split_incre_horizontal.minimum_split_position
-				+ main_window.memory_spot_1.row_count * main_window.memory_spot_1.row_height + main_window.memory_spot_1.header.height)
+			l_memory_spot_1 := main_window.memory_spot_1
+			main_window.split_incre_horizontal.set_split_position (
+					main_window.split_incre_horizontal.minimum_split_position
+					+ l_memory_spot_1.row_count * l_memory_spot_1.row_height + l_memory_spot_1.header.height
+				)
 		end
 
-	adjust_column_width (a_column_index: INTEGER; a_grid: EV_GRID)
+	adjust_column_width (a_column_index: INTEGER; a_grid: EV_GRID; x, y, b: INTEGER_32; x_tilt, y_tilt, p: REAL_64; screen_x, screen_y: INTEGER_32)
 			-- Adjust a column width to fix the max width of the item its contain.
 		do
 			if a_grid.row_count > 0 then
@@ -184,35 +195,36 @@ feature {NONE} -- Implemention
 	update_grid_increased_content
 			-- Show the increased objects in the bottom result grid.
 		require
-			set: attached grid_data_increased
+			grid_data_increased_set: attached grid_data_increased
 		local
 			l_int: INTEGER
 			l_item: EV_GRID_LABEL_ITEM
 			l_i: INTEGER
-			l_grid_data_increased: like grid_data_increased
 		do
-			from
-				l_grid_data_increased := grid_data_increased
-				check attached l_grid_data_increased end -- Implied by precondition `set'
-				l_grid_data_increased.start
-			until
-				l_grid_data_increased.after
-			loop
-				if not filter.filter_class (l_grid_data_increased.item_for_iteration.text) then
-					l_i := l_i + 1
-					create l_item.make_with_text (l_grid_data_increased.item_for_iteration.text)
-					l_item.set_pixmap (icons.object_grid_class_icon)
-					grid_changed.set_item (1, l_i, l_item)
-					l_int := l_grid_data_increased.item_for_iteration.nb
-					create l_item.make_with_text (l_int.out)
-					if l_int > 0 then
-						l_item.set_foreground_color (increased_color)
-					else
-						l_item.set_foreground_color (decreased_color)
+			if attached grid_data_increased as l_grid_data_increased then
+				from
+					l_grid_data_increased.start
+				until
+					l_grid_data_increased.after
+				loop
+					if not filter.filter_class (l_grid_data_increased.item_for_iteration.text) then
+						l_i := l_i + 1
+						create l_item.make_with_text (l_grid_data_increased.item_for_iteration.text)
+						l_item.set_pixmap (icons.object_grid_class_icon)
+						grid_changed.set_item (1, l_i, l_item)
+						l_int := l_grid_data_increased.item_for_iteration.nb
+						create l_item.make_with_text (l_int.out)
+						if l_int > 0 then
+							l_item.set_foreground_color (increased_color)
+						else
+							l_item.set_foreground_color (decreased_color)
+						end
+						grid_changed.set_item (2, l_i, l_item)
 					end
-					grid_changed.set_item (2, l_i, l_item)
+					l_grid_data_increased.forth
 				end
-				l_grid_data_increased.forth
+			else
+				check grid_data_increased_set: False end -- Implied by preconditions.
 			end
 		end
 
@@ -227,19 +239,19 @@ feature {NONE} -- Implemention
 			grid_from_state.column (2).set_title ("Objects count")
 			grid_from_state.column (3).set_title ("Eiffel memory used")
 			grid_from_state.column (4).set_title ("C memory used")
-			grid_from_state.column (1).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (1, grid_from_state))
-			grid_from_state.column (2).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (2, grid_from_state))
-			grid_from_state.column (3).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (3, grid_from_state))
-			grid_from_state.column (4).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (4, grid_from_state))
+			grid_from_state.column (1).header_item.pointer_double_press_actions.extend (agent adjust_column_width (1, grid_from_state, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_from_state.column (2).header_item.pointer_double_press_actions.extend (agent adjust_column_width (2, grid_from_state, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_from_state.column (3).header_item.pointer_double_press_actions.extend (agent adjust_column_width (3, grid_from_state, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_from_state.column (4).header_item.pointer_double_press_actions.extend (agent adjust_column_width (4, grid_from_state, ?, ?, ?, ?, ?, ?, ?, ?))
 
 			grid_to_state.insert_new_column (1)
 			grid_to_state.insert_new_column (2)
 			grid_to_state.insert_new_column (3)
 			grid_to_state.insert_new_column (4)
-			grid_to_state.column (1).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (1, grid_to_state))
-			grid_to_state.column (2).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (2, grid_to_state))
-			grid_to_state.column (3).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (3, grid_to_state))
-			grid_to_state.column (4).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (4, grid_to_state))
+			grid_to_state.column (1).header_item.pointer_double_press_actions.extend (agent adjust_column_width (1, grid_to_state, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_to_state.column (2).header_item.pointer_double_press_actions.extend (agent adjust_column_width (2, grid_to_state, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_to_state.column (3).header_item.pointer_double_press_actions.extend (agent adjust_column_width (3, grid_to_state, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_to_state.column (4).header_item.pointer_double_press_actions.extend (agent adjust_column_width (4, grid_to_state, ?, ?, ?, ?, ?, ?, ?, ?))
 			grid_to_state.column (1).set_title ("To state")
 			grid_to_state.column (2).set_title ("Objects count")
 			grid_to_state.column (3).set_title ("Eiffel memory used")
@@ -249,17 +261,17 @@ feature {NONE} -- Implemention
 			grid_changed.insert_new_column (2)
 			grid_changed.column (1).set_title ("Object type")
 			grid_changed.column (2).set_title ("Delta")
-			grid_changed.column (1).header_item.pointer_button_press_actions.force_extend (agent on_grid_header_click (1))
-			grid_changed.column (2).header_item.pointer_button_press_actions.force_extend (agent on_grid_header_click (2))
-			grid_changed.column (1).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (1, grid_changed))
-			grid_changed.column (2).header_item.pointer_double_press_actions.force_extend (agent adjust_column_width (2, grid_changed))
+			grid_changed.column (1).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (1, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_changed.column (2).header_item.pointer_button_press_actions.extend (agent on_grid_header_click (2, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_changed.column (1).header_item.pointer_double_press_actions.extend (agent adjust_column_width (1, grid_changed, ?, ?, ?, ?, ?, ?, ?, ?))
+			grid_changed.column (2).header_item.pointer_double_press_actions.extend (agent adjust_column_width (2, grid_changed, ?, ?, ?, ?, ?, ?, ?, ?))
 		ensure
 			grid_from_state_column_set: grid_from_state.column_count = 4
 			grid_to_state_column_set: grid_to_state.column_count = 4
 			grid_changed_column_set: grid_changed.column_count = 2
 		end
 
-	on_grid_header_click (a_column_index: INTEGER)
+	on_grid_header_click (a_column_index: INTEGER; x, y, b: INTEGER_32; x_tilt, y_tilt, p: REAL_64; screen_x, screen_y: INTEGER_32)
 			-- User click on the column header of index `a_column_index'.
 		require
 			a_column_index_positive: a_column_index > 0
@@ -280,36 +292,37 @@ feature {NONE} -- Implemention
 			end
 		end
 
-	handle_pick_item (a_item: EV_GRID_LABEL_ITEM): MA_CLASS_STONE
+	handle_pick_item (a_item: detachable EV_GRID_LABEL_ITEM): detachable MA_CLASS_STONE
 			-- User pick a item from grid to filter.
-		local
-			l_result: detachable like handle_pick_item
 		do
-			if a_item /= Void and a_item.column.index = 1 then
-				l_result := create {MA_CLASS_STONE}.make (a_item.text)
+			if a_item /= Void and then a_item.column.index = 1 then
+				create {MA_CLASS_STONE} Result.make (a_item.text)
 			end
-			check attached l_result end -- FIXME: Implied by ...?
-			Result := l_result
 		end
 
 	sort_data
 			-- Sort `grid_data' according to `sorted_column' and `sorting_order'.
 		require
-			set: attached grid_data_increased
+			grid_data_increased_set: attached grid_data_increased
 		local
 			l_sorter: QUICK_SORTER [like grid_data_increased_row]
 			l_agent_sorter: AGENT_EQUALITY_TESTER [like grid_data_increased_row]
 			l_grid_data_increased: like grid_data_increased
 		do
-			inspect
-				sorted_column
-			when 1 then create l_agent_sorter.make (agent sort_on_type_name)
-			when 2 then create l_agent_sorter.make (agent sort_on_count)
-			end
-			create l_sorter.make (l_agent_sorter)
 			l_grid_data_increased := grid_data_increased
-			check attached l_grid_data_increased end -- Implied by precondition
-			l_sorter.sort (l_grid_data_increased)
+			if l_grid_data_increased /= Void then
+				inspect
+					sorted_column
+				when 1 then
+					create l_agent_sorter.make (agent sort_on_type_name)
+				when 2 then
+					create l_agent_sorter.make (agent sort_on_count)
+				end
+				create l_sorter.make (l_agent_sorter)
+				l_sorter.sort (l_grid_data_increased)
+			else
+				check grid_data_increased_set: False end -- Implied by precondition
+			end
 		end
 
 	sorting_order: BOOLEAN
@@ -348,13 +361,9 @@ feature {NONE} -- Implemention
 			-- Anchor type should not called.
 			-- first INTEGER is increased object count, second INTEGER is the increased objects type id
 		require
-			False
-		local
-			l_result: detachable like grid_data_increased_row
+			callable: False
 		do
-			check False end -- Anchor type only
-			check attached l_result end -- Satisfy void-safe compiler
-			Result := l_result
+			check False then end -- Anchor type only, Satisfy void-safe compiler
 		end
 
 	grid_data_increased: detachable ARRAYED_LIST [like grid_data_increased_row]
@@ -367,13 +376,9 @@ feature {NONE} -- Implemention
 			-- Type for the data inserted in grid
 			-- It is [Object Type Name, Eiffel Memory Used, C Memory Used, TypeId].
 		require
-			False
-		local
-			l_result: detachable like row_data
+			callable: False
 		do
-			check False end -- Anchor type only
-			check attached l_result end -- Satisfy void-safe compiler
-			Result := l_result
+			check False then end -- Anchor type only, Satisfy void-safe compiler
 		end
 
 	grid_from_state, grid_to_state: EV_GRID -- Two grid show states.
@@ -393,7 +398,7 @@ invariant
 	grid_increased_not_void: grid_changed /= Void
 	grid_data_not_void: grid_data /= Void
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -402,8 +407,5 @@ note
 			Website http://www.eiffel.com
 			Customer support http://support.eiffel.com
 		]"
-
-
-
 
 end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Visitor that parses all needed configuration files."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -55,19 +55,25 @@ feature -- Visit nodes
 	process_target (a_target: CONF_TARGET)
 			-- Visit `a_target'.
 		local
-			l_pre: detachable CONF_PRECOMPILE
 			l_libs: HASH_TABLE [CONF_TARGET, UUID]
 		do
 			if not is_error then
+					-- TODO: check if it makes sense to set the application target for a remote parent target.
+
 					-- set application target
 				a_target.system.set_application_target (application_target)
 
-				l_pre := a_target.precompile
-				if l_pre /= Void then
-					l_pre.process (Current)
+				if attached a_target.precompile as p and then p.is_enabled (state) then
+					p.process (Current)
 				end
 
-				a_target.libraries.linear_representation.do_if (agent {CONF_LIBRARY}.process (Current), agent {CONF_LIBRARY}.is_enabled (state))
+				across
+					a_target.libraries as ic
+				loop
+					if ic.item.is_enabled (state) then
+						ic.item.process (Current)
+					end
+				end
 
 					-- set `all_libraries' from `libraries' but discarding the
 					-- parent information which is only used internally to report nice errors.
@@ -76,6 +82,14 @@ feature -- Visit nodes
 					l_libs.put (l_library.item.base, l_library.key)
 				end
 				a_target.system.set_all_libraries (l_libs)
+
+					-- Also parse remaining info for remote parents (such as libraries...)!
+				if
+					attached a_target.remote_parent as l_remote_parent and then
+					attached a_target.extends as l_extends
+				then
+					l_extends.process (Current)
+				end
 			end
 		ensure then
 			all_libraries_set: not is_error implies a_target.system.all_libraries /= Void
@@ -102,6 +116,7 @@ feature -- Visit nodes
 		do
 			l_path := a_library.path
 			create l_load.make (factory)
+			l_load.set_parent_target (application_target)
 			l_load.retrieve_uuid (l_path)
 			if attached l_load.last_error as l_load_last_error then
 				if attached {CONF_ERROR_FILE} l_load_last_error as l_ferr then
@@ -122,7 +137,7 @@ feature -- Visit nodes
 						-- compiler specific condition which is always false (as if library was excluded
 						-- from current build).
 					create l_cond.make
-					l_cond.add_custom ("backup_ignore_bad_library", "false", False)
+					l_cond.add_custom ("backup_ignore_bad_library", "false", create {CONF_CONDITION_CUSTOM_ATTRIBUTES})
 					a_library.set_conditions (Void)
 					a_library.add_condition (l_cond)
 				else
@@ -155,7 +170,15 @@ feature -- Visit nodes
 						application_target.options.is_warning_enabled (w_same_uuid) and then
 						not (create {PATH}.make_from_string (l_path)).is_same_file_as (l_existing_target.base.system.file_path)
 					then
-						add_warning (create {CONF_ERROR_UUIDFILE}.make (a_library.target.system.file_name, l_path, l_existing_target.parent.system.file_name, l_existing_target.base.system.file_name))
+							-- Check for redirection cases.
+						if
+							attached l_load.last_redirected_location as l_new_path and then
+							l_new_path.is_same_file_as (l_existing_target.base.system.file_path)
+						then
+								-- Ok same final file, as it is an ecf redirection.
+						else
+							add_warning (create {CONF_ERROR_UUIDFILE}.make (a_library.target.system.file_name, l_path, l_existing_target.parent.system.file_name, l_existing_target.base.system.file_name))
+						end
 					end
 				else
 					l_load.retrieve_configuration (l_path)
@@ -203,16 +226,16 @@ feature -- Visit nodes
 			-- Visit `a_precompile'.
 		do
 				-- if precompile has all_libraries set, use those
-			if attached a_precompile.library_target as l_precomp_target and then attached l_precomp_target.system.all_libraries as l_libs then
-				from
-					l_libs.start
-				until
-					l_libs.after
+			if
+				attached a_precompile.library_target as l_precomp_target and then
+				attached l_precomp_target.system.all_libraries as l_libs
+			then
+				across
+					l_libs as l
 				loop
-					l_libs.item_for_iteration.system.set_application_target (application_target)
-					libraries.force ([application_target, l_libs.item_for_iteration], l_libs.key_for_iteration)
-					processed_targets.force (l_libs.item_for_iteration)
-					l_libs.forth
+					l.item.system.set_application_target (application_target)
+					libraries.force ([application_target, l.item], l.key)
+					processed_targets.force (l.item)
 				end
 			end
 			process_library (a_precompile)
@@ -243,7 +266,7 @@ invariant
 	factory_not_void: factory /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

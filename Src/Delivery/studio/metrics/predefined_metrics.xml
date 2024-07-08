@@ -152,6 +152,12 @@
 			<normal_criterion negation="False" name="has_postcondition" unit="feature"></normal_criterion>
 		</criterion>
 	</basic_metric>
+	<basic_metric name="Class-Postcondition equipped features" unit="feature">
+		<description>Number of features which have class postconditions</description>
+		<criterion>
+			<normal_criterion negation="False" name="has_class_postcondition" unit="feature"></normal_criterion>
+		</criterion>
+	</basic_metric>
 	<basic_metric name="Precondition equipped features" unit="feature">
 		<description>Number of features which have precondtions</description>
 		<criterion>
@@ -542,6 +548,21 @@
 			<and_criterion name="and" unit="feature" negation="False">				
 				<normal_criterion name="is_immediate" unit="feature" negation="False"></normal_criterion>
 				<normal_criterion name="is_once" unit="feature" negation="False"></normal_criterion>
+			</and_criterion>
+		</criterion>
+	</basic_metric>	
+	<basic_metric name="Instance-free features" unit="feature">
+		<description>Number of instance-free features</description>
+		<criterion>
+			<normal_criterion name="is_instance_free" unit="feature" negation="False"></normal_criterion>
+		</criterion>
+	</basic_metric>
+	<basic_metric name="Imm. instance-free features" unit="feature">
+		<description>Number of immediate instance-free features</description>
+		<criterion>
+			<and_criterion name="and" unit="feature" negation="False">				
+				<normal_criterion name="is_immediate" unit="feature" negation="False"></normal_criterion>
+				<normal_criterion name="is_instance_free" unit="feature" negation="False"></normal_criterion>
 			</and_criterion>
 		</criterion>
 	</basic_metric>	

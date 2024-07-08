@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Representation of a constant"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -13,18 +13,46 @@ inherit
 			do_check_types as old_do_check_types,
 			equiv as basic_equiv
 		redefine
-			assigner_name_id, transfer_to, transfer_from, access_for_feature, melt, generate,
-			is_once, redefinable, is_constant,
-			set_type, type, generate_il, to_generate_in,
-			new_rout_entry, extension
+			access_for_feature,
+			assigner_name_id,
+			extension,
+			generate,
+			generate_il,
+			has_class_postcondition,
+			is_constant,
+			is_once,
+			is_target_free,
+			melt,
+			new_rout_entry,
+			redefinable,
+			set_type,
+			to_generate_in,
+			transfer_from,
+			transfer_to,
+			type
 		end
 
 	ENCAPSULATED_I
 		redefine
-			assigner_name_id, transfer_to, transfer_from, do_check_types, access_for_feature, equiv,
-			melt, generate, is_once, redefinable, is_constant,
-			set_type, type, generate_il, to_generate_in,
-			new_rout_entry, extension
+			access_for_feature,
+			assigner_name_id,
+			do_check_types,
+			equiv,
+			extension,
+			generate,
+			generate_il,
+			has_class_postcondition,
+			is_constant,
+			is_once,
+			is_target_free,
+			melt,
+			new_rout_entry,
+			redefinable,
+			set_type,
+			to_generate_in,
+			transfer_from,
+			transfer_to,
+			type
 		select
 			do_check_types, equiv
 		end
@@ -69,10 +97,22 @@ feature -- Access
 feature -- Status report
 
 	is_constant: BOOLEAN = True
-			-- Is the current feature a constant one ?
+			-- Is the current feature a constant one?
 
 	redefinable: BOOLEAN = False
-			-- Is a constant redefinable ?
+			-- Is a constant redefinable?
+
+	has_class_postcondition: BOOLEAN
+			-- <Precursor>
+		do
+			Result := Precursor or else not has_unqualified_call_in_assertion
+		end
+
+	is_target_free: BOOLEAN
+			-- <Precursor>
+		do
+			Result := not has_unqualified_call_in_assertion
+		end
 
 feature -- Settings
 
@@ -188,11 +228,8 @@ feature -- Incrementality
 
 	equiv (other: FEATURE_I): BOOLEAN
 			-- Is `other' equivalent to Current ?
-		local
-			other_constant: like Current
 		do
-			other_constant ?= other
-			if other_constant /= Void then
+			if attached {like Current} other as other_constant then
 				Result := Precursor {ENCAPSULATED_I} (other_constant)
 						and then value.is_propagation_equivalent (other_constant.value)
 			end
@@ -303,7 +340,7 @@ feature -- C code generation
 			end
 		end
 
-	access_for_feature (access_type: TYPE_A; static_type: TYPE_A; is_qualified: BOOLEAN; is_separate: BOOLEAN): ACCESS_B
+	access_for_feature (access_type: TYPE_A; static_type: TYPE_A; is_qualified: BOOLEAN; is_separate: BOOLEAN; is_free: BOOLEAN): ACCESS_B
 			-- Byte code access for constant. Dynamic binding if
 			-- `static_type' is Void, otherwise static binding on `static_type'.
 		local
@@ -313,7 +350,7 @@ feature -- C code generation
 		do
 			if is_process_or_thread_relative_once then
 					-- Cannot hardwire string constants, ever.
-				Result := Precursor (access_type, static_type, is_qualified, is_separate)
+				Result := Precursor (access_type, static_type, is_qualified, is_separate, is_free)
 			else
 				if is_qualified then
 						-- To fix eweasel test#term155 we remove all anchors from
@@ -335,7 +372,7 @@ feature -- C code generation
 				else
 						-- Constants are hardwired in final mode
 					create constant_b.make (value)
-					constant_b.set_access (Precursor (access_type, static_type, is_qualified, is_separate))
+					constant_b.set_access (Precursor (access_type, static_type, is_qualified, is_separate, is_free))
 					Result := constant_b
 				end
 			end
@@ -501,10 +538,11 @@ feature {NONE} -- Implementation
 			create Result.make (feature_name_id, alias_name, has_convert_mark, feature_id)
 			Result.set_type (type, assigner_name)
 			Result.set_value (value.string_value)
+			Result.set_class (is_class)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

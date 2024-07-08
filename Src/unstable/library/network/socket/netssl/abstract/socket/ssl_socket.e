@@ -37,6 +37,16 @@ feature -- SSL
 			context := l_context
 			l_context.create_ssl
 
+				-- Server name indication is only used by TLS protocol.
+			if
+				attached server_name as l_server_name and then (
+				tls_protocol = {SSL_PROTOCOL}.tls_1_0 or else
+				tls_protocol = {SSL_PROTOCOL}.tls_1_1 or else
+				tls_protocol = {SSL_PROTOCOL}.tls_1_2)
+			then
+				l_context.ssl_set_tlsext_host_name (l_server_name)
+			end
+
 			if attached l_context.last_ssl as l_ssl then
 				l_ssl.set_fd (descriptor)
 				l_ssl.connect
@@ -170,12 +180,24 @@ feature -- Access
 
 feature -- Change Element
 
+	unset_certificate_x509_string
+			-- Unset `certificate_x509_string'.
+		do
+			certificate_x509_string := Void
+		end
+
 	set_certificate_x509_string (a_x509: STRING_8)
 			-- X09 certificate manifest string.
 		do
 			certificate_x509_string := a_x509
 		ensure
 			certificate_x509_string_set: attached certificate_x509_string as l_509 implies l_509.same_string (a_x509)
+		end
+
+	unset_private_rsa_key_string
+			-- Unset `private_rsa_key_string'.
+		do
+			private_rsa_key_string := Void
 		end
 
 	set_private_rsa_key_string ( a_rsa_key: STRING_8)
@@ -186,10 +208,20 @@ feature -- Change Element
 			private_rsa_key_string_set: attached private_rsa_key_string as l_rsa_key implies l_rsa_key.same_string (a_rsa_key)
 		end
 
+	unset_certificate_file
+		do
+			certificate_file_path := Void
+		end
+
 	set_certificate_file_path (a_path: PATH)
 			-- Set `certificate_file_path' to `a_path'
 		do
 			certificate_file_path := a_path
+		end
+
+	unset_key_file
+		do
+			key_file_path := Void
 		end
 
 	set_key_file_path (a_path: PATH)
@@ -210,6 +242,18 @@ feature -- Change Element
 			set_key_file_path (create {PATH}.make_from_string (a_file_name))
 		end
 
+feature -- Client Server Name Indication
+
+	set_tls_server_name_indication (a_server_name: READABLE_STRING_GENERAL)
+		note
+			EIS:"name=Server Name Indication", "src=https://en.wikipedia.org/wiki/Server_Name_Indication", "protocol=uri"
+		do
+			server_name := a_server_name
+		ensure
+			server_name_set: attached server_name as l_server_name implies l_server_name.same_string (a_server_name)
+		end
+
+
 feature {NONE} -- Implementation
 
 	shutdown
@@ -228,8 +272,11 @@ feature {NONE} -- Attributes
 	context: detachable SSL_CONTEXT;
 			-- The SSL structure used in the SSL/TLS communication	
 
-note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software and others"
+	server_name: detachable READABLE_STRING_GENERAL
+			-- The name of the hostname used by TLS extension.		
+
+;note
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

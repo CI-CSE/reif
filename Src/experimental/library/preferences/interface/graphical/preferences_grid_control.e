@@ -215,7 +215,7 @@ feature -- Access
 	widget: EV_WIDGET
 			-- Main widget
 
-	close_button_action: detachable PROCEDURE [ANY, TUPLE]
+	close_button_action: detachable PROCEDURE
 			-- Action called when "Close" button is pressed.
 
 	parent_window: detachable EV_WINDOW note option: stable attribute end
@@ -248,7 +248,7 @@ feature -- Access
 feature -- Obsolete
 
 	register_preference_widget (a_pref_widget: PREFERENCE_WIDGET)
-			obsolete "[090514] do not use, this had no effect at all, so this was removed"
+		obsolete "do not use, this had no effect at all, so this was removed [2017-05-31]."
 		do
 		end
 
@@ -481,6 +481,10 @@ feature {NONE} -- Events
 			s: detachable STRING_32
 			stor: PREFERENCES_STORAGE_XML
 			p: detachable EV_WINDOW
+			popup: detachable EV_POPUP_WINDOW
+			bb,vb: EV_VERTICAL_BOX
+			lab: EV_LABEL
+			l_style: detachable EV_POINTER_STYLE
 		do
 			p := parent_window
 			if p = Void then
@@ -492,7 +496,44 @@ feature {NONE} -- Events
 				s := dlg.file_name
 				if s /= Void then
 					create stor.make_with_location_and_version (s, preferences.version)
-					preferences.import_from_storage (stor)
+
+						-- Busy style
+					l_style := p.pointer_style
+					p.set_pointer_style (create {EV_POINTER_STYLE}.make_predefined ({EV_POINTER_STYLE_CONSTANTS}.busy_cursor))
+
+						-- Popup dialog
+					create popup.make_with_shadow
+					create bb
+					bb.set_border_width (1)
+					create vb
+					bb.extend (vb)
+					vb.set_border_width (10)
+					create lab.make_with_text (l_importing_preferences)
+					lab.align_text_left
+					vb.extend (lab)
+
+					create lab.make_with_text ("...")
+					lab.align_text_left
+					vb.extend (lab)
+
+					popup.extend (bb)
+					popup.set_background_color ((create {EV_STOCK_COLORS}).white)
+					popup.propagate_background_color
+					bb.set_background_color ((create {EV_STOCK_COLORS}).blue)
+					popup.set_width ((9 * p.width) // 10)
+					popup.set_position (p.x_position + (p.width - popup.width) // 2, p.y_position + (p.height - popup.height) // 2)
+					popup.show_relative_to_window (p)
+					popup.refresh_now
+
+					preferences.import_from_storage_with_callback (stor, agent (ia_txt: EV_LABEL; ia_i, ia_count: INTEGER; ia_name, ia_value: READABLE_STRING_GENERAL)
+							do
+								ia_txt.set_text ("[" + ia_i.out + "/" + ia_count.out + "] " + ia_name.out + "%N")
+								ia_txt.refresh_now
+							end (lab, ?, ?, ?, ?))
+					popup.destroy
+					if l_style /= Void then
+						p.set_pointer_style (l_style)
+					end
 					rebuild
 				end
 			end
@@ -779,6 +820,7 @@ feature {NONE} -- Implementation
 	add_parent_structure_preference_row (a_pref_parent_full_name: READABLE_STRING_GENERAL; a_grid_structure: STRING_TABLE [EV_GRID_ROW])
 		require
 			structured_mode: grid.is_tree_enabled
+			a_pref_parent_full_name_not_empty: not a_pref_parent_full_name.is_empty
 			no_row_for_pref: not a_grid_structure.has (a_pref_parent_full_name)
 		local
 			l_parent_name: READABLE_STRING_GENERAL
@@ -874,7 +916,7 @@ feature {NONE} -- Implementation
 			l_prefs_to_sort: detachable LIST [PREFERENCE]
 			l_known_pref_ht: STRING_TABLE [PREFERENCE]
 			l_sorted_preferences: SORTED_TWO_WAY_LIST [PROXY_COMPARABLE [TUPLE [pref_name: STRING_32; index: STRING_32]]]
-			l_compare_agent: PREDICATE [ANY, TUPLE [TUPLE [STRING_32, STRING_32], TUPLE [STRING_32, STRING_32]]]
+			l_compare_agent: PREDICATE [TUPLE [STRING_32, STRING_32], TUPLE [STRING_32, STRING_32]]
 			l_proxy_comparable: PROXY_COMPARABLE [TUPLE [pref_name: STRING_32; index: STRING_32]]
 			l_pref_index, l_pref_name, l_display_name: STRING_32
 			l_pref: detachable PREFERENCE
@@ -1313,11 +1355,15 @@ feature {NONE} -- Implementation
 		end
 
 	formatted_name (a_name: READABLE_STRING_GENERAL): STRING_32
-			-- Formatted name for display
+			-- Formatted name for display.
+		require
+			not_empty: not a_name.is_empty
 		do
 			create Result.make_from_string_general (a_name)
-			Result.replace_substring_all ({STRING_32} "_", {STRING_32} " ")
-			Result.put (Result.item (1).upper, 1)
+			if not Result.has (' ') then
+				Result.replace_substring_all ({STRING_32} "_", {STRING_32} " ")
+			end
+			Result [1] := Result [1].upper
 		ensure
 			a_name /= Result
 		end
@@ -1670,7 +1716,7 @@ feature {NONE} -- Private attributes
 	default_row_height: INTEGER
 			-- Default row height
 
-	display_update_agent: PROCEDURE [ANY, TUPLE [PREFERENCE]]
+	display_update_agent: PROCEDURE [PREFERENCE]
 			-- Agent to be called when preference is changed outside	
 
 	col_name_index: INTEGER = 1
@@ -1695,7 +1741,7 @@ invariant
 	has_preferences: preferences /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

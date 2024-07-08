@@ -156,7 +156,7 @@ feature -- Status report
 
 feature -- Status setting
 
-	execute_without_collection (a_action: PROCEDURE [ANY, TUPLE])
+	execute_without_collection (a_action: PROCEDURE)
 			-- Execute `a_action' with the garbage collector disabled.
 			-- If `a_action' modifies the status of `collecting', we restore
 			-- it no matter what at the end.
@@ -201,19 +201,19 @@ feature -- Status setting
 		end
 
 	allocate_fast
-			-- Enter ``speed'' mode: will optimize speed of memory
+			-- Enter `speed' mode: will optimize speed of memory
 			-- allocation rather than memory usage.
 		do
 		end
 
 	allocate_compact
-			-- Enter ``memory'' mode: will try to compact memory
+			-- Enter `memory' mode: will try to compact memory
 			-- before requesting more from the operating system.
 		do
 		end
 
 	allocate_tiny
-			-- Enter ``tiny'' mode: will enter ``memory'' mode
+			-- Enter `tiny' mode: will enter `memory' mode
 			-- after having freed as much memory as possible.
 		do
 		end

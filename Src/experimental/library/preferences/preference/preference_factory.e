@@ -29,8 +29,8 @@ feature -- Commands
 			value_not_void: a_fallback_value /= Void
 		local
 			l_fullname: STRING_8
-			l_value: detachable STRING_32
-			l_desc: detachable STRING_32
+			l_value: detachable READABLE_STRING_32
+			l_desc: detachable READABLE_STRING_32
 		do
 			l_fullname := a_name
 			l_value := preferences.session_values.item (l_fullname)
@@ -77,13 +77,13 @@ feature -- Commands
 		end
 
 	new_resource (preferences: PREFERENCES; a_manager: PREFERENCE_MANAGER; a_name: STRING; a_fallback_value: G): H
-		obsolete "[060113] use new_preference instead of new_resource."
+		obsolete "Use `new_preference` [2017-05-31]."
 		do
 			Result := new_preference (preferences, a_manager, a_name, a_fallback_value)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2015, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

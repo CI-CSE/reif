@@ -2,7 +2,7 @@
 	description: "Option queries, profiler core, tracer core."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2006, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2018, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
@@ -39,6 +39,7 @@ doc:<file name="option.c" header="eif_option.h" version="$Id$" summary="Option q
 */
 
 #include "eif_portable.h"
+#include "eif_option.h"
 #include "eif_project.h"
 #ifdef _CRAY
 #include <sys/machd.h>
@@ -379,7 +380,7 @@ rt_public void check_options_start(EIF_CONTEXT struct eif_opt *opt, EIF_TYPE_IND
           				/* Dtype of the Eiffel class */
 {
 	/* Check whether the class `dtype' has E-TRACE or E-PROFILE
-	 * options in `opt' and dispatch to the finctions `start_trace()'
+	 * options in `opt' and dispatch to the functions `start_trace()'
 	 * and `start_profile()' if necessary.
 	 * This function is directly called by RTSA in WORKBENCH mode; it is
 	 * called explicitly from the interpreter as soon as it determines that

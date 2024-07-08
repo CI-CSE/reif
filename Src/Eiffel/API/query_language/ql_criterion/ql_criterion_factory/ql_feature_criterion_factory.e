@@ -26,7 +26,7 @@ feature{NONE} -- Initialization
 	make
 			-- Initialize.
 		do
-			create agent_table.make (50)
+			create agent_table.make (54)
 			agent_table.put (agent new_false_criterion, c_false)
 			agent_table.put (agent new_has_arguments_criterion, c_has_argument)
 			agent_table.put (agent new_has_assertion_criterion, c_has_assertion)
@@ -35,6 +35,7 @@ feature{NONE} -- Initialization
 			agent_table.put (agent new_has_indexing_criterion, c_has_indexing)
 			agent_table.put (agent new_has_locals_criterion, c_has_local)
 			agent_table.put (agent new_has_postcondition_criterion, c_has_postcondition)
+			agent_table.put (agent new_has_class_postcondition_criterion, c_has_class_postcondition)
 			agent_table.put (agent new_has_precondition_criterion, c_has_precondition)
 			agent_table.put (agent new_has_rescue_criterion, c_has_rescue)
 			agent_table.put (agent new_is_attribute_criterion, c_is_attribute)
@@ -54,6 +55,7 @@ feature{NONE} -- Initialization
 			agent_table.put (agent new_is_invariant_criterion, c_is_invariant_feature)
 			agent_table.put (agent new_is_obsolete_criterion, c_is_obsolete)
 			agent_table.put (agent new_is_once_criterion, c_is_once)
+			agent_table.put (agent new_is_class_criterion, c_is_class)
 			agent_table.put (agent new_is_origin_criterion, c_is_origin)
 			agent_table.put (agent new_is_prefix_criterion, c_is_prefix)
 			agent_table.put (agent new_is_procedure_criterion, c_is_procedure)
@@ -80,7 +82,7 @@ feature{NONE} -- Initialization
 			agent_table.put (agent new_value_criterion, c_value_of_metric_is)
 			agent_table.put (agent new_value_criterion, c_is_satisfied_by)
 
-			create name_table.make (50)
+			create name_table.make (54)
 			name_table.put (c_false, query_language_names.ql_cri_false)
 			name_table.put (c_has_argument, query_language_names.ql_cri_has_argument)
 			name_table.put (c_has_assertion, query_language_names.ql_cri_has_assertion)
@@ -89,6 +91,7 @@ feature{NONE} -- Initialization
 			name_table.put (c_has_indexing, query_language_names.ql_cri_has_indexing)
 			name_table.put (c_has_local, query_language_names.ql_cri_has_local)
 			name_table.put (c_has_postcondition, query_language_names.ql_cri_has_postcondition)
+			name_table.put (c_has_class_postcondition, query_language_names.ql_cri_has_class_postcondition)
 			name_table.put (c_has_precondition, query_language_names.ql_cri_has_precondition)
 			name_table.put (c_has_rescue, query_language_names.ql_cri_has_rescue)
 			name_table.put (c_is_attribute, query_language_names.ql_cri_is_attribute)
@@ -107,6 +110,7 @@ feature{NONE} -- Initialization
 			name_table.put (c_is_invariant_feature, query_language_names.ql_cri_is_invariant_feature)
 			name_table.put (c_is_obsolete, query_language_names.ql_cri_is_obsolete)
 			name_table.put (c_is_once, query_language_names.ql_cri_is_once)
+			name_table.put (c_is_class, query_language_names.ql_cri_is_class)
 			name_table.put (c_is_origin, query_language_names.ql_cri_is_origin)
 			name_table.put (c_is_prefix, query_language_names.ql_cri_is_prefix)
 			name_table.put (c_is_procedure, query_language_names.ql_cri_is_procedure)
@@ -207,6 +211,14 @@ feature{NONE} -- New criterion
 			-- New criterion to test if a feature has postcondition
 		do
 			create Result.make (agent has_postcondition_agent, True)
+		ensure
+			result_attached: Result /= Void
+		end
+
+	new_has_class_postcondition_criterion: QL_SIMPLE_FEATURE_CRITERION
+			-- New criterion to test if a feature has "class" postcondition
+		do
+			create Result.make (agent has_class_postcondition_agent, True)
 		ensure
 			result_attached: Result /= Void
 		end
@@ -360,6 +372,14 @@ feature{NONE} -- New criterion
 			-- New criterion to test if a feature is once
 		do
 			create Result.make (agent is_once_agent, True)
+		ensure
+			result_attached: Result /= Void
+		end
+
+	new_is_class_criterion: QL_SIMPLE_FEATURE_CRITERION
+			-- New criterion to test if a feature is a class one.
+		do
+			create Result.make (agent is_class_agent, True)
 		ensure
 			result_attached: Result /= Void
 		end
@@ -628,6 +648,8 @@ feature -- Criterion index
 	c_value_of_metric_is: INTEGER = 50
 	c_is_effective: INTEGER = 51
 	c_is_satisfied_by: INTEGER = 52
+	c_is_class: INTEGER = 53 -- FIXME jfiat [2017/11/30] : is it safe to change value to insert it upper?
+	c_has_class_postcondition: INTEGER = 54
 
 feature{NONE} -- Implementation
 
@@ -746,6 +768,18 @@ feature{NONE} -- Implementation
 			a_item_valid: a_item.is_valid_domain_item
 		do
 			Result := a_item.is_real_feature and then a_item.e_feature.has_postcondition
+		end
+
+	has_class_postcondition_agent (a_item: QL_FEATURE): BOOLEAN
+			-- Agent to test if `a_item' has "class" postcondition.
+			-- Require compiled: True
+		require
+			a_item_attached: a_item /= Void
+			a_item_valid: a_item.is_valid_domain_item
+		do
+			Result := a_item.is_real_feature and then
+					attached a_item.e_feature.associated_feature_i as fi and then
+					fi.has_immediate_class_postcondition
 		end
 
 	has_precondition_agent (a_item: QL_FEATURE): BOOLEAN
@@ -969,6 +1003,16 @@ feature{NONE} -- Implementation
 			Result := a_item.is_real_feature and then a_item.e_feature.is_once
 		end
 
+	is_class_agent (a_item: QL_FEATURE): BOOLEAN
+			-- Agent to test if `a_item' is a class feature.
+			-- Require compiled: True.
+		require
+			a_item_attached: a_item /= Void
+			a_item_valid: a_item.is_valid_domain_item
+		do
+			Result := a_item.is_real_feature and then a_item.e_feature.is_class
+		end
+
 	is_origin_agent (a_item: QL_FEATURE): BOOLEAN
 			-- Agent to test if `a_item' is origin
 			-- Require compiled: True
@@ -1069,7 +1113,7 @@ feature{NONE} -- Implementation
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

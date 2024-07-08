@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Byte code for creating an instance of TYPE [X] type."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -9,6 +9,8 @@ class TYPE_EXPR_B
 
 inherit
 	EXPR_B
+		rename
+			print_checked_target_register as print_register
 		redefine
 			register, set_register, analyze, generate,
 			propagate, print_register, unanalyze,
@@ -189,7 +191,7 @@ invariant
 	type_data_generics_count: type_data.generics.count = 1
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

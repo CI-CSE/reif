@@ -25,12 +25,29 @@ set EWEASEL_COMMAND=%EWEASEL%\spec\%ISE_PLATFORM%\bin\eweasel-mt.exe
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -max_threads %NUMBER_OF_PROCESSORS%
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define EWEASEL "%EWEASEL%"
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define INCLUDE "%EWEASEL%\control"
-set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define ISE_EIFFEL %ISE_EIFFEL%
+set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define ISE_EIFFEL "%ISE_EIFFEL%"
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define ISE_PLATFORM %ISE_PLATFORM%
-set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define ISE_LIBRARY %ISE_LIBRARY%
+set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define ISE_LIBRARY "%ISE_LIBRARY%"
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define %EWEASEL_PLATFORM% 1
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -define PLATFORM_TYPE %EWEASEL_PLATFORM%
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -init "%EWEASEL%\control\init"
 set EWEASEL_COMMAND=%EWEASEL_COMMAND% -output "%EWEASEL_OUTPUT%"
 
 set ISE_LANG=en_US
+
+rem Create a precompilation folder if no one is specified
+if "%ISE_PRECOMP%" == "" (
+	echo Preparing precompiled libraries
+	call :create_folder "%EWEASEL%\..\eweasel_precomp"
+	call :create_folder "%EWEASEL%\..\eweasel_precomp\%ISE_PLATFORM%"
+	set ISE_PRECOMP=%EWEASEL%\..\eweasel_precomp\%ISE_PLATFORM%
+)
+
+goto :eof
+
+:create_folder
+if not exist %1 (
+	echo Creating %1
+	mkdir %1
+)
+goto :eof

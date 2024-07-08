@@ -237,16 +237,12 @@ feature {NONE} -- Basic operations
 		require
 			a_routine_attached: a_routine /= Void
 			a_operands_attached: a_operands /= Void
-		local
-			l_new: TUPLE
 		do
-			l_new := a_routine.empty_operands
-			check l_new /= Void end
-			if a_operands.count < l_new.count then
-				assert_32 ("size of operands not correct", False)
+			if a_routine.valid_operands (a_operands) then
+				a_routine.flexible_call (a_operands)
+			else
+				assert_32 ("Correct operands for a feature call", False)
 			end
-			set_tuple_attributes (l_new, a_operands, 0)
-			a_routine.call (l_new)
 		end
 
 feature {NONE} -- Object initialization
@@ -754,7 +750,7 @@ feature {NONE} -- Constants
 	dynamic_string_32_type: INTEGER once Result := ({STRING_32}).type_id end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

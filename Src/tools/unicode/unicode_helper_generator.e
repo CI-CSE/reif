@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
 		Analyze the UnicodeData reference specification to produce helper classes that can
 		be used by STRING_32 and CHARACTER_32 to perform some complex string operations.
-		]"
+	]"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -16,31 +16,34 @@ feature {NONE} -- Initialization
 
 	make
 			-- Run application.
-		local
-			l_parser: ARGUMENT_PARSER
 		do
-			create l_parser.make
-			l_parser.execute (agent do_nothing)
-			if l_parser.is_successful and attached l_parser.input_file as l_file then
-				density := l_parser.density
-				output_path := l_parser.output_path
-				is_statistic_requested := l_parser.has_statistic
+			create argument_parser.make
+			argument_parser.execute (agent do_nothing)
+			if argument_parser.is_successful and then attached argument_parser.input_file as l_file then
+				density := argument_parser.density
 				read_unicode_data (l_file)
-				if unicode_data /= Void or has_error then
-					process_properties (l_parser.property_template)
+				if attached unicode_data as l_unicode_data then
+					process_properties (argument_parser.property_template, l_unicode_data)
+				elseif has_error then
+					io.error.put_string (l_file + ": error occured!%N")
 				else
-					io.error.put_string (l_file + " has not unicode character data in it.%N")
+					io.error.put_string (l_file + " has no unicode character data in it.%N")
 				end
 			end
 		end
 
-feature -- Access
+feature {NONE} -- Access
 
 	density: REAL_64
 			-- Density of the table we generate.
 
 	output_path: detachable STRING_32
 			-- Path where files will be generated.
+		require
+			is_successful: argument_parser.is_successful
+		do
+			Result := argument_parser.output_path
+		end
 
 	unicode_data: detachable ARRAYED_LIST [UNICODE_CHARACTER_DATA] note option: stable attribute end
 			-- List collecting all the Unicode characters and their properties.
@@ -48,10 +51,23 @@ feature -- Access
 	unicode_table: detachable HASH_TABLE [UNICODE_CHARACTER_DATA, NATURAL_32] note option: stable attribute end
 			-- Same as `unicode_data' but indexed by the Unicode code.
 
-feature -- Status Report
+	unicode_version: READABLE_STRING_32
+			-- Version of Unicode data.
+		require
+			is_successful: argument_parser.is_successful
+		do
+			Result := argument_parser.unicode_version
+		end
+
+feature {NONE} -- Status Report
 
 	is_statistic_requested: BOOLEAN
 			-- Is generation of statistics required?
+		require
+			is_successful: argument_parser.is_successful
+		do
+			Result := argument_parser.has_statistic
+		end
 
 	has_error: BOOLEAN
 			-- Did we encounter an error of some sort?
@@ -59,7 +75,7 @@ feature -- Status Report
 feature -- Basic operations
 
 	read_unicode_data (a_file: READABLE_STRING_32)
-			-- Read the Unicode data `a_file' and store it into `
+			-- Read the Unicode data `a_file' and store it into `unicode_data` and `unicode_table`.
 		local
 			l_input: PLAIN_TEXT_FILE
 			l_list: like unicode_data
@@ -132,12 +148,10 @@ feature -- Basic operations
 			retry
 		end
 
-	process_properties (a_template_file: READABLE_STRING_32)
+	process_properties (a_template_file: READABLE_STRING_32; a_unicode_data: attached like unicode_data)
 			-- Using `a_file' representing the Unicode standard for lower and upper tables,
 			-- generate Eiffel code for CHARACTER_32 that will let you perform the operation
 			-- `to_lower' and `to_upper'. We only perform simple case folding.
-		require
-			unicode_data_set: unicode_data /= Void
 		local
 			l_input, l_output: PLAIN_TEXT_FILE
 			l_lowers, l_uppers, l_titles: like extract_case_ranges
@@ -147,10 +161,10 @@ feature -- Basic operations
 			l_filename: PATH
 		do
 				-- We generate the various mapping. Those mappings are sparse.
-			l_lowers := extract_case_ranges ("lower", unicode_data, agent {UNICODE_CHARACTER_DATA}.has_lower_code, agent {UNICODE_CHARACTER_DATA}.lower_code)
-			l_uppers := extract_case_ranges ("upper", unicode_data, agent {UNICODE_CHARACTER_DATA}.has_upper_code, agent {UNICODE_CHARACTER_DATA}.upper_code)
-			l_titles := extract_case_ranges ("title", unicode_data, agent {UNICODE_CHARACTER_DATA}.has_title_code, agent {UNICODE_CHARACTER_DATA}.title_code)
-			l_properties := extract_case_ranges ("property", unicode_data, agent {UNICODE_CHARACTER_DATA}.has_property, agent {UNICODE_CHARACTER_DATA}.property_flags)
+			l_lowers := extract_case_ranges ("lower", a_unicode_data, agent {UNICODE_CHARACTER_DATA}.has_lower_code, agent {UNICODE_CHARACTER_DATA}.lower_code)
+			l_uppers := extract_case_ranges ("upper", a_unicode_data, agent {UNICODE_CHARACTER_DATA}.has_upper_code, agent {UNICODE_CHARACTER_DATA}.upper_code)
+			l_titles := extract_case_ranges ("title", a_unicode_data, agent {UNICODE_CHARACTER_DATA}.has_title_code, agent {UNICODE_CHARACTER_DATA}.title_code)
+			l_properties := extract_case_ranges ("property", a_unicode_data, agent {UNICODE_CHARACTER_DATA}.has_property, agent {UNICODE_CHARACTER_DATA}.property_flags)
 
 				-- We have noticed that the table for upper and title cases are very similar.
 				-- As of Unicode 6.2.0, there were really 9 differences (i.e. 3 characters) that
@@ -178,11 +192,13 @@ feature -- Basic operations
 
 			if attached output_path as l_path and then not l_path.is_empty then
 				create l_filename.make_from_string (l_path)
-				create l_output.make_with_path (l_filename.extended (character_32_property_filename))
+				create l_output.make_with_path (l_filename.extended (character_property_filename))
 			else
-				create l_output.make_with_name (character_32_property_filename)
+				create l_output.make_with_name (character_property_filename)
 			end
 			l_output.open_write
+
+			l_class.replace_substring_all (unicode_version_marker, unicode_version.to_string_8)
 
 			l_class.replace_substring_all (tables_marker, l_tables)
 
@@ -227,6 +243,11 @@ feature -- Basic operations
 			-- Helper function that generate the ranges for the various conversion of
 			-- a Unicode character to either lower, upper or title case. This function
 			-- tries to optimize the total density so that it is no less than `density'.
+		require
+			a_table_name_set: a_table_name /= Void
+			a_list_set: a_list /= Void
+			a_filter_set: a_filter /= Void
+			a_value_set: a_value /= Void
 		local
 			l_group: ARRAYED_LIST [TUPLE [key, value: NATURAL_32]]
 			l_upper_group_code: NATURAL_32
@@ -273,31 +294,32 @@ feature -- Basic operations
 
 					-- Iterate through the Unicode data.
 				across a_list as l_char_data loop
-						-- Only care if the Unicode character has some case transformation, but
-						-- since we optimized ASCII value, we ignore them.
-					if l_char_data.item.code > {CHARACTER_8}.max_ascii_value.to_natural_32 then
+					if
+							-- Only care if the Unicode character has some case transformation, but
+							-- since we optimized ASCII value, we ignore them.
+						l_char_data.item.code > {CHARACTER_8}.max_ascii_value.to_natural_32 and then
 							-- Only care about our particular case transformation
-						if a_filter.item ([l_char_data.item]) then
-							if l_upper_group_code = 0 then
-									-- This is the first character we encounter that have a case transformation.
-									-- We initialize the upper bound of the group for the first time.
-								l_upper_group_code := l_char_data.item.code
-							end
-								-- Increment our number of characters.
-							l_total_count := l_total_count + 1
-								-- If the previous code is more than `l_offset' character away, we create a group.
-							if l_char_data.item.code > l_upper_group_code + l_offset then
-									-- Calcualte the gap between the previous group and this new one.
-								l_smallest_offset := l_smallest_offset.min (l_char_data.item.code - l_upper_group_code + 1)
-									-- Create a new group where characters will be added
-								create l_group.make (10)
-								Result.extend (l_group)
-							end
-								-- Set `l_upper_group_code' with the new upper bound of the group.
+						a_filter.item ([l_char_data.item])
+					then
+						if l_upper_group_code = 0 then
+								-- This is the first character we encounter that have a case transformation.
+								-- We initialize the upper bound of the group for the first time.
 							l_upper_group_code := l_char_data.item.code
-								-- Extend our character and its cased transformation in our group.
-							l_group.extend ([l_upper_group_code, a_value.item ([l_char_data.item])])
 						end
+							-- Increment our number of characters.
+						l_total_count := l_total_count + 1
+							-- If the previous code is more than `l_offset' character away, we create a group.
+						if l_char_data.item.code > l_upper_group_code + l_offset then
+								-- Calcualte the gap between the previous group and this new one.
+							l_smallest_offset := l_smallest_offset.min (l_char_data.item.code - l_upper_group_code + 1)
+								-- Create a new group where characters will be added
+							create l_group.make (10)
+							Result.extend (l_group)
+						end
+							-- Set `l_upper_group_code' with the new upper bound of the group.
+						l_upper_group_code := l_char_data.item.code
+							-- Extend our character and its cased transformation in our group.
+						l_group.extend ([l_upper_group_code, a_value.item ([l_char_data.item])])
 					end
 				end
 
@@ -341,6 +363,8 @@ feature -- Basic operations
 				io.put_string ("Table " + a_table_name + " has a density of " + l_formatter.formatted ((l_total_count / l_used_space_count)) + " in " + Result.count.out + " group(s) for " + l_total_count.out + " character(s)")
 				io.put_new_line
 			end
+		ensure
+			result_set: Result /= Void
 		end
 
 	generate_case_ranges (a_output: STRING; a_ranges: like extract_case_ranges; a_table_name: STRING; is_identity: BOOLEAN)
@@ -445,7 +469,6 @@ feature -- Basic operations
 			a_output.append (" <= l_code) and (l_code <= ")
 			a_output.append_natural_32 (a_ranges.i_th (1).last.key)
 			a_output.append (") then")
-			write_tab (a_output, a_nb_tab)
 			a_output.append_character ('%N')
 			write_tab (a_output, a_nb_tab + 1)
 			a_output.append ("Result := ")
@@ -492,7 +515,6 @@ feature -- Basic operations
 					a_output.append_natural_32 (a_ranges.i_th (a_lower_bound).last.key)
 				end
 				a_output.append (" then")
-				write_tab (a_output, a_nb_tab)
 				a_output.append_character ('%N')
 				write_tab (a_output, a_nb_tab + 1)
 				a_output.append ("Result := ")
@@ -574,7 +596,7 @@ feature {NONE} -- Helpers
 			l_same := True
 			across a_table as l_entry until not l_same loop
 					-- Compute the upper character for the set
-				if attached unicode_table.item (l_entry.item.first) as l_char then
+				if attached unicode_table as l_unicode_table and then attached l_unicode_table.item (l_entry.item.first) as l_char then
 					if l_char.has_upper_code then
 						l_upper_char := l_char.upper_code
 					else
@@ -583,7 +605,7 @@ feature {NONE} -- Helpers
 				end
 				l_same := True
 				across l_entry.item as l_codes until not l_same loop
-					if attached unicode_table.item (l_codes.item) as l_char then
+					if attached unicode_table as l_unicode_table and then attached l_unicode_table.item (l_codes.item) as l_char then
 						if l_char.has_upper_code then
 							l_same := l_char.upper_code = l_upper_char
 						else
@@ -667,29 +689,26 @@ feature {NONE} -- Helpers
 			i: INTEGER
 		do
 			from
-				i := 1
+				i := a_nb_tab
 			until
-				i > a_nb_tab
+				i <= 0
 			loop
 				a_string.append_character ('%T')
-				i := i + 1
+				i := i - 1
 			end
 		end
 
 	table_template: STRING_8 = "{
 	$table_name: SPECIAL [$data_type]
 			-- Table for Unicode characters in the range 0x$low .. 0x$high.
-		local
-			l_array: ARRAY [$data_type]
 		once
-			l_array := <<
+			Result := ({ARRAY [$data_type]} <<
 				$values
-			>>
-			Result := l_array.area
+			>>).area
 		end
 		}"
 
-	character_32_property_filename: STRING_32 = "character_32_property.e"
+	character_property_filename: STRING_32 = "character_property.e"
 			-- Name of output file
 
 	to_lower_table_name: STRING = "to_lower_table_"
@@ -703,6 +722,12 @@ feature {NONE} -- Helpers
 	to_upper_helper_marker: STRING = "--$TO_UPPER_HELPER"
 	to_title_helper_marker: STRING = "--$TO_TITLE_HELPER"
 	property_helper_marker: STRING = "--$PROPERTY_HELPER"
+	unicode_version_marker: STRING = "$UNICODE_VERSION"
 			-- Various marker in the template file that will be replaced.
+
+feature {NONE} -- Command line processing
+
+	argument_parser: ARGUMENT_PARSER
+			-- Parser of command line arguments.
 
 end

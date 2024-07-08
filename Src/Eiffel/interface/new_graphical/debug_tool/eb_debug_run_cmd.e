@@ -1,4 +1,4 @@
-note
+﻿note
 	description	: "Command to run the system while debugging."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -202,20 +202,13 @@ feature -- Execution
 			-- Set widget's top-level window as the debugging window.
 		local
 			trigger: EV_CONTAINABLE
-			cont: EV_ANY
 		do
 			from
 				trigger := widget
-				cont := trigger.parent
 			until
-				cont = Void
+				not attached trigger.parent as parent
 			loop
-				trigger ?= cont
-				if trigger /= Void then
-					cont := trigger.parent
-				else
-					cont := Void
-				end
+				trigger := parent
 			end
 			if
 				attached {EV_WINDOW} trigger as window and
@@ -412,4 +405,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_DEBUG_RUN_COMMAND
+end

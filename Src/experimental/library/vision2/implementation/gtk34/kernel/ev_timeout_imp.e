@@ -30,7 +30,7 @@ create
 
 feature -- Initialization
 
-	old_make (an_interface: like interface)
+	old_make (an_interface: attached like interface)
 			-- Call base make only.
 		do
 			assign_interface (an_interface)
@@ -87,7 +87,7 @@ feature {NONE} -- Implementation
 	timeout_connection_id: NATURAL_32
 		-- GTK handle on timeout connection.
 
-	timeout_agent_internal: detachable PROCEDURE [EV_GTK_CALLBACK_MARSHAL, TUPLE] note option: stable attribute end
+	timeout_agent_internal: detachable PROCEDURE note option: stable attribute end
 		-- Reusable agent used for connecting timeout to gtk implementation.
 
 feature {EV_ANY_I} -- Implementation

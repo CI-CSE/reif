@@ -39,8 +39,8 @@ feature -- Media Type
 	current_media_type (req: WSF_REQUEST): detachable READABLE_STRING_32
 			-- Current media type or Void if it's not acceptable.
 		do
-			if attached {STRING} req.execution_variable ("media_type") as l_type then
-				Result := l_type
+			if attached {READABLE_STRING_8} req.execution_variable ("media_type") as l_type then
+				Result := l_type.to_string_32
 			end
 		end
 
@@ -60,7 +60,7 @@ feature -- Compression
 	current_compression (req: WSF_REQUEST): detachable READABLE_STRING_32
 			-- Current compression encoding or Void if it's not acceptable.
 		do
-			if attached {STRING} req.execution_variable ("compression") as l_encoding then
+			if attached {STRING_32} req.execution_variable ("compression") as l_encoding then
 				Result := l_encoding
 			end
 		end
@@ -86,7 +86,7 @@ feature {NONE} -- Implementations
 							s.append (c.item.url_encoded_name)
 							s.append_character (' ')
 							s.append_character ('{')
-							s.append (c.item.generating_type)
+							s.append (c.item.generating_type.name_32.to_string_8)
 							s.append_character ('}')
 							s.append_character ('=')
 							s.append (c.item.debug_output.as_string_8)

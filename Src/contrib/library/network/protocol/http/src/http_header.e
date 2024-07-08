@@ -180,7 +180,9 @@ feature -- Header: adding
             		if line [line.count] = '%R' then
 						line.remove_tail (1)
             		end
-					add_header (line)
+					if not line.is_empty then
+						add_header (line)
+					end
             	end
 			end
 		end
@@ -226,7 +228,9 @@ feature -- Header: merging
             		if line [line.count] = '%R' then
 						line.remove_tail (1)
             		end
-					put_header (line)
+					if not line.is_empty then
+						put_header (line)
+					end
             	end
 			end
 		end

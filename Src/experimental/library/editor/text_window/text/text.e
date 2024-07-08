@@ -56,6 +56,7 @@ feature {NONE}-- Initialization
 			set_tabulation_size (editor_preferences.tabulation_spaces)
 			finish_reading_string_agent := agent finish_reading_string
 			create current_string.make_empty
+			current_pos := 1
 		end
 
 feature -- Content Change
@@ -74,7 +75,7 @@ feature -- Content Change
 			read_enough_lines: number_of_lines >= first_read_block_size or else reading_text_finished
 		end
 
-feature {TEXT_PANEL} -- Content Change		
+feature  {TEXT_PANEL} -- Content Change		
 
 	flush
 			-- Load texts immediately
@@ -99,7 +100,7 @@ feature -- Reinitialization
 			text_being_processed := True
 			reading_text_finished := False
 			create current_string.make_empty
-			current_pos := 0
+			current_pos := 1
 			if not is_notifying then
 				on_text_reset
 			end
@@ -115,7 +116,7 @@ feature -- Access
 	text: STRING
 			-- Image of text in `Current'.
 		obsolete
-			"Use `wide_text' instead, or wide characters are truncated."
+			"Use `wide_text' instead, or wide characters are truncated. [2017-05-31]"
 		require
 			text_loaded: reading_text_finished
 		do
@@ -572,7 +573,7 @@ feature {NONE} -- Text Loading
 			on_text_fully_loaded
 		end
 
-	finish_reading_string_agent: PROCEDURE [like Current, TUPLE]
+	finish_reading_string_agent: PROCEDURE
 			-- Agent for function `finish_reading_string'
 
 feature {NONE} -- Implementation
@@ -584,7 +585,7 @@ feature {NONE} -- Implementation
 		end
 
 	execute_lexer_with_wide_string (a_string: READABLE_STRING_GENERAL)
-			-- Excute the lexer with wide string.
+			-- Execute the lexer with wide string.
 			-- Convert the string back to `lexer.current_encoding' first.
 		require
 			a_string_not_void: a_string /= Void
@@ -617,9 +618,10 @@ feature -- Memory management
 
 invariant
 	current_line_valid: attached current_line as l_line implies l_line.is_valid
+	positive_current_pos: current_pos > 0
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -629,7 +631,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class TEXT
+end

@@ -1,9 +1,9 @@
-note
+﻿note
 	description	: "Default widget for viewing and editing color preferences."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	date		: "$Date$"
-	revision	: "$Revision$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	DIRECTORY_RESOURCE_WIDGET
@@ -37,7 +37,7 @@ feature -- Basic operations
 	show
 			-- Show widget
 		do
-			show_change_item_widget
+			show_change_item_widget (0, 0, 0, 0, 0, 0, 0, 0)
 		end
 
 feature {PREFERENCE_VIEW} -- Commands
@@ -53,7 +53,7 @@ feature {PREFERENCE_VIEW} -- Commands
 			create l_directory_tool
 			directory_tool := l_directory_tool
 			l_directory_tool.ok_actions.extend (agent update_changes)
-			if caller /= Void and attached caller.parent_window as p then
+			if attached caller as l_caller and then attached l_caller.parent_window as p then
 				l_directory_tool.show_modal_to_window (p)
 			else
 				check caller_has_parent_window: False end
@@ -93,10 +93,10 @@ feature {NONE} -- Implementation
 			change_item_widget := l_change_item_widget
 			l_change_item_widget.expose_actions.extend (agent on_directory_item_exposed (?))
 			l_change_item_widget.set_data (preference)
-			l_change_item_widget.pointer_double_press_actions.force_extend (agent show_change_item_widget)
+			l_change_item_widget.pointer_double_press_actions.extend (agent show_change_item_widget)
 		end
 
-	show_change_item_widget
+	show_change_item_widget (x, y, b: INTEGER_32; x_tilt, y_tilt, pressure: REAL_64; screen_x, screen_y: INTEGER_32)
 			-- Show change widget
 		do
 			change
@@ -114,12 +114,12 @@ feature {NONE} -- Implementation
 				end
 				area.fill_rectangle (0, 0, change_item_widget.width, change_item_widget.height)
 				area.set_foreground_color ((create {EV_STOCK_COLORS}).white)
-				area.draw_text_top_left (5, 1, preference.string_value)
+				area.draw_text_top_left (5, 1, preference.value)
 			else
 				area.set_foreground_color ((create {EV_STOCK_COLORS}).white)
 				area.fill_rectangle (0, 0, change_item_widget.width, change_item_widget.height)
 				area.set_foreground_color ((create {EV_STOCK_COLORS}).black)
-				area.draw_text_top_left (5, 1, preference.string_value)
+				area.draw_text_top_left (5, 1, preference.value)
 			end
 		end
 
@@ -127,7 +127,7 @@ feature {NONE} -- Implementation
 			-- Directory dialog from which we can select a color.
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			 Eiffel Software
@@ -137,5 +137,4 @@ note
 			 Customer support http://support.eiffel.com
 		]"
 
-
-end -- class DIRECTORY_PREFERENCE_WIDGET
+end

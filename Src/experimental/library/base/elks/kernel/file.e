@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Sequential files, viewed as persistent sequences of characters"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
@@ -33,7 +33,7 @@ feature -- Initialization
 	make (fn: STRING_8)
 			-- Create file object with `fn' as file name.
 		obsolete
-			"Use any of the `make_...' routines instead to benefit from Unicode file names."
+			"Use any of the `make_...' routines instead to benefit from Unicode file names. [2017-05-31]"
 		require
 			string_exists: fn /= Void
 			string_not_empty: not fn.is_empty
@@ -185,7 +185,7 @@ feature -- Access
 			-- File name as a STRING_8 instance. The value might be truncated
 			-- from the original name used to create the current FILE instance.
 		obsolete
-			"Use `path.name' to ensure that Unicode filenames are not truncated."
+			"Use `path.name' to ensure that Unicode filenames are not truncated. [2017-05-31]"
 		do
 			Result := internal_name.as_string_8
 		ensure then
@@ -630,7 +630,7 @@ feature -- Status report
 	file_prunable: BOOLEAN
 			-- May items be removed?
 		obsolete
-			"Use `prunable' instead."
+			"Use `prunable' instead. [2017-05-31]"
 		do
 		end
 
@@ -1025,12 +1025,12 @@ feature -- Element change
 		deferred
 		end
 
-	put_real, putreal (r: REAL)
+	put_real, putreal (r: REAL_32)
 			-- Write `r' at current position.
 		deferred
 		end
 
-	put_double, putdouble (d: DOUBLE)
+	put_double, putdouble (d: REAL_64)
 			-- Write `d' at current position.
 		deferred
 		end
@@ -1100,7 +1100,7 @@ feature -- Element change
 	change_name (new_name: STRING)
 			-- Change file name to `new_name'.
 		obsolete
-			"Use `rename_file' instead."
+			"Use `rename_file' instead. [2017-05-31]"
 		require
 			new_name_not_void: new_name /= Void
 			new_name_not_empty: not new_name.is_empty
@@ -1429,15 +1429,13 @@ feature -- Input
 		require else
 			is_readable: file_readable
 		local
-			new_count: INTEGER
 			str_area: ANY
 			l: like last_string
 		do
 			l := last_string
 			l.grow (nb_char)
 			str_area := l.area
-			new_count := file_gss (file_pointer, $str_area, nb_char)
-			l.set_count (new_count)
+			l.set_count (file_gss (file_pointer, $str_area, nb_char))
 		end
 
 	read_stream_thread_aware (nb_char: INTEGER)
@@ -1468,6 +1466,24 @@ feature -- Input
 			is_readable: file_readable
 		do
 			bytes_read := file_gss (file_pointer, p.item + start_pos, nb_bytes)
+		end
+
+	read_to_string (a_string: STRING; pos, nb: INTEGER): INTEGER
+			-- Fill `a_string', starting at position `pos' with at
+			-- most `nb' characters read from current file.
+			-- Return the number of characters actually read.
+		require
+			is_readable: file_readable
+			not_end_of_file: not end_of_file
+			a_string_not_void: a_string /= Void
+			valid_position: a_string.valid_index (pos)
+			nb_large_enough: nb > 0
+			nb_small_enough: nb <= a_string.count - pos + 1
+		deferred
+		ensure
+			nb_char_read_large_enough: Result >= 0
+			nb_char_read_small_enough: Result <= nb
+			character_read: not end_of_file implies Result > 0
 		end
 
 	read_word, readword
@@ -1643,7 +1659,7 @@ feature {NONE} -- Implementation
 			-- Create new instance of `last_string' with a least `a_min_size'
 			-- as capacity.
 		obsolete
-			"Implementors should create `last_string' directly."
+			"Implementors should create `last_string' directly. [2017-05-31]"
 		require
 			last_string_void: last_string = Void
 			a_min_size_non_negative: a_min_size >= 0
@@ -1656,24 +1672,6 @@ feature {NONE} -- Implementation
 
 	default_last_string_size: INTEGER = 256
 			-- Default size for creating `last_string'
-
-	read_to_string (a_string: STRING; pos, nb: INTEGER): INTEGER
-			-- Fill `a_string', starting at position `pos' with at
-			-- most `nb' characters read from current file.
-			-- Return the number of characters actually read.
-		require
-			is_readable: file_readable
-			not_end_of_file: not end_of_file
-			a_string_not_void: a_string /= Void
-			valid_position: a_string.valid_index (pos)
-			nb_large_enough: nb > 0
-			nb_small_enough: nb <= a_string.count - pos + 1
-		deferred
-		ensure
-			nb_char_read_large_enough: Result >= 0
-			nb_char_read_small_enough: Result <= nb
-			character_read: not end_of_file implies Result > 0
-		end
 
 	true_string: STRING
 			-- Character string "true"
@@ -2133,12 +2131,6 @@ feature {FILE} -- Implementation
 			mode := Write_file
 		end
 
-	platform_indicator: PLATFORM
-			-- Platform indicator
-		once
-			create Result
-		end
-
 invariant
 
 	valid_mode: Closed_file <= mode and mode <= Append_read_file
@@ -2146,7 +2138,7 @@ invariant
 	name_not_empty: not internal_name.is_empty
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

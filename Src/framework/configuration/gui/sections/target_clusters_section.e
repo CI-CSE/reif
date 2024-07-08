@@ -1,5 +1,4 @@
-note
-	description: "Objects that ..."
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 	date: "$Date$"
@@ -19,7 +18,7 @@ create
 
 feature -- Access
 
-	name: STRING_GENERAL
+	name: READABLE_STRING_32
 			-- Name of the section.
 		once
 			Result := conf_interface_names.group_cluster_tree
@@ -107,15 +106,24 @@ feature {NONE} -- Type anchors
 
 	add_dialog_type: CREATE_CLUSTER_DIALOG
 			-- Type of the dialog to create a new item.
+		do
+			check from_precondition: False then end
+		end
 
 	conf_item_type: CONF_CLUSTER
 			-- Type of configuration objects represented.
+		do
+			check from_precondition: False then end
+		end
 
-	section_item_type: CLUSTER_SECTION;
+	section_item_type: CLUSTER_SECTION
 			-- Type of sections contained.
+		do
+			check from_precondition: False then end
+		end
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

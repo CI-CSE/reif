@@ -1,16 +1,21 @@
-note
-	description	: "Command to create a new project"
+﻿note
+	description: "Command to create a new project"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author		: "Arnaud PICHERY [aranud@mail.dotcom.fr]"
-	date		: "$Date$"
-	revision	: "$Revision$"
+	author: "Arnaud PICHERY [aranud@mail.dotcom.fr]"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	EB_CREATE_PROJECT_DIALOG
 
 inherit
 	EB_DIALOG
+
+	EB_SHARED_PREFERENCES
+		undefine
+			default_create, copy
+		end
 
 	EXCEPTIONS
 		rename
@@ -211,7 +216,7 @@ feature -- Execution
 					raise_exception (Invalid_project_name_exception)
 				end
 
-				create blank_project_builder.make (system_name, cla, clu, f, directory_name)
+				create blank_project_builder.make (system_name, cla, clu, f, directory_name, scoop_check_button.is_selected)
 				ace_file_name := blank_project_builder.ace_filename
 				compile_project := compile_project_check_button.is_selected
 
@@ -240,7 +245,7 @@ feature -- Execution
 					if l_project_initialized then
 						l_project_loader.enable_project_creation_or_opening_not_requested
 					end
-					l_project_loader.open_project_file (ace_file_name, Void, directory_name, True)
+					l_project_loader.open_project_file (ace_file_name, Void, directory_name, True, Void)
 					if not l_project_loader.has_error then
 						if compile_project then
 							l_project_loader.set_is_compilation_requested (True)
@@ -255,6 +260,14 @@ feature -- Execution
 						-- Update `success' state.
 					success := not l_project_loader.has_error and then Eiffel_project.initialized and then
 						(not Eiffel_ace.file_name.is_empty)
+
+					if success then
+						if last_saved_location_checkbox.is_selected then
+							preferences.dialog_data.set_last_saved_basic_project_directory (directory_name.parent)
+						else
+							preferences.dialog_data.set_last_saved_basic_project_directory (Void)
+						end
+					end
 
 					destroy
 				end
@@ -307,7 +320,8 @@ feature {NONE} -- Implementation
 			buttons_box: EV_HORIZONTAL_BOX
 			project_directory_frame: EV_FRAME
 			system_name_frame: EV_FRAME
-			clal, clul, snl, fnl: EV_LABEL
+			clal, clul, snl, fnl, scoop_label: EV_LABEL
+			cb: EV_CHECK_BUTTON
 			sz: INTEGER
 		do
 				-- Let the user choose the directory
@@ -323,7 +337,12 @@ feature {NONE} -- Implementation
 				create clul.make_with_text (Interface_names.L_root_cluster_name)
 				create snl.make_with_text (Interface_names.L_system_name)
 				create fnl.make_with_text (Interface_names.L_root_feature_name)
-				sz := clal.minimum_width.max (clul.minimum_width).max (snl.minimum_width).max (fnl.minimum_width)
+				create scoop_label.make_with_text (interface_names.l_concurrency)
+				sz := clal.minimum_width.max
+					(clul.minimum_width).max
+					(snl.minimum_width).max
+					(fnl.minimum_width).max
+					(scoop_label.minimum_width)
 				clal.set_minimum_width (sz)
 				clal.align_text_left
 				clul.set_minimum_width (sz)
@@ -332,6 +351,8 @@ feature {NONE} -- Implementation
 				snl.align_text_left
 				fnl.set_minimum_width (sz)
 				fnl.align_text_left
+				scoop_label.set_minimum_width (sz)
+				scoop_label.align_text_left
 					-- System name
 				create system_name_field.make_with_text (Default_project_name)
 				system_name_field.change_actions.extend (agent on_change_project_name)
@@ -361,6 +382,14 @@ feature {NONE} -- Implementation
 				hb.disable_item_expand (fnl)
 				hb.extend (root_feature_field)
 				main_vb.extend (hb)
+					-- SCOOP flag
+				create scoop_check_button.default_create
+				create hb
+				hb.extend (scoop_label)
+				hb.disable_item_expand (scoop_label)
+				hb.extend (scoop_check_button)
+				main_vb.extend (hb)
+				scoop_check_button.enable_select
 
 				system_name_frame.extend (main_vb)
 			else
@@ -395,6 +424,20 @@ feature {NONE} -- Implementation
 			create label.make_with_text (Interface_names.l_Project_location)
 			label.align_text_left
 			vb.extend (label)
+
+			if ask_for_system_name then
+					-- Remember location, only for project creation.
+				create cb.make_with_text (Interface_names.l_remember_project_location)
+				cb.set_tooltip (Interface_names.f_remember_project_location_tooltip)
+				last_saved_location_checkbox := cb
+				if preferences.dialog_data.last_saved_basic_project_directory /= Void then
+					cb.enable_select
+				else
+					cb.disable_select
+				end
+				vb.extend (cb)
+			end
+
 			project_directory_frame.extend (vb)
 
 				-- "Compile project" Check box
@@ -495,7 +538,14 @@ feature {NONE} -- Implementation
 	create_default_directory_name (project_name: READABLE_STRING_GENERAL): PATH
 			-- Return the proposed directory for project `project_name'
 		do
-			Result := eiffel_layout.user_projects_path.extended (project_name)
+			if
+				attached preferences.dialog_data.last_saved_basic_project_directory as p
+			then
+				Result := p
+			else
+				Result := eiffel_layout.user_projects_path
+			end
+			Result := Result.extended (project_name)
 		end
 
 	old_project_name: STRING_32
@@ -594,6 +644,8 @@ feature {NONE} -- Vision2 architechture
 
 	directory_field: EV_TEXT_FIELD
 
+	last_saved_location_checkbox: EV_CHECK_BUTTON
+
 	system_name_field: EV_TEXT_FIELD
 
 	root_class_field: EV_TEXT_FIELD
@@ -602,7 +654,7 @@ feature {NONE} -- Vision2 architechture
 
 	root_feature_field: EV_TEXT_FIELD
 
-	ace_filename_field: EV_TEXT_FIELD
+	scoop_check_button: EV_CHECK_BUTTON
 
 	compile_project_check_button: EV_CHECK_BUTTON
 
@@ -623,7 +675,7 @@ feature {NONE} -- Constants
 	Invalid_project_name_exception: STRING = "Invalid_project_name";
 
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

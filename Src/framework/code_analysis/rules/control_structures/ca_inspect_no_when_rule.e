@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 					RULE #60: Inspect instruction has no 'when' branch.
 		
@@ -66,6 +66,9 @@ feature {NONE} -- Rule checking
 		end
 
 feature -- Properties
+
+	name: STRING = "no_when_part"
+			-- <Precursor>
 
 	title: STRING_32
 			-- <Precursor>

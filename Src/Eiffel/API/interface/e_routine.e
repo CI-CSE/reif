@@ -6,14 +6,24 @@ class E_ROUTINE
 inherit
 	E_FEATURE
 		redefine
-			has_postcondition, has_precondition,
-			argument_names, arguments, is_once, is_object_relative_once,
-			is_deferred, locals, object_test_locals, obsolete_message,
-			is_external, associated_feature_i,
-			is_inline_agent, updated_version,
+			argument_names,
+			arguments,
+			associated_feature_i,
+			body_id_for_ast,
+			has_postcondition,
+			has_precondition,
+			is_once,
+			is_object_relative_once,
+			is_deferred,
+			is_external,
+			is_inline_agent,
 			is_invariant,
-			body_id_for_ast
+			locals,
+			object_test_locals,
+			obsolete_message,
+			updated_version
 		end
+
 	SHARED_INLINE_AGENT_LOOKUP
 		undefine
 			is_equal
@@ -21,25 +31,25 @@ inherit
 
 feature -- Properties
 
-	arguments: E_FEATURE_ARGUMENTS;
+	arguments: E_FEATURE_ARGUMENTS
 			-- Arguments type
 
-	has_precondition: BOOLEAN;
-			-- Is the routine declaring some precondition ?
+	has_precondition: BOOLEAN
+			-- Is the routine declaring some precondition?
 
-	has_postcondition: BOOLEAN;
-			-- Is the routine declaring some postcondition ?
+	has_postcondition: BOOLEAN
+			-- Is the routine declaring some postcondition?
 
-	is_deferred: BOOLEAN;
+	is_deferred: BOOLEAN
 			-- Is the routine deferred?
 
-	is_once: BOOLEAN;
+	is_once: BOOLEAN
 			-- Is the routine declared as a once?
 
 	is_object_relative_once: BOOLEAN
 			-- Is the routine declared as object_relative once?
 
-	is_external: BOOLEAN;
+	is_external: BOOLEAN
 			-- Is the routine declared as a once?
 
 	is_inline_agent: BOOLEAN
@@ -64,45 +74,38 @@ feature {INTERNAL_COMPILER_STRING_EXPORTER} -- Properties
 
 feature -- Access
 
-	argument_names: LIST [STRING]
+	argument_names: detachable LIST [STRING]
 			-- Argument names
 		do
-			Result := arguments.argument_names
+			if attached arguments as args then
+				Result := args.argument_names
+			end
 		end
 
-	locals: EIFFEL_LIST [LIST_DEC_AS]
-		local
-			routine_as: detachable ROUTINE_AS
+	locals: detachable EIFFEL_LIST [LIST_DEC_AS]
 		do
-			routine_as := associated_routine_as
-			if routine_as /= Void then
-				Result := routine_as.locals
+			if attached associated_routine_as as l_routine_as then
+				Result := l_routine_as.locals
 			end
 		end
 
 	object_test_locals: LIST [TUPLE [name: ID_AS; type: TYPE_AS]]
 			-- Object test locals mentioned in the routine
-		local
-			routine_as: detachable ROUTINE_AS
 		do
-			routine_as := associated_routine_as
-			if routine_as /= Void then
-				Result := routine_as.object_test_locals
+			if attached associated_routine_as as l_routine_as then
+				Result := l_routine_as.object_test_locals
 			end
 		end
 
 	updated_version: E_FEATURE
-		local
-			l_class: EIFFEL_CLASS_C
-			l_feat: FEATURE_I
 		do
 			if is_inline_agent then
-				l_class ?= associated_class
-				if l_class /= Void and then l_class.is_valid then
-					l_feat := l_class.inline_agent_with_nr (enclosing_body_id, inline_agent_nr)
-					if l_feat /= Void then
-						Result := l_feat.api_feature (l_class.class_id)
-					end
+				if
+					attached {EIFFEL_CLASS_C} associated_class as l_class and then
+					l_class.is_valid and then
+					attached l_class.inline_agent_with_nr (enclosing_body_id, inline_agent_nr) as l_feat
+				then
+					Result := l_feat.api_feature (l_class.class_id)
 				end
 			else
 				Result := Precursor
@@ -118,24 +121,31 @@ feature {NONE} -- Implementation
 		do
 			if not is_retrying then
 				if is_inline_agent then
-					if attached ast as inl_agt_feat_as then
-						Result ?= inline_agent_lookup.lookup_inline_agent_of_feature (
-								inl_agt_feat_as, inline_agent_nr).content
+					if
+						attached ast as inl_agt_feat_as and then
+						attached {ROUTINE_AS}
+								inline_agent_lookup.lookup_inline_agent_of_feature (inl_agt_feat_as, inline_agent_nr).content
+							as r_as
+					then
+						Result := r_as
 					end
 				elseif body_index > 0 then
-					if attached ast as feat_as then
+					if
+						attached ast as feat_as and then
 							--| feature_as can be Void for invariant routine
-						Result ?= feat_as.body.content
+						attached {ROUTINE_AS} feat_as.body.content as r_as
+					then
+						Result := r_as
 					end
 				end
-				if Result /= Void then
-					if Result.is_built_in then
-						if attached {BUILT_IN_AS} Result.routine_body as built_in_as then
-							if attached {FEATURE_AS} built_in_as.body as feature_as then
-								Result ?= feature_as.body.content
-							end
-						end
-					end
+				if
+					Result /= Void and then
+					Result.is_built_in and then
+					attached {BUILT_IN_AS} Result.routine_body as built_in_as and then
+					attached built_in_as.body as feature_as and then
+					attached {ROUTINE_AS} feature_as.body.content as r_as
+				then
+					Result := r_as
 				end
 			end
 		rescue
@@ -150,8 +160,8 @@ feature {FEATURE_I} -- Setting
 	set_deferred (b: like is_deferred)
 			-- Set `is_deferred' to `b'.
 		do
-			is_deferred := b;
-		end;
+			is_deferred := b
+		end
 
 	set_once (b: like is_once)
 			-- Set `is_once' to `b'.
@@ -174,41 +184,35 @@ feature {FEATURE_I} -- Setting
 	set_arguments (args: like arguments)
 			-- Assign `args' to `arguments'.
 		do
-			arguments := args;
-		end;
+			arguments := args
+		end
 
 	set_has_precondition (b: BOOLEAN)
 			-- Assign `b' to `has_precondition'.
 		do
-			has_precondition := b;
-		end;
+			has_precondition := b
+		end
 
 	set_has_postcondition (b: BOOLEAN)
 			-- Assign `b' to `has_postcondition'.
 		do
-			has_postcondition := b;
-		end;
-
-	set_obsolete_message (s: STRING)
-			-- Assign `s' to `obsolete_message'
-		do
-			obsolete_message := s;
-		end;
+			has_postcondition := b
+		end
 
 	set_inline_agent_nr (nr: INTEGER)
-			-- Assign `nr' to `inline_agent_nr'
+			-- Assign `nr' to `inline_agent_nr'.
 		do
 			inline_agent_nr := nr
 		end
 
 	set_is_invariant (b: BOOLEAN)
-			-- Assign `b' to `is_invariant'
+			-- Assign `b' to `is_invariant'.
 		do
 			is_invariant := b
 		end
 
 	set_enclosing_body_id (id: INTEGER)
-			-- Assign `id' to `enclosing_body_id'
+			-- Assign `id' to `enclosing_body_id'.
 		do
 			enclosing_body_id := id
 		end
@@ -237,7 +241,7 @@ feature {COMPILER_EXPORTER} -- Implementation
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

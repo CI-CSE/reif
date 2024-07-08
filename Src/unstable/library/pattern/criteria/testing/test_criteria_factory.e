@@ -1,7 +1,5 @@
-note
-	description: "[
-		Eiffel tests that can be executed by testing tool.
-	]"
+﻿note
+	description: "Eiffel tests that can be executed by testing tool."
 	author: "EiffelStudio test wizard"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -18,7 +16,7 @@ feature -- Test routines
 	impl_test_criteria_from_string (s: READABLE_STRING_GENERAL; fac: CRITERIA_FACTORY [ANY])
 		local
 			f: detachable CRITERIA [ANY]
-			t,t2: READABLE_STRING_32
+			t: READABLE_STRING_32
 			p: CRITERIA_PRINTER [ANY]
 		do
 			f := fac.criteria_from_string (s)
@@ -28,8 +26,7 @@ feature -- Test routines
 				if not s.same_string (t) then
 					f := fac.criteria_from_string (t)
 					if f /= Void then
-						t2 := p.text (f)
-						assert ("criteria string same as source", t.same_string (t2))
+						assert ("criteria string same as source", t.same_string (p.text (f)))
 					else
 						assert ("criteria string same as source", s.same_string (t))
 					end
@@ -40,10 +37,6 @@ feature -- Test routines
 		end
 
 	include_all_classes
-		local
-			fm: CRITERIA_MANAGER
-			fam: CRITERIA_AGENT_MANAGER
-			fn: CRITERIA_WITH_NAME [STRING]
 		do
 			-- mainly to include all classes from the library
 		end
@@ -129,9 +122,19 @@ feature -- Test routines
 			lst.force (new_entry ("d", 4, False))
 			lst.force (new_entry ("e", 5, True))
 
+
 			impl_test_criteria_match (ff, lst, "state:on", [3, "ace"])
 			impl_test_criteria_match (ff, lst, "b or c", [2, "bc"])
 			impl_test_criteria_match (ff, lst, "is:b or is:c", [2, "bc"])
+			impl_test_criteria_match (ff, lst, "is:b +is:c", [2, "bc"])
+			impl_test_criteria_match (ff, lst, "is:b   +is:c", [2, "bc"]) -- With spaces
+			impl_test_criteria_match (ff, lst, "+is:b +is:c", [2, "bc"])  -- with leading + token
+			impl_test_criteria_match (ff, lst, "-is:b +is:c", [4, "acde"])  -- with leading - token
+			impl_test_criteria_match (ff, lst, "is:b or +is:c", [2, "bc"]) -- Flexible syntax			
+			impl_test_criteria_match (ff, lst, "is:b and +is:c", [0, ""]) -- Flexible syntax
+			impl_test_criteria_match (ff, lst, "-is:b and +is:c", [1, "c"])
+
+
 			impl_test_criteria_match (ff, lst, "gt:4", [1, "e"])
 			impl_test_criteria_match (ff, lst, "-state:on and (gt:3 OR is:b)", [2, "bd"])
 			impl_test_criteria_match (ff, lst, "not state:on and (gt:3 OR is:b)", [2, "bd"])
@@ -139,10 +142,11 @@ feature -- Test routines
 
 	impl_test_criteria_match (ff: CRITERIA_FACTORY [like new_entry]; lst: LIST [like new_entry]; s: READABLE_STRING_32; l_expected: TUPLE [nb: INTEGER; str: STRING])
 		do
-			if attached ff.criteria_from_string (s) as f then
-				if attached meet_criteria_list (lst, f) as f_lst then
-					assert ("has " + l_expected.nb.out + " items", f_lst.count = l_expected.nb and list_to_string (f_lst).same_string (l_expected.str))
-				end
+			if
+				attached ff.criteria_from_string (s) as f and then
+				attached meet_criteria_list (lst, f) as f_lst
+			then
+				assert ("has " + l_expected.nb.out + " items", f_lst.count = l_expected.nb and list_to_string (f_lst).same_string (l_expected.str))
 			end
 		end
 
@@ -180,10 +184,11 @@ feature -- Test routines
 
 	impl_test_foo_criteria (ff: CRITERIA_FACTORY [FOO]; lst: LIST [FOO]; s: READABLE_STRING_32; l_expected: TUPLE [nb: INTEGER; str: STRING])
 		do
-			if attached ff.criteria_from_string (s) as f then
-				if attached meet_foo_criteria_list (lst, f) as f_lst then
-					assert ("has " + l_expected.nb.out + " items", f_lst.count = l_expected.nb and list_foo_to_string (f_lst).same_string (l_expected.str))
-				end
+			if
+				attached ff.criteria_from_string (s) as f and then
+				attached meet_foo_criteria_list (lst, f) as f_lst
+			then
+				assert ("has " + l_expected.nb.out + " items", f_lst.count = l_expected.nb and list_foo_to_string (f_lst).same_string (l_expected.str))
 			end
 		end
 

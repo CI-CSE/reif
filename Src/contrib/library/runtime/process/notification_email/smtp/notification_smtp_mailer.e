@@ -4,7 +4,6 @@ note
 
 			Note: it is based on EiffelNet {SMTP_PROTOCOL} implementation, and may not be complete.
 		]"
-	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -21,8 +20,21 @@ create
 feature {NONE} -- Initialization
 
 	make (a_smtp_server: READABLE_STRING_8)
+			-- Create with smtp setting `user:password@hostname:port".
+		local
+			p,q: INTEGER
 		do
-			make_with_user (a_smtp_server, Void, Void)
+			p := a_smtp_server.index_of ('@', 1)
+			if p > 0 then
+				q := a_smtp_server.index_of (':', 1)
+				if q < p then
+					make_with_user (a_smtp_server.substring (p + 1, a_smtp_server.count), a_smtp_server.substring (1,  q -1), a_smtp_server.substring (q + 1,  p -1))
+				else
+					make_with_user (a_smtp_server.substring (p + 1, a_smtp_server.count), a_smtp_server.substring (1,  p -1), Void)
+				end
+			else
+				make_with_user (a_smtp_server, Void, Void)
+			end
 		end
 
 	make_with_user (a_smtp_server: READABLE_STRING_8; a_user: detachable READABLE_STRING_8; a_password: detachable READABLE_STRING_8)
@@ -44,15 +56,12 @@ feature {NONE} -- Initialization
 
 	initialize
 			-- Initialize service.
-		local
-			l_address_factory: INET_ADDRESS_FACTORY
 		do
 			if attached username as u then
 				create smtp_protocol.make (smtp_host, u)
 			else
 					-- Get local host name needed in creation of SMTP_PROTOCOL.
-				create l_address_factory
-				create smtp_protocol.make (smtp_host, l_address_factory.create_localhost.host_name)
+				create smtp_protocol.make (smtp_host, (create {INET_ADDRESS_FACTORY}).create_localhost.host_name)
 			end
 			if smtp_port > 0 then
 				smtp_protocol.set_default_port (smtp_port)
@@ -85,46 +94,68 @@ feature -- Basic operation
 		local
 			l_email: EMAIL
 			h: STRING
-			k,v: STRING
 			i: INTEGER
-			hdate: HTTP_DATE
+			lst: LIST [READABLE_STRING_8]
 		do
-			create l_email.make_with_entry (a_email.from_address, addresses_to_header_line_value (a_email.to_addresses))
-			if attached a_email.reply_to_address as l_reply_to then
-				l_email.add_header_entry ({EMAIL_CONSTANTS}.h_reply_to, l_reply_to)
-			end
-
-			if attached a_email.cc_addresses as lst then
-				l_email.add_header_entry ({EMAIL_CONSTANTS}.h_cc, addresses_to_header_line_value (lst))
-			end
-			if attached a_email.bcc_addresses as lst then
-				l_email.add_header_entry ({EMAIL_CONSTANTS}.h_bcc, addresses_to_header_line_value (lst))
-			end
-			l_email.set_message (a_email.content)
-			l_email.add_header_entry ({EMAIL_CONSTANTS}.H_subject, a_email.subject)
-
-			create h.make_empty
-			create hdate.make_from_date_time (a_email.date)
-			hdate.append_to_rfc1123_string (h)
-			l_email.add_header_entry ("Date", h)
-
-			if attached a_email.additional_header_lines as lst then
-				across
-					lst as ic
-				loop
-					h := ic.item
-					i := h.index_of (':', 1)
-					if i > 0 then
-						k := h.head (i - 1)
-						v := h.substring (i + 1, h.count)
-						l_email.add_header_entry (k, v)
-					else
-						check is_header_line: False end
+			lst := a_email.to_addresses
+			if lst.is_empty then
+					-- Error ...
+			else
+					-- With EMAIL, there should be a unique recipient at creation.
+				create l_email.make_with_entry (a_email.from_address, lst.first)
+				if lst.count > 1 then
+					from
+						lst.start
+						lst.forth
+					until
+						lst.off
+					loop
+						l_email.add_recipient_address (lst.item)
+						lst.forth
 					end
 				end
-			end
+				if attached a_email.reply_to_address as l_reply_to then
+					l_email.add_header_entry ({EMAIL_CONSTANTS}.h_reply_to, l_reply_to)
+				end
 
-			smtp_send_email (l_email)
+				if attached a_email.cc_addresses as l_cc_addresses then
+					across
+						l_cc_addresses as ic
+					loop
+						l_email.add_recipient_address_in_cc (ic.item)
+					end
+				end
+				if attached a_email.bcc_addresses as l_bcc_addresses then
+					across
+						l_bcc_addresses as ic
+					loop
+						l_email.add_recipient_address_in_bcc (ic.item)
+					end
+				end
+				l_email.set_message (a_email.content)
+				l_email.add_header_entry ({EMAIL_CONSTANTS}.H_subject, a_email.subject)
+
+				create h.make_empty
+				;(create {HTTP_DATE}.make_from_date_time (a_email.date)).append_to_rfc1123_string (h)
+				l_email.add_header_entry ("Date", h)
+
+				if attached a_email.additional_header_lines as l_lines then
+					across
+						l_lines as ic
+					loop
+						h := ic.item
+						i := h.index_of (':', 1)
+						if i > 0 then
+							l_email.add_header_entry (h.head (i - 1), h.substring (i + 1, h.count))
+						else
+							check is_header_line: False end
+						end
+					end
+				end
+
+				smtp_send_email (l_email)
+
+			end
 		end
 
 feature {NONE} -- Implementation
@@ -168,7 +199,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
@@ -178,4 +209,3 @@ note
 			Customer support http://support.eiffel.com
 		]"
 end
-

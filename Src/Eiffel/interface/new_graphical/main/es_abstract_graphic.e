@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Main abstract class for Graphic mode in EiffelStudio."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -50,14 +50,10 @@ inherit
 feature {NONE} -- Initialization
 
 	initialize_services
-			-- Initializes graphical services
-		local
-			l_container: attached SERVICE_CONSUMER [SERVICE_CONTAINER_S]
+			-- Initializes graphical services.
 		do
-			create l_container
-			check is_service_available: l_container.is_service_available end
-			if l_container.is_service_available and then attached {SERVICE_CONTAINER_S} l_container.service as l_service then
-				service_initializer.add_core_services (l_service)
+			if attached (create {SERVICE_CONSUMER [SERVICE_CONTAINER_S]}).service as s then
+				service_initializer.add_core_services (s)
 			end
 				-- Initialize prompts.
 			set_prompts (create {EB_PROMPT_PROVIDER})
@@ -68,14 +64,8 @@ feature {NONE} -- Initialization
 		local
 			l_compiler_setting: SETTABLE_COMPILER_OBJECTS
 			l_layout: ES_EIFFEL_LAYOUT
-			l_ui_executor: EB_COMMAND_EXECUTOR
 			pref_strs: PREFERENCE_CONSTANTS
-			fn: PATH
 			new_resources: TTY_RESOURCES
-			eifgen_init: INIT_SERVERS
-			l_external_output_manager: EB_EXTERNAL_OUTPUT_MANAGER
-			l_recent_projects_manager: EB_RECENT_PROJECTS_MANAGER
-			l_graphical_degree_output: ES_GRAPHICAL_DEGREE_OUTPUT
 			preference_access: PREFERENCES
 			l_studio_preferences: EB_PREFERENCES
 		do
@@ -87,15 +77,14 @@ feature {NONE} -- Initialization
 			l_layout.check_environment_variable
 
 			create l_compiler_setting
-			create l_ui_executor
-			l_compiler_setting.set_command_executor (l_ui_executor)
+			l_compiler_setting.set_command_executor (create {EB_COMMAND_EXECUTOR})
 
 				--| Initialization of the run-time, so that at the end of a store/retrieve
 				--| operation (like retrieving or storing the project, creating the CASEGEN
 				--| directory, generating the profile information, ...) the run-time is initialized
 				--| back to the values which permits the compiler to access correctly the EIFGEN
 				--| directory
-			create eifgen_init.make
+			;(create {INIT_SERVERS}.make).do_nothing
 
 				-- Initialization of compiler resources
 			create new_resources.initialize
@@ -104,8 +93,7 @@ feature {NONE} -- Initialization
 			create pref_strs
 				-- Initialize pixmaps
 			pref_strs.Pixmaps_extension_cell.put ("png")
-			fn := eiffel_layout.bitmaps_path.extended ("png")
-			pref_strs.Pixmaps_path_cell.put (fn)
+			pref_strs.Pixmaps_path_cell.put (eiffel_layout.bitmaps_path.extended ("png"))
 
 			if not new_resources.error_occurred then
 				-- One has to quit there.
@@ -118,46 +106,65 @@ feature {NONE} -- Initialization
 			l_compiler_setting.set_preferences (l_studio_preferences)
 
 				-- Create and setup the output manager / Error displayer
-			create l_external_output_manager
-			set_external_output_manager (l_external_output_manager)
+			set_external_output_manager (create {EB_EXTERNAL_OUTPUT_MANAGER})
 
 				-- Set the error display for graphical output
 			eiffel_project.set_error_displayer (create_error_displayer)
 
 				-- Create and setup the degree output window.
 			if not preferences.development_window_data.graphical_output_disabled then
-				create l_graphical_degree_output
-				Eiffel_project.set_degree_output (l_graphical_degree_output)
+				Eiffel_project.set_degree_output (create {ES_GRAPHICAL_DEGREE_OUTPUT})
 			end
 
 				-- Create and setup the recent projects manager
-			create l_recent_projects_manager.make
-			set_recent_projects_manager (l_recent_projects_manager)
+			set_recent_projects_manager (create {EB_RECENT_PROJECTS_MANAGER}.make)
 
 					-- Formatting includes breakpoints
-			set_is_with_breakable;
+			set_is_with_breakable
 
 				-- Initialize compiler encoding converter.
-			(create {SHARED_ENCODING_CONVERTER}).set_encoding_converter (create {EC_ENCODING_CONVERTER}.make)
+			;(create {SHARED_ENCODING_CONVERTER}).set_encoding_converter (create {EC_ENCODING_CONVERTER}.make)
+
+				-- Install code analyzer processor for obsolete calls.
+			;(create {CA_CODE_ANALYZER}.make).install_obsolete_call_processor
 		ensure
 			eiffel_layout_not_void: eiffel_layout /= Void
 		end
 
+	initialize_account
+			-- Initialization for the account system.
+		local
+			ctlr: ES_CLOUD_CONTROLLER
+		do
+			create ctlr
+			if attached ctlr.es_cloud_s.service as s then
+				s.register_observer (ctlr)
+			end
+		end
+
 	initialize_debugger
 			-- Various initialization of the debugger
-		local
-			dbg: DEBUGGER_MANAGER
 		do
-			create {EB_DEBUGGER_MANAGER} dbg.make
-			dbg.register
+			(create {EB_DEBUGGER_MANAGER}.make).register
 		end
 
 feature {NONE} -- Access
 
-	service_initializer: attached SERVICE_INITIALIZER
+	service_initializer: SERVICE_INITIALIZER
 			-- Initializer used to register all services.
+		local
+			t: like {REFLECTOR}.dynamic_type_from_string
 		once
-			create {attached ES_SERVICE_INITIALIZER} Result
+			t := {REFLECTOR}.dynamic_type_from_string ("ES_SERVICE_INITIALIZER_EXTENSION")
+			if
+				t >= 0 and then
+				not {REFLECTOR}.type_of_type (t).is_deferred and then
+				attached {ES_SERVICE_INITIALIZER} {REFLECTOR}.new_instance_of (t) as e
+			then
+				Result := e
+			else
+				create {ES_SERVICE_INITIALIZER} Result
+			end
 		end
 
 feature {NONE} -- Implementation (preparation of all widgets)
@@ -166,19 +173,11 @@ feature {NONE} -- Implementation (preparation of all widgets)
 			-- Build graphical compiler
 		require
 			an_app_not_void: an_app /= Void
-		local
-			project_index: INTEGER
-			path_index: INTEGER
-			target_index: INTEGER
-			l_config: PATH
-			l_project_path: detachable PATH
-			l_target: detachable STRING_32
-			l_conf_constants: CONF_GUI_INTERFACE_CONSTANTS
-			l_loader: EB_GRAPHICAL_PROJECT_LOADER
 		do
 			initialize_services
-
 			compiler_initialization
+
+			initialize_account
 
 			initialize_debugger
 
@@ -186,8 +185,7 @@ feature {NONE} -- Implementation (preparation of all widgets)
 			window_manager.create_window
 
 				-- Initialize the configuration pixmaps
-			create l_conf_constants
-			l_conf_constants.set_pixmaps (pixmaps.configuration_pixmaps)
+			;(create {CONF_GUI_INTERFACE_CONSTANTS}).set_pixmaps (pixmaps.configuration_pixmaps)
 
 				-- Initialize external command manager
 			incoming_command_manager_cell.put (create {ES_INCOMING_COMMAND_MANAGER}.make (create {ES_COMMAND_RECEIVER_CALLBACKS}.make))
@@ -197,51 +195,137 @@ feature {NONE} -- Implementation (preparation of all widgets)
 				-- Save EIS storage when project is closed.
 			eiffel_project.manager.close_agents.extend (agent eis_manager.save_storage)
 
+			launch_interface
+		end
+
+	launch_interface
+		do
+			if preferences.dialog_data.show_first_launching_dialog then
+				display_first_launching_dialog (agent display_startup_page)
+			else
+				display_startup_page
+			end
+		end
+
+feature {NONE} -- Welcome dialog
+
+	display_startup_page
+		local
+			pg: ES_STARTUP_PAGE
+			first_window: EB_DEVELOPMENT_WINDOW
+			win: EV_WINDOW
+		do
+			first_window := window_manager.last_created_window
+			check
+				first_window_not_void: first_window /= Void
+			end
+			win := first_window.window
+
+			create pg.make
+			pg.set_quit_action (agent do (create {EXCEPTIONS}).die (0) end)
+			pg.set_next_action (agent load_interface)
+			pg.dialog.set_size (100, 100)
+			pg.dialog.show_actions.extend_kamikaze (agent (i_dlg: EV_DIALOG; i_win: EV_WINDOW)
+					do
+						i_dlg.set_position (
+								i_win.x_position + (i_win.width - i_dlg.width) // 2,
+								i_win.y_position + (i_win.height - i_dlg.height) // 2
+							)
+					end(pg.dialog, win)
+				)
+			pg.start (win)
+		end
+
+feature {NONE} -- Implementation: interface loading		
+
+	load_interface
+			-- Start interface according to arguments.
+		local
+			project_index: INTEGER
+		do
+				-- Account manager
+				-- FIXME: find better place.
+			across
+				window_manager.development_windows as ic
+			loop
+				if attached ic.item.menus.cloud_account_menu as cld_menu then
+					cld_menu.update
+				end
+			end
+
 				-- If some more arguments were specified, it means that we either asked to retrieve
 				-- an existing project, or to create one.
 			project_index := index_of_word_option ("config")
-			if project_index /= 0 and argument_count >= project_index + 1 then
-					-- A project was specified.
-				create l_config.make_from_string (argument (project_index + 1))
-				path_index := index_of_word_option ("project_path")
-				if path_index /= 0 and argument_count >= path_index + 1 then
-					create l_project_path.make_from_string (argument (path_index + 1))
-				end
-
-				target_index := index_of_word_option ("target")
-				if target_index /= 0 and argument_count >= target_index + 1 then
-					l_target := argument (target_index + 1)
-				end
-
-				check window_manager.last_created_window /= Void end
-				create l_loader.make (window_manager.last_created_window.window)
-				if path_index /= 0 then
-					l_loader.set_is_project_location_requested (False)
-				end
-				l_loader.open_project_file (l_config, l_target, l_project_path, index_of_word_option ("clean") /= 0)
-				if
-					not l_loader.has_error and then
-					not l_loader.is_compilation_requested
-				then
-					if index_of_word_option ("melt") /= 0 then
-						l_loader.set_is_compilation_requested (True)
-						l_loader.melt_project (False)
-					elseif index_of_word_option ("freeze") /= 0 then
-						l_loader.set_is_compilation_requested (True)
-						l_loader.freeze_project (False)
-					elseif index_of_word_option ("finalize") /= 0 then
-						l_loader.set_is_compilation_requested (True)
-						l_loader.finalize_project (False)
-					elseif index_of_word_option ("precompile") /= 0 then
-						l_loader.set_is_compilation_requested (True)
-						l_loader.precompile_project (False)
-					end
-				end
+			if
+				project_index /= 0 and
+				argument_count >= project_index + 1 and then
+				attached argument (project_index + 1) as l_config_pathname
+			then
+				load_project_file (l_config_pathname)
 			else
-					-- Show starting dialog.
-				if preferences.dialog_data.show_starting_dialog then
-					display_starting_dialog
+					-- Show starting dialog, if enabled in prefs.
+				display_starting_dialog_if_enabled
+			end
+		end
+
+	load_project_file (a_config_pathname: READABLE_STRING_GENERAL)
+			-- Load project file from path `a_config_pathname`.
+		require
+			non_blank_config_pathname: a_config_pathname /= Void and then not a_config_pathname.is_whitespace
+		local
+			path_index: INTEGER
+			target_index: INTEGER
+			l_config: PATH
+			l_project_path: detachable PATH
+			l_target: detachable STRING_32
+			l_loader: EB_GRAPHICAL_PROJECT_LOADER
+		do
+				-- A project was specified.
+			create l_config.make_from_string (a_config_pathname)
+			path_index := index_of_word_option ("project_path")
+			if path_index /= 0 and argument_count >= path_index + 1 then
+				create l_project_path.make_from_string (argument (path_index + 1))
+			end
+
+			target_index := index_of_word_option ("target")
+			if target_index /= 0 and argument_count >= target_index + 1 then
+				l_target := argument (target_index + 1)
+			end
+
+			check window_manager.last_created_window /= Void end
+			create l_loader.make (window_manager.last_created_window.window)
+			if path_index /= 0 then
+				l_loader.set_is_project_location_requested (False)
+			end
+			debug ("to_implement")
+				(create {REFACTORING_HELPER}).to_implement ("Handle (multiple) -config_option values and pass them to project loader.")
+			end
+			l_loader.open_project_file (l_config, l_target, l_project_path, index_of_word_option ("clean") /= 0, Void)
+			if
+				not l_loader.has_error and then
+				not l_loader.is_compilation_requested
+			then
+				if index_of_word_option ("melt") /= 0 then
+					l_loader.set_is_compilation_requested (True)
+					l_loader.melt_project (False)
+				elseif index_of_word_option ("freeze") /= 0 then
+					l_loader.set_is_compilation_requested (True)
+					l_loader.freeze_project (False)
+				elseif index_of_word_option ("finalize") /= 0 then
+					l_loader.set_is_compilation_requested (True)
+					l_loader.finalize_project (False)
+				elseif index_of_word_option ("precompile") /= 0 then
+					l_loader.set_is_compilation_requested (True)
+					l_loader.precompile_project (False)
 				end
+			end
+		end
+
+	display_starting_dialog_if_enabled
+			-- Display starting dialog, if pref `show_starting_dialog` is enabled.
+		do
+			if preferences.dialog_data.show_starting_dialog then
+				display_starting_dialog
 			end
 		end
 
@@ -259,6 +343,33 @@ feature {NONE} -- Implementation (preparation of all widgets)
 
 			create project_dialog.make_default
 			project_dialog.show_modal_to_window (first_window.window)
+		end
+
+	display_first_launching_dialog (cb: detachable PROCEDURE [TUPLE])
+			-- Show the starting dialog letting the user choose where
+			-- his project is (or will be).
+			-- And call `cb` when dialog is closed (cancelled or not).
+		local
+			dlg: ES_FIRST_LAUNCHING_DIALOG
+			first_window: EB_DEVELOPMENT_WINDOW
+		do
+			if
+				is_eiffel_layout_defined and then
+				eiffel_layout.installed_version_names.count > 1
+			then
+				first_window := window_manager.last_created_window
+				check
+					first_window_not_void: first_window /= Void
+				end
+
+				create dlg.make (eiffel_layout.version_name)
+				if cb /= Void then
+					dlg.next_actions.extend (cb)
+				end
+				dlg.show_on_active_window
+			elseif cb /= Void then
+				cb.call (Void)
+			end
 		end
 
 feature {NONE} -- Exception handling
@@ -315,14 +426,12 @@ feature {NONE} -- Exception handling
 	try_to_save_session_data
 			-- In case of a crash, try to store the session data.
 		local
-			l_service: attached SERVICE_CONSUMER [SESSION_MANAGER_S]
 			retried: BOOLEAN
 		do
 			if not retried then
-				create l_service
-				if l_service.is_service_available and then l_service.service.is_interface_usable then
+				if attached (create {SERVICE_CONSUMER [SESSION_MANAGER_S]}).service as s and then s.is_interface_usable then
 						-- Stores all session data.
-					l_service.service.store_all
+					s.store_all
 				end
 			else
 				prompts.show_error_prompt (interface_messages.e_save_session_data_failed, parent_for_dialog, Void)
@@ -356,7 +465,7 @@ feature {NONE} -- Factory
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -387,4 +496,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class ES_GRAPHIC
+end

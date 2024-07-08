@@ -345,6 +345,10 @@ feature
 				error_handler.raise_error
 			end
 
+				-- Update the assert_id_set of redefined features.
+				-- This should be done before `check_validity3` that uses `{FEATURE_I}.assert_id_set`.
+			update_inherited_assertions
+
 				-- Check the adaptations
 			check_validity3 (resulting_table)
 
@@ -483,9 +487,6 @@ end;
 			pass3_control.set_invariant_changed (invariant_changed);
 			pass3_control.set_invariant_removed (invariant_removed);
 
-				-- Update the assert_id_set of redefined features.
-			update_inherited_assertions;
-
 				-- Process patterns of origin features
 			process_pattern (resulting_table);
 
@@ -547,7 +548,6 @@ end;
 			resulting_table_attached: resulting_table /= Void
 		local
 			f: FEATURE_I
-			a: ATTRIBUTE_I
 			l_attribute_count, l_attribute_counter: INTEGER
 		do
 			from
@@ -561,11 +561,11 @@ end;
 						-- We have an attribute so increase the counter
 					l_attribute_counter := l_attribute_counter + 1
 					if f.is_origin and then f.rout_id_set.count = 1 then
-						a ?= f
-						check
-							a_attached: a /= Void
+						if attached {ATTRIBUTE_I} f as a then
+							a.set_generate_in (f.written_in)
+						else
+							check f_is_attribute: False end
 						end
-						a.set_generate_in (f.written_in)
 					end
 				end
 				if l_attribute_counter < l_attribute_count then
@@ -646,7 +646,6 @@ end;
 				-- Feature table of the parent `parent_c'
 			parent_type: LIKE_CURRENT
 				-- "like Current" type of `parent_c'
-			actual_parent_type: CL_TYPE_A
 			l_feature_name_id: INTEGER
 			i, nb: INTEGER
 			l_inherit_info_cache: like inherit_info_cache
@@ -655,21 +654,7 @@ end;
 			from
 				l_inherit_info_cache := inherit_info_cache
 				l_inherit_feat_cache := inherit_feat_cache
-				actual_parent_type := parent_c.parent_type
-				if not actual_parent_type.is_attached then
-					if a_class.lace_class.is_attached_by_default then
-						if not actual_parent_type.is_attached then
-							actual_parent_type := actual_parent_type.twin
-							actual_parent_type.set_is_attached
-						end
-					else
-						if not actual_parent_type.is_implicitly_attached then
-							actual_parent_type := actual_parent_type.twin
-							actual_parent_type.set_is_implicitly_attached
-						end
-					end
-				end
-				create parent_type.make (actual_parent_type)
+				create parent_type.make (parent_c.parent_type)
 					-- Look for the parent table on the disk
 				parent_table := parent_c.parent.feature_table.features.area
 				check
@@ -1331,21 +1316,20 @@ end;
 		require
 			syntactically_changed: a_class.changed;
 		local
-			old_feature_i: FEATURE_I;
-			unique_feature: UNIQUE_I;
+			old_feature_i: FEATURE_I
+			unique_feature: UNIQUE_I
 				-- Feature coming from a previous recompilation
-			body_index: INTEGER;
+			body_index: INTEGER
 				-- Body index of a previous compiled feature
-			old_description, old_tmp_description: FEATURE_AS;
+			old_description, old_tmp_description: FEATURE_AS
 				-- Abstract representation of a previous compiled feature
-			is_the_same: BOOLEAN;
+			is_the_same: BOOLEAN
 				-- Is the parsed feature the same than a previous
 				-- compiled one ?
-			feature_name_id: INTEGER;
-			integer_value: INTEGER_CONSTANT;
+			feature_name_id: INTEGER
+			integer_value: INTEGER_CONSTANT
 				-- Internal name of the feature
-			vffd4: VFFD4;
-			external_i: EXTERNAL_I;
+			vffd4: VFFD4
 		do
 			feature_name_id := feat.internal_name.name_id
 debug ("ACTIVITY")
@@ -1366,9 +1350,9 @@ end;
 			Result.set_is_unary (feat.is_unary)
 			Result.set_has_convert_mark (feat.has_convert_mark)
 
-			if Result.is_unique then
+			if Result.is_unique and attached {UNIQUE_I} Result as l_unique_i then
+				unique_feature := l_unique_i
 					-- Unique value processing
-				unique_feature ?= Result;
 				create integer_value.make_with_value (a_unique_counter.next)
 				if integer_value.valid_type (unique_feature.type) then
 					integer_value.set_real_type (unique_feature.type)
@@ -1377,10 +1361,9 @@ end;
 					error_handler.insert_error (create {VQUI2}.make (a_class, Result.feature_name, Result.type))
 				end
 				unique_feature.set_value (integer_value)
-			elseif Result.is_c_external then
+			elseif Result.is_c_external and attached {EXTERNAL_I} Result as external_i then
 					-- Track new externals introduced in the class. Freeze is taken care by
 					-- EXTERNALS.is_equivalent queried by SYSTEM_I.
-				external_i ?= Result
 				pass2_control.add_external (external_i)
 			end
 
@@ -2040,7 +2023,7 @@ feature {NONE} -- Temporary body index
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,10 +1,8 @@
-note
+﻿note
 	description: "Tables of Eiffel test instructions"
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	keywords: "Eiffel testing";
-	date: "$Date$"
-	revision: "$Revision$"
+	status: "See notice at end of class."
+	keywords: "Eiffel testing"
 
 class EW_INSTRUCTION_TABLES
 
@@ -17,7 +15,7 @@ inherit
 
 feature
 
-	test_command_table: HASH_TABLE [EW_TEST_INSTRUCTION, STRING]
+	test_command_table: STRING_TABLE [EW_TEST_INSTRUCTION]
 		once
 			create Result.make (30)
 			Result.put (create {EW_IF_INST}, If_keyword)
@@ -30,6 +28,7 @@ feature
 			Result.put (create {EW_CONFIG_INST}, config_keyword)
 			Result.put (create {EW_DEFINE_INST}, Define_keyword)
 			Result.put (create {EW_UNDEFINE_INST}, Undefine_keyword)
+			Result.put (create {EW_DEFINE_DATE_INST}, Define_date_keyword)
 			Result.put (create {EW_DEFINE_DIR_INST}, Define_directory_keyword)
 			Result.put (create {EW_DEFINE_FILE_INST}, Define_file_keyword)
 			Result.put (create {EW_SETENV_INST}, Setenv_keyword)
@@ -64,7 +63,7 @@ feature
 			Result.put (create {EW_TEST_END_INST}, Test_end_keyword)
 		end
 
-	test_suite_command_table: HASH_TABLE [EW_TEST_INSTRUCTION, STRING]
+	test_suite_command_table: STRING_TABLE [EW_TEST_INSTRUCTION]
 		once
 			create Result.make (30)
 			Result.put (create {EW_IF_INST}, If_keyword)
@@ -72,23 +71,25 @@ feature
 			Result.put (create {EW_INCLUDE_INST}, Include_keyword)
 			Result.put (create {EW_DEFINE_INST}, Define_keyword)
 			Result.put (create {EW_UNDEFINE_INST}, Undefine_keyword)
+			Result.put (create {EW_DEFINE_DATE_INST}, Define_date_keyword)
 			Result.put (create {EW_DEFINE_DIR_INST}, Define_directory_keyword)
 			Result.put (create {EW_DEFINE_FILE_INST}, Define_file_keyword)
 		end
 
-	test_catalog_command_table: HASH_TABLE [EW_CATALOG_INSTRUCTION, STRING]
+	test_catalog_command_table: STRING_TABLE [EW_CATALOG_INSTRUCTION]
 		once
 			create Result.make (30)
 			Result.put (create {EW_UNKNOWN_CAT_INST}, Unknown_keyword)
 			Result.put (create {EW_CATALOG_IF_INST}, If_keyword)
 			Result.put (create {EW_SOURCE_PATH_INST}, Source_path_keyword)
 			Result.put (create {EW_TEST_INST}, Test_keyword)
-			Result.put (create {EW_EQA_TEST_INST}, Test_63_keyword)
 		end
 
 note
+	date: "$Date$"
+	revision: "$Revision$"
 	copyright: "[
-			Copyright (c) 1984-2011, University of Southern California and contributors.
+			Copyright (c) 1984-2018, University of Southern California, Eiffel Software and contributors.
 			All rights reserved.
 		]"
 	license:   "Your use of this work is governed under the terms of the GNU General Public License version 2"

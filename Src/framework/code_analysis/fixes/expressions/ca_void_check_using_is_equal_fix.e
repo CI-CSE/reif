@@ -1,6 +1,5 @@
-note
+﻿note
 	description: "Fixes violations of rule #47 ('Void-check using 'is_equal'')."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -31,7 +30,8 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Visitor
 
-	execute (a_class: CLASS_AS)
+	execute
+			-- <Precursor>
 		local
 			l_new_text: STRING_32
 		do
@@ -42,7 +42,7 @@ feature {NONE} -- Visitor
 			l_new_text.append (" = Void")
 			l_new_text.append (")")
 
-			nested_to_change.replace_text (l_new_text, matchlist)
+			nested_to_change.replace_text (l_new_text, match_list)
 		end
 
 end

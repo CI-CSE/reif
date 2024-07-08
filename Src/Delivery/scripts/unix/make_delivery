@@ -153,8 +153,11 @@ exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/Delivery/precomp/spec/platfo
 remtrace C_library
 safe_md $INSTALL_DIR/C_library
 cd $INSTALL_DIR/C_library
+exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/C_library/curl curl 
 exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/C_library/libpng libpng
 exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/C_library/zlib zlib 
+safe_md openssl 
+exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/C_library/openssl/clibs_openssl.ecf openssl
 cd $INSTALL_DIR
 remtrace root
 exprt -N -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/Delivery Delivery
@@ -297,7 +300,6 @@ if [ ! "$NO_INSTALL" ]; then
 
 		remtrace C_library
 			# Removing parts that we do not need to put in the porterpackage
-		fullrd	C_library/curl
 		fullrd	C_library/openssl
 		pax -w -f c_libs.tar C_library
 		bzip2 c_libs.tar
@@ -327,6 +329,9 @@ if [ ! "$NO_INSTALL" ]; then
 	# We checkout to avoid having to include the subversion specific directories
 	exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/Delivery/scripts/unix/packaging $EXPORT_DIR/packaging
 		# Now edit `set_aliases' in $EXPORT_DIR as we are now going for compilation mode.
+
+	# checkout eiffelstudio licenses
+	exprt -r $ORIGO_SVN_REVISION $DEFAULT_ORIGO_SVN/Src/Delivery/scripts/licensing $EXPORT_DIR/licensing
 	cd $EXPORT_DIR
 	rm -f tmp
 	sed -e "s/\/PorterPackage//g" set_aliases > tmp
@@ -357,4 +362,4 @@ remtrace `date +%c`
 
 # Error handling and normal ending
 echo You should now run \'compile_exes\' in $EXPORT_DIR, after modifying set_aliases to update the EXPORT_DIR, if necessary.
-CANCEL
+TERMINATE

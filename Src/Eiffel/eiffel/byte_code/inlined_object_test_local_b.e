@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Access to an inlined object-test local in C code."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,6 +10,8 @@ class INLINED_OBJECT_TEST_LOCAL_B
 inherit
 
 	INLINED_LOCAL_B
+		rename
+			make as make_with_position
 		undefine
 			array_descriptor,
 			assigns_to,
@@ -19,7 +21,7 @@ inherit
 			register_name,
 			same
 		redefine
-			print_register, enlarged, type
+			print_register, enlarged, type, print_checked_target_register
 		end
 
 	OBJECT_TEST_LOCAL_B
@@ -34,7 +36,7 @@ inherit
 			set_parent,
 			used
 		redefine
-			print_register, enlarged, type
+			print_register, enlarged, type, print_checked_target_register
 		end
 
 create
@@ -72,11 +74,21 @@ feature -- C code generation
 
 	print_register
 		do
-			System.remover.inliner.inlined_feature.local_regs.item (position).print_register
+			System.remover.inliner.inlined_feature.local_regs.item
+				(context.object_test_local_position (Current)).print_register
+		end
+
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		do
+			System.remover.inliner.inlined_feature.local_regs.item
+				(context.object_test_local_position (Current)).print_checked_target_register
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

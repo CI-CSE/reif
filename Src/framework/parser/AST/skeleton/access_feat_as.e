@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Abstract description of an access to an Eiffel feature (note %
 		%that this access cannot be the first call of a nested %
@@ -21,6 +21,7 @@ inherit
 			make as make_feature_id,
 			name as feature_name
 		redefine
+			index,
 			is_equivalent,
 			last_token,
 			process
@@ -80,25 +81,31 @@ feature -- Attributes
 	is_local: BOOLEAN
 			-- Is current entity a local?
 		do
-			Result := (flags & is_local_flag) = is_local_flag
+			Result := (flags & is_local_flag) /= 0
 		end
 
 	is_argument: BOOLEAN
 			-- Is the current entity an argument?
 		do
-			Result := (flags & is_argument_flag) = is_argument_flag
+			Result := (flags & is_argument_flag) /= 0
 		end
 
 	is_object_test_local: BOOLEAN
 			-- Is the current entity an object test local?
 		do
-			Result := (flags & is_object_test_local_flag) = is_object_test_local_flag
+			Result := (flags & is_object_test_local_flag) /= 0
 		end
 
 	is_tuple_access: BOOLEAN
 			-- Is the current entity an access to one of the TUPLE labels?
 		do
-			Result := (flags & is_tuple_access_flag) = is_tuple_access_flag
+			Result := (flags & is_tuple_access_flag) /= 0
+		end
+
+	is_feature: BOOLEAN
+			-- Is the current entity a feature?
+		do
+			Result := (flags & (is_local_flag | is_argument_flag | is_object_test_local_flag | is_tuple_access_flag)) = 0
 		end
 
 	argument_position: INTEGER
@@ -131,6 +138,12 @@ feature -- Roundtrip
 
 feature -- Roundtrip/Token
 
+	index: INTEGER
+			-- <Precursor>
+		do
+			Result := if attached internal_parameters as p then p.index else Precursor end
+		end
+
 	last_token (a_list: detachable LEAF_AS_LIST): detachable LEAF_AS
 		do
 			if a_list = Void then
@@ -148,22 +161,12 @@ feature -- Roundtrip/Token
 			end
 		end
 
-feature -- Delayed calls
-
-	is_delayed : BOOLEAN
-			-- Is this access delayed?
-		do
-			-- Default: No
-		end
-
 feature -- Comparison
 
 	is_equivalent (other: like Current): BOOLEAN
 			-- Is `other' equivalent to the current object ?
 		do
-			Result := Precursor (other) and then
-				equivalent (parameters, other.parameters) and then
-				is_delayed = other.is_delayed
+			Result := Precursor (other) and then equivalent (parameters, other.parameters)
 		end
 
 feature -- Setting
@@ -258,7 +261,7 @@ invariant
 	parameter_count_correct: (parameters /= Void implies parameter_count > 0) and (parameters = Void implies parameter_count = 0)
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -289,4 +292,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class ACCESS_FEAT_AS
+end

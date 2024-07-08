@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Visitor that adapts a configuration so that it accesses the information from the backup directory."
 	date: "$Date$"
 	revision: "$Revision$"
@@ -28,6 +28,19 @@ inherit
 			{NONE} all
 		end
 
+create
+	make
+
+feature {NONE} -- Creation
+
+	make (directory: like backup_directory)
+			-- Initialize with backup directory `directory`.
+		do
+			backup_directory := directory
+		ensure
+			backup_directory_set: backup_directory = directory
+		end
+
 feature -- Access
 
 	backup_directory: PATH
@@ -37,16 +50,6 @@ feature -- Access
 			-- Are we processing backup for a project compiled for IL code generation?
 
 feature -- Update
-
-	set_backup_directory (a_dir: like backup_directory)
-			-- Set `backup_directory' to `a_dir'.
-		require
-			a_dir_not_void: a_dir /= Void
-		do
-			backup_directory := a_dir
-		ensure
-			backup_directory_set: backup_directory = a_dir
-		end
 
 	set_is_il_generation (v: BOOLEAN)
 			-- Set `is_il_generation' to `v'
@@ -85,8 +88,8 @@ feature -- Visit nodes
 			create l_fact
 			create l_load.make (l_fact)
 			l_load.retrieve_uuid (a_library.path)
-			if not l_load.is_error then
-				create l_loc.make ("..\"+l_load.last_uuid.out+"\"+backup_adapted_config_file, a_library.target)
+			if not l_load.is_error and then attached l_load.last_uuid as uuid then
+				create l_loc.make ("..\"+uuid.out+"\"+backup_adapted_config_file, a_library.target)
 				a_library.set_location (l_loc)
 			end
 		end
@@ -123,7 +126,7 @@ feature -- Visit nodes
 			end
 		end
 note
-	copyright: "Copyright (c) 1984-2012, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

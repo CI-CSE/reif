@@ -51,13 +51,13 @@ feature {NONE} -- Initialize
 			set_sub_title ("Internal EiffelStudio Exception")
 
 				-- Set dialog button text and actions
-			set_button_text (ignore_button, "Ignore")
+			set_button_text (ignore_button, interface_names.b_ignore)
 			set_button_action (ignore_button, agent on_ignore)
 
-			set_button_text (restart_now_button, "Restart Now")
+			set_button_text (restart_now_button, interface_names.b_restart_now)
 			set_button_action (restart_now_button, agent on_restart_now)
 
-			set_button_text (quit_button, "Quit")
+			set_button_text (quit_button, interface_names.b_quit)
 			set_button_action (quit_button, agent on_quit)
 
 				-- Allow dialog to be resized so user is able to see the full trace.
@@ -69,7 +69,7 @@ feature {NONE} -- Initialize
 			-- Note: No user interface initialization should be done here! Use `build_dialog_interface' instead
 		do
 			Precursor {ES_ERROR_PROMPT}
-			create support_login.make (create {ESA_CLIENT_CONFIGURATION}.make (preferences.misc_data.support_url.string))
+			create support_login.make (create {ESA_CLIENT_CONFIGURATION}.make (support_url))
 		end
 
 	build_prompt_interface (a_container: EV_VERTICAL_BOX)
@@ -165,6 +165,9 @@ feature -- Access
 
 	support_login: ESA_SUPPORT_BUG_REPORTER
 			-- Support site login proxy communicator
+
+	support_url: STRING = "https://support.eiffel.com/"
+			-- Official support site url.
 
 feature {NONE} -- Access
 
@@ -284,7 +287,7 @@ feature {NONE} -- Action handlers
 				end
 				create l_save_dialog.make_with_preference (l_pref)
 				create l_constants
-				l_constants.set_dialog_filters_and_add_all (l_save_dialog, <<l_constants.text_files_filter>>)
+				l_constants.set_dialog_filters_and_add_all (l_save_dialog, {ARRAY [STRING_32]} <<l_constants.text_files_filter>>)
 				l_save_dialog.show_modal_to_window (dialog)
 				if not l_save_dialog.full_file_path.is_empty then
 					create l_file.make_with_path (l_save_dialog.full_file_path)
@@ -352,9 +355,10 @@ feature {NONE} -- Action handlers
 					l_description.append (locale_formatter.formatted_translation (lb_status_bar_text, [l_message]))
 					l_description.append_character ('%N')
 				end
+
 				last_description := l_description
 			end
-			create l_dialog.make (support_login, l_description)
+			create l_dialog.make (support_url, support_login, l_description)
 			l_dialog.show (dialog)
 			if l_dialog.dialog_result = l_dialog.dialog_buttons.ok_button then
 				if l_dialog.is_submit_successed then
@@ -398,7 +402,7 @@ invariant
 	support_login_attached: is_interface_usable implies support_login /= Void
 
 ;note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

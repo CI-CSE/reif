@@ -8,6 +8,7 @@
 			expression is inserted will not have too many characters.
 		]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -32,7 +33,7 @@ feature {NONE} -- Initialization
 		do
 			make_with_defaults
 			default_severity_score := 40
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 			initialize_preferences (a_pref_manager)
 
 			create locals_usage.make (0)
@@ -186,19 +187,28 @@ feature {NONE} -- Rule checking
 	expression_length (a_assign: attached ASSIGN_AS): INTEGER
 			-- How many characters long is the source expression of the
 			-- assignment `a_assign'?
+		local
+			leaf_list: LEAF_AS_LIST
 		do
-			Result := a_assign.source.end_position - a_assign.source.start_position + 1
+			leaf_list := System.match_list_server.item (current_context.checking_class.class_id)
+			Result := a_assign.source.last_token (leaf_list).final_position - a_assign.source.first_token (leaf_list).position + 1
 		end
 
 	create_expression_length (a_create: attached CREATION_AS): INTEGER
+		local
+			leaf_list: LEAF_AS_LIST
 		do
-			Result := a_create.end_position - a_create.start_position + 1
+			leaf_list := System.match_list_server.item (current_context.checking_class.class_id)
+			Result := a_create.last_token (leaf_list).final_position - a_create.first_token (leaf_list).position + 1
 		end
 
 	instruction_length (a_instr: attached INSTRUCTION_AS): INTEGER
 			-- How many characters long is `a_instr'?
+		local
+			leaf_list: LEAF_AS_LIST
 		do
-			Result := a_instr.end_position - a_instr.start_position + 1
+			leaf_list := System.match_list_server.item (current_context.checking_class.class_id)
+			Result := a_instr.last_token (leaf_list).final_position - a_instr.first_token (leaf_list).position + 1
 		end
 
 	suspected_variables: LINKED_LIST [ID_AS]
@@ -248,7 +258,7 @@ feature -- Properties
 			-- Generates a formatted rule violation description for `a_formatter' based on `a_violation'.
 		do
 			a_formatter.add (ca_messages.unneeded_helper_variable_violation_1)
-			if attached {STRING_32} a_violation.long_description_info.first as l_name then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_name then
 				a_formatter.add_local (l_name)
 			end
 			a_formatter.add (ca_messages.unneeded_helper_variable_violation_2)

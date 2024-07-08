@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Represent a tab page for a file rule."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -57,8 +57,6 @@ feature {NONE} -- Initialization
 			vb: EV_VERTICAL_BOX
 			hb_main, hb: EV_HORIZONTAL_BOX
 			l_label: EV_LABEL
-			l_list: ARRAYED_LIST [STRING_32]
-			l_hs: like {CONF_FILE_RULE}.include
 		do
 			default_create
 			data := a_file_rule
@@ -76,8 +74,8 @@ feature {NONE} -- Initialization
 			vb.set_border_width (layout_constants.default_border_size)
 			vb.set_padding (layout_constants.default_padding_size)
 
-			if data.exclude /= Void then
-				create exclude_pattern.make_with_strings (data.ordered_exclude)
+			if attached data.ordered_exclude as o then
+				create exclude_pattern.make_with_strings (o)
 			else
 				create exclude_pattern
 			end
@@ -107,8 +105,8 @@ feature {NONE} -- Initialization
 			vb.set_padding (layout_constants.default_padding_size)
 			vb.set_border_width (layout_constants.default_border_size)
 
-			if data.include /= Void then
-				create include_pattern.make_with_strings (data.ordered_include)
+			if attached data.ordered_include as o then
+				create include_pattern.make_with_strings (o)
 			else
 				create include_pattern
 			end
@@ -140,8 +138,8 @@ feature {NONE} -- Initialization
 			l_label.align_text_left
 
 			create description
-			if data.description /= Void then
-				description.set_text (data.description)
+			if attached data.description as d then
+				description.set_text (d)
 			end
 			description.set_minimum_height (50)
 			description.change_actions.extend (agent update_description)
@@ -220,8 +218,13 @@ feature {NONE} -- Actions
 		do
 			l_pattern := new_exclude.text
 			if not l_pattern.is_empty and (data.exclude = Void or else not data.exclude.has (l_pattern)) then
-				data.add_exclude (l_pattern)
-				exclude_pattern.force (create {EV_LIST_ITEM}.make_with_text (l_pattern))
+				if attached data.regexp_error (l_pattern) as e then
+					prompts.show_error_prompt (conf_interface_names.e_parse_invalid_regexp
+						(l_pattern, Void, e.message, e.position), Void, Void)
+				else
+					data.add_exclude (l_pattern)
+					exclude_pattern.force (create {EV_LIST_ITEM}.make_with_text (l_pattern))
+				end
 			end
 		end
 
@@ -232,18 +235,23 @@ feature {NONE} -- Actions
 		do
 			l_pattern := new_include.text
 			if not l_pattern.is_empty and (data.include = Void or else not data.include.has (l_pattern)) then
-				data.add_include (l_pattern)
-				include_pattern.force (create {EV_LIST_ITEM}.make_with_text (l_pattern))
+				if attached data.regexp_error (l_pattern) as e then
+					prompts.show_error_prompt (conf_interface_names.e_parse_invalid_regexp
+						(l_pattern, Void, e.message, e.position), Void, Void)
+				else
+					data.add_include (l_pattern)
+					include_pattern.force (create {EV_LIST_ITEM}.make_with_text (l_pattern))
+				end
 			end
 		end
 
 	remove_exclude
 			-- Remove current selected exclude pattern.
 		do
-			if exclude_pattern.selected_item /= Void then
-				data.del_exclude (exclude_pattern.selected_item.text)
+			if attached exclude_pattern.selected_item as p then
+				data.del_exclude (p.text)
 				exclude_pattern.start
-				exclude_pattern.search (exclude_pattern.selected_item)
+				exclude_pattern.search (p)
 				exclude_pattern.remove
 			end
 		end
@@ -251,10 +259,10 @@ feature {NONE} -- Actions
 	remove_include
 			-- Remove current selected include pattern.
 		do
-			if include_pattern.selected_item /= Void then
-				data.del_include (include_pattern.selected_item.text)
+			if attached include_pattern.selected_item as p then
+				data.del_include (p.text)
 				include_pattern.start
-				include_pattern.search (include_pattern.selected_item)
+				include_pattern.search (p)
 				include_pattern.remove
 			end
 		end
@@ -272,7 +280,11 @@ feature {NONE} -- Actions
 		do
 			create l_dial
 			l_dial.set_value (data.internal_conditions)
-			l_dial.show_modal_to_window (parent_window (Current))
+			if attached parent_window (Current) as p then
+				l_dial.show_modal_to_window (p)
+			else
+				l_dial.show
+			end
 			if l_dial.is_ok then
 				data.set_conditions (l_dial.value)
 			end
@@ -288,7 +300,7 @@ invariant
 	gui_elements_created: is_initialized implies exclude_pattern /= Void and new_exclude /= Void and include_pattern /= Void and new_include /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

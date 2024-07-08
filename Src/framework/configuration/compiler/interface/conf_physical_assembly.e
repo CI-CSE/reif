@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that represent an included assembly"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -43,10 +43,13 @@ feature {NONE} -- Initialization
 
 	initialize_conditions
 			-- Restrict to platform dotnet
+		local
+			c: like internal_conditions
 		do
 				-- We can't have any existing conditions as this group does not have an equivalent in the configuration file.
-			create internal_conditions.make (1)
-			internal_conditions.force (default_condition)
+			create c.make (1)
+			c.force (default_condition)
+			internal_conditions := c
 		end
 
 	make_from_consumed (a_consumed: CONSUMED_ASSEMBLY; a_cache_path: PATH; a_target: CONF_TARGET)
@@ -114,7 +117,7 @@ feature -- Access, in compiled only
 	cache_path: PATH
 			-- Path to the metadata cache.
 
-	dotnet_classes: STRING_TABLE [like class_type]
+	dotnet_classes: detachable STRING_TABLE [like class_type]
 			-- Same as `classes' but indexed by the dotnet name.
 
 	guid: READABLE_STRING_32
@@ -138,7 +141,7 @@ feature -- Access, in compiled only
 	consumed_assembly: CONSUMED_ASSEMBLY
 			-- Consumed assembly as produced by the consumer.
 
-	dependencies: HASH_TABLE [CONF_PHYSICAL_ASSEMBLY, INTEGER];
+	dependencies: detachable HASH_TABLE [CONF_PHYSICAL_ASSEMBLY, INTEGER];
 			-- Dependencies on other assemblies indexed by their assembly ID.
 
 feature -- Access queries
@@ -226,8 +229,8 @@ feature -- Access queries
 			Result := l_accessible_groups_cache
 		end
 
-	mapping: STRING_TABLE [STRING_32]
-			-- Special classes name mapping (eg. STRING => STRING_32).
+	mapping: STRING_TABLE [READABLE_STRING_32]
+			-- Special classes name mapping (eg. "STRING" => "STRING_32").
 		once
 				-- there are no mappings for assemblies
 			create Result.make_equal (0)
@@ -286,14 +289,19 @@ feature -- Access queries
 		require
 			a_class_ok: a_class /= Void and then not a_class.is_empty
 			classes_set: classes_set
+		local
+			d: like dotnet_classes
 		do
 			if
 				attached dependencies as l_dependencies and then
 				attached l_dependencies.item (a_dependency_index) as l_found_item
 			then
-				Result := l_found_item.dotnet_classes.item (a_class)
+				d := l_found_item.dotnet_classes
 			else
-				Result := dotnet_classes.item (a_class)
+				d := dotnet_classes
+			end
+			if attached d then
+				Result := d.item (a_class)
 			end
 		end
 
@@ -307,25 +315,24 @@ feature -- Access queries
 			Result.void_safety.put_index ({CONF_OPTION}.void_safety_index_all)
 		end
 
-	class_options: STRING_TABLE [CONF_OPTION]
+	class_options: detachable STRING_TABLE [CONF_OPTION]
 			-- Options of classes in the assembly.
 		do
 				-- classes in assemblies have no options
 		end
 
-	sub_group_by_name (a_name: READABLE_STRING_GENERAL): CONF_GROUP
+	sub_group_by_name (a_name: READABLE_STRING_GENERAL): detachable CONF_GROUP
 			-- Return assembly dependency with `a_name' if there is any.
 		do
-			if dependencies /= Void then
-				from
-					dependencies.start
+			if attached dependencies as ds then
+				across
+					ds as d
 				until
-					Result /= Void or dependencies.after
+					attached Result
 				loop
-					if dependencies.item_for_iteration.name.same_string_general (a_name) then
-						Result := dependencies.item_for_iteration
+					if d.item.name.same_string_general (a_name) then
+						Result := d.item
 					end
-					dependencies.forth
 				end
 			end
 		end
@@ -384,11 +391,15 @@ feature {CONF_ACCESS} -- Update, in compiled only
 			-- Add a dependency on `an_assembly'.
 		require
 			an_assembly_not_void: an_assembly /= Void
+		local
+			d: like dependencies
 		do
-			if dependencies = Void then
-				create dependencies.make (an_index)
+			d := dependencies
+			if not attached d then
+				create d.make (an_index)
+				dependencies := d
 			end
-			dependencies.force (an_assembly, an_index)
+			d.force (an_assembly, an_index)
 		end
 
 	set_dependencies (a_dependencies: like dependencies)
@@ -439,7 +450,7 @@ invariant
 	assemblies_not_void: assemblies /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

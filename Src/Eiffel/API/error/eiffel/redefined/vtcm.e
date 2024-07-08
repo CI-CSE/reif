@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Warning when a class name of an export clause is not found in the surrounding universe."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -12,8 +12,7 @@ inherit
 	EIFFEL_WARNING
 		redefine
 			build_explain,
-			print_single_line_error_message,
-			trace
+			print_single_line_error_message
 		end
 
 create
@@ -53,15 +52,6 @@ feature -- Status report
 
 feature -- Output
 
-	trace (f: TEXT_FORMATTER)
-			-- <Precursor>
-		do
-			Precursor (f)
-			if line > 0 then
-				print_context_of_error (associated_class, f)
-			end
-		end
-
 	build_explain (a_text_formatter: TEXT_FORMATTER)
 			-- Build specific explanation explain for current error
 			-- in `a_text_formatter'.
@@ -100,14 +90,6 @@ feature {NONE} -- Output
 
 feature {COMPILER_EXPORTER} -- Setting
 
-	set_class (c: like associated_class)
-			-- Assign `c' to class_c.
-		require
-			valid_c: c /= Void
-		do
-			associated_class := c
-		end
-
 	set_class_name (s: STRING)
 			-- Assign `s' to `class_name'.
 		require
@@ -119,7 +101,7 @@ feature {COMPILER_EXPORTER} -- Setting
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2011, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -150,4 +132,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class VTCM
+end

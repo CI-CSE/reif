@@ -66,7 +66,7 @@ feature {NONE} -- Initialization
 			setup_editor
 
 			append_drop_actions (
-				<<linear_lbl_empty_area,
+				{ARRAY [EV_PICK_AND_DROPABLE_ACTION_SEQUENCES]} <<linear_lbl_empty_area,
 				  linear_definition_empty_area,
 				  expression_lbl_empty_area
 				>>,
@@ -451,14 +451,11 @@ feature{NONE} -- Implementation/Actions
 		local
 			l_row: EV_GRID_ROW
 			l_coefficient_item: EV_GRID_EDITABLE_ITEM
-			l_uuid: UUID
 		do
 			l_row := a_item.row
 			l_coefficient_item ?= l_row.item (1)
-			l_uuid ?= a_item.data
 			check
 				l_coefficient_item /= Void
-				l_uuid /= Void
 			end
 			load_metric_in_row (a_item.text, l_coefficient_item.text, l_row)
 			metric_grid.remove_selection
@@ -658,7 +655,7 @@ invariant
 	metric_grid_attached: metric_grid /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

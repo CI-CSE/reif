@@ -1,14 +1,13 @@
-note
+﻿note
+	description: "Iterator on features."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-
--- Iterator on features
 
 deferred class FEAT_ITERATOR
 
 inherit
 
-	SHARED_SERVER;
+	SHARED_SERVER
 	COMPILER_EXPORTER
 	INTERNAL_COMPILER_STRING_EXPORTER
 
@@ -17,14 +16,14 @@ feature
 	used_table: ARRAY [BOOLEAN]
 				-- table of used body_indexes
 
-	marked_table: ARRAY [ROUT_ID_SET]
+	marked_table: ARRAY [detachable ROUT_ID_SET]
 				-- table of marked rout_ids indexed by body_indexes
 
 	make
 			-- Initialization
 		do
-			create used_table.make (1, System.body_index_counter.count)
-			create marked_table.make (1, System.body_index_counter.count)
+			create used_table.make_filled (False, 1, System.body_index_counter.count)
+			create marked_table.make_filled (Void, 1, System.body_index_counter.count)
 		end;
 
 feature -- Modification
@@ -73,14 +72,12 @@ feature {NONE}
 	mark (body_index: INTEGER; static_class_id: INTEGER; original_class_id: INTEGER; rout_id_val: INTEGER)
 			-- Mark feature and its redefinitions
 		local
-			table: ROUT_TABLE;
-			old_position: INTEGER;
-			unit: ROUT_ENTRY;
+			old_position: INTEGER
+			unit: ROUT_ENTRY
 		do
 			mark_and_record (body_index, static_class_id, original_class_id);
 
-			table ?= tmp_poly_server.item (rout_id_val)
-			if table /= Void and then table.count > 1 then
+			if attached {ROUT_TABLE} tmp_poly_server.item (rout_id_val) as table and then table.count > 1 then
 					-- If routine id available: this is not a deferred feature
 					-- without any implementation
 				from
@@ -105,7 +102,6 @@ feature {NONE}
 			-- Mark feature `feat' alive.
 		local
 			depend_list: FEATURE_DEPENDANCE
-			original_dependances: CLASS_DEPENDANCE
 			just_born: BOOLEAN
 			-- DEBUG
 			a_class: CLASS_C
@@ -139,8 +135,7 @@ end
 				mark_alive (body_index);
 
 					-- Take care of dependances
-				original_dependances := Depend_server.item (written_class_id)
-				depend_list := original_dependances.item (body_index)
+				depend_list := Depend_server.item (written_class_id).item (body_index)
 				if depend_list /= Void then
 					propagate_feature (written_class_id, body_index, depend_list);
 				end
@@ -201,15 +196,12 @@ feature
 		end
 
 	is_treated (body_index: INTEGER; rout_id: INTEGER): BOOLEAN
-		local
-			tmp: ROUT_ID_SET
 		do
-			tmp := marked_table.item (body_index)
-			Result := tmp /= Void and then tmp.has (rout_id)
+			Result := attached marked_table.item (body_index) as s and then s.has (rout_id)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

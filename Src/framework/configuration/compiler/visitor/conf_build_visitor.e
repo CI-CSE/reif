@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Visitor that builds the compiled informations from scratch or from old informations."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -13,6 +13,7 @@ inherit
 		export
 			{NONE} process_system, process_assembly, process_library, process_cluster, process_override
 		redefine
+			last_warnings,
 			process_target,
 			process_assembly,
 			process_library,
@@ -31,6 +32,7 @@ inherit
 
 	CONF_SCAN_DIRECTORY
 		redefine
+			last_warnings,
 			on_process_directory
 		end
 
@@ -40,13 +42,18 @@ create
 
 feature {NONE} -- Initialization
 
-	make_build (a_state: like state; an_application_target: like application_target; a_factory: like factory)
+	make_build (a_state: like state; an_application_target: like application_target;
+		a_assembly_cach_location: READABLE_STRING_32; a_il_version: like il_version; a_partial_location: like partial_location; a_factory: like factory)
 			-- Create.
 		require
 			a_state_not_void: a_state /= Void
 			an_application_target_not_void: an_application_target /= Void
 			a_factory_not_void: a_factory /= Void
 		do
+			create assembly_cache_folder.make_from_string (a_assembly_cach_location)
+			il_version := a_il_version
+			partial_location := a_partial_location
+			create current_classes_by_filename.make (0)
 			application_target := an_application_target
 			factory := a_factory
 			reset_classes
@@ -61,7 +68,8 @@ feature {NONE} -- Initialization
 			application_target_set: application_target = an_application_target
 		end
 
-	make_build_from_old (a_state: like state; an_application_target, an_old_target: CONF_TARGET; a_factory: like factory)
+	make_build_from_old (a_state: like state; an_application_target, an_old_target: CONF_TARGET;
+		a_assembly_cach_location: READABLE_STRING_32; a_version: like il_version; a_partial_location: like partial_location; a_factory: like factory)
 			-- Create.
 		require
 			a_state_not_void: a_state /= Void
@@ -72,7 +80,7 @@ feature {NONE} -- Initialization
 			application_target := an_application_target
 			factory := a_factory
 			reset_classes
-			make_build (a_state, an_application_target, a_factory)
+			make_build (a_state, an_application_target, a_assembly_cach_location, a_version, a_partial_location, a_factory)
 			old_target := an_old_target
 		ensure
 			application_target_set: application_target = an_application_target
@@ -102,30 +110,10 @@ feature -- Access
 	new_assemblies: SEARCH_TABLE [CONF_ASSEMBLY]
 			-- List of assemblies in the current configuration.
 
+	last_warnings: ARRAYED_LIST [CONF_ERROR]
+			-- <Precursor>
+
 feature -- Update
-
-	set_assembly_cach_folder (a_location: STRING_32)
-			-- Set `assembly_cache_folder'.
-		require
-			a_location_not_void: a_location /= Void
-		do
-			create assembly_cache_folder.make_from_string (a_location)
-		end
-
-	set_il_version (a_version: like il_version)
-			-- Set `il_version'.
-			-- If `a_version' is `Void', use the latest version.
-		do
-			il_version := a_version
-		end
-
-	set_partial_location (a_location: like partial_location)
-			-- Set `partial_location'.
-		require
-			a_location_not_void: a_location /= Void
-		do
-			partial_location := a_location
-		end
 
 	set_is_full_class_name_analyzis (v: like is_full_class_name_analysis)
 			-- Set `is_full_class_name_analysis' with `v'.
@@ -252,8 +240,11 @@ feature -- Visit nodes
 				if a_target = application_target then
 						-- only for .NET
 					if state.is_dotnet then
-						if attached old_target as l_old_target then
-							l_old_assemblies := l_old_target.system.all_assemblies.twin
+						if
+							attached old_target as l_old_target and then
+							attached l_old_target.system.all_assemblies as a
+						then
+							l_old_assemblies := a.twin
 						end
 						create l_consumer_manager.make (factory, assembly_cache_folder, il_version, application_target, added_classes, removed_classes, modified_classes)
 						l_consumer_manager.consume_assembly_observer.append (consume_assembly_observer)
@@ -304,11 +295,13 @@ feature -- Visit nodes
 		rescue
 				-- If we have added a new configuration error, we retry, otherwise we let the
 				-- caller handle the exception.
-			if attached {CONF_EXCEPTION} exception_manager.last_exception.original as lt_ex then
-				if last_errors /= Void and then last_errors.count /= l_error_count then
-					l_retried := True
-					retry
-				end
+			if
+				attached exception_manager.last_exception as x and then
+				attached {CONF_EXCEPTION} x.original as lt_ex and then
+				attached last_errors  as e and then e.count /= l_error_count
+			then
+				l_retried := True
+				retry
 			end
 		end
 
@@ -379,14 +372,13 @@ feature -- Visit nodes
 				old_group_implies_old_library: old_group /= Void implies l_old_library /= Void
 			end
 			l_target := a_library.library_target
-			l_uuid := l_target.system.uuid
-			check
-				uuid_set: l_uuid /= Void
-			end
-
 			if l_target = Void then
 				check library_target_set: False end
 			else
+				l_uuid := l_target.system.uuid
+				check
+					uuid_set: l_uuid /= Void
+				end
 				if not libraries.has (l_uuid) then
 						-- get and initialize visitor
 					l_vis := twin
@@ -449,7 +441,7 @@ feature -- Visit nodes
 					until
 						l_current_classes.after
 					loop
-						l_prefixed_classes.put (current_classes.item_for_iteration, l_pre+l_current_classes.key_for_iteration)
+						l_prefixed_classes.put (l_current_classes.item_for_iteration, l_pre+l_current_classes.key_for_iteration)
 						l_current_classes.forth
 					end
 					a_library.set_classes (l_prefixed_classes)
@@ -486,8 +478,8 @@ feature -- Visit nodes
 			on_process_group (a_cluster)
 			a_cluster.wipe_class_cache
 			current_cluster := a_cluster
-			create current_classes.make (Classes_per_cluster)
-			l_current_classes := current_classes
+			create l_current_classes.make (Classes_per_cluster)
+			current_classes := l_current_classes
 
 			l_modified_classes := modified_classes
 
@@ -643,7 +635,7 @@ feature {NONE} -- Implementation
 	libraries: HASH_TABLE [CONF_TARGET, UUID]
 			-- Mapping of processed library targets, mapped with their uuid.
 
-	all_libraries: HASH_TABLE [CONF_TARGET, UUID]
+	all_libraries: detachable HASH_TABLE [CONF_TARGET, UUID]
 			-- Mapping of all library targets (processed and unprocessed) that are in the new target, mapped with their uuid.
 
 	old_libraries: detachable HASH_TABLE [CONF_TARGET, UUID]
@@ -677,17 +669,17 @@ feature {NONE} -- Implementation
 			-- Put the class in `a_path' `a_file' into `current_classes'.
 		local
 			l_file: KL_BINARY_INPUT_FILE_32
-			l_class: detachable CONF_CLASS
-			l_name: detachable STRING
+			l_class: CONF_CLASS
+			l_name: STRING
 			l_full_file: PATH
-			l_pc: detachable ARRAYED_LIST [READABLE_STRING_GENERAL]
+			l_pc: ARRAYED_LIST [READABLE_STRING_GENERAL]
 			l_file_path: PATH
-			l_done: BOOLEAN
 			l_suggested_filename: STRING_32
 			l_current_classes: like current_classes
 			l_old_group: detachable like old_group
 			l_old_group_classes_by_filename: like old_group.classes_by_filename
 			l_classname_finder: like classname_finder
+			p: like partial_classes
 		do
 			l_current_classes := current_classes
 			l_old_group := old_group
@@ -695,15 +687,17 @@ feature {NONE} -- Implementation
 				l_old_group_classes_by_filename := l_old_group.classes_by_filename
 			end
 			check
-				current_classes_not_void: l_current_classes /= Void
 				old_group_classes_set: l_old_group /= Void implies l_old_group.classes_set
 			end
-			if valid_eiffel_extension (a_file) then
+			if
+				attached l_current_classes and then
+				valid_eiffel_extension (a_file)
+			then
 				create l_file_path.make_from_string (a_path)
 				l_file_path := l_file_path.extended (a_file)
 					-- try to get it directly from old_group by filename
 				if
-					l_old_group /= Void and then
+					attached l_old_group_classes_by_filename and then
 					attached l_old_group_classes_by_filename.item (l_file_path) as l_old_class
 				then
 					l_class := l_old_class
@@ -725,7 +719,6 @@ feature {NONE} -- Implementation
 							l_current_classes.force (l_class, l_name)
 							current_classes_by_filename.force (l_class, l_file_path)
 						end
-						l_done := True
 					elseif attached l_class.last_class_name as l_last_class_name then
 							-- Class was renamed. This fixes eweasel test#incr051.
 						l_name := l_last_class_name
@@ -745,10 +738,9 @@ feature {NONE} -- Implementation
 								current_classes_by_filename.force (l_class, l_file_path)
 							end
 						end
-						l_done := True
 					end
 				end
-				if not l_done then
+				if not attached l_name then
 						-- Because override processing is done during analyzis of the ECF file, we
 						-- need to make sure that the class name we read from a class in an override
 						-- cluster is really the one intended. Fixes eweasel test#incr263.
@@ -772,16 +764,18 @@ feature {NONE} -- Implementation
 								l_name.to_upper
 
 								if l_classname_finder.is_partial_class then
-										-- partial classes					
-									if partial_classes = Void then
-										create partial_classes.make (1)
+										-- partial classes	
+									p := partial_classes
+									if not attached p then
+										create p.make (1)
+										partial_classes := p
 									end
-									l_pc := partial_classes.item (l_name)
+									l_pc := p.item (l_name)
 									if l_pc = Void then
 										create l_pc.make (1)
 									end
 									l_pc.extend (l_full_file.name)
-									partial_classes.force (l_pc, l_name)
+									p.force (l_pc, l_name)
 								else
 										-- normal classes
 									l_class := factory.new_class (a_file, a_cluster, a_path, l_name)
@@ -789,8 +783,8 @@ feature {NONE} -- Implementation
 										add_and_raise_error (l_class_error)
 									end
 									added_classes.force (l_class)
-									if l_current_classes.has_key (l_name) then
-										add_error (create {CONF_ERROR_CLASSDBL}.make (l_name, l_current_classes.found_item.full_file_name.name,
+									if attached l_current_classes.item (l_name) as c then
+										add_error (create {CONF_ERROR_CLASSDBL}.make (l_name, c.full_file_name.name,
 											l_class.full_file_name.name, a_cluster.target.system.file_name))
 									else
 										l_current_classes.force (l_class, l_name)
@@ -827,7 +821,6 @@ feature {NONE} -- Implementation
 					 application_target.options.is_warning_enabled (w_classname_filename_mismatch)
 				then
 						-- l_name is set by all execution paths since the ones where it is not set raise an error.
-					check l_name /= Void end
 						-- Check file name against class name
 					if not a_file.substring (1, a_file.count - 1 - eiffel_file_extension.count).is_case_insensitive_equal_general (l_name) then
 							-- We propose the correct file name. The file name construction follows the same schema as above
@@ -844,7 +837,7 @@ feature {NONE} -- Implementation
 		ensure then
 				--FIXME, at the moment this doesn't cover clusters with partial classes completely
 			added: not is_error implies (valid_eiffel_extension (a_file)
-				implies (current_classes.count = old current_classes.count + 1) or partial_classes /= Void)
+				implies (attached current_classes as c and then c.count = old (if attached current_classes as o then o.count else 0 end) + 1) or partial_classes /= Void)
 		end
 
 	merge_classes (a_group: CONF_GROUP)
@@ -853,8 +846,11 @@ feature {NONE} -- Implementation
 			current_classes_not_void: current_classes /= Void
 			a_group_not_void: a_group /= Void
 		do
-			if attached a_group.classes as g_classes then
-				current_classes.merge (g_classes)
+			if
+				attached current_classes as c and then
+				attached a_group.classes as g_classes
+			then
+				c.merge (g_classes)
 			end
 		end
 
@@ -891,7 +887,11 @@ feature {NONE} -- Implementation
 								-- although the classes are still there, we have to recheck all clients
 								-- of this class in `current_system' because they no longer
 								-- have access to those classes.
-							if attached l_library.library_target as l_library_target and then all_libraries.has (l_library_target.system.uuid) then
+							if
+								attached l_library.library_target as l_library_target and then
+								attached all_libraries as ls and then
+								ls.has (l_library_target.system.uuid)
+							then
 								l_done := True
 								if attached l_library.classes as l_classes then
 									check classes_set: l_library.classes_set end
@@ -969,7 +969,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	process_with_old (a_new_groups, an_old_groups: STRING_TABLE [CONF_GROUP])
+	process_with_old (a_new_groups: STRING_TABLE [CONF_GROUP]; an_old_groups: detachable STRING_TABLE [CONF_GROUP])
 			-- Process `a_new_groups' and set `old_group' to the corresponding group of `an_old_groups'.
 		require
 			old_group_void: old_group = Void
@@ -1028,7 +1028,8 @@ feature {NONE} -- Implementation
 		do
 			if
 				attached partial_classes as l_partial_classes and then
-				attached current_cluster as l_current_cluster
+				attached current_cluster as l_current_cluster and then
+				attached current_classes as l_current_classes
 			then
 				across
 					l_partial_classes as ic
@@ -1070,13 +1071,13 @@ feature {NONE} -- Implementation
 							end
 						end
 					end
-					current_classes.force (l_class, l_class.name)
+					l_current_classes.force (l_class, l_class.name)
 				end
 			else
 				check precondition__partial_classes_not_void: False end
 			end
 		ensure
-			classes_added: not is_error implies current_classes.count = old current_classes.count + partial_classes.count
+			classes_added: not is_error implies attached current_classes as c and then c.count = old (if attached current_classes as o then o.count else 0 end) + (if attached partial_classes as p then p.count else 0 end)
 		end
 
 feature {NONE} -- contracts
@@ -1148,7 +1149,7 @@ invariant
 	last_warnings_not_void: last_warnings /= Void
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,36 +1,36 @@
 /*
-	description: "Thread management routines."
+	description:	"Thread management routines."
 	date:		"$Date$"
 	revision:	"$Revision$"
-	copyright:	"Copyright (c) 1985-2006, Eiffel Software."
+	copyright:	"Copyright (c) 1985-2016, Eiffel Software."
 	license:	"GPL version 2 see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"Commercial license is available at http://www.eiffel.com/licensing"
 	copying: "[
 			This file is part of Eiffel Software's Runtime.
-			
+
 			Eiffel Software's Runtime is free software; you can
 			redistribute it and/or modify it under the terms of the
 			GNU General Public License as published by the Free
 			Software Foundation, version 2 of the License
 			(available at the URL listed under "license" above).
-			
+
 			Eiffel Software's Runtime is distributed in the hope
 			that it will be useful,	but WITHOUT ANY WARRANTY;
 			without even the implied warranty of MERCHANTABILITY
 			or FITNESS FOR A PARTICULAR PURPOSE.
 			See the	GNU General Public License for more details.
-			
+
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Runtime; if not,
 			write to the Free Software Foundation, Inc.,
 			51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 */
 
@@ -55,8 +55,8 @@
 
 #define eif_thr_yield()
 #define eif_thr_join_all()
-#define eif_thr_wait(term)
-#define eif_thr_wait_with_timeout(term,tms) EIF_FALSE
+#define eif_thr_wait(current_obj,get_terminated_func)
+#define eif_thr_wait_with_timeout(current_obj,get_terminated_func,tms) EIF_TRUE
 #define eif_thr_join(term)
 
 #define eif_thr_thread_id() NULL
@@ -66,16 +66,14 @@
 #define eif_thr_default_priority() 0
 #define eif_thr_min_priority() 0
 #define eif_thr_max_priority() 0
-#define eif_thr_create_with_attr(current_obj, init_func, attr)
-#define eif_thr_create_with_attr_new(current_obj, init_func, log_id, is_proc, attr)
-/* Obsolete `eif_thr_create_with_args' but maintained to make it easy to switch between runtime versions. */
-#define eif_thr_create_with_args(current_obj, init_func, priority, policy, detach)
+#define eif_thr_create_with_attr(current_obj, init_func, set_terminated_func, attr)
+#define eif_thr_create_with_attr_new(current_obj, init_func, set_terminated_func, log_id, is_proc, attr)
 #define eif_thr_create(current_object, init_func)
 
 #define eif_thr_sem_create(count) NULL
 #define eif_thr_sem_wait(a_sem_pointer)
 #define eif_thr_sem_post(a_sem_pointer)
-#define eif_thr_sem_trywait(a_sem_pointer) EIF_FALSE
+#define eif_thr_sem_trywait(a_sem_pointer) EIF_TRUE
 #define eif_thr_sem_destroy(a_sem_pointer)
 
 #define eif_thr_rwl_create() NULL
@@ -87,15 +85,15 @@
 #define eif_thr_mutex_create() NULL
 #define eif_thr_mutex_lock(a_mutex_pointer)
 #define eif_thr_mutex_unlock(a_mutex_pointer)
-#define eif_thr_mutex_trylock(a_mutex_pointer) EIF_FALSE
+#define eif_thr_mutex_trylock(a_mutex_pointer) EIF_TRUE
 #define eif_thr_mutex_destroy(a_mutex_pointer)
 
 #define eif_thr_cond_create() NULL
 #define eif_thr_cond_broadcast(a_cond_ptr)
 #define eif_thr_cond_signal(a_cond_ptr)
 #define eif_thr_cond_wait(a_cond_ptr,a_mutex_ptr)
-#define eif_thr_cond_wait_with_timeout(a_cond_ptr,a_mutex_ptr,a_timeout) 0
-#define eif_thr_cond_destroy(a_mutex_ptr)
+#define eif_thr_cond_wait_with_timeout(a_cond_ptr,a_mutex_ptr,a_timeout) 1
+#define eif_thr_cond_destroy(a_cond_ptr)
 
 #if !defined(EIF_WINDOWS) && !defined(VXWORKS)
 /* Forking, only support on Unix platform on which `fork' is supported. */
@@ -128,7 +126,7 @@ extern "C" {
 #		if defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 303)
 #			define EIF_TLS __thread
 #		elif EIF_OS == EIF_OS_SUNOS
-#			define EIF_TLS __thread	
+#			define EIF_TLS __thread
 #		else
 #			warning "USE_TLS macro is defined, but compiler does not support thread-local storage specifier."
 #		endif
@@ -183,18 +181,19 @@ RT_LNK void eif_thr_exit(void);
 RT_LNK void eif_thr_yield(void);
 RT_LNK void eif_thr_join_all(void);
 RT_LNK void eif_thr_join(EIF_POINTER);
-RT_LNK void eif_thr_wait(EIF_OBJECT);
-RT_LNK EIF_BOOLEAN eif_thr_wait_with_timeout(EIF_OBJECT, EIF_NATURAL_64);
-RT_LNK void eif_thr_create_with_attr(EIF_OBJECT, EIF_PROCEDURE, EIF_THR_ATTR_TYPE *);
-RT_LNK void eif_thr_create_with_attr_new(EIF_OBJECT, EIF_PROCEDURE, EIF_INTEGER_32, EIF_BOOLEAN, EIF_THR_ATTR_TYPE *);
-/* Obsolete `eif_thr_create_with_args' but maintained to make it easy to switch between runtime versions. */
-#define eif_thr_create_with_args(current_obj, init_func, priority, policy, detach)	\
-	eif_thr_create_with_attr(current_obj,init_func, NULL);
+RT_LNK void eif_thr_wait(EIF_OBJECT, EIF_BOOLEAN_FUNCTION);
+RT_LNK EIF_BOOLEAN eif_thr_wait_with_timeout(EIF_OBJECT, EIF_BOOLEAN_FUNCTION, EIF_NATURAL_64);
+RT_LNK void eif_thr_create_with_attr(EIF_OBJECT, EIF_PROCEDURE, EIF_PROCEDURE, EIF_THR_ATTR_TYPE *);
+RT_LNK void eif_thr_create_with_attr_new(EIF_OBJECT, EIF_PROCEDURE, EIF_PROCEDURE, EIF_INTEGER_32, EIF_BOOLEAN, EIF_THR_ATTR_TYPE *);
 RT_LNK EIF_INTEGER eif_thr_default_priority(void);
 RT_LNK EIF_INTEGER eif_thr_min_priority(void);
 RT_LNK EIF_INTEGER eif_thr_max_priority(void);
 RT_LNK EIF_POINTER eif_thr_thread_id(void);
 RT_LNK EIF_POINTER eif_thr_last_thread(void);
+
+#ifdef EIF_WINDOWS
+RT_LNK void* eif_thr_create_wel_per_thread_data (size_t);
+#endif
 
 /*--------------------------*/
 /*---  Mutex operations  ---*/

@@ -22,14 +22,11 @@ feature -- Initialization
 			entries.extend (item)
 		end
 
-	make_with_entries (list: ARRAY [STRING])
+	make_with_entries (list: ITERABLE [READABLE_STRING_8])
 			-- Initialize the header with a 'list' of entries.
 		do
-			create entries.make (list.count)
-			from_array_to_entries (list)
-			if entries.count > 1 then
-				enable_multiple_entries
-			end
+			create entries.make (1)
+			add_entries (list)
 		end
 
 feature -- Access
@@ -60,13 +57,14 @@ feature -- Status setting
 		end
 
 	enable_contains_addresses
+		obsolete
+			"Implementation was never used, so no need to call this routine [2017-05-31]."
 		do
-			contains_addresses:= True
 		end
 
 feature -- Basic operations
 
-	add_entry (s: STRING)
+	add_entry (s: READABLE_STRING_8)
 			-- Add a new entry 's' to the header.
 		do
 			if not multiple_entries and entries.count > 0 then
@@ -78,12 +76,16 @@ feature -- Basic operations
 			entry_inserted: entries.has (s)
 		end
 
-	add_entries (list: ARRAY [STRING])
+	add_entries (list: ITERABLE [READABLE_STRING_8])
 			-- Add multiple entries at once.
 		require
 			entries_exist: entries /= Void
 		do
-			from_array_to_entries (list)
+			across
+				list as ic
+			loop
+				entries.force (ic.item)
+			end
 			if entries.count > 1 then
 				enable_multiple_entries
 			end
@@ -107,9 +109,6 @@ feature -- Basic operations
 
 feature {NONE} -- Implementation
 
-	contains_addresses: BOOLEAN
-			-- Does header contain addresses?
-
 	from_array_to_entries (src: ARRAY [STRING])
 			-- Convert 'array' into entries.
 		require
@@ -129,14 +128,14 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 

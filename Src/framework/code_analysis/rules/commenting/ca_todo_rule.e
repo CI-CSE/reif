@@ -6,6 +6,7 @@
 			'TODO' or 'To do' means remaining work to be done.
 		]"
 	author: "Stefan Zurfluh"
+	revised_by: "Alexander Kogtenkov"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -31,7 +32,7 @@ feature {NONE} -- Initialization
 		do
 			make_with_defaults
 			default_severity_score := 60
-			create {CA_SUGGESTION} severity
+			severity := severity_hint
 		end
 
 feature {NONE} -- Activation
@@ -61,7 +62,7 @@ feature -- Properties
 
 	format_violation_description (a_violation: attached CA_RULE_VIOLATION; a_formatter: attached TEXT_FORMATTER)
 		do
-			if attached {STRING_32} a_violation.long_description_info.first as l_comment then
+			if attached {READABLE_STRING_GENERAL} a_violation.long_description_info.first as l_comment then
 				a_formatter.add (l_comment)
 			end
 		end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Light COM object"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -24,7 +24,7 @@ feature {NONE} -- Initialization
 			an_item_not_null: an_item /= default_pointer
 		do
 			debug ("COM_OBJECT")
-				io.put_string ("["+generating_type+"].make_by_pointer("+an_item.out+") called")
+				io.put_string ("["+generating_type.name+"].make_by_pointer("+an_item.out+") called")
 				io.put_new_line
 			end
 			item := an_item
@@ -288,9 +288,9 @@ feature {NONE} -- Disposal
 			"[
 #ifndef EIF_IL_DLL
 				if ($type == 1) {
-					printf ("\nEntering dispose of %s with item value 0x" EIF_POINTER_DISPLAY "\n", eif_typename_id(Dftype($an_obj)), (rt_uint_ptr) $a_ptr);
+					printf ("\nEntering dispose of %s with item value 0x%" EIF_POINTER_DISPLAY "\n", eif_typename_id(Dftype($an_obj)), (rt_uint_ptr) $a_ptr);
 				} else {
-					printf ("Quitting dispose with item value 0x" EIF_POINTER_DISPLAY " nb_ref[%d]\n", (rt_uint_ptr) $a_ptr, $a_nb_ref);
+					printf ("Quitting dispose with item value 0x%" EIF_POINTER_DISPLAY " nb_ref[%d]\n", (rt_uint_ptr) $a_ptr, $a_nb_ref);
 				}
 #endif
 			]"
@@ -303,6 +303,8 @@ feature {NONE} -- Externals
 			"C [macro <Objbase.h>] : EIF_INTEGER"
 		alias
 			"CLSCTX_LOCAL_SERVER"
+		ensure
+			is_class: class
 		end
 
 	clsctx_inproc_server: INTEGER_32
@@ -310,6 +312,8 @@ feature {NONE} -- Externals
 			"C [macro <Objbase.h>] : EIF_INTEGER"
 		alias
 			"CLSCTX_INPROC_SERVER"
+		ensure
+			is_class: class
 		end
 
 	clsctx_remote_server: INTEGER_32
@@ -317,6 +321,8 @@ feature {NONE} -- Externals
 			"C [macro <Objbase.h>] : EIF_INTEGER"
 		alias
 			"CLSCTX_REMOTE_SERVER"
+		ensure
+			is_class: class
 		end
 
 	clsctx_inproc_handler: INTEGER_32
@@ -324,6 +330,8 @@ feature {NONE} -- Externals
 			"C [macro <Objbase.h>] : EIF_INTEGER"
 		alias
 			"CLSCTX_INPROC_HANDLER"
+		ensure
+			is_class: class
 		end
 
 	clsctx_all: INTEGER_32
@@ -331,6 +339,8 @@ feature {NONE} -- Externals
 			"C [macro <Objbase.h>] : EIF_INTEGER"
 		alias
 			"CLSCTX_ALL"
+		ensure
+			is_class: class
 		end
 
 	clsid_from_prog_id (a_str: POINTER; a_clsid: POINTER): INTEGER_32
@@ -338,6 +348,8 @@ feature {NONE} -- Externals
 			"C inline use <Objbase.h>"
 		alias
 			"CLSIDFromProgID ((LPCOLESTR)$a_str, (LPCLSID)$a_clsid)"
+		ensure
+			is_class: class
 		end
 
 	com_create_instance (a_rclsid: POINTER; a_unknown: POINTER; a_dwclscontext: INTEGER; a_app_pointer: TYPED_POINTER [POINTER]): INTEGER_32
@@ -345,6 +357,8 @@ feature {NONE} -- Externals
 			"C++ inline use <Objbase.h>"
 		alias
 			"CoCreateInstance ((REFCLSID)(*(CLSID *)$a_rclsid), (LPUNKNOWN)$a_unknown, (DWORD)$a_dwclscontext, IID_IDispatch, (LPVOID *)$a_app_pointer)"
+		ensure
+			is_class: class
 		end
 
 	com_get_active_object (a_rclsid: POINTER; a_app_pointer: TYPED_POINTER [POINTER]): INTEGER_32
@@ -359,6 +373,8 @@ feature {NONE} -- Externals
 				}
 				return hr;
 			]"
+		ensure
+			is_class: class
 		end
 
 	cpp_ole_method (a_ntype: INTEGER; a_variant_result: POINTER; a_dispatch: POINTER; a_c_str_name: POINTER; arg_count: INTEGER; a_args: POINTER; a_err: TYPED_POINTER [INTEGER]): INTEGER
@@ -406,6 +422,8 @@ feature {NONE} -- Externals
 				}
 				return hr;
 			]"
+		ensure
+			is_class: class
 		end
 
 feature {NONE} -- COM Ref management
@@ -416,10 +434,12 @@ feature {NONE} -- COM Ref management
 			"C++ IUnknown use %"unknwn.h%""
 		alias
 			"AddRef"
+		ensure
+			is_class: class
 		end
 
 note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

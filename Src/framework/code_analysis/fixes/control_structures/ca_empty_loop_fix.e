@@ -1,6 +1,5 @@
-note
+﻿note
 	description: "Fixes violations of rule #16 ('Empty loop')."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -32,9 +31,10 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Visitor
 
-	execute (a_class: CLASS_AS)
+	execute
+			-- <Precursor>
 		do
-			loop_to_be_removed.remove_text (matchlist)
+			loop_to_be_removed.remove_text (match_list)
 		end
 
 end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "All string constants used in the Bench wizards"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -27,6 +27,8 @@ feature -- Project name and Location state
 	l_Project_name: STRING_GENERAL do Result := locale.translation ("Project name") end
 
 	l_Project_location: STRING_GENERAL do Result := locale.translation ("Project location") end
+
+	l_support_scoop: STRING_GENERAL do Result := locale.translation ("Enable concurrency") end
 
 	l_Compile_project: STRING_GENERAL do Result := locale.translation ("Compile the generated project") end
 
@@ -85,8 +87,26 @@ feature -- Files warning
 			)
 		end
 
+feature -- File error
+
+	b_ok: STRING_GENERAL do Result := locale.translation_in_context ("OK", "wizard.button") end
+
+	t_file_read_error: STRING_GENERAL do Result := locale.translation_in_context ("Error reading file", "wizard") end
+
+	m_file_read_error (n: READABLE_STRING_GENERAL): STRING_GENERAL
+		do
+			Result := locale.formatted_string (locale.translation_in_context ("Cannot read file: %"$1%"", "wizard"), n)
+		end
+
+	t_file_write_error: STRING_GENERAL do Result := locale.translation_in_context ("Error writing file", "wizard") end
+
+	m_file_write_error (n: READABLE_STRING_GENERAL): STRING_GENERAL
+		do
+			Result := locale.formatted_string (locale.translation_in_context ("Cannot write file: %"$1%"", "wizard"), n)
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -110,10 +130,10 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
-end -- class BENCH_WIZARD_INTERFACE_NAMES
+end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Definition of deferred inherited features by another non-deferred%N%
 			%inherited feature."
 	legal: "See notice at end of class."
@@ -25,6 +25,11 @@ inherit
 			{NONE} all
 		end
 
+	SHARED_ERROR_HANDLER
+		export
+			{NONE} all
+		end
+
 create
 	make
 
@@ -33,6 +38,13 @@ feature -- Status Report
 	is_valid_old_features (old_feats: like old_features): BOOLEAN
 			-- Is `old_feats' valid for Current?
 		do
+			Result := True
+		end
+
+	is_inherited: BOOLEAN
+			-- Is `new_feature` an inherited one?
+		do
+				-- `True` for joining.
 			Result := True
 		end
 
@@ -58,12 +70,18 @@ feature -- Checking
 				--! Hence, we need to update the new_feature
 				--| so it is referenced correctly.
 			new_feature_info.set_a_feature (new_feat)
-			deferred_features := old_features.deferred_features
-			if deferred_features.count > 0 then
-				check_list (deferred_features, feat_tbl)
-			end
 			features := old_features.features
-			if features.count > 0 then
+			deferred_features := old_features.deferred_features
+				-- Check one of the lists of the other one is empty
+			if deferred_features.is_empty then
+				check_list (features, feat_tbl)
+			elseif features.is_empty then
+				check_list (deferred_features, feat_tbl)
+			else
+					-- Combine two lists and check them together.
+					-- (This is needed to perform validity checks properly.)
+				features := features.twin
+				features.append (deferred_features)
 				check_list (features, feat_tbl)
 			end
 		end
@@ -76,7 +94,9 @@ feature -- Checking
 			not_empty: not feats.is_empty
 		local
 			i: INHERIT_INFO
+			f: FEATURE_I
 		do
+			f := new_feature
 			from
 				feats.start
 			until
@@ -86,7 +106,7 @@ feature -- Checking
 				if i.a_feature_needs_instantiation then
 					i.delayed_instantiate_a_feature
 				end
-				new_feature.delayed_check_signature (i.internal_a_feature, tbl)
+				f.delayed_check_signature (i.internal_a_feature, tbl)
 				feats.forth
 			end
 		end
@@ -96,9 +116,6 @@ feature -- Checking
 
 			-- Check redeclaration into an attribute.
 		local
-			l_attribute, old_attribute: ATTRIBUTE_I
-			attr_precursor: ATTRIBUTE_I
-			constant: CONSTANT_I
 			rout_id_set: ROUT_ID_SET
 			new_rout_id: INTEGER
 			inherited_features: ARRAYED_LIST [INHERIT_INFO]
@@ -106,11 +123,9 @@ feature -- Checking
 			l_new_feature: FEATURE_I
 		do
 			l_new_feature := new_feature
-			if l_new_feature.is_routine then
-				-- Nothing needed for routines, however this check prevents checking for both attribute and constant separately.
-			else
-				if l_new_feature.is_attribute then
-					l_attribute ?= l_new_feature
+			if not l_new_feature.is_routine then
+					-- Nothing needed for routines, however this check prevents checking for both attribute and constant separately.
+				if attached {ATTRIBUTE_I} l_new_feature as l_attribute then
 					if not old_features.all_attributes then
 							-- At least, the attribute is a redeclaration
 							-- of a deferred routine or an implemented function.
@@ -126,8 +141,10 @@ feature -- Checking
 								-- We have to give a new routine id to the
 								-- attribute. If possible, take the same given
 								-- during a previous compilation
-							old_attribute ?= old_tbl.item_id (l_attribute.feature_name_id)
-							if old_attribute /= Void and then old_attribute.has_function_origin then
+							if
+								attached {ATTRIBUTE_I} old_tbl.item_id (l_attribute.feature_name_id) as old_attribute and then
+								old_attribute.has_function_origin
+							then
 								new_rout_id := old_attribute.rout_id_set.first
 							else
 								new_rout_id := l_attribute.new_rout_id
@@ -147,8 +164,9 @@ feature -- Checking
 						until
 							inherited_features.after or else stop
 						loop
-							attr_precursor ?= inherited_features.item.internal_a_feature
-							stop :=  attr_precursor.generate_in /= 0
+							if attached {ATTRIBUTE_I} inherited_features.item.internal_a_feature as attr_precursor then
+								stop :=  attr_precursor.generate_in /= 0
+							end
 							inherited_features.forth
 						end
 						if stop then
@@ -157,8 +175,8 @@ feature -- Checking
 							pattern_list.extend (l_attribute.feature_name_id)
 						end
 					end
-				else -- We must be a constant.
-					constant ?= l_new_feature
+				elseif attached {CONSTANT_I} l_new_feature as constant then
+						-- It must be a constant.
 						-- We do not need to force the generation of a constant
 						-- which is generated as a once function since it is
 						-- always generated in class where it is written.
@@ -169,6 +187,10 @@ feature -- Checking
 						constant.set_generate_in (new_tbl.feat_tbl_id)
 							-- Remember to process a pattern for this function
 						pattern_list.extend (constant.feature_name_id)
+					end
+				else
+					check
+						is_feature_kind_known: False
 					end
 				end
 			end
@@ -200,7 +222,7 @@ feature -- Checking
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -231,4 +253,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class DEFINITION
+end

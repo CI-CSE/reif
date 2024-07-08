@@ -16,8 +16,8 @@ feature
 		do
 			create runtime_values.make (10)
 			create archives.make (10)
-			create template_custom_actions.make (3)
-			template_custom_actions.compare_objects
+			create template_custom_action_items.make (3)
+			template_custom_action_items.compare_objects
 		end
 
 	clear_values
@@ -137,16 +137,31 @@ feature -- Change
 
 feature -- Specific custom actions
 
-	template_custom_actions: HASH_TABLE [like template_custom_action_by_id, STRING]
+	template_custom_action_items: HASH_TABLE [like template_custom_action_by_id, STRING]
 
-	template_custom_action_by_id (a_id: STRING): detachable FUNCTION [STRING, STRING_TABLE [STRING], STRING]
+	template_custom_action_by_id (a_id: STRING): detachable TEMPLATE_CUSTOM_ACTION
+			-- `fct (a_text, a_parameters): generated string`
+		require
+			a_id /= Void
 		do
-			Result := template_custom_actions.item (a_id)
+			Result := template_custom_action_items.item (a_id)
+		end
+
+	add_template_custom_action (act: TEMPLATE_CUSTOM_ACTION; a_id: STRING)
+		do
+			template_custom_action_items.force (act, a_id)
+		end
+
+	add_template_custom_function_action (fct: FUNCTION [STRING, STRING_TABLE [STRING], STRING]; a_id: STRING)
+		do
+			add_template_custom_action (create {TEMPLATE_CUSTOM_FUNCTION_ACTION}.make (fct), a_id)
 		end
 
 	is_valid_template_custom_action_id (a_id: STRING): BOOLEAN
+		require
+			a_id /= Void
 		do
-			Result := template_custom_actions.has (a_id)
+			Result := template_custom_action_items.has (a_id)
 		end
 
 feature -- Option
@@ -172,7 +187,7 @@ feature -- Caching
 
 
 note
-	copyright: "2011-2014, Jocelyn Fiat, and Eiffel Software"
+	copyright: "2011-2017, Jocelyn Fiat, and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

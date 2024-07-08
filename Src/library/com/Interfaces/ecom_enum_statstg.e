@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Wrapper of IEnumSTATSTG interface, used to enumerate%
 		% through an array of STATSTG structures, which contains%
 		% statistical information about an open storage, stream,%
@@ -32,7 +32,7 @@ feature -- Access
 			end
 		end
 
-	is_valid_name (name: STRING): BOOLEAN
+	is_valid_name (name: READABLE_STRING_GENERAL): BOOLEAN
 			-- Is object with name `name' part of storage object?
 			-- Change position in enumeration.
 		require
@@ -54,7 +54,7 @@ feature -- Access
 			end
 		end
 
-	creation_time (a_name: STRING): WEL_FILE_TIME
+	creation_time (a_name: READABLE_STRING_GENERAL): WEL_FILE_TIME
 			-- Creation time of element `a_name'
 			-- Change position in enumeration.
 		require
@@ -79,7 +79,7 @@ feature -- Access
 			non_void_result: Result /= Void
 		end
 
-	access_time (a_name: STRING): WEL_FILE_TIME
+	access_time (a_name: READABLE_STRING_GENERAL): WEL_FILE_TIME
 			-- Access time of element `a_name'
 			-- Change position in enumeration.
 		require
@@ -104,7 +104,7 @@ feature -- Access
 			non_void_result: Result /= Void
 		end
 
-	modification_time (a_name: STRING): WEL_FILE_TIME
+	modification_time (a_name: READABLE_STRING_GENERAL): WEL_FILE_TIME
 			-- Modification time of element `a_name'
 			-- Change position in enumeration.
 		require
@@ -166,59 +166,55 @@ feature {NONE} -- Externals
 
 	c_next_item (a_item: POINTER; a_res: POINTER; a_count: TYPED_POINTER [NATURAL_32]): NATURAL_32
 		external
-			"C inline use <windows.h>"
+			"C inline use <objidl.h>"
 		alias
 			"((IEnumSTATSTG*)$a_item)->lpVtbl->Next ((IEnumSTATSTG*)$a_item, 1, (STATSTG*)$a_res, (ULONG*)$a_count)"
 		end
 
 	c_skip (a_item: POINTER; n: NATURAL_32)
 		external
-			"C inline use <windows.h>"
+			"C inline use <objidl.h>"
 		alias
-			"((IEnumSTATSTG*)$a_item)->lpVtbl->Skip ((IEnumSTATSTG*)$a_item, (ULONG)$n)"
+			"((IEnumSTATSTG*)$a_item)->lpVtbl->Skip ((IEnumSTATSTG*)$a_item, (ULONG)$n);"
 		end
 
 	c_reset (a_item: POINTER)
 		external
-			"C inline use <windows.h>"
+			"C inline use <objidl.h>"
 		alias
-			"((IEnumSTATSTG*)$a_item)->lpVtbl->Reset((IEnumSTATSTG*)$a_item)"
+			"((IEnumSTATSTG*)$a_item)->lpVtbl->Reset((IEnumSTATSTG*)$a_item);"
 		end
 
 	c_clone (a_item, a_res: POINTER)
 		external
-			"C inline use <windows.h>"
+			"C inline use <objidl.h>"
 		alias
-			"((IEnumSTATSTG*)$a_item)->lpVtbl->Clone ((IEnumSTATSTG*)$a_item, (IEnumSTATSTG**)$a_res)"
+			"((IEnumSTATSTG*)$a_item)->lpVtbl->Clone ((IEnumSTATSTG*)$a_item, (IEnumSTATSTG**)$a_res);"
 		end
 
 	c_release (a_item: POINTER)
 		external
-			"C inline use <windows.h>"
+			"C inline use <objidl.h>"
 		alias
-			"((IEnumSTATSTG*)$a_item)->lpVtbl->Release((IEnumSTATSTG*)$a_item)"
+			"((IEnumSTATSTG*)$a_item)->lpVtbl->Release((IEnumSTATSTG*)$a_item);"
 		end
 
 	c_sizeof_statstg: INTEGER
 		external
-			"C inline use <windows.h>"
+			"C inline use <objidl.h>"
 		alias
 			"sizeof(STATSTG)"
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class ECOM_ENUM_STATSTG
-
+end

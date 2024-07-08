@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Correspondance between names and integers.
 		The structure is very efficient for accessing from an integer
@@ -63,13 +63,27 @@ feature -- Access
 			valid_result: Result >= 0
 		end
 
+	id_of_32 (s: READABLE_STRING_32): INTEGER
+			-- Id of `s` if inserted, otherwise 0.
+		require
+			s_not_void: s /= Void
+		local
+			u: UTF_CONVERTER
+		do
+			Result := id_of (u.string_32_to_utf_8_string_8 (s))
+		ensure
+			valid_result: Result >= 0
+		end
+
 	item_32 (i: INTEGER): detachable STRING_32
 			-- Access `i'-th element in UTF-32.
 		require
 			valid_index: valid_index (i)
+		local
+			u: UTF_CONVERTER
 		do
 			if i > 0 then
-				Result := encoding_converter.utf8_to_utf32 (area.item (i))
+				Result := u.utf_8_string_8_to_string_32 (area [i])
 			end
 		ensure
 			Result_not_void: i > 0 implies Result /= Void
@@ -409,6 +423,9 @@ feature {NONE} -- Implementation: access
 			put ("()") check found_item = parentheses_symbol_id end
 			put ("new_cursor") check found_item = new_cursor_name_id end
 			put ("hash_code_64") check found_item = hash_code_64_name_id end
+			put ("is_attached") check found_item = is_attached_name_id end
+			put ("is_deferred") check found_item = is_deferred_name_id end
+			put ("is_expanded") check found_item = is_expanded_name_id end
 		end
 
 invariant
@@ -417,7 +434,7 @@ invariant
 	found_item_positive: found_item >= 0
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -448,4 +465,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class NAMES_HEAP
+end

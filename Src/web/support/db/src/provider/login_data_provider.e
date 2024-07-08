@@ -17,7 +17,7 @@ inherit
 create
 	make
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
 	make (a_connection: DATABASE_CONNECTION)
 			-- Create a data provider.
@@ -35,6 +35,81 @@ feature -- Status Report
 			-- Is the last execution sucessful?
 		do
 			Result := db_handler.successful
+		end
+
+feature -- Access: Auth Session
+
+	user_by_session_token (a_token: READABLE_STRING_8): detachable USER
+			-- Retrieve user by token `a_token', if any.
+		local
+			l_parameters: STRING_TABLE [ANY]
+		do
+			log.write_debug (generator + ".user_by_session_token for a_token:" + a_token )
+			create l_parameters.make (1)
+			l_parameters.put (a_token, "Token")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_user_by_session_token, l_parameters))
+			db_handler.execute_query
+			if not db_handler.after then
+				create Result.make ("")
+				if attached db_handler.read_string (1) as l_item_name then
+					create Result.make (l_item_name)
+				end
+			end
+			post_execution
+		end
+
+	has_user_token (a_user: USER): BOOLEAN
+			-- Has the user `a_user' and associated session token?
+		local
+			l_parameters: STRING_TABLE [ANY]
+		do
+			log.write_debug (generator + ".has_user_token for a_user:" + a_user.name )
+			create l_parameters.make (1)
+			l_parameters.put (a_user.id, "uid")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_has_user_token, l_parameters))
+			db_handler.execute_query
+			if not db_handler.after then
+				if attached db_handler.read_integer_32 (1) as l_count and then
+				   l_count > 0
+				then
+					Result := True
+				end
+			end
+			post_execution
+		end
+
+feature -- Change Auth Session
+
+	new_user_session_auth (a_token: READABLE_STRING_GENERAL; a_user: USER; a_maxage: INTEGER)
+			-- New user session for user `a_user' with token `a_token' and max_age `a_maxage'.
+		local
+			l_parameters: STRING_TABLE [ANY]
+		do
+			log.write_debug (generator + ".new_user_session_auth for a_user:" + a_user.name )
+			create l_parameters.make (3)
+			l_parameters.put (a_user.id, "uid")
+			l_parameters.put (a_token, "token")
+			l_parameters.put (create {DATE_TIME}.make_now_utc, "date")
+			l_parameters.put (a_maxage, "max_age")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (SQL_insert_session_auth, l_parameters))
+			db_handler.execute_query
+			post_execution
+		end
+
+	update_user_session_auth (a_token: READABLE_STRING_GENERAL; a_user: USER; a_maxage: INTEGER)
+			-- Update user session for user `a_user' with token `a_token'.
+		local
+			l_parameters: STRING_TABLE [ANY]
+		do
+			log.write_debug (generator + ".update_user_session_auth for a_user:" + a_user.name )
+			create l_parameters.make (3)
+			l_parameters.put (a_user.id, "uid")
+			l_parameters.put (a_token, "token")
+			l_parameters.put (create {DATE_TIME}.make_now_utc, "date")
+			l_parameters.put (a_maxage, "max_age")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (SQL_update_session_auth, l_parameters))
+			db_handler.execute_query
+			post_execution
 		end
 
 feature -- Access
@@ -91,7 +166,7 @@ feature -- Access
 			post_execution
 		end
 
-	membership_creation_date (a_username: STRING): detachable DATE_TIME
+	membership_creation_date (a_username: READABLE_STRING_32): detachable DATE_TIME
 			-- Creation date of membership of user with username `a_username'.
 		require
 			attached_username: a_username /= Void
@@ -110,7 +185,7 @@ feature -- Access
 			post_execution
 		end
 
-	role (a_username: STRING): detachable STRING
+	role (a_username: READABLE_STRING_32): detachable STRING_32
 			-- Role associated with user with username `a_username'.
 		require
 			attached_username: a_username /= Void
@@ -124,13 +199,13 @@ feature -- Access
 			db_handler.execute_reader
 			if not db_handler.after then
 				db_handler.start
-				Result := db_handler.read_string (1)
+				Result := db_handler.read_string_32 (1)
 				to_implement ("handle error: User not found - Retrieval of user role")
 			end
 			post_execution
 		end
 
-	role_description (a_synopsis: STRING): detachable STRING
+	role_description (a_synopsis: READABLE_STRING_32): detachable STRING_32
 			-- Role description for role with synopsis `a_synopsis'.
 		require
 			attached_synopsis: a_synopsis /= Void
@@ -144,7 +219,7 @@ feature -- Access
 			db_handler.execute_reader
 			if not db_handler.after then
 				db_handler.start
-				Result := db_handler.read_string (1)
+				Result := db_handler.read_string_32 (1)
 				to_implement ("handle error: Role not found -  Retrieval of role description")
 			end
 			post_execution
@@ -163,7 +238,7 @@ feature -- Access
 			post_execution
 		end
 
-	question_from_email (a_email: STRING): detachable STRING
+	question_from_email (a_email: READABLE_STRING_8): detachable STRING_8
 			-- Security question associated with account with email `a_email' if any.
 		require
 			attached_email: a_email /= Void
@@ -172,7 +247,7 @@ feature -- Access
 		do
 			log.write_information (generator + ".question_from_email")
 			create l_parameters.make (1)
-			l_parameters.put (string_parameter (a_email, 100), {DATA_PARAMETERS_NAMES}.username_param)
+			l_parameters.put (string_parameter (a_email.to_string_32, 100), {DATA_PARAMETERS_NAMES}.username_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetQuestionFromEmail", l_parameters))
 			db_handler.execute_reader
 			if not db_handler.after then
@@ -218,7 +293,7 @@ feature -- Access
 			post_execution
 		end
 
-	user_from_email (a_email: STRING): detachable TUPLE [first_name: STRING; last_name: STRING; user_name: STRING]
+	user_from_email (a_email: READABLE_STRING_32): detachable TUPLE [first_name: STRING; last_name: STRING; user_name: STRING]
 			-- User with email `a_email' if any.
 		require
 			attached_email: a_email /= Void
@@ -237,26 +312,28 @@ feature -- Access
 			post_execution
 		end
 
-	user_from_username (a_username: STRING): detachable USER
+	user_from_username (a_username: READABLE_STRING_32): detachable USER
 			-- User with username `a_username' if any.
 		require
 			attached_username: a_username /= Void
 		local
-			l_parameters: HASH_TABLE [ANY, STRING_32]
+			l_parameters: STRING_TABLE[ANY]
 		do
 			log.write_information (generator + ".user_from_username")
 			create l_parameters.make (1)
 			l_parameters.put (string_parameter (a_username, 50), {DATA_PARAMETERS_NAMES}.username_param)
-			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_reader ("GetUser", l_parameters))
-			db_handler.execute_reader
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_user_from_username, l_parameters))
+			db_handler.execute_query
 			if not db_handler.after then
-				db_handler.start
-				Result := new_user_username
+				if attached db_handler.read_integer_32 (1) as l_contactid then
+					create Result.make (a_username)
+					Result.set_id (l_contactid)
+				end
 			end
 			post_execution
 		end
 
-	user_information (a_username: STRING): USER_INFORMATION
+	user_information (a_username: READABLE_STRING_32): USER_INFORMATION
 			-- Full user information from username.
 		require
 			attached_username: a_username /= Void
@@ -279,7 +356,7 @@ feature -- Access
 
 feature -- Element Settings
 
-	remove_user (a_username: STRING)
+	remove_user (a_username: READABLE_STRING_32)
 			-- Remove user with username `a_username' from database.
 		require
 			attached_username: a_username /= Void
@@ -334,7 +411,7 @@ feature -- Element Settings
 			post_execution
 		end
 
-	update_email_from_user_and_token (a_token: STRING; a_user: STRING)
+	update_email_from_user_and_token (a_token: READABLE_STRING_32; a_user: READABLE_STRING_32)
 			-- Update email of user with email `a_email'.
 		local
 			l_parameters: HASH_TABLE [ANY, STRING_32]
@@ -404,6 +481,21 @@ feature -- Element Settings
 			l_parameters.put (string_parameter (a_new_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
 			l_parameters.put (string_parameter (a_token, 24), {DATA_PARAMETERS_NAMES}.Token_param)
 			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_writer ("ChangeUserEmail", l_parameters))
+			db_handler.execute_writer
+			post_execution
+		end
+
+	change_password (a_user: READABLE_STRING_32; a_email: READABLE_STRING_32; a_token: READABLE_STRING_32)
+			-- Change User Password.
+		local
+			l_parameters: HASH_TABLE [ANY, STRING_32]
+		do
+			log.write_information (generator + ".change_password")
+			create l_parameters.make (3)
+			l_parameters.put (string_parameter (a_user, 50), {DATA_PARAMETERS_NAMES}.Username_param)
+			l_parameters.put (string_parameter (a_email, 150), {DATA_PARAMETERS_NAMES}.Email_param)
+			l_parameters.put (string_parameter (a_token, 24), {DATA_PARAMETERS_NAMES}.Token_param)
+			db_handler.set_store (create {DATABASE_STORE_PROCEDURE}.data_writer ("ChangePassword", l_parameters))
 			db_handler.execute_writer
 			post_execution
 		end
@@ -551,7 +643,7 @@ feature -- Factories
 
 feature -- Status Report
 
-	is_active (a_username: STRING): BOOLEAN
+	is_active (a_username: READABLE_STRING_32): BOOLEAN
 			-- Is membership for user with username `a_username' active?
 		require
 				attached_username: a_username /= Void
@@ -594,7 +686,7 @@ feature -- Status Report
 
 
 
-	activation_valid (a_email, a_token: STRING): BOOLEAN
+	activation_valid (a_email, a_token: READABLE_STRING_32): BOOLEAN
 			-- Is activation for user with email `a_email' using token `a_token' valid?
 		require
 			attached_email: a_email /= Void
@@ -625,9 +717,9 @@ feature -- Status Report
 			end
 		end
 
-	email_token_age (a_token: STRING; a_user: STRING): TUPLE[age:INTEGER; email: detachable STRING]
+	email_token_age (a_token: READABLE_STRING_32; a_user: READABLE_STRING_32): TUPLE [age:INTEGER; email: detachable STRING_32]
 		local
-			l_parameters: HASH_TABLE[ANY,STRING_32]
+			l_parameters: HASH_TABLE [ANY,STRING_32]
 		do
 			log.write_information (generator + ".email_token_age")
 			create Result.default_create
@@ -640,11 +732,33 @@ feature -- Status Report
 				db_handler.start
 				if db_handler.read_integer_32 (1) /= -1 then
 					Result.age := db_handler.read_integer_32 (1)
-					Result.email :=	db_handler.read_string (2)
+					Result.email :=	db_handler.read_string_32 (2)
 				else
 					Result.age := -1
 				end
 			end
+			post_execution
+		end
+
+	email_from_reset_password (a_token: READABLE_STRING_32): detachable STRING_32
+		local
+			l_parameters: STRING_TABLE [ANY]
+		do
+			log.write_debug (generator + ".email_from_reset_password token:" + a_token )
+			create l_parameters.make (1)
+			l_parameters.put (a_token, "token")
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Select_email_reset_password, l_parameters))
+			db_handler.execute_query
+			if not db_handler.after then
+				if
+					attached db_handler.read_string (1) as l_email
+				then
+					Result := l_email
+				end
+			end
+			post_execution
+			db_handler.set_query (create {DATABASE_QUERY}.data_reader (Delete_token_password, l_parameters))
+			db_handler.execute_query
 			post_execution
 		end
 
@@ -658,7 +772,6 @@ feature -- Connection
 			end
 		end
 
-
 	disconnect
 			--  Disconnect to the database.
 		do
@@ -669,11 +782,34 @@ feature -- Connection
 
 feature -- Queries
 
+	Select_email_reset_password:  STRING = "SELECT email FROM UpdatePassword WHERE Token = :token;"
+
 	Select_countries: STRING = "select CountryId, Country from Countries;"
 		-- SQL Query to retrieve all countries.
 
 	tuple_user: detachable TUPLE [first_name: STRING; last_name: STRING; user_name: STRING]
 		-- User row with first name, last name and user name.
+
+	Select_user_by_session_token: STRING = "[
+		SELECT Memberships.Username
+		FROM Auth_Session
+		INNER JOIN Memberships ON Auth_Session.ContactID = Memberships.ContactID
+		WHERE Access_token = :Token;
+		]"
+
+	Select_has_user_token: STRING = "SELECT Count(*) FROM Auth_Session WHERE ContactID = :uid;"
+
+	SQL_insert_session_auth: STRING = "INSERT INTO Auth_Session (ContactId, access_token, created, maxage) VALUES (:uid, :token, :date, :max_age);"
+
+	SQL_update_session_auth: STRING = "UPDATE Auth_Session SET access_token = :token, created = :date, maxage = :max_age WHERE ContactId =:uid;"
+
+
+	Select_user_from_username: STRING = "[
+		SELECT ContactID FROM Memberships WHERE Username = :Username;
+		]"
+
+	Delete_token_password: STRING ="DELETE from UpdatePassword WHERE Token = :token;"
+
 
 feature {NONE} -- Implementation
 

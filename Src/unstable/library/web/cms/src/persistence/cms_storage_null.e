@@ -75,7 +75,7 @@ feature -- URL aliases
 		do
 		end
 
-	source_of_path_alias (a_alias: READABLE_STRING_8): detachable READABLE_STRING_8
+	source_of_path_alias (a_alias: READABLE_STRING_GENERAL): detachable READABLE_STRING_8
 			-- Source path for alias `a_alias'.
 		do
 		end
@@ -93,20 +93,28 @@ feature -- Logs
 		do
 		end
 
+	logs (a_category: detachable READABLE_STRING_GENERAL; a_lower: INTEGER; a_count: INTEGER): LIST [CMS_LOG]
+			-- List of recent logs from `a_lower' to `a_lower+a_count'.
+			-- If `a_category' is set, filter to return only associated logs.
+			-- If `a_count' <= 0 then, return all logs.
+		do
+			create {ARRAYED_LIST [CMS_LOG]} Result.make (0)
+		end
+
 feature -- Custom		
 
-	set_custom_value (a_name: READABLE_STRING_8; a_value: attached like custom_value; a_type: detachable READABLE_STRING_8)
-			-- Save data `a_name:a_value' for type `a_type' (or default if none).
+	set_custom_value (a_name: READABLE_STRING_8; a_value: attached like custom_value; a_type: READABLE_STRING_8)
+			-- Save data `a_name:a_value' for type `a_type'.
 		do
 		end
 
-	unset_custom_value (a_name: READABLE_STRING_8; a_type: detachable READABLE_STRING_8)
-			-- Delete data `a_name' for type `a_type' (or default if none).
+	unset_custom_value (a_name: READABLE_STRING_8; a_type: READABLE_STRING_8)
+			-- Delete data `a_name' for type `a_type'.
 		do
 		end
 
-	custom_value (a_name: READABLE_STRING_GENERAL; a_type: detachable READABLE_STRING_8): detachable READABLE_STRING_32
-			-- Data for name `a_name' and type `a_type' (or default if none).
+	custom_value (a_name: READABLE_STRING_GENERAL; a_type: READABLE_STRING_8): detachable READABLE_STRING_32
+			-- Data for name `a_name' and type `a_type'.
 		local
 			s: STRING_32
 		do
@@ -122,12 +130,12 @@ feature -- Custom
 			end
 		end
 
-	custom_values: detachable LIST [TUPLE [name: READABLE_STRING_GENERAL; type: detachable READABLE_STRING_8; value: detachable READABLE_STRING_32]]
+	custom_values: detachable LIST [TUPLE [name: READABLE_STRING_GENERAL; type: READABLE_STRING_8; value: detachable READABLE_STRING_32]]
 			-- Values as list of [name, type, value].
 		do
 		end
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

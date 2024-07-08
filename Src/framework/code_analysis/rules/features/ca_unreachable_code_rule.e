@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #22: Unreachable code
 	
@@ -34,6 +34,9 @@ feature {NONE} -- Initialization
 		end
 
 feature -- Properties
+
+	name: STRING = "unreachable_code"
+			-- <Precursor>
 
 	title: STRING_32
 		do

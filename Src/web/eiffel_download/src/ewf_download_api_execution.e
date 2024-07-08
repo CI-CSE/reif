@@ -53,15 +53,13 @@ feature {NONE} -- Initialization
 			-- Setup `router'
 		local
 			fhdl: WSF_FILE_SYSTEM_HANDLER
-			doc: WSF_ROUTER_SELF_DOCUMENTATION_HANDLER
 		do
 
 				-- HTML uri/uri templates.
-			map_uri_agent_with_request_methods ("/", agent handle_home, router.methods_get)
-			map_uri_agent_with_request_methods ("", agent handle_home, router.methods_get)
-			map_uri_agent_with_request_methods ("/download", agent handle_download, router.methods_post)
-			map_uri_agent_with_request_methods ("/confirm_download", agent handle_confirm_download, router.methods_get)
-			create doc.make (router)
+			map_uri_agent ("/", agent handle_home, router.methods_get)
+			map_uri_agent ("", agent handle_home, router.methods_get)
+			map_uri_agent ("/download", agent handle_download, router.methods_post)
+			map_uri_agent ("/confirm_download", agent handle_confirm_download, router.methods_get)
 
 			create fhdl.make_hidden_with_path (layout.www_path)
 			fhdl.disable_index
@@ -69,7 +67,7 @@ feature {NONE} -- Initialization
 				do
 					execute_default (ia_req, ia_res)
 				end)
-			router.handle_with_request_methods ("/", fhdl, router.methods_GET)
+			router.handle ("/", fhdl, router.methods_GET)
 
 		end
 
@@ -113,6 +111,8 @@ feature -- Workflow
 			l_token: STRING
 			l_security: SECURITY_PROVIDER
 			l_encode: URL_ENCODER
+			l_wsf_debug: WSF_DEBUG_INFORMATION
+			l_message: STRING
 		do
 			l_form := extract_data_form (req)
 			create l_security
@@ -153,18 +153,27 @@ feature -- Workflow
 							attached email_service as l_email_service and then
 							attached l_email_service.last_error as l_error
 						then
-							send_mail_internal_server_error ("Database service unavailable")
+							create l_message.make_from_string ("Database service unavailable%N%N")
+							create l_wsf_debug.make
+							l_wsf_debug.append_information_to (req, res, l_message)
+							send_mail_internal_server_error (l_message)
 							internal_server_error (req, res, {HTTP_STATUS_CODE}.service_unavailable)
 						else
 							compute_response_redirect (req, res, "https://www.eiffel.com/forms/thank_you")
 						end
 					end
 				else
-					send_mail_internal_server_error ("Database service unavailable")
+					create l_message.make_from_string ("Database service unavailable%N%N")
+					create l_wsf_debug.make
+					l_wsf_debug.append_information_to (req, res, l_message)
+					send_mail_internal_server_error (l_message)
 					internal_server_error (req, res, {HTTP_STATUS_CODE}.service_unavailable)
 				end
 			else
-				send_mail_internal_server_error ("Uknown error")
+				create l_message.make_from_string ("Uknown error%N%N")
+				create l_wsf_debug.make
+				l_wsf_debug.append_information_to (req, res, l_message)
+				send_mail_internal_server_error (l_message)
 				internal_server_error (req, res, {HTTP_STATUS_CODE}.internal_server_error)
 			end
 		end
@@ -176,6 +185,9 @@ feature -- Workflow
 			--email is not already associated to a membership user, but there is a Contact entry, we do like the above and add a new interaction
 			--email is not in our database, we create a Contact user and add the interaction
 			--Once this is done, we associated a unique URL to the Contact and send that link to the user. In this Eiffel, we will also have links to Eiffel resources such as videos, documentation, etc (ex: How to install video, How to create your first Eiffel application ….)
+		local
+			l_error_message: STRING
+			l_wsf_debug: WSF_DEBUG_INFORMATION
 		do
 			if attached database_service as l_service  and then
 				l_service.is_available then
@@ -229,24 +241,39 @@ feature -- Workflow
 					end
 				else
 					if l_service.is_available then
-						log.write_debug (generator + ".process_workflow: The request was invalid " + req.request_uri)
-						send_mail_bad_request (generator + ".process_workflow: The request was invalid " + req.request_uri)
+						create l_error_message.make_from_string ("process_workflow: The request was invalid " + req.request_uri )
+						if attached {WSF_STRING} req.query_parameter ("token") as l_token then
+							l_error_message.append ("%N The given token: "  + l_token.value +  " does not exist or is not available anymore.%N")
+						else
+							l_error_message.append ("%N Missing token.%N")
+						end
+							-- debug information
+						create l_wsf_debug.make
+						l_wsf_debug.append_information_to (req, res, l_error_message)
+						log.write_debug (generator + "." + l_error_message)
+						send_mail_bad_request (generator + "." + l_error_message)
 						bad_request (req, res, "")
 					else
-						log.write_debug (generator + ".process_workflow The database service is unavailable")
-						send_mail_internal_server_error ("Database service unavailable")
+						create l_error_message.make_from_string ("The database service is unavailable%N")
+						create l_wsf_debug.make
+						l_wsf_debug.append_information_to (req, res, l_error_message)
+						log.write_debug (generator + ".process_workflow " + l_error_message)
+						send_mail_internal_server_error (l_error_message)
 						internal_server_error (req, res, {HTTP_STATUS_CODE}.service_unavailable)
 					end
 				end
 			else
 				log.write_debug (generator + ".process_workflow: The database service is unavailable")
-				send_mail_internal_server_error ("Database service unavailable")
+				create l_error_message.make_from_string ("The database service is unavailable%N")
+				create l_wsf_debug.make
+				l_wsf_debug.append_information_to (req, res, l_error_message)
+				send_mail_internal_server_error (l_error_message)
 				internal_server_error (req, res, {HTTP_STATUS_CODE}.internal_server_error)
 			end
 		end
 
 
-feature -- {none} Implementation
+feature {NONE} -- Implementation
 
 	generate_new_token (req: WSF_REQUEST; res: WSF_RESPONSE; a_info: DOWNLOAD_INFORMATION)
 			-- Generate a new token and send an email.
@@ -255,6 +282,8 @@ feature -- {none} Implementation
 			l_token: STRING
 			l_security: SECURITY_PROVIDER
 			l_encode: URL_ENCODER
+			l_error_message: STRING
+			l_wsf_debug: WSF_DEBUG_INFORMATION
 		do
 			if
 				attached database_service as l_service and then
@@ -288,8 +317,11 @@ feature -- {none} Implementation
 				send_email (req, l_form, l_token, req.absolute_script_url (""))
 				not_active_request (req, res, "")
 			else
-				log.write_debug (generator + ".process_workflow The service unavailable")
-				send_mail_internal_server_error ("Database service unavailable")
+				log.write_debug (generator + ".generate_new_token The database service is unavailable")
+				create l_error_message.make_from_string ("The database service is unavailable%N")
+				create l_wsf_debug.make
+				l_wsf_debug.append_information_to (req, res, l_error_message)
+				send_mail_internal_server_error (l_error_message)
 				internal_server_error (req, res, {HTTP_STATUS_CODE}.service_unavailable)
 			end
 		end
@@ -299,6 +331,8 @@ feature -- {none} Implementation
 		local
 			l_cfg: DOWNLOAD_CONFIGURATION
 			l_link: STRING
+			l_error_message: STRING
+			l_wsf_debug: WSF_DEBUG_INFORMATION
 		do
 			if attached database_service as l_service then
 				log.write_debug (generator + ".process_gpl_download Start process gpl dowbload for a Student/Professor.")
@@ -338,12 +372,18 @@ feature -- {none} Implementation
 					direct_download (req, res, l_link, l_filename, l_options.size.out )
 				else
 					log.write_debug (generator + ".process_gpl_download ")
-					send_mail_internal_server_error ("Error processing: Student/Professor use case.")
+					create l_error_message.make_from_string ("Error processing: Student/Professor use case.%N")
+					create l_wsf_debug.make
+					l_wsf_debug.append_information_to (req, res, l_error_message)
+					send_mail_internal_server_error (l_error_message)
 					internal_server_error (req, res, {HTTP_STATUS_CODE}.service_unavailable)
 				end
 			else
 				log.write_debug (generator + ".process_gpl_workflow: The database service is unavailable")
-				send_mail_internal_server_error ("Database service unavailable")
+				create l_error_message.make_from_string ("Database service unavailable.%N")
+				create l_wsf_debug.make
+				l_wsf_debug.append_information_to (req, res, l_error_message)
+				send_mail_internal_server_error (l_error_message)
 				internal_server_error (req, res, {HTTP_STATUS_CODE}.internal_server_error)
 			end
 		end

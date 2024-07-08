@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Representation of a public key"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -44,7 +44,7 @@ feature -- Access
 	key_pair: MANAGED_POINTER
 			-- Key pair that generated Current.
 
-	public_key_token: MANAGED_POINTER
+	public_key_token: detachable MANAGED_POINTER
 			-- Public key token of Current.
 
 	is_valid: BOOLEAN
@@ -84,23 +84,24 @@ feature {NONE} -- Implementation
 			retried: BOOLEAN
 		do
 			if not retried then
-					-- Reset error condition
-				is_valid := True
-
 					-- Read key pair data from `a_file_name'.
 				create l_file.make_with_path (a_file_name)
 				l_file.open_read
 				create Result.make (l_file.count)
 				l_file.read_to_managed_pointer (Result, 0, Result.count)
 				l_file.close
+
+					-- Reset error condition.
+				is_valid := True
 			else
 					-- We could not read key pair.
 				is_valid := False
 
-					--| FIXME: Manu 05/21/2002: we need to generate an error.
+					-- TODO: Manu 05/21/2002: we need to generate an error.
 				check
-					not_yet_implemented: False
+					is_implemented: False
 				end
+				create Result.make (0)
 			end
 		rescue
 			retried := True
@@ -112,7 +113,7 @@ invariant
 	key_pair_not_void: key_pair /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -143,4 +144,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class MD_PUBLIC_KEY
+end

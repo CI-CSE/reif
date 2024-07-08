@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that specify visibility of classes."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -18,7 +18,6 @@ feature -- Basic commands
 		require
 			a_added_classes_not_void: a_added_classes /= Void
 		local
-			l_vis: EQUALITY_TUPLE [TUPLE [class_renamed: STRING_32; features: detachable STRING_TABLE [STRING_32]]]
 			l_class: detachable CONF_CLASS
 			l_error: BOOLEAN
 			l_map: like mapping
@@ -42,8 +41,7 @@ feature -- Basic commands
 					if l_class = Void then
 						l_last_warnings.force (create {CONF_ERROR_VISI}.make (l_name))
 					else
-						l_vis := l_visible.item_for_iteration.item
-						l_class.add_visible (l_vis)
+						l_class.add_visible (l_visible.item_for_iteration)
 						if attached l_class.last_error as l_class_error then
 							l_error := True
 							set_error (l_class_error)
@@ -64,7 +62,7 @@ feature -- Status
 
 feature {CONF_ACCESS} -- Access, stored in configuration file
 
-	visible: detachable STRING_TABLE [EQUALITY_TUPLE [TUPLE [class_renamed: STRING_32; features: detachable STRING_TABLE [STRING_32]]]]
+	visible: detachable STRING_TABLE [TUPLE [class_renamed: READABLE_STRING_32; features: detachable STRING_TABLE [READABLE_STRING_32]]]
 			-- Table of table of features of classes that are visible.
 			-- Mapped to their rename (if any).
 			-- CLASS_NAME => [CLASS_RENAMED, feature_name => feature_renamed]
@@ -80,7 +78,7 @@ feature {CONF_ACCESS} -- Update, stored to configuration file
 			visible_set: visible = a_visible
 		end
 
-	add_visible (a_class: STRING_32; a_feature, a_class_rename, a_feature_rename: detachable STRING_32)
+	add_visible (a_class: READABLE_STRING_32; a_feature, a_class_rename, a_feature_rename: detachable READABLE_STRING_32)
 			-- Add a visible.
 		require
 			a_class_not_empty: a_class /= Void and then not a_class.is_empty
@@ -89,11 +87,11 @@ feature {CONF_ACCESS} -- Update, stored to configuration file
 			a_feature_rename_ok: a_feature_rename /= Void implies not a_feature_rename.is_empty
 			a_feature_rename_implies_feature: a_feature_rename /= Void implies a_feature /= Void
 		local
-			l_v_cl: detachable STRING_TABLE [STRING_32]
-			l_tpl: detachable EQUALITY_TUPLE [TUPLE [class_renamed: STRING_32; features: detachable STRING_TABLE [STRING_32]]]
-			l_visible_name: STRING_32
+			l_v_cl: detachable STRING_TABLE [READABLE_STRING_32]
+			l_tpl: detachable TUPLE [class_renamed: READABLE_STRING_32; features: detachable STRING_TABLE [READABLE_STRING_32]]
+			l_visible_name: READABLE_STRING_32
 			l_feature_name,
-			l_class, l_feature: detachable STRING_32
+			l_class, l_feature: detachable READABLE_STRING_32
 			l_visible: like visible
 		do
 			l_visible := visible
@@ -111,7 +109,7 @@ feature {CONF_ACCESS} -- Update, stored to configuration file
 
 			l_tpl := l_visible.item (l_class)
 			if attached l_tpl then
-				l_v_cl := l_tpl.item.features
+				l_v_cl := l_tpl.features
 			end
 
 			if a_feature /= Void then
@@ -128,17 +126,18 @@ feature {CONF_ACCESS} -- Update, stored to configuration file
 				l_v_cl.force (l_feature_name, l_feature)
 			end
 			if attached l_tpl then
-				l_tpl.item.class_renamed := l_visible_name
-				l_tpl.item.features := l_v_cl
+				l_tpl.class_renamed := l_visible_name
+				l_tpl.features := l_v_cl
 			else
-				create l_tpl.make ([l_visible_name, l_v_cl])
+				l_tpl := [l_visible_name, l_v_cl]
+				l_tpl.compare_objects
 			end
 			l_visible.force (l_tpl, l_class)
 		end
 
 feature {NONE} -- Implementation
 
-	mapping: STRING_TABLE [STRING_32]
+	mapping: STRING_TABLE [READABLE_STRING_32]
 			-- Special classes name mapping (eg. STRING => STRING_32).
 		deferred
 		ensure
@@ -158,7 +157,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

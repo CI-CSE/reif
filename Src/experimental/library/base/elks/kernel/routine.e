@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
 		Objects representing delayed calls to a routine,
 		with some operands possibly still open
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -10,7 +10,7 @@ note
 	revision: "$Revision$"
 
 deferred class
-	ROUTINE [BASE_TYPE -> detachable ANY, OPEN_ARGS -> detachable TUPLE create default_create end]
+	ROUTINE [OPEN_ARGS -> detachable TUPLE create default_create end]
 
 inherit
 	HASHABLE
@@ -23,6 +23,13 @@ inherit
 		export
 			{NONE} all
 		redefine
+			copy,
+			is_equal
+		end
+
+	MISMATCH_CORRECTOR
+		redefine
+			correct_mismatch,
 			copy,
 			is_equal
 		end
@@ -93,7 +100,7 @@ feature -- Access
 
 	empty_operands: attached OPEN_ARGS
 			-- Empty tuple matching open operands.
-		obsolete "This function will be removed as non-void-safe. [22.07.2013]"
+		obsolete "This function will be removed as non-void-safe. [2017-05-31]"
 		do
 			create Result
 		ensure
@@ -131,7 +138,7 @@ feature -- Status report
 			if args = Void then
 					-- Void operands are only allowed
 					-- if object has no open operands.
-				Result := (open_count = 0)
+				Result := open_count = 0
 			elseif args.count >= open_count then
 				from
 					Result := True
@@ -141,7 +148,7 @@ feature -- Status report
 					i > open_count or not Result
 				loop
 					arg_type_code := args.item_code (i)
-					Result := arg_type_code = open_type_codes.item (i + 1).code
+					Result := arg_type_code = open_type_codes.item (i).code
 					if Result and then arg_type_code = {TUPLE}.reference_code then
 						arg := args.item (i)
 						l_type := open_operand_type (i)
@@ -149,10 +156,10 @@ feature -- Status report
 							-- is indeed attached.
 						if is_attached_type (l_type) then
 							Result := arg /= Void and then
-								field_conforms_to (type_id_of (arg), l_type)
+								field_conforms_to ({ISE_RUNTIME}.dynamic_type (arg), l_type)
 						else
 							Result := arg = Void or else
-								field_conforms_to (type_id_of (arg), l_type)
+								field_conforms_to ({ISE_RUNTIME}.dynamic_type (arg), l_type)
 						end
 					end
 					i := i + 1
@@ -266,17 +273,17 @@ feature -- Extended operations
 			end
 		end
 
-feature -- Obsolete
+feature -- Correction
 
-	adapt_from (other: like Current)
-			-- Adapt from `other'. Useful in descendants.
-		obsolete
-			"Please use `adapt' instead (it's also a creation procedure)"
-		require
-			other_exists: other /= Void
-			conforming: conforms_to (other)
+	correct_mismatch
+			-- <Precursor>
 		do
-			adapt (other)
+			-- For the time being, even if the schema of agents changes, we will still retrieve them (without
+			-- properly initializing all the fields.) This is acceptable as agents without schema change can
+			-- be retrieved and are also invalid objects.
+
+			-- Note: This implementation of `correct_mismath` should have been introduced in 14.05, but it was
+			-- missed and introduced in 17.05 to help retrieve storables made by 13.11 and older.
 		end
 
 feature {ROUTINE} -- Implementation
@@ -396,6 +403,11 @@ feature {NONE} -- Implementation
 
 	type_id_of (a: separate ANY): INTEGER
 			-- Type ID of an object `a'.
+			--| FIXME
+			--| Replace all usage of {ISE_RUNTIME}.dynamic_type (a) by this routine
+			--| when we solve the nature of TYPE instances in a SCOOP context.
+		require
+			False
 		do
 			Result := a.generating_type.type_id
 		end
@@ -410,29 +422,40 @@ feature {NONE} -- Externals
 
 feature -- Obsolete
 
+	adapt_from (other: like Current)
+			-- Adapt from `other'. Useful in descendants.
+		obsolete
+			"Please use `adapt' instead (it's also a creation procedure).  [2017-05-31]"
+		require
+			other_exists: other /= Void
+			conforming: conforms_to (other)
+		do
+			adapt (other)
+		end
+
 	arguments: detachable OPEN_ARGS
 		obsolete
-			"use operands"
+			"Use `operands`. [2017-05-31]"
 		do
 			Result := operands
 		end
 
 	set_arguments (args: detachable OPEN_ARGS)
 		obsolete
-			"use set_operands"
+			"Use `set_operands`. [2017-05-31]"
 		do
 			set_operands (args)
 		end
 
 	valid_arguments (args: detachable OPEN_ARGS): BOOLEAN
 		obsolete
-			"use valid_operands"
+			"Use `valid_operands`. [2017-05-31]"
 		do
 			Result := valid_operands (args)
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

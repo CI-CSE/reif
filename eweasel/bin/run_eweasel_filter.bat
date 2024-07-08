@@ -10,4 +10,6 @@ if "%~1" == "" (
 
 if not exist %EWEASEL_OUTPUT% mkdir %EWEASEL_OUTPUT%
 
-%EWEASEL_COMMAND% -keep all -filter "dir %1" -catalog %EWEASEL%\control\catalog
+title test#%1
+%EWEASEL_COMMAND% -nologo -nosummary -keep all -filter "dir %1" -catalog %EWEASEL%\control\catalog
+title

@@ -1,4 +1,4 @@
-note
+﻿note
 	description:
 		"Objects that display class information in a widget."
 	legal: "See notice at end of class."
@@ -33,11 +33,13 @@ feature -- Initialization
 
 	make (a_manager: like manager)
 			-- Create a formatter associated with `a_manager'.
+		local
+			s: STRING_32
 		do
 			manager := a_manager
-			command_name := capital_command_name.twin
-			interface_names.string_general_left_adjust (command_name)
-			command_name := command_name.as_lower
+			create s.make_from_string_general (capital_command_name)
+			interface_names.string_general_left_adjust (s)
+			command_name := s.as_lower
 			create post_execution_action
 		ensure
 			valid_capital_command_name: valid_string (capital_command_name)
@@ -84,17 +86,17 @@ feature -- Properties
 			Result := internal_empty_widget
 		end
 
-	command_name: STRING_GENERAL
+	command_name: READABLE_STRING_GENERAL
 			-- Command name
 
-	element_name: STRING_32
+	element_name: READABLE_STRING_32
 			-- name of associated element in current formatter.
 			-- For exmaple, if a class stone is associated to current, `element_name' would be the class name.
 			-- Void if element is not retrievable.
 		deferred
 		end
 
-	name: STRING_GENERAL
+	name: READABLE_STRING_GENERAL
 			-- Name of Current formatter
 		do
 			Result := command_name.twin
@@ -237,19 +239,19 @@ feature -- Setting
 	update (a_window: EV_WINDOW)
 			-- Update `accelerator' and interfaces according to `referred_shortcut'.
 		local
-			mname: STRING_GENERAL
-			tt: STRING_GENERAL
+			mname: STRING_32
+			tt: STRING_32
 		do
 			Precursor {EB_RADIO_COMMAND_FEEDBACK} (a_window)
 			if menu_item /= Void then
-				mname := menu_name.twin
+				create mname.make_from_string_general (menu_name)
 				if shortcut_available then
 					mname.append (tabulation)
 					mname.append (shortcut_string)
 				end
 				menu_item.set_text (mname)
 			end
-			tt := capital_command_name.twin
+			create tt.make_from_string_general (capital_command_name)
 			if shortcut_available then
 				tt.append (opening_parenthesis)
 				tt.append (shortcut_string)
@@ -314,9 +316,9 @@ feature -- Interface
 	new_standalone_menu_item: EV_RADIO_MENU_ITEM
 			-- Create a new menu item.
 		local
-			mname: STRING_GENERAL
+			mname: STRING_32
 		do
-			mname := menu_name.twin
+			create mname.make_from_string_general (menu_name)
 			if shortcut_available then
 				mname.append (Tabulation)
 				mname.append (shortcut_string)
@@ -339,11 +341,11 @@ feature -- Interface
 	new_button: EV_TOOL_BAR_RADIO_BUTTON
 			-- Create a new tool bar button representing `Current'.
 		local
-			tt: STRING_GENERAL
+			tt: STRING_32
 		do
 			create Result
 			Result.set_pixmap (symbol @ 1)
-			tt := capital_command_name.twin
+			create tt.make_from_string_general (capital_command_name)
 			if shortcut_available then
 				tt.append (Opening_parenthesis)
 				tt.append (shortcut_string)
@@ -358,19 +360,19 @@ feature -- Interface
 	new_sd_button: SD_TOOL_BAR_RADIO_BUTTON
 			-- Create a new tool bar button representing `Current'
 		local
-			tt: STRING_GENERAL
+			tt: STRING_32
 		do
 			create Result.make
 			Result.set_pixmap (symbol @ 1)
 			Result.set_pixel_buffer (pixel_buffer)
-			tt := capital_command_name.twin
+			create tt.make_from_string_general (capital_command_name)
 			if shortcut_available then
 				tt.append (Opening_parenthesis)
 				tt.append (shortcut_string)
 				tt.append (Closing_parenthesis)
 			end
 			Result.set_tooltip (tt)
-			Result.set_name (generating_type)
+			Result.set_name (generating_type.name_32)
 			Result.set_description (capital_command_name)
 			set_sd_button (Result)
 			Result.drop_actions.extend (agent execute_with_stone)
@@ -457,9 +459,7 @@ feature -- Commands
 				output_line.set_text (header)
 				output_line.refresh_now
 			end
-			if cur_wid = Void or old_cur = Void then
-				--| Do nothing.
-			else
+			if attached cur_wid and attached old_cur then
 				cur_wid.set_pointer_style (old_cur)
 				old_cur := Void
 				cur_wid := Void
@@ -519,11 +519,8 @@ feature {NONE} -- Location
 
 	fresh_old_formatter
 			-- Fresh old formatter position
-		local
-			l_formatter: EB_FORMATTER
 		do
-			l_formatter ?= manager.previous_pos_container
-			if l_formatter /= Void then
+			if attached {EB_FORMATTER} manager.previous_pos_container as l_formatter then
 				l_formatter.fresh_position
 			end
 		end
@@ -550,10 +547,11 @@ feature {NONE} -- Recyclable
 			-- Recycle
 		do
 			manager := Void
-			if should_displayer_be_recycled then
-				if displayer /= Void then
-					displayer.recycle
-				end
+			if
+				should_displayer_be_recycled and then
+				attached displayer as d
+			then
+					d.recycle
 			end
 			if sd_button /= Void then
 				sd_button.drop_actions.set_veto_pebble_function (Void)
@@ -603,9 +601,7 @@ feature {NONE} -- Implementation
 					-- Check is needed for session handling.
 				cur_wid := Window_manager.last_focused_development_window.window
 			end
-			if cur_wid = Void then
-				--| Do nothing.
-			else
+			if attached cur_wid then
 				old_cur := cur_wid.pointer_style
 				cur_wid.set_pointer_style (wait_cursor)
 			end
@@ -615,12 +611,12 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	header: STRING_GENERAL
+	header: READABLE_STRING_GENERAL
 			-- Text displayed in the ouput_line when current formatter is displayed.
 		deferred
 		end
 
-	temp_header: STRING_GENERAL
+	temp_header: READABLE_STRING_GENERAL
 			-- Text displayed in the ouput_line when current formatter is working.
 		deferred
 		end
@@ -684,7 +680,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -715,4 +711,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_FORMATTER
+end

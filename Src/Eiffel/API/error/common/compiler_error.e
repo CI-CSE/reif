@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 		Ancestor to all errors/warnings defined in the compiler.
 		
@@ -22,7 +22,12 @@ inherit
 			process
 		end
 
-	EIFFEL_LAYOUT
+	FORMATTED_MESSAGE
+		export
+			{NONE} all
+		end
+
+	SHARED_LOCALE
 		export
 			{NONE} all
 		end
@@ -212,7 +217,6 @@ feature -- Output
 			valid_st: a_text_formatter /= Void;
 			is_defined: is_defined
 		do
-			print_single_line_error_code (a_text_formatter)
 			print_single_line_error_message (a_text_formatter)
 		end
 
@@ -227,22 +231,6 @@ feature -- Output
 		end
 
 feature {NONE} -- Printing for single lines
-
-	print_single_line_error_code (a_text_formatter: TEXT_FORMATTER)
-			-- Display a short error code in `a_text_formatter'.
-		require
-			valid_st: a_text_formatter /= Void
-		do
-			a_text_formatter.add_error (Current, code)
-			if subcode /= 0 then
-				a_text_formatter.add ("(")
-				a_text_formatter.add_int (subcode)
-				a_text_formatter.add ("):")
-			else
-				a_text_formatter.add (":")
-			end
-			a_text_formatter.add_space
-		end
 
 	print_single_line_error_message (a_text_formatter: TEXT_FORMATTER)
 			-- Displays single line help in `a_text_formatter'.
@@ -277,7 +265,7 @@ feature {NONE} -- Print for multiple lines
 			print_short_help (a_text_formatter)
 		end
 
-	frozen print_short_help (a_text_formatter: TEXT_FORMATTER)
+	print_short_help (a_text_formatter: TEXT_FORMATTER)
 			-- Display help in `a_text_formatter'.
 		require
 			valid_st: a_text_formatter /= Void
@@ -438,7 +426,7 @@ feature {NONE} -- Output
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

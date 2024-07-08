@@ -102,6 +102,8 @@ feature -- Settings
 			set_match_list (a_list)
 			set_will_process_leading_leaves (will_process_leading)
 			set_will_process_trailing_leaves (will_process_trailing)
+		ensure
+			is_valid: is_valid
 		end
 
 	set_parsed_class (a_class: CLASS_AS)
@@ -385,6 +387,7 @@ feature
 
 	process_array_as (l_as: ARRAY_AS)
 		do
+			safe_process (l_as.type)
 			safe_process (l_as.larray_symbol (match_list))
 			safe_process (l_as.expressions)
 			safe_process (l_as.rarray_symbol (match_list))
@@ -550,6 +553,7 @@ feature
 		do
 			safe_process (l_as.tag)
 			safe_process (l_as.colon_symbol (match_list))
+			safe_process (l_as.class_keyword (match_list))
 			safe_process (l_as.expr)
 		end
 
@@ -1475,16 +1479,17 @@ feature{NONE} -- Implementation
 		local
 			i: INTEGER
 		do
-			if will_process_leading_leaves then
-				if ind > last_index + 1 then
-					from
-						i := last_index + 1
-					until
-						i = ind
-					loop
-						match_list.i_th (i).process (Current)
-						i := i + 1
-					end
+			if
+				will_process_leading_leaves and then
+				ind > last_index + 1
+			then
+				from
+					i := last_index + 1
+				until
+					i = ind
+				loop
+					match_list.i_th (i).process (Current)
+					i := i + 1
 				end
 			end
 		end
@@ -1517,36 +1522,38 @@ feature{NONE} -- Implementation
 			l_id_as: ID_AS
 			l_leaf: LEAF_AS
 		do
-			if l_as /= Void then
-				if attached l_as.id_list as l_ids and then l_ids.count > 0 then
-					from
-						l_ids.start
-						i := 1
-							-- Temporary/reused objects to print identifiers.
-						create l_id_as.initialize_from_id (1)
-						if attached l_as.separator_list as l_sep_list then
-							l_count := l_sep_list.count
-						end
-					until
-						l_ids.after
-					loop
-						l_index := l_ids.item
-						if match_list.valid_index (l_index) then
-							l_leaf := match_list.i_th (l_index)
-								-- Note that we do not set the `name_id' for `l_id_as' since it will require
-								-- updating the NAMES_HEAP and we do not want to do that. It is assumed in roundtrip
-								-- mode that the text is never obtained from the node itself but from the `text' queries.
-							l_id_as.set_position (l_leaf.line, l_leaf.column, l_leaf.position, l_leaf.location_count,
-								l_leaf.character_column, l_leaf.character_position, l_leaf.character_count)
-							l_id_as.set_index (l_index)
-							safe_process (l_id_as)
-						end
-						if i <= l_count then
-							safe_process (l_as.separator_list_i_th (i, match_list))
-							i := i + 1
-						end
-						l_ids.forth
+			if
+				attached l_as and then
+				attached l_as.id_list as l_ids and then
+				l_ids.count > 0
+			then
+				from
+					l_ids.start
+					i := 1
+						-- Temporary/reused objects to print identifiers.
+					create l_id_as.initialize_from_id (1)
+					if attached l_as.separator_list as l_sep_list then
+						l_count := l_sep_list.count
 					end
+				until
+					l_ids.after
+				loop
+					l_index := l_ids.item
+					if match_list.valid_index (l_index) then
+						l_leaf := match_list.i_th (l_index)
+							-- Note that we do not set the `name_id' for `l_id_as' since it will require
+							-- updating the NAMES_HEAP and we do not want to do that. It is assumed in roundtrip
+							-- mode that the text is never obtained from the node itself but from the `text' queries.
+						l_id_as.set_position (l_leaf.line, l_leaf.column, l_leaf.position, l_leaf.location_count,
+							l_leaf.character_column, l_leaf.character_position, l_leaf.character_count)
+						l_id_as.set_index (l_index)
+						safe_process (l_id_as)
+					end
+					if i <= l_count then
+						safe_process (l_as.separator_list_i_th (i, match_list))
+						i := i + 1
+					end
+					l_ids.forth
 				end
 			end
 		end
@@ -1559,7 +1566,7 @@ invariant
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

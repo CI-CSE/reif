@@ -98,7 +98,7 @@ feature {NONE} -- Initialization
 			server_make
 
 				-- Creation of the system hash table
-			create class_types.make (1, System_chunk)
+			create class_types.make_filled (Void, 1, System_chunk)
 			create new_classes.make
 
 				-- Creation of a topological sorter
@@ -128,8 +128,8 @@ feature {NONE} -- Initialization
 			create degree_minus_1.make
 
 				-- Body index table creation
-			create body_index_table.make (0, System_chunk)
-			create original_body_index_table.make (1, 0)
+			create body_index_table.make_filled (0, 0, System_chunk)
+			create original_body_index_table.make_empty
 
 				-- Run-time table creation
 			create execution_table.make
@@ -951,6 +951,7 @@ end
 			d1, d2: DATE_TIME
 			l_factory: CONF_COMP_FACTORY
 			l_state: CONF_STATE
+			w: ARRAYED_LIST [ERROR]
 		do
 			debug ("timing")
 				print_memory_statistics
@@ -959,6 +960,22 @@ end
 
 			if equal (universe.new_target, universe.target) or else universe.new_target = Void then
 				lace.force_new_target
+					-- Remove previously reported configuration  warnings.
+				from
+					w := error_handler.warning_list
+					w.start
+				until
+					w.after
+				loop
+					if
+						w.item.generating_type = {VD01} or else
+						w.item.generating_type = {VD80}
+					then
+						w.remove
+					else
+						w.forth
+					end
+				end
 				lace.recompile
 			end
 
@@ -979,13 +996,31 @@ end
 					-- Check for testing library in current config
 				test_system.check_for_testing_configuration (l_target)
 
+					-- Use target's settings for compilation.
+					-- This should be done before any class options are set (test#config049),
+					-- but only once per compilation so that updated options are not
+					-- used for capability checks.
+				lace.update_capabilities
+
 					-- let the configuration system build "everything"
 				l_state := universe.conf_state_from_target (l_target)
 				if universe.target /= Void then
-					create l_vis_build.make_build_from_old (l_state,
-						l_target, universe.target, l_factory)
+					create l_vis_build.make_build_from_old
+						(l_state,
+						l_target,
+						universe.target,
+						if il_generation then metadata_cache_path else {STRING_32} "" end,
+						if il_generation then clr_runtime_version else {STRING_32} "" end,
+						l_factory.new_location_from_path (project_location.partial_generation_path.name, l_target),
+						l_factory)
 				else
-					create l_vis_build.make_build (l_state, l_target, l_factory)
+					create l_vis_build.make_build
+						(l_state,
+						l_target,
+						if il_generation then metadata_cache_path else {STRING_32} "" end,
+						if il_generation then clr_runtime_version else {STRING_32} "" end,
+						l_factory.new_location_from_path (project_location.partial_generation_path.name, l_target),
+						l_factory)
 				end
 				if has_potential_class_name_mismatch then
 					has_potential_class_name_mismatch := False
@@ -994,12 +1029,6 @@ end
 					has_potential_class_name_mismatch := True
 					l_vis_build.set_is_full_class_name_analyzis (False)
 				end
-				if il_generation then
-					l_vis_build.set_assembly_cach_folder (metadata_cache_path)
-					l_vis_build.set_il_version (clr_runtime_version)
-				end
-				l_vis_build.set_partial_location (
-					l_factory.new_location_from_path (project_location.partial_generation_path.name, l_target))
 
 					-- set observers
 				l_vis_build.consume_assembly_observer.extend (agent degree_output.put_consume_assemblies)
@@ -1367,6 +1396,8 @@ end
 				original_body_index_table.copy (body_index_table)
 				Degree_1.wipe_out
 			end
+				-- Update capability settings used during compilation.
+			lace.update_capability_root
 		end
 
 feature -- ANY.default_rescue routine id
@@ -3087,7 +3118,7 @@ feature -- Final mode generation
 				create skeleton_table.make (400)
 				if not il_generation then
 					internal_retrieved_finalized_type_mapping := Void
-					create l_type_id_mapping.make (0, static_type_id_counter.count)
+					create l_type_id_mapping.make_filled (0, 0, static_type_id_counter.count)
 					l_old_type_id_counter := type_id_counter.value
 					process_dynamic_types (False, l_type_id_mapping, 0)
 				end
@@ -3107,7 +3138,7 @@ feature -- Final mode generation
 				byte_context.set_final_mode
 
 				if il_generation then
-					create l_type_id_mapping.make (0, static_type_id_counter.count)
+					create l_type_id_mapping.make_filled (0, 0, static_type_id_counter.count)
 					process_optimized_single_types (False, l_type_id_mapping)
 				end
 
@@ -3430,6 +3461,11 @@ feature {NONE} -- Implementation
 						supplier_clients.remove
 					end
 
+					if supplier.has_dep_class (a_class) then
+							-- Remove the dependecies recursively.
+							-- (See test#incr381 that fails of the removal is not done recursively.)
+						remove_dependencies (supplier, a_class)
+					end
 					if
 						supplier_clients.is_empty and then
 							-- The root class is not removed
@@ -3445,18 +3481,38 @@ feature {NONE} -- Implementation
 					then
 							-- Recursively remove class.
 						internal_remove_class (supplier, a_depth + 1)
-					elseif supplier.has_dep_class (a_class) then
-							-- Is it enough to remove the dependecies only on a class
-							-- which is still in the system, or should we do it for
-							-- all the classes even the ones that we just removed from
-							-- the system? In the last case, we should put the previous
-							-- test one level up.
-						supplier.remove_dep_class (a_class)
 					end
 
 					related_classes.forth
 				end
 			end
+		end
+
+	remove_dependencies (supplier, dependant: CLASS_C)
+		require
+			has_dependency: supplier.has_dep_class (dependant)
+		do
+			supplier.remove_dep_class (dependant)
+			if attached supplier.conforming_parents_classes as cs then
+				across
+					cs as c
+				loop
+					if c.item.has_dep_class (dependant) then
+						remove_dependencies (c.item, dependant)
+					end
+				end
+			end
+			if attached supplier.non_conforming_parents_classes as cs then
+				across
+					cs as c
+				loop
+					if c.item.has_dep_class (dependant) then
+						remove_dependencies (c.item, dependant)
+					end
+				end
+			end
+		ensure
+			has_no_dependency: not supplier.has_dep_class (dependant)
 		end
 
 feature {NONE} -- Finalization implementation
@@ -3879,7 +3935,7 @@ feature -- Generation
 			from
 				class_array := classes
 				nb := class_counter.count
-				create l_new_old_mapping.make (a_backup.lower, a_backup.upper)
+				create l_new_old_mapping.make_filled (0, a_backup.lower, a_backup.upper)
 				i := 1
 			until
 				i > nb
@@ -3951,7 +4007,7 @@ feature -- Generation
 			valid_counter_value: is_restoring implies a_type_id_counter_value > 0
 		local
 			class_array: ARRAY [CLASS_C]
-			class_list: ARRAY [CLASS_C]
+			class_list: ARRAY [detachable CLASS_C]
 			a_class: CLASS_C
 			types: TYPE_LIST
 			i, nb: INTEGER
@@ -3987,7 +4043,7 @@ feature -- Generation
 					-- and then traverse the list and reset the dynamic type id.
 
 					-- Sort the class_list by type id in `class_list'.
-				create class_list.make (1, max_class_id)
+				create class_list.make_filled (Void, 1, max_class_id)
 				class_array := classes
 				nb := class_counter.count
 				from i := 1 until i > nb loop
@@ -4404,31 +4460,31 @@ feature -- Generation
 			buffer := generation_buffer
 			buffer.clear_all
 
-			final_mode := byte_context.final_mode;
+			final_mode := byte_context.final_mode
 
-			buffer.put_string ("#include %"eif_eiffel.h%"");
+			buffer.put_string ("#include %"eif_eiffel.h%"")
 
 			buffer.start_c_specific_code
 
 			from
-				i := 1;
-				max_id := 0;
-				nb := Type_id_counter.value;
-				create used_ids.make (0, nb);
+				i := 1
+				max_id := 0
+				nb := Type_id_counter.value
+				create used_ids.make_filled (False, 0, nb)
 			until
 				i > nb
 			loop
-				cl_type := class_types.item (i);
+				cl_type := class_types.item (i)
 				if cl_type /= Void then
-					cl_type.generate_parent_table (buffer, final_mode);
-					cid := cl_type.type.generated_id (final_mode, Void);
-					used_ids.force (True, cid);
+					cl_type.generate_parent_table (buffer, final_mode)
+					cid := cl_type.type.generated_id (final_mode, Void)
+					used_ids.force (True, cid)
 					if cid > max_id then
-						max_id := cid;
+						max_id := cid
 					end
-				end;
-				i := i + 1;
-			end;
+				end
+				i := i + 1
+			end
 
 			buffer.put_new_line
 			buffer.put_string ("int egc_partab_size_init = ")
@@ -4467,9 +4523,6 @@ feature -- Generation
 			a_class: CLASS_C
 			final_mode: BOOLEAN
 			types: TYPE_LIST
-				-- cltype_array is indexed by `id' not by `type_id'
-				-- as `class_types'
-			cltype_array: ARRAY [CLASS_TYPE]
 			skeleton_file: INDENT_FILE
 			buffer: GENERATION_BUFFER
 		do
@@ -4514,8 +4567,6 @@ feature -- Generation
 					i := i + 1
 				end
 				buffer.put_new_line
-
-				create cltype_array.make (1, static_type_id_counter.count)
 			else
 				buffer.start_c_specific_code
 			end
@@ -4532,9 +4583,6 @@ feature -- Generation
 					-- Classes could be removed
 				if cl_type /= Void then
 					cl_type.generate_skeleton1 (buffer)
-					if not final_mode then
-						cltype_array.put (cl_type, cl_type.static_type_id)
-					end
 				end
 				i := i + 1
 			end
@@ -5077,7 +5125,7 @@ feature -- Pattern table generation
 
 			final_mode := byte_context.final_mode
 
-			l_empty_array := <<>>
+			create l_empty_array.make_empty
 
 			buffer.put_string ("#include %"eif_eiffel.h%"")
 
@@ -6199,7 +6247,7 @@ feature -- Added for Plan Generation
 note
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 
@@ -6,6 +6,7 @@ class LACE_I
 
 inherit
 	SHARED_WORKBENCH
+	SHARED_BATCH_NAMES
 	SHARED_ERROR_HANDLER
 	SHARED_RESCUE_STATUS
 	COMPILER_EXPORTER
@@ -52,6 +53,18 @@ inherit
 		export
 			{NONE} all
 		end
+
+	CONF_ERROR_OBSERVER
+		export
+			{NONE} all
+		end
+
+	CONF_INTERFACE_CONSTANTS
+		export
+			{NONE} all
+		end
+
+	SHARED_DEGREES
 
 create
 	make
@@ -158,11 +171,27 @@ feature -- Access
 			Result_not_void: Result /= Void
 		end
 
+	settings: detachable CONF_TARGET_SETTINGS
+			-- Settings that may override those specified in `target'.
+
 	precompile: CONF_PRECOMPILE
 			-- Precompile needed for building our target.
 
 	shared_library_definition_stamp: INTEGER
 			-- Time stamp of a shared library definition file (if any)
+
+	is_void_safe: BOOLEAN
+			-- Is current system void-safe, i.e. preserving types attachment status?
+
+feature -- Modification
+
+	set_settings (s: like settings)
+			-- Set `settings' to `s'.
+		do
+			settings := s
+		ensure
+			settings_set: settings = s
+		end
 
 feature -- Update from retrieved object.
 
@@ -178,6 +207,7 @@ feature -- Update from retrieved object.
 			compile_all_classes := other.compile_all_classes
 			successful := True
 		end
+
 feature -- Status setting
 
 	force_new_target
@@ -201,13 +231,20 @@ feature -- Status setting
 			reset_iron_packages_to_install
 			if attached target as tgt then
 				if attached tgt.precompile as pre then
-					if attached conf_location_mapper.expected_action (pre.location.original_path) as l_map_action then
-						print ("Manual op?%N")
-					end
 					s := pre.location.original_path
 					p := pre.location.evaluated_path
 					fn := pre.path
+
+					if attached conf_location_mapper.expected_action (s) as l_action_info then
+						check attached {CONF_LOCATION_IRON_MAPPING} l_action_info.mapping end
+						if l_action_info.is_action ("iron install") then
+							if attached l_action_info.parameter ("package_name") as l_package_name then
+								suggest_iron_package_installation (l_package_name)
+							end
+						end
+					end
 				end
+
 				across
 					tgt.libraries as ic
 				loop
@@ -215,7 +252,7 @@ feature -- Status setting
 					p := ic.item.location.evaluated_path
 					fn := ic.item.path
 
-					if attached conf_location_mapper.expected_action (ic.item.location.original_path) as l_action_info then
+					if attached conf_location_mapper.expected_action (s) as l_action_info then
 						check attached {CONF_LOCATION_IRON_MAPPING} l_action_info.mapping end
 						if l_action_info.is_action ("iron install") then
 							if attached l_action_info.parameter ("package_name") as l_package_name then
@@ -237,30 +274,40 @@ feature -- Status setting
 			l_factory: CONF_COMP_FACTORY
 			l_project_location: PROJECT_DIRECTORY
 			l_epr: PROJECT_EIFFEL_FILE
+			l_precompile: like precompile
 		do
+			l_precompile := target.precompile
 				-- check if the precompile is valid
-			precompile := target.precompile
-			if precompile /= Void then
+			if
+				l_precompile /= Void and then
+				eiffel_project.initialized and then
+				not l_precompile.is_enabled (conf_state_for_precompile_checking (target))
+			then
+				l_precompile := Void
+			end
+			if l_precompile /= Void then
+				precompile := l_precompile
 				create l_factory
 				create l_load.make (l_factory)
-				l_load.retrieve_configuration (precompile.path)
+				l_load.retrieve_configuration (l_precompile.path)
 				if l_load.is_error then
 					is_precompile_invalid := True
 				else
 					is_precompile_invalid := l_load.last_system.library_target = Void
 				end
-			end
-
-				-- check if it needs to be (re)precompiled
-			if precompile /= Void and then not is_precompile_invalid then
-				if precompile.eifgens_location /= Void then
-					create l_project_location.make (precompile.eifgens_location.evaluated_path, l_load.last_system.library_target.name)
-				else
-					create l_project_location.make (precompile.location.evaluated_path.parent, l_load.last_system.library_target.name)
+					-- check if it needs to be (re)precompiled
+				if not is_precompile_invalid then
+					if l_precompile.eifgens_location /= Void then
+						create l_project_location.make (l_precompile.eifgens_location.evaluated_path, l_load.last_system.library_target.name)
+					else
+						create l_project_location.make (l_precompile.location.evaluated_path.parent, l_load.last_system.library_target.name)
+					end
+					create l_epr.make (l_project_location.target_path.extended (project_file_name))
+					l_epr.check_version_number (0)
+					is_precompilation_needed := l_epr.has_error
 				end
-				create l_epr.make (l_project_location.target_path.extended (project_file_name))
-				l_epr.check_version_number (0)
-				is_precompilation_needed := l_epr.has_error
+			else
+				precompile := Void
 			end
 		ensure
 			compilation_need_implies_ok: is_precompilation_needed implies precompile /= Void and not is_precompile_invalid
@@ -459,6 +506,26 @@ feature -- Status setting
 			end
 		end
 
+	update_capabilities
+			-- Update capabilities for all elements a target `t` depends on
+			-- to the target's settings.
+		do
+			if attached target as t then
+				if not system.compiler_profile.is_capability_strict then
+						-- Update options to use target's settings.
+					(create {CONF_CAPABILITY_SETTER}.make (t)).do_nothing
+				end
+			end
+		end
+
+	update_capability_root
+			-- Update capability settings used at every compilation.
+		do
+			if attached target as t then
+				is_void_safe := t.options.void_safety_capability.root_index /= {CONF_TARGET_OPTION}.void_safety_index_none
+			end
+		end
+
 feature {NONE} -- Implementation
 
 	retrieve_config
@@ -528,15 +595,20 @@ feature {NONE} -- Implementation
 				Error_handler.raise_error
 			end
 			target_name := l_new_target.name
-			if conf_system.targets.item (target_name).is_abstract then
+			if l_new_target.is_abstract then
 				create vd68.make (target_name)
 				Error_handler.insert_error (vd68)
 				Error_handler.raise_error
 			end
 
+				-- Update found target with `settings'.
+			if attached settings as s then
+				l_new_target.force (s)
+			end
+
 			project_location.set_target (target_name)
 
-				 -- set ISE_PRECOMP
+				 -- Set ISE_PRECOMP.
 			eiffel_layout.set_precompile (target.setting_msil_generation)
 		ensure
 			target_name_set: target_name /= Void and then not target_name.is_empty
@@ -585,8 +657,11 @@ feature {NONE} -- Implementation
 			if sys = Void then
 				l_first := True
 					-- do we have a precompile?
-				if l_new_target.precompile /= Void then
-						--  load precompile as system
+				if
+					attached l_new_target.precompile as l_precompile and then
+					l_precompile.is_enabled (conf_state_for_precompile_checking (l_new_target))
+				then
+						-- load precompile as system
 					retrieve_precompile (l_new_target)
 					sys := workbench.system
 				else
@@ -686,6 +761,8 @@ feature {NONE} -- Implementation
 				parse_target (l_new_target)
 			end
 
+			validate_capabilities
+
 				-- Only set the new target when parsing is ok, otherwise we get a failure,
 				-- See eweasel test#config028 and test#config029.
 			universe.set_new_target (l_new_target)
@@ -700,6 +777,67 @@ feature {NONE} -- Implementation
 			if Rescue_status.is_error_exception then
 					-- Reset `Workbench'
 				successful := False
+			end
+		end
+
+	validate_capabilities
+			-- Check if capability validity rules are satisfied.
+		do
+			if attached target as t then
+				(create {CONF_CAPABILITY_CHECKER}.make (t, system.compiler_profile.is_capability_strict, Current)).do_nothing
+					-- Check compiler-specific rule for precompiled libraries:
+					-- Target root option should be related to precompiled option as
+					-- 	• cat-call: both "none" or both not "none"
+					-- 	• concurrency: equal
+					-- 	• void-safety: both "none" or both not "none"
+				if attached t.precompile as precompiled and then attached precompiled.library_target as p then
+					if
+						(t.options.catcall_safety_capability.root_index = {CONF_TARGET_OPTION}.catcall_detection_index_none) /=
+						(p.options.catcall_safety_capability.root_index = {CONF_TARGET_OPTION}.catcall_detection_index_none)
+					then
+						error_handler.insert_error (create {VD46}.make (messages.e_precompile_catcall_detection_mismatch (
+							conf_interface_names.option_catcall_detection_value [t.options.catcall_safety_capability.root_index],
+							conf_interface_names.option_catcall_detection_value [p.options.catcall_safety_capability.root_index],
+							conf_interface_names.option_catcall_detection_value [{CONF_TARGET_OPTION}.catcall_detection_index_none])))
+					end
+					if t.options.concurrency_capability.root_index /= p.options.concurrency_capability.root_index then
+						error_handler.insert_error (create {VD46}.make (messages.e_precompile_concurrency_mismatch (
+							conf_interface_names.option_concurrency_value [t.options.concurrency_capability.root_index],
+							conf_interface_names.option_concurrency_value [p.options.concurrency_capability.root_index])))
+					end
+					if
+						(t.options.void_safety_capability.root_index = {CONF_TARGET_OPTION}.void_safety_index_none) /=
+						(p.options.void_safety_capability.root_index = {CONF_TARGET_OPTION}.void_safety_index_none)
+					then
+						error_handler.insert_error (create {VD46}.make (messages.e_precompile_void_safety_mismatch (
+							conf_interface_names.option_void_safety_value [t.options.void_safety_capability.root_index],
+							conf_interface_names.option_void_safety_value [p.options.void_safety_capability.root_index],
+							conf_interface_names.option_void_safety_value [{CONF_TARGET_OPTION}.void_safety_index_none])))
+					end
+				end
+				if error_handler.has_error then
+					error_handler.raise_error
+				end
+			end
+		end
+
+	report_error (e: CONF_ERROR)
+			-- <Precursor>
+		do
+			if system.compiler_profile.is_capability_warning then
+				error_handler.insert_warning (create {VD01}.make (e))
+			else
+				error_handler.insert_error (create {VD01}.make (e))
+			end
+		end
+
+	report_warning (e: CONF_ERROR)
+			-- <Precursor>
+		do
+			if system.compiler_profile.is_capability_error then
+				error_handler.insert_error (create {VD01}.make (e))
+			else
+				error_handler.insert_warning (create {VD01}.make (e))
 			end
 		end
 
@@ -785,6 +923,29 @@ feature {NONE} -- Implementation
 			create l_factory
 
 			l_settings := a_target.settings
+
+			l_s := l_settings.item (s_absent_explicit_assertion)
+			if attached l_s and then not l_s.is_boolean then
+					-- Invalid setting value.
+				create vd15
+				vd15.set_option_name (s_absent_explicit_assertion)
+				vd15.set_option_value (l_s)
+				Error_handler.insert_error (vd15)
+			else
+				l_b :=
+					if attached l_s then
+						l_s.to_boolean
+					else
+						true_boolean_settings.has (s_absent_explicit_assertion)
+					end
+				if l_b = system.absent_explicit_assertion or else not workbench.has_compilation_started then
+						-- Set the value of the setting for fresh compilation.
+					system.set_absent_explicit_assertion (l_b)
+				elseif not is_force_new_target then
+						-- Value cannot be changed in a compiled system.
+					Error_handler.insert_error (create {VD83}.make_error (s_absent_explicit_assertion, system.absent_explicit_assertion.out.as_lower, l_b.out.as_lower))
+				end
+			end
 
 			l_s := l_settings.item (s_address_expression)
 			if l_s /= Void then
@@ -946,7 +1107,7 @@ feature {NONE} -- Implementation
 					Error_handler.insert_error (vd15)
 				end
 			else
-				system.set_32bits (not platform_constants.is_64_bits)
+				system.set_32bits (not {PLATFORM}.is_64_bits)
 			end
 
 			l_s := l_settings.item (s_dead_code_removal)
@@ -1130,11 +1291,6 @@ feature {NONE} -- Implementation
 				system.set_metadata_cache_path (l_s)
 			end
 
-			l_s := l_settings.item (s_msil_assembly_compatibility)
-			if l_s /= Void then
-				system.set_msil_assembly_compatibility (l_s)
-			end
-
 			l_s := l_settings.item (s_msil_classes_per_module)
 			if l_s /= Void then
 				if l_s.is_natural_16 and then l_s.to_natural_16 > 0 then
@@ -1194,8 +1350,8 @@ feature {NONE} -- Implementation
 
 			l_s := l_settings.item (s_msil_generation_type)
 			if l_s /= Void then
-				if l_s.is_case_insensitive_equal_general ("exe") or l_s.is_case_insensitive_equal_general ("dll") then
-					system.set_msil_generation_type (l_s.as_lower)
+				if attached msil_generation_type_value (l_s, 1, l_s.count) as v then
+					system.set_msil_generation_type (v)
 				else
 					create vd15
 					vd15.set_option_name (s_msil_generation_type)
@@ -1225,36 +1381,33 @@ feature {NONE} -- Implementation
 				system.set_msil_use_optimized_precompile (False)
 			end
 
-				-- Check if "concurrency" setting is specified explicitly.
-			if a_target.setting_concurrency.is_set then
-					-- IL generation has no multithreaded, but is affected by SCOOP setting.
-				if
-					not system.il_generation or else
-					a_target.setting_concurrency.index = {CONF_TARGET}.setting_concurrency_index_scoop or else
-					system.concurrency_index = {CONF_TARGET}.setting_concurrency_index_scoop
-				then
-						-- Value can't change from a precompile or in a compiled system.
-					if a_target.setting_concurrency.index /= system.concurrency_index and then (a_target.precompile /= Void or workbench.has_compilation_started) then
-							-- It's not obvious from the code, but at this point `system.concurrency_index' should be set
-							-- either because the system is compiled or because it uses a precompile.
-						check
-							concurrency_index_set: system.concurrency_index > 0 and then system.concurrency_index <= a_target.setting_concurrency.count
-						end
-						if not is_force_new_target then
-							create vd83.make (s_concurrency, a_target.setting_concurrency [system.concurrency_index], a_target.setting_concurrency.item)
-							Error_handler.insert_warning (vd83)
-						end
-					else
-						system.set_concurrency_index (a_target.setting_concurrency.index)
-					end
-				end
-			elseif
-				system.concurrency_index = 0 and then
-				a_target.precompile = Void and then
-				not workbench.has_compilation_started
+			if
+				not workbench.has_compilation_started and then
+				not (
+					attached a_target.precompile as p and then
+					p.is_enabled (universe.conf_state_from_target (a_target))
+				)
 			then
-					-- Use the default value of the setting if it is not set in any way.
-				system.set_concurrency_index (a_target.setting_concurrency.index)
+					-- Update concurrency setting on first compilation.
+				system.set_concurrency_index (a_target.options.concurrency_capability.root_index)
+			elseif
+				(not system.il_generation or else
+				a_target.options.concurrency_capability.root_index = {CONF_TARGET_OPTION}.concurrency_index_scoop or else
+				system.concurrency_index = {CONF_TARGET_OPTION}.concurrency_index_scoop) and then
+				(attached a_target.precompile implies a_target.options.concurrency_capability.is_root_set) and then
+				a_target.options.concurrency_capability.root_index /= system.concurrency_index and then
+				not is_force_new_target
+			then
+					-- Value can't change from a precompile or in a compiled system.
+					-- IL generation has no multithreaded, but is affected by SCOOP setting.
+					-- If there is a precompile, an error is reported only when concurrency is set explicitly, otherwise it is taken from the precompile.
+					-- If there is no precompile, an error is reported because of concurrency change (explicit or not).
+					-- At this point `system.concurrency_index' should be set because the system is compiled or has a precompile.
+					-- Its value is retrieved from a disk.
+				create vd83.make_error (s_concurrency,
+					a_target.options.concurrency_capability.value [system.concurrency_index],
+					a_target.options.concurrency_capability.root)
+				Error_handler.insert_error (vd83)
 			end
 
 			l_s := l_settings.item (s_old_feature_replication)
@@ -1327,6 +1480,22 @@ feature {NONE} -- Implementation
 				end
 			end
 
+			if
+				workbench.has_compilation_started and then
+				a_target.options.array_override.index /= system.array_override
+			then
+					-- Recheck all compiled classes using the new array override setting.
+				across
+					system.classes as cc
+				loop
+					if attached cc.item as c and then c.is_valid and then not c.is_precompiled then
+						degree_3.insert_class (c)
+						c.set_need_type_check (True)
+					end
+				end
+			end
+			system.set_array_override (a_target.options.array_override.index)
+
 			l_s := l_settings.item (s_use_cluster_name_as_namespace)
 			if l_s /= Void then
 				if l_s.is_boolean then
@@ -1358,6 +1527,17 @@ feature {NONE} -- Implementation
 			Error_handler.checksum
 		end
 
+	conf_state_for_precompile_checking (a_target: CONF_TARGET): CONF_STATE
+			-- State needed during `check_precompile` to check if precompile is enabled.
+			-- note: at this point, the system is not yet defined, then platform, concurrency, ... values are not relevant.
+		local
+			l_version: STRING_TABLE [CONF_VERSION]
+		do
+			create l_version.make (1)
+			l_version.force (compiler_version_number, v_compiler)
+			create Result.make (universe.platform, universe.build, concurrency_none, False, False, a_target.variables, l_version)
+		end
+
 	retrieve_precompile (a_target: CONF_TARGET)
 			-- Load the precompile as the system.
 		require
@@ -1375,6 +1555,7 @@ feature {NONE} -- Implementation
 			l_old_target: CONF_TARGET
 			l_factory: CONF_COMP_FACTORY
 			l_project_location: PROJECT_DIRECTORY
+			l_system_name: READABLE_STRING_GENERAL
 		do
 			create l_factory
 			l_pre := a_target.precompile
@@ -1437,9 +1618,15 @@ feature {NONE} -- Implementation
 
 				-- Update the system name
 			if not a_target.setting_executable_name.is_empty then
-				system.set_name (a_target.setting_executable_name.as_string_8_conversion)
+				l_system_name := a_target.setting_executable_name
 			else
-				system.set_name (a_target.system.name.as_string_8_conversion)
+				l_system_name := a_target.system.name
+			end
+			if l_system_name.is_valid_as_string_8 then
+				system.set_name (l_system_name.to_string_8)
+			else
+					-- FIXME: invalid system name!
+				system.set_name (l_system_name.as_string_8_conversion)
 			end
 		ensure
 			valid_system: workbench.system /= Void
@@ -1471,7 +1658,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

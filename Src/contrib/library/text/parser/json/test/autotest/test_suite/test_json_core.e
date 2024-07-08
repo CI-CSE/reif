@@ -564,8 +564,69 @@ feature -- Test
 			create parser.make_with_string (jrep)
 			if attached {JSON_STRING} parser.next_parsed_json_value as l_js then
 				if attached {STRING_32} json.object (l_js, Void) as l_ucs then
-					assert ("ucs.string.is_equal (%"foobar%")", l_ucs.string.is_equal (s))
+					assert ("ucs.string.is_equal (%"foo/bar%")", l_ucs.string.is_equal (s))
 				end
+			else
+				assert ("parser.next_parsed_json_value /= Void", False)
+			end
+		end
+
+	test_json_string_and_slashes
+		local
+			s: STRING
+			js: detachable JSON_STRING
+			jrep: STRING
+			parser: JSON_PARSER
+		do
+			s := "foo/bar"
+			jrep := "%"foo/bar%""
+
+				-- Eiffel value -> JSON value -> JSON representation
+			create js.make_from_string (s)
+			assert ("js.representation.is_equal (%"%"foo/bar%"%")", js.representation.is_equal (jrep))
+				-- Eiffel value -> JSON value -> JSON representation with factory
+			if attached {JSON_STRING} json.value (s) as l_js then
+				assert ("js.representation.is_equal (%"%"foobar%"%")", js.representation.is_equal (jrep))
+			else
+				assert ("json.value (s) /= Void", False)
+			end
+
+				-- JSON representation -> JSON value -> Eiffel value
+			create parser.make_with_string (jrep)
+			if attached {JSON_STRING} parser.next_parsed_json_value as l_js then
+				if attached {STRING_32} json.object (l_js, Void) as l_ucs then
+					assert ("ucs.string.is_equal (%"foo/bar%")", l_ucs.string.is_equal (s))
+				end
+			else
+				assert ("parser.next_parsed_json_value /= Void", False)
+			end
+
+				-- JSON representation with escaped slash -> JSON value -> Eiffel value
+			jrep := "%"foo\/bar%""
+			create parser.make_with_string (jrep)
+			if attached {JSON_STRING} parser.next_parsed_json_value as l_js2 then
+				if attached {STRING_32} json.object (l_js2, Void) as l_ucs2 then
+					assert ("ucs.string.is_equal (%"foo/bar%")", l_ucs2.string.is_equal (s))
+				end
+			else
+				assert ("parser.next_parsed_json_value /= Void", False)
+			end
+		end
+
+	test_json_string_and_escaped_slashes
+		local
+			s: STRING
+			js: detachable JSON_STRING
+			jrep: STRING
+			parser: JSON_PARSER
+		do
+			s := "foo/bar"
+
+				-- JSON representation with escaped slash -> JSON value -> Eiffel value
+			jrep := "%"foo\/bar%""
+			create parser.make_with_string (jrep)
+			if attached {JSON_STRING} parser.next_parsed_json_value as l_js2 then
+				assert ("l_js2.unesc.is_equal (%"foo/bar%")", l_js2.unescaped_string_32.same_string_general (s))
 			else
 				assert ("parser.next_parsed_json_value /= Void", False)
 			end
@@ -604,6 +665,51 @@ feature -- Test
 			else
 				assert ("parser.next_parsed_json_value /= Void", False)
 			end
+		end
+
+	test_json_string_8_and_unicode
+		local
+			js: detachable JSON_STRING
+			ucs: detachable STRING_32
+			jrep, s: STRING
+			parser: JSON_PARSER
+		do
+			s := "begin \u003e end"
+			jrep := "begin > end"
+			create js.make_from_escaped_json_string (s)
+			assert ("js.unescaped_string_8.same_string (" + jrep + ")", js.unescaped_string_8.same_string (jrep))
+			assert ("js.unescaped_string_32.same_string_general (" + jrep + ")", js.unescaped_string_32.same_string_general (jrep))
+
+			s := "begin \u003e"
+			jrep := "begin >"
+			create js.make_from_escaped_json_string (s)
+			assert ("js.unescaped_string_8.same_string (" + jrep + ")", js.unescaped_string_8.same_string (jrep))
+			assert ("js.unescaped_string_32.same_string_general (" + jrep + ")", js.unescaped_string_32.same_string_general (jrep))
+
+			s := "\u003e end"
+			jrep := "> end"
+			create js.make_from_escaped_json_string (s)
+			assert ("js.unescaped_string_8.same_string (" + jrep + ")", js.unescaped_string_8.same_string (jrep))
+			assert ("js.unescaped_string_32.same_string_general (" + jrep + ")", js.unescaped_string_32.same_string_general (jrep))
+
+			s := "\u003e\u003e\u003e"
+			jrep := ">>>"
+			create js.make_from_escaped_json_string (s)
+			assert ("js.unescaped_string_8.same_string (" + jrep + ")", js.unescaped_string_8.same_string (jrep))
+			assert ("js.unescaped_string_32.same_string_general (" + jrep + ")", js.unescaped_string_32.same_string_general (jrep))
+
+			s := "bad unicode \u003"
+			jrep := "bad unicode \u003"
+			create js.make_from_escaped_json_string (s)
+			assert ("bad unicode js.unescaped_string_8.same_string (" + jrep + ")", js.unescaped_string_8.same_string (jrep))
+			assert ("bad unicode js.unescaped_string_32.same_string_general (" + jrep + ")", js.unescaped_string_32.same_string_general (jrep))
+
+			s := "test \u2639 :( "
+			jrep := "test \u2639 :( "
+			create js.make_from_escaped_json_string (s)
+			assert ("non char8 unicode js.unescaped_string_8.same_string (" + jrep + ")", js.unescaped_string_8.same_string (jrep))
+			assert ("non char8 unicode js.unescaped_string_32.same_string_general (...)", js.unescaped_string_32.same_string_general ({STRING_32} "test %/9785/ :( "))
+
 		end
 
 	test_json_string_and_special_characters
@@ -657,12 +763,27 @@ feature -- Test
 			js: detachable JSON_STRING
 			s,j: STRING
 		do
+			s := "foo\%Tbar"
+			j := "foo\\\tbar"
+			create js.make_from_string (s)
+			assert ("string %"" + s + "%" to json %"" + j + "%"", js.item.same_string (j))
+			create js.make_from_escaped_json_string (js.item)
+			assert ("json %"" + j + "%" to string %"" + s + "%"", js.unescaped_string_8.same_string (s))
+
+			j := "foo\%Tbar"
+			create js.make_from_escaped_json_string (js.item)
+			--| ERROR but accepted as "foo\\\t"
+			assert ("json %"" + j + "%" to string %"" + s + "%"", js.unescaped_string_8.same_string (s))
+
+
 			s := "foo%Tbar"
 			j := "foo\tbar"
 			create js.make_from_string (s)
 			assert ("string %"" + s + "%" to json %"" + j + "%"", js.item.same_string (j))
 			create js.make_from_escaped_json_string (js.item)
 			assert ("json %"" + j + "%" to string %"" + s + "%"", js.unescaped_string_8.same_string (s))
+
+
 
 			s := "tab=%T cr=%R newline=%N backslash=%H slash=/ end"
 			j := "tab=\t cr=\r newline=\n backslash=\\ slash=/ end"
@@ -701,6 +822,23 @@ feature -- Test
 			create js.make_from_escaped_json_string (js.item)
 			assert ("js.item.same_string (%"<script>tab=\t<\/script>%")", js.item.same_string ("<script>tab=\t</script>"))
 			assert ("js.unescaped_string_8.same_string (%"<script>tab=%%T</script>%")", js.unescaped_string_8.same_string ("<script>tab=%T</script>"))
+
+		end
+
+	test_json_string_and_null_character
+		local
+			js: detachable JSON_STRING
+			s,j: STRING
+		do
+			s := "foo%Ubar"
+			j := "foo\u0000bar"
+			create js.make_from_string (s)
+			assert ("string %"" + s + "%" to json %"" + j + "%"", js.item.same_string (j))
+			create js.make_from_escaped_json_string (js.item)
+			assert ("json %"" + j + "%" to string %"" + s + "%"", js.unescaped_string_8.same_string (s))
+
+			create js.make_from_escaped_json_string (s)
+			assert ("json %"" + j + "%" to string %"" + s + "%"", js.unescaped_string_8.same_string (s))
 
 		end
 

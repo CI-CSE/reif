@@ -14,9 +14,10 @@ inherit
 	ZLIB_COMPRESS
 
 create
-	string_stream
+	string_stream,
+	string_stream_with_size
 
-feature -- Initialization
+feature {NONE} -- Initialization
 
 	string_stream (a_string: STRING)
 		require
@@ -24,6 +25,27 @@ feature -- Initialization
 		do
 			make
 			intialize
+			string := a_string
+		ensure
+			string_set: attached string
+		end
+
+	string_stream_with_size (a_string: STRING; a_size: INTEGER)
+		require
+			not_connected: not is_connected
+			valid_size: a_size > 0
+		do
+			make_with_chunk_size (a_size)
+			intialize
+			string := a_string
+		ensure
+			string_set: attached string
+		end
+
+feature -- Change element
+
+	set_string (a_string: STRING)
+		do
 			string := a_string
 		ensure
 			string_set: attached string
@@ -39,6 +61,14 @@ feature -- Deflate
 			close
 		end
 
+	put_string_with_options (a_string: READABLE_STRING_GENERAL; a_level, a_windows_bits, a_mem_level, a_strategy: INTEGER )
+			-- Deflate the buffer content.
+		do
+			create user_input_string.make_from_string (a_string.as_string_8)
+			deflate_with_options (a_level, a_windows_bits, a_mem_level, a_strategy)
+			close
+		end
+
 feature -- Access
 
 	is_connected: BOOLEAN
@@ -49,19 +79,19 @@ feature -- Access
 
 feature {NONE} -- Deflate implementation		
 
-	read: INTEGER
+	read
 			-- <Precursor>
 		do
 			if attached user_input_string as l_input_string then
-				Result := string_read (l_input_string)
+				last_read_elements := string_read (l_input_string)
 			end
 		end
 
-	write (a_amount: INTEGER): INTEGER
+	write (a_amount: INTEGER)
 			-- <Precursor>
 		do
 			if attached string as l_string then
-				Result := string_write (output_buffer,a_amount, l_string)
+				last_write_elements := string_write (output_buffer,a_amount, l_string)
 			end
 		end
 
@@ -82,7 +112,7 @@ feature {NONE} -- Deflate implementation
 			from
 				l_index := 1
 			until
-				l_index > a_string.count or else l_index > chunk
+				l_index > a_string.count or else l_index > chunk_size
 			loop
 				input_buffer.put_character(a_string.at (l_index), l_index - 1)
 				l_index := l_index + 1
@@ -91,7 +121,7 @@ feature {NONE} -- Deflate implementation
 				end_of_input := True
 			else
 				if attached user_input_string as l_string then
-				   string := l_string.substring (l_index, l_string.count)
+				   user_input_string := l_string.substring (l_index , l_string.count)
 				end
 			end
 			Result := l_index - 1

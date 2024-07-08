@@ -845,14 +845,14 @@ feature -- Text formatter decorator
 			text_formatter.process_indexing_tag_text (text)
 		end
 
-	process_local_text (text: READABLE_STRING_GENERAL)
+	process_local_text (a_ast: AST_EIFFEL; text: READABLE_STRING_GENERAL)
 			-- Process string text `t'.
 		do
 			if not without_tabs and then not tabs_emitted then
 				emit_tabs
 			end
 			without_tabs := False
-			text_formatter.process_local_text (text)
+			text_formatter.process_local_text (a_ast, text)
 		end
 
 	process_number_text (text: READABLE_STRING_GENERAL)
@@ -936,14 +936,14 @@ feature -- Text formatter decorator
 			text_formatter.process_class_name_text (text, a_class, a_quote)
 		end
 
-	process_cluster_name_text (text: READABLE_STRING_GENERAL; a_cluster: CONF_GROUP; a_quote: BOOLEAN)
-			-- Process cluster name of `a_cluster'.
+	process_cluster_name_text (text: READABLE_STRING_GENERAL; a_group: CONF_GROUP; a_quote: BOOLEAN)
+			-- <Precursor>
 		do
 			if not without_tabs and then not tabs_emitted then
 				emit_tabs
 			end
 			without_tabs := False
-			text_formatter.process_cluster_name_text (text, a_cluster, a_quote)
+			text_formatter.process_cluster_name_text (text, a_group, a_quote)
 		end
 
 	process_target_name_text (text: READABLE_STRING_GENERAL; a_target: CONF_TARGET)
@@ -1212,7 +1212,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

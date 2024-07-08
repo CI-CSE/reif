@@ -1,8 +1,8 @@
-note
+﻿note
 	description: "[
 		Sequences of 32-bit characters, accessible through integer indices
 		in a contiguous range. Read-only interface.
-		]"
+	]"
 	library: "Free implementation of ELKS library"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
@@ -26,8 +26,13 @@ inherit
 		end
 
 	READABLE_INDEXABLE [CHARACTER_32]
+		rename
+			upper as count
 		redefine
-			copy, is_equal, out
+			copy,
+			is_equal,
+			new_cursor,
+			out
 		end
 
 convert
@@ -88,7 +93,7 @@ feature {NONE} -- Initialization
 
 	make_from_c (c_string: POINTER)
 			-- Initialize from contents of `c_string',
-			-- a string created by some C function
+			-- a string created by some C function.
 		require
 			c_string_exists: c_string /= default_pointer
 		local
@@ -104,9 +109,9 @@ feature {NONE} -- Initialization
 
 	make_from_c_pointer (c_string: POINTER)
 			-- Create new instance from contents of `c_string',
-			-- a string created by some C function
+			-- a string created by some C function.
 		obsolete
-			"Use `make_from_c'."
+			"Use `make_from_c'. [2017-05-31]"
 		require
 			c_string_exists: c_string /= default_pointer
 		do
@@ -146,15 +151,15 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	item alias "[]", at alias "@" (i: INTEGER): CHARACTER_32
-			-- Character at position `i'
+	at alias "@" (i: INTEGER): CHARACTER_32
+			-- Character at position `i'.
 		deferred
 		end
 
 	item_code (i: INTEGER): INTEGER
-			-- Numeric code of character at position `i'
+			-- Numeric code of character at position `i'.
 		obsolete
-			"Due to potential truncation it is recommended to use `code (i)' instead."
+			"Due to potential truncation it is recommended to use `code (i)' instead. [2017-05-31]"
 		require
 			index_small_enough: i <= count
 			index_large_enough: i > 0
@@ -168,8 +173,7 @@ feature -- Access
 		end
 
 	index_of (c: CHARACTER_32; start_index: INTEGER): INTEGER
-			-- Position of first occurrence of `c' at or after `start_index';
-			-- 0 if none.
+			-- <Precursor>
 		local
 			a: like area
 			i, nb, l_lower_area: INTEGER
@@ -195,8 +199,7 @@ feature -- Access
 		end
 
 	last_index_of (c: CHARACTER_32; start_index_from_end: INTEGER): INTEGER
-			-- Position of last occurrence of `c',
-			-- 0 if none.
+			-- <Precursor>
 		local
 			a: like area
 			i, l_lower_area: INTEGER
@@ -232,7 +235,7 @@ feature -- Access
 		end
 
 	string_representation: STRING_32
-			-- Similar to `string' but only create a new object if `Current' is not of dynamic type {STRING_32}
+			-- Similar to `string' but only create a new object if `Current' is not of dynamic type {STRING_32}.
 		do
 			if same_type (create {STRING_32}.make_empty) and then attached {STRING_32} Current as l_s32 then
 				Result := l_s32
@@ -258,19 +261,25 @@ feature -- Access
 			Result := string_searcher.fuzzy_index (Current, other, start, count, fuzz)
 		end
 
+	new_cursor: STRING_32_ITERATION_CURSOR
+			-- <Precursor>
+		do
+			create Result.make (Current)
+		end
+
 feature -- Measurement
 
 	capacity: INTEGER
-			-- Allocated space
+			-- <Precursor>
 		do
 			Result := area.count - 1
 		end
 
 	count: INTEGER
-			-- Actual number of characters making up the string
+			-- Actual number of characters making up the string.
 
 	occurrences (c: CHARACTER_32): INTEGER
-			-- Number of times `c' appears in the string
+			-- <Precursor>
 		local
 			i, nb: INTEGER
 			a: SPECIAL [CHARACTER_32]
@@ -297,14 +306,8 @@ feature -- Measurement
 					Result = 1 + substring (2, count).occurrences (c)
 		end
 
-	index_set: INTEGER_INTERVAL
-			-- Range of acceptable indexes
-		do
-			create Result.make (1, count)
-		ensure then
-			index_set_not_void: Result /= Void
-			index_set_count: Result.count = count
-		end
+	lower: INTEGER = 1
+			-- <Precursor>
 
 feature -- Comparison
 
@@ -350,7 +353,7 @@ feature -- Comparison
 		ensure
 			symmetric: Result implies other.is_case_insensitive_equal (Current)
 			consistent: attached {like Current} other as l_other implies (standard_is_equal (l_other) implies Result)
-			valid_result: as_lower ~ other.as_lower implies Result
+			valid_result: as_lower.same_string (other.as_lower) implies Result
 		end
 
  	same_caseless_characters (other: READABLE_STRING_32; start_pos, end_pos, index_pos: INTEGER): BOOLEAN
@@ -505,7 +508,7 @@ feature -- Status report
 		end
 
 	has (c: CHARACTER_32): BOOLEAN
-			-- Does string include `c'?
+			-- <Precursor>
 		local
 			i, nb: INTEGER
 			l_area: like area
@@ -517,11 +520,11 @@ feature -- Status report
 					l_area := area
 					nb := nb + i
 				until
-					i = nb or else (l_area.item (i) = c)
+					i = nb or else l_area.item (i) = c
 				loop
 					i := i + 1
 				end
-				Result := (i < nb)
+				Result := i < nb
 			end
 		end
 
@@ -605,7 +608,7 @@ feature -- Status report
 		end
 
 	is_boolean: BOOLEAN
-			-- Does `Current' represent a BOOLEAN?
+			-- <Precursor>
 		local
 			nb: INTEGER
 		do
@@ -679,15 +682,14 @@ feature -- Conversion
 feature -- Duplication
 
 	substring (start_index, end_index: INTEGER): like Current
-			-- Copy of substring containing all characters at indices
-			-- between `start_index' and `end_index'
+			-- <Precursor>
 		deferred
 		end
 
 feature -- Output
 
 	out: STRING
-			-- Printable representation
+			-- Printable representation.
 		do
 			create Result.make (count)
 			Result.append (as_string_8)
@@ -699,12 +701,10 @@ feature -- Output
 feature {NONE} -- Implementation
 
 	string_searcher: STRING_32_SEARCHER
-			-- String searcher specialized for READABLE_STRING_32 instances
+			-- String searcher specialized for READABLE_STRING_32 instances.
 		once
 			create Result.make
 		end
-
-feature {NONE} -- Implementation
 
 	str_strict_cmp (this, other: like area; this_index, other_index, n: INTEGER): INTEGER
 			-- Compare `n' characters from `this' starting at `this_index' with
@@ -824,13 +824,14 @@ feature
 	STRING_8_SEARCHER, STRING_32_SEARCHER,
 	HEXADECIMAL_STRING_TO_INTEGER_CONVERTER,
 	STRING_TO_INTEGER_CONVERTOR,
-	STRING_TO_REAL_CONVERTOR} -- Implementation
+	STRING_TO_REAL_CONVERTOR,
+	STRING_32_ITERATION_CURSOR} -- Implementation
 
 	area: SPECIAL [CHARACTER_32]
-			-- Storage for characters
+			-- Storage for characters.
 
 	area_lower: INTEGER
-			-- Minimum index
+			-- Minimum index.
 		do
 		ensure
 			area_lower_non_negative: Result >= 0
@@ -838,7 +839,7 @@ feature
 		end
 
 	area_upper: INTEGER
-			-- Maximum index
+			-- Maximum index.
 		do
 			Result := area_lower + count - 1
 		ensure
@@ -850,7 +851,7 @@ invariant
 	area_not_void: area /= Void
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license:   "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

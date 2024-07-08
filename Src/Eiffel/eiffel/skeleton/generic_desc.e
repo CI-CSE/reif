@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Attribute description of generic type"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,23 +10,31 @@ class GENERIC_DESC
 inherit
 	ATTR_DESC
 		redefine
-			has_formal, instantiation_in, same_as, default_create
+			has_formal,
+			instantiation_in,
+			same_as
 		end
+
+create
+	make
 
 feature {NONE} -- Initialization
 
-	default_create
+	make (a_type_i: like type_i)
 		do
 			internal_flags := {SHARED_LEVEL}.reference_level
+			set_type_i (a_type_i)
+		ensure
+			type_i_set: type_i = a_type_i
 		end
 
 feature -- Access
 
 	type_i: TYPE_A
-		-- Type having some generic parameters	
+			-- Type having some generic parameters.
 
 	sk_value: NATURAL_32
-			-- Sk value
+			-- <Precursor>
 		do
 			Result := {SK_CONST}.sk_ref
 		end
@@ -57,12 +65,10 @@ feature -- Comparisons
 			-- Are `type_i' and `otype' identical?
 		do
 			if type_i = Void then
-				Result := (otype = Void)
-			else
-				if otype /= Void then
-					Result := type_i.same_as (otype) and then
-							  otype.same_as (type_i)
-				end
+				Result := otype = Void
+			elseif otype /= Void then
+				Result := type_i.same_as (otype) and then
+						  otype.same_as (type_i)
 			end
 		end
 
@@ -78,7 +84,6 @@ feature -- Instantiation
 			-- `class_type'.
 		local
 			l_type, l_generic_type: TYPE_A
-			l_exp: EXPANDED_DESC
 			l_has_formal: BOOLEAN
 		do
 				-- Instantiate the type.
@@ -116,8 +121,7 @@ feature -- Instantiation
 				-- just the fact that `skeleton_adapted_in' is just for backward compatibility
 				-- for storable on `type_i' but `cl_type_i' is only used for checking VLEC, not
 				-- for code generation, so using `adapted_in' seems more correct.
-			l_exp ?= Result
-			if l_exp /= Void then
+			if attached {EXPANDED_DESC} Result as l_exp then
 				Result := l_exp.instantiation_in (class_type)
 			end
 
@@ -129,9 +133,9 @@ feature -- Instantiation
 feature -- Code generation
 
 	generate_code (buffer: GENERATION_BUFFER)
-			-- Useless
+			-- Useless.
 		do
-			buffer.put_string ({SK_CONST}.sk_ref_string);
+			buffer.put_string ({SK_CONST}.sk_ref_string)
 		end
 
 feature -- Helper
@@ -142,23 +146,16 @@ feature -- Helper
 		require
 			a_not_void: a /= Void
 			a_type_not_void: a_type /= Void
-		local
-			l_exp: EXPANDED_DESC
-			l_ref: REFERENCE_DESC
 		do
-			l_exp ?= a
-			if l_exp /= Void then
+			if attached {EXPANDED_DESC} a as l_exp then
 				l_exp.set_type_i (a_type)
-			else
-				l_ref ?= a
-				if l_ref /= Void then
-					l_ref.set_type_i (a_type)
-				end
+			elseif attached {REFERENCE_DESC} a as l_ref then
+				l_ref.set_type_i (a_type)
 			end
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

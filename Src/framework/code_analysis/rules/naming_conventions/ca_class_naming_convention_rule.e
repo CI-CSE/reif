@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 					RULE #63: Class naming convention violated
 		
@@ -62,6 +62,9 @@ feature {NONE} -- Rule checking
 		end
 
 feature -- Properties
+
+	name: STRING = "class_name"
+			-- <Precursor>
 
 	title: STRING_32
 			-- <Precursor>

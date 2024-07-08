@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Byte code for routine creation expression"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -10,8 +10,12 @@ class ROUTINE_CREATION_BL
 inherit
 	ROUTINE_CREATION_B
 		redefine
-			analyze, generate,
-			register, set_register, free_register,
+			analyze,
+			free_register,
+			generate,
+			print_checked_target_register,
+			register,
+			set_register,
 			unanalyze
 		end
 
@@ -344,8 +348,16 @@ feature
 			end
 		end
 
+feature {REGISTRABLE} -- C code generation
+
+	print_checked_target_register
+			-- <Precursor>
+		do
+			print_register
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -376,5 +388,5 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class ROUTINE_CREATION_BL
+end
 

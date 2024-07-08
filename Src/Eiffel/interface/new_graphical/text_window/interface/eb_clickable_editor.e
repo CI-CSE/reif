@@ -1,11 +1,10 @@
-note
+﻿note
 	description: "[
 		Editor pick n drop.
 		Uses a tool to make feature text clickable.
 	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -78,8 +77,8 @@ feature {NONE}-- Initialization
 			editor_drawing_area.drop_actions.extend (agent resume_cursor_for_drop)
 				-- Always refuse pick and drop by default if user does not add its own `drop_actions'.
 			editor_drawing_area.drop_actions.set_veto_pebble_function (agent (a: ANY): BOOLEAN do Result := False end)
-			editor_drawing_area.pick_actions.force_extend (agent suspend_cursor_blinking)
-			editor_drawing_area.pick_ended_actions.force_extend (agent resume_cursor_blinking)
+			editor_drawing_area.pick_actions.extend (agent (x, y: INTEGER) do suspend_cursor_blinking end)
+			editor_drawing_area.pick_ended_actions.extend (agent (pnd: EV_ABSTRACT_PICK_AND_DROPABLE) do resume_cursor_blinking end)
 
 				-- Not necessarily use `a_dev_window' to get context menu.
 				-- `a_dev_window' could be void for some uses.
@@ -231,6 +230,8 @@ feature -- Possibly delayed operations
 						else
 							text_displayed.select_line (l_num)
 						end
+					elseif a_col > 0 then
+						text_displayed.set_cursor (l_num, a_col)
 					end
 					if highlight and has_selection then
 						show_selection (False)
@@ -985,7 +986,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -1016,4 +1017,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_CLICKABLE_EDITOR
+end

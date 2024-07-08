@@ -1,4 +1,4 @@
-note
+﻿note
     description: "[
         An EiffelStudio dockable tool window base implementation for EiffelStudio tools.
         
@@ -7,8 +7,8 @@ note
     wiki: "http://dev.eiffel.com/Tool_Integration_Development"
     legal: "See notice at end of class."
     status: "See notice at end of class.";
-    date: "$date$";
-    revision: "$revision$"
+    date: "$Date$";
+    revision: "$Revision$"
 
 deferred class
     ES_DOCKABLE_TOOL_PANEL [G -> EV_WIDGET]
@@ -199,8 +199,6 @@ feature {NONE} -- Clean up
 
     internal_recycle
             -- <Precursor>
-        local
-            l_site: SITE [EB_DEVELOPMENT_WINDOW]
         do
         	check
         			-- Be sure to recycle using the tool descriptor and not the tool panel.
@@ -227,10 +225,9 @@ feature {NONE} -- Clean up
                 internal_right_tool_bar_widget.item.destroy
             end
 
-            l_site ?= internal_user_widget
-            if l_site /= Void then
+            if attached {SITE [EB_DEVELOPMENT_WINDOW]} internal_user_widget as s then
                     -- Invalidated site.
-                l_site.set_site (Void)
+                s.set_site (Void)
             end
 
             Precursor
@@ -305,7 +302,7 @@ feature {NONE} -- Access
             not_result_is_empty: not Result.is_empty
         end
 
-	frozen name: attached STRING
+	frozen name: READABLE_STRING_32
 			-- The tool's associated name, used for modularizing development of a tool.
 		require
 			is_interface_usable: is_interface_usable
@@ -319,7 +316,7 @@ feature {NONE} -- Access
 	frozen session_data: SESSION_I
 			-- Provides access to the environment session data
 		require
-			is_session_manager_available: session_manager.is_service_available
+			is_session_manager_available: attached session_manager.service
 		do
 			Result := session_manager.service.retrieve (False)
 		ensure
@@ -327,10 +324,22 @@ feature {NONE} -- Access
 			result_is_interface_usable: Result.is_interface_usable
 		end
 
+ 	frozen develop_window_session_data: detachable SESSION_I
+			-- Provides access to the hosted window session data
+		do
+			if
+				attached develop_window as w
+			then
+				Result := develop_window.session_data
+			end
+		ensure
+			result_is_interface_usable: Result /= Void implies Result.is_interface_usable
+		end
+
 	frozen window_session_data: SESSION_I
 			-- Provides access to the hosted window session data
 		require
-			is_session_manager_available: session_manager.is_service_available
+			is_session_manager_available: attached session_manager.service
 			develop_window_attached: develop_window /= Void
 		do
 			Result := develop_window.session_data
@@ -342,7 +351,7 @@ feature {NONE} -- Access
 	frozen project_window_session_data: SESSION_I
 			-- Provides access to the environment session data
 		require
-			is_session_manager_available: session_manager.is_service_available
+			is_session_manager_available: attached session_manager.service
 		do
 			Result := session_manager.service.retrieve_per_window (develop_window, True)
 		ensure
@@ -396,7 +405,7 @@ feature {NONE} -- Helpers
 				l_menus_attached: l_menus /= Void
 				l_menus_is_interface_usable: l_menus.is_interface_usable
 			end
-			Result := l_menus.context_menu_factory.as_attached
+			Result := l_menus.context_menu_factory
 		end
 
 feature -- Element change
@@ -658,8 +667,6 @@ feature {NONE} -- User interface elements
             l_help_button: detachable SD_TOOL_BAR_ITEM
             l_multi: BOOLEAN
             l_command: ES_NEW_TOOL_COMMAND
-            l_tools: ES_SHELL_TOOLS
-            l_type: TYPE [ES_TOOL [EB_TOOL]]
         do
             l_cell := internal_mini_tool_bar_widget
             if l_cell = Void then
@@ -701,11 +708,6 @@ feature {NONE} -- User interface elements
 	                end
 	                if l_multi then
 	                        -- Add new edition button
-	                    l_tools := develop_window.shell_tools
-	                    l_type := l_tools.dynamic_tool_type (tool_descriptor.generating_type)
-	                    check
-	                        l_type_attached: l_type /= Void
-	                    end
 	                    create l_command.make (tool_descriptor)
 	                    auto_recycle (l_command)
 	                    Result.extend (l_command.new_mini_sd_toolbar_item)
@@ -1068,7 +1070,7 @@ feature {NONE} -- Factory
 	create_help_button: SD_TOOL_BAR_BUTTON
 			-- Creates a help tool bar button for use in the mini tool bar
 		require
-			is_help_providers_service_available: help_providers.is_service_available
+			is_help_providers_service_available: attached help_providers.service
 		do
 			create Result.make
 			Result.set_pixel_buffer (stock_mini_pixmaps.callstack_send_to_external_editor_icon_buffer)
@@ -1116,7 +1118,7 @@ invariant
     not_is_initialized: is_initializing implies not is_initialized
 
 ;note
-	copyright: "Copyright (c) 1984-2013, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

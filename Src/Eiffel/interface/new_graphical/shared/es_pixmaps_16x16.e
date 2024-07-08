@@ -1,9 +1,11 @@
-note
+﻿note
 	description: "[
 		Automatically generated class for EiffelStudio 16x16 icons.
 	]"
 	generator: "Eiffel Matrix Generator"
-	command_line: "emcgen $EIFFEL_SRC/Delivery/studio/bitmaps/png/16x16.ini -f $EIFFEL_SRC/tools/eiffel_matrix_code_generator/frames/studio.e.frame"
+	command_line: "[
+		emcgen --frame $EIFFEL_SRC/tools/eiffel_matrix_code_generator/frames/studio.e.frame $EIFFEL_SRC/Delivery/studio/bitmaps/png/16x16.ini
+		]"
 	status: "See notice at end of class."
 	legal: "See notice at end of class."
 	date: "$Date$"
@@ -902,6 +904,86 @@ feature -- Icons
 			feature_deferred_assigner_icon_buffer_attached: Result /= Void
 		end
 
+	frozen feature_instance_free_routine_icon: EV_PIXMAP
+			-- Access to 'routine' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_routine_name)
+		once
+			Result := named_icon (feature_instance_free_routine_name)
+		ensure
+			feature_instance_free_routine_icon_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_routine_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'routine' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_routine_name)
+		once
+			Result := named_icon_buffer (feature_instance_free_routine_name)
+		ensure
+			feature_instance_free_routine_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_once_icon: EV_PIXMAP
+			-- Access to 'once' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_once_name)
+		once
+			Result := named_icon (feature_instance_free_once_name)
+		ensure
+			feature_instance_free_once_icon_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_once_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'once' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_once_name)
+		once
+			Result := named_icon_buffer (feature_instance_free_once_name)
+		ensure
+			feature_instance_free_once_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_deferred_icon: EV_PIXMAP
+			-- Access to 'deferred' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_deferred_name)
+		once
+			Result := named_icon (feature_instance_free_deferred_name)
+		ensure
+			feature_instance_free_deferred_icon_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_deferred_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'deferred' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_deferred_name)
+		once
+			Result := named_icon_buffer (feature_instance_free_deferred_name)
+		ensure
+			feature_instance_free_deferred_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_external_icon: EV_PIXMAP
+			-- Access to 'external' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_external_name)
+		once
+			Result := named_icon (feature_instance_free_external_name)
+		ensure
+			feature_instance_free_external_icon_attached: Result /= Void
+		end
+
+	frozen feature_instance_free_external_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'external' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_instance_free_external_name)
+		once
+			Result := named_icon_buffer (feature_instance_free_external_name)
+		ensure
+			feature_instance_free_external_icon_buffer_attached: Result /= Void
+		end
+
 	frozen feature_frozen_routine_icon: EV_PIXMAP
 			-- Access to 'routine' pixmap.
 		require
@@ -1000,6 +1082,106 @@ feature -- Icons
 			Result := named_icon_buffer (feature_frozen_assigner_name)
 		ensure
 			feature_frozen_assigner_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_frozen_instance_free_routine_icon: EV_PIXMAP
+			-- Access to 'routine' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_frozen_instance_free_routine_name)
+		once
+			Result := named_icon (feature_frozen_instance_free_routine_name)
+		ensure
+			feature_frozen_instance_free_routine_icon_attached: Result /= Void
+		end
+
+	frozen feature_frozen_instance_free_routine_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'routine' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_frozen_instance_free_routine_name)
+		once
+			Result := named_icon_buffer (feature_frozen_instance_free_routine_name)
+		ensure
+			feature_frozen_instance_free_routine_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_frozen_instance_free_once_icon: EV_PIXMAP
+			-- Access to 'once' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_frozen_instance_free_once_name)
+		once
+			Result := named_icon (feature_frozen_instance_free_once_name)
+		ensure
+			feature_frozen_instance_free_once_icon_attached: Result /= Void
+		end
+
+	frozen feature_frozen_instance_free_once_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'once' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_frozen_instance_free_once_name)
+		once
+			Result := named_icon_buffer (feature_frozen_instance_free_once_name)
+		ensure
+			feature_frozen_instance_free_once_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_frozen_instance_free_external_icon: EV_PIXMAP
+			-- Access to 'external' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_frozen_instance_free_external_name)
+		once
+			Result := named_icon (feature_frozen_instance_free_external_name)
+		ensure
+			feature_frozen_instance_free_external_icon_attached: Result /= Void
+		end
+
+	frozen feature_frozen_instance_free_external_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'external' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_frozen_instance_free_external_name)
+		once
+			Result := named_icon_buffer (feature_frozen_instance_free_external_name)
+		ensure
+			feature_frozen_instance_free_external_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_constant_icon: EV_PIXMAP
+			-- Access to 'constant' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_constant_name)
+		once
+			Result := named_icon (feature_constant_name)
+		ensure
+			feature_constant_icon_attached: Result /= Void
+		end
+
+	frozen feature_constant_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'constant' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_constant_name)
+		once
+			Result := named_icon_buffer (feature_constant_name)
+		ensure
+			feature_constant_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_constant_icon: EV_PIXMAP
+			-- Access to 'obsolete constant' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_constant_name)
+		once
+			Result := named_icon (feature_obsolete_constant_name)
+		ensure
+			feature_obsolete_constant_icon_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_constant_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'obsolete constant' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_constant_name)
+		once
+			Result := named_icon_buffer (feature_obsolete_constant_name)
+		ensure
+			feature_obsolete_constant_icon_buffer_attached: Result /= Void
 		end
 
 	frozen feature_obsolete_routine_icon: EV_PIXMAP
@@ -1140,6 +1322,86 @@ feature -- Icons
 			Result := named_icon_buffer (feature_obsolete_deferred_assigner_name)
 		ensure
 			feature_obsolete_deferred_assigner_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_routine_icon: EV_PIXMAP
+			-- Access to 'routine' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_routine_name)
+		once
+			Result := named_icon (feature_obsolete_instance_free_routine_name)
+		ensure
+			feature_obsolete_instance_free_routine_icon_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_routine_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'routine' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_routine_name)
+		once
+			Result := named_icon_buffer (feature_obsolete_instance_free_routine_name)
+		ensure
+			feature_obsolete_instance_free_routine_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_once_icon: EV_PIXMAP
+			-- Access to 'once' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_once_name)
+		once
+			Result := named_icon (feature_obsolete_instance_free_once_name)
+		ensure
+			feature_obsolete_instance_free_once_icon_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_once_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'once' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_once_name)
+		once
+			Result := named_icon_buffer (feature_obsolete_instance_free_once_name)
+		ensure
+			feature_obsolete_instance_free_once_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_deferred_icon: EV_PIXMAP
+			-- Access to 'deferred' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_deferred_name)
+		once
+			Result := named_icon (feature_obsolete_instance_free_deferred_name)
+		ensure
+			feature_obsolete_instance_free_deferred_icon_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_deferred_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'deferred' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_deferred_name)
+		once
+			Result := named_icon_buffer (feature_obsolete_instance_free_deferred_name)
+		ensure
+			feature_obsolete_instance_free_deferred_icon_buffer_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_external_icon: EV_PIXMAP
+			-- Access to 'external' pixmap.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_external_name)
+		once
+			Result := named_icon (feature_obsolete_instance_free_external_name)
+		ensure
+			feature_obsolete_instance_free_external_icon_attached: Result /= Void
+		end
+
+	frozen feature_obsolete_instance_free_external_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'external' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (feature_obsolete_instance_free_external_name)
+		once
+			Result := named_icon_buffer (feature_obsolete_instance_free_external_name)
+		ensure
+			feature_obsolete_instance_free_external_icon_buffer_attached: Result /= Void
 		end
 
 	frozen feature_local_variable_icon: EV_PIXMAP
@@ -1300,6 +1562,26 @@ feature -- Icons
 			Result := named_icon_buffer (top_level_folder_targets_name)
 		ensure
 			top_level_folder_targets_icon_buffer_attached: Result /= Void
+		end
+
+	frozen top_level_folder_remote_targets_icon: EV_PIXMAP
+			-- Access to 'remote_targets' pixmap.
+		require
+			has_named_icon: has_named_icon (top_level_folder_remote_targets_name)
+		once
+			Result := named_icon (top_level_folder_remote_targets_name)
+		ensure
+			top_level_folder_remote_targets_icon_attached: Result /= Void
+		end
+
+	frozen top_level_folder_remote_targets_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'remote_targets' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (top_level_folder_remote_targets_name)
+		once
+			Result := named_icon_buffer (top_level_folder_remote_targets_name)
+		ensure
+			top_level_folder_remote_targets_icon_buffer_attached: Result /= Void
 		end
 
 	frozen folder_features_all_icon: EV_PIXMAP
@@ -2440,6 +2722,346 @@ feature -- Icons
 			Result := named_icon_buffer (tool_terminal_name)
 		ensure
 			tool_terminal_icon_buffer_attached: Result /= Void
+		end
+
+	frozen library_iron_package_icon: EV_PIXMAP
+			-- Access to 'iron package' pixmap.
+		require
+			has_named_icon: has_named_icon (library_iron_package_name)
+		once
+			Result := named_icon (library_iron_package_name)
+		ensure
+			library_iron_package_icon_attached: Result /= Void
+		end
+
+	frozen library_iron_package_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'iron package' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (library_iron_package_name)
+		once
+			Result := named_icon_buffer (library_iron_package_name)
+		ensure
+			library_iron_package_icon_buffer_attached: Result /= Void
+		end
+
+	frozen library_iron_library_icon: EV_PIXMAP
+			-- Access to 'iron library' pixmap.
+		require
+			has_named_icon: has_named_icon (library_iron_library_name)
+		once
+			Result := named_icon (library_iron_library_name)
+		ensure
+			library_iron_library_icon_attached: Result /= Void
+		end
+
+	frozen library_iron_library_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'iron library' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (library_iron_library_name)
+		once
+			Result := named_icon_buffer (library_iron_library_name)
+		ensure
+			library_iron_library_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_icon: EV_PIXMAP
+			-- Access to 'analyze' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_name)
+		once
+			Result := named_icon (analyzer_analyze_name)
+		ensure
+			analyzer_analyze_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'analyze' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_name)
+		once
+			Result := named_icon_buffer (analyzer_analyze_name)
+		ensure
+			analyzer_analyze_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_class_icon: EV_PIXMAP
+			-- Access to 'analyze class' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_class_name)
+		once
+			Result := named_icon (analyzer_analyze_class_name)
+		ensure
+			analyzer_analyze_class_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_class_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'analyze class' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_class_name)
+		once
+			Result := named_icon_buffer (analyzer_analyze_class_name)
+		ensure
+			analyzer_analyze_class_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_editor_icon: EV_PIXMAP
+			-- Access to 'analyze editor' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_editor_name)
+		once
+			Result := named_icon (analyzer_analyze_editor_name)
+		ensure
+			analyzer_analyze_editor_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_editor_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'analyze editor' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_editor_name)
+		once
+			Result := named_icon_buffer (analyzer_analyze_editor_name)
+		ensure
+			analyzer_analyze_editor_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_cluster_icon: EV_PIXMAP
+			-- Access to 'analyze cluster' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_cluster_name)
+		once
+			Result := named_icon (analyzer_analyze_cluster_name)
+		ensure
+			analyzer_analyze_cluster_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_cluster_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'analyze cluster' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_cluster_name)
+		once
+			Result := named_icon_buffer (analyzer_analyze_cluster_name)
+		ensure
+			analyzer_analyze_cluster_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_target_icon: EV_PIXMAP
+			-- Access to 'analyze target' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_target_name)
+		once
+			Result := named_icon (analyzer_analyze_target_name)
+		ensure
+			analyzer_analyze_target_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_target_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'analyze target' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_target_name)
+		once
+			Result := named_icon_buffer (analyzer_analyze_target_name)
+		ensure
+			analyzer_analyze_target_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_refresh_icon: EV_PIXMAP
+			-- Access to 'analyze refresh' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_refresh_name)
+		once
+			Result := named_icon (analyzer_analyze_refresh_name)
+		ensure
+			analyzer_analyze_refresh_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_analyze_refresh_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'analyze refresh' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_analyze_refresh_name)
+		once
+			Result := named_icon_buffer (analyzer_analyze_refresh_name)
+		ensure
+			analyzer_analyze_refresh_icon_buffer_attached: Result /= Void
+		end
+
+	frozen analyzer_preferences_icon: EV_PIXMAP
+			-- Access to 'preferences' pixmap.
+		require
+			has_named_icon: has_named_icon (analyzer_preferences_name)
+		once
+			Result := named_icon (analyzer_preferences_name)
+		ensure
+			analyzer_preferences_icon_attached: Result /= Void
+		end
+
+	frozen analyzer_preferences_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'preferences' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (analyzer_preferences_name)
+		once
+			Result := named_icon_buffer (analyzer_preferences_name)
+		ensure
+			analyzer_preferences_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_icon: EV_PIXMAP
+			-- Access to 'verify' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_name)
+		once
+			Result := named_icon (verifier_verify_name)
+		ensure
+			verifier_verify_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_name)
+		once
+			Result := named_icon_buffer (verifier_verify_name)
+		ensure
+			verifier_verify_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_feature_icon: EV_PIXMAP
+			-- Access to 'verify feature' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_feature_name)
+		once
+			Result := named_icon (verifier_verify_feature_name)
+		ensure
+			verifier_verify_feature_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_feature_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify feature' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_feature_name)
+		once
+			Result := named_icon_buffer (verifier_verify_feature_name)
+		ensure
+			verifier_verify_feature_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_class_icon: EV_PIXMAP
+			-- Access to 'verify class' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_class_name)
+		once
+			Result := named_icon (verifier_verify_class_name)
+		ensure
+			verifier_verify_class_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_class_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify class' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_class_name)
+		once
+			Result := named_icon_buffer (verifier_verify_class_name)
+		ensure
+			verifier_verify_class_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_editor_icon: EV_PIXMAP
+			-- Access to 'verify editor' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_editor_name)
+		once
+			Result := named_icon (verifier_verify_editor_name)
+		ensure
+			verifier_verify_editor_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_editor_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify editor' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_editor_name)
+		once
+			Result := named_icon_buffer (verifier_verify_editor_name)
+		ensure
+			verifier_verify_editor_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_cluster_icon: EV_PIXMAP
+			-- Access to 'verify cluster' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_cluster_name)
+		once
+			Result := named_icon (verifier_verify_cluster_name)
+		ensure
+			verifier_verify_cluster_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_cluster_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify cluster' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_cluster_name)
+		once
+			Result := named_icon_buffer (verifier_verify_cluster_name)
+		ensure
+			verifier_verify_cluster_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_target_icon: EV_PIXMAP
+			-- Access to 'verify target' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_target_name)
+		once
+			Result := named_icon (verifier_verify_target_name)
+		ensure
+			verifier_verify_target_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_target_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify target' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_target_name)
+		once
+			Result := named_icon_buffer (verifier_verify_target_name)
+		ensure
+			verifier_verify_target_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_verify_refresh_icon: EV_PIXMAP
+			-- Access to 'verify refresh' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_verify_refresh_name)
+		once
+			Result := named_icon (verifier_verify_refresh_name)
+		ensure
+			verifier_verify_refresh_icon_attached: Result /= Void
+		end
+
+	frozen verifier_verify_refresh_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'verify refresh' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_verify_refresh_name)
+		once
+			Result := named_icon_buffer (verifier_verify_refresh_name)
+		ensure
+			verifier_verify_refresh_icon_buffer_attached: Result /= Void
+		end
+
+	frozen verifier_preferences_icon: EV_PIXMAP
+			-- Access to 'preferences' pixmap.
+		require
+			has_named_icon: has_named_icon (verifier_preferences_name)
+		once
+			Result := named_icon (verifier_preferences_name)
+		ensure
+			verifier_preferences_icon_attached: Result /= Void
+		end
+
+	frozen verifier_preferences_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'preferences' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (verifier_preferences_name)
+		once
+			Result := named_icon_buffer (verifier_preferences_name)
+		ensure
+			verifier_preferences_icon_buffer_attached: Result /= Void
 		end
 
 	frozen project_melt_icon: EV_PIXMAP
@@ -5422,6 +6044,26 @@ feature -- Icons
 			new_target_icon_buffer_attached: Result /= Void
 		end
 
+	frozen new_remote_target_icon: EV_PIXMAP
+			-- Access to 'remote_target' pixmap.
+		require
+			has_named_icon: has_named_icon (new_remote_target_name)
+		once
+			Result := named_icon (new_remote_target_name)
+		ensure
+			new_remote_target_icon_attached: Result /= Void
+		end
+
+	frozen new_remote_target_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'remote_target' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (new_remote_target_name)
+		once
+			Result := named_icon_buffer (new_remote_target_name)
+		ensure
+			new_remote_target_icon_buffer_attached: Result /= Void
+		end
+
 	frozen new_cflag_icon: EV_PIXMAP
 			-- Access to 'cflag' pixmap.
 		require
@@ -5900,6 +6542,26 @@ feature -- Icons
 			Result := named_icon_buffer (class_features_exported_name)
 		ensure
 			class_features_exported_icon_buffer_attached: Result /= Void
+		end
+
+	frozen class_features_instance_free_routine_icon: EV_PIXMAP
+			-- Access to 'instance_free routine' pixmap.
+		require
+			has_named_icon: has_named_icon (class_features_instance_free_routine_name)
+		once
+			Result := named_icon (class_features_instance_free_routine_name)
+		ensure
+			class_features_instance_free_routine_icon_attached: Result /= Void
+		end
+
+	frozen class_features_instance_free_routine_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'instance_free routine' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (class_features_instance_free_routine_name)
+		once
+			Result := named_icon_buffer (class_features_instance_free_routine_name)
+		ensure
+			class_features_instance_free_routine_icon_buffer_attached: Result /= Void
 		end
 
 	frozen metric_basic_icon: EV_PIXMAP
@@ -7222,6 +7884,26 @@ feature -- Icons
 			preference_shortcut_icon_buffer_attached: Result /= Void
 		end
 
+	frozen preference_option_icon: EV_PIXMAP
+			-- Access to 'option' pixmap.
+		require
+			has_named_icon: has_named_icon (preference_option_name)
+		once
+			Result := named_icon (preference_option_name)
+		ensure
+			preference_option_icon_attached: Result /= Void
+		end
+
+	frozen preference_option_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'option' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (preference_option_name)
+		once
+			Result := named_icon_buffer (preference_option_name)
+		ensure
+			preference_option_icon_buffer_attached: Result /= Void
+		end
+
 	frozen document_eiffel_project_icon: EV_PIXMAP
 			-- Access to 'eiffel project' pixmap.
 		require
@@ -7982,6 +8664,46 @@ feature -- Icons
 			project_settings_linker_flag_icon_buffer_attached: Result /= Void
 		end
 
+	frozen project_settings_default_highlighted_icon: EV_PIXMAP
+			-- Access to 'default highlighted' pixmap.
+		require
+			has_named_icon: has_named_icon (project_settings_default_highlighted_name)
+		once
+			Result := named_icon (project_settings_default_highlighted_name)
+		ensure
+			project_settings_default_highlighted_icon_attached: Result /= Void
+		end
+
+	frozen project_settings_default_highlighted_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'default highlighted' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (project_settings_default_highlighted_name)
+		once
+			Result := named_icon_buffer (project_settings_default_highlighted_name)
+		ensure
+			project_settings_default_highlighted_icon_buffer_attached: Result /= Void
+		end
+
+	frozen project_settings_default_icon: EV_PIXMAP
+			-- Access to 'default' pixmap.
+		require
+			has_named_icon: has_named_icon (project_settings_default_name)
+		once
+			Result := named_icon (project_settings_default_name)
+		ensure
+			project_settings_default_icon_attached: Result /= Void
+		end
+
+	frozen project_settings_default_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'default' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (project_settings_default_name)
+		once
+			Result := named_icon_buffer (project_settings_default_name)
+		ensure
+			project_settings_default_icon_buffer_attached: Result /= Void
+		end
+
 	frozen overlay_locked_icon: EV_PIXMAP
 			-- Access to 'locked' pixmap.
 		require
@@ -8100,6 +8822,386 @@ feature -- Icons
 			Result := named_icon_buffer (overlay_new_name)
 		ensure
 			overlay_new_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_flag_icon: EV_PIXMAP
+			-- Access to 'flag' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_flag_name)
+		once
+			Result := named_icon (overlay_flag_name)
+		ensure
+			overlay_flag_icon_attached: Result /= Void
+		end
+
+	frozen overlay_flag_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'flag' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_flag_name)
+		once
+			Result := named_icon_buffer (overlay_flag_name)
+		ensure
+			overlay_flag_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_information_icon: EV_PIXMAP
+			-- Access to 'information' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_information_name)
+		once
+			Result := named_icon (overlay_information_name)
+		ensure
+			overlay_information_icon_attached: Result /= Void
+		end
+
+	frozen overlay_information_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'information' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_information_name)
+		once
+			Result := named_icon_buffer (overlay_information_name)
+		ensure
+			overlay_information_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_edit_icon: EV_PIXMAP
+			-- Access to 'edit' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_edit_name)
+		once
+			Result := named_icon (overlay_edit_name)
+		ensure
+			overlay_edit_icon_attached: Result /= Void
+		end
+
+	frozen overlay_edit_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'edit' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_edit_name)
+		once
+			Result := named_icon_buffer (overlay_edit_name)
+		ensure
+			overlay_edit_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_class_icon: EV_PIXMAP
+			-- Access to 'class' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_class_name)
+		once
+			Result := named_icon (overlay_class_name)
+		ensure
+			overlay_class_icon_attached: Result /= Void
+		end
+
+	frozen overlay_class_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'class' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_class_name)
+		once
+			Result := named_icon_buffer (overlay_class_name)
+		ensure
+			overlay_class_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_cluster_icon: EV_PIXMAP
+			-- Access to 'cluster' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_cluster_name)
+		once
+			Result := named_icon (overlay_cluster_name)
+		ensure
+			overlay_cluster_icon_attached: Result /= Void
+		end
+
+	frozen overlay_cluster_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'cluster' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_cluster_name)
+		once
+			Result := named_icon_buffer (overlay_cluster_name)
+		ensure
+			overlay_cluster_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_target_icon: EV_PIXMAP
+			-- Access to 'target' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_target_name)
+		once
+			Result := named_icon (overlay_target_name)
+		ensure
+			overlay_target_icon_attached: Result /= Void
+		end
+
+	frozen overlay_target_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'target' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_target_name)
+		once
+			Result := named_icon_buffer (overlay_target_name)
+		ensure
+			overlay_target_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_library_icon: EV_PIXMAP
+			-- Access to 'library' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_library_name)
+		once
+			Result := named_icon (overlay_library_name)
+		ensure
+			overlay_library_icon_attached: Result /= Void
+		end
+
+	frozen overlay_library_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'library' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_library_name)
+		once
+			Result := named_icon_buffer (overlay_library_name)
+		ensure
+			overlay_library_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_clusters_icon: EV_PIXMAP
+			-- Access to 'clusters' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_clusters_name)
+		once
+			Result := named_icon (overlay_clusters_name)
+		ensure
+			overlay_clusters_icon_attached: Result /= Void
+		end
+
+	frozen overlay_clusters_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'clusters' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_clusters_name)
+		once
+			Result := named_icon_buffer (overlay_clusters_name)
+		ensure
+			overlay_clusters_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_editor_icon: EV_PIXMAP
+			-- Access to 'editor' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_editor_name)
+		once
+			Result := named_icon (overlay_editor_name)
+		ensure
+			overlay_editor_icon_attached: Result /= Void
+		end
+
+	frozen overlay_editor_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'editor' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_editor_name)
+		once
+			Result := named_icon_buffer (overlay_editor_name)
+		ensure
+			overlay_editor_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_refresh_icon: EV_PIXMAP
+			-- Access to 'refresh' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_refresh_name)
+		once
+			Result := named_icon (overlay_refresh_name)
+		ensure
+			overlay_refresh_icon_attached: Result /= Void
+		end
+
+	frozen overlay_refresh_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'refresh' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_refresh_name)
+		once
+			Result := named_icon_buffer (overlay_refresh_name)
+		ensure
+			overlay_refresh_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_class_left_icon: EV_PIXMAP
+			-- Access to 'class left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_class_left_name)
+		once
+			Result := named_icon (overlay_class_left_name)
+		ensure
+			overlay_class_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_class_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'class left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_class_left_name)
+		once
+			Result := named_icon_buffer (overlay_class_left_name)
+		ensure
+			overlay_class_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_cluster_left_icon: EV_PIXMAP
+			-- Access to 'cluster left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_cluster_left_name)
+		once
+			Result := named_icon (overlay_cluster_left_name)
+		ensure
+			overlay_cluster_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_cluster_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'cluster left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_cluster_left_name)
+		once
+			Result := named_icon_buffer (overlay_cluster_left_name)
+		ensure
+			overlay_cluster_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_target_left_icon: EV_PIXMAP
+			-- Access to 'target left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_target_left_name)
+		once
+			Result := named_icon (overlay_target_left_name)
+		ensure
+			overlay_target_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_target_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'target left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_target_left_name)
+		once
+			Result := named_icon_buffer (overlay_target_left_name)
+		ensure
+			overlay_target_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_library_left_icon: EV_PIXMAP
+			-- Access to 'library left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_library_left_name)
+		once
+			Result := named_icon (overlay_library_left_name)
+		ensure
+			overlay_library_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_library_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'library left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_library_left_name)
+		once
+			Result := named_icon_buffer (overlay_library_left_name)
+		ensure
+			overlay_library_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_clusters_left_icon: EV_PIXMAP
+			-- Access to 'clusters left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_clusters_left_name)
+		once
+			Result := named_icon (overlay_clusters_left_name)
+		ensure
+			overlay_clusters_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_clusters_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'clusters left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_clusters_left_name)
+		once
+			Result := named_icon_buffer (overlay_clusters_left_name)
+		ensure
+			overlay_clusters_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_editor_left_icon: EV_PIXMAP
+			-- Access to 'editor left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_editor_left_name)
+		once
+			Result := named_icon (overlay_editor_left_name)
+		ensure
+			overlay_editor_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_editor_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'editor left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_editor_left_name)
+		once
+			Result := named_icon_buffer (overlay_editor_left_name)
+		ensure
+			overlay_editor_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_refresh_left_icon: EV_PIXMAP
+			-- Access to 'refresh left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_refresh_left_name)
+		once
+			Result := named_icon (overlay_refresh_left_name)
+		ensure
+			overlay_refresh_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_refresh_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'refresh left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_refresh_left_name)
+		once
+			Result := named_icon_buffer (overlay_refresh_left_name)
+		ensure
+			overlay_refresh_left_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_instance_free_icon: EV_PIXMAP
+			-- Access to 'instance free' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_instance_free_name)
+		once
+			Result := named_icon (overlay_instance_free_name)
+		ensure
+			overlay_instance_free_icon_attached: Result /= Void
+		end
+
+	frozen overlay_instance_free_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'instance free' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_instance_free_name)
+		once
+			Result := named_icon_buffer (overlay_instance_free_name)
+		ensure
+			overlay_instance_free_icon_buffer_attached: Result /= Void
+		end
+
+	frozen overlay_feature_left_icon: EV_PIXMAP
+			-- Access to 'feature left' pixmap.
+		require
+			has_named_icon: has_named_icon (overlay_feature_left_name)
+		once
+			Result := named_icon (overlay_feature_left_name)
+		ensure
+			overlay_feature_left_icon_attached: Result /= Void
+		end
+
+	frozen overlay_feature_left_icon_buffer: EV_PIXEL_BUFFER
+			-- Access to 'feature left' pixmap pixel buffer.
+		require
+			has_named_icon: has_named_icon (overlay_feature_left_name)
+		once
+			Result := named_icon_buffer (overlay_feature_left_name)
+		ensure
+			overlay_feature_left_icon_buffer_attached: Result /= Void
 		end
 
 	frozen errors_and_warnings_next_error_icon: EV_PIXMAP
@@ -8647,15 +9749,16 @@ feature -- Icons: Animations
 	frozen compile_animation_anim: ARRAY [EV_PIXMAP]
 			-- Access to 'compile_animation' pixmap animation items.
 		once
-			create Result.make (1, 8)
-				Result.put (named_icon (compile_animation_1_name), 1)
-			Result.put (named_icon (compile_animation_2_name), 2)
-			Result.put (named_icon (compile_animation_3_name), 3)
-			Result.put (named_icon (compile_animation_4_name), 4)
-			Result.put (named_icon (compile_animation_5_name), 5)
-			Result.put (named_icon (compile_animation_6_name), 6)
-			Result.put (named_icon (compile_animation_7_name), 7)
-			Result.put (named_icon (compile_animation_8_name), 8)
+			Result := <<
+				named_icon (compile_animation_1_name),
+				named_icon (compile_animation_2_name),
+				named_icon (compile_animation_3_name),
+				named_icon (compile_animation_4_name),
+				named_icon (compile_animation_5_name),
+				named_icon (compile_animation_6_name),
+				named_icon (compile_animation_7_name),
+				named_icon (compile_animation_8_name)
+			>>
 		ensure
 			compile_animation_anim_attached: Result /= Void
 		end
@@ -8663,15 +9766,16 @@ feature -- Icons: Animations
 	frozen compile_animation_buffer_anim: ARRAY [EV_PIXEL_BUFFER]
 			-- Access to 'compile_animation' pixel buffer animation items.
 		once
-			create Result.make (1, 8)
-				Result.put (named_icon_buffer (compile_animation_1_name), 1)
-			Result.put (named_icon_buffer (compile_animation_2_name), 2)
-			Result.put (named_icon_buffer (compile_animation_3_name), 3)
-			Result.put (named_icon_buffer (compile_animation_4_name), 4)
-			Result.put (named_icon_buffer (compile_animation_5_name), 5)
-			Result.put (named_icon_buffer (compile_animation_6_name), 6)
-			Result.put (named_icon_buffer (compile_animation_7_name), 7)
-			Result.put (named_icon_buffer (compile_animation_8_name), 8)
+			Result := <<
+				named_icon_buffer (compile_animation_1_name),
+				named_icon_buffer (compile_animation_2_name),
+				named_icon_buffer (compile_animation_3_name),
+				named_icon_buffer (compile_animation_4_name),
+				named_icon_buffer (compile_animation_5_name),
+				named_icon_buffer (compile_animation_6_name),
+				named_icon_buffer (compile_animation_7_name),
+				named_icon_buffer (compile_animation_8_name)
+			>>
 		ensure
 			compile_animation_buffer_anim_attached: Result /= Void
 		end
@@ -8679,12 +9783,13 @@ feature -- Icons: Animations
 	frozen run_animation_anim: ARRAY [EV_PIXMAP]
 			-- Access to 'run_animation' pixmap animation items.
 		once
-			create Result.make (1, 5)
-				Result.put (named_icon (run_animation_1_name), 1)
-			Result.put (named_icon (run_animation_2_name), 2)
-			Result.put (named_icon (run_animation_3_name), 3)
-			Result.put (named_icon (run_animation_4_name), 4)
-			Result.put (named_icon (run_animation_5_name), 5)
+			Result := <<
+				named_icon (run_animation_1_name),
+				named_icon (run_animation_2_name),
+				named_icon (run_animation_3_name),
+				named_icon (run_animation_4_name),
+				named_icon (run_animation_5_name)
+			>>
 		ensure
 			run_animation_anim_attached: Result /= Void
 		end
@@ -8692,12 +9797,13 @@ feature -- Icons: Animations
 	frozen run_animation_buffer_anim: ARRAY [EV_PIXEL_BUFFER]
 			-- Access to 'run_animation' pixel buffer animation items.
 		once
-			create Result.make (1, 5)
-				Result.put (named_icon_buffer (run_animation_1_name), 1)
-			Result.put (named_icon_buffer (run_animation_2_name), 2)
-			Result.put (named_icon_buffer (run_animation_3_name), 3)
-			Result.put (named_icon_buffer (run_animation_4_name), 4)
-			Result.put (named_icon_buffer (run_animation_5_name), 5)
+			Result := <<
+				named_icon_buffer (run_animation_1_name),
+				named_icon_buffer (run_animation_2_name),
+				named_icon_buffer (run_animation_3_name),
+				named_icon_buffer (run_animation_4_name),
+				named_icon_buffer (run_animation_5_name)
+			>>
 		ensure
 			run_animation_buffer_anim_attached: Result /= Void
 		end
@@ -8747,11 +9853,20 @@ feature -- Constants: Icon names
 	feature_external_name: STRING = "feature external"
 	feature_assigner_name: STRING = "feature assigner"
 	feature_deferred_assigner_name: STRING = "feature deferred assigner"
+	feature_instance_free_routine_name: STRING = "feature instance_free routine"
+	feature_instance_free_once_name: STRING = "feature instance_free once"
+	feature_instance_free_deferred_name: STRING = "feature instance_free deferred"
+	feature_instance_free_external_name: STRING = "feature instance_free external"
 	feature_frozen_routine_name: STRING = "feature frozen routine"
 	feature_frozen_attribute_name: STRING = "feature frozen attribute"
 	feature_frozen_once_name: STRING = "feature frozen once"
 	feature_frozen_external_name: STRING = "feature frozen external"
 	feature_frozen_assigner_name: STRING = "feature frozen assigner"
+	feature_frozen_instance_free_routine_name: STRING = "feature frozen instance_free routine"
+	feature_frozen_instance_free_once_name: STRING = "feature frozen instance_free once"
+	feature_frozen_instance_free_external_name: STRING = "feature frozen instance_free external"
+	feature_constant_name: STRING = "feature constant"
+	feature_obsolete_constant_name: STRING = "feature obsolete constant"
 	feature_obsolete_routine_name: STRING = "feature obsolete routine"
 	feature_obsolete_attribute_name: STRING = "feature obsolete attribute"
 	feature_obsolete_once_name: STRING = "feature obsolete once"
@@ -8759,6 +9874,10 @@ feature -- Constants: Icon names
 	feature_obsolete_external_name: STRING = "feature obsolete external"
 	feature_obsolete_assigner_name: STRING = "feature obsolete assigner"
 	feature_obsolete_deferred_assigner_name: STRING = "feature obsolete deferred assigner"
+	feature_obsolete_instance_free_routine_name: STRING = "feature obsolete instance_free routine"
+	feature_obsolete_instance_free_once_name: STRING = "feature obsolete instance_free once"
+	feature_obsolete_instance_free_deferred_name: STRING = "feature obsolete instance_free deferred"
+	feature_obsolete_instance_free_external_name: STRING = "feature obsolete instance_free external"
 	feature_local_variable_name: STRING = "feature local variable"
 	feature_group_name: STRING = "feature group"
 	top_level_folder_clusters_name: STRING = "top level folder clusters"
@@ -8767,6 +9886,7 @@ feature -- Constants: Icon names
 	top_level_folder_precompiles_name: STRING = "top level folder precompiles"
 	top_level_folder_references_name: STRING = "top level folder references"
 	top_level_folder_targets_name: STRING = "top level folder targets"
+	top_level_folder_remote_targets_name: STRING = "top level folder remote_targets"
 	folder_features_all_name: STRING = "folder features all"
 	folder_features_some_name: STRING = "folder features some"
 	folder_features_none_name: STRING = "folder features none"
@@ -8824,6 +9944,23 @@ feature -- Constants: Icon names
 	tool_errors_list_with_warnings_name: STRING = "tool errors list with warnings"
 	tool_contract_editor_name: STRING = "tool contract editor"
 	tool_terminal_name: STRING = "tool terminal"
+	library_iron_package_name: STRING = "library iron package"
+	library_iron_library_name: STRING = "library iron library"
+	analyzer_analyze_name: STRING = "analyzer analyze"
+	analyzer_analyze_class_name: STRING = "analyzer analyze class"
+	analyzer_analyze_editor_name: STRING = "analyzer analyze editor"
+	analyzer_analyze_cluster_name: STRING = "analyzer analyze cluster"
+	analyzer_analyze_target_name: STRING = "analyzer analyze target"
+	analyzer_analyze_refresh_name: STRING = "analyzer analyze refresh"
+	analyzer_preferences_name: STRING = "analyzer preferences"
+	verifier_verify_name: STRING = "verifier verify"
+	verifier_verify_feature_name: STRING = "verifier verify feature"
+	verifier_verify_class_name: STRING = "verifier verify class"
+	verifier_verify_editor_name: STRING = "verifier verify editor"
+	verifier_verify_cluster_name: STRING = "verifier verify cluster"
+	verifier_verify_target_name: STRING = "verifier verify target"
+	verifier_verify_refresh_name: STRING = "verifier verify refresh"
+	verifier_preferences_name: STRING = "verifier preferences"
 	project_melt_name: STRING = "project melt"
 	project_quick_melt_name: STRING = "project quick melt"
 	project_freeze_name: STRING = "project freeze"
@@ -8973,6 +10110,7 @@ feature -- Constants: Icon names
 	new_pre_compilation_task_name: STRING = "new pre compilation task"
 	new_post_compilation_task_name: STRING = "new post compilation task"
 	new_target_name: STRING = "new target"
+	new_remote_target_name: STRING = "new remote_target"
 	new_cflag_name: STRING = "new cflag"
 	new_linker_flag_name: STRING = "new linker flag"
 	feature_callers_name: STRING = "feature callers"
@@ -8997,6 +10135,7 @@ feature -- Constants: Icon names
 	class_features_once_name: STRING = "class features once"
 	class_features_external_name: STRING = "class features external"
 	class_features_exported_name: STRING = "class features exported"
+	class_features_instance_free_routine_name: STRING = "class features instance_free routine"
 	metric_basic_name: STRING = "metric basic"
 	metric_linear_name: STRING = "metric linear"
 	metric_ratio_name: STRING = "metric ratio"
@@ -9063,6 +10202,7 @@ feature -- Constants: Icon names
 	preference_numerical_name: STRING = "preference numerical"
 	preference_font_name: STRING = "preference font"
 	preference_shortcut_name: STRING = "preference shortcut"
+	preference_option_name: STRING = "preference option"
 	document_eiffel_project_name: STRING = "document eiffel project"
 	document_eiffel_project_compiled_name: STRING = "document eiffel project compiled"
 	document_blank_name: STRING = "document blank"
@@ -9101,12 +10241,33 @@ feature -- Constants: Icon names
 	project_settings_task_name: STRING = "project settings task"
 	project_settings_cflag_name: STRING = "project settings cflag"
 	project_settings_linker_flag_name: STRING = "project settings linker flag"
+	project_settings_default_highlighted_name: STRING = "project settings default highlighted"
+	project_settings_default_name: STRING = "project settings default"
 	overlay_locked_name: STRING = "overlay locked"
 	overlay_error_name: STRING = "overlay error"
 	overlay_warning_name: STRING = "overlay warning"
 	overlay_packaged_name: STRING = "overlay packaged"
 	overlay_search_name: STRING = "overlay search"
 	overlay_new_name: STRING = "overlay new"
+	overlay_flag_name: STRING = "overlay flag"
+	overlay_information_name: STRING = "overlay information"
+	overlay_edit_name: STRING = "overlay edit"
+	overlay_class_name: STRING = "overlay class"
+	overlay_cluster_name: STRING = "overlay cluster"
+	overlay_target_name: STRING = "overlay target"
+	overlay_library_name: STRING = "overlay library"
+	overlay_clusters_name: STRING = "overlay clusters"
+	overlay_editor_name: STRING = "overlay editor"
+	overlay_refresh_name: STRING = "overlay refresh"
+	overlay_class_left_name: STRING = "overlay class left"
+	overlay_cluster_left_name: STRING = "overlay cluster left"
+	overlay_target_left_name: STRING = "overlay target left"
+	overlay_library_left_name: STRING = "overlay library left"
+	overlay_clusters_left_name: STRING = "overlay clusters left"
+	overlay_editor_left_name: STRING = "overlay editor left"
+	overlay_refresh_left_name: STRING = "overlay refresh left"
+	overlay_instance_free_name: STRING = "overlay instance free"
+	overlay_feature_left_name: STRING = "overlay feature left"
 	errors_and_warnings_next_error_name: STRING = "errors and warnings next error"
 	errors_and_warnings_previous_error_name: STRING = "errors and warnings previous error"
 	errors_and_warnings_next_warning_name: STRING = "errors and warnings next warning"
@@ -9137,7 +10298,7 @@ feature -- Constants: Icon names
 
 feature {NONE} -- Basic operations
 
-	populate_coordinates_table (a_table: HASH_TABLE [TUPLE [x: NATURAL_8; y: NATURAL_8], STRING])
+	populate_coordinates_table (a_table: STRING_TABLE [TUPLE [x: NATURAL_8; y: NATURAL_8]])
 			-- <Precursor>
 		do
 			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 1], expanded_normal_name)
@@ -9183,375 +10344,430 @@ feature {NONE} -- Basic operations
 			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 3], feature_external_name)
 			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 3], feature_assigner_name)
 			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 3], feature_deferred_assigner_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 3], feature_frozen_routine_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 3], feature_frozen_attribute_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 3], feature_frozen_once_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 3], feature_frozen_external_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 3], feature_frozen_assigner_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 3], feature_obsolete_routine_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 3], feature_obsolete_attribute_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 3], feature_obsolete_once_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 3], feature_obsolete_deferred_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 3], feature_obsolete_external_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 3], feature_obsolete_assigner_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 3], feature_obsolete_deferred_assigner_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 3], feature_local_variable_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 3], feature_group_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 4], top_level_folder_clusters_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 4], top_level_folder_overrides_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 4], top_level_folder_library_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 4], top_level_folder_precompiles_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 4], top_level_folder_references_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 4], top_level_folder_targets_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 4], folder_features_all_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 4], folder_features_some_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 4], folder_features_none_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 4], folder_cluster_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 4], folder_cluster_readonly_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 4], folder_blank_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 4], folder_blank_readonly_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 4], folder_library_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 4], folder_library_readonly_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 4], folder_precompiled_library_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 4], folder_precompiled_library_readonly_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 4], folder_assembly_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 4], folder_namespace_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 4], folder_preference_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 4], folder_config_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 4], folder_target_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 4], folder_hidden_cluster_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 4], folder_hidden_cluster_readonly_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 4], folder_hidden_blank_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 4], folder_hidden_blank_readonly_name)
-			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 4], folder_override_cluster_name)
-			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 4], folder_override_cluster_readonly_name)
-			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 4], folder_override_blank_name)
-			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 4], folder_override_blank_readonly_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 5], tool_features_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 5], tool_clusters_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 5], tool_class_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 5], tool_feature_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 5], tool_search_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 5], tool_advanced_search_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 5], tool_diagram_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 5], tool_error_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 5], tool_warning_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 5], tool_breakpoints_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 5], tool_external_commands_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 5], tool_preferences_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 5], tool_call_stack_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 5], tool_favorites_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 5], tool_output_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 5], tool_external_output_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 5], tool_objects_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 5], tool_watch_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 5], tool_c_output_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 5], tool_config_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 5], tool_metric_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 5], tool_output_successful_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 5], tool_output_failed_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 5], tool_c_output_successful_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 5], tool_c_output_failed_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 5], tool_threads_name)
-			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 5], tool_find_results_name)
-			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 5], tool_properties_name)
-			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 5], tool_errors_list_with_errors_and_warnings_name)
-			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 5], tool_errors_list_with_errors_name)
-			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 5], tool_errors_list_with_warnings_name)
-			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 5], tool_contract_editor_name)
-			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 5], tool_terminal_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 7], project_melt_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 7], project_quick_melt_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 7], project_freeze_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 7], project_finalize_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 7], project_discover_melt_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 7], debug_run_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 7], debug_pause_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 7], debug_stop_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 7], debug_restart_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 7], debug_show_execution_point_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 7], debug_run_without_breakpoint_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 7], debug_run_finalized_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 7], debug_step_into_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 7], debug_step_over_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 7], debug_step_out_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 7], debug_exception_dialog_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 7], debug_disable_assertions_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 7], debug_resume_assertions_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 7], debug_exception_handling_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 7], debugger_object_immediate_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 7], debugger_object_eiffel_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 7], debugger_object_dotnet_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 7], debugger_object_dotnet_static_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 7], debugger_object_static_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 7], debugger_object_void_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 7], debugger_object_expanded_name)
-			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 7], debugger_object_dotnet_expanded_name)
-			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 7], debugger_object_watched_name)
-			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 7], debugger_object_watched_disabled_name)
-			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 7], debugger_object_expand_name)
-			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 7], breakpoints_delete_name)
-			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 7], breakpoints_disable_name)
-			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 7], breakpoints_enable_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 8], callstack_active_arrow_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 8], callstack_empty_arrow_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 8], callstack_marked_arrow_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 8], callstack_replayed_active_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 8], callstack_replayed_empty_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 8], callstack_replayed_marked_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 8], debugger_environment_force_execution_mode_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 8], debugger_environment_with_breakpoints_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 8], debugger_environment_without_breakpoints_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 8], execution_record_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 8], execution_replay_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 8], execution_object_storage_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 8], execution_ignore_contract_violation_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 8], debugger_value_routine_return_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 8], debug_detach_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 8], debug_attach_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 9], general_blank_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 9], general_dialog_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 9], general_open_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 9], general_save_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 9], general_save_all_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 9], general_add_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 9], general_edit_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 9], general_remove_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 9], general_delete_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 9], general_document_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 9], general_cut_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 9], general_copy_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 9], general_paste_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 9], general_undo_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 9], general_redo_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 9], general_error_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 9], general_mini_error_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 9], general_warning_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 9], general_show_tool_tips_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 9], general_close_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 9], general_arrow_up_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 9], general_arrow_down_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 9], general_tick_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 9], general_word_wrap_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 9], general_send_enter_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 9], general_reset_name)
-			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 9], general_hand_name)
-			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 9], general_print_name)
-			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 9], general_undo_history_name)
-			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 9], general_check_document_name)
-			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 9], general_move_up_name)
-			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 9], general_move_down_name)
-			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 9], general_move_left_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 10], general_move_right_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 10], general_close_document_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 10], general_close_all_documents_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 10], general_show_hidden_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 10], general_refresh_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 10], general_filter_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 10], general_information_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 11], sort_descending_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 11], sort_acending_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 11], sort_grouped_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 11], command_send_to_external_editor_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 11], command_error_info_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 11], command_system_info_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 11], command_show_features_of_any_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 11], command_go_to_definition_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 11], refactor_feature_up_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 11], refactor_rename_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 11], context_link_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 11], context_unlink_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 11], context_sync_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 11], search_bottom_reached_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 11], search_first_reached_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 11], windows_minimize_all_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 11], windows_raise_all_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 11], windows_raise_all_unsaved_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 11], windows_windows_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 11], toolbar_separator_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 11], priority_high_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 11], priority_low_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 11], tab_close_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 11], tab_close_all_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 11], grid_expand_all_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 11], grid_collapse_all_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 12], view_previous_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 12], view_next_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 12], view_editor_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 12], view_flat_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 12], view_clickable_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 12], view_contracts_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 12], view_flat_contracts_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 12], view_editor_feature_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 12], view_clickable_feature_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 12], view_unmodified_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 13], new_eiffel_project_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 13], new_cluster_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 13], new_override_cluster_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 13], new_library_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 13], new_precompiled_library_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 13], new_reference_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 13], new_feature_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 13], new_class_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 13], new_window_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 13], new_editor_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 13], new_document_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 13], new_metric_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 13], new_supplier_link_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 13], new_aggregate_supplier_link_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 13], new_inheritance_link_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 13], new_and_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 13], new_or_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 13], new_include_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 13], new_object_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 13], new_makefile_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 13], new_resource_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 13], new_pre_compilation_task_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 13], new_post_compilation_task_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 13], new_target_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 13], new_cflag_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 13], new_linker_flag_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 14], feature_callers_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 14], feature_callees_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 14], feature_assigners_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 14], feature_assignees_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 14], feature_creators_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 14], feature_creaters_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 14], feature_implementers_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 14], feature_ancestors_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 14], feature_descendents_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 14], feature_homonyms_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 14], class_ancestors_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 14], class_descendents_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 14], class_clients_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 14], class_supliers_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 14], class_features_attribute_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 14], class_features_routine_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 14], class_features_invariant_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 14], class_features_creator_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 14], class_features_deferred_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 14], class_features_once_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 14], class_features_external_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 14], class_features_exported_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 15], metric_basic_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 15], metric_linear_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 15], metric_ratio_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 15], metric_basic_readonly_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 15], metric_linear_readonly_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 15], metric_ratio_readonly_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 15], metric_common_criteria_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 15], metric_relational_criteria_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 15], metric_text_criteria_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 15], metric_group_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 15], metric_folder_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 15], metric_send_to_archive_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 15], metric_quick_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 15], metric_show_details_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 15], metric_run_and_show_details_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 15], metric_export_to_file_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 15], metric_and_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 15], metric_or_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 15], metric_not_common_criteria_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 15], metric_not_relational_criteria_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 15], metric_not_text_criteria_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 15], metric_not_and_name)
-			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 15], metric_not_or_name)
-			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 15], metric_domain_application_name)
-			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 15], metric_domain_custom_name)
-			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 15], metric_domain_delayed_name)
-			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 15], metric_unit_target_name)
-			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 15], metric_unit_group_name)
-			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 15], metric_unit_class_name)
-			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 15], metric_unit_generic_name)
-			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 15], metric_unit_feature_name)
-			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 15], metric_unit_local_or_argument_name)
-			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 15], metric_unit_assertion_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 16], metric_unit_line_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 16], metric_unit_compilation_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 16], metric_unit_ratio_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 16], metric_filter_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 17], diagram_zoom_in_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 17], diagram_zoom_out_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 17], diagram_target_cluster_or_class_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 17], diagram_show_legend_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 17], diagram_crop_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 17], diagram_choose_color_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 17], diagram_force_right_angles_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 17], diagram_toogle_physics_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 17], diagram_physics_settings_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 17], diagram_supplier_link_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 17], diagram_inheritance_link_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 17], diagram_export_to_png_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 17], diagram_pinned_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 17], diagram_unpinned_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 17], diagram_anchor_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 17], diagram_remove_anchor_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 17], diagram_toggle_quality_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 17], diagram_depth_of_relations_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 17], diagram_fit_to_screen_name)
-			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 17], diagram_show_labels_name)
-			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 17], diagram_fill_cluster_name)
-			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 17], diagram_view_uml_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 18], preference_boolean_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 18], preference_color_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 18], preference_string_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 18], preference_list_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 18], preference_numerical_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 18], preference_font_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 18], preference_shortcut_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 18], document_eiffel_project_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 18], document_eiffel_project_compiled_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 18], document_blank_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 18], document_eiffel_project_large_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 19], compile_animation_1_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 19], compile_animation_2_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 19], compile_animation_3_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 19], compile_animation_4_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 19], compile_animation_5_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 19], compile_animation_6_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 19], compile_animation_7_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 19], compile_animation_8_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 19], compile_error_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 19], compile_success_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 19], run_animation_1_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 19], run_animation_2_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 19], run_animation_3_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 19], run_animation_4_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 19], run_animation_5_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 20], project_settings_system_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 20], project_settings_target_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 20], project_settings_assertions_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 20], project_settings_groups_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 20], project_settings_advanced_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 20], project_settings_warnings_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 20], project_settings_debug_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 20], project_settings_externals_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 20], project_settings_tasks_name)
-			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 20], project_settings_variables_name)
-			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 20], project_settings_type_mappings_name)
-			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 20], project_settings_edit_library_name)
-			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 20], project_settings_include_file_name)
-			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 20], project_settings_object_file_name)
-			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 20], project_settings_make_file_name)
-			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 20], project_settings_resource_file_name)
-			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 20], project_settings_task_name)
-			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 20], project_settings_cflag_name)
-			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 20], project_settings_linker_flag_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 21], overlay_locked_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 21], overlay_error_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 21], overlay_warning_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 21], overlay_packaged_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 21], overlay_search_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 21], overlay_new_name)
-			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 22], errors_and_warnings_next_error_name)
-			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 22], errors_and_warnings_previous_error_name)
-			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 22], errors_and_warnings_next_warning_name)
-			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 22], errors_and_warnings_previous_warning_name)
-			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 22], errors_and_warnings_filter_name)
-			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 22], errors_and_warnings_filter_active_name)
-			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 22], errors_and_warnings_expand_errors_name)
-			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 22], errors_and_warnings_fix_ignore_name)
-			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 22], errors_and_warnings_fix_apply_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 3], feature_instance_free_routine_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 3], feature_instance_free_once_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 3], feature_instance_free_deferred_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 3], feature_instance_free_external_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 3], feature_frozen_routine_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 3], feature_frozen_attribute_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 3], feature_frozen_once_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 3], feature_frozen_external_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 3], feature_frozen_assigner_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 3], feature_frozen_instance_free_routine_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 3], feature_frozen_instance_free_once_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 3], feature_frozen_instance_free_external_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 3], feature_constant_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 3], feature_obsolete_constant_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 3], feature_obsolete_routine_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 3], feature_obsolete_attribute_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 3], feature_obsolete_once_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 3], feature_obsolete_deferred_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 3], feature_obsolete_external_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 3], feature_obsolete_assigner_name)
+			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 3], feature_obsolete_deferred_assigner_name)
+			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 3], feature_obsolete_instance_free_routine_name)
+			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 3], feature_obsolete_instance_free_once_name)
+			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 3], feature_obsolete_instance_free_deferred_name)
+			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 3], feature_obsolete_instance_free_external_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 4], feature_local_variable_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 4], feature_group_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 5], top_level_folder_clusters_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 5], top_level_folder_overrides_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 5], top_level_folder_library_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 5], top_level_folder_precompiles_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 5], top_level_folder_references_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 5], top_level_folder_targets_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 5], top_level_folder_remote_targets_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 5], folder_features_all_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 5], folder_features_some_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 5], folder_features_none_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 5], folder_cluster_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 5], folder_cluster_readonly_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 5], folder_blank_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 5], folder_blank_readonly_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 5], folder_library_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 5], folder_library_readonly_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 5], folder_precompiled_library_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 5], folder_precompiled_library_readonly_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 5], folder_assembly_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 5], folder_namespace_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 5], folder_preference_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 5], folder_config_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 5], folder_target_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 5], folder_hidden_cluster_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 5], folder_hidden_cluster_readonly_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 5], folder_hidden_blank_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 5], folder_hidden_blank_readonly_name)
+			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 5], folder_override_cluster_name)
+			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 5], folder_override_cluster_readonly_name)
+			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 5], folder_override_blank_name)
+			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 5], folder_override_blank_readonly_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 6], tool_features_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 6], tool_clusters_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 6], tool_class_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 6], tool_feature_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 6], tool_search_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 6], tool_advanced_search_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 6], tool_diagram_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 6], tool_error_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 6], tool_warning_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 6], tool_breakpoints_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 6], tool_external_commands_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 6], tool_preferences_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 6], tool_call_stack_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 6], tool_favorites_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 6], tool_output_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 6], tool_external_output_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 6], tool_objects_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 6], tool_watch_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 6], tool_c_output_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 6], tool_config_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 6], tool_metric_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 6], tool_output_successful_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 6], tool_output_failed_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 6], tool_c_output_successful_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 6], tool_c_output_failed_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 6], tool_threads_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 6], tool_find_results_name)
+			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 6], tool_properties_name)
+			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 6], tool_errors_list_with_errors_and_warnings_name)
+			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 6], tool_errors_list_with_errors_name)
+			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 6], tool_errors_list_with_warnings_name)
+			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 6], tool_contract_editor_name)
+			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 6], tool_terminal_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 7], library_iron_package_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 7], library_iron_library_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 7], analyzer_analyze_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 7], analyzer_analyze_class_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 7], analyzer_analyze_editor_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 7], analyzer_analyze_cluster_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 7], analyzer_analyze_target_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 7], analyzer_analyze_refresh_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 7], analyzer_preferences_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 7], verifier_verify_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 7], verifier_verify_feature_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 7], verifier_verify_class_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 7], verifier_verify_editor_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 7], verifier_verify_cluster_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 7], verifier_verify_target_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 7], verifier_verify_refresh_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 7], verifier_preferences_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 8], project_melt_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 8], project_quick_melt_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 8], project_freeze_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 8], project_finalize_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 8], project_discover_melt_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 8], debug_run_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 8], debug_pause_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 8], debug_stop_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 8], debug_restart_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 8], debug_show_execution_point_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 8], debug_run_without_breakpoint_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 8], debug_run_finalized_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 8], debug_step_into_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 8], debug_step_over_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 8], debug_step_out_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 8], debug_exception_dialog_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 8], debug_disable_assertions_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 8], debug_resume_assertions_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 8], debug_exception_handling_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 8], debugger_object_immediate_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 8], debugger_object_eiffel_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 8], debugger_object_dotnet_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 8], debugger_object_dotnet_static_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 8], debugger_object_static_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 8], debugger_object_void_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 8], debugger_object_expanded_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 8], debugger_object_dotnet_expanded_name)
+			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 8], debugger_object_watched_name)
+			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 8], debugger_object_watched_disabled_name)
+			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 8], debugger_object_expand_name)
+			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 8], breakpoints_delete_name)
+			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 8], breakpoints_disable_name)
+			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 8], breakpoints_enable_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 9], callstack_active_arrow_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 9], callstack_empty_arrow_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 9], callstack_marked_arrow_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 9], callstack_replayed_active_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 9], callstack_replayed_empty_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 9], callstack_replayed_marked_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 9], debugger_environment_force_execution_mode_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 9], debugger_environment_with_breakpoints_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 9], debugger_environment_without_breakpoints_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 9], execution_record_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 9], execution_replay_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 9], execution_object_storage_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 9], execution_ignore_contract_violation_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 9], debugger_value_routine_return_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 9], debug_detach_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 9], debug_attach_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 10], general_blank_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 10], general_dialog_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 10], general_open_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 10], general_save_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 10], general_save_all_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 10], general_add_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 10], general_edit_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 10], general_remove_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 10], general_delete_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 10], general_document_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 10], general_cut_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 10], general_copy_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 10], general_paste_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 10], general_undo_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 10], general_redo_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 10], general_error_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 10], general_mini_error_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 10], general_warning_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 10], general_show_tool_tips_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 10], general_close_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 10], general_arrow_up_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 10], general_arrow_down_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 10], general_tick_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 10], general_word_wrap_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 10], general_send_enter_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 10], general_reset_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 10], general_hand_name)
+			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 10], general_print_name)
+			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 10], general_undo_history_name)
+			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 10], general_check_document_name)
+			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 10], general_move_up_name)
+			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 10], general_move_down_name)
+			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 10], general_move_left_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 11], general_move_right_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 11], general_close_document_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 11], general_close_all_documents_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 11], general_show_hidden_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 11], general_refresh_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 11], general_filter_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 11], general_information_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 12], sort_descending_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 12], sort_acending_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 12], sort_grouped_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 12], command_send_to_external_editor_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 12], command_error_info_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 12], command_system_info_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 12], command_show_features_of_any_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 12], command_go_to_definition_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 12], refactor_feature_up_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 12], refactor_rename_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 12], context_link_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 12], context_unlink_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 12], context_sync_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 12], search_bottom_reached_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 12], search_first_reached_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 12], windows_minimize_all_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 12], windows_raise_all_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 12], windows_raise_all_unsaved_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 12], windows_windows_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 12], toolbar_separator_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 12], priority_high_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 12], priority_low_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 12], tab_close_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 12], tab_close_all_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 12], grid_expand_all_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 12], grid_collapse_all_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 13], view_previous_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 13], view_next_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 13], view_editor_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 13], view_flat_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 13], view_clickable_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 13], view_contracts_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 13], view_flat_contracts_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 13], view_editor_feature_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 13], view_clickable_feature_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 13], view_unmodified_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 14], new_eiffel_project_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 14], new_cluster_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 14], new_override_cluster_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 14], new_library_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 14], new_precompiled_library_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 14], new_reference_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 14], new_feature_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 14], new_class_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 14], new_window_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 14], new_editor_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 14], new_document_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 14], new_metric_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 14], new_supplier_link_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 14], new_aggregate_supplier_link_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 14], new_inheritance_link_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 14], new_and_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 14], new_or_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 14], new_include_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 14], new_object_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 14], new_makefile_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 14], new_resource_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 14], new_pre_compilation_task_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 14], new_post_compilation_task_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 14], new_target_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 14], new_remote_target_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 14], new_cflag_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 14], new_linker_flag_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 15], feature_callers_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 15], feature_callees_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 15], feature_assigners_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 15], feature_assignees_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 15], feature_creators_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 15], feature_creaters_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 15], feature_implementers_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 15], feature_ancestors_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 15], feature_descendents_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 15], feature_homonyms_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 15], class_ancestors_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 15], class_descendents_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 15], class_clients_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 15], class_supliers_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 15], class_features_attribute_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 15], class_features_routine_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 15], class_features_invariant_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 15], class_features_creator_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 15], class_features_deferred_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 15], class_features_once_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 15], class_features_external_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 15], class_features_exported_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 15], class_features_instance_free_routine_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 16], metric_basic_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 16], metric_linear_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 16], metric_ratio_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 16], metric_basic_readonly_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 16], metric_linear_readonly_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 16], metric_ratio_readonly_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 16], metric_common_criteria_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 16], metric_relational_criteria_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 16], metric_text_criteria_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 16], metric_group_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 16], metric_folder_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 16], metric_send_to_archive_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 16], metric_quick_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 16], metric_show_details_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 16], metric_run_and_show_details_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 16], metric_export_to_file_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 16], metric_and_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 16], metric_or_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 16], metric_not_common_criteria_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 16], metric_not_relational_criteria_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 16], metric_not_text_criteria_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 16], metric_not_and_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 16], metric_not_or_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 16], metric_domain_application_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 16], metric_domain_custom_name)
+			a_table.put ([{NATURAL_8} 26, {NATURAL_8} 16], metric_domain_delayed_name)
+			a_table.put ([{NATURAL_8} 27, {NATURAL_8} 16], metric_unit_target_name)
+			a_table.put ([{NATURAL_8} 28, {NATURAL_8} 16], metric_unit_group_name)
+			a_table.put ([{NATURAL_8} 29, {NATURAL_8} 16], metric_unit_class_name)
+			a_table.put ([{NATURAL_8} 30, {NATURAL_8} 16], metric_unit_generic_name)
+			a_table.put ([{NATURAL_8} 31, {NATURAL_8} 16], metric_unit_feature_name)
+			a_table.put ([{NATURAL_8} 32, {NATURAL_8} 16], metric_unit_local_or_argument_name)
+			a_table.put ([{NATURAL_8} 33, {NATURAL_8} 16], metric_unit_assertion_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 17], metric_unit_line_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 17], metric_unit_compilation_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 17], metric_unit_ratio_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 17], metric_filter_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 18], diagram_zoom_in_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 18], diagram_zoom_out_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 18], diagram_target_cluster_or_class_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 18], diagram_show_legend_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 18], diagram_crop_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 18], diagram_choose_color_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 18], diagram_force_right_angles_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 18], diagram_toogle_physics_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 18], diagram_physics_settings_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 18], diagram_supplier_link_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 18], diagram_inheritance_link_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 18], diagram_export_to_png_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 18], diagram_pinned_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 18], diagram_unpinned_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 18], diagram_anchor_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 18], diagram_remove_anchor_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 18], diagram_toggle_quality_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 18], diagram_depth_of_relations_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 18], diagram_fit_to_screen_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 18], diagram_show_labels_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 18], diagram_fill_cluster_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 18], diagram_view_uml_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 19], preference_boolean_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 19], preference_color_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 19], preference_string_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 19], preference_list_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 19], preference_numerical_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 19], preference_font_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 19], preference_shortcut_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 19], preference_option_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 19], document_eiffel_project_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 19], document_eiffel_project_compiled_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 19], document_blank_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 19], document_eiffel_project_large_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 20], compile_animation_1_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 20], compile_animation_2_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 20], compile_animation_3_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 20], compile_animation_4_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 20], compile_animation_5_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 20], compile_animation_6_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 20], compile_animation_7_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 20], compile_animation_8_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 20], compile_error_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 20], compile_success_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 20], run_animation_1_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 20], run_animation_2_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 20], run_animation_3_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 20], run_animation_4_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 20], run_animation_5_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 21], project_settings_system_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 21], project_settings_target_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 21], project_settings_assertions_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 21], project_settings_groups_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 21], project_settings_advanced_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 21], project_settings_warnings_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 21], project_settings_debug_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 21], project_settings_externals_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 21], project_settings_tasks_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 21], project_settings_variables_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 21], project_settings_type_mappings_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 21], project_settings_edit_library_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 21], project_settings_include_file_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 21], project_settings_object_file_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 21], project_settings_make_file_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 21], project_settings_resource_file_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 21], project_settings_task_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 21], project_settings_cflag_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 21], project_settings_linker_flag_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 21], project_settings_default_highlighted_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 21], project_settings_default_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 22], overlay_locked_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 22], overlay_error_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 22], overlay_warning_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 22], overlay_packaged_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 22], overlay_search_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 22], overlay_new_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 22], overlay_flag_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 22], overlay_information_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 22], overlay_edit_name)
+			a_table.put ([{NATURAL_8} 10, {NATURAL_8} 22], overlay_class_name)
+			a_table.put ([{NATURAL_8} 11, {NATURAL_8} 22], overlay_cluster_name)
+			a_table.put ([{NATURAL_8} 12, {NATURAL_8} 22], overlay_target_name)
+			a_table.put ([{NATURAL_8} 13, {NATURAL_8} 22], overlay_library_name)
+			a_table.put ([{NATURAL_8} 14, {NATURAL_8} 22], overlay_clusters_name)
+			a_table.put ([{NATURAL_8} 15, {NATURAL_8} 22], overlay_editor_name)
+			a_table.put ([{NATURAL_8} 16, {NATURAL_8} 22], overlay_refresh_name)
+			a_table.put ([{NATURAL_8} 17, {NATURAL_8} 22], overlay_class_left_name)
+			a_table.put ([{NATURAL_8} 18, {NATURAL_8} 22], overlay_cluster_left_name)
+			a_table.put ([{NATURAL_8} 19, {NATURAL_8} 22], overlay_target_left_name)
+			a_table.put ([{NATURAL_8} 20, {NATURAL_8} 22], overlay_library_left_name)
+			a_table.put ([{NATURAL_8} 21, {NATURAL_8} 22], overlay_clusters_left_name)
+			a_table.put ([{NATURAL_8} 22, {NATURAL_8} 22], overlay_editor_left_name)
+			a_table.put ([{NATURAL_8} 23, {NATURAL_8} 22], overlay_refresh_left_name)
+			a_table.put ([{NATURAL_8} 24, {NATURAL_8} 22], overlay_instance_free_name)
+			a_table.put ([{NATURAL_8} 25, {NATURAL_8} 22], overlay_feature_left_name)
+			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 23], errors_and_warnings_next_error_name)
+			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 23], errors_and_warnings_previous_error_name)
+			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 23], errors_and_warnings_next_warning_name)
+			a_table.put ([{NATURAL_8} 4, {NATURAL_8} 23], errors_and_warnings_previous_warning_name)
+			a_table.put ([{NATURAL_8} 5, {NATURAL_8} 23], errors_and_warnings_filter_name)
+			a_table.put ([{NATURAL_8} 6, {NATURAL_8} 23], errors_and_warnings_filter_active_name)
+			a_table.put ([{NATURAL_8} 7, {NATURAL_8} 23], errors_and_warnings_expand_errors_name)
+			a_table.put ([{NATURAL_8} 8, {NATURAL_8} 23], errors_and_warnings_fix_ignore_name)
+			a_table.put ([{NATURAL_8} 9, {NATURAL_8} 23], errors_and_warnings_fix_apply_name)
 			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 24], information_tag_name)
 			a_table.put ([{NATURAL_8} 2, {NATURAL_8} 24], information_tags_name)
 			a_table.put ([{NATURAL_8} 3, {NATURAL_8} 24], information_no_tag_name)
@@ -9573,7 +10789,7 @@ feature {NONE} -- Basic operations
 		end
 
 ;note
-	copyright:	"Copyright (c) 1984-2009, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

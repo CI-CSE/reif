@@ -46,7 +46,7 @@ feature -- Basic operation
 
 feature {NONE} -- Initialization
 
-	make_from_string (string: STRING)
+	make_from_string (string: READABLE_STRING_GENERAL)
 			-- Create GUID from string `string'.
 		require
 			non_void_string: string /= Void
@@ -93,8 +93,8 @@ feature -- Measurement
 
 feature -- Conversion
 
-	to_string: STRING
-			-- String representation
+	to_string: STRING_32
+			-- String representation.
 		require
 			valid_item: item /= default_pointer
 		local
@@ -102,9 +102,9 @@ feature -- Conversion
 		do
 			create l_string.make_empty (39)
 			if c_guid_to_string (item, l_string.item, 39) = 0 then
-				Result := ""
+				Result := {STRING_32} ""
 			else
-				Result := l_string.string.as_string_8_conversion
+				Result := l_string.string
 			end
 		ensure
 			non_void_representation: Result /= Void
@@ -125,51 +125,55 @@ feature -- Conversion
 		end
 
 	out: STRING
-			-- String representation
+			-- String representation.
 		do
-			Result := to_string
+			if item = default_pointer then
+				Result := ""
+			else
+				Result := to_string.as_string_8
+			end
 		end
 
 feature {NONE} -- Externals
 
 	c_size_of_guid: INTEGER
 		external
-			"C macro use <windows.h>"
+			"C macro use <GuidDef.h>"
 		alias
 			"sizeof(GUID)"
 		end
 
 	c_string_to_guid (a_str: POINTER; a_guid: POINTER): INTEGER
 		external
-			"C signature (LPOLESTR, LPCLSID): EIF_INTEGER use <windows.h>"
+			"C signature (LPOLESTR, LPCLSID): EIF_INTEGER use <Objbase.h>"
 		alias
 			"CLSIDFromString"
 		end
 
 	c_guid_to_string (a_guid, a_string: POINTER; a_count: INTEGER): INTEGER
 		external
-			"C signature (REFGUID, LPOLESTR, int): EIF_INTEGER use <windows.h>"
+			"C signature (REFGUID, LPOLESTR, int): EIF_INTEGER use <Objbase.h>"
 		alias
 			"StringFromGUID2"
 		end
 
 	c_is_equal_guid (a_guid1, a_guid2: POINTER): BOOLEAN
 		external
-			"C signature (REFGUID, REFGUID): EIF_BOOLEAN use <windows.h>"
+			"C signature (REFGUID, REFGUID): EIF_BOOLEAN use <GuidDef.h>"
 		alias
 			"IsEqualGUID"
 		end
 
 	c_generate_guid (a_guid: POINTER): INTEGER
 		external
-			"C signature (GUID*): EIF_INTEGER use <windows.h>"
+			"C signature (GUID*): EIF_INTEGER use <Objbase.h>"
 		alias
 			"CoCreateGuid"
 		end
 
 	c_guid_to_defstring (a_guid, a_string: POINTER)
 		external
-			"C inline use <windows.h>"
+			"C inline use <GuidDef.h>"
 		alias
 			"[
 				sprintf ($a_string, "{0x%.8x,0x%.4x,0x%.4x,{0x%.2x,0x%.2x,0x%.2x,0x%.2x,0x%.2x,0x%.2x,0x%.2x,0x%.2x}}",
@@ -180,14 +184,14 @@ feature {NONE} -- Externals
       	end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end -- class ECOM_GUID

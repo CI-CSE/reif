@@ -1,10 +1,8 @@
-note
-
-	description:
-		"Warning for obsolete features."
+﻿note
+	description: "Warning for obsolete features."
 	legal: "See notice at end of class."
-	status: "See notice at end of class.";
-	date: "$Date$";
+	status: "See notice at end of class."
+	date: "$Date$"
 	revision: "$Revision $"
 
 class OBS_CLASS_WARN
@@ -12,9 +10,26 @@ class OBS_CLASS_WARN
 inherit
 	EIFFEL_WARNING
 		redefine
-			build_explain, help_file_name,
-			is_defined, print_single_line_error_message
-		end;
+			build_explain,
+			error_string,
+			help_file_name,
+			is_defined,
+			print_single_line_error_message
+		end
+
+	EIFFEL_ERROR
+		rename
+			class_c as associated_class
+		undefine
+			associated_class_type,
+			has_associated_file,
+			help_file_name,
+			is_defined,
+			print_single_line_error_message
+		redefine
+			build_explain,
+			error_string
+		end
 
 create
 	make_with_class
@@ -29,24 +44,49 @@ feature {NONE} -- Initialization
 			set_class (c)
 		end
 
+feature -- Status report
+
+	is_error: BOOLEAN
+			-- Does current represent an error?
+
+feature -- Status setting
+
+	set_error
+			-- Treat the issue as an error.
+		do
+			is_error := True
+		ensure
+			is_error
+		end
+
 feature -- Properties
 
-	obsolete_class: CLASS_C;
+	error_string: like {ERROR}.error_string
+		do
+			Result :=
+				if is_error then
+					Precursor {EIFFEL_ERROR}
+				else
+					Precursor {EIFFEL_WARNING}
+				end
+		end
+
+	obsolete_class: CLASS_C
 			-- Obsolete class
 
-	associated_feature: E_FEATURE;
+	associated_feature: E_FEATURE
 			-- Feature using the obsolete
 
 	code: STRING
 			-- Error code
 		do
-			Result := "Obsolete Class";
-		end;
+			Result := "Obsolete Class"
+		end
 
 	help_file_name: STRING
 		do
 			Result := "OBS_CLASS"
-		end;
+		end
 
 feature -- Access
 
@@ -54,7 +94,7 @@ feature -- Access
 			-- Is the error fully defined?
 		do
 			Result := classes_defined
-		end;
+		end
 
 	classes_defined: BOOLEAN
 			-- Is the feature defined for error?
@@ -65,7 +105,7 @@ feature -- Access
 			yes_implies_valid_classes: Result implies
 							associated_class /= Void and then
 							obsolete_class /= Void
-		end;
+		end
 
 feature -- Output
 
@@ -123,19 +163,12 @@ feature {NONE} -- Output
 
 feature {COMPILER_EXPORTER}
 
-	set_class (c: CLASS_C)
-		require
-			valid_c: c /= Void
-		do
-			associated_class := c
-		end;
-
 	set_obsolete_class (c: CLASS_C)
 		require
 			valid_c: c /= Void
 		do
 			obsolete_class := c
-		end;
+		end
 
 	set_feature (f: FEATURE_I)
 			-- Assign `f' to `feature'
@@ -149,7 +182,7 @@ feature {COMPILER_EXPORTER}
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2013, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -180,4 +213,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class OBS_CLASS_WARN
+end

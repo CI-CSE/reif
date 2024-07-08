@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Generate properties for options."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -36,10 +36,10 @@ feature -- Access
 			Result_not_void: Result /= Void
 		end
 
-	window: EV_WINDOW
+	window: detachable EV_WINDOW
 			-- Window to show errors modal. If `Void' it will be shown using the default from ES_PROMPT_PROVIDER.
 
-	properties: PROPERTY_GRID
+	properties: detachable PROPERTY_GRID
 			-- Grid where properties get added.
 
 	debug_clauses: ARRAYED_LIST [STRING]
@@ -57,79 +57,41 @@ feature -- Update
 			debug_clauses_set: debug_clauses = a_debugs
 		end
 
-feature {NONE} -- Implementation
+feature {NONE} -- Modification: language properties
 
-	handle_value_changes (a_has_group_changed: BOOLEAN)
-			-- Handle changed values (e.g. store changes to disk).
-			-- `a_has_group_changed' indicates that a value that makes the node not group_equivalent has changed.
+	add_void_safety_property (an_options, an_inherited_options: CONF_TARGET_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a void safety property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			c: CONF_VALUE_CHOICE
 		do
-			-- default is to do nothing
+			if a_inherits then
+				c := an_inherited_options.void_safety
+			end
+			add_choice_property (
+				conf_interface_names.option_void_safety_name,
+				conf_interface_names.option_void_safety_description,
+				conf_interface_names.option_void_safety_value,
+				an_options.void_safety,
+				c
+			)
+			if
+				attached last_added_choice_property as l_prop and then
+				a_check_non_client_option and then
+				is_non_client_option (at_void_safety)
+			then
+				l_prop.enable_readonly
+			end
 		end
 
-	add_misc_option_properties (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
-			-- Add option properties which may come from `an_options' (defined on the node itself) itself or from `an_inherited_options' (final value after inheritance).
-		require
-			an_options_not_void: an_options /= Void
-			an_inherited_options_not_void: an_inherited_options /= Void
-			properties_not_void: properties /= Void
+	add_cat_call_property (an_options, an_inherited_options: CONF_TARGET_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a cat call detection property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
 		local
-			l_bool_prop: BOOLEAN_PROPERTY
-			c: detachable CONF_VALUE_CHOICE
+			c: CONF_VALUE_CHOICE
 		do
-				-- General section.
-			properties.add_section (conf_interface_names.section_general)
-
-				-- Profiling option
-			l_bool_prop := new_boolean_property (conf_interface_names.option_profile_name, an_inherited_options.is_profile)
-			l_bool_prop.set_description (conf_interface_names.option_profile_description)
-			l_bool_prop.change_value_actions.extend (agent an_options.set_profile)
-			if a_inherits then
-				l_bool_prop.set_refresh_action (agent an_inherited_options.is_profile)
-				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_profile)
-				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
-				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
-
-				if an_options.is_profile_configured then
-					l_bool_prop.enable_overriden
-				else
-					l_bool_prop.enable_inherited
-				end
-			end
-			if a_check_non_client_option and then is_non_client_option (at_profile) then
-				l_bool_prop.enable_readonly
-			end
-			properties.add_property (l_bool_prop)
-
-				-- Tracing option
-			l_bool_prop := new_boolean_property (conf_interface_names.option_trace_name, an_inherited_options.is_trace)
-			l_bool_prop.set_description (conf_interface_names.option_trace_description)
-			l_bool_prop.change_value_actions.extend (agent an_options.set_trace)
-			if a_inherits then
-				l_bool_prop.set_refresh_action (agent an_inherited_options.is_trace)
-				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_trace)
-				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
-				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
-
-				if an_options.is_trace_configured then
-					l_bool_prop.enable_overriden
-				else
-					l_bool_prop.enable_inherited
-				end
-			end
-			if a_check_non_client_option and then is_non_client_option (at_trace) then
-				l_bool_prop.enable_readonly
-			end
-			properties.add_property (l_bool_prop)
-
-				-- Cat call detection
 			if a_inherits then
 				c := an_inherited_options.catcall_detection
-			else
-				c := Void
 			end
 			add_choice_property (
 				conf_interface_names.option_catcall_detection_name,
@@ -141,25 +103,14 @@ feature {NONE} -- Implementation
 			if attached last_added_choice_property as l_prop and then a_check_non_client_option and then is_non_client_option (at_catcall_detection) then
 				l_prop.enable_readonly
 			end
+		end
 
-				-- Void safety
-			if a_inherits then
-				c := an_inherited_options.void_safety
-			else
-				c := Void
-			end
-			add_choice_property (
-				conf_interface_names.option_void_safety_name,
-				conf_interface_names.option_void_safety_description,
-				conf_interface_names.option_void_safety_value,
-				an_options.void_safety,
-				c
-			)
-			if attached last_added_choice_property as l_prop and then a_check_non_client_option and then is_non_client_option (at_void_safety) then
-				l_prop.enable_readonly
-			end
-
-				-- Syntax support
+	add_syntax_property (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a syntax property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			c: CONF_VALUE_CHOICE
+		do
 			if a_inherits then
 				c := an_inherited_options.syntax
 			else
@@ -179,36 +130,40 @@ feature {NONE} -- Implementation
 			if attached last_added_choice_property as l_prop and then a_check_non_client_option and then is_non_client_option (at_syntax_level) then
 				l_prop.enable_readonly
 			end
+		end
 
-			properties.current_section.expand
-
-				-- Advanced section.
-			properties.add_section (conf_interface_names.section_advanced)
-
-				-- Attachment properties
-			l_bool_prop := new_boolean_property (conf_interface_names.option_is_attached_by_default_name, an_inherited_options.is_attached_by_default)
-			l_bool_prop.set_description (conf_interface_names.option_is_attached_by_default_description)
-			l_bool_prop.change_value_actions.extend (agent an_options.set_is_attached_by_default)
+	add_array_property (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a manifest array type check property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			c: CONF_VALUE_CHOICE
+		do
 			if a_inherits then
-				l_bool_prop.set_refresh_action (agent an_inherited_options.is_attached_by_default)
-				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_is_attached_by_default)
-				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
-				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
-
-				if an_options.is_attached_by_default_configured then
-					l_bool_prop.enable_overriden
-				else
-					l_bool_prop.enable_inherited
-				end
+				c := an_inherited_options.array
+			else
+				c := Void
 			end
-			if a_check_non_client_option and then is_non_client_option (at_is_attached_by_default) then
-				l_bool_prop.enable_readonly
+			add_choice_property (
+				conf_interface_names.option_array_name,
+				conf_interface_names.option_array_description,
+				create {ARRAYED_LIST [STRING_32]}.make_from_array (
+					<<conf_interface_names.option_array_mismatch_error_name,
+					conf_interface_names.option_array_mismatch_warning_name,
+					conf_interface_names.option_array_standard_name>>),
+				an_options.array,
+				c
+			)
+			if attached last_added_choice_property as l_prop and then a_check_non_client_option and then is_non_client_option (at_manifest_array_type) then
+				l_prop.enable_readonly
 			end
-			properties.add_property (l_bool_prop)
+		end
 
-				-- Full checking option
+	add_full_checking_property (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a full class checking property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			l_bool_prop: BOOLEAN_PROPERTY
+		do
 			l_bool_prop := new_boolean_property (conf_interface_names.option_full_class_checking_name, an_inherited_options.is_full_class_checking)
 			l_bool_prop.set_description (conf_interface_names.option_full_class_checking_description)
 			l_bool_prop.change_value_actions.extend (agent an_options.set_full_class_checking)
@@ -230,6 +185,153 @@ feature {NONE} -- Implementation
 				l_bool_prop.enable_readonly
 			end
 			properties.add_property (l_bool_prop)
+		end
+
+feature {NONE} -- Modification: execution properties
+
+	add_profile_property (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a profile property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			l_bool_prop: BOOLEAN_PROPERTY
+		do
+			l_bool_prop := new_boolean_property (conf_interface_names.option_profile_name, an_inherited_options.is_profile)
+			l_bool_prop.set_description (conf_interface_names.option_profile_description)
+			l_bool_prop.change_value_actions.extend (agent an_options.set_profile)
+			if a_inherits then
+				l_bool_prop.set_refresh_action (agent an_inherited_options.is_profile)
+				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_profile)
+				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
+				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
+				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
+				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
+
+				if an_options.is_profile_configured then
+					l_bool_prop.enable_overriden
+				else
+					l_bool_prop.enable_inherited
+				end
+			end
+			if a_check_non_client_option and then is_non_client_option (at_profile) then
+				l_bool_prop.enable_readonly
+			end
+			properties.add_property (l_bool_prop)
+		end
+
+	add_trace_property (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a trace property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			l_bool_prop: BOOLEAN_PROPERTY
+		do
+			l_bool_prop := new_boolean_property (conf_interface_names.option_trace_name, an_inherited_options.is_trace)
+			l_bool_prop.set_description (conf_interface_names.option_trace_description)
+			l_bool_prop.change_value_actions.extend (agent an_options.set_trace)
+			if a_inherits then
+				l_bool_prop.set_refresh_action (agent an_inherited_options.is_trace)
+				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_trace)
+				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
+				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
+				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
+				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
+
+				if an_options.is_trace_configured then
+					l_bool_prop.enable_overriden
+				else
+					l_bool_prop.enable_inherited
+				end
+			end
+			if a_check_non_client_option and then is_non_client_option (at_trace) then
+				l_bool_prop.enable_readonly
+			end
+			properties.add_property (l_bool_prop)
+		end
+
+feature {NONE} -- Modification: optimization properties
+
+	add_dotnet_namespace_property (an_options, an_inherited_options: CONF_OPTION; a_inherits, a_il_generation: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a .NET namespace property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			l_string_prop: STRING_PROPERTY
+		do
+			create l_string_prop.make (conf_interface_names.option_namespace_name)
+			l_string_prop.set_description (conf_interface_names.option_namespace_description)
+			if an_options.local_namespace /= Void then
+				l_string_prop.set_value (an_options.local_namespace)
+			end
+			l_string_prop.change_value_actions.extend (agent an_options.set_local_namespace)
+			l_string_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
+			if not a_il_generation then
+				l_string_prop.enable_readonly
+			end
+			if a_check_non_client_option and then is_non_client_option (at_namespace) then
+				l_string_prop.enable_readonly
+			end
+			properties.add_property (l_string_prop)
+		end
+
+	add_dotnet_optimization_property (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add a .NET optimization property that  may come from `an_options' (defined on the node itself) itself
+			-- or from `an_inherited_options' (final value after inheritance).
+		local
+			l_bool_prop: BOOLEAN_PROPERTY
+		do
+			l_bool_prop := new_boolean_property (conf_interface_names.option_msil_application_optimize_name, an_inherited_options.is_msil_application_optimize)
+			l_bool_prop.set_description (conf_interface_names.option_msil_application_optimize_description)
+			l_bool_prop.change_value_actions.extend (agent an_options.set_msil_application_optimize)
+			if a_inherits then
+				l_bool_prop.set_refresh_action (agent an_inherited_options.is_msil_application_optimize)
+				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_msil_application_optimize)
+				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
+				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
+				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
+				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
+
+				if an_options.is_msil_application_optimize_configured then
+					l_bool_prop.enable_overriden
+				else
+					l_bool_prop.enable_inherited
+				end
+			end
+			if a_check_non_client_option and then is_non_client_option (at_msil_application_optimize) then
+				l_bool_prop.enable_readonly
+			end
+			properties.add_property (l_bool_prop)
+		end
+
+feature {NONE} -- Modification
+
+	handle_value_changes (a_has_group_changed: BOOLEAN)
+			-- Handle changed values (e.g. store changes to disk).
+			-- `a_has_group_changed' indicates that a value that makes the node not group_equivalent has changed.
+		do
+			-- default is to do nothing
+		end
+
+	add_misc_option_properties (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
+			-- Add option properties which may come from `an_options' (defined on the node itself) itself or from `an_inherited_options' (final value after inheritance).
+		require
+			an_options_not_void: an_options /= Void
+			an_inherited_options_not_void: an_inherited_options /= Void
+			properties_not_void: properties /= Void
+		do
+				-- Language section.
+			properties.add_section (conf_interface_names.section_language)
+				-- Full checking.
+			add_full_checking_property (an_options, an_inherited_options, a_inherits, a_check_non_client_option)
+				-- Syntax.
+			add_syntax_property (an_options, an_inherited_options, a_inherits, a_check_non_client_option)
+				-- Manifest array type checks.
+			add_array_property (an_options, an_inherited_options, a_inherits, a_check_non_client_option)
+			properties.current_section.expand
+
+				-- Execution section.
+			properties.add_section (conf_interface_names.section_execution)
+				-- Profile.
+			add_profile_property (an_options, an_inherited_options, a_inherits, a_check_non_client_option)
+				-- Trace.
+			add_trace_property (an_options, an_inherited_options, a_inherits, a_check_non_client_option)
 		end
 
 	add_assertion_option_properties (an_options, an_inherited_options: CONF_OPTION; a_inherits: BOOLEAN; a_check_non_client_option: BOOLEAN)
@@ -389,9 +491,11 @@ feature {NONE} -- Implementation
 					-- Search if it is a warning that we show in the UI.
 					-- (we hide the obsolete warnings in the UI).
 				conf_interface_names.warning_names.search (l_warning)
-				if conf_interface_names.warning_names.found then
-					l_bool_prop := new_boolean_property (conf_interface_names.warning_names.found_item, an_inherited_options.is_warning_enabled (l_warning))
-					l_bool_prop.set_description (conf_interface_names.warning_descriptions.item (l_warning))
+				if attached conf_interface_names.warning_names.item (l_warning) as n then
+					l_bool_prop := new_boolean_property (n, an_inherited_options.is_warning_enabled (l_warning))
+					if attached conf_interface_names.warning_descriptions.item (l_warning) as d then
+						l_bool_prop.set_description (d)
+					end
 					l_bool_prop.change_value_actions.extend (agent an_options.add_warning (l_warning, ?))
 					l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
 					properties.add_property (l_bool_prop)
@@ -472,50 +576,15 @@ feature {NONE} -- Implementation
 			an_options_not_void: an_options /= Void
 			an_inherited_options_not_void: an_inherited_options /= Void
 			properties_not_void: properties /= Void
-		local
-			l_bool_prop: BOOLEAN_PROPERTY
-			l_string_prop: STRING_PROPERTY
 		do
 			properties.add_section (conf_interface_names.section_dotnet)
-
-			create l_string_prop.make (conf_interface_names.option_namespace_name)
-			l_string_prop.set_description (conf_interface_names.option_namespace_description)
-			if an_options.local_namespace /= Void then
-				l_string_prop.set_value (an_options.local_namespace)
+			add_dotnet_namespace_property (an_options, an_inherited_options, a_inherits, a_il_generation, a_check_non_client_option)
+			add_dotnet_optimization_property (an_options, an_inherited_options, a_inherits, a_check_non_client_option)
+			if a_il_generation then
+				properties.current_section.expand
+			else
+				properties.current_section.collapse
 			end
-			l_string_prop.change_value_actions.extend (agent an_options.set_local_namespace)
-			l_string_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
-			if not a_il_generation then
-				l_string_prop.enable_readonly
-			end
-			if a_check_non_client_option and then is_non_client_option (at_namespace) then
-				l_string_prop.enable_readonly
-			end
-			properties.add_property (l_string_prop)
-
-			l_bool_prop := new_boolean_property (conf_interface_names.option_msil_application_optimize_name, an_inherited_options.is_msil_application_optimize)
-			l_bool_prop.set_description (conf_interface_names.option_msil_application_optimize_description)
-			l_bool_prop.change_value_actions.extend (agent an_options.set_msil_application_optimize)
-			if a_inherits then
-				l_bool_prop.set_refresh_action (agent an_inherited_options.is_msil_application_optimize)
-				l_bool_prop.use_inherited_actions.extend (agent an_options.unset_msil_application_optimize)
-				l_bool_prop.use_inherited_actions.extend (agent l_bool_prop.enable_inherited)
-				l_bool_prop.use_inherited_actions.extend (agent handle_value_changes (False))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent l_bool_prop.enable_overriden))
-				l_bool_prop.change_value_actions.extend (agent change_no_argument_boolean_wrapper (?, agent handle_value_changes (False)))
-
-				if an_options.is_msil_application_optimize_configured then
-					l_bool_prop.enable_overriden
-				else
-					l_bool_prop.enable_inherited
-				end
-			end
-			if a_check_non_client_option and then is_non_client_option (at_msil_application_optimize) then
-				l_bool_prop.enable_readonly
-			end
-			properties.add_property (l_bool_prop)
-
-			properties.current_section.expand
 		end
 
 	add_choice_property (name, description: STRING_32; items: ARRAYED_LIST [STRING_32];
@@ -546,7 +615,7 @@ feature {NONE} -- Implementation
 				else
 					l_choice_prop.enable_inherited
 				end
-				l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?,
+				l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?,
 					agent (o: CONF_VALUE_CHOICE; p: STRING_CHOICE_PROPERTY)
 						do
 							if o.is_set then
@@ -557,7 +626,7 @@ feature {NONE} -- Implementation
 						end
 					(option, l_choice_prop)
 				))
-				l_choice_prop.use_inherited_actions.extend (agent (o: CONF_VALUE_CHOICE) do o.unset end (option))
+				l_choice_prop.use_inherited_actions.extend (agent option.unset)
 				l_choice_prop.use_inherited_actions.extend (agent l_choice_prop.enable_inherited)
 				l_choice_prop.use_inherited_actions.extend (agent handle_value_changes (False))
 				l_choice_prop.use_inherited_actions.extend (agent l_choice_prop.redraw)
@@ -566,17 +635,17 @@ feature {NONE} -- Implementation
 				l_choice_prop.set_value (l_choice_prop.item_strings [option.index])
 			end
 			l_choice_prop.change_value_actions.put_front (
-				agent (o: CONF_VALUE_CHOICE; content: ARRAYED_LIST [STRING_32]; value: STRING_32)
+				agent (o: CONF_VALUE_CHOICE; content: ARRAYED_LIST [READABLE_STRING_32]; value: detachable READABLE_STRING_32)
 					local
 						i: INTEGER
 					do
-						if value /= Void then
+						if attached value then
 							from
 								i := content.count
 							until
 								i <= 0
 							loop
-								if value.is_equal (content.i_th ((i))) then
+								if value.is_equal (content [i]) then
 									o.put_index (i.to_natural_8)
 									i := 1
 								end
@@ -586,8 +655,89 @@ feature {NONE} -- Implementation
 					end
 				(option, items, ?)
 			)
-			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent handle_value_changes (False)))
-			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({STRING_32}?, agent l_choice_prop.redraw))
+			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
+			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent l_choice_prop.redraw))
+			properties.add_property (l_choice_prop)
+			last_added_choice_property := l_choice_prop
+		end
+
+	add_use_capability_property (name, description: STRING_32; items: ARRAYED_LIST [STRING_32];
+		capability: CONF_ORDERED_CAPABILITY; inherited_capability: detachable CONF_ORDERED_CAPABILITY)
+			-- Add a choice property `capability' with the given `name' and `description'
+			-- that contains specified `items' and may inherit from `inherited_capability' if it is attached.
+		require
+			name_attached: name /= Void
+			description_attached: description /= Void
+			items_attached: items /= Void
+			capability_attached: capability /= Void
+		local
+			l_choice_prop: STRING_CHOICE_PROPERTY
+		do
+			create l_choice_prop.make_with_choices (name, items)
+			l_choice_prop.set_description (description)
+			l_choice_prop.disable_text_editing
+			if inherited_capability /= Void then
+				l_choice_prop.set_refresh_action (
+					agent (content: ARRAYED_LIST [READABLE_STRING_32]; i: CONF_ORDERED_CAPABILITY): READABLE_STRING_32
+						do
+							Result := content [i.root_index]
+						end
+					(items, inherited_capability)
+				)
+				if capability.is_root_set then
+					l_choice_prop.enable_overriden
+				else
+					l_choice_prop.enable_inherited
+				end
+				l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?,
+					agent (o: CONF_ORDERED_CAPABILITY; p: STRING_CHOICE_PROPERTY)
+						do
+							if o.is_root_set then
+								p.enable_overriden
+							else
+								p.enable_inherited
+							end
+						end
+					(capability, l_choice_prop)
+				))
+				l_choice_prop.use_inherited_actions.extend (agent capability.unset_root)
+				l_choice_prop.use_inherited_actions.extend (agent l_choice_prop.enable_inherited)
+				l_choice_prop.use_inherited_actions.extend (agent handle_value_changes (False))
+				l_choice_prop.use_inherited_actions.extend (agent l_choice_prop.redraw)
+			end
+			if capability.is_root_set then
+				l_choice_prop.set_value (l_choice_prop.item_strings [capability.custom_root_index])
+			end
+			l_choice_prop.change_value_actions.put_front (
+				agent (o: CONF_ORDERED_CAPABILITY; content: ARRAYED_LIST [STRING_32]; value: detachable READABLE_STRING_32)
+					local
+						i: INTEGER
+					do
+						if attached value then
+							from
+								i := content.count
+							until
+								i <= 0
+							loop
+								if value.same_string (content [i]) then
+									o.put_root_index (i.to_natural_8)
+									i := 1
+								end
+								i := i - 1
+							end
+						end
+					end
+				(capability, items, ?)
+			)
+			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent handle_value_changes (False)))
+			l_choice_prop.change_value_actions.extend (agent change_no_argument_wrapper ({READABLE_STRING_32}?, agent l_choice_prop.redraw))
+			l_choice_prop.validate_value_actions.extend
+				(agent (o: CONF_ORDERED_CAPABILITY; content: ARRAYED_LIST [READABLE_STRING_32]; value: detachable READABLE_STRING_32): BOOLEAN
+					do
+						Result :=
+							attached value and then
+							across content as c some c.item.same_string (value) and then o.is_capable (c.target_index.to_natural_8) end
+					end (capability, items, ?))
 			properties.add_property (l_choice_prop)
 			last_added_choice_property := l_choice_prop
 		end
@@ -696,11 +846,11 @@ feature {NONE} -- Refresh displayed data.
 		do
 		end
 
-	last_added_choice_property: detachable STRING_CHOICE_PROPERTY;
+	last_added_choice_property: detachable STRING_CHOICE_PROPERTY
 			-- Last added choice property
 
-note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+;note
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Factory to generate byte node structure"
 	author: ""
 	date: "$Date$"
@@ -27,8 +27,7 @@ feature -- Byte node generation
 		require
 			a_position_positive: a_position > 0
 		do
-			create Result
-			Result.set_position (a_position)
+			create Result.make (a_position)
 		ensure
 			result_attached: Result /= Void
 			location_correct: Result.position = a_position
@@ -142,8 +141,7 @@ feature -- Byte node generation
 					a_types.after
 				loop
 					create l_param
-					create l_local
-					l_local.set_position (l_position)
+					create l_local.make (l_position)
 					l_param.set_expression (l_local)
 					l_param.set_attachment_type (a_types.item)
 					Result.extend (l_param)
@@ -159,17 +157,16 @@ feature -- Byte node generation
 		require
 			a_feat_not_void: a_feat /= Void
 			a_target_type_not_void: a_target_type /= Void
-		local
-			l_create_type: CREATE_TYPE
 		do
 			create Result
-			create l_create_type.make (a_target_type.actual_type)
 
-			Result.set_info (l_create_type)
+			Result.set_info (create {CREATE_TYPE}.make (a_target_type.actual_type))
 			Result.set_type (a_target_type)
 
 				-- Create call.
-			Result.set_call (new_feature_b (a_feat, void_type, a_parameters))
+			if attached {ROUTINE_B} new_feature_b (a_feat, void_type, a_parameters) as r then
+				Result.set_call (r)
+			end
 			Result.set_creation_instruction (True)
 		end
 
@@ -332,7 +329,7 @@ feature -- Byte node generation
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

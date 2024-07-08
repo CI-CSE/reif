@@ -16,7 +16,7 @@ feature -- Access
 
 	help: STRING_32
 		once
-			Result := "[--module|-m <MODULE_PATH>] [(--dir|-d <CMS_PATH>) | <MODULE_NAME>] [--site-dir <CMS_SITE_PATH>]"
+			Result := "[--module|-m <MODULE_PATH>] [--theme <THEME_PATH>] [(--dir|-d <CMS_PATH>) | <MODULE_NAME>] [--site-dir <CMS_SITE_PATH>]"
 		end
 
 feature -- Status report
@@ -25,21 +25,31 @@ feature -- Status report
 			-- Is the submitted install command valid?
 		local
 			i, n: INTEGER
+			optional_theme: BOOLEAN
 			optional_module: BOOLEAN
+			optional_config: BOOLEAN
 			cms_path: BOOLEAN
 		do
 			n := args.upper
 				-- TODO add error reporting.
-			if n >= 1 and then n <= 4 then
+			if n >= 1 and then n <= 5 then
 				from
 					i := 1
 				until
 					i > n
 				loop
-					if args [i].same_string ("-m") then
+					if args [i].same_string ("-f") then
+						optional_config := True
+					elseif args [i].same_string ("--config") then
+						optional_config := True
+					elseif
+						args [i].same_string ("-m") or args [i].same_string ("--module")
+					then
 						optional_module := True
-					elseif args [i].same_string ("--module") then
-						optional_module := True
+					elseif
+						args [i].same_string ("--theme")
+					then
+						optional_theme := True
 					elseif args [i].same_string ("-d") then
 						cms_path := True
 					elseif args [i].same_string ("--dir") then
@@ -47,26 +57,30 @@ feature -- Status report
 					end
 					i := i + 1
 				end
-				if n = 4 then
-					if (cms_path and optional_module) then
-							-- valid command
-						Result := True
-					else
-						print ("Error check the optional argument --module|-m and --dir|-d")
-					end
-				elseif n = 2 then
-					if (cms_path and not optional_module) then
-						Result := True
-					else
-						print ("Error missing value for dir")
-						Result := False
-					end
-				else
+				if optional_config then
 					Result := True
+				else
+					if n <= 5 then
+						if cms_path and optional_module then
+								-- valid command
+							Result := True
+						else
+							print ("Error check the optional argument --module|-m and --dir|-d")
+						end
+					elseif n <= 3 then
+						if cms_path and not optional_module then
+							Result := True
+						else
+							print ("Error missing value for dir")
+							Result := False
+						end
+					else
+						Result := True
+					end
 				end
 			else
 				Result := False
-				if n > 4 then
+				if n > 5 then
 					print ("Too many arguments")
 				end
 				if n < 1 then
@@ -87,18 +101,34 @@ feature -- Helpers
 			end
 		end
 
+	theme_name (a_path: PATH): STRING_32
+		do
+				-- FIXME: better implementation needed. Either based on "a" new theme.info file, or parsing the .ecf
+			if attached a_path.entry as e then
+				Result := e.name
+			else
+				Result := a_path.name
+			end
+		end
+
 feature -- Execution
 
 	execute (args: ARRAY [READABLE_STRING_32])
 			-- Install a module into a cms application.
 			-- Pattern: module_src/site/* => cms/site/modules/$module_name/*
 		local
-			l_site_path, l_cms_path, l_module_source_path: detachable PATH
+			l_config_path, l_site_path, l_cms_path, p: detachable PATH
+			l_module_source_locations, l_theme_source_locations: ARRAYED_LIST [ROC_INSTALL_COPY_PARAMETERS]
 			l_site_dir: DIRECTORY
 			l_modules_dir: DIRECTORY
+			l_themes_dir: DIRECTORY
 			l_dest_dir: DIRECTORY
+			l_cp_params: ROC_INSTALL_COPY_PARAMETERS
 			i,n: INTEGER
+			l_modules_count, l_themes_count, l_global_file_changes, l_errors_count: INTEGER
 		do
+			create l_module_source_locations.make (1)
+			create l_theme_source_locations.make (1)
 			from
 				i := 1
 				n := args.upper
@@ -107,6 +137,14 @@ feature -- Execution
 			loop
 				if attached args[i] as arg then
 					if
+						arg.same_string ("-f")
+						or arg.same_string ("--config")
+					then
+						i := i + 1
+						if i <= n then
+							create l_config_path.make_from_string (args[i])
+						end
+					elseif
 						arg.same_string ("-d")
 						or arg.same_string ("--dir")
 					then
@@ -127,29 +165,114 @@ feature -- Execution
 					then
 						i := i + 1
 						if i <= n then
-							create l_module_source_path.make_from_string (args[i])
+							l_module_source_locations.force (create {PATH}.make_from_string (args[i]))
 						end
+					elseif
+						arg.same_string ("--theme")
+					then
+						i := i + 1
+						if i <= n then
+							l_theme_source_locations.force (create {PATH}.make_from_string (args[i]))
+						end
+					elseif
+						arg.same_string ("-v")
+						or arg.same_string ("--verbose")
+					then
+						is_verbose := True
 					end
 				end
 				i := i + 1
 			end
-			if l_module_source_path = Void then
-				l_module_source_path := Execution_environment.current_working_path
+
+			if l_config_path /= Void and then attached {CONFIG_READER} roc_configuration (l_config_path) as cfg then
+				if attached cfg.resolved_text_item ("location") as cfg_location then
+					create p.make_from_string (cfg_location)
+					if not p.is_absolute then
+						p := l_config_path.parent.extended_path (p)
+					end
+					l_cms_path := p.canonical_path
+				end
+				if l_cms_path = Void then
+					l_cms_path := l_config_path.parent
+				end
+
+				if attached cfg.resolved_text_item ("site_directory") as cfg_site_dir then
+					create p.make_from_string (cfg_site_dir)
+					if not p.is_absolute then
+						p := l_cms_path.extended_path (p)
+					end
+					l_site_path := p.canonical_path
+				end
+				if attached cfg.resolved_text_table_item ("modules") as tb then
+					across
+						tb as ic
+					loop
+						l_module_source_locations.extend (create {PATH}.make_from_string (ic.item))
+					end
+				elseif attached cfg.table_keys ("modules") as tb_keys then
+					across
+						tb_keys as ic
+					loop
+						if attached cfg.resolved_text_item ({STRING_32} "modules." + ic.item + ".location") as l_loc then
+							create p.make_from_string (l_loc)
+							if not p.is_absolute then
+								p := l_cms_path.extended_path (p)
+							end
+							create l_cp_params.make_with_location (p.canonical_path)
+							if attached cfg.resolved_text_item ({STRING_32} "modules." + ic.item + ".mode") as l_mode and then l_mode.is_case_insensitive_equal_general ("link") then
+								l_cp_params.set_link_mode (True)
+							end
+							l_module_source_locations.extend (l_cp_params)
+						end
+					end
+				end
+				if attached cfg.resolved_text_table_item ("themes") as tb then
+					across
+						tb as ic
+					loop
+						l_theme_source_locations.extend (create {PATH}.make_from_string (ic.item))
+					end
+				elseif attached cfg.table_keys ("themes") as tb_keys then
+					across
+						tb_keys as ic
+					loop
+						if attached cfg.resolved_text_item ({STRING_32} "themes." + ic.item + ".location") as l_loc then
+							create p.make_from_string (l_loc)
+							if not p.is_absolute then
+								p := l_cms_path.extended_path (p)
+							end
+							create l_cp_params.make_with_location (p.canonical_path)
+							if attached cfg.resolved_text_item ({STRING_32} "modules." + ic.item + ".mode") as l_mode and then l_mode.is_case_insensitive_equal_general ("link") then
+								l_cp_params.set_link_mode (True)
+							end
+							l_theme_source_locations.extend (l_cp_params)
+						end
+					end
+				end
+			elseif l_config_path /= Void then
+				l_errors_count := l_errors_count + 1
+				localized_print_error ({STRING_32} "Unable to read configuration file %"" + l_config_path.name + "%"!%N")
 			end
+
 			if l_cms_path = Void then
 				l_cms_path := Execution_environment.current_working_path.extended ("modules")
 			end
-			if l_cms_path /= Void and l_module_source_path /= Void then
-					-- If l_site_path is not set; initialize it to $cms_path/site.
-				if l_site_path = Void then
-					l_site_path := l_cms_path.extended ("site")
-				end
+				-- If l_site_path is not set; initialize it to $cms_path/site.
+			if l_site_path = Void then
+				l_site_path := l_cms_path.extended ("site").canonical_path
+			end
 
-					-- Install configuration files.
-				if attached module_name (l_module_source_path) as l_mod_name then
+			across
+				l_module_source_locations as ic
+			loop
+				if
+					attached ic.item as l_module_source_path and then
+					attached module_name (l_module_source_path.location) as l_mod_name
+				then
+						-- Install configuration files.
 					create l_site_dir.make_with_path (l_site_path)
-
 					if l_site_dir.exists then
+						l_modules_count := l_modules_count + 1
 						create l_modules_dir.make_with_path (l_site_path.extended ("modules"))
 						if not l_modules_dir.exists then
 							l_modules_dir.create_dir
@@ -159,31 +282,185 @@ feature -- Execution
 						if not l_dest_dir.exists then
 							l_dest_dir.create_dir
 						end
-						install_module_elements (l_module_source_path, l_dest_dir.path, Void)
---					   	install_module_elements (l_module_source_path, l_dest_dir.path, Config_dir)
---						install_module_elements (l_module_source_path, l_dest_dir.path, Scripts_dir)
---						install_module_elements (l_module_source_path, l_dest_dir.path, Themes_dir)
-						print ("Module ")
-						print (l_mod_name)
-						print (" was successfuly installed to the CMS Application location ")
-						print (l_cms_path.name)
-						print ("%NCheck the module elements at ")
-						print (l_dest_dir.path.name)
-						print (".%N")
-						print ("Copied " + directories_count.out + " directories.%N")
-						print ("Copied " + files_count.out + " files.%N")
+						if is_verbose then
+							print ("Install module ")
+							print (l_mod_name)
+							print (" in %"")
+							print (l_dest_dir.path.name)
+							print ("%":%N")
+						end
+						install_module_elements (l_mod_name, l_module_source_path, l_dest_dir.path, Void)
+						l_global_file_changes := l_global_file_changes + files_changes_count
+						if is_verbose then
+							print (" - ")
+							print (directories_count.out + " director" + if directories_count > 1 then "ies" else "y" end + ", ")
+							print (files_count.out + " file" + if files_count > 1 then "s" else "" end)
+							if files_changes_count > 0 then
+								print (" (+" + files_changes_count.out + ")")
+							end
+							print (".%N")
+						elseif files_changes_count > 0 then
+							print ("Install module ")
+							print (l_mod_name)
+							print (" in %"")
+							print (l_dest_dir.path.name)
+							print ("%": ")
+							print (files_changes_count.out)
+							if files_changes_count = 1 then
+								print (" change.%N")
+							else
+								print (" changes.%N")
+							end
+						end
 					else
+						l_errors_count := l_errors_count + 1
 						print ({STRING_32} "The CMS Application located at " + l_cms_path.name + "does not have the site or modules folders.%N")
 					end
 				else
-					print ("Error: not possible to retrieve module name.%N")
+					print ("Error: could not retrieve module name.%N")
+				end
+			end
+			across
+				l_theme_source_locations as ic
+			loop
+				if
+					attached ic.item as l_theme_source_path and then
+					attached theme_name (l_theme_source_path.location) as l_theme_name
+				then
+						-- Install configuration files.
+					create l_site_dir.make_with_path (l_site_path)
+					if l_site_dir.exists then
+						l_themes_count := l_themes_count + 1
+						create l_themes_dir.make_with_path (l_site_path.extended ("themes"))
+						if not l_themes_dir.exists then
+							l_themes_dir.create_dir
+						end
+
+					    create l_dest_dir.make_with_path (l_themes_dir.path.extended (l_theme_name))
+						if not l_dest_dir.exists then
+							l_dest_dir.create_dir
+						end
+						if is_verbose then
+							print ("Install theme ")
+							print (l_theme_name)
+							print (" in %"")
+							print (l_dest_dir.path.name)
+							print ("%":%N")
+						end
+						install_theme_elements (l_theme_source_path, l_dest_dir.path, Void)
+						l_global_file_changes := l_global_file_changes + files_changes_count
+						if is_verbose then
+							print (" - ")
+							print (directories_count.out + " director" + if directories_count > 1 then "ies" else "y" end + ", ")
+							print (files_count.out + " file" + if files_count > 1 then "s" else "" end)
+							if files_changes_count > 0 then
+								print (" (+" + files_changes_count.out + ")")
+							end
+							print (".%N")
+						elseif files_changes_count > 0 then
+							print ("Install theme ")
+							print (l_theme_name)
+							print (" in %"")
+							print (l_dest_dir.path.name)
+							print ("%": ")
+							print (files_changes_count.out)
+							if files_changes_count = 1 then
+								print (" change.%N")
+							else
+								print (" changes.%N")
+							end
+						end
+					else
+						l_errors_count := l_errors_count + 1
+						print ({STRING_32} "The CMS Application located at " + l_cms_path.name + "does not have the site or themes folders.%N")
+					end
+				else
+					l_errors_count := l_errors_count + 1
+					print ("Error: could not retrieve theme name.%N")
+				end
+			end
+			if l_modules_count > 0 then
+				if l_modules_count = 1 then
+					print ("One module updated.%N")
+				else
+					print (l_modules_count.out + " modules updated.%N")
+				end
+			end
+			if l_themes_count > 0 then
+				if l_themes_count = 1 then
+					print ("One theme updated.%N")
+				else
+					print (l_themes_count.out + " themes updated.%N")
+				end
+			end
+			if l_global_file_changes > 0 then
+				if l_global_file_changes = 1 then
+					print ("One file updated.%N")
+				else
+					print (l_global_file_changes.out + " files updated.%N")
 				end
 			else
-				print ("Error: wrong path to CMS application.%N")
+				print ("No file updated.%N")
+			end
+			if l_errors_count > 0 then
+				print (l_errors_count.out + " errors.%N")
 			end
 		end
 
-	install_module_elements (a_module_source_path: PATH; a_cms_module_target_path: PATH; a_element: detachable READABLE_STRING_GENERAL)
+	roc_configuration (a_cfg_location: PATH): detachable CONFIG_READER
+		do
+			create {JSON_CONFIG} Result.make_from_file (a_cfg_location)
+			if Result.has_error then
+				Result := Void
+			end
+		end
+
+	ecf_location (a_module_name: READABLE_STRING_GENERAL; a_module_source_path: ROC_INSTALL_COPY_PARAMETERS): detachable PATH
+			-- ecf location if exists.
+			-- Try to find based on `a_module_name`, or dir name from `a_module_source_path`, or .. search unique .ecf file (ignoring -safe.ecf).
+		local
+			l_name: READABLE_STRING_GENERAL
+			p: PATH
+			ut: FILE_UTILITIES
+		do
+			p := a_module_source_path.location
+			Result := p.extended (a_module_name).appended_with_extension ("ecf")
+			if ut.file_path_exists (Result) then
+					-- Found.
+			else
+				Result := Void
+				if attached p.entry as e then
+					Result := p.extended (e.name).appended_with_extension ("ecf")
+					if not ut.file_path_exists (Result) then
+						Result := Void
+					end
+				end
+				if Result = Void then
+					if attached ut.file_names (p.name) as l_filenames then
+						across
+							l_filenames as ic
+						until
+							Result /= Void
+						loop
+							l_name := ic.item
+							if l_name.ends_with (".ecf") then
+								if l_name.ends_with ("-safe.ecf") then
+										-- Ignore
+								else
+									Result := p.extended (l_name)
+									if not ut.file_path_exists (Result) then
+										check existing_file: False end
+										Result := Void
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+
+	install_module_elements (a_module_name: READABLE_STRING_GENERAL; a_module_source_path: ROC_INSTALL_COPY_PARAMETERS; a_cms_module_target_path: PATH; a_element: detachable READABLE_STRING_GENERAL)
 			-- Install module site files from `a_module_source_path' to cms application `a_cms_module_target_path' under expected modules folder.
 			-- If `a_element' is set, take into account only sub folder `a_element'.
 		local
@@ -191,7 +468,7 @@ feature -- Execution
 			l_dest_dir: DIRECTORY
 			l_src_dir: DIRECTORY
 		do
-			l_path := a_module_source_path.extended ("site")
+			l_path := a_module_source_path.location.extended ("site")
 			if a_element /= Void then
 					-- Copy all files under "site/$a_element" into "site/modules/$module_name/$a_element" location.
 				create l_src_dir.make_with_path (l_path.extended (a_element))
@@ -206,14 +483,64 @@ feature -- Execution
 			end
 			files_count := 0
 			directories_count := -1
-			copy_directory (l_src_dir, l_dest_dir, True)
+			files_changes_count := 0
+
+			if a_module_source_path.is_link_mode then
+				copy_directory (l_src_dir, l_dest_dir, True)
+			else
+				link_directory (l_src_dir, l_dest_dir, True)
+			end
+				-- Detect ecf file (in the future, update main ecf file).
+			if attached ecf_location (a_module_name, a_module_source_path) as l_ecf_loc then
+					-- Found ecf file.
+			elseif not a_module_name.is_case_insensitive_equal ("core") then
+				localized_print_error ({STRING_32} "Missing .ecf file for " + a_module_name + "!%N")
+			end
 		end
+
+	install_theme_elements (a_theme_source_path: ROC_INSTALL_COPY_PARAMETERS; a_cms_theme_target_path: PATH; a_element: detachable READABLE_STRING_GENERAL)
+			-- Install theme site files from `a_theme_source_path' to cms application `a_cms_theme_target_path' under expected "themes" folder.
+			-- If `a_element' is set, take into account only sub folder `a_element'.
+		local
+			l_path: PATH
+			l_dest_dir: DIRECTORY
+			l_src_dir: DIRECTORY
+		do
+			l_path := a_theme_source_path.location
+			if a_element /= Void then
+					-- Copy all files under "site/$a_element" into "site/themes/$theme_name/$a_element" location.
+				create l_src_dir.make_with_path (l_path.extended (a_element))
+				create l_dest_dir.make_with_path (a_cms_theme_target_path.extended (a_element))
+			else
+					-- Copy all files under "site" into "site/themes/$theme_name/" location.
+				create l_src_dir.make_with_path (l_path)
+				create l_dest_dir.make_with_path (a_cms_theme_target_path)
+			end
+			if not l_dest_dir.exists then
+				l_dest_dir.create_dir
+			end
+			files_count := 0
+			directories_count := -1
+			files_changes_count := 0
+
+			if a_theme_source_path.is_link_mode then
+				copy_directory (l_src_dir, l_dest_dir, True)
+			else
+				link_directory (l_src_dir, l_dest_dir, True)
+			end
+		end
+
+	is_verbose: BOOLEAN
 
 	files_count: INTEGER
 			-- Number of copied files during installation.
 
+	files_changes_count: INTEGER
+			-- Number of files changed during installation.
+
 	directories_count: INTEGER
 			-- Number of copied directories during installation.
+
 
 feature {NONE} -- System/copy files
 
@@ -249,6 +576,13 @@ feature {NONE} -- System/copy files
 			end
 		end
 
+	link_directory (a_src: DIRECTORY; a_dest: DIRECTORY; is_recursive: BOOLEAN)
+			-- Link all elements from `a_src' to `a_dest'.
+		do
+				-- TODO: implement symbolic link ...
+			copy_directory (a_src, a_dest, is_recursive)
+		end
+
 	copy_file_in_directory (a_file: FILE; a_dir: PATH)
 			-- Copy file `a_file' to dir `a_dir'.
 		local
@@ -257,20 +591,30 @@ feature {NONE} -- System/copy files
 		do
 			if not retried then
 				if attached a_file.path.entry as e then
-					create l_dest.make_with_path (a_dir.extended_path (e))
-					l_dest.create_read_write
 					a_file.open_read
 						-- Copy file source to destination
 					if
-						l_dest.exists and then
-						l_dest.is_writable and then
 						a_file.exists and then
-						a_file.is_readable
+						a_file.is_access_readable
 					then
-						a_file.copy_to (l_dest)
-						a_file.close
-						l_dest.close
-						files_count := files_count + 1
+						create l_dest.make_with_path (a_dir.extended_path (e))
+						if
+							not l_dest.exists or else
+							l_dest.is_writable
+						then
+							if not l_dest.exists or else (a_file.date > l_dest.date) then
+								files_changes_count := files_changes_count + 1
+								if is_verbose then
+									print ({STRING_32} " - file %"" + l_dest.path.name + "%"%N")
+								end
+							end
+
+							l_dest.create_read_write
+							a_file.copy_to (l_dest)
+							a_file.close
+							l_dest.close
+							files_count := files_count + 1
+						end
 					end
 				end
 			end
@@ -292,6 +636,6 @@ feature {NONE} -- System/copy files
 
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

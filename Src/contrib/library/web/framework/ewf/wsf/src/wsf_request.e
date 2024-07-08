@@ -261,10 +261,12 @@ feature -- Access: Input
 		local
 			l_input: WGI_INPUT_STREAM
 			n: INTEGER
+			buf_initial_size: INTEGER
 		do
 			if raw_input_data_recorded and then attached raw_input_data as d then
 				buf.append (d)
 			else
+				buf_initial_size := buf.count
 				l_input := input
 				if is_chunked_input then
 					from
@@ -286,73 +288,53 @@ feature -- Access: Input
 					end
 				end
 				if raw_input_data_recorded then
-					set_raw_input_data (buf)
+					set_raw_input_data (buf.substring (buf_initial_size + 1, buf.count))
+						-- Only the input data! And differente reference.
 				end
 			end
 		end
 
-	read_input_data_into_file (a_file: FILE)
+	read_input_data_into_file (a_medium: IO_MEDIUM)
 			-- retrieve the content from the `input' stream into `s'
 			-- warning: if the input data has already been retrieved
 			--          you might not get anything
 		require
-			a_file_is_open_write: a_file.is_open_write
+			a_medium_is_open_write: a_medium.is_open_write
 		local
 			s: STRING
 			l_input: WGI_INPUT_STREAM
 			l_raw_data: detachable STRING_8
-			len: NATURAL_64
 			nb, l_step: INTEGER
-			l_size: NATURAL_64
 		do
 			if raw_input_data_recorded and then attached raw_input_data as d then
-				a_file.put_string (d)
+				a_medium.put_string (d)
 			else
 				if raw_input_data_recorded then
 					create l_raw_data.make_empty
 				end
 				l_input := input
-				len := content_length_value
-
-				debug ("wsf")
-					io.error.put_string (generator + ".read_input_data_into_file (a_file) content_length=" + len.out + "%N")
-				end
 
 				from
-					l_size := 0
 					l_step := 8_192
 					create s.make (l_step)
 				until
 					l_step = 0 or l_input.end_of_input
 				loop
-					if len < l_step.to_natural_64 then
-						l_step := len.to_integer_32
+					l_input.append_to_string (s, l_step)
+					nb := l_input.last_appended_count
+
+					a_medium.put_string (s)
+					if l_raw_data /= Void then
+						l_raw_data.append (s)
 					end
-					if l_step > 0 then
-						l_input.append_to_string (s, l_step)
-						nb := l_input.last_appended_count
-						l_size := l_size + nb.to_natural_64
-						len := len - nb.to_natural_64
-
-						debug ("wsf")
-							io.error.put_string ("   append (s, " + l_step.out + ") -> " + nb.out + " (" + l_size.out + " / "+ content_length_value.out + ")%N")
-						end
-
-						a_file.put_string (s)
-						if l_raw_data /= Void then
-							l_raw_data.append (s)
-						end
-						s.wipe_out
-						if nb < l_step then
-							l_step := 0
-						end
+					s.wipe_out
+					if nb < l_step then
+						l_step := 0
 					end
 				end
-				a_file.flush
-				debug ("wsf")
-					io.error.put_string ("offset =" + len.out + "%N")
+				if attached {FILE} a_medium as f then
+					f.flush
 				end
-				check got_all_data: len = 0 end
 				if l_raw_data /= Void then
 					set_raw_input_data (l_raw_data)
 				end
@@ -364,7 +346,7 @@ feature -- Helper
 	is_request_method (m: READABLE_STRING_GENERAL): BOOLEAN
 			-- Is `m' the Current request_method?
 		do
-			Result := request_method.is_case_insensitive_equal (m.as_string_8)
+			Result := m.is_case_insensitive_equal (request_method)
 		end
 
 	is_put_request_method: BOOLEAN
@@ -709,7 +691,7 @@ feature -- Access: CGI Meta variables
 		do
 			meta_variables_table.force (new_string_value (a_name, a_value), a_name)
 		ensure
-			param_set: attached {WSF_STRING} meta_variable (a_name) as val and then val.url_encoded_value.same_string (a_value)
+			param_set: attached {WSF_STRING} meta_variable (a_name) as val and then a_value.same_string_general (val.url_encoded_value)
 		end
 
 	unset_meta_variable (a_name: READABLE_STRING_GENERAL)
@@ -851,41 +833,60 @@ feature -- Access: CGI meta parameters - 1.1
 		local
 			l_result: like internal_percent_encoded_path_info
 			r: READABLE_STRING_8
+			pi: READABLE_STRING_32
 			i,m,n,spos: INTEGER
 		do
 			l_result := internal_percent_encoded_path_info
 			if l_result = Void then
-				r := request_uri
-				i := r.index_of ('?', 1)
-				if i > 0 then
-					l_result := r.substring (1, i - 1)
+				pi := path_info
+				if pi.is_empty then
+					l_result := ""
+				elseif pi.count = 1 and then pi[1] = '/' then
+					l_result := "/"
 				else
-					l_result := r.string
-				end
-				if attached script_name as s then
-					if l_result.starts_with (s) then
-						l_result := l_result.substring (s.count + 1, l_result.count)
+					r := request_uri
+					i := r.index_of ('?', 1)
+					if i > 0 then
+						l_result := r.substring (1, i - 1)
 					else
-						--| Handle Rewrite url engine, to have clean path
-						from
-							i := 1
-							m := l_result.count
-							n := s.count
-						until
-							i > m or i > n or l_result[i] /= s[i]
-						loop
-							if l_result[i] = '/' then
-								spos := i
-							end
-							i := i + 1
+						l_result := r.string
+					end
+					i := 0
+					if pi.is_valid_as_string_8 then
+						i := l_result.substring_index (pi.to_string_8, 1)
+						if i > 0 then
+								-- Path info is included in REQUEST_URI
+								-- so let's get the percent encoded path info from request uri.
+							l_result := l_result.substring (i, l_result.count)
 						end
-						if i > 1 then
-							if l_result[i-1] = '/' then
-								i := i -1
-							elseif spos > 0 then
-								i := spos
+					end
+						--| here "i = 0" means request_uri does not start with `path_info',
+						--| thus let's compute it from `script_name'.
+					if i = 0 and attached script_name as s then
+						if l_result.starts_with (s) then
+							l_result := l_result.substring (s.count + 1, l_result.count)
+						else
+								--| Handle Rewrite url engine, to have clean path
+							from
+								i := 1
+								m := l_result.count
+								n := s.count
+							until
+								i > m or i > n or l_result[i] /= s[i]
+							loop
+								if l_result[i] = '/' then
+									spos := i
+								end
+								i := i + 1
 							end
-							l_result := l_result.substring (i, m)
+							if i > 1 then
+								if l_result[i-1] = '/' then
+									i := i -1
+								elseif spos > 0 then
+									i := spos
+								end
+								l_result := l_result.substring (i, m)
+							end
 						end
 					end
 				end
@@ -1205,9 +1206,17 @@ feature -- HTTP_*
 
 	http_connection: detachable READABLE_STRING_8
 			-- Contents of the Connection: header from the current wgi_request, if there is one.
-			-- Example: 'Keep-Alive'.
+			-- Example: 'keep-alive'.
 		do
 			Result := wgi_request.http_connection
+		end
+
+	is_keep_alive_http_connection: BOOLEAN
+			-- Is a keep-alive connection?
+		do
+			if attached http_connection as conn then
+				Result := conn.starts_with ("keep-alive")
+			end
 		end
 
 	http_expect: detachable READABLE_STRING_8
@@ -2101,7 +2110,7 @@ invariant
 	wgi_request.content_type /= Void implies content_type /= Void
 
 note
-	copyright: "2011-2015, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
+	copyright: "2011-2017, Jocelyn Fiat, Javier Velilla, Olivier Ligot, Colin Adams, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

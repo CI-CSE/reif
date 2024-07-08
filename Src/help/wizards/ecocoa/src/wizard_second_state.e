@@ -1,17 +1,14 @@
-note
-	description	: "Final state of the wizard."
-	author		: "Daniel Furrer <danie.furrer@gmail.com>"
-	date		: "$Date$"
-	revision	: "$Revision$"
+﻿note
+	description: "Final state of the wizard."
+	author: "Daniel Furrer <danie.furrer@gmail.com>", "$Author$"
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
 	WIZARD_SECOND_STATE
 
 inherit
 	BENCH_WIZARD_FINAL_STATE_WINDOW
-		redefine
-			proceed_with_current_info
-		end
 
 	EXECUTION_ENVIRONMENT
 		rename
@@ -22,17 +19,6 @@ inherit
 
 create
 	make
-
-feature -- Basic Operations
-
-	proceed_with_current_info
-		do
-			project_generator.generate_code
-			write_bench_notification_ok (wizard_information)
-
-
-			Precursor
-		end
 
 feature -- Access
 
@@ -51,16 +37,8 @@ feature -- Access
 		do
 		end
 
-feature {NONE} -- Implementation
-
-	pixmap_icon_location: PATH
-			-- Icon for the Eiffel Wel Wizard
-		once
-			create Result.make_from_string ("eiffel_wizard_icon" + pixmap_extension)
-		end
-
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -84,11 +62,11 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

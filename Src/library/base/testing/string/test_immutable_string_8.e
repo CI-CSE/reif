@@ -629,11 +629,11 @@ feature -- Test
 			l_ptr: MANAGED_POINTER
 			s: IMMUTABLE_STRING_8
 		do
-			create l_ptr.make_from_array (<< 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			create s.make_from_c (l_ptr.item)
 			check_boolean ("make_from_c", s.is_equal ("0123456"))
 
-			create l_ptr.make_from_array (<< 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
+			create l_ptr.make_from_array ({ARRAY [NATURAL_8]} << 0, 48, 49, 50, 51, 52, 53, 54, 0 >>)
 			create s.make_from_c (l_ptr.item)
 			check_boolean ("make_from_c", s.is_empty)
 		end
@@ -1236,12 +1236,12 @@ feature -- Test
 
 	test_to_real
 		do
-			check_equality ("to_real", ("0").to_real, {REAL} 0.0)
-			check_equality ("to_real", ("1").to_real, {REAL} 1.0)
-			check_equality ("to_real", ("123").to_real, {REAL} 123.0)
-			check_equality ("to_real", ("0.75").to_real, {REAL} 0.75)
-			check_equality ("to_real", ("-348.75").to_real, {REAL} -348.75)
-			check_equality ("to_real", ("62.5e-3").to_real, {REAL} 62.5e-3)
+			check_equality ("to_real", ("0").to_real, {REAL_32} 0.0)
+			check_equality ("to_real", ("1").to_real, {REAL_32} 1.0)
+			check_equality ("to_real", ("123").to_real, {REAL_32} 123.0)
+			check_equality ("to_real", ("0.75").to_real, {REAL_32} 0.75)
+			check_equality ("to_real", ("-348.75").to_real, {REAL_32} -348.75)
+			check_equality ("to_real", ("62.5e-3").to_real, {REAL_32} 62.5e-3)
 		end
 
 	test_twin

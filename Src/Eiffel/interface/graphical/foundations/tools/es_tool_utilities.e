@@ -1,11 +1,11 @@
-note
+﻿note
 	description: "[
 		Utility functions for working with {ES_TOOL} instances.
 	]"
 	legal: "See notice at end of class."
 	status: "See notice at end of class.";
-	date: "$date$";
-	revision: "$revision$"
+	date: "$Date$";
+	revision: "$Revision$"
 
 class
 	ES_TOOL_UTILITIES
@@ -39,14 +39,15 @@ feature -- Query
 			l_type: STRING_32
 			l_edition: NATURAL_8
 		do
-			l_type := a_tool.generating_type
+			l_type := a_tool.generating_type.name_32
 			create Result.make (l_type.count + 2)
 			Result.append (l_type)
 
 			if a_tool.is_multiple_edition then
 				l_edition := a_tool.edition
 				if l_edition > 1 then
-					Result.append (":" + l_edition.out)
+					Result.append_character (':')
+					Result.append_natural_8 (l_edition)
 				end
 			end
 		ensure
@@ -68,7 +69,6 @@ feature -- Query
 			l_edition: STRING_32
 			l_internal: INTERNAL
 			l_id: INTEGER
-			l_tool_type: TYPE [ES_TOOL [EB_TOOL]]
 		do
 			l_pos := a_tool_id.index_of (':', 1)
 			if l_pos > 1 then
@@ -84,21 +84,20 @@ feature -- Query
 			l_type := l_type.as_upper
 			if l_internal.is_valid_type_string (l_type) then
 				l_id := l_internal.dynamic_type_from_string (l_type)
-				if l_id > 0 then
-						-- Set type
-					l_tool_type ?= l_internal.type_of_type (l_id)
-					if l_tool_type /= Void then
-						Result := [l_tool_type, {NATURAL_8} 0]
+				if
+					l_id > 0 and then
+					attached {TYPE [ES_TOOL [EB_TOOL]]} l_internal.type_of_type (l_id) as l_tool_type
+				then
+					Result := [l_tool_type, {NATURAL_8} 0]
 
-							-- Set edition
-						if l_edition = Void then
-							Result.edition := 1
-						elseif l_edition.is_natural_8 then
-							Result.edition := l_edition.to_natural_8
-						else
-								-- Invalid edition, therefore nothing can be returned.
-							Result := Void
-						end
+						-- Set edition
+					if l_edition = Void then
+						Result.edition := 1
+					elseif l_edition.is_natural_8 then
+						Result.edition := l_edition.to_natural_8
+					else
+							-- Invalid edition, therefore nothing can be returned.
+						check not attached Result end
 					end
 				end
 			end
@@ -107,28 +106,30 @@ feature -- Query
 			result_edition_big_enough: Result /= Void implies Result.edition > 0
 		end
 
-	tool_associated_name (a_tool: attached ES_TOOL [EB_TOOL]): attached STRING
+	tool_associated_name (a_tool: attached ES_TOOL [EB_TOOL]): READABLE_STRING_32
 			-- The tool's associated name, used for modularizing development of a tool.
 			--
 			-- `a_tool': A tool descriptor to retrieve a type identifier for.
 			-- `Result': The tool name.
 		require
 			a_tool_is_interface_usable: a_tool.is_interface_usable
+		local
+			s: STRING_32
 		do
-			Result := a_tool.generating_type
-			Result := Result.as_lower.as_attached
-			if Result.substring (1, (3).min (Result.count)).is_equal (once "es_") then
-					-- Remove ES_ prefix
-				Result.keep_tail (Result.count - 3)
-				if Result.substring ((Result.count - 4).max (1), Result.count).is_equal (once "_tool") then
-						-- Remove _TOOL suffix
-					Result.keep_head (Result.count - 5)
+			s := a_tool.generating_type.name_32.as_lower
+			if s.starts_with (once {STRING_32} "es_") then
+					-- Remove ES_ prefix.
+				s.remove_head (3)
+				if s.ends_with (once {STRING_32} "_tool") then
+						-- Remove _TOOL suffix.
+					s.remove_tail (5)
 				else
 					check use_standard_name_convention: False end
 				end
 			else
 				check use_standard_name_convention: False end
 			end
+			Result := s
 			check not_result_is_empty: not Result.is_empty end
 		ensure
 			result_consistent: Result.is_equal (tool_associated_name (a_tool))
@@ -156,7 +157,7 @@ feature -- Query
 		end
 
 ;note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

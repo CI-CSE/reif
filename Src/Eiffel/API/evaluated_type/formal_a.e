@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Descripion of a formal generic type"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -224,18 +224,16 @@ feature -- Access
 			Result := combined_hash_code ({SHARED_GEN_CONF_LEVEL}.formal_type, position)
 		end
 
-	description: GENERIC_DESC
+	description: ATTR_DESC
 			-- Descritpion of type for skeletons.
 		do
-			create Result
-			Result.set_type_i (Current)
+			create {GENERIC_DESC} Result.make (Current)
 		end
 
-	description_with_detachable_type: GENERIC_DESC
+	description_with_detachable_type: ATTR_DESC
 			-- Descritpion of type for skeletons.
 		do
-			create Result
-			Result.set_type_i (as_detachable_type)
+			create {GENERIC_DESC} Result.make (as_detachable_type)
 		end
 
 	constrained_type (a_context_class: CLASS_C): TYPE_A
@@ -268,8 +266,6 @@ feature -- Access
 		require
 			a_context_class_attached: a_context_class /= Void
 			not_multi_constraint: not is_multi_constrained (a_context_class)
-		local
-			l_formal_type: FORMAL_A
 		do
 			from
 					-- Unfold the chain of formal generics
@@ -277,8 +273,11 @@ feature -- Access
 			until
 				Result = Void or else not Result.is_formal
 			loop
-				l_formal_type ?= Result
-				Result := a_context_class.constraint_if_possible (l_formal_type.position)
+				if attached {FORMAL_A} Result as l_formal_type then
+					Result := a_context_class.constraint_if_possible (l_formal_type.position)
+				else
+					check result_is_formal_a: False end
+				end
 			end
 		end
 
@@ -331,11 +330,8 @@ feature -- Access
 
 	same_as (other: TYPE_A): BOOLEAN
 			-- Is `other' the same as Current ?
-		local
-			other_formal: like Current
 		do
-			other_formal ?= other
-			if other_formal /= Void then
+			if attached {like Current} other as other_formal then
 				Result := is_equivalent (other_formal) and then
 					has_same_marks (other_formal)
 			end
@@ -760,7 +756,7 @@ feature {NONE} -- Status adaptation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -791,4 +787,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class FORMAL_A
+end

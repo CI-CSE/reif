@@ -3,6 +3,7 @@ note
 	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
+	EIS: "name=RFC7159", "protocol=URI", "src=https://tools.ietf.org/html/rfc7159"
 
 class
 	JSON_PARSER
@@ -35,7 +36,7 @@ feature {NONE} -- Initialize
 	make_parser (a_json: STRING)
 			-- Initialize.
 		obsolete
-			"Use `make_with_string' [sept/2014]."
+			"Use `make_with_string' [2017-05-31]."
 		do
 			make_with_string (a_json)
 		end
@@ -72,7 +73,7 @@ feature -- Status report
 	current_errors: STRING
 			-- Current errors as string
 		obsolete
-			"USe errors_as_string [sept/2014]"
+			"Use errors_as_string [2017-05-31]"
 		do
 			Result := errors_as_string
 		end
@@ -128,11 +129,11 @@ feature -- Commands
 
 			if is_valid_start_symbol then
 				parsed_json_value := next_json_value
-				if extra_elements then
-					report_error ("Remaining element outside the main json value!")
+				if not has_error and extra_elements then
+					report_error_at ("Remaining element outside the main json value", index)
 				end
 			else
-				report_error ("Syntax error unexpected token, expecting `{' or `['")
+				report_error_at ("Syntax error unexpected token, expecting '{' or '['", index)
 			end
 			is_parsed := is_valid
 		end
@@ -152,13 +153,29 @@ feature -- Element change
 			is_not_valid: not is_valid
 		end
 
+	report_error_at (e: STRING; pos: INTEGER)
+			-- Report error `e` at position `pos`.
+		require
+			e_not_void: e /= Void
+			pos_valid: pos > 0
+		do
+			if pos > 0 then
+				report_error (e + " (position: " + index.out + ")")
+			else
+				report_error (e)
+			end
+		ensure
+			has_error: has_error
+			is_not_valid: not is_valid
+		end
+
 feature -- Obsolete commands		
 
 	parse_json: detachable JSON_VALUE
 			-- Parse JSON data `representation'
 			-- start ::= object | array
 		obsolete
-			"Use `parse_content' and `parsed_json_value'  [sept/2014]."
+			"Use `parse_content' and `parsed_json_value'  [2017-05-31]."
 		do
 			parse_content
 			if is_parsed then
@@ -170,7 +187,7 @@ feature -- Obsolete commands
 			-- Parse JSON data `representation'
 			-- start ::= object | array
 		obsolete
-			"Use `parse_content' and `parsed_json_value'  [nov/2014]."
+			"Use `parse_content' and `parsed_json_value'  [2017-05-31]."
 		do
 			parse_content
 			if is_parsed and then attached {JSON_OBJECT} parsed_json_value as jo then
@@ -181,7 +198,7 @@ feature -- Obsolete commands
 	parse: detachable JSON_VALUE
 			-- Next JSON value from current position on `representation'.
 		obsolete
-			"Use restricted `next_parsed_json_value' [sept/2014]."
+			"Use restricted `next_parsed_json_value' [2017-05-31]."
 		do
 			Result := next_parsed_json_value
 			is_parsed := is_valid
@@ -234,7 +251,7 @@ feature {NONE} -- Implementation: parsing
 						next
 						next
 					else
-						report_error ("JSON is not well formed in parse")
+						report_error_at ("JSON value is not well formed", index)
 						Result := Void
 					end
 				end
@@ -275,7 +292,7 @@ feature {NONE} -- Implementation: parsing
 						next
 						skip_white_spaces
 					else
-						report_error ("%N Input string is a not well formed JSON, expected: : found: " + actual.out)
+						report_error_at ("%N Input string is a not well formed JSON, expected [:] found [" + actual.out + "]", index)
 						has_more := False
 					end
 					l_value := next_json_value
@@ -287,7 +304,7 @@ feature {NONE} -- Implementation: parsing
 							has_more := False
 						elseif actual /= token_comma then
 							has_more := False
-							report_error ("JSON Object syntactically malformed expected , found: [" + actual.out + "]")
+							report_error_at ("JSON Object syntactically malformed expected , found [" + actual.out + "]", index)
 						end
 					else
 						has_more := False
@@ -327,11 +344,11 @@ feature {NONE} -- Implementation: parsing
 								l_json_string.append (l_unicode)
 							else
 								has_more := False
-								report_error ("Input String is not well formed JSON, expected a Unicode value, found [" + c.out + " ]")
+								report_error_at ("Input string is not well formed JSON, expected Unicode value, found [" + c.out + "]", index)
 							end
 						elseif (not is_special_character (c) and not is_special_control (c)) or c = '%N' then
 							has_more := False
-							report_error ("Input String is not well formed JSON, found [" + c.out + " ]")
+							report_error_at ("Input string is not well formed JSON, found [" + c.out + "]", index)
 						else
 							l_json_string.append_character ('\')
 							l_json_string.append_character (c)
@@ -339,7 +356,10 @@ feature {NONE} -- Implementation: parsing
 					else
 						if is_special_character (c) and c /= '/' then
 							has_more := False
-							report_error ("Input String is not well formed JSON, found [" + c.out + " ]")
+							report_error_at ("Input string is not well formed JSON, found [" + c.out + "]", index)
+						elseif c = '%U' then
+								--| Accepts null character in string value.
+							l_json_string.append_character (c)
 						else
 							l_json_string.append_character (c)
 						end
@@ -385,11 +405,11 @@ feature {NONE} -- Implementation: parsing
 							flag := False
 						elseif c /= token_comma then
 							flag := False
-							report_error ("Array is not well formed JSON,  found [" + c.out + " ]")
+							report_error_at ("Array is not well formed JSON, found [" + c.out + "]", index)
 						end
 					else
 						flag := False
-						report_error ("Array is not well formed JSON,  found [" + actual.out + " ]")
+						report_error_at ("Array is not well formed JSON, found [" + actual.out + "]", index)
 					end
 				end
 			end
@@ -420,14 +440,14 @@ feature {NONE} -- Implementation: parsing
 				end
 			end
 			if is_valid_number (sb) then
-				if sb.is_integer then
-					create Result.make_integer (sb.to_integer)
+				if sb.is_integer_64 then
+					create Result.make_integer (sb.to_integer_64)
 					is_integer := True
 				elseif sb.is_double and not is_integer then
 					create Result.make_real (sb.to_double)
 				end
 			else
-				report_error ("Expected a number, found: [ " + sb + " ]")
+				report_error_at ("Expected a number, found [" + sb + "]", index)
 			end
 		end
 
@@ -674,6 +694,6 @@ feature {NONE} -- Constants
 	null_id: STRING = "null"
 
 note
-	copyright: "2010-2015, Javier Velilla and others https://github.com/eiffelhub/json."
+	copyright: "2010-2018, Javier Velilla, Jocelyn Fiat, Eiffel Software and others https://github.com/eiffelhub/json."
 	license: "https://github.com/eiffelhub/json/blob/master/License.txt"
 end

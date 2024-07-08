@@ -91,12 +91,26 @@ feature -- Access node
 			-- Fill `a_vocab' with associated terms.
 		do
 			reset_error
-			a_vocab.terms.wipe_out
+			a_vocab.wipe_out
 			if attached terms (a_vocab, 0, 0) as lst then
 				across
 					lst as ic
 				loop
 					a_vocab.extend (ic.item)
+				end
+			end
+		end
+
+	fill_vocabularies_with_cloud_of_terms (a_vocab: CMS_VOCABULARY_CLOUD)
+			-- Fill `a_vocab' with associated terms.
+		do
+			reset_error
+			a_vocab.wipe_out
+			if attached cloud_of_terms (a_vocab, 0, 0) as lst then
+				across
+					lst as ic
+				loop
+					a_vocab.record (ic.item.term, ic.item.occurrences)
 				end
 			end
 		end
@@ -135,6 +149,14 @@ feature -- Access node
 			Result := taxonomy_storage.terms (a_vocab, a_limit, a_offset)
 		end
 
+	cloud_of_terms (a_vocab: CMS_VOCABULARY; a_limit: NATURAL_32; a_offset: NATURAL_32): ARRAYED_LIST [TUPLE [term: CMS_TERM; occurrences: NATURAL_64]]
+			-- List of terms from vocabulary `a_vocab` ordered by number of usages from `a_offset` to `a_offset + a_limit`.
+		require
+			has_id: a_vocab.has_id
+		do
+			Result := taxonomy_storage.cloud_of_terms (a_vocab, a_limit, a_offset)
+		end
+
 	term_by_id (a_tid: INTEGER_64): detachable CMS_TERM
 		do
 			Result := taxonomy_storage.term_by_id (a_tid)
@@ -152,6 +174,7 @@ feature -- Access node
 			a_term_exists: a_term.has_id
 		do
 			Result := taxonomy_storage.entities_associated_with_term (a_term)
+			error_handler.append (taxonomy_storage.error_handler)
 		end
 
 feature -- Write
@@ -256,11 +279,11 @@ feature -- Web forms
 		local
 			ti: detachable WSF_FORM_TEXT_INPUT
 			th: WSF_FORM_HIDDEN_INPUT
-			w_set: WSF_FORM_FIELD_SET
+			w_div: WSF_FORM_DIV
 			w_select: WSF_FORM_SELECT
 			w_opt: WSF_FORM_SELECT_OPTION
 			w_cb: WSF_FORM_CHECKBOX_INPUT
-			w_voc_set: WSF_FORM_FIELD_SET
+			w_voc_set: WSF_FORM_DIV
 			s: STRING_32
 			voc: CMS_VOCABULARY
 			t: detachable CMS_TERM
@@ -273,15 +296,15 @@ feature -- Web forms
 				l_has_edit_permission := a_response.has_permissions (<<"update any taxonomy", "update " + a_content_type_name + " taxonomy">>)
 
 				-- Handle Taxonomy fields, if any associated with `content_type'.
-				create w_set.make
-				w_set.add_css_class ("taxonomy")
+				create w_div.make
+				w_div.add_css_class ("taxonomy")
 				l_vocs.sort
 				across
 					l_vocs as vocs_ic
 				loop
 					voc := vocs_ic.item
 					create th.make_with_text ({STRING_32} "taxonomy_vocabularies[" + voc.id.out + "]", voc.name)
-					w_set.extend (th)
+					w_div.extend (th)
 
 					l_terms := Void
 					if a_content /= Void then
@@ -291,10 +314,11 @@ feature -- Web forms
 						end
 					end
 					create w_voc_set.make
-					w_set.extend (w_voc_set)
+					w_div.extend (w_voc_set)
 
 					if voc.is_tags then
-						w_voc_set.set_legend (cms_api.translation (voc.name, Void))
+						w_voc_set.extend_html_text ("<strong><label>" + cms_api.html_encoded (cms_api.translation (voc.name, Void)) + "</label></strong>")
+--						set_legend (cms_api.translation (voc.name, Void))
 
 						create ti.make ({STRING_32} "taxonomy_" + voc.id.out)
 						w_voc_set.extend (ti)
@@ -317,7 +341,7 @@ feature -- Web forms
 									s.append_character (',')
 									s.append_character (' ')
 								end
-								if ic.item.text.has (' ') then
+								if ic.item.text.has (',') then
 									s.append_character ('"')
 									s.append (t.text)
 									s.append_character ('"')
@@ -335,9 +359,11 @@ feature -- Web forms
 						if not voc.terms.is_empty then
 							if voc.multiple_terms_allowed then
 								if attached voc.description as l_desc then
-									w_voc_set.set_legend (cms_api.html_encoded (l_desc))
+									w_voc_set.extend_html_text ("<strong><label>" + cms_api.html_encoded (l_desc) + "</label></strong>")
+--									w_voc_set.set_legend (cms_api.html_encoded (l_desc))
 								else
-									w_voc_set.set_legend (cms_api.html_encoded (voc.name))
+									w_voc_set.extend_html_text ("<strong><label>" + cms_api.html_encoded (voc.name) + "</label></strong>")
+--									w_voc_set.set_legend (cms_api.html_encoded (voc.name))
 								end
 								across
 									voc as voc_terms_ic
@@ -362,7 +388,8 @@ feature -- Web forms
 								else
 									w_select.set_description (cms_api.html_encoded (voc.name))
 								end
-								w_voc_set.set_legend (cms_api.html_encoded (voc.name))
+								w_voc_set.extend_html_text ("<strong><label>" + cms_api.html_encoded (voc.name) + "</label></strong>")
+--								w_voc_set.set_legend (cms_api.html_encoded (voc.name))
 
 								across
 									voc as voc_terms_ic
@@ -389,9 +416,9 @@ feature -- Web forms
 					attached a_form.fields_by_name ("title") as l_title_fields and then
 					attached l_title_fields.first as l_title_field
 				then
-					a_form.insert_after (w_set, l_title_field)
+					a_form.insert_after (w_div, l_title_field)
 				else
-					a_form.extend (w_set)
+					a_form.extend (w_div)
 				end
 			end
 		end
@@ -510,6 +537,7 @@ feature -- Web forms
 							l_terms as t_ic
 						loop
 							a_output.append ("<li>")
+							a_response.add_keyword (t_ic.item.text)
 							a_response.append_link_to_html (t_ic.item.text, "taxonomy/term/" + t_ic.item.id.out, Void, a_output)
 							a_output.append ("</li>")
 						end

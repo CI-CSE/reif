@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Root class of EiffelCOM Wizard, process arguments and run accordingly."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -44,7 +44,6 @@ feature {NONE} -- Initialization
 			-- Run the program.
 		local
 			l_parser: ARGUMENT_PARSER
-			l_definition_file, l_text: STRING
 			l_layout: WIZARD_EIFFEL_LAYOUT
 		do
 			create l_layout
@@ -67,7 +66,7 @@ feature {NONE} -- Initialization
 			a_parser_attached: a_parser /= Void
 			a_parser_successful: a_parser.is_successful
 		local
-			l_definition_file, l_text: STRING
+			l_definition_file: READABLE_STRING_32
 		do
 			if a_parser.show_graphical_wizard then
 				make_and_launch
@@ -175,11 +174,9 @@ feature {NONE} -- Implementation
 		require
 			non_void_event: a_event /= Void
 		local
-			l_output_event: WIZARD_OUTPUT_EVENT
 			l_underline: STRING
 		do
-			l_output_event ?= a_event
-			if l_output_event /= Void then
+			if attached {WIZARD_OUTPUT_EVENT} a_event as l_output_event then
 				inspect
 					l_output_event.id
 				when {WIZARD_OUTPUT_EVENT_ID}.Display_error then
@@ -214,7 +211,7 @@ feature {NONE} -- Private Access
 		-- Main window of `Current'.
 
 ;note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -227,23 +224,22 @@ feature {NONE} -- Private Access
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
-end -- class WIZARD_APPLICATION
 
-
+end

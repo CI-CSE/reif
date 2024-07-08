@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Command line version for project loading."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -40,8 +40,8 @@ feature {NONE} -- Settings
 	launch_precompile_process (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Launch precompile process `a_command'.
 		local
-			l_prc_factory: PROCESS_FACTORY
-			l_prc_launcher: PROCESS
+			l_prc_factory: BASE_PROCESS_FACTORY
+			l_prc_launcher: BASE_PROCESS
 			l_cmd_line: STRING_32
 			l_exec: EXECUTION_ENVIRONMENT
 		do
@@ -77,14 +77,14 @@ feature {NONE} -- Settings
 	launch_iron_execution (a_iron_cmd: PATH; a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Launch iron process `a_iron_cmd' with `a_arguments'.
 		local
-			l_prc_factory: PROCESS_FACTORY
-			l_prc_launcher: PROCESS
+			l_prc_factory: BASE_PROCESS_FACTORY
+			l_prc_launcher: BASE_PROCESS
 			l_cmd_line: STRING_32
 			l_exec: EXECUTION_ENVIRONMENT
 		do
 			if {PLATFORM}.is_thread_capable then
 				create l_prc_factory
-					-- Launch the iron command in `eiffel_layout.bin_path' (i.e $ISE_EIFFEL/studio/soec/$ISE_PLATFORM/bin)
+					-- Launch the iron command in `eiffel_layout.bin_path' (i.e $ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin)
 					-- to have access to the required DLLs on Windows (libcurl,...).
 				l_prc_launcher := l_prc_factory.process_launcher (a_iron_cmd.name, a_arguments, eiffel_layout.bin_path.name)
 				l_prc_launcher.set_separate_console (False)
@@ -457,7 +457,7 @@ feature {NONE} -- User interaction
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

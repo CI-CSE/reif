@@ -1,5 +1,5 @@
 note
-	description	: "Final state of the wizard."
+	description: "Final state of the wizard."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
 
@@ -9,7 +9,6 @@ class
 inherit
 	BENCH_WIZARD_FINAL_STATE_WINDOW
 		redefine
-			proceed_with_current_info,
 			make,
 			fill_message_and_title_box,
 			build
@@ -31,7 +30,7 @@ feature {NONE} -- Implementation
 			Precursor {BENCH_WIZARD_FINAL_STATE_WINDOW} (an_info)
 		end
 
-feature -- Basic Operations
+feature -- Basic operations
 
 	build
 			-- Special display box for the first and the last state
@@ -39,13 +38,6 @@ feature -- Basic Operations
 			create message_text_field
 			message_text_field.set_background_color (white_color)
 
-			Precursor
-		end
-
-	proceed_with_current_info
-		do
-			project_generator.generate_code
-			write_bench_notification_ok (wizard_information)
 			Precursor
 		end
 
@@ -82,12 +74,6 @@ feature {NONE} -- Implementation
 			message_and_title_box.extend (message_text_field) -- Expandable item
 			message_and_title_box.extend (message)
 			message_and_title_box.disable_item_expand (message)
-		end
-
-	pixmap_icon_location: PATH
-			-- Icon for the Eiffel Dotnet Wizard.
-		once
-			 create Result.make_from_string (Wizard_icon_name + pixmap_extension)
 		end
 
 feature {NONE} -- Constants
@@ -140,11 +126,8 @@ feature {NONE} -- Constants
 			not_empty_message: not Result.is_empty
 		end
 
-	Space: STRING = " ";
-			-- Space
-
 note
-	copyright:	"Copyright (c) 1984-2012, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2016, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -168,11 +151,11 @@ note
 			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Indexable data structure sorters"
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -29,14 +29,8 @@ feature -- Status report
 
 	is_sortable_container (a_container: INDEXABLE [G, INTEGER]): BOOLEAN
 			-- Is `a_container' useable for sorting?
-		local
-			l_interval: INTEGER_INTERVAL
 		do
-			if a_container /= Void then
-					-- A container is valid if it is bounded
-				l_interval := a_container.index_set
-				Result := l_interval.lower_defined and l_interval.upper_defined
-			end
+			Result := attached a_container
 		end
 
 	sorted (a_container: INDEXABLE [G, INTEGER]): BOOLEAN
@@ -51,14 +45,11 @@ feature -- Status report
 			-- Is `a_container' sorted in decreasing order?
 		require
 			valid_container: is_sortable_container (a_container)
-		local
-			a_comparator: REVERSE_PART_COMPARATOR [G]
 		do
 			if a_container.is_empty then
 				Result := True
 			else
-				create a_comparator.make (comparator)
-				Result := sorted_with_comparator (a_container, a_comparator)
+				Result := sorted_with_comparator (a_container, create {REVERSE_PART_COMPARATOR [G]}.make (comparator))
 			end
 		end
 
@@ -68,14 +59,9 @@ feature -- Status report
 		require
 			valid_container: is_sortable_container (a_container)
 			a_comparator_not_void: a_comparator /= Void
-		local
-			l_index_set: INTEGER_INTERVAL
 		do
-			Result := a_container.is_empty
-			if not Result then
-				l_index_set := a_container.index_set
-				Result := subsorted_with_comparator (a_container, a_comparator, l_index_set.lower, l_index_set.upper)
-			end
+			Result := a_container.is_empty or else
+				subsorted_with_comparator (a_container, a_comparator, a_container.lower, a_container.upper)
 		end
 
 	subsorted (a_container: INDEXABLE [G, INTEGER]; lower, upper: INTEGER): BOOLEAN
@@ -153,12 +139,9 @@ feature -- Sort
 			-- Sort `a_container' in decreasing order.
 		require
 			valid_container: is_sortable_container (a_container)
-		local
-			a_comparator: REVERSE_PART_COMPARATOR [G]
 		do
 			if not a_container.is_empty then
-				create a_comparator.make (comparator)
-				sort_with_comparator (a_container, a_comparator)
+				sort_with_comparator (a_container, create {REVERSE_PART_COMPARATOR [G]}.make (comparator))
 			end
 		ensure
 			sorted: reverse_sorted (a_container)
@@ -174,8 +157,7 @@ feature -- Sort
 			l_index_set: INTEGER_INTERVAL
 		do
 			if not a_container.is_empty then
-				l_index_set := a_container.index_set
-				subsort_with_comparator (a_container, a_comparator, l_index_set.lower, l_index_set.upper)
+				subsort_with_comparator (a_container, a_comparator, a_container.lower, a_container.upper)
 			end
 		ensure
 			sorted: sorted_with_comparator (a_container, a_comparator)
@@ -230,14 +212,8 @@ invariant
 	comparator_not_void: comparator /= Void
 
 note
-	copyright: "[
-		Copyright (c) 1984-2009, Eiffel Software and others
-		Copyright (c) 2000, Eric Bezault and others
-		]"
-	license: "[
-		Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)
-		MIT License (see http://www.eiffel.com/licensing/mit.txt)
-		]"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
 			5949 Hollister Ave., Goleta, CA 93117 USA

@@ -26,9 +26,23 @@ feature -- Basic operations
 			is_support_accessible: is_support_accessible
 			is_logged_in: is_logged_in
 			a_report_attached: a_report /= Void
+		local
+			retried: BOOLEAN
 		do
-			last_reported_uri := Void
-			fill_bug_report (a_report)
+			if not retried then
+				last_reported_uri := Void
+				fill_bug_report (a_report)
+			end
+		rescue
+			if
+				attached (create {EXCEPTION_MANAGER}).last_exception as l_exception and then
+				attached l_exception.description as l_description
+			then
+				create {STRING_32} last_error.make_from_string_general (l_description)
+			end
+			is_bad_request := True
+			retried := True
+			retry
 		end
 
 feature -- Access
@@ -50,14 +64,18 @@ feature {NONE} -- Basic operations
 			l_uri_confirm := perform_preview (a_report)
 
 				-- Get CJ confirm template
-			create {STRING} l_value.make_empty
-			l_uri_confirm := confirm_report_uri (l_uri_confirm, l_value)
+			if l_uri_confirm /= Void then
+				create {STRING} l_value.make_empty
+				l_uri_confirm := confirm_report_uri (l_uri_confirm, l_value)
 
-				-- Final Submit
-			perform_submit (l_uri_confirm, l_value)
+					-- Final Submit
+				if l_uri_confirm /= Void then
+					perform_submit (l_uri_confirm, l_value)
+				end
+			end
 		end
 
-	perform_preview (a_report: ESA_SUPPORT_BUG_REPORT): STRING_GENERAL
+	perform_preview (a_report: ESA_SUPPORT_BUG_REPORT): detachable STRING_GENERAL
 			-- Post bug report data, then we can go to the bug report preview page.
 		require
 			is_support_accessible: is_support_accessible
@@ -65,6 +83,7 @@ feature {NONE} -- Basic operations
 		local
 			l_tpl: CJ_TEMPLATE
 			l_data: CJ_DATA
+			lnk: CJ_LINK
 			l_resp: ESA_SUPPORT_RESPONSE
 			ctx: HTTP_CLIENT_REQUEST_CONTEXT
 			l_found: BOOLEAN
@@ -108,7 +127,9 @@ feature {NONE} -- Basic operations
 
 				-- Environment
 			create l_data.make_with_name ("environment")
-			l_data.set_value (a_report.environment)
+			if attached a_report.environment as env then
+				l_data.set_value (env.as_string_32)
+			end
 			l_tpl.add_data (l_data)
 
 				-- Description
@@ -118,7 +139,9 @@ feature {NONE} -- Basic operations
 
 				-- to_reproduce
 			create l_data.make_with_name ("to_reproduce")
-			l_data.set_value (a_report.to_reproduce)
+			if attached a_report.to_reproduce as l_to_reprod then
+				l_data.set_value (l_to_reprod.as_string_32)
+			end
 			l_tpl.add_data (l_data)
 
 				-- attachments
@@ -127,23 +150,42 @@ feature {NONE} -- Basic operations
 			l_tpl.add_data (l_data)
 
 			create ctx.make
-			if last_username /= Void and last_password /= Void then
-				if attached basic_auth (last_username, last_password) as l_auth then
+			if attached last_username as u and attached last_password as p then
+				if attached basic_auth (u, p) as l_auth then
 					ctx.add_header ("Authorization", l_auth)
 				end
 			end
 
-			l_resp := create_with_template (report_form_uri, l_tpl, ctx)
-
-			if l_resp.status /= 200 then
-				(create {EXCEPTIONS}).raise ("Connection error: HTTP Status " + l_resp.status.out)
+			if attached report_form_uri as l_report_form_uri then
+				l_resp := create_with_template (l_report_form_uri, l_tpl, ctx)
 			else
-				if attached l_resp.collection as l_col then
-					across l_col.links as ic until l_found
+				check has_report_form_uri: False end
+			end
+
+			if l_resp = Void then
+				(create {EXCEPTIONS}).raise ("Connection error: missing URL for the report form.")
+			elseif l_resp.status /= 200 then
+				if attached l_resp.http_response as l_message then
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP " + l_message)
+				else
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP Status" + l_resp.status.out)
+				end
+			else
+				if attached l_resp.collection as l_col and then attached l_col.links as l_links then
+					across
+						l_links as ic
+					until
+						l_found
 					loop
-						if ic.item.rel.same_string ("create") and then ic.item.prompt.same_string("Confirm Report") then
-							l_found := True
-							create {STRING_32} Result.make_from_string (ic.item.href)
+						lnk := ic.item
+						if lnk.rel.same_string ("create") then
+							if
+								attached lnk.prompt as lnk_prompt and then
+								lnk_prompt.same_string("Confirm Report")
+							then
+								l_found := True
+								create {STRING_32} Result.make_from_string (lnk.href)
+							end
 						end
 					end
 					if Result = Void then
@@ -165,14 +207,13 @@ feature {NONE} -- Basic operations
 	 		not_a_target_url_is_empty: not a_target_url.is_empty
 	 		a_value_attached: a_value /= Void
 	 		not_a_value_is_emoty: not a_value.is_empty
-	 			local
+	 	local
 			l_tpl: CJ_TEMPLATE
 			l_data: CJ_DATA
 			l_resp: ESA_SUPPORT_RESPONSE
 			ctx: HTTP_CLIENT_REQUEST_CONTEXT
 		do
 			create l_tpl.make
-
 
 				-- confirm
 			create l_data.make_with_name ("confirm")
@@ -181,18 +222,22 @@ feature {NONE} -- Basic operations
 
 
 			create ctx.make
-			if last_username /= Void and last_password /= Void then
-				if attached basic_auth (last_username, last_password) as l_auth then
+			if attached last_username as u and then attached last_password as p then
+				if attached basic_auth (u, p) as l_auth then
 					ctx.add_header ("Authorization", l_auth)
 				end
 			end
 
 			l_resp := create_with_template (a_target_url, l_tpl, ctx)
 			if l_resp.status /= 200 then
-				(create {EXCEPTIONS}).raise ("Connection error: HTTP Status " + l_resp.status.out)
+				if attached l_resp.http_response as l_message then
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP " + l_message)
+				else
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP Status" + l_resp.status.out)
+				end
 			else
 				if attached l_resp.collection as l_col then
-					if attached {ARRAYED_LIST[CJ_ITEM]} l_col.items as l_items and then
+					if attached {ARRAYED_LIST [CJ_ITEM]} l_col.items as l_items and then
 					   not l_items.is_empty and then l_items.count > 1
 					then
 						last_reported_uri := l_items.at (1).href
@@ -204,7 +249,7 @@ feature {NONE} -- Basic operations
 
 feature {NONE} -- Html contents
 
-	confirm_report_uri (a_uri: STRING_GENERAL; a_value: STRING_GENERAL): STRING_GENERAL
+	confirm_report_uri (a_uri: STRING_GENERAL; a_value: STRING_GENERAL): detachable STRING_GENERAL
 			-- Confirm report URI `a_uri' and set the value.
 		require
 			a_uri_not_void: a_uri /= Void
@@ -214,26 +259,42 @@ feature {NONE} -- Html contents
 			ctx : HTTP_CLIENT_REQUEST_CONTEXT
 			l_resp: ESA_SUPPORT_RESPONSE
 			l_found: BOOLEAN
+			l_data: CJ_DATA
 		do
 			create ctx.make
-			if attached basic_auth (last_username, last_password) as l_auth then
+			if
+				attached last_username as u and then attached last_password as p and then
+				attached basic_auth (u, p) as l_auth
+			then
 				ctx.add_header ("Authorization", l_auth)
 			end
 
 			l_resp := get (a_uri, ctx)
 
 			if l_resp.status /= 200 then
-				(create {EXCEPTIONS}).raise ("Connection error: HTTP Status " + l_resp.status.out)
+				if attached l_resp.http_response as l_message then
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP " + l_message)
+				else
+					(create {EXCEPTIONS}).raise ("Connection error: HTTP Status" + l_resp.status.out)
+				end
 			else
 				if attached l_resp.collection as l_col then
 					create {STRING_32} Result.make_from_string (l_col.href)
-					if attached l_col.template as l_template and then
-					   attached l_template.data as l_data
+					if
+						attached l_col.template as l_template and then
+					  	attached l_template.data as l_data_list
 					then
-						across l_data as ic until l_found
+						across
+							l_data_list as ic
+						until
+							l_found
 						loop
-							if ic.item.name.same_string ("confirm") then
-								a_value.append (ic.item.value)
+							l_data := ic.item
+							if
+								l_data.name.same_string ("confirm") and then
+								attached l_data.value as val
+							then
+								a_value.append (val)
 								l_found := True
 							end
 						end
@@ -246,7 +307,7 @@ feature {NONE} -- Html contents
 
 feature -- Access
 
-	report_form_uri: STRING_8
+	report_form_uri: detachable STRING_8
 			-- Report form URI.
 		do
 			Result := retrieve_url ("create_report_form", "Report a Problem")

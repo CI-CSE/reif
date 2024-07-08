@@ -1,4 +1,4 @@
-indexing
+note
 
 	description:
 		"The objects available from the operating system";
@@ -12,55 +12,65 @@ class OPERATING_ENVIRONMENT
 
 feature
 
-	Directory_separator: CHARACTER is
+	Directory_separator: CHARACTER
 			-- Character used to separate subdirectories in a path name on this platform.
 			--| To build portable path names, use PATH_NAME and its descendants.
 		once
 			Result := c_dir_separator
 		end
 
-	Current_directory_name_representation: STRING is
+	Current_directory_name_representation: STRING
 			-- Representation of the current directory
 		once
 			Result := eif_current_dir_representation
 		end
 
-	home_directory_supported: BOOLEAN is
+	home_directory_supported: BOOLEAN
 			-- Is the notion of home directory supported on this platform?
 		external
 			"C | %"eif_path_name.h%""
 		alias
 			"eif_home_dir_supported"
+		ensure
+			is_class: class
 		end
 
-	root_directory_supported: BOOLEAN is
+	root_directory_supported: BOOLEAN
 			-- Is the notion of root directory supported on this platform?
 		external
 			"C | %"eif_path_name.h%""
 		alias
 			"eif_root_dir_supported"
+		ensure
+			is_class: class
 		end
 
-	case_sensitive_path_names: BOOLEAN is
+	case_sensitive_path_names: BOOLEAN
 			-- Are path names case sensitive?
 		external
 			"C | %"eif_path_name.h%""
 		alias
 			"eif_case_sensitive_path_names"
+		ensure
+			is_class: class
 		end
 
 feature {NONE} -- Implementation
 
-	c_dir_separator: CHARACTER is
+	c_dir_separator: CHARACTER
 		external
 			"C | %"eif_dir.h%""
 		alias
 			"eif_dir_separator"
+		ensure
+			is_class: class
 		end
 
-	eif_current_dir_representation: STRING is
+	eif_current_dir_representation: STRING
 		external
 			"C | %"eif_path_name.h%""
+		ensure
+			is_class: class
 		end
 
 end -- class OPERATING_ENVIRONMENT

@@ -254,7 +254,6 @@ rt_private EIF_TYPE rt_thd_gen_param (EIF_TYPE_INDEX , uint32);
 rt_private EIF_TYPE_INDEX rt_thd_typeof_array_of (EIF_TYPE);
 rt_private EIF_TYPE_INDEX rt_thd_typeof_type_of (EIF_TYPE);
 rt_private EIF_TYPE_INDEX *rt_thd_gen_cid (EIF_TYPE, int);
-rt_private EIF_TYPE_INDEX rt_thd_gen_id_from_cid (EIF_TYPE_INDEX *, EIF_TYPE_INDEX *, int);
 rt_private int rt_thd_gen_conf2 (EIF_TYPE, EIF_TYPE);
 rt_private char *rt_thd_typename(EIF_TYPE);
 rt_private EIF_REFERENCE rt_thd_typename_of_type(EIF_TYPE);
@@ -395,18 +394,6 @@ rt_shared EIF_TYPE_INDEX *eif_gen_cid (EIF_TYPE a_dftype, int use_old_annotation
 }
 /*------------------------------------------------------------------*/
 
-rt_shared EIF_TYPE_INDEX eif_gen_id_from_cid (EIF_TYPE_INDEX *a_cidarr, EIF_TYPE_INDEX *dtype_map, int count)
-{
-	EIF_TYPE_INDEX   result;
-
-	EIFMTX_LOCK;
-	result = rt_thd_gen_id_from_cid (a_cidarr, dtype_map, count);
-	EIFMTX_UNLOCK;
-
-	return result;
-}
-/*------------------------------------------------------------------*/
-
 rt_public int eif_gen_conf2 (EIF_TYPE source_type, EIF_TYPE target_type)
 {
 	int result;
@@ -455,7 +442,6 @@ rt_public char * eif_typename_of_type (EIF_TYPE ftype)
 #define eif_typeof_array_of       rt_thd_typeof_array_of
 #define rt_typeof_type_of        rt_thd_typeof_type_of
 #define eif_gen_cid               rt_thd_gen_cid
-#define eif_gen_id_from_cid       rt_thd_gen_id_from_cid
 #define eif_gen_conf2             rt_thd_gen_conf2
 #define eif_typename              rt_thd_typename
 #define eif_typename_of_type      rt_thd_typename_of_type
@@ -1056,50 +1042,6 @@ rt_shared EIF_TYPE_INDEX *eif_gen_cid (EIF_TYPE a_dftype, int use_old_annotation
 	return gdp->gen_seq;
 }
 /*------------------------------------------------------------------*/
-/* Create an id from a type array 'a_cidarr'. If 'dtype_map' is not   */
-/* NULL, use it to map old to new dtypes ('retrieve')               */
-/* Format:                                                          */
-/* First entry: count                                               */
-/* Then 'count' type ids, then TERMINATOR                           */
-/*------------------------------------------------------------------*/
-
-rt_shared EIF_TYPE_INDEX eif_gen_id_from_cid (EIF_TYPE_INDEX *a_cidarr, EIF_TYPE_INDEX *dtype_map, int count)
-{
-	EIF_TYPE_INDEX i, dtype;
-
-	REQUIRE ("Valid cid array", a_cidarr);
-	REQUIRE ("Valid cid array count", count > 1);
-	REQUIRE ("Valid cid array terminator", a_cidarr [count] == TERMINATOR);
-
-	if (dtype_map) {
-			/* We need to map old dtypes to new dtypes */
-		for (i = 0; i < count; i++) {
-			dtype = a_cidarr [i];
-
-				/* Read annotation if any. */
-			while (RT_CONF_HAS_ANNOTATION_TYPE_IN_ARRAY(dtype)) {
-				i++;
-				dtype = a_cidarr [i];
-			}
-
-			if (dtype <= MAX_DTYPE) {
-				a_cidarr [i] = dtype_map[dtype];
-			} else if (dtype == TUPLE_TYPE) {
-					/* We simply skip number of generic
-					 * parameters of the tuple as they are not really used
-					 * and only update TUPLE dynamic type */
-				i = i + TUPLE_OFFSET;
-				a_cidarr [i]  = dtype_map [a_cidarr [i]];
-			} else if (dtype == FORMAL_TYPE) {
-					/* We skip formal position. */
-				i++;
-			}
-		}
-	}
-	return eif_compound_id (0, a_cidarr).id;
-}
-
-/*------------------------------------------------------------------*/
 /* Conformance test. Does `source_type' conform to `target_type'?   */
 /* This only applies to instantiated type.                          */
 /*                                                                  */
@@ -1136,7 +1078,7 @@ rt_public int eif_gen_conf2 (EIF_TYPE stype, EIF_TYPE ttype)
 			/* Target is not expanded and not NONE, but source is NONE.
 			 * It only conforms if target is detachable. */
 		CHECK("NONE type", RT_CONF_IS_NONE_TYPE(stype.id));
-		return RT_CONF_IS_DETACHABLE_FLAG(ttype.annotations) || !RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(ttype.annotations);
+		return RT_CONF_IS_DETACHABLE_FLAG(ttype.annotations) || !RT_CONF_HAS_ATTACHMENT_MARK_FLAG(ttype.annotations);
 	} else {
 		if (EIF_IS_EXPANDED_TYPE(System(eif_cid_map[stype.id]))) {
 				/* Source is expanded, we force the attachment mark, otherwise
@@ -1145,7 +1087,7 @@ rt_public int eif_gen_conf2 (EIF_TYPE stype, EIF_TYPE ttype)
 				* that this is because in `rt_id_of' we clear the annotations when
 				* type is expanded. We clear it to maintain as much backward compatibility
 				* with existing code. */
-			CHECK("no attachment marks", !RT_CONF_HAS_ATTACHEMENT_MARK_FLAG(stype.annotations) || RT_CONF_IS_ATTACHED_FLAG(stype.annotations));
+			CHECK("no attachment marks", !RT_CONF_HAS_ATTACHMENT_MARK_FLAG(stype.annotations) || RT_CONF_IS_ATTACHED_FLAG(stype.annotations));
 			stype.annotations |= ATTACHED_FLAG;
 		}
 			/* If `nnotations are not compatible, the types are not conforming. */
@@ -1708,15 +1650,23 @@ rt_private EIF_TYPE rt_id_of (struct rt_id_of_context *a_context, const EIF_TYPE
 			result.id = gdp->dftype;
 		}
 	} else {
-			/* Perform some normalization on annotations. */
-		l_dtype = eif_cid_map[result.id];
-		if (EIF_IS_EXPANDED_TYPE(System (l_dtype))) {
-				/* Type was computed and is expanded, it does not carry the attachment mark.
-				 * See eweasel test#reflection005 when processing A [C [STRING], ANY]. */
-			result.annotations &= ~(DETACHABLE_FLAG | ATTACHED_FLAG | FROZEN_FLAG);
-		} else if (EIF_IS_FROZEN_TYPE(System (l_dtype))) {
-				/* Type is a frozen class, no need for the frozen annotation. */
-			result.annotations &= ~FROZEN_FLAG;
+			/* Perform some normalization on annotations if type is not NONE.
+			 * See eweasel test#exec373.
+			 */
+		if (result.id <= MAX_DTYPE)
+		{
+			l_dtype = eif_cid_map[result.id];
+			if (EIF_IS_EXPANDED_TYPE(System (l_dtype))) {
+					/* Type was computed and is expanded, it does not carry the attachment mark.
+					 * See eweasel test#reflection005 when processing A [C [STRING], ANY]. */
+				result.annotations &= ~(DETACHABLE_FLAG | ATTACHED_FLAG | FROZEN_FLAG);
+			} else if (EIF_IS_FROZEN_TYPE(System (l_dtype))) {
+					/* Type is a frozen class, no need for the frozen annotation. */
+				result.annotations &= ~FROZEN_FLAG;
+			}
+		} else {
+			CHECK("NONE type", RT_CONF_IS_NONE_TYPE(result.id));
+			/* FIXME: If it has the frozen flag, should we clean it? */
 		}
 	}
 
@@ -2480,7 +2430,22 @@ rt_private void rt_put_gen_seq (EIF_TYPE a_type, EIF_TYPE_INDEX *a_types, EIF_TY
 
 rt_public EIF_BOOLEAN eif_is_attached_type2 (EIF_TYPE ftype)
 {
-	return EIF_TEST(RT_CONF_IS_ATTACHED_FLAG(ftype.annotations)); 
+		/* A type is attached if it is marked attached or if it is expanded. */
+	return EIF_TEST(RT_CONF_IS_ATTACHED_FLAG(ftype.annotations) ||
+		EIF_IS_EXPANDED_TYPE(System(eif_cid_map[ftype.id])));
+}
+
+/*------------------------------------------------------------------*/
+/* Compute if `dftype' represents a deferred type                   */
+/*------------------------------------------------------------------*/
+
+rt_public EIF_BOOLEAN eif_gen_is_deferred (EIF_TYPE_INDEX dftype)
+{
+	if (RT_CONF_IS_NONE_TYPE(dftype)) {
+		return EIF_FALSE;
+	} else {
+		return EIF_TEST(EIF_IS_DEFERRED_TYPE(System(eif_cid_map[dftype])));
+	}
 }
 
 /*------------------------------------------------------------------*/
@@ -2498,8 +2463,7 @@ rt_public EIF_BOOLEAN eif_gen_has_default (EIF_TYPE ftype)
 }
 
 /*------------------------------------------------------------------*/
-/* Compute if `dftype' has a default value, i.e. detachable         */
-/* reference type or expanded type.                                 */
+/* Compute if `dftype' represents an expanded type                  */
 /*------------------------------------------------------------------*/
 
 rt_public EIF_BOOLEAN eif_gen_is_expanded (EIF_TYPE_INDEX dftype)
@@ -2538,8 +2502,12 @@ rt_public EIF_TYPE eif_non_attached_type2 (EIF_TYPE ftype)
 
 rt_public EIF_TYPE eif_attached_type2 (EIF_TYPE ftype)
 {
-	ftype.annotations &= ~DETACHABLE_FLAG;
-	ftype.annotations |= ATTACHED_FLAG;
+	if (EIF_IS_EXPANDED_TYPE(System(eif_cid_map[ftype.id]))) {
+		CHECK("No marks", !RT_CONF_HAS_ATTACHMENT_MARK_FLAG(ftype.annotations));
+	} else {
+		ftype.annotations &= ~DETACHABLE_FLAG;
+		ftype.annotations |= ATTACHED_FLAG;
+	}
 	return ftype;
 }
 

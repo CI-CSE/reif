@@ -105,6 +105,20 @@ feature -- Access: Config Reader
 				end
 			end
 		end
+	
+	table_keys (k: READABLE_STRING_GENERAL): detachable LIST [READABLE_STRING_32]
+			-- <Precursor>
+		do
+			if attached {JSON_OBJECT} item (k) as obj then
+				create {ARRAYED_LIST [READABLE_STRING_32]} Result.make (obj.count)
+				Result.compare_objects
+				across
+					obj as ic
+				loop
+					Result.force (ic.key.item)
+				end
+			end
+		end
 
 	integer_item (k: READABLE_STRING_GENERAL): INTEGER
 			-- Integer item associated with key `k'.
@@ -134,7 +148,9 @@ feature -- Access
 			-- `k' can be a single name such as "foo",
 			-- or a qualified name such as "foo.bar" (assuming that "foo" is associated with a JSON object).
 		do
-			if attached json_value as obj then
+			if k.is_empty then
+				Result := json_value
+			elseif attached json_value as obj then
 				Result := object_json_value (obj, k.to_string_32)
 			end
 		end

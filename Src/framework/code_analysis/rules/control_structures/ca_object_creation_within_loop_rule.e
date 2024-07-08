@@ -37,6 +37,9 @@ feature {NONE} -- Activation
 
 feature -- Properties
 
+	name: STRING = "creation_in_loop"
+			-- <Precursor>
+
 	title: STRING_32
 		do
 			Result := ca_names.object_creation_within_loop_title

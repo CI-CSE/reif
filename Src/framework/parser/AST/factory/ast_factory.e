@@ -462,9 +462,6 @@ feature {NONE} -- Validation
 			a_psr_not_void: a_psr /= Void
 		do
 				-- We cannot validate the name easily, so we assume it is correct.
-			if for_integer then
-			else
-			end
 			is_valid_integer_real := True
 		end
 
@@ -992,10 +989,11 @@ feature -- Access
 	set_expanded_class_type (a_type: detachable TYPE_AS; is_expanded: BOOLEAN; s_as: detachable KEYWORD_AS)
 			-- Set expanded status of `a_type' if it is an instance of CLASS_TYPE_AS.
 		do
-			if is_expanded then
-				if attached {CLASS_TYPE_AS} a_type as l_class_type then
-					l_class_type.set_is_expanded (True, s_as)
-				end
+			if
+				is_expanded and then
+				attached {CLASS_TYPE_AS} a_type as l_class_type
+			then
+				l_class_type.set_is_expanded (True, s_as)
 			end
 		end
 
@@ -1195,6 +1193,16 @@ feature -- Access
 			list_full: Result /= Void implies Result.capacity = n and Result.all_default
 		end
 
+	new_eiffel_list_feature_name_id (n: INTEGER): detachable EIFFEL_LIST [FEAT_NAME_ID_AS]
+			-- New empty list of `{FEATURE_NAME_ID_AS}`.
+		require
+			n_non_negative: n >= 0
+		do
+			create Result.make_filled (n)
+		ensure
+			list_full: Result /= Void implies Result.capacity = n and Result.all_default
+		end
+
 	new_eiffel_list_formal_dec_as (n: INTEGER): detachable FORMAL_GENERIC_LIST_AS
 			-- New empty list of FORMAL_DEC_AS
 		require
@@ -1351,16 +1359,16 @@ feature -- Access
 			end
 		end
 
-	new_ensure_as (a: detachable EIFFEL_LIST [TAGGED_AS]; k_as: detachable KEYWORD_AS): detachable ENSURE_AS
+	new_ensure_as (a: detachable EIFFEL_LIST [TAGGED_AS]; c: BOOLEAN; k_as: detachable KEYWORD_AS): detachable ENSURE_AS
 			-- New ENSURE AST node
 		do
-			create Result.make (a, k_as)
+			create Result.make (a, c, k_as)
 		end
 
-	new_ensure_then_as (a: detachable EIFFEL_LIST [TAGGED_AS]; k_as, l_as: detachable KEYWORD_AS): detachable ENSURE_THEN_AS
+	new_ensure_then_as (a: detachable EIFFEL_LIST [TAGGED_AS]; c: BOOLEAN; k_as, l_as: detachable KEYWORD_AS): detachable ENSURE_THEN_AS
 			-- New ENSURE THEN AST node
 		do
-			create Result.make (a, k_as, l_as)
+			create Result.make (a, c, k_as, l_as)
 		end
 
 	new_export_item_as (c: detachable CLIENT_AS; f: detachable FEATURE_SET_AS): detachable EXPORT_ITEM_AS
@@ -1453,7 +1461,7 @@ feature -- Access
 			end
 		end
 
-	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEATURE_NAME]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
+	new_formal_dec_as (f: detachable FORMAL_AS; c: detachable CONSTRAINT_LIST_AS; cf: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as: detachable SYMBOL_AS; ck_as, ek_as: detachable KEYWORD_AS): detachable FORMAL_DEC_AS
 			-- New FORMAL_DECLARATION AST node
 		do
 			if f /= Void then
@@ -1609,11 +1617,13 @@ feature -- Access
 			create Result.initialize (a, once_manifest_string_count, i_as, object_test_locals)
 		end
 
-	new_iteration_as (a: detachable KEYWORD_AS; e: detachable EXPR_AS; b: detachable KEYWORD_AS; i: detachable ID_AS): detachable ITERATION_AS
-			-- New ITERATION AST node
+	new_iteration_as (a: detachable KEYWORD_AS; e: detachable EXPR_AS; b: detachable KEYWORD_AS; i: detachable ID_AS; is_restricted: BOOLEAN): detachable ITERATION_AS
+			-- New ITERATION AST node for an iteration part of a loop in the form
+			-- 	across expr as x -- when `not is_resticted`
+			-- 	across expr is x -- when `is_resticted`
 		do
 			if e /= Void and i /= Void then
-				create Result.initialize (a, e, b, i)
+				create Result.initialize (a, e, b, i, is_restricted)
 			end
 		end
 
@@ -1835,15 +1845,15 @@ feature -- Access
 			l: detachable LOCAL_DEC_LIST_AS; b: detachable ROUT_BODY_AS; po: detachable ENSURE_AS;
 			r: detachable EIFFEL_LIST [INSTRUCTION_AS]; end_loc: detachable KEYWORD_AS;
 			oms_count, a_pos: INTEGER; k_as, r_as: detachable KEYWORD_AS;
-			object_test_locals: detachable ARRAYED_LIST [TUPLE [ID_AS, TYPE_AS]]): detachable ROUTINE_AS
-
-			-- New ROUTINE AST node
+			object_test_locals: detachable ARRAYED_LIST [TUPLE [ID_AS, TYPE_AS]];
+			n, a, u: BOOLEAN): detachable ROUTINE_AS
+			-- New ROUTINE AST node.
 		require
 			valid_oms_count: oms_count >= 0
 			a_pos_positive: a_pos > 0
 		do
 			if b /= Void and end_loc /= Void then
-				create Result.initialize (o, pr, l, b, po, r, end_loc, oms_count, a_pos, k_as, r_as, object_test_locals)
+				create Result.initialize (o, pr, l, b, po, r, end_loc, oms_count, a_pos, k_as, r_as, object_test_locals, n, a, u)
 			end
 		end
 
@@ -1876,10 +1886,12 @@ feature -- Access
 			end
 		end
 
-	new_tagged_as (t: detachable ID_AS; e: detachable EXPR_AS; s_as: detachable SYMBOL_AS): detachable TAGGED_AS
+	new_tagged_as (t: detachable ID_AS; e: detachable EXPR_AS; c: detachable KEYWORD_AS; s_as: detachable SYMBOL_AS): detachable TAGGED_AS
 			-- New TAGGED AST node
 		do
-			if t /= Void or e /= Void then
+			if attached c then
+				create Result.make_class (t, c, s_as)
+			elseif t /= Void or e /= Void then
 				create Result.initialize (t, e, s_as)
 			end
 		end
@@ -2086,7 +2098,7 @@ feature -- Access
 			end
 		end
 
-	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEATURE_NAME]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
+	new_creation_constrain_triple (fl: detachable EIFFEL_LIST [FEAT_NAME_ID_AS]; c_as, e_as: detachable KEYWORD_AS): detachable CREATION_CONSTRAIN_TRIPLE
 			-- New CREATION_CONSTRAIN_TRIPLE object
 		do
 			create Result.make (fl, c_as, e_as)
@@ -2101,9 +2113,12 @@ feature {NONE} -- Implementation
 		end
 
 note
+	ca_ignore:
+		"CA011", "CA011 — too many arguments",
+		"CA033", "CA033 — very long class"
 	date: "$Date$"
 	revision: "$Revision$"
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

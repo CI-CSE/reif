@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #49: Comparison of object references
 	
@@ -37,6 +37,9 @@ feature {NONE} -- Activation
 		end
 
 feature -- Properties
+
+	name: STRING = "reference_comparison"
+			-- <Precursor>
 
 	title: STRING_32
 		do

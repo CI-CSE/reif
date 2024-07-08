@@ -609,7 +609,7 @@ feature -- Builtin implementations for Eiffel classes, see Eiffel classes for co
 	{
 		object Result = null;
 		identified_mutex.WaitOne();
-		if (an_id <= identified_list.Count) {
+		if (an_id > 0 && an_id <= identified_list.Count) {
 			WeakReference wr = identified_list [an_id - 1];
 			if (wr != null) {
 				Result = wr.Target;
@@ -667,6 +667,9 @@ feature -- Builtin implementations for Eiffel classes, see Eiffel classes for co
 	}
 	public static bool builtin_PLATFORM_is_vxworks () {
 		return false;
+	}
+	public static bool builtin_PLATFORM_is_64_bits () {
+		return IntPtr.Size == 8;
 	}
 	public static int builtin_PLATFORM_boolean_bytes () {
 		return 1;

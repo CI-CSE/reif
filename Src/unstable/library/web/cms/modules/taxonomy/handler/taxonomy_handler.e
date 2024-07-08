@@ -136,15 +136,25 @@ feature -- HTTP Methods
 							end
 							s.append ("</ul>%N")
 						end
+						if attached taxonomy_api.vocabularies_for_term (t) as voc_coll then
+							across
+								voc_coll as voc_ic
+							loop
+								s.append ("<div>Other <a href=%"" + api.location_url ("taxonomy/vocabulary/" + voc_ic.item.id.out, Void) + "%">"+ html_encoded (voc_ic.item.name) +"</a> ...</div>")
+							end
+						end
 					else
+						if taxonomy_api.error_handler.has_error then
+							l_page.add_error_message ({STRING_32} "Query error: " + taxonomy_api.error_handler.as_string_representation)
+						end
 						s.append ("No entity found.")
 					end
 					l_page.set_main_content (s)
+					l_page.execute
 				else
 						-- Responding with `main_content_html (l_page)'.
-					create {NOT_FOUND_ERROR_CMS_RESPONSE} l_page.make (req, res, api)
+					send_not_found (req, res)
 				end
-				l_page.execute
 			else
 					-- Responding with `main_content_html (l_page)'.
 				create {BAD_REQUEST_ERROR_CMS_RESPONSE} l_page.make (req, res, api)

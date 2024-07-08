@@ -9,7 +9,7 @@ class
 	CMS_USER_PROFILE
 
 inherit
-	TABLE_ITERABLE [READABLE_STRING_8, READABLE_STRING_GENERAL]
+	TABLE_ITERABLE [READABLE_STRING_32, READABLE_STRING_GENERAL]
 
 create
 	make
@@ -24,23 +24,39 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	item (k: READABLE_STRING_GENERAL): detachable READABLE_STRING_8
-			-- Profile item associated with key `k'.
+	item alias "[]" (k: READABLE_STRING_GENERAL): detachable READABLE_STRING_32
+			-- Profile item associated with key `k`.
 		do
 			Result := items.item (k)
 		end
 
+	has_key (k: READABLE_STRING_GENERAL): BOOLEAN
+			-- Has a profile item associated with key `k`?
+		do
+			Result := items.has (k)
+		end
+
+	count: INTEGER
+		do
+			Result := items.count
+		end
+
+	is_empty: BOOLEAN
+		do
+			Result := items.is_empty
+		end
+
 feature -- Change
 
-	force (v: READABLE_STRING_8; k: READABLE_STRING_GENERAL)
-			-- Associated value `v' with key `k'.
+	force (v: READABLE_STRING_GENERAL; k: READABLE_STRING_GENERAL)
+			-- Associated value `v` with key `k`.
 		do
-			items.force (v, k)
+			items.force (v.to_string_32, k)
 		end
 
 feature -- Access
 
-	new_cursor: TABLE_ITERATION_CURSOR [READABLE_STRING_8, READABLE_STRING_GENERAL]
+	new_cursor: TABLE_ITERATION_CURSOR [READABLE_STRING_32, READABLE_STRING_GENERAL]
 			-- Fresh cursor associated with current structure
 		do
 			Result := items.new_cursor
@@ -48,7 +64,7 @@ feature -- Access
 
 feature {NONE} -- Implementation				
 
-	items: STRING_TABLE [READABLE_STRING_8]
+	items: STRING_TABLE [READABLE_STRING_32]
 
 ;note
 	copyright: "2011-2014, Javier Velilla, Jocelyn Fiat, Eiffel Software and others"

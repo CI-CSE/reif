@@ -49,6 +49,9 @@ feature -- Services
 			--a_container.register_with_activator ({STATUS_BAR_S}, agent new_status_bar_service, False)
 			a_container.register_with_activator ({WIZARD_ENGINE_S}, agent new_wizard_service, False)
 			a_container.register_with_activator ({BLACKBOARD_S}, agent new_blackboard_service, False)
+			a_container.register_with_activator ({ES_CODE_TEMPLATE_CATALOG_S}, agent new_es_code_template_catalog_service, False)
+			a_container.register_with_activator ({CODE_ANALYZER_S [STONE, CA_RULE_VIOLATION]}, agent new_code_analyzer_service, False)
+			a_container.register_with_activator ({ES_CLOUD_S}, agent new_es_cloud_service, False)
 		end
 
 feature {NONE} -- Factory
@@ -59,6 +62,17 @@ feature {NONE} -- Factory
 			create {CODE_TEMPLATE_CATALOG} Result.make
 			if Result.is_interface_usable then
 				register_code_template_catalogs (Result)
+			end
+		ensure
+			result_is_interface_usable: Result /= Void implies Result.is_interface_usable
+		end
+
+	new_es_code_template_catalog_service: detachable ES_CODE_TEMPLATE_CATALOG_S
+			-- Creates the code templates catalog service.
+		do
+			create {ES_CODE_TEMPLATE_CATALOG} Result.make
+			if Result.is_interface_usable then
+				register_es_code_template_catalogs (Result)
 			end
 		ensure
 			result_is_interface_usable: Result /= Void implies Result.is_interface_usable
@@ -132,6 +146,21 @@ feature {NONE} -- Factory
 				Result.register_tool (create {EBB_CA_TOOL})
 				create l_cluster_observer
 				l_cluster_observer.manager.extend (l_cluster_observer)
+		end
+
+	new_code_analyzer_service: detachable CODE_ANALYZER_S [STONE, CA_RULE_VIOLATION]
+			-- Creates a code analyzer service.
+		do
+			create {CODE_ANALYZER} Result.make
+		ensure
+			result_is_interface_usable: Result.is_interface_usable
+		end
+
+	new_es_cloud_service: detachable ES_CLOUD_S
+			-- New EiffelStudio cloud service.
+		do
+			if preferences.misc_data.es_cloud_enabled then
+				Result := (create {ES_CLOUD_FACTORY}).new_es_cloud
 			end
 		end
 
@@ -155,16 +184,31 @@ feature {NONE} -- Registering: Code templates
 			-- ...
 		end
 
+	register_es_code_template_catalogs (a_service: ES_CODE_TEMPLATE_CATALOG_S)
+			-- Extends the build in paths to the code template catalog service.
+			--
+			-- `a_service': The service to extend with the build in catalog paths.
+		require
+			a_service_attached: a_service /= Void
+			a_service_is_interface_usable: a_service.is_interface_usable
+		do
+				-- Top level catalog
+			a_service.extend_catalog (eiffel_layout.templates_path)
+
+				-- User templates catalog
+			a_service.extend_catalog (eiffel_layout.user_templates_path)
+
+				-- Should add user-preference paths here.
+			-- ...
+		end
+
 feature {NONE} -- Registeration: Environemtn
 
 	register_environment_variables (a_service: ENVIRONMENT_S)
 			-- <Precursor>
 		do
+			Precursor (a_service)
 				-- Add the environment variables used for the external URIs
-			a_service.set_environment_variable ("http://dev.eiffel.com", "ISE_WIKI")
-			a_service.set_environment_variable ("http://www.eiffelroom.com", "EIFFELROOM")
-			a_service.set_environment_variable ("http://doc.eiffel.com", "ISE_DOC")
-			a_service.set_environment_variable ("http://doc.eiffel.com/isedoc/uuid", "ISE_DOC_UUID")
 		end
 
 feature {NONE} -- Registration: Help
@@ -238,7 +282,7 @@ feature {NONE} -- Internationalization
 	lb_external_compilation: STRING = "External Compilation"
 
 ;note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

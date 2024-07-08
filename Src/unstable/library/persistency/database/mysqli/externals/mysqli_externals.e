@@ -1012,6 +1012,8 @@ feature{MYSQLI_EXTERNALS} -- Sizes of Structs
 			"C inline use %"mysql.h%""
 		alias
 			"return (EIF_INTEGER)sizeof(MYSQL_BIND)"
+		ensure
+			is_class: class
 		end
 
 	size_of_mysql_time_struct: INTEGER
@@ -2103,7 +2105,7 @@ feature{MYSQLI_EXTERNALS} -- Struct: MYSQL_TIME
 
 feature{MYSQLI_EXTERNALS} -- Client Error Codes
 
-	c_error_code_to_message (a_code: INTEGER): attached STRING
+	c_error_code_to_message (a_code: INTEGER): STRING
 			-- Client Error Codes and Messages
 			-- http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
 		do

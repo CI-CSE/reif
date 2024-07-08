@@ -27,6 +27,7 @@ description: "WEL: library of reusable components for Windows."
 
 #include <windows.h>
 #include <commctrl.h>
+#include <Shellapi.h>
 
 #include "eif_eiffel.h"
 #include "wel_lang.h"
@@ -95,8 +96,8 @@ extern "C" {
 
 #endif
 
-#define cwel_pointer_to_integer(_ptr_) ((EIF_INTEGER) _ptr_)
-#define cwel_integer_to_pointer(_int_) ((EIF_POINTER) _int_)
+#define cwel_pointer_to_integer(_ptr_) ((EIF_INTEGER) (rt_uint_ptr) _ptr_)
+#define cwel_integer_to_pointer(_int_) ((EIF_POINTER) (rt_uint_ptr) _int_)
 
 #define cwel_temp_dialog_value (0x01)
 

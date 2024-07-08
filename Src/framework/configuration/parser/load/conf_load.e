@@ -25,6 +25,8 @@ feature {NONE} -- Initialization
 		do
 			factory := a_factory
 
+			is_following_redirection := True
+
 				-- Initialize configuration lib setup, this is done once.
 			initialize_conf_setting
 
@@ -44,6 +46,10 @@ feature -- Status
 
 	is_invalid_xml: BOOLEAN
 			-- Is the file not even valid xml?
+
+	is_following_redirection: BOOLEAN
+			-- Is loader following redirection?
+			--| True by default
 
 	last_error: detachable CONF_ERROR
 			-- The last error message.
@@ -74,8 +80,22 @@ feature -- Access
 	last_redirection: detachable CONF_REDIRECTION
 			-- Last retrieved redirection.
 
+	last_redirected_location: detachable PATH
+			-- Last redirected location.
+
 	last_uuid: detachable UUID
 			-- The last retrieved uuid.
+
+	parent_target: detachable CONF_TARGET
+			-- Associated target, when loading a library ecf file for a target.
+
+feature -- Element change
+
+	set_parent_target (a_target: like parent_target)
+			-- Set `parent_target` to `a_target`.
+		do
+			parent_target := a_target
+		end
 
 feature -- Basic operation
 
@@ -86,6 +106,9 @@ feature -- Basic operation
 		do
 			last_system := Void
 			last_redirection := Void
+			last_redirected_location := Void
+			last_warnings := Void
+			last_error := Void
 			recursive_retrieve_configuration (a_file, Void, Void)
 		ensure
 			no_error_implies_last_system_not_void: not is_error implies last_system /= Void
@@ -96,15 +119,40 @@ feature -- Basic operation
 		require
 			a_file_ok: a_file /= Void and then not a_file.is_empty
 		do
+			last_redirection := Void
+			last_redirected_location := Void
 			last_uuid := Void
-			recursive_retrieve_uuid (a_file, Void)
+			last_warnings := Void
+			last_error := Void
+			recursive_retrieve_uuid (a_file, Void, Void)
 		ensure
 			no_error_implies_last_uuid_not_void: not is_error implies last_uuid /= Void
 		end
 
-feature {NONE} -- Implementation
+	set_is_following_redirection (b: BOOLEAN)
+			-- Set `is_following_redirection' to `b'.
+		do
+			is_following_redirection := b
+		end
 
-	recursive_retrieve_configuration (a_file: READABLE_STRING_32; a_redirections: detachable ARRAYED_LIST [PATH]; a_previous_redirection: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID])
+	add_warning (a_warning: CONF_ERROR)
+			-- Add `a_warning'.
+		require
+			a_warning_not_void: a_warning /= Void
+		local
+			l_last_warnings: like last_warnings
+		do
+			l_last_warnings := last_warnings
+			if l_last_warnings = Void then
+				create l_last_warnings.make (1)
+				last_warnings := l_last_warnings
+			end
+			l_last_warnings.extend (a_warning)
+		end
+
+feature {CONF_LOAD} -- Implementation
+
+	recursive_retrieve_configuration (a_file: READABLE_STRING_32; ctx: detachable CONF_LOAD_CONTEXT; a_previous_redirection: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID])
 			-- Retrieve the configuration in `a_file' and make it available in `last_system',
 			-- it might occur inside an ecf redirection process.
 			-- `a_redirections' is used to keep track of potential cycle in redirection.
@@ -114,7 +162,7 @@ feature {NONE} -- Implementation
 			a_file_ok: a_file /= Void and then not a_file.is_empty
 		local
 			l_callback: CONF_LOAD_PARSE_CALLBACKS
-			redir: detachable ARRAYED_LIST [PATH]
+			l_context: detachable CONF_LOAD_CONTEXT
 			l_previous: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID]
 		do
 			create l_callback.make_with_factory (a_file, factory)
@@ -125,17 +173,19 @@ feature {NONE} -- Implementation
 				last_error := l_callback.last_error
 			elseif not is_error then
 				last_system := l_callback.last_system
+				l_context := ctx
+				if l_context = Void then
+					create l_context.make
+				end
+
 				if attached l_callback.last_redirection as l_redirection then
 					if last_redirection = Void then
 						last_redirection := l_redirection
+						last_redirected_location := l_redirection.file_path
 					end
 						-- This means that `a_file' is a redirection, let's follow the new location
 						-- if `l_redirection.redirection_location' is an absolute path, it will be used as is
 						-- otherwise compute the path relative to the parent folder or a_file
-					redir := a_redirections
-					if redir = Void then
-						create redir.make (1)
-					end
 					if attached l_redirection.uuid as l_new_location_uuid then
 							--| `a_file' has a UUID, then let's check if it is already in a redirection chain, and if ever
 							--| a UUID was previously set. If this is the case, if UUIDs are not the same
@@ -177,10 +227,17 @@ feature {NONE} -- Implementation
 							--| then do not record the file and uuid.
 						l_previous := Void
 					end
-					if not is_error then
+					if not is_error and is_following_redirection then
 							--| `a_file' is a redirection, then follow the redirection and check the ecf at the new location
 							--| this will either end with a concrete ecf file, i.e not a redirection, or with an error.
-						retrieve_redirected_configuration (a_file, l_redirection.evaluated_redirection_location, l_previous, redir)
+						if attached l_redirection.message as msg then
+							retrieve_redirected_configuration (a_file, l_redirection.evaluated_redirection_location, l_previous, l_context)
+
+							is_warning := True
+							add_warning (create {CONF_ERROR_MESSAGE_IN_REDIRECTION}.make (a_file, l_redirection.redirection_location, msg))
+						else
+							retrieve_redirected_configuration (a_file, l_redirection.evaluated_redirection_location, l_previous, l_context)
+						end
 					end
 				elseif attached last_system as l_last_system then
 						--| found <system ... />
@@ -199,6 +256,9 @@ feature {NONE} -- Implementation
 							create {CONF_ERROR_UUID_MISMATCH_IN_REDIRECTION} last_error.make (a_previous_redirection.file, a_file, a_previous_redirection.uuid, l_last_system.uuid)
 						end
 					end
+
+						-- Resolve `CONF_TARGET.parent_target_location` into `CONF_TARGET.extends` if any.
+					resolve_remote_parent_target (l_last_system, l_context)
 				else
 						--| `last_system' is Void AND `last_location' is also Void.
 						--|
@@ -224,34 +284,115 @@ feature {NONE} -- Implementation
 			no_error_implies_last_system_not_void: not is_error implies last_system /= Void
 		end
 
-	recursive_retrieve_uuid (a_file: READABLE_STRING_32; a_redirections: detachable ARRAYED_LIST [PATH])
+	recursive_retrieve_uuid (a_file: READABLE_STRING_32; a_redirections: detachable ARRAYED_LIST [PATH]; a_previous_redirection: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID])
 			-- Retrieve the uuid of the configuration in `a_file' and make it available in `last_uuid',
 			-- it might occur during an ecf redirection process.
 			-- `a_redirections' is used to keep track of potential cycle in redirection.
+			-- `a_previous_redirection' is used to carry the file+uuid of previous redirected file
 		require
 			a_file_ok: a_file /= Void and then not a_file.is_empty
 		local
 			l_callback: CONF_LOAD_UUID_CALLBACKS
 			l_err: CONF_ERROR_UUID
 			redir: detachable ARRAYED_LIST [PATH]
+			l_previous: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID]
+			l_redirected_location: like last_redirected_location
+			l_file_parent: PATH
 		do
+			l_file_parent := (create {PATH}.make_from_string (a_file)).parent -- Directory location containing `a_file`.
+
 			create l_callback.make_with_file (a_file)
 			parse_file (a_file, l_callback)
+			if attached l_callback.last_redirected_location as l_new_location then
+				if attached parent_target as tgt then
+					l_redirected_location := conf_redirection_location_for_file (
+							factory.new_location_from_full_path (
+									l_new_location.as_string_32,
+									tgt
+								).evaluated_path_relative_to_location (l_file_parent).name,
+							a_file
+						)
+				else
+					l_redirected_location := conf_redirection_location_for_file (l_new_location, a_file)
+				end
+				last_redirected_location := l_redirected_location
+			end
 			if l_callback.is_error then
 				is_error := True
 				last_error := l_callback.last_error
 			elseif not is_error then
-				last_uuid := l_callback.last_uuid
-				if l_callback.last_uuid = Void then
-							--| The uuid attribute is not set, which is accepted
-					if attached l_callback.last_location as l_new_location then
+				if attached l_callback.last_uuid as l_new_location_uuid then
+						--| `a_file' has a UUID, then let's check if it is already in a redirection chain, and if ever
+						--| a UUID was previously set. If this is the case, if UUIDs are not the same
+						--| report UUID mismatch error
+					last_uuid := l_new_location_uuid
+					if
+						a_previous_redirection /= Void and then a_previous_redirection.uuid /~ l_new_location_uuid
+					then
+							--| The previously recorded UUID and the UUID from the `a_file' does not match -> report error
+						is_error := True
+						create {CONF_ERROR_UUID_MISMATCH_IN_REDIRECTION} last_error.make (a_previous_redirection.file, a_file, a_previous_redirection.uuid, l_new_location_uuid)
+					else
+						if a_previous_redirection /= Void then
+								--| Update previous redirection with new uuid, so that caller gets new data
+								--| when the recursive redirection instructions are done
+								--| note that `a_previous_redirection.uuid' should already be the same as `l_new_location_uuid'
+								--| but let's assign it again, just in case.
+							check a_previous_redirection.uuid ~ l_new_location_uuid end
+							a_previous_redirection.file := a_file
+							l_previous := a_previous_redirection
+						else
+								--| There was no previous data for redirection
+								--| this means, either this is the first redirection in the chain
+								--| or the previous redirection did not set the UUID value (which is optional)
+							l_previous := [a_file, l_new_location_uuid]
+						end
+					end
+				else
+						--| The uuid attribute is not set, which is accepted
+					last_uuid := Void
+					if a_previous_redirection /= Void then
+							--| `a_file' does not have any UUID value
+							--| and previous redirection had a UUID value
+							--| follow the redirection and keep UUID from `a_previous_redirection'
+							--| example:
+							--|    [redirection a.ecf with UUID /= Void ]  ->  [redirection b.ecf with UUID = Void]
+							--| then keep previous file+uuid record.
+						l_previous := a_previous_redirection
+					else
+							--| `a_file' does not have any UUID, and no previous redirection has any UUID
+							--| example:
+							--|    [redirection a.ecf with UUID = Void ]  ->  [redirection b.ecf with UUID = Void]
+							--| then do not record the file and uuid.
+						l_previous := Void
+					end
+				end
+				if not is_error then
+					if attached l_callback.last_redirected_location as l_new_location then
+							-- Warning: do not reuse `last_redirected_location`,
+							--	as it is the first redirection, here we really care about `l_callback.last_redirected_location`.
+						if attached parent_target as tgt then
+							l_redirected_location := conf_redirection_location_for_file (
+									factory.new_location_from_full_path (
+											l_new_location.as_string_32,
+											tgt
+										).evaluated_path_relative_to_location (l_file_parent).name,
+									a_file
+								)
+						else
+							l_redirected_location := conf_redirection_location_for_file (l_new_location, a_file)
+						end
 							--| `a_file' is a redirection
 							--| then check the ecf at the `l_new_location'
 						redir := a_redirections
 						if redir = Void then
 							create redir.make (1)
 						end
-						retrieve_redirected_uuid (a_file, l_new_location, redir)
+						if is_following_redirection then
+							retrieve_redirected_uuid (a_file, l_redirected_location.name, redir, l_previous)
+						end
+					elseif l_previous /= Void then
+						last_uuid := l_previous.uuid
 					else
 							--| No UUID found
 						is_error := True
@@ -269,7 +410,7 @@ feature {NONE} -- Redirection
 
 	retrieve_redirected_configuration (a_file: READABLE_STRING_32; a_new_location: READABLE_STRING_GENERAL;
 					a_previous_redirection: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID];
-					a_redirections: ARRAYED_LIST [PATH]
+					ctx: CONF_LOAD_CONTEXT
 				)
 			-- Retrieve the configuration in `a_file' and make it available in `last_system',
 			-- knowing that `a_file' describes a redirection to `a_new_location'.
@@ -283,7 +424,7 @@ feature {NONE} -- Redirection
 		require
 			a_file_ok: a_file /= Void and then not a_file.is_empty
 			a_new_location_ok: a_new_location /= Void and then not a_new_location.is_empty
-			a_redirections_attached: a_redirections /= Void
+			ctx_attached: ctx /= Void
 		local
 			p: PATH
 		do
@@ -292,22 +433,21 @@ feature {NONE} -- Redirection
 
 				-- On linux, replace \ by /
 				-- (see `{CONF_LOCATION}.update_path_to_unix')
-			p := conf_location_value_to_path (a_new_location)
-			p := p.absolute_path_in ((create {PATH}.make_from_string (a_file)).parent)
+			p := conf_redirection_location_for_file (a_new_location, a_file)
 
-			if across a_redirections as c some p.is_same_file_as (c.item) end then
+			if across ctx.redirections as c some p.is_same_file_as (c.item) end then
 					--| `a_new_location' already appears in the redirection chain
 					--| this is a cycle in redirection which not allowed.
 				is_error := True
-				create {CONF_ERROR_CYCLE_IN_REDIRECTION} last_error.make (p.name, a_redirections)
+				create {CONF_ERROR_CYCLE_IN_REDIRECTION} last_error.make (p.name, ctx.redirections)
 			else
 					--| Follow the redirection, and record the current redirection node in `a_redirections'
-				a_redirections.extend (p)
-				recursive_retrieve_configuration (p.name, a_redirections, a_previous_redirection)
+				ctx.record_redirection (p)
+				recursive_retrieve_configuration (p.name, ctx, a_previous_redirection)
 			end
 		end
 
-	retrieve_redirected_uuid (a_file: READABLE_STRING_32; a_new_location: READABLE_STRING_GENERAL; a_redirections: ARRAYED_LIST [PATH])
+	retrieve_redirected_uuid (a_file: READABLE_STRING_32; a_new_location: READABLE_STRING_GENERAL; a_redirections: ARRAYED_LIST [PATH]; a_previous_redirection: detachable TUPLE [file: READABLE_STRING_32; uuid: UUID])
 			-- Retrieve the uuid of the configuration in `a_file' and make it available in `last_uuid',
 			-- knowing that `a_file' describes a redirection to `a_new_location'.
 			-- `a_redirections' is used to keep track of potential cycle in redirection.
@@ -330,7 +470,61 @@ feature {NONE} -- Redirection
 			else
 					--| Follow the redirection until a UUID is set.
 				a_redirections.extend (p)
-				recursive_retrieve_uuid (p.name, a_redirections)
+				recursive_retrieve_uuid (p.name, a_redirections, a_previous_redirection)
+			end
+		end
+
+feature {NONE} -- Implementation: resolve remote target
+
+	resolve_remote_parent_target (cfg: CONF_SYSTEM; a_context: CONF_LOAD_CONTEXT)
+			-- Resolve the `CONF_TARGET.remove_parent` and update the `CONF_TARGET.extends` attribute.
+		require
+			a_context_set: a_context /= Void
+		local
+			tgt, par: detachable CONF_TARGET
+			loc: CONF_FILE_LOCATION
+			l_load: CONF_LOAD
+		do
+			create l_load.make (factory)
+			across
+				cfg.targets as ic
+			until
+				is_error
+			loop
+				tgt := ic.item
+				if
+					tgt.extends = Void and then
+					attached tgt.remote_parent as l_remote_parent
+				then
+					if a_context.has_target (tgt) then
+							-- Cycle
+						is_error := True
+						create {CONF_ERROR_CYCLE_IN_PARENTS} last_error.make (tgt, a_context.targets)
+					else
+						a_context.enter_target (tgt)
+						loc := factory.new_file_location_from_path (l_remote_parent.location, tgt)
+						l_load.recursive_retrieve_configuration (loc.evaluated_path.name, a_context, Void)
+						is_error := l_load.is_error
+						last_error := l_load.last_error
+						if not is_error and attached l_load.last_system as l_remote_cfg then
+							if attached l_remote_parent.name as l_parent_name then
+								par := l_remote_cfg.target (l_parent_name)
+							else
+								par := l_remote_cfg.library_target
+							end
+							if par = Void then
+								create {CONF_ERROR_PARSE} last_error.make ({STRING_32} "Unable to find parent target of '" + tgt.name + {STRING_32} "' (" + tgt.system.file_path.name + {STRING_32} ")!")
+								is_error := True
+							else
+								tgt.set_parent (par)
+							end
+							a_context.leave_target (tgt)
+						else
+								-- Due to `l_load.recursive_retrieve_configuration` "no_error_implies_last_system_not_void" postcondition.
+							check is_error: is_error end
+						end
+					end
+				end
 			end
 		end
 
@@ -350,6 +544,13 @@ feature {NONE} -- Implementation
 				s.replace_substring_all ({STRING_32} "\", {STRING_32} "/")
 				create Result.make_from_string (s)
 			end
+		end
+
+	conf_redirection_location_for_file (a_new_location: READABLE_STRING_GENERAL; a_file_location: READABLE_STRING_GENERAL): PATH
+			-- Resolved redirection location `a_new_location` related to file `a_file_location`.
+		do
+			Result := conf_location_value_to_path (a_new_location)
+			Result := Result.absolute_path_in ((create {PATH}.make_from_string (a_file_location)).parent)
 		end
 
 	factory: CONF_PARSE_FACTORY
@@ -418,8 +619,17 @@ feature {NONE} -- Implementation
 				end
 			end
 				-- add warnings
-			is_warning := a_callback.is_warning
-			last_warnings := a_callback.last_warning
+			is_warning := is_warning or a_callback.is_warning
+			if attached last_warnings as l_curr_last_warnings then
+				if
+					attached a_callback.last_warning as l_last_warnings and then
+					not l_last_warnings.is_empty
+				then
+					l_curr_last_warnings.append (l_last_warnings)
+				end
+			else
+				last_warnings := a_callback.last_warning
+			end
 		rescue
 			l_retried := True
 			retry
@@ -429,7 +639,7 @@ invariant
 	factory_not_void: factory /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

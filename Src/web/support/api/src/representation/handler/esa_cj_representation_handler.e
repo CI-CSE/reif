@@ -17,6 +17,16 @@ create
 
 feature -- View
 
+	home_page_redirect (req: WSF_REQUEST; res: WSF_RESPONSE)
+			-- Home redirect
+		do
+			if attached req.http_host as l_host then
+				compute_response_redirect (req, res, absolute_host(req,""))
+			end
+		end
+
+
+
 	home_page (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- Home page representation
 		local
@@ -213,7 +223,7 @@ feature -- View
 		do
 			create l_error.make_from_string ("Bad Request -")
 			across a_error as c loop
-				l_error.append (c.item)
+				l_error.append (c.item.to_string_8)
 				l_error.append (",")
 			end
 			if attached req.http_host as l_host then
@@ -556,6 +566,13 @@ feature -- View
 			end
 		end
 
+	confirm_change_password (req: WSF_REQUEST; res: WSF_RESPONSE; a_view: detachable ESA_PASSWORD_RESET_VIEW)
+			-- <Precursor>
+		do
+			-- Not implemented.
+		end
+
+
 	post_confirm_email_change_page (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- <Precursor>
 		do
@@ -587,7 +604,7 @@ feature -- Response
 			create h.make
 			h.put_content_type ("application/vnd.collection+json")
 			h.put_current_date
-			h.put_location (a_location)
+			h.put_location (a_location.to_string_8)
 			res.set_status_code ({HTTP_STATUS_CODE}.see_other)
 			res.put_header_text (h.string)
 		end

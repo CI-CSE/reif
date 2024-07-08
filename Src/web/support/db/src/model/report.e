@@ -174,8 +174,8 @@ feature -- Element change
 				description := Void
 			else
 				description := v
-				if attached v as l_v then
-					description_encode := json_encode (l_v)
+				if v /= Void then
+					description_encode := json_encode (v)
 				end
 			end
 		end
@@ -187,8 +187,8 @@ feature -- Element change
 				to_reproduce := Void
 			else
 				to_reproduce := v
-				if attached v as l_v then
-					to_reproduce_encode := json_encode (l_v)
+				if v /= Void then
+					to_reproduce_encode := json_encode (v)
 				end
 			end
 		end
@@ -281,10 +281,10 @@ feature -- Output
 				Result.append ("%N  Environment: " + env)
 			end
 			if attached description as d then
-				Result.append ("%N  Description:%N" + indented_text ("%T", d) + "%N")
+				Result.append ("%N  Description:%N" + indented_text ("%T", d.to_string_8) + "%N")
 			end
 			if attached to_reproduce as t then
-				Result.append ("%N  To-Reproduce:%N" + indented_text ("%T", t) + "%N")
+				Result.append ("%N  To-Reproduce:%N" + indented_text ("%T", t.to_string_8) + "%N")
 			end
 			if attached submission_date as l_date then
 				Result.append ("%N Submission date:" + l_date.out)

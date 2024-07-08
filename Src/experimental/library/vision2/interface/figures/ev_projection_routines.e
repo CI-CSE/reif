@@ -11,14 +11,14 @@ deferred class
 	EV_PROJECTION_ROUTINES
 
 obsolete
-	"Use EV_MODEL_PROJECTION_ROUTINES instead."
+	"Use EV_MODEL_PROJECTION_ROUTINES instead. [2017-05-31]"
 
 inherit
 	EV_FIGURE_DRAWING_ROUTINES
 
 feature -- Basic operations
 
-	register_figure (a_figure: EV_FIGURE; a_routine: PROCEDURE [ANY, TUPLE [EV_FIGURE]])
+	register_figure (a_figure: EV_FIGURE; a_routine: PROCEDURE [EV_FIGURE])
 			-- Assign `a_routine' for drawing of `a_figure'.
 		do
 			draw_routines.force (a_routine, a_figure.draw_id)
@@ -59,7 +59,7 @@ feature {NONE} -- Implementation
 			f_not_void: f /= Void
 		local
 			g: detachable EV_FIGURE_GROUP
-			r: detachable PROCEDURE [ANY, TUPLE [EV_FIGURE]]
+			r: detachable PROCEDURE [EV_FIGURE]
 			t: TUPLE [EV_FIGURE]
 		do
 			if f.is_show_requested then
@@ -92,7 +92,7 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Implementation
 
-	draw_routines: ARRAY [detachable PROCEDURE [ANY, TUPLE [EV_FIGURE]]]
+	draw_routines: ARRAY [detachable PROCEDURE [EV_FIGURE]]
 			-- Routine registration.
 
 	register_basic_figures

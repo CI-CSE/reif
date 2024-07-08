@@ -45,7 +45,13 @@ feature -- Section names
 	section_tasks: STRING_32 do Result := locale.translation ("Tasks")	end
 	section_variables: STRING_32 do Result := locale.translation ("Variables")	end
 	section_mapping: STRING_32 do Result := locale.translation ("Type Mapping")	end
+
 	section_general: STRING_32 do Result := locale.translation ("General")	end
+	section_capability: STRING_32 do Result := locale.translation ("Capability")	end
+	section_language: STRING_32 do Result := locale.translation ("Language")	end
+	section_execution: STRING_32 do Result := locale.translation ("Execution")	end
+	section_optimization: STRING_32 do Result := locale.translation ("Optimization")	end
+	section_sources: STRING_32 do Result := locale.translation ("Sources")	end
 	section_dotnet: STRING_32 do Result := locale.translation (".NET")	end
 	section_advanced: STRING_32 do Result := locale.translation ("Advanced")	end
 
@@ -56,6 +62,7 @@ feature -- Section actions
 	menu_properties: STRING_32 do Result := locale.translation ("Properties")	end
 	menu_edit_config: STRING_32 do Result := locale.translation ("Edit Configuration")	end
 	add_target: STRING_32 do Result := locale.translation ("Add Target")	end
+	add_remote_target: STRING_32 do Result := locale.translation ("Add Remote Target")	end
 
 feature -- General names and descriptions
 
@@ -81,6 +88,8 @@ feature -- Target names and descriptions
 
 	target_name_name: STRING_32 do Result := locale.translation ("Name")	end
 	target_name_description: STRING_32 do Result := locale.translation ("Name of the target.")	end
+	target_location_name: STRING_32 do Result := locale.translation ("Location") end
+	target_location_description: STRING_32 do Result := locale.translation ("Location of the target system.")	end
 	target_description_name: STRING_32 do Result := locale.translation ("Description")	end
 	target_description_description: STRING_32 do Result := locale.translation ("Description of the target.")	end
 	target_abstract_name: STRING_32 do Result := locale.translation ("Abstract")	end
@@ -104,6 +113,11 @@ feature -- Target names and descriptions
 	target_dialog_root_feature: STRING_32 do Result := locale.translation ("Root Procedure")	end
 	target_dialog_root_all: STRING_32 do Result := locale.translation ("Compile All Classes?")	end
 
+	target_absent_explicit_assertion_name: STRING_32 do Result := locale.translation ("Absent Explicit Assertion")	end
+	target_absent_explicit_assertion_description: STRING_32 do Result := locale.translation ("[
+			Are some assertions inferred automatically?
+			This experimental setting causes much longer (re-)compilation.
+		]")	end
 	target_address_expression_name: STRING_32 do Result := locale.translation ("Address Expression")	end
 	target_address_expression_description: STRING_32 do Result := locale.translation ("Are simplified address expressions enabled?")	end
 	target_automatic_backup_name: STRING_32 do Result := locale.translation ("Automatic Backup")	end
@@ -116,16 +130,6 @@ feature -- Target names and descriptions
 	target_console_application_description: STRING_32 do Result := locale.translation ("Is the project a console application?")	end
 	target_cls_compliant_name: STRING_32 do Result := locale.translation ("CLS Compliant")	end
 	target_cls_compliant_description: STRING_32 do Result := locale.translation ("Should generated assemblies be marked as CLS compliant?")	end
-	target_concurrency_name: STRING_32 do Result := locale.translation ("Concurrency")	end
-	target_concurrency_description: STRING_32 do Result := locale.translation (
-			"Concurrency mode of the target application:%
-			% No concurrency - mono-threaded;%
-			% EiffelThread - based on EiffelThread library;%
-			% SCOOP - controlled by SCOOP rules.")
-		end
-	target_concurrency_none_name: STRING_32 do Result := locale.translation ("No concurrency") end
-	target_concurrency_thread_name: STRING_32 do Result := locale.translation ("EiffelThread") end
-	target_concurrency_scoop_name: STRING_32 do Result := locale.translation ("SCOOP") end
 	target_dead_code_removal_name: STRING_32 do Result := locale.translation ("Dead Code Removal")	end
 	target_dead_code_removal_description: STRING_32 do Result := locale.translation ("Should unused code be removed?")	end
 	target_dotnet_naming_convention_name: STRING_32 do Result := locale.translation (".NET Naming Convention")	end
@@ -298,6 +302,18 @@ feature -- Target names and descriptions
 	properties_class_name: STRING_32 do Result := locale.translation ("Class")	end
 	properties_target_name: STRING_32 do Result := locale.translation ("Target")	end
 
+feature -- Tab names
+
+	tab_properties_name: READABLE_STRING_32 do Result := locale.translation_in_context ("Properties", "configuration") end
+	tab_language_name: READABLE_STRING_32 do Result := locale.translation_in_context ("Language", "configuration") end
+
+feature -- Capability names and descriptions
+
+	capability_header_capable_of_name: READABLE_STRING_32 do Result := locale.translation_in_context ("Support", "configuration.capability") end
+	capability_header_if_root_name: READABLE_STRING_32 do Result := locale.translation_in_context ("Use", "configuration.capability") end
+	capability_toggle_default_name: READABLE_STRING_32 do REsult := locale.translation_in_context ("Default", "configuration.capability") end
+	capability_toggle_inherited_name: READABLE_STRING_32 do REsult := locale.translation_in_context ("Inherited", "configuration.capability") end
+
 feature -- Option names and descriptions
 
 	option_require_name: STRING_32 do Result := locale.translation ("Require")	end
@@ -320,8 +336,8 @@ feature -- Option names and descriptions
 	option_full_class_checking_name: STRING_32 do Result := locale.translation ("Full Class Checking")	end
 	option_full_class_checking_description: STRING_32 do Result := locale.translation ("Are features of parent classes rechecked in current class?")	end
 
-	option_msil_application_optimize_name: STRING_32 do Result := locale.translation ("Apply Application Optimizations")	end
-	option_msil_application_optimize_description: STRING_32 do Result := locale.translation ("Specifies if any applicable application-orientated optimizations should be applied to a finalized compilation.")	end
+	option_msil_application_optimize_name: STRING_32 do Result := locale.translation ("Apply .NET Application Optimizations")	end
+	option_msil_application_optimize_description: STRING_32 do Result := locale.translation ("Specifies if any applicable .NET application-oriented optimizations should be applied to a finalized compilation.")	end
 
 	option_namespace_name: STRING_32 do Result := locale.translation (".NET Namespace")	end
 	option_namespace_description: STRING_32 do Result := locale.translation ("Namespace for .NET")	end
@@ -334,17 +350,19 @@ feature -- Option names and descriptions
 	option_warnings_description: STRING_32 do Result := locale.translation ("Are warnings enabled?")	end
 
 	option_catcall_detection_name: STRING_32 do Result := locale.translation ("Catcall detection") end
-	option_catcall_detection_description: STRING_32 do Result := locale.translation ("Catcall detection level the source code provides:%N%
-		%No - Catcall detection is disabled, frozen and variant annotations are not taken into account for conformance.%N%
-		%Conformance - Catcall detection is disabled but frozen and variant annotations are respected in type conformance checks.%N%
-		%Complete - Catcall detection is enabled and frozen and variant annotations are respected in type conformance checks.") end
+	option_catcall_detection_description: STRING_32 do Result := locale.translation ({STRING_32} "[
+			Catcall detection level the source code provides:
+			 • No - Catcall detection is disabled, frozen and variant annotations are not taken into account for conformance;
+			 • Conformance - Catcall detection is disabled but frozen and variant annotations are respected in type conformance checks;
+			 • Complete - Catcall detection is enabled and frozen and variant annotations are respected in type conformance checks.
+			]") end
 	option_catcall_detection_value: ARRAYED_LIST [STRING_32]
 			-- Name of a catcall detection option value indexed by the corresponding option index.
 		once
 			create Result.make_from_array (<<
-				locale.translation ("No"),
-				locale.translation ("Conformance"),
-				locale.translation ("Complete")
+				locale.translation_in_context ("None", "configuration.catcall_detection"),
+				locale.translation_in_context ("Conformance", "configuration.catcall_detection"),
+				locale.translation_in_context ("Complete", "configuration.catcall_detection")
 			>>)
 		ensure
 			valid_index:
@@ -353,27 +371,46 @@ feature -- Option names and descriptions
 				Result.valid_index ({CONF_OPTION}.catcall_detection_index_all)
 		end
 
-	option_is_attached_by_default_name: STRING_32 do Result := locale.translation ("Are types attached by default?") end
-	option_is_attached_by_default_description: STRING_32 do Result := locale.translation ("Are types without explicit attachment mark considered attached?") end
+	option_concurrency_name: STRING_32 do Result := locale.translation_in_context ("Concurrency", "configuration") end
+	option_concurrency_description: STRING_32 do Result := locale.translation_in_context ({STRING_32} "[
+				Concurrency mode:
+				 • Thread - unstructured multithreading based on EiffelThread library or built-in (in .NET);
+				 • None - no concurrency, mono-threaded;
+				 • SCOOP - controlled by SCOOP rules.
+			]", "configuration") end
+	option_concurrency_value: ARRAYED_LIST [STRING_32]
+			-- Name of a catcall detection option value indexed by the corresponding option index.
+		once
+			create Result.make_from_array (<<
+				locale.translation_in_context ("Thread", "configuration.concurrency"),
+				locale.translation_in_context ("None", "configuration.concurrency"),
+				locale.translation_in_context ("SCOOP", "configuration.concurrency")
+			>>)
+		ensure
+			valid_index:
+				Result.valid_index ({CONF_TARGET_OPTION}.concurrency_index_thread) and
+				Result.valid_index ({CONF_TARGET_OPTION}.concurrency_index_none) and
+				Result.valid_index ({CONF_TARGET_OPTION}.concurrency_index_scoop)
+		end
 
 	option_void_safety_name: STRING_32 do Result := locale.translation ("Void safety") end
 	option_void_safety_description: STRING_32 once
-			Result := locale.translation ("Void safety level the source code provides.") +
-				" " + option_void_safety_value [{CONF_OPTION}.void_safety_index_none] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_none] + ";" +
-				" " + option_void_safety_value [{CONF_OPTION}.void_safety_index_conformance] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_conformance] + ";" +
-				" " + option_void_safety_value [{CONF_OPTION}.void_safety_index_initialization] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_initialization] + ";" +
-				" " + option_void_safety_value [{CONF_OPTION}.void_safety_index_transitional] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_transitional] + ";" +
-				" " + option_void_safety_value [{CONF_OPTION}.void_safety_index_all] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_all] + "."
+			Result := locale.translation ("Void safety level the source code provides:%N") +
+				{STRING_32} " • " + option_void_safety_value [{CONF_OPTION}.void_safety_index_none] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_none] + ";%N" +
+				{STRING_32} " • " + option_void_safety_value [{CONF_OPTION}.void_safety_index_conformance] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_conformance] + ";%N" +
+				{STRING_32} " • " + option_void_safety_value [{CONF_OPTION}.void_safety_index_initialization] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_initialization] + ";%N" +
+				{STRING_32} " • " + option_void_safety_value [{CONF_OPTION}.void_safety_index_transitional] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_transitional] + ";%N" +
+				{STRING_32} " • " + option_void_safety_value [{CONF_OPTION}.void_safety_index_all] + " - " + option_void_safety_value_description [{CONF_OPTION}.void_safety_index_all] + "."
 		end
 	option_void_safety_value: ARRAYED_LIST [STRING_32]
 			-- Name of a void safety option value indexed by the corresponding option index.
 		once
 			create Result.make_from_array (<<
-				locale.translation ("No"),
-				locale.translation ("Conformance"),
-				locale.translation ("Initialization"),
-				locale.translation ("Transitional"),
-				locale.translation ("Complete")
+				locale.translation_in_context ("None", "configuration.void_safety"),
+				locale.translation_in_context ("Conformance", "configuration.void_safety"),
+				locale.translation_in_context ("Initialization", "configuration.void_safety"),
+				locale.translation_in_context ("Transitional", "configuration.void_safety"),
+				locale.translation_in_context ("Complete", "configuration.void_safety")
 			>>)
 		ensure
 			valid_index:
@@ -404,16 +441,33 @@ feature -- Option names and descriptions
 
 
 	option_syntax_name: STRING_32 do Result := locale.translation ("Syntax") end
-	option_syntax_description: STRING_32 do Result := locale.translation ("Variant of syntax used in source code") end
+	option_syntax_description: STRING_32 do Result := locale.translation ({STRING_32} "[
+			Variant of syntax used in source code:
+			 • Obsolete syntax - Favor obsolete syntax over standard with more recent keywords treated as identifiers;
+			 • Transitional syntax - Favor standard syntax, but allow obsolete syntax when determinable by context;
+			 • Standard syntax - Enforce current standard syntax;
+			 • Provisional syntax - Allow not-yet-approved constructs.
+		]") end
 	option_syntax_obsolete_name: STRING_32 do Result := locale.translation ("Obsolete syntax") end
 	option_syntax_transitional_name: STRING_32 do Result := locale.translation ("Transitional syntax") end
 	option_syntax_standard_name: STRING_32 do Result := locale.translation ("Standard syntax") end
 	option_syntax_provisional_name: STRING_32 do Result := locale.translation ("Provisional syntax") end
 
+	option_array_name: STRING_32 do Result := locale.translation_in_context ("Manifest array type", "configuration.option") end
+	option_array_description: STRING_32 do Result := locale.translation_in_context ({STRING_32} "[
+			Should computed manifest array type be compared against target type of reattachment?
+			 • Mismatch error: Yes, report an error if the types are different;
+			 • Mismatch warning: Yes, report a warning if the types are different;
+			 • Standard: No.
+		]", "configuration.option") end
+	option_array_mismatch_error_name: STRING_32 do Result := locale.translation_in_context ("Mismatch error", "configuration.option") end
+	option_array_mismatch_warning_name: STRING_32 do Result := locale.translation_in_context ("Mismatch warning", "configuration.option") end
+	option_array_standard_name: STRING_32 do Result := locale.translation_in_context ("Standard", "configuration.option") end
+
 	warning_names: STRING_TABLE [STRING_32]
 			-- Warning names.
 		once
-			create Result.make (12)
+			create Result.make (13)
 			Result.force (locale.translation ("Unused Locals"), w_unused_local)
 			Result.force (locale.translation ("Unused attribute body"), w_vwab)
 			Result.force (locale.translation ("Obsolete Classes"), w_obsolete_class)
@@ -426,12 +480,13 @@ feature -- Option names and descriptions
 			Result.force (locale.translation ("Renaming Unknown Class"), w_renaming_unknown_class)
 			Result.force (locale.translation ("Options Unknown Class"), w_option_unknown_class)
 			Result.force (locale.translation ("Classname/filename mismatch"), w_classname_filename_mismatch)
+			Result.force (locale.translation ("Missing manifest array type"), w_manifest_array_type)
 		end
 
 	warning_descriptions: STRING_TABLE [STRING_32]
 			-- Warning descriptions.
 		once
-			create Result.make (12)
+			create Result.make (13)
 			Result.force (locale.translation ("Warn about locals that are not used?"), w_unused_local)
 			Result.force (locale.translation ("Warn about attribute bodies that are never executed?"), w_vwab)
 			Result.force (locale.translation ("Warn about usage of obsolete classes?"), w_obsolete_class)
@@ -444,6 +499,7 @@ feature -- Option names and descriptions
 			Result.force (locale.translation ("Warn about renamings of unknown classes?"), w_renaming_unknown_class)
 			Result.force (locale.translation ("Warn about class options of unknown classes?"), w_option_unknown_class)
 			Result.force (locale.translation ("Warn about classes where the filename does not match the classname?"), w_classname_filename_mismatch)
+			Result.force (locale.translation ("Warn about missing manifest array type?"), w_manifest_array_type)
 		end
 
 feature -- Misc
@@ -458,6 +514,10 @@ feature -- Misc
 	remove_target (a_target: READABLE_STRING_GENERAL): STRING_32
 		do
 			Result := locale.formatted_string (locale.translation ("Are you sure you want to remove $1?"), [a_target])
+		end
+	remove_remote_target (a_target, a_location: READABLE_STRING_GENERAL): STRING_32
+		do
+			Result := locale.formatted_string (locale.translation ("Are you sure you want to remove remote $1 ($2)?"), [a_target, a_location])
 		end
 
 	target_remove_group (a_group: READABLE_STRING_GENERAL): STRING_32
@@ -541,13 +601,35 @@ feature -- Create external dialog
 
 	dialog_external_add: STRING_32 do Result := locale.translation ("Add new external")	end
 
+feature -- Create remote target dialog
+
+	dialog_create_remote_target_title: STRING_32 do Result := locale.translation ("Add Remote Target")	end
+	dialog_create_remote_target_name: STRING_32 do Result := locale.translation ("Target Name") end
+	dialog_create_remote_target_location: STRING_32 do Result := locale.translation ("Location") end
+
 feature -- Create library dialog
 
 	dialog_create_library_title: STRING_32 do Result := locale.translation ("Add Library")	end
 	dialog_create_library_defaults: STRING_32 do Result := locale.translation ("Default libraries")	end
 	dialog_create_library_name: STRING_32 do Result := locale.translation ("Name")	end
 	dialog_create_library_void_safety: STRING_32 do Result := locale.translation ("Void safety")	end
+	dialog_create_library_information: STRING_32 do Result := locale.translation ("Information")	end
+	dialog_create_library_status: STRING_32 do Result := locale.translation ("Status")	end
 	dialog_create_library_location: STRING_32 do Result := locale.translation ("Location")	end
+	dialog_create_library_custom_location: STRING_32 do Result := locale.translation ("Custom")	end
+
+	dialog_search_library_iron_package_manage_button_label: STRING_32 do Result := locale.translation ("Packages") end
+	dialog_search_library_iron_package_manage_button_tooltip: STRING_32 do Result := locale.translation ("Manage IRON packages with the associated IRON tool") end
+
+	dialog_search_library_in: STRING_32 do Result := locale.translation ("Search in")	end
+	dialog_search_library_in_tooltip: STRING_32 do Result := locale.translation ("Search library using criteria on metadata (name, description, tags, ...)")	end
+	dialog_search_library_by_class: STRING_32 do Result := locale.translation ("Search class")	end
+	dialog_search_library_by_class_tooltip: STRING_32 do Result := locale.translation ("Search library by class name (wildchar supported).")	end
+
+	dialog_search_classes: STRING_32 do Result := locale.translation ("Classes")	end
+	dialog_search_found_n_classes (nb: INTEGER): STRING_32 do
+			Result := locale.formatted_string (locale.plural_translation ("found one class", "found $1 classes", nb), [nb])
+		end
 
 	dialog_create_libraries: STRING_32 do Result := locale.translation ("Libraries")	end
 	dialog_create_iron_packages: STRING_32 do Result := locale.translation ("IRON packages")	end
@@ -617,6 +699,9 @@ feature -- Iron packages box
 	iron_box_update_label: STRING_32 do Result := locale.translation ("Update") end
 
 	iron_box_tags_label: STRING_32 do Result := locale.translation ("Tags") end
+
+	iron_box_package_installed_label: STRING_32 do Result := locale.translation ("Is installed") end
+	iron_box_package_not_yet_installed_label: STRING_32 do Result := locale.translation ("Not yet installed") end
 
 	iron_box_missing_package_error_message: STRING_32 do Result := locale.translation ("Error: missing package.") end
 
@@ -734,6 +819,7 @@ feature -- Validation warnings
 	target_add_duplicate: STRING_32 do Result := locale.translation ("Cannot add target because there is already a target with the same name.") end
 	target_remove_library_target: STRING_32 do Result := locale.translation ("Target cannot be removed because it is the library target.") end
 	target_remove_last: STRING_32 do Result := locale.translation ("Target cannot be removed because it is the last target.") end
+	target_remove_impossible: STRING_32 do Result := locale.translation ("Target cannot be removed.") end
 	target_remove_extends (other_target: READABLE_STRING_GENERAL): STRING_32
 		do
 			Result := locale.formatted_string (locale.translation ("Target cannot be removed because $1 extends it."), [other_target])
@@ -752,6 +838,7 @@ feature -- Validation warnings
 	root_invalid_feature: STRING_32 do Result := locale.translation ("Root procedure name is invalid.") end
 	cluster_dependency_group_not_exist: STRING_32 do Result := locale.translation ("Cannot add dependency. There is no group with this name.") end
 	override_group_not_exist: STRING_32 do Result := locale.translation ("Cannot add override. There is no group with this name.") end
+	invalid_target_name: STRING_32 do Result := locale.translation ("The name of the target is invalid.") end
 	invalid_assembly_name: STRING_32 do Result := locale.translation ("The name of the assembly is invalid.") end
 	invalid_cluster_name: STRING_32 do Result := locale.translation ("The name of the cluster is invalid.") end
 	invalid_library_name: STRING_32 do Result := locale.translation ("The name of the library is invalid.") end
@@ -785,6 +872,10 @@ feature -- Parse errors
 		do
 			Result := locale.formatted_string (locale.translation ("Invalid attribute '$1'"), [an_attribute])
 		end
+	e_parse_unsupported_attribute (an_attribute: READABLE_STRING_GENERAL): STRING_32
+		do
+			Result := locale.formatted_string (locale.translation ("Attribute '$1' is no longer supported for this element."), [an_attribute])
+		end
 	e_parse_missing_attribute (an_attribute: READABLE_STRING_GENERAL): STRING_32
 		do
 			Result := locale.formatted_string (locale.translation ("Missing attribute '$1'"), [an_attribute])
@@ -813,6 +904,14 @@ feature -- Parse errors
 	e_parse_incorrect_target_parent (a_parent, a_target: READABLE_STRING_GENERAL): STRING_32
 		do
 			Result := locale.formatted_string (locale.translation ("Missing parent target: $1 in target $2"), [a_parent, a_target])
+		end
+	e_parse_incorrect_remote_target_parent (a_parent: detachable READABLE_STRING_GENERAL; a_target: READABLE_STRING_GENERAL; a_location: READABLE_STRING_GENERAL): STRING_32
+		do
+			if a_parent = Void then
+				Result := locale.formatted_string (locale.translation ("Missing remote parent target: no library target from $1 in target $2"), [a_location, a_target])
+			else
+				Result := locale.formatted_string (locale.translation ("Missing remote parent target: $1 from $2 in target $3"), [a_parent, a_location, a_target])
+			end
 		end
 	e_parse_incorrect_target_no_name: STRING_32 do Result := locale.translation ("Target without a name specified.") end
 	e_parse_incorrect_target_invalid_name (a_target: READABLE_STRING_GENERAL): STRING_32
@@ -1056,17 +1155,191 @@ feature -- Parse errors
 
 	e_parse_external_outside_target_element: STRING_32 do Result := locale.translation ("External element found outside a target element.") end
 
-	e_parse_invalid_regexp (regexp: READABLE_STRING_GENERAL; file, description: detachable READABLE_STRING_GENERAL): STRING_32
+	e_parse_invalid_regexp (regexp: READABLE_STRING_GENERAL; file, description: detachable READABLE_STRING_GENERAL; position: INTEGER): STRING_32
 		do
 			if attached file and attached description then
-				Result := locale.formatted_string (locale.translation ("Parse error ($3) in %"$2%" at regular expression %"$1%"."), [regexp, file, description])
+				if position = 0 then
+					Result := locale.formatted_string (locale.translation ("Invalid regular expression %"$1%" in %"$2%": $3."), [regexp, file, description])
+				else
+					Result := locale.formatted_string (locale.translation ("Invalid regular expression %"$1%" (error position: $4) in %"$2%": $3."), [regexp, file, description, position])
+				end
 			elseif attached file then
-				Result := locale.formatted_string (locale.translation ("Parse error in %"$2%": Invalid regular expression: %"$1%"."), [regexp, file])
+				Result := locale.formatted_string (locale.translation ("Invalid regular expression %"$1%" in %"$2%"."), [regexp, file])
 			elseif attached description then
-				Result := locale.formatted_string (locale.translation ("Parse error ($2) at regular expression %"$1%"."), [regexp, description])
+				if position = 0 then
+					Result := locale.formatted_string (locale.translation ("Invalid regular expression %"$1%": $2."), [regexp, description])
+				else
+					Result := locale.formatted_string (locale.translation ("Invalid regular expression %"$1%" (error position: $3): $2."), [regexp, description, position])
+				end
 			else
-				Result := locale.formatted_string (locale.translation ("Parse error: Invalid regular expression: %"$1%"."), [regexp])
+				Result := locale.formatted_string (locale.translation ("Invalid regular expression: %"$1%"."), [regexp])
 			end
+		end
+
+feature -- String parse errors
+
+	e_parse_string_missing_name (option: READABLE_STRING_GENERAL): READABLE_STRING_32
+			-- An error for a missing configuration name.
+		do
+			Result := locale.formatted_string (locale.translation ("Missing name for configuration option %"$1%""), [option])
+		end
+
+	e_parse_string_missing_value (option: READABLE_STRING_GENERAL): READABLE_STRING_32
+			-- An error for a missing configuration value.
+		do
+			Result := locale.formatted_string (locale.translation ("Missing value for configuration option %"$1%""), [option])
+		end
+
+	e_parse_string_unknown_name (option_name: READABLE_STRING_GENERAL; a_available_options: detachable ITERABLE [READABLE_STRING_GENERAL]): READABLE_STRING_32
+			-- An error for a unknown configuration name.
+		local
+			s: STRING_32
+		do
+			if a_available_options /= Void then
+				create s.make_empty
+				across
+					a_available_options as ic
+				loop
+					if not s.is_empty then
+						s.append ({STRING_32} ", ")
+					end
+					s.append_string_general (ic.item)
+				end
+				Result := locale.formatted_string (locale.translation ("Unknown configuration option %"$1%" (Available options: $2)"), [option_name, s])
+			else
+				Result := locale.formatted_string (locale.translation ("Unknown configuration option %"$1%""), [option_name])
+			end
+		end
+
+	e_parse_string_invalid_value (option_name, option_value: READABLE_STRING_GENERAL;
+		expected_values: detachable ITERABLE [READABLE_STRING_GENERAL]): READABLE_STRING_32
+			-- An error for an invalid option value `option_value' of an option `option_name'.
+		local
+			e: STRING_32
+		do
+			if attached expected_values then
+				create e.make_empty
+				across
+					expected_values as c
+				loop
+					if not e.is_empty then
+						e.append ({STRING_32} ", ")
+					end
+					e.append_string_general (c.item)
+				end
+				Result := locale.formatted_string (locale.translation ("Invalid value for configuration option %"$1%": %"$2%" (Expected values: $3)"), [option_name, option_value, e])
+			else
+				Result := locale.formatted_string (locale.translation ("Invalid value for configuration option %"$1%": %"$2%""), [option_name, option_value])
+			end
+		end
+
+feature -- Capability errors
+
+	e_incompatible_class_capability (capability, class_value, class_name, cluster_value, cluster_name, target, system, file: READABLE_STRING_GENERAL): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.translation_in_context
+				("[
+					Class option "$1" has value "$2" insufficient for its cluster value "$4".
+						Class: $3
+						Cluster: $5
+						Target: $6
+						System: $7
+						File: $8
+				]", "configuration"),
+				capability, -- 1
+				class_value, -- 2
+				class_name, -- 3
+				cluster_value, -- 4
+				cluster_name, -- 5
+				target, -- 6
+				system, --7
+				file) -- 8
+		end
+
+	e_incompatible_group_capability (capability, group_value, group_name, target_value, target_name, target_system, target_file: READABLE_STRING_GENERAL): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.translation_in_context
+				("[
+					Group option "$1" has value "$2" insufficient for value "$4" of a target containing this group.
+						Group: $3
+						Target: $5
+						System: $6
+						File: $7
+				]", "configuration"),
+				capability, -- 1
+				group_value, -- 2
+				group_name, -- 3
+				target_value, -- 4
+				target_name, -- 5
+				target_system, -- 6
+				target_file) -- 7
+		end
+
+	e_incompatible_target_capability (capability, parent_value, parent_name, parent_system, parent_file, target_value, target_name, target_system, target_file: READABLE_STRING_GENERAL): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.translation_in_context
+				("[
+					Capability "$1" of supplier target has value "$2" insuffient for client value "$6".
+					Client/child target
+						Name: $7
+						System: $8
+						File: $9
+					Supplier/parent target					
+						Name: $3
+						System: $4
+						File: $5
+				]", "configuration"),
+				capability, -- 1
+				parent_value, -- 2
+				parent_name, -- 3
+				parent_system, -- 4
+				parent_file, -- 5
+				target_value, -- 6
+				target_name, -- 7
+				target_system, -- 8
+				target_file) -- 9
+		end
+
+	e_incompatible_root_option (capability, root_value, capability_value, target_name, system, file: READABLE_STRING_GENERAL): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.translation_in_context
+				("[
+					Capability "$1" of current target has value "$3" insufficient for setting "$2".
+						Target: $4
+						System: $5
+						File: $6
+				]", "configuration"),
+				capability, -- 1
+				root_value, -- 2
+				capability_value, -- 3
+				target_name, -- 4
+				system, -- 5
+				file) -- 6
+		end
+
+	e_incompatible_root_capability (capability, parent_value, parent_name, parent_system, parent_file, target_value, target_name, target_system, target_file: READABLE_STRING_GENERAL): READABLE_STRING_32
+		do
+			Result := locale.formatted_string (locale.translation_in_context
+				("[
+					Capability "$1" of dependent target has value "$2" insufficient for current target setting "$6".
+					Current target
+						Name: $7
+						System: $8
+						File: $9
+					Dependent target
+						Name: $3
+						System: $4
+						File: $5
+				]", "configuration"),
+				capability, -- 1
+				parent_value, -- 2
+				parent_name, -- 3
+				parent_system, -- 4
+				parent_file, -- 5
+				target_value, -- 6
+				target_name, -- 7
+				target_system, -- 8
+				target_file) -- 9
 		end
 
 feature -- Boolean values
@@ -1075,7 +1348,7 @@ feature -- Boolean values
 
 	boolean_false: STRING_32 do Result := locale.translation ("False") end
 
-	boolean_values: HASH_TABLE [BOOLEAN, STRING_32]
+	boolean_values: STRING_TABLE [BOOLEAN]
 			-- Boolean values mapping
 		once
 			create Result.make (2)
@@ -1084,7 +1357,7 @@ feature -- Boolean values
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

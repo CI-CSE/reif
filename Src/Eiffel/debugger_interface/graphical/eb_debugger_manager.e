@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Shared object that manages all debugging actions."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -33,7 +33,8 @@ inherit
 			display_application_status, display_system_info, display_debugger_info,
 			set_error_message,
 			display_ignore_contract_violation_dialog,
-			enable_ignore_contract_violation_if_possible
+			enable_ignore_contract_violation_if_possible,
+			auto_import_debugger_profiles_enabled, auto_export_debugger_profiles_enabled
 		select
 			preferences
 		end
@@ -303,6 +304,11 @@ feature {NONE} -- Initialization
 			toolbarable_commands.extend (override_scan_cmd)
 			toolbarable_commands.extend (discover_melt_cmd)
 
+			toolbarable_commands.extend (analyze_cmd)
+			toolbarable_commands.extend (analyze_editor_cmd)
+			toolbarable_commands.extend (analyze_parent_cmd)
+			toolbarable_commands.extend (analyze_target_cmd)
+			toolbarable_commands.extend (analyzer_preferences_cmd)
 
 				-- command not included in toolbars
 				-- however let's initialize them for safety
@@ -369,6 +375,18 @@ feature -- Settings
 					end
 				end
 			end
+		end
+
+	auto_export_debugger_profiles_enabled: BOOLEAN
+			-- Auto export debugger profiles if needed?
+		do
+			Result := debug_tool_data.auto_export_debugger_profiles_enabled
+		end
+
+	auto_import_debugger_profiles_enabled: BOOLEAN
+			-- Auto import debugger profiles?
+		do
+			Result := debug_tool_data.auto_import_debugger_profiles_enabled
 		end
 
 feature -- Access
@@ -456,7 +474,7 @@ feature {EB_EXEC_FORMAT_CMD, EB_DOCKING_LAYOUT_MANAGER, ES_DBG_TOOLBARABLE_AND_M
 	assertion_checking_handler_cmd: EB_ASSERTION_CHECKING_HANDLER_CMD
 			-- Command to disable/restore assertion checking on the debuggee
 
-	options_cmd: EB_DEBUG_OPTIONS_CMD
+	options_cmd: EB_EXECUTION_PARAMETERS_CMD
 			-- Command to open the execution parameter dialog
 
 	stop_cmd: EB_EXEC_STOP_CMD
@@ -497,48 +515,48 @@ feature {EB_EXEC_FORMAT_CMD, EB_DOCKING_LAYOUT_MANAGER, ES_DBG_TOOLBARABLE_AND_M
 
 feature -- tools
 
-	call_stack_tool: ES_CALL_STACK_TOOL
+	call_stack_tool: detachable ES_CALL_STACK_TOOL
 			-- A tool that represents the call stack in a graphical display.
 		do
-			if debugging_window /= Void then
-				Result ?= debugging_window.shell_tools.tool ({ES_CALL_STACK_TOOL})
+			if attached debugging_window as w then
+				Result := {ES_CALL_STACK_TOOL} / w.shell_tools.tool ({ES_CALL_STACK_TOOL})
 			end
 		ensure
 			result_attached: Result /= Void
 		end
 
-	threads_tool: ES_THREADS_TOOL
+	threads_tool: detachable ES_THREADS_TOOL
 			-- A tool that represents the threads list in a graphical display.
 		do
-			if debugging_window /= Void then
-				Result ?= debugging_window.shell_tools.tool ({ES_THREADS_TOOL})
+			if attached debugging_window as w then
+				Result := {ES_THREADS_TOOL} / w.shell_tools.tool ({ES_THREADS_TOOL})
 			end
 		ensure
 			result_attached: Result /= Void
 		end
 
-	objects_tool: ES_OBJECTS_TOOL
+	objects_tool: detachable ES_OBJECTS_TOOL
 		do
-			if debugging_window /= Void then
-				Result ?= debugging_window.shell_tools.tool ({ES_OBJECTS_TOOL})
+			if attached debugging_window as w then
+				Result := {ES_OBJECTS_TOOL} / w.shell_tools.tool ({ES_OBJECTS_TOOL})
 			end
 		ensure
 			result_attached: debugging_window /= Void implies Result /= Void
 		end
 
-	object_viewer_tool: ES_OBJECT_VIEWER_TOOL
+	object_viewer_tool: detachable ES_OBJECT_VIEWER_TOOL
 		do
-			if debugging_window /= Void then
-				Result ?= debugging_window.shell_tools.tool ({ES_OBJECT_VIEWER_TOOL})
+			if attached debugging_window as w then
+				Result := {ES_OBJECT_VIEWER_TOOL} / w.shell_tools.tool ({ES_OBJECT_VIEWER_TOOL})
 			end
 		ensure
 			result_attached: Result /= Void
 		end
 
-	object_viewer_tool_panel: ES_OBJECT_VIEWER_TOOL_PANEL
+	object_viewer_tool_panel: detachable ES_OBJECT_VIEWER_TOOL_PANEL
 		do
-			if debugging_window /= Void then
-				Result ?= debugging_window.shell_tools.tool ({ES_OBJECT_VIEWER_TOOL}).panel
+			if attached debugging_window as w then
+				Result := {ES_OBJECT_VIEWER_TOOL_PANEL} / w.shell_tools.tool ({ES_OBJECT_VIEWER_TOOL}).panel
 			end
 		ensure
 			result_attached: Result /= Void
@@ -547,9 +565,9 @@ feature -- tools
 	watch_tool_list: LINKED_SET [ES_WATCH_TOOL]
 			-- List of watched tools
 		do
-			if debugging_window /= Void then
+			if attached debugging_window as w then
 				create Result.make
-				debugging_window.shell_tools.tools ({ES_WATCH_TOOL}).do_all (agent (a_tool: ES_TOOL [EB_TOOL]; a_result: LINKED_SET [ES_WATCH_TOOL])
+				w.shell_tools.tools ({ES_WATCH_TOOL}).do_all (agent (a_tool: ES_TOOL [EB_TOOL]; a_result: LINKED_SET [ES_WATCH_TOOL])
 						do
 							if attached {ES_WATCH_TOOL} a_tool as l_watch_tool then
 								a_result.extend (l_watch_tool)
@@ -589,8 +607,6 @@ feature -- tools management
 			-- Toolbar containing all debugging commands.
 		require
 			a_recycler_not_void: a_recycler /= Void
-		local
-			l_button: EB_SD_COMMAND_TOOL_BAR_BUTTON
 		do
 			Result := debug_tool_data.retrieve_project_toolbar (toolbarable_commands)
 			from
@@ -598,8 +614,7 @@ feature -- tools management
 			until
 				Result.after
 			loop
-				l_button ?= Result.item
-				if l_button /= Void then
+				if attached {EB_SD_COMMAND_TOOL_BAR_BUTTON} Result.item as l_button then
 					a_recycler.auto_recycle (l_button)
 				end
 				Result.forth
@@ -1871,8 +1886,6 @@ feature -- Debugging events
 
 	on_application_launched
 			-- Application has just been launched.
-		local
-			feat_tool: ES_FEATURE_RELATION_TOOL
 		do
 			update_all_debugging_tools_menu
 
@@ -1881,9 +1894,13 @@ feature -- Debugging events
 				io.put_string (generator + ".on_application_launched %N")
 			end
 
-			feat_tool ?= debugging_window.shell_tools.tool ({ES_FEATURE_RELATION_TOOL})
-			feat_tool.set_mode ({ES_FEATURE_RELATION_TOOL_VIEW_MODES}.flat)
-			feat_tool.show (False)
+			if
+				attached debugging_window as w and then
+				attached {ES_FEATURE_RELATION_TOOL} w.shell_tools.tool ({ES_FEATURE_RELATION_TOOL}) as feat_tool
+			then
+				feat_tool.set_mode ({ES_FEATURE_RELATION_TOOL_VIEW_MODES}.flat)
+				feat_tool.show (False)
+			end
 
 				-- Modify the debugging window display.
 			stop_cmd.enable_sensitive
@@ -2690,7 +2707,7 @@ feature {NONE} -- MSIL system implementation
 			-- DLL type constant for MSIL system
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -2721,4 +2738,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_DEBUGGER_MANAGER
+end

@@ -130,7 +130,8 @@ create
 %type <detachable ELSIF_EXPRESSION_AS>		Elseif_part_expression
 %type <detachable ENSURE_AS>			Postcondition
 %type <detachable EXPORT_ITEM_AS>		New_export_item
-%type <detachable EXPR_AS>				Bracket_target Expression Factor Qualified_factor Typed_expression Actual_parameter
+%type <detachable EXPR_AS>				Bracket_target Expression Factor Qualified_factor Typed_expression Actual_parameter 
+%type <detachable BRACKET_AS>			Bracket_expression Call_bracket_expression
 %type <detachable EXTERNAL_AS>			External
 %type <detachable EXTERNAL_LANG_AS>	External_language
 %type <detachable FEATURE_AS>			Feature_declaration
@@ -190,6 +191,7 @@ create
 %type <detachable EIFFEL_LIST [FEATURE_AS]>		Feature_declaration_list
 %type <detachable EIFFEL_LIST [FEATURE_CLAUSE_AS]>	Features Feature_clause_list
 %type <detachable EIFFEL_LIST [FEATURE_NAME]>		Feature_list Feature_list_impl New_feature_list
+%type <detachable EIFFEL_LIST [FEAT_NAME_ID_AS]>		Creation_list Creation_list_impl
 %type <detachable EIFFEL_LIST [NAMED_EXPRESSION_AS]>	Separate_argument_list
 %type <detachable CREATION_CONSTRAIN_TRIPLE>	Creation_constraint
 %type <detachable UNDEFINE_CLAUSE_AS>	Undefine Undefine_opt
@@ -219,7 +221,7 @@ create
 %type <detachable CONSTRAINT_LIST_AS> Multiple_constraint_list
 %type <detachable CONSTRAINING_TYPE_AS> Single_constraint
 
-%expect 364
+%expect 368
 
 %%
 
@@ -750,9 +752,9 @@ ASemi: -- Empty
 	|	TE_SEMICOLON { $$ := $1 }
 	;
 
-Feature_declaration: Add_counter New_feature_list Remove_counter Declaration_body Optional_semicolons
+Feature_declaration: Add_counter New_feature_list Remove_counter {enter_scope} Declaration_body {leave_scope} Optional_semicolons
 			{
-				$$ := ast_factory.new_feature_as ($2, $4, feature_indexes, position)
+				$$ := ast_factory.new_feature_as ($2, $5, feature_indexes, position)
 				if has_syntax_warning then
 					if attached feature_indexes as fi and then fi.has_global_once then
 						if attached fi.once_status_index_as as fi_tok then
@@ -882,7 +884,10 @@ Alias_mark: -- Empty
 Is_keyword: -- Empty
 			{ $$ := Void }
 	| TE_IS
-			{ $$ := extract_keyword ($1) }
+			{
+				$$ := extract_keyword ($1)
+				report_deprecated_use_of_keyword_is ($$)
+			}
 	;
 
 Declaration_body: TE_COLON Type Assigner_mark_opt Dotnet_indexing
@@ -914,8 +919,8 @@ Declaration_body: TE_COLON Type Assigner_mark_opt Dotnet_indexing
 				else
 					$$ := ast_factory.new_body_as (Void, $2, Void, $5, $1, extract_keyword ($4), Void, $6)
 				end
-				
 				feature_indexes := $6
+				report_deprecated_use_of_keyword_is (extract_keyword ($4))
 			}
 	|	Is_keyword Indexing Routine
 			{
@@ -931,8 +936,8 @@ Declaration_body: TE_COLON Type Assigner_mark_opt Dotnet_indexing
 				else
 					$$ := ast_factory.new_body_as (Void, $2, Void, $6, $1, extract_keyword ($4), Void, $5)
 				end
-				
 				feature_indexes := $5
+				report_deprecated_use_of_keyword_is (extract_keyword ($4))
 		}
 	|	TE_COLON Type Assigner_mark_opt Indexing Routine
 			{
@@ -1220,6 +1225,35 @@ Convert_feature: Feature_name TE_LPARAN TE_LCURLY Type_list TE_RCURLY TE_RPARAN
 		}
 	;
 
+Creation_list: Add_counter Creation_list_impl Remove_counter
+		{ $$ := $2 }
+	;
+
+Creation_list_impl: Identifier_as_lower
+			{
+				$$ := ast_factory.new_eiffel_list_feature_name_id (counter_value + 1)
+				if
+					attached $$ as l_list and then
+					attached $1 as l_val and then
+					attached ast_factory.new_feature_name_id_as (l_val) as l_id
+				then
+					l_list.reverse_extend (l_id)
+				end
+			}
+	|	Identifier_as_lower TE_COMMA Increment_counter Creation_list_impl
+			{
+				$$ := $4
+				if
+					attached $$ as l_list and then
+					attached $1 as l_val and then
+					attached ast_factory.new_feature_name_id_as (l_val) as l_id
+				then
+					l_list.reverse_extend (l_id)
+					ast_factory.reverse_extend_separator (l_list, $2)
+				end
+			}
+	;
+
 Feature_list: Add_counter Feature_list_impl Remove_counter
 		{ $$ := $2 }
 	;
@@ -1336,7 +1370,12 @@ Entity_declaration_list: Entity_declaration_group
 	;
 
 Entity_declaration_group: Add_counter Identifier_list Remove_counter TE_COLON Type ASemi
-			{ $$ := ast_factory.new_type_dec_as ($2, $5, $4) }
+			{
+				$$ := ast_factory.new_type_dec_as ($2, $5, $4)
+				if attached $2 as list and then attached list.id_list as identifiers then
+					add_scope_arguments (identifiers)
+				end
+			}
 	;
 
 Local_declaration_list: Local_declaration_group
@@ -1362,9 +1401,17 @@ Local_declaration_group:
 					raise_error
 				end
 				$$ := ast_factory.new_list_dec_as ($2)
+				if attached $2 as list and then attached list.id_list as identifiers then
+					add_scope_locals (identifiers)
+				end
 			}
 	|	Add_counter Identifier_list Remove_counter TE_COLON Type ASemi
-			{ $$ := ast_factory.new_type_dec_as ($2, $5, $4) }
+			{
+				$$ := ast_factory.new_type_dec_as ($2, $5, $4)
+				if attached $2 as list and then attached list.id_list as identifiers then
+					add_scope_locals (identifiers)
+				end
+			}
 	;
 
 Identifier_list: Identifier_as_lower
@@ -1394,8 +1441,14 @@ Strip_identifier_list: -- Empty
 
 Routine:
 		Obsolete
-			{	set_fbody_pos (position) }
+			{
+				set_fbody_pos (position)
+			}
 		Precondition
+			{
+					 -- Start a scope for local variables.
+				enter_scope
+			}
 		Local_declarations
 		Routine_body
 		Postcondition
@@ -1409,13 +1462,14 @@ Routine:
 					temp_string_as1 := Void
 					temp_keyword_as := Void
 				end
-				if attached $7 as l_rescue then
-					$$ := ast_factory.new_routine_as (temp_string_as1, $3, $4, $5, $6, l_rescue.second, $8, once_manifest_string_counter_value, fbody_pos, temp_keyword_as, l_rescue.first, object_test_locals)
+				if attached $8 as l_rescue then
+					$$ := ast_factory.new_routine_as (temp_string_as1, $3, $5, $6, $7, l_rescue.second, $9, once_manifest_string_counter_value, fbody_pos, temp_keyword_as, l_rescue.first, object_test_locals, has_non_object_call, has_non_object_call_in_assertion, has_unqualified_call_in_assertion)
 				else
-					$$ := ast_factory.new_routine_as (temp_string_as1, $3, $4, $5, $6, Void, $8, once_manifest_string_counter_value, fbody_pos, temp_keyword_as, Void, object_test_locals)
+					$$ := ast_factory.new_routine_as (temp_string_as1, $3, $5, $6, $7, Void, $9, once_manifest_string_counter_value, fbody_pos, temp_keyword_as, Void, object_test_locals, has_non_object_call, has_non_object_call_in_assertion, has_unqualified_call_in_assertion)
 				end
-				reset_once_manifest_string_counter
+				reset_feature_frame
 				object_test_locals := Void
+				leave_scope -- For local variables.
 			}
 	;
 
@@ -1515,10 +1569,10 @@ Instruction_impl: Creation
 			{ $$ := ast_factory.new_assigner_call_as (ast_factory.new_expr_call_as ($1), $3, $2) }
 	|	A_static_call TE_ASSIGNMENT Expression
 			{ $$ := ast_factory.new_assigner_call_as ($1, $3, $2) }
-	|	Bracket_target TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE TE_ASSIGNMENT Expression
-			{ $$ := ast_factory.new_assigner_call_as (ast_factory.new_bracket_as ($1, $4, $2, $6), $8, $7) }
-	|	Call TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE TE_ASSIGNMENT Expression
-			{ $$ := ast_factory.new_assigner_call_as (ast_factory.new_bracket_as (ast_factory.new_expr_call_as ($1), $4, $2, $6), $8, $7) }
+	|	Bracket_expression TE_ASSIGNMENT Expression
+			{ $$ := ast_factory.new_assigner_call_as ($1, $3, $2) }
+	|	Call_bracket_expression TE_ASSIGNMENT Expression
+			{ $$ := ast_factory.new_assigner_call_as ($1, $3, $2) }
 	|	Assignment
 			{ $$ := $1 }
 	|	Reverse_assignment
@@ -1544,14 +1598,14 @@ Instruction_impl: Creation
 Precondition: -- Empty
 			-- { $$ := Void }
 	|	TE_REQUIRE
-			{ set_id_level (Assert_level) }
+			{ set_id_level (Precondition_level) }
 		Assertion
 			{
 				set_id_level (Normal_level)
 				$$ := ast_factory.new_require_as ($3, $1)
 			}
 	|	TE_REQUIRE TE_ELSE
-			{ set_id_level (Assert_level) }
+			{ set_id_level (Precondition_level) }
 		Assertion
 			{
 				set_id_level (Normal_level)
@@ -1562,18 +1616,18 @@ Precondition: -- Empty
 Postcondition: -- Empty
 			-- { $$ := Void }
 	|	TE_ENSURE
-			{ set_id_level (Assert_level) }
+			{ set_id_level (Postcondition_level) }
 		Assertion
 			{
 				set_id_level (Normal_level)
-				$$ := ast_factory.new_ensure_as ($3, $1)
+				$$ := ast_factory.new_ensure_as ($3, is_class_feature, $1)
 			}
 	|	TE_ENSURE TE_THEN
-			{ set_id_level (Assert_level) }
+			{ set_id_level (Postcondition_level) }
 		Assertion
 			{
 				set_id_level (Normal_level)
-				$$ := ast_factory.new_ensure_then_as ($4, $1, $2)
+				$$ := ast_factory.new_ensure_then_as ($4, is_class_feature, $1, $2)
 			}
 	;
 
@@ -1620,19 +1674,36 @@ Assertion_list: Assertion_clause
 			}
 	;
 
-Assertion_clause: Expression ASemi
-			{ $$ := ast_factory.new_tagged_as (Void, $1, Void) }
+Assertion_clause:
+		Expression ASemi
+			{ $$ := ast_factory.new_tagged_as (Void, $1, Void, Void) }
+	|	TE_CLASS ASemi
+			{
+				if id_level = Postcondition_level then
+					$$ := ast_factory.new_tagged_as (Void, Void, $1, Void)
+					set_is_class_feature (True)
+				else
+					raise_error
+				end
+			}
 	|	Identifier_as_lower TE_COLON Expression ASemi
-			{ $$ := ast_factory.new_tagged_as ($1, $3, $2) }
+			{ $$ := ast_factory.new_tagged_as ($1, $3, Void, $2) }
+	|	Identifier_as_lower TE_COLON TE_CLASS ASemi
+			{
+				if id_level = Postcondition_level then
+					$$ := ast_factory.new_tagged_as ($1, Void, $3, $2)
+					set_is_class_feature (True)
+				else
+					raise_error
+				end
+			}
 	|	Identifier_as_lower TE_COLON ASemi
-			--- { $$ := Void }
 		{
-			-- Always create an object here for roundtrip parser.
-			-- This "fake" assertion will be filtered out later.
-			$$ := ast_factory.new_tagged_as ($1, Void, $2)
+				-- Always create an object here for roundtrip parser.
+				-- This "fake" assertion will be filtered out later.
+			$$ := ast_factory.new_tagged_as ($1, Void, Void, $2)
 		}
 	;
-
 
 -- Type
 -- Note that only `Type' should be used in other constructs. If something else is used, please make
@@ -2498,7 +2569,7 @@ Multiple_constraint_list:	Single_constraint
 
 Creation_constraint: -- Empty
 			-- { $$ := Void }
-	|	TE_CREATE Feature_list TE_END
+	|	TE_CREATE Creation_list TE_END
 			{
 				$$ := ast_factory.new_creation_constrain_triple ($2, $1, $3)
 			}
@@ -2674,6 +2745,7 @@ Loop_instruction:
 						$$ := ast_factory.new_loop_as ($1, $3, Void, $8, Void, $7, $9, $2, Void, Void, $6)
 					end
 				end
+				leave_scope
 			}
 	| Iteration Invariant Exit_condition_opt TE_LOOP Compound Variant_opt TE_END
 			{
@@ -2690,6 +2762,7 @@ Loop_instruction:
 						$$ := ast_factory.new_loop_as ($1, Void, Void, $6, Void, $5, $7, Void, Void, Void, $4)
 					end
 				end
+				leave_scope
 			}
 	;
 
@@ -2709,6 +2782,7 @@ Loop_expression:
 						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, Void, Void, $4, True, $5, $6, $7)
 					end
 				end
+				leave_scope
 			}
 	| Iteration Invariant Exit_condition_opt TE_SOME Expression Variant_opt TE_END
 			{
@@ -2725,6 +2799,7 @@ Loop_expression:
 						$$ := ast_factory.new_loop_expr_as ($1, Void, Void, Void, Void, extract_keyword ($4), False, $5, $6, $7)
 					end
 				end
+				leave_scope
 			}
 	;
 
@@ -2733,7 +2808,17 @@ Iteration:
 			{
 				insert_supplier ("ITERABLE", $4)
 				insert_supplier ("ITERATION_CURSOR", $4)
-				$$ := ast_factory.new_iteration_as (extract_keyword ($1), $2, $3, $4)
+				$$ := ast_factory.new_iteration_as (extract_keyword ($1), $2, $3, $4, False)
+				enter_scope
+				add_scope_iteration ($4)
+			}
+	| TE_ACROSS Expression TE_IS Identifier_as_lower
+			{
+				insert_supplier ("ITERABLE", $4)
+				insert_supplier ("ITERATION_CURSOR", $4)
+				$$ := ast_factory.new_iteration_as (extract_keyword ($1), $2, extract_keyword ($3), $4, True)
+				enter_scope
+				add_scope_iteration ($4)
 			}
 	;
 
@@ -2751,7 +2836,7 @@ Class_invariant: -- Empty
 			{
 				set_id_level (Normal_level)
 				$$ := ast_factory.new_invariant_as ($3, once_manifest_string_counter_value, $1, object_test_locals)
-				reset_once_manifest_string_counter
+				reset_feature_frame
 				object_test_locals := Void
 			}
 	;
@@ -2904,16 +2989,31 @@ Creation_clause:
 Agent:
 		TE_AGENT Optional_formal_arguments {add_feature_frame} Routine {remove_feature_frame} Delayed_actuals
 		{
+			inspect id_level when Precondition_level, Postcondition_level then
+				set_has_unqualified_call_in_assertion (True)
+			else
+				-- Nothing to do.
+			end
 			$$ := ast_factory.new_inline_agent_creation_as (
 				ast_factory.new_body_as ($2, Void, Void, $4, Void, Void, Void, Void), $6, $1)
 		}
 	|	TE_AGENT Optional_formal_arguments TE_COLON Type {add_feature_frame} Routine {remove_feature_frame} Delayed_actuals
 		{
+			inspect id_level when Precondition_level, Postcondition_level then
+				set_has_unqualified_call_in_assertion (True)
+			else
+				-- Nothing to do.
+			end
 			$$ := ast_factory.new_inline_agent_creation_as (
 				ast_factory.new_body_as ($2, $4, Void, $6, $3, Void, Void, Void), $8, $1)
 		}
 	|	TE_AGENT Feature_name_for_call Delayed_actuals
 		{
+			inspect id_level when Precondition_level, Postcondition_level then
+				set_has_unqualified_call_in_assertion (True)
+			else
+				-- Nothing to do.
+			end
 			$$ := ast_factory.new_agent_routine_creation_as (
 				Void, $2, $3, False, $1, Void)
 		}
@@ -2940,13 +3040,27 @@ Optional_formal_arguments: -- Empty
 	;
 	
 Agent_target: Identifier_as_lower
-		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, ast_factory.new_access_id_as ($1, Void), Void)) }
+		{
+			inspect id_level when Precondition_level, Postcondition_level then
+				set_has_unqualified_call_in_assertion (True)
+			else
+				-- Nothing to do.
+			end
+			$$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, ast_factory.new_access_id_as ($1, Void), Void))
+		}
 	|	TE_LPARAN Add_counter Add_counter Expression Remove_counter Remove_counter TE_RPARAN
 		{ $$ := ast_factory.new_agent_target_triple ($1, $7, ast_factory.new_operand_as (Void, Void, $4)) }	
 	|	TE_RESULT
 		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1, Void)) }
 	|	TE_CURRENT
-		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1, Void)) }
+		{
+			inspect id_level when Precondition_level, Postcondition_level then
+				set_has_unqualified_call_in_assertion (True)
+			else
+				-- Nothing to do.
+			end
+			$$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as (Void, $1, Void))
+		}
 	|	Typed
 		{ $$ := ast_factory.new_agent_target_triple (Void, Void, ast_factory.new_operand_as ($1, Void, Void))}
 	|	TE_QUESTION
@@ -3103,12 +3217,18 @@ Guard: TE_CHECK Assertion TE_THEN Compound TE_END
 
 -- Separate instruction
 
-Separate_instruction: TE_SEPARATE Add_counter Separate_argument_list Remove_counter TE_DO Compound TE_END
-			{ $$ := ast_factory.new_separate_instruction_as ($1, $3, $5, $6, $7) }
+Separate_instruction: TE_SEPARATE {enter_scope} Add_counter Separate_argument_list Remove_counter TE_DO Compound TE_END
+			{
+				$$ := ast_factory.new_separate_instruction_as ($1, $4, $6, $7, $8)
+				leave_scope
+			}
 	;
 
 Separate_argument: Expression TE_AS Identifier_as_lower
-			{ $$ := ast_factory.new_named_expression_as ($1, $2, $3) }
+			{
+				$$ := ast_factory.new_named_expression_as ($1, $2, $3)
+				add_scope_separate ($3)
+			}
 	;
 
 Separate_argument_list: Separate_argument
@@ -3166,6 +3286,7 @@ Expression:
 			{
 				check_object_test_expression ($2)
 				$$ := ast_factory.new_object_test_as (extract_keyword ($1), Void, $2, $3, $4)
+				add_scope_test ($4)
 			}
 	|	TE_ATTACHED TE_LCURLY Type TE_RCURLY Expression %prec TE_NOT
 			{
@@ -3187,6 +3308,7 @@ Expression:
 				if attached $7 as l_name and attached $3 as l_type then
 					insert_object_test_locals ([l_name, l_type])
 				end
+				add_scope_test ($7)
 			}
 	|	TE_LCURLY Identifier_as_lower TE_COLON Type TE_RCURLY Expression %prec TE_NOT
 			{
@@ -3254,9 +3376,23 @@ Factor: TE_VOID
 	|	TE_STRIP TE_LPARAN Strip_identifier_list TE_RPARAN
 			{ $$ := ast_factory.new_un_strip_as ($3, $1, $2, $4) }
 	|	TE_ADDRESS Feature_name
-			{ $$ := ast_factory.new_address_as ($2, $1) }
+			{
+				inspect id_level when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
+				else
+					-- Nothing to do.
+				end
+				$$ := ast_factory.new_address_as ($2, $1)
+			}
 	|	TE_ADDRESS TE_CURRENT
-			{ $$ := ast_factory.new_address_current_as ($2, $1) }
+			{
+				inspect id_level when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
+				else
+					-- Nothing to do.
+				end
+				$$ := ast_factory.new_address_current_as ($2, $1)
+			}
 	|	TE_ADDRESS TE_RESULT
 			{ $$ := ast_factory.new_address_result_as ($2, $1) }
 	|	Bracket_target
@@ -3270,10 +3406,10 @@ Factor: TE_VOID
 	;
 
 Qualified_factor:
-		Bracket_target TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
-			{ $$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
-	|	Call TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
-			{ $$ := ast_factory.new_bracket_as (ast_factory.new_expr_call_as ($1), $4, $2, $6) }
+		Bracket_expression 
+			{ $$ := $1 }
+	|	Call_bracket_expression 
+			{ $$ := $1 }
 	|	TE_MINUS Factor
 			{ $$ := ast_factory.new_un_minus_as ($2, $1) }
 	|	TE_PLUS Factor
@@ -3301,22 +3437,43 @@ Free_operator: TE_FREE
 			}
 	;
 
+-- Bracket expression
+Bracket_expression:
+	  	Bracket_target TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
+			{		$$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
+	| 	Bracket_expression TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
+			{		$$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
+	;      
+
+Call_bracket_expression:
+		Call TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
+			{ $$ := ast_factory.new_bracket_as (ast_factory.new_expr_call_as ($1), $4, $2, $6) }
+	| 	Call_bracket_expression TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE
+			{		$$ := ast_factory.new_bracket_as ($1, $4, $2, $6) }
+	;      
 
 -- Expression call
 
 Qualified_call:
 		TE_CURRENT TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
+			{
+				inspect id_level when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
+				else
+					-- Nothing to do.
+				end
+				$$ := ast_factory.new_nested_as ($1, $3, $2)
+			}
 	|	TE_RESULT TE_DOT Remote_call
 			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
 	|	A_feature TE_DOT Remote_call
 			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
 	|	TE_LPARAN Expression TE_RPARAN TE_DOT Remote_call
 			{ $$ := ast_factory.new_nested_expr_as ($2, $5, $4, $1, $3) }
-	|	Bracket_target TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_expr_as (ast_factory.new_bracket_as ($1, $4, $2, $6), $8, $7, Void, Void) }
-	|	Call TE_LSQURE Add_counter Expression_list Remove_counter TE_RSQURE TE_DOT Remote_call
-			{ $$ := ast_factory.new_nested_expr_as (ast_factory.new_bracket_as (ast_factory.new_expr_call_as ($1), $4, $2, $6), $8, $7, Void, Void) }
+	|	Bracket_expression TE_DOT Remote_call
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2, Void, Void) }
+	|	Call_bracket_expression TE_DOT Remote_call
+			{ $$ := ast_factory.new_nested_expr_as ($1, $3, $2, Void, Void) }
 	|	A_precursor TE_DOT Remote_call
 			{ $$ := ast_factory.new_nested_as ($1, $3, $2) }
 	|	A_static_call TE_DOT Remote_call
@@ -3324,9 +3481,21 @@ Qualified_call:
 	;
 
 A_precursor: TE_PRECURSOR Parameters
-			{ $$ := ast_factory.new_precursor_as ($1, Void, $2) }
+			{
+				inspect id_level when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
+				else
+					-- Nothing to do.
+				end
+				$$ := ast_factory.new_precursor_as ($1, Void, $2)
+			}
 	|	TE_PRECURSOR TE_LCURLY Class_identifier TE_RCURLY Parameters
 			{
+				inspect id_level when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
+				else
+					-- Nothing to do.
+				end
 				if attached ast_factory.new_class_type_as ($3, Void) as l_temp_class_type_as then
 					l_temp_class_type_as.set_lcurly_symbol ($2)
 					l_temp_class_type_as.set_rcurly_symbol ($4)
@@ -3338,9 +3507,25 @@ A_precursor: TE_PRECURSOR Parameters
 	;
 
 A_static_call: New_a_static_call
-			{ $$ := $1 }
+			{
+				inspect id_level
+				when Precondition_level, Postcondition_level then
+					set_has_non_object_call_in_assertion (True)
+				else
+					set_has_non_object_call (True)
+				end
+				$$ := $1
+			}
 	|	Old_a_static_call
-			{ $$ := $1 }
+			{
+				inspect id_level
+				when Precondition_level, Postcondition_level then
+					set_has_non_object_call_in_assertion (True)
+				else
+					set_has_non_object_call (True)
+				end
+				$$ := $1
+			}
 	;
 
 New_a_static_call:
@@ -3393,7 +3578,8 @@ A_feature: Feature_name_for_call Parameters
 				inspect id_level
 				when Normal_level then
 					$$ := ast_factory.new_access_id_as ($1, $2)
-				when Assert_level then
+				when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
 					$$ := ast_factory.new_access_assert_as ($1, $2)
 				when Invariant_level then
 					$$ := ast_factory.new_access_inv_as ($1, $2, Void)
@@ -3413,7 +3599,14 @@ Bracket_target:
 	|	Manifest_tuple
 			{ $$ := $1 }
 	|	TE_CURRENT
-			{ $$ := ast_factory.new_expr_call_as ($1) }
+			{
+				inspect id_level when Precondition_level, Postcondition_level then
+					set_has_unqualified_call_in_assertion (True)
+				else
+					-- Nothing to do.
+				end
+				$$ := ast_factory.new_expr_call_as ($1)
+			}
 	|	TE_RESULT
 			{ $$ := ast_factory.new_expr_call_as ($1) }
 	|	Creation_expression
@@ -3954,12 +4147,25 @@ Infix_operator: TE_STR_LT
 			}
 	;
 
-Manifest_array: TE_LARRAY TE_RARRAY
+Manifest_array:
+	TE_LARRAY TE_RARRAY
+			{ $$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (0), $1, $2) }
+	|	Typed TE_LARRAY TE_RARRAY
 			{
-				$$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (0), $1, $2)
+				$$ := ast_factory.new_array_as (ast_factory.new_eiffel_list_expr_as (0), $2, $3)
+				if attached $$ as a then
+					a.set_type ($1)
+				end
 			}
 	|	TE_LARRAY Add_counter Expression_list Remove_counter TE_RARRAY
 			{ $$ := ast_factory.new_array_as ($3, $1, $5) }
+	|	Typed TE_LARRAY Add_counter Expression_list Remove_counter TE_RARRAY
+			{
+				$$ := ast_factory.new_array_as ($4, $2, $6)
+				if attached $$ as a then
+					a.set_type ($1)
+				end
+			}
 	;
 
 Manifest_tuple: TE_LSQURE TE_RSQURE
@@ -3993,7 +4199,7 @@ Remove_counter: { remove_counter }
 %%
 
 note
-	copyright:	"Copyright (c) 1984-2011, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -4024,5 +4230,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EIFFEL_PARSER
-
+end

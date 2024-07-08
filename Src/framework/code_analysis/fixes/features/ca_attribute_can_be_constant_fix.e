@@ -1,6 +1,5 @@
-note
+﻿note
 	description: "Fixes violations of rule #48 ('Attribute can be made constant')."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -37,10 +36,13 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Visitor
 
-	execute (a_class: attached CLASS_AS)
+	execute
+			-- <Precursor>
+		local
+			u: UTF_CONVERTER
 		do
-			attribute_to_change.body.append_text(" = " + constant_value, matchlist)
-			process_ast_node (a_class)
+			attribute_to_change.body.append_text (" = " + u.string_32_to_utf_8_string_8 (constant_value), match_list)
+			process_ast_node (parsed_class)
 		end
 
 	process_assign_as (a_assign: ASSIGN_AS)
@@ -50,7 +52,7 @@ feature {NONE} -- Visitor
 				attached {ACCESS_ID_AS} a_assign.target as l_access_id
 				and then l_access_id.access_name_32.is_equal (attribute_to_change.feature_name.name_32)
 			then
-				a_assign.remove_text (matchlist)
+				a_assign.remove_text (match_list)
 			end
 		end
 

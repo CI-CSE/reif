@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Objects that specify configuration options."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
@@ -23,6 +23,13 @@ inherit
 			is_equal
 		end
 
+	CONF_FILE_CONSTANTS
+		redefine
+			copy,
+			default_create,
+			is_equal
+		end
+
 create
 	default_create,
 	make_6_3,
@@ -30,20 +37,23 @@ create
 	make_7_0,
 	make_7_3,
 	make_14_05,
-	make_15_11
+	make_15_11,
+	make_18_01
 
 feature {NONE} -- Creation
 
 	default_create
 			-- Initialize options to the defaults of the current version.
 		do
-			make_15_11
+			make_18_01
 		end
 
 	make_6_3
 			-- Initialize options to the defaults of 6.3.
+			-- First versioned settings.
 		do
 			create syntax.make (syntax_name, syntax_index_obsolete)
+			create array.make (array_name, array_index_mismatch_warning)
 			create void_safety.make (void_safety_name, void_safety_index_none)
 			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
 			is_obsolete_routine_type := True
@@ -51,53 +61,59 @@ feature {NONE} -- Creation
 
 	make_6_4
 			-- Initialize options to the defaults of 6.4.
+			-- Difference from `make_6_3': transitional syntax.
 		do
-			create syntax.make (syntax_name, syntax_index_transitional)
-			create void_safety.make (void_safety_name, void_safety_index_none)
-			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
-			is_obsolete_routine_type := True
+			make_6_3
+			syntax.put_default_index (syntax_index_transitional)
 		end
 
 	make_7_0
 			-- Initialize options to the defaults of 7.0.
+			-- Difference from `make_6_4': standard syntax, class types attached by default.
 		do
-			create syntax.make (syntax_name, syntax_index_standard)
-			create void_safety.make (void_safety_name, void_safety_index_none)
-			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
+			make_6_4
+			syntax.put_default_index (syntax_index_standard)
 			is_attached_by_default := True
-			is_obsolete_routine_type := True
 		end
 
 	make_7_3
 			-- Initialize options to the defaults of 7.3.
+			-- Difference fom `make_7_0': transitional void-safety, full class checking.
 		do
-			create syntax.make (syntax_name, syntax_index_standard)
-			create void_safety.make (void_safety_name, void_safety_index_transitional)
-			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
-			is_attached_by_default := True
+			make_7_0
+			void_safety.put_default_index (void_safety_index_transitional)
 			is_full_class_checking := True
-			is_obsolete_routine_type := True
 		end
 
 	make_14_05
 			-- Initialize options to the defaults of 14.05.
+			-- Difference from `make_7_3': complete void-safety.
 		do
-			create syntax.make (syntax_name, syntax_index_standard)
-			create void_safety.make (void_safety_name, void_safety_index_all)
-			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
-			is_attached_by_default := True
-			is_full_class_checking := True
-			is_obsolete_routine_type := True
+			make_7_3
+			void_safety.put_default_index (void_safety_index_all)
 		end
 
 	make_15_11
-			-- Initialize options to the defaults of 14.05.
+			-- Initialize options to the defaults of 15.11.
+			-- Difference from `make_14_05`: routine types without target parameter.
 		do
-			create syntax.make (syntax_name, syntax_index_standard)
-			create void_safety.make (void_safety_name, void_safety_index_all)
-			create catcall_detection.make (catcall_detection_values, catcall_detection_index_none)
-			is_attached_by_default := True
-			is_full_class_checking := True
+			make_14_05
+			is_obsolete_routine_type := False
+		end
+
+	make_16_11
+			-- Initialize options to the defaults of 16.11.
+			-- Difference from `make_15_11`: none. See `{CONF_TARGET_OPTION}`.
+		do
+			make_15_11
+		end
+
+	make_18_01
+			-- Initialize options to the defaults of 18.01.
+			-- Difference from `make_16_11`: manifest array type is computed without taking target type into account.
+		do
+			make_16_11
+			array.put_default_index (array_index_standard)
 		end
 
 feature -- Status
@@ -148,7 +164,33 @@ feature -- Status
 				local_namespace /= Void or
 				warnings /= Void or
 				debugs /= Void or
-				syntax.is_set)
+				syntax.is_set or
+				array.is_set)
+		end
+
+	is_empty_for (n: detachable READABLE_STRING_32): BOOLEAN
+			-- Is `Current' empty in a specific namespace `n`?
+		do
+			Result := not (
+				is_profile_configured or
+				is_trace_configured or
+				is_optimize_configured or
+				is_debug_configured or
+				is_warning_configured or
+				is_msil_application_optimize_configured or
+				is_full_class_checking_configured or
+				is_attached_by_default_configured or
+				is_obsolete_routine_type_configured or
+				assertions /= Void or
+				local_namespace /= Void or
+				warnings /= Void or
+				debugs /= Void or
+				syntax.is_set or
+				array.is_set or
+					-- Void safety and catcall detection options are used only before `namespace_1_15_0`.
+				(is_before_or_equal (n, namespace_1_15_0) and then
+					(catcall_detection.is_set or
+					void_safety.is_set)))
 		end
 
 feature -- Status update
@@ -221,10 +263,10 @@ feature -- Access, stored in configuration file
 	assertions: detachable CONF_ASSERTIONS
 			-- The assertion settings.
 
-	namespace: detachable STRING_32
+	namespace: detachable READABLE_STRING_32
 			-- .NET namespace that is computed on demand.
 
-	local_namespace: detachable STRING_32
+	local_namespace: detachable READABLE_STRING_32
 			-- .NET namespace set in configuration file
 
 	is_profile: BOOLEAN
@@ -254,7 +296,7 @@ feature -- Access, stored in configuration file
 	is_obsolete_routine_type: BOOLEAN
 			-- Is an obsolete routine type declaration used?
 
-	description: detachable STRING_32
+	description: detachable READABLE_STRING_32
 			-- A description about the options.
 
 feature -- Access: syntax
@@ -280,6 +322,30 @@ feature {NONE} -- Access: syntax
 			-- Available values for `syntax' option
 		once
 			Result := <<{STRING_32} "obsolete", {STRING_32} "transitional", {STRING_32} "standard", {STRING_32} "provisional">>
+		ensure
+			result_attached: Result /= Void
+		end
+
+feature -- Access: manifest array type
+
+	array: CONF_VALUE_CHOICE
+			-- Expected variant of manifest array typing rules.
+
+	array_index_mismatch_error: NATURAL_8 = 1
+			-- Option index for obsolete syntax
+
+	array_index_mismatch_warning: NATURAL_8 = 2
+			-- Option index for transitional syntax
+
+	array_index_standard: NATURAL_8 = 3
+			-- Option index for standard syntax
+
+feature {NONE} -- Access: syntax
+
+	array_name: ARRAY [READABLE_STRING_32]
+			-- Available values for `manifest_array_type` option.
+		once
+			Result := <<{STRING_32} "mismatch_error", {STRING_32} "mismatch_warning", {STRING_32} "standard">>
 		ensure
 			result_attached: Result /= Void
 		end
@@ -556,6 +622,7 @@ feature -- Duplication
 				void_safety := other.void_safety.twin
 				catcall_detection := other.catcall_detection.twin
 				syntax := other.syntax.twin
+				array := other.array.twin
 				if attached other.warnings as w then
 					warnings := w.twin
 				end
@@ -592,6 +659,7 @@ feature -- Comparison
 			and then equal (namespace, other.namespace)
 			and then void_safety.is_equal (other.void_safety)
 			and then syntax.is_equal (other.syntax)
+			and then array.is_equal (other.array)
 			and then equal (warnings, other.warnings)
 			then
 				Result := True
@@ -612,6 +680,7 @@ feature -- Comparison
 				is_trace = other.is_trace and
 				void_safety.index = other.void_safety.index and
 				syntax.index = other.syntax.index and
+				array.index = other.array.index and
 				equal(local_namespace, other.local_namespace) and
 				equal (debugs, other.debugs)
 		end
@@ -748,17 +817,37 @@ feature -- Merging
 					is_full_class_checking := other.is_full_class_checking
 				end
 				catcall_detection.set_safely (other.catcall_detection)
-				if not is_attached_by_default_configured then
-					is_attached_by_default_configured := other.is_attached_by_default_configured or else is_attached_by_default /~ other.is_attached_by_default
-					is_attached_by_default := other.is_attached_by_default
-				end
 				if not is_obsolete_routine_type_configured then
 					is_obsolete_routine_type_configured := other.is_obsolete_routine_type_configured or else is_obsolete_routine_type /~ other.is_obsolete_routine_type
 					is_obsolete_routine_type := other.is_obsolete_routine_type
 				end
-				void_safety.set_safely (other.void_safety)
 				syntax.set_safely (other.syntax)
+				array.set_safely (other.array)
+				void_safety.set_safely (other.void_safety)
+					-- The merge for `is_attached_by_default' should happen after merging `void_safety'
+					-- because the latter is used to default to `True' if the resulting project is not Void-safe.
+				if not is_attached_by_default_configured then
+					if not other.is_attached_by_default_configured and then void_safety.index = void_safety_index_none then
+							-- Default attached-by-default to True, so that if a user decides to switch the option,
+							-- he get's attached-by-default automatically.
+						is_attached_by_default_configured := not other.is_attached_by_default
+						is_attached_by_default := True
+					else
+							-- Use general merging scheme.
+						is_attached_by_default_configured := other.is_attached_by_default_configured or else is_attached_by_default /~ other.is_attached_by_default
+						is_attached_by_default := other.is_attached_by_default
+					end
+				end
 			end
+		end
+
+	override_settings_from (other: like Current)
+			-- Override settings from `other'.
+		do
+			is_full_class_checking_configured := other.is_full_class_checking_configured
+			is_full_class_checking := other.is_full_class_checking
+			catcall_detection.copy (other.catcall_detection)
+			void_safety.copy (other.void_safety)
 		end
 
 invariant
@@ -769,7 +858,7 @@ invariant
 	debugs_compare_objects: attached debugs as l_d implies l_d.object_comparison
 
 note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software"
+	copyright: "Copyright (c) 1984-2018, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "[
 			RULE #87: Mergeable conditionals
 	
@@ -173,6 +173,11 @@ feature {NONE} -- Implementation
 			a_formatter.add (ca_messages.mergeable_conditionals_violation_1)
 		end
 
+feature -- Properties
+
+	name: STRING = "mergeable_conditionals"
+			-- <Precursor>
+
 	title: STRING_32
 		do
 			Result := ca_names.mergeable_conditionals_title
@@ -185,6 +190,6 @@ feature {NONE} -- Implementation
 		do
 			Result := ca_names.mergeable_conditionals_description
 		end
-		
+
 end
 

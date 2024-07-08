@@ -69,6 +69,10 @@ feature -- Execute
 					then
 						is_stdout := False
 					elseif
+						ic.item.is_case_insensitive_equal_general ("--assistant")
+					then
+						is_assistant := True
+					elseif
 						ic.item.is_case_insensitive_equal_general ("--folder")
 					then
 						ic.forth
@@ -128,6 +132,10 @@ feature -- Execute
 	is_stdout: BOOLEAN
 			-- Output updated ecf file to stdout
 
+	is_assistant: BOOLEAN
+			-- If True, generated available information as comment.
+			-- mainly used to help building package file from folder.
+
 	has_error: BOOLEAN
 			-- Last `update_iron' has error?
 
@@ -147,10 +155,11 @@ feature -- Execute
 
 			vis_ecfs: IRON_ECF_SCANNER
 			vis_clibs: IRON_CLIB_SCANNER
+			l_proj_lst_to_remove: ARRAYED_LIST [READABLE_STRING_32]
 		do
 			has_error := False
 			io.error.put_string ("IRON::Updating ")
-			io.error.put_string (a_iron_file.name.as_string_8) -- FIXME unicode
+			localized_print_error (a_iron_file.name)
 			io.error.put_string ("%N")
 
 			p_name := a_package_name
@@ -162,7 +171,11 @@ feature -- Execute
 				pac.set_name (p_name)
 				create pif_fac
 				pif := pif_fac.new_package_file (a_iron_file)
-				pif.enable_assistant
+				if is_assistant then
+					pif.enable_assistant
+				else
+					pif.disable_assistant
+				end
 
 				pif.load_package (pac)
 				has_error := pif.has_error
@@ -204,14 +217,37 @@ feature -- Execute
 				loop
 					p := ic.item.absolute_path.canonical_path
 
-					if attached library_target_name (p) as l_lib_name then
+					if attached library_target_information (p, False) as l_lib_info then
 						uri_item := uri_from_path (p)
 						if uri_item.starts_with (uri_root) then
 							uri_item.remove_head (uri_root.count + 1)
-							pif.add_project (l_lib_name, uri_item)
+							pif.add_project (l_lib_info.name, uri_item)
+							if attached l_lib_info.description as desc and then not desc.is_whitespace then
+								if
+									not attached pif.description as pif_desc
+									or else pif_desc.is_whitespace
+								then
+									pif.set_description (desc)
+								end
+							end
 						else
 							has_error := True
 						end
+					end
+				end
+				if attached pif.projects as l_projects and then not l_projects.is_empty then
+					create l_proj_lst_to_remove.make (0)
+					across
+						l_projects as ic
+					loop
+						if library_target_information (a_iron_file.parent.absolute_path.canonical_path.extended (ic.item.relative_iri), False) = Void then
+							l_proj_lst_to_remove.force (ic.item.relative_iri)
+						end
+					end
+					across
+						l_proj_lst_to_remove as ic
+					loop
+						pif.remove_project (Void, ic.item)
 					end
 				end
 
@@ -244,6 +280,15 @@ feature -- Execute
 	library_target_name (a_ecf: PATH): detachable READABLE_STRING_32
 		require
 			a_ecf.name.ends_with_general (".ecf")
+		do
+			if attached library_target_information (a_ecf, True) as tu then
+				Result := tu.name
+			end
+		end
+
+	library_target_information (a_ecf: PATH; a_keep_redirection: BOOLEAN): detachable TUPLE [name: READABLE_STRING_32; description: detachable READABLE_STRING_32]
+		require
+			a_ecf.name.ends_with_general (".ecf")
 		local
 			cfg: CONF_LOAD
 			cfg_factory: CONF_PARSE_FACTORY
@@ -252,15 +297,18 @@ feature -- Execute
 			create cfg.make (cfg_factory)
 
 			cfg.retrieve_configuration (a_ecf.name)
-			if attached cfg.last_system as sys then
+			if
+				attached cfg.last_system as sys and
+				(a_keep_redirection or cfg.last_redirection = Void) -- Exclude redirection
+			then
 				if attached sys.library_target as l_library_target then
-					Result := l_library_target.name
+					Result := [l_library_target.name, l_library_target.description]
 				end
 			end
 		end
 
 note
-	copyright: "Copyright (c) 1984-2014, Eiffel Software"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

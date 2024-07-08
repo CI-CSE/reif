@@ -21,10 +21,28 @@ inherit
 
 feature -- Encoders
 
+	utf_8_encoded (a_string: READABLE_STRING_GENERAL): STRING_8
+			-- `a_string' encoded using UTF-8.
+		local
+			utf: UTF_CONVERTER
+		do
+			Result := utf.utf_32_string_to_utf_8_string_8 (a_string)
+		end
+
 	html_encoded (a_string: READABLE_STRING_GENERAL): STRING_8
 			-- `a_string' encoded for html output.
 		do
 			Result := html_encoder.general_encoded_string (a_string)
+		end
+
+	safe_html_encoded (a_string: detachable READABLE_STRING_GENERAL): STRING_8
+			-- `a_string' encoded for html output or empty string.
+		do
+			if a_string /= Void then
+				Result := html_encoded (a_string)
+			else
+				Result := ""
+			end
 		end
 
 	url_encoded,
@@ -34,4 +52,85 @@ feature -- Encoders
 			Result := percent_encoder.percent_encoded_string (a_string)
 		end
 
+	date_time_to_string (dt: DATE_TIME): STRING_8
+			-- Date time `dt` converted to standard output (using RFC1123)
+		local
+			hd: HTTP_DATE
+		do
+			create hd.make_from_date_time (dt)
+			Result := hd.rfc1123_string
+		end
+
+	date_time_from_string (s: READABLE_STRING_GENERAL): detachable DATE_TIME
+			-- Date time from string `s`, if valid.
+		local
+			hd: HTTP_DATE
+		do
+			create hd.make_from_string (s)
+			check not hd.has_error end
+			if not hd.has_error then
+				Result := hd.date_time
+			end
+		end
+
+	list_to_csv_string (a_strings: ITERABLE [READABLE_STRING_GENERAL]): STRING_32
+			-- `a_strings` as comma separated value string.
+		local
+			s: READABLE_STRING_GENERAL
+		do
+			create Result.make (0)
+			across
+				a_strings as ic
+			loop
+				s := ic.item
+				if not Result.is_empty then
+					Result.append_character (',')
+				end
+				if s.has (',') then
+					Result.append_character ('"')
+					Result.append_string_general (s)
+					Result.append_character ('"')
+				else
+					Result.append_string_general (s)
+				end
+			end
+		end
+
+	list_from_csv_string (a_csv: READABLE_STRING_32): LIST [READABLE_STRING_32]
+			-- List of Comma-separated-value string items.
+		local
+			i,j,n: INTEGER
+			s: STRING_32
+		do
+			from
+				i := 1
+				n := a_csv.count
+				create s.make_empty
+				create {ARRAYED_LIST [READABLE_STRING_32]} Result.make (1)
+				Result.force (s)
+			until
+				i > n
+			loop
+				inspect a_csv [i]
+				when ',' then
+					create s.make_empty
+					Result.force (s)
+				when '"' then
+					j := a_csv.index_of ('"', i + 1)
+					if j > 0 then
+						s.append (a_csv.substring (i + 1, j - 1))
+						i := j
+					else
+						s.extend (a_csv [i])
+					end
+				else
+					s.extend (a_csv [i])
+				end
+				i := i + 1
+			end
+		end
+
+note
+	copyright: "2011-2018, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

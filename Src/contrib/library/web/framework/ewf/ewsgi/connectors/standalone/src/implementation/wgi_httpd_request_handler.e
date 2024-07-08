@@ -24,13 +24,10 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_connector (conn: like connector)
+	make_with_connector (a_request_settings: HTTPD_REQUEST_SETTINGS; conn: like connector)
 		do
-			make
+			make (a_request_settings)
 			connector := conn
---			if conn /= Void then
---				set_is_verbose (is_connector_verbose (conn))
---			end
 		end
 
 feature -- Access		
@@ -54,11 +51,6 @@ feature -- SCOOP helpers
 			-- Rool url based from a connector `conn'.
 		do
 			Result := conn.base
-		end
-
-	is_connector_verbose (conn: separate WGI_STANDALONE_CONNECTOR [G]): BOOLEAN
-		do
-			Result := conn.is_verbose
 		end
 
 feature -- Request processing
@@ -87,7 +79,7 @@ feature -- Request processing
 				else
 					l_output.set_http_version (version)
 				end
-				res.set_is_persistent_connection_supported ({HTTPD_SERVER}.is_persistent_connection_supported)
+				res.set_is_persistent_connection_supported (is_persistent_connection_supported and is_next_persistent_connection_supported)
 				res.set_is_persistent_connection_requested (is_persistent_connection_requested)
 
 				req.set_meta_string_variable ("RAW_HEADER_DATA", request_header)
@@ -96,46 +88,25 @@ feature -- Request processing
 				exec.execute
 				res.push
 				exec.clean
-			else
+			elseif exec /= Void then
 				if not has_error then
-					process_rescue (res)
+					exec.execute_rescue ((create {EXCEPTION_MANAGER}).last_exception)
 				end
-				if exec /= Void then
-					exec.clean
-				end
+				exec.clean
+			elseif not has_error then
+				(create {WGI_RESCUE_EXECUTION}).execute (req, res, (create {EXCEPTION_MANAGER}).last_exception)
+			else
+					-- Bad error.
 			end
 		rescue
-			has_error := l_output = Void or else not l_output.is_available
+			if l_output = Void or else not l_output.is_available then
+				report_error ("Missing WGI output")
+			end
 			if not retried then
 				retried := True
 				retry
 			end
 		end
-
-
-	process_rescue (res: detachable WGI_RESPONSE)
-		local
-			s: STRING
-		do
-			if attached (create {EXCEPTION_MANAGER}).last_exception as e and then attached e.trace as l_trace then
-				if res /= Void then
-					if not res.status_is_set then
-						res.set_status_code ({HTTP_STATUS_CODE}.internal_server_error, Void)
-					end
-					create s.make_empty
-					s.append ("<pre>")
-					s.append (html_encoder.encoded_string (l_trace))
-					s.append ("</pre>")
-					if not res.header_committed then
-						res.put_header_text ("Content-Type: text/html%R%NContent-Length: " + s.count.out + "%R%N%R%N")
-					end
-					if res.message_writable then
-						res.put_string (s)
-					end
-					res.push
-				end
-			end
-		end		
 
 	httpd_environment (a_socket: HTTPD_STREAM_SOCKET): STRING_TABLE [READABLE_STRING_8]
 		local
@@ -238,6 +209,9 @@ feature -- Request processing
 			set_environment_variable (l_server_port, "SERVER_PORT", Result)
 			set_environment_variable (version, "SERVER_PROTOCOL", Result)
 			set_environment_variable ({HTTPD_CONFIGURATION}.Server_details, "SERVER_SOFTWARE", Result)
+			if is_secure then
+				set_environment_variable ("on", "HTTPS", Result)
+			end
 
 				--| Apply `base' value
 			l_base := base

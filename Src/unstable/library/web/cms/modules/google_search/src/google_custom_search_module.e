@@ -45,14 +45,17 @@ feature -- Router
 
 	setup_router (a_router: WSF_ROUTER; a_api: CMS_API)
 			-- Router configuration.
+		local
+			m: WSF_URI_MAPPING
 		do
-			a_router.handle ("/gcse", create {WSF_URI_AGENT_HANDLER}.make (agent handle_search (a_api, ?, ?)), a_router.methods_head_get)
+			create m.make_trailing_slash_ignored ("/gcse", create {WSF_URI_AGENT_HANDLER}.make (agent handle_search (a_api, ?, ?)))
+			a_router.map (m, a_router.methods_head_get)
 		end
 
-feature -- Recaptcha
+feature -- GCSE Keys
 
 	gcse_secret_key (api: CMS_API): detachable READABLE_STRING_8
-			-- Get recaptcha security key.
+			-- Get google custom search security key.
 		local
 			utf: UTF_CONVERTER
 		do
@@ -67,7 +70,7 @@ feature -- Recaptcha
 		end
 
 	gcse_cx_key (api: CMS_API): detachable READABLE_STRING_8
-			-- Get recaptcha security key.
+			-- Get google custom search cx key.
 		local
 			utf: UTF_CONVERTER
 		do
@@ -100,13 +103,14 @@ feature -- Handler
 					attached gcse_cx_key (api) as l_cx and then
 					attached gcse_secret_key (api) as l_key
 				then
+					r.set_value (l_query.value, "cms_search_query")
 					create l_parameters.make (l_key, l_cx, l_query.url_encoded_value )
 					if
-						attached {WSF_STRING} req.query_parameter ("start") as l_index and then
-					  	attached {WSF_STRING} req.query_parameter ("num") as l_num
+						attached {WSF_STRING} req.query_parameter ("start") as l_index and then l_index.is_integer and then
+					  	attached {WSF_STRING} req.query_parameter ("num") as l_num and then l_num.is_integer
 					then
-						l_parameters.set_start (l_index.value)
-						l_parameters.set_num (l_num.value)
+						l_parameters.set_start (l_index.integer_value) -- String holding numeric value
+						l_parameters.set_num (l_num.integer_value) -- String holding numeric value
 					end
 					create l_search.make (l_parameters)
 					l_search.search
@@ -114,7 +118,7 @@ feature -- Handler
 						attached l_search.last_result as l_result and then
 					    l_result.status = 200
 					then
-						if attached template_block (Current, "search", r) as l_tpl_block then
+						if attached smarty_template_block (Current, "search", api) as l_tpl_block then
 							l_tpl_block.set_value (l_result, "result")
 							r.add_block (l_tpl_block, "content")
 						end

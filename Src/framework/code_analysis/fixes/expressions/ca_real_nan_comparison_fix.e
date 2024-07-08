@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "Fixes violations of rule #45 ('Comparison of {REAL}.nan')."
 	date: "$Date$"
 	revision: "$Revision$"
@@ -33,17 +33,18 @@ feature {NONE} -- Implementation
 	is_on_right_side: BOOLEAN
 		-- Is the call to '.nan' on the right side of the equation?
 
-	execute (a_class: CLASS_AS)
+	execute
+			-- <Precursor>
 		local
-			l_new: STRING
+			l_new: STRING_32
 		do
 			if is_on_right_side then
-				l_new := bin_eq_to_change.left.text_32 (matchlist)
+				l_new := bin_eq_to_change.left.text_32 (match_list)
 			else
-				l_new := bin_eq_to_change.right.text_32 (matchlist)
+				l_new := bin_eq_to_change.right.text_32 (match_list)
 			end
 
-			bin_eq_to_change.replace_text (l_new + ".is_nan", matchlist)
+			bin_eq_to_change.replace_text (l_new + ".is_nan", match_list)
 		end
 
 end

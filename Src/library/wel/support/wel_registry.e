@@ -182,7 +182,8 @@ feature -- Access
 			-- Void if `key' has less than `index' subkeys.
 		require
 			key_possible: valid_value_for_hkey (key)
-			index_possible: index <= number_of_subkeys (key)
+			index_non_negative: index >= 0
+			index_less_than_count: index < number_of_subkeys (key)
 		local
 			file_time: WEL_FILE_TIME
 			key_name, class_name: WEL_STRING
@@ -227,7 +228,7 @@ feature -- Access
 		obsolete
 			"Use `key_value' with an empty string instead, if `subkey' is Void or empty. %
 			%Otherwise open manually the subkey represented by `subkey' and then call `key_value' %
-			%with an empty string."
+			%with an empty string [2017-05-31]."
 		require
 			key_possible: valid_value_for_hkey(key)
 		local
@@ -356,13 +357,13 @@ feature -- Basic Actions
 		do
 			create Result.make
 			from
-				i:=0
+				i := 0
 			until
 				i = -1
 			loop
 				if attached enumerate_value(key, i) as l_val then
 					Result.extend (l_val)
-					i := i+1
+					i := i + 1
 				else
 					i := -1
 				end
@@ -373,21 +374,21 @@ feature -- Basic Actions
 			-- Find the names of the key values within the
 			-- key referenced by 'key'.
 		obsolete
-			"Use `enumerate_values' instead."
+			"Use `enumerate_values' instead [2017-05-31]."
 		local
 			i: INTEGER
 			s: detachable READABLE_STRING_GENERAL
 		do
 			create Result.make
 			from
-				i:=0
+				i := 0
 			until
 				i = -1
 			loop
 				s := enumerate_value(key, i)
 				if s /= Void then
 					Result.extend(s.as_string_8)
-					i := i+1
+					i := i + 1
 				else
 					i := -1
 				end
@@ -407,25 +408,6 @@ feature  -- New actions
 			create a.make (name)
 			res := cwin_reg_delete_value (parent_key, a.item)
 			last_call_successful := res = Error_success
-		end
-
-	enumerate_value (key: POINTER; index: INTEGER): detachable STRING_32
-			-- Find the name of the key_value corresponding
-			-- to the key 'key and the index 'index'.
-		local
-			p: POINTER
-			res, size: INTEGER
-			ext: WEL_STRING
-		do
-			size := 1024
-			create ext.make_empty (size)
-			res  := cwin_reg_enum_value (key, index, ext.item, $size, p, p, p, p)
-			last_call_successful := res = Error_success
-			if last_call_successful then
-				Result := ext.substring (1, size)
-			else
-				Result := Void
-			end
 		end
 
 	number_of_subkeys (key: POINTER): INTEGER
@@ -621,8 +603,30 @@ feature {NONE} -- External constants
 			"REG_OPTION_NON_VOLATILE"
 		end
 
+feature {NONE} -- Implementation
+
+	enumerate_value (key: POINTER; index: INTEGER): detachable STRING_32
+			-- Find the name of the key_value corresponding
+			-- to the key 'key and the index 'index'.
+			-- The index parameter should be zero for the first call and then be incremented for subsequent calls.
+		local
+			p: POINTER
+			res, size: INTEGER
+			ext: WEL_STRING
+		do
+			size := 1024
+			create ext.make_empty (size)
+			res  := cwin_reg_enum_value (key, index, ext.item, $size, p, p, p, p)
+			last_call_successful := res = Error_success
+			if last_call_successful then
+				Result := ext.substring (1, size)
+			else
+				Result := Void
+			end
+		end
+
 note
-	copyright:	"Copyright (c) 1984-2010, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -20,6 +20,7 @@ inherit
 			generate_access,
 			generate_access_on_type,
 			generate_end,
+			generate_parameters,
 			generate_parameters_list,
 			basic_register,
 			is_feature_call,
@@ -55,6 +56,22 @@ inherit
 
 create
 	init
+
+feature {NONE} -- Creation
+
+	init (a: AGENT_CALL_B)
+		do
+			fill_from (a)
+			if
+				system.in_final_mode and then
+				not (system.keep_assertions and then rout_class.lace_class.options.assertions.is_precondition)
+			then
+				create_optimized_parameters
+				if is_manifest_optimizable then
+					set_parameters (optimized_parameters)
+				end
+			end
+		end
 
 feature -- Code generation
 
@@ -94,7 +111,7 @@ feature -- Code generation
 				buffer.put_new_line
 					-- If function return type is a reference we need an aging test.
 				if register.c_type.is_reference then
-					buffer.put_string ("RTAR(")
+					buffer.put_string ({C_CONST}.rtar_open)
 					reg.print_register
 					buffer.put_string ({C_CONST}.comma_space)
 					register.print_register
@@ -107,8 +124,6 @@ feature -- Code generation
 
 	analyze_on (reg: REGISTRABLE)
 			-- Analyze agent call on `reg'
-		local
-			tmp_register: REGISTER
 		do
 			Precursor{FEATURE_BL}(reg)
 			if is_manifest_optimizable then
@@ -127,29 +142,13 @@ feature -- Code generation
 				if is_item then
 					get_register
 				else
-					create tmp_register.make (last_result_b.type.c_type)
-					set_register (tmp_register)
+					set_register (create {REGISTER}.make (last_result_b.type.c_type))
 				end
 			end
 		end
 
 	check_dt_current (reg: REGISTRABLE)
 		do
-		end
-
-	init (a: AGENT_CALL_B)
-		do
-			fill_from (a)
-
-			if
-				system.in_final_mode and then
-				not (system.keep_assertions and then rout_class.lace_class.options.assertions.is_precondition)
-			then
-				create_optimized_parameters
-				if is_manifest_optimizable then
-					set_parameters (optimized_parameters)
-				end
-			end
 		end
 
 	enlarged: CALL_ACCESS_B
@@ -160,8 +159,6 @@ feature -- Code generation
 		end
 
 	fill_from (a: AGENT_CALL_B)
-		local
-			a_bl: AGENT_CALL_BL
 		do
 			is_item := a.is_item
 			Precursor (a)
@@ -182,8 +179,7 @@ feature -- Code generation
 				type := create {VOID_A}
 			end
 
-			a_bl ?= a
-			if a_bl /= Void then
+			if attached {AGENT_CALL_BL} a as a_bl then
 				optimized_parameters := a_bl.optimized_parameters
 				is_manifest_optimizable := a_bl.is_manifest_optimizable
 			end
@@ -227,14 +223,11 @@ feature {NONE} --Implementation
 
 	init_attribute (id: INTEGER; reg: REGISTRABLE): ATTRIBUTE_B
 			-- Initializes an attribute byte node to access attribute with id `id' of object in `reg'
-		local
-			l_feat: FEATURE_I
-			l_type_i: TYPE_A
 		do
-			l_feat := rout_class.feature_table.item_id (id)
-			create Result.make (l_feat)
-			l_type_i := context.real_type_in (l_feat.type, cl_type.associated_class_type (context.context_class_type.type).type)
-			Result.set_type (l_type_i)
+			check attached {ATTRIBUTE_I} rout_class.feature_table.item_id (id) as l_feat then
+				create Result.make (l_feat)
+				Result.set_type (context.real_type_in (l_feat.type, cl_type.associated_class_type (context.context_class_type.type).type))
+			end
 			Result ?= Result.enlarged
 			check
 				result_attached: Result /= Void
@@ -248,24 +241,20 @@ feature {NONE} --Implementation
 		require
 			semantically_correct_call: parameters /= Void and then parameters.count = 1
 		local
-			l_manifest_tuple: TUPLE_CONST_B
-			l_void: VOID_B
 			l_first_parameter, l_parameter: PARAMETER_B
 			l_exprs: BYTE_LIST [EXPR_B]
 			l_expr: EXPR_B
 			l_cl_type: CL_TYPE_A
 		do
 			l_first_parameter := parameters.first
-			l_void ?= l_first_parameter.expression
-			if l_void /= Void then
+			if attached {VOID_B} l_first_parameter.expression then
 				is_manifest_optimizable := True
 				create optimized_parameters.make (0)
 			else
-				l_manifest_tuple ?= l_first_parameter.expression
-				if l_manifest_tuple /= Void then
+				if attached {TUPLE_CONST_B} l_first_parameter.expression as l_manifest_tuple then
 					is_manifest_optimizable := True
 					from
-						l_exprs ?= l_manifest_tuple.expressions
+						l_exprs := l_manifest_tuple.expressions
 						l_exprs.start
 						create optimized_parameters.make (l_exprs.count)
 						l_cl_type := context.class_type.type
@@ -300,12 +289,13 @@ feature {NONE} --Implementation
 				l_ret_type := void_type.c_type
 			end
 			if is_manifest_optimizable then
-				create l_arg_types.make (1, optimized_parameters.count + 2)
+				create l_arg_types.make_filled ("EIF_REFERENCE", 1, optimized_parameters.count + 2)
 			else
-				create l_arg_types.make (1, 3)
+				create l_arg_types.make_filled ("EIF_REFERENCE", 1, 3)
 			end
 			l_arg_types.put ("EIF_POINTER", 1)
-			l_arg_types.put ("EIF_REFERENCE", 2)
+				-- "EIF_REFERENCE" is used by default.
+				-- l_arg_types.put ("EIF_REFERENCE", 2)
 			if is_manifest_optimizable then
 				from
 					i := 3
@@ -317,15 +307,15 @@ feature {NONE} --Implementation
 					i := i + 1
 					optimized_parameters.forth
 				end
-			else
-				l_arg_types.put ("EIF_REFERENCE", 3)
+				-- "EIF_REFERENCE" is used by default.
+				-- else
+				-- l_arg_types.put ("EIF_REFERENCE", 3)
 			end
-
 			l_ret_type.generate_function_cast (buffer, l_arg_types, context.workbench_mode)
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

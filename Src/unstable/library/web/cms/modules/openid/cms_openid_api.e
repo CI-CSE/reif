@@ -7,8 +7,9 @@ note
 
 class
 	CMS_OPENID_API
+
 inherit
-	CMS_MODULE_API
+	CMS_AUTH_API_I
 
 	REFACTORING_HELPER
 
@@ -19,17 +20,43 @@ feature {NONE} -- Initialization
 
 	make_with_storage (a_api: CMS_API; a_openid_storage: CMS_OPENID_STORAGE_I)
 			-- Create an object with api `a_api' and storage `a_openid_storage'.
+		local
+			s: detachable READABLE_STRING_8
 		do
 			openid_storage := a_openid_storage
 			make (a_api)
+
+				-- Initialize openid related settings.
+			s := a_api.setup.string_8_item ("auth." + {CMS_OPENID_MODULE}.name + ".token")
+			if s = Void then
+				s := a_api.setup.site_id + default_session_token_suffix
+			end
+			create session_token.make_from_string (s)
+
+			s := a_api.setup.string_8_item ("auth.openid.max_age")
+			if s /= Void and then s.is_integer then
+				session_max_age := s.to_integer
+			else
+				session_max_age := 3600 --| one hour: *60(min) *60(sec)
+			end
 		ensure
-			openid_storage_set:  openid_storage = a_openid_storage
+			openid_storage_set: openid_storage = a_openid_storage
 		end
 
 feature {CMS_MODULE} -- Access: User openid storage.
 
 	openid_storage: CMS_OPENID_STORAGE_I
 			-- storage interface.
+
+feature -- Access: token
+
+	default_session_token_suffix: STRING = "_OPENID_TOKEN_"
+
+	session_token: IMMUTABLE_STRING_8
+			-- Name of Cookie used to keep the session info.
+
+	session_max_age: INTEGER
+			-- Max age.		
 
 feature -- Access: User Openid
 
@@ -52,14 +79,13 @@ feature -- Access: Consumers OAuth20
 			Result := openid_storage.openid_consumers
 		end
 
-	openid_consumer_by_name (a_name: READABLE_STRING_8): detachable CMS_OPENID_CONSUMER
+	openid_consumer_by_name (a_name: READABLE_STRING_GENERAL): detachable CMS_OPENID_CONSUMER
 			-- Retrieve a consumer by name `a_name', if any.
 		do
 			Result := openid_storage.openid_consumer_by_name (a_name)
 		end
 
 feature	-- Change: User Openid
-
 
 	new_user_openid (a_identity: READABLE_STRING_GENERAL; a_user: CMS_USER)
 			-- Add a new user with openid using the identity `a_identity'.

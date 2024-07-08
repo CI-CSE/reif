@@ -81,16 +81,14 @@ feature -- HTTP Methods
 			l_uid: INTEGER_64
 			edit_response: CMS_ROLE_FORM_RESPONSE
 			view_response: CMS_ROLE_VIEW_RESPONSE
-			r: CMS_RESPONSE
 		do
-			create {FORBIDDEN_ERROR_CMS_RESPONSE} r.make (req, res, api)
-			if r.has_permission ("admin roles") then
+			if api.has_permission ("admin roles") then
 				if req.percent_encoded_path_info.ends_with_general ("/edit") then
-					check valid_url: req.percent_encoded_path_info.starts_with_general ("/admin/role/") end
+					check valid_url: req.percent_encoded_path_info.starts_with_general (api.administration_path ("/role/")) end
 					create edit_response.make (req, res, api)
 					edit_response.execute
 				elseif req.percent_encoded_path_info.ends_with_general ("/delete")  then
-					check valid_url: req.percent_encoded_path_info.starts_with_general ("/admin/role/") end
+					check valid_url: req.percent_encoded_path_info.starts_with_general (api.administration_path ("/role/")) end
 					create edit_response.make (req, res, api)
 					edit_response.execute
 				else
@@ -111,18 +109,15 @@ feature -- HTTP Methods
 					end
 				end
 			else
-				r.execute
+				send_access_denied (req, res)
 			end
 		end
-
 
 	do_post (req: WSF_REQUEST; res: WSF_RESPONSE)
 		local
 			edit_response: CMS_ROLE_FORM_RESPONSE
-			r: CMS_RESPONSE
 		do
-			create {FORBIDDEN_ERROR_CMS_RESPONSE} r.make (req, res, api)
-			if r.has_permission ("admin roles") then
+			if api.has_permission ("admin roles") then
 				if req.percent_encoded_path_info.ends_with_general ("/edit") then
 					create edit_response.make (req, res, api)
 					edit_response.execute
@@ -138,7 +133,7 @@ feature -- HTTP Methods
 					edit_response.execute
 				end
 			else
-				r.execute
+				send_access_denied (req, res)
 			end
 		end
 
@@ -166,7 +161,7 @@ feature -- Error
 	do_delete (req: WSF_REQUEST; res: WSF_RESPONSE)
 			-- <Precursor>
 		do
-			if attached current_user (req) as l_user then
+			if attached api.user as l_user then
 				if attached {WSF_STRING} req.path_parameter ("id") as l_id then
 					if
 						l_id.is_integer and then
@@ -192,7 +187,7 @@ feature {NONE} -- New role
 		local
 			edit_response: CMS_ROLE_FORM_RESPONSE
 		do
-			if req.percent_encoded_path_info.starts_with_general ("/admin/add/role") then
+			if req.percent_encoded_path_info.starts_with_general (api.administration_path ("/add/role")) then
 				create edit_response.make (req, res, api)
 				edit_response.execute
 			else

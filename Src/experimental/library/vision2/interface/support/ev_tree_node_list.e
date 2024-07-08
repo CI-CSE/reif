@@ -20,7 +20,7 @@ feature -- Access
 	find_item_recursively_by_data (some_data: ANY): detachable EV_TREE_NODE
 			-- If `data' contained in a tree item at any level then
 			-- assign this item to `Result'.
-		obsolete "Use `retrieve_item_recursively_by_data' instead."
+		obsolete "Use `retrieve_item_recursively_by_data' instead. [2017-05-31]"
 		do
 			Result := implementation.find_item_recursively_by_data (some_data)
 		ensure
@@ -64,7 +64,7 @@ feature -- Access
 
 feature -- Basic operation
 
-	recursive_do_all (action: PROCEDURE [ANY, TUPLE [EV_TREE_NODE]])
+	recursive_do_all (action: PROCEDURE [EV_TREE_NODE])
 			-- Apply `action' to every item.
 			-- Semantics not guaranteed if `action' changes the structure;
 		require

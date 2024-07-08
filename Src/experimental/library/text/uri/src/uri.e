@@ -316,14 +316,11 @@ feature -- Access
 
 feature -- Access
 
-	decoded_path: READABLE_STRING_32
+	decoded_path: STRING_32
 			-- Decoded `path'
-		local
-			s: STRING_32
 		do
-			create s.make (path.count)
-			append_decoded_www_form_urlencoded_string_to (path, s)
-			Result := s
+			create Result.make (path.count)
+			append_decoded_www_form_urlencoded_string_to (path, Result)
 		end
 
 	path_segments: LIST [READABLE_STRING_8]
@@ -468,23 +465,20 @@ feature -- Access
 
 feature -- Query
 
-	hier: READABLE_STRING_8
+	hier: STRING_8
 			-- Hier part.
 			-- hier-part   = "//" authority path-abempty
             --      / path-absolute
             --      / path-rootless
             --      / path-empty
-		local
-			s: STRING_8
 		do
-			create s.make (10)
+			create Result.make (10)
 			if attached authority as l_authority then
-				s.append_character ('/')
-				s.append_character ('/')
-				s.append (l_authority)
+				Result.append_character ('/')
+				Result.append_character ('/')
+				Result.append (l_authority)
 			end
-			s.append (path)
-			Result := s
+			Result.append (path)
 		end
 
 	username_password: detachable TUPLE [username: READABLE_STRING_8; password: detachable READABLE_STRING_8]
@@ -523,7 +517,7 @@ feature -- Query
 			end
 		end
 
-	authority: detachable READABLE_STRING_8
+	authority: detachable STRING_8
 			-- Hierarchical element for naming authority.
 			--| RFC3986: authority   = [ userinfo "@" ] host [ ":" port ]
 		local
@@ -567,15 +561,12 @@ feature -- Conversion
 			end
 		end
 
-	string: READABLE_STRING_8
+	string: STRING_8
 			-- String representation.
 			-- scheme://username:password@hostname/path?query#fragment
-		local
-			s: STRING_8
 		do
-			create s.make_empty
-			append_to_string (s)
-			Result := s
+			create Result.make_empty
+			append_to_string (Result)
 		end
 
 	resolved_uri: URI
@@ -753,7 +744,7 @@ feature -- Element Change
 		local
 			s: STRING_8
 		do
-			if {PLATFORM}.is_windows and then path.is_empty and then not has_authority then
+			if path.is_empty and then not has_authority then
 				set_path (www_form_urlencoded_string (a_segment))
 			else
 				create s.make_from_string (path)
@@ -1140,16 +1131,13 @@ feature -- Status report
 
 	debug_output: STRING
 			-- String that should be displayed in debugger to represent `Current'.
-		local
-			s: STRING
 		do
-			create s.make_empty
-			s.append (string)
-			Result := s
+			create Result.make_empty
+			Result.append (string)
 		end
 
 ;note
-	copyright: "Copyright (c) 1984-2015, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2017, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software
