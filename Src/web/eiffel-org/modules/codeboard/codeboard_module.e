@@ -127,7 +127,7 @@ feature -- Hooks
 
 	block_list: ITERABLE [like {CMS_BLOCK}.name]
 		do
-			Result := <<"launch_codeboard", "play_eiffel", "?codeboard_static_demo">>
+			Result := <<"launch_codeboard", "?codeboard_static_demo">>
 		end
 
 	get_block_view (a_block_id: READABLE_STRING_8; a_response: CMS_RESPONSE)
@@ -149,8 +149,6 @@ feature -- Hooks
 				then
 					if attached new_codeboard_static_demo_block as l_tpl_block then
 						a_response.add_block (l_tpl_block, "header")
-						a_response.add_style (a_response.module_resource_url (Current, "/files/css/codeboard_static_demo.css", Void), Void)
-						a_response.add_javascript_url (a_response.module_resource_url (Current, "/files/codeboard_static_demo.js", Void))
 					else
 						debug ("cms")
 							a_response.add_warning_message ("Error with block [" + a_block_id + "]")

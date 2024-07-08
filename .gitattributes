@@ -5872,8 +5872,6 @@ Src/unstable/library/web/cms/modules/feed_aggregator/feed_aggregator.ecf svneol=
 Src/unstable/library/web/cms/modules/files/files-safe.ecf svneol=native#text/xml
 Src/unstable/library/web/cms/modules/files/files.ecf svneol=native#text/xml
 Src/unstable/library/web/cms/modules/files/site/files/img/file-logo.png -text
-Src/unstable/library/web/cms/modules/google_search/google_search-safe.ecf svneol=native#text/xml
-Src/unstable/library/web/cms/modules/google_search/google_search.ecf svneol=native#text/xml
 Src/unstable/library/web/cms/modules/google_search_20/google_search_20-safe.ecf svneol=native#text/xml
 Src/unstable/library/web/cms/modules/google_search_20/google_search_20.ecf svneol=native#text/xml
 Src/unstable/library/web/cms/modules/google_search_20/site/config/google_search_20.json-dist -text
@@ -6033,13 +6031,14 @@ Src/web/eiffel-org/modules/codeboard/site/files/css/play_eiffel.css -text
 Src/web/eiffel-org/modules/codeboard/site/files/scss/codeboard_static_demo.scss -text
 Src/web/eiffel-org/modules/codeboard/site/files/scss/play_eiffel.scss -text
 Src/web/eiffel-org/modules/codeboard/site/snippet/1.json -text
+Src/web/eiffel-org/modules/codeboard/site/snippet/2.json -text
+Src/web/eiffel-org/modules/codeboard/site/snippet/3.json -text
 Src/web/eiffel-org/modules/eiffel_community/eiffel_community-safe.ecf svneol=native#text/xml
 Src/web/eiffel-org/modules/eiffel_community/eiffel_community.ecf svneol=native#text/xml
 Src/web/eiffel-org/modules/eiffel_download/eiffel_download-safe.ecf svneol=native#text/xml
 Src/web/eiffel-org/modules/eiffel_download/eiffel_download.ecf svneol=native#text/xml
 Src/web/eiffel-org/modules/eiffel_download/site/files/css/download.css -text
 Src/web/eiffel-org/modules/eiffel_download/site/files/scss/download.css -text
-Src/web/eiffel-org/modules/eiffel_download/site/files/scss/download.css.map -text
 Src/web/eiffel-org/modules/eiffel_download/site/files/scss/download.scss -text
 Src/web/eiffel-org/modules/task_list/cms_task_list-safe.ecf svneol=native#text/xml
 Src/web/eiffel-org/modules/task_list/cms_task_list.ecf svneol=native#text/xml
@@ -6135,6 +6134,8 @@ Src/web/eiffel-org/site/modules/codeboard/files/css/play_eiffel.css -text
 Src/web/eiffel-org/site/modules/codeboard/files/scss/codeboard_static_demo.scss -text
 Src/web/eiffel-org/site/modules/codeboard/files/scss/play_eiffel.scss -text
 Src/web/eiffel-org/site/modules/codeboard/snippet/1.json -text
+Src/web/eiffel-org/site/modules/codeboard/snippet/2.json -text
+Src/web/eiffel-org/site/modules/codeboard/snippet/3.json -text
 Src/web/eiffel-org/site/modules/comments/files/scss/comments.scss -text
 Src/web/eiffel-org/site/modules/comments/scripts/install.sql -text
 Src/web/eiffel-org/site/modules/contact/config/contact.json -text
@@ -6153,7 +6154,6 @@ Src/web/eiffel-org/site/modules/files/files/js/src/basic.scss -text
 Src/web/eiffel-org/site/modules/files/files/js/src/dropzone.coffee -text
 Src/web/eiffel-org/site/modules/files/files/js/src/dropzone.scss -text
 Src/web/eiffel-org/site/modules/files/files/scss/files.scss -text
-Src/web/eiffel-org/site/modules/google_search/config/google_search.json -text
 Src/web/eiffel-org/site/modules/google_search_20/config/google_search_20.json-dist -text
 Src/web/eiffel-org/site/modules/google_search_20/files/css/gcse.css -text
 Src/web/eiffel-org/site/modules/google_search_20/files/scss/gcse.scss -text
@@ -6358,7 +6358,6 @@ Src/web/eiffel-org/site/themes/eiffel-org/assets/scss/base/base-reset.scss -text
 Src/web/eiffel-org/site/themes/eiffel-org/assets/scss/markup-mixins.scss -text
 Src/web/eiffel-org/site/themes/eiffel-org/assets/scss/variables.scss -text
 Src/web/eiffel-org/site/themes/eiffel-org/theme.info -text
-Src/web/eiffel-org/site/themes/responsive-eiffel-org/assets/css/all.css.map -text
 Src/web/eiffel-org/site/themes/responsive-eiffel-org/assets/favicon.ico -text
 Src/web/eiffel-org/site/themes/responsive-eiffel-org/assets/fonts/museosans_500-webfont.eot -text
 Src/web/eiffel-org/site/themes/responsive-eiffel-org/assets/fonts/museosans_500-webfont.svg -text
@@ -7665,6 +7664,7 @@ eweasel/tests/lib043/Ace svneol=native#text/xml
 eweasel/tests/lib044/Ace svneol=native#text/xml
 eweasel/tests/lib045/Ace svneol=native#text/xml
 eweasel/tests/lib046/Ace svneol=native#text/xml
+eweasel/tests/lib047/Ace svneol=native#text/xml
 eweasel/tests/list015/Ace -text
 eweasel/tests/melt001/notes -text
 eweasel/tests/melt003/notes -text
@@ -12147,3 +12147,16 @@ research/extension/autoproof/framework/eiffel2boogie/tests/language/tuples/outpu
 research/extension/autoproof/framework/eiffel2boogie/tests/template/args.txt_ -text
 research/extension/autoproof/framework/eiffel2boogie/tests/template/output.txt_ -text
 research/extension/autoproof/framework/eiffel2boogie/tests/template/template.e_ -text
+research/extension/autoproof/library/base/any.sed eol=lf
+research/extension/autoproof/library/base/base.ecf svneol=native#text/xml
+research/extension/autoproof/library/base/base.sed eol=lf
+research/extension/autoproof/library/base/eve/array.bpl -text
+research/extension/autoproof/library/base/iterable.sed eol=lf
+research/extension/autoproof/library/base/iteration_cursor.sed eol=lf
+research/extension/autoproof/library/base/mml/bag.bpl -text
+research/extension/autoproof/library/base/mml/map.bpl -text
+research/extension/autoproof/library/base/mml/pair.bpl -text
+research/extension/autoproof/library/base/mml/relation.bpl -text
+research/extension/autoproof/library/base/mml/sequence.bpl -text
+research/extension/autoproof/library/base/mml/set.bpl -text
+research/extension/autoproof/library/base/std_files.sed eol=lf

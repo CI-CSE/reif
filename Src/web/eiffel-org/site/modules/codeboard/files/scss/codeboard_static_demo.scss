@@ -1,10 +1,12 @@
 .slider-wrapper {
-	margin-top: 10px;
 	position: relative;
+    /* height: 270px; */
+    //min-height: 200px;
+	height: 100%;
 
 	.slider {
-		margin-top: 10px;
 		position: relative;
+		height: 100%;
 
 		.trigger {
 			display: none;
@@ -24,35 +26,38 @@
 			margin: 0;
 
 			.slide-item {
+				width: 100%;
 				max-width: 100%;
-				/* vertical-align: middle; */
-				/* filter: brightness(50%); */
 				height: 100%;
-				/* object-fit: fill; */
-				display: block;
 				/* margin: 0 auto; */
-				margin: 0;
+				vertical-align: middle;
 
 				overflow: auto;
+				display: flex;
+				items-align: center;
+				justify-content: center;
 
 				border: solid 1px #ccc;
-
-				pre {
-					background-color: #ccf;
+				>pre { 
+					width: 100%;
+					padding-left: 10px;
+					overflow: auto;
+					border: none;
+					font-size: 1.4rem;
+					line-height: 2.1rem;
 				}
-			}
+				.slide-caption {
+					font-size: 1.6rem;
+					padding: 0 1rem 0 1rem;
+					position: absolute;
+					top: -1rem;
+					right: 2rem;
+					//width: calc(80% - 1rem);
+					color: #666;
+					background-color: rgba(230,230,230,.5);
+					text-align: center;
+				}
 
-			.slide-caption {
-				font-size: smaller;
-				padding: 0 1rem 0 1rem;
-				font-style: italic;
-				position: absolute;
-				top: -1rem;
-				right: 2rem;
-				//width: calc(80% - 1rem);
-				color: #666;
-				background-color: rgba(210,210,210,.6);
-				text-align: center;
 			}
 		}
 	}
@@ -74,7 +79,7 @@
 			display: inline-block;
 		}
 		.slider-nav__label {
-			font-size: 13px;
+			font-size: 1.3rem;
 			background-color: #333;
 			display: block;
 			height: 2em;
@@ -96,24 +101,28 @@
 		.slider-nav__label.slider-active {
 			background-color: white;
 			color: black;
+			border: solid 1px #ccc;
 		}
 	}
 }
 
 /* responsive layout */
 @media only screen and (min-width: 1024px) {
-  .slider, .slider-wrapper { height: 270px; }
   .slide-caption {
     font-size: 1.5rem;
   }
 }
 @media only screen and (max-width: 1023px) and (min-width: 768px) {
-  .slider, .slider-wrapper { height: 270px; }
   .slide-caption {
     font-size: 1.25rem;
   }  
 }
 @media only screen and (max-width: 768px) {
-  .slider, .slider-wrapper { height: 270px; }
   .slide-item { width: 100%; height: auto; }
+}
+
+#content.codeboard_demo {
+	div.codeboard-player {
+		height: 270px;
+	}
 }
