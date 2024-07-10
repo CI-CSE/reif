@@ -7,11 +7,11 @@
 		</option> -->
 		<setting name="console_application" value="true"/>
 		<setting name="concurrency" value="thread"/>
-		<library name="base" location="$ISE_LIBRARY\library\base\base-safe.ecf"/>
-		<library name="process" location="$ISE_LIBRARY\library\process\process-safe.ecf"/>
-		<library name="thread" location="$ISE_LIBRARY\library\thread\thread-safe.ecf"/>
-		<library name="xml_parser" location="$ISE_LIBRARY\library\text\parser\xml\parser\xml_parser-safe.ecf"/>
-		<library name="xml_tree" location="$ISE_LIBRARY\library\text\parser\xml\tree\xml_tree-safe.ecf"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="process" location="$ISE_LIBRARY\library\process\process.ecf"/>
+		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf"/>
+		<library name="xml_parser" location="$ISE_LIBRARY\library\text\parser\xml\parser\xml_parser.ecf"/>
+		<library name="xml_tree" location="$ISE_LIBRARY\library\text\parser\xml\tree\xml_tree.ecf"/>
 		<cluster name="spell_checker" location=".\" recursive="true">
 			<file_rule>
 				<exclude>/EIFGENs$</exclude>

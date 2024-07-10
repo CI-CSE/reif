@@ -67,7 +67,7 @@
 			<option warning="none">
 			</option>
 		</library>
-		<library name="framework_patterns" location="$EIFFEL_SRC\framework\patterns\patterns.ecf" readonly="false">
+		<library name="framework_patterns" location="$ISE_LIBRARY\library\patterns\patterns.ecf" readonly="false">
 			<option warning="none">
 			</option>
 		</library>

@@ -161,6 +161,7 @@ feature {NONE} -- Factory
 				Result.register_tool (create {EBB_CA_TOOL})
 				create l_cluster_observer
 				l_cluster_observer.manager.extend (l_cluster_observer)
+			end
 		end
 
 	new_code_analyzer_service: detachable CODE_ANALYZER_S [STONE, CA_RULE_VIOLATION]

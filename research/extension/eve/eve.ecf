@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="ec" uuid="5ae2312e-b715-4e6e-a317-1ff52534ed7b" readonly="false">
+	<note>
+		<eis src="http://www.gnu.org/licenses/gpl.html" tag="license" protocol="" name="GPL"/>
+	</note>
+	<description>
+		EiffelStudio with AutoProof.
+
+		Copyright (c) 2018-2019 Politecnico di Milano
+		Copyright (c) 2021-2022 Schaffhausen Institute of Technology
+
+		Author: Alexander Kogtenkov
+
+		GNU General Public License (see https://www.gnu.org/licenses/)
+	</description>
+	<target name="batch" extends="batch" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf" abstract="true">
+		<capability>
+			<concurrency support="none"/>
+		</capability>
+		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf">
+			<option>
+				<assertions precondition="true" postcondition="true" check="true" supplier_precondition="true"/>
+			</option>
+		</library>
+		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
+			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
+		</cluster>
+	</target>
+	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf">
+		<capability>
+			<concurrency support="thread"/>
+		</capability>
+		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf">
+			<option>
+				<assertions precondition="true" postcondition="true" check="true" supplier_precondition="true"/>
+			</option>
+		</library>
+		<library name="eve_blackboard" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eve_blackboard\eve_blackboard.ecf" readonly="false"/>
+		<library name="a_compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_testing" location="$EIFFEL_SRC\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_auto_fix" location="$EIFFEL_SRC\framework\auto_fix\auto_fix.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false"/>
+
+		<!-- unused libraries
+		<library name="dadle" location="$EIFFEL_SRC\library\dadle\dadle_library.ecf"/>
+		-->
+
+		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
+			<visible class="ES_AUTOPROOF_TOOL" feature="default_create"/>
+		</cluster>
+
+		<cluster name="interface_common" location="interface\common" recursive="true" />
+		<cluster name="graphical" location="interface\graphical" recursive="true">
+			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
+		</cluster>
+	</target>
+</system>
