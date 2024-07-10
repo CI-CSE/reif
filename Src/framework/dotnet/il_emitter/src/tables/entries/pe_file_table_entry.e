@@ -66,12 +66,12 @@ feature -- Operations
 			Result := {PE_TABLES}.tfile
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- Set flags to the buffer.
-			{BYTE_ARRAY_HELPER}.put_array_natural_32 (a_dest, flags, 0)
+			{BYTE_ARRAY_HELPER}.put_natural_32 (a_dest, flags, 0)
 				-- Initialize the bytes
 			l_bytes := 4
 
@@ -82,18 +82,17 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-				-- get flags from the buffer.
-			flags := {BYTE_ARRAY_HELPER}.byte_array_to_natural_32 (a_src, 0)
+
 				-- Initialize the bytes
 			l_bytes := 4
 
 				-- Get name and hash and update the bytes.
-			l_bytes := l_bytes + name.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + hash.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + name.rendering_size (a_sizes)
+			l_bytes := l_bytes + hash.rendering_size (a_sizes)
 
 			Result := l_bytes
 		end

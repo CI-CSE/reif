@@ -73,12 +73,12 @@ feature -- Operations
 			Result := {PE_TABLES}.tProperty
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- Write flags to the destination buffer `a_dest`.
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, flags, 0)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, flags, 0)
 
 				-- Intialize the number of bytes written
 			l_bytes := 2
@@ -91,19 +91,16 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-				-- Set the offset (from a_src)  to action
-			flags := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, 0)
-
 				-- Intialize the number of bytes.
 			l_bytes := 2
 
 				-- Read name and property_type from the buffer and update the number of bytes.
-			l_bytes := l_bytes + name.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + property_type.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + name.rendering_size (a_sizes)
+			l_bytes := l_bytes + property_type.rendering_size (a_sizes)
 				-- Return the number of bytes readed
 			Result := l_bytes
 		end

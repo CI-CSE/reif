@@ -77,9 +77,9 @@ feature {NONE} -- Initialization
 				a_tree_item := child_array @ (mp.read_integer_32 (0) + 1)
 				a_gvalue := {GTK2}.c_g_value_struct_allocate
 				{GTK2}.gtk_tree_model_get_value (tree_store, a_tree_iter.item, boolean_tree_model_column,  a_gvalue)
-				a_selected := {GTK2}.g_value_get_boolean (a_gvalue)
+				a_selected := {GOBJECT}.g_value_get_boolean (a_gvalue)
 					-- Toggle the currently selected value
-				{GTK2}.g_value_set_boolean (a_gvalue, not a_selected)
+				{GOBJECT}.g_value_set_boolean (a_gvalue, not a_selected)
 				{GTK2}.gtk_tree_store_set_value (tree_store, a_tree_iter.item, boolean_tree_model_column,  a_gvalue)
 
 				if a_selected then
@@ -103,10 +103,10 @@ feature {NONE} -- Initialization
 		local
 			a_type_array: MANAGED_POINTER
 		do
-			create a_type_array.make (3 * {GTK2}.sizeof_gtype)
-			{GTK2}.add_gdk_type_pixbuf (a_type_array.item, 0)
-			{GTK2}.add_g_type_string (a_type_array.item, 1 * {GTK2}.sizeof_gtype)
-			{GTK2}.add_g_type_boolean (a_type_array.item, 2 * {GTK2}.sizeof_gtype)
+			create a_type_array.make (3 * {GOBJECT}.sizeof_gtype)
+			{GDK}.add_gdk_type_pixbuf (a_type_array.item, 0)
+			{GOBJECT}.add_g_type_string (a_type_array.item, 1 * {GOBJECT}.sizeof_gtype)
+			{GOBJECT}.add_g_type_boolean (a_type_array.item, 2 * {GOBJECT}.sizeof_gtype)
 			tree_store := {GTK2}.gtk_tree_store_newv (3, a_type_array.item)
 		end
 
@@ -125,7 +125,7 @@ feature -- Access
 			check l_list_iter /= Void then end
 			a_gvalue := {GTK2}.c_g_value_struct_allocate
 			{GTK2}.gtk_tree_model_get_value (tree_store, l_list_iter.item, boolean_tree_model_column,  a_gvalue)
-			Result := {GTK2}.g_value_get_boolean (a_gvalue)
+			Result := {GOBJECT}.g_value_get_boolean (a_gvalue)
 			a_gvalue.memory_free
 		end
 
@@ -145,7 +145,7 @@ feature -- Status setting
 			check l_list_iter /= Void then end
 			a_gvalue := {GTK2}.c_g_value_struct_allocate
 			{GTK2}.gtk_tree_model_get_value (tree_store, l_list_iter.item, boolean_tree_model_column,  a_gvalue)
-			{GTK2}.g_value_set_boolean (a_gvalue, True)
+			{GOBJECT}.g_value_set_boolean (a_gvalue, True)
 			{GTK2}.gtk_tree_store_set_value (tree_store, l_list_iter.item, boolean_tree_model_column, a_gvalue)
 			a_gvalue.memory_free
 			if check_actions_internal /= Void then
@@ -167,7 +167,7 @@ feature -- Status setting
 			check l_list_iter /= Void then end
 			a_gvalue := {GTK2}.c_g_value_struct_allocate
 			{GTK2}.gtk_tree_model_get_value (tree_store, l_list_iter.item, boolean_tree_model_column,  a_gvalue)
-			{GTK2}.g_value_set_boolean (a_gvalue, False)
+			{GOBJECT}.g_value_set_boolean (a_gvalue, False)
 			{GTK2}.gtk_tree_store_set_value (tree_store, l_list_iter.item, boolean_tree_model_column, a_gvalue)
 			a_gvalue.memory_free
 			if uncheck_actions_internal /= Void then
@@ -180,7 +180,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_CHECKABLE_TREE note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

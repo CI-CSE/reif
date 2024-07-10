@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="ec" uuid="D398E904-E3C8-4F8A-B9E7-6FE493CEA02F">
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="ec" uuid="D398E904-E3C8-4F8A-B9E7-6FE493CEA02F">
 	<target name="common">
 		<file_rule>
 			<exclude>/EIFGENs$</exclude>
@@ -144,54 +144,42 @@
 		<library name="program_analysis" location="$ISE_LIBRARY\framework\program_analysis\program_analysis.ecf"/>
 		<library name="preferences" location="$ISE_LIBRARY\library\preferences\preferences.ecf" readonly="false"/>
 		<cluster name="compiler_api_profiler" location="$EIFFEL_SRC\Eiffel\API\profiler\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="compiler_api_ql" location="$EIFFEL_SRC\Eiffel\API\query_language\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="compiler_api_queries" location="$EIFFEL_SRC\Eiffel\API\queries\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="debugger_none" location="$EIFFEL_SRC\Eiffel\debugger_interface\none\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="documentation" location="$EIFFEL_SRC\Eiffel\case\documentation\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="fix" location="$EIFFEL_SRC\Eiffel\fix\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="flat_short_ast" location="$EIFFEL_SRC\Eiffel\flat_short\AST\">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="flat_short_b" location="$EIFFEL_SRC\Eiffel\flat_short\bench\">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="interface" location="$EIFFEL_SRC\Eiffel\interface\">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 			<cluster name="interface_shared" location="$|shared\" recursive="true">
-				<option is_obsolete_iteration="true">
-				</option>
+				<option is_obsolete_iteration="true"/>
 				<file_rule>
 					<exclude>/buffer$</exclude>
 				</file_rule>
 			</cluster>
 			<cluster name="tty" location="$|tty\" recursive="true">
-				<option is_obsolete_iteration="true">
-				</option>
+				<option is_obsolete_iteration="true"/>
 			</cluster>
 			<cluster name="none" location="$|none\" recursive="true">
-				<option is_obsolete_iteration="true">
-				</option>
+				<option is_obsolete_iteration="true"/>
 			</cluster>
 		</cluster>
 		<cluster name="modules" location="$EIFFEL_SRC\Eiffel\modules\" recursive="true"/>
@@ -199,18 +187,15 @@
 	<target name="eclite" extends="batch">
 		<description>Lite version of Eiffel compiler, compiles only. This is primarly for tools that need to use the Eiffel compiler rather than developers</description>
 		<root cluster="lite_compiler" class="APPLICATION" feature="make"/>
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 		<setting name="executable_name" value="ecl"/>
 		<library name="arg_parser" location="$ISE_LIBRARY\library\runtime\process\arg_parser\argument_parser.ecf"/>
 		<cluster name="lite_compiler" location="$EIFFEL_SRC\Eiffel\interface\lite\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 	</target>
 	<target name="ecdpc" extends="batch">
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 		<setting name="executable_name" value="ecdpc"/>
 	</target>
 	<target name="bench" extends="common">
@@ -493,24 +478,19 @@
 		<library name="web_browser" location="$ISE_LIBRARY\library\web_browser\web_browser.ecf"/>
 		<library name="weka" location="$EIFFEL_SRC\framework\weka\weka.ecf" readonly="false"/>
 		<cluster name="compiler_api_profiler" location="$EIFFEL_SRC\Eiffel\API\profiler\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="compiler_api_ql" location="$EIFFEL_SRC\Eiffel\API\query_language\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="compiler_api_queries" location="$EIFFEL_SRC\Eiffel\API\queries\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="compiler_framework" location="$EIFFEL_SRC\Eiffel\API\framework\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="debugger_interface" location="$EIFFEL_SRC\Eiffel\debugger_interface\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 			<file_rule>
 				<exclude>/none$</exclude>
 				<exclude>/override$</exclude>
@@ -540,24 +520,19 @@
 			</file_rule>
 		</cluster>
 		<cluster name="documentation" location="$EIFFEL_SRC\Eiffel\case\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="fix" location="$EIFFEL_SRC\Eiffel\fix\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="flat_short_ast" location="$EIFFEL_SRC\Eiffel\flat_short\AST\">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="flat_short_b" location="$EIFFEL_SRC\Eiffel\flat_short\bench\">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="interface" location="$EIFFEL_SRC\Eiffel\interface\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 			<file_rule>
 				<exclude>/lite$</exclude>
 				<exclude>/overrides$</exclude>
@@ -610,14 +585,12 @@
 			<visible class="ES_SCM_TOOL" feature="default_create"/>
 		</cluster>
 		<cluster name="process_gui" location="$ISE_LIBRARY\library\process\gui\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</cluster>
 		<cluster name="modules" location="$EIFFEL_SRC\Eiffel\modules\" recursive="true"/>
 		<cluster name="process_gui" location="$ISE_LIBRARY\library\process\gui\" recursive="true"/>
 		<cluster name="tty" location="$EIFFEL_SRC\Eiffel\interface\tty\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 			<file_rule>
 				<exclude>/dbg_preferences\.e$</exclude>
 				<exclude>/ewb_dynamic_program_analysis\.e$</exclude>
@@ -635,41 +608,38 @@
 			</file_rule>
 		</cluster>
 		<override name="eiffel_override" location="$EIFFEL_SRC\Eiffel\override\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</override>
 		<override name="graphical_overrides" location="$EIFFEL_SRC\Eiffel\interface\new_graphical\overrides\" recursive="true">
-			<option is_obsolete_iteration="true">
-			</option>
+			<option is_obsolete_iteration="true"/>
 		</override>
 	</target>
 	<target name="bench_cocoa" extends="bench">
 		<description>Compile on Mac OS X using the Cocoa framework instead of GTK+</description>
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 		<setting name="platform" value="macintosh"/>
 		<variable name="vision_implementation" value="cocoa"/>
 	</target>
 	<target name="bench_gtk2" extends="bench">
 		<description>Compile on linux OS using the GTK2</description>
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 		<variable name="vision_implementation" value="gtk2"/>
 	</target>
 	<target name="bench_gtk3" extends="bench">
 		<description>Compile on linux OS using the GTK3</description>
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 		<variable name="vision_implementation" value="gtk3"/>
+	</target>
+	<target name="batch_unix" extends="batch">
+		<description>Compile on unix</description>
+		<setting name="platform" value="unix"/>
 	</target>
 	<target name="compile_all_bench" extends="bench">
 		<root all_classes="true"/>
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 	</target>
 	<target name="compile_all_batch" extends="batch">
 		<root all_classes="true"/>
-		<option is_obsolete_iteration="true">
-		</option>
+		<option is_obsolete_iteration="true"/>
 	</target>
 </system>

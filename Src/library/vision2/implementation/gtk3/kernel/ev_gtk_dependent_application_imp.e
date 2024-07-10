@@ -38,11 +38,12 @@ feature -- Initialize
  				-- The following call seems to be needed for any Xlib function.
 			dlg := {GTK2}.gtk_dialog_new
 				-- take ownership
-			dlg := {GTK}.g_object_ref_sink (dlg)
+				-- Using GDK instead GDK
+			dlg := {GOBJECT}.g_object_ref_sink (dlg)
 				-- unref the dialog, as we do nothing with it
-			{GTK}.g_object_unref (dlg)
+			{GOBJECT}.g_object_unref (dlg)
 				-- destroy dlg
-			{GTK}.gtk_widget_destroy (dlg)
+			{GTK2}.gtk_widget_destroy (dlg)
 			initialize_gtk_theme_properties
  		end
 
@@ -54,13 +55,13 @@ feature -- Initialize
 		do
 				-- On macos, the cursor theme name is not set by default.
 			create l_cs.set_with_eiffel_string ("gtk-cursor-theme-name")
-			{GTK2}.g_object_get_string (default_gtk_settings, l_cs.item, $str_ptr)
+			{GOBJECT}.g_object_get_string (default_gtk_settings, l_cs.item, $str_ptr)
 			if str_ptr.is_default_pointer then
 				l_cs.set_with_eiffel_string ("gtk-theme-name")
-				{GTK2}.g_object_get_string (default_gtk_settings, l_cs.item, $str_ptr)
+				{GOBJECT}.g_object_get_string (default_gtk_settings, l_cs.item, $str_ptr)
 				if not str_ptr.is_default_pointer then
 					l_cs.set_with_eiffel_string ("gtk-cursor-theme-name")
-					{GTK2}.g_object_set_string (default_gtk_settings, l_cs.item, str_ptr)
+					{GOBJECT}.g_object_set_string (default_gtk_settings, l_cs.item, str_ptr)
 				end
 			end
 		end
@@ -195,17 +196,17 @@ feature -- Implementation
 		local
 			font_name_ptr: POINTER
 		do
-			{GTK2}.g_object_get_string (default_gtk_settings, gtk_font_name_setting.item, $font_name_ptr)
+			{GOBJECT}.g_object_get_string (default_gtk_settings, gtk_font_name_setting.item, $font_name_ptr)
 			if font_name_ptr /= default_pointer then
 				if previous_font_settings /= default_pointer then
 					Result := c_strcmp (previous_font_settings, font_name_ptr) /= 0
 					if Result then
 							-- Font settings have changed
-						{GTK}.g_free (previous_font_settings)
+						{GLIB}.g_free (previous_font_settings)
 						previous_font_settings := font_name_ptr
 					else
 							-- Font settings have not changed so we free font_name_ptr.
-						{GTK}.g_free (font_name_ptr)
+						{GLIB}.g_free (font_name_ptr)
 					end
 				else
 					Result := True
@@ -239,7 +240,7 @@ feature -- Implementation
 			a_cs: EV_GTK_C_STRING
 			l_result: detachable STRING_32
 		do
-			{GTK2}.g_object_get_string (default_gtk_settings, gtk_font_name_setting.item, $font_name_ptr)
+			{GOBJECT}.g_object_get_string (default_gtk_settings, gtk_font_name_setting.item, $font_name_ptr)
 			if font_name_ptr /= default_pointer then
 				create a_cs.make_from_pointer (font_name_ptr)
 				l_result := a_cs.string
@@ -375,7 +376,7 @@ feature {NONE} -- Externals
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

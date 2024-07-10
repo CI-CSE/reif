@@ -1,28 +1,17 @@
-﻿note
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+note
+	description: "[
+		]"
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_MODULE
 
 inherit
-
-	ICOR_OBJECT
-		export
-			{ICOR_OBJECTS_MANAGER} clean_on_dispose
-		redefine
-			clean_on_dispose
-		end
+	ICOR_DEBUG_I
 
 	OPERATING_ENVIRONMENT
-		undefine
-			out
-		end
-
-create {ICOR_OBJECTS_MANAGER, ICOR_DEBUG_ENUM_WITH_NEXT}
-	make_by_pointer
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -41,7 +30,7 @@ feature {ICOR_OBJECTS_MANAGER} -- Dispose
 	clean_on_dispose
 			-- Clean data on dispose
 		do
-			Precursor
+--			Precursor
 			if attached internal_md_import as i then
 				i.clean_on_dispose
 				internal_md_import := Void
@@ -122,7 +111,7 @@ feature {ICOR_EXPORTER} -- Access
 				end
 				private_name := Result
 			else
-				last_call_success := 0
+				set_last_call_success (0)
 			end
 		end
 
@@ -169,19 +158,19 @@ feature {NONE} -- Access
 
 feature {ICOR_DEBUG_MODULE} -- Restricted Access
 
-	get_md_import_interface: MD_IMPORT
+	get_md_import_interface: ICOR_MD_IMPORT
 			-- Return a meta data interface pointer that can be used to examine the
 			-- meta data for this module
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_MetaDataImport_interface (item, $p)
+			set_last_call_success (cpp_get_MetaDataImport_interface (item, $p))
 			if p /= default_pointer then
 				debug ("debugger_icor_data")
 					io.put_string ("ICOR_DEBUG_MODULE.get_md_import_interface : called %N")
 					io.put_string_32 ({STRING_32} "     for [" + module_name + "] %N")
 				end
-				create Result.make_by_pointer (p)
+				Result := new_md_import (p)
 			end
 		end
 
@@ -192,9 +181,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_process (item, $p)
+			set_last_call_success (cpp_get_process (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_process (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -202,7 +191,7 @@ feature {ICOR_EXPORTER} -- Access
 
 	get_base_address: NATURAL_64
 		do
-			last_call_success := cpp_get_base_address (item, $Result)
+			set_last_call_success (cpp_get_base_address (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -212,9 +201,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_assembly (item, $p)
+			set_last_call_success (cpp_get_assembly (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_assembly (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -233,7 +222,7 @@ feature {ICOR_EXPORTER} -- Access
 			--   debugger is active.  Programmatically enabling/disabling these
 			--   settings will override global settings.
 		do
-			last_call_success := cpp_enable_jit_debugging (item, a_trackjitinfo.to_integer, a_allowjitopts.to_integer)
+			set_last_call_success (cpp_enable_jit_debugging (item, a_trackjitinfo.to_integer, a_allowjitopts.to_integer))
 		end
 
 	enable_class_load_callbacks (a_value: BOOLEAN)
@@ -241,7 +230,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- callbacks are called for the particular module.  ClassLoad
 			-- callbacks are off by default
 		do
-			last_call_success := cpp_enable_class_load_callbacks (item, a_value.to_integer)
+			set_last_call_success (cpp_enable_class_load_callbacks (item, a_value.to_integer))
 		ensure
 			success: last_call_success = 0
 		end
@@ -250,9 +239,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_function_from_token (item, a_token, $p)
+			set_last_call_success (cpp_get_function_from_token (item, a_token, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_function (p)
+				Result := Icor_objects_manager.icd_function (p, Current)
 			end
 			debug ("DBG")
 				if not last_call_succeed then
@@ -267,9 +256,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_class_from_token (item, a_token, $p)
+			set_last_call_success (cpp_get_class_from_token (item, a_token, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_class (p)
+				Result := Icor_objects_manager.icd_class (p, Current)
 			end
 			debug ("DBG")
 				if not last_call_succeed then
@@ -284,9 +273,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_create_breakpoint (item, $p)
+			set_last_call_success (cpp_create_breakpoint (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_module_breakpoint (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -294,7 +283,7 @@ feature {ICOR_EXPORTER} -- Access
 
 	get_token: NATURAL_32
 		do
-			last_call_success := cpp_get_token (item, $Result)
+			set_last_call_success (cpp_get_token (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -304,7 +293,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			r: INTEGER
 		do
-			last_call_success := cpp_is_dynamic (item, $r)
+			set_last_call_success (cpp_is_dynamic (item, $r))
 			Result := r /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -314,7 +303,7 @@ feature {ICOR_EXPORTER} -- Access
 --		local
 --			p: POINTER
 --		do
---			last_call_success := cpp_get_global_variable_value (item, a_index, $p)
+--			set_last_call_success (cpp_get_global_variable_value (item, a_index, $p))
 --			if p /= default_pointer then
 --				create Result.make_by_pointer (p)
 --			end
@@ -324,7 +313,7 @@ feature {ICOR_EXPORTER} -- Access
 
 	get_size: NATURAL_32
 		do
-			last_call_success := cpp_get_size (item, $Result)
+			set_last_call_success (cpp_get_size (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -335,7 +324,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			r: INTEGER
 		do
-			last_call_success := cpp_is_in_memory (item, $r)
+			set_last_call_success (cpp_is_in_memory (item, $r))
 			Result := r /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -349,12 +338,12 @@ feature {NONE} -- Access
 			p_cchname: NATURAL_32
 			mp_name: MANAGED_POINTER
 		do
-			last_call_success := 0
+			set_last_call_success (0)
 			create mp_name.make (256 * 2)
 
-			last_call_success := cpp_get_name (item, 256, $p_cchname, mp_name.item)
+			set_last_call_success (cpp_get_name (item, 256, $p_cchname, mp_name.item))
 			if mp_name.item /= Default_pointer then
-				Result := (create {UNI_STRING}.make_by_pointer (mp_name.item)).string_32
+				Result := (create {CLI_STRING}.make_by_pointer (mp_name.item)).string_32
 			end
 		ensure
 			success: last_call_success = 0
@@ -564,38 +553,7 @@ feature {NONE} -- IID ...
 
 feature {NONE} -- Internal data
 
-	internal_md_import: detachable MD_IMPORT;
+	internal_md_import: detachable ICOR_MD_IMPORT;
 
-note
-	copyright: "Copyright (c) 1984-2021, Eiffel Software"
-	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options: "http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful, but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-		]"
-	source: "[
-			Eiffel Software
-			5949 Hollister Ave., Goleta, CA 93117 USA
-			Telephone 805-685-1006, Fax 805-685-6869
-			Website http://www.eiffel.com
-			Customer support http://support.eiffel.com
-		]"
 
 end

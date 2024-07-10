@@ -61,6 +61,17 @@ CREATE TABLE es_sessions(
   `data` TEXT
 );
 
+CREATE TABLE es_sessions_archive (
+  `sid` VARCHAR(255) PRIMARY KEY NOT NULL ,
+  `iid` VARCHAR(255) NOT NULL ,
+  `uid`	INTEGER NOT NULL,
+  `state` INTEGER NOT NULL,
+  `first` DATETIME NOT NULL,
+  `last` DATETIME NOT NULL,
+  `title` TEXT,
+  `data` TEXT
+);
+
 CREATE TABLE es_licenses(
   `lid` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
   `pid`	INTEGER NOT NULL, /* es_plans.id */
@@ -71,6 +82,19 @@ CREATE TABLE es_licenses(
   `creation` DATETIME NOT NULL,
   `expiration` DATETIME,
   `fallback` DATETIME
+);
+
+CREATE TABLE es_licenses_archive(
+  `lid` INTEGER PRIMARY KEY NOT NULL,
+  `pid`	INTEGER NOT NULL, /* es_plans.id */
+  `license_key` TEXT NOT NULL,
+  `platform` TEXT,
+  `version` TEXT,
+  `status` INTEGER,
+  `creation` DATETIME NOT NULL,
+  `expiration` DATETIME,
+  `fallback` DATETIME,
+  `archiving_date` DATETIME
 );
 
 CREATE TABLE es_license_subscriptions (

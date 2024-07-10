@@ -249,7 +249,8 @@ feature -- Execution
 			if il_debug_info_recorder.entry_point_feature_i = Void then
 					--| No entry point .. this is not an executable system
 			else
-				Eifnet_debugger.initialize_debugger_session (debugger_manager.windows_handle)
+					-- It should be .Net framework
+				Eifnet_debugger.initialize_debugger_session (debugger_manager.windows_handle, eiffel_system.system.is_il_netcore)
 				if Eifnet_debugger.is_debugging then
 					process_before_resuming
 
@@ -1703,7 +1704,7 @@ feature {NONE} -- Constants for dotnet interactions
 			-- {EXCEPTION_MANAGER}.wrapped_exception feature name (for dotnet)
 
 ;note
-	copyright: "Copyright (c) 1984-2021, Eiffel Software"
+	copyright: "Copyright (c) 1984-2024, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

@@ -33,9 +33,11 @@ feature {NONE} -- Initialization
 			a_name_not_empty: not a_name.is_empty
 			valid_app_type: dll_app implies console_app
 			emitter_attached: attached e
+
 		local
 			l_characteristics: INTEGER_16
 		do
+			is_debug_enabled := True
 			is_valid := True
 			file_name := a_name
 			is_dll := dll_app
@@ -72,6 +74,7 @@ feature {NONE} -- Initialization
 			end
 
 			create text_section_header.make (".text")
+
 			create reloc_section_header.make (".reloc")
 
 			create iat.make
@@ -124,6 +127,19 @@ feature -- Status
 	file_name: READABLE_STRING_32
 			-- Name of current PE file on disk.
 
+	associated_pdb_file_name: PATH
+		local
+			fn: READABLE_STRING_32
+			p: PATH
+		do
+			fn := file_name
+			create p.make_from_string (fn)
+			if attached p.extension as ext then
+				create p.make_from_string (fn.head (fn.count - ext.count - 1))
+			end
+			Result := p.appended_with_extension ("pdb")
+		end
+
 	has_strong_name: BOOLEAN
 			-- Does current have a strong name signature?
 
@@ -133,18 +149,34 @@ feature -- Status
 			Result := resources /= Void
 		end
 
+	is_debug_enabled: BOOLEAN
+		-- is debug output enabled?
+		--| pdb generation.	
+
 feature -- Access
 
-	debug_directory: detachable CLI_DEBUG_DIRECTORY_I
+	codeview_debug_directory: detachable CLI_DEBUG_DIRECTORY_I
+			-- CodeView debug directory
 		do
-			to_implement ("Not yet implemented")
+			Result := internal_codeview_debug_directory
+			if Result = Void  then
+				--check already_has_debug_directory: False end
+				create {IL_EMITTER_CLI_DEBUG_DIRECTORY} Result.make_codeview
+				internal_codeview_debug_directory := Result
+			end
 		end
 
-	debug_info: detachable MANAGED_POINTER
+	codeview_debug_info: detachable MANAGED_POINTER
 			-- Data for storing debug information in PE files.
-		do
-			to_implement ("Not yet implemented")
-		end
+
+	checksum_debug_directory: detachable CLI_DEBUG_DIRECTORY_I
+
+	checksum_debug_info: detachable MANAGED_POINTER
+			-- Data for storing debug information in PE files.
+
+
+	reproducible_debug_directory: detachable CLI_DEBUG_DIRECTORY_I
+			-- Data for storing reproducible debug information in PE files.
 
 	text_section_header: CLI_SECTION_HEADER
 	reloc_section_header: CLI_SECTION_HEADER
@@ -156,6 +188,11 @@ feature -- Access
 			to_implement ("Not yet implemented")
 		end
 
+feature {NONE} -- Implementation
+
+	internal_codeview_debug_directory: detachable CLI_DEBUG_DIRECTORY_I
+	internal_checksum_debug_directory: detachable CLI_DEBUG_DIRECTORY_I
+
 feature -- Access
 
 	pe_header: CLI_PE_FILE_HEADER
@@ -166,10 +203,6 @@ feature -- Access
 
 	code: detachable MANAGED_POINTER
 			-- CLI code instruction stream.
-
---	debug_directory: detachable CLI_DEBUG_DIRECTORY
---	debug_info: detachable MANAGED_POINTER
---			-- Data for storing debug information in PE files.
 
 	strong_name_directory: detachable CLI_DIRECTORY
 	strong_name_info: detachable MANAGED_POINTER
@@ -211,12 +244,33 @@ feature -- Settings
 			cli_header.set_entry_point_token (token)
 		end
 
-	set_debug_information (a_cli_debug_directory: CLI_DEBUG_DIRECTORY_I;
+	set_codeview_debug_information (a_cli_debug_directory: CLI_DEBUG_DIRECTORY_I;
 			a_debug_info: MANAGED_POINTER)
-			-- Set `debug_directory' to `a_cli_debug_directory' and `debug_info'
+			-- Set `codeview_debug_directory' to `a_cli_debug_directory' and `debug_info'
 			-- to `a_debug_info'.
 		do
-			to_implement ("Not yet implemented")
+			internal_codeview_debug_directory := a_cli_debug_directory
+			codeview_debug_info := a_debug_info
+		end
+
+	set_checksum_debug_information (a_cli_debug_directory: CLI_DEBUG_DIRECTORY_I;
+			a_checksum_info: MANAGED_POINTER)
+			-- Set `pdb_check_debug_directory' to `a_cli_debug_directory' and `a_checksum_info'
+			-- to `a_debug_info'.
+		do
+			if a_checksum_info.count = 0 then
+				checksum_debug_directory := Void
+				checksum_debug_info := Void
+			else
+				checksum_debug_directory := a_cli_debug_directory
+				checksum_debug_info := a_checksum_info
+			end
+		end
+
+	set_reproducible_debug_information (a_cli_debug_directory: CLI_DEBUG_DIRECTORY_I)
+				-- Set `reproducible_debug_information' to `a_cli_debug_directory'
+		do
+			reproducible_debug_directory := a_cli_debug_directory
 		end
 
 	set_public_key (a_key: like public_key; a_signing: like signing)
@@ -242,7 +296,7 @@ feature -- Saving
 			l_padding: MANAGED_POINTER
 --			l_signature: MANAGED_POINTER
 			l_strong_name_location: INTEGER
---			l_size: INTEGER
+			l_size: INTEGER
 			l_uni_string: CLI_STRING
 			l_meta_data_file_name: like file_name
 		do
@@ -268,6 +322,7 @@ feature -- Saving
 			l_pe_file.put_managed_pointer (pe_header.item, 0, pe_header.count)
 			l_pe_file.put_managed_pointer (optional_header.item, 0, optional_header.count)
 			l_pe_file.put_managed_pointer (text_section_header.item, 0, text_section_header.count)
+
 			l_pe_file.put_managed_pointer (reloc_section_header.item, 0, reloc_section_header.count)
 
 				-- Add padding to .text section
@@ -285,19 +340,51 @@ feature -- Saving
 				l_pe_file.put_managed_pointer (l_method_writer.item, 0, code_size)
 			end
 
--- No debug
---			if
---				attached debug_directory as d and then
---				attached debug_info as i
---			then
---				l_pe_file.put_managed_pointer (d, 0, d.count)
---				l_pe_file.put_managed_pointer (i, 0, i.count)
---				l_size := padding (d.count + i.count, 16)
---				if l_size > 0 then
---					create l_padding.make (l_size)
---					l_pe_file.put_managed_pointer (l_padding, 0, l_padding.count)
---				end
---			end
+
+				-- Debug Directory
+			if
+				is_debug_enabled and then
+				attached {IL_EMITTER_CLI_DEBUG_DIRECTORY} codeview_debug_directory as l_codeview_dbg_dir and then
+				attached codeview_debug_info as l_codeview_dbg_info
+			then
+				if
+					attached {IL_EMITTER_CLI_DEBUG_DIRECTORY} checksum_debug_directory as l_checksum_dbg_dir and then
+					attached checksum_debug_info as l_checksum_dbg_info
+				then
+						-- add DebugDirectory for CodeView
+					l_pe_file.put_managed_pointer (l_codeview_dbg_dir.item, 0, l_codeview_dbg_dir.size_of)
+
+						-- add DebugDirectory for PdbChecksum
+					l_pe_file.put_managed_pointer (l_checksum_dbg_dir.item, 0, l_checksum_dbg_dir.size_of)
+
+						-- RawData for Codeview
+					l_pe_file.put_managed_pointer (l_codeview_dbg_info, 0, l_codeview_dbg_info.count)
+
+						-- RawData for PdbChecksum
+					l_pe_file.put_managed_pointer (l_checksum_dbg_info, 0, l_checksum_dbg_info.count)
+
+						-- TODO: check padding ... (work in progress)
+					l_size := padding (	  l_codeview_dbg_dir.size_of  + l_checksum_dbg_dir.size_of
+										+ l_codeview_dbg_info.count   + l_checksum_dbg_info.count,
+										16)
+
+				else
+						-- add DebugDirectory for CodeView
+					l_pe_file.put_managed_pointer (l_codeview_dbg_dir.item, 0, l_codeview_dbg_dir.size_of)
+
+						-- RawData for Codeview
+					l_pe_file.put_managed_pointer (l_codeview_dbg_info, 0, l_codeview_dbg_info.count)
+
+						-- TODO: check padding ... (work in progress)
+					l_size := padding (	  l_codeview_dbg_dir.size_of
+										+ l_codeview_dbg_info.count  ,
+										16)
+				end
+				if l_size > 0 then
+					create l_padding.make (l_size)
+					l_pe_file.put_managed_pointer (l_padding, 0, l_padding.count)
+				end
+			end
 
 			if has_strong_name then
 				l_strong_name_location := l_pe_file.count
@@ -309,6 +396,10 @@ feature -- Saving
 					-- Store `resources.item' since otherwise no one will be referencing
 					-- it and thus ready for GC.
 				l_pe_file.put_managed_pointer (p, 0, resources_size)
+			end
+
+			debug ("il_emitter")
+				{MD_DBG_CHRONO}.start ("pe_file")
 			end
 
 			if emitter.appending_to_file_supported then
@@ -329,6 +420,10 @@ feature -- Saving
 				l_meta_data_file.close
 				safe_delete (l_meta_data_file)
 			end
+			debug ("il_emitter")
+				print ({STRING_32} "PE file saving: " + {MD_DBG_CHRONO}.report ("pe_file") + "%N")
+			end
+
 
 			if import_table_padding > 0 then
 				create l_padding.make (import_table_padding)
@@ -412,15 +507,27 @@ feature {NONE} -- Saving
 				code_size := 0
 			end
 
--- No debug support for now
---			if
---				attached debug_directory as d and then
---				attached debug_info as i
---			then
---				debug_size := pad_up (d.count + i.count, 16)
---			else
---				debug_size := 0
---			end
+				-- Debug support for now
+			if
+				is_debug_enabled and then
+				attached {IL_EMITTER_CLI_DEBUG_DIRECTORY} codeview_debug_directory as l_codeview_dbg_dir and then
+				attached codeview_debug_info as l_codeview_dbg_info
+			then
+				if
+					attached {IL_EMITTER_CLI_DEBUG_DIRECTORY} checksum_debug_directory as l_pdbchecksum_dbg_dir and then
+					attached checksum_debug_info as l_pdbchecksum_dbg_info
+				then
+					debug_size := pad_up (	l_codeview_dbg_dir.size_of + l_pdbchecksum_dbg_dir.size_of
+										  + l_codeview_dbg_info.count  + l_pdbchecksum_dbg_info.count,
+										16)
+				else
+					debug_size := pad_up (	l_codeview_dbg_dir.size_of
+										  + l_codeview_dbg_info.count,
+										16)
+				end
+			else
+				debug_size := 0
+			end
 
 -- No signing for now
 --			if
@@ -478,7 +585,7 @@ feature {NONE} -- Saving
 		local
 			import_directory, reloc_directory,
 			iat_directory, cli_directory: CLI_DIRECTORY
-			--l_debug_directory: CLI_DIRECTORY
+			l_debug_directory: CLI_DIRECTORY
 		do
 				-- Update optional header section.
 			optional_header.set_code_size (text_size_on_disk)
@@ -502,22 +609,49 @@ feature {NONE} -- Saving
 			reloc_directory.set_rva (reloc_rva)
 			reloc_directory.set_data_size (reloc_size)
 
--- No debug directory
---			if
---				attached debug_directory as d and then
---				attached debug_info as i
---			then
---				l_debug_directory := optional_header.directory (
---					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_debug)
---				l_debug_directory.set_rva (text_rva + iat.count + cli_header.count + code_size)
---				l_debug_directory.set_data_size (d.count)
+				-- debug directory
+			if
+				is_debug_enabled and then
+				attached {IL_EMITTER_CLI_DEBUG_DIRECTORY} codeview_debug_directory as l_code_view_dbg_dir and then
+				attached codeview_debug_info as l_code_view_dbg_info
+			then
+					-- Structure
+					--
+					--	DebugDirectory for Codeview
+					--	DebugDirectory for PdbChecksum
+					--	Data for Codeview
+					--	Data for PdbChecksum
+				if
+					attached {IL_EMITTER_CLI_DEBUG_DIRECTORY} checksum_debug_directory as l_checksum_dbg_dir and then
+					attached checksum_debug_info as l_checksum_dbg_info
+				then
+						-- Code view + CheckSum
+					l_debug_directory := optional_header.directory ({CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_debug)
+					l_debug_directory.set_rva (text_rva + iat.count + cli_header.count + code_size)
+					l_debug_directory.set_data_size (l_code_view_dbg_dir.size_of + l_checksum_dbg_dir.size_of)
 
---				d.set_address_of_data (text_rva + iat.count + cli_header.count +
---					code_size + d.count)
---				d.set_pointer_to_data (headers_size_on_disk + iat.count +
---					cli_header.count + code_size + d.count)
---				d.set_size (i.count)
---			end
+					l_code_view_dbg_dir.set_address_of_raw_data (l_debug_directory.rva
+												+ l_debug_directory.data_size)
+					l_code_view_dbg_dir.set_pointer_to_raw_data (headers_size_on_disk + iat.count + cli_header.count + code_size
+												+ l_debug_directory.data_size)
+					l_code_view_dbg_dir.set_size_of_data (l_code_view_dbg_info.count)
+
+					l_checksum_dbg_dir.set_address_of_raw_data (l_code_view_dbg_dir.address_of_raw_data + l_code_view_dbg_info.count)
+					l_checksum_dbg_dir.set_pointer_to_raw_data (l_code_view_dbg_dir.pointer_to_raw_data + l_code_view_dbg_info.count)
+					l_checksum_dbg_dir.set_size_of_data (l_checksum_dbg_info.count)
+				else
+						-- Code view
+					l_debug_directory := optional_header.directory ({CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_debug)
+					l_debug_directory.set_rva (text_rva + iat.count + cli_header.count + code_size)
+					l_debug_directory.set_data_size (l_code_view_dbg_dir.size_of)
+
+					l_code_view_dbg_dir.set_address_of_raw_data (l_debug_directory.rva + l_code_view_dbg_dir.size_of)
+					l_code_view_dbg_dir.set_pointer_to_raw_data (headers_size_on_disk + iat.count + cli_header.count + code_size
+												+ l_code_view_dbg_dir.size_of)
+					l_code_view_dbg_dir.set_size_of_data (l_code_view_dbg_info.count)
+				end
+
+			end
 
 			iat_directory := optional_header.directory (
 					{CLI_DIRECTORY_CONSTANTS}.Image_directory_entry_iat)
@@ -538,6 +672,11 @@ feature {NONE} -- Saving
 				{CLI_SECTION_CONSTANTS}.code |
 				{CLI_SECTION_CONSTANTS}.execute |
 				{CLI_SECTION_CONSTANTS}.read)
+
+				-- TODO check if we need to update the debug section header	
+
+				-- Update debug
+
 
 			reloc_section_header.set_virtual_size (pad_up (reloc_size, 4))
 			reloc_section_header.set_virtual_address (reloc_rva)

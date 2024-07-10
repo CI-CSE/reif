@@ -6,15 +6,12 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_VALUE_BREAKPOINT
 
 inherit
 	ICOR_DEBUG_BREAKPOINT
 
-create 
-	make_by_pointer
-	
 feature {ICOR_EXPORTER} -- Access
 
 --	get_value: ICOR_DEBUG_VALUE is

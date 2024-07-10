@@ -80,6 +80,26 @@ fi
 if [ -f licensing/eiffelstudio/license.txt ]; then
 	cp licensing/eiffelstudio/license.txt $INSTALL_DIR/LICENSE
 fi
+case $ISE_PLATFORM in
+	macosx*)
+			if [ -d osx-launcher ]; then
+				remtrace Copy OSX launcher scripts
+				cp -rf osx-launcher/*.app $INSTALL_DIR/
+				for d in $INSTALL_DIR/*.app/ ; do
+					# note: sed on macosx is not GNU sed ... issue with -i
+					if [ -f "$d/Contents/Resources/EiffelLauncher" ]; then
+						sed -i '' "s/#ISE_PLATFORM#/$ISE_PLATFORM/" "$d/Contents/Resources/EiffelLauncher"
+						chmod u+x "$d/Contents/Resources/EiffelLauncher"
+					fi
+					if [ -f "$d/Contents/MacOS/estudio" ]; then
+						chmod u+x "$d/Contents/MacOS/estudio"
+					fi
+				done				
+			fi
+		;;
+	*)
+		;;
+esac
 
 if [ -z "$IS_MINIMAL" ]; then
 	remtrace Building Standard CD image

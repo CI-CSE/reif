@@ -5,7 +5,7 @@ curr_year=`date +%Y`
 function do_sed {
 	echo sed -i -e "$1" "$2" 
 	sed -i -e "$1" "$2" 
-	svn diff "$2"
+	git diff "$2"
 	echo $2 >> file_for_year_changes.log
 	echo $2 \\ >> commit_year_changes.sh
 }
@@ -14,13 +14,16 @@ function doall_sed {
 	for filename in $2*; do
 		echo sed -i -e "$1" "$filename" 
 		sed -i -e "$1" "$filename" 
-		svn diff "$filename"
+		git diff "$filename"
 		echo $filename >> file_for_year_changes.log
 		echo $filename \\ >> commit_year_changes.sh
 	done
 }
 function do_update_copyright_eiffel_software {
 	do_sed "s/\(Copyright Eiffel Software [0-9][0-9][0-9][0-9]-\)[0-9][0-9][0-9][0-9]/\1$curr_year/g" "$1"
+}
+function do_update_copyright_eiffel_software_html_yyyy {
+	do_sed "s/\(Copyright &copy; \)[0-9][0-9][0-9][0-9]/\1$curr_year/g" "$1"
 }
 
 if [ -z "$EIFFEL_SRC" ]; then export EIFFEL_SRC=$(readlink -n -q -m `pwd`/..) ; fi
@@ -30,7 +33,7 @@ echo EIFFEL_SRC=$EIFFEL_SRC
 echo  > file_for_year_changes.log
 echo  echo Update to year $curr_year > commit_year_changes.sh
 echo  export EIFFEL_SRC=#EIFFEL_SRC >> commit_year_changes.sh
-echo  svn commit \\ >> commit_year_changes.sh
+echo  git commit \\ >> commit_year_changes.sh
 
 # $EIFFEL_SRC/framework/environment/interface/eiffel_env.e
 do_sed "s/\(copyright_year: STRING = \"\)[0-9][0-9][0-9][0-9]/\1$curr_year/g" $EIFFEL_SRC/framework/environment/interface/eiffel_env.e
@@ -79,6 +82,12 @@ do_update_copyright_eiffel_software $EIFFEL_SRC/framework/web/xebra/eiffel_proje
 do_update_copyright_eiffel_software $EIFFEL_SRC/framework/web/xebra/eiffel_projects/xebra_server/utilities/xs_argument_parser.e
 do_update_copyright_eiffel_software $EIFFEL_SRC/framework/web/xebra/eiffel_projects/xebra_translator/xt_argument_parser.e
 do_update_copyright_eiffel_software $EIFFEL_SRC/framework/web/xebra/tools/installer/win/xebra_deployer/xd_argument_parser.e
+
+# $EIFFEL_SRC/web/eiffel-cloud/site/modules/custom_block/templates/block_cloud_footer.tpl
+do_update_copyright_eiffel_software_html_yyyy $EIFFEL_SRC/web/eiffel-cloud/site/modules/custom_block/templates/block_cloud_footer.tpl
+
+# $EIFFEL_SRC/web/support/api/site/www/template/html/master/footer.tpl
+do_update_copyright_eiffel_software_html_yyyy $EIFFEL_SRC/web/support/api/site/www/template/html/master/footer.tpl
 
 # sqlite3 examples
 do_update_copyright_eiffel_software $EIFFEL_SRC/unstable/library/persistency/database/sqlite3/examples/liteterm/argument_parser.e

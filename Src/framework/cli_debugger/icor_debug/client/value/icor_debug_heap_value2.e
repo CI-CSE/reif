@@ -14,20 +14,14 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_HEAP_VALUE2
 
 inherit
 	ICOR_DEBUG_VALUE
-	
-	ICOR_DEBUG_HANDLE_TYPE
-		undefine
-			out, copy
-		end
 
-create 
-	make_by_pointer
-	
+	ICOR_DEBUG_HANDLE_TYPE
+
 feature {ICOR_EXPORTER} -- Access
 
 	create_strong_handle: ICOR_DEBUG_HANDLE_VALUE
@@ -35,22 +29,22 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_create_handle (item, Handle_strong, $p)
+			set_last_call_success (cpp_create_handle (item, Handle_strong, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_handle_value (p)
 			end
 		ensure
 			success: last_call_succeed or error_code_is_object_neutered (last_call_success)
 		end
-		
+
 	create_weak_track_resurrection_handle: ICOR_DEBUG_HANDLE_VALUE
 			-- Creates a handle of HANDLE_WEAK_TRACK_RESURRECTION for this heap value
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_create_handle (item, Handle_weak_track_resurrection, $p)
+			set_last_call_success (cpp_create_handle (item, Handle_weak_track_resurrection, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_handle_value (p)
 			end
 		ensure
 			success: last_call_succeed or error_code_is_object_neutered (last_call_success)
@@ -61,9 +55,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_create_handle (item, hdl_type, $p)
+			set_last_call_success (cpp_create_handle (item, hdl_type, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_handle_value (p)
 			end
 		ensure
 			success: last_call_succeed or error_code_is_object_neutered (last_call_success)

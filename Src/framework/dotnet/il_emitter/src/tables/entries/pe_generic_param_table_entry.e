@@ -71,13 +71,13 @@ feature -- Operations
 			Result := {PE_TABLES}.tGenericParam
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, number, 0)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, number, 0)
 			l_bytes := 2
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, flags, 2)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, flags, 2)
 			l_bytes := l_bytes + 2
 
 			l_bytes := l_bytes + owner.render (a_sizes, a_dest, l_bytes)
@@ -86,17 +86,15 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-			number := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, 0)
 			l_bytes := 2
-			flags := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, 2)
 			l_bytes := l_bytes + 2
 
-			l_bytes := l_bytes + owner.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + name.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + owner.rendering_size (a_sizes)
+			l_bytes := l_bytes + name.rendering_size (a_sizes)
 
 			Result := l_bytes
 		end

@@ -1,4 +1,4 @@
-﻿note
+note
 	description: "[
 			NOTA:
 				typedef struct
@@ -11,14 +11,11 @@
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_STEPPER
 
 inherit
-	ICOR_OBJECT
-
-create
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -26,7 +23,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			r: INTEGER
 		do
-			last_call_success := cpp_is_active (item, $r)
+			set_last_call_success (cpp_is_active (item, $r))
 			Result := r /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -35,7 +32,7 @@ feature {ICOR_EXPORTER} -- Access
 	deactivate
 			-- Desactivate the stepper
 		do
-			last_call_success := cpp_deactivate (item)
+			set_last_call_success (cpp_deactivate (item))
 		end
 
 	set_intercept_mask (a_mask: INTEGER)
@@ -64,7 +61,7 @@ feature {ICOR_EXPORTER} -- Access
 			--|          INTERCEPT_ALL                 = 0xffff
 			--|    } CorDebugIntercept;
 		do
-			last_call_success := cpp_set_intercept_mask (item, a_mask)
+			set_last_call_success (cpp_set_intercept_mask (item, a_mask))
 		end
 
 	set_unmapped_stop_mask (a_mask: INTEGER)
@@ -84,7 +81,7 @@ feature {ICOR_EXPORTER} -- Access
 			--| STOP_UNMANAGED is only valid w/ interop debugging.
 			--|
 		do
-			last_call_success := cpp_set_unmapped_stop_mask (item, a_mask)
+			set_last_call_success (cpp_set_unmapped_stop_mask (item, a_mask))
 		end
 
 	step (a_b_step_in: BOOLEAN)
@@ -92,7 +89,7 @@ feature {ICOR_EXPORTER} -- Access
 			debug ("debugger_eifnet_data")
 				io.error.put_string ("[enter] ICOR_DEBUG_STEPPER.Step (" + a_b_step_in.out + ") %N")
 			end
-			last_call_success := cpp_step (item, a_b_step_in.to_integer)
+			set_last_call_success (cpp_step (item, a_b_step_in.to_integer))
 		ensure
 			success: last_call_success = 0
 		end
@@ -103,7 +100,7 @@ feature {ICOR_EXPORTER} -- Access
 				io.error.put_string ("[enter] ICOR_DEBUG_STEPPER.StepOut %N")
 			end
 
-			last_call_success := cpp_step_out (item)
+			set_last_call_success (cpp_step_out (item))
 		ensure
 			success: last_call_success = 0
 		end
@@ -143,14 +140,14 @@ feature {ICOR_EXPORTER} -- Access
 
 				i := i + 1
 			end
-			last_call_success := cpp_step_range (item, a_b_step_in.to_integer, l_mp_ranges.item, a_ranges.count.to_natural_32)
+			set_last_call_success (cpp_step_range (item, a_b_step_in.to_integer, l_mp_ranges.item, a_ranges.count.to_natural_32))
 		ensure
 			success: last_call_success = 0
 		end
 
 	set_range_il (a_b_il: BOOLEAN)
 		do
-			last_call_success := cpp_set_range_il (item, a_b_il.to_integer)
+			set_last_call_success (cpp_set_range_il (item, a_b_il.to_integer))
 		ensure
 			success: last_call_success = 0
 		end
@@ -421,3 +418,4 @@ note
 		]"
 
 end
+

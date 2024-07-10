@@ -71,7 +71,7 @@ feature {EV_ANY_I} -- Implementation
 				-- We need to scale pixmap before it is placed in to pixmap holder			
 				a_pixmap_imp.stretch (a_width, a_height)
 			end
-			l_pixbuf := {GTK}.gdk_pixbuf_get_from_surface (a_pixmap_imp.cairo_surface, 0, 0, a_width, a_height)
+			l_pixbuf := {GDK}.gdk_pixbuf_get_from_surface (a_pixmap_imp.cairo_surface, 0, 0, a_width, a_height)
 			gtk_pix_wid := {GTK2}.gtk_image_new_from_pixbuf (l_pixbuf)
 			{GTK}.gtk_widget_show (gtk_pix_wid)
 			{GTK}.gtk_container_add (pixmap_box, gtk_pix_wid)
@@ -102,8 +102,8 @@ feature {NONE} -- Implementation
 		do
 			a_child_list := {GTK}.gtk_container_get_children (pixmap_box)
 			if a_child_list /= l_null then
-				Result := {GTK}.g_list_nth_data (a_child_list, 0)
-				{GTK}.g_list_free (a_child_list)
+				Result := {GLIB}.g_list_nth_data (a_child_list, 0)
+				{GLIB}.g_list_free (a_child_list)
 			end
 		end
 
@@ -115,7 +115,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_PIXMAPABLE note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -189,4 +189,3 @@ note
 		]"
 
 end -- class ICOR_DEBUG_CHAIN
-

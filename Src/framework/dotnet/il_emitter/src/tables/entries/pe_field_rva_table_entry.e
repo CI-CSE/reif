@@ -53,13 +53,13 @@ feature -- Operations
 			Result := {PE_TABLES}.tfieldrva
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- note that when reading rva_ holds the rva, when writing it holds an offset into the CIL section
 				-- Write the flags to the destination buffer `a_dest`.
-			{BYTE_ARRAY_HELPER}.put_array_natural_32 (a_dest, (rva + {PE_WRITER}.cildata_rva.value), 0)
+			{BYTE_ARRAY_HELPER}.put_natural_32 (a_dest, (rva + {PE_WRITER}.cildata_rva.value), 0)
 
 				-- Initialize the number of bytes written
 			l_bytes := 4
@@ -72,21 +72,19 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- note that when reading rva_ holds the rva, when writing it holds an offset into the CIL section
 				-- Set the rva (from a_src)  to the rva.
-			rva := {BYTE_ARRAY_HELPER}.byte_array_to_natural_32 (a_src, 0)
-
 				-- Initialize the number of bytes readed.
 			l_bytes := 4
 
 				-- Get the field_index and
 				-- update the number of bytes.
 
-			l_bytes := l_bytes + field_index.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + field_index.rendering_size (a_sizes)
 
 				-- Return the number of bytes readed.
 			Result := l_bytes

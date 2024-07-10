@@ -1,24 +1,17 @@
 note
 	description: "[
 		]"
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_CHAIN
 
 inherit
-	ICOR_OBJECT
+	ICOR_DEBUG_I
 
 	COR_DEBUG_CHAIN_REASON_ENUM
-		undefine
-			out
-		end
-
-create
-	make_by_pointer
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -27,9 +20,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_thread (item, $p)
+			set_last_call_success (cpp_get_thread (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_thread (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -39,9 +32,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_active_frame (item, $p)
+			set_last_call_success (cpp_get_active_frame (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_frame (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -51,9 +44,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_caller (item, $p)
+			set_last_call_success (cpp_get_caller (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -63,9 +56,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_callee (item, $p)
+			set_last_call_success (cpp_get_callee (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -75,9 +68,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_previous (item, $p)
+			set_last_call_success (cpp_get_previous (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -87,9 +80,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_next (item, $p)
+			set_last_call_success (cpp_get_next (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -99,7 +92,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			r: INTEGER
 		do
-			last_call_success := cpp_is_managed (item, $r)
+			set_last_call_success (cpp_is_managed (item, $r))
 			Result := r /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -109,9 +102,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_frames (item, $p)
+			set_last_call_success (cpp_enumerate_frames (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_frame_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -132,7 +125,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- CHAIN_CONTEXT_SWITCH    = 0x400,
 			-- CHAIN_FUNC_EVAL         = 0x800,
 		do
-			last_call_success := cpp_get_reason (item, $Result)
+			set_last_call_success (cpp_get_reason (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -235,7 +228,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
@@ -248,23 +241,22 @@ note
 			(available at the URL listed under "license" above).
 			
 			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
+			distributed in the hope that it will be useful, but
 			WITHOUT ANY WARRANTY; without even the implied warranty
 			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
+			See the GNU General Public License for more details.
 			
 			You should have received a copy of the GNU General Public
 			License along with Eiffel Software's Eiffel Development
 			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
+			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 		]"
 	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
+			Eiffel Software
+			5949 Hollister Ave., Goleta, CA 93117 USA
+			Telephone 805-685-1006, Fax 805-685-6869
+			Website http://www.eiffel.com
+			Customer support http://support.eiffel.com
 		]"
 
 end -- class ICOR_DEBUG_CHAIN
-

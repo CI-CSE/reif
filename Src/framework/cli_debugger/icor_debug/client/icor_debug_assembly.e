@@ -6,14 +6,11 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_ASSEMBLY
 
 inherit
-	ICOR_OBJECT
-
-create
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -22,9 +19,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_process (item, $p)
+			set_last_call_success (cpp_get_process (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_process (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -35,9 +32,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_app_domain (item, $p)
+			set_last_call_success (cpp_get_app_domain (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_app_domain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -47,9 +44,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_modules (item, $p)
+			set_last_call_success (cpp_enumerate_modules (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_module_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -63,9 +60,9 @@ feature {ICOR_EXPORTER} -- Access
 		do
 			create mp_name.make (256 * 2)
 
-			last_call_success := cpp_get_name (item, 256, $p_cchname, mp_name.item)
+			set_last_call_success (cpp_get_name (item, 256, $p_cchname, mp_name.item))
 			if mp_name.item /= default_pointer then
-				Result := (create {UNI_STRING}.make_by_pointer (mp_name.item)).string_32
+				Result := (create {CLI_STRING}.make_by_pointer (mp_name.item)).string_32
 			end
 		ensure
 --			success: last_call_success = 0

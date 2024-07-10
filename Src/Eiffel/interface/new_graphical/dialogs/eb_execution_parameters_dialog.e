@@ -75,6 +75,9 @@ feature {NONE} -- Initialization
 
 				-- Build Dialog GUI
 			create debugging_options_control.make
+			debugging_options_control.profile_select_actions.extend (agent on_profile_selected)
+			debugging_options_control.profile_deselect_actions.extend (agent on_profile_deselected)
+
 
 			build_interface
 
@@ -225,6 +228,21 @@ feature -- Status Setting
 
 feature {NONE} -- Actions
 
+	on_profile_selected (p: detachable DEBUGGER_EXECUTION_PROFILE)
+		do
+				-- Note: if p is Void, this means default profile.
+			run_button.enable_sensitive
+			start_wb_button.enable_sensitive
+			start_final_button.enable_sensitive
+		end
+
+	on_profile_deselected (p: detachable DEBUGGER_EXECUTION_PROFILE)
+		do
+			run_button.disable_sensitive
+			start_wb_button.disable_sensitive
+			start_final_button.disable_sensitive
+		end
+
 	on_close
 	 		-- Action to take when user presses 'Cancel' button.
 	 	local
@@ -282,9 +300,15 @@ feature {NONE} -- Implementation
 	execute_operation (op: like run)
 			-- Execute operation `op'
 		local
+			ctrl: like debugging_options_control
 			prof: DEBUGGER_EXECUTION_PROFILE
 		do
-			prof := debugging_options_control.selected_profile
+			ctrl := debugging_options_control
+			if ctrl.has_changed then
+				ctrl.apply_changes
+			end
+
+			prof := ctrl.selected_profile
 
 			if keep_opened_check_button.is_selected then
 				op.call ([prof])
@@ -336,7 +360,7 @@ invariant
 	argument_control_not_void: debugging_options_control /= Void
 
 note
-	copyright:	"Copyright (c) 1984-2014, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

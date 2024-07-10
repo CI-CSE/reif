@@ -1,52 +1,36 @@
 note
 	description: "[
-		interface ICorDebugHandleValue : ICorDebugReferenceValue
-		{
-			/* returns the type of this handle. */
-			HRESULT GetHandleType([out] CorDebugHandleType *pType);
-
-			/** The final release of the interface will also dispose of the handle. This
-			  * API provides the ability for client to early dispose the handle.  */
-			HRESULT Dispose();
-		};
 		]"
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_HANDLE_VALUE
 
 inherit
 	ICOR_DEBUG_REFERENCE_VALUE
 		redefine
-			clean_on_dispose, dispose
-		end
-		
-	ICOR_DEBUG_HANDLE_TYPE
-		undefine
-			out, copy
+			clean_on_dispose
 		end
 
-create 
-	make_by_pointer
-	
+	ICOR_DEBUG_HANDLE_TYPE
+
 feature {ICOR_EXPORTER} -- Query
 
 	is_Handle_strong: BOOLEAN
 		local
 			l_type: INTEGER
 		do
-			last_call_success := cpp_get_handle_type (item, $l_type)			
+			set_last_call_success (cpp_get_handle_type (item, $l_type))
 			Result := l_type = Handle_strong
 		end
-		
+
 	is_Handle_weak_track_resurrection: BOOLEAN
 		local
 			l_type: INTEGER
 		do
-			last_call_success := cpp_get_handle_type (item, $l_type)			
+			set_last_call_success (cpp_get_handle_type (item, $l_type))
 			Result := l_type = Handle_weak_track_resurrection
 		end
 
@@ -55,14 +39,14 @@ feature {ICOR_EXPORTER} -- Access
 	get_handle_type: INTEGER
 			-- returns the type of this handle
 		do
-			last_call_success := cpp_get_handle_type (item, $Result)
-		end		
+			set_last_call_success (cpp_get_handle_type (item, $Result))
+		end
 
 	api_dispose
 			-- returns the type of this handle
 		do
-			last_call_success := cpp_api_dispose (item)
-		end		
+			set_last_call_success (cpp_api_dispose (item))
+		end
 
 feature -- Cleaning / Dispose
 
@@ -74,7 +58,7 @@ feature -- Cleaning / Dispose
 			end
 			Precursor {ICOR_DEBUG_REFERENCE_VALUE}
 		end
-		
+
 	dispose
 			-- Free `item'.
 		local
@@ -83,9 +67,9 @@ feature -- Cleaning / Dispose
 			if item_not_null and is_Handle_strong then
 				hr := cpp_api_dispose (item)
 			end
-			Precursor
+--			Precursor
 		end
-		
+
 feature {NONE} -- Implementation
 
 	cpp_get_handle_type (obj: POINTER; a_result: TYPED_POINTER [INTEGER]): INTEGER
@@ -107,38 +91,5 @@ feature {NONE} -- Implementation
 		alias
 			"Dispose"
 		end
-		
-note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
-		]"
-	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
-		]"
 
-end -- class ICOR_DEBUG_HANDLE_VALUE
-
+end

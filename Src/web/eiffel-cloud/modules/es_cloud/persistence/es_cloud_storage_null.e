@@ -142,6 +142,14 @@ feature -- Element change: license
 			assign_license_to_user (a_email_license.license, a_user)
 		end
 
+	archive_license (lic: ES_CLOUD_LICENSE)
+		do
+		end
+
+	restore_license (a_license: ES_CLOUD_LICENSE)
+		do
+		end
+
 feature -- Subscriptions		
 
 	subscriptions: LIST [ES_CLOUD_PLAN_SUBSCRIPTION]
@@ -268,7 +276,15 @@ feature -- Change
 		do
 		end
 
+	update_installation_license (inst: ES_CLOUD_INSTALLATION; a_lic: ES_CLOUD_LICENSE)
+		do
+		end
+
 	save_session (a_session: ES_CLOUD_SESSION)
+		do
+		end
+
+	cleanup_sessions (dt: DATE_TIME)
 		do
 		end
 

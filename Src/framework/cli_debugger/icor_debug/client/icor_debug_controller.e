@@ -1,17 +1,15 @@
-﻿note
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+note
+	description: "[
+		]"
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_CONTROLLER
 
 inherit
-	ICOR_OBJECT
-
-create
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -33,7 +31,7 @@ feature {ICOR_EXPORTER} -- Access
 			debug ("debugger_eifnet_data")
 				io.error.put_string ("[>] ICOR_DEBUG_CONTROLLER.stop ("+a_timeout.out+")%N")
 			end
-			last_call_success := cpp_stop (item, a_timeout)
+			set_last_call_success (cpp_stop (item, a_timeout))
 		end
 
 	continue (a_f_is_out_of_band: BOOLEAN)
@@ -46,7 +44,7 @@ feature {ICOR_EXPORTER} -- Access
 			end
 
 			if not retried then
-				last_call_success := cpp_continue (item, a_f_is_out_of_band.to_integer)
+				set_last_call_success (cpp_continue (item, a_f_is_out_of_band.to_integer))
 			end
 --		ensure
 --			success: last_call_success = 0
@@ -62,7 +60,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			l_result: INTEGER
 		do
-			last_call_success := cpp_is_running (item, $l_result)
+			set_last_call_success (cpp_is_running (item, $l_result))
 			Result := l_result /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -87,7 +85,7 @@ feature {ICOR_EXPORTER} -- Access
 			if a_icd_th /= Void then
 				l_icd_th_ptr := a_icd_th.item
 			end
-			last_call_success := cpp_has_queued_callbacks (item, l_icd_th_ptr, $l_result)
+			set_last_call_success (cpp_has_queued_callbacks (item, l_icd_th_ptr, $l_result))
 			Result := l_result /= 0 --| TRUE = 1 , FALSE = 0
 		end
 
@@ -95,9 +93,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			l_p: POINTER
 		do
-			last_call_success := cpp_enumerate_threads (item, $l_p)
+			set_last_call_success (cpp_enumerate_threads (item, $l_p))
 			if l_p /= default_pointer then
-				create Result.make_by_pointer (l_p)
+				Result := new_thread_enum (l_p)
 			end
 		end
 
@@ -124,12 +122,12 @@ feature {ICOR_EXPORTER} -- Access
 --			if a_except_thread /= Void then
 --				p_except_th := a_except_thread.item
 --			end
---			last_call_success := cpp_set_all_threads_debug_state (item, a_state, p_except_th)
+--			set_last_call_success (cpp_set_all_threads_debug_state (item, a_state, p_except_th))
 --		end
 
 	detach
 		do
-			last_call_success := cpp_detach (item)
+			set_last_call_success (cpp_detach (item))
 		ensure
 			success: last_call_success = 0
 		end
@@ -141,7 +139,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- the process or appdomain should be continued using Continue so that the
 			-- ExitProcess or ExitAppDomain callback is received.
 		do
-			last_call_success := cpp_terminate (item, a_exitcode)
+			set_last_call_success (cpp_terminate (item, a_exitcode))
 		end
 
 feature {NONE} -- Implementation
@@ -257,37 +255,5 @@ feature {ICOR_EXPORTER} -- Query
 		ensure
 			is_class: class
 		end
-
-note
-	copyright:	"Copyright (c) 1984-2017, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful, but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-		]"
-	source: "[
-			Eiffel Software
-			5949 Hollister Ave., Goleta, CA 93117 USA
-			Telephone 805-685-1006, Fax 805-685-6869
-			Website http://www.eiffel.com
-			Customer support http://support.eiffel.com
-		]"
 
 end

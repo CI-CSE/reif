@@ -69,7 +69,7 @@ feature {EV_ANY_I, EV_GTK_CALLBACK_MARSHAL} -- Implementation
 
 feature {NONE} -- Implementation
 
-	set_item_parent_imp (a_container_imp: EV_ITEM_LIST_IMP [EV_ITEM])
+	set_item_parent_imp (a_container_imp: detachable EV_ITEM_LIST_IMP [EV_ITEM])
 			-- Set `parent_imp' to `a_container_imp'.
 		do
 			Precursor {EV_TOOL_BAR_BUTTON_IMP} (a_container_imp)
@@ -84,7 +84,7 @@ feature {EV_ANY_I} -- Implementation
 	widget_object (a_list: POINTER): POINTER
 			-- Returns c_object relative to a_list data.
 		do
-			Result := {GTK}.gslist_struct_data (a_list)
+			Result := {GLIB}.gslist_struct_data (a_list)
 			Result := {GTK}.gtk_widget_get_parent (Result)
 		end
 
@@ -100,7 +100,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 			-- Interface of `Current'
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

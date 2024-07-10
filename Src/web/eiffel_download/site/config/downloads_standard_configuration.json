@@ -1,50 +1,56 @@
 {
-	"mirror": "https://www.eiffel.com/cdn/",
-	"products": [
-		{
-			"id": "eiffelstudio-rev", "name": "EiffelStudio",
-			"version": "22.05 REV",
-			"number": "22.05",
-			"build": "106302",
-			"download_link_pattern": "${mirror}${name}/${number}/${build}/${filename}",
-			"download": [
-				{
-					"filename": "Eiffel_22.05_rev_106302-win64.msi",
-					"platform": "win64",
-					"size": "159260672",
-					"hash": "f55a59348d40357ee22b1673d1dc1e0c232065ff80606c720ddc7a76097851d1"
-				}
-				,{
-					"filename": "Eiffel_22.05_rev_106302-win64.7z",
-					"platform": "win64",
-					"size": "95279356",
-					"hash": "2cdddea648e5ca515b82dde261427543f61ae4018ce8bb41860032ff84842f64"
-				}
-				,{
-					"filename": "Eiffel_22.05_rev_106302-linux-x86-64.tar.bz2",
-					"platform": "linux-x86-64",
-					"size": "116605782",
-					"hash": "21299b08197c58fc67ed29b4223239f31b57f153ad2b6e5209c135714c2bbf03"
-				}
-				,{
-					"filename": "Eiffel_22.05_rev_106302-macosx-x86-64.tar.bz2",
-					"platform": "macosx-x86-64",
-					"size": "98938018",
-					"hash": "adf86cee67c8fa08d8702f56b29cd6698ebc2ef275e00b398e05c8bfe7ea7e25"
-				}
-				,{
-					"filename": "Eiffel_22.05_rev_106302-linux-armv7.tar.bz2",
-					"platform": "linux-armv7",
-					"size": "103923855",
-					"hash": "05c3fbfc0eabd6cc5b9a1c238eb56771e509e81af5023f7020b313df3671521f"
-				}
-				,{
-					"filename": "Eiffel_22.05_rev_106302-freebsd-x86-64.tar.bz2",
-					"platform": "freebsd-x86-64",
-					"size": "107934734",
-					"hash": "f1d0ee12cdb9f7eed5bacaaafc2cd0fd0968a09294264576ce00bcc2770d026d"
-				}
-			]
-		}
-	]
+        "mirror": "https://www.eiffel.com/cdn/",
+        "products": [
+                {
+                        "id": "eiffelstudio-rev", "name": "EiffelStudio",
+                        "version": "24.05 REV",
+                        "number": "24.05",
+                        "build": "107822",
+                        "download_link_pattern": "${mirror}${name}/${number}/${build}/${filename}",
+                        "download": [
+                                {
+                                        "filename": "Eiffel_24.05_rev_107822-win64.msi",
+                                        "platform": "win64",
+                                        "size": "196452716",
+                                        "hash": "a29e50d6beeb871c667c5ae9d2cc04279b0aa452e978ee66521aeb97e221a29b"
+                                }
+                                ,{
+                                        "filename": "Eiffel_24.05_rev_107822-win64.7z",
+                                        "platform": "win64",
+                                        "size": "122139472",
+                                        "hash": "37263c6fc299fd9bd20a18202fc8f5b4d5661f9f404bf95970959c5da6f6ce40"
+                                }
+                                ,{
+                                        "filename": "Eiffel_24.05_rev_107822-linux-x86-64.tar.bz2",
+                                        "platform": "linux-x86-64",
+                                        "size": "153994524",
+                                        "hash": "3fce8a2ad4ad00afb828fdb48f2db9b35651b5eb47447932647fcc2155ac49b2"
+                                }
+                                ,{
+                                        "filename": "Eiffel_24.05_rev_107822-macosx-armv6.tar.bz2",
+                                        "platform": "macosx-armv6",
+                                        "size": "101647175",
+                                        "hash": "4220419a05eae1cd47fda6e0881606171ed5f9f3faea8123dc78496fffe66f40"
+                                }
+                                ,{
+                                        "filename": "Eiffel_24.05_rev_107822-macosx-x86-64.tar.bz2",
+                                        "platform": "macosx-x86-64",
+                                        "size": "136453616",
+                                        "hash": "25fe43a4bd28bfdc75f193fa2a0a505c8c0345703c674df83e78601778223b29"
+                                }
+                                ,{
+                                        "filename": "Eiffel_24.05_rev_107822-linux-arm64.tar.bz2",
+                                        "platform": "linux-arm64",
+                                        "size": "120859555",
+                                        "hash": "a3955c843cd4e423c0ef3251d51791add67f723d872dec19002eb9fc1a723017"
+                                }
+                                ,{
+                                        "filename": "Eiffel_24.05_rev_107822-linux-armv7.tar.bz2",
+                                        "platform": "linux-armv7",
+                                        "size": "139566164",
+                                        "hash": "1d3dc8461d87c5765d4c452ba3b507f2e868555dfcc17991162f6791ac385190"
+                                }
+                        ]
+                }
+        ]
 }

@@ -48,22 +48,24 @@ feature {EV_ANY_I} -- Access
 		do
 			if needs_event_box then
 				l_c_object := {GTK}.gtk_event_box_new -- Floating ref
-				l_c_object := {GTK}.g_object_ref_sink (l_c_object) -- Adopt floating ref count
+							-- TODO using GDK instead of GTK
+				l_c_object := {GOBJECT}.g_object_ref_sink (l_c_object) -- Adopt floating ref count
 
 				{GTK}.gtk_container_add (l_c_object, a_c_object) -- Adopt `a_c_object` floating ref, or add ref if a_c_object was not floating.
 				{GTK}.gtk_widget_show (a_c_object)
 			else
-				if {GDK}.g_object_is_floating (a_c_object) then
+				if {GOBJECT}.g_object_is_floating (a_c_object) then
 					c_object_was_floating := True
 						-- Adopt floating ref count, or increase ref count
-					l_c_object := {GTK}.g_object_ref_sink (a_c_object)
+						-- Using GDK instead of GTK
+					l_c_object := {GOBJECT}.g_object_ref_sink (a_c_object)
 				else
 					check
 						is_gtk_top_window: {GTK}.gtk_is_widget (a_c_object) and then
 											{GTK}.gtk_widget_is_toplevel (a_c_object)
 					end
 					l_c_object := a_c_object -- Already has a ref
-					l_c_object := {GTK}.g_object_ref (l_c_object) -- Increase ref count to protect the marshal callback
+					l_c_object := {GOBJECT}.g_object_ref (l_c_object) -- Increase ref count to protect the marshal callback
 				end
 			end
 
@@ -73,20 +75,20 @@ feature {EV_ANY_I} -- Access
 			if internal_id = 0 then
 				internal_id := eif_current_object_id
 			end
-			{EV_GTK_CALLBACK_MARSHAL}.set_eif_oid_in_c_object (l_c_object, internal_id, $c_object_dispose) -- No ref count increase from the C code, handled by the previous line
+			app_implementation.gtk_marshal.set_eif_oid_in_c_object (l_c_object, internal_id) -- No ref count increase from the C code, handled by the previous line
 
 			c_object := l_c_object
 			if
 				{GTK}.gtk_is_widget (l_c_object) and then
 				{GTK}.gtk_widget_is_toplevel (l_c_object)
 			then
-				if {GDK}.internal_g_object_ref_count (l_c_object) /= 2 then
+				if {GOBJECT}.internal_g_object_ref_count (l_c_object) /= 2 then
 					check unexpected_ref_count: False end
-					{GDK}.printf (generator + ".set_c_object: unexpected ref count for c_object=" + l_c_object.out + " #" + {GDK}.internal_g_object_ref_count (l_c_object).out + " /= 2 !%N")
+					{GLIB}.printf (generator + ".set_c_object: unexpected ref count for c_object=" + l_c_object.out + " #" + {GOBJECT}.internal_g_object_ref_count (l_c_object).out + " /= 2 !%N")
 				end
-			elseif {GDK}.internal_g_object_ref_count (l_c_object) /= 1 then
+			elseif {GOBJECT}.internal_g_object_ref_count (l_c_object) /= 1 then
 				check unexpected_ref_count: False end
-				{GDK}.printf (generator + ".set_c_object: unexpected ref count for c_object=" + l_c_object.out + " #" + {GDK}.internal_g_object_ref_count (l_c_object).out + " /= 1 !%N")
+				{GLIB}.printf (generator + ".set_c_object: unexpected ref count for c_object=" + l_c_object.out + " #" + {GOBJECT}.internal_g_object_ref_count (l_c_object).out + " /= 1 !%N")
 			end
 
 			debug ("gtk_name")
@@ -123,10 +125,16 @@ feature {EV_ANY_I} -- Access
 
 	frozen eif_object_from_c (a_c_object: POINTER): detachable EV_ANY_IMP
 			-- Retrieve the EV_ANY_IMP stored in `a_c_object'.
-		external
-			"C inline use <ev_any_imp.h>"
-		alias
-			"c_ev_any_imp_get_eif_reference_from_object_id ($a_c_object)"
+		local
+			l_eif_oid: INTEGER
+		do
+			l_eif_oid := {EV_GTK_DEPENDENT_INTERMEDIARY_ROUTINES}.get_object_data_eif_oid (a_c_object)
+			if
+				l_eif_oid >= 0 and then
+				attached {EV_ANY_IMP} eif_id_object (l_eif_oid) as res
+			then
+				Result := res
+			end
 		ensure
 			is_class: class
 		end
@@ -214,7 +222,7 @@ feature {EV_ANY_I, EV_APPLICATION_IMP} -- Event handling
 			a_conn_id > 0
 		local
 			l_app_imp: EV_APPLICATION_IMP
-			conn: like signal_connections.item
+			conn: GTK_SIGNAL_MARSHAL_CONNECTION
 		do
 			debug ("gtk_signal")
 				print (generator + ": calling signal_disconnect (" + a_c_object.out + ", " + a_conn_id.out + ")%N")
@@ -257,10 +265,13 @@ feature {EV_ANY_I, EV_APPLICATION_IMP} -- Event handling
 		local
 			lst: like signal_connections
 		do
+			debug ("gtk_signal")
+				print (generator + ".record_signal_connection (..., %"" + a_signal_name +"%", "+ a_connection_id.out +")%N")
+			end
 			if a_connection_id > 0 then
 				lst := signal_connections
 				if lst = Void then
-					create {ARRAYED_LIST [like signal_connections.item]} lst.make (1)
+					create {ARRAYED_LIST [GTK_SIGNAL_MARSHAL_CONNECTION]} lst.make (1)
 					signal_connections := lst
 				end
 				lst.force (create {GTK_SIGNAL_MARSHAL_CONNECTION}.make (a_c_object, a_connection_id))
@@ -339,6 +350,8 @@ feature {NONE} -- Implementation
 			Precursor {IDENTIFIED}
 		end
 
+feature {EV_GTK_CALLBACK_MARSHAL} -- Implementation		
+
 	c_object_dispose
 			-- Called when `c_object' is destroyed.
 			-- Only called if `Current' is referenced from `c_object'.
@@ -375,14 +388,14 @@ feature {NONE} -- Implementation
 						{GTK2}.gtk_widget_destroy (l_c_object)
 					else
 							-- the run dispose is usually called by gtk_widget_destroy.
-						{GDK}.g_object_run_dispose (l_c_object)
+						{GOBJECT}.g_object_run_dispose (l_c_object)
 					end
 
 						-- Decrement the reference count for `l_c_object` (should correspond to the reference used to protect the marshal callback  see `set_c_object`)
 					debug ("gtk_memory")
-						{GDK}.printf (generator + ".c_object_dispose before final unref " + l_c_object.out + " #" + {GDK}.internal_g_object_ref_count (l_c_object).out + " .%N")
+						{GLIB}.printf (generator + ".c_object_dispose before final unref " + l_c_object.out + " #" + {GOBJECT}.internal_g_object_ref_count (l_c_object).out + " .%N")
 					end
-					{GDK}.g_object_unref (l_c_object)
+					{GOBJECT}.g_object_unref (l_c_object)
 
 					c_object := default_pointer
 				end
@@ -488,7 +501,7 @@ invariant
 	has_c_object: not is_destroyed implies not c_object.is_default_pointer
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

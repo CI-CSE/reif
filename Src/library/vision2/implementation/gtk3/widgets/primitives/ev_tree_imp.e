@@ -195,7 +195,7 @@ feature {NONE} -- Initialization
 			Precursor {EV_PRIMITIVE_IMP} (a_type, a_x, a_y, a_button, a_x_tilt, a_y_tilt, a_pressure, a_screen_x, a_screen_y)
 			a_gdkwin := {GDK_HELPERS}.window_at ($l_x, $l_y)
 			if a_gdkwin /= default_pointer then
-				{GTK}.gdk_window_get_user_data (a_gdkwin, $a_gtkwid)
+				{GDK}.gdk_window_get_user_data (a_gdkwin, $a_gtkwid)
 				if a_gtkwid /= tree_view then
 						-- We are not clicking on the item area.
 					avoid_item_events := True
@@ -222,12 +222,12 @@ feature {NONE} -- Initialization
 				if tree_item_imp /= Void then
 					t := [a_x, a_y, a_button, a_x_tilt, a_y_tilt, a_pressure, a_screen_x, a_screen_y]
 					if
-						a_type = {GTK}.GDK_BUTTON_PRESS_ENUM and then
+						a_type = {GDK}.GDK_BUTTON_PRESS_ENUM and then
 						tree_item_imp.pointer_button_press_actions_internal /= Void
 					then
 						tree_item_imp.pointer_button_press_actions.call (t)
 					elseif
-						a_type = {GTK}.GDK_2BUTTON_PRESS_ENUM and then
+						a_type = {GDK}.GDK_2BUTTON_PRESS_ENUM and then
 						tree_item_imp.pointer_double_press_actions_internal /= Void
 					then
 						tree_item_imp.pointer_double_press_actions.call (t)
@@ -266,10 +266,10 @@ feature -- Status report
 			a_tree_path_list := {GTK2}.gtk_tree_selection_get_selected_rows (a_selection, $a_model)
 
 			if not a_tree_path_list.is_default_pointer then
-					a_tree_path := {GTK}.glist_struct_data (a_tree_path_list)
+					a_tree_path := {GLIB}.glist_struct_data (a_tree_path_list)
 					a_tree_node_imp := node_from_tree_path (a_tree_path)
 					{GTK2}.gtk_tree_path_list_free_contents (a_tree_path_list)
-					{GTK}.g_list_free (a_tree_path_list)
+					{GLIB}.g_list_free (a_tree_path_list)
 					Result := a_tree_node_imp.interface
 			end
 		end
@@ -654,16 +654,16 @@ feature {EV_TREE_NODE_IMP} -- Implementation
 			l_list_iter: detachable EV_GTK_TREE_ITER_STRUCT
 		do
 			a_g_value_string_struct := g_value_string_struct
-			{GTK2}.g_value_unset (a_g_value_string_struct)
+			{GOBJECT}.g_value_unset (a_g_value_string_struct)
 			l_list_iter := a_tree_node_imp.list_iter
 			check l_list_iter /= Void end
 			if l_list_iter /= Void then
 				{GTK2}.gtk_tree_model_get_value (tree_store, l_list_iter.item, 1, a_g_value_string_struct)
 			end
-			a_string := {GTK2}.g_value_get_string (a_g_value_string_struct)
+			a_string := {GOBJECT}.g_value_get_string (a_g_value_string_struct)
 			if a_string /= default_pointer then
 				a_cs := App_implementation.reusable_gtk_c_string
-				a_cs.share_from_pointer ({GTK2}.g_value_get_string (a_g_value_string_struct))
+				a_cs.share_from_pointer ({GOBJECT}.g_value_get_string (a_g_value_string_struct))
 				Result := a_cs.string
 			else
 				Result := ""
@@ -680,7 +680,7 @@ feature {EV_TREE_NODE_IMP} -- Implementation
 			a_cs := App_implementation.reusable_gtk_c_string
 			a_cs.share_with_eiffel_string (a_text)
 			str_value := g_value_string_struct
-			{GTK2}.g_value_take_string (str_value, a_cs.item)
+			{GOBJECT}.g_value_take_string (str_value, a_cs.item)
 			l_list_iter := a_tree_node_imp.list_iter
 			check l_list_iter /= Void end
 			if l_list_iter /= Void then
@@ -692,7 +692,7 @@ feature {EV_TREE_NODE_IMP} -- Implementation
 			-- Optimization for GValue struct access
 		once
 			Result := {GTK2}.c_g_value_struct_allocate
-			{GTK2}.g_value_init_string (Result)
+			{GOBJECT}.g_value_init_string (Result)
 		end
 
 	update_row_pixmap (a_tree_node_imp: EV_TREE_NODE_IMP)
@@ -720,12 +720,12 @@ feature {EV_TREE_NODE_IMP} -- Implementation
 		do
 			a_column_ptr := {GTK2}.gtk_tree_view_get_column (tree_view, 0)
 			a_cell_rend_list := {GTK}.gtk_cell_layout_get_cells (a_column_ptr)
-			a_cell_rend := {GTK}.g_list_nth_data (a_cell_rend_list, 0)
+			a_cell_rend := {GLIB}.g_list_nth_data (a_cell_rend_list, 0)
 
 			{GTK2}.gtk_widget_style_get_integer (tree_view, {GTK_PROPERTIES}.vertical_separator, $a_vert_sep)
 
-			{GTK2}.g_object_set_integer (a_cell_rend, {GTK_PROPERTIES}.height, value - a_vert_sep)
-			{GTK}.g_list_free (a_cell_rend_list)
+			{GOBJECT}.g_object_set_integer (a_cell_rend, {GTK_PROPERTIES}.height, value - a_vert_sep)
+			{GLIB}.g_list_free (a_cell_rend_list)
 		end
 
 	row_height: INTEGER
@@ -770,7 +770,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_TREE note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

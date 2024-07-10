@@ -96,14 +96,14 @@ feature -- Initialization
 			list_store: POINTER
 			l_gtype_size: INTEGER
 		do
-			l_gtype_size := {GTK2}.sizeof_gtype
+			l_gtype_size := {GOBJECT}.sizeof_gtype
 			create a_type_array.make ((a_columns) * l_gtype_size)
 			from
 				i := 1
 			until
 				i > a_columns
 			loop
-				{GTK2}.add_g_type_string (a_type_array.item, (i - 1)  * l_gtype_size)
+				{GOBJECT}.add_g_type_string (a_type_array.item, (i - 1)  * l_gtype_size)
 				i := i + 1
 			end
 
@@ -213,8 +213,8 @@ feature {NONE} -- Implementation
 			gdkwin := {GTK}.gtk_widget_get_window (c_object)
 			if gdkwin /= default_pointer then
 
-				{GTK2}.gdk_window_get_position (gdkwin, $l_x, $l_y)
-				{GTK}.gdk_window_get_user_data (gdkwin, $gtkwid)
+				{GDK}.gdk_window_get_position (gdkwin, $l_x, $l_y)
+				{GDK}.gdk_window_get_user_data (gdkwin, $gtkwid)
 
 				if gtkwid = c_object then
 					from
@@ -226,7 +226,7 @@ feature {NONE} -- Implementation
 						a_item_imp ?= i_th (i).implementation
 						check a_item_imp /= Void end
 						if a_item_imp /= Void then
-							l_button_x := {GTK2}.g_object_get_integer (a_item_imp.c_object, {GTK_PROPERTIES}.x_offset)
+							l_button_x := {GOBJECT}.g_object_get_integer (a_item_imp.c_object, {GTK_PROPERTIES}.x_offset)
 						end
 						if l_button_x < l_x then
 							Result := Result + 1
@@ -257,7 +257,7 @@ feature {NONE} -- Implementation
 			Precursor {EV_PRIMITIVE_IMP} (a_type, a_x, a_y, a_button, a_x_tilt, a_y_tilt, a_pressure, a_screen_x, a_screen_y)
 
 				-- If we are clicking on the Void area then we the item events passing Void items.
-			if a_type = {GTK}.gdk_button_press_enum or a_type = {GTK}.gdk_2button_press_enum then
+			if a_type = {GDK}.gdk_button_press_enum or a_type = {GDK}.gdk_2button_press_enum then
 
 				-- TODO double check	
 				-- With GTK3 the call to the feature `{GDK_HELPERS}.window_at ($a_pointer_x, $a_pointer_y)`
@@ -266,13 +266,13 @@ feature {NONE} -- Implementation
 
 				gdkwin := {GTK}.gtk_widget_get_window (c_object)
 				if gdkwin /= default_pointer then
-					{GTK}.gdk_window_get_user_data (gdkwin, $l_widget)
+					{GDK}.gdk_window_get_user_data (gdkwin, $l_widget)
 					l_last_column := {GTK2}.gtk_tree_view_get_column (c_object, count)
 					if l_widget = {GTK2}.gtk_tree_view_column_get_button (l_last_column) then
 							-- Fire item press actions with a Void item.
-						if a_type = {GTK}.gdk_button_press_enum and then item_pointer_button_press_actions_internal /= Void then
+						if a_type = {GDK}.gdk_button_press_enum and then item_pointer_button_press_actions_internal /= Void then
 							item_pointer_button_press_actions_internal.call ([Void, a_x, a_y, a_button])
-						elseif a_type = {GTK}.gdk_2button_press_enum and then item_pointer_double_press_actions_internal /= Void then
+						elseif a_type = {GDK}.gdk_2button_press_enum and then item_pointer_double_press_actions_internal /= Void then
 							item_pointer_double_press_actions_internal.call ([Void, a_x, a_y, a_button])
 						end
 					end
@@ -314,7 +314,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_HEADER note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

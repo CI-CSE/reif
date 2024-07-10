@@ -6,14 +6,11 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_FRAME
 
 inherit
-	ICOR_OBJECT
-
-create 
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- QueryInterface
 
@@ -23,9 +20,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugILFrame (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugILFrame (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_il_frame (p)
 			end
 		end
 
@@ -35,9 +32,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugNativeFrame (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugNativeFrame (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_native_frame (p)
 			end
 		end
 
@@ -49,9 +46,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_chain (item, $p)
+			set_last_call_success (cpp_get_chain (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -63,9 +60,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_code (item, $p)
+			set_last_call_success (cpp_get_code (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_code (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -77,9 +74,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_function (item, $p)
+			set_last_call_success (cpp_get_function (item, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_function (p)
+				Result := Icor_objects_manager.icd_function (p, Current)
 			end
 		end
 
@@ -87,7 +84,7 @@ feature {ICOR_EXPORTER} -- Access
 		require
 			item /= Default_pointer
 		do
-			last_call_success := cpp_get_function_token (item, $Result)
+			set_last_call_success (cpp_get_function_token (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -98,9 +95,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_caller (item, $p)
+			set_last_call_success (cpp_get_caller (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_frame (p)
 			end
 		end
 
@@ -110,9 +107,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_callee (item, $p)
+			set_last_call_success (cpp_get_callee (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_frame (p)
 			end
 		end
 
@@ -120,11 +117,11 @@ feature {ICOR_EXPORTER} -- Access
 		require
 			item /= Default_pointer
 		local
-			l_p_stepper: POINTER
+			p: POINTER
 		do
-			last_call_success := cpp_create_stepper (item, $l_p_stepper)
-			if l_p_stepper /= default_pointer then
-				create Result.make_by_pointer (l_p_stepper)
+			set_last_call_success (cpp_create_stepper (item, $p))
+			if p /= default_pointer then
+				Result := new_stepper (p)
 			end
 		ensure
 --			success: last_call_success = 0
@@ -210,13 +207,13 @@ feature {NONE} -- Implementation / Constants
 		alias
 			"((ICorDebugFrame *) $obj)->QueryInterface (IID_ICorDebugILFrame, (void **) $a_p)"
 		end
-		
+
 	cpp_query_interface_ICorDebugNativeFrame (obj: POINTER; a_p: TYPED_POINTER [POINTER]): INTEGER
 		external
 			"C++ inline use %"cli_debugger_utils.h%""
 		alias
 			"((ICorDebugFrame *) $obj)->QueryInterface (IID_ICorDebugNativeFrame, (void **) $a_p)"
-		end		
+		end
 
 note
 	copyright:	"Copyright (c) 1984-2006, Eiffel Software"

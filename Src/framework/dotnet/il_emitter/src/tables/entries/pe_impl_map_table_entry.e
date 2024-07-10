@@ -103,12 +103,12 @@ feature -- Operations
 			Result := {PE_TABLES}.tImplMap
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- Write flags to the destination buffer `a_dest`.
-			{BYTE_ARRAY_HELPER}.put_array_integer_16 (a_dest, flags, 0)
+			{BYTE_ARRAY_HELPER}.put_integer_16 (a_dest, flags, 0)
 
 				-- Intialize the number of bytes written
 			l_bytes := 2
@@ -122,20 +122,17 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-				-- Set the flags (from a_src)  to flags
-			flags := {BYTE_ARRAY_HELPER}.byte_array_to_integer_16 (a_src, 0)
-
 				-- Intialize the number of bytes.
-			l_bytes := 2
+			l_bytes := 2 -- flags
 
 				-- Read method_index, import_name_index and module_index from the buffer and update the number of bytes.
-			l_bytes := l_bytes + method_index.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + import_name_index.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + module_index.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + method_index.rendering_size (a_sizes)
+			l_bytes := l_bytes + import_name_index.rendering_size (a_sizes)
+			l_bytes := l_bytes + module_index.rendering_size (a_sizes)
 
 				-- Return the number of bytes readed
 			Result := l_bytes

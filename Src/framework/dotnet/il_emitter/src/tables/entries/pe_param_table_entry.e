@@ -73,18 +73,18 @@ feature -- Operations
 			Result := {PE_TABLES}.tparam
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- Write the flags to the destination buffer `a_dest`.
-			{BYTE_ARRAY_HELPER}.put_array_integer_16 (a_dest, flags, 0)
+			{BYTE_ARRAY_HELPER}.put_integer_16 (a_dest, flags, 0)
 
 				-- Initialize the number of bytes written
 			l_bytes := 2
 
 				-- Write sequence index to the destination buffer.
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, sequence_index, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, sequence_index, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
 
 				-- Write the name_index
@@ -96,23 +96,19 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-				-- Set the flags (from a_src)  to flags.
-			flags := {BYTE_ARRAY_HELPER}.byte_array_to_integer_16 (a_src, 0)
-
 				-- Initialize the number of bytes readed.
-			l_bytes := 2
+			l_bytes := 2 -- flags
 
-			sequence_index := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, l_bytes.to_integer_32)
-			l_bytes := l_bytes + 2
+			l_bytes := l_bytes + 2 -- sequence index
 
 				-- Get the name_index
 				-- from the buffer and update the number of bytes.
 
-			l_bytes := l_bytes + name_index.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + name_index.rendering_size (a_sizes)
 
 				-- Return the number of bytes readed.
 			Result := l_bytes

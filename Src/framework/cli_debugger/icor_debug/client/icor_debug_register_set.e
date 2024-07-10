@@ -12,18 +12,12 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_REGISTER_SET
 
 inherit
-	ICOR_OBJECT
+	ICOR_DEBUG_I
 
-create 
-	make_by_pointer
-
-feature {ICOR_EXPORTER} -- Access
-
-feature {NONE} -- Implementation
 
 note
 	copyright:	"Copyright (c) 1984-2006, Eiffel Software"

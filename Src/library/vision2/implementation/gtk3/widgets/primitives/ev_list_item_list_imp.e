@@ -278,7 +278,7 @@ feature -- Insertion
 			a_cs := App_implementation.reusable_gtk_c_string
 			a_cs.share_with_eiffel_string (a_text)
 			str_value := g_value_string_struct
-			{GTK2}.g_value_take_string (str_value, a_cs.item)
+			{GOBJECT}.g_value_take_string (str_value, a_cs.item)
 			a_list_item_imp ?= child_array.i_th (a_row).implementation
 			check a_list_item_imp /= Void end
 			if a_list_item_imp /= Void then
@@ -294,7 +294,7 @@ feature -- Insertion
 			-- Optimization for GValue struct access
 		once
 			Result := {GTK2}.c_g_value_struct_allocate
-			{GTK2}.g_value_init_string (Result)
+			{GOBJECT}.g_value_init_string (Result)
 		end
 
 	set_row_pixmap (a_row: INTEGER; a_pixmap: EV_PIXMAP)
@@ -313,7 +313,7 @@ feature -- Insertion
 			a_list_iter := a_list_item_imp.list_iter
 			check a_list_iter /= Void then end
 			{GTK2}.gtk_list_store_set_pixbuf (list_store, a_list_iter.item, 0, a_pixbuf)
-			{GTK2}.g_object_unref (a_pixbuf)
+			{GOBJECT}.g_object_unref (a_pixbuf)
 		end
 
 	remove_row_pixmap (a_row: INTEGER)
@@ -401,7 +401,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -1,25 +1,15 @@
 note
 	description: "[
-			Object representing Value from dotnet debugger.
 		]"
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
 	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_VALUE
 
 inherit
-	ICOR_OBJECT
-		redefine
-			clean_on_dispose
-		end
-
-create
-	make_by_pointer,
-	make_value_by_pointer
+	ICOR_DEBUG_I
 
 feature {NONE} -- Initialization
 
@@ -137,7 +127,7 @@ feature -- Cleaning / Dispose
 				v.clean_on_dispose
 				strong_reference_value := Void
 			end
-			Precursor
+--			Precursor
 		end
 
 feature {ICOR_EXPORTER} -- QueryInterface
@@ -148,9 +138,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugGenericValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugGenericValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_generic_value (p)
 			end
 		end
 
@@ -160,9 +150,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugReferenceValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugReferenceValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_reference_value (p)
 			end
 		end
 
@@ -172,9 +162,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugHandleValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugHandleValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_handle_value (p)
 			end
 		end
 
@@ -184,9 +174,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugHeapValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugHeapValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_heap_value (p)
 			end
 		end
 
@@ -196,9 +186,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugHeapValue2 (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugHeapValue2 (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_heap_value2 (p)
 			end
 		end
 
@@ -208,9 +198,9 @@ feature {ICOR_EXPORTER} -- QueryInterface
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugObjectValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugObjectValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_object_value (p)
 			end
 		end
 
@@ -222,9 +212,9 @@ feature {ICOR_EXPORTER} -- QueryInterface HEAP
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugBoxValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugBoxValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_box_value (p)
 			end
 		end
 
@@ -234,9 +224,9 @@ feature {ICOR_EXPORTER} -- QueryInterface HEAP
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugStringValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugStringValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_string_value (p)
 			end
 		end
 
@@ -246,9 +236,9 @@ feature {ICOR_EXPORTER} -- QueryInterface HEAP
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_query_interface_ICorDebugArrayValue (item, $p)
+			set_last_call_success (cpp_query_interface_ICorDebugArrayValue (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_array_value (p)
 			end
 		end
 
@@ -259,7 +249,7 @@ feature {ICOR_EXPORTER} -- Access
 		require
 			item_not_null: item_not_null
 		do
-			last_call_success := cpp_get_size (item, $Result)
+			set_last_call_success (cpp_get_size (item, $Result))
 		ensure
 			success: last_call_success = 0 or error_code_is_object_neutered (last_call_success)
 		end
@@ -272,7 +262,7 @@ feature {ICOR_EXPORTER} -- Access
 		require
 			item_not_null: item_not_null
 		do
-			last_call_success := cpp_get_address (item, $Result)
+			set_last_call_success (cpp_get_address (item, $Result))
 		ensure
 			success: last_call_success = 0 or error_code_is_object_neutered (last_call_success)
 		end
@@ -316,7 +306,7 @@ feature {NONE } -- Access
 		require
 			item_not_null: item_not_null
 		do
-			last_call_success := cpp_get_type (item, $Result)
+			set_last_call_success (cpp_get_type (item, $Result))
 		ensure
 			success: last_call_success = 0 or error_code_is_object_neutered (last_call_success)
 		end
@@ -489,39 +479,6 @@ feature -- only for test purpose (evaluation in debugger)
 --			if vi.value_class_type /= Void then
 --				Result.append ("%N class_type=" + vi.value_class_type.full_il_implementation_type_name)
 --			end			
---		end
+--		end	
 
-note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
-		]"
-	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
-		]"
-
-end -- class ICOR_DEBUG_VALUE
-
+end

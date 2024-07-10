@@ -64,14 +64,14 @@ feature -- Coded related
 				--| In Eiffel we could declared it as deferred.
 		end
 
-	large (a_x: NATURAL_32): BOOLEAN
+	large (a_md_table_sizes: SPECIAL [NATURAL_32]; a_md_table_id: NATURAL_32): BOOLEAN
 		do
-			Result := (a_x |<< get_index_shift) > 0xffff
+			Result := (a_md_table_sizes [a_md_table_id.to_integer_32] |<< get_index_shift) > 0xFFFF
 		end
 
 feature -- Operations
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]; a_pos: NATURAL_32): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]; a_pos: NATURAL_32): NATURAL_32
 			-- Number of bytes written to the destination `a_dest`
 		local
 			v: NATURAL_32
@@ -81,17 +81,17 @@ feature -- Operations
 
 			if has_index_overflow (a_sizes) then
 					-- write the value as NATURAL_32 to the destination `a_dest`
-				{BYTE_ARRAY_HELPER}.put_array_natural_32 (a_dest, v, a_pos.to_integer_32)
+				{BYTE_ARRAY_HELPER}.put_natural_32 (a_dest, v, a_pos.to_integer_32)
 
 				Result := 4
 			else
 					-- write the value as NATURAL_16 to the destination `a_dest`
-				{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, v.to_natural_16, a_pos.to_integer_32)
+				{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, v.to_natural_16, a_pos.to_integer_32)
 				Result := 2
 			end
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]; a_pos: NATURAL_32): NATURAL_32
+	get (a_sizes: SPECIAL [NATURAL_32]; a_src: ARRAY [NATURAL_8]; a_pos: NATURAL_32): NATURAL_32
 			-- Number of bytes read from the source `a_src`	at position `a_pos`
 		local
 			v: NATURAL_32
@@ -100,12 +100,12 @@ feature -- Operations
 			if has_index_overflow (a_sizes) then
 					-- Use a 32-bit Natural to store the value
 					-- and set the return value to 4.
-				v := {BYTE_ARRAY_HELPER}.byte_array_to_natural_32 (a_src, a_pos.to_integer_32)
+				v := {BYTE_ARRAY_HELPER}.natural_32_at (a_src, a_pos.to_integer_32)
 				Result := 4
 			else
 					-- Use a 16-bit Natural to store the value
 					-- and set the return value to 2.
-				v := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, a_pos.to_integer_32).to_natural_32
+				v := {BYTE_ARRAY_HELPER}.natural_16_at (a_src, a_pos.to_integer_32).to_natural_32
 				Result := 2
 			end
 				-- Compute the index and tag values
@@ -114,6 +114,11 @@ feature -- Operations
 		end
 
 feature -- Comparison
+
+	is_table_same_as_tag (tb_id: NATURAL_32): BOOLEAN
+		do
+			Result := tag = tag_for_table (tb_id)
+		end
 
 	is_equal (other: like Current): BOOLEAN
 			-- Is `other' equal to the current object?

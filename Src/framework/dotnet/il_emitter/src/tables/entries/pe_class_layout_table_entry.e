@@ -52,17 +52,17 @@ feature -- Operations
 			Result := {PE_TABLES}.tClassLayout
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
 				-- Write pack to the destination buffer `a_dest`.
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, pack, 0)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, pack, 0)
 				-- Intialize the number of bytes written
 			l_bytes := 2
 
 				-- Write size to the destination buffer `a_dest`.
-			{BYTE_ARRAY_HELPER}.put_array_natural_32 (a_dest, size, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_natural_32 (a_dest, size, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 4
 
 				-- Write parent to the buffer and update the number of bytes.
@@ -72,21 +72,18 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
-				-- Set the pack (from a_src)  to pack
-			pack := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, 0)
-
 				-- Initialize the number of bytes
 			l_bytes := 2
 
-			size := {BYTE_ARRAY_HELPER}.byte_array_to_natural_32 (a_src, l_bytes.to_integer_32)
+
 			l_bytes := l_bytes + 4
 
 				-- Read parent from the buffer and update the number of bytes.
-			l_bytes := l_bytes + parent.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + parent.rendering_size (a_sizes)
 
 				-- Return the number of bytes
 			Result := l_bytes

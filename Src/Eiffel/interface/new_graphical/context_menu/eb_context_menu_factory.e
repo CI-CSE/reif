@@ -535,8 +535,10 @@ feature {NONE} -- Menu section, Granularity 2.
 			if attached {FEATURE_STONE} a_pebble as l_feature_stone then
 				extend_basic_opening_menus (a_menu, l_feature_stone, True)
 				extend_separator (a_menu)
-				extend_feature_formatter_menus (a_menu, l_feature_stone)
+				extend_composer_menus (a_menu, l_feature_stone)
 				extend_feature_refactoring_menus (a_menu, l_feature_stone)
+				extend_separator (a_menu)
+				extend_feature_formatter_menus (a_menu, l_feature_stone)
 				if attached l_feature_stone.e_feature as l_feat then
 					extend_debug_feature_menus (a_menu, l_feat)
 				end
@@ -546,8 +548,10 @@ feature {NONE} -- Menu section, Granularity 2.
 			elseif attached {CLASSC_STONE} a_pebble as l_stonec then
 				extend_basic_opening_menus (a_menu, l_stonec, True)
 				extend_separator (a_menu)
-				extend_class_formatter_menus (a_menu, l_stonec)
+				extend_composer_menus (a_menu, l_stonec)
 				extend_class_refactoring_menus (a_menu, l_stonec)
+				extend_separator (a_menu)
+				extend_class_formatter_menus (a_menu, l_stonec)
 				extend_debug_class_menus (a_menu, l_stonec.e_class)
 				extend_add_to_menu (a_menu, l_stonec)
 				(create {ES_BLACKBOARD_BENCH_HELPER}).build_context_menu_for_class_stone (a_menu, l_stonec)
@@ -557,6 +561,7 @@ feature {NONE} -- Menu section, Granularity 2.
 			elseif attached {CLASSI_STONE} a_pebble as l_stonei then
 				extend_basic_opening_menus (a_menu, l_stonei, True)
 				extend_separator (a_menu)
+				extend_composer_menus (a_menu, l_stonei)
 				extend_class_refactoring_menus (a_menu, l_stonei)
 				extend_add_to_menu (a_menu, l_stonei)
 			elseif attached {CLUSTER_STONE} a_pebble as l_cluster_stone then
@@ -1048,6 +1053,35 @@ feature {NONE} -- Menu section, Granularity 1.
 			end
 		end
 
+	extend_composer_menus (a_menu: EV_MENU; a_stone: STONE)
+			-- Extend class composer menus.
+		require
+			a_menu_not_void: a_menu /= Void
+			a_stone_not_void: a_stone /= Void
+		local
+			l_menu: EV_MENU
+			mi: EV_MENU_ITEM
+		do
+			create l_menu.make_with_text (names.m_composer)
+			across
+				dev_window.composer_manager.all_commands as ic
+			loop
+				if attached ic.item as cmd then
+					mi := cmd.new_menu_item_unmanaged
+					mi.select_actions.wipe_out
+					if
+						cmd.can_drop (a_stone)
+					then
+						mi.select_actions.extend (agent (cmd).drop (a_stone))
+					else
+						mi.disable_sensitive
+					end
+					l_menu.extend (mi)
+				end
+			end
+			a_menu.extend (l_menu)
+		end
+
 	extend_class_refactoring_menus (a_menu: EV_MENU; a_stone: CLASSI_STONE)
 			-- Extend class refactoring menus.
 		require
@@ -1055,7 +1089,16 @@ feature {NONE} -- Menu section, Granularity 1.
 			a_stone_not_void: a_stone /= Void
 		local
 			l_menu: EV_MENU
+			mi: EV_MENU_ITEM
 		do
+				-- As renaming may be common, add it directly without sub menu, and also in the sub menu for consistency
+
+			mi := dev_window.refactoring_manager.rename_command.new_menu_item_unmanaged
+			mi.select_actions.wipe_out
+			mi.select_actions.extend (agent (dev_window.refactoring_manager.rename_command).drop_class (a_stone))
+
+			a_menu.extend (mi)
+
 			create l_menu.make_with_text (names.m_refactoring)
 			a_menu.extend (l_menu)
 			l_menu.extend (dev_window.refactoring_manager.rename_command.new_menu_item_unmanaged)
@@ -1070,6 +1113,7 @@ feature {NONE} -- Menu section, Granularity 1.
 			l_menu.last.select_actions.wipe_out
 			l_menu.last.select_actions.extend (agent (dev_window.refactoring_manager.pretty_print_command).drop_class (a_stone))
 
+			l_menu.extend (mi)
 --			l_menu.extend (new_menu_item ("Move"))
 			--| FIXME IEK There is no dialog for moving a class?
 		end
@@ -1081,12 +1125,18 @@ feature {NONE} -- Menu section, Granularity 1.
 			a_stone_not_void: a_stone /= Void
 		local
 			l_menu: EV_MENU
+			l_rename_mi: EV_MENU_ITEM
 		do
+				-- As renaming may be common, add it directly without sub menu, and also in the sub menu for consistency
+			l_rename_mi := dev_window.refactoring_manager.rename_command.new_menu_item_unmanaged
+			l_rename_mi.select_actions.wipe_out
+			l_rename_mi.select_actions.extend (agent (dev_window.refactoring_manager.rename_command).drop_feature (a_stone))
+
+			a_menu.extend (l_rename_mi)
+
 			create l_menu.make_with_text (names.m_refactoring)
 			a_menu.extend (l_menu)
-			l_menu.extend (dev_window.refactoring_manager.rename_command.new_menu_item_unmanaged)
-			l_menu.last.select_actions.wipe_out
-			l_menu.last.select_actions.extend (agent (dev_window.refactoring_manager.rename_command).drop_feature (a_stone))
+			l_menu.extend (l_rename_mi)
 
 			l_menu.extend (dev_window.refactoring_manager.pull_command.new_menu_item_unmanaged)
 			l_menu.last.select_actions.wipe_out
@@ -2056,7 +2106,7 @@ invariant
 	dev_window_not_void: dev_window /= Void
 
 note
-	copyright: "Copyright (c) 1984-2023, Eiffel Software"
+	copyright: "Copyright (c) 1984-2024, Eiffel Software"
 	license:   "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[

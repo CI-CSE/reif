@@ -1,22 +1,11 @@
 note
-	description: "[ 
-		interface ICorDebugILFrame : ICorDebugFrame
-			GetIP
-			SetIP
-			EnumerateLocalVariables
-			GetLocalVariable
-			EnumerateArguments
-			GetArgument
-			GetStackDepth
-			GetStackValue
-			CanSetIP
+	description: "[
 		]"
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_IL_FRAME
 
 inherit
@@ -26,9 +15,6 @@ inherit
 		undefine
 			out
 		end
-
-create
-	make_by_pointer
 
 feature {ICOR_EXPORTER} -- Properties
 
@@ -53,7 +39,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			l_noffset: NATURAL_32
 		do
-			last_call_success := cpp_get_ip (item, $l_noffset, $last_cordebugmapping_result)
+			set_last_call_success (cpp_get_ip (item, $l_noffset, $last_cordebugmapping_result))
 			Result := l_noffset
 			debug ("DEBUGGER_EIFNET_DATA","DEBUGGER_TRACE_STEPPING")
 				io.error.put_string (generator + "::GetIP -> 0x" + l_noffset.to_hex_string
@@ -70,9 +56,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_local_variables (item, $p)
+			set_last_call_success (cpp_enumerate_local_variables (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_value_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -82,9 +68,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_local_variable (item, a_index, $p)
+			set_last_call_success (cpp_get_local_variable (item, a_index, $p))
 			if p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		ensure
 			success: last_call_succeed
@@ -94,9 +80,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_arguments (item, $p)
+			set_last_call_success (cpp_enumerate_arguments (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_value_enum (p)
 			end
 		ensure
 			success: last_call_succeed
@@ -106,15 +92,15 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_argument (item, a_index, $p)
+			set_last_call_success (cpp_get_argument (item, a_index, $p))
 			if p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		end
 
 	get_stack_depth: NATURAL_32
 		do
-			last_call_success := cpp_get_stack_depth (item, $Result)
+			set_last_call_success (cpp_get_stack_depth (item, $Result))
 		end
 
 feature {NONE} -- Implementation
@@ -179,37 +165,5 @@ feature {NONE} -- Implementation
 			"GetStackDepth"
 		end
 
-note
-	copyright:	"Copyright (c) 1984-2006, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful,	but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the	GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
-		]"
-	source: "[
-			 Eiffel Software
-			 356 Storke Road, Goleta, CA 93117 USA
-			 Telephone 805-685-1006, Fax 805-685-6869
-			 Website http://www.eiffel.com
-			 Customer support http://support.eiffel.com
-		]"
 
-end -- class ICOR_DEBUG_IL_FRAME
-
+end

@@ -45,7 +45,9 @@ feature -- Status Report
 				-- defined Byte buf[0x14]
 			l_target: INTEGER
 		do
-			fixme ("TODO double check this code correspond to C++ RSAEncoder::LoadStrongNameKeys")
+			debug ("cil_fixme")
+				fixme ("TODO double check this code correspond to C++ RSAEncoder::LoadStrongNameKeys")
+			end
 			l_rv := 0
 			create l_file.make_open_read (a_file)
 			if l_file.exists then
@@ -54,8 +56,8 @@ feature -- Status Report
 				l_buf := (create {BYTE_ARRAY_CONVERTER}.make_from_string (l_file.last_string)).to_natural_8_array
 				if l_buf.count = 0x14 and then
 					l_test.is_equal (l_buf.subarray (1, l_test.count)) then
-					modulus_bits := {BYTE_ARRAY_HELPER}.byte_array_to_natural_32 (l_buf, l_test.count + 1)
-					public_exponent := {BYTE_ARRAY_HELPER}.byte_array_to_natural_32 (l_buf, l_test.count + 5).to_integer_32 -- the original code uses + 4.
+					modulus_bits := {BYTE_ARRAY_HELPER}.natural_32_at (l_buf, l_test.count + 1)
+					public_exponent := {BYTE_ARRAY_HELPER}.natural_32_at (l_buf, l_test.count + 5).to_integer_32 -- the original code uses + 4.
 					l_file.read_stream ((modulus_bits // 8).to_integer_32)
 					if l_file.last_string.count = (modulus_bits // 8).to_integer_32 then
 						modulus := (create {BYTE_ARRAY_CONVERTER}.make_from_string (l_file.last_string)).to_natural_8_array
@@ -112,7 +114,7 @@ feature -- C/C++ wrapper
 
 	c_get_public_key_data (a_key: POINTER; a_key_size: TYPED_POINTER [NATURAL_32]; a_key_pair: POINTER; a_modulus_bits: NATURAL_32)
 		external
-			"C inline "
+			"C inline use bigdigits.h"
 		alias
 			"[
 				typedef uint32_t DIGIT_T;

@@ -1,22 +1,15 @@
 note
 	description: "[
 		]"
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_CLASS
 
 inherit
-	ICOR_OBJECT
-		export
-			{ICOR_OBJECTS_MANAGER} clean_on_dispose
-		end
-
-create {ICOR_OBJECTS_MANAGER}
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -33,9 +26,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_module (item, $p)
+			set_last_call_success (cpp_get_module (item, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_module (p)
+				Result := Icor_objects_manager.icd_module (p, Current)
 			end
 		ensure
 			success: last_call_success = 0
@@ -53,9 +46,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_static_field_value (item, mdfielddef, a_frame.item, $p)
+			set_last_call_success (cpp_get_static_field_value (item, mdfielddef, a_frame.item, $p))
 			if p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		end
 
@@ -63,7 +56,7 @@ feature {NONE} -- Access
 
 	get_token: like token
 		do
-			last_call_success := cpp_get_token (item, $Result)
+			set_last_call_success (cpp_get_token (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end

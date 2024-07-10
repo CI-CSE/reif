@@ -6,15 +6,12 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_ENUM
 
 inherit
-	ICOR_OBJECT
+	ICOR_DEBUG_I
 
-create 
-	make_by_pointer
-	
 feature {ICOR_EXPORTER} -- Access Property
 
 	is_empty: BOOLEAN
@@ -29,13 +26,13 @@ feature {ICOR_EXPORTER} -- Access
 			-- if a_nb is zero, we don't skip any
 		do
 			if a_nb > 0 then
-				last_call_success := cpp_skip (item, a_nb)
+				set_last_call_success (cpp_skip (item, a_nb))
 			end
 		end
 
 	reset
 		do
-			last_call_success := cpp_reset (item)
+			set_last_call_success (cpp_reset (item))
 		ensure
 			success: last_call_success = 0
 		end
@@ -44,9 +41,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_clone (item, $p)
+			set_last_call_success (cpp_clone (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -54,7 +51,7 @@ feature {ICOR_EXPORTER} -- Access
 
 	get_count: INTEGER
 		do
-			last_call_success := cpp_get_count (item, $Result)
+			set_last_call_success (cpp_get_count (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end

@@ -4,17 +4,11 @@
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_FUNCTION
 
 inherit
-	ICOR_OBJECT
-		export
-			{ICOR_OBJECTS_MANAGER} clean_on_dispose
-		end
-
-create {ICOR_OBJECTS_MANAGER}
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature -- Addons
 
@@ -61,9 +55,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_module (item, $p)
+			set_last_call_success (cpp_get_module (item, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_module (p)
+				Result := Icor_objects_manager.icd_module (p, Current)
 			end
 		ensure
 			success: last_call_success = 0
@@ -73,9 +67,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_class (item, $p)
+			set_last_call_success (cpp_get_class (item, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_class (p)
+				Result := Icor_objects_manager.icd_class (p, Current)
 			end
 		ensure
 			success: last_call_success = 0
@@ -85,9 +79,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_il_code (item, $p)
+			set_last_call_success (cpp_get_il_code (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_code (p)
 			end
 --		ensure
 --			success: last_call_success = 0
@@ -97,9 +91,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_native_code (item, $p)
+			set_last_call_success (cpp_get_native_code (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_code (p)
 			end
 --		ensure
 --			success: last_call_success = 0
@@ -109,9 +103,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_create_breakpoint (item, $p)
+			set_last_call_success (cpp_create_breakpoint (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_function_breakpoint (p)
 			end
 			debug ("DBG")
 				if not last_call_succeed then
@@ -126,7 +120,7 @@ feature {ICOR_EXPORTER} -- Access
 	get_local_var_sig_token: NATURAL_32
 			-- Returns mdSignature of Function
 		do
-			last_call_success := cpp_get_local_var_sig_token (item, $Result)
+			set_last_call_success (cpp_get_local_var_sig_token (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -134,7 +128,7 @@ feature {ICOR_EXPORTER} -- Access
 	get_current_version_number: NATURAL_32
 			-- Returns version number of code
 		do
-			last_call_success := cpp_get_current_version_number (item, $Result)
+			set_last_call_success (cpp_get_current_version_number (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -143,7 +137,7 @@ feature {NONE} -- Access
 
 	get_token: like token
 		do
-			last_call_success := cpp_get_token (item, $Result)
+			set_last_call_success (cpp_get_token (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end

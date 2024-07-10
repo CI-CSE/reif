@@ -6,16 +6,12 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_THREAD_ENUM
 
 inherit
-
 	ICOR_DEBUG_ENUM_WITH_NEXT [ICOR_DEBUG_THREAD]
 	
-create 
-	make_by_pointer
-
 feature {ICOR_EXPORTER} -- Access
 
 --	next (a_celt: INTEGER): ARRAY [ICOR_DEBUG_THREAD] is

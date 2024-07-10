@@ -1,17 +1,15 @@
-﻿note
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+note
+	description: "[
+		]"
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_APP_DOMAIN
 
 inherit
-	ICOR_DEBUG_CONTROLLER
-
-create
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -20,9 +18,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_process (item, $p)
+			set_last_call_success (cpp_get_process (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_process (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -32,9 +30,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_assemblies (item, $p)
+			set_last_call_success (cpp_enumerate_assemblies (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_assembly_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -44,9 +42,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_breakpoints (item, $p)
+			set_last_call_success (cpp_enumerate_breakpoints (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_breakpoint_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -56,9 +54,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_steppers (item, $p)
+			set_last_call_success (cpp_enumerate_steppers (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_stepper_enum (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -70,7 +68,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			r: INTEGER
 		do
-			last_call_success := cpp_is_attached (item, $r)
+			set_last_call_success (cpp_is_attached (item, $r))
 			Result := r /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -84,9 +82,9 @@ feature {ICOR_EXPORTER} -- Access
 		do
 			create mp_name.make (256 * 2)
 
-			last_call_success := cpp_get_name (item, 256, $p_cchname, mp_name.item)
+			set_last_call_success (cpp_get_name (item, 256, $p_cchname, mp_name.item))
 			if mp_name.item /= default_pointer then
-				Result := (create {UNI_STRING}.make_by_pointer (mp_name.item)).string_32
+				Result := (create {CLI_STRING}.make_by_pointer (mp_name.item)).string_32
 			end
 		ensure
 --			success: last_call_success = 0
@@ -96,7 +94,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- Attach() should be called to attach to the app domain to
 			-- receive all app domain related events
 		do
-			last_call_success := cpp_attach (item)
+			set_last_call_success (cpp_attach (item))
 		ensure
 			success: last_call_success = 0
 		end
@@ -104,7 +102,7 @@ feature {ICOR_EXPORTER} -- Access
 	get_id: NATURAL_32
 			-- Get the ID of this app domain
 		do
-			last_call_success := cpp_get_id (item, $Result)
+			set_last_call_success (cpp_get_id (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -208,37 +206,5 @@ feature {NONE} -- Implementation
 		ensure
 			is_class: class
 		end
-
-note
-	copyright:	"Copyright (c) 1984-2018, Eiffel Software"
-	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options:	"http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful, but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-		]"
-	source: "[
-			Eiffel Software
-			5949 Hollister Ave., Goleta, CA 93117 USA
-			Telephone 805-685-1006, Fax 805-685-6869
-			Website http://www.eiffel.com
-			Customer support http://support.eiffel.com
-		]"
 
 end

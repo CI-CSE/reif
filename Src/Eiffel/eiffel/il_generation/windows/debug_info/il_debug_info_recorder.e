@@ -341,7 +341,7 @@ feature -- Access to module name computing
 					l_type_id := a_class_c.class_id // System.msil_classes_per_module + 1
 				end
 					--| There complete creation of module file name
-				Result := Result.extended ("module_" + l_type_id.out + ".dll")
+				Result := module_file_name_for_type_id_to (l_type_id, Result)
 			end
 		end
 
@@ -393,8 +393,24 @@ feature -- Access to module name computing
 					l_type_id := a_class_type.associated_class.class_id // System.msil_classes_per_module + 1
 				end
 					--| There complete creation of module file name
-				Result := Result.extended ("module_" + l_type_id.out + ".dll")
+				Result := module_file_name_for_type_id_to (l_type_id, Result)
 			end
+		end
+
+feature {NONE} -- Implementation
+
+	module_file_name_for_type_id_to (a_type_id: INTEGER; a_base_path: PATH): PATH
+		do
+			if system.is_il_netcore then
+				Result := a_base_path.extended ("assembly_")
+				if a_type_id < 10 then
+					Result := Result.appended ("0")
+				end
+				Result := Result.appended (a_type_id.out)
+			else
+				Result := a_base_path.extended ("module_" + a_type_id.out)
+			end
+			Result := Result.appended_with_extension ("dll")
 		end
 
 feature -- Queries : dotnet data from estudio data
@@ -897,7 +913,7 @@ feature {NONE} -- Record processing
 							+ "%N")
 				end
 					--| Record `feature_i' indexed by `feature_token'
-				l_info_from_module := info_from_module_or_create (a_module.module_file_name, a_module.module_name)
+				l_info_from_module := info_from_module_or_create (a_module.module_file_name, a_module.module_name_with_extension)
 				l_info_from_module.record_feature_i (a_class_type, a_feature, a_feature_token)
 
 					--| Record `feature_token' indexed by `feature_i'
@@ -915,7 +931,7 @@ feature {NONE} -- Class Specific info
 			class_type_not_void: a_class_type /= Void
 			class_token_positive: a_class_token > 0
 		do
-			internal_record_class_type (a_module.module_file_name, a_module.module_name, a_class_type, a_class_token)
+			internal_record_class_type (a_module.module_file_name, a_module.module_name_with_extension, a_class_type, a_class_token)
 		end
 
 	internal_record_class_type (a_module_filename: STRING_32; a_module_name: STRING;
@@ -1509,7 +1525,7 @@ feature {NONE} -- Module indexer implementation
 			-- and internal key for module
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -6,3 +6,14 @@ CREATE TABLE jwt_auth(
   `refresh`	TEXT NOT NULL,
   CONSTRAINT PK_uid_token_key PRIMARY KEY (uid,token)
 );
+
+CREATE TABLE jwt_auth_challenges(
+  `challenge` VARCHAR(255) NOT NULL,
+  `client` VARCHAR(255) NOT NULL,
+  `info` 	TEXT,
+  `expiration` DATETIME,
+  `apps` 	TEXT,
+  `status`  INTEGER,
+  `uid`	INTEGER,
+  CONSTRAINT PK_challenge_key PRIMARY KEY (challenge,client)
+);

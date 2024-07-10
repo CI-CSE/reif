@@ -13,14 +13,32 @@ feature -- Access
 	error, rgn_error: INTEGER = 0
 			-- No region was created.
 
-	null_regiion: INTEGER = 1
+	null_region: INTEGER = 1
 			-- Region is empty.
 
 	simple_region: INTEGER = 2
 			-- Region is a single rectangle.
 
-	complex_regision: INTEGER = 3
+	complex_region: INTEGER = 3
 			-- Region is more than one rectangle.
+
+	null_regision: INTEGER
+		obsolete
+			"Use null_region [2023-03-29]"
+		once
+			Result := null_region
+		ensure
+			instance_free: class
+		end
+
+	complex_regision: INTEGER
+		obsolete
+			"Use complex_region [2023-03-29]"
+		once
+			Result := complex_region
+		ensure
+			instance_free: class
+		end
 
 	rgn_and, rgn_min: INTEGER = 1
 	rgn_or: INTEGER = 2
@@ -51,8 +69,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-
-
-
-end -- class WEL_RGN_CONSTANTS
-
+end

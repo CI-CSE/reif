@@ -1,22 +1,17 @@
-#ifndef __PE_DEBUGGER_H_
-#define __PE_DEBUGGER_H_
+#ifndef __CLI_DEBUGGER_H_
+#define __CLI_DEBUGGER_H_
 
 #include "eif_eiffel.h"
-#include <windows.h>
 #include <ole2.h>
+#include <eif_lmalloc.h>
+#include <objbase.h>
 
+#include "cli_cordebug.h"
 #include "cli_debugger_callback_id.h"
+#include "cli_common.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-/* Do not compile with assertions, by default. */
-#ifdef ISE_USE_ASSERT
-#define EIF_ASSERTIONS
-#endif
-#ifndef EIF_ASSERTIONS
-#define NDEBUG
 #endif
 
 struct CorDbgCallbackInfo_item {
@@ -42,8 +37,6 @@ extern void reset_dbg_cb_info();
 #define SET_DBG_CB_INFO_BOOL(index,v) dbg_cb_info->items[index - 1].itu_int = v;
 #define DBG_CB_INFO_POINTER_ITEM(index) dbg_cb_info->items[index - 1].itu_ptr
 #define DBG_CB_INFO_INTEGER_ITEM(index) dbg_cb_info->items[index - 1].itu_int
-
-extern EIF_INTEGER get_cordebug (LPWSTR a_dbg_version, EIF_POINTER ** );
 
 extern EIF_INTEGER dbg_timer_id ();
 extern EIF_BOOLEAN dbg_is_synchronizing();

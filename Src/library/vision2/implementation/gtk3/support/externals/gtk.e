@@ -171,20 +171,20 @@ feature -- Window
 		do
 			glist := gtk_window_list_toplevels
 			if not glist.is_default_pointer then
-				n := g_list_length (glist)
+				n := {GLIB}.g_list_length (glist)
 				from
 					i := 1
 				until
 					i > n or not Result.is_default_pointer
 				loop
-					p := g_list_nth_data (glist, i - 1)
+					p := {GLIB}.g_list_nth_data (glist, i - 1)
 					if gtk_window_is_active (p) then
 						Result := p
 					end
 					i := i + 1
 				end
 			end
-			{GTK}.g_list_free (glist)
+			{GLIB}.g_list_free (glist)
 		ensure
 			instance_free: class
 		end
@@ -878,6 +878,15 @@ feature -- Button
 	frozen gtk_radio_button_set_group (a_radio_button: POINTER; a_group: POINTER)
 		external
 			"C (GtkRadioButton*, GSList*) | <ev_gtk.h>"
+		end
+
+feature -- Tree view
+
+	frozen gtk_is_tree_view_column (w: POINTER): BOOLEAN
+		external
+			"C [macro <ev_gtk.h>]"
+		alias
+			"GTK_IS_TREE_VIEW_COLUMN"
 		end
 
 feature -- Menu
@@ -1627,7 +1636,7 @@ feature -- Color Helper
 			c_rgba: POINTER
 			l_found: BOOLEAN
 		do
-			c_rgba := {GTK}.c_gdk_rgba_struct_allocate
+			c_rgba := {GDK}.c_gdk_rgba_struct_allocate
 			create l_gtk_c_string.set_with_eiffel_string (a_name)
 			l_found := {GTK2}.gtk_style_context_lookup_color (a_style_ctx, l_gtk_c_string.item, c_rgba)
 			if l_found then
@@ -1644,7 +1653,7 @@ feature -- Color Helper
 			c_rgba: POINTER
 			l_found: BOOLEAN
 		do
-			c_rgba := {GTK}.c_gdk_rgba_struct_allocate
+			c_rgba := {GDK}.c_gdk_rgba_struct_allocate
 			create l_gtk_c_string.set_with_eiffel_string (a_name)
 			l_found := {GTK2}.gtk_style_context_lookup_color (a_style_ctx, l_gtk_c_string.item, c_rgba)
 			if l_found then
@@ -1718,7 +1727,7 @@ feature -- Color Helper
 			color: POINTER
 		do
 			if a_reuse_color_object.is_default_pointer then
-				color := {GTK}.c_gdk_rgba_struct_allocate
+				color := {GDK}.c_gdk_rgba_struct_allocate
 			else
 				color := a_reuse_color_object
 			end
@@ -1763,18 +1772,8 @@ feature -- Color Helper
     		instance_free: class
 	end
 
-
-feature -- Gobject Type
-
-	g_type_name (a_type: POINTER): POINTER
-		external
-			"C inline use <ev_gtk.h>"
-		alias
-			"g_type_name (G_TYPE_FROM_INSTANCE($a_type))"
-		end
-
 note
-	copyright: "Copyright (c) 1984-2022, Eiffel Software and others"
+	copyright: "Copyright (c) 1984-2024, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

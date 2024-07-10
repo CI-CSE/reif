@@ -209,10 +209,10 @@ feature {EV_GTK_DEPENDENT_INTERMEDIARY_ROUTINES} -- Event handling
 			l_x, l_y: INTEGER
 		do
 			Precursor {EV_PRIMITIVE_IMP} (a_type, a_x, a_y, a_button, a_x_tilt, a_y_tilt, a_pressure, a_screen_x, a_screen_y)
-			if a_type /= {GTK}.gdk_button_release_enum then
+			if a_type /= {GDK}.gdk_button_release_enum then
 				a_gdkwin := {GDK_HELPERS}.window_at ($l_x, $l_y)
 				if a_gdkwin /= default_pointer then
-					{GTK}.gdk_window_get_user_data (a_gdkwin, $a_gtkwid)
+					{GDK}.gdk_window_get_user_data (a_gdkwin, $a_gtkwid)
 					if a_gtkwid = tree_view then
 							-- This prevents item actions from being called if clicking on a scrollbar
 						mouse_button_pressed := True
@@ -225,14 +225,14 @@ feature {EV_GTK_DEPENDENT_INTERMEDIARY_ROUTINES} -- Event handling
 							clear_selection
 								-- This follows the Windows behavior of clearing selection if list is clicked on
 						end
-						if a_type = {GTK}.gDK_BUTTON_PRESS_ENUM then
+						if a_type = {GDK}.gDK_BUTTON_PRESS_ENUM then
 							if
 								clicked_row /= Void and then
 								clicked_row.pointer_button_press_actions_internal /= Void
 							then
 								clicked_row.pointer_button_press_actions.call (t)
 							end
-						elseif a_type = {GTK}.gDK_2BUTTON_PRESS_ENUM then
+						elseif a_type = {GDK}.gDK_2BUTTON_PRESS_ENUM then
 							if
 								clicked_row /= Void and then
 								clicked_row.pointer_double_press_actions_internal /= Void
@@ -285,14 +285,14 @@ feature {NONE} -- Implementation
 			i: INTEGER
 		do
 			if a_columns > model_column_count - 1 then
-				create a_type_array.make ((a_columns + 1) * {GTK2}.sizeof_gtype)
+				create a_type_array.make ((a_columns + 1) * {GOBJECT}.sizeof_gtype)
 				from
-					{GTK2}.add_gdk_type_pixbuf (a_type_array.item, 0)
+					{GDK}.add_gdk_type_pixbuf (a_type_array.item, 0)
 					i := 1
 				until
 					i > a_columns
 				loop
-					{GTK2}.add_g_type_string (a_type_array.item, i * {GTK2}.sizeof_gtype)
+					{GOBJECT}.add_g_type_string (a_type_array.item, i * {GOBJECT}.sizeof_gtype)
 					i := i + 1
 				end
 
@@ -439,8 +439,8 @@ feature -- Access
 		do
 			col_list := {GTK2}.gtk_tree_view_get_columns (tree_view)
 			if col_list /= default_pointer then
-				Result := {GTK}.g_list_length (col_list)
-				{GTK}.g_list_free (col_list)
+				Result := {GLIB}.g_list_length (col_list)
+				{GLIB}.g_list_free (col_list)
 			end
 		end
 
@@ -478,12 +478,12 @@ feature -- Access
 			a_tree_path_list := {GTK2}.gtk_tree_selection_get_selected_rows (a_selection, $a_model)
 
 			if a_tree_path_list /= default_pointer then
-					a_tree_path := {GTK}.glist_struct_data (a_tree_path_list)
+					a_tree_path := {GLIB}.glist_struct_data (a_tree_path_list)
 					a_int_ptr := {GTK2}.gtk_tree_path_get_indices (a_tree_path)
 					create mp.share_from_pointer (a_int_ptr, {PLATFORM}.integer_32_bytes)
 					Result := ((ev_children @ (mp.read_integer_32 (0) + 1)).attached_interface)
 					{GTK2}.gtk_tree_path_list_free_contents (a_tree_path_list)
-					{GTK}.g_list_free (a_tree_path_list)
+					{GLIB}.g_list_free (a_tree_path_list)
 			end
 		end
 
@@ -509,14 +509,14 @@ feature -- Access
 				until
 					a_tree_path_list = default_pointer
 				loop
-					a_tree_path := {GTK}.glist_struct_data (a_tree_path_list)
+					a_tree_path := {GLIB}.glist_struct_data (a_tree_path_list)
 					a_int_ptr := {GTK2}.gtk_tree_path_get_indices (a_tree_path)
 					create mp.share_from_pointer (a_int_ptr, {PLATFORM}.integer_32_bytes)
 					Result.extend ((ev_children @ (mp.read_integer_32 (0) + 1)).attached_interface)
-					a_tree_path_list := {GTK}.glist_struct_next (a_tree_path_list)
+					a_tree_path_list := {GLIB}.glist_struct_next (a_tree_path_list)
 				end
 				{GTK2}.gtk_tree_path_list_free_contents (a_tree_path_list)
-				{GTK}.g_list_free (a_tree_path_list)
+				{GLIB}.g_list_free (a_tree_path_list)
 			end
 		end
 
@@ -699,15 +699,15 @@ feature -- Element change
 			from
 				i := 0
 			until
-				i = {GTK}.g_list_length (a_cell_rend_list)
+				i = {GLIB}.g_list_length (a_cell_rend_list)
 			loop
-				a_cell_rend := {GTK}.g_list_nth_data (a_cell_rend_list, i)
-				{GTK2}.g_object_set_real_32 (a_cell_rend, {GTK_PROPERTIES}.xalign, alignment)
+				a_cell_rend := {GLIB}.g_list_nth_data (a_cell_rend_list, i)
+				{GOBJECT}.g_object_set_real_32 (a_cell_rend, {GTK_PROPERTIES}.xalign, alignment)
 				i := i + 1
 			end
 
 			{GTK2}.gtk_tree_view_column_set_alignment (a_column_ptr, alignment)
-			{GTK}.g_list_free (a_cell_rend_list)
+			{GLIB}.g_list_free (a_cell_rend_list)
 		end
 
 	set_row_height (value: INTEGER)
@@ -718,13 +718,13 @@ feature -- Element change
 		do
 			a_column_ptr := {GTK2}.gtk_tree_view_get_column (tree_view, 0)
 			a_cell_rend_list := {GTK}.gtk_cell_layout_get_cells (a_column_ptr)
-			a_cell_rend := {GTK}.g_list_nth_data (a_cell_rend_list, 0)
+			a_cell_rend := {GLIB}.g_list_nth_data (a_cell_rend_list, 0)
 
 				-- Row height setting has to take the vertical spacing of the tree view in to account
 			{GTK2}.gtk_widget_style_get_integer (tree_view, {GTK_PROPERTIES}.vertical_separator, $a_vert_sep)
 
-			{GTK2}.g_object_set_integer (a_cell_rend, {GTK_PROPERTIES}.height, value - a_vert_sep)
-			{GTK}.g_list_free (a_cell_rend_list)
+			{GOBJECT}.g_object_set_integer (a_cell_rend, {GTK_PROPERTIES}.height, value - a_vert_sep)
+			{GLIB}.g_list_free (a_cell_rend_list)
 		end
 
 	wipe_out
@@ -1020,9 +1020,9 @@ feature {EV_MULTI_COLUMN_LIST_ROW_IMP}
 			a_cs := a_text
 				-- Replace when we have UTF16 support
 			str_value := g_value_string_struct
-			{GTK2}.g_value_unset (str_value)
-			{GTK2}.g_value_init_string (str_value)
-			{GTK2}.g_value_set_string (str_value, a_cs.item)
+			{GOBJECT}.g_value_unset (str_value)
+			{GOBJECT}.g_value_init_string (str_value)
+			{GOBJECT}.g_value_set_string (str_value, a_cs.item)
 
 			a_list_iter := ev_children.i_th (a_row).list_iter
 			check a_list_iter /= Void then end
@@ -1033,7 +1033,7 @@ feature {EV_MULTI_COLUMN_LIST_ROW_IMP}
 			-- Optimization for GValue struct access
 		once
 			Result := {GTK2}.c_g_value_struct_allocate
-			{GTK2}.g_value_init_string (Result)
+			{GOBJECT}.g_value_init_string (Result)
 		end
 
 	set_row_pixmap (a_row: INTEGER; a_pixmap: EV_PIXMAP)
@@ -1045,7 +1045,7 @@ feature {EV_MULTI_COLUMN_LIST_ROW_IMP}
 				a_pixbuf := pixmap_imp.pixbuf_from_drawable_with_size (pixmaps_width, pixmaps_height)
 				check attached {EV_GTK_TREE_ITER_STRUCT} ev_children.i_th (a_row).list_iter as  a_list_iter then
 					{GTK2}.gtk_list_store_set_pixbuf (list_store, a_list_iter.item, 0, a_pixbuf)
-					{GTK2}.g_object_unref (a_pixbuf)
+					{GOBJECT}.g_object_unref (a_pixbuf)
 				end
 			end
 		end
@@ -1220,7 +1220,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 	interface: detachable EV_MULTI_COLUMN_LIST note option: stable attribute end;
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

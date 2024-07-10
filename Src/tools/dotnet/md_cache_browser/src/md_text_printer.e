@@ -82,6 +82,22 @@ feature -- Display
 						io.put_new_line
 					end
 				end
+				if attached t.constructors as t_constructors then
+					io.put_string ("   > ")
+					io.put_string (t_constructors.count.out + " constructor(s)")
+					io.put_new_line
+					across
+						t_constructors as c
+					loop
+						print ("    * ")
+						display_entity (c, t, True)
+						if a_query.is_full_mode then
+							display_entity_details (c, t)
+						end
+						io.put_new_line
+					end
+				end
+
 				io.put_string ("   >")
 				if attached t.constructors as t_constructors then
 					io.put_character (' ')
@@ -153,6 +169,9 @@ feature -- Display
 				io.put_character ('&')
 			end
 			io.put_string (rt.name)
+			if attached {CONSUMED_FORMAL_GENERIC_TYPE} rt as fgt then
+				io.put_string ("/* " + fgt.formal_type_name + "*/")
+			end
 			debug
 				io.put_character (':')
 				io.put_character (':')
@@ -189,6 +208,16 @@ feature -- Display
 			io.put_character ('"')
 			io.put_string (e.eiffel_name)
 			io.put_character ('"')
+			if
+				attached {CONSUMED_PROCEDURE} e as proc and then
+				proc.is_generic
+			then
+				io.put_character (' ')
+				io.put_character ('<')
+				io.put_character ('.')
+				io.put_character ('.')
+				io.put_character ('>')
+			end
 			if e.has_arguments then
 				io.put_string (" (")
 				if attached e.arguments as args then

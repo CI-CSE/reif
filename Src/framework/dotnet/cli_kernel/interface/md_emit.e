@@ -237,6 +237,18 @@ feature -- Definition: Creation
 			is_successful
 		end
 
+	define_method_spec (method_token: INTEGER; a_signature: MD_METHOD_SIGNATURE): INTEGER
+			-- Token for new method spec from `method_token` and `a_signature`.
+		require
+			method_token_valid:
+				(method_token & Md_mask = Md_method_def) or
+				(method_token & Md_mask = Md_member_ref)
+			signature_not_void: a_signature /= Void
+		deferred
+		ensure
+			is_successful
+		end
+
 	define_property (type_token: INTEGER; name: CLI_STRING; flags: NATURAL_32;
 			signature: MD_PROPERTY_SIGNATURE; setter_token: INTEGER; getter_token: INTEGER): INTEGER
 			-- Define property `name' for a type `type_token'.
@@ -357,6 +369,29 @@ feature -- Definition: Creation
 			result_valid: Result & Md_mask = Md_custom_attribute
 		end
 
+	define_generic_param (a_name: CLI_STRING; token: INTEGER; index: INTEGER; param_flags: INTEGER; type_constratins: ARRAY [INTEGER]): INTEGER
+			--  Define a formal type parameter for the given TypeDef or MethodDef `token'.
+			--| token: TypeDef or MethodDef
+			--| type_constratins : Array of type constraints (TypeDef,TypeRef,TypeSpec)
+			--| index:  Index of the type parameter
+			--| param_flags: Flags, for future use (e.g. variance)
+			--| a_name: Name
+		require
+			valid_token: (token & Md_mask = Md_type_def) or
+				(token & Md_mask = Md_method_def)
+			valid_type_constraints: type_constratins.for_all (
+						agent (item: INTEGER): BOOLEAN
+							do
+								Result := (item & Md_mask = Md_type_def) or
+									(item & Md_mask = Md_type_def) or
+									(item & Md_mask = Md_type_ref)
+							end
+					)
+		deferred
+		ensure
+			is_successful
+		end
+
 feature -- Settings
 
 	set_module_name (a_name: CLI_STRING)
@@ -377,6 +412,34 @@ feature -- Settings
 		deferred
 		ensure
 			is_successful
+		end
+
+feature -- Helpers
+
+	extract_table_type_and_row (a_token: INTEGER): TUPLE [table_type_index: NATURAL_32; table_row_index: NATURAL_32]
+			-- Given a token `a_token' return a TUPLE with the table_type_index and the
+			-- table_row_index.
+			--| Metadata tokens
+			--| Many CIL instructions are followed by a "metadata token". This is a 4-byte value, that specifies a
+			--| row in a metadata table, or a starting byte offset in the User String heap. The most-significant
+			--| byte of the token specifies the table or heap. For example, a value of 0x02 specifies the TypeDef
+			--| table; a value of 0x70 specifies the User String heap. The value corresponds to the number
+			--| assigned to that metadata table (see Partition II for the full list of tables) or to 0x70 for the User
+			--| String heap. The least-significant 3 bytes specify the target row within that metadata table, or
+			--| starting byte offset within the User String heap. The rows within metadata tables are numbered
+			--| one upwards, whilst offsets in the heap are numbered zero upwards. (So, for example, the
+			--| metadata token with value 0x02000007 specifies row number 7 in the TypeDef table)
+		local
+			l_table_type_index: NATURAL_32
+			l_table_row_index: NATURAL_32
+		do
+				-- 2^8 -1 = 255 = 0xFF
+			l_table_type_index := ((a_token |>> 24) & 0xFF).to_natural_32
+				-- 2^ 24 -1 = 16777215 = 0xFF_FFFF
+			l_table_row_index := (a_token & 0xFF_FFFF).to_natural_32
+			Result := [l_table_type_index, l_table_row_index]
+		ensure
+			class
 		end
 
 end

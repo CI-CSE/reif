@@ -143,7 +143,7 @@ feature -- Payment
 								 	["sub", a_invoice.subscription_id],
 								 	["status", a_invoice.status],
 								 	["event_date", create {DATE_TIME}.make_now_utc],
-								 	["data", a_invoice.to_json_string]
+								 	["data", to_fully_escaped_json_string (a_invoice.to_json_string)]
 								 >>)
 				sql_insert (sql_insert_payment, l_params)
 				sql_finalize_insert (sql_insert_payment)
@@ -163,7 +163,7 @@ feature -- Payment
 							 	["sub", Void],
 							 	["status", pi.status],
 							 	["event_date", create {DATE_TIME}.make_now_utc],
-							 	["data", pi.to_json_string]
+							 	["data", to_fully_escaped_json_string (pi.to_json_string)]
 							 >>)
 			sql_insert (sql_insert_payment, l_params)
 			sql_finalize_insert (sql_insert_payment)
@@ -250,7 +250,11 @@ feature -- Payment
 					Result.set_subscription_payment_id (s)
 				end
 				Result.set_status (sql_read_string_8 (4))
-				Result.set_data (sql_read_string_8 (6))
+				if attached sql_read_string_8 (6) as s8 then
+					Result.set_data (s8)
+				elseif attached sql_read_string_32 (6) as s32 then
+					Result.set_data ({UTF_CONVERTER}.utf_32_string_to_utf_8_string_8 (s32))
+				end
 			end
 		end
 

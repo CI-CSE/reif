@@ -2,7 +2,7 @@
 <project name="build_cli_debugger" default="help">
 
 	<description>
-		description: "cli debugger framework compilation"
+		description: "cli debugger compilation"
 	</description>
 
 	<target name="help">
@@ -14,13 +14,16 @@
 	
 	<target name="compile">
 		<echo message="- Compile [cli_debugger]" />
-		<geant target="compile" file="build.eant" dir="Clib" 
-			reuse_variables="true" />
+		<geant target="compile" file="build.eant" dir="Clib" reuse_variables="true" />
+		<geant target="compile" file="build.eant" dir="framework" reuse_variables="true" />
+		<geant target="compile" file="build.eant" dir="netcore" reuse_variables="true" />
 	</target>
 	
 	<target name="clean">
 		<echo message="- Clean [cli_debugger]" />
-		<delete directory="spec\${ISE_C_COMPILER}\${ISE_PLATFORM}" />
+		<geant target="clean" file="build.eant" dir="Clib" reuse_variables="true" />
+		<geant target="clean" file="build.eant" dir="framework" reuse_variables="true" />
+		<geant target="clean" file="build.eant" dir="netcore" reuse_variables="true" />
 	</target>
 
 	<target name="clobber" depend="clean" />

@@ -2,10 +2,7 @@
 #define __PE_DEBUGGER_CALLBACK_H_
 
 #include "eif_eiffel.h"
-#include <windows.h>
 #include "cli_debugger_headers.h"
-
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -159,12 +156,12 @@ public:
 
     ULONG STDMETHODCALLTYPE AddRef() 
     {
-        return (InterlockedIncrement((long *) &m_refCount));
+        return (InterlockedIncrement(&m_refCount));
     }
 
     ULONG STDMETHODCALLTYPE Release() 
     {
-        long refCount = InterlockedDecrement(&m_refCount);
+        LONG refCount = InterlockedDecrement(&m_refCount);
         if (refCount == 0)
             delete this;
 
@@ -352,7 +349,7 @@ public:
 								/* [in] */ ICorDebugMDA *pMDA);
 
 protected:
-    long        m_refCount;
+    LONG        m_refCount;
 
 };
 
@@ -374,12 +371,12 @@ public:
     // IUnknown
     ULONG STDMETHODCALLTYPE AddRef() 
     {
-        return (InterlockedIncrement((long *) &m_refCount));
+        return (InterlockedIncrement(&m_refCount));
     }
 
     ULONG STDMETHODCALLTYPE Release() 
     {
-        long refCount = InterlockedDecrement(&m_refCount);
+        LONG refCount = InterlockedDecrement(&m_refCount);
         if (refCount == 0)
             delete this;
 
@@ -402,7 +399,7 @@ public:
     COM_METHOD DebugEvent(LPDEBUG_EVENT pDebugEvent, BOOL fIsOutOfband);
 
 protected:
-    long        m_refCount;
+    LONG        m_refCount;
 
 };
 

@@ -1,27 +1,15 @@
-﻿note
+note
 	description: "[
-			interface ICorDebugEval : IUnknown
-				CallFunction
-				NewObject
-				NewObjectNoConstructor
-				NewString
-				NewArray
-				IsActive
-				Abort
-				GetResult
-				GetThread
-				CreateValue
 		]"
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_EVAL
 
 inherit
-	ICOR_OBJECT
+	ICOR_DEBUG_I
 
 	EIFNET_ICOR_ELEMENT_TYPES_CONSTANTS
 		export
@@ -30,9 +18,6 @@ inherit
 		undefine
 			out
 		end
-
-create
-	make_by_pointer
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -72,7 +57,7 @@ feature {ICOR_EXPORTER} -- Access
 					--| l_args_count is 0
 			end
 
-			last_call_success := cpp_call_function (item, a_func.item, l_args_count.to_natural_32, l_args_pointer)
+			set_last_call_success (cpp_call_function (item, a_func.item, l_args_count.to_natural_32, l_args_pointer))
 
 --			debug ("DEBUGGER_TRACE_EVAL")
 --				print ("ICOR_DEBUG_EVAL.call_function : " +a_func.to_string + "%N%T=> return code = " + last_call_success.out + "%N")
@@ -86,7 +71,7 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			l_result: INTEGER
 		do
-			last_call_success := cpp_is_active (item, $l_result)
+			set_last_call_success (cpp_is_active (item, $l_result))
 			Result := l_result /= 0 --| TRUE = 1 , FALSE = 0
 		ensure
 			success: last_call_success = 0
@@ -97,7 +82,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- Evals, this may fail unless it is the most recent Eval.
 
 		do
-			last_call_success := cpp_abort (item)
+			set_last_call_success (cpp_abort (item))
 --		ensure
 --			success: last_call_success = 0
 		end
@@ -113,9 +98,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_result (item, $p)
+			set_last_call_success (cpp_get_result (item, $p))
 			if p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		end
 
@@ -144,19 +129,19 @@ feature {ICOR_EXPORTER} -- Access
 			if a_class /= Void then
 				l_class_p := a_class.item
 			end
-			last_call_success := cpp_create_value (item, a_cor_element_type, l_class_p, $p)
+			set_last_call_success (cpp_create_value (item, a_cor_element_type, l_class_p, $p))
 			if p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		end
 
 	new_string (str: READABLE_STRING_GENERAL)
 			-- NewString allocates a string object with the given contents.
 		local
-			l_ws: WEL_STRING
+			l_ws: CLI_STRING
 		do
 			create l_ws.make (str)
-			last_call_success := cpp_new_string (item, l_ws.item)
+			set_last_call_success (cpp_new_string (item, l_ws.item))
 		end
 
 	new_object (a_func: ICOR_DEBUG_FUNCTION; a_args: ARRAY [ICOR_DEBUG_VALUE])
@@ -181,14 +166,16 @@ feature {ICOR_EXPORTER} -- Access
 				l_mp_args.put_pointer (l_item.item, (i - a_args.lower) * l_size)
 				i := i + 1
 			end
-			last_call_success := cpp_new_object (item, a_func.item, a_args.count.to_natural_32, l_mp_args.item)
+			set_last_call_success (cpp_new_object (item, a_func.item, a_args.count.to_natural_32, l_mp_args.item))
 		end
 
 	new_object_no_constructor (a_icd_class: ICOR_DEBUG_CLASS)
 			-- NewObjectNoConstructor allocates a new object without
 			-- attempting to call any constructor on the object.
+		require
+			a_icd_class /= Void
 		do
-			last_call_success := cpp_new_object_no_constructor (item, a_icd_class.item)
+			set_last_call_success (cpp_new_object_no_constructor (item, a_icd_class.item))
 		end
 
 feature {ICOR_EXPORTER} -- Enhanced Access
@@ -280,36 +267,5 @@ feature {NONE} -- Implementation
 			"NewObjectNoConstructor"
 		end
 
-note
-	copyright: "Copyright (c) 1984-2021, Eiffel Software"
-	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
-	licensing_options: "http://www.eiffel.com/licensing"
-	copying: "[
-			This file is part of Eiffel Software's Eiffel Development Environment.
-			
-			Eiffel Software's Eiffel Development Environment is free
-			software; you can redistribute it and/or modify it under
-			the terms of the GNU General Public License as published
-			by the Free Software Foundation, version 2 of the License
-			(available at the URL listed under "license" above).
-			
-			Eiffel Software's Eiffel Development Environment is
-			distributed in the hope that it will be useful, but
-			WITHOUT ANY WARRANTY; without even the implied warranty
-			of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-			See the GNU General Public License for more details.
-			
-			You should have received a copy of the GNU General Public
-			License along with Eiffel Software's Eiffel Development
-			Environment; if not, write to the Free Software Foundation,
-			Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-		]"
-	source: "[
-			Eiffel Software
-			5949 Hollister Ave., Goleta, CA 93117 USA
-			Telephone 805-685-1006, Fax 805-685-6869
-			Website http://www.eiffel.com
-			Customer support http://support.eiffel.com
-		]"
 
 end

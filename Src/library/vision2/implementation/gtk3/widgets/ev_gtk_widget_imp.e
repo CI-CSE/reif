@@ -64,7 +64,7 @@ feature {EV_ANY_I, EV_GTK_DEPENDENT_INTERMEDIARY_ROUTINES} -- Position retrieval
 			l_null: POINTER
 		do
 			if is_displayed then
-					i := {GTK}.gdk_window_get_origin (
+					i := {GDK}.gdk_window_get_origin (
 						{GTK}.gtk_widget_get_window (visual_widget),
 				    	$a_x, l_null)
 					Result := a_x
@@ -80,7 +80,7 @@ feature {EV_ANY_I, EV_GTK_DEPENDENT_INTERMEDIARY_ROUTINES} -- Position retrieval
 			l_null: POINTER
 		do
 			if is_displayed then
-					i := {GTK}.gdk_window_get_origin (
+					i := {GDK}.gdk_window_get_origin (
 						{GTK}.gtk_widget_get_window (visual_widget),
 				    	l_null, $a_y)
 					Result := a_y
@@ -272,8 +272,8 @@ feature {EV_ANY_I, EV_INTERMEDIARY_ROUTINES} -- Implementation
 					a_window := {GTK}.gtk_widget_get_window (c_object)
 					if not a_window.is_default_pointer then
 						a_cursor_ptr := a_cursor_imp.gdk_cursor_from_pointer_style
-						{GTK}.gdk_window_set_cursor (a_window, a_cursor_ptr)
-						{GTK}.g_object_unref (a_cursor_ptr)
+						{GDK}.gdk_window_set_cursor (a_window, a_cursor_ptr)
+						{GOBJECT}.g_object_unref (a_cursor_ptr)
 						previously_set_pointer_style := a_cursor
 					end
 				end
@@ -472,7 +472,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

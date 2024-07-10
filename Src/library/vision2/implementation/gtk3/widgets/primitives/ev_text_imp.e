@@ -55,7 +55,8 @@ feature {NONE} -- Initialization
 			{GTK}.gtk_container_add (c_object, scrolled_window) -- c_object adopt the floating ref of  `scrolled_window`
 			text_view := {GTK2}.gtk_text_view_new -- floating ref
 			text_buffer := {GTK2}.gtk_text_view_get_buffer (text_view) -- floating ref
-			text_buffer := {GTK2}.g_object_ref_sink (text_buffer) -- adopt floating ref (see `dispose` for the unref)
+				-- Using GDK instead of GTK2
+			text_buffer := {GOBJECT}.g_object_ref_sink (text_buffer) -- adopt floating ref (see `dispose` for the unref)
 			{GTK}.gtk_widget_show (text_view)
 			{GTK}.gtk_container_add (scrolled_window, text_view) -- `scrolled_window` adopts the floating ref of `text_view`
 			{GTK}.gtk_widget_set_size_request (text_view, 1, 1)
@@ -618,7 +619,7 @@ feature {NONE} -- Implementation
 			-- Clean up `Current'
 		do
 			if not text_buffer.is_default_pointer then
-				{GDK}.g_object_unref (text_buffer)
+				{GOBJECT}.g_object_unref (text_buffer)
 				text_buffer := default_pointer
 			end
 			Precursor {EV_TEXT_COMPONENT_IMP}
@@ -679,7 +680,7 @@ invariant
 
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2023, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

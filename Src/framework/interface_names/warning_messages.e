@@ -837,6 +837,13 @@ feature -- Refactoring
 	w_Select_deferred_class: STRING_32 do Result := locale.translation ("Select a deferred class to make effective.%NEither use pick and drop or target the editor to the class.") end
 	w_Class_not_compiled: STRING_32 do Result := locale.translation ("Make sure the selected class is compiled.") end
 
+feature -- Composer
+
+	w_Select_feature_to_add_setter: STRING_32 do Result := locale.translation ("Select a feature to add the setter.%NEither use pick and drop or target the editor to the feature to add the setter.") end
+	w_Select_feature_to_remove: STRING_32 do Result := locale.translation ("Select a feature to remove.%NEither use pick and drop or target the editor to the feature to remove.") end
+	w_Select_feature_to_process: STRING_32 do Result := locale.translation ("Select a feature to process.%NEither use pick and drop or target the editor to the feature to process.") end
+	w_Select_class_to_process: STRING_32 do Result := locale.translation ("Select a class to process.%NEither use pick and drop or target the editor to the class to process.") end
+
 feature -- Contract tool
 
 	w_contract_tool_merge_changes (a_name: READABLE_STRING_GENERAL): STRING_32
@@ -1182,7 +1189,7 @@ feature -- Warning messages
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[

@@ -98,7 +98,7 @@ feature -- Operations
 			Result := {PE_TABLES}.tassemblyref
 		end
 
-	render (a_sizes: ARRAY [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
+	render (a_sizes: SPECIAL [NATURAL_32]; a_dest: ARRAY [NATURAL_8]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
@@ -106,15 +106,15 @@ feature -- Operations
 			l_bytes := 0
 
 				-- Assembly version
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, major, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, major, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, minor, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, minor, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, build, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, build, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			{BYTE_ARRAY_HELPER}.put_array_natural_16 (a_dest, revision, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_natural_16 (a_dest, revision, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			{BYTE_ARRAY_HELPER}.put_array_natural_32_with_integer_32 (a_dest, flags, l_bytes.to_integer_32)
+			{BYTE_ARRAY_HELPER}.put_integer_32 (a_dest, flags, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 4
 
 				-- Write public_key_index, name_index, culture_index and hash_index to the buffer and update the number of bytes.
@@ -128,7 +128,7 @@ feature -- Operations
 			Result := l_bytes
 		end
 
-	get (a_sizes: ARRAY [NATURAL_32]; a_src: ARRAY [NATURAL_8]): NATURAL_32
+	rendering_size (a_sizes: SPECIAL [NATURAL_32]): NATURAL_32
 		local
 			l_bytes: NATURAL_32
 		do
@@ -136,24 +136,19 @@ feature -- Operations
 			l_bytes := 0
 
 				-- Assembly version
-			major := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			minor := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			build := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			revision := {BYTE_ARRAY_HELPER}.byte_array_to_natural_16 (a_src, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 2
-			flags := {BYTE_ARRAY_HELPER}.byte_array_to_integer_32 (a_src, l_bytes.to_integer_32)
 			l_bytes := l_bytes + 4
 
 				-- Get the public_key_index, name_index  culture_index, hash_index and
 				-- update the number of bytes.
 
-			l_bytes := l_bytes + public_key_index.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + name_index.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + culture_index.get (a_sizes, a_src, l_bytes)
-			l_bytes := l_bytes + hash_index.get (a_sizes, a_src, l_bytes)
+			l_bytes := l_bytes + public_key_index.rendering_size (a_sizes)
+			l_bytes := l_bytes + name_index.rendering_size (a_sizes)
+			l_bytes := l_bytes + culture_index.rendering_size (a_sizes)
+			l_bytes := l_bytes + hash_index.rendering_size (a_sizes)
 
 				-- Return the number of bytes readed.
 			Result := l_bytes

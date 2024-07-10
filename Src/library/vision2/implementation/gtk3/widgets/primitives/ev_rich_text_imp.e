@@ -438,11 +438,11 @@ feature -- Status Report
 			a_rectangle: MANAGED_POINTER
 		do
 			create a_text_iter.make
-			create a_rectangle.make ({GTK}.c_gdk_rectangle_struct_size)
+			create a_rectangle.make ({GDK}.c_gdk_rectangle_struct_size)
 			{GTK2}.gtk_text_buffer_get_iter_at_offset (text_buffer, a_text_iter.item, an_index - 1)
 			{GTK2}.gtk_text_view_get_iter_location (text_view, a_text_iter.item, a_rectangle.item)
-			a_x := {GTK}.gdk_rectangle_struct_x (a_rectangle.item)
-			a_y := {GTK}.gdk_rectangle_struct_y (a_rectangle.item)
+			a_x := {GDK}.gdk_rectangle_struct_x (a_rectangle.item)
+			a_y := {GDK}.gdk_rectangle_struct_y (a_rectangle.item)
 			gtk_text_view_buffer_to_window_coords (text_view, a_x, a_y, $a_x2, $a_y2)
 			create Result.set (a_x2, a_y2)
 		end
@@ -455,13 +455,13 @@ feature -- Status Report
 			a_rectangle: MANAGED_POINTER
 		do
 			create a_text_iter.make
-			create a_rectangle.make ({GTK}.c_gdk_rectangle_struct_size)
+			create a_rectangle.make ({GDK}.c_gdk_rectangle_struct_size)
 			{GTK2}.gtk_text_buffer_get_iter_at_offset (text_buffer, a_text_iter.item, an_index - 1)
 			{GTK2}.gtk_text_view_get_iter_location (text_view, a_text_iter.item, a_rectangle.item)
-			a_x := {GTK}.gdk_rectangle_struct_x (a_rectangle.item)
-			a_y := {GTK}.gdk_rectangle_struct_y (a_rectangle.item)
-			a_char_width := {GTK}.gdk_rectangle_struct_width (a_rectangle.item)
-			a_char_height := {GTK}.gdk_rectangle_struct_height (a_rectangle.item)
+			a_x := {GDK}.gdk_rectangle_struct_x (a_rectangle.item)
+			a_y := {GDK}.gdk_rectangle_struct_y (a_rectangle.item)
+			a_char_width := {GDK}.gdk_rectangle_struct_width (a_rectangle.item)
+			a_char_height := {GDK}.gdk_rectangle_struct_height (a_rectangle.item)
 			gtk_text_view_buffer_to_window_coords (text_view, a_x, a_y, $a_char_x, $a_char_y)
 			Result := (a_char_x >= 0 and a_char_x < width) and then (a_char_y >= 0 and a_char_y < height)
 		end
@@ -571,7 +571,7 @@ feature -- Status setting
 			if not buffer_locked_in_format_mode then
 				buffer_locked_in_format_mode := True
 					-- Temporarily remove text buffer to avoid redraw and event firing
-				append_buffer := {GTK2}.g_object_ref (text_buffer) -- Increase ref count on `text_buffer`
+				append_buffer := {GOBJECT}.g_object_ref (text_buffer) -- Increase ref count on `text_buffer`
 				{GTK2}.gtk_text_view_set_buffer (text_view, {GTK2}.gtk_text_buffer_new (default_pointer))
 			end
 			check attached {EV_CHARACTER_FORMAT_IMP} format.implementation as a_format_imp then
@@ -593,7 +593,7 @@ feature -- Status setting
 			if l_count >= 1 then
 				if not buffer_locked_in_append_mode then
 					if not append_buffer.is_default_pointer then
-						{GDK}.g_object_unref (append_buffer)
+						{GOBJECT}.g_object_unref (append_buffer)
 					end
 					text_tag_table := {GTK2}.gtk_text_buffer_get_tag_table (text_buffer)
 					append_buffer := {GTK2}.gtk_text_buffer_new (text_tag_table) -- Normal ref
@@ -627,7 +627,7 @@ feature -- Status setting
 				{GTK2}.gtk_text_view_set_buffer (text_view, append_buffer) -- Incr ref to `append_buffer`
 				text_buffer := append_buffer
 				initialize_buffer_events
-				{GTK2}.g_object_unref (append_buffer)
+				{GOBJECT}.g_object_unref (append_buffer)
 				append_buffer := default_pointer
 				buffer_locked_in_format_mode := False
 			elseif buffer_locked_in_append_mode then
@@ -635,7 +635,7 @@ feature -- Status setting
 				{GTK2}.gtk_text_view_set_buffer (text_view, append_buffer) -- Incr ref to `append_buffer`
 				text_buffer := append_buffer
 				initialize_buffer_events
-				{GTK2}.g_object_unref (append_buffer)
+				{GOBJECT}.g_object_unref (append_buffer)
 				append_buffer := default_pointer
 				buffer_locked_in_append_mode := False
 			end
@@ -936,7 +936,7 @@ feature {NONE} -- Implementation
 			-- Clean up `append_buffer'.
 		do
 			if not append_buffer.is_default_pointer then
-				{GTK2}.g_object_unref (append_buffer)
+				{GOBJECT}.g_object_unref (append_buffer)
 				append_buffer := default_pointer
 			end
 		end
@@ -949,7 +949,7 @@ feature {NONE} -- Implementation
 	c_object_dispose
 		do
 			if not append_buffer.is_default_pointer then
-				{GDK}.g_object_unref (append_buffer)
+				{GOBJECT}.g_object_unref (append_buffer)
 				append_buffer := default_pointer
 			end
 			Precursor
@@ -961,9 +961,9 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 
 invariant
 	has_c_object_implies_has_append_buffer: not c_object.is_default_pointer implies not append_buffer.is_default_pointer
-	
+
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

@@ -82,14 +82,14 @@ feature -- Cleaning
 
 feature {SHARED_ICOR_OBJECTS_MANAGER, ICOR_EXPORTER} -- Access
 
-	icd_module (p: POINTER): ICOR_DEBUG_MODULE
+	icd_module (p: POINTER; a_factory: ICOR_DEBUG_FACTORY_I): ICOR_DEBUG_MODULE
 		require
 			pointer_valid: p /= default_pointer
 		do
 			if attached modules.item (p) as l_found_item then
 				Result := l_found_item
 			else
-				create Result.make_by_pointer (p)
+				Result := a_factory.new_module (p)
 				Result.add_ref
 				modules.force (Result, p)
 			end
@@ -102,14 +102,14 @@ feature {SHARED_ICOR_OBJECTS_MANAGER, ICOR_EXPORTER} -- Access
 			result_indexed: modules.has (Result.item)
 		end
 
-	icd_class (p: POINTER): ICOR_DEBUG_CLASS
+	icd_class (p: POINTER; a_factory: ICOR_DEBUG_FACTORY_I): ICOR_DEBUG_CLASS
 		require
 			pointer_valid: p /= default_pointer
 		do
 			if attached classes.item (p) as l_found_item then
 				Result := l_found_item
 			else
-				create Result.make_by_pointer (p)
+				Result := a_factory.new_class (p)
 				Result.add_ref
 				classes.force (Result, p)
 			end
@@ -122,14 +122,14 @@ feature {SHARED_ICOR_OBJECTS_MANAGER, ICOR_EXPORTER} -- Access
 			result_indexed: classes.has (Result.item)
 		end
 
-	icd_function (p: POINTER): ICOR_DEBUG_FUNCTION
+	icd_function (p: POINTER; a_factory: ICOR_DEBUG_FACTORY_I): ICOR_DEBUG_FUNCTION
 		require
 			pointer_valid: p /= default_pointer
 		do
 			if attached functions.item (p) as l_found_item then
 				Result := l_found_item
 			else
-				create Result.make_by_pointer (p)
+				Result := a_factory.new_function (p)
 				Result.add_ref
 				functions.force (Result, p)
 			end

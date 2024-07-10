@@ -1,17 +1,15 @@
-﻿note
-	legal: "See notice at end of class."
-	status: "See notice at end of class."
+note
+	description: "[
+		]"
+	author: "$Author$"
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_THREAD
 
 inherit
-	ICOR_OBJECT
-
-create
-	make_by_pointer
+	ICOR_DEBUG_I
 
 feature {ICOR_EXPORTER} -- Access extra
 
@@ -31,9 +29,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_process (item, $p)
+			set_last_call_success (cpp_get_process (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_process (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -41,7 +39,7 @@ feature {ICOR_EXPORTER} -- Access
 
 	get_id: INTEGER
 		do
-			last_call_success := cpp_get_id (item, $Result)
+			set_last_call_success (cpp_get_id (item, $Result))
 		ensure
 			success: last_call_success = 0
 		end
@@ -50,9 +48,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_app_domain (item, $p)
+			set_last_call_success (cpp_get_app_domain (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_app_domain (p)
 			end
 		ensure
 			success: last_call_success = 0
@@ -73,7 +71,7 @@ feature {ICOR_EXPORTER} -- Access
 			state_valid: a_state = enum_cor_debug_thread_state__thread_run or else
 			a_state = enum_cor_debug_thread_state__thread_suspend
 		do
-			last_call_success := cpp_set_debug_state (item, a_state)
+			set_last_call_success (cpp_set_debug_state (item, a_state))
 		end
 
 	get_debug_state: INTEGER
@@ -82,7 +80,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- represents the debug state if the process were to be continued,
 			-- not the actual current state.)
 		do
-			last_call_success := cpp_get_debug_state (item, $Result)
+			set_last_call_success (cpp_get_debug_state (item, $Result))
 		ensure
 			state_valid: 	Result = enum_cor_debug_thread_state__thread_run
 					or else	Result = enum_cor_debug_thread_state__thread_suspend
@@ -93,7 +91,7 @@ feature {ICOR_EXPORTER} -- Access
 			-- GetUserState returns the user state of the thread, that is, the state
 			-- which it has when the program being debugged examines it.	
 		do
-			last_call_success := cpp_get_user_state (item, $Result)
+			set_last_call_success (cpp_get_user_state (item, $Result))
 		ensure
 --			state_valid: Result = enum_cor_debug_thread_state__thread_run or else
 --							Result = enum_cor_debug_thread_state__thread_suspend
@@ -105,16 +103,16 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_current_exception (item, $p)
+			set_last_call_success (cpp_get_current_exception (item, $p))
 			if p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		end
 
 	clear_current_exception
 			-- Nota: Should be called before exception occurred
 		do
-			last_call_success := cpp_clear_current_exception (item)
+			set_last_call_success (cpp_clear_current_exception (item))
 		end
 
 	create_stepper: ICOR_DEBUG_STEPPER
@@ -123,9 +121,9 @@ feature {ICOR_EXPORTER} -- Access
 			l_app_domain: ICOR_DEBUG_APP_DOMAIN
 			l_enum: ICOR_DEBUG_STEPPER_ENUM
 		do
-			last_call_success := cpp_create_stepper (item, $p)
+			set_last_call_success (cpp_create_stepper (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_stepper (p)
 			end
 
 			debug ("DEBUGGER_EIFNET_DATA")
@@ -141,9 +139,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_enumerate_chains (item, $p)
+			set_last_call_success (cpp_enumerate_chains (item, $p))
 			if p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain_enum (p)
 			end
 		end
 
@@ -151,9 +149,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_active_chain (item, $p)
+			set_last_call_success (cpp_get_active_chain (item, $p))
 			if last_call_succeed and then p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_chain (p)
 			end
 		end
 
@@ -161,9 +159,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_active_frame (item, $p)
+			set_last_call_success (cpp_get_active_frame (item, $p))
 			if last_call_succeed and then p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_frame (p)
 			end
 		end
 
@@ -177,9 +175,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_create_eval (item, $p)
+			set_last_call_success (cpp_create_eval (item, $p))
 			if last_call_succeed and then p /= default_pointer then
-				create Result.make_by_pointer (p)
+				Result := new_eval (p)
 			end
 		end
 
@@ -188,9 +186,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_object (item, $p)
+			set_last_call_success (cpp_get_object (item, $p))
 			if last_call_succeed and then p /= default_pointer then
-				create Result.make_value_by_pointer (p)
+				Result := new_value (p)
 			end
 		end
 
@@ -482,3 +480,4 @@ note
 		]"
 
 end
+

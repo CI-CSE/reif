@@ -6,15 +6,12 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_MODULE_BREAKPOINT
 
 inherit
 	ICOR_DEBUG_BREAKPOINT
 
-create 
-	make_by_pointer
-	
 feature {ICOR_EXPORTER} -- Access
 
 	get_module: ICOR_DEBUG_MODULE
@@ -22,9 +19,9 @@ feature {ICOR_EXPORTER} -- Access
 		local
 			p: POINTER
 		do
-			last_call_success := cpp_get_module (item, $p)
+			set_last_call_success (cpp_get_module (item, $p))
 			if p /= default_pointer then
-				Result := Icor_objects_manager.icd_module (p)
+				Result := Icor_objects_manager.icd_module (p, Current)
 			end
 		ensure
 			success: last_call_success = 0
@@ -40,7 +37,7 @@ feature {NONE} -- Implementation
 			]"
 		alias
 			"GetModule"
-		end	
+		end
 
 note
 	copyright:	"Copyright (c) 1984-2006, Eiffel Software"

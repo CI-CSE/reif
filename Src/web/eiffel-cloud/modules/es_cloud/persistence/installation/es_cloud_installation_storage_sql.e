@@ -341,6 +341,20 @@ feature -- Change
 			end
 		end
 
+	update_installation_license (inst: ES_CLOUD_INSTALLATION; a_lic: ES_CLOUD_LICENSE)
+		local
+			l_params: STRING_TABLE [detachable ANY]
+		do
+			reset_error
+			create l_params.make (3)
+			l_params.force (inst.id, "iid")
+			l_params.force (inst.license_id, "lid")
+			l_params.force (a_lic.id, "nlid")
+
+			sql_modify (sql_update_installation_license, l_params)
+			sql_finalize_modify (sql_update_installation_license)
+		end
+
 	save_session (a_session: ES_CLOUD_SESSION)
 		local
 			l_params: STRING_TABLE [detachable ANY]
@@ -365,6 +379,30 @@ feature -- Change
 			else
 				sql_modify (sql_update_session, l_params)
 				sql_finalize_modify (sql_update_session)
+			end
+		end
+
+	cleanup_sessions (dt: DATE_TIME)
+			-- Cleanup sessions olde than `dt`
+		local
+			l_params: STRING_TABLE [detachable ANY]
+		do
+			reset_error
+			sql_begin_transaction
+
+			create l_params.make (1)
+			l_params.force (dt, "last")
+
+			sql_insert (sql_archive_old_sessions, l_params)
+			sql_finalize_insert (sql_archive_old_sessions)
+			if not has_error then
+				sql_delete (sql_delete_old_sessions, l_params)
+				sql_finalize_delete (sql_delete_old_sessions)
+			end
+			if has_error then
+				sql_rollback_transaction
+			else
+				sql_commit_transaction
 			end
 		end
 
@@ -405,6 +443,8 @@ feature {NONE} -- Queries: installations
 
 	sql_update_installation: STRING = "UPDATE es_installations SET info=:info, name=:name, status=:status WHERE iid=:iid AND lid=:lid;"
 
+	sql_update_installation_license: STRING = "UPDATE es_installations SET lid=:nlid WHERE iid=:iid AND lid=:lid;"
+
 	sql_delete_installation: STRING = "DELETE FROM es_installations WHERE iid=:iid AND lid=:lid;"
 
 feature {NONE} -- Sessions
@@ -413,12 +453,15 @@ feature {NONE} -- Sessions
 
 	sql_delete_installation_sessions: STRING = "DELETE FROM es_sessions WHERE iid=:iid;"
 
+	sql_archive_old_sessions: STRING = "INSERT INTO es_sessions_archive (sid, iid, uid, state, first, last, title, data) SELECT sid, iid, uid, state, first, last, title, data FROM es_sessions WHERE last <= :last;"
+
+	sql_delete_old_sessions: STRING = "DELETE FROM es_sessions WHERE last <= :last;"
+
 	sql_select_last_user_session: STRING = "SELECT sid, iid, uid, state, first, last, title, data FROM es_sessions WHERE uid=:uid ORDER BY last DESC LIMIT 1;"
 
 	sql_select_last_user_session_for_installation: STRING = "SELECT sid, iid, uid, state, first, last, title, data FROM es_sessions WHERE iid=:iid AND uid=:uid ORDER BY last DESC LIMIT 1;"
 
 	sql_select_last_user_session_by_license: STRING = "[
-	
 			SELECT 
 				s.sid, s.iid, s.uid, s.state, s.first, s.last, s.title, s.data
 			FROM es_sessions as s

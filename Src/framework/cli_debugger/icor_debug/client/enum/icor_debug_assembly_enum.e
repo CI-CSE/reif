@@ -6,14 +6,11 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_ASSEMBLY_ENUM
 
 inherit
 	ICOR_DEBUG_ENUM_WITH_NEXT [ICOR_DEBUG_ASSEMBLY]
-
-create 
-	make_by_pointer
 
 feature {ICOR_EXPORTER} -- Access
 

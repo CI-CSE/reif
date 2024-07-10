@@ -5,9 +5,8 @@
 	date: "$Date$"
 	revision: "$Revision$"
 
-deferred
-class
-	ICOR_DEBUG_ENUM_WITH_NEXT [G -> ICOR_OBJECT create make_by_pointer end]
+deferred class
+	ICOR_DEBUG_ENUM_WITH_NEXT [G -> ICOR_DEBUG_I]
 
 inherit
 	ICOR_DEBUG_ENUM
@@ -44,7 +43,7 @@ feature {ICOR_EXPORTER} -- Access
 
 			if not retried then
 				create mp_tab.make (a_celt * l_pointer_size)
-				last_call_success := call_cpp_next (item, a_celt, mp_tab.item, $p_celt_fetched)
+				set_last_call_success (call_cpp_next (item, a_celt, mp_tab.item, $p_celt_fetched))
 				if p_celt_fetched > 0 then
 					from
 						i := 1
@@ -70,8 +69,7 @@ feature {ICOR_EXPORTER} -- Access
 feature {NONE} -- Implementation
 
 	icor_object_made_by_pointer (a_p: POINTER): G
-		do
-			create Result.make_by_pointer (a_p)
+		deferred
 		end
 
 	call_cpp_next (obj: POINTER; a_celt: INTEGER; a_p: POINTER; a_pceltfetched: TYPED_POINTER [INTEGER]): INTEGER

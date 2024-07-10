@@ -257,8 +257,8 @@ feature {EV_ANY_I} -- Implementation
 			glist: POINTER
 		do
 			glist := {GTK}.gtk_container_get_children (container_widget)
-			Result := {GTK}.g_list_nth_data (glist, i - 1)
-			{GTK}.g_list_free (glist)
+			Result := {GLIB}.g_list_nth_data (glist, i - 1)
+			{GLIB}.g_list_free (glist)
 		end
 
 	x_position_of_child (a_widget_imp: EV_WIDGET_IMP): INTEGER
@@ -270,9 +270,9 @@ feature {EV_ANY_I} -- Implementation
 			l_x := "x"
 			l_item := i_th_fixed_child (index_of (a_widget_imp.interface, 1))
 			l_gvalue := {GTK2}.c_g_value_struct_allocate
-			{GTK2}.g_value_init_int (l_gvalue)
+			{GOBJECT}.g_value_init_int (l_gvalue)
 			{GTK2}.gtk_container_child_get_property (container_widget, l_item, l_x.item, l_gvalue)
-			Result := {GTK2}.g_value_get_int (l_gvalue)
+			Result := {GOBJECT}.g_value_get_int (l_gvalue)
 			l_gvalue.memory_free
 		end
 
@@ -285,9 +285,9 @@ feature {EV_ANY_I} -- Implementation
 			l_y := "y"
 			l_item := i_th_fixed_child (index_of (a_widget_imp.interface, 1))
 			l_gvalue := {GTK2}.c_g_value_struct_allocate
-			{GTK2}.g_value_init_int (l_gvalue)
+			{GOBJECT}.g_value_init_int (l_gvalue)
 			{GTK2}.gtk_container_child_get_property (container_widget, l_item, l_y.item, l_gvalue)
-			Result := {GTK2}.g_value_get_int (l_gvalue)
+			Result := {GOBJECT}.g_value_get_int (l_gvalue)
 			l_gvalue.memory_free
 		end
 
@@ -335,7 +335,7 @@ feature {EV_ANY, EV_ANY_I} -- Implementation
 			-- functionality implemented by `Current'
 
 note
-	copyright:	"Copyright (c) 1984-2021, Eiffel Software and others"
+	copyright:	"Copyright (c) 1984-2024, Eiffel Software and others"
 	license:	"Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Eiffel Software

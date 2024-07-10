@@ -6,9 +6,6 @@ note
 deferred class
 	CMS_USER_STORAGE_I
 
-inherit
-	SHARED_LOGGER
-
 feature -- Error Handling
 
 	error_handler: ERROR_HANDLER
@@ -98,6 +95,11 @@ feature -- Access
 
 	recent_users (a_lower: INTEGER; a_count: INTEGER): LIST [CMS_USER]
 			-- List of recent `a_count' users with an offset of `lower'.
+		deferred
+		end
+
+	recent_users_filtered_by_name (a_name: READABLE_STRING_GENERAL; a_lower: INTEGER; a_count: INTEGER): LIST [CMS_USER]
+			-- List of recent `a_count' name-filtered users with an offset of `lower'.
 		deferred
 		end
 
@@ -313,6 +315,6 @@ feature -- New Temp User
 		end
 
 note
-	copyright: "2011-2020, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
+	copyright: "2011-2024, Jocelyn Fiat, Javier Velilla, Eiffel Software and others"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 end

@@ -6,23 +6,16 @@ note
 	date: "$Date$"
 	revision: "$Revision$"
 
-class
+deferred class
 	ICOR_DEBUG_MODULE_ENUM
 
 inherit
-
 	ICOR_DEBUG_ENUM_WITH_NEXT [ICOR_DEBUG_MODULE]
-		redefine
-			icor_object_made_by_pointer
-		end
 
 	SHARED_ICOR_OBJECTS_MANAGER
 		undefine
 			out
 		end
-
-create 
-	make_by_pointer
 
 feature {ICOR_EXPORTER} -- Access
 
@@ -62,7 +55,7 @@ feature {NONE} -- Implementation
 			-- ICOR_DEBUG_MODULE from `a_p'
 			-- be sure to use Icor_objects_manager since those objects are cached.
 		do
-			Result := Icor_objects_manager.icd_module (a_p)
+			Result := Icor_objects_manager.icd_module (a_p, Current)
 		end
 
 	call_cpp_next (obj: POINTER; a_celt: INTEGER; a_p: POINTER; a_pceltfetched: TYPED_POINTER [INTEGER]): INTEGER
