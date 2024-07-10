@@ -779,7 +779,7 @@ debug ("ACTIVITY")
 end
 						removed_features.put (old_feature_i.body_index)
 
-						(create {EBB_BLACKBOARD_COMPILER_HELPER}).handle_removed_feature (old_feature_i)
+						-- (create {EBB_BLACKBOARD_COMPILER_HELPER}).handle_removed_feature (old_feature_i)
 
 						propagate_feature := True
 						is_anchor_changed := True

@@ -101,7 +101,7 @@ feature {NONE} -- User interface initialization
 				l_session.session_connection.connect_events (Current)
 			end
 
-			(create {ES_BLACKBOARD_BENCH_HELPER}).connect_features_tool (features_tree)
+			-- (create {ES_BLACKBOARD_BENCH_HELPER}).connect_features_tool (features_tree)
 		end
 
 feature {NONE} -- Clean up
