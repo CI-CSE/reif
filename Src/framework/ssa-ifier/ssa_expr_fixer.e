@@ -12,7 +12,7 @@ inherit
     redefine
       process_id_as,
       process_void_as,
-      process_nested_as,
+      process_nested_expr_as,
       process_binary_as,
       process_access_feat_as,
       process_bool_as,
@@ -20,7 +20,7 @@ inherit
       process_unary_as,
       process_integer_as,
       process_result_as,
-      process_create_creation_as,
+      process_creation_as,
       process_current_as
     end
 
@@ -97,7 +97,7 @@ feature
     end
 
 
-  process_create_creation_as (l_as: CREATE_CREATION_AS)
+  process_creation_as (l_as: CREATION_AS)
     do
       safe_process (l_as.target)
       constructor := agent construct_create (last_expr, ?, ?)
@@ -134,7 +134,7 @@ feature
       last_expr := create {SSA_EXPR_VOID}.make (Void)
     end
   
-  process_nested_as (l_as: NESTED_AS)
+  process_nested_expr_as (l_as: NESTED_EXPR_AS)
     do
       safe_process (l_as.target)
 

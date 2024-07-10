@@ -12,7 +12,7 @@ inherit
     redefine
       process_instr_call_as,
       process_assign_as,
-      process_create_creation_as,
+      process_creation_as,
       process_if_as,
       process_elseif_as,
       process_loop_as,
@@ -68,7 +68,7 @@ feature -- AST
       put_raw_string (str)
     end
 
-  process_create_creation_as (l_as: CREATE_CREATION_AS)
+  process_creation_as (l_as: CREATION_AS)
     local
       str: STRING
     do
@@ -128,7 +128,7 @@ feature -- AST
 
   process_instr_call_as (l_as: INSTR_CALL_AS)
     do
-      if attached {NESTED_AS} l_as.call as af then
+      if attached {NESTED_EXPR_AS} l_as.call as af then
         put_raw_string ("%N" + instrument (af))
       elseif attached {ACCESS_FEAT_AS} l_as.call as af then
         put_raw_string ("%N" + instrument (af))
