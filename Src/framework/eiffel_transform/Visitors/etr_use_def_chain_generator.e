@@ -14,7 +14,6 @@ inherit
 			process_creation_as,
 			process_if_as,
 			process_loop_as,
-			process_nested_as,
 			process_access_feat_as,
 			process_expr_call_as,
 			process_result_as,
@@ -488,15 +487,6 @@ feature {AST_EIFFEL} -- Roundtrip (Usage)
 			l_as.operands.process (Current)
 
 			last_was_unqualified := false
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-		do
-			safe_process (l_as.target)
-
-			last_was_unqualified := false
-
-			safe_process (l_as.message)
 		end
 
 	process_result_as (l_as: RESULT_AS)

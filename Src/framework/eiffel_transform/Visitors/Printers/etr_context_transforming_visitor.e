@@ -8,7 +8,6 @@ class
 inherit
 	ETR_AST_STRUCTURE_PRINTER
 		redefine
-			process_nested_as,
 			processing_access_feat_as,
 			process_id_as,
 			process_instr_call_as,
@@ -93,8 +92,10 @@ feature {NONE} -- Implementation
 		do
 			if attached {ACCESS_AS}a_message as l_msg_access_as then
 				Result := names_heap.id_of (l_msg_access_as.access_name)
-			elseif attached {NESTED_AS}a_message as l_msg_nested_as then
-				Result := names_heap.id_of (l_msg_nested_as.target.access_name)
+			elseif attached {NESTED_EXPR_AS}a_message as l_msg_nested_expr_as then
+				-- TODO: Add support if needed
+				check False then end
+				-- Result := names_heap.id_of (l_msg_nested_expr_as.target.access_name)
 			else
 				-- nothing which can be renamed
 				-- i.e. NESTED_EXPR_AS
@@ -279,21 +280,6 @@ feature {AST_EIFFEL} -- Roundtrip
 		end
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)
-		do
-			if attached {BRACKET_AS}l_as.target then
-				process_child(l_as.target, l_as, 1)
-			else
-				output.append_string (ti_l_parenthesis)
-				process_child(l_as.target, l_as, 1)
-				output.append_string (ti_r_parenthesis)
-			end
-
-			output.append_string (ti_dot)
-			last_was_unqualified_or_current := false
-			process_child(l_as.message, l_as, 2)
-		end
-
-	process_nested_as (l_as: NESTED_AS)
 		local
 			l_old_feature,l_new_feature: FEATURE_I
 			l_changed_local: ETR_CT_CHANGED_NAME_TYPE
@@ -329,7 +315,9 @@ feature {AST_EIFFEL} -- Roundtrip
 						next_new_name := l_new_msg_name
 						process_child (l_as.message, l_as, 2)
 					else
-						error_handler.add_error (Current, "process_nested_as", "Cannot transform "+l_as.target.access_name+"."+names_heap.item (l_next_access_name_id)+" to target context.")
+						-- TODO: Add support if needed
+						check False then end
+						-- error_handler.add_error (Current, "process_nested_as", "Cannot transform "+l_as.target.access_name+"."+names_heap.item (l_next_access_name_id)+" to target context.")
 						last_was_changed := false
 						process_child (l_as.message, l_as, 2)
 					end
@@ -342,8 +330,10 @@ feature {AST_EIFFEL} -- Roundtrip
 					last_was_unqualified_or_current := false
 				end
 
-				l_changed_local := changed_locals_hash[l_as.target.access_name]
-				l_renamings := constraint_renaming_hash[l_as.target.access_name]
+				-- TODO: Add support if needed
+				check False then end
+				-- l_changed_local := changed_locals_hash[l_as.target.access_name]
+				-- l_renamings := constraint_renaming_hash[l_as.target.access_name]
 
 				-- we have to get the old message name before the renamings!
 				-- this might not be possible for things like NESTED_EXPR_AS
@@ -379,7 +369,9 @@ feature {AST_EIFFEL} -- Roundtrip
 							next_new_name := l_new_msg_name
 							process_child (l_as.message, l_as, 2)
 						else
-							error_handler.add_error (Current, "process_nested_as", "Cannot transform "+l_as.target.access_name+"."+names_heap.item (l_next_access_name_id)+" to target context.")
+							-- TODO: Add support if needed
+							check False then end
+							-- error_handler.add_error (Current, "process_nested_as", "Cannot transform "+l_as.target.access_name+"."+names_heap.item (l_next_access_name_id)+" to target context.")
 							last_was_changed := false
 							process_child (l_as.message, l_as, 2)
 						end

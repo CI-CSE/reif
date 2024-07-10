@@ -21,7 +21,6 @@ inherit
 			process_access_feat_as,
 			process_precursor_as,
 			process_nested_expr_as,
-			process_nested_as,
 			process_creation_expr_as,
 			process_type_expr_as,
 			process_routine_as,
@@ -86,9 +85,8 @@ inherit
 			process_select_clause_as,
 			process_feature_name_alias_as,
 			process_address_as,
-			process_feat_name_id_as,
+			process_feature_name,
 			process_external_as,
-			process_infix_prefix_as,
 			process_formal_as,
 			process_like_id_as,
 			process_integer_as,
@@ -170,19 +168,14 @@ feature {AST_EIFFEL} -- Roundtrip
 			process_branch(l_as, << l_as.language_name.language_name, l_as.alias_name_literal >>)
 		end
 
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
-			process_branch(l_as, << l_as.feature_name, l_as.alias_name >>)
+			process_branch(l_as, << l_as.feature_name >>)
 		end
 
 	process_inline_agent_creation_as (l_as: INLINE_AGENT_CREATION_AS)
 		do
 			process_branch(l_as, << l_as.body, l_as.operands >>)
-		end
-
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-			process_branch(l_as, << l_as.alias_name >>)
 		end
 
 	process_custom_attribute_as (l_as: CUSTOM_ATTRIBUTE_AS)
@@ -206,8 +199,13 @@ feature {AST_EIFFEL} -- Roundtrip
 		end
 
 	process_feature_name_alias_as (l_as: FEATURE_NAME_ALIAS_AS)
+		local
+			ar: ARRAY [detachable AST_EIFFEL]
+			i: INTEGER
 		do
-			process_branch(l_as, << l_as.feature_name, l_as.alias_name >>)
+			-- TODO: Add support for l_as.aliases if needed
+			check False then end
+			process_branch(l_as, << l_as.feature_name >>)
 		end
 
 	process_array_as (l_as: ARRAY_AS)
@@ -235,11 +233,6 @@ feature {AST_EIFFEL} -- Roundtrip
 			process_branch(l_as, << l_as.target, l_as.message >>)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			process_branch(l_as, << l_as.target,l_as.message >>)
-		end
-
 	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 			process_branch(l_as, << l_as.type, l_as.call >>)
@@ -262,7 +255,7 @@ feature {AST_EIFFEL} -- Roundtrip
 
 	process_operand_as (l_as: OPERAND_AS)
 		do
-			process_branch(l_as, << l_as.class_type, l_as.expression, l_as.target >>)
+			process_branch(l_as, << l_as.class_type, l_as.expression >>)
 		end
 
 	process_tagged_as (l_as: TAGGED_AS)

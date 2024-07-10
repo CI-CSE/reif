@@ -10,7 +10,6 @@ inherit
 		redefine
 			process_instr_call_as,
 			process_creation_as,
-			process_nested_as,
 			process_access_feat_as,
 			process_expr_call_as,
 			process_list_with_separator,
@@ -155,14 +154,6 @@ feature {AST_EIFFEL} -- Roundtrip
 		do
 			last_was_unqualified := true
 			Precursor(l_as)
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-		do
-			process_child (l_as.target, l_as, 1)
-			output.append_string (ti_dot)
-			last_was_unqualified := false
-			process_child (l_as.message, l_as, 2)
 		end
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)

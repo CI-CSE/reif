@@ -36,7 +36,6 @@ inherit
 			process_paran_as,
 			process_binary_as,
 			process_unary_as,
-			process_nested_as,
 			process_if_as,
 			process_elseif_as,
 			process_loop_as,
@@ -47,7 +46,7 @@ inherit
 			process_feature_as,
 			process_body_as,
 			process_type_dec_as,
-			process_feat_name_id_as,
+			process_feature_name,
 			process_assigner_call_as,
 			process_assign_as,
 			process_check_as,
@@ -114,7 +113,6 @@ inherit
 			process_address_result_as,
 			process_un_strip_as,
 			process_converted_expr_as,
-			process_infix_prefix_as,
 			process_reverse_as,
 			process_formal_argu_dec_list_as,
 			process_loop_expr_as,
@@ -1154,21 +1152,6 @@ feature {AST_EIFFEL} -- Roundtrip: Misc
 			process_child (l_as.identifier, l_as, 2)
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-			if l_as.is_frozen then
-				output.append_string (ti_frozen_keyword+ti_Space)
-			end
-
-			if l_as.is_prefix then
-				output.append_string (ti_prefix_keyword+ti_Space)
-			elseif l_as.is_infix then
-				output.append_string (ti_infix_keyword+ti_Space)
-			end
-
-			process(l_as.alias_name, l_as, 1)
-		end
-
 	process_formal_dec_as (l_as: FORMAL_DEC_AS)
 		do
 			if l_as.formal.is_expanded then
@@ -1277,20 +1260,19 @@ feature {AST_EIFFEL} -- Roundtrip: Misc
 		end
 
 	process_feature_name_alias_as (l_as: FEATURE_NAME_ALIAS_AS)
+		local
+			i: INTEGER
 		do
 			if l_as.is_frozen then
 				output.append_string(ti_frozen_keyword+ti_Space)
 			end
 
 			process(l_as.feature_name, l_as, 1)
-
-			if processing_needed (l_as.alias_name,l_as,2) then
-				output.append_string (ti_Space+ti_alias_keyword+ti_Space)
-				process_child (l_as.alias_name, l_as, 2)
-			end
+			-- TODO: Add support for l_as.aliases if needed
+			check False then end
 		end
 
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
 			if l_as.is_frozen then
 				output.append_string(ti_frozen_keyword+ti_Space)
@@ -1298,10 +1280,8 @@ feature {AST_EIFFEL} -- Roundtrip: Misc
 
 			process(l_as.feature_name, l_as, 1)
 
-			if processing_needed (l_as.alias_name, l_as, 2) then
-				output.append_string (ti_Space+ti_alias_keyword+ti_Space)
-				process_child (l_as.alias_name, l_as, 2)
-			end
+			-- Add support for processing aliases if needed
+			check False then end
 		end
 
 	process_type_dec_as (l_as: TYPE_DEC_AS)
@@ -1471,13 +1451,6 @@ feature {AST_EIFFEL} -- Roundtrip: Misc
 			process_child_list (l_as.index_list, ti_comma+ti_space, l_as, 2)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			process_child (l_as.target, l_as, 1)
-			output.append_string (ti_dot)
-			process_child (l_as.message, l_as, 2)
-		end
-
 	process_create_as (l_as: CREATE_AS)
 		do
 			output.append_string (ti_create_keyword+ti_Space)
@@ -1604,10 +1577,6 @@ feature {AST_EIFFEL} -- Roundtrip: Agents
 					output.append_string (ti_Question)
 				end
 			else
-				if processing_needed(l_as.target, l_as, 3) then
-					process_child(l_as.target, l_as, 3)
-				end
-
 				if processing_needed (l_as.expression, l_as, 2) then
 					output.append_string (ti_l_parenthesis)
 					process_child(l_as.expression, l_as, 2)
