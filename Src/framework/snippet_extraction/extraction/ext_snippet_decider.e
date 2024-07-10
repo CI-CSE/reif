@@ -75,11 +75,13 @@ feature -- Rules
 				create l_identifier_usage_finder
 				l_identifier_usage_finder.set_is_mode_disjoint (True)
 				l_identifier_usage_finder.set_on_access_identifier_with_feature_call (
-					agent (l_as: NESTED_AS; a_variable_context: EXT_VARIABLE_CONTEXT; a_counter: COUNTER)
+					agent (l_as: NESTED_EXPR_AS; a_variable_context: EXT_VARIABLE_CONTEXT; a_counter: COUNTER)
 						do
-							if a_variable_context.is_target_variable (l_as.target.access_name_8) then
-								a_counter.set_value (a_counter.next)
-							end
+							-- TODO: Add support if needed
+							check False then end
+							-- if a_variable_context.is_target_variable (l_as.target.access_name_8) then
+							-- 	a_counter.set_value (a_counter.next)
+							-- end
 						end (?, a_snippet.variable_context, l_call_on_target_counter)
 					)
 

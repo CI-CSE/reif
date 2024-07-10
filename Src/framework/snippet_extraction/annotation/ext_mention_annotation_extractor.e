@@ -85,21 +85,25 @@ feature {NONE} -- Implementation
 			l_identifier_usage_finder.set_on_access_identifier (
 				agent (l_as: ACCESS_AS; a_variable_context: EXT_VARIABLE_CONTEXT; a_variable_usage: LINKED_SET [STRING])
 					do
-						if a_variable_context.is_variable_of_interest (l_as.access_name_8) then
-							a_variable_usage.force (l_as.access_name_8)
-						end
+						-- TODO: Add support if needed
+						check False then end
+						-- if a_variable_context.is_variable_of_interest (l_as.access_name_8) then
+						-- 	a_variable_usage.force (l_as.access_name_8)
+						-- end
 					end (?, variable_context, Result)
 				)
 			l_identifier_usage_finder.set_on_access_identifier_with_feature_call (
-				agent (l_as: NESTED_AS; a_variable_context: EXT_VARIABLE_CONTEXT; a_variable_usage: LINKED_SET [STRING])
+				agent (l_as: NESTED_EXPR_AS; a_variable_context: EXT_VARIABLE_CONTEXT; a_variable_usage: LINKED_SET [STRING])
 					do
-						if a_variable_context.is_variable_of_interest (l_as.target.access_name_8) then
-							if attached get_call_name (l_as.message) as l_call_name then
-								a_variable_usage.force (l_as.target.access_name_8 + once "." + l_call_name)
-							else
-								a_variable_usage.force (l_as.target.access_name_8)
-							end
-						end
+						-- TODO: Add support if needed
+						check False then end
+						-- if a_variable_context.is_variable_of_interest (l_as.target.access_name_8) then
+						-- 	if attached get_call_name (l_as.message) as l_call_name then
+						-- 		a_variable_usage.force (l_as.target.access_name_8 + once "." + l_call_name)
+						-- 	else
+						-- 		a_variable_usage.force (l_as.target.access_name_8)
+						-- 	end
+						-- end
 					end (?, variable_context, Result)
 				)
 
@@ -109,13 +113,15 @@ feature {NONE} -- Implementation
 	get_call_name (a_as: CALL_AS): STRING
 			-- Returns the feature name of a call.
 		do
-			fixme ("Re-check if all relevant cases are correctly handled. CALL_AS { ACCESS_AS, CREATION_EXPR_AS, NESTED_AS, NESTED_EXPR_AS }.")
+			fixme ("Re-check if all relevant cases are correctly handled. CALL_AS { ACCESS_AS, CREATION_EXPR_AS, NESTED_EXPR_AS, NESTED_EXPR_AS }.")
 
-			if attached {ACCESS_AS} a_as as l_as then
-				Result := l_as.access_name_8
-			elseif attached {NESTED_AS} a_as as l_as then
-				Result := l_as.target.access_name_8
-			end
+			-- TODO: Add support if needed
+			check False then end
+			-- if attached {ACCESS_AS} a_as as l_as then
+			-- 	Result := l_as.access_name_8
+			-- elseif attached {NESTED_EXPR_AS} a_as as l_as then
+			-- 	Result := l_as.target.access_name_8
+			-- end
 		end
 
 end

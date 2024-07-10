@@ -16,7 +16,7 @@ inherit
 			process_loop_as,
 			process_id_as,
 			process_elseif_as,
-			process_create_creation_as
+			process_creation_as
 		end
 
 	EPA_FEATURE_CALL_COLLECTOR_UTILITY
@@ -211,7 +211,7 @@ feature{NONE} -- Implementation
 			end
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 			-- Process `l_as'.
 		do
 			process_ast (l_as)

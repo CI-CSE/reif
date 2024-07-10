@@ -117,11 +117,13 @@ feature {NONE} -- Implementation
 		do
 			-- add NESTED_EXPR_AS
 			-- add CREATION_EXPR_AS
-			if attached {NESTED_AS} l_as.call as l_call_as then
+			if attached {NESTED_EXPR_AS} l_as.call as l_call_as then
 					-- Check passes if feature calls are not chained.
 				feature_chaining_checker.check_ast (l_call_as)
 				if feature_chaining_checker.passed_check then
-					processing_call (l_as, l_call_as.target, l_call_as.message)
+					-- TODO: Add support if needed
+					check False then end
+					-- processing_call (l_as, l_call_as.target, l_call_as.message)
 				else
 					process_as_hole (l_as)
 				end

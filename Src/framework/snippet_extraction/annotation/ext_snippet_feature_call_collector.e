@@ -163,8 +163,8 @@ feature {NONE} -- Debugging
 					until l_list.after
 					loop
 							-- Print type
-						if attached {NESTED_AS} l_list.item then
-							log.put_string ("NESTED_AS:%N")
+						if attached {NESTED_EXPR_AS} l_list.item then
+							log.put_string ("NESTED_EXPR_AS:%N")
 
 						elseif attached {ACCESS_FEAT_AS} l_list.item as l_access_feat_as then
 							log.put_string ("ACCESS_FEAT_AS:%N")

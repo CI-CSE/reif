@@ -260,13 +260,17 @@ feature {NONE} -- Callbacks
 			log_on_access_identifier (a_as, "use-pure")
 		end
 
-	callback_use_feat (a_as: NESTED_AS)
+	callback_use_feat (a_as: NESTED_EXPR_AS)
 			-- Callback triggered when an identifier with a feature call is accessed outside control flow statement expressions.		
 		do
 			if not nesting_stack.is_empty then
-				nesting_stack.item.use_feat.force (a_as.target.access_name_8)
+				-- TODO: Add suppport if needed
+				check False then end
+				-- nesting_stack.item.use_feat.force (a_as.target.access_name_8)
 			end
-			total_variable_usage.use_feat.force (a_as.target.access_name_8)
+			-- TODO: Add support if needed
+			check False then end
+			-- total_variable_usage.use_feat.force (a_as.target.access_name_8)
 
 			log_on_access_identifier_with_feature_call (a_as, "use-feat")
 		end
@@ -283,14 +287,18 @@ feature {NONE} -- Callbacks
 			log_on_access_identifier (a_as, "c-use-pure")
 		end
 
-	callback_use_feat_in_cf_stmt (a_as: NESTED_AS)
+	callback_use_feat_in_cf_stmt (a_as: NESTED_EXPR_AS)
 			-- Callback triggered when an identifier with a feature call is accessed in control flow statement expressions.
 			-- See `expr_variable_usage_finder'.
 		do
 			if not nesting_stack.is_empty then
-				nesting_stack.item.c_use_feat.force (a_as.target.access_name_8)
+				-- TODO: Add support if needed
+				check False then end
+				-- nesting_stack.item.c_use_feat.force (a_as.target.access_name_8)
 			end
-			total_variable_usage.c_use_feat.force (a_as.target.access_name_8)
+			-- TODO: Add support if needed
+			check False then end
+			-- total_variable_usage.c_use_feat.force (a_as.target.access_name_8)
 
 			log_on_access_identifier_with_feature_call (a_as, "c-use-feat")
 		end
@@ -402,7 +410,7 @@ feature {NONE} -- Debug
 			end
 		end
 
-	log_on_access_identifier_with_feature_call (a_as: NESTED_AS; a_mode: STRING)
+	log_on_access_identifier_with_feature_call (a_as: NESTED_EXPR_AS; a_mode: STRING)
 			-- Logging message for callback on feature invocation.
 		require
 			a_mode_valid: a_mode ~ "use-feat" or a_mode ~ "c-use-feat"
@@ -420,7 +428,9 @@ feature {NONE} -- Debug
 				log.put_string ("]")
 
 				log.put_string ("        ")
-				log.put_string (a_as.target.access_name_8)
+				-- TODO: Add support if needed
+				check False then end
+				-- log.put_string (a_as.target.access_name_8)
 				log.put_string ("%N")
 			end
 		end

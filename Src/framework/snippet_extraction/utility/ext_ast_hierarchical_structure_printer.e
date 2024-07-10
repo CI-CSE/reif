@@ -22,8 +22,6 @@ inherit
 			pre_process_assign_as,
 			pre_process_assigner_call_as,
 			pre_process_attribute_as,
-			pre_process_bang_creation_as,
-			pre_process_bang_creation_expr_as,
 			pre_process_bin_and_as,
 			pre_process_bin_and_then_as,
 			pre_process_bin_div_as,
@@ -65,8 +63,6 @@ inherit
 			pre_process_convert_feat_list_as,
 			pre_process_converted_expr_as,
 			pre_process_create_as,
-			pre_process_create_creation_as,
-			pre_process_create_creation_expr_as,
 			pre_process_creation_as,
 			pre_process_creation_expr_as,
 			pre_process_current_as,
@@ -85,7 +81,7 @@ inherit
 			pre_process_expr_call_as,
 			pre_process_external_as,
 			pre_process_external_lang_as,
-			pre_process_feat_name_id_as,
+			pre_process_feature_name,
 			pre_process_feature_as,
 			pre_process_feature_clause_as,
 			pre_process_feature_list_as,
@@ -101,7 +97,6 @@ inherit
 			pre_process_if_as,
 			pre_process_index_as,
 			pre_process_indexing_clause_as,
-			pre_process_infix_prefix_as,
 			pre_process_inline_agent_creation_as,
 			pre_process_inspect_as,
 			pre_process_instr_call_as,
@@ -119,7 +114,6 @@ inherit
 			pre_process_loop_as,
 			pre_process_loop_expr_as,
 			pre_process_named_tuple_type_as,
-			pre_process_nested_as,
 			pre_process_nested_expr_as,
 			pre_process_none_id_as,
 			pre_process_none_type_as,
@@ -201,37 +195,6 @@ feature -- Roundtrip
 		do
 			safe_print_ast_path_prefix (l_as)
 			log.put_string ("inline_agent_creation_as")
-			log.put_string ("%N")
-		end
-
-	pre_process_create_creation_as (l_as: CREATE_CREATION_AS)
-		do
-			safe_print_ast_path_prefix (l_as)
-			log.put_string ("create_creation_as: " + l_as.target.access_name_8)
-			if attached l_as.call then
-				log.put_string ("." + l_as.call.access_name_8)
-			end
-			log.put_string ("%N")
-		end
-
-	pre_process_bang_creation_as (l_as: BANG_CREATION_AS)
-		do
-			safe_print_ast_path_prefix (l_as)
-			log.put_string ("bang_creation_as")
-			log.put_string ("%N")
-		end
-
-	pre_process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-		do
-			safe_print_ast_path_prefix (l_as)
-			log.put_string ("create_creation_expr_as")
-			log.put_string ("%N")
-		end
-
-	pre_process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-		do
-			safe_print_ast_path_prefix (l_as)
-			log.put_string ("bang_creation_expr_as")
 			log.put_string ("%N")
 		end
 
@@ -453,13 +416,6 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 			log.put_string ("%N")
 		end
 
-	pre_process_nested_as (l_as: NESTED_AS)
-		do
-			safe_print_ast_path_prefix (l_as)
-			log.put_string ("nested_as")
-			log.put_string ("%N")
-		end
-
 	pre_process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 			safe_print_ast_path_prefix (l_as)
@@ -495,17 +451,10 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 			log.put_string ("%N")
 		end
 
-	pre_process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
+	pre_process_feature_name (l_as: FEATURE_NAME)
 		do
 			safe_print_ast_path_prefix (l_as)
-			log.put_string ("infix_prefix_as")
-			log.put_string ("%N")
-		end
-
-	pre_process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
-		do
-			safe_print_ast_path_prefix (l_as)
-			log.put_string ("feat_name_id_as")
+			log.put_string ("feature_name")
 			log.put_string ("%N")
 		end
 

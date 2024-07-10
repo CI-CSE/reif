@@ -1,5 +1,5 @@
 note
-	description: "Checks if a {NESTED_AS} call is using chained (nested) feature calls."
+	description: "Checks if a {NESTED_EXPR_AS} call is using chained (nested) feature calls."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -9,7 +9,7 @@ class
 inherit
 	AST_ITERATOR
 		redefine
-			process_nested_as
+			process_nested_expr_as
 		end
 
 	EXT_CHECKER
@@ -44,10 +44,10 @@ feature -- Basic Operations
 
 feature {NONE} -- Implementation
 
-	process_nested_as (a_as: NESTED_AS)
+	process_nested_expr_as (a_as: NESTED_EXPR_AS)
 			-- Checks if a call is nested.
 		do
-			if attached {NESTED_AS} a_as.message then
+			if attached {NESTED_EXPR_AS} a_as.message then
 				passed_check := False
 			end
 		end

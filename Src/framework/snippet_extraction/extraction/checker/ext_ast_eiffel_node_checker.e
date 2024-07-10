@@ -22,8 +22,6 @@ inherit
 			process_assign_as,
 			process_assigner_call_as,
 			process_attribute_as,
-			process_bang_creation_as,
-			process_bang_creation_expr_as,
 			process_bin_and_as,
 			process_bin_and_then_as,
 			process_bin_div_as,
@@ -65,8 +63,6 @@ inherit
 			process_convert_feat_list_as,
 			process_converted_expr_as,
 			process_create_as,
-			process_create_creation_as,
-			process_create_creation_expr_as,
 			process_creation_as,
 			process_creation_expr_as,
 			process_current_as,
@@ -85,7 +81,7 @@ inherit
 			process_expr_call_as,
 			process_external_as,
 			process_external_lang_as,
-			process_feat_name_id_as,
+			process_feature_name,
 			process_feature_as,
 			process_feature_clause_as,
 			process_feature_list_as,
@@ -101,7 +97,6 @@ inherit
 			process_if_as,
 			process_index_as,
 			process_indexing_clause_as,
-			process_infix_prefix_as,
 			process_inline_agent_creation_as,
 			process_inspect_as,
 			process_instr_call_as,
@@ -119,7 +114,6 @@ inherit
 			process_loop_as,
 			process_loop_expr_as,
 			process_named_tuple_type_as,
-			process_nested_as,
 			process_nested_expr_as,
 			process_none_id_as,
 			process_none_type_as,
@@ -231,26 +225,6 @@ feature -- Roundtrip
 	process_inline_agent_creation_as (l_as: INLINE_AGENT_CREATION_AS)
 		do
 			if deny_set.has (node_inline_agent_creation_as) then passed_check := False else Precursor (l_as) end
-		end
-
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
-		do
-			if deny_set.has (node_create_creation_as) then passed_check := False else Precursor (l_as) end
-		end
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-		do
-			if deny_set.has (node_bang_creation_as) then passed_check := False else Precursor (l_as) end
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-		do
-			if deny_set.has (node_create_creation_expr_as) then passed_check := False else Precursor (l_as) end
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-		do
-			if deny_set.has (node_bang_creation_expr_as) then passed_check := False else Precursor (l_as) end
 		end
 
 feature -- Roundtrip
@@ -406,11 +380,6 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 			if deny_set.has (node_nested_expr_as) then passed_check := False else Precursor (l_as) end
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			if deny_set.has (node_nested_as) then passed_check := False else Precursor (l_as) end
-		end
-
 	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 			if deny_set.has (node_creation_expr_as) then passed_check := False else Precursor (l_as) end
@@ -436,12 +405,7 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 			if deny_set.has (node_indexing_clause_as) then passed_check := False else Precursor (l_as) end
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-			if deny_set.has (node_infix_prefix_as) then passed_check := False else Precursor (l_as) end
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
 			if deny_set.has (node_feat_name_id_as) then passed_check := False else Precursor (l_as) end
 		end
