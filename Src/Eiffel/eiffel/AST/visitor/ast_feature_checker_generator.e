@@ -1041,30 +1041,6 @@ feature {NONE} -- Roundtrip
 			end
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
-			-- Process `l_as'.
-		do
-			process_creation_as (l_as)
-		end
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-			-- Process `l_as'.
-		do
-			process_creation_as (l_as)
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			process_creation_expr_as (l_as)
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-			-- Process `l_as'.
-		do
-			process_creation_expr_as (l_as)
-		end
-
 	process_creation_as (l_as: CREATION_AS)
 			-- Process `l_as'.
 		local
@@ -3852,90 +3828,6 @@ feature {NONE} -- Visitor
 						end
 					end
 				end
-			end
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-		local
-			l_target_access: ACCESS_B
-			l_call: CALL_B
-			l_nested: NESTED_B
-			l_intermediate_nested: NESTED_B
-			old_assigner_source: like assigner_source
-			l_is_qualified_call: BOOLEAN
-			l_error_level: NATURAL_32
-		do
-			if attached last_type as c then
-					-- Mask out assigner call flag for target of the call.
-				old_assigner_source := assigner_source
-				assigner_source := Void
-					-- Type check the target
-				l_as.target.process (Current)
-				if attached last_type as t then
-						-- Restore assigner source for nested call.
-					assigner_source := old_assigner_source
-					l_is_qualified_call := is_qualified_call
-					is_qualified_call := True
-					if is_byte_node_enabled then
-						if attached {ACCESS_B} last_byte_node as a then
-							l_target_access := a
-						else
-								-- Target generated an additional nested byte node.
-								-- The byte node tree has to be normalized.
-							check attached {NESTED_B} last_byte_node as n then
-								l_intermediate_nested := n
-								l_target_access := n.target
-							end
-						end
-					end
-					l_error_level := error_level
-						-- Check the target of a separate feature call.
-					if t.is_separate then
-						validate_separate_target (Void, l_as.target)
-					end
-						-- Type check the message
-					l_as.message.process (Current)
-					if error_level /= l_error_level then
-						reset_types
-					else
-						if is_byte_node_enabled then
-								-- Create byte node.
-							l_call ?= last_byte_node
-							check
-								l_call_not_void: l_call /= Void
-							end
-
-							create l_nested
-							l_nested.set_target (l_target_access)
-							l_target_access.set_parent (l_nested)
-
-							if attached l_intermediate_nested then
-									-- Change intermediate nested to take intermediate message as a target to which message is applied.
-								check attached {ACCESS_B} l_intermediate_nested.message as m then
-									l_intermediate_nested.set_target (m)
-									m.set_parent (l_intermediate_nested)
-									l_intermediate_nested.set_message (l_call)
-									l_call.set_parent (l_intermediate_nested)
-								end
-									-- Use intermediate nested as a message.
-								l_call := l_intermediate_nested
-							end
-
-							l_nested.set_message (l_call)
-							l_call.set_parent (l_nested)
-
-							last_byte_node := l_nested
-						end
-					end
-					is_qualified_call := l_is_qualified_call
-				end
-			else
-					-- We should not get there, but just in case we generate an internal
-					-- error message.
-				reset_types
-				error_handler.insert_error (create {INTERNAL_ERROR}.make (
-					"In {AST_FEATURE_CHECKER_GENERATOR}.process_nested_as we could%N%
-					%not find `last_type'."))
 			end
 		end
 

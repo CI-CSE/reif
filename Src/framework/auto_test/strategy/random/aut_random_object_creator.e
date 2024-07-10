@@ -159,13 +159,26 @@ feature -- Execution
 			elseif precondition_evaluator /= Void and then precondition_evaluator.has_next_step then
 				precondition_evaluator.step
 			else
-				receiver := interpreter.variable_table.new_variable
-				interpreter.create_object (receiver, type, creation_procedure, input_creator.receivers)
-				if
-					attached queue and then
-					attached interpreter.variable_table.variable_type (receiver) as l_receiver
-				then
-					queue.mark (create {AUT_FEATURE_OF_TYPE}.make_as_creator (creation_procedure, l_receiver))
+				set_arguments_from_candidate (precondition_evaluator.last_evaluated_operands)
+				interpreter.log_precondition_evaluation_overhead (precondition_evaluator, type, creation_procedure)
+
+				if arguments.for_all (agent is_variable_defined) then
+					receiver := interpreter.variable_table.new_variable
+					interpreter.set_precondition_evaluator (precondition_evaluator)
+					interpreter.create_object (receiver, type, creation_procedure, arguments, feature_)
+					if
+						attached queue and then
+						attached interpreter.variable_table.variable_type (receiver) as l_receiver
+					then
+						queue.mark (create {AUT_FEATURE_OF_TYPE}.make_as_creator (creation_procedure, l_receiver))
+					end
+					if not interpreter.variable_table.is_variable_defined (receiver) then
+							-- There was an error creating the object.
+						receiver := Void
+					end
+					steps_completed := True
+				else
+					cancel
 				end
 			end
 		end

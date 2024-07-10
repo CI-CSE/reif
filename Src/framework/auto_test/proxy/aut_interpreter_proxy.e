@@ -1399,6 +1399,22 @@ feature {NONE} -- Logging
 	proxy_log_printers: AUT_PROXY_LOG_PRINTERS
 			-- Proxy log processor
 
+	log_test_case_index (a_request: like last_request)
+			-- Log `test_case_index' in `a_request' and
+		require
+			a_request_attached: a_request /= Void
+		do
+			if is_test_case_index_logging_enabled then
+				test_case_count := test_case_count + 1
+				last_request.set_test_case_index (test_case_count)
+			end
+		ensure
+			test_case_logged:
+			is_test_case_index_logging_enabled implies (
+				test_case_count = old test_case_count + 1 and
+					last_request.test_case_index = test_case_count)
+		end
+
 feature {NONE} -- Implementation
 
 	disable_catcall_warnings
@@ -1425,11 +1441,14 @@ feature {NONE} -- Implementation
 	melt_path: PATH
 			-- Path where melt file of test client resides
 
-	melt_path: READABLE_STRING_GENERAL
-			-- Path where melt file of test client resides
-
 	socket_data_printer: AUT_REQUEST_PRINTER
 			-- Request printer
+
+	request_printer: AUT_REQUEST_PROCESSORS
+			-- Request printer
+
+	log_stream: KL_STRING_OUTPUT_STREAM
+			-- Output stream used by `request_printer' for log file generation
 
 	injected_feature_body_id: INTEGER
 			-- Feature body ID of the feature whose byte-code is to be injected
@@ -1439,6 +1458,9 @@ feature {NONE} -- Implementation
 
 	error_handler: AUT_ERROR_HANDLER
 			-- Error handler
+
+	response_printer: AUT_RESPONSE_LOG_PRINTER
+			-- Log printer
 
 	proxy_start_time: DT_DATE_TIME
 			-- Time when Current proxy started.

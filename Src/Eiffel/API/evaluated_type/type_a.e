@@ -987,19 +987,6 @@ feature -- Comparison
 				has_variant_mark = other.has_variant_mark
 		end
 
-	has_same_marks (other: TYPE_A): BOOLEAN
-			-- Are type marks of `Current' and `other' the same?
-		require
-			other_attached: other /= Void
-		do
-			Result :=
-				has_attached_mark = other.has_attached_mark and then
-				has_detachable_mark = other.has_detachable_mark and then
-				has_separate_mark = other.has_separate_mark and then
-				has_frozen_mark = other.has_frozen_mark and then
-				has_variant_mark = other.has_variant_mark
-		end
-
 feature {CL_TYPE_A} -- Comparison
 
 	is_runnable_on_processor (other: TYPE_A): BOOLEAN

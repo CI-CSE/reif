@@ -115,7 +115,7 @@ feature -- Access
 			l_file: RAW_FILE
 		do
 			create l_file.make_open_read (a_file_name)
-			Result ?= l_file.retrieved
+			Result := l_file.retrieved
 			l_file.close
 		end
 
@@ -204,7 +204,6 @@ feature{NONE} -- Implementation
             -- and store the objects into the Result hashtable.
         local
             l_data: STRING
-            l_obj_index: INTEGER
             l_variable_table: HASH_TABLE [detachable ANY, INTEGER]
             l_count: INTEGER
             i: INTEGER
@@ -219,10 +218,10 @@ feature{NONE} -- Implementation
                 until
                     i >= l_count - 1
                 loop
-                	l_obj_index ?= lt_variable.item (i)
-
+									check attached {INTEGER} lt_variable.item (i) as l_obj_index then
                     l_variable_table.put (lt_variable.item (i + 1), l_obj_index)
-                    i := i + 2
+									end
+                  i := i + 2
                 end
             else
                 create l_variable_table.make (0)

@@ -20,7 +20,6 @@ feature -- Access
 			l_type_formatter := type_formatter
 			l_type_formatter.wipe_type_name
 			type_printer.process (a_type, l_type_formatter, a_type.base_class, a_feature)
-			type_output_strategy.process (a_type, l_type_formatter, a_type.base_class, a_feature)
 			Result := l_type_formatter.type_name.twin
 		ensure
 			result_attached: Result /= Void

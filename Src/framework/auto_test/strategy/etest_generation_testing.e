@@ -178,7 +178,7 @@ feature --{NONE} -- Access
 
 feature {NONE} -- Access: witness minimization
 
-	used_witnesses: DS_ARRAYED_LIST [AUT_WITNESS]
+	used_witnesses: DS_ARRAYED_LIST [AUT_ABS_WITNESS]
 			-- Witness which have been minimized and for which a test was created
 
 	last_minimized_witness: INTEGER
@@ -305,8 +305,8 @@ feature {NONE} -- Status setting
 			minimization_enabled: generation.is_minimization_enabled
 			not_minimizing: sub_task /= minimize_task or not has_next_step
 		local
-			l_witnesses: DS_ARRAYED_LIST [AUT_WITNESS]
-			l_witness: AUT_WITNESS
+			l_witnesses: DS_ARRAYED_LIST [AUT_ABS_WITNESS]
+			l_witness: AUT_ABS_WITNESS
 			l_task: like minimize_task
 		do
 			l_witnesses := result_repository_builder.result_repository.witnesses

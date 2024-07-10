@@ -1,17 +1,11 @@
 note
-<<<<<<<< HEAD:Src/Eiffel/interface/graphical/tools/code_analysis/utilities/es_ca_preferences_dialog.e
 	description: "Preferences dialog for Code Analysis."
 	legal: "See notice at end of class."
 	status: "See notice at end of class."
-========
-	description: "Summary description for {IRON_NODE_CONSTANTS}."
-	author: ""
->>>>>>>> a8ab064a286ce1f37c8d195726363d5bbe4fe111:Src/tools/iron/server/kernel/iron_node_constants.e
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-<<<<<<<< HEAD:Src/Eiffel/interface/graphical/tools/code_analysis/utilities/es_ca_preferences_dialog.e
 	ES_CA_PREFERENCES_DIALOG
 
 inherit
@@ -31,24 +25,6 @@ feature {NONE} -- Initialization
 		do
 
 		end
-========
-	IRON_NODE_CONSTANTS
-
-feature -- Access
-
-	major: INTEGER = 0
-	minor: INTEGER = 1
-	built: STRING = "0007"
-
-	version: STRING
-		do
-			Result := major.out + "." + minor.out + "." + built
-		end
-
-feature -- Access
-
-	iron_repo_variable_name: STRING = "IRON_REPO"
->>>>>>>> a8ab064a286ce1f37c8d195726363d5bbe4fe111:Src/tools/iron/server/kernel/iron_node_constants.e
 
 feature {NONE} -- Implementation
 

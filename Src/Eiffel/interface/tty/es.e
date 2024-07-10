@@ -1424,7 +1424,7 @@ feature {NONE} -- Update
 						-- FIXME: This only works if `-auto_test' is the last argument, as otherwise it will
 						-- override the compilation option that was previously set.
 					create {EWB_AUTO_TEST} command.make_with_arguments
-						(arguments_in_range (current_option + 1, argument_count))
+						(arguments_in_range_32 (current_option + 1, argument_count))
 					current_option := argument_count + 1
 					command_option := option
 				elseif option.is_equal ("-auto_fix") then
@@ -1501,7 +1501,7 @@ feature {NONE} -- Update
 					if attached command then
 						option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
 					else
-						code_analysis_command.parse_arguments (arguments_in_range (current_option + 1, argument_count))
+						code_analysis_command.parse_arguments (arguments_in_range_32 (current_option + 1, argument_count))
 						current_option := argument_count + 1
 						if attached code_analysis_command.argument_error as e then
 							option_error_message := e
@@ -1639,6 +1639,7 @@ feature {NONE} -- Update
 				process_special_options (option)
 			end
 			current_option := current_option + 1
+			end
 		end
 
 	process_special_options (option: STRING_32)

@@ -237,6 +237,26 @@ feature -- Basic routines
 			end
 		end
 
+	recursive_create_directory (a_directory_name: STRING)
+			-- Create `a_directory_name' physically if it doesn't exist
+			-- and the permissions allow to do so.
+			-- Don't throw an exception if the parent directory doesn't exist.
+		require
+			a_directory_name_is_valid: (create {DIRECTORY_NAME}.make_from_string (a_directory_name)).is_valid
+		local
+			dir: DIRECTORY
+			parent_dir_name: STRING
+		do
+			create dir.make (a_directory_name)
+			parent_dir_name := file_system.dirname (a_directory_name)
+			if not dir.exists and not equal (a_directory_name, parent_dir_name) then
+				recursive_create_directory (parent_dir_name)
+				if (create {DIRECTORY}.make (parent_dir_name)).exists then
+					dir.create_dir
+				end
+			end
+		end
+
 note
 	copyright: "Copyright (c) 1984-2019, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"

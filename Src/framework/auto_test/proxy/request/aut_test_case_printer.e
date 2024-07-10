@@ -66,11 +66,6 @@ feature -- Access
 	output_stream: KI_TEXT_OUTPUT_STREAM
 			-- Stream that printer writes to
 
-    variable_name_prefix: STRING = "v_"
-
-    universe: UNIVERSE_I
-            -- <Precursor>
-
 feature {NONE} -- Access
 
 	used_vars: detachable HASH_TABLE [TUPLE [type: detachable TYPE_A; name: detachable STRING; check_dyn_type: BOOLEAN; use_void: BOOLEAN], ITP_VARIABLE]

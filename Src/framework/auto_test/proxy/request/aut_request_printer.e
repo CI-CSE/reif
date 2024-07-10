@@ -224,7 +224,6 @@ feature {AUT_REQUEST} -- Processing
 				l_receiver_type := l_receiver_type.instantiation_in (l_context_type, l_context_class.class_id)
 			end
 
-			end
 			if a_request.is_feature_query then
 				l_locals.extend (l_receiver_type)
 			end

@@ -61,8 +61,6 @@ feature -- Access
 	configuration: TEST_GENERATOR
 			-- Configuration
 
-    variable_name_prefix: STRING = "v_"
-
 feature -- Setting
 
 	set_output_stream (an_output_stream: like output_stream)

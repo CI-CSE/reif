@@ -77,12 +77,6 @@ feature -- Access
 			create Result.make ("eve16x16")
 		end
 
-	configuration_pixmaps: attached ES_CONFIGURATION_PIXMAPS
-			-- Configuration system pixmaps (16px)
-		once
-			create Result.make ("16x16")
-		end
-
 	mini_pixmaps_20: ES_MINI_ICONS
 			-- Title bar pixmaps (20px)
 		once

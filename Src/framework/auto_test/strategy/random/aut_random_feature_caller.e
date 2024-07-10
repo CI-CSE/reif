@@ -123,9 +123,6 @@ feature -- Access
 			good_result: Result = interpreter.configuration
 		end
 
-    universe: UNIVERSE_I
-            -- <Precursor>
-
 feature -- Change
 
 	set_feature_and_type (a_feature: like feature_to_call; a_type: like type)

@@ -46,17 +46,6 @@ feature -- Access
 	sleep_time: NATURAL = 500
 			-- <Precursor>
 
-feature -- Setting
-
-	set_is_freezing_needed (b: BOOLEAN)
-			-- Set `is_freezing_needed' with `b'.
-		do
-			is_freezing_needed := b
-			-- print("is_freezing_needed: " + is_freezing_needed.out + "%N")
-		ensure
-			is_freezing_needed_set: is_freezing_needed = b
-		end
-		
 feature -- Status report
 
 	has_next_step: BOOLEAN

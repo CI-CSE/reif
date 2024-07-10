@@ -34,7 +34,6 @@ feature {NONE} -- Initialization
 			create rules.make_caseless (100) -- Rule IDs should be case insensitive.
 
 				-- Adding the rules.
-			add_rule (create {CA_GENERIC_PARAM_TOO_LONG_RULE}.make_with_defaults)
 
 				-- CA066: argument_name
 			add_rule (create {CA_ARGUMENT_NAMING_CONVENTION_RULE}.make (settings.preference_manager))
@@ -266,17 +265,6 @@ feature -- Analysis interface
 					l_task.step
 				end
 			end
-		end
-
-	is_rule_checkable (a_rule: attached CA_RULE): BOOLEAN
-			-- Will `a_rule' be checked based on the current preferences and based on the current
-			-- checking scope?
-		do
-			Result := a_rule.is_enabled.value
-						and then (system_wide_check or else (not a_rule.is_system_wide))
-						and then is_severity_enabled (a_rule.severity)
-
-						-- TODO Check if ignoredby or checkonly lists.
 		end
 
 	clear_classes_to_analyze

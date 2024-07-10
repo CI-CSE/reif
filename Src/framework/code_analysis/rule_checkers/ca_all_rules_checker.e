@@ -370,15 +370,6 @@ feature {CA_STANDARD_RULE} -- Adding agents
 
 	add_body_pre_action (a_action: attached PROCEDURE [BODY_AS])
 		do
-			bin_ne_pre_actions.extend (a_action)
-		end
-
-	add_bin_ne_post_action (a_action: attached PROCEDURE [BIN_NE_AS])
-		do
-			bin_ne_post_actions.extend (a_action)
-		end
-
-	add_body_pre_action (a_action: attached PROCEDURE [BODY_AS])		do
 			body_pre_actions.extend (a_action)
 		end
 
@@ -770,15 +761,6 @@ feature {CA_STANDARD_RULE} -- Adding agents
 	add_un_not_pre_action (a_action: attached PROCEDURE [UN_NOT_AS])
 		do
 			unary_pre_actions.extend (a_action)
-		end
-
-	add_unary_post_action (a_action: attached PROCEDURE [ANY, UNARY_AS])
-		do
-			unary_post_actions.extend (a_action)
-		end
-
-	add_un_not_pre_action (a_action: attached PROCEDURE [ANY, UN_NOT_AS])		do
-			un_not_pre_actions.extend (a_action)
 		end
 
 	add_un_not_post_action (a_action: attached PROCEDURE [UN_NOT_AS])

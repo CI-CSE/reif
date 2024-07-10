@@ -85,9 +85,6 @@ feature -- Access
 	feature_target: detachable ITP_VARIABLE
 			-- If attached, stores the interpreter variable representing the target of the feature
 			-- which invoked this input_creator
-    
-	universe: UNIVERSE_I
-            -- <Precursor>
 
 feature -- Change
 
