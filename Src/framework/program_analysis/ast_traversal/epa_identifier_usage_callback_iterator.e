@@ -12,7 +12,7 @@ inherit
 			process_access_id_as,
 --			process_current_as,
 --			process_id_as,
-			process_nested_as,
+			process_nested_expr_as,
 			process_result_as
 --			process_creation_as
 		end
@@ -48,7 +48,7 @@ feature -- Access
 			on_access_identifier := a_action
 		end
 
-	on_access_identifier_with_feature_call: ROUTINE [ANY, TUPLE [a_as: NESTED_AS]]
+	on_access_identifier_with_feature_call: ROUTINE [ANY, TUPLE [a_as: NESTED_EXPR_AS]]
 		assign set_on_access_identifier_with_feature_call
 			-- Callback agent triggered when an identifier with a feature call is accessed.
 
@@ -74,7 +74,7 @@ feature -- Access
 
 feature {NONE} -- Access Recording
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- Recording identifiers that are used with feature calls.
 		do
 				-- Invoke callback agent if configured.
@@ -100,7 +100,7 @@ feature {NONE} -- Access Recording
 
 	process_access_id_as (l_as: ACCESS_ID_AS)
 			-- Recording identifiers that are used.
-			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_as'.
+			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_expr_as'.
 		do
 				-- Invoke callback agent if configured.
 			if attached on_access_identifier then
@@ -111,7 +111,7 @@ feature {NONE} -- Access Recording
 
 	process_result_as (l_as: RESULT_AS)
 			-- Recording access to `Result' identifier.
-			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_as'.
+			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_expr_as'.
 		do
 				-- Invoke callback agent if configured.
 			if attached on_access_identifier then
@@ -122,7 +122,7 @@ feature {NONE} -- Access Recording
 
 --	process_current_as (l_as: CURRENT_AS)
 --			-- Recording access to `Current' identifier.
---			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_as'.
+--			-- Note: In case of `is_mode_disjoint', `{NESTED_AS}' subtrees don't process `{NESTED_AS}.target'. See `process_nested_expr_as'.
 --		do
 --				-- Invoke callback agent if configured.
 --			if attached on_access_identifier then

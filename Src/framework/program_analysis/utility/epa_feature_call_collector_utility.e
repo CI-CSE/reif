@@ -47,7 +47,7 @@ feature -- Access
 			l_called_feature: ACCESS_AS
 			l_message_signature: TUPLE [feature_name: STRING; operands: HASH_TABLE [STRING, INTEGER]]
 		do
-			if attached {NESTED_AS} a_call as l_nested_call then
+			if attached {NESTED_EXPR_AS} a_call as l_nested_call then
 					-- Get target name and the called feature of this nested call
 				l_nested_signature := get_nested_signature (l_nested_call)
 
@@ -130,7 +130,7 @@ feature -- Access
 
 			elseif attached {NESTED_EXPR_AS} a_call as l_nested_expr then
 
-				if attached {NESTED_AS} l_nested_expr.message then
+				if attached {NESTED_EXPR_AS} l_nested_expr.message then
 
 						-- For a nested message, get the feature name and the operands using the message only
 					l_message_signature := signature_of_call (l_nested_expr.message)
@@ -173,7 +173,7 @@ feature {NONE} -- Implementation
 			l_recursive_signature: TUPLE [target_name: STRING; called_feature: ACCESS_AS]
 			l_recursive_target: STRING
 		do
-			if attached {NESTED_AS} a_as as l_nested_as then
+			if attached {NESTED_EXPR_AS} a_as as l_nested_as then
 					-- Recursively get signature of message of the nested call
 				l_recursive_signature := get_nested_signature (l_nested_as.message)
 

@@ -18,7 +18,7 @@ inherit
 		redefine
 			process_object_test_as,
 			process_static_access_as,
-			process_nested_as
+			process_nested_expr_as
 		end
 
 	INTERNAL_COMPILER_STRING_EXPORTER
@@ -144,7 +144,7 @@ feature{NONE} -- Process
 			is_suitable := False
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			is_suitable := False
 			fixme ("Does not support qualified call for the moment. 17.11.2009 Jason")

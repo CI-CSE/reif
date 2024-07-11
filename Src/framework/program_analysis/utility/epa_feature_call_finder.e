@@ -16,10 +16,9 @@ inherit
 		redefine
 			process_access_id_as,
 			process_access_feat_as,
-			process_nested_as,
 			process_nested_expr_as,
-			process_create_creation_as,
-			process_create_creation_expr_as
+			process_creation_as,
+			process_creation_expr_as
 		end
 
 
@@ -178,12 +177,6 @@ feature{NONE} -- Implementation
 		do
 			if attached {ACCESS_FEAT_AS} l_as as l_feat then
 				Result := True
-			elseif attached {NESTED_AS} l_as as l_nested then
-				if attached {STRING} first_target_of_call (l_as) as l_target then
-					Result :=
-						l_target ~ ti_current or else
-						(arguments.has (l_target))
-				end
 			elseif attached {NESTED_EXPR_AS} l_as as l_nested then
 				if attached {STRING} first_target_of_call (l_as) as l_target then
 					Result :=
@@ -209,8 +202,6 @@ feature{NONE} -- Implementation
 				if l_feat.internal_parameters /= Void then
 					l_text := "(" + text_from_ast (l_feat.internal_parameters) + ")"
 				end
-			elseif attached {NESTED_AS} l_as as l_nested then
-				l_text := text_from_ast (l_nested.message)
 			elseif attached {NESTED_EXPR_AS} l_as as l_nested then
 				l_text := text_from_ast (l_nested.message)
 			end
@@ -250,11 +241,6 @@ feature{NONE} -- Implementation
 			l_text := text_from_ast (l_as)
 			if attached {ACCESS_FEAT_AS} l_as as l_feat then
 				Result := ti_current.twin
-			elseif attached {NESTED_AS} l_as as l_nested then
-				l_index := l_text.index_of ('.', 1)
-				Result := l_text.substring (1, l_index - 1)
-				Result.left_adjust
-				Result.right_adjust
 			elseif attached {NESTED_EXPR_AS} l_as as l_nested then
 				l_index := l_text.index_of ('.', 1)
 				Result := l_text.substring (1, l_index - 1)
@@ -310,17 +296,12 @@ feature{NONE} -- Process
 			calls.force (l_as, text_from_ast (l_as))
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			calls.force (l_as, text_from_ast (l_as))
-		end
-
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 			-- Process `l_as'.
 		do
 		end
 
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
+	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 			-- Process `l_as'.
 		do
 		end

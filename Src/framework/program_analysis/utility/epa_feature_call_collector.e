@@ -22,10 +22,7 @@ inherit
 			---------- (ACCESS_ID_AS)
 			-------- (STATIC_ACCESS_AS)
 			---- CREATION_EXPR_AS
-			process_bang_creation_expr_as,
-			process_create_creation_expr_as,
-			---- NESTED_AS
-			process_nested_as,
+			process_creation_expr_as,
 			---- NESTED_EXPR_AS
 			process_nested_expr_as,
 
@@ -185,63 +182,62 @@ feature {NONE} -- Implementation
 	add_current_nested_calls
 			--
 		local
-			l_list: ARRAYED_LIST [ACCESS_FEAT_AS]
-			l_target_call: ACCESS_AS
-			l_nested_call: NESTED_AS
-			l_nested_expr_call: NESTED_EXPR_AS
-			l_message_list: LINKED_LIST [ACCESS_FEAT_AS]
+			-- l_list: ARRAYED_LIST [ACCESS_FEAT_AS]
+			-- l_target_call: ACCESS_AS
+			-- l_nested_expr_call: NESTED_EXPR_AS
+			-- l_message_list: LINKED_LIST [ACCESS_FEAT_AS]
 		do
-			l_list := current_stack.linear_representation
-			if not l_list.is_empty then
+			-- l_list := current_stack.linear_representation
+			-- if not l_list.is_empty then
 
-					-- If it's a NESTED_AS, get the target and prune it out of the stack. Also add the target call.
-					-- Otherwise, the target is not on the stack but stored in the variable 'nested_expr_target'
-				if not is_nested_expression then
-					l_target_call := l_list.last
-					l_target_call.set_breakpoint_slot (current_breakpoint_slot)
-					add_call (l_target_call, current_breakpoint_slot)
-					l_list.finish
-					l_list.remove
-				end
+			-- 		-- If it's a NESTED_AS, get the target and prune it out of the stack. Also add the target call.
+			-- 		-- Otherwise, the target is not on the stack but stored in the variable 'nested_expr_target'
+			-- 	if not is_nested_expression then
+			-- 		l_target_call := l_list.last
+			-- 		l_target_call.set_breakpoint_slot (current_breakpoint_slot)
+			-- 		add_call (l_target_call, current_breakpoint_slot)
+			-- 		l_list.finish
+			-- 		l_list.remove
+			-- 	end
 
-					-- Get all messages that have to be added as a call on the corresponding target
-				create l_message_list.make
-				from l_list.start
-				until l_list.after
-				loop
-					from l_message_list.start
-					until l_message_list.after
-					loop
-							-- Prepend the current item to the already existing calls in the list of messages
-						create l_nested_call.initialize (l_list.item, l_message_list.item, Void)
-						l_nested_call.set_breakpoint_slot (current_breakpoint_slot)
-						l_message_list.replace (l_nested_call)
-						l_message_list.forth
-					end
-						-- Add the current item to the list of messages
-					l_message_list.extend (l_list.item)
-					l_list.forth
-				end
+			-- 		-- Get all messages that have to be added as a call on the corresponding target
+			-- 	create l_message_list.make
+			-- 	from l_list.start
+			-- 	until l_list.after
+			-- 	loop
+			-- 		from l_message_list.start
+			-- 		until l_message_list.after
+			-- 		loop
+			-- 				-- Prepend the current item to the already existing calls in the list of messages
+			-- 			create l_nested_call.initialize (l_list.item, l_message_list.item, Void)
+			-- 			l_nested_call.set_breakpoint_slot (current_breakpoint_slot)
+			-- 			l_message_list.replace (l_nested_call)
+			-- 			l_message_list.forth
+			-- 		end
+			-- 			-- Add the current item to the list of messages
+			-- 		l_message_list.extend (l_list.item)
+			-- 		l_list.forth
+			-- 	end
 
-					-- Add all calls to the list of calls
-				from l_message_list.start
-				until l_message_list.after
-				loop
-					if is_nested_expression then
-							-- NESTED_EXPR_AS: the target is stored in variable 'nested_expr_target'
-						create l_nested_expr_call.initialize (nested_expr_target, l_message_list.item, Void)
-						l_nested_expr_call.set_breakpoint_slot (current_breakpoint_slot)
-						add_call (l_nested_expr_call, current_breakpoint_slot)
-					else
-							-- NESTED_AS: the target is stored in local variable l_target_call
-						create l_nested_call.initialize (l_target_call, l_message_list.item, Void)
-						l_nested_call.set_breakpoint_slot (current_breakpoint_slot)
-						add_call (l_nested_call, current_breakpoint_slot)
-					end
-					l_message_list.forth
-				end
+			-- 		-- Add all calls to the list of calls
+			-- 	from l_message_list.start
+			-- 	until l_message_list.after
+			-- 	loop
+			-- 		if is_nested_expression then
+			-- 				-- NESTED_EXPR_AS: the target is stored in variable 'nested_expr_target'
+			-- 			create l_nested_expr_call.initialize (nested_expr_target, l_message_list.item, Void)
+			-- 			l_nested_expr_call.set_breakpoint_slot (current_breakpoint_slot)
+			-- 			add_call (l_nested_expr_call, current_breakpoint_slot)
+			-- 		else
+			-- 				-- NESTED_AS: the target is stored in local variable l_target_call
+			-- 			create l_nested_call.initialize (l_target_call, l_message_list.item, Void)
+			-- 			l_nested_call.set_breakpoint_slot (current_breakpoint_slot)
+			-- 			add_call (l_nested_call, current_breakpoint_slot)
+			-- 		end
+			-- 		l_message_list.forth
+			-- 	end
 
-			end
+			-- end
 		end
 
 	put_nesting_stack
@@ -291,44 +287,12 @@ feature -- Visitor Routines
 			precursor (a_as)
 		end
 
-	process_bang_creation_expr_as (a_as: BANG_CREATION_EXPR_AS)
+	process_creation_expr_as (a_as: CREATION_EXPR_AS)
 		do
-			add_call (a_as, a_as.breakpoint_slot)
-			safe_process (a_as.call.internal_parameters)
-		end
-
-	process_create_creation_expr_as (a_as: CREATE_CREATION_EXPR_AS)
-		do
-			add_call (a_as, a_as.breakpoint_slot)
-			safe_process (a_as.call.internal_parameters)
-		end
-
-	process_nested_as (a_as: NESTED_AS)
-		do
---			TODO: wrap feature body with this if-clause
---			if allowed_variables.has (a_as.target.access_name) then
-					-- Only add calls if the target of the nested call is a variable that is allowed to access
---			end
-
-
-			if is_nesting then
-				 	-- In this case, no calls have to be added to the list of calls
-				 precursor (a_as)
-
-			else
-					-- Set flag that it's a NESTED_AS, enter nesting
-				is_nested_expression := False
-				enter_nesting
-
-				precursor (a_as)
-
-					-- Add nested calls if it's not part of a NESTED_EXPR_AS, exit nesting
-				if not is_nested_expression then
-					current_breakpoint_slot := a_as.breakpoint_slot
-					exit_nesting
-				end
-
-			end
+			-- TODO: Add support if needed
+			check False then end
+			-- add_call (a_as, a_as.breakpoint_slot)
+			-- safe_process (a_as.call.internal_parameters)
 		end
 
 	process_nested_expr_as (a_as: NESTED_EXPR_AS)
@@ -357,27 +321,27 @@ feature -- Visitor Routines
 
 	process_creation_as (a_as: CREATION_AS)
 		local
-			l_nested_as: NESTED_AS
-			l_id: ID_AS
-			l_feat_call: ACCESS_FEAT_AS
+			-- l_nested_as: NESTED_EXPR_AS
+			-- l_id: ID_AS
+			-- l_feat_call: ACCESS_FEAT_AS
 		do
-			if a_as.call /= Void then
+			-- if a_as.call /= Void then
 
-				if allowed_variables.has (a_as.target.access_name) then
-						-- A creation instruction of the form "create target.creation_procedure" is added as a nested_as
-					create l_nested_as.initialize (a_as.target, a_as.call, Void)
-				end
+			-- 	if allowed_variables.has (a_as.target.access_name) then
+			-- 			-- A creation instruction of the form "create target.creation_procedure" is added as a nested_as
+			-- 		create l_nested_as.initialize (a_as.target, a_as.call, Void)
+			-- 	end
 
-			else
-					-- For a creation instruction of the form "create target", add a dummy message "default_create" to a nested_as.
-				create l_id.initialize ("default_create")
-				create l_feat_call.initialize (l_id, Void)
-				create l_nested_as.initialize (a_as.target, l_feat_call, Void)
-			end
+			-- else
+			-- 		-- For a creation instruction of the form "create target", add a dummy message "default_create" to a nested_as.
+			-- 	create l_id.initialize ("default_create")
+			-- 	create l_feat_call.initialize (l_id, Void)
+			-- 	create l_nested_as.initialize (a_as.target, l_feat_call, Void)
+			-- end
 
-				-- Set breakpoint slot and process the created nested call
-			l_nested_as.set_breakpoint_slot (a_as.breakpoint_slot)
-			l_nested_as.process (Current)
+			-- 	-- Set breakpoint slot and process the created nested call
+			-- l_nested_as.set_breakpoint_slot (a_as.breakpoint_slot)
+			-- l_nested_as.process (Current)
 		end
 
 	process_parameter_list_as (a_as: PARAMETER_LIST_AS)

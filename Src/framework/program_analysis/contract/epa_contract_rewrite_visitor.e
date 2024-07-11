@@ -10,7 +10,7 @@ class
 inherit
 	EPA_AST_PRINTER
 		redefine
-			process_nested_as,
+			process_nested_expr_as,
 			process_current_as,
 			process_access_feat_as,
 			append_string,
@@ -62,7 +62,7 @@ feature -- Basic operation
 
 feature{NONE} -- Process
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		local
 			l_parts: LIST [STRING]
 			l_final_name: STRING

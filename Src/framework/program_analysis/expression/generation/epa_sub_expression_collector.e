@@ -21,7 +21,6 @@ inherit
 			process_result_as,
 			process_access_inv_as,
 			process_eiffel_list,
-				-- process_nested_as,
 			process_nested_expr_as,
 			process_integer_as
 		end
@@ -353,14 +352,6 @@ feature --  Visitor routine
 				-- print ("EPA_SUB_EXPRESSION_COLLECTOR.process_nested_expr_as%N")
 			enter_nested
 			precursor (l_as)
-			exit_nested
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-			-- <Precursor>
-		do
-			enter_nested
-			precursor(l_as)
 			exit_nested
 		end
 

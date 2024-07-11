@@ -28,7 +28,7 @@ inherit
 
 	AST_ITERATOR
 		redefine
-			process_nested_as,
+			process_nested_expr_as,
 			process_void_as,
 			process_bool_as,
 			process_integer_as,
@@ -780,7 +780,7 @@ feature{NONE} -- Process
 
 	is_in_nested: BOOLEAN
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		local
 			l_nested_prefix: STRING
 			l_index: INTEGER

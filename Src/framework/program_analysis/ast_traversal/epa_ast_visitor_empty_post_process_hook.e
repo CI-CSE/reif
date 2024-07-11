@@ -27,22 +27,6 @@ feature -- Roundtrip
 		do
 		end
 
-	post_process_create_creation_as (l_as: CREATE_CREATION_AS)
-		do
-		end
-
-	post_process_bang_creation_as (l_as: BANG_CREATION_AS)
-		do
-		end
-
-	post_process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-		do
-		end
-
-	post_process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-		do
-		end
-
 feature -- Roundtrip
 
 	post_process_keyword_as (l_as: KEYWORD_AS)
@@ -163,10 +147,6 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 		do
 		end
 
-	post_process_nested_as (l_as: NESTED_AS)
-		do
-		end
-
 	post_process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 		end
@@ -187,11 +167,7 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 		do
 		end
 
-	post_process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
-		do
-		end
-
-	post_process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
+	post_process_feature_name (l_as: FEATURE_NAME)
 		do
 		end
 

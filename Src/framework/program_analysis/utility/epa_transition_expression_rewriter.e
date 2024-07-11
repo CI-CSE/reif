@@ -20,7 +20,6 @@ inherit
 			process_creation_as,
 			process_access_id_as,
 			process_access_feat_as,
-			process_nested_as,
 			process_nested_expr_as,
 			process_current_as,
 			output,
@@ -204,21 +203,6 @@ feature {AST_EIFFEL} -- Processing
 			output.append_string (ti_dot)
 			last_was_unqualified := false
 			process_child(l_as.message, l_as, 2)
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-		do
-			if not last_was_unqualified then
-				process_child (l_as.target, l_as, 1)
-				output.append_string (ti_dot)
-				process_child (l_as.message, l_as, 2)
-			else
-				process_child (l_as.target, l_as, 1)
-				last_was_unqualified := false
-				output.append_string (ti_dot)
-				process_child (l_as.message, l_as, 2)
-				last_was_unqualified := true
-			end
 		end
 
 	process_current_as (l_as: CURRENT_AS)

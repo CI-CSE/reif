@@ -33,7 +33,7 @@ inherit
 			process_paran_as,
 			process_binary_as,
 			process_unary_as,
-			process_nested_as
+			process_nested_expr_as
 		end
 
 	REFACTORING_HELPER
@@ -208,7 +208,7 @@ feature -- Roundtrip: process leaf
 			l_as.expr.process (Current)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			l_as.target.process (Current)
 			append_string (".")

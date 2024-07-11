@@ -22,8 +22,6 @@ inherit
 			process_assign_as,
 			process_assigner_call_as,
 			process_attribute_as,
-			process_bang_creation_as,
-			process_bang_creation_expr_as,
 			process_bin_and_as,
 			process_bin_and_then_as,
 			process_bin_div_as,
@@ -65,8 +63,6 @@ inherit
 			process_convert_feat_list_as,
 			process_converted_expr_as,
 			process_create_as,
-			process_create_creation_as,
-			process_create_creation_expr_as,
 			process_creation_as,
 			process_creation_expr_as,
 			process_current_as,
@@ -85,7 +81,7 @@ inherit
 			process_expr_call_as,
 			process_external_as,
 			process_external_lang_as,
-			process_feat_name_id_as,
+			process_feature_name,
 			process_feature_as,
 			process_feature_clause_as,
 			process_feature_list_as,
@@ -101,7 +97,6 @@ inherit
 			process_if_as,
 			process_index_as,
 			process_indexing_clause_as,
-			process_infix_prefix_as,
 			process_inline_agent_creation_as,
 			process_inspect_as,
 			process_instr_call_as,
@@ -119,7 +114,6 @@ inherit
 			process_loop_as,
 			process_loop_expr_as,
 			process_named_tuple_type_as,
-			process_nested_as,
 			process_nested_expr_as,
 			process_none_id_as,
 			process_none_type_as,
@@ -202,34 +196,6 @@ feature -- Roundtrip
 			pre_process_inline_agent_creation_as (l_as)
 			Precursor (l_as)
 			post_process_inline_agent_creation_as (l_as)
-		end
-
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
-		do
-			pre_process_create_creation_as (l_as)
-			Precursor (l_as)
-			post_process_create_creation_as (l_as)
-		end
-
-	process_bang_creation_as (l_as: BANG_CREATION_AS)
-		do
-			pre_process_bang_creation_as (l_as)
-			Precursor (l_as)
-			post_process_bang_creation_as (l_as)
-		end
-
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
-		do
-			pre_process_create_creation_expr_as (l_as)
-			Precursor (l_as)
-			post_process_create_creation_expr_as (l_as)
-		end
-
-	process_bang_creation_expr_as (l_as: BANG_CREATION_EXPR_AS)
-		do
-			pre_process_bang_creation_expr_as (l_as)
-			Precursor (l_as)
-			post_process_bang_creation_expr_as (l_as)
 		end
 
 feature -- Roundtrip
@@ -439,13 +405,6 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 			post_process_nested_expr_as (l_as)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
-		do
-			pre_process_nested_as (l_as)
-			Precursor (l_as)
-			post_process_nested_as (l_as)
-		end
-
 	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 			pre_process_creation_expr_as (l_as)
@@ -481,18 +440,11 @@ feature {AST_EIFFEL} -- Skeleton Visitors
 			post_process_indexing_clause_as (l_as)
 		end
 
-	process_infix_prefix_as (l_as: INFIX_PREFIX_AS)
+	process_feature_name (l_as: FEATURE_NAME)
 		do
-			pre_process_infix_prefix_as (l_as)
+			pre_process_feature_name (l_as)
 			Precursor (l_as)
-			post_process_infix_prefix_as (l_as)
-		end
-
-	process_feat_name_id_as (l_as: FEAT_NAME_ID_AS)
-		do
-			pre_process_feat_name_id_as (l_as)
-			Precursor (l_as)
-			post_process_feat_name_id_as (l_as)
+			post_process_feature_name (l_as)
 		end
 
 	process_feature_name_alias_as (l_as: FEATURE_NAME_ALIAS_AS)

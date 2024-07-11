@@ -22,8 +22,7 @@ inherit
 			process_current_as,
 			process_void_as,
 			process_bool_as,
-			process_create_creation_expr_as,
-			process_nested_as,
+			process_creation_expr_as,
 			process_nested_expr_as,
 			process_access_feat_as,
 			process_precursor_as
@@ -108,14 +107,9 @@ feature{NONE} -- Processing
 			is_matched := False
 		end
 
-	process_create_creation_expr_as (l_as: CREATE_CREATION_EXPR_AS)
+	process_creation_expr_as (l_as: CREATION_EXPR_AS)
 		do
 			is_matched := False
-		end
-
-	process_nested_as (l_as: NESTED_AS)
-		do
-			check_expression (new_expression (l_as))
 		end
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)

@@ -37,7 +37,7 @@ feature -- Basic operations
 				-- Only match expression of type BOOLEAN.
 			if a_expression.is_predicate then
 				analyze_paranthesis_and_negation
-				if attached {NESTED_AS} ast as l_nested then
+				if attached {NESTED_EXPR_AS} ast as l_nested then
 						-- `expression' is in the form of "prefix.ABQ".						
 					create {EPA_AST_EXPRESSION} prefix_expression.make_with_text (
 						expression.class_,

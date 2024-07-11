@@ -15,7 +15,7 @@ inherit
 	AST_ITERATOR
 		redefine
 			process_result_as,
-			process_nested_as,
+			process_nested_expr_as,
 			process_object_test_as,
 			process_current_as,
 			process_void_as,
@@ -207,7 +207,7 @@ feature{NONE} -- Process
 			end
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			fixme ("Support this later. 11.30.2009 Jasonw")
 			is_suitable_as_invariant := False

@@ -19,7 +19,7 @@ inherit
 			process_access_inv_as,
 			process_binary_as,
 			process_parameter_list_as,
-			process_nested_as
+			process_nested_expr_as
 		end
 
 	EPA_ARGUMENTLESS_PRIMITIVE_FEATURE_FINDER
@@ -179,7 +179,7 @@ feature{NONE} -- Implementation
 			-- Feature from `context_class' under process.
 
 	is_nesting: BOOLEAN
-			-- Is processing inside an {NESTED_AS} node?
+			-- Is processing inside an {NESTED_EXPR_AS} node?
 
 	nesting_stacks: LINKED_STACK[LINKED_STACK[STRING]]
 			-- Stacks for processing nested expressions.
@@ -213,7 +213,7 @@ feature --  Visitor routine
 			precursor(l_as)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- <Precursor>
 		do
 			enter_nesting
