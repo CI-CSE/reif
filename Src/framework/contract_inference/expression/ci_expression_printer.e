@@ -12,7 +12,7 @@ inherit
 
 	ETR_AST_STRUCTURE_PRINTER
 		redefine
-			process_nested_as
+			process_nested_expr_as
 		end
 
 	EPA_UTILITY
@@ -67,7 +67,7 @@ feature{NONE} -- Process
 
 feature{NONE} -- Process
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			if attached{CURRENT_AS} l_as.target then
 			else

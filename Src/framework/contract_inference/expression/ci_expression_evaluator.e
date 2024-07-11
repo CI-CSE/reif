@@ -29,7 +29,7 @@ inherit
 			process_bin_minus_as,
 			process_bin_plus_as,
 			process_access_feat_as,
-			process_nested_as,
+			process_nested_expr_as,
 			process_un_not_as,
 			process_bin_tilde_as,
 			process_bin_not_tilde_as,
@@ -472,7 +472,7 @@ feature{NONE} -- Implementation
 			process_expression (l_as)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			process_expression (l_as)
 		end

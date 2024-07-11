@@ -252,7 +252,7 @@ feature{NONE} -- Implementation
 				-- Analyze the structure of the expression.
 			l_expr := a_equation.expression
 
-			if attached {ID_AS} l_expr.ast or else attached {EXPR_CALL_AS} l_expr.ast or else attached {NESTED_AS} l_expr.ast then
+			if attached {ID_AS} l_expr.ast or else attached {EXPR_CALL_AS} l_expr.ast or else attached {NESTED_EXPR_AS} l_expr.ast then
 				l_value := a_equation.value
 				l_info := info_in_expression (l_expr)
 				if l_info /= Void then
