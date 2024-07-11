@@ -15,7 +15,7 @@ inherit
 			process_bin_not_tilde_as,
 			process_bool_as,
 			process_binary_as,
-			process_nested_as,
+			process_nested_expr_as,
 			process_void_as
 		end
 
@@ -104,7 +104,7 @@ feature{NONE} -- Process
 			check_as (l_as)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			check_as (l_as)
 --			process_child (l_as.target, l_as, 1)
