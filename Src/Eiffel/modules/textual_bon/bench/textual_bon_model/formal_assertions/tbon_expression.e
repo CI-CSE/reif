@@ -9,9 +9,6 @@ deferred class
 
 inherit
 	TBON_ASSERTION
-		redefine
-			process_to_informal_textual_bon
-		end
 
 feature -- Process
 	process_to_informal_textual_bon

@@ -10,7 +10,6 @@ class
 inherit
 	TBON_INFORMAL_CHART
 		redefine
-			process_to_textual_bon,
 			set_current_class
 		end
 

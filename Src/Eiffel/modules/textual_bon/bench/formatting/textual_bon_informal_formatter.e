@@ -11,7 +11,6 @@ inherit
 	TEXTUAL_BON_FORMATTER
 		redefine
 			class_cmd,
-			create_class_cmd,
 			generate_text
 		end
 

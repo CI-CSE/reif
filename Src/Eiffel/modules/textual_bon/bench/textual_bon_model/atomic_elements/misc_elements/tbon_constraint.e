@@ -9,9 +9,6 @@ deferred class
 
 inherit
 	TEXTUAL_BON_ELEMENT
-	redefine
-		process_to_informal_textual_bon
-	end
 
 feature -- Access
 	assertions: attached LIST[TBON_ASSERTION]

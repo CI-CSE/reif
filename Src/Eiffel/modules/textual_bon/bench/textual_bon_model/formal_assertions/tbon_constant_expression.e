@@ -9,9 +9,6 @@ class
 
 inherit
 	TBON_EXPRESSION
-		redefine
-			process_to_formal_textual_bon
-		end
 
 create
 	make_element

@@ -9,9 +9,6 @@ class
 
 inherit
 	TBON_INFORMAL_CHART
-		redefine
-			process_to_textual_bon
-		end
 
 create
 	make_element

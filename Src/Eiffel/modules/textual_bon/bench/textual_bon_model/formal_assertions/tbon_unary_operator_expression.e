@@ -10,7 +10,6 @@ class
 inherit
 	TBON_OPERATOR_EXPRESSION
 		redefine
-			process_to_formal_textual_bon,
 			operator
 		end
 

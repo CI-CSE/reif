@@ -9,10 +9,6 @@ class
 
 inherit
 	TBON_ASSERTION
-		redefine
-			process_to_informal_textual_bon,
-			process_to_formal_textual_bon
-		end
 
 create
 	make_element
