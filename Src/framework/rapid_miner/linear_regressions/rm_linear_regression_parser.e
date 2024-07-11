@@ -7,9 +7,7 @@ class
 	RM_LINEAR_REGRESSION_PARSER
 
 inherit
-	RM_LINEAR_REGRESSION_PARSER_INTERFACE redefine
-		parse_linear_regression
-	end
+	RM_LINEAR_REGRESSION_PARSER_INTERFACE
 
 create
 	make

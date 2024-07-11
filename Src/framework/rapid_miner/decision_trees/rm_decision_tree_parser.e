@@ -12,9 +12,6 @@ class
 
 inherit
 	RM_DECISION_TREE_PARSER_INTERFACE
-		redefine
-			parse
-		end
 
 create
 	make

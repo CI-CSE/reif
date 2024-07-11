@@ -9,10 +9,6 @@ class
 
 inherit
 	RM_BUILDER
-		redefine
-			parse_model,
-			parse_performance
-		end
 
 create
 	make,

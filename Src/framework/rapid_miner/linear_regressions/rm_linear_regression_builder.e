@@ -8,10 +8,7 @@ class
 	RM_LINEAR_REGRESSION_BUILDER
 
 inherit
-	RM_BUILDER	redefine
-		parse_model,
-		parse_performance
-	end
+	RM_BUILDER
 
 create
 	make,
