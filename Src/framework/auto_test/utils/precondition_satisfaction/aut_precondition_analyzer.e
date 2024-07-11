@@ -12,7 +12,7 @@ inherit
 		redefine
 			process_id_as,
 			process_access_feat_as,
-			process_nested_as,
+			process_nested_expr_as,
 			process_keyword_as,
 			process_symbol_as,
 			process_bool_as,
@@ -180,7 +180,7 @@ feature{NONE} -- Process
 			end
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		local
 			l_stack: DS_LINKED_STACK [BOOLEAN]
 		do

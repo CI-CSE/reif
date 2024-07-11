@@ -22,7 +22,7 @@ inherit
 
 	AST_ITERATOR
 		redefine
-			process_nested_as,
+			process_nested_expr_as,
 			process_binary_as
 		end
 
@@ -648,7 +648,7 @@ feature{NONE} -- Implementation
 			end
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		local
 			l_target: STRING
 			l_call: STRING
