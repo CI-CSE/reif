@@ -11,7 +11,6 @@ class
 inherit
 	EPA_EXPRESSION
 		redefine
-			type,
 			is_true_expression,
 			is_false_expression
 		end

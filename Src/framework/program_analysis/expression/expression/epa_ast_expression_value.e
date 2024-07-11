@@ -10,7 +10,6 @@ class
 inherit
 	EPA_EXPRESSION_VALUE
 		redefine
-			item,
 			is_ast_expression_value,
 			is_item_equal
 		end

@@ -10,7 +10,6 @@ class
 inherit
 	EPA_ACCESS
 		redefine
-			length,
 			is_feature
 		end
 

@@ -10,8 +10,6 @@ class
 inherit
 	EPA_EXPRESSION_VALUE
 		redefine
-			type,
-			item,
 			text,
 			out,
 			is_numeric_range

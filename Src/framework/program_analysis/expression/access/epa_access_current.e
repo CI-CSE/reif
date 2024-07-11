@@ -12,8 +12,7 @@ inherit
 		rename
 			make_with_class_feature as make
 		redefine
-			is_current,
-			length
+			is_current
 		end
 
 create

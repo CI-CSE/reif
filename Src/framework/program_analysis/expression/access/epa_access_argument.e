@@ -10,10 +10,7 @@ class
 inherit
 	EPA_ACCESS
 		redefine
-			is_argument,
-			length,
-			type,
-			text
+			is_argument
 		end
 
 create

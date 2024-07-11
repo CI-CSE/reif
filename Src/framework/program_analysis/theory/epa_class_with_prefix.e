@@ -10,8 +10,7 @@ class
 inherit
 	HASHABLE
 		redefine
-			is_equal,
-			hash_code
+			is_equal
 		end
 
 	EPA_THEORY_UTILITY

@@ -10,10 +10,8 @@ class
 inherit
 	EPA_QUANTIFIED_EXPRESSION
 		redefine
-			is_valid,
 			is_ast_available,
 			is_universal_quantified,
-			quantifier_name,
 			type
 		end
 

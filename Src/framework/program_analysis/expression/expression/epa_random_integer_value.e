@@ -12,8 +12,6 @@ inherit
 		undefine
 			is_integer,
 			as_integer
-		redefine
-			process
 		end
 
 	EPA_INTEGER_VALUE

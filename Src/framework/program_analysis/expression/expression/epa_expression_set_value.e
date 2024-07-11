@@ -10,8 +10,6 @@ class
 inherit
 	EPA_EXPRESSION_VALUE
 		redefine
-			item,
-			type,
 			out,
 			text
 		end

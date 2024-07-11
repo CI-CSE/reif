@@ -9,9 +9,6 @@ class
 
 inherit
 	EPA_BRANCHING_BLOCK
-		redefine
-			condition
-		end
 
 create
 	make

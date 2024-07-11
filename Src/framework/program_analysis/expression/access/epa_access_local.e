@@ -10,9 +10,7 @@ class
 inherit
 	EPA_ACCESS
 		redefine
-			is_local,
-			length,
-			type
+			is_local
 		end
 
 	EPA_SHARED_EXPR_TYPE_CHECKER

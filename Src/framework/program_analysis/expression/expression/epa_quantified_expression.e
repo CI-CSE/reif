@@ -12,9 +12,7 @@ inherit
 		undefine
 			text_in_context
 		redefine
-			is_quantified,
-			text,
-			ast
+			is_quantified
 		end
 
 feature{NONE} -- Initialization

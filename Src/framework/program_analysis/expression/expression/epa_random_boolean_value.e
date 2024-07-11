@@ -14,8 +14,6 @@ inherit
 			as_boolean,
 			is_true_boolean,
 			is_false_boolean
-		redefine
-			process
 		end
 
 	EPA_BOOLEAN_VALUE

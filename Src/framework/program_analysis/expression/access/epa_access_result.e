@@ -12,8 +12,7 @@ inherit
 		rename
 			make_with_class_feature as make
 		redefine
-			is_result,
-			length
+			is_result
 		end
 
 create
