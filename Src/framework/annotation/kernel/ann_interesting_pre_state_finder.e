@@ -11,8 +11,8 @@ inherit
 	AST_ITERATOR
 		redefine
 			process_access_id_as,
-			process_create_creation_as,
-			process_nested_as,
+			process_creation_as,
+			process_nested_expr_as,
 			process_assign_as,
 			process_assigner_call_as,
 			process_access_feat_as,
@@ -63,12 +63,12 @@ feature -- Process operations
 			process_access_feat_as (l_as)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 		do
 			-- Nothing to be done
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			is_nested := True
 			l_as.target.process (Current)
@@ -137,6 +137,6 @@ feature {NONE} -- Implementation
 			-- AST which is used to collect interesting variables
 
 	is_nested: BOOLEAN
-			-- Is the current node part of a NESTED_AS node?
+			-- Is the current node part of a NESTED_EXPR_AS node?
 
 end
