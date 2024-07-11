@@ -13,7 +13,6 @@ inherit
 			processing_access_feat_as,
 			process_current_as,
 			process_eiffel_list,
-			process_nested_as,
 			process_nested_expr_as
 		end
 
@@ -112,16 +111,6 @@ feature{NONE} -- Data structures for processing nested
 		end
 
 feature -- Visitor routine
-
-	process_nested_as (l_as: NESTED_AS)
-			-- <Precursor>
-			-- Refer to {NESTED_BL}.generate for calculating breakpoint nested indexes.
-		do
-			l_as.target.process (Current)
-			enter_nested
-			l_as.message.process (Current)
-			exit_nested
-		end
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- <Precursor>

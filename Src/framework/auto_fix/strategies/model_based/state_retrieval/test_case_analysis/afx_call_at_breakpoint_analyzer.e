@@ -15,7 +15,6 @@ inherit
 			process_current_as,
 			process_result_as,
 			process_eiffel_list,
-			process_nested_as,
 			process_nested_expr_as
 		end
 
@@ -109,18 +108,6 @@ feature -- Basic operation
 		end
 
 feature --  Visitor routine (Ref: AST_DEBUGGER_BREAKABLE_STRATEGY)
-
-	process_nested_as (l_as: NESTED_AS)
-			-- <Precursor>
-			-- Refer to {NESTED_BL}.generate for calculating breakpoint nested indexes.
-		do
-			l_as.target.process (Current)
-			enter_nested
-			current_nested_expression_stack.put (text_from_ast(l_as.target))
-			current_nested_breakpoint_index := current_nested_breakpoint_index + 1
-			l_as.message.process (Current)
-			exit_nested
-		end
 
 	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- <Precursor>
@@ -274,9 +261,10 @@ feature{NONE} -- Implementation
 				if attached {ACCESS_FEAT_AS} a_message as lt_access then
 					l_feature_name := lt_access.access_name_8
 					l_parameters := lt_access.parameters
-				elseif attached {NESTED_AS} a_message as lt_nested then
-					l_feature_name := lt_nested.target.access_name_8
-					l_parameters := lt_nested.target.parameters
+				elseif attached {NESTED_EXPR_AS} a_message as lt_nested then
+					check False then end
+					-- l_feature_name := lt_nested.target.access_name_8
+					-- l_parameters := lt_nested.target.parameters
 				end
 
 				create l_expr.make_with_text (caller_class, caller_feature, a_target, caller_feature.written_class)
