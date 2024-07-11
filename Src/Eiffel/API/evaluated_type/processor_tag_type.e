@@ -14,8 +14,7 @@ inherit
 		undefine
 			default_create
 		redefine
-			is_equal,
-			is_less
+			is_equal
 		end
 
 create
