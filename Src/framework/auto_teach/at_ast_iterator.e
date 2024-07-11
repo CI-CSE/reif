@@ -53,8 +53,6 @@ inherit
 			process_assigner_call_as,
 			process_check_as,
 			process_creation_as,
-			process_create_creation_as,
-			process_bang_creation_as,
 			process_debug_as,
 			process_guard_as,
 			process_instr_call_as,
@@ -835,22 +833,6 @@ feature {AST_EIFFEL} -- Instructions visitors
 		end
 
 	process_creation_as (a_as: CREATION_AS)
-			-- Process `a_as'.
-		do
-			instruction_pre (a_as)
-			Precursor (a_as)
-			instruction_post (a_as)
-		end
-
-	process_create_creation_as (a_as: CREATE_CREATION_AS)
-			-- Process `a_as'.
-		do
-			instruction_pre (a_as)
-			Precursor (a_as)
-			instruction_post (a_as)
-		end
-
-	process_bang_creation_as (a_as: BANG_CREATION_AS)
 			-- Process `a_as'.
 		do
 			instruction_pre (a_as)
