@@ -13,8 +13,8 @@ inherit
 			{AST_EIFFEL} all
 		redefine
 			process_access_id_as,
-			process_create_creation_as,
-			process_nested_as,
+			process_creation_as,
+			process_nested_expr_as,
 			process_assign_as,
 			process_assigner_call_as,
 			process_access_feat_as,
@@ -312,7 +312,7 @@ feature {AST_EIFFEL} -- Roundtrip
 			process_access_feat_as (l_as)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 			-- Process `l_as'.
 		do
 			-- Add the target of the creation procedure to the set of variables.
@@ -323,7 +323,7 @@ feature {AST_EIFFEL} -- Roundtrip
 			end
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- Process `l_as'.
 		do
 			-- Set `is_nested_node' to "True" to indicate the presence of a qualified feature call.
@@ -394,7 +394,7 @@ feature {NONE} -- Implementation
 feature {NONE} -- Implementation
 
 	is_nested_node: BOOLEAN
-			-- Is the currently processed node part of a NESTED_AS node?
+			-- Is the currently processed node part of a NESTED_EXPR_AS node?
 
 	is_assigner_call_node: BOOLEAN
 			-- Is the currently processed node part of a ASSIGNER_CALL_AS node?

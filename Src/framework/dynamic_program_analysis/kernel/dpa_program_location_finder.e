@@ -14,8 +14,8 @@ inherit
 			{AST_EIFFEL} all
 		redefine
 			process_access_id_as,
-			process_create_creation_as,
-			process_nested_as,
+			process_creation_as,
+			process_nested_expr_as,
 			process_assign_as,
 			process_assigner_call_as,
 			process_access_feat_as,
@@ -102,14 +102,14 @@ feature {AST_EIFFEL} -- Roundtrip
 			process_access_feat_as (l_as)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 			-- Process `l_as'.
 		do
 			-- Store breakpoint of `l_as'.
 			last_program_locations.force_last (l_as.breakpoint_slot)
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 			-- Process `l_as'.
 		do
 			l_as.target.process (Current)
