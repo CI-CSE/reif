@@ -12,14 +12,11 @@ inherit
 	HASHABLE
 		undefine
 			is_equal
-		redefine
-			hash_code
 		end
 
 	COMPARABLE
 		redefine
-			is_equal,
-			is_less
+			is_equal
 		end
 
 feature {NONE} -- Initialization - to be used by descendants

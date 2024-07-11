@@ -10,9 +10,6 @@ expanded class
 inherit
 
 	AT_ENUM_VALUE
-		redefine
-			enum_type
-		end
 
 create
 	default_create, make_with_numerical_value, make_with_value_name

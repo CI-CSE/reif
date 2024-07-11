@@ -10,9 +10,6 @@ class
 inherit
 
 	AT_ENUM [AT_PLACEHOLDER]
-		redefine
-			name
-		end
 
 feature -- Access
 

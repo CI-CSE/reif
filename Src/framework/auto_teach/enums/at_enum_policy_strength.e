@@ -10,9 +10,6 @@ class
 inherit
 
 	AT_ENUM [AT_POLICY_STRENGTH]
-		redefine
-			name
-		end
 
 feature -- Access
 
