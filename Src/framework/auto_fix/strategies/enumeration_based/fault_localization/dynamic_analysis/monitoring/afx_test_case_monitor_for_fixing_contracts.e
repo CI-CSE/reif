@@ -11,7 +11,6 @@ inherit
 
 	AFX_EXECUTION_MONITOR
 		redefine
-			on_application_exception,
 			on_breakpoint_hit_in_test_case
 		end
 

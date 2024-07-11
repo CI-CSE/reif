@@ -9,9 +9,6 @@ class
 
 inherit
 	AFX_EXCEPTION_SIGNATURE
-		redefine
-			analyze_exception_condition
-		end
 
 create make
 
