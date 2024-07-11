@@ -10,7 +10,6 @@ class
 inherit
 	IR_VALUE
 		redefine
-			item,
 			is_integer_range,
 			is_equal
 		end

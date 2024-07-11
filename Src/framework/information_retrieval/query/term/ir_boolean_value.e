@@ -10,7 +10,6 @@ class
 inherit
 	IR_VALUE
 		redefine
-			item,
 			is_boolean_value,
 			is_equal
 		end
