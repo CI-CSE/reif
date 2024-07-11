@@ -14,7 +14,7 @@ inherit
 			process_eiffel_list,
 			process_assign_as,
 			process_assigner_call_as,
-			process_create_creation_as,
+			process_creation_as,
 			process_instr_call_as,
 			process_if_as,
 			process_object_test_as
@@ -85,7 +85,7 @@ feature {NONE}
 			-- foo.bar := baz  ->  handle as: foo.set_bar(baz)
 			if
 				attached {EXPR_CALL_AS} a_node.target as l_target1 and then                               -- foo.bar
-				attached {NESTED_AS} l_target1.call as l_target2 and then                                 -- foo.bar
+				attached {NESTED_EXPR_AS} l_target1.call as l_target2 and then                                 -- foo.bar
 				attached get_alias_info (Void, l_target2.target) as l_foo and then                        -- foo
 				attached {ACCESS_FEAT_AS} l_target2.message as l_bar and then                             -- bar
 				attached l_foo.alias_object.type.base_class as l_c and then                               -- class of bar
@@ -99,7 +99,7 @@ feature {NONE}
 			end
 		end
 
-	process_create_creation_as (a_node: CREATE_CREATION_AS)
+	process_creation_as (a_node: CREATION_AS)
 		do
 			if
 				attached get_alias_info (Void, a_node.target) as l_target and then
@@ -194,7 +194,7 @@ feature {NONE} -- utilities
 					)
 			elseif attached {CURRENT_AS} a_node as l_node then
 				create Result.make_object (alias_graph.stack_top.current_object)
-			elseif attached {CREATE_CREATION_EXPR_AS} a_node as l_node then
+			elseif attached {CREATION_EXPR_AS} a_node as l_node then
 				if
 					attached {CLASS_TYPE_AS} l_node.type as l_type and then
 					attached System.eiffel_universe.classes_with_name (l_type.class_name.name_8) as l_classes and then
@@ -236,7 +236,7 @@ feature {NONE} -- utilities
 							l_node.access_name_8
 						)
 				end
-			elseif attached {NESTED_AS} a_node as l_node then
+			elseif attached {NESTED_EXPR_AS} a_node as l_node then
 				if
 					attached get_alias_info (a_target, l_node.target) as l_target and then
 					l_target.is_variable
