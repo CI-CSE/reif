@@ -19,6 +19,18 @@ inherit
 
 feature {BYTE_NODE} -- Visitors
 
+	process_case_expression_b (a_node: CASE_EXPRESSION_B)
+		do
+			-- TODO: Add support if needed
+			check False then end
+		end
+
+	process_inspect_expression_b (a_node: INSPECT_EXPRESSION_B)
+		do
+			-- TODO: Add support if needed
+			check False then end
+		end
+
 	process_access_expr_b (a_node: ACCESS_EXPR_B)
 			-- Process `a_node'.
 		do
