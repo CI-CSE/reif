@@ -10,11 +10,7 @@ class
 inherit
 	EGX_GRAPH_VISITOR [N, L]
 		redefine
-			graph,
-			before,
-			after,
-			node,
-			is_visit_prepared
+			graph
 		end
 
 create

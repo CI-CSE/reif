@@ -12,7 +12,6 @@ inherit
 		redefine
 			node_type,
 			edge_type,
-			nodes,
 			set_node_equality_tester,
 			is_node_equality_tester_settable
 		end
