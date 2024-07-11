@@ -12,9 +12,6 @@ class
 
 inherit
 	AUT_PREDICATE
-		redefine
-			is_linear_solvable
-		end
 
 create
 	make

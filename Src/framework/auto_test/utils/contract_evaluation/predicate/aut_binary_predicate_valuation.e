@@ -9,9 +9,6 @@ class
 
 inherit
 	AUT_PREDICATE_VALUATION
-		redefine
-			count
-		end
 
 create
 	make

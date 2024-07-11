@@ -15,9 +15,6 @@ inherit
 		rename
 			make as make_request,
 			feature_to_call as creation_procedure
-		redefine
-			creation_procedure,
-			is_creation
 		end
 
 	INTERNAL_COMPILER_STRING_EXPORTER

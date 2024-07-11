@@ -16,8 +16,6 @@ inherit
 		rename
 			make as make_request,
 			feature_to_call as agent_feature
-		redefine
-			agent_feature
 		end
 
 	ERL_G_TYPE_ROUTINES

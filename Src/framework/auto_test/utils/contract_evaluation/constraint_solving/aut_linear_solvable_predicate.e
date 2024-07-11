@@ -11,8 +11,6 @@ inherit
 	AUT_PREDICATE
 		rename
 			make as old_make
-		redefine
-			is_linear_solvable
 		end
 
 create

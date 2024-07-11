@@ -9,9 +9,6 @@ class
 
 inherit
 	AUT_WITNESS_OBSERVER
-		redefine
-			system
-		end
 
 create
 	make

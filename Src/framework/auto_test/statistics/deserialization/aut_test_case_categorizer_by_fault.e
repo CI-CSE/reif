@@ -9,10 +9,6 @@ class
 
 inherit
 	AUT_TEST_CASE_CATEGORIZER
-		redefine
-			on_deserialization_started,
-			on_deserialization_finished
-		end
 
 create
 	make

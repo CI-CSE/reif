@@ -10,9 +10,6 @@ class AUT_REQUEST_PRINTER
 inherit
 
 	AUT_REQUEST_PROCESSOR
-		redefine
-			process_batch_assignment_request
-		end
 
 	KL_SHARED_STREAMS
 		export {NONE} all end
