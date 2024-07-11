@@ -20,9 +20,6 @@ inherit
 		end
 
 	ES_ADB_INTERFACE_STRINGS
-		redefine
-			is_equal
-		end
 
 	HASHABLE
 		redefine
