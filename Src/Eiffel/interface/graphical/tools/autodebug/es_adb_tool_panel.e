@@ -337,10 +337,10 @@ feature{NONE} -- Implementation
 			end
 		end
 
-	notify_project_loaded_agent: PROCEDURE [ANY, TUPLE]
+	notify_project_loaded_agent: PROCEDURE [TUPLE]
 			-- Agent of `notify_project_loaded'
 
-	notify_project_unloaded_agent: PROCEDURE [ANY, TUPLE]
+	notify_project_unloaded_agent: PROCEDURE [TUPLE]
 			-- Agent of `notify_project_unloaded'
 
 feature -- Title change

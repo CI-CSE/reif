@@ -17,7 +17,7 @@ feature -- Access
 
 feature -- Query
 
-	filtered_faults (a_filter: PREDICATE[ANY, TUPLE[ES_ADB_FAULT]]): DS_ARRAYED_LIST [ES_ADB_FAULT]
+	filtered_faults (a_filter: PREDICATE[ES_ADB_FAULT]): DS_ARRAYED_LIST [ES_ADB_FAULT]
 			-- List of faults satisfying `a_filter'.
 		local
 			l_cursor: DS_HASH_TABLE_CURSOR [ES_ADB_FAULT, EPA_TEST_CASE_SIGNATURE]

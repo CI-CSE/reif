@@ -112,7 +112,7 @@ feature {NONE} -- Actions
 
 feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 
-	on_project_loaded_agent: PROCEDURE [ANY, TUPLE]
+	on_project_loaded_agent: PROCEDURE [TUPLE]
 			-- Agent of on_project_loaded.
 		do
 			if on_project_loaded_agent_internal = Void then
@@ -121,7 +121,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_project_loaded_agent_internal
 		end
 
-	on_project_unloaded_agent: PROCEDURE [ANY, TUPLE]
+	on_project_unloaded_agent: PROCEDURE [TUPLE]
 			-- Agent of on_project_unloaded.
 		do
 			if on_project_unloaded_agent_internal = Void then
@@ -130,7 +130,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_project_unloaded_agent_internal
 		end
 
-	on_compile_start_agent: PROCEDURE [ANY, TUPLE]
+	on_compile_start_agent: PROCEDURE [TUPLE]
 			-- Agent of on_compile_start
 		do
 			if on_compile_start_agent_internal = Void then
@@ -139,7 +139,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_compile_start_agent_internal
 		end
 
-	on_compile_stop_agent: PROCEDURE [ANY, TUPLE]
+	on_compile_stop_agent: PROCEDURE [TUPLE]
 			-- Agent of on_compile_stop
 		do
 			if on_compile_stop_agent_internal = Void then
@@ -148,7 +148,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_compile_stop_agent_internal
 		end
 
-	on_debugging_start_agent: PROCEDURE [ANY, TUPLE]
+	on_debugging_start_agent: PROCEDURE [TUPLE]
 			-- Agent of on_debugging_start
 		do
 			if on_debugging_start_agent_internal = Void then
@@ -157,7 +157,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_debugging_start_agent_internal
 		end
 
-	on_debugging_stop_agent: PROCEDURE [ANY, TUPLE]
+	on_debugging_stop_agent: PROCEDURE [TUPLE]
 			-- Agent of on_debugging_stop
 		do
 			if on_debugging_stop_agent_internal = Void then
@@ -166,7 +166,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_debugging_stop_agent_internal
 		end
 
-	on_testing_start_agent: PROCEDURE [ANY, TUPLE]
+	on_testing_start_agent: PROCEDURE [TUPLE]
 		do
 			if on_testing_start_agent_internal = Void then
 				on_testing_start_agent_internal := agent on_testing_start
@@ -174,7 +174,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_testing_start_agent_internal
 		end
 
-	on_test_case_generated_agent: PROCEDURE [ANY, TUPLE[ES_ADB_TEST]]
+	on_test_case_generated_agent: PROCEDURE [ES_ADB_TEST]
 		do
 			if on_test_case_generated_agent_internal = Void then
 				on_test_case_generated_agent_internal := agent on_test_case_generated
@@ -182,7 +182,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_test_case_generated_agent_internal
 		end
 
-	on_testing_stop_agent: PROCEDURE [ANY, TUPLE]
+	on_testing_stop_agent: PROCEDURE [TUPLE]
 		do
 			if on_testing_stop_agent_internal = Void then
 				on_testing_stop_agent_internal := agent on_testing_stop
@@ -190,7 +190,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_testing_stop_agent_internal
 		end
 
-	on_fixing_start_agent: PROCEDURE [ANY, TUPLE[ES_ADB_FAULT]]
+	on_fixing_start_agent: PROCEDURE [ES_ADB_FAULT]
 		do
 			if on_fixing_start_agent_internal = Void then
 				on_fixing_start_agent_internal := agent on_fixing_fault_start
@@ -198,7 +198,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_fixing_start_agent_internal
 		end
 
-	on_fixing_stop_agent: PROCEDURE [ANY, TUPLE]
+	on_fixing_stop_agent: PROCEDURE [TUPLE]
 		do
 			if on_fixing_stop_agent_internal = Void then
 				on_fixing_stop_agent_internal := agent on_fixing_stop
@@ -206,7 +206,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_fixing_stop_agent_internal
 		end
 
-	on_continuation_debugging_start_agent: PROCEDURE [ANY, TUPLE]
+	on_continuation_debugging_start_agent: PROCEDURE [TUPLE]
 		do
 			if on_continuation_debugging_start_agent_internal = Void then
 				on_continuation_debugging_start_agent_internal := agent on_continuation_debugging_start
@@ -214,7 +214,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_continuation_debugging_start_agent_internal
 		end
 
-	on_continuation_debugging_stop_agent: PROCEDURE [ANY, TUPLE]
+	on_continuation_debugging_stop_agent: PROCEDURE [TUPLE]
 		do
 			if on_continuation_debugging_stop_agent_internal = Void then
 				on_continuation_debugging_stop_agent_internal := agent on_continuation_debugging_stop
@@ -222,7 +222,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_continuation_debugging_stop_agent_internal
 		end
 
-	on_valid_fix_found_agent: PROCEDURE [ANY, TUPLE[ES_ADB_FIX]]
+	on_valid_fix_found_agent: PROCEDURE [ES_ADB_FIX]
 		do
 			if on_valid_fix_found_agent_internal = Void then
 				on_valid_fix_found_agent_internal := agent on_valid_fix_found
@@ -230,7 +230,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_valid_fix_found_agent_internal
 		end
 
-	on_fix_applied_agent: PROCEDURE [ANY, TUPLE[ES_ADB_FIX]]
+	on_fix_applied_agent: PROCEDURE [ES_ADB_FIX]
 		do
 			if on_fix_applied_agent_internal = Void then
 				on_fix_applied_agent_internal := agent on_fix_applied
@@ -238,7 +238,7 @@ feature {ES_ADB_ACTION_PUBLISHER} -- Agents
 			Result := on_fix_applied_agent_internal
 		end
 
-	on_output_agent: PROCEDURE [ANY, TUPLE [STRING]]
+	on_output_agent: PROCEDURE [STRING]
 		do
 			if on_output_agent_internal = Void then
 				on_output_agent_internal := agent on_output

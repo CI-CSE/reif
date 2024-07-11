@@ -54,7 +54,7 @@ feature -- Execution environment
 
 feature -- Query on grid rows
 
-	first_row (a_grid: EV_GRID; a_criterion: PREDICATE[ANY, TUPLE [EV_GRID_ROW]]): INTEGER
+	first_row (a_grid: EV_GRID; a_criterion: PREDICATE[TUPLE [EV_GRID_ROW]]): INTEGER
 			-- Index of the first row in `a_grid' satisfying `a_criterion'.
 			-- Return 0 if no such row.
 		require
@@ -78,7 +78,7 @@ feature -- Query on grid rows
 			end
 		end
 
-	first_subrow (a_row: EV_GRID_ROW; a_criterion: PREDICATE [ANY, TUPLE[EV_GRID_ROW]]): INTEGER
+	first_subrow (a_row: EV_GRID_ROW; a_criterion: PREDICATE [TUPLE[EV_GRID_ROW]]): INTEGER
 			-- Index of the first subrow in `a_row' satisfying `a_criterion'.
 			-- Return 0 if no such subrow.
 		require
@@ -104,7 +104,7 @@ feature -- Query on grid rows
 
 feature -- Access
 
-	show_error_message (a_error_agent: FUNCTION [ANY, TUPLE, EB_METRIC_ERROR]; a_clear_error_agent: PROCEDURE [ANY, TUPLE]; a_window: EV_WINDOW)
+	show_error_message (a_error_agent: FUNCTION [TUPLE, EB_METRIC_ERROR]; a_clear_error_agent: PROCEDURE [TUPLE]; a_window: EV_WINDOW)
 			-- Show error message retrieved from `a_error_agent' if any in `a_window'.
 			-- And then clear error by calling `a_clear_error_agent'.
 		require
@@ -154,7 +154,7 @@ feature{NONE} -- Copy project implementation
 			Result := a_entry /~ "CVS" and then a_entry /~ ".svn" and then a_entry /~ "EIFGENs"
 		end
 
-	copy_recursive (a_source_directory_name, a_target_directory_name: READABLE_STRING_GENERAL; a_filter: PREDICATE [ANY, TUPLE [STRING]])
+	copy_recursive (a_source_directory_name, a_target_directory_name: READABLE_STRING_GENERAL; a_filter: PREDICATE [TUPLE [STRING]])
 			-- Copy `a_source_directory_name' to `a_target_directory_name' recursively.
 			-- Only directories with named satisfying `a_filter' will be copied.
 		require

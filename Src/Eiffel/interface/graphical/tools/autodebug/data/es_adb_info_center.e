@@ -24,8 +24,6 @@ inherit
 
 	EPA_UTILITY
 
-	SHARED_PLATFORM_CONSTANTS
-
 create
 	make
 

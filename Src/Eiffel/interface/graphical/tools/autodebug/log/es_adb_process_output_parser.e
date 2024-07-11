@@ -10,9 +10,6 @@ class
 inherit
 	ES_ADB_SHARED_INFO_CENTER
 
-	SHARED_PLATFORM_CONSTANTS
-
-
 create
 	make
 
@@ -228,11 +225,11 @@ feature{NONE} -- Implementation
 	eol_character: CHARACTER
 			-- EOL character.
 		once
-			if platform_constants.is_windows then
+			if {PLATFORM}.is_windows then
 				Result := '%N'
-			elseif platform_constants.is_unix then
+			elseif {PLATFORM}.is_unix then
 				Result := '%N'
-			elseif platform_constants.is_mac then
+			elseif {PLATFORM}.is_mac then
 				Result := '%R'
 			end
 		end
