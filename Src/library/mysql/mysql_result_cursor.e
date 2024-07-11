@@ -9,10 +9,6 @@ class
 
 inherit
 	ITERATION_CURSOR [ARRAY [STRING]]
-		redefine
-			item,
-			after
-		end
 
 create
 	make
