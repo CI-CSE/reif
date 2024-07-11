@@ -903,7 +903,6 @@ feature {TBON_CLASS} -- Expression handling
 			-- Makes a TBON_EXPRESISON from a CALL_AS
 		local
 			l_access: ACCESS_AS
-			l_nested: NESTED_AS
 			l_nested_expr: NESTED_EXPR_AS
 			--
 			l_expr: TBON_CONSTANT_EXPRESSION
@@ -911,14 +910,11 @@ feature {TBON_CLASS} -- Expression handling
 			panic_expr: TBON_CONSTANT_EXPRESSION
 		do
 			l_access ?= l_call_as
-			l_nested ?= l_call_as
 			l_nested_expr ?= l_call_as
 
 			if l_access /= Void then
 				create l_expr.make_element (associated_text_formatter_decorator, l_access.access_name_32)
 				Result:= l_expr
-			elseif l_nested /= Void then
-				Result := make_tbon_expression_from_access_as (l_nested.target)
 			elseif l_nested_expr /= Void then
 				Result := make_tbon_expression_from_expr_as (l_nested_expr.target)
 			end
