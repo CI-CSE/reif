@@ -13,9 +13,6 @@ inherit
 		end
 
 	EXT_CHECKER
-		redefine
-			passed_check
-		end
 
 create
 	make

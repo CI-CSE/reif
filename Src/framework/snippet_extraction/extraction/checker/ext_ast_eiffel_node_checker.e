@@ -167,9 +167,6 @@ inherit
 	EPA_UTILITY
 
 	EXT_CHECKER
-		redefine
-			passed_check
-		end
 
 	EXT_AST_NODE_CONSTANTS
 

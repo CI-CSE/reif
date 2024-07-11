@@ -8,8 +8,6 @@ class
 
 inherit
 	COMPARABLE
-		redefine
-			is_less
 		select
 			is_equal
 		end
