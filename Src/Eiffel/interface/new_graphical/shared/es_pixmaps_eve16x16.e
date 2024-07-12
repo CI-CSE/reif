@@ -174,7 +174,7 @@ feature -- Constants: Icon names
 
 feature {NONE} -- Basic operations
 
-	populate_coordinates_table (a_table: HASH_TABLE [TUPLE [x: NATURAL_8; y: NATURAL_8], STRING])
+	populate_coordinates_table (a_table: STRING_TABLE [TUPLE [x: NATURAL_8; y: NATURAL_8]])
 			-- <Precursor>
 		do
 			a_table.put ([{NATURAL_8} 1, {NATURAL_8} 1], weights_tiny_name)
