@@ -178,16 +178,6 @@ feature {NONE} -- Initialization
 				-- CA092: suspicious_interation_scheme
 			add_rule (create {CA_WRONG_LOOP_ITERATION_RULE}.make)
 
-				-- Sort rules by ID.
-			create l_rule_comparator.make (
-				agent (u, v: CA_RULE): BOOLEAN
-					do
-						Result := u.id < v.id
-					end
-			)
-			create l_rule_sorter.make (l_rule_comparator)
-			l_rule_sorter.sort (rules)
-
 			settings.initialize_rule_settings (rules)
 		end
 
@@ -598,13 +588,6 @@ feature {NONE} -- Class-wide Options (From Indexing Clauses)
 							elseif l_item.is_equal ("false") then
 								nonlibrary_class.force (True, a_class)
 							end
-						end
-					elseif l_tag.name_32.is_equal ("ca_only") then
-							-- Class wants to check only certain rules.
-						across ic.item.index_list as l_list loop
-							l_item := l_list.item.string_value_32
-							l_item.prune_all ('"')
-							a_check_only.extend (l_item)
 						end
 					end
 				end

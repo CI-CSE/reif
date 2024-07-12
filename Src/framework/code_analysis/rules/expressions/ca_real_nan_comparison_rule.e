@@ -61,6 +61,22 @@ feature {NONE} -- Implementation
 			current_feature.put (current_context.checking_class.feature_of_rout_id (a.routine_ids.first))
 		end
 
+	process_inline_agent_stop (a: INLINE_AGENT_CREATION_AS)
+			-- Restore previous feature context.
+		do
+			current_feature.remove
+		end
+
+	get_expression (e: EXPR_AS): EXPR_AS
+			-- Retrieve an expression from `e` taking possible conversion into account.
+		do
+			if attached {CONVERTED_EXPR_AS} e as l_converted then
+				Result := l_converted.expr
+			else
+				Result := e
+			end
+		end
+
 	is_nan_comparison (a_one, a_other: attached EXPR_AS): BOOLEAN
 			-- Is one of the operands NaN and the other one has a real type?
 		do

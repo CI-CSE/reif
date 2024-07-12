@@ -42,9 +42,9 @@ feature -- Basic operations
 			-- <Precursor>
 		do
 			create code_analyzer.make
-			across input.individual_classes as c loop code_analyzer.add_class (c.item.eiffel_class_c.original_class) end
+			across input.individual_classes as c loop code_analyzer.add_class (c.eiffel_class_c.original_class) end
 			across input.individual_features as f loop
-				code_analyzer.add_class (f.item.written_class.eiffel_class_c.original_class)
+				code_analyzer.add_class (f.written_class.eiffel_class_c.original_class)
 			end
 			code_analyzer.add_output_action (agent set_status_message)
 			code_analyzer.add_completed_action (agent handle_analysis_results)
@@ -72,12 +72,12 @@ feature -- Basic operations
 			end
 
 			across code_analyzer.rule_violations.iteration_item (0) as l_violation loop
-				if attached {FEATURE_I} get_feature_from_location (l_violation.item.location) as l_feature then
-					if attached {CA_ERROR} l_violation.item.rule.severity then
+				if attached {FEATURE_I} get_feature_from_location (l_violation.location) as l_feature then
+					if attached {CA_ERROR} l_violation.severity then
 						add_results_to_table (l_feature, 1, 0, 0)
-					elseif attached {CA_WARNING} l_violation.item.rule.severity then
+					elseif attached {CA_WARNING} l_violation.severity then
 						add_results_to_table (l_feature, 0, 1, 0)
-					elseif attached {CA_HINT} l_violation.item.rule.severity then
+					elseif attached {CA_HINT} l_violation.severity then
 						add_results_to_table (l_feature, 0, 0, 1)
 					end
 				end
@@ -85,11 +85,11 @@ feature -- Basic operations
 
 				-- Create the verification results and add them to the blackboard.
 			across feature_table as l_feature loop
-				create l_result.make (l_feature.key,
+				create l_result.make (@l_feature.key,
 								configuration,
-								l_feature.item.integer_32_item (1),
-								l_feature.item.integer_32_item (2),
-								l_feature.item.integer_32_item (3))
+								l_feature.integer_32_item (1),
+								l_feature.integer_32_item (2),
+								l_feature.integer_32_item (3))
 				blackboard.add_verification_result (l_result)
 			end
 
