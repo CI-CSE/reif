@@ -4554,6 +4554,12 @@ feature {NONE} -- Constants
 	VERBATIM_STR1: INTEGER = 1
 			-- Start condition codes
 
+	yyMax_symbol_equiv_class: INTEGER
+		do
+			-- TODO: add support if neded
+			check False then end
+		end
+
 feature -- User-defined features
 
 
