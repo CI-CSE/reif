@@ -184,7 +184,7 @@ feature {NONE} -- Implementation
 						until
 							i > safe_feature_arguments.upper
 						loop
-							l_argument := safe_feature_arguments.item_name (i)
+							l_argument := safe_feature_arguments.item_name_32 (i)
 							check l_argument /= Void end
 
 							l_feature_arguments.extend ("$" + l_argument)
