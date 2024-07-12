@@ -101,7 +101,7 @@ feature -- Status report
 	is_creation_feature: BOOLEAN
 			-- Is feature a creation feature?
 		do
-			Result := context_class.creators /= Void and then context_class.creators.has (feature_.feature_name_32)
+			Result := context_class.creators /= Void and then context_class.creators.has (feature_.feature_name_id)
 		end
 
 	is_query: BOOLEAN

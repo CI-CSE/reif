@@ -31,6 +31,10 @@ inherit
 
 	SHARED_TYPES
 
+feature
+
+	ti_quantification_sperator: STRING = "::";
+
 feature -- AST
 
 	text_from_ast (a_ast: AST_EIFFEL): like text_from_ast_with_printer

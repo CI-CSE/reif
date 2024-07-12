@@ -58,7 +58,7 @@ feature{NONE} -- Access
 		local
 			l_name: STRING
 		do
-			l_name := l_as.feature_name.internal_name.name_8
+			l_name := l_as.feature_name.feature_name.name_8
 			if all_locals.has (l_name) then
 				mentioned_locals.force_last (l_name)
 			end

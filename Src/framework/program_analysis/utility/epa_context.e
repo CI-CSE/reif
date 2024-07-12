@@ -306,7 +306,7 @@ feature{NONE} -- Implementation
 
 			Result := feature_i_generator.new_feature (l_feat_as, 0, l_class)
 			Result.set_written_in (l_class.class_id)
-			Result.set_feature_name_id (l_name_id, l_name_id)
+			Result.set_feature_name_id (l_name_id, Void)
 		end
 
 end
