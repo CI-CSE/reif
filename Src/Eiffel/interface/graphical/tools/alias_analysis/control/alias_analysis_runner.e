@@ -15,12 +15,12 @@ feature {NONE}
 
 	breakpoints: ARRAY [EDITOR_TOKEN_ALIAS_BREAKPOINT]
 
-	gui_refresh_agent: PROCEDURE [ANY, TUPLE]
+	gui_refresh_agent: PROCEDURE [TUPLE]
 
 	make (
 				a_routine: PROCEDURE_I;
 				a_last_breakpoint: EDITOR_TOKEN_ALIAS_BREAKPOINT;
-				a_gui_refresh_agent: PROCEDURE [ANY, TUPLE]
+				a_gui_refresh_agent: PROCEDURE [TUPLE]
 			)
 		require
 			a_routine /= Void

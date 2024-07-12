@@ -91,8 +91,11 @@ feature {NONE}
 				attached ast_view.selected_item as tree_node and then
 				attached {AST_EIFFEL} tree_node.data as ast_node
 			then
-				create l_pretty_printer.make (create {PRETTY_PRINTER_OUTPUT_STREAM}.make_string (l_code))
-				l_pretty_printer.setup (current_class, Match_list_server.item (current_class.class_id), True, True)
+				create l_pretty_printer.make (
+					create {PRETTY_PRINTER_OUTPUT_STREAM}.make_string (l_code),
+					current_class,
+					Match_list_server.item (current_class.class_id)
+				)
 				l_pretty_printer.process_ast_node (ast_node)
 				cleanup (l_code)
 			end

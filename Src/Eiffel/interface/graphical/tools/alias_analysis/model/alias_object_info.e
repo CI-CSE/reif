@@ -145,7 +145,7 @@ feature {NONE}
 			until
 				l_i > l_count or Result /= Void
 			loop
-				if context_routine.arguments.item_name (l_i).is_equal (variable_name) then
+				if context_routine.arguments.item_name_32 (l_i).same_string (variable_name) then
 					Result := context_routine.arguments.i_th (l_i)
 				end
 				l_i := l_i + 1

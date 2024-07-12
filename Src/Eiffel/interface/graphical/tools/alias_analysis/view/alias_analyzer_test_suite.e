@@ -116,7 +116,7 @@ feature {NONE}
 			create warning_text_color.make_with_8_bit_rgb (255, 0, 0)
 		end
 
-	create_tool_bar_button (a_text: STRING_8; a_pixmap: EV_PIXMAP; a_select_action: PROCEDURE [ANY, TUPLE]): SD_TOOL_BAR_BUTTON
+	create_tool_bar_button (a_text: STRING_8; a_pixmap: EV_PIXMAP; a_select_action: PROCEDURE [TUPLE]): SD_TOOL_BAR_BUTTON
 		require
 			a_text /= Void
 		do

@@ -40,7 +40,7 @@ feature {ANY}
 
 	alias_graph: ALIAS_GRAPH
 
-	statement_observer: PROCEDURE [ANY, TUPLE [AST_EIFFEL, ALIAS_GRAPH]]
+	statement_observer: PROCEDURE [AST_EIFFEL, ALIAS_GRAPH]
 
 feature {NONE}
 
@@ -214,7 +214,7 @@ feature {NONE} -- utilities
 				if
 					l_node.is_local or
 					l_node.is_argument or
-					l_node.is_object_test_local
+					l_node.is_inline_local
 				then
 					create Result.make_variable (
 							alias_graph.stack_top.routine,
@@ -320,7 +320,7 @@ feature {NONE} -- utilities
 				(create {ALIAS_OBJECT_INFO}.make_variable (
 						alias_graph.stack_top.routine,
 						alias_graph.stack_top.locals,
-						a_routine.arguments.item_name (c.target_index)
+						a_routine.arguments.item_name_32 (c.target_index)
 					)).alias_object := c.item.alias_object
 			end
 			a_routine.body.process (Current)
@@ -339,13 +339,11 @@ feature {NONE} -- utilities
 			l_pretty_printer: PRETTY_PRINTER
 		do
 			create Result.make_empty
-			create l_pretty_printer.make (create {PRETTY_PRINTER_OUTPUT_STREAM}.make_string (Result))
-			l_pretty_printer.setup (
-					alias_graph.stack_top.routine.written_class.ast,
-					Match_list_server.item (alias_graph.stack_top.routine.written_class.class_id),
-					True,
-					True
-				)
+			create l_pretty_printer.make (
+				create {PRETTY_PRINTER_OUTPUT_STREAM}.make_string (Result),
+				alias_graph.stack_top.routine.written_class.ast,
+				Match_list_server.item (alias_graph.stack_top.routine.written_class.class_id)
+			)
 			l_pretty_printer.process_ast_node (a_node)
 		end
 
