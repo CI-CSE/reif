@@ -305,7 +305,7 @@ feature {NONE} -- Handlers
 			l_serialized_objects: SPECIAL[STRING]
 			l_objects_seri: STRING
 			l_uuid_objects_mapping: HASH_TABLE [HASH_TABLE[ANY, INTEGER], STRING]
-			i, l_index, l_count: INTEGER
+			l_index: INTEGER
 			l_var_with_uuid: STRING
 			l_var_name, l_uuid: STRING
 			l_var_index, l_at_sign: INTEGER
@@ -458,12 +458,6 @@ end
 			l_bcode: detachable STRING
 			l_cstring: C_STRING
 			l_predicate_results: TUPLE [INTEGER, detachable like evaluated_predicate_results]
-			i: INTEGER
-			l_object_summary: ARRAYED_LIST [STRING]
-			l_upper: INTEGER
-			l_lower: INTEGER
-			l_canned_objects: STRING
-			l_serializer: like test_case_serializer
 			j: INTEGER
 		do
 			is_failing_test_case := False
@@ -1041,7 +1035,6 @@ feature -- Object state checking
 	report_object_state_request
 			-- Report an object state request.
 		local
-			o: detachable ANY
 			l_retried: BOOLEAN
 			l_bcode: STRING
 			l_cstring: C_STRING
@@ -1154,7 +1147,7 @@ feature -- Object state checking
 			end
 		end
 
-	record_integer_function_value (a_query_name: STRING; a_query: FUNCTION [ANY, TUPLE [INTEGER], detachable ANY]; a_argument: INTEGER)
+	record_integer_function_value (a_query_name: STRING; a_query: FUNCTION [TUPLE [INTEGER], detachable ANY]; a_argument: INTEGER)
 			-- Evaluate the query specified by `a_query' and record its value into `query_values'
 			-- under the name `a_query_name'.
 			-- `a_query' has an argument, which is given by `a_argument'.
@@ -1176,7 +1169,7 @@ feature -- Object state checking
 			retry
 		end
 
-	record_boolean_function_value (a_query_name: STRING; a_query: FUNCTION [ANY, TUPLE [BOOLEAN], detachable ANY]; a_argument: BOOLEAN)
+	record_boolean_function_value (a_query_name: STRING; a_query: FUNCTION [TUPLE [BOOLEAN], detachable ANY]; a_argument: BOOLEAN)
 			-- Evaluate the query specified by `a_query' and record its value into `query_values'
 			-- under the name `a_query_name'.
 			-- `a_query' has an argument, which is given by `a_argument'.
@@ -1198,7 +1191,7 @@ feature -- Object state checking
 			retry
 		end
 
-	record_argumented_function_value (a_query_name: STRING; a_query: FUNCTION [ANY, TUPLE [detachable ANY], detachable ANY]; a_argument: detachable ANY)
+	record_argumented_function_value (a_query_name: STRING; a_query: FUNCTION [TUPLE [detachable ANY], detachable ANY]; a_argument: detachable ANY)
 			-- Evaluate the query specified by `a_query' and record its value into `query_values'
 			-- under the name `a_query_name'.
 			-- `a_query' has an argument, which is given by `a_argument'.
@@ -1220,7 +1213,7 @@ feature -- Object state checking
 			retry
 		end
 
-	record_function_value (a_query_name: STRING; a_query: FUNCTION [ANY, TUPLE, detachable ANY])
+	record_function_value (a_query_name: STRING; a_query: FUNCTION [TUPLE, detachable ANY])
 			-- Evaluate the query specified by `a_query' and record its value into `query_values'
 			-- under the name `a_query_name'.
 		require
@@ -1249,7 +1242,7 @@ feature -- Object state checking
 		local
 			l_retried: BOOLEAN
 			l_result: BOOLEAN
-			l_agent: FUNCTION [ANY, TUPLE [detachable ANY, detachable ANY], BOOLEAN]
+			l_agent: FUNCTION [TUPLE [detachable ANY, detachable ANY], BOOLEAN]
 		do
 			if not l_retried then
 				l_agent := agent is_object_equal
@@ -1272,7 +1265,7 @@ feature -- Object state checking
 		local
 			l_retried: BOOLEAN
 			l_result: BOOLEAN
-			l_agent: FUNCTION [ANY, TUPLE [detachable ANY, detachable ANY], BOOLEAN]
+			l_agent: FUNCTION [TUPLE [detachable ANY, detachable ANY], BOOLEAN]
 		do
 			if not l_retried then
 				l_agent := agent is_reference_equal
@@ -1341,8 +1334,6 @@ feature -- Object state checking
 	record_evaluated_value (a_query_name: STRING; a_value: detachable ANY)
 			-- Record evaluated `a_value' for `a_query_name'.
 		local
-			l_retried: BOOLEAN
-			l_result: detachable ANY
 			l_internal: like internal
 			l_value: STRING
 		do
@@ -1382,21 +1373,21 @@ feature -- Object state checking
 
 feature -- Function types
 
-	function0: FUNCTION [ANY, TUPLE, INTEGER]
-	function1: FUNCTION [ANY, TUPLE, INTEGER_8]
-	function2: FUNCTION [ANY, TUPLE, INTEGER_16]
-	function3: FUNCTION [ANY, TUPLE, INTEGER_64]
-	function4: FUNCTION [ANY, TUPLE, NATURAL]
-	function5: FUNCTION [ANY, TUPLE, NATURAL_8]
-	function6: FUNCTION [ANY, TUPLE, NATURAL_16]
-	function7: FUNCTION [ANY, TUPLE, NATURAL_64]
-	function8: FUNCTION [ANY, TUPLE, REAL_32]
-	function9: FUNCTION [ANY, TUPLE, REAL_64]
-	function10: FUNCTION [ANY, TUPLE, BOOLEAN]
-	function11: FUNCTION [ANY, TUPLE, CHARACTER]
-	function12: FUNCTION [ANY, TUPLE, CHARACTER_32]
-	function13: FUNCTION [ANY, TUPLE, POINTER]
-	function14: FUNCTION [ANY, TUPLE, ANY]
+	function0: FUNCTION [TUPLE, INTEGER]
+	function1: FUNCTION [TUPLE, INTEGER_8]
+	function2: FUNCTION [TUPLE, INTEGER_16]
+	function3: FUNCTION [TUPLE, INTEGER_64]
+	function4: FUNCTION [TUPLE, NATURAL]
+	function5: FUNCTION [TUPLE, NATURAL_8]
+	function6: FUNCTION [TUPLE, NATURAL_16]
+	function7: FUNCTION [TUPLE, NATURAL_64]
+	function8: FUNCTION [TUPLE, REAL_32]
+	function9: FUNCTION [TUPLE, REAL_64]
+	function10: FUNCTION [TUPLE, BOOLEAN]
+	function11: FUNCTION [TUPLE, CHARACTER]
+	function12: FUNCTION [TUPLE, CHARACTER_32]
+	function13: FUNCTION [TUPLE, POINTER]
+	function14: FUNCTION [TUPLE, ANY]
 
 --	function20: FUNCTION [ANY, TUPLE [INTEGER], INTEGER]
 --	function21: FUNCTION [ANY, TUPLE [INTEGER], INTEGER_8]
@@ -1511,7 +1502,7 @@ feature -- Precondition satisfaction
 
 feature -- Predicate evaluation
 
-	predicate_table: HASH_TABLE [FUNCTION [ANY, TUPLE, BOOLEAN], INTEGER]
+	predicate_table: HASH_TABLE [FUNCTION [TUPLE, BOOLEAN], INTEGER]
 			-- Table for predicates that are to be monitered during testing
 			-- [Agent for the predicate, predicate index]
 			-- predicate index is 1-based, it is the identifier associated with
@@ -1538,7 +1529,7 @@ feature -- Predicate evaluation
 			-- 2 The evaluation failed
 		local
 			l_args: TUPLE
-			l_predicate: FUNCTION [ANY, TUPLE, BOOLEAN]
+			l_predicate: FUNCTION [TUPLE, BOOLEAN]
 		do
 			l_args := arguement_tuple_from_indexes (a_arguments, a_lower, a_upper)
 			l_predicate := predicate_table.item (a_predicate_id)
@@ -1547,7 +1538,7 @@ feature -- Predicate evaluation
 			result_valid: Result = 0 or Result = 1 or Result = 2
 		end
 
-	safe_predicate_evaluation_result (a_predicate: FUNCTION [ANY, TUPLE, BOOLEAN]; a_arguments: TUPLE): NATURAL_8
+	safe_predicate_evaluation_result (a_predicate: FUNCTION [TUPLE, BOOLEAN]; a_arguments: TUPLE): NATURAL_8
 			-- Evaluated result of `a_predicate' on `a_arguments'.
 			-- The result can be of one of the following values:
 			-- 0 There was an exception during the evaluation.
@@ -1647,7 +1638,7 @@ feature -- Predicate evaluation
 				send_response_to_socket
 			else
 				report_error (invalid_predicate_evaluation_request)
-				report_error (last_request.generating_type)
+				report_error (last_request.generating_type.name_32)
 				refresh_last_response_flag
 				send_response_to_socket
 			end

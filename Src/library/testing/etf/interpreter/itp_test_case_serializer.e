@@ -60,14 +60,6 @@ feature -- Access
 	string_representation: TUPLE [serialization: STRING; states: STRING]
 			-- String representation of the test case
 		local
-			i: INTEGER
-			l_last: INTEGER
-			l_lower, l_upper: INTEGER
-			l_var_tbl: HASH_TABLE [INTEGER, INTEGER]
-			l_var_id: INTEGER
-			l_description: like pre_state_objects
-			l_index: INTEGER
-			l_object: detachable ANY
 			l_should_serialize: BOOLEAN
 			l_serialization: STRING
 			l_states: STRING
@@ -368,7 +360,6 @@ feature -- Basic operations
 		local
 			l_lower: INTEGER
 			l_upper: INTEGER
-			l_any: detachable ANY
 			l_retried: BOOLEAN
 		do
 			if not l_retried then
@@ -434,7 +425,6 @@ feature{NONE} -- Implementation
 			l_hash_code: STRING
 			l_queries: HASH_TABLE [STRING, STRING]
 			l_cursor: CURSOR
-			l_value_hash_list: LINKED_LIST [INTEGER]
 		do
 			if is_test_case_setup then
 				create l_hash_code.make (64)
@@ -541,7 +531,6 @@ feature{NONE} -- Implementation
 			l_objects: SPECIAL [detachable ANY]
 			l_index: INTEGER
 			l_object: detachable ANY
-			l_type_name: STRING
 		do
 				-- Filter out unnecessary objects.
 			create l.make_filled (0, a_upper - a_lower + 1)
@@ -634,7 +623,7 @@ feature{NONE} -- Implementation
 						-- For each root object, recursively traverse the whole object graph.
 					l_tbl.put ([l_object, l_object.generating_type.name.out], l_index)
 					l_traversor.wipe_out
-					l_traversor.set_object_action (agent on_object_visited (?, l_tbl))
+					l_traversor.set_on_processing_object_action (agent on_object_visited (?, l_tbl))
 					l_traversor.set_root_object (l_object)
 					l_traversor.traverse
 				else
@@ -645,14 +634,17 @@ feature{NONE} -- Implementation
 			Result := l_tbl
 		end
 
-	on_object_visited (a_object: detachable ANY; a_object_table: HASH_TABLE [TUPLE [detachable ANY, STRING], INTEGER])
+	on_object_visited (a_reflected_object: REFLECTED_OBJECT; a_object_table: HASH_TABLE [TUPLE [detachable ANY, STRING], INTEGER])
 			-- Action to be performed when `a_object' is visited during object graph traversal.
 			-- If `a_object' is found in the object pool in `interpreter', put it in `a_object_table'.
 			-- Key of `a_object_table' is the object index in the object pool, value is the object itself.
 		local
+			a_object: detachable ANY
 			l_interpreter: like interpreter
 			l_index: INTEGER
 		do
+			a_object := a_reflected_object.object
+
 			l_interpreter := interpreter
 			if attached {INTEGER} a_object as l_int then
 				l_index := l_interpreter.object_store.variable_index (l_int)
@@ -767,7 +759,6 @@ feature{NONE} -- Implementation/Test case synthesis
 		local
 			l_last: INTEGER
 			i: INTEGER
-			l_var_id: INTEGER
 		do
 			l_last := a_operands.count - 1
 
