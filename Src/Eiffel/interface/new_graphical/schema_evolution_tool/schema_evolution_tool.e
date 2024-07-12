@@ -69,7 +69,7 @@ feature {NONE} -- Implementation
 
 feature {NONE} -- Sanity checks
 
-	control (action: PROCEDURE [ANY, TUPLE])
+	control (action: PROCEDURE [TUPLE])
 			-- If the config file exists perform `action', else create the file
 		require
 			action_not_void: action /= Void

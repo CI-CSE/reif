@@ -11,7 +11,7 @@ class
 
 feature -- Creation
 
-	make (a: PROCEDURE [ANY, TUPLE])
+	make (a: PROCEDURE [TUPLE])
 			-- Assign action to be performed.
 		do
 			action := a
@@ -60,7 +60,7 @@ feature {NONE} --implementation
 		-- Dialog box.
 	text: EV_TEXT_FIELD
 		-- Main text field.
-	action: PROCEDURE [ANY, TUPLE]
+	action: PROCEDURE [TUPLE]
 		-- Agent wrapping the action to execute after creation.
 
 	create_folder_dialog
