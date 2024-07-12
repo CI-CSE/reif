@@ -301,7 +301,7 @@ feature -- Utilities
 			i: INTEGER
 		do
 			l_count := a_string.count
-			create Result.make (1, l_count)
+			create Result.make_filled (0, 1, l_count)
 			from
 				i := 1
 			until
