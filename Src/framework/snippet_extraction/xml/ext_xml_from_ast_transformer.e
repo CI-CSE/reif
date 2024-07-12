@@ -398,7 +398,7 @@ feature {NONE} -- AST Attributes
 			-- Adding XML attributes to `l_as'.		
 		do
 			if allow_set.has (node_current_as) then
-				output.xml_add_unqualified_attribute ("name", l_as.access_name_8)
+				output.xml_add_unqualified_attribute ("name", l_as.access_name)
 			end
 
 			Precursor (l_as)
