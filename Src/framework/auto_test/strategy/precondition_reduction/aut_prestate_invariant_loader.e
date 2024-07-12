@@ -643,7 +643,7 @@ feature{NONE} -- Implementation
 	is_current_mentioned_in_creator (a_expression: EPA_EXPRESSION): BOOLEAN
 			-- Is "Current" mentioned in `a_expression' and `last_feature' happen to be a creator?
 		do
-			if a_expression.text.has_substring (ti_current) and then last_class_creators.has (last_feature.feature_name.as_lower) then
+			if a_expression.text.has_substring (ti_current) and then last_class_creators.has (last_feature.feature_name_id) then
 				Result := True
 			end
 		end
@@ -714,9 +714,9 @@ feature{NONE} -- Implementation
 
 	operands: like operands_of_feature
 
-	last_class_creators: HASH_TABLE [BOOLEAN, STRING]
+	last_class_creators: HASH_TABLE [BOOLEAN, INTEGER]
 			-- Names of the creation procedures of `last_class'
-			-- Keys are creator names, values are dummy values
+			-- Keys are creator name ids, values are dummy values
 
 	last_expression_structure: STRING
 			-- Structure of the last processed expression

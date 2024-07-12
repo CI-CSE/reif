@@ -43,7 +43,7 @@ feature -- Access
 			Result := witness_observers_internal
 		end
 
-	witness_veto_function: detachable FUNCTION [ANY, TUPLE [AUT_ABS_WITNESS], BOOLEAN]
+	witness_veto_function: detachable FUNCTION [TUPLE [AUT_ABS_WITNESS], BOOLEAN]
 			-- Function to veto dispatch of a witness
 			-- If this function returns true, the witness will be dispatched
 			-- to all registered observers

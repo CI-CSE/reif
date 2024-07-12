@@ -1490,8 +1490,8 @@ feature -- Deserialization
 			l_processor: AUT_DESERIALIZATION_PROCESSOR
 		do
 			create l_processor.make (system, Current)
-			l_processor.on_deserialization_start_actions.extend (agent io.put_string)
-			l_processor.on_deserialization_end_actions.extend (agent io.put_string)
+			l_processor.on_deserialization_start_actions.extend (agent (s: STRING) do io.put_string (s) end)
+			l_processor.on_deserialization_end_actions.extend (agent (s: STRING) do io.put_string (s) end)
 			l_processor.process
 		end
 

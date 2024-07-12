@@ -90,7 +90,7 @@ feature -- Basic operations
 			l_done: BOOLEAN
 			l_last_arrangement: ARRAY [AUT_FEATURE_SIGNATURE_TYPE]
 			l_has_result: BOOLEAN
-			l_has_result_tester: PREDICATE [ANY, TUPLE [AUT_FEATURE_SIGNATURE_TYPE]]
+			l_has_result_tester: PREDICATE [TUPLE [AUT_FEATURE_SIGNATURE_TYPE]]
 		do
 			create Result.make
 			if predicate.arity > 0 then

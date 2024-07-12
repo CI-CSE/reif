@@ -31,7 +31,7 @@ feature -- Access
 			-- Variable which contains the same value as `a_constant' in object pool
 			-- Void if no variable in the object pool has value `a_constant'.
 		do
-			if attached {FUNCTION [ANY, TUPLE [ITP_CONSTANT], detachable ITP_VARIABLE]} variable_retriever_table.item (a_constant.type_name) as l_retriever then
+			if attached {FUNCTION [TUPLE [ITP_CONSTANT], detachable ITP_VARIABLE]} variable_retriever_table.item (a_constant.type_name) as l_retriever then
 				Result := l_retriever.item ([a_constant])
 			end
 		end
@@ -54,7 +54,7 @@ feature -- Status report
 	has (a_constant: ITP_CONSTANT): BOOLEAN
 			-- Does current pool contain `a_constant'?
 		do
-			if attached {FUNCTION [ANY, TUPLE [ITP_CONSTANT], detachable ITP_VARIABLE]} variable_retriever_table.item (a_constant.type_name) as l_retriever then
+			if attached {FUNCTION [TUPLE [ITP_CONSTANT], detachable ITP_VARIABLE]} variable_retriever_table.item (a_constant.type_name) as l_retriever then
 				Result := l_retriever.item ([a_constant]) /= Void
 			end
 		end
@@ -111,7 +111,7 @@ feature{NONE} -- Implementation
 			-- Tables for {INTEGER_32} variables
 			-- [Integer value, variable index]
 
-	variable_retriever_table: DS_HASH_TABLE [FUNCTION [ANY, TUPLE [ITP_CONSTANT], detachable ITP_VARIABLE], STRING]
+	variable_retriever_table: DS_HASH_TABLE [FUNCTION [TUPLE [ITP_CONSTANT], detachable ITP_VARIABLE], STRING]
 			-- Table for constant value retrievers indexed by type names
 			-- [constant variable retriever, type name]
 

@@ -39,7 +39,7 @@ feature -- Access
 
 feature -- Status report
 
-	is_candidate_satisfied (a_constraint: AUT_PREDICATE_CONSTRAINT; a_arguments: ARRAY [detachable ITP_VARIABLE]; a_predicate_veto_function: detachable PREDICATE [ANY, TUPLE [AUT_PREDICATE]]): BOOLEAN
+	is_candidate_satisfied (a_constraint: AUT_PREDICATE_CONSTRAINT; a_arguments: ARRAY [detachable ITP_VARIABLE]; a_predicate_veto_function: detachable PREDICATE [TUPLE [AUT_PREDICATE]]): BOOLEAN
 			-- Is `a_arguments' satisfy `a_constraint'?
 			-- If `a_predicate_veto_function' is attached, only predicates that makes `a_preciate_veto_function' return True is evaluated.
 		require

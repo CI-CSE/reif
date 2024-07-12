@@ -63,8 +63,11 @@ feature{NONE} -- Initialization
 
 feature -- Access
 
-	class_name: STRING = "ITP_INTERPRETER_ROOT"
+	class_name: READABLE_STRING_32
 			-- <Precursor>
+		do
+			Result := "ITP_INTERPRETER_ROOT"
+		end
 
 	root_feature_name: STRING = "execute"
 			-- <Precursor>

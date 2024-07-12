@@ -253,12 +253,12 @@ feature -- Status report
 
 	is_feature_creation: BOOLEAN
 			-- Is the feature under test a creation feature?
-        local
-        	l_creators: HASH_TABLE[EXPORT_I, STRING]
+		local
+        	l_creators: HASH_TABLE[EXPORT_I, INTEGER]
 		do
         	l_creators := test_case.class_of_target_type.creators
         	if l_creators = Void and then feature_.feature_name ~ "default_create"
-        			or else l_creators /= Void and then l_creators.has (feature_.feature_name) then
+        			or else l_creators /= Void and then l_creators.has (feature_.feature_name_id) then
         		Result := True
         	else
         		Result := False

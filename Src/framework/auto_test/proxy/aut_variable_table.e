@@ -242,7 +242,7 @@ feature -- Removal
 			create name_generator.make_with_string_stream (variable_name_prefix)
 			variable_type_table.wipe_out
 			invalid_objects.wipe_out
-			wipe_out_actions.do_all (agent {PROCEDURE [ANY, TUPLE]}.call (Void))
+			wipe_out_actions.do_all (agent {PROCEDURE [TUPLE]}.call (Void))
 		ensure
 			invalid_objects_wiped_out: invalid_objects.is_empty
 			variable_type_table_empty: variable_type_table.is_empty
@@ -275,7 +275,7 @@ feature -- Class invariant violation management
 			object_marked: invalid_objects.has (a_index)
 		end
 
-	object_marked_invalid_action: detachable PROCEDURE [ANY, TUPLE [a_index: INTEGER]]
+	object_marked_invalid_action: detachable PROCEDURE [TUPLE [a_index: INTEGER]]
 			-- Action to be performed when object with index `a_index' is
 			-- marked as class invariant violating
 
@@ -289,10 +289,10 @@ feature -- Class invariant violation management
 
 feature -- Actions
 
-	defining_variable_action: detachable PROCEDURE [ANY, TUPLE [ITP_VARIABLE, TYPE_A]]
+	defining_variable_action: detachable PROCEDURE [TUPLE [ITP_VARIABLE, TYPE_A]]
 			-- Action to be called if a new variable is defined
 
-	wipe_out_actions: LINKED_LIST [PROCEDURE [ANY, TUPLE]]
+	wipe_out_actions: LINKED_LIST [PROCEDURE [TUPLE]]
 			-- Action to be performed when current is wiped out
 		do
 			if internal_wipe_out_actions = Void then

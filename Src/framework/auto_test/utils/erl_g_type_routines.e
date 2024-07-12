@@ -103,7 +103,9 @@ feature -- Access
 						-- a real fix should keep a record of non-instantiable classes,
 						-- and only use objects from the pool for such classes.
 --					if l_creator_tbl.item_for_iteration.is_exported_to (l_any_class) then
-						Result.extend (l_creator_tbl.key_for_iteration)
+						Result.extend (
+							a_class.feature_with_name_id (l_creator_tbl.key_for_iteration)
+								.name_8)
 --					end
 					l_creator_tbl.forth
 				end
@@ -142,17 +144,17 @@ feature -- Access
 			if
 				a_type.has_associated_class and then
 				a_type.associated_class.creators /= Void and then
-				a_type.associated_class.creators.has (a_feature.feature_name)
+				a_type.associated_class.creators.has (a_feature.feature_name_id)
 			then
-				Result := a_type.associated_class.creators.item (a_feature.feature_name).is_all
+				Result := a_type.associated_class.creators.item (a_feature.feature_name_id).is_all
 			end
 
 			if a_type.has_associated_class then
 				l_class := a_type.associated_class
 
-				if l_class.creators /= Void and then l_class.creators.has (a_feature.feature_name) then
+				if l_class.creators /= Void and then l_class.creators.has (a_feature.feature_name_id) then
 						-- For normal creators.
-					Result := l_class.creators.item (a_feature.feature_name).is_all
+					Result := l_class.creators.item (a_feature.feature_name_id).is_all
 
 				elseif l_class.allows_default_creation and then l_class.default_create_feature.feature_name.is_equal (a_feature.feature_name) then
 						-- For default creators.

@@ -2346,7 +2346,7 @@ feature -- Object state retrieval
 			report_event (last_response)
 		end
 
-	evaluate_expressions (a_class: CLASS_C; a_feature: FEATURE_I; a_operand_map: HASH_TABLE [INTEGER, INTEGER]; a_expressions: LINKED_LIST [EPA_EXPRESSION]; a_receiver: detachable PROCEDURE [ANY, TUPLE [HASH_TABLE [STRING, STRING]]])
+	evaluate_expressions (a_class: CLASS_C; a_feature: FEATURE_I; a_operand_map: HASH_TABLE [INTEGER, INTEGER]; a_expressions: LINKED_LIST [EPA_EXPRESSION]; a_receiver: detachable PROCEDURE [TUPLE [HASH_TABLE [STRING, STRING]]])
 			-- Evaluate `a_expressions' in the context of `a_feature' from `a_class'.
 			-- `a_operand_map' is a mapping from opreand index to object index in the object pool.
 			-- Key is 0-based operand index.
