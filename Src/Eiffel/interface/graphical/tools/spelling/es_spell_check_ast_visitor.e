@@ -37,7 +37,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (segment_text: FUNCTION [ANY, TUPLE [text: READABLE_STRING_32], LIST [TUPLE [base, length: INTEGER]]])
+	make (segment_text: FUNCTION [TUPLE [text: READABLE_STRING_32], LIST [TUPLE [base, length: INTEGER]]])
 			-- Create empty collection and remember given function
 			-- `segment_text' to break up text into desired parts.
 			-- These parts could be words for spell checking.
@@ -84,7 +84,7 @@ feature {NONE} -- Implementation
 	Segment_length_limit: INTEGER = 3
 			-- Segments shorter than this are not collected.
 
-	text_segmentation_function: FUNCTION [ANY, TUPLE [text: READABLE_STRING_32], LIST [TUPLE [base, length: INTEGER]]]
+	text_segmentation_function: FUNCTION [TUPLE [text: READABLE_STRING_32], LIST [TUPLE [base, length: INTEGER]]]
 			-- Function to find segment limits in text.
 
 	collect_text (text: READABLE_STRING_32; origin: LOCATION_AS)
