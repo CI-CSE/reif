@@ -130,7 +130,7 @@ feature -- Roundtrip
 
 	process_current_as (l_as: CURRENT_AS)
 		do
-			process_access_name (l_as.access_name_8)
+			process_access_name (l_as.access_name)
 			Precursor (l_as)
 		end
 
