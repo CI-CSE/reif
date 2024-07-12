@@ -57,7 +57,7 @@ feature -- Feature being processed
         from i := 1
         until i > feature_i.argument_count          
         loop
-          str := args.item_name (i)
+          str := args.item_name_32 (i)
           Result.put (create {SSA_EXPR_VAR}.make (str), str)
           i := i + 1
         end

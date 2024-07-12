@@ -166,7 +166,7 @@ feature
       until i > featr_i.argument_count
       loop
         Result.put (create {SSA_EXPR_UNARY}.make ("old", args [i]),
-                    featr_i.arguments.item_name (i))
+                    featr_i.arguments.item_name_32 (i))
         i := i + 1
       end
       Result.put (target, "Current")
