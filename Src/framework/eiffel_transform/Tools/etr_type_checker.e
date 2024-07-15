@@ -424,11 +424,10 @@ feature {NONE} -- Implementation
 				loop
 					l_cur_local := a_feature_context.object_test_locals.item
 					if l_cur_local.is_active_at (a_path) then
-						create l_local_info
-						l_local_info.set_type (l_cur_local.original_type)
-						l_local_info.set_is_used (True)
+						create l_local_info.make (l_cur_local.original_type, 0)
+						l_local_info.enable_is_used
 						create l_ot_id.initialize(l_cur_local.name)
-						context.add_object_test_local (l_local_info, l_ot_id)
+						context.add_inline_local (l_local_info, l_ot_id)
 						context.add_object_test_expression_scope (l_ot_id)
 					end
 
@@ -452,9 +451,7 @@ feature {NONE} -- Implementation
 					l_index > a_feature_context.locals.upper
 				loop
 					l_cur_local := a_feature_context.locals[l_index]
-					create l_local_info
-					l_local_info.set_type(l_cur_local.original_type)
-					l_local_info.set_position (l_index)
+					create l_local_info.make (l_cur_local.original_type, l_index)
 					l_name_id := names_heap.id_of (l_cur_local.name)
 					context.locals.put (l_local_info, l_name_id)
 					l_index := l_index + 1
@@ -476,9 +473,7 @@ feature {NONE} -- Implementation
 					l_index > a_feature_context.arguments.upper
 				loop
 					l_cur_arg := a_feature_context.arguments[l_index]
-					create l_local_info
-					l_local_info.set_type(l_cur_arg.original_type)
-					l_local_info.set_position (l_index)
+					create l_local_info.make (l_cur_arg.original_type, l_index)
 					context.locals.put (l_local_info, names_heap.id_of (l_cur_arg.name))
 					l_index := l_index + 1
 				end
