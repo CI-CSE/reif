@@ -57,8 +57,8 @@ feature {NONE} -- Initialization
 			l_log_filename: IMMUTABLE_STRING_32
 			l_server_url: IMMUTABLE_STRING_32
 			l_port: INTEGER
-			l_tc_serialization_file_name: STRING
-			l_state_file_name: FILE_NAME
+			l_tc_serialization_file_name: READABLE_STRING_32
+			l_state_file_name: PATH
 			i: INTEGER
 		do
 				-- if argument_count <= 5 then
@@ -87,7 +87,7 @@ feature {NONE} -- Initialization
 			byte_code_feature_body_id := argument (3).to_integer
 			byte_code_feature_pattern_id := argument (4).to_integer
 			l_log_filename := argument (5)
-			interpreter_log_directory := l_log_filename.substring (1, l_log_filename.count - 19).as_string_8
+			interpreter_log_directory := l_log_filename.substring (1, l_log_filename.count - 19)
 			should_generate_log := argument (6).to_boolean
 
 			-- Create log file.
@@ -113,7 +113,7 @@ feature {NONE} -- Initialization
 				log_message ("set up serializationnnn%N")
 				is_passing_test_case_serialized := argument (7).to_boolean
 				is_failing_test_case_serialized := argument (8).to_boolean
-				l_tc_serialization_file_name := argument (9).as_string_8
+				l_tc_serialization_file_name := argument (9)
 				is_test_case_serialization_enabled := True
 				is_duplicated_test_case_serialized := argument (10).to_boolean
 				is_post_state_serialized := argument (11).to_boolean
@@ -144,18 +144,22 @@ feature {NONE} -- Initialization
 
 
 				-- Create file for serialized test cases.
-			log_message ("l_tc_serialization_file_name: " + l_tc_serialization_file_name.to_string_8 + "%N")
+			log_message ("l_tc_serialization_file_name: "
+				+ {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_tc_serialization_file_name)
+				+ "%N")
 			if not l_tc_serialization_file_name.is_empty then
 				create test_case_serialization_file.make_open_append (l_tc_serialization_file_name)
 				if not test_case_serialization_file.is_open_write then
-					report_error ("could not open test case serialization file '" + l_tc_serialization_file_name + "'.")
+					report_error ("could not open test case serialization file '"
+						+ {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_tc_serialization_file_name)
+						+ "'.")
 					die (1)
 				end
 			end
 
 				-- Create file to store test case states.
 			create l_state_file_name.make_from_string (interpreter_log_directory)
-			l_state_file_name.set_file_name ("states.txt")
+			l_state_file_name := l_state_file_name.extended("states.txt")
 			create test_state_file.make_open_append (l_state_file_name.out)
 			if not test_state_file.is_open_write then
 				report_error ("could not open test state file '" + l_state_file_name.out + "'.")
@@ -291,7 +295,7 @@ end
 
 		end
 
-	interpreter_log_directory: STRING
+	interpreter_log_directory: READABLE_STRING_32
 			-- Directory to store file interpreter_log.txt
 
 feature {NONE} -- Handlers
@@ -890,7 +894,6 @@ feature {NONE} -- Byte code
 			-- Execute `procedure' in a protected way.
 		local
 			failed: BOOLEAN
-			fault_id: STRING
 		do
 			is_last_protected_execution_successful := False
 			if not failed then
@@ -1128,7 +1131,6 @@ feature -- Object state checking
 			-- Record the query named `a_query_name' to have `a_value' into `query_values'.
 		local
 			l_internal: like internal
-			l_type: INTEGER
 			l_value: STRING
 		do
 			if a_value = Void then
@@ -1298,7 +1300,8 @@ feature -- Object state checking
 			log_message ("-----------------------------------------------%N")
 			log_message (a_query_name + "%N")
 			if a_argument /= Void then
-				log_message (a_argument.generating_type + "%N")
+				log_message ({UTF_CONVERTER}.string_32_to_utf_8_string_8(
+					a_argument.generating_type.name_32 + "%N"))
 			else
 				log_message ("argument is Void.%N")
 			end
@@ -1638,7 +1641,8 @@ feature -- Predicate evaluation
 				send_response_to_socket
 			else
 				report_error (invalid_predicate_evaluation_request)
-				report_error (last_request.generating_type.name_32)
+				report_error ({UTF_CONVERTER}.string_32_to_utf_8_string_8 (
+					last_request.generating_type.name_32))
 				refresh_last_response_flag
 				send_response_to_socket
 			end
@@ -1678,7 +1682,7 @@ feature -- Predicate evaluation
 			l_checking: BOOLEAN
 		do
 			l_predicates := relevant_predicate_table.item (a_feature_id)
-			create Result.make (1, l_predicates.count)
+			create Result.make_filled (0, 1, l_predicates.count)
 			l_arguments := argument_cache
 			l_checking := {ISE_RUNTIME}.check_assert (False)
 			from
