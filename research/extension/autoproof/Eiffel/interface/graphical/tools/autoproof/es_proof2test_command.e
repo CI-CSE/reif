@@ -552,13 +552,13 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 	pixmap: EV_PIXMAP
 			-- Pixmap representing the command.
 		do
-			Result := pixmaps.icon_pixmaps.verifier_to_testing_tool_icon
+			Result := pixmaps.icon_pixmaps.testing_new_unit_test_icon
 		end
 
 	pixel_buffer: EV_PIXEL_BUFFER
 			-- Pixel buffer representing the command.
 		do
-			Result := pixmaps.icon_pixmaps.verifier_to_testing_tool_icon_buffer
+			Result := pixmaps.icon_pixmaps.testing_new_unit_test_icon_buffer
 		end
 
 	execute_generate_test_item

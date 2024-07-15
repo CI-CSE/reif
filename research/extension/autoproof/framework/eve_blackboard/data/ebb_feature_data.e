@@ -121,7 +121,7 @@ feature -- Access
 	tool_results_: HASH_TABLE [TUPLE [verification_result: EBB_VERIFICATION_RESULT; is_stale: BOOLEAN], EBB_TOOL]
 			-- Lastest result of each tool.
 
-	message: STRING
+	message: READABLE_STRING_GENERAL
 			-- Latest message to be displayed.
 		do
 			if tool_results.is_empty then

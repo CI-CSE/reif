@@ -40,7 +40,7 @@ feature -- Access
 	weight: REAL
 			-- Weight of this result.
 
-	message: STRING
+	message: READABLE_STRING_GENERAL
 			-- Message describing result.
 		deferred
 		end

@@ -1,4 +1,4 @@
-note
+﻿note
 	description: "ES execution adapted for usage in tests (namely AP_TEST_EXAMPLES)"
 
 class
@@ -25,18 +25,25 @@ feature
 			l_eifgen_init: INIT_SERVERS
 		do
 			arguments := a_arguments
+
 				-- Code analysis command state is kept in a separate object
 				-- that accumulates the corresponding requests.
 			create code_analysis_command.make
 				-- A parser to process configutation options specified in the command line.
 			create configuration_option_parser.make
 				(agent: ITERABLE [READABLE_STRING_32]
+					local
+						t: like eiffel_layout.default_il_environment.installed_runtimes
+						n: ARRAYED_LIST [READABLE_STRING_32]
 					do
 							-- agent eiffel_layout.default_il_environment.installed_runtimes
 							-- would work, but it would cause computation of CLR run-times
 							-- immediately though it might be never required.
 							-- Therefore we are using the inline agent instead.
-						Result := eiffel_layout.default_il_environment.installed_runtimes
+						t := eiffel_layout.default_il_environment.installed_runtimes
+						create n.make (t.count)
+						⟳ r: t ¦ n.extend (@ r.key) ⟲
+						Result := n
 					end)
 				-- Check that environment variables
 				-- are properly set.
@@ -48,7 +55,7 @@ feature
 
 				-- Set the default project path to the current working directory.
 				-- This may be overriden via user settings.
-			project_path := (create {EXECUTION_ENVIRONMENT}).current_working_path
+			project_path :=(create {EXECUTION_ENVIRONMENT}).current_working_path
 
 				--| Initialization of the run-time, so that at the end of a store/retrieve
 				--| operation (like retrieving or storing the project, creating the CASEGEN
@@ -58,13 +65,13 @@ feature
 			create l_eifgen_init.make
 
 				-- Initialization of compiler resources
-			; (create {TTY_RESOURCES}.initialize).do_nothing
+			;(create {TTY_RESOURCES}.initialize).do_nothing
 
 				-- Initialization of compiler resources.
 
 			create preference_access.make_with_defaults_and_location_and_version (
 				<<eiffel_layout.general_preferences.name, eiffel_layout.platform_preferences.name>>, eiffel_layout.eiffel_preferences, version_2_0)
-			; (create {SETTABLE_COMPILER_OBJECTS}).set_preferences (create {EC_PREFERENCES}.make (preference_access))
+			;(create {SETTABLE_COMPILER_OBJECTS}).set_preferences (create {EC_PREFERENCES}.make (preference_access))
 
 				-- Remaining initialization
 			initialize

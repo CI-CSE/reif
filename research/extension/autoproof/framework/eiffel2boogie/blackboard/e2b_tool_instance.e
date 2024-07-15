@@ -24,8 +24,12 @@ feature {EBB_TOOL_EXECUTION} -- Basic operations
 			-- Start instance.
 		do
 			create autoproof.make
-			across input.individual_classes as c loop autoproof.add_class (c) end
-			across input.individual_features as c loop autoproof.add_feature (c) end
+			across input.individual_classes as c loop
+				autoproof.add_class (create {E2B_CLASS_C}.make (c))
+			end
+			across input.individual_features as c loop
+				autoproof.add_feature (create {E2B_FEATURE_I}.make (c))
+			end
 
 			autoproof.add_notification (agent update_blackboard)
 			autoproof.verify
