@@ -19,7 +19,6 @@ feature -- Basic operations
 	execute
 			-- <Precursor>
 		do
-			print ("EWB_TEST_CMD.execute%N")
 			if attached test_suite.service as l_service then
 				if l_service.is_interface_usable then
 					execute_with_test_suite (l_service)

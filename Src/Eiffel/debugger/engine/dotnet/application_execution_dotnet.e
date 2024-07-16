@@ -1344,7 +1344,6 @@ feature {NONE} -- Events on notification
 			dbg_info: EIFNET_DEBUGGER_INFO
 			e: EXCEPTION_DEBUG_VALUE
 		do
-			print ("hhhnotify_execution_on_stopped%N")
 			debug ("debugger_trace")
 				print ("%N*** REASON TO STOP *** %N")
 				print ("%T Callback = " + Eifnet_debugger.managed_callback_name (cb_id) + "%N")

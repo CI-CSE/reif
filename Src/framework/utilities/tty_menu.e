@@ -120,7 +120,6 @@ feature -- Access
 			empty_reply_count: INTEGER
 			e: like entry
 		do
-			print ("TTY_MENU.execute START%N")
 			menu_asked := a_display_entry
 
 			if not retried then

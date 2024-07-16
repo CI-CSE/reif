@@ -96,7 +96,6 @@ feature -- Execution
 	execute
 			-- Launch program in debugger with mode `Run' (i.e "Run").
 		do
-			print ("EB_DEBUG_RUN_CMD.execute%N")
 			execute_with_mode ({EXEC_MODES}.run)
 		end
 
@@ -112,7 +111,6 @@ feature -- Execution
 			l_date_filename : STRING
 			l_rec_rep_path : STRING
 		do
-			print ("EB_DEBUG_RUN_CMD.execute_with_mode%N")
 			if
 				Eiffel_project.initialized and then
 				not Eiffel_project.Workbench.is_compiling and then
@@ -142,7 +140,6 @@ feature -- Execution
 			l_wb: WORKBENCH_I
 			l_cancel_debug: BOOLEAN
 		do
-			print ("EB_DEBUG_RUN_CMD.launch_with_mode%N")
 				-- ask to compile if we changed some classes inside eiffel studio
 			l_wb := eiffel_project.workbench
 			if l_wb.is_changed or window_manager.has_modified_windows then
@@ -187,7 +184,6 @@ feature -- Execution
 			not_compiling: not Eiffel_project.Workbench.is_compiling
 			app_initialized: debugger_manager.application_initialized
 		do
-			print ("EB_DEBUG_RUN_CMD.resume_with_mode%N")
 				--| At this point we define the 'type' on debug operation
 				--| either step next, step into, step out, continue ...
 				--| this will be used in APPLICATION_EXECUTION.continue_ignoring_kept_objects
@@ -207,7 +203,6 @@ feature -- Execution
 		local
 			trigger: EV_CONTAINABLE
 		do
-			print ("EB_DEBUG_RUN_CMD.execute_from%N")
 			from
 				trigger := widget
 			until
@@ -236,7 +231,6 @@ feature -- Execution
 			hbp, nhbp: HIDDEN_BREAKPOINT
 			loc: BREAKPOINT_LOCATION
 		do
-			print ("EB_DEBUG_RUN_CMD.process_breakable%N")
 			if
 				Eiffel_project.successful and
 				attached debugger_manager as dbg
@@ -301,7 +295,6 @@ feature -- Execution
 		local
 			ctlr: DEBUGGER_CONTROLLER
 		do
-			print ("EB_DEBUG_RUN_CMD.launch_application%N")
 			if attached debugger_manager as dbg then
 				ctlr := dbg.controller
 				ctlr.debug_application (a_params, a_execution_mode)
@@ -311,7 +304,6 @@ feature -- Execution
 	resume_application
 			-- Continue the execution of the program (stepping ...)
 		do
-			print ("EB_DEBUG_RUN_CMD.resume_application%N")
 			if attached debugger_manager as dbg then
 				dbg.controller.resume_workbench_application
 			end

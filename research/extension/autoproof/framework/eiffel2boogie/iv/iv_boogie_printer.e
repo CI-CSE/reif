@@ -391,7 +391,6 @@ feature -- Statement Visitor
 				output.put (") {")
 				if is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.then_block.is_conditional_leaf (true, a_conditional.origin_information) then
 						-- and then uncovered_branch_lines.has (a_conditional.then_block.origin_information.line) then
-					-- print("if branch at line " + a_conditional.then_block.origin_information.line.out + "%N")
 					branch_number := branch_number + 1
 					output.put_line ("if ((bn) == (" + branch_number.out + ")) {assert false;}")
 					output.put_new_line
@@ -407,7 +406,6 @@ feature -- Statement Visitor
 				output.indent
 				if is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.else_block.is_conditional_leaf (false, a_conditional.origin_information) then
 						-- and then uncovered_branch_lines.has (a_conditional.else_block.origin_information.line) then
-					-- print("else branch at line " + a_conditional.else_block.origin_information.line.out +"%N")
 					branch_number := branch_number + 1
 					output.put_line ("if ((bn) == (" + branch_number.out + ")) {assert false;}")
 					-- output.put_line ("assert false;")

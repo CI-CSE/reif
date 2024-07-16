@@ -444,7 +444,6 @@ feature {NONE} -- Implementation
 		local
 			l_target_type: TYPE_A
 		do
-			-- print("AUT_RANDOM_FEATURE_CALLER.recheck_type_and_feature%N")
 			if not target_creator.receivers.is_empty and then attached {ITP_VARIABLE} target_creator.receivers.first as l_target then
 				l_target_type := interpreter.variable_table.variable_type (l_target)
 				if l_target_type.is_none then

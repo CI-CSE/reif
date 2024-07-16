@@ -169,10 +169,8 @@ feature -- Access
 
 	on_application_just_stopped
 		do
-			print ("TTY_DEBUGGER_MANAGER.on_application_just_stopped START%N")
 			Precursor
 			debugger_message (debugger_names.t_paused)
-			print ("TTY_DEBUGGER_MANAGER.on_application_just_stopped MIDDLE%N")
 				--| Activate user interaction
 			if should_menu_be_raised_when_application_stopped then
 				raise_dbg_running_menu (False)
@@ -254,10 +252,8 @@ feature -- Interaction
 
 	raise_dbg_running_menu (sm: BOOLEAN)
 		do
-			print ("TTY_DEBUGGER_MANAGER.raise_dbg_running_menu START%N")
 			io.put_new_line
 			dbg_running_menu.execute (sm)
-			print ("TTY_DEBUGGER_MANAGER.raise_dbg_running_menu END%N")
 		end
 
 	raise_debugger_menu_display

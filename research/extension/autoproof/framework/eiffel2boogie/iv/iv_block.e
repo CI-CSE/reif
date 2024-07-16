@@ -60,7 +60,6 @@ feature -- Status report
 	    	create stm_lines.make_empty
 	    	across statements as s loop
 	 			if attached s.origin_information as oi then
-	 				-- print ("block line: " + oi.text_of_line + "%N")
 					stm_lines.force (oi.text_of_line, stm_lines.count)
 	 			end
 	    	end
@@ -71,7 +70,6 @@ feature -- Status report
 			until
 				i = stm_lines.count -- or Result = False
 			loop
-				-- print ("i: " + i.out +  " " + stm_lines [i].to_string_8 + "%N")
 				-- TODO: to make sure this works for the LAMP example
 				if stm_lines [i].has_substring ("if ") and ((not a_is_then_block) or (a_is_then_block and not stm_lines [i].same_string (cond_line)))then
 						Result := False

@@ -66,7 +66,6 @@ feature -- General note helpers
 						i.index_list as v
 					loop
 						Result.extend (if attached {STRING_AS} v as s then s.value else v.string_value end)
-						-- print ("note value: " + Result.last + "%N")
 					end
 				end
 			end

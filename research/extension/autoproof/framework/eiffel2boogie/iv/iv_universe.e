@@ -97,7 +97,6 @@ feature -- Visitor
 			-- Process universe with `a_visitor'.
 		do
 			-- declarations is empty in the second translation
-			-- print("declarations count: " + declarations.count.out + "%N")
 			across declarations as i loop
 				i.process (a_visitor)
 			end

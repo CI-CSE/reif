@@ -75,14 +75,12 @@ feature {NONE} -- Processing
 
 	process_create_object_request (a_request: AUT_CREATE_OBJECT_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_create_object_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end
 
 	process_invoke_feature_request (a_request: AUT_INVOKE_FEATURE_REQUEST)
 		do
-			-- print("AUT_RESULT_REPOSITORY_BUILDER.process_invoke_feature_request%N")
 			Precursor (a_request)
 			update_result_repository
 		end

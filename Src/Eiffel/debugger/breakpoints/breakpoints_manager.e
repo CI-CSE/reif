@@ -879,7 +879,6 @@ feature -- Breakpoints change
 		require
 			a_bp_not_void: a_bp /= Void
 		do
-			print ("BREAKPOINTS_MANAGER.add_breakpoint" + a_bp.string_representation (True) +  "%N")
 			breakpoints.add_breakpoint (a_bp)
 			on_breakpoint_added_or_deleted_event (True)
 		end

@@ -42,7 +42,6 @@ feature -- Basic operations
 		local
 			l_ap_error: E2B_AUTOPROOF_ERROR
 		do
-			-- print("E2B_RESULT_GENERATOR.process_boogie_result%N")
 			create last_result.make
 				-- Use global list if local one is empty
 			if local_autoproof_errors = Void then

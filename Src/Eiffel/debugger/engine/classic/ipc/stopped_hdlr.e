@@ -66,7 +66,6 @@ feature -- Execution
 			l_app: APPLICATION_EXECUTION
 			retry_clause: BOOLEAN
 		do
-			print ("STOPPED_HDLR.execute%N")
 			check
 				application_is_executing: debugger_manager.application_is_executing
 			end
@@ -194,7 +193,7 @@ feature -- Execution
 					--| stopped state operations   |--
 					--|----------------------------|--
 
-				-- process_paused_state (stopping_reason, l_app)
+			process_paused_state (stopping_reason, l_app)
 
 			else -- retry_clause
 				if l_app.is_running then
@@ -219,7 +218,6 @@ feature -- Execution
 			need_to: TUPLE [stop: BOOLEAN; update_bp: BOOLEAN]
 			l_status: APPLICATION_STATUS
 		do
-			print ("STOPPED_HDLR.process_paused_state%N")
 			l_status := a_app.status
 
 			inspect
@@ -309,7 +307,6 @@ feature {NONE} -- Implementation
 		local
 			t: TUPLE [pos, expected_id, expected_annotations, actual_id, actual_annotations: INTEGER]
 		do
-			print ("STOPPED_HDLR.execution_stopped_on_catcall_event%N")
 			if app.debugger_manager.exceptions_handler.catcall_debugger_warning_disabled then
 				debugger_manager.update_catcall_detection_mode
 				Result := False
@@ -337,7 +334,6 @@ feature {NONE} -- Implementation
 		require
 			exception_occurred: app.status.exception_occurred
 		do
-			print ("STOPPED_HDLR.execution_stopped_on_exception_event%N")
 			Result := app.debugger_manager.process_exception
 			debug ("debugger_trace")
 				if Result then
@@ -357,7 +353,6 @@ feature {NONE} -- Implementation
 		require
 			appstat: app.status.reason = {APPLICATION_STATUS_CONSTANTS}.Pg_break
 		do
-			print ("STOPPED_HDLR.execution_stopped_on_breakpoint_event%N")
 			Result := execution_stopped_on_breakpoint (app)
 		end
 
@@ -373,7 +368,6 @@ feature {NONE} -- Implementation
 			l_status: APPLICATION_STATUS_CLASSIC
 			cse: CALL_STACK_ELEMENT_CLASSIC
 		do
-			print ("STOPPED_HDLR.execution_stopped_on_breakpoint%N")
 			l_status ?= app.status
 			check l_status /= Void end -- implied by `STOPPED_HDLR' only for classic execution.
 

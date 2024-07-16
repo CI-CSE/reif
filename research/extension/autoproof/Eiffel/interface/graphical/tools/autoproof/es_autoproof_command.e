@@ -199,7 +199,6 @@ feature {NONE} -- Basic operations
 				window_manager.display_message ("Test generation started")
 				start_timer
 				proof2test.generate_tests (options.init_states_of_counterexamples)
-				-- print("test generation time: " + current_timer.out + "%N")
 				stop_timer
 				eiffel_project.discover_melt
 			    window_manager.display_message ("Test generation finished. See the generated test cases at " + proof2test.test_file_name)

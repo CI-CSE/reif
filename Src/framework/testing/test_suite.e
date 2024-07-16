@@ -113,7 +113,6 @@ feature -- Access: connection point
 		local
 			l_result: like internal_test_suite_connection
 		do
-			-- print("TEST_SUITE.test_suite_connection%N")
 			l_result := internal_test_suite_connection
 			if l_result = Void then
 				create {EVENT_CONNECTION [TEST_SUITE_OBSERVER, TEST_SUITE_S]} l_result.make (
@@ -264,7 +263,6 @@ feature -- Basic operations
 			l_list: like factories
 			l_factory: TEST_SESSION_FACTORY [TEST_SESSION_I]
 		do
-			-- print("TEST_SUITE.new_session%N")
 			from
 				l_list := factories
 				l_list.start

@@ -45,7 +45,6 @@ feature {NONE} -- Initialization
 			a_feature_attached: attached a_feature
 			a_implementation_attached: attached a_implementation
 		do
-				-- print ("E2B_INSTRUCTION_TRANSLATOR.make " + a_feature.feature_name + "%N")
 			create entity_mapping.make
 			create locals_map.make (5)
 			local_writable := Void
@@ -434,7 +433,6 @@ feature -- Processing
 			l_line_number: INTEGER
 			status_values: ARRAYED_LIST [READABLE_STRING_8]
 		do
-				-- print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
 				-- helper.options.set_conditional (True)
 				-- mapping: feature -> has_conditional
 			current_implementation.set_has_conditional (True)
@@ -464,7 +462,6 @@ feature -- Processing
 				-- set information for the then block
 			l_then_orgin_info.set_file (current_feature.written_class.file_name)
 			l_line_number := a_node.compound.line_number
-				-- print ("then block line: " + l_line_number.out + "%N")
 			l_then_orgin_info.set_line (l_line_number)
 			l_if.then_block.set_origin_information (l_then_orgin_info)
 			if status_values.has ("ghost") then
@@ -487,7 +484,6 @@ feature -- Processing
 						set_current_origin_information (l_elseif)
 							-- elseif condition
 						l_line_number := l_elseif.compound.line_number
-							-- print ("elseif line: " + l_line_number.out + "%N")
 
 						l_else_origin_info.set_file (current_feature.written_class.file_name)
 						l_else_origin_info.set_line (l_line_number)
@@ -523,7 +519,6 @@ feature -- Processing
 					-- a_node.else_part.mark_last_instruction.
 				set_current_origin_information (a_node.else_part)
 				l_line_number := a_node.else_part.line_number
-					-- print ("else line: " + l_line_number.out + "%N")
 				l_else_origin_info.set_file (current_feature.written_class.file_name)
 				l_else_origin_info.set_line (l_line_number)
 				l_if.else_block.set_origin_information (l_else_origin_info)

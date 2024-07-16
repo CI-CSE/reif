@@ -40,7 +40,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 		local
 			l_time: INTEGER
 		do
-			-- print ("E2B_EXECUTE_BOOGIE_TASK.step%N")
 			if not is_started then
 				start_timer
 				is_started := True

@@ -667,7 +667,6 @@ feature {NONE} -- Basic operations
 			l_label: EV_GRID_LABEL_ITEM
 			l_format: FORMAT_DOUBLE
 		do
-				-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
 			if not options.is_full_coverage_test_generation_enabled then -- do not change the panel when full-coverage test generation is enabled
 
 				a_row.set_data (a_event_item)

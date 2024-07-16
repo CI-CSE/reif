@@ -599,7 +599,6 @@ feature -- Counterexample optimization
 			-- Increase the value of `opt_time' by `a_value'
 		do
 			opt_time := opt_time + a_value
-				-- print("current opt_time: " + opt_time.out + "%N")
 		end
 
 

@@ -18,7 +18,6 @@ feature {NONE} -- Initialization
 	make
 			-- Initialize empty pool.
 		do
-			-- print ("E2B_TRANSLATION_POOL.make%N")
 			create untranslated_elements.make (100)
 			create translated_elements.make (100)
 			create ids.make (100)
@@ -57,7 +56,6 @@ feature -- Element change
 		local
 			l_found: BOOLEAN
 		do
-			-- print ("E2B_TRANSLATION_POOL.mark_translated%N")
 			from
 				untranslated_elements.start
 			until
@@ -77,7 +75,6 @@ feature -- Element change
 	reset
 			-- Reset translation pool.
 		do
-			-- print ("E2B_TRANSLATION_POOL.reset%N")
 			untranslated_elements.wipe_out
 			translated_elements.wipe_out
 			ids.wipe_out
@@ -91,7 +88,6 @@ feature -- Adding independent units
 			not_like_type: not a_type.is_like
 			no_formals: not a_type.has_formal_generic
 		do
-			-- print ("E2B_TRANSLATION_POOL.add_type: " + a_type.name + "%N")
 			if not a_type.is_basic and not a_type.base_class.is_any and not a_type.is_agent_type then
 				add_translation_unit (create {E2B_TU_TYPE}.make (a_type))
 				add_translation_unit (create {E2B_TU_INVARIANT}.make (a_type))
@@ -197,9 +193,7 @@ feature {NONE} -- Implementation
 		require
 			a_unit_attached: attached a_unit
 		do
-			-- print ("E2B_TRANSLATION_POOL.add_translation_unit%N")
 			if not ids.has (a_unit.id) then
-				-- print ("untranslated_elements.extend id: "+ a_unit.id.out + "%N")
 				untranslated_elements.extend (a_unit)
 				ids.put (True, a_unit.id.twin)
 			end

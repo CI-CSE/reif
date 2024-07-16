@@ -18,7 +18,6 @@ feature {NONE} -- Initialization
 	make (a_boogie_universe: IV_UNIVERSE)
 			-- Initialize translator.
 		do
-			-- print ("E2B_TRANSLATOR.make%N")
 			translation_pool.reset
 			-- boogie_universe := a_boogie_universe
 			-- boogie_universe_cell.put (a_boogie_universe)
@@ -126,10 +125,6 @@ feature -- Basic operations
 					autoproof_errors.extend (l_error)
 				end
 			else
-				-- print ("number of untranslated_elements: " + translation_pool.untranslated_elements.count)
---				across translation_pool.untranslated_elements as e loop
---					print ("untranslated elements: " + e.id.out + "%N")
---				end
 				check translation_pool.has_untranslated_elements end
 				l_unit := translation_pool.next_untranslated_element
 				l_unit.translate
