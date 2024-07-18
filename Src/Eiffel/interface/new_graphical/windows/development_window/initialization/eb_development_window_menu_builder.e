@@ -1300,7 +1300,6 @@ feature {EB_EXTERNAL_COMMANDS_EDITOR} -- Menu Building
 				insert_show_tool_menu_item (Result, {ES_TESTING_TOOL})
 				insert_show_tool_menu_item (Result, {ES_TESTING_RESULTS_TOOL})
 			end
-			insert_show_tool_menu_item (Result, {ES_CODE_ANALYSIS_TOOL})
 			insert_show_tool_menu_item (Result, {ES_ADB_TOOL})
 --			insert_show_tool_menu_item (Result, {ES_JSTAR_PROOFS_TOOL})
 --			insert_show_tool_menu_item (Result, {ES_EVE_PROOFS_TOOL})

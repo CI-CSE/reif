@@ -55,5 +55,7 @@
 		<cluster name="graphical" location="interface\graphical" recursive="true">
 			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
 		</cluster>
+
+		<cluster name="eve_code_analysis" location="$EIFFEL_SRC\..\research\extension\code_analysis" recursive="true" />
 	</target>
 </system>
