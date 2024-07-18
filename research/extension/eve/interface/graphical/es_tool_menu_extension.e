@@ -43,9 +43,47 @@ feature -- Modification
 							c.execute
 						end
 					end)
+
+			across << [{ES_BLACKBOARD_TOOL}, icon_pixmaps.tool_watch_name] >> as tool loop
+				extend_show_tool_menu_item (extender, tool)
+			end
 		end
 
 feature {NONE} -- Clean up
+
+extend_show_tool_menu_item (
+	extend_menu: PROCEDURE
+		[READABLE_STRING_32, READABLE_STRING_GENERAL, BOOLEAN, PROCEDURE];
+	tool: TUPLE
+		[type: TYPE [ES_TOOL [EB_TOOL]]; pixmap_name: READABLE_STRING_GENERAL])
+		-- Similar to `EB_DEVELOPMENT_WINDOW_MENU_BUILDER.insert_show_tool_menu_item`
+	local
+		c: ES_SHOW_TOOL_COMMAND
+		item: EV_MENU_ITEM
+	do
+		if
+			attached window_manager.last_focused_development_window as w
+			and then attached w.shell_tools.tool (tool.type) as t
+		then
+			c := w.commands.show_shell_tool_commands.item (t)
+			if c = Void then
+				create c.make (t)
+				w.auto_recycle (c)
+				w.commands.show_shell_tool_commands.force (c, t)
+			end
+
+			item := c.new_menu_item_unmanaged
+
+			extend_menu (
+				item.text,
+				tool.pixmap_name,
+				item.is_sensitive,
+				agent c.execute
+			)
+		end
+
+
+	end
 
 	safe_dispose (a_explicit: BOOLEAN)
 			-- <Precursor>

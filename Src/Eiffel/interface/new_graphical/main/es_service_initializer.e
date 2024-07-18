@@ -49,7 +49,6 @@ feature -- Services
 			a_container.register_with_activator ({HELP_PROVIDERS_S}, agent new_help_providers_service, False)
 			--a_container.register_with_activator ({STATUS_BAR_S}, agent new_status_bar_service, False)
 			a_container.register_with_activator ({WIZARD_ENGINE_S}, agent new_wizard_service, False)
-			a_container.register_with_activator ({BLACKBOARD_S}, agent new_blackboard_service, False)
 			a_container.register_with_activator ({ES_CODE_TEMPLATE_CATALOG_S}, agent new_es_code_template_catalog_service, False)
 			a_container.register_with_activator ({CODE_ANALYZER_S [STONE, CA_RULE_VIOLATION]}, agent new_code_analyzer_service, False)
 			a_container.register_with_activator ({PROJECT_SESSION_STATISTICS_S}, agent new_statistics_service, False)
@@ -147,21 +146,6 @@ feature {NONE} -- Factory
 			-- <Precursor>
 		do
 			create {ES_DEBUGGER} Result.make
-		end
-
-	new_blackboard_service: detachable BLACKBOARD_S
-			-- Create blackboard service.
-		local
-			l_cluster_observer: ES_BLACKBOARD_CLUSTER_OBSERVER
-		do
-			create {EBB_BLACKBOARD} Result.make
-			if Result.is_interface_usable then
-				Result.register_tool (create {E2B_TOOL})
-				Result.register_tool (create {EBB_AUTOTEST_TOOL})
-				Result.register_tool (create {EBB_CA_TOOL})
-				create l_cluster_observer
-				l_cluster_observer.manager.extend (l_cluster_observer)
-			end
 		end
 
 	new_code_analyzer_service: detachable CODE_ANALYZER_S [STONE, CA_RULE_VIOLATION]

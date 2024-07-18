@@ -33,9 +33,14 @@ feature -- Services
 		do
 			Precursor {ES_SERVICE_INITIALIZER} (c)
 			Precursor {SERVICE_INITIALIZER_EXTENSION} (c)
+
+			-- AutoProof
 			c.register_with_activator ({VERIFIER_S}, agent new_verifier_service, False)
+
+			-- EVE or Common
 			c.register_with_activator ({CONTEXT_MENU_EXTENSION_S}, agent new_context_menu_extension_service, False)
 			c.register_with_activator ({TOOL_MENU_EXTENSION_S}, agent new_tool_menu_extension_service, False)
+			c.register_with_activator ({BLACKBOARD_S}, agent new_blackboard_service, False)
 		end
 
 feature {NONE} -- Factory
@@ -62,6 +67,21 @@ feature {NONE} -- Factory
 			create {ES_TOOL_MENU_EXTENSION} Result
 		ensure
 			is_interface_usable: attached Result implies Result.is_interface_usable
+		end
+
+	new_blackboard_service: detachable BLACKBOARD_S
+			-- Create blackboard service.
+		local
+			l_cluster_observer: ES_BLACKBOARD_CLUSTER_OBSERVER
+		do
+			create {EBB_BLACKBOARD} Result.make
+			if Result.is_interface_usable then
+				Result.register_tool (create {E2B_TOOL})
+				Result.register_tool (create {EBB_AUTOTEST_TOOL})
+				Result.register_tool (create {EBB_CA_TOOL})
+				create l_cluster_observer
+				l_cluster_observer.manager.extend (l_cluster_observer)
+			end
 		end
 
 note

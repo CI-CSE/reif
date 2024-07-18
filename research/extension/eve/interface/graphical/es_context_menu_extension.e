@@ -64,6 +64,34 @@ feature -- Modification
 					not is_running,
 					agent s.verify_class (c))
 			end
+
+			if attached blackboard.service as s then
+				across s.tools as tool loop
+					across tool.configurations as conf loop
+						extender (
+							{STRING_32} "Launch " + tool.name + " - " + conf.name,
+							icon_pixmaps.tool_watch_name,
+							not s.is_running,
+							agent launch_tool (s, tool, conf, c)
+						)
+					end
+				end
+			end
+		end
+
+feature {NONE} -- Blackboard
+
+	launch_tool (s: BLACKBOARD_S;
+		a_tool: EBB_TOOL; a_configuration: EBB_TOOL_CONFIGURATION; a_class: CLASS_C)
+		local
+			l_input: EBB_TOOL_INPUT
+			l_execution: EBB_TOOL_EXECUTION
+		do
+			create l_input.make
+			l_input.add_class (a_class)
+
+			create l_execution.make (a_tool, a_configuration, l_input)
+			s.executions.queue_tool_execution (l_execution)
 		end
 
 feature {NONE} -- Clean up
@@ -77,6 +105,12 @@ feature {NONE} -- Service access
 
 	verifier: SERVICE_CONSUMER [VERIFIER_S]
 			-- Access to the verfier service.
+		once
+			create Result
+		end
+
+	blackboard: SERVICE_CONSUMER [BLACKBOARD_S]
+			-- Access to the blackboard service.
 		once
 			create Result
 		end

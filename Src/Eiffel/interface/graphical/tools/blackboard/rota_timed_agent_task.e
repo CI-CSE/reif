@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	action: PROCEDURE [ANY, TUPLE []]
+	action: PROCEDURE [TUPLE []]
 			-- Procedure which is executed in each iteration.
 
 	sleep_time: NATURAL

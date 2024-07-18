@@ -89,12 +89,10 @@ feature {NONE} -- Implementation
 			-- Handle event that control selection changed.
 		local
 			l_running: BOOLEAN
-			l_control: EBB_CONTROL
 		do
 			l_running := blackboard.is_running
 			blackboard.stop
-			l_control ?= control_box.selected_item.data
-			if l_control /= Void then
+			if attached {EBB_CONTROL} control_box.selected_item.data as l_control then
 				blackboard.set_control (l_control)
 			end
 			if l_running then

@@ -50,55 +50,6 @@ feature
 			blackboard.data_changed_event.subscribe (agent a_grid.update_verification_status)
 		end
 
-	build_context_menu_for_class_stone (a_menu: EV_MENU; a_stone: CLASSC_STONE)
-			-- Build context menu for class stone `a_stone' and add it to `a_menu'.
-			--
-			-- Added to {EB_CONTEXT_MENU_FACTORY}.extend_standard_compiler_item_menu
-		require
-			a_menu_not_void: a_menu /= Void
-			a_stone_not_void: a_stone /= Void
-		local
-			l_menu: EV_MENU
-			l_item: EV_MENU_ITEM
-			l_tool: EBB_TOOL
-		do
-			create l_menu.make_with_text ("Verification assistant")
-			a_menu.extend (l_menu)
-
-			from
-				blackboard.tools.start
-			until
-				blackboard.tools.after
-			loop
-				l_tool := blackboard.tools.item
-
-				from
-					l_tool.configurations.start
-				until
-					l_tool.configurations.after
-				loop
-					create l_item.make_with_text ("Launch " + l_tool.name + " - " + l_tool.configurations.item.name)
-					l_item.select_actions.extend (agent launch_tool (l_tool, l_tool.configurations.item, a_stone.e_class))
-					l_tool.configurations.forth
-					l_menu.extend (l_item)
-				end
-
-				blackboard.tools.forth
-			end
-		end
-
-	launch_tool (a_tool: EBB_TOOL; a_configuration: EBB_TOOL_CONFIGURATION; a_class: CLASS_C)
-		local
-			l_input: EBB_TOOL_INPUT
-			l_execution: EBB_TOOL_EXECUTION
-		do
-			create l_input.make
-			l_input.add_class (a_class)
-
-			create l_execution.make (a_tool, a_configuration, l_input)
-			blackboard.executions.queue_tool_execution (l_execution)
-		end
-
 feature -- Helper
 
 	light_color_for_correctness (a_value: REAL): EV_COLOR

@@ -12,50 +12,6 @@ inherit
 
 	EB_SHARED_PIXMAPS
 
-feature -- Basic operations
-
-	build_context_menu_for_class_stone (a_menu: EV_MENU; a_stone: CLASSC_STONE)
-			-- Build context menu for class stone `a_stone' and add it to `a_menu'.
-			--
-			-- Added to {EB_CONTEXT_MENU_FACTORY}.extend_standard_compiler_item_menu
-		require
-			a_menu_not_void: a_menu /= Void
-			a_stone_not_void: a_stone /= Void
-		local
-			l_item: EV_MENU_ITEM
-		do
-			if a_stone.class_i.is_compiled then
-				create l_item.make_with_text_and_action ("Verify with AutoProof", agent verify_class (a_stone.e_class))
-				l_item.set_pixmap (icon_pixmaps.general_tick_icon)
-				if autoproof.is_running then
-					l_item.disable_sensitive
-					l_item.set_text (l_item.text + " (running)")
-				end
-				a_menu.extend (l_item)
-			end
-		end
-
-	build_context_menu_for_feature_stone (a_menu: EV_MENU; a_stone: FEATURE_STONE)
-			-- Build context menu for feature stone `a_stone' and add it to `a_menu'.
-			--
-			-- Added to {EB_CONTEXT_MENU_FACTORY}.extend_standard_compiler_item_menu
-		require
-			a_menu_not_void: a_menu /= Void
-			a_stone_not_void: a_stone /= Void
-		local
-			l_item: EV_MENU_ITEM
-		do
-			if a_stone.e_feature.is_procedure or a_stone.e_feature.is_function then
-				create l_item.make_with_text_and_action ("Verify with AutoProof", agent verify_feature (a_stone.e_feature.associated_feature_i))
-				l_item.set_pixmap (icon_pixmaps.general_tick_icon)
-				if autoproof.is_running then
-					l_item.disable_sensitive
-					l_item.set_text (l_item.text + " (running)")
-				end
-				a_menu.extend (l_item)
-			end
-		end
-
 feature -- Verification
 
 	autoproof: E2B_AUTOPROOF

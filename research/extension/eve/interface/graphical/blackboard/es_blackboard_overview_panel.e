@@ -124,7 +124,6 @@ feature -- Initialization
 		local
 			l_row: EV_GRID_ROW
 			l_classes: LIST [EBB_CLASS_DATA]
-			l_class_data: EBB_CLASS_DATA
 			i: INTEGER
 		do
 			l_classes := blackboard.data.classes
@@ -135,8 +134,7 @@ feature -- Initialization
 				i > grid.row_count
 			loop
 				l_row := grid.row (i)
-				if l_row.parent = Void then
-					l_class_data ?= l_row.data
+				if l_row.parent = Void and then attached {EBB_CLASS_DATA} l_row.data as l_class_data then
 					if not l_classes.has (l_class_data) then
 						grid.remove_and_clear_subrows_from (l_row)
 						grid.remove_row (i)
@@ -177,8 +175,6 @@ feature -- Basic operations
 		local
 			l_class_row, l_feature_row: EV_GRID_ROW
 			l_count_class, l_count_features, i, j: INTEGER
-			l_class_data: EBB_CLASS_DATA
-			l_feature_data: EBB_FEATURE_DATA
 			l_any_feature_visible: BOOLEAN
 		do
 			from
@@ -188,8 +184,7 @@ feature -- Basic operations
 				i > l_count_class
 			loop
 				l_class_row := grid.row (i)
-				l_class_data ?= l_class_row.data
-				if l_class_data /= Void then
+				if attached  {EBB_CLASS_DATA} l_class_row.data as l_class_data then
 					from
 						j := 1
 						l_count_features := l_class_row.subrow_count
@@ -198,14 +193,14 @@ feature -- Basic operations
 						j > l_count_features
 					loop
 						l_feature_row := l_class_row.subrow (j)
-						l_feature_data ?= l_feature_row.data
-						check l_feature_data /= Void end
-						check l_class_data.children.has (l_feature_data) end
-						if is_feature_visible (l_feature_data) then
-							l_feature_row.show
-							l_any_feature_visible := True
-						else
-							l_feature_row.hide
+						check attached {EBB_FEATURE_DATA} l_feature_row.data as l_feature_data then
+							check l_class_data.children.has (l_feature_data) end
+							if is_feature_visible (l_feature_data) then
+								l_feature_row.show
+								l_any_feature_visible := True
+							else
+								l_feature_row.hide
+							end
 						end
 						j := j + 1
 					end
@@ -361,7 +356,6 @@ feature {NONE} -- Implementation
 			l_row: EV_GRID_ROW
 			l_found: BOOLEAN
 			l_insert_position: INTEGER
-			l_class_data: EBB_CLASS_DATA
 			i: INTEGER
 		do
 				-- Find row for this class.
@@ -376,9 +370,10 @@ feature {NONE} -- Implementation
 					if l_row.data = a_class_data then
 						l_found := True
 					else
-						l_class_data ?= l_row.data
-						if a_class_data.class_name < l_class_data.class_name then
-							l_insert_position := i
+						check attached {EBB_CLASS_DATA} l_row.data as l_class_data then
+							if a_class_data.class_name < l_class_data.class_name then
+								l_insert_position := i
+							end
 						end
 					end
 				end
@@ -459,8 +454,10 @@ feature {NONE} -- Implementation
 				until
 					i > a_row.subrow_count
 				loop
-					l_feature_data ?= a_row.subrow (i).data
-					if not a_class_data.children.has (l_feature_data) then
+					if
+						attached {EBB_FEATURE_DATA} a_row.subrow (i).data as x
+						and then not a_class_data.children.has (x)
+					then
 						grid.remove_row (a_row.index + i)
 					else
 						i := i + 1
@@ -489,7 +486,6 @@ feature {NONE} -- Implementation
 			l_row: EV_GRID_ROW
 			l_found: BOOLEAN
 			l_insert_position: INTEGER
-			l_feature_data: EBB_FEATURE_DATA
 			i: INTEGER
 		do
 				-- Find row for this feature.
@@ -504,9 +500,10 @@ feature {NONE} -- Implementation
 					if l_row.data = a_feature_data then
 						l_found := True
 					else
-						l_feature_data ?= l_row.data
-						if a_feature_data.feature_name < l_feature_data.feature_name then
-							l_insert_position := i
+						check attached {EBB_FEATURE_DATA} l_row.data as l_feature_data then
+							if a_feature_data.feature_name < l_feature_data.feature_name then
+								l_insert_position := i
+							end
 						end
 					end
 				end
@@ -812,13 +809,14 @@ feature {NONE} -- Factory
 			a_lines_attached: a_lines /= Void
 			a_item_attached: a_item /= Void
 			a_item_is_parented: a_item.is_parented
-			a_item_data_unattached_or_is_tool_tip: a_item.data = Void or else (({EB_EDITOR_TOKEN_TOOLTIP}) #? a_item.data) /= Void
+			a_item_data_unattached_or_is_tool_tip: a_item.data = Void or else attached {EB_EDITOR_TOKEN_TOOLTIP} a_item.data
 		local
 			l_tokens: like tokens_list_from_lines
 			l_select_actions: EV_NOTIFY_ACTION_SEQUENCE
 		do
-			Result ?= a_item.data
-			if Result = Void then
+			if attached {EB_EDITOR_TOKEN_TOOLTIP} a_item.data as x then
+				Result := x
+			else
 				if grid.is_single_item_selection_enabled or grid.is_multiple_row_selection_enabled then
 					l_select_actions := a_item.row.select_actions
 				else
@@ -849,8 +847,8 @@ feature {NONE} -- Factory
 			not_a_lines_is_empty: not a_lines.is_empty
 		local
 			l_cursor: CURSOR
-			l_eol: EDITOR_TOKEN_EOL
 			l_start: BOOLEAN
+			is_eol: BOOLEAN
 		do
 			create Result.make (a_lines.count)
 			l_cursor := a_lines.cursor
@@ -871,12 +869,13 @@ feature {NONE} -- Factory
 
 			if not Result.is_empty then
 					-- Ensures no blank lines at the end of the text
-				l_eol ?= Result.last
-				from Result.finish until Result.before or l_eol = Void loop
-					l_eol ?= Result.item
-					if l_eol /= Void then
+				is_eol := attached {EDITOR_TOKEN_EOL} Result.last
+				from Result.finish until Result.before or not is_eol loop
+					is_eol := attached {EDITOR_TOKEN_EOL} Result.item
+					if is_eol then
 						Result.remove
 					end
+
 					if not Result.before then
 						Result.back
 					end
