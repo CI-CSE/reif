@@ -7,5 +7,8 @@ cd ${EIFFEL_SRC}/C_library/zlib                                && ${ISE_EIFFEL}/
 cd ${EIFFEL_SRC}/library/cURL/Clib                             && ${ISE_EIFFEL}/studio/spec/${ISE_PLATFORM}/bin/finish_freezing -library
 cd ${EIFFEL_SRC}/library/net/Clib                              && ${ISE_EIFFEL}/studio/spec/${ISE_PLATFORM}/bin/finish_freezing -library
 cd ${EIFFEL_SRC}/library/vision2/Clib                          && ${ISE_EIFFEL}/studio/spec/${ISE_PLATFORM}/bin/finish_freezing -library
+cd ${EIFFEL_SRC}/framework/dotnet/il_emitter/Clib                          && ${ISE_EIFFEL}/studio/spec/${ISE_PLATFORM}/bin/finish_freezing -library
+cd ${EIFFEL_SRC}/framework/auto_test/Clib                          && ${ISE_EIFFEL}/studio/spec/${ISE_PLATFORM}/bin/finish_freezing -library
+cd ${EIFFEL_SRC}/library/mysql/Clib                          && ${ISE_EIFFEL}/studio/spec/${ISE_PLATFORM}/bin/finish_freezing -library
 cp -p ${ISE_EIFFEL}/library/vision2/spec/${ISE_PLATFORM}/lib/gtk3_eiffel.o ${EIFFEL_SRC}/library/vision2/spec/${ISE_PLATFORM}/lib/
 cd ${EIFFEL_SRC}/C							&& ./quick_configure

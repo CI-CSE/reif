@@ -1,0 +1,6 @@
+auto_test/Clib/Makefile
+auto_test/Clib/config.sh
+
+dotnet/il_emitter/Clib/C
+dotnet/il_emitter/Clib/Makefile
+dotnet/il_emitter/Clib/config.sh

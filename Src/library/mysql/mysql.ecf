@@ -9,7 +9,7 @@
 				<platform value="windows"/>
 			</condition>
 		</external_include>
-		<external_include location="$(ISE_LIBRARY)/library/mysql/spec/include">
+		<external_include location="$(ISE_LIBRARY)/library/mysql/Clib">
 			<condition>
 				<platform excluded_value="windows"/>
 			</condition>

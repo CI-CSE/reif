@@ -1,2 +1,7 @@
 openssl/builds/*
 *.d
+
+libpng/Makefile
+libpng/config.sh
+zlib/Makefile
+zlib/config.sh
