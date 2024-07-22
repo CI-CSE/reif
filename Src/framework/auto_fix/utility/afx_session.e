@@ -161,7 +161,9 @@ feature -- Execution environment
 		do
 			if result_dir_cache = Void then
 				if config.result_dir = Void then
-					result_dir_cache := eiffel_system.eiffel_project.project_directory.fixing_results_path.extended (failure_from_trace.id)
+					result_dir_cache := fixing_results_path (
+						eiffel_system.eiffel_project.project_directory)
+						.extended (failure_from_trace.id)
 				else
 					create result_dir_cache.make_from_string (config.result_dir)
 					result_dir_cache := result_dir_cache.extended (config.fault_signature_id)

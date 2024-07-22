@@ -75,7 +75,8 @@ feature -- Result file
 			-- Name of the result file.
 		do
 			if result_file_name_cache = Void then
-				result_file_name_cache := eiffel_project.project_directory.fixing_results_path.extended (fault_signature + ".afr")
+				result_file_name_cache := fixing_results_path (eiffel_project.project_directory)
+					.extended (fault_signature + ".afr")
 			end
 			Result := result_file_name_cache
 		end

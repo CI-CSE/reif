@@ -159,9 +159,6 @@ feature {NONE}
 	testing_results_directory: STRING = "Testing"
 			-- Directory EIFGENs/[target]/Testing
 
-	fixing_results_directory: STRING = "AutoFix"
-			-- Directory EIFGENs/[target]/AutoFix
-
 	contract_inference_results_directory: STRING = "Contract_inference"
 			-- Directory EIFGENs/[target]/Contract_inference
 

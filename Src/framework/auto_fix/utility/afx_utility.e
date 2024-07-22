@@ -164,4 +164,18 @@ feature -- Operations
 					)
 		end
 
+feature
+
+	fixing_results_path (project_directory: PROJECT_DIRECTORY): PATH
+			-- Path to store AutoFix related output files
+		do
+			Result := project_directory.target_path
+				.extended (fixing_results_directory)
+		ensure
+			class
+		end
+
+	fixing_results_directory: STRING = "AutoFix"
+			-- Directory EIFGENs/[target]/AutoFix
+
 end

@@ -44,7 +44,11 @@ feature -- Modification
 						end
 					end)
 
-			across << [{ES_BLACKBOARD_TOOL}, icon_pixmaps.tool_watch_name] >> as tool loop
+			across
+				{ARRAY [TUPLE [TYPE [ES_TOOL [EB_TOOL]], READABLE_STRING_GENERAL]]} <<
+				[{ES_BLACKBOARD_TOOL}, icon_pixmaps.tool_watch_name],
+				[{ES_EVE_AUTOFIX_TOOL}, icon_pixmaps.command_send_to_external_editor_name]
+			>> as tool loop
 				extend_show_tool_menu_item (extender, tool)
 			end
 		end
