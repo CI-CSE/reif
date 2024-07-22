@@ -82,7 +82,6 @@ rt_private rt_inline void * ei_oref(long i, EIF_REFERENCE object)
 	return object + System(Dtype(object)).cn_offsets[i]; 
 }
 #endif
-RT_LNK EIF_INTEGER eif_object_identifier (EIF_REFERENCE object);
 
 rt_private rt_inline char *ei_exp_type(long i, EIF_REFERENCE object)
 	/* Returns the class name of the i-th expanded field of `object'. */

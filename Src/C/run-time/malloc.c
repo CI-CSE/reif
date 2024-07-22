@@ -403,10 +403,6 @@ doc:	</attribute>
 */
 rt_shared size_t eif_chunk_size;
 
-#ifdef WITH_OBJECT_IDENTIFIER
-rt_shared EIF_INTEGER eif_object_id_count = 0;  /* object identifier counter */
-#endif
-
 #ifdef ISE_GC
 /* Functions handling free list */
 rt_private rt_inline size_t rt_compute_free_list_index (size_t nbytes);
@@ -3975,11 +3971,6 @@ rt_private EIF_REFERENCE eif_set(EIF_REFERENCE object, uint16 flags, EIF_TYPE_IN
 	SIGBLOCK;					/* Critical section */
 	memset (object, 0, zone->ov_size & B_SIZE);		/* All set with zeros */
 
-#ifdef WITH_OBJECT_IDENTIFIER
-	eif_object_id_count++;
-	zone->ov_id = (rt_uint_ptr)eif_object_id_count; 
-#endif
-
 #ifdef EIF_TID
 #ifdef EIF_THREADS
 	zone->ovs_tid = (rt_uint_ptr) eif_thr_context->thread_id; /* tid from eif_thr_context */
@@ -4043,6 +4034,7 @@ rt_private EIF_REFERENCE eif_set(EIF_REFERENCE object, uint16 flags, EIF_TYPE_IN
 #ifdef EIF_EXPENSIVE_ASSERTIONS
 	CHECK ("Cannot be in object ID stack", !eif_ostack_has(&object_id_stack, object));
 #endif
+
 	return object;
 }
 
@@ -4066,10 +4058,6 @@ rt_private EIF_REFERENCE eif_spset(EIF_REFERENCE object, EIF_BOOLEAN in_scavenge
 	if (egc_has_old_special_semantic) {
 		memset (object, 0, zone->ov_size & B_SIZE);		/* All set with zeros */
 	}
-#ifdef WITH_OBJECT_IDENTIFIER
-	eif_object_id_count++;
-	zone->ov_id = (rt_uint_ptr)eif_object_id_count;
-#endif
 
 #ifdef EIF_TID
 #ifdef EIF_THREADS
@@ -4087,6 +4075,7 @@ rt_private EIF_REFERENCE eif_spset(EIF_REFERENCE object, EIF_BOOLEAN in_scavenge
  	zone->ov_pid = (EIF_SCP_PID) 0;
 #endif
 	zone->ov_size &= ~B_C;				/* Object is an Eiffel one */
+
 #ifdef ISE_GC
 	if (in_scavenge == EIF_FALSE) {
 		zone->ov_flags = EO_SPEC | EO_NEW;	/* Object is special and new */
