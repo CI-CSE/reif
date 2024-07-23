@@ -132,10 +132,14 @@ feature -- Access
 		local
 			l_path: FILE_NAME
 		do
-			create l_path.make_from_string (eiffel_system.eiffel_project.project_directory.contract_inference_results_path)
+			create l_path.make_from_string (eiffel_system.eiffel_project.project_directory.target_path.out)
+			l_path.extend (contract_inference_results_directory)
 			Result := l_path
 			safe_recursive_create_directory (l_path)
 		end
+
+	contract_inference_results_directory: STRING = "Contract_inference"
+			-- Directory EIFGENs/[target]/Contract_inference
 
 	working_directory: STRING
 			-- Working directory of the project

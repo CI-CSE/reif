@@ -241,17 +241,6 @@ feature -- Directories
 			end
 		end
 
-	contract_inference_results_path: DIRECTORY_NAME
-			-- Path to store contract inference related output files
-		do
-			Result := internal_contract_inference_results_path
-			if Result = Void then
-				create Result.make_from_string (target_path.out)
-				Result.extend (contract_inference_results_directory)
-				internal_contract_inference_results_path := Result
-			end
-		end
-
 	eifgens_cluster_path: like path
 			-- Path to internal cluster located in EIFGENs directory
 		do
@@ -576,7 +565,6 @@ feature {NONE} -- Implementation: Access
 	internal_project_file_name: like project_file_name
 			-- Placeholders for storing filename.
 
-	internal_contract_inference_results_path: like contract_inference_results_path
 	internal_eifgens_cluster_path: like eifgens_cluster_path
 			-- Placeholders for storing path.
 
