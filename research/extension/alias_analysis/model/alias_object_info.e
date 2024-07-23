@@ -73,8 +73,8 @@ feature {ANY}
 					(create {ALIAS_OBJECT_INFO}.make_variable (
 							context_routine, -- wrong; unused dummy
 							alias_object.attributes,
-							c.key
-						)).alias_object := c.item
+							@c.key
+						)).alias_object := c
 				end
 			else
 				alias_object := a_alias_object

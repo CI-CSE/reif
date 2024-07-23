@@ -117,7 +117,7 @@ feature {NONE}
 
 			if attached {EIFFEL_LIST [AST_EIFFEL]} a_ast_node as eiffel_list then
 				across eiffel_list as c loop
-					handle (l_tree_node, c.cursor_index.out, c.item)
+					handle (l_tree_node, @c.cursor_index.out, c)
 				end
 			else
 				from
@@ -150,9 +150,9 @@ feature {NONE}
 			across a_code.split ('%N') as line_curser loop
 				l_line_min := 0
 				across
-					line_curser.item as char_cursor
+					line_curser as char_cursor
 				until
-					char_cursor.item /= '%T'
+					char_cursor /= '%T'
 				loop
 					l_line_min := l_line_min + 1
 				end

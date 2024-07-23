@@ -131,7 +131,7 @@ invariant
 	routine /= Void
 	(breakpoints = Void) = (gui_refresh_agent = Void)
 	breakpoints /= Void implies not breakpoints.is_empty
-	breakpoints /= Void implies across breakpoints as c all c.item /= Void end
+	breakpoints /= Void implies across breakpoints as c all c /= Void end
 	breakpoints /= Void implies index >= breakpoints.lower
 	breakpoints /= Void implies index <= breakpoints.upper
 

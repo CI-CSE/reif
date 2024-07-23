@@ -94,8 +94,8 @@ feature {NONE}
 					compute_aliasing_info (l_ar.current_object, a_cur_path, a_info)
 				end
 				across a_cur_node.variables as c loop
-					a_cur_path.extend ([a_cur_node, c.key])
-					compute_aliasing_info (c.item, a_cur_path, a_info)
+					a_cur_path.extend ([a_cur_node, @c.key])
+					compute_aliasing_info (c, a_cur_path, a_info)
 					a_cur_path.finish
 					a_cur_path.remove
 				end
@@ -113,11 +113,11 @@ feature {NONE}
 				until
 					l_cycle_head = Void
 				loop
-					if c.item.av = a_cur_node then
+					if c.av = a_cur_node then
 						a_info.append (path_to_string (l_cycle_head))
 						l_cycle_head := Void
 					else
-						l_cycle_head.extend (c.item)
+						l_cycle_head.extend (c)
 					end
 				end
 			end
@@ -132,12 +132,12 @@ feature {NONE}
 			else
 				Result := ""
 				across a_path as c loop
-					if c.target_index > 1 then
+					if @c.target_index > 1 then
 						Result.append (".")
 					end
-					Result.append (c.item.av.out)
+					Result.append (c.av.out)
 					Result.append (".")
-					Result.append (c.item.name)
+					Result.append (c.name)
 				end
 			end
 		end
@@ -155,10 +155,10 @@ feature {NONE}
 						a_info.append ("%N")
 					end
 					across a_cur_node.visiting_data as c loop
-						if c.target_index > 1 then
+						if @c.target_index > 1 then
 							a_info.append (", ")
 						end
-						a_info.append (c.item)
+						a_info.append (c)
 					end
 				end
 
@@ -166,7 +166,7 @@ feature {NONE}
 					collect_aliasing_info (l_ar.current_object, a_info)
 				end
 				across a_cur_node.variables as c loop
-					collect_aliasing_info (c.item, a_info)
+					collect_aliasing_info (c, a_info)
 				end
 			end
 		end
@@ -183,7 +183,7 @@ feature {NONE}
 					reset_visiting (l_ar.current_object)
 				end
 				across a_cur_node.variables as c loop
-					reset_visiting (c.item)
+					reset_visiting (c)
 				end
 			end
 		end
@@ -205,7 +205,7 @@ feature {NONE}
 					print_nodes (l_ar.current_object, a_id, a_output)
 				end
 				across a_cur_node.variables as c loop
-					print_nodes (c.item, a_id, a_output)
+					print_nodes (c, a_id, a_output)
 				end
 			end
 		end
@@ -223,8 +223,8 @@ feature {NONE}
 					print_edges (l_ar.current_object, a_output)
 				end
 				across a_cur_node.variables as c loop
-					a_output.append ("	" + a_cur_node.visiting_data.last + "->" + c.item.visiting_data.last + "[label=<" + c.key + ">]%N")
-					print_edges (c.item, a_output)
+					a_output.append ("	" + a_cur_node.visiting_data.last + "->" + c.visiting_data.last + "[label=<" + @c.key + ">]%N")
+					print_edges (c, a_output)
 				end
 			end
 		end
@@ -232,7 +232,7 @@ feature {NONE}
 invariant
 	stack /= Void
 	not stack.is_empty
-	across stack as c all c.item /= Void end
+	across stack as c all c /= Void end
 
 note
 	copyright: "Copyright (c) 1984-2015, Eiffel Software"

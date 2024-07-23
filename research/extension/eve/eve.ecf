@@ -58,5 +58,6 @@
 
 		<cluster name="eve_code_analysis" location="$EIFFEL_SRC\..\research\extension\code_analysis" recursive="true" />
 		<cluster name="autotest" location="$EIFFEL_SRC\..\research\extension\autotest" recursive="true" />
+		<cluster name="alias_analysis" location="$EIFFEL_SRC\..\research\extension\alias_analysis" recursive="true" />
 	</target>
 </system>

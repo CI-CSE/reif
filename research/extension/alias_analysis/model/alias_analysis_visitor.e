@@ -308,7 +308,7 @@ feature {NONE} -- utilities
 			create l_params.make
 			if a_params /= Void then
 				across a_params as c loop
-					l_params.extend (get_alias_info (Void, c.item))
+					l_params.extend (get_alias_info (Void, c))
 				end
 			end
 
@@ -320,8 +320,8 @@ feature {NONE} -- utilities
 				(create {ALIAS_OBJECT_INFO}.make_variable (
 						alias_graph.stack_top.routine,
 						alias_graph.stack_top.locals,
-						a_routine.arguments.item_name_32 (c.target_index)
-					)).alias_object := c.item.alias_object
+						a_routine.arguments.item_name_32 (@c.target_index)
+					)).alias_object := c.alias_object
 			end
 			a_routine.body.process (Current)
 			create Result.make_variable (

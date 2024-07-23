@@ -231,11 +231,11 @@ feature {NONE}
 
 				create l_analyzer.make (a_f, Void, Void)
 				across l_expected_list as c loop
-					l_analyzer.step_until (c.item.index)
-					l_test_info := [True, c.item.aliasing, l_analyzer.as_string]
+					l_analyzer.step_until (c.index)
+					l_test_info := [True, c.aliasing, l_analyzer.as_string]
 					l_test_info.passed := l_test_info.expected.is_equal (l_test_info.actual)
 
-					create l_test_tree_item.make_with_text (c.item.index.out)
+					create l_test_tree_item.make_with_text (c.index.out)
 					l_test_tree_item.set_data (l_test_info)
 					if l_test_info.passed then
 						l_test_tree_item.set_pixmap (ok_icon)
@@ -271,7 +271,7 @@ feature {NONE}
 				until
 					l_error /= Void
 				loop
-					l_note_key := c.item.tag.name_8
+					l_note_key := c.tag.name_8
 					if l_note_key.starts_with ("aliasing") then
 						l_index_str := l_note_key.substring(("aliasing").count + 1, l_note_key.count)
 						if l_index_str.is_empty then
@@ -287,9 +287,9 @@ feature {NONE}
 								l_index <= a_f.number_of_breakpoint_slots and
 								(Result.is_empty or else Result.last.index < l_index)
 							then
-								inspect c.item.index_list.count
+								inspect c.index_list.count
 								when 1 then
-									l_aliasing := c.item.index_list[1].string_value_32
+									l_aliasing := c.index_list[1].string_value_32
 									if l_aliasing.starts_with ("%"") and l_aliasing.ends_with ("%"") then
 										l_aliasing := l_aliasing.substring (2, l_aliasing.count - 1)
 										l_aliasing.replace_substring_all ("%%N", "%N")
@@ -300,7 +300,7 @@ feature {NONE}
 								when 0 then
 									l_error := "Note %"" + l_note_key + "%" has no values"
 								else
-									l_error := "Note %"" + l_note_key + "%" has " + c.item.index_list.count.out + " values"
+									l_error := "Note %"" + l_note_key + "%" has " + c.index_list.count.out + " values"
 								end
 							else
 								l_error := "Note %"" + l_note_key + "%" has an invalid index (" + l_index.out + ")"
