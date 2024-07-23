@@ -241,18 +241,6 @@ feature -- Directories
 			end
 		end
 
-	eifgens_cluster_path: like path
-			-- Path to internal cluster located in EIFGENs directory
-		do
-			Result := internal_eifgens_cluster_path
-			if Result = Void then
-				Result := target_path.extended (eifgens_cluster_directory)
-				internal_eifgens_cluster_path := Result
-			end
-		ensure
-			result_attached: Result /= Void
-		end
-
 feature -- Files
 
 	project_file_name: PATH
@@ -564,9 +552,6 @@ feature {NONE} -- Implementation: Access
 	internal_lock_file_name: like lock_file_name
 	internal_project_file_name: like project_file_name
 			-- Placeholders for storing filename.
-
-	internal_eifgens_cluster_path: like eifgens_cluster_path
-			-- Placeholders for storing path.
 
 invariant
 	location_not_void: location /= Void

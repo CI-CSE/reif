@@ -159,9 +159,6 @@ feature {NONE}
 	testing_results_directory: STRING = "Testing"
 			-- Directory EIFGENs/[target]/Testing
 
-	eifgens_cluster_directory: STRING = "Cluster"
-			-- Directory EIFGENs/[target]/Cluster
-
 feature-- Versioning
 
 	Compiler_version_number: CONF_VERSION
