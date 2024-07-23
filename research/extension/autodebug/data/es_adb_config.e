@@ -298,7 +298,7 @@ feature{NONE} -- Groups and classes implementation
 					if attached {CLUSTER_I} workbench.universe.group_of_name (l_member_val) as lt_cluster then
 						l_conf_classes := lt_cluster.classes.linear_representation
 						across l_conf_classes as l_conf_class_cursor loop
-							if attached {EIFFEL_CLASS_I} l_conf_class_cursor.item as lt_eiffel_class then
+							if attached {EIFFEL_CLASS_I} l_conf_class_cursor as lt_eiffel_class then
 								Result.force (lt_eiffel_class.compiled_class)
 							end
 						end

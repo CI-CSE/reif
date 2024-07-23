@@ -114,7 +114,7 @@ feature -- Operation
 
 			create Result.make (0)
 			across a_proof_failures as k loop
-				create l_fixing_process.make_from_failure (k.item, Void, output_buffer)
+				create l_fixing_process.make_from_failure (k, Void, output_buffer)
 				Result.force_last (l_fixing_process)
 			end
 		end

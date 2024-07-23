@@ -420,8 +420,8 @@ feature {NONE} -- Implementation
 			-- TODO Li: reimplement to get the tag safely
 			l_list := a_failure_message.split (' ')
 			across l_list as l loop
-				if l.item.same_string ("may") or l.item.same_string ("might") then -- TODO Li: replace the hack and get the tag from verification result parsing
-					l_index_of_may := l.cursor_index
+				if l.same_string ("may") or l.same_string ("might") then -- TODO Li: replace the hack and get the tag from verification result parsing
+					l_index_of_may := @l.cursor_index
 				end
 			end
 			Result := l_list [l_index_of_may - 1]

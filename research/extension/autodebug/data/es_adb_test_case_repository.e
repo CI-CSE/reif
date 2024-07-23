@@ -57,7 +57,7 @@ feature -- Test cases: Access
 				-- Register timestamps
 				-- FIXME: should record timestamps for all classes on the call stack.
 			across <<l_sig.class_under_test, l_sig.recipient_class>> as lt_cls_cursor loop
-				l_class_name := lt_cls_cursor.item
+				l_class_name := lt_cls_cursor
 				register_class_stamp (l_class_name, Void)
 			end
 		end
