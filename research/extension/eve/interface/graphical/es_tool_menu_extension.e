@@ -49,7 +49,8 @@ feature -- Modification
 				[{ES_BLACKBOARD_TOOL}, icon_pixmaps.tool_watch_name],
 				[{ES_EVE_AUTOFIX_TOOL}, icon_pixmaps.command_send_to_external_editor_name],
 				[{ES_ALIAS_ANALYSIS_TOOL}, icon_pixmaps.compile_success_name],
-				[{ES_ADB_TOOL}, icon_pixmaps.command_send_to_external_editor_name]
+				[{ES_ADB_TOOL}, icon_pixmaps.command_send_to_external_editor_name],
+				[{ES_SCHEMA_EVOLUTION_TOOL}, icon_pixmaps.tool_class_name]
 			>> as tool loop
 				extend_show_tool_menu_item (extender, tool)
 			end

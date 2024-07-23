@@ -60,5 +60,6 @@
 		<cluster name="autotest" location="$EIFFEL_SRC\..\research\extension\autotest" recursive="true" />
 		<cluster name="alias_analysis" location="$EIFFEL_SRC\..\research\extension\alias_analysis" recursive="true" />
 		<cluster name="autodebug" location="$EIFFEL_SRC\..\research\extension\autodebug" recursive="true" />
+		<cluster name="schema_evolution_tool" location="$EIFFEL_SRC\..\research\extension\schema_evolution_tool" recursive="true" />
 	</target>
 </system>
