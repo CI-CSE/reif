@@ -229,7 +229,6 @@ feature {NONE} -- Attributes
 
 				--| Execution replay recording status
 				Result.extend (dbg.toggle_exec_replay_recording_mode_cmd.new_menu_item_unmanaged)
-
 				Result.extend (create {EV_MENU_SEPARATOR})
 
 					-- Run (workbench)

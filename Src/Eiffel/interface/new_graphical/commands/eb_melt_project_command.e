@@ -130,7 +130,6 @@ feature {NONE} -- Compilation implementation
 
 				reset_debugger
 				Window_manager.on_compile
-
 				perform_compilation
 				display_eiffel_compilation_status
 				if Eiffel_project.successful then

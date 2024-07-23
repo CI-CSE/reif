@@ -277,6 +277,7 @@ feature -- Execution
 
 					-- Inspect the application's current state.
 				a_app.on_application_just_stopped
+
 				debug ("DEBUGGER_TRACE")
 					io.error.put_string ("STOPPED_HDLR: Finished calling after_cmd%N")
 				end
@@ -419,7 +420,7 @@ feature {NONE} -- Implementation
 		end
 
 note
-	copyright:	"Copyright (c) 1984-2023, Eiffel Software"
+	copyright:	"Copyright (c) 1984-2015, Eiffel Software"
 	license:	"GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options:	"http://www.eiffel.com/licensing"
 	copying: "[
