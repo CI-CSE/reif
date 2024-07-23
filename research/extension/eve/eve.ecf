@@ -63,5 +63,6 @@
 		<cluster name="schema_evolution_tool" location="$EIFFEL_SRC\..\research\extension\schema_evolution_tool" recursive="true" />
 		<cluster name="autofix" location="$EIFFEL_SRC\..\research\extension\autofix" recursive="true" />
 		<cluster name="code_diff_tool" location="$EIFFEL_SRC\..\research\extension\code_diff_tool" recursive="true" />
+		<cluster name="spelling" location="$EIFFEL_SRC\..\research\extension\spelling" recursive="true" />
 	</target>
 </system>

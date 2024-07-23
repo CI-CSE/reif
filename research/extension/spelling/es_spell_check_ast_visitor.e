@@ -100,9 +100,9 @@ feature {NONE} -- Implementation
 			across
 				text_segmentation_function.item ([text]) as limit
 			loop
-				length := limit.item.length
+				length := limit.length
 				if length >= Segment_length_limit then
-					base := limit.item.base
+					base := limit.base
 					segment := text.substring (base, base + length - 1)
 					segments.extend (segment)
 						-- Assuming on one line only. TODO.
@@ -136,9 +136,9 @@ feature {NONE} -- Collecting
 		do
 				-- Collect comments. Hence roundtrip.
 			across
-				node.extract_comment as comment_line
+				node.extract_comment as comment
 			loop
-				if attached comment_line.item as comment and then attached comment.content_32 as string then
+				if attached comment and then attached comment.content_32 as string then
 					create origin.make (comment.line, comment.column, comment.position, string.count, 0, 0, 0)
 					collect_text (string, origin)
 				end
@@ -206,7 +206,7 @@ feature {NONE} -- Collecting
 			across
 				node.feature_names as name
 			loop
-				collect_identifier (name.item.visual_name_32, name.item.start_location)
+				collect_identifier (name.visual_name_32, name.start_location)
 			end
 			Precursor (node)
 		end
@@ -229,7 +229,7 @@ feature {NONE} -- Collecting
 			across
 				node as index
 			loop
-				if attached index.item.tag as tag then
+				if attached index.tag as tag then
 					collect_identifier (tag.name_32, tag.start_location)
 				end
 			end
@@ -266,7 +266,7 @@ feature {NONE} -- Collecting
 
 invariant
 	counts_equal: segments.count = bases.count
-	segment_limit_satisfied: across segments as segment all segment.item.count >= Segment_length_limit end
+	segment_limit_satisfied: across segments as segment all segment.count >= Segment_length_limit end
 
 note
 	copyright: "Copyright (c) 1984-2013, Eiffel Software"

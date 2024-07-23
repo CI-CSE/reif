@@ -232,11 +232,11 @@ feature {NONE} -- Spell checking
 			across
 				spell_checker.last_words_corrections as correction
 			loop
-				if not correction.item.is_correct then
+				if not correction.is_correct then
 					all_correct := False
 					Result.append (visitor.bases.item.line.out + ":" + visitor.bases.item.column.out + " ")
 					Result.append ("Misspelled word: " + visitor.segments.item + ". ")
-					inspect correction.item.suggestions.count
+					inspect correction.suggestions.count
 					when 0 then
 						Result.append ("No suggestions")
 					when 1 then
@@ -244,7 +244,7 @@ feature {NONE} -- Spell checking
 					else
 						Result.append ("Suggestions: ")
 					end
-					Result.append (concatenate_texts (correction.item.suggestions, Default_separator))
+					Result.append (concatenate_texts (correction.suggestions, Default_separator))
 					Result.append ("." + Default_newline + Default_newline)
 				end
 				visitor.segments.forth
