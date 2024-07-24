@@ -152,12 +152,12 @@ feature -- Output
 			if is_for_documentation then
 				f.set_for_documentation (documentation)
 			end
-			if is_informal_bon then
-				f.set_for_informal_bon
-			end
-			if is_formal_bon then
-				f.set_for_formal_bon
-			end
+			-- if is_informal_bon then
+			-- 	f.set_for_informal_bon
+			-- end
+			-- if is_formal_bon then
+			-- 	f.set_for_formal_bon
+			-- end
 			f.execute;
 			error := f.execution_error
 		end;

@@ -414,19 +414,19 @@ feature -- Setting
 			setup_output_strategy
 		end
 
-	set_for_informal_bon
-			-- Prepare formatter decorator for informal BON.
-		do
-			create {TEXTUAL_BON_INFORMAL_OUTPUT_STRATEGY} ast_output_strategy.make (Current)
-			setup_output_strategy
-		end
+	-- set_for_informal_bon
+	-- 		-- Prepare formatter decorator for informal BON.
+	-- 	do
+	-- 		create {TEXTUAL_BON_INFORMAL_OUTPUT_STRATEGY} ast_output_strategy.make (Current)
+	-- 		setup_output_strategy
+	-- 	end
 
-	set_for_formal_bon
-			-- Prepare formatter decorator for formal BON.
-		do
-			create {TEXTUAL_BON_FORMAL_OUTPUT_STRATEGY} ast_output_strategy.make (Current)
-			setup_output_strategy
-		end
+	-- set_for_formal_bon
+	-- 		-- Prepare formatter decorator for formal BON.
+	-- 	do
+	-- 		create {TEXTUAL_BON_FORMAL_OUTPUT_STRATEGY} ast_output_strategy.make (Current)
+	-- 		setup_output_strategy
+	-- 	end
 
 	set_context_group (a_group: like context_group)
 			-- Set `context_group' with `a_group'.
