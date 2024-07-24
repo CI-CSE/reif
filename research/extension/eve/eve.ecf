@@ -64,5 +64,6 @@
 		<cluster name="autofix" location="$EIFFEL_SRC\..\research\extension\autofix" recursive="true" />
 		<cluster name="code_diff_tool" location="$EIFFEL_SRC\..\research\extension\code_diff_tool" recursive="true" />
 		<cluster name="spelling" location="$EIFFEL_SRC\..\research\extension\spelling" recursive="true" />
+		<cluster name="textual_bon" location="$EIFFEL_SRC\..\research\extension\textual_bon" recursive="true" />
 	</target>
 </system>

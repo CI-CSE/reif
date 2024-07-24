@@ -180,7 +180,6 @@
 				<option is_obsolete_iteration="true"/>
 			</cluster>
 		</cluster>
-		<cluster name="modules" location="$EIFFEL_SRC\Eiffel\modules\" recursive="true"/>
 	</target>
 	<target name="eclite" extends="batch">
 		<description>Lite version of Eiffel compiler, compiles only. This is primarly for tools that need to use the Eiffel compiler rather than developers</description>
@@ -582,7 +581,6 @@
 		<cluster name="process_gui" location="$ISE_LIBRARY\library\process\gui\" recursive="true">
 			<option is_obsolete_iteration="true"/>
 		</cluster>
-		<cluster name="modules" location="$EIFFEL_SRC\Eiffel\modules\" recursive="true"/>
 		<cluster name="process_gui" location="$ISE_LIBRARY\library\process\gui\" recursive="true"/>
 		<cluster name="tty" location="$EIFFEL_SRC\Eiffel\interface\tty\" recursive="true">
 			<option is_obsolete_iteration="true"/>
