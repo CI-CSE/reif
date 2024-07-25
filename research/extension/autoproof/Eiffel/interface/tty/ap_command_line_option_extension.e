@@ -1,8 +1,8 @@
 ﻿note
-	description: "Command-line option extension service."
+	description: "AutoProof command-line option extension service."
 
 class
-	EC_COMMAND_LINE_OPTION_EXTENSION
+	AP_COMMAND_LINE_OPTION_EXTENSION
 
 inherit
 	COMMAND_LINE_OPTION_EXTENSION_S

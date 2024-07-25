@@ -9,17 +9,23 @@ inherit
 
 feature -- Access
 
+	all_arguments: INTEGER = -2
+			-- The value indicating that the option takes all arguments.
+			-- See `argument_count`.
+
 	unknown_option: INTEGER = -1
 			-- The value indicating that the option is not recognized.
 			-- See `argument_count`.
 
 	argument_count (o: READABLE_STRING_32): like unknown_option
-			-- The number of arguments for the option `o` or
+			-- The number of arguments for the option `o` or one of the following:
 			-- `unknown_option` if the option is not recognized.
+			-- `all_arguments` is the option takes all the arguments which
+			--   are passed after the option.
 		deferred
 		ensure
 			is_stable: Result = argument_count (o)
-			is_valid: Result = unknown_option or Result >= 0
+			is_valid: Result = unknown_option or Result = all_arguments or Result >= 0
 		end
 
 	help: STRING_TABLE [READABLE_STRING_32]

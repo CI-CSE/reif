@@ -734,7 +734,7 @@ feature {NONE} -- Update
 			l_at_args: LINKED_LIST [STRING_8]
 			in_filename, out_filename: STRING_32
 			l_configuration_settings: like configuration_settings
-			option_arguments: ARRAYED_LIST [READABLE_STRING_32]
+			option_arguments: LIST [READABLE_STRING_32]
 			option: STRING_32
 			option_name: STRING_32
 			option_processed: BOOLEAN
@@ -1444,10 +1444,6 @@ feature {NONE} -- Update
 					l_at_args := arguments_in_range (current_option + 1, argument_count)
 					current_option := argument_count + 1
 					create {EWB_SNIPPET_EXTRACTION} command.make_with_arguments (l_at_args)
-				elseif option.is_equal ("-to_xml") then
-					l_at_args := arguments_in_range (current_option + 1, argument_count)
-					current_option := argument_count + 1
-					create {EWB_XML_TRANSFORMATION} command.make_with_arguments (l_at_args)
 				elseif option.is_equal ("-annotation") then
 					l_at_args := arguments_in_range (current_option + 1, argument_count)
 					current_option := argument_count + 1
@@ -1575,9 +1571,9 @@ feature {NONE} -- Update
 					else
 						option_error_message := locale.translation ("Capability option requires a value.")
 					end
-				else
-					option_processed := False
 				end
+			else
+				option_processed := False
 			end
 			if not option_processed then
 				option_processed := True
@@ -1591,7 +1587,7 @@ feature {NONE} -- Update
 				then
 						-- This is a known service-provided option.
 						-- Check if there are sufficient option arguments.
-					if current_option + n > argument_count then
+					if n /= s.all_arguments and current_option + n > argument_count then
 						option_error_message := locale.formatted_string
 							(locale.plural_translation_in_context
 								({STRING_32} "Insufficient arguments for option `$1` that expects $2 argument.",
@@ -1602,10 +1598,16 @@ feature {NONE} -- Update
 							n)
 					else
 							-- Collect option arguments.
-						create option_arguments.make (n)
-						⟳ i: (current_option + 1) |..| (current_option + n) ¦ option_arguments.extend (argument (i)) ⟲
-							-- Current option will be added at the end of the routine.
-						current_option := current_option + n
+						if n = s.all_arguments then
+							option_arguments := arguments_in_range_32 (
+								current_option + 1, argument_count)
+							current_option := argument_count + 1
+						else
+							option_arguments := arguments_in_range_32 (
+								current_option + 1, current_option + n)
+							current_option := current_option + n
+						end
+
 							-- Retrieve the associated command.
 						if not attached s.command (o, option_arguments) as c then
 							option_error_message := s.error

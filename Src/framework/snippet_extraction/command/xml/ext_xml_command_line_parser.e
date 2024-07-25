@@ -14,11 +14,14 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_args: LINKED_LIST [STRING]; a_system: SYSTEM_I)
+	make_with_arguments (a_args: LINKED_LIST [READABLE_STRING_GENERAL]; a_system: SYSTEM_I)
 			-- Initialize Current with arguments `a_args'.
 		do
 			create config.make (a_system)
-			arguments := a_args
+			create arguments.make
+			across a_args as arg loop
+				arguments.extend (arg.item.as_string_8_conversion)
+			end
 		ensure
 			arguments_set: arguments = a_args
 			options_set: config.eiffel_system = a_system

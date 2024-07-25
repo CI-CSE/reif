@@ -21,10 +21,10 @@ feature -- Services
 
 feature {NONE} -- Factory
 
-	new_command_line_option_service: COMMAND_LINE_OPTION_EXTENSION_S
+	new_command_line_option_service: EC_COMMAND_LINE_OPTION_EXTENSION
 			-- New command-line option service.
 		do
-			create {EC_COMMAND_LINE_OPTION_EXTENSION} Result
+			create Result.make
 		ensure
 			is_interface_usable: attached Result implies Result.is_interface_usable
 		end

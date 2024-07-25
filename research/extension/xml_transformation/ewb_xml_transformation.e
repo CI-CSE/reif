@@ -1,6 +1,5 @@
 note
-	description: "Summary description for {EWB_XML_TRANSFORMATION}."
-	author: ""
+	description: "Command line options for XML transformation facilities."
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -15,32 +14,34 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
-			-- Initialize `arguments' with `a_arguments'.
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
+			-- Initialize `xml_transformation_arguments' with `a_arguments'.
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
-			create {LINKED_LIST [STRING]} xml_arguments.make
-			a_arguments.do_all (agent xml_arguments.extend)
+			create xml_transformation_arguments.make
+			across a_arguments as arg loop
+				xml_transformation_arguments.extend (arg)
+			end
 		ensure
-			arguments_set: xml_arguments /= Void and then xml_arguments.count = a_arguments.count
+			arguments_set: xml_transformation_arguments /= Void and then xml_transformation_arguments.count = a_arguments.count
 		end
 
 feature -- Access
 
-	xml_arguments: LINKED_LIST [STRING];
-			-- Arguments
+	xml_transformation_arguments: LINKED_LIST [READABLE_STRING_GENERAL];
+			-- Arguments to XML transformation
 
 feature -- Properties
 
 	name: STRING
 		do
-			Result := "xml transformation"
+			Result := "XML transformation"
 		end
 
 	help_message: STRING_GENERAL
 		do
-			Result := "xml transformation"
+			Result := "XML transformation"
 		end
 
 	abbreviation: CHARACTER
@@ -51,8 +52,19 @@ feature -- Properties
 	execute
 			-- Action performed when invoked from the
 			-- command line.
+		local
+			l_parser: EXT_XML_COMMAND_LINE_PARSER
+			l_config: EXT_XML_CONFIG
+			l_parse_code_cmd: EXT_XML_FROM_CLASS_CMD
 		do
+			create l_parser.make_with_arguments (xml_transformation_arguments, system)
+			l_parser.parse
+			l_config := l_parser.config
+
+			create l_parse_code_cmd.make (l_config)
+			l_parse_code_cmd.execute
 		end
+
 note
 	copyright: "Copyright (c) 1984-2011, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
