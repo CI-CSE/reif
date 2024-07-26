@@ -44,6 +44,7 @@
 		<library name="a_contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false"/>
 
 		<library name="snippet_extraction" location="$EIFFEL_SRC\..\research\extension\snippet_extraction\snippet_extraction.ecf" readonly="false"/>
+		<library name="semantic_search" location="$EIFFEL_SRC\..\research\extension\semantic_search\semantic_search.ecf" readonly="false"/>
 
 		<!-- unused libraries
 		<library name="dadle" location="$EIFFEL_SRC\library\dadle\dadle_library.ecf"/>

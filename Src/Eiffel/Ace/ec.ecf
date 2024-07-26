@@ -429,10 +429,6 @@
 			<option>
 			</option>
 		</library>
-		<library name="semantic_search" location="$EIFFEL_SRC\framework\semantic_search\semantic_search.ecf" readonly="false" use_application_options="true">
-			<option>
-			</option>
-		</library>
 		<library name="tagging" location="$EIFFEL_SRC\framework\tagging\tagging.ecf" readonly="false" use_application_options="true">
 			<option>
 			</option>
@@ -443,7 +439,6 @@
 		</library>
 		<library name="program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false"/>
 		<library name="rapid_miner" location="$EIFFEL_SRC\framework\rapid_miner\rapid_miner.ecf" readonly="false"/>
-		<library name="semantic_search" location="$EIFFEL_SRC\framework\semantic_search\semantic_search.ecf" readonly="false"/>
 		<library name="serializer" location="$EIFFEL_SRC\library\schema_evolution\serializer_lib\serializer.ecf"/>
 		<library name="spell_checker" location="$EIFFEL_SRC\library\spelling\spell_checker.ecf" readonly="false"/>
 		<library name="testing_library" location="$ISE_LIBRARY\library\testing\testing.ecf" readonly="false"/>
@@ -584,7 +579,6 @@
 				<exclude>/ewb_dynamic_program_analysis\.e$</exclude>
 				<exclude>/eb_diagram_html_generator\.e$</exclude>
 				<exclude>/ewb_snippet_extraction\.e$</exclude>
-				<exclude>/ewb_semantic_search\.e$</exclude>
 				<exclude>/ewb_xml_transformation\.e$</exclude>
 				<exclude>/ewb_auto_fix\.e$</exclude>
 				<exclude>/ewb_contract_inference\.e$</exclude>
