@@ -14,7 +14,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_args: LINKED_LIST [STRING]; a_system: SYSTEM_I)
+	make_with_arguments (a_args: LINKED_LIST [READABLE_STRING_GENERAL]; a_system: SYSTEM_I)
 			-- Initialize Current with arguments `a_args'.
 		do
 			create config.make (a_system)
@@ -29,7 +29,7 @@ feature -- Access
 	config: EXT_CONFIG
 			-- Snippet extraction command line options
 
-	arguments: LINKED_LIST [STRING]
+	arguments: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Command line options
 
 feature -- Basic operations
@@ -61,7 +61,9 @@ feature -- Basic operations
 				-- Setup command line argument parser.
 			create l_parser.make
 			create l_args.make
-			arguments.do_all (agent l_args.force_last)
+			across arguments as arg loop
+				l_args.put_last (arg.item.as_string_8_conversion)
+			end
 
 			create l_target_types.make_with_long_form ("target-type")
 			l_target_types.set_description ("Specify a list of target type names separated by ';'.")

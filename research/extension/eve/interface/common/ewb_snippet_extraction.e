@@ -15,20 +15,22 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Initialize `snippet_extraction_arguments' with `a_arguments'.
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
 			create {LINKED_LIST [STRING]} snippet_extraction_arguments.make
-			a_arguments.do_all (agent snippet_extraction_arguments.extend)
+			across a_arguments as arg loop
+				snippet_extraction_arguments.extend (arg)
+			end
 		ensure
 			arguments_set: snippet_extraction_arguments /= Void and then snippet_extraction_arguments.count = a_arguments.count
 		end
 
 feature -- Access
 
-	snippet_extraction_arguments: LINKED_LIST [STRING];
+	snippet_extraction_arguments: LINKED_LIST [READABLE_STRING_GENERAL];
 			-- Arguments to snippet extraction
 
 feature -- Properties
@@ -51,7 +53,17 @@ feature -- Properties
 	execute
 			-- Action performed when invoked from the
 			-- command line.
+		local
+			l_parser: EXT_COMMAND_LINE_PARSER
+			l_config: EXT_CONFIG
+			l_parse_code_cmd: EXT_PROCESS_CLASSES_CMD
 		do
+			create l_parser.make_with_arguments (snippet_extraction_arguments, system)
+			l_parser.parse
+			l_config := l_parser.config
+
+			create l_parse_code_cmd.make (l_config)
+			l_parse_code_cmd.execute
 		end
 
 note

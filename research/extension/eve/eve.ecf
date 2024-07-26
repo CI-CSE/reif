@@ -43,6 +43,8 @@
 		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
 		<library name="a_contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false"/>
 
+		<library name="snippet_extraction" location="$EIFFEL_SRC\..\research\extension\snippet_extraction\snippet_extraction.ecf" readonly="false"/>
+
 		<!-- unused libraries
 		<library name="dadle" location="$EIFFEL_SRC\library\dadle\dadle_library.ecf"/>
 		-->

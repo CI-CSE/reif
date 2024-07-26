@@ -135,7 +135,7 @@
 			<option warning="none">
 			</option>
 		</library>
-		<library name="snippet_extraction" location="$EIFFEL_SRC\framework\snippet_extraction\snippet_extraction.ecf" readonly="false">
+		<library name="snippet_extraction" location="$EIFFEL_SRC\..\research\extension\snippet_extraction\snippet_extraction.ecf" readonly="false">
 			<option warning="none">
 			</option>
 		</library>

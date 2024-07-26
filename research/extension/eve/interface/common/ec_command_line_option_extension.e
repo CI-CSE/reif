@@ -25,6 +25,7 @@ feature
 		do
 			create extensions.make (1)
 			extensions.extend (create {XML_TRANSFORMATION_COMMAND_LINE_OPTION_EXTENSION})
+			extensions.extend (create {SNIPPET_EXTRACTION_COMMAND_LINE_EXTENSION})
 		end
 
 	extensions: ARRAYED_LIST [COMMAND_LINE_OPTION_EXTENSION_S]
