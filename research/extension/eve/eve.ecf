@@ -45,6 +45,7 @@
 
 		<library name="snippet_extraction" location="$EIFFEL_SRC\..\research\extension\snippet_extraction\snippet_extraction.ecf" readonly="false"/>
 		<library name="semantic_search" location="$EIFFEL_SRC\..\research\extension\semantic_search\semantic_search.ecf" readonly="false"/>
+		<library name="javascript_compiler" location="$EIFFEL_SRC\..\research\extension\javascript_compiler\javascript_compiler.ecf" readonly="false"/>
 
 		<!-- unused libraries
 		<library name="dadle" location="$EIFFEL_SRC\library\dadle\dadle_library.ecf"/>

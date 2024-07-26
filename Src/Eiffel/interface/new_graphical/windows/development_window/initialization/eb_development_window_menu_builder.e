@@ -1302,7 +1302,6 @@ feature {EB_EXTERNAL_COMMANDS_EDITOR} -- Menu Building
 			end
 --			insert_show_tool_menu_item (Result, {ES_JSTAR_PROOFS_TOOL})
 --			insert_show_tool_menu_item (Result, {ES_EVE_PROOFS_TOOL})
-			insert_show_tool_menu_item (Result, {ES_JAVASCRIPT_TOOL})
 
 			if attached (create {SERVICE_CONSUMER [TOOL_MENU_EXTENSION_S]}).service as s then
 				Result.extend (create {EV_MENU_SEPARATOR})

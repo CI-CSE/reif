@@ -180,7 +180,6 @@ feature -- Command
 
 			l_edit_contracts_command: ES_EDIT_CONTRACTS_COMMAND
 			l_find_class_or_cluster_command: ES_FIND_CLASS_OR_CLUSTER_CMD
-			l_javascript_compile_command: EB_JAVASCRIPT_COMPILE_COMMAND
 
 			l_dev_commands: EB_DEVELOPMENT_WINDOW_COMMANDS
 		do
@@ -457,10 +456,6 @@ feature -- Command
 
 			create l_find_class_or_cluster_command.make (develop_window)
 			l_dev_commands.set_find_class_or_cluster_command (l_find_class_or_cluster_command)
-
-				-- JavaScript compile command
-			create l_javascript_compile_command.make
-			l_dev_commands.set_javascript_compile_command (l_javascript_compile_command)
 
 				-- Add history commands to toolbarable_commands.
 				-- Setup its accelerators.

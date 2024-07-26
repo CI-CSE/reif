@@ -20,7 +20,7 @@ feature {NONE} -- Initialization
 		do
 			create Result.make (1)
 
-			Result.extend (develop_window.commands.javascript_compile_command.new_sd_toolbar_item (True))
+			Result.extend ((create {EB_JAVASCRIPT_COMPILE_COMMAND}.make).new_sd_toolbar_item (True))
 		end
 
 	build_tool_interface (a_widget: EV_VERTICAL_BOX)

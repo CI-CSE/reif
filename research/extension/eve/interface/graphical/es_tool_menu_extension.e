@@ -48,7 +48,10 @@ feature -- Modification
 						icon_pixmaps.tool_class_name],
 					[{ES_SPELLING_TOOL},
 						locale.translation ("Spell Checker"),
-						icon_pixmaps.command_send_to_external_editor_name]
+						icon_pixmaps.command_send_to_external_editor_name],
+					[{ES_JAVASCRIPT_TOOL},
+						{STRING_32} "JavaScript Compiler",
+						icon_pixmaps.project_finalize_name]
 				>> as tool loop
 					extender (
 						tool.title,
