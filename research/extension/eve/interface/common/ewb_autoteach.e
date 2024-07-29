@@ -26,7 +26,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LIST [STRING])
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Initialization for `Current'. `a_arguments' are the command-line
 			-- arguments that are relevant for the Code Analyzer.
 		do
@@ -35,7 +35,7 @@ feature {NONE} -- Initialization
 			arguments_set: autoteach_arguments = a_arguments
 		end
 
-	try_add_class_with_name (a_autoteach_instance: AT_AUTOTEACH; a_class_name: STRING)
+	try_add_class_with_name (a_autoteach_instance: AT_AUTOTEACH; a_class_name: READABLE_STRING_GENERAL)
 			-- Adds class with name `a_class_name' to `a_autoteach_instance',
 			-- if it exists and has been compiled.
 		do
@@ -43,7 +43,7 @@ feature {NONE} -- Initialization
 				across
 					l_c as ic
 				loop
-					a_autoteach_instance.add_class (ic.item.config_class)
+					a_autoteach_instance.add_class (ic.config_class)
 				end
 			else
 				output_window.add (at_strings.error + ": " + at_strings.init_class_not_found (a_class_name))
@@ -52,7 +52,7 @@ feature {NONE} -- Initialization
 
 feature {NONE} -- Options
 
-	class_name_list: LIST [STRING]
+	class_name_list: LIST [READABLE_STRING_GENERAL]
 			-- List of class names for AutoTeach, which have been provided by the user.
 
 feature {NONE} -- Implementation
@@ -63,7 +63,7 @@ feature {NONE} -- Implementation
 			output_window.add (a_string + "%N")
 		end
 
-	autoteach_arguments: LIST [STRING]
+	autoteach_arguments: LIST [READABLE_STRING_GENERAL]
 			-- The command line arguments passed to AutoTeach.
 
 	autoteach_options: AT_OPTIONS
@@ -75,6 +75,7 @@ feature {NONE} -- Implementation
 	process_arguments
 			-- Initialization for `Current'.
 		local
+			arg_lower: READABLE_STRING_GENERAL
 			l_errors, l_warnings, l_notices: ARRAYED_LIST [STRING]
 			l_output_dir: DIRECTORY
 			l_min_max: TUPLE [min, max: NATURAL]
@@ -95,15 +96,15 @@ feature {NONE} -- Implementation
 			until
 				autoteach_arguments.after
 			loop
-				autoteach_arguments.item.to_lower
-				if autoteach_arguments.item.same_string (at_strings.at_class) or autoteach_arguments.item.same_string (at_strings.at_classes) then
+				arg_lower := autoteach_arguments.item.as_lower
+				if arg_lower.same_string (at_strings.at_class) or arg_lower.same_string (at_strings.at_classes) then
 					autoteach_arguments.forth
 					if autoteach_arguments.after then
 						l_errors.force (at_strings.init_class_list_expected)
 					else
-						class_name_list := autoteach_arguments.item.split (' ')
+						class_name_list := arg_lower.split (' ')
 					end
-				elseif autoteach_arguments.item.same_string (at_strings.at_hint_level) then
+				elseif arg_lower.same_string (at_strings.at_hint_level) then
 						-- Register that we encountered the switch, even if the parsing should later fail.
 					l_level_specified := True
 
@@ -134,7 +135,7 @@ feature {NONE} -- Implementation
 					if not attached l_min_max then
 						l_errors.force (at_strings.init_argument_level_expected)
 					end
-				elseif autoteach_arguments.item.same_string (at_strings.at_code_placeholder) then
+				elseif arg_lower.same_string (at_strings.at_code_placeholder) then
 					autoteach_arguments.forth
 					if autoteach_arguments.after or else not autoteach_arguments.item.is_boolean then
 						l_errors.force (at_strings.at_code_placeholder + " " + if autoteach_arguments.after then "" else autoteach_arguments.item end + "%N" + at_strings.init_boolean_value_expected)
@@ -142,7 +143,7 @@ feature {NONE} -- Implementation
 					else
 						autoteach_options.must_insert_code_placeholder := autoteach_arguments.item.to_boolean
 					end
-				elseif autoteach_arguments.item.same_string (at_strings.at_output_path) then
+				elseif arg_lower.same_string (at_strings.at_output_path) then
 					l_output_dir_specified := True
 					autoteach_arguments.forth
 					if autoteach_arguments.after then
@@ -151,21 +152,21 @@ feature {NONE} -- Implementation
 						create l_output_dir.make_with_path (create {PATH}.make_from_string (autoteach_arguments.item))
 						autoteach_options.output_directory := l_output_dir
 					end
-				elseif autoteach_arguments.item.same_string (at_strings.at_level_subfolders) then
+				elseif arg_lower.same_string (at_strings.at_level_subfolders) then
 					autoteach_options.must_create_level_subfolders := True
-				elseif autoteach_arguments.item.same_string (at_strings.at_mode) then
+				elseif arg_lower.same_string (at_strings.at_mode) then
 					autoteach_arguments.forth
 					if autoteach_arguments.after then
 						l_errors.force (at_strings.init_mode_expected (enum_mode.textual_value_list))
 					else
-						autoteach_arguments.item.to_lower
-						if enum_mode.is_valid_value_name (autoteach_arguments.item) then
+						arg_lower := autoteach_arguments.item.as_lower
+						if enum_mode.is_valid_value_name (arg_lower) then
 							l_mode := enum_mode.value (autoteach_arguments.item)
 						else
-							l_errors.force (at_strings.init_invalid_mode (autoteach_arguments.item, enum_mode.textual_value_list))
+							l_errors.force (at_strings.init_invalid_mode (arg_lower, enum_mode.textual_value_list))
 						end
 					end
-				elseif autoteach_arguments.item.same_string (at_strings.at_custom_hint_tables) then
+				elseif arg_lower.same_string (at_strings.at_custom_hint_tables) then
 					autoteach_arguments.forth
 					if autoteach_arguments.after then
 						l_errors.force (at_strings.cht_no_custom_hint_table_path)
@@ -211,19 +212,19 @@ feature {NONE} -- Implementation
 			across
 				l_errors as ic
 			loop
-				print_line (at_strings.error + ": " + ic.item)
+				print_line (at_strings.error + ": " + ic)
 			end
 
 			across
 				l_warnings as ic
 			loop
-				print_line (at_strings.warning + ": " + ic.item)
+				print_line (at_strings.warning + ": " + ic)
 			end
 
 			across
 				l_notices as ic
 			loop
-				print_line (at_strings.notice + ": " + ic.item)
+				print_line (at_strings.notice + ": " + ic)
 			end
 
 			print_line ("")
@@ -240,7 +241,7 @@ feature {NONE} -- Implementation
 				across
 					l_class_name_list as ic
 				loop
-					try_add_class_with_name (l_autoteach, ic.item)
+					try_add_class_with_name (l_autoteach, ic)
 				end
 				l_autoteach.run_autoteach
 			else

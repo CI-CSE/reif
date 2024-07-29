@@ -51,13 +51,13 @@ feature -- Access
 			Result := numerical_values_table.has_key (a_numerical_value)
 		end
 
-	is_valid_value_name (a_value_name: STRING): BOOLEAN
+	is_valid_value_name (a_value_name: STRING_32): BOOLEAN
 			-- Is `a_value_name' a valid value name in this enumeration?
 		do
 			Result := value_names_table.has_key (a_value_name)
 		end
 
-	value (a_value_name: STRING): G
+	value (a_value_name: STRING_32): G
 			-- The value with name `a_value_name'.
 		deferred
 		end
@@ -187,7 +187,7 @@ feature {NONE} -- Implementation
 				across Result as ic all ic.key = value_list [ic.item].numerical_value end
 		end
 
-	value_names_table: HASH_TABLE [INTEGER, STRING]
+	value_names_table: HASH_TABLE [INTEGER, STRING_32]
 			-- Table mapping value names (key) to the index of the
 			-- corresponding value in the value_list array (value).
 		local

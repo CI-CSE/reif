@@ -1,28 +1,28 @@
 note
-	description: "Enum type for AutoTeach modes (auto, manual, custom)."
+	description: "Enum type for policy strength (default, global, local)."
 	author: "Paolo Antonucci"
 	date: "$Date$"
 	revision: "$Revision$"
 
 class
-	AT_ENUM_MODE
+	AT_ENUM_POLICY_STRENGTH
 
 inherit
 
-	AT_ENUM [AT_MODE]
+	AT_ENUM [AT_POLICY_STRENGTH]
 
 feature -- Access
 
-	name: STRING = "mode"
-		-- <Precursor>
+	name: STRING = "policy_strength"
+			-- <Precursor>
 
-	value (a_value_name: STRING): AT_MODE
+	value (a_value_name: STRING_32): AT_POLICY_STRENGTH
 			-- The value with name `a_value_name'.
 		do
 			create Result.make_with_value_name (a_value_name)
 		end
 
-	value_from_number (a_numerical_value: INTEGER): AT_MODE
+	value_from_number (a_numerical_value: INTEGER): AT_POLICY_STRENGTH
 			-- The value with numerical value `a_numerical_value'.
 		do
 			create Result.make_with_numerical_value (a_numerical_value)
@@ -33,24 +33,30 @@ feature {AT_ENUM} -- Value list
 	value_list: ARRAY [TUPLE [numerical_value: INTEGER; value_name: STRING]]
 			-- Effective list of values.
 		once ("PROCESS")
-			Result := <<	[1, "auto"],
-							[2, "manual"],
-							[3, "custom"]		>>
+			Result := <<	[0, "not_set"],
+							[1, "default"],
+							[2, "global"],
+							[3, "local"]		>>
 		end
 
 feature -- Values
 
-	M_auto: AT_MODE
+	Ps_not_set: AT_POLICY_STRENGTH
+		once ("PROCESS")
+			create Result.make_with_numerical_value (0)
+		end
+
+	Ps_default: AT_POLICY_STRENGTH
 		once ("PROCESS")
 			create Result.make_with_numerical_value (1)
 		end
 
-	M_manual: AT_MODE
+	Ps_global: AT_POLICY_STRENGTH
 		once ("PROCESS")
 			create Result.make_with_numerical_value (2)
 		end
 
-	M_custom: AT_MODE
+	Ps_local: AT_POLICY_STRENGTH
 		once ("PROCESS")
 			create Result.make_with_numerical_value (3)
 		end

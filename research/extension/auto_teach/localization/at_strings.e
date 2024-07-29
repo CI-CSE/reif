@@ -45,7 +45,7 @@ feature -- Command line switches
 
 	at_hint_level: STRING = "-at-hint-level"
 
-	at_code_placeholder: STRING = "-at-code-placeholder"
+	at_code_placeholder: STRING_32 = "-at-code-placeholder"
 
 	at_output_path: STRING = "-at-output-path"
 	at_level_subfolders: STRING = "-at-level-subfolders"
@@ -123,7 +123,7 @@ feature -- Processing warnings (proc)
 
 feature -- Initialization errors and warnings (init)
 
-	init_unrecognized_argument (a_argument: STRING): STRING_32
+	init_unrecognized_argument (a_argument: STRING_32): STRING_32
 		do
 			Result := locale.formatted_string ("Syntax error. Unrecognized argument `$1'.", [a_argument])
 		end
@@ -133,7 +133,7 @@ feature -- Initialization errors and warnings (init)
 			Result := locale.translation ("No list of classes to process was provided. Exiting.")
 		end
 
-	init_class_not_found (a_class_name: STRING): STRING_32
+	init_class_not_found (a_class_name: STRING_32): STRING_32
 		do
 			Result := locale.formatted_string ("Could not find class `$1'. Skipping.", [a_class_name])
 		end

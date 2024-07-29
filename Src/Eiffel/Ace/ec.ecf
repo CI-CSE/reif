@@ -119,7 +119,6 @@
 		</external_object>
 		<variable name="batch_preferences" value="true"/>
 		<variable name="batch_framework" value="true"/>
-		<library name="auto_teach" location="$EIFFEL_SRC\framework\auto_teach\auto_teach.ecf" readonly="false"/>
 		<library name="code_analysis" location="$EIFFEL_SRC\framework\code_analysis\code_analysis.ecf" readonly="false"/>
 		<capability>
 			<concurrency support="none"/>
@@ -264,11 +263,6 @@
 		<library name="com_light" location="$EIFFEL_SRC\framework\com_light\com_light.ecf" readonly="false"/>
 		<library name="auto_test" location="$EIFFEL_SRC\framework\auto_test\auto_test.ecf" readonly="false" use_application_options="true"/>
 		<library name="code_analysis" location="$EIFFEL_SRC\framework\code_analysis\code_analysis.ecf" readonly="false" use_application_options="true"/>
-		<library name="auto_teach" location="$EIFFEL_SRC\framework\auto_teach\auto_teach.ecf" readonly="false">
-			<option>
-				<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
-			</option>
-		</library>
 		<library name="auto_test" location="$EIFFEL_SRC\framework\auto_test\auto_test.ecf" readonly="false" use_application_options="true">
 			<option>
 			</option>

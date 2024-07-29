@@ -16,7 +16,7 @@ feature -- Access
 	name: STRING = "block_type"
 			-- <Precursor>
 
-	value (a_value_name: STRING): AT_BLOCK_TYPE
+	value (a_value_name: STRING_32): AT_BLOCK_TYPE
 			-- The value with name `a_value_name'.
 		do
 			create Result.make_with_value_name (a_value_name)

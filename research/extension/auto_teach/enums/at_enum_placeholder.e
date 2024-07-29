@@ -16,7 +16,7 @@ feature -- Access
 	name: STRING = "placeholder"
 			-- <Precursor>
 
-	value (a_value_name: STRING): AT_PLACEHOLDER
+	value (a_value_name: STRING_32): AT_PLACEHOLDER
 			-- The value with name `a_value_name'.
 		do
 			create Result.make_with_value_name (a_value_name)

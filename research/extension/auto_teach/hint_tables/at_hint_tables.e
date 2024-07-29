@@ -50,7 +50,7 @@ feature -- Hint tables
 	custom_hint_table: detachable AT_HINT_TABLE
 			-- The currently loaded custom hint table.
 
-	load_custom_hint_table (a_full_path: STRING)
+	load_custom_hint_table (a_full_path: STRING_32)
 			-- Loads a custom hint table from the specified file path
 			-- and makes it accessible in `custom_hint_table'.
 		require

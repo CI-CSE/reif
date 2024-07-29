@@ -31,6 +31,7 @@ feature
 			extensions.extend (create {DYNAMIC_PROGRAM_ANALYSIS_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {CONTRACT_INFERENCE_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {BOOGIE_VERIFICATION_COMMAND_LINE_EXTENSION})
+			extensions.extend (create {AUTOTEACH_COMMAND_LINE_EXTENSION})
 		end
 
 	extensions: ARRAYED_LIST [COMMAND_LINE_OPTION_EXTENSION_S]
