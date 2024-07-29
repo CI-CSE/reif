@@ -629,9 +629,6 @@ feature -- Update
 			l_text_area: EB_SMART_EDITOR
 			l_system: SYSTEM_I
 			l_root: SYSTEM_ROOT
-
-			l_conf_load: CONF_LOAD
-			l_original_conf_root: CONF_ROOT
 		do
 			during_synchronization := True
 			if eiffel_project.system_defined then
@@ -646,13 +643,13 @@ feature -- Update
 				eiffel_system.workbench.last_reached_degree <= 5 and then
 				not l_system.root_creators.is_empty
 			then
+					-- Note: this code must be updated to support multiple root features
 				l_root := l_system.root_creators.first
 				if l_root.root_class.is_compiled then
 					stone := create {CLASSC_STONE}.make (l_root.root_class.compiled_class)
 				else
 					stone := create {CLASSI_STONE}.make (l_root.root_class)
 				end
-				
 				if
 					eiffel_system.universe.target.clusters.count = 1
 				then
