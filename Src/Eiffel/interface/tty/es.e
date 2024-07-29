@@ -671,6 +671,7 @@ feature {NONE} -- Output
 				io.put_string ("GC full cycle average time = " + l_full_gc_info.cpu_time_average.out + "%N")
 				io.put_new_line
 
+
 				io.put_string ("GC incremental cycle iterations   = " + l_part_gc_info.cycle_count.out + "%N")
 				io.put_string ("GC incremental cycle average time = " + l_part_gc_info.cpu_time_average.out + "%N")
 				io.put_string ("CPU time " + l_part_gc_info.cpu_total_time.out + "%N")
@@ -730,8 +731,7 @@ feature {NONE} -- Update
 			show_creators: BOOLEAN
 			ewb_senders: EWB_SENDERS
 			ewb_callees: EWB_CALLEES
-			l_arg: STRING_32
-			l_at_args: LINKED_LIST [STRING_8]
+			l_arg: READABLE_STRING_32
 			in_filename, out_filename: STRING_32
 			l_configuration_settings: like configuration_settings
 			option_arguments: LIST [READABLE_STRING_32]
@@ -1424,44 +1424,20 @@ feature {NONE} -- Update
 						-- FIXME: This only works if `-auto_test' is the last argument, as otherwise it will
 						-- override the compilation option that was previously set.
 					create {EWB_AUTO_TEST} command.make_with_arguments
-						(arguments_in_range_32 (current_option + 1, argument_count))
+						(arguments_in_range (current_option + 1, argument_count))
 					current_option := argument_count + 1
 					command_option := option
 				elseif option.is_equal ("-dead_plan") then
 					workbench.set_planned_class_and_feature_name (argument (current_option + 1).twin.as_string_8,
 						                                      argument (current_option + 2).twin.as_string_8)
 					current_option := argument_count + 2
-				elseif option.same_string_general ("-ca_default") then
-					code_analysis_command.set_defaults
-
-				elseif option.same_string_general ("-ca_setting") then
-					if current_option < argument_count then
-						current_option := current_option + 1
-						code_analysis_command.set_preference_file (argument (current_option))
-					else
-						option_error_message := code_analysis_command.ca_messages.missing_file_name ("-ca_setting")
-					end
-			elseif option.same_string_general ("-ca_class") then
-					-- Check if a command is already set to something different from `code_analysis_command'.
-				if attached command and then command /= code_analysis_command then
-					option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
-				elseif current_option < argument_count then
-						-- Read a class name or "-all" for all classes.
-					current_option := current_option + 1
-					l_arg := argument (current_option)
-					if l_arg.same_string_general ("-all") then
-						code_analysis_command.set_all_classes
-					else
-						option_error_message := locale.translation ("Missing project file for option -project.")
-					end			
-
 				elseif option_name.same_string_general (code_cmd_name) then --| -code-analysis
 						-- FIXME: This only works if `-code-analysis' is the last argument.
 					add_option_warning (messages.w_obsolete_command_line_option (option))
 					if attached command then
 						option_error_message := locale.formatted_string ({STRING_32} "Option `$1' conflicts with `$2'.", [option, command_option])
 					else
-						code_analysis_command.parse_arguments (arguments_in_range_32 (current_option + 1, argument_count))
+						code_analysis_command.parse_arguments (arguments_in_range (current_option + 1, argument_count))
 						current_option := argument_count + 1
 						if attached code_analysis_command.argument_error as e then
 							option_error_message := e
@@ -1563,11 +1539,11 @@ feature {NONE} -- Update
 					else
 							-- Collect option arguments.
 						if n = s.all_arguments then
-							option_arguments := arguments_in_range_32 (
+							option_arguments := arguments_in_range (
 								current_option + 1, argument_count)
 							current_option := argument_count + 1
 						else
-							option_arguments := arguments_in_range_32 (
+							option_arguments := arguments_in_range (
 								current_option + 1, current_option + n)
 							current_option := current_option + n
 						end
@@ -1605,7 +1581,6 @@ feature {NONE} -- Update
 				process_special_options (option)
 			end
 			current_option := current_option + 1
-			end
 		end
 
 	process_special_options (option: STRING_32)
@@ -1723,7 +1698,7 @@ feature {NONE} -- Implementation
 			io.put_string (l_unit)
 		end
 
-	arguments_in_range_32 (a_lower, a_upper: INTEGER): LINKED_LIST [READABLE_STRING_32]
+	arguments_in_range (a_lower, a_upper: INTEGER): LINKED_LIST [READABLE_STRING_32]
 			-- Arguments from position `a_lower' to `a_upper'
 		require
 			a_lower_valid: a_lower > 0 and a_lower <= argument_count + 1
@@ -1739,37 +1714,6 @@ feature {NONE} -- Implementation
 			loop
 				Result.force (argument (i))
 				i := i + 1
-			end
-		end
-
-feature{NONE} -- Implementation
-
-	arguments_in_range (a_lower, a_upper: INTEGER): LINKED_LIST [STRING]
-			-- Arguments from position `a_lower' to `a_upper'
-		require
-			a_lower_valid: a_lower > 0 and a_lower <= argument_count + 1
-			a_upper_valid: a_upper > 0 and a_upper <= argument_count and a_lower <= a_upper + 1
-		local
-			i: INTEGER
-		do
-			create Result.make
-			from
-				i := a_lower
-			until
-				i > a_upper
-			loop
-				Result.force (argument (i).as_string_8)
-				i := i + 1
-			end
-		end
-
-	convert_to_string_32_list (a_arg: LINKED_LIST [STRING_8]): LINKED_LIST [STRING_32]
-			-- Convert a_arg to an array containing STRING_32 objects.
-			-- TODO: remove this and refactor arguments_in_range to use STRING_32.
-		do
-			create Result.make
-			across a_arg as i loop
-				Result.extend (i.item.as_string_32)
 			end
 		end
 
