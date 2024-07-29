@@ -48,7 +48,7 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	options: LINKED_LIST [STRING]
+	options: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Dynamic program analysis options.
 
 	last_configuration: DPA_CONFIGURATION
@@ -73,7 +73,9 @@ feature -- Basic operations
 			create l_parser.make
 			l_parser_options := l_parser.options
 			create l_options.make
-			options.do_all (agent l_options.force_last)
+			across options as opt loop
+				l_options.force_last (opt.item.as_string_8_conversion)
+			end
 
 			-- Set up command line options.
 

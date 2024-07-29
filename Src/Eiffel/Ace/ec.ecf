@@ -321,7 +321,6 @@
 		<library name="diff" location="$ISE_LIBRARY\library\diff\diff.ecf" readonly="false"/>
 		<library name="docking" location="$ISE_LIBRARY\library\docking\docking.ecf" readonly="false" use_application_options="true"/>
 		<library name="dotnet_assembly_information" location="$EIFFEL_SRC\dotnet\assembly_info\dotnet_assembly_information.ecf" readonly="false" use_application_options="true"/>
-		<library name="dynamic_program_analysis" location="$EIFFEL_SRC\framework\dynamic_program_analysis\dynamic_program_analysis.ecf" readonly="false"/>
 		<library name="editor" location="$ISE_LIBRARY\library\editor\editor.ecf" readonly="false"/>
 		<library name="eiffel_edition" location="$EIFFEL_SRC\Eiffel\edition\edition.ecf" readonly="false" use_application_options="true"/>
 		<library name="contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false">
@@ -574,7 +573,6 @@
 			<option is_obsolete_iteration="true"/>
 			<file_rule>
 				<exclude>/dbg_preferences\.e$</exclude>
-				<exclude>/ewb_dynamic_program_analysis\.e$</exclude>
 				<exclude>/eb_diagram_html_generator\.e$</exclude>
 				<exclude>/ewb_snippet_extraction\.e$</exclude>
 				<exclude>/ewb_xml_transformation\.e$</exclude>
