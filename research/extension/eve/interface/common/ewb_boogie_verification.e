@@ -31,7 +31,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Initialize with `a_arguments'.
 			--
 			-- Each arguments can be:
@@ -68,10 +68,10 @@ feature -- Access
 	autoproof: E2B_AUTOPROOF
 			-- Autoproof.
 
-	user_options: LINKED_LIST [STRING]
+	user_options: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Option arguments to Boogie command line.
 
-	selection: LINKED_LIST [STRING]
+	selection: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Class paths, class names and feature selection arguments
 			-- to Boogie command line.
 
@@ -244,17 +244,17 @@ feature {NONE} -- Printing console
 			across a_result.verification_results as i loop
 				output_window.add ("======================================%N")
 
-				if attached {E2B_SUCCESSFUL_VERIFICATION} i.item as l_success then
+				if attached {E2B_SUCCESSFUL_VERIFICATION} i as l_success then
 					print_successful_verification (l_success)
 
-				elseif attached {E2B_FAILED_VERIFICATION} i.item as l_failure then
+				elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
 					print_failed_verification (l_failure)
 
 					if user_options.has ("-fix") then
 						options.failures_for_fix.extend (l_failure)
 					end
 						-- TODO Li: display the failure in the "Faults" tab
-				elseif attached {E2B_AUTOPROOF_ERROR} i.item as l_error then
+				elseif attached {E2B_AUTOPROOF_ERROR} i as l_error then
 					print_error (l_error)
 				else
 					check False end
@@ -284,7 +284,7 @@ feature {NONE} -- Printing console
 			-- Print results to output.
 		do
 			across a_result.verification_results as i loop
-				if attached {E2B_FAILED_VERIFICATION} i.item as l_failure then
+				if attached {E2B_FAILED_VERIFICATION} i as l_failure then
 					options.valid_fixes.extend (l_failure.context_feature.feature_name)
 				end
 			end
@@ -308,7 +308,7 @@ feature {NONE} -- Printing console
 			output_window.add (Msg_valid_proof_fix + "%N")
 
 			across options.valid_fixes as l_name loop
-				l_feature := a_class.feature_named (l_name.item)
+				l_feature := a_class.feature_named (l_name)
 				output_window.add (l_feature.body.text(l_match_list))
 				output_window.add ("%N------------------------------------------------------------------------------------%N")
 			end
@@ -325,9 +325,9 @@ feature {NONE} -- Printing console
 		do
 			output_window.add (Msg_potential_proof_fix + " ")
 			across options.potential_fixes_names as l_name loop
-				l_id := l_name.item.split ('_').last
+				l_id := l_name.split ('_').last
 				if l_id.is_integer then
-					output_window.add (l_name.item.split ('_').last + " ")
+					output_window.add (l_name.split ('_').last + " ")
 				end
 			end
 			output_window.add ("%N")
@@ -357,12 +357,12 @@ feature {NONE} -- Printing console
 				output_window.add ("Successfully verified after inlining" + time_string + ".%N")
 				output_window.add ("Original errors:%N")
 				across a_success.original_errors as i loop
-					if i.cursor_index = 1 then
+					if @i.cursor_index = 1 then
 						output_window.add_new_line
 					else
 						output_window.add ("--------------------------------------%N")
 					end
-					i.item.multi_line_message (output_window)
+					i.multi_line_message (output_window)
 					output_window.add_new_line
 				end
 			end
@@ -382,26 +382,26 @@ feature {NONE} -- Printing console
 			end
 			output_window.add ("Verification failed" + time_string + ".%N")
 			across a_failure.errors as i loop
-				if i.cursor_index = 1 then
+				if @i.cursor_index = 1 then
 					output_window.add_new_line
 				else
 					output_window.add ("--------------------------------------%N")
 				end
 
 				if user_options.has ("-fix") then
-					out_str := i.item.context_class.name.twin; out_str.append_character (Msg_seperator)
-					out_str := out_str + i.item.context_feature.feature_name; out_str.append_character (Msg_seperator)
-					out_str := out_str + failure_code (i.item).out; out_str.append_character (Msg_seperator)
-					out_str := out_str + i.item.context_line_number.out; out_str.append_character (Msg_seperator)
+					out_str := i.context_class.name.twin; out_str.append_character (Msg_seperator)
+					out_str := out_str + i.context_feature.feature_name; out_str.append_character (Msg_seperator)
+					out_str := out_str + failure_code (i).out; out_str.append_character (Msg_seperator)
+					out_str := out_str + i.context_line_number.out; out_str.append_character (Msg_seperator)
 					output_window.add (Msg_proof_failed + out_str)
-					i.item.single_line_message (output_window)
+					i.single_line_message (output_window)
 					output_window.add_new_line
 
 				else
-					if i.item.context_line_number > 0 then
-						output_window.add ("Line: " + i.item.context_line_number.out + ". ")
+					if i.context_line_number > 0 then
+						output_window.add ("Line: " + i.context_line_number.out + ". ")
 					end
-					i.item.multi_line_message (output_window)
+					i.multi_line_message (output_window)
 					output_window.add_new_line
 				end
 			end
@@ -485,8 +485,8 @@ feature {NONE} -- Implementation
 	load_selection
 			-- Load verification targets
 		local
-			l_item: STRING
-			l_parts: LIST [STRING]
+			l_item: READABLE_STRING_GENERAL
+			l_parts: LIST [READABLE_STRING_GENERAL]
 			l_classes: LIST [CLASS_I]
 			file: RAW_FILE
 		do
@@ -508,7 +508,7 @@ feature {NONE} -- Implementation
 					if l_classes /= Void and then not l_classes.is_empty then
 						load_feature (l_classes.first, l_parts.i_th (2))
 					else
-						print ("Class " + selection.item + " not found (skipped).%N")
+						print ({STRING_32} "Class " + selection.item + " not found (skipped).%N")
 					end
 				else
 						-- It's a class
@@ -516,7 +516,7 @@ feature {NONE} -- Implementation
 					if l_classes /= Void and then not l_classes.is_empty then
 						load_class (l_classes.first)
 					else
-						print ("Class " + selection.item + " not found (skipped).%N")
+						print ({STRING_32} "Class " + selection.item + " not found (skipped).%N")
 					end
 				end
 				selection.forth
@@ -528,23 +528,23 @@ feature {NONE} -- Implementation
 			-- Void if class was not found
 		do
 			across universe.all_classes as c until Result /= Void loop
-				if c.item.file_name.absolute_path ~ path.absolute_path then
-					Result := c.item
+				if c.file_name.absolute_path ~ path.absolute_path then
+					Result := c
 				end
 			end
 		end
 
-	load_feature (a_class: CLASS_I; a_feature_name: STRING)
+	load_feature (a_class: CLASS_I; a_feature_name: READABLE_STRING_GENERAL)
 			-- Load `a_feature' for verification.
 		local
 			l_feature: FEATURE_I
 		do
 			if a_class.is_compiled then
-				l_feature := a_class.compiled_class.feature_named (a_feature_name)
+				l_feature := a_class.compiled_class.feature_named_32 (a_feature_name)
 				if l_feature /= Void then
 					autoproof.add_feature (create {E2B_FEATURE_I}.make (l_feature))
 				else
-					print ("Feature " + a_class.name + "." + a_feature_name + " not found (skipped).%N")
+					print ({STRING_32} "Feature " + a_class.name + "." + a_feature_name + " not found (skipped).%N")
 				end
 			else
 				print ("Class " + a_class.name + " not compiled (skipped).%N")
@@ -565,11 +565,11 @@ feature {NONE} -- Implementation
 				l_old_class_text.copy (a_class.ast.text (l_match_list))
 
 				across options.potential_fixes_names as l_name loop
-					l_feature := a_class.feature_named (l_name.item)
+					l_feature := a_class.feature_named (l_name)
 					if l_feature /= Void then
 						l_feature.e_feature.ast.body.as_routine.replace_subtext ("do", "do%Ncheck False end", True, l_match_list)
 					else
-						print ("Feature " + a_class.name + "." + l_name.item + " not found (skipped).%N")
+						print ("Feature " + a_class.name + "." + l_name + " not found (skipped).%N")
 					end
 				end
 
@@ -587,7 +587,7 @@ feature {NONE} -- Implementation
 
 				autoproof.reset
 				across options.potential_fixes_names as l_name loop
-					l_feature := a_class.feature_named (l_name.item)
+					l_feature := a_class.feature_named (l_name)
 					if l_feature /= Void then
 						autoproof.add_feature (l_feature)
 					end
