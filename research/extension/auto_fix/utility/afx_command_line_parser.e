@@ -15,7 +15,7 @@ create
 
 feature{NONE} -- Initialization
 
-	make_with_arguments (a_args: LINKED_LIST [STRING])
+	make_with_arguments (a_args: LINKED_LIST [READABLE_STRING_GENERAL])
 			-- Initialize Current with arguments `a_args'.
 		do
 			create config
@@ -29,7 +29,7 @@ feature -- Access
 	config: AFX_CONFIG
 			-- AutoFix command line options
 
-	arguments: LINKED_LIST [STRING]
+	arguments: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Command line options
 
 feature -- Basic operations
@@ -77,7 +77,9 @@ feature -- Basic operations
 			l_enable_experimental: AP_FLAG
 		do
 			create l_args.make
-			arguments.do_all (agent l_args.force_last)
+			across arguments as arg loop
+				l_args.force_last (arg.item.as_string_8_conversion)
+			end
 
 				-- Setup command line argument parser.
 			create l_parser.make

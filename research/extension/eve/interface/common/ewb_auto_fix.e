@@ -21,18 +21,22 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Initialize `auto_test_arguments' with `a_arguments'.
+		require
+			a_arguments_attached: a_arguments /= Void
 		do
 			create {LINKED_LIST [STRING]} autofix_arguments.make
-			a_arguments.do_all (agent autofix_arguments.extend)
+			across a_arguments as arg loop
+				autofix_arguments.extend (arg)
+			end
 		ensure
 			arguments_set: autofix_arguments /= Void and then autofix_arguments.count = a_arguments.count
 		end
 
 feature -- Access
 
-	autofix_arguments: LINKED_LIST [STRING];
+	autofix_arguments: LINKED_LIST [READABLE_STRING_GENERAL];
 			-- Arguments to AutoFix command line
 
 feature -- Properties
@@ -68,25 +72,25 @@ feature -- Properties
 			l_parser.parse
 
 			l_config := l_parser.config
-			l_config.check_validity -- TODO: Uncomment checking validity
+			l_config.check_validity
 			if l_config.is_valid then
 				set_current_session (create {AFX_SESSION}.make (l_config, system))
 				if session.config.is_fixing then
 						-- Build project for fixing.
---					create l_fixing_project_builder
---					l_fixing_project_builder.collect_test_cases
---					if l_fixing_project_builder.current_failing_test_signature /= Void then
---							-- Directory structure is specific to the exception under consideration.
---						session.set_failure_from_trace (l_fixing_project_builder.current_exception_trace_summary)
---						session.set_number_of_test_cases_for_fixing (l_fixing_project_builder.number_of_test_cases_to_use_for_fixing)
---						session.prepare_directories
---						l_fixing_project_builder.build_project (System)
-----						check fixing_project_root_exists: l_fixing_project_builder.new_root_exists end
-----						if not system.is_explicit_root (afx_project_root_class, afx_project_root_feature) then
-----							system.add_explicit_root (Void, afx_project_root_class, afx_project_root_feature)
-----							system.add_explicit_root (l_fixing_project_builder.cluster_of_new_root, afx_project_root_class, afx_project_root_feature)
-----						end
-----						l_fixing_project_builder.compile_project (l_fixing_project_builder.eiffel_project, True)
+					create l_fixing_project_builder
+					l_fixing_project_builder.collect_test_cases
+					if l_fixing_project_builder.current_failing_test_signature /= Void then
+							-- Directory structure is specific to the exception under consideration.
+						session.set_failure_from_trace (l_fixing_project_builder.current_exception_trace_summary)
+						session.set_number_of_test_cases_for_fixing (l_fixing_project_builder.number_of_test_cases_to_use_for_fixing)
+						session.prepare_directories
+						l_fixing_project_builder.build_project (System)
+--						check fixing_project_root_exists: l_fixing_project_builder.new_root_exists end
+--						if not system.is_explicit_root (afx_project_root_class, afx_project_root_feature) then
+--							system.add_explicit_root (Void, afx_project_root_class, afx_project_root_feature)
+--	--						system.add_explicit_root (l_fixing_project_builder.cluster_of_new_root, afx_project_root_class, afx_project_root_feature)
+--						end
+--						l_fixing_project_builder.compile_project (l_fixing_project_builder.eiffel_project, True)
 
 						create l_fixer
 						l_fixer.execute
@@ -99,13 +103,13 @@ feature -- Properties
 --							l_fix_proposer.execute
 --						end
 
---						system.remove_explicit_root(afx_project_root_class, afx_project_root_feature)
---						system.make_update (False)
---					else
---						Io.put_string ("No failing test case found.")
---					end
---				elseif session.config.is_not_fixing then
---					perform_non_fixing_task()
+						system.remove_explicit_root(afx_project_root_class, afx_project_root_feature)
+						system.make_update (False)
+					else
+						Io.put_string ("No failing test case found.")
+					end
+				elseif session.config.is_not_fixing then
+					perform_non_fixing_task()
 				end
 			else
 				Io.put_string ("AutoFix quitting due to incomplete or invalid configuration...")
@@ -113,7 +117,7 @@ feature -- Properties
 
 		end
 
-	perform_non_fixing_task
+	perform_non_fixing_task()
 			-- Perform tasks other than fixing.
 		require
 			session.config.is_not_fixing
