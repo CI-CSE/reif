@@ -10,25 +10,29 @@ class
 inherit
 	EWB_CMD
 
+	CI_SHARED_SESSION
+
 create
 	make_with_arguments
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Initialize `auto_test_arguments' with `a_arguments'.
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
 			create {LINKED_LIST [STRING]} contract_inference_arguments.make
-			a_arguments.do_all (agent contract_inference_arguments.extend)
+			across a_arguments as arg loop
+				contract_inference_arguments.extend (arg)
+			end
 		ensure
 			arguments_set: contract_inference_arguments /= Void and then contract_inference_arguments.count = a_arguments.count
 		end
 
 feature -- Access
 
-	contract_inference_arguments: LINKED_LIST [STRING];
+	contract_inference_arguments: LINKED_LIST [READABLE_STRING_GENERAL];
 			-- Arguments to AutoFix command line
 
 feature -- Properties
@@ -51,7 +55,24 @@ feature -- Properties
 	execute
 			-- Action performed when invoked from the
 			-- command line.
+		local
+			l_parser: ANN_COMMAND_LINE_PARSER
+			l_config: ANN_CONFIG
+			l_dynamic_cmd: ANN_DYNAMIC_ANNOTATOR_CMD
+			l_cmd: ANN_COMMAND
 		do
+			create l_parser.make_with_arguments (contract_inference_arguments, system)
+			l_parser.parse
+			l_config := l_parser.config
+
+			if l_config.is_dynamic_annotation_enabled then
+				create l_dynamic_cmd.make (l_config)
+				l_cmd := l_dynamic_cmd
+			end
+
+			if l_cmd /= Void then
+				l_cmd.execute
+			end
 		end
 
 note

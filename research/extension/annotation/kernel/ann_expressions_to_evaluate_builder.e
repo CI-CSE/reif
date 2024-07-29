@@ -11,8 +11,8 @@ inherit
 	AST_ITERATOR
 		redefine
 			process_access_id_as,
-			process_create_creation_as,
-			process_nested_as,
+			process_creation_as,
+			process_nested_expr_as,
 			process_assign_as,
 			process_assigner_call_as,
 			process_access_feat_as,
@@ -87,14 +87,14 @@ feature -- Process operations
 			process_access_feat_as (l_as)
 		end
 
-	process_create_creation_as (l_as: CREATE_CREATION_AS)
+	process_creation_as (l_as: CREATION_AS)
 		do
 			is_creation_procedure := True
-			process_creation_as (l_as)
+			Precursor (l_as)
 			is_creation_procedure := False
 		end
 
-	process_nested_as (l_as: NESTED_AS)
+	process_nested_expr_as (l_as: NESTED_EXPR_AS)
 		do
 			is_nested := True
 			l_as.target.process (Current)
