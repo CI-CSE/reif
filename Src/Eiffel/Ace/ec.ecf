@@ -269,7 +269,6 @@
 				<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
 			</option>
 		</library>
-		<library name="contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false"/>
 		<library name="auto_test" location="$EIFFEL_SRC\framework\auto_test\auto_test.ecf" readonly="false" use_application_options="true">
 			<option>
 			</option>
@@ -323,11 +322,6 @@
 		<library name="dotnet_assembly_information" location="$EIFFEL_SRC\dotnet\assembly_info\dotnet_assembly_information.ecf" readonly="false" use_application_options="true"/>
 		<library name="editor" location="$ISE_LIBRARY\library\editor\editor.ecf" readonly="false"/>
 		<library name="eiffel_edition" location="$EIFFEL_SRC\Eiffel\edition\edition.ecf" readonly="false" use_application_options="true"/>
-		<library name="contract_inference" location="$EIFFEL_SRC\framework\contract_inference\contract_inference.ecf" readonly="false">
-			<option warning="none">
-				<assertions precondition="true" postcondition="true" check="true"/>
-			</option>
-		</library>
 		<library name="eiffel_transform" location="$EIFFEL_SRC\framework\eiffel_transform\eiffel_transform.ecf" readonly="false" use_application_options="true">
 			<option>
 			</option>
@@ -577,7 +571,6 @@
 				<exclude>/ewb_snippet_extraction\.e$</exclude>
 				<exclude>/ewb_xml_transformation\.e$</exclude>
 				<exclude>/ewb_auto_fix\.e$</exclude>
-				<exclude>/ewb_contract_inference\.e$</exclude>
 				<exclude>/dbg_preferences\.e$</exclude>
 				<exclude>/ewb_testing\.e$</exclude>
 				<exclude>/eb_gui_preferences\.e$</exclude>

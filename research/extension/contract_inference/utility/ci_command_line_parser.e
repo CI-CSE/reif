@@ -12,7 +12,7 @@ create
 
 feature{NONE} -- Initialization
 
-	make_with_arguments (a_args: LINKED_LIST [STRING]; a_system: SYSTEM_I)
+	make_with_arguments (a_args: LINKED_LIST [READABLE_STRING_GENERAL]; a_system: SYSTEM_I)
 			-- Initialize Current with arguments `a_args'.
 		do
 			create config.make (a_system)
@@ -27,7 +27,7 @@ feature -- Access
 	config: CI_CONFIG
 			-- AutoFix command line options
 
-	arguments: LINKED_LIST [STRING]
+	arguments: LINKED_LIST [READABLE_STRING_GENERAL]
 			-- Command line options
 
 feature -- Basic operations
@@ -89,7 +89,9 @@ feature -- Basic operations
 				-- Setup command line argument parser.
 			create l_parser.make
 			create l_args.make
-			arguments.do_all (agent l_args.force_last)
+			across arguments as arg loop
+				l_args.force_last (arg.item.as_string_8_conversion)
+			end
 
 			create l_build_project_option.make_with_long_form ("build-from")
 			l_build_project_option.set_description ("Transform current project into a project containing infrastructure to support contract inference. Format: --build-from <test case directory>. <test case directory> contains test cases from which contract inference should be performed. The directory is recursively searched to find test cases. <test case directory> should contain test cases for only one class.")

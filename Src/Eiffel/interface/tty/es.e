@@ -1432,10 +1432,6 @@ feature {NONE} -- Update
 					l_at_args := arguments_in_range (current_option + 1, argument_count)
 					current_option := argument_count + 1
 					create {EWB_AUTO_FIX} command.make_with_arguments (l_at_args)
-				elseif option.is_equal ("-contract_inference") then
-					l_at_args := arguments_in_range (current_option + 1, argument_count)
-					current_option := argument_count + 1
-					create {EWB_CONTRACT_INFERENCE} command.make_with_arguments (l_at_args)
 				elseif option.is_equal ("-annotation") then
 					l_at_args := arguments_in_range (current_option + 1, argument_count)
 					current_option := argument_count + 1

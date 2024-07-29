@@ -1,9 +1,8 @@
 note
-	description: "Dummy implementation for the contract inference command which provides no function."
+	description: "Console command to perform contract inference"
 	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
-
 
 class
 	EWB_CONTRACT_INFERENCE
@@ -11,17 +10,30 @@ class
 inherit
 	EWB_CMD
 
+	CI_SHARED_SESSION
+
 create
 	make_with_arguments
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LINKED_LIST [STRING])
+	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
 			-- Initialize `auto_test_arguments' with `a_arguments'.
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
+			create contract_inference_arguments.make
+			across a_arguments as arg loop
+				contract_inference_arguments.extend (arg)
+			end
+		ensure
+			arguments_set: contract_inference_arguments /= Void and then contract_inference_arguments.count = a_arguments.count
 		end
+
+feature -- Access
+
+	contract_inference_arguments: LINKED_LIST [READABLE_STRING_GENERAL];
+			-- Arguments to AutoFix command line
 
 feature -- Properties
 
@@ -43,11 +55,39 @@ feature -- Properties
 	execute
 			-- Action performed when invoked from the
 			-- command line.
+		local
+			l_parser: CI_COMMAND_LINE_PARSER
+			l_config: CI_CONFIG
+			l_build_command: CI_BUILD_TEST_CASE_APP_CMD
+			l_infer_command: CI_INFER_CONTRACT_CMD
+			l_arff_generation_command: CI_ARFF_GENERATION_CMD
+			l_contract_fixer: CI_INFER_CONTRACT_CMD_EXT
 		do
+			create l_parser.make_with_arguments (contract_inference_arguments, system)
+			l_parser.parse
+			l_config := l_parser.config
+			set_contract_inference_config (l_config)
+			if l_config.should_generate_arff then
+				create l_arff_generation_command.make (l_config)
+				l_arff_generation_command.execute
+
+			elseif l_config.is_fixing_contracts then
+				create l_contract_fixer.make (l_config)
+				l_contract_fixer.execute
+
+			else
+				if l_config.should_build_project then
+					create l_build_command.make (l_config)
+					l_build_command.execute (True)
+				elseif l_config.should_infer_contracts then
+					create l_infer_command.make (l_config)
+					l_infer_command.execute
+				end
+			end
 		end
 
 note
-	copyright: "Copyright (c) 1984-2010, Eiffel Software"
+	copyright: "Copyright (c) 1984-2013, Eiffel Software"
 	license: "GPL version 2 (see http://www.eiffel.com/licensing/gpl.txt)"
 	licensing_options: "http://www.eiffel.com/licensing"
 	copying: "[
@@ -78,4 +118,3 @@ note
 			Customer support http://support.eiffel.com
 		]"
 end
-
