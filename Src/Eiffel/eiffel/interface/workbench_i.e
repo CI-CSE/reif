@@ -708,16 +708,6 @@ feature -- Automatic backup
 			new_session := False
 		end
 
-feature -- Added for Planning
-	set_planned_class_and_feature_name (a_class_name, a_feature_name: STRING)
-		do
-			planned_class_name := a_class_name
-			planned_feature_name := a_feature_name
-		end
-
-	planned_class_name: STRING
-	planned_feature_name: IMMUTABLE_STRING_8
-
 feature {E_PROJECT} -- Status update
 
 	start_compilation

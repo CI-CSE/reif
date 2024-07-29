@@ -1427,10 +1427,6 @@ feature {NONE} -- Update
 						(arguments_in_range (current_option + 1, argument_count))
 					current_option := argument_count + 1
 					command_option := option
-				elseif option.is_equal ("-dead_plan") then
-					workbench.set_planned_class_and_feature_name (argument (current_option + 1).twin.as_string_8,
-						                                      argument (current_option + 2).twin.as_string_8)
-					current_option := argument_count + 2
 				elseif option_name.same_string_general (code_cmd_name) then --| -code-analysis
 						-- FIXME: This only works if `-code-analysis' is the last argument.
 					add_option_warning (messages.w_obsolete_command_line_option (option))

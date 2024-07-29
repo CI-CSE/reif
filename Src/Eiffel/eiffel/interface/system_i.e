@@ -2030,9 +2030,6 @@ end
 						-- Byte code production and type checking
 					process_degree_3
 
-						-- PLANNER related call to regenerate a class for
-					plan_generate_class
-
 						-- Reset built in processor so that any referenced CLASS_AS object is garbage collected.
 					built_in_processor.reset_all
 
@@ -6414,53 +6411,6 @@ feature {NONE} -- External features
 			"C signature (time_t *): EIF_INTEGER use <time.h>"
 		alias
 			"time"
-		end
-
-feature -- Added for Plan Generation
-	plan_generate_class
-		local
-			ssaifier: SSAIFIER
-			class_: CLASS_C
-		do
-			plan_generate_domain
-			class_ := find_class (workbench.planned_class_name)
-			if attached workbench.planned_class_name then
-				create ssaifier.make (class_, workbench.planned_feature_name)
-				-- ssaifier.write_default_plan
-		    end
-		end
-
-	plan_generate_domain
-		local
-			class_: CLASS_C
-			domifier: SSA_DOMAINIFIER
-		do
-			class_ := find_class (workbench.planned_class_name)
-			if attached class_ then
-				create domifier.make (class_)
-				domifier.write_domain_files
-				domifier.write_gen_dom_file
-			end
-		end
-
-	find_class (a_class_name: STRING): CLASS_C
-		local
-			i: INTEGER
-			done: BOOLEAN
-		do
-			if attached a_class_name then
-				from i := 1
-				until i > classes.count or done
-				loop
-					if attached classes[i] then
-					    if classes [i].name.as_lower.is_equal (a_class_name.as_lower) then
-					    	done := True
-							Result := classes [i]
-					    end
-					end
-					i := i + 1
-				end
-			end
 		end
 
 invariant

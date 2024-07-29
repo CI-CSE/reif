@@ -5188,8 +5188,7 @@ feature {NONE} -- Visitor
 			l_un_old: UN_OLD_B
 			s: like {AST_CONTEXT}.scope
 		do
-			if not is_checking_postcondition and
-			   workbench.planned_class_name = Void then
+			if not is_checking_postcondition then
 					-- Old expression found somewhere else that in a
 					-- postcondition
 				create l_vaol1
@@ -5229,7 +5228,7 @@ feature {NONE} -- Visitor
 						context.init_error (l_vaol2)
 						l_vaol2.set_location (l_as.expr.end_location)
 						error_handler.insert_error (l_vaol2)
-					elseif is_byte_node_enabled and workbench.planned_class_name = Void then
+					elseif is_byte_node_enabled then
 						l_expr ?= last_byte_node
 						create l_un_old
 						l_un_old.set_expr (l_expr)

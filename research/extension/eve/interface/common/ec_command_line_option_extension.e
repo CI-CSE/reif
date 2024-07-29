@@ -34,6 +34,7 @@ feature
 			extensions.extend (create {AUTOTEACH_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {ANNOTATION_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {AUTO_FIX_COMMAND_LINE_EXTENSION})
+			extensions.extend (create {DEAD_PLAN_COMMAND_LINE_EXTENSION})
 		end
 
 	extensions: ARRAYED_LIST [COMMAND_LINE_OPTION_EXTENSION_S]

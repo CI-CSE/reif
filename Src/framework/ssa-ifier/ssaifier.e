@@ -13,7 +13,7 @@ create
   make
 
 feature
-  make (a_class: CLASS_C; a_name: STRING)
+  make (a_class: CLASS_C; a_name: READABLE_STRING_GENERAL)
     -- Process the feature `a_name' from the class `a_class'.
     require
       non_void_class: attached a_class
@@ -41,7 +41,7 @@ feature
         ssa_printer.process
         write_default_instrumented (ssa_printer.text)
       else
-        io.put_string ("Feature " + a_name + " not found in " + a_class.name)
+        io.put_string ({STRING_32} "Feature " + a_name + " not found in " + a_class.name)
         io.new_line
         check False end
       end

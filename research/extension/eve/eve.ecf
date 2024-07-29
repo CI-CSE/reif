@@ -73,5 +73,6 @@
 		<cluster name="spelling" location="$EIFFEL_SRC\..\research\extension\spelling" recursive="true" />
 		<cluster name="textual_bon" location="$EIFFEL_SRC\..\research\extension\textual_bon" recursive="true" />
 		<cluster name="xml_transfomation" location="$EIFFEL_SRC\..\research\extension\xml_transformation" recursive="true" />
+		<cluster name="dead_plan" location="$EIFFEL_SRC\..\research\extension\dead_plan" recursive="true" />
 	</target>
 </system>
