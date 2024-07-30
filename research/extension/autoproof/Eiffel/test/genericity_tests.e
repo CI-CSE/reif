@@ -231,4 +231,63 @@ end
 
 				assert ("Verification succeeds", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
 			end
+	instance_free
+		do
+			print_file ("demo_helper_1.e", "[
+	class
+		DEMO_HELPER_1 [G]
+	create
+		make
+	feature 
+		
+		make
+			do
+			end
+
+		instance_free_feature: INTEGER
+			do
+				Result := 0
+			ensure
+				class
+				res_is_zero: Result = 0
+			end
+
+	end
+				]")
+			print_file ("demo_helper_2.e", "[
+	class
+		DEMO_HELPER_2 [G]
+	create
+		make
+	feature 
+		
+		make
+			do
+			end
+
+		demo: INTEGER
+			do
+				Result := {DEMO_HELPER_1 [G]}.instance_free_feature
+			ensure
+				res_is_zero: Result = 0
+			end
+	end
+				]")
+			print_file ("demo.e", "[
+	class
+		DEMO
+	inherit
+		DEMO_HELPER_2 [BOOLEAN]
+	create
+		make
+	end
+
+			]")
+			print_ecf ("DEMO")
+			command.add_feature ("demo", "DEMO_HELPER_2")
+
+			verify
+
+			assert ("Verification succeeds", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+		end
 end

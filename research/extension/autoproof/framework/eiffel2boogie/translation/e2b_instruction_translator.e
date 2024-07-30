@@ -1487,9 +1487,47 @@ feature {NONE} -- Implementation
 			-- Process expression `a_expr'.
 		local
 			l_translator: E2B_BODY_EXPRESSION_TRANSLATOR
+			l_generics: ARRAYED_LIST [TYPE_A]
+			l_type: E2B_CL_TYPE_A
+			l_gen_type: GEN_TYPE_A
+			l_node: BYTE_NODE
+			l_call: CALL_ACCESS_B
 		do
 			create l_translator.make
-			l_translator.set_context (current_feature, current_type)
+
+			l_node := a_expr
+			l_type := current_type
+
+			-- Handle calls to features' precursor and instance free calls.
+			if attached {CALL_ACCESS_B} l_node as e and then
+				attached {CL_TYPE_A} e.precursor_type as l_cl_type_a
+			then
+				-- Handle instance free calls to types with formal generics
+				if
+					e.is_instance_free and then
+					attached {GEN_TYPE_A} l_cl_type_a  as l_gen_type_a and then
+					l_gen_type_a.has_formal_generic
+				then
+					-- We need to swap the type with formals with a fully actualized type.
+					-- We achieve the actualization using ANY.
+					-- The actualized type must be placed in both the currently processed byte node
+					-- (which is cloned to isolate this actualization for translation to boogie)
+					-- and the context type for the translator.
+					l_call := e.twin
+					create l_generics.make (0)
+					⟳ i: 1 |..| l_gen_type_a.generics.count ¦ l_generics.extend (create {CL_TYPE_A}.make (system.any_class.compiled_class.class_id)) ⟲
+					l_gen_type := l_gen_type_a.duplicate_for_instantiation
+					l_gen_type.set_generics (l_generics)
+					l_call.set_precursor_type (l_gen_type)
+					l_type := create {E2B_CL_TYPE_A}.make (l_gen_type)
+					l_node := l_call
+				else
+					-- Set the proper context-type for calls to features' precursor
+					l_type := create {E2B_CL_TYPE_A}.make (l_cl_type_a)
+				end
+			end
+
+			l_translator.set_context (current_feature, l_type)
 			l_translator.set_context_implementation (current_implementation)
 			if attached current_origin_information as coi then
 				l_translator.set_context_line_number (coi.line)
@@ -1498,7 +1536,9 @@ feature {NONE} -- Implementation
 			l_translator.locals_map.merge (locals_map)
 			l_translator.set_local_writable (local_writable)
 			l_translator.set_context_readable (context_readable)
-			a_expr.process (l_translator)
+
+			l_node.process (l_translator)
+
 			across
 				l_translator.side_effect as stmts
 			loop
