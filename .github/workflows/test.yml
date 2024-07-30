@@ -33,7 +33,9 @@ jobs:
           echo "EIFFEL_SRC=$EIFFEL_SRC" >> "$GITHUB_ENV"
           echo "ISE_LIBRARY=$EIFFEL_SRC" >> "$GITHUB_ENV"
 
-          echo "AP=$(pwd)/research/extension/autoproof" >> "$GITHUB_ENV"
+          export EXT=$(pwd)/research/extension
+          echo "EXT=$EXT" >> "$GITHUB_ENV"
+          echo "AP=$EXT/autoproof" >> "$GITHUB_ENV"
           echo "GOBO=$EIFFEL_SRC/contrib/library/gobo" >> "$GITHUB_ENV"
 
           echo "$ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin" >> "$GITHUB_PATH"
@@ -75,55 +77,22 @@ jobs:
 
       - name: Compile C code
         run: |
-          cd Src/C
-          ./quick_configure
-          cd ../..
+          cd research
+          ./compile_c.sh
 
-      - name: Compile auto_test/Clib
-        run: |
-          cd Src/framework/auto_test/Clib
-          finish_freezing -library
-          cd ../../../..
-
-      - name: Compile net/Clib
-        run: |
-          cd Src/library/net/Clib
-          finish_freezing -library
-          cd ../../../..
-
-      - name: Compile mysql/Clib
-        run: |
-          cd Src/library/mysql/Clib
-          finish_freezing -library
-          cd ../../../..
-
-      - name: Compile cURL/Clib
-        run: |
-          cd Src/library/cURL/Clib
-          finish_freezing -library
-          cd ../../../..
-
-      - name: Compile vision2
-        run: |
-          cd Src/library/vision2/Clib
-          finish_freezing -library
-          cd ../../../..
-          cd Src/library/vision2/implementation/gtk3/Clib
-          finish_freezing -library
-          cd ../../../../../..
-
-      - name: Build AutoProof ec
+      - name: Build EVE ec
         id: build
         run: |
-          ec -config $AP/Eiffel/Ace/ec.ecf -freeze -c_compile -batch
+          ec -config $EXT/eve/eve.ecf -freeze -c_compile -batch -target bench
+          echo "AP_EXE=$(pwd)/EIFGENs/bench/W_code/eve" >> "$GITHUB_ENV"
 
-      - name: Run ec tests
+      - name: Run tests using AutoTest
         run: |
           # Avoid directory creation race condition by creating the dir manually
           # here (before running tests)
           mkdir -p EIFGENs/bench/Testing/execution/ap_test_examples_executions
 
-          ec -config $AP/Eiffel/Ace/ec.ecf -batch -tests |& tee test_out.txt
+          ec -config $EXT/eve/eve.ecf -batch -tests |& tee test_out.txt
 
           # check that actually nothing fails
           grep -q "0 failing, 0 unresolved" test_out.txt
@@ -136,11 +105,6 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
           exit $res
-
-      - name: Replace ec
-        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
-        run: |
-          cp EIFGENs/bench/W_code/ec* $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin
 
       - name: Verify AP base
         if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
@@ -198,7 +162,7 @@ jobs:
           cd base2test
 
           echo "::group::Compile base"
-          ec -config $base2cfg
+          $AP_EXE -config $base2cfg
           echo "::endgroup::"
 
           echo "# Verify AP Base" >> $GITHUB_STEP_SUMMARY
@@ -223,7 +187,7 @@ jobs:
 
             timestart=$(date +%s)
             timeout -sKILL 120 \
-              ec \
+              $AP_EXE \
               -config $base2cfg \
               -autoproof $f |& tee ap.txt
             timeout_code=${PIPESTATUS[0]}
@@ -282,7 +246,7 @@ jobs:
               echo "<td></td>" >> $OUTPUT_TABLE
             fi
 
-            echo "ec finished in $((timeend-timestart))"
+            echo "finished in $((timeend-timestart))"
             echo "<td>$((timeend-timestart))</td>" >> $OUTPUT_TABLE
 
             echo "<td><details><summary>AP output</summary>" >> $OUTPUT_TABLE
@@ -330,10 +294,10 @@ jobs:
       - name: Run python tests which should pass
         if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         run: |
-          cd research/extension/autoproof/framework/eiffel2boogie/tests
+          cd $AP/framework/eiffel2boogie/tests
           python3 runtests.py \
             --dir $(pwd)/examples \
-            --ec $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin/ec \
+            --ec $AP_EXE \
             --test-timeout 250 \
             --ecf $(pwd)/tests.ecf | tee tests.txt
 
@@ -353,10 +317,10 @@ jobs:
       - name: Run ignored legacy python tests, none should pass
         if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         run: |
-          cd research/extension/autoproof/framework/eiffel2boogie/tests
+          cd $AP/framework/eiffel2boogie/tests
           python3 runtests.py \
             --dir $(pwd)/legacy \
-            --ec $ISE_EIFFEL/studio/spec/${ISE_PLATFORM}/bin/ec \
+            --ec $AP_EXE \
             --test-timeout 180 \
             --ecf $(pwd)/tests.ecf | tee tests.txt
 

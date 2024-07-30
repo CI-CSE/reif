@@ -3,7 +3,7 @@ name: Build docs website
 on:
   push:
     branches:
-      - main
+      - research
 
 jobs:
   github-pages:
