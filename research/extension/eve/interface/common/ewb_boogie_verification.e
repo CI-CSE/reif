@@ -102,89 +102,89 @@ feature -- Execution
 		do
 			create autoproof.make
 				-- Load options
-			if user_options.has ("-twostep") then
+			if has_option ("-twostep") then
 				options.set_two_step_verification_enabled (True)
-			elseif user_options.has ("-notwostep") then
+			elseif has_option ("-notwostep") then
 				options.set_two_step_verification_enabled (False)
 			end
-			if user_options.has ("-postpredicate") then
+			if has_option ("-postpredicate") then
 				options.set_postcondition_predicate_enabled (True)
-			elseif user_options.has ("-nopostpredicate") then
+			elseif has_option ("-nopostpredicate") then
 				options.set_postcondition_predicate_enabled (False)
 			end
-			if user_options.has ("-overflow") then
+			if has_option ("-overflow") then
 				options.set_checking_overflow (True)
-			elseif user_options.has ("-nooverflow") then
+			elseif has_option ("-nooverflow") then
 				options.set_checking_overflow (False)
 			end
-			if user_options.has ("-trigger") then
+			if has_option ("-trigger") then
 				options.set_generating_triggers (True)
-			elseif user_options.has ("-notrigger") then
+			elseif has_option ("-notrigger") then
 				options.set_generating_triggers (False)
 			end
-			if user_options.has ("-arithtrigger") then
+			if has_option ("-arithtrigger") then
 				options.set_triggering_on_arithmetic (True)
-			elseif user_options.has ("-noarithtrigger") then
+			elseif has_option ("-noarithtrigger") then
 				options.set_triggering_on_arithmetic (False)
 			end
-			if user_options.has ("-arithfresh") then
+			if has_option ("-arithfresh") then
 				options.set_arithmetic_extracted (True)
-			elseif user_options.has ("-noarithfresh") then
+			elseif has_option ("-noarithfresh") then
 				options.set_arithmetic_extracted (False)
 			end
-			if user_options.has ("-independent") then
+			if has_option ("-independent") then
 				options.set_inv_check_independent (True)
-			elseif user_options.has ("-noindependent") then
+			elseif has_option ("-noindependent") then
 				options.set_inv_check_independent (False)
 			end
-			if user_options.has ("-nonvariant") then
+			if has_option ("-nonvariant") then
 				options.set_ignoring_nonvariant (False)
-			elseif user_options.has ("-nononvariant") then
+			elseif has_option ("-nononvariant") then
 				options.set_ignoring_nonvariant (True)
 			end
-			if user_options.has ("-autounroll") then
+			if has_option ("-autounroll") then
 				options.set_automatic_loop_unrolling_enabled (True)
-			elseif user_options.has ("-noautounroll") then
+			elseif has_option ("-noautounroll") then
 				options.set_automatic_loop_unrolling_enabled (False)
 			end
-			if user_options.has ("-unrolldepth") then
+			if has_option ("-unrolldepth") then
 				options.set_loop_unrolling_depth (option_argument ("-unrolldepth", options.loop_unrolling_depth))
 			end
-			if user_options.has ("-autoinline") then
+			if has_option ("-autoinline") then
 				options.set_automatic_inlining_enabled (True)
-			elseif user_options.has ("-noautoinline") then
+			elseif has_option ("-noautoinline") then
 				options.set_automatic_inlining_enabled (False)
 			end
-			if user_options.has ("-inlinedepth") then
+			if has_option ("-inlinedepth") then
 				options.set_max_recursive_inlining_depth (option_argument ("-inlinedepth", options.max_recursive_inlining_depth))
 			end
-			if user_options.has ("-ownership") then
+			if has_option ("-ownership") then
 				options.set_ownership_enabled (True)
-			elseif user_options.has ("-noownership") then
+			elseif has_option ("-noownership") then
 				options.set_ownership_enabled (False)
 			end
-			if user_options.has ("-scdefaults") then
+			if has_option ("-scdefaults") then
 				options.set_ownership_defaults_enabled (True)
-			elseif user_options.has ("-noscdefaults") then
+			elseif has_option ("-noscdefaults") then
 				options.set_ownership_defaults_enabled (False)
 			end
-			if user_options.has ("-timeout") then
+			if has_option ("-timeout") then
 				options.set_is_enforcing_timeout (True)
 				options.set_timeout (option_argument ("-timeout", options.timeout))
 			end
-			if user_options.has ("-printtime") then
+			if has_option ("-printtime") then
 				options.set_print_time (True)
-			elseif user_options.has ("-noprinttime") then
+			elseif has_option ("-noprinttime") then
 				options.set_print_time (False)
 			end
-			if user_options.has ("-bulk") then
+			if has_option ("-bulk") then
 				options.set_bulk_verification_enabled (True)
-			elseif user_options.has ("-forked") then
+			elseif has_option ("-forked") then
 				options.set_bulk_verification_enabled (False)
 				options.set_max_parallel_boogies (option_argument ("-forked", options.max_parallel_boogies))
 			end
-			l_measure := user_options.has ("-measure")
-			l_html := user_options.has ("-html")
+			l_measure := has_option ("-measure")
+			l_html := has_option ("-html")
 				-- Load input
 			if selection.is_empty then
 				load_universe
@@ -222,13 +222,27 @@ feature -- Execution
 			end
 		end
 
+	has_option (s: READABLE_STRING_GENERAL): BOOLEAN
+		do
+			Result := ∃ o: user_options ¦ o.same_string (s)
+		end
+
 	option_argument (a_option: STRING; a_default: INTEGER): INTEGER
 		require
-			user_options.has (a_option)
+			has_option (a_option)
 		local
 			l_index: INTEGER
 		do
-			l_index := user_options.index_of (a_option, 1)
+			across
+				1 |..| user_options.count as i
+			until
+				l_index > 0
+			loop
+				if user_options [i].same_string (a_option) then
+					l_index := i
+				end
+			end
+
 			if l_index > 0 and then user_options.i_th (l_index + 1).is_integer then
 				Result := user_options.i_th (l_index + 1).to_integer
 			else
@@ -250,7 +264,7 @@ feature {NONE} -- Printing console
 				elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
 					print_failed_verification (l_failure)
 
-					if user_options.has ("-fix") then
+					if has_option ("-fix") then
 						options.failures_for_fix.extend (l_failure)
 					end
 						-- TODO Li: display the failure in the "Faults" tab
@@ -261,11 +275,11 @@ feature {NONE} -- Printing console
 				end
 			end
 
-			if user_options.has ("-fix") then
+			if has_option ("-fix") then
 				-- options.set_fix_start_time (timer.system_clock.time_now)
 				output_window.add ("fixing start time: " + timer.system_clock.time_now.out + "%N")
 				generate_counterexamples_for_fix
-			elseif user_options.has ("-validate_fix") then
+			elseif has_option ("-validate_fix") then
 				-- TODO
 				-- 	Parse the result to get the id of successful verification and store in a hash set S1
 				--  Instrument "check False end" assertion to the feature in S1, reverify the instrumented version
@@ -388,7 +402,7 @@ feature {NONE} -- Printing console
 					output_window.add ("--------------------------------------%N")
 				end
 
-				if user_options.has ("-fix") then
+				if has_option ("-fix") then
 					out_str := i.context_class.name.twin; out_str.append_character (Msg_seperator)
 					out_str := out_str + i.context_feature.feature_name; out_str.append_character (Msg_seperator)
 					out_str := out_str + failure_code (i).out; out_str.append_character (Msg_seperator)
@@ -429,7 +443,7 @@ feature {NONE} -- Printing console
 			if attached a_proc.context_feature then
 				output_window.add (".")
 				output_window.add_feature (a_proc.context_feature.e_feature, a_proc.context_feature.feature_name_32)
-				if user_options.has ("-validate_fix") then
+				if has_option ("-validate_fix") then
 					if a_proc.context_feature.feature_name.has_substring ("_id_") then
 						options.potential_fixes_names.extend (a_proc.context_feature.feature_name) -- the feature information is missing?
 					end
