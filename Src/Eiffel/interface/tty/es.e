@@ -1507,9 +1507,9 @@ feature {NONE} -- Update
 					else
 						option_error_message := locale.translation ("Capability option requires a value.")
 					end
+				else
+					option_processed := False
 				end
-			else
-				option_processed := False
 			end
 			if not option_processed then
 				option_processed := True
