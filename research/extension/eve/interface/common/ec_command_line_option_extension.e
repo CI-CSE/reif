@@ -30,7 +30,8 @@ feature
 			extensions.extend (create {JAVASCRIPT_COMPILATION_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {DYNAMIC_PROGRAM_ANALYSIS_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {CONTRACT_INFERENCE_COMMAND_LINE_EXTENSION})
-			extensions.extend (create {BOOGIE_VERIFICATION_COMMAND_LINE_EXTENSION})
+			extensions.extend (create {AP_EXTENSION_CL_EXTENSION}
+				.make (agent ({ES}.command_line_io).output_window))
 			extensions.extend (create {AUTOTEACH_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {ANNOTATION_COMMAND_LINE_EXTENSION})
 			extensions.extend (create {AUTO_FIX_COMMAND_LINE_EXTENSION})

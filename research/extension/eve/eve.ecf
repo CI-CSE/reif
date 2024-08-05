@@ -4,7 +4,7 @@
 		<eis src="http://www.gnu.org/licenses/gpl.html" tag="license" protocol="" name="GPL"/>
 	</note>
 	<description>
-		EiffelStudio with AutoProof.
+		EiffelStudio with research extensions.
 
 		Copyright (c) 2018-2019 Politecnico di Milano
 		Copyright (c) 2021-2022 Schaffhausen Institute of Technology
@@ -13,19 +13,6 @@
 
 		GNU General Public License (see https://www.gnu.org/licenses/)
 	</description>
-	<target name="batch" extends="batch" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf" abstract="true">
-		<capability>
-			<concurrency support="none"/>
-		</capability>
-		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf">
-			<option>
-				<assertions precondition="true" postcondition="true" check="true" supplier_precondition="true"/>
-			</option>
-		</library>
-		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
-			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
-		</cluster>
-	</target>
 	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf">
 		<capability>
 			<concurrency support="thread"/>
@@ -54,9 +41,10 @@
 		<library name="dadle" location="$EIFFEL_SRC\library\dadle\dadle_library.ecf"/>
 		-->
 
-		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
-			<visible class="ES_AUTOPROOF_TOOL" feature="default_create"/>
-		</cluster>
+		<library name="autoproof_tty_interface" location="$EIFFEL_SRC\..\research\extension\autoproof\autoproof-tty-lib.ecf">
+			<renaming old_name="EC_COMMAND_LINE_OPTION_EXTENSION" new_name="AP_EXTENSION_CL_EXTENSION"/>
+		</library>
+		<cluster name="autoproof_graphical_interface" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\interface\graphical\" recursive="true" />
 
 		<cluster name="interface_common" location="interface\common" recursive="true" />
 		<cluster name="graphical" location="interface\graphical" recursive="true">

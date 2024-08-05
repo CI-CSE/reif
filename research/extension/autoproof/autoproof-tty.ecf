@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="autoproof" uuid="3a550823-79ab-419d-8dff-28259b30280c" readonly="false">
+	<target name="batch" extends="batch" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf">
+		<root class="AP_BATCH" feature="make"/>
+		<library name="a_lib" location=".\autoproof-tty-lib.ecf"/>
+		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf"/>
+		<setting name="executable_name" value="apb"/>
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
+		<cluster name="es_rota" location="$EIFFEL_SRC\Eiffel\API\framework\ecosystem\services\rota\" recursive="true">
+			<file_rule>
+				<exclude>ev_rota.e</exclude>
+			</file_rule>
+		</cluster>
+		<cluster name="autoproof_batch" location="$EIFFEL_SRC\..\research\extension\autoproof\target\batch" recursive="true"/>
+	</target>
+</system>

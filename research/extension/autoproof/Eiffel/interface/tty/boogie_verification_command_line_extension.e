@@ -9,6 +9,18 @@ inherit
 
 	DISPOSABLE_SAFE
 
+create
+	make
+
+feature
+
+	make (a_get_output_window: FUNCTION [OUTPUT_WINDOW])
+		do
+			get_output_window := a_get_output_window
+		end
+
+	get_output_window: FUNCTION [OUTPUT_WINDOW]
+
 feature {NONE} -- Clean up
 
 	safe_dispose (a_explicit: BOOLEAN)
@@ -30,14 +42,14 @@ feature
 	help: STRING_TABLE [READABLE_STRING_32]
 		once
 			create Result.make (2)
-			Result [boogie_name] := "run autoproof verification (obsolete command, use"
+			Result [boogie_name] := {STRING_32} "run autoproof verification (obsolete command, use"
 				+ autoproof_name + " instead)"
 			Result [autoproof_name] := "run autoproof verification"
 		end
 
 	command (o: READABLE_STRING_32; a: LIST [READABLE_STRING_32]): EWB_BOOGIE_VERIFICATION
 		do
-			create Result.make_with_arguments (a)
+			create Result.make_with_arguments (a, get_output_window)
 		end
 
 	autoproof_name: STRING_32 = "autoproof"

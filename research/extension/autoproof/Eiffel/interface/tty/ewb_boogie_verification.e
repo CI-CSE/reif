@@ -8,13 +8,12 @@ class
 
 inherit
 
-	EWB_CMD
-		rename
-			messages as ewb_messages
-		end
+	E_CMD
 
 	SHARED_ERROR_HANDLER
 		export {NONE} all end
+
+	SHARED_EIFFEL_PROJECT
 
 	COMPILER_EXPORTER
 
@@ -31,16 +30,23 @@ create
 
 feature {NONE} -- Initialization
 
-	make_with_arguments (a_arguments: LIST [READABLE_STRING_GENERAL])
+	make_with_arguments (
+		a_arguments: LIST [READABLE_STRING_GENERAL];
+		a_get_output_window: FUNCTION [OUTPUT_WINDOW])
 			-- Initialize with `a_arguments'.
 			--
 			-- Each arguments can be:
 			-- * `CLASS_NAME` - to verify whole class `CLASS_NAME`
 			-- * `CLASS_NAME.f_name` - to verify feature `f_name` in `CLASS_NAME`
 			-- * Path to class file - to verify class
+			--
+			-- `a_get_output_window`: AutoProof output sink. Will be called once
+			--   at the beginning of the execution.
 		require
 			a_arguments_attached: a_arguments /= Void
 		do
+			get_output_window := a_get_output_window
+
 			create user_options.make
 			user_options.compare_objects
 			create selection.make
@@ -61,6 +67,13 @@ feature {NONE} -- Initialization
 					a_arguments.forth
 				end
 			end
+		end
+
+	get_output_window: FUNCTION [OUTPUT_WINDOW]
+
+	output_window: OUTPUT_WINDOW
+		once
+			Result := get_output_window.item
 		end
 
 feature -- Access
