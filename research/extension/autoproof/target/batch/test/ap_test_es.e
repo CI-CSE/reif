@@ -5,7 +5,7 @@ class
 	AP_TEST_ES
 
 inherit
-	ES_BATCH
+	AP_BATCH
 		rename
 			make as es_make
 		export

@@ -95,7 +95,7 @@ feature {NONE} -- Initialization
 			code_path := root_path.extended ("code")
 			(create {DIRECTORY}.make_with_path (code_path)).recursive_create_dir
 
-			create command.make
+			create command.make (agent ({AP_TEST_ES}.command_line_io).output_window)
 			create results.make
 		end
 

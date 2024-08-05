@@ -19,9 +19,11 @@ create
 
 feature {NONE} -- Creation
 
-	make
+	make (a_get_output_window: FUNCTION [OUTPUT_WINDOW])
 			-- Initialize the command.
 		do
+			get_output_window := a_get_output_window
+
 			create features.make (0)
 			create classes.make (1)
 			create groups.make (0)
@@ -123,7 +125,7 @@ feature -- Modification
 			is_override_collection_requested
 		end
 
-feature {AP_TEST_EXAMPLES} -- Execution
+feature -- Execution
 
 	execute
 			-- <Precursor>
@@ -259,13 +261,17 @@ feature {AP_TEST_EXAMPLES} -- Execution
 			end
 		end
 
-feature {NONE} -- Output
+feature -- Output
+
+	get_output_window: FUNCTION [OUTPUT_WINDOW]
 
 	output_window: OUTPUT_WINDOW
 			-- Output sink.
-		do
-			Result := {ES}.command_line_io.output_window
+		once
+			Result := get_output_window.item
 		end
+
+feature {NONE} -- Output
 
 	print_result (a_result: E2B_RESULT)
 			-- Print results to output.
@@ -376,7 +382,7 @@ feature {NONE} -- Output
 			create Result.make (4, 3)
 		end
 
-feature {AP_TEST_EXAMPLES} -- Verification engine
+feature -- Verification engine
 
 	autoproof: E2B_AUTOPROOF
 			-- Shared autoproof instance.

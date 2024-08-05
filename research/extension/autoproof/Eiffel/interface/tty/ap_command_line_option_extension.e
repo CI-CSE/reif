@@ -10,6 +10,16 @@ inherit
 	CONF_KEY_VALUE_PARSER [E2B_OPTIONS]
 	SHARED_LOCALE
 
+create
+	make
+
+feature
+	make (a_get_output_window: FUNCTION [OUTPUT_WINDOW])
+			-- `a_output_window`: usually `{ES}.command_line_io.output_window`
+		do
+			get_output_window := a_get_output_window
+		end
+
 feature {NONE} -- Clean up
 
 	safe_dispose (a_explicit: BOOLEAN)
@@ -318,10 +328,12 @@ feature {NONE} -- Basic operations
 
 feature {NONE} -- Access
 
+	get_output_window: FUNCTION [OUTPUT_WINDOW]
+
 	autoproof_command: E_AUTOPROOF
 			-- Command to launch AutoProof.
 		once
-			create Result.make
+			create Result.make (get_output_window)
 		end
 
 note
