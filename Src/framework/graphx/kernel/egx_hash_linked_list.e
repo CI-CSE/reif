@@ -144,6 +144,11 @@ feature -- Cursor movement
 			list.finish
 		end
 
+	new_cursor: LINKED_LIST_ITERATION_CURSOR [N]
+		do
+			Result := list.new_cursor
+		end
+
 feature -- Element change
 
 	extend (v: N) is

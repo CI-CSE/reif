@@ -12,7 +12,6 @@ inherit
 		export{NONE}
 			set_visited_node_status
 		redefine
-			is_visit_prepared,
 			set_graph
 		end
 
