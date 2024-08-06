@@ -14,7 +14,7 @@ inherit
 
 	EPA_SOLVER_CONSTANTS
 
-	PROCESS_HELPER
+	EPA_PROCESS_UTILITY
 
 feature -- Basic operations
 
@@ -376,9 +376,6 @@ feature{NONE} -- Implementation
 			-- Solved path of `a_path'
 			-- If in Windows, Result will be equal to `a_path',
 			-- otherwise, Result will be the path as seen by Wine.
-		local
-			l_prc_factory: PROCESS_FACTORY
-			l_prc: PROCESS
 		do
 			if {PLATFORM}.is_windows then
 				Result := a_path.twin

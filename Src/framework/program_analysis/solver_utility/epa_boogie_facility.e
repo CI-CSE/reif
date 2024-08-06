@@ -17,7 +17,7 @@ inherit
 
 	EPA_TEMPORARY_DIRECTORY_UTILITY
 
-	PROCESS_HELPER
+	EPA_PROCESS_UTILITY
 
 feature{NONE} -- Implementation
 

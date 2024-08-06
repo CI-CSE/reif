@@ -10,6 +10,8 @@ class
 inherit
 	EPA_SOLVER_FACILITY
 
+	EPA_PROCESS_UTILITY
+
 --feature -- Basic operations
 
 --	is_unsat (a_content: STRING): BOOLEAN
@@ -47,29 +49,8 @@ feature{NONE} -- Implementation
 
 	z3_output: STRING
 			-- Output from Z3 after applied to `smtlib_file_path'.
-		local
-			l_prc_factory: PROCESS_FACTORY
-			l_prc: PROCESS
 		do
-			create output_buffer.make (1024)
-			create l_prc_factory
-			l_prc := l_prc_factory.process_launcher_with_command_line (z3_command, smtlib_file_directory)
-			l_prc.redirect_output_to_agent (agent append_output_buffer)
-			l_prc.redirect_error_to_same_as_output
-			l_prc.launch
-			if l_prc.launched then
-				l_prc.wait_for_exit
-			end
-			Result := output_buffer.twin
-		end
-
-	output_buffer: STRING
-			-- Output buffer for Z3
-
-	append_output_buffer (a_output: STRING)
-			-- Append `a_output' into `output_buffer'.
-		do
-			output_buffer.append (a_output)
+			Result := output_from_program (z3_command, smtlib_file_directory)
 		end
 
 	solver_output (a_content: STRING): STRING
