@@ -130,10 +130,13 @@ feature {NONE} -- Building test projects
 			-- Other options which are attributes in `Current`:
 			-- `is_void_safe`
 			--
-			-- <library ../> contains the option readonly="false" to correctly register the changes to the system between test runs.
+			-- `base` library and precompile contain the option readonly="false"
+			--   to correctly register the changes to the system between test runs.
 		local
 			root_string: STRING
 			void_safety_string: STRING
+			precomp_ecf: STRING
+			lib_ecf: STRING
 		do
 			if attached root then
 				root_string := "<root class=%"" + root + "%" feature=%"make%" />"
@@ -141,10 +144,14 @@ feature {NONE} -- Building test projects
 				root_string := "<root all_classes=%"true%" />"
 			end
 
-			void_safety_string := if is_void_safe then
-				"<void_safety support=%"all%" />"
+			if is_void_safe then
+				void_safety_string := ""
+				precomp_ecf := "test_precomp-safe.ecf"
+				lib_ecf := "base-safe.ecf"
 			else
-				"<void_safety support=%"none%" />"
+				void_safety_string := "<void_safety support=%"none%" />"
+				precomp_ecf := "test_precomp.ecf"
+				lib_ecf := "base.ecf"
 			end
 
 			print_file ("Ace.ecf", "[
@@ -152,14 +159,18 @@ feature {NONE} -- Building test projects
 							<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="autoproof-tests" uuid="B9FC6CC3-5F19-4CE1-9131-56A0455E9224">
 								<target name="tests">
 									]" + "%N" + root_string + "%N" + "[
-								<option warning="warning" full_class_checking="false" is_obsolete_routine_type="true" syntax="transitional">
-									<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
-								</option>
 								<setting name="console_application" value="true"/>
 								<capability>
 									]" + "%N" + void_safety_string + "%N" + "[
+									<concurrency support="none"/>
 								</capability>
-						    	<library name="base" location="$AP\library\base\base-scoop-safe.ecf" readonly="false" />
+								<precompile name="test_precomp" readonly="false"
+									]" + " location=%"$AP\target\batch\test\precomp\" + precomp_ecf + "%"" + "[
+								/>
+								<library name="base" readonly="false"
+									]" + " location=%"$AP\library\base\" + lib_ecf + "%"" + "[
+								/>
+
 								<cluster name="autoproof_tests" location=".\">
 									<file_rule>
 										<exclude>/.svn$</exclude>
