@@ -86,8 +86,16 @@ jobs:
           ec -config $EXT/autoproof/autoproof-tty.ecf -freeze -c_compile -batch -target batch
           echo "AP_EXE=$(pwd)/EIFGENs/batch/W_code/apb" >> "$GITHUB_ENV"
 
+      - name: Precompile test precompiles
+        id: build-precomp
+        run: |
+          cd $AP/target/batch/test/precomp
+          $AP_EXE -config test_precomp.ecf -precompile -c_compile
+          $AP_EXE -config test_precomp-safe.ecf -precompile -c_compile
+
       - name: Run tests using AutoTest
-        timeout-minutes: 45
+        if: ${{ !cancelled() && steps.build-precomp.conclusion == 'success' }}
+        timeout-minutes: 10
         run: |
           # Avoid directory creation race condition by creating the dir manually
           # here (before running tests)
@@ -108,7 +116,7 @@ jobs:
           exit $res
 
       - name: Verify AP base
-        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
+        if: ${{ !cancelled() && steps.build-precomp.conclusion == 'success' }}
         run: |
           total=0
           succeeded=0
@@ -293,7 +301,7 @@ jobs:
           fi
 
       - name: Run python tests which should pass
-        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
+        if: ${{ !cancelled() && steps.build-precomp.conclusion == 'success' }}
         run: |
           cd $AP/framework/eiffel2boogie/tests
           python3 runtests.py \
@@ -316,7 +324,7 @@ jobs:
           exit $res
 
       - name: Run ignored legacy python tests, none should pass
-        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
+        if: ${{ !cancelled() && steps.build-precomp.conclusion == 'success' }}
         run: |
           cd $AP/framework/eiffel2boogie/tests
           python3 runtests.py \
