@@ -345,15 +345,21 @@ feature {NONE}
 		do
 			create Result.make
 
-			if inv_byte_server.has (a_class.class_id) then
-				l_type := a_class.class_type_in_context (a_class.actual_type, a_class.invariant_feature, type)
-				a_class.invariant_feature.switch_byte_context (l_type, l_type)
+			if
+				attached a_class.invariant_feature as invariant_feature
+					-- If class has no invariant, invariant_feature is Void.
+					-- Skip this class
+
+				and then inv_byte_server.has (a_class.class_id)
+			then
+				l_type := a_class.class_type_in_context (a_class.actual_type, invariant_feature, type)
+				invariant_feature.switch_byte_context (l_type, l_type)
 				across
 					inv_byte_server.item (a_class.class_id).byte_list as l_assert
 				loop
 					if a_filter = Void or else a_filter.is_matching (l_assert) then
 						create l_translator.make
-						l_translator.set_context (a_class.invariant_feature, type)
+						l_translator.set_context (invariant_feature, type)
 							-- Entity mapping should be copied after setting the context
 							-- because setting the context can also set a mapping for "Current".
 						l_translator.copy_entity_mapping (a_mapping)
