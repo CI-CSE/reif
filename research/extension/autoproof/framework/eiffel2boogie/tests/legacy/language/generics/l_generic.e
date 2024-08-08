@@ -11,7 +11,7 @@ feature
 			a_g.is_wrapped
 		do
 			g_attribute := a_g
-			-- g_attribute.do_nothing -- TODO: why VUTA(3) ??????
+			g_attribute.do_nothing
 		end
 
 	h_function (a_h: H)
