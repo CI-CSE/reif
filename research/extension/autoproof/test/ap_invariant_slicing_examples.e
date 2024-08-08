@@ -108,6 +108,7 @@ feature -- Testing
 					inv3: is_married implies (spouse.spouse = Current)
 				end
 			]")
+			is_void_safe := False
 			print_ecf ("PERSON")
 
 			command.add_class ("PERSON")

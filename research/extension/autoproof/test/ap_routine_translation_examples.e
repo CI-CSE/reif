@@ -227,7 +227,13 @@ feature -- Testing
 					make
 
 				feature
-					make do end
+					make
+						do
+							for_all_ref := Current
+							for_a_ref := Current
+							for_demo_ref := Current
+							for_none_ref := Current
+						end
 
 					test_all do end
 					for_all: BOOLEAN
@@ -257,7 +263,7 @@ feature -- Testing
 					for_none_ref: for_none_ref.for_all
 					for_a_none: for_a and for_none
 					for_a_all: for_a and for_all
-					end
+				end
 			]")
 			print_file ("a.e", "class A end")
 			print_ecf ("DEMO")
