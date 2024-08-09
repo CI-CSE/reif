@@ -602,24 +602,15 @@ feature {NONE} -- Implementation
 	add_default_field_ids
 			-- Add FieldId axioms for default attributes
 		do
-			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("allocated", types.field (types.bool)), factory.type_value (type) >>, types.int),
-				factory.int_value (-1))))
-			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("closed", types.field (types.bool)), factory.type_value (type) >>, types.int),
-				factory.int_value (-2))))
-			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("owner", types.field (types.ref)), factory.type_value (type) >>, types.int),
-				factory.int_value (-3))))
-			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("owns", types.field (types.set (types.ref))), factory.type_value (type) >>, types.int),
-				factory.int_value (-4))))
-			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("observers", types.field (types.set (types.ref))), factory.type_value (type) >>, types.int),
-				factory.int_value (-5))))
-			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("subjects", types.field (types.set (types.ref))), factory.type_value (type) >>, types.int),
-				factory.int_value (-6))))
+			boogie_universe.add_declaration (factory.field_id ("allocated", types.bool, type, -1))
+			boogie_universe.add_declaration (factory.field_id ("closed", types.bool, type, -2))
+			boogie_universe.add_declaration (factory.field_id ("owner", types.ref, type, -3))
+			boogie_universe.add_declaration (
+				factory.field_id ("owns", types.set (types.ref), type, -4))
+			boogie_universe.add_declaration (
+				factory.field_id ("observers", types.set (types.ref), type, -5))
+			boogie_universe.add_declaration (
+				factory.field_id ("subjects", types.set (types.ref), type, -6))
 		end
 
 feature -- Invariant admissibility

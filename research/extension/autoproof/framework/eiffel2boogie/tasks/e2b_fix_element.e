@@ -11,10 +11,12 @@ create make
 
 feature -- Initialize
 
-    make (a_var_name: STRING)
+    make (a_var_name: READABLE_STRING_GENERAL)
         -- Initialize a fix element
+    require
+    	a_var_name.is_string_8
     do
-        var_name := a_var_name
+        var_name := a_var_name.to_string_8
     end
 
     set_max (a_max: INTEGER)

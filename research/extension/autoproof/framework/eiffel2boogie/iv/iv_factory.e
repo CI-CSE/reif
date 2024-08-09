@@ -446,6 +446,12 @@ feature -- Axioms
 			end
 		end
 
+	field_id (field_name: READABLE_STRING_8; field_type: IV_TYPE; context_type: E2B_CL_TYPE_A; id: INTEGER): IV_FIELD_ID_AXIOM
+			-- Axiom for registering a field.
+		do
+			create Result.make (field_name, field_type, context_type, id)
+		end
+
 feature -- Miscellaneous
 
 	trace (a_text: READABLE_STRING_8): IV_STATEMENT

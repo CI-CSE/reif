@@ -50,9 +50,8 @@ feature -- Basic operations
 				end
 
 					-- Add field ID
-				boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-							factory.function_call ("FieldId", <<l_f, l_context_type>>, types.int),
-							factory.int_value (current_feature.feature_id))))
+				boogie_universe.add_declaration (
+					factory.field_id (l_attribute_name, l_boogie_type, current_type, current_feature.feature_id))
 
 					-- Add equivalences
 				generate_equivalences_for_class (current_type.base_class)

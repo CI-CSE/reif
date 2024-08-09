@@ -96,7 +96,7 @@ feature
 			-- Compute possible ranges
 		local
 			e: E2B_FIX_ELEMENT
-			var: STRING
+			var: READABLE_STRING_32
 			i: INTEGER
 			value, n, l_min, l_max: INTEGER
 		do
@@ -132,15 +132,14 @@ feature
 
 		end
 
-	safe_value (val: STRING): INTEGER
+	safe_value (val: READABLE_STRING_GENERAL): INTEGER
 			-- Convert from string to a valid integer
 		local
-			s: STRING
+			s: READABLE_STRING_GENERAL
 		do
 			s := val
 			if s.has ('(') then
-				s.remove_head (1)
-				s.remove_tail (1)
+				s := s.substring (2, s.count - 1)
 			end
 			Result := s.to_integer
 		end

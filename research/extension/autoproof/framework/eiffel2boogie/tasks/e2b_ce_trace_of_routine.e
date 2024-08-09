@@ -46,7 +46,7 @@ feature {NONE} -- Initialize
 
 	fill_translation_map
 		local
-			name_val, val_name: HASH_TABLE [ARRAYED_SET [STRING], STRING]
+			name_val, val_name: STRING_TABLE [ARRAYED_SET [READABLE_STRING_32]]
 		do
 			create name_val.make (0)
 			create val_name.make (0)
@@ -81,10 +81,10 @@ feature {NONE} -- Initialize
 			end
 		end
 
-	extend_by_key (a: HASH_TABLE [ARRAYED_SET [STRING], STRING]; v, k: STRING)
+	extend_by_key (a: STRING_TABLE [ARRAYED_SET [READABLE_STRING_32]]; v, k: READABLE_STRING_32)
 		do
 			if not a.has (k) then
-				a [k] := create {ARRAYED_SET [STRING]}.make (1)
+				a [k] := create {ARRAYED_SET [READABLE_STRING_32]}.make (1)
 				a [k].compare_objects
 			end
 			a [k].extend (v)
@@ -95,43 +95,71 @@ feature {NONE} -- Initialize
 			Result := s.has_substring ("@@")
 		end
 
-	translation_map: HASH_TABLE [STRING, STRING]
+	translation_map: STRING_TABLE [READABLE_STRING_32]
 			-- See `fill_translation_map`
 
-	is_abstract_value (s: STRING): BOOLEAN
+	is_abstract_value (s: READABLE_STRING_32): BOOLEAN
 		do
 			Result := s.starts_with ("T@U!val!")
 		end
 
 feature -- Status report
 
-	translate_raw (raw: STRING): STRING
+	translate_raw (raw: READABLE_STRING_32): READABLE_STRING_32
 		do
 			if translation_map.has (raw) then
 				Result := translation_map [raw]
 			elseif is_abstract_value (raw) then
-				Result := "$" + raw.split ('!').last
+				Result := {STRING_32} "$" + raw.split ('!').last
 			else
 				Result := raw
 			end
 		end
 
-	translate_record_field_name (obj_id, record_field_id: STRING): STRING
+	translate_record_field_name (obj_id, record_field_id: READABLE_STRING_32): READABLE_STRING_32
 		local
-			cls, fid: STRING
+			cls, fid: READABLE_STRING_32
+			id: INTEGER
 		do
-			cls := ce.apply_function ("type_of", create {ARRAYED_LIST [STRING]}.make_from_array (<<obj_id>>))
-			fid := ce.apply_function ("FieldId", create {ARRAYED_LIST [STRING]}.make_from_array (<<record_field_id, cls>>))
-			if fid /= Void and then fid.starts_with ("(- ") then
-				-- Negative field ids are builtin and unique,
-				-- so take first name which has this raw value
-				across ce.initial_name_to_raw as raw loop
-					if raw ~ record_field_id then
-						Result := @ raw.key
+			cls := ce.apply_function ("type_of", create {ARRAYED_LIST [READABLE_STRING_32]}
+				.make_from_array (<<obj_id>>))
+			if cls /= Void then
+				fid := ce
+					.apply_function ("FieldId", create {ARRAYED_LIST [READABLE_STRING_32]}
+						.make_from_array (<<record_field_id, cls>>))
+			end
+
+			if fid = Void then
+					-- We could not find the exact (type, field) pair,
+					-- so let's try to find this field in any other type
+				across ce.functions ["FieldId"] as case until fid /= Void loop
+					if case.args [1].same_string (record_field_id) then
+						fid := case.res
 					end
 				end
 			end
+
+			if fid /= Void then
+				if fid.starts_with ("(- ") then
+						-- this is a negative numebr, so
+						-- strip "(- " from the beginning and ")" from the end
+						-- then take the opposite (unary minus)
+					id := fid.substring (3, fid.count - 1).to_integer.opposite
+				else
+					id := fid.to_integer
+				end
+
+				across boogie_universe.declarations as d until Result /= Void loop
+					if attached {IV_FIELD_ID_AXIOM} d as axiom then
+						if axiom.id = id then
+							Result := axiom.field_name.to_string_32
+						end
+					end
+				end
+			end
+
 			if Result = Void then
+					-- Unknown field id, fallback to just the raw ids
 				Result := obj_id + "_" + record_field_id
 			end
 		end

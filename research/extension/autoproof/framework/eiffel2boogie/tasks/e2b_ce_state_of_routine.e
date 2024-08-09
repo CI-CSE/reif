@@ -15,8 +15,8 @@ create
 
 feature {NONE} -- Initialize
 
-	make (a_ce: E2B_BOOGIE_COUNTEREXAMPLE; a_name: STRING;
-		a_state_values: HASH_TABLE [STRING, STRING];
+	make (a_ce: E2B_BOOGIE_COUNTEREXAMPLE; a_name: READABLE_STRING_32;
+		a_state_values: STRING_TABLE [READABLE_STRING_32];
 		a_prev_state: detachable E2B_CE_STATE_OF_ROUTINE)
 			-- `a_name` - name of the state
 			-- `a_values` - own values of the state
@@ -48,11 +48,12 @@ feature {NONE} -- Initialize
 
 			update_heap_records (a_state_values)
 			update_seqs
+			update_sets
 		end
 
-	update_heap_records (a_state_values: HASH_TABLE [STRING, STRING])
+	update_heap_records (a_state_values: STRING_TABLE [READABLE_STRING_32])
 		local
-			heap_id: STRING
+			heap_id: READABLE_STRING_32
 			record: E2B_CE_VALUE_RECORD
 		do
 			heap_id := a_state_values ["Heap"]
@@ -71,10 +72,31 @@ feature {NONE} -- Initialize
 			end
 		end
 
+	update_sets
+		local
+			set: E2B_CE_VALUE_SET
+			set_id: READABLE_STRING_32
+		do
+			if ce.functions.has ("Set#Empty") then
+				across ce.functions ["Set#Empty"] as case loop
+					set_id := case.res
+					if not values.has (set_id) then
+						create set.make
+						values [set_id] := set
+					else
+						check attached {E2B_CE_VALUE_SET} values [set_id] as existing_set then
+							set := existing_set
+						end
+					end
+					set.update_from_set_empty (case, ce)
+				end
+			end
+		end
+
 	update_seqs
 		local
 			sequence: E2B_CE_VALUE_SEQ
-			seq_id: STRING
+			seq_id: READABLE_STRING_32
 		do
 			if ce.functions.has ("SeqType") then
 				across ce.functions ["SeqType"] as seq_type loop
@@ -106,13 +128,13 @@ feature -- Data
 
 	ce: E2B_BOOGIE_COUNTEREXAMPLE
 
-	name: STRING
+	name: READABLE_STRING_32
 			-- Name of the state
 
-	values: HASH_TABLE [E2B_CE_VALUE, STRING]
+	values: STRING_TABLE [E2B_CE_VALUE]
 			-- Mapping from local name or abstract id to value
 
-	locals: HASH_TABLE [STRING, STRING]
+	locals: STRING_TABLE [READABLE_STRING_32]
 
 feature -- State access
 
