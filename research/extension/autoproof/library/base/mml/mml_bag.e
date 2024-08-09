@@ -444,9 +444,4 @@ feature -- Lemmas
 			(count = domain.count) = is_constant (1)
 			domain.count <= count
 		end
-
-invariant
-	same_lower: keys.lower = values.lower
-	same_upper: keys.upper = values.upper
-	start_at_one: keys.lower = 1
 end
