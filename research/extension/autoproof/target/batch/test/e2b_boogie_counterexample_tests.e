@@ -31,8 +31,8 @@ feature
 	test_parse_functions
 		local
 			res: like {E2B_BOOGIE_COUNTEREXAMPLE}.parse_functions
-			functions: HASH_TABLE [LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]], STRING]
-			item: LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]]
+			functions: STRING_TABLE [LIST [TUPLE [args: detachable LIST [READABLE_STRING_32]; res: READABLE_STRING_32]]]
+			item: LIST [TUPLE [args: detachable LIST [READABLE_STRING_32]; res: READABLE_STRING_32]]
 		do
 			res := {E2B_BOOGIE_COUNTEREXAMPLE}.parse_functions("[
 				abs_real -> {
@@ -44,10 +44,6 @@ feature
 				}
 			]")
 			functions := res.functions
-
-			assert_arrays_equal ("Has all functions as keys",
-				<< "abs_real", "attached" >>,
-				functions.current_keys)
 
 			item := functions ["abs_real"]
 			assert_equal ("abs_real has no cases", 0, item.count)

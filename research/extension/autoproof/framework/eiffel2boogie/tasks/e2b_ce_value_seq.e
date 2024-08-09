@@ -28,13 +28,13 @@ feature {NONE}
 
 feature
 
-	update (id: STRING; ce: E2B_BOOGIE_COUNTEREXAMPLE)
+	update (id: READABLE_STRING_32; ce: E2B_BOOGIE_COUNTEREXAMPLE)
 		local
-			s: STRING
+			s: READABLE_STRING_32
 		do
 			reset
 			if ce.functions.has ("Seq#Length") then
-				s := ce.apply_function ("Seq#Length", create {ARRAYED_LIST [STRING]}.make_from_array (<< id >>))
+				s := ce.apply_function ("Seq#Length", create {ARRAYED_LIST [READABLE_STRING_32]}.make_from_array (<< id >>))
 				if s /= Void then
 					length := s.to_integer
 				else
@@ -60,8 +60,8 @@ feature
 			end
 		end
 
-	find_args (ce: E2B_BOOGIE_COUNTEREXAMPLE; function, res: STRING):
-		detachable LIST [STRING]
+	find_args (ce: E2B_BOOGIE_COUNTEREXAMPLE; function, res: READABLE_STRING_32):
+		detachable LIST [READABLE_STRING_32]
 		do
 			if ce.functions.has (function) then
 				across ce.functions [function] as case until Result /= Void loop
@@ -72,19 +72,19 @@ feature
 			end
 		end
 
-	constant: detachable TUPLE [val: STRING; n: STRING]
+	constant: detachable TUPLE [val: READABLE_STRING_32; n: READABLE_STRING_32]
 			-- This is a sequence of `val` repeated `n` times
 
-	singleton: detachable STRING
+	singleton: detachable READABLE_STRING_32
 			-- This is a singleton sequence of `singleton`
 
 	length: INTEGER
 			-- Seq#Length or `-1` if unknown
 
-	extended: detachable TUPLE [a, b: STRING]
+	extended: detachable TUPLE [a, b: READABLE_STRING_32]
 			-- This is a sequence `a` extended with `b`
 
-	items: detachable HASH_TABLE [STRING, STRING]
+	items: detachable STRING_TABLE [READABLE_STRING_32]
 			-- Index to item
 
 	copied: E2B_CE_VALUE_SEQ
@@ -92,29 +92,29 @@ feature
 			create Result.make_copied (Current)
 		end
 
-	multi_line_message_lines (trace: E2B_CE_TRACE_OF_ROUTINE): ARRAYED_LIST [STRING]
+	multi_line_message_lines (trace: E2B_CE_TRACE_OF_ROUTINE): ARRAYED_LIST [READABLE_STRING_32]
 		do
 			create Result.make (0)
 			if length >= 0 then
-				Result.extend ("Seq#Length = " + trace.translate_raw (length.out))
+				Result.extend ({STRING_32} "Seq#Length = " + trace.translate_raw (length.out))
 			end
 			if attached constant as c then
-				Result.extend ("Is Seq#Constant("
+				Result.extend ({STRING_32} "Is Seq#Constant("
 					+ trace.translate_raw (constant.val) + ", "
 					+ trace.translate_raw (constant.n) + ")")
 			end
 			if attached singleton as s then
-				Result.extend ("Is Seq#Singleton("
+				Result.extend ({STRING_32} "Is Seq#Singleton("
 					+ trace.translate_raw (singleton) + ")")
 			end
 			if attached extended as e then
-				Result.extend ("Is Seq#Extended("
+				Result.extend ({STRING_32} "Is Seq#Extended("
 					+ trace.translate_raw (e.a) + ", "
 					+ trace.translate_raw (e.b) + ")")
 			end
 			if attached items as l_items then
 				across l_items as value loop
-					Result.extend ("Seq#Item [" + trace.translate_raw (@value.key) + "] = "
+					Result.extend ({STRING_32} "Seq#Item [" + trace.translate_raw (@value.key) + "] = "
 						+ trace.translate_raw (value))
 				end
 			end

@@ -211,10 +211,12 @@ feature {NONE}
 					end
 				elseif is_container_item (a_var) and then attached {E2B_CE_VALUE_SEQ} initial_state.values [a_var.split ('.').first] as seq then
 					if seq.items.has (a_var.split ('.').last) then
-						value := seq.items [a_var.split('.').last]
+						check seq.items [a_var.split ('.').last].is_string_8 then end
+						value := seq.items [a_var.split ('.').last].to_string_8
 					end
 				else
-					value.copy (initial_state.locals [a_var])
+					check initial_state.locals [a_var].is_string_8 then end
+					value.copy (initial_state.locals [a_var].to_string_8)
 				end
 
 				if (not value.has ('-')) and value.to_integer > max then -- if there are multiple counterexample models, read all the values and get the maximum

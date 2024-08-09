@@ -16,7 +16,7 @@ create
 feature
 
 	parse_names (text: STRING): TUPLE [
-			names: HASH_TABLE [STRING, STRING];
+			names: STRING_TABLE [READABLE_STRING_32];
 			consumed: INTEGER]
 			-- Parses `x -> y` name values.
 			-- Stops on first line which does not have this format.
@@ -26,10 +26,10 @@ feature
 		local
 			done: BOOLEAN
 			line_length: INTEGER
-			parts: LIST [STRING]
+			parts: LIST [READABLE_STRING_32]
 		do
 			create Result
-			Result.names := create {HASH_TABLE [STRING, STRING]}.make (10)
+			Result.names := create {STRING_TABLE [READABLE_STRING_32]}.make (10)
 
 			across
 				text.split ('%N') as line
@@ -51,26 +51,24 @@ feature
 		end
 
 	parse_functions (text: STRING): TUPLE [
-			functions: HASH_TABLE [
-			LIST [TUPLE [args: LIST [STRING]; res: STRING]],
-			STRING];
+			functions: STRING_TABLE [
+			LIST [TUPLE [args: LIST [READABLE_STRING_32]; res: READABLE_STRING_32]]];
 			consumed: INTEGER]
 			-- Parse `x -> { y -> z }` lines of the .model file format
 			-- Stops when line does not match the format.
 			-- Result is a table from function name (`x`) to list of function cases.
 			-- The `else ->` case is ignored
 		local
-			name: STRING
-			parts: LIST [STRING]
+			name: READABLE_STRING_32
+			parts: LIST [READABLE_STRING_32]
 			in_cases: BOOLEAN
-			cases: LINKED_LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]]
+			cases: LINKED_LIST [TUPLE [args: detachable LIST [READABLE_STRING_32]; res: READABLE_STRING_32]]
 			done: BOOLEAN
 			line_length: INTEGER
 		do
 			create Result
-			Result.functions := create {HASH_TABLE [
-					LIST [TUPLE [args: detachable LIST [STRING]; res: STRING]],
-					STRING]}
+			Result.functions := create {STRING_TABLE [
+					LIST [TUPLE [args: detachable LIST [READABLE_STRING_32]; res: READABLE_STRING_32]]]}
 				.make (10)
 
 			across
@@ -114,16 +112,15 @@ feature
 		end
 
 	parse_states (text: STRING): LIST [
-		TUPLE [name: STRING; values: HASH_TABLE [STRING, STRING]]]
+		TUPLE [name: READABLE_STRING_32; values: STRING_TABLE [READABLE_STRING_32]]]
 		local
 			in_state: BOOLEAN
 			done: BOOLEAN
-			name: STRING
-			values: HASH_TABLE [STRING, STRING]
-			parts: LIST [STRING]
-			tup: TUPLE [name: STRING; values: HASH_TABLE [STRING, STRING]]
+			name: READABLE_STRING_32
+			values: STRING_TABLE [READABLE_STRING_32]
+			parts: LIST [READABLE_STRING_32]
 		do
-			create {LINKED_LIST [TUPLE [STRING, HASH_TABLE [STRING, STRING]]]}
+			create {LINKED_LIST [TUPLE [READABLE_STRING_32, STRING_TABLE [READABLE_STRING_32]]]}
 				Result.make
 
 			across
@@ -134,10 +131,7 @@ feature
 				line.adjust
 				if in_state then
 					if line ~ "*** END_STATE" then
-						create tup
-						tup.name := name
-						tup.values := values
-						Result.extend (tup)
+						Result.extend ([name, values])
 						in_state := False
 					else
 						parts := explode_2 (line, " -> ")
@@ -160,12 +154,12 @@ feature
 			class
 		end
 
-	explode_2 (s, by: STRING): LIST [STRING]
+	explode_2 (s, by: READABLE_STRING_32): LIST [READABLE_STRING_32]
 			-- Explode string `s` once by `by`
 		local
 			x: INTEGER
 		do
-			create {LINKED_LIST [STRING]} Result.make
+			create {LINKED_LIST [READABLE_STRING_32]} Result.make
 
 			x := s.substring_index (by, 1)
 			if x < 1 then
@@ -228,22 +222,21 @@ feature {NONE} -- Initialization
 
 feature -- Colleted data
 
-	initial_name_to_raw: HASH_TABLE [STRING, STRING]
+	initial_name_to_raw: STRING_TABLE [READABLE_STRING_32]
 			-- Raw value by a name.
 			-- See also `parse_names`.
 
-	functions: HASH_TABLE [
-		LIST [TUPLE [args: LIST [STRING]; res: STRING]],
-		STRING]
+	functions: STRING_TABLE [
+		LIST [TUPLE [args: LIST [READABLE_STRING_32]; res: READABLE_STRING_32]]]
 			-- All functions from the model file
 			-- see `parse_functions`
 
-	states: LIST [TUPLE [name: STRING; values: HASH_TABLE [STRING, STRING]]]
+	states: LIST [TUPLE [name: READABLE_STRING_32; values: STRING_TABLE [READABLE_STRING_32]]]
 			-- State clauses (`*** STATE`) in the same order as in the input file.
 			-- Entries with empty values (`x -> `) are not present in `values`.
 			-- See also `parse_states`.
 
-	apply_function (name: STRING; args: LIST [STRING]): STRING
+	apply_function (name: READABLE_STRING_GENERAL; args: LIST [READABLE_STRING_GENERAL]): READABLE_STRING_32
 			-- Return raw result of function by raw `args`.
 		local
 			cases: like functions.item
@@ -251,7 +244,7 @@ feature -- Colleted data
 			cases := functions [name]
 			across cases as c until Result /= Void loop
 				if c.args.count = args.count
-					and then ∀ i: 1 |..| c.args.count ¦ c.args [i] ~ args [i] then
+					and then ∀ i: 1 |..| c.args.count ¦ c.args [i].same_string (args [i]) then
 					Result := c.res
 				end
 			end

@@ -204,6 +204,90 @@ feature -- multi_line_message
 			assert ("Has item", formatter.buffer.has_substring ("[1] = 10"))
 		end
 
+	test_mml_set
+		local
+			r: E2B_FAILED_VERIFICATION
+			formatter: STRING_TEXT_FORMATTER
+		do
+			print_file ("demo.e", "[
+			class DEMO
+			create make
+			feature
+				make
+					do
+					end
+
+				test_empty
+					local
+						set: MML_SET [INTEGER]
+					do
+						create set
+						check False end
+					end
+			end
+			]")
+			print_ecf ("DEMO")
+			command.add_feature ("test_empty", "DEMO")
+
+			verify
+
+			r := failure_of_feature ("test_empty")
+			create formatter
+			r.errors [1].multi_line_message (formatter)
+			assert ("Has set empty",
+				formatter.buffer.has_substring ("set = <intType>Set#Empty()"))
+			assert ("Has subjects empty",
+				formatter.buffer.has_substring ("subjects = <refType>Set#Empty()"))
+		end
+
+	field_names_example
+		local
+			r: E2B_FAILED_VERIFICATION
+			formatter: STRING_TEXT_FORMATTER
+		do
+			print_file ("parent.e", "[
+				class PARENT
+				feature
+					in_parent: INTEGER
+				end
+			]")
+			print_file ("demo.e", "[
+				class DEMO
+				inherit PARENT
+					rename
+						in_parent as renamed_in_demo
+					end
+
+				create make
+				feature
+					make
+					do
+					end
+
+					the_field: INTEGER
+
+					test
+						require
+							the_field = 1
+							renamed_in_demo = 9
+						do
+							check the_field = 2 end
+						end
+				end
+			]")
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+
+			verify
+
+			r := failure_of_feature ("test")
+			create formatter
+			r.errors [1].multi_line_message (formatter)
+
+			assert ("Has the_field value",
+				formatter.buffer.has_substring ("the_field = 1"))
+		end
+
 	failure_of_feature (name: STRING): detachable E2B_FAILED_VERIFICATION
 		do
 			across verification_results as r until Result /= Void loop

@@ -100,7 +100,9 @@ feature -- Basic operations
 		    helper.options.set_current_init_state (l_init_state)
 
             if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
-                helper.options.set_new_ce_message (l_error.counterexample_message_string)
+                check l_error.counterexample_message_string.is_string_8 then
+			               helper.options.set_new_ce_message (l_error.counterexample_message_string.to_string_8)
+                end
             end
 
             if helper.options.is_generate_fix_enabled then
