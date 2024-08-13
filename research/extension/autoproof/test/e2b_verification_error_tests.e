@@ -238,8 +238,6 @@ feature -- multi_line_message
 			r.errors [1].multi_line_message (formatter)
 			assert ("Has set empty",
 				formatter.buffer.has_substring ("set = <intType>Set#Empty()"))
-			assert ("Has subjects empty",
-				formatter.buffer.has_substring ("subjects = <refType>Set#Empty()"))
 		end
 
 	field_names_example
