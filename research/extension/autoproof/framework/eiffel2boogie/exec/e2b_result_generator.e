@@ -250,6 +250,12 @@ feature {NONE} -- Implementation
 				else
 					Result := messages.postcondition_violated
 				end
+			elseif l_type ~ "qual_inv" then
+				Result := "Invariant $tag of caller may not hold on qualified call"
+			elseif l_type ~ "inv_post" then
+				Result := "Invariant $tag may not hold on exit from qualified call"
+			elseif l_type ~ "inv_pre" then
+				Result := "Invariant $tag may not hold on call $called_feature"
 			elseif l_type ~ "inv" then
 					-- Inline invariant check violation
 				if l_has_tag then
