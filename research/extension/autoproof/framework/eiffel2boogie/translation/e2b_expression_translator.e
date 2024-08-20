@@ -774,7 +774,7 @@ feature -- Visitors
 					process_attribute_call (l_feature)
 				elseif l_feature.is_constant then
 					check
-						from_condition: attached {CONSTANT_I} l_feature as l_constant
+						from_condition: attached {CONSTANT_I} l_feature.c_feature as l_constant
 					then
 						process_constant_call (l_constant)
 					end
@@ -880,9 +880,6 @@ feature -- Visitors
 
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
-
-			type_translator: E2B_TYPE_TRANSLATOR
-			inv_filter: E2B_INVARIANT_FILTER
 		do
 			l_handler := translation_mapping.handler_for_nested (a_node)
 			if
@@ -948,24 +945,6 @@ feature -- Visitors
 				end
 
 
-				-- Check client's invariant for the qualified call
-				create type_translator
-				create inv_filter
-				check attached {CALL_ACCESS_B} a_node.message as f then
-					inv_filter.required_export_status := f.System
-						.class_of_id (f.written_in)
-						.feature_of_feature_id (f.feature_id)
-						.export_status
-
-					if not attached {E2B_INVARIANT_FEAT_I} context_feature then
-						-- HACK!!!! TODO: check if correct
-						-- Dont' check if in invariant already
-
-						across type_translator.translate_invariant (l_target_type, inv_filter, Void) as i loop
-							add_safety_check (i.expression, "qual_inv", i.node_info.tag.to_string_8, context_line_number)
-						end
-					end
-				end
 
 					-- Evaluate message with original expression
 --				if attached {CL_TYPE_A} current_target_type.type_a as l_cl_type then

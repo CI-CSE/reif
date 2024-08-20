@@ -105,6 +105,7 @@ feature {NONE} -- Building test projects
 		do
 			create file.make_with_path (code_path.extended (file_name))
 			file.open_write
+			file.put_encoding_bom
 			file.put_string_general (contents)
 			file.close
 		end

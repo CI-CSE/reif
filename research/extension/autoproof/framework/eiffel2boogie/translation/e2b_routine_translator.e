@@ -79,10 +79,9 @@ feature -- Translation: Signature
 			l_fields: LINKED_LIST [TUPLE [o: IV_EXPRESSION; f: IV_ENTITY]]
 			l_modifies: IV_MODIFIES
 			type_translator: E2B_TYPE_TRANSLATOR
+			inv_filter: E2B_INVARIANT_FILTER
 			post: IV_POSTCONDITION
 			pre: IV_PRECONDITION
-			ent: IV_ENTITY
-			inv_filter: E2B_INVARIANT_FILTER
 		do
 			set_context (a_feature, a_type)
 			translation_pool.add_type (current_type)
@@ -174,6 +173,8 @@ feature -- Translation: Signature
 			if a_variant = {E2B_FEATURE_VARIANT}.qualified then
 				create type_translator
 
+				add_argument_invariant_contracts (a_feature.export_status)
+
 				-- free require INV_LOC/r
 				create inv_filter
 				inv_filter.include_local := 1
@@ -198,32 +199,6 @@ feature -- Translation: Signature
 					current_boogie_procedure.add_contract (post)
 				end
 
-				across arguments_of_current_feature as arg loop
-					-- Don't translate invariants of basic types
-					if not attached {IV_BASIC_TYPE} arg.boogie_type then
-						create ent.make (arg.name, arg.boogie_type)
-
-							-- require argument.INV/r
-						create inv_filter
-						inv_filter.required_export_status := a_feature.export_status
-						across type_translator.translate_invariant (arg.type, inv_filter, ent) as i loop
-							create pre.make (i.expression)
-							pre.node_info.set_type ("arg_inv_pre")
-							pre.node_info.set_tag (i.node_info.tag)
-							pre.node_info.set_line (i.node_info.line.to_integer_32)
-							current_boogie_procedure.add_contract (pre)
-						end
-
-							-- ensure full argument.INV
-						across type_translator.translate_invariant (arg.type, Void, ent) as i loop
-							create post.make (i.expression)
-							post.node_info.set_type ("arg_inv_post")
-							post.node_info.set_tag (i.node_info.tag)
-							post.node_info.set_line (i.node_info.line.to_integer_32)
-							current_boogie_procedure.add_contract (post)
-						end
-					end
-				end
 			elseif a_variant = {E2B_FEATURE_VARIANT}.creator then
 				-- Creator: add default field initialization
 				add_field_default_initialization (a_type)
@@ -243,31 +218,10 @@ feature -- Translation: Signature
 					current_boogie_procedure.add_contract (post)
 				end
 
-
-				across arguments_of_current_feature as arg loop
-					create ent.make (arg.name, arg.boogie_type)
-
-					-- require full argument.INV
-					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
-						create pre.make (i.expression)
-						pre.node_info.set_type ("arg_inv_pre")
-						pre.node_info.set_tag (i.node_info.tag)
-						pre.node_info.set_line (i.node_info.line.to_integer_32)
-						current_boogie_procedure.add_contract (pre)
-					end
-
-					-- ensure full argument.INV
-					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
-						create post.make (i.expression)
-						post.node_info.set_type ("arg_inv_post")
-						post.node_info.set_tag (i.node_info.tag)
-						post.node_info.set_line (i.node_info.line.to_integer_32)
-						current_boogie_procedure.add_contract (post)
-					end
-				end
+				add_argument_invariant_contracts (Void)
 			end
 
-				-- Framing
+			-- Framing
 			if options.is_ownership_enabled then
 				add_ownership_contracts (a_variant.is_creator, not current_feature.is_lemma)
 				add_agent_modifies
@@ -280,9 +234,56 @@ feature -- Translation: Signature
 				add_postcondition_predicate
 			end
 
-				-- Onces
+			-- Onces
 			if a_feature.is_once then
 				add_once_specification
+			end
+		end
+
+	add_argument_invariant_contracts (visibility: detachable EXPORT_I)
+			-- Add precondition that all arguments have sliced invariant
+			-- and postcondition that all arguments have full invariant
+			--
+			-- `visibility`: visibility for slicing in the precondition
+			-- or `Void` for `{ANY}`
+		local
+			ent: IV_ENTITY
+			inv_filter: E2B_INVARIANT_FILTER
+			type_translator: E2B_TYPE_TRANSLATOR
+			post: IV_POSTCONDITION
+			pre: IV_PRECONDITION
+		do
+			across arguments_of_current_feature as arg loop
+				-- Don't translate invariants of basic types
+				if not attached {IV_BASIC_TYPE} arg.boogie_type then
+					create ent.make (arg.name, arg.boogie_type)
+
+						-- require argument.INV/r
+					if visibility /= Void then
+						create inv_filter
+						inv_filter.required_export_status := visibility
+					end
+					create type_translator
+					across type_translator.translate_invariant (arg.type, inv_filter, ent) as i loop
+						create pre.make (i.expression)
+						pre.node_info.set_type ("arg_inv_pre")
+						pre.node_info.set_tag (i.node_info.tag)
+						pre.node_info.set_line (i.node_info.line.to_integer_32)
+						pre.node_info.set_attribute ("arg", arg.name)
+						current_boogie_procedure.add_contract (pre)
+					end
+
+						-- ensure full argument.INV
+					create type_translator
+					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
+						create post.make (i.expression)
+						post.node_info.set_type ("arg_inv_post")
+						post.node_info.set_tag (i.node_info.tag)
+						post.node_info.set_line (i.node_info.line.to_integer_32)
+						post.node_info.set_attribute ("arg", arg.name)
+						current_boogie_procedure.add_contract (post)
+					end
+				end
 			end
 		end
 

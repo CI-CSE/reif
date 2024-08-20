@@ -23,11 +23,7 @@ feature
 	test_precursor
 		note
 			explicit: wrapping
-		require
-			is_wrapped
 		do
-		ensure
-			is_wrapped
 		end
 end
 			]")

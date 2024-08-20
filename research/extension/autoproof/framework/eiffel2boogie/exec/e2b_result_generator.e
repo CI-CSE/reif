@@ -250,6 +250,10 @@ feature {NONE} -- Implementation
 				else
 					Result := messages.postcondition_violated
 				end
+			elseif l_type ~ "arg_inv_post" then
+				Result := "Invariant $tag of argument $arg may not hold in post-state"
+			elseif l_type ~ "arg_inv_pre" then
+				Result := "Invariant $tag of argument $arg may not hold in pre-state"
 			elseif l_type ~ "qual_inv" then
 				Result := "Invariant $tag of caller may not hold on qualified call"
 			elseif l_type ~ "inv_post" then

@@ -62,6 +62,8 @@ feature {NONE}
 				Result := True
 			elseif attached {BINARY_B} expr as binary then
 				Result := is_local (binary.left) and then is_local (binary.right)
+			elseif attached {UNARY_B} expr as unary then
+				Result := is_local (unary.expr) and then is_local (unary.access)
 			elseif attached {ATTRIBUTE_B} expr then
 				Result := True
 			elseif attached {INTEGER_CONSTANT} expr then
@@ -70,6 +72,12 @@ feature {NONE}
 				Result := True
 			elseif attached {CURRENT_B} expr then
 				Result := True
+			elseif attached {LOOP_EXPR_B} expr as loop_expr then
+				if is_local (loop_expr.expression_code) then
+					{EXCEPTIONS}.raise (
+						"Expression in loop is local. Don't know how to check other fields.")
+				end
+				Result := False
 			elseif attached {ROUTINE_B} expr as attr then
 					-- We don't analyze features for now,
 					-- so be safe and assume they can have remote calls
@@ -79,7 +87,7 @@ feature {NONE}
 			end
 		end
 
-	is_export_matching (expr: EXPR_B): BOOLEAN
+	is_export_matching (expr: BYTE_NODE): BOOLEAN
 		do
 			if required_export_status.is_all then
 				Result := True -- ANY will match all clauses anyway
@@ -88,6 +96,11 @@ feature {NONE}
 			elseif attached {NESTED_B} expr as nested then
 				if attached {CALL_ACCESS_B} nested.target as call then
 					Result := is_call_export_matching (call)
+				elseif attached {ACCESS_EXPR_B} nested.target as access_expr then
+					if attached {NESTED_B} access_expr.expr as expr_nested then
+						-- This is (a.b) of (a.b.c). We care only about the `a`
+						Result := is_export_matching (expr_nested)
+					end
 				else
 					{EXCEPTIONS}.raise ("Unknown nested target: " + nested.target.out)
 				end
@@ -101,6 +114,18 @@ feature {NONE}
 				Result := ∀ p: ext.parameters ¦ is_export_matching (p.expression)
 			elseif attached {CURRENT_B} expr then
 				Result := True -- Current does not affect visibility, so assume it always matches
+			elseif attached {LOOP_EXPR_B} expr as loop_expr then
+				Result := ∀ it: loop_expr.iteration_code ¦ is_export_matching (it)
+					and then is_export_matching (loop_expr.advance_code)
+					and then is_export_matching (loop_expr.iteration_exit_condition_code)
+					and then is_export_matching (loop_expr.exit_condition_code)
+					and then is_export_matching (loop_expr.expression_code)
+			elseif attached {ASSIGN_B} expr as assgn then
+				Result := is_export_matching (assgn.target)
+					and then is_export_matching (assgn.source)
+			elseif attached {OBJECT_TEST_LOCAL_B} expr then
+					-- local variable is not relevant for feature visibility
+				Result := True
 			else
 				{EXCEPTIONS}.raise ("Unknown node in export matching: " + expr.out)
 			end

@@ -640,8 +640,43 @@ feature -- Processing
 
 	process_instr_call_b (a_node: INSTR_CALL_B)
 			-- <Precursor>
+		local
+			inv_filter: E2B_INVARIANT_FILTER
+			assert: IV_ASSERT
+			type_translator: E2B_TYPE_TRANSLATOR
+			feat: FEATURE_I
 		do
 			set_current_origin_information (a_node)
+
+
+			-- Check client's invariant for the qualified call
+			create type_translator
+			create inv_filter
+			if attached {NESTED_B} a_node.call as f then
+				check attached {CALL_ACCESS_B} f.message as ff then
+					feat := ff.System
+						.class_of_id (ff.written_in)
+						.feature_of_feature_id (ff.feature_id)
+				end
+			elseif attached {FEATURE_B} a_node.call then
+				-- Is not qualified, skip
+			else
+				check False then end
+			end
+
+			if feat /= Void then
+				inv_filter.required_export_status := feat.export_status
+
+				current_block.add_statement (factory.trace (name_translator.boogie_procedure_for_feature (current_feature, current_type) + "_qual_inv_trace:" + a_node.line_number.out))
+				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
+					create assert.make (i.expression)
+					assert.node_info.set_type ("qual_inv")
+					assert.node_info.set_tag (i.node_info.tag.to_string_8)
+					assert.node_info.set_line (current_origin_information.line)
+					current_block.add_statement(assert)
+				end
+			end
+
 				-- Instruction call is in the side effect of the expression,
 				-- so the generated expression itself is ignored.
 			process_expression (a_node.call)
@@ -1252,8 +1287,9 @@ feature -- Processing
 			-- <Precursor>
 		do
 			set_current_origin_information (a_node)
-				-- Instruction call is in the side effect of the expression,
-				-- so the generated expression itself is ignored.
+			-- Instruction call is in the side effect of the expression,
+			-- so the generated expression itself is ignored.
+
 			process_expression (a_node)
 			add_trace_statement (a_node)
 		end

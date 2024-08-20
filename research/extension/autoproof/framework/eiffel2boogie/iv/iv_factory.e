@@ -463,7 +463,7 @@ feature -- Axioms
 
 feature -- Miscellaneous
 
-	trace (a_text: READABLE_STRING_8): IV_STATEMENT
+	trace (a_text: READABLE_STRING_8): IV_ASSERT
 			-- Tracing statement.
 		local
 			l_assume: IV_ASSERT
