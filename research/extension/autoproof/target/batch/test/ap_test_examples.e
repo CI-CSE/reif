@@ -219,4 +219,33 @@ feature {NONE} -- Building test projects
 			Result := results [1].verification_results
 		end
 
+	assert_verification_failure_with_tag (t: STRING)
+		local
+			found: BOOLEAN
+			other: STRING
+		do
+			other := ""
+			across verification_results as res until found loop
+				if attached {E2B_FAILED_VERIFICATION} res as failed then
+					across failed.errors as error until found loop
+						if attached {E2B_DEFAULT_VERIFICATION_ERROR} error as def then
+							if def.tag ~ t then
+								found := True
+							else
+								if other.is_empty then
+									other := other + def.tag
+								else
+									other := other + ", " + def.tag
+								end
+							end
+						end
+					end
+				end
+			end
+
+			assert (
+				"Expected verification error with tag " + t + " but found other tags [" + other + "]",
+				found
+			)
+		end
 end

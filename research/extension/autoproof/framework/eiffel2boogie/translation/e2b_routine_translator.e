@@ -245,35 +245,22 @@ feature -- Translation: Signature
 			-- Add precondition to `current_boogie_procedure' that all attributes except "allocated"
 			-- and those which do require explicit initialization are initialized to default values.
 		local
-			l_area: SPECIAL [ATTR_DESC]
 			l_mapping: E2B_ENTITY_MAPPING
 			l_t: IV_VAR_TYPE
 			l_f: IV_ENTITY
 			l_forall: IV_FORALL
-			l_left_hand_side: IV_EXPRESSION
 			l_pre: IV_PRECONDITION
 		do
 			create l_mapping.make
 			create l_t.make_fresh
 			create l_f.make ("$f", types.field (l_t))
-
-			l_area := a_type.base_class.skeleton.area
-			l_left_hand_side := factory.not_equal (l_f, factory.entity ("allocated", types.field (types.bool)))
-			across l_area as l_attr_desc loop
-				if l_attr_desc.type_i.is_initialization_required then
-					l_left_hand_side := factory.and_ (l_left_hand_side, factory.not_equal (l_f, factory.entity (name_translator.boogie_name_for_type (a_type) + "." + l_attr_desc.attribute_name, types.field (types.ref))))
-				end
-			end
-
-			-- Adding precondition:
-			-- 		requires (forall <T1> $f: Field T1 ::
-			-- 			((($f) != (allocated)) && (($f) != (<not-self-initializing field>)) ... && $f != <not-self-initializing field> ... )
-			-- 			==>
-			-- 			((Heap[Current, $f]) == (Default($f))));
-
 			create l_forall.make (factory.implies_ (
-						l_left_hand_side,
-						factory.equal (
+				factory.function_call (
+					"IsInitializedWithDefault",
+					<< l_f, factory.type_value (a_type) >>,
+					types.bool
+				),
+				factory.equal (
 					factory.heap_current_access (l_mapping, l_f.name, l_t),
 					factory.function_call ("Default", <<l_f>>, l_t))
 			))
