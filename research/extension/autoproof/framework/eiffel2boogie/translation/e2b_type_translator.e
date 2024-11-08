@@ -105,6 +105,7 @@ feature -- Basic operations
 					generate_inheritance_relations
 				end
 				add_default_field_ids
+				translate_is_initialized_with_default
 			end
 		end
 
@@ -611,6 +612,51 @@ feature {NONE} -- Implementation
 				factory.field_id ("observers", types.set (types.ref), type, -5))
 			boogie_universe.add_declaration (
 				factory.field_id ("subjects", types.set (types.ref), type, -6))
+		end
+
+	translate_is_initialized_with_default
+			-- Add axiom for `IsInitializedWithDefault` for this type.
+		local
+			type_var: IV_VAR_TYPE
+			field: IV_ENTITY
+			call: IV_FUNCTION_CALL
+			forall: IV_FORALL
+			definition: IV_EXPRESSION
+			feat: E2B_FEATURE_I
+		do
+			create type_var.make_fresh
+			create field.make ("$f", types.field (type_var))
+			call := factory.function_call (
+				"IsInitializedWithDefault",
+				<< field, factory.type_value (type) >>,
+				types.bool
+			)
+				-- The special field `allocated` is not initialized
+			definition := factory.not_equal (
+				field,
+				create {IV_ENTITY}.make ("allocated", types.field (type_var))
+			)
+			across type.base_class.skeleton.area as attr_desc loop
+				if attr_desc.type_i.is_initialization_required then
+						-- `is_initialization_required` means that default value is not applied
+						-- and the attribute must be initialized in the creation procedure
+					feat := type.base_class.feature_of_feature_id (attr_desc.feature_id)
+					translation_pool.add_referenced_feature (feat, type)
+					definition := factory.and_clean (definition, factory.not_equal (
+						field, create {IV_ENTITY}.make (
+							feat.boogie_name_for_attribute (type),
+							types.field (types.for_class_type (
+								type.base_class.class_type_in_context (feat.type, feat, type))
+							))
+					))
+				end
+			end
+
+			create forall.make (factory.equiv (call, definition))
+			forall.add_type_variable (type_var.name)
+			forall.add_bound_variable (field)
+			forall.add_trigger (call)
+			boogie_universe.add_declaration (create {IV_AXIOM}.make (forall))
 		end
 
 feature -- Invariant admissibility

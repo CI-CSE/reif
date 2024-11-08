@@ -25,6 +25,11 @@ axiom (forall f: Field real :: Default(f) == 0.0);
 type HeapType = <alpha>[ref, Field alpha]alpha; // Type of a heap (with generic field subtype and generic content type)
 const allocated: Field bool; // Ghost field for allocation status of objects
 
+// Is field in type t initialized with the default value during allocation?
+// `allocated` and attached fields are usually not initialized.
+// Other fields usually are initialized with default values.
+function IsInitializedWithDefault<alpha>(field: Field alpha, t: Type): bool;
+
 // Function which defines basic properties of a heap
 function IsHeap(heap: HeapType): bool;
 
@@ -277,7 +282,7 @@ procedure allocate(t: Type) returns (result: ref);
   ensures Heap[result, allocated]; // AL2
   ensures result != Void;
   ensures type_of(result) == t;
-  ensures (forall<T> f: Field T :: f != allocated ==> Heap[result, f] == Default(f));
+  ensures (forall<T> f: Field T :: IsInitializedWithDefault(f, t) ==> Heap[result, f] == Default(f));
   ensures has_whole_object(writable, result);
   ensures (forall <T> o: ref, f: Field T :: o != result ==> Heap[o, f] == old(Heap[o, f]));
   free ensures HeapSucc(old(Heap), Heap);

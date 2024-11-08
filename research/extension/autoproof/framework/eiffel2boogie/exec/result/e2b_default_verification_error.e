@@ -21,6 +21,15 @@ feature -- Access
 	boogie_error: E2B_BOOGIE_PROCEDURE_ERROR
 			-- Boogie error associated with this error.
 
+	tag: STRING
+		do
+			if boogie_error.has_related_location then
+				Result := safe_related_value ("tag")
+			else
+				Result := safe_value ("tag")
+			end
+		end
+
 feature -- Element change
 
 	set_message (a_message: STRING_32)
@@ -102,11 +111,7 @@ feature {NONE} -- Implementation
 			l_attributes: like boogie_error.attributes
 		do
 			if a_placeholder ~ "$tag" then
-				if boogie_error.has_related_location then
-					a_formatter.add_comment (safe_related_value ("tag"))
-				else
-					a_formatter.add_comment (safe_value ("tag"))
-				end
+				a_formatter.add_comment (tag)
 			elseif a_placeholder ~ "$called_feature" then
 				if boogie_error.is_postcondition_violation then
 					l_attributes := boogie_error.related_attributes

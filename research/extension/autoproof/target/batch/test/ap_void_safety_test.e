@@ -126,4 +126,44 @@ feature
 			assert ("Verification is failure",
 				attached {E2B_FAILED_VERIFICATION} verification_result)
 		end
+
+	test_create_object_with_attached_fields
+		do
+			print_file ("linked_node.e", "[
+			  class LINKED_NODE
+					create
+						make
+					feature
+						make
+							do
+								right := Current
+							end
+
+						right: LINKED_NODE
+				end
+			]")
+			print_file ("demo.e", "[
+				class DEMO
+					create
+						make
+					feature
+						make
+							do
+							end
+						test
+							local
+								a: LINKED_NODE
+							do
+								create a.make
+								check c1: False end
+							end
+				end
+			]")
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+
+			verify
+
+			assert_verification_failure_with_tag ("c1")
+		end
 end
