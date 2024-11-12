@@ -80,15 +80,17 @@ feature {NONE} -- Initialize
 			if ce.functions.has ("Set#Empty") then
 				across ce.functions ["Set#Empty"] as case loop
 					set_id := case.res
-					if not values.has (set_id) then
-						create set.make
-						values [set_id] := set
-					else
-						check attached {E2B_CE_VALUE_SET} values [set_id] as existing_set then
-							set := existing_set
+					if not set_id.same_string_general ("false") then
+						if not values.has (set_id) then
+							create set.make
+							values [set_id] := set
+						else
+							check attached {E2B_CE_VALUE_SET} values [set_id] as existing_set then
+								set := existing_set
+							end
 						end
+						set.update_from_set_empty (case, ce)
 					end
-					set.update_from_set_empty (case, ce)
 				end
 			end
 		end
