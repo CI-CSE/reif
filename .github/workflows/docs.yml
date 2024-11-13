@@ -31,5 +31,6 @@ jobs:
       - name: "Publish site"
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          deploy_key: ${{ secrets.REIF_SITE_DEPLOY_KEY }}
+          external_repository: CI-CSE/reif-site
           publish_dir: ./docs/_site
