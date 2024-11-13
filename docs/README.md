@@ -8,6 +8,21 @@ Jekyll is a static site generator written in Ruby. It allows us to write Markdow
 
 Tailwind is a CSS framework which allows us to build the design directly in the HTML files using special CSS classes.
 
+## Deployment
+The website is built and deployed automatically on every push to the main branch (`research`).
+
+Check the workflow file for the implementation details `.github/workflows/docs.yml`.
+
+### Site code in `reif`, site deployed to `reif-site`
+Site is built in this repository and deployed to a different repository https://github.com/CI-CSE/reif-site
+because having a private repo with public pages is a paid feature on GitHub.
+`reif` repo is private and `reif-site` is public and contains only the website.
+
+`reif` repo has a GitHub repository secret `REIF_SITE_DEPLOY_KEY` which contains
+a private ssh key. This key is used in the deploy action.
+`reif-site` repo has a GitHub deploy key `CI-CSE/reif deploy action` which
+allows `REIF_SITE_DEPLOY_KEY` to be used to write to `reif-site` repo.
+
 ## Development
 
 ### Running locally

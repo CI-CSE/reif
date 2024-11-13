@@ -3,6 +3,8 @@ title: Tutorial
 ---
 # AutoProof tutorial
 
+The old PDF version of the tutorial is [available](https://se.inf.ethz.ch/research/autoproof/tutorial/downloads/tutorial.pdf).
+
 AutoProof is an auto-active (AutoProof tries to achieve an intermediate degree of automation in the continuum
 that goes from *automatic* to *interactive*) verifier for the Eiffel programming language;
 it proves functional correctness of Eiffel programs annotated with contracts.
