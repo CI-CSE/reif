@@ -17,6 +17,8 @@ A_GUARDS.test1
 Verification failed.
 
 Line: 56. Observers of the assignment target may be invalidated.
+--------------------------------------
+Line: 57. Invariant A2 might not hold on call to {ANY}.wrap.
 ======================================
 A_GUARDS.test2
 Verification failed.
@@ -43,6 +45,8 @@ A_GUARDS.test1 (inherited by A_STRONGER_GUARDS)
 Verification failed.
 
 Line: 56. Observers of the assignment target may be invalidated.
+--------------------------------------
+Line: 57. Invariant A2 might not hold on call to {ANY}.wrap.
 ======================================
 A_STRONGER_GUARDS.not_too_large
 Successfully verified.

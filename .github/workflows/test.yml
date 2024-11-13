@@ -135,7 +135,6 @@ jobs:
             v_arrayed_list_iterator.e
             v_double_linked_list_iterator.e
             v_linked_list_iterator.e
-            v_hash_set_iterator.e
             v_hash_table_iterator.e
             v_iterator.e
             v_arrayed_list.e
