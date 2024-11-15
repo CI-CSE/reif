@@ -1,5 +1,8 @@
-# Use Ubuntu as the base image
-FROM mcr.microsoft.com/dotnet/sdk:6.0.428-1-jammy-amd64
+#################################
+# Image that compiles autoproof #
+#################################
+# Dotnet images from microsoft are the easiest way to have dotnet installed
+FROM mcr.microsoft.com/dotnet/sdk:6.0.428-1-jammy-amd64 AS build
 # Set environment variables
 ENV DOWNLOAD_URL=https://www.eiffel.com/cdn/EiffelStudio/24.05/107822/Eiffel_24.05_rev_107822-linux-x86-64.tar.bz2
 ENV ESTUDIO_FOLDER=Eiffel_24.05
@@ -36,7 +39,8 @@ RUN git clone https://github.com/boogie-org/boogie.git
 WORKDIR /boogie
 RUN    git checkout v2.11.1
 RUN dotnet build Source/Boogie.sln
-WORKDIR $ISE_EIFFEL/studio/tools/boogie 
+# WORKDIR implicitly creates the directory too
+WORKDIR $ISE_EIFFEL/studio/tools/boogie
 WORKDIR $ISE_EIFFEL/studio/tools/autoproof
 
 
@@ -55,18 +59,35 @@ RUN wget --no-verbose -O z3.zip $Z3_URL && \
 
 # Compile C code
 WORKDIR /research
-RUN ls -al $EIFFEL_SRC/C
 RUN bash compile_c.sh
 
 # Build EVE
 ENV ISE_LIBRARY=$EIFFEL_SRC
-RUN echo 1
-RUN ec -config $EXT/autoproof/autoproof-tty.ecf -freeze -c_compile -batch -target batch
+RUN ec -config $EXT/autoproof/autoproof-tty.ecf -finalize -c_compile -batch -target batch
 
-ENV AP_EXE=/research/EIFGENs/batch/W_code/apb
+#############################
+# Image that runs autoproof #
+#############################
 
-WORKDIR /project
+FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
+ENV ESTUDIO_FOLDER=Eiffel_24.05
+ENV ISE_PLATFORM=linux-x86-64
+ENV ISE_EIFFEL=/$ESTUDIO_FOLDER
+ENV PATH=$PATH:$ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin
+
+RUN apk update
+RUN apk add gtk+3.0 libc6-compat
+
+# Add binaries
+COPY --from=build /research/EIFGENs/batch/F_code/apb /bin/apb
+COPY --from=build $ISE_EIFFEL/studio/spec/$ISE_PLATFORM/bin /bin
+COPY --from=build /usr/local/bin/z3 /usr/local/bin/z3
+# Add eiffel studio
+COPY --from=build /$ISE_EIFFEL /$ISE_EIFFEL
+# Add libraries
+COPY --from=build /Src/library /library
+COPY --from=build /research/extension/autoproof/library /library
 
 # $AP_EXE -config project.ecf -batch -c_compile -autoproof LINEAR_SEARCH
 
-# $AP_EXE -config project.ecf -batch -c_compile -autoproof
+# /bin/apb -config /Test_project/project.ecf -batch -c_compile -autoproof
