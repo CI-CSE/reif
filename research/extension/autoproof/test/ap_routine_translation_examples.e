@@ -15,6 +15,105 @@ inherit
 	AP_TEST_EXAMPLES
 
 feature -- Testing
+
+	test_export_consistency_rule
+		do
+			print_file ("demo.e", "[
+			  class
+					DEMO
+
+				create
+					make
+
+				feature
+
+					i: INTEGER
+
+					make
+						do
+						end
+
+				feature {DEMO}
+
+					test (d: DEMO)
+						do
+							d.secret
+						ensure
+							modify_field ("i", d)
+						end
+
+				feature {DEMO, B}
+					secret
+						do
+						ensure
+							modify_field ("i", Current)
+						end
+				end
+			]")
+			print_file ("b.e", "class B end")
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+
+			verify
+
+			assert ("Verification error", attached {E2B_AUTOPROOF_ERROR} verification_result)
+			check attached {E2B_AUTOPROOF_ERROR} verification_result as err then
+				assert_strings_equal (
+					"Error is export consistency condition",
+					"Export Consistency Condition",
+					err.type
+				)
+			end
+		end
+
+	test_export_call_rule
+		do
+			print_file ("demo.e", "[
+			  class
+					DEMO
+
+				create
+					make
+
+				feature
+
+					d: detachable DEMO
+
+					make
+						do
+						end
+
+				feature {DEMO}
+
+					test
+						do
+							if attached d as dd then
+								dd.secret
+							end
+						end
+
+					secret
+						do
+						end
+				end
+			]")
+			print_file ("b.e", "class B end")
+			print_ecf ("DEMO")
+			command.add_feature ("test", "DEMO")
+
+			verify
+
+			assert ("Verification error", attached {E2B_AUTOPROOF_ERROR} verification_result)
+			check attached {E2B_AUTOPROOF_ERROR} verification_result as err then
+				assert_strings_equal (
+					"Error is export call rule",
+					"Export Call Rule",
+					err.type
+				)
+			end
+
+		end
+
 	translate_un_and_qualified_versions
 		local
 			qualified, unqualified: IV_PROCEDURE

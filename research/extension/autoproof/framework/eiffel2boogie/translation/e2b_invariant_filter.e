@@ -47,6 +47,32 @@ feature
 			end
 		end
 
+feature -- Public utilities
+
+	export_status_less_or_equal (a, b: EXPORT_I): BOOLEAN
+			-- True iff `a ⊆ b`.
+		do
+			if b.is_all then
+				Result := True
+			elseif a.is_none then
+				Result := True
+			elseif b.is_none then
+					-- `a` is not none, so `b` is smaller
+				Result := False
+			elseif a.is_all then
+					-- `b` can't be all here, so `a` is anyway greater
+				Result := False
+			else
+				-- both `a` and `b` are sets
+				check attached {EXPORT_SET_I} a as set_a
+					and then attached {EXPORT_SET_I} b as set_b then
+						-- `equiv` actually checks if target is subset of argument
+					Result := set_a.first.equiv(set_b.first)
+				end
+			end
+		end
+
+
 feature {NONE}
 
 	is_local (expr: EXPR_B): BOOLEAN
@@ -142,22 +168,7 @@ feature {NONE}
 				.feature_of_feature_id (call.feature_id)
 				.export_status
 
-			if call_export.is_all then
-				Result := required_export_status.is_all
-			elseif call_export.is_none then
-				Result := True
-			elseif required_export_status.is_none then
-					-- `call_export` is not none,
-					-- so `required_export_status` none is smaller than `call_export`
-					-- so it doesn't match
-				Result := False
-			else
-				check attached {EXPORT_SET_I} call_export as set
-					and then attached {EXPORT_SET_I} required_export_status as required_set then
-						-- `equiv` actually checks if target is subset of arg
-					Result := set.first.equiv(required_set.first)
-				end
-			end
+			Result := export_status_less_or_equal (call_export, required_export_status)
 		end
 
 note

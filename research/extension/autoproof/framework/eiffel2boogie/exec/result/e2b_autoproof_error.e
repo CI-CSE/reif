@@ -77,6 +77,16 @@ feature -- Add error to shared context
 			put_error (a_class_or_feature, a_message, a_line_number, False, "Validity")
 		end
 
+	add_export_consistency_condition_error (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER)
+		do
+			put_error (a_class_or_feature, a_message, a_line_number, False, "Export Consistency Condition")
+		end
+
+	add_export_call_rule_error (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER)
+		do
+			put_error (a_class_or_feature, a_message, a_line_number, False, "Export Call Rule")
+		end
+
 	add_semantic_warning (a_class_or_feature: ANY; a_message: READABLE_STRING_32; a_line_number: INTEGER)
 			-- Add AutoProof validity warning concerning `a_class_or_feature' with message `a_message'.
 			-- Verification will proceed.

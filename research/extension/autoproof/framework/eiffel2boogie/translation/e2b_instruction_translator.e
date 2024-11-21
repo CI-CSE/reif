@@ -648,15 +648,24 @@ feature -- Processing
 		do
 			set_current_origin_information (a_node)
 
-
-			-- Check client's invariant for the qualified call
-			create type_translator
-			create inv_filter
+				-- Check client's invariant for the qualified call
 			if attached {NESTED_B} a_node.call as f then
 				check attached {CALL_ACCESS_B} f.message as ff then
 					feat := ff.System
 						.class_of_id (ff.written_in)
 						.feature_of_feature_id (ff.feature_id)
+
+					if not feat.export_status.is_all and not attached {ARGUMENT_B} f.target then
+						e2b_error.add_export_call_rule_error(
+							current_feature,
+							{STRING_32} "Qualified call to a partially exported feature "
+								+ feat.feature_name_32
+								+ " can be mode only on formal arguments of this procedure ("
+								+ current_feature.feature_name_32
+								+ "). Feature is called on " + f.target.generating_type.name_32,
+							a_node.line_number
+						)
+					end
 				end
 			elseif attached {FEATURE_B} a_node.call then
 				-- Is not qualified, skip
@@ -665,7 +674,22 @@ feature -- Processing
 			end
 
 			if feat /= Void then
+				create inv_filter
 				inv_filter.required_export_status := feat.export_status
+
+				if not inv_filter.export_status_less_or_equal (feat.export_status, current_feature.export_status) then
+					e2b_error.add_export_consistency_condition_error(
+						current_feature,
+						{STRING_32} "Qualified call's feature "
+							+ feat.feature_name_32
+							+ " visibility is not subset "
+							+ "of containing procedure "
+							+ current_feature.feature_name_32,
+						a_node.line_number
+					)
+				end
+
+				create type_translator
 
 				current_block.add_statement (factory.trace (name_translator.boogie_procedure_for_feature (current_feature, current_type) + "_qual_inv_trace:" + a_node.line_number.out))
 				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
