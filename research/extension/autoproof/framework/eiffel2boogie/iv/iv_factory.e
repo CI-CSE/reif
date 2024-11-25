@@ -39,6 +39,15 @@ feature -- Values
 			create Result.make ("true", types.bool)
 		end
 
+	bool_value (bool: BOOLEAN): IV_VALUE
+		do
+			if bool then
+				Result := true_
+			else
+				Result := false_
+			end
+		end
+
 	void_: IV_VALUE
 			-- Value for constant `Void'.
 		do

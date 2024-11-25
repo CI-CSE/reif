@@ -8,6 +8,8 @@ class
 	E2B_CL_TYPE_A
 
 inherit
+		-- CL_TYPE_A is descendant of TYPE_A
+		-- this is used in some places
 	E2B_TYPE_A
 		redefine
 			make,
@@ -15,9 +17,10 @@ inherit
 			instantiated_in
 		end
 
+	HASHABLE
+
 create
 	make
-
 
 feature -- Creator
 	make (a_type: CL_TYPE_A)
@@ -45,7 +48,6 @@ feature -- Eiffel helpers
 				l_name.is_case_insensitive_equal ("FUNCTION") or else
 				l_name.is_case_insensitive_equal ("PREDICATE")
 		end
-
 
 note
 	license: "GNU General Public License"
