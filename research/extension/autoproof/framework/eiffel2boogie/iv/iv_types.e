@@ -196,6 +196,7 @@ feature -- Type translation
 			l_inv: IV_EXPRESSION
 			l_type_properties: ARRAYED_LIST [READABLE_STRING_8]
 			t: E2B_CL_TYPE_A
+			args: ARRAY [IV_EXPRESSION]
 		do
 			Result := factory.true_
 			l_boogie_type := for_class_type (a_type)
@@ -247,7 +248,16 @@ feature -- Type translation
 								check class_type_constraint: False then end
 							end
 							if for_class_type (t) ~ ref then
-								Result := factory.and_clean (Result, factory.function_call (prop, <<a_heap, a_expr, factory.type_value (t)>>, bool))
+								args := << a_heap, a_expr, factory.type_value (t) >>
+								if prop.starts_with ("Seq#") then
+										-- Now only Seq takes 4 arguments
+										-- TODO: make all other types take 4 arguments and remove this if
+									args.force (factory.bool_value (t.is_attached), args.count + 1)
+								end
+								Result := factory.and_clean (
+									Result,
+									factory.function_call (prop, args, bool)
+								)
 							end
 						end
 					end

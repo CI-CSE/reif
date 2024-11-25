@@ -248,4 +248,28 @@ feature {NONE} -- Building test projects
 				found
 			)
 		end
+
+	assert_no_verification_failure_with_tag (t: STRING)
+		local
+			found: BOOLEAN
+			other: STRING
+		do
+			across verification_results as res until found loop
+				if attached {E2B_FAILED_VERIFICATION} res as failed then
+					across failed.errors as error until found loop
+						if attached {E2B_DEFAULT_VERIFICATION_ERROR} error as def then
+							if def.tag ~ t then
+								found := True
+							end
+						end
+					end
+				end
+			end
+
+			assert (
+				"Expected no verification failure with tag " + t,
+				not found
+			)
+		end
+
 end
