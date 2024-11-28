@@ -197,6 +197,8 @@ axiom (forall a: int :: { Math#clip(a) } 0 <= a ==> Math#clip(a) == a);
 axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
 
 // Type property
-function {: inline } Bag#DomainType(heap: HeapType, b: Bag ref, t: Type): bool 
-{ (forall o: ref :: { Bag#Domain(b)[o] }{ b[o] } Bag#Domain(b)[o] ==> detachable(heap, o, t)) }
+function {: inline } Bag#DomainType(heap: HeapType, b: Bag ref, t: Type, is_attached): bool 
+{ (forall o: ref :: { Bag#Domain(b)[o] }{ b[o] } Bag#Domain(b)[o] ==> (
+    (is_attached ==> attached(heap, o, t)) &&
+    (!is_attached ==> detachable(heap, o, t))))}
   

@@ -164,11 +164,18 @@ axiom (forall<U, V> a: Map U V :: { Rel#Range(Map#Inverse(a)) }
   
 // Type properties
 
-function {: inline } Map#DomainType<T>(heap: HeapType, m: Map ref T, t: Type): bool 
-{ (forall o: ref :: { Map#Domain(m)[o] } Map#Domain(m)[o] ==> detachable(heap, o, t)) }  
+function {: inline } Map#DomainType<T>(heap: HeapType, m: Map ref T, t: Type, is_attached: bool): bool 
+{ (forall o: ref :: { Map#Domain(m)[o] } Map#Domain(m)[o] ==> (
+    (is_attached ==> attached(heap, o, t)) &&
+    (!is_attached ==> detachable(heap, o, t))
+)}  
 
-function {: inline } Map#RangeType<T>(heap: HeapType, m: Map T ref, t: Type): bool 
-{ (forall i: T :: { Map#Domain(m)[i] } Map#Domain(m)[i] ==> detachable(heap, Map#Elements(m)[i], t)) }  
+function {: inline } Map#RangeType<T>(heap: HeapType, m: Map T ref, t: Type, is_attached: bool): bool 
+{ (forall i: T :: { Map#Domain(m)[i] } Map#Domain(m)[i] ==> (
+    (is_attached ==> attached(heap, Map#Elements(m)[i], t)) &&
+    (!is_attached ==> detachable(heap, Map#Elements(m)[i], t))
+)
+detachable(heap, Map#Elements(m)[i], t)) }  
 
   
   

@@ -142,8 +142,10 @@ function Set#NonNull(s: Set ref): bool
 { (forall x: ref :: { s[x] } s[x] ==> x != Void) }
   
 // Type property
-function {: inline } Set#ItemsType(heap: HeapType, s: Set ref, t: Type): bool 
-{ (forall o: ref :: { s[o] } s[o] ==> detachable(heap, o, t)) }
+function {: inline } Set#ItemsType(heap: HeapType, s: Set ref, t: Type, is_attached: bool): bool 
+{ (forall o: ref :: { s[o] } s[o] ==> (
+    (is_attached ==> attached(heap, o, t)) &&
+    (!is_attached ==> detachable(heap, o, t)))}
     
 // Integer intervals
 type Interval = Set int;

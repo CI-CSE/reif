@@ -188,8 +188,12 @@ axiom (forall<U, V> a, b: Rel U V :: { Rel#ToSet(Rel#SymDifference(a, b)) }
 
 // Type properties
 
-function {: inline } Rel#DomainType<T>(heap: HeapType, r: Rel ref T, t: Type): bool 
-{ (forall o: ref :: { Rel#Domain(r)[o] } Rel#Domain(r)[o] ==> detachable(heap, o, t)) }  
+function {: inline } Rel#DomainType<T>(heap: HeapType, r: Rel ref T, t: Type, is_attached: bool): bool 
+{ (forall o: ref :: { Rel#Domain(r)[o] } Rel#Domain(r)[o] ==>
+    ((is_attached ==> attached(heap, o, t)) &&
+    (!is_attached ==> detachable(heap, o, t))))}  
 
-function {: inline } Rel#RangeType<T>(heap: HeapType, r: Rel T ref, t: Type): bool 
-{ (forall o: ref :: { Rel#Range(r)[o] } Rel#Range(r)[o] ==> detachable(heap, o, t)) }  
+function {: inline } Rel#RangeType<T>(heap: HeapType, r: Rel T ref, t: Type, is_attached: bool): bool 
+{ (forall o: ref :: { Rel#Range(r)[o] } Rel#Range(r)[o] ==>
+    ((is_attached ==> attached(heap, o, t)) &&
+    (!is_attached ==> detachable(heap, o, t)))}  

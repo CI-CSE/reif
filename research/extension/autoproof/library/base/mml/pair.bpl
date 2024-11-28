@@ -21,8 +21,8 @@ axiom(forall<G, H> p: Pair G H, q: Pair G H :: { Pair#Equal(p, q) }  // extensio
 
 // Type properties
 
-function {: inline } Pair#LeftType<T>(heap: HeapType, p: Pair ref T, t: Type): bool 
-{ detachable(heap, Pair#Left(p), t) }  
+function {: inline } Pair#LeftType<T>(heap: HeapType, p: Pair ref T, t: Type, is_attached: bool): bool 
+{(is_attached ==> attached(heap, Pair#Left(p), t)) && (!is_attached ==> detachable(heap, Pair#Left(p), t))}  
 
-function {: inline } Pair#RightType<T>(heap: HeapType, p: Pair T ref, t: Type): bool 
-{ detachable(heap, Pair#Right(p), t) }  
+function {: inline } Pair#RightType<T>(heap: HeapType, p: Pair T ref, t: Type, is_attached: bool): bool 
+{(is_attached ==> attached(heap, Pair#Right(p), t)) && (!is_attached ==> detachable(heap, Pair#Right(p), t))}  

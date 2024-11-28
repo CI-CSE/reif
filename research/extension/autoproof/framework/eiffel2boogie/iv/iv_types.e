@@ -249,11 +249,7 @@ feature -- Type translation
 							end
 							if for_class_type (t) ~ ref then
 								args := << a_heap, a_expr, factory.type_value (t) >>
-								if prop.starts_with ("Seq#") then
-										-- Now only Seq takes 4 arguments
-										-- TODO: make all other types take 4 arguments and remove this if
-									args.force (factory.bool_value (t.is_attached), args.count + 1)
-								end
+								args.force (factory.bool_value (t.is_attached), args.count + 1)
 								Result := factory.and_clean (
 									Result,
 									factory.function_call (prop, args, bool)
