@@ -135,6 +135,7 @@ feature -- Status report
 				across ce.functions ["FieldId"] as case until fid /= Void loop
 					if case.args [1].same_string (record_field_id) then
 						fid := case.res
+						cls := case.args [2]
 					end
 				end
 			end
@@ -151,7 +152,8 @@ feature -- Status report
 
 				across boogie_universe.declarations as d until Result /= Void loop
 					if attached {IV_FIELD_ID_AXIOM} d as axiom then
-						if axiom.id = id then
+						if axiom.id = id
+							and name_translator.boogie_name_for_type (axiom.context_type).to_string_32 ~ translate_raw (cls) then
 							Result := axiom.field_name.to_string_32
 						end
 					end
