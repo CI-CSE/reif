@@ -133,6 +133,8 @@ feature -- Visitors
 				l_target := current_target
 				l_target_type := current_target_type
 
+				side_effect.extend (factory.trace (name_translator.boogie_procedure_for_feature (l_feature, l_type) + "_qual_inv_trace:" + a_node.line_number.out))
+
 				l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
 				if l_handler /= Void then
 					l_handler.handle_routine_call_in_body (Current, l_feature, a_node.parameters)
