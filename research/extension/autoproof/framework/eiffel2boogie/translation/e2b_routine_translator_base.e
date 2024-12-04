@@ -76,7 +76,7 @@ feature -- Helper functions: arguments and result
 		do
 			current_boogie_procedure.add_argument (create {IV_ENTITY}.make (a_name, a_boogie_type))
 			create l_pre.make (types.type_property (a_type, factory.global_heap, factory.entity (a_name, a_boogie_type),
-					a_orig_type.is_exact (a_type, current_feature),
+					True,
 					a_orig_type.is_attached))
 			l_pre.set_free
 			l_pre.node_info.set_attribute ("info", "type property for argument " + a_name)

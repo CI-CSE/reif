@@ -62,12 +62,12 @@ feature -- Basic operations
 --				end
 
 					-- Add type properties
-				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, current_feature.type.is_exact (l_class_type, Void),
+				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, True,
 						current_feature.type.is_attached)
 				if not l_type_prop.is_true then
 					l_type_prop := factory.implies_ (factory.and_ (
 								factory.is_heap (l_heap),
-								factory.function_call ("attached", <<l_heap, l_o, l_context_type>>, types.bool)),
+								factory.function_call ("attached_exact", <<l_heap, l_o, l_context_type>>, types.bool)),
 							l_type_prop)
 					create l_forall.make (l_type_prop)
 					l_forall.add_bound_variable (l_heap)
@@ -122,7 +122,7 @@ feature -- Basic operations
 			if not l_type_prop.is_true then
 				l_type_prop := factory.implies_ (factory.and_ (
 							factory.is_heap (l_heap),
-							factory.function_call ("attached", <<l_heap, l_o, l_context_type>>, types.bool)),
+							factory.function_call ("attached_exact", <<l_heap, l_o, l_context_type>>, types.bool)),
 						l_type_prop)
 				create l_forall.make (l_type_prop)
 				l_forall.add_bound_variable (l_heap)

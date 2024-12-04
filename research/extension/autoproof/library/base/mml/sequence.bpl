@@ -343,8 +343,8 @@ function Seq#NoDuplicates<T>(s: Seq T): bool
 // Type property
 function {: inline } Seq#ItemsType(heap: HeapType, s: Seq ref, t: Type, is_attached: bool): bool
 { (forall i: int :: { Seq#Item(s, i) } 1 <= i && i <= Seq#Length(s) ==> (
-  (is_attached ==> attached(heap, Seq#Item(s, i), t))
-	&& (!is_attached ==> detachable(heap, Seq#Item(s, i), t))
+  (is_attached ==> attached_exact(heap, Seq#Item(s, i), t))
+	&& (!is_attached ==> detachable_exact(heap, Seq#Item(s, i), t))
 )) }
 
 // function Seq#IsSorted<T>(s: Seq T) returns (bool);
