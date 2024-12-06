@@ -645,6 +645,7 @@ feature -- Processing
 			assert: IV_ASSERT
 			type_translator: E2B_TYPE_TRANSLATOR
 			feat: FEATURE_I
+			fi: E2B_FEATURE_I
 		do
 			set_current_origin_information (a_node)
 
@@ -667,8 +668,15 @@ feature -- Processing
 						)
 					end
 				end
-			elseif attached {FEATURE_B} a_node.call then
-				-- Is not qualified, skip
+			elseif attached {FEATURE_B} a_node.call as feature_b then
+				create fi.make (feature_b.System.class_of_id (feature_b.written_in).feature_of_feature_id (feature_b.feature_id))
+				if not fi.has_unqualified then
+					e2b_error.add_semantic_error(
+						current_feature,
+						{STRING_32} "Unqualified call on " + fi.feature_name_32 + " which is marked as non-unqualified",
+						a_node.line_number
+					)
+				end
 			else
 				check False then end
 			end
