@@ -205,7 +205,6 @@ feature -- Universe Visitor
 				output.put_new_line
 				output.put_line ("init_locals:")
 
-
 				across a_implementation.locals as i loop
 						-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
 					if i.type.default_value /= Void then
@@ -329,13 +328,6 @@ feature -- Statement Visitor
 	process_block (a_block: IV_BLOCK)
 			-- <Precursor>
 		do
-			block_index := block_index + 1
-			if is_generate_fix_enabled then
-				output.put_indentation
-				output.put ("passed_blocks := Seq#Update(passed_blocks, "+ block_index.out + ", true);")
-				-- block := Seq#Update(block, i, true);
-			end
-
 			if not a_block.name.is_empty then
 				output.put_indentation
 				output.put (a_block.name)
@@ -365,7 +357,7 @@ feature -- Statement Visitor
 			output.unindent
 			if not a_conditional.else_block.is_empty then
 				output.put_line ("} else {")
-				-- insert "assert false" into the else_block of the leaf if/elseif conditional
+					-- insert "assert false" into the else_block of the leaf if/elseif conditional
 				output.indent
 				a_conditional.else_block.process (Current)
 				output.unindent
@@ -397,11 +389,13 @@ feature -- Statement Visitor
 	process_loop (a_loop: IV_LOOP)
 			-- <Precursor>
 		do
+
 			output.put_indentation
 			output.put ("while (")
 			if a_loop.is_until_loop then
 				output.put ("!(")
 			end
+
 			a_loop.condition.process (Current)
 			if a_loop.is_until_loop then
 				output.put (")")
@@ -419,6 +413,7 @@ feature -- Statement Visitor
 			output.put_line ("{")
 			a_loop.body.process (Current)
 			output.put_line ("}")
+
 		end
 
 	process_goto (a_goto: IV_GOTO)
@@ -454,6 +449,7 @@ feature -- Statement Visitor
 				i.process (Current)
 			end
 			output.put (");")
+
 			print_node_info (a_call.node_info)
 			output.put_new_line
 		end

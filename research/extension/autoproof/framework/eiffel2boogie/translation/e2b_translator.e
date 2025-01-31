@@ -21,7 +21,7 @@ feature {NONE} -- Initialization
 			translation_pool.reset
 			-- boogie_universe := a_boogie_universe
 			-- boogie_universe_cell.put (a_boogie_universe)
-				-- Add types and features used by every system
+			-- Add types and features used by every system
 			if attached helper.set_any_type as t then
 				translation_pool.add_type (t)
 			end

@@ -12,18 +12,6 @@ inherit
 
 	EPA_PROCESS_UTILITY
 
-create make
-
-feature -- Initialization
-
-	make (a_file_directory: STRING; a_file_name: STRING)
-		-- Initialize an SMT process with a directory and an input `.smt' file
-		do
-			smtlib_file_directory := a_file_directory
-			smtlib_file_name := a_file_name
-		end
-
-
 feature -- Basic operations
 
 	is_unsat (a_content: STRING): BOOLEAN
@@ -33,6 +21,7 @@ feature -- Basic operations
 		do
 			generate_file (a_content)
 			l_output := z3_output
+			print ("SMT out: " + z3_output + "%N")
 			l_output.replace_substring_all ("%R", "")
 			l_output.replace_substring_all ("%N", "")
 			Result := l_output.is_equal ("unsat")
@@ -40,12 +29,12 @@ feature -- Basic operations
 
 feature{NONE} -- Implementation
 
-	smtlib_file_directory: STRING
+	smtlib_file_directory: STRING = "F:\PhD\WIP\MCDC"
 
-	smtlib_file_name: STRING
-			-- Name of the generated smtlib file
+	smtlib_file_path: STRING = "F:\PhD\WIP\MCDC\testMCDC.smt"
+			-- Full path of the generated smtlib file
 
-	z3_command: STRING
+	z3_command: STRING = "z3 testMCDC.smt%""
 			-- Command to launch Z3 SMT solver
 
 	generate_file (a_content: STRING)
@@ -54,7 +43,7 @@ feature{NONE} -- Implementation
 		local
 			l_file: PLAIN_TEXT_FILE
 		do
-			create l_file.make_create_read_write (smtlib_file_directory + "/" + smtlib_file_name)
+			create l_file.make_create_read_write (smtlib_file_path)
 			l_file.put_string (smt_header)
 			l_file.put_string (a_content)
 			l_file.put_string (smt_check_sat_command)

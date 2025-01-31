@@ -1002,7 +1002,7 @@ feature -- Translation: Functions
 				end
 					-- If still empty, add a trivial variant
 				if l_decreases_list.is_empty then
-					l_decreases_list.extend (factory.int_value (0))
+						l_decreases_list.extend (factory.int_value (0))
 				end
 			elseif l_decreases_list.first = Void then
 					-- Decreases empty set (*): do not check termination

@@ -109,6 +109,7 @@ feature -- Visitors
 			l_proc_call: IV_PROCEDURE_CALL
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_creation_expr_b%N")
 			l_type := class_type_in_current_context (a_node.type)
 			l_feature := l_type.base_class.feature_of_rout_id (a_node.call.routine_id)
 			check feature_valid: l_feature /= Void end
@@ -122,7 +123,7 @@ feature -- Visitors
 
 				-- Is this a normal reference type?
 			if l_local.type ~ types.ref then
-				-- Call to `allocate'				
+					-- Call to `allocate'
 				create l_proc_call.make ("allocate")
 				l_proc_call.node_info.set_line (a_node.call.line_number)
 				l_proc_call.add_argument (factory.type_value (l_type))
@@ -158,6 +159,7 @@ feature -- Visitors
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_routine_creation_b%N")
 			if a_node.is_inline_agent then
 				e2b_error.add_unsupported_error (context_feature, {STRING_32} "Inline agents are not supported", context_line_number)
 				last_expression := dummy_node (a_node.type)
@@ -169,6 +171,7 @@ feature -- Visitors
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_string_b%N")
 			(create {E2B_CUSTOM_STRING_HANDLER}).handle_manifest_string_in_body (Current, a_node)
 		end
 
@@ -177,6 +180,7 @@ feature -- Visitors
 		local
 			l_proc_call: IV_PROCEDURE_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_tuple_access_b%N")
 			if a_node.source = Void then
 				Precursor (a_node)
 			else
@@ -184,8 +188,8 @@ feature -- Visitors
 				create l_proc_call.make ("update_heap")
 				l_proc_call.add_argument (current_target)
 				l_proc_call.add_argument (factory.entity (
-					name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
-					types.field (last_expression.type)))
+						name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
+						types.field (last_expression.type)))
 				l_proc_call.add_argument (last_expression)
 				side_effect.extend (l_proc_call)
 				last_expression := Void
@@ -200,6 +204,7 @@ feature -- Visitors
 			l_proc_call: IV_PROCEDURE_CALL
 			l_block: IV_BLOCK
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_tuple_const_b%N")
 			l_type := class_type_in_current_context (a_node.type)
 			create_local (l_type)
 			l_local := last_local
@@ -208,7 +213,7 @@ feature -- Visitors
 			current_target := l_local
 			current_target_type := l_type
 
-				-- Call to `allocate'				
+				-- Call to `allocate'
 			create l_proc_call.make ("allocate")
 			l_proc_call.node_info.set_line (a_node.line_number)
 			l_proc_call.add_argument (factory.type_value (l_type))
@@ -235,6 +240,7 @@ feature -- Translation
 			l_content_type: IV_TYPE
 			l_field: IV_ENTITY
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_attribute_call%N")
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 
 			check current_target /= Void end
@@ -279,6 +285,7 @@ feature -- Translation
 			l_pcall: IV_PROCEDURE_CALL
 			l_fcall: IV_FUNCTION_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_normal_routine_call" + a_feature.feature_name + "%N")
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 			if a_feature.has_return_value and a_feature.is_functional then
 				check not a_for_creator end
@@ -368,6 +375,7 @@ feature -- Translation
 		local
 			l_call: IV_PROCEDURE_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_builtin_routine_call" + a_feature.feature_name + "%N")
 			create l_call.make (a_builtin_name)
 			if not a_feature.is_static then
 				l_call.add_argument (current_target)
@@ -398,6 +406,7 @@ feature -- Translation
 		local
 			l_call: IV_FUNCTION_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_builtin_function_call" + a_feature.feature_name + "%N")
 			create l_call.make (a_builtin_name, types.for_class_type (feature_class_type (a_feature)))
 			l_call.add_argument (entity_mapping.heap)
 			if not a_feature.is_static then
@@ -413,6 +422,7 @@ feature -- Translation
 	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
+				-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_special_feature_call%N")
 			a_handler.handle_routine_call_in_body (Current, a_feature, a_parameters)
 		end
 
@@ -429,6 +439,7 @@ feature -- Translation
 			l_block: IV_BLOCK
 			l_entity_mapping: E2B_ENTITY_MAPPING
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_inlined_routine_call%N")
 				-- TODO: look for all possible descendant-implementations for feature
 				-- and add a nondeterministic goto that selects between all of those
 				-- implementations
@@ -531,14 +542,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

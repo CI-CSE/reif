@@ -293,12 +293,14 @@ feature -- Visitors
 	process_agent_call_b (a_node: AGENT_CALL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_agent_call_b%N")
 			process_feature_b (a_node)
 		end
 
 	process_argument_b (a_node: ARGUMENT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_argument_b%N")
 			last_expression := entity_mapping.argument (context_feature, context_type, a_node.position)
 		end
 
@@ -315,6 +317,7 @@ feature -- Visitors
 			l_feature: E2B_FEATURE_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_attribute_b%N")
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
 			if l_handler /= Void then
@@ -333,6 +336,7 @@ feature -- Visitors
 			l_fcall: IV_FUNCTION_CALL
 			l_fname: STRING
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_binary%N")
 			safe_process (a_node.left)
 			l_left := last_expression
 
@@ -475,6 +479,7 @@ feature -- Visitors
 			l_left, l_right: IV_EXPRESSION
 			l_safety_check_condition: IV_EXPRESSION
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_binary_semistrict%N")
 			safe_process (a_node.left)
 			l_left := last_expression
 
@@ -492,12 +497,14 @@ feature -- Visitors
 	process_binary_infix (a_node: BINARY_B)
 			-- Process binary infix node `a_node'.
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_binary_infix%N")
 			a_node.nested_b.process (Current)
 		end
 
 	process_bin_and_b (a_node: BIN_AND_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_and_b%N")
 			process_binary (a_node, "&&")
 				-- options.increase_num_bin_op_of_cond
 		end
@@ -505,6 +512,7 @@ feature -- Visitors
 	process_bin_and_then_b (a_node: B_AND_THEN_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_and_then_b%N")
 			process_binary_semistrict (a_node, "&&", True)
 			options.increase_num_bin_op_of_cond
 		end
@@ -512,6 +520,7 @@ feature -- Visitors
 	process_bin_div_b (a_node: BIN_DIV_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_div_b%N")
 			if a_node.type.is_real_32 or a_node.type.is_real_64 then
 				process_binary (a_node, "/")
 			elseif a_node.is_built_in then
@@ -524,18 +533,21 @@ feature -- Visitors
 	process_bin_eq_b (a_node: BIN_EQ_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_eq_b%N")
 			process_binary (a_node, "==")
 		end
 
 	process_bin_free_b (a_node: BIN_FREE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_free_b%N")
 			process_binary_infix (a_node)
 		end
 
 	process_bin_ge_b (a_node: BIN_GE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_ge_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, ">=")
 			else
@@ -546,6 +558,7 @@ feature -- Visitors
 	process_bin_gt_b (a_node: BIN_GT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_gt_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, ">")
 			else
@@ -556,6 +569,7 @@ feature -- Visitors
 	process_bin_implies_b (a_node: B_IMPLIES_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_implies_b%N")
 			process_binary_semistrict (a_node, "==>", True)
 			options.increase_num_bin_op_of_cond
 		end
@@ -563,6 +577,7 @@ feature -- Visitors
 	process_bin_le_b (a_node: BIN_LE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_le_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "<=")
 			else
@@ -573,6 +588,7 @@ feature -- Visitors
 	process_bin_lt_b (a_node: BIN_LT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_lt_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "<")
 			else
@@ -583,6 +599,7 @@ feature -- Visitors
 	process_bin_minus_b (a_node: BIN_MINUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_minus_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "-")
 			else
@@ -593,18 +610,21 @@ feature -- Visitors
 	process_bin_mod_b (a_node: BIN_MOD_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_mod_b%N")
 			process_binary (a_node, "mod")
 		end
 
 	process_bin_ne_b (a_node: BIN_NE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_ne_b%N")
 			process_binary (a_node, "!=")
 		end
 
 	process_bin_or_b (a_node: BIN_OR_B)
 			-- <Precursor>
 		do
+				-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_or_b%N")
 			process_binary (a_node, "||")
 			options.increase_num_bin_op_of_cond
 		end
@@ -612,6 +632,7 @@ feature -- Visitors
 	process_bin_or_else_b (a_node: B_OR_ELSE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_or_else_b%N")
 			process_binary_semistrict (a_node, "||", False)
 			options.increase_num_bin_op_of_cond
 		end
@@ -619,6 +640,7 @@ feature -- Visitors
 	process_bin_plus_b (a_node: BIN_PLUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_plus_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "+")
 			else
@@ -629,6 +651,7 @@ feature -- Visitors
 	process_bin_power_b (a_node: BIN_POWER_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_power_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "**")
 			else
@@ -639,6 +662,7 @@ feature -- Visitors
 	process_bin_slash_b (a_node: BIN_SLASH_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_slash_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "/")
 			else
@@ -649,6 +673,7 @@ feature -- Visitors
 	process_bin_star_b (a_node: BIN_STAR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_star_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "*")
 			else
@@ -659,12 +684,14 @@ feature -- Visitors
 	process_bin_xor_b (a_node: BIN_XOR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_xor_b%N")
 			process_binary (a_node, "!=")
 		end
 
 	process_bin_tilde_b (a_node: BIN_TILDE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_tilde_b%N")
 				-- TODO: handle "is_equal"
 			process_binary (a_node, "==")
 		end
@@ -672,6 +699,7 @@ feature -- Visitors
 	process_bool_const_b (a_node: BOOL_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bool_const_b%N")
 			if a_node.value then
 				last_expression := factory.true_
 			else
@@ -682,24 +710,28 @@ feature -- Visitors
 	process_current_b (a_node: CURRENT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_current_b%N")
 			last_expression := entity_mapping.current_expression
 		end
 
 	process_char_const_b (a_node: CHAR_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_char_const_b%N")
 			last_expression := factory.int_value (a_node.value.code)
 		end
 
 	process_char_val_b (a_node: CHAR_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_char_val_b%N")
 			last_expression := factory.int_value (a_node.value.code)
 		end
 
 	process_constant_b (a_node: CONSTANT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_constant_b%N")
 			if attached {BOOL_VALUE_I} a_node.value as l_bool then
 				last_expression := if l_bool.boolean_value then factory.true_ else factory.false_ end
 			elseif a_node.value.is_integer or a_node.value.is_numeric then
@@ -727,6 +759,7 @@ feature -- Visitors
 			l_current_type: E2B_CL_TYPE_A
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+				-- print ("E2B_EXPRESSION_TRANSLATOR.process_external_b%N")
 			l_current_type := current_target_type
 			if a_node.is_static_call then
 				current_target_type := class_type_in_current_context (a_node.static_class_type)
@@ -750,6 +783,7 @@ feature -- Visitors
 			l_feature: E2B_FEATURE_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_feature_b%N")
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			check feature_valid: l_feature /= Void end
 
@@ -779,6 +813,7 @@ feature -- Visitors
 		local
 			l_cond, l_then, l_else: IV_EXPRESSION
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_if_expression_b%N")
 			check a_node.elsif_list = Void or else a_node.elsif_list.is_empty end
 
 			safe_process (a_node.condition)
@@ -796,18 +831,21 @@ feature -- Visitors
 	process_int64_val_b (a_node: INT64_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_int64_val_b%N")
 			last_expression := factory.int64_value (a_node.value)
 		end
 
 	process_int_val_b (a_node: INT_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_int_val_b%N")
 			last_expression := factory.int_value (a_node.value)
 		end
 
 	process_integer_constant (a_node: INTEGER_CONSTANT)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_integer_constant%N")
 			if attached {INTEGER_A} a_node.type then
 				last_expression := factory.int64_value (a_node.integer_64_value)
 			else
@@ -818,12 +856,14 @@ feature -- Visitors
 	process_local_b (a_node: LOCAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_local_b%N")
 			last_expression := entity_mapping.local_ (a_node.position)
 		end
 
 	process_loop_expr_b (a_node: LOOP_EXPR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_loop_expr_b%N")
 			if
 				attached {ASSIGN_B} a_node.iteration_code.first as l_assign and then
 				attached {OBJECT_TEST_LOCAL_B} l_assign.target as l_object_test_local and then
@@ -849,12 +889,14 @@ feature -- Visitors
 	process_nat64_val_b (a_node: NAT64_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_nat64_val_b%N")
 			create {IV_VALUE} last_expression.make (a_node.value.out, types.int)
 		end
 
 	process_nat_val_b (a_node: NAT_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_nat_val_b%N")
 			create {IV_VALUE} last_expression.make (a_node.value.out, types.int)
 		end
 
@@ -868,6 +910,7 @@ feature -- Visitors
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_nested_b%N")
 			l_handler := translation_mapping.handler_for_nested (a_node)
 			if
 				attached {OBJECT_TEST_LOCAL_B} a_node.target as l_object_test_local and then
@@ -967,6 +1010,7 @@ feature -- Visitors
 
 	process_null_conversion_b (b: NULL_CONVERSION_B)
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_null_conversion_b%N")
 			safe_process (b.expr)
 		end
 
@@ -977,6 +1021,7 @@ feature -- Visitors
 			l_type_expr, l_expr: IV_EXPRESSION
 			object_test_local: like last_local
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_object_test_b%N")
 			safe_process (a_node.expression)
 			l_expr := last_expression
 			l_type := class_type_in_current_context
@@ -1025,6 +1070,7 @@ feature -- Visitors
 	process_object_test_local_b (a_node: OBJECT_TEST_LOCAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_object_test_local_b%N")
 			if locals_map.has_key (a_node.position) then
 				last_expression := locals_map.item (a_node.position)
 			else
@@ -1040,6 +1086,7 @@ feature -- Visitors
 			l_target_type: E2B_CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_parameter_b%N")
 			check not parameters_stack.is_empty end
 
 				-- Process arguments in context of feature
@@ -1062,18 +1109,21 @@ feature -- Visitors
 	process_paran_b (a_node: PARAN_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_paran_b%N")
 			safe_process (a_node.expr)
 		end
 
 	process_result_b (a_node: RESULT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_result_b%N")
 			last_expression := entity_mapping.result_expression
 		end
 
 	process_real_const_b (a_node: REAL_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_real_const_b%N")
 			create {IV_VALUE} last_expression.make (a_node.value, types.real)
 		end
 
@@ -1094,6 +1144,7 @@ feature -- Visitors
 	process_tuple_access_b (a_node: TUPLE_ACCESS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_tuple_access_b%N")
 			last_expression := factory.heap_access (
 					entity_mapping.heap,
 					current_target,
@@ -1113,6 +1164,7 @@ feature -- Visitors
 		local
 			l_type: E2B_CL_TYPE_A
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_type_expr_b%N")
 			l_type := class_type_in_current_context (a_node.type_type)
 			translation_pool.add_type (l_type)
 			last_expression := factory.type_value (l_type)
@@ -1127,6 +1179,7 @@ feature -- Visitors
 	process_un_minus_b (a_node: UN_MINUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_minus_b%N")
 			safe_process (a_node.expr)
 			create {IV_UNARY_OPERATION} last_expression.make ("-", last_expression, last_expression.type)
 		end
@@ -1134,6 +1187,7 @@ feature -- Visitors
 	process_un_not_b (a_node: UN_NOT_B)
 			-- <Precursor>
 		do
+				-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_not_b%N")
 			safe_process (a_node.expr)
 			last_expression := factory.not_ (last_expression)
 		end
@@ -1141,6 +1195,7 @@ feature -- Visitors
 	process_un_old_b (a_node: UN_OLD_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_old_b%N")
 			check False end
 			last_expression := dummy_node (a_node.type)
 		end
@@ -1148,6 +1203,7 @@ feature -- Visitors
 	process_un_plus_b (a_node: UN_PLUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_plus_b%N")
 			safe_process (a_node.expr)
 				-- Nothing to do, there is no unary plus in Boogie
 		end
@@ -1155,6 +1211,7 @@ feature -- Visitors
 	process_void_b (a_node: VOID_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_void_b%N")
 			last_expression := factory.void_
 		end
 
@@ -1514,6 +1571,8 @@ feature -- Translation
 					i := i + 1
 					l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
 				end
+				l_callee_variant.arguments.append (last_parameters)
+				l_callee_variants.extend (l_callee_variant)
 			end
 			add_termination_check (l_caller_variants, l_callee_variants)
 		end

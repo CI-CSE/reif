@@ -42,6 +42,7 @@ feature {NONE} -- Initialization
 	on_before_initialize
 			-- <Precursor>
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.on_before_initialize%N")
 			Precursor
 				-- We want the tool to synchronize with the event list, when first initialized.
 			is_event_list_synchronized_on_initialized := True
@@ -50,6 +51,7 @@ feature {NONE} -- Initialization
 	on_after_initialized
 			-- <Precursor>
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.on_after_initialized%N")
 				-- Bind redirecting pick and drop actions
 			stone_director.bind (grid_events, Current)
 
@@ -524,6 +526,7 @@ feature {NONE} -- Events
 		local
 			l_applicable: BOOLEAN
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.on_event_item_added%N")
 			l_applicable := is_appliable_event (a_event_item)
 			if l_applicable and not is_initialized then
 					-- We have to perform initialization to set the icon and counter.
@@ -635,10 +638,10 @@ feature {NONE} -- Query
 		end
 
 	is_sc_error (a_msg: STRING): BOOLEAN
-		-- Is `a_msg' an error message related to semantic collaboration?
+			-- Is `a_msg' an error message related to semantic collaboration?
 		do
 			Result := a_msg.has_substring ("is_wrapped") or a_msg.has_substring ("is_closed")
-						or a_msg.has_substring ("frame_writable")
+				or a_msg.has_substring ("frame_writable")
 		end
 
 feature {NONE} -- Basic operations
@@ -811,34 +814,34 @@ feature {NONE} -- Basic operations
 			l_text_gen.add_new_line
 			l_editor_item := create_multiline_clickable_grid_item (l_text_gen.lines, True, False)
 
-				l_index := a_parent.subrow_count + 1
+			l_index := a_parent.subrow_count + 1
 
-				a_parent.insert_subrow (l_index)
-				l_row := a_parent.subrow (l_index)
-				l_row.set_data (a_error)
+			a_parent.insert_subrow (l_index)
+			l_row := a_parent.subrow (l_index)
+			l_row.set_data (a_error)
 
-				l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
-				l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
-				l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
 
-				l_row.set_height (l_editor_item.required_height_for_text_and_component)
-				l_row.set_item (info_column, l_editor_item)
-				if a_error.context_line_number > 0 then
-					l_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (a_error.context_line_number.out))
-				end
+			l_row.set_height (l_editor_item.required_height_for_text_and_component)
+			l_row.set_item (info_column, l_editor_item)
+			if a_error.context_line_number > 0 then
+				l_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (a_error.context_line_number.out))
+			end
 
 				-- if not is_sc_error (l_editor_item.text) then
 
-				if l_index \\ 2 = 1 then
-					l_row.set_background_color (odd_failed_sub_color)
-				else
-					l_row.set_background_color (even_failed_sub_color)
-				end
+			if l_index \\ 2 = 1 then
+				l_row.set_background_color (odd_failed_sub_color)
+			else
+				l_row.set_background_color (even_failed_sub_color)
+			end
 				-- else
 				-- 	l_row.set_background_color (sc_failed_color)
 				-- end
 
-			-- end
+				-- end
 
 		end
 

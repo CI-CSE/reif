@@ -22,6 +22,7 @@ feature {NONE} -- Initialization
 		local
 			last_ce: TUPLE [E2B_CE_STATE_OF_ROUTINE, E2B_CLASS_C, E2B_FEATURE_I]
 		do
+			print ("E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK.make for " + "%N")
 			target_class := a_target_class
 			target_feature := a_target_feature
 			target_variables := a_target_variables
@@ -33,9 +34,10 @@ feature {NONE} -- Initialization
 			l_boogie_universe := a_boogie_universe
 
 			if target_variables.has (target_feature) then
-				if not is_container_size (target_variables [target_feature].first) and options.is_minimize_sum then		-- minimize sum
+				if not is_container_size (target_variables [target_feature].first) and options.is_minimize_sum then -- minimize sum
 					target_variable := sum_expression
-				else								-- minimize ineger variable
+					print ("minimize sum : " + target_variable + "%N")
+				else -- minimize ineger variable
 					target_variable := target_variables [target_feature].first
 				end
 			end
@@ -44,6 +46,7 @@ feature {NONE} -- Initialization
 			has_next_step := True
 			options.increase_number_of_iterations
 			options.accumulate_opt_time (a_failed_verifications.item (a_failed_verifications.upper).time)
+				-- options.init_states_of_counterexamples.wipe_out
 
 			last_ce := helper.options.init_states_of_counterexamples.last
 			options.init_states_of_counterexamples.wipe_out
@@ -75,9 +78,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 					-- first iteration checks whether the value can be 0; otherwise, keep minimization until the minimal possible is reached
 				translator_input.feature_list.wipe_out
 				translator_input.add_feature (target_feature)
-
 				create optimization_verifier.make_with_prefix (target_class.name + "." + target_feature.feature_name_32.to_string_8) -- name of boogie file
-
 				add_opt_precond (pre_cond)
 
 				options.set_last_opt_value (medium_value)
@@ -151,6 +152,7 @@ feature {NONE} -- Implementation
 				-- perform a verification on the target feature at the 1st iteration to check whether the minimal is 0
 
 			if not is_same_result and options.number_of_iterations = 2 then
+				print ("set upper to original value%N")
 				options.set_opt_upper (options.original_value)
 			elseif is_same_result or options.number_of_iterations = 2 then -- start minimization following the binary search strategy from the 2nd iteration
 				options.set_opt_upper (initial_value)
@@ -160,6 +162,9 @@ feature {NONE} -- Implementation
 				options.set_opt_lower (options.last_opt_value + 1)
 			end
 
+			print ("lower:  " + options.opt_lower.out + "%N")
+			print ("upper:  " + options.opt_upper.out + "%N")
+			print ("number of iterations:  " + options.number_of_iterations.out + "%N")
 		end
 
 	get_initial_value
@@ -174,6 +179,7 @@ feature {NONE} -- Implementation
 			if options.number_of_iterations = 1 then
 				options.set_original_value (initial_value)
 			end
+			print ("initial_value: " + initial_value.out + "%N")
 		end
 
 	add_minimization_task
@@ -252,14 +258,25 @@ feature {NONE} -- Implementation
 				else
 					l_value := value.to_integer
 				end
+				print ("l_value" + l_value.out + "%N")
+				print ("max" + max.out + "%N")
 				max := if l_value > max then l_value else max end
+
+--				if (not value.has ('-')) and value.to_integer > max then
+--						-- if there are multiple counterexample models, read all the values and get the maximum
+--					max := value.to_integer
+--				elseif value.has ('-') then -- negative value
+--					max := value.split ('(').last.split (')').first.to_integer
+--				end
 			end
 
 			if is_same_result then
 				options.set_last_sat_value (max)
+				print ("sat_value: " + options.last_sat_value.out + "%N")
 			end
 
 			Result := max
+			print ("initial value from model: " + max.out + "%N")
 				--TODO:  if the counterexample model does not exist, then assign a randomly large value, a default value would be 100
 		end
 
@@ -271,7 +288,9 @@ feature {NONE} -- Implementation
 			across target_variables [a_feature] as v loop -- sum up absolute values of all integer variables
 				l_sum := l_sum + get_value_from_counterexample (v).to_integer.abs
 			end
+				-- overflow
 			Result := if l_sum < 0 then {INTEGER}.max_value else l_sum end
+			print ("sum from model: " + l_sum.out + "%N")
 		end
 
 	split_models (model_file_content: STRING_32): ARRAY [IMMUTABLE_STRING_32]
@@ -372,7 +391,6 @@ feature {NONE} -- Implementation
 		local
 			object_name, object_type, field_name: STRING
 		do
-
 			if a_var.has ('.') then
 				object_name := a_var.split ('.').first
 				if is_container_size (a_var) then
@@ -383,16 +401,13 @@ feature {NONE} -- Implementation
 						-- (Seq#Item(Heap[a, SIMPLE_ARRAY^INTEGER_32^.sequence], i_2)
 					object_type := options.container_to_optimize [object_name].name
 					Result := "(Seq#Item(Heap[" + object_name + ", " + safe_type (object_type) + ".sequence], " + a_var.split ('.').last + "))"
-
 				else
 					field_name := target_class.actual_type.name + "." + a_var.split ('.').last
 					Result := "Heap[" + object_name + ", " + field_name + "]"
 				end
-
 			else
 				Result := a_var
 			end
-
 		end
 
 	gradient_descent_value: INTEGER
@@ -410,7 +425,11 @@ feature {NONE} -- Implementation
 	pre_cond: STRING
 			-- Precondition to be added
 		do
+				-- print ("lower:  " + l_context.options.opt_lower.out + "%N")
+				-- print ("upper:  " + l_context.options.opt_upper.out + "%N")
+				-- medium := l_context.options.opt_lower + (l_context.options.opt_upper - l_context.options.opt_lower) // 2 -- integer division
 			Result := if options.is_minimize_sum then minimize_sum_pre_cond else minimize_var_pre_cond end
+			print ("pre_cond: " + Result + "%N")
 		end
 
 	sum_expression: STRING
@@ -445,6 +464,11 @@ feature {NONE} -- Implementation
 	minimize_var_pre_cond: STRING
 			-- Precondition for minimizing an integer variable
 		do
+--			if medium_value >= 0 then
+--				Result := get_variable_name (target_variable) + " >= 0 " + " && " + get_variable_name (target_variable) + " <= " + medium_value.out
+--			elseif medium_value < 0 then
+--				Result := get_variable_name (target_variable) + " <= 0 " + " && " + get_variable_name (target_variable) + " >= " + "(" + medium_value.out + ")"
+--			end
 			Result := "abs(" + get_variable_name (target_variable) + ") <= " + medium_value.abs.out
 		end
 
@@ -458,12 +482,19 @@ feature {NONE} -- Implementation
 		local
 			l_value: INTEGER
 		do
+			print ("final_pre_cond%N")
+				--	medium := l_context.options.opt_lower + (l_context.options.opt_upper - l_context.options.opt_lower) // 2 -- integer division
+				-- print ("l_context.options.number_of_iterations" + l_context.options.number_of_iterations.out + " initial_value:  " + initial_value.out + "%N")
+
 			if not is_same_result then
 				l_value := options.last_sat_value
+				print ("hhh1: " + l_value.out + "%N")
 			elseif options.number_of_iterations > 1 and initial_value.abs = 1 then
 				l_value := initial_value
+				print ("hhh2: " + l_value.out + "%N")
 			else
 				l_value := medium_value
+				print ("hhh3: " + l_value.out + "%N")
 			end
 
 			Result := if l_value >= 0 then "abs(" + get_variable_name (target_variable) + ") <= " + l_value.out else "abs(" + get_variable_name (target_variable) + ") <= " + "(" + l_value.out + ")" end
@@ -475,6 +506,9 @@ feature {NONE} -- Implementation
 			i, j, error_count, equal_count: INTEGER
 			target_failed_verifications: LINKED_LIST [E2B_FAILED_VERIFICATION]
 		do
+				-- analyze the verification results to decide whether to have next verification
+				-- compare the verification failure of the target procedure from the information of result_generator?
+				-- store the initial verification result in ?
 			Result := False
 			create target_failed_verifications.make
 
@@ -489,12 +523,17 @@ feature {NONE} -- Implementation
 				i := i + 1
 			end
 
+			print ("target_failed_verifications.count: " + target_failed_verifications.count.out + "%N")
 			if target_failed_verifications.count = (initial_result_generator.last_result.failed_verifications.upper - initial_result_generator.last_result.failed_verifications.lower + 1) then
 				from
 					i := 1
 				until
 					i > target_failed_verifications.count
 				loop -- compare the failure one by one
+					print ("target failed verification for: " + target_failed_verifications [i].context_feature.feature_name_32.to_string_8 + "%N")
+					print ("initial result failed verification for: " + initial_result_generator.last_result.failed_verifications [i].context_feature.feature_name_32.to_string_8 + "%N")
+					print ("target_failed_verifications [i].errors.count: " + target_failed_verifications [i].errors.count.out + "%N")
+					print ("initial number of failures: " + initial_result_generator.last_result.failed_verifications [i].errors.count.out + "%N")
 					if target_failed_verifications [i].errors.count = initial_result_generator.last_result.failed_verifications [i].errors.count then
 							-- TODO: use the context line number to distinguish different verification failures
 						from
@@ -502,6 +541,7 @@ feature {NONE} -- Implementation
 						until
 							j > target_failed_verifications [i].errors.count
 						loop
+							print ("context line number" + target_failed_verifications [i].errors [1].context_line_number.out + "%N")
 							if target_failed_verifications [i].errors [j].context_line_number = target_failed_verifications [i].errors [j].context_line_number then
 								error_count := error_count + 1
 							end
@@ -522,6 +562,7 @@ feature {NONE} -- Implementation
 				if equal_count = target_failed_verifications.count then -- verification result remains the same, continue minimization
 					Result := True
 					options.set_is_same_result (True)
+					print ("same verification result : " + equal_count.out + "%N")
 				end
 			end
 		end
@@ -531,14 +572,19 @@ feature {NONE} -- Implementation
 		do
 			if initial_value = 0 and options.number_of_iterations < 2 then
 				Result := True
+				print ("is_converged0: " + Result.out + "%N")
 			elseif initial_value = 0 and options.number_of_iterations >= 2 and is_same_result then
 				Result := True
+				print ("is_converged1: " + Result.out + "%N")
 			elseif (options.number_of_iterations > 2 and options.opt_lower.abs + (options.minimization_tolerance) >= options.opt_upper.abs) then
 				Result := True
+				print ("is_converged2: " + Result.out + "%N")
 			elseif (options.number_of_iterations >= options.minimization_iteration_bound) then
 				Result := True
+				print ("is_converged3: " + Result.out + "%N")
 			elseif (options.number_of_iterations > 1 and initial_value.abs = 1) then
 				Result := True
+				print ("is_converged4: " + Result.out + "%N")
 			end
 				-- TODO: use tolerance and max iteration for limiting the times of iteration
 		end

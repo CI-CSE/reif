@@ -69,6 +69,8 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_WITH_RANDOM_SEED_TASK}.make (new_verifier))
 				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator, remaining_tasks))
 
+				-- print ("number_of_iterations: " + l_context.options.number_of_iterations.out + " vs " + l_context.options.number_of_iteration_for_fixing.out + "%N")
+
 				if l_context.options.number_of_iterations < l_context.options.number_of_iteration_for_fixing then
 					remaining_tasks.extend (create {E2B_VERIFY_FOR_FIX_TASK}.make (result_generator, remaining_tasks))
                 elseif options.failures_for_fix.count > 1 then

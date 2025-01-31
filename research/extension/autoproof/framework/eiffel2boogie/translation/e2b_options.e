@@ -33,7 +33,7 @@ feature {NONE} -- Initialization
 			is_ownership_enabled := True
 			is_ownership_defaults_enabled := True
 
-			loop_unrolling_depth := 5 -- A  value applicable in most cases based on the priliminary evaluation
+			loop_unrolling_depth := 15
 			max_recursive_inlining_depth := 4
 			number_of_iteration_for_fixing := 20
 
@@ -112,7 +112,7 @@ feature -- Generate fixes from counterexamples
 			is_generate_fix_enabled := a_value
 		end
 
-	ce_traces: HASH_TABLE [LINKED_LIST[E2B_CE_TRACE_OF_ROUTINE], STRING_32]
+	ce_traces: HASH_TABLE [LINKED_LIST [E2B_CE_TRACE_OF_ROUTINE], STRING_32]
 			-- Collection of ce traces
 		once
 			create Result.make (0)
@@ -128,7 +128,6 @@ feature -- Generate fixes from counterexamples
 			-- Message for possible fix
 
 	fix_start_time: DT_TIME
-
 
 	set_fix_start_time (a_fix_start_time: DT_TIME)
 			-- Set `fix_start_time' to `a_fix_start_time' -- TODO Li: remove this feature
@@ -383,7 +382,6 @@ feature -- Counterexample minimization
 			opt_time := 0
 			fix_elements.wipe_out
 		end
-
 
 feature --Postcondition mutation step
 

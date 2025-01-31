@@ -218,9 +218,16 @@ feature -- Universe Visitor
 			-- <Precursor>
 		do
 			block_index := block_index + 1
+-- <<<<<<< Updated upstream
 			if is_generate_fix_enabled then
 				output.put_indentation
 				output.put ("passed_blocks := Seq#Update(passed_blocks, " + block_index.out + ", true);")
+-- =======
+					-- if is_generate_fix_enabled then
+					-- output.put_indentation
+					-- output.put ("passed_blocks := Seq#Update(passed_blocks, " + block_index.out + ", true);")
+-- >>>>>>> Stashed changes
+					-- block := Seq#Update(block, i, true);
 			end
 
 			if not a_block.name.is_empty then
@@ -269,6 +276,7 @@ feature -- Universe Visitor
 
 	process_conditional (a_conditional: IV_CONDITIONAL)
 		do
+				-- print ("IV_BOOGIE_SEEDED_CONTRADICTION_PRINTER.process_conditional%N")
 			output.put_indentation
 			output.put ("if (")
 			if a_conditional.condition = Void then
@@ -297,9 +305,12 @@ feature -- Universe Visitor
 				output.put_line ("} else {")
 				output.indent
 					-- insert "assert false" into the else_block of the leaf if/elseif conditional
+					-- print ("not empty else block" + "%N")
 				if is_full_coverage_tests_enabled and not is_mcdc_tests_enabled
 					and not a_conditional.is_current_feature_ghost
 					and then a_conditional.else_block.is_conditional_leaf (false, a_conditional.origin_information) then
+						-- and then uncovered_branch_lines.has (a_conditional.else_block.origin_information.line) then
+						-- print ("seed contradiction for else branch at line %N")
 					if a_conditional.else_block.is_unrolled_block then
 						seed_branch_number_assignment
 					else
@@ -345,6 +356,16 @@ feature -- Universe Visitor
 			end
 			l_parameters := output.string.tail (output.string.count - l_old_count).split (',') -- list of parameters
 			output.put (");")
+			if a_call.name.same_string (context_procedure.name) then -- recursive call
+					-- use a hashtable to store the mapping from arument to parameter
+					-- construct recursive condition based on the hashtable and the enclosed conditional statements
+					-- l_parameters -- robust
+				across context_procedure.arguments as arg loop
+						-- output.put (arg.name)
+				end
+					-- across a_call.arguments as all end
+					-- a_call.arguments.item.has_free_var_named (a_name: READABLE_STRING_8)
+			end
 
 			print_node_info (a_call.node_info)
 			output.put_new_line

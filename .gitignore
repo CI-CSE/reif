@@ -668,14 +668,3 @@ EIFGENs/
 *.obj
 
 research/extension/autoproof/Eiffel/Ace/daikon_input.inv.gz
-Src/C_library/libpng/spec/msc_vc140/win64/lib/libpng.lib
-Src/framework/auto_test/spec/msc_vc140/win64/lib/liblpsolve55.lib
-Src/framework/auto_test/spec/msc_vc140/win64/lib/liblpsolve55d.lib
-Src/framework/auto_test/Clib/lp_solve/lpsolve55/bin/liblpsolve55d.lib
-Src/framework/auto_test/Clib/lp_solve/lpsolve55/bin/liblpsolve55.lib
-Src/C_library/zlib/spec/msc_vc140/win64/lib/zlib.lib
-research/extension/autoproof/autoproof.rc
-research/extension/autoproof/General.txt
-research/extension/autoproof/apb.rc
-research/extension/autoproof/daikon_input.inv.gz
-research/.vscode/settings.json

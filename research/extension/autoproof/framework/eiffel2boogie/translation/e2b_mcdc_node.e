@@ -53,6 +53,8 @@ feature -- Status
 		  		Result := not (attached left or attached right)
 		  end
 
+	-- value: BOOLEAN
+	--		-- Value of the subtree rooted by the current node; False by default
 
 feature -- Setting procedures
 
