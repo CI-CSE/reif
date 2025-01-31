@@ -33,7 +33,7 @@ feature {NONE} -- Initialization
 			is_ownership_enabled := True
 			is_ownership_defaults_enabled := True
 
-			loop_unrolling_depth := 7
+			loop_unrolling_depth := 15
 			max_recursive_inlining_depth := 4
 			number_of_iteration_for_fixing := 20
 
@@ -57,6 +57,7 @@ feature {NONE} -- Initialization
 			create failures_for_fix.make (0)
 			create potential_fixes_names.make (0)
 			create valid_fixes.make (0)
+			create mcdc_decision_exprs.make (0)
 		end
 
 feature -- Inlining verification step
@@ -81,6 +82,22 @@ feature -- Generation of full-coverage tests
 			is_full_coverage_test_generation_enabled := a_value
 		end
 
+	is_full_mcdc_test_generation_enabled: BOOLEAN
+			-- Is generating tests for full coverage enabled?
+
+	set_full_mcdc_test_generation_enabled (a_value: BOOLEAN)
+			-- Set `is_full_coverage_test_generation_enabled' to `a_value'.
+		do
+			is_full_mcdc_test_generation_enabled := a_value
+			set_full_coverage_test_generation_enabled (a_value)
+		end
+
+	mcdc_decision_exprs: ARRAYED_LIST [BYTE_NODE]
+			-- List of decision expressions to be processed
+
+	last_mcdc_decision_expr: STRING
+			-- Last processed decision expression for MCDC
+
 	uncovered_branch: HASH_TABLE [TUPLE [class_name: IMMUTABLE_STRING_32; line_number: INTEGER], INTEGER]
 			-- Uncovered branches in the latest test generation run
 
@@ -95,7 +112,7 @@ feature -- Generate fixes from counterexamples
 			is_generate_fix_enabled := a_value
 		end
 
-	ce_traces: HASH_TABLE [LINKED_LIST[E2B_CE_TRACE_OF_ROUTINE], STRING_32]
+	ce_traces: HASH_TABLE [LINKED_LIST [E2B_CE_TRACE_OF_ROUTINE], STRING_32]
 			-- Collection of ce traces
 		once
 			create Result.make (0)
@@ -111,7 +128,6 @@ feature -- Generate fixes from counterexamples
 			-- Message for possible fix
 
 	fix_start_time: DT_TIME
-
 
 	set_fix_start_time (a_fix_start_time: DT_TIME)
 			-- Set `fix_start_time' to `a_fix_start_time' -- TODO Li: remove this feature
@@ -248,6 +264,7 @@ feature -- Generate tests from proof failures
 			-- Set `new_ce_message' to `a_ce_message'
 		do
 			new_ce_message := a_ce_message
+			-- print ("new ce message: " + a_ce_message.to_string_8 + "%N")
 		end
 
 	set_target_feature (a_feature: like target_feature)
@@ -268,6 +285,17 @@ feature -- Generate tests from proof failures
 			target_error_index := a_error_index
 		end
 
+	set_original_value (a_value: INTEGER)
+			-- Set `original_value' to `a_value'
+		do
+			original_value := a_value
+		end
+
+	set_last_sat_value (a_value: INTEGER)
+			-- Set `last_sat_value' to `a_value'
+		do
+			last_sat_value := a_value
+		end
 	set_minimization_tolerance (a_value: INTEGER)
 			-- Set `minimization_tolerance' to `a_value'
 		do
@@ -289,6 +317,32 @@ feature -- Generate tests from proof failures
 	number_of_iteration_for_fixing: INTEGER
 			-- Number of iterations for generating fixes
 
+	set_number_of_branches_of_current_loop (a_value: INTEGER)
+			-- Set `number_of_branches_of_current_loop' to `a_value'
+		do
+			number_of_branches_of_current_loop := a_value
+		end
+
+	number_of_branches_of_current_loop: INTEGER
+			-- Number of branches inside the current processed loop body
+
+	set_is_unrolling_loop (a_value: BOOLEAN)
+			-- set `is_unrolling_loop' to `a_value'
+	do
+			is_unrolling_loop := a_value
+	end
+
+	is_unrolling_loop: BOOLEAN
+			-- Is the current translation process unrolling the loop?
+
+feature -- Counterexample minimization
+
+	original_value: INTEGER
+			-- Value of the target variable in the original counterexample
+
+	last_sat_value: INTEGER
+			-- Value in the added constraint of the last satisfying verification run
+
 	number_of_iterations: INTEGER
 			-- Number of iterations during minimization
 
@@ -298,6 +352,30 @@ feature -- Generate tests from proof failures
 			number_of_iterations := number_of_iterations + 1
 		end
 
+	test_generation_count: INTEGER
+			-- Number of test generation runs
+
+	increase_test_generation_count
+			-- Increase the number of test generation run by 1
+		do
+			test_generation_count := test_generation_count + 1
+		end
+
+	num_bin_op_of_cond: INTEGER
+			-- Number of boolean binary operators in the expression under processing
+
+	increase_num_bin_op_of_cond
+			-- Increase `num_bin_op_of_cond' by 1
+		do
+			num_bin_op_of_cond := num_bin_op_of_cond + 1
+		end
+
+	reset_num_bin_op_of_cond
+			-- Set `num_bin_op_of_cond' to 0
+		do
+			num_bin_op_of_cond := 0
+		end
+
 	reset
 			-- Reset parameters
 		do
@@ -305,7 +383,6 @@ feature -- Generate tests from proof failures
 			opt_time := 0
 			fix_elements.wipe_out
 		end
-
 
 feature --Postcondition mutation step
 
@@ -601,7 +678,6 @@ feature -- Counterexample optimization
 			opt_time := opt_time + a_value
 				-- print("current opt_time: " + opt_time.out + "%N")
 		end
-
 
 	set_opt_lower (a_value: INTEGER)
 			-- Set the value of last_opt_value to `a_value'

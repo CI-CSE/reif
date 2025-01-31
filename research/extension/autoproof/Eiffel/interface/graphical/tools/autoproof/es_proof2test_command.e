@@ -32,11 +32,18 @@ inherit
 	E2B_SHARED_CONTEXT
 
 create
-	make
+	make_from_failure, make_from_error
 
 feature {NONE} -- Initialization
 
-	make (an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION; a_row: EV_GRID_ROW)
+	make_from_failure (a_failure: E2B_FAILED_VERIFICATION)
+			-- Creation method.
+		do
+			enable_sensitive
+			failure := a_failure
+		end
+
+	make_from_error (an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION; a_row: EV_GRID_ROW)
 			-- Creation method.
 		do
 			enable_sensitive
@@ -803,7 +810,7 @@ note
 					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
 					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 					See the GNU General Public License for more details.
-			
+
 					You should have received a copy of the GNU General Public License along with this program.
 					If not, see <https://www.gnu.org/licenses/>.
 		]"

@@ -38,6 +38,9 @@ feature -- Access
 	type: IV_TYPE
 			-- Type of function.
 
+	is_recursive: BOOLEAN
+			-- Is the current call a recursive call?
+
 	triggers_for (a_bound_var: IV_ENTITY): ARRAYED_LIST [IV_EXPRESSION]
 			-- List of smallest subexpressions of `Current' with a valid triggers for a bound variable `a_bound_var'.
 			-- If one of the arguments is `a_bound_var', use the function call; other combine triggers for all arguments.
@@ -109,6 +112,14 @@ feature -- Element change
 			arguments.extend (a_argument)
 		end
 
+	set_is_recursive (a_value: like is_recursive)
+			-- Set `is_recursive' to `a_value'.
+		do
+			is_recursive := a_value
+		ensure
+			target_set: is_recursive = a_value
+		end
+		
 feature -- Visitor
 
 	process (a_visitor: IV_EXPRESSION_VISITOR)

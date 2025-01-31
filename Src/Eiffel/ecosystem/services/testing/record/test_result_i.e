@@ -88,6 +88,12 @@ feature -- Basic operations
 					a_formatter.process_basic_text (")")
 				end
 			end
+
+			if attached duration then
+				a_formatter.process_basic_text (" [")
+				a_formatter.process_basic_text (duration.fine_seconds_count.out)
+				a_formatter.process_basic_text ("]")
+			end
 		end
 
 	print_details (a_formatter: TEXT_FORMATTER; a_verbose: BOOLEAN)

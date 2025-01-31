@@ -45,7 +45,7 @@ feature -- Access
 		end
 
 	with_simple_vars (a_bound_var: IV_ENTITY): TUPLE [expr: IV_EXPRESSION; subst: ARRAYED_LIST [TUPLE[var: IV_ENTITY; val: IV_EXPRESSION]]]
-			-- Current expression with all occurrences of arithmetic expressions as function/map argumetns replaces with fresh variables;
+			-- Current expression with all occurrences of arithmetic expressions as function/map arguments replaces with fresh variables;
 			-- together with the corresponding variable substitution.	
 		do
 			Result := [Current, create {ARRAYED_LIST [TUPLE[var: IV_ENTITY; val: IV_EXPRESSION]]}.make (3)]
@@ -78,4 +78,20 @@ feature -- Visitor
 invariant
 	valid_name: is_valid_name (name)
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

@@ -18,6 +18,7 @@ feature {NONE} -- Initialization
 	make (a_last_result: like last_result; a_target_feature: like target_feature; a_target_class: like target_class; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
+			print ("E2B_VERIFY_WITH_OPTIMIZATION_TASK.make%N")
 			last_result := a_last_result
 			target_feature := a_target_feature
 			target_class := a_target_class
@@ -28,7 +29,6 @@ feature {NONE} -- Initialization
 			create l_context
 			create target_variables.make (0)
 			create minimized_vars.make
-
 		end
 
 feature -- Status report
@@ -51,6 +51,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			arg_type: TYPE_A
 			pt: E2B_PROOF_TO_TEST_TARGET_FEATURE
 		do
+			print ("E2B_VERIFY_WITH_OPTIMIZATION_TASK.step%N")
 			create l_boogie_universe.make
 			boogie_universe_cell.put (l_boogie_universe)
 
@@ -58,8 +59,9 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			failed_verifications := last_result.failed_verifications
 			k := k + 1
 
-			if attached target_feature and not l_context.options.routines_to_optimize.has (target_feature.body_index) then
+			print (target_feature.feature_name_32 + "%N")
 
+			if attached target_feature and not l_context.options.routines_to_optimize.has (target_feature.body_index) then
 				l_context.options.routines_to_optimize.extend (target_feature.body_index)
 				create pt.make (target_feature, target_class)
 				l_context.options.features_to_optimize.extend (pt)
@@ -80,7 +82,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 					loop -- Minimize each argument of the target feature
 						arg_name := target_feature.arguments.item_name_32 (j).to_string_8
 						arg_type := target_feature.arguments.array_item (j - 1)
-						-- print (arg_name + ": " + arg_type.base_class.name + "%N")
+						print (arg_name + ": " + arg_type.base_class.name + "%N")
 
 						if not options.init_states_of_counterexamples [k].is_aliased_with_existed_object (arg_name) then
 							minimize_var (arg_name, arg_type)

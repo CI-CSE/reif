@@ -54,6 +54,7 @@ feature {NONE} -- Initialization
 			current_feature := a_feature
 			current_type := a_type
 			current_block := current_implementation.body
+
 			current_implementation.procedure.set_status_values (helper.feature_note_values (a_feature, "status"))
 
 			if attached types.for_class_type (a_type) as t then
@@ -84,6 +85,9 @@ feature -- Access
 	current_block: IV_BLOCK
 			-- Current block that receives statements.
 
+	current_conditional: IF_B
+			-- Current if block
+
 	entity_mapping: E2B_ENTITY_MAPPING
 			-- Name mapping used.
 
@@ -98,7 +102,7 @@ feature -- Access
 		end
 
 	context_readable: IV_EXPRESSION
-			-- Readable  frame of the enclosing context if defined, otherwise Void.
+			-- Readable frame of the enclosing context if defined, otherwise Void.
 
 feature -- Element change
 
@@ -148,7 +152,6 @@ feature -- Basic operations
 					not helper.is_explicit (a_feature, "wrapping") and not helper.is_lemma (a_feature) and not helper.is_nonvariant (a_feature) then
 					l_feature := system.any_type.base_class.feature_named ("unwrap")
 					l_expr_translator.set_context_line_number (a_feature.body.start_location.line)
-
 					l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
 					current_block.statements.append (l_expr_translator.side_effect)
 					l_expr_translator.side_effect.wipe_out
@@ -428,15 +431,13 @@ feature -- Processing
 			l_then_orgin_info, l_else_origin_info: IV_STATEMENT_ORIGIN
 			l_nested_then_orgin_info, l_nested_else_origin_info: IV_STATEMENT_ORIGIN
 			l_line_number: INTEGER
-			status_values: ARRAYED_LIST [READABLE_STRING_8]
+
+			-- l_test_suite: ARRAYED_LIST [ARRAYED_LIST [BOOLEAN]]
 		do
-				-- print ("E2B_INSTRUCTION_TRANSLATOR.process_if_b for feature: " + a_node.context.current_feature.feature_name + "%N")
-				-- helper.options.set_conditional (True)
-				-- mapping: feature -> has_conditional
 			current_implementation.set_has_conditional (True)
 			current_implementation.procedure.set_has_conditional (True)
+			current_conditional := a_node
 
-			status_values := helper.feature_note_values (a_node.context.current_feature, "status")
 			set_current_origin_information (a_node)
 
 			l_temp_block := current_block
@@ -445,16 +446,56 @@ feature -- Processing
 			create l_nested_then_orgin_info
 			create l_nested_else_origin_info
 
-				-- if condition
+--			if false then -- options.is_full_mcdc_test_generation_enabled then
+--				l_test_suite := mcdc_of_decision (a_node.condition)
+
+--				across l_test_suite as l_test loop
+--					process_mcdc_expression (a_node.condition, l_test)
+--					create l_if.make (last_expression)
+--					add_statement (l_if)
+--				end
+--					-- print(l_if.condition.process (a_visitor: IV_EXPRESSION_VISITOR))
+--					-- l_decision_expr := ""
+--					-- l_decision_expr.copy (l_if.origin_information.text_of_line)
+--					-- l_decision_expr.remove_head (2) -- remove "if"
+--					-- l_decision_expr.remove_tail (4) -- remove "then"
+--					-- compute_mcdc_test_suite (options.num_bin_op_of_cond + 1, l_decision_expr)
+--					-- generate if-statement based on the mcdc test suite?
+
+--					-- 1) generate condition
+--					-- generate negation for the False value
+
+--					-- 2) generate if statement
+--					-- create l_if.make (last_expression)
+--					-- add_statement (l_if)
+
+--					-- if mcdc_enabled then
+--					-- 1) compute truth table
+--					-- 2) use Z3 for constraint solving (will interrupt the current translation task)
+--					-- how to enable Z3 solving? use command line?
+--					-- 3) select test cases
+--					-- 4) add statement (l_new_if)
+--					-- or store in the array/text file? -- two runs of verification -- stop at translation and do not generate boogie code
+--					-- l_if.node_info.set_attribute (a_node.a_node.context, a_value: READABLE_STRING_8)
+--					-- l_if.node_info.load (a_node.)
+
+--					-- if condition
+--				options.reset_num_bin_op_of_cond
+--			else
+
 			process_expression (a_node.condition)
 			create l_if.make (last_expression)
 			add_statement (l_if)
-				-- l_if.node_info.set_attribute (a_node.a_node.context, a_value: READABLE_STRING_8)
-				-- l_if.node_info.load (a_node.)
 
 				-- then block
 			current_block := l_if.then_block
 			process_compound (a_node.compound)
+
+			if options.is_unrolling_loop and then current_block.is_conditional_leaf (True, Void) then
+				options.set_number_of_branches_of_current_loop (options.number_of_branches_of_current_loop + 1)
+				-- print ("if branch: " + options.number_of_branches_of_current_loop.out + "%N")
+				current_block.set_is_unrolled_block (True)
+			end
 
 				-- get the first line of the compound as the line number of the then_block
 				-- set information for the then block
@@ -463,11 +504,7 @@ feature -- Processing
 				-- print ("then block line: " + l_line_number.out + "%N")
 			l_then_orgin_info.set_line (l_line_number)
 			l_if.then_block.set_origin_information (l_then_orgin_info)
-			if status_values.has ("ghost") then
-				l_if.node_info.set_attribute ("status", "ghost")
-			elseif status_values.has ("lemma") then
-				l_if.node_info.set_attribute ("status", "lemma")
-			end
+			check_ghost_status (a_node, l_if)
 
 				-- elseif blocks
 			current_block := l_if.else_block
@@ -489,23 +526,34 @@ feature -- Processing
 						l_else_origin_info.set_line (l_line_number)
 						l_if.else_block.set_origin_information (l_else_origin_info)
 
+						options.reset_num_bin_op_of_cond
 						process_expression (l_elseif.expr)
 						create l_nested_if.make (last_expression)
 						add_statement (l_nested_if)
+						check_ghost_status (a_node, l_nested_if)
 
-						if status_values.has ("ghost") then
-							l_nested_if.node_info.set_attribute ("status", "ghost")
-						elseif status_values.has ("lemma") then
-							l_nested_if.node_info.set_attribute ("status", "lemma")
-						end
 							-- elseif block
 						current_block := l_nested_if.then_block
+
+						if options.is_unrolling_loop and then current_block.is_conditional_leaf (True, Void) then
+							options.set_number_of_branches_of_current_loop (options.number_of_branches_of_current_loop + 1)
+							-- print ("else if branch: " + options.number_of_branches_of_current_loop.out + "%N")
+							current_block.set_is_unrolled_block (True)
+						end
+
 						process_compound (l_elseif.compound)
 						l_nested_then_orgin_info.set_file (current_feature.written_class.file_name)
 						l_nested_then_orgin_info.set_line (l_elseif.compound.line_number)
 						l_nested_if.then_block.set_origin_information (l_nested_then_orgin_info)
+
 							-- else block
 						current_block := l_nested_if.else_block
+
+						if options.is_unrolling_loop and then current_block.is_conditional_leaf (True, Void) then
+							options.set_number_of_branches_of_current_loop (options.number_of_branches_of_current_loop + 1)
+							-- print ("else branch: " + options.number_of_branches_of_current_loop.out + "%N")
+							current_block.set_is_unrolled_block (True)
+						end
 							-- l_nested_else_orgin_info.set_file (current_feature.written_class.file_name)
 							-- l_nested_else_orgin_info.set_line (l_elseif.)
 							-- l_nested_if.else_block.set_origin_information (l_nested_then_orgin_info)
@@ -523,10 +571,19 @@ feature -- Processing
 				l_else_origin_info.set_file (current_feature.written_class.file_name)
 				l_else_origin_info.set_line (l_line_number)
 				l_if.else_block.set_origin_information (l_else_origin_info)
+					--elseif options.is_full_coverage_test_generation_enabled then
+				if options.is_unrolling_loop and then l_if.else_block.is_conditional_leaf (True, Void) then
+					options.set_number_of_branches_of_current_loop (options.number_of_branches_of_current_loop + 1)
+					print ("else branch: " + options.number_of_branches_of_current_loop.out + "%N")
+					l_if.else_block.set_is_unrolled_block (True)
+				end
+					-- print ("empty else block?!%N")
+					-- l_if.else_block
 			end
 
 				-- restore context
 			current_block := l_temp_block
+				-- end
 		end
 
 	process_inspect_b (a_node: INSPECT_B)
@@ -647,6 +704,7 @@ feature -- Processing
 	process_instr_call_b (a_node: INSTR_CALL_B)
 			-- <Precursor>
 		do
+				-- print ("process_instr_call_b " + a_node.context.feature_name_local + "%N")
 			set_current_origin_information (a_node)
 				-- Instruction call is in the side effect of the expression,
 				-- so the generated expression itself is ignored.
@@ -657,7 +715,13 @@ feature -- Processing
 	process_loop_b (a_node: LOOP_B)
 			-- <Precursor>
 		do
+			current_implementation.set_has_conditional (True)
+
 			if options.is_automatic_loop_unrolling_enabled and a_node.invariant_part = Void then
+				process_loop_unrolled (a_node)
+			elseif options.is_full_coverage_test_generation_enabled and options.is_automatic_loop_unrolling_enabled then
+					-- Unroll loop 15 times by default
+				options.set_loop_unrolling_depth (15)
 				process_loop_unrolled (a_node)
 			else
 				process_loop_normal (a_node)
@@ -690,6 +754,9 @@ feature -- Processing
 			l_variant_exprs: ARRAYED_LIST [IV_EXPRESSION]
 			l_assignment: IV_ASSIGNMENT
 			l_modifies, l_decreases: ARRAYED_LIST [E2B_ASSERT_ORIGIN]
+			l_translator: E2B_BODY_EXPRESSION_TRANSLATOR
+			l_test_suite: ARRAYED_LIST [ARRAYED_LIST [BOOLEAN]]
+			l_if: IV_CONDITIONAL
 		do
 			set_current_origin_information (a_node)
 
@@ -742,7 +809,34 @@ feature -- Processing
 
 				-- Condition
 			set_current_origin_information (a_node.stop)
+
+			if options.is_full_mcdc_test_generation_enabled then
+				create {E2B_MCDC_DECISION_COLLECTOR} l_translator.make
+				l_translator.set_context (current_feature, current_type)
+				l_translator.set_context_implementation (current_implementation)
+				if attached current_origin_information as coi then
+					l_translator.set_context_line_number (coi.line)
+				end
+				l_translator.copy_entity_mapping (entity_mapping)
+				l_translator.locals_map.merge (locals_map)
+				l_translator.set_local_writable (local_writable)
+				l_translator.set_context_readable (context_readable)
+				a_node.stop.process (l_translator)
+
+				if not options.mcdc_decision_exprs.is_empty then
+					l_test_suite := mcdc_of_decision (options.mcdc_decision_exprs.first)
+
+					across l_test_suite as l_test loop
+						process_mcdc_expression (options.mcdc_decision_exprs.first, l_test)
+						create l_if.make (last_expression)
+						add_statement (l_if)
+					end
+					options.mcdc_decision_exprs.wipe_out
+				end
+			end
+
 			process_contract_expression (a_node.stop, False)
+
 			across last_safety_checks as i loop
 				add_statement (i)
 			end
@@ -759,7 +853,7 @@ feature -- Processing
 			create l_assume.make_assume (factory.not_ (l_condition))
 			add_statement (l_assume)
 
-				-- Variant initization
+				-- Variant initialization
 			create l_variant_exprs.make (3)
 			create l_variant_locals.make (3)
 			process_loop_variants (a_node.variant_part, l_decreases, l_condition, l_variant_exprs, l_variant_locals)
@@ -775,7 +869,10 @@ feature -- Processing
 			else
 				set_current_origin_information (a_node)
 			end
-			add_termination_check (l_variant_locals, l_variant_exprs)
+
+			if not options.is_full_coverage_test_generation_enabled and not options.is_full_mcdc_test_generation_enabled then -- disable termination check when generating tests
+				add_termination_check (l_variant_locals, l_variant_exprs)
+			end
 
 				-- Goto head
 			create l_goto.make (l_head_block)
@@ -1092,11 +1189,12 @@ feature -- Processing
 			l_assert: IV_ASSERT
 			l_assume: IV_ASSERT
 			l_not: IV_UNARY_OPERATION
-			l_op: IV_BINARY_OPERATION
+			l_op, l_eq: IV_BINARY_OPERATION
 			l_variant: IV_ENTITY
 			l_assignment: IV_ASSIGNMENT
 			l_unroll_counter: INTEGER
 		do
+			options.set_is_unrolling_loop (True)
 			l_temp_block := current_block
 
 				-- Init condition
@@ -1174,12 +1272,14 @@ feature -- Processing
 
 					-- body
 				current_block := l_temp_block
+				l_body_block.set_is_unrolled_block (options.is_unrolling_loop)
 				add_statement (l_body_block)
 				current_block := l_body_block
 
 				create l_not.make ("!", l_condition, types.bool)
 				create l_assume.make_assume (l_not)
 				add_statement (l_assume)
+				options.set_number_of_branches_of_current_loop (0)
 				process_compound (a_node.compound)
 
 				if a_node.variant_part /= Void then
@@ -1191,8 +1291,30 @@ feature -- Processing
 					add_statement (l_assert)
 				end
 
+					-- add check assertion for test generation
+				if options.is_full_coverage_test_generation_enabled then
+					print ("loop branches: " + options.number_of_branches_of_current_loop.out + "%N")
+					if options.number_of_branches_of_current_loop = 0 then
+						create l_not.make ("!", l_condition, types.bool)
+						create l_assert.make (l_not)
+						l_assert.node_info.set_type ("contradiction clause")
+						add_statement (l_assert)
+					else
+						across ((l_unroll_counter - 1) * options.number_of_branches_of_current_loop + 1) |..| (l_unroll_counter * options.number_of_branches_of_current_loop) as i loop
+							create l_eq.make (create {IV_ENTITY}.make ("bnu", types.int), "==", create {IV_VALUE}.make (i.out, types.int), types.bool)
+							create l_op.make (l_condition, "&&", l_eq, types.bool)
+							create l_not.make ("!", l_op, types.bool)
+							create l_assert.make (l_not)
+							l_assert.node_info.set_type ("contradiction clause")
+							add_statement (l_assert)
+						end
+					end
+				end
+
 				l_unroll_counter := l_unroll_counter + 1
 			end
+
+			options.set_is_unrolling_loop (False)
 
 			if options.is_sound_loop_unrolling_enabled then
 				create l_goto.make (l_head_block)
@@ -1357,7 +1479,9 @@ feature {NONE} -- Loop processing
 							l_inv.node_info.set_tag (l_invariant.tag)
 							l_inv.node_info.set_line (l_invariant.line_number)
 						end
-						add_statement (l_inv)
+						if not options.is_full_coverage_test_generation_enabled and not options.is_full_mcdc_test_generation_enabled then -- disable loop invariant check when generating tests
+							add_statement (l_inv)
+						end
 					end
 				end
 			end
@@ -1484,12 +1608,107 @@ feature {NONE} -- Implementation
 			end
 		end
 
-	process_expression (a_expr: BYTE_NODE)
+	mcdc_of_decision (a_expr: BYTE_NODE): ARRAYED_LIST [ARRAYED_LIST [BOOLEAN]]
 			-- Process expression `a_expr'.
 		local
-			l_translator: E2B_BODY_EXPRESSION_TRANSLATOR
+			l_generator: E2B_MCDC_NODE_GENERATOR
+			l_op, l_sequence: STRING
+			l_node: E2B_MCDC_NODE
+			l_test_suite_int: ARRAYED_LIST [INTEGER]
+			l_test: ARRAYED_LIST [BOOLEAN]
+			l_test_suite: ARRAYED_LIST [ARRAYED_LIST [BOOLEAN]]
+			l_index, i: INTEGER
 		do
-			create l_translator.make
+				-- print ("E2B_INSTRUCTION_TRANSLATOR.process_expression_for_mcdc" + "%N")
+			create l_generator.make
+				-- if attached current_origin_information as coi then
+				--	l_generator.set_context_line_number (coi.line)
+				-- end
+				-- l_generator.copy_entity_mapping (entity_mapping)
+				-- l_generator.locals_map.merge (locals_map)
+			a_expr.process (l_generator)
+
+			create l_test.make (0)
+			create l_test_suite.make (0)
+			create l_test_suite_int.make (0)
+
+			across l_generator.leaf_nodes as leaf loop
+					-- generate independent test pair for each leaf node
+				l_index := l_index + 1
+
+				from
+					l_node := leaf
+				until
+					not (attached l_node.parent) -- loop untill reaching the root
+				loop
+
+					l_op := l_node.parent.operator
+					-- print ("l_op: " + l_op + "%N")
+					if l_op ~ "||" or l_op ~ "==>" then
+						l_node.sibling.set_expected_value (False)
+					elseif l_op ~ "&&" or l_op ~ "==" or l_op ~ "!=" then
+						l_node.sibling.set_expected_value (True)
+					end
+
+						--  go to the immediate parent
+					l_node := l_node.parent
+				end
+
+					-- traverse the leaf nodes to get the test
+				l_test.wipe_out
+				l_sequence := ""
+				from
+					i := 1
+				until
+					i > l_generator.leaf_nodes.count
+				loop
+					-- print ("l_index: " + l_index.out + "vs i: " + i.out + "%N")
+					if not (i = l_index) then
+						l_sequence.append (l_generator.leaf_nodes [i].expected_value.to_integer.out)
+						l_test.extend (l_generator.leaf_nodes [i].expected_value)
+					else
+						l_sequence.append ("1")
+						l_test.extend (True)
+					end
+					i := i + 1
+				end
+
+					-- TODO: how to use hash function to reduce the cost
+					-- print (l_index.out +  "%N")
+					-- print ("l_seq: " + l_sequence + "%N")
+				if not l_test_suite_int.has (l_sequence.to_integer) then
+					l_test_suite_int.extend (l_sequence.to_integer)
+					l_test_suite.extend (l_test.twin)
+				end
+
+					-- Flip the value at node l_index to get the complement pair
+				l_sequence.replace_substring ("0", l_index, l_index)
+					-- print ("l_seq c: " + l_sequence + "%N")
+				if not l_test_suite_int.has (l_sequence.to_integer) then
+					l_test_suite_int.extend (l_sequence.to_integer)
+					l_test [l_index] := False
+					l_test_suite.extend (l_test.twin)
+				end
+
+			end
+
+--			across l_test_suite as t loop
+--				across t as v loop
+--					print (v.out + " ")
+--				end
+--				print ("%N")
+--			end
+			Result := l_test_suite
+		end
+
+	process_mcdc_expression (a_expr: BYTE_NODE; a_conditions_values: ARRAYED_LIST [BOOLEAN])
+			-- Process expression `a_expr'.
+		local
+			l_translator: E2B_MCDC_EXPRESSION_TRANSLATOR
+			-- l_recur_cond: IV_FUNCTION
+		do
+				-- print ("E2B_INSTRUCTION_TRANSLATOR.process_mcdc_expression" + "%N")
+			create l_translator.make_from_test (a_conditions_values)
 			l_translator.set_context (current_feature, current_type)
 			l_translator.set_context_implementation (current_implementation)
 			if attached current_origin_information as coi then
@@ -1500,6 +1719,7 @@ feature {NONE} -- Implementation
 			l_translator.set_local_writable (local_writable)
 			l_translator.set_context_readable (context_readable)
 			a_expr.process (l_translator)
+
 			across
 				l_translator.side_effect as stmts
 			loop
@@ -1508,6 +1728,21 @@ feature {NONE} -- Implementation
 					current_origin_information := Void
 				end
 				current_block.add_statement (stmts)
+
+					-- Add a function of recursive condition
+--				if options.is_full_coverage_test_generation_enabled and attached {IV_PROCEDURE_CALL} stmts as l_call and then l_call.is_recursive then
+--					 create l_recur_cond.make (current_feature.feature_name + "_rec_cond", types.bool)
+--					 l_recur_cond.set_body (recursive_condition_body (l_call))
+
+--					if attached boogie_universe.procedure_named (name_translator.boogie_procedure_for_feature (current_feature, current_type)) as l_proc then
+--							-- use the same set of arguments as the current feature
+--							-- TODO: perform recursion inlining when generate tests for full-coverage
+--						across l_proc.arguments as arg loop
+--							l_recur_cond.add_argument (arg.name, arg.type)
+--						end
+--					end
+--					boogie_universe.add_declaration (l_recur_cond)
+--				end
 			end
 			last_expression := l_translator.last_expression
 			if last_expression = Void then
@@ -1515,6 +1750,156 @@ feature {NONE} -- Implementation
 			end
 			locals_map.merge (l_translator.locals_map)
 			create entity_mapping.make_copy (l_translator.entity_mapping)
+		end
+
+	process_expression (a_expr: BYTE_NODE)
+			-- Process expression `a_expr'.
+		local
+			l_translator: E2B_BODY_EXPRESSION_TRANSLATOR
+				-- l_recur_cond: IV_FUNCTION
+			l_if: IV_CONDITIONAL
+			l_test_suite: ARRAYED_LIST [ARRAYED_LIST [BOOLEAN]]
+			l_orig_expression: IV_EXPRESSION
+		do
+			-- print ("E2B_INSTRUCTION_TRANSLATOR.process_expression" + "%N")
+			if not options.is_full_mcdc_test_generation_enabled then
+				create l_translator.make
+			else
+				create {E2B_MCDC_DECISION_COLLECTOR} l_translator.make
+			end
+			l_translator.set_context (current_feature, current_type)
+			l_translator.set_context_implementation (current_implementation)
+			if attached current_origin_information as coi then
+				l_translator.set_context_line_number (coi.line)
+			end
+			l_translator.copy_entity_mapping (entity_mapping)
+			l_translator.locals_map.merge (locals_map)
+			l_translator.set_local_writable (local_writable)
+			l_translator.set_context_readable (context_readable)
+			a_expr.process (l_translator)
+			l_orig_expression := l_translator.last_expression
+
+			across
+				l_translator.side_effect as stmts
+			loop
+				if @ stmts.is_first and attached current_origin_information as coi then
+					stmts.set_origin_information (coi)
+					current_origin_information := Void
+				end
+				current_block.add_statement (stmts)
+
+					-- Add a function of recursive condition
+--				if options.is_full_coverage_test_generation_enabled and attached {IV_PROCEDURE_CALL} stmts as l_call and then l_call.is_recursive then
+--					create l_recur_cond.make (current_feature.feature_name + "_rec_cond", types.bool)
+--					l_recur_cond.set_body (recursive_condition_body (l_call))
+
+--					if attached boogie_universe.procedure_named (name_translator.boogie_procedure_for_feature (current_feature, current_type)) as l_proc then
+--							-- use the same set of arguments as the current feature
+--							-- TODO: perform recursion inlining when generate tests for full-coverage
+--						across l_proc.arguments as arg loop
+--							l_recur_cond.add_argument (arg.name, arg.type)
+--						end
+--					end
+--					boogie_universe.add_declaration (l_recur_cond)
+--				end
+			end
+			last_expression := l_translator.last_expression
+				-- check whether the expression is a boolean
+
+			if last_expression = Void then
+				last_expression := factory.false_
+			end
+			locals_map.merge (l_translator.locals_map)
+			create entity_mapping.make_copy (l_translator.entity_mapping)
+
+				-- mcdc tests
+				-- if not options.is_generate_minimal_counterexample_enabled and not options.mcdc_decision_exprs.is_empty then
+			if not options.mcdc_decision_exprs.is_empty then
+				l_test_suite := mcdc_of_decision (options.mcdc_decision_exprs.first)
+				current_implementation.set_has_conditional (True)
+				current_implementation.procedure.set_has_conditional (True)
+
+				across l_test_suite as l_test loop
+					process_mcdc_expression (options.mcdc_decision_exprs.first, l_test)
+					create l_if.make (last_expression)
+					add_statement (l_if)
+					check_ghost_status (a_expr, l_if)
+				end
+				options.mcdc_decision_exprs.wipe_out
+			end
+
+			last_expression := l_orig_expression
+		end
+
+	recursive_condition_body (a_call: IV_PROCEDURE_CALL): IV_EXPRESSION
+			-- `Result' is the condition to enable the recursive call; it is a conjunction expression which consists of:
+			-- 1) preconditions of the recursive feature
+			-- 2) negated condition of each base case
+			-- 3) condition of the recursive case
+		local
+			l_rec_conditions, l_if_conditions: ARRAYED_LIST [IV_EXPRESSION]
+			l_call_line: INTEGER
+		do
+			create l_rec_conditions.make (0); create l_if_conditions.make (0)
+
+				-- preconditions
+			if attached boogie_universe.procedure_named (name_translator.boogie_procedure_for_feature (current_feature, current_type)) as l_proc then
+				across l_proc.contracts as l_contract loop
+					if attached {IV_PRECONDITION} l_contract as l_pre and then attached l_pre.node_info.line then
+						l_rec_conditions.extend (l_pre.expression)
+					end
+				end
+			end
+
+				-- conditions in the `current_conditional'
+				-- workaround: construct the right boolean expression based on the line number.
+			if attached a_call.node_info then
+				l_call_line := a_call.node_info.line.to_integer
+			else
+				l_call_line := -1
+			end
+
+			process_expression (current_conditional.condition)
+			l_if_conditions.extend (last_expression)
+
+			if attached current_conditional.elsif_list then
+				across current_conditional.elsif_list as l_if loop
+					if l_if.line_number < l_call_line then
+						check
+							attached {ELSIF_B} l_if as l_elseif
+						then
+							process_expression (l_elseif.expr)
+							l_if_conditions.extend (last_expression)
+						end
+					end
+				end
+			end
+
+			if attached current_conditional.else_part and then current_conditional.else_part.line_number <= l_call_line then
+					-- recursive call is in the else part, negate each of the if conditions and put them in `l_rec_conditions'
+				across l_if_conditions as cond loop
+					l_rec_conditions.extend (create {IV_UNARY_OPERATION}.make ("!", cond, types.bool))
+				end
+			else
+					-- recursive call is in the last if part, negate each of the if conditions prior to the last one and put them in `l_rec_conditions'
+				l_rec_conditions.extend (l_if_conditions.last)
+				l_if_conditions.finish
+				l_if_conditions.remove
+				across l_if_conditions as cond loop
+					l_rec_conditions.extend (create {IV_UNARY_OPERATION}.make ("!", cond, types.bool))
+				end
+			end
+
+			if l_rec_conditions.count = 1 then
+				create {IV_UNARY_OPERATION} Result.make ("", l_rec_conditions.first, types.bool)
+			elseif l_rec_conditions.count > 1 then
+					-- build conjuction for all the conditions
+				create {IV_BINARY_OPERATION} Result.make (l_rec_conditions [1], "&&", l_rec_conditions [2], types.bool)
+				l_rec_conditions.remove_i_th (1); l_rec_conditions.remove_i_th (1)
+				across l_rec_conditions as cond loop
+					create {IV_BINARY_OPERATION} Result.make (Result, "&&", cond, types.bool)
+				end
+			end
 		end
 
 	process_contract_expression (a_expr: BYTE_NODE; a_use_triggers: BOOLEAN)
@@ -1605,6 +1990,159 @@ feature {NONE} -- Implementation
 			locals_map.merge (l_translator.locals_map)
 		end
 
+	compute_mcdc_test_suite (a_number_of_conditions: INTEGER; decision_expr: STRING)
+			-- Compute a test suite that satisfies MCDC
+			-- Generate a truth table of `a_number_of_conditions' for the predicate `decision_expr'
+		local
+			t_table: ARRAYED_LIST [STRING]
+		do
+			-- print (decision_expr + "%N")
+
+			t_table := init_truth_table (a_number_of_conditions)
+			t_table := compute_decision_values (t_table, a_number_of_conditions, decision_expr)
+
+		end
+
+	init_truth_table (n: INTEGER): ARRAYED_LIST [STRING]
+			-- Return a truth table that consists of `n' conditions
+			-- Each element of `Result' is a possible combination of T/F value
+		local
+			l_entry, l_new_entry: STRING
+			l_index, l_flip_pos: INTEGER
+		do
+			create Result.make (0)
+			l_entry := ""; l_new_entry := ""
+			across 1 |..| n as i loop
+				l_entry.append_character ('T')
+			end
+			Result.force (create {STRING}.make_from_string (l_entry))
+			Result.compare_objects
+
+			from
+				l_index := 1
+			until
+				l_index > Result.count
+			loop
+				l_entry.copy (Result [l_index])
+
+				from
+					l_flip_pos := 1
+				until
+					l_flip_pos > l_entry.count
+				loop
+					if l_entry [l_flip_pos] ~ 'T' then -- Flip each character and add the filpped string to the table
+						l_entry [l_flip_pos] := 'F'
+						l_new_entry.copy (l_entry)
+						l_entry [l_flip_pos] := 'T'
+
+						if not Result.has (l_new_entry) then
+							Result.extend (create {STRING}.make_from_string (l_new_entry))
+						end
+					end
+					l_flip_pos := l_flip_pos + 1
+				end
+				l_index := l_index + 1
+			end
+
+--			across Result as str loop
+--				print (str + "%N")
+--			end
+
+		end
+
+	compute_decision_values (a_truth_table: ARRAYED_LIST [STRING]; n: INTEGER; a_decision_expr: STRING): ARRAYED_LIST [STRING]
+			-- Compute T/F values for `a_decision_expr' using SMT solving
+			-- `Result' is a new truth table with the computed values
+		local
+			smt_f: EPA_SMTLIB_FACILITY
+			l_smt_content, l_dec, l_decision, l_clause, l_operator: STRING
+			l_op_index: INTEGER
+			l_words: LIST [STRING]
+			l_is_last_parenthesis: BOOLEAN
+		do
+			create smt_f
+			l_smt_content := ""; l_dec := ""; l_clause := ""; l_operator := ""
+			across 1 |..| n as i loop
+				l_dec := l_dec + "(declare-fun " + "c" + i.out + "() Bool)%N"
+			end
+
+			across a_truth_table as entry loop
+				l_clause := "(assert (and "
+				across 1 |..| n as i loop
+					if entry [i] ~ 'T' then
+						l_clause := l_clause + "c" + i.out + " "
+					else
+						l_clause := l_clause + "(not c" + i.out + ") "
+					end
+				end
+				l_clause := l_clause + "))" + ";" + entry + "%N"
+				l_smt_content := l_dec + l_clause
+				-- print ((not smt_f.is_unsat (l_smt_content)).out + "%N%N")
+			end
+
+				-- rewrite a_decision_expr in SMT format
+				-- Initialize an empty stack and an empty string for the postfix expression.
+				-- a > 10 and b < a or ((c >= 100 and not d (var1, var2)) or f < k)
+				-- c1 and c2 or ((c3 and not c4 ())) or c5) -- read from left to right, remain "and" "or"  "not" and parenthesis
+				-- construct table to store the mapping from boolean variable to the actual condition expression
+			l_decision := "c1"
+			l_words := a_decision_expr.split (' ')
+			l_op_index := 2
+
+			across a_decision_expr as c loop
+				if l_operator.count <= 3 then
+					l_operator.append_character (c)
+				else
+					l_operator := ""
+				end
+
+				if c ~ '(' or c ~ ')' then
+					l_decision.append_character (c)
+					l_is_last_parenthesis := True
+				elseif l_operator ~ "and" or l_operator ~ "or" or l_operator ~ "not" then
+					l_decision := l_decision + " " + l_operator.twin + " " + "c" + l_op_index.out + " " -- parenthesis
+					l_op_index := l_op_index + 1
+				end
+			end
+
+--			across l_words as word loop
+--				if word ~ "and" or word ~ "or" or word ~ "not" then
+--					l_decision := l_decision + " " + word + " " + "c" + l_op_index.out + " " -- parenthesis
+--					l_op_index := l_op_index + 1
+--			   else
+--					across word as c loop
+--							 print ("char: " + c.out + "%N")
+--						if c ~ '(' or c ~ ')' then
+--							l_decision.append_character (c)
+--						end
+--					end
+--				end
+--			end
+
+			print ("decision: " + l_decision + "%N")
+
+				-- get rid of "()"
+				-- c1 and c2 or ((c3 and not c4))) or c5
+
+				-- perform this step during AST processing? -- consider the case where there exists function with argument in the expression
+
+				-- Scan the infix expression from   to right.
+				-- If the scanned character is an operand (number or variable), append it to the postfix string.
+				-- If the scanned character is an open parenthesis ‘(‘, push it onto the stack.
+				-- If the scanned character is an operator (+, -, *, /, etc.), do the following:
+				-- a. While the stack is not empty and the top of the stack is an operator with higher or equal precedence to the current operator,
+				-- pop operators from the stack and append them to the postfix string.
+				-- b. Push the current operator onto the stack.
+				-- If the scanned character is a close parenthesis ‘)’, do the following:
+				-- a. Pop operators from the stack and append them to the postfix string until an open parenthesis is encountered (and discard the open parenthesis).
+				-- Repeat steps 3-6 until all characters in the infix expression have been scanned.
+				-- Pop any remaining operators from the stack and append them to the postfix string.
+				-- The resulting string in the postfix notation is the desired output.
+
+				-- l_smt_content := l_smt_content + a_decision_expr
+
+		end
+
 	last_expression: IV_EXPRESSION
 			-- Last generated expression.
 
@@ -1623,7 +2161,20 @@ feature {NONE} -- Implementation
 	local_writable: detachable IV_EXPRESSION
 			-- Writable frame of the current loop.
 
-	;
+	check_ghost_status (a_node: BYTE_NODE; a_statement: IV_STATEMENT)
+			-- Check if `a_statement' is inside a `ghost' feature
+		local
+			l_status: ARRAYED_LIST [READABLE_STRING_8]
+		do
+			l_status := helper.feature_note_values (a_node.context.current_feature, "status")
+			if l_status.has ("ghost") then
+				a_statement.node_info.set_attribute ("status", "ghost")
+			elseif l_status.has ("lemma") then
+				a_statement.node_info.set_attribute ("status", "lemma")
+			end
+		end
+
+;
 
 note
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

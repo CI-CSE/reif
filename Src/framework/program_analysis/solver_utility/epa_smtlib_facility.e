@@ -10,28 +10,29 @@ class
 inherit
 	EPA_SOLVER_FACILITY
 
---feature -- Basic operations
+feature -- Basic operations
 
---	is_unsat (a_content: STRING): BOOLEAN
---			-- Is the SMTLIB content `a_content' unsatisfiable?
---		local
---			l_output: STRING
---		do
---			generate_file (a_content)
---			l_output := z3_output
---			l_output.replace_substring_all ("%R", "")
---			l_output.replace_substring_all ("%N", "")
---			Result := l_output.is_equal ("unsat")
---		end
+	is_unsat (a_content: STRING): BOOLEAN
+			-- Is the SMTLIB content `a_content' unsatisfiable?
+		local
+			l_output: STRING
+		do
+			generate_file (a_content)
+			l_output := z3_output
+			print ("SMT out: " + z3_output + "%N")
+			l_output.replace_substring_all ("%R", "")
+			l_output.replace_substring_all ("%N", "")
+			Result := l_output.is_equal ("unsat")
+		end
 
 feature{NONE} -- Implementation
 
-	smtlib_file_directory: STRING = "/tmp"
+	smtlib_file_directory: STRING = "F:\PhD\WIP\MCDC"
 
-	smtlib_file_path: STRING = "/tmp/autofix.smt"
+	smtlib_file_path: STRING = "F:\PhD\WIP\MCDC\testMCDC.smt"
 			-- Full path of the generated smtlib file
 
-	z3_command: STRING = "/bin/sh -c %"/home/jasonw/apps/z3/bin/z3.exe /smt: autofix.smt%""
+	z3_command: STRING = "z3 testMCDC.smt%""
 			-- Command to launch Z3 SMT solver
 
 	generate_file (a_content: STRING)
@@ -41,7 +42,9 @@ feature{NONE} -- Implementation
 			l_file: PLAIN_TEXT_FILE
 		do
 			create l_file.make_create_read_write (smtlib_file_path)
+			l_file.put_string (smt_header)
 			l_file.put_string (a_content)
+			l_file.put_string (smt_check_sat_command)
 			l_file.close
 		end
 
@@ -70,6 +73,22 @@ feature{NONE} -- Implementation
 			-- Append `a_output' into `output_buffer'.
 		do
 			output_buffer.append (a_output)
+		end
+
+	smt_header: STRING
+		once
+			Result := "(set-option :print-success false)%N"
+						+ "(set-info :smt-lib-version 2.6)%N"
+						+ "(set-option :produce-models true)%N"
+						+ "(set-option :smt.mbqi false)%N"
+						+ "(set-option :model.compact false)%N"
+						+ "(set-option :model.v2 true)%N"
+						+ "(set-option :pp.bv_literals false)%N"
+		end
+
+	smt_check_sat_command: STRING
+		once
+			Result := "(check-sat)%N" + "(get-model)%N"
 		end
 
 	solver_output (a_content: STRING): STRING

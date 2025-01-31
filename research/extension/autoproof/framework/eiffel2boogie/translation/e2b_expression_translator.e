@@ -95,7 +95,7 @@ feature -- Access
 			-- Last generated expression.
 
 	side_effect: LINKED_LIST [IV_STATEMENT]
-			-- List of side effect statements.			
+			-- List of side effect statements.
 
 	context_feature: FEATURE_I
 			-- Context of expression.
@@ -153,7 +153,7 @@ feature -- Convenience
 		end
 
 	feature_class_type (a_feature: FEATURE_I): CL_TYPE_A
-			-- Type of `a_feature' in the context of `current_target_type'			
+			-- Type of `a_feature' in the context of `current_target_type'
 		require
 			a_feature_attached: attached a_feature
 			current_target_type_attached: attached current_target_type
@@ -169,9 +169,9 @@ feature -- Convenience
 		do
 			if attached {EXTERNAL_B} a_node as ext and then ext.is_static_call then
 				Result := feature_class_type (helper.feature_for_call_access (ext, ext.static_class_type))
-			elseif attached { CALL_ACCESS_B } a_node as ca then
+			elseif attached {CALL_ACCESS_B} a_node as ca then
 				Result := feature_class_type (helper.feature_for_call_access (ca, current_target_type))
-			elseif attached { RESULT_B } a_node as res then
+			elseif attached {RESULT_B} a_node as res then
 				check attached context_feature and then context_feature.has_return_value end
 				Result := feature_class_type (context_feature)
 			else
@@ -292,18 +292,21 @@ feature -- Visitors
 	process_agent_call_b (a_node: AGENT_CALL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_agent_call_b%N")
 			process_feature_b (a_node)
 		end
 
 	process_argument_b (a_node: ARGUMENT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_argument_b%N")
 			last_expression := entity_mapping.argument (context_feature, context_type, a_node.position)
 		end
 
 	process_array_const_b (a_node: ARRAY_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_array_const_b%N")
 			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest array in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
@@ -314,6 +317,7 @@ feature -- Visitors
 			l_feature: FEATURE_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_attribute_b%N")
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
 			if l_handler /= Void then
@@ -332,8 +336,10 @@ feature -- Visitors
 			l_fcall: IV_FUNCTION_CALL
 			l_fname: STRING
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_binary%N")
 			safe_process (a_node.left)
 			l_left := last_expression
+
 			safe_process (a_node.right)
 			l_right := last_expression
 
@@ -345,11 +351,11 @@ feature -- Visitors
 				(create {E2B_CUSTOM_LOGICAL_HANDLER}).handle_binary (Current, l_class, l_left, l_right, a_operator)
 			elseif is_in_quantifier and options.is_triggering_on_arithmetic then
 				if a_operator ~ "+" then
-					last_expression := factory.function_call ("add", << l_left, l_right >>, types.int)
+					last_expression := factory.function_call ("add", <<l_left, l_right>>, types.int)
 				elseif a_operator ~ "-" then
-					last_expression := factory.function_call ("subtract", << l_left, l_right >>, types.int)
+					last_expression := factory.function_call ("subtract", <<l_left, l_right>>, types.int)
 				elseif a_operator ~ "*" then
-					last_expression := factory.function_call ("multiply", << l_left, l_right >>, types.int)
+					last_expression := factory.function_call ("multiply", <<l_left, l_right>>, types.int)
 				else
 					create {IV_BINARY_OPERATION} last_expression.make (l_left, a_operator, l_right, l_boogie_type)
 				end
@@ -377,6 +383,7 @@ feature -- Visitors
 			l_left, l_right: IV_EXPRESSION
 			l_safety_check_condition: IV_EXPRESSION
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_binary_semistrict%N")
 			safe_process (a_node.left)
 			l_left := last_expression
 
@@ -394,24 +401,30 @@ feature -- Visitors
 	process_binary_infix (a_node: BINARY_B)
 			-- Process binary infix node `a_node'.
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_binary_infix%N")
 			a_node.nested_b.process (Current)
 		end
 
 	process_bin_and_b (a_node: BIN_AND_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_and_b%N")
 			process_binary (a_node, "&&")
+				-- options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_and_then_b (a_node: B_AND_THEN_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_and_then_b%N")
 			process_binary_semistrict (a_node, "&&", True)
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_div_b (a_node: BIN_DIV_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_div_b%N")
 			if a_node.type.is_real_32 or a_node.type.is_real_64 then
 				process_binary (a_node, "/")
 			elseif a_node.is_built_in then
@@ -424,18 +437,21 @@ feature -- Visitors
 	process_bin_eq_b (a_node: BIN_EQ_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_eq_b%N")
 			process_binary (a_node, "==")
 		end
 
 	process_bin_free_b (a_node: BIN_FREE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_free_b%N")
 			process_binary_infix (a_node)
 		end
 
 	process_bin_ge_b (a_node: BIN_GE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_ge_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, ">=")
 			else
@@ -446,6 +462,7 @@ feature -- Visitors
 	process_bin_gt_b (a_node: BIN_GT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_gt_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, ">")
 			else
@@ -456,12 +473,15 @@ feature -- Visitors
 	process_bin_implies_b (a_node: B_IMPLIES_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_implies_b%N")
 			process_binary_semistrict (a_node, "==>", True)
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_le_b (a_node: BIN_LE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_le_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "<=")
 			else
@@ -472,6 +492,7 @@ feature -- Visitors
 	process_bin_lt_b (a_node: BIN_LT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_lt_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "<")
 			else
@@ -482,6 +503,7 @@ feature -- Visitors
 	process_bin_minus_b (a_node: BIN_MINUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_minus_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "-")
 			else
@@ -492,30 +514,37 @@ feature -- Visitors
 	process_bin_mod_b (a_node: BIN_MOD_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_mod_b%N")
 			process_binary (a_node, "mod")
 		end
 
 	process_bin_ne_b (a_node: BIN_NE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_ne_b%N")
 			process_binary (a_node, "!=")
 		end
 
 	process_bin_or_b (a_node: BIN_OR_B)
 			-- <Precursor>
 		do
+				-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_or_b%N")
 			process_binary (a_node, "||")
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_or_else_b (a_node: B_OR_ELSE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_or_else_b%N")
 			process_binary_semistrict (a_node, "||", False)
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_plus_b (a_node: BIN_PLUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_plus_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "+")
 			else
@@ -526,6 +555,7 @@ feature -- Visitors
 	process_bin_power_b (a_node: BIN_POWER_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_power_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "**")
 			else
@@ -536,6 +566,7 @@ feature -- Visitors
 	process_bin_slash_b (a_node: BIN_SLASH_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_slash_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "/")
 			else
@@ -546,6 +577,7 @@ feature -- Visitors
 	process_bin_star_b (a_node: BIN_STAR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_star_b%N")
 			if a_node.is_built_in then
 				process_binary (a_node, "*")
 			else
@@ -556,12 +588,14 @@ feature -- Visitors
 	process_bin_xor_b (a_node: BIN_XOR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_xor_b%N")
 			process_binary (a_node, "!=")
 		end
 
 	process_bin_tilde_b (a_node: BIN_TILDE_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bin_tilde_b%N")
 				-- TODO: handle "is_equal"
 			process_binary (a_node, "==")
 		end
@@ -569,6 +603,7 @@ feature -- Visitors
 	process_bool_const_b (a_node: BOOL_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_bool_const_b%N")
 			if a_node.value then
 				last_expression := factory.true_
 			else
@@ -579,24 +614,28 @@ feature -- Visitors
 	process_current_b (a_node: CURRENT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_current_b%N")
 			last_expression := entity_mapping.current_expression
 		end
 
 	process_char_const_b (a_node: CHAR_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_char_const_b%N")
 			last_expression := factory.int_value (a_node.value.code)
 		end
 
 	process_char_val_b (a_node: CHAR_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_char_val_b%N")
 			last_expression := factory.int_value (a_node.value.code)
 		end
 
 	process_constant_b (a_node: CONSTANT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_constant_b%N")
 			if attached {BOOL_VALUE_I} a_node.value as l_bool then
 				last_expression := if l_bool.boolean_value then factory.true_ else factory.false_ end
 			elseif a_node.value.is_integer or a_node.value.is_numeric then
@@ -613,6 +652,7 @@ feature -- Visitors
 	process_creation_expr_b (a_node: CREATION_EXPR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_creation_expr_b%N")
 			helper.add_unsupported_error (context_feature, {STRING_32} "Creation expression in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
@@ -624,6 +664,7 @@ feature -- Visitors
 			l_current_type: CL_TYPE_A
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+				-- print ("E2B_EXPRESSION_TRANSLATOR.process_external_b%N")
 			l_current_type := current_target_type
 			if a_node.is_static_call then
 				current_target_type := class_type_in_current_context (a_node.static_class_type)
@@ -647,6 +688,7 @@ feature -- Visitors
 			l_feature: FEATURE_I
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_feature_b%N")
 			l_feature := helper.feature_for_call_access (a_node, current_target_type)
 			check feature_valid: l_feature /= Void end
 
@@ -676,6 +718,7 @@ feature -- Visitors
 		local
 			l_cond, l_then, l_else: IV_EXPRESSION
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_if_expression_b%N")
 			check a_node.elsif_list = Void or else a_node.elsif_list.is_empty end
 
 			safe_process (a_node.condition)
@@ -693,18 +736,21 @@ feature -- Visitors
 	process_int64_val_b (a_node: INT64_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_int64_val_b%N")
 			last_expression := factory.int64_value (a_node.value)
 		end
 
 	process_int_val_b (a_node: INT_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_int_val_b%N")
 			last_expression := factory.int_value (a_node.value)
 		end
 
 	process_integer_constant (a_node: INTEGER_CONSTANT)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_integer_constant%N")
 			if attached {INTEGER_A} a_node.type then
 				last_expression := factory.int64_value (a_node.integer_64_value)
 			else
@@ -715,12 +761,14 @@ feature -- Visitors
 	process_local_b (a_node: LOCAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_local_b%N")
 			last_expression := entity_mapping.local_ (a_node.position)
 		end
 
 	process_loop_expr_b (a_node: LOOP_EXPR_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_loop_expr_b%N")
 			if
 				attached {ASSIGN_B} a_node.iteration_code.first as l_assign and then
 				attached {OBJECT_TEST_LOCAL_B} l_assign.target as l_object_test_local and then
@@ -746,12 +794,14 @@ feature -- Visitors
 	process_nat64_val_b (a_node: NAT64_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_nat64_val_b%N")
 			create {IV_VALUE} last_expression.make (a_node.value.out, types.int)
 		end
 
 	process_nat_val_b (a_node: NAT_VAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_nat_val_b%N")
 			create {IV_VALUE} last_expression.make (a_node.value.out, types.int)
 		end
 
@@ -765,16 +815,17 @@ feature -- Visitors
 			l_handler: E2B_CUSTOM_NESTED_HANDLER
 			l_name: STRING
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_nested_b%N")
 			l_handler := translation_mapping.handler_for_nested (a_node)
 			if
 				attached {OBJECT_TEST_LOCAL_B} a_node.target as l_object_test_local and then
 				attached across_handler_map.item (l_object_test_local.position) as l_across_handler and then
 				attached {FEATURE_B} if attached {NESTED_B} a_node.message as l_nested then
-						l_nested.target
-					else
-						a_node.message
-					end
-				as l_feature
+					l_nested.target
+				else
+					a_node.message
+				end
+ as l_feature
 			then
 					-- Special mapping of object test local in across loop
 				l_name := l_feature.feature_name.as_lower
@@ -815,7 +866,7 @@ feature -- Visitors
 			else
 				l_temp_expression := last_expression
 
-					-- Evaluate target				
+					-- Evaluate target
 				safe_process (a_node.target)
 
 					-- Use target as new `Current' reference
@@ -824,7 +875,10 @@ feature -- Visitors
 				current_target := last_expression
 				current_target_type := expression_class_type (a_node.target)
 
-				add_void_call_check (a_node)
+				if not options.is_full_coverage_test_generation_enabled then
+					add_void_call_check (a_node)
+				end
+
 
 					-- Evaluate message with original expression
 --				if attached {CL_TYPE_A} current_target_type as l_cl_type then
@@ -861,6 +915,7 @@ feature -- Visitors
 
 	process_null_conversion_b (b: NULL_CONVERSION_B)
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_null_conversion_b%N")
 			safe_process (b.expr)
 		end
 
@@ -871,14 +926,15 @@ feature -- Visitors
 			l_type_expr, l_expr: IV_EXPRESSION
 			object_test_local: like last_local
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_object_test_b%N")
 			safe_process (a_node.expression)
 			l_expr := last_expression
 			l_type := class_type_in_current_context
-				(if a_node.is_void_check then
-					a_node.expression.type
-				else
-					a_node.target.type
-				end)
+					(if a_node.is_void_check then
+						a_node.expression.type
+					else
+						a_node.target.type
+					end)
 			if
 				attached a_node.target as t and then
 				attached context_implementation and then
@@ -907,9 +963,9 @@ feature -- Visitors
 					-- Check for possible unboxing of basic types
 				if a_node.expression.type.is_reference then
 					if a_node.target.type.is_boolean then
-						l_expr := factory.function_call ("unboxed_bool", << l_expr >>, types.bool)
+						l_expr := factory.function_call ("unboxed_bool", <<l_expr>>, types.bool)
 					elseif a_node.target.type.is_integer or a_node.target.type.is_natural then
-						l_expr := factory.function_call ("unboxed_int", << l_expr >>, types.int)
+						l_expr := factory.function_call ("unboxed_int", <<l_expr>>, types.int)
 					end
 				end
 				locals_map.force (l_expr, a_node.target.position)
@@ -919,6 +975,7 @@ feature -- Visitors
 	process_object_test_local_b (a_node: OBJECT_TEST_LOCAL_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_object_test_local_b%N")
 			if locals_map.has_key (a_node.position) then
 				last_expression := locals_map.item (a_node.position)
 			else
@@ -934,6 +991,7 @@ feature -- Visitors
 			l_target_type: CL_TYPE_A
 			l_last_expression: IV_EXPRESSION
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_parameter_b%N")
 			check not parameters_stack.is_empty end
 
 				-- Process arguments in context of feature
@@ -956,24 +1014,28 @@ feature -- Visitors
 	process_paran_b (a_node: PARAN_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_paran_b%N")
 			safe_process (a_node.expr)
 		end
 
 	process_result_b (a_node: RESULT_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_result_b%N")
 			last_expression := entity_mapping.result_expression
 		end
 
 	process_real_const_b (a_node: REAL_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_real_const_b%N")
 			create {IV_VALUE} last_expression.make (a_node.value, types.real)
 		end
 
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_routine_creation_b%N")
 			helper.add_unsupported_error (context_feature, {STRING_32} "Agents in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
@@ -981,6 +1043,7 @@ feature -- Visitors
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
+			print ("E2B_EXPRESSION_TRANSLATOR.process_string_b%N")
 			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest string not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
@@ -988,16 +1051,18 @@ feature -- Visitors
 	process_tuple_access_b (a_node: TUPLE_ACCESS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_tuple_access_b%N")
 			last_expression := factory.heap_access (
-				entity_mapping.heap,
-				current_target,
-				name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
-				types.for_class_type (class_type_in_current_context (a_node.type)))
+					entity_mapping.heap,
+					current_target,
+					name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
+					types.for_class_type (class_type_in_current_context (a_node.type)))
 		end
 
 	process_tuple_const_b (a_node: TUPLE_CONST_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_tuple_const_b%N")
 			helper.add_unsupported_error (context_feature, {STRING_32} "Manifest tuple in contract not supported.", context_line_number)
 			last_expression := dummy_node (a_node.type)
 		end
@@ -1007,6 +1072,7 @@ feature -- Visitors
 		local
 			l_type: CL_TYPE_A
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_type_expr_b%N")
 			l_type := class_type_in_current_context (a_node.type_type)
 			translation_pool.add_type (l_type)
 			last_expression := factory.type_value (l_type)
@@ -1015,12 +1081,14 @@ feature -- Visitors
 	process_un_free_b (a_node: UN_FREE_B)
 			-- <Precursor>
 		do
-			-- TODO: implement
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_free_b%N")
+				-- TODO: implement
 		end
 
 	process_un_minus_b (a_node: UN_MINUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_minus_b%N")
 			safe_process (a_node.expr)
 			create {IV_UNARY_OPERATION} last_expression.make ("-", last_expression, last_expression.type)
 		end
@@ -1028,6 +1096,7 @@ feature -- Visitors
 	process_un_not_b (a_node: UN_NOT_B)
 			-- <Precursor>
 		do
+				-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_not_b%N")
 			safe_process (a_node.expr)
 			last_expression := factory.not_ (last_expression)
 		end
@@ -1035,6 +1104,7 @@ feature -- Visitors
 	process_un_old_b (a_node: UN_OLD_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_old_b%N")
 			check False end
 			last_expression := dummy_node (a_node.type)
 		end
@@ -1042,13 +1112,15 @@ feature -- Visitors
 	process_un_plus_b (a_node: UN_PLUS_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_un_plus_b%N")
 			safe_process (a_node.expr)
-			-- Nothing to do, there is no unary plus in Boogie
+				-- Nothing to do, there is no unary plus in Boogie
 		end
 
 	process_void_b (a_node: VOID_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_EXPRESSION_TRANSLATOR.process_void_b%N")
 			last_expression := factory.void_
 		end
 
@@ -1156,7 +1228,7 @@ feature -- Translation
 		end
 
 	restore_side_effect (a_side_effect: like side_effect)
-			-- Set `side_effect' to `a_side_effect'.			
+			-- Set `side_effect' to `a_side_effect'.
 		do
 			side_effect := a_side_effect
 		end
@@ -1227,7 +1299,7 @@ feature -- Translation
 					check class_type_constraint: False then end
 				end
 				if not l_conversion.is_empty then
-					last_expression := factory.function_call (l_conversion, << last_expression >>, types.set (a_content_type))
+					last_expression := factory.function_call (l_conversion, <<last_expression>>, types.set (a_content_type))
 				end
 			end
 		end
@@ -1247,8 +1319,8 @@ feature -- Translation
 			-- Add void check for the target of `a_node' if needed.
 		do
 			if not (current_target_type.is_expanded or
-					helper.is_class_logical (current_target_type.base_class) or
-					(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
+						helper.is_class_logical (current_target_type.base_class) or
+						(attached {FEATURE_B} a_node.message as f and then translation_mapping.void_ok_features.has (f.feature_name))) then
 				add_safety_check (factory.not_equal (current_target, factory.void_), "attached", context_tag, context_line_number)
 			end
 		end
@@ -1331,11 +1403,11 @@ feature -- Translation
 					factory.and_ (l_type.rank_leq (e1, e2), factory.not_ (l_type.rank_leq (e2, e1)))]
 				l_check_list.extend (l_eq_less)
 				if l_new_variants [i].type.is_integer then
-					-- Add bounds check, since integers are not already bounded from below;
-					-- more precisely, for variant k check:
-        					-- new[1] < old[1] || ... || new[k-1] < old[k-1] || new[k] == old[k] || 0 <= old[k]
+						-- Add bounds check, since integers are not already bounded from below;
+						-- more precisely, for variant k check:
+						-- new[1] < old[1] || ... || new[k-1] < old[k-1] || new[k] == old[k] || 0 <= old[k]
 					add_safety_check (factory.or_clean (l_bounds_check_guard,
-													factory.or_ (l_eq_less.eq, factory.less_equal (factory.int_value (0), l_old_variants [i]))),
+							factory.or_ (l_eq_less.eq, factory.less_equal (factory.int_value (0), l_old_variants [i]))),
 						"termination", "bounded", context_line_number)
 					last_safety_check.node_info.set_attribute ("varid", i.out)
 				end
@@ -1345,7 +1417,7 @@ feature -- Translation
 			end
 
 			if not l_check_list.is_empty then
-				-- Go backward through the list and generate "less1 || (eq1 && (less2 || ... eq<n-1> && less<n>))"
+					-- Go backward through the list and generate "less1 || (eq1 && (less2 || ... eq<n-1> && less<n>))"
 				l_check := l_check_list.last.less
 				from
 					i := l_check_list.count - 1
@@ -1358,10 +1430,9 @@ feature -- Translation
 				end
 				add_safety_check (l_check, "termination", "variant_decreases", context_line_number)
 			else
-				-- Explicitly marked as possibly non-terminating: do not generate any checks
+					-- Explicitly marked as possibly non-terminating: do not generate any checks
 			end
 		end
-
 
 	add_recursion_termination_check (a_feature: FEATURE_I)
 			-- Add termination check for a call to routine `a_feature' with actual arguments `a_parameters' in the current context.
@@ -1371,48 +1442,44 @@ feature -- Translation
 			l_decreases_fun: IV_FUNCTION
 			i, j: INTEGER
 		do
-			-- If we are inside a routine and calling the same routine (recursive call)
-			if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
-												context_feature.feature_id = a_feature.feature_id then
-				from
-					i := 1
-					create l_caller_variants.make (3)
-					create l_callee_variants.make (3)
-					l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
-				until
-					l_decreases_fun = Void
-				loop
-					check checked_when_creating: l_decreases_fun.type.has_rank end
-					create l_callee_variant.make (l_decreases_fun.name, l_decreases_fun.type)
-					l_callee_variant.add_argument (entity_mapping.heap)
-					if not helper.is_static (a_feature) then
-						l_callee_variant.add_argument (current_target)
-					end
-					l_callee_variant.arguments.append (last_parameters)
-					l_callee_variants.extend (l_callee_variant)
-
-					create l_caller_variant.make (l_decreases_fun.name, l_decreases_fun.type)
-					l_caller_variant.add_argument (factory.old_ (entity_mapping.heap))
-					if not helper.is_static (a_feature) then
-						l_caller_variant.add_argument (entity_mapping.current_expression)
-					end
-					from
-						j := 1
-					until
-						j > context_feature.argument_count
-					loop
-						l_caller_variant.add_argument (entity_mapping.argument (context_feature, context_type, j))
-						j := j + 1
-					end
-					l_caller_variants.extend (l_caller_variant)
-
-					i := i + 1
-					l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
+				-- If we are inside a routine and calling the same routine (recursive call)
+			from
+				i := 1
+				create l_caller_variants.make (3)
+				create l_callee_variants.make (3)
+				l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
+			until
+				l_decreases_fun = Void
+			loop
+				check checked_when_creating: l_decreases_fun.type.has_rank end
+				create l_callee_variant.make (l_decreases_fun.name, l_decreases_fun.type)
+				l_callee_variant.add_argument (entity_mapping.heap)
+				if not helper.is_static (a_feature) then
+					l_callee_variant.add_argument (current_target)
 				end
-				add_termination_check (l_caller_variants, l_callee_variants)
-			end
-		end
+				l_callee_variant.arguments.append (last_parameters)
+				l_callee_variants.extend (l_callee_variant)
 
+				create l_caller_variant.make (l_decreases_fun.name, l_decreases_fun.type)
+				l_caller_variant.add_argument (factory.old_ (entity_mapping.heap))
+				if not helper.is_static (a_feature) then
+					l_caller_variant.add_argument (entity_mapping.current_expression)
+				end
+				from
+					j := 1
+				until
+					j > context_feature.argument_count
+				loop
+					l_caller_variant.add_argument (entity_mapping.argument (context_feature, context_type, j))
+					j := j + 1
+				end
+				l_caller_variants.extend (l_caller_variant)
+
+				i := i + 1
+				l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
+			end
+			add_termination_check (l_caller_variants, l_callee_variants)
+		end
 
 feature -- Implementation
 
@@ -1426,7 +1493,7 @@ feature -- Implementation
 			-- Last created local.
 
 	local_writable: detachable IV_EXPRESSION
-			-- Local writable frame of the enclosing context.			
+			-- Local writable frame of the enclosing context.
 
 	create_iterator (a_type: IV_TYPE)
 			-- Create new unbound iterator.
@@ -1440,7 +1507,7 @@ feature -- Implementation
 	dummy_node (a_type: TYPE_A): IV_EXPRESSION
 			-- Dummy node for type `a_type'.
 		do
-			Result := factory.function_call ("unsupported", << >>, types.for_class_type (class_type_in_current_context (a_type)))
+			Result := factory.function_call ("unsupported", <<>>, types.for_class_type (class_type_in_current_context (a_type)))
 		end
 
 	process_semistrict (a_condition: IV_EXPRESSION; a_expr: EXPR_B)
@@ -1482,16 +1549,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

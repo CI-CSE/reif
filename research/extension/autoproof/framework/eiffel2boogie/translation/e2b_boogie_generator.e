@@ -13,6 +13,7 @@ feature {NONE} -- Initialization
 			-- Initialize Boogie generator with universe `a_boogie_universe'.
 		do
 			boogie_universe := a_boogie_universe
+			create l_context
 		ensure
 			boogie_universe_set: boogie_universe = a_boogie_universe
 		end
@@ -24,6 +25,9 @@ feature -- Access
 
 	last_generated_verifier_input: E2B_VERIFIER_INPUT
 			-- Verifier input generated from `iv_universe'.
+
+	l_context: E2B_SHARED_CONTEXT
+			-- Shared context for translation
 
 feature -- Basic operations
 
@@ -44,7 +48,12 @@ feature -- Basic operations
 				-- Add background theory
 			last_generated_verifier_input.add_boogie_file (theory_directory.extended ("base_theory.bpl"))
 
-			create l_printer.make
+			if l_context.options.is_full_coverage_test_generation_enabled or l_context.options.is_full_mcdc_test_generation_enabled then
+				create {IV_BOOGIE_SEEDED_CONTRADICTION_PRINTER} l_printer.make
+			else
+				create l_printer.make
+			end
+
 			boogie_universe.process (l_printer)
 			last_generated_verifier_input.add_custom_content (l_printer.output.out)
 		end

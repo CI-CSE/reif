@@ -155,13 +155,22 @@ feature -- Proof for fixing
 
 feature -- Test generation
 
-	set_is_full_coverage_tests_enabled (a_is_full_coverage_tests_enabled: BOOLEAN)
-			-- Set `is_full_coverage_tests_enabled' to `a_is_full_coverage_tests_enabled'.
+	set_is_full_coverage_tests_enabled (a_value: BOOLEAN)
+			-- Set `is_full_coverage_tests_enabled' to `a_value'.
 		do
-			is_full_coverage_tests_enabled := a_is_full_coverage_tests_enabled
+			is_full_coverage_tests_enabled := a_value
 		end
 
 	is_full_coverage_tests_enabled: BOOLEAN
+			-- Is full-coverage tests generation enabled?
+
+	set_is_mcdc_tests_enabled (a_value: BOOLEAN)
+			-- Set `is_mcdc_tests_enabled' to `a_value'.
+		do
+			is_mcdc_tests_enabled := a_value
+		end
+
+	is_mcdc_tests_enabled: BOOLEAN
 			-- Is full-coverage tests generation enabled?
 
 	uncovered_branch_lines: ARRAY [INTEGER]

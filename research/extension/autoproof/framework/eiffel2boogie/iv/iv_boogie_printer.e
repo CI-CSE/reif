@@ -25,7 +25,6 @@ feature {NONE} -- Initialization
 			-- Initialize universe visitor.
 		do
 			reset
-			create uncovered_branch_lines.make_empty
 		end
 
 feature -- Access
@@ -118,13 +117,6 @@ feature -- Universe Visitor
 	process_procedure (a_procedure: IV_PROCEDURE)
 			-- <Precursor>
 		do
-			-- *Li test generation for uncovered branches
-			is_full_coverage_tests_enable := a_procedure.is_full_coverage_tests_enabled
-			is_generate_fix_enabled := a_procedure.is_generate_fix_enabled
-
-			uncovered_branch_lines.copy (a_procedure.uncovered_branch_lines)
-			block_index := 0
-
 			output.put ("procedure ")
 			output.put (a_procedure.name)
 			output.put ("(")
@@ -134,10 +126,7 @@ feature -- Universe Visitor
 				end
 				process_entity_declaration (i)
 			end
-			if a_procedure.has_conditional and is_full_coverage_tests_enable then
-				output.put (", bn: int")
-				branch_number := 0
-			end
+
 			output.put (")")
 			if not a_procedure.results.is_empty then
 				output.put (" returns (")
@@ -187,10 +176,6 @@ feature -- Universe Visitor
 				output.put (": ")
 				i.type.process (Current)
 			end
-			if a_implementation.has_conditional and is_full_coverage_tests_enable then
-				output.put (", bn: int")
-				branch_number := 0
-			end
 			output.put (")")
 			if not a_implementation.procedure.results.is_empty then
 				output.put (" returns (")
@@ -209,14 +194,6 @@ feature -- Universe Visitor
 			output.put_new_line
 			output.indent
 
-			-- Use a boolean sequence to track the passed blocks in the counterexample execution
-			if is_generate_fix_enabled then
-				output.put_indentation
-				output.put ("var ")
-				output.put ("passed_blocks: Seq bool;")
-				output.put_new_line
-			end
-
 			if not a_implementation.locals.is_empty or not a_implementation.procedure.results.is_empty then
 				across a_implementation.locals as i loop
 					output.put_indentation
@@ -228,7 +205,6 @@ feature -- Universe Visitor
 
 				output.put_new_line
 				output.put_line ("init_locals:")
-
 
 				across a_implementation.locals as i loop
 						-- No defaults needed for auxiliary locals of Boogie types, like HeapType:
@@ -252,13 +228,7 @@ feature -- Universe Visitor
 				end
 				output.put_new_line
 			end
-			-- Li*
-			if is_full_coverage_tests_enable and not a_implementation.procedure.is_ghost_or_lemma_feature and not a_implementation.has_conditional then
-				output.put_indentation
-				output.put ("assert false;")
-				output.put_new_line
-			end
-			-- *
+
 			a_implementation.body.process (Current)
 			output.unindent
 			output.put ("}")
@@ -361,13 +331,6 @@ feature -- Statement Visitor
 	process_block (a_block: IV_BLOCK)
 			-- <Precursor>
 		do
-			block_index := block_index + 1
-			if is_generate_fix_enabled then
-				output.put_indentation
-				output.put ("passed_blocks := Seq#Update(passed_blocks, "+ block_index.out + ", true);")
-				-- block := Seq#Update(block, i, true);
-			end
-
 			if not a_block.name.is_empty then
 				output.put_indentation
 				output.put (a_block.name)
@@ -390,13 +353,6 @@ feature -- Statement Visitor
 			else
 				a_conditional.condition.process (Current)
 				output.put (") {")
-				if is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.then_block.is_conditional_leaf (true, a_conditional.origin_information) then
-						-- and then uncovered_branch_lines.has (a_conditional.then_block.origin_information.line) then
-					-- print("if branch at line " + a_conditional.then_block.origin_information.line.out + "%N")
-					branch_number := branch_number + 1
-					output.put_line ("if ((bn) == (" + branch_number.out + ")) {assert false;}")
-					output.put_new_line
-				end
 			end
 			output.put_new_line
 			output.indent
@@ -404,24 +360,10 @@ feature -- Statement Visitor
 			output.unindent
 			if not a_conditional.else_block.is_empty then
 				output.put_line ("} else {")
-				-- insert "assert false" into the else_block of the leaf if/elseif conditional
+					-- insert "assert false" into the else_block of the leaf if/elseif conditional
 				output.indent
-				if is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.else_block.is_conditional_leaf (false, a_conditional.origin_information) then
-						-- and then uncovered_branch_lines.has (a_conditional.else_block.origin_information.line) then
-					-- print("else branch at line " + a_conditional.else_block.origin_information.line.out +"%N")
-					branch_number := branch_number + 1
-					output.put_line ("if ((bn) == (" + branch_number.out + ")) {assert false;}")
-					-- output.put_line ("assert false;")
-					output.put_new_line
-				end
 				a_conditional.else_block.process (Current)
 				output.unindent
-			elseif is_full_coverage_tests_enable and not a_conditional.is_current_feature_ghost and then a_conditional.condition /= Void then
-				 -- implicit else branch
-				output.put_line ("} else {")
-				branch_number := branch_number + 1
-				output.put_line ("if ((bn) == (" + branch_number.out + ")) {assert false;}")
-				-- output.put_line ("assert false;")
 			end
 			output.put_line ("}")
 		end
@@ -450,11 +392,13 @@ feature -- Statement Visitor
 	process_loop (a_loop: IV_LOOP)
 			-- <Precursor>
 		do
+
 			output.put_indentation
 			output.put ("while (")
 			if a_loop.is_until_loop then
 				output.put ("!(")
 			end
+
 			a_loop.condition.process (Current)
 			if a_loop.is_until_loop then
 				output.put (")")
@@ -472,6 +416,7 @@ feature -- Statement Visitor
 			output.put_line ("{")
 			a_loop.body.process (Current)
 			output.put_line ("}")
+
 		end
 
 	process_goto (a_goto: IV_GOTO)
@@ -507,6 +452,7 @@ feature -- Statement Visitor
 				i.process (Current)
 			end
 			output.put (");")
+
 			print_node_info (a_call.node_info)
 			output.put_new_line
 		end
@@ -824,23 +770,9 @@ feature -- Other
 feature {NONE} -- Implementation
 
 	is_in_type: BOOLEAN
-		-- Is the printer processing a complex type (i.e. a context where other complex types have to be parenthesized)?
+			-- Is the printer processing a complex type (i.e. a context where other complex types have to be parenthesized)?
+	;
 
-	is_full_coverage_tests_enable: BOOLEAN
-		-- Is full-coverage test generation enabled?
-
-	is_generate_fix_enabled: BOOLEAN
-			-- Is generating fix enabled?
-
-	uncovered_branch_lines: ARRAY [INTEGER]
-			-- Uncovered branches lines in the latest test generation run
-
-	branch_number: INTEGER
-			-- Number of branches in the current procedure
-
-	block_index: INTEGER
-			-- Index of the current block
-;
 note
 	ca_ignore: "CA033", "CA033: too long class"
 	date: "$Date: 2022-01-19 03:46:44 +0800 (Wed, 19 Jan 2022) $"

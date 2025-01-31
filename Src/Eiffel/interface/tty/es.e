@@ -284,7 +284,7 @@ feature {NONE} -- Initialization
 		local
 			u: FILE_UTILITIES
 		do
-			if attached {EWB_TEST_EXECUTION} command then
+			 if attached {EWB_TEST_EXECUTION} command then
 				Result :=
 					not Eiffel_project.initialized or else
 					not Eiffel_project.system_defined or else

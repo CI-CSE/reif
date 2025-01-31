@@ -60,7 +60,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
 
 				remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_WITH_RANDOM_SEED_TASK}.make (new_verifier))
-				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator))
+				remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, result_generator, remaining_tasks))
 				has_next_step := False
 			end
 		end

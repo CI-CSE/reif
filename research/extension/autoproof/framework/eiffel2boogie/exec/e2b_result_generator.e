@@ -42,7 +42,7 @@ feature -- Basic operations
 		local
 			l_ap_error: E2B_AUTOPROOF_ERROR
 		do
-			-- print("E2B_RESULT_GENERATOR.process_boogie_result%N")
+				-- print("E2B_RESULT_GENERATOR.process_boogie_result%N")
 			create last_result.make
 				-- Use global list if local one is empty
 			if local_autoproof_errors = Void then
@@ -76,10 +76,13 @@ feature -- Basic operations
 			l_trace: E2B_CE_TRACE_OF_ROUTINE
 			l_sig: STRING
 		do
+			-- print ("E2B_RESULT_GENERATOR.process_individual_error%N")
 			create l_error.make (a_failure)
 			l_sig := ""
-			-- Get input values in counterexample
+
+				-- Get input values in counterexample
 			create l_init_state.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
+
 			if helper.options.is_generate_fix_enabled then
 				create l_trace.make (a_failure.context_feature, a_failure.context_class, a_error.counterexample)
 				l_sig := a_failure.context_class.name + "." + a_failure.context_feature.feature_name_32.to_string_8 + "." + line_for_error (a_error).out
@@ -95,20 +98,19 @@ feature -- Basic operations
 			a_failure.errors.extend (l_error)
 			l_error.set_boogie_error (a_error)
 
-
 			l_error.set_message (message_for_error (a_error, l_init_state))
 			l_error.set_ce_message (counterexample_message (l_init_state))
 			l_error.set_ce_init_state (l_init_state)
 
-		    helper.options.set_current_init_state (l_init_state)
+			helper.options.set_current_init_state (l_init_state)
 
-            if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
-                helper.options.set_new_ce_message (l_error.ce_message)
-            end
+			-- if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
+				helper.options.set_new_ce_message (l_error.ce_message)
+			-- end
 
-            if helper.options.is_generate_fix_enabled then
-            	 helper.options.ce_states.extend (l_init_state)
-            end
+			if helper.options.is_generate_fix_enabled then
+				helper.options.ce_states.extend (l_init_state)
+			end
 
 			l_error.set_line_number (line_for_error (a_error))
 		end
@@ -409,7 +411,7 @@ feature {NONE} -- Implementation
 			loop
 				var := a_initial_state.initial_values.current_keys [i]
 				value := a_initial_state.initial_values [var]
-				-- print (var + "->" + value + "%N")
+					-- print (var + "->" + value + "%N")
 					-- sequence
 				if not value.has_substring ("T@U") and not var.split ('.').first.same_string (aliased_object) and not value.is_empty then -- valuations
 					Result := Result + " " + valuation (var, value) + ","
@@ -417,7 +419,7 @@ feature {NONE} -- Implementation
 				elseif a_initial_state.is_aliased_with_existed_object (var) then -- alias relation
 					Result := Result + " " + valuation (var, a_initial_state.alias_groups [value] [1]) + ","
 					aliased_object := var
-					-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
+						-- Current.person -- TODO: handle the case where the field is also a reference -- need to improve AutoProof/Boogie first
 				elseif var.split ('.').last.same_string ("sequence") then
 					seq_name := var.split ('.').first
 					if a_initial_state.ce.seq_lengths.has (value) then

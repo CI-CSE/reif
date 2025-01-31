@@ -42,6 +42,7 @@ feature {NONE} -- Initialization
 	on_before_initialize
 			-- <Precursor>
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.on_before_initialize%N")
 			Precursor
 				-- We want the tool to synchronize with the event list, when first initialized.
 			is_event_list_synchronized_on_initialized := True
@@ -50,6 +51,7 @@ feature {NONE} -- Initialization
 	on_after_initialized
 			-- <Precursor>
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.on_after_initialized%N")
 				-- Bind redirecting pick and drop actions
 			stone_director.bind (grid_events, Current)
 
@@ -177,11 +179,20 @@ feature {NONE} -- Initialization
 		do
 			create Result
 
-			create l_item.make_with_text_and_action ("Full-coverage test generation",
+			create l_item.make_with_text_and_action ("Full branch coverage test generation",
 				agent do
 						options.set_full_coverage_test_generation_enabled (not options.is_full_coverage_test_generation_enabled)
 					end)
 			if options.is_full_coverage_test_generation_enabled then
+				l_item.toggle
+			end
+			Result.extend (l_item)
+
+			create l_item.make_with_text_and_action ("Full MCDC test generation",
+				agent do
+						options.set_full_mcdc_test_generation_enabled (not options.is_full_mcdc_test_generation_enabled)
+					end)
+			if options.is_full_mcdc_test_generation_enabled then
 				l_item.toggle
 			end
 			Result.extend (l_item)
@@ -516,6 +527,7 @@ feature {NONE} -- Events
 		local
 			l_applicable: BOOLEAN
 		do
+			print ("ES_AUTOPROOF_TOOL_PANEL.on_event_item_added%N")
 			l_applicable := is_appliable_event (a_event_item)
 			if l_applicable and not is_initialized then
 					-- We have to perform initialization to set the icon and counter.
@@ -627,12 +639,11 @@ feature {NONE} -- Query
 		end
 
 	is_sc_error (a_msg: STRING): BOOLEAN
-		-- Is `a_msg' an error message related to semantic collaboration?
+			-- Is `a_msg' an error message related to semantic collaboration?
 		do
 			Result := a_msg.has_substring ("is_wrapped") or a_msg.has_substring ("is_closed")
-						or a_msg.has_substring ("frame_writable")
+				or a_msg.has_substring ("frame_writable")
 		end
-
 
 feature {NONE} -- Basic operations
 
@@ -668,7 +679,7 @@ feature {NONE} -- Basic operations
 			l_label: EV_GRID_LABEL_ITEM
 			l_format: FORMAT_DOUBLE
 		do
-				-- print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
+			print ("ES_AUTOPROOF_TOOL_PANEL.populate_event_grid_row_items%N")
 			if not options.is_full_coverage_test_generation_enabled then -- do not change the panel when full-coverage test generation is enabled
 
 				a_row.set_data (a_event_item)
@@ -761,7 +772,7 @@ feature {NONE} -- Basic operations
 							loop
 								insert_subrow_for_error (a_row, l_error)
 								if attached l_error.ce_message then
-										insert_subrow_for_counterexample (a_row, l_error, l_failure)
+									insert_subrow_for_counterexample (a_row, l_error, l_failure)
 								end
 							end
 						end
@@ -805,36 +816,34 @@ feature {NONE} -- Basic operations
 			l_text_gen.add_new_line
 			l_editor_item := create_multiline_clickable_grid_item (l_text_gen.lines, True, False)
 
+			l_index := a_parent.subrow_count + 1
 
+			a_parent.insert_subrow (l_index)
+			l_row := a_parent.subrow (l_index)
+			l_row.set_data (a_error)
 
-				l_index := a_parent.subrow_count + 1
+			l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
+			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
 
-				a_parent.insert_subrow (l_index)
-				l_row := a_parent.subrow (l_index)
-				l_row.set_data (a_error)
-
-				l_row.set_item (icon_column, create {EV_GRID_LABEL_ITEM})
-				l_row.set_item (class_column, create {EV_GRID_LABEL_ITEM})
-				l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
-
-				l_row.set_height (l_editor_item.required_height_for_text_and_component)
-				l_row.set_item (info_column, l_editor_item)
-				if a_error.context_line_number > 0 then
-					l_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (a_error.context_line_number.out))
-				end
+			l_row.set_height (l_editor_item.required_height_for_text_and_component)
+			l_row.set_item (info_column, l_editor_item)
+			if a_error.context_line_number > 0 then
+				l_row.set_item (position_column, create {EV_GRID_LABEL_ITEM}.make_with_text (a_error.context_line_number.out))
+			end
 
 				-- if not is_sc_error (l_editor_item.text) then
 
-				if l_index \\ 2 = 1 then
-					l_row.set_background_color (odd_failed_sub_color)
-				else
-					l_row.set_background_color (even_failed_sub_color)
-				end
+			if l_index \\ 2 = 1 then
+				l_row.set_background_color (odd_failed_sub_color)
+			else
+				l_row.set_background_color (even_failed_sub_color)
+			end
 				-- else
 				-- 	l_row.set_background_color (sc_failed_color)
 				-- end
 
-			-- end
+				-- end
 
 		end
 
@@ -867,7 +876,8 @@ feature {NONE} -- Basic operations
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 
 		do
-				-- print ("ES_AUTOPROOF_TOOL_PANEL.insert_subrow_for_counterexample%N")
+			print ("ES_AUTOPROOF_TOOL_PANEL.insert_subrow_for_counterexample%N")
+			print ("new ce:" + options.new_ce_message + "%N")
 			ce_index := ce_index + 1
 			ce_init_state := a_error.ce_init_state
 			l_index := a_parent.subrow_count + 1
@@ -879,13 +889,18 @@ feature {NONE} -- Basic operations
 			l_row.set_item (feature_column, create {EV_GRID_LABEL_ITEM})
 
 			create l_lab
-			l_lab.set_text ("Counterexample: " + a_error.ce_message)
+			if attached options.new_ce_message then
+				l_lab.set_text ("Counterexample: " + options.new_ce_message)
+			else
+				l_lab.set_text ("Counterexample: " + a_error.ce_message)
+			end
+
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right (stock_pixmaps.preference_list_icon, 1)
 				-- l_lab.pixmaps_on_right.item (1).pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
 
 			l_row.set_item (info_column, l_lab)
-			create pt_command.make (a_error, a_failure, l_row)
+			create pt_command.make_from_error (a_error, a_failure, l_row)
 				-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
 			l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do pt_command.on_counterexample_select_action (ce_init_state) end)
 

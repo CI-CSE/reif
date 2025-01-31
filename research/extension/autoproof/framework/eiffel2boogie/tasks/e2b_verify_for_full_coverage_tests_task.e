@@ -2,7 +2,7 @@ note
 	description: "Task to re-verify with inlining."
 
 class
-	E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK
+	E2B_VERIFY_FOR_FULL_BRANCH_COVERAGE_TESTS_TASK
 
 inherit
 
@@ -23,7 +23,7 @@ feature {NONE} -- Initialization
 	make (a_translator_input: E2B_TRANSLATOR_INPUT; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			-- print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.make%N")
+				-- print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -41,7 +41,7 @@ feature -- Status report
 feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 
 	step
-			-- <Precursor>120
+			-- <Precursor>
 		local
 
 			l_boogie_universe: IV_UNIVERSE
@@ -57,11 +57,17 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			remaining_tasks.start
 			remaining_tasks.forth -- Skip current taks in queue
 				-- TODO: compute branch difference based on branch_info and branch_log
-			-- compute_uncovered_branch
+				-- compute_uncovered_branch
 			remaining_tasks.put_left (create {E2B_TRANSLATE_CHUNK_TASK}.make (l_translator_input, l_boogie_universe))
 			remaining_tasks.put_left (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
-			remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))
-			remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, initial_result_generator))
+				-- remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))
+			remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_WITH_RANDOM_SEED_TASK}.make (new_verifier))
+			remaining_tasks.put_left (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (new_verifier, initial_result_generator, remaining_tasks))
+
+--			if helper.options.test_generation_count < number_of_test_suites then
+--				remaining_tasks.extend (create {E2B_VERIFY_FOR_FULL_BRANCH_COVERAGE_TESTS_TASK}.make (l_translator_input, result_generator, remaining_tasks))
+--				helper.options.increase_test_generation_count
+--			end
 
 			has_next_step := False
 		end
@@ -94,16 +100,16 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				branch_info_file.end_of_file
 			loop
 				branch_info_file.read_line
-				-- print ("read branch_info at line: " + branch_info_file.last_string + "%N")
+					-- print ("read branch_info at line: " + branch_info_file.last_string + "%N")
 				if not branch_info_file.last_string.is_empty then
 					words := branch_info_file.last_string.split (' ') -- Branch 27 Class ICSE24_CLOCK Line 90
 					l_branch_id.copy (words [2])
 					l_class_name.copy (words [4])
 					l_line_number.copy (words [6])
-					-- branch_set [l_branch_id.to_integer].class_name := ""
-					-- branch_set [l_branch_id.to_integer].class_name.copy (l_class_name)
-					-- branch_set [l_branch_id.to_integer].line_number := l_line_number.to_integer
-					-- branch_set [l_branch_id.to_integer].
+						-- branch_set [l_branch_id.to_integer].class_name := ""
+						-- branch_set [l_branch_id.to_integer].class_name.copy (l_class_name)
+						-- branch_set [l_branch_id.to_integer].line_number := l_line_number.to_integer
+						-- branch_set [l_branch_id.to_integer].
 					branch_set.extend ([create {IMMUTABLE_STRING_32}.make_from_string (l_class_name), l_line_number.to_integer], l_branch_id.to_integer)
 				end
 			end
@@ -169,6 +175,7 @@ feature {NONE} -- Implementation
 
 	boogie_executable: E2B_PLATFORM_EXECUTABLE_IMPL
 
+	number_of_test_suites: INTEGER = 2
 	;
 
 note

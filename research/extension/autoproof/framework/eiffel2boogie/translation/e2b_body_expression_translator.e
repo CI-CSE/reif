@@ -14,7 +14,6 @@ inherit
 			process_tuple_const_b
 		end
 
-
 create
 	make
 
@@ -47,6 +46,7 @@ feature -- Visitors
 			l_content_type: IV_TYPE
 			l_block: IV_BLOCK
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_array_const_b%N")
 			l_type := class_type_in_current_context (a_node.type)
 			translation_pool.add_type (l_type)
 
@@ -105,6 +105,7 @@ feature -- Visitors
 			l_proc_call: IV_PROCEDURE_CALL
 			l_handler: E2B_CUSTOM_CALL_HANDLER
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_creation_expr_b%N")
 			l_type := class_type_in_current_context (a_node.type)
 			l_feature := l_type.base_class.feature_of_rout_id (a_node.call.routine_id)
 			check feature_valid: l_feature /= Void end
@@ -118,7 +119,7 @@ feature -- Visitors
 
 				-- Is this a normal reference type?
 			if l_local.type ~ types.ref then
-				-- Call to `allocate'				
+					-- Call to `allocate'
 				create l_proc_call.make ("allocate")
 				l_proc_call.node_info.set_line (a_node.call.line_number)
 				l_proc_call.add_argument (factory.type_value (l_type))
@@ -154,6 +155,7 @@ feature -- Visitors
 	process_routine_creation_b (a_node: ROUTINE_CREATION_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_routine_creation_b%N")
 			if a_node.is_inline_agent then
 				helper.add_unsupported_error (context_feature, {STRING_32} "Inline agents are not supported", context_line_number)
 				last_expression := dummy_node (a_node.type)
@@ -165,6 +167,7 @@ feature -- Visitors
 	process_string_b (a_node: STRING_B)
 			-- <Precursor>
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_string_b%N")
 			(create {E2B_CUSTOM_STRING_HANDLER}).handle_manifest_string_in_body (Current, a_node)
 		end
 
@@ -173,6 +176,7 @@ feature -- Visitors
 		local
 			l_proc_call: IV_PROCEDURE_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_tuple_access_b%N")
 			if a_node.source = Void then
 				Precursor (a_node)
 			else
@@ -180,8 +184,8 @@ feature -- Visitors
 				create l_proc_call.make ("update_heap")
 				l_proc_call.add_argument (current_target)
 				l_proc_call.add_argument (factory.entity (
-					name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
-					types.field (last_expression.type)))
+						name_translator.boogie_field_for_tuple_field (current_target_type, a_node.position),
+						types.field (last_expression.type)))
 				l_proc_call.add_argument (last_expression)
 				side_effect.extend (l_proc_call)
 				last_expression := Void
@@ -196,6 +200,7 @@ feature -- Visitors
 			l_proc_call: IV_PROCEDURE_CALL
 			l_block: IV_BLOCK
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_tuple_const_b%N")
 			l_type := class_type_in_current_context (a_node.type)
 			create_local (l_type)
 			l_local := last_local
@@ -204,7 +209,7 @@ feature -- Visitors
 			current_target := l_local
 			current_target_type := l_type
 
-				-- Call to `allocate'				
+				-- Call to `allocate'
 			create l_proc_call.make ("allocate")
 			l_proc_call.node_info.set_line (a_node.line_number)
 			l_proc_call.add_argument (factory.type_value (l_type))
@@ -231,6 +236,7 @@ feature -- Translation
 			l_content_type: IV_TYPE
 			l_field: IV_ENTITY
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_attribute_call%N")
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 
 			check current_target /= Void end
@@ -254,6 +260,7 @@ feature -- Translation
 		local
 			l_inlining_depth: INTEGER
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_routine_call:  " + a_feature.feature_name + "%N")
 			if options.inlining_depth > 0 and not helper.is_skipped (a_feature) then
 				l_inlining_depth := options.inlining_depth
 				options.set_inlining_depth (options.inlining_depth - 1)
@@ -275,6 +282,7 @@ feature -- Translation
 			l_pcall: IV_PROCEDURE_CALL
 			l_fcall: IV_FUNCTION_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_normal_routine_call" + a_feature.feature_name + "%N")
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 			if a_feature.has_return_value and helper.is_functional (a_feature) then
 				check not a_for_creator end
@@ -293,8 +301,11 @@ feature -- Translation
 				add_read_frame_check (a_feature)
 
 					-- This checks that functionals are well-defined, from the corresponding fake procedure
-				add_recursion_termination_check (a_feature)
-
+				if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
+					context_feature.feature_id = a_feature.feature_id then
+					l_fcall.set_is_recursive (True)
+					add_recursion_termination_check (a_feature)
+				end
 				last_expression := l_fcall
 			elseif helper.has_functional_representation (a_feature) and a_feature.is_once then
 					-- Once function: translate as a constant
@@ -302,13 +313,13 @@ feature -- Translation
 				last_expression := l_fcall
 			else
 				if helper.is_setter (context_feature) and
-					not a_feature.has_return_value  and not helper.is_setter (a_feature) then
+					not a_feature.has_return_value and not helper.is_setter (a_feature) then
 						-- Setter calling a non-setter procedure: unsound framing
 					helper.add_semantic_error (context_feature, messages.nonsetter_call_from_setter (a_feature.feature_name_32), context_line_number)
 				end
 
 				if a_for_creator or
-						(name_translator.is_creator_name (context_implementation.procedure.name) and helper.is_creator_of_class (a_feature, current_target_type.base_class)) then
+					(name_translator.is_creator_name (context_implementation.procedure.name) and helper.is_creator_of_class (a_feature, current_target_type.base_class)) then
 						-- Either we are translating a creation expression (`a_for_creator'),
 						-- or we are inside a creation procedure and calling another creation procedure,
 						-- so the creation semantics will be used
@@ -316,7 +327,7 @@ feature -- Translation
 				else
 					create l_pcall.make (name_translator.boogie_procedure_for_feature (a_feature, current_target_type))
 					if helper.is_creator (a_feature) then
-						-- A feature specified to be creator-only, but called as a regular procedure
+							-- A feature specified to be creator-only, but called as a regular procedure
 						helper.add_semantic_error (context_feature, messages.creator_call_as_procedure (a_feature.feature_name_32), context_line_number)
 					end
 				end
@@ -335,7 +346,11 @@ feature -- Translation
 					-- Add read frame check
 				add_read_frame_check (a_feature)
 					-- This checks termination of non-functional routines, when they are called from their own implementation
-				add_recursion_termination_check (a_feature)
+				if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
+					context_feature.feature_id = a_feature.feature_id then
+					l_pcall.set_is_recursive (True)
+					add_recursion_termination_check (a_feature)
+				end
 					-- This adds an extra framing check if we are inside a context with a local frame
 				add_loop_frame_check (a_feature)
 
@@ -357,6 +372,7 @@ feature -- Translation
 		local
 			l_call: IV_PROCEDURE_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_builtin_routine_call" + a_feature.feature_name + "%N")
 			create l_call.make (a_builtin_name)
 			if not helper.is_static (a_feature) then
 				l_call.add_argument (current_target)
@@ -387,6 +403,7 @@ feature -- Translation
 		local
 			l_call: IV_FUNCTION_CALL
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_builtin_function_call" + a_feature.feature_name + "%N")
 			create l_call.make (a_builtin_name, types.for_class_type (feature_class_type (a_feature)))
 			l_call.add_argument (entity_mapping.heap)
 			if not helper.is_static (a_feature) then
@@ -402,6 +419,7 @@ feature -- Translation
 	process_special_feature_call (a_handler: E2B_CUSTOM_CALL_HANDLER; a_feature: FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B])
 			-- <Precursor>
 		do
+				-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_special_feature_call%N")
 			a_handler.handle_routine_call_in_body (Current, a_feature, a_parameters)
 		end
 
@@ -418,6 +436,7 @@ feature -- Translation
 			l_block: IV_BLOCK
 			l_entity_mapping: E2B_ENTITY_MAPPING
 		do
+			-- print ("E2B_BODY_EXPRESSION_TRANSLATOR.process_inlined_routine_call%N")
 				-- TODO: look for all possible descendant-implementations for feature
 				-- and add a nondeterministic goto that selects between all of those
 				-- implementations
@@ -516,16 +535,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

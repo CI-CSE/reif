@@ -90,7 +90,8 @@ feature -- Test generation
 	generate_test_file
 			-- Write the test cases to the output file
 		local
-			t, last_target_feature: STRING
+			t: STRING_32
+			last_target_feature: STRING_32
 			i: INTEGER
 			creators_keys: ARRAY [INTEGER]
 		do

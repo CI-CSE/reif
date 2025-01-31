@@ -91,7 +91,7 @@ feature -- General note helpers
 						i.index_list as v
 					loop
 						Result.extend (if attached {STRING_AS} v as s then s.value else v.string_value end)
-						-- print ("note value: " + Result.last + "%N")
+							-- print ("note value: " + Result.last + "%N")
 					end
 				end
 			end
@@ -702,7 +702,7 @@ feature -- Eiffel helpers
 							r.set_generics (new_generics)
 							Result := r
 						end
-						new_generics [@ g.target_index] := t.base_class.single_constraint (@ g.target_index)
+						new_generics [@ g.target_index] :=  create {INTEGER_A}.make (32)  -- t.base_class.single_constraint (@ g.target_index) -- create {BOOLEAN_A} --
 					end
 				end
 			end
@@ -781,14 +781,14 @@ feature -- Eiffel helpers
 				(a_class.creation_feature /= Void and then a_class.creation_feature.feature_id = a_feature.feature_id)
 
 			if a_class.creation_feature /= Void then
-				-- default create
+					-- default create
 			elseif a_class.has_creator_of_name_id (a_feature.feature_name_id) then
 
-				-- push it into a HASHTABLE[ARRAY[FEATURE_I], a_class]
+					-- push it into a HASHTABLE[ARRAY[FEATURE_I], a_class]
 
-				-- use the first creation procedure by default?
-				-- user defined creation procedure?
-				-- how to store this information?
+					-- use the first creation procedure by default?
+					-- user defined creation procedure?
+					-- how to store this information?
 			end
 		end
 
@@ -881,8 +881,6 @@ feature -- Eiffel helpers
 				add_unsupported_error (Void, {STRING_32} "Feature `passed_blocks` is not found in class `ANY`.", 0)
 			end
 		end
-
-
 
 feature -- Contract helpers
 

@@ -67,18 +67,37 @@ feature -- Basic operations
 					end)
 			end
 
+				-- Add declaration of bn if test generation is enabled
+			if helper.options.is_full_coverage_test_generation_enabled and boogie_universe.constant_named ("bn") = Void then
+				boogie_universe.add_declaration (create {IV_CONSTANT}.make ("bn", types.int))
+			end
+
 				-- Add actual generic parameters
 			if a_type.has_generics then
 				across a_type.generics as params loop
 					if attached {CL_TYPE_A} params as t then
-						translation_pool.add_parent_type (t)
+							-- translation_pool.add_parent_type (t)
+							-- translation_pool.add_parent_type (create {INTEGER_A}.make (64))
 					elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ params.target_index) as t then
-						translation_pool.add_parent_type (t)
+							-- translation_pool.add_parent_type (t)
+							-- translation_pool.add_parent_type (create {INTEGER_A}.make (64))
 					else
 						check class_type_constraint: False then end
 					end
 				end
 			end
+
+--			if l_type.base_class.is_generic then
+--						if not attached {GEN_TYPE_A} l_type as l_gen_type then
+--							if attached {GEN_TYPE_A} l_type.base_class.actual_type as l_gen_type2 then
+--								l_type := generic_derivation_of_type (l_gen_type2, l_gen_type2.base_class)
+--							else
+--								check
+--									dead_end: False
+--								end
+--							end
+--						end
+--			end
 
 			if not helper.is_class_logical (l_class) then
 					-- Type definition
@@ -98,7 +117,7 @@ feature -- Basic operations
 				else
 					if a_type.base_class.is_frozen then
 						boogie_universe.add_declaration (create {IV_AXIOM}.make (
-							factory.function_call ("is_frozen", << factory.entity (l_boogie_type_name, types.type) >>, types.bool)))
+								factory.function_call ("is_frozen", <<factory.entity (l_boogie_type_name, types.type)>>, types.bool)))
 					end
 
 						-- Inheritance relations
@@ -144,13 +163,13 @@ feature -- Basic operations
 				helper.set_up_byte_context (l_class.invariant_feature, a_type)
 				translate_invariant_function
 
-				-- Add guards for built-in attributes (ANY versions)
-				-- (required to know the lower bound on guards of unknown types)
+					-- Add guards for built-in attributes (ANY versions)
+					-- (required to know the lower bound on guards of unknown types)
 				translation_pool.add_referenced_feature (system.any_type.base_class.feature_named ("owns"), system.any_type)
 				translation_pool.add_referenced_feature (system.any_type.base_class.feature_named ("subjects"), system.any_type)
 				translation_pool.add_referenced_feature (system.any_type.base_class.feature_named ("observers"), system.any_type)
 
-				-- Add guards for built-in attributes
+					-- Add guards for built-in attributes
 				translation_pool.add_referenced_feature (l_class.feature_named ("owns"), type)
 				translation_pool.add_referenced_feature (l_class.feature_named ("subjects"), type)
 				translation_pool.add_referenced_feature (l_class.feature_named ("observers"), type)
@@ -267,7 +286,7 @@ feature {NONE} -- Implementation
 					types.field (types.for_class_type (helper.class_type_in_context (m.type, type.base_class, m, type))))
 				l_def := factory.or_clean (l_def, factory.equal (l_f, l_m))
 			end
-			l_fcall := factory.function_call ("IsModelField", << l_f, factory.type_value (type) >>, types.bool)
+			l_fcall := factory.function_call ("IsModelField", <<l_f, factory.type_value (type)>>, types.bool)
 			create l_forall.make (factory.equiv (l_fcall, l_def))
 			l_forall.add_type_variable (l_type_var.name)
 			l_forall.add_bound_variable (l_f)
@@ -342,8 +361,8 @@ feature {NONE} -- Implementation
 					add_default_clause ("owns", translation_mapping.default_tags [3], a_included, a_excluded, a_mapping)
 				end
 				if not helper.is_class_explicit (type.base_class, "invariant") and
-				 is_tag_included (a_included, a_excluded, translation_mapping.default_tags [4]) then
-					create l_clause.make (factory.function_call ("admissibility2", << a_mapping.heap, a_mapping.current_expression >>, types.bool))
+					is_tag_included (a_included, a_excluded, translation_mapping.default_tags [4]) then
+					create l_clause.make (factory.function_call ("admissibility2", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
 					l_clause.node_info.set_type ("inv")
 					l_clause.node_info.set_tag (translation_mapping.default_tags [4])
 					last_clauses.extend (l_clause)
@@ -384,9 +403,9 @@ feature {NONE} -- Implementation
 	empty_set_property (a_name: READABLE_STRING_8; a_mapping: E2B_ENTITY_MAPPING): IV_EXPRESSION
 		do
 			Result := factory.function_call (
-				"Set#IsEmpty",
-				<< factory.heap_access (a_mapping.heap, a_mapping.current_expression, a_name, types.set (types.ref)) >>,
-				types.bool)
+					"Set#IsEmpty",
+					<<factory.heap_access (a_mapping.heap, a_mapping.current_expression, a_name, types.set (types.ref))>>,
+					types.bool)
 		end
 
 	processed_classes: ARRAYED_LIST [INTEGER]
@@ -417,7 +436,7 @@ feature {NONE} -- Implementation
 				l_classes.after
 			loop
 				if not processed_classes.has (l_classes.item.class_id) then
-					process_flat_invariants (l_classes.item,a_included, a_excluded, a_mapping)
+					process_flat_invariants (l_classes.item, a_included, a_excluded, a_mapping)
 				end
 				l_classes.forth
 			end
@@ -428,7 +447,7 @@ feature {NONE} -- Implementation
 	is_tag_included (a_included, a_excluded: LIST [READABLE_STRING_8]; a_tag: READABLE_STRING_8): BOOLEAN
 			-- Should `a_tag' be included into the invariant function according `a_included' and `a_excluded'?
 		do
-			Result := (a_included = Void and a_excluded = Void) or else	-- Processing full invariant
+			Result := (a_included = Void and a_excluded = Void) or else -- Processing full invariant
 				(a_included /= Void and then a_tag /= Void and then a_included.has (a_tag)) or else -- Or explicitly included
 				(a_excluded /= Void and then (a_tag = Void or else not a_excluded.has (a_tag))) -- Or not expliciltly excluded
 		end
@@ -460,7 +479,7 @@ feature {NONE} -- Implementation
 						l_translator.set_origin_class (a_class)
 						l_translator.set_context_line_number (l_assert.line_number)
 						l_translator.set_context_tag (l_assert.tag)
-						l_translator.set_context_readable (factory.function_call ("user_inv_readable", << a_mapping.heap, a_mapping.current_expression >>, types.frame))
+						l_translator.set_context_readable (factory.function_call ("user_inv_readable", <<a_mapping.heap, a_mapping.current_expression>>, types.frame))
 						l_translator.set_use_triggers (True)
 						l_assert.process (l_translator)
 						last_safety_checks.append (l_translator.side_effect)
@@ -501,12 +520,12 @@ feature {NONE} -- Implementation
 		do
 			create l_heap.make ("heap", types.heap)
 			create l_current.make ("current", types.ref)
-			l_generic_call := factory.function_call (a_generic_function, << l_heap, l_current >>, types.bool)
-			l_special_call := factory.function_call (a_special_function, << l_heap, l_current >>, types.bool)
+			l_generic_call := factory.function_call (a_generic_function, <<l_heap, l_current>>, types.bool)
+			l_special_call := factory.function_call (a_special_function, <<l_heap, l_current>>, types.bool)
 
 			factory.add_dynamic_predicate_definition (
-				factory.function_call (a_generic_function, << l_heap, l_current >>, types.bool),
-				factory.function_call (a_special_function, << l_heap, l_current >>, types.bool),
+				factory.function_call (a_generic_function, <<l_heap, l_current>>, types.bool),
+				factory.function_call (a_special_function, <<l_heap, l_current>>, types.bool),
 				type, l_heap, l_current, <<>>)
 		end
 
@@ -580,13 +599,13 @@ feature {NONE} -- Implementation
 			create l_h.make ("h", types.heap)
 			create l_o.make ("o", types.ref)
 			l_fcall := factory.function_call (name_translator.boogie_function_for_filtered_invariant (type, a_included, a_excluded, a_ancestor),
-				<< l_h, l_o >>, types.bool)
+					<<l_h, l_o>>, types.bool)
 			create l_forall.make (factory.implies_ (
-				factory.and_ (factory.function_call ("IsHeap", << l_h >>, types.bool),
-					factory.and_ (
-						factory.function_call ("attached", << l_h, l_o, factory.type_value (type) >>, types.bool),
-						factory.heap_access (l_h, l_o, "closed", types.bool))),
-				l_fcall))
+					factory.and_ (factory.function_call ("IsHeap", <<l_h>>, types.bool),
+						factory.and_ (
+							factory.function_call ("attached", <<l_h, l_o, factory.type_value (type)>>, types.bool),
+							factory.heap_access (l_h, l_o, "closed", types.bool))),
+					l_fcall))
 			l_forall.add_bound_variable (l_h)
 			l_forall.add_bound_variable (l_o)
 			l_forall.add_trigger (l_fcall)
@@ -597,23 +616,23 @@ feature {NONE} -- Implementation
 			-- Add FieldId axioms for default attributes
 		do
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("allocated", types.field (types.bool)), factory.type_value (type) >>, types.int),
-				factory.int_value (-1))))
+						factory.function_call ("FieldId", <<factory.entity ("allocated", types.field (types.bool)), factory.type_value (type)>>, types.int),
+						factory.int_value (-1))))
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("closed", types.field (types.bool)), factory.type_value (type) >>, types.int),
-				factory.int_value (-2))))
+						factory.function_call ("FieldId", <<factory.entity ("closed", types.field (types.bool)), factory.type_value (type)>>, types.int),
+						factory.int_value (-2))))
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("owner", types.field (types.ref)), factory.type_value (type) >>, types.int),
-				factory.int_value (-3))))
+						factory.function_call ("FieldId", <<factory.entity ("owner", types.field (types.ref)), factory.type_value (type)>>, types.int),
+						factory.int_value (-3))))
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("owns", types.field (types.set (types.ref))), factory.type_value (type) >>, types.int),
-				factory.int_value (-4))))
+						factory.function_call ("FieldId", <<factory.entity ("owns", types.field (types.set (types.ref))), factory.type_value (type)>>, types.int),
+						factory.int_value (-4))))
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("observers", types.field (types.set (types.ref))), factory.type_value (type) >>, types.int),
-				factory.int_value (-5))))
+						factory.function_call ("FieldId", <<factory.entity ("observers", types.field (types.set (types.ref))), factory.type_value (type)>>, types.int),
+						factory.int_value (-5))))
 			boogie_universe.add_declaration (create {IV_AXIOM}.make (factory.equal (
-				factory.function_call ("FieldId", << factory.entity ("subjects", types.field (types.set (types.ref))), factory.type_value (type) >>, types.int),
-				factory.int_value (-6))))
+						factory.function_call ("FieldId", <<factory.entity ("subjects", types.field (types.set (types.ref))), factory.type_value (type)>>, types.int),
+						factory.int_value (-6))))
 		end
 
 feature -- Invariant admissibility
@@ -638,9 +657,9 @@ feature -- Invariant admissibility
 
 				-- Set up procedure with arguments and precondition
 			l_proc.add_argument (factory.std_current)
-			create l_pre.make (factory.function_call ("attached_exact", << factory.global_heap, factory.std_current, factory.type_value (a_class_type) >>, types.bool))
+			create l_pre.make (factory.function_call ("attached_exact", <<factory.global_heap, factory.std_current, factory.type_value (a_class_type)>>, types.bool))
 			l_proc.add_contract (l_pre)
-			create l_assume.make_assume (factory.function_call ("user_inv", << factory.global_heap, factory.std_current >>, types.bool))
+			create l_assume.make_assume (factory.function_call ("user_inv", <<factory.global_heap, factory.std_current>>, types.bool))
 
 			create l_goto.make_empty
 			l_impl.body.add_statement (l_goto)
@@ -671,7 +690,7 @@ feature -- Invariant admissibility
 			l_goto.add_target (l_block)
 			l_impl.body.add_statement (l_block)
 			l_block.add_statement (l_assume)
-			create l_assert.make (factory.function_call ("admissibility2", << factory.global_heap, factory.std_current >>, types.bool))
+			create l_assert.make (factory.function_call ("admissibility2", <<factory.global_heap, factory.std_current>>, types.bool))
 			l_assert.node_info.set_type ("A2")
 			l_block.add_statement (l_assert)
 			l_block.add_statement (factory.return)
@@ -682,7 +701,7 @@ feature -- Invariant admissibility
 			l_goto.add_target (l_block)
 			l_impl.body.add_statement (l_block)
 			l_block.add_statement (l_assume)
-			create l_assert.make (factory.function_call ("admissibility3", << factory.global_heap, factory.std_current >>, types.bool))
+			create l_assert.make (factory.function_call ("admissibility3", <<factory.global_heap, factory.std_current>>, types.bool))
 			l_assert.node_info.set_type ("A3")
 			l_block.add_statement (l_assert)
 			l_block.add_statement (factory.return)
@@ -697,7 +716,7 @@ feature -- Invariant admissibility
 			l_error: E2B_DEFAULT_VERIFICATION_ERROR
 		do
 			if a_result_generator.has_validity_error (Void, a_class) then
-				-- Ignore results of classes with a validity error
+					-- Ignore results of classes with a validity error
 
 			elseif a_boogie_result.is_successful then
 				create l_success
@@ -717,10 +736,10 @@ feature -- Invariant admissibility
 					check i.is_assert_error end
 					create l_error.make (l_failure)
 					l_error.set_boogie_error (i)
-					if i.attributes["type"] ~ "A2" then
+					if i.attributes ["type"] ~ "A2" then
 						l_error.set_message ({STRING_32} "Some subjects might not have Current in their observers set.")
 						l_failure.errors.extend (l_error)
-					elseif i.attributes["type"] ~ "A3" then
+					elseif i.attributes ["type"] ~ "A3" then
 						l_error.set_message ({STRING_32} "The invariant might be invalidated by a subject update that conforms to its guard.")
 						l_failure.errors.extend (l_error)
 					else
@@ -749,16 +768,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
-
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
 end

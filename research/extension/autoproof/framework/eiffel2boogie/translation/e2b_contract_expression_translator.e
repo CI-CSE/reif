@@ -156,7 +156,11 @@ feature -- Translation
 						-- Add precondition check
 					add_function_precondition_check (a_feature, l_call)
 						-- Add termination check (for recursive functionals)
-					add_recursion_termination_check (a_feature)
+					if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
+												context_feature.feature_id = a_feature.feature_id then
+						l_call.set_is_recursive (True)
+						add_recursion_termination_check (a_feature)
+					end
 				end
 				last_expression := l_call
 			end
@@ -193,4 +197,20 @@ feature -- Translation
 			a_handler.handle_routine_call_in_contract (Current, a_feature, a_parameters)
 		end
 
+note
+	license: "GNU General Public License"
+	license_name: "GPL"
+	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
+	copying: "[
+		This program is free software; you can redistribute it and/or modify it under the terms of
+		the GNU General Public License as published by the Free Software Foundation; either version 1,
+		or (at your option) any later version.
+
+		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+		See the GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License along with this program.
+		If not, see <https://www.gnu.org/licenses/>.
+	]"
 end

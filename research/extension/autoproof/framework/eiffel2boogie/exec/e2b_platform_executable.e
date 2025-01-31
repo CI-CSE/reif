@@ -224,6 +224,7 @@ feature {NONE} -- Implementation
 			if l_context.options.is_enforcing_timeout then
 				l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
 			end
+			l_arguments.extend ({STRING_32} "/errorLimit:0")
 			l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
 			l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand_seed.out)
 			l_arguments.extend (boogie_file_name.name)
@@ -383,6 +384,7 @@ feature {NONE} -- Output capture
 			l_file: PLAIN_TEXT_FILE
 		do
 			create l_file.make_with_path (model_file_name)
+			-- print ("E2B_PLATFORM_EXECUTABLE.read_models: "+ model_file_name.name.to_string_8 + "%N")
 			if l_file.access_exists then -- read model file
 				l_file.open_read
 				l_file.read_stream (100000000)

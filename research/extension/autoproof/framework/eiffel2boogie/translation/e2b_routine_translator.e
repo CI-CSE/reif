@@ -111,6 +111,9 @@ feature -- Translation: Signature
 				current_boogie_procedure.add_contract (l_modifies)
 			end
 
+			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
+			current_boogie_procedure.set_is_mcdc_tests_enabled (options.is_full_mcdc_test_generation_enabled)
+
 				-- Pre- and postconditions
 			l_contracts := contracts_of (current_feature, current_type)
 			across l_contracts.pre as j loop
@@ -128,15 +131,16 @@ feature -- Translation: Signature
 
 				-- *Li: Add trial fix to precondition
 			if attached options.target_feature as f then
-			    if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
-				    current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
-	 				options.set_last_candidate_fix (options.current_candidate_fix)
-	 				options.set_current_candidate_fix(options.fix_preconditions.first)
-				    options.fix_preconditions.remove_i_th (1)
-			    end
+				if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
+					current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
+					options.set_last_candidate_fix (options.current_candidate_fix)
+					options.set_current_candidate_fix (options.fix_preconditions.first)
+					options.fix_preconditions.remove_i_th (1)
+				end
 			end
 
 			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
+			current_boogie_procedure.set_is_mcdc_tests_enabled (options.is_full_mcdc_test_generation_enabled)
 
 			current_boogie_procedure.set_is_generate_fix_enabled (options.is_generate_fix_enabled)
 
@@ -145,7 +149,6 @@ feature -- Translation: Signature
 					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [k].line_number, current_boogie_procedure.uncovered_branch_lines.count)
 				end
 			end
-
 
 			create l_fields.make
 			across l_contracts.post as j loop
@@ -218,8 +221,8 @@ feature -- Translation: Signature
 			add_field_default_initialization (a_type)
 
 				-- wrapped
-			 create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
-			 current_boogie_procedure.add_contract (l_post)
+			create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
+			current_boogie_procedure.add_contract (l_post)
 
 				-- global
 			create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
@@ -264,18 +267,18 @@ feature -- Translation: Signature
 				end
 			end
 
-			-- Adding precondition:
-			-- 		requires (forall <T1> $f: Field T1 ::
-			-- 			((($f) != (allocated)) && (($f) != (<not-self-initializing field>)) ... && $f != <not-self-initializing field> ... )
-			-- 			==>
-			-- 			((Heap[Current, $f]) == (Default($f))));
+				-- Adding precondition:
+				-- 		requires (forall <T1> $f: Field T1 ::
+				-- 			((($f) != (allocated)) && (($f) != (<not-self-initializing field>)) ... && $f != <not-self-initializing field> ... )
+				-- 			==>
+				-- 			((Heap[Current, $f]) == (Default($f))));
 
 			create l_forall.make (factory.implies_ (
 						l_left_hand_side,
 						factory.equal (
-					factory.heap_current_access (l_mapping, l_f.name, l_t),
-					factory.function_call ("Default", <<l_f>>, l_t))
-			))
+							factory.heap_current_access (l_mapping, l_f.name, l_t),
+							factory.function_call ("Default", <<l_f>>, l_t))
+					))
 
 			l_forall.add_type_variable (l_t.name)
 			l_forall.add_bound_variable (l_f)
@@ -366,8 +369,10 @@ feature -- Translation: Signature
 					-- TODO: should default precondtions be enabled for lemmas?
 				create l_mapping.make
 				l_mapping.set_current (current_boogie_procedure.arguments.first.entity)
-				across ownership_default (a_for_creator, l_mapping) as i loop
-					current_boogie_procedure.add_contract (i)
+				if not current_boogie_procedure.is_full_coverage_tests_enabled then
+					across ownership_default (a_for_creator, l_mapping) as i loop
+						current_boogie_procedure.add_contract (i)
+					end
 				end
 			end
 		end
@@ -604,7 +609,7 @@ feature -- Translation: Implementation
 			l_builtin_collector: E2B_BUILTIN_CALLS_COLLECTOR
 			l_loc: IV_ENTITY
 		do
-			-- print ("E2B_ROUTINE_TRANSLATOR.translate_implementation: "+ a_feature.feature_name + "%N")
+				-- print ("E2B_ROUTINE_TRANSLATOR.translate_implementation: "+ a_feature.feature_name + "%N")
 			set_context (a_feature, a_type)
 			set_inlining_options_for_feature (a_feature)
 
@@ -722,7 +727,7 @@ feature -- Translation: Implementation
 					end
 				end
 			end
-			-- print ("E2B_ROUTINE_TRANSLATOR.translate_implementation: "+ a_feature.feature_name + " end%N")
+				-- print ("E2B_ROUTINE_TRANSLATOR.translate_implementation: "+ a_feature.feature_name + " end%N")
 		end
 
 feature -- Translation: Functions
@@ -998,7 +1003,7 @@ feature -- Translation: Functions
 				end
 					-- If still empty, add a trivial variant
 				if l_decreases_list.is_empty then
-					l_decreases_list.extend (factory.int_value (0))
+						l_decreases_list.extend (factory.int_value (0))
 				end
 			elseif l_decreases_list.first = Void then
 					-- Decreases empty set (*): do not check termination
@@ -1351,7 +1356,11 @@ feature {NONE} -- Implementation
 			l_contract.node_info.set_type ("pre")
 			l_contract.node_info.set_tag (a_assert.tag)
 			l_contract.node_info.set_line (a_assert.line_number)
+			if current_boogie_procedure.is_full_coverage_tests_enabled then
+				l_contract.set_free
+			end
 			current_boogie_procedure.add_contract (l_contract)
+
 			helper.set_up_byte_context (current_feature, current_type)
 		end
 

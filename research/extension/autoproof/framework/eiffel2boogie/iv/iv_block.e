@@ -43,42 +43,58 @@ feature -- Status report
 			Result := statements.is_empty
 		end
 
-	is_conditional_leaf (a_is_then_block: BOOLEAN; a_condition: IV_STATEMENT_ORIGIN): BOOLEAN
-	    	-- Is this block a conditional leaf block
-	    local
-	    	i: INTEGER
-	    	--TODO: use an array of string to store the actual lines
-	    	-- when deciding whether it's a conditional leaf, check if the if-statement is the last line
-	    	stm_lines: ARRAY [STRING_32]
-	    	cond_line: STRING
-	    do
-	    		if attached a_condition then
-					cond_line := a_condition.text_of_line
-				else
-					cond_line := ""
-				end
-	    	create stm_lines.make_empty
-	    	across statements as s loop
-	 			if attached s.origin_information as oi then
-	 				-- print ("block line: " + oi.text_of_line + "%N")
-					stm_lines.force (oi.text_of_line, stm_lines.count)
-	 			end
-	    	end
+	is_loop_body_block: BOOLEAN
+			-- Is the current block the body of a loop?
+		do
+			Result := name.has_substring ("loop_body")
+		end
 
-	    	Result := True
+	set_is_unrolled_block (a_value: BOOLEAN)
+			-- set `is_unrolled_block' to `a_value'
+			do
+				is_unrolled_block := a_value
+			end
+
+	is_unrolled_block: BOOLEAN
+			-- Is the current block generated from unrolling a loop?
+
+
+	is_conditional_leaf (a_is_then_block: BOOLEAN; a_condition: IV_STATEMENT_ORIGIN): BOOLEAN
+			-- Is this block a conditional leaf block
+		local
+			i: INTEGER
+				--TODO: use an array of string to store the actual lines
+				-- when deciding whether it's a conditional leaf, check if the if-statement is the last line
+			stm_lines: ARRAY [STRING_32]
+			cond_line: STRING
+		do
+			cond_line := if attached a_condition and then a_condition.line > 0 then a_condition.text_of_line else "" end
+
+			create stm_lines.make_empty
+
+			across statements as s loop
+				if attached s.origin_information as oi and then oi.line > 0 then
+					-- print ("block line: " + oi.text_of_line + "%N")
+					stm_lines.force (oi.text_of_line, stm_lines.count)
+				end
+			end
+
+			Result := True
 			from
 				i := 0
 			until
 				i = stm_lines.count -- or Result = False
 			loop
 				-- print ("i: " + i.out +  " " + stm_lines [i].to_string_8 + "%N")
-				-- TODO: to make sure this works for the LAMP example
-				if stm_lines [i].has_substring ("if ") and ((not a_is_then_block) or (a_is_then_block and not stm_lines [i].same_string (cond_line)))then
-						Result := False
+					-- TODO: to make sure this works for the LAMP example
+				if stm_lines [i].has_substring ("until ")
+						or stm_lines [i].has_substring ("if ") and ((not a_is_then_block)
+							or (a_is_then_block and not stm_lines [i].same_string (cond_line))) then
+					Result := False
 				end
 				i := i + 1
 			end
-	    end
+		end
 
 feature -- Access
 
@@ -98,7 +114,7 @@ feature -- Element change
 			statements.extend (a_statement)
 		end
 
-	add_statement_before_last (a_statement:IV_STATEMENT)
+	add_statement_before_last (a_statement: IV_STATEMENT)
 			-- Add `a_statement' to `statements', but position it before the last item in `statements'
 		require
 			a_statement_attached: attached a_statement
@@ -155,15 +171,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-		This program is free software; you can redistribute it and/or modify it under the terms of
-		the GNU General Public License as published by the Free Software Foundation; either version 1,
-		or (at your option) any later version.
+					This program is free software; you can redistribute it and/or modify it under the terms of
+					the GNU General Public License as published by the Free Software Foundation; either version 1,
+					or (at your option) any later version.
+			
+					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+					See the GNU General Public License for more details.
+			
+					You should have received a copy of the GNU General Public License along with this program.
+					If not, see <https://www.gnu.org/licenses/>.
+		]"
 
-		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		See the GNU General Public License for more details.
-
-		You should have received a copy of the GNU General Public License along with this program.
-		If not, see <https://www.gnu.org/licenses/>.
-	]"
 end

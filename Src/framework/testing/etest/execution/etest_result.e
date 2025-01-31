@@ -42,6 +42,12 @@ feature -- Access
 		do
 			Result := original_result.finish_date
 		end
+	
+	-- duration: DATE_TIME_DURATION
+			-- <Precursor>
+	--	do
+	--		Result := original_result.duration -- .fine_seconds_count
+	--	end
 
 	is_pass: BOOLEAN
 			-- <Precursor>

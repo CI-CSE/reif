@@ -259,7 +259,7 @@ feature {NONE} -- Implementation
 				add_translation_unit (l_functional_representation)
 			end
 
-			if not a_is_referenced and not a_feature.is_deferred and not helper.is_skipped (a_feature) then
+			if not a_is_referenced and not a_feature.is_deferred and not helper.is_skipped (a_feature)  then
 					-- Add variant functions
 					-- (has to be processed before the implementation)
 				if options.is_ownership_enabled then
