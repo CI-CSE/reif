@@ -21,7 +21,7 @@ feature {NONE} -- Initialization
 			bound_variable := a_bound_var
 			expression_translator := a_translator
 			domain := a_domain
-			scoped_expression := a_scoped_expr
+			scoped_expression := a_scoped_expr 
 		end
 
 feature -- Access

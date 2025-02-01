@@ -76,28 +76,16 @@ feature -- Basic operations
 			if a_type.has_generics then
 				across a_type.generics as params loop
 					if attached {CL_TYPE_A} params as t then
-							-- translation_pool.add_parent_type (t)
+							translation_pool.add_parent_type (t)
 							-- translation_pool.add_parent_type (create {INTEGER_A}.make (64))
 					elseif attached {CL_TYPE_A} a_type.base_class.single_constraint (@ params.target_index) as t then
-							-- translation_pool.add_parent_type (t)
+							translation_pool.add_parent_type (t)
 							-- translation_pool.add_parent_type (create {INTEGER_A}.make (64))
 					else
 						check class_type_constraint: False then end
 					end
 				end
 			end
-
---			if l_type.base_class.is_generic then
---						if not attached {GEN_TYPE_A} l_type as l_gen_type then
---							if attached {GEN_TYPE_A} l_type.base_class.actual_type as l_gen_type2 then
---								l_type := generic_derivation_of_type (l_gen_type2, l_gen_type2.base_class)
---							else
---								check
---									dead_end: False
---								end
---							end
---						end
---			end
 
 			if not helper.is_class_logical (l_class) then
 					-- Type definition

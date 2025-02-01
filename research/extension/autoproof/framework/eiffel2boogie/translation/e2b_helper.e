@@ -702,7 +702,8 @@ feature -- Eiffel helpers
 							r.set_generics (new_generics)
 							Result := r
 						end
-						new_generics [@ g.target_index] :=  create {INTEGER_A}.make (32)  -- t.base_class.single_constraint (@ g.target_index) -- create {BOOLEAN_A} --
+						new_generics [@ g.target_index] := t.base_class.single_constraint (@ g.target_index)
+						-- new_generics [@ g.target_index] :=  create {INTEGER_A}.make (32)  -- t.base_class.single_constraint (@ g.target_index) -- create {BOOLEAN_A} --
 					end
 				end
 			end
