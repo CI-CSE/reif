@@ -124,7 +124,6 @@ jobs:
           error=0
           timeout=0
           legacy_failed=0
-          legacy_succeeded=()
           legacy_names=(
             v_array.e
             v_array2.e
@@ -162,6 +161,10 @@ jobs:
             mml_relation.e
             mml_sequence.e
           )
+
+          LEGACY_FILE="legacy.txt"
+          FAILED_FILE="failed.txt"
+          ERROR_FILE="error.txt"
 
           base2dir="$AP/library/base"
           base2cfg="$base2dir/base-scoop-safe.ecf"
@@ -226,6 +229,7 @@ jobs:
 
                 if (( is_legacy == 0 )); then
                   failed=$(( $failed+1 ))
+                  echo $f >> $FAILED_FILE
                 fi
               else
                 if grep -q "Successfully verified" ap.txt; then
@@ -235,7 +239,7 @@ jobs:
                   if (( is_legacy == 0 )); then
                     succeeded=$(( $succeeded+1 ))
                   else
-                    legacy_succeeded+=($f)
+                    echo $f >> $LEGACY_FILE
                   fi
                 else
                   echo "  Verification error"
@@ -243,6 +247,7 @@ jobs:
 
                   if (( is_legacy == 0 )); then
                     error=$(( $error+1 ))
+                    echo $F >> $ERROR_FILE
                   fi
                 fi
               fi
@@ -290,12 +295,17 @@ jobs:
 
           cat $OUTPUT_TABLE >> $GITHUB_STEP_SUMMARY
 
-          if (( error > 0 )) || (( error > 0 )); then
+          if (( failed > 0 )) || (( error > 0 )); then
+            echo "Failed files:"
+            cat $FAILED_FILE || true
+            echo "Errored files:"
+            cat $ERROR_FILE || true
+
             exit 1
           fi
-          if (( ${#legacy_succeeded[@]} )); then
+          if [ -f $LEGACY_FILE ]; then
             echo "Legacy files verified. Remove them from legacy list!"
-            echo ${legacy_succeded[@]}
+            cat $LEGACY_FILE
             exit 1
           fi
 
