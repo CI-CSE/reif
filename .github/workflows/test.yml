@@ -131,12 +131,12 @@ jobs:
           legacy_names=(
             v_array.e
             v_array2.e
-            v_double_linkable.e
+            v_doubly_linkable.e
             v_container.e
             v_linked_queue_iterator.e
             v_linked_stack_iterator.e
             v_arrayed_list_iterator.e
-            v_double_linked_list_iterator.e
+            v_doubly_linked_list_iterator.e
             v_linked_list_iterator.e
             v_hash_table_iterator.e
             v_iterator.e
