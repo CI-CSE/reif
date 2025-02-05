@@ -251,7 +251,7 @@ jobs:
 
                   if (( is_legacy == 0 )); then
                     error=$(( $error+1 ))
-                    echo $F >> $ERROR_FILE
+                    echo $f >> $ERROR_FILE
                   fi
                 fi
               fi
@@ -300,10 +300,14 @@ jobs:
           cat $OUTPUT_TABLE >> $GITHUB_STEP_SUMMARY
 
           if (( failed > 0 )) || (( error > 0 )); then
-            echo "Failed files:"
-            cat $FAILED_FILE || true
-            echo "Errored files:"
-            cat $ERROR_FILE || true
+            if [ -f $FAILED_FILE ]; then
+              echo "Failed files:"
+              cat $FAILED_FILE
+            fi
+            if [ -f $ERROR_FILE ]; then
+              echo "Errored files:"
+              cat $ERROR_FILE
+            fi
 
             exit 1
           fi
