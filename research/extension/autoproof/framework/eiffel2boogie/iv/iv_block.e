@@ -84,7 +84,6 @@ feature -- Status report
 			until
 				i = stm_lines.count -- or Result = False
 			loop
-				-- print ("i: " + i.out +  " " + stm_lines [i].to_string_8 + "%N")
 					-- TODO: to make sure this works for the LAMP example
 				if stm_lines [i].has_substring ("until ")
 						or stm_lines [i].has_substring ("if ") and ((not a_is_then_block)
@@ -113,7 +112,7 @@ feature -- Element change
 			statements.extend (a_statement)
 		end
 
-	add_statement_before_last (a_statement: IV_STATEMENT)
+	add_statement_before_last (a_statement:IV_STATEMENT)
 			-- Add `a_statement' to `statements', but position it before the last item in `statements'
 		require
 			a_statement_attached: attached a_statement
@@ -170,16 +169,16 @@ note
 	license_name: "GPL"
 	EIS: "name=GPL", "src=https://www.gnu.org/licenses/gpl.html", "tag=license"
 	copying: "[
-					This program is free software; you can redistribute it and/or modify it under the terms of
-					the GNU General Public License as published by the Free Software Foundation; either version 1,
-					or (at your option) any later version.
+				This program is free software; you can redistribute it and/or modify it under the terms of
+				the GNU General Public License as published by the Free Software Foundation; either version 1,
+				or (at your option) any later version.
 			
-					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-					See the GNU General Public License for more details.
+				This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+				without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+				See the GNU General Public License for more details.
 			
-					You should have received a copy of the GNU General Public License along with this program.
-					If not, see <https://www.gnu.org/licenses/>.
+				You should have received a copy of the GNU General Public License along with this program.
+				If not, see <https://www.gnu.org/licenses/>.
 		]"
 
 end

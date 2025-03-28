@@ -489,7 +489,7 @@ feature {NONE} -- Basic operations
 			if not a_result.is_pass then
 					-- We only print out the details in batch mode since in UI
 					-- mode the details go directly to another tool window.
-				-- a_result.print_details_indented (a_formatter, not is_gui, 1)
+				a_result.print_details_indented (a_formatter, not is_gui, 1)
 			end
 		end
 

@@ -119,7 +119,6 @@ feature -- Execution
 			l_measure: BOOLEAN
 			l_start, l_duration: NATURAL_64
 		do
-			-- print ("EWB_BOOGIE_VERIFICATION.execute%N")
 			create autoproof.make
 				-- Load options
 			if user_options.has ("-branchtests") then
@@ -299,15 +298,15 @@ feature {NONE} -- Printing console
 				across a_result.verification_results as i loop
 					output_window.add ("======================================%N")
 
-					if attached {E2B_SUCCESSFUL_VERIFICATION} i as l_success then
-						print_successful_verification (l_success)
+				if attached {E2B_SUCCESSFUL_VERIFICATION} i as l_success then
+					print_successful_verification (l_success)
 
-					elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
-						print_failed_verification (l_failure)
+				elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
+					print_failed_verification (l_failure)
 
-						if user_options.has ("-fix") then
-							options.failures_for_fix.extend (l_failure)
-						end
+					if user_options.has ("-fix") then
+						options.failures_for_fix.extend (l_failure)
+					end
 							-- TODO Li: display the failure in the "Faults" tab
 					elseif attached {E2B_AUTOPROOF_ERROR} i as l_error then
 						print_error (l_error)
@@ -327,8 +326,8 @@ feature {NONE} -- Printing console
 						-- Instrument at the Eiffel level
 						-- Generate a new file or directly instrument at the boogie level?
 						-- Use SMT solver directly for simple property analysis?
-						--	Parse the result to get the id of the failed verification of check False and store in a hash set S2
-						-- 	Print out the result of S2 to the output panel, using Msg_valid_proof_fix
+				--	Parse the result to get the id of the failed verification of check False and store in a hash set S2
+				-- 	Print out the result of S2 to the output panel, using Msg_valid_proof_fix
 					print_potential_fix
 						-- TODO Li: this is a hack to get the context class
 					reverify_with_check_false_instrumented (a_result.verification_results.last.context_class)
@@ -366,17 +365,17 @@ feature {NONE} -- Printing console
 
 			across options.valid_fixes as l_name loop
 				l_feature := a_class.feature_named (l_name)
-				output_window.add (l_feature.body.text (l_match_list))
+				output_window.add (l_feature.body.text(l_match_list))
 				output_window.add ("%N------------------------------------------------------------------------------------%N")
 			end
 			output_window.add ("%N")
 			output_window.add ("fixing end time: " + timer.system_clock.time_now.out + "%N")
-				-- output_window.add ("fixing start time: " + options.fix_start_time.out + "%N")
-				-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
+			-- output_window.add ("fixing start time: " + options.fix_start_time.out + "%N")
+			-- output_window.add ( "fixing time: " + timer.system_clock.time_now.time_duration (options.fix_start_time).out + "%N")
 		end
 
 	print_potential_fix
-			-- Print out the ids of potential fixes
+		-- Print out the ids of potential fixes
 		local
 			l_id: STRING
 		do
@@ -549,7 +548,7 @@ feature {NONE} -- Implementation
 			loop
 				l_item := selection.item
 
-					-- Try to find class by path
+				-- Try to find class by path
 				create file.make_with_path (create {PATH}.make_from_string (selection.item))
 				if file.exists and then attached class_by_path (file.path) as c then
 					load_class (c)
@@ -625,27 +624,27 @@ feature {NONE} -- Implementation
 				end
 			end
 
-			l_class_text := a_class.ast.text (l_match_list)
+				l_class_text := a_class.ast.text (l_match_list)
 
-			l_class_file_name := a_class.name
-			l_class_file_path := system.eiffel_project.project_directory.path.extended (l_class_file_name + ".e")
-			create l_class_file.make_with_path (l_class_file_path)
-			l_class_file.open_write
-			l_class_file.put_string (l_class_text)
-			l_class_file.close
+				l_class_file_name := a_class.name
+				l_class_file_path := system.eiffel_project.project_directory.path.extended (l_class_file_name + ".e")
+				create l_class_file.make_with_path (l_class_file_path)
+				l_class_file.open_write
+				l_class_file.put_string (l_class_text)
+				l_class_file.close
 
-			compile_project (eiffel_project, True)
-			l_match_list.remove_modifications
+				compile_project (eiffel_project, True)
+				l_match_list.remove_modifications
 
-			autoproof.reset
-			across options.potential_fixes_names as l_name loop
-				l_feature := a_class.feature_named (l_name)
-				if l_feature /= Void then
-					autoproof.add_feature (l_feature)
+				autoproof.reset
+				across options.potential_fixes_names as l_name loop
+					l_feature := a_class.feature_named (l_name)
+					if l_feature /= Void then
+						autoproof.add_feature (l_feature)
+					end
 				end
-			end
-			autoproof.add_notification (agent get_valid_fixes_from_result (?))
-			autoproof.verify
+				autoproof.add_notification (agent get_valid_fixes_from_result (?))
+				autoproof.verify
 		end
 
 	load_class (a_class: CLASS_I)

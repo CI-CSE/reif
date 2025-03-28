@@ -70,8 +70,6 @@ feature
 		local
 			l_file: PLAIN_TEXT_FILE
 		do
-			print ("lll: " + location.out + "%N")
-
 			create l_file.make_open_read (location)
 			-- create l_file.make_open_read ("C:\Users\HP\Desktop\ACCOUNT_1_ce_traces_1.txt") -- it works
 			-- create l_file.make_open_read ("D:\Eiffel_Projects\projects\account\EIFGENs\account\Data\AutoFix\temp\ACCOUNT_1_ce_traces_1.txt")

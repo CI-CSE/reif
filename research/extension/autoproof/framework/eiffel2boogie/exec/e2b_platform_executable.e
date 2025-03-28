@@ -383,7 +383,6 @@ feature {NONE} -- Output capture
 			l_file: PLAIN_TEXT_FILE
 		do
 			create l_file.make_with_path (model_file_name)
-			-- print ("E2B_PLATFORM_EXECUTABLE.read_models: "+ model_file_name.name.to_string_8 + "%N")
 			if l_file.access_exists then -- read model file
 				l_file.open_read
 				l_file.read_stream (100000000)

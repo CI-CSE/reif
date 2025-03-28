@@ -20,7 +20,6 @@ feature {BYTE_NODE} -- Visitors
 	process_access_expr_b (a_node: ACCESS_EXPR_B)
 			-- Process `a_node'.
 		do
-			-- print ("E2B_VISITOR.process_access_expr_b%N")
 			safe_process (a_node.expr)
 		end
 
@@ -314,7 +313,6 @@ feature {BYTE_NODE} -- Visitors
 	process_feature_b (a_node: FEATURE_B)
 			-- Process `a_node'.
 		do
-			-- print ("E2B_VISITOR.process_feature_b%N")
 			safe_process (a_node.parameters)
 		end
 
@@ -582,7 +580,6 @@ feature {BYTE_NODE} -- Visitors
 	process_un_free_b (a_node: UN_FREE_B)
 			-- Process `a_node'.
 		do
-			-- print ("E2B_VISITOR.process_un_free_b%N")
 			safe_process (a_node.access)
 			safe_process (a_node.expr)
 		end

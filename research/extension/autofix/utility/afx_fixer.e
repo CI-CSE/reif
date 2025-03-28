@@ -560,19 +560,11 @@ feature {NONE} -- Implementation
 
 					Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
 
---<<<<<<< Updated upstream
 					if a_proof_failure.exception_code = {EXCEP_CONST}.postcondition or a_proof_failure.exception_code = {EXCEP_CONST}.class_invariant then
 						l_feature_index := l_feature_index + 1
 						l_text := l_feature_contract_modifier.feature_text_with_weakened_postcondition (c.item, a_proof_failure.failure_message, l_feature_index)
 						Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
 					end
--- =======
---					if a_proof_failure.exception_code = {EXCEP_CONST}.postcondition or a_proof_failure.exception_code = {EXCEP_CONST}.class_invariant then
---						l_feature_index := l_feature_index + 1
---						l_text := l_feature_contract_modifier.feature_text_with_weakened_postcondition (c.item, a_proof_failure.assertion_tag, l_feature_index)
---						Result.force_last (create {AFX_CODE_FIX_TO_FAULT}.make (session.feature_under_proof, l_fixing_target, l_text, 1))
---					end
--->>>>>>> Stashed changes
 		 		-- l_feature_contract_modifier.modify_contracts_for_feature (session.feature_under_proof, a_contracts, a_proof_failure.failure_message)
 				-- make (a_feature: AFX_FEATURE_TO_MONITOR; a_fixing_target: like fixing_target; a_fixed_body_text: STRING; a_scheme_type: INTEGER)
 				end

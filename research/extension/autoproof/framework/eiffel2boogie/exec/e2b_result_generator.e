@@ -74,7 +74,6 @@ feature -- Basic operations
 			l_trace: E2B_CE_TRACE_OF_ROUTINE
 			l_sig: STRING
 		do
-			-- print ("E2B_RESULT_GENERATOR.process_individual_error%N")
 			create l_error.make (a_failure)
 			l_sig := ""
 			-- Get input values in counterexample
@@ -97,15 +96,15 @@ feature -- Basic operations
 			l_error.set_message (message_for_error (a_error, l_init_state))
 			l_error.set_trace (l_trace)
 
-			helper.options.set_current_init_state (l_init_state)
+				helper.options.set_current_init_state (l_init_state)
 
 			-- if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
 			helper.options.set_new_ce_message (l_error.counterexample_message_string)
 			-- end
 
-			if helper.options.is_generate_fix_enabled then
-				helper.options.ce_states.extend (l_init_state)
-			end
+		if helper.options.is_generate_fix_enabled then
+			helper.options.ce_states.extend (l_init_state)
+		end
 
 			l_error.set_line_number (line_for_error (a_error))
 		end

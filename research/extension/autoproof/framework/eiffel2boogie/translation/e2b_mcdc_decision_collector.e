@@ -90,7 +90,6 @@ feature -- Implementation
 	check_and_add_decision (a_expr: EXPR_B)
 			-- Check whether the current expression is a decision
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_binary_operator%N")
 			if not is_boolean_expression then
 				is_boolean_expression := True
 				options.mcdc_decision_exprs.extend (a_expr)
@@ -103,7 +102,6 @@ feature -- Visitors
 	process_instr_call_b  (a_node: INSTR_CALL_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_argument_b%N")
 			Precursor (a_node)
 			if a_node.call.type.is_boolean then
 				check_and_add_decision (a_node.call)
@@ -113,7 +111,6 @@ feature -- Visitors
 	process_argument_b (a_node: ARGUMENT_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_argument_b%N")
 			Precursor (a_node)
 			if a_node.type.is_boolean then
 				check_and_add_decision (a_node)
@@ -123,7 +120,6 @@ feature -- Visitors
 	process_attribute_b (a_node: ATTRIBUTE_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_attribute_b%N")
 			Precursor (a_node)
 			if a_node.type.is_boolean then
 					-- single boolean variable, mapped to a leaf node
@@ -134,7 +130,6 @@ feature -- Visitors
 	process_local_b (a_node: LOCAL_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_local_b%N")
 			Precursor (a_node)
 			if a_node.type.is_boolean then
 					-- single boolean variable, mapped to a leaf node
@@ -145,7 +140,6 @@ feature -- Visitors
 	process_bin_and_b (a_node: BIN_AND_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_and_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -154,7 +148,6 @@ feature -- Visitors
 			-- <Precursor>
 		do
 				-- TODO: include the shortcut semantics; for the moment, use the same semantics as ordinary "and"
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_and_then_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -162,7 +155,6 @@ feature -- Visitors
 	process_bin_implies_b (a_node: B_IMPLIES_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_implies_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -170,15 +162,13 @@ feature -- Visitors
 	process_bin_eq_b (a_node: BIN_EQ_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_eq_b%N")
-			 check_and_add_decision (a_node)
+			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
 
 	process_bin_ne_b (a_node: BIN_NE_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_ne_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -186,7 +176,6 @@ feature -- Visitors
 	process_bin_or_b (a_node: BIN_OR_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_or_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -197,7 +186,6 @@ feature -- Visitors
 			--	l_left, l_right: E2B_MCDC_NODE
 		do
 				-- TODO: include the shortcut semantics; for the moment, use the same semantics as ordinary "or"
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_or_else_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -205,7 +193,6 @@ feature -- Visitors
 	process_bin_xor_b (a_node: BIN_XOR_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_xor_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -213,7 +200,6 @@ feature -- Visitors
 	process_bin_tilde_b (a_node: BIN_TILDE_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_tilde_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -221,7 +207,6 @@ feature -- Visitors
 	process_bin_ge_b (a_node: BIN_GE_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_ge_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -229,7 +214,6 @@ feature -- Visitors
 	process_bin_gt_b (a_node: BIN_GT_B)
 			-- <Precursor>
 		do
-			-- print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_gt_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -237,7 +221,6 @@ feature -- Visitors
 	process_bin_le_b (a_node: BIN_LE_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_le_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -245,7 +228,6 @@ feature -- Visitors
 	process_bin_lt_b (a_node: BIN_LT_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_bin_lt_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -253,7 +235,6 @@ feature -- Visitors
 --	process_bool_const_b (a_node: BOOL_CONST_B)
 --			-- <Precursor>
 --		do
---			-- print ("E2B_MCDC_DECISION_COLLECTOR.process_bool_const_b%N")
 --			-- check_and_add_decision (a_node)
 --			Precursor (a_node)
 --		end
@@ -261,7 +242,6 @@ feature -- Visitors
 	process_object_test_b (a_node: OBJECT_TEST_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_object_test_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -269,7 +249,6 @@ feature -- Visitors
 	process_object_test_local_b (a_node: OBJECT_TEST_LOCAL_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_object_test_local_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end
@@ -277,7 +256,6 @@ feature -- Visitors
 	process_un_not_b (a_node: UN_NOT_B)
 			-- <Precursor>
 		do
-			print ("E2B_MCDC_DECISION_COLLECTOR.process_un_not_b%N")
 			check_and_add_decision (a_node)
 			Precursor (a_node)
 		end

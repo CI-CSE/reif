@@ -23,7 +23,6 @@ feature {NONE} -- Initialization
 	make (a_translator_input: E2B_TRANSLATOR_INPUT; a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-				-- print ("E2B_VERIFY_FOR_FULL_COVERAGE_TESTS_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -57,7 +56,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			remaining_tasks.start
 			remaining_tasks.forth -- Skip current taks in queue
 				-- TODO: compute branch difference based on branch_info and branch_log
-				-- compute_uncovered_branch
+			-- compute_uncovered_branch
 			remaining_tasks.put_left (create {E2B_TRANSLATE_CHUNK_TASK}.make (l_translator_input, l_boogie_universe))
 			remaining_tasks.put_left (create {E2B_GENERATE_BOOGIE_TASK}.make (l_boogie_universe, new_verifier))
 				-- remaining_tasks.put_left (create {E2B_EXECUTE_BOOGIE_TASK}.make (new_verifier))
@@ -100,16 +99,15 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				branch_info_file.end_of_file
 			loop
 				branch_info_file.read_line
-					-- print ("read branch_info at line: " + branch_info_file.last_string + "%N")
 				if not branch_info_file.last_string.is_empty then
 					words := branch_info_file.last_string.split (' ') -- Branch 27 Class ICSE24_CLOCK Line 90
 					l_branch_id.copy (words [2])
 					l_class_name.copy (words [4])
 					l_line_number.copy (words [6])
-						-- branch_set [l_branch_id.to_integer].class_name := ""
-						-- branch_set [l_branch_id.to_integer].class_name.copy (l_class_name)
-						-- branch_set [l_branch_id.to_integer].line_number := l_line_number.to_integer
-						-- branch_set [l_branch_id.to_integer].
+					-- branch_set [l_branch_id.to_integer].class_name := ""
+					-- branch_set [l_branch_id.to_integer].class_name.copy (l_class_name)
+					-- branch_set [l_branch_id.to_integer].line_number := l_line_number.to_integer
+					-- branch_set [l_branch_id.to_integer].
 					branch_set.extend ([create {IMMUTABLE_STRING_32}.make_from_string (l_class_name), l_line_number.to_integer], l_branch_id.to_integer)
 				end
 			end

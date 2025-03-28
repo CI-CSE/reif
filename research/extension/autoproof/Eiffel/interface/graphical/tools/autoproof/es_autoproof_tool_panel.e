@@ -42,7 +42,6 @@ feature {NONE} -- Initialization
 	on_before_initialize
 			-- <Precursor>
 		do
-			print ("ES_AUTOPROOF_TOOL_PANEL.on_before_initialize%N")
 			Precursor
 				-- We want the tool to synchronize with the event list, when first initialized.
 			is_event_list_synchronized_on_initialized := True
@@ -51,7 +50,6 @@ feature {NONE} -- Initialization
 	on_after_initialized
 			-- <Precursor>
 		do
-			print ("ES_AUTOPROOF_TOOL_PANEL.on_after_initialized%N")
 				-- Bind redirecting pick and drop actions
 			stone_director.bind (grid_events, Current)
 
@@ -526,7 +524,6 @@ feature {NONE} -- Events
 		local
 			l_applicable: BOOLEAN
 		do
-			print ("ES_AUTOPROOF_TOOL_PANEL.on_event_item_added%N")
 			l_applicable := is_appliable_event (a_event_item)
 			if l_applicable and not is_initialized then
 					-- We have to perform initialization to set the icon and counter.
@@ -638,10 +635,10 @@ feature {NONE} -- Query
 		end
 
 	is_sc_error (a_msg: STRING): BOOLEAN
-			-- Is `a_msg' an error message related to semantic collaboration?
+		-- Is `a_msg' an error message related to semantic collaboration?
 		do
 			Result := a_msg.has_substring ("is_wrapped") or a_msg.has_substring ("is_closed")
-				or a_msg.has_substring ("frame_writable")
+									or a_msg.has_substring ("frame_writable")
 		end
 
 feature {NONE} -- Basic operations

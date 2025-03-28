@@ -24,18 +24,18 @@ feature {NONE} -- Initialization
 			target_feature := a_target_feature
 			target_variables := a_target_variables
 
-			failed_verifications := a_failed_verifications
+		failed_verifications := a_failed_verifications
 
 			remaining_tasks := a_tasks
 
 			create l_translator_input.make
 			create l_context
 			has_next_step := True
-			is_initial_verification := True
+		is_initial_verification := True
 
-			l_boogie_universe := a_boogie_universe
-				-- create l_boogie_universe.make
-				-- boogie_universe_cell.put (l_boogie_universe)
+		l_boogie_universe := a_boogie_universe
+			-- create l_boogie_universe.make
+			-- boogie_universe_cell.put (l_boogie_universe)
 		end
 
 feature -- Status report
@@ -49,13 +49,13 @@ feature -- Status report
 feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 
 	step
-			-- <Precursor>
+		-- <Precursor>
 		local
 			file_prefix: STRING
 		do
 			file_prefix := ""
 			create result_generator.make
-				-- l_context.options.routines_to_optimize.wipe_out
+			-- l_context.options.routines_to_optimize.wipe_out
 
 			if target_feature /= Void then -- run verification for the target procedure
 
@@ -68,7 +68,6 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				translation_pool.reset
 				autoproof_errors.wipe_out
 
-
 				remaining_tasks.start
 				remaining_tasks.forth -- Skip current task in queue
 
@@ -78,7 +77,7 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 				remaining_tasks.extend (create {E2B_EXECUTE_BOOGIE_TASK}.make (optimization_verifier))
 				remaining_tasks.extend (create {E2B_EVALUATE_BOOGIE_OUTPUT_TASK}.make (optimization_verifier, result_generator, remaining_tasks))
 
-					-- step into minimization
+				-- step into minimization
 				remaining_tasks.extend (create {E2B_VERIFY_TO_OPTIMIZE_INTEGER_ITERATION_TASK}.make (boogie_universe, target_class, target_feature, target_variables, failed_verifications, result_generator, remaining_tasks))
 			end
 
@@ -141,8 +140,10 @@ feature {NONE} -- Implementation
 	pre_cond: STRING
 			-- Precondition to be added
 		do
-				-- Result := target_variable + " < " + initial_value.out
+			-- Result := target_variable + " < " + initial_value.out
 		end
+
+
 
 note
 	date: "$Date: 2022-01-18 20:46:44 +0100 (Tue, 18 Jan 2022) $"
