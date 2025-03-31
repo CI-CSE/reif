@@ -1571,8 +1571,6 @@ feature -- Translation
 					i := i + 1
 					l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
 				end
-				l_callee_variant.arguments.append (last_parameters)
-				l_callee_variants.extend (l_callee_variant)
 			end
 			add_termination_check (l_caller_variants, l_callee_variants)
 		end

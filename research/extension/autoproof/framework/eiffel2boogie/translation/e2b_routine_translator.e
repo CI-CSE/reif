@@ -131,14 +131,14 @@ feature -- Translation: Signature
 			end
 
 				-- *Li: Add trial fix to precondition
-		if attached options.target_feature as f then
-			if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
-				current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
-				options.set_last_candidate_fix (options.current_candidate_fix)
-				options.set_current_candidate_fix(options.fix_preconditions.first)
-				options.fix_preconditions.remove_i_th (1)
+			if attached options.target_feature as f then
+				if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
+					current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
+					options.set_last_candidate_fix (options.current_candidate_fix)
+					options.set_current_candidate_fix (options.fix_preconditions.first)
+					options.fix_preconditions.remove_i_th (1)
+				end
 			end
-		end
 
 			current_boogie_procedure.set_is_full_coverage_tests_enabled (options.is_full_coverage_test_generation_enabled)
 			current_boogie_procedure.set_is_mcdc_tests_enabled (options.is_full_mcdc_test_generation_enabled)
@@ -150,7 +150,6 @@ feature -- Translation: Signature
 					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [k].line_number, current_boogie_procedure.uncovered_branch_lines.count)
 				end
 			end
-
 
 			create l_fields.make
 			across l_contracts.post as j loop
@@ -223,8 +222,8 @@ feature -- Translation: Signature
 			add_field_default_initialization (a_type)
 
 				-- wrapped
-			 create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
-			 current_boogie_procedure.add_contract (l_post)
+			create l_post.make (factory.function_call ("is_wrapped", <<factory.global_heap, factory.std_current>>, types.bool))
+			current_boogie_procedure.add_contract (l_post)
 
 				-- global
 			create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
