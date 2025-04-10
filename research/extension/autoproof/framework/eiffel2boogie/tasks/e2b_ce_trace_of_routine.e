@@ -76,7 +76,7 @@ feature {NONE} -- Initialize
 				-- raw value of Void is stored in the ce mapping
 			translation_map [ce.initial_name_to_raw ["Void"]] := "Void"
 			-- always translate Current as Current
-			if name_val ["Current"].count = 1 then
+			if attached name_val ["Current"] as curr and then curr.count = 1 then
 				translation_map [name_val ["Current"].first] := "Current"
 			end
 		end

@@ -117,22 +117,22 @@ feature -- Translation: Signature
 
 				-- Pre- and postconditions
 			l_contracts := contracts_of (current_feature, current_type)
-			across l_contracts.pre as j loop
-				process_precondition (j.clause, j.origin)
+			across l_contracts.pre as pre_cond loop
+				process_precondition (pre_cond.clause, pre_cond.origin)
 			end
 
 				-- *Li: Add preconditions for optmization
 			if helper.options.routines_to_optimize.has (a_feature.body_index) then
 				if options.opt_preconditions.has (a_feature) then
-					across options.opt_preconditions [a_feature] as p loop
-						current_boogie_procedure.add_opt_precondition (p)
+					across options.opt_preconditions [a_feature] as opt_precond loop
+						current_boogie_procedure.add_opt_precondition (opt_precond)
 					end
 				end
 			end
 
 				-- *Li: Add trial fix to precondition
-			if attached options.target_feature as f then
-				if f.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
+			if attached options.target_feature as target_feat then
+				if target_feat.body_index = a_feature.body_index and not options.fix_preconditions.is_empty then
 					current_boogie_procedure.add_opt_precondition (options.fix_preconditions.first)
 					options.set_last_candidate_fix (options.current_candidate_fix)
 					options.set_current_candidate_fix (options.fix_preconditions.first)
@@ -145,15 +145,15 @@ feature -- Translation: Signature
 
 			current_boogie_procedure.set_is_generate_fix_enabled (options.is_generate_fix_enabled)
 
-			across options.uncovered_branch.current_keys as k loop
-				if options.uncovered_branch [k].class_name.same_string (current_type.base_class.name) then
-					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [k].line_number, current_boogie_procedure.uncovered_branch_lines.count)
+			across options.uncovered_branch.current_keys as key loop
+				if options.uncovered_branch [key].class_name.same_string (current_type.base_class.name) then
+					current_boogie_procedure.uncovered_branch_lines.force (options.uncovered_branch [key].line_number, current_boogie_procedure.uncovered_branch_lines.count)
 				end
 			end
 
 			create l_fields.make
-			across l_contracts.post as j loop
-				process_postcondition (j.clause, j.origin, l_fields)
+			across l_contracts.post as post_cond loop
+				process_postcondition (post_cond.clause, post_cond.origin, l_fields)
 			end
 
 				-- Creator: add default field initialization
@@ -1354,15 +1354,16 @@ feature {NONE} -- Implementation
 
 			a_assert.process (l_translator)
 			l_free_pre := factory.true_
-			across l_translator.side_effect as i loop
-				create l_contract.make (i.expression)
-				l_contract.node_info.load (i.node_info)
-				if i.is_free then
+			across l_translator.side_effect as iv_assert loop
+				create l_contract.make (iv_assert.expression)
+				l_contract.node_info.load (iv_assert.node_info)
+				if iv_assert.is_free then
 					l_contract.set_free
-					l_free_pre := factory.and_clean (l_free_pre, i.expression)
+					l_free_pre := factory.and_clean (l_free_pre, iv_assert.expression)
 				end
 				current_boogie_procedure.add_contract (l_contract)
 			end
+
 			create l_contract.make (factory.implies_clean (l_free_pre, l_translator.last_expression))
 			l_contract.node_info.set_type ("pre")
 			l_contract.node_info.set_tag (a_assert.tag)
