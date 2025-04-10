@@ -10,6 +10,9 @@ axiom (PROCEDURE <: ROUTINE);
 const unique FUNCTION: Type;
 axiom (FUNCTION <: ROUTINE);
 
+const unique PREDICATE: Type;
+axiom (PREDICATE <: FUNCTION);
+
 // Precondition functions for different number of arguments
 
 function routine.precondition_0 (heap: HeapType, agent: ref) returns (bool);
@@ -87,6 +90,35 @@ procedure function.item_1<T1, R> (Current: ref, arg1: T1) returns (Result: R);
 
 procedure function.item_2<T1, T2, R> (Current: ref, arg1: T1, arg2: T2) returns (Result: R);
   requires attached(Heap, Current, FUNCTION); // info:type property for argument Current
+  requires routine.precondition_2(Heap, Current, arg1, arg2);
+  modifies Heap;
+  ensures function.postcondition_2(Heap, old(Heap), Current, arg1, arg2, Result);
+  free ensures global(Heap);
+  requires Frame#Subset(routine.modify_2(Heap, Current, arg1, arg2), writable); // type:pre tag:frame_writable
+  free ensures same_outside(old(Heap), Heap, routine.modify_2(old(Heap), Current, arg1, arg2));
+  free ensures HeapSucc(old(Heap), Heap);
+
+procedure predicate.item_0 (Current: ref) returns (Result: bool);
+  requires attached(Heap, Current, PREDICATE); // info:type property for argument Current
+  requires routine.precondition_0(Heap, Current);
+  modifies Heap;
+  ensures function.postcondition_0(Heap, old(Heap), Current, Result);
+  requires Frame#Subset(routine.modify_0(Heap, Current), writable); // type:pre tag:frame_writable
+  free ensures same_outside(old(Heap), Heap, routine.modify_0(old(Heap), Current));
+  free ensures HeapSucc(old(Heap), Heap);
+
+procedure predicate.item_1<T1> (Current: ref, arg1: T1) returns (Result: bool);
+  requires attached(Heap, Current, PREDICATE); // info:type property for argument Current
+  requires routine.precondition_1(Heap, Current, arg1);
+  modifies Heap;
+  ensures function.postcondition_1(Heap, old(Heap), Current, arg1, Result);
+  free ensures global(Heap);
+  requires Frame#Subset(routine.modify_1(Heap, Current, arg1), writable); // type:pre tag:frame_writable
+  free ensures same_outside(old(Heap), Heap, routine.modify_1(old(Heap), Current, arg1));
+  free ensures HeapSucc(old(Heap), Heap);
+
+procedure predicate.item_2<T1, T2> (Current: ref, arg1: T1, arg2: T2) returns (Result: bool);
+  requires attached(Heap, Current, PREDICATE); // info:type property for argument Current
   requires routine.precondition_2(Heap, Current, arg1, arg2);
   modifies Heap;
   ensures function.postcondition_2(Heap, old(Heap), Current, arg1, arg2, Result);

@@ -31,7 +31,9 @@ function {: inline } Set#IsEmpty<T>(s: Set T): bool
 function Set#AnyItem<T>(Set T): T;
 axiom (forall<T> s: Set T :: { Set#AnyItem(s) } 
   !Set#IsEmpty(s) ==> s[Set#AnyItem(s)]);
-  
+axiom (forall<T> s: Set T, pred: ref, heap: HeapType :: { Set#AnyItem(s), routine.precondition_1(heap, pred, Set#AnyItem(s)) }
+  !Set#IsEmpty(s) && routine.precondition_1(heap, pred, Set#AnyItem(s)) ==> (forall x: T :: s[x] ==> routine.precondition_1(heap, pred, x)));
+
 // Are two sets equal?  
 function Set#Equal<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }
