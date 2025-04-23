@@ -1,6 +1,5 @@
 ﻿note
 	description: "Array with specification usable in AutoProof."
-	status: skip
 	model: sequence
 
 frozen class

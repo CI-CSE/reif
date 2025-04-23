@@ -254,6 +254,14 @@ jobs:
                     else
                       echo $f >> $LEGACY_FILE
                     fi
+                  else
+                    echo "  Execution error"
+                    echo "<td>Execution error</td>" >> $OUTPUT_TABLE
+
+                    if (( is_legacy == 0 )); then
+                      error=$(( $error+1 ))
+                      echo $f >> $ERROR_FILE
+                    fi
                   fi
                 fi
               fi

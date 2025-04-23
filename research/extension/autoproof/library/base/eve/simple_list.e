@@ -1,6 +1,5 @@
 note
 	description: "List with specifications usable in AutoProof."
-	status: skip
 
 frozen class
 	SIMPLE_LIST [G]
