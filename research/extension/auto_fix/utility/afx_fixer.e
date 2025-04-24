@@ -74,7 +74,7 @@ feature -- Basic operation
 	boolean_expressions (a_expressions: EPA_HASH_SET [EPA_EXPRESSION]): EPA_HASH_SET [EPA_EXPRESSION]
 			-- Expressions of type {BOOLEAN} from `a_expressions'.
 		require
-			expressions_attached: a_expressions /= VOid
+			expressions_attached: a_expressions /= Void
 		local
 			l_exp: EPA_EXPRESSION
 		do
@@ -96,7 +96,7 @@ feature -- Basic operation
 	reference_expressions (a_expressions: EPA_HASH_SET [EPA_EXPRESSION]): EPA_HASH_SET [EPA_EXPRESSION]
 			-- Expressions returning references from `a_expressions'.
 		require
-			expressions_attached: a_expressions /= VOid
+			expressions_attached: a_expressions /= Void
 		local
 			l_exp: EPA_EXPRESSION
 			l_type: TYPE_A

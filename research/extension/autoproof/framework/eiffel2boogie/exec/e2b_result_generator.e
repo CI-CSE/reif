@@ -93,17 +93,12 @@ feature -- Basic operations
 			a_failure.errors.extend (l_error)
 			l_error.set_boogie_error (a_error)
 
-
 			l_error.set_message (message_for_error (a_error, l_init_state))
 			l_error.set_trace (l_trace)
 
 		    helper.options.set_current_init_state (l_init_state)
 
-            if helper.options.target_error_index = a_failure.errors.count then -- what is this statement about?
-                check l_error.counterexample_message_string.is_string_8 then
-			               helper.options.set_new_ce_message (l_error.counterexample_message_string.to_string_8)
-                end
-            end
+			helper.options.set_new_ce_message (l_error.counterexample_message_string)
 
             if helper.options.is_generate_fix_enabled then
             	 helper.options.ce_states.extend (l_init_state)

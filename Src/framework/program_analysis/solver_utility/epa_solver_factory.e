@@ -127,9 +127,6 @@ feature{NONE} -- Implementation
 
 	z3_launcher: EPA_SMTLIB_FACILITY
 			-- Z3 launcher
-		once
-			create Result
-		end
 
 	boogie_launcher: EPA_BOOGIE_FACILITY
 			-- Z3 launcher

@@ -39,6 +39,7 @@
 		<library name="parser" location="$ISE_LIBRARY\framework\parser\parser.ecf"/>
 		<library name="patterns" location="$ISE_LIBRARY\library\patterns\patterns.ecf"/>
 		<library name="time" location="$EIFFEL_SRC\library\time\time.ecf"/>
+		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
 		<cluster name="eiffel2boogie" location=".\" recursive="true">
 			<file_rule>
 				<exclude>/tests$</exclude>

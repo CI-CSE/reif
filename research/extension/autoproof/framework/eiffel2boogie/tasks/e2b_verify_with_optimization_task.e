@@ -58,8 +58,8 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			failed_verifications := last_result.failed_verifications
 			k := k + 1
 
-			if attached target_feature and not l_context.options.routines_to_optimize.has (target_feature.body_index) then
 
+			if attached target_feature and not l_context.options.routines_to_optimize.has (target_feature.body_index) then
 				l_context.options.routines_to_optimize.extend (target_feature.body_index)
 				create pt.make (target_feature, target_class)
 				l_context.options.features_to_optimize.extend (pt)

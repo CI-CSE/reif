@@ -20,7 +20,6 @@ feature {NONE} -- Initialization
 	make (a_initial_result_generator: attached like initial_result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
-			-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.make%N")
 			initial_result_generator := a_initial_result_generator
 			remaining_tasks := a_tasks
 			has_next_step := True
@@ -45,14 +44,11 @@ feature {ROTA_S, ROTA_TASK_I} -- Basic operations
 			-- 	l_boogie_universe: IV_UNIVERSE
 			-- l_context: E2B_SHARED_CONTEXT
 		do
-			-- print ("E2B_COMPUTE_FIX_ELEMENT_TASK.step%N")
 			options.set_generate_fix_enabled (False)
 			-- compute_range
 			-- compute_fix
 
 			store_ce_traces
-
-			print (Msg_ce_generated +  ce_trace_file_name + "%N")
 
 			if not options.fix_preconditions.is_empty then
 				options.set_current_candidate_fix(options.fix_preconditions.first)
@@ -126,7 +122,6 @@ feature
 
 				options.fix_elements.extend (e)
 
-				-- print (var.to_string_8 + " interval: [" + l_min.out + ", " + l_max.out + "]%N")
 				i := i + 1
 			end
 

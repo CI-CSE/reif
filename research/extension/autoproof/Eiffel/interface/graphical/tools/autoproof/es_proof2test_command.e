@@ -32,11 +32,18 @@ inherit
 	E2B_SHARED_CONTEXT
 
 create
-	make
+	make_from_failure, make_from_error
 
 feature {NONE} -- Initialization
 
-	make (an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION; a_row: EV_GRID_ROW)
+	make_from_failure (a_failure: E2B_FAILED_VERIFICATION)
+			-- Creation method.
+		do
+			enable_sensitive
+			failure := a_failure
+		end
+
+	make_from_error (an_error: E2B_VERIFICATION_ERROR; a_failure: E2B_FAILED_VERIFICATION; a_row: EV_GRID_ROW)
 			-- Creation method.
 		do
 			enable_sensitive
@@ -44,7 +51,6 @@ feature {NONE} -- Initialization
 			error := an_error
 			failure := a_failure
 			target_row := a_row
-			-- print("Proof2Test command for " + error.context_feature.feature_name_32.to_string_8 + "%N")
 		end
 
 feature -- Execution
@@ -87,7 +93,6 @@ feature -- Execution
 			l_autoproof: E2B_AUTOPROOF
 			l_error: E2B_AUTOPROOF_ERROR
 		do
-			-- print ("ES_AUTOPROOF_COMMAND.stop_verification%N")
 			l_autoproof := (create {ES_AUTOPROOF_BENCH_HELPER}).autoproof
 			if autoproof.is_running then
 				autoproof.cancel
@@ -260,16 +265,6 @@ feature {NONE} -- Basic operations
 			l_row: EV_GRID_ROW
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
 		do
-				-- event_list.prune_event_items (event_context_cookie)
-				-- across a_result.verification_results as i loop
-				-- 	event_list.put_event_item (event_context_cookie, create {E2B_VERIFICATION_EVENT}.make (i))
-				-- end
-				-- show_proof_tool
-				-- enable_tool_button
-				-- add_init_states
-				-- target_row.set_item (5, create {EV_GRID_LABEL_ITEM}.make_with_text (options.new_ce_message))
-			-- a_result.autoproof_errors
-
 			index := target_row.subrow_count + 1
 			target_row.insert_subrow (target_row.subrow_count + 1)
 			l_row := target_row.subrow (index)
@@ -287,12 +282,7 @@ feature {NONE} -- Basic operations
 			l_row.set_item (5, l_lab)
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
 			target_row.expand
-				-- TODO: display minimized counterexamples
-				-- obtain the index of the error?
-				-- failure.errors
-
-				-- proof2test.generate_tests (options.init_states_of_counterexamples)
-				-- eiffel_project.discover_melt
+	
 			window_manager.display_message ("Minimization finished.")
 
 		end
@@ -303,9 +293,7 @@ feature {NONE} -- Basic operations
 			index: INTEGER
 			l_row: EV_GRID_ROW
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
-			-- pixmaps: ES_ICONS
 		do
-				-- target_row.set_item (5, create {EV_GRID_LABEL_ITEM}.make_with_text (options.new_ce_message))
 			index := target_row.parent_row.subrow_count + 1
 			target_row.parent_row.insert_subrow (index)
 
@@ -319,17 +307,11 @@ feature {NONE} -- Basic operations
 			l_lab.set_text ("Counterexample: " + options.new_ce_message)
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right ({EB_SHARED_PIXMAPS}.icon_pixmaps.preference_list_icon, 1)
-				-- l_lab.pixmaps_on_right.item (1).pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
 			l_row.set_item (5, l_lab)
 
 			target_row := l_row
-
-			-- l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action (options.current_ce_init_state) end)
-
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
 
-				-- proof2test.generate_tests (options.init_states_of_counterexamples)
-				-- eiffel_project.discover_melt
 			window_manager.display_message ("Generation of new counterexample finished.")
 
 		end
@@ -340,10 +322,7 @@ feature {NONE} -- Basic operations
 			index: INTEGER
 			l_row: EV_GRID_ROW
 			l_lab: EV_GRID_PIXMAPS_ON_RIGHT_LABEL_ITEM
-			-- pixmaps: ES_ICONS
 		do
-			-- print ("new ce: " + options.fix_message + "%N")
-				-- target_row.set_item (5, create {EV_GRID_LABEL_ITEM}.make_with_text (options.new_ce_message))
 			index := target_row.parent_row.subrow_count + 1
 			target_row.parent_row.insert_subrow (index)
 
@@ -357,18 +336,12 @@ feature {NONE} -- Basic operations
 			l_lab.set_text ("Fix: " + options.fix_message.to_string_8)
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right ({EB_SHARED_PIXMAPS}.icon_pixmaps.preference_list_icon, 1)
-				-- l_lab.pixmaps_on_right.item (1).pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
 			l_row.set_item (5, l_lab)
 
 			target_row := l_row
 
-			-- l_lab.pointer_button_press_actions.extend (agent (i_x, i_y, i_but: INTEGER; i_x_tilt, i_y_tilt, i_pressure: DOUBLE; i_screen_x, i_screen_y: INTEGER) do on_counterexample_select_action end)
-			-- TODO: show the generated fixes
-
 			l_row.set_background_color (create {EV_COLOR}.make_with_rgb (0.8, 0.9, 1.0))
 
-				-- proof2test.generate_tests (options.init_states_of_counterexamples)
-				-- eiffel_project.discover_melt
 			window_manager.display_message ("Generation of possible fix finished.")
 
 		end
@@ -455,23 +428,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL}
 			end
 		end
 
-		-- disable_tool_button
-		-- Disable proof button on tool.
-		--	do
-		--		if attached proof_tool as t and then t.is_tool_instantiated then
-		--			t.panel.proof2test_button.disable_sensitive
-		--			t.panel.proof2test_stop_button.enable_sensitive
-		--		end
-		--	end
-
-		-- enable_tool_button
-		-- Enable proof button on tool.
-		--	do
-		--		if attached proof_tool as t and then t.is_tool_instantiated then
-		--			t.panel.proof2test_button.enable_sensitive
-		--			t.panel.proof2test_stop_button.disable_sensitive
-		--		end
-		--	end
 
 	load_class (a_class: CLASS_I)
 			-- Load `a_class' for verification.
@@ -565,10 +521,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			-- Generate tests from proof failures
 		do
 			last_execution := agent execute_generate_test_item
-				-- generate_test_item.enable_select
-				-- generate_minimized_test_item.disable_select
-				-- generate_execution_trace_item.disable_select
-				-- disable_tool_button
 
 			window_manager.display_message ("Test generation started")
 
@@ -588,10 +540,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 	       -- Generate possible fixes from counterexamples
 		do
            last_execution := agent execute_generate_new_counterexample_item
-				-- generate_minimized_test_item.enable_select
-				-- generate_test_item.disable_select
-				-- generate_execution_trace_item.disable_select
-				-- disable_tool_button
 
 			window_manager.display_message ("Generation of new counterexample started")
 
@@ -613,14 +561,9 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			dialog.show_on_active_window
 
 			last_execution := agent execute_generate_minimal_counterexample_item
-				-- generate_minimized_test_item.enable_select
-				-- generate_test_item.disable_select
-				-- generate_execution_trace_item.disable_select
-				-- disable_tool_button
 
 			window_manager.display_message ("Minimization started")
 			options.set_generate_minimal_counterexample_enabled (True)
-				-- Pass the currently selected failure to option?
 			verify_for_minimization
 			options.set_generate_minimal_counterexample_enabled (False)
 		end
@@ -629,10 +572,6 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			-- Generate minimized tests from proof failures
 		do
 			last_execution := agent execute_generate_new_counterexample_item
-				-- generate_minimized_test_item.enable_select
-				-- generate_test_item.disable_select
-				-- generate_execution_trace_item.disable_select
-				-- disable_tool_button
 
 			window_manager.display_message ("Generation of new counterexample started")
 
@@ -654,23 +593,10 @@ feature {ES_AUTOPROOF_TOOL_PANEL} -- Implementation
 			dialog.show_on_active_window
 
 			last_execution := agent execute_generate_minimized_test_item
-				-- generate_minimized_test_item.enable_select
-				-- generate_test_item.disable_select
-				-- generate_execution_trace_item.disable_select
-				-- disable_tool_button
 
 			window_manager.display_message ("Proof2Test started")
 				-- reverify to minimize test cases
 			options.set_generate_minimal_counterexample_enabled (True)
-
-				-- l_window := window_manager.last_focused_development_window
-
-				-- record the stone used in the last verification
-				-- if it's not Void, use the last stone for verification, otherwise use the currently focused stone
-
-				-- if droppable (l_window.stone) then
-				-- 	verify (l_window.stone)
-				-- end
 			verify_for_minimization
 
 			options.set_generate_minimal_counterexample_enabled (False)
@@ -699,40 +625,12 @@ feature {NONE} -- Implementation
 			Result := service_consumer.service
 		end
 
-		-- set_up_menu_items
-		--		-- Set up menu items of proof button
-		--	do
-		--		last_execution := agent execute_generate_test_item
-		--		create generate_test_item.make_with_text_and_action ("Generate test", agent execute_generate_test_item)
-		--		generate_test_item.toggle
 
-		--		create generate_minimized_test_item.make_with_text_and_action ("Generate minimized test", agent execute_generate_minimized_test_item)
-		-- create generate_execution_trace_item.make_with_text_and_action ("Generate execution trace", agent execute_proof_parent_cluster)
 
-		--	end
 
-		-- drop_down_menu: EV_MENU
-		-- Drop down menu for `new_sd_toolbar_item'.
-		--	once
-		--		create Result
-		--		Result.extend (generate_test_item)
-		--		Result.extend (generate_minimized_test_item)
-		-- Result.extend (generate_execution_trace_item)
-		--	ensure
-		--		not_void: Result /= Void
-		--	end
 
 	last_execution: PROCEDURE
 			-- Last executed actions
-
-		-- generate_test_item: EV_CHECK_MENU_ITEM
-		-- Menu item for generating tests
-
-		-- generate_minimized_test_item: EV_CHECK_MENU_ITEM
-		-- Menu item for generating minimized tests
-
---	generate_execution_trace_item: EV_CHECK_MENU_ITEM
-		-- Menu item to proof parent item
 
 	menu_name: STRING_GENERAL
 			-- Name as it appears in the menu (with & symbol).
@@ -795,7 +693,7 @@ note
 					This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
 					without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 					See the GNU General Public License for more details.
-			
+					
 					You should have received a copy of the GNU General Public License along with this program.
 					If not, see <https://www.gnu.org/licenses/>.
 		]"

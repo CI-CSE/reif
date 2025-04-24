@@ -83,6 +83,9 @@ feature -- Access
 	current_block: IV_BLOCK
 			-- Current block that receives statements.
 
+	current_conditional: IF_B
+			-- Current if block
+
 	entity_mapping: E2B_ENTITY_MAPPING
 			-- Name mapping used.
 
@@ -97,7 +100,7 @@ feature -- Access
 		end
 
 	context_readable: IV_EXPRESSION
-			-- Readable  frame of the enclosing context if defined, otherwise Void.
+			-- Readable frame of the enclosing context if defined, otherwise Void.
 
 feature -- Element change
 
@@ -147,7 +150,6 @@ feature -- Basic operations
 					not a_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
 					create l_feature.make (system.any_type.base_class.feature_named ("unwrap"))
 					l_expr_translator.set_context_line_number (a_feature.body.start_location.line)
-
 					l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
 					current_block.statements.append (l_expr_translator.side_effect)
 					l_expr_translator.side_effect.wipe_out
@@ -431,14 +433,11 @@ feature -- Processing
 			l_then_orgin_info, l_else_origin_info: IV_STATEMENT_ORIGIN
 			l_nested_then_orgin_info, l_nested_else_origin_info: IV_STATEMENT_ORIGIN
 			l_line_number: INTEGER
-			status_values: ARRAYED_LIST [READABLE_STRING_8]
 		do
-				-- helper.options.set_conditional (True)
-				-- mapping: feature -> has_conditional
 			current_implementation.set_has_conditional (True)
 			current_implementation.procedure.set_has_conditional (True)
+			current_conditional := a_node
 
-			status_values := (create {E2B_FEATURE_I}.make (a_node.context.current_feature)).note_values ("status")
 			set_current_origin_information (a_node)
 
 			l_temp_block := current_block
@@ -447,12 +446,9 @@ feature -- Processing
 			create l_nested_then_orgin_info
 			create l_nested_else_origin_info
 
-				-- if condition
 			process_expression (a_node.condition)
 			create l_if.make (last_expression)
 			add_statement (l_if)
-				-- l_if.node_info.set_attribute (a_node.a_node.context, a_value: READABLE_STRING_8)
-				-- l_if.node_info.load (a_node.)
 
 				-- then block
 			current_block := l_if.then_block
@@ -464,11 +460,6 @@ feature -- Processing
 			l_line_number := a_node.compound.line_number
 			l_then_orgin_info.set_line (l_line_number)
 			l_if.then_block.set_origin_information (l_then_orgin_info)
-			if status_values.has ("ghost") then
-				l_if.node_info.set_attribute ("status", "ghost")
-			elseif status_values.has ("lemma") then
-				l_if.node_info.set_attribute ("status", "lemma")
-			end
 
 				-- elseif blocks
 			current_block := l_if.else_block
@@ -489,23 +480,22 @@ feature -- Processing
 						l_else_origin_info.set_line (l_line_number)
 						l_if.else_block.set_origin_information (l_else_origin_info)
 
+						options.reset_num_bin_op_of_cond
 						process_expression (l_elseif.expr)
 						create l_nested_if.make (last_expression)
 						add_statement (l_nested_if)
 
-						if status_values.has ("ghost") then
-							l_nested_if.node_info.set_attribute ("status", "ghost")
-						elseif status_values.has ("lemma") then
-							l_nested_if.node_info.set_attribute ("status", "lemma")
-						end
 							-- elseif block
 						current_block := l_nested_if.then_block
+
 						process_compound (l_elseif.compound)
 						l_nested_then_orgin_info.set_file (current_feature.written_class.file_name)
 						l_nested_then_orgin_info.set_line (l_elseif.compound.line_number)
 						l_nested_if.then_block.set_origin_information (l_nested_then_orgin_info)
+
 							-- else block
 						current_block := l_nested_if.else_block
+
 							-- l_nested_else_orgin_info.set_file (current_feature.written_class.file_name)
 							-- l_nested_else_orgin_info.set_line (l_elseif.)
 							-- l_nested_if.else_block.set_origin_information (l_nested_then_orgin_info)
@@ -522,10 +512,15 @@ feature -- Processing
 				l_else_origin_info.set_file (current_feature.written_class.file_name)
 				l_else_origin_info.set_line (l_line_number)
 				l_if.else_block.set_origin_information (l_else_origin_info)
+				if options.is_unrolling_loop and then l_if.else_block.is_conditional_leaf (True, Void) then
+					options.set_number_of_branches_of_current_loop (options.number_of_branches_of_current_loop + 1)
+					l_if.else_block.set_is_unrolled_block (True)
+				end
 			end
 
 				-- restore context
 			current_block := l_temp_block
+				-- end
 		end
 
 	process_inspect_b (a_node: INSPECT_B)
@@ -656,6 +651,8 @@ feature -- Processing
 	process_loop_b (a_node: LOOP_B)
 			-- <Precursor>
 		do
+			current_implementation.set_has_conditional (True)
+
 			if options.is_automatic_loop_unrolling_enabled and a_node.invariant_part = Void then
 				process_loop_unrolled (a_node)
 			else
@@ -742,6 +739,7 @@ feature -- Processing
 				-- Condition
 			set_current_origin_information (a_node.stop)
 			process_contract_expression (a_node.stop, False)
+
 			across last_safety_checks as i loop
 				add_statement (i)
 			end
@@ -758,7 +756,7 @@ feature -- Processing
 			create l_assume.make_assume (factory.not_ (l_condition))
 			add_statement (l_assume)
 
-				-- Variant initization
+				-- Variant initialization
 			create l_variant_exprs.make (3)
 			create l_variant_locals.make (3)
 			process_loop_variants (a_node.variant_part, l_decreases, l_condition, l_variant_exprs, l_variant_locals)
@@ -774,6 +772,8 @@ feature -- Processing
 			else
 				set_current_origin_information (a_node)
 			end
+
+
 			add_termination_check (l_variant_locals, l_variant_exprs)
 
 				-- Goto head
@@ -1096,6 +1096,7 @@ feature -- Processing
 			l_assignment: IV_ASSIGNMENT
 			l_unroll_counter: INTEGER
 		do
+			options.set_is_unrolling_loop (True)
 			l_temp_block := current_block
 
 				-- Init condition
@@ -1173,6 +1174,7 @@ feature -- Processing
 
 					-- body
 				current_block := l_temp_block
+				l_body_block.set_is_unrolled_block (options.is_unrolling_loop)
 				add_statement (l_body_block)
 				current_block := l_body_block
 
@@ -1192,6 +1194,8 @@ feature -- Processing
 
 				l_unroll_counter := l_unroll_counter + 1
 			end
+
+			options.set_is_unrolling_loop (False)
 
 			if options.is_sound_loop_unrolling_enabled then
 				create l_goto.make (l_head_block)
@@ -1356,7 +1360,9 @@ feature {NONE} -- Loop processing
 							l_inv.node_info.set_tag (l_invariant.tag)
 							l_inv.node_info.set_line (l_invariant.line_number)
 						end
+
 						add_statement (l_inv)
+
 					end
 				end
 			end
@@ -1483,6 +1489,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
+
 	process_expression (a_expr: BYTE_NODE)
 			-- Process expression `a_expr'.
 		local
@@ -1490,11 +1497,12 @@ feature {NONE} -- Implementation
 			l_generics: ARRAYED_LIST [TYPE_A]
 			l_type: E2B_CL_TYPE_A
 			l_gen_type: GEN_TYPE_A
+				-- l_recur_cond: IV_FUNCTION
+			l_orig_expression: IV_EXPRESSION
 			l_node: BYTE_NODE
 			l_call: CALL_ACCESS_B
 		do
 			create l_translator.make
-
 			l_node := a_expr
 			l_type := current_type
 
@@ -1527,6 +1535,7 @@ feature {NONE} -- Implementation
 				end
 			end
 
+
 			l_translator.set_context (current_feature, l_type)
 			l_translator.set_context_implementation (current_implementation)
 			if attached current_origin_information as coi then
@@ -1539,6 +1548,8 @@ feature {NONE} -- Implementation
 
 			l_node.process (l_translator)
 
+			l_orig_expression := l_translator.last_expression
+
 			across
 				l_translator.side_effect as stmts
 			loop
@@ -1549,12 +1560,17 @@ feature {NONE} -- Implementation
 				current_block.add_statement (stmts)
 			end
 			last_expression := l_translator.last_expression
+				-- check whether the expression is a boolean
+
 			if last_expression = Void then
 				last_expression := factory.false_
 			end
 			locals_map.merge (l_translator.locals_map)
 			create entity_mapping.make_copy (l_translator.entity_mapping)
+
+			last_expression := l_orig_expression
 		end
+
 
 	process_contract_expression (a_expr: BYTE_NODE; a_use_triggers: BOOLEAN)
 			-- Process expression `a_expr'.
@@ -1643,6 +1659,7 @@ feature {NONE} -- Implementation
 			end
 			locals_map.merge (l_translator.locals_map)
 		end
+
 
 	last_expression: IV_EXPRESSION
 			-- Last generated expression.

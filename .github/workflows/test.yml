@@ -227,31 +227,41 @@ jobs:
                 timeout=$(( $timeout+1 ))
               fi
             else
-              if grep -q "Verification failed" ap.txt; then
-                echo "  Failed"
-                echo "<td>:x:</td>" >> $OUTPUT_TABLE
-
-                if (( is_legacy == 0 )); then
-                  failed=$(( $failed+1 ))
-                  echo $f >> $FAILED_FILE
-                fi
-              else
-                if grep -q "Successfully verified" ap.txt; then
-                  echo "  Succeeded"
-                  echo "<td>:white_check_mark:</td>" >> $OUTPUT_TABLE
-
-                  if (( is_legacy == 0 )); then
-                    succeeded=$(( $succeeded+1 ))
-                  else
-                    echo $f >> $LEGACY_FILE
-                  fi
-                else
+              if grep -q "AutoProof error." ap.txt; then
                   echo "  Verification error"
                   echo "<td>Error</td>" >> $OUTPUT_TABLE
 
                   if (( is_legacy == 0 )); then
                     error=$(( $error+1 ))
                     echo $f >> $ERROR_FILE
+                  fi
+              else
+                if grep -q "Verification failed" ap.txt; then
+                  echo "  Failed"
+                  echo "<td>:x:</td>" >> $OUTPUT_TABLE
+
+                  if (( is_legacy == 0 )); then
+                    failed=$(( $failed+1 ))
+                    echo $f >> $FAILED_FILE
+                  fi
+                else
+                  if grep -q "Successfully verified" ap.txt; then
+                    echo "  Succeeded"
+                    echo "<td>:white_check_mark:</td>" >> $OUTPUT_TABLE
+
+                    if (( is_legacy == 0 )); then
+                      succeeded=$(( $succeeded+1 ))
+                    else
+                      echo $f >> $LEGACY_FILE
+                    fi
+                  else
+                    echo "  Execution error"
+                    echo "<td>Execution error</td>" >> $OUTPUT_TABLE
+
+                    if (( is_legacy == 0 )); then
+                      error=$(( $error+1 ))
+                      echo $f >> $ERROR_FILE
+                    fi
                   fi
                 fi
               fi

@@ -335,6 +335,7 @@ feature -- Visitors
 		do
 			safe_process (a_node.left)
 			l_left := last_expression
+
 			safe_process (a_node.right)
 			l_right := last_expression
 
@@ -498,12 +499,14 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			process_binary (a_node, "&&")
+				-- options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_and_then_b (a_node: B_AND_THEN_B)
 			-- <Precursor>
 		do
 			process_binary_semistrict (a_node, "&&", True)
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_div_b (a_node: BIN_DIV_B)
@@ -554,6 +557,7 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			process_binary_semistrict (a_node, "==>", True)
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_le_b (a_node: BIN_LE_B)
@@ -602,12 +606,14 @@ feature -- Visitors
 			-- <Precursor>
 		do
 			process_binary (a_node, "||")
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_or_else_b (a_node: B_OR_ELSE_B)
 			-- <Precursor>
 		do
 			process_binary_semistrict (a_node, "||", False)
+			options.increase_num_bin_op_of_cond
 		end
 
 	process_bin_plus_b (a_node: BIN_PLUS_B)
@@ -921,7 +927,10 @@ feature -- Visitors
 				current_target := last_expression
 				current_target_type := expression_class_type (a_node.target)
 
-				add_void_call_check (a_node)
+				if not options.is_full_coverage_test_generation_enabled then
+					add_void_call_check (a_node)
+				end
+
 
 					-- Evaluate message with original expression
 --				if attached {CL_TYPE_A} current_target_type.type_a as l_cl_type then
@@ -1505,8 +1514,8 @@ feature -- Translation
 					i := i + 1
 					l_decreases_fun := boogie_universe.function_named (name_translator.boogie_function_for_variant (i, a_feature, current_target_type))
 				end
-				add_termination_check (l_caller_variants, l_callee_variants)
 			end
+			add_termination_check (l_caller_variants, l_callee_variants)
 		end
 
 feature -- Implementation

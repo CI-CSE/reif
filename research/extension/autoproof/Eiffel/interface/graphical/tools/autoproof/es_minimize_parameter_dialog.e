@@ -147,15 +147,11 @@ feature {NONE} -- Implementation functions
 			-- Handle overwrite and destroy actions.
 		local
 			l_result: BOOLEAN
-			-- l_builder: EB_DEVELOPMENT_WINDOW_MENU_BUILDER
 		do
 			l_result := manager.add_layout (a_name)
 			if not l_result then
 				show_last_error
 			end
-
-				-- create l_builder.make (development_window)
-				-- l_builder.update_exist_layouts_menu
 		end
 
 	on_text_key_press (a_key: EV_KEY)
@@ -214,8 +210,6 @@ feature {NONE} -- Implementation
 	text_for_max_iteration: EV_TEXT_FIELD
 			-- Text for tolerance.
 
-	-- text_for_minimize_strategy: EV_TEXT_FIELD
-			-- Text for minimize strategy.
 
 feature -- Access
 
@@ -292,4 +286,4 @@ note
 			Customer support http://support.eiffel.com
 		]"
 
-end -- class EB_SAVE_LAYOUT_DIALOG
+end 

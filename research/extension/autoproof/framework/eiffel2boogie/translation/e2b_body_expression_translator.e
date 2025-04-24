@@ -297,8 +297,11 @@ feature -- Translation
 				add_read_frame_check (a_feature)
 
 					-- This checks that functionals are well-defined, from the corresponding fake procedure
-				add_recursion_termination_check (a_feature)
-
+				if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
+					context_feature.feature_id = a_feature.feature_id then
+					l_fcall.set_is_recursive (True)
+					add_recursion_termination_check (a_feature)
+				end
 				last_expression := l_fcall
 			elseif a_feature.has_functional_representation and a_feature.is_once then
 					-- Once function: translate as a constant
@@ -339,7 +342,11 @@ feature -- Translation
 					-- Add read frame check
 				add_read_frame_check (a_feature)
 					-- This checks termination of non-functional routines, when they are called from their own implementation
-				add_recursion_termination_check (a_feature)
+				if context_feature /= Void and then context_feature.written_in = a_feature.written_in and
+					context_feature.feature_id = a_feature.feature_id then
+					l_pcall.set_is_recursive (True)
+					add_recursion_termination_check (a_feature)
+				end
 					-- This adds an extra framing check if we are inside a context with a local frame
 				add_loop_frame_check (a_feature)
 
@@ -527,11 +534,9 @@ note
 		This program is free software; you can redistribute it and/or modify it under the terms of
 		the GNU General Public License as published by the Free Software Foundation; either version 1,
 		or (at your option) any later version.
-
 		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
 		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 		See the GNU General Public License for more details.
-
 		You should have received a copy of the GNU General Public License along with this program.
 		If not, see <https://www.gnu.org/licenses/>.
 	]"

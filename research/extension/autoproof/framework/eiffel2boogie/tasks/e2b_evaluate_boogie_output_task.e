@@ -15,13 +15,14 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_verifier: attached like verifier; a_result_generator: like result_generator)
+	make (a_verifier: attached like verifier; a_result_generator: like result_generator; a_tasks: like remaining_tasks)
 			-- Initialize task.
 		do
 			verifier := a_verifier
 			result_generator := a_result_generator
 			has_next_step := True
-			-- verifier.helper.options.init_states_of_counterexamples.wipe_out
+			remaining_tasks := a_tasks
+				-- verifier.helper.options.init_states_of_counterexamples.wipe_out
 		end
 
 feature -- Status report
@@ -59,6 +60,9 @@ feature {NONE} -- Implementation
 	result_generator: attached E2B_RESULT_GENERATOR
 			-- Result generator.
 
+	remaining_tasks: LINKED_LIST [ROTA_TASK_I]
+			-- Tasks to work on.
+
 ;note
 	license: "GNU General Public License"
 	license_name: "GPL"
@@ -67,12 +71,12 @@ feature {NONE} -- Implementation
 		This program is free software; you can redistribute it and/or modify it under the terms of
 		the GNU General Public License as published by the Free Software Foundation; either version 1,
 		or (at your option) any later version.
-
 		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
 		without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 		See the GNU General Public License for more details.
-
+			
 		You should have received a copy of the GNU General Public License along with this program.
 		If not, see <https://www.gnu.org/licenses/>.
 	]"
+
 end
