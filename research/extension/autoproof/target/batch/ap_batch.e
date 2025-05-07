@@ -1,3 +1,6 @@
+note
+	description: "ES from TTY with AutoProof services initialized"
+
 class
 	AP_BATCH
 

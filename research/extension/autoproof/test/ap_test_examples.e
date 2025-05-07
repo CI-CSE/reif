@@ -165,7 +165,7 @@ feature {NONE} -- Building test projects
 									<concurrency support="none"/>
 								</capability>
 								<precompile name="test_precomp" readonly="false"
-									]" + " location=%"$AP\target\batch\test\precomp\" + precomp_ecf + "%"" + "[
+									]" + " location=%"$AP\test\precomp\" + precomp_ecf + "%"" + "[
 								/>
 								<library name="base" readonly="false"
 									]" + " location=%"$AP\library\base\" + lib_ecf + "%"" + "[

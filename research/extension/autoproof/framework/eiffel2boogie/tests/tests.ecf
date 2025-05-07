@@ -11,7 +11,7 @@
 			<concurrency support="none" use="none"/>
 		</capability>
     <library name="base" location="$AP\library\base\base.ecf" />
-    <precompile name="test_precomp" location="$AP\target\batch\test\precomp\test_precomp.ecf" />
+    <precompile name="test_precomp" location="$AP\test\precomp\test_precomp.ecf" />
 		<cluster name="autoproof_tests" location=".\">
 			<file_rule>
 				<exclude>/.svn$</exclude>
