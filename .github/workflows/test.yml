@@ -93,7 +93,7 @@ jobs:
       - name: Precompile test precompiles
         id: build-precomp
         run: |
-          cd $AP/target/batch/test/precomp
+          cd $AP/test/precomp
           $AP_EXE -config test_precomp.ecf -precompile -c_compile
           $AP_EXE -config test_precomp-safe.ecf -precompile -c_compile
 

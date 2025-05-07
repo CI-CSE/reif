@@ -12,5 +12,6 @@
 			</file_rule>
 		</cluster>
 		<cluster name="autoproof_batch" location="$EIFFEL_SRC\..\research\extension\autoproof\target\batch" recursive="true"/>
+		<cluster name="tests" location="test" recursive="true"/>
 	</target>
 </system>

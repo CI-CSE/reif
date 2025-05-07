@@ -33,5 +33,6 @@
 		<cluster name="autoproof_graphical" location="$EIFFEL_SRC\..\research\extension\autoproof\target\bench" recursive="true">
 			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
 		</cluster>
+		<cluster name="tests" location="test" recursive="true"/>
 	</target>
 </system>
