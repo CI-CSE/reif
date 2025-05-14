@@ -13,26 +13,21 @@
 
 		GNU General Public License (see https://www.gnu.org/licenses/)
 	</description>
-	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\Eiffel\Ace\ec.ecf">
+	<target name="bench" extends="bench" extends_location="autoproof-ext.ecf">
 		<capability>
 			<concurrency support="thread"/>
 		</capability>
-		<library name="a_compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
-		<library name="a_debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
-		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
-		<library name="a_testing" location="$EIFFEL_SRC\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
-		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf">
-			<option>
-				<assertions precondition="true" postcondition="true" check="true" supplier_precondition="true"/>
-			</option>
-		</library>
-		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true">
-			<visible class="ES_AUTOPROOF_TOOL" feature="default_create"/>
-			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
-		</cluster>
-		<cluster name="autoproof_graphical" location="$EIFFEL_SRC\..\research\extension\autoproof\target\bench" recursive="true">
+		<cluster name="ap-bench-initializer" location="service-initializers\" recursive="true">
 			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
+			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="add_core_services"/>
 		</cluster>
-		<cluster name="tests" location="test" recursive="true"/>
+	</target>
+	<target name="batch" extends="batch" extends_location="autoproof-ext.ecf">
+		<cluster name="ap-batch-initializer" location="service-initializers\" recursive="true">
+			<file_rule>
+				<exclude>bench</exclude>
+			</file_rule>
+			<visible class="BATCH_SERVICE_INITIALIZER_EXTENSION" feature="add_core_services"/>
+		</cluster>
 	</target>
 </system>

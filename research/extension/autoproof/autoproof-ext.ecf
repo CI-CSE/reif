@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="autoproof" uuid="0aa3b9dc-f887-4a8e-b06c-2f32fe4cef52">
+	<note>
+		<eis src="http://www.gnu.org/licenses/gpl.html" tag="license" protocol="" name="GPL"/>
+	</note>
+	<description>
+		EiffelStudio with AutoProof.
+
+		Copyright (c) 2018-2019 Politecnico di Milano
+		Copyright (c) 2021-2022 Schaffhausen Institute of Technology
+
+		Author: Alexander Kogtenkov
+
+		GNU General Public License (see https://www.gnu.org/licenses/)
+	</description>
+	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\..\research\extension\reif-ext\reif-ext.ecf">
+		<capability>
+			<concurrency support="thread"/>
+		</capability>
+		<library name="a_compiler_kernel" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_program_analysis" location="$EIFFEL_SRC\framework\program_analysis\program_analysis.ecf" readonly="false" use_application_options="true"/>
+		<library name="a_testing" location="$EIFFEL_SRC\library\testing\testing.ecf" readonly="false" use_application_options="true"/>
+		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf"/>
+		<cluster name="ext" location="extension" recursive="true"/>
+		<cluster name="autoproof_extension" location="$EIFFEL_SRC\..\research\extension\autoproof\Eiffel\" recursive="true"/>
+		<cluster name="autoproof_graphical" location="$EIFFEL_SRC\..\research\extension\autoproof\target\bench" recursive="true"/>
+		<cluster name="tests" location="test" recursive="true"/>
+	</target>
+	<target name="batch" extends="batch" extends_location="$EIFFEL_SRC\..\research\extension\reif-ext\reif-ext.ecf">
+		<library name="a_lib" location=".\autoproof-tty-lib.ecf"/>
+		<library name="eiffel2boogie" location="$EIFFEL_SRC\..\research\extension\autoproof\framework\eiffel2boogie\eiffel2boogie.ecf"/>
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
+		<cluster name="autoproof_batch" location="$EIFFEL_SRC\..\research\extension\autoproof\target\batch" recursive="true"/>
+		<cluster name="ext" location="extension" recursive="true">
+			<file_rule>
+				<exclude>bench</exclude>
+			</file_rule>
+		</cluster>
+		<cluster name="tests" location="test" recursive="true"/>
+	</target>
+</system>

@@ -2,7 +2,7 @@ note
 	description: "An implementation of a context menu extension service."
 
 class
-	ES_CONTEXT_MENU_EXTENSION
+	AP_ES_CONTEXT_MENU_EXTENSION
 
 inherit
 	CONTEXT_MENU_EXTENSION_S
@@ -16,7 +16,7 @@ feature -- Modification
 		(f: E_FEATURE;
 		extender: PROCEDURE [
 			READABLE_STRING_32, -- name
-			STRING, -- icon
+			READABLE_STRING_8, -- icon
 			BOOLEAN, -- is_sensitive
 			PROCEDURE -- action
 		])

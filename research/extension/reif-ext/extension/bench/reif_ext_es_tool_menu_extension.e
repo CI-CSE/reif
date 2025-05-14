@@ -2,7 +2,7 @@ note
 	description: "AutoProof tool menu extension"
 
 class
-	ES_TOOL_MENU_EXTENSION
+	REIF_EXT_ES_TOOL_MENU_EXTENSION
 
 inherit
 	TOOL_MENU_EXTENSION_S
@@ -22,12 +22,15 @@ feature -- Modification
 		])
 			-- <Precursor>
 		do
-			extender (
-				locale.translation_in_context ("AutoProof", "menu.tool"),
-				icon_pixmaps.verifier_verify_name,
-				True,
-				agent tool_agent ({ES_AUTOPROOF_TOOL})
-			)
+			-- Add new tools in child classes like this:
+			-- Precursor (extender)
+			--
+			-- extender (
+			-- 	locale.translation_in_context ("AutoProof", "menu.tool"),
+			-- 	icon_pixmaps.verifier_verify_name,
+			-- 	True,
+			-- 	agent tool_agent ({ES_AUTOPROOF_TOOL})
+			-- )
 		end
 
 feature {NONE} -- Clean up
