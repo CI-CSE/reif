@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-22-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-22-0 http://www.eiffel.com/developers/xml/configuration-1-22-0.xsd" name="autofix-lib" uuid="197D2624-6547-4BAB-904B-131A4FA4EA73" library_target="autofix-lib">
+	<target name="autofix-lib">
+		<root class="AFX_UTILITY"/>
+		<capability>
+			<concurrency support="thread"/>
+			<void_safety support="none"/>
+		</capability>
+		<option warning="none" full_class_checking="false" is_attached_by_default="false" is_obsolete_iteration="true" is_obsolete_routine_type="true" syntax="transitional" manifest_array_type="mismatch_warning">
+			<assertions/>
+		</option>
+		<library name="program_analysis" location="$ISE_LIBRARY\framework\program_analysis\program_analysis.ecf"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf" readonly="false"/>
+		<library name="compiler" location="$EIFFEL_SRC\Eiffel\Ace\ec_kernel.ecf"/>
+		<library name="gobo_structure" location="$ISE_LIBRARY\library\gobo\gobo_structure.ecf"/>
+		<library name="gobo_time" location="$ISE_LIBRARY\library\gobo\gobo_time.ecf"/>
+		<library name="gobo_kernel" location="$ISE_LIBRARY\library\gobo\gobo_kernel.ecf"/>
+		<library name="gobo_extension" location="$ISE_LIBRARY\library\gobo_extension\gobo_extension.ecf"/>
+		<library name="eiffel_transform" location="$EIFFEL_SRC\framework\eiffel_transform\eiffel_transform.ecf" readonly="false"/>
+		<library name="parser" location="$EIFFEL_SRC\framework\parser\parser.ecf" readonly="false" use_application_options="true"/>
+		<library name="debugger" location="$EIFFEL_SRC\Eiffel\debugger\debugger.ecf" readonly="false" use_application_options="true"/>
+		<cluster name="autofix" location=".\" recursive="true">
+			<file_rule>
+				<exclude>/interface/graphical</exclude>
+				<exclude>extension/</exclude>
+				<exclude>service-initializers/</exclude>
+			</file_rule>
+		</cluster>
+	</target>
+</system>

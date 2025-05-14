@@ -2,7 +2,7 @@ note
 	description: "Command-line extension for AutoProof"
 
 class
-	EC_COMMAND_LINE_OPTION_EXTENSION
+	REIF_EXT_CLI_OPTION_EXTENSION_S
 
 inherit
 	COMMAND_LINE_OPTION_EXTENSION_S
@@ -21,13 +21,9 @@ feature {NONE} -- Clean up
 
 feature
 
-	make (get_window: FUNCTION [OUTPUT_WINDOW])
+	make (a_extensions: ARRAYED_LIST [COMMAND_LINE_OPTION_EXTENSION_S])
 		do
-			create extensions.make (2)
-			extensions.extend (create {BOOGIE_VERIFICATION_COMMAND_LINE_EXTENSION}
-				.make (get_window))
-			extensions.extend (create {AP_COMMAND_LINE_OPTION_EXTENSION}
-				.make (get_window))
+			extensions := a_extensions
 		end
 
 	extensions: ARRAYED_LIST [COMMAND_LINE_OPTION_EXTENSION_S]

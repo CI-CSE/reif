@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="autofix" uuid="D63AD7A1-D5AC-43D9-A17C-6027A30229A4">
+	<target name="bench" extends="bench" extends_location="autofix-ext.ecf">
+		<capability>
+			<concurrency support="thread"/>
+			<void_safety support="none"/>
+		</capability>
+		<cluster name="afx-bench-initializer" location="service-initializers" recursive="true">
+			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
+			<visible class="SERVICE_INITIALIZER_EXTENSION" feature="add_core_services"/>
+		</cluster>
+	</target>
+</system>

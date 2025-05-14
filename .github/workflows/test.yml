@@ -87,8 +87,8 @@ jobs:
       - name: Build EVE ec
         id: build
         run: |
-          ec -config $EXT/autoproof/autoproof-tty.ecf -freeze -c_compile -batch -target batch
-          echo "AP_EXE=$(pwd)/EIFGENs/batch/W_code/apb" >> "$GITHUB_ENV"
+          ec -config $EXT/autoproof/autoproof.ecf -target batch -freeze -c_compile -batch -target batch
+          echo "AP_EXE=$(pwd)/EIFGENs/batch/W_code/ecb" >> "$GITHUB_ENV"
 
       - name: Precompile test precompiles
         id: build-precomp
@@ -105,7 +105,7 @@ jobs:
           # here (before running tests)
           mkdir -p EIFGENs/batch/Testing/execution/ap_test_examples_executions
 
-          ec -config $EXT/autoproof/autoproof-tty.ecf -target batch -batch -tests |& tee test_out.txt
+          ec -config $EXT/autoproof/autoproof.ecf -target batch -batch -tests |& tee test_out.txt
 
           # check that actually nothing fails
           grep -q "0 failing, 0 unresolved" test_out.txt

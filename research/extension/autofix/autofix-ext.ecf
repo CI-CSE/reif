@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="autofix" uuid="be73e717-dcff-4caa-ad26-92ef56b32995">
+	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\..\research\extension\autoproof\autoproof-ext.ecf">
+		<capability>
+			<concurrency support="thread"/>
+		</capability>
+		<library name="autofix-lib" location="autofix-lib.ecf"/>
+		<cluster name="autofix-graphical" location="interface\graphical\" recursive="true"/>
+		<cluster name="autofix-ext" location="extension" recursive="true"/>
+	</target>
+</system>

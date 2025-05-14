@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="autodebug" uuid="86930db2-d6c4-4e5d-a2a2-933ac0fdd532">
+	<target name="bench" extends="bench" extends_location="$EIFFEL_SRC\..\research\extension\autofix\autofix-ext.ecf">
+		<capability>
+			<concurrency support="thread"/>
+		</capability>
+		<library name="contract_inference" location="$EIFFEL_SRC\..\research\extension\contract_inference\contract_inference.ecf" readonly="false"/>
+		<cluster name="autodebug" location="." recursive="true">
+			<visible class="ES_SERVICE_INITIALIZER_EXTENSION" feature="default_create"/>
+			<visible class="SERVICE_INITIALIZER_EXTENSION"/>
+			<visible class="BATCH_SERVICE_INITIALIZER_EXTENSION"/>
+		</cluster>
+	</target>
+</system>
