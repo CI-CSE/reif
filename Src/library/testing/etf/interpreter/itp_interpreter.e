@@ -40,8 +40,6 @@ inherit
 
 	EQA_TEST_CASE_SERIALIZATION_UTILITY
 
-	DT_SHARED_SYSTEM_CLOCK
-
 create
 	execute
 
@@ -80,7 +78,7 @@ feature {NONE} -- Initialization
 			create predicate_table.make (0)
 			create argument_arrays.make_empty
             create socket.make_empty
-            start_time := System_clock.date_time_now
+			create start_time.make_now
 
 			l_server_url := argument (1)
 			l_port := argument (2).to_integer
@@ -204,7 +202,7 @@ feature {NONE} -- Initialization
 			socket.connect
 			socket.set_blocking
 			socket.set_nodelay
-			start_time := System_clock.date_time_now
+			create start_time.make_now
 
 				-- Wait for test cases and then execute test cases in a loop.
 			log_message ("<session>%N")
@@ -616,14 +614,17 @@ feature {ITP_TEST_CASE_SERIALIZER} -- Logging
 
 	log_message_with_timestamp (a_msg: STRING)
 		local
-			duration: DT_DATE_TIME_DURATION
+			duration: DATE_TIME_DURATION
+			now: DATE_TIME
 		do
-			duration := System_clock.date_time_now.duration (start_time)
-			duration.set_time_canonical
-			log_message (duration.millisecond_count.out + ":" + a_msg + "%N")
+			create now.make_now
+			duration := start_time
+				.relative_duration (now)
+				.time_to_canonical
+			log_message ((duration.fine_seconds_count * 1000).out + ":" + a_msg + "%N")
 		end
 
-	start_time: DT_DATE_TIME
+	start_time: DATE_TIME
 
 	report_trace
 			-- Report trace information into `error_buffer'.
