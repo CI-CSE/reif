@@ -304,7 +304,7 @@ feature {NONE} -- Printing console
 				elseif attached {E2B_FAILED_VERIFICATION} i as l_failure then
 					print_failed_verification (l_failure)
 
-					if user_options.has ("-fix") then
+					if has_option ("-fix") then
 						options.failures_for_fix.extend (l_failure)
 					end
 						-- TODO Li: display the failure in the "Faults" tab
@@ -314,10 +314,10 @@ feature {NONE} -- Printing console
 					check False end
 				end
 
-				if user_options.has ("-fix") then
+				if has_option ("-fix") then
 					output_window.add ("fixing start time: " + timer.system_clock.time_now.out + "%N")
 					generate_counterexamples_for_fix
-				elseif user_options.has ("-validate_fix") then
+				elseif has_option ("-validate_fix") then
 				print_potential_fix
 				-- TODO Li: this is a hack to get the context class
 				reverify_with_check_false_instrumented (a_result.verification_results.last.context_class)
