@@ -1,4 +1,5 @@
 ---
+layout: page
 title: Basic properties
 ---
 # Basic properties

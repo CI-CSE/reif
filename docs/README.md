@@ -8,6 +8,10 @@ Jekyll is a static site generator written in Ruby. It allows us to write Markdow
 
 Tailwind is a CSS framework which allows us to build the design directly in the HTML files using special CSS classes.
 
+Website is based on the common
+[`jekyll-theme-cicse`](https://github.com/CI-CSE/ci-cse.github.io/tree/main/jekyll-theme-cicse)
+theme gem which contains the base CSS and other common dependencies.
+
 ## Deployment
 The website is built and deployed automatically on every push to the main branch (`research`).
 
@@ -26,31 +30,11 @@ allows `REIF_SITE_DEPLOY_KEY` to be used to write to `reif-site` repo.
 ## Development
 
 ### Running locally
-There is a Docker Compose file which includes the required dependencies.
+Install Ruby.
 
-First, Install Docker and Docker Compose. On Windows/Mac it is included in Docker Desktop.
-
-First, execute the following command in the terminal to start docker compose:
-```bash
-docker compose up
-```
-Docker compose will be running in the terminal window.
-
-Run the following command in a different terminal to log into the compose shell:
-```bash
-docker compose exec app bash
-```
-
-All commands from now on are to be executed from the inner shell.
-
-Install Ruby dependencies:
+After you have Ruby installed, install project's dependencies:
 ```bash
 bundle install
-```
-
-Install JS dependencies:
-```bash
-yarn install
 ```
 
 Run the Jekyll server:
@@ -72,8 +56,11 @@ The website will reload automatically when files are changed, thanks to the `--l
 
 ### Tailwind
 Tailwind is a popular framework so it should be easy to find info online. However,
-here are some important notes which might be easy to miss:
+here are some important notes which might be easy to miss.
 
-Tailwind removes unused classes from the production CSS bundle. Only the files listed in `tailwind.config.js`
-are checked. So, if some styles are missing from the production build,
-check that the required patterns are in `tailwind.config.js`.
+Due to how the common template `jekyll-theme-cicse` is structured,
+website needs to be built two times. In the theme Tailwind is configured
+to keep CSS styles found in the `_site` folder, because of this
+one build is needed to populate the `_site` folder and another is needed
+for Tailwind to output the CSS for the classes. Read more at
+<https://github.com/CI-CSE/ci-cse.github.io/tree/main/jekyll-theme-cicse#double-build-required>.

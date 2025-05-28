@@ -1,4 +1,5 @@
 ---
+layout: page
 title: 'Hands-on: Clock'
 ---
 # Hands-on: Clock

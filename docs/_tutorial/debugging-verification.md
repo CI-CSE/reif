@@ -1,4 +1,5 @@
 ---
+layout: page
 title: Debugging verification
 ---
 # Debugging verification

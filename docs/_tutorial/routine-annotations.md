@@ -1,4 +1,5 @@
 ---
+layout: page
 title: Routine annotations
 ---
 # Routine annotations

@@ -1,4 +1,5 @@
 ---
+layout: page
 title: Verification of basic properties
 ---
 # Verification of basic properties
