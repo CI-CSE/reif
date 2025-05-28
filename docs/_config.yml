@@ -1,6 +1,7 @@
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 baseurl: "/reif-site" # the subpath of your site, e.g. /blog
-title: "AutoProof" # the name of your site, e.g. ACME Corp.
+title: "Reif" # the name of your site, e.g. ACME Corp.
+tagline: Research Eiffel
 
 collections:
   tutorial:
@@ -16,23 +17,14 @@ collections:
       - 'debugging-verification.md'
       - 'hands-on-clock.md'
 
-plugins:
-  - jekyll-postcss
+theme: jekyll-theme-cicse
 
-postcss:
-  cache: false
-
-defaults:
-  - scope:
-      path: ''
-    values:
-      layout: default
+cicse:
+  nav_links:
+    - link: tutorial
+      title: AutoProof tutorial
 
 exclude:
   - Dockerfile
   - docker-compose.yml
   - README.md
-  - postcss.config.js
-  - package.json
-  - yarn.lock
-  - tailwind.config.js
