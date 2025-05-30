@@ -2,16 +2,16 @@
 // Agent theory
 
 const unique ROUTINE: Type;
-axiom (ROUTINE <: ANY);
+axiom (inherits(ROUTINE, ANY));
 
 const unique PROCEDURE: Type;
-axiom (PROCEDURE <: ROUTINE);
+axiom (inherits(PROCEDURE, ROUTINE));
 
 const unique FUNCTION: Type;
-axiom (FUNCTION <: ROUTINE);
+axiom (inherits(FUNCTION, ROUTINE));
 
 const unique PREDICATE: Type;
-axiom (PREDICATE <: FUNCTION);
+axiom (inherits(PREDICATE, FUNCTION));
 
 // Precondition functions for different number of arguments
 
@@ -143,4 +143,6 @@ procedure create.routine(Current: ref);
 function modify.create.routine(heap: HeapType, current: ref) returns (Frame);
 axiom (forall heap: HeapType, current: ref :: (IsHeap(heap)) ==> ((forall <T6> $o: ref, $f: Field T6 :: { modify.create.routine(heap, current)[$o, $f] } (modify.create.routine(heap, current)[$o, $f]) <==> (($o) == (current)))));
 
-
+// If a predicate is true for an arbitrary element of a set, it is true for all elements of the set.
+axiom (forall<T> s: Set T, pred: ref, heap: HeapType :: { Set#AnyItem(s), routine.precondition_1(heap, pred, Set#AnyItem(s)) }
+  !Set#IsEmpty(s) && routine.precondition_1(heap, pred, Set#AnyItem(s)) ==> (forall x: T :: s[x] ==> routine.precondition_1(heap, pred, x)));

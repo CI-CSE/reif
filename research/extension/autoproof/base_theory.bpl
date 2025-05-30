@@ -57,17 +57,18 @@ const unique NONE: Type; // Type for NONE
 // Type function for objects.
 function type_of(o: ref): Type;
 function is_frozen(t: Type): bool;
+function inherits(t1, t2: Type): bool;
 
 // Typing axioms
-axiom (forall t: Type :: { ANY <: t } ANY <: t <==> t == ANY);
-axiom (forall t: Type :: t <: ANY); // All types inherit from ANY.
-// axiom (forall t: Type :: NONE <: t); // NONE inherits from all types.
+axiom (forall t: Type :: { inherits(ANY, t) } inherits(ANY, t) <==> t == ANY);
+axiom (forall t: Type :: inherits(t, ANY)); // All types inherit from ANY.
+// axiom (forall t: Type :: inherits(NONE, t)); // NONE inherits from all types.
 // axiom (forall h: HeapType :: IsHeap(h) ==> h[Void, allocated]); // Void is always allocated.
 axiom (forall h: HeapType, f: Field ref, o: ref :: IsHeap(h) && h[o, allocated] ==> h[h[o, f], allocated]); // All reference fields are allocated.
 axiom (forall r: ref :: (r == Void) <==> (type_of(r) == NONE)); // Void is only reference of type NONE.
 // axiom (forall a, b: ref :: (type_of(a) != type_of(b)) ==> (a != b)); // Objects that have different dynamic type cannot be aliased.
-// axiom (forall t: Type :: is_frozen(t) ==> (forall t2: Type :: t2 <: t ==> t2 == t || t2 == NONE)); // Only NONE inherits from frozen types.
-axiom (forall t: Type, r: ref :: { is_frozen(t), type_of(r) } (r != Void && type_of(r) <: t && is_frozen(t)) ==> (type_of(r) == t)); // Non-void references of a frozen type are exact.
+// axiom (forall t: Type :: is_frozen(t) ==> (forall t2: Type :: inherits(t2, t) ==> t2 == t || t2 == NONE)); // Only NONE inherits from frozen types.
+axiom (forall t: Type, r: ref :: { is_frozen(t), type_of(r) } (r != Void && inherits(type_of(r), t) && is_frozen(t)) ==> (type_of(r) == t)); // Non-void references of a frozen type are exact.
 // axiom (forall h: HeapType, t: Type, o: ref :: { is_frozen(t), attached_exact(h, o, t) } IsHeap(h) && is_frozen(t) && attached(h, o, t) ==> attached_exact(h, o, t));
 
 // ----------------------------------------------------------------------
@@ -365,7 +366,7 @@ function detachable_exact(heap: HeapType, o: ref, t: Type) returns (bool) {
 
 // Reference `o' is attached and conforms to type `t' on heap `heap'.
 function attached(heap: HeapType, o: ref, t: Type) returns (bool) {
-	(o != Void) && (heap[o, allocated]) && (type_of(o) <: t)
+	(o != Void) && (heap[o, allocated]) && (inherits(type_of(o), t))
 }
 
 // Reference `o' is either Void or attached and conforms to `t' on heap `heap'.
@@ -484,16 +485,16 @@ axiom (forall r: real :: { real_to_integer_64(r) } (!is_integer_64(int(r)) && r 
 
 // Arithmetic functions
 
-function add(a, b: int): int { a + b }
-function subtract(a, b: int): int { a - b }
-function multiply(a, b: int): int { a * b }
-function modulo(a, b: int): int { a mod b }
-function divide(a, b: int): int { a div b }
-
 function min(a, b: int): int { if a <= b then a else b }
 function max(a, b: int): int { if a >= b then a else b }
 function abs(a: int): int { if a >= 0 then a else -a }
 function sign(a: int): int { if a == 0 then 0 else if a > 0 then 1 else -1 }
+
+function add(a, b: int): int { a + b }
+function subtract(a, b: int): int { a - b }
+function multiply(a, b: int): int { a * b }
+function modulo(a, b: int): int { if (a < 0) then (-(abs(a) mod abs(b))) else (abs(a) mod abs(b)) } // Boogie has floor integer division but Eiffel has truncated integer division
+function divide(a, b: int): int { if ((a < 0) == (b < 0)) then (abs(a) div abs(b)) else (-(abs(a) div abs(b))) } // Boogie has floor integer division but Eiffel has truncated integer division
 
 function min_real(a, b: real): real { if a <= b then a else b }
 function max_real(a, b: real): real { if a >= b then a else b }

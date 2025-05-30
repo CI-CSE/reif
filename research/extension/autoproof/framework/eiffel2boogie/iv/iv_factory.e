@@ -243,10 +243,10 @@ feature -- Relational operators
 			create Result.make (a_left, "<", a_right, types.bool)
 		end
 
-	sub_type (a_left, a_right: IV_EXPRESSION): IV_BINARY_OPERATION
+	sub_type (a_left, a_right: IV_EXPRESSION): IV_FUNCTION_CALL
 			-- Less than operator `<:'.
 		do
-			create Result.make (a_left, "<:", a_right, types.bool)
+			Result := function_call ("inherits", <<a_left, a_right>>, types.bool)
 		end
 
 feature -- Integer operators
@@ -411,7 +411,7 @@ feature -- Framing
 				Result := function_call ("same_outside", <<l_old_heap, global_heap, l_fcall>>, types.bool)
 			end
 				-- TODO: fix inlining
-			if not a_boogie_procedure.name.has_substring (a_feature.feature_name) then
+			if not a_boogie_procedure.name.has_substring (a_feature.feature_name) or a_feature.is_lemma then
 				Result := true_
 			end
 		end

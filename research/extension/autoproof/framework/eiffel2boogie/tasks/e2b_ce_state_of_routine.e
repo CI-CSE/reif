@@ -52,24 +52,24 @@ feature {NONE} -- Initialize
 		end
 
 	update_heap_records (a_state_values: STRING_TABLE [READABLE_STRING_32])
-		local
-			heap_id: READABLE_STRING_32
-			record: E2B_CE_VALUE_RECORD
+--		local
+--			heap_id: READABLE_STRING_32
+--			record: E2B_CE_VALUE_RECORD
 		do
-			heap_id := a_state_values ["Heap"]
-			across ce.functions ["MapType0Select"] as case loop
-				if case.args /= Void and then case.args [1] ~ heap_id then
-					if not values.has (case.args [2]) then
-						create record.make_empty
-						values [case.args [2]] := record
-					else
-						check attached {E2B_CE_VALUE_RECORD} values [case.args [2]] as r then
-							record := r
-						end
-					end
-					record.put (case.res, case.args [3])
-				end
-			end
+--			heap_id := a_state_values ["Heap"]
+--			across ce.functions ["MapType0Select"] as case loop
+--				if case.args /= Void and then case.args [1] ~ heap_id then
+--					if not values.has (case.args [2]) then
+--						create record.make_empty
+--						values [case.args [2]] := record
+--					else
+--						check attached {E2B_CE_VALUE_RECORD} values [case.args [2]] as r then
+--							record := r
+--						end
+--					end
+--					record.put (case.res, case.args [3])
+--				end
+--			end
 		end
 
 	update_sets

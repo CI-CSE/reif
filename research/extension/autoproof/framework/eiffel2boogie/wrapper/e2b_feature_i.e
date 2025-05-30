@@ -274,7 +274,7 @@ feature -- Feature status helpers
 		end
 
 	is_lemma: BOOLEAN
-			-- Is `Current' a ghost feature?
+			-- Is `Current' a lemma?
 		do
 			Result := is_status ("lemma")
 		end
@@ -294,11 +294,11 @@ feature -- Feature status helpers
 	is_static: BOOLEAN
 			-- Is `Current' a static feature (it does not take Current as argument)?
 		do
-			Result := is_status ("static")
+			Result := is_status ("static") or c_feature.has_class_postcondition
 		end
 
 	is_private: BOOLEAN
-			-- Is `Current' a public feature?
+			-- Is `Current' a private feature?
 		do
 			Result := export_status.is_none
 		end
@@ -324,7 +324,7 @@ feature -- Feature status helpers
 	has_functional_representation: BOOLEAN
 			-- Will a Boogie function be generated for `Current'?
 		do
-			Result := has_return_value and not is_status ("impure")
+			Result := has_return_value and not is_impure
 		end
 
 feature -- Logical helpers
