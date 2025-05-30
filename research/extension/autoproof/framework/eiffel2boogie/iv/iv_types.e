@@ -25,7 +25,7 @@ feature -- Access: default types
 		end
 
 	real: IV_TYPE
-			-- Integer type.
+			-- Real type.
 		once
 			create {IV_BASIC_TYPE} Result.make_real
 		end

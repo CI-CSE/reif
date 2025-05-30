@@ -354,12 +354,15 @@ feature -- Translation: Signature
 				end
 
 					-- OWNERSHIP DEFAULTS
-					-- TODO: should default precondtions be enabled for lemmas?
+					-- TODO: should default preconditions be enabled for lemmas?
 				create l_mapping.make
-				l_mapping.set_current (current_boogie_procedure.arguments.first.entity)
-				if not current_boogie_procedure.is_full_coverage_tests_enabled then
-					across ownership_default (a_for_creator, l_mapping) as i loop
-						current_boogie_procedure.add_contract (i)
+
+				if ¬current_boogie_procedure.arguments.is_empty then
+					l_mapping.set_current (current_boogie_procedure.arguments.first.entity)
+					if not current_boogie_procedure.is_full_coverage_tests_enabled then
+						across ownership_default (a_for_creator, l_mapping) as i loop
+							current_boogie_procedure.add_contract (i)
+						end
 					end
 				end
 			end
@@ -440,12 +443,13 @@ feature -- Translation: Signature
 				if current_feature.has_functional_representation then -- Pure functions
 					if current_feature.is_public and not current_feature.is_functional then
 							-- Public features with functional representation (unless they are functional)
-						create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-						l_pre.node_info.set_type ("pre")
-						l_pre.node_info.set_tag ("default_is_closed")
-						l_pre.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_pre)
-
+						if a_mapping.current_expression.type ~ types.ref and not current_feature.is_static then
+							create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
+							l_pre.node_info.set_type ("pre")
+							l_pre.node_info.set_tag ("default_is_closed")
+							l_pre.node_info.set_attribute ("default", "contracts")
+							Result.extend (l_pre)
+						end
 						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
 						across arguments_of_current_feature as i loop
 							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
@@ -646,7 +650,7 @@ feature -- Translation: Implementation
 			if options.is_ownership_enabled then
 					-- Public procedures unwrap Current in the beginning, unless lemma or marked with explicit wrapping
 				if not a_for_creator and current_feature.is_public and not a_feature.has_return_value and
-					not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
+					not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant and not a_feature.is_static then
 					create l_feature.make (system.any_type.base_class.feature_named ("unwrap"))
 					l_expr_translator.set_context_line_number (a_feature.body.start_location.line)
 
@@ -702,7 +706,7 @@ feature -- Translation: Implementation
 
 				-- OWNERSHIP: end of routine body
 			if options.is_ownership_enabled then
-				if not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
+				if not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant and not a_feature.is_static then
 					if a_for_creator or current_feature.is_public and not a_feature.has_return_value then
 						create l_feature.make (system.any_type.base_class.feature_named ("wrap"))
 						l_expr_translator.set_context_line_number (a_feature.body.end_location.line)
@@ -938,7 +942,7 @@ feature -- Translation: Functions
 					-- Defaults and validity
 				if l_exprs.full_objects.is_empty and l_exprs.partial_objects.is_empty and l_exprs.model_objects.is_empty then
 						-- Missing modify clause: apply defaults
-					if not a_feature.has_return_value then
+					if not a_feature.has_return_value and not a_feature.is_static then
 						l_exprs.full_objects.extend (create {IV_ENTITY}.make ("current", types.ref))
 					end
 				elseif a_feature.has_return_value and not a_feature.is_impure and not is_pure (l_exprs) then
@@ -1248,9 +1252,9 @@ feature -- Translation: agents
 			l_args: LINKED_LIST [IV_ENTITY]
 			l_forall: IV_FORALL
 			l_axiom: IV_AXIOM
-			l_fcall, l_typeof: IV_FUNCTION_CALL
+			l_fcall, l_typeof, l_subtype: IV_FUNCTION_CALL
 			l_type_value: IV_VALUE
-			l_binop1, l_binop2, l_binop3: IV_BINARY_OPERATION
+			l_binop2, l_binop3: IV_BINARY_OPERATION
 			l_post: IV_EXPRESSION
 		do
 			translation_pool.add_type (a_postcondition_type)
@@ -1282,7 +1286,8 @@ feature -- Translation: agents
 			create l_typeof.make ("type_of", types.type)
 			l_typeof.add_argument (l_current)
 			create l_type_value.make (name_translator.boogie_name_for_type (a_postcondition_type), types.type)
-			create l_binop1.make (l_typeof, "<:", l_type_value, types.bool)
+			l_subtype := factory.sub_type (l_typeof, l_type_value)
+--			create l_binop1.make (l_typeof, "<:", l_type_value, types.bool)
 
 			l_post := l_contracts.post
 			across ownership_default (False, l_mapping) as defs loop
@@ -1290,7 +1295,7 @@ feature -- Translation: agents
 			end
 
 			create l_binop2.make (l_fcall, "==>", l_post, types.bool)
-			create l_binop3.make (l_binop1, "==>", l_binop2, types.bool)
+			create l_binop3.make (l_subtype, "==>", l_binop2, types.bool)
 
 			create l_forall.make (l_binop3)
 			l_forall.add_bound_variable (l_heap)
