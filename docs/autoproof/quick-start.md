@@ -110,7 +110,7 @@ different from writing normal Eiffel with contracts.
 
 ### Assertions `check`
 The `check` instruction can be used to add an assertion which
-must be verified by AutoProof at the respective point in program.
+must be verified by AutoProof at the respective point in the program.
 Consider the following example:
 ```eiffel
 check_demo
@@ -139,7 +139,7 @@ The precondition of a routine is written after the `require` keyword.
 It can be assumed that the precondition holds before the first
 instruction in the body.
 
-Order of precondition clauses is important. The first clause is checked first,
+The order of precondition clauses is important. The first clause is checked first,
 then it can be assumed for checking the second clause and so on.
 
 ```eiffel
@@ -153,12 +153,12 @@ precondition_demo (a: INTEGER)
 
 This feature is successfully verified. Indeed, because of the precondition
 `a_is_five_or_ten` we can assume that `a` is `5` or `10` and
-both cases are less than `100`, so assertion `a_is_small` verifies.
+both cases are less than `100`, so the assertion `a_is_small` verifies.
 
 ### Conditional instruction `if then else`
 Conditional instruction has a `then` branch and an optional `else` branch.
-It can be assumed that the condition holds in the beginning of the `then`
-branch and the condition does not hold in the beginning of the `else` branch.
+It can be assumed that the condition holds at the beginning of the `then`
+branch and the condition does not hold at the beginning of the `else` branch.
 
 ```eiffel
 conditional_demo (a: INTEGER)
@@ -181,7 +181,7 @@ conditional_demo (a: INTEGER)
 ```
 
 Only the last `check a = 10 end` does not verify in this feature.
-Indeed, `a` could be one of `5`, `10`, `15` in the beginning of the body.
+Indeed, `a` could be one of `5`, `10`, `15` at the beginning of the body.
 To reach the failing check `a` must be not `5` (to reach the `else` branch)
 and `a` must be not `10` (to reach the next `else` branch).
 
@@ -198,7 +198,7 @@ unreachable_demo
   end
 ```
 This feature successfully verifies. There is no such state in which `1 = 2` holds,
-so there is no possible execution which goes into the `then` branch,
+so there is no possible execution that goes into the `then` branch,
 so there is no state in which the verifier needs to prove that `check 2 = 1 end`
 holds. So, in all possible executions there are no failing checks.
 
@@ -226,8 +226,8 @@ seen that the branch is reachable, remove the `check False end` assertion.
 
 ### Postcondition `ensure`
 The postcondition of a routine is written after the `ensure` keyword.
-Routine's body must end in a state where the postcondition holds, if
-the precondition held in the beginning of the routine. In a function,
+The routine's body must end in a state where the postcondition holds, if
+the precondition held at the beginning of the routine. In a function,
 postcondition can use the `Result` variable which is the returned value.
 
 ```eiffel
@@ -245,7 +245,7 @@ postcondition_demo (a: INTEGER): INTEGER
 This feature verifies. If we remove the precondition, then the
 feature does not verify.
 
-Order of postcondition clauses is important. The first clause is checked
+The order of postcondition clauses is important. The first clause is checked
 after the last line of the body, then it can be assumed for checking
 the second clause and so on.
 
@@ -296,11 +296,11 @@ The second error is `Check Result = 11 may be violated` in the second branch
 in which `a` is `10`. Notice that the previous check `Result > 10` verifies.
 Indeed, caller (`call_demo`) sees only the postcondition of `more`
 which says that the result is simply greater than the passed value, so
-`Result > 10` verifies. However, caller does not know the detail of the body,
+`Result > 10` verifies. However, caller does not know the details of the body,
 so AutoProof cannot prove the check `Result = 11`.
 
 ### Do not have inconsistent preconditions `require False`!
-Be careful not to have an inconstistent precondition. If routine's
+Be careful not to have an inconstistent precondition. If the routine's
 precondition is not satisfiable, this routine will be **Successfully verified**
 irrespective of its body or postcondition.
 Most probably you do not want this!
@@ -326,12 +326,12 @@ are possible depending on the surrounding program.
 There are several ways to catch inconsistent preconditions.
 
 Calling a feature with an inconsistent precondition will not verify.
-Indeed, there will be no state which satisfies the inconsistent precondition.
-So, you can write a test feature which calls your feature. If your test
+Indeed, there will be no state that satisfies the inconsistent precondition.
+So, you can write a test feature that calls your feature. If your test
 feature verifies, it will be a proof of having at least several states
-which satisfy the precondition.
+that satisfy the precondition.
 
-Adding a `check False end` in the beginning of the feature body.
+Adding a `check False end` at the beginning of the feature body.
 Verifying `check False end` should fail. If it does not fail, it means
 that execution cannot reach this line. If the execution cannot reach the first
 line, it might mean that the precondition is inconsistent.
@@ -352,17 +352,17 @@ which must contain one boolean expression which is the exit condition,
 the `variant` part which must contain one integer expression
 which is the loop variant.
 
-As a reminder, *loop variant* is an integer expression which must
+As a reminder, *loop variant* is an integer expression that must
 decrease every iteration but cannot become less than zero.
-Presence of such invariant proves that the loop terminates, because
+The presence of such an invariant proves that the loop terminates, because
 an integer value cannot decrease infinitely and must eventually stop
 at zero or earlier.
 
 When loops are executed, each next iteration
-starts from the state which achieved at the end of the previous iteration.
-The first iteration executes from the state which happened before the loop.
+starts from the state that achieved at the end of the previous iteration.
+The first iteration executes from the state that happened before the loop.
 
-Verification uses a simplified model of loop execution to simplify
+Verification uses a simplified model of loop execution to simplify the
 verifier's job. This is a technical limitation. Consider the following loop:
 ```eiffel
 from
@@ -382,7 +382,7 @@ abstract state which is represented by the loop invariant.
 This way, loop iteration can assume the loop invariant and must ensure
 loop invariant at the end. Additionally, iteration can assume that
 the exit condition does not hold. In other words, we can
-say that loop body is verified similarly to the following procedure:
+say that the loop body is verified similarly to the following procedure:
 
 ```eiffel
 one_loop_iteration
@@ -399,11 +399,11 @@ one_loop_iteration
 ```
 
 This imaginary feature highlights the important aspects of loop verification.
-Loop body can rely on the invariant and can assume that exit condition
+The loop body can rely on the invariant and can assume that exit condition
 does not hold. Loop body must ensure loop invariant (even in the last iteration!).
-Loop body can do anything with the exit condition:
+The loop body can do anything with the exit condition:
 keep it `False` or make it `True`.
-Loop body must decrease the variant but must not make it negative.
+The loop body must decrease the variant but must not make it negative.
 
 Loops are opaque similarly to the feature calls. 
 ```eiffel
@@ -419,7 +419,7 @@ whole_loop_application
 This imaginary feature shows the pre- and post-condition of a loop
 as a whole. Loop application
 requires the invariant and ensures the invariant and the exit condition.
-Loop invariant must hold even if exit condition holds before the first
+Loop invariant must hold even if the exit condition holds before the first
 iteration.
 
 ## FAQ and common problems
