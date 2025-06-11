@@ -37,10 +37,10 @@ AutoProof can also "find the bug" in the following implementation:
 double (a: INTEGER): INTEGER
   do
     if a = 7 then
-	  Result := 0
-	else
-	  Result := a + a
-	end
+    Result := 0
+  else
+    Result := a + a
+  end
   ensure
     is_double: Result = 2 * a
   end
@@ -60,10 +60,10 @@ double (a: INTEGER): INTEGER
     a_is_big: a > 100
   do
     if a = 7 then
-	  Result := 0
-	else
-	  Result := a + a
-	end
+    Result := 0
+  else
+    Result := a + a
+  end
   ensure
     is_double: Result = 2 * a
   end
@@ -118,15 +118,15 @@ check_demo
     a: INTEGER
   do
     a := 5
-	check a_is_five: a = 5 end
-	check a_is_not_seven: a /= 7 end
-	a := a + a
-	check a_is_ten: a = 10 end
-	check a_is_five_again: a = 5 end -- This fails
+    check a_is_five: a = 5 end
+    check a_is_not_seven: a /= 7 end
+    a := a + a
+    check a_is_ten: a = 10 end
+    check a_is_five_again: a = 5 end -- This fails
   end
 ```
 Verification output is `Check a_is_five_again be violated`. Removing
-the `last_check` assertion gives the `Successfully verified` result.
+the `a_is_five_again` assertion gives the `Successfully verified` result.
 
 Notice that assertion `a = 5` was checked in two different points
 of program: the second and the last line of the routine.
@@ -140,7 +140,8 @@ It can be assumed that the precondition holds before the first
 instruction in the body.
 
 The order of precondition clauses is important. The first clause is checked first,
-then it can be assumed for checking the second clause and so on.
+then it can be used for checking the second clause and so on. In Eiffel terms,
+it is similar to precondition clauses to be joined using `and then`.
 
 ```eiffel
 precondition_demo (a: INTEGER)
@@ -166,17 +167,17 @@ conditional_demo (a: INTEGER)
     a_is_five_or_ten_or_fifteen: a = 5 or a = 10 or a = 15
   do
     if a = 5 then
-	  check a = 5 end
-	else
-	  check a /= 5 end
-	  check a = 10 or a = 15 end
-	  if a = 10 then
-	    check a = 10 end
-	  else
-	    check a = 15 end
-	    check a = 10 end -- This fails
-	  end
-	end
+      check a = 5 end
+    else
+      check a /= 5 end
+      check a = 10 or a = 15 end
+      if a = 10 then
+        check a = 10 end
+      else
+        check a = 15 end
+        check a = 10 end -- This fails
+      end
+    end
   end
 ```
 
@@ -193,8 +194,8 @@ Consider the following example:
 unreachable_demo
   do
     if 1 = 2 then
-	  check 2 = 1 end
-	end
+      check 2 = 1 end
+    end
   end
 ```
 This feature successfully verifies. There is no such state in which `1 = 2` holds,
@@ -207,11 +208,11 @@ The `check False end` trick can be often used to check if a branch is reachable.
 check_false_demo
   do
     if 1 = 2 then
-	  check first: False end
-	end
-	if 1 = 2 or 1 = 1 then
-	  check second: False end
-	end
+      check first: False end
+    end
+    if 1 = 2 or 1 = 1 then
+      check second: False end
+    end
   end
 ```
 Only the `second` check fails. The `first` check does not give an error.
@@ -238,7 +239,7 @@ postcondition_demo (a: INTEGER): INTEGER
     Result := a + 1
   ensure
     result_bigger: Result > a
-	result_is_odd: Result \\ 2 /= 0
+    result_is_odd: Result \\ 2 /= 0
   end
 ```
 
@@ -269,20 +270,21 @@ more (a: INTEGER): INTEGER
 ```
 
 Even though according to the body this feature returns a number which
-is greater exactly by `1`, callers of this feature do not know this.
+is greater that the passed value by exactly `1`,
+callers of this feature do not know this.
 Callers only see that the result is greater than the passed value.
 
 ```eiffel
 call_demo (a: INTEGER): INTEGER
   do
     if a = 999 then
-	  Result := more (a) -- This fails
-	end
-	if a = 10 then
-	  Result := more (a)
-	  check Result > 10 end
-	  check Result = 11 end -- This fails too
-	end
+      Result := more (a) -- This fails
+    end
+    if a = 10 then
+      Result := more (a)
+      check Result > 10 end
+      check Result = 11 end -- This fails too
+    end
   end
 ```
 
@@ -304,6 +306,22 @@ Be careful not to have an inconstistent precondition. If the routine's
 precondition is not satisfiable, this routine will be **Successfully verified**
 irrespective of its body or postcondition.
 Most probably you do not want this!
+
+```eiffel
+inconsistent_precondition: INTEGER
+  require
+    contradiction: 1 = 2
+  do
+    Result := 10
+  ensure
+    result_is_25: Result = 25
+  end
+```
+
+This verifier's output is `Successfully verified`, which can be surprising.
+However, it makes sense. In all cases when the precondition is met (`1 = 2`),
+the postcondition holds. It is just that there are no such states at all,
+so there is no state where postcondition does not hold.
 
 AutoProof verifies that for all initial states satisfying the precondition,
 postconditions and intermediate checks are satisfied. If there are
@@ -345,12 +363,16 @@ some inconsistencies using the verifier.
 Verifying loops has some important differences when compared with
 how they are executed.
 
-Loops in Eiffel have the `from` initialization part which
-can contain initialization instructions, the `invariant` part
-which can contain loop invariant assertions, the `until` part
-which must contain one boolean expression which is the exit condition,
-the `variant` part which must contain one integer expression
-which is the loop variant.
+Loops in Eiffel have the following parts in this order. While
+some parts are optional, most probably you need to include them
+to fully specify the loop behavior.
+
+The `from` part containing the optional initialization instructions,
+the optional `invariant` part containing the loop invariant assertions,
+the required `until` part containing one boolean expression which
+is the exit condition,
+and the optional `variant` part containing one integer expression
+which is the *loop variant*.
 
 As a reminder, *loop variant* is an integer expression that must
 decrease every iteration but cannot become less than zero.
@@ -388,13 +410,13 @@ say that the loop body is verified similarly to the following procedure:
 one_loop_iteration
   require
     invariant_assumed: loop_invariant
-	loop_not_terminated: not exit_condition
+  loop_not_terminated: not exit_condition
   do
     loop_body
   ensure
     invariant_preserved: loop_invariant
-	variant_decreased: loop_variant < old loop_variant
-	variant_non_neg: loop_variant >= 0
+    variant_decreased: loop_variant < old loop_variant
+    variant_non_neg: loop_variant >= 0
   end
 ```
 
@@ -412,7 +434,7 @@ whole_loop_application
     loop_invariant
   ensure
     loop_invariant
-	exit_condition
+    exit_condition
   end
 ```
 
@@ -425,7 +447,7 @@ iteration.
 ## FAQ and common problems
 ### Invariant might not hold on call to `{ANY}.wrap`
 The error `Invariant might not hold on call to {ANY}.wrap` means
-that AutoProof thinks that the invariant of the current object
+that AutoProof thinks that the class invariant of the current object
 must hold at this line of the program.
 
 If the error's line number points to the `end` keyword of the feature,
