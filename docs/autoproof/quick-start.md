@@ -444,14 +444,101 @@ requires the invariant and ensures the invariant and the exit condition.
 Loop invariant must hold even if the exit condition holds before the first
 iteration.
 
-## FAQ and common problems
-### Invariant might not hold on call to `{ANY}.wrap`
-The error `Invariant might not hold on call to {ANY}.wrap` means
-that AutoProof thinks that the class invariant of the current object
-must hold at this line of the program.
+### Class creators `create`
+The procedures which can be used to create a new object of the class
+are called *creation procedures*. Creation procedures are specified in
+the optional `create` part of the class text.
 
-If the error's line number points to the `end` keyword of the feature,
-it means that the invariant must hold at the end of the body of the feature.
+As a reminder, creator procedures are still available as features
+of objects. AutoProof verifies such procedures two times in two
+different contexts: as a normal procedure on an existing object
+and as a creation procedure for a previously non-existing object.
+
+```eiffel
+class
+  MY_COUNTER
+
+create
+  make_empty
+
+feature
+  count: INTEGER
+
+  make_empty
+    do
+      -- count := 0 -- Uncomment to fix verification
+    ensure
+      count_is_zero: count = 0
+    end
+end
+```
+
+The class `MY_CONTAINER` lists `make_empty` as a creation procedure.
+The verifier's output contains two messages for the two contexts of `make_empty`:
+
+---|---
+`MY_COUNTER.make_empty` *(creator)* | `Successfully verified.`
+`MY_COUNTER.make_empty` | `Postcondition count_is_zero may be violated.`
+
+Note the *(creator)* mark in the first message. It signifies
+that this is the verification result of the feature in the creation context.
+
+Indeed, when `make_empty` is used in creation,
+`count` is initialized by Eiffel to zero by default.
+
+However, it is still possible to call `make_empty` on an existing object.
+In this case, `count` can have any value (other features could have changed it).
+To satisfy the postcondition and fix the error, we can uncomment
+the `count := 0` instruction. This way `make_empty` is correct
+both as a creator and as a normal procedure.
+
+### Class invariants `invariant`
+Class invariant clauses are written at the end of the class after the `invariant`
+keyword. In general, class invariant specifies the assertions which
+must hold for objects of the class when they are visible.
+
+There are much more nuances to class invariants.
+Please read the [AutoProof tutorial][tut] to read more about invariants.
+
+In this quick start guide we oversimplify and say that invariants
+must hold at the beginning and at the end of procedures. This means
+that procedures can assume the invariant (as if it was part of the precondition)
+and must not break it (as if it was part of the postcondition).
+
+```eiffel
+class
+  OVERFLOWING_COUNTER
+
+feature
+  count: INTEGER
+
+  increment
+    do
+      check inv_before: -10 <= count and count <= 10 end
+      count := count + 1
+      -- Uncomment the following to fix verification
+      -- if count > 10 then
+      --   count := -10
+      -- end
+    end
+
+invariant
+  lower_bound: -10 <= count
+  upper_bound: count <= 10
+end
+```
+Verifier's output is
+`Invariant upper_bound might not hold on call to {ANY}.wrap` and the line
+number is the line of the feature's `end` keyword. This message
+means that the class invariant does not hold when it must hold
+(end of the procedure, in this case). Indeed, if `increment` is called
+when `count` is exactly `10`, the procedure would increase `count`
+and break the invariant clause `upper_bound`. To fix the problem,
+we can uncomment the code which resets `count` to the lowest
+valid value if it overflows.
+
+Note that the `check` instruction successfully verifies. It means
+that it is known that the invariant holds at the beginning of the procedure.
 
 ## Further reading
 To continue learning about AutoProof, please go to the [AutoProof tutorial][tut].
