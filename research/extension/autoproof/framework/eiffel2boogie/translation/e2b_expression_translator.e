@@ -1121,7 +1121,9 @@ feature -- Visitors
 	process_un_free_b (a_node: UN_FREE_B)
 			-- <Precursor>
 		do
-				-- TODO: implement
+			-- TODO: I don't know what `unary free binary' is supposed to do. The sign `¬' gets translated to this type therefore the code for `process_un_not_b' was copied.
+			safe_process (a_node.expr)
+			last_expression := factory.not_ (last_expression)
 		end
 
 	process_un_minus_b (a_node: UN_MINUS_B)
