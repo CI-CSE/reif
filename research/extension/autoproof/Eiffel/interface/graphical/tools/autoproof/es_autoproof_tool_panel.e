@@ -889,6 +889,7 @@ feature {NONE} -- Basic operations
 			l_lab.set_pixmaps_on_right_count (1)
 			l_lab.put_pixmap_on_right (stock_pixmaps.preference_list_icon, 1)
 
+			l_row.set_height (l_lab.text_height)
 			l_row.set_item (info_column, l_lab)
 			create pt_command.make_from_error (a_error, a_failure, l_row)
 				-- TODO: in the cases of multiple failure, always generate test for the last ce, as pt_command is a `global' variable
