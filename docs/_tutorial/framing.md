@@ -45,7 +45,7 @@ This way of specifying the modifies clause is lower-level than specifying
 which model fields may change. This is also the reason we are required to
 add the ghost field `closed` in the example shown here. The `closed` field is
 a boolean flag that is `True` whenever an object is in a consistent state. (see
-[class invariants]({% link input-language.md %}#class-invariant) for details).
+[class invariants]({% link docs/_tutorial/input-language.md %}#class-invariant) for details).
 
 ```eiffel
 withdraw (amount: INTEGER)
