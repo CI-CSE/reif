@@ -22,14 +22,14 @@ jobs:
       - name: Build site
         uses: limjh16/jekyll-action-ts@v2
         with:
-          enable_cache: true
+          enable_cache: false
           format_output: true
           jekyll_src: docs
 
       - name: Build site second time for Tailwind
         uses: limjh16/jekyll-action-ts@v2
         with:
-          enable_cache: true
+          enable_cache: false
           format_output: true
           jekyll_src: docs
 
