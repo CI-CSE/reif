@@ -17,10 +17,10 @@ or a manifest tuple with mixed objects or sets of objects.
 
 ```eiffel
 deposit (amount: INTEGER)
-	require
-		...
+	...
+	ensure
 		modify_model ("balance", Current)
-	do ... end
+	end
 ```
 
 This routine is allowed to modify the model field `balance` of the
@@ -44,15 +44,15 @@ or a manifest tuple with mixed objects or sets of objects.
 This way of specifying the modifies clause is lower-level than specifying
 which model fields may change. This is also the reason we are required to
 add the ghost field `closed` in the example shown here. The `closed` field is
-a boolean flag that is `True` whenever an object is in a consistent state (see
-Section 3 (TODO: add link) for details).
+a boolean flag that is `True` whenever an object is in a consistent state. (see
+[class invariants]({% link input-language.md %}#class-invariant) for details).
 
 ```eiffel
 withdraw (amount: INTEGER)
-	require
-		...
+	...
+	ensure
 		modify_field (["balance", "closed"], Current)
-	do ... end
+	end
 ```
 This routine is allowed to modify the attributes `balance` and `closed` of
 the `Current` object.
@@ -65,10 +65,10 @@ of objects.
 
 ```eiffel
 transfer (amount: INTEGER; other: ACCOUNT)
-	require
-		...
+	...
+	ensure
 		modify (Current, other)
-	do ... end
+	end
 ```
 
 This routine is allowed to modify all attributes of `Current` and `other`.
