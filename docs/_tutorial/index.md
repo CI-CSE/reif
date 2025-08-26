@@ -1,6 +1,7 @@
 ---
 layout: page
 title: AutoProof tutorial
+is_index: true
 ---
 # AutoProof tutorial
 
