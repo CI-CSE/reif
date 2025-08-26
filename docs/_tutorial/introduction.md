@@ -2,6 +2,8 @@
 layout: page
 title: Introduction
 ---
+# Introduction
+
 AutoProof is an auto-active (AutoProof tries to achieve an intermediate degree of automation in the continuum
 that goes from *automatic* to *interactive*) verifier for the Eiffel programming language;
 it proves functional correctness of Eiffel programs annotated with contracts.
@@ -14,4 +16,8 @@ section to explain some of the concepts behind AutoProof and how they
 are used to verify programs. Each section also has hands-on exercises with
 verification tasks for one or more programs.
 
-The old online version is [available](http://comcom.csail.mit.edu/comcom/#AutoProof).
+The old online version of AutoProof is available at the
+[MIT Comcom instance](http://comcom.csail.mit.edu/comcom/#AutoProof).
+
+AutoProof can be installed locally as part of the Reif suite. See the
+[Reif installation page]({% link installation.md %}) for the instructions.
