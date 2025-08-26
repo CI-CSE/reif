@@ -16,6 +16,10 @@ Reif is a fork of
 at the [Chair of Software Engineering](https://se.inf.ethz.ch/)
 at [ETH Zurich](https://ethz.ch/).
 
+## Installation
+To install Reif check the [installation instructions]({% link installation.md %}).
+
+By installing Reif you get all the tools developed in the project.
 
 ## AutoProof
 [AutoProof]({% link autoproof/index.md %}) is an auto-active verifier

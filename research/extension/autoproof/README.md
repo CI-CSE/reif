@@ -42,6 +42,7 @@ AutoProof is known to work with:
     https://github.com/boogie-org/boogie/blob/master/.github/workflows/test.yml#L14
 
 ## Installation
+The detailed installation instructions are in the [docs folder](/docs/installation.md).
 Contents of `$AP` should be symlinked (or copied) to `$ISE_EIFFEL/studio/tools/autoproof`.
 
 Output of Boogie compilation (`Source/BoogieDriver/bin/Debug/net6.0/*`) should

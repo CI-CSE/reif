@@ -89,6 +89,10 @@ in this guide. The other mechanisms are out of scope of this guide.
 
 TODO: explain more.
 
+## Installing AutoProof
+AutoProof is a part of Reif. See the [Reif installation][install] page for
+details.
+
 ## Using AutoProof online
 An online version of AutoProof is available at
 <http://autoproof.sit.org/comcom/#AutoProof>.
@@ -546,3 +550,4 @@ The tutorial provides much more detail on the topics already covered here
 and talks about advanced features of AutoProof.
 
 [tut]: {% link _tutorial/index.md %}
+[install]: {% link installation.md %}
