@@ -57,6 +57,7 @@ const unique NONE: Type; // Type for NONE
 // Type function for objects.
 function type_of(o: ref): Type;
 function is_frozen(t: Type): bool;
+function is_attached(t: Type): bool;
 
 // Typing axioms
 axiom (forall t: Type :: { ANY <: t } ANY <: t <==> t == ANY);
@@ -370,7 +371,7 @@ function attached(heap: HeapType, o: ref, t: Type) returns (bool) {
 
 // Reference `o' is either Void or attached and conforms to `t' on heap `heap'.
 function detachable(heap: HeapType, o: ref, t: Type) returns (bool) {
-	(o == Void) || attached(heap, o, t)
+	(is_attached(t) ==> attached(heap, o, t)) && (!is_attached(t) ==> (o == Void) || attached(heap, o, t))
 }
 
 // ----------------------------------------------------------------------
