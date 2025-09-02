@@ -81,9 +81,6 @@ axiom (forall o: ref :: { universe[o] } universe[o]);
 
 function IsModelField<alpha>(field: Field alpha, t: Type): bool; // Is this field a model field in class t?
 
-axiom (forall <alpha> f: Field alpha :: { IsModelField(f, ANY) }
-  IsModelField(f, ANY) <==> false);
-
 // ----------------------------------------------------------------------
 // Frames
 
@@ -100,15 +97,6 @@ axiom(forall <alpha> o, o': ref, f: Field alpha :: { Frame#Singleton(o)[o', f] }
 
 function has_whole_object(frame: Frame, o: ref): bool
 { (forall <alpha> f: Field alpha :: frame[o, f]) }
-
-// Objects outside frame did not change, unless they were newly allocated
-function {: inline } same_outside(h: HeapType, h': HeapType, frame: Frame): bool {
-	(forall <T> o: ref, f: Field T :: { h'[o, f] }
-    o != Void && h[o, allocated] ==>
-      h'[o, f] == h[o, f] ||
-      frame[o, f]
-  )
-}
 
 // Objects outside of frame did not change, unless they were newly allocated
 function {: inline } flat_same_outside(h: HeapType, h': HeapType, frame: Frame): bool { 
@@ -127,15 +115,6 @@ const writable: Frame;
 const readable: Frame;
 
 // ----------------------------------------------------------------------
-// Invariants
-
-// Global heap invariants
-function {:inline true} global(h: HeapType): bool
-{
-  h[Void, allocated]
-}
-
-// ----------------------------------------------------------------------
 // Built-in operations
 
 // Allocate fresh object
@@ -149,15 +128,6 @@ procedure allocate(t: Type) returns (result: ref);
   ensures (forall<T> f: Field T :: IsInitializedWithDefault(f, t) ==> Heap[result, f] == Default(f));
   ensures has_whole_object(writable, result);
   ensures (forall <T> o: ref, f: Field T :: o != result ==> Heap[o, f] == old(Heap[o, f]));
-  free ensures HeapSucc(old(Heap), Heap);
-
-// Update Heap position Current.field with value.
-procedure update_heap<T>(Current: ref, field: Field T, value: T);
-  requires (Current != Void) && (Heap[Current, allocated]); // type:assign tag:attached_and_allocated
-  requires writable[Current, field]; // type:assign tag:attribute_writable UP3
-  modifies Heap;
-  ensures global(Heap);
-  ensures Heap == old(Heap[Current, field := value]);
   free ensures HeapSucc(old(Heap), Heap);
 
 // ----------------------------------------------------------------------
