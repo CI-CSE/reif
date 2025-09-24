@@ -237,6 +237,12 @@ feature -- Feature status helpers
 			Result := is_status ("creator")
 		end
 
+	has_unqualified: BOOLEAN
+			-- Is `Current` callable in unqualified calls?
+		do
+			Result := not (is_creator or is_status ("qualified"))
+		end
+
 	is_nonvariant: BOOLEAN
 			-- Is `Current' nonvariant (i.e. does not know the dynmaic type of Current)?
 		do

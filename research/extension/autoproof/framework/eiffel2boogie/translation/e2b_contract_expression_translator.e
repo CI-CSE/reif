@@ -124,7 +124,7 @@ feature -- Translation
 			field_accesses.extend ([current_target, l_field])
 		end
 
-	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_variant: E2B_FEATURE_VARIANT)
 			-- Process feature call.
 		local
 			l_call: IV_FUNCTION_CALL

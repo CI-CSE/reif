@@ -640,8 +640,75 @@ feature -- Processing
 
 	process_instr_call_b (a_node: INSTR_CALL_B)
 			-- <Precursor>
+		local
+			inv_filter: E2B_INVARIANT_FILTER
+			assert: IV_ASSERT
+			type_translator: E2B_TYPE_TRANSLATOR
+			feat: FEATURE_I
+			fi: E2B_FEATURE_I
 		do
 			set_current_origin_information (a_node)
+
+				-- Check client's invariant for the qualified call
+			if attached {NESTED_B} a_node.call as f then
+				check attached {CALL_ACCESS_B} f.message as ff then
+					feat := ff.System
+						.class_of_id (ff.written_in)
+						.feature_of_feature_id (ff.feature_id)
+
+					if not feat.export_status.is_all and not attached {ARGUMENT_B} f.target then
+						e2b_error.add_export_call_rule_error(
+							current_feature,
+							{STRING_32} "Qualified call to a partially exported feature "
+								+ feat.feature_name_32
+								+ " can be mode only on formal arguments of this procedure ("
+								+ current_feature.feature_name_32
+								+ "). Feature is called on " + f.target.generating_type.name_32,
+							a_node.line_number
+						)
+					end
+				end
+			elseif attached {FEATURE_B} a_node.call as feature_b then
+				create fi.make (feature_b.System.class_of_id (feature_b.written_in).feature_of_feature_id (feature_b.feature_id))
+				if not fi.has_unqualified then
+					e2b_error.add_semantic_error(
+						current_feature,
+						{STRING_32} "Unqualified call on " + fi.feature_name_32 + " which is marked as non-unqualified",
+						a_node.line_number
+					)
+				end
+			else
+				check False then end
+			end
+
+			if feat /= Void then
+				create inv_filter
+				inv_filter.required_export_status := feat.export_status
+
+				if not inv_filter.export_status_less_or_equal (feat.export_status, current_feature.export_status) then
+					e2b_error.add_export_consistency_condition_error(
+						current_feature,
+						{STRING_32} "Qualified call's feature "
+							+ feat.feature_name_32
+							+ " visibility is not subset "
+							+ "of containing procedure "
+							+ current_feature.feature_name_32,
+						a_node.line_number
+					)
+				end
+
+				create type_translator
+
+				current_block.add_statement (factory.trace (name_translator.boogie_procedure_for_feature (current_feature, current_type) + "_qual_inv_trace:" + a_node.line_number.out))
+				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
+					create assert.make (i.expression)
+					assert.node_info.set_type ("qual_inv")
+					assert.node_info.set_tag (i.node_info.tag.to_string_8)
+					assert.node_info.set_line (current_origin_information.line)
+					current_block.add_statement(assert)
+				end
+			end
+
 				-- Instruction call is in the side effect of the expression,
 				-- so the generated expression itself is ignored.
 			process_expression (a_node.call)
@@ -1252,8 +1319,9 @@ feature -- Processing
 			-- <Precursor>
 		do
 			set_current_origin_information (a_node)
-				-- Instruction call is in the side effect of the expression,
-				-- so the generated expression itself is ignored.
+			-- Instruction call is in the side effect of the expression,
+			-- so the generated expression itself is ignored.
+
 			process_expression (a_node)
 			add_trace_statement (a_node)
 		end
@@ -1313,8 +1381,6 @@ feature {NONE} -- Loop processing
 				current_implementation.add_local (l_writable.name, l_writable.type)
 				add_statement (create {IV_HAVOC}.make (l_writable.name))
 				create l_assume.make_assume (factory.function_call ("Frame#Subset", <<l_frame, l_writable>>, types.bool))
-				add_statement (l_assume)
-				create l_assume.make_assume (factory.function_call ("closed_under_domains", <<l_writable, factory.global_heap>>, types.bool))
 				add_statement (l_assume)
 			end
 			Result := [l_frame, l_writable]
@@ -1610,7 +1676,7 @@ feature {NONE} -- Implementation
 			l_translator.set_context (current_feature, current_type)
 			l_translator.copy_entity_mapping (entity_mapping)
 			l_translator.locals_map.merge (locals_map)
-			last_frame := l_routine_translator.frame_definition (l_routine_translator.modify_expressions_of (a_modifies, l_translator), a_lhs, <<>>)
+			last_frame := l_routine_translator.frame_definition (l_routine_translator.modify_expressions_of (a_modifies, l_translator), a_lhs)
 			last_safety_checks := l_translator.side_effect
 			locals_map.merge (l_translator.locals_map)
 		end

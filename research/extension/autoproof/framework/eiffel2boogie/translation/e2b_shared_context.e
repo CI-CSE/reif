@@ -9,6 +9,13 @@ inherit
 	SHARED_BYTE_CONTEXT
 		export {NONE} all end
 
+feature
+
+	boogie_universe: IV_UNIVERSE
+			-- Shared boogie universe.
+		do
+		 	Result := boogie_universe_cell.item
+		end
 
 feature {E2B_TRANSLATE_OPTIMIZE_TASK, E2B_VERIFY_FOR_FIX_TASK} -- Access: stateful
 
@@ -16,12 +23,6 @@ feature {E2B_TRANSLATE_OPTIMIZE_TASK, E2B_VERIFY_FOR_FIX_TASK} -- Access: statef
 			-- Shared translation pool.
 		once
 			create Result.make
-		end
-
-	boogie_universe: IV_UNIVERSE
-			-- Shared boogie universe.
-		do
-		 	Result := boogie_universe_cell.item
 		end
 
 	autoproof_errors: LINKED_LIST [E2B_AUTOPROOF_ERROR]

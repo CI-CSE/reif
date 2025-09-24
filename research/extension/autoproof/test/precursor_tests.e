@@ -23,11 +23,7 @@ feature
 	test_precursor
 		note
 			explicit: wrapping
-		require
-			is_wrapped
 		do
-		ensure
-			is_wrapped
 		end
 end
 			]")
@@ -57,6 +53,6 @@ end
 
 			verify
 
-			assert ("Verification succeeds", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_feature_verified ("test_precursor", << "qualified", "unqualified" >>)
 		end
 end

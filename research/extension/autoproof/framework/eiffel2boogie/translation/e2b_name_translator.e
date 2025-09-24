@@ -20,7 +20,6 @@ inherit
 		end
 
 feature -- Access
-
 	boogie_procedure_for_feature (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie procedure that encodes `a_feature'.
 		require
@@ -38,6 +37,20 @@ feature -- Access
 			result_valid: is_valid_feature_name (Result)
 		end
 
+	boogie_procedure_for_feature_variant (feat: E2B_FEATURE_I; context_type: E2B_CL_TYPE_A;
+		var: E2B_FEATURE_VARIANT): READABLE_STRING_8
+			-- Name of the boogie procedure that encodes feature `feat` for specific call variant `var`
+		do
+			inspect var
+			when {E2B_FEATURE_VARIANT}.creator then
+				Result := boogie_procedure_for_creator (feat, context_type)
+			when {E2B_FEATURE_VARIANT}.qualified then
+				Result := boogie_procedure_for_qualified (feat, context_type)
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				Result := boogie_procedure_for_unqualified (feat, context_type)
+			end
+		end
+
 	boogie_procedure_for_creator (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
 			-- Name of the boogie procedure that encodes `a_feature' used as a creation procedure.
 		require
@@ -50,6 +63,40 @@ feature -- Access
 			l_type_name := boogie_name_for_type (a_context_type)
 			l_feature_name := feature_name (a_feature)
 			Result := "create." + l_type_name + "." + l_feature_name
+		ensure
+			result_attached: attached Result
+			result_valid: is_valid_feature_name (Result)
+		end
+
+	boogie_procedure_for_unqualified (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
+			-- Name of the boogie procedure that encodes `a_feature` used in an unqualified call.
+		require
+			a_feature_attached: attached a_feature
+			a_context_type_attached: attached a_context_type
+		local
+			l_type_name: READABLE_STRING_8
+			l_feature_name: READABLE_STRING_8
+		do
+			l_type_name := boogie_name_for_type (a_context_type)
+			l_feature_name := feature_name (a_feature)
+			Result := "unqualified." + l_type_name + "." + l_feature_name
+		ensure
+			result_attached: attached Result
+			result_valid: is_valid_feature_name (Result)
+		end
+
+	boogie_procedure_for_qualified (a_feature: E2B_FEATURE_I; a_context_type: E2B_CL_TYPE_A): READABLE_STRING_8
+			-- Name of the boogie procedure that encodes `a_feature` used in a qualified call.
+		require
+			a_feature_attached: attached a_feature
+			a_context_type_attached: attached a_context_type
+		local
+			l_type_name: READABLE_STRING_8
+			l_feature_name: READABLE_STRING_8
+		do
+			l_type_name := boogie_name_for_type (a_context_type)
+			l_feature_name := feature_name (a_feature)
+			Result := "qualified." + l_type_name + "." + l_feature_name
 		ensure
 			result_attached: attached Result
 			result_valid: is_valid_feature_name (Result)
@@ -257,7 +304,7 @@ feature -- Access
 			result_valid: is_valid_feature_name (Result)
 		end
 
-	feature_for_boogie_name (a_name: READABLE_STRING_8): TUPLE [type: E2B_TYPE_A; feature_: E2B_FEATURE_I; is_creator: BOOLEAN]
+	feature_for_boogie_name (a_name: READABLE_STRING_8): TUPLE [type: E2B_TYPE_A; feature_: E2B_FEATURE_I; variant_: E2B_FEATURE_VARIANT]
 			-- For a feature named `a_name' in Boogie code,
 			-- return its enclosing type (different from where it is defined if inherited), the eiffel feature and whether it is a creator.
 		require
@@ -268,11 +315,17 @@ feature -- Access
 			l_type_name: READABLE_STRING_8
 			l_feature_name: READABLE_STRING_8
 			l_type: E2B_TYPE_A
-			l_is_creator: BOOLEAN
+			l_variant: E2B_FEATURE_VARIANT
 		do
 			if a_name.starts_with ("create.") then
-				l_is_creator := True
+				create l_variant.creator
 				l_name := a_name.tail (a_name.count - 7)
+			elseif a_name.starts_with ("qualified.") then
+				create l_variant.qualified
+				l_name := a_name.tail (a_name.count - 10)
+			elseif a_name.starts_with ("unqualified.") then
+				create l_variant.unqualified
+				l_name := a_name.tail (a_name.count - 12)
 			else
 				l_name := a_name
 			end
@@ -289,7 +342,7 @@ feature -- Access
 				l_feature_name := l_name
 			end
 			l_type := type_for_boogie_name (l_type_name)
-			Result := [l_type, l_type.base_class.feature_named (l_feature_name), l_is_creator]
+			Result := [l_type, l_type.base_class.feature_named (l_feature_name), l_variant]
 		ensure
 			result_attached: attached Result
 		end

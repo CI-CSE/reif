@@ -1,7 +1,7 @@
 note
 	description: "List with specifications usable in AutoProof."
 
-frozen class
+class
 	SIMPLE_LIST [G]
 
 inherit

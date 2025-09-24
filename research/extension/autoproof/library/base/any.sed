@@ -1,6 +1,11 @@
 /^invariant/{
 	r any.txt
+	# Remove reflexive_equality and reflexive_conformance invariants
+	# there are no more clauses left, so remove the `invariant` keyword too
 	N
+	N
+	N
+	z
 }
 /print (o: detachable ANY)/{
 	N

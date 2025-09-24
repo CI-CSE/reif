@@ -153,6 +153,8 @@ feature {NONE} -- Implementation
 				end
 			elseif a_placeholder ~ "$variant" then
 				a_formatter.add (boogie_error.attributes["varid"])
+			elseif a_placeholder ~ "$arg" then
+				a_formatter.add (safe_related_value ("arg"))
 			else
 				a_formatter.add_comment (a_placeholder)
 			end

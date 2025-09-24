@@ -76,7 +76,7 @@ feature -- Helper functions: arguments and result
 		do
 			current_boogie_procedure.add_argument (create {IV_ENTITY}.make (a_name, a_boogie_type))
 			create l_pre.make (types.type_property (a_type, factory.global_heap, factory.entity (a_name, a_boogie_type),
-					a_orig_type.is_exact (a_type, current_feature),
+					True,
 					a_orig_type.is_attached))
 			l_pre.set_free
 			l_pre.node_info.set_attribute ("info", "type property for argument " + a_name)
@@ -387,7 +387,7 @@ feature -- Helper functions: contracts
 				(a_mods.model_objects.is_empty or else a_mods.model_objects.first.objects.first = Void)
 		end
 
-	frame_definition (a_mods: like modify_expressions_of; a_lhs: IV_EXPRESSION; a_excluded_fields: ARRAY [IV_ENTITY]): IV_FORALL
+	frame_definition (a_mods: like modify_expressions_of; a_lhs: IV_EXPRESSION): IV_FORALL
 			-- Expression that claims that `a_lhs' is the frame encoded in `a_mods'
 			-- (forall o, f :: a_lhs[o, f] <==> is_partially_modifiable[o, f] || is_model_modifiable[o, f] || is_fully_modifiable[o])
 		local
@@ -427,13 +427,7 @@ feature -- Helper functions: contracts
 				l_expr := factory.or_clean (l_expr, factory.and_ (is_object_in_frame (l_o, restriction.objects), l_f_conjunct))
 			end
 				-- Go over fully modifiable objects
-				-- (and exclude `a_excluded_fields')
-			l_f_conjunct := factory.true_
-			across a_excluded_fields as f loop
-				l_f_conjunct := factory.and_clean (l_f_conjunct, factory.not_equal (l_f, f))
-			end
-			l_expr := factory.or_clean (l_expr,
-					factory.and_clean (is_object_in_frame (l_o, a_mods.full_objects), l_f_conjunct))
+			l_expr := factory.or_clean (l_expr, is_object_in_frame (l_o, a_mods.full_objects))
 				-- Finally create the quantifier
 			create Result.make (factory.equiv (l_access, l_expr))
 			Result.add_type_variable (l_type_var.name)

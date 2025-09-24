@@ -38,8 +38,8 @@ feature -- Access
 	tag: detachable READABLE_STRING_8
 			-- Tag associated with this node.
 		do
-			if attributes.has_key ("tag") then
-				Result := attributes["tag"]
+			if attached attributes as a and then a.has_key ("tag") then
+				Result := a["tag"]
 			end
 		end
 

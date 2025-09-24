@@ -425,16 +425,6 @@ feature -- Model helpers
 --					across translation_mapping.ghost_access as m loop
 --						Result.extend (a_class.feature_named_32 (m.item))
 --					end
-					if attached feature_named ("subjects") as f then
-						Result.extend (f)
-					else
-						e2b_error.add_unsupported_error (Current, {STRING_32} "Feature `subjects` is not found in class `ANY`.", 0)
-					end
-					if attached feature_named ("observers") as f then
-						Result.extend (f)
-					else
-						e2b_error.add_unsupported_error (Current, {STRING_32} "Feature `observers` is not found in class `ANY`.", 0)
-					end
 				else
 					across model_queries as m loop
 						l_f := feature_named (m)

@@ -63,11 +63,13 @@ feature {NONE} -- Initialize
 						create record.make_empty
 						values [case.args [2]] := record
 					else
-						check attached {E2B_CE_VALUE_RECORD} values [case.args [2]] as r then
+						if attached {E2B_CE_VALUE_RECORD} values [case.args [2]] as r then
 							record := r
 						end
 					end
-					record.put (case.res, case.args [3])
+					if record /= Void then
+						record.put (case.res, case.args [3])
+					end
 				end
 			end
 		end
@@ -109,11 +111,15 @@ feature {NONE} -- Initialize
 								create sequence.make
 								values [seq_id] := sequence
 							else
-								check attached {E2B_CE_VALUE_SEQ} values[seq_id] as ss then
-									sequence := ss
+								if not seq_id.same_string_general ("false") then
+									check attached {E2B_CE_VALUE_SEQ} values[seq_id] as ss then
+										sequence := ss
+									end
 								end
 							end
-							sequence.update (seq_id, ce)
+							if sequence /= Void then
+								sequence.update (seq_id, ce)
+							end
 						end
 					end
 				end
