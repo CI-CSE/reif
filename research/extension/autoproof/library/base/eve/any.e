@@ -784,9 +784,6 @@ feature -- Verification: auxiliary
 		do
 		end
 
-invariant
-	reflexive_equality: standard_is_equal (Current)
-	reflexive_conformance: conforms_to (Current)
 
 note
 	copyright: "Copyright (c) 1984-2020, Eiffel Software and others"

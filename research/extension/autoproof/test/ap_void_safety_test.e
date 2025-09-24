@@ -32,8 +32,7 @@ feature
 
 			verify
 
-			assert ("Verification is success",
-				attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_feature_verified ("test", << "qualified", "unqualified" >>)
 		end
 
 	test_argument_unsafe
@@ -59,8 +58,7 @@ feature
 
 			verify
 
-			assert ("Verification is failure",
-				attached {E2B_FAILED_VERIFICATION} verification_result)
+			assert_feature_unverified ("test", << "qualified", "unqualified" >>)
 		end
 
 	test_attribute_safe
@@ -91,8 +89,7 @@ feature
 
 			verify
 
-			assert ("Verification is success",
-				attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_feature_verified ("test", << "qualified", "unqualified" >>)
 		end
 
 	test_attribute_unsafe
@@ -123,8 +120,7 @@ feature
 
 			verify
 
-			assert ("Verification is failure",
-				attached {E2B_FAILED_VERIFICATION} verification_result)
+			assert_feature_unverified ("test", << "qualified", "unqualified" >>)
 		end
 
 	test_create_object_with_attached_fields

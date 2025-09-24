@@ -133,11 +133,13 @@ feature -- Visitors
 				l_target := current_target
 				l_target_type := current_target_type
 
+				side_effect.extend (factory.trace (name_translator.boogie_procedure_for_feature (l_feature, l_type) + "_qual_inv_trace:" + a_node.line_number.out))
+
 				l_handler := translation_mapping.handler_for_call (current_target_type, l_feature)
 				if l_handler /= Void then
 					l_handler.handle_routine_call_in_body (Current, l_feature, a_node.parameters)
 				else
-					process_routine_call (l_feature, a_node.parameters, True)
+					process_routine_call (l_feature, a_node.parameters, {E2B_FEATURE_VARIANT}.creator)
 				end
 
 				current_target := l_target
@@ -253,7 +255,7 @@ feature -- Translation
 			last_expression := factory.heap_access (entity_mapping.heap, current_target, l_field.name, l_content_type)
 		end
 
-	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_variant: E2B_FEATURE_VARIANT)
 			-- Process feature call.
 		local
 			l_inlining_depth: INTEGER
@@ -269,11 +271,11 @@ feature -- Translation
 			then
 				process_inlined_routine_call (a_feature, a_parameters)
 			else
-				process_normal_routine_call (a_feature, a_parameters, a_for_creator)
+				process_normal_routine_call (a_feature, a_parameters, a_variant)
 			end
 		end
 
-	process_normal_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_normal_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_variant: E2B_FEATURE_VARIANT)
 			-- Process feature call.
 		local
 			l_pcall: IV_PROCEDURE_CALL
@@ -281,7 +283,7 @@ feature -- Translation
 		do
 			translation_pool.add_referenced_feature (a_feature, current_target_type)
 			if a_feature.has_return_value and a_feature.is_functional then
-				check not a_for_creator end
+				check not a_variant.is_creator end
 				create l_fcall.make (name_translator.boogie_function_for_feature (a_feature, current_target_type, False), types.for_class_type (feature_class_type (a_feature)))
 				l_fcall.add_argument (entity_mapping.heap)
 				if not a_feature.is_static then
@@ -314,14 +316,14 @@ feature -- Translation
 					e2b_error.add_semantic_error (context_feature, messages.nonsetter_call_from_setter (a_feature.feature_name_32), context_line_number)
 				end
 
-				if a_for_creator or
+				if a_variant.is_creator or
 						(name_translator.is_creator_name (context_implementation.procedure.name) and a_feature.is_creator_of_class (current_target_type.base_class)) then
 						-- Either we are translating a creation expression (`a_for_creator'),
 						-- or we are inside a creation procedure and calling another creation procedure,
 						-- so the creation semantics will be used
 					create l_pcall.make (name_translator.boogie_procedure_for_creator (a_feature, current_target_type))
 				else
-					create l_pcall.make (name_translator.boogie_procedure_for_feature (a_feature, current_target_type))
+					create l_pcall.make (name_translator.boogie_procedure_for_feature_variant (a_feature, current_target_type, a_variant))
 					if a_feature.is_creator then
 						-- A feature specified to be creator-only, but called as a regular procedure
 						e2b_error.add_semantic_error (context_feature, messages.creator_call_as_procedure (a_feature.feature_name_32), context_line_number)

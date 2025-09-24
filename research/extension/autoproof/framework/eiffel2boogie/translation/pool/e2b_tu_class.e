@@ -36,11 +36,7 @@ feature -- Basic operations
 
 	translate
 			-- <Precursor>
-		local
-			l_type_translator: E2B_TYPE_TRANSLATOR
 		do
-			create l_type_translator
-			l_type_translator.generate_invariant_admissability_check (class_type)
 		end
 
 note

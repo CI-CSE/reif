@@ -31,10 +31,7 @@ feature -- Basic operations
 			l_class_type := current_type.base_class.class_type_in_context (current_feature.type, Void, current_type)
 
 			if current_feature.is_built_in_attribute then
-					-- It's a built-in redefinition: only generate the guard.
-					-- TODO: check that type is unchanged
-				l_attribute_name := current_feature.feature_name
-				generate_guard (l_class_type, l_attribute_name, translation_mapping.ghost_access_type (l_attribute_name))
+					-- It's a built-in redefinition: nothing to do
 			else
 				l_attribute_name := name_translator.boogie_procedure_for_feature (current_feature, current_type)
 				l_boogie_type := types.for_class_type (l_class_type)
@@ -65,12 +62,12 @@ feature -- Basic operations
 --				end
 
 					-- Add type properties
-				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, current_feature.type.is_exact (l_class_type, Void),
+				l_type_prop := types.type_property (l_class_type, l_heap, l_heap_access, True,
 						current_feature.type.is_attached)
 				if not l_type_prop.is_true then
 					l_type_prop := factory.implies_ (factory.and_ (
 								factory.is_heap (l_heap),
-								factory.function_call ("attached", <<l_heap, l_o, l_context_type>>, types.bool)),
+								factory.function_call ("attached_exact", <<l_heap, l_o, l_context_type>>, types.bool)),
 							l_type_prop)
 					create l_forall.make (l_type_prop)
 					l_forall.add_bound_variable (l_heap)
@@ -82,38 +79,9 @@ feature -- Basic operations
 					-- Check if it replaces old models correctly
 				check_model_replacement
 
-					-- Add guard
-				generate_guard (l_class_type, l_attribute_name, l_boogie_type)
-
 					-- Add translation references
 				translation_pool.add_type (l_class_type)
 			end
-		end
-
-	generate_guard (a_type: E2B_CL_TYPE_A; a_boogie_name: READABLE_STRING_8; a_boogie_type: IV_TYPE)
-			-- Generate update guard for attribute `current_feature' of type `a_type' inside `current_type',
-			-- where the Boogie translation of the attribute has name `a_boogie_name' and type `a_boogie_type'.
-		local
-			l_h, l_cur, l_f, l_v, l_o: IV_ENTITY
-			l_fcall: IV_FUNCTION_CALL
-			l_def: IV_EXPRESSION
-			l_guard: detachable IV_EXPRESSION
-		do
-			create l_h.make ("heap", types.heap)
-			create l_cur.make ("current", types.ref)
-			create l_f.make (a_boogie_name, types.field (a_boogie_type))
-			create l_v.make ("v", a_boogie_type)
-			create l_o.make ("o", types.ref)
-			l_fcall := factory.function_call ("guard", <<l_h, l_cur, l_f, l_v, l_o>>, types.bool)
-			l_def := factory.true_
-			across current_feature.guards_for_attribute as guard_str_and_class loop
-				l_guard := guard_from_string (guard_str_and_class.str, guard_str_and_class.origin, a_type, l_h, l_cur, l_f, l_v, l_o)
-				check attached l_guard as att_guard then
-					l_def := factory.and_clean (l_def, att_guard)
-				end
-			end
-
-			factory.add_dynamic_predicate_definition (l_fcall, l_def, current_type, l_h, l_cur, <<l_v, l_o>>)
 		end
 
 	translate_tuple_field (a_context_type: E2B_CL_TYPE_A; a_position: INTEGER)
@@ -154,7 +122,7 @@ feature -- Basic operations
 			if not l_type_prop.is_true then
 				l_type_prop := factory.implies_ (factory.and_ (
 							factory.is_heap (l_heap),
-							factory.function_call ("attached", <<l_heap, l_o, l_context_type>>, types.bool)),
+							factory.function_call ("attached_exact", <<l_heap, l_o, l_context_type>>, types.bool)),
 						l_type_prop)
 				create l_forall.make (l_type_prop)
 				l_forall.add_bound_variable (l_heap)
@@ -222,35 +190,7 @@ feature {NONE} -- Implementation
 			-- Update guard definition encoded by `a_guard_string' coming from `a_origin_class'.
 		require
 			non_empty: not a_guard_string.is_empty
-		local
-			l_guard_feature: E2B_FEATURE_I
-			l_fname: READABLE_STRING_8
 		do
-			if a_guard_string.is_case_insensitive_equal ("true") then
-					-- The guard is trivially true
-				Result := factory.true_
-			elseif a_guard_string.is_case_insensitive_equal ("false") then
-					-- The guard is trivially false
-				Result := factory.false_
-			elseif a_guard_string.is_case_insensitive_equal ("inv") then
-					-- The guard is the preservation of the invariant of observers
-				Result := factory.implies_ (
-						factory.function_call ("user_inv", <<a_h, a_o>>, types.bool),
-						factory.function_call ("user_inv", <<factory.map_update (a_h, create {ARRAYED_LIST [IV_EXPRESSION]}.make_from_array (<<a_cur, a_f>>), a_v), a_o>>, types.bool))
-			else
-				l_guard_feature := a_origin_class.feature_named (a_guard_string)
-				if is_valid_guard_feature (a_guard_string, l_guard_feature, a_attr_type, a_origin_class) then
-					translation_pool.add_referenced_feature (l_guard_feature, current_type)
-						-- Generate guard definition from `l_guard_feature'
-					l_fname := name_translator.boogie_function_for_feature (l_guard_feature, current_type, False)
-					if l_guard_feature.has_flat_precondition then
-						Result := factory.function_call (name_translator.boogie_function_precondition (l_fname), <<a_h, a_cur, a_v, a_o>>, types.bool)
-					else
-						Result := factory.true_
-					end
-					Result := factory.and_clean (Result, factory.function_call (l_fname, <<a_h, a_cur, a_v, a_o>>, types.bool))
-				end
-			end
 		end
 
 	is_valid_guard_feature (a_guard_name: READABLE_STRING_8; a_guard_feature: E2B_FEATURE_I; a_attr_type: E2B_CL_TYPE_A; guard_feature_class: E2B_CLASS_C): BOOLEAN

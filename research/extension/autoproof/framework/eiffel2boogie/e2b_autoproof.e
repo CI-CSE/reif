@@ -132,10 +132,12 @@ feature -- Basic operations
 			end
 		end
 
-feature {NONE} -- Implementation
+feature
 
 	verify_task: detachable E2B_VERIFY_TASK
 			-- Verify task.
+
+feature {NONE} -- Implementation
 
 	start_verify_task
 			-- Start Verification task.

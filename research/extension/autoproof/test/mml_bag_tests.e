@@ -36,6 +36,6 @@ feature
 
 			verify
 
-			assert ("Verification is successful", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_feature_verified ("demo", << "qualified", "unqualified" >>)
 		end
 end

@@ -57,7 +57,9 @@ end
 
 			verify
 
-			check attached {E2B_FAILED_VERIFICATION} verification_result as r then
+			check
+				attached {E2B_FAILED_VERIFICATION} result_of_feature ("demo", "qualified") as r
+			then
 				assert_equal ("One error", 1, r.errors.count)
 
 				create formatter

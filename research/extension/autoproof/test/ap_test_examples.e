@@ -29,23 +29,19 @@ feature -- Testing
 
 					make
 						do
-						end
-
-					test
-						do
 							check check_false: False end
 						end
 				end
 				]"
 			)
 			print_ecf ("DEMO")
-			command.add_feature ("test", "DEMO")
+			command.add_feature ("make", "DEMO")
 
 			verify
 
-			assert ("Verification is failure", attached {E2B_FAILED_VERIFICATION} verification_result)
-			assert_strings_equal ("Failure in DEMO class", "DEMO", verification_result.context_class.name)
-			assert_strings_equal ("Failure in test feature", "test", verification_result.context_feature.feature_name_32)
+			assert_equal ("Results of 3 variants", 3, verification_results.count)
+
+			assert_feature_unverified ("make", << "qualified", "unqualified", "creator" >>)
 		end
 
 	example_check_true
@@ -60,23 +56,19 @@ feature -- Testing
 					feature
 						make
 							do
-							end
-
-						test
-							do
 								check check_true: True end
 							end
 					end
 				]"
 			)
 			print_ecf ("DEMO")
-			command.add_feature ("test", "DEMO")
+			command.add_feature ("make", "DEMO")
 
 			verify
 
-			assert ("Verification is success", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
-			assert_strings_equal ("Success in DEMO class", "DEMO", verification_result.context_class.name)
-			assert_strings_equal ("Success in test feature", "test", verification_result.context_feature.feature_name_32)
+			assert_equal ("Results of 3 variants", 3, verification_results.count)
+
+			assert_feature_verified ("make", << "qualified", "unqualified", "creator" >>)
 		end
 
 feature {NONE} -- Initialization
@@ -113,6 +105,7 @@ feature {NONE} -- Building test projects
 		do
 			create file.make_with_path (code_path.extended (file_name))
 			file.open_write
+			file.put_encoding_bom
 			file.put_string_general (contents)
 			file.close
 		end
@@ -207,16 +200,17 @@ feature {NONE} -- Building test projects
 	results: LINKED_LIST [E2B_RESULT]
 			-- Results of executing `command`
 
-	verification_result: E2B_VERIFICATION_RESULT
+	e2b_result: E2B_RESULT
+			-- AutoProof execution result. Available after `verify`.
 		do
-			assert_equal ("One E2B_VERIFICATION_RESULT", 1, verification_results.count)
-			Result := verification_results [1]
+			assert_equal ("One e2b_result", 1, results.count)
+			Result := results [1]
 		end
 
 	verification_results: LINKED_LIST [E2B_VERIFICATION_RESULT]
+		-- Verification results of features and other verification targets
 		do
-			assert_equal ("One E2B result", 1, results.count)
-			Result := results [1].verification_results
+			Result := e2b_result.verification_results
 		end
 
 	assert_verification_failure_with_tag (t: STRING)
@@ -272,4 +266,54 @@ feature {NONE} -- Building test projects
 			)
 		end
 
+	verification_result: E2B_VERIFICATION_RESULT
+			-- If only one result is expected, get the result
+		do
+			assert_equal ("One E2B_VERIFICATION_RESULT", 1, verification_results.count)
+			Result := verification_results.first
+		end
+
+	result_of_feature (feature_name, context: STRING): detachable E2B_VERIFICATION_RESULT
+		do
+			across
+				verification_results as i
+			until
+				attached Result
+			loop
+				if
+					i.context_feature.feature_name ~ feature_name
+					and then i.verification_context.starts_with (context)
+				then
+					Result := i
+				end
+			end
+		end
+
+	assert_feature_verified_context (feature_name, context: STRING)
+		do
+			assert ("Feature " + feature_name + " (" + context + ") verified",
+				attached {E2B_SUCCESSFUL_VERIFICATION} result_of_feature (
+					feature_name, context))
+		end
+
+	assert_feature_verified (feature_name: STRING; contexts: ARRAY [STRING])
+		do
+			across contexts as c loop
+				assert_feature_verified_context (feature_name, c)
+			end
+		end
+
+	assert_feature_unverified_context (feature_name, context: STRING)
+		do
+			assert ("Feature " + feature_name + " (" + context + ") unverified",
+				attached {E2B_FAILED_VERIFICATION} result_of_feature (
+					feature_name, context))
+		end
+
+	assert_feature_unverified (feature_name: STRING; contexts: ARRAY [STRING])
+		do
+			across contexts as c loop
+				assert_feature_unverified_context (feature_name, c)
+			end
+		end
 end

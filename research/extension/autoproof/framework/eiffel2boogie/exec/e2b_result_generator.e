@@ -163,8 +163,13 @@ feature {NONE} -- Implementation
 			l_feature := l_temp.feature_
 			check l_feature /= Void end
 
-			if l_temp.is_creator then
-				l_context := "creator"
+			l_context := inspect l_temp.variant_
+			when {E2B_FEATURE_VARIANT}.creator then
+				"creator"
+			when {E2B_FEATURE_VARIANT}.qualified then
+				"qualified"
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				"unqualified"
 			end
 			if l_temp.type.base_class.class_id /= l_feature.written_in then
 				if l_context = Void then
@@ -245,6 +250,16 @@ feature {NONE} -- Implementation
 				else
 					Result := messages.postcondition_violated
 				end
+			elseif l_type ~ "arg_inv_post" then
+				Result := "Invariant $tag of argument $arg may not hold in post-state"
+			elseif l_type ~ "arg_inv_pre" then
+				Result := "Invariant $tag of argument $arg may not hold in pre-state"
+			elseif l_type ~ "qual_inv" then
+				Result := "Invariant $tag of caller may not hold on qualified call"
+			elseif l_type ~ "inv_post" then
+				Result := "Invariant $tag may not hold on exit from qualified call"
+			elseif l_type ~ "inv_pre" then
+				Result := "Invariant $tag may not hold on call $called_feature"
 			elseif l_type ~ "inv" then
 					-- Inline invariant check violation
 				if l_has_tag then

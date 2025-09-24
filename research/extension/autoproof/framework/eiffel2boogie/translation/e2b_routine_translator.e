@@ -17,24 +17,32 @@ feature {NONE} -- Initialization
 
 feature -- Translation: Signature
 
-	translate_routine_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+	translate_routine_signature_unqualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
 			not_attribute: not a_feature.is_attribute
 		do
-			translate_signature (a_feature, a_type, False)
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.unqualified)
+		end
+
+	translate_routine_signature_qualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+			-- Translate signature of feature `a_feature` of type `a_type` for qualified calls.
+		require
+			not_attribute: not a_feature.is_attribute
+		do
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.qualified)
 		end
 
 	translate_creator_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
-			translate_signature (a_feature, a_type, True)
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.creator)
 		end
 
 	translate_default_create_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		do
-			translate_signature (a_feature, a_type, True)
+			translate_signature (a_feature, a_type, {E2B_FEATURE_VARIANT}.creator)
 				-- TODO: create special signature
 		end
 
@@ -60,16 +68,20 @@ feature -- Translation: Signature
 			end
 		end
 
-	translate_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_for_creator: BOOLEAN)
+	translate_signature (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_variant: E2B_FEATURE_VARIANT)
 			-- Translate signature of feature `a_feature' of type `a_type'.
 		require
-			routine: a_feature.is_routine
 			feature_not_void: a_feature /= Void
+			routine: a_feature.is_routine
 		local
 			l_proc_name: READABLE_STRING_8
 			l_contracts: like contracts_of
 			l_fields: LINKED_LIST [TUPLE [o: IV_EXPRESSION; f: IV_ENTITY]]
 			l_modifies: IV_MODIFIES
+			type_translator: E2B_TYPE_TRANSLATOR
+			inv_filter: E2B_INVARIANT_FILTER
+			post: IV_POSTCONDITION
+			pre: IV_PRECONDITION
 		do
 			set_context (a_feature, a_type)
 			translation_pool.add_type (current_type)
@@ -83,12 +95,14 @@ feature -- Translation: Signature
 			end
 
 				-- Set up name
-			l_proc_name :=
-				if a_for_creator then
-					name_translator.boogie_procedure_for_creator (current_feature, current_type)
-				else
-					name_translator.boogie_procedure_for_feature (current_feature, current_type)
-				end
+			l_proc_name := inspect a_variant
+			when {E2B_FEATURE_VARIANT}.creator then
+				name_translator.boogie_procedure_for_creator (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				name_translator.boogie_procedure_for_unqualified (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.qualified then
+				name_translator.boogie_procedure_for_qualified (current_feature, current_type)
+			end
 
 				-- Initialize procedure
 			set_up_boogie_procedure (l_proc_name)
@@ -156,31 +170,120 @@ feature -- Translation: Signature
 				process_postcondition (j.clause, j.origin, l_fields)
 			end
 
+			if a_variant = {E2B_FEATURE_VARIANT}.qualified then
+				create type_translator
+
+				add_argument_invariant_contracts (a_feature.export_status)
+
+				-- free require INV_LOC/r
+				create inv_filter
+				inv_filter.include_local := 1
+				inv_filter.required_export_status := a_feature.export_status
+				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
+					create pre.make (i.expression)
+					pre.node_info.set_type ("inv_pre")
+					pre.node_info.set_tag (i.node_info.tag)
+					pre.node_info.set_line (i.node_info.line.to_integer_32)
+					pre.set_free
+					current_boogie_procedure.add_contract (pre)
+				end
+
+				-- ensure INV/r
+				create inv_filter
+				inv_filter.required_export_status := a_feature.export_status
+				across type_translator.translate_invariant (current_type, inv_filter, Void) as i loop
+					create post.make (i.expression)
+					post.node_info.set_type ("inv_post")
+					post.node_info.set_tag (i.node_info.tag)
+					post.node_info.set_line (i.node_info.line.to_integer_32)
+					current_boogie_procedure.add_contract (post)
+				end
+
+			elseif a_variant = {E2B_FEATURE_VARIANT}.creator then
 				-- Creator: add default field initialization
-			if a_for_creator then
 				add_field_default_initialization (a_type)
 					-- If it is `default_create' from any, add special post
 				if current_feature.written_in = system.any_id and current_feature.rout_id_set.first = system.default_create_rout_id then
 					add_default_create_postcondition
 				end
+
+				create type_translator
+
+				-- ensure INV
+				across type_translator.translate_invariant (current_type, Void, Void) as i loop
+					create post.make (i.expression)
+					post.node_info.set_type ("inv_post")
+					post.node_info.set_tag (i.node_info.tag)
+					post.node_info.set_line (i.node_info.line.to_integer_32)
+					current_boogie_procedure.add_contract (post)
+				end
+
+				add_argument_invariant_contracts (Void)
 			end
 
-				-- Framing
+			-- Framing
 			if options.is_ownership_enabled then
-				add_ownership_contracts (a_for_creator, not current_feature.is_lemma)
+				add_ownership_contracts (a_variant.is_creator, not current_feature.is_lemma)
 				add_agent_modifies
 			else
 					-- No choice anymore!
 				check False end
 			end
 
-			if options.is_postcondition_predicate_enabled and not a_for_creator then
+			if options.is_postcondition_predicate_enabled and not a_variant.is_creator then
 				add_postcondition_predicate
 			end
 
-				-- Onces
+			-- Onces
 			if a_feature.is_once then
 				add_once_specification
+			end
+		end
+
+	add_argument_invariant_contracts (visibility: detachable EXPORT_I)
+			-- Add precondition that all arguments have sliced invariant
+			-- and postcondition that all arguments have full invariant
+			--
+			-- `visibility`: visibility for slicing in the precondition
+			-- or `Void` for `{ANY}`
+		local
+			ent: IV_ENTITY
+			inv_filter: E2B_INVARIANT_FILTER
+			type_translator: E2B_TYPE_TRANSLATOR
+			post: IV_POSTCONDITION
+			pre: IV_PRECONDITION
+		do
+			across arguments_of_current_feature as arg loop
+				-- Don't translate invariants of basic types
+				if not attached {IV_BASIC_TYPE} arg.boogie_type then
+					create ent.make (arg.name, arg.boogie_type)
+
+						-- require argument.INV/r
+					if visibility /= Void then
+						create inv_filter
+						inv_filter.required_export_status := visibility
+					end
+					create type_translator
+					across type_translator.translate_invariant (arg.type, inv_filter, ent) as i loop
+						create pre.make (i.expression)
+						pre.node_info.set_type ("arg_inv_pre")
+						pre.node_info.set_tag (i.node_info.tag)
+						pre.node_info.set_line (i.node_info.line.to_integer_32)
+						pre.node_info.set_attribute ("arg", arg.name)
+						current_boogie_procedure.add_contract (pre)
+					end
+
+						-- ensure full argument.INV
+					create type_translator
+					across type_translator.translate_invariant (arg.type, Void, ent) as i loop
+						create post.make (i.expression)
+						post.node_info.set_type ("arg_inv_post")
+						post.node_info.set_tag (i.node_info.tag)
+						post.node_info.set_line (i.node_info.line.to_integer_32)
+						post.node_info.set_attribute ("arg", arg.name)
+						current_boogie_procedure.add_contract (post)
+					end
+				end
 			end
 		end
 
@@ -289,10 +392,9 @@ feature -- Translation: Signature
 			create l_var_type.make_fresh
 			create l_entity.make ("$f", types.field (l_var_type))
 
-				-- Excluded fields: allocated, closed, and model fields with static initializaers
+				-- Excluded fields: allocated and model fields with static initializaers
 			create l_excluded.make (5)
 			l_excluded.extend (factory.entity ("allocated", types.field (types.bool)))
-			l_excluded.extend (factory.entity ("closed", types.field (types.bool)))
 			across
 				current_type.base_class.ghost_attributes as gh_attr
 			loop
@@ -330,13 +432,6 @@ feature -- Translation: Signature
 			l_pre.set_free
 			current_boogie_procedure.add_contract (l_pre)
 
-				-- Unless class or feature are marked with "manual_inv", bring in the invariants of all wrapped objects
-			if not current_feature.is_manual_inv and not current_type.base_class.is_manual_inv then
-				create l_pre.make (factory.function_call ("global_permissive", <<>>, types.bool))
-				l_pre.set_free
-				current_boogie_procedure.add_contract (l_pre)
-			end
-
 				-- Only add postconditions and frame properties if the procedure modifies heap
 			if a_modifies_heap then
 				create l_post.make (factory.function_call ("global", <<factory.global_heap>>, types.bool))
@@ -357,11 +452,6 @@ feature -- Translation: Signature
 					-- TODO: should default precondtions be enabled for lemmas?
 				create l_mapping.make
 				l_mapping.set_current (current_boogie_procedure.arguments.first.entity)
-				if not current_boogie_procedure.is_full_coverage_tests_enabled then
-					across ownership_default (a_for_creator, l_mapping) as i loop
-						current_boogie_procedure.add_contract (i)
-					end
-				end
 			end
 		end
 
@@ -384,13 +474,6 @@ feature -- Translation: Signature
 			l_pre.node_info.set_type ("pre")
 			l_pre.node_info.set_tag ("frame_writable")
 			Result.extend (l_pre)
-
-				-- Free precondition: Everything in the domains of writable objects is writable
-			if not current_feature.is_setter then
-				create l_pre.make (factory.function_call ("closed_under_domains", <<factory.global_writable, factory.global_heap>>, types.bool))
-				l_pre.set_free
-				Result.extend (l_pre)
-			end
 
 				-- Free postcondition: Only writes set has changed
 			create l_post.make (factory.writes_routine_frame (current_feature, current_type, current_boogie_procedure))
@@ -424,91 +507,6 @@ feature -- Translation: Signature
 			Result.extend (l_pre)
 
 			translation_pool.add_read_frame_function (current_feature, current_type)
-		end
-
-	ownership_default (a_for_creator: BOOLEAN; a_mapping: E2B_ENTITY_MAPPING): LINKED_LIST [IV_CONTRACT]
-			-- Default ownership contracts.
-		local
-			l_pre: IV_PRECONDITION
-			l_post: IV_POSTCONDITION
-			l_written_feature: E2B_FEATURE_I
-		do
-			create Result.make
-
-				-- Features marked with "explicit: contracts" do not get any defaults
-			if not current_feature.is_explicit ("contracts") then
-				if current_feature.has_functional_representation then -- Pure functions
-					if current_feature.is_public and not current_feature.is_functional then
-							-- Public features with functional representation (unless they are functional)
-						create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-						l_pre.node_info.set_type ("pre")
-						l_pre.node_info.set_tag ("default_is_closed")
-						l_pre.node_info.set_attribute ("default", "contracts")
-						Result.extend (l_pre)
-
-						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
-						across arguments_of_current_feature as i loop
-							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
-								create l_pre.make (factory.function_call ("is_closed", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
-								l_pre.node_info.set_type ("pre")
-								l_pre.node_info.set_tag ("arg_" + i.name + "_is_closed")
-								l_pre.node_info.set_attribute ("default", "contracts")
-								Result.extend (l_pre)
-							end
-						end
-					end
-				else -- Procedures and impure function
-					if a_mapping.current_expression.type ~ types.ref then
-						if a_for_creator then
-							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_post.node_info.set_type ("post")
-							l_post.node_info.set_tag ("default_is_wrapped")
-							l_post.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_post)
-						elseif current_feature.is_public then
-							create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_pre.node_info.set_type ("pre")
-							l_pre.node_info.set_tag ("default_is_wrapped")
-							l_pre.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_pre)
-							create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_post.node_info.set_type ("post")
-							l_post.node_info.set_tag ("default_is_wrapped")
-							l_post.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_post)
-						elseif current_feature.is_private then
-							create l_pre.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_pre.node_info.set_type ("pre")
-							l_pre.node_info.set_tag ("default_is_open")
-							l_pre.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_pre)
-
-							create l_post.make (factory.function_call ("is_open", <<a_mapping.heap, a_mapping.current_expression>>, types.bool))
-							l_post.node_info.set_type ("post")
-							l_post.node_info.set_tag ("default_is_open")
-							l_post.node_info.set_attribute ("default", "contracts")
-							Result.extend (l_post)
-						end
-					end
-					if a_for_creator or current_feature.is_public then
-						l_written_feature := current_feature.written_class.feature_of_rout_id_set (current_feature.rout_id_set)
-						across arguments_of_current_feature as i loop
-							if i.boogie_type ~ types.ref and not l_written_feature.arguments.i_th (@ i.target_index).is_formal then
-								create l_pre.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
-								l_pre.node_info.set_type ("pre")
-								l_pre.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
-								l_pre.node_info.set_attribute ("default", "contracts")
-								Result.extend (l_pre)
-								create l_post.make (factory.function_call ("is_wrapped", <<a_mapping.heap, factory.entity (i.name, i.boogie_type)>>, types.bool))
-								l_post.node_info.set_type ("post")
-								l_post.node_info.set_tag ("arg_" + i.name + "_is_wrapped")
-								l_post.node_info.set_attribute ("default", "contracts")
-								Result.extend (l_post)
-							end
-						end
-					end
-				end
-			end
 		end
 
 	add_agent_modifies
@@ -570,21 +568,29 @@ feature -- Translation: Signature
 
 feature -- Translation: Implementation
 
-	translate_routine_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
-			-- Translate implementation of feature `a_feature' of type `a_type'.
+	translate_routine_implementation_qualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+			-- Translate implementation of feature `a_feature` of type `a_type` for qualified calls.
 		require
 			routine: a_feature.is_routine
 		do
-			translate_implementation (a_feature, a_type, False)
+			translate_implementation (a_feature, a_type, {E2B_FEATURE_VARIANT}.qualified)
+		end
+
+	translate_routine_implementation_unqualified (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
+			-- Translate implementation of feature `a_feature' of type `a_type' for unqualified calls.
+		require
+			routine: a_feature.is_routine
+		do
+			translate_implementation (a_feature, a_type, {E2B_FEATURE_VARIANT}.unqualified)
 		end
 
 	translate_creator_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		do
-			translate_implementation (a_feature, a_type, True)
+			translate_implementation (a_feature, a_type, {E2B_FEATURE_VARIANT}.creator)
 		end
 
-	translate_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_for_creator: BOOLEAN)
+	translate_implementation (a_feature: E2B_FEATURE_I; a_type: E2B_CL_TYPE_A; a_variant: E2B_FEATURE_VARIANT)
 			-- Translate implementation of feature `a_feature' of type `a_type'.
 		require
 			a_feature_not_void: a_feature /= Void
@@ -594,9 +600,7 @@ feature -- Translation: Implementation
 			l_translator: E2B_INSTRUCTION_TRANSLATOR
 			l_type: E2B_CL_TYPE_A
 			l_proc_name: READABLE_STRING_8
-			l_call: IV_PROCEDURE_CALL
 			l_ownership_handler: E2B_CUSTOM_OWNERSHIP_HANDLER
-			l_feature: E2B_FEATURE_I
 			l_expr_translator: E2B_BODY_EXPRESSION_TRANSLATOR
 			l_builtin_collector: E2B_BUILTIN_CALLS_COLLECTOR
 			l_loc: IV_ENTITY
@@ -604,12 +608,14 @@ feature -- Translation: Implementation
 			set_context (a_feature, a_type)
 			set_inlining_options_for_feature (a_feature)
 
-			l_proc_name :=
-				if a_for_creator then
-					name_translator.boogie_procedure_for_creator (current_feature, current_type)
-				else
-					name_translator.boogie_procedure_for_feature (current_feature, current_type)
-				end
+			l_proc_name := inspect a_variant
+			when {E2B_FEATURE_VARIANT}.creator then
+				name_translator.boogie_procedure_for_creator (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.unqualified then
+				name_translator.boogie_procedure_for_unqualified (current_feature, current_type)
+			when {E2B_FEATURE_VARIANT}.qualified then
+				name_translator.boogie_procedure_for_qualified (current_feature, current_type)
+			end
 
 			l_procedure := boogie_universe.procedure_named (l_proc_name)
 
@@ -642,31 +648,6 @@ feature -- Translation: Implementation
 			l_expr_translator.set_context (a_feature, a_type)
 			l_expr_translator.set_context_implementation (l_implementation)
 
-				-- OWNERSHIP: start of routine body
-			if options.is_ownership_enabled then
-					-- Public procedures unwrap Current in the beginning, unless lemma or marked with explicit wrapping
-				if not a_for_creator and current_feature.is_public and not a_feature.has_return_value and
-					not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
-					create l_feature.make (system.any_type.base_class.feature_named ("unwrap"))
-					l_expr_translator.set_context_line_number (a_feature.body.start_location.line)
-
-					l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
-					l_implementation.body.statements.append (l_expr_translator.side_effect)
-					l_expr_translator.side_effect.wipe_out
-
-					l_call := factory.procedure_call ("unwrap", <<factory.std_current>>)
-					l_call.node_info.set_attribute ("default", "wrapping")
-					l_call.node_info.set_attribute ("cid", system.any_id.out)
-					l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
-					l_call.node_info.set_line (a_feature.body.start_location.line)
-					l_implementation.body.add_statement (l_call)
-
-					l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
-					l_implementation.body.statements.append (l_expr_translator.side_effect)
-					l_expr_translator.side_effect.wipe_out
-				end
-			end
-
 				-- Process statements (byte node tree)
 			current_feature.set_up_byte_context (current_type)
 			if attached Context.byte_code as l_byte_code then
@@ -696,31 +677,6 @@ feature -- Translation: Implementation
 						if l_builtin_collector.is_inv_unfriendly then
 							e2b_error.add_semantic_error (a_feature, messages.invalid_call_in_friendly_function, -1)
 						end
-					end
-				end
-			end
-
-				-- OWNERSHIP: end of routine body
-			if options.is_ownership_enabled then
-				if not current_feature.is_explicit ("wrapping") and not a_feature.is_lemma and not a_feature.is_nonvariant then
-					if a_for_creator or current_feature.is_public and not a_feature.has_return_value then
-						create l_feature.make (system.any_type.base_class.feature_named ("wrap"))
-						l_expr_translator.set_context_line_number (a_feature.body.end_location.line)
-
-						l_ownership_handler.pre_builtin_call (l_expr_translator, l_feature)
-						l_implementation.body.statements.append (l_expr_translator.side_effect)
-						l_expr_translator.side_effect.wipe_out
-
-						l_call := factory.procedure_call ("wrap", <<factory.std_current>>)
-						l_call.node_info.set_attribute ("default", "wrapping")
-						l_call.node_info.set_attribute ("cid", system.any_id.out)
-						l_call.node_info.set_attribute ("rid", l_feature.rout_id_set.first.out)
-						l_call.node_info.set_line (a_feature.body.end_location.line)
-						l_implementation.body.add_statement (l_call)
-
-						l_ownership_handler.post_builtin_call (l_expr_translator, l_feature)
-						l_implementation.body.statements.append (l_expr_translator.side_effect)
-						l_expr_translator.side_effect.wipe_out
 					end
 				end
 			end
@@ -785,11 +741,14 @@ feature -- Translation: Functions
 			if not a_feature.is_functional then
 					-- Add a postcondition to the corresponding procedure connecting it to the function
 					-- (so that properties claimed about the function can be traced back to the procedure result).
-				l_proc := boogie_universe.procedure_named (name_translator.boogie_procedure_for_feature (current_feature, current_type))
-				check attached l_proc and then not l_proc.results.is_empty end
-				create l_post.make (factory.equal (l_proc.results.first.entity, l_fcall))
-				l_post.set_free
-				l_proc.add_contract (l_post)
+				across << {E2B_FEATURE_VARIANT}.qualified, {E2B_FEATURE_VARIANT}.unqualified >> as v loop
+					l_proc := boogie_universe.procedure_named (
+					name_translator.boogie_procedure_for_feature_variant (current_feature, current_type, v))
+					check attached l_proc and then not l_proc.results.is_empty end
+					create l_post.make (factory.equal (l_proc.results.first.entity, l_fcall))
+					l_post.set_free
+					l_proc.add_contract (l_post)
+				end
 			end
 
 				-- Generate frame axiom, unless function reads universe
@@ -871,11 +830,6 @@ feature -- Translation: Functions
 			end
 				-- Body
 			l_body := pre_post_expressions_of (a_feature, a_type, l_mapping).pre
-			if not l_is_logical then
-				across ownership_default (False, l_mapping) as defs loop
-					l_body := factory.and_clean (l_body, defs.expression)
-				end
-			end
 			l_pre_function.set_body (l_body)
 --			l_free_pre_function.set_body (l_free_body)
 			boogie_universe.add_declaration (l_pre_function)
@@ -953,15 +907,9 @@ feature -- Translation: Functions
 			across l_function.arguments as a loop
 				l_fcall.add_argument (a.entity)
 			end
-			if a_read and not a_feature.is_invariant_unfriendly then
-				create l_forall.make (factory.implies_ (
-						factory.is_heap (l_translator.entity_mapping.heap),
-						frame_definition (l_exprs, l_fcall, <<factory.entity ("closed", types.field (types.bool)), factory.entity ("owner", types.field (types.ref))>>)))
-			else
-				create l_forall.make (factory.implies_ (
-						factory.is_heap (l_translator.entity_mapping.heap),
-						frame_definition (l_exprs, l_fcall, <<>>)))
-			end
+			create l_forall.make (factory.implies_ (
+					factory.is_heap (l_translator.entity_mapping.heap),
+					frame_definition (l_exprs, l_fcall)))
 			across l_function.arguments as a loop
 				l_forall.add_bound_variable (a.entity)
 			end
@@ -1285,10 +1233,6 @@ feature -- Translation: agents
 			create l_binop1.make (l_typeof, "<:", l_type_value, types.bool)
 
 			l_post := l_contracts.post
-			across ownership_default (False, l_mapping) as defs loop
-				l_post := factory.and_clean (l_post, defs.expression)
-			end
-
 			create l_binop2.make (l_fcall, "==>", l_post, types.bool)
 			create l_binop3.make (l_binop1, "==>", l_binop2, types.bool)
 

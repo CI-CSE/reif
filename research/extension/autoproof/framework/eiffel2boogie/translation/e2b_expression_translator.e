@@ -738,10 +738,23 @@ feature -- Visitors
 			if l_handler /= Void then
 				process_special_feature_call (l_handler, l_feature, a_node.parameters)
 			else
-				process_routine_call (l_feature, a_node.parameters, False)
+				process_routine_call (l_feature, a_node.parameters, call_variant (a_node))
 			end
 
 			current_target_type := l_current_type
+		end
+
+	call_variant (routine: ROUTINE_B): E2B_FEATURE_VARIANT
+			-- Variant of the routine call represented by `routine`.
+		do
+			if attached {NESTED_B} routine.parent as nested then
+				check attached nested.target as t then
+					create Result.qualified
+				end
+			else
+				-- No parent, it is just a call to feature, so unqualified
+				create Result.unqualified
+			end
 		end
 
 	process_feature_b (a_node: FEATURE_B)
@@ -761,12 +774,12 @@ feature -- Visitors
 					process_attribute_call (l_feature)
 				elseif l_feature.is_constant then
 					check
-						from_condition: attached {CONSTANT_I} l_feature as l_constant
+						from_condition: attached {CONSTANT_I} l_feature.c_feature as l_constant
 					then
 						process_constant_call (l_constant)
 					end
 				elseif l_feature.is_routine then
-					process_routine_call (l_feature, a_node.parameters, False)
+					process_routine_call (l_feature, a_node.parameters, call_variant (a_node))
 				else
 						-- TODO: what else is there?
 					check False end
@@ -930,6 +943,7 @@ feature -- Visitors
 				if not options.is_full_coverage_test_generation_enabled then
 					add_void_call_check (a_node)
 				end
+
 
 
 					-- Evaluate message with original expression
@@ -1183,7 +1197,7 @@ feature -- Translation
 			end
 		end
 
-	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_for_creator: BOOLEAN)
+	process_routine_call (a_feature: E2B_FEATURE_I; a_parameters: BYTE_LIST [PARAMETER_B]; a_variant: E2B_FEATURE_VARIANT)
 			-- Process feature call.
 		require
 			not_attribute: a_feature.is_routine

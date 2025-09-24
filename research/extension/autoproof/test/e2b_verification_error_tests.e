@@ -43,7 +43,7 @@ feature -- multi_line_message
 
 			verify
 
-			check attached {E2B_FAILED_VERIFICATION} verification_result as r then
+			check attached {E2B_FAILED_VERIFICATION} result_of_feature ("demo", "unqualified") as r then
 				assert_equal ("3 errors", 3, r.errors.count)
 
 				create formatter
@@ -110,8 +110,10 @@ feature -- multi_line_message
 
 			verify
 
-			assert ("Result is failure", attached {E2B_FAILED_VERIFICATION} verification_result)
-			check attached {E2B_FAILED_VERIFICATION} verification_result as r then
+			assert_feature_unverified ("test", << "unqualified" >>)
+			check
+				attached failure_of_feature ("test", "unqualified") as r
+			then
 				assert_equal ("Has one error", 1, r.errors.count)
 				create formatter
 				r.errors [1].multi_line_message (formatter)
@@ -183,7 +185,7 @@ feature -- multi_line_message
 
 			verify
 
-			r := failure_of_feature ("test")
+			r := failure_of_feature ("test", "unqualified")
 			assert ("Has failure for test", r /= Void)
 			create formatter
 			r.errors [1].multi_line_message (formatter)
@@ -191,13 +193,13 @@ feature -- multi_line_message
 			assert ("Has is singleton", formatter.buffer.has_substring ("Singleton(1)"))
 			assert ("Has length", formatter.buffer.has_substring ("Length = 0"))
 
-			r := failure_of_feature ("test_arg")
+			r := failure_of_feature ("test_arg", "unqualified")
 			assert ("Has failure for test_arg", r /= Void)
 			create formatter
 			r.errors [1].multi_line_message (formatter)
 			assert ("Has a length", formatter.buffer.has_substring ("Length = 2"))
 
-			r := failure_of_feature ("test_items")
+			r := failure_of_feature ("test_items", "unqualified")
 			assert ("Has failure for test_items", r /= Void)
 			create formatter
 			r.errors [1].multi_line_message (formatter)
@@ -231,13 +233,11 @@ feature -- multi_line_message
 
 			verify
 
-			r := failure_of_feature ("test_empty")
+			r := failure_of_feature ("test_empty", "unqualified")
 			create formatter
 			r.errors [1].multi_line_message (formatter)
 			assert ("Has set empty",
 				formatter.buffer.has_substring ("set = <intType>Set#Empty()"))
-			assert ("Has subjects empty",
-				formatter.buffer.has_substring ("subjects = <refType>Set#Empty()"))
 		end
 
 	field_names_example
@@ -280,7 +280,7 @@ feature -- multi_line_message
 
 			verify
 
-			r := failure_of_feature ("test")
+			r := failure_of_feature ("test", "unqualified")
 			create formatter
 			r.errors [1].multi_line_message (formatter)
 
@@ -288,13 +288,10 @@ feature -- multi_line_message
 				formatter.buffer.has_substring ("the_field = 1"))
 		end
 
-	failure_of_feature (name: STRING): detachable E2B_FAILED_VERIFICATION
+	failure_of_feature (name, context: STRING): detachable E2B_FAILED_VERIFICATION
 		do
-			across verification_results as r until Result /= Void loop
-				if attached {E2B_FAILED_VERIFICATION} r as e
-					and then e.context_feature.feature_name ~ name then
-					Result := e
-				end
+			if attached {E2B_FAILED_VERIFICATION} result_of_feature (name, context) as r then
+				Result := r
 			end
 		end
 end

@@ -59,11 +59,8 @@ feature
 
 			verify
 
-			assert_equal ("Has 2 verification results", 2, verification_results.count)
-			across verification_results as res loop
-				assert ("Result " + @ res.cursor_index.out + " is sucess",
-					attached {E2B_SUCCESSFUL_VERIFICATION} res)
-			end
+			assert_feature_verified ("non_void_call", << "qualified", "unqualified" >>)
+			assert_feature_verified ("non_void_contract", << "qualified", "unqualified" >>)
 		end
 end
 

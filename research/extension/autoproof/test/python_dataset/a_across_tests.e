@@ -41,7 +41,6 @@ feature
 
 			verify
 
-			assert ("Verification result success",
-				attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_feature_verified ("set_across", << "qualified", "unqualified" >>)
 		end
 end

@@ -229,7 +229,7 @@ end
 
 				verify
 
-				assert ("Verification succeeds", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+				assert_feature_verified ("demo", << "qualified", "unqualified" >>)
 			end
 	instance_free
 		do
@@ -288,6 +288,6 @@ end
 
 			verify
 
-			assert ("Verification succeeds", attached {E2B_SUCCESSFUL_VERIFICATION} verification_result)
+			assert_feature_verified ("demo", << "qualified", "unqualified" >>)
 		end
 end
