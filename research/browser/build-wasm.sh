@@ -63,8 +63,14 @@ if [[ $target == ecb ]]; then
     data="$build/eiffel"
     mkdir -p "$data/library" "$data/studio"
     cp -R "$source_dir/library/"{base,encoding} "$data/library/"
+    autoproof="$browser_dir/../extension/autoproof"
+    # AutoProof expects the ownership and model features in its EiffelBase.
+    cp -R "$autoproof/library/base/." "$data/library/base/"
     cp -R "$studio/"{built_ins,config,eifinit,help} "$data/studio/"
-    link_flags+=" --pre-js \"$browser_dir/compiler-pre.js\" --preload-file \"$data@/eiffel\""
+    theory="$data/studio/tools/autoproof"
+    mkdir -p "$theory"
+    cp "$autoproof/"*.bpl "$theory/"
+    link_flags+=" --pre-js \"$browser_dir/compiler-pre.js\" --preload-file \"$data@/eiffel\" --js-library \"$browser_dir/browser-boogie-library.js\""
 
     # The finalized compiler only references the C libraries listed above.
     # Skip the desktop include probe in its generated makefiles.
@@ -102,7 +108,7 @@ sed -i "s/ -o $target / -o $target.js /" Makefile
 make -j "${JOBS:-4}" "$target" EXTERNALS="$external_objects" CCLDFLAGS="$link_flags"
 cp "$target.js" "$target.wasm" "$output/"
 if [[ $target == ecb ]]; then
-    cp ecb.data "$browser_dir/compiler-worker.js" "$output/"
+    cp ecb.data "$browser_dir/"{compiler-worker.js,boogie-channel.mjs,verify-project.mjs} "$output/"
 else
     cp "$browser_dir/smoke/"{index.html,worker.js} "$output/"
 fi

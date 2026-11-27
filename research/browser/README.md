@@ -1,23 +1,17 @@
 # Headless REIF in WebAssembly
 
-The prototype runs the finalized REIF batch compiler in a Chromium Web Worker. It can check Eiffel source and report compiler diagnostics. It ships EiffelBase and the compiler resources needed for the sample project.
+REIF compiles Eiffel and translates it to Boogie in a browser worker. Boogie runs on the .NET WebAssembly runtime and sends SMT queries to a Z3 worker. REIF produces the usual AutoProof report and reads counterexample models from Z3.
 
 ## Build and test
 
-Use a native REIF build to generate finalized C. Generate the batch target from [AutoProof's ECF](../extension/autoproof/autoproof.ecf) for the compiler, or use the `smoke/hello.ecf` project for the runtime test.
-
-On Linux with Emscripten 4.0.10 active and Python Playwright with Chromium installed, run from the REIF root.
+Generate finalized C using the native AutoProof batch target in [autoproof.ecf](../extension/autoproof/autoproof.ecf). Use Emscripten 4.0.10, the .NET 8 SDK with `wasm-tools`, Node with npm, and Python Playwright with Chromium.
 
 ```sh
-research/browser/build-wasm.sh ecb path/to/EIFGENs/batch/F_code /tmp/reif-ecb
-python3 research/browser/test_browser.py ecb /tmp/reif-ecb
-
-research/browser/build-wasm.sh hello path/to/EIFGENs/hello/F_code /tmp/reif-hello
-python3 research/browser/test_browser.py hello /tmp/reif-hello
+research/browser/build-wasm.sh ecb path/to/EIFGENs/batch/F_code /tmp/reif-browser
+research/browser/build-boogie.sh /tmp/reif-browser/boogie
+python3 research/browser/test_browser.py proof /tmp/reif-browser
 ```
 
-The compiler test checks a two-class project and expects `VJAR` after an incompatible assignment. The runtime test exercises generic arrays and exception recovery. The worker prototype covers the Eiffel compilation phase. AutoProof's Boogie process and the native C toolchain still need browser integration.
+Serve the bundle with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Import `verifyProject(files, args, {signal, timeoutMs})` from `verify-project.mjs`. Pass filenames and source text in `files`, including the ECF. The result contains the compiler output and timings for each Boogie call.
 
-## Measure incremental compilation
-
-Run `benchmark.py` from a fresh copy of `smoke/` with native `apb` on the path. It compares a new invocation with the existing `-loop` process after edits. Configure the same EiffelBase precompile in both runs when benchmarking the CodeForge VM.
+Use `test_browser.py ecb` to check type diagnostics. Use the `hello` target and `smoke/hello.ecf` to test the Eiffel runtime, including generic arrays and exception recovery. Run `benchmark.py` with native `apb` in a fresh copy of `smoke/` to compare new invocations with the `-loop` process after edits.
