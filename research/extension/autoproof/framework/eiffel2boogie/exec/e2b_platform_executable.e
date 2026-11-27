@@ -167,44 +167,48 @@ feature {NONE} -- Implementation
 			l_context: E2B_SHARED_CONTEXT
 			l_plain_text_file: PLAIN_TEXT_FILE
 		do
-			create l_context
-
-				-- Prepare command line arguments
-			create l_arguments.make
-			l_arguments.extend ({STRING_32} "/trace")
-			if l_context.options.is_enforcing_timeout then
-				l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
-			end
-			l_arguments.extend ({STRING_32} "/errorLimit:0")
-			l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
-				-- l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand)
-			l_arguments.extend (boogie_file_name.name)
-
-				-- Launch Boogie
-			create l_ee
-			create l_process_factory
-			if {PLATFORM}.is_windows then
-				process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
-				process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
-			elseif {PLATFORM}.is_unix then
-				process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
-				process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+			if is_browser then
+				launch_browser_boogie (-1)
 			else
-				check False end
-			end
+				create l_context
 
-			process.enable_launch_in_new_process_group
-			create l_plain_text_file.make_with_path (boogie_output_file_name)
-			l_plain_text_file.open_write
-			l_plain_text_file.close
-			process.redirect_output_to_file (boogie_output_file_name.name)
-			process.redirect_error_to_same_as_output
-			process.set_on_terminate_handler (agent handle_terminated)
-			process.set_on_exit_handler (agent handle_terminated)
+					-- Prepare command line arguments
+				create l_arguments.make
+				l_arguments.extend ({STRING_32} "/trace")
+				if l_context.options.is_enforcing_timeout then
+					l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
+				end
+				l_arguments.extend ({STRING_32} "/errorLimit:0")
+				l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
+					-- l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand)
+				l_arguments.extend (boogie_file_name.name)
 
-			process.launch
-			if a_wait_for_exit then
-				process.wait_for_exit
+					-- Launch Boogie
+				create l_ee
+				create l_process_factory
+				if {PLATFORM}.is_windows then
+					process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
+					process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+				elseif {PLATFORM}.is_unix then
+					process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
+					process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+				else
+					check False end
+				end
+
+				process.enable_launch_in_new_process_group
+				create l_plain_text_file.make_with_path (boogie_output_file_name)
+				l_plain_text_file.open_write
+				l_plain_text_file.close
+				process.redirect_output_to_file (boogie_output_file_name.name)
+				process.redirect_error_to_same_as_output
+				process.set_on_terminate_handler (agent handle_terminated)
+				process.set_on_exit_handler (agent handle_terminated)
+
+				process.launch
+				if a_wait_for_exit then
+					process.wait_for_exit
+				end
 			end
 		end
 
@@ -217,43 +221,47 @@ feature {NONE} -- Implementation
 			l_context: E2B_SHARED_CONTEXT
 			l_plain_text_file: PLAIN_TEXT_FILE
 		do
-			create l_context
-				-- Prepare command line arguments
-			create l_arguments.make
-			l_arguments.extend ({STRING_32} "/trace")
-			if l_context.options.is_enforcing_timeout then
-				l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
-			end
-			l_arguments.extend ({STRING_32} "/errorLimit:0")
-			l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
-			l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand_seed.out)
-			l_arguments.extend (boogie_file_name.name)
-
-				-- Launch Boogie
-			create l_ee
-			create l_process_factory
-			if {PLATFORM}.is_windows then
-				process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
-				process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
-			elseif {PLATFORM}.is_unix then
-				process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
-				process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+			if is_browser then
+				launch_browser_boogie (rand_seed)
 			else
-				check False end
-			end
+				create l_context
+					-- Prepare command line arguments
+				create l_arguments.make
+				l_arguments.extend ({STRING_32} "/trace")
+				if l_context.options.is_enforcing_timeout then
+					l_arguments.extend ({STRING_32} "/z3opt:/T:" + l_context.options.timeout.out)
+				end
+				l_arguments.extend ({STRING_32} "/errorLimit:0")
+				l_arguments.extend ({STRING_32} "/mv:" + model_file_name.name)
+				l_arguments.extend ({STRING_32} "/proverOpt:O:smt.random_seed =" + rand_seed.out)
+				l_arguments.extend (boogie_file_name.name)
 
-			process.enable_launch_in_new_process_group
-			create l_plain_text_file.make_with_path (boogie_output_file_name)
-			l_plain_text_file.open_write
-			l_plain_text_file.close
-			process.redirect_output_to_file (boogie_output_file_name.name)
-			process.redirect_error_to_same_as_output
-			process.set_on_terminate_handler (agent handle_terminated)
-			process.set_on_exit_handler (agent handle_terminated)
+					-- Launch Boogie
+				create l_ee
+				create l_process_factory
+				if {PLATFORM}.is_windows then
+					process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
+					process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+				elseif {PLATFORM}.is_unix then
+					process := l_process_factory.process_launcher (boogie_executable, l_arguments, l_ee.current_working_path.name)
+					process.set_on_fail_launch_handler (agent handle_launch_failed (boogie_executable, l_arguments))
+				else
+					check False end
+				end
 
-			process.launch
-			if a_wait_for_exit then
-				process.wait_for_exit
+				process.enable_launch_in_new_process_group
+				create l_plain_text_file.make_with_path (boogie_output_file_name)
+				l_plain_text_file.open_write
+				l_plain_text_file.close
+				process.redirect_output_to_file (boogie_output_file_name.name)
+				process.redirect_error_to_same_as_output
+				process.set_on_terminate_handler (agent handle_terminated)
+				process.set_on_exit_handler (agent handle_terminated)
+
+				process.launch
+				if a_wait_for_exit then
+					process.wait_for_exit
+				end
 			end
 		end
 
@@ -268,6 +276,53 @@ feature {NONE} -- Implementation
 			if not autoproof_errors.has (l_error) then
 				autoproof_errors.extend (l_error)
 			end
+		end
+
+	launch_browser_boogie (a_seed: INTEGER)
+			-- Verify with the browser's Boogie worker and read its report.
+		local
+			l_input, l_output, l_model: C_STRING
+			l_context: E2B_SHARED_CONTEXT
+			l_timeout: INTEGER
+		do
+			create l_context
+			if l_context.options.is_enforcing_timeout then
+				l_timeout := l_context.options.timeout
+			end
+			create l_input.make (boogie_file_name.utf_8_name)
+			create l_output.make (boogie_output_file_name.utf_8_name)
+			create l_model.make (model_file_name.utf_8_name)
+			c_run_browser_boogie (l_input.item, l_output.item, l_model.item, l_timeout, a_seed)
+			internal_last_model := Void
+			read_output
+			read_models
+		end
+
+	is_browser: BOOLEAN
+			-- Does this executable run under Emscripten?
+		external
+			"C inline"
+		alias
+			"[
+			#ifdef __EMSCRIPTEN__
+				return EIF_TRUE;
+			#else
+				return EIF_FALSE;
+			#endif
+			]"
+		end
+
+	c_run_browser_boogie (a_input, a_output, a_model: POINTER; a_timeout, a_seed: INTEGER)
+			-- Exchange the proof input and output with the browser.
+		external
+			"C inline"
+		alias
+			"[
+			#ifdef __EMSCRIPTEN__
+				extern void reif_browser_boogie(const char *, const char *, const char *, int, int);
+				reif_browser_boogie($a_input, $a_output, $a_model, $a_timeout, $a_seed);
+			#endif
+			]"
 		end
 
 	handle_terminated

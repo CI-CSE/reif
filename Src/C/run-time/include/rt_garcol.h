@@ -90,7 +90,7 @@ extern "C" {
 #ifdef WORKBENCH
 #define DISP(x,y) call_disp(x,y)
 #else
-#define DISP(x,y) ((void *(*)(EIF_REFERENCE))Dispose(x))(y)
+#define DISP(x,y) ((void (*)(EIF_REFERENCE))Dispose(x))(y)
 #endif
 
 #ifdef EIF_THREADS

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" name="hello" uuid="3d8579c1-3b3f-455a-a367-c39a3fa805b8">
+  <target name="hello">
+    <root class="APPLICATION" feature="make"/>
+    <setting name="console_application" value="true"/>
+    <capability><concurrency support="none"/><void_safety support="none"/></capability>
+    <library name="base" location="$ISE_LIBRARY/library/base/base.ecf"/>
+    <cluster name="application" location="./"/>
+  </target>
+</system>

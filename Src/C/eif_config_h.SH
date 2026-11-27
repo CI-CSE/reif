@@ -727,6 +727,7 @@ $inttypes_include
 #define EIF_ARCH_VAX		13
 #define EIF_ARCH_ALPHA		14
 #define EIF_ARCH_IA64		15
+#define EIF_ARCH_WASM32		16
 
 /* Define EIF_ARCH value */
 #define EIF_ARCH $eif_arch

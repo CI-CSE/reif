@@ -1,0 +1,314 @@
+diff --git a/Source/BoogieDriver/BoogieDriver.cs b/Source/BoogieDriver/BoogieDriver.cs
+index 0456764..7433aa5 100644
+--- a/Source/BoogieDriver/BoogieDriver.cs
++++ b/Source/BoogieDriver/BoogieDriver.cs
+@@ -15,6 +15,10 @@ public static int Main(string[] args)
+ 
+       CommandLineOptions.Install(new CommandLineOptions());
+       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
++      if (OperatingSystem.IsBrowser())
++      {
++        CommandLineOptions.Clo.TheProverFactory = new SMTLib.Factory();
++      }
+ 
+       if (!CommandLineOptions.Clo.Parse(args))
+       {
+diff --git a/Source/Core/ResolutionContext.cs b/Source/Core/ResolutionContext.cs
+index de7c0ab..9dab9e1 100644
+--- a/Source/Core/ResolutionContext.cs
++++ b/Source/Core/ResolutionContext.cs
+@@ -60,12 +60,13 @@ public virtual void Error(IToken tok, string msg)
+       errors++;
+       if (errorSink == null)
+       {
+-        ConsoleColor col = Console.ForegroundColor;
+-        Console.ForegroundColor = ConsoleColor.Red;
++        bool useColor = !OperatingSystem.IsBrowser();
++        ConsoleColor col = useColor ? Console.ForegroundColor : default;
++        if (useColor) Console.ForegroundColor = ConsoleColor.Red;
+         Console.WriteLine("{0}({1},{2}): Error: {3}",
+           tok.filename, tok.line, tok.col - 1,
+           msg);
+-        Console.ForegroundColor = col;
++        if (useColor) Console.ForegroundColor = col;
+       }
+       else
+       {
+@@ -100,12 +101,13 @@ public virtual void Warning(IToken tok, string msg)
+       Contract.Requires(msg != null);
+       Contract.Requires(tok != null);
+       // warnings are currently always written to the console
+-      ConsoleColor col = Console.ForegroundColor;
+-      Console.ForegroundColor = ConsoleColor.DarkYellow;
++      bool useColor = !OperatingSystem.IsBrowser();
++      ConsoleColor col = useColor ? Console.ForegroundColor : default;
++      if (useColor) Console.ForegroundColor = ConsoleColor.DarkYellow;
+       Console.WriteLine("{0}({1},{2}): Warning: {3}",
+         tok.filename, tok.line, tok.col - 1,
+         msg);
+-      Console.ForegroundColor = col;
++      if (useColor) Console.ForegroundColor = col;
+     }
+ 
+     public void Warning(IToken tok, string msg, params object[] args)
+diff --git a/Source/Directory.Build.props b/Source/Directory.Build.props
+index 6483ab8..d3fb492 100644
+--- a/Source/Directory.Build.props
++++ b/Source/Directory.Build.props
+@@ -3,7 +3,7 @@
+   <!-- Target framework and package configuration -->
+   <PropertyGroup>
+     <Version>2.11.1</Version>
+-    <TargetFramework>net6.0</TargetFramework>
++    <TargetFramework>net8.0</TargetFramework>
+     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+     <Authors>Boogie</Authors>
+     <RepositoryUrl>https://github.com/boogie-org/boogie</RepositoryUrl>
+diff --git a/Source/ExecutionEngine/ExecutionEngine.cs b/Source/ExecutionEngine/ExecutionEngine.cs
+index 4fa92fb..078972c 100644
+--- a/Source/ExecutionEngine/ExecutionEngine.cs
++++ b/Source/ExecutionEngine/ExecutionEngine.cs
+@@ -52,6 +52,12 @@ public void ErrorWriteLine(TextWriter tw, string s)
+         s = s.Substring(0, i);
+       }
+ 
++      if (OperatingSystem.IsBrowser())
++      {
++        tw.WriteLine(s);
++        if (remaining != null) tw.WriteLine(remaining);
++        return;
++      }
+       ConsoleColor col = Console.ForegroundColor;
+       Console.ForegroundColor = ConsoleColor.Red;
+       tw.WriteLine(s);
+@@ -75,6 +81,11 @@ public void ErrorWriteLine(TextWriter tw, string format, params object[] args)
+     public void AdvisoryWriteLine(string format, params object[] args)
+     {
+       Contract.Requires(format != null);
++      if (OperatingSystem.IsBrowser())
++      {
++        Console.WriteLine(format, args);
++        return;
++      }
+       ConsoleColor col = Console.ForegroundColor;
+       Console.ForegroundColor = ConsoleColor.Yellow;
+       Console.WriteLine(format, args);
+@@ -403,14 +414,14 @@ public static int AutoRequestId(string id)
+ 
+     public readonly static VerificationResultCache Cache = new VerificationResultCache();
+ 
+-    static readonly MemoryCache programCache = new MemoryCache("ProgramCache");
++    static readonly MemoryCache programCache = OperatingSystem.IsBrowser() ? null : new MemoryCache("ProgramCache");
+ 
+-    static readonly CacheItemPolicy policy = new CacheItemPolicy
++    static readonly CacheItemPolicy policy = OperatingSystem.IsBrowser() ? null : new CacheItemPolicy
+       {SlidingExpiration = new TimeSpan(0, 10, 0), Priority = CacheItemPriority.Default};
+ 
+     public static Program CachedProgram(string programId)
+     {
+-      var result = programCache.Get(programId) as Program;
++      var result = programCache?.Get(programId) as Program;
+       return result;
+     }
+ 
+@@ -1067,7 +1078,7 @@ public static PipelineOutcome InferAndVerify(Program program,
+       if (1 < CommandLineOptions.Clo.VerifySnapshots && programId != null)
+       {
+         program.FreezeTopLevelDeclarations();
+-        programCache.Set(programId, program, policy);
++        programCache?.Set(programId, program, policy);
+       }
+ 
+       if (0 <= CommandLineOptions.Clo.VerifySnapshots && CommandLineOptions.Clo.TraceCachingForBenchmarking)
+diff --git a/Source/ExecutionEngine/ThreadTaskScheduler.cs b/Source/ExecutionEngine/ThreadTaskScheduler.cs
+index 88ef27f..9ce66f9 100644
+--- a/Source/ExecutionEngine/ThreadTaskScheduler.cs
++++ b/Source/ExecutionEngine/ThreadTaskScheduler.cs
+@@ -35,6 +35,12 @@ protected override void QueueTask(Task task)
+       //
+       // Boogie creates tasks which in turn create tasks and wait on them.
+       // So throttling tasks via a queue risks deadlock.
++      if (System.OperatingSystem.IsBrowser())
++      {
++        TryExecuteTask(task);
++        return;
++      }
++
+       Thread th = new Thread(TaskMain, stackSize);
+       th.Start(task);
+     }
+diff --git a/Source/ExecutionEngine/VerificationResultCache.cs b/Source/ExecutionEngine/VerificationResultCache.cs
+index 38e5431..f068ac7 100644
+--- a/Source/ExecutionEngine/VerificationResultCache.cs
++++ b/Source/ExecutionEngine/VerificationResultCache.cs
+@@ -669,9 +669,9 @@ static internal class Priority
+ 
+   public sealed class VerificationResultCache
+   {
+-    private readonly MemoryCache Cache = new MemoryCache("VerificationResultCache");
++    private readonly MemoryCache Cache = OperatingSystem.IsBrowser() ? null : new MemoryCache("VerificationResultCache");
+ 
+-    private readonly CacheItemPolicy Policy = new CacheItemPolicy
++    private readonly CacheItemPolicy Policy = OperatingSystem.IsBrowser() ? null : new CacheItemPolicy
+       {SlidingExpiration = new TimeSpan(0, 10, 0), Priority = CacheItemPriority.Default};
+ 
+ 
+@@ -680,7 +680,7 @@ public void Insert(Implementation impl, VerificationResult result)
+       Contract.Requires(impl != null);
+       Contract.Requires(result != null);
+ 
+-      Cache.Set(impl.Id, result, Policy);
++      Cache?.Set(impl.Id, result, Policy);
+     }
+ 
+ 
+@@ -688,7 +688,7 @@ public VerificationResult Lookup(Implementation impl, out int priority)
+     {
+       Contract.Requires(impl != null);
+ 
+-      var result = Cache.Get(impl.Id) as VerificationResult;
++      var result = Cache?.Get(impl.Id) as VerificationResult;
+       if (result == null)
+       {
+         priority = Priority.HIGH;
+@@ -716,7 +716,7 @@ public VerificationResult Lookup(Implementation impl, out int priority)
+ 
+     public void Clear()
+     {
+-      Cache.Trim(100);
++      Cache?.Trim(100);
+     }
+ 
+ 
+@@ -724,6 +724,7 @@ public void RemoveMatchingKeys(Regex keyRegexp)
+     {
+       Contract.Requires(keyRegexp != null);
+ 
++      if (Cache == null) return;
+       foreach (var kv in Cache)
+       {
+         if (keyRegexp.IsMatch(kv.Key))
+diff --git a/Source/Provers/SMTLib/SMTLib.csproj b/Source/Provers/SMTLib/SMTLib.csproj
+index e9d63e2..37d5c7b 100644
+--- a/Source/Provers/SMTLib/SMTLib.csproj
++++ b/Source/Provers/SMTLib/SMTLib.csproj
+@@ -2,6 +2,7 @@
+ 
+   <PropertyGroup>
+     <OutputType>Library</OutputType>
++    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+     <AssemblyName>Boogie.Provers.SMTLib</AssemblyName>
+   </PropertyGroup>
+ 
+diff --git a/Source/Provers/SMTLib/SMTLibProcess.cs b/Source/Provers/SMTLib/SMTLibProcess.cs
+index 4b6496b..7fe54db 100644
+--- a/Source/Provers/SMTLib/SMTLibProcess.cs
++++ b/Source/Provers/SMTLib/SMTLibProcess.cs
+@@ -12,6 +12,8 @@ namespace Microsoft.Boogie.SMTLib
+   public class SMTLibProcess
+   {
+     readonly Process prover;
++    readonly BrowserSolver browserSolver;
++    readonly StringBuilder browserInput = new StringBuilder();
+     readonly Inspector inspector;
+     readonly SMTLibProverOptions options;
+     readonly Queue<string> proverOutput = new Queue<string>();
+@@ -27,6 +29,12 @@ public SMTLibProcess(SMTLibOptions libOptions, SMTLibProverOptions options)
+       this.options = options;
+       smtProcessId = smtProcessIdSeq++;
+ 
++      if (OperatingSystem.IsBrowser())
++      {
++        browserSolver = new BrowserSolver();
++        return;
++      }
++
+       var psi = new ProcessStartInfo(options.ExecutablePath(), options.SolverArguments.Concat(" "))
+       {
+         CreateNoWindow = true,
+@@ -111,7 +119,14 @@ public void Send(string cmd)
+         Console.WriteLine("[SMT-INP-{0}] {1}", smtProcessId, log);
+       }
+ 
+-      toProver.WriteLine(cmd);
++      if (browserSolver != null)
++      {
++        browserInput.AppendLine(cmd);
++      }
++      else
++      {
++        toProver.WriteLine(cmd);
++      }
+     }
+ 
+     // this is less than perfect; (echo ...) would be better
+@@ -168,7 +183,22 @@ internal Inspector Inspector
+ 
+     public SExpr GetProverResponse()
+     {
+-      toProver.Flush();
++      if (browserSolver != null)
++      {
++        if (browserInput.Length > 0)
++        {
++          using var response = new StringReader(browserSolver.Evaluate(browserInput.ToString()));
++          browserInput.Clear();
++          for (var line = response.ReadLine(); line != null; line = response.ReadLine())
++          {
++            proverOutput.Enqueue(line);
++          }
++        }
++      }
++      else
++      {
++        toProver.Flush();
++      }
+ 
+       while (true)
+       {
+@@ -252,6 +282,12 @@ public SExpr GetProverResponse()
+ 
+     public void Close()
+     {
++      if (browserSolver != null)
++      {
++        browserSolver.Dispose();
++        return;
++      }
++
+       try
+       {
+         TotalUserTime += prover.UserProcessorTime;
+@@ -464,6 +500,11 @@ IEnumerable<SExpr> ParseSExprs(bool top)
+ 
+     string ReadProver()
+     {
++      if (browserSolver != null)
++      {
++        return proverOutput.Count == 0 ? null : proverOutput.Dequeue();
++      }
++
+       string error = null;
+       while (true)
+       {
+diff --git a/Source/VCGeneration/Checker.cs b/Source/VCGeneration/Checker.cs
+index 8ed791b..892bbf6 100644
+--- a/Source/VCGeneration/Checker.cs
++++ b/Source/VCGeneration/Checker.cs
+@@ -346,7 +346,15 @@ public void BeginCheck(string descriptiveName, VCExpr vc, ProverInterface.ErrorH
+       thmProver.BeginCheck(descriptiveName, vc, handler);
+       //  gen.ClearSharedFormulas();    PR: don't know yet what to do with this guy
+ 
+-      ProverTask = Task.Factory.StartNew(() => { WaitForOutput(null); }, TaskCreationOptions.LongRunning);
++      if (OperatingSystem.IsBrowser())
++      {
++        WaitForOutput(null);
++        ProverTask = Task.CompletedTask;
++      }
++      else
++      {
++        ProverTask = Task.Factory.StartNew(() => { WaitForOutput(null); }, TaskCreationOptions.LongRunning);
++      }
+     }
+ 
+     public ProverInterface.Outcome ReadOutcome()
