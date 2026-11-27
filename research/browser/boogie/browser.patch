@@ -13,6 +13,44 @@ index 0456764..7433aa5 100644
  
        if (!CommandLineOptions.Clo.Parse(args))
        {
+diff --git a/Source/Core/ResolutionContext.cs b/Source/Core/ResolutionContext.cs
+index de7c0ab..9dab9e1 100644
+--- a/Source/Core/ResolutionContext.cs
++++ b/Source/Core/ResolutionContext.cs
+@@ -60,12 +60,13 @@ public virtual void Error(IToken tok, string msg)
+       errors++;
+       if (errorSink == null)
+       {
+-        ConsoleColor col = Console.ForegroundColor;
+-        Console.ForegroundColor = ConsoleColor.Red;
++        bool useColor = !OperatingSystem.IsBrowser();
++        ConsoleColor col = useColor ? Console.ForegroundColor : default;
++        if (useColor) Console.ForegroundColor = ConsoleColor.Red;
+         Console.WriteLine("{0}({1},{2}): Error: {3}",
+           tok.filename, tok.line, tok.col - 1,
+           msg);
+-        Console.ForegroundColor = col;
++        if (useColor) Console.ForegroundColor = col;
+       }
+       else
+       {
+@@ -100,12 +101,13 @@ public virtual void Warning(IToken tok, string msg)
+       Contract.Requires(msg != null);
+       Contract.Requires(tok != null);
+       // warnings are currently always written to the console
+-      ConsoleColor col = Console.ForegroundColor;
+-      Console.ForegroundColor = ConsoleColor.DarkYellow;
++      bool useColor = !OperatingSystem.IsBrowser();
++      ConsoleColor col = useColor ? Console.ForegroundColor : default;
++      if (useColor) Console.ForegroundColor = ConsoleColor.DarkYellow;
+       Console.WriteLine("{0}({1},{2}): Warning: {3}",
+         tok.filename, tok.line, tok.col - 1,
+         msg);
+-      Console.ForegroundColor = col;
++      if (useColor) Console.ForegroundColor = col;
+     }
+ 
+     public void Warning(IToken tok, string msg, params object[] args)
 diff --git a/Source/Directory.Build.props b/Source/Directory.Build.props
 index 6483ab8..d3fb492 100644
 --- a/Source/Directory.Build.props
